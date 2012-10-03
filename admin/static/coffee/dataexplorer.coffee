@@ -39,7 +39,6 @@ module 'DataExplorerView', ->
         has_been_initialized:
             value: false #We use that boolean to track if suggestions['stream'] has been append to suggestions['table']
         map_state:
-            '': ''
             'r': 'r'
             'db': 'db'
             'table': 'table'
@@ -53,6 +52,7 @@ module 'DataExplorerView', ->
             'reduce': 'stream'
             'pluck': 'stream'
             'extend': 'array'
+            'expr': 'expr'
             'R': 'expr'
             'add': 'expr'
             'sub': 'expr'
@@ -70,242 +70,60 @@ module 'DataExplorerView', ->
             'or': 'expr'
             'range': 'stream'
 
+
+        descriptions:
+            'get(': 'get( id )'
+            'filter(': 'filter ( predicate )'
+            'length(': 'length()'
+            'map(': 'map( attribute )'
+            'slice(': 'slice'
+            'orderby(': 'orderby( expression )'
+            'distinct(': 'distinct( expression )'
+            'pluck(': 'pluck('
+            'extend(': 'extend( object )'
+            'pickAttrs(': 'pickAttrs('
+            'del(': 'del()'
+            'table(': 'table( table_name )'
+            'list(': 'list()'
+            'create(': 'create('
+            'drop(': 'drop('
+            'insert(': 'insert( document )'
+            'dbCreate(': 'dbCreate( database_name )'
+            'db(': 'db( database_name )'
+            'dbDrop(': 'dbDrop( database_name )'
+            'dbList(': 'dbList('
+            'expr(':'expr( expression )'
+            'fn(': 'fn( argument..., body )'
+            'ifThenElse(': 'ifThenElse( expression, callback_true, callback_false)'
+            'let(': 'let( arguments..., body)'
+            'length(': 'Return the length of the array'
+            'limit(': 'limit( number )'
+            'r': 'The main ReQL namespace'
+            'R(': 'R ( attribute_string )'
+            'add': 'add( expression )'
+            'sub(': 'sub( expression )'
+            'mul(': 'mul( expression )'
+            'div(': 'div( expression )'
+            'mod(': 'mod( expression )'
+            'eq(': 'eq( expression )'
+            'ne(': 'ne( expression )'
+            'lt(': 'lt( expression )'
+            'le(': 'le( expression )'
+            'gt(': 'gt( expression )'
+            'ge(': 'ge( expression )'
+            'not(': 'not( expression )'
+            'and(': 'and( expression )'
+            'or(': 'or( expression )'
+
         suggestions:
-            stream: [
-                {
-                    suggestion: 'get()'
-                    description: 'get( id )'
-                    has_argument: true
-                }
-                {
-                    suggestion: 'filter()'
-                    description: 'filter( predicate )'
-                    has_argument: true
-                }
-                {
-                    suggestion: 'length()'
-                    description: 'length()'
-                    has_argument: false
-                }
-                {
-                    suggestion: 'map()'
-                    description: 'map( attribute )'
-                    has_argument: true
-                }
-                {
-                    suggestion: 'slice()'
-                    description: 'slice( start, end )'
-                    has_argument: true
-                }
-                {
-                    suggestion: 'orderby()'
-                    description: 'orderby( expression )'
-                    has_argument: true
-                }
-                {
-                    suggestion: 'distinct()'
-                    descriptior: 'distinct( expression )'
-                    has_argument: true
-                }
-                {
-                    suggestion: 'reduce()'
-                    description: 'reduce( expression )'
-                    has_argument: true
-                }
-                {
-                    suggestion: 'pluck()'
-                    description: 'pluck( expression )'
-                    has_argument: true
-                }
-                {
-                    suggestion: 'extend()'
-                    description: 'extend( expression )'
-                    has_argument: true
-                }
-            ]
-            view:[
-                {
-                    suggestion: 'pickAttrs()'
-                    description: 'pickAttrs( key )'
-                    has_argument: true
-                }
-                {
-                    suggestion: 'del()'
-                    description: 'del()'
-                    has_argument: false
-                }
-            ]
-            db:[
-                {
-                    suggestion: 'table()'
-                    description: 'table( table_name )'
-                    has_argument: true
-                }
-                {
-                    suggestion: 'list()'
-                    description: 'list()'
-                    has_argument: false
-                }
-                {
-                    suggestion: 'create()'
-                    description: 'create( database_name, primary_datacenter_id )'
-                    has_argument: true
-                }
-                {
-                    suggestion: 'drop()'
-                    description: 'drop()'
-                    has_argument: false
-                }
-            ]
-            table:[
-                {
-                    suggestion: 'insert()'
-                    description: 'insert( document )'
-                    has_argument: true
-                }
-                
-            ]
-            r:[
-                {
-                    suggestion: 'dbCreate()'
-                    description: 'dbCreate( database_name )'
-                    has_argument: true
-                }
-                {
-                    suggestion: 'dbDrop()'
-                    description: 'dbDrop( database_name )'
-                    has_argument: true
-                }
-                {
-                    suggestion: 'dbList()'
-                    description: 'dbList()'
-                    has_argument: false
-                }
-                {
-                    suggestion: 'expr()'
-                    description:'expr( expression )'
-                    has_argument: true
-                }
-                {
-                    suggestion: 'fn()'
-                    description: 'fn( argument..., body )'
-                    has_argument: true
-                }
-                {
-                    suggestion: 'ifThenElse()'
-                    description: 'ifThenElse( expression, callback_true, callback_false)'
-                    has_argument: true
-                }
-                {
-                    suggestion: 'let()'
-                    description: 'let( arguments..., body)'
-                    has_argument: true
-                }
-
-            ]
-            array :[
-                {
-                    suggestion: 'length()'
-                    description : 'Return the length of the array'
-                    has_argument: false
-                }
-                {
-                    suggestion: 'limit()'
-                    description : 'limit( number )'
-                    has_argument: true
-                }
-            ]
-            "" :[
-                {
-                    suggestion: 'r'
-                    description : 'The main ReQL namespace'
-                    has_argument: false
-                }
-                {
-                    suggestion: 'r()'
-                    description : 'Variable'
-                    has_argument: true
-                }
-
-                {
-                    suggestion: 'R()'
-                    description : 'Attribute Selector'
-                    has_argument: true
-                }
-            ]
-            expr: [
-                {
-                    suggestion: 'add()'
-                    description: 'add( expression )'
-                    has_argument: true
-                }
-                {
-                    suggestion: 'sub()'
-                    description: 'sub( expression )'
-                    has_argument: true
-                }
-                {
-                    suggestion: 'mul()'
-                    description: 'mul( expression )'
-                    has_argument: true
-                }
-                {
-                    suggestion: 'div()'
-                    description: 'div( expression )'
-                    has_argument: true
-                }
-                {
-                    suggestion: 'mod()'
-                    description: 'mod( expression )'
-                    has_argument: true
-                }
-                {
-                    suggestion: 'eq()'
-                    description: 'eq( expression )'
-                    has_argument: true
-                }
-                {
-                    suggestion: 'ne()'
-                    description: 'ne( expression )'
-                    has_argument: true
-                }
-                {
-                    suggestion: 'lt()'
-                    description: 'lt( expression )'
-                    has_argument: true
-                }
-                {
-                    suggestion: 'le()'
-                    description: 'le( expression )'
-                    has_argument: true
-                }
-                {
-                    suggestion: 'gt()'
-                    description: 'gt( expression )'
-                    has_argument: true
-                }
-                {
-                    suggestion: 'ge()'
-                    description: 'ge( expression )'
-                    has_argument: true
-                }
-                {
-                    suggestion: 'not()'
-                    description: 'not( expression )'
-                    has_argument: true
-                }
-                {
-                    suggestion: 'and()'
-                    description: 'and( expression )'
-                    has_argument: true
-                }
-                {
-                    suggestion: 'or()'
-                    description: 'or( expression )'
-                    has_argument: true
-                }
-
-            ]
+            stream: ['get(' ,'filter(', 'length(', 'map(', 'slice(', 'orderby(', 'distinct(', 'reduce(', 'pluck(', 'extend(']
+            view:['pickAttrs(', 'del(']
+            db:['table(', 'list(', 'create(', 'drop(']
+            table:['insert(']
+            r:['db(', 'dbCreate(', 'dbDrop(', 'dbList(','expr(', 'fn(', 'ifThenElse(', 'let(']
+            array :['length(', 'limit(']
+            "" :['r', 'R(']
+            expr: ['add(', 'sub(', 'mul(', 'div(', 'mod(', 'eq(', 'ne(', 'lt(', 'le(', 'gt(', 'ge(', 'not(', 'and(', 'or(']
 
         # We have to keep track of a lot of things because web-kit browsers handle the events keydown, keyup, blur etc... in a strange way.
         current_suggestions: []
@@ -327,7 +145,8 @@ module 'DataExplorerView', ->
             @.$('.suggestion_name_li').removeClass 'suggestion_name_li_hl'
             @.$('.suggestion_name_li').eq(id).addClass 'suggestion_name_li_hl'
 
-            @.$('.suggestion_description').html @current_suggestions[id].description
+            @.$('.suggestion_description').html @descriptions[@current_suggestions[id]]
+
             @show_suggestion_description()
 
 
@@ -347,8 +166,6 @@ module 'DataExplorerView', ->
                 start_line_index += 1
             
             ch = (@query_first_part + @current_completed_query + suggestion_to_write).length - start_line_index
-            if @.$(event.target).data('has_argument') is true
-                ch--
 
             @cursor =
                 line: saved_cursor.line
@@ -365,15 +182,22 @@ module 'DataExplorerView', ->
         hide_suggestion: =>
             @.$('.suggestion_name_list').css 'display', 'none'
             @hide_suggestion_description()
+            @current_suggestions = []
 
         hide_suggestion_description: ->
             @.$('.suggestion_description').html ''
             @.$('.suggestion_description').css 'display', 'none'
 
+        line_height: 13
+
         show_suggestion: ->
+            margin = ((@codemirror.getCursor().line+1)*@line_height) + 'px'
+            @.$('.suggestion_full_container').css 'margin-top', margin
             @.$('.suggestion_name_list').css 'display', 'block'
 
         show_suggestion_description: ->
+            margin = ((@codemirror.getCursor().line+1)*@line_height) + 'px'
+            @.$('.suggestion_full_container').css 'margin-top', margin
             @.$('.suggestion_description').css 'display', 'block'
 
 
@@ -402,16 +226,14 @@ module 'DataExplorerView', ->
 
                     if @current_suggestions[@current_highlighted_suggestion]?
                         @highlight_suggestion @current_highlighted_suggestion
-                        @write_suggestion @current_suggestions[@current_highlighted_suggestion].suggestion
+                        @write_suggestion @current_suggestions[@current_highlighted_suggestion]
                 
                         start_line_index = (@query_first_part + @current_completed_query).lastIndexOf('\n')
                         if start_line_index is -1
                             start_line_index = 0
                         else
                             start_line_index += 1
-                        position = (@query_first_part + @current_completed_query + @current_suggestions[@current_highlighted_suggestion].suggestion).length - start_line_index 
-                        if @current_suggestions[@current_highlighted_suggestion].has_argument is true
-                            position--
+                        position = (@query_first_part + @current_completed_query + @current_suggestions[@current_highlighted_suggestion]).length - start_line_index 
                         @position_cursor
                             line: saved_cursor.line
                             ch: position
@@ -453,9 +275,27 @@ module 'DataExplorerView', ->
                     else
                         query_after_cursor += query_lines[i]
 
-            # Check if we are in a string
+
+            # Check if we are in a string or in the middle of a word
             if @is_in_string(query_before_cursor) is true
                 @hide_suggestion()
+                last_function_for_description = @extract_last_function_for_description(query_before_cursor)
+                if last_function_for_description isnt ''
+                    @add_description last_function_for_description
+                return ''
+            
+            # We do not suggest things if in the middle of a word
+            index_next_character = 0
+            while query_after_cursor[index_next_character]?
+                if /\s/.test(query_after_cursor[index_next_character]) is false
+                    next_non_white_character = query_after_cursor[index_next_character]
+                    break
+                index_next_character++
+            if next_non_white_character? and next_non_white_character isnt '.' and next_non_white_character isnt ')'
+                @hide_suggestion()
+                last_function_for_description = @extract_last_function_for_description(query_before_cursor)
+                if last_function_for_description isnt ''
+                    @add_description last_function_for_description
                 return ''
 
             slice_index = @extract_query_first_part query_before_cursor
@@ -467,29 +307,65 @@ module 'DataExplorerView', ->
 
             last_function = @extract_last_function(query)
             if @map_state[last_function]? and @suggestions[@map_state[last_function]]?
-                suggestions = []
-                for suggestion in @suggestions[@map_state[last_function]]
-                    suggestions.push suggestion
-                if last_function is 'r'
-                    for database in databases.models
-                        suggestions.unshift
-                            suggestion: 'db(\''+database.get('name')+'\')'
-                            description: 'Select database '+database.get('name')
-                else if last_function is 'db'
-                    for namespace in namespaces.models
-                        suggestions.unshift
-                            suggestion: 'table(\''+namespace.get('name')+'\')'
-                            description: 'Select table '+namespace.get('name')
-
-                if suggestions.length is 0
+                if not @suggestions[@map_state[last_function]]? or @suggestions[@map_state[last_function]].length is 0
                     @hide_suggestion()
+                    last_function_for_description = @extract_last_function_for_description(query_before_cursor)
+
+                    if last_function_for_description isnt ''
+                        @add_description last_function_for_description
                 else
-                    @append_suggestion(query, suggestions)
+                    @append_suggestion(query, @suggestions[@map_state[last_function]])
             else
                 @hide_suggestion()
+                last_function_for_description = @extract_last_function_for_description(query_before_cursor)
+
+                if last_function_for_description isnt ''
+                    @add_description last_function_for_description
 
             return false
-        
+
+        add_description: (fn) =>
+            if @descriptions[fn]?
+                @.$('.suggestion_description').html @descriptions[fn]
+                @.$('.suggestion_description').css 'display', 'block'
+
+        extract_last_function_for_description: (query) =>
+            # query = query_before_cursor
+            count_dot = 0
+            num_not_open_parenthesis = 0
+
+            is_string = false
+            char_used = ''
+            for i in [query.length-1..0] by -1
+                if is_string is false
+                    if (query[i] is '"' or query[i] is '\'')
+                        #is_string = true
+                        char_used = query[i]
+                    else if query[i] is '(' and num_not_open_parenthesis is 0
+                        num_not_open_parenthesis--
+                        end = i+1
+                    else if query[i] is '(' and num_not_open_parenthesis isnt 0
+                        return query.slice i+1, end
+                    else if query[i] is ')'
+                        return ''
+                    else if query[i] is '.' and num_not_open_parenthesis is 0
+                        return ''
+                    else if query[i] is '.' and num_not_open_parenthesis isnt 0
+                        return query.slice i+1, end
+                ###
+                else if is_string is true
+                    if query[i] is char_used
+                        if query[i-1]? and query[i-1] is '\\'
+                            continue
+                        else
+                            is_string = false
+                ###
+            if end?
+                return query.slice 0, end
+
+            return ''
+
+
         is_in_string: (query) ->
             is_string = false
             char_used = ''
@@ -591,15 +467,14 @@ module 'DataExplorerView', ->
             pattern = new RegExp('^('+element_currently_written+')', 'i')
             @current_suggestions = []
             for suggestion, i in suggestions
-                if pattern.test(suggestion.suggestion)
-                    if splitdata[splitdata.length-1] is suggestion.suggestion
+                if pattern.test(suggestion)
+                    if splitdata[splitdata.length-1] is suggestion
                         continue # Skip the case when we have an exact match including parenthesis
                     found_suggestion = true
                     @current_suggestions.push suggestion
                     @.$('.suggestion_name_list').append @template_suggestion_name 
                         id: i
-                        has_argument: suggestion.has_argument
-                        suggestion: suggestion.suggestion
+                        suggestion: suggestion
 
             if found_suggestion
                 @show_suggestion()
@@ -884,7 +759,7 @@ module 'DataExplorerView', ->
                 lineWrapping: true
                 matchBrackets: true
 
-            @codemirror.setSize '100%', 100
+            @codemirror.setSize '100%', 'auto'
 
         toggle_size: =>
             if @displaying_full_view
@@ -907,12 +782,10 @@ module 'DataExplorerView', ->
             @display_normal()
             @input_query.destroy()
             @results_view.destroy()
-            ###
             try
                 window.conn.close()
             catch err
                 #console.log 'Could not destroy connection'
-            ###
             clearTimeout @timeout
     
     class @InputQuery extends Backbone.View

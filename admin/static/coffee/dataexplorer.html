@@ -24,17 +24,18 @@
 
 <script id="dataexplorer_input_query-template" type="text/x-handlebars-template">
     <div class="input_query_container" >
+        <div class="suggestion_full_container">
+            <div class="suggestion_list_container">
+                <ul class="suggestion_name_list"></ul>
+            </div>
+            <div class="suggestion_description"></div>
+        </div>
+
+
         <textarea class="input_query" id="input_query"></textarea>
         <div class="button_container">
             <input type="button" value="execute" class="btn button_query execute_query" />
             <input type="button" value="clear" class="btn button_query clear_query" />
-        </div>
-
-        <div class="suggestion_full_container">
-        <div class="suggestion_list_container">
-            <ul class="suggestion_name_list"></ul>
-        </div>
-        <div class="suggestion_description"></div>
         </div>
 
     </div>

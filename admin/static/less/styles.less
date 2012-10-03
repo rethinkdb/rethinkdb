@@ -644,6 +644,38 @@ body:before {
         margin-bottom: 25px;
     }
     .query_control{
+        .suggestion_full_container{
+            position: absolute;
+            top: 87px;
+            left: 26px;
+            width: 888px;
+            background: #fff;
+            z-index: 100;
+
+            .suggestion_name_list{
+                display: none;
+                padding: 0px;
+                margin: 0px 0px 9px 0px;
+                border: 1px solid #ddd;
+                .suggestion_name_li{
+                    display: inline-block;
+                    margin: 5px 0px;
+                    padding: 0px 5px;
+                    min-width: 103px;
+                    min-height: 18px;
+                    cursor: pointer;
+                }
+                .suggestion_name_li_hl{
+                    color: red;
+                }
+            }
+            .suggestion_description{
+                display: none;
+                padding: 5px;
+                margin: 0px;
+                border: 1px solid #ddd;
+            }
+        }
         .input_query_container{
             font: @monospace;
 
@@ -671,35 +703,7 @@ body:before {
                     .border-radius(4px);
                 }
             }
-            .suggestion_full_container{
-                /*position: absolute;
-                width: 900px;
-                background: #fff;
-                */
-                .suggestion_name_list{
-                    display: none;
-                    padding: 0px;
-                    margin: 0px 0px 9px 0px;
-                    border: 1px solid #ddd;
-                    .suggestion_name_li{
-                        display: inline-block;
-                        margin: 0px;
-                        padding: 5px 5px;
-                        min-width: 103px;
-                        min-height: 18px;
-                        cursor: pointer;
-                    }
-                    .suggestion_name_li_hl{
-                        color: red;
-                    }
-                }
-                .suggestion_description{
-                    display: none;
-                    padding: 5px;
-                    margin: 0px 0px 9px 0px;
-                    border: 1px solid #ddd;
-                }
-            }
+
         }
         .loading_query{
             text-align: center;
