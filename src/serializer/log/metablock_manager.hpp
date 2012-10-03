@@ -25,7 +25,7 @@
 
 
 
-#define MB_NEXTENTS 2
+#define MB_NEXTENTS 1
 #define MB_EXTENT_SEPARATION 4 /* !< every MB_EXTENT_SEPARATIONth extent is for MB, up to MB_NEXTENTS many */
 #define MB_BLOCKS_PER_EXTENT 4
 
