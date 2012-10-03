@@ -336,6 +336,17 @@ class LiteralObject(ExpressionInner):
     def pretty_print(self, printer):
         return ("{" + ", ".join(repr(k) + ": " + printer.expr_unwrapped(v, ["key:%s" % k]) for k, v in self.value.iteritems()) + "}", PRETTY_PRINT_EXPR_UNWRAPPED)
 
+class RdbError(ExpressionInner):
+    def __init__(self, msg):
+        self.msg = msg;
+
+    def _write_ast(self, parent, opts):
+        parent.type = p.Term.ERROR
+        parent.error = self.msg;
+
+    def pretty_print(self, printer):
+        return ("error('"+self.msg+"')", PRETTY_PRINT_EXPR_WRAPPED)
+
 class Javascript(ExpressionInner):
     def __init__(self, body):
         self.body = body
@@ -618,7 +629,7 @@ class OrderBy(ExpressionInner):
     def pretty_print(self, printer):
         return ("%s.orderby(%s)" % (
                 printer.expr_wrapped(self.parent, ["arg:0"]),
-                ", ".join(repr(attr) for attr in self.ordering)),
+                printer.simple_string(", ".join(repr(attr) for attr in self.ordering), ["order_by"])),
             PRETTY_PRINT_EXPR_WRAPPED)
 
 class Range(ExpressionInner):
@@ -680,8 +691,8 @@ class If(ExpressionInner):
     def pretty_print(self, printer):
         return ("if_then_else(%s, %s, %s)" % (
                 printer.expr_unwrapped(self.test, ["test"]),
-                printer.expr_unwrapped(self.true_branch, ["true_branch"]),
-                printer.expr_unwrapped(self.false_branch, ["false_branch"])),
+                printer.expr_unwrapped(self.true_branch, ["true"]),
+                printer.expr_unwrapped(self.false_branch, ["false"])),
             PRETTY_PRINT_EXPR_WRAPPED)
 
 class Map(ExpressionInner):
@@ -807,8 +818,8 @@ class Table(ExpressionInner):
         self.table._write_ref_ast(parent.table.table_ref, opts)
 
     def pretty_print(self, printer):
-        res = ''
+        res = ""
         if self.table.db_expr:
             res += "db(%r)." % self.table.db_expr.db_name
         res += "table(%r)" % self.table.table_name
-        return (res, PRETTY_PRINT_EXPR_WRAPPED)
+        return (printer.simple_string(res, ['table_ref']), PRETTY_PRINT_EXPR_WRAPPED)

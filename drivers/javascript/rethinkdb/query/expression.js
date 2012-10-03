@@ -889,9 +889,13 @@ rethinkdb.Expression.prototype.orderby = function(var_args) {
             if (!bt) {
                 return self.formatQuery()+".orderby("+os.join(', ')+")";
             } else {
-                goog.asserts.assert(bt[0] === 'arg:0');
-                bt.shift();
-                return self.formatQuery(bt)+spaceify_(".orderby("+os.join(', ')+")");
+                var a = bt.shift();
+                if (a === 'order_by') {
+                    return spaceify_(self.formatQuery()+".orderby(")+carrotify_(os.join(', '))+" ";
+                } else {
+                    goog.asserts.assert(bt[0] === 'arg:0');
+                    return self.formatQuery(bt)+spaceify_(".orderby("+os.join(', ')+")");
+                }
             }
         },
         function(builtin, opt_buildOpts) {
