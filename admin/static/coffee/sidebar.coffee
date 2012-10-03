@@ -13,27 +13,6 @@ module 'Sidebar', ->
             @issues = new Sidebar.Issues()
             @issues_banner = new Sidebar.IssuesBanner()
 
-            window.app.on 'all', @render
-
-        compute_data: =>
-            data_temp = {}
-            for database in databases.models
-                data_temp[database.get('id')] = []
-            for namespace in namespaces.models
-                data_temp[namespace.get('database')].push
-                    name: namespace.get('name')
-                    database: databases.get(namespace.get('database')).get 'name'
-
-            data = {}
-            data['databases'] = []
-            for database_id of data_temp
-                if data_temp[database_id].length > 0
-                    data['databases'].push
-                        name: databases.get(database_id).get 'name'
-                        namespaces: data_temp[database_id]
-
-            return data
-
         render: =>
             @.$el.html @template({})
 
@@ -45,9 +24,15 @@ module 'Sidebar', ->
             # Render issue summary and issue banner
             @.$('.issues').html @issues.render().el
             @.$('.issues-banner').html @issues_banner.render().el
+            return @
 
         destroy: =>
-            window.app.off 'all', @render
+            @client_connectivity_status.destroy()
+            @servers_connected.destroy()
+            @datacenters_connected.destroy()
+            @issues.destroy()
+            @issues_banner.destroy()
+
 
     # Sidebar.ClientConnectionStatus
     class @ClientConnectionStatus extends Backbone.View
@@ -56,28 +41,23 @@ module 'Sidebar', ->
 
         initialize: =>
             connection_status.on 'all', @render
-            datacenters.on 'all', @render
             machines.on 'all', @render
+            @data = ''
 
         render: =>
-            connected_machine = machines.get(connection_status.get('contact_machine_id'))
-            json =
+            data =
                 disconnected: connection_status.get('client_disconnected')
+                machine_name: machines.get(connection_status.get('contact_machine_id')).get 'name' if connection_status.get('contact_machine_id')? and machines.get(connection_status.get('contact_machine_id'))?
 
-            # If we're connected to a machine, get its machine name
-            if connected_machine?
-                json['machine_name'] = connected_machine.get('name')
-                # If the machine is assigned to a datacenter, include it
-                assigned_datacenter = datacenters.get(connected_machine.get('datacenter_uuid'))
-                json['datacenter_name'] = if assigned_datacenter? then assigned_datacenter.get('name') else 'Unassigned'
-
-            @.$el.html @template json
+            data_in_json = JSON.stringify data
+            if @data isnt data_in_json
+                @.$el.html @template data
+                @data = data_in_json
 
             return @
 
         destroy: =>
             connection_status.off 'all', @render
-            datacenters.off 'all', @render
             machines.off 'all', @render
 
     # Sidebar.ServersConnected
@@ -88,11 +68,19 @@ module 'Sidebar', ->
             # Rerender every time some relevant info changes
             directory.on 'all', @render
             machines.on 'all', @render
+            @data = ''
 
         render: =>
-            @.$el.html @template
+            data =
                 servers_active: directory.length
                 servers_total: machines.length
+
+            data_in_json = JSON.stringify data
+            if @data isnt data_in_json
+                @.$el.html @template
+                    servers_active: directory.length
+                    servers_total: machines.length
+                @data = data_in_json
             return @
 
         destroy: =>
@@ -110,9 +98,10 @@ module 'Sidebar', ->
             machines.on 'all', @render
             datacenters.on 'all', @render
 
+            @data = ''
+
         compute_connectivity: =>
             if datacenters.length > 0
-                # data centers visible
                 dc_visible = []
                 directory.each (m) =>
                     _m = machines.get(m.get('id'))
@@ -132,11 +121,14 @@ module 'Sidebar', ->
             return conn
 
         render: =>
-            @.$el.html @template @compute_connectivity()
+            data = @compute_connectivity()
+            data_in_json = JSON.stringify data
+            if @data isnt data_in_json
+                @.$el.html @template data
+                @data = data_in_json
             return @
 
         destroy: =>
-            # Rerender every time some relevant info changes
             directory.off 'all', @render
             machines.off 'all', @render
             datacenters.off 'all', @render
@@ -148,10 +140,13 @@ module 'Sidebar', ->
 
         initialize: =>
             issues.on 'all', @render
+            @issues_length = -1
 
         render: =>
-            @.$el.html @template
-                num_issues: issues.length
+            if issues.length isnt @issues_length
+                @.$el.html @template
+                    num_issues: issues.length
+                @issues_length = issues.length
 
             return @
 
@@ -174,24 +169,36 @@ module 'Sidebar', ->
             # Get a list of all other issues (non-critical)
             other_issues = issues.filter (issue) -> not issue.get('critical')
             other_issues = _.groupBy other_issues, (issue) -> issue.get('type')
+    
+
+            reduced_issues = _.map(critical_issues, (issues, type) ->
+                json = {}
+                json[type] = true
+                json['num'] = issues.length
+                return json
+            )
+            if reduced_issues.length > 0
+                reduced_issues[0].is_first = true
+
+            
+            reduced_other_issues = _.map(other_issues, (issues, type) ->
+                json = {}
+                json[type] = true
+                json['num'] = issues.length
+                return json
+            )
+            if reduced_other_issues.length > 0
+                reduced_other_issues[0].is_first = true
 
             @.$el.html @template
                 critical_issues:
                     exist: _.keys(critical_issues).length > 0
-                    types: _.map(critical_issues, (issues, type) ->
-                        json = {}
-                        json[type] = true
-                        json['num'] = issues.length
-                        return json
-                    )
+                    num: _.keys(critical_issues).length
+                    data: reduced_issues
                 other_issues:
                     exist: _.keys(other_issues).length > 0
-                    types: _.map(other_issues, (issues, type) ->
-                        json = {}
-                        json[type] = true
-                        json['num'] = issues.length
-                        return json
-                    )
+                    num: _.keys(other_issues).length
+                    data: reduced_other_issues
                 no_issues: _.keys(critical_issues).length is 0 and _.keys(other_issues).length is 0
 
             return @

@@ -12,11 +12,6 @@ register_modal = (modal) -> modal_registry.push(modal)
 updateInterval = 5000
 statUpdateInterval = 1000
 
-declare_client_connected = ->
-    window.connection_status.set({client_disconnected: false})
-    clearTimeout(window.apply_diffs_timer)
-    window.apply_diffs_timer = setTimeout (-> window.connection_status.set({client_disconnected: true})), 2 * updateInterval
-
 # Check if new_data is included in old_data and if the values are equals. (Note: We don't check if the objects are equals)
 need_update_objects = (new_data, old_data) ->
     for key of new_data
@@ -78,8 +73,6 @@ reset_collections = () ->
 # Process updates from the server and apply the diffs to our view of the data.
 # Used by our version of Backbone.sync and POST / PUT responses for form actions
 apply_diffs = (updates) ->
-    declare_client_connected()
-
     if (not connection_status.get('contact_machine_id'))
         connection_status.set('contact_machine_id', updates["me"])
     else
@@ -183,10 +176,12 @@ collect_server_data_once = (async, optional_callback) ->
             if optional_callback?
                 optional_callback()
         error: ->
+            window.connection_status.set({client_disconnected: false})
             if window.is_disconnected?
                 window.is_disconnected.display_fail()
             else
                 window.is_disconnected = new IsDisconnected
+        timeout: updateInterval
 
     $.ajax
         contentType: 'application/json',
@@ -263,10 +258,6 @@ $ ->
         else
             triggered[event]+=1
 
-    # We need to reload data every updateInterval
-    #setInterval (-> Backbone.sync 'read', null), updateInterval
-    declare_client_connected()
-    
     # Collect the first time
     collect_server_data_once(true, collections_ready)
 
