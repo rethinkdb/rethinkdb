@@ -4,7 +4,7 @@ module 'DashboardView', ->
     # Cluster.Container
     class @Container extends Backbone.View
         template: Handlebars.compile $('#dashboard_view-template').html()
-        id: 'dashboard'
+        id: 'dashboard_container'
 
         initialize: =>
             log_initial '(initializing) dashboard container view'
