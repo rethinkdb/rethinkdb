@@ -290,13 +290,19 @@ class Connection():
 
         serialized = protobuf.SerializeToString()
 
-        header = struct.pack("<L", len(serialized))
-        self.socket.sendall(header + serialized)
-        resp_header = self._recvall(4)
-        msglen = struct.unpack("<L", resp_header)[0]
-        response_serialized = self._recvall(msglen)
-        response = p.Response()
-        response.ParseFromString(response_serialized)
+        while True:
+            header = struct.pack("<L", len(serialized))
+            self.socket.sendall(header + serialized)
+            resp_header = self._recvall(4)
+            msglen = struct.unpack("<L", resp_header)[0]
+            response_serialized = self._recvall(msglen)
+            response = p.Response()
+            response.ParseFromString(response_serialized)
+            if response.token == protobuf.token:
+                break
+            elif response.token > protobuf.token:
+                # The infamous ThisShouldNeverHappenException
+                raise RuntimeError("The server returned a response for a query that was never submitted.")
 
         if debug:
             print "response:", response
