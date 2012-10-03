@@ -1,10 +1,114 @@
 
 # Namespace view
 module 'NamespaceView', ->
-    # Replicas view
     class @Replicas extends Backbone.View
         className: 'namespace-replicas'
         template: Handlebars.compile $('#namespace_view-replica-template').html()
+        alert_tmpl: Handlebars.compile $('#changed_primary_dc-replica-template').html()
+
+        events: ->
+            'click .nav-tabs a': 'clicked_tab'
+
+        initialize: ->
+            datacenters.on 'add', =>
+                @build_datacenter_views()
+                @render()
+            datacenters.on 'remove', =>
+                @build_datacenter_views()
+                if not datacenters.get(@current_tab)?
+                    @current_tab = null
+                @render()
+            datacenters.on 'reset', =>
+                @build_datacenter_views()
+                if not datacenters.get(@current_tab)?
+                    @current_tab = null
+                @render()
+            datacenters.on 'change:name', =>
+                @build_datacenter_views()
+                @render()
+            @build_datacenter_views()
+
+        build_datacenter_views: =>
+            @datacenter_views = datacenters.map (datacenter) =>
+                new NamespaceView.DatacenterReplicas @model, datacenter
+            @datacenter_views.push new NamespaceView.DatacenterReplicas @model, universe_datacenter
+
+        render: =>
+            json = _.map _.union(datacenters.models, universe_datacenter), (datacenter) =>
+                    id: datacenter.get('id')
+                    name: datacenter.get('name')
+                    active: true if @current_tab is datacenter.get('id')
+
+            # if no tab has been clicked, open the first one
+            if not @current_tab?
+                json[0].active = true
+                @current_tab = json[0].id
+
+            @.$el.html @template
+                datacenters: json
+
+            # add each tab pane
+            for view in @datacenter_views
+                @.$(".datacenter-replicas.#{view.model.get('id')}").html view.render().el
+            return @
+
+        clicked_tab: (e) =>
+            @current_tab = $(e.target).data('datacenter')
+            console.log @current_tab
+
+        destroy: ->
+            @model.off 'all', @render
+            directory.off 'all', @render
+            progress_list.off 'all', @render
+
+    class @DatacenterReplicas extends Backbone.View
+        template: Handlebars.compile $('#namespace_view-datacenter_replica-template').html()
+
+        initialize: (table, model) ->
+            @table = table
+            @model = model
+
+            @model.on 'all', @render
+            directory.on 'all', @render
+            progress_list.on 'all', @render
+
+        render: =>
+            uuid = @model.get('id')
+
+            # basic info about the datacenter
+            json =
+                name: @model.get('name')
+                id: uuid
+
+            if uuid is universe_datacenter.get('id')
+                json = _.extend json,
+                    total_machines: machines.length
+                    acks: DataUtils.get_ack_expectations(@table.get('id'), @table.get('primary_uuid'))
+            else
+                json = _.extend json,
+                    total_machines: DataUtils.get_datacenter_machines(uuid).length
+                    acks: DataUtils.get_ack_expectations(@table.get('id'), uuid)
+                    status: DataUtils.get_namespace_status(@table.get('id'), uuid)
+                    primary: true if @table.get('primary_uuid') is uuid
+
+            if @table.get('replica_affinities')[uuid]?
+                json = _.extend json,
+                    secondary: true if uuid isnt @table.get('primary_uuid')
+                    replicas: @table.get('replica_affinities')[uuid]
+            else
+                json = _.extend json, { replicas: 0 }
+
+            @.$el.html @template json
+
+            return @
+
+        destroy: ->
+            @model.off 'all', @render
+
+    # Replicas view
+    class @OldReplicas extends Backbone.View
+        className: 'namespace-replicas'
+        template: Handlebars.compile $('#namespace_view-old_replica-template').html()
         alert_tmpl: Handlebars.compile $('#changed_primary_dc-replica-template').html()
 
         events:
@@ -28,7 +132,6 @@ module 'NamespaceView', ->
             modal.render()
 
         initialize: ->
-            # @model is a namespace.  somebody is supposed to pass model: namespace to the constructor.
             @model.on 'all', @render
             directory.on 'all', @render
             progress_list.on 'all', @render

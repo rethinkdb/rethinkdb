@@ -5,52 +5,49 @@
         <div class="span3">
             <div class="tabbable tabs-left">
                 <ul class="nav nav-tabs">
-                    <li class="active"><a href="#tab1" data-toggle="tab">Europe</a></li>
-                    <li><a href="#tab2" data-toggle="tab">Universe</a></li>
+                    {{#each datacenters}}
+                        <li{{#if active}} class="active"{{/if}}><a href="#tab_{{id}}" data-datacenter="{{id}}" data-toggle="tab" class>{{name}}</a></li>
+                    {{/each}}
                 </ul>
             </div>
         </div>
         <div class="span9">
             <div class="tab-content">
-                <div class="tab-pane active" id="tab1">
-                    <div class="dc-info">
-                        <p class="caption">Datacenter</p>
-                        <p class="value">North America</p>
+                {{#each datacenters}}
+                    <div class="tab-pane{{#if active}} active{{/if}}" id="tab_{{id}}">
+                        <div class="datacenter-replicas {{id}}"></div>
                     </div>
-                    <div class="dc-info">
-                        <p class="caption">Role</p>
-                        <p class="value">Primary</p>
-                    </div>
-                    <div class="dc-info">
-                        <p class="caption">Replicas</p>
-                        <p class="value">6</p>
-                    </div>
-                    <div class="dc-info">
-                        <p class="caption">Status</p>
-                        <p class="value">6 replicas</p>
-                    </div>
-                </div>
-                <div class="tab-pane" id="tab2">
-                    <div class="dc-info">
-                        <p class="caption">Datacenter</p>
-                        <p class="value">Universe</p>
-                    </div>
-                    <div class="dc-info">
-                        <p class="caption">Role</p>
-                        <p class="value">The almighty universe</p>
-                    </div>
-                    <div class="dc-info">
-                        <p class="caption">Replicas</p>
-                        <p class="value">8</p>
-                    </div>
-                    <div class="dc-info">
-                        <p class="caption">Status</p>
-                        <p class="value">8 replicas</p>
-                    </div>
-                </div>
+                {{/each}}
             </div>
         </div>
     </div>
+</script>
+<script id="namespace_view-datacenter_replica-template" type="text/x-handlebars-template">
+    <div class="dc-info">
+        <p class="caption">Datacenter</p>
+        <p class="value">{{name}}</p>
+    </div>
+    <div class="dc-info">
+        <p class="caption">Role</p>
+        <p class="value">
+            {{#if primary}}
+                Primary
+            {{else}}
+                Secondary
+            {{/if}}
+        </p>
+    </div>
+    <div class="dc-info">
+        <p class="caption">Replicas</p>
+        <p class="value">{{replicas}}</p>
+    </div>
+    <div class="dc-info">
+        <p class="caption">Status</p>
+        <p class="value">{{replicas}} replicas</p>
+    </div>
+</script>
+<script id="namespace_view-old_replica-template" type="text/x-handlebars-template">
+    <h2 class="title">Replication settings</h2>
     <table class="datacenters table">
         <tr>
             <th>Datacenter</th>

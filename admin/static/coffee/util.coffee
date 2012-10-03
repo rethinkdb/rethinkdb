@@ -123,9 +123,6 @@ Handlebars.registerHelper 'display_reasons_cannot_move', (reasons) ->
                 else
                     out += ', <a href="#tables/'+namespace_id+'">'+namespace_name+'</a>'
             out += '.</li>'
-
-
-                
             
     return new Handlebars.SafeString(out)
 
@@ -251,7 +248,6 @@ Handlebars.registerHelper 'display_truncated_machines', (data) ->
         if more_link_should_be_displayed is true and num_displayed_machine > 6
             more_link_should_be_displayed = false
             out += '<li class="more_machines"><a href="#" class="display_more_machines">» More</a></li>'
-
 
     return new Handlebars.SafeString(out)
 
