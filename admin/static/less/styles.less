@@ -603,6 +603,13 @@ body:before {
 */
 
 #log-view {
+    h1.title {
+        font-family: @serif;
+        color: #4d535c;
+        font-size: 19px;
+        margin-bottom: 25px;
+    }
+
     ul.log-entries {
         list-style-type: none;
         padding-left: 0;
@@ -613,7 +620,10 @@ body:before {
             background: left center no-repeat url('https://dl.dropbox.com/s/aintt5c3jlkd495/pencil_icon.png');
             padding: 20px 0 20px 55px;
             p { margin: 0; }
-            .message { font-size: 16px; }
+            .message {
+                font-size: 14px; 
+                font-family: @sans;
+            }
             .from-machine {
                 font-style: italic;
                 font-family: @sans;

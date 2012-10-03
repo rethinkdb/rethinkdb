@@ -11,9 +11,9 @@
 
 <script id="log-header-template" type="text/x-handlebars-template">
     {{#if from_date}}
-        <h1>Log entries <small>from {{from_date}} to {{to_date}}</small></h1>
+        <h1 class="title">Log entries <small>from {{from_date}} to {{to_date}}</small></h1>
     {{else}}
-        <h1>No logs found</h1>
+        <h1 class="title">No logs found</h1>
     {{/if}}
 
     {{#if new_entries}}
