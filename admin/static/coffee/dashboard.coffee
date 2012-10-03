@@ -41,7 +41,7 @@ module 'DashboardView', ->
 
         show_popover: (event) =>
             event.preventDefault()
-            @.$(event.currentTarget).popover('show')
+            @.$(event.currentTarget).popover('show') #That should be .target
             $popover = $('.popover')
 
             $popover.on 'clickoutside', (e) ->

@@ -328,38 +328,41 @@ body:before {
         border-spacing: 0;
         width: 100%;
     }
-    .cluster-status td.panel {
-        @bad: #e85250;
-        @good: #3ba51a;
+    .cluster-status{
+        overflow: auto;
+        .panel {
+            @bad: #e85250;
+            @good: #3ba51a;
+            float: left;
+            border-left: thin solid #dfdfdf;
+            padding: 20px;
+            width: 193px;
+            vertical-align: top;
 
-        border-left: thin solid #dfdfdf;
-        padding: 20px;
-        width: 25%;
-        vertical-align: top;
+            h3 {
+                margin-top: 0;
+                margin-bottom: 10px;
+                font-family: @serif;
+                font-size: 17px;
+                color: #4c4c4c;
+                padding-left: 21px;
+            }
+            &.no-problems-detected h3 { background: 0 3px no-repeat url('https://dl.dropbox.com/s/vgdhxkfem0856ge/green-light.png'); }
+            &.problems-detected h3 { background: 0 3px no-repeat url('https://dl.dropbox.com/s/pdoclcb9e7u8k4b/red-light.png'); }
 
-        h3 {
-            margin-top: 0;
-            margin-bottom: 10px;
-            font-family: @serif;
-            font-size: 17px;
-            color: #4c4c4c;
-            padding-left: 21px;
+            p {
+                font-family: @sans;
+                font-size: 14px;
+                line-height: 22px;
+                margin: 0;
+                color: #4c4c4c;
+                span.good { color: @good; }
+                span.bad { color: @bad; }
+                span.good, span.bad { font-weight: bold; }
+            }
+
+            &.first { border-left: none; }
         }
-        &.no-problems-detected h3 { background: 0 3px no-repeat url('https://dl.dropbox.com/s/vgdhxkfem0856ge/green-light.png'); }
-        &.problems-detected h3 { background: 0 3px no-repeat url('https://dl.dropbox.com/s/pdoclcb9e7u8k4b/red-light.png'); }
-
-        p {
-            font-family: @sans;
-            font-size: 14px;
-            line-height: 22px;
-            margin: 0;
-            color: #4c4c4c;
-            span.good { color: @good; }
-            span.bad { color: @bad; }
-            span.good, span.bad { font-weight: bold; }
-        }
-
-        &.first { border-left: none; }
     }
     #recent_logs_container {
         // This might have to be abstracted as a general button style (add some shadows and gradients when ready)
