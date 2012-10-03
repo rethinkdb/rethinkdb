@@ -2,7 +2,7 @@
 module 'ResolveIssuesView', ->
     # ResolveIssuesView.Container
     class @Container extends Backbone.View
-        className: 'resolve-issues'
+        className: 'resolve-issues section'
         template_outer: Handlebars.compile $('#resolve_issues-container-outer-template').html()
         template_inner: Handlebars.compile $('#resolve_issues-container-inner-template').html()
 
