@@ -42,6 +42,10 @@ public:
 
         void set_successful_due_to_conflict() { io_result = count; }
         bool get_succeeded() const { return io_result == static_cast<int64_t>(count); }
+        int get_errno() const {
+            rassert(io_result < 0);
+            return -io_result;
+        }
 
         std::string backtrace;
 
@@ -55,9 +59,7 @@ public:
         size_t count;
         off_t offset;
 
-        // TODO: io_result almost probably definitely should be an
-        // int64_t or was at some point, like in libaio.
-        int io_result;
+        int64_t io_result;
 
         void run();
         void done();

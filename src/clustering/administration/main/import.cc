@@ -73,6 +73,7 @@ bool run_json_import(extproc::spawner_t::info_t *spawner_info, peer_address_set_
     watchable_variable_t<cluster_directory_metadata_t> our_root_directory_variable(
         cluster_directory_metadata_t(
             machine_id,
+            connectivity_cluster.get_me(),
             get_ips(),
             stat_manager.get_address(),
             metadata_change_handler.get_request_mailbox_address(),

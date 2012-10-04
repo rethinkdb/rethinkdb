@@ -196,6 +196,8 @@ void conflict_resolving_diskmgr_t<payload_t>::done(payload_t *payload) {
                            reinterpret_cast<const char*>(action->get_buf()) + waiter->get_offset() - action->get_offset(),
                            waiter->get_count());
 
+                    waiter->set_successful_due_to_conflict();
+
                     /* Recursively calling done() is safe. "waiter" must end at or before
                     our current location, or else its conflict_count would still be nonzero.
                     Therefore it will not touch any part of the multimap that we have not

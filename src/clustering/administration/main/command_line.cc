@@ -103,10 +103,12 @@ void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins, int client_p
         else
             admin_command_parser_t(host_port, look_up_peers_addresses(joins), client_port, &sigint_cond).parse_and_run_command(command_args);
     } catch (const admin_no_connection_exc_t& ex) {
-        logERR("%s\n", ex.what());
-        logERR("valid --join option required to handle command, run 'rethinkdb admin help' for more information\n");
+        // Don't use logging, because we might want to printout multiple lines and such, which the log system doesn't like
+        fprintf(stderr, "%s\n", ex.what());
+        fprintf(stderr, "valid --join option required to handle command, run 'rethinkdb admin help' for more information\n");
+        *result_out = false;
     } catch (const std::exception& ex) {
-        logERR("%s\n", ex.what());
+        fprintf(stderr, "%s\n", ex.what());
         *result_out = false;
     }
 }
