@@ -2495,6 +2495,9 @@ void admin_cluster_link_t::do_admin_set_replicas_internal(const namespace_id_t& 
     }
 
     ns.replica_affinities.get_mutable()[dc_id] = num_replicas - (is_primary ? 1 : 0);
+    if (ns.replica_affinities.get_mutable()[dc_id] == 0) {
+        ns.replica_affinities.get_mutable().erase(dc_id);
+    }
     ns.replica_affinities.upgrade_version(change_request_id);
 }
 

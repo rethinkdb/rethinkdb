@@ -1,5 +1,6 @@
 import query
 import query_language_pb2 as p
+import bpdb
 
 ###################
 # PRETTY PRINTING #
@@ -205,7 +206,7 @@ class Update(WriteQueryInner):
     def pretty_print(self, printer):
         return "%s.update(%s)" % (
             printer.expr_wrapped(self.parent_view, ["view"]),
-            self.mapping._pretty_print(printer, ["mapping"]))
+            self.mapping._pretty_print(printer, ["modify_map"]))
 
 class Mutate(WriteQueryInner):
     def __init__(self, parent_view, mapping):
@@ -220,7 +221,7 @@ class Mutate(WriteQueryInner):
     def pretty_print(self, printer):
         return "%s.replace(%s)" % (
             printer.expr_wrapped(self.parent_view, ["view"]),
-            self.mapping._pretty_print(printer, ["mapping"]))
+            self.mapping._pretty_print(printer, ["modify_map"]))
 
 class PointDelete(WriteQueryInner):
     def __init__(self, parent_view):
@@ -231,7 +232,10 @@ class PointDelete(WriteQueryInner):
         self.parent_view._inner._write_point_ast(parent.point_delete, opts)
 
     def pretty_print(self, printer):
-        return "%s.delete()" % printer.expr_wrapped(self.parent_view, ["view"])
+        return "%s.get(%s, attr_name='%s').delete()" % (
+            printer.expr_wrapped(self.parent_view._inner.table, ["view"]),
+            printer.simple_string(self.parent_view._inner.attr_name, ["keyname"]),
+            printer.expr_unwrapped(self.parent_view._inner.key, ["key"]))
 
 class PointUpdate(WriteQueryInner):
     def __init__(self, parent_view, mapping):
@@ -244,9 +248,11 @@ class PointUpdate(WriteQueryInner):
         self.parent_view._inner._write_point_ast(parent.point_update, opts)
 
     def pretty_print(self, printer):
-        return "%s.update(%s)" % (
-            printer.expr_wrapped(self.parent_view, ["view"]),
-            self.mapping._pretty_print(printer, ["mapping"]))
+        return "%s.get(%s, attr_name='%s').update(%s)" % (
+            printer.expr_wrapped(self.parent_view._inner.table, ["view"]),
+            printer.expr_unwrapped(self.parent_view._inner.key, ["key"]),
+            printer.simple_string(self.parent_view._inner.attr_name, ["keyname"]),
+            self.mapping._pretty_print(printer, ["point_map"]))
 
 class PointMutate(WriteQueryInner):
     def __init__(self, parent_view, mapping):
@@ -259,9 +265,11 @@ class PointMutate(WriteQueryInner):
         self.parent_view._inner._write_point_ast(parent.point_mutate, opts)
 
     def pretty_print(self, printer):
-        return "%s.replace(%s)" % (
-            printer.expr_wrapped(self.parent_view, ["view"]),
-            self.mapping._pretty_print(printer, ["mapping"]))
+        return "%s.get(%s, attr_name='%s').replace(%s)" % (
+            printer.expr_wrapped(self.parent_view._inner.table, ["view"]),
+            printer.expr_unwrapped(self.parent_view._inner.key, ["key"]),
+            printer.simple_string(self.parent_view._inner.attr_name, ["keyname"]),
+            self.mapping._pretty_print(printer, ["point_map"]))
 
 ################
 # READ QUERIES #

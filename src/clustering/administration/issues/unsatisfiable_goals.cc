@@ -46,7 +46,7 @@ static bool is_satisfiable(
     for (std::map<datacenter_id_t, int>::iterator it  = machines_needed_in_dc.begin();
                                                   it != machines_needed_in_dc.end();
                                                   ++it) {
-        if (it->first == nil_uuid()) {
+        if (it->first == nil_uuid() || it->second == 0) {
             continue;
         }
         if (!std_contains(unused_machines_in_dc, it->first) || unused_machines_in_dc[it->first] < it->second) {
