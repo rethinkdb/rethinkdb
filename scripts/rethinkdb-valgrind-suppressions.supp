@@ -134,3 +134,15 @@
    Memcheck:Cond
    fun:__strcasestr_sse42
 }
+
+{
+    GoogleProtobuf
+    Memcheck:Leak
+    fun:google::protobuf*
+}
+
+{
+    BoostProgramOptions
+    Memcheck:Leak
+    fun:boost::program_options*
+}
