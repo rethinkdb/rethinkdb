@@ -53,15 +53,15 @@ void execute_read_query(ReadQuery *r, runtime_environment_t *, Response *res, co
 
 void execute_write_query(WriteQuery *r, runtime_environment_t *, Response *res, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t);
 
-boost::shared_ptr<scoped_cJSON_t> eval_term_as_json(Term *t, runtime_environment_t *, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t);
+boost::shared_ptr<scoped_cJSON_t> eval_term_as_json(Term *t, runtime_environment_t *, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t);
 
-boost::shared_ptr<json_stream_t> eval_term_as_stream(Term *t, runtime_environment_t *, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t);
+boost::shared_ptr<json_stream_t> eval_term_as_stream(Term *t, runtime_environment_t *, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t);
 
-boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term::Call *c, runtime_environment_t *, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t);
+boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term::Call *c, runtime_environment_t *, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t);
 
-boost::shared_ptr<json_stream_t> eval_call_as_stream(Term::Call *c, runtime_environment_t *, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t);
+boost::shared_ptr<json_stream_t> eval_call_as_stream(Term::Call *c, runtime_environment_t *, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t);
 
-namespace_repo_t<rdb_protocol_t>::access_t eval_table_ref(TableRef *t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t);
+namespace_repo_t<rdb_protocol_t>::access_t eval_table_ref(TableRef *t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t);
 
 class view_t {
 public:
@@ -76,11 +76,11 @@ public:
     boost::shared_ptr<json_stream_t> stream;
 };
 
-view_t eval_term_as_view(Term *t, runtime_environment_t *, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t);
+view_t eval_term_as_view(Term *t, runtime_environment_t *, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t);
 
-view_t eval_call_as_view(Term::Call *t, runtime_environment_t *, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t);
+view_t eval_call_as_view(Term::Call *t, runtime_environment_t *, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t);
 
-view_t eval_table_as_view(Term::Table *t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t);
+view_t eval_table_as_view(Term::Table *t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t);
 
 class predicate_t {
 public:

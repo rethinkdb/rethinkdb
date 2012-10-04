@@ -62,6 +62,7 @@ boost::shared_ptr<scoped_cJSON_t> shared_scoped_json(cJSON *json) {
 //TODO: this should really return more informat
 void check_protobuf(bool cond) {
     if (!cond) {
+        BREAKPOINT;
         throw broken_client_exc_t("bad protocol buffer; client is buggy");
     }
 }
@@ -119,6 +120,12 @@ bool term_type_least_upper_bound(term_info_t left, term_info_t right, term_info_
 }
 
 term_info_t get_term_type(Term *t, type_checking_environment_t *env, const backtrace_t &backtrace) {
+    if (t->HasExtension(extension::inferred_type)) {
+        guarantee_debug_throw_release(t->HasExtension(extension::deterministic), backtrace);
+        int type = t->GetExtension(extension::inferred_type);
+        bool det = t->GetExtension(extension::deterministic);
+        return term_info_t(static_cast<term_type_t>(type), det);
+    }
     check_protobuf(Term::TermType_IsValid(t->type()));
 
     std::vector<const google::protobuf::FieldDescriptor *> fields;
@@ -127,140 +134,134 @@ term_info_t get_term_type(Term *t, type_checking_environment_t *env, const backt
 
     check_protobuf(field_count <= 2);
 
+    boost::optional<term_info_t> ret;
     switch (t->type()) {
-    case Term::IMPLICIT_VAR:
+    case Term::IMPLICIT_VAR: {
         if (!env->implicit_type.has_value() || env->implicit_type.get_value().type != TERM_TYPE_JSON) {
             throw bad_query_exc_t("No implicit variable in scope", backtrace);
         } else if (!env->implicit_type.depth_is_legal()) {
             throw bad_query_exc_t("Cannot use implicit variable in nested queries.  Name your variables!", backtrace);
         }
-        return env->implicit_type.get_value();
-        break;
-    case Term::VAR:
+        ret.reset(env->implicit_type.get_value());
+    } break;
+    case Term::VAR: {
         check_protobuf(t->has_var());
         if (!env->scope.is_in_scope(t->var())) {
             throw bad_query_exc_t(strprintf("symbol '%s' is not in scope", t->var().c_str()), backtrace);
         }
-        return env->scope.get(t->var());
-        break;
-    case Term::LET:
-        {
-            bool args_are_det = true;
-            check_protobuf(t->has_let());
-            new_scope_t scope_maker(&env->scope); //create a new scope
-            for (int i = 0; i < t->let().binds_size(); ++i) {
-                term_info_t argtype = get_term_type(t->mutable_let()->mutable_binds(i)->mutable_term(), env,
-                                                    backtrace.with(strprintf("bind:%s", t->let().binds(i).var().c_str())));
-                args_are_det &= argtype.deterministic;
-                if (!term_type_is_convertible(argtype.type, TERM_TYPE_JSON)) {
-                    throw bad_query_exc_t("Only JSON objects can be stored in variables.  If you must store a stream, "
-                                          "use `STREAMTOARRAY` to convert it explicitly (note that this requires loading "
-                                          "the entire stream into memory).",
-                                          backtrace.with(strprintf("bind:%s", t->let().binds(i).var().c_str())));
-                }
-                // Variables are always deterministic, because the value is precomputed.  vvvv
-                env->scope.put_in_scope(t->let().binds(i).var(), term_info_t(argtype.type, true));
+        ret.reset(env->scope.get(t->var()));
+    } break;
+    case Term::LET: {
+        bool args_are_det = true;
+        check_protobuf(t->has_let());
+        new_scope_t scope_maker(&env->scope); //create a new scope
+        for (int i = 0; i < t->let().binds_size(); ++i) {
+            term_info_t argtype = get_term_type(t->mutable_let()->mutable_binds(i)->mutable_term(), env,
+                                                backtrace.with(strprintf("bind:%s", t->let().binds(i).var().c_str())));
+            args_are_det &= argtype.deterministic;
+            if (!term_type_is_convertible(argtype.type, TERM_TYPE_JSON)) {
+                throw bad_query_exc_t("Only JSON objects can be stored in variables.  If you must store a stream, "
+                                      "use `STREAMTOARRAY` to convert it explicitly (note that this requires loading "
+                                      "the entire stream into memory).",
+                                      backtrace.with(strprintf("bind:%s", t->let().binds(i).var().c_str())));
             }
-            term_info_t res = get_term_type(t->mutable_let()->mutable_expr(), env, backtrace.with("expr"));
-            res.deterministic &= args_are_det;
-            return res;
+            // Variables are always deterministic, because the value is precomputed.  vvvv
+            env->scope.put_in_scope(t->let().binds(i).var(), term_info_t(argtype.type, true));
         }
-        break;
-    case Term::CALL:
+        term_info_t res = get_term_type(t->mutable_let()->mutable_expr(), env, backtrace.with("expr"));
+        res.deterministic &= args_are_det;
+        ret.reset(res);
+    } break;
+    case Term::CALL: {
         check_protobuf(t->has_call());
-        return get_function_type(t->mutable_call(), env, backtrace);
-        break;
-    case Term::IF:
-        {
-            check_protobuf(t->has_if_());
-            bool test_is_det;
-            check_term_type(t->mutable_if_()->mutable_test(), TERM_TYPE_JSON, env, &test_is_det, backtrace.with("test"));
+        ret.reset(get_function_type(t->mutable_call(), env, backtrace));
+    } break;
+    case Term::IF: {
+        check_protobuf(t->has_if_());
+        bool test_is_det;
+        check_term_type(t->mutable_if_()->mutable_test(), TERM_TYPE_JSON, env, &test_is_det, backtrace.with("test"));
 
-            term_info_t true_branch = get_term_type(t->mutable_if_()->mutable_true_branch(), env, backtrace.with("true"));
+        term_info_t true_branch = get_term_type(t->mutable_if_()->mutable_true_branch(), env, backtrace.with("true"));
 
-            term_info_t false_branch = get_term_type(t->mutable_if_()->mutable_false_branch(), env, backtrace.with("false"));
+        term_info_t false_branch = get_term_type(t->mutable_if_()->mutable_false_branch(), env, backtrace.with("false"));
 
-            term_info_t combined_type;
-            if (!term_type_least_upper_bound(true_branch, false_branch, &combined_type)) {
-                throw bad_query_exc_t(strprintf(
-                    "true-branch has type %s, but false-branch has type %s",
-                    term_type_name(true_branch.type).c_str(),
-                    term_type_name(false_branch.type).c_str()
-                    ),
-                    backtrace);
-            }
-
-            combined_type.deterministic &= test_is_det;
-            return combined_type;
+        term_info_t combined_type;
+        if (!term_type_least_upper_bound(true_branch, false_branch, &combined_type)) {
+            throw bad_query_exc_t(strprintf(
+                                      "true-branch has type %s, but false-branch has type %s",
+                                      term_type_name(true_branch.type).c_str(),
+                                      term_type_name(false_branch.type).c_str()
+                                  ),
+                                  backtrace);
         }
-        break;
-    case Term::ERROR:
+
+        combined_type.deterministic &= test_is_det;
+        ret.reset(combined_type);
+    } break;
+    case Term::ERROR: {
         check_protobuf(t->has_error());
-        return term_info_t(TERM_TYPE_ARBITRARY, true);
-        break;
-    case Term::NUMBER:
+        ret.reset(term_info_t(TERM_TYPE_ARBITRARY, true));
+    } break;
+    case Term::NUMBER: {
         check_protobuf(t->has_number());
-        return term_info_t(TERM_TYPE_JSON, true);
-        break;
-    case Term::STRING:
+        ret.reset(term_info_t(TERM_TYPE_JSON, true));
+    } break;
+    case Term::STRING: {
         check_protobuf(t->has_valuestring());
-        return term_info_t(TERM_TYPE_JSON, true);
-        break;
-    case Term::JSON:
+        ret.reset(term_info_t(TERM_TYPE_JSON, true));
+    } break;
+    case Term::JSON: {
         check_protobuf(t->has_jsonstring());
-        return term_info_t(TERM_TYPE_JSON, true);
-        break;
-    case Term::BOOL:
+        ret.reset(term_info_t(TERM_TYPE_JSON, true));
+    } break;
+    case Term::BOOL: {
         check_protobuf(t->has_valuebool());
-        return term_info_t(TERM_TYPE_JSON, true);
-        break;
-    case Term::JSON_NULL:
+        ret.reset(term_info_t(TERM_TYPE_JSON, true));
+    } break;
+    case Term::JSON_NULL: {
         check_protobuf(field_count == 1); // null term has only a type field
-        return term_info_t(TERM_TYPE_JSON, true);
-        break;
-    case Term::ARRAY:
-        {
-            if (t->array_size() == 0) { // empty arrays are valid
-                check_protobuf(field_count == 1);
-            }
-            bool deterministic = true;
-            for (int i = 0; i < t->array_size(); ++i) {
-                check_term_type(t->mutable_array(i), TERM_TYPE_JSON, env, &deterministic, backtrace.with(strprintf("elem:%d", i)));
-            }
-            return term_info_t(TERM_TYPE_JSON, deterministic);
+        ret.reset(term_info_t(TERM_TYPE_JSON, true));
+    } break;
+    case Term::ARRAY: {
+        if (t->array_size() == 0) { // empty arrays are valid
+            check_protobuf(field_count == 1);
         }
-        break;
-    case Term::OBJECT:
-        {
-            if (t->object_size() == 0) { // empty objects are valid
-                check_protobuf(field_count == 1);
-            }
-            bool deterministic = true;
-            for (int i = 0; i < t->object_size(); ++i) {
-                check_term_type(t->mutable_object(i)->mutable_term(), TERM_TYPE_JSON, env, &deterministic,
-                        backtrace.with(strprintf("key:%s", t->object(i).var().c_str())));
-            }
-            return term_info_t(TERM_TYPE_JSON, deterministic);
+        bool deterministic = true;
+        for (int i = 0; i < t->array_size(); ++i) {
+            check_term_type(t->mutable_array(i), TERM_TYPE_JSON, env, &deterministic, backtrace.with(strprintf("elem:%d", i)));
         }
-        break;
+        ret.reset(term_info_t(TERM_TYPE_JSON, deterministic));
+    } break;
+    case Term::OBJECT: {
+        if (t->object_size() == 0) { // empty objects are valid
+            check_protobuf(field_count == 1);
+        }
+        bool deterministic = true;
+        for (int i = 0; i < t->object_size(); ++i) {
+            check_term_type(t->mutable_object(i)->mutable_term(), TERM_TYPE_JSON, env, &deterministic,
+                            backtrace.with(strprintf("key:%s", t->object(i).var().c_str())));
+        }
+        ret.reset(term_info_t(TERM_TYPE_JSON, deterministic));
+    } break;
     case Term::GETBYKEY: {
         check_protobuf(t->has_get_by_key());
         check_term_type(t->mutable_get_by_key()->mutable_key(), TERM_TYPE_JSON, env, NULL, backtrace.with("key"));
-        return term_info_t(TERM_TYPE_JSON, false);
-        break;
-    }
-    case Term::TABLE:
+        ret.reset(term_info_t(TERM_TYPE_JSON, false));
+    } break;
+    case Term::TABLE: {
         check_protobuf(t->has_table());
-        return term_info_t(TERM_TYPE_VIEW, false);
-        break;
-    case Term::JAVASCRIPT:
+        ret.reset(term_info_t(TERM_TYPE_VIEW, false));
+    } break;
+    case Term::JAVASCRIPT: {
         check_protobuf(t->has_javascript());
-        return term_info_t(TERM_TYPE_JSON, false); //javascript is never deterministic
-        break;
-    default:
-        unreachable("unhandled Term case");
+        ret.reset(term_info_t(TERM_TYPE_JSON, false)); //javascript is never deterministic
+    } break;
+    default: unreachable("unhandled Term case");
     }
-    crash("unreachable");
+    guarantee_debug_throw_release(ret, backtrace);
+    t->SetExtension(extension::inferred_type, static_cast<int32_t>(ret->type));
+    t->SetExtension(extension::deterministic, ret->deterministic);
+    return *ret;
 }
 
 void check_term_type(Term *t, term_type_t expected, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace) {
@@ -538,7 +539,6 @@ term_info_t get_function_type(Term::Call *c, type_checking_environment_t *env, c
             {
                 check_polymorphic_function_args(c, TERM_TYPE_JSON, 2, env, &deterministic, backtrace);
                 term_info_t res = get_term_type(c->mutable_args(0), env, backtrace);
-                c->mutable_args(0)->SetExtension(extension::inferred_type, static_cast<int32_t>(res.type));
                 return term_info_t(TERM_TYPE_JSON, deterministic);
                 break;
             }
@@ -547,7 +547,6 @@ term_info_t get_function_type(Term::Call *c, type_checking_environment_t *env, c
             {
                 check_arg_count(c, 1, backtrace);
                 term_info_t res = get_term_type(c->mutable_args(0), env, backtrace);
-                c->mutable_args(0)->SetExtension(extension::inferred_type, static_cast<int32_t>(res.type));
                 return term_info_t(TERM_TYPE_JSON, deterministic & res.deterministic);
             }
         case Builtin::STREAMTOARRAY:
@@ -664,10 +663,6 @@ void check_write_query_type(WriteQuery *w, type_checking_environment_t *env, boo
         check_protobuf(w->has_insert());
         if (w->insert().terms_size() == 1) {
             term_info_t res = get_term_type(w->mutable_insert()->mutable_terms(0), env, backtrace);
-            //TODO: This casting is copy-pasted from NTH, but WTF?
-            w->mutable_insert()->mutable_terms(0)->
-                SetExtension(extension::inferred_type,
-                             static_cast<int32_t>(res.type));
             break; //Single-element insert polymorphic over streams and arrays
         }
         for (int i = 0; i < w->insert().terms_size(); ++i) {
@@ -1389,7 +1384,7 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
 }
 
 //This doesn't create a scope for the evals
-void eval_let_binds(Term::Let *let, runtime_environment_t *env, scopes_t *scopes_in_out, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t) {
+void eval_let_binds(Term::Let *let, runtime_environment_t *env, scopes_t *scopes_in_out, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
     // Go through the bindings in a let and add them one by one
     for (int i = 0; i < let->binds_size(); ++i) {
         backtrace_t backtrace_bind = backtrace.with(strprintf("bind:%s", let->binds(i).var().c_str()));
@@ -1427,7 +1422,7 @@ boost::shared_ptr<scoped_cJSON_t> eval_term_as_json_and_check_either(Term *t, ru
 }
 
 
-boost::shared_ptr<scoped_cJSON_t> eval_term_as_json(Term *t, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t) {
+boost::shared_ptr<scoped_cJSON_t> eval_term_as_json(Term *t, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
     switch (t->type()) {
     case Term::IMPLICIT_VAR:
         guarantee_debug_throw_release(scopes.implicit_attribute_value.has_value(), backtrace);
@@ -1612,7 +1607,7 @@ boost::shared_ptr<scoped_cJSON_t> eval_term_as_json(Term *t, runtime_environment
     unreachable();
 }
 
-boost::shared_ptr<json_stream_t> eval_term_as_stream(Term *t, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t) {
+boost::shared_ptr<json_stream_t> eval_term_as_stream(Term *t, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
     switch (t->type()) {
     case Term::LET:
         {
@@ -1671,7 +1666,7 @@ boost::shared_ptr<json_stream_t> eval_term_as_stream(Term *t, runtime_environmen
     unreachable();
 }
 
-boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term::Call *c, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t) {
+boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term::Call *c, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
     switch (c->builtin().type()) {
         //JSON -> JSON
         case Builtin::NOT:
@@ -2275,7 +2270,7 @@ boost::shared_ptr<json_stream_t> concatmap(std::string arg, Term *term, runtime_
     return eval_term_as_stream(term, env, scopes_copy, backtrace);
 }
 
-boost::shared_ptr<json_stream_t> eval_call_as_stream(Term::Call *c, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t) {
+boost::shared_ptr<json_stream_t> eval_call_as_stream(Term::Call *c, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
     switch (c->builtin().type()) {
         //JSON -> JSON
         case Builtin::NOT:
@@ -2463,7 +2458,7 @@ boost::shared_ptr<json_stream_t> eval_call_as_stream(Term::Call *c, runtime_envi
 }
 
 namespace_repo_t<rdb_protocol_t>::access_t eval_table_ref(TableRef *t, runtime_environment_t *env, const backtrace_t &bt)
-    THROWS_ONLY(interrupted_exc_t, runtime_exc_t) {
+    THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
     std::string table_name = t->table_name();
     std::string db_name = t->db_name();
 
@@ -2483,7 +2478,7 @@ namespace_repo_t<rdb_protocol_t>::access_t eval_table_ref(TableRef *t, runtime_e
     return namespace_repo_t<rdb_protocol_t>::access_t(env->ns_repo, id, env->interruptor);
 }
 
-view_t eval_call_as_view(Term::Call *c, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t) {
+view_t eval_call_as_view(Term::Call *c, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
     switch (c->builtin().type()) {
         //JSON -> JSON
         case Builtin::NOT:
@@ -2588,7 +2583,7 @@ view_t eval_call_as_view(Term::Call *c, runtime_environment_t *env, const scopes
 
 }
 
-view_t eval_term_as_view(Term *t, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t) {
+view_t eval_term_as_view(Term *t, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
     switch (t->type()) {
     case Term::IMPLICIT_VAR:
     case Term::VAR:
@@ -2630,7 +2625,7 @@ view_t eval_term_as_view(Term *t, runtime_environment_t *env, const scopes_t &sc
     unreachable();
 }
 
-view_t eval_table_as_view(Term::Table *t, runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t) {
+view_t eval_table_as_view(Term::Table *t, runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
     namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval_table_ref(t->mutable_table_ref(), env, backtrace);
     std::string pk = get_primary_key(t->mutable_table_ref(), env, backtrace);
     boost::shared_ptr<json_stream_t> stream(new batched_rget_stream_t(ns_access, env->interruptor, key_range_t::universe(), 100, backtrace, t->table_ref().use_outdated()));
