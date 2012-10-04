@@ -537,7 +537,7 @@ term_info_t get_function_type(Term::Call *c, type_checking_environment_t *env, c
         case Builtin::NTH:
             {
                 check_polymorphic_function_args(c, TERM_TYPE_JSON, 2, env, &deterministic, backtrace);
-                term_info_t res = get_term_type(c->mutable_args(0), env, backtrace);
+                get_term_type(c->mutable_args(0), env, backtrace);
                 return term_info_t(TERM_TYPE_JSON, deterministic);
                 break;
             }
@@ -661,7 +661,7 @@ void check_write_query_type(WriteQuery *w, type_checking_environment_t *env, boo
     case WriteQuery::INSERT: {
         check_protobuf(w->has_insert());
         if (w->insert().terms_size() == 1) {
-            term_info_t res = get_term_type(w->mutable_insert()->mutable_terms(0), env, backtrace);
+            get_term_type(w->mutable_insert()->mutable_terms(0), env, backtrace);
             break; //Single-element insert polymorphic over streams and arrays
         }
         for (int i = 0; i < w->insert().terms_size(); ++i) {
