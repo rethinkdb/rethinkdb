@@ -149,6 +149,7 @@ private:
     namespace_id_t do_admin_create_table_internal(const std::string& name,
                                                   int port,
                                                   const datacenter_id_t& primary,
+                                                  const std::string& primary_key,
                                                   const database_id_t& database,
                                                   namespaces_semilattice_metadata_t<protocol_t> *ns);
 

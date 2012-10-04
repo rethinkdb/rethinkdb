@@ -66,12 +66,13 @@ public:
     cluster_directory_metadata_t() { }
     cluster_directory_metadata_t(
             machine_id_t mid,
+            peer_id_t pid,
             const std::vector<std::string> &_ips,
             const get_stats_mailbox_address_t& _stats_mailbox,
             const metadata_change_handler_t<cluster_semilattice_metadata_t>::request_mailbox_t::address_t& _semilattice_change_mailbox,
             const log_server_business_card_t &lmb,
             cluster_directory_peer_type_t _peer_type) :
-        machine_id(mid), ips(_ips), get_stats_mailbox_address(_stats_mailbox), semilattice_change_mailbox(_semilattice_change_mailbox), log_mailbox(lmb), peer_type(_peer_type) { }
+        machine_id(mid), peer_id(pid), ips(_ips), get_stats_mailbox_address(_stats_mailbox), semilattice_change_mailbox(_semilattice_change_mailbox), log_mailbox(lmb), peer_type(_peer_type) { }
 
     namespaces_directory_metadata_t<mock::dummy_protocol_t> dummy_namespaces;
     namespaces_directory_metadata_t<memcached_protocol_t> memcached_namespaces;
@@ -79,6 +80,7 @@ public:
 
     /* Tell the other peers what our machine ID is */
     machine_id_t machine_id;
+    peer_id_t peer_id;
 
     /* To tell everyone what our ips are. */
     std::vector<std::string> ips;
@@ -89,7 +91,7 @@ public:
     std::list<local_issue_t> local_issues;
     cluster_directory_peer_type_t peer_type;
 
-    RDB_MAKE_ME_SERIALIZABLE_10(dummy_namespaces, memcached_namespaces, rdb_namespaces, machine_id, ips, get_stats_mailbox_address, semilattice_change_mailbox, log_mailbox, local_issues, peer_type);
+    RDB_MAKE_ME_SERIALIZABLE_11(dummy_namespaces, memcached_namespaces, rdb_namespaces, machine_id, peer_id, ips, get_stats_mailbox_address, semilattice_change_mailbox, log_mailbox, local_issues, peer_type);
 };
 
 // ctx-less json adapter for directory_echo_wrapper_t

@@ -945,6 +945,8 @@ class StreamExpression(ReadQuery):
             group_mapping = FunctionExpr(group_mapping)
         if not isinstance(value_mapping, FunctionExpr):
             value_mapping = FunctionExpr(value_mapping)
+        if not isinstance(reduction_func, FunctionExpr):
+            reduction_func = FunctionExpr(reduction_func)
         return JSONExpression(internal.GroupedMapReduce(self, group_mapping, value_mapping, reduction_base, reduction_func))
 
     def group_by(self, *args):

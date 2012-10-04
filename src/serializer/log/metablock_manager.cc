@@ -16,19 +16,14 @@
 void initialize_metablock_offsets(off64_t extent_size, std::vector<off64_t> *offsets) {
     offsets->clear();
 
-    off64_t metablocks_per_extent = std::min<off64_t>(extent_size / DEVICE_BLOCK_SIZE, MB_BLOCKS_PER_EXTENT);
+    const off64_t metablocks_per_extent = std::min<off64_t>(extent_size / DEVICE_BLOCK_SIZE, MB_BLOCKS_PER_EXTENT);
 
-    for (off64_t i = 0; i < MB_NEXTENTS; i++) {
-        off64_t extent = i * extent_size * MB_EXTENT_SEPARATION;
+    // The very first DEVICE_BLOCK_SIZE of the file is used for the
+    // static header, so we start j at 1.
+    for (off64_t j = 1; j < metablocks_per_extent; ++j) {
+        off64_t offset = j * DEVICE_BLOCK_SIZE;
 
-        for (off64_t j = 0; j < metablocks_per_extent; ++j) {
-            off64_t offset = extent + j * DEVICE_BLOCK_SIZE;
-
-            /* The very first DEVICE_BLOCK_SIZE of the file is used for the static header */
-            if (offset == 0) continue;
-
-            offsets->push_back(offset);
-        }
+        offsets->push_back(offset);
     }
 }
 
@@ -78,14 +73,9 @@ metablock_manager_t<metablock_t>::metablock_manager_t(extent_manager_t *em)
 
     /* Build the list of metablock locations in the file */
 
-    for (off64_t i = 0; i < MB_NEXTENTS; i++) {
-        off64_t extent = i * extent_manager->extent_size * MB_EXTENT_SEPARATION;
-
-        /* The reason why we don't reserve extent 0 is that it has already been reserved for the
-        static header. We can share the first extent with the static header if and only if we don't
-        overwrite the first DEVICE_BLOCK_SIZE of it, but we musn't reserve it again. */
-        if (extent != 0) extent_manager->reserve_extent(extent);
-    }
+    // We don't try to reserve any metablock extents because the only
+    // extent we use is extent 0.  Extent 0 is already reserved by the
+    // static header, so we don't need to reserve it.
 
     initialize_metablock_offsets(extent_manager->extent_size, &metablock_offsets);
 }
