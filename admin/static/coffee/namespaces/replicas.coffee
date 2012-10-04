@@ -38,6 +38,7 @@ module 'NamespaceView', ->
                     id: datacenter.get('id')
                     name: datacenter.get('name')
                     active: true if @current_tab is datacenter.get('id')
+                    universe: true if datacenter.get('id') is universe_datacenter.get('id')
 
             # if no tab has been clicked, open the first one
             if not @current_tab?

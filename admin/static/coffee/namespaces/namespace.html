@@ -1,7 +1,7 @@
 <script id="namespace_view-container-template" type="text/x-handlebars-template">
     <div id="table-view">
         <div class="operations btn-group">
-            <button class="btn dropdown-toggle" data-toggle="dropdown">Operations <span class="caret"></span></button>
+            <button class="btn dropdown-toggle" data-toggle="dropdown">Operations</button>
             <ul class="dropdown-menu">
                 <li><a href="#">Import data</a></li>
                 <li><a href="#">Export data</a></li>
@@ -9,10 +9,12 @@
                 <li><a href-"#">Delete table</a></li> 
             </ul>
         </div>
+        <button class="btn show-assignments">Show servers used</button>
         <div class="main_title"></div>
         <div id="user-alert-space"></div>
         <div class="section statistics">
-            <div class="row-fluid">
+            <h2 class="title">Statistics</h3>
+            <div class="content row-fluid">
                 <div class="span4 profile"></div>
                 <div class="span8 performance-graph"></div>
             </div>
@@ -26,7 +28,6 @@
                 <div class="section replication"></div>
             </div>
         </div>
-        <a class="view-assignments" href="#">View assignments</a>
     </div>
 </script>
 
@@ -35,26 +36,21 @@
 </script>
 
 <script id="namespace_view-profile-template" type="text/x-handlebars-template">
-    <h2 class="title">Table profile</h3>
     <div class="summary">
-        <div class="stat-row">
-            <div class="availability-icon"></div>
-            <p><img src="https://dl.dropbox.com/s/n4vco90l6fy3i9z/clock-icon.png" /><span class="big">{{humanize_namespace_reachability reachability}} </span></p>
+        <div class="stat-row first">
+            <p class="availability"><span class="big">{{humanize_namespace_reachability reachability}} </span> and reachable</p>
         </div>
         <div class="stat-row">
-            <div class="masters-icon"></div>
-            <p><img src="https://dl.dropbox.com/s/n4vco90l6fy3i9z/clock-icon.png" /><span class="big">{{nashards}}/{{nshards}} </span> masters reachable</p>
+            <p class="masters"><span class="big">{{nashards}}/{{nshards}} </span> masters reachable</p>
         </div>
         <div class="stat-row">
-            <div class="replicas-icon"></div>
-            <p><img src="https://dl.dropbox.com/s/n4vco90l6fy3i9z/clock-icon.png" /><span class="big">{{nareplicas}}/{{nreplicas}} </span> replicas reachable</p>
+            <p class="replicas"><span class="big">{{nareplicas}}/{{nreplicas}} </span> replicas reachable</p>
         </div>
         <div class="stat-row">
-            <div class="documents-icon"></div>
             {{#if total_keys}}
-            <p><img src="https://dl.dropbox.com/s/n4vco90l6fy3i9z/clock-icon.png" /><span class="big">{{total_keys}} </span> documents</p>
+            <p class="documents"><span class="big">{{total_keys}} </span> documents</p>
             {{else}}
-            <p><img src="https://dl.dropbox.com/s/n4vco90l6fy3i9z/clock-icon.png" />Loading...</p>
+            <p class="documents">Loading...</p>
 
             {{/if}}
         </div>

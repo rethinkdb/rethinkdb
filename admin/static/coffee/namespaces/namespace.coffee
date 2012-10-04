@@ -23,7 +23,7 @@ module 'NamespaceView', ->
             'click .close': 'close_alert'
             'click .change_shards-link': 'change_shards'
             'click .namespace-pinning-link': 'change_pinning'
-            'click .view-assignments': 'view_assignments'
+            'click .show-assignments': 'show_assignments'
             # operations in the dropdown menu
             'click .rename_namespace-button': 'rename_namespace'
             'click .import_data-button': 'import_data'
@@ -42,9 +42,9 @@ module 'NamespaceView', ->
             @shards = new NamespaceView.Sharding(model: @model)
             @pins = new NamespaceView.Pinning(model: @model)
             @performance_graph = new Vis.OpsPlot(@model.get_stats_for_performance,
-                width:  390             # width in pixels
-                height: 300             # height in pixels
-                seconds: 65             # num seconds to track
+                width:  584             # width in pixels
+                height: 210             # height in pixels
+                seconds: 73             # num seconds to track
                 type: 'table'
             )
 
@@ -103,9 +103,10 @@ module 'NamespaceView', ->
             $(event.currentTarget).parent().parent().slideUp('fast', -> $(this).remove())
 
         # TODO: fill in
-        view_assignments: (event) =>
+        show_assignments: (event) =>
             event.preventDefault()
-            console.log 'pop up a modal here to show pins'
+            modal = new NamespaceView.MachinesAssignmentsModal model: @model
+            modal.render()
 
         # Rename operation
         rename_namespace: (event) ->

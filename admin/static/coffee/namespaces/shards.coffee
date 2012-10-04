@@ -3,6 +3,42 @@ module 'NamespaceView', ->
     # Hardcoded!
     MAX_SHARD_COUNT = 32
 
+    class @EditShards extends Backbone.View
+        template: Handlebars.compile $('#edit_shards-template').html()
+        states: ['read_only', 'editable', 'sharding_in_progress']
+
+        events: ->
+            'click .edit': 'edit_shards'
+            'click .cancel': 'cancel_editing'
+        
+        initialize: ->
+            @current_state = @states[0]
+
+        render: =>
+            switch @current_state
+                when @states[0] then do =>
+                    @.$el.html @template
+                        read_only: true
+                        num_shards: @model.get('shards').length
+                when @states[1] then do =>
+                    @.$el.html @template
+                        editable: true
+                        num_shards: @model.get('shards').length
+                when @states[2] then do =>
+                    @.$el.html @template
+                        sharding_in_progress: true
+                        num_shards: @model.get('shards').length
+            return @
+
+        edit_shards: =>
+            @current_state = @states[1]
+            @render()
+
+        cancel_editing: =>
+            @current_state = @states[0]
+            @render()
+
+
     class @Sharding extends Backbone.View
         template: Handlebars.compile $('#shards_container-template').html()
         status_template: Handlebars.compile $('#status_shard-template').html()
@@ -31,6 +67,8 @@ module 'NamespaceView', ->
             @change_shards_modal = new NamespaceView.ChangeShardsModal
                 model: @model
                 parent: @
+
+            @edit_shards = new NamespaceView.EditShards model: @model
            
 
         keypress_shards_changes: (event) =>
@@ -83,6 +121,7 @@ module 'NamespaceView', ->
 
         render: =>
             @.$el.html @template({})
+            @.$('.edit-shards').html @edit_shards.render().el
             @render_status()
 
             return @
@@ -163,10 +202,10 @@ module 'NamespaceView', ->
                     container_width = Math.max svg_width, 350
 
 
-                @.$('.data_repartition-graph').css('width', container_width+'px')
+                @.$('.shard-graph').css('width', container_width+'px')
                 y = d3.scale.linear().domain([0, max_keys]).range([1, svg_height-margin_height*2.5])
 
-                svg = d3.select('.data_repartition-diagram').attr('width', svg_width).attr('height', svg_height).append('svg:g')
+                svg = d3.select('.shard-diagram').attr('width', svg_width).attr('height', svg_height).append('svg:g')
                 svg.selectAll('rect').data(shards)
                     .enter()
                     .append('rect')
@@ -207,13 +246,12 @@ module 'NamespaceView', ->
                     y1: svg_height-margin_height
                     y2: svg_height-margin_height
 
-                svg = d3.select('.data_repartition-diagram').attr('width', svg_width).attr('height', svg_height).append('svg:g')
+                svg = d3.select('.shard-diagram').attr('width', svg_width).attr('height', svg_height).append('svg:g')
                 svg.selectAll('line').data(extra_data).enter().append('line')
                     .attr('x1', (d) -> return d.x1)
                     .attr('x2', (d) -> return d.x2)
                     .attr('y1', (d) -> return d.y1)
                     .attr('y2', (d) -> return d.y2)
-                    .style('stroke', '#000')
 
                 axe_legend = []
                 axe_legend.push
