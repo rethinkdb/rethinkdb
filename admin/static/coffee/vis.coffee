@@ -49,6 +49,7 @@ module 'Vis', ->
     class @OpsPlot extends Backbone.View
         className: 'ops-plot'
         template: Handlebars.compile $('#ops_plot-template').html()
+        barebones_template: Handlebars.compile $('#ops_plot-template').html()
 
         # default options for the plot template
         type: 'cluster'
