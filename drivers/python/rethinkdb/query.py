@@ -562,7 +562,8 @@ class JSONExpression(ReadQuery):
         >>> expr([1, 2, 3]).reduce(0, lambda x, y: x + y).run()
         6
         """
-        assert isinstance(func, FunctionExpr)
+        if not isinstance(func, FunctionExpr):
+            func = FunctionExpr(func)
         return JSONExpression(internal.Reduce(self, base, func))
 
     def grouped_map_reduce(self, group_mapping, value_mapping, reduction_base, reduction_func):
@@ -576,6 +577,8 @@ class JSONExpression(ReadQuery):
             group_mapping = FunctionExpr(group_mapping)
         if not isinstance(value_mapping, FunctionExpr):
             value_mapping = FunctionExpr(value_mapping)
+        if not isinstance(reduction_func, FunctionExpr):
+            reduction_func = FunctionExpr(reduction_func)
         return JSONExpression(internal.GroupedMapReduce(self, group_mapping, value_mapping, reduction_base, reduction_func))
 
     def group_by(self, *args):
@@ -942,6 +945,8 @@ class StreamExpression(ReadQuery):
             group_mapping = FunctionExpr(group_mapping)
         if not isinstance(value_mapping, FunctionExpr):
             value_mapping = FunctionExpr(value_mapping)
+        if not isinstance(reduction_func, FunctionExpr):
+            reduction_func = FunctionExpr(reduction_func)
         return JSONExpression(internal.GroupedMapReduce(self, group_mapping, value_mapping, reduction_base, reduction_func))
 
     def group_by(self, *args):
@@ -1581,9 +1586,16 @@ def table(table_ref, allow_outdated=None):
     """
     return Table(table_ref, allow_outdated=allow_outdated)
 
-# Reductions hack for groupby
-def sum_():
-  return [1, 0, fn('a', 'b', R('$a') + R('$b'))]
+def error(msg=''):
+    """Throw a runtime error on the server.
+    Can be useful for indicating error conditions or debugging queries.
+
+    :param msg: Error message to return to the client
+    :type msg: str
+
+    >>> if_then_else(true, expr(1), error("Unreachable path"))
+    """
+    return JSONExpression(internal.RdbError(msg))
 
 # this happens at the end since it's a circular import
 import internal

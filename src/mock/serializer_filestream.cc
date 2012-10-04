@@ -77,12 +77,9 @@ serializer_file_write_stream_t::~serializer_file_write_stream_t() { }
 MUST_USE int64_t serializer_file_write_stream_t::write(const void *p, int64_t n) {
     const char *chp = static_cast<const char *>(p);
     const int block_size = cache_->get_block_size().value();
-    debugf("about to start transaction.\n");
     transaction_t txn(cache_.get(), rwi_write, 2 + n / block_size, repli_timestamp_t::invalid, order_token_t::ignore);
-    debugf("started transaction.\n");
     // Hold the size block during writes, to lock out other writers.
     buf_lock_t z(&txn, 0, rwi_write);
-    debugf("created z\n");
     int64_t *const size_ptr = static_cast<int64_t *>(z.get_data_major_write());
     guarantee(*size_ptr == size_);
     int64_t offset = size_ + sizeof(int64_t);

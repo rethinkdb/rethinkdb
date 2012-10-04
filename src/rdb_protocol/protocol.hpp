@@ -33,8 +33,7 @@
 
 template <class> class cross_thread_watchable_variable_t;
 class cluster_directory_metadata_t;
-template <class metadata_t> class directory_read_manager_t;
-template <class metadata_t> class semilattice_readwrite_view_t;
+template <class metadata> class directory_read_manager_t;
 
 using query_language::scopes_t;
 using query_language::backtrace_t;

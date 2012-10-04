@@ -17,7 +17,7 @@ var c = r.connect({}, function() {
     r.expr([{a:1}]).filter({a:one.div(zero)}).runp();
 
     r.ifThenElse(r.expr(false), r.expr(1), r.error()).runp();
-    r.table('test').orderby('id').runp();
+    r.table('test').orderby('bob').runp();
     r.expr([{id:0},{id:1}]).distinct().runp();
 
     r.expr([1,2,3]).groupedMapReduce(function(row) {
@@ -36,5 +36,38 @@ var c = r.connect({}, function() {
 
     r.expr([1,2,r.error()]).arrayToStream().runp();
 
-    c.close();
+    r.db('test').create('test').runp();
+    r.db('bob').create({
+        tableName: 'test',
+        cacheSize: '1234'
+    }).runp();
+
+    r.db('test').drop('alphabet').runp();
+    r.db('test').table('lakne').runp();
+    r.db('test').table('test').get(r.error()).runp();
+    r.db('test').table('test').insert({id:r.error()}).runp();
+    r.db('test').table('bob').del().runp();
+    r.table('test').get(r.error()).del().runp();
+
+    r.table('bo').update(function(a) {return r.error()}).runp();
+    r.table('test').get(1).update(function(row) {return r.error()}).runp();
+    r.table('bo').mutate(function(a) {return r.error()}).runp();
+    r.table('test').get(1).mutate(function(row) {return r.error()}).runp();
+
+    r.table('test').forEach(function(a) {
+        return r.table('bo').insert(r.error());
+    }).runp();
+
+    r.table('test').between(0, 1, 'bob').runp();
+
+    r.table('test').insert(r.expr([{id:{}}]).arrayToStream()).runp();
+
+    r.table('test').get(0).update(function(val) {return val.extend({'bob':1})}).runp();
+
+    r.table('test').get(1, 'bob').update(function(row) {return row.extend({bob:3})}).runp();
+    r.table('test').get(1, 'bob').mutate(function(row) {return row.extend({bob:3})}).runp();
+    r.table('test').get(1, 'bob').del().runp();
+    r.table('test').insert({id:1}).runp();
+
+    //c.close();
 });

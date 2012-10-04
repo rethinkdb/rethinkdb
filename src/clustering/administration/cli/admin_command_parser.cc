@@ -75,7 +75,7 @@ const char *set_datacenter_usage = "<MACHINE> <DATACENTER>";
 const char *unset_datacenter_usage = "<MACHINE>";
 const char *set_database_usage = "<TABLE> <DATABASE>";
 // TODO: fix this once multiple protocols are supported again
-const char *create_table_usage = "<NAME> --database <DATABASE> [--primary <DATACENTER>]";
+const char *create_table_usage = "<NAME> --database <DATABASE> [--primary <DATACENTER>] [--primary-key <KEY>]";
 // const char *create_table_usage = "<NAME> --port <PORT> --protocol <PROTOCOL> --database <DATABASE> [--primary <DATACENTER>]";
 const char *create_datacenter_usage = "<NAME>";
 const char *create_database_usage = "<NAME>";
@@ -118,6 +118,7 @@ const char *create_table_name_option = "<NAME>";
 // const char *create_table_port_option = "--port <PORT>";
 // const char *create_table_protocol_option = "--protocol <PROTOCOL>";
 const char *create_table_primary_option = "--primary <DATACENTER>";
+const char *create_table_primary_key_option = "--primary-key <KEY>";
 const char *create_table_database_option = "--database <DATABASE>";
 const char *create_datacenter_name_option = "<NAME>";
 const char *create_database_name_option = "<NAME>";
@@ -131,7 +132,7 @@ const char *list_stats_table_option_desc = "limit stat collection to the set of 
 // const char *list_tables_protocol_option_desc = "limit the list of tables to tables matching the specified protocol";
 const char *resolve_id_option_desc = "the name or uuid of an object with a conflicted field";
 // TODO: fix this once multiple protocols are supported again
-const char *resolve_field_option_desc = "the conflicted field of the specified object to resolve, for machines this can be 'name' or 'datacenter', for datacenters and databases this can be 'name' only, and for tables, this can be 'name', 'database', 'datacenter', 'replicas', 'acks', 'shards', master_pinnings', or 'replica_pinnings'";
+const char *resolve_field_option_desc = "the conflicted field of the specified object to resolve, for machines this can be 'name' or 'datacenter', for datacenters and databases this can be 'name' only, and for tables, this can be 'name', 'database', 'datacenter', 'replicas', 'acks', 'shards', 'primary_key', primary_pinnings', or 'secondary_pinnings'";
 // const char *resolve_field_option_desc = "the conflicted field of the specified object to resolve, for machines this can be 'name' or 'datacenter', for datacenters and databases this can be 'name' only, and for tables, this can be 'name', 'datacenter', 'database', 'replicas', 'acks', 'shards', 'port', master_pinnings', or 'replica_pinnings'";
 const char *pin_shard_table_option_desc = "the table to change the shard pinnings of";
 const char *pin_shard_shard_option_desc = "the shard to be affected, this is of the format [<LOWER-BOUND>]-[<UPPER-BOUND>] where one or more of the bounds must be specified.  Any non-alphanumeric character should be specified using escaped hexadecimal ASCII, e.g. '\\7E' for '~', the minimum and maximum bounds can be referred to as '-inf' and '+inf', respectively.  Only one shard may be modified at a time.";
@@ -162,6 +163,7 @@ const char *create_table_name_option_desc = "the name of the new table";
 // const char *create_table_port_option_desc = "the port for the table to serve data from for every machine in the cluster";
 // const char *create_table_protocol_option_desc = "the protocol for the table to use, either 'rdb' or 'memcached'";
 const char *create_table_primary_option_desc = "the primary datacenter of the new table, this datacenter will host the master replicas of each shard";
+const char *create_table_primary_key_option_desc = "the field to use as the primary key in the new table";
 const char *create_table_database_option_desc = "the database that the table will exist in, client requests must be directed to this database";
 const char *create_datacenter_name_option_desc = "the name of the new datacenter";
 const char *create_database_name_option_desc = "the name of the new database";
@@ -596,6 +598,7 @@ void admin_command_parser_t::build_command_descriptions() {
     // info->add_flag("protocol", 1, false)->add_options("rdb", "memcached", NULLPTR);
     // info->add_flag("port", 1, true);
     info->add_flag("primary", 1, false)->add_option("!datacenter");
+    info->add_flag("primary-key", 1, false);
     info->add_flag("database", 1, true)->add_option("!database");
 
     info = add_command(create_datacenter_command, create_datacenter_command, create_datacenter_usage, &admin_cluster_link_t::do_admin_create_datacenter, &commands);
@@ -1208,8 +1211,9 @@ void admin_command_parser_t::do_admin_help(const command_data& data) {
                 // TODO: fix this once multiple protocols are supported again
                 // options.push_back(std::make_pair(create_table_port_option, create_table_port_option_desc));
                 // options.push_back(std::make_pair(create_table_protocol_option, create_table_protocol_option_desc));
-                options.push_back(std::make_pair(create_table_primary_option, create_table_primary_option_desc));
                 options.push_back(std::make_pair(create_table_database_option, create_table_database_option_desc));
+                options.push_back(std::make_pair(create_table_primary_option, create_table_primary_option_desc));
+                options.push_back(std::make_pair(create_table_primary_key_option, create_table_primary_key_option_desc));
                 do_usage_internal(helps, options, "create table - add a new table to the cluster", console_mode);
             } else if (subcommand == "datacenter") {
                 helps.push_back(admin_help_info_t(create_datacenter_command, create_datacenter_usage, create_datacenter_description));

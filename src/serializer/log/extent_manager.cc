@@ -45,7 +45,7 @@ class extent_zone_t {
 private:
     int held_extents_;
 public:
-    int held_extents() {
+    int held_extents() const {
         return held_extents_;
     }
 
@@ -116,9 +116,10 @@ public:
     }
 };
 
-extent_manager_t::extent_manager_t(direct_file_t *file, log_serializer_on_disk_static_config_t *_static_config, log_serializer_dynamic_config_t *_dynamic_config, log_serializer_stats_t *_stats)
-    : static_config(_static_config), dynamic_config(_dynamic_config), stats(_stats), extent_size(_static_config->extent_size()), dbfile(file), state(state_reserving_extents)
-{
+extent_manager_t::extent_manager_t(direct_file_t *file, const log_serializer_on_disk_static_config_t *_static_config,
+                                   const log_serializer_dynamic_config_t *_dynamic_config, log_serializer_stats_t *_stats)
+    : stats(_stats), extent_size(_static_config->extent_size()), static_config(_static_config),
+      dynamic_config(_dynamic_config), dbfile(file), state(state_reserving_extents) {
     rassert(divides(DEVICE_BLOCK_SIZE, extent_size));
 
     if (file->is_block_device() || dynamic_config->file_size > 0) {
@@ -185,9 +186,7 @@ void extent_manager_t::start_existing(UNUSED metablock_mixin_t *last_metablock) 
 
     rassert(state == state_reserving_extents);
     current_transaction = NULL;
-    for (boost::ptr_vector<extent_zone_t>::iterator it  = zones.begin();
-                                                      it != zones.end();
-                                                      it++) {
+    for (boost::ptr_vector<extent_zone_t>::iterator it = zones.begin(); it != zones.end(); ++it) {
         it->reconstruct_free_list();
     }
     state = state_running;
@@ -298,9 +297,7 @@ void extent_manager_t::commit_transaction(transaction_t *t) {
 int extent_manager_t::held_extents() {
     int total = 0;
 
-    for (boost::ptr_vector<extent_zone_t>::iterator it  = zones.begin();
-                                                    it != zones.end();
-                                                    it++) {
+    for (boost::ptr_vector<extent_zone_t>::iterator it = zones.begin(); it != zones.end(); ++it) {
         total += it->held_extents();
     }
     return total;

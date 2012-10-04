@@ -32,6 +32,39 @@ rethinkdb.MetaQuery.prototype.buildQuery = function(opt_buildOpts) {
     return query;
 };
 
+/** @override */
+rethinkdb.MetaQuery.prototype.formatQuery = function(bt) {
+
+    var name = this.dbName_ ? "'"+this.dbName_+"'" : "";
+    var methodName;
+    var finalize = '';
+
+    switch (this.type_) {
+    case MetaQuery.MetaQueryType.CREATE_DB:
+        methodName = 'dbCreate';
+    break;
+    case MetaQuery.MetaQueryType.DROP_DB:
+        methodName = 'dbDrop';
+    break;
+    case MetaQuery.MetaQueryType.LIST_DBS:
+        methodName = 'dbList';
+    break;
+    case MetaQuery.MetaQueryType.LIST_TABLES:
+        methodName = 'db';
+        finalize = '.list()';
+    }
+
+    var result1 = "r."+methodName+"("+name+")";
+    var result2 = result1+finalize;
+
+    if (!bt) {
+        return result2;
+    } else {
+        goog.asserts.assert(bt.length === 0);
+        return carrotify_(result1)+spaceify_(finalize);
+    }
+};
+
 /**
  * Create a new database with the given name.
  * @param {string} dbName
@@ -135,6 +168,29 @@ rethinkdb.CreateTableQuery.prototype.buildQuery = function(opt_buildOpts) {
     return query;
 };
 
+/** @override */
+rethinkdb.CreateTableQuery.prototype.formatQuery = function(bt) {
+    var args;
+    if (this.dataCenter_ || this.primaryKey_ || this.cacheSize_) {
+        args = [];
+        if (this.dataCenter_) args.push("dataCenter: '"+this.dataCenter_+"'");
+        if (this.primaryKey_) args.push("primaryKey: '"+this.primaryKey_+"'");
+        if (this.cacheSize_) args.push("cacheSize: '"+this.cacheSize_+"'");
+        if (this.tableName_) args.push("tableName: '"+this.tableName_+"'");
+        args = "{"+ args.join(', ') + "}";
+    } else {
+        args = "'"+this.tableName_+"'";
+    }
+
+    var result = "r.db('"+this.dbName_+"').create("+args+")";
+
+    if (!bt) {
+        return result;
+    } else {
+        return carrotify_(result);
+    }
+};
+
 /**
  * Create a new table in the database
  * @param {string|Object} tableNameOrOptions Either pass a string giving
@@ -194,6 +250,15 @@ rethinkdb.DropTableQuery.prototype.buildQuery = function(opt_buildOpts) {
     query.setMetaQuery(meta);
 
     return query;
+};
+
+/** @override */
+rethinkdb.DropTableQuery.prototype.formatQuery = function(bt) {
+    if (!bt) {
+        return "r.db('"+this.dbName_+"').drop('"+this.tableName_+"')";
+    } else {
+        return carrotify_("r.db('"+this.dbName_+"').drop('"+this.tableName_+"')");
+    }
 };
 
 /**

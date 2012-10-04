@@ -38,7 +38,7 @@ class BacktracePrettyPrinter(internal.PrettyPrinter):
                     return string
                 elif prefix_match_length == len(self.target_backtrace):
                     # We're a sub-term of the target term.
-                    if len(complete_backtrace) > len(self.target_backtrace) + 2 or len(string) > 60:
+                    if len(complete_backtrace) > len(self.target_backtrace) + 8 or len(string) > 60:
                         # Don't keep recursing for very long after finding the target
                         return "..." if len(string) > 8 else string
                     else:
@@ -48,7 +48,7 @@ class BacktracePrettyPrinter(internal.PrettyPrinter):
                         prefix_match_length += 1
                     else:
                         # We're not on the path to the target term.
-                        if len(complete_backtrace) > prefix_match_length + 2 or len(string) > 60:
+                        if len(complete_backtrace) > prefix_match_length + 8 or len(string) > 60:
                             # Don't keep recursing for very long on a side branch of the tree.
                             return "..." if len(string) > 8 else string
                         else:
@@ -290,7 +290,7 @@ class Connection():
 
         serialized = protobuf.SerializeToString()
 
-        try:
+        while True:
             header = struct.pack("<L", len(serialized))
             self.socket.sendall(header + serialized)
             resp_header = self._recvall(4)
@@ -298,9 +298,11 @@ class Connection():
             response_serialized = self._recvall(msglen)
             response = p.Response()
             response.ParseFromString(response_serialized)
-        except KeyboardInterrupt as ki:
-            self.reconnect()
-            raise ki
+            if response.token == protobuf.token:
+                break
+            elif response.token > protobuf.token:
+                # The infamous ThisShouldNeverHappenException
+                raise RuntimeError("The server returned a response for a query that was never submitted.")
 
         if debug:
             print "response:", response

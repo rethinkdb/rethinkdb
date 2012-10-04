@@ -12,7 +12,7 @@ expressing queries friendly and convenient."""
 
 __all__ = [
     'connect',
-    'db_create', 'db_drop', 'db_list', 'db', 'table',
+    'db_create', 'db_drop', 'db_list', 'db', 'table', 'error',
     'expr', 'r', 'js', 'let', 'letvar', 'if_then_else',
     'ExecutionError', 'BadQueryError']
 

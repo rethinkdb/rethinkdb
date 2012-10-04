@@ -73,12 +73,13 @@ Styx""".splitlines()
 
 
 def usage():
-    print os.sys.argv[0], "p N [data_root_directory] [--keep] [--copy_old]"
+    print os.sys.argv[0], "p N [data_root_directory] [--keep] [--valgrind]"
     print """Where: 
     p is the port you want the cluster to use 
     N is the number of machines you want in the cluster
     data_root_directory is the directory where RethinkDB will store each server data
-    --keep preserve the data directories between runs (by default they are deleted)"""
+    --keep preserve the data directories between runs (by default they are deleted)
+    --valgrind will run the rethinkdb server processes under valgrind"""
 
 
 if len(os.sys.argv) < 3:
@@ -92,10 +93,13 @@ if n_machines < 1:
     exit(1)
 else:
     parent_dir = ''
+    valgrind = False
     keep_data = False
     for opt in os.sys.argv[3:]:
-        if opt == '--keep':
+        if (opt == '--keep'):
             keep_data = True
+        elif (opt == '--valgrind'):
+            valgrind = True
         else:
             parent_dir = opt
     kids = []
@@ -105,12 +109,23 @@ else:
         # cleanup the directory
         if not keep_data:
             os.system("rm -rf " + directory)
-        binary = "../build/debug/rethinkdb"
+
+        if (valgrind):
+            binary = "../build/debug-valgrind/rethinkdb"
+        else:
+            binary = "../build/debug/rethinkdb"
+
         hostname = socket.gethostname()
         if (i == 0):
-            cl = [binary, "--port", str(port), "--directory", directory, "--name", machine_name, "--port-offset", str(i+port)]
+            if (valgrind):
+                cl = ["valgrind", "--leak-check=full", "--track-origins=yes", "--suppressions=../scripts/rethinkdb-valgrind-suppressions.supp", binary, "--port", str(port), "--directory", directory, "--name", machine_name, "--port-offset", str(i+port)]
+            else:
+                cl = [binary, "--port", str(port), "--directory", directory, "--name", machine_name, "--port-offset", str(i+port)]
         else:
-            cl = [binary, "--port", str(port+i), "--directory", directory, "--name", machine_name, "--join", "%s:%d" % (hostname, port), "--port-offset", str(i+port)]
+            if (valgrind):
+                cl = ["valgrind", "--leak-check=full", "--track-origins=yes", "--suppressions=../scripts/rethinkdb-valgrind-suppressions.supp", binary, "--port", str(port+i), "--directory", directory, "--name", machine_name, "--join", "%s:%d" % (hostname, port), "--port-offset", str(i+port)]
+            else:
+                cl = [binary, "--port", str(port+i), "--directory", directory, "--name", machine_name, "--join", "%s:%d" % (hostname, port), "--port-offset", str(i+port)]
         print ' '.join(cl)
         kids += [subprocess.Popen(cl, stdout=sys.stdout, stderr=sys.stderr)]
         time.sleep(1)

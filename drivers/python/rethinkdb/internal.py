@@ -1,5 +1,6 @@
 import query
 import query_language_pb2 as p
+import bpdb
 
 ###################
 # PRETTY PRINTING #
@@ -205,7 +206,7 @@ class Update(WriteQueryInner):
     def pretty_print(self, printer):
         return "%s.update(%s)" % (
             printer.expr_wrapped(self.parent_view, ["view"]),
-            self.mapping._pretty_print(printer, ["mapping"]))
+            self.mapping._pretty_print(printer, ["modify_map"]))
 
 class Mutate(WriteQueryInner):
     def __init__(self, parent_view, mapping):
@@ -220,7 +221,7 @@ class Mutate(WriteQueryInner):
     def pretty_print(self, printer):
         return "%s.replace(%s)" % (
             printer.expr_wrapped(self.parent_view, ["view"]),
-            self.mapping._pretty_print(printer, ["mapping"]))
+            self.mapping._pretty_print(printer, ["modify_map"]))
 
 class PointDelete(WriteQueryInner):
     def __init__(self, parent_view):
@@ -231,7 +232,10 @@ class PointDelete(WriteQueryInner):
         self.parent_view._inner._write_point_ast(parent.point_delete, opts)
 
     def pretty_print(self, printer):
-        return "%s.delete()" % printer.expr_wrapped(self.parent_view, ["view"])
+        return "%s.get(%s, attr_name='%s').delete()" % (
+            printer.expr_wrapped(self.parent_view._inner.table, ["view"]),
+            printer.simple_string(self.parent_view._inner.attr_name, ["keyname"]),
+            printer.expr_unwrapped(self.parent_view._inner.key, ["key"]))
 
 class PointUpdate(WriteQueryInner):
     def __init__(self, parent_view, mapping):
@@ -244,9 +248,11 @@ class PointUpdate(WriteQueryInner):
         self.parent_view._inner._write_point_ast(parent.point_update, opts)
 
     def pretty_print(self, printer):
-        return "%s.update(%s)" % (
-            printer.expr_wrapped(self.parent_view, ["view"]),
-            self.mapping._pretty_print(printer, ["mapping"]))
+        return "%s.get(%s, attr_name='%s').update(%s)" % (
+            printer.expr_wrapped(self.parent_view._inner.table, ["view"]),
+            printer.expr_unwrapped(self.parent_view._inner.key, ["key"]),
+            printer.simple_string(self.parent_view._inner.attr_name, ["keyname"]),
+            self.mapping._pretty_print(printer, ["point_map"]))
 
 class PointMutate(WriteQueryInner):
     def __init__(self, parent_view, mapping):
@@ -259,9 +265,11 @@ class PointMutate(WriteQueryInner):
         self.parent_view._inner._write_point_ast(parent.point_mutate, opts)
 
     def pretty_print(self, printer):
-        return "%s.replace(%s)" % (
-            printer.expr_wrapped(self.parent_view, ["view"]),
-            self.mapping._pretty_print(printer, ["mapping"]))
+        return "%s.get(%s, attr_name='%s').replace(%s)" % (
+            printer.expr_wrapped(self.parent_view._inner.table, ["view"]),
+            printer.expr_unwrapped(self.parent_view._inner.key, ["key"]),
+            printer.simple_string(self.parent_view._inner.attr_name, ["keyname"]),
+            self.mapping._pretty_print(printer, ["point_map"]))
 
 ################
 # READ QUERIES #
@@ -335,6 +343,17 @@ class LiteralObject(ExpressionInner):
             v._inner._write_ast(pair.term, opts)
     def pretty_print(self, printer):
         return ("{" + ", ".join(repr(k) + ": " + printer.expr_unwrapped(v, ["key:%s" % k]) for k, v in self.value.iteritems()) + "}", PRETTY_PRINT_EXPR_UNWRAPPED)
+
+class RdbError(ExpressionInner):
+    def __init__(self, msg):
+        self.msg = msg;
+
+    def _write_ast(self, parent, opts):
+        parent.type = p.Term.ERROR
+        parent.error = self.msg;
+
+    def pretty_print(self, printer):
+        return ("error('"+self.msg+"')", PRETTY_PRINT_EXPR_WRAPPED)
 
 class Javascript(ExpressionInner):
     def __init__(self, body):
@@ -618,7 +637,7 @@ class OrderBy(ExpressionInner):
     def pretty_print(self, printer):
         return ("%s.orderby(%s)" % (
                 printer.expr_wrapped(self.parent, ["arg:0"]),
-                ", ".join(repr(attr) for attr in self.ordering)),
+                printer.simple_string(", ".join(repr(attr) for attr in self.ordering), ["order_by"])),
             PRETTY_PRINT_EXPR_WRAPPED)
 
 class Range(ExpressionInner):
@@ -680,8 +699,8 @@ class If(ExpressionInner):
     def pretty_print(self, printer):
         return ("if_then_else(%s, %s, %s)" % (
                 printer.expr_unwrapped(self.test, ["test"]),
-                printer.expr_unwrapped(self.true_branch, ["true_branch"]),
-                printer.expr_unwrapped(self.false_branch, ["false_branch"])),
+                printer.expr_unwrapped(self.true_branch, ["true"]),
+                printer.expr_unwrapped(self.false_branch, ["false"])),
             PRETTY_PRINT_EXPR_WRAPPED)
 
 class Map(ExpressionInner):
@@ -807,8 +826,8 @@ class Table(ExpressionInner):
         self.table._write_ref_ast(parent.table.table_ref, opts)
 
     def pretty_print(self, printer):
-        res = ''
+        res = ""
         if self.table.db_expr:
             res += "db(%r)." % self.table.db_expr.db_name
         res += "table(%r)" % self.table.table_name
-        return (res, PRETTY_PRINT_EXPR_WRAPPED)
+        return (printer.simple_string(res, ['table_ref']), PRETTY_PRINT_EXPR_WRAPPED)
