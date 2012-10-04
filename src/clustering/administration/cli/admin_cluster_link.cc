@@ -1171,7 +1171,9 @@ void admin_cluster_link_t::do_admin_list_stats(const admin_command_parser_t::com
             metadata_info_t *info = get_info_from_id(temp);
             if (info->path[0] == "machines") {
                 machine_filters.insert(info->uuid);
-            } else if (info->path[0] == "dummy_namespaces" || info->path[0] == "memcached_namespaces") {
+            } else if (info->path[0] == "dummy_namespaces" ||
+                       info->path[0] == "memcached_namespaces" ||
+                       info->path[0] == "rdb_namespaces") {
                 namespace_filters.insert(info->uuid);
             } else {
                 throw admin_parse_exc_t("object filter is not a machine or table: " + temp);
