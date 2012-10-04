@@ -1181,6 +1181,7 @@ body:before {
                         &:hover { color: @color; }
                     }
                     .border-radius(3px 0 0 3px);
+                    // chevron for the active tab
                     &:after {
                         content: " ";
                         font-size:0;
@@ -1205,6 +1206,9 @@ body:before {
                         color: @color;
                         &:hover { color: @color; }
                         padding-left: 24px;
+                    }
+                    &.active:after {
+                        border-left-color: @universe;
                     }
                 }
             }
