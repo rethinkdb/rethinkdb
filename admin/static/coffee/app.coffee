@@ -11,6 +11,9 @@ register_modal = (modal) -> modal_registry.push(modal)
 #TODO Just for development, CHANGE IT BACK TO 5000
 updateInterval = 5000
 statUpdateInterval = 1000
+progress_interval_default_value = 5000
+progress_interval_value = 5000
+progress_short_interval = 1000
 
 # Check if new_data is included in old_data and if the values are equals. (Note: We don't check if the objects are equals)
 need_update_objects = (new_data, old_data) ->
@@ -100,12 +103,23 @@ apply_diffs = (updates) ->
 set_issues = (issue_data_from_server) -> issues.reset(issue_data_from_server)
 
 set_progress = (progress_data_from_server) ->
+    is_empty = true
     # Convert progress representation from RethinkDB into backbone friendly one
     _pl = []
     for key, value of progress_data_from_server
+        is_empty = false
         value['id'] = key
         _pl.push(value)
     progress_list.reset(_pl)
+
+    if is_empty is false and progress_interval_value is progress_interval_default_value
+        clearInterval window.progress_interval
+        progress_interval_value = progress_short_interval
+        window.progress_interval = setInterval collect_progress, progress_interval_value
+    else if is_empty is true and progress_interval_value is progress_short_interval
+        clearInterval window.progress_interval
+        progress_interval_value = progress_interval_default_value
+        window.progress_interval = setInterval collect_progress, progress_interval_value
 
 set_directory = (attributes_from_server) ->
     # Convert directory representation from RethinkDB into backbone friendly one
@@ -183,6 +197,7 @@ collect_server_data_once = (async, optional_callback) ->
                 window.is_disconnected = new IsDisconnected
         timeout: updateInterval
 
+collect_progress = ->
     $.ajax
         contentType: 'application/json',
         url: '/ajax/progress',
@@ -263,3 +278,4 @@ $ ->
 
     # Set interval to update the data
     setInterval collect_server_data_async, updateInterval
+    window.progress_interval = setInterval collect_progress, progress_interval_value

@@ -1154,16 +1154,17 @@ body:before {
         .nav-tabs { padding-left: 0; }
 
         .datacenter_list_container {
+            padding: 0px;
             @default: #efefef; 
-            //@active: #23a5df;
+            @active: #23a5df;
             @universe: #f7ae41;
             @height: 40px;
 
-            .tab {
+            .datacenter_tab {
                 position: relative;
                 width: 100px;
                 margin: 10px 0;
-                //background: @default;
+                background: @default;
                 height: @height;
                 line-height: @height;
                 padding: 0 10px;
@@ -1179,7 +1180,7 @@ body:before {
                 }
                 .border-radius(3px);
 
-                /*
+                
                 &.active {
                     background-color: @active;
                     border-color: @active;
@@ -1204,7 +1205,7 @@ body:before {
                         top:0;
                     }
                 }
-                */
+                
 
                 &.universe {
                     background: @universe url('http://bit.ly/RCkmeT') 8px center no-repeat; //globe-icon_white.png
@@ -1216,17 +1217,57 @@ body:before {
                         &:hover { color: @color; }
                         padding-left: 24px;
                     }
-                    /*
+                    
                     &.active:after {
                         border-left-color: @universe;
                     }
-                    */
+                    
                 }
             }
         }
         .datacenter_content{
             margin: 0px;
             padding-left: 10px;
+            .datacenter_view{
+                margin: 0px 0px 0px 40px;
+            }
+            .progress_bar_full_container{
+                display: none;
+                .progress_bar_container{
+                    padding: 11px 0px 10px 0px;
+                    .details{
+                        font-family: @sans;
+                        margin: 0px;
+                        font-size: 14px;
+                        line-height: 20px;
+                    }
+                    .replicating{
+                        font-family: @sans;
+                        margin: 0px;
+                        color: #7ec4e3;
+                        font-size: 14px;
+                        line-height: 20px;
+                        font-weight: bold;
+                    }
+                    .full_bar{
+                        .border-radius(5px);
+                        height: 10px;
+                        background: #eee;
+                        -moz-box-shadow:    inset 1px 1px 2px #ddd;
+                        -webkit-box-shadow: inset 1px 1px 2px #ddd;
+                        box-shadow:         inset 1px 1px 2px #ddd;
+                        .bar{
+                            height: 10px;
+                            .border-radius(5px);
+                            background: #f7ae41;
+                            -moz-box-shadow:    inset 1px -2px 4px #DB8812;
+                            -webkit-box-shadow: inset 1px -2px 4px #DB8812;
+                            box-shadow:         inset 1px -2px 4px #DB8812;
+
+                        }
+                    }
+                }
+            }
             .dc-info {
                 border-bottom: thin solid #f0f0f0;
                 margin-bottom: 14px;

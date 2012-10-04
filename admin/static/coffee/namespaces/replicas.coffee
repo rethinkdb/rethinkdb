@@ -44,6 +44,7 @@ module 'NamespaceView', ->
                 id: universe_datacenter.get('id')
                 name: universe_datacenter.get('name')
                 active: @model.get('primary_uuid') is universe_datacenter.get('id')
+                is_universe: true
 
 
             @.$('.datacenters_list_container').html @datacenter_list_template
@@ -81,13 +82,14 @@ module 'NamespaceView', ->
             datacenters.off 'reset', @render_list
 
     class @DatacenterReplicas extends Backbone.View
+        className: 'datacenter_view'
         template: Handlebars.compile $('#namespace_view-datacenter_replica-template').html()
         edit_template: Handlebars.compile $('#namespace_view-edit_datacenter_replica-template').html()
         error_template: Handlebars.compile $('#namespace_view-edit_datacenter_replica-error-template').html()
         replicas_acks_success_template: Handlebars.compile $('#namespace_view-edit_datacenter_replica-success-template').html()
-        replicas_acks_ajax_error_template: Handlebars.compile $('#namespace_view-edit_datacenter_replica-ajax_error-template').html()
+        replicas_ajax_error_template: Handlebars.compile $('#namespace_view-edit_datacenter_replica-ajax_error-template').html()
         need_replicas_template: Handlebars.compile $('#need_replicas-template').html()
-
+        progress_bar_template: Handlebars.compile $('#backfill_progress_bar').html()
 
         events:
             'click .close': 'remove_parent_alert'
@@ -112,6 +114,9 @@ module 'NamespaceView', ->
             @model.on 'change:replica_affinities', @compute_max_machines_and_render
             @model.on 'change:primary_uuid', @compute_max_machines_and_render
             @model.on 'change:primary_uuid', @render_make_primary
+            progress_list.on 'all', @render_progress
+            
+            @render_progress()
             @compute_max_machines_and_render()
 
         remove_parent_alert: (event) ->
@@ -122,6 +127,18 @@ module 'NamespaceView', ->
         edit_mode_fn: (edit_mode) =>
             @edit_mode = edit_mode
             @render true
+
+        render_progress: =>
+            progress_data = DataUtils.get_backfill_progress_agg @model.get('id'), @datacenter.get('id')
+
+            if progress_data?
+                @.$('.progress_bar_full_container').css 'display', 'block'
+                @.$('.replica_container').css 'display', 'none'
+                @.$('.progress_bar_container').html @progress_bar_template progress_data
+            else
+                @.$('.progress_bar_container').html ''
+                @.$('.progress_bar_full_container').css 'display', 'none'
+                @.$('.replica_container').css 'display', 'block'
 
         render: (force_render) =>
             replicas_count = DataUtils.get_replica_affinities(@model.get('id'), @datacenter.get('id'))
@@ -282,7 +299,7 @@ module 'NamespaceView', ->
                     replica_affinities: replica_affinities_to_send
                     ack_expectations: ack_expectations_to_send
                 success: @on_success_replicas_and_acks
-                error: @on_error_replicas_and_acks
+                error: @on_error
 
         on_success_replicas_and_acks: =>
             new_replicas = @model.get 'replica_affinities'
@@ -297,10 +314,9 @@ module 'NamespaceView', ->
             @.$('.replicas_acks-alert').slideDown 'fast'
             @render_make_primary()
 
-        on_error_replicas_and_acks: =>
-            @.$('.replicas_acks-alert').html @replicas_acks_ajax_error_template()
+        on_error: =>
+            @.$('.replicas_acks-alert').html @replicas_ajax_error_template()
             @.$('.replicas_acks-alert').slideDown 'fast'
-
 
         make_primary: =>
             new_dc = @datacenter
@@ -331,15 +347,10 @@ module 'NamespaceView', ->
                 contentType: 'application/json'
                 data: JSON.stringify data
                 success: @on_success_make_primary
-                error: @on_error_make_primary
+                error: @on_error
 
         on_success_make_primary: =>
             @model.set @data_switch_primary
-
-
-        on_error_make_primary: =>
-            console.log 'fail'
-
 
         destroy: ->
             @model.off 'all', @render

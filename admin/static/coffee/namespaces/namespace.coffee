@@ -42,7 +42,7 @@ module 'NamespaceView', ->
             @shards = new NamespaceView.Sharding(model: @model)
             @pins = new NamespaceView.Pinning(model: @model)
             @performance_graph = new Vis.OpsPlot(@model.get_stats_for_performance,
-                width:  584             # width in pixels
+                width:  564             # width in pixels
                 height: 210             # height in pixels
                 seconds: 73             # num seconds to track
                 type: 'table'
