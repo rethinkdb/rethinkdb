@@ -4,101 +4,99 @@ module 'NamespaceView', ->
     class @Replicas extends Backbone.View
         className: 'namespace-replicas'
         template: Handlebars.compile $('#namespace_view-replica-template').html()
+        datacenter_list_template: Handlebars.compile $('#namespace_view-replica-datacenters_list-template').html()
         alert_tmpl: Handlebars.compile $('#changed_primary_dc-replica-template').html()
 
         events: ->
-            'click .nav-tabs a': 'clicked_tab'
+            'click .nav-tabs a': 'handle_click_datacenter'
 
-        initialize: ->
-            datacenters.on 'add', =>
-                @build_datacenter_views()
-                @render()
-            datacenters.on 'remove', =>
-                @build_datacenter_views()
-                if not datacenters.get(@current_tab)?
-                    @current_tab = null
-                @render()
-            datacenters.on 'reset', =>
-                @build_datacenter_views()
-                if not datacenters.get(@current_tab)?
-                    @current_tab = null
-                @render()
-            datacenters.on 'change:name', =>
-                @build_datacenter_views()
-                @render()
-            @build_datacenter_views()
+        initialize: =>
+            datacenters.on 'add', @render_list
+            datacenters.on 'remove', @render_list
+            datacenters.on 'reset', @render_list
 
-        build_datacenter_views: =>
-            @datacenter_views = datacenters.map (datacenter) =>
-                new NamespaceView.DatacenterReplicas @model, datacenter
-            @datacenter_views.push new NamespaceView.DatacenterReplicas @model, universe_datacenter
+        
+        render_list: =>
+            ordered_datacenters = _.map(datacenters.models, (datacenter) =>
+                id: datacenter.get('id')
+                name: if datacenter.get('name').length>8 then datacenter.get('name').slice(0, 8)+'...' else datacenter.get('name')
+                active: @model.get('primary_uuid') is datacenter.get('id')
+            )
+            ordered_datacenters = ordered_datacenters.sort (a, b) ->
+                if a.name > b.name
+                    return 1
+                else if a.name < b.name
+                    return -1
+                else
+                    return 0
+
+            ordered_datacenters.push
+                id: universe_datacenter.get('id')
+                name: universe_datacenter.get('name')
+                active: @model.get('primary_uuid') is universe_datacenter.get('id')
+
+
+            @.$('.datacenters_list_container').html @datacenter_list_template
+                id: @model.get 'id'
+                datacenters: ordered_datacenters
+
+        handle_click_datacenter: (event) =>
+            event.preventDefault()
+            @render_datacenter @.$(event.target).data('datacenter_id')
+            @.$('.datacenter_tab').removeClass 'active'
+            @.$(event.target).parent().addClass 'active'
+
+        render_datacenter: (datacenter_id) =>
+            @datacenter_id_shown = datacenter_id
+            @datacenter_view.destroy() if @datacenter_view?
+            @datacenter_view = new NamespaceView.DatacenterReplicas @model, @datacenter_id_shown
+
+            @.$('.datacenter_content').html @datacenter_view.render().$el
 
         render: =>
-            json = _.map _.union(datacenters.models, universe_datacenter), (datacenter) =>
-                    id: datacenter.get('id')
-                    name: datacenter.get('name')
-                    active: true if @current_tab is datacenter.get('id')
+            @.$el.html @template()
 
-            # if no tab has been clicked, open the first one
+            @render_list()
+
             if not @current_tab?
-                json[0].active = true
-                @current_tab = json[0].id
+                @render_datacenter @model.get('primary_uuid')
 
-            @.$el.html @template
-                datacenters: json
-
-            # add each tab pane
-            for view in @datacenter_views
-                @.$(".datacenter-replicas.#{view.model.get('id')}").html view.render().el
             return @
 
-        clicked_tab: (e) =>
-            @current_tab = $(e.target).data('datacenter')
-            console.log @current_tab
-
         destroy: ->
-            @model.off 'all', @render
-            directory.off 'all', @render
-            progress_list.off 'all', @render
+            datacenters.off 'add', @render_list
+            datacenters.off 'remove', @render_list
+            datacenters.off 'reset', @render_list
 
     class @DatacenterReplicas extends Backbone.View
         template: Handlebars.compile $('#namespace_view-datacenter_replica-template').html()
 
-        initialize: (table, model) ->
-            @table = table
+        initialize: (model, datacenter_id) ->
             @model = model
+            if datacenter_id is universe_datacenter.get('id')
+                @datacenter = universe_datacenter
+            else if datacenters.get(datacenter_id)?
+                @datacenter = datacenters.get datacenter_id
+            #TODO else
 
-            @model.on 'all', @render
+            @datacenter.on 'all', @render
             directory.on 'all', @render
             progress_list.on 'all', @render
 
         render: =>
-            uuid = @model.get('id')
+            replicas_count = DataUtils.get_replica_affinities(@model.get('id'), @datacenter.get('id'))
+            if @model.get('primary_uuid') is @datacenter.get('id')
+                replicas_count++
 
-            # basic info about the datacenter
-            json =
-                name: @model.get('name')
-                id: uuid
+            data =
+                name: @datacenter.get('name')
+                total_machines: machines.length
+                acks: DataUtils.get_ack_expectations(@model.get('id'), @datacenter.get('id'))
+                primary: true if @model.get('primary_uuid') is @datacenter.get('id')
+                replicas: replicas_count
+                #status: DataUtils.get_namespace_status(@table.get('id'), uuid)
 
-            if uuid is universe_datacenter.get('id')
-                json = _.extend json,
-                    total_machines: machines.length
-                    acks: DataUtils.get_ack_expectations(@table.get('id'), @table.get('primary_uuid'))
-            else
-                json = _.extend json,
-                    total_machines: DataUtils.get_datacenter_machines(uuid).length
-                    acks: DataUtils.get_ack_expectations(@table.get('id'), uuid)
-                    status: DataUtils.get_namespace_status(@table.get('id'), uuid)
-                    primary: true if @table.get('primary_uuid') is uuid
-
-            if @table.get('replica_affinities')[uuid]?
-                json = _.extend json,
-                    secondary: true if uuid isnt @table.get('primary_uuid')
-                    replicas: @table.get('replica_affinities')[uuid]
-            else
-                json = _.extend json, { replicas: 0 }
-
-            @.$el.html @template json
+            @.$el.html @template data
 
             return @
 

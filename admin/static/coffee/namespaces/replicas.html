@@ -1,26 +1,23 @@
 <script id="namespace_view-replica-template" type="text/x-handlebars-template">
-    <span class="view-assignments">View assignments</span>
+    <button class="operation_button">Edit</button>
     <h2 class="title">Replication settings</h2>
     <div class="row-fluid">
-        <div class="span3">
-            <div class="tabbable tabs-left">
-                <ul class="nav nav-tabs">
-                    {{#each datacenters}}
-                        <li{{#if active}} class="active"{{/if}}><a href="#tab_{{id}}" data-datacenter="{{id}}" data-toggle="tab" class>{{name}}</a></li>
-                    {{/each}}
-                </ul>
-            </div>
-        </div>
+        <div class="span3 tabbable tabs-left datacenters_list_container"></div>
         <div class="span9">
-            <div class="tab-content">
-                {{#each datacenters}}
-                    <div class="tab-pane{{#if active}} active{{/if}}" id="tab_{{id}}">
-                        <div class="datacenter-replicas {{id}}"></div>
-                    </div>
-                {{/each}}
+            <div class="tab-content datacenter_content">
             </div>
         </div>
     </div>
+</script>
+
+<script id="namespace_view-replica-datacenters_list-template" type="text/x-handlebars-template">
+    <ul class="nav nav-tabs">
+        {{#each datacenters}}
+        <li class="datacenter_tab{{#if active}} active"{{else}}"{{/if}}>
+        <a href="#tables/{{../id}}/{{id}}" data-datacenter_id="{{id}}" class>{{name}}</a>
+        </li>
+        {{/each}}
+    </ul>
 </script>
 <script id="namespace_view-datacenter_replica-template" type="text/x-handlebars-template">
     <div class="dc-info">
@@ -38,8 +35,14 @@
         </p>
     </div>
     <div class="dc-info">
-        <p class="caption">Replicas</p>
-        <p class="value">{{replicas}}</p>
+        <div class="replica_value">
+            <p class="caption">Replicas</p>
+            <p class="value">{{replicas}}</p>
+        </div>
+        <div class="ack_value">
+            <p class="caption">Acks</p>
+            <p class="value">{{acks}}</p>
+        </div>
     </div>
     <div class="dc-info">
         <p class="caption">Status</p>

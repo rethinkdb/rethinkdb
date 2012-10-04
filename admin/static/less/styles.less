@@ -1142,11 +1142,27 @@ body:before {
 
 #table-view {
     .section.replication {
+        .operation_button{
+            float: right;
+            padding: 3px 4px;
+            margin: 3px 3px;
+            font-size: @baseFontSize;
+            line-height: @baseLineHeight;
+            color: @grayDark;
+            text-align: center;
+            text-shadow: 0 1px 1px rgba(255,255,255,.75);
+            vertical-align: middle;
+            .buttonBackground(@btnBackground, @btnBackgroundHighlight);
+            border: 1px solid @btnBorder;
+            border-bottom-color: darken(@btnBorder, 10%);
+            .border-radius(3px);
+            cursor: pointer;
+        }
         .nav-tabs { padding-left: 0; }
         .dc-info {
             border-bottom: thin solid #CCC;
             margin-bottom: 14px;
-
+            overflow: auto;
             p {
                 font-family: @sans;
                 margin: 0;
@@ -1159,6 +1175,10 @@ body:before {
                     font-size: 24px;
                     line-height: 48px;
                 }
+            }
+            .replica_value, .ack_value{
+                float: left;
+                width: 100px;
             }
         }
     }

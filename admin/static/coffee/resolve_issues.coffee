@@ -21,13 +21,13 @@ module 'ResolveIssuesView', ->
             issues.on 'remove', @render_issues
             issues.on 'reset', @render_issues
         
-        render: ->
+        render: =>
             @.$el.html @template_outer
             @render_issues()
 
             return @
 
-        render_issues: ->
+        render_issues: =>
             @.$('#resolve_issues-container-inner-placeholder').html @template_inner
                 issues_exist: if issues.length > 0 then true else false
 
@@ -322,9 +322,6 @@ module 'ResolveIssuesView', ->
                             contentType: 'application/json'
                             success: set_issues
                             async: false
-
-                        # rerender issue view (just the issues, not the whole thing)
-                        window.app.resolve_issues_view.render_issues()
                     )
                     rename_modal.render()
             )
