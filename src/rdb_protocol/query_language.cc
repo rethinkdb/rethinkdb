@@ -62,7 +62,6 @@ boost::shared_ptr<scoped_cJSON_t> shared_scoped_json(cJSON *json) {
 //TODO: this should really return more informat
 void check_protobuf(bool cond) {
     if (!cond) {
-        BREAKPOINT;
         throw broken_client_exc_t("bad protocol buffer; client is buggy");
     }
 }
@@ -1014,7 +1013,7 @@ void execute_query(Query *q, runtime_environment_t *env, Response *res, const sc
     } break;
     case Query::META: {
         execute_meta(q->mutable_meta_query(), env, res, backtrace);
-    } break;
+    } break; //status set in [execute_meta]
     default:
         crash("unreachable");
     }
