@@ -79,6 +79,7 @@ try {
     watchable_variable_t<cluster_directory_metadata_t> our_root_directory_variable(
         cluster_directory_metadata_t(
             machine_id,
+            connectivity_cluster.get_me(),
             get_ips(),
             stat_manager.get_address(),
             metadata_change_handler.get_request_mailbox_address(),
