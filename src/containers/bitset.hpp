@@ -39,7 +39,7 @@ public:
     }
 
     bool test(unsigned int place) const {
-        rassert(place < size());
+        rassert(place < size(), "place=%u, size=%zu", place, size());
         return bits[place / 64] & (uint64_t(1) << (place % 64));
     }
 

@@ -1171,7 +1171,9 @@ void admin_cluster_link_t::do_admin_list_stats(const admin_command_parser_t::com
             metadata_info_t *info = get_info_from_id(temp);
             if (info->path[0] == "machines") {
                 machine_filters.insert(info->uuid);
-            } else if (info->path[0] == "dummy_namespaces" || info->path[0] == "memcached_namespaces") {
+            } else if (info->path[0] == "dummy_namespaces" ||
+                       info->path[0] == "memcached_namespaces" ||
+                       info->path[0] == "rdb_namespaces") {
                 namespace_filters.insert(info->uuid);
             } else {
                 throw admin_parse_exc_t("object filter is not a machine or table: " + temp);
@@ -2402,7 +2404,11 @@ void admin_cluster_link_t::do_admin_set_acks_internal(const datacenter_id_t& dat
         throw admin_cluster_exc_t("cannot assign more ack expectations than replicas in a datacenter");
     }
 
-    ns->ack_expectations.get_mutable()[datacenter] = num_acks;
+    if (num_acks == 0) {
+        ns->ack_expectations.get_mutable().erase(datacenter);
+    } else {
+        ns->ack_expectations.get_mutable()[datacenter] = num_acks;
+    }
     ns->ack_expectations.upgrade_version(change_request_id);
 }
 
@@ -2487,10 +2493,7 @@ void admin_cluster_link_t::do_admin_set_replicas_internal(const namespace_id_t& 
     }
 
     std::map<datacenter_id_t, int>::iterator ack_iter = ns.ack_expectations.get_mutable().find(dc_id);
-    if (ack_iter == ns.ack_expectations.get_mutable().end()) {
-        ns.ack_expectations.get_mutable()[dc_id] = 0;
-        ns.ack_expectations.upgrade_version(change_request_id);
-    } else if (ack_iter->second > num_replicas) {
+    if (ack_iter != ns.ack_expectations.get_mutable().end() && ack_iter->second > num_replicas) {
         throw admin_cluster_exc_t("the number of replicas for this datacenter cannot be less than the number of acks, run 'help set acks' for more information");
     }
 
