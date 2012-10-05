@@ -190,12 +190,12 @@ module 'DataExplorerView', ->
 
         line_height: 13
         num_char_per_line: 106 #TODO bind suggestions to keyup so we don't have an extra line when at the end of a line without a next char
-        
+         
         set_char_per_line: =>
             if @displaying_full_view is true
                 @num_char_per_line = Math.floor (@.$('Codemirror-scroll').width()-37)/8
 
-
+        #TODO refactor show_suggestion, show_suggestion_description, add_description
         show_suggestion: =>
             extra_lines = Math.floor(@codemirror.getCursor().ch/@num_char_per_line)
             
