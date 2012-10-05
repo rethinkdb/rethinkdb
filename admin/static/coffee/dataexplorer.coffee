@@ -190,12 +190,14 @@ module 'DataExplorerView', ->
 
         line_height: 13
 
-        show_suggestion: ->
+        show_suggestion: =>
+            console.log @codemirror.getCursor().line
             margin = ((@codemirror.getCursor().line+1)*@line_height) + 'px'
             @.$('.suggestion_full_container').css 'margin-top', margin
             @.$('.suggestion_name_list').css 'display', 'block'
 
         show_suggestion_description: ->
+            console.log @codemirror.getCursor().line
             margin = ((@codemirror.getCursor().line+1)*@line_height) + 'px'
             @.$('.suggestion_full_container').css 'margin-top', margin
             @.$('.suggestion_description').css 'display', 'block'
@@ -326,6 +328,8 @@ module 'DataExplorerView', ->
 
         add_description: (fn) =>
             if @descriptions[fn]?
+                margin = ((@codemirror.getCursor().line+1)*@line_height) + 'px'
+                @.$('.suggestion_full_container').css 'margin-top', margin
                 @.$('.suggestion_description').html @descriptions[fn]
                 @.$('.suggestion_description').css 'display', 'block'
 
