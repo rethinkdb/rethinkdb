@@ -227,7 +227,7 @@
 
 // How many LBA structures to have for each file
 // TODO: LBA_SHARD_FACTOR used to be 16.
-#define LBA_SHARD_FACTOR                          1
+#define LBA_SHARD_FACTOR                          4
 
 // How many bytes of buffering space we can use per disk when reading the LBA. If it's set
 // too high, then RethinkDB will eat a lot of memory at startup. This is bad because tcmalloc
