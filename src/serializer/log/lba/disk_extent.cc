@@ -6,7 +6,7 @@ lba_disk_extent_t::lba_disk_extent_t(extent_manager_t *_em, direct_file_t *file,
   : em(_em), data(new extent_t(em, file)), offset(data->offset), count(0) {
     em->assert_thread();
 
-    debugf("Constructing lba_disk_extent_t and given offset %ld\n", offset);
+    // debugf("Constructing lba_disk_extent_t and given offset %ld\n", offset);
     // Make sure that the size of the header is a multiple of the size of one entry, so that the
     // header doesn't prevent the entries from aligning with DEVICE_BLOCK_SIZE.
     rassert(divides(sizeof(lba_entry_t), offsetof(lba_extent_t, entries[0])));
@@ -21,7 +21,7 @@ lba_disk_extent_t::lba_disk_extent_t(extent_manager_t *_em, direct_file_t *file,
 lba_disk_extent_t::lba_disk_extent_t(extent_manager_t *_em, direct_file_t *file, off64_t _offset, int _count)
     : em(_em), data(new extent_t(em, file, _offset, offsetof(lba_extent_t, entries[0]) + sizeof(lba_entry_t) * _count)), offset(_offset), count(_count) {
     em->assert_thread();
-    debugf("Constructing lba_disk_extent_t choosing offset %ld\n", offset);
+    // debugf("Constructing lba_disk_extent_t choosing offset %ld\n", offset);
 }
 
 
