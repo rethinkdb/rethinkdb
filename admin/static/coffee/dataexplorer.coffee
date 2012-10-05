@@ -189,18 +189,34 @@ module 'DataExplorerView', ->
             @.$('.suggestion_description').css 'display', 'none'
 
         line_height: 13
+        num_char_per_line: 106 #TODO bind suggestions to keyup so we don't have an extra line when at the end of a line without a next char
+        
+        set_char_per_line: =>
+            if @displaying_full_view is true
+                @num_char_per_line = Math.floor (@.$('Codemirror-scroll').width()-37)/8
+
 
         show_suggestion: =>
-            console.log @codemirror.getCursor().line
-            margin = ((@codemirror.getCursor().line+1)*@line_height) + 'px'
+            extra_lines = Math.floor(@codemirror.getCursor().ch/@num_char_per_line)
+            
+            margin = ((@codemirror.getCursor().line+1+extra_lines)*@line_height) + 'px'
             @.$('.suggestion_full_container').css 'margin-top', margin
             @.$('.suggestion_name_list').css 'display', 'block'
 
         show_suggestion_description: ->
-            console.log @codemirror.getCursor().line
-            margin = ((@codemirror.getCursor().line+1)*@line_height) + 'px'
+            extra_lines = Math.floor(@codemirror.getCursor().ch/@num_char_per_line)
+            margin = ((@codemirror.getCursor().line+1+extra_lines)*@line_height) + 'px'
             @.$('.suggestion_full_container').css 'margin-top', margin
             @.$('.suggestion_description').css 'display', 'block'
+
+        add_description: (fn) =>
+            if @descriptions[fn]?
+                extra_lines = Math.floor(@codemirror.getCursor().ch/@num_char_per_line)
+                margin = ((@codemirror.getCursor().line+1+extra_lines)*@line_height) + 'px'
+                @.$('.suggestion_full_container').css 'margin-top', margin
+                @.$('.suggestion_description').html @descriptions[fn]
+                @.$('.suggestion_description').css 'display', 'block'
+
 
 
         expand_textarea: (event) =>
@@ -325,13 +341,6 @@ module 'DataExplorerView', ->
                     @add_description last_function_for_description
 
             return false
-
-        add_description: (fn) =>
-            if @descriptions[fn]?
-                margin = ((@codemirror.getCursor().line+1)*@line_height) + 'px'
-                @.$('.suggestion_full_container').css 'margin-top', margin
-                @.$('.suggestion_description').html @descriptions[fn]
-                @.$('.suggestion_description').css 'display', 'block'
 
         extract_last_function_for_description: (query) =>
             # query = query_before_cursor
@@ -742,6 +751,8 @@ module 'DataExplorerView', ->
 
             @render()
 
+            $(window).on 'resize', @set_char_per_line
+
         render: =>
             @.$el.html @template
             @.$('.input_query_full_container').html @input_query.render().$el
@@ -767,10 +778,12 @@ module 'DataExplorerView', ->
                 @display_normal()
                 $(window).unbind 'resize', @display_full
                 @displaying_full_view = false
+                @set_char_per_line()
             else
                 @display_full()
                 $(window).bind 'resize', @display_full
                 @displaying_full_view = true
+                @set_char_per_line()
 
         display_normal: =>
             $('#cluster').addClass 'container'
@@ -839,8 +852,8 @@ module 'DataExplorerView', ->
             @set_limit limit
             @set_skip 0
             @set_view 'tree'
-            $(document).mousemove @handle_mousemove
-            $(document).mouseup @handle_mouseup
+            $(window).mousemove @handle_mousemove
+            $(window).mouseup @handle_mouseup
 
         set_limit: (limit) =>
             @limit = limit
