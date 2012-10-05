@@ -177,6 +177,11 @@ function testWithout() {
     tab.orderby('num').without('num').nth(0).run(objeq({id:9}));
 }
 
+function testUnion() {
+    r.expr([1,2,3]).union([4,5,6]).run(objeq(1,2,3,4,5,6));
+    tab.union(tab).count().eq(tab.count().mul(2)).run(aeq(true));
+}
+
 function testTabFilter() {
     tab.filter(function(row) {
         return row('num').gt(16);
@@ -494,6 +499,7 @@ runTests([
     testOrderby,
     testPluck,
     testWithout,
+    testUnion,
     testTabFilter,
     testTabMap,
     testTabReduce,
