@@ -57,6 +57,11 @@ enum result_t { MODIFIED, INSERTED, SKIPPED, DELETED, NOP, ERROR };
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(result_t, int8_t, MODIFIED, ERROR);
 enum op_t { UPDATE, MUTATE };
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(op_t, int8_t, UPDATE, MUTATE);
+static inline std::string op_name(op_t op) {
+    if (op == UPDATE) return "update";
+    if (op == MUTATE) return "mutate";
+    unreachable();
+}
 }
 
 RDB_DECLARE_SERIALIZABLE(Builtin_Range);
