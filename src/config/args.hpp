@@ -220,11 +220,14 @@
 
 // If the size of the LBA on a given disk exceeds LBA_MIN_SIZE_FOR_GC, then the fraction of the
 // entries that are live and not garbage should be at least LBA_MIN_UNGARBAGE_FRACTION.
-#define LBA_MIN_SIZE_FOR_GC                       (MEGABYTE * 20)
-#define LBA_MIN_UNGARBAGE_FRACTION                0.15
+// TODO: Maybe change this back to 20 megabytes?
+#define LBA_MIN_SIZE_FOR_GC                       (MEGABYTE * 1)
+// TODO: This used to be 0.15 but we figured why not do the opposite of our well-tested parameter?
+#define LBA_MIN_UNGARBAGE_FRACTION                0.85
 
 // How many LBA structures to have for each file
-#define LBA_SHARD_FACTOR                          16
+// TODO: LBA_SHARD_FACTOR used to be 16.
+#define LBA_SHARD_FACTOR                          1
 
 // How many bytes of buffering space we can use per disk when reading the LBA. If it's set
 // too high, then RethinkDB will eat a lot of memory at startup. This is bad because tcmalloc
