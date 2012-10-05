@@ -1,25 +1,4 @@
 # -*- coding: utf-8 -*-
-# load '/home/mlucy/rethinkdb_ruby/drivers/ruby/rethinkdb/rethinkdb.rb'
-# filter might work, merge into master and check
-# random, sample
-# reduce
-
-# BIG TODO:
-#   * Make Connection work with clusters, minimize network hops,
-#     etc. etc. like python client does.
-
-# TODO:
-# Union vs. +
-# Figure out how to use:
-#   * GROUPEDMAPREDUCE
-# Add tests once completed/fixed:
-#   * REDUCE
-#   * FOREACH
-
-################################################################################
-#                                 CONNECTION                                   #
-################################################################################
-
 $LOAD_PATH.unshift('./rethinkdb')
 require 'rethinkdb.rb'
 require 'test/unit'

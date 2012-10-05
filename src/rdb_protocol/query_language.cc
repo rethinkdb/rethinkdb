@@ -260,6 +260,7 @@ term_info_t get_term_type(Term *t, type_checking_environment_t *env, const backt
     guarantee_debug_throw_release(ret, backtrace);
     t->SetExtension(extension::inferred_type, static_cast<int32_t>(ret->type));
     t->SetExtension(extension::deterministic, ret->deterministic);
+    //debugf("%s", t->DebugString().c_str());
     return *ret;
 }
 
@@ -556,7 +557,8 @@ term_info_t get_function_type(Term::Call *c, type_checking_environment_t *env, c
             {
                 check_arg_count(c, 1, backtrace);
                 check_reduction_type(b->mutable_reduce(), env, &deterministic, backtrace.with("reduce"));
-                return term_info_t(TERM_TYPE_JSON, false); //This is always false because we can't be sure the functions is associative or commutative
+                term_info_t argtype = get_term_type(c->mutable_args(0), env, backtrace);
+                return term_info_t(TERM_TYPE_JSON, deterministic && argtype.deterministic);
             }
             break;
         case Builtin::GROUPEDMAPREDUCE:
@@ -567,7 +569,8 @@ term_info_t get_function_type(Term::Call *c, type_checking_environment_t *env, c
                     check_mapping_type(b->mutable_grouped_map_reduce()->mutable_value_mapping(), TERM_TYPE_JSON, env, &deterministic, backtrace.with("value_mapping"));
                     check_reduction_type(b->mutable_grouped_map_reduce()->mutable_reduction(), env, &deterministic, backtrace.with("reduction"));
                 }
-                return term_info_t(TERM_TYPE_JSON, false); //we don't know whether the functions are associative or commutative
+                term_info_t argtype = get_term_type(c->mutable_args(0), env, backtrace);
+                return term_info_t(TERM_TYPE_JSON, deterministic && argtype.deterministic);
             }
             break;
         case Builtin::UNION: {
