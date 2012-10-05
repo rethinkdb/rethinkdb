@@ -1,0 +1,576 @@
+Day,Len,id,EV,Dem,GOP,Ind,Date,,,,,,,,Pollster
+226.5,4,Alabama,9,36,54,,Aug 16,,,,,,,,Capital Survey-4
+177.0,3,Alabama,9,36,51,,Jun 27,,,,,,,,Capital Survey-3
+  1.0,1,Alabama,9,39,60,,Jan 01,,,,,,,,Election 2008-1
+  1.0,1,Alaska,3,38,62,,Jan 01,,,,,,,,Election 2008-1
+275.0,3,Arizona,11,44,53,,Oct 03,,,,,,,,PPP-3
+268.5,2,Arizona,11,42,46,,Sep 26,,,,,,,,Moore Consulting-2
+268.0,1,Arizona,11,42,52,,Sep 25,,,,,,,,Rasmussen-1
+260.0,5,Arizona,11,45,48,,Sep 19,,,,,,,,Purple Strategies-5
+251.0,3,Arizona,11,44,53,,Sep 09,,,,,,,,PPP-3
+205.0,3,Arizona,11,41,52,,Jul 25,,,,,,,,PPP-3
+177.0,1,Arizona,11,41,54,,Jun 26,,,,,,,,Rasmussen-1
+155.5,2,Arizona,11,46,49,,Jun 05,,,,,,,,PPP-2
+138.5,4,Arizona,11,43,50,,May 20,,,,,,,,PPP-4
+105.0,11,Arizona,11,40,42,,Apr 20,,,,,,,,Arizona State U.-11
+103.0,9,Arizona,11,42,40,,Apr 17,,,,,,,,Rocky Mtn Poll-9
+102.0,1,Arizona,11,40,42,,Apr 12,,,,,,,,Arizona State U.-1
+ 72.0,1,Arizona,11,40,51,,Mar 13,,,,,,,,Rasmussen-1
+ 50.5,2,Arizona,11,40,45,,Feb 20,,,,,,,,Marist Coll.-2
+ 49.0,3,Arizona,11,47,47,,Feb 19,,,,,,,,PPP-3
+  7.0,5,Arizona,11,37,43,,Jan 09,,,,,,,,Rocky Mtn Poll-5
+  1.0,1,Arizona,11,45,54,,Jan 01,,,,,,,,Election 2008-1
+260.0,1,Arkansas,6,35,56,,Sep 17,,,,,,,,Hendrix Coll.-1
+  1.0,1,Arkansas,6,39,59,,Jan 01,,,,,,,,Election 2008-1
+255.5,8,California,55,53,39,,Sep 16,,,,,,,,Public Policy Inst. of Calif.-8
+254.0,13,California,55,58,34,,Sep 17,,,,,,,,Field Poll-13
+253.5,4,California,55,55,33,,Sep 12,,,,,,,,Pepperdine U.-4
+253.0,3,California,55,57,35,,Sep 11,,,,,,,,SurveyUSA-3
+217.0,5,California,55,56,33,,Aug 07,,,,,,,,Tulchin Research-5
+198.0,15,California,55,51,40,,Jul 24,,,,,,,,Public Policy Inst. of Calif.-15
+197.5,2,California,55,52,33,,Jul 17,,,,,,,,Pepperdine U.-2
+177.5,12,California,55,55,37,,Jul 02,,,,,,,,Field Poll-12
+148.0,3,California,55,57,36,,May 29,,,,,,,,SurveyUSA-3
+145.0,9,California,55,48,32,,May 29,,,,,,,,Field Poll-9
+139.0,5,California,55,56,37,,May 21,,,,,,,,Los Angeles Times-5
+137.0,7,California,55,50,39,,May 20,,,,,,,,Public Policy Inst. of Calif.-7
+ 90.0,5,California,55,62,31,,Apr 02,,,,,,,,SurveyUSA-5
+ 75.5,6,California,55,57,36,,Mar 19,,,,,,,,Los Angeles Times-6
+ 43.0,9,California,55,57,35,,Feb 16,,,,,,,,Rasmussen-9
+ 41.0,17,California,55,55,35,,Feb 18,,,,,,,,Field Poll-17
+ 39.5,2,California,55,60,31,,Feb 09,,,,,,,,SurveyUSA-2
+ 32.0,3,California,55,52,30,,Feb 02,,,,,,,,PPP-3
+  1.0,1,California,55,61,37,,Jan 01,,,,,,,,Election 2008-1
+264.5,4,Colorado,9,51,45,,Sep 23,,,,,,,,PPP-4
+260.0,1,Colorado,9,45,47,,Sep 17,,,,,,,,Rasmussen-1
+260.0,3,Colorado,9,50,45,,Sep 18,,,,,,,,Marist Coll.-3
+260.0,5,Colorado,9,48,45,,Sep 19,,,,,,,,Purple Strategies-5
+257.0,7,Colorado,9,48,47,,Sep 17,,,,,,,,Quinnipiac U.-7
+254.0,3,Colorado,9,49,47,,Sep 12,,,,,,,,ARG-3
+253.5,4,Colorado,9,47,46,,Sep 12,,,,,,,,SurveyUSA-4
+244.0,3,Colorado,9,49,46,,Sep 02,,,,,,,,PPP-3
+225.5,2,Colorado,9,49,46,,Aug 14,,,,,,,,Purple Strategies-2
+218.0,1,Colorado,9,47,47,,Aug 06,,,,,,,,Rasmussen-1
+215.5,4,Colorado,9,49,43,,Aug 05,,,,,,,,PPP-4
+215.0,7,Colorado,9,45,50,,Aug 06,,,,,,,,Quinnipiac U.-7
+192.0,5,Colorado,9,45,44,,Jul 13,,,,,,,,Purple Strategies-5
+166.5,4,Colorado,9,49,42,,Jun 17,,,,,,,,PPP-4
+157.0,1,Colorado,9,45,45,,Jun 06,,,,,,,,Rasmussen-1
+153.5,6,Colorado,9,48,46,,Jun 05,,,,,,,,Purple Strategies-6
+143.0,3,Colorado,9,46,45,,May 24,,,,,,,,Marist Coll.-3
+111.0,5,Colorado,9,47,47,,Apr 23,,,,,,,,Purple Strategies-5
+ 96.0,3,Colorado,9,53,40,,Apr 07,,,,,,,,PPP-3
+ 61.5,4,Colorado,9,55,44,,Mar 04,,,,,,,,Quinnipiac U.-4
+  1.0,1,Colorado,9,54,45,,Jan 01,,,,,,,,Election 2008-1
+268.0,3,Connecticut,7,54,41,,Sep 26,,,,,,,,PPP-3
+256.5,6,Connecticut,7,53,32,,Sep 16,,,,,,,,U. of Connecticut-6
+236.0,5,Connecticut,7,52,45,,Aug 26,,,,,,,,Quinnipiac U.-5
+234.5,2,Connecticut,7,53,40,,Aug 23,,,,,,,,PPP-2
+233.0,1,Connecticut,7,51,43,,Aug 21,,,,,,,,Rasmussen-1
+208.5,4,Connecticut,7,51,43,,Jul 29,,,,,,,,PPP-4
+151.5,6,Connecticut,7,50,38,,Jun 03,,,,,,,,Quinnipiac U.-6
+ 75.5,6,Connecticut,7,53,37,,Mar 19,,,,,,,,Quinnipiac U.-6
+ 32.5,2,Connecticut,7,50,37,,Feb 02,,,,,,,,Pulse Opinion Research-2
+  1.0,1,Connecticut,7,61,38,,Jan 01,,,,,,,,Election 2008-1
+  1.0,1,D.C.,3,92,7,,Jan 01,,,,,,,,Election 2008-1
+  1.0,1,Delaware,3,62,37,,Jan 01,,,,,,,,Election 2008-1
+273.5,2,Florida,29,47,46,,Oct 01,,,,,,,,Marist Coll.-2
+271.5,4,Florida,29,46,43,,Sep 30,,,,,,,,Suffolk U.-4
+264.5,4,Florida,29,50,46,,Sep 23,,,,,,,,PPP-4
+264.0,3,Florida,29,50,45,,Sep 22,,,,,,,,ARG-3
+264.0,5,Florida,29,51,47,,Sep 23,,,,,,,,Washington Post-5
+264.0,7,Florida,29,53,44,,Sep 24,,,,,,,,Quinnipiac U.-7
+261.0,3,Florida,29,48,47,,Sep 19,,,,,,,,Mason Dixon-3
+260.0,3,Florida,29,49,44,,Sep 18,,,,,,,,Fox News-3
+260.0,5,Florida,29,47,48,,Sep 19,,,,,,,,Purple Strategies-5
+255.0,1,Florida,29,48,46,,Sep 12,,,,,,,,Rasmussen-1
+253.0,3,Florida,29,49,44,,Sep 11,,,,,,,,Marist Coll.-3
+251.0,3,Florida,29,48,44,,Sep 09,,,,,,,,SurveyUSA-3
+244.0,3,Florida,29,48,47,,Sep 02,,,,,,,,PPP-3
+236.0,5,Florida,29,50,46,,Aug 26,,,,,,,,ORC International-5
+230.0,7,Florida,29,49,46,,Aug 21,,,,,,,,Quinnipiac U.-7
+227.0,1,Florida,29,43,45,,Aug 15,,,,,,,,Rasmussen-1
+225.5,2,Florida,29,47,48,,Aug 14,,,,,,,,Purple Strategies-2
+208.5,4,Florida,29,48,47,,Jul 29,,,,,,,,PPP-4
+208.0,7,Florida,29,51,45,,Jul 30,,,,,,,,Quinnipiac U.-7
+199.0,3,Florida,29,48,43,,Jul 19,,,,,,,,SurveyUSA-3
+192.0,5,Florida,29,45,48,,Jul 13,,,,,,,,Purple Strategies-5
+191.0,3,Florida,29,46,45,,Jul 11,,,,,,,,Mason Dixon-3
+190.0,1,Florida,29,45,46,,Jul 09,,,,,,,,Rasmussen-1
+173.0,7,Florida,29,45,41,,Jun 25,,,,,,,,Quinnipiac U.-7
+166.0,7,Florida,29,46,42,,Jun 18,,,,,,,,Quinnipiac U.-7
+153.5,6,Florida,29,45,49,,Jun 05,,,,,,,,Purple Strategies-6
+152.5,4,Florida,29,50,46,,Jun 03,,,,,,,,PPP-4
+138.5,4,Florida,29,48,44,,May 20,,,,,,,,Marist Coll.-4
+138.0,7,Florida,29,41,47,,May 21,,,,,,,,Quinnipiac U.-7
+127.0,3,Florida,29,46,45,,May 08,,,,,,,,Suffolk U.-3
+118.0,7,Florida,29,43,44,,May 01,,,,,,,,Quinnipiac U.-7
+115.0,1,Florida,29,45,46,,Apr 25,,,,,,,,Rasmussen-1
+111.0,5,Florida,29,45,47,,Apr 23,,,,,,,,Purple Strategies-5
+106.0,3,Florida,29,45,43,,Apr 17,,,,,,,,Fox News-3
+103.5,4,Florida,29,50,45,,Apr 15,,,,,,,,PPP-4
+ 82.0,7,Florida,29,49,42,,Mar 26,,,,,,,,Quinnipiac U.-7
+ 72.0,1,Florida,29,46,43,,Mar 13,,,,,,,,Rasmussen-1
+ 40.0,1,Florida,29,47,44,,Feb 09,,,,,,,,Rasmussen-1
+ 26.0,3,Florida,29,49,41,,Jan 27,,,,,,,,Marist Coll.-3
+ 25.0,3,Florida,29,44,48,,Jan 26,,,,,,,,Mason Dixon-3
+ 23.0,3,Florida,29,42,47,,Jan 24,,,,,,,,Suffolk U.-3
+ 21.0,5,Florida,29,45,45,,Jan 23,,,,,,,,Quinnipiac U.-5
+  6.0,5,Florida,29,43,46,,Jan 08,,,,,,,,Quinnipiac U.-5
+  1.0,1,Florida,29,51,48,,Jan 01,,,,,,,,Election 2008-1
+262.0,1,Georgia,16,35,56,,Sep 19,,,,,,,,Insider Advantage-1
+204.0,1,Georgia,16,41,50,,Jul 23,,,,,,,,Insider Advantage-1
+142.0,1,Georgia,16,40,52,,May 22,,,,,,,,Insider Advantage-1
+ 57.0,7,Georgia,16,42,49,,Feb 29,,,,,,,,SurveyUSA-7
+ 32.5,2,Georgia,16,43,51,,Feb 02,,,,,,,,SurveyUSA-2
+  1.0,1,Georgia,16,47,52,,Jan 01,,,,,,,,Election 2008-1
+  1.0,1,Hawaii,4,72,27,,Jan 01,,,,,,,,Election 2008-1
+  1.0,1,Idaho,4,36,62,,Jan 01,,,,,,,,Election 2008-1
+250.0,7,Illinois,20,47,34,,Sep 10,,,,,,,,Southern Illinois U.-7
+250.0,7,Illinois,20,47,34,,Sep 10,,,,,,,,Southern Illinois University-7
+232.0,7,Illinois,20,55,29,,Aug 23,,,,,,,,IPSOS-7
+200.0,7,Illinois,20,51,31,,Jul 22,,,,,,,,IPSOS-7
+ 35.0,5,Illinois,20,56,35,,Feb 06,,,,,,,,Market Shares-5
+  1.0,1,Illinois,20,62,37,,Jan 01,,,,,,,,Election 2008-1
+264.0,5,Indiana,11,40,52,,Sep 23,,,,,,,,Howey-DePauw-5
+254.0,3,Indiana,11,41,47,,Sep 12,,,,,,,,Global Strategy-3
+212.5,2,Indiana,11,35,51,,Aug 01,,,,,,,,Rasmussen-2
+143.5,2,Indiana,11,42,48,,May 24,,,,,,,,Rasmussen-2
+ 85.5,2,Indiana,11,40,49,,Mar 27,,,,,,,,Howey-DePauw-2
+  1.0,1,Indiana,11,50,49,,Jan 01,,,,,,,,Election 2008-1
+268.0,3,Iowa,6,51,44,,Sep 26,,,,,,,,PPP-3
+267.5,4,Iowa,6,49,45,,Sep 26,,,,,,,,Selzer-4
+264.5,4,Iowa,6,51,44,,Sep 23,,,,,,,,ARG-4
+262.0,1,Iowa,6,44,47,,Sep 19,,,,,,,,Rasmussen-1
+260.0,3,Iowa,6,50,42,,Sep 18,,,,,,,,Marist Coll.-3
+236.5,4,Iowa,6,47,45,,Aug 26,,,,,,,,PPP-4
+220.0,1,Iowa,6,44,46,,Aug 08,,,,,,,,Rasmussen-1
+194.5,4,Iowa,6,48,43,,Jul 15,,,,,,,,PPP-4
+162.0,1,Iowa,6,46,47,,Jun 11,,,,,,,,Rasmussen-1
+143.0,3,Iowa,6,44,44,,May 24,,,,,,,,Marist Coll.-3
+124.5,4,Iowa,6,51,41,,May 06,,,,,,,,PPP-4
+ 44.5,4,Iowa,6,44,46,,Feb 15,,,,,,,,Selzer-4
+  1.0,1,Iowa,6,54,44,,Jan 01,,,,,,,,Election 2008-1
+  1.0,1,Kansas,6,42,57,,Jan 01,,,,,,,,Election 2008-1
+255.0,3,Kentucky,8,39,53,,Sep 13,,,,,,,,SurveyUSA-3
+  1.0,1,Kentucky,8,41,57,,Jan 01,,,,,,,,Election 2008-1
+272.5,2,Louisiana,8,37,50,,Sep 30,,,,,,,,Zogby-2
+258.5,10,Louisiana,8,39,45,,Sep 20,,,,,,,,Southern Media + Opinion Research-10
+  1.0,1,Louisiana,8,40,59,,Jan 01,,,,,,,,Election 2008-1
+268.0,1,Maine,4,52,40,,Sep 25,,,,,,,,Rasmussen-1
+260.5,2,Maine,4,55,39,,Sep 18,,,,,,,,PPP-2
+259.0,3,Maine,4,54,37,,Sep 17,,,,,,,,Maine Peoples Res. Ctr.-3
+257.0,5,Maine,4,52,36,,Sep 16,,,,,,,,Critical Insights-5
+217.5,2,Maine,4,52,37,,Aug 06,,,,,,,,Moore Consulting-2
+173.5,6,Maine,4,49,35,,Jun 25,,,,,,,,Critical Insights-6
+164.5,2,Maine,4,48,34,,Jun 14,,,,,,,,MassINC-2
+124.5,6,Maine,4,50,42,,May 07,,,,,,,,Critical Insights-6
+ 91.0,3,Maine,4,55,37,,Apr 02,,,,,,,,Maine People Res. Ctr.-3
+ 91.0,3,Maine,4,55,37,,Apr 02,,,,,,,,Maine Peoples Res. Ctr.-3
+ 62.0,3,Maine,4,58,35,,Mar 04,,,,,,,,PPP-3
+  1.0,1,Maine,4,58,40,,Jan 01,,,,,,,,Election 2008-1
+269.0,3,Maryland,10,57,34,,Sep 27,,,,,,,,OpinionWorks-3
+263.0,7,Maryland,10,55,36,,Sep 23,,,,,,,,Gonzales Research-7
+137.5,8,Maryland,10,58,35,,May 21,,,,,,,,PPP-8
+  1.0,1,Maryland,10,62,36,,Jan 01,,,,,,,,Election 2008-1
+270.0,3,Massachusetts,11,60,32,,Sep 28,,,,,,,,MassINC-3
+267.0,1,Massachusetts,11,55,40,,Sep 24,,,,,,,,Rasmussen-1
+267.0,7,Massachusetts,11,57,30,,Sep 27,,,,,,,,U. of New Hampshire-7
+259.0,3,Massachusetts,11,59,31,,Sep 17,,,,,,,,MassINC-3
+258.0,5,Massachusetts,11,59,36,,Sep 17,,,,,,,,U. of Mass.-5
+257.5,4,Massachusetts,11,57,39,,Sep 16,,,,,,,,PPP-4
+257.5,4,Massachusetts,11,64,31,,Sep 16,,,,,,,,Suffolk U.-4
+229.5,4,Massachusetts,11,55,39,,Aug 19,,,,,,,,PPP-4
+174.0,3,Massachusetts,11,55,39,,Jun 24,,,,,,,,PPP-3
+150.0,3,Massachusetts,11,56,34,,May 31,,,,,,,,Western New England U.-3
+148.0,7,Massachusetts,11,46,34,,May 31,,,,,,,,U. of New Hampshire-7
+141.0,3,Massachusetts,11,59,34,,May 22,,,,,,,,Suffolk U.-3
+127.0,1,Massachusetts,11,56,35,,May 07,,,,,,,,Rasmussen-1
+ 99.0,1,Massachusetts,11,51,40,,Apr 09,,,,,,,,Rasmussen-1
+ 83.0,7,Massachusetts,11,49,33,,Mar 27,,,,,,,,U. of New Hampshire-7
+ 76.0,3,Massachusetts,11,58,35,,Mar 18,,,,,,,,PPP-3
+ 60.0,1,Massachusetts,11,55,38,,Feb 29,,,,,,,,Rasmussen-1
+ 57.0,7,Massachusetts,11,60,36,,Mar 01,,,,,,,,Western New England U.-7
+ 44.0,5,Massachusetts,11,53,39,,Feb 15,,,,,,,,Suffolk U.-5
+  1.0,1,Massachusetts,11,62,36,,Jan 01,,,,,,,,Election 2008-1
+263.0,1,Michigan,16,54,42,,Sep 20,,,,,,,,Rasmussen-1
+261.0,3,Michigan,16,51,42,,Sep 19,,,,,,,,PPP-3
+259.0,5,Michigan,16,52,44,,Sep 18,,,,,,,,ORC International-5
+255.5,6,Michigan,16,48,42,,Sep 15,,,,,,,,Marketing Resource Grp.-6
+252.5,4,Michigan,16,47,37,,Sep 11,,,,,,,,EPIC MRA-4
+244.0,3,Michigan,16,51,44,,Sep 02,,,,,,,,PPP-3
+240.0,1,Michigan,16,49,46,,Aug 28,,,,,,,,EPIC MRA-1
+235.0,1,Michigan,16,47,47,,Aug 23,,,,,,,,Mitchell Research-1
+231.0,3,Michigan,16,48,42,,Aug 20,,,,,,,,Glengariff Group-3
+225.0,1,Michigan,16,49,44,,Aug 13,,,,,,,,Mitchell Research-1
+208.5,8,Michigan,16,48,42,,Jul 31,,,,,,,,EPIC MRA-8
+204.0,1,Michigan,16,44,45,,Jul 23,,,,,,,,Mitchell Research-1
+204.0,1,Michigan,16,48,42,,Jul 23,,,,,,,,Rasmussen-1
+203.0,3,Michigan,16,53,39,,Jul 23,,,,,,,,PPP-3
+175.5,2,Michigan,16,47,43,,Jun 25,,,,,,,,Marist Coll.-2
+169.0,1,Michigan,16,47,46,,Jun 18,,,,,,,,Mitchell Research-1
+165.5,2,Michigan,16,40,40,,Jun 15,,,,,,,,Denno Research-2
+165.0,1,Michigan,16,50,42,,Jun 14,,,,,,,,Rasmussen-1
+154.5,4,Michigan,16,45,46,,Jun 05,,,,,,,,EPIC MRA-4
+145.5,4,Michigan,16,53,39,,May 27,,,,,,,,PPP-4
+ 91.5,4,Michigan,16,47,43,,Apr 03,,,,,,,,EPIC MRA-4
+ 50.5,2,Michigan,16,51,33,,Feb 20,,,,,,,,Marist Coll.-2
+ 42.0,3,Michigan,16,54,38,,Feb 12,,,,,,,,PPP-3
+ 23.0,5,Michigan,16,48,40,,Jan 25,,,,,,,,EPIC MRA-5
+  1.0,1,Michigan,16,57,41,,Jan 01,,,,,,,,Election 2008-1
+261.0,3,Minnesota,10,48,40,,Sep 19,,,,,,,,Mason Dixon-3
+261.0,3,Minnesota,10,48,40,,Sep 19,,,,,,,,Star Tribune-3
+253.5,2,Minnesota,10,51,44,,Sep 11,,,,,,,,PPP-2
+250.5,4,Minnesota,10,50,40,,Sep 09,,,,,,,,SurveyUSA-4
+199.0,3,Minnesota,10,46,40,,Jul 19,,,,,,,,SurveyUSA-3
+152.5,4,Minnesota,10,54,39,,Jun 03,,,,,,,,PPP-4
+129.5,2,Minnesota,10,52,38,,May 10,,,,,,,,SurveyUSA-2
+ 32.0,3,Minnesota,10,49,36,,Feb 02,,,,,,,,SurveyUSA-3
+ 21.5,2,Minnesota,10,51,41,,Jan 22,,,,,,,,PPP-2
+  1.0,1,Minnesota,10,54,44,,Jan 01,,,,,,,,Election 2008-1
+  1.0,1,Mississippi,6,43,56,,Jan 01,,,,,,,,Election 2008-1
+275.0,3,Missouri,10,45,51,,Oct 03,,,,,,,,PPP-3
+263.0,1,Missouri,10,44,50,,Sep 20,,,,,,,,Chilenski Strategies-1
+254.0,1,Missouri,10,45,48,,Sep 11,,,,,,,,Rasmussen-1
+240.5,2,Missouri,10,41,53,,Aug 29,,,,,,,,PPP-2
+234.5,2,Missouri,10,43,50,,Aug 23,,,,,,,,Mason Dixon-2
+234.0,1,Missouri,10,47,46,,Aug 22,,,,,,,,Rasmussen-1
+232.0,1,Missouri,10,42,52,,Aug 20,,,,,,,,PPP-1
+222.5,4,Missouri,10,44,45,,Aug 12,,,,,,,,SurveyUSA-4
+220.0,1,Missouri,10,47,48,,Aug 08,,,,,,,,Chilenski Strategies-1
+211.0,1,Missouri,10,44,50,,Jul 30,,,,,,,,Rasmussen-1
+205.0,3,Missouri,10,42,51,,Jul 25,,,,,,,,Mason Dixon-3
+158.0,1,Missouri,10,42,49,,Jun 07,,,,,,,,Rasmussen-1
+145.5,4,Missouri,10,45,44,,May 27,,,,,,,,PPP-4
+107.0,1,Missouri,10,45,48,,Apr 17,,,,,,,,Rasmussen-1
+ 73.0,1,Missouri,10,41,50,,Mar 14,,,,,,,,Rasmussen-1
+ 28.0,3,Missouri,10,45,45,,Jan 29,,,,,,,,PPP-3
+  1.0,1,Missouri,10,48,49,,Jan 01,,,,,,,,Election 2008-1
+261.0,3,Montana,3,42,51,,Sep 19,,,,,,,,Mason Dixon-3
+253.5,2,Montana,3,45,50,,Sep 11,,,,,,,,PPP-2
+232.0,1,Montana,3,38,55,,Aug 20,,,,,,,,Rasmussen-1
+169.0,1,Montana,3,42,51,,Jun 18,,,,,,,,Rasmussen-1
+122.0,1,Montana,3,44,51,,May 02,,,,,,,,Rasmussen-1
+117.5,4,Montana,3,43,48,,Apr 29,,,,,,,,PPP-4
+ 92.0,1,Montana,3,40,49,,Apr 02,,,,,,,,Rasmussen-1
+ 53.0,1,Montana,3,41,48,,Feb 22,,,,,,,,Rasmussen-1
+  1.0,1,Montana,3,47,50,,Jan 01,,,,,,,,Election 2008-1
+261.5,4,Nebraska,5,40,51,,Sep 20,,,,,,,,Wiese Research Assoc.-4
+136.0,1,Nebraska,5,39,53,,May 16,,,,,,,,Rasmussen-1
+ 82.5,4,Nebraska,5,39,51,,Mar 25,,,,,,,,PPP-4
+ 64.0,1,Nebraska,5,35,52,,Mar 05,,,,,,,,Rasmussen-1
+ 23.5,4,Nebraska,5,39,51,,Jan 25,,,,,,,,PPP-4
+  1.0,1,Nebraska,5,42,57,,Jan 01,,,,,,,,Election 2008-1
+267.0,3,Nevada,6,49,47,,Sep 25,,,,,,,,Marist Coll.-3
+264.5,4,Nevada,6,51,44,,Sep 23,,,,,,,,ARG-4
+262.0,3,Nevada,6,52,43,,Sep 20,,,,,,,,PPP-3
+261.0,1,Nevada,6,47,45,,Sep 18,,,,,,,,Rasmussen-1
+259.0,5,Nevada,6,49,46,,Sep 18,,,,,,,,ORC International-5
+236.5,4,Nevada,6,50,47,,Aug 26,,,,,,,,PPP-4
+230.5,6,Nevada,6,47,45,,Aug 21,,,,,,,,SurveyUSA-6
+205.0,1,Nevada,6,50,45,,Jul 24,,,,,,,,Rasmussen-1
+159.5,4,Nevada,6,48,42,,Jun 10,,,,,,,,PPP-4
+143.0,3,Nevada,6,48,46,,May 24,,,,,,,,Marist Coll.-3
+120.0,1,Nevada,6,52,44,,Apr 30,,,,,,,,Rasmussen-1
+ 89.5,4,Nevada,6,51,43,,Apr 01,,,,,,,,PPP-4
+ 78.0,1,Nevada,6,50,44,,Mar 19,,,,,,,,Rasmussen-1
+ 32.0,1,Nevada,6,53,44,,Feb 01,,,,,,,,Rasmussen-1
+  1.0,1,Nevada,6,55,43,,Jan 01,,,,,,,,Election 2008-1
+271.5,4,New Hampshire,4,54,39,,Sep 30,,,,,,,,U. of New Hampshire-4
+269.0,3,New Hampshire,4,50,45,,Sep 27,,,,,,,,ARG-3
+267.5,2,New Hampshire,4,51,44,,Sep 25,,,,,,,,PPP-2
+267.0,3,New Hampshire,4,51,44,,Sep 25,,,,,,,,Marist Coll.-3
+261.0,1,New Hampshire,4,45,48,,Sep 18,,,,,,,,Rasmussen-1
+259.0,3,New Hampshire,4,48,46,,Sep 17,,,,,,,,ARG-3
+250.0,7,New Hampshire,4,45,40,,Sep 10,,,,,,,,U. of New Hampshire-7
+222.5,4,New Hampshire,4,51,45,,Aug 12,,,,,,,,PPP-4
+219.5,2,New Hampshire,4,50,44,,Aug 08,,,,,,,,PPP-2
+218.5,12,New Hampshire,4,49,46,,Aug 12,,,,,,,,U. of New Hampshire-12
+191.0,11,New Hampshire,4,49,45,,Jul 15,,,,,,,,U. of New Hampshire-11
+175.5,2,New Hampshire,4,45,45,,Jun 25,,,,,,,,Marist Coll.-2
+173.5,4,New Hampshire,4,51,43,,Jun 24,,,,,,,,ARG-4
+171.0,1,New Hampshire,4,48,43,,Jun 20,,,,,,,,Rasmussen-1
+131.5,4,New Hampshire,4,53,41,,May 13,,,,,,,,PPP-4
+104.5,12,New Hampshire,4,51,42,,Apr 20,,,,,,,,U. of New Hampshire-12
+ 93.5,4,New Hampshire,4,42,44,,Apr 05,,,,,,,,Dartmouth College-4
+ 75.5,4,New Hampshire,4,48,41,,Mar 18,,,,,,,,ARG-4
+ 29.0,9,New Hampshire,4,50,40,,Feb 02,,,,,,,,U. of New Hampshire-9
+  1.0,1,New Hampshire,4,54,45,,Jan 01,,,,,,,,Election 2008-1
+271.5,4,New Jersey,14,56,39,,Sep 30,,,,,,,,Rutgers-Eagleton-4
+264.0,5,New Jersey,14,52,37,,Sep 23,,,,,,,,Monmouth U.-5
+253.5,4,New Jersey,14,51,37,,Sep 12,,,,,,,,Global Strategy-4
+252.0,7,New Jersey,14,52,38,,Sep 12,,,,,,,,Fairleigh Dickinson U.-7
+242.0,7,New Jersey,14,51,44,,Sep 02,,,,,,,,Quinnipiac U.-7
+236.0,3,New Jersey,14,51,37,,Aug 25,,,,,,,,Rutgers-Eagleton-3
+207.0,7,New Jersey,14,49,36,,Jul 29,,,,,,,,Fairleigh Dickinson U.-7
+201.0,5,New Jersey,14,50,42,,Jul 22,,,,,,,,Monmouth U.-5
+193.0,7,New Jersey,14,49,38,,Jul 15,,,,,,,,Quinnipiac U.-7
+153.0,5,New Jersey,14,56,33,,Jun 04,,,,,,,,Rutgers-Eagleton-5
+131.5,6,New Jersey,14,49,39,,May 14,,,,,,,,Quinnipiac U.-6
+123.0,7,New Jersey,14,50,36,,May 06,,,,,,,,Fairleigh Dickinson U.-7
+ 96.0,7,New Jersey,14,49,40,,Apr 09,,,,,,,,Quinnipiac U.-7
+ 67.0,7,New Jersey,14,50,37,,Mar 11,,,,,,,,Fairleigh Dickinson U.-7
+ 56.0,3,New Jersey,14,52,38,,Feb 26,,,,,,,,SurveyUSA-3
+ 55.0,7,New Jersey,14,49,39,,Feb 27,,,,,,,,Quinnipiac U.-7
+ 41.0,3,New Jersey,14,56,31,,Feb 11,,,,,,,,Rutgers-Eagleton-3
+ 13.0,7,New Jersey,14,48,38,,Jan 16,,,,,,,,Quinnipiac U.-7
+  7.5,4,New Jersey,14,52,37,,Jan 09,,,,,,,,PPP-4
+  1.0,1,New Jersey,14,57,42,,Jan 01,,,,,,,,Election 2008-1
+270.0,1,New Mexico,5,51,40,,Sep 27,,,,,,,,Rasmussen-1
+251.0,3,New Mexico,5,53,42,,Sep 09,,,,,,,,PPP-3
+247.5,4,New Mexico,5,45,40,,Sep 06,,,,,,,,Research and Polling-4
+233.0,1,New Mexico,5,52,38,,Aug 21,,,,,,,,Rasmussen-1
+195.5,4,New Mexico,5,49,44,,Jul 16,,,,,,,,PPP-4
+110.5,4,New Mexico,5,54,40,,Apr 22,,,,,,,,PPP-4
+ 93.0,1,New Mexico,5,52,36,,Apr 03,,,,,,,,Rasmussen-1
+ 45.0,1,New Mexico,5,55,36,,Feb 14,,,,,,,,Rasmussen-1
+  1.0,1,New Mexico,5,57,42,,Jan 01,,,,,,,,Election 2008-1
+249.5,6,New York,29,62,34,,Sep 09,,,,,,,,Quinnipiac U.-6
+228.5,6,New York,29,62,33,,Aug 19,,,,,,,,Siena Coll.-6
+201.0,7,New York,29,55,32,,Jul 23,,,,,,,,Quinnipiac U.-7
+193.5,6,New York,29,61,34,,Jul 15,,,,,,,,Siena Coll.-6
+155.5,4,New York,29,59,35,,Jun 06,,,,,,,,Siena Coll.-4
+145.0,7,New York,29,56,31,,May 28,,,,,,,,Quinnipiac U.-7
+128.0,5,New York,29,57,37,,May 10,,,,,,,,Siena Coll.-5
+101.0,3,New York,29,57,35,,Apr 12,,,,,,,,Marist Coll.-3
+ 92.5,4,New York,29,60,35,,Apr 04,,,,,,,,Siena Coll.-4
+ 89.5,6,New York,29,56,33,,Apr 02,,,,,,,,Quinnipiac U.-6
+ 58.5,4,New York,29,60,34,,Feb 29,,,,,,,,Siena Coll.-4
+ 56.0,3,New York,29,60,30,,Feb 26,,,,,,,,SurveyUSA-3
+ 41.5,6,New York,29,52,35,,Feb 13,,,,,,,,Quinnipiac U.-6
+ 30.5,4,New York,29,63,31,,Feb 01,,,,,,,,Siena Coll.-4
+ 18.5,2,New York,29,58,35,,Jan 19,,,,,,,,Marist Coll.-2
+  1.0,1,New York,29,63,36,,Jan 01,,,,,,,,Election 2008-1
+275.0,1,North Carolina,15,47,51,,Oct 02,,,,,,,,Rasmussen-1
+273.0,3,North Carolina,15,49,47,,Oct 01,,,,,,,,SurveyUSA-3
+272.0,3,North Carolina,15,46,50,,Sep 30,,,,,,,,ARG-3
+271.5,4,North Carolina,15,48,48,,Sep 30,,,,,,,,PPP-4
+267.0,3,North Carolina,15,48,46,,Sep 25,,,,,,,,Marist Coll.-3
+260.0,5,North Carolina,15,48,46,,Sep 19,,,,,,,,Purple Strategies-5
+256.0,1,North Carolina,15,45,51,,Sep 13,,,,,,,,Rasmussen-1
+256.0,11,North Carolina,15,46,43,,Sep 18,,,,,,,,High Point University-11
+251.0,3,North Carolina,15,49,48,,Sep 09,,,,,,,,PPP-3
+248.0,3,North Carolina,15,43,53,,Sep 06,,,,,,,,SurveyUSA-3
+244.0,3,North Carolina,15,48,48,,Sep 02,,,,,,,,PPP-3
+240.0,5,North Carolina,15,43,46,,Aug 30,,,,,,,,SurveyUSA-5
+239.5,6,North Carolina,15,43,47,,Aug 30,,,,,,,,Elon U.-6
+236.0,5,North Carolina,15,47,48,,Aug 26,,,,,,,,ORC International-5
+232.5,6,North Carolina,15,43,43,,Aug 23,,,,,,,,SurveyUSA-6
+215.5,4,North Carolina,15,49,46,,Aug 05,,,,,,,,PPP-4
+213.0,1,North Carolina,15,44,49,,Aug 01,,,,,,,,Rasmussen-1
+187.5,4,North Carolina,15,47,46,,Jul 08,,,,,,,,PPP-4
+185.5,8,North Carolina,15,48,49,,Jul 08,,,,,,,,Project New America-8
+181.0,3,North Carolina,15,45,50,,Jul 01,,,,,,,,SurveyUSA-3
+176.0,1,North Carolina,15,44,47,,Jun 25,,,,,,,,Rasmussen-1
+175.5,2,North Carolina,15,46,44,,Jun 25,,,,,,,,Marist Coll.-2
+159.5,4,North Carolina,15,46,48,,Jun 10,,,,,,,,PPP-4
+139.5,4,North Carolina,15,44,45,,May 21,,,,,,,,SurveyUSA-4
+134.0,1,North Carolina,15,43,51,,May 14,,,,,,,,Rasmussen-1
+131.5,4,North Carolina,15,48,47,,May 13,,,,,,,,PPP-4
+118.0,5,North Carolina,15,47,43,,Apr 30,,,,,,,,SurveyUSA-5
+100.0,1,North Carolina,15,44,46,,Apr 10,,,,,,,,Rasmussen-1
+ 95.5,4,North Carolina,15,49,44,,Apr 07,,,,,,,,PPP-4
+ 93.5,4,North Carolina,15,47,47,,Apr 05,,,,,,,,Marist Coll.-4
+ 68.5,4,North Carolina,15,49,46,,Mar 11,,,,,,,,PPP-4
+ 35.0,3,North Carolina,15,47,46,,Feb 05,,,,,,,,PPP-3
+  6.5,4,North Carolina,15,46,45,,Jan 08,,,,,,,,PPP-4
+  1.0,1,North Carolina,15,50,49,,Jan 01,,,,,,,,Election 2008-1
+191.5,2,North Dakota,3,36,51,,Jul 11,,,,,,,,Rasmussen-2
+156.0,3,North Dakota,3,39,52,,Jun 06,,,,,,,,Mason Dixon-3
+  1.0,1,North Dakota,3,45,53,,Jan 01,,,,,,,,Election 2008-1
+273.5,2,Ohio,18,51,43,,Oct 01,,,,,,,,Marist Coll.-2
+271.5,4,Ohio,18,49,45,,Sep 30,,,,,,,,PPP-4
+267.0,11,Ohio,18,51,42,,Sep 29,,,,,,,,Columbus Dispatch-11
+264.0,5,Ohio,18,52,44,,Sep 23,,,,,,,,Washington Post-5
+264.0,7,Ohio,18,53,43,,Sep 24,,,,,,,,Quinnipiac U.-7
+260.0,3,Ohio,18,49,42,,Sep 18,,,,,,,,Fox News-3
+260.0,5,Ohio,18,48,44,,Sep 19,,,,,,,,Purple Strategies-5
+258.5,6,Ohio,18,51,46,,Sep 18,,,,,,,,U. of Cincinnati-6
+255.0,1,Ohio,18,47,46,,Sep 12,,,,,,,,Rasmussen-1
+254.0,3,Ohio,18,48,47,,Sep 12,,,,,,,,ARG-3
+253.0,3,Ohio,18,50,43,,Sep 11,,,,,,,,Marist Coll.-3
+251.0,3,Ohio,18,50,45,,Sep 09,,,,,,,,PPP-3
+232.0,11,Ohio,18,45,45,,Aug 25,,,,,,,,Columbus Dispatch-11
+230.5,6,Ohio,18,49,46,,Aug 21,,,,,,,,U. of Cincinnati-6
+230.0,7,Ohio,18,50,44,,Aug 21,,,,,,,,Quinnipiac U.-7
+225.5,2,Ohio,18,44,46,,Aug 14,,,,,,,,Purple Strategies-2
+225.0,1,Ohio,18,45,45,,Aug 13,,,,,,,,Rasmussen-1
+222.5,4,Ohio,18,48,45,,Aug 12,,,,,,,,PPP-4
+208.0,7,Ohio,18,50,44,,Jul 30,,,,,,,,Quinnipiac U.-7
+199.0,1,Ohio,18,47,45,,Jul 18,,,,,,,,Rasmussen-1
+192.0,5,Ohio,18,48,45,,Jul 13,,,,,,,,Purple Strategies-5
+173.5,4,Ohio,18,47,44,,Jun 24,,,,,,,,PPP-4
+173.0,7,Ohio,18,47,38,,Jun 25,,,,,,,,Quinnipiac U.-7
+153.5,6,Ohio,18,45,48,,Jun 05,,,,,,,,Purple Strategies-6
+149.0,1,Ohio,18,44,46,,May 29,,,,,,,,Rasmussen-1
+138.5,4,Ohio,18,48,42,,May 20,,,,,,,,Marist Coll.-4
+124.5,4,Ohio,18,50,43,,May 06,,,,,,,,PPP-4
+124.5,6,Ohio,18,45,44,,May 07,,,,,,,,Quinnipiac U.-6
+118.0,7,Ohio,18,44,42,,May 01,,,,,,,,Quinnipiac U.-7
+111.0,5,Ohio,18,49,44,,Apr 23,,,,,,,,Purple Strategies-5
+108.0,1,Ohio,18,46,42,,Apr 18,,,,,,,,Rasmussen-1
+106.0,3,Ohio,18,45,39,,Apr 17,,,,,,,,Fox News-3
+ 85.0,1,Ohio,18,48,40,,Mar 26,,,,,,,,Rasmussen-1
+ 82.0,7,Ohio,18,47,41,,Mar 26,,,,,,,,Quinnipiac U.-7
+ 60.5,2,Ohio,18,50,38,,Mar 02,,,,,,,,Marist Coll.-2
+ 43.0,3,Ohio,18,38,44,,Feb 13,,,,,,,,Fox News-3
+ 40.5,6,Ohio,18,49,46,,Feb 12,,,,,,,,Quinnipiac U.-6
+ 39.0,1,Ohio,18,46,42,,Feb 08,,,,,,,,Rasmussen-1
+ 28.5,2,Ohio,18,49,42,,Jan 29,,,,,,,,PPP-2
+ 12.5,8,Ohio,18,44,42,,Jan 16,,,,,,,,Quinnipiac U.-8
+  1.0,1,Ohio,18,51,47,,Jan 01,,,,,,,,Election 2008-1
+216.5,20,Oklahoma,7,29,58,,Aug 14,,,,,,,,Sooner Poll-20
+128.5,4,Oklahoma,7,27,62,,May 10,,,,,,,,Sooner Poll-4
+  1.0,1,Oklahoma,7,34,66,,Jan 01,,,,,,,,Election 2008-1
+254.5,4,Oregon,7,50,41,,Sep 13,,,,,,,,SurveyUSA-4
+173.5,4,Oregon,7,50,42,,Jun 24,,,,,,,,PPP-4
+128.5,4,Oregon,7,47,43,,May 10,,,,,,,,SurveyUSA-4
+ 75.5,6,Oregon,7,50,39,,Mar 19,,,,,,,,SurveyUSA-6
+  1.0,1,Oregon,7,57,40,,Jan 01,,,,,,,,Election 2008-1
+267.0,5,Pennsylvania,20,49,42,,Sep 26,,,,,,,,Muhlenberg Coll.-5
+264.0,7,Pennsylvania,20,54,42,,Sep 24,,,,,,,,Quinnipiac U.-7
+263.5,6,Pennsylvania,20,52,43,,Sep 23,,,,,,,,Franklin+Marshall Coll.-6
+262.0,1,Pennsylvania,20,51,39,,Sep 19,,,,,,,,Rasmussen-1
+261.0,3,Pennsylvania,20,52,40,,Sep 19,,,,,,,,PPP-3
+259.0,9,Pennsylvania,20,48,40,,Sep 20,,,,,,,,Mercyhurst University-9
+256.0,7,Pennsylvania,20,50,41,,Sep 16,,,,,,,,Muhlenberg Coll.-7
+253.5,4,Pennsylvania,20,50,39,,Sep 12,,,,,,,,Global Strategy-4
+234.0,3,Pennsylvania,20,51,42,,Aug 23,,,,,,,,Global Strategy-3
+233.0,3,Pennsylvania,20,49,40,,Aug 22,,,,,,,,Muhlenberg Coll.-3
+221.5,6,Pennsylvania,20,47,42,,Aug 12,,,,,,,,Franklin+Marshall Coll.-6
+208.0,7,Pennsylvania,20,53,42,,Jul 30,,,,,,,,Quinnipiac U.-7
+203.0,3,Pennsylvania,20,49,43,,Jul 23,,,,,,,,PPP-3
+199.0,1,Pennsylvania,20,48,44,,Jul 18,,,,,,,,Rasmussen-1
+173.0,7,Pennsylvania,20,45,39,,Jun 25,,,,,,,,Quinnipiac U.-7
+158.5,6,Pennsylvania,20,46,40,,Jun 10,,,,,,,,Quinnipiac U.-6
+152.0,7,Pennsylvania,20,48,36,,Jun 04,,,,,,,,Franklin+Marshall Coll.-7
+141.0,1,Pennsylvania,20,47,41,,May 21,,,,,,,,Rasmussen-1
+138.5,4,Pennsylvania,20,50,42,,May 20,,,,,,,,PPP-4
+118.0,7,Pennsylvania,20,47,39,,May 01,,,,,,,,Quinnipiac U.-7
+ 86.5,10,Pennsylvania,20,45,40,,Apr 01,,,,,,,,Muhlenberg Coll.-10
+ 82.0,7,Pennsylvania,20,45,42,,Mar 26,,,,,,,,Quinnipiac U.-7
+ 68.5,4,Pennsylvania,20,49,42,,Mar 11,,,,,,,,PPP-4
+ 68.5,6,Pennsylvania,20,46,40,,Mar 12,,,,,,,,Quinnipiac U.-6
+ 49.0,7,Pennsylvania,20,48,37,,Feb 21,,,,,,,,Muhlenberg Coll.-7
+ 48.5,8,Pennsylvania,20,41,33,,Feb 21,,,,,,,,Franklin+Marshall Coll.-8
+ 46.5,16,Pennsylvania,20,45,44,,Feb 23,,,,,,,,Rasmussen-16
+ 19.5,6,Pennsylvania,20,41,30,,Jan 22,,,,,,,,Franklin+Marshall Coll.-6
+  1.0,1,Pennsylvania,20,55,44,,Jan 01,,,,,,,,Election 2008-1
+270.5,4,Rhode Island,4,57,33,,Sep 29,,,,,,,,Fleming and Assocs.-4
+ 50.0,7,Rhode Island,4,54,37,,Feb 22,,,,,,,,PPP-7
+  1.0,1,Rhode Island,4,63,35,,Jan 01,,,,,,,,Election 2008-1
+ 11.5,4,South Carolina,9,40,46,,Jan 13,,,,,,,,IPSOS-4
+  1.0,1,South Carolina,9,45,54,,Jan 01,,,,,,,,Election 2008-1
+245.0,9,South Dakota,3,39,54,,Sep 06,,,,,,,,Nielson Bros.-9
+202.0,5,South Dakota,3,43,49,,Jul 23,,,,,,,,Nielson Bros.-5
+ 47.0,3,South Dakota,3,35,44,,Feb 17,,,,,,,,Nielson Bros.-3
+ 29.0,3,South Dakota,3,40,46,,Jan 30,,,,,,,,PPP-3
+  1.0,1,South Dakota,3,45,53,,Jan 01,,,,,,,,Election 2008-1
+125.5,8,Tennessee,11,40,47,,May 09,,,,,,,,Princeton Survey-8
+ 50.0,7,Tennessee,11,39,42,,Feb 22,,,,,,,,Princeton Survey-7
+ 50.0,13,Tennessee,11,41,47,,Feb 25,,,,,,,,Middle Tenn. State U.-13
+  1.0,1,Tennessee,11,42,57,,Jan 01,,,,,,,,Election 2008-1
+261.0,17,Texas,38,39,58,,Sep 26,,,,,,,,Texas Lyceum-17
+130.0,7,Texas,38,35,55,,May 13,,,,,,,,U. of Texas-7
+110.5,4,Texas,38,43,50,,Apr 22,,,,,,,,PPP-4
+ 42.5,8,Texas,38,36,49,,Feb 15,,,,,,,,U. of Texas-8
+ 13.5,4,Texas,38,42,49,,Jan 15,,,,,,,,PPP-4
+  1.0,1,Texas,38,44,55,,Jan 01,,,,,,,,Election 2008-1
+169.0,7,Utah,6,26,68,,Jun 21,,,,,,,,Dan Jones-7
+  1.0,1,Utah,6,34,63,,Jan 01,,,,,,,,Election 2008-1
+228.0,11,Vermont,3,62,25,,Aug 21,,,,,,,,Castleton State Coll.-11
+ 47.5,12,Vermont,3,58,33,,Feb 22,,,,,,,,Castleton State Coll.-12
+  1.0,1,Vermont,3,67,30,,Jan 01,,,,,,,,Election 2008-1
+273.5,2,Virginia,13,48,46,,Oct 01,,,,,,,,Marist Coll.-2
+268.5,4,Virginia,13,49,47,,Sep 27,,,,,,,,ARG-4
+268.0,3,Virginia,13,46,44,,Sep 26,,,,,,,,Suffolk U.-3
+266.5,10,Virginia,13,47,39,,Sep 28,,,,,,,,Roanoke Coll.-10
+261.0,3,Virginia,13,49,43,,Sep 19,,,,,,,,PPP-3
+260.0,3,Virginia,13,50,43,,Sep 18,,,,,,,,Fox News-3
+260.0,5,Virginia,13,46,43,,Sep 19,,,,,,,,Purple Strategies-5
+257.5,4,Virginia,13,51,46,,Sep 16,,,,,,,,PPP-4
+257.0,5,Virginia,13,52,44,,Sep 16,,,,,,,,Washington Post-5
+257.0,7,Virginia,13,50,46,,Sep 17,,,,,,,,Quinnipiac U.-7
+256.0,1,Virginia,13,49,48,,Sep 13,,,,,,,,Rasmussen-1
+253.0,3,Virginia,13,49,44,,Sep 11,,,,,,,,Marist Coll.-3
+235.0,1,Virginia,13,47,47,,Aug 23,,,,,,,,Rasmussen-1
+229.5,4,Virginia,13,50,45,,Aug 19,,,,,,,,PPP-4
+225.5,2,Virginia,13,45,48,,Aug 14,,,,,,,,Purple Strategies-2
+219.0,1,Virginia,13,48,46,,Aug 07,,,,,,,,Rasmussen-1
+215.0,7,Virginia,13,49,45,,Aug 06,,,,,,,,Quinnipiac U.-7
+197.5,2,Virginia,13,47,46,,Jul 17,,,,,,,,Rasmussen-2
+194.0,7,Virginia,13,44,44,,Jul 16,,,,,,,,Quinnipiac U.-7
+192.0,5,Virginia,13,46,44,,Jul 13,,,,,,,,Purple Strategies-5
+187.5,4,Virginia,13,50,42,,Jul 08,,,,,,,,PPP-4
+154.0,1,Virginia,13,47,47,,Jun 03,,,,,,,,Rasmussen-1
+153.5,6,Virginia,13,49,46,,Jun 05,,,,,,,,Purple Strategies-6
+152.5,6,Virginia,13,47,42,,Jun 04,,,,,,,,Quinnipiac U.-6
+151.0,31,Virginia,13,49,42,,Jun 15,,,,,,,,Old Dominion Univ.-31
+138.5,4,Virginia,13,48,44,,May 20,,,,,,,,Marist Coll.-4
+120.0,5,Virginia,13,51,44,,May 02,,,,,,,,Washington Post-5
+117.5,4,Virginia,13,51,43,,Apr 29,,,,,,,,PPP-4
+113.0,1,Virginia,13,44,45,,Apr 23,,,,,,,,Rasmussen-1
+111.0,5,Virginia,13,48,46,,Apr 23,,,,,,,,Purple Strategies-5
+ 90.0,11,Virginia,13,40,46,,Apr 05,,,,,,,,Roanoke Coll.-11
+ 79.0,1,Virginia,13,51,42,,Mar 20,,,,,,,,Rasmussen-1
+ 74.5,6,Virginia,13,50,42,,Mar 18,,,,,,,,Quinnipiac U.-6
+ 60.5,2,Virginia,13,52,35,,Mar 02,,,,,,,,Marist Coll.-2
+ 52.0,1,Virginia,13,49,43,,Feb 21,,,,,,,,Rasmussen-1
+ 50.5,14,Virginia,13,42,43,,Feb 26,,,,,,,,Roanoke Coll.-14
+ 34.5,6,Virginia,13,47,43,,Feb 06,,,,,,,,Quinnipiac U.-6
+ 17.0,3,Virginia,13,45,44,,Jan 18,,,,,,,,Mason Dixon-3
+  1.0,1,Virginia,13,53,46,,Jan 01,,,,,,,,Election 2008-1
+272.0,3,Washington,12,56,36,,Sep 30,,,,,,,,SurveyUSA-3
+269.0,1,Washington,12,52,41,,Sep 26,,,,,,,,Rasmussen-1
+253.5,4,Washington,12,53,36,,Sep 12,,,,,,,,Elway Poll-4
+251.0,3,Washington,12,53,42,,Sep 09,,,,,,,,PPP-3
+251.0,3,Washington,12,54,38,,Sep 09,,,,,,,,SurveyUSA-3
+213.5,2,Washington,12,54,37,,Aug 02,,,,,,,,SurveyUSA-2
+198.0,3,Washington,12,46,37,,Jul 18,,,,,,,,SurveyUSA-3
+166.5,4,Washington,12,54,41,,Jun 17,,,,,,,,PPP-4
+165.5,4,Washington,12,49,41,,Jun 16,,,,,,,,Elway Poll-4
+128.5,2,Washington,12,50,36,,May 09,,,,,,,,SurveyUSA-2
+ 48.5,4,Washington,12,53,38,,Feb 19,,,,,,,,PPP-4
+ 45.0,3,Washington,12,50,39,,Feb 15,,,,,,,,SurveyUSA-3
+ 39.0,3,Washington,12,49,38,,Feb 09,,,,,,,,Elway Poll-3
+ 14.0,5,Washington,12,50,39,,Jan 16,,,,,,,,SurveyUSA-5
+  1.0,1,Washington,12,58,40,,Jan 01,,,,,,,,Election 2008-1
+235.5,4,West Virginia,5,38,52,,Aug 25,,,,,,,,R.L. Repass-4
+116.5,4,West Virginia,5,37,54,,Apr 28,,,,,,,,R.L. Repass-4
+  1.0,1,West Virginia,5,43,56,,Jan 01,,,,,,,,Election 2008-1
+272.5,2,Wisconsin,10,49,39,,Sep 30,,,,,,,,Zogby-2
+271.5,4,Wisconsin,10,53,42,,Sep 30,,,,,,,,Marquette Law School-4
+261.5,2,Wisconsin,10,52,45,,Sep 19,,,,,,,,PPP-2
+260.0,1,Wisconsin,10,49,46,,Sep 17,,,,,,,,Rasmussen-1
+260.0,3,Wisconsin,10,50,45,,Sep 18,,,,,,,,Marist Coll.-3
+257.5,4,Wisconsin,10,54,40,,Sep 16,,,,,,,,Marquette Law School-4
+257.0,7,Wisconsin,10,51,45,,Sep 17,,,,,,,,Quinnipiac U.-7
+255.5,2,Wisconsin,10,49,48,,Sep 13,,,,,,,,PPP-2
+230.0,7,Wisconsin,10,49,47,,Aug 21,,,,,,,,Quinnipiac U.-7
+229.5,4,Wisconsin,10,47,48,,Aug 19,,,,,,,,PPP-4
+229.5,4,Wisconsin,10,49,46,,Aug 19,,,,,,,,Marquette Law School-4
+227.0,1,Wisconsin,10,47,48,,Aug 15,,,,,,,,Rasmussen-1
+225.5,2,Wisconsin,10,49,45,,Aug 14,,,,,,,,ORC International-2
+215.5,4,Wisconsin,10,50,45,,Aug 05,,,,,,,,Marquette Law School-4
+215.0,7,Wisconsin,10,51,45,,Aug 06,,,,,,,,Quinnipiac U.-7
+206.0,1,Wisconsin,10,49,46,,Jul 25,,,,,,,,Rasmussen-1
+187.5,4,Wisconsin,10,50,44,,Jul 08,,,,,,,,PPP-4
+187.5,4,Wisconsin,10,51,43,,Jul 08,,,,,,,,Marquette Law School-4
+165.5,4,Wisconsin,10,49,43,,Jun 16,,,,,,,,Marquette Law School-4
+163.0,1,Wisconsin,10,44,47,,Jun 12,,,,,,,,Rasmussen-1
+144.5,4,Wisconsin,10,51,43,,May 26,,,,,,,,Marquette Law School-4
+139.5,6,Wisconsin,10,49,43,,May 22,,,,,,,,St. Norbert Coll.-6
+132.0,3,Wisconsin,10,47,46,,May 13,,,,,,,,PPP-3
+130.5,4,Wisconsin,10,46,46,,May 12,,,,,,,,Marquette Law School-4
+129.0,1,Wisconsin,10,49,45,,May 09,,,,,,,,Rasmussen-1
+117.5,4,Wisconsin,10,51,42,,Apr 29,,,,,,,,Marquette Law School-4
+104.0,3,Wisconsin,10,50,44,,Apr 15,,,,,,,,PPP-3
+ 86.0,1,Wisconsin,10,52,41,,Mar 27,,,,,,,,Rasmussen-1
+ 85.5,2,Wisconsin,10,52,35,,Mar 27,,,,,,,,Marist Coll.-2
+ 82.5,4,Wisconsin,10,48,43,,Mar 25,,,,,,,,Marquette Law School-4
+ 58.0,1,Wisconsin,10,47,42,,Feb 27,,,,,,,,Rasmussen-1
+ 55.5,4,Wisconsin,10,53,39,,Feb 26,,,,,,,,PPP-4
+ 48.5,4,Wisconsin,10,53,38,,Feb 19,,,,,,,,Marquette Law School-4
+ 20.5,4,Wisconsin,10,48,40,,Jan 22,,,,,,,,Marquette Law School-4
+  1.0,1,Wisconsin,10,56,42,,Jan 01,,,,,,,,Election 2008-1
+  1.0,1,Wyoming,3,33,65,,Jan 01,,,,,,,,Election 2008-1
