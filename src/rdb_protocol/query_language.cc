@@ -164,7 +164,7 @@ term_info_t get_term_type(Term *t, type_checking_environment_t *env, const backt
                                       "the entire stream into memory).",
                                       backtrace.with(strprintf("bind:%s", t->let().binds(i).var().c_str())));
             }
-            // Variables are always deterministic, because the value is precomputed.  vvvv
+            // Variables are always deterministic, because the value is precomputed.   vvvv
             env->scope.put_in_scope(t->let().binds(i).var(), term_info_t(argtype.type, true));
         }
         term_info_t res = get_term_type(t->mutable_let()->mutable_expr(), env, backtrace.with("expr"));
@@ -518,7 +518,7 @@ term_info_t get_function_type(Term::Call *c, type_checking_environment_t *env, c
                 {
                     // polymorphic
                     implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic)); //make the implicit value be of type json
-                    check_predicate_type(b->mutable_filter()->mutable_predicate(), env, &deterministic, deterministic, backtrace.with("predicate"));
+                    check_predicate_type(b->mutable_filter()->mutable_predicate(), env, &deterministic, backtrace.with("predicate"));
                 }
                 term_info_t res = get_term_type(c->mutable_args(0), env, backtrace);
                 res.deterministic &= deterministic;
@@ -555,7 +555,7 @@ term_info_t get_function_type(Term::Call *c, type_checking_environment_t *env, c
         case Builtin::REDUCE:
             {
                 check_arg_count(c, 1, backtrace);
-                check_reduction_type(b->mutable_reduce(), env, &deterministic, deterministic, backtrace.with("reduce"));
+                check_reduction_type(b->mutable_reduce(), env, &deterministic, backtrace.with("reduce"));
                 return term_info_t(TERM_TYPE_JSON, false); //This is always false because we can't be sure the functions is associative or commutative
             }
             break;
@@ -565,10 +565,9 @@ term_info_t get_function_type(Term::Call *c, type_checking_environment_t *env, c
                 {
                     check_mapping_type(b->mutable_grouped_map_reduce()->mutable_group_mapping(), TERM_TYPE_JSON, env, &deterministic, backtrace.with("group_mapping"));
                     check_mapping_type(b->mutable_grouped_map_reduce()->mutable_value_mapping(), TERM_TYPE_JSON, env, &deterministic, backtrace.with("value_mapping"));
-                    check_reduction_type(b->mutable_grouped_map_reduce()->mutable_reduction(), env, &deterministic, deterministic, backtrace.with("reduction"));
+                    check_reduction_type(b->mutable_grouped_map_reduce()->mutable_reduction(), env, &deterministic, backtrace.with("reduction"));
                 }
-                //TODO: we don't check the argument?
-                return term_info_t(TERM_TYPE_JSON, false);
+                return term_info_t(TERM_TYPE_JSON, false); //we don't know whether the functions are associative or commutative
             }
             break;
         case Builtin::UNION: {
@@ -603,12 +602,12 @@ term_info_t get_function_type(Term::Call *c, type_checking_environment_t *env, c
     crash("unreachable");
 }
 
-void check_reduction_type(Reduction *r, type_checking_environment_t *env, bool *is_det_out, bool args_are_deterministic, const backtrace_t &backtrace) {
+void check_reduction_type(Reduction *r, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace) {
     check_term_type(r->mutable_base(), TERM_TYPE_JSON, env, is_det_out, backtrace.with("base"));
 
     new_scope_t scope_maker(&env->scope);
-    env->scope.put_in_scope(r->var1(), term_info_t(TERM_TYPE_JSON, args_are_deterministic));
-    env->scope.put_in_scope(r->var2(), term_info_t(TERM_TYPE_JSON, args_are_deterministic));
+    env->scope.put_in_scope(r->var1(), term_info_t(TERM_TYPE_JSON, true));
+    env->scope.put_in_scope(r->var2(), term_info_t(TERM_TYPE_JSON, true));
     check_term_type(r->mutable_body(), TERM_TYPE_JSON, env, is_det_out, backtrace.with("body"));
 }
 
@@ -620,9 +619,9 @@ void check_mapping_type(Mapping *m, term_type_t return_type, type_checking_envir
     *is_det_out &= is_det;
 }
 
-void check_predicate_type(Predicate *p, type_checking_environment_t *env, bool *is_det_out, bool args_are_deterministic, const backtrace_t &backtrace) {
+void check_predicate_type(Predicate *p, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace) {
     new_scope_t scope_maker(&env->scope);
-    env->scope.put_in_scope(p->arg(), term_info_t(TERM_TYPE_JSON, args_are_deterministic));
+    env->scope.put_in_scope(p->arg(), term_info_t(TERM_TYPE_JSON, true));
     check_term_type(p->mutable_body(), TERM_TYPE_JSON, env, is_det_out, backtrace);
 }
 
@@ -631,7 +630,6 @@ void check_read_query_type(ReadQuery *rq, type_checking_environment_t *env, bool
     error. Views will be automatically converted to streams at evaluation time.
     */
     term_info_t res = get_term_type(rq->mutable_term(), env, backtrace);
-    // TODO: What the fuck is this shit - sam
     rq->SetExtension(extension::inferred_read_type, static_cast<int32_t>(res.type));
 }
 
@@ -663,6 +661,7 @@ void check_write_query_type(WriteQuery *w, type_checking_environment_t *env, boo
     case WriteQuery::INSERT: {
         check_protobuf(w->has_insert());
         if (w->insert().terms_size() == 1) {
+            // We want to do the get to produce determinism information
             get_term_type(w->mutable_insert()->mutable_terms(0), env, backtrace);
             break; //Single-element insert polymorphic over streams and arrays
         }
