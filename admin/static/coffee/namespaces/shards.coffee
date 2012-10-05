@@ -241,7 +241,8 @@ module 'NamespaceView', ->
                             if typeof keys[i] is 'number'
                                 keys[i] = keys[i].toString()
                             if typeof keys[i] is 'string'
-                                keys[i] =keys[i].slice 0, 7
+                                if keys[i].length > 7
+                                    keys[i] =keys[i].slice(0, 7)+'...'
 
                         result = 'Shard: '
                         result += '[ '+keys[0]+', '+keys[1]+']'
