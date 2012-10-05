@@ -138,11 +138,13 @@
 {
     GoogleProtobuf
     Memcheck:Leak
-    fun:google::protobuf*
+    ...
+    fun:_ZN6google8protobuf*
 }
 
 {
     BoostProgramOptions
     Memcheck:Leak
-    fun:boost::program_options*
+    ...
+    fun:_ZN5boost15program_options*
 }
