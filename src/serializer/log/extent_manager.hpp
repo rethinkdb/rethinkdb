@@ -22,7 +22,7 @@ class extent_zone_t;
 
 struct log_serializer_stats_t;
 
-class extent_manager_t {
+class extent_manager_t : public home_thread_mixin_debug_only_t {
 public:
     struct metablock_mixin_t {
         int64_t padding;

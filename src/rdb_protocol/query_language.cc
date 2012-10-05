@@ -1112,9 +1112,86 @@ void nonthrowing_insert(namespace_repo_t<rdb_protocol_t>::access_t ns_access, co
     if (generated_key) generated_keys->push_back(*generated_key);
 }
 
+rdb_protocol_t::point_read_response_t read_by_key(namespace_repo_t<rdb_protocol_t>::access_t ns_access, runtime_environment_t *env,
+                                            cJSON *key, bool use_outdated, const backtrace_t &backtrace) {
+    rdb_protocol_t::read_t read(rdb_protocol_t::point_read_t(store_key_t(cJSON_print_primary(key, backtrace))));
+    rdb_protocol_t::read_response_t res;
+    if (use_outdated) {
+        ns_access.get_namespace_if()->read_outdated(read, &res, env->interruptor);
+    } else {
+        ns_access.get_namespace_if()->read(read, &res, order_token_t::ignore, env->interruptor);
+    }
+    rdb_protocol_t::point_read_response_t *p_res = boost::get<rdb_protocol_t::point_read_response_t>(&res.response);
+    guarantee(p_res);
+    return *p_res;
+}
+
+point_modify::result_t execute_modify(boost::shared_ptr<scoped_cJSON_t> lhs, const std::string &primary_key, point_modify::op_t op,
+                                      const Mapping &mapping, runtime_environment_t *env, const scopes_t &scopes,
+                                      const backtrace_t &backtrace, boost::shared_ptr<scoped_cJSON_t> *json_out,
+                                      std::string *new_key_out) THROWS_ONLY(runtime_exc_t) {
+    guarantee(lhs);
+    //CASE 1: UPDATE skips nonexistant entries
+    if (lhs->type() == cJSON_NULL && op == point_modify::UPDATE) return point_modify::SKIPPED;
+    guarantee_debug_throw_release((lhs->type() == cJSON_NULL && op == point_modify::MUTATE)
+                                  || lhs->type() == cJSON_Object, backtrace);
+
+    // Evaluate the mapping.
+    boost::shared_ptr<scoped_cJSON_t> rhs = eval_mapping(mapping, env, scopes, backtrace, lhs);
+    guarantee_debug_throw_release(rhs, backtrace);
+
+    if (rhs->type() == cJSON_NULL) { //CASE 2: if [rhs] is NULL, we either SKIP or DELETE (or NOP if already deleted)
+        if (op == point_modify::UPDATE) return point_modify::SKIPPED;
+        guarantee(op == point_modify::MUTATE);
+        return (lhs->type() == cJSON_NULL) ? point_modify::NOP : point_modify::DELETED;
+    } else if (rhs->type() != cJSON_Object) {
+        throw runtime_exc_t(strprintf("Got %s, but expected Object.", rhs->Print().c_str()), backtrace);
+    }
+
+    // Find the primary keys and if both exist check that they're equal.
+    cJSON *lhs_pk = lhs->type() == cJSON_Object ? lhs->GetObjectItem(primary_key.c_str()) : 0;
+    guarantee_debug_throw_release(lhs->type() == cJSON_NULL || lhs_pk, backtrace);
+    guarantee(rhs->type() == cJSON_Object); //see CASE 2 above
+    cJSON *rhs_pk = rhs->GetObjectItem(primary_key.c_str());
+    if (lhs_pk && rhs_pk && !cJSON_Equal(lhs_pk, rhs_pk)) { //CHECK 1: Primary key isn't changed
+        throw runtime_exc_t(strprintf("%s cannot change primary key %s (got objects %s, %s)",
+                                      point_modify::op_name(op).c_str(), primary_key.c_str(),
+                                      lhs->Print().c_str(), rhs->Print().c_str()), backtrace);
+    }
+
+    if (op == point_modify::MUTATE) {
+        *json_out = rhs;
+        if (lhs->type() == cJSON_Object) { //CASE 3: a normal MUTATE
+            if (!rhs_pk) { //CHECK 2: Primary key isn't removed
+                throw runtime_exc_t(strprintf("mutate cannot remove the primary key (%s) of %s (new object: %s)",
+                                              primary_key.c_str(), lhs->Print().c_str(), rhs->Print().c_str()), backtrace);
+            }
+            guarantee(cJSON_Equal(lhs_pk, rhs_pk)); //See CHECK 1 above
+            return point_modify::MODIFIED;
+        }
+
+        //CASE 4: a deleting MUTATE
+        guarantee(lhs->type() == cJSON_NULL);
+        if (!rhs_pk) { //CHECK 3: Primary key exists for insert (no generation allowed);
+            throw runtime_exc_t(strprintf("mutate must provide a primary key (%s), but there was none in: %s",
+                                          primary_key.c_str(), rhs->Print().c_str()), backtrace);
+        }
+        *new_key_out = cJSON_print_primary(rhs_pk, backtrace); //CHECK 4: valid primary key for insert (may throw)
+        return point_modify::INSERTED;
+    } else { //CASE 5: a normal UPDATE
+        guarantee(op == point_modify::UPDATE && lhs->type() == cJSON_Object);
+        json_out->reset(new scoped_cJSON_t(cJSON_merge(lhs->get(), rhs->get())));
+        guarantee_debug_throw_release(cJSON_Equal((*json_out)->GetObjectItem(primary_key.c_str()),
+                                                  lhs->GetObjectItem(primary_key.c_str())), backtrace);
+        return point_modify::MODIFIED;
+    }
+    //[point_modify::ERROR] never returned; we throw instead and the caller should catch it.
+}
+
 point_modify::result_t point_modify(namespace_repo_t<rdb_protocol_t>::access_t ns_access,
                                     const std::string &pk, cJSON *id, point_modify::op_t op,
-                                    runtime_environment_t *env, const Mapping &m, const scopes_t &scopes, const backtrace_t &backtrace) {
+                                    runtime_environment_t *env, const Mapping &m, const scopes_t &scopes,
+                                    const backtrace_t &backtrace) {
     try {
         rdb_protocol_t::write_t write(rdb_protocol_t::point_modify_t(pk, store_key_t(cJSON_print_primary(id, backtrace)), op, scopes, backtrace, m));
         rdb_protocol_t::write_response_t response;
@@ -1122,7 +1199,7 @@ point_modify::result_t point_modify(namespace_repo_t<rdb_protocol_t>::access_t n
         rdb_protocol_t::point_modify_response_t mod_res = boost::get<rdb_protocol_t::point_modify_response_t>(response.response);
         if (mod_res.result == point_modify::ERROR) throw mod_res.exc;
         return mod_res.result;
-    } catch (cannot_perform_query_exc_t e) {
+    } catch (const cannot_perform_query_exc_t &e) {
         throw runtime_exc_t("cannot perform write: " + std::string(e.what()), backtrace);
     }
 }
@@ -1523,16 +1600,9 @@ boost::shared_ptr<scoped_cJSON_t> eval_term_as_json(Term *t, runtime_environment
             boost::shared_ptr<scoped_cJSON_t> key = eval_term_as_json(t->mutable_get_by_key()->mutable_key(), env, scopes, backtrace.with("key"));
 
             try {
-                rdb_protocol_t::read_t read(rdb_protocol_t::point_read_t(store_key_t(cJSON_print_primary(key->get(), backtrace))));
-                rdb_protocol_t::read_response_t res;
-                if (t->get_by_key().table_ref().use_outdated()) {
-                    ns_access.get_namespace_if()->read_outdated(read, &res,  env->interruptor);
-                } else {
-                    ns_access.get_namespace_if()->read(read, &res, order_token_t::ignore, env->interruptor);
-                }
-
-                rdb_protocol_t::point_read_response_t *p_res = boost::get<rdb_protocol_t::point_read_response_t>(&res.response);
-                return p_res->data;
+                rdb_protocol_t::point_read_response_t p_res =
+                    read_by_key(ns_access, env, key->get(), t->get_by_key().table_ref().use_outdated(), backtrace);
+                return p_res.data;
             } catch (cannot_perform_query_exc_t e) {
                 throw runtime_exc_t("cannot perform read: " + std::string(e.what()), backtrace);
             }

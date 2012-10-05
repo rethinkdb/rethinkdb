@@ -73,7 +73,7 @@ public:
     void block_read(const intrusive_ptr_t< scs_block_token_t<inner_serializer_t> >& token_, void *buf, file_account_t *io_account, iocallback_t *callback);
     void block_read(const intrusive_ptr_t< scs_block_token_t<inner_serializer_t> >& token_, void *buf, file_account_t *io_account);
 
-    block_sequence_id_t get_block_sequence_id(block_id_t block_id, const void* buf);
+    block_sequence_id_t get_block_sequence_id(block_id_t block_id, const void* buf) const;
 
     void index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account);
 

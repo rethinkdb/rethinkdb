@@ -157,6 +157,7 @@ extent_manager_t::~extent_manager_t() {
 }
 
 extent_zone_t *extent_manager_t::zone_for_offset(off64_t offset) {
+    assert_thread();
     if (dbfile->is_block_device() || dynamic_config->file_size > 0) {
         size_t zone_size = ceil_aligned(dynamic_config->file_zone_size, extent_size);
         return &zones[offset / zone_size];
@@ -168,6 +169,7 @@ extent_zone_t *extent_manager_t::zone_for_offset(off64_t offset) {
 
 
 void extent_manager_t::reserve_extent(off64_t extent) {
+    assert_thread();
 #ifdef DEBUG_EXTENTS
     debugf("EM %p: Reserve extent %.8lx\n", this, extent);
     debugf("%s", format_backtrace(false).c_str());
@@ -183,7 +185,7 @@ void extent_manager_t::prepare_initial_metablock(metablock_mixin_t *mb) {
 }
 
 void extent_manager_t::start_existing(UNUSED metablock_mixin_t *last_metablock) {
-
+    assert_thread();
     rassert(state == state_reserving_extents);
     current_transaction = NULL;
     for (boost::ptr_vector<extent_zone_t>::iterator it = zones.begin(); it != zones.end(); ++it) {
@@ -203,6 +205,7 @@ void extent_manager_t::start_existing(UNUSED metablock_mixin_t *last_metablock) 
 }
 
 void extent_manager_t::prepare_metablock(metablock_mixin_t *metablock) {
+    assert_thread();
 #ifdef DEBUG_EXTENTS
     debugf("EM %p: Prepare metablock. Extents in use:\n", this);
     for (off64_t extent = 0; extent < (unsigned)(extents.get_size() * extent_size); extent += extent_size) {
@@ -217,6 +220,7 @@ void extent_manager_t::prepare_metablock(metablock_mixin_t *metablock) {
 }
 
 void extent_manager_t::shutdown() {
+    assert_thread();
 #ifdef DEBUG_EXTENTS
     debugf("EM %p: Shutdown. Extents in use:\n", this);
     for (off64_t extent = 0; extent < (unsigned)(extents.get_size() * extent_size); extent += extent_size) {
@@ -233,12 +237,14 @@ void extent_manager_t::shutdown() {
 }
 
 void extent_manager_t::begin_transaction(transaction_t *out) {
+    assert_thread();
     rassert(!current_transaction);
     current_transaction = out;
     out->init();
 }
 
 off64_t extent_manager_t::gen_extent() {
+    assert_thread();
     rassert(state == state_running);
     rassert(current_transaction);
     ++stats->pm_extents_in_use;
@@ -270,6 +276,7 @@ off64_t extent_manager_t::gen_extent() {
 }
 
 void extent_manager_t::release_extent(off64_t extent) {
+    assert_thread();
 #ifdef DEBUG_EXTENTS
     debugf("EM %p: Release extent %.8lx\n", this, extent);
     debugf("%s", format_backtrace(false).c_str());
@@ -282,11 +289,13 @@ void extent_manager_t::release_extent(off64_t extent) {
 }
 
 void extent_manager_t::end_transaction(DEBUG_VAR const transaction_t &t) {
+    assert_thread();
     rassert(current_transaction == &t);
     current_transaction = NULL;
 }
 
 void extent_manager_t::commit_transaction(transaction_t *t) {
+    assert_thread();
     for (std::deque<off64_t>::iterator it = t->free_queue().begin(); it != t->free_queue().end(); it++) {
         off64_t extent = *it;
         zone_for_offset(extent)->release_extent(extent);
@@ -295,6 +304,7 @@ void extent_manager_t::commit_transaction(transaction_t *t) {
 }
 
 int extent_manager_t::held_extents() {
+    assert_thread();
     int total = 0;
 
     for (boost::ptr_vector<extent_zone_t>::iterator it = zones.begin(); it != zones.end(); ++it) {

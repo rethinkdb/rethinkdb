@@ -54,6 +54,7 @@ void lba_disk_structure_t::on_extent_read() {
             new lba_disk_extent_t(em, file,
                 startup_superblock_buffer->entries[i].offset,
                 startup_superblock_buffer->entries[i].lba_entries_count));
+        // debugf("Added extent in superblock %d: %ld\n", i, startup_superblock_buffer->entries[i].offset);
     }
 
     free(startup_superblock_buffer);
