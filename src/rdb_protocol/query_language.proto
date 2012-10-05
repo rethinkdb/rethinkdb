@@ -196,6 +196,7 @@ message Reduction {
 message Mapping {
     required string arg = 1;
     required Term body = 2;
+    extensions 1000 to 1099;
 };
 
 message Predicate {
@@ -225,6 +226,7 @@ message WriteQuery {
     };
 
     required WriteQueryType type = 1;
+    optional bool atomic = 11 [default = true];
 
     message Update {
         required Term view = 1;

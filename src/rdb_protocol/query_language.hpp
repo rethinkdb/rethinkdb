@@ -38,16 +38,16 @@ term_info_t get_term_type(Term *t, type_checking_environment_t *env, const backt
 void check_term_type(Term *t, term_type_t expected, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace);
 term_info_t get_function_type(Term::Call *c, type_checking_environment_t *env, const backtrace_t &backtrace);
 void check_reduction_type(Reduction *m, type_checking_environment_t *env, bool *is_det_out, bool args_are_det, const backtrace_t &backtrace);
-void check_mapping_type(Mapping *m, term_type_t return_type, type_checking_environment_t *env, bool *is_det_out, bool args_are_det, const backtrace_t &backtrace);
+void check_mapping_type(Mapping *m, term_type_t return_type, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace);
 void check_predicate_type(Predicate *m, type_checking_environment_t *env, bool *is_det_out, bool args_are_det, const backtrace_t &backtrace);
 void check_read_query_type(ReadQuery *rq, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace);
 void check_write_query_type(WriteQuery *wq, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace);
 void check_query_type(Query *q, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace);
 
-point_modify::result_t execute_modify(boost::shared_ptr<scoped_cJSON_t> lhs, const std::string &primary_key, point_modify::op_t op,
-                                      const Mapping &mapping, runtime_environment_t *env, const scopes_t &scopes,
-                                      const backtrace_t &backtrace, boost::shared_ptr<scoped_cJSON_t> *json_out,
-                                      std::string *new_key_out) THROWS_ONLY(runtime_exc_t);
+point_modify::result_t calculate_modify(boost::shared_ptr<scoped_cJSON_t> lhs, const std::string &primary_key, point_modify::op_t op,
+                                        const Mapping &mapping, runtime_environment_t *env, const scopes_t &scopes,
+                                        const backtrace_t &backtrace, boost::shared_ptr<scoped_cJSON_t> *json_out,
+                                        std::string *new_key_out) THROWS_ONLY(runtime_exc_t);
 
 /* functions to evaluate the queries */
 //TODO most of these functions that are supposed to only throw runtime exceptions
