@@ -3,52 +3,21 @@ module 'NamespaceView', ->
     # Hardcoded!
     MAX_SHARD_COUNT = 32
 
-    class @EditShards extends Backbone.View
-        template: Handlebars.compile $('#edit_shards-template').html()
-        states: ['read_only', 'editable', 'sharding_in_progress']
-
-        events: ->
-            'click .edit': 'edit_shards'
-            'click .cancel': 'cancel_editing'
-        
-        initialize: ->
-            @current_state = @states[0]
-
-        render: =>
-            switch @current_state
-                when @states[0] then do =>
-                    @.$el.html @template
-                        read_only: true
-                        num_shards: @model.get('shards').length
-                when @states[1] then do =>
-                    @.$el.html @template
-                        editable: true
-                        num_shards: @model.get('shards').length
-                when @states[2] then do =>
-                    @.$el.html @template
-                        sharding_in_progress: true
-                        num_shards: @model.get('shards').length
-            return @
-
-        edit_shards: =>
-            @current_state = @states[1]
-            @render()
-
-        cancel_editing: =>
-            @current_state = @states[0]
-            @render()
-
-
     class @Sharding extends Backbone.View
         template: Handlebars.compile $('#shards_container-template').html()
-        status_template: Handlebars.compile $('#status_shard-template').html()
+        view_template: Handlebars.compile $('#view_shards-template').html()
+        edit_template: Handlebars.compile $('#edit_shards-template').html()
         data_repartition_template: Handlebars.compile $('#data_repartition-template').html()
-        change_shards_fail_alert_template: Handlebars.compile $('#change_shards-fail-alert-template').html()
-        rebalance_shards_success_alert_template: Handlebars.compile $('#rebalance_shards-success-alert-template').html()
+        feedback_template: Handlebars.compile $('#edit_shards-feedback-template').html()
+        error_ajax_template: Handlebars.compile $('#edit_shards-ajax_error-template').html()
+        successfuly_shard_template: Handlebars.compile $('#edit_shards-successfully_shard-template').html()
         className: 'shards_container'
+
         events:
-            'click .change_shards-button': 'confirm_shards_changes'
-            'keypress .num_shards': 'keypress_shards_changes'
+            'keyup .num-shards': 'keypress_shards_changes'
+            'click .edit': 'switch_to_edit'
+            'click .cancel': 'switch_to_read'
+            'click .rebalance': 'shard_table'
 
         initialize: =>
             # Forbid changes if issues
@@ -59,26 +28,110 @@ module 'NamespaceView', ->
             @model.on 'change:key_distr', @render_data_repartition
             @model.on 'change:shards', @render_data_repartition
 
-            @model.on 'change:key_distr', @render_status
-            @model.on 'change:shards', @render_status
-
-            @data_repartition = {}
-
-            @change_shards_modal = new NamespaceView.ChangeShardsModal
-                model: @model
-                parent: @
-
-            @edit_shards = new NamespaceView.EditShards model: @model
-           
 
         keypress_shards_changes: (event) =>
-            if event.which is 13
-                @confirm_shards_changes(event)
+            new_num_shards = @.$('.num-shards').val()
 
-        confirm_shards_changes: (event) =>
-            event.preventDefault()
-            @change_shards_modal.set_num_shards @.$('.num_shards').val()
-            @change_shards_modal.render()
+            if DataUtils.is_integer(new_num_shards) is false
+                error_msg = "The number of shards must be an integer."
+                @display_msg error_msg
+                return
+            
+            if new_num_shards < 1 or new_num_shards > MAX_SHARD_COUNT
+                error_msg = "The number of shards must be beteen 1 and " + MAX_SHARD_COUNT + "."
+                @display_msg error_msg
+                return
+
+            data = @model.get('key_distr')
+            distr_keys = @model.get('key_distr_sorted')
+            total_rows = _.reduce distr_keys, ((agg, key) => return agg + data[key]), 0
+            rows_per_shard = total_rows / new_num_shards
+
+            if not data? or not distr_keys?
+                error_msg = "The distribution of keys has not been loaded yet. Please try again."
+                @display_msg error_msg
+                return
+
+            if distr_keys.length < 2
+                error_msg = "There is not enough data in the database to make balanced shards."
+                @display_msg error_msg
+                return
+
+            current_shard_count = 0
+            split_points = [""]
+            no_more_splits = false
+            for key in distr_keys
+                if split_points.length >= new_num_shards
+                    no_more_splits = true
+                current_shard_count += data[key]
+                if current_shard_count >= rows_per_shard and not no_more_splits
+                    split_points.push(key)
+                    current_shard_count = 0
+            split_points.push(null)
+
+            shard_set = []
+            for splitIndex in [0..(split_points.length - 2)]
+                shard_set.push(JSON.stringify([split_points[splitIndex], split_points[splitIndex + 1]]))
+
+            if shard_set.length < new_num_shards
+                error_msg = "There is only enough data to make " + shard_set.length + " balanced shards."
+                @display_msg error_msg
+                return
+
+            if event?.which? and event.which is 13
+                @shard_table()
+
+            @.$('.cannot_shard-alert').slideUp 'fast'
+            @shard_set = shard_set
+            return true
+
+        display_msg: (msg) =>
+            @.$('.cannot_shard-alert').html @feedback_template msg
+
+            @.$('.cannot_shard-alert').slideDown 'fast'
+
+
+        shard_table: (event) =>
+            if event?
+                event.preventDefault()
+            if @keypress_shards_changes() is true
+
+                @empty_master_pin = {}
+                @empty_replica_pins = {}
+                for shard in @shard_set
+                    @empty_master_pin[shard] = null
+                    @empty_replica_pins[shard] = []
+
+                data =
+                    shards: @shard_set
+                    primary_pinnings: @empty_master_pin
+                    secondary_pinnings: @empty_replica_pins
+
+                @data_sent = data
+
+                $.ajax
+                     processData: false
+                     url: "/ajax/semilattice/#{@model.attributes.protocol}_namespaces/#{@model.get('id')}"
+                     type: 'POST'
+                     contentType: 'application/json'
+                     data: JSON.stringify(data)
+                     success: @on_success
+                     error: @on_error
+
+        on_success: =>
+            @model.set 'shards', @shard_set
+            @model.set 'primary_pinnings', @empty_master_pin
+            @model.set 'secondary_pinnings', @empty_replica_pins
+
+            @model.load_key_distr_once()
+
+            @switch_to_read()
+            @display_msg @successfuly_shard_template
+                name: @model.get 'name'
+                num_shards: @model.get('shards').length
+
+        on_error: =>
+            @display_msg @error_ajax_template()
 
         check_has_unsatisfiable_goals: =>
             if @should_be_hidden
@@ -107,52 +160,18 @@ module 'NamespaceView', ->
                             @render()
                             break
 
-        reset_button_enable: ->
-            @.$('.btn-reset').button 'reset'
-            @.$('.btn-primary-commit').removeAttr 'disabled'
-
-        reset_button_disable: ->
-            @.$('.btn-reset').button('loading')
-            @.$('.btn-primary-commit').attr 'disabled', 'disabled'
-
-        suggest_shards: (event) =>
-            event.preventDefault()
-            @.$('change_shards_container').css 'display', 'block'
-
         render: =>
             @.$el.html @template({})
-            @.$('.edit-shards').html @edit_shards.render().el
-            @render_status()
-
+            @switch_to_read()
             return @
 
-        render_status: =>
-            if @model.get('key_distr')?
-                shards = []
-                total_keys = 0
-                for shard in @model.get('shards')
-                    new_shard =
-                        boundaries: shard
-                        num_keys: parseInt @model.compute_shard_rows_approximation shard
-                    shards.push new_shard
-                    total_keys += new_shard.num_keys
-                max_keys = d3.max shards, (d) -> return d.num_keys
-                min_keys = d3.min shards, (d) -> return d.num_keys
-
-                max_keys = 0 if not max_keys?
-                min_keys = 0 if not min_keys?
-
-            data =
+        switch_to_read: =>
+            @.$('.edit-shards').html @view_template
                 num_shards: @model.get('shards').length
-                has_shards: @model.get('shards').length  > 1
-                has_unsatisfiable_goals: @should_be_hidden
-                total_keys: total_keys if total_keys?
-                max_keys_defined: max_keys?
-                min_keys_defined: min_keys?
-                max_keys: max_keys if max_keys?
-                min_keys: min_keys if min_keys?
 
-            @.$('.data_repartition-legend').html @status_template data
+        switch_to_edit: =>
+            @.$('.edit-shards').html @edit_template
+                num_shards: @model.get('shards').length
 
         render_data_repartition: =>
             $('.tooltip').remove()
@@ -289,8 +308,10 @@ module 'NamespaceView', ->
 
     # Modify replica counts and ack counts in each datacenter
     class @ChangeShardsModal extends UIComponents.AbstractModal
+        ###
         template: Handlebars.compile $('#change_shards-modal-template').html()
         change_shards_success_alert_template: Handlebars.compile $('#change_shards-success-alert-template').html()
+        ###
         class: 'change_shards'
 
         initialize: (data) =>
@@ -319,76 +340,7 @@ module 'NamespaceView', ->
 
         on_submit: =>
             super
-            new_num_shards = @num_shards
-            @.$('.change_shards-btn').button('loading')
 
-            if DataUtils.is_integer(new_num_shards) is false
-                error_msg = "The number of shards must be an integer."
-                @display_error error_msg
-                return
-            
-            if new_num_shards < 1 or new_num_shards > MAX_SHARD_COUNT
-                error_msg = "The number of shards must be beteen 1 and " + MAX_SHARD_COUNT + "."
-                @display_error error_msg
-                return
-
-            data = @model.get('key_distr')
-            distr_keys = @model.get('key_distr_sorted')
-            total_rows = _.reduce distr_keys, ((agg, key) => return agg + data[key]), 0
-            rows_per_shard = total_rows / new_num_shards
-
-            if not data? or not distr_keys?
-                error_msg = "The distribution of keys has not been loaded yet. Please try again."
-                @display_error error_msg
-                return
-
-            if distr_keys.length < 2
-                error_msg = "There is not enough data in the database to make balanced shards."
-                @display_error error_msg
-                return
-
-            current_shard_count = 0
-            split_points = [""]
-            no_more_splits = false
-            for key in distr_keys
-                if split_points.length >= new_num_shards
-                    no_more_splits = true
-                current_shard_count += data[key]
-                if current_shard_count >= rows_per_shard and not no_more_splits
-                    split_points.push(key)
-                    current_shard_count = 0
-            split_points.push(null)
-
-            shard_set = []
-            for splitIndex in [0..(split_points.length - 2)]
-                shard_set.push(JSON.stringify([split_points[splitIndex], split_points[splitIndex + 1]]))
-
-            if shard_set.length < new_num_shards
-                error_msg = "There is only enough data to make " + shard_set.length + " balanced shards."
-                @display_error error_msg
-                return
-
-            empty_master_pin = {}
-            empty_replica_pins = {}
-            for shard in shard_set
-                empty_master_pin[shard] = null
-                empty_replica_pins[shard] = []
-
-            data =
-                shards: shard_set
-                primary_pinnings: empty_master_pin
-                secondary_pinnings: empty_replica_pins
-
-            @data_sent = data
-
-            $.ajax
-                 processData: false
-                 url: "/ajax/semilattice/#{@model.attributes.protocol}_namespaces/#{@model.get('id')}"
-                 type: 'POST'
-                 contentType: 'application/json'
-                 data: JSON.stringify(data)
-                 success: @on_success
-                 error: @on_error
 
         on_success: =>
             @parent.$('.user-alert-space').css 'display', 'none'

@@ -2,63 +2,38 @@
     <h2 class="title">Sharding settings</h2>
     <div class="user-alert-space"></div>
     <div class="edit-shards"></div>
-    <div class="data_repartition-legend"></div>
     <div class="data_repartition-container">
         <p>Loading...</p>
     </div>
 </script>
 
+<script id="view_shards-template" type="text/x-handlebars-template">
+    <button class="btn edit">Edit</button>
+    <p class="icon_paragraph"><span class="big">{{num_shards}}</span> {{pluralize_noun "shard" num_shards}}</p> 
+    <div class="cannot_shard-alert"></div>
+</script>
+
+
 <script id="edit_shards-template" type="text/x-handlebars-template">
-    {{#if read_only}}
-        <button class="btn edit">Edit</button>
-        <p><span class="big">{{num_shards}}</span> {{pluralize_noun "shard" num_shards}}</p> 
-    {{/if}}
-    {{#if editable}}
-        {{#if has_unsatisfiable_goals}} 
-            <h3>Solve the unsatisfiable goals before sharding.</h3>
-        {{else}}
-            <button class="btn cancel">&times;</button>
-            <button class="btn rebalance">Rebalance</button>
-            <p><input class="num-shards" type="text" value="{{num_shards}}" />  {{pluralize_noun "shard" num_shards}}</p> 
-        {{/if}}
-    {{/if}}
-    {{#if sharding_in_progress}}
-        <p>Sharding in progress</p>
-    {{/if}}
+    <button class="btn cancel">&times;</button>
+    <button class="btn rebalance">Rebalance</button>
+    <p class="icon_paragraph"><input class="num-shards" type="text" value="{{num_shards}}" />  {{pluralize_noun "shard" num_shards}}</p>
+    <div class="cannot_shard-alert"></div>
 </script>
 
-<script id="status_shard-template" type="text/x-handlebars-template">
-    <!--
-    {{#if has_unsatisfiable_goals}} 
-        <h3>Solve the unsatisfiable goals before sharding.</h3>
-        {{else}}
-        <div class="rebalance_container">
-            <button class="btn change_shards-button">Rebalance</button> number of shards
-            <input type="text" class="num_shards" value="{{num_shards}}" />
-        </div>
-    {{/if}}
-    -->
+
+<script id="edit_shards-feedback-template" type="text/x-handlebars-template">
+    <div class="close" href="#">&times;</div>
+    <p>
+    {{this}}
+    </p>
 </script>
 
-<script id="change_shards-success-alert-template" type="text/x-handlebars-template">
-    <div class="alert" data-alert="alert">
-        <a class="close" href="#">&times;</a>
-        <p>You successfully modified the number of shards.</p> 
-    </div>
+<script id="edit_shards-successfully_shard-template" type="text/x-handlebars-template">
+    You successfully set {{pluralize_noun "shard" num_shards}} for the table {{name}}
 </script>
-
-<script id="rebalance_shards-success-alert-template" type="text/x-handlebars-template">
-    <div class="alert" data-alert="alert">
-        <a class="close" href="#">&times;</a>
-        <p>You successfully rebalanced the shards.</p> 
-    </div>
-</script>
-
-<script id="change_shards-fail-alert-template" type="text/x-handlebars-template">
-    <div class="alert" data-alert="alert alert-error">
-        <a class="close" href="#">&times;</a>
-        <p>The server returned an error. Please try again.</p> 
-    </div>
+<script id="edit_shards-ajax_error-template" type="text/x-handlebars-template">
+    Sorry, something went wront with the ajax request. Please refresh and try again.
 </script>
 
 <script id="data_repartition-template" type="text/x-handlebars-template">
@@ -69,9 +44,4 @@
     </div>
 </script>
 
-<script id="change_shards-modal-template" type="text/x-handlebars-template">
-    <div class="alert alert-error error_answer"></div>
-    <div id="change_shards-modal-content">
-        <p>Are you sure you want to rebalance this table to {{num_shards}} {{pluralize_noun "shard" num_shards}} </p>
-    </div>
-</script>
+

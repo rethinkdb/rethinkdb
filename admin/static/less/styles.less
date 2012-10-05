@@ -1139,6 +1139,13 @@ body:before {
             &.first { border-top: none; }
         }
     }
+    .legend-container{
+        overflow: auto;
+        margin: 10px;
+    }
+    .plot-container{
+        margin: 10px 0px 0px 0px;
+    }
 }
 
 #table-view {
@@ -1337,17 +1344,18 @@ body:before {
         .edit-shards {
             margin: 20px 0;
             button { float: right; }
-            p {
+            .icon_paragraph {
                 font-family: @sans;
-                margin: 0;
+                margin: 9px 0px 0px 0px;
                 font-size: 15px;
                 color: #a9a9a9;
                 padding-left: 30px;
                 span.big {
+                    margin: 0px 0px 0px 20px;
                     font-size: 24px;
                     color: #f7ae41;
                 }
-                background: left center no-repeat url('http://bit.ly/Pyxwpp');//bars-icon.png
+                background: left 5px no-repeat url('http://bit.ly/Pyxwpp');//bars-icon.png
             }
             input.num-shards { 
                 font-family: @sans;
@@ -1361,7 +1369,7 @@ body:before {
                 border: thin solid #d9d9d9;
                 .border-radius(3px);
                 padding: 4px;
-                margin-top: -4px;
+                margin: -12px 0px 0px -1px;
                
                 &:focus {
                     border-color: rgba(82,168,236,.8);
@@ -1369,6 +1377,36 @@ body:before {
                     .box-shadow(@shadow);
                     outline: 0;
                     outline: thin dotted \9; /* IE6-9 */
+                }
+            }
+            .edit, .cancel, .rebalance{
+                margin: -7px 0px 0px 10px;
+            }
+            .cannot_shard-alert{
+                display: none;
+                clear: both;
+                margin: 6px 0px 0px 0px;
+                padding: 10px 10px 10px 14px;
+                color: #C09853;
+                text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+                background-color: #FCF8E3;
+                border: 1px solid #FBEED5;
+                .border-radius(4px);
+                p{
+                    font-family: @sans;
+                    margin: 0px;
+                }
+                .close{
+                    float: right;
+                    margin-top: -8px;
+                    font-size: 20px;
+                    font-weight: bold;
+                    line-height: 20px;
+                    color: black;
+                    text-shadow: 0 1px 0 white;
+                    opacity: 0.2;
+                    filter: alpha(opacity=20);
+                    cursor: pointer;
                 }
             }
         }
