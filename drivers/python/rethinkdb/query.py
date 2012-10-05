@@ -93,7 +93,7 @@ class BaseQuery(object):
     def _finalize_query(self, root, opts):
         raise NotImplementedError()
 
-    def run(self, conn=None, allow_outdated=None):
+    def run(self, conn=None, debug=False, allow_outdated=None):
         """Evaluate the expression on the server using the connection
         specified by `conn`. If `conn` is empty, uses the last created
         connection (located in :data:`rethinkdb.net.last_connection`).
@@ -115,7 +115,7 @@ class BaseQuery(object):
             if net.last_connection is None:
                 raise StandardError("Call rethinkdb.net.connect() to connect to a server before calling run()")
             conn = net.last_connection
-        return conn.run(self, allow_outdated=allow_outdated)
+        return conn.run(self, debug=debug, allow_outdated=allow_outdated)
 
 class ReadQuery(BaseQuery):
     """Base class for expressions"""
@@ -646,6 +646,11 @@ class JSONExpression(ReadQuery):
         # TODO: reimplement in terms of pickattr when that's done
         return self.map(lambda x: {a: x[a] for a in attrs})
 
+    def for_each(self, fun):
+        if not isinstance(fun, FunctionExpr):
+            fun = FunctionExpr(fun)
+        return WriteQuery(internal.ForEach(self, fun))
+
     def inner_join(self, other, predicate):
         return self.concat_map(
             lambda row: other.concat_map(
@@ -1002,6 +1007,11 @@ class StreamExpression(ReadQuery):
         # TODO: reimplement in terms of pickattr when that's done
         return self.map(lambda r: {a: r[a] for a in attrs})
 
+    def for_each(self, fun):
+        if not isinstance(fun, FunctionExpr):
+            fun = FunctionExpr(fun)
+        return JSONExpression(internal.ForEach(self, fun))
+
     def inner_join(self, other, predicate):
         return self.concat_map(
             lambda row: other.concat_map(
@@ -1213,8 +1223,6 @@ class FunctionExpr(object):
                 for i in range(body.func_code.co_argcount)]
             FunctionExpr.unique_counter += 1
             res = body(*[JSONExpression(internal.Var(arg)) for arg in self.args])
-            if not isinstance(res, BaseQuery):
-                res = expr(res)
             self.body = res
         else:
             self.args = []
@@ -1228,24 +1236,49 @@ class FunctionExpr(object):
 
     def write_mapping(self, mapping, opts):
         assert len(self.args) <= 1
+        mapp = self.body
+        if not isinstance(mapp, BaseQuery):
+            mapp = expr(res)
+
         if self.args:
             mapping.arg = self.args[0]
         else:
             mapping.arg = 'row'     # TODO: GET RID OF THIS
-        self.body._inner._write_ast(mapping.body, opts)
+        mapp._inner._write_ast(mapping.body, opts)
 
     def write_reduction(self, reduction, base, opts):
         assert len(self.args) == 2
+        mapp = self.body
+        if not isinstance(mapp, BaseQuery):
+            mapp = expr(res)
         base._inner._write_ast(reduction.base, opts)
         reduction.var1 = self.args[0]
         reduction.var2 = self.args[1]
-        self.body._inner._write_ast(reduction.body, opts)
+        mapp._inner._write_ast(reduction.body, opts)
+
+    def write_foreach(self, parent, opts):
+        parent.var = self.args[0]
+        if isinstance(self.body, list):
+            for query in self.body:
+               query._inner._write_write_query(parent.queries.add(), opts)
+        else:
+            self.body._inner._write_write_query(parent.queries.add(), opts)
 
     def _pretty_print(self, printer, backtrace_steps):
         args = self.args
+        mapp = self.body
+        if not isinstance(mapp, BaseQuery):
+            mapp = expr(res)
         if not args:
-            return printer.expr_unwrapped(self.body, backtrace_steps)
-        return ("lambda %s: " % ", ".join(args)) + printer.expr_unwrapped(self.body, backtrace_steps)
+            return printer.expr_unwrapped(mapp, backtrace_steps)
+        return ("lambda %s: " % ", ".join(args)) + printer.expr_unwrapped(mapp, backtrace_steps)
+
+    def _pretty_print_foreach_queries(self, printer, backtrace_steps):
+        if isinstance(self.body, list):
+            strrepr = self.body.map(lambda x: printer.write_query(x, backtrace_steps))
+        else:
+            strrepr = printer.write_query(self.body, backtrace_steps)
+        return "lambda %s: [%s]" % (self.args[0], strrepr)
 
 class BaseSelection(object):
     """Something which can be read or written."""
@@ -1331,7 +1364,7 @@ class MetaQuery(BaseQuery):
 
     def _finalize_query(self, root, opts):
         root.type = p.Query.META
-        self._inner._write_meta_query(root.meta_query)
+        self._inner._write_meta_query(root.meta_query, opts)
 
 def db_create(db_name):
     """Create a ReQL expression that creates a database within a
@@ -1563,10 +1596,10 @@ class Table(MultiRowSelection):
             parent.db_name = net.last_connection.db_name
 
         if self.allow_outdated is None:
-            if opts['allow_outdated'] is None:
+            if not 'allow_outdated' in opts or opts['allow_outdated'] is None or opts['allow_outdated'] is False:
                 parent.use_outdated = False
             else:
-                parent.use_outdated = opts['allow_outdated']
+                parent.use_outdated = True
         else:
             parent.use_outdated = self.allow_outdated
 
