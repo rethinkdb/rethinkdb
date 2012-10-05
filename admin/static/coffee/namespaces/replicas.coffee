@@ -302,6 +302,7 @@ module 'NamespaceView', ->
                 error: @on_error
 
         on_success_replicas_and_acks: =>
+            window.collect_progress()
             new_replicas = @model.get 'replica_affinities'
             new_replicas[@datacenter.get('id')] = @data_cached.num_replicas
             @model.set('replica_affinities', new_replicas)

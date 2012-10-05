@@ -292,8 +292,8 @@ module 'ResolveIssuesView', ->
             @.$el.html _template(json)
 
             # Declare machine dead handler
-            @.$('p a.btn').off "click"
-            @.$('p a.btn').click =>
+            @.$('.btn-solve').off "click"
+            @.$('.btn-solve').click =>
                 declare_dead_modal = new ResolveIssuesView.DeclareMachineDeadModal
                 declare_dead_modal.render machine
 
@@ -334,8 +334,8 @@ module 'ResolveIssuesView', ->
                 machine_uuid: @model.get('location')
             @.$el.html _template(json)
             # Declare machine dead handler
-            @.$('p a.btn').off "click"
-            @.$('p a.btn').click =>
+            @.$('.btn-solve').off "click"
+            @.$('.btn-solve').click =>
                 declare_dead_modal = new ResolveIssuesView.DeclareMachineDeadModal
                 declare_dead_modal.render machines.get(@model.get('location'))
 
@@ -410,7 +410,7 @@ module 'ResolveIssuesView', ->
 
             @.$el.html _template(json)
             # bind resolution events
-            @.$('.solve_unsatisfiable_goals').click (event) =>
+            @.$('.btn-solve').click (event) =>
                 event.preventDefault()
                 resolve_modal = new ResolveIssuesView.ResolveUnsatisfiableGoal namespace, json.datacenters_with_issues
                 resolve_modal.render()
