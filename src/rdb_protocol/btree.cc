@@ -162,82 +162,39 @@ void rdb_modify(const std::string &primary_key, const store_key_t &key, point_mo
                 transaction_t *txn, superblock_t *superblock, point_modify_response_t *response) {
     try {
         keyvalue_location_t<rdb_value_t> kv_location;
-        find_keyvalue_location_for_write(txn, superblock, key.btree_key(), &kv_location, &slice->root_eviction_priority, &slice->stats);
-
+        find_keyvalue_location_for_write(txn, superblock, key.btree_key(), &kv_location,
+                                         &slice->root_eviction_priority, &slice->stats);
         boost::shared_ptr<scoped_cJSON_t> lhs;
         if (!kv_location.value.has()) {
-            switch(op) {
-            case point_modify::MUTATE: lhs.reset(new scoped_cJSON_t(cJSON_CreateNull())); break;
-            case point_modify::UPDATE: response->result = point_modify::SKIPPED; return; //TODO: err?
-            default:                   unreachable("Bad point_modify::op_t.");
-            }
+            lhs.reset(new scoped_cJSON_t(cJSON_CreateNull()));
         } else {
             lhs = get_data(kv_location.value.get(), txn);
-            rassert(NULL != lhs->GetObjectItem(primary_key.c_str()));
+            guarantee(lhs->GetObjectItem(primary_key.c_str()));
         }
-        guarantee(lhs != NULL && ((lhs->type() == cJSON_NULL && op == point_modify::MUTATE) || lhs->type() == cJSON_Object));
-
-        boost::shared_ptr<scoped_cJSON_t> rhs(query_language::eval_mapping(mapping, env, scopes, backtrace, lhs));
-        guarantee(rhs);
-        if (rhs->type() == cJSON_NULL) {
-            switch (op) {
-            case point_modify::MUTATE: {
-                if (lhs->type() == cJSON_NULL) {
-                    response->result = point_modify::NOP;
-                    return;
-                }
-                kv_location_delete(&kv_location, key, slice, timestamp, txn);
-                response->result = point_modify::DELETED;
-                return;
-            } break;
-            case point_modify::UPDATE: response->result = point_modify::SKIPPED; return;
-            default:                   unreachable("Bad point_modify::op_t.");
+        boost::shared_ptr<scoped_cJSON_t> new_row;
+        std::string new_key;
+        point_modify::result_t res = query_language::execute_modify(
+            lhs, primary_key, op, mapping, env, scopes, backtrace, &new_row, &new_key);
+        switch(res) {
+        case point_modify::INSERTED:
+            if (new_key != key_to_unescaped_str(key)) {
+                throw query_language::runtime_exc_t(strprintf("mutate can't change the primary key (%s) when doing an insert of %s",
+                                                              primary_key.c_str(), new_row->Print().c_str()), backtrace);
             }
-        } else if (rhs->type() != cJSON_Object) {
-            throw query_language::runtime_exc_t(strprintf("Got %s, but expected Object.", rhs->Print().c_str()), backtrace);
+            //FALLTHROUGH
+        case point_modify::MODIFIED: {
+            guarantee(new_row);
+            kv_location_set(&kv_location, key, new_row, slice, timestamp, txn);
+        } break;
+        case point_modify::DELETED: {
+            kv_location_delete(&kv_location, key, slice, timestamp, txn);
+        } break;
+        case point_modify::SKIPPED: break;
+        case point_modify::NOP: break;
+        case point_modify::ERROR: unreachable("execute_modify should never return ERROR, it should throw");
+        default: unreachable();
         }
-        guarantee(rhs->type() == cJSON_Object);
-
-        boost::shared_ptr<scoped_cJSON_t> val;
-        switch(op) {
-        case point_modify::MUTATE: val = rhs;                                                          break;
-        case point_modify::UPDATE: val.reset(new scoped_cJSON_t(cJSON_merge(lhs->get(), rhs->get()))); break;
-        default:                   unreachable("Bad point_modify::op_t.");
-        }
-        guarantee(val && val->type() == cJSON_Object);
-
-        cJSON *val_pk = val->GetObjectItem(primary_key.c_str());
-        if (!val_pk) {
-            guarantee(op == point_modify::MUTATE);
-            throw query_language::runtime_exc_t(strprintf("Object provided by mutate (%s) must contain primary key %s.",
-                                                          val->Print().c_str(), primary_key.c_str()), backtrace);
-        }
-
-        if (lhs->type() == cJSON_NULL) {
-            guarantee(op == point_modify::MUTATE);
-            if (val_pk->type != cJSON_Number && val_pk->type != cJSON_String) {
-                throw query_language::runtime_exc_t(strprintf("Cannot create new row with non-number, non-string primary key (%s).",
-                                                              val->Print().c_str()), backtrace);
-            }
-            store_key_t new_key(cJSON_print_lexicographic(val_pk));
-            if (key != new_key) {
-                throw query_language::runtime_exc_t(strprintf("Mutate cannot insert a row with a different primary key."), backtrace);
-            }
-            kv_location_set(&kv_location, key, val, slice, timestamp, txn);
-            response->result = point_modify::INSERTED;
-            return;
-        }
-
-        guarantee(lhs->type() == cJSON_Object);
-        cJSON *lhs_pk = lhs->GetObjectItem(primary_key.c_str());
-        guarantee(lhs_pk && val_pk);
-        if (!cJSON_Equal(lhs_pk, val_pk)) {
-            throw query_language::runtime_exc_t(strprintf("Cannot modify primary key (%s -> %s).",
-                                                          cJSON_Print(lhs_pk), cJSON_Print(val_pk)), backtrace);
-        }
-
-        kv_location_set(&kv_location, key, val, slice, timestamp, txn);
-        response->result = point_modify::MODIFIED;
+        response->result = res;
     } catch (const query_language::runtime_exc_t &e) {
         response->result = point_modify::ERROR;
         response->exc = e;
