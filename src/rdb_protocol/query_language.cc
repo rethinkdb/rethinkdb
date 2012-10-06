@@ -641,7 +641,7 @@ void check_write_query_type(WriteQuery *w, type_checking_environment_t *env, boo
 
     std::vector<const google::protobuf::FieldDescriptor *> fields;
     w->GetReflection()->ListFields(*w, &fields);
-    check_protobuf(fields.size() == 2 + w->has_atomic());
+    check_protobuf(static_cast<int64_t>(fields.size()) == 2 + w->has_atomic());
 
     bool deterministic = true;
     switch (w->type()) {
