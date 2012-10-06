@@ -143,23 +143,12 @@ public:
     bool coop_lock_and_check();
 
 private:
-    std::map<ls_block_token_pointee_t*, off64_t> token_offsets;
-    std::multimap<off64_t, ls_block_token_pointee_t*> offset_tokens;
-    scoped_ptr_t<log_serializer_stats_t> stats;
-    perfmon_collection_t disk_stats_collection;
-    perfmon_membership_t disk_stats_membership;
-
-#ifndef NDEBUG
-    // Makes sure we get no tokens after we thought that
-    bool expecting_no_more_tokens;
-#endif
     void register_block_token(ls_block_token_pointee_t *token, off64_t offset);
     bool tokens_exist_for_offset(off64_t off);
     void unregister_block_token(ls_block_token_pointee_t *token);
     void remap_block_to_new_offset(off64_t current_offset, off64_t new_offset);
     intrusive_ptr_t<ls_block_token_pointee_t> generate_block_token(off64_t offset);
 
-    std::vector<serializer_read_ahead_callback_t*> read_ahead_callbacks;
     bool offer_buf_to_read_ahead_callbacks(block_id_t block_id, void *buf, const intrusive_ptr_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
     bool should_perform_read_ahead();
 
@@ -204,6 +193,19 @@ private:
     void prepare_metablock(metablock_t *mb_buffer);
 
     void consider_start_gc();
+
+    std::map<ls_block_token_pointee_t*, off64_t> token_offsets;
+    std::multimap<off64_t, ls_block_token_pointee_t*> offset_tokens;
+    scoped_ptr_t<log_serializer_stats_t> stats;
+    perfmon_collection_t disk_stats_collection;
+    perfmon_membership_t disk_stats_membership;
+
+#ifndef NDEBUG
+    // Makes sure we get no tokens after we thought that
+    bool expecting_no_more_tokens;
+#endif
+
+    std::vector<serializer_read_ahead_callback_t*> read_ahead_callbacks;
 
     dynamic_config_t dynamic_config;
     private_dynamic_config_t private_config;

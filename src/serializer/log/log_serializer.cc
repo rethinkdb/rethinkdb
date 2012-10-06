@@ -217,15 +217,16 @@ struct ls_start_existing_fsm_t :
     log_serializer_t::metablock_t metablock_buffer;
 };
 
-log_serializer_t::log_serializer_t(dynamic_config_t dynamic_config_, io_backender_t *io_backender_, private_dynamic_config_t private_config_, perfmon_collection_t *_perfmon_collection)
-    : stats(new log_serializer_stats_t(_perfmon_collection)),
+log_serializer_t::log_serializer_t(dynamic_config_t _dynamic_config, io_backender_t *io_backender_, private_dynamic_config_t _private_config, perfmon_collection_t *_perfmon_collection)
+    : token_offsets(),
+      stats(new log_serializer_stats_t(_perfmon_collection)),
       disk_stats_collection(),
       disk_stats_membership(_perfmon_collection, &disk_stats_collection, "disk"),
 #ifndef NDEBUG
       expecting_no_more_tokens(false),
 #endif
-      dynamic_config(dynamic_config_),
-      private_config(private_config_),
+      dynamic_config(_dynamic_config),
+      private_config(_private_config),
       shutdown_callback(NULL),
       state(state_unstarted),
       db_path(private_config.db_filename.c_str()),
