@@ -65,6 +65,7 @@ void co_static_header_read(direct_file_t *file, static_header_read_callback_t *c
     }
     memcpy(data_out, buffer->data, data_size);
     callback->on_static_header_read();
+    // TODO: free buffer before you call the callback.
     free(buffer);
 }
 

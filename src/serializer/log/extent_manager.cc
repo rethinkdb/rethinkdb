@@ -120,7 +120,7 @@ extent_manager_t::extent_manager_t(direct_file_t *file, const log_serializer_on_
                                    const log_serializer_dynamic_config_t *_dynamic_config, log_serializer_stats_t *_stats)
     : stats(_stats), extent_size(_static_config->extent_size()), static_config(_static_config),
       dynamic_config(_dynamic_config), dbfile(file), state(state_reserving_extents) {
-    rassert(divides(DEVICE_BLOCK_SIZE, extent_size));
+    guarantee(divides(DEVICE_BLOCK_SIZE, extent_size));
 
     if (file->is_block_device() || dynamic_config->file_size > 0) {
         /* If we are given a fixed file size, we pretend to be on a block device. */

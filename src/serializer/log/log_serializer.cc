@@ -88,6 +88,7 @@ struct ls_start_existing_fsm_t :
     }
 
     bool run(cond_t *to_signal) {
+        // STATE A
         rassert(start_existing_state == state_start);
         rassert(ser->state == log_serializer_t::state_unstarted);
         ser->state = log_serializer_t::state_starting_up;
@@ -98,6 +99,7 @@ struct ls_start_existing_fsm_t :
         }
 
         start_existing_state = state_read_static_header;
+        // STATE A above implies STATE B here
         to_signal_when_done = NULL;
         if (next_starting_up_step()) {
             return true;
@@ -109,18 +111,25 @@ struct ls_start_existing_fsm_t :
 
     bool next_starting_up_step() {
         if (start_existing_state == state_read_static_header) {
+            // STATE B
+            // TODO: static_header_read now always returns false.
             if (static_header_read(ser->dbfile,
                     &ser->static_config,
                     sizeof(log_serializer_on_disk_static_config_t),
                     this)) {
-                start_existing_state = state_find_metablock;
+                crash("static_header_read always returns false");
+                // start_existing_state = state_find_metablock;
             } else {
                 start_existing_state = state_waiting_for_static_header;
+                // STATE B above implies STATE C here
                 return false;
             }
         }
 
+        rassert(start_existing_state != state_waiting_for_static_header);
+
         if (start_existing_state == state_find_metablock) {
+            // STATE D
             ser->extent_manager = new extent_manager_t(ser->dbfile, &ser->static_config, &ser->dynamic_config, ser->stats.get());
             ser->extent_manager->reserve_extent(0);   /* For static header */
 
@@ -176,12 +185,14 @@ struct ls_start_existing_fsm_t :
             return true;
         }
 
-        unreachable("Invalid state.");
+        unreachable("Invalid state %d.", start_existing_state);
     }
 
     void on_static_header_read() {
         rassert(start_existing_state == state_waiting_for_static_header);
+        // STATE C
         start_existing_state = state_find_metablock;
+        // STATE C above implies STATE D here
         next_starting_up_step();
     }
 
@@ -240,6 +251,7 @@ log_serializer_t::log_serializer_t(dynamic_config_t _dynamic_config, io_backende
       last_write(NULL),
       active_write_count(0),
       io_backender(_io_backender) {
+    // STATE A
     /* This is because the serializer is not completely converted to coroutines yet. */
     ls_start_existing_fsm_t *s = new ls_start_existing_fsm_t(this);
     cond_t cond;
