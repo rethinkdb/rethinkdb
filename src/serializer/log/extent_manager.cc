@@ -122,6 +122,7 @@ extent_manager_t::extent_manager_t(direct_file_t *file, const log_serializer_on_
       dynamic_config(_dynamic_config), dbfile(file), state(state_reserving_extents) {
     guarantee(divides(DEVICE_BLOCK_SIZE, extent_size));
 
+    // TODO: Why does dynamic_config have the possibility of setting a file size?
     if (file->is_block_device() || dynamic_config->file_size > 0) {
         /* If we are given a fixed file size, we pretend to be on a block device. */
         if (!file->is_block_device()) {
