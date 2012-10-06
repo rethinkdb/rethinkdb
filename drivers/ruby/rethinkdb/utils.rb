@@ -64,7 +64,7 @@ module RethinkDB
 
   module S_Mixin #S-expression Utils
     @@gensym_counter = 1000
-    def gensym; '_var_'+(@@gensym_counter += 1).to_s; end
+    def gensym; 'var__'+(@@gensym_counter += 1).to_s; end
     def with_var
       sym = gensym
       yield sym, var(sym)
