@@ -73,7 +73,7 @@ void log_serializer_t::create(io_backender_t *backender, private_dynamic_config_
 /* The process of starting up the serializer is handled by the ls_start_*_fsm_t. This is not
 necessary, because there is only ever one startup process for each serializer; the serializer could
 handle its own startup process. It is done this way to make it clear which parts of the serializer
-are involved in startup and which parts are not. TODO: Coroutines. */
+are involved in startup and which parts are not. */
 
 struct ls_start_existing_fsm_t :
     public static_header_read_callback_t,
