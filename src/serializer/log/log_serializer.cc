@@ -63,7 +63,7 @@ void log_serializer_t::create(io_backender_t *backender, private_dynamic_config_
     extent_manager_t::prepare_initial_metablock(&metablock.extent_manager_part);
 
     data_block_manager_t::prepare_initial_metablock(&metablock.data_block_manager_part);
-    lba_index_t::prepare_initial_metablock(&metablock.lba_index_part);
+    lba_list_t::prepare_initial_metablock(&metablock.lba_index_part);
 
     metablock.block_sequence_id = NULL_BLOCK_SEQUENCE_ID;
 
@@ -78,7 +78,7 @@ are involved in startup and which parts are not. TODO: Coroutines. */
 struct ls_start_existing_fsm_t :
     public static_header_read_callback_t,
     public mb_manager_t::metablock_read_callback_t,
-    public lba_index_t::ready_callback_t
+    public lba_list_t::ready_callback_t
 {
     explicit ls_start_existing_fsm_t(log_serializer_t *serializer)
         : ser(serializer), state(state_start) {
@@ -125,7 +125,7 @@ struct ls_start_existing_fsm_t :
             ser->extent_manager->reserve_extent(0);   /* For static header */
 
             ser->metablock_manager = new mb_manager_t(ser->extent_manager);
-            ser->lba_index = new lba_index_t(ser->extent_manager);
+            ser->lba_index = new lba_list_t(ser->extent_manager);
             ser->data_block_manager = new data_block_manager_t(&ser->dynamic_config, ser->extent_manager, ser, &ser->static_config, ser->stats.get());
 
             if (ser->metablock_manager->start_existing(ser->dbfile, &metablock_found, &metablock_buffer, this)) {
@@ -428,7 +428,7 @@ void log_serializer_t::index_write_finish(index_write_context_t *context, file_a
     metablock_t mb_buffer;
 
     /* Sync the LBA */
-    struct : public cond_t, public lba_index_t::sync_callback_t {
+    struct : public cond_t, public lba_list_t::sync_callback_t {
         void on_lba_sync() { pulse(); }
     } on_lba_sync;
     const bool offsets_were_written = lba_index->sync(io_account, &on_lba_sync);

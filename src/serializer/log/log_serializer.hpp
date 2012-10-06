@@ -32,11 +32,9 @@ class log_serializer_t;
  * respect that it deserves.
  */
 
-typedef lba_list_t lba_index_t;
-
 struct log_serializer_metablock_t {
     extent_manager_t::metablock_mixin_t extent_manager_part;
-    lba_index_t::metablock_mixin_t lba_index_part;
+    lba_list_t::metablock_mixin_t lba_index_part;
     data_block_manager_t::metablock_mixin_t data_block_manager_part;
     block_sequence_id_t block_sequence_id;
 };
@@ -58,7 +56,7 @@ class log_serializer_t :
     public home_thread_mixin_debug_t,
 #endif  // SEMANTIC_SERIALIZER_CHECK
     private data_block_manager_t::shutdown_callback_t,
-    private lba_index_t::shutdown_callback_t
+    private lba_list_t::shutdown_callback_t
 {
     friend struct ls_block_writer_t;
     friend struct ls_read_fsm_t;
@@ -236,7 +234,7 @@ private:
 
     extent_manager_t *extent_manager;
     mb_manager_t *metablock_manager;
-    lba_index_t *lba_index;
+    lba_list_t *lba_index;
     data_block_manager_t *data_block_manager;
 
     /* The running index writes organize themselves into a list so that they can be sure to
