@@ -1087,3 +1087,6 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(id_sort(rdb2.run.to_a), $data)
   end
 end
+
+load 'test_det.rb'
+load 'test_bt.rb'
