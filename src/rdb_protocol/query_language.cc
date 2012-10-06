@@ -164,7 +164,7 @@ term_info_t get_term_type(Term *t, type_checking_environment_t *env, const backt
                                       "the entire stream into memory).",
                                       backtrace.with(strprintf("bind:%s", t->let().binds(i).var().c_str())));
             }
-            // Variables are always deterministic, because the value is precomputed.  vvvv
+            // Variables are always deterministic, because the value is precomputed.   vvvv
             env->scope.put_in_scope(t->let().binds(i).var(), term_info_t(argtype.type, true));
         }
         term_info_t res = get_term_type(t->mutable_let()->mutable_expr(), env, backtrace.with("expr"));
@@ -177,7 +177,7 @@ term_info_t get_term_type(Term *t, type_checking_environment_t *env, const backt
     } break;
     case Term::IF: {
         check_protobuf(t->has_if_());
-        bool test_is_det;
+        bool test_is_det = true;
         check_term_type(t->mutable_if_()->mutable_test(), TERM_TYPE_JSON, env, &test_is_det, backtrace.with("test"));
 
         term_info_t true_branch = get_term_type(t->mutable_if_()->mutable_true_branch(), env, backtrace.with("true"));
@@ -260,6 +260,7 @@ term_info_t get_term_type(Term *t, type_checking_environment_t *env, const backt
     guarantee_debug_throw_release(ret, backtrace);
     t->SetExtension(extension::inferred_type, static_cast<int32_t>(ret->type));
     t->SetExtension(extension::deterministic, ret->deterministic);
+    //debugf("%s", t->DebugString().c_str());
     return *ret;
 }
 
@@ -483,7 +484,7 @@ term_info_t get_function_type(Term::Call *c, type_checking_environment_t *env, c
 
                 {
                     implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic)); //make the implicit value be of type json
-                    check_mapping_type(b->mutable_map()->mutable_mapping(), TERM_TYPE_JSON, env, &deterministic, deterministic, backtrace.with("mapping"));
+                    check_mapping_type(b->mutable_map()->mutable_mapping(), TERM_TYPE_JSON, env, &deterministic, backtrace.with("mapping"));
                 }
                 term_info_t res = get_term_type(c->mutable_args(0), env, backtrace);
                 res.deterministic &= deterministic;
@@ -496,7 +497,7 @@ term_info_t get_function_type(Term::Call *c, type_checking_environment_t *env, c
 
                 {
                     implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic)); //make the implicit value be of type json
-                    check_mapping_type(b->mutable_concat_map()->mutable_mapping(), TERM_TYPE_ARBITRARY, env, &deterministic, deterministic, backtrace.with("mapping"));
+                    check_mapping_type(b->mutable_concat_map()->mutable_mapping(), TERM_TYPE_ARBITRARY, env, &deterministic, backtrace.with("mapping"));
                 }
                 term_info_t res = get_term_type(c->mutable_args(0), env, backtrace);
                 res.deterministic &= deterministic;
@@ -518,7 +519,7 @@ term_info_t get_function_type(Term::Call *c, type_checking_environment_t *env, c
                 {
                     // polymorphic
                     implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic)); //make the implicit value be of type json
-                    check_predicate_type(b->mutable_filter()->mutable_predicate(), env, &deterministic, deterministic, backtrace.with("predicate"));
+                    check_predicate_type(b->mutable_filter()->mutable_predicate(), env, &deterministic, backtrace.with("predicate"));
                 }
                 term_info_t res = get_term_type(c->mutable_args(0), env, backtrace);
                 res.deterministic &= deterministic;
@@ -555,20 +556,21 @@ term_info_t get_function_type(Term::Call *c, type_checking_environment_t *env, c
         case Builtin::REDUCE:
             {
                 check_arg_count(c, 1, backtrace);
-                check_reduction_type(b->mutable_reduce(), env, &deterministic, deterministic, backtrace.with("reduce"));
-                return term_info_t(TERM_TYPE_JSON, false); //This is always false because we can't be sure the functions is associative or commutative
+                check_reduction_type(b->mutable_reduce(), env, &deterministic, backtrace.with("reduce"));
+                term_info_t argtype = get_term_type(c->mutable_args(0), env, backtrace);
+                return term_info_t(TERM_TYPE_JSON, deterministic && argtype.deterministic);
             }
             break;
         case Builtin::GROUPEDMAPREDUCE:
             {
                 check_arg_count(c, 1, backtrace);
                 {
-                    check_mapping_type(b->mutable_grouped_map_reduce()->mutable_group_mapping(), TERM_TYPE_JSON, env, &deterministic, deterministic, backtrace.with("group_mapping"));
-                    check_mapping_type(b->mutable_grouped_map_reduce()->mutable_value_mapping(), TERM_TYPE_JSON, env, &deterministic, deterministic, backtrace.with("value_mapping"));
-                    check_reduction_type(b->mutable_grouped_map_reduce()->mutable_reduction(), env, &deterministic, deterministic, backtrace.with("reduction"));
+                    check_mapping_type(b->mutable_grouped_map_reduce()->mutable_group_mapping(), TERM_TYPE_JSON, env, &deterministic, backtrace.with("group_mapping"));
+                    check_mapping_type(b->mutable_grouped_map_reduce()->mutable_value_mapping(), TERM_TYPE_JSON, env, &deterministic, backtrace.with("value_mapping"));
+                    check_reduction_type(b->mutable_grouped_map_reduce()->mutable_reduction(), env, &deterministic, backtrace.with("reduction"));
                 }
-                //TODO: we don't check the argument?
-                return term_info_t(TERM_TYPE_JSON, false);
+                term_info_t argtype = get_term_type(c->mutable_args(0), env, backtrace);
+                return term_info_t(TERM_TYPE_JSON, deterministic && argtype.deterministic);
             }
             break;
         case Builtin::UNION: {
@@ -603,24 +605,26 @@ term_info_t get_function_type(Term::Call *c, type_checking_environment_t *env, c
     crash("unreachable");
 }
 
-void check_reduction_type(Reduction *r, type_checking_environment_t *env, bool *is_det_out, bool args_are_deterministic, const backtrace_t &backtrace) {
+void check_reduction_type(Reduction *r, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace) {
     check_term_type(r->mutable_base(), TERM_TYPE_JSON, env, is_det_out, backtrace.with("base"));
 
     new_scope_t scope_maker(&env->scope);
-    env->scope.put_in_scope(r->var1(), term_info_t(TERM_TYPE_JSON, args_are_deterministic));
-    env->scope.put_in_scope(r->var2(), term_info_t(TERM_TYPE_JSON, args_are_deterministic));
+    env->scope.put_in_scope(r->var1(), term_info_t(TERM_TYPE_JSON, true));
+    env->scope.put_in_scope(r->var2(), term_info_t(TERM_TYPE_JSON, true));
     check_term_type(r->mutable_body(), TERM_TYPE_JSON, env, is_det_out, backtrace.with("body"));
 }
 
-void check_mapping_type(Mapping *m, term_type_t return_type, type_checking_environment_t *env, bool *is_det_out, bool args_are_deterministic, const backtrace_t &backtrace) {
+void check_mapping_type(Mapping *m, term_type_t return_type, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace) {
+    bool is_det = true;
     new_scope_t scope_maker(&env->scope);
-    env->scope.put_in_scope(m->arg(), term_info_t(TERM_TYPE_JSON, args_are_deterministic));
-    check_term_type(m->mutable_body(), return_type, env, is_det_out, backtrace);
+    env->scope.put_in_scope(m->arg(), term_info_t(TERM_TYPE_JSON, true/*deterministic*/));
+    check_term_type(m->mutable_body(), return_type, env, &is_det, backtrace);
+    *is_det_out &= is_det;
 }
 
-void check_predicate_type(Predicate *p, type_checking_environment_t *env, bool *is_det_out, bool args_are_deterministic, const backtrace_t &backtrace) {
+void check_predicate_type(Predicate *p, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace) {
     new_scope_t scope_maker(&env->scope);
-    env->scope.put_in_scope(p->arg(), term_info_t(TERM_TYPE_JSON, args_are_deterministic));
+    env->scope.put_in_scope(p->arg(), term_info_t(TERM_TYPE_JSON, true));
     check_term_type(p->mutable_body(), TERM_TYPE_JSON, env, is_det_out, backtrace);
 }
 
@@ -629,7 +633,6 @@ void check_read_query_type(ReadQuery *rq, type_checking_environment_t *env, bool
     error. Views will be automatically converted to streams at evaluation time.
     */
     term_info_t res = get_term_type(rq->mutable_term(), env, backtrace);
-    // TODO: What the fuck is this shit - sam
     rq->SetExtension(extension::inferred_read_type, static_cast<int32_t>(res.type));
 }
 
@@ -638,7 +641,7 @@ void check_write_query_type(WriteQuery *w, type_checking_environment_t *env, boo
 
     std::vector<const google::protobuf::FieldDescriptor *> fields;
     w->GetReflection()->ListFields(*w, &fields);
-    check_protobuf(fields.size() == 2);
+    check_protobuf(fields.size() == 2 + w->has_atomic());
 
     bool deterministic = true;
     switch (w->type()) {
@@ -646,7 +649,7 @@ void check_write_query_type(WriteQuery *w, type_checking_environment_t *env, boo
         check_protobuf(w->has_update());
         check_term_type(w->mutable_update()->mutable_view(), TERM_TYPE_VIEW, env, is_det_out, backtrace.with("view"));
         implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic));
-        check_mapping_type(w->mutable_update()->mutable_mapping(), TERM_TYPE_JSON, env, is_det_out, *is_det_out, backtrace.with("modify_map"));
+        check_mapping_type(w->mutable_update()->mutable_mapping(), TERM_TYPE_JSON, env, is_det_out, backtrace.with("modify_map"));
     } break;
     case WriteQuery::DELETE: {
         check_protobuf(w->has_delete_());
@@ -656,11 +659,12 @@ void check_write_query_type(WriteQuery *w, type_checking_environment_t *env, boo
         check_protobuf(w->has_mutate());
         check_term_type(w->mutable_mutate()->mutable_view(), TERM_TYPE_VIEW, env, is_det_out, backtrace.with("view"));
         implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic));
-        check_mapping_type(w->mutable_mutate()->mutable_mapping(), TERM_TYPE_JSON, env, is_det_out, *is_det_out, backtrace.with("modify_map"));
+        check_mapping_type(w->mutable_mutate()->mutable_mapping(), TERM_TYPE_JSON, env, is_det_out, backtrace.with("modify_map"));
     } break;
     case WriteQuery::INSERT: {
         check_protobuf(w->has_insert());
         if (w->insert().terms_size() == 1) {
+            // We want to do the get to produce determinism information
             get_term_type(w->mutable_insert()->mutable_terms(0), env, backtrace);
             break; //Single-element insert polymorphic over streams and arrays
         }
@@ -672,7 +676,7 @@ void check_write_query_type(WriteQuery *w, type_checking_environment_t *env, boo
         check_protobuf(w->has_for_each());
         check_term_type(w->mutable_for_each()->mutable_stream(), TERM_TYPE_ARBITRARY, env, is_det_out, backtrace.with("stream"));
 
-        new_scope_t scope_maker(&env->scope, w->mutable_for_each()->var(), term_info_t(TERM_TYPE_JSON, *is_det_out));
+        new_scope_t scope_maker(&env->scope, w->mutable_for_each()->var(), term_info_t(TERM_TYPE_JSON, true));
         for (int i = 0; i < w->for_each().queries_size(); ++i) {
             check_write_query_type(w->mutable_for_each()->mutable_queries(i), env, is_det_out, backtrace.with(strprintf("query:%d", i)));
         }
@@ -681,7 +685,7 @@ void check_write_query_type(WriteQuery *w, type_checking_environment_t *env, boo
         check_protobuf(w->has_point_update());
         check_term_type(w->mutable_point_update()->mutable_key(), TERM_TYPE_JSON, env, is_det_out, backtrace.with("key"));
         implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic));
-        check_mapping_type(w->mutable_point_update()->mutable_mapping(), TERM_TYPE_JSON, env, is_det_out, *is_det_out, backtrace.with("point_map"));
+        check_mapping_type(w->mutable_point_update()->mutable_mapping(), TERM_TYPE_JSON, env, is_det_out, backtrace.with("point_map"));
     } break;
     case WriteQuery::POINTDELETE: {
         check_protobuf(w->has_point_delete());
@@ -691,7 +695,7 @@ void check_write_query_type(WriteQuery *w, type_checking_environment_t *env, boo
         check_protobuf(w->has_point_mutate());
         check_term_type(w->mutable_point_mutate()->mutable_key(), TERM_TYPE_JSON, env, is_det_out, backtrace.with("key"));
         implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic));
-        check_mapping_type(w->mutable_point_mutate()->mutable_mapping(), TERM_TYPE_JSON, env, is_det_out, *is_det_out, backtrace.with("point_map"));
+        check_mapping_type(w->mutable_point_mutate()->mutable_mapping(), TERM_TYPE_JSON, env, is_det_out, backtrace.with("point_map"));
     } break;
     default:
         unreachable("unhandled WriteQuery");
@@ -1126,10 +1130,22 @@ rdb_protocol_t::point_read_response_t read_by_key(namespace_repo_t<rdb_protocol_
     return *p_res;
 }
 
-point_modify::result_t execute_modify(boost::shared_ptr<scoped_cJSON_t> lhs, const std::string &primary_key, point_modify::op_t op,
-                                      const Mapping &mapping, runtime_environment_t *env, const scopes_t &scopes,
-                                      const backtrace_t &backtrace, boost::shared_ptr<scoped_cJSON_t> *json_out,
-                                      std::string *new_key_out) THROWS_ONLY(runtime_exc_t) {
+/* Returns number of rows deleted. */
+int point_delete(namespace_repo_t<rdb_protocol_t>::access_t ns_access, cJSON *id, runtime_environment_t *env, const backtrace_t &backtrace) {
+    try {
+        rdb_protocol_t::write_t write(rdb_protocol_t::point_delete_t(store_key_t(cJSON_print_primary(id, backtrace))));
+        rdb_protocol_t::write_response_t response;
+        ns_access.get_namespace_if()->write(write, &response, order_token_t::ignore, env->interruptor);
+        return (boost::get<rdb_protocol_t::point_delete_response_t>(response.response).result == DELETED);
+    } catch (cannot_perform_query_exc_t e) {
+        throw runtime_exc_t("cannot perform write: " + std::string(e.what()), backtrace);
+    }
+}
+
+point_modify::result_t calculate_modify(boost::shared_ptr<scoped_cJSON_t> lhs, const std::string &primary_key, point_modify::op_t op,
+                                        const Mapping &mapping, runtime_environment_t *env, const scopes_t &scopes,
+                                        const backtrace_t &backtrace, boost::shared_ptr<scoped_cJSON_t> *json_out,
+                                        std::string *new_key_out) THROWS_ONLY(runtime_exc_t) {
     guarantee(lhs);
     //CASE 1: UPDATE skips nonexistant entries
     if (lhs->type() == cJSON_NULL && op == point_modify::UPDATE) return point_modify::SKIPPED;
@@ -1191,38 +1207,71 @@ point_modify::result_t execute_modify(boost::shared_ptr<scoped_cJSON_t> lhs, con
 point_modify::result_t point_modify(namespace_repo_t<rdb_protocol_t>::access_t ns_access,
                                     const std::string &pk, cJSON *id, point_modify::op_t op,
                                     runtime_environment_t *env, const Mapping &m, const scopes_t &scopes,
+                                    bool atomic, boost::shared_ptr<scoped_cJSON_t> row,
                                     const backtrace_t &backtrace) {
+    guarantee_debug_throw_release(m.body().HasExtension(extension::deterministic), backtrace);
+    bool deterministic = m.body().GetExtension(extension::deterministic);
+    point_modify::result_t res;
+    std::string opname = point_modify::op_name(op);
     try {
-        rdb_protocol_t::write_t write(rdb_protocol_t::point_modify_t(pk, store_key_t(cJSON_print_primary(id, backtrace)), op, scopes, backtrace, m));
-        rdb_protocol_t::write_response_t response;
-        ns_access.get_namespace_if()->write(write, &response, order_token_t::ignore, env->interruptor);
-        rdb_protocol_t::point_modify_response_t mod_res = boost::get<rdb_protocol_t::point_modify_response_t>(response.response);
-        if (mod_res.result == point_modify::ERROR) throw mod_res.exc;
-        return mod_res.result;
+        if (!deterministic) {
+            /* Non-deterministic modifications need to be precomputed to ensure that all the replicas end up with the same value. */
+            if (atomic) { // Atomic non-deterministic modifications are impossible.
+                throw runtime_exc_t(strprintf("Cannot execute atomic %s because the mapping can't be proved deterministic.  "
+                                              "Please see the documentation on atomicity and determinism for more details.  "
+                                              "If you don't need atomic %s, use %s_nonatomic instead.",
+                                              opname.c_str(), opname.c_str(), opname.c_str()), backtrace);
+            }
+            if (!row) { // Get the row if we don't already know it.
+                rdb_protocol_t::point_read_response_t row_read = read_by_key(ns_access, env, id, false, backtrace);
+                //TODO: Is it OK to never do an outdated read here?                              ^^^^^
+                row = row_read.data;
+            }
+            boost::shared_ptr<scoped_cJSON_t> new_row;
+            std::string new_key;
+            res = calculate_modify(row, pk, op, m, env, scopes, backtrace, &new_row, &new_key);
+            switch (res) {
+            case point_modify::INSERTED:
+                if (!cJSON_Equal(new_row->GetObjectItem(pk.c_str()), id)) {
+                    throw runtime_exc_t(strprintf("%s can't change the primary key (%s) (original: %s, new row: %s)",
+                                                  opname.c_str(), pk.c_str(), cJSON_print_std_string(id).c_str(),
+                                                  new_row->Print().c_str()), backtrace);
+                }
+                //FALLTHROUGH
+            case point_modify::MODIFIED: {
+                guarantee_debug_throw_release(new_row, backtrace);
+                boost::optional<std::string> generated_key;
+                throwing_insert(ns_access, pk, new_row, env, backtrace, true /*overwrite*/, &generated_key);
+                guarantee(!generated_key); //overwriting inserts never generate keys
+            } break;
+            case point_modify::DELETED: {
+                int num_deleted = point_delete(ns_access, id, env, backtrace);
+                if (num_deleted == 0) res = point_modify::NOP;
+            } break;
+            case point_modify::SKIPPED: break;
+            case point_modify::NOP: break;
+            case point_modify::ERROR: unreachable("compute_modify should never return ERROR, it should throw");
+            default: unreachable();
+            }
+            return res;
+        } else { //deterministic modifications can be dispatched as point_modifies
+            rdb_protocol_t::write_t write(rdb_protocol_t::point_modify_t(pk, store_key_t(cJSON_print_primary(id, backtrace)), op, scopes, backtrace, m));
+            rdb_protocol_t::write_response_t response;
+            ns_access.get_namespace_if()->write(write, &response, order_token_t::ignore, env->interruptor);
+            rdb_protocol_t::point_modify_response_t mod_res = boost::get<rdb_protocol_t::point_modify_response_t>(response.response);
+            if (mod_res.result == point_modify::ERROR) throw mod_res.exc;
+            return mod_res.result;
+        }
     } catch (const cannot_perform_query_exc_t &e) {
         throw runtime_exc_t("cannot perform write: " + std::string(e.what()), backtrace);
     }
 }
 
-void point_delete(namespace_repo_t<rdb_protocol_t>::access_t ns_access, cJSON *id, runtime_environment_t *env, const backtrace_t &backtrace, int *out_num_deletes = 0) {
-    try {
-        rdb_protocol_t::write_t write(rdb_protocol_t::point_delete_t(store_key_t(cJSON_print_primary(id, backtrace))));
-        rdb_protocol_t::write_response_t response;
-        ns_access.get_namespace_if()->write(write, &response, order_token_t::ignore, env->interruptor);
-        if (out_num_deletes) {
-            *out_num_deletes = (boost::get<rdb_protocol_t::point_delete_response_t>(response.response).result == DELETED);
-        }
-    } catch (cannot_perform_query_exc_t e) {
-        throw runtime_exc_t("cannot perform write: " + std::string(e.what()), backtrace);
-    }
-}
-
-void point_delete(namespace_repo_t<rdb_protocol_t>::access_t ns_access, boost::shared_ptr<scoped_cJSON_t> id, runtime_environment_t *env, const backtrace_t &backtrace, int *out_num_deletes = 0) {
-    point_delete(ns_access, id->get(), env, backtrace, out_num_deletes);
+int point_delete(namespace_repo_t<rdb_protocol_t>::access_t ns_access, boost::shared_ptr<scoped_cJSON_t> id, runtime_environment_t *env, const backtrace_t &backtrace) {
+    return point_delete(ns_access, id->get(), env, backtrace);
 }
 
 void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *res, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
-    //TODO: When writes can return different responses, be more clever.
     res->set_status_code(Response::SUCCESS_JSON);
     switch (w->type()) {
     case WriteQuery::UPDATE: {
@@ -1236,8 +1285,8 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
                 std::string pk = view.primary_key;
                 cJSON *id = json->GetObjectItem(pk.c_str());
                 point_modify::result_t mres =
-                    point_modify(view.access, pk, id, point_modify::UPDATE, env,
-                                 w->update().mapping(), scopes, backtrace.with("modify_map"));
+                    point_modify(view.access, pk, id, point_modify::UPDATE, env, w->update().mapping(), scopes,
+                                 w->atomic(), json,backtrace.with("modify_map"));
                 guarantee(mres == point_modify::MODIFIED || mres == point_modify::SKIPPED);
                 updated += (mres == point_modify::MODIFIED);
                 skipped += (mres == point_modify::SKIPPED);
@@ -1267,8 +1316,8 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
                 std::string pk = view.primary_key;
                 cJSON *id = json->GetObjectItem(pk.c_str());
                 point_modify::result_t mres =
-                    point_modify(view.access, pk, id, point_modify::MUTATE, env,
-                                 w->mutate().mapping(), scopes, backtrace.with("modify_map"));
+                    point_modify(view.access, pk, id, point_modify::MUTATE, env, w->mutate().mapping(), scopes,
+                                 w->atomic(), json, backtrace.with("modify_map"));
                 guarantee(mres == point_modify::MODIFIED || mres == point_modify::DELETED);
                 modified += (mres == point_modify::MODIFIED);
                 deleted += (mres == point_modify::DELETED);
@@ -1293,8 +1342,7 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
 
         int deleted = 0;
         while (boost::shared_ptr<scoped_cJSON_t> json = view.stream->next()) {
-            point_delete(view.access, json->GetObjectItem(view.primary_key.c_str()), env, backtrace);
-            deleted++;
+            deleted += point_delete(view.access, json->GetObjectItem(view.primary_key.c_str()), env, backtrace);
         }
 
         res->add_response(strprintf("{\"deleted\": %d}", deleted));
@@ -1414,8 +1462,8 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
         boost::shared_ptr<scoped_cJSON_t> id = eval_term_as_json(w->mutable_point_update()->mutable_key(),
                                                                  env, scopes, backtrace.with("key"));
         point_modify::result_t mres =
-            point_modify(ns_access, pk, id->get(), point_modify::UPDATE, env,
-                         w->point_update().mapping(), scopes, backtrace.with("point_map"));
+            point_modify(ns_access, pk, id->get(), point_modify::UPDATE, env, w->point_update().mapping(), scopes,
+                         w->atomic(), boost::shared_ptr<scoped_cJSON_t>(), backtrace.with("point_map"));
         guarantee(mres == point_modify::MODIFIED || mres == point_modify::SKIPPED);
         res->add_response(strprintf("{\"updated\": %d, \"skipped\": %d, \"errors\": %d}",
                                     mres == point_modify::MODIFIED, mres == point_modify::SKIPPED, 0));
@@ -1430,7 +1478,7 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
         }
         namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval_table_ref(w->mutable_point_delete()->mutable_table_ref(), env, backtrace);
         boost::shared_ptr<scoped_cJSON_t> id = eval_term_as_json(w->mutable_point_delete()->mutable_key(), env, scopes, backtrace.with("key"));
-        point_delete(ns_access, id, env, backtrace, &deleted);
+        deleted = point_delete(ns_access, id, env, backtrace);
         guarantee_debug_throw_release(deleted == 0 || deleted == 1, backtrace);
 
         res->add_response(strprintf("{\"deleted\": %d}", deleted));
@@ -1447,8 +1495,8 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
         boost::shared_ptr<scoped_cJSON_t> id = eval_term_as_json(w->mutable_point_mutate()->mutable_key(),
                                                                  env, scopes, backtrace.with("key"));
         point_modify::result_t mres =
-            point_modify(ns_access, pk, id->get(), point_modify::MUTATE, env,
-                         w->point_mutate().mapping(), scopes, backtrace.with("point_map"));
+            point_modify(ns_access, pk, id->get(), point_modify::MUTATE, env, w->point_mutate().mapping(), scopes,
+                         w->atomic(), boost::shared_ptr<scoped_cJSON_t>(), backtrace.with("point_map"));
         guarantee(mres == point_modify::MODIFIED || mres == point_modify::INSERTED ||
                            mres == point_modify::DELETED  || mres == point_modify::NOP);
         res->add_response(strprintf("{\"modified\": %d, \"inserted\": %d, \"deleted\": %d, \"errors\": %d}",
