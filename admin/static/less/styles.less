@@ -352,12 +352,8 @@ body:before {
     ----------------------------
 */
 #dashboard {
-    #cluster_status_container { padding: 0; }
-    .cluster-status table { 
-        border-spacing: 0;
-        width: 100%;
-    }
-    .cluster-status{
+    #cluster_status_container {
+        padding: 0;
         overflow: auto;
         .panel {
             @bad: #e85250;
@@ -376,8 +372,8 @@ body:before {
                 color: #4c4c4c;
                 padding-left: 21px;
             }
-            &.no-problems-detected h3 { background: 0 3px no-repeat url('http://bit.ly/PyxttH'); }//green-light.png
-            &.problems-detected h3 { background: 0 3px no-repeat url('http://bit.ly/PyxJZG'); }//red-light.png
+            .no-problems-detected h3 { background: 0 3px no-repeat url('http://bit.ly/PyxttH'); }//green-light.png
+            .problems-detected h3 { background: 0 3px no-repeat url('http://bit.ly/PyxJZG'); }//red-light.png
 
             p {
                 font-family: @sans;
@@ -391,6 +387,37 @@ body:before {
             }
 
             &.first { border-left: none; }
+
+            .popup_container{
+                display: none;
+                width: 400px;
+                position: absolute;
+                top: 0px;
+                left: 0px;
+                z-index: 200;
+                padding: 10px 20px;
+                border: thin solid #cfcfcf;
+                background: #fff;
+                h3{
+                    background: none;
+                }
+                .ul_first_level{
+                    margin: 0px;
+                    padding: 0px;
+                    list-style: none;
+                    font-weight: bold;
+                }
+                .ul_second_level{
+                    margin: 0px 0px 0px 10px;
+                    padding: 0px;
+                    list-style: none;
+                }
+                .li_second_level{
+                    margin: 0px;
+                    padding: 0px 0px 0px 10px;
+                    border-left: 1px solid #ccc;
+                }
+            }
         }
     }
     #recent_logs_container {

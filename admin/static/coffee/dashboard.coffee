@@ -9,11 +9,11 @@ module 'DashboardView', ->
         initialize: =>
             log_initial '(initializing) dashboard container view'
 
-            @cluster_status = new DashboardView.ClusterStatus()
-            @logs = new DashboardView.Logs()
+            @cluster_status_availability = new DashboardView.ClusterStatusAvailability()
+            @cluster_status_redundancy = new DashboardView.ClusterStatusRedundancy()
+            @cluster_status_reachability = new DashboardView.ClusterStatusReachability()
+            @cluster_status_consistency = new DashboardView.ClusterStatusConsistency()
 
-        render: =>
-            @.$el.html @template({})
             @cluster_performance = new Vis.OpsPlot(computed_cluster.get_stats,
                 width:  833             # width in pixels
                 height: 300             # height in pixels
@@ -21,68 +21,175 @@ module 'DashboardView', ->
                 type: 'cluster'
             )
 
-            @.$('#cluster_status_container').html @cluster_status.render().el
-            @.$('#cluster_performance_container').html @cluster_performance.render().el
-            @.$('.recent-log-entries-container').html @logs.render().el
+            @logs = new DashboardView.Logs()
+
+        render: =>
+            @.$el.html @template({})
+            @.$('.availability').html @cluster_status_availability.render().$el
+            @.$('.redundancy').html @cluster_status_redundancy.render().$el
+            @.$('.reachability').html @cluster_status_reachability.render().$el
+            @.$('.consistency').html @cluster_status_consistency.render().$el
+
+            @.$('#cluster_performance_container').html @cluster_performance.render().$el
+            @.$('.recent-log-entries-container').html @logs.render().$el
 
             return @
 
         destroy: =>
-            @cluster_status.destroy()
+            @cluster_status_availability.destroy()
+            @cluster_status_redundancy.destroy()
+            @cluster_status_reachability.destroy()
+            @cluster_status_consistency.destroy()
+
             @cluster_performance.destroy()
 
     # TODO: dropped RAM and disk distribution in the templates, need to remove support for them here as well
-    class @ClusterStatus extends Backbone.View
-        template: Handlebars.compile $('#cluster_status-template').html()
-        className: 'cluster-status'
+    class @ClusterStatusAvailability extends Backbone.View
+        className: 'cluster-status-availability'
+
+        template: Handlebars.compile $('#cluster_status-availability-template').html()
+        popup_template: Handlebars.compile $('#cluster_status-availability-popup-template').html()
 
         events:
-            'click a[rel=dashboard_details]': 'show_popover'
+            'mousedown .show_details': 'show_details'
 
-        show_popover: (event) =>
-            event.preventDefault()
-            @.$(event.currentTarget).popover('show') #That should be .target
-            $popover = $('.popover')
-
-            $popover.on 'clickoutside', (e) ->
-                if e.target isnt event.target  # so we don't remove the popover when we click on the link
-                    $(e.currentTarget).remove()
-            $('.popover_close').on 'click', (e) ->
-                $(e.target).parent().parent().remove()
-        initialize: ->
-            log_initial '(initializing) dashboard cluster status'
-            issues.on 'all', @render
-            issues_redundancy.on 'all', @render # when issues_redundancy is reset
-            machines.on 'stats_updated', @render # when the stats of the machines are updated
+        initialize: =>
+            @data = ''
             directory.on 'all', @render
             namespaces.on 'all', @render
 
-            $('.links_to_other_view').live 'click', ->
-                $('.popover-inner').remove()
+        convert_activity: (role) ->
+            switch role
+                when 'role_secondary' then return 'secondary_up_to_date'
+                when 'role_nothing' then return 'nothing'
+                when 'role_primary' then return 'primary'
 
-            @render()
+
+        compute_data: =>
+            num_masters = 0
+            num_masters_down = 0
+            namespaces_down = {}
+
+            directory_by_namespaces = DataUtils.get_directory_activities_by_namespaces()
+            for namespace in namespaces.models
+                namespace_id = namespace.get('id')
+                blueprint = namespace.get('blueprint').peers_roles
+                for machine_id of blueprint
+                    machine_name = machine_name = machines.get(machine_id)?.get('name') #TODO check later if defined
+                    if not machine_name?
+                        machine_name = machine_id
+
+                    for shard of blueprint[machine_id]
+                        value = blueprint[machine_id][shard]
+                        if value is "role_primary"
+                            num_masters++
+
+                            if !(directory_by_namespaces?) or !(directory_by_namespaces[namespace_id]?) or !(directory_by_namespaces[namespace_id][machine_id]?)
+                                num_masters_down++
+                                if not namespaces_down[namespace.get('id')]?
+                                    namespaces_down[namespace.get('id')] = []
+
+                                namespaces_down[namespace.get('id')].push
+                                    shard: shard
+                                    namespace_id: namespace.get('id')
+                                    namespace_name: namespace.get('name')
+                                    machine_id: machine_id
+                                    machine_name: machine_name
+                                    blueprint_status: value
+                                    directory_status: 'Not found'
+                            else if directory_by_namespaces[namespace_id][machine_id][shard] != @convert_activity(value)
+                                num_masters_down++
+                                if not namespaces_down[namespace.get('id')]?
+                                    namespaces_down[namespace.get('id')] = []
+
+                                namespaces_down[namespace.get('id')].push
+                                    shard: shard
+                                    namespace_id: namespace.get('id')
+                                    namespace_name: namespace.get('name')
+                                    machine_id: machine_id
+                                    machine_name: machine_name
+                                    blueprint_status: value
+                                    directory_status: directory_by_namespaces[namespace_id][machine_id][shard]
+
+            if num_masters_down > 0
+                namespaces_down_array = []
+                for namespace_id, namespace_down of namespaces_down
+                    namespaces_down_array.push namespace_down
+                data =
+                    status_is_ok: false
+                    num_namespaces_down: namespaces_down_array.length
+                    num_namespaces: namespaces.length
+                    num_masters: num_masters
+                    num_masters_down: num_masters_down
+                    namespaces_down: namespaces_down_array
+            else
+                data =
+                    status_is_ok: true
+                    num_masters: num_masters
+
+            return data
 
         render: =>
-            log_render '(rendering) cluster status view'
+            data = @compute_data()
+            data_in_json = JSON.stringify data
+            if @data isnt data_in_json
+                @data = data_in_json
+                @.$el.html @template data
+                if data.status_is_ok is true
+                    @.$el.addClass 'no-problems-detected'
+                else
+                    @.$el.addClass 'problems-detected'
 
-            @.$el.html @template(@compute_status())
-            @.$('a[rel=dashboard_details]').popover
-                trigger: 'manual'
-            @.delegateEvents()
+                if data.status_is_ok is false
+                    @.$('.popup_container').html @popup_template data
 
             return @
 
-        destroy: ->
-            issues.off 'all', @render
-            issues_redundancy.off 'all', @render # when issues_redundancy is reset
-            machines.off 'stats_updated', @render # when the stats of the machines are updated
+        show_details: (event) =>
+            event.preventDefault()
+            @.$('.popup_container').css 'display', 'block'
+            @.$('.popup_container').css 'margin', event.pageY+'px 0px 0px '+event.pageX+'px'
+
+
+            @.$('.popup_container').on 'click', @stop_propagation
+            @.$(event.target).on 'click', @stop_propagation
+            $(window).on 'click', @hide_details
+
+        stop_propagation: (event) ->
+            event.stopPropagation()
+
+        hide_details: (event) =>
+            @.$('.popup_container').css 'display', 'none'
+
+        destroy: =>
             directory.off 'all', @render
             namespaces.off 'all', @render
 
-        # We could create a model to create issues because of Disk/RAM
-        threshold_disk: 0.9
-        threshold_ram: 0.9
 
+    class @ClusterStatusRedundancy extends Backbone.View
+        template: Handlebars.compile $('#cluster_status-redundancy-template').html()
+        className: 'cluster-status-availability'
+
+        render: =>
+            @.$el.html @template()
+
+
+    class @ClusterStatusReachability extends Backbone.View
+        template: Handlebars.compile $('#cluster_status-reachability-template').html()
+        className: 'cluster-status-reachability'
+
+        render: =>
+            @.$el.html @template()
+
+
+    class @ClusterStatusConsistency extends Backbone.View
+        template: Handlebars.compile $('#cluster_status-consistency-template').html()
+        className: 'cluster-status-consistency'
+
+        render: =>
+            @.$el.html @template()
+
+    ###
         compute_status: ->
             status =
                 has_availability_problems: false
@@ -217,6 +324,7 @@ module 'DashboardView', ->
 
             return status
 
+    ###
     class @Logs extends Backbone.View
         className: 'recent-log-entries'
         tagName: 'ul'
@@ -268,4 +376,3 @@ module 'DashboardView', ->
                 view = new LogView.LogEntry model: log
                 @.$el.append view.render().$el
             return @
-
