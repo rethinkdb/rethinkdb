@@ -45,6 +45,15 @@ class DetTest < Test::Unit::TestCase
     res = rdb.update_nonatomic{|row| {:x => r.js('1')}}.run
     assert_equal(rdb.map{|row| row[:x]}.reduce(0){|a,b| a+b}.run, 10)
 
+    assert_raise(RuntimeError){rdb.get(0).update{|row| {:x => r.js('1')}}.run}
+    res = rdb.get(0).update_nonatomic{|row| {:x => r.js('2')}}.run
+    assert_equal(res, {'skipped'=>0, 'updated'=>1, 'errors'=>0})
+
+    assert_raise(RuntimeError){rdb.get(0).mutate{|row| r.if(r.js('true'), row, nil)}.run}
+    res = rdb.get(0).mutate_nonatomic{|row| r.if(r.js('true'),row,nil)}.run
+    assert_equal(res, {"modified"=>1, "errors"=>0, "inserted"=>0, "deleted"=>0})
+    assert_equal(rdb.map{|row| row[:x]}.reduce(0){|a,b| a+b}.run, 11)
+
     res = rdb.update{{:x => rdb.map{|x| x[:x]}.reduce(0){|a,b| a+b}}}.run
     assert_equal(res['errors'], 10); assert_not_nil(res['first_error'])
     res = rdb.update_nonatomic{{:x => rdb.map{|x| x[:x]}.reduce(0){|a,b| a+b}}}.run

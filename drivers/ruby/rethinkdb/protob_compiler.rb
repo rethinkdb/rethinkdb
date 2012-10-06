@@ -106,7 +106,7 @@ module RethinkDB
     end
 
     def handle_special_query_cases(sexp)
-      if [:update_nonatomic, :mutate_nonatomic].include?(sexp[0])
+      if C.nonatomic_variants.include?(sexp[0])
         sexp[0] = sexp[0].to_s.split('_')[0].to_sym
         res = query(sexp)
         res.write_query.atomic = false
