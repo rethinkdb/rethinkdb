@@ -40,14 +40,41 @@ class DetTest < Test::Unit::TestCase
   end
 
   def test_nonatomic
+    # UPDATE MODIFY
     res = rdb.update{|row| {:x => r.js('1')}}.run
     assert_equal(res['errors'], 10); assert_not_nil(res['first_error'])
     res = rdb.update_nonatomic{|row| {:x => r.js('1')}}.run
+    assert_equal(res, {"skipped"=>0, "errors"=>0, "updated"=>10})
     assert_equal(rdb.map{|row| row[:x]}.reduce(0){|a,b| a+b}.run, 10)
 
     assert_raise(RuntimeError){rdb.get(0).update{|row| {:x => r.js('1')}}.run}
     res = rdb.get(0).update_nonatomic{|row| {:x => r.js('2')}}.run
     assert_equal(res, {'skipped'=>0, 'updated'=>1, 'errors'=>0})
+    assert_equal(rdb.map{|row| row[:x]}.reduce(0){|a,b| a+b}.run, 11)
+
+    # UPDATE ERROR
+    res = rdb.update{|row| {:x => r.js('x')}}.run
+    assert_equal(res['errors'], 10); assert_not_nil(res['first_error'])
+    res = rdb.update_nonatomic{|row| {:x => r.js('x')}}.run
+    assert_equal(res['errors'], 10); assert_not_nil(res['first_error'])
+    assert_equal(rdb.map{|row| row[:x]}.reduce(0){|a,b| a+b}.run, 11)
+
+    assert_raise(RuntimeError){rdb.get(0).update{|row| {:x => r.js('x')}}.run}
+    assert_raise(RuntimeError){rdb.get(0).update_nonatomic{|row| {:x => r.js('x')}}.run}
+    assert_equal(rdb.map{|row| row[:x]}.reduce(0){|a,b| a+b}.run, 11)
+
+    #UPDATE SKIPPED
+    res = rdb.update{|row| r.if(r.js('true'), nil, {:x => 0.1})}.run
+    assert_equal(res['errors'], 10); assert_not_nil(res['first_error'])
+    res = rdb.update_nonatomic{|row| r.if(r.js('true'), nil, {:x => 0.1})}.run
+    assert_equal(res, {"skipped"=>10, "errors"=>0, "updated"=>0})
+    assert_equal(rdb.map{|row| row[:x]}.reduce(0){|a,b| a+b}.run, 11)
+
+    assert_raise(RuntimeError){rdb.get(0).update{
+        r.if(r.js('true'), nil, {:x => 0.1})}.run}
+    res = rdb.get(0).update_nonatomic{r.if(r.js('true'), nil, {:x => 0.1})}.run
+    assert_equal(res, {'skipped'=>1, 'updated'=>0, 'errors'=>0})
+    assert_equal(rdb.map{|row| row[:x]}.reduce(0){|a,b| a+b}.run, 11)
 
     # MUTATE MODIFY
     assert_raise(RuntimeError){rdb.get(0).mutate{|row| r.if(r.js('true'), row, nil)}.run}
