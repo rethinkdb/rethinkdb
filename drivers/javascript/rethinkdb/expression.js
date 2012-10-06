@@ -1481,6 +1481,40 @@ goog.exportProperty(rethinkdb.Expression.prototype, 'extend',
                     rethinkdb.Expression.prototype.extend);
 
 /**
+ * Returns the concatenation of multiple sequences.
+ * @param {...rethinkdb.Expression} var_args The sequences to concatenate to this one.
+ * @return {rethinkdb.Expression}
+ */
+rethinkdb.Expression.prototype.union = function(var_args) {
+    argCheck_(arguments, 1);
+    var others = Array.prototype.slice.call(arguments, 0).map(wrapIf_);
+    var self = this;
+    return newExpr_(rethinkdb.BuiltinExpression, Builtin.BuiltinType.UNION, [this].concat(others),
+        function(bt) {
+            var otrs = others.map(function(a) {return a.formatQuery()});
+            if (!bt) {
+                return self.formatQuery()+".union("+
+                       otrs.join(', ')+")";
+            } else {
+                var a = bt.shift();
+                if (!a) {
+                    return carrotify_(self.formatQuery()+".union("+
+                       otrs.join(', ')+")");
+                } else if (a === 'arg:0') {
+                    return self.formatQuery(bt)+spaceify_(".union("+otrs.join(', ')+")");
+                } else {
+                    var i = parseInt(a.split(':')[1], 10);
+                    otrs = otrs.map(spaceify_);
+                    otrs[i] = others[i].formatQuery(bt);
+                    return spaceify_(self.formatQuery()+".union(")+otrs.join('  ')+' ';
+                }
+            }
+        });
+};
+goog.exportProperty(rethinkdb.Expression.prototype, 'union',
+                    rethinkdb.Expression.prototype.union);
+
+/**
  * For each element of this sequence evaluate mapFun and concat the resulting sequences.
  * @param {*} mapFun A JavaScript function, ReQL function expression or ReQL expression
  *  referencing the implicit variable that evaluates to a sequence.

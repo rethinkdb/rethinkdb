@@ -716,7 +716,7 @@ off64_t data_block_manager_t::gimme_a_new_offset() {
     /* Deactivate the extent if necessary */
 
     if (blocks_in_active_extent[next_active_extent] == static_config->blocks_per_extent()) {
-        rassert(active_extents[next_active_extent]->g_array.count() < static_config->blocks_per_extent());
+        rassert(active_extents[next_active_extent]->g_array.count() < static_config->blocks_per_extent(), "g_array.count() == %zu, blocks_per_extent=%lu", active_extents[next_active_extent]->g_array.count(), static_config->blocks_per_extent());
         active_extents[next_active_extent]->state = gc_entry::state_young;
         young_extent_queue.push_back(active_extents[next_active_extent]);
         mark_unyoung_entries();

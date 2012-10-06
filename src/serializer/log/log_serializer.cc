@@ -244,6 +244,7 @@ log_serializer_t::log_serializer_t(dynamic_config_t dynamic_config_, io_backende
 }
 
 log_serializer_t::~log_serializer_t() {
+    assert_thread();
     cond_t cond;
     if (!shutdown(&cond)) cond.wait();
 
@@ -276,6 +277,7 @@ void *log_serializer_t::malloc() {
     return reinterpret_cast<void *>(data);
 }
 
+// TODO: Make this parameter const void.
 void *log_serializer_t::clone(void *_data) {
     // TODO: we shouldn't use malloc_aligned here, we should use our
     // custom allocation system instead (and use corresponding
@@ -295,11 +297,13 @@ void log_serializer_t::free(void *ptr) {
 }
 
 file_account_t *log_serializer_t::make_io_account(int priority, int outstanding_requests_limit) {
+    assert_thread();
     rassert(dbfile);
     return new file_account_t(dbfile, priority, outstanding_requests_limit);
 }
 
 void log_serializer_t::block_read(const intrusive_ptr_t<ls_block_token_pointee_t>& token, void *buf, file_account_t *io_account) {
+    assert_thread();
     struct : public cond_t, public iocallback_t {
         void on_io_complete() { pulse(); }
     } cb;
@@ -309,6 +313,7 @@ void log_serializer_t::block_read(const intrusive_ptr_t<ls_block_token_pointee_t
 
 // TODO(sam): block_read can call the callback before it returns. Is this acceptable?
 void log_serializer_t::block_read(const intrusive_ptr_t<ls_block_token_pointee_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb) {
+    assert_thread();
     struct my_cb_t : public iocallback_t {
         void on_io_complete() {
             stats->pm_serializer_block_reads.end(&pm_time);
@@ -353,6 +358,7 @@ intrusive_ptr_t<ls_block_token_pointee_t> get_ls_block_token(const intrusive_ptr
 
 
 void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account) {
+    assert_thread();
     ticks_t pm_time;
     stats->pm_serializer_index_writes.begin(&pm_time);
     stats->pm_serializer_index_writes_size.record(write_ops.size());
@@ -407,6 +413,7 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
 }
 
 void log_serializer_t::index_write_prepare(index_write_context_t *context, file_account_t *io_account) {
+    assert_thread();
     active_write_count++;
 
     /* Start an extent manager transaction so we can allocate and release extents */
@@ -417,6 +424,7 @@ void log_serializer_t::index_write_prepare(index_write_context_t *context, file_
 }
 
 void log_serializer_t::index_write_finish(index_write_context_t *context, file_account_t *io_account) {
+    assert_thread();
     metablock_t mb_buffer;
 
     /* Sync the LBA */
@@ -484,11 +492,13 @@ void log_serializer_t::index_write_finish(index_write_context_t *context, file_a
 }
 
 intrusive_ptr_t<ls_block_token_pointee_t> log_serializer_t::generate_block_token(off64_t offset) {
+    assert_thread();
     return intrusive_ptr_t<ls_block_token_pointee_t>(new ls_block_token_pointee_t(this, offset));
 }
 
 intrusive_ptr_t<ls_block_token_pointee_t>
 log_serializer_t::block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb) {
+    assert_thread();
     // TODO: Implement a duration sampler perfmon for this
     ++stats->pm_serializer_block_writes;
 
@@ -503,19 +513,23 @@ log_serializer_t::block_write(const void *buf, block_id_t block_id, file_account
 
 intrusive_ptr_t<ls_block_token_pointee_t>
 log_serializer_t::block_write(const void *buf, file_account_t *io_account, iocallback_t *cb) {
+    assert_thread();
     return serializer_block_write(this, buf, io_account, cb);
 }
 intrusive_ptr_t<ls_block_token_pointee_t>
 log_serializer_t::block_write(const void *buf, block_id_t block_id, file_account_t *io_account) {
+    assert_thread();
     return serializer_block_write(this, buf, block_id, io_account);
 }
 intrusive_ptr_t<ls_block_token_pointee_t>
 log_serializer_t::block_write(const void *buf, file_account_t *io_account) {
+    assert_thread();
     return serializer_block_write(this, buf, io_account);
 }
 
 
 void log_serializer_t::register_block_token(ls_block_token_pointee_t *token, off64_t offset) {
+    assert_thread();
     rassert(token_offsets.find(token) == token_offsets.end());
     token_offsets[token] = offset;
 
@@ -529,6 +543,7 @@ void log_serializer_t::register_block_token(ls_block_token_pointee_t *token, off
 }
 
 bool log_serializer_t::tokens_exist_for_offset(off64_t off) {
+    assert_thread();
     return offset_tokens.find(off) != offset_tokens.end();
 }
 
@@ -603,34 +618,37 @@ void log_serializer_t::remap_block_to_new_offset(off64_t current_offset, off64_t
 // The block_id is there to keep the interface independent from the serializer
 // implementation. This method should work even if there's no block sequence id in
 // buf.
-block_sequence_id_t log_serializer_t::get_block_sequence_id(DEBUG_VAR block_id_t block_id, const void* buf) {
+block_sequence_id_t log_serializer_t::get_block_sequence_id(DEBUG_VAR block_id_t block_id, const void* buf) const {
+    // No thread assertion.  Really we should just make this a static method.
     const ls_buf_data_t *ser_data = reinterpret_cast<const ls_buf_data_t *>(buf);
     ser_data--;
     rassert(ser_data->block_id == block_id);
     return ser_data->block_sequence_id;
 }
 
+// TODO: Make this const.
 block_size_t log_serializer_t::get_block_size() {
     return static_config.block_size();
 }
 
 bool log_serializer_t::coop_lock_and_check() {
+    assert_thread();
     rassert(dbfile != NULL);
     return dbfile->coop_lock_and_check();
 }
 
 // TODO: Should be called end_block_id I guess (or should subtract 1 frim end_block_id?
 block_id_t log_serializer_t::max_block_id() {
-    rassert(state == state_ready);
     assert_thread();
+    rassert(state == state_ready);
 
     return lba_index->end_block_id();
 }
 
 intrusive_ptr_t<ls_block_token_pointee_t> log_serializer_t::index_read(block_id_t block_id) {
+    assert_thread();
     ++stats->pm_serializer_index_reads;
 
-    assert_thread();
     rassert(state == state_ready);
 
     if (block_id >= lba_index->end_block_id()) {
@@ -654,15 +672,16 @@ bool log_serializer_t::get_delete_bit(block_id_t id) {
 }
 
 repli_timestamp_t log_serializer_t::get_recency(block_id_t id) {
+    assert_thread();
     return lba_index->get_block_recency(id);
 }
 
 bool log_serializer_t::shutdown(cond_t *cb) {
+    assert_thread();
     rassert(coro_t::self());
 
     rassert(cb);
     rassert(state == state_ready);
-    assert_thread();
     shutdown_callback = cb;
 
     shutdown_state = shutdown_begin;
@@ -752,14 +771,17 @@ bool log_serializer_t::next_shutdown_step() {
 }
 
 void log_serializer_t::on_datablock_manager_shutdown() {
+    assert_thread();
     next_shutdown_step();
 }
 
 void log_serializer_t::on_lba_shutdown() {
+    assert_thread();
     next_shutdown_step();
 }
 
 void log_serializer_t::prepare_metablock(metablock_t *mb_buffer) {
+    assert_thread();
     bzero(mb_buffer, sizeof(*mb_buffer));
     extent_manager->prepare_metablock(&mb_buffer->extent_manager_part);
     data_block_manager->prepare_metablock(&mb_buffer->data_block_manager_part);
@@ -769,6 +791,7 @@ void log_serializer_t::prepare_metablock(metablock_t *mb_buffer) {
 
 
 void log_serializer_t::consider_start_gc() {
+    assert_thread();
     if (data_block_manager->do_we_want_to_start_gcing() && state == log_serializer_t::state_ready) {
         // We do not do GC if we're not in the ready state
         // (i.e. shutting down)
@@ -778,10 +801,12 @@ void log_serializer_t::consider_start_gc() {
 
 
 bool log_serializer_t::disable_gc(gc_disable_callback_t *cb) {
+    assert_thread();
     return data_block_manager->disable_gc(cb);
 }
 
 void log_serializer_t::enable_gc() {
+    assert_thread();
     data_block_manager->enable_gc();
 }
 
@@ -803,6 +828,7 @@ void log_serializer_t::unregister_read_ahead_cb(serializer_read_ahead_callback_t
 }
 
 bool log_serializer_t::offer_buf_to_read_ahead_callbacks(block_id_t block_id, void *buf, const intrusive_ptr_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
+    assert_thread();
     for (size_t i = 0; i < read_ahead_callbacks.size(); ++i) {
         if (read_ahead_callbacks[i]->offer_read_ahead_buf(block_id, buf, token, recency_timestamp)) {
             return true;
