@@ -218,9 +218,9 @@ struct ls_start_existing_fsm_t :
 };
 
 log_serializer_t::log_serializer_t(dynamic_config_t _dynamic_config, io_backender_t *_io_backender, private_dynamic_config_t _private_config, perfmon_collection_t *_perfmon_collection)
-    : stats(new log_serializer_stats_t(_perfmon_collection)),
+    : stats(new log_serializer_stats_t(_perfmon_collection)),  // can block in a perfmon_collection_t::add call.
       disk_stats_collection(),
-      disk_stats_membership(_perfmon_collection, &disk_stats_collection, "disk"),
+      disk_stats_membership(_perfmon_collection, &disk_stats_collection, "disk"),  // can block in a perfmon_collection_t::add call.
 #ifndef NDEBUG
       expecting_no_more_tokens(false),
 #endif

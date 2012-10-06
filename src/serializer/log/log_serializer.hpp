@@ -200,6 +200,7 @@ private:
     perfmon_collection_t disk_stats_collection;
     perfmon_membership_t disk_stats_membership;
 
+    // TODO: Just make this available in release mode?
 #ifndef NDEBUG
     // Makes sure we get no tokens after we thought that
     bool expecting_no_more_tokens;
@@ -207,8 +208,8 @@ private:
 
     std::vector<serializer_read_ahead_callback_t*> read_ahead_callbacks;
 
-    dynamic_config_t dynamic_config;
-    private_dynamic_config_t private_config;
+    const dynamic_config_t dynamic_config;
+    const private_dynamic_config_t private_config;
     static_config_t static_config;
 
     cond_t *shutdown_callback;
@@ -230,7 +231,7 @@ private:
         state_shut_down
     } state;
 
-    const char *db_path;
+    const char *const db_path;
     direct_file_t *dbfile;
 
     extent_manager_t *extent_manager;
