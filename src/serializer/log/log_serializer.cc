@@ -217,7 +217,7 @@ struct ls_start_existing_fsm_t :
     log_serializer_t::metablock_t metablock_buffer;
 };
 
-log_serializer_t::log_serializer_t(dynamic_config_t _dynamic_config, io_backender_t *io_backender_, private_dynamic_config_t _private_config, perfmon_collection_t *_perfmon_collection)
+log_serializer_t::log_serializer_t(dynamic_config_t _dynamic_config, io_backender_t *_io_backender, private_dynamic_config_t _private_config, perfmon_collection_t *_perfmon_collection)
     : stats(new log_serializer_stats_t(_perfmon_collection)),
       disk_stats_collection(),
       disk_stats_membership(_perfmon_collection, &disk_stats_collection, "disk"),
@@ -236,7 +236,7 @@ log_serializer_t::log_serializer_t(dynamic_config_t _dynamic_config, io_backende
       data_block_manager(NULL),
       last_write(NULL),
       active_write_count(0),
-      io_backender(io_backender_) {
+      io_backender(_io_backender) {
     /* This is because the serializer is not completely converted to coroutines yet. */
     ls_start_existing_fsm_t *s = new ls_start_existing_fsm_t(this);
     cond_t cond;
