@@ -641,7 +641,7 @@ void check_write_query_type(WriteQuery *w, type_checking_environment_t *env, boo
 
     std::vector<const google::protobuf::FieldDescriptor *> fields;
     w->GetReflection()->ListFields(*w, &fields);
-    check_protobuf(fields.size() == 2);
+    check_protobuf(fields.size() == 2 + w->has_atomic());
 
     bool deterministic = true;
     switch (w->type()) {
@@ -1237,7 +1237,7 @@ point_modify::result_t point_modify(namespace_repo_t<rdb_protocol_t>::access_t n
                                                   opname.c_str(), pk.c_str(), cJSON_print_std_string(id).c_str(),
                                                   new_row->Print().c_str()), backtrace);
                 }
-                //FALLTHROUGHT
+                //FALLTHROUGH
             case point_modify::MODIFIED: {
                 guarantee_debug_throw_release(new_row, backtrace);
                 boost::optional<std::string> generated_key;
@@ -1250,7 +1250,7 @@ point_modify::result_t point_modify(namespace_repo_t<rdb_protocol_t>::access_t n
             } break;
             case point_modify::SKIPPED: break;
             case point_modify::NOP: break;
-            case point_modify::ERROR: unreachable("execute_modify should never return ERROR, it should throw");
+            case point_modify::ERROR: unreachable("compute_modify should never return ERROR, it should throw");
             default: unreachable();
             }
             return res;

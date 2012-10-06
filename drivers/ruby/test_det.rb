@@ -25,7 +25,6 @@ class DetTest < Test::Unit::TestCase
   def test_det
     res = rdb.update{|row| {:count => r.js('0')}}.run
     assert_equal(res['errors'], 10); assert_not_nil(res['first_error'])
-    assert_equal(server_data, $data)
     res = rdb.update{|row| {:count => 0}}.run
     assert_equal(res, {'updated'=>10, 'errors'=>0, 'skipped'=>0})
 
@@ -38,6 +37,17 @@ class DetTest < Test::Unit::TestCase
     static = r.expr(server_data)
     res = rdb.update{{:count => static.map{|x| x[:id]}.reduce(0){|a,b| a+b}}}.run
     assert_equal(res, {'skipped'=>0, 'updated'=>10, 'errors'=>0})
+  end
+
+  def test_nonatomic
+    res = rdb.update{|row| {:x => r.js('1')}}.run
+    assert_equal(res['errors'], 10); assert_not_nil(res['first_error'])
+    res = rdb.update_nonatomic{|row| {:x => r.js('1')}}.run
+    assert_equal(rdb.map{|row| row[:x]}.reduce(0){|a,b| a+b}.run, 10)
+
+    res = rdb.update{{:x => rdb.map{|x| x[:x]}.reduce(0){|a,b| a+b}}}.run
+    assert_equal(res['errors'], 10); assert_not_nil(res['first_error'])
+    res = rdb.update_nonatomic{{:x => rdb.map{|x| x[:x]}.reduce(0){|a,b| a+b}}}.run
   end
 
   def test_det_end
