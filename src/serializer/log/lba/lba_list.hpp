@@ -74,7 +74,7 @@ private:
     bool __shutdown();
 
 private:
-    extent_manager_t *extent_manager;
+    extent_manager_t *const extent_manager;
 
     enum state_t {
         state_unstarted,
@@ -97,6 +97,7 @@ private:
     // gc. The integer is which shard to GC.
     bool we_want_to_gc(int i);
 
+    DISABLE_COPYING(lba_list_t);
 };
 
 #endif /* SERIALIZER_LOG_LBA_LBA_LIST_HPP_ */

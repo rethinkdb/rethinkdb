@@ -13,8 +13,8 @@
 
 #include "serializer/log/log_serializer.hpp"
 
-void initialize_metablock_offsets(off64_t extent_size, std::vector<off64_t> *offsets) {
-    offsets->clear();
+std::vector<off64_t> initial_metablock_offsets(off64_t extent_size) {
+    std::vector<off64_t> offsets;
 
     const off64_t metablocks_per_extent = std::min<off64_t>(extent_size / DEVICE_BLOCK_SIZE, MB_BLOCKS_PER_EXTENT);
 
@@ -23,8 +23,10 @@ void initialize_metablock_offsets(off64_t extent_size, std::vector<off64_t> *off
     for (off64_t j = 1; j < metablocks_per_extent; ++j) {
         off64_t offset = j * DEVICE_BLOCK_SIZE;
 
-        offsets->push_back(offset);
+        offsets.push_back(offset);
     }
+
+    return offsets;
 }
 
 /* head functions */
@@ -64,10 +66,10 @@ void metablock_manager_t<metablock_t>::metablock_manager_t::head_t::pop() {
 
 template<class metablock_t>
 metablock_manager_t<metablock_t>::metablock_manager_t(extent_manager_t *em)
-    : head(this), extent_manager(em), state(state_unstarted), dbfile(NULL)
-{
+    : head(this), mb_buffer(static_cast<crc_metablock_t *>(malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE))),
+      extent_manager(em), metablock_offsets(initial_metablock_offsets(extent_manager->extent_size)),
+      state(state_unstarted), dbfile(NULL) {
     rassert(sizeof(crc_metablock_t) <= DEVICE_BLOCK_SIZE);
-    mb_buffer = reinterpret_cast<crc_metablock_t *>(malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE));
     rassert(mb_buffer);
     mb_buffer_in_use = false;
 
@@ -76,8 +78,6 @@ metablock_manager_t<metablock_t>::metablock_manager_t(extent_manager_t *em)
     // We don't try to reserve any metablock extents because the only
     // extent we use is extent 0.  Extent 0 is already reserved by the
     // static header, so we don't need to reserve it.
-
-    initialize_metablock_offsets(extent_manager->extent_size, &metablock_offsets);
 }
 
 template<class metablock_t>
@@ -92,8 +92,7 @@ metablock_manager_t<metablock_t>::~metablock_manager_t() {
 template<class metablock_t>
 void metablock_manager_t<metablock_t>::create(direct_file_t *dbfile, off64_t extent_size, metablock_t *initial) {
 
-    std::vector<off64_t> metablock_offsets;
-    initialize_metablock_offsets(extent_size, &metablock_offsets);
+    std::vector<off64_t> metablock_offsets = initial_metablock_offsets(extent_size);
 
     dbfile->set_size_at_least(metablock_offsets[metablock_offsets.size() - 1] + DEVICE_BLOCK_SIZE);
 
