@@ -214,79 +214,6 @@ private:
 
     void on_gc_write_done();
 
-    enum gc_step {
-        gc_reconstruct, /* reconstructing on startup */
-        gc_ready, /* ready to start */
-        gc_read,  /* waiting for reads, acquiring main_mutex */
-        gc_write /* waiting for writes */
-    };
-
-    struct gc_state_t {
-    private:
-        // Which step we're on.  See set_step.
-        gc_step step_;
-
-    public:
-        // Whether gc is/should be stopped.
-        bool should_be_stopped;
-
-        // Outstanding io requests
-        int refcount;
-
-        // A buffer for blocks we're transferring.
-        char *gc_blocks;
-
-        // The entry we're currently GCing.
-        gc_entry *current_entry;
-
-        data_block_manager_t::gc_read_callback_t gc_read_callback;
-        data_block_manager_t::gc_disable_callback_t *gc_disable_callback;
-
-        explicit gc_state_t(size_t extent_size) : step_(gc_ready), should_be_stopped(0), refcount(0), current_entry(NULL)
-        {
-            gc_blocks = reinterpret_cast<char *>(malloc_aligned(extent_size, DEVICE_BLOCK_SIZE));
-        }
-
-        ~gc_state_t() {
-            free(gc_blocks);
-        }
-
-        inline gc_step step() const { return step_; }
-
-        // Sets step_, and calls gc_disable_callback if relevant.
-        void set_step(gc_step next_step) {
-            if (should_be_stopped && next_step == gc_ready && (step_ == gc_read || step_ == gc_write)) {
-                rassert(gc_disable_callback);
-                gc_disable_callback->on_gc_disabled();
-                gc_disable_callback = NULL;
-            }
-
-            step_ = next_step;
-        }
-    };
-
-    /* \brief structure to keep track of global stats about the data blocks
-     */
-    class gc_stat_t {
-    private:
-        int val;
-        perfmon_counter_t *perfmon;
-    public:
-        explicit gc_stat_t(perfmon_counter_t *_perfmon)
-            : val(0), perfmon(_perfmon) { }
-        void operator++();
-        void operator+=(int64_t num);
-        void operator--();
-        void operator-=(int64_t num);
-        int get() const { return val; }
-    };
-
-    struct gc_stats_t {
-        gc_stat_t old_total_blocks;
-        gc_stat_t old_garbage_blocks;
-        explicit gc_stats_t(log_serializer_stats_t *);
-    };
-
 
     log_serializer_stats_t *const stats;
 
@@ -306,7 +233,7 @@ private:
     const log_serializer_on_disk_static_config_t* const static_config;
 
     extent_manager_t *const extent_manager;
-    log_serializer_t *serializer;
+    log_serializer_t *const serializer;
 
     direct_file_t *dbfile;
     scoped_ptr_t<file_account_t> gc_io_account_nice;
@@ -336,7 +263,81 @@ private:
     /* Buffer used during GC. */
     std::vector<gc_write_t> gc_writes;
 
+    enum gc_step {
+        gc_reconstruct, /* reconstructing on startup */
+        gc_ready, /* ready to start */
+        gc_read,  /* waiting for reads, acquiring main_mutex */
+        gc_write /* waiting for writes */
+    };
+
+    /* \brief structure to keep track of global stats about the data blocks
+     */
+    class gc_stat_t {
+    private:
+        int val;
+        perfmon_counter_t *perfmon;
+    public:
+        explicit gc_stat_t(perfmon_counter_t *_perfmon)
+            : val(0), perfmon(_perfmon) { }
+        void operator++();
+        void operator+=(int64_t num);
+        void operator--();
+        void operator-=(int64_t num);
+        int get() const { return val; }
+    };
+
+    struct gc_state_t {
+    private:
+        // Which step we're on.  See set_step.
+        gc_step step_;
+
+    public:
+        // Whether gc is/should be stopped.
+        bool should_be_stopped;
+
+        // Outstanding io requests
+        int refcount;
+
+        // A buffer for blocks we're transferring.
+        char *const gc_blocks;
+
+        // The entry we're currently GCing.
+        gc_entry *current_entry;
+
+        data_block_manager_t::gc_read_callback_t gc_read_callback;
+        data_block_manager_t::gc_disable_callback_t *gc_disable_callback;
+
+        explicit gc_state_t(size_t extent_size)
+            : step_(gc_ready), should_be_stopped(0), refcount(0),
+              gc_blocks(static_cast<char *>(malloc_aligned(extent_size, DEVICE_BLOCK_SIZE))),
+              current_entry(NULL) { }
+
+        ~gc_state_t() {
+            free(gc_blocks);
+        }
+
+        inline gc_step step() const { return step_; }
+
+        // Sets step_, and calls gc_disable_callback if relevant.
+        void set_step(gc_step next_step) {
+            if (should_be_stopped && next_step == gc_ready && (step_ == gc_read || step_ == gc_write)) {
+                rassert(gc_disable_callback);
+                gc_disable_callback->on_gc_disabled();
+                gc_disable_callback = NULL;
+            }
+
+            step_ = next_step;
+        }
+    };
+
     gc_state_t gc_state;
+
+
+    struct gc_stats_t {
+        gc_stat_t old_total_blocks;
+        gc_stat_t old_garbage_blocks;
+        explicit gc_stats_t(log_serializer_stats_t *);
+    };
 
     gc_stats_t gc_stats;
 
