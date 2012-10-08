@@ -54,6 +54,18 @@ rethinkdb.table = function(tableName, opt_allowOutdated) {
 };
 
 /**
+ * Concatenate two or more sequences.
+ * @param {...rethinkdb.Expression} var_args
+ * @export
+ */
+rethinkdb.union = function(var_args) {
+    argCheck_(arguments, 2);
+    var one = wrapIf_(arguments[0]);
+    return rethinkdb.Expression.prototype.union.apply(one,
+                Array.prototype.slice.call(arguments, 1));
+};
+
+/**
  * @class A ReQL query that can be evaluated by a RethinkDB sever.
  * @constructor
  */
@@ -80,12 +92,22 @@ goog.exportProperty(rethinkdb.Query.prototype, 'run',
                     rethinkdb.Query.prototype.run);
 
 /**
- * A shortcut for conn.runp(this). If the connection is omitted the last created
- * connection is used.
- * @param {rethinkdb.Connection=} opt_conn The connection to run this expression on.
+ * A shortcut for printing the results of a ReQL query to the console.
+ * @param {rethinkdb.Connection=} opt_conn
  */
 rethinkdb.Query.prototype.runp = function(opt_conn) {
-    this.run(function(a) {console.log(a)}, opt_conn);
+    var c;
+    if (opt_conn) {
+        c = opt_conn.run(this);
+    } else {
+        c = this.run();
+    }
+    c.collect(function(res) {
+        if (res.length === 1) {
+            res = res[0];
+        }
+        console.log(res);
+    });
 };
 goog.exportProperty(rethinkdb.Query.prototype, 'runp',
                     rethinkdb.Query.prototype.runp);

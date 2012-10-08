@@ -272,7 +272,10 @@ class JSONExpression(ReadQuery):
         :type other: :class:`JSONExpression`
         :returns: :class:`JSONExpression`
         """
-        return JSONExpression(internal.Add(self, other))
+        if isinstance(self, list):
+            return self.union(other)
+        else:
+            return JSONExpression(internal.Add(self, other))
 
     def __sub__(self, other):
         """Subtracts two numbers.
@@ -419,6 +422,9 @@ class JSONExpression(ReadQuery):
 
     def append(self, other):
         return JSONExpression(internal.Append(self, other))
+
+    def union(self, *others):
+        return JSONExpression(internal.Union(self, *[expr(x) for x in others]))
 
     # TODO: Implement `range()` for arrays as soon as the server supports it.
 
@@ -720,6 +726,8 @@ class JSONExpression(ReadQuery):
 
 class StreamExpression(ReadQuery):
     """A sequence of JSON values which can be read."""
+    def __add__(self, other):
+        return StreamExpression(internal.Union(self, other))
 
     def __repr__(self):
         return "<StreamExpression %s>" % str(self)
@@ -872,6 +880,9 @@ class StreamExpression(ReadQuery):
             else:
                 order.append((attr, True))
         return self._make_selector(internal.OrderBy(self, order))
+
+    def union(self, *others):
+        return StreamExpression(internal.Union(self, *others))
 
     def map(self, mapping):
         """Applies the given function to each element of the stream.
@@ -1619,6 +1630,13 @@ def table(table_ref, allow_outdated=None):
     """
     return Table(table_ref, allow_outdated=allow_outdated)
 
+def union(seq1, *seqs):
+    """Concatentate the given sequences.
+    """
+    if isinstance(seq1, ReadQuery):
+        return seq1.union(*seqs)
+    else:
+        return expr(seq1).union(*seqs)
 
 def error(msg=''):
     """Throw a runtime error on the server.

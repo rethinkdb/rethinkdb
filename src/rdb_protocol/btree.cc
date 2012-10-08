@@ -173,7 +173,7 @@ void rdb_modify(const std::string &primary_key, const store_key_t &key, point_mo
         }
         boost::shared_ptr<scoped_cJSON_t> new_row;
         std::string new_key;
-        point_modify::result_t res = query_language::execute_modify(
+        point_modify::result_t res = query_language::calculate_modify(
             lhs, primary_key, op, mapping, env, scopes, backtrace, &new_row, &new_key);
         switch(res) {
         case point_modify::INSERTED:
