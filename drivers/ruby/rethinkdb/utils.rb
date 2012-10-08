@@ -44,6 +44,10 @@ module RethinkDB
     def table_directs
       [:insert, :insertstream, :pointupdate, :pointdelete, :pointmutate,
        :create, :drop] end
+
+    def nonatomic_variants
+      [:update_nonatomic, :mutate_nonatomic,
+       :pointupdate_nonatomic, :pointmutate_nonatomic] end
   end
   module C; extend C_Mixin; end
 
