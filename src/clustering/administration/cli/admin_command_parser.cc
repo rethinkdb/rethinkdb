@@ -608,16 +608,16 @@ void admin_command_parser_t::build_command_descriptions() {
     info->add_positional("name", 1, true);
 
     info = add_command(remove_machine_command, remove_machine_command, remove_usage, &admin_cluster_link_t::do_admin_remove_machine, &commands);
-    info->add_positional("id", -1, true)->add_option("!id");
+    info->add_positional("id", -1, true)->add_option("!machine");
 
     info = add_command(remove_table_command, remove_table_command, remove_usage, &admin_cluster_link_t::do_admin_remove_table, &commands);
-    info->add_positional("id", -1, true)->add_option("!id");
+    info->add_positional("id", -1, true)->add_option("!namespace");
 
     info = add_command(remove_datacenter_command, remove_datacenter_command, remove_usage, &admin_cluster_link_t::do_admin_remove_datacenter, &commands);
-    info->add_positional("id", -1, true)->add_option("!id");
+    info->add_positional("id", -1, true)->add_option("!datacenter");
 
     info = add_command(remove_database_command, remove_database_command, remove_usage, &admin_cluster_link_t::do_admin_remove_database, &commands);
-    info->add_positional("id", -1, true)->add_option("!id");
+    info->add_positional("id", -1, true)->add_option("!database");
 
     info = add_command(help_command, help_command, help_usage, NULL, &commands); // Special case, 'help' is not done through the cluster
     info->add_positional("command", 1, false)->add_options("split", "merge", "set", "ls", "create", "rm", "resolve", "help", NULLPTR);
