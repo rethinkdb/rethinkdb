@@ -137,23 +137,31 @@ struct ls_start_existing_fsm_t :
             ser->lba_index = new lba_list_t(ser->extent_manager);
             ser->data_block_manager = new data_block_manager_t(&ser->dynamic_config, ser->extent_manager, ser, &ser->static_config, ser->stats.get());
 
+            // STATE E
             if (ser->metablock_manager->start_existing(ser->dbfile, &metablock_found, &metablock_buffer, this)) {
-                start_existing_state = state_start_lba;
+                crash("metablock_manager_t::start_existing always returns false");
+                // start_existing_state = state_start_lba;
             } else {
+                // STATE E
                 start_existing_state = state_waiting_for_metablock;
                 return false;
             }
         }
 
         if (start_existing_state == state_start_lba) {
+            // STATE G
             guarantee(metablock_found, "Could not find any valid metablock.");
 
             ser->latest_block_sequence_id = metablock_buffer.block_sequence_id;
 
+            // STATE H
             if (ser->lba_index->start_existing(ser->dbfile, &metablock_buffer.lba_index_part, this)) {
                 start_existing_state = state_reconstruct;
+                // STATE J
             } else {
+                // STATE H
                 start_existing_state = state_waiting_for_lba;
+                // STATE I
                 return false;
             }
         }
@@ -198,7 +206,9 @@ struct ls_start_existing_fsm_t :
 
     void on_metablock_read() {
         rassert(start_existing_state == state_waiting_for_metablock);
+        // state after F, state before G
         start_existing_state = state_start_lba;
+        // STATE G
         next_starting_up_step();
     }
 
