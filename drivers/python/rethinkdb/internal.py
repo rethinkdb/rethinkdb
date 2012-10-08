@@ -845,3 +845,15 @@ class ForEach(WriteQueryInner):
     def pretty_print(self, printer):
         return "%s.for_each(%s)" % (printer.expr_wrapped(self.expr, ['arg:0']),
                                      self.fun._pretty_print_foreach_queries(printer, ['mapping']))
+
+class Union(Builtin):
+    def __init__(self, *args):
+        self.args = args
+    def _write_ast(self, parent, opts):
+        self._write_call(parent, p.Builtin.UNION, opts, *self.args)
+    def pretty_print(self, printer):
+        printed_args = []
+        for i, arg in enumerate(self.args):
+            printed_args.append(printer.expr_unwrapped(arg, ["arg:%d" % i]))
+        return ("%s.union(%s" % (self.args[0], ', '.join(printed_args)),
+                PRETTY_PRINT_EXPR_WRAPPED)
