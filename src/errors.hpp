@@ -168,6 +168,8 @@ namespace boost {
 void assertion_failed(char const * expr, char const * function, char const * file, long line);  // NOLINT(runtime/int)
 }
 
+void mcheck_init(void);
+void mcheck_all(void);
 
 // put this in a private: section.
 #define DISABLE_COPYING(T)                      \

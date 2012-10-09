@@ -82,7 +82,6 @@ class data_block_manager_t {
     friend class dbm_read_ahead_fsm_t;
 
 private:
-    log_serializer_stats_t *stats;
     struct gc_write_t {
         block_id_t block_id;
         const void *buf;
@@ -102,7 +101,9 @@ private:
     };
 
 public:
-    data_block_manager_t(const log_serializer_dynamic_config_t *dynamic_config, extent_manager_t *em, log_serializer_t *serializer, const log_serializer_on_disk_static_config_t *static_config, log_serializer_stats_t *parent);
+    data_block_manager_t(const log_serializer_dynamic_config_t *dynamic_config, extent_manager_t *em,
+                         log_serializer_t *serializer, const log_serializer_on_disk_static_config_t *static_config,
+                         log_serializer_stats_t *parent);
     ~data_block_manager_t();
 
     struct metablock_mixin_t {
@@ -120,7 +121,8 @@ public:
 
     /* Returns the offset to which the block will be written */
     off64_t write(const void *buf_in, block_id_t block_id, bool assign_new_block_sequence_id,
-                  file_account_t *io_account, iocallback_t *cb);
+                  file_account_t *io_account, iocallback_t *cb,
+                  bool token_referenced, bool index_referenced);
 
     /* exposed gc api */
     /* mark a buffer as garbage */
@@ -169,56 +171,25 @@ public:
     // Enables gc, immediately.
     void enable_gc();
 
+    // ratio of garbage to blocks in the system
+    double garbage_ratio() const;
+
+    int64_t garbage_ratio_total_blocks() const { return gc_stats.old_garbage_blocks.get(); }
+    int64_t garbage_ratio_garbage_blocks() const { return gc_stats.old_garbage_blocks.get(); }
+
 private:
     void actually_shutdown();
-    // This is permitted to destroy the data_block_manager.
-    shutdown_callback_t *shutdown_callback;
 
-    enum state_t {
-        state_unstarted,
-        state_ready,
-        state_shutting_down,
-        state_shut_down
-    } state;
-
-    const log_serializer_dynamic_config_t* const dynamic_config;
-    const log_serializer_on_disk_static_config_t* const static_config;
-
-    extent_manager_t* const extent_manager;
-    log_serializer_t *serializer;
-
-    direct_file_t* dbfile;
-    scoped_ptr_t<file_account_t> gc_io_account_nice;
-    scoped_ptr_t<file_account_t> gc_io_account_high;
     file_account_t *choose_gc_io_account();
 
-    off64_t gimme_a_new_offset();
+    off64_t gimme_a_new_offset(bool token_referenced, bool index_referenced);
 
     /* Checks whether the extent is empty and if it is, notifies the extent manager and cleans up */
     void check_and_handle_empty_extent(unsigned int extent_id);
     /* Just pushes the given extent on the potentially_empty_extents queue */
     void check_and_handle_empty_extent_later(unsigned int extent_id);
-    std::vector<unsigned int> potentially_empty_extents;
     /* Runs check_and_handle_empty extent() for each extent in potentially_empty_extents */
     void check_and_handle_outstanding_empty_extents();
-
-    /* Contains a pointer to every gc_entry, regardless of what its current state is */
-    two_level_array_t<gc_entry*, MAX_DATA_EXTENTS> entries;
-
-    /* Contains every extent in the gc_entry::state_reconstructing state */
-    intrusive_list_t< gc_entry > reconstructed_extents;
-
-    /* Contains the extents in the gc_entry::state_active state. The number of active extents
-    is determined by dynamic_config->num_active_data_extents. */
-    unsigned int next_active_extent;   // Cycles through the active extents
-    gc_entry *active_extents[MAX_ACTIVE_DATA_EXTENTS];
-    unsigned blocks_in_active_extent[MAX_ACTIVE_DATA_EXTENTS];
-
-    /* Contains every extent in the gc_entry::state_young state */
-    intrusive_list_t< gc_entry > young_extent_queue;
-
-    /* Contains every extent in the gc_entry::state_old state */
-    priority_queue_t<gc_entry*, gc_entry_less> gc_pq;
 
     // Tells if we should keep gc'ing, being told the next extent that
     // would be gc'ed.
@@ -244,59 +215,61 @@ private:
 
     void on_gc_write_done();
 
+
+    log_serializer_stats_t *const stats;
+
+    // This is permitted to destroy the data_block_manager.
+    shutdown_callback_t *shutdown_callback;
+
+    enum state_t {
+        state_unstarted,
+        state_ready,
+        state_shutting_down,
+        state_shut_down
+    };
+
+    state_t state;
+
+    const log_serializer_dynamic_config_t* const dynamic_config;
+    const log_serializer_on_disk_static_config_t* const static_config;
+
+    extent_manager_t *const extent_manager;
+    log_serializer_t *const serializer;
+
+    direct_file_t *dbfile;
+    scoped_ptr_t<file_account_t> gc_io_account_nice;
+    scoped_ptr_t<file_account_t> gc_io_account_high;
+
+    std::vector<unsigned int> potentially_empty_extents;
+
+    /* Contains a pointer to every gc_entry, regardless of what its current state is */
+    two_level_array_t<gc_entry *, MAX_DATA_EXTENTS> entries;
+
+    /* Contains every extent in the gc_entry::state_reconstructing state */
+    intrusive_list_t< gc_entry > reconstructed_extents;
+
+    /* Contains the extents in the gc_entry::state_active state. The number of active extents
+    is determined by dynamic_config->num_active_data_extents. */
+    unsigned int next_active_extent;   // Cycles through the active extents
+    gc_entry *active_extents[MAX_ACTIVE_DATA_EXTENTS];
+    unsigned blocks_in_active_extent[MAX_ACTIVE_DATA_EXTENTS];
+
+    /* Contains every extent in the gc_entry::state_young state */
+    intrusive_list_t< gc_entry > young_extent_queue;
+
+    /* Contains every extent in the gc_entry::state_old state */
+    priority_queue_t<gc_entry*, gc_entry_less> gc_pq;
+
+
+    /* Buffer used during GC. */
+    std::vector<gc_write_t> gc_writes;
+
     enum gc_step {
         gc_reconstruct, /* reconstructing on startup */
         gc_ready, /* ready to start */
         gc_read,  /* waiting for reads, acquiring main_mutex */
         gc_write /* waiting for writes */
     };
-
-    /* Buffer used during GC. */
-    std::vector<gc_write_t> gc_writes;
-
-    struct gc_state_t {
-    private:
-        // Which step we're on.  See set_step.
-        gc_step step_;
-
-    public:
-        // Whether gc is/should be stopped.
-        bool should_be_stopped;
-
-        // Outstanding io requests
-        int refcount;
-
-        // A buffer for blocks we're transferring.
-        char *gc_blocks;
-
-        // The entry we're currently GCing.
-        gc_entry *current_entry;
-
-        data_block_manager_t::gc_read_callback_t gc_read_callback;
-        data_block_manager_t::gc_disable_callback_t *gc_disable_callback;
-
-        explicit gc_state_t(size_t extent_size) : step_(gc_ready), should_be_stopped(0), refcount(0), current_entry(NULL)
-        {
-            gc_blocks = reinterpret_cast<char *>(malloc_aligned(extent_size, DEVICE_BLOCK_SIZE));
-        }
-
-        ~gc_state_t() {
-            free(gc_blocks);
-        }
-
-        inline gc_step step() const { return step_; }
-
-        // Sets step_, and calls gc_disable_callback if relevant.
-        void set_step(gc_step next_step) {
-            if (should_be_stopped && next_step == gc_ready && (step_ == gc_read || step_ == gc_write)) {
-                rassert(gc_disable_callback);
-                gc_disable_callback->on_gc_disabled();
-                gc_disable_callback = NULL;
-            }
-
-            step_ = next_step;
-        }
-    } gc_state;
 
     /* \brief structure to keep track of global stats about the data blocks
      */
@@ -314,21 +287,61 @@ private:
         int get() const { return val; }
     };
 
+    struct gc_state_t {
+    private:
+        // Which step we're on.  See set_step.
+        gc_step step_;
+
+    public:
+        // Whether gc is/should be stopped.
+        bool should_be_stopped;
+
+        // Outstanding io requests
+        int refcount;
+
+        // A buffer for blocks we're transferring.
+        char *const gc_blocks;
+
+        // The entry we're currently GCing.
+        gc_entry *current_entry;
+
+        data_block_manager_t::gc_read_callback_t gc_read_callback;
+        data_block_manager_t::gc_disable_callback_t *gc_disable_callback;
+
+        explicit gc_state_t(size_t extent_size)
+            : step_(gc_ready), should_be_stopped(0), refcount(0),
+              gc_blocks(static_cast<char *>(malloc_aligned(extent_size, DEVICE_BLOCK_SIZE))),
+              current_entry(NULL) { }
+
+        ~gc_state_t() {
+            free(gc_blocks);
+        }
+
+        inline gc_step step() const { return step_; }
+
+        // Sets step_, and calls gc_disable_callback if relevant.
+        void set_step(gc_step next_step) {
+            if (should_be_stopped && next_step == gc_ready && (step_ == gc_read || step_ == gc_write)) {
+                rassert(gc_disable_callback);
+                gc_disable_callback->on_gc_disabled();
+                gc_disable_callback = NULL;
+            }
+
+            step_ = next_step;
+        }
+    };
+
+    gc_state_t gc_state;
+
+
     struct gc_stats_t {
         gc_stat_t old_total_blocks;
         gc_stat_t old_garbage_blocks;
         explicit gc_stats_t(log_serializer_stats_t *);
-    } gc_stats;
+    };
 
-public:
-    // ratio of garbage to blocks in the system
-    double garbage_ratio() const;
+    gc_stats_t gc_stats;
 
-    int64_t garbage_ratio_total_blocks() const { return gc_stats.old_garbage_blocks.get(); }
-    int64_t garbage_ratio_garbage_blocks() const { return gc_stats.old_garbage_blocks.get(); }
-
-
-private:
     DISABLE_COPYING(data_block_manager_t);
 };
 

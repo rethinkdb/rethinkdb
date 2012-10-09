@@ -1,6 +1,7 @@
 #include "errors.hpp"
 
 #include <cxxabi.h>
+#include <mcheck.h>
 #include <signal.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -136,4 +137,36 @@ void assertion_failed_msg(char const * expr, char const * msg, char const * func
     BREAKPOINT;
 }
 
+}
+
+void mcheck_abortfunc(enum mcheck_status mstatus) {
+    const char *err;
+    switch(mstatus) {
+    case MCHECK_DISABLED : err = "MCHECK_DISABLED" ; break;
+    case MCHECK_OK       : err = "MCHECK_OK"       ; break;
+    case MCHECK_HEAD     : err = "MCHECK_HEAD"     ; break;
+    case MCHECK_TAIL     : err = "MCHECK_TAIL"     ; break;
+    case MCHECK_FREE     : err = "MCHECK_FREE"     ; break;
+    default              : err = "UNREACHABLE"     ; break;
+    }
+    crash("Mcheck failed with mstatus: %s\n", err);
+}
+
+void mcheck_init(void) {
+#ifdef MCHECK_PEDANTIC
+    debugf("*** MCHECK_PEDANTIC INITIALIZING ***\n");
+    mcheck_pedantic(mcheck_abortfunc);
+#else
+#ifdef MCHECK
+    debugf("*** MCHECK INITIALIZING ***\n");
+    mcheck(mcheck_abortfunc);
+#endif // MCHECK
+#endif // MCHECK_PEDANTIC
+}
+
+void mcheck_all(void) {
+#ifdef MCHECK
+    debugf("*** MCHECK_CHECK_ALL ***\n");
+    mcheck_check_all();
+#endif // MCHECK
 }

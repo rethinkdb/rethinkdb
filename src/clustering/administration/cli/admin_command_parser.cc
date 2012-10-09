@@ -1203,6 +1203,7 @@ void admin_command_parser_t::do_admin_help(const command_data& data) {
         } else if (command == "create") {
             if (subcommand.empty()) {
                 helps.push_back(admin_help_info_t(create_table_command, create_table_usage, create_table_description));
+                helps.push_back(admin_help_info_t(create_database_command, create_database_usage, create_database_description));
                 helps.push_back(admin_help_info_t(create_datacenter_command, create_datacenter_usage, create_datacenter_description));
                 do_usage_internal(helps, options, "create - add a new table or datacenter to the cluster, run 'help create <SUBCOMMAND>' for more information", console_mode);
             } else if (subcommand == "table") {

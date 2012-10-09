@@ -538,8 +538,8 @@ term_info_t get_function_type(Term::Call *c, type_checking_environment_t *env, c
         case Builtin::NTH:
             {
                 check_polymorphic_function_args(c, TERM_TYPE_JSON, 2, env, &deterministic, backtrace);
-                get_term_type(c->mutable_args(0), env, backtrace);
-                return term_info_t(TERM_TYPE_JSON, deterministic);
+                term_info_t res = get_term_type(c->mutable_args(0), env, backtrace);
+                return term_info_t(TERM_TYPE_JSON, deterministic && res.deterministic);
                 break;
             }
             break;

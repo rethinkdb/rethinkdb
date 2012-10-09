@@ -234,13 +234,13 @@ void data_block_manager_t::read(off64_t off_in, void *buf_out, file_account_t *i
  set block_sequence_id immediately.
  */
 off64_t data_block_manager_t::write(const void *buf_in, block_id_t block_id, bool assign_new_block_sequence_id,
-                                    file_account_t *io_account, iocallback_t *cb) {
+                                    file_account_t *io_account, iocallback_t *cb, bool token_referenced, bool index_referenced) {
     // Either we're ready to write, or we're shutting down and just
     // finished reading blocks for gc and called do_write.
     rassert(state == state_ready
            || (state == state_shutting_down && gc_state.step() == gc_write));
 
-    off64_t offset = gimme_a_new_offset();
+    off64_t offset = gimme_a_new_offset(token_referenced, index_referenced);
 
     ++stats->pm_serializer_data_blocks_written;
 
@@ -356,6 +356,7 @@ void data_block_manager_t::mark_token_live(off64_t offset) {
     unsigned int block_id = static_config->block_index(offset);
 
     gc_entry *entry = entries.get(extent_id);
+    rassert(entry != NULL);
     entry->t_array.set(block_id, 1);
     entry->update_g_array(block_id);
 }
@@ -365,6 +366,7 @@ void data_block_manager_t::mark_token_garbage(off64_t offset) {
     unsigned int block_id = static_config->block_index(offset);
 
     gc_entry *entry = entries.get(extent_id);
+    rassert(entry != NULL);
     rassert(entry->t_array[block_id] == 1);
     rassert(entry->g_array[block_id] == 0);
     entry->t_array.set(block_id, 0);
@@ -399,31 +401,47 @@ struct block_write_cond_t : public cond_t, public iocallback_t {
     }
 };
 void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_writes) {
-    std::vector<block_write_cond_t*> block_write_conds;
-    block_write_conds.reserve(num_writes);
-
-    extent_manager_t::transaction_t em_trx;
-    parent->serializer->extent_manager->begin_transaction(&em_trx);
-    // Step 1: Write buffers to disk and assemble index operations
-    for (int i = 0; i < num_writes; ++i) {
-        block_write_conds.push_back(new block_write_cond_t());
-
-        const ls_buf_data_t *data = static_cast<const ls_buf_data_t *>(writes[i].buf) - 1;
-
-        // the "false" argument indicates that we do not with to assign a new block sequence id
-        writes[i].new_offset = parent->write(writes[i].buf, data->block_id, false, parent->choose_gc_io_account(), block_write_conds.back());
-    }
-    parent->serializer->extent_manager->end_transaction(em_trx);
-    parent->serializer->extent_manager->commit_transaction(&em_trx);
-
-    // Step 2: Wait on all writes to finish
-    for (size_t i = 0; i < block_write_conds.size(); ++i) {
-        block_write_conds[i]->wait();
-        delete block_write_conds[i];
-    }
-
-    // We just did a blocking operation, so recheck if we can access the current entry.
     if (parent->gc_state.current_entry != NULL) {
+        std::vector<block_write_cond_t*> block_write_conds;
+        block_write_conds.reserve(num_writes);
+
+        // We acquire block tokens for all the blocks before writing new
+        // version.  The point of this is to make sure the _new_ block is
+        // correctly "alive" when we write it.  (We can just say "hey,
+        // initialize the t_array bit to be set.")
+
+        std::vector<intrusive_ptr_t<ls_block_token_pointee_t> > block_tokens;
+        block_tokens.reserve(num_writes);
+
+        {
+            ASSERT_NO_CORO_WAITING;
+            extent_manager_t::transaction_t em_trx;
+            parent->serializer->extent_manager->begin_transaction(&em_trx);
+            // Step 1: Write buffers to disk and assemble index operations
+            for (int i = 0; i < num_writes; ++i) {
+                block_write_conds.push_back(new block_write_cond_t());
+                // ... and save block tokens for the old offset.
+                rassert(parent->gc_state.current_entry != NULL, "i = %d", i);
+                block_tokens.push_back(parent->serializer->generate_block_token(writes[i].old_offset));
+
+                const ls_buf_data_t *data = static_cast<const ls_buf_data_t *>(writes[i].buf) - 1;
+
+                // the "false" argument indicates that we do not with to assign a new block sequence id
+                writes[i].new_offset = parent->write(writes[i].buf, data->block_id, false, parent->choose_gc_io_account(), block_write_conds.back(), true, false);
+            }
+            parent->serializer->extent_manager->end_transaction(em_trx);
+            parent->serializer->extent_manager->commit_transaction(&em_trx);
+        }
+
+        // Step 2: Wait on all writes to finish
+        for (size_t i = 0; i < block_write_conds.size(); ++i) {
+            block_write_conds[i]->wait();
+            delete block_write_conds[i];
+        }
+
+        // We created block tokens for our blocks we're writing, so
+        // there's no way the current entry could have become NULL.
+        guarantee(parent->gc_state.current_entry != NULL);
 
         std::vector<index_write_op_t> index_write_ops;
 
@@ -459,6 +477,8 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_wr
                 parent->serializer->remap_block_to_new_offset(writes[i].old_offset, writes[i].new_offset);
             }
 
+            // Step 4A-2: Now that the block tokens have been remapped to a new offset, we don't need to worry about tokens being destroyed while .. TODO maybe uncomment this.
+            block_tokens.clear();
         }
 
         // Step 4B: Commit the transaction to the serializer, emptying
@@ -689,7 +709,8 @@ void data_block_manager_t::actually_shutdown() {
     }
 }
 
-off64_t data_block_manager_t::gimme_a_new_offset() {
+off64_t data_block_manager_t::gimme_a_new_offset(bool token_referenced, bool index_referenced) {
+    rassert(token_referenced || index_referenced);
     /* Start a new extent if necessary */
 
     if (!active_extents[next_active_extent]) {
@@ -710,6 +731,9 @@ off64_t data_block_manager_t::gimme_a_new_offset() {
     active_extents[next_active_extent]->was_written = true;
 
     rassert(active_extents[next_active_extent]->g_array[blocks_in_active_extent[next_active_extent]]);
+    active_extents[next_active_extent]->t_array.set(blocks_in_active_extent[next_active_extent], token_referenced);
+    active_extents[next_active_extent]->i_array.set(blocks_in_active_extent[next_active_extent], index_referenced);
+    active_extents[next_active_extent]->update_g_array(blocks_in_active_extent[next_active_extent]);
 
     blocks_in_active_extent[next_active_extent]++;
 
