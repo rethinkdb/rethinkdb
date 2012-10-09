@@ -398,23 +398,82 @@ body:before {
                 padding: 10px 20px;
                 border: thin solid #cfcfcf;
                 background: #fff;
-                h3{
+                .inner_content{
+                    max-height: 600px;
+                    overflow: auto;
+                }
+
+                .arrow_left{
+                    position: absolute;
+                    z-index: 201;
+                    top: 60px;
+                    left: -11px;
+                    width: 0; 
+                    height: 0; 
+                    border-top: 10px solid transparent;
+                    border-bottom: 10px solid transparent; 
+                    border-right:10px solid #bbb; 
+                }
+                .arrow_left_overlay{
+                    position: absolute;
+                    z-index: 202;
+                    top: 60px;
+                    left: -10px; //TODO
+                    width: 0; 
+                    height: 0; 
+                    border-top: 10px solid transparent;
+                    border-bottom: 10px solid transparent; 
+                    border-right:10px solid #fff; 
+                }
+                .arrow_right{
+                    position: absolute;
+                    z-index: 201;
+                    top: 60px;
+                    left: -11px;
+                    width: 0; 
+                    height: 0; 
+                    border-top: 10px solid transparent;
+                    border-bottom: 10px solid transparent; 
+                    border-right:10px solid #bbb; 
+                }
+                .arrow_right_overlay{
+                    position: absolute;
+                    z-index: 202;
+                    top: 60px;
+                    left: -10px;
+                    width: 0; 
+                    height: 0; 
+                    border-top: 10px solid transparent;
+                    border-bottom: 10px solid transparent; 
+                    border-right:10px solid #fff; 
+                }
+
+                h4{
+                    font-family: @sans;
+                    font-size: 16px;
+                    width: 360px;
+                    margin: 15px 0px 10px 0px;
+                    padding: 0px 20px 10px 20px;
+                    border-bottom: 1px solid #999;
                     background: none;
                 }
                 .ul_first_level{
-                    margin: 0px;
+                    margin: 0px 0px 10px 0px;
                     padding: 0px;
                     list-style: none;
+                }
+                .li_first_level{
                     font-weight: bold;
                 }
                 .ul_second_level{
-                    margin: 0px 0px 0px 10px;
+                    margin: 6px 0px 15px 10px;
                     padding: 0px;
                     list-style: none;
+                    font-weight: normal;
                 }
                 .li_second_level{
                     margin: 0px;
-                    padding: 0px 0px 0px 10px;
+                    padding: 0px 0px 5px 10px;
                     border-left: 1px solid #ccc;
                 }
             }

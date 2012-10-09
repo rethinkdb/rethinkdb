@@ -16,56 +16,186 @@
     </div>
 </script>
 
-<script id="cluster_status-availability-template" type="text/x-handlebars-template">
+<script id="cluster_status-container-template" type="text/x-handlebars-template">
+    <div class="status"></div>
+    <div class="popup_container"></div>
+</script>
+
+<script id="cluster_status-availability_status-template" type="text/x-handlebars-template">
     <h3>Availability</h3>
     {{#if status_is_ok}}
-        <p class="message"><span class="good">0</span> issues detected</p>
+        <p class="message"><span class="good">0</span> issue detected</p>
         <p class="details"><span class="good">{{num_masters}}/{{num_masters}}</span> {{pluralize_noun "master" num_masters}} {{pluralize_verb_to_be num_masters}} online</p>
     </div>
     {{else}}
-    <p class="message"><span class="bad">{{num_namespaces_down}}/{{num_namespaces}} </span> <a href="#" class="show_details">{{pluralize_noun "table" num_namespaces_down}}</a> {{pluralize_verb_to_have num_namespaces_down}} have issues</p>
-        <p class="details"><span class="bad">{{num_masters}}/{{num_masters}}</span> <a href="#" class="show_details">{{pluralize_noun "master" num_masters}}</a> {{pluralize_verb_to_be num_masters}} not available</p>
-        <div class="popup_container"></div>
+        <p class="message"><span class="bad">{{num_namespaces_down}}/{{num_namespaces}} </span> <a href="#" class="show_details">{{pluralize_noun "table" num_namespaces_down}}</a> {{pluralize_verb_to_have num_namespaces_down}} issues</p>
+        <p class="details"><span class="bad">{{num_masters_down}}/{{num_masters}}</span> <a href="#" class="show_details">{{pluralize_noun "master" num_masters}}</a> {{pluralize_verb_to_be num_masters}} not available</p>
     {{/if}}
 </script>
 
-<script id="cluster_status-redundancy-template" type="text/x-handlebars-template">
-        <h3>Redundancy</h3>
-        <p class="message">Redundancy issues detected</p>
-        <p class="details">
-            <span class="bad">2/3</span>
-        </p>
-</script>
-
-
-<script id="cluster_status-reachability-template" type="text/x-handlebars-template">
-        <h3>Reachability</h3>
-        <p class="message"><span class="good">0</span> conflicts detected</p>
-        <p class="details"><span class="good">2/3</span> tables consistent</p>
-    </script>
-
-<script id="cluster_status-consistency-template" type="text/x-handlebars-template">
-        <h3>Consistency</h3>
-        <p class="message"><span class="bad"></span> 0 detected</p>
-        <p class="details"><a href="#resolve_issues">Resolve issues</a></p>
-</script>
-
-
 <script id="cluster_status-availability-popup-template" type="text/x-handlebars-template">
-    <h4>List of masters not available:</h4>
-    <ul class="ul_first_level">
-        {{#each namespaces_down}}
-        <li class="li_first_level">Table <a href="#tables/{{namespace_id}}">{{namespace_name}}</a></li>
-        <ul class="ul_second_level">
-            {{#each this}}
-            <li class="li_second_level">
-                Shard: {{shard}}<br/>
-                Master: <a href="#servers/{{machine_id}}">{{machine_name}}</a>
+    <div class="arrow_left"></div>
+    <div class="arrow_left_overlay"></div>
+    <div class="inner_content">
+        <h4>List of masters not available</h4>
+        {{#if has_namespaces_down}}
+            <ul class="ul_first_level">
+                {{#each namespaces_down}}
+                <li class="li_first_level">Table <a href="#tables/{{namespace_id}}">{{namespace_name}}</a>:
+                <ul class="ul_second_level">
+                    {{#each namespaces_down}}
+                    <li class="li_second_level">
+                        Shard: {{shard}}<br/>
+                        Expected master: <a href="#servers/{{machine_id}}">{{machine_name}}</a><br/>
+                        Status/Goal: {{directory_status}} / {{blueprint_status}}
+                    </li>
+                    {{/each}}
+                </ul>
+                </li>
+                {{/each}}
+            </ul>
+        {{else}}
+        All masters are available
+        {{/if}}
+    </div>
+</script>
+
+
+<script id="cluster_status-redundancy_status-template" type="text/x-handlebars-template">
+    <h3>Redundancy</h3>
+    {{#if status_is_ok}}
+        <p class="message"><span class="good">0</span> issue detected</p>
+        <p class="details"><span class="good">{{num_replicas}}/{{num_replicas}}</span> {{pluralize_noun "master" num_masters}} {{pluralize_verb_to_be num_masters}} online</p>
+    </div>
+    {{else}}
+        {{#if has_unsatisfiable_goals}}
+        <p class="message"><span class="bad">{{num_unsatisfiable_goals}}</span> <a href="#" class="show_details">unsatisfiable {{pluralize_noun "goal" num_unsatisfiable_goals}}</a></p>
+        {{else}}
+        <p class="message"><span class="bad">{{num_namespaces_down}}/{{num_namespaces}} </span> <a href="#" class="show_details">{{pluralize_noun "table" num_namespaces_down}}</a> {{pluralize_verb_to_have num_namespaces_down}} issues</p>
+        {{/if}}
+
+        {{#if has_namespaces_down}}
+        <p class="details"><span class="bad">{{num_replicas_down}}/{{num_replicas}}</span> <a href="#" class="show_details">{{pluralize_noun "replica" num_replicas}}</a> not up to date</p>
+        {{else}}
+        <p class="details"><span class="good">{{num_replicas}}/{{num_replicas}}</span> {{pluralize_noun "replica" num_masters}} {{pluralize_verb_to_be num_replicas}} online</p>
+        {{/if}}
+    {{/if}}
+</script>
+
+
+<script id="cluster_status-redundancy-popup-template" type="text/x-handlebars-template">
+    <div class="arrow_left"></div>
+    <div class="arrow_left_overlay"></div>
+
+    {{#if has_unsatisfiable_goals}}
+    <h4>List of tables with unsatisfiable goals</h4>
+    <div class="inner_content">
+        <ul class="ul_first_level">
+            {{#each namespaces_with_unsatisfiable_goals}}
+            <li class="li_first_level">Table <a href="#tables/{{namespace_id}}">{{namespace_name}}</a>:
+                <ul class="ul_second_level">
+                    {{#each datacenters_with_issues}}
+                    <li class="li_second_level">
+                        Datacenter: <a href="#datacenters/{{datacenter_id}}">{{datacenter_name}}</a><br/>
+                        Number of replicas expected: {{num_replicas}}
+                    </li>
+                    {{/each}}
+                </ul>
             </li>
             {{/each}}
         </ul>
-        {{/each}}
-    </ul>
+
+        {{#if has_namespaces_down}}
+        <h4>List of replicas with issues</h4>
+        <ul class="ul_first_level">
+            {{#each namespaces_down}}
+            <li class="li_first_level">Table <a href="#tables/{{namespace_id}}">{{namespace_name}}</a>:
+                <ul class="ul_second_level">
+                    {{#each namespaces_down}}
+                    <li class="li_second_level">
+                        Shard: {{shard}}<br/>
+                        Server: <a href="#servers/{{machine_id}}">{{machine_name}}</a><br/>
+                        Status/Goal: {{directory_status}} / {{blueprint_status}}
+                    </li>
+                    {{/each}}
+                </ul>
+            </li>
+            {{/each}}
+        </ul>
+        {{/if}}
+        </div>
+    {{else}}
+        {{#if has_namespaces_down}}
+        <h4>List of replicas with issues</h4>
+        <div class="inner_content">
+            <ul class="ul_first_level">
+                {{#each namespaces_down}}
+                <li class="li_first_level">Table <a href="#tables/{{namespace_id}}">{{namespace_name}}</a>:
+                    <ul class="ul_second_level">
+                        {{#each namespaces_down}}
+                        <li class="li_second_level">
+                            Shard: {{shard}}<br/>
+                            Server: <a href="#servers/{{machine_id}}">{{machine_name}}</a><br/>
+                            Status/Goal: {{directory_status}} / {{blueprint_status}}
+                        </li>
+                        {{/each}}
+                    </ul>
+                </li>
+                {{/each}}
+            </ul>
+        </div>
+        {{else}}
+        <h4>List of replicas with issues</h4>
+            <div class="inner_content">
+                All replicas are working and up to date.
+            </div>
+        {{/if}}
+    {{/if}}
+
+</script>
+
+
+
+
+<script id="cluster_status-reachability_status-template" type="text/x-handlebars-template">
+    <h3>Reachability</h3>
+    {{#if has_machines_down}}
+    <p class="message"><span class="bad">{{num_machines_down}}</span> <a href="#" class="show_details">{{pluralize_noun "issue" num_machines_down}}</a> detected</p>
+    <p class="details"><span class="bad">{{num_machines_down}}/{{num_machines}}</span> <a href="#" class="show_details">servers</a> {{pluralize_verb_to_be num_machines_down}} down</p>
+    {{else}}
+    <p class="message"><span class="good">0</span> issue detected</p>
+    <p class="details"><span class="good">{{num_machines}}/{{num_machines}}</span> {{pluralize_noun "server" num_machines}} reachable</p>
+    {{/if}}
+</script>
+
+
+<script id="cluster_status-reachability-popup-template" type="text/x-handlebars-template">
+    <div class="arrow_right"></div>
+    <div class="arrow_right_overlay"></div>
+    <div class="inner_content">
+        <h4>List of servers not available</h4>
+        {{#if has_machines_down}}
+        <ul class="ul_first_level">
+            {{#each machines_down}}
+                <li class="li_first_level">Server <a href="#servers/{{machine_id}}">{{machine_name}}</a>
+            {{/each}}
+        </ul>
+        {{else}}
+        All servers are available.
+        {{/if}}
+    </div>
+</script>
+
+
+<script id="cluster_status-consistency_status-template" type="text/x-handlebars-template">
+    <h3>Consistency</h3>
+    {{#if has_conflicts}}
+    <p class="message"><span class="bad">{{num_conflicts}}</span> <a href="#resolve_issues" class="show_details">{{pluralize_noun "conflict" num_conflicts}}</a> detected</p>
+    <p class="details"><span class="bad">{{num_namespaces_conflicting}}/{{num_namespaces}}</span> <a href="#resolve_issues" class="show_details">{{pluralize_noun "table" num_namespaces_conflicting}}</a> {{pluralize_verb_to_have num_namespaces_conflicting}} conflicts.</p>
+    {{else}}
+    <p class="message"><span class="good">0</span> issue detected</p>
+    <p class="details"><span class="good">{{num_namespaces}}/{{num_namespaces}}</span> {{pluralize_noun "table" num_namespaces}} reachable</p>
+    {{/if}}
 </script>
 
 
