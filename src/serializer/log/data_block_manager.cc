@@ -356,6 +356,7 @@ void data_block_manager_t::mark_token_live(off64_t offset) {
     unsigned int block_id = static_config->block_index(offset);
 
     gc_entry *entry = entries.get(extent_id);
+    rassert(entry != NULL);
     entry->t_array.set(block_id, 1);
     entry->update_g_array(block_id);
 }
@@ -365,6 +366,7 @@ void data_block_manager_t::mark_token_garbage(off64_t offset) {
     unsigned int block_id = static_config->block_index(offset);
 
     gc_entry *entry = entries.get(extent_id);
+    rassert(entry != NULL);
     rassert(entry->t_array[block_id] == 1);
     rassert(entry->g_array[block_id] == 0);
     entry->t_array.set(block_id, 0);
@@ -399,75 +401,94 @@ struct block_write_cond_t : public cond_t, public iocallback_t {
     }
 };
 void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_writes) {
-    std::vector<block_write_cond_t*> block_write_conds;
-    block_write_conds.reserve(num_writes);
-
-    extent_manager_t::transaction_t em_trx;
-    parent->serializer->extent_manager->begin_transaction(&em_trx);
-    // Step 1: Write buffers to disk and assemble index operations
-    for (int i = 0; i < num_writes; ++i) {
-        block_write_conds.push_back(new block_write_cond_t());
-
-        const ls_buf_data_t *data = static_cast<const ls_buf_data_t *>(writes[i].buf) - 1;
-
-        // the "false" argument indicates that we do not with to assign a new block sequence id
-        writes[i].new_offset = parent->write(writes[i].buf, data->block_id, false, parent->choose_gc_io_account(), block_write_conds.back());
-    }
-    parent->serializer->extent_manager->end_transaction(em_trx);
-    parent->serializer->extent_manager->commit_transaction(&em_trx);
-
-    // Step 2: Wait on all writes to finish
-    for (size_t i = 0; i < block_write_conds.size(); ++i) {
-        block_write_conds[i]->wait();
-        delete block_write_conds[i];
-    }
-
-    // We just did a blocking operation, so recheck if we can access the current entry.
     if (parent->gc_state.current_entry != NULL) {
+        std::vector<block_write_cond_t*> block_write_conds;
+        block_write_conds.reserve(num_writes);
 
-        std::vector<index_write_op_t> index_write_ops;
+        // We acquire block tokens for all the blocks before writing new
+        // version.  The point of this is to make sure the _new_ block is
+        // correctly "alive" when we write it.  (We can just say "hey,
+        // initialize the t_array bit to be set.")
 
-        // Step 3: Figure out index ops.  It's important that we do this
-        // now, right before the index_write, so that the updates to the
-        // index are done atomically.
+        // TODO: This is a stupid way to accomplish this.
+        std::vector<intrusive_ptr_t<ls_block_token_pointee_t> > block_tokens;
+        block_tokens.reserve(num_writes);
+
         {
             ASSERT_NO_CORO_WAITING;
-
+            extent_manager_t::transaction_t em_trx;
+            parent->serializer->extent_manager->begin_transaction(&em_trx);
+            // Step 1: Write buffers to disk and assemble index operations
             for (int i = 0; i < num_writes; ++i) {
-                unsigned int block_id = parent->static_config->block_index(writes[i].old_offset);
+                block_write_conds.push_back(new block_write_cond_t());
+                // ... and save block tokens for the old offset.
+                rassert(parent->gc_state.current_entry != NULL, "i = %d", i);
+                block_tokens.push_back(parent->serializer->generate_block_token(writes[i].old_offset));
 
-                if (parent->gc_state.current_entry->i_array[block_id]) {
-                    const ls_buf_data_t *data = static_cast<const ls_buf_data_t *>(writes[i].buf) - 1;
-                    intrusive_ptr_t<ls_block_token_pointee_t> token = parent->serializer->generate_block_token(writes[i].new_offset);
-                    index_write_ops.push_back(index_write_op_t(data->block_id, to_standard_block_token(data->block_id, token)));
-                }
+                const ls_buf_data_t *data = static_cast<const ls_buf_data_t *>(writes[i].buf) - 1;
 
-                // (If we don't have an i_array entry, the block is referenced
-                // by a non-negative number of tokens only.  These get tokens
-                // remapped later.)
+                // the "false" argument indicates that we do not with to assign a new block sequence id
+                writes[i].new_offset = parent->write(writes[i].buf, data->block_id, false, parent->choose_gc_io_account(), block_write_conds.back());
             }
-
-            // Step 4A: Remap tokens to new offsets.  It is important
-            // that we do this _before_ calling index_write.
-            // Otherwise, the token_offset map would still point to
-            // the extent we're gcing.  Then somebody could do an
-            // index_write after our index_write starts but before it
-            // returns in Step 4 below, resulting in i_array entries
-            // that point to the current entry.  This should empty out
-            // all the t_array bits.
-            for (int i = 0; i < num_writes; ++i) {
-                parent->serializer->remap_block_to_new_offset(writes[i].old_offset, writes[i].new_offset);
-            }
-
+            parent->serializer->extent_manager->end_transaction(em_trx);
+            parent->serializer->extent_manager->commit_transaction(&em_trx);
         }
 
-        // Step 4B: Commit the transaction to the serializer, emptying
-        // out all the i_array bits.
-        parent->serializer->index_write(index_write_ops, parent->choose_gc_io_account());
+        // Step 2: Wait on all writes to finish
+        for (size_t i = 0; i < block_write_conds.size(); ++i) {
+            block_write_conds[i]->wait();
+            delete block_write_conds[i];
+        }
 
-        ASSERT_NO_CORO_WAITING;
+        // We just did a blocking operation, so recheck if we can access the current entry.
+        if (parent->gc_state.current_entry != NULL) {
 
-        index_write_ops.clear();  // cleanup index_write_ops under the watchful eyes of ASSERT_NO_CORO_WAITING
+            std::vector<index_write_op_t> index_write_ops;
+
+            // Step 3: Figure out index ops.  It's important that we do this
+            // now, right before the index_write, so that the updates to the
+            // index are done atomically.
+            {
+                ASSERT_NO_CORO_WAITING;
+
+                for (int i = 0; i < num_writes; ++i) {
+                    unsigned int block_id = parent->static_config->block_index(writes[i].old_offset);
+
+                    if (parent->gc_state.current_entry->i_array[block_id]) {
+                        const ls_buf_data_t *data = static_cast<const ls_buf_data_t *>(writes[i].buf) - 1;
+                        intrusive_ptr_t<ls_block_token_pointee_t> token = parent->serializer->generate_block_token(writes[i].new_offset);
+                        index_write_ops.push_back(index_write_op_t(data->block_id, to_standard_block_token(data->block_id, token)));
+                    }
+
+                    // (If we don't have an i_array entry, the block is referenced
+                    // by a non-negative number of tokens only.  These get tokens
+                    // remapped later.)
+                }
+
+                // Step 4A: Remap tokens to new offsets.  It is important
+                // that we do this _before_ calling index_write.
+                // Otherwise, the token_offset map would still point to
+                // the extent we're gcing.  Then somebody could do an
+                // index_write after our index_write starts but before it
+                // returns in Step 4 below, resulting in i_array entries
+                // that point to the current entry.  This should empty out
+                // all the t_array bits.
+                for (int i = 0; i < num_writes; ++i) {
+                    parent->serializer->remap_block_to_new_offset(writes[i].old_offset, writes[i].new_offset);
+                }
+
+                // Step 4A-2: Now that the block tokens have been remapped to a new offset, we don't need to worry about tokens being destroyed while .. TODO maybe uncomment this.
+                block_tokens.clear();
+            }
+
+            // Step 4B: Commit the transaction to the serializer, emptying
+            // out all the i_array bits.
+            parent->serializer->index_write(index_write_ops, parent->choose_gc_io_account());
+
+            ASSERT_NO_CORO_WAITING;
+
+            index_write_ops.clear();  // cleanup index_write_ops under the watchful eyes of ASSERT_NO_CORO_WAITING
+        }
     }
 
     {
