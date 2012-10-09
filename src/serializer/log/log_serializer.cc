@@ -624,12 +624,12 @@ void log_serializer_t::remap_block_to_new_offset(off64_t current_offset, off64_t
 
         while (range.first != range.second) {
             have_to_update_gc = true;
-#ifndef NDEBUG
-            std::map<ls_block_token_pointee_t*, off64_t>::const_iterator token_offsets_iter = token_offsets.find(range.first->second);
-            rassert(token_offsets_iter != token_offsets.end());
-            rassert(token_offsets_iter->second == current_offset);
-#endif
-            token_offsets[range.first->second] = new_offset;
+
+            std::map<ls_block_token_pointee_t*, off64_t>::iterator token_offsets_iter = token_offsets.find(range.first->second);
+            guarantee(token_offsets_iter != token_offsets.end());
+            guarantee(token_offsets_iter->second == current_offset);
+
+            token_offsets_iter->second = new_offset;
             offset_tokens.insert(std::pair<off64_t, ls_block_token_pointee_t *>(new_offset, range.first->second));
 
             ot_iter prev = range.first;
