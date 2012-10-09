@@ -71,15 +71,18 @@ module 'Sidebar', ->
             @data = ''
 
         render: =>
+            servers_active = 0
+            for machine_id in directory.models
+                if directory.get(machine.get('id'))? # Clean ghost
+                    servers_active++
+
             data =
-                servers_active: directory.length
+                servers_active: servers_active
                 servers_total: machines.length
 
             data_in_json = JSON.stringify data
             if @data isnt data_in_json
-                @.$el.html @template
-                    servers_active: directory.length
-                    servers_total: machines.length
+                @.$el.html @template data
                 @data = data_in_json
             return @
 
@@ -113,9 +116,13 @@ module 'Sidebar', ->
                     datacenters_active: dc_visible.length
                     datacenters_total: datacenters.models.length
             else
+                servers_active = 0
+                for machine_id in directory.models
+                    if directory.get(machine.get('id'))? # Clean ghost
+                        servers_active++
                 conn =
                     datacenters_exist: false
-                    servers_active: directory.length
+                    servers_active: servers_active
                     servers_total: machines.length
 
             return conn
