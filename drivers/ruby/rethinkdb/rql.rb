@@ -229,8 +229,6 @@ module RethinkDB
       JSON_Expression.new [:call, [:all], [S.r(pred), *(rest.map{|x| S.r x})]];
     end
 
-    # TODO: make union work for arrays too
-    #
     # Take the union of 0 or more sequences <b>+seqs+</b>.  Note that
     # unlike normal set union, duplicate values are preserved.  May
     # also be called as if it were a instance method of Read_Query,
@@ -240,12 +238,13 @@ module RethinkDB
     #   table.map{r[:id]}.union(table.map{r[:num]})
     def self.union(*seqs)
       #TODO: this looks wrong...
-      if seqs.all? {|x| x.kind_of? JSON_Expression}
-        resclass = JSON_Expression
-      elsif seqs.all? {|x| x.kind_of? Stream_Expression}
+      if seqs.all? {|x| x.kind_of? Stream_Expression}
         resclass = Stream_Expression
+      elsif seqs.all? {|x| x.kind_of? JSON_Expression}
+        resclass = JSON_Expression
       else
-        raise TypeError, "All arguments to UNION must be of the same type."
+        seqs = seqs.map {|x| self.expr x}
+        resclass = JSON_Expression
       end
       resclass.new [:call, [:union], seqs.map{|x| S.r x}];
     end

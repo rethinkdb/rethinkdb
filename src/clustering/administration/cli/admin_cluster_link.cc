@@ -1171,7 +1171,9 @@ void admin_cluster_link_t::do_admin_list_stats(const admin_command_parser_t::com
             metadata_info_t *info = get_info_from_id(temp);
             if (info->path[0] == "machines") {
                 machine_filters.insert(info->uuid);
-            } else if (info->path[0] == "dummy_namespaces" || info->path[0] == "memcached_namespaces") {
+            } else if (info->path[0] == "dummy_namespaces" ||
+                       info->path[0] == "memcached_namespaces" ||
+                       info->path[0] == "rdb_namespaces") {
                 namespace_filters.insert(info->uuid);
             } else {
                 throw admin_parse_exc_t("object filter is not a machine or table: " + temp);
@@ -1882,6 +1884,7 @@ void admin_cluster_link_t::do_admin_create_table(const admin_command_parser_t::c
     datacenter_id_t primary = nil_uuid();
     namespace_id_t new_id;
     std::string protocol;
+    std::string primary_key;
     uint64_t port;
 
     // If primary is specified, use it and verify its validity
@@ -1908,8 +1911,22 @@ void admin_cluster_link_t::do_admin_create_table(const admin_command_parser_t::c
         protocol = "rdb";
     }
 
-    if (protocol == "memcached" || data.params.find("port") != data.params.end()) {
-        // Make sure port is valid
+    // Get the primary key
+    if (data.params.find("primary-key") != data.params.end()) {
+        if (protocol != "rdb") {
+            throw admin_parse_exc_t("primary-key is only valid for the rdb protocol");
+        }
+        primary_key = guarantee_param_0(data.params, "primary-key");
+    } else if (protocol == "rdb") {
+        // TODO: get this value from somewhere, rather than hard-code it
+        primary_key = "id";
+    }
+
+    // Make sure port is valid if required, or not specified if not needed
+    if (protocol == "memcached") {
+        if (data.params.find("port") == data.params.end()) {
+            throw admin_parse_exc_t("port is required for the memcached protocol");
+        }
         std::string port_str = guarantee_param_0(data.params, "port");
         if (!strtou64_strict(port_str, 10, &port)) {
             throw admin_parse_exc_t("port is not a number");
@@ -1918,6 +1935,9 @@ void admin_cluster_link_t::do_admin_create_table(const admin_command_parser_t::c
             throw admin_parse_exc_t("port is too large: " + port_str);
         }
     } else {
+        if (data.params.find("port") != data.params.end()) {
+            throw admin_parse_exc_t("port is only vald for the memcached protocol");
+        }
         port = 0;
     }
 
@@ -1927,14 +1947,14 @@ void admin_cluster_link_t::do_admin_create_table(const admin_command_parser_t::c
 
     if (protocol == "rdb") {
         cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t change(&cluster_metadata.rdb_namespaces);
-        new_id = do_admin_create_table_internal(name, port, primary, database, change.get());
+        new_id = do_admin_create_table_internal(name, port, primary, primary_key, database, change.get());
     } else if (protocol == "memcached") {
         cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::change_t change(&cluster_metadata.memcached_namespaces);
-        new_id = do_admin_create_table_internal(name, port, primary, database, change.get());
+        new_id = do_admin_create_table_internal(name, port, primary, primary_key, database, change.get());
 #ifndef NO_DUMMY
     } else if (protocol == "dummy") {
         cow_ptr_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t> >::change_t change(&cluster_metadata.dummy_namespaces);
-        new_id = do_admin_create_table_internal(name, port, primary, database, change.get());
+        new_id = do_admin_create_table_internal(name, port, primary, primary_key, database, change.get());
 #endif
     } else {
         throw admin_parse_exc_t("unrecognized protocol: " + protocol);
@@ -1952,6 +1972,7 @@ template <class protocol_t>
 namespace_id_t admin_cluster_link_t::do_admin_create_table_internal(const std::string& name,
                                                                     int port,
                                                                     const datacenter_id_t& primary,
+                                                                    const std::string& primary_key,
                                                                     const database_id_t& database,
                                                                     namespaces_semilattice_metadata_t<protocol_t> *ns) {
     namespace_id_t id = generate_uuid();
@@ -1959,6 +1980,9 @@ namespace_id_t admin_cluster_link_t::do_admin_create_table_internal(const std::s
 
     obj.name.get_mutable() = name;
     obj.name.upgrade_version(change_request_id);
+
+    obj.primary_key.get_mutable() = primary_key;
+    obj.primary_key.upgrade_version(change_request_id);
 
     obj.primary_datacenter.get_mutable() = primary;
     obj.primary_datacenter.upgrade_version(change_request_id);
@@ -2380,7 +2404,11 @@ void admin_cluster_link_t::do_admin_set_acks_internal(const datacenter_id_t& dat
         throw admin_cluster_exc_t("cannot assign more ack expectations than replicas in a datacenter");
     }
 
-    ns->ack_expectations.get_mutable()[datacenter] = num_acks;
+    if (num_acks == 0) {
+        ns->ack_expectations.get_mutable().erase(datacenter);
+    } else {
+        ns->ack_expectations.get_mutable()[datacenter] = num_acks;
+    }
     ns->ack_expectations.upgrade_version(change_request_id);
 }
 
@@ -2465,13 +2493,14 @@ void admin_cluster_link_t::do_admin_set_replicas_internal(const namespace_id_t& 
     }
 
     std::map<datacenter_id_t, int>::iterator ack_iter = ns.ack_expectations.get_mutable().find(dc_id);
-    if (ack_iter == ns.ack_expectations.get_mutable().end()) {
-        ns.ack_expectations.get_mutable()[dc_id] = 0;
-    } else if (ack_iter->second > num_replicas) {
+    if (ack_iter != ns.ack_expectations.get_mutable().end() && ack_iter->second > num_replicas) {
         throw admin_cluster_exc_t("the number of replicas for this datacenter cannot be less than the number of acks, run 'help set acks' for more information");
     }
 
     ns.replica_affinities.get_mutable()[dc_id] = num_replicas - (is_primary ? 1 : 0);
+    if (ns.replica_affinities.get_mutable()[dc_id] == 0) {
+        ns.replica_affinities.get_mutable().erase(dc_id);
+    }
     ns.replica_affinities.upgrade_version(change_request_id);
 }
 
@@ -2699,6 +2728,13 @@ void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
         }
     } else {
         printf ("in database <conflict>\n");
+    }
+
+    // Print primary key
+    if (!ns.primary_key.in_conflict()) {
+        printf("with primary key '%s'\n", ns.primary_key.get().c_str());
+    } else {
+        printf ("with primary_key <conflict>\n");
     }
 
     // TODO: fix this once multiple protocols are supported again
@@ -3312,11 +3348,13 @@ void admin_cluster_link_t::resolve_namespace_value(namespace_semilattice_metadat
         resolve_value(&ns->ack_expectations);
     } else if (field == "shards") {
         resolve_value(&ns->shards);
+    } else if (field == "primary_key") {
+        resolve_value(&ns->primary_key);
     } else if (field == "port") {
         resolve_value(&ns->port);
-    } else if (field == "master_pinnings") {
+    } else if (field == "primary_pinnings") {
         resolve_value(&ns->primary_pinnings);
-    } else if (field == "replica_pinnings") {
+    } else if (field == "secondary_pinnings") {
         resolve_value(&ns->secondary_pinnings);
     } else {
         throw admin_cluster_exc_t("unknown table field: " + field);

@@ -184,7 +184,7 @@ block_id_t translator_serializer_t::untranslate_block_id_to_id(block_id_t inner_
     return (inner_id - cfgid.subsequent_ser_id() - mod_id) / mod_count;
 }
 
-block_id_t translator_serializer_t::translate_block_id(block_id_t id) {
+block_id_t translator_serializer_t::translate_block_id(block_id_t id) const {
     rassert(id != NULL_BLOCK_ID);
     return translate_block_id(id, mod_count, mod_id, cfgid);
 }
@@ -244,7 +244,7 @@ intrusive_ptr_t<standard_block_token_t> translator_serializer_t::index_read(bloc
     return inner->index_read(translate_block_id(block_id));
 }
 
-block_sequence_id_t translator_serializer_t::get_block_sequence_id(block_id_t block_id, const void* buf) {
+block_sequence_id_t translator_serializer_t::get_block_sequence_id(block_id_t block_id, const void* buf) const {
     return inner->get_block_sequence_id(translate_block_id(block_id), buf);
 }
 

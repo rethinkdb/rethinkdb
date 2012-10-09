@@ -45,8 +45,8 @@ TEST(DiskFormatTest, LbaShardMetablockT) {
 
 TEST(DiskFormatTest, LbaMetablockMixinT) {
     // This test will clearly fail if it's not 16.
-    EXPECT_EQ(16, LBA_SHARD_FACTOR);
-    EXPECT_EQ(512, sizeof(lba_metablock_mixin_t));
+    EXPECT_EQ(4, LBA_SHARD_FACTOR);
+    EXPECT_EQ(32 * 4, sizeof(lba_metablock_mixin_t));
 }
 
 TEST(DiskFormatTest, LbaEntryT) {
@@ -121,8 +121,8 @@ TEST(DiskFormatTest, LogSerializerMetablockT) {
     n += sizeof(block_sequence_id_t);
     EXPECT_EQ(n, sizeof(log_serializer_metablock_t));
 
-    EXPECT_EQ(1552, 8 + 512 + 1024 + 8);
-    EXPECT_EQ(1552, sizeof(log_serializer_metablock_t));
+    EXPECT_EQ(1168, 8 + 128 + 1024 + 8);
+    EXPECT_EQ(1168, sizeof(log_serializer_metablock_t));
 }
 
 TEST(DiskFormatTest, LogSerializerStaticConfigT) {

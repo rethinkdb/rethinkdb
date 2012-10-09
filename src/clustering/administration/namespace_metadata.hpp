@@ -112,7 +112,6 @@ namespace_semilattice_metadata_t<protocol_t> new_namespace(
     ns.port               = vc.build(port);
 
     std::map<uuid_t, int> ack_expectations;
-    ack_expectations.insert(std::make_pair(datacenter, 1));
     ns.ack_expectations = vc.build(ack_expectations);
 
     nonoverlapping_regions_t<protocol_t> shards;

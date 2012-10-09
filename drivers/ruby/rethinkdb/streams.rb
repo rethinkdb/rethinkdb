@@ -70,6 +70,13 @@ module RethinkDB
       S.with_var{|vname,v| Write_Query.new [:update, self, [vname, S.r(b.call(v))]]}
     end
 
+    # Like update, but doesn't guarantee atomicity.
+    def update_nonatomic(*args, &b)
+      res = update(*args, &b);
+      res.body[0] = :update_nonatomic
+      return res
+    end
+
     # Replace all of the selected rows.  Unlike <b>+update+</b>, must return the
     # new row rather than an object containing attributes to be updated (may be
     # combined with RQL::mapmerge to mimic <b>+update+</b>'s behavior).
@@ -81,6 +88,13 @@ module RethinkDB
       raise_if_outdated
       b = S.arg_or_block(*args, &b)
       S.with_var{|vname,v| Write_Query.new [:mutate, self, [vname, S.r(b.call(v))]]}
+    end
+
+    # Like mutate, but doesn't guarantee atomicity.
+    def mutate_nonatomic(*args, &b)
+      res = mutate(*args, &b)
+      res.body[0] = :mutate_nonatomic
+      return res
     end
   end
 end

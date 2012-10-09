@@ -84,7 +84,7 @@ exports.aeq = function(eq) {
     };
 }
 
-exports.objeq = function(eq) {
+exports.objeq = function(var_args) {
     function objEqual(one, two) {
         for (var key in one) {
             if (one.hasOwnProperty(key)) {
@@ -104,9 +104,16 @@ exports.objeq = function(eq) {
     }
 
     wait();
+    var i = 0;
     return function(val) {
-        objEqual(eq, val);
-        done();
+        if (val === undefined) {
+            done();
+            return false;
+        } else {
+            objEqual(arguments[i], val);
+            i++;
+            return true;
+        }
     };
 }
 
