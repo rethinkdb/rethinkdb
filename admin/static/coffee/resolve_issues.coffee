@@ -359,8 +359,10 @@ module 'ResolveIssuesView', ->
             # renderevsky
             if @model.get('object_id') is universe_datacenter.get('id')
                 datacenter_name = universe_datacenter.get('name')
-            else
+            else if datacenters.get(@model.get('object_id'))?
                 datacenter_name = datacenters.get(@model.get('object_id')).get('name')
+            else
+                datacenter_name = "Not found datacenter"
             json =
                 datetime: @model.get('time')
                 critical: @model.get('critical')

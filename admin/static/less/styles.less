@@ -390,7 +390,7 @@ body:before {
 
             .popup_container{
                 display: none;
-                width: 400px;
+                width: 430px;
                 position: absolute;
                 top: 0px;
                 left: 0px;
@@ -402,7 +402,14 @@ body:before {
                     max-height: 600px;
                     overflow: auto;
                 }
-
+                .close{
+                    position: absolute;
+                    top: 10px;
+                    right: 10px;
+                    color: #444;
+                    font-size: 18px;
+                    text-decoration: none;
+                }
                 .arrow_left{
                     position: absolute;
                     z-index: 201;
@@ -429,29 +436,28 @@ body:before {
                     position: absolute;
                     z-index: 201;
                     top: 60px;
-                    left: -11px;
+                    left: 471px;
                     width: 0; 
                     height: 0; 
                     border-top: 10px solid transparent;
                     border-bottom: 10px solid transparent; 
-                    border-right:10px solid #bbb; 
+                    border-left:10px solid #bbb; 
                 }
                 .arrow_right_overlay{
                     position: absolute;
                     z-index: 202;
                     top: 60px;
-                    left: -10px;
+                    left: 470px;
                     width: 0; 
                     height: 0; 
                     border-top: 10px solid transparent;
                     border-bottom: 10px solid transparent; 
-                    border-right:10px solid #fff; 
+                    border-left:10px solid #fff; 
                 }
 
                 h4{
                     font-family: @sans;
                     font-size: 16px;
-                    width: 360px;
                     margin: 15px 0px 10px 0px;
                     padding: 0px 20px 10px 20px;
                     border-bottom: 1px solid #999;
@@ -475,6 +481,10 @@ body:before {
                     margin: 0px;
                     padding: 0px 0px 5px 10px;
                     border-left: 1px solid #ccc;
+                }
+                .resolve_issues_link{
+                    margin-left: 300px;
+                    font-weight: bold;
                 }
             }
         }

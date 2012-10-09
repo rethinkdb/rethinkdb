@@ -34,6 +34,7 @@
 </script>
 
 <script id="cluster_status-availability-popup-template" type="text/x-handlebars-template">
+    <a class="close" href="#">&times;</a>
     <div class="arrow_left"></div>
     <div class="arrow_left_overlay"></div>
     <div class="inner_content">
@@ -77,13 +78,14 @@
         {{#if has_namespaces_down}}
         <p class="details"><span class="bad">{{num_replicas_down}}/{{num_replicas}}</span> <a href="#" class="show_details">{{pluralize_noun "replica" num_replicas}}</a> not up to date</p>
         {{else}}
-        <p class="details"><span class="good">{{num_replicas}}/{{num_replicas}}</span> {{pluralize_noun "replica" num_masters}} {{pluralize_verb_to_be num_replicas}} online</p>
+        <p class="details"><span class="bad">{{num_replicas}}/{{num_replicas}}</span> {{pluralize_noun "replica" num_masters}} {{pluralize_verb_to_be num_replicas}} online</p>
         {{/if}}
     {{/if}}
 </script>
 
 
 <script id="cluster_status-redundancy-popup-template" type="text/x-handlebars-template">
+    <a class="close" href="#">&times;</a>
     <div class="arrow_left"></div>
     <div class="arrow_left_overlay"></div>
 
@@ -92,7 +94,7 @@
     <div class="inner_content">
         <ul class="ul_first_level">
             {{#each namespaces_with_unsatisfiable_goals}}
-            <li class="li_first_level">Table <a href="#tables/{{namespace_id}}">{{namespace_name}}</a>:
+            <li class="li_first_level">Table <a href="#tables/{{namespace_id}}">{{namespace_name}}</a>
                 <ul class="ul_second_level">
                     {{#each datacenters_with_issues}}
                     <li class="li_second_level">
@@ -170,6 +172,7 @@
 
 
 <script id="cluster_status-reachability-popup-template" type="text/x-handlebars-template">
+    <a class="close" href="#">&times;</a>
     <div class="arrow_right"></div>
     <div class="arrow_right_overlay"></div>
     <div class="inner_content">
@@ -177,7 +180,7 @@
         {{#if has_machines_down}}
         <ul class="ul_first_level">
             {{#each machines_down}}
-                <li class="li_first_level">Server <a href="#servers/{{machine_id}}">{{machine_name}}</a>
+            <li class="li_first_level">Server <a href="#servers/{{machine_id}}">{{machine_name}}</a></li>
             {{/each}}
         </ul>
         {{else}}
@@ -190,8 +193,12 @@
 <script id="cluster_status-consistency_status-template" type="text/x-handlebars-template">
     <h3>Consistency</h3>
     {{#if has_conflicts}}
-    <p class="message"><span class="bad">{{num_conflicts}}</span> <a href="#resolve_issues" class="show_details">{{pluralize_noun "conflict" num_conflicts}}</a> detected</p>
-    <p class="details"><span class="bad">{{num_namespaces_conflicting}}/{{num_namespaces}}</span> <a href="#resolve_issues" class="show_details">{{pluralize_noun "table" num_namespaces_conflicting}}</a> {{pluralize_verb_to_have num_namespaces_conflicting}} conflicts.</p>
+    <p class="message"><span class="bad">{{num_conflicts}}</span> <a href="#" class="show_details">{{pluralize_noun "issue" num_conflicts}}</a> detected</p>
+    {{#if has_multiple_types}}
+    <p class="details"><span class="bad">{{num_types_conflicts}}</span> <a href="#" class="show_details">{{pluralize_noun "conflict type" num_types_conflicts}}</a> </p>
+    {{else}}
+    <p class="details"><span class="bad">{{num_conflicts}}</span> {{type}} {{pluralize_verb_to_have num_conflicts}} conflicts</p>
+    {{/if}}
     {{else}}
     <p class="message"><span class="good">0</span> issue detected</p>
     <p class="details"><span class="good">{{num_namespaces}}/{{num_namespaces}}</span> {{pluralize_noun "table" num_namespaces}} reachable</p>
@@ -199,3 +206,22 @@
 </script>
 
 
+
+<script id="cluster_status-consistency-popup-template" type="text/x-handlebars-template">
+    <a class="close" href="#">&times;</a>
+    <div class="arrow_right"></div>
+    <div class="arrow_right_overlay"></div>
+    <div class="inner_content">
+        <h4>List of conflicts</h4>
+        {{#if has_conflicts}}
+        <ul class="ul_first_level">
+            {{#each conflicts}}
+            <li class="li_first_level">{{capitalize type}} <a href="#{{type}}s/{{id}}">{{name}}</a> has a conflict for the field {{field}}</li>
+            {{/each}}
+        </ul>
+        {{else}}
+        No conflicts detected.
+        {{/if}}
+        <a href="#resolve_issues" class="resolve_issues_link">Resolve issues</a>
+    </div>
+</script>

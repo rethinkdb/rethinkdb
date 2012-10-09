@@ -53,6 +53,7 @@ module 'DashboardView', ->
 
         events:
             'mousedown .show_details': 'show_details'
+            'mousedown .close': 'hide_details'
 
         initialize: =>
             @data = ''
@@ -161,8 +162,16 @@ module 'DashboardView', ->
 
             return @
 
+        clean_dom_listeners: =>
+            if @link_clicked?
+                @link_clicked.off 'click', @stop_propagation
+            @.$('.popup_container').off 'click', @stop_propagation
+            $(window).off 'click', @hide_details
+
         show_details: (event) =>
             event.preventDefault()
+            @clean_dom_listeners()
+
             @.$('.popup_container').css 'display', 'block'
             margin_top = event.pageY-60-13
             margin_left= event.pageX+12
@@ -178,19 +187,12 @@ module 'DashboardView', ->
 
         hide_details: (event) =>
             @.$('.popup_container').css 'display', 'none'
-            if @link_clicked?
-                @link_clicked.off 'click', @stop_propagation
-            @.$('.popup_container').off 'click', @stop_propagation
-            $(window).off 'click', @hide_details
-
+            @clean_dom_listeners()
 
         destroy: =>
             directory.off 'all', @render_status
             namespaces.off 'all', @render_status
-            if @link_clicked?
-                @link_clicked.off 'click', @stop_propagation
-            @.$('.popup_container').off 'click', @stop_propagation
-            $(window).off 'click', @hide_details
+            @clean_dom_listeners() # Optional since Jquery should be cleaning listeners itself
 
     class @ClusterStatusRedundancy extends Backbone.View
         className: 'cluster-status-redundancy'
@@ -201,6 +203,7 @@ module 'DashboardView', ->
 
         events:
             'mousedown .show_details': 'show_details'
+            'mousedown .close': 'hide_details'
 
         initialize: =>
             @data = ''
@@ -341,11 +344,15 @@ module 'DashboardView', ->
 
             return @
 
+        clean_dom_listeners: =>
+            if @link_clicked?
+                @link_clicked.off 'click', @stop_propagation
+            @.$('.popup_container').off 'click', @stop_propagation
+            $(window).off 'click', @hide_details
+
         show_details: (event) =>
             event.preventDefault()
-            @.$('.popup_container').off 'click', @stop_propagation
-            @link_clicked.off 'click', @stop_propagation
-            $(window).off 'click', @hide_details
+            @clean_dom_listeners()
 
             @.$('.popup_container').css 'display', 'block'
             margin_top = event.pageY-60-13
@@ -364,20 +371,12 @@ module 'DashboardView', ->
 
         hide_details: (event) =>
             @.$('.popup_container').css 'display', 'none'
-            if @link_clicked?
-                @link_clicked.off 'click', @stop_propagation
-            @.$('.popup_container').off 'click', @stop_propagation
-            $(window).off 'click', @hide_details
+            @clean_dom_listeners()
 
         destroy: =>
             directory.off 'all', @render_status
             namespaces.off 'all', @render_status
-            if @link_clicked?
-                @link_clicked.off 'click', @stop_propagation
-            @.$('.popup_container').off 'click', @stop_propagation
-            $(window).off 'click', @hide_details
-
-
+            @clean_dom_listeners()
 
     class @ClusterStatusReachability extends Backbone.View
         className: 'cluster-status-redundancy'
@@ -388,6 +387,7 @@ module 'DashboardView', ->
 
         events:
             'mousedown .show_details': 'show_details'
+            'mousedown .close': 'hide_details'
 
         initialize: =>
             @data = ''
@@ -402,7 +402,7 @@ module 'DashboardView', ->
                 machines_down[machine.get('id')] = true
 
             for machine in directory.models
-                if directory.get(machine.get('id'))?
+                if directory.get(machine.get('id'))? # clean ghost
                     machines_down[machine.get('id')] = false
 
             machines_down_array = []
@@ -445,11 +445,19 @@ module 'DashboardView', ->
 
             return @
 
+        clean_dom_listeners: =>
+            if @link_clicked?
+                @link_clicked.off 'click', @stop_propagation
+            @.$('.popup_container').off 'click', @stop_propagation
+            $(window).off 'click', @hide_details
+
         show_details: (event) =>
             event.preventDefault()
+            @clean_dom_listeners()
+
             @.$('.popup_container').css 'display', 'block'
             margin_top = event.pageY-60-13
-            margin_left= event.pageX+12
+            margin_left= event.pageX-12-470
             @.$('.popup_container').css 'margin', margin_top+'px 0px 0px '+margin_left+'px'
 
 
@@ -463,24 +471,23 @@ module 'DashboardView', ->
 
         hide_details: (event) =>
             @.$('.popup_container').css 'display', 'none'
-            if @link_clicked?
-                @link_clicked.off 'click', @stop_propagation
-            @.$('.popup_container').off 'click', @stop_propagation
-            $(window).off 'click', @hide_details
+            @clean_dom_listeners()
 
         destroy: =>
             directory.off 'all', @render_status
             machines.off 'all', @render_status
-            if @link_clicked?
-                @link_clicked.off 'click', @stop_propagation
-            @.$('.popup_container').off 'click', @stop_propagation
-            $(window).off 'click', @hide_details
+            @clean_dom_listeners()
 
     class @ClusterStatusConsistency extends Backbone.View
         className: 'cluster-status-consistency'
 
         template: Handlebars.compile $('#cluster_status-container-template').html()
         status_template: Handlebars.compile $('#cluster_status-consistency_status-template').html()
+        popup_template: Handlebars.compile $('#cluster_status-consistency-popup-template').html()
+
+        events:
+            'mousedown .show_details': 'show_details'
+            'mousedown .close': 'hide_details'
 
         initialize: =>
             @data = ''
@@ -490,12 +497,58 @@ module 'DashboardView', ->
             conflicts = []
             for issue in issues.models
                 if issue.get('type') is 'VCLOCK_CONFLICT'
-                    conflicts.push issue
+                    type = issue.get('object_type')
+                    switch type
+                        when 'namespace'
+                            type = 'table'
+                            if namespaces.get(issue.get('object_id'))?
+                                name = namespaces.get(issue.get('object_id')).get('name')
+                            else
+                                name = 'Not found table'
+                        when 'database'
+                            type = 'database'
+                            if databases.get(issue.get('object_id'))
+                                name = databases.get(issue.get('object_id')).get('name')
+                            else
+                                name = 'Not found database'
+                        when 'datacenter'
+                            type = 'datacenter'
+                            if issue.get('object_id') is universe_datacenter.get('id')
+                                name = universe_datacenter.get('name')
+                            else if datacenters.get(issue.get('object_id'))?
+                                name = datacenters.get(issue.get('object_id')).get('name')
+                            else
+                                name = 'Not found datacenter'
+                        when 'machine'
+                            type = 'server'
+                            if machines.get(issue.get('object_id'))
+                                name = machines.get(issue.get('object_id')).get('name')
+                            else
+                                name = 'Not found server'
 
-            #TODO need to compute how many tables have conflicts
+                    conflicts.push
+                        id: issue.get('object_id')
+                        type: type
+                        name: name
+                        field: issue.get('field')
 
+
+            types = {}
+            num_types_conflicts = 0
+            for conflict in conflicts
+                if not types[conflict.type]?
+                    types[conflict.type] = 1
+                    num_types_conflicts++
+                else
+                    types[conflict.type]++
+                
             has_conflicts: conflicts.length > 0
             conflicts: conflicts
+            has_multiple_types: num_types_conflicts > 1
+            num_types_conflicts:num_types_conflicts
+            types: type if num_types_conflicts is 1
+            type: type if type?
+            num_conflicts: conflicts.length
             num_namespaces_conflicting: conflicts.length
             num_namespaces: namespaces.length
 
@@ -516,10 +569,40 @@ module 'DashboardView', ->
                     @.$('.status').addClass 'problems-detected'
                     @.$('.status').removeClass 'no-problems-detected'
 
+                @.$('.popup_container').html @popup_template data
             return @
 
+        clean_dom_listeners: =>
+            if @link_clicked?
+                @link_clicked.off 'click', @stop_propagation
+            @.$('.popup_container').off 'click', @stop_propagation
+            $(window).off 'click', @hide_details
+
+        show_details: (event) =>
+            event.preventDefault()
+            @clean_dom_listeners()
+            @.$('.popup_container').css 'display', 'block'
+            margin_top = event.pageY-60-13
+            margin_left= event.pageX-12-470
+            @.$('.popup_container').css 'margin', margin_top+'px 0px 0px '+margin_left+'px'
+
+
+            @.$('.popup_container').on 'click', @stop_propagation
+            @link_clicked = @.$(event.target)
+            @link_clicked.on 'click', @stop_propagation
+            $(window).on 'click', @hide_details
+
+        stop_propagation: (event) ->
+            event.stopPropagation()
+
+        hide_details: (event) =>
+            @.$('.popup_container').css 'display', 'none'
+            @clean_dom_listeners()
+
         destroy: =>
-            issues.off 'all', @render_status
+            directory.off 'all', @render_status
+            machines.off 'all', @render_status
+            @clean_dom_listeners()
 
 
     class @Logs extends Backbone.View
