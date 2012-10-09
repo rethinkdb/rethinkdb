@@ -201,7 +201,7 @@ void backfillee(
         /* The backfiller will send individual chunks of the backfill to
         `chunk_mailbox`. */
         mailbox_t<void(backfill_chunk_t, fifo_enforcer_write_token_t)> chunk_mailbox(
-            mailbox_manager, boost::bind(&push_chunk_on_queue<protocol_t>, &chunk_queue, _1, _2));
+            mailbox_manager, boost::bind(&push_chunk_on_queue<protocol_t>, &chunk_queue, _1, _2), mailbox_callback_mode_inline);
 
         /* The backfiller will register for allocations on the allocation
          * registration box. */
@@ -239,7 +239,14 @@ void backfillee(
         }
 
         /* Wait to get an allocation mailbox */
-        wait_interruptible(alloc_mailbox_promise.get_ready_signal(), interruptor);
+        {
+            wait_any_t waiter(alloc_mailbox_promise.get_ready_signal(), backfiller.get_failed_signal());
+            wait_interruptible(&waiter, interruptor);
+
+            /* Throw an exception if backfiller died */
+            backfiller.access();
+            guarantee(alloc_mailbox_promise.get_ready_signal()->is_pulsed());
+        }
 
         mailbox_addr_t<void(int)> allocation_mailbox = alloc_mailbox_promise.get_value();
 

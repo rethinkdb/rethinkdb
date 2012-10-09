@@ -73,7 +73,7 @@ private:
             role(r), blueprint(b) { }
         blueprint_role_t role;
         watchable_variable_t<blueprint_t<protocol_t> > blueprint;
-        cond_t abort;
+        cond_t abort_roles;
     };
 
     /* To save typing */
@@ -88,7 +88,8 @@ private:
             current_role_t *role,
             const typename protocol_t::region_t& region,
             multistore_ptr_t<protocol_t> *svs_subview,
-            signal_t *interruptor) THROWS_NOTHING;
+            signal_t *interruptor,
+            cond_t *abort_roles) THROWS_NOTHING;
     void run_role(
             typename protocol_t::region_t region,
             current_role_t *role,

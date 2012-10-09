@@ -109,12 +109,12 @@ void reactor_t<protocol_t>::on_blueprint_changed() THROWS_NOTHING {
         if (it2 == blueprint_roles.end()) {
             /* The shard boundaries have changed, and the shard that the running
             coroutine was for no longer exists; interrupt it */
-            it->second->abort.pulse_if_not_already_pulsed();
+            it->second->abort_roles.pulse_if_not_already_pulsed();
         } else {
             if (it->second->role != it2->second) {
                 /* Our role for the shard has changed; interrupt the running
                 coroutine */
-                it->second->abort.pulse_if_not_already_pulsed();
+                it->second->abort_roles.pulse_if_not_already_pulsed();
             } else {
                 /* Notify the running coroutine of the new blueprint */
                 it->second->blueprint.set_value(blueprint);
@@ -158,7 +158,8 @@ void reactor_t<protocol_t>::run_cpu_sharded_role(
         current_role_t *role,
         const typename protocol_t::region_t& region,
         multistore_ptr_t<protocol_t> *svs_subview,
-        signal_t *interruptor) THROWS_NOTHING {
+        signal_t *interruptor,
+        cond_t *abort_roles) THROWS_NOTHING {
     store_view_t<protocol_t> *store_view = svs_subview->get_store(cpu_shard_number);
     typename protocol_t::region_t cpu_sharded_region = region_intersection(region, protocol_t::cpu_sharding_subspace(cpu_shard_number, svs_subview->num_stores()));
 
@@ -176,6 +177,11 @@ void reactor_t<protocol_t>::run_cpu_sharded_role(
         unreachable();
         break;
     }
+
+    // When one role returns, make sure all others are aborted
+    if (!abort_roles->is_pulsed()) {
+        abort_roles->pulse();
+    }
 }
 
 template<class protocol_t>
@@ -190,11 +196,11 @@ void reactor_t<protocol_t>::run_role(
     {
         //All of the be_{role} functions respond identically to blueprint changes
         //and interruptions... so we just unify those signals
-        wait_any_t wait_any(&role->abort, keepalive.get_drain_signal());
+        wait_any_t wait_any(&role->abort_roles, keepalive.get_drain_signal());
 
         // guarantee(CLUSTER_CPU_SHARDING_FACTOR == svs_subview.num_stores());
 
-        pmap(svs_subview.num_stores(), boost::bind(&reactor_t<protocol_t>::run_cpu_sharded_role, this, _1, role, region, &svs_subview, &wait_any));
+        pmap(svs_subview.num_stores(), boost::bind(&reactor_t<protocol_t>::run_cpu_sharded_role, this, _1, role, region, &svs_subview, &wait_any, &role->abort_roles));
     }
 
     //As promised, clean up the state from try_spawn_roles

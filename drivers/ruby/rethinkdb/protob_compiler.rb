@@ -7,6 +7,7 @@ module RethinkDB
     # Right now the only special case is :compare, but in general we might have
     # terms that don't follow the conventions and we need a place to store that.
     def handle_special_cases(message, query_type, query_args)
+      #PP.pp ["special_case", message, query_type, query_args]
       case query_type
       when :compare then
         message.comparison = enum_type(Builtin::Comparison, query_args)
@@ -104,10 +105,22 @@ module RethinkDB
       raise e.class, new_msg
     end
 
+    def handle_special_query_cases(sexp)
+      if C.nonatomic_variants.include?(sexp[0])
+        sexp[0] = sexp[0].to_s.split('_')[0].to_sym
+        res = query(sexp)
+        res.write_query.atomic = false
+        return res
+      end
+      return nil
+    end
+
     # Construct a protobuf query from an RQL query by inferring the query type.
     def query(sexp)
       raise TypeError, "Cannot build query from #{sexp.inspect}" if sexp.class != Array
-      if enum_type(WriteQuery::WriteQueryType, sexp[0])
+      if (m = handle_special_query_cases(sexp))
+      then q = m
+      elsif enum_type(WriteQuery::WriteQueryType, sexp[0])
       then q = comp(Query, [:write, *sexp])
       elsif enum_type(MetaQuery::MetaQueryType, sexp[0])
       then q = comp(Query, [:meta, *sexp])

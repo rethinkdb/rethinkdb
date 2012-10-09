@@ -119,11 +119,25 @@ module RethinkDB
         Write_Query.new [:pointupdate, *(@body[1..-1] + [[vname, S.r(b.call(v))]])]}
     end
 
+    # Like update, but doesn't guarantee atomicity.
+    def update_nonatomic(*args, &b)
+      res = update(*args, &b);
+      res.body[0] = :pointupdate_nonatomic
+      return res
+    end
+
     # Analagous to Multi_Row_Selection#mutate
     def mutate(*args, &b)
       b = S.arg_or_block(*args, &b)
       S.with_var {|vname,v|
         Write_Query.new [:pointmutate, *(@body[1..-1] + [[vname, S.r(b.call(v))]])]}
+    end
+
+    # Like mutate, but doesn't guarantee atomicity.
+    def mutate_nonatomic(*args, &b)
+      res = mutate(*args, &b);
+      res.body[0] = :pointmutate_nonatomic
+      return res
     end
 
     # Analagous to Multi_Row_Selection#delete

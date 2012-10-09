@@ -198,14 +198,15 @@
 // The ratio at which we should start GCing.  (HEY: What's the extra
 // 0.000001 in MAX_GC_HIGH_RATIO for?  Is it because we told the user
 // that 0.99 was too high?)
-#define DEFAULT_GC_HIGH_RATIO                     0.65
+#define DEFAULT_GC_HIGH_RATIO                     0.25
 // TODO: MAX_GC_HIGH_RATIO is unused.  Use it!
+// TODO: Probably this value is way too high.
 //  - Keeping this around because if it becomes configurable again, we
 //    should have these limits.  Before then at least rassert it.
 #define MAX_GC_HIGH_RATIO                         0.990001
 
 // The ratio at which we don't want to keep GC'ing.
-#define DEFAULT_GC_LOW_RATIO                      0.5
+#define DEFAULT_GC_LOW_RATIO                      0.15
 // TODO: MIN_GC_LOW_RATIO is unused.  Use it!
 //  - Keeping this around because if it becomes configurable again, we
 //    should have these limits.  Before then at least rassert it.
@@ -219,11 +220,14 @@
 
 // If the size of the LBA on a given disk exceeds LBA_MIN_SIZE_FOR_GC, then the fraction of the
 // entries that are live and not garbage should be at least LBA_MIN_UNGARBAGE_FRACTION.
-#define LBA_MIN_SIZE_FOR_GC                       (MEGABYTE * 20)
-#define LBA_MIN_UNGARBAGE_FRACTION                0.15
+// TODO: Maybe change this back to 20 megabytes?
+#define LBA_MIN_SIZE_FOR_GC                       (MEGABYTE * 1)
+// TODO: This used to be 0.15 but we figured why not do the opposite of our well-tested parameter?
+#define LBA_MIN_UNGARBAGE_FRACTION                0.85
 
 // How many LBA structures to have for each file
-#define LBA_SHARD_FACTOR                          16
+// TODO: LBA_SHARD_FACTOR used to be 16.
+#define LBA_SHARD_FACTOR                          4
 
 // How many bytes of buffering space we can use per disk when reading the LBA. If it's set
 // too high, then RethinkDB will eat a lot of memory at startup. This is bad because tcmalloc
