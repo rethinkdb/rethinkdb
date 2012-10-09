@@ -63,7 +63,7 @@ void log_serializer_t::create(io_backender_t *backender, private_dynamic_config_
     extent_manager_t::prepare_initial_metablock(&metablock.extent_manager_part);
 
     data_block_manager_t::prepare_initial_metablock(&metablock.data_block_manager_part);
-    lba_index_t::prepare_initial_metablock(&metablock.lba_index_part);
+    lba_list_t::prepare_initial_metablock(&metablock.lba_index_part);
 
     metablock.block_sequence_id = NULL_BLOCK_SEQUENCE_ID;
 
@@ -73,22 +73,23 @@ void log_serializer_t::create(io_backender_t *backender, private_dynamic_config_
 /* The process of starting up the serializer is handled by the ls_start_*_fsm_t. This is not
 necessary, because there is only ever one startup process for each serializer; the serializer could
 handle its own startup process. It is done this way to make it clear which parts of the serializer
-are involved in startup and which parts are not. TODO: Coroutines. */
+are involved in startup and which parts are not. */
 
 struct ls_start_existing_fsm_t :
     public static_header_read_callback_t,
     public mb_manager_t::metablock_read_callback_t,
-    public lba_index_t::ready_callback_t
+    public lba_list_t::ready_callback_t
 {
     explicit ls_start_existing_fsm_t(log_serializer_t *serializer)
-        : ser(serializer), state(state_start) {
+        : ser(serializer), start_existing_state(state_start) {
     }
 
     ~ls_start_existing_fsm_t() {
     }
 
     bool run(cond_t *to_signal) {
-        rassert(state == state_start);
+        // STATE A
+        rassert(start_existing_state == state_start);
         rassert(ser->state == log_serializer_t::state_unstarted);
         ser->state = log_serializer_t::state_starting_up;
 
@@ -97,7 +98,8 @@ struct ls_start_existing_fsm_t :
             crash("Database file \"%s\" does not exist.\n", ser->db_path);
         }
 
-        state = state_read_static_header;
+        start_existing_state = state_read_static_header;
+        // STATE A above implies STATE B here
         to_signal_when_done = NULL;
         if (next_starting_up_step()) {
             return true;
@@ -108,48 +110,63 @@ struct ls_start_existing_fsm_t :
     }
 
     bool next_starting_up_step() {
-        if (state == state_read_static_header) {
+        if (start_existing_state == state_read_static_header) {
+            // STATE B
+            // TODO: static_header_read now always returns false.
             if (static_header_read(ser->dbfile,
                     &ser->static_config,
                     sizeof(log_serializer_on_disk_static_config_t),
                     this)) {
-                state = state_find_metablock;
+                crash("static_header_read always returns false");
+                // start_existing_state = state_find_metablock;
             } else {
-                state = state_waiting_for_static_header;
+                start_existing_state = state_waiting_for_static_header;
+                // STATE B above implies STATE C here
                 return false;
             }
         }
 
-        if (state == state_find_metablock) {
+        rassert(start_existing_state != state_waiting_for_static_header);
+
+        if (start_existing_state == state_find_metablock) {
+            // STATE D
             ser->extent_manager = new extent_manager_t(ser->dbfile, &ser->static_config, &ser->dynamic_config, ser->stats.get());
             ser->extent_manager->reserve_extent(0);   /* For static header */
 
             ser->metablock_manager = new mb_manager_t(ser->extent_manager);
-            ser->lba_index = new lba_index_t(ser->extent_manager);
+            ser->lba_index = new lba_list_t(ser->extent_manager);
             ser->data_block_manager = new data_block_manager_t(&ser->dynamic_config, ser->extent_manager, ser, &ser->static_config, ser->stats.get());
 
+            // STATE E
             if (ser->metablock_manager->start_existing(ser->dbfile, &metablock_found, &metablock_buffer, this)) {
-                state = state_start_lba;
+                crash("metablock_manager_t::start_existing always returns false");
+                // start_existing_state = state_start_lba;
             } else {
-                state = state_waiting_for_metablock;
+                // STATE E
+                start_existing_state = state_waiting_for_metablock;
                 return false;
             }
         }
 
-        if (state == state_start_lba) {
+        if (start_existing_state == state_start_lba) {
+            // STATE G
             guarantee(metablock_found, "Could not find any valid metablock.");
 
             ser->latest_block_sequence_id = metablock_buffer.block_sequence_id;
 
+            // STATE H
             if (ser->lba_index->start_existing(ser->dbfile, &metablock_buffer.lba_index_part, this)) {
-                state = state_reconstruct;
+                start_existing_state = state_reconstruct;
+                // STATE J
             } else {
-                state = state_waiting_for_lba;
+                // STATE H
+                start_existing_state = state_waiting_for_lba;
+                // STATE I
                 return false;
             }
         }
 
-        if (state == state_reconstruct) {
+        if (start_existing_state == state_reconstruct) {
             ser->data_block_manager->start_reconstruct();
             for (block_id_t id = 0; id < ser->lba_index->end_block_id(); id++) {
                 flagged_off64_t offset = ser->lba_index->get_block_offset(id);
@@ -162,11 +179,11 @@ struct ls_start_existing_fsm_t :
 
             ser->extent_manager->start_existing(&metablock_buffer.extent_manager_part);
 
-            state = state_finish;
+            start_existing_state = state_finish;
         }
 
-        if (state == state_finish) {
-            state = state_done;
+        if (start_existing_state == state_finish) {
+            start_existing_state = state_done;
             rassert(ser->state == log_serializer_t::state_starting_up);
             ser->state = log_serializer_t::state_ready;
 
@@ -176,24 +193,28 @@ struct ls_start_existing_fsm_t :
             return true;
         }
 
-        unreachable("Invalid state.");
+        unreachable("Invalid state %d.", start_existing_state);
     }
 
     void on_static_header_read() {
-        rassert(state == state_waiting_for_static_header);
-        state = state_find_metablock;
+        rassert(start_existing_state == state_waiting_for_static_header);
+        // STATE C
+        start_existing_state = state_find_metablock;
+        // STATE C above implies STATE D here
         next_starting_up_step();
     }
 
     void on_metablock_read() {
-        rassert(state == state_waiting_for_metablock);
-        state = state_start_lba;
+        rassert(start_existing_state == state_waiting_for_metablock);
+        // state after F, state before G
+        start_existing_state = state_start_lba;
+        // STATE G
         next_starting_up_step();
     }
 
     void on_lba_ready() {
-        rassert(state == state_waiting_for_lba);
-        state = state_reconstruct;
+        rassert(start_existing_state == state_waiting_for_lba);
+        start_existing_state = state_reconstruct;
         next_starting_up_step();
     }
 
@@ -211,21 +232,24 @@ struct ls_start_existing_fsm_t :
         state_reconstruct,
         state_finish,
         state_done
-    } state;
+    } start_existing_state;
 
     bool metablock_found;
     log_serializer_t::metablock_t metablock_buffer;
+
+private:
+    DISABLE_COPYING(ls_start_existing_fsm_t);
 };
 
-log_serializer_t::log_serializer_t(dynamic_config_t dynamic_config_, io_backender_t *io_backender_, private_dynamic_config_t private_config_, perfmon_collection_t *_perfmon_collection)
-    : stats(new log_serializer_stats_t(_perfmon_collection)),
+log_serializer_t::log_serializer_t(dynamic_config_t _dynamic_config, io_backender_t *_io_backender, private_dynamic_config_t _private_config, perfmon_collection_t *_perfmon_collection)
+    : stats(new log_serializer_stats_t(_perfmon_collection)),  // can block in a perfmon_collection_t::add call.
       disk_stats_collection(),
-      disk_stats_membership(_perfmon_collection, &disk_stats_collection, "disk"),
+      disk_stats_membership(_perfmon_collection, &disk_stats_collection, "disk"),  // can block in a perfmon_collection_t::add call.
 #ifndef NDEBUG
       expecting_no_more_tokens(false),
 #endif
-      dynamic_config(dynamic_config_),
-      private_config(private_config_),
+      dynamic_config(_dynamic_config),
+      private_config(_private_config),
       shutdown_callback(NULL),
       state(state_unstarted),
       db_path(private_config.db_filename.c_str()),
@@ -236,7 +260,8 @@ log_serializer_t::log_serializer_t(dynamic_config_t dynamic_config_, io_backende
       data_block_manager(NULL),
       last_write(NULL),
       active_write_count(0),
-      io_backender(io_backender_) {
+      io_backender(_io_backender) {
+    // STATE A
     /* This is because the serializer is not completely converted to coroutines yet. */
     ls_start_existing_fsm_t *s = new ls_start_existing_fsm_t(this);
     cond_t cond;
@@ -428,7 +453,7 @@ void log_serializer_t::index_write_finish(index_write_context_t *context, file_a
     metablock_t mb_buffer;
 
     /* Sync the LBA */
-    struct : public cond_t, public lba_index_t::sync_callback_t {
+    struct : public cond_t, public lba_list_t::sync_callback_t {
         void on_lba_sync() { pulse(); }
     } on_lba_sync;
     const bool offsets_were_written = lba_index->sync(io_account, &on_lba_sync);
@@ -504,7 +529,7 @@ log_serializer_t::block_write(const void *buf, block_id_t block_id, file_account
 
     extent_manager_t::transaction_t em_trx;
     extent_manager->begin_transaction(&em_trx);
-    const off64_t offset = data_block_manager->write(buf, block_id, true, io_account, cb);
+    const off64_t offset = data_block_manager->write(buf, block_id, true, io_account, cb, true, false);
     extent_manager->end_transaction(em_trx);
     extent_manager->commit_transaction(&em_trx);
 

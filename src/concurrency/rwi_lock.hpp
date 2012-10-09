@@ -119,8 +119,6 @@ private:
         rwis_reading_with_intent
     };
 
-    typedef intrusive_list_t<lock_request_t> request_list_t;
-
     bool try_lock(access_t access, bool from_queue);
     bool try_lock_read(bool from_queue);
     bool try_lock_write(bool from_queue);
@@ -131,7 +129,10 @@ private:
 
     rwi_state state;
     int nreaders; // not counting reader with intent
-    request_list_t queue;
+
+    intrusive_list_t<lock_request_t> queue;
+
+    DISABLE_COPYING(rwi_lock_t);
 };
 
 inline void swap(rwi_lock_t::read_acq_t &a1, rwi_lock_t::read_acq_t &a2) {  // NOLINT

@@ -85,7 +85,7 @@ public:
     /* Number of extents that have been released but not handed back out again. */
     int held_extents();
 
-    log_serializer_stats_t *stats;
+    log_serializer_stats_t *const stats;
     const uint64_t extent_size;   /* Same as static_config->extent_size */
 
 private:
@@ -97,7 +97,7 @@ private:
     boost::ptr_vector<extent_zone_t> zones;
     int next_zone;    /* Which zone to give the next extent from */
 
-    direct_file_t *dbfile;
+    direct_file_t *const dbfile;
 
     /* During serializer startup, each component informs the extent manager
     which extents in the file it was using at shutdown. This is the

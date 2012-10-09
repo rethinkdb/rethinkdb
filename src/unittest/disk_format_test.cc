@@ -111,7 +111,7 @@ TEST(DiskFormatTest, LogSerializerMetablockT) {
     n += sizeof(extent_manager_t::metablock_mixin_t);
     EXPECT_EQ(n, offsetof(log_serializer_metablock_t, lba_index_part));
 
-    n += sizeof(lba_index_t::metablock_mixin_t);
+    n += sizeof(lba_list_t::metablock_mixin_t);
     EXPECT_EQ(n, offsetof(log_serializer_metablock_t, data_block_manager_part));
 
     n += sizeof(data_block_manager_t::metablock_mixin_t);

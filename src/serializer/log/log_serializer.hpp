@@ -32,11 +32,9 @@ class log_serializer_t;
  * respect that it deserves.
  */
 
-typedef lba_list_t lba_index_t;
-
 struct log_serializer_metablock_t {
     extent_manager_t::metablock_mixin_t extent_manager_part;
-    lba_index_t::metablock_mixin_t lba_index_part;
+    lba_list_t::metablock_mixin_t lba_index_part;
     data_block_manager_t::metablock_mixin_t data_block_manager_part;
     block_sequence_id_t block_sequence_id;
 };
@@ -58,7 +56,7 @@ class log_serializer_t :
     public home_thread_mixin_debug_t,
 #endif  // SEMANTIC_SERIALIZER_CHECK
     private data_block_manager_t::shutdown_callback_t,
-    private lba_index_t::shutdown_callback_t
+    private lba_list_t::shutdown_callback_t
 {
     friend struct ls_block_writer_t;
     friend struct ls_read_fsm_t;
@@ -143,23 +141,12 @@ public:
     bool coop_lock_and_check();
 
 private:
-    std::map<ls_block_token_pointee_t*, off64_t> token_offsets;
-    std::multimap<off64_t, ls_block_token_pointee_t*> offset_tokens;
-    scoped_ptr_t<log_serializer_stats_t> stats;
-    perfmon_collection_t disk_stats_collection;
-    perfmon_membership_t disk_stats_membership;
-
-#ifndef NDEBUG
-    // Makes sure we get no tokens after we thought that
-    bool expecting_no_more_tokens;
-#endif
     void register_block_token(ls_block_token_pointee_t *token, off64_t offset);
     bool tokens_exist_for_offset(off64_t off);
     void unregister_block_token(ls_block_token_pointee_t *token);
     void remap_block_to_new_offset(off64_t current_offset, off64_t new_offset);
     intrusive_ptr_t<ls_block_token_pointee_t> generate_block_token(off64_t offset);
 
-    std::vector<serializer_read_ahead_callback_t*> read_ahead_callbacks;
     bool offer_buf_to_read_ahead_callbacks(block_id_t block_id, void *buf, const intrusive_ptr_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
     bool should_perform_read_ahead();
 
@@ -205,8 +192,22 @@ private:
 
     void consider_start_gc();
 
-    dynamic_config_t dynamic_config;
-    private_dynamic_config_t private_config;
+    std::map<ls_block_token_pointee_t*, off64_t> token_offsets;
+    std::multimap<off64_t, ls_block_token_pointee_t*> offset_tokens;
+    scoped_ptr_t<log_serializer_stats_t> stats;
+    perfmon_collection_t disk_stats_collection;
+    perfmon_membership_t disk_stats_membership;
+
+    // TODO: Just make this available in release mode?
+#ifndef NDEBUG
+    // Makes sure we get no tokens after we thought that
+    bool expecting_no_more_tokens;
+#endif
+
+    std::vector<serializer_read_ahead_callback_t*> read_ahead_callbacks;
+
+    const dynamic_config_t dynamic_config;
+    const private_dynamic_config_t private_config;
     static_config_t static_config;
 
     cond_t *shutdown_callback;
@@ -228,12 +229,12 @@ private:
         state_shut_down
     } state;
 
-    const char *db_path;
+    const char *const db_path;
     direct_file_t *dbfile;
 
     extent_manager_t *extent_manager;
     mb_manager_t *metablock_manager;
-    lba_index_t *lba_index;
+    lba_list_t *lba_index;
     data_block_manager_t *data_block_manager;
 
     /* The running index writes organize themselves into a list so that they can be sure to

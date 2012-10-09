@@ -405,8 +405,7 @@ bool check_metablock(nondirect_file_t *file, file_knowledge_t *knog, metablock_e
     errs->no_valid_metablocks = false;
     errs->implausible_block_failure = false;
 
-    std::vector<off64_t> metablock_offsets;
-    initialize_metablock_offsets(knog->static_config->extent_size(), &metablock_offsets);
+    std::vector<off64_t> metablock_offsets = initial_metablock_offsets(knog->static_config->extent_size());
 
     errs->total_count = metablock_offsets.size();
 

@@ -64,6 +64,8 @@ struct coro_globals_t {
     std::map<std::string, size_t> running_coroutine_counts;
     std::map<std::string, size_t> total_coroutine_counts;
 
+    std::set<coro_t*> active_coroutines;
+
 #endif  // NDEBUG
 
     coro_globals_t()
@@ -167,12 +169,14 @@ void coro_t::run() {
         // Keep track of how many coroutines of each type ran
         cglobals->running_coroutine_counts[coro->coroutine_type.c_str()]++;
         cglobals->total_coroutine_counts[coro->coroutine_type.c_str()]++;
+        cglobals->active_coroutines.insert(coro);
 #endif
         coro->action_wrapper.run();
 #ifndef NDEBUG
         // Pet the watchdog to reset it before execution moves
         pet_watchdog();
         cglobals->running_coroutine_counts[coro->coroutine_type.c_str()]--;
+        cglobals->active_coroutines.erase(coro);
 #endif
 
         rassert(coro->current_thread_ == get_thread_id());

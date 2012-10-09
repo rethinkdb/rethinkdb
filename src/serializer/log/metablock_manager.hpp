@@ -37,7 +37,7 @@ static const char MB_MARKER_MAGIC[8] = {'m', 'e', 't', 'a', 'b', 'l', 'c', 'k'};
 static const char MB_MARKER_CRC[4] = {'c', 'r', 'c', ':'};
 static const char MB_MARKER_VERSION[8] = {'v', 'e', 'r', 's', 'i', 'o', 'n', ':'};
 
-void initialize_metablock_offsets(off64_t extent_size, std::vector<off64_t> *offsets);
+std::vector<off64_t> initial_metablock_offsets(off64_t extent_size);
 
 
 
@@ -85,7 +85,7 @@ private:
             bool wraparound; /* !< whether or not we've wrapped around the edge (used during startup) */
         public:
             explicit head_t(metablock_manager_t *mgr);
-            metablock_manager_t *mgr;
+            metablock_manager_t *const mgr;
 
             /* \brief handles moving along successive mb slots
              */
@@ -146,7 +146,7 @@ private:
 
     metablock_version_t next_version_number;
 
-    crc_metablock_t *mb_buffer;
+    crc_metablock_t *const mb_buffer;
     bool mb_buffer_in_use;   /* !< true: we're using the buffer, no one else can */
 
     // Just some compartmentalization to make this mildly cleaner.
@@ -155,9 +155,9 @@ private:
         metablock_version_t version;
     } startup_values;
 
-    extent_manager_t *extent_manager;
+    extent_manager_t *const extent_manager;
 
-    std::vector<off64_t> metablock_offsets;
+    const std::vector<off64_t> metablock_offsets;
 
     enum state_t {
         state_unstarted,
