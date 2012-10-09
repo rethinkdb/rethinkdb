@@ -309,6 +309,16 @@ rethinkdb.JSExpression.prototype.compile = function(opt_buildOpts) {
     return term;
 };
 
+/** @override */
+rethinkdb.JSExpression.prototype.formatQuery = function(bt) {
+    var result = "r.js('"+this.src_+"')";
+    if (!bt) {
+        return result;
+    } else {
+        return carrotify_(result);
+    }
+};
+
 /**
  * @param {Array.<string>} args
  * @param {rethinkdb.Expression} body
@@ -368,6 +378,7 @@ var _unique_counter = 0;
         of the function. The last gives the body of the function. Alternatively, a
         single JavaScript function expression may be provided.
  * @return {rethinkdb.FunctionExpression}
+ * @export
  */
 rethinkdb.fn = function(var_args) {
     var args;
