@@ -22,7 +22,7 @@ cJSON *render_as_json(backfill_location_t *target) {
 }
 
 void apply_json_to(cJSON *, backfill_location_t *) {
-    throw permission_denied_exc_t("Can't write to backfill_location_t  objects.\n");
+    throw permission_denied_exc_t("Can't write to backfill_location_t objects.\n");
 }
 
 void on_subfield_change(backfill_location_t *) { }
