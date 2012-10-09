@@ -1,42 +1,24 @@
 <script id="machine_view-container-template" type="text/x-handlebars-template">
     <div id="server-view">
-        <div class="main_title"></div>
-        <div class="section">
-            <div class="row-fluid">
-                <div class="span6 profile"></div>
-                <div class="span6 performance-graph"></div>
-            </div>
-        </div>
-
-        <div class="section">
-            <ul class="nav nav-pills">
-                <li class="active"><a href="#servers/{{server_id}}/overview" data-target="#machine-overview" id="machine-overview-link" data-toggle="tab" class="tab-link">Statistics</a></li>
-                <li><a href="#servers/{{server_id}}/data" data-target="#machine-data" id="machine-data-link" data-toggle="tab" class="tab-link">Data on this server</a></li>
-                <li><a href="#servers/{{server_id}}/assignments" data-target="#machine-assignments" id="machine-assignments-link" data-toggle="tab" class="tab-link">Assignments</a></li>
-                <li><a href="#servers/{{server_id}}/operations" data-target="#machine-operations" id="machine-operations-link" data-toggle="tab" class="tab-link">Operations</a></li>
-                <li><a href="#servers/{{server_id}}/logs" data-target="#machine-log_entries" id="machine-log_entries-link" data-toggle="tab" class="tab-link">Recent log entries</a></li>
+        <div class="operations btn-group">
+            <button class="btn dropdown-toggle" data-toggle="dropdown">Operations</button>
+            <ul class="dropdown-menu">
+                <li><a href="#">Rename server</a></li>
+                <li><a href="#">Change datacenter</a></li>
+                <li><a href="#">Unassign datacenter</a></li>
             </ul>
-            <div class="tab-content">  
-                <div id="user-alert-space"></div>
-                <div class="tab-pane active" id="machine-overview">
-                    <div class="overview"></div>
-                </div>
-                <div class="tab-pane" id="machine-data">
-                    <div class="data"></div>
-                </div>
-                <div class="tab-pane" id="machine-assignments">
-                    <div class="assignments"></div>
-                </div>
-                <div class="tab-pane" id="machine-operations">
-                    <div class="operations"></div>
-                </div>
-                <div class="tab-pane" id="machine-log_entries">
-                    <div class="machine-log-entries">
-                        <div class="recent-log-entries"></div>
-                    </div>
-                </div>
+        </div>
+        <button class="btn show-data">Show data on this server</button>
+        <div class="main_title"></div>
+        <div id="user-alert-space"></div>
+        <div class="section statistics">
+            <h2 class="title">Statistics</h3>
+            <div class="content row-fluid">
+                <div class="span4 profile"></div>
+                <div class="span8 performance-graph"></div>
             </div>
         </div>
+        <div class="recent-log-entries"></div>
     </div>
 </script>
 
@@ -46,93 +28,46 @@
 
 <script id="machine_view-ghost-template" type="text/x-handlebars-template">
     <h1>Error</h1>
-    <p>This server has been previously killed but is not reconnected.<br/>
-    Please kill the rethinkDB instance on this server.</p>
+    <p>This server has been previously killed but has not reconnected.<br/>
+    Please kill the RethinkDB instance on this server.</p>
     <p>List of IPs: {{comma_separated_simple ips}}</p>
     <p></p>
 </script>
 
 <script id="machine_view_profile-template" type="text/x-handlebars-template">
-  <h3 class="title">Server profile</h3>
-  <div class="summary">
-    <p class="datacenter-name">Datacenter:
-      {{#if assigned_to_datacenter}}
-      <a href="#datacenters/{{datacenter_uuid}}">{{datacenter_name}}</a>
-      {{else}}
-      Unassigned
-      {{/if}}
-    </p>
-
-    <p>Status: {{humanize_machine_reachability status}}</p>
-    <p>IP {{pluralize_noun "address" nips}}: {{#if ips}} {{html_list ips}} {{else}} N/A {{/if}}</p>
-    <p class="uptime">Uptime: {{uptime}}</p>
-    {{#unless stats_up_to_date}}
-    <p>The stats displayed might not be up to date<br />
-        (the server might be overload with queries).</p>
-    {{/unless}}
-  </div>
-</script>
-
-<script id="machine_overview-container-template" type="text/x-handlebars-template">
-    {{#unless is_assigned}}
-    <h3>Information</h3>
-    <p>This server is not assigned to any datacenter, and therefore its ressources are not used.<br/>
-    You can assign a datacenter <a href="#servers/{{machine_id}}/operations">here</a>.</p>
-    {{/unless}}
-    <h3 class="title">Disk usage</h3>
-    <div class="pie_disk-container"></div>
-
-    <h3 class="title">RAM usage</h3>
-    <div class="pie_ram-container"></div>
-</script>
-
-<script id="machine_overview-pie_disk-container-template" type="text/x-handlebars-template">
-    <div class="two-panel-section">
-        <div class="disk_usage-container panel-left">
-            <svg class="pie_chart-disk" width="300" height="200">
-                <text x="100" y="135" class="loading_text-pie_disk">Loading data...</text>
-            </svg>
+    <h3 class="title">Server profile</h3>
+    <div class="summary">
+        <div class="stat-row first">
+            <p class="availability"><span class="big">{{humanize_machine_reachability reachability}} </span> and reachable</p>
         </div>
-        <div class="pie_legend panel-right">
-            <ul class="legend">
-                <li class="title-legend"><h4>Legend</h4></li>
-                <li class="disk_used-legend">Used disk: {{disk_used}}</li>
-                <li class="disk_free-legend">Free disk: {{disk_free}}</li>
-            </ul>
-            <ul class="legend">
-                <li class="title-legend"><h4>More statistics</h4></li>
-                <li class="more_statistics">Disk space: {{disk_total}}</li>
-                <li class="more_statistics">Used disk / disk space: {{disk_used_percent}}</li>
-                <li class="more_statistics">Disk space used by RethinkDB: {{disk_rdb}}</li>
-                <li class="more_statistics">Disk used by RethinkDB / disk used: {{disk_rdb_used_percent}}</li>
-            </ul>
+        <div class="stat-row">
+            <p class="datacenter">
+                {{#if assigned_to_datacenter}}
+                    <span class="big"><a href="#datacenters/{{datacenter_uuid}}">{{datacenter_name}}</a> </span> datacenter
+                {{else}}
+                    <span class="big">Unassigned </span> to a datacenter
+                {{/if}}
+            </p>
+        </div>
+        <div class="stat-row">
+            <p class="ips">{{pluralize_noun "address" nips}}: {{#if ips}} {{html_list ips}} {{else}} N/A {{/if}}</p>
+        </div>
+        <div class="stat-row">
+            <p class="uptime">up for <span class="big">{{uptime}}</span></p>
+        </div>
+        <div class="stat-row">
+            <p class="disk-used"><span class="big">{{disk_used}}</span> used on disk</p>
+        </div>
+        <div class="stat-row">
+            <p class="ram-used"><span class="big">{{ram_used}}</span> used in memory</p>
         </div>
     </div>
-</script>
-
-
-<script id="machine_overview-pie_ram-container-template" type="text/x-handlebars-template">
-    <div class="two-panel-section">
-        <div class="ram_usage-container panel-left">
-            <svg class="pie_chart-ram" width="300" height="200">
-                <text x="100" y="135" class="loading_text-pie_ram">Loading data...</text>
-            </svg>
-        </div>
-        <div class="pie_legend panel-right">
-            <ul class="legend">
-                <li class="title-legend"><h4>Legend</h4></li>
-                <li class="ram_used-legend">Used RAM: {{ram_used}}</li>
-                <li class="ram_free-legend">Free RAM: {{ram_free}}</li>
-            </ul>
-            <ul class="legend">
-                <li class="title-legend"><h4>More statistics</h4></li>
-                <li class="more_statistics">Total RAM: {{ram_total}}</li>
-                <li class="more_statistics">Used RAM / total RAM: {{ram_used_percent}}</li>
-                <li class="more_statistics">RAM used by RethinkDB: {{ram_rdb}}</li>
-                <li class="more_statistics">RAM used by RethinkDB / used ram: {{ram_rdb_used_percent}}</li>
-            </ul>
-        </div>
-    </div>
+        <!-- Review and remove
+            {{#unless stats_up_to_date}}
+            <p>The stats displayed might not be up to date<br />
+            (the server might be overload with queries).</p>
+            {{/unless}}
+        -->
 </script>
 
 <script id="machine_view_data-template" type="text/x-handlebars-template">
@@ -158,69 +93,6 @@
     </div>
     {{/each}}
 </script>
-
-
-<script id="machine_view-assignments-template" type="text/x-handlebars-template">
-    <h3 class="title">Assignments for this server</h3>
-    {{#unless data.namespaces}}
-    <p>No data found on this server.</p>
-    {{/unless}}
-    {{#each data.namespaces}}
-    <div class="namespace">
-        <h4>Table <a href="/#tables/{{uuid}}">{{name}}</a>:</h4>
-        <ul class="shard_ul">
-            {{#each shards}}
-            <li class="shard_li">
-                {{humanize_role role}}
-                <h4>Shard {{name}}</h4>
-                {{#if display_master}}
-                    <div class="action-container">
-                        <input type="button" {{#if display_master_desactivated}}disabled="disabled"{{/if}}
-                            data-shard="{{shard}}"
-                            data-namespace_id="{{namespace_id}}"
-                            class="btn make_master{{#if display_master_desactivated}} disabled{{/if}}" value="Make master" /> 
-                            {{#if reason_master}}
-                                <div class="reason">{{print_safe reason_master}}</div>
-                            {{else}}
-                                <div class="reason">Make this server master of this shard.</div>
-                            {{/if}}
-
-                    </div>
-                {{/if}}
-                {{#if display_secondary}}
-                    <div class="action-container">
-                        <input type="button" {{#if display_secondary_desactivated}}disabled="disabled"{{/if}}
-                            data-shard="{{shard}}"
-                            data-namespace_id="{{namespace_id}}"
-                            class="btn make_secondary{{#if display_secondary_desactivated}} disabled{{/if}}" value="Make secondary" /> 
-                            {{#if reason_secondary}}
-                                <div class="reason">{{print_safe reason_secondary}}</div>
-                            {{else}}
-                                <div class="reason">Make this server a secondary for this shard.</div>
- 
-                            {{/if}}
-                    </div>
-                {{/if}}
-                {{#if display_nothing}}
-                    <div class="action-container">
-                        <input type="button" {{#if display_nothing_desactivated}}disabled="disabled"{{/if}}
-                            data-shard="{{shard}}"
-                            data-namespace_id="{{namespace_id}}"
-                            class="btn make_nothing{{#if display_nothing_desactivated}} disabled{{/if}}" value="Remove role" /> 
-                            {{#if reason_nothing}}
-                                <div class="reason">{{print_safe reason_nothing}}</div>
-                            {{else}}
-                                <div class="reason">Remove all responsabilities for this shard.</div>
-                            {{/if}}
-                    </div>
-                {{/if}}
-            </li>
-            {{/each}}
-        </ul>
-    </div>
-    {{/each}}
-</script>
-
 
 <script id="reason-set_secondary-need_replica-template" type="text/x-handlebars-template">
     You need a replica to replace this master, please <a href="#tables/{{namespace_id}}/replication">increase</a> your number of replicas.
@@ -255,35 +127,10 @@
     You have to <a href="#tables/{{namespace_id}}/replication">increase</a> your number of replicas first.
 </script>
 
-
-
-
 <script id="alert-set_server-template" type="text/x-handlebars-template">
     <div class="alert" data-alert="alert">
         <a class="close" href="#">&times;</a>
         <p>You successfully set this server as a {{role}} for the shard {{shard}} of the table {{namespace_name}}</p>
-    </div>
-</script>
-
-<script id="machine_view-operations-template" type="text/x-handlebars-template">
-    <h3 class="title">Operations on this server</h3>
-    <div class="other_section rename_server">
-        <input type="button" class="btn other_button rename_server-button" value="Rename"/>
-        <p>Rename the server</p>
-    </div>
-    <div class="other_section change_datacenter">
-        <input type="button" class="btn other_button change_datacenter-button" {{#unless can_assign}}disabled="disabled"{{/unless}} value="Change datacenter"/>
-        <p>Change the datacenter of this server</p>
-        {{#if assign_reason}}
-        <div class="reason">{{print_safe assign_reason}}</div>
-        {{/if}}
-    </div>
-    <div class="other_section unassign_datacenter">
-        <input type="button" class="btn other_button unassign_datacenter-button" {{#unless can_unassign}}disabled="disabled"{{/unless}} value="Remove from datacenter"/>
-        <p>Unassign the datacenter of this server</p>
-        {{#if unassign_reason}}
-        <div class="reason">{{print_safe unassign_reason}}</div>
-        {{/if}}
     </div>
 </script>
 

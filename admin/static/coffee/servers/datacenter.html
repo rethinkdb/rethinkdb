@@ -1,40 +1,23 @@
 <script id="datacenter_view-container-template" type="text/x-handlebars-template">
     <div id="datacenter-view">
-        <div class="main_title"></div>
-        <div class="section">
-            <div class="row-fluid">
-                <div class="span6 profile"></div>
-                <div class="span6 performance-graph"></div>
-            </div>
-        </div>
-
-        <div class="section">
-            <ul class="nav nav-pills">
-                <li class="active"><a href="#datacenters/{{datacenter_id}}/overview" data-target="#datacenter-overview" id="datacenter-overview-link" class="tab-link" data-toggle="tab">Statistics</a></li>
-                <li><a href="#datacenters/{{datacenter_id}}/data" data-target="#datacenter-data" id="datacenter-data-link" class="tab-link" data-toggle="tab">Data</a></li>
-                <li><a href="#datacenters/{{datacenter_id}}/operations" data-target="#datacenter-operations" id="datacenter-operations-link" class="tab-link" data-toggle="tab">Operations</a></li>
-                <li><a href="#datacenters/{{datacenter_id}}/logs" data-target="#datacenter-logs" id="datacenter-logs-link" class="tab-link" data-toggle="tab">Recent log entries</a></li>
+        <div class="operations btn-group">
+            <button class="btn dropdown-toggle" data-toggle="dropdown">Operations</button>
+            <ul class="dropdown-menu">
+                <li><a href="#">Rename datacenter</a></li>
+                <li><a href-"#">Delete datacenter</a></li> 
             </ul>
-
-            <div id="user-alert-space"></div>
-            
-            <div class="tab-content">  
-                <div class="tab-pane active" id="datacenter-overview">
-                    <div class="overview"></div>
-                </div>
-                <div class="tab-pane" id="datacenter-data">
-                    <div class="data"></div>
-                </div>
-                <div class="tab-pane" id="datacenter-operations">
-                    <div class="operations"></div>
-                </div>
-                <div class="tab-pane" id="datacenter-logs">
-                    <div class="recent-log-entries">
-                        <h3 class="title">Recent log entries for this datacenter</h3>
-                    </div>
-                </div>
+        </div>
+        <button class="btn show-data">Show data in this datacenter</button>
+        <div class="main_title"></div>
+        <div id="user-alert-space"></div>
+        <div class="section statistics">
+            <h2 class="title">Statistics</h3>
+            <div class="content row-fluid">
+                <div class="span4 profile"></div>
+                <div class="span8 performance-graph"></div>
             </div>
         </div>
+        <div class="recent-log-entries"></div>
     </div>
 </script>
 
@@ -45,18 +28,23 @@
 <script id="element_view-not_found-template" type="text/x-handlebars-template">
     <h1 class="error-title">Error</h1>
     <p>{{capitalize type}} {{id}} could not be found.</p>
-    <p>You can try to <a href="/#{{type_url}}/{{id}}">refresh</a> or see the list of all <a href="/#{{type_all_url}}">{{pluralize_noun type 2}}</a>.</p>
+    <p>You can try to <a href="/#{{type_url}}/{{id}}">refresh</a> or see a list of all <a href="/#{{type_all_url}}">{{pluralize_noun type 2}}</a>.</p>
 </script>
 
 <script id="datacenter_view_profile-template" type="text/x-handlebars-template">
-    <h3 class="title">Datacenter profile</h3>
     <div class="summary">
-        <p class="status">Status: {{humanize_datacenter_reachability status}}</p>
-        <p class="status">Servers: {{status.reachable}} of {{status.total}} reachable</p>
+        <div class="stat-row first">
+            <p class="availability"><span class="big">{{humanize_datacenter_reachability status}} </span> and reachable</p>
+        </div>
+        <div class="stat-row">
+            <p class="servers"><span class="big">{{status.reachable}}/{{status.total}} </span> servers reachable</p>
+        </div>
+        <!-- Removing for now TODO
         {{#unless stats_up_to_date}}
         <p>The stats displayed might not be up to date<br />
         (One server might be overload with queries).</p>
         {{/unless}}
+        -->
     </div>
     <h3 class="title">Servers</h3>
     <div class="dc-machine-list">
@@ -64,91 +52,6 @@
         {{display_truncated_machines list_machines}}
         </ul>
     </div>
-</script>
-
-<script id="datacenter_overview-container-template" type="text/x-handlebars-template">
-    <h3>RAM repartition</h3>
-    <div class="ram_repartition-container"></div>
-
-    <h3>Disk repartition</h3>
-    <div class="disk_repartition-container"></div>
-</script>
-
-<script id="datacenter-ram_repartition-template" type="text/x-handlebars-template">
-    {{#if few_machines}}
-    <div class="two-panel-section">
-        <div class="ram_repartition-graph panel-left">
-            <svg class="ram_repartition-diagram" width="270" height="270">
-                {{#if no_machine}}
-                <text x="50" y="135" class="loading_text-ram-diagram">No machine in this datacenter</text>
-                {{else}}
-                <text x="100" y="135" class="loading_text-ram-diagram">Loading...</text>
-                {{/if}}
-            </svg>
-        </div>
-
-        <div class="ram_legend panel-right">
-            <ul class="legend">
-                <li class="title-legend"><h4>Legend</h4></li>
-                <li class="used_ram-legend">RAM used</li>
-                <li class="free_ram-legend">Free RAM</li>
-            </ul>
-        </div>
-    </div>
-    {{else}}
-        <div class="ram_repartition-graph">
-            <svg class="ram_repartition-diagram" width="700" height="350">
-                <text x="300" y="150" class="loading_text-ram-diagram">Loading data...</text>
-            </svg>
-        </div>
-
-        <div class="ram_legend">
-            <ul class="legend legend-inline">
-                <li class="title-legend"><h4>Legend</h4></li>
-                <li class="used_ram-legend used_ram-legend-inline">RAM used</li>
-                <li class="free_ram-legend free_ram-legend-inline">Free RAM</li>
-            </ul>
-        </div>
-    {{/if}}
-    <hr />
-</script>
-
-<script id="datacenter-disk_repartition-template" type="text/x-handlebars-template">
-    {{#if few_machines}}
-    <div class="two-panel-section">
-        <div class="panel-left disk_repartition-graph">
-            <svg class="disk_repartition-diagram" width="270" height="270">
-                {{#if no_machine}}
-                <text x="50" y="135" class="loading_text-disk-diagram">No machine in this datacenter</text>
-                {{else}}
-                <text x="100" y="135" class="loading_text-disk-diagram">Loading...</text>
-                {{/if}}
-            </svg>
-        </div>
-
-        <div class="disk_legend panel-right">
-            <ul class="legend">
-                <li class="title-legend"><h4>Legend</h4></li>
-                <li class="used_disk-legend">Disk used</li>
-                <li class="free_disk-legend">Free Disk</li>
-            </ul>
-        </div>
-    </div>
-    {{else}}
-        <div class="disk_repartition-graph">
-            <svg class="disk_repartition-diagram" width="700" height="350">
-                <text x="300" y="150" class="loading_text-disk-diagram">Loading data...</text>
-            </svg>
-        </div>
-
-        <div class="disk_legend">
-            <ul class="legend legend-inline">
-                <li class="title-legend"><h4>Legend</h4></li>
-                <li class="used_disk-legend used_disk-legend-inline">Disk used</li>
-                <li class="free_disk-legend free_disk-legend-inline">Free Disk</li>
-            </ul>
-        </div>
-    {{/if}}
 </script>
 
 <script id="datacenter_view_data-template" type="text/x-handlebars-template">
@@ -183,22 +86,6 @@
                 <a href="#" class="json" rel="popover" data-content="<pre>{{json}}</pre>" data-title="JSON applied to server">examine JSON</a>
         {{/if}}
     </p>
-</script>
-
-
-<script id="datacenter_view-operations-template" type="text/x-handlebars-template">
-    <h3 class="title">Operations on this datacenter</h3>
-    <div class="other_section rename_datacenter">
-        <input type="button" class="btn other_button rename_datacenter-button" value="Rename"/>
-        <p>Rename this datacenter</p>
-    </div>
-    <div class="other_section unassign_datacenter">
-        <input type="button" class="btn other_button delete_datacenter-button" {{#unless can_delete}}disabled="disabled"{{/unless}} value="Delete this datacenter"/>
-        <p>Delete this datacenter</p>
-        {{#unless can_delete}}
-        <div class="reason">{{print_safe delete_reason}}</div>
-        {{/unless}}
-    </div>
 </script>
 
 <script id="reason-cannot_delete-goals-template" type="text/x-handlebars-template">

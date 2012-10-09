@@ -1,8 +1,8 @@
 <script id="server_list-template" type="text/x-handlebars-template">
     <div id="server-list">
         <div class="actions-bar">
-            <a href="#" class="btn add-datacenter">+ Add Datacenter</a>
-            <a href="#" class="btn for-multiple-elements disabled set-datacenter">Set Datacenter</a>
+            <button class="btn add-datacenter">+ Add Datacenter</a>
+            <button class="btn for-multiple-elements disabled set-datacenter">Set Datacenter</a>
         </div>
         <h1 class="title">Servers connected to the cluster</h1>
         <div id="user-alert-space-set_datacenter"></div>
@@ -23,12 +23,10 @@
 
 <script id="datacenter_list_element-summary-template" type="text/x-handlebars-template">
     <div class="element-type">Datacenter</div>
-    <h3 class="name">
-        <a href="#datacenters/{{id}}">{{name}}</a>
-    </h3>
+    <h3 class="name"><a href="#datacenters/{{id}}">{{name}}</a></h3>
     <div class="buttons">
-        <a href="#" class="btn hide-servers expanded collapse-control" data-expanded="&ndash; Hide Servers" data-collapsed="+ Show Servers">&ndash; Hide Servers</a>
-        <a href="#" class="btn remove-datacenter">X</a>
+        <button class="btn hide-servers expanded collapse-control" data-expanded="&ndash; Hide Servers" data-collapsed="+ Show Servers">&ndash; Hide Servers</a>
+        <button class="btn remove-datacenter">X</a>
     </div>
 </script>
 
@@ -38,9 +36,8 @@
         <div class="header_container">
             <div class="datacenter summary">
                 <h3 class="name">Unassigned servers</h3>
-                </h3>
                 <div class="buttons">
-                    <a href="#" class="btn hide-servers expanded collapse-control" data-expanded="&ndash; Hide Servers" data-collapsed="+ Show Servers">&ndash; Hide Servers</a>
+                    <button class="btn hide-servers expanded collapse-control" data-expanded="&ndash; Hide Servers" data-collapsed="+ Show Servers">&ndash; Hide Servers</a>
                 </div>
             </div>
         </div>

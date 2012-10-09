@@ -21,6 +21,7 @@ module 'DatabaseView', ->
         events: ->
             'click .tab-link': 'change_route'
             'click .close': 'close_alert'
+            'click .show-tables': 'show_tables'
 
         initialize: ->
             log_initial '(initializing) database view: container'
@@ -28,12 +29,10 @@ module 'DatabaseView', ->
             # Panels for database view
             @title = new DatabaseView.Title model: @model
             @profile = new DatabaseView.Profile model: @model
-            @overview = new DatabaseView.Overview model: @model
-            @operations = new DatabaseView.Operations model: @model
             @performance_graph = new Vis.OpsPlot(@model.get_stats_for_performance,
-                width:  390             # width in pixels
-                height: 300             # height in pixels
-                seconds: 65             # num seconds to track
+                width:  564             # width in pixels
+                height: 210             # height in pixels
+                seconds: 73             # num seconds to track
                 type: 'database'
             )
 
@@ -67,37 +66,21 @@ module 'DatabaseView', ->
             @.$('.profile').html @profile.render().$el
             @.$('.performance-graph').html @performance_graph.render().$el
 
-            # display the data on the machines
-            @.$('.database-overview-container').html @overview.render().$el
-
-            # Display operations
-            @.$('.operations').html @operations.render().el
-
-            @.$('.nav-tabs').tab()
-            
-            if tab?
-                @.$('.active').removeClass('active')
-                switch tab
-                    when 'overview'
-                        @.$('#database-overview').addClass('active')
-                        @.$('#database-overview-link').tab('show')
-                    when 'operations'
-                        @.$('#database-operations').addClass('active')
-                        @.$('#database-operations-link').tab('show')
-                    else
-                        @.$('#database-overview').addClass('active')
-                        @.$('#database-overview-link').tab('show')
             return @
 
         close_alert: (event) ->
             event.preventDefault()
             $(event.currentTarget).parent().slideUp('fast', -> $(this).remove())
 
+        # Pop up a modal to show assignments
+        show_tables: (event) =>
+            event.preventDefault()
+            modal = new DatabaseView.NamespaceListModal model: @model
+            modal.render()
+
         destroy: =>
             @title.destroy()
             @profile.destroy()
-            @overview.destroy()
-            @operations.destroy()
             @performance_graph.destroy()
 
     # DatabaseView.Title
@@ -155,96 +138,6 @@ module 'DatabaseView', ->
         
         destroy: =>
             namespaces.off 'all', @render
-
-    class @Overview extends Backbone.View
-        className: 'database-overview'
-
-        template: Handlebars.compile $('#database_overview-container-template').html()
-
-        initialize: =>
-            @namespaces_list = []
-            @namespaces_view_list = []
-            namespaces.on 'add', @update_data
-            namespaces.on 'remove', @update_data
-            namespaces.on 'reset', @update_data
-            @update_data()
-
-        update_data: =>
-            need_update = false
-            new_namespaces_list = []
-            for namespace in namespaces.models
-                if namespace.get('database') is @model.get('id')
-                    new_namespaces_list.push namespace
-                    
-                    # Check if first time we see it
-                    found_namespace = false
-                    for namespace_in_db in @namespaces_list
-                        if namespace_in_db.get('id') is namespace.get('id')
-                            found_namespace = true
-                            break
-                    
-                    if found_namespace is false
-                        @namespaces_list.push namespace
-                        need_update = true
-                    
-            if need_update is false
-                if new_namespaces_list isnt @namespaces_list
-                    @namespaces_list = new_namespaces_list
-                    @render()
-            else
-                @namespaces_list = new_namespaces_list
-                @render()
-
-
-        render: =>
-            @.$el.html @template {}
-
-            for view in @namespaces_view_list
-                view.destroy()
-            @namespaces_view_list = []
-            @.$('.namespaces-list').html ''
-            for namespace in @namespaces_list
-                view = new DatabaseView.NamespaceView(model: namespace)
-                @namespaces_view_list.push view
-                @.$('.namespaces-list').append view.render().$el
-            if @namespaces_list.length is 0
-                @.$('.namespaces-list').html 'There is no table in this database.'
-            
-
-            return @
-
-        destroy: =>
-            for view in @namespaces_view_list
-                view.destroy()
-            namespaces.off 'add', @update_data
-            namespaces.off 'remove', @update_data
-            namespaces.off 'reset', @update_data
-
-
-    class @NamespaceView extends Backbone.View
-        className: 'element-detail-container'
-        template: Handlebars.compile $('#database-namespace_view-template').html()
-
-        initialize: =>
-            @model.on 'change:shards', @render
-            @model.on 'change:primary_pinnings', @render
-            @model.on 'change:secondary_pinnings', @render
-            @model.on 'change:replica_affinities', @render
-
-        render: =>
-            json = _.extend DataUtils.get_namespace_status(@model.get('id')),
-                name: @model.get 'name'
-                id: @model.get 'id'
-            json.nreplicas += json.nshards
-
-            @.$el.html @template json
-            return @
-
-        destroy: =>
-            @model.off 'change:shards', @render
-            @model.off 'change:primary_pinnings', @render
-            @model.off 'change:secondary_pinnings', @render
-            @model.off 'change:replica_affinities', @render
 
     class @Operations extends Backbone.View
         className: 'database-operations'
@@ -338,3 +231,105 @@ module 'DatabaseView', ->
                 namespaces.remove id
             
             databases.remove @database_to_delete.get 'id'
+
+    class @NamespaceListModal extends UIComponents.AbstractModal
+        render: =>
+            @list = new DatabaseView.NamespaceList(model: @model)
+            $('#modal-dialog').html @list.render().$el
+            modal = $('.modal').modal
+                'show': true
+                'backdrop': true
+                'keyboard': true
+
+            modal.on 'hidden', =>
+                modal.remove()
+
+    class @NamespaceList extends Backbone.View
+        className: 'database-overview modal overwrite_modal'
+
+        template: Handlebars.compile $('#database_overview-container-template').html()
+
+        initialize: =>
+            @namespaces_list = []
+            @namespaces_view_list = []
+            namespaces.on 'add', @update_data
+            namespaces.on 'remove', @update_data
+            namespaces.on 'reset', @update_data
+            @update_data()
+
+        update_data: =>
+            need_update = false
+            new_namespaces_list = []
+            for namespace in namespaces.models
+                if namespace.get('database') is @model.get('id')
+                    new_namespaces_list.push namespace
+                    
+                    # Check if first time we see it
+                    found_namespace = false
+                    for namespace_in_db in @namespaces_list
+                        if namespace_in_db.get('id') is namespace.get('id')
+                            found_namespace = true
+                            break
+                    
+                    if found_namespace is false
+                        @namespaces_list.push namespace
+                        need_update = true
+                    
+            if need_update is false
+                if new_namespaces_list isnt @namespaces_list
+                    @namespaces_list = new_namespaces_list
+                    @render()
+            else
+                @namespaces_list = new_namespaces_list
+                @render()
+
+
+        render: =>
+            @.$el.html @template {}
+
+            for view in @namespaces_view_list
+                view.destroy()
+            @namespaces_view_list = []
+            @.$('.namespaces-list').html ''
+            for namespace in @namespaces_list
+                view = new DatabaseView.NamespaceView(model: namespace)
+                @namespaces_view_list.push view
+                @.$('.namespaces-list').append view.render().$el
+            if @namespaces_list.length is 0
+                @.$('.namespaces-list').html 'There is no table in this database.'
+            
+
+            return @
+
+        destroy: =>
+            for view in @namespaces_view_list
+                view.destroy()
+            namespaces.off 'add', @update_data
+            namespaces.off 'remove', @update_data
+            namespaces.off 'reset', @update_data
+
+    class @NamespaceView extends Backbone.View
+        className: 'element-detail-container'
+        template: Handlebars.compile $('#database-namespace_view-template').html()
+
+        initialize: =>
+            @model.on 'change:shards', @render
+            @model.on 'change:primary_pinnings', @render
+            @model.on 'change:secondary_pinnings', @render
+            @model.on 'change:replica_affinities', @render
+
+        render: =>
+            json = _.extend DataUtils.get_namespace_status(@model.get('id')),
+                name: @model.get 'name'
+                id: @model.get 'id'
+            json.nreplicas += json.nshards
+
+            @.$el.html @template json
+            return @
+
+        destroy: =>
+            @model.off 'change:shards', @render
+            @model.off 'change:primary_pinnings', @render
+            @model.off 'change:secondary_pinnings', @render
+            @model.off 'change:replica_affinities', @render
+

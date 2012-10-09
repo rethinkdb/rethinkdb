@@ -1148,16 +1148,13 @@ body:before {
     }
 }
 
+#database-view {
+   .show-tables { float: right; } 
+}
+
 #table-view {
     .show-assignments { float: right; }
     .section.replication {
-        .edit_mode-button, .save-button{
-            float: right;
-        }
-        .save-button{
-            display: 'none'
-        }
-
         .nav-tabs { padding-left: 0; }
 
         .datacenter_list_container {
@@ -1235,9 +1232,7 @@ body:before {
         .datacenter_content{
             margin: 0px;
             padding-left: 10px;
-            .datacenter_view{
-                margin: 0px 0px 0px 40px;
-            }
+            .datacenter_view{ margin: 0px 0px 0px 40px; }
             .progress_bar_full_container{
                 display: none;
                 .progress_bar_container{
@@ -1309,12 +1304,8 @@ body:before {
                     font-size: 24px;
                     font-family: @sans;
                 }
-                .save_replicas_and_acks{
-                    margin: 30px 0px 0px 0px;
-                }
-                .make_primary{
-                    margin: 10px 0px 0px 0px;
-                }
+                .save_replicas_and_acks{ margin: 30px 0px 0px 0px; }
+                .make_primary{ margin: 10px 0px 0px 0px; }
                 .replicas_acks-alert, .reason_cannot_become_primary-alert{
                     display: none;
                     clear: both;
@@ -1379,9 +1370,7 @@ body:before {
                     outline: thin dotted \9; /* IE6-9 */
                 }
             }
-            .edit, .cancel, .rebalance{
-                margin: -7px 0px 0px 10px;
-            }
+            .edit, .cancel, .rebalance{ margin: -7px 0px 0px 10px; }
             .cannot_shard-alert{
                 display: none;
                 clear: both;
@@ -1418,6 +1407,13 @@ body:before {
     }
 }
 
+#datacenter-view {
+   .show-data { float: right; } 
+}
+
+#server-view {
+   .show-data { float: right; } 
+}
 
 /*
     ----------------------------

@@ -311,8 +311,6 @@ module 'NamespaceView', ->
             @model.off 'all', @render
 
     class @MachinesAssignmentsModal extends UIComponents.AbstractModal
-        template: Handlebars.compile $('#machine_assignments-modal-template').html()
-        className: 'modal overwrite_modal'
         render: =>
             @pins = new NamespaceView.Pinning(model: @model)
             $('#modal-dialog').html @pins.render().$el
@@ -323,6 +321,3 @@ module 'NamespaceView', ->
 
             modal.on 'hidden', =>
                 modal.remove()
-
-
-

@@ -29,7 +29,6 @@ module 'ServerView', ->
                     else
                         return 0
 
-
         render: (message) =>
             super
             @.$('.unassigned-machines').html @unassigned_machines.render().el

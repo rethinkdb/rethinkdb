@@ -102,7 +102,7 @@ module 'NamespaceView', ->
             @.$('#namespace-pinning-link').tab('show')
             $(event.currentTarget).parent().parent().slideUp('fast', -> $(this).remove())
 
-        # TODO: fill in
+        # Pop up a modal to show assignments
         show_assignments: (event) =>
             event.preventDefault()
             modal = new NamespaceView.MachinesAssignmentsModal model: @model
