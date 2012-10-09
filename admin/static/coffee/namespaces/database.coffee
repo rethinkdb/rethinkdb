@@ -22,6 +22,9 @@ module 'DatabaseView', ->
             'click .tab-link': 'change_route'
             'click .close': 'close_alert'
             'click .show-tables': 'show_tables'
+            # operations in the dropdown menu
+            'click .operations .rename': 'rename_database'
+            'click .operations .delete': 'delete_database'
 
         initialize: ->
             log_initial '(initializing) database view: container'
@@ -71,6 +74,16 @@ module 'DatabaseView', ->
         close_alert: (event) ->
             event.preventDefault()
             $(event.currentTarget).parent().slideUp('fast', -> $(this).remove())
+
+        rename_database: (event) =>
+            event.preventDefault()
+            rename_modal = new UIComponents.RenameItemModal @model.get('id'), 'database'
+            rename_modal.render()
+
+        delete_database: (event) ->
+            event.preventDefault()
+            remove_database_dialog = new DatabaseView.RemoveDatabaseModal
+            remove_database_dialog.render @model
 
         # Pop up a modal to show assignments
         show_tables: (event) =>
@@ -128,8 +141,6 @@ module 'DatabaseView', ->
                     if namespace_status.reachability isnt 'Live'
                         data.reachability = false
 
-
-
             data.num_namespaces = @model.get_namespaces().length
 
             @.$el.html @template data
@@ -138,45 +149,6 @@ module 'DatabaseView', ->
         
         destroy: =>
             namespaces.off 'all', @render
-
-    class @Operations extends Backbone.View
-        className: 'database-operations'
-
-        template: Handlebars.compile $('#database_operations-template').html()
-        events: ->
-            'click .rename_database-button': 'rename_database'
-            'click .import_data-button': 'import_data'
-            'click .export_data-button': 'export_data'
-            'click .delete_database-button': 'delete_database'
-
-        initialize: =>
-            @model.on 'change:name', @render
-
-        rename_database: (event) ->
-            event.preventDefault()
-            rename_modal = new UIComponents.RenameItemModal @model.get('id'), 'database'
-            rename_modal.render()
-
-        import_data: (event) ->
-            event.preventDefault()
-            #TODO Implement
-        
-        export_data: (event) ->
-            event.preventDefault()
-            #TODO Implement
-
-        delete_database: (event) ->
-            event.preventDefault()
-            remove_database_dialog = new DatabaseView.RemoveDatabaseModal
-            remove_database_dialog.render @model
-
-        render: =>
-            @.$el.html @template {}
-            return @
-
-        destroy: =>
-            @model.off 'change:name', @render
-
 
     class @RemoveDatabaseModal extends UIComponents.AbstractModal
         template: Handlebars.compile $('#remove_database-modal-template').html()

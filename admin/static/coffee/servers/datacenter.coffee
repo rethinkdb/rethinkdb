@@ -21,6 +21,9 @@ module 'DatacenterView', ->
             'click .display_more_machines': 'expand_profile'
             'click .close': 'close_alert'
             'click .show-data': 'show_data'
+            # operations in the dropdown menu
+            'click .operations .rename': 'rename_datacenter'
+            'click .operations .delete': 'delete_datacenter'
 
         max_log_entries_to_render: 3
 
@@ -107,6 +110,16 @@ module 'DatacenterView', ->
             modal = new DatacenterView.DataModal model: @model
             modal.render()
 
+        rename_datacenter: (event) =>
+            event.preventDefault()
+            rename_modal = new UIComponents.RenameItemModal @model.get('id'), 'datacenter'
+            rename_modal.render(@model)
+
+        delete_datacenter: (event) ->
+            event.preventDefault()
+            remove_datacenter_dialog = new DatacenterView.RemoveDatacenterModal
+            remove_datacenter_dialog.render @model
+
         destroy: =>
             @title.destroy()
             @profile.destroy()
@@ -119,10 +132,10 @@ module 'DatacenterView', ->
     class @Title extends Backbone.View
         className: 'datacenter-info-view'
         template: Handlebars.compile $('#datacenter_view_title-template').html()
-        initialize: =>
+        initialize: ->
             @name = @model.get('name')
-            datacenters.on 'all', @update
-
+            @model.on 'change:name', @update
+        
         update: =>
             if @name isnt @model.get('name')
                 @name = @model.get('name')
@@ -133,8 +146,8 @@ module 'DatacenterView', ->
                 name: @name
             return @
 
-        destroy: ->
-            datacenters.off 'all', @update
+        destroy: =>
+            @model.off 'change:name', @update
 
     class @Profile extends Backbone.View
         className: 'datacenter-info-view'
@@ -233,6 +246,8 @@ module 'DatacenterView', ->
             machines.off 'all', @render
             directory.off 'all', @render
 
+    # BIG TODO WARNING
+    # Decomission this if it is unnecessary 
     class @Operations extends Backbone.View
         className: 'datacenter-other'
 
@@ -249,22 +264,11 @@ module 'DatacenterView', ->
             namespaces.on 'all', @render
 
 
-        rename_datacenter: (event) =>
-            event.preventDefault()
-            rename_modal = new UIComponents.RenameItemModal @model.get('id'), 'datacenter'
-            rename_modal.render(@model)
-            @title.update()
-
-        delete_datacenter: (event) ->
-            event.preventDefault()
-            remove_datacenter_dialog = new DatacenterView.RemoveDatacenterModal
-            remove_datacenter_dialog.render @model
-
         need_update: (old_data, new_data) ->
             for key of old_data
                 if not new_data[key]?
                     return true
-                if new_data[key] isnt old_data[key]
+                if new_data[key] snt old_data[key]
                     return true
             for key of new_data
                 if not old_data[key]?

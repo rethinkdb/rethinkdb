@@ -35,6 +35,10 @@ module 'MachineView', ->
             'click .close': 'close_alert'
             'click .tab-link': 'change_route'
             'click .show-data': 'show_data'
+            # operations in the dropdown menu
+            'click .operations .rename':                'rename_machine'
+            'click .operations .change-datacenter':     'change_datacenter'
+            'click .operations .unassign-datacenter':   'unassign_datacenter'
 
         initialize: =>
             log_initial '(initializing) machine view: container'
@@ -97,6 +101,21 @@ module 'MachineView', ->
             modal = new MachineView.DataModal model: @model
             modal.render()
 
+        rename_machine: (event) =>
+            event.preventDefault()
+            rename_modal = new UIComponents.RenameItemModal @model.get('id'), 'machine'
+            rename_modal.render()
+
+        change_datacenter: (event) =>
+            event.preventDefault()
+            set_datacenter_modal = new ServerView.SetDatacenterModal
+            set_datacenter_modal.render [@model]
+
+        unassign_datacenter: (event) =>
+            event.preventDefault()
+            unassign_dialog = new MachineView.UnassignModal
+            unassign_dialog.render @model
+
         destroy: =>
             @model.off 'change:name', @render
             @title.destroy()
@@ -108,16 +127,21 @@ module 'MachineView', ->
     class @Title extends Backbone.View
         className: 'machine-info-view'
         template: Handlebars.compile $('#machine_view_title-template').html()
-        initialize: =>
-            @model.on 'change:name', @render
+        initialize: ->
+            @name = @model.get('name')
+            @model.on 'change:name', @update
         
+        update: =>
+            if @name isnt @model.get('name')
+                @name = @model.get('name')
+                @render()
+
         render: =>
             @.$el.html @template
-                name: @model.get('name')
+                name: @name
             return @
 
         destroy: =>
-
             @model.off 'change:name', @update
 
     # MachineView.Profile
@@ -164,6 +188,10 @@ module 'MachineView', ->
             directory.off 'all', @render
             @model.off 'all', @render
 
+    # BIG TODO WARNING
+    # This is the logic that prevents unassigning this server from the
+    # datacenter if it has responsibilities. It needs to be moved
+    # somewhere intelligent.
     class @Operations extends Backbone.View
         className: 'namespace-other'
 
@@ -182,21 +210,6 @@ module 'MachineView', ->
             machines.on 'all', @render
             namespaces.on 'all', @render
 
-        rename_server: (event) ->
-            event.preventDefault()
-            rename_modal = new UIComponents.RenameItemModal @model.get('id'), 'machine'
-            rename_modal.render()
-
-        change_datacenter: (event) =>
-            event.preventDefault()
-            set_datacenter_modal = new ServerView.SetDatacenterModal
-            set_datacenter_modal.render [@model]
-
-        unassign_datacenter: (event) =>
-            event.preventDefault()
-            unassign_dialog = new MachineView.UnassignModal
-            machine_to_unassign = @model
-            unassign_dialog.render @model
 
         to_assignments: (event) ->
             event.preventDefault()
