@@ -183,6 +183,3 @@ class BackboneCluster extends Backbone.Router
             @$container.html @current_view.render(tab).el
         else
             @$container.html @current_view.render().el
-        if machine?
-            @current_view.overview.render_pie_disk()
-            @current_view.overview.render_pie_ram()

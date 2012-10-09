@@ -1,28 +1,22 @@
 <script id="database_view-container-template" type="text/x-handlebars-template">
     <div id="database-view">
-        <div class="main_title"></div>
-        <div class="section">
-            <div class="row-fluid">
-                <div class="span6 profile"></div>
-                <div class="span6 performance-graph"></div>
+        <div class="operations">
+            <div class="dropdown">
+                <button class="btn dropdown-toggle" data-toggle="dropdown">Operations</button>
+                <ul class="dropdown-menu">
+                    <li><a href="#" class="rename">Rename database</a></li>
+                    <li><a href="#" class="delete">Delete database</a></li> 
+                </ul>
             </div>
         </div>
-
-        <div class="section">
-            <ul class="nav nav-pills">
-                <li class="active"><a href="#databases/{{database_id}}/overview" data-target="#database-overview" id="database-overview-link" class="tab-link" data-toggle="tab">Overview</a></li>
-                <li><a href="#databases/{{database_id}}/operations" data-target="#database-operations" id="database-operations-link" class="tab-link" data-toggle="tab">Operations</a></li>
-            </ul>
-
-            <div id="user-alert-space"></div>
-
-            <div class="tab-content">  
-                <div class="tab-pane active" id="database-overview">
-                    <div class="database-overview-container"></div>
-                </div>
-               <div class="tab-pane" id="database-operations">
-                    <div class="operations"></div>
-                </div>
+        <button class="btn show-tables">Show tables</button>
+        <div class="main_title"></div>
+        <div id="user-alert-space"></div>
+        <div class="section statistics">
+            <h2 class="title">Statistics</h3>
+            <div class="content row-fluid">
+                <div class="span4 profile"></div>
+                <div class="span8 performance-graph"></div>
             </div>
         </div>
     </div>
@@ -33,45 +27,26 @@
 </script>
 
 <script id="database_view-profile-template" type="text/x-handlebars-template">
-    <h3 class="title">Database profile</h3>
     <div class="summary">
-        <p>{{num_namespaces}} {{pluralize_noun "table" num_amespaces}} with</p>
-        <p>Status: {{humanize_namespace_reachability reachability}}</p>
+        <div class="stat-row first">
+            <p class="availability"><span class="big">{{humanize_namespace_reachability reachability}} </span> and reachable</p>
+        </div>
+        <div class="stat-row">
+            <p class="tables"><span class="big">{{num_namespaces}} </span> {{pluralize_noun "table" num_namespaces}}</p>
+        </div>
+        <!-- Removed for now TODO
         {{#unless stats_up_to_date}}
         <p>The stats displayed might not be up to date<br />
             (One server might be overload with queries).</p>
         {{/unless}}
+        -->
     </div>
 </script>
 
 
 <script id="database_overview-container-template" type="text/x-handlebars-template">
     <h3 class="title">Tables in this database</h3>
-    <div class="namespaces-list">
-    </div>
-</script>
-
-
-<script id="database_operations-template" type="text/x-handlebars-template">
-    <h3 class="title">Other operations</h3>
-    <div class="operations_section rename_database">
-        <input type="button" class="btn other_button rename_database-button" value="Rename"/>
-        <p>Rename the database</p>
-    </div>
-    {{!
-    <div class="operations_section import_data">
-        <input type="button" class="btn other_button import_data-button" value="Import"/>
-        <p>Import data</p>
-    </div>
-    <div class="operations_section export_data-container">
-        <input type="button" class="btn other_button export_data-button" value="Export"/>
-        <p>Export data</p>
-    </div>
-    }}
-    <div class="operations_section delete_database-container">
-        <input type="button" class="btn other_button delete_database-button" value="Delete"/>
-        <p>Delete the database</p>
-    </div>
+    <div class="namespaces-list"></div>
 </script>
 
 

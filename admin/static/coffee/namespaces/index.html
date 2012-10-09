@@ -1,9 +1,9 @@
 <script id="database_list-template" type="text/x-handlebars-template">
     <div id="table-list">
         <div class="actions-bar">
-            <input type="button" class="btn add-database" value="+ Add Database" />
-            <input type="button" class="btn add-namespace" value="+ Add Table" />
-            <input type="button" class="btn for-multiple-elements remove-namespace" value="&ndash; Remove selected tables" disabled="disabled" />
+            <button class="btn add-database">+ Add Database</button>
+            <button class="btn add-namespace">+ Add Table</button>
+            <button class="btn for-multiple-elements remove-namespace disabled">&ndash; Remove selected tables</button>
         </div>
         <h1 class="title">Tables in the cluster</h1>
         <div id="user-alert-space"></div>
@@ -25,8 +25,8 @@
     <div class="element-type">Database</div>
     <h3 class="name"><a href="#databases/{{id}}">{{name}}</a></h3>
     <div class="buttons">
-        <a href="#" class="btn hide-tables expanded collapse-control" data-expanded="&ndash; Hide Tables" data-collapsed="+ Show Tables">&ndash; Hide Tables</a>
-        <a href="#" class="btn remove-database" data-id={{id}}>X</a>
+        <button class="btn hide-tables expanded collapse-control" data-expanded="&ndash; Hide Tables" data-collapsed="+ Show Tables">&ndash; Hide Tables</a>
+        <button class="btn remove-database" data-id={{id}}>X</a>
     </div>
 </script>
 

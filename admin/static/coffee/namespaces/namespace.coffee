@@ -25,10 +25,10 @@ module 'NamespaceView', ->
             'click .namespace-pinning-link': 'change_pinning'
             'click .show-assignments': 'show_assignments'
             # operations in the dropdown menu
-            'click .rename_namespace-button': 'rename_namespace'
-            'click .import_data-button': 'import_data'
-            'click .export_data-button': 'export_data'
-            'click .delete_namespace-button': 'delete_namespace'
+            'click .operations .import-data':   'import_data'
+            'click .operations .export-data':   'export_data'
+            'click .operations .rename':       'rename_namespace'
+            'click .operations .delete':        'delete_namespace'
 
         initialize: ->
             log_initial '(initializing) namespace view: container'
@@ -102,14 +102,14 @@ module 'NamespaceView', ->
             @.$('#namespace-pinning-link').tab('show')
             $(event.currentTarget).parent().parent().slideUp('fast', -> $(this).remove())
 
-        # TODO: fill in
+        # Pop up a modal to show assignments
         show_assignments: (event) =>
             event.preventDefault()
             modal = new NamespaceView.MachinesAssignmentsModal model: @model
             modal.render()
 
         # Rename operation
-        rename_namespace: (event) ->
+        rename_namespace: (event) =>
             event.preventDefault()
             rename_modal = new UIComponents.RenameItemModal @model.get('id'), 'namespace'
             rename_modal.render()
@@ -164,6 +164,9 @@ module 'NamespaceView', ->
             @.$el.html @template
                 name: @name
             return @
+
+        destroy: =>
+            @model.off 'change:name', @update
 
     # Profile view
     class @Profile extends Backbone.View

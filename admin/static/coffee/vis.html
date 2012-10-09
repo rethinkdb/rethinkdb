@@ -1,13 +1,6 @@
 <script id="ops_plot-template" type="text/x-handlebars-template">
     <div class="legend-container"></div>
-    {{#unless table}}
-        <h2 class="title">
-            {{#if cluster}}Cluster performance{{/if}}
-            {{#if datacenter}}Datacenter performance{{/if}}
-            {{#if server}}Server performance{{/if}}
-            {{#if database}}Database performance{{/if}}
-        </h2>
-    {{/unless}}
+    {{#if cluster}}<h2 class="title">Cluster performance</h2>{{/if}}
     <div class="plot-container">
         <div class="plot"></div>
     </div>

@@ -95,7 +95,7 @@
             </ul>
             {{/if}}
         {{/if}}
-        <p><button class="btn-solve">Declare Dead</button></p>
+        <p><button class="btn btn-solve">Declare Dead</button></p>
     </div>
 </script>
 
@@ -119,7 +119,7 @@
         <h3 class="title">Can't write logs.</h3>
 
         <p>Log file is inaccessible on server <a href="/#servers/{{machine_uuid}}">{{machine_name}}</a>. Please resolve the issue on the server, or declare it dead.<p>
-        <p><button class="btn-solve">Declare Dead</button></p>
+        <p><button class="btn btn-solve">Declare Dead</button></p>
     </div>
 </script>
 <script id="resolve_issues-vclock_conflict-template" type="text/x-handlebars-template">
@@ -151,7 +151,7 @@
         {{#if datacenters_with_issues}}
         <p class="description">To solve this issue, you can lower the number of replicas or connect a new server to the datacenter.</p>
 
-        <p><button class="btn-solve">Lower the number of replicas</button></p>
+        <p><button class="btn btn-solve">Lower the number of replicas</button></p>
         {{/if}}
   </div>
 </script>

@@ -21,6 +21,10 @@ module 'DatabaseView', ->
         events: ->
             'click .tab-link': 'change_route'
             'click .close': 'close_alert'
+            'click .show-tables': 'show_tables'
+            # operations in the dropdown menu
+            'click .operations .rename': 'rename_database'
+            'click .operations .delete': 'delete_database'
 
         initialize: ->
             log_initial '(initializing) database view: container'
@@ -28,12 +32,10 @@ module 'DatabaseView', ->
             # Panels for database view
             @title = new DatabaseView.Title model: @model
             @profile = new DatabaseView.Profile model: @model
-            @overview = new DatabaseView.Overview model: @model
-            @operations = new DatabaseView.Operations model: @model
             @performance_graph = new Vis.OpsPlot(@model.get_stats_for_performance,
-                width:  390             # width in pixels
-                height: 300             # height in pixels
-                seconds: 65             # num seconds to track
+                width:  564             # width in pixels
+                height: 210             # height in pixels
+                seconds: 73             # num seconds to track
                 type: 'database'
             )
 
@@ -67,37 +69,31 @@ module 'DatabaseView', ->
             @.$('.profile').html @profile.render().$el
             @.$('.performance-graph').html @performance_graph.render().$el
 
-            # display the data on the machines
-            @.$('.database-overview-container').html @overview.render().$el
-
-            # Display operations
-            @.$('.operations').html @operations.render().el
-
-            @.$('.nav-tabs').tab()
-            
-            if tab?
-                @.$('.active').removeClass('active')
-                switch tab
-                    when 'overview'
-                        @.$('#database-overview').addClass('active')
-                        @.$('#database-overview-link').tab('show')
-                    when 'operations'
-                        @.$('#database-operations').addClass('active')
-                        @.$('#database-operations-link').tab('show')
-                    else
-                        @.$('#database-overview').addClass('active')
-                        @.$('#database-overview-link').tab('show')
             return @
 
         close_alert: (event) ->
             event.preventDefault()
             $(event.currentTarget).parent().slideUp('fast', -> $(this).remove())
 
+        rename_database: (event) =>
+            event.preventDefault()
+            rename_modal = new UIComponents.RenameItemModal @model.get('id'), 'database'
+            rename_modal.render()
+
+        delete_database: (event) ->
+            event.preventDefault()
+            remove_database_dialog = new DatabaseView.RemoveDatabaseModal
+            remove_database_dialog.render @model
+
+        # Pop up a modal to show assignments
+        show_tables: (event) =>
+            event.preventDefault()
+            modal = new DatabaseView.NamespaceListModal model: @model
+            modal.render()
+
         destroy: =>
             @title.destroy()
             @profile.destroy()
-            @overview.destroy()
-            @operations.destroy()
             @performance_graph.destroy()
 
     # DatabaseView.Title
@@ -145,8 +141,6 @@ module 'DatabaseView', ->
                     if namespace_status.reachability isnt 'Live'
                         data.reachability = false
 
-
-
             data.num_namespaces = @model.get_namespaces().length
 
             @.$el.html @template data
@@ -156,8 +150,74 @@ module 'DatabaseView', ->
         destroy: =>
             namespaces.off 'all', @render
 
-    class @Overview extends Backbone.View
-        className: 'database-overview'
+    class @RemoveDatabaseModal extends UIComponents.AbstractModal
+        template: Handlebars.compile $('#remove_database-modal-template').html()
+        class: 'remove_database-dialog'
+
+        initialize: ->
+            super
+
+        render: (_database_to_delete) ->
+            @database_to_delete = _database_to_delete
+
+            super
+                modal_title: 'Remove database'
+                btn_primary_text: 'Remove'
+                id: _database_to_delete.get('id')
+                name: _database_to_delete.get('name')
+
+            @.$('.btn-primary').focus()
+
+        on_submit: =>
+            super
+
+            post_data = {}
+            post_data.databases = {}
+            post_data.databases[@database_to_delete.get('id')] = null
+            for namespace in namespaces.models
+                if namespace.get('database') is @database_to_delete.get('id')
+                    if not post_data[namespace.get('protocol')+'_namespaces']?
+                        post_data[namespace.get('protocol')+'_namespaces'] = {}
+                    post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')] = null
+
+            $.ajax
+                processData: false
+                url: '/ajax/semilattice'
+                type: 'POST'
+                contentType: 'application/json'
+                data: JSON.stringify(post_data)
+                success: @on_success
+                error: @on_error
+
+        on_success: (response) =>
+            window.router.navigate '#tables'
+            window.app.index_namespaces
+                alert_message: "The database #{@database_to_delete.get('name')} was successfully deleted."
+
+            namespace_id_to_remove = []
+            for namespace in namespaces.models
+                if namespace.get('database') is @database_to_delete.get('id')
+                    namespace_id_to_remove.push namespace.get 'id'
+
+            for id in namespace_id_to_remove
+                namespaces.remove id
+            
+            databases.remove @database_to_delete.get 'id'
+
+    class @NamespaceListModal extends UIComponents.AbstractModal
+        render: =>
+            @list = new DatabaseView.NamespaceList(model: @model)
+            $('#modal-dialog').html @list.render().$el
+            modal = $('.modal').modal
+                'show': true
+                'backdrop': true
+                'keyboard': true
+
+            modal.on 'hidden', =>
+                modal.remove()
+
+    class @NamespaceList extends Backbone.View
+        className: 'database-overview modal overwrite_modal'
 
         template: Handlebars.compile $('#database_overview-container-template').html()
 
@@ -220,7 +280,6 @@ module 'DatabaseView', ->
             namespaces.off 'remove', @update_data
             namespaces.off 'reset', @update_data
 
-
     class @NamespaceView extends Backbone.View
         className: 'element-detail-container'
         template: Handlebars.compile $('#database-namespace_view-template').html()
@@ -246,95 +305,3 @@ module 'DatabaseView', ->
             @model.off 'change:secondary_pinnings', @render
             @model.off 'change:replica_affinities', @render
 
-    class @Operations extends Backbone.View
-        className: 'database-operations'
-
-        template: Handlebars.compile $('#database_operations-template').html()
-        events: ->
-            'click .rename_database-button': 'rename_database'
-            'click .import_data-button': 'import_data'
-            'click .export_data-button': 'export_data'
-            'click .delete_database-button': 'delete_database'
-
-        initialize: =>
-            @model.on 'change:name', @render
-
-        rename_database: (event) ->
-            event.preventDefault()
-            rename_modal = new UIComponents.RenameItemModal @model.get('id'), 'database'
-            rename_modal.render()
-
-        import_data: (event) ->
-            event.preventDefault()
-            #TODO Implement
-        
-        export_data: (event) ->
-            event.preventDefault()
-            #TODO Implement
-
-        delete_database: (event) ->
-            event.preventDefault()
-            remove_database_dialog = new DatabaseView.RemoveDatabaseModal
-            remove_database_dialog.render @model
-
-        render: =>
-            @.$el.html @template {}
-            return @
-
-        destroy: =>
-            @model.off 'change:name', @render
-
-
-    class @RemoveDatabaseModal extends UIComponents.AbstractModal
-        template: Handlebars.compile $('#remove_database-modal-template').html()
-        class: 'remove_database-dialog'
-
-        initialize: ->
-            super
-
-        render: (_database_to_delete) ->
-            @database_to_delete = _database_to_delete
-
-            super
-                modal_title: 'Remove database'
-                btn_primary_text: 'Remove'
-                id: _database_to_delete.get('id')
-                name: _database_to_delete.get('name')
-
-            @.$('.btn-primary').focus()
-
-        on_submit: =>
-            super
-
-            post_data = {}
-            post_data.databases = {}
-            post_data.databases[@database_to_delete.get('id')] = null
-            for namespace in namespaces.models
-                if namespace.get('database') is @database_to_delete.get('id')
-                    if not post_data[namespace.get('protocol')+'_namespaces']?
-                        post_data[namespace.get('protocol')+'_namespaces'] = {}
-                    post_data[namespace.get('protocol')+'_namespaces'][namespace.get('id')] = null
-
-            $.ajax
-                processData: false
-                url: '/ajax/semilattice'
-                type: 'POST'
-                contentType: 'application/json'
-                data: JSON.stringify(post_data)
-                success: @on_success
-                error: @on_error
-
-        on_success: (response) =>
-            window.router.navigate '#tables'
-            window.app.index_namespaces
-                alert_message: "The database #{@database_to_delete.get('name')} was successfully deleted."
-
-            namespace_id_to_remove = []
-            for namespace in namespaces.models
-                if namespace.get('database') is @database_to_delete.get('id')
-                    namespace_id_to_remove.push namespace.get 'id'
-
-            for id in namespace_id_to_remove
-                namespaces.remove id
-            
-            databases.remove @database_to_delete.get 'id'

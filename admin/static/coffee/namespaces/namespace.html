@@ -1,13 +1,15 @@
 <script id="namespace_view-container-template" type="text/x-handlebars-template">
     <div id="table-view">
-        <div class="operations btn-group">
-            <button class="btn dropdown-toggle" data-toggle="dropdown">Operations</button>
-            <ul class="dropdown-menu">
-                <li><a href="#">Import data</a></li>
-                <li><a href="#">Export data</a></li>
-                <li><a href="#">Rename table</a></li>
-                <li><a href-"#">Delete table</a></li> 
-            </ul>
+        <div class="operations">
+            <div class="dropdown">
+                <button class="btn dropdown-toggle" data-toggle="dropdown">Operations</button>
+                <ul class="dropdown-menu">
+                    <li><a href="#" class="import-data">Import data</a></li>
+                    <li><a href="#" class="export-data">Export data</a></li>
+                    <li><a href="#" class="rename">Rename table</a></li>
+                    <li><a href="#" class="delete">Delete table</a></li> 
+                </ul>
+            </div>
         </div>
         <button class="btn show-assignments">Show servers used</button>
         <div class="main_title"></div>
