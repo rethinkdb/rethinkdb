@@ -239,7 +239,14 @@ void backfillee(
         }
 
         /* Wait to get an allocation mailbox */
-        wait_interruptible(alloc_mailbox_promise.get_ready_signal(), interruptor);
+        {
+            wait_any_t waiter(alloc_mailbox_promise.get_ready_signal(), backfiller.get_failed_signal());
+            wait_interruptible(&waiter, interruptor);
+
+            /* Throw an exception if backfiller died */
+            backfiller.access();
+            guarantee(alloc_mailbox_promise.get_ready_signal()->is_pulsed());
+        }
 
         mailbox_addr_t<void(int)> allocation_mailbox = alloc_mailbox_promise.get_value();
 
