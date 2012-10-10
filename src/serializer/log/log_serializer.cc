@@ -561,7 +561,7 @@ log_serializer_t::block_write(const void *buf, file_account_t *io_account) {
 
 void log_serializer_t::register_block_token(ls_block_token_pointee_t *token, off64_t offset) {
     assert_thread();
-    std::pair<std::map<ls_block_token_pointee_t *, off64_t>::iterator, bool> insert_res
+    DEBUG_VAR std::pair<std::map<ls_block_token_pointee_t *, off64_t>::iterator, bool> insert_res
         = token_offsets.insert(std::make_pair(token, offset));
     rassert(insert_res.second);
 
