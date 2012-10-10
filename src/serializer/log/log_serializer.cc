@@ -362,7 +362,12 @@ void log_serializer_t::block_read(const intrusive_ptr_t<ls_block_token_pointee_t
     rassert(state == state_ready);
     rassert(token_offsets.find(ls_token) != token_offsets.end());
 
-    const off64_t offset = token_offsets[ls_token];
+    rassert(state == state_ready);
+
+    std::map<ls_block_token_pointee_t *, off64_t>::const_iterator token_offsets_it = token_offsets.find(ls_token);
+    rassert(token_offsets_it != token_offsets.end());
+
+    const off64_t offset = token_offsets_it->second;
     data_block_manager->read(offset, buf, io_account, readcb);
 }
 
