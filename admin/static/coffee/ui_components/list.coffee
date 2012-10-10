@@ -33,7 +33,6 @@ module 'UIComponents', ->
 
             if @options? and @options.sort?
                 @sort = @options.sort
-            else @sort = (a,b) -> 0
 
             # Initially we need to populate the element views list
             @reset_element_views()
@@ -63,7 +62,9 @@ module 'UIComponents', ->
                 @remove_elements model
 
         render: =>
-            @element_views.sort @sort
+            if @sort?
+                @element_views.sort @sort
+
             #log_render '(rendering) list view: ' + class_name @collection
             # Render and append the list template to the DOM
             @.$el.html(@template({}))
@@ -145,6 +146,7 @@ module 'UIComponents', ->
         events: ->
             'click': 'clicked'
             'click a': 'link_clicked'
+            'click label': 'link_clicked'
 
         initialize: (template) ->
             @template = template
@@ -178,8 +180,7 @@ module 'UIComponents', ->
     # Abstract list element that allows collapsing the item
     class @CollapsibleListElement extends Backbone.View
         events: ->
-            'click .arrow': 'toggle_showing'
-            'click a': 'link_clicked'
+            'click .collapse-control': 'toggle_showing'
 
         initialize: ->
             @showing = true
@@ -188,11 +189,8 @@ module 'UIComponents', ->
             @show()
             @delegateEvents()
 
-        link_clicked: (event) =>
-            # Prevents collapsing when we click a link.
-            event.stopPropagation()
-
-        toggle_showing: =>
+        toggle_showing: (event) =>
+            event.preventDefault()
             @showing = not @showing
             @show()
 
@@ -204,12 +202,19 @@ module 'UIComponents', ->
             @.$('.element-list-container').slideToggle @showing
             @swap_divs()
 
-        swap_divs: =>
-            $arrow = @.$('.arrow.collapsed, .arrow.expanded')
 
-            for div in [$arrow]
+        # - Swaps the div that controls the collapsed/expanded state with its
+        #   alternate class / appearance
+        # - Also swaps the text depending on state using the 'data-collapsed' and
+        #   'data-expanded' attributes of the control
+        swap_divs: =>
+            $control = @.$('.collapse-control.collapsed, .collapse-control.expanded')
+
+            for div in [$control]
                 if @showing
                     div.removeClass('collapsed').addClass('expanded')
+                    div.text(div.data 'expanded')
                 else
                     div.removeClass('expanded').addClass('collapsed')
+                    div.text(div.data 'collapsed')
 

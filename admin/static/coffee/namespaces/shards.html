@@ -1,79 +1,65 @@
 <script id="shards_container-template" type="text/x-handlebars-template">
+    <h2 class="title">Sharding settings</h2>
     <div class="user-alert-space"></div>
-    <h3>Shards for this table</h3>
-
+    <div class="edit-shards"></div>
+    <div class="shards_status_container">
+        <p class="caption">Status</p>
+        <div class="sharding_img_container">
+            <img src="/images/ajax-loader.gif" class="sharding_img">
+        </div>
+        <div class="shards_status"></div>
+    </div>
     <div class="data_repartition-container">
         <p>Loading...</p>
     </div>
-    <div class="data_repartition-legend"></div>
 </script>
 
-<script id="status_shard-template" type="text/x-handlebars-template">
-    <ul>
-        <li class="title-legend"><h4>Operations on shards</h4></li>
-        {{#if has_unsatisfiable_goals}} 
-        <li>Solve the unsatisfiable goals before sharding.</li>
-        {{else}}
-        <li class="rebalance_container"><button class="btn change_shards-button">Rebalance</button> number of shards <input type="text" class="num_shards" value="{{num_shards}}" /></li>
-        {{/if}}
-    </ul>
-
-    <ul>
-        <li class="title-legend"><h4>More statistics</h4></li>
-        <li class="more_statistics">
-        This table has {{num_shards}} {{pluralize_noun "shard" num_shards}}{{#unless total_keys}}.{{/unless}}
-        {{#if total_keys}}and contains {{total_keys}} keys.{{/if}}
-        </li>
-        <li class="more_statistics">
-            {{#if max_keys_defined}}
-            The biggest shard has {{max_keys}} keys
-            {{else}}
-            Loading stats for biggest shards
-            {{/if}}
-        </li>
-        <li class="more_statistics">
-            {{#if min_keys_defined}}
-            The smallest shard has {{min_keys}} keys
-            {{else}}
-            Loading stats for smallest shards
-            {{/if}}
-        </li>
-    </ul>
+<script id="view_shards-template" type="text/x-handlebars-template">
+    <button class="btn edit">Edit</button>
+    <p class="icon_paragraph"><span class="big">{{num_shards}}</span> {{pluralize_noun "shard" num_shards}}</p> 
+    <div class="cannot_shard-alert"></div>
 </script>
 
-<script id="change_shards-success-alert-template" type="text/x-handlebars-template">
-    <div class="alert" data-alert="alert">
-        <a class="close" href="#">&times;</a>
-        <p>You successfully modified the number of shards.</p> 
-    </div>
+
+<script id="edit_shards-template" type="text/x-handlebars-template">
+    <button class="btn cancel">&times;</button>
+    <button class="btn rebalance">Rebalance</button>
+    <p class="icon_paragraph"><input class="num-shards" type="text" value="{{num_shards}}" />  {{pluralize_noun "shard" num_shards}}</p>
+    <div class="cannot_shard-alert"></div>
 </script>
 
-<script id="rebalance_shards-success-alert-template" type="text/x-handlebars-template">
-    <div class="alert" data-alert="alert">
-        <a class="close" href="#">&times;</a>
-        <p>You successfully rebalanced the shards.</p> 
-    </div>
+
+<script id="edit_shards-feedback-template" type="text/x-handlebars-template">
+    <div class="close" href="#">&times;</div>
+    <p>
+    {{this}}
+    </p>
 </script>
 
-<script id="change_shards-fail-alert-template" type="text/x-handlebars-template">
-    <div class="alert" data-alert="alert alert-error">
-        <a class="close" href="#">&times;</a>
-        <p>The server returned an error. Please try again.</p> 
-    </div>
+<script id="alert_shard-template" type="text/x-handlebars-template">
+    {{#if changing}}
+    Changing number of shards to {{num_shards}}.
+    {{else}}
+    Sharding complete.
+    {{/if}}
+</script>
+
+<script id="edit_shards-ajax_error-template" type="text/x-handlebars-template">
+    Sorry, something went wront with the ajax request. Please refresh and try again.
 </script>
 
 <script id="data_repartition-template" type="text/x-handlebars-template">
-    <h4 class="title">Data repartition</h4>
-    <div class="data_repartition-graph">
-        <svg class="data_repartition-diagram" width="700" height="350">
+    <div class="shard-graph">
+        <svg class="shard-diagram" width="700" height="350">
             <text x="300" y="150" class="loading_text-diagram">Loading data...</text>
         </svg>
     </div>
 </script>
 
-<script id="change_shards-modal-template" type="text/x-handlebars-template">
-    <div class="alert alert-error error_answer"></div>
-    <div id="change_shards-modal-content">
-        <p>Are you sure you want to rebalance this table to {{num_shards}} {{pluralize_noun "shard" num_shards}} </p>
-    </div>
+
+<script id="shards_status-template" type="text/x-handlebars-template">
+    <p>
+    {{#if is_sharding}}
+    {{/if}}
+    {{num_shards_ready}}/{{num_shards}} working.</p>
 </script>

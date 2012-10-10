@@ -51,6 +51,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
 {
     std::set<std::string> white_list;
     white_list.insert("/cluster.css");
+    white_list.insert("/styles.css");
     white_list.insert("/cluster.html");
     white_list.insert("/cluster-min.js");
     white_list.insert("/favicon.ico");

@@ -8,13 +8,12 @@ clear_modals = ->
     modal_registry = []
 register_modal = (modal) -> modal_registry.push(modal)
 
+#TODO Just for development, CHANGE IT BACK TO 5000
 updateInterval = 5000
 statUpdateInterval = 1000
-
-declare_client_connected = ->
-    window.connection_status.set({client_disconnected: false})
-    clearTimeout(window.apply_diffs_timer)
-    window.apply_diffs_timer = setTimeout (-> window.connection_status.set({client_disconnected: true})), 2 * updateInterval
+progress_interval_default_value = 5000
+progress_interval_value = 5000
+progress_short_interval = 1000
 
 # Check if new_data is included in old_data and if the values are equals. (Note: We don't check if the objects are equals)
 need_update_objects = (new_data, old_data) ->
@@ -77,8 +76,6 @@ reset_collections = () ->
 # Process updates from the server and apply the diffs to our view of the data.
 # Used by our version of Backbone.sync and POST / PUT responses for form actions
 apply_diffs = (updates) ->
-    declare_client_connected()
-
     if (not connection_status.get('contact_machine_id'))
         connection_status.set('contact_machine_id', updates["me"])
     else
@@ -106,12 +103,23 @@ apply_diffs = (updates) ->
 set_issues = (issue_data_from_server) -> issues.reset(issue_data_from_server)
 
 set_progress = (progress_data_from_server) ->
+    is_empty = true
     # Convert progress representation from RethinkDB into backbone friendly one
     _pl = []
     for key, value of progress_data_from_server
+        is_empty = false
         value['id'] = key
         _pl.push(value)
     progress_list.reset(_pl)
+
+    if is_empty is false and progress_interval_value is progress_interval_default_value
+        clearInterval window.progress_interval
+        progress_interval_value = progress_short_interval
+        window.progress_interval = setInterval collect_progress, progress_interval_value
+    else if is_empty is true and progress_interval_value is progress_short_interval
+        clearInterval window.progress_interval
+        progress_interval_value = progress_interval_default_value
+        window.progress_interval = setInterval collect_progress, progress_interval_value
 
 set_directory = (attributes_from_server) ->
     # Convert directory representation from RethinkDB into backbone friendly one
@@ -182,11 +190,14 @@ collect_server_data_once = (async, optional_callback) ->
             if optional_callback?
                 optional_callback()
         error: ->
+            window.connection_status.set({client_disconnected: false})
             if window.is_disconnected?
                 window.is_disconnected.display_fail()
             else
                 window.is_disconnected = new IsDisconnected
+        #timeout: updateInterval
 
+collect_progress = ->
     $.ajax
         contentType: 'application/json',
         url: '/ajax/progress',
@@ -262,12 +273,9 @@ $ ->
         else
             triggered[event]+=1
 
-    # We need to reload data every updateInterval
-    #setInterval (-> Backbone.sync 'read', null), updateInterval
-    declare_client_connected()
-    
     # Collect the first time
     collect_server_data_once(true, collections_ready)
 
     # Set interval to update the data
     setInterval collect_server_data_async, updateInterval
+    window.progress_interval = setInterval collect_progress, progress_interval_value

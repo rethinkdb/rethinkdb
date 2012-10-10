@@ -65,6 +65,7 @@ SYMBOLS?=0
 JSON_SHORTCUTS?=0
 DEBUG?=1
 VALGRIND?=0
+MCHECK?=0
 NO_TCMALLOC?=0
 SEMANTIC_SERIALIZER_CHECK?=0
 MOCK_CACHE_CHECK?=0
@@ -273,6 +274,17 @@ CXXFLAGS+=-DNO_EPOLL
 BUILD_DIR:=$(BUILD_DIR)-noepoll
 endif
 
+ifeq ($(MCHECK_PEDANTIC),1)
+CXXFLAGS+=-DMCHECK_PEDANTIC
+MCHECK:=1
+endif
+
+ifeq ($(MCHECK),1)
+NO_TCMALLOC:=1
+CXXFLAGS+=-DMCHECK
+LDFLAGS+=-lmcheck
+endif
+
 ifeq ($(VALGRIND),1)
 CXXFLAGS+=-DVALGRIND
 BUILD_DIR:=$(BUILD_DIR)-valgrind
@@ -371,7 +383,7 @@ COFFEE_SOURCES:=$(patsubst %, $(WEB_SOURCE_DIR)/static/coffee/%,\
 			app.coffee)
 HANDLEBARS_SOURCES:=$(shell find $(WEB_SOURCE_DIR)/static/coffee -name '*.html')
 LESS_SOURCES:=$(shell find $(WEB_SOURCE_DIR)/static/less -name '*.less')
-LESS_MAIN:=$(WEB_SOURCE_DIR)/static/less/cluster.less
+LESS_MAIN:=$(WEB_SOURCE_DIR)/static/less/styles.less
 CLUSTER_HTML:=$(WEB_SOURCE_DIR)/templates/cluster.html
 JS_EXTERNAL_DIR:=$(WEB_SOURCE_DIR)/static/js
 IMAGES_EXTERNAL_DIR:=$(WEB_SOURCE_DIR)/static/images

@@ -25,6 +25,7 @@ with driver.Metacluster() as metacluster:
     access1 = http_admin.ClusterAccess([("localhost", proc1.http_port)])
     access2 = http_admin.ClusterAccess([("localhost", proc2.http_port)])
     dc = access1.add_datacenter("Fizz")
+    table = access1.add_namespace("rdb", "new_table")
     access2.update_cluster_data(10)
     assert len(access1.get_directory()) == len(access2.get_directory()) == 2
 
@@ -37,6 +38,9 @@ with driver.Metacluster() as metacluster:
     access1.rename(dc, "Buzz")
     access2.rename(access2.find_datacenter(dc.uuid), "Fizz")
 
+    access1.rename(table, "new_name")
+    access2.rename(access2.find_namespace(table.uuid), "othe_name")
+
     print "Joining cluster, then waiting 10s..."
     metacluster.move_processes(cluster2, cluster1, [proc2])
     time.sleep(10)
@@ -45,5 +49,7 @@ with driver.Metacluster() as metacluster:
     issues = access1.get_issues()
     assert issues[0]["type"] == "VCLOCK_CONFLICT"
     assert len(access1.get_directory()) == len(access2.get_directory()) == 2
+
+    time.sleep(1000000)
 print "Done."
 

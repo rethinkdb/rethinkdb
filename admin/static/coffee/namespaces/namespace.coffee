@@ -23,6 +23,12 @@ module 'NamespaceView', ->
             'click .close': 'close_alert'
             'click .change_shards-link': 'change_shards'
             'click .namespace-pinning-link': 'change_pinning'
+            'click .show-assignments': 'show_assignments'
+            # operations in the dropdown menu
+            'click .operations .import-data':   'import_data'
+            'click .operations .export-data':   'export_data'
+            'click .operations .rename':       'rename_namespace'
+            'click .operations .delete':        'delete_namespace'
 
         initialize: ->
             log_initial '(initializing) namespace view: container'
@@ -35,12 +41,15 @@ module 'NamespaceView', ->
             @replicas = new NamespaceView.Replicas(model: @model)
             @shards = new NamespaceView.Sharding(model: @model)
             @pins = new NamespaceView.Pinning(model: @model)
-            @other = new NamespaceView.Other(model: @model)
-
-            @performance_graph = new Vis.OpsPlot(@model.get_stats_for_performance)
+            @performance_graph = new Vis.OpsPlot(@model.get_stats_for_performance,
+                width:  564             # width in pixels
+                height: 210             # height in pixels
+                seconds: 73             # num seconds to track
+                type: 'table'
+            )
 
             namespaces.on 'remove', @check_if_still_exists
-        
+
         check_if_still_exists: =>
             exist = false
             for namespace in namespaces.models
@@ -52,10 +61,10 @@ module 'NamespaceView', ->
                 window.app.index_namespaces
                     alert_message: "The table <a href=\"#tables/#{@model.get('id')}\">#{@model.get('name')}</a> could not be found and was probably deleted."
         change_route: (event) =>
-            # Because we are using bootstrap tab. We should remove them later.
+            # Because we are using bootstrap tab. We should remove them later. TODO
             window.router.navigate @.$(event.target).attr('href')
- 
-        render: (tab) =>
+
+        render: =>
             log_render '(rendering) namespace view: container'
 
             @.$el.html @template
@@ -75,31 +84,9 @@ module 'NamespaceView', ->
             @.$('.sharding').html @shards.render().el
 
             # Display the pins
-            @.$('.pinning').html @pins.render().el
+            # REMOVED FOR NOW, moving to a modal TODO
+            #@.$('.pinning').html @pins.render().el
 
-            # Display other
-            @.$('.other').html @other.render().el
-
-            @.$('.nav-tabs').tab()
-            
-            if tab?
-                @.$('.active').removeClass('active')
-                switch tab
-                    when 'shards'
-                        @.$('#namespace-sharding').addClass('active')
-                        @.$('#namespace-sharding-link').tab('show')
-                    when 'replication'
-                        @.$('#namespace-replication').addClass('active')
-                        @.$('#namespace-replication-link').tab('show')
-                    when 'assignments'
-                        @.$('#namespace-pinning').addClass('active')
-                        @.$('#namespace-pinning-link').tab('show')
-                    when 'other'
-                        @.$('#namespace-other').addClass('active')
-                        @.$('#namespace-other-link').tab('show')
-                    else
-                        @.$('#namespace-sharding').addClass('active')
-                        @.$('#namespace-sharding-link').tab('show')
             return @
 
         close_alert: (event) ->
@@ -115,6 +102,41 @@ module 'NamespaceView', ->
             @.$('#namespace-pinning-link').tab('show')
             $(event.currentTarget).parent().parent().slideUp('fast', -> $(this).remove())
 
+        # Pop up a modal to show assignments
+        show_assignments: (event) =>
+            event.preventDefault()
+            modal = new NamespaceView.MachinesAssignmentsModal model: @model
+            modal.render()
+
+        # Rename operation
+        rename_namespace: (event) =>
+            event.preventDefault()
+            rename_modal = new UIComponents.RenameItemModal @model.get('id'), 'namespace'
+            rename_modal.render()
+
+        # Import operation
+        import_data: (event) ->
+            event.preventDefault()
+            #TODO Implement
+
+        # Export operation
+        export_data: (event) ->
+            event.preventDefault()
+            #TODO Implement
+
+        # Delete operation
+        delete_namespace: (event) ->
+            event.preventDefault()
+            remove_namespace_dialog = new NamespaceView.RemoveNamespaceModal
+            namespace_to_delete = @model
+
+            remove_namespace_dialog.on_success = (response) =>
+                window.router.navigate '#tables'
+                window.app.index_namespaces
+                    alert_message: "The table #{@model.get('name')} was successfully deleted."
+                namespaces.remove @model.get 'id'
+
+            remove_namespace_dialog.render [@model]
 
         destroy: =>
             @title.destroy()
@@ -132,7 +154,7 @@ module 'NamespaceView', ->
         initialize: ->
             @name = @model.get('name')
             @model.on 'change:name', @update
-        
+
         update: =>
             if @name isnt @model.get('name')
                 @name = @model.get('name')
@@ -142,6 +164,9 @@ module 'NamespaceView', ->
             @.$el.html @template
                 name: @name
             return @
+
+        destroy: =>
+            @model.off 'change:name', @update
 
     # Profile view
     class @Profile extends Backbone.View
@@ -167,7 +192,11 @@ module 'NamespaceView', ->
                 json.reachability = false
 
             #Compute the total number of keys
+            json.total_keys_available = false
             if @model.get('key_distr')?
+                # we can't use 'total_keys' because we need to
+                # distinguish between zero and unavailable.
+                json.total_keys_available = true
                 json.total_keys = 0
                 for key of @model.get('key_distr')
                     json.total_keys += parseInt @model.get('key_distr')[key]
@@ -182,52 +211,8 @@ module 'NamespaceView', ->
             @.$el.html @template json
 
             return @
-        
+
         destroy: =>
             @model.off 'all', @render
             directory.off 'all', @render
             progress_list.off 'all', @render
-
-
-    class @Other extends Backbone.View
-        className: 'namespace-other'
-
-        template: Handlebars.compile $('#namespace_other-template').html()
-        events: ->
-            'click .rename_namespace-button': 'rename_namespace'
-            'click .import_data-button': 'import_data'
-            'click .export_data-button': 'export_data'
-            'click .delete_namespace-button': 'delete_namespace'
-
-        initialize: =>
-            @model.on 'change:name', @render
-
-        rename_namespace: (event) ->
-            event.preventDefault()
-            rename_modal = new UIComponents.RenameItemModal @model.get('id'), 'namespace'
-            rename_modal.render()
-
-        import_data: (event) ->
-            event.preventDefault()
-            #TODO Implement
-        
-        export_data: (event) ->
-            event.preventDefault()
-            #TODO Implement
-
-        delete_namespace: (event) ->
-            event.preventDefault()
-            remove_namespace_dialog = new NamespaceView.RemoveNamespaceModal
-            namespace_to_delete = @model
-        
-            remove_namespace_dialog.on_success = (response) =>
-                window.router.navigate '#tables'
-                window.app.index_namespaces
-                    alert_message: "The table #{@model.get('name')} was successfully deleted."
-                namespaces.remove @model.get 'id'
-
-            remove_namespace_dialog.render [@model]
-
-        render: =>
-            @.$el.html @template {}
-            return @

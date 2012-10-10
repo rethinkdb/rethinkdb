@@ -2,7 +2,7 @@
 # This file extends the UIComponents module with commonly used modal
 # dialog boxes.
 module 'UIComponents', ->
-    # Basic modal dialog to extend
+    # Modal that allows for form submission
     class @AbstractModal extends Backbone.View
         template_outer: Handlebars.compile $('#abstract-modal-outer-template').html()
         template_ajax_error: Handlebars.compile $('#fail_ajax_request-template').html()
