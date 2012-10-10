@@ -84,7 +84,25 @@ exports.aeq = function(eq) {
     };
 }
 
+exports.attreq = function(attr, eq) {
+    wait();
+    return function(val) {
+        assertEquals(eq, val[attr]);
+        done();
+    };
+};
+
+exports.atype = function(type) {
+    wait();
+    return function(val) {
+        assertEquals(val instanceof type, true);
+        done();
+    };
+};
+
 exports.objeq = function(var_args) {
+    var expecteds = Array.prototype.slice.call(arguments);
+
     function objEqual(one, two) {
         for (var key in one) {
             if (one.hasOwnProperty(key)) {
@@ -110,7 +128,7 @@ exports.objeq = function(var_args) {
             done();
             return false;
         } else {
-            objEqual(arguments[i], val);
+            objEqual(expecteds[i], val);
             i++;
             return true;
         }

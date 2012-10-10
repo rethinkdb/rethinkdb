@@ -51,13 +51,15 @@ _complete_rethinkdb_admin() {
 _complete_rethinkdb() {
     local io_backend=("--io-backend")
     local io_backends=("native" "pool")
-    local commands=("create" "help" "serve" "admin")
-    local file_args=("-f" "--file" "-l" "--log-file" "-o" "--output-file" "extract" "--failover-script")
-    local directory_args=("-d" "--directory")
-    local numb_args=("--force-block-size" "--force-extent-size" "--force-slice-count" "-s" "--slices" "--block-size" "--extent-size" "-c" "--cores" "-m" "--max-cache-size" "-p" "--port" "--flush-timer" "--unsaved-data-limit" "--gc-range" "--active-data-extents")
-    local create_tokens=("-f" "--file" "-s" "--slices" "--block-size" "--extent-size" "--diff-log-size" "-l" "--log-file" "--force")
-    local help_tokens=("create" "serve" "admin")
-    local serve_tokens=("-f" "--file" "-c" "--cores" "-m" "--max-cache-size" "-p" "--port" "--wait-for-flush" "--flush-timer" "--flush-threshold" "--flush-concurrency" "--unsaved-data-limit" "--gc-range" "--active-data-extents" "--io-backend" "--read-ahead" "-v" "--verbose" "-l" "--log-file" "--read-ahead" "--master" "--slave-of" "--failover-script" "--join" "-j" "--directory" "-d")
+    local commands=("create" "help" "serve" "admin" "proxy" "import")
+    local file_args=("--input-file")
+    local directory_args=("-d" "--directory" "-l" "--log-file")
+    local numb_args=("-c" "--cores" "--client-port" "--cluster-port")
+    local help_tokens=("create" "serve" "admin" "proxy" "import")
+    local create_tokens=("-d" "--directory" "-n" "--machine-name" "--io-backend")
+    local serve_tokens=("-d" "--directory" "--cluster-port" "--http-port" "-j" "--join" "--io-backend" "-c" "--cores")
+    local proxy_tokens=("-l" "--log-file" "--cluster-port" "--http-port" "-j" "--join" "--io-backend")
+    local import_tokens=("-j" "--join" "--table" "--datacenter" "--primary-key" "--autogen" "-s" "--separators" "--input-file")
 
     local cur=${COMP_WORDS[COMP_CWORD]}
     local use=""
@@ -93,11 +95,13 @@ _complete_rethinkdb() {
         fi
 
         case "$command" in
-            create) use="${create_tokens[@]}" ;;
             help) use="${help_tokens[@]}" ;;
+            create) use="${create_tokens[@]}" ;;
+            serve) use="${create_tokens[@]}" ;;
+            proxy) use="${create_tokens[@]}" ;;
+            import) use="${create_tokens[@]}" ;;
             admin) _complete_rethinkdb_admin $command
                 return ;;
-            serve) use="${serve_tokens[@]}" ;;
         esac
         COMPREPLY=( $( compgen -W "$use" -- "$cur" ) )
     fi

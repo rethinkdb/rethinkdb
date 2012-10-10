@@ -1422,7 +1422,7 @@ void remove(value_sizer_t<void> *sizer, leaf_node_t *node, const btree_key_t *ke
             tstamp,
             false,
             &location_to_write_data)) {
-        *location_to_write_data = DELETE_ENTRY_CODE;
+        *location_to_write_data = static_cast<char>(DELETE_ENTRY_CODE);
         ++location_to_write_data;
         memcpy(location_to_write_data, key, key->full_size());
     }
