@@ -25,8 +25,6 @@ module 'NamespaceView', ->
             'click .namespace-pinning-link': 'change_pinning'
             'click .show-assignments': 'show_assignments'
             # operations in the dropdown menu
-            'click .operations .import-data':   'import_data'
-            'click .operations .export-data':   'export_data'
             'click .operations .rename':       'rename_namespace'
             'click .operations .delete':        'delete_namespace'
 
@@ -113,16 +111,6 @@ module 'NamespaceView', ->
             event.preventDefault()
             rename_modal = new UIComponents.RenameItemModal @model.get('id'), 'namespace'
             rename_modal.render()
-
-        # Import operation
-        import_data: (event) ->
-            event.preventDefault()
-            #TODO Implement
-
-        # Export operation
-        export_data: (event) ->
-            event.preventDefault()
-            #TODO Implement
 
         # Delete operation
         delete_namespace: (event) ->

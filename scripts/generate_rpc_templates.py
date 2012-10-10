@@ -37,7 +37,10 @@ def generate_async_message_template(nargs):
         for i in xrange(nargs):
             print "        const arg%d_t &arg%d;" % (i, i)
         print "    public:"
-        print "        explicit write_impl_t(" + csep("const arg#_t& _arg#") + ") :"
+        if nargs == 1:
+            print "        explicit write_impl_t(" + csep("const arg#_t& _arg#") + ") :"
+        else:
+            print "        write_impl_t(" + csep("const arg#_t& _arg#") + ") :"
         print "            " + csep("arg#(_arg#)")
         print "        { }"
     print "        void write(write_stream_t *stream) {"

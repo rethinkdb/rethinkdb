@@ -11,7 +11,7 @@
 </script>
 
 <script id="sidebar-client_connection_status-template" type="text/x-handlebars-template">
-    <div class="panel">
+    <div class="panel {{#if disconnected}}error{{/if}}">
         {{#if disconnected}}
         <h4>Disconnected</h4>
         {{else}}
@@ -22,7 +22,7 @@
 </script>
 
 <script id="sidebar-issues-template" type="text/x-handlebars-template">
-    <div class="panel {{#if num_issues}}has-issues{{else}}no-issues{{/if}}">
+    <div class="panel {{#if num_issues}}error{{/if}}">
         <h5>Issues</h5>
         {{#if num_issues}}
             <div class="error"></div>
@@ -58,21 +58,16 @@
 </script>
 
 <script id="sidebar-servers_connected-template" type="text/x-handlebars-template">
-    <div class="panel">
+    <div class="panel {{#if servers_not_reachable}}error{{/if}}">
         <h5>Servers</h5>
         <h4>{{servers_active}}/{{servers_total}} reachable</h4>
     </div>
 </script>
 
 <script id="sidebar-datacenters_connected-template" type="text/x-handlebars-template">
-    <div class="panel">
-        {{#if datacenters_exist}}
+    <div class="panel {{#if datacenters_not_reachable}}error{{/if}}">
         <h5>Datacenters</h5>
         <h4>{{datacenters_active}}/{{datacenters_total}} reachable</h4>
-        {{else}}
-        <h5>Machines of Universe</h5>
-        <h4>{{servers_active}}/{{servers_total}} reachable</h4>
-        {{/if}}
     </div>
 </script>
 

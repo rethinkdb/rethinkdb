@@ -81,7 +81,7 @@ struct distribution_get_query_t {
     distribution_get_query_t()
         : max_depth(0), result_limit(0), region(hash_region_t<key_range_t>::universe())
     { }
-    explicit distribution_get_query_t(int _max_depth, size_t _result_limit)
+    distribution_get_query_t(int _max_depth, size_t _result_limit)
         : max_depth(_max_depth), result_limit(_result_limit), region(hash_region_t<key_range_t>::universe())
     { }
 
