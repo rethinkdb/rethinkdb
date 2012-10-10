@@ -258,6 +258,8 @@ module 'NamespaceView', ->
 
         render_data_repartition: =>
             $('.tooltip').remove()
+
+            # Compute the data we need do draw the graph
             shards = []
             total_keys = 0
             for shard in @model.get('shards')
@@ -270,52 +272,51 @@ module 'NamespaceView', ->
             max_keys = d3.max shards, (d) -> return d.num_keys
             min_keys = d3.min shards, (d) -> return d.num_keys
 
-            #TODO remove data. We don't need it anymore.
-            data = {}
-            if shards.length > 1
-                data.has_shards = true
-                if shards.length > 9
-                    data.numerous_shards = true
-            else
-                data.has_shards = false
-
             if @model.get('key_distr')? and max_keys? and not _.isNaN max_keys and shards.length isnt 0 # Should not happen
 
-                @.$('.data_repartition-container').html @data_repartition_template data
+                @.$('.data_repartition-container').html @data_repartition_template()
                 @.$('.loading_text-diagram').css 'display', 'none'
-                margin_width = 20
-                margin_height = 20
 
-                margin_width_inner = 20
-                width = 28
-                margin_bar = 2
+                svg_width = 328 # Width of the whole svg
+                svg_height = 270 # Height of the whole svg
 
-                svg_height = 270
+                margin_width = 20 # Margin on left of the y-axis
+                margin_height = 20 # Margin under the x-axis
+                min_margin_width_inner = 20 # Min margin on the right of the y-axis
 
-                if data.numerous_shards? and data.numerous_shards is true
-                    svg_width = margin_width+margin_width_inner+(width+margin_bar)*@model.get('shards').length+margin_width_inner+margin_width
-                    svg_width = Math.min svg_width, 350
-                    width_and_margin = (svg_width-margin_width*2-margin_width_inner*2)/@model.get('shards').length
-                    width = width_and_margin/@model.get('shards').length*(@model.get('shards').length-2)
-                    margin_bar = width_and_margin/@model.get('shards').length*2
-                    container_width = svg_width
-                else
-                    svg_width = margin_width+margin_width_inner+(width+margin_bar)*@model.get('shards').length+margin_width_inner+margin_width
-                    container_width = Math.max svg_width, 350
+                # We have two special cases
+                if shards.length is 1
+                    bar_width = 100
+                    margin_bar = 20
+                else if shards.length is 2
+                    bar_width = 80
+                    margin_bar = 20
+                else #80% for the bar, 20% for the margin
+                    bar_width = Math.floor(0.8*(328-margin_width*2-min_margin_width_inner*2)/shards.length)
+                    margin_bar = Math.floor(0.2*(328-margin_width*2-min_margin_width_inner*2)/shards.length)
 
+                # size of all bars and white space between bars
+                width_of_all_bars = bar_width*shards.length + margin_bar*(shards.length-1)
+                
+                # Update the margin on the right of the y-axis
+                margin_width_inner = Math.floor((svg_width-margin_width*2-width_of_all_bars)/2)
 
-                @.$('.shard-graph').css('width', container_width+'px')
+                # Y scale
                 y = d3.scale.linear().domain([0, max_keys]).range([1, svg_height-margin_height*2.5])
 
+                # Add svg
                 svg = d3.select('.shard-diagram').attr('width', svg_width).attr('height', svg_height).append('svg:g')
+
+                # Add rectangle
                 svg.selectAll('rect').data(shards)
                     .enter()
                     .append('rect')
+                    .attr('class', 'rect')
                     .attr('x', (d, i) ->
-                        return margin_width+margin_width_inner+(width+margin_bar)*i
+                        return margin_width+margin_width_inner+bar_width*i+margin_bar*i
                     )
                     .attr('y', (d) -> return svg_height-y(d.num_keys)-margin_height-1) #-1 not to overlap with axe
-                    .attr('width', width)
+                    .attr('width', bar_width)
                     .attr( 'height', (d) -> return y(d.num_keys))
                     .attr( 'title', (d) ->
                         keys = $.parseJSON(d.boundaries)
@@ -334,8 +335,7 @@ module 'NamespaceView', ->
                     )
             
 
-                arrow_width = 4
-                arrow_length = 7
+                # Create axes
                 extra_data = []
                 extra_data.push
                     x1: margin_width
@@ -356,6 +356,7 @@ module 'NamespaceView', ->
                     .attr('y1', (d) -> return d.y1)
                     .attr('y2', (d) -> return d.y2)
 
+                # Create legend
                 axe_legend = []
                 axe_legend.push
                     x: margin_width
@@ -374,6 +375,35 @@ module 'NamespaceView', ->
                     .attr('y', (d) -> return d.y)
                     .attr('text-anchor', (d) -> return d.anchor)
                     .text((d) -> return d.string)
+                
+                # Create ticks
+                # First the tick's background
+                svg.selectAll('.cache').data(y.ticks(5))
+                    .enter()
+                    .append('rect')
+                    .attr('width', (d, i) ->
+                        if i is 0
+                            return 0 # We don't display 0
+                        return 4
+                    )
+                    .attr('height',18)
+                    .attr('x', margin_width-2)
+                    .attr('y', (d) -> svg_height-margin_height-y(d)-14)
+                    .attr('fill', '#fff')
+
+                # Then the actual tick's value
+                svg.selectAll('.rule').data(y.ticks(5))
+                    .enter()
+                    .append('text')
+                    .attr('x', margin_width)
+                    .attr('y', (d) -> svg_height-margin_height-y(d))
+                    .attr('text-anchor', "middle")
+                    .text((d, i) ->
+                        if i isnt 0
+                            return d # We don't display 0
+                        else
+                            return ''
+                    )
 
                 @.$('rect').tooltip
                     trigger: 'hover'
