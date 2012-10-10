@@ -81,7 +81,7 @@ module 'ServerView', ->
         # Callback that will be registered: updates the toolbar buttons based on how many machines have been selected
         update_toolbar_buttons: =>
             # We need to check which machines have been checked off to decide which buttons to enable/disable
-            @.$('.actions-bar a.btn.set-datacenter').toggleClass 'disabled', @check_can_change_datacenter()
+            @.$('.actions-bar .btn.set-datacenter').toggleClass 'disabled', @check_can_change_datacenter()
 
         check_can_change_datacenter: =>
             selected_machines = @get_selected_machines()
