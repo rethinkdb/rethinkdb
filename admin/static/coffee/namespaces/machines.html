@@ -16,7 +16,7 @@
         {{/each}}
       </ul>
       <p>* Replicas cannot be assigned to <a href="/#servers/{{primary_uuid}}">{{primary_name}}</a> because it's a master for this shard.</p>
-      <a id="btn_change_hints_cancel" href="#">Cancel</a>
+      <button class="btn" id="btn_change_hints_cancel" href="#">Cancel</button>
       {{else}}
       <h4>Current replica assignments:</h4>
       <ul>
@@ -24,7 +24,7 @@
         <li><a href="/#servers/{{uuid}}">{{name}}</a> {{humanize_machine_reachability status}}</li>
         {{/each}}
       </ul>
-      <a id="btn_change_hints" href="#">Change assignments</a>
+      <button class="btn" id="btn_change_hints" href="#">Change assignments</button>
       {{/if}}
     </div>
   </form>
@@ -44,11 +44,11 @@
           </select>
         </li>
       </ul>
-      <a id="btn_change_hints_cancel" href="#">Cancel</a>
+      <button class="btn" id="btn_change_hints_cancel" href="#">Cancel</button>
       {{else}}
       <h4>Current master assignment:</h4>
       <li><a href="/#servers/{{master_uuid}}">{{master_name}}</a> {{humanize_machine_reachability master_status}}</li>
-      <a id="btn_change_hints" href="#">Change assignment</a>
+      <button class="btn" id="btn_change_hints" href="#">Change assignment</button>
       {{/if}}
     </div>
   </form>

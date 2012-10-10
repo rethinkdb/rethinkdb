@@ -1996,6 +1996,9 @@ namespace_id_t admin_cluster_link_t::do_admin_create_table_internal(const std::s
     obj.shards.get_mutable() = shards;
     obj.shards.upgrade_version(change_request_id);
 
+    obj.ack_expectations.get_mutable()[primary] = 1;
+    obj.ack_expectations.upgrade_version(change_request_id);
+
     /* It's important to initialize this because otherwise it will be
     initialized with a default-constructed UUID, which doesn't initialize its
     contents, so Valgrind will complain. */

@@ -1,87 +1,66 @@
 <script id="namespace_view-container-template" type="text/x-handlebars-template">
-    <div class="full_profile">
+    <div id="table-view">
+        <div class="operations">
+            <div class="dropdown">
+                <button class="btn dropdown-toggle" data-toggle="dropdown">Operations</button>
+                <ul class="dropdown-menu">
+                    <li><a href="#" class="rename">Rename table</a></li>
+                    <li><a href="#" class="delete">Delete table</a></li> 
+                </ul>
+            </div>
+        </div>
+        <button class="btn show-assignments">Show servers used</button>
         <div class="main_title"></div>
-        <div class="two-panel-section section">
-            <div class="panel-left-unbalanced profile">
+        <div id="user-alert-space"></div>
+        <div class="section statistics">
+            <h2 class="title">Statistics</h3>
+            <div class="content row-fluid">
+                <div class="span4 profile"></div>
+                <div class="span8 performance-graph"></div>
+            </div>
         </div>
-        <div class="panel-right-unbalanced">
-            <h3 class="title">Performance</h3>
-            <div class="performance-graph"></div>
-        </div>
-      </div>
 
-    <ul class="nav nav-tabs">
-        <li class="active"><a href="#tables/{{namespace_id}}/shards" data-target="#namespace-sharding" id="namespace-overview-sharding" class="tab-link" data-toggle="tab">Shards</a></li>
-        <li><a href="#tables/{{namespace_id}}/replication" data-target="#namespace-replication" id="namespace-replication-link" class="tab-link" data-toggle="tab">Replication</a></li>
-        <li><a href="#tables/{{namespace_id}}/assignments" data-target="#namespace-pinning" id="namespace-pinning-link" class="tab-link" data-toggle="tab">Server assignments</a></li>
-        <li><a href="#tables/{{namespace_id}}/other" data-target="#namespace-other" id="namespace-other-link" class="tab-link" data-toggle="tab">Other operations</a></li>
-    </ul>
-
-    <div id="user-alert-space"></div>
-
-    <div class="tab-content">  
-        <div class="tab-pane active" id="namespace-sharding">
-            <div class="section sharding"></div>
-        </div>
-        <div class="tab-pane" id="namespace-replication">
-            <div class="section replication"></div>
-        </div>
-        <div class="tab-pane" id="namespace-pinning">
-            <div class="section pinning"></div>
-        </div>
-        <div class="tab-pane" id="namespace-other">
-            <div class="section other"></div>
+        <div class="row">
+            <div class="span5">
+                <div class="section sharding"></div>
+            </div>
+            <div class="span7">
+                <div class="section replication"></div>
+            </div>
         </div>
     </div>
 </script>
 
 <script id="namespace_view_title-template" type="text/x-handlebars-template">
-    <h1>Table overview for {{name}}</h1>
+    <h1 class="title">Table overview for {{name}}</h1>
 </script>
 
 <script id="namespace_view-profile-template" type="text/x-handlebars-template">
-    <h3 class="title">Table profile</h3>
-    <div class="section summary">
-        <p class="protocol">Protocol: {{protocol}}</p>
-    </div>
+    <div class="summary">
+        <div class="stat-row first">
+            <p class="availability"><span class="big">{{humanize_namespace_reachability reachability}} </span> and reachable</p>
+        </div>
+        <div class="stat-row">
+            <p class="masters"><span class="big">{{nashards}}/{{nshards}} </span> masters reachable</p>
+        </div>
+        <div class="stat-row">
+            <p class="replicas"><span class="big">{{nareplicas}}/{{nreplicas}} </span> replicas reachable</p>
+        </div>
+        <div class="stat-row">
+            {{#if total_keys_available}}
+            <p class="documents"><span class="big">~{{total_keys}} </span> documents</p>
+            {{else}}
+            <p class="documents">Loading...</p>
 
-    <div class="section summary">
-        <p>Status: {{humanize_namespace_reachability reachability}}</p>
-        <p>Shards: {{nshards}}</p>
-        <p>Masters: {{nashards}} of {{nshards}} reachable</p>
-        <p>Replicas: {{nareplicas}} of {{nreplicas}} reachable</p>
-        {{#if total_keys}}
-        <p>Data: {{total_keys}} documents</p>
-        {{else}}
-        <p>Data: Loading...</p>
-        {{/if}}
+            {{/if}}
+        </div>
+        <!--
+            TODO: review and remove this info. ALSO: reachability of masters and replicas were removed
         <p>Replication: {{> backfill_progress_summary}}</p>
         {{#unless stats_up_to_date}}
         <p>The stats displayed might not be up to date<br />
-            (One server might be overload with queries).</p>
+            (One server might be overloaded with queries).</p>
         {{/unless}}
-    </div>
-</script>
-
-
-<script id="namespace_other-template" type="text/x-handlebars-template">
-    <h3 class="title">Other operations</h3>
-    <div class="other_section rename_namespace">
-        <input type="button" class="btn other_button rename_namespace-button" value="Rename"/>
-        <p>Rename the table</p>
-    </div>
-    {{!
-    <div class="other_section import_data">
-        <input type="button" class="btn other_button import_data-button" value="Import"/>
-        <p>Import data</p>
-    </div>
-    <div class="other_section export_data-container">
-        <input type="button" class="btn other_button export_data-button" value="Export"/>
-        <p>Export data</p>
-    </div>
-    }}
-    <div class="other_section delete_namespace-container">
-        <input type="button" class="btn other_button delete_namespace-button" value="Delete"/>
-        <p>Delete the table</p>
+        -->
     </div>
 </script>

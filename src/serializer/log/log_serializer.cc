@@ -362,7 +362,12 @@ void log_serializer_t::block_read(const intrusive_ptr_t<ls_block_token_pointee_t
     rassert(state == state_ready);
     rassert(token_offsets.find(ls_token) != token_offsets.end());
 
-    const off64_t offset = token_offsets[ls_token];
+    rassert(state == state_ready);
+
+    std::map<ls_block_token_pointee_t *, off64_t>::const_iterator token_offsets_it = token_offsets.find(ls_token);
+    rassert(token_offsets_it != token_offsets.end());
+
+    const off64_t offset = token_offsets_it->second;
     data_block_manager->read(offset, buf, io_account, readcb);
 }
 
@@ -415,8 +420,9 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
                 if (token) {
                     ls_block_token_pointee_t *ls_token = token.get();
                     rassert(ls_token);
-                    rassert(token_offsets.find(ls_token) != token_offsets.end());
-                    offset = flagged_off64_t::make(token_offsets[ls_token]);
+                    std::map<ls_block_token_pointee_t *, off64_t>::const_iterator to_it = token_offsets.find(ls_token);
+                    rassert(to_it != token_offsets.end());
+                    offset = flagged_off64_t::make(to_it->second);
 
                     /* mark the life */
                     data_block_manager->mark_live(offset.get_value());
@@ -555,8 +561,9 @@ log_serializer_t::block_write(const void *buf, file_account_t *io_account) {
 
 void log_serializer_t::register_block_token(ls_block_token_pointee_t *token, off64_t offset) {
     assert_thread();
-    rassert(token_offsets.find(token) == token_offsets.end());
-    token_offsets[token] = offset;
+    DEBUG_VAR std::pair<std::map<ls_block_token_pointee_t *, off64_t>::iterator, bool> insert_res
+        = token_offsets.insert(std::make_pair(token, offset));
+    rassert(insert_res.second);
 
     const bool first_token_for_offset = offset_tokens.find(offset) == offset_tokens.end();
     if (first_token_for_offset) {
@@ -603,7 +610,7 @@ void log_serializer_t::unregister_block_token(ls_block_token_pointee_t *token) {
 
     token_offsets.erase(token_offset_it);
 
-    rassert(!(token_offsets.empty() ^ offset_tokens.empty()));
+    rassert(token_offsets.empty() == offset_tokens.empty());
     if (token_offsets.empty() && offset_tokens.empty() && state == state_shutting_down && shutdown_state == shutdown_waiting_on_block_tokens) {
 #ifndef NDEBUG
         expecting_no_more_tokens = true;
@@ -617,28 +624,28 @@ void log_serializer_t::remap_block_to_new_offset(off64_t current_offset, off64_t
     ASSERT_NO_CORO_WAITING;
 
     rassert(new_offset != current_offset);
-    bool have_to_update_gc = false;
-    {
-        typedef std::multimap<off64_t, ls_block_token_pointee_t *>::iterator ot_iter;
-        std::pair<ot_iter, ot_iter> range = offset_tokens.equal_range(current_offset);
 
-        while (range.first != range.second) {
-            have_to_update_gc = true;
-#ifndef NDEBUG
-            std::map<ls_block_token_pointee_t*, off64_t>::const_iterator token_offsets_iter = token_offsets.find(range.first->second);
-            rassert(token_offsets_iter != token_offsets.end());
-            rassert(token_offsets_iter->second == current_offset);
-#endif
-            token_offsets[range.first->second] = new_offset;
+    typedef std::multimap<off64_t, ls_block_token_pointee_t *>::iterator ot_iter;
+    std::pair<ot_iter, ot_iter> range = offset_tokens.equal_range(current_offset);
+
+    if (range.first != range.second) {
+        --range.second;
+
+        bool last_time = false;
+        while (!last_time) {
+            last_time = (range.first == range.second);
+            std::map<ls_block_token_pointee_t*, off64_t>::iterator token_offsets_iter = token_offsets.find(range.first->second);
+            guarantee(token_offsets_iter != token_offsets.end());
+            guarantee(token_offsets_iter->second == current_offset);
+
+            token_offsets_iter->second = new_offset;
             offset_tokens.insert(std::pair<off64_t, ls_block_token_pointee_t *>(new_offset, range.first->second));
 
             ot_iter prev = range.first;
             ++range.first;
             offset_tokens.erase(prev);
         }
-    }
 
-    if (have_to_update_gc) {
         data_block_manager->mark_token_garbage(current_offset);
         data_block_manager->mark_token_live(new_offset);
     }

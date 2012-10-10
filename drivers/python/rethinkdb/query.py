@@ -1651,3 +1651,4 @@ def error(msg=''):
 
 # this happens at the end since it's a circular import
 import internal
+

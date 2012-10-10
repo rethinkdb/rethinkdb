@@ -1,8 +1,11 @@
 <script id="dataexplorer_view-template" type="text/x-handlebars-template">
-    <h1 class="title status">Data Explorer</h1>
-    <div id="user-alert-space"></div>
-    <div class="input_query_full_container"></div>
-    <div class="results_container"></div>
+    <div class="section">
+        <h1 class="title">Data Explorer</h1>
+        <div id="user-alert-space"></div>
+        <div class="input_query_full_container"></div>
+    </div>
+    <div class="results_container section">
+    </div>
 </script>
 
 <script id="alert-connection_fail-template" type="text/x-handlebars-template">
@@ -21,17 +24,18 @@
 
 <script id="dataexplorer_input_query-template" type="text/x-handlebars-template">
     <div class="input_query_container" >
-        <textarea class="input_query" id="input_query"></textarea>
-        <div class="button_container">
-            <input type="button" value="execute" class="btn button_query execute_query" />
-            <input type="button" value="clear" class="btn button_query clear_query" />
+        <div class="suggestion_full_container">
+            <div class="suggestion_list_container">
+                <ul class="suggestion_name_list"></ul>
+            </div>
+            <div class="suggestion_description"></div>
         </div>
 
-        <div class="suggestion_full_container">
-        <div class="suggestion_list_container">
-            <ul class="suggestion_name_list"></ul>
-        </div>
-        <div class="suggestion_description"></div>
+
+        <textarea class="input_query" id="input_query"></textarea>
+        <div class="button_container">
+            <button class="btn button_query execute_query">Execute</button>
+            <button class="btn button_query clear_query">Clear</button>
         </div>
 
     </div>
@@ -91,10 +95,10 @@
 </script>
 
 <script id="dataexplorer-error-template" type="text/x-handlebars-template">
-    <h2>Error</h2>
-    <p>The following query could not be executed.</p>
-    <p class="query">{{query}}</p>
-    <p>Error: {{error}}</p>
+    <h1 class="title">Error</h1>
+    <p class="error">The following query could not be executed.</p>
+    <p class="error query">{{query}}</p>
+    <p class="error">Error: {{error}}</p>
 </script>
 
 <script id="dataexplorer_query_list-template" type="text/x-handlebars-template">
@@ -106,14 +110,19 @@
     <li class="query_element"><a href="#" class="old_query" data-query="{{query}}">{{query_summary}}</a></li>
 </script>
 
-
+<script id="dataexplorer_default_result_container-template" type="text/x-handlebars-template">
+    <div class="results_header">
+        <h1 class="title">Results</h1>
+        <p class="error">No query executed.</p>
+    </div>
+</script>
 <script id="dataexplorer_result_container-template" type="text/x-handlebars-template">
     <div class="results_header">
         <div class="options_container">
-            <input type="button" value="Full view" class="btn button_query change_size" />
+            <button class="btn button_query change_size">Full view</button> 
         </div>
 
-        <h2>Results</h2>
+        <h1 class="title">Results</h1>
         <p class="query_executed">For query: {{query}}</p>
         <p class="metadata"></p>
         
