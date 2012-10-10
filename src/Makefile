@@ -383,7 +383,7 @@ COFFEE_SOURCES:=$(patsubst %, $(WEB_SOURCE_DIR)/static/coffee/%,\
 			app.coffee)
 HANDLEBARS_SOURCES:=$(shell find $(WEB_SOURCE_DIR)/static/coffee -name '*.html')
 LESS_SOURCES:=$(shell find $(WEB_SOURCE_DIR)/static/less -name '*.less')
-LESS_MAIN:=$(WEB_SOURCE_DIR)/static/less/cluster.less
+LESS_MAIN:=$(WEB_SOURCE_DIR)/static/less/styles.less
 CLUSTER_HTML:=$(WEB_SOURCE_DIR)/templates/cluster.html
 JS_EXTERNAL_DIR:=$(WEB_SOURCE_DIR)/static/js
 IMAGES_EXTERNAL_DIR:=$(WEB_SOURCE_DIR)/static/images

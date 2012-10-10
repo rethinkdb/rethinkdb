@@ -1,302 +1,396 @@
 
 # Namespace view
 module 'NamespaceView', ->
-    # Replicas view
     class @Replicas extends Backbone.View
         className: 'namespace-replicas'
         template: Handlebars.compile $('#namespace_view-replica-template').html()
+        datacenter_list_template: Handlebars.compile $('#namespace_view-replica-datacenters_list-template').html()
         alert_tmpl: Handlebars.compile $('#changed_primary_dc-replica-template').html()
 
         events:
-            'click .edit_replicas': 'modify_replicas'
-            'click .make_primary': 'make_primary'
+            'click .nav_datacenter': 'handle_click_datacenter'
 
-        modify_replicas: (event) =>
+        initialize: =>
+            datacenters.on 'add', @render_list
+            datacenters.on 'remove', @render_list
+            datacenters.on 'reset', @render_list
+
+        render_list: =>
+            ordered_datacenters = _.map(datacenters.models, (datacenter) =>
+                id: datacenter.get('id')
+                name: if datacenter.get('name').length>8 then datacenter.get('name').slice(0, 8)+'...' else datacenter.get('name')
+                active: @model.get('primary_uuid') is datacenter.get('id')
+            )
+            ordered_datacenters = ordered_datacenters.sort (a, b) ->
+                if a.name > b.name
+                    return 1
+                else if a.name < b.name
+                    return -1
+                else
+                    return 0
+
+            ordered_datacenters.push
+                id: universe_datacenter.get('id')
+                name: universe_datacenter.get('name')
+                active: @model.get('primary_uuid') is universe_datacenter.get('id')
+                is_universe: true
+
+
+            @.$('.datacenters_list_container').html @datacenter_list_template
+                id: @model.get 'id'
+                datacenters: ordered_datacenters
+
+        handle_click_datacenter: (event) =>
             event.preventDefault()
-            datacenter_id = @.$(event.target).data 'id' #We do not let people change the number of replicas of Universe.
-            datacenter = datacenters.get datacenter_id
-            modal = new NamespaceView.ModifyReplicasModal @model, datacenter
-            modal.render()
 
-        initialize: ->
-            # @model is a namespace.  somebody is supposed to pass model: namespace to the constructor.
-            @model.on 'all', @render
-            directory.on 'all', @render
-            progress_list.on 'all', @render
-            log_initial '(initializing) namespace view: replica'
+            @render_datacenter @.$(event.target).data('datacenter_id')
+            @.$('.datacenter_tab').removeClass 'active'
+            @.$(event.target).parent().addClass 'active'
 
-        make_primary: (event) ->
-            event.preventDefault()
-            id = @.$(event.target).data('id')
-            if datacenters.get(id)?
-                new_dc = datacenters.get(id)
-            else
-                new_dc = universe_datacenter
+        render_datacenter: (datacenter_id) =>
+            @datacenter_id_shown = datacenter_id
+            @datacenter_view.destroy() if @datacenter_view?
+            @datacenter_view = new NamespaceView.DatacenterReplicas @datacenter_id_shown, @model
 
-            log_action 'make primary clicked'
-            modal = new UIComponents.ConfirmationDialogModal
-            # Increase replica affinities in the old primary
-            # datacenter by one, since we're gonna loose the
-            # primary replica. Decrease replica affinities in the
-            # new datacenter by one, for the same reason. We don't
-            # have to worry about this number going negative,
-            # since we can't make primary a datacenter with no
-            # replicas.
-
-            new_affinities = {}
-            if @model.get('primary_uuid') is universe_datacenter.get('id')
-                old_dc = universe_datacenter
-                new_affinities[old_dc.get('id')] = 0
-            else
-                old_dc = datacenters.get(@model.get('primary_uuid'))
-                new_affinities[old_dc.get('id')] = DataUtils.get_replica_affinities(@model.get('id'), old_dc.get('id')) + 1
-
-            new_affinities[new_dc.get('id')] = DataUtils.get_replica_affinities(@model.get('id'), new_dc.get('id')) - 1
-            primary_pinnings = {}
-            for shard of @model.get('primary_pinnings')
-                primary_pinnings[shard] = null
-            data =
-                primary_uuid: new_dc.get('id')
-                replica_affinities: new_affinities
-                primary_pinnings: primary_pinnings
-            modal.render("Are you sure you want to make datacenter " + new_dc.get('name') + " primary?",
-                "/ajax/semilattice/rdb_namespaces/" + @model.get('id'),
-                JSON.stringify(data),
-                (response) =>
-                    clear_modals()
-                    diff = {}
-                    diff[@model.get('id')] = response
-                    apply_to_collection(namespaces, add_protocol_tag(diff, "rdb"))
-                    # Grab the latest view of things
-                    $('#user-alert-space').html(@alert_tmpl
-                        namespace_uuid: @model.get('id')
-                        namespace_name: @model.get('name')
-                        datacenter_uuid: new_dc.get('id')
-                        datacenter_name: new_dc.get('name')
-                        old_datacenter_uuid: old_dc.get('id')
-                        old_datacenter_name: old_dc.get('name')
-                        )
-                )
+            @.$('.datacenter_content').html @datacenter_view.render().$el
 
         render: =>
-            found_universe = false
-            data = @model.toJSON()
-            if @model.get('primary_uuid') is universe_datacenter.get('id')
-                found_universe = true
-                data = _.extend data,
-                    primary:
-                        id: @model.get('primary_uuid')
-                        name: universe_datacenter.get('name')
-                        replicas: 1 # we're adding one because primary is also a replica
-                        total_machines: machines.length
-                        acks: DataUtils.get_ack_expectations(@model.get('id'), @model.get('primary_uuid'))
-                        is_universe: true
-                        #status: DataUtils.get_namespace_status(@model.get('id'), @model.get('primary_uuid'))
+            @.$el.html @template()
 
-            else
-                if not @model.get('primary_uuid')?
-                    primary_replica_count = 0
-                else
-                    primary_replica_count = @model.get('replica_affinities')[@model.get('primary_uuid')]
-                    if not primary_replica_count?
-                        primary_replica_count = 0
+            @render_list()
 
-                data = _.extend data,
-                    primary:
-                        id: @model.get('primary_uuid')
-                        name: datacenters.get(@model.get('primary_uuid')).get('name')
-                        replicas: primary_replica_count + 1 # we're adding one because primary is also a replica
-                        total_machines: DataUtils.get_datacenter_machines(@model.get('primary_uuid')).length
-                        acks: DataUtils.get_ack_expectations(@model.get('id'), @model.get('primary_uuid'))
-                        status: DataUtils.get_namespace_status(@model.get('id'), @model.get('primary_uuid'))
-
-            # Walk over json and add datacenter names to the model (in addition to datacenter ids)
-            secondary_affinities = {}
-            _.each @model.get('replica_affinities'), (replica_count, id) =>
-                if id != @model.get('primary_uuid') and replica_count > 0
-                    secondary_affinities[id] = replica_count
-                    if id is universe_datacenter.get('id')
-                        found_universe = true
-
-            # List of datacenters we're not replicating to
-            nothings = []
-            for dc in datacenters.models
-                is_primary = dc.get('id') is @model.get('primary_uuid')
-                is_secondary = dc.get('id') in _.map(secondary_affinities, (obj, id)->id)
-                if not is_primary and not is_secondary
-                    nothings.push
-                        id: dc.get('id')
-                        name: dc.get('name')
-
-            if found_universe is false
-                nothings.push
-                    id: universe_datacenter.get('id')
-                    name: universe_datacenter.get('name')
-                    is_universe: true
-
-            data = _.extend data,
-                secondaries:
-                    _.map secondary_affinities, (replica_count, uuid) =>
-                        if datacenters.get(uuid)?
-                            datacenter = datacenters.get(uuid)
-                        else
-                            datacenter = universe_datacenter
-                        id: uuid
-                        name: datacenter.get('name')
-                        is_universe: true if not datacenters.get(uuid)?
-                        replicas: replica_count
-                        total_machines: DataUtils.get_datacenter_machines(uuid).length
-                        acks: DataUtils.get_ack_expectations(@model.get('id'), uuid)
-                        status: DataUtils.get_namespace_status(@model.get('id'), uuid)
-                nothings: nothings
-
-            @.$el.html @template data
+            if not @current_tab?
+                @render_datacenter @model.get('primary_uuid')
 
             return @
 
-        destroy: ->
-            @model.off 'all', @render
-            directory.off 'all', @render
-            progress_list.off 'all', @render
+        destroy: =>
+            datacenters.off 'add', @render_list
+            datacenters.off 'remove', @render_list
+            datacenters.off 'reset', @render_list
 
-    # Modify replica counts and ack counts in each datacenter
-    class @ModifyReplicasModal extends UIComponents.AbstractModal
-        template: Handlebars.compile $('#modify_replicas-modal-template').html()
-        alert_tmpl: Handlebars.compile $('#modified_replica-alert-template').html()
-        class: 'modify-replicas'
+    class @DatacenterReplicas extends Backbone.View
+        className: 'datacenter_view'
+        template: Handlebars.compile $('#namespace_view-datacenter_replica-template').html()
+        edit_template: Handlebars.compile $('#namespace_view-edit_datacenter_replica-template').html()
+        error_template: Handlebars.compile $('#namespace_view-edit_datacenter_replica-error-template').html()
+        replicas_acks_success_template: Handlebars.compile $('#namespace_view-edit_datacenter_replica-success-template').html()
+        replication_complete_template: Handlebars.compile $('#namespace_view-edit_datacenter_replica-replication_done-template').html()
+        replication_status: Handlebars.compile $('#namespace_view-edit_datacenter_replica-replication_status-template').html()
+        replicas_ajax_error_template: Handlebars.compile $('#namespace_view-edit_datacenter_replica-ajax_error-template').html()
+        need_replicas_template: Handlebars.compile $('#need_replicas-template').html()
+        progress_bar_template: Handlebars.compile $('#backfill_progress_bar').html()
+        states: ['read_only', 'editable']
 
-        initialize: (namespace, datacenter) ->
-            log_initial '(initializing) modal dialog: modify replicas'
-            @namespace = namespace
-            @datacenter = datacenter
-            @total_machines = DataUtils.get_datacenter_machines(@datacenter.get('id')).length
-            @nreplicas = @adjustReplicaCount(DataUtils.get_replica_affinities(@namespace.get('id'), @datacenter.id), true)
-            @nacks = DataUtils.get_ack_expectations(@namespace.get('id'), @datacenter.get('id'))
-            super
+        events:
+            'click .close': 'remove_parent_alert'
+            'keyup #replicas_value': 'check_replicas_acks'
+            'keyup #acks_value': 'check_replicas_acks'
+            'click .make-primary.btn': 'make_primary'
+            'click .update-replicas.btn': 'submit_replicas_acks'
+            'click .edit.btn': 'edit'
+            'click .cancel.btn': 'cancel_edit'
 
-        # Simple utility function to generate JSON for a set of machines
-        machine_json: (machine_set) -> _.map machine_set, (machine) ->
-            id: machine.get('id')
-            name: machine.get('name')
+        initialize: (datacenter_id, model) =>
+            @model = model
+            @current_state = @states[0]
+            @data = ''
 
-        adjustReplicaCount: (numreplicas, is_output) ->
-            # If the datacenter is primary for this namespace,
-            # increment the number of replicas by one, since the
-            # primary is also a replica
-            if @namespace.get('primary_uuid') is @datacenter.get('id')
-                if is_output
-                    return numreplicas + 1
-                else
-                    return numreplicas - 1
+            if datacenter_id is universe_datacenter.get('id')
+                @datacenter = universe_datacenter
+            else if datacenters.get(datacenter_id)?
+                @datacenter = datacenters.get datacenter_id
+
+            @datacenter.on 'all', @render
+
+            @model.on 'change:replica_affinities', @compute_max_machines_and_render
+            @model.on 'change:primary_uuid', @compute_max_machines_and_render
+            @model.on 'change:primary_uuid', @render
+            progress_list.on 'all', @render_progress
+
+            @model.on 'change:blueprint', @render_status
+            directory.on 'all', @render_status
+            
+            @render_progress()
+            @compute_max_machines_and_render()
+
+        remove_parent_alert: (event) ->
+            event.preventDefault()
+            element = $(event.target).parent()
+            element.slideUp 'fast', -> element.remove()
+
+        edit: =>
+            @current_state = @states[1]
+            @render()
+
+        cancel_edit: =>
+            @current_state = @states[0]
+            @render()
+
+        render_progress: =>
+            progress_data = DataUtils.get_backfill_progress_agg @model.get('id'), @datacenter.get('id')
+
+            if progress_data? and _.isNaN(progress_data.percentage) is false
+                @is_backfilling = true
+                @.$('.progress_bar_full_container').slideDown 'fast'
+                @.$('.progress_bar_container').html @progress_bar_template progress_data
             else
-                return numreplicas
+                if @is_backfilling is true
+                    collect_server_data_once()
+                @is_backfilling = false
+                @.$('.progress_bar_container').empty()
+                @.$('.progress_bar_full_container').slideUp 'fast'
 
-        compute_json: ->
-            json =
-                namespace: @namespace.toJSON()
-                datacenter: @datacenter.toJSON()
-                num_replicas: @nreplicas
-                total_machines: @total_machines
-                num_acks: @nacks
-                modal_title: 'Modify replica settings'
-                btn_primary_text: 'Commit'
-            return json
+        render: =>
+            replicas_count = DataUtils.get_replica_affinities(@model.get('id'), @datacenter.get('id'))
+            if @model.get('primary_uuid') is @datacenter.get('id')
+                replicas_count++
 
-        render_inner: (error_msg, nreplicas_input, nacks_input) ->
-            log_render '(rendering) modify replicas dialog (inner)'
-            json = @compute_json()
-            if error_msg?
-                @reset_buttons()
-                json['error_msg'] = error_msg
-            if nreplicas_input?
-                json.nreplicas_input = nreplicas_input
-            if nacks_input?
-                json.nacks_input = nacks_input
-            @.$('.modal-body').html(@template json)
+            data =
+                name: @datacenter.get('name')
+                total_machines: machines.length
+                acks: DataUtils.get_ack_expectations(@model.get('id'), @datacenter.get('id'))
+                primary: true if @model.get('primary_uuid') is @datacenter.get('id')
+                replicas: replicas_count
+                editable: true if @current_state is @states[1]
 
-        render: ->
-            log_render '(rendering) modify replicas dialog (outer)'
-            super(@compute_json())
-            $('#focus_num_replicas').focus()
+            # Don't re-render if the data hasn't changed
+            if not _.isEqual(data, @data)
+                @data = data
+                @.$el.html @template data
 
-        on_submit: =>
-            super
-            formdata = form_data_as_object($('form', @$modal))
+            @render_status()
+
+            return @
+
+        compute_max_machines_and_render: =>
+            if @datacenter is universe_datacenter
+                @max_machines = machines.length
+                for datacenter_id of @model.get('replica_affinities')
+                    if datacenter_id isnt universe_datacenter.get('id')
+                        @max_machines -= @model.get('replica_affinities')[datacenter_id]
+                if @model.get('primary_uuid') isnt universe_datacenter.get('id')
+                    @max_machines -= 1
+            else
+                @max_machines = machines.length
+                for datacenter_id of @model.get('replica_affinities')
+                    if datacenter_id isnt @datacenter.get('id')
+                        @max_machines -= @model.get('replica_affinities')[datacenter_id]
+                if @model.get('primary_uuid') isnt @datacenter.get('id')
+                    @max_machines -= 1
+                
+                @need_explanation = @max_machines < DataUtils.get_datacenter_machines(@datacenter.get('id')).length
+                @max_machines = Math.min @max_machines, DataUtils.get_datacenter_machines(@datacenter.get('id')).length
+
+            if @current_state isnt @states[1]
+                @render()
+
+        alert_replicas_acks: (msg_errors) =>
+            @.$('.save_replicas_and_acks').prop 'disabled', 'disabled'
+            @.$('.replicas_acks-alert').html @error_template
+                msg_errors: msg_errors
+            @.$('.replicas_acks-alert').slideDown 'fast'
+
+        remove_alert_replicas_acks: =>
+            @.$('.save_replicas_and_acks').removeProp 'disabled'
+            @.$('.replicas_acks-alert').slideUp 'fast'
+            @.$('.replicas_acks-alert').html ''
+
+        check_replicas_acks: (event) =>
+            if event?.which? and event.which is 13
+                @submit_replicas_acks()
+
+            num_replicas = @.$('#replicas_value').val()
+            num_acks = @.$('#acks_value').val()
 
             # Validate first
             msg_error = []
-            if DataUtils.is_integer(formdata.num_replicas) is false
+            if num_replicas isnt '' and DataUtils.is_integer(num_replicas) is false
                 msg_error.push('The number of replicas must be an integer.')
-                nreplicas_input = formdata.num_replicas
-                nacks_input = formdata.num_acks
-            if DataUtils.is_integer(formdata.num_acks) is false
+            if num_acks isnt '' and DataUtils.is_integer(num_acks) is false
                 msg_error.push('The number of acks must be an integer.')
-                nreplicas_input = formdata.num_replicas
-                nacks_input = formdata.num_acks
-            if formdata.num_acks is "0"
-                msg_error.push('The number of acks must be greater than 0')
-                nreplicas_input = formdata.num_replicas
-                nacks_input = formdata.num_acks
-            if msg_error.length isnt 0
-                @render_inner msg_error, nreplicas_input, nacks_input
-                return
 
+            if msg_error.length isnt 0
+                @alert_replicas_acks msg_error
+                return false
+
+            num_replicas = parseInt num_replicas
+            num_acks = parseInt num_acks
             # It is now safe to use parseInt
-            nreplicas_input = parseInt(formdata.num_replicas)
-            nacks_input = parseInt(formdata.num_acks)
 
             msg_error = []
-            if nreplicas_input > @total_machines
-                msg_error.push('The number of replicas (' + nreplicas_input + ') cannot exceed the total number of machines (' + @total_machines + ').')
-            if nreplicas_input is 0 and @namespace.get('primary_uuid') is @datacenter.get('id')
-                msg_error.push('The number of replicas must be at least one because ' + @datacenter.get('name') + ' is the primary datacenter for this namespace.')
-            if nacks_input > nreplicas_input
-                msg_error.push('The number of acks (' + nacks_input + ') cannot exceed the total number of replicas (' + nreplicas_input + ').')
+            if num_replicas > @max_machines
+                msg_error.push('The number of replicas (' + num_replicas + ') cannot exceed the total number of machines (' + @max_machines + ').')
+            if num_replicas is 0 and @model.get('primary_uuid') is @datacenter.get('id')
+                msg_error.push('The number of replicas must be at least one because ' + @datacenter.get('name') + ' is the primary datacenter for this table.')
+            if num_acks > num_replicas
+                msg_error.push('The number of acks (' + num_acks + ') cannot exceed the total number of replicas (' + num_replicas + ').')
+            if num_acks is 0 and num_replicas > 0
+                msg_error.push('The value of acks must be greater than 0 if you have one replica or more.')
 
             if msg_error.length isnt 0
-                @render_inner msg_error, nreplicas_input, nacks_input
+                @alert_replicas_acks msg_error
+                return false
+
+            @remove_alert_replicas_acks()
+            return true
+
+        submit_replicas_acks: (event) =>
+            if @check_replicas_acks() is false
                 return
 
-            # No error, we can save the change on replicas/acks
-            @nreplicas = nreplicas_input
-            @nacks = nacks_input
-            # Generate json
-            replica_affinities_to_send = {}
-            replica_affinities_to_send[formdata.datacenter] = @adjustReplicaCount(@nreplicas, false)
-            ack_expectations_to_send = {}
-            ack_expectations_to_send[formdata.datacenter] = @nacks
+            num_replicas = parseInt @.$('#replicas_value').val()
+            num_acks = parseInt @.$('#acks_value').val()
+            # adjust the replica count to only include secondaries
+            if @model.get('primary_uuid') is @datacenter.get('id')
+                num_replicas -= 1
 
-            # prepare data for success template in case we succeed
-            @old_replicas = @adjustReplicaCount(DataUtils.get_replica_affinities(@namespace.get('id'), @datacenter.id), true)
-            @modified_replicas = @nreplicas isnt @old_replicas
-            @old_acks = DataUtils.get_ack_expectations(@namespace.get('id'), @datacenter.id)
-            @modified_acks = @nacks isnt @old_acks
-            @datacenter_uuid = formdata.datacenter
-            @datacenter_name = datacenters.get(@datacenter_uuid).get('name')
+            replica_affinities_to_send = {}
+            replica_affinities_to_send[@datacenter.get('id')] = num_replicas
+            ack_expectations_to_send = {}
+            ack_expectations_to_send[@datacenter.get('id')] = num_acks
+
+            @data_cached =
+                num_replicas: num_replicas
+                num_acks: num_acks
 
             $.ajax
                 processData: false
-                url: "/ajax/semilattice/#{@namespace.get("protocol")}_namespaces/#{@namespace.id}"
+                url: "/ajax/semilattice/#{@model.get("protocol")}_namespaces/#{@model.get('id')}"
                 type: 'POST'
                 contentType: 'application/json'
                 data: JSON.stringify
                     replica_affinities: replica_affinities_to_send
                     ack_expectations: ack_expectations_to_send
-                success: @on_success
+                success: @on_success_replicas_and_acks
                 error: @on_error
 
-        on_success: (response) =>
-            super
-            namespaces.get(@namespace.id).set(response)
-            if @modified_replicas or @modified_acks
-                $('#user-alert-space').html(@alert_tmpl
-                    modified_replicas: @modified_replicas
-                    old_replicas: @old_replicas
-                    new_replicas: @nreplicas
-                    modified_acks: @modified_acks
-                    old_acks: @old_acks
-                    new_acks: @nacks
-                    datacenter_uuid: @datacenter_uuid
-                    datacenter_name: @datacenter_name
-                    )
+        # Compute the status of all replicas
+        render_status: =>
+            # If the blueprint is not ready, we just skip it
+            blueprint = @model.get('blueprint').peers_roles
+            if not blueprint?
+                return ''
 
+            num_replicas_not_ready = 0
+            num_replicas_ready = 0
+
+            # Loop over the blueprint
+            for machine_id of blueprint
+                for shard of blueprint[machine_id]
+                    found_shard = false
+                    shard_ready = true
+
+                    role = blueprint[machine_id][shard]
+                    if role is 'role_nothing'
+                        continue
+
+                    if role is 'role_primary'
+                        expected_status = 'primary'
+                    else if role is 'role_secondary'
+                        expected_status = 'secondary_up_to_date'
+
+                    # Loop over directory
+                    activities = directory.get(machine_id)?.get(@model.get('protocol')+'_namespaces')?['reactor_bcards'][@model.get('id')]?['activity_map']
+                    if activities?
+                        for activity_id of activities
+                            activity = activities[activity_id]
+                            if activity[0] is shard
+                                found_shard = true
+                                if activity[1]['type'] isnt expected_status
+                                    shard_ready = false
+                                    break
+
+                    if found_shard is false or shard_ready is false
+                        num_replicas_not_ready++
+                    else
+                        num_replicas_ready++
+            data =
+                num_replicas_not_ready: num_replicas_not_ready
+                num_replicas_ready: num_replicas_ready
+                num_replicas: num_replicas_ready+num_replicas_not_ready
+            
+
+            @.$('.status_details').html @replication_status data
+            if @replicating? and @replicating is true
+                if num_replicas_not_ready is 0
+                    @replicating = false
+
+                    @.$('.status-alert').html @replication_complete_template()
+                    @.$('.status-alert').slideDown 'fast'
+
+            return data
+
+        on_success_replicas_and_acks: =>
+            window.collect_progress()
+            new_replicas = @model.get 'replica_affinities'
+            new_replicas[@datacenter.get('id')] = @data_cached.num_replicas
+            @model.set('replica_affinities', new_replicas)
+
+            new_acks = @model.get 'ack_expectations'
+            new_acks[@datacenter.get('id')] = @data_cached.num_acks
+            @model.set('ack_expectations', new_acks)
+
+            @current_state = @states[0]
+            @render()
+
+            @.$('.replicas_acks-alert').html @replicas_acks_success_template()
+            @.$('.replicas_acks-alert').slideDown 'fast'
+            # create listener + state
+            @replicating = true
+            @.$('.status-alert').hide()
+
+        on_error: =>
+            @.$('.replicas_acks-alert').html @replicas_ajax_error_template()
+            @.$('.replicas_acks-alert').slideDown 'fast'
+
+        make_primary: =>
+            new_dc = @datacenter
+
+            new_affinities = {}
+            if @model.get('primary_uuid') is universe_datacenter.get('id')
+                old_dc = universe_datacenter
+            else
+                old_dc = datacenters.get(@model.get('primary_uuid'))
+
+            new_affinities[old_dc.get('id')] = DataUtils.get_replica_affinities(@model.get('id'), old_dc.get('id')) + 1
+            new_affinities[new_dc.get('id')] = DataUtils.get_replica_affinities(@model.get('id'), new_dc.get('id')) - 1
+
+            primary_pinnings = {}
+            for shard of @model.get('primary_pinnings')
+                primary_pinnings[shard] = null
+
+            data =
+                primary_uuid: new_dc.get('id')
+                replica_affinities: new_affinities
+                primary_pinnings: primary_pinnings
+            
+            $.ajax
+                processData: false
+                url: "/ajax/semilattice/#{@model.get("protocol")}_namespaces/#{@model.get('id')}"
+                type: 'POST'
+                contentType: 'application/json'
+                data: JSON.stringify data
+                success: => @model.set data
+                error: @on_error
+
+        destroy: =>
+            @model.off 'change:replica_affinities', @compute_max_machines_and_render
+            @model.off 'change:primary_uuid', @compute_max_machines_and_render
+            @model.off 'change:primary_uuid', @render
+            progress_list.off 'all', @render_progress
+
+            @model.off 'change:blueprint', @render_status
+            directory.off 'all', @render_status
+
+    class @MachinesAssignmentsModal extends UIComponents.AbstractModal
+        render: =>
+            @pins = new NamespaceView.Pinning(model: @model)
+            $('#modal-dialog').html @pins.render().$el
+            modal = $('.modal').modal
+                'show': true
+                'backdrop': true
+                'keyboard': true
+
+            modal.on 'hidden', =>
+                modal.remove()

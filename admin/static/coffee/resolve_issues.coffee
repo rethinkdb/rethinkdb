@@ -2,54 +2,52 @@
 module 'ResolveIssuesView', ->
     # ResolveIssuesView.Container
     class @Container extends Backbone.View
-        className: 'resolve-issues'
+        id: 'resolve-issues'
+        className: 'section'
         template_outer: Handlebars.compile $('#resolve_issues-container-outer-template').html()
         template_inner: Handlebars.compile $('#resolve_issues-container-inner-template').html()
 
-
         events:
             'click .close': 'remove_parent_alert'
-
-        initialize: =>
-            log_initial '(initializing) resolve issues view: container'
-            issues.on 'all', (model, collection) => @render_issues()
-
-        render: ->
-            @.$el.html @template_outer
-            @render_issues()
-
-            return @
 
         remove_parent_alert: (event) ->
             event.preventDefault()
             element = $(event.target).parent()
             element.slideUp 'fast', -> element.remove()
 
+        initialize: =>
+            @issue_views = []
+            issues.on 'add', @render_issues
+            issues.on 'remove', @render_issues
+            issues.on 'reset', @render_issues
+        
+        render: =>
+            @.$el.html @template_outer
+            @render_issues()
 
-        # we're adding an inner render function to avoid rerendering
-        # everything (for example we need to not render the alert,
-        # otherwise it disappears)
-        render_issues: ->
+            return @
+
+        render_issues: =>
             @.$('#resolve_issues-container-inner-placeholder').html @template_inner
                 issues_exist: if issues.length > 0 then true else false
 
-            # TODO: We should use a collection instead. It's ok for now since there are not a lot of issues, but still we should change it later.
-            previous_issues_views = if @issue_views? then @issue_views else []
+            
+            for view in @issue_views # For safety, Issue doesn't bind any listeners on our main elements
+                view.destroy()
+
             @issue_views = [] 
             issues.each (issue) =>
                 @issue_views.push new ResolveIssuesView.Issue
                     model: issue
-
-            for view in previous_issues_views
-                view.destroy()
-
-            $issues = @.$('.issues').empty()
-            $issues.append view.render().el for view in @issue_views
+            for view in @issue_views
+                @.$('.issues').append view.render().$el
 
             return @
 
         destroy: =>
-            @unbind()
+            issues.off 'add', @render_issues
+            issues.off 'remove', @render_issues
+            issues.off 'reset', @render_issues
             for view in @issue_views
                 view.destroy()
 
@@ -260,10 +258,8 @@ module 'ResolveIssuesView', ->
 
         unknown_issue_template: Handlebars.compile $('#resolve_issues-unknown-template').html()
 
-        initialize: ->
-            log_initial '(initializing) resolve issues view: issue'
 
-        render_machine_down: (_template) ->
+        render_machine_down: (_template) =>
             machine = machines.get(@model.get('victim'))
 
             masters = []
@@ -290,14 +286,14 @@ module 'ResolveIssuesView', ->
                 masters: if _.isEmpty(masters) then null else masters
                 replicas: if _.isEmpty(replicas) then null else replicas
                 no_responsibilities: if (_.isEmpty(replicas) and _.isEmpty(masters)) then true else false
-                datetime: iso_date_from_unix_time @model.get('time')
+                datetime: @model.get('time')
                 critical: @model.get('critical')
 
             @.$el.html _template(json)
 
             # Declare machine dead handler
-            @.$('p a.btn').off "click"
-            @.$('p a.btn').click =>
+            @.$('.btn-solve').off "click"
+            @.$('.btn-solve').click =>
                 declare_dead_modal = new ResolveIssuesView.DeclareMachineDeadModal
                 declare_dead_modal.render machine
 
@@ -310,7 +306,7 @@ module 'ResolveIssuesView', ->
                     uuid: uuid
                     type: @model.get('contested_type')
                 )
-                datetime: iso_date_from_unix_time @model.get('time')
+                datetime: @model.get('time')
                 critical: @model.get('critical')
 
             @.$el.html _template(json)
@@ -326,23 +322,20 @@ module 'ResolveIssuesView', ->
                             contentType: 'application/json'
                             success: set_issues
                             async: false
-
-                        # rerender issue view (just the issues, not the whole thing)
-                        window.app.resolve_issues_view.render_issues()
                     )
                     rename_modal.render()
             )
 
         render_logfile_write_issue: (_template) ->
             json =
-                datetime: iso_date_from_unix_time @model.get('time')
+                datetime: @model.get('time')
                 critical: @model.get('critical')
                 machine_name: machines.get(@model.get('location')).get('name')
                 machine_uuid: @model.get('location')
             @.$el.html _template(json)
             # Declare machine dead handler
-            @.$('p a.btn').off "click"
-            @.$('p a.btn').click =>
+            @.$('.btn-solve').off "click"
+            @.$('.btn-solve').click =>
                 declare_dead_modal = new ResolveIssuesView.DeclareMachineDeadModal
                 declare_dead_modal.render machines.get(@model.get('location'))
 
@@ -364,12 +357,18 @@ module 'ResolveIssuesView', ->
                     @contestants = _.map response, (x, index) -> { value: x[1], contestant_id: index }
 
             # renderevsky
+            if @model.get('object_id') is universe_datacenter.get('id')
+                datacenter_name = universe_datacenter.get('name')
+            else if datacenters.get(@model.get('object_id'))?
+                datacenter_name = datacenters.get(@model.get('object_id')).get('name')
+            else
+                datacenter_name = "Not found datacenter"
             json =
-                datetime: iso_date_from_unix_time @model.get('time')
+                datetime: @model.get('time')
                 critical: @model.get('critical')
                 object_type: @model.get('object_type')
                 object_id: @model.get('object_id')
-                object_name: datacenters.get(@model.get('object_id')).get('name')
+                object_name: datacenter_name
                 field: @model.get('field')
                 name_contest: @model.get('field') is 'name'
                 contestants: @contestants
@@ -386,7 +385,7 @@ module 'ResolveIssuesView', ->
         render_unsatisfiable_goals: (_template) ->
             # render
             json =
-                datetime: iso_date_from_unix_time @model.get('time')
+                datetime: @model.get('time')
                 critical: @model.get('critical')
                 namespace_id: @model.get('namespace_id')
                 namespace_name: namespaces.get(@model.get('namespace_id')).get('name')
@@ -398,17 +397,22 @@ module 'ResolveIssuesView', ->
             else
                 for datacenter_id of @model.get('replica_affinities')
                     number_replicas = if datacenter_id is @model.get('primary_datacenter') then @model.get('replica_affinities')[datacenter_id]+1 else @model.get('replica_affinities')[datacenter_id]
-                    
+
+                    if datacenter_id is universe_datacenter.get('id')
+                        datacenter_name = universe_datacenter.get('name')
+                    else
+                        datacenter_name = datacenters.get(datacenter_id).get('name')
+
                     if number_replicas > @model.get('actual_machines_in_datacenters')[datacenter_id]
                         json.datacenters_with_issues.push
                             datacenter_id: datacenter_id
-                            datacenter_name: datacenters.get(datacenter_id).get('name')
+                            datacenter_name: datacenter_name
                             num_replicas: number_replicas
                             num_machines: @model.get('actual_machines_in_datacenters')[datacenter_id]
 
             @.$el.html _template(json)
             # bind resolution events
-            @.$('.solve_unsatisfiable_goals').click (event) =>
+            @.$('.btn-solve').click (event) =>
                 event.preventDefault()
                 resolve_modal = new ResolveIssuesView.ResolveUnsatisfiableGoal namespace, json.datacenters_with_issues
                 resolve_modal.render()
@@ -416,7 +420,7 @@ module 'ResolveIssuesView', ->
         render_machine_ghost: (_template) ->
             # render
             json =
-                datetime: iso_date_from_unix_time @model.get('time')
+                datetime: @model.get('time')
                 critical: @model.get('critical')
                 machine_id: @model.get('ghost')
                 machine_name: @model.get('ghost')
@@ -425,7 +429,7 @@ module 'ResolveIssuesView', ->
         render_port_conflict: (_template) ->
             # render
             json =
-                datetime: iso_date_from_unix_time @model.get('time')
+                datetime: @model.get('time')
                 critical: @model.get('critical')
                 machine_id: @model.get('location')
                 machine_name: machines.get(@model.get('location')).get('name')
@@ -436,6 +440,7 @@ module 'ResolveIssuesView', ->
             json =
                 issue_type: @model.get('type')
                 critical: @model.get('critical')
+                raw_data: @model.toJSON()
             @.$el.html _template(json)
 
         render: ->
