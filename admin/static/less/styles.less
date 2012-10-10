@@ -909,6 +909,20 @@ body:before {
     }
     .result_view{
         .error{ font-family: @sans; }
+        .error_details{
+            font-family: @monospace;
+            padding: 7px 10px;
+            border: 1px solid #CCC;
+            border-radius: 3px;
+            background: #EEE;
+        }
+        .query{
+            font-family: @monospace;
+            padding: 7px 10px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            background: #eee;
+        }
         .results_header{
             .options_container{
                 float: right;
@@ -948,13 +962,7 @@ body:before {
     }
     .helper_view { overflow: auto; }
     .nav-tabs > li { float: right; }
-    .query{
-        font-family: monospace;
-        padding: 7px 10px;
-        border: 1px solid #ccc;
-        border-radius: 3px;
-        background: #eee;
-    }
+
 
     .pagination_container{
         display: none;
