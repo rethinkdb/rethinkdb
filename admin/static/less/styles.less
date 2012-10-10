@@ -732,18 +732,24 @@ body:before {
         font-family: @serif;
         color: #4d535c;
         font-size: 19px;
-        margin-bottom: 25px;
+        border-bottom: thin solid #f0f0f0;
+        padding-bottom: 25px;
+        margin-bottom: 0;
     }
 
     ul.log-entries {
         list-style-type: none;
         padding-left: 0;
+        margin-top: 0;
 
         li.log-entry {
             color: #4d535c;
             border-top: thin solid #f0f0f0;
             background: left center no-repeat url('http://bit.ly/PyxKg4');//pencil-icon_big.png
             padding: 20px 0 20px 55px;
+            &:first-child {
+                border-top: 0;
+            }
             p { margin: 0; }
             .message {
                 font-size: 14px; 

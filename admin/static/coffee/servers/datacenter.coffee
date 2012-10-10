@@ -47,8 +47,8 @@ module 'DatacenterView', ->
                     filter[machine.get('id')] = true
 
             @logs = new LogView.Container
-                template_header: Handlebars.compile $('#log-header-datacenter-template').html()
                 filter: filter
+                type: 'datacenter'
 
             datacenters.on 'remove', @check_if_still_exists
         

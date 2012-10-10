@@ -3,62 +3,28 @@
         <div class="header"><h2 class="title">Log entries</h2></div>
         <ul class="log-entries"></ul>
         <div class="any-more-log-entries">
-            <div class="no-more-entries">No more log entries to show</div>
+            <p class="no-more-entries">No more log entries to show</p>
             <p><a href="#" class='next-log-entries'>Older log entries &raquo;</a></p>
         </div>
     </div>
 </script>
 
 <script id="log-header-template" type="text/x-handlebars-template">
-    {{#if from_date}}
-        <h1 class="title">Log entries <small>from {{from_date}} to {{to_date}}</small></h1>
-    {{else}}
-        <h1 class="title">No logs found</h1>
+    {{debug}}
+    {{#if logs_for.general}}
+        <h1 class="title">Log entries{{#if has_logs}} <small>from {{from_date}} to {{to_date}}</small>{{/if}}</h1>
     {{/if}}
-
+    {{#if logs_for.machine}}
+        <h2 class="title">Logs on this server{{#if has_logs}} <small>from {{from_date}} to {{to_date}}</small>{{/if}}</h2>
+    {{/if}}
+    {{#if logs_for.datacenter}}
+        <h2 class="title">Logs on this datacenter{{#if has_logs}} <small>from {{from_date}} to {{to_date}}</small>{{/if}}</h2>
+    {{/if}}
     {{#if new_entries}}
         <div class="alert">
             <button class="close" data-dismiss="alert">×</button>
             {{#if too_many_new_entries}}
-                <strong>More than {{max_log_entries}} new log entries have  been reported.</strong> <a class="update-log-entries" href="#">Reload logs</a>
-            {{else}}
-                <strong>{{num_new_entries}} new log {{pluralize_noun "entry" num_new_entries}} {{pluralize_verb_to_have num_new_entries}} just been reported.</strong> <a class="update-log-entries" href="#">Update entries</a>
-            {{/if}}
-        </div>
-    {{/if}}
-</script>
-
-<script id="log-header-machine-template" type="text/x-handlebars-template">
-    {{#if from_date}}
-        <h3 class="title">Log from this server <small>from {{from_date}} to {{to_date}}</small></h3>
-    {{else}}
-        <h3>No log found</h3>
-    {{/if}}
-
-    {{#if new_entries}}
-        <div class="alert">
-            <button class="close" data-dismiss="alert">×</button>
-            {{#if too_many_new_entries}}
-                <strong>More than {{max_log_entries}} new log entries have  been reported.</strong> <a class="update-log-entries" href="#">Reload logs</a>
-            {{else}}
-                <strong>{{num_new_entries}} new log {{pluralize_noun "entry" num_new_entries}} {{pluralize_verb_to_have num_new_entries}} just been reported.</strong> <a class="update-log-entries" href="#">Update entries</a>
-            {{/if}}
-        </div>
-    {{/if}}
-</script>
-
-<script id="log-header-datacenter-template" type="text/x-handlebars-template">
-    {{#if from_date}}
-        <h3 class="title">Log from this datacenter <small>from {{from_date}} to {{to_date}}</small></h3>
-    {{else}}
-        <h3>No log found</h3>
-    {{/if}}
-
-    {{#if new_entries}}
-        <div class="alert">
-            <button class="close" data-dismiss="alert">×</button>
-            {{#if too_many_new_entries}}
-                <strong>More than {{max_log_entries}} new log entries have  been reported.</strong> <a class="update-log-entries" href="#">Reload logs</a>
+                <strong>More than {{max_log_entries}} new log entries have been reported.</strong> <a class="update-log-entries" href="#">Reload logs</a>
             {{else}}
                 <strong>{{num_new_entries}} new log {{pluralize_noun "entry" num_new_entries}} {{pluralize_verb_to_have num_new_entries}} just been reported.</strong> <a class="update-log-entries" href="#">Update entries</a>
             {{/if}}

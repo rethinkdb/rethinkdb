@@ -5,6 +5,7 @@ module 'LogView', ->
         className: 'log-view'
         template: Handlebars.compile $('#log-container-template').html()
         header_template: Handlebars.compile $('#log-header-template').html()
+        type: 'general'
         max_log_entries: 20
         interval_update_log: 10000
 
@@ -19,16 +20,15 @@ module 'LogView', ->
             'click .next-log-entries': 'next_entries'
             'click .update-log-entries': 'update_log_entries'
 
-        initialize: (data) ->
+        initialize: ->
             log_initial '(initializing) events view: container'
 
-            if data?.route?
-                @route = data.route
-            if data?.template_header?
-                @header_template = data.template_header
-            if data?.filter?
-                @filter = data.filter
-
+            if @options.route?
+                @route = @options.route
+            if @options.type?
+                @type = @options.type
+            if @options.filter?
+                @filter = @options.filter
 
             @current_logs = []
             
@@ -36,6 +36,8 @@ module 'LogView', ->
 
         render: =>
             @.$el.html @template({})
+            # Initially, hide the message indicating no more entries are available. This will change depending on the results of the @fetch_log_entries call
+            @.$('.no-more-entries').hide()
 
             @fetch_log_entries
                 max_length: @max_log_entries
@@ -125,13 +127,18 @@ module 'LogView', ->
                     @render_header()
 
         render_header: =>
-             @.$('.header').html @header_template
+            @.$('.header').html @header_template
                 new_entries: @num_new_entries > 0
                 num_new_entries: @num_new_entries
                 too_many_new_entries: @num_new_entries > @max_log_entries
                 max_log_entries: @max_log_entries
+                has_logs: @current_logs.length > 0
                 from_date: new XDate(@current_logs[0]?.get('timestamp')*1000).toString("MMMM M, yyyy 'at' HH:mm:ss")
                 to_date: new XDate(@current_logs[@displayed_logs-1]?.get('timestamp')*1000).toString("MMMM M, yyyy 'at' HH:mm:ss")
+                logs_for:
+                    general:    @type is 'general'
+                    machine:    @type is 'machine'
+                    datacenter: @type is 'datacenter'
 
         update_log_entries: (event) =>
             event.preventDefault()

@@ -54,7 +54,7 @@ module 'MachineView', ->
             )
             @logs = new LogView.Container
                 route: "/ajax/log/"+@model.get('id')+"_?"
-                template_header: Handlebars.compile $('#log-header-machine-template').html()
+                type: 'machine'
 
             machines.on 'remove', @check_if_still_exists
 
