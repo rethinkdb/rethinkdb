@@ -536,6 +536,29 @@ module 'DataExplorerView', ->
                     @current_results.push data
                 return false
 
+        # Callback for multiple queries
+        callback_multiple_query: (data) =>
+            # If we get a run time error
+            if data instanceof rethinkdb.errors.RuntimeError
+                @.$('.loading_query_img').css 'display', 'none'
+                @.results_view.render_error(@query, data)
+                return false
+
+            @current_query_index++
+            if @current_query_index is @queries.length-1
+                if @cursor?
+                    @cursor.close()
+                @cursor = eval(@queries[@current_query_index])
+                @cursor.next(@callback_query)
+            else
+                if @cursor?
+                    @cursor.close()
+                @cursor = eval(@queries[@current_query_index])
+                @cursor.next(@callback_multiple_query)
+
+            return false
+           
+
         # Function triggered when the user click on 'more results'
         show_more_results: (event) =>
             try
@@ -575,14 +598,48 @@ module 'DataExplorerView', ->
 
             # Execute the query
             try
+                @queries = @separate_queries @query
                 @start_time = new Date()
-                @cursor = eval(@query)
                 @current_results = []
                 @skip_value = 0
-                @cursor.next(@callback_query)
+                if @queries.length > 1
+                    @current_query_index = 0
+                    @cursor = eval(@queries[@current_query_index])
+                    @cursor.next(@callback_multiple_query)
+                else
+                    @cursor = eval(@query)
+                    @cursor.next(@callback_query)
             catch err
                 @.$('.loading_query_img').css 'display', 'none'
                 @results_view.render_error(@query, err)
+
+        # Separate the queries so we can have an asychronous order
+        separate_queries: (query) =>
+            start = 0
+            count_dot = 0
+
+            is_string = false
+            char_used = ''
+            queries = []
+            for i in [0..query.length-1]
+                if is_string is false
+                    if (query[i] is '"' or query[i] is '\'')
+                        is_string = true
+                        char_used = query[i]
+                    else if query[i] is ';'
+                        queries.push query.slice start, i
+                        start = i+1
+                else if is_string is true
+                    if query[i] is char_used
+                        if query[i-1]? and query[i-1] is '\\'
+                            continue
+                        else
+                            is_string = false
+
+            last_query = query.slice start, query.length
+            if /^\s*$/.test(last_query) is false
+                queries.push query.slice start, query.length
+            return queries
 
         # Clear the input
         clear_query: =>
