@@ -63,7 +63,7 @@
 
 
 <script id="machine_list_element-quick_info-template" type="text/x-handlebars-template">
-    Primaries: {{primary_count}}, Secondaries: {{secondary_count}}, Tables: {{namespace_count}}
+    {{primary_count}} {{pluralize_noun "primary" primary_count}}, {{secondary_count}} {{pluralize_noun "secondary" secondary_count}}
 </script>
 
 <script id="machine_list_element-status-template" type="text/x-handlebars-template">

@@ -123,7 +123,7 @@ Handlebars.registerHelper 'display_reasons_cannot_move', (reasons) ->
                 else
                     out += ', <a href="#tables/'+namespace_id+'">'+namespace_name+'</a>'
             out += '.</li>'
-            
+
     return new Handlebars.SafeString(out)
 
 # If the two arguments are equal, show the inner block; else block is available
@@ -135,10 +135,11 @@ Handlebars.registerHelper 'ifequal', (val_a, val_b, if_block, else_block) ->
 
 # Helpers for pluralization of nouns and verbs
 Handlebars.registerHelper 'pluralize_noun', (noun, num, capitalize) ->
-    if num is 1 or num is 0
+    ends_with_y = noun.substr(-1) is 'y'
+    if num is 1 or (num is 0 and not ends_with_y)
         result = noun
     else
-        if noun.substr(-1) is 'y' and (noun isnt 'key')
+        if ends_with_y and (noun isnt 'key')
             result = noun.slice(0, noun.length - 1) + "ies"
         else if noun.substr(-1) is 's'
             result = noun + "es"
@@ -166,7 +167,7 @@ Handlebars.registerHelper 'humanize_role', (role) ->
         return new Handlebars.SafeString('<span class="secondary responsability secondary">Secondary</span>')
     if role is 'role_nothing'
         return new Handlebars.SafeString('<span class="secondary responsability nothing">Nothing</span>')
- 
+
     return role
 
 # Helpers for printing reachability
