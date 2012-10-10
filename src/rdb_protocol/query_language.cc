@@ -911,7 +911,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
             cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t change(&metadata.rdb_namespaces);
             change.get()->namespaces.insert(std::make_pair(namespace_id, ns));
         }
-        fill_in_blueprints(&metadata, directory_metadata->get(), env->this_machine);
+        fill_in_blueprints(&metadata, directory_metadata->get(), env->this_machine, false);
         env->semilattice_metadata->join(metadata);
 
         /* UGLY HACK BELOW.  SEE wait_for_rdb_table_readiness for more info. */

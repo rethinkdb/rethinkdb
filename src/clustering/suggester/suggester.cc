@@ -167,8 +167,8 @@ std::map<machine_id_t, blueprint_role_t> suggest_blueprint_for_shard(
         const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
         const std::set<machine_id_t> &primary_pinnings,
         const std::set<machine_id_t> &secondary_pinnings,
-        std::map<machine_id_t, int> *primary_usage,
-        std::map<machine_id_t, int> *secondary_usage) {
+        std::map<machine_id_t, int> *usage,
+        bool) {
 
     std::map<machine_id_t, blueprint_role_t> sub_blueprint;
 
@@ -190,7 +190,7 @@ std::map<machine_id_t, blueprint_role_t> suggest_blueprint_for_shard(
                                                     mt != unused_machines.end();
                                                     ++mt) {
             if (machine_data_centers.find(*mt)->second == primary_datacenter) {
-                primary_candidates.push(priority_for_machine(*mt, primary_pinnings, secondary_pinnings, *primary_usage, directory, shard));
+                primary_candidates.push(priority_for_machine(*mt, primary_pinnings, secondary_pinnings, *usage, directory, shard));
             }
         }
 
@@ -200,7 +200,7 @@ std::map<machine_id_t, blueprint_role_t> suggest_blueprint_for_shard(
         sub_blueprint[primary] = blueprint_role_primary;
 
         //Update primary_usage
-        get_with_default(*primary_usage, primary, 0)++;
+        get_with_default(*usage, primary, 0)++;
     }
 
 
@@ -214,14 +214,14 @@ std::map<machine_id_t, blueprint_role_t> suggest_blueprint_for_shard(
                                                     mt != unused_machines.end();
                                                     ++mt) {
             if (machine_data_centers.find(*mt)->second == it->first) {
-                secondary_candidates.push(priority_for_machine(*mt, secondary_pinnings, primary_pinnings, *secondary_usage, directory, shard));
+                secondary_candidates.push(priority_for_machine(*mt, secondary_pinnings, primary_pinnings, *usage, directory, shard));
             }
         }
         std::vector<machine_id_t> secondaries = pick_n_best(&secondary_candidates, it->second, it->first);
 
         for (std::vector<machine_id_t>::iterator jt = secondaries.begin(); jt != secondaries.end(); jt++) {
             //Update secondary usage
-            get_with_default(*secondary_usage, *jt, 0)++;
+            get_with_default(*usage, *jt, 0)++;
             sub_blueprint[*jt] = blueprint_role_secondary;
             unused_machines.erase(*jt);
         }
@@ -234,7 +234,7 @@ std::map<machine_id_t, blueprint_role_t> suggest_blueprint_for_shard(
         for (std::set<machine_id_t>::const_iterator mt  = unused_machines.begin();
                                                     mt != unused_machines.end();
                                                     ++mt) {
-            primary_candidates.push(priority_for_machine(*mt, primary_pinnings, secondary_pinnings, *primary_usage, directory, shard));
+            primary_candidates.push(priority_for_machine(*mt, primary_pinnings, secondary_pinnings, *usage, directory, shard));
         }
 
         machine_id_t primary = pick_n_best(&primary_candidates, 1, primary_datacenter).front();
@@ -249,13 +249,13 @@ std::map<machine_id_t, blueprint_role_t> suggest_blueprint_for_shard(
         for (std::set<machine_id_t>::const_iterator mt  = unused_machines.begin();
                                                     mt != unused_machines.end();
                                                     ++mt) {
-            secondary_candidates.push(priority_for_machine(*mt, secondary_pinnings, primary_pinnings, *secondary_usage, directory, shard));
+            secondary_candidates.push(priority_for_machine(*mt, secondary_pinnings, primary_pinnings, *usage, directory, shard));
         }
         std::vector<machine_id_t> secondaries = pick_n_best(&secondary_candidates, datacenter_affinities.find(nil_uuid())->second, nil_uuid());
 
         for (std::vector<machine_id_t>::iterator jt = secondaries.begin(); jt != secondaries.end(); jt++) {
             //Update secondary usage
-            get_with_default(*secondary_usage, *jt, 0)++;
+            get_with_default(*usage, *jt, 0)++;
             sub_blueprint[*jt] = blueprint_role_secondary;
             unused_machines.erase(*jt);
         }
@@ -279,7 +279,9 @@ persistable_blueprint_t<protocol_t> suggest_blueprint(
         const nonoverlapping_regions_t<protocol_t> &shards,
         const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
         const region_map_t<protocol_t, machine_id_t> &primary_pinnings,
-        const region_map_t<protocol_t, std::set<machine_id_t> > &secondary_pinnings) {
+        const region_map_t<protocol_t, std::set<machine_id_t> > &secondary_pinnings,
+        std::map<machine_id_t, int> *usage,
+        bool prioritize_distribution) {
 
     typedef region_map_t<protocol_t, machine_id_t> primary_pinnings_map_t;
     typedef region_map_t<protocol_t, std::set<machine_id_t> > secondary_pinnings_map_t;
@@ -287,7 +289,6 @@ persistable_blueprint_t<protocol_t> suggest_blueprint(
     persistable_blueprint_t<protocol_t> blueprint;
 
     //Maps to keep track of how much we're using each machine
-    std::map<machine_id_t, int> primary_usage, secondary_usage;
     for (typename nonoverlapping_regions_t<protocol_t>::iterator it = shards.begin();
             it != shards.end(); it++) {
         std::set<machine_id_t> machines_shard_primary_is_pinned_to;
@@ -311,8 +312,7 @@ persistable_blueprint_t<protocol_t> suggest_blueprint(
         std::map<machine_id_t, blueprint_role_t> shard_blueprint =
             suggest_blueprint_for_shard(directory, primary_datacenter, datacenter_affinities, *it,
                                         machine_data_centers, machines_shard_primary_is_pinned_to,
-                                        machines_shard_secondary_is_pinned_to, &primary_usage,
-                                        &secondary_usage);
+                                        machines_shard_secondary_is_pinned_to, usage, prioritize_distribution);
         for (typename std::map<machine_id_t, blueprint_role_t>::iterator jt = shard_blueprint.begin();
                 jt != shard_blueprint.end(); jt++) {
             blueprint.machines_roles[jt->first][*it] = jt->second;
@@ -333,7 +333,9 @@ persistable_blueprint_t<mock::dummy_protocol_t> suggest_blueprint<mock::dummy_pr
         const nonoverlapping_regions_t<mock::dummy_protocol_t> &shards,
         const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
         const region_map_t<mock::dummy_protocol_t, machine_id_t> &primary_pinnings,
-        const region_map_t<mock::dummy_protocol_t, std::set<machine_id_t> > &secondary_pinnings);
+        const region_map_t<mock::dummy_protocol_t, std::set<machine_id_t> > &secondary_pinnings,
+        std::map<machine_id_t, int> *usage,
+        bool prioritize_distribution);
 
 
 #include "memcached/protocol.hpp"
@@ -346,7 +348,9 @@ persistable_blueprint_t<memcached_protocol_t> suggest_blueprint<memcached_protoc
         const nonoverlapping_regions_t<memcached_protocol_t> &shards,
         const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
         const region_map_t<memcached_protocol_t, machine_id_t> &primary_pinnings,
-        const region_map_t<memcached_protocol_t, std::set<machine_id_t> > &secondary_pinnings);
+        const region_map_t<memcached_protocol_t, std::set<machine_id_t> > &secondary_pinnings,
+        std::map<machine_id_t, int> *usage,
+        bool prioritize_distribution);
 
 
 #include "rdb_protocol/protocol.hpp"
@@ -359,4 +363,6 @@ persistable_blueprint_t<rdb_protocol_t> suggest_blueprint<rdb_protocol_t>(
         const nonoverlapping_regions_t<rdb_protocol_t> &shards,
         const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
         const region_map_t<rdb_protocol_t, machine_id_t> &primary_pinnings,
-        const region_map_t<rdb_protocol_t, std::set<machine_id_t> > &secondary_pinnings);
+        const region_map_t<rdb_protocol_t, std::set<machine_id_t> > &secondary_pinnings,
+        std::map<machine_id_t, int> *usage,
+        bool prioritize_distribution);

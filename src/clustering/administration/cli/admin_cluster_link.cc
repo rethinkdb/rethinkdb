@@ -550,7 +550,7 @@ void admin_cluster_link_t::do_admin_pin_shard(const admin_command_parser_t::comm
         throw admin_cluster_exc_t("unexpected error, unrecognized table protocol");
     }
 
-    fill_in_blueprints(&cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id);
+    fill_in_blueprints(&cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id, false);
     if (!change_request.update(cluster_metadata)) {
         throw admin_retry_exc_t();
     }
@@ -774,7 +774,7 @@ void admin_cluster_link_t::do_admin_split_shard(const admin_command_parser_t::co
         throw admin_cluster_exc_t("invalid object type");
     }
 
-    fill_in_blueprints(&cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id);
+    fill_in_blueprints(&cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id, false);
     if (!change_request.update(cluster_metadata)) {
         throw admin_retry_exc_t();
     }
@@ -897,7 +897,7 @@ void admin_cluster_link_t::do_admin_merge_shard(const admin_command_parser_t::co
         throw admin_cluster_exc_t("invalid object type");
     }
 
-    fill_in_blueprints(&cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id);
+    fill_in_blueprints(&cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id, false);
     if (!change_request.update(cluster_metadata)) {
         throw admin_retry_exc_t();
     }
@@ -1847,7 +1847,7 @@ void admin_cluster_link_t::do_admin_create_database(const admin_command_parser_t
     database.name.get_mutable() = guarantee_param_0(data.params, "name");
     database.name.upgrade_version(change_request_id);
 
-    fill_in_blueprints(&cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id);
+    fill_in_blueprints(&cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id, false);
     if (!change_request.update(cluster_metadata)) {
         throw admin_retry_exc_t();
     }
@@ -1865,7 +1865,7 @@ void admin_cluster_link_t::do_admin_create_datacenter(const admin_command_parser
     datacenter.name.get_mutable() = guarantee_param_0(data.params, "name");
     datacenter.name.upgrade_version(change_request_id);
 
-    fill_in_blueprints(&cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id);
+    fill_in_blueprints(&cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id, false);
     if (!change_request.update(cluster_metadata)) {
         throw admin_retry_exc_t();
     }
@@ -1960,7 +1960,7 @@ void admin_cluster_link_t::do_admin_create_table(const admin_command_parser_t::c
         throw admin_parse_exc_t("unrecognized protocol: " + protocol);
     }
 
-    fill_in_blueprints(&cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id);
+    fill_in_blueprints(&cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id, false);
     if (!change_request.update(cluster_metadata)) {
         throw admin_retry_exc_t();
     }
@@ -2044,7 +2044,7 @@ void admin_cluster_link_t::do_admin_set_primary(const admin_command_parser_t::co
         throw admin_cluster_exc_t("target object is not a table");
     }
 
-    fill_in_blueprints(&cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id);
+    fill_in_blueprints(&cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id, false);
     if (!change_request.update(cluster_metadata)) {
         throw admin_retry_exc_t();
     }
@@ -2071,7 +2071,7 @@ void admin_cluster_link_t::do_admin_unset_primary(const admin_command_parser_t::
         throw admin_cluster_exc_t("target object is not a table");
     }
 
-    fill_in_blueprints(&cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id);
+    fill_in_blueprints(&cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id, false);
     if (!change_request.update(cluster_metadata)) {
         throw admin_retry_exc_t();
     }
@@ -2098,7 +2098,7 @@ void admin_cluster_link_t::do_admin_set_datacenter(const admin_command_parser_t:
         throw admin_cluster_exc_t("target object is not a machine");
     }
 
-    fill_in_blueprints(&cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id);
+    fill_in_blueprints(&cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id, false);
     if (!change_request.update(cluster_metadata)) {
         throw admin_retry_exc_t();
     }
@@ -2118,7 +2118,7 @@ void admin_cluster_link_t::do_admin_unset_datacenter(const admin_command_parser_
         throw admin_cluster_exc_t("target object is not a machine");
     }
 
-    fill_in_blueprints(&cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id);
+    fill_in_blueprints(&cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id, false);
     if (!change_request.update(cluster_metadata)) {
         throw admin_retry_exc_t();
     }
@@ -2152,7 +2152,7 @@ void admin_cluster_link_t::do_admin_set_database(const admin_command_parser_t::c
         throw admin_cluster_exc_t("target object is not a machine");
     }
 
-    fill_in_blueprints(&cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id);
+    fill_in_blueprints(&cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id, false);
     if (!change_request.update(cluster_metadata)) {
         throw admin_retry_exc_t();
     }
@@ -2294,7 +2294,7 @@ void admin_cluster_link_t::do_admin_set_name(const admin_command_parser_t::comma
         throw admin_cluster_exc_t("unrecognized object type");
     }
 
-    fill_in_blueprints(&cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id);
+    fill_in_blueprints(&cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id, false);
     if (!change_request.update(cluster_metadata)) {
         throw admin_retry_exc_t();
     }
@@ -2368,7 +2368,7 @@ void admin_cluster_link_t::do_admin_set_acks(const admin_command_parser_t::comma
         throw admin_parse_exc_t(guarantee_param_0(data.params, "table") + " is not a table");
     }
 
-    fill_in_blueprints(&cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id);
+    fill_in_blueprints(&cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id, false);
     if (!change_request.update(cluster_metadata)) {
         throw admin_retry_exc_t();
     }
@@ -2457,7 +2457,7 @@ void admin_cluster_link_t::do_admin_set_replicas(const admin_command_parser_t::c
         throw admin_parse_exc_t(guarantee_param_0(data.params, "table") + " is not a table");  // TODO(sam): Check if this function body is copy/paste'd.
     }
 
-    fill_in_blueprints(&cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id);
+    fill_in_blueprints(&cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id, false);
     if (!change_request.update(cluster_metadata)) {
         throw admin_retry_exc_t();
     }
@@ -2586,7 +2586,7 @@ void admin_cluster_link_t::do_admin_remove_internal(const std::string& obj_type,
     }
 
     if (do_update) {
-        fill_in_blueprints(&cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id);
+        fill_in_blueprints(&cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id, false);
         if (!change_request.update(cluster_metadata)) {
             throw admin_retry_exc_t();
         }
@@ -3239,7 +3239,7 @@ void admin_cluster_link_t::do_admin_resolve(const admin_command_parser_t::comman
         throw admin_cluster_exc_t("unexpected object type encountered: " + obj_info->path[0]);
     }
 
-    fill_in_blueprints(&cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id);
+    fill_in_blueprints(&cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id, false);
     if (!change_request.update(cluster_metadata)) {
         throw admin_retry_exc_t();
     }
