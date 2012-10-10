@@ -2,6 +2,44 @@
 
 #include "protocol_api.hpp"
 
+template <class protocol_t>
+bool valid_regions_helper(const std::vector<typename protocol_t::region_t> &regionvec,
+                          const std::set<typename protocol_t::region_t> &regionset) {
+    // Disallow empty regions.
+    if (regionset.find(typename protocol_t::region_t()) != regionset.end()) {
+        return false;
+    }
+
+    // Require that the regions join to the universe.
+    typename protocol_t::region_t should_be_universe;
+    region_join_result_t res = region_join(regionvec, &should_be_universe);
+    if (res != REGION_JOIN_OK || should_be_universe != protocol_t::region_t::universe()) {
+        return false;
+    }
+
+    return true;
+}
+
+template <class protocol_t>
+bool nonoverlapping_regions_t<protocol_t>::set_regions(const std::vector<typename protocol_t::region_t> &regions) {
+    std::set<typename protocol_t::region_t> regionset(regions.begin(), regions.end());
+
+    // Disallow duplicate regions.
+    if (regionset.size() != regions.size() || !valid_regions_helper<protocol_t>(regions, regionset)) {
+        return false;
+    }
+
+    regions_ = regionset;
+    return true;
+}
+
+template <class protocol_t>
+bool nonoverlapping_regions_t<protocol_t>::valid_for_sharding() const {
+    std::vector<typename protocol_t::region_t> regionvec(regions_.begin(), regions_.end());
+
+    return valid_regions_helper<protocol_t>(regionvec, regions_);
+}
+
 // TODO: Ugh, this is O(n)!  Oh well.
 template <class protocol_t>
 bool nonoverlapping_regions_t<protocol_t>::add_region(const typename protocol_t::region_t &region) {
@@ -41,16 +79,15 @@ template <class protocol_t>
 void apply_json_to(cJSON *change, nonoverlapping_regions_t<protocol_t> *target) THROWS_ONLY(schema_mismatch_exc_t) {
     nonoverlapping_regions_t<protocol_t> res;
     json_array_iterator_t it = get_array_it(change);
+    std::vector<typename protocol_t::region_t> regions;
     for (cJSON *val; (val = it.next()); ) {
         typename protocol_t::region_t region;
         apply_json_to(val, &region);
-        if (!res.add_region(region)) {
-            throw schema_mismatch_exc_t("Sharding spec has overlapping regions.");
-        }
+        regions.push_back(region);
     }
 
-    if (res.size() == 0) {
-        throw schema_mismatch_exc_t("Sharding spec has no regions.");
+    if (!res.set_regions(regions)) {
+        throw schema_mismatch_exc_t("Sharding spec is invalid (regions overlap, empty regions exist, or they do not cover all keys).");
     }
 
     *target = res;
