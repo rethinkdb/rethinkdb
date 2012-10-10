@@ -280,11 +280,22 @@ body:before {
         }
     }
 
-    .client-connection-status { background: url('http://bit.ly/PyxJc3') no-repeat left center; }//status_panel-icon_1.png
-    .no-issues { background: url('http://bit.ly/PyxJJe') no-repeat left center; }//status_panel-icon_2.png
-    .has-issues { background: url('http://bit.ly/RCksTG') no-repeat left center; }//status_panel-icon_2-error.png
-    .servers-connected { background: url('http://bit.ly/RCksTE') no-repeat left center; }//status_panel-icon_3.png
-    .datacenters-connected { background: url('http://bit.ly/RCkyLc') no-repeat left center; }//status_panel-icon_4.png
+    .client-connection-status .panel {
+        background: url('http://bit.ly/PyxJc3') no-repeat left center; //status_panel-icon_1.png
+        &.error { background: url('http://bit.ly/QcqgSD') no-repeat left center; }//status_panel-icon_1-error.png
+    }
+    .issues .panel {
+        background: url('http://bit.ly/PyxJJe') no-repeat left center; //status_panel-icon_2.png
+        &.error { background: url('http://bit.ly/RCksTG') no-repeat left center; }//status_panel-icon_2-error.png
+    }
+    .servers-connected .panel {
+        background: url('http://bit.ly/RCksTE') no-repeat left center; //status_panel-icon_3.png
+        &.error { background: url('http://bit.ly/TuK5bD') no-repeat left center; }//status_panel-icon_3-error.png
+    }
+    .datacenters-connected .panel {
+        background: url('http://bit.ly/RCkyLc') no-repeat left center; //status_panel-icon_4.png
+        &.error { background: url('http://bit.ly/QcqgSA') no-repeat left center; }//status_panel-icon_4-error.png
+    }
 
     .issues-banner {
         background-color: #db4947;

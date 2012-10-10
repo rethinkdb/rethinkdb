@@ -79,6 +79,7 @@ module 'Sidebar', ->
             data =
                 servers_active: servers_active
                 servers_total: machines.length
+                servers_not_reachable: servers_active < machines.length
 
             data_in_json = JSON.stringify data
             if @data isnt data_in_json
@@ -104,26 +105,16 @@ module 'Sidebar', ->
             @data = ''
 
         compute_connectivity: =>
-            if datacenters.length > 0
-                dc_visible = []
-                directory.each (m) =>
-                    _m = machines.get(m.get('id'))
-                    if _m and _m.get('datacenter_uuid') and _m.get('datacenter_uuid') isnt universe_datacenter.get('id')
-                        dc_visible.push _m.get('datacenter_uuid')
-                dc_visible = _.uniq(dc_visible)
-                conn =
-                    datacenters_exist: true
-                    datacenters_active: dc_visible.length
-                    datacenters_total: datacenters.models.length
-            else
-                servers_active = 0
-                for machine in directory.models
-                    if directory.get(machine.get('id'))? # Clean ghost
-                        servers_active++
-                conn =
-                    datacenters_exist: false
-                    servers_active: servers_active
-                    servers_total: machines.length
+            dc_visible = []
+            directory.each (m) =>
+                _m = machines.get(m.get('id'))
+                if _m and _m.get('datacenter_uuid') and _m.get('datacenter_uuid') isnt universe_datacenter.get('id')
+                    dc_visible.push _m.get('datacenter_uuid')
+            dc_visible = _.uniq(dc_visible)
+            conn =
+                datacenters_active: dc_visible.length
+                datacenters_total: datacenters.models.length
+                datacenters_not_reachable: dc_visible.length < datacenters.length
 
             return conn
 
