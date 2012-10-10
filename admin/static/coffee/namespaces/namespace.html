@@ -49,8 +49,8 @@
             <p class="replicas"><span class="big">{{nareplicas}}/{{nreplicas}} </span> replicas reachable</p>
         </div>
         <div class="stat-row">
-            {{#if total_keys}}
-            <p class="documents"><span class="big">{{total_keys}} </span> documents</p>
+            {{#if total_keys_available}}
+            <p class="documents"><span class="big">~{{total_keys}} </span> documents</p>
             {{else}}
             <p class="documents">Loading...</p>
 

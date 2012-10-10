@@ -49,7 +49,7 @@ module 'NamespaceView', ->
             )
 
             namespaces.on 'remove', @check_if_still_exists
-        
+
         check_if_still_exists: =>
             exist = false
             for namespace in namespaces.models
@@ -63,7 +63,7 @@ module 'NamespaceView', ->
         change_route: (event) =>
             # Because we are using bootstrap tab. We should remove them later. TODO
             window.router.navigate @.$(event.target).attr('href')
- 
+
         render: =>
             log_render '(rendering) namespace view: container'
 
@@ -118,7 +118,7 @@ module 'NamespaceView', ->
         import_data: (event) ->
             event.preventDefault()
             #TODO Implement
-        
+
         # Export operation
         export_data: (event) ->
             event.preventDefault()
@@ -129,7 +129,7 @@ module 'NamespaceView', ->
             event.preventDefault()
             remove_namespace_dialog = new NamespaceView.RemoveNamespaceModal
             namespace_to_delete = @model
-        
+
             remove_namespace_dialog.on_success = (response) =>
                 window.router.navigate '#tables'
                 window.app.index_namespaces
@@ -154,7 +154,7 @@ module 'NamespaceView', ->
         initialize: ->
             @name = @model.get('name')
             @model.on 'change:name', @update
-        
+
         update: =>
             if @name isnt @model.get('name')
                 @name = @model.get('name')
@@ -192,7 +192,11 @@ module 'NamespaceView', ->
                 json.reachability = false
 
             #Compute the total number of keys
+            json.total_keys_available = false
             if @model.get('key_distr')?
+                # we can't use 'total_keys' because we need to
+                # distinguish between zero and unavailable.
+                json.total_keys_available = true
                 json.total_keys = 0
                 for key of @model.get('key_distr')
                     json.total_keys += parseInt @model.get('key_distr')[key]
@@ -207,7 +211,7 @@ module 'NamespaceView', ->
             @.$el.html @template json
 
             return @
-        
+
         destroy: =>
             @model.off 'all', @render
             directory.off 'all', @render
