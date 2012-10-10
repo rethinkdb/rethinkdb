@@ -13,13 +13,16 @@ struct priority_t {
     bool would_rob_secondary;
     int redundancy_cost;
     float backfill_cost;
+    bool prioritize_distribution;
 
     priority_t() { }  // TODO: fix priority_queue_t
 
     priority_t(machine_id_t _machine_id, bool _pinned, bool _would_rob_secondary,
-               int _redundancy_cost, float _backfill_cost)
+               int _redundancy_cost, float _backfill_cost,
+               bool _prioritize_distribution)
         : machine_id(_machine_id), pinned(_pinned), would_rob_secondary(_would_rob_secondary),
-          redundancy_cost(_redundancy_cost), backfill_cost(_backfill_cost)
+          redundancy_cost(_redundancy_cost), backfill_cost(_backfill_cost),
+          prioritize_distribution(_prioritize_distribution)
     { }
 };
 
@@ -44,20 +47,44 @@ bool operator<(const priority_t &x, const priority_t &y) {
         return false;
     }
 
-    //Round 3: Redundancy.
-    //F I G H T
-    if (x.redundancy_cost < y.redundancy_cost) {
-        return false;
-    } else if (y.redundancy_cost < x.redundancy_cost) {
-        return true;
-    }
+    if (x.prioritize_distribution) {
+        //Makes sure no one is doing anything insane
+        guarantee(y.prioritize_distribution);
 
-    //Round 4: Backfill cost.
-    //F I G H T
-    if (x.backfill_cost < y.backfill_cost) {
-        return false;
-    } else if (y.backfill_cost < x.backfill_cost) {
-        return true;
+        //Round 3: Redundancy.
+        //F I G H T
+        if (x.redundancy_cost < y.redundancy_cost) {
+            return false;
+        } else if (y.redundancy_cost < x.redundancy_cost) {
+            return true;
+        }
+
+        //Round 4: Backfill cost.
+        //F I G H T
+        if (x.backfill_cost < y.backfill_cost) {
+            return false;
+        } else if (y.backfill_cost < x.backfill_cost) {
+            return true;
+        }
+    } else {
+        //Makes sure no one is doing anything insane
+        guarantee(!y.prioritize_distribution);
+
+        //Round 3: Backfill cost.
+        //F I G H T
+        if (x.backfill_cost < y.backfill_cost) {
+            return false;
+        } else if (y.backfill_cost < x.backfill_cost) {
+            return true;
+        }
+
+        //Round 4: Redundancy.
+        //F I G H T
+        if (x.redundancy_cost < y.redundancy_cost) {
+            return false;
+        } else if (y.redundancy_cost < x.redundancy_cost) {
+            return true;
+        }
     }
 
     //You Lose!!
@@ -144,7 +171,8 @@ template <class protocol_t>
 priority_t priority_for_machine(machine_id_t id, const std::set<machine_id_t> &positive_pinnings,
                                 const std::set<machine_id_t> &negative_pinnings, const std::map<machine_id_t, int> &usage,
                                 const std::map<machine_id_t, reactor_business_card_t<protocol_t> > &directory,
-                                const typename protocol_t::region_t &shard) {
+                                const typename protocol_t::region_t &shard,
+                                bool prioritize_distribution) {
     bool pinned = std_contains(positive_pinnings, id);
     bool would_rob_someone = std_contains(negative_pinnings, id);
     int redundancy_cost = const_get_with_default(usage, id, 0);
@@ -155,7 +183,7 @@ priority_t priority_for_machine(machine_id_t id, const std::set<machine_id_t> &p
         backfill_cost = 3.0;
     }
 
-    return priority_t(id, pinned, would_rob_someone, redundancy_cost, backfill_cost);
+    return priority_t(id, pinned, would_rob_someone, redundancy_cost, backfill_cost, prioritize_distribution);
 }
 
 template<class protocol_t>
@@ -168,7 +196,7 @@ std::map<machine_id_t, blueprint_role_t> suggest_blueprint_for_shard(
         const std::set<machine_id_t> &primary_pinnings,
         const std::set<machine_id_t> &secondary_pinnings,
         std::map<machine_id_t, int> *usage,
-        bool) {
+        bool prioritize_distribution) {
 
     std::map<machine_id_t, blueprint_role_t> sub_blueprint;
 
@@ -190,7 +218,7 @@ std::map<machine_id_t, blueprint_role_t> suggest_blueprint_for_shard(
                                                     mt != unused_machines.end();
                                                     ++mt) {
             if (machine_data_centers.find(*mt)->second == primary_datacenter) {
-                primary_candidates.push(priority_for_machine(*mt, primary_pinnings, secondary_pinnings, *usage, directory, shard));
+                primary_candidates.push(priority_for_machine(*mt, primary_pinnings, secondary_pinnings, *usage, directory, shard, prioritize_distribution));
             }
         }
 
@@ -214,7 +242,7 @@ std::map<machine_id_t, blueprint_role_t> suggest_blueprint_for_shard(
                                                     mt != unused_machines.end();
                                                     ++mt) {
             if (machine_data_centers.find(*mt)->second == it->first) {
-                secondary_candidates.push(priority_for_machine(*mt, secondary_pinnings, primary_pinnings, *usage, directory, shard));
+                secondary_candidates.push(priority_for_machine(*mt, secondary_pinnings, primary_pinnings, *usage, directory, shard, prioritize_distribution));
             }
         }
         std::vector<machine_id_t> secondaries = pick_n_best(&secondary_candidates, it->second, it->first);
@@ -234,7 +262,7 @@ std::map<machine_id_t, blueprint_role_t> suggest_blueprint_for_shard(
         for (std::set<machine_id_t>::const_iterator mt  = unused_machines.begin();
                                                     mt != unused_machines.end();
                                                     ++mt) {
-            primary_candidates.push(priority_for_machine(*mt, primary_pinnings, secondary_pinnings, *usage, directory, shard));
+            primary_candidates.push(priority_for_machine(*mt, primary_pinnings, secondary_pinnings, *usage, directory, shard, prioritize_distribution));
         }
 
         machine_id_t primary = pick_n_best(&primary_candidates, 1, primary_datacenter).front();
@@ -252,7 +280,7 @@ std::map<machine_id_t, blueprint_role_t> suggest_blueprint_for_shard(
         for (std::set<machine_id_t>::const_iterator mt  = unused_machines.begin();
                                                     mt != unused_machines.end();
                                                     ++mt) {
-            secondary_candidates.push(priority_for_machine(*mt, secondary_pinnings, primary_pinnings, *usage, directory, shard));
+            secondary_candidates.push(priority_for_machine(*mt, secondary_pinnings, primary_pinnings, *usage, directory, shard, prioritize_distribution));
         }
         std::vector<machine_id_t> secondaries = pick_n_best(&secondary_candidates, datacenter_affinities.find(nil_uuid())->second, nil_uuid());
 
