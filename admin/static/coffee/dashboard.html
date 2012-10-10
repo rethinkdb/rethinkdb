@@ -66,7 +66,7 @@
     <h3>Redundancy</h3>
     {{#if status_is_ok}}
         <p class="message"><span class="good">0</span> issue detected</p>
-        <p class="details"><span class="good">{{num_replicas}}/{{num_replicas}}</span> {{pluralize_noun "master" num_masters}} {{pluralize_verb_to_be num_masters}} online</p>
+        <p class="details"><span class="good">{{num_replicas}}/{{num_replicas}}</span> {{pluralize_noun "replica" num_replicas}} {{pluralize_verb_to_be num_replicas}} online</p>
     </div>
     {{else}}
         {{#if has_unsatisfiable_goals}}
@@ -78,7 +78,7 @@
         {{#if has_namespaces_down}}
         <p class="details"><span class="bad">{{num_replicas_down}}/{{num_replicas}}</span> <a href="#" class="show_details">{{pluralize_noun "replica" num_replicas}}</a> not up to date</p>
         {{else}}
-        <p class="details"><span class="bad">{{num_replicas}}/{{num_replicas}}</span> {{pluralize_noun "replica" num_masters}} {{pluralize_verb_to_be num_replicas}} online</p>
+        <p class="details"><span class="bad">{{num_replicas}}/{{num_replicas}}</span> {{pluralize_noun "replica" num_replicas}} {{pluralize_verb_to_be num_replicas}} online</p>
         {{/if}}
     {{/if}}
 </script>

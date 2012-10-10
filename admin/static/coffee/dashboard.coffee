@@ -52,14 +52,15 @@ module 'DashboardView', ->
         popup_template: Handlebars.compile $('#cluster_status-availability-popup-template').html()
 
         events:
-            'mousedown .show_details': 'show_details'
-            'mousedown .close': 'hide_details'
+            'mouseup .show_details': 'show_details'
+            'mouseup .close': 'hide_details'
 
         initialize: =>
             @data = ''
             directory.on 'all', @render_status
             namespaces.on 'all', @render_status
 
+        # Convert blueprint role to directory expected status
         convert_activity: (role) ->
             switch role
                 when 'role_secondary' then return 'secondary_up_to_date'
@@ -72,6 +73,7 @@ module 'DashboardView', ->
             num_masters_down = 0
             namespaces_down = {}
 
+            # Look for masters in blueprint
             directory_by_namespaces = DataUtils.get_directory_activities_by_namespaces()
             for namespace in namespaces.models
                 namespace_id = namespace.get('id')
@@ -85,7 +87,8 @@ module 'DashboardView', ->
                         value = blueprint[machine_id][shard]
                         if value is "role_primary"
                             num_masters++
-
+                        
+                            # Check if the master in blueprint is also master in the directory
                             if !(directory_by_namespaces?) or !(directory_by_namespaces[namespace_id]?) or !(directory_by_namespaces[namespace_id][machine_id]?)
                                 num_masters_down++
                                 if not namespaces_down[namespace.get('id')]?
@@ -113,6 +116,7 @@ module 'DashboardView', ->
                                     blueprint_status: value
                                     directory_status: directory_by_namespaces[namespace_id][machine_id][shard]
 
+            # Compute data for the template
             if num_masters_down > 0
                 namespaces_down_array = []
                 for namespace_id, namespace_down of namespaces_down
@@ -139,12 +143,10 @@ module 'DashboardView', ->
             @.$el.html @template()
             @render_status()
 
-        # So we don't blow avay the popup
         render_status: =>
             data = @compute_data()
-            data_in_json = JSON.stringify data
-            if @data isnt data_in_json
-                @data = data_in_json
+            if _.isEqual(@data, data) is false # So we don't blow avay the popup
+                @data = data
                 @.$('.status').html @status_template data
                 if data.status_is_ok is true
                     @.$('.status').addClass 'no-problems-detected'
@@ -202,8 +204,8 @@ module 'DashboardView', ->
         popup_template: Handlebars.compile $('#cluster_status-redundancy-popup-template').html()
 
         events:
-            'mousedown .show_details': 'show_details'
-            'mousedown .close': 'hide_details'
+            'mouseup .show_details': 'show_details'
+            'mouseup .close': 'hide_details'
 
         initialize: =>
             @data = ''
@@ -222,6 +224,7 @@ module 'DashboardView', ->
             num_replicas_down = 0
             namespaces_down = {}
 
+            # Look for primaries and secondaries (= not nothing) in the blueprint 
             directory_by_namespaces = DataUtils.get_directory_activities_by_namespaces()
             for namespace in namespaces.models
                 namespace_id = namespace.get('id')
@@ -236,6 +239,7 @@ module 'DashboardView', ->
                         if value isnt "role_nothing"
                             num_replicas++
 
+                            # Check if directory matches
                             if !(directory_by_namespaces?) or !(directory_by_namespaces[namespace_id]?) or !(directory_by_namespaces[namespace_id][machine_id]?)
                                 num_replicas_down++
                                 if not namespaces_down[namespace.get('id')]?
@@ -263,6 +267,7 @@ module 'DashboardView', ->
                                     blueprint_status: value
                                     directory_status: directory_by_namespaces[namespace_id][machine_id][shard]
 
+            # Check unsatisfiable goals
             num_unsatisfiable_goals = 0
             namespaces_with_unsatisfiable_goals = []
             for issue in issues.models
@@ -287,7 +292,7 @@ module 'DashboardView', ->
                         namespace_name: namespaces.get(issue.get('namespace_id')).get('name')
                         datacenters_with_issues: datacenters_with_issues
                         
-
+            # Compute data for template
             if num_replicas_down > 0
                 namespaces_down_array = []
                 for namespace_id, namespace_down of namespaces_down
@@ -324,9 +329,8 @@ module 'DashboardView', ->
         # So we don't blow avay the popup
         render_status: =>
             data = @compute_data()
-            data_in_json = JSON.stringify data
-            if @data isnt data_in_json
-                @data = data_in_json
+            if _.isEqual(@data, data) is false
+                @data = data
                 @.$('.status').html @status_template data
                 if data.status_is_ok is true
                     @.$('.status').addClass 'no-problems-detected'
@@ -386,8 +390,8 @@ module 'DashboardView', ->
         popup_template: Handlebars.compile $('#cluster_status-reachability-popup-template').html()
 
         events:
-            'mousedown .show_details': 'show_details'
-            'mousedown .close': 'hide_details'
+            'mouseup .show_details': 'show_details'
+            'mouseup .close': 'hide_details'
 
         initialize: =>
             @data = ''
@@ -396,13 +400,13 @@ module 'DashboardView', ->
 
 
         compute_data: =>
-            num_replicas =  machines.length
+            # Look for machines down
             machines_down = {}
             for machine in machines.models
                 machines_down[machine.get('id')] = true
 
             for machine in directory.models
-                if directory.get(machine.get('id'))? # clean ghost
+                if directory.get(machine.get('id'))? # Don't count ghosts
                     machines_down[machine.get('id')] = false
 
             machines_down_array = []
@@ -414,7 +418,7 @@ module 'DashboardView', ->
                     machine_id: machine_id
                     machine_name: machines.get(machine_id).get('name')
 
-
+            # Data for the template
             data =
                 has_machines_down: machines_down_array.length > 0
                 num_machines_down: machines_down_array.length
@@ -430,9 +434,8 @@ module 'DashboardView', ->
         # So we don't blow avay the popup
         render_status: =>
             data = @compute_data()
-            data_in_json = JSON.stringify data
-            if @data isnt data_in_json
-                @data = data_in_json
+            if _.isEqual(@data, data) is false
+                @data = data
                 @.$('.status').html @status_template data
                 if data.has_machines_down is false
                     @.$('.status').addClass 'no-problems-detected'
@@ -451,6 +454,7 @@ module 'DashboardView', ->
             @.$('.popup_container').off 'click', @stop_propagation
             $(window).off 'click', @hide_details
 
+        # Show popup
         show_details: (event) =>
             event.preventDefault()
             @clean_dom_listeners()
@@ -486,14 +490,15 @@ module 'DashboardView', ->
         popup_template: Handlebars.compile $('#cluster_status-consistency-popup-template').html()
 
         events:
-            'mousedown .show_details': 'show_details'
-            'mousedown .close': 'hide_details'
+            'mouseup .show_details': 'show_details'
+            'mouseup .close': 'hide_details'
 
         initialize: =>
             @data = ''
             issues.on 'all', @render_status
 
         compute_data: =>
+            # Looking for vclock conflict
             conflicts = []
             for issue in issues.models
                 if issue.get('type') is 'VCLOCK_CONFLICT'
@@ -528,7 +533,7 @@ module 'DashboardView', ->
 
                     conflicts.push
                         id: issue.get('object_id')
-                        type: type
+                        type: type # Use this to generate url
                         name: name
                         field: issue.get('field')
 
@@ -558,9 +563,7 @@ module 'DashboardView', ->
 
         render_status: =>
             data = @compute_data()
-            data_in_json = JSON.stringify data
-            if @data isnt data_in_json
-                @data = data_in_json
+            if _.isEqual(@data, data) is false
                 @.$('.status').html @status_template data
                 if data.has_conflicts is false
                     @.$('.status').addClass 'no-problems-detected'
