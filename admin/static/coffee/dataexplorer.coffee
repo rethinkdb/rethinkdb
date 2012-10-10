@@ -13,19 +13,10 @@ module 'DataExplorerView', ->
             'mouseout .suggestion_name_li' : 'mouseout_suggestion'
             'click .clear_query': 'clear_query'
             'click .execute_query': 'execute_query'
-            'click .namespace_link': 'write_query_namespace'
-            'click .old_query': 'write_query_old'
             'click .change_size': 'toggle_size'
             'click #reconnect': 'reconnect'
 
-            'click .goto_first': 'execute_paginating_query'
-            'click .goto_previous': 'execute_paginating_query'
-            'click .goto_next': 'execute_paginating_query'
-            'click .goto_last': 'execute_paginating_query'
-            'keypress .limit_value': 'paginating_keypress'
-            'keypress .skip_value': 'paginating_keypress'
-            'click .display_button': 'paginating_custom'
-            'change .jump_page': 'paginating_jump'
+            'click .more_results': 'show_more_results'
 
             'click .link_to_tree_view': 'save_tab'
             'click .link_to_table_view': 'save_tab'
@@ -494,42 +485,42 @@ module 'DataExplorerView', ->
                 @hide_suggestion()
             return @
 
-        create_tagged_callbacks: =>
-            id = Math.random()
-            @last_id = id
+        callback_query: (data) =>
+            ###
+            if data instanceof rethinkdb.error
+                #do something like
+                @.results_view.render_error(@query, err)
+            ###
+                
+            if data? and  @current_results.length < @limit
+                @current_results.push data
+                return true
+            else
+                @.$('.loading_query_img').css 'display', 'none'
+                @results_view.render_result @query, @current_results
 
-            @current_results = []
-            @count_results = 0
-            iter_callback = (data) =>
-                if id is @last_id
-                    if @count_results < @limit
-                        @current_results.push data
-                    else
-                        if @count_results is @limit
-                            @results_view.render_result @query, @current_results
+                execution_time = new Date() - @start_time
+                @results_view.render_metadata
+                    limit_value: @current_results.length
+                    skip_value: @skip_value
+                    execution_time: execution_time
+                    query: @query
+                    has_more_data: true if data?
 
-                            @results_view.render_metadata @limit, 0, undefined, undefined, @query
-                    @count_results++
-            last_callback = =>
-                if id is @last_id
-                    execution_time = new Date() - @start_time
-                    if @count_results < @limit
-                        @results_view.render_result @query, @current_results
+                if data? #there is nore data
+                    @skip_value += @current_results.length
+                    @current_results = []
+                    @current_results.push data
+                return false
 
-                    @.$('.loading_query_img').css 'display', 'none'
-                    @results_view.render_metadata @current_results.length, 0, @count_results, execution_time, @query
-                    @last_completed_query = @query
-                    @last_executed_count_results = @count_results
-            error_callback = (err) =>
-                if id is @last_id
-                    @.$('.loading_query_img').css 'display', 'none'
-                    @.results_view.render_error(@query, err)
-
-
-
-            iter: iter_callback
-            last: last_callback
-            error: error_callback
+        show_more_results: (event) =>
+            try
+                event.preventDefault()
+                @cursor.next(@callback_query)
+                $(window).scrollTop(@.$('.results_container').offset().top)
+            catch err
+                @.$('.loading_query_img').css 'display', 'none'
+                @results_view.render_error(@query, err)
 
         execute_query: =>
             clearTimeout @timeout
@@ -555,123 +546,21 @@ module 'DataExplorerView', ->
 
             @.$('.loading_query_img').css 'display', 'block'
 
-            full_query = @query+'\n'+'.iter({callback: iter_callback, doneCallback:last_callback, onError: error_callback})' # The new line is added in case the last one has an inline comment (//)
+            full_query = @query
             try
-                callbacks = @create_tagged_callbacks()
-                iter_callback = callbacks.iter
-                last_callback = callbacks.last
-                error_callback = callbacks.error
                 @start_time = new Date()
-                eval(full_query)
+                @cursor = eval(full_query)
+                @current_results = []
+                @skip_value = 0
+                @cursor.next(@callback_query)
             catch err
                 @.$('.loading_query_img').css 'display', 'none'
                 @results_view.render_error(@query, err)
-            
-        paginating_keypress: (event) =>
-            if event.which is 13
-                @paginating_custom event
-
-        paginating_custom: (event) =>
-            id = @.$(event.target).data 'id'
-            skip_value = @.$('.skip_value:eq('+id+')').val()
-            limit_value = @.$('.limit_value:eq('+id+')').val()
-
-            if _.isNaN(parseInt(skip_value)) is false
-                skip_value = parseInt skip_value
-            if _.isNaN(parseInt(limit_value)) is false
-                limit_value = parseInt limit_value
-
-            
-            @results_view.set_limit limit_value
-            @results_view.set_skip skip_value
-
-            @paginate_query @last_completed_query, @last_executed_count_results, skip_value, limit_value
-
-        paginating_jump: (event) =>
-            limit_value = @.$(event.target).data('limit_value')
-            skip_value = @.$(event.target).val() * @.$(event.target).data('limit_value')
-
-            skip_value = parseInt skip_value
-            limit_value = parseInt limit_value
-
-            @results_view.set_limit limit_value
-            @results_view.set_skip skip_value
-            @paginate_query @last_completed_query, @last_executed_count_results, skip_value, limit_value
-
-
-        execute_paginating_query: (event) =>
-            skip_value = @.$(event.target).data 'skip_value'
-            limit_value = @.$(event.target).data 'limit_value'
-
-            @paginate_query @last_completed_query, @last_executed_count_results, skip_value, limit_value
-            return @
-
-        create_tagged_paginating_callbacks: (skip_value, limit_value) =>
-            id = Math.random()
-            @last_id = id
-
-            @current_results = []
-            iter_callback = (data) =>
-                if id is @last_id
-                    @current_results.push data
-
-            last_callback = =>
-                if id is @last_id
-                    execution_time = new Date() - @start_time
-
-                    @results_view.render_result @query+'.skip('+skip_value+').limit('+limit_value+')', @current_results
-                    @.$('.loading_query_img').css 'display', 'none'
-                    @results_view.render_metadata limit_value, skip_value, @count_results, execution_time, @query
-                    @last_completed_query = @query
-                    @last_executed_count_results = @count_results
-
-
-            iter: iter_callback
-            last: last_callback
-
-        paginate_query: (query, count_results, skip_value, limit_value) =>
-            # Make sure that we have to good query
-            @query = query
-            @count_results = count_results
-
-            @.$('.loading_query_img').css 'display', 'block'
-            full_query = @query+'\n'+'.skip('+skip_value+').limit('+limit_value+')'+'.iter({callback: iter_callback, doneCallback:last_callback, onError: error_callback})' # The new line is added in case the last one has an inline comment (//)
-            try
-                callbacks = @create_tagged_paginating_callbacks(skip_value, limit_value)
-                iter_callback = callbacks.iter
-                last_callback = callbacks.last
-                error_callback = callbacks.error
-                @start_time = new Date()
-                eval(full_query)
-            catch err
-                @.$('.loading_query_img').css 'display', 'none'
-                @results_view.render_error(@query, err)
-
 
         clear_query: =>
             @codemirror.setValue ''
             @codemirror.focus()
 
-
-        # Write a query for the namespace clicked
-        write_query_namespace: (event) =>
-            event.preventDefault()
-            query = 'r.db("'+event.target.dataset.database+'").table("'+event.target.dataset.name+'").filter()'
-            @codemirror.setValue query
-            @codemirror.focus()
-            @codemirror.setCursor
-                line: 0
-                ch: Infinity
-            @handle_keypress()
-
-        # Write an old query in the input
-        write_query_old: (event) =>
-            event.preventDefault()
-            @codemirror.setValue event.target.dataset.query
-            @codemirror.focus()
-            @codemirror.setCursor
-                line: Infinity
-                ch: Infinity
         connect: (data) =>
             server =
                 host: window.location.hostname
@@ -704,7 +593,7 @@ module 'DataExplorerView', ->
 
             @connect()
 
-            @limit = 20
+            @limit = 40
 
             # We escape the last function because we are building a regex on top of it.
             @unsafe_to_safe_regexstr = []
@@ -1197,7 +1086,13 @@ module 'DataExplorerView', ->
  
 
         #TODO Fix the calls with limit/skip_value
-        render_metadata: (limit_value, skip_value, count_results, execution_time, query) =>
+        render_metadata: (data) =>
+            limit_value = data.limit_value
+            skip_value = data.skip_value
+            execution_time = data.execution_time
+            query = data.query
+            has_more_data = data.has_more_data
+
             if execution_time?
                 if execution_time < 1000
                     execution_time_pretty = execution_time+"ms"
@@ -1208,54 +1103,18 @@ module 'DataExplorerView', ->
                     execution_time_pretty = minutes+"min "+((execution_time-minutes*60*1000)/1000).toFixed(2)+"s"
 
 
-
-            @.$('.metadata').html @metadata_template
+            data =
                 skip_value: skip_value
                 limit_value: limit_value
-                num_rows: count_results if count_results?
                 execution_time: execution_time_pretty if execution_time_pretty?
 
+            @.$('.metadata').html @metadata_template data
+
             #render pagination
-            if limit_value < count_results or skip_value > 0
-                #TODO complete
-                @.$('.pagination_container').css 'display', 'block'
-                if skip_value > 0
-                    @.$('.goto_first').removeProp 'disabled'
-                    @.$('.goto_previous').removeProp 'disabled'
-
-                    @.$('.goto_first').data 'skip_value', 0
-                    @.$('.goto_first').data 'limit_value', @limit
-
-                    new_skip_value = Math.max 0, skip_value-limit_value
-                    @.$('.goto_previous').data 'skip_value', new_skip_value
-                    @.$('.goto_previous').data 'limit_value', @limit
-                else
-                    @.$('.goto_first').prop 'disabled', 'disabled'
-                    @.$('.goto_previous').prop 'disabled', 'disabled'
-
-                if skip_value+limit_value < count_results
-                    @.$('.goto_next').removeProp 'disabled'
-                    @.$('.goto_last').removeProp 'disabled'
-
-                    @.$('.goto_next').data 'skip_value', skip_value+limit_value
-                    @.$('.goto_next').data 'limit_value', @limit
-
-                    @.$('.goto_last').data 'skip_value', count_results-limit_value
-                    @.$('.goto_last').data 'limit_value', @limit
-                else
-                    @.$('.goto_next').prop 'disabled', 'disabled'
-                    @.$('.goto_last').prop 'disabled', 'disabled'
-
-                @.$('.skip_value').val skip_value
-                @.$('.limit_value').val limit_value
-                @.$('.jump_page').data 'limit_value', limit_value
-            page = 0
-            while page*limit_value < count_results
-                @.$('.jump_page').append @option_template
-                    page: page
-                    limit_value: limit_value
-                    selected: page*limit_value is skip_value
-                page++
+            if has_more_data? and has_more_data is true
+                @.$('.more_results').show()
+            else
+                @.$('.more_results').hide()
                 
         render: =>
             @delegateEvents()
