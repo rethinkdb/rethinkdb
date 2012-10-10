@@ -425,6 +425,11 @@ void admin_command_parser_t::do_usage_internal(const std::vector<admin_help_info
 void admin_command_parser_t::do_usage(bool console) {
     std::vector<admin_help_info_t> helps;
     std::vector<std::pair<std::string, std::string> > options;
+    std::string header_string("- access or modify cluster metadata, run 'help <COMMAND>' for additional information");
+
+    if (!console) {
+        helps.push_back(admin_help_info_t("", "", "open a console to issue multiple commands"));
+    }
     helps.push_back(admin_help_info_t("set", "", "change a value in the cluster"));
     helps.push_back(admin_help_info_t("unset", "", "clear a value in the cluster"));
     helps.push_back(admin_help_info_t(list_command, "", "print cluster data"));
@@ -436,12 +441,11 @@ void admin_command_parser_t::do_usage(bool console) {
     helps.push_back(admin_help_info_t("rm", "", "remove an object from the cluster"));
     helps.push_back(admin_help_info_t(help_command, "", "print help about the specified command"));
 
-    std::string header_string("- access or modify cluster metadata, run 'help <COMMAND>' for additional information");
-
     if (console) {
         helps.push_back(admin_help_info_t(exit_command, "", "quit the cluster administration console"));
         header_string = "rethinkdb admin console " + header_string;
     }
+
     do_usage_internal(helps, options, header_string, console);
 }
 
