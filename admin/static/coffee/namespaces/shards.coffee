@@ -10,7 +10,9 @@ module 'NamespaceView', ->
         data_repartition_template: Handlebars.compile $('#data_repartition-template').html()
         feedback_template: Handlebars.compile $('#edit_shards-feedback-template').html()
         error_ajax_template: Handlebars.compile $('#edit_shards-ajax_error-template').html()
-        successfuly_shard_template: Handlebars.compile $('#edit_shards-successfully_shard-template').html()
+        alert_shard_template: Handlebars.compile $('#alert_shard-template').html()
+
+        shards_status_template: Handlebars.compile $('#shards_status-template').html()
         className: 'shards_container'
 
         events:
@@ -27,6 +29,10 @@ module 'NamespaceView', ->
             # Listeners/cache for the data repartition
             @model.on 'change:key_distr', @render_data_repartition
             @model.on 'change:shards', @render_data_repartition
+
+            @model.on 'change:shards', @render_status
+            @model.on 'change:ack_expectations', @render_status
+            directory.on 'all', @render_status
 
 
         keypress_shards_changes: (event) =>
@@ -126,12 +132,88 @@ module 'NamespaceView', ->
             @model.load_key_distr_once()
 
             @switch_to_read()
-            @display_msg @successfuly_shard_template
-                name: @model.get 'name'
-                num_shards: @model.get('shards').length
+            @display_msg @alert_shard_template
+                changing: true
+                num_shards: @shard_set.length
+
+            @is_sharding = true
 
         on_error: =>
             @display_msg @error_ajax_template()
+
+        render_status: =>
+            # If blueprint not ready, we just skip. It shouldn't happen.
+            blueprint = @model.get('blueprint').peers_roles
+            if not blueprint?
+                return ''
+
+            # Compute an object tracking is we have found the master of each shard and if we have enough secondary up to date
+            shards = {}
+            num_shards = 0
+            for shard in @model.get('shards')
+                num_shards++
+                shards[shard] =
+                    found_master: false
+                    num_secondaries_left_to_find: @model.get('ack_expectations')[@model.get('primary_uuid')]
+
+            # Loop over the blueprint
+            for machine_id of blueprint
+                for shard of blueprint[machine_id]
+                    if not shards[shard]?
+                        continue
+                    if shards[shard].found_master is true and shards[shard].num_secondaries_left_to_find <= 0
+                        continue
+
+                    role = blueprint[machine_id][shard]
+                    if role is 'role_nothing'
+                        continue
+
+                    # Because the back end doesn't match the terms in blueprint and directory
+                    if role is 'role_primary'
+                        expected_status = 'primary'
+                    else if role is 'role_secondary'
+                        expected_status = 'secondary_up_to_date'
+
+                    # Loop over the directory
+                    activities = directory.get(machine_id)?.get(@model.get('protocol')+'_namespaces')?['reactor_bcards'][@model.get('id')]?['activity_map']
+                    if activities?
+                        for activity_id of activities
+                            activity = activities[activity_id]
+                            if activity[0] is shard
+                                if activity[1]['type'] is expected_status
+                                    if activity[1]['type'] is 'primary'
+                                        shards[shard].found_master = true
+                                    shards[shard].num_secondaries_left_to_find--
+
+                                    if shards[shard].found_master is true and shards[shard].num_secondaries_left_to_find <= 0
+                                        break
+
+            # Compute the number of shards that are ready
+            num_shards_ready = 0
+            for shard in @model.get('shards')
+                if shards[shard]?.found_master is true and shards[shard].num_secondaries_left_to_find <= 0
+                    num_shards_ready++
+
+            # If the user changed shards and if we detect a change in the status, we say that the Sharding is completed.
+            if @is_sharding? and @is_sharding is true
+                if num_shards is num_shards_ready
+                    @is_sharding = false
+                    @display_msg @alert_shard_template
+                        changing: false
+
+            data =
+                all_shards_ready: num_shards is num_shards_ready
+                num_shards: num_shards
+                num_shards_ready: num_shards_ready
+                is_sharding: @is_sharding
+
+            if @is_sharding
+                @.$('.sharding_img').show()
+            else
+                @.$('.sharding_img').hide()
+            @.$('.shards_status').html @shards_status_template data
+
+            return data
 
         check_has_unsatisfiable_goals: =>
             if @should_be_hidden
@@ -163,6 +245,7 @@ module 'NamespaceView', ->
         render: =>
             @.$el.html @template({})
             @switch_to_read()
+            @render_status()
             return @
 
         switch_to_read: =>
@@ -299,13 +382,13 @@ module 'NamespaceView', ->
             return @
 
         destroy: =>
-            issues.on 'all', @check_has_unsatisfiable_goals
-            @model.off 'change:shards', @check_num_shards_changed
+            issues.off 'all', @check_has_unsatisfiable_goals
             @model.off 'change:key_distr', @render_data_repartition
             @model.off 'change:shards', @render_data_repartition
 
-
-
+            @model.off 'change:shards', @render_status
+            @model.off 'change:ack_expectations', @render_status
+            directory.off 'all', @render_status
 
     # Modify replica counts and ack counts in each datacenter
     class @ChangeShardsModal extends UIComponents.AbstractModal

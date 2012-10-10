@@ -63,8 +63,17 @@
     </div>
     <div class="dc-info">
         <p class="caption">Status</p>
-        <p class="value">{{replicas}} replicas</p>
+        <p class="value status_details"></p>
+        <div class="status-alert"></div>
     </div>
+</script>
+
+<script id="namespace_view-edit_datacenter_replica-replication_status-template" type="text/x-handlebars-template">
+    {{num_replicas_ready}}/{{num_replicas}} replicas up to date.
+</script>
+<script id="namespace_view-edit_datacenter_replica-replication_done-template" type="text/x-handlebars-template">
+    <div class="close" href="#">&times;</div>
+    <p>Replication complete</p>
 </script>
 
 <script id="namespace_view-edit_datacenter_replica-error-template" type="text/x-handlebars-template">
@@ -78,7 +87,7 @@
 
 <script id="namespace_view-edit_datacenter_replica-success-template" type="text/x-handlebars-template">
     <div class="close" href="#">&times;</div>
-    <p>You successfully updated the number of replicas and acks.</p>
+    <p>Changing replicas and acks...</p>
 </script>
 
 <script id="namespace_view-edit_datacenter_replica-ajax_error-template" type="text/x-handlebars-template">

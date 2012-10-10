@@ -72,7 +72,7 @@ module 'Sidebar', ->
 
         render: =>
             servers_active = 0
-            for machine_id in directory.models
+            for machine in directory.models
                 if directory.get(machine.get('id'))? # Clean ghost
                     servers_active++
 
@@ -117,7 +117,7 @@ module 'Sidebar', ->
                     datacenters_total: datacenters.models.length
             else
                 servers_active = 0
-                for machine_id in directory.models
+                for machine in directory.models
                     if directory.get(machine.get('id'))? # Clean ghost
                         servers_active++
                 conn =
