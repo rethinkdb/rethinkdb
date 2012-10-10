@@ -128,9 +128,9 @@ cJSON *render_as_json(hash_region_t<key_range_t> *target) {
 }
 
 void apply_json_to(cJSON *change, hash_region_t<key_range_t> *target) {
-    target->beg = 0;
-    target->end = HASH_REGION_HASH_SIZE;
     apply_json_to(change, &target->inner);
+    target->beg = 0;
+    target->end = target->inner.is_empty() ? 0 : HASH_REGION_HASH_SIZE;
 }
 
 void on_subfield_change(hash_region_t<key_range_t> *) { }

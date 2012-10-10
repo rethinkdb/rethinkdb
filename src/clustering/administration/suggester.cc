@@ -114,7 +114,7 @@ void fill_in_blueprints_for_protocol(
 
 
 void fill_in_blueprints(cluster_semilattice_metadata_t *cluster_metadata,
-                        std::map<peer_id_t, cluster_directory_metadata_t> directory,
+                        const std::map<peer_id_t, cluster_directory_metadata_t> &directory,
                         const uuid_t &us) {
     std::map<machine_id_t, datacenter_id_t> machine_assignments;
 
@@ -129,7 +129,7 @@ void fill_in_blueprints(cluster_semilattice_metadata_t *cluster_metadata,
     std::map<peer_id_t, namespaces_directory_metadata_t<memcached_protocol_t> > reactor_directory_memcached;
     std::map<peer_id_t, namespaces_directory_metadata_t<rdb_protocol_t> > reactor_directory_rdb;
     std::map<peer_id_t, machine_id_t> machine_id_translation_table;
-    for (std::map<peer_id_t, cluster_directory_metadata_t>::iterator it = directory.begin(); it != directory.end(); it++) {
+    for (std::map<peer_id_t, cluster_directory_metadata_t>::const_iterator it = directory.begin(); it != directory.end(); it++) {
         reactor_directory_memcached.insert(std::make_pair(it->first, it->second.memcached_namespaces));
         reactor_directory_rdb.insert(std::make_pair(it->first, it->second.rdb_namespaces));
         if (it->second.peer_type == SERVER_PEER) {
