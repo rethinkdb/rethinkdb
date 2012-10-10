@@ -22,6 +22,8 @@ public:
     // there is no empty region.
     bool valid_for_sharding() const;
 
+    // TODO: Use valid_for_sharding everywhere we use add_region.
+
     // Returns true upon success, false if there's an overlap.  This is O(n)!
     MUST_USE bool add_region(const typename protocol_t::region_t &region);
 
