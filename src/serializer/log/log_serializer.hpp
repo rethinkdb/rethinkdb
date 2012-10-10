@@ -192,8 +192,8 @@ private:
 
     void consider_start_gc();
 
-    std::map<ls_block_token_pointee_t*, off64_t> token_offsets;
-    std::multimap<off64_t, ls_block_token_pointee_t*> offset_tokens;
+    std::map<ls_block_token_pointee_t *, off64_t> token_offsets;
+    std::multimap<off64_t, ls_block_token_pointee_t *> offset_tokens;
     scoped_ptr_t<log_serializer_stats_t> stats;
     perfmon_collection_t disk_stats_collection;
     perfmon_membership_t disk_stats_membership;
@@ -204,7 +204,7 @@ private:
     bool expecting_no_more_tokens;
 #endif
 
-    std::vector<serializer_read_ahead_callback_t*> read_ahead_callbacks;
+    std::vector<serializer_read_ahead_callback_t *> read_ahead_callbacks;
 
     const dynamic_config_t dynamic_config;
     const private_dynamic_config_t private_config;
