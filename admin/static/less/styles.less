@@ -352,12 +352,8 @@ body:before {
     ----------------------------
 */
 #dashboard {
-    #cluster_status_container { padding: 0; }
-    .cluster-status table { 
-        border-spacing: 0;
-        width: 100%;
-    }
-    .cluster-status{
+    #cluster_status_container {
+        padding: 0;
         overflow: auto;
         .panel {
             @bad: #e85250;
@@ -376,8 +372,8 @@ body:before {
                 color: #4c4c4c;
                 padding-left: 21px;
             }
-            &.no-problems-detected h3 { background: 0 3px no-repeat url('http://bit.ly/PyxttH'); }//green-light.png
-            &.problems-detected h3 { background: 0 3px no-repeat url('http://bit.ly/PyxJZG'); }//red-light.png
+            .no-problems-detected h3 { background: 0 3px no-repeat url('http://bit.ly/PyxttH'); }//green-light.png
+            .problems-detected h3 { background: 0 3px no-repeat url('http://bit.ly/PyxJZG'); }//red-light.png
 
             p {
                 font-family: @sans;
@@ -391,6 +387,106 @@ body:before {
             }
 
             &.first { border-left: none; }
+
+            .popup_container{
+                display: none;
+                width: 430px;
+                position: absolute;
+                top: 0px;
+                left: 0px;
+                z-index: 200;
+                padding: 10px 20px;
+                border: thin solid #cfcfcf;
+                background: #fff;
+                .inner_content{
+                    max-height: 600px;
+                    overflow: auto;
+                }
+                .close{
+                    position: absolute;
+                    top: 10px;
+                    right: 10px;
+                    color: #444;
+                    font-size: 18px;
+                    text-decoration: none;
+                }
+                .arrow_left{
+                    position: absolute;
+                    z-index: 201;
+                    top: 60px;
+                    left: -11px;
+                    width: 0; 
+                    height: 0; 
+                    border-top: 10px solid transparent;
+                    border-bottom: 10px solid transparent; 
+                    border-right:10px solid #bbb; 
+                }
+                .arrow_left_overlay{
+                    position: absolute;
+                    z-index: 202;
+                    top: 60px;
+                    left: -10px; //TODO
+                    width: 0; 
+                    height: 0; 
+                    border-top: 10px solid transparent;
+                    border-bottom: 10px solid transparent; 
+                    border-right:10px solid #fff; 
+                }
+                .arrow_right{
+                    position: absolute;
+                    z-index: 201;
+                    top: 60px;
+                    left: 471px;
+                    width: 0; 
+                    height: 0; 
+                    border-top: 10px solid transparent;
+                    border-bottom: 10px solid transparent; 
+                    border-left:10px solid #bbb; 
+                }
+                .arrow_right_overlay{
+                    position: absolute;
+                    z-index: 202;
+                    top: 60px;
+                    left: 470px;
+                    width: 0; 
+                    height: 0; 
+                    border-top: 10px solid transparent;
+                    border-bottom: 10px solid transparent; 
+                    border-left:10px solid #fff; 
+                }
+
+                h4{
+                    font-family: @sans;
+                    font-size: 16px;
+                    margin: 15px 0px 10px 0px;
+                    padding: 0px 20px 10px 20px;
+                    border-bottom: 1px solid #999;
+                    background: none;
+                }
+                .ul_first_level{
+                    margin: 0px 0px 10px 0px;
+                    padding: 0px;
+                    list-style: none;
+                }
+                .li_first_level{
+                    font-weight: bold;
+                }
+                .ul_second_level{
+                    margin: 6px 0px 15px 10px;
+                    padding: 0px;
+                    list-style: none;
+                    font-weight: normal;
+                }
+                .li_second_level{
+                    margin: 0px;
+                    padding: 0px 0px 5px 10px;
+                    border-left: 1px solid #ccc;
+                }
+                .resolve_issues_link{
+                    margin-left: 300px;
+                    font-weight: bold;
+                }
+            }
         }
     }
     #recent_logs_container {
@@ -685,11 +781,13 @@ body:before {
         margin-bottom: 25px;
     }
     .query_control{
+        position: relative;
+        width: 100%;
         .suggestion_full_container{
             position: absolute;
-            top: 87px;
-            left: 26px;
-            width: 888px;
+            top: 10px;
+            left: 0px;
+            width: 100%;
             background: #fff;
             z-index: 100;
 
@@ -1304,9 +1402,12 @@ body:before {
                     font-size: 24px;
                     font-family: @sans;
                 }
+                .btn{
+                    margin-top: 26px;
+                }
                 .save_replicas_and_acks{ margin: 30px 0px 0px 0px; }
                 .make_primary{ margin: 10px 0px 0px 0px; }
-                .replicas_acks-alert, .reason_cannot_become_primary-alert{
+                .replicas_acks-alert, .reason_cannot_become_primary-alert, .status-alert{
                     display: none;
                     clear: both;
                     padding: 10px 10px 10px 14px;
@@ -1398,6 +1499,35 @@ body:before {
                     cursor: pointer;
                 }
             }
+        }
+        .shards_status_container{
+            .caption {
+                font-family: @sans;
+                color: #7ec4e3;
+                font-size: 14px;
+                line-height: 20px;
+                font-weight: bold;
+            }
+            .value {
+                padding: 3px 0px 0px 6px;
+                color: #5c6169;
+                font-size: 24px;
+                line-height: 48px;
+            }
+            .sharding_img_container{
+                height: 16px;
+                width: 16px;
+                margin: 0px 15px 0px 0px;
+                float: left;
+                .sharding_img{
+                    display: none;
+                }
+            }
+            .shards_status{
+                font-family: @sans;
+                font-size: 16px;
+            }
+
         }
         .shard-graph {
             line { stroke: #e0e0e0; }

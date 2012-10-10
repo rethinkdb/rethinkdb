@@ -10,21 +10,17 @@ var conn;
 function testConnect() {
     wait();
     conn = r.connect({host:HOST, port:PORT}, function() {
-        r.db('test').list().run(function(tables) {
-            wait();
-            function drop() {
-                var table = tables.shift();
-                if (table) {
-                    r.db('test').drop(table).run(drop);
-                } else {
-                    r.db('test').create('Welcome-rdb').run(function() {
-                        done();
-                    });
-                }
+        r.db('test').list().run(function(table) {
+            if (table) {
+                r.db('test').drop(table).run();
+                return true;
+            } else {
+                r.db('test').create('Welcome-rdb').run(function() {
+                    done();
+                });
+                return false;
             }
-            drop();
         });
-        done();
     }, function(e) {
         fail(e);
     });
@@ -100,7 +96,7 @@ function testLet() {
 }
 
 function testDistinct() {
-    r.expr([1,1,2,3,3,3,3]).distinct().run(objeq([1,2,3]));
+    var cursor = r.expr([1,1,2,3,3,3,3]).distinct().run(objeq(1,2,3));
 }
 
 function testMap() {
@@ -181,6 +177,11 @@ function testWithout() {
     tab.orderby('num').without('num').nth(0).run(objeq({id:9}));
 }
 
+function testUnion() {
+    r.expr([1,2,3]).union([4,5,6]).run(objeq(1,2,3,4,5,6));
+    tab.union(tab).count().eq(tab.count().mul(2)).run(aeq(true));
+}
+
 function testTabFilter() {
     tab.filter(function(row) {
         return row('num').gt(16);
@@ -241,10 +242,10 @@ function testGroupedMapReduce() {
         return row('num');
     }, 0, function(acc, num) {
         return acc.add(num);
-    }).run(objeq([
-            {group:0, reduction:90},
-            {group:1, reduction:65}
-    ]));
+    }).run(objeq(
+        {group:0, reduction:90},
+        {group:1, reduction:65}
+    ));
 }
 
 function testGroupBy() {
@@ -256,23 +257,23 @@ function testGroupBy() {
         {g1: 2, g2: 3, num: 100}
     ]);
 
-    s.groupBy('g1', r.average('num')).run(objeq([
+    s.groupBy('g1', r.average('num')).run(objeq(
         {group:1, reduction:5},
         {group:2, reduction:50}
-    ]));
-    s.groupBy('g1', r.count).run(objeq([
+    ));
+    s.groupBy('g1', r.count).run(objeq(
         {group:1, reduction:3},
         {group:2, reduction:2}
-    ]));
-    s.groupBy('g1', r.sum('num')).run(objeq([
+    ));
+    s.groupBy('g1', r.sum('num')).run(objeq(
         {group:1, reduction:15},
         {group:2, reduction:100}
-    ]));
-    s.groupBy('g1', 'g2', r.average('num')).run(objeq([
+    ));
+    s.groupBy('g1', 'g2', r.average('num')).run(objeq(
         {group:[1,1], reduction: 0},
         {group:[1,2], reduction: 7.5},
         {group:[2,3], reduction: 50}
-    ]));
+    ));
 }
 
 function testConcatMap() {
@@ -358,11 +359,14 @@ function testUpdate1() {
 
 function testUpdate2() {
     wait();
-    tab.run(function(res) {
-        for (var key in res) {
-            assertEquals(res[key]['updated'], true);
+    tab.run(function(row) {
+        if (row === undefined) {
+            done();
+            return false;
+        } else {
+            assertEquals(row['updated'], true);
+            return true;
         }
-        done();
     });
 }
 
@@ -383,7 +387,6 @@ function testPointUpdate2() {
 function testMutate1() {
     tab.mutate(function(a) {
         return a.pick('id').extend({mutated:true});
-        //return q.expr({id:a.getAttr('id'), mutated:true});
     }).run(objeq({
         deleted:0,
         errors:0,
@@ -394,12 +397,14 @@ function testMutate1() {
 
 function testMutate2() {
     wait();
-    tab.run(function(res) {
-        for (var key in res) {
-            assertEquals(res[key]['mutated'], true);
-            assertEquals(res[key]['updated'], undefined);
+    tab.run(function(row) {
+        if (row === undefined) {
+            done();
+            return false;
+        } else {
+            assertEquals(row['mutated'], true);
+            return true;
         }
-        done();
     });
 }
 
@@ -452,11 +457,14 @@ function testForEach2() {
 
 function testForEach3() {
     wait();
-    tab.run(function(res) {
-        for (var key in res) {
-            assertEquals(res[key]['fe'], true);
+    tab.run(function(row) {
+        if (row === undefined) {
+            done();
+            return false;
+        } else {
+            assertEquals(row['fe'], true);
+            return true;
         }
-        done();
     });
 }
 
@@ -491,6 +499,7 @@ runTests([
     testOrderby,
     testPluck,
     testWithout,
+    testUnion,
     testTabFilter,
     testTabMap,
     testTabReduce,

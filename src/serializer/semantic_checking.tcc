@@ -199,8 +199,7 @@ block_read(const intrusive_ptr_t< scs_block_token_t<inner_serializer_t> >& token
 
 template<class inner_serializer_t>
 block_sequence_id_t semantic_checking_serializer_t<inner_serializer_t>::
-get_block_sequence_id(block_id_t block_id, const void* buf) {
-    // TODO: Implement some checking for this operation
+get_block_sequence_id(block_id_t block_id, const void* buf) const {
     return inner_serializer.get_block_sequence_id(block_id, buf);
 }
 

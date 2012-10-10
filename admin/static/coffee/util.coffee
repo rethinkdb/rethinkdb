@@ -358,7 +358,19 @@ human_readable_shard = (shard) ->
     res += pretty_key(json_shard[1])
     return res
 
-
+human_readable_shard = (shard) ->
+    json_shard = $.parseJSON(shard)
+    res = ""
+    key = pretty_key(json_shard[0])
+    if key.length > 10
+        key = key.slice(0, 10)+'...'
+    res += key
+    res += " to "
+    key = pretty_key(json_shard[1])
+    if key.length > 10
+        key = key.slice(0, 10)+'...'
+    res += key
+    return res
 
 # Utils to print units
 units_space = ["B", "KB", "MB", "GB", "TB", "PB"]

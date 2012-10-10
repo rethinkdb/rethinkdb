@@ -96,7 +96,7 @@ std::vector<std::string> split_buf(const bitset_t &seps, const char *buf, int64_
         } else if (buf[i] == '"') {
             ++i;
             // TODO: support \" escapes?
-            while (i < size && (buf[i] != '"' || (buf[i] == '"' && i + 1 < size && !seps.test(buf[i + 1])))) { ++i; }
+            while (i < size && (buf[i] != '"' || (buf[i] == '"' && i + 1 < size && !seps.test(static_cast<unsigned char>(buf[i + 1]))))) { ++i; }
 
             if (i == size) {
                 ret.push_back(std::string(buf + p, buf + i));
@@ -106,11 +106,11 @@ std::vector<std::string> split_buf(const bitset_t &seps, const char *buf, int64_
                 break;
             } else {
                 ret.push_back(std::string(buf + p + 1, buf + i));
-                rassert(seps.test(buf[i + 1]));
+                rassert(seps.test(static_cast<unsigned char>(buf[i + 1])));
                 p = i + 2;
             }
         } else {
-            while (i < size && !seps.test(buf[i])) { ++i; }
+            while (i < size && !seps.test(static_cast<unsigned char>(buf[i]))) { ++i; }
             ret.push_back(std::string(buf + p, buf + i));
             if (i == size) {
                 break;

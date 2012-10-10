@@ -188,7 +188,11 @@ another thread, modifying the field real_home_thread. */
 
 class home_thread_mixin_debug_only_t {
 public:
+#ifndef NDEBUG
     void assert_thread() const;
+#else
+    void assert_thread() const { }
+#endif
 
 protected:
     explicit home_thread_mixin_debug_only_t(int specified_home_thread);
@@ -206,7 +210,11 @@ private:
 class home_thread_mixin_t {
 public:
     int home_thread() const { return real_home_thread; }
+#ifndef NDEBUG
     void assert_thread() const;
+#else
+    void assert_thread() const { }
+#endif
 
 protected:
     explicit home_thread_mixin_t(int specified_home_thread);
