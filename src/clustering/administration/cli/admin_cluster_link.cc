@@ -2666,6 +2666,14 @@ void admin_cluster_link_t::remove_database_tables_internal(const database_id_t& 
     }
 }
 
+void admin_cluster_link_t::do_admin_touch(UNUSED const admin_command_parser_t::command_data& data) {
+    metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
+        change_request(&mailbox_manager, choose_sync_peer());
+    cluster_semilattice_metadata_t cluster_metadata = change_request.get();
+
+    do_metadata_update(&cluster_metadata, &change_request);
+}
+
 template <class protocol_t>
 void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
                                                  const namespace_semilattice_metadata_t<protocol_t>& ns,

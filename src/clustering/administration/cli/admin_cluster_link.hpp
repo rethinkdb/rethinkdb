@@ -83,6 +83,7 @@ public:
     void do_admin_remove_table(const admin_command_parser_t::command_data& data);
     void do_admin_remove_datacenter(const admin_command_parser_t::command_data& data);
     void do_admin_remove_database(const admin_command_parser_t::command_data& data);
+    void do_admin_touch(const admin_command_parser_t::command_data& data);
 
     void sync_from();
 
