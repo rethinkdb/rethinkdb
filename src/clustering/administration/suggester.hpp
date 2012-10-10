@@ -41,7 +41,7 @@ void fill_in_blueprints_for_protocol(
         THROWS_ONLY(missing_machine_exc_t);
 
 void fill_in_blueprints(cluster_semilattice_metadata_t *cluster_metadata,
-                        std::map<peer_id_t, cluster_directory_metadata_t> directory,
+                        const std::map<peer_id_t, cluster_directory_metadata_t> &directory,
                         const uuid_t &us,
                         bool prioritize_disribution);
 
