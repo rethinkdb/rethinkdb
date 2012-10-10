@@ -420,8 +420,9 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
                 if (token) {
                     ls_block_token_pointee_t *ls_token = token.get();
                     rassert(ls_token);
-                    rassert(token_offsets.find(ls_token) != token_offsets.end());
-                    offset = flagged_off64_t::make(token_offsets[ls_token]);
+                    std::map<ls_block_token_pointee_t *, off64_t>::const_iterator to_it = token_offsets.find(ls_token);
+                    rassert(to_it != token_offsets.end());
+                    offset = flagged_off64_t::make(to_it->second);
 
                     /* mark the life */
                     data_block_manager->mark_live(offset.get_value());
