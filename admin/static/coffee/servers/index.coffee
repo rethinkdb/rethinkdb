@@ -8,8 +8,8 @@ module 'ServerView', ->
 
         # Extend the generic list events
         events:
-            'click a.btn.add-datacenter': 'add_datacenter'
-            'click a.btn.set-datacenter': 'set_datacenter'
+            'click .add-datacenter': 'add_datacenter'
+            'click .set-datacenter': 'set_datacenter'
             'click .close': 'remove_parent_alert'
 
         initialize: =>

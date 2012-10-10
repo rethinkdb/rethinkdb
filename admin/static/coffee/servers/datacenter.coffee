@@ -246,56 +246,6 @@ module 'DatacenterView', ->
             machines.off 'all', @render
             directory.off 'all', @render
 
-    # BIG TODO WARNING
-    # Decomission this if it is unnecessary 
-    class @Operations extends Backbone.View
-        className: 'datacenter-other'
-
-        template: Handlebars.compile $('#datacenter_view-operations-template').html()
-        still_primary_template: Handlebars.compile $('#reason-cannot_delete-goals-template').html()
-
-        events: ->
-            'click .rename_datacenter-button': 'rename_datacenter'
-            'click .delete_datacenter-button': 'delete_datacenter'
-
-        initialize: =>
-            @data = {}
-            machines.on 'all', @render
-            namespaces.on 'all', @render
-
-
-        need_update: (old_data, new_data) ->
-            for key of old_data
-                if not new_data[key]?
-                    return true
-                if new_data[key] snt old_data[key]
-                    return true
-            for key of new_data
-                if not old_data[key]?
-                    return true
-                if new_data[key] isnt old_data[key]
-                    return true
-            return false
-
-        render: =>
-            data = {}
-            namespaces_where_primary = []
-            for namespace in namespaces.models
-                if namespace.get('primary_uuid') is @model.get('id')
-                    namespaces_where_primary.push
-                        id: namespace.get('id')
-                        name: namespace.get('name')
-            if namespaces_where_primary.length > 0
-                data.can_delete = false
-                data.delete_reason = @still_primary_template
-                    namespaces_where_primary: namespaces_where_primary
-            else
-                data.can_delete = true
-
-            @.$el.html @template data
-            return @
-
-
     class @RemoveDatacenterModal extends UIComponents.AbstractModal
         template: Handlebars.compile $('#remove_datacenter-modal-template').html()
         class: 'remove_datacenter-dialog'
@@ -303,14 +253,21 @@ module 'DatacenterView', ->
         initialize: ->
             super
 
-        render: (_datacenter_to_delete) ->
-            @datacenter_to_delete = _datacenter_to_delete
+        # Takes a datacenter argument-- the datacenter to be removed
+        render: (datacenter) ->
+            @datacenter_to_delete = datacenter
+
+            # Find the namespaces for whom this datacenter acts as primary
+            namespaces_where_primary = namespaces.filter (namespace) -> namespace.get('primary_uuid') is datacenter.get('id')
 
             super
                 modal_title: 'Remove datacenter'
                 btn_primary_text: 'Remove'
-                id: _datacenter_to_delete.get('id')
-                name: _datacenter_to_delete.get('name')
+                id: datacenter.get('id')
+                name: datacenter.get('name')
+                # reasons we can't delete the datacenter
+                datacenter_is_primary: namespaces_where_primary.length > 0
+                namespaces_where_primary: namespaces_where_primary
 
             @.$('.btn-primary').focus()
 

@@ -136,13 +136,6 @@
     </div>
 </script>
 
-<script id="reason-cannot_unassign-master-template" type="text/x-handlebars-template">
-    This server is master for some data. Please <a href="#servers/{{server_id}}/assignments" class="to_assignments-link">make</a> it at least secondary.
-</script>
-<script id="reason-cannot_unassign-goals-template" type="text/x-handlebars-template">
-    You have to lower the number of replicas of the following tables to avoid unsatisfiable goals: {{links_to_namespaces_inline namespaces_need_less_replicas "replication"}}
-</script>
-
 <script id="machine_view-recent_log_entry-template" type="text/x-handlebars-template">
     <div class="entry-metadata">
         <p class="datetime"><abbr class="timeago" title="{{timeago_timestamp}}">{{timeago_timestamp}}</abbr></p>
@@ -161,14 +154,23 @@
 </script>
 
 <script id="unassign-modal-template" type="text/x-handlebars-template">
-  <div class="alert alert-error">Removing this server from its datacenter will remove all its responsabilities.</div>
-  <div class="alert alert-error error_answer"></div>
-  <p>Are you sure you want to remove this server <a href="#servers/{{id}}">{{name}}</a> from its datacenter?</p>
+    {{#if server_is_master}}
+        <div class="alert alert-error">This server is master for some data. Please <a href="#servers/{{server_id}}">make</a> it at least secondary.</div>
+    {{/if}}
+    {{#unless has_datacenter}}
+        <div class="alert alert-error">This server is not part of any datacenter</div>
+    {{/unless}}
+    {{#if not_enough_replicas}}
+        You have to lower the number of replicas of the following tables to avoid unsatisfiable goals: {{links_to_namespaces_inline namespaces_need_less_replicas "replication"}}
+    {{/if}}
+    <div class="alert alert-error">Removing this server from its datacenter will remove all its responsabilities.</div>
+    <div class="alert alert-error error_answer"></div>
+    <p>Are you sure you want to remove this server <a href="#servers/{{id}}">{{name}}</a> from its datacenter?</p>
 </script>
 
 <script id="unassign-alert-template" type="text/x-handlebars-template">
-  <div class="alert" data-alert="alert">
-    <a class="close" href="#">&times;</a>
-    <p>You removed this server from its datacenter</p>
-  </div>
+    <div class="alert" data-alert="alert">
+        <a class="close" href="#">&times;</a>
+        <p>You removed this server from its datacenter</p>
+    </div>
 </script>

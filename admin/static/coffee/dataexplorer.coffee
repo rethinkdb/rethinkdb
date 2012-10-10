@@ -74,7 +74,6 @@ module 'DataExplorerView', ->
         descriptions:
             'get(': 'get( id )'
             'filter(': 'filter ( predicate )'
-            'length(': 'length()'
             'map(': 'map( attribute )'
             'slice(': 'slice'
             'orderby(': 'orderby( expression )'

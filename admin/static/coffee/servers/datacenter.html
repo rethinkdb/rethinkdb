@@ -90,19 +90,18 @@
     </p>
 </script>
 
-<script id="reason-cannot_delete-goals-template" type="text/x-handlebars-template">
-    This datacenter is a primary one for the following tables {{links_to_namespaces_inline namespaces_where_primary "replication"}} and therefore cannot be deleted.
-</script>
-
 <script id="remove_datacenter-modal-template" type="text/x-handlebars-template">
-  <div class="alert alert-error">Removing the datacenter will remove all the responsabilities of the servers in it.</div>
-  <div class="alert alert-error error_answer"></div>
-  <p>Are you sure you want to remove this datacenter <a href="#datacenters/{{id}}">{{name}}</a>?</p>
+    {{#if datacenter_is_primary}}
+        <div class="alert alert-error">This datacenter cannot be deleted because it acts as primary for the following tables: {{links_to_namespaces_inline namespaces_where_primary "replication"}}</div>
+    {{/if}}
+    <div class="alert alert-error">Removing the datacenter will remove all the responsabilities of the servers in it.</div>
+    <div class="alert alert-error error_answer"></div>
+    <p>Are you sure you want to remove this datacenter <a href="#datacenters/{{id}}">{{name}}</a>?</p>
 </script>
 
 <script id="removed_namespace-alert-template" type="text/x-handlebars-template">
-  <div class="alert" data-alert="alert">
-    <a class="close" href="#">&times;</a>
-    <p>You removed the database {{deleted_datacente}}</p>
-  </div>
+    <div class="alert" data-alert="alert">
+        <a class="close" href="#">&times;</a>
+        <p>You removed the database {{deleted_datacente}}</p>
+    </div>
 </script>

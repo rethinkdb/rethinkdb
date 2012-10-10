@@ -182,13 +182,6 @@ class Namespace extends Backbone.Model
 
 class Datacenter extends Backbone.Model
     get_stats: =>
-        # Look boo, here's what we gonna do, okay? We gonna collect
-        # stats we care about from the machines that belong to this
-        # datacenter and aggregate them, okay? I don't care that
-        # you're unhappy, I don't care that you don't like this, and I
-        # don't care about the irritation on your bikini line. This is
-        # how we're doing it, no ifs no ends no buts. The LT says we
-        # go, we go.
         stats =
             global_cpu_util:
                 avg: 0
@@ -309,6 +302,15 @@ class Machine extends Backbone.Model
     is_reachable: =>
         reachable = directory.get(@get('id'))?
         return reachable
+
+    # Returns a filtered list of namespaces whose shards use this server as master
+    is_master_for_namespaces: =>
+        namespaces.filter (namespace) =>
+            for machine_uuid, peer_roles of namespace.get('blueprint').peers_roles
+                if machine_uuid is @get('id')
+                    for shard, role of peer_roles
+                        if role is 'role_primary'
+                            return true
 
 class LogEntry extends Backbone.Model
     get_iso_8601_timestamp: => new Date(@.get('timestamp') * 1000)

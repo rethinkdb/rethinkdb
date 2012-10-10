@@ -188,104 +188,6 @@ module 'MachineView', ->
             directory.off 'all', @render
             @model.off 'all', @render
 
-    # BIG TODO WARNING
-    # This is the logic that prevents unassigning this server from the
-    # datacenter if it has responsibilities. It needs to be moved
-    # somewhere intelligent.
-    class @Operations extends Backbone.View
-        className: 'namespace-other'
-
-        template: Handlebars.compile $('#machine_view-operations-template').html()
-        still_master_template: Handlebars.compile $('#reason-cannot_unassign-master-template').html()
-        unsatisfiable_goals_template: Handlebars.compile $('#reason-cannot_unassign-goals-template').html()
-
-        events: ->
-            'click .rename_server-button': 'rename_server'
-            'click .change_datacenter-button': 'change_datacenter'
-            'click .unassign_datacenter-button': 'unassign_datacenter'
-            'click .to_assignments-link': 'to_assignments'
-
-        initialize: =>
-            @data = {}
-            machines.on 'all', @render
-            namespaces.on 'all', @render
-
-
-        to_assignments: (event) ->
-            event.preventDefault()
-            $('#machine-assignments').addClass('active')
-            $('#machine-assignments-link').tab('show')
-            window.router.navigate @.$(event.target).attr('href')
-
-        need_update: (old_data, new_data) ->
-            for key of old_data
-                if not new_data[key]?
-                    return true
-                if new_data[key] isnt old_data[key]
-                    return true
-            for key of new_data
-                if not old_data[key]?
-                    return true
-                if new_data[key] isnt old_data[key]
-                    return true
-            return false
-
-        render: =>
-            data = {}
-            if not @model.get('datacenter_uuid')?
-                data.can_assign = true
-                data.can_unassign = false
-                data.unassign_reason = 'This server is not part of any datacenter'
-                if @need_update(@data, data)
-                    @.$el.html @template data
-                    @data = data
-                return @
-
-            for namespace in namespaces.models
-                for machine_uuid, peer_roles of namespace.get('blueprint').peers_roles
-                    if machine_uuid is @model.get('id')
-                        for shard, role of peer_roles
-                            if role is 'role_primary'
-                                data.can_assign = false
-                                data.can_unassign = false
-                                data.unassign_reason = @still_master_template
-                                    server_id: @model.get 'id'
-                                data.assign_reason = data.unassign_reason
-                                if @need_update(@data, data)
-                                    @.$el.html @template data
-                                    @data = data
-                                return @
-
-            num_machines_in_datacenter = 0
-            for machine in machines.models
-                if machine.get('datacenter_uuid') is @model.get('datacenter_uuid')
-                    num_machines_in_datacenter++
-
-            namespaces_need_less_replicas = []
-            for namespace in namespaces.models
-                if @model.get('datacenter_uuid') of namespace.get('replica_affinities') # If the datacenter has responsabilities
-                    num_replica = namespace.get('replica_affinities')[@model.get('datacenter_uuid')]
-                    if namespace.get('primary_uuid') is @model.get('datacenter_uuid')
-                        num_replica++
-
-                    if num_machines_in_datacenter <= num_replica
-                        namespaces_need_less_replicas.push
-                            id: namespace.get('id')
-                            name: namespace.get('name')
-            if namespaces_need_less_replicas.length > 0
-                data.can_unassign = false
-                data.unassign_reason = @unsatisfiable_goals_template
-                    namespaces_need_less_replicas: namespaces_need_less_replicas
-                if @need_update(@data, data)
-                    @.$el.html @template data
-                    @data = data
-                return @
-
-            data.can_unassign = true
-            @.$el.html @template data
-            return @
-
-
     class @UnassignModal extends UIComponents.AbstractModal
         template: Handlebars.compile $('#unassign-modal-template').html()
         alert_tmpl: Handlebars.compile $('#unassign-alert-template').html()
@@ -294,14 +196,39 @@ module 'MachineView', ->
         initialize: ->
             super
 
-        render: (_machine_to_unassign) ->
-            @machine_to_unassign = _machine_to_unassign
-
-            super
+        # Takes a server argument-- the server that will be unassigned from its datacenter
+        render: (server) ->
+            @machine_to_unassign = server
+            dc_uuid = server.get('datacenter_uuid')
+            data =
                 modal_title: 'Remove datacenter'
                 btn_primary_text: 'Remove'
-                id: _machine_to_unassign.get('id')
-                name: _machine_to_unassign.get('name')
+                id: server.get('id')
+                name: server.get('name')
+                # find reasons that we cannot unassign this server from a datacenter
+                server_is_master:  server.is_master_for_namespaces().length > 0
+                has_datacenter: dc_uuid?
+
+            
+            if dc_uuid?
+                # Count the number of servers in the same datacenter as this server
+                num_machines_in_dc = 0
+                machines.each (machine) => num_machines_in_dc++ if dc_uuid is machine.get('datacenter_uuid')
+
+                # Find the tables that won't have sufficient replicas if we unassign this server
+                not_enough_replicas = namespaces.filter (namespace) =>
+                    # Does the datacenter of this server have responsibilities for the namespace?
+                    if dc_uuid of namespace.get('replica_affinities')
+                        num_replicas = namespace.get('replica_affinities')[dc_uuid]
+                        # If the datacenter acts as primary for the namespace, bump the replica count by one
+                        num_replicas++ if namespace.get('primary_uuid') is dc_uuid
+
+                    return true if num_machines_in_dc <= num_replicas
+
+                data = _.extend data,
+                    not_enough_replicas: not_enough_replicas.length > 0
+            
+            super data
 
             @.$('.btn-primary').focus()
 

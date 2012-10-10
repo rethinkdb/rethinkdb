@@ -121,10 +121,7 @@ class BackboneCluster extends Backbone.Router
         if database? then @current_view = new DatabaseView.Container model: database
         else @current_view = new DatabaseView.NotFound id
 
-        if tab?
-            @$container.html @current_view.render(tab).el
-        else
-            @$container.html @current_view.render().el
+        @$container.html @current_view.render().el
 
     namespace: (id, tab) ->
         @set_stats_call '/ajax/stat?filter='+id+'/serializers'
@@ -138,10 +135,7 @@ class BackboneCluster extends Backbone.Router
         else
             @current_view = new NamespaceView.NotFound id
 
-        if tab?
-            @$container.html @current_view.render(tab).el
-        else
-            @$container.html @current_view.render().el
+        @$container.html @current_view.render().el
 
         if namespace?
             @current_view.shards.render_data_repartition()
@@ -158,14 +152,7 @@ class BackboneCluster extends Backbone.Router
         else
             @current_view = new DatacenterView.NotFound id
 
-        if tab?
-            @$container.html @current_view.render(tab).el
-        else
-            @$container.html @current_view.render().el
-
-        if datacenter?
-            @current_view.overview.render_ram_repartition()
-            @current_view.overview.render_disk_repartition()
+        @$container.html @current_view.render().el
 
     server: (id, tab) ->
         @set_stats_call '/ajax/stat?machine_whitelist='+id+'&filter=.*/serializers,proc,sys'
@@ -179,7 +166,4 @@ class BackboneCluster extends Backbone.Router
         else
             @current_view = new MachineView.NotFound id
 
-        if tab?
-            @$container.html @current_view.render(tab).el
-        else
-            @$container.html @current_view.render().el
+        @$container.html @current_view.render().el

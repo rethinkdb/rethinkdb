@@ -142,11 +142,11 @@ module 'Vis', ->
             log_render '(rendering) ops plot'
             # Render the plot container
             @.$el.html @template
-                cluster:    true if @type is 'cluster'
-                datacenter: true if @type is 'datacenter'
-                server:     true if @type is 'server'
-                database:   true if @type is 'database'
-                table:      true if @type is 'table'
+                cluster:    @type is 'cluster'
+                datacenter: @type is 'datacenter'
+                server:     @type is 'server'
+                database:   @type is 'database'
+                table:      @type is 'table'
 
             # Set up the plot
             sensible_plot = @context.sensible()
