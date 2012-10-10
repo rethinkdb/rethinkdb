@@ -324,7 +324,7 @@ class Process(_Process):
 
         options = ["serve",
                    "--directory=" + self.files.db_path,
-                   "--port=" + str(self.cluster_port),
+                   "--cluster-port=" + str(self.cluster_port),
                    "--port-offset=" + str(self.port_offset),
                    "--client-port=" + str(self.local_cluster_port)] + extra_options
 
@@ -353,7 +353,7 @@ class ProxyProcess(_Process):
 
         options = ["proxy",
                    "--log-file=" + self.logfile_path,
-                   "--port=" + str(self.cluster_port),
+                   "--cluster-port=" + str(self.cluster_port),
                    "--port-offset=" + str(self.port_offset),
                    "--client-port=" + str(self.local_cluster_port)] + extra_options
 
