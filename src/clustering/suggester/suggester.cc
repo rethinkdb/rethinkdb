@@ -241,6 +241,9 @@ std::map<machine_id_t, blueprint_role_t> suggest_blueprint_for_shard(
         unused_machines.erase(primary);
 
         sub_blueprint[primary] = blueprint_role_primary;
+
+        //Update primary_usage
+        get_with_default(*usage, primary, 0)++;
     }
 
     /* Finally pick the secondaries for the nil datacenter */
