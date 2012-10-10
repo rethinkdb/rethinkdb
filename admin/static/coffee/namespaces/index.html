@@ -41,7 +41,7 @@
     <div class="element-details">
         <p class="name"><a href="#tables/{{id}}">{{name}}</a></p>
         <p class="quick_info">
-            {{nshards}} {{pluralize_noun "shard" nshards}}, {{nreplicas}} {{pluralize_noun "replica" nreplicas}} on {{ndatacenters}} {{pluralize_noun "datacenter" ndatacenters}} across {{nmachines}} {{pluralize_noun "server" nmachines}}, replication: {{> backfill_progress_summary}}
+            {{nshards}} {{pluralize_noun "shard" nshards}}, {{nreplicas}} {{pluralize_noun "replica" nreplicas}}
         </p>
         <div class="status">
             {{humanize_namespace_reachability reachability}}

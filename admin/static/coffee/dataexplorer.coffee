@@ -13,19 +13,10 @@ module 'DataExplorerView', ->
             'mouseout .suggestion_name_li' : 'mouseout_suggestion'
             'click .clear_query': 'clear_query'
             'click .execute_query': 'execute_query'
-            'click .namespace_link': 'write_query_namespace'
-            'click .old_query': 'write_query_old'
             'click .change_size': 'toggle_size'
             'click #reconnect': 'reconnect'
 
-            'click .goto_first': 'execute_paginating_query'
-            'click .goto_previous': 'execute_paginating_query'
-            'click .goto_next': 'execute_paginating_query'
-            'click .goto_last': 'execute_paginating_query'
-            'keypress .limit_value': 'paginating_keypress'
-            'keypress .skip_value': 'paginating_keypress'
-            'click .display_button': 'paginating_custom'
-            'change .jump_page': 'paginating_jump'
+            'click .more_results': 'show_more_results'
 
             'click .link_to_tree_view': 'save_tab'
             'click .link_to_table_view': 'save_tab'
@@ -35,9 +26,9 @@ module 'DataExplorerView', ->
             @results_view.set_view @.$(event.target).data('view')
 
 
-        displaying_full_view: false
-        has_been_initialized:
-            value: false #We use that boolean to track if suggestions['stream'] has been append to suggestions['table']
+        displaying_full_view: false # Boolean for the full view (true if full view)
+
+        # Map function -> state
         map_state:
             'r': 'r'
             'db': 'db'
@@ -70,7 +61,7 @@ module 'DataExplorerView', ->
             'or': 'expr'
             'range': 'stream'
 
-
+        # Descriptions of all the functions
         descriptions:
             'get(': 'get( id )'
             'filter(': 'filter ( predicate )'
@@ -113,16 +104,24 @@ module 'DataExplorerView', ->
             'not(': 'not( expression )'
             'and(': 'and( expression )'
             'or(': 'or( expression )'
+            'run(': 'run()'
 
+        # Suggestions[state] = function for this state
         suggestions:
-            stream: ['get(' ,'filter(', 'length(', 'map(', 'slice(', 'orderby(', 'distinct(', 'reduce(', 'pluck(', 'extend(']
-            view:['pickAttrs(', 'del(']
-            db:['table(', 'list(', 'create(', 'drop(']
-            table:['insert(']
-            r:['db(', 'dbCreate(', 'dbDrop(', 'dbList(','expr(', 'fn(', 'ifThenElse(', 'let(']
-            array :['length(', 'limit(']
-            "" :['r', 'R(']
-            expr: ['add(', 'sub(', 'mul(', 'div(', 'mod(', 'eq(', 'ne(', 'lt(', 'le(', 'gt(', 'ge(', 'not(', 'and(', 'or(']
+            stream: ['get(' ,'filter(', 'length(', 'map(', 'slice(', 'orderby(', 'distinct(', 'reduce(', 'pluck(', 'extend(', 'run(']
+            view:['pickAttrs(', 'del(', 'run(']
+            db:['table(', 'list(', 'create(', 'drop(', 'run(']
+            table:['insert(', 'run(']
+            r:['db(', 'dbCreate(', 'dbDrop(', 'dbList(','expr(', 'fn(', 'ifThenElse(', 'let(', 'run(']
+            array :['length(', 'limit(', 'run(']
+            "" :['r', 'R(', 'run(']
+            expr: ['add(', 'sub(', 'mul(', 'div(', 'mod(', 'eq(', 'ne(', 'lt(', 'le(', 'gt(', 'ge(', 'not(', 'and(', 'or(', 'run(']
+
+        # Define the height of a line (used for a line is too long)
+        line_height: 13 
+        #TODO bind suggestions to keyup so we don't have an extra line when at the end of a line without a next char
+        num_char_per_line: 106 
+        default_num_char_per_line: 106 
 
         # We have to keep track of a lot of things because web-kit browsers handle the events keydown, keyup, blur etc... in a strange way.
         current_suggestions: []
@@ -131,15 +130,19 @@ module 'DataExplorerView', ->
         query_first_part: ''
         query_last_part: ''
 
+        # Write the suggestion
         write_suggestion: (suggestion_to_write) =>
             @codemirror.setValue @query_first_part + @current_completed_query + suggestion_to_write + @query_last_part
 
+        # Highlight a suggestion in case of a mouseover
         mouseover_suggestion: (event) =>
             @highlight_suggestion event.target.dataset.id
 
+        # Hide suggestion in case of a mouse out
         mouseout_suggestion: (event) =>
             @hide_suggestion_description()
 
+        # Highlight suggestion
         highlight_suggestion: (id) =>
             @.$('.suggestion_name_li').removeClass 'suggestion_name_li_hl'
             @.$('.suggestion_name_li').eq(id).addClass 'suggestion_name_li_hl'
@@ -148,10 +151,11 @@ module 'DataExplorerView', ->
 
             @show_suggestion_description()
 
-
+        # Set cursor to position
         position_cursor: (position) =>
             @codemirror.setCursor position
 
+        # Select the suggestion highlighted
         select_suggestion: (event) =>
             saved_cursor = @codemirror.getCursor()
 
@@ -172,27 +176,29 @@ module 'DataExplorerView', ->
 
             setTimeout @position_cursor_after_click, 1 # Ugliest hack ever.
 
+        # Set the position of the cursor after a suggestion has been clicked
         position_cursor_after_click: =>
             @codemirror.focus()
             @position_cursor @cursor
             @handle_keypress()
-
-
+        
+        # Hide the suggestion
         hide_suggestion: =>
             @.$('.suggestion_name_list').css 'display', 'none'
             @hide_suggestion_description()
             @current_suggestions = []
 
+        # Hide the description
         hide_suggestion_description: ->
             @.$('.suggestion_description').html ''
             @.$('.suggestion_description').css 'display', 'none'
 
-        line_height: 13
-        num_char_per_line: 106 #TODO bind suggestions to keyup so we don't have an extra line when at the end of a line without a next char
-         
+        # Change the num_char_per_line value when we switch from normal view to full view and vice versa 
         set_char_per_line: =>
             if @displaying_full_view is true
                 @num_char_per_line = Math.floor (@.$('Codemirror-scroll').width()-37)/8
+            else
+                @num_char_per_line = @default_num_char_per_line
 
         #TODO refactor show_suggestion, show_suggestion_description, add_description
         show_suggestion: =>
@@ -217,7 +223,7 @@ module 'DataExplorerView', ->
                 @.$('.suggestion_description').css 'display', 'block'
 
 
-
+        # Expand the textarea of the raw view
         expand_textarea: (event) =>
             if @.$('.input_query').length is 1
                 @.$('.input_query').height 0
@@ -228,7 +234,8 @@ module 'DataExplorerView', ->
         handle_keypress: (editor, event) =>
             saved_cursor = @codemirror.getCursor()
             if event?.which?
-                if event.which is 9 # is tab
+                # If the user hit tab, we switch the highlighted suggestion
+                if event.which is 9
                     event.preventDefault()
                     if event.type isnt 'keydown'
                         return true
@@ -260,13 +267,16 @@ module 'DataExplorerView', ->
                         return false
 
                     return true
-                if event.which is 13 and (event.shiftKey or event.ctrlKey) #Ctrl or shift + enter
+
+                # If the user hit enter and (Ctrl or Shift)
+                if event.which is 13 and (event.shiftKey or event.ctrlKey)
                     event.preventDefault()
                     if event.type isnt 'keydown'
                         return true
                     @.$('suggestion_name_list').css 'display', 'none'
                     @execute_query()
             
+            # We just look at key up so we don't fire the call 3 times
             if event?.type? and event.type isnt 'keyup'
                 return false
 
@@ -293,7 +303,7 @@ module 'DataExplorerView', ->
                         query_after_cursor += query_lines[i]
 
 
-            # Check if we are in a string or in the middle of a word
+            # Check if we are in a string or in the middle of a word, if we are in a string, we just show the description
             if @is_in_string(query_before_cursor) is true
                 @hide_suggestion()
                 last_function_for_description = @extract_last_function_for_description(query_before_cursor)
@@ -315,13 +325,15 @@ module 'DataExplorerView', ->
                     @add_description last_function_for_description
                 return ''
 
+            # Extract the current query (the inner query)
             slice_index = @extract_query_first_part query_before_cursor
             query = query_before_cursor.slice slice_index
             
+            # Store data to reconstruct when a suggestion is selected
             @query_first_part = query_before_cursor.slice 0, slice_index
-            # We might want to use tab to move faster (like w in vim)
-            @query_last_part = query_after_cursor #.slice slice_position
+            @query_last_part = query_after_cursor
 
+            # Get the last completed function for description and suggestion
             last_function = @extract_last_function(query)
             if @map_state[last_function]? and @suggestions[@map_state[last_function]]?
                 if not @suggestions[@map_state[last_function]]? or @suggestions[@map_state[last_function]].length is 0
@@ -341,6 +353,7 @@ module 'DataExplorerView', ->
 
             return false
 
+        # Extract the last function to give a description, regardless of if we are in a string or not
         extract_last_function_for_description: (query) =>
             # query = query_before_cursor
             count_dot = 0
@@ -364,20 +377,12 @@ module 'DataExplorerView', ->
                         return ''
                     else if query[i] is '.' and num_not_open_parenthesis isnt 0
                         return query.slice i+1, end
-                ###
-                else if is_string is true
-                    if query[i] is char_used
-                        if query[i-1]? and query[i-1] is '\\'
-                            continue
-                        else
-                            is_string = false
-                ###
             if end?
                 return query.slice 0, end
 
             return ''
 
-
+        # Check if we are in a string (for the last position)
         is_in_string: (query) ->
             is_string = false
             char_used = ''
@@ -395,7 +400,7 @@ module 'DataExplorerView', ->
                             is_string = false
             return is_string
 
-        # Extract the last function of the current line
+        # Extract the last function of the current line, taking in account if we are in a string
         extract_last_function: (query) =>
             start = 0
             count_dot = 0
@@ -445,10 +450,15 @@ module 'DataExplorerView', ->
                     if (query[i] is '"' or query[i] is '\'')
                         is_string = true
                         char_used = query[i]
+                    else if query[i] is ';'
+                        k = 0 # Strip white char
+                        while query[i+1+k]? and /\s/.test(query[i+1+k])
+                            k++
+                        return i+1+k
                     else if query[i] is '('
                         count_opening_parenthesis++
                         if count_opening_parenthesis > 0
-                            k = 0
+                            k = 0 # Strip white char
                             while query[i+1+k]? and /\s/.test(query[i+1+k])
                                 k++
                             return i+1+k
@@ -463,6 +473,7 @@ module 'DataExplorerView', ->
                             is_string = false
             return 0
 
+        # Append suggestion and display them or hide them if suggestions is empty
         append_suggestion: (query, suggestions) =>
             @hide_suggestion()
             splitdata = query.split('.')
@@ -494,44 +505,50 @@ module 'DataExplorerView', ->
                 @hide_suggestion()
             return @
 
-        create_tagged_callbacks: =>
-            id = Math.random()
-            @last_id = id
+        # Callback used by the cursor
+        callback_query: (data) =>
+            # If we get a run time error
+            if data instanceof rethinkdb.errors.RuntimeError
+                @.$('.loading_query_img').css 'display', 'none'
+                @.results_view.render_error(@query, data)
+                return false
+            
+            # if it's a valid result and we have not reach the maximum of results displayed
+            if data? and  @current_results.length < @limit
+                @current_results.push data
+                return true
+            else
+                # Else we are going to display what we have
+                @.$('.loading_query_img').css 'display', 'none'
+                @results_view.render_result @query, @current_results
 
-            @current_results = []
-            @count_results = 0
-            iter_callback = (data) =>
-                if id is @last_id
-                    if @count_results < @limit
-                        @current_results.push data
-                    else
-                        if @count_results is @limit
-                            @results_view.render_result @query, @current_results
+                execution_time = new Date() - @start_time
+                @results_view.render_metadata
+                    limit_value: @current_results.length
+                    skip_value: @skip_value
+                    execution_time: execution_time
+                    query: @query
+                    has_more_data: true if data? # if data is undefined, it means that there is no more data
 
-                            @results_view.render_metadata @limit, 0, undefined, undefined, @query
-                    @count_results++
-            last_callback = =>
-                if id is @last_id
-                    execution_time = new Date() - @start_time
-                    if @count_results < @limit
-                        @results_view.render_result @query, @current_results
+                if data? #there is nore data
+                    @skip_value += @current_results.length
+                    @current_results = []
+                    @current_results.push data
+                return false
 
-                    @.$('.loading_query_img').css 'display', 'none'
-                    @results_view.render_metadata @current_results.length, 0, @count_results, execution_time, @query
-                    @last_completed_query = @query
-                    @last_executed_count_results = @count_results
-            error_callback = (err) =>
-                if id is @last_id
-                    @.$('.loading_query_img').css 'display', 'none'
-                    @.results_view.render_error(@query, err)
+        # Function triggered when the user click on 'more results'
+        show_more_results: (event) =>
+            try
+                event.preventDefault()
+                @cursor.next(@callback_query)
+                $(window).scrollTop(@.$('.results_container').offset().top)
+            catch err
+                @.$('.loading_query_img').css 'display', 'none'
+                @results_view.render_error(@query, err)
 
-
-
-            iter: iter_callback
-            last: last_callback
-            error: error_callback
-
+        # Function that execute the query
         execute_query: =>
+            # Postpone the reconnection
             clearTimeout @timeout
             @timeout = setTimeout @connect, 5*60*1000
             @query = @codemirror.getValue()
@@ -552,126 +569,27 @@ module 'DataExplorerView', ->
                         start_string = i
                         char_used = @query[i]
                 i++
-
+            
+            # Display the loading gif
             @.$('.loading_query_img').css 'display', 'block'
 
-            full_query = @query+'\n'+'.iter({callback: iter_callback, doneCallback:last_callback, onError: error_callback})' # The new line is added in case the last one has an inline comment (//)
+            # Execute the query
             try
-                callbacks = @create_tagged_callbacks()
-                iter_callback = callbacks.iter
-                last_callback = callbacks.last
-                error_callback = callbacks.error
                 @start_time = new Date()
-                eval(full_query)
-            catch err
-                @.$('.loading_query_img').css 'display', 'none'
-                @results_view.render_error(@query, err)
-            
-        paginating_keypress: (event) =>
-            if event.which is 13
-                @paginating_custom event
-
-        paginating_custom: (event) =>
-            id = @.$(event.target).data 'id'
-            skip_value = @.$('.skip_value:eq('+id+')').val()
-            limit_value = @.$('.limit_value:eq('+id+')').val()
-
-            if _.isNaN(parseInt(skip_value)) is false
-                skip_value = parseInt skip_value
-            if _.isNaN(parseInt(limit_value)) is false
-                limit_value = parseInt limit_value
-
-            
-            @results_view.set_limit limit_value
-            @results_view.set_skip skip_value
-
-            @paginate_query @last_completed_query, @last_executed_count_results, skip_value, limit_value
-
-        paginating_jump: (event) =>
-            limit_value = @.$(event.target).data('limit_value')
-            skip_value = @.$(event.target).val() * @.$(event.target).data('limit_value')
-
-            skip_value = parseInt skip_value
-            limit_value = parseInt limit_value
-
-            @results_view.set_limit limit_value
-            @results_view.set_skip skip_value
-            @paginate_query @last_completed_query, @last_executed_count_results, skip_value, limit_value
-
-
-        execute_paginating_query: (event) =>
-            skip_value = @.$(event.target).data 'skip_value'
-            limit_value = @.$(event.target).data 'limit_value'
-
-            @paginate_query @last_completed_query, @last_executed_count_results, skip_value, limit_value
-            return @
-
-        create_tagged_paginating_callbacks: (skip_value, limit_value) =>
-            id = Math.random()
-            @last_id = id
-
-            @current_results = []
-            iter_callback = (data) =>
-                if id is @last_id
-                    @current_results.push data
-
-            last_callback = =>
-                if id is @last_id
-                    execution_time = new Date() - @start_time
-
-                    @results_view.render_result @query+'.skip('+skip_value+').limit('+limit_value+')', @current_results
-                    @.$('.loading_query_img').css 'display', 'none'
-                    @results_view.render_metadata limit_value, skip_value, @count_results, execution_time, @query
-                    @last_completed_query = @query
-                    @last_executed_count_results = @count_results
-
-
-            iter: iter_callback
-            last: last_callback
-
-        paginate_query: (query, count_results, skip_value, limit_value) =>
-            # Make sure that we have to good query
-            @query = query
-            @count_results = count_results
-
-            @.$('.loading_query_img').css 'display', 'block'
-            full_query = @query+'\n'+'.skip('+skip_value+').limit('+limit_value+')'+'.iter({callback: iter_callback, doneCallback:last_callback, onError: error_callback})' # The new line is added in case the last one has an inline comment (//)
-            try
-                callbacks = @create_tagged_paginating_callbacks(skip_value, limit_value)
-                iter_callback = callbacks.iter
-                last_callback = callbacks.last
-                error_callback = callbacks.error
-                @start_time = new Date()
-                eval(full_query)
+                @cursor = eval(@query)
+                @current_results = []
+                @skip_value = 0
+                @cursor.next(@callback_query)
             catch err
                 @.$('.loading_query_img').css 'display', 'none'
                 @results_view.render_error(@query, err)
 
-
+        # Clear the input
         clear_query: =>
             @codemirror.setValue ''
             @codemirror.focus()
 
-
-        # Write a query for the namespace clicked
-        write_query_namespace: (event) =>
-            event.preventDefault()
-            query = 'r.db("'+event.target.dataset.database+'").table("'+event.target.dataset.name+'").filter()'
-            @codemirror.setValue query
-            @codemirror.focus()
-            @codemirror.setCursor
-                line: 0
-                ch: Infinity
-            @handle_keypress()
-
-        # Write an old query in the input
-        write_query_old: (event) =>
-            event.preventDefault()
-            @codemirror.setValue event.target.dataset.query
-            @codemirror.focus()
-            @codemirror.setCursor
-                line: Infinity
-                ch: Infinity
+        # Connect to the server
         connect: (data) =>
             server =
                 host: window.location.hostname
@@ -687,24 +605,20 @@ module 'DataExplorerView', ->
                 @.$('#user-alert-space').html @alert_connection_fail_template({})
                 @.$('#user-alert-space').slideDown()
 
+        # Reconnect, function triggered if the user click on reconnect
         reconnect: (event) =>
             event.preventDefault()
             @connect
                 reconnecting: true
 
         initialize: =>
-            if @has_been_initialized.value is false
-                for suggestion in @suggestions.stream
-                    @suggestions.table.push suggestion
-                @has_been_initialized.value = true
-            
             @timeout = setTimeout @connect, 5*60*1000
             window.r = rethinkdb
             window.R = r.R
 
             @connect()
 
-            @limit = 20
+            @limit = 40
 
             # We escape the last function because we are building a regex on top of it.
             @unsafe_to_safe_regexstr = []
@@ -744,6 +658,10 @@ module 'DataExplorerView', ->
             @unsafe_to_safe_regexstr.push
                 pattern: /\}/g
                 replacement: '\\}'
+            @unsafe_to_safe_regexstr.push
+                pattern: /\[/g
+                replacement: '\\['
+
 
             @input_query = new DataExplorerView.InputQuery
             @results_view = new DataExplorerView.ResultView @limit
@@ -759,6 +677,7 @@ module 'DataExplorerView', ->
             @.$('.results_container').html @results_view.render_default().$el
             return @
 
+        # Create a code mirror instance
         call_codemirror: =>
             @codemirror = CodeMirror.fromTextArea document.getElementById('input_query'),
                 mode:
@@ -772,6 +691,7 @@ module 'DataExplorerView', ->
 
             @codemirror.setSize '100%', 'auto'
 
+        # Switch between full view and normal view
         toggle_size: =>
             if @displaying_full_view
                 @display_normal()
@@ -873,6 +793,7 @@ module 'DataExplorerView', ->
 
         #TODO catch RangeError: Maximum call stack size exceeded?
         #TODO what to do with new line?
+        # We build the tree in a recursive way
         json_to_node: (value) =>
             value_type = typeof value
             
@@ -939,7 +860,8 @@ module 'DataExplorerView', ->
                     value: if value then 'true' else 'false'
  
 
-
+        # Build the table
+        # We order by the most frequent keys then by alphabetic order
         json_to_table: (result) =>
             if not (result.constructor? and result.constructor is Array)
                 result = [result]
@@ -1049,7 +971,7 @@ module 'DataExplorerView', ->
 
             return data
 
-
+        # Expand a JSON object in a table. We just call the @json_to_tree
         expand_tree_in_table: (event) =>
             dom_element = @.$(event.target).parent()
             data = dom_element.data('json_data')
@@ -1064,7 +986,7 @@ module 'DataExplorerView', ->
             @.$(event.target).remove() #TODO Fix this trick
 
 
-
+        # Expand the table with new columns (with the attributes of the expanded object)
         expand_table_in_table: (event) ->
             dom_element = @.$(event.target).parent()
             parent = dom_element.parent()
@@ -1140,7 +1062,7 @@ module 'DataExplorerView', ->
 
                 $('.'+classcolumn) .remove();
 
-
+        # Helper for expanding a table when showing an object (creating new columns)
         join_table: (data) =>
             result = ''
             for value, i in data
@@ -1195,9 +1117,14 @@ module 'DataExplorerView', ->
                 when 'raw'
                     @.$('.link_to_raw_view').tab 'show'
  
+        # Render the metadata of an the results
+        render_metadata: (data) =>
+            limit_value = data.limit_value
+            skip_value = data.skip_value
+            execution_time = data.execution_time
+            query = data.query
+            has_more_data = data.has_more_data
 
-        #TODO Fix the calls with limit/skip_value
-        render_metadata: (limit_value, skip_value, count_results, execution_time, query) =>
             if execution_time?
                 if execution_time < 1000
                     execution_time_pretty = execution_time+"ms"
@@ -1207,55 +1134,18 @@ module 'DataExplorerView', ->
                     minutes = Math.floor(execution_time/(60*1000))
                     execution_time_pretty = minutes+"min "+((execution_time-minutes*60*1000)/1000).toFixed(2)+"s"
 
-
-
-            @.$('.metadata').html @metadata_template
+            data =
                 skip_value: skip_value
                 limit_value: limit_value
-                num_rows: count_results if count_results?
                 execution_time: execution_time_pretty if execution_time_pretty?
 
+            @.$('.metadata').html @metadata_template data
+
             #render pagination
-            if limit_value < count_results or skip_value > 0
-                #TODO complete
-                @.$('.pagination_container').css 'display', 'block'
-                if skip_value > 0
-                    @.$('.goto_first').removeProp 'disabled'
-                    @.$('.goto_previous').removeProp 'disabled'
-
-                    @.$('.goto_first').data 'skip_value', 0
-                    @.$('.goto_first').data 'limit_value', @limit
-
-                    new_skip_value = Math.max 0, skip_value-limit_value
-                    @.$('.goto_previous').data 'skip_value', new_skip_value
-                    @.$('.goto_previous').data 'limit_value', @limit
-                else
-                    @.$('.goto_first').prop 'disabled', 'disabled'
-                    @.$('.goto_previous').prop 'disabled', 'disabled'
-
-                if skip_value+limit_value < count_results
-                    @.$('.goto_next').removeProp 'disabled'
-                    @.$('.goto_last').removeProp 'disabled'
-
-                    @.$('.goto_next').data 'skip_value', skip_value+limit_value
-                    @.$('.goto_next').data 'limit_value', @limit
-
-                    @.$('.goto_last').data 'skip_value', count_results-limit_value
-                    @.$('.goto_last').data 'limit_value', @limit
-                else
-                    @.$('.goto_next').prop 'disabled', 'disabled'
-                    @.$('.goto_last').prop 'disabled', 'disabled'
-
-                @.$('.skip_value').val skip_value
-                @.$('.limit_value').val limit_value
-                @.$('.jump_page').data 'limit_value', limit_value
-            page = 0
-            while page*limit_value < count_results
-                @.$('.jump_page').append @option_template
-                    page: page
-                    limit_value: limit_value
-                    selected: page*limit_value is skip_value
-                page++
+            if has_more_data? and has_more_data is true
+                @.$('.more_results').show()
+            else
+                @.$('.more_results').hide()
                 
         render: =>
             @delegateEvents()
@@ -1270,7 +1160,6 @@ module 'DataExplorerView', ->
             @.$(event.target).nextAll('.jt_b').toggleClass('jt_b_collapsed')
             @.$(event.target).toggleClass('jt_arrow_hidden')
 
-       
         handle_keypress: (event) =>
             if event.which is 13 and !event.shiftKey
                 event.preventDefault()
