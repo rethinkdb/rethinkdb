@@ -561,8 +561,9 @@ log_serializer_t::block_write(const void *buf, file_account_t *io_account) {
 
 void log_serializer_t::register_block_token(ls_block_token_pointee_t *token, off64_t offset) {
     assert_thread();
-    rassert(token_offsets.find(token) == token_offsets.end());
-    token_offsets[token] = offset;
+    std::pair<std::map<ls_block_token_pointee_t *, off64_t>::iterator, bool> insert_res
+        = token_offsets.insert(std::make_pair(token, offset));
+    rassert(insert_res.second);
 
     const bool first_token_for_offset = offset_tokens.find(offset) == offset_tokens.end();
     if (first_token_for_offset) {
@@ -609,7 +610,7 @@ void log_serializer_t::unregister_block_token(ls_block_token_pointee_t *token) {
 
     token_offsets.erase(token_offset_it);
 
-    rassert(!(token_offsets.empty() ^ offset_tokens.empty()));
+    rassert(token_offsets.empty() == offset_tokens.empty());
     if (token_offsets.empty() && offset_tokens.empty() && state == state_shutting_down && shutdown_state == shutdown_waiting_on_block_tokens) {
 #ifndef NDEBUG
         expecting_no_more_tokens = true;
