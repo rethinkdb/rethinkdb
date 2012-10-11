@@ -44,17 +44,17 @@
         <div class="stat-row">
             <p class="datacenter">
                 {{#if assigned_to_datacenter}}
-                    <span class="big">Datacenter: </span><a href="#datacenters/{{datacenter_uuid}}">{{datacenter_name}}</a>
+                    <span class="big">{{datacenter_name}} </span> datacenter
                 {{else}}
-                    <span class="big">Datacenter: </span>unassigned
+                    <span class="big">Unassigned </span>datacenter
                 {{/if}}
             </p>
         </div>
         <div class="stat-row">
-            <p class="uptime"><span class="big">Uptime: </span>{{uptime}}</p>
+            <p class="uptime"><span class="big">{{uptime}} </span>uptime</p>
         </div>
         <div class="stat-row">
-            <p class="ips"><span class="big">IP Address: </span>{{#if ips}}{{main_ip}}{{else}}N/A{{/if}}</p>
+            <p class="ips"><span class="big">{{#if ips}}{{main_ip}}{{else}}N/A{{/if}} </span>IP address</p>
         </div>
     </div>
         <!-- Review and remove
