@@ -817,7 +817,8 @@ module 'DataExplorerView', ->
                 window.conn.close()
             catch err
                 #console.log 'Could not destroy connection'
-            @cursor.close()
+            if @cursor?
+                @cursor.close()
             clearTimeout @timeout
     
     class @InputQuery extends Backbone.View
