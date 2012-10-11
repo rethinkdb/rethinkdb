@@ -51,7 +51,7 @@ module 'DatacenterView', ->
                 type: 'datacenter'
 
             datacenters.on 'remove', @check_if_still_exists
-        
+
         check_if_still_exists: =>
             exist = false
             for datacenter in datacenters.models
@@ -103,7 +103,7 @@ module 'DatacenterView', ->
         close_alert: (event) ->
             event.preventDefault()
             $(event.currentTarget).parent().slideUp('fast', -> $(this).remove())
-        
+
         # Pop up a modal to show assignments
         show_data: (event) =>
             event.preventDefault()
@@ -127,7 +127,7 @@ module 'DatacenterView', ->
             @performance_graph.destroy()
             @logs.destroy()
 
-        
+
     # DatacenterView.Title
     class @Title extends Backbone.View
         className: 'datacenter-info-view'
@@ -135,7 +135,7 @@ module 'DatacenterView', ->
         initialize: ->
             @name = @model.get('name')
             @model.on 'change:name', @update
-        
+
         update: =>
             if @name isnt @model.get('name')
                 @name = @model.get('name')
@@ -222,6 +222,14 @@ module 'DatacenterView', ->
                     stats_up_to_date = false
                     break
 
+            # Compute total shards and replicas on this dc
+            total_shards = 0
+            total_replicas = 0
+            for _n in _namespaces
+                for _s in _n.shards
+                    total_shards += _s.nprimaries
+                    total_replicas += _s.nsecondaries + _s.nprimaries
+
             # Generate json and render
             json =
                 name: @model.get('name')
@@ -230,6 +238,8 @@ module 'DatacenterView', ->
                     more_link_should_be_displayed: @more_link_should_be_displayed
                 status: DataUtils.get_datacenter_reachability(@model.get('id'))
                 stats_up_to_date: stats_up_to_date
+                nshards: total_shards
+                nreplicas: total_replicas
             stats = @model.get_stats()
             json = _.extend json,
                 global_cpu_util: Math.floor(stats.global_cpu_util_avg * 100)
@@ -281,7 +291,7 @@ module 'DatacenterView', ->
                 data['datacenters'][datacenter.get('id')] = {}
                 data['datacenters'][datacenter.get('id')]['name'] = datacenter.get('name')
             data['datacenters'][@datacenter_to_delete.get('id')] = null
-            
+
             data['machines'] = {}
             for machine in machines.models
                 data['machines'][machine.get('id')] = {}
