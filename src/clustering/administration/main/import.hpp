@@ -16,8 +16,7 @@ struct json_import_target_t {
     std::string db_name;
     boost::optional<std::string> datacenter_name;
     std::string table_name;
-    boost::optional<std::string> primary_key;
-    bool autogen;
+    std::string primary_key;
 };
 
 bool run_json_import(extproc::spawner_t::info_t *spawner_info, peer_address_set_t peers, int ports_port, int ports_client_port, json_import_target_t import_args, json_importer_t *importer, signal_t *stop_cond);

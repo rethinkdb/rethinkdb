@@ -178,68 +178,49 @@ bool get_or_create_namespace(machine_id_t us,
                              database_id_t db_id,
                              boost::optional<std::string> datacenter_name,
                              std::string table_name,
-                             boost::optional<std::string> maybe_primary_key,
+                             std::string primary_key_in,
                              namespace_id_t *namespace_out,
-                             std::string *primary_key_out,
                              signal_t *interruptor) {
     boost::shared_ptr<semilattice_read_view_t<datacenters_semilattice_metadata_t> > datacenters = metadata_field(&cluster_semilattice_metadata_t::datacenters, metadata);
     boost::shared_ptr<semilattice_readwrite_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > > namespaces = metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, metadata);
-
 
     namespaces_semilattice_metadata_t<rdb_protocol_t> original_nss = *namespaces->get();
     metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> > searcher(&original_nss.namespaces);
     metadata_search_status_t error;
     std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<rdb_protocol_t> > >::iterator it = searcher.find_uniq(namespace_predicate_t(table_name, db_id), &error);
 
+    bool result = true;
+
+    *namespace_out = namespace_id_t();
+
     if (error == METADATA_SUCCESS) {
         std::string existing_pk = it->second.get().primary_key.get();
-        if (maybe_primary_key) {
-            if (existing_pk != *maybe_primary_key) {
-                printf("Successfully found namespace %s, with wrong primary key '%s'\n",
-                       uuid_to_str(it->first).c_str(), existing_pk.c_str());
+        if (existing_pk != primary_key_in) {
+            printf("Successfully found namespace %s, with wrong primary key '%s'\n",
+                   uuid_to_str(it->first).c_str(), existing_pk.c_str());
+            result = false;
+        } else {
+            printf("Successfully found namespace %s\n", uuid_to_str(it->first).c_str());
+            *namespace_out = it->first;
+        }
+    } else if (error == METADATA_ERR_NONE) {
+        datacenter_id_t dc_id = nil_uuid();
 
-                *namespace_out = namespace_id_t();
-                primary_key_out->clear();
+        if (datacenter_name) {
+            datacenters_semilattice_metadata_t dcs = datacenters->get();
+            metadata_searcher_t<datacenter_semilattice_metadata_t> dc_searcher(&dcs.datacenters);
+            metadata_search_status_t dc_error;
+            std::map<datacenter_id_t, deletable_t<datacenter_semilattice_metadata_t> >::iterator jt = dc_searcher.find_uniq(*datacenter_name, &dc_error);
+
+            if (dc_error != METADATA_SUCCESS) {
+                printf("Could not find datacenter. error = %d\n", dc_error);
                 return false;
             }
+
+            dc_id = jt->first;
         }
 
-        printf("Successfully found namespace %s\n", uuid_to_str(it->first).c_str());
-        *primary_key_out = existing_pk;
-        *namespace_out = it->first;
-        return true;
-    } else if (error == METADATA_ERR_NONE) {
-        // We need a primary key if we are to be creating a namespace.
-        if (!maybe_primary_key) {
-            printf("Trying to create a namespace but lack primary key.\n");
-            *namespace_out = namespace_id_t();
-            primary_key_out->clear();
-            return false;
-        }
-        std::string primary_key = *maybe_primary_key;
-
-        if (!datacenter_name) {
-            printf("Trying to create a namespace but lack datacenter parameter.\n");
-            *namespace_out = namespace_id_t();
-            primary_key_out->clear();
-            return false;
-        }
-
-        datacenters_semilattice_metadata_t dcs = datacenters->get();
-        metadata_searcher_t<datacenter_semilattice_metadata_t> dc_searcher(&dcs.datacenters);
-        metadata_search_status_t dc_error;
-        std::map<datacenter_id_t, deletable_t<datacenter_semilattice_metadata_t> >::iterator jt = dc_searcher.find_uniq(*datacenter_name, &dc_error);
-
-        if (dc_error != METADATA_SUCCESS) {
-            printf("Could not find datacenter. error = %d\n", dc_error);
-            *namespace_out = namespace_id_t();
-            primary_key_out->clear();
-            return false;
-        }
-
-        datacenter_id_t dc_id = jt->first;
-
-        namespace_semilattice_metadata_t<rdb_protocol_t> ns = new_namespace<rdb_protocol_t>(us, db_id, dc_id, table_name, primary_key, 0 /* unused memcached port arg */, GIGABYTE);
+        namespace_semilattice_metadata_t<rdb_protocol_t> ns = new_namespace<rdb_protocol_t>(us, db_id, dc_id, table_name, primary_key_in, 0 /* unused memcached port arg */, GIGABYTE);
         namespaces_semilattice_metadata_t<rdb_protocol_t> nss;
         namespace_id_t ns_id = generate_uuid();
         nss.namespaces.insert(std::make_pair(ns_id, ns));
@@ -269,14 +250,11 @@ bool get_or_create_namespace(machine_id_t us,
         printf("Done waiting for readiness.\n");
 
         *namespace_out = ns_id;
-        *primary_key_out = primary_key;
-        return true;
     } else {
         printf("Error searching for namespace.\n");
-        *namespace_out = namespace_id_t();
-        primary_key_out->clear();
-        return false;
+        result = false;
     }
+    return result;
 }
 
 bool get_or_create_database(UNUSED machine_id_t us,
@@ -316,18 +294,6 @@ bool do_json_importation(machine_id_t us,
     const std::string db_name = target.db_name;
     const boost::optional<std::string> datacenter_name = target.datacenter_name;
     const std::string table_name = target.table_name;
-    const boost::optional<std::string> maybe_primary_key = target.primary_key;
-    const bool autogen = target.autogen;
-
-    // Try early abort on primary key.
-    if (!autogen && maybe_primary_key && !importer->might_support_primary_key(*maybe_primary_key)) {
-        // TODO: Duplicate code.
-        // The column name cannot be found!  (This logic will be
-        // different when we support primary key autogeneration.)
-        printf("Requested primary key '%s' not found in import data.\n", maybe_primary_key->c_str());
-        return false;
-    }
-
 
     database_id_t db_id;
     if (!get_or_create_database(us, metadata, db_name, &db_id)) {
@@ -337,15 +303,8 @@ bool do_json_importation(machine_id_t us,
 
     namespace_id_t namespace_id;
     std::string primary_key;
-    if (!get_or_create_namespace(us, repo, metadata, directory, db_id, datacenter_name, table_name, maybe_primary_key, &namespace_id, &primary_key, interruptor)) {
+    if (!get_or_create_namespace(us, repo, metadata, directory, db_id, datacenter_name, table_name, target.primary_key, &namespace_id, interruptor)) {
         printf("could not get or create table named '%s' (in db '%s')\n", table_name.c_str(), uuid_to_str(db_id).c_str());
-        return false;
-    }
-
-    if (!autogen && !importer->might_support_primary_key(primary_key)) {
-        // The column name cannot be found!  (This logic will be
-        // different when we support primary key autogeneration.)
-        printf("Primary key '%s' not found in import data.", primary_key.c_str());
         return false;
     }
 
@@ -357,8 +316,6 @@ bool do_json_importation(machine_id_t us,
 
     order_source_t order_source;
 
-    bool seen_primary_key = false;
-
     int64_t num_imported_rows = 0;
     int64_t num_duplicate_pkey = 0;
 
@@ -366,21 +323,13 @@ bool do_json_importation(machine_id_t us,
     try {
         printf("Importing data...\n");
         for (scoped_cJSON_t json; importer->next_json(&json); json.reset(NULL)) {
-            cJSON *pkey_value = json.GetObjectItem(primary_key.c_str());
+            cJSON *pkey_value = json.GetObjectItem(target.primary_key.c_str());
+
+            // Autogenerate primary keys for records without them
             if (!pkey_value) {
-                if (autogen) {
-                    std::string generated_pk = uuid_to_str(generate_uuid());
-                    pkey_value = cJSON_CreateString(generated_pk.c_str());
-                    json.AddItemToObject(primary_key.c_str(), pkey_value);
-                } else {
-                    // This can't happen with CSV because we can check headers up front.
-                    // This will need to change if autogeneration is turned on.
-                    if (!seen_primary_key) {
-                        printf("Some imported objects have no primary key ('%s'), and are ignored.\n", primary_key.c_str());
-                        seen_primary_key = true;
-                    }
-                    continue;
-                }
+                std::string generated_pk = uuid_to_str(generate_uuid());
+                pkey_value = cJSON_CreateString(generated_pk.c_str());
+                json.AddItemToObject(target.primary_key.c_str(), pkey_value);
             }
 
             // TODO: This code is duplicated with something.  Like insert(...) in query_language.cc.
@@ -427,7 +376,6 @@ bool do_json_importation(machine_id_t us,
 
         importation_complete = true;
     } catch (interrupted_exc_t exc) {
-        importation_complete = false;
         // do nothing.
     }
 
