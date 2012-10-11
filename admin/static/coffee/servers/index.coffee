@@ -14,7 +14,7 @@ module 'ServerView', ->
 
         initialize: =>
             @add_datacenter_dialog = new ServerView.AddDatacenterModal
-            @set_datacenter_dialog = new ServerView.SetDatacenterModal
+            @set_datacenter_dialog = new ServerView.SetDatacenterModal model: @model
 
             @unassigned_machines = new ServerView.UnassignedMachinesListElement
             @unassigned_machines.register_machine_callbacks @get_callbacks()
@@ -84,65 +84,7 @@ module 'ServerView', ->
         # Callback that will be registered: updates the toolbar buttons based on how many machines have been selected
         update_toolbar_buttons: =>
             # We need to check which machines have been checked off to decide which buttons to enable/disable
-            @.$('.actions-bar .btn.set-datacenter').toggleClass 'disabled', @check_can_change_datacenter()
-
-        check_can_change_datacenter: =>
-            selected_machines = @get_selected_machines()
-            reason_unmovable_machines = {}
-            for machine in selected_machines
-                for namespace in namespaces.models
-                    for machine_uuid, peer_roles of namespace.get('blueprint').peers_roles
-                        if machine_uuid is machine.get 'id'
-                            for shard, role of peer_roles
-                                if role is 'role_primary'
-                                    if not (machine.get('id') of reason_unmovable_machines)
-                                        reason_unmovable_machines[machine_uuid] = {}
-                                        reason_unmovable_machines[machine_uuid]['master'] = []
-                                    reason_unmovable_machines[machine_uuid]['master'].push
-                                        namespace_id: namespace.get 'id'
-                                    break
-
-
-            for selected_machine in selected_machines
-                num_machines_in_datacenter = 0
-                for machine in machines.models
-                    if machine.get('datacenter_uuid') is selected_machine.get('datacenter_uuid')
-                        num_machines_in_datacenter++
-
-                for namespace in namespaces.models
-                    if selected_machine.get('datacenter_uuid') of namespace.get('replica_affinities') # If the datacenter has responsabilities
-                        num_replica = namespace.get('replica_affinities')[selected_machine.get('datacenter_uuid')]
-                        if namespace.get('primary_uuid') is selected_machine.get('datacenter_uuid')
-                            num_replica++
-                        if num_machines_in_datacenter <= num_replica
-                            if not (selected_machine.get('id') of reason_unmovable_machines)
-                                reason_unmovable_machines[selected_machine.get('id')] = []
-                                reason_unmovable_machines[selected_machine.get('id')]['goals'] = []
-                            else if not ('goals' of reason_unmovable_machines[selected_machine.get('id')])
-                                reason_unmovable_machines[selected_machine.get('id')]['goals'] = []
-
-                            reason_unmovable_machines[selected_machine.get('id')]['goals'].push
-                                namespace_id: namespace.get 'id'
-
-            num_not_movable_machines = 0
-            for machine_id of reason_unmovable_machines
-                num_not_movable_machines++
-
-            if num_not_movable_machines > 0
-                if @.$('#reason_cannot_change_datacenter').length > 0
-                    @.$('#reason_cannot_change_datacenter').remove()
-                    @.$('#user-alert-space-set_datacenter').prepend @cannot_change_datacenter_alert_template
-                        reasons: reason_unmovable_machines
-                    @.$('#reason_cannot_change_datacenter').css 'display', 'block'
-                else
-                    @.$('#user-alert-space-set_datacenter').prepend @cannot_change_datacenter_alert_template
-                        reasons: reason_unmovable_machines
-                    @.$('#reason_cannot_change_datacenter').slideDown 200
-            else
-                if @.$('#reason_cannot_change_datacenter').length > 0
-                    @.$('#reason_cannot_change_datacenter').slideUp 200, -> $(this).remove()
-
-            return num_not_movable_machines>0 or selected_machines.length is 0
+            @.$('.actions-bar .btn.set-datacenter').toggleClass 'disabled', @get_selected_machines().length is 0
 
         destroy: =>
             super
@@ -531,10 +473,21 @@ module 'ServerView', ->
         render: (_machines_list) ->
             @machines_list = _machines_list
             log_render '(rendering) set datacenter dialog'
-            super
+            data =
                 modal_title: 'Set datacenter'
                 btn_primary_text: 'Commit'
                 datacenters: (datacenter.toJSON() for datacenter in datacenters.models)
+
+            warnings_by_machines = []
+            for machine in @machines_list
+                new_data = machine.get_data_for_moving()
+                if new_data.has_warning is true
+                    warnings_by_machines.push new_data
+
+            if warnings_by_machines.length > 0
+                data.has_warning = true
+                data.warnings_by_machines = warnings_by_machines
+            super data
 
         on_submit: ->
             super
@@ -544,10 +497,6 @@ module 'ServerView', ->
             for _m in @machines_list
                 json[_m.get('id')] =
                     datacenter_uuid: @formdata.datacenter_uuid
-
-            if @can_change_datacenter() is false
-                @reset_buttons()
-                return @
 
             # Set the datacenters!
             $.ajax
@@ -572,54 +521,3 @@ module 'ServerView', ->
                 machines_rest: machine_names.splice(1)
                 machine_count: @machines_list.length
             )
-
-        can_change_datacenter: =>
-            selected_machines = @machines_list
-            reason_unmovable_machines = {}
-            for machine in selected_machines
-                for namespace in namespaces.models
-                    for machine_uuid, peer_roles of namespace.get('blueprint').peers_roles
-                        if machine_uuid is machine.get 'id'
-                            for shard, role of peer_roles
-                                if role is 'role_primary'
-                                    if not (machine.get('id') of reason_unmovable_machines)
-                                        reason_unmovable_machines[machine_uuid] = {}
-                                        reason_unmovable_machines[machine_uuid]['master'] = []
-                                    reason_unmovable_machines[machine_uuid]['master'].push
-                                        namespace_id: namespace.get 'id'
-                                    break
-
-
-            for selected_machine in selected_machines
-                num_machines_in_datacenter = 0
-                for machine in machines.models
-                    if machine.get('datacenter_uuid') is selected_machine.get('datacenter_uuid')
-                        num_machines_in_datacenter++
-
-                for namespace in namespaces.models
-                    if selected_machine.get('datacenter_uuid') of namespace.get('replica_affinities') # If the datacenter has responsabilities
-                        num_replica = namespace.get('replica_affinities')[selected_machine.get('datacenter_uuid')]
-                        if namespace.get('primary_uuid') is selected_machine.get('datacenter_uuid')
-                            num_replica++
-                        if num_machines_in_datacenter <= num_replica
-                            if not (selected_machine.get('id') of reason_unmovable_machines)
-                                reason_unmovable_machines[selected_machine.get('id')] = []
-                                reason_unmovable_machines[selected_machine.get('id')]['goals'] = []
-                            else if not ('goals' of reason_unmovable_machines[selected_machine.get('id')])
-                                reason_unmovable_machines[selected_machine.get('id')]['goals'] = []
-
-                            reason_unmovable_machines[selected_machine.get('id')]['goals'].push
-                                namespace_id: namespace.get 'id'
-
-            num_not_movable_machines = 0
-            for machine_id of reason_unmovable_machines
-                num_not_movable_machines++
-
-            if num_not_movable_machines > 0
-                @.$('.alert').html('')
-                @.$('.alert').prepend @cannot_change_datacenter_alert_template
-                    reasons: reason_unmovable_machines
-                    red: true
-                @.$('.alert').slideDown 200
-
-            return num_not_movable_machines is 0

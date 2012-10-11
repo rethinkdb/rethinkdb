@@ -62,13 +62,10 @@ Handlebars.registerHelper 'links_to_namespaces', (namespaces) ->
     return out
 
 #Returns a list of links to namespaces on one line
-Handlebars.registerHelper 'links_to_namespaces_inline', (namespaces, tab) ->
+Handlebars.registerHelper 'links_to_namespaces_inline', (namespaces) ->
     out = ""
     for i in [0...namespaces.length]
-        if tab?
-            out += '<a href="#tables/'+namespaces[i].id+'/'+tab+'" class="links_to_other_view">'+namespaces[i].name+'</a>'
-        else
-            out += '<a href="#tables/'+namespaces[i].id+'" class="links_to_other_view">'+namespaces[i].name+'</a>'
+        out += '<a href="#tables/'+namespaces[i].id+'" class="links_to_other_view">'+namespaces[i].name+'</a>'
         out += ", " if i isnt namespaces.length-1
     return new Handlebars.SafeString(out)
 
@@ -156,6 +153,7 @@ Handlebars.registerHelper 'pluralize_verb_to_be', (num) -> if num is 1 then 'is'
 Handlebars.registerHelper 'pluralize_verb_to_have', (num) -> if num is 1 then 'has' else 'have'
 Handlebars.registerHelper 'pluralize_verb', (verb, num) -> if num is 1 then verb+'s' else verb
 Handlebars.registerHelper 'pluralize_its', (num) -> if num is 1 then 'its' else 'their'
+Handlebars.registerHelper 'pluralize_this', (num) -> if num is 1 then 'this' else 'these'
 # Helpers for capitalization
 Handlebars.registerHelper 'capitalize', (str) -> str.charAt(0).toUpperCase() + str.slice(1)
 

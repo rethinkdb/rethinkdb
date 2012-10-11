@@ -124,8 +124,8 @@ module 'MachineView', ->
 
         unassign_datacenter: (event) =>
             event.preventDefault()
-            unassign_dialog = new MachineView.UnassignModal
-            unassign_dialog.render @model
+            unassign_dialog = new MachineView.UnassignModal model: @model
+            unassign_dialog.render()
 
         destroy: =>
             @model.off 'change:name', @render
@@ -210,65 +210,36 @@ module 'MachineView', ->
             super
 
         # Takes a server argument-- the server that will be unassigned from its datacenter
-        render: (server) ->
-            @machine_to_unassign = server
-            dc_uuid = server.get('datacenter_uuid')
+        render: =>
             data =
                 modal_title: 'Remove datacenter'
                 btn_primary_text: 'Remove'
-                id: server.get('id')
-                name: server.get('name')
+                id: @model.get('id')
+                name: @model.get('name')
                 # find reasons that we cannot unassign this server from a datacenter
-                server_is_master:  server.is_master_for_namespaces().length > 0
-                has_datacenter: dc_uuid?
-
-
-            if dc_uuid?
-                # Count the number of servers in the same datacenter as this server
-                num_machines_in_dc = 0
-                machines.each (machine) => num_machines_in_dc++ if dc_uuid is machine.get('datacenter_uuid')
-
-                # Find the tables that won't have sufficient replicas if we unassign this server
-                not_enough_replicas = namespaces.filter (namespace) =>
-                    # Does the datacenter of this server have responsibilities for the namespace?
-                    if dc_uuid of namespace.get('replica_affinities')
-                        num_replicas = namespace.get('replica_affinities')[dc_uuid]
-                        # If the datacenter acts as primary for the namespace, bump the replica count by one
-                        num_replicas++ if namespace.get('primary_uuid') is dc_uuid
-
-                    return true if num_machines_in_dc <= num_replicas
-
-                data = _.extend data,
-                    not_enough_replicas: not_enough_replicas.length > 0
+        
+            _.extend data, @model.get_data_for_moving()
 
             super data
 
-            @.$('.btn-primary').focus()
+            # We give focus only on the primary_button only if there is no issue
+            if data.has_warning is false
+                @.$('.btn-primary').focus()
 
         on_submit: =>
             super
 
-            # For when /ajax will handle post request
-            data = {}
-            data['machines'] = {}
-            for machine in machines.models
-                data['machines'][machine.get('id')] = {}
-                data['machines'][machine.get('id')]['name'] = machine.get('name')
-                data['machines'][machine.get('id')]['datacenter_uuid'] = machine.get('datacenter_uuid')
-
-            data['machines'][@machine_to_unassign.get('id')]['datacenter_uuid'] = null
-
             $.ajax
-                url: "/ajax/semilattice"
+                url: "/ajax/semilattice/machines/"+@model.get('id')+"/datacenter_uuid"
                 type: 'POST'
                 contentType: 'application/json'
-                data: JSON.stringify data
+                data: JSON.stringify null
                 dataType: 'json',
                 success: @on_success,
                 error: @on_error
 
         on_success: (response) =>
-            machines.get(@machine_to_unassign.get('id')).set('datacenter_uuid', null)
+            machines.get(@model.get('id')).set('datacenter_uuid', null)
             clear_modals()
 
     class @DataModal extends UIComponents.AbstractModal
