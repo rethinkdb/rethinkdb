@@ -48,10 +48,9 @@
         </div>
         <div class="stat-row">
             {{#if total_keys_available}}
-            <p class="documents"><span class="big">~{{total_keys}} </span> documents</p>
+            <p class="documents"><span class="big">Documents: </span>~{{total_keys}}</p>
             {{else}}
-            <p class="documents">Loading...</p>
-
+            <p class="documents"><span class="big">Documents: </span>N/A</p>
             {{/if}}
         </div>
         <!--
