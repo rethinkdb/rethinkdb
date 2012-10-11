@@ -357,6 +357,19 @@ body:before {
     margin: 50px 0px 0px -470px;
 }
 
+/* 
+    ----------------------------
+    modal 
+    ----------------------------
+*/
+
+.add-namespace{
+    .hide_advanced_settings-link_container, .advanced_settings{
+        display: none;
+    }
+}
+
+
 /*
     ----------------------------
     Dashboard
@@ -711,7 +724,6 @@ body:before {
                     font-weight: bold;
                 }
                 .quick_info {
-                    right: 150px;
                     background: @border_padding center no-repeat url('http://bit.ly/PyxuxE');//graph-icon.png
                     color: #626264;
                     padding-left: 30px + @border_padding;
@@ -731,6 +743,20 @@ body:before {
     }
 }
 
+#server-list {
+    .element-details {
+        .quick_info {
+            left: 475px;
+        }
+    }
+}
+#table-list {
+    .element-details {
+        .quick_info {
+            left: 575px;
+        }
+    }
+}
 
 /*
     ----------------------------
@@ -909,6 +935,20 @@ body:before {
     }
     .result_view{
         .error{ font-family: @sans; }
+        .error_details{
+            font-family: @monospace;
+            padding: 7px 10px;
+            border: 1px solid #CCC;
+            border-radius: 3px;
+            background: #EEE;
+        }
+        .query{
+            font-family: @monospace;
+            padding: 7px 10px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            background: #eee;
+        }
         .results_header{
             .options_container{
                 float: right;
@@ -931,6 +971,15 @@ body:before {
             }
             .metadata{ font-family: @sans; }
         }
+        .more_results{
+            width: 100%;
+            text-align: right;
+            display: none;
+            .more_results_paragraph{
+                margin-right: 100px;
+                font-family: @sans;
+            }
+        }
     }
     .change_view_container{
         margin: 0px;
@@ -939,13 +988,7 @@ body:before {
     }
     .helper_view { overflow: auto; }
     .nav-tabs > li { float: right; }
-    .query{
-        font-family: monospace;
-        padding: 7px 10px;
-        border: 1px solid #ccc;
-        border-radius: 3px;
-        background: #eee;
-    }
+
 
     .pagination_container{
         display: none;
