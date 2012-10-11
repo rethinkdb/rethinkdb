@@ -319,7 +319,6 @@ persistable_blueprint_t<protocol_t> suggest_blueprint(
 
     persistable_blueprint_t<protocol_t> blueprint;
 
-    //Maps to keep track of how much we're using each machine
     for (typename nonoverlapping_regions_t<protocol_t>::iterator it = shards.begin();
             it != shards.end(); it++) {
         std::set<machine_id_t> machines_shard_primary_is_pinned_to;
