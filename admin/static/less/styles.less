@@ -716,11 +716,14 @@ body:before {
                     padding-left: 30px + @border_padding;
                 }
                 .status {
-                    right: 0;
                     padding-right: 20px;
                     color: #818181;
                     .label-success {
                         background: @border_padding center no-repeat url('http://bit.ly/RCkomY');//green-light_glow.png
+                        padding-left: 23px + @border_padding;
+                    }
+                    .label-failure {
+                        background: @border_padding center no-repeat url('http://bit.ly/PyxJZG');//red-light_glow.png
                         padding-left: 23px + @border_padding;
                     }
                 }
@@ -735,12 +738,18 @@ body:before {
         .quick_info {
             left: 475px;
         }
+        .status {
+            left: 725px;
+        }
     }
 }
 #table-list {
     .element-details {
         .quick_info {
             left: 575px;
+        }
+        .status {
+            left: 775px;
         }
     }
 }
