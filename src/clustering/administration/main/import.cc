@@ -300,20 +300,20 @@ namespace_id_t get_or_create_metadata(namespace_repo_t<rdb_protocol_t> *ns_repo,
         if (target.datacenter_name) {
             dc_id = get_datacenter(cluster_metadata, target.datacenter_name.get());
 
-            if (dc_id == nil_uuid()) {
+            if (dc_id.is_nil()) {
                 return nil_uuid();
             }
         }
 
         // Try to get or create the datacenter
         database_id_t db_id = get_or_create_database(&cluster_metadata, target.db_name, sync_machine_id, &do_update);
-        if (db_id == nil_uuid()) {
+        if (db_id.is_nil()) {
             return nil_uuid();
         }
 
         // Try to get or create the namespace
         ns_id = get_or_create_namespace(&cluster_metadata, dc_id, db_id, target.table_name, target.primary_key, sync_machine_id, &do_update);
-        if (ns_id == nil_uuid()) {
+        if (ns_id.is_nil()) {
             return nil_uuid();
         }
 
@@ -348,6 +348,10 @@ bool do_json_importation(namespace_repo_t<rdb_protocol_t> *repo,
     // This function will verify that the selected datacenter, database, and table exist
     //  and will create the database and table if they don't, then return the table's namespace_id_t
     namespace_id_t namespace_id = get_or_create_metadata(repo, mailbox_manager, directory, target, interruptor);
+
+    if (namespace_id.is_nil()) {
+        return false;
+    }
 
     namespace_repo_t<rdb_protocol_t>::access_t access(repo, namespace_id, interruptor);
     namespace_interface_t<rdb_protocol_t> *ni = access.get_namespace_if();
