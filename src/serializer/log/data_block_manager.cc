@@ -560,6 +560,8 @@ void data_block_manager_t::run_gc() {
 #endif
                 for (unsigned int i = 0, bpe = static_config->blocks_per_extent(); i < bpe; i++) {
                     if (!gc_state.current_entry->g_array[i]) {
+                        // Increment the refcount before read_async, because read_async can call
+                        // its callback immediately, causing the decrement of the refcount.
                         gc_state.refcount++;
                         dbfile->read_async(gc_state.current_entry->offset + (i * static_config->block_size().ser_value()),
                                            static_config->block_size().ser_value(),
