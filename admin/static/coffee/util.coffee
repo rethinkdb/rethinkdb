@@ -195,10 +195,10 @@ Handlebars.registerHelper 'humanize_datacenter_reachability', (status) ->
     return new Handlebars.SafeString(result)
 
 Handlebars.registerHelper 'humanize_namespace_reachability', (reachability) ->
-    if reachability
+    if reachability is 'Live'
         result = "<span class='label label-success'>Live</span>"
     else
-        result = "<span class='label label-important'>Down</span>"
+        result = "<span class='label label-failure'>Down</span>"
 
     return new Handlebars.SafeString(result)
 

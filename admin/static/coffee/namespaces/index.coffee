@@ -239,7 +239,6 @@ module 'NamespaceView', ->
         json_for_template: =>
             json = _.extend super(), DataUtils.get_namespace_status(@model.get('id'))
             json.nreplicas += json.nshards
-
             return json
 
         render: =>
@@ -410,7 +409,7 @@ module 'NamespaceView', ->
                         input_error = true
                         template_error.namespace_exists = true
                         break
-            
+
             # Need a database
             if not formdata.database? or formdata.database is ''
                 input_error = true
