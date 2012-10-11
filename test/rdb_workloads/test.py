@@ -451,6 +451,20 @@ class RDBTest(unittest.TestCase):
 
         self.expect(self.table.orderby("id").range(2, 3), docs[2:4])
 
+    def test_union(self):
+        self.clear_table()
+
+        docs = [{'id':n} for n in xrange(20)]
+        self.do_insert(docs)
+
+        self.expect(self.table.union(self.table).length(), 40)
+        #self.expect(r.union(self.table, self.table).length(), 40)
+        #self.expect((self.table + self.table).length(), 40)
+
+        self.expect(expr([1,2]).union([3,4]), [1,2,3,4])
+        self.expect(union([1,2], [3,4]), [1,2,3,4])
+        self.expect(expr([1,2]) + [3,4], [1,2,3,4])
+
     def test_js(self):
         self.expect(js('2'), 2)
         self.expect(js('2+2'), 4)
@@ -498,6 +512,123 @@ class RDBTest(unittest.TestCase):
         self.expect(self.table.orderby("id"), docs)
 
         self.expect(self.table.update(None), {'updated': 0, 'skipped': 10, 'errors': 0})
+
+    def test_det(self):
+        tbl = table('tbl')
+        db('test').table_drop('tbl').run()
+        db('test').table_create('tbl').run()
+        data = [{'id':x} for x in range(0,10)]
+        tbl.insert(data).run()
+
+        res = tbl.update(lambda row: {'count':js('0')}).run()
+        self.assertEqual(res['errors'], 10)
+        res = tbl.update(lambda row: {'count':0}).run()
+        self.assertEqual(res['updated'], 10)
+        res = tbl.replace(lambda row: tbl.get(row['id'])).run()
+        self.assertEqual(res['errors'], 10)
+        res = tbl.replace(lambda row: row).run()
+
+        res = tbl.update({'count':tbl.map(lambda x: x['count']).reduce(0, lambda a,b: a+b)}).run()
+        self.assertEqual(res['errors'], 10)
+        res = tbl.update({'count': expr(data).map(lambda x: x['id']).reduce(0, lambda a,b: a+b)}).run()
+        self.assertEqual(res['updated'], 10)
+
+    def test_nonatomic(self):
+        tbl = table('tbl')
+        #db('test').table_drop('tbl').run()
+        #db('test').table_create('tbl').run()
+        #tbl = table('tbl')
+        #data = [{'id':x} for x in range(0,10)]
+        #tbl.insert(data).run()
+
+        # Update modify
+        res = tbl.update(lambda row: {'x':js('1')}).run()
+        self.assertEqual(res['errors'], 10)
+        res = tbl.update(lambda row: {'x':js('1')}, True).run()
+        self.assertEqual(res['updated'], 10)
+        self.expect(tbl.map(lambda row: row['x']).reduce(0, lambda a,b: a+b), 10)
+
+        self.error_exec(tbl.get(0).update(lambda row: {'x':js('1')}), "deterministic")
+        res = tbl.get(0).update(lambda row: {'x':js('2')}, True).run()
+        self.assertEqual(res['updated'], 1)
+        self.expect(tbl.map(lambda row: row['x']).reduce(0, lambda a,b: a+b), 11)
+
+        # Update error
+        res = tbl.update(lambda row: {'x':js('x')}).run()
+        self.assertEqual(res['errors'], 10)
+        res = tbl.update(lambda row: {'x':js('x')}, True).run();
+        self.assertEqual(res['errors'], 10)
+        self.expect(tbl.map(lambda row: row['x']).reduce(0, lambda a,b: a+b), 11)
+
+        self.error_exec(tbl.get(0).update(lambda row: {'x':js('x')}), "deterministic")
+        self.error_exec(tbl.get(0).update(lambda row: {'x':js('x')}, True), "not defined")
+        self.expect(tbl.map(lambda row: row['x']).reduce(0, lambda a,b: a+b), 11)
+
+        # Update skipped
+        res = tbl.update(lambda row: if_then_else(js('true'), None, {'x':0.1})).run()
+        self.assertEqual(res['errors'], 10)
+        res = tbl.update(lambda row: if_then_else(js('true'), None, {'x':0.1}), True).run()
+        self.assertEqual(res['skipped'], 10)
+        self.expect(tbl.map(lambda row: row['x']).reduce(0, lambda a,b: a+b), 11)
+
+        self.error_exec(tbl.get(0).update(if_then_else(js('true'), None, {'x':0.1})), "deterministic")
+        res = tbl.get(0).update(if_then_else(js('true'), None, {'x':0.1}), True).run()
+        self.assertEqual(res['skipped'], 1)
+        self.expect(tbl.map(lambda row: row['x']).reduce(0, lambda a,b: a+b), 11)
+
+        # Mutate modify
+        self.error_exec(tbl.get(0).replace(lambda row: if_then_else(js('true'), row, None)), "deterministic")
+        res = tbl.get(0).replace(lambda row: if_then_else(js('true'), row, None), True).run()
+        self.assertEqual(res['modified'], 1);
+        self.expect(tbl.map(lambda row: row['x']).reduce(0, lambda a,b: a+b), 11)
+
+        res = tbl.replace(lambda row: if_then_else(js(str(row)+".id == 1"),
+                                                row.extend({'x':2}), row)).run()
+        self.assertEqual(res['errors'], 10)
+        res = tbl.replace(lambda row: if_then_else(js(str(row)+".id == 1"),
+                                                row.extend({'x':2}), row), True).run()
+        self.assertEqual(res['modified'], 10)
+        self.expect(tbl.map(lambda row: row['x']).reduce(0, lambda a,b: a+b), 12)
+
+        # Mutate error
+        self.error_exec(tbl.get(0).replace(lambda row: if_then_else(js('x'), row, None)),
+            "deterministic")
+        self.error_exec(tbl.get(0).replace(lambda row: if_then_else(js('x'), row, None), True),
+            "not defined")
+        self.expect(tbl.map(lambda row: row['x']).reduce(0, lambda a,b: a+b), 12)
+
+        res = tbl.replace(lambda row: if_then_else(js('x'), row, None)).run()
+        self.assertEqual(res['errors'], 10)
+        res = tbl.replace(lambda row: if_then_else(js('x'), row, None), True).run()
+        self.assertEqual(res['errors'], 10)
+        self.expect(tbl.map(lambda row: row['x']).reduce(0, lambda a,b: a+b), 12)
+
+        # Mutate delete
+        self.error_exec(tbl.get(0).replace(lambda row: if_then_else(js('true'), None, row)),
+            "deterministic")
+        res = tbl.get(0).replace(lambda row: if_then_else(js('true'), None, row), True).run()
+        self.assertEqual(res['deleted'], 1)
+        self.expect(tbl.map(lambda row: row['x']).reduce(0, lambda a,b: a+b), 10)
+
+        res = tbl.replace(lambda row: if_then_else(js(str(row)+".id < 3"), None, row)).run()
+        self.assertEqual(res['errors'], 9)
+        res = tbl.replace(lambda row: if_then_else(js(str(row)+".id < 3"), None, row), True).run()
+        self.assertEqual(res, {'inserted':0, 'deleted':2, 'errors':0, 'modified':7})
+        self.expect(tbl.map(lambda row: row['x']).reduce(0, lambda a,b: a+b), 7)
+
+        # Mutate insert
+        self.error_exec(tbl.get(0).replace({'id':0, 'count':tbl.get(3)['count'], 'x':tbl.get(3)['x']})
+            ,"deterministic")
+
+        res = tbl.get(0).replace({'id':0, 'count':tbl.get(3)['count'], 'x':tbl.get(3)['x']}, True).run()
+        self.assertEqual(res['inserted'], 1)
+        self.error_exec(tbl.get(1).replace(tbl.get(3).extend({'id':1})), "deterministic")
+        res = tbl.get(1).replace(tbl.get(3).extend({'id':1}), True).run()
+        self.assertEqual(res['inserted'], 1)
+        res = tbl.get(2).replace(tbl.get(3).extend({'id':2}), True).run()
+        self.assertEqual(res['inserted'], 1)
+        self.expect(tbl.map(lambda row: row['x']).reduce(0, lambda a,b: a+b), 10)
+
 
 
     # def test_huge(self):
