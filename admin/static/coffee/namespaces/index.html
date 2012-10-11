@@ -12,6 +12,10 @@
     </div>
 </script>
 
+<script id="need_database-alert-template" type="text/x-handlebars-template">
+You need to create a database before creating a table.
+</script>
+
 <script id="database_list_element-template" type="text/x-handlebars-template">
     <div class="section">
         <div class="header_container">
@@ -25,8 +29,8 @@
     <div class="element-type">Database</div>
     <h3 class="name"><a href="#databases/{{id}}">{{name}}</a></h3>
     <div class="buttons">
-        <button class="btn hide-tables expanded collapse-control" data-expanded="&ndash; Hide Tables" data-collapsed="+ Show Tables">&ndash; Hide Tables</a>
-        <button class="btn remove-database" data-id={{id}}>X</a>
+        <!-- <button class="btn hide-tables expanded collapse-control" data-expanded="&ndash; Hide Tables" data-collapsed="+ Show Tables">&ndash; Hide Tables</a> -->
+        <button class="btn remove-database" data-id={{id}}>Delete Database</a>
     </div>
 </script>
 
@@ -41,7 +45,7 @@
     <div class="element-details">
         <p class="name"><a href="#tables/{{id}}">{{name}}</a></p>
         <p class="quick_info">
-            {{nshards}} {{pluralize_noun "shard" nshards}}, {{nreplicas}} {{pluralize_noun "replica" nreplicas}} on {{ndatacenters}} {{pluralize_noun "datacenter" ndatacenters}} across {{nmachines}} {{pluralize_noun "server" nmachines}}, replication: {{> backfill_progress_summary}}
+            {{nshards}} {{pluralize_noun "shard" nshards}}, {{nreplicas}} {{pluralize_noun "replica" nreplicas}}
         </p>
         <div class="status">
             {{humanize_namespace_reachability reachability}}

@@ -249,7 +249,7 @@ bool get_or_create_namespace(machine_id_t us,
         cluster_semilattice_metadata_t metadata_copy = metadata->get();
         bool try_another_fill_in_blueprints = false;
         try {
-            fill_in_blueprints(&metadata_copy, directory->get(), us);
+            fill_in_blueprints(&metadata_copy, directory->get(), us, false);
         } catch (missing_machine_exc_t exc) {
             try_another_fill_in_blueprints = true;
         }
@@ -257,7 +257,7 @@ bool get_or_create_namespace(machine_id_t us,
         if (try_another_fill_in_blueprints) {
             nap(1000);
             metadata_copy = metadata->get();
-            fill_in_blueprints(&metadata_copy, directory->get(), us);
+            fill_in_blueprints(&metadata_copy, directory->get(), us, false);
         }
 
         metadata->join(metadata_copy);

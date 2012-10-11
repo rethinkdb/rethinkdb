@@ -85,7 +85,7 @@ module 'UIComponents', ->
             # Wipe out any existing list element views
             for view in @element_views
                 view.destroy()
-                view.remove() 
+                view.remove()
             @element_views = []
 
             # Add an element view for each model in the collection that's relevant for this list

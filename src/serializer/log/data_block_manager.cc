@@ -34,7 +34,6 @@ data_block_manager_t::~data_block_manager_t() {
 }
 
 void data_block_manager_t::prepare_initial_metablock(metablock_mixin_t *mb) {
-
     for (int i = 0; i < MAX_ACTIVE_DATA_EXTENTS; i++) {
         mb->active_extents[i] = NULL_OFFSET;
         mb->blocks_in_active_extent[i] = 0;
@@ -79,7 +78,6 @@ void data_block_manager_t::start_existing(direct_file_t *file, metablock_mixin_t
     gc_io_account_high.init(new file_account_t(file, GC_IO_PRIORITY_HIGH));
 
     /* Reconstruct the active data block extents from the metablock. */
-
     for (unsigned int i = 0; i < MAX_ACTIVE_DATA_EXTENTS; i++) {
         off64_t offset = last_metablock->active_extents[i];
 
@@ -109,7 +107,6 @@ void data_block_manager_t::start_existing(direct_file_t *file, metablock_mixin_t
 
     /* Convert any extents that we found live blocks in, but that are not active extents,
     into old extents */
-
     while (gc_entry *entry = reconstructed_extents.head()) {
         reconstructed_extents.remove(entry);
 
@@ -426,7 +423,8 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_wr
 
                 const ls_buf_data_t *data = static_cast<const ls_buf_data_t *>(writes[i].buf) - 1;
 
-                // the "false" argument indicates that we do not with to assign a new block sequence id
+                // the first "false" argument indicates that we do not with to assign a new block sequence id
+                // We pass true because we know there is a token for this block: we just constructed one!
                 writes[i].new_offset = parent->write(writes[i].buf, data->block_id, false, parent->choose_gc_io_account(), block_write_conds.back(), true, false);
             }
             parent->serializer->extent_manager->end_transaction(em_trx);
@@ -477,7 +475,10 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_wr
                 parent->serializer->remap_block_to_new_offset(writes[i].old_offset, writes[i].new_offset);
             }
 
-            // Step 4A-2: Now that the block tokens have been remapped to a new offset, we don't need to worry about tokens being destroyed while .. TODO maybe uncomment this.
+            // Step 4A-2: Now that the block tokens have been remapped
+            // to a new offset, destroying these tokens will update
+            // the bits in the t_array of the new offset (if they're
+            // the last token).
             block_tokens.clear();
         }
 
@@ -516,7 +517,6 @@ void data_block_manager_t::on_gc_write_done() {
 }
 
 void data_block_manager_t::run_gc() {
-    // TODO: Convert this to a coroutine!
     bool run_again = true;
     while (run_again) {
         run_again = false;
@@ -557,6 +557,7 @@ void data_block_manager_t::run_gc() {
 #endif
                 for (unsigned int i = 0, bpe = static_config->blocks_per_extent(); i < bpe; i++) {
                     if (!gc_state.current_entry->g_array[i]) {
+                        gc_state.refcount++;
                         dbfile->read_async(gc_state.current_entry->offset + (i * static_config->block_size().ser_value()),
                                            static_config->block_size().ser_value(),
                                            gc_state.gc_blocks + (i * static_config->block_size().ser_value()),
@@ -565,7 +566,6 @@ void data_block_manager_t::run_gc() {
 #ifndef NDEBUG
                         some_read_happened = true;
 #endif
-                        gc_state.refcount++;
                     }
                 }
 

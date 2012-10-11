@@ -301,23 +301,23 @@ function testJoin2() {
 
     s1.innerJoin(s2, function(one, two) {
         return one('id').eq(two('id'));
-    }).zip().orderby('id').run(objeq([
+    }).zip().orderby('id').run(objeq(
         {id:0, name: 'bob', title: 'goof'},
-        {id:2, name: 'joe', title: 'lmoe'},
-    ]));
+        {id:2, name: 'joe', title: 'lmoe'}
+    ));
 
     s1.outerJoin(s2, function(one, two) {
         return one('id').eq(two('id'));
-    }).zip().orderby('id').run(objeq([
+    }).zip().orderby('id').run(objeq(
         {id:0, name: 'bob', title: 'goof'},
         {id:1, name: 'tom'},
-        {id:2, name: 'joe', title: 'lmoe'},
-    ]));
+        {id:2, name: 'joe', title: 'lmoe'}
+    ));
 
-    s1.equiJoin('id', r.table('joins2')).zip().orderby('id').run(objeq([
+    s1.equiJoin('id', r.table('joins2')).zip().orderby('id').run(objeq(
         {id:0, name: 'bob', title: 'goof'},
-        {id:2, name: 'joe', title: 'lmoe'},
-    ]));
+        {id:2, name: 'joe', title: 'lmoe'}
+    ));
 }
 
 var tab2 = r.table('table-2');
@@ -424,6 +424,135 @@ function testPointMutate2() {
     tab.get(0)('pointmutated').run(aeq(true));
 }
 
+var docs = [0,1,2,3,4,5,6,7,8,9];
+docs = docs.map(function(x) {return {id:x}});
+var tbl = r.table('tbl');
+
+function testSetupDetYNonAtom() {
+    wait();
+    r.db('test').create('tbl').run(function() {
+        tbl.insert(docs).run(function() {
+            done();
+        });
+    });
+}
+
+function testDet() {
+    tbl.update(function(row) {return r.expr({count: r.js('return 0')})}).run(
+        objeq({errors:10, updated:0, skipped:0}));
+    tbl.update(function(row) {return r.expr({count: 0})}).run(
+        objeq({errors:0, updated:10, skipped:0}));
+
+    wait();
+    tbl.mutate(function(row) {return tbl.get(row('id'))}).run(function(res) {
+        assertEquals(res.errors, 10);
+        done();
+    });
+    wait();
+    tbl.mutate(function(row) {return row}).run(function(possible_err) {
+        assertEquals(possible_err instanceof Error, false);
+        done();
+    });
+
+    wait();
+    tbl.update({count: tbl.map(function(x) {
+        return x('count')
+    }).reduce(0, function(a,b) {
+        return a.add(b);
+    })}).run(function(res) {
+        assertEquals(res.errors, 10);
+        done();
+    });
+
+    wait();
+    tbl.update({count: r.expr(docs).map(function(x) {
+        return x('id')
+    }).reduce(0, function(a,b) {
+        return a.add(b);
+    })}).run(function(res) {
+        assertEquals(res.updated, 10);
+        done();
+    });
+}
+
+function testNonAtomic() {
+    var rerr = rethinkdb.errors.RuntimeError;
+
+    // Update modify
+    tbl.update(function(row) {return r.expr({x: r.js('return 1')})}).run(attreq('errors', 10));
+    tbl.update(function(row) {return r.expr({x:r.js('return 1')})}, true).run(attreq('updated', 10));
+    tbl.map(function(row) {return row('x')}).reduce(0, function(a,b) {return a.add(b)}).run(aeq(10));
+
+    tbl.get(0).update(function(row) {return r.expr({x: r.js('return 1')})}).run(atype(rerr));
+    tbl.get(0).update(function(row) {return r.expr({x: r.js('return 2')})}, true).run(
+        attreq('updated', 1));
+    tbl.map(function(a){return a('x')}).reduce(0, function(a,b){return a.add(b);}).run(aeq(11));
+
+    // Update error
+    tbl.update(function(row){return r.expr({x:r.js('return x')})}).run(attreq('errors', 10));
+    tbl.update(function(row){return r.expr({x:r.js('return x')})}, true).run(attreq('errors', 10));
+    tbl.map(function(a){return a('x')}).reduce(0, function(a,b){return a.add(b);}).run(aeq(11));
+    tbl.get(0).update(function(row){return r.expr({x:r.js('x')})}).run(atype(rerr));
+    tbl.get(0).update(function(row){return r.expr({x:r.js('x')})}, true).run(atype(rerr));
+    tbl.map(function(a){return a('x')}).reduce(0, function(a,b){return a.add(b);}).run(aeq(11));
+
+    // Update skipped
+    tbl.update(function(row){return r.ifThenElse(r.js('return true'),
+                                        r.expr(null),
+                                        r.expr({x:0.1}))}).run(attreq('errors',10));
+    tbl.update(function(row){return r.ifThenElse(r.js('return true'),
+                                        r.expr(null),
+                                        r.expr({x:0.1}))}, true).run(attreq('skipped',10));
+    tbl.map(function(a){return a('x')}).reduce(0, function(a,b){return a.add(b);}).run(aeq(11));
+    tbl.get(0).update(function(row){return r.ifThenElse(r.js('return true'),
+                                            r.expr(null),
+                                            r.expr({x:0.1}))}).run(atype(rerr));
+    tbl.get(0).update(function(row){return r.ifThenElse(r.js('return true'),
+                                            r.expr(null),
+                                            r.expr({x:0.1}))}, true).run(attreq('skipped', 1));
+    tbl.map(function(a){return a('x')}).reduce(0, function(a,b){return a.add(b);}).run(aeq(11));
+
+    // Mutate modify
+    tbl.get(0).mutate(function(row){return r.ifThenElse(r.js('return true'), row, r.expr(null))}).run(
+        atype(rerr));
+    tbl.get(0).mutate(function(row){return r.ifThenElse(r.js('return true'), row, r.expr(null))},
+        true).run(attreq('modified', 1));
+    tbl.map(function(a){return a('x')}).reduce(0, function(a,b){return a.add(b);}).run(aeq(11));
+    tbl.mutate(r.fn('rowA', r.ifThenElse(r.js('return rowA.id == 1'), r.letVar('rowA').extend({x:2}),
+        r.letVar('rowA')))).run(attreq('errors', 10));
+    tbl.mutate(r.fn('rowA', r.ifThenElse(r.js('return rowA.id == 1'), r.letVar('rowA').extend({x:2}),
+        r.letVar('rowA'))), true).run(attreq('modified', 10));
+    tbl.map(function(a){return a('x')}).reduce(0, function(a,b){return a.add(b);}).run(aeq(12));
+
+    // Mutate error
+    tbl.get(0).mutate(function(row){return r.ifThenElse(r.js('return x'), row, r.expr(null))}).run(
+        atype(rerr));
+    tbl.get(0).mutate(function(row){return r.ifThenElse(r.js('return x'), row, r.expr(null))},
+        true).run(atype(rerr));
+    tbl.map(function(a){return a('x')}).reduce(0, function(a,b){return a.add(b);}).run(aeq(12));
+
+    // Mutate delete
+    tbl.get(0).mutate(function(row){return r.ifThenElse(r.js('return true'), r.expr(null), row)}).run(
+        atype(rerr));
+    tbl.get(0).mutate(function(row){return r.ifThenElse(r.js('return true'), r.expr(null), row)},
+        true).run(attreq('deleted', 1));
+    tbl.map(function(a){return a('x')}).reduce(0, function(a,b){return a.add(b);}).run(aeq(10));
+    tbl.mutate(r.fn('rowA', r.ifThenElse(r.js('return rowA.id < 3'), r.expr(null),
+        r.letVar('rowA')))).run(attreq('errors', 9));
+    tbl.mutate(r.fn('rowA', r.ifThenElse(r.js('return rowA.id < 3'), r.expr(null),
+        r.letVar('rowA'))), true).run(attreq('deleted', 2));
+    tbl.map(function(a){return a('x')}).reduce(0, function(a,b){return a.add(b);}).run(aeq(7));
+
+    // Mutate insert
+    tbl.get(0).mutate({id:0, count:tbl.get(3)('count'), x:tbl.get(3)('x')}).run(atype(rerr));
+    tbl.get(0).mutate({id:0, count:tbl.get(3)('count'), x:tbl.get(3)('x')}, true).run(
+        attreq('inserted', 1));
+    tbl.get(1).mutate(tbl.get(3).extend({id:1})).run(atype(rerr));
+    tbl.get(1).mutate(tbl.get(3).extend({id:1}), true).run(attreq('inserted', 1));
+    tbl.get(2).mutate(tbl.get(1).extend({id:2}), true).run(attreq('inserted', 1));
+    tbl.map(function(a){return a('x')}).reduce(0, function(a,b){return a.add(b);}).run(aeq(10));
+}
+
 function testPointDelete1() {
     tab.get(0).del().run(objeq({
         deleted:1
@@ -520,6 +649,9 @@ runTests([
     testMutate2,
     testPointMutate1,
     testPointMutate2,
+    testSetupDetYNonAtom,
+    testDet,
+    testNonAtomic,
     testPointDelete1,
     testPointDelete2,
     testDelete1,

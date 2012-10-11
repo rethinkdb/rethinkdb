@@ -139,7 +139,7 @@ void assertion_failed_msg(char const * expr, char const * msg, char const * func
 
 }
 
-void mcheck_abortfunc(enum mcheck_status mstatus) {
+__attribute__((noreturn)) void mcheck_abortfunc(enum mcheck_status mstatus) {
     const char *err;
     switch(mstatus) {
     case MCHECK_DISABLED : err = "MCHECK_DISABLED" ; break;
