@@ -1,4 +1,5 @@
 #include "clustering/administration/suggester.hpp"
+#include <deque>
 
 #include "clustering/administration/machine_id_to_peer_id.hpp"
 
@@ -58,40 +59,60 @@ std::map<namespace_id_t, persistable_blueprint_t<protocol_t> > suggest_blueprint
 {
     std::map<machine_id_t, int> usage;
     std::map<namespace_id_t, persistable_blueprint_t<protocol_t> > out;
+
+    /* The suggester can give much better results if it first does the
+     * namespaces which have already had blueprints drawn and then does the new
+     * blueprints. This is because namespaces which previously had blueprints
+     * tend to have more constraints than new ones. This is a bit of a hack to
+     * acheive this since it would be much better to have and algorithm that
+     * understands how much constraint each table has a does the most
+     * constrained first. However it seems like this actually boils down to a
+     * graph coloring problem so it's probably NP-Complete. */
+    std::deque<namespace_id_t> order;
     for (typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::const_iterator it  = ns_goals.namespaces.begin();
                                                                                                  it != ns_goals.namespaces.end();
                                                                                                  ++it) {
         if (!it->second.is_deleted()) {
-            std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > > reactor_directory;
-            for (typename std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> >::const_iterator jt =
-                    namespaces_directory.begin(); jt != namespaces_directory.end(); jt++) {
-                typename std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >::const_iterator kt =
-                    jt->second.reactor_bcards.find(it->first);
-                if (kt != jt->second.reactor_bcards.end()) {
-                    reactor_directory.insert(std::make_pair(
-                        jt->first,
-                        boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >(kt->second)));
-                } else {
-                    reactor_directory.insert(std::make_pair(
-                        jt->first,
-                        boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >()));
-                }
+            if (it->second.get().blueprint.in_conflict() || !(it->second.get().blueprint.get() == persistable_blueprint_t<protocol_t>())) {
+                order.push_front(it->first);
+            } else {
+                order.push_back(it->first);
             }
-            try {
-                out.insert(
-                    std::make_pair(it->first,
-                        suggest_blueprint_for_namespace<protocol_t>(
-                            it->second.get(),
-                            reactor_directory,
-                            machine_id_translation_table,
-                            machine_data_centers,
-                            &usage,
-                            prioritize_distribution)));
-            } catch (const cannot_satisfy_goals_exc_t &e) {
-                logERR("Namespace %s has unsatisfiable goals", uuid_to_str(it->first).c_str());
-            } catch (const in_conflict_exc_t &e) {
-                logERR("Namespace %s has internal conflicts", uuid_to_str(it->first).c_str());
+        }
+    }
+
+    for (std::deque<namespace_id_t>::iterator it  = order.begin();
+                                              it != order.end();
+                                              ++it) {
+        std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > > reactor_directory;
+        for (typename std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> >::const_iterator jt =
+                namespaces_directory.begin(); jt != namespaces_directory.end(); jt++) {
+            typename std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >::const_iterator kt =
+                jt->second.reactor_bcards.find(*it);
+            if (kt != jt->second.reactor_bcards.end()) {
+                reactor_directory.insert(std::make_pair(
+                    jt->first,
+                    boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >(kt->second)));
+            } else {
+                reactor_directory.insert(std::make_pair(
+                    jt->first,
+                    boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >()));
             }
+        }
+        try {
+            out.insert(
+                std::make_pair(*it,
+                    suggest_blueprint_for_namespace<protocol_t>(
+                        ns_goals.namespaces.find(*it)->second.get(),
+                        reactor_directory,
+                        machine_id_translation_table,
+                        machine_data_centers,
+                        &usage,
+                        prioritize_distribution)));
+        } catch (const cannot_satisfy_goals_exc_t &e) {
+            logERR("Namespace %s has unsatisfiable goals", uuid_to_str(*it).c_str());
+        } catch (const in_conflict_exc_t &e) {
+            logERR("Namespace %s has internal conflicts", uuid_to_str(*it).c_str());
         }
     }
     return out;
