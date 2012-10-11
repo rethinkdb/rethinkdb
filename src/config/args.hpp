@@ -79,7 +79,7 @@
 #define MAX_DATA_EXTENTS                          (TERABYTE / (16 * KILOBYTE))
 
 // Size of each extent (in bytes)
-#define DEFAULT_EXTENT_SIZE                       (32 * KILOBYTE)
+#define DEFAULT_EXTENT_SIZE                       (16 * KILOBYTE)
 
 // Max number of blocks which can be read ahead in one i/o transaction (if enabled)
 #define MAX_READ_AHEAD_BLOCKS 32
