@@ -262,8 +262,8 @@ try {
                 &perfmon_repo);
 
             rdb_protocol::query_http_app_t rdb_parser(semilattice_manager_cluster.get_root_view(), &rdb_namespace_repo);
-            // TODO: make this not be shitty (port offsets and such)
-            int rdb_protocol_port = base_ports::rdb_protocol + ports.port_offset;
+
+            int rdb_protocol_port = ports.reql_port + ports.port_offset;
             query_server_t rdb_pb_server(rdb_protocol_port, &rdb_ctx);
             logINF("Listening for RDB protocol traffic on port %d.\n", rdb_protocol_port);
 
