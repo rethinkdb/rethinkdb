@@ -561,6 +561,7 @@ void data_block_manager_t::run_gc() {
 #endif
                 for (unsigned int i = 0, bpe = static_config->blocks_per_extent(); i < bpe; i++) {
                     if (!gc_state.current_entry->g_array[i]) {
+                        gc_state.refcount++;
                         dbfile->read_async(gc_state.current_entry->offset + (i * static_config->block_size().ser_value()),
                                            static_config->block_size().ser_value(),
                                            gc_state.gc_blocks + (i * static_config->block_size().ser_value()),
@@ -569,7 +570,6 @@ void data_block_manager_t::run_gc() {
 #ifndef NDEBUG
                         some_read_happened = true;
 #endif
-                        gc_state.refcount++;
                     }
                 }
 
