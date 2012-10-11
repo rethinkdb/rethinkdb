@@ -157,8 +157,8 @@ module 'ServerView', ->
 
         events: ->
             _.extend super,
-               'click a.remove-datacenter': 'remove_datacenter'
-               'click a.rename-datacenter': 'rename_datacenter'
+               'click button.remove-datacenter': 'remove_datacenter'
+               'click button.rename-datacenter': 'rename_datacenter'
 
         initialize: ->
             log_initial '(initializing) list view: datacenter'

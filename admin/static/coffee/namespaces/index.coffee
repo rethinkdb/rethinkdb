@@ -28,7 +28,7 @@ module 'NamespaceView', ->
             @databases_length = -1
             datacenters.on 'all', @update_button_create_namespace
             databases.on 'all', @update_button_create_namespace
-        
+
         update_button_create_namespace: =>
             need_update = false
             if (datacenters.models.length>0) isnt (@datacenters_length>0) or @datacenters_length is -1
@@ -37,7 +37,7 @@ module 'NamespaceView', ->
             if (databases.models.length>0) isnt (@databases_length>0) or @databases_length is -1
                 need_update = true
                 @databases_length = databases.models.length
-            
+
             if need_update
                 @.$('.user_alert_space-cannot_create_namespace').html ''
                 @.$('.user_alert_space-cannot_create_namespace').css 'display', 'none'
@@ -113,11 +113,14 @@ module 'NamespaceView', ->
         summary_template: Handlebars.compile $('#database_list_element-summary-template').html()
 
         className: 'element-container'
-            
+
+        events: ->
+            _.extend super,
+               'click button.remove-database': 'remove_database'
+
         initialize: ->
             super
 
-            @events['click .remove-database'] = 'remove_database'
             @delegateEvents()
 
             @namespace_list = new NamespaceView.NamespaceList @model.get('id')
@@ -151,7 +154,7 @@ module 'NamespaceView', ->
             if db?
                 remove_database_dialog = new DatabaseView.RemoveDatabaseModal
                 remove_database_dialog.render db
-           
+
 
 
         register_namespace_callback: (callbacks) =>
@@ -179,7 +182,7 @@ module 'NamespaceView', ->
 
             @add_namespace_dialog = new NamespaceView.AddNamespaceModal
             @remove_namespace_dialog = new NamespaceView.RemoveNamespaceModal
-        
+
             super namespaces, NamespaceView.NamespaceListElement, '.list',
                 {
                 filter: (model) -> model.get('database') is database_id
@@ -250,7 +253,7 @@ module 'NamespaceView', ->
         template: Handlebars.compile $('#add_database-modal-template').html()
         alert_tmpl: Handlebars.compile $('#added_database-alert-template').html()
         error_template: Handlebars.compile $('#error_input-template').html()
-        
+
         class: 'add-database'
 
         initialize: ->
@@ -311,7 +314,7 @@ module 'NamespaceView', ->
         alert_tmpl: Handlebars.compile $('#added_namespace-alert-template').html()
         error_template: Handlebars.compile $('#error_input-template').html()
         class: 'add-namespace'
-            
+
         initialize: =>
             log_initial '(initializing) modal dialog: add namespace'
             super
@@ -482,9 +485,9 @@ module 'NamespaceView', ->
             for namespace in @namespaces_to_delete
                 deleted_namespaces.push namespaces.get(namespace.id).get('name')
 
-            $('#user-alert-space').append @alert_tmpl 
+            $('#user-alert-space').append @alert_tmpl
                 deleted_namespaces: deleted_namespaces
-            
+
             apply_diffs response
 
             super
