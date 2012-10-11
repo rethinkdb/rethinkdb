@@ -526,6 +526,8 @@ void data_block_manager_t::run_gc() {
                     return;
                 }
 
+                ASSERT_NO_CORO_WAITING;
+
                 ++stats->pm_serializer_data_extents_gced;
 
                 /* grab the entry */
