@@ -38,7 +38,10 @@ Handlebars.registerHelper 'html_list', (context) ->
 Handlebars.registerHelper 'links_to_machines', (machines, safety) ->
     out = ""
     for i in [0...machines.length]
-        out += '<a href="#servers/'+machines[i].id+'" class="links_to_other_view">'+machines[i].name+'</a>'
+        if machines[i].exists
+            out += '<a href="#servers/'+machines[i].id+'" class="links_to_other_view">'+machines[i].name+'</a>'
+        else
+            out += machines[i].name
         out += ", " if i isnt machines.length-1
     if safety? and safety is false
         return out

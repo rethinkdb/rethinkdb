@@ -500,7 +500,12 @@ body:before {
             }
         }
     }
-    #recent_logs_container {
+    #log-view {
+        h2.title { 
+            border-bottom: thin solid #f0f0f0;
+            padding-bottom: 22px;
+            margin-bottom: 0;
+        }
         // This might have to be abstracted as a general button style (add some shadows and gradients when ready)
         .btn.view-logs {
             float: right;
@@ -524,31 +529,7 @@ body:before {
                     box-shadow: @shadow;
 
         }
-        .recent-log-entries-container { margin-bottom: 5px; }
-        ul.recent-log-entries {
-            list-style-type: none;
-            padding-left: 0;
-
-            li.log-entry {
-                color: #4d535c;
-                border-top: thin solid #f0f0f0;
-                background: left center no-repeat url('http://bit.ly/PyxKg4');//pencil-icon_big.png
-                padding: 20px 0 20px 55px;
-                p { margin: 0; }
-                .message { font-size: 16px; }
-                .from-machine {
-                    font-style: italic;
-                    font-family: @sans;
-                    margin-top: 5px;
-                    font-size: 13px;
-                }
-                .datetime {
-                    background: left center no-repeat url('http://bit.ly/RCkoTS');//clock-icon.png
-                    text-align: right;
-                    color: #c4c4c4;
-                }
-            }
-        }
+        ul.log-entries { margin-bottom: 5px; }
     }
 }
 
@@ -756,7 +737,7 @@ body:before {
         li.log-entry {
             color: #4d535c;
             border-top: thin solid #f0f0f0;
-            background: left center no-repeat url('http://bit.ly/PyxKg4');//pencil-icon_big.png
+            background: left 22px no-repeat url('http://bit.ly/PyxKg4');//pencil-icon_big.png
             padding: 20px 0 20px 55px;
             &:first-child {
                 border-top: 0;
@@ -1223,9 +1204,9 @@ body:before {
         margin-left: 10px;
     }
     .section h2.title { 
-            border-bottom: thin solid #f0f0f0;
-            padding-bottom: 22px;
-            margin-bottom: 0;
+        border-bottom: thin solid #f0f0f0;
+        padding-bottom: 22px;
+        margin-bottom: 0;
     }
     .section.statistics {
         > h2.title { 
