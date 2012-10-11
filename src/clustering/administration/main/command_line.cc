@@ -417,14 +417,17 @@ MUST_USE bool parse_commands(int argc, char *argv[], po::variables_map *vm, cons
     try {
         po::store(po::parse_command_line(argc, argv, options), *vm);
         po::notify(*vm);
-        return true;
     } catch (const po::multiple_occurrences& ex) {
         logERR("flag specified too many times\n");
         return false;
     } catch (const po::unknown_option& ex) {
         logERR("%s\n", ex.what());
         return false;
+    } catch (const po::validation_error& ex) {
+        logERR("%s\n", ex.what());
+        return false;
     }
+    return true;
 }
 
 int main_rethinkdb_create(int argc, char *argv[]) {
