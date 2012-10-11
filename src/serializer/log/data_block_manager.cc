@@ -258,6 +258,7 @@ void data_block_manager_t::check_and_handle_empty_extent(unsigned int extent_id)
         return; // The extent has already been deleted
     }
 
+    rassert(entry->g_array.size() == static_config->blocks_per_extent());
     if (entry->g_array.count() == static_config->blocks_per_extent() && entry->state != gc_entry::state_active) {
         /* Every block in the extent is now garbage. */
         switch (entry->state) {
