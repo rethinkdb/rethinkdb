@@ -191,7 +191,7 @@ class Files(object):
 
         create_args = command_prefix + [executable_path, "create",
             "--directory=" + self.db_path,
-            "--name=" + self.machine_name]
+            "--machine-name=" + self.machine_name]
 
         if log_path is None:
             log_path = "/dev/null"
