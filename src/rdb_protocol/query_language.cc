@@ -906,7 +906,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         //TODO(mlucy): What is the port for?  Why is it always the same?
         namespace_semilattice_metadata_t<rdb_protocol_t> ns =
             new_namespace<rdb_protocol_t>(env->this_machine, db_id, dc_id, table_name,
-                                          primary_key, port_constants::namespace_port, cache_size);
+                                          primary_key, port_defaults::reql_port, cache_size);
         {
             cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t change(&metadata.rdb_namespaces);
             change.get()->namespaces.insert(std::make_pair(namespace_id, ns));

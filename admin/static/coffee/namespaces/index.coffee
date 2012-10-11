@@ -312,13 +312,18 @@ module 'NamespaceView', ->
     class @AddNamespaceModal extends UIComponents.AbstractModal
         template: Handlebars.compile $('#add_namespace-modal-template').html()
         alert_tmpl: Handlebars.compile $('#added_namespace-alert-template').html()
+        need_database_alert_template: Handlebars.compile $('#need_database-alert-template').html()
         error_template: Handlebars.compile $('#error_input-template').html()
         class: 'add-namespace'
 
         initialize: =>
             log_initial '(initializing) modal dialog: add namespace'
             super
-            # Extend events
+
+            databases.on 'add', @check_if_can_create_table
+            databases.on 'remove', @check_if_can_create_table
+            databases.on 'reset', @check_if_can_create_table
+            @can_create_table_status = true
             @delegateEvents()
 
         show_advanced_settings: (event) =>
@@ -327,12 +332,25 @@ module 'NamespaceView', ->
             @.$('.show_advanced_settings-link_container').fadeOut 'fast', ->
                 that.$('.hide_advanced_settings-link_container').fadeIn 'fast'
             @.$('.advanced_settings').slideDown 'fast'
+
         hide_advanced_settings: (event) =>
             event.preventDefault()
             that = @
             @.$('.hide_advanced_settings-link_container').fadeOut 'fast', ->
                 that.$('.show_advanced_settings-link_container').fadeIn 'fast'
             @.$('.advanced_settings').slideUp 'fast'
+
+        # Check if we have a database (if not, we cannot create a table)
+        check_if_can_create_table: =>
+            if databases.length is 0
+                if @can_create_table_status is true
+                    @.$('.btn-primary').prop 'disabled', 'disabled'
+                    @.$('.alert_modal').html 'You need to create a database before creating a table.'
+            else
+                if @can_create_table_status is false
+                    @.$('.alert_modal').empty()
+                    @.$('.btn-primary').removeProp 'disabled'
+
 
         render: ->
             log_render '(rendering) add namespace dialog'
@@ -370,6 +388,7 @@ module 'NamespaceView', ->
                 all_datacenters: datacenters.length is ordered_datacenters.length
                 databases: _.map(databases.models, (database) -> database.toJSON())
 
+            @check_if_can_create_table()
             @.$('.show_advanced_settings-link').click @show_advanced_settings
             @.$('.hide_advanced_settings-link').click @hide_advanced_settings
 
@@ -377,24 +396,31 @@ module 'NamespaceView', ->
             super
 
             formdata = form_data_as_object($('form', @$modal))
-
+            # Check if data is safe
             template_error = {}
             input_error = false
 
+            # Need a name
             if formdata.name is ''
                 input_error = true
                 template_error.namespace_is_empty = true
-            else
+            else # And a name that doesn't exist
                 for namespace in namespaces.models
                     if namespace.get('name') is formdata.name and namespace.get('database') is formdata.database
                         input_error = true
                         template_error.namespace_exists = true
                         break
+            
+            # Need a database
+            if not formdata.database? or formdata.database is ''
+                input_error = true
+                template_error.no_database = true
 
+            # Need an integer value for the cache
             if formdata.cache_size isnt '' and DataUtils.is_integer(formdata.cache_size) is false
                 input_error = true
                 template_error.cache_size_format = true
-            else if formdata.cache_size isnt ''
+            else if formdata.cache_size isnt '' # And need a value not too small or not too big
                 cache_size_int = parseInt formdata.cache_size
                 if cache_size_int < 16
                     input_error = true

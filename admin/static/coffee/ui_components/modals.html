@@ -77,6 +77,9 @@
     {{#if namespace_is_empty}}
         <p>Please do not use an empty table.</p>
     {{/if}}
+    {{#if no_database}}
+        <p>You have to select a database.</p>
+    {{/if}}
     {{#if namespace_exists}}
         <p>The chosen table is already being used. Please choose another one.</p>
     {{/if}}

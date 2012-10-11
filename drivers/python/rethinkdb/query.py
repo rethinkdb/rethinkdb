@@ -1249,7 +1249,7 @@ class FunctionExpr(object):
         assert len(self.args) <= 1
         mapp = self.body
         if not isinstance(mapp, BaseQuery):
-            mapp = expr(res)
+            mapp = expr(mapp)
 
         if self.args:
             mapping.arg = self.args[0]
@@ -1279,7 +1279,7 @@ class FunctionExpr(object):
         args = self.args
         mapp = self.body
         if not isinstance(mapp, BaseQuery):
-            mapp = expr(res)
+            mapp = expr(mapp)
         if not args:
             return printer.expr_unwrapped(mapp, backtrace_steps)
         return ("lambda %s: " % ", ".join(args)) + printer.expr_unwrapped(mapp, backtrace_steps)
@@ -1297,7 +1297,7 @@ class BaseSelection(object):
         """Delete all rows in the selection from the database."""
         return WriteQuery(internal.Delete(self))
 
-    def update(self, mapping):
+    def update(self, mapping, allow_nonatomic=False):
         """Update all rows in the selection by merging the current contents
         with the value of `mapping`.
 
@@ -1308,13 +1308,13 @@ class BaseSelection(object):
         """
         if not isinstance(mapping, FunctionExpr):
             mapping = FunctionExpr(mapping)
-        return WriteQuery(internal.Update(self, mapping))
+        return WriteQuery(internal.Update(self, mapping, allow_nonatomic))
 
-    def replace(self, mapping):
+    def replace(self, mapping, allow_nonatomic=False):
         """Replace."""
         if not isinstance(mapping, FunctionExpr):
             mapping = FunctionExpr(mapping)
-        return WriteQuery(internal.Mutate(self, mapping))
+        return WriteQuery(internal.Mutate(self, mapping, allow_nonatomic))
 
 class RowSelection(JSONExpression, BaseSelection):
     """A single row from a table which can be read or written."""
@@ -1323,18 +1323,18 @@ class RowSelection(JSONExpression, BaseSelection):
         """Delete the row from the database."""
         return WriteQuery(internal.PointDelete(self))
 
-    def update(self, mapping):
+    def update(self, mapping, allow_nonatomic=False):
         """Update."""
         if not isinstance(mapping, FunctionExpr):
             mapping = FunctionExpr(mapping)
-        return WriteQuery(internal.PointUpdate(self, mapping))
-    
-    def replace(self, mapping):
+        return WriteQuery(internal.PointUpdate(self, mapping, allow_nonatomic))
+
+    def replace(self, mapping, allow_nonatomic=False):
         """Replace."""
         if not isinstance(mapping, FunctionExpr):
             mapping = FunctionExpr(mapping)
-        return WriteQuery(internal.PointMutate(self, mapping))
-    
+        return WriteQuery(internal.PointMutate(self, mapping, allow_nonatomic))
+
     def __repr__(self):
         return "<RowSelection %s>" % str(self)
 

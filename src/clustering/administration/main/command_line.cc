@@ -162,7 +162,7 @@ void add_rdb_namespace(const char *name, machine_id_t our_machine_id, database_i
     namespace_id_t namespace_id = generate_uuid();
 
     namespace_semilattice_metadata_t<rdb_protocol_t> namespace_metadata =
-        new_namespace<rdb_protocol_t>(our_machine_id, database_id, datacenter_id, name, "id", port_constants::namespace_port, GIGABYTE);
+        new_namespace<rdb_protocol_t>(our_machine_id, database_id, datacenter_id, name, "id", port_defaults::reql_port, GIGABYTE);
 
     persistable_blueprint_t<rdb_protocol_t> blueprint;
     std::map<rdb_protocol_t::region_t, blueprint_role_t> roles;
@@ -312,6 +312,7 @@ po::options_description get_network_options(bool omit_hidden) {
         ("cluster-port", po::value<int>()->default_value(port_defaults::peer_port), "port for receiving connections from other nodes")
         DEBUG_ONLY(("client-port", po::value<int>()->default_value(port_defaults::client_port), "port to use when connecting to other nodes (for development)"))
         ("http-port", po::value<int>()->default_value(port_defaults::http_port), "port for http admin console (defaults to `port + 1000`)")
+        ("reql-port", po::value<int>()->default_value(port_defaults::reql_port), "port for rethinkdb protocol to be hosted on")
         ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a node that we will connect to");
 
     if (!omit_hidden) {
@@ -363,7 +364,7 @@ po::options_description get_rethinkdb_proxy_options(bool omit_hidden = false) {
 po::options_description get_rethinkdb_admin_options(bool omit_hidden = false) {
     po::options_description desc("Allowed options");
     desc.add_options()
-        DEBUG_ONLY(("client-port", po::value<int>()->default_value(port_defaults::client_port), "port to use when connecting to other nodes"))
+        DEBUG_ONLY(("client-port", po::value<int>()->default_value(port_defaults::client_port), "port to use when connecting to other nodes (for development)"))
         ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a node that we will connect to")
         ("exit-failure,x", po::value<bool>()->zero_tokens(), "exit with an error code immediately if a command fails");
     desc.add(get_disk_options(omit_hidden));
@@ -374,12 +375,12 @@ po::options_description get_rethinkdb_admin_options(bool omit_hidden = false) {
 po::options_description get_rethinkdb_import_options(UNUSED bool omit_hidden = false) {
     po::options_description desc("Allowed options");
     desc.add_options()
-        DEBUG_ONLY(("client-port", po::value<int>()->default_value(port_defaults::client_port), "port to use when connecting to other nodes"))
+        DEBUG_ONLY(("client-port", po::value<int>()->default_value(port_defaults::client_port), "port to use when connecting to other nodes (for development)"))
         ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a node that we will connect to")
         // Default value of empty string?  Because who knows what the fuck it returns with
         // no default value.  Or am I supposed to wade my way back into the
         // program_options documentation again?
-        ("table", po::value<std::string>()->default_value(""), "the database table to which to import")
+        ("table", po::value<std::string>()->default_value(""), "the database and table into which to import, of the format 'database.table'")
         ("datacenter", po::value<std::string>()->default_value(""), "the datacenter into which to create a table")
         ("primary-key", po::value<std::string>()->default_value(""), "the primary key to create a new table with, or expected primary key")
         // TODO: Rename the autogen-key option?
@@ -483,6 +484,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
 #else
     int client_port = port_defaults::client_port;
 #endif
+    int reql_port = vm["reql-port"].as<int>();
     int port_offset = vm["port-offset"].as<int>();
 
     path_t web_path = parse_as_path(argv[0]);
@@ -513,7 +515,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
 
     bool result;
     run_in_thread_pool(boost::bind(&run_rethinkdb_serve, &spawner_info, filepath, joins,
-                                   service_ports_t(port, client_port, http_port, port_offset),
+                                   service_ports_t(port, client_port, http_port, reql_port, port_offset),
                                    io_backend,
                                    &result, render_as_path(web_path)),
                        num_workers);
@@ -590,6 +592,7 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
 #else
     int client_port = port_defaults::client_port;
 #endif
+    int reql_port = vm["reql-port"].as<int>();
     int port_offset = vm["port-offset"].as<int>();
 
     path_t web_path = parse_as_path(argv[0]);
@@ -609,7 +612,7 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
 
     bool result;
     run_in_thread_pool(boost::bind(&run_rethinkdb_proxy, &spawner_info, joins,
-                                   service_ports_t(port, client_port, http_port, port_offset),
+                                   service_ports_t(port, client_port, http_port, reql_port, port_offset),
                                    io_backend,
                                    &result, render_as_path(web_path)),
                        num_workers);
@@ -734,6 +737,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
 #else
     int client_port = port_defaults::client_port;
 #endif
+    int reql_port = vm["reql-port"].as<int>();
     int port_offset = vm["port-offset"].as<int>();
 
     path_t web_path = parse_as_path(argv[0]);
@@ -770,7 +774,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
 
     bool result;
     run_in_thread_pool(boost::bind(&run_rethinkdb_porcelain, &spawner_info, filepath, machine_name, joins,
-                                   service_ports_t(port, client_port, http_port, port_offset),
+                                   service_ports_t(port, client_port, http_port, reql_port, port_offset),
                                    io_backend,
                                    &result, render_as_path(web_path), new_directory),
                        num_workers);
