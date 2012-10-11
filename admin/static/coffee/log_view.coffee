@@ -13,6 +13,7 @@ module 'LogView', ->
 
         displayed_logs: 0
         max_timestamp: 0
+        compact: false
 
         log_route: '#logs'
 
@@ -29,6 +30,8 @@ module 'LogView', ->
                 @type = @options.type
             if @options.filter?
                 @filter = @options.filter
+            if @options.compact?
+                @compact = @options.compact
 
             @current_logs = []
             
@@ -97,7 +100,7 @@ module 'LogView', ->
                     if @current_logs[@displayed_logs]?
                         view = new LogView.LogEntry
                             model: @current_logs[@displayed_logs]
-                        @.$('.log-entries').append view.render().el
+                        @.$('.log-entries').append view.render(@compact).el
                         @displayed_logs++
                     else
                         @.$('.no-more-entries').show()
@@ -199,6 +202,7 @@ module 'LogView', ->
         log_datacenters_values_template: Handlebars.compile $('#log-datacenters_values-template').html()
         log_shards_values_template: Handlebars.compile $('#log-shards_values-template').html()
         log_shards_list_values_template: Handlebars.compile $('#log-shards_list_values-template').html()
+        log_shard_names_values_template: Handlebars.compile $('#log-shard_names_values-template').html()
         log_new_namespace_template: Handlebars.compile $('#log-new_namespace-template').html()
         log_new_datacenter_template: Handlebars.compile $('#log-new_datacenter-template').html()
         log_new_database_template: Handlebars.compile $('#log-new_database-template').html()
@@ -246,28 +250,32 @@ module 'LogView', ->
                 if found_hide_details_link is false
                     $('.expand_all_link').html 'Show all details'
 
-        render: =>
-            json = _.extend @model.toJSON(), @format_msg(@model)
+        # TODO This is bad code. The old version had two render functions:
+        # render and render_small-- they were nearly identical.  They were
+        # collapsed into one render function with a flag (e.g. "compact"). This
+        # was done in a not-so-great way, more refactoring should take place.
+        # Each template (template vs. template_small) should be consolidated
+        # into one template, with a flag passed to the template that defines
+        # whether it should be compact or not.  We have at least 2x the
+        # necessary code to do this task.
+        render: (compact) =>
+            if compact
+                json = _.extend @model.toJSON(), @format_msg_small(@model)
+            else
+                json = _.extend @model.toJSON(), @format_msg(@model)
+
             json = _.extend json,
                 machine_name: if machines.get(@model.get('machine_uuid'))? then machines.get(@model.get('machine_uuid')).get('name') else 'Unknown machine'
                 datetime: new XDate(@model.get('timestamp')*1000).toString("HH:mm - MMMM dd, yyyy")
-            @.$el.html @template json
+
+            if compact
+                @.$el.html @template_small json
+                @.$el.attr('class', @classNameSmall)
+            else
+                @.$el.html @template json
             
             @delegateEvents()
             return @
-
-        #TODO remove all the small stuff when we are sure that we are not going to use it again.
-        render_small: =>
-            json = _.extend @model.toJSON(), @format_msg_small(@model)
-            json = _.extend json,
-                machine_name: if machines.get(@model.get('machine_uuid'))? then machines.get(@model.get('machine_uuid')).get('name') else 'Unknown machine'
-                datetime: new XDate(@model.get('timestamp')*1000).toString("HH:mm - MMMM dd, yyyy")
-        
-            @.$el.html @template_small json
-            @.$el.attr('class', @classNameSmall)
-            return @
-
-
 
         pattern_applying_data: /^(Applying data {)/
 
@@ -319,13 +327,15 @@ module 'LogView', ->
                                                     value: json_data[group][namespace_id][attribute][datacenter_id]
                                             msg += @log_datacenters_values_template
                                                 namespace_id: namespace_id
-                                                namespace_name: if namespaces.get(namespace_id)? then namespaces.get(namespace_id).get 'name' else 'removed namespace'
+                                                namespace_name: if namespaces.get(namespace_id)? then namespaces.get(namespace_id).get 'name' else '[table no longer exists]'
+                                                namespace_exists: namespaces.get(namespace_id)?
                                                 attribute: attribute
                                                 datacenters: _datacenters
                                         else if attribute is 'name'
                                             msg += @log_single_value_template
                                                 namespace_id: namespace_id
-                                                namespace_name: if namespaces.get(namespace_id)? then namespaces.get(namespace_id).get 'name' else 'removed namespace'
+                                                namespace_name: if namespaces.get(namespace_id)? then namespaces.get(namespace_id).get 'name' else '[table no longer exists]'
+                                                namespace_exists: namespaces.get(namespace_id)?
                                                 attribute: attribute
                                                 value: json_data[group][namespace_id][attribute]
                                         else if attribute is 'primary_uuid'
@@ -339,7 +349,8 @@ module 'LogView', ->
 
                                             msg += @log_single_value_template
                                                 namespace_id: namespace_id
-                                                namespace_name: if namespaces.get(namespace_id)? then namespaces.get(namespace_id).get 'name' else 'removed namespace'
+                                                namespace_name: if namespaces.get(namespace_id)? then namespaces.get(namespace_id).get 'name' else '[table no longer exists]'
+                                                namespace_exists: namespaces.get(namespace_id)?
                                                 attribute: 'primary datacenter'
                                                 datacenter_id: datacenter_id
                                                 datacenter_name: datacenter_name
@@ -350,7 +361,8 @@ module 'LogView', ->
                                                     shards.push
                                                         shard: shard
                                                         machine_id:  json_data[group][namespace_id][attribute][shard]
-                                                        machine_name: if machines.get(json_data[group][namespace_id][attribute][shard])? then  machines.get(json_data[group][namespace_id][attribute][shard]).get('name') else 'removed machine'
+                                                        machine_name: if machines.get(json_data[group][namespace_id][attribute][shard])? then  machines.get(json_data[group][namespace_id][attribute][shard]).get('name') else '[machine no longer exists]'
+                                                        machine_exists: machines.get(json_data[group][namespace_id][attribute][shard])?
                                                 else
                                                     shards.push
                                                         shard: shard
@@ -358,7 +370,8 @@ module 'LogView', ->
 
                                             msg += @log_shards_values_template
                                                 namespace_id: namespace_id
-                                                namespace_name: if namespaces.get(namespace_id)? then namespaces.get(namespace_id).get 'name' else 'removed namespace'
+                                                namespace_name: if namespaces.get(namespace_id)? then namespaces.get(namespace_id).get 'name' else '[table no longer exists]'
+                                                namespace_exists: namespaces.get(namespace_id)?
                                                 attribute: attribute
                                                 shards: shards
                                         else if attribute is 'secondary_pinnings'
@@ -369,28 +382,32 @@ module 'LogView', ->
                                                     if machine_id?
                                                         _machines.push
                                                             id: machine_id
-                                                            name: if machines.get(machine_id)? then machines.get(machine_id).get 'name' else 'removed machine'
+                                                            name: if machines.get(machine_id)? then machines.get(machine_id).get 'name' else '[machine no longer exists]'
+                                                            exists: machines.get(machine_id)?
                                                 shards.push
                                                     shard: shard
                                                     machines: _machines
                                             msg += @log_shards_list_values_template
                                                 namespace_id: namespace_id
-                                                namespace_name: if namespaces.get(namespace_id)? then namespaces.get(namespace_id).get 'name' else 'removed namespace'
+                                                namespace_name: if namespaces.get(namespace_id)? then namespaces.get(namespace_id).get 'name' else '[table no longer exists]'
+                                                namespace_exists: namespaces.get(namespace_id)?
                                                 attribute: attribute
                                                 shards: shards
                                         else if attribute is 'shards'
                                             value = [] # We could make thing faster later.
                                             for shard_string in json_data[group][namespace_id][attribute]
                                                 value.push JSON.parse shard_string
-                                            msg += @log_single_value_template
+                                            msg += @log_shard_names_values_template
                                                 namespace_id: namespace_id
-                                                namespace_name: if namespaces.get(namespace_id)? then namespaces.get(namespace_id).get 'name' else 'removed namespace'
+                                                namespace_name: if namespaces.get(namespace_id)? then namespaces.get(namespace_id).get 'name' else '[table no longer exists]'
+                                                namespace_exists: namespaces.get(namespace_id)? 
                                                 attribute: attribute
+                                                shards: _.map(value, (shard) -> JSON.stringify(shard).replace(/\\"/g,'"'))
                                                 value: JSON.stringify(value).replace(/\\"/g,'"')
                     else if group is 'machines'
                         for machine_id of json_data[group]
                             if json_data[group][machine_id] is null
-                                msg += @log_delete_something_template 
+                                msg += @log_delete_something_template
                                     type: 'machine'
                                     id: machine_id
                             else
@@ -410,7 +427,8 @@ module 'LogView', ->
                                             datacenter_name = 'a removed datacenter'
                                         msg += @log_server_set_datacenter_template
                                             machine_id: machine_id
-                                            machine_name: if machines.get(machine_id)? then machines.get(machine_id).get('name') else 'removed machine'
+                                            machine_name: if machines.get(machine_id)? then machines.get(machine_id).get('name') else '[machine no longer exists]'
+                                            machine_exists: machines.get(machine_id)?
                                             datacenter_id: datacenter_id
                                             datacenter_name: datacenter_name
                     else if group is 'datacenters'
@@ -459,7 +477,9 @@ module 'LogView', ->
                     msg: msg
                 }
 
-
+        # TODO this should be merged with the format_msg function and simplified / commented. This code is incomprehensible
+        # and should either provide a complete set of info for messages (compact or regular) to discard as needed, or should
+        # be clearly commented to show the compact and non-compact representations. Copy-pasting this amount of code is unacceptable.
         format_msg_small: (model) =>
             msg = model.get('message')
             
@@ -491,7 +511,8 @@ module 'LogView', ->
 
                                 msg += @log_namespace_value_small_template
                                     namespace_id: namespace_id
-                                    namespace_name: if namespaces.get(namespace_id)? then namespaces.get(namespace_id).get 'name' else 'removed namespace'
+                                    namespace_name: if namespaces.get(namespace_id)? then namespaces.get(namespace_id).get 'name' else '[table no longer exists]'
+                                    namespace_exists: namespaces.get(namespace_id)?
                                     attribute: value
                     else if group is 'machines'
                         for machine_id of json_data[group]
@@ -508,7 +529,8 @@ module 'LogView', ->
 
                                 msg += @log_machine_value_small_template
                                     machine_id: machine_id
-                                    machine_name: if machines.get(machine_id)? then machines.get(machine_id).get 'name' else 'removed machine'
+                                    machine_name: if machines.get(machine_id)? then machines.get(machine_id).get 'name' else '[machine no longer exists]'
+                                    machine_exists: machines.get(machine_id)?
                                     attribute: value
 
                     else if group is 'datacenters'
@@ -566,6 +588,7 @@ module 'LogView', ->
                                     msg += @log_database_value_small_template
                                         database_id: database_id
                                         database_name: if databases.get(database_id)? then databases.get(database_id).get 'name' else 'removed database'
+                                        database_exists: databases.get(database_id)?
                                         attribute: value
 
                     else
