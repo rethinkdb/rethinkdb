@@ -1,6 +1,7 @@
 space=$(eval) $(eval)
 comma=,
 
+
 ##### Pretty-printing
 
 ANSI_BOLD_ON:=[1m
@@ -70,7 +71,9 @@ NO_TCMALLOC?=0
 SEMANTIC_SERIALIZER_CHECK?=0
 MOCK_CACHE_CHECK?=0
 VERBOSE?=0
-UNIT_TESTS?=$(DEBUG)
+# UNIT_TESTS?=$(DEBUG)
+UNIT_TESTS?=0
+AIOSUPPORT?=0
 BUILD_DRIVERS?=1
 
 # Set TRIAL to 1 to build a 21-day trial version. If you want a different number of days, set TIMEBOMB to the number of days instead.
@@ -109,14 +112,18 @@ endif
 endif
 
 ifeq ($(COMPILER),CLANG)
-LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lstdc++ -lm -lv8 -lcrypto
+LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -lstdc++ -lm -lv8 -lcrypto
 else
 ifeq ($(COMPILER),INTEL)
-LDFLAGS:= -B/opt/intel/bin -pthread -lrt -laio -lstdc++ -lv8 -lcrypto
+LDFLAGS:= -B/opt/intel/bin -pthread -lrt -lstdc++ -lv8 -lcrypto
 else
 # GCC
-LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lv8 -lcrypto
+LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -lv8 -lcrypto
 endif
+endif
+
+ifeq ($(AIOSUPPORT),1)
+LDFLAGS+= -laio
 endif
 
 STATIC_LIBRARIES:=boost_serialization protobuf boost_program_options

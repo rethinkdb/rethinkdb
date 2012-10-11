@@ -1,3 +1,4 @@
+#if AIOSUPPORT
 #include "arch/io/disk/aio/getevents_noeventfd.hpp"
 
 #include <linux/fs.h>
@@ -138,4 +139,4 @@ void linux_aio_getevents_noeventfd_t::on_event(int event_mask) {
     res = pthread_mutex_unlock(&io_mutex);
     guarantee(res == 0, "Could not unlock io mutex");
 }
-
+#endif // AIOSUPPORT
