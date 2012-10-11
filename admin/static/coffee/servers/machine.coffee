@@ -57,6 +57,7 @@ module 'MachineView', ->
                 type: 'machine'
 
             machines.on 'remove', @check_if_still_exists
+            @model.on 'change:datacenter_uuid', @render_can_unassign_button
 
         check_if_still_exists: =>
             exist = false
@@ -68,6 +69,7 @@ module 'MachineView', ->
                 window.router.navigate '#servers'
                 window.app.index_servers
                     alert_message: "The server <a href=\"#servers/#{@model.get('id')}\">#{@model.get('name')}</a> could not be found and was probably deleted."
+
         change_route: (event) =>
             # Because we are using bootstrap tab. We should remove them later.
             window.router.navigate @.$(event.target).attr('href')
@@ -89,7 +91,16 @@ module 'MachineView', ->
             # log entries
             @.$('.recent-log-entries').html @logs.render().$el
 
+            @render_can_unassign_button()
+
             return @
+
+        # Hide the unassign button if the server doesn't have a datacenter, else show it.
+        render_can_unassign_button: =>
+            if @model.get('datacenter_uuid')? and @model.get('datacenter_uuid') isnt universe_datacenter.get('id')
+                @.$('.unassign-datacenter_li').show()
+            else
+                @.$('.unassign-datacenter_li').hide()
 
         close_alert: (event) ->
             event.preventDefault()
@@ -122,6 +133,7 @@ module 'MachineView', ->
             @profile.destroy()
             @performance_graph.destroy()
             @logs.destroy()
+            @model.off '', @render_can_unassign_button
 
     # MachineView.Title
     class @Title extends Backbone.View
