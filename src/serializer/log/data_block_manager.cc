@@ -555,9 +555,6 @@ void data_block_manager_t::run_gc() {
                 gc_state.refcount++;
 
                 gc_state.set_step(gc_read);
-#ifndef NDEBUG
-                bool some_read_happened = false;
-#endif
                 for (unsigned int i = 0, bpe = static_config->blocks_per_extent(); i < bpe; i++) {
                     if (!gc_state.current_entry->g_array[i]) {
                         // Increment the refcount before read_async, because read_async can call
@@ -568,13 +565,8 @@ void data_block_manager_t::run_gc() {
                                            gc_state.gc_blocks + (i * static_config->block_size().ser_value()),
                                            choose_gc_io_account(),
                                            &(gc_state.gc_read_callback));
-#ifndef NDEBUG
-                        some_read_happened = true;
-#endif
                     }
                 }
-
-                rassert(some_read_happened);
 
                 // Fall through to the gc_read case, where we
                 // decrement the refcount we incremented before the
@@ -589,6 +581,7 @@ void data_block_manager_t::run_gc() {
 
                 /* If other forces cause all of the blocks in the extent to become garbage
                 before we even finish GCing it, they will set current_entry to NULL. */
+                check_and_handle_outstanding_empty_extents();  // Give one last chance for current extent.
                 if (gc_state.current_entry == NULL) {
                     gc_state.set_step(gc_ready);
                     break;
