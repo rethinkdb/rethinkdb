@@ -58,31 +58,38 @@ module 'NamespaceView', ->
                 @display_msg error_msg
                 return
 
-            if distr_keys.length < 2
-                error_msg = "There is not enough data in the database to make balanced shards."
+            if distr_keys.length < new_num_shards
+                error_msg = 'There is not enough data in the database to make '+distr_keys.length+' balanced shards.'
                 @display_msg error_msg
                 return
 
-            current_shard_count = 0
-            split_points = [""]
+            current_count = 0 # Global count to spread errors among shards
+            split_points = []
             no_more_splits = false
-            for key in distr_keys
-                if split_points.length >= new_num_shards
-                    no_more_splits = true
-                current_shard_count += data[key]
-                if current_shard_count >= rows_per_shard and not no_more_splits
-                    split_points.push(key)
-                    current_shard_count = 0
+            for key, i in distr_keys
+                if i is 0
+                    if key isnt '' # For safety. The empty string is always the smallest key
+                        return 'Error'
+                    split_points.push key
+                    current_count += data[key]
+                    continue
+
+                # If we have just enough keys left, we just add all of them as split points
+                # keys_left <= splits_point left to add
+                if distr_keys.length-i <= new_num_shards-split_points.length # We don't add 1 because there is null
+                    split_points.push key
+                    continue
+                    
+                # Else we check if we have enough keys
+                if current_count >= rows_per_shard*split_points.length
+                    split_points.push key
+                current_count += data[key]
+
             split_points.push(null)
 
             shard_set = []
             for splitIndex in [0..(split_points.length - 2)]
                 shard_set.push(JSON.stringify([split_points[splitIndex], split_points[splitIndex + 1]]))
-
-            if shard_set.length < new_num_shards
-                error_msg = "There is only enough data to make " + shard_set.length + " balanced shards."
-                @display_msg error_msg
-                return
 
             if event?.which? and event.which is 13
                 @shard_table()
