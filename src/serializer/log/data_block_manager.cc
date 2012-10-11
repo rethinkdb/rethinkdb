@@ -520,7 +520,6 @@ void data_block_manager_t::on_gc_write_done() {
 }
 
 void data_block_manager_t::run_gc() {
-    // TODO: Convert this to a coroutine!
     bool run_again = true;
     while (run_again) {
         run_again = false;
