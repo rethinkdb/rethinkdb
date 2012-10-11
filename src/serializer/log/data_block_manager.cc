@@ -426,7 +426,8 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_wr
 
                 const ls_buf_data_t *data = static_cast<const ls_buf_data_t *>(writes[i].buf) - 1;
 
-                // the "false" argument indicates that we do not with to assign a new block sequence id
+                // the first "false" argument indicates that we do not with to assign a new block sequence id
+                // We pass true because we know there is a token for this block: we just constructed one!
                 writes[i].new_offset = parent->write(writes[i].buf, data->block_id, false, parent->choose_gc_io_account(), block_write_conds.back(), true, false);
             }
             parent->serializer->extent_manager->end_transaction(em_trx);
@@ -477,7 +478,10 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_wr
                 parent->serializer->remap_block_to_new_offset(writes[i].old_offset, writes[i].new_offset);
             }
 
-            // Step 4A-2: Now that the block tokens have been remapped to a new offset, we don't need to worry about tokens being destroyed while .. TODO maybe uncomment this.
+            // Step 4A-2: Now that the block tokens have been remapped
+            // to a new offset, destroying these tokens will update
+            // the bits in the t_array of the new offset (if they're
+            // the last token).
             block_tokens.clear();
         }
 
