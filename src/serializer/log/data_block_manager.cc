@@ -34,7 +34,6 @@ data_block_manager_t::~data_block_manager_t() {
 }
 
 void data_block_manager_t::prepare_initial_metablock(metablock_mixin_t *mb) {
-
     for (int i = 0; i < MAX_ACTIVE_DATA_EXTENTS; i++) {
         mb->active_extents[i] = NULL_OFFSET;
         mb->blocks_in_active_extent[i] = 0;
@@ -79,7 +78,6 @@ void data_block_manager_t::start_existing(direct_file_t *file, metablock_mixin_t
     gc_io_account_high.init(new file_account_t(file, GC_IO_PRIORITY_HIGH));
 
     /* Reconstruct the active data block extents from the metablock. */
-
     for (unsigned int i = 0; i < MAX_ACTIVE_DATA_EXTENTS; i++) {
         off64_t offset = last_metablock->active_extents[i];
 
@@ -109,7 +107,6 @@ void data_block_manager_t::start_existing(direct_file_t *file, metablock_mixin_t
 
     /* Convert any extents that we found live blocks in, but that are not active extents,
     into old extents */
-
     while (gc_entry *entry = reconstructed_extents.head()) {
         reconstructed_extents.remove(entry);
 
