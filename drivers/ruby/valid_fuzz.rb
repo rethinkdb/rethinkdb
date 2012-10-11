@@ -5,35 +5,40 @@ require 'rethinkdb.rb'
 require 'optparse'
 include RethinkDB::Shortcuts
 
-options = {}
+$opt = {}
 OptionParser.new {|opts|
   opts.banner = "Usage: fuzz.rb [options]"
 
-  options[:port] = "0"
-  opts.on('-p', '--port PORT', 'Fuzz on PORT+12346 (default 0)') {|p| options[:port] = p}
+  $opt[:host] = "localhost"
+  opts.on('-h', '--host HOST', 'Fuzz on host HOST (default localhost)') {|h|
+    $opt[:host] = h
+  }
 
-  options[:seed] = srand()
-  opts.on('-s', '--seed SEED', 'Set the random seed to SEED') {|s| options[:seed] = s}
+  $opt[:port] = "0"
+  opts.on('-p', '--port PORT', 'Fuzz on PORT+12346 (default 0)') {|p| $opt[:port] = p}
 
-  options[:tfile] = nil
-  opts.on('-t', '--templates FILE', 'Read templates from FILE') {|f| options[:tfile] = f}
+  $opt[:seed] = srand()
+  opts.on('-s', '--seed SEED', 'Set the random seed to SEED') {|s| $opt[:seed] = s}
 
-  options[:index] = 0
-  opts.on('-i', '--index INT', 'Start from index INT') {|i| options[:index] = i.to_i}
+  $opt[:tfile] = nil
+  opts.on('-t', '--templates FILE', 'Read templates from FILE') {|f| $opt[:tfile] = f}
+
+  $opt[:index] = 0
+  opts.on('-i', '--index INT', 'Start from index INT') {|i| $opt[:index] = i.to_i}
 }.parse!
 
 $templates = []
-print "Using seed: #{options[:seed]}\n"
-srand(options[:seed].to_i)
-if options[:tfile]
-  print "Using templates from file: #{options[:tfile]}\n"
-  File.open(options[:tfile], "r").each {|l| $templates << eval(l.chomp)}
+print "Using seed: #{$opt[:seed]}\n"
+srand($opt[:seed].to_i)
+if $opt[:tfile]
+  print "Using templates from file: #{$opt[:tfile]}\n"
+  File.open($opt[:tfile], "r").each {|l| $templates << eval(l.chomp)}
 else
   print "ERROR: must provide templates with `-t`\n"
 end
 
-print "Connecting to cluster on port: #{options[:port]}+12346...\n"
-c = RethinkDB::Connection.new('localhost', (options[:port].to_i)+12346)
+print "Connecting to cluster on port: #{$opt[:port]}+12346...\n"
+c = RethinkDB::Connection.new($opt[:host], ($opt[:port].to_i)+12346)
 print "Connection established.\n"
 
 def crossover(s1, s2, p=0.3)
@@ -66,7 +71,7 @@ while true
       $f += 1
     end
     if $f < 20
-      if $i >= options[:index]
+      if $i >= $opt[:index]
         print "##{$i}: sexp: #{t.inspect}\n"
         print "##{$i}: sexp: #{s.inspect}\n"
         begin

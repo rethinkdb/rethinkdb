@@ -37,31 +37,24 @@
 </script>
 
 <script id="machine_view_profile-template" type="text/x-handlebars-template">
-    <h3 class="title">Server profile</h3>
     <div class="summary">
         <div class="stat-row first">
-            <p class="availability"><span class="big">{{humanize_machine_reachability reachability}} </span> and reachable</p>
+            <p class="availability"><span class="big">{{humanize_machine_reachability reachability}}</span></p>
         </div>
         <div class="stat-row">
             <p class="datacenter">
                 {{#if assigned_to_datacenter}}
-                    <span class="big"><a href="#datacenters/{{datacenter_uuid}}">{{datacenter_name}}</a> </span> datacenter
+                    <span class="big">{{datacenter_name}} </span> datacenter
                 {{else}}
-                    <span class="big">Unassigned </span> to a datacenter
+                    <span class="big">Unassigned </span>datacenter
                 {{/if}}
             </p>
         </div>
         <div class="stat-row">
-            <p class="ips">{{pluralize_noun "address" nips}}: {{#if ips}} {{html_list ips}} {{else}} N/A {{/if}}</p>
+            <p class="uptime"><span class="big">{{uptime}} </span>uptime</p>
         </div>
         <div class="stat-row">
-            <p class="uptime">up for <span class="big">{{uptime}}</span></p>
-        </div>
-        <div class="stat-row">
-            <p class="disk-used"><span class="big">{{disk_used}}</span> used on disk</p>
-        </div>
-        <div class="stat-row">
-            <p class="ram-used"><span class="big">{{ram_used}}</span> used in memory</p>
+            <p class="ips"><span class="big">{{#if ips}}{{main_ip}}{{else}}N/A{{/if}} </span>IP address</p>
         </div>
     </div>
         <!-- Review and remove

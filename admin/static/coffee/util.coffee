@@ -126,7 +126,7 @@ Handlebars.registerHelper 'display_reasons_cannot_move', (reasons) ->
                 else
                     out += ', <a href="#tables/'+namespace_id+'">'+namespace_name+'</a>'
             out += '.</li>'
-            
+
     return new Handlebars.SafeString(out)
 
 # If the two arguments are equal, show the inner block; else block is available
@@ -138,10 +138,11 @@ Handlebars.registerHelper 'ifequal', (val_a, val_b, if_block, else_block) ->
 
 # Helpers for pluralization of nouns and verbs
 Handlebars.registerHelper 'pluralize_noun', (noun, num, capitalize) ->
-    if num is 1 or num is 0
+    ends_with_y = noun.substr(-1) is 'y'
+    if num is 1
         result = noun
     else
-        if noun.substr(-1) is 'y' and (noun isnt 'key')
+        if ends_with_y and (noun isnt 'key')
             result = noun.slice(0, noun.length - 1) + "ies"
         else if noun.substr(-1) is 's'
             result = noun + "es"
@@ -169,7 +170,7 @@ Handlebars.registerHelper 'humanize_role', (role) ->
         return new Handlebars.SafeString('<span class="secondary responsability secondary">Secondary</span>')
     if role is 'role_nothing'
         return new Handlebars.SafeString('<span class="secondary responsability nothing">Nothing</span>')
- 
+
     return role
 
 # Helpers for printing reachability
@@ -180,9 +181,7 @@ Handlebars.registerHelper 'humanize_machine_reachability', (status) ->
         if status.reachable
             result = "<span class='label label-success'>Reachable</span>"
         else
-            _last_seen = if status.last_seen? then status.last_seen else 'unknown'
-            result = "<span class='label label-important'>Unreachable</span>
-                <span class='timeago' title='#{_last_seen}'>since #{_last_seen}</span>"
+            result = "<span class='label label-failure'>Unreachable</span>"
     return new Handlebars.SafeString(result)
 
 Handlebars.registerHelper 'humanize_datacenter_reachability', (status) ->
@@ -199,10 +198,10 @@ Handlebars.registerHelper 'humanize_datacenter_reachability', (status) ->
     return new Handlebars.SafeString(result)
 
 Handlebars.registerHelper 'humanize_namespace_reachability', (reachability) ->
-    if reachability
+    if reachability is 'Live'
         result = "<span class='label label-success'>Live</span>"
     else
-        result = "<span class='label label-important'>Down</span>"
+        result = "<span class='label label-failure'>Down</span>"
 
     return new Handlebars.SafeString(result)
 

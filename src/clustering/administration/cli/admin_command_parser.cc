@@ -46,6 +46,7 @@ const char *remove_machine_command = "rm machine";
 const char *remove_table_command = "rm table";
 const char *remove_datacenter_command = "rm datacenter";
 const char *remove_database_command = "rm database";
+const char *touch_command = "touch";
 
 // Special commands - used only in certain cases
 const char *admin_command_parser_t::complete_command = "complete";
@@ -80,6 +81,7 @@ const char *create_table_usage = "<NAME> --database <DATABASE> [--primary <DATAC
 const char *create_datacenter_usage = "<NAME>";
 const char *create_database_usage = "<NAME>";
 const char *remove_usage = "<ID>...";
+const char *touch_usage = "";
 
 const char *list_id_option = "[<ID>]";
 const char *list_long_option = "[--long]";
@@ -203,6 +205,7 @@ const char *remove_machine_description = "Remove one or more machines from the c
 const char *remove_table_description = "Remove one or more tables from the cluster.";
 const char *remove_datacenter_description = "Remove one or more datacenters from the cluster.";
 const char *remove_database_description = "Remove one or more database from the cluster.";
+const char *touch_description = "Update the cluster blueprints if any are out-of-date.  An out-of-date blueprint is caused by a machine being down when a table's requirements were changed.";
 
 std::vector<std::string> parse_line(const std::string& line) {
     std::vector<std::string> result;
@@ -425,6 +428,11 @@ void admin_command_parser_t::do_usage_internal(const std::vector<admin_help_info
 void admin_command_parser_t::do_usage(bool console) {
     std::vector<admin_help_info_t> helps;
     std::vector<std::pair<std::string, std::string> > options;
+    std::string header_string("- access or modify cluster metadata, run 'help <COMMAND>' for additional information");
+
+    if (!console) {
+        helps.push_back(admin_help_info_t("", "", "open a console to issue multiple commands"));
+    }
     helps.push_back(admin_help_info_t("set", "", "change a value in the cluster"));
     helps.push_back(admin_help_info_t("unset", "", "clear a value in the cluster"));
     helps.push_back(admin_help_info_t(list_command, "", "print cluster data"));
@@ -434,14 +442,14 @@ void admin_command_parser_t::do_usage(bool console) {
     helps.push_back(admin_help_info_t(pin_shard_command, "", "assign the machines to host a shard"));
     helps.push_back(admin_help_info_t("create", "", "add a new object to the cluster"));
     helps.push_back(admin_help_info_t("rm", "", "remove an object from the cluster"));
+    helps.push_back(admin_help_info_t("touch", "", "make sure cluster blueprints are up-to-date"));
     helps.push_back(admin_help_info_t(help_command, "", "print help about the specified command"));
-
-    std::string header_string("- access or modify cluster metadata, run 'help <COMMAND>' for additional information");
 
     if (console) {
         helps.push_back(admin_help_info_t(exit_command, "", "quit the cluster administration console"));
         header_string = "rethinkdb admin console " + header_string;
     }
+
     do_usage_internal(helps, options, header_string, console);
 }
 
@@ -619,8 +627,10 @@ void admin_command_parser_t::build_command_descriptions() {
     info = add_command(remove_database_command, remove_database_command, remove_usage, &admin_cluster_link_t::do_admin_remove_database, &commands);
     info->add_positional("id", -1, true)->add_option("!database");
 
+    info = add_command(touch_command, touch_command, touch_usage, &admin_cluster_link_t::do_admin_touch, &commands);
+
     info = add_command(help_command, help_command, help_usage, NULL, &commands); // Special case, 'help' is not done through the cluster
-    info->add_positional("command", 1, false)->add_options("split", "merge", "set", "ls", "create", "rm", "resolve", "help", NULLPTR);
+    info->add_positional("command", 1, false)->add_options("split", "merge", "set", "ls", "create", "rm", "resolve", "help", "pin", "touch", NULLPTR);
     info->add_positional("subcommand", 1, false);
 }
 
@@ -1294,6 +1304,12 @@ void admin_command_parser_t::do_admin_help(const command_data& data) {
             options.push_back(std::make_pair(resolve_id_option, resolve_id_option_desc));
             options.push_back(std::make_pair(resolve_field_option, resolve_field_option_desc));
             do_usage_internal(helps, options, "resolve - resolve a conflict on a cluster metadata value", console_mode);
+        } else if (command == "touch") {
+            if (!subcommand.empty()) {
+                throw admin_parse_exc_t("no recognized subcommands for 'touch'");
+            }
+            helps.push_back(admin_help_info_t(touch_command, touch_usage, touch_description));
+            do_usage_internal(helps, options, "resolve - make sure cluster blueprints are up-to-date", console_mode);
         } else {
             throw admin_parse_exc_t("unknown command: " + command);
         }

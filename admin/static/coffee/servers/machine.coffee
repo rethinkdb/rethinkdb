@@ -3,7 +3,7 @@ module 'MachineView', ->
     class @NotFound extends Backbone.View
         template: Handlebars.compile $('#element_view-not_found-template').html()
         ghost_template: Handlebars.compile $('#machine_view-ghost-template').html()
-        initialize: (id) => 
+        initialize: (id) =>
             @id = id
         render: =>
             if directory.get(@id)?
@@ -88,7 +88,7 @@ module 'MachineView', ->
 
             # log entries
             @.$('.recent-log-entries').html @logs.render().$el
-            
+
             return @
 
         close_alert: (event) ->
@@ -130,7 +130,7 @@ module 'MachineView', ->
         initialize: ->
             @name = @model.get('name')
             @model.on 'change:name', @update
-        
+
         update: =>
             if @name isnt @model.get('name')
                 @name = @model.get('name')
@@ -158,8 +158,9 @@ module 'MachineView', ->
             json =
                 name: @model.get('name')
                 ips: ips
+                main_ip: ips[0] if ips?
                 nips: if ips then ips.length else 1
-                uptime: $.timeago(new Date(Date.now() - @model.get_stats().proc.uptime * 1000)).slice(0, -4)
+                uptime: if @model.get_stats().proc.uptime? then $.timeago(new Date(Date.now() - @model.get_stats().proc.uptime * 1000)).slice(0, -4) else "N/A"
                 datacenter_uuid: datacenter_uuid
                 global_cpu_util: Math.floor(@model.get_stats().proc.global_cpu_util_avg * 100)
                 global_mem_total: human_readable_units(@model.get_stats().proc.global_mem_total * 1024, units_space)
@@ -168,7 +169,7 @@ module 'MachineView', ->
                 global_net_recv: if @model.get_stats().proc.global_net_recv_persec? then human_readable_units(@model.get_stats().proc.global_net_recv_persec.avg, units_space) else 0
                 machine_disk_space: human_readable_units(@model.get_used_disk_space(), units_space)
                 stats_up_to_date: @model.get('stats_up_to_date')
-            
+
             # If the machine is assigned to a datacenter, add relevant json
             if datacenters.get(datacenter_uuid)?
                 json = _.extend json,
@@ -178,7 +179,7 @@ module 'MachineView', ->
 
             # Reachability
             _.extend json,
-                status: DataUtils.get_machine_reachability(@model.get('id'))
+                reachability: DataUtils.get_machine_reachability(@model.get('id'))
 
             @.$el.html @template(json)
 
@@ -209,7 +210,7 @@ module 'MachineView', ->
                 server_is_master:  server.is_master_for_namespaces().length > 0
                 has_datacenter: dc_uuid?
 
-            
+
             if dc_uuid?
                 # Count the number of servers in the same datacenter as this server
                 num_machines_in_dc = 0
@@ -227,7 +228,7 @@ module 'MachineView', ->
 
                 data = _.extend data,
                     not_enough_replicas: not_enough_replicas.length > 0
-            
+
             super data
 
             @.$('.btn-primary').focus()
@@ -305,7 +306,7 @@ module 'MachineView', ->
             json = _.extend json,
                 data:
                     namespaces: _namespaces
-        
+
             @.$el.html @template(json)
             return @
 

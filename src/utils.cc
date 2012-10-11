@@ -135,9 +135,11 @@ struct timespec parse_time(const std::string &str) THROWS_ONLY(std::runtime_erro
     return time;
 }
 
+#ifndef NDEBUG
 void home_thread_mixin_debug_only_t::assert_thread() const {
     rassert(get_thread_id() == real_home_thread);
 }
+#endif
 
 home_thread_mixin_debug_only_t::home_thread_mixin_debug_only_t(DEBUG_VAR int specified_home_thread) 
 #ifndef NDEBUG

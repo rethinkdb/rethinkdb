@@ -29,17 +29,17 @@
 <script id="database_view-profile-template" type="text/x-handlebars-template">
     <div class="summary">
         <div class="stat-row first">
-            <p class="availability"><span class="big">{{humanize_namespace_reachability reachability}} </span> and reachable</p>
+            <p class="tables"><span class="big">{{num_live_namespaces}}/{{num_namespaces}} </span> tables live</p>
         </div>
         <div class="stat-row">
-            <p class="tables"><span class="big">{{num_namespaces}} </span> {{pluralize_noun "table" num_namespaces}}</p>
+            <p class="masters"><span class="big">{{nshards}} </span> {{pluralize_noun "shard" nshards}}</p>
         </div>
-        <!-- Removed for now TODO
-        {{#unless stats_up_to_date}}
-        <p>The stats displayed might not be up to date<br />
-            (One server might be overload with queries).</p>
-        {{/unless}}
-        -->
+        <div class="stat-row">
+            <p class="replicas"><span class="big">{{nreplicas}} </span> {{pluralize_noun "replica" nreplicas}}</p>
+        </div>
+        <div class="stat-row">
+            <p class="datacenters"><span class="big">{{ndatacenters}} </span> {{pluralize_noun "datacenter" ndatacenters}}</p>
+        </div>
     </div>
 </script>
 

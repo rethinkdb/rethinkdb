@@ -25,8 +25,8 @@
     <div class="element-type">Datacenter</div>
     <h3 class="name"><a href="#datacenters/{{id}}">{{name}}</a></h3>
     <div class="buttons">
-        <button class="btn hide-servers expanded collapse-control" data-expanded="&ndash; Hide Servers" data-collapsed="+ Show Servers">&ndash; Hide Servers</a>
-        <button class="btn remove-datacenter">X</a>
+        <!-- <button class="btn hide-servers expanded collapse-control" data-expanded="&ndash; Hide Servers" data-collapsed="+ Show Servers">&ndash; Hide Servers</a> -->
+        <button class="btn remove-datacenter">Delete Datacenter</a>
     </div>
 </script>
 
@@ -37,7 +37,7 @@
             <div class="datacenter summary">
                 <h3 class="name">Unassigned servers</h3>
                 <div class="buttons">
-                    <button class="btn hide-servers expanded collapse-control" data-expanded="&ndash; Hide Servers" data-collapsed="+ Show Servers">&ndash; Hide Servers</a>
+                    <!-- <button class="btn hide-servers expanded collapse-control" data-expanded="&ndash; Hide Servers" data-collapsed="+ Show Servers">&ndash; Hide Servers</a> -->
                 </div>
             </div>
         </div>
@@ -63,7 +63,7 @@
 
 
 <script id="machine_list_element-quick_info-template" type="text/x-handlebars-template">
-    Primaries: {{primary_count}}, Secondaries: {{secondary_count}}, Tables: {{namespace_count}}
+    {{primary_count}} {{pluralize_noun "primary" primary_count}}, {{secondary_count}} {{pluralize_noun "secondary" secondary_count}}
 </script>
 
 <script id="machine_list_element-status-template" type="text/x-handlebars-template">

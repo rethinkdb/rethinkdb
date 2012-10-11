@@ -311,9 +311,10 @@ goog.exportProperty(rethinkdb.Expression.prototype, 'del',
  * @extends {rethinkdb.Query}
  * @ignore
  */
-rethinkdb.UpdateQuery = function(view, mapping) {
+rethinkdb.UpdateQuery = function(view, mapping, allowNonAtomic) {
     this.view_ = view;
     this.mapping_ = mapping;
+    this.allowNonAtomic_ = allowNonAtomic;
 };
 goog.inherits(rethinkdb.UpdateQuery, rethinkdb.Query);
 
@@ -330,6 +331,7 @@ rethinkdb.UpdateQuery.prototype.buildQuery = function(opt_buildOpts) {
     var write = new WriteQuery();
     write.setType(WriteQuery.WriteQueryType.UPDATE);
     write.setUpdate(update);
+    write.setAtomic(!this.allowNonAtomic_);
 
     var query = new Query();
     query.setType(Query.QueryType.WRITE);
@@ -361,11 +363,12 @@ rethinkdb.UpdateQuery.prototype.formatQuery = function(bt) {
  * @extends {rethinkdb.Query}
  * @ignore
  */
-rethinkdb.PointUpdateQuery = function(table, key, primaryKey, mapping) {
+rethinkdb.PointUpdateQuery = function(table, key, primaryKey, mapping, allowNonAtomic) {
     this.table_ = table;
     this.key_ = key;
     this.primaryKey_ = primaryKey || 'id';
     this.mapping_ = mapping;
+    this.allowNonAtomic_ = allowNonAtomic;
 };
 goog.inherits(rethinkdb.PointUpdateQuery, rethinkdb.Query);
 
@@ -384,6 +387,7 @@ rethinkdb.PointUpdateQuery.prototype.buildQuery = function(opt_buildOpts) {
     var write = new WriteQuery();
     write.setType(WriteQuery.WriteQueryType.POINTUPDATE);
     write.setPointUpdate(pointupdate);
+    write.setAtomic(!this.allowNonAtomic_);
 
     var query = new Query();
     query.setType(Query.QueryType.WRITE);
@@ -421,16 +425,19 @@ rethinkdb.PointUpdateQuery.prototype.formatQuery = function(bt) {
  * Updates each row in the current view by merging in the result
  * of the given mapping function applied to that row
  * @param {function(...)|rethinkdb.FunctionExpression|rethinkdb.Expression} mapping
+ * @param {boolean=} opt_allowNonAtomic Optional flag to allow the update to run
+ *  faster at the expence of guaranteed atomicity. Defaults to false.
  */
-rethinkdb.Expression.prototype.update = function(mapping) {
+rethinkdb.Expression.prototype.update = function(mapping, opt_allowNonAtomic) {
     argCheck_(arguments, 1);
-
     mapping = functionWrap_(mapping);
+    opt_allowNonAtomic = (opt_allowNonAtomic === undefined) ? false : opt_allowNonAtomic;
 
     if (this instanceof rethinkdb.GetExpression) {
-        return new rethinkdb.PointUpdateQuery(this.table_, this.key_, this.primaryKey_, mapping);
+        return new rethinkdb.PointUpdateQuery(this.table_, this.key_, this.primaryKey_, mapping,
+            opt_allowNonAtomic);
     } else {
-        return new rethinkdb.UpdateQuery(this, mapping);
+        return new rethinkdb.UpdateQuery(this, mapping, opt_allowNonAtomic);
     }
 };
 goog.exportProperty(rethinkdb.Expression.prototype, 'update',
@@ -443,9 +450,10 @@ goog.exportProperty(rethinkdb.Expression.prototype, 'update',
  * @extends {rethinkdb.Query}
  * @ignore
  */
-rethinkdb.MutateQuery = function(view, mapping) {
+rethinkdb.MutateQuery = function(view, mapping, allowNonAtomic) {
     this.view_ = view;
     this.mapping_ = mapping;
+    this.allowNonAtomic_ = allowNonAtomic;
 };
 goog.inherits(rethinkdb.MutateQuery, rethinkdb.Query);
 
@@ -462,6 +470,7 @@ rethinkdb.MutateQuery.prototype.buildQuery = function(opt_buildOpts) {
     var write = new WriteQuery();
     write.setType(WriteQuery.WriteQueryType.MUTATE);
     write.setMutate(mutate);
+    write.setAtomic(!this.allowNonAtomic_);
 
     var query = new Query();
     query.setType(Query.QueryType.WRITE);
@@ -493,11 +502,12 @@ rethinkdb.MutateQuery.prototype.formatQuery = function(bt) {
  * @extends {rethinkdb.Query}
  * @ignore
  */
-rethinkdb.PointMutateQuery = function(table, key, primaryKey, mapping) {
+rethinkdb.PointMutateQuery = function(table, key, primaryKey, mapping, allowNonAtomic) {
     this.table_ = table;
     this.key_ = key;
     this.primaryKey_ = primaryKey || 'id';
     this.mapping_ = mapping;
+    this.allowNonAtomic_ = allowNonAtomic;
 };
 goog.inherits(rethinkdb.PointMutateQuery, rethinkdb.Query);
 
@@ -516,6 +526,7 @@ rethinkdb.PointMutateQuery.prototype.buildQuery = function(opt_buildOpts) {
     var write = new WriteQuery();
     write.setType(WriteQuery.WriteQueryType.POINTMUTATE);
     write.setPointMutate(pointmutate);
+    write.setAtomic(!this.allowNonAtomic_);
 
     var query = new Query();
     query.setType(Query.QueryType.WRITE);
@@ -553,14 +564,19 @@ rethinkdb.PointMutateQuery.prototype.formatQuery = function(bt) {
  * Replcaces each row of the current view with the result of the
  * mapping function as applied to the current row.
  * @param {function(...)|rethinkdb.FunctionExpression|rethinkdb.Expression} mapping
+ * @param {boolean=} opt_allowNonAtomic Optional flag to allow the mutate to run
+ *  faster at the expence of guaranteed atomicity. Defaults to false.
  */
-rethinkdb.Expression.prototype.mutate = function(mapping) {
+rethinkdb.Expression.prototype.mutate = function(mapping, opt_allowNonAtomic) {
     argCheck_(arguments, 1);
     mapping = functionWrap_(mapping);
+    opt_allowNonAtomic = (opt_allowNonAtomic === undefined) ? false : opt_allowNonAtomic;
+
     if (this instanceof rethinkdb.GetExpression) {
-        return new rethinkdb.PointMutateQuery(this.table_, this.key_, this.primaryKey_, mapping);
+        return new rethinkdb.PointMutateQuery(this.table_, this.key_, this.primaryKey_, mapping,
+            opt_allowNonAtomic);
     } else {
-        return new rethinkdb.MutateQuery(this, mapping);
+        return new rethinkdb.MutateQuery(this, mapping, opt_allowNonAtomic);
     }
 };
 goog.exportProperty(rethinkdb.Expression.prototype, 'mutate',

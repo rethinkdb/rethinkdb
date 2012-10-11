@@ -139,9 +139,9 @@ else:
         directory = "cluster_directory_%d" % i
         os.system("rm -rf " + directory)
         if (i == 0):
-            cl = ["../build/debug/rethinkdb", "--port", str(port), "--directory", directory, "--name", machine_name, "--port-offset", str(i+port)]
+            cl = ["../build/debug/rethinkdb", "--cluster-port", str(port), "--directory", directory, "--machine-name", machine_name, "--port-offset", str(i+port)]
         else:
-            cl = ["../build/debug/rethinkdb", "--port", str(port+i), "--directory", directory, "--name", machine_name, "--join", "newton:%d" % port, "--port-offset", str(i+port)]
+            cl = ["../build/debug/rethinkdb", "--cluster-port", str(port+i), "--directory", directory, "--machine-name", machine_name, "--join", "newton:%d" % port, "--port-offset", str(i+port)]
         print ' '.join(cl)
         kids += [subprocess.Popen(cl)]
         time.sleep(1)
