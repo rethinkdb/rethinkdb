@@ -38,7 +38,10 @@ Handlebars.registerHelper 'html_list', (context) ->
 Handlebars.registerHelper 'links_to_machines', (machines, safety) ->
     out = ""
     for i in [0...machines.length]
-        out += '<a href="#servers/'+machines[i].id+'" class="links_to_other_view">'+machines[i].name+'</a>'
+        if machines[i].exists
+            out += '<a href="#servers/'+machines[i].id+'" class="links_to_other_view">'+machines[i].name+'</a>'
+        else
+            out += machines[i].name
         out += ", " if i isnt machines.length-1
     if safety? and safety is false
         return out
@@ -178,9 +181,7 @@ Handlebars.registerHelper 'humanize_machine_reachability', (status) ->
         if status.reachable
             result = "<span class='label label-success'>Reachable</span>"
         else
-            _last_seen = if status.last_seen? then status.last_seen else 'unknown'
-            result = "<span class='label label-important'>Unreachable</span>
-                <span class='timeago' title='#{_last_seen}'>since #{_last_seen}</span>"
+            result = "<span class='label label-failure'>Unreachable</span>"
     return new Handlebars.SafeString(result)
 
 Handlebars.registerHelper 'humanize_datacenter_reachability', (status) ->
@@ -197,10 +198,10 @@ Handlebars.registerHelper 'humanize_datacenter_reachability', (status) ->
     return new Handlebars.SafeString(result)
 
 Handlebars.registerHelper 'humanize_namespace_reachability', (reachability) ->
-    if reachability
+    if reachability is 'Live'
         result = "<span class='label label-success'>Live</span>"
     else
-        result = "<span class='label label-important'>Down</span>"
+        result = "<span class='label label-failure'>Down</span>"
 
     return new Handlebars.SafeString(result)
 

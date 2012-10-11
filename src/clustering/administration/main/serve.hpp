@@ -9,13 +9,14 @@
 #include "extproc/spawner.hpp"
 
 struct service_ports_t {
-    service_ports_t(int _port, int _client_port, int _http_port, int _port_offset)
-        : port(_port), client_port(_client_port), http_port(_http_port), port_offset(_port_offset)
+    service_ports_t(int _port, int _client_port, int _http_port, int _reql_port, int _port_offset)
+        : port(_port), client_port(_client_port), http_port(_http_port), reql_port(_reql_port), port_offset(_port_offset)
         { }
 
     int port;
     int client_port;
     int http_port;
+    int reql_port;
     int port_offset;
 };
 

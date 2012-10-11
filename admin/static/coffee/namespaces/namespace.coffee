@@ -174,11 +174,6 @@ module 'NamespaceView', ->
             json = @model.toJSON()
             json = _.extend json, namespace_status
 
-            if namespace_status?.reachability? and namespace_status.reachability is 'Live'
-                json.reachability = true
-            else
-                json.reachability = false
-
             #Compute the total number of keys
             json.total_keys_available = false
             if @model.get('key_distr')?

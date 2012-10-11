@@ -231,7 +231,9 @@ MUST_USE region_join_result_t region_join(const std::vector< hash_region_t<key_r
     int granular_width = key_end - key_beg - 1;
 
     if (granular_width <= 0 || granular_height <= 0) {
-        guarantee(vec.size() == 0 || (vec[0].beg == 0 && vec[0].end == 0 && vec[0].inner.is_empty()));
+        guarantee(vec.size() == 0 || (vec[0].beg == 0 && vec[0].end == 0 && vec[0].inner.is_empty()),
+                  "vec size = %zu, vec[0].beg = %lu, vec[0].end = %lu, vec[0].inner.is_empty() = %d",
+                  vec.size(), vec.size() ? vec[0].beg : 0, vec.size() ? vec[0].end : 0, vec.size() ? vec[0].inner.is_empty() : 0);
         *out = hash_region_t<key_range_t>();
 #ifdef REGION_JOIN_DEBUG
         debugf_print("region_join no granular dimensions", vec);

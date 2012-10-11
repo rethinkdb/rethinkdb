@@ -40,7 +40,7 @@ module 'DatabaseView', ->
             )
 
             databases.on 'remove', @check_if_still_exists
-        
+
         check_if_still_exists: =>
             exist = false
             for database in databases.models
@@ -55,7 +55,7 @@ module 'DatabaseView', ->
         change_route: (event) =>
             # Because we are using bootstrap tab. We should remove them later.
             window.router.navigate @.$(event.target).attr('href')
- 
+
         render: (tab) =>
             log_render '(rendering) database view: container'
 
@@ -103,7 +103,7 @@ module 'DatabaseView', ->
         initialize: ->
             @name = @model.get('name')
             @model.on 'change:name', @update
-        
+
         update: =>
             if @name isnt @model.get('name')
                 @name = @model.get('name')
@@ -129,24 +129,27 @@ module 'DatabaseView', ->
         render: =>
             data =
                 num_namespaces: 0
-                num_shards: 0
+                num_live_namespaces: 0
                 reachability: true
                 stats_up_to_date: true
+                nshards: 0
+                nreplicas: 0
+                ndatacenters: 0
 
             for namespace in namespaces.models
                 if namespace.get('database') is @model.get('id')
                     data.num_namespaces++
-
                     namespace_status = DataUtils.get_namespace_status(namespace.get('id'))
-                    if namespace_status.reachability isnt 'Live'
-                        data.reachability = false
-
-            data.num_namespaces = @model.get_namespaces().length
+                    if namespace_status? and namespace_status.reachability is 'Live'
+                        data.num_live_namespaces++
+                    data.nshards += namespace_status.nshards
+                    data.nreplicas += data.nshards + namespace_status.nreplicas
+                    data.ndatacenters += namespace_status.ndatacenters
 
             @.$el.html @template data
 
             return @
-        
+
         destroy: =>
             namespaces.off 'all', @render
 
@@ -201,7 +204,7 @@ module 'DatabaseView', ->
 
             for id in namespace_id_to_remove
                 namespaces.remove id
-            
+
             databases.remove @database_to_delete.get 'id'
 
     class @NamespaceListModal extends UIComponents.AbstractModal
@@ -235,18 +238,18 @@ module 'DatabaseView', ->
             for namespace in namespaces.models
                 if namespace.get('database') is @model.get('id')
                     new_namespaces_list.push namespace
-                    
+
                     # Check if first time we see it
                     found_namespace = false
                     for namespace_in_db in @namespaces_list
                         if namespace_in_db.get('id') is namespace.get('id')
                             found_namespace = true
                             break
-                    
+
                     if found_namespace is false
                         @namespaces_list.push namespace
                         need_update = true
-                    
+
             if need_update is false
                 if new_namespaces_list isnt @namespaces_list
                     @namespaces_list = new_namespaces_list
@@ -269,7 +272,7 @@ module 'DatabaseView', ->
                 @.$('.namespaces-list').append view.render().$el
             if @namespaces_list.length is 0
                 @.$('.namespaces-list').html 'There is no table in this database.'
-            
+
 
             return @
 

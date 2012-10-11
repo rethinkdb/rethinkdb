@@ -194,12 +194,14 @@ class Delete(WriteQueryInner):
         return "%s.delete()" % printer.expr_wrapped(self.parent_view, ["view"])
 
 class Update(WriteQueryInner):
-    def __init__(self, parent_view, mapping):
+    def __init__(self, parent_view, mapping, allow_nonatomic):
         self.parent_view = parent_view
         self.mapping = mapping
+        self.allow_nonatomic = allow_nonatomic
 
     def _write_write_query(self, parent, opts):
         parent.type = p.WriteQuery.UPDATE
+        parent.atomic = not self.allow_nonatomic
         self.parent_view._inner._write_ast(parent.update.view, opts)
         self.mapping.write_mapping(parent.update.mapping, opts)
 
@@ -209,12 +211,14 @@ class Update(WriteQueryInner):
             self.mapping._pretty_print(printer, ["modify_map"]))
 
 class Mutate(WriteQueryInner):
-    def __init__(self, parent_view, mapping):
+    def __init__(self, parent_view, mapping, allow_nonatomic):
         self.parent_view = parent_view
         self.mapping = mapping
+        self.allow_nonatomic = allow_nonatomic
 
     def _write_write_query(self, parent, opts):
         parent.type = p.WriteQuery.MUTATE
+        parent.atomic = not self.allow_nonatomic
         self.parent_view._inner._write_ast(parent.mutate.view, opts)
         self.mapping.write_mapping(parent.mutate.mapping, opts)
 
@@ -238,12 +242,14 @@ class PointDelete(WriteQueryInner):
             printer.expr_unwrapped(self.parent_view._inner.key, ["key"]))
 
 class PointUpdate(WriteQueryInner):
-    def __init__(self, parent_view, mapping):
+    def __init__(self, parent_view, mapping, allow_nonatomic):
         self.parent_view = parent_view
         self.mapping = mapping
+        self.allow_nonatomic = allow_nonatomic
 
     def _write_write_query(self, parent, opts):
         parent.type = p.WriteQuery.POINTUPDATE
+        parent.atomic = not self.allow_nonatomic
         self.mapping.write_mapping(parent.point_update.mapping, opts)
         self.parent_view._inner._write_point_ast(parent.point_update, opts)
 
@@ -255,12 +261,14 @@ class PointUpdate(WriteQueryInner):
             self.mapping._pretty_print(printer, ["point_map"]))
 
 class PointMutate(WriteQueryInner):
-    def __init__(self, parent_view, mapping):
+    def __init__(self, parent_view, mapping, allow_nonatomic):
         self.parent_view = parent_view
         self.mapping = mapping
+        self.allow_nonatomic = allow_nonatomic
 
     def _write_write_query(self, parent, opts):
         parent.type = p.WriteQuery.POINTMUTATE
+        parent.atomic = not self.allow_nonatomic
         self.mapping.write_mapping(parent.point_mutate.mapping, opts)
         self.parent_view._inner._write_point_ast(parent.point_mutate, opts)
 

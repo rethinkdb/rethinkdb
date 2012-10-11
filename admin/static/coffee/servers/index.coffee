@@ -20,6 +20,7 @@ module 'ServerView', ->
             @unassigned_machines.register_machine_callbacks @get_callbacks()
 
             super datacenters, ServerView.DatacenterListElement, 'div.datacenters',
+                {
                 filter: -> return true
                 sort: (a, b) ->
                     if a.model.get('name') > b.model.get('name')
@@ -28,6 +29,8 @@ module 'ServerView', ->
                         return -1
                     else
                         return 0
+                }
+                , 'server', 'datacenter'
 
         render: (message) =>
             super
@@ -124,7 +127,7 @@ module 'ServerView', ->
             num_not_movable_machines = 0
             for machine_id of reason_unmovable_machines
                 num_not_movable_machines++
-            
+
             if num_not_movable_machines > 0
                 if @.$('#reason_cannot_change_datacenter').length > 0
                     @.$('#reason_cannot_change_datacenter').remove()
@@ -138,7 +141,7 @@ module 'ServerView', ->
             else
                 if @.$('#reason_cannot_change_datacenter').length > 0
                     @.$('#reason_cannot_change_datacenter').slideUp 200, -> $(this).remove()
- 
+
             return num_not_movable_machines>0 or selected_machines.length is 0
 
         destroy: =>
@@ -154,8 +157,8 @@ module 'ServerView', ->
 
         events: ->
             _.extend super,
-               'click a.remove-datacenter': 'remove_datacenter'
-               'click a.rename-datacenter': 'rename_datacenter'
+               'click button.remove-datacenter': 'remove_datacenter'
+               'click button.rename-datacenter': 'rename_datacenter'
 
         initialize: ->
             log_initial '(initializing) list view: datacenter'
@@ -236,6 +239,7 @@ module 'ServerView', ->
         # Use a machine-specific template for the machine list
         tagName: 'div'
         template: Handlebars.compile $('#machine_list-template').html()
+        empty_template: Handlebars.compile $('#empty_list-template').html()
 
         initialize: (datacenter_uuid) ->
             @datacenter_uuid = datacenter_uuid
@@ -245,7 +249,7 @@ module 'ServerView', ->
 
             machines.on 'all', @check_machines
             @check_machines()
-            
+
         get_length: =>
             return @machine_views.length
 
@@ -276,15 +280,19 @@ module 'ServerView', ->
 
         render: =>
             @.$el.html ''
-            for machine_view in @machine_views
-                @.$el.append machine_view.render().$el
+            if @get_length() is 0
+                @.$el.html @empty_template { element: 'machine', container: 'datacenter' }
+            else
+                for machine_view in @machine_views
+                    @.$el.append machine_view.render().$el
+
 
             @register_machine_callbacks @callbacks
             @delegateEvents()
 
             return @
 
-            
+
 
         add_element: (element) =>
             machine_list_element = super element
@@ -536,9 +544,9 @@ module 'ServerView', ->
             for _m in @machines_list
                 json[_m.get('id')] =
                     datacenter_uuid: @formdata.datacenter_uuid
-            
+
             if @can_change_datacenter() is false
-                @reset_buttons()   
+                @reset_buttons()
                 return @
 
             # Set the datacenters!
@@ -606,7 +614,7 @@ module 'ServerView', ->
             num_not_movable_machines = 0
             for machine_id of reason_unmovable_machines
                 num_not_movable_machines++
-            
+
             if num_not_movable_machines > 0
                 @.$('.alert').html('')
                 @.$('.alert').prepend @cannot_change_datacenter_alert_template

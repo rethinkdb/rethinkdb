@@ -67,7 +67,6 @@ module 'DashboardView', ->
                 when 'role_nothing' then return 'nothing'
                 when 'role_primary' then return 'primary'
 
-
         compute_data: =>
             num_masters = 0
             num_masters_down = 0
@@ -326,7 +325,7 @@ module 'DashboardView', ->
             @.$el.html @template()
             @render_status()
 
-        # So we don't blow avay the popup
+        # So we don't blow away the popup
         render_status: =>
             data = @compute_data()
             if _.isEqual(@data, data) is false
@@ -609,11 +608,12 @@ module 'DashboardView', ->
 
 
     class @Logs extends Backbone.View
-        className: 'recent-log-entries'
+        className: 'log-entries'
         tagName: 'ul'
         min_timestamp: 0
         max_entry_logs: 5
         interval_update_log: 10000
+        compact_entries: true
 
         initialize: ->
             @fetch_log()
@@ -657,5 +657,5 @@ module 'DashboardView', ->
             @.$el.html ''
             for log in @log_entries
                 view = new LogView.LogEntry model: log
-                @.$el.append view.render().$el
+                @.$el.append view.render(@compact_entries).$el
             return @
