@@ -36,23 +36,17 @@
 <script id="datacenter_view_profile-template" type="text/x-handlebars-template">
     <div class="summary">
         <div class="stat-row first">
-            <p class="availability"><span class="big">{{humanize_datacenter_reachability status}} </span> and reachable</p>
+            <p class="availability"><span class="big">{{humanize_datacenter_reachability status}}</span></p>
         </div>
         <div class="stat-row">
-            <p class="servers"><span class="big">{{status.reachable}}/{{status.total}} </span> servers reachable</p>
+            <p class="servers"><span class="big">{{status.reachable}}/{{status.total}} </span>servers reachable</p>
         </div>
-        <!-- Removing for now TODO
-        {{#unless stats_up_to_date}}
-        <p>The stats displayed might not be up to date<br />
-        (One server might be overload with queries).</p>
-        {{/unless}}
-        -->
-    </div>
-    <h3 class="title">Servers</h3>
-    <div class="dc-machine-list">
-        <ul>
-        {{display_truncated_machines list_machines}}
-        </ul>
+        <div class="stat-row">
+            <p class="masters"><span class="big">{{nshards}} </span>{{pluralize_noun "shard" nshards}}</p>
+        </div>
+        <div class="stat-row">
+            <p class="replicas"><span class="big">{{nreplicas}} </span>{{pluralize_noun "replica" nreplicas}}</p>
+        </div>
     </div>
 </script>
 

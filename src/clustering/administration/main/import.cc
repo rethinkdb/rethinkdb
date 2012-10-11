@@ -319,7 +319,7 @@ namespace_id_t get_or_create_metadata(namespace_repo_t<rdb_protocol_t> *ns_repo,
 
         if (do_update) {
             try {
-                fill_in_blueprints(&cluster_metadata, directory->get(), sync_machine_id);
+                fill_in_blueprints(&cluster_metadata, directory->get(), sync_machine_id, false);
             } catch (missing_machine_exc_t exc) {
                 printf("Cannot fill in blueprints while a machine is missing from the cluster\n");
                 return nil_uuid();

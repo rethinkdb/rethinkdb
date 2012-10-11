@@ -41,6 +41,7 @@ TEST(ClusteringSuggester, NewNamespace) {
     success = shards.add_region(dummy_protocol_t::region_t('n', 'z'));
     ASSERT_TRUE(success);
 
+    std::map<machine_id_t, int> usage;
     persistable_blueprint_t<dummy_protocol_t> blueprint = suggest_blueprint<dummy_protocol_t>(
         directory,
         primary_datacenter,
@@ -48,7 +49,9 @@ TEST(ClusteringSuggester, NewNamespace) {
         shards,
         machine_data_centers,
         region_map_t<dummy_protocol_t, machine_id_t>(dummy_protocol_t::region_t::universe(), nil_uuid()),
-        region_map_t<dummy_protocol_t, std::set<machine_id_t> >());
+        region_map_t<dummy_protocol_t, std::set<machine_id_t> >(),
+        &usage,
+        true);
 
     EXPECT_EQ(machines.size(), blueprint.machines_roles.size());
 }

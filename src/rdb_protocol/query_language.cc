@@ -842,7 +842,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         db.name = vclock_t<std::string>(db_name, env->this_machine);
         metadata.databases.databases.insert(std::make_pair(generate_uuid(), db));
         //TODO: (!!!) catch machine_missing_exc_t (or something)
-        fill_in_blueprints(&metadata, directory_metadata->get(), env->this_machine);
+        fill_in_blueprints(&metadata, directory_metadata->get(), env->this_machine, false);
         env->semilattice_metadata->join(metadata);
         res->set_status_code(Response::SUCCESS_EMPTY); //return immediately.
     } break;
@@ -869,7 +869,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         // Delete database.
         db_metadata->second.mark_deleted();
         //TODO: (!!!) catch machine_missing_exc_t (or something)
-        fill_in_blueprints(&metadata, directory_metadata->get(), env->this_machine);
+        fill_in_blueprints(&metadata, directory_metadata->get(), env->this_machine, false);
         env->semilattice_metadata->join(metadata);
         res->set_status_code(Response::SUCCESS_EMPTY);
     } break;
@@ -916,7 +916,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
             change.get()->namespaces.insert(std::make_pair(namespace_id, ns));
         }
         //TODO: (!!!) catch machine_missing_exc_t (or something)
-        fill_in_blueprints(&metadata, directory_metadata->get(), env->this_machine);
+        fill_in_blueprints(&metadata, directory_metadata->get(), env->this_machine, false);
         env->semilattice_metadata->join(metadata);
 
         /* UGLY HACK BELOW.  SEE wait_for_rdb_table_readiness for more info. */
@@ -948,7 +948,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         // Delete namespace
         ns_metadata->second.mark_deleted();
         //TODO: (!!!) catch machine_missing_exc_t (or something)
-        fill_in_blueprints(&metadata, directory_metadata->get(), env->this_machine);
+        fill_in_blueprints(&metadata, directory_metadata->get(), env->this_machine, false);
         env->semilattice_metadata->join(metadata);
         res->set_status_code(Response::SUCCESS_EMPTY); //return immediately
     } break;

@@ -212,7 +212,7 @@ void admin_cluster_link_t::do_metadata_update(cluster_semilattice_metadata_t *cl
                                               metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t *change_request) {
     std::string error;
     try {
-        fill_in_blueprints(cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id);
+        fill_in_blueprints(cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id, false);
     } catch (missing_machine_exc_t &ex) {
         error = strprintf("Warning: %s", ex.what());
     }
