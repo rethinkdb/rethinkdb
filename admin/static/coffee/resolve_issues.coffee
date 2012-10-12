@@ -160,7 +160,7 @@ module 'ResolveIssuesView', ->
         on_submit: ->
             super
             $.ajax
-                url: "/ajax/" + @resolution_url
+                url: "/ajax/semilattice/" + @resolution_url
                 type: 'POST'
                 contentType: 'application/json'
                 data: JSON.stringify(@final_value)
@@ -349,7 +349,7 @@ module 'ResolveIssuesView', ->
 
             # grab possible conflicting values
             $.ajax
-                url: '/ajax/' + get_resolution_url()
+                url: '/ajax/semilattice/' + get_resolution_url()
                 type: 'GET'
                 contentType: 'application/json'
                 async: false
