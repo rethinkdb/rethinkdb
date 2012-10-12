@@ -30,6 +30,7 @@ module 'DataExplorerView', ->
 
         # Map function -> state
         map_state:
+            '': ''
             'r': 'r'
             'db': 'db'
             'table': 'table'
@@ -111,10 +112,10 @@ module 'DataExplorerView', ->
             stream: ['get(' ,'filter(', 'length(', 'map(', 'slice(', 'orderby(', 'distinct(', 'reduce(', 'pluck(', 'extend(', 'run(']
             view:['pickAttrs(', 'del(', 'run(']
             db:['table(', 'list(', 'create(', 'drop(', 'run(']
-            table:['insert(', 'run(']
+            table:['insert(', 'get(' ,'filter(', 'length(', 'map(', 'slice(', 'orderby(', 'distinct(', 'reduce(', 'pluck(', 'extend(', 'run(']
             r:['db(', 'dbCreate(', 'dbDrop(', 'dbList(','expr(', 'fn(', 'ifThenElse(', 'let(', 'run(']
             array :['length(', 'limit(', 'run(']
-            "" :['r', 'R(', 'run(']
+            "" :['r', 'R(']
             expr: ['add(', 'sub(', 'mul(', 'div(', 'mod(', 'eq(', 'ne(', 'lt(', 'le(', 'gt(', 'ge(', 'not(', 'and(', 'or(', 'run(']
 
         # Define the height of a line (used for a line is too long)
@@ -200,24 +201,32 @@ module 'DataExplorerView', ->
             else
                 @num_char_per_line = @default_num_char_per_line
 
+        # Compute the number of extra lines because of long lines
+        compute_extra_lines: =>
+            query_lines = @codemirror.getValue().split '\n'
+            i = 0
+            extra_lines = 0
+            while i < query_lines.length
+                extra_lines += Math.floor(query_lines[i].length/@num_char_per_line)
+                i++
+            extra_lines += Math.floor(@codemirror.getCursor().ch/@num_char_per_line)
+            return extra_lines
+
+
         #TODO refactor show_suggestion, show_suggestion_description, add_description
         show_suggestion: =>
-            extra_lines = Math.floor(@codemirror.getCursor().ch/@num_char_per_line)
-            
-            margin = ((@codemirror.getCursor().line+1+extra_lines)*@line_height) + 'px'
+            margin = ((@codemirror.getCursor().line+1+@compute_extra_lines())*@line_height) + 'px'
             @.$('.suggestion_full_container').css 'margin-top', margin
             @.$('.suggestion_name_list').css 'display', 'block'
 
         show_suggestion_description: ->
-            extra_lines = Math.floor(@codemirror.getCursor().ch/@num_char_per_line)
-            margin = ((@codemirror.getCursor().line+1+extra_lines)*@line_height) + 'px'
+            margin = ((@codemirror.getCursor().line+1+@compute_extra_lines())*@line_height) + 'px'
             @.$('.suggestion_full_container').css 'margin-top', margin
             @.$('.suggestion_description').css 'display', 'block'
 
         add_description: (fn) =>
             if @descriptions[fn]?
-                extra_lines = Math.floor(@codemirror.getCursor().ch/@num_char_per_line)
-                margin = ((@codemirror.getCursor().line+1+extra_lines)*@line_height) + 'px'
+                margin = ((@codemirror.getCursor().line+1+@compute_extra_lines())*@line_height) + 'px'
                 @.$('.suggestion_full_container').css 'margin-top', margin
                 @.$('.suggestion_description').html @descriptions[fn]
                 @.$('.suggestion_description').css 'display', 'block'
@@ -277,7 +286,7 @@ module 'DataExplorerView', ->
                     @execute_query()
             
             # We just look at key up so we don't fire the call 3 times
-            if event?.type? and event.type isnt 'keyup'
+            if event?.type? and event.type isnt 'keyup' or (event?.which? and event.which is 16) # We don't do anything for shift
                 return false
 
             @current_highlighted_suggestion = -1
@@ -318,7 +327,7 @@ module 'DataExplorerView', ->
                     next_non_white_character = query_after_cursor[index_next_character]
                     break
                 index_next_character++
-            if next_non_white_character? and next_non_white_character isnt '.' and next_non_white_character isnt ')'
+            if next_non_white_character? and next_non_white_character isnt '.' and next_non_white_character isnt ')' and next_non_white_character isnt ';'
                 @hide_suggestion()
                 last_function_for_description = @extract_last_function_for_description(query_before_cursor)
                 if last_function_for_description isnt ''
