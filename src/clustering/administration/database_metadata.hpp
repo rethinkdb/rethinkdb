@@ -4,8 +4,6 @@
 #include <map>
 #include <string>
 
-// TODO: Some of these includes could be moved to the .cc thanks to deinlining json adapters?
-#include "clustering/administration/http/json_adapters.hpp"
 #include "containers/uuid.hpp"
 #include "http/json.hpp"
 #include "http/json/json_adapter.hpp"
