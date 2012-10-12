@@ -31,7 +31,6 @@ int get_port(const namespace_semilattice_metadata_t<protocol_t> &ns, int port_of
     return ns.port.get() + port_offset;
 }
 
-// TODO(1253): Jesus fucking christ what the fuck is this shit.
 static const char * ns_name_in_conflict = "<in conflict>";
 
 template<class protocol_t, class parser_t>
