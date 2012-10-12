@@ -42,7 +42,7 @@ module 'NamespaceView', ->
                 error_msg = "The number of shards must be an integer."
                 @display_msg error_msg
                 return
-            
+
             if new_num_shards < 1 or new_num_shards > MAX_SHARD_COUNT
                 error_msg = "The number of shards must be beteen 1 and " + MAX_SHARD_COUNT + "."
                 @display_msg error_msg
@@ -79,7 +79,7 @@ module 'NamespaceView', ->
                 if distr_keys.length-i <= new_num_shards-split_points.length # We don't add 1 because there is null
                     split_points.push key
                     continue
-                    
+
                 # Else we check if we have enough keys
                 if current_count >= rows_per_shard*split_points.length
                     split_points.push key
@@ -124,7 +124,7 @@ module 'NamespaceView', ->
 
                 $.ajax
                      processData: false
-                     url: "/ajax/semilattice/#{@model.attributes.protocol}_namespaces/#{@model.get('id')}"
+                     url: "/ajax/semilattice/#{@model.attributes.protocol}_namespaces/#{@model.get('id')}?prefer_distribution=1"
                      type: 'POST'
                      contentType: 'application/json'
                      data: JSON.stringify(data)
@@ -225,7 +225,7 @@ module 'NamespaceView', ->
         check_has_unsatisfiable_goals: =>
             if @should_be_hidden
                 should_be_hidden_new = false
-                for issue in issues.models 
+                for issue in issues.models
                     if issue.get('type') is 'UNSATISFIABLE_GOALS' and issue.get('namespace_id') is @model.get('id') # If unsatisfiable goals, the user should not change shards
                         should_be_hidden_new = true
                         break
@@ -304,7 +304,7 @@ module 'NamespaceView', ->
 
                 # size of all bars and white space between bars
                 width_of_all_bars = bar_width*shards.length + margin_bar*(shards.length-1)
-                
+
                 # Update the margin on the right of the y-axis
                 margin_width_inner = Math.floor((svg_width-margin_width*2-width_of_all_bars)/2)
 
@@ -340,7 +340,7 @@ module 'NamespaceView', ->
                         result += '<br />'+d.num_keys+' keys'
                         return result
                     )
-            
+
 
                 # Create axes
                 extra_data = []
@@ -382,7 +382,7 @@ module 'NamespaceView', ->
                     .attr('y', (d) -> return d.y)
                     .attr('text-anchor', (d) -> return d.anchor)
                     .text((d) -> return d.string)
-                
+
                 # Create ticks
                 # First the tick's background
                 svg.selectAll('.cache').data(y.ticks(5))
