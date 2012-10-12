@@ -6,7 +6,9 @@ module 'DataExplorerView', ->
         template_suggestion_name: Handlebars.compile $('#dataexplorer_suggestion_name_li-template').html()
         alert_connection_fail_template: Handlebars.compile $('#alert-connection_fail-template').html()
         alert_reconnection_success_template: Handlebars.compile $('#alert-reconnection_success-template').html()
-        
+        databases_suggestions_template: Handlebars.compile $('#dataexplorer-databases_suggestions-template').html()
+        namespaces_suggestions_template: Handlebars.compile $('#dataexplorer-namespaces_suggestions-template').html()
+
         events:
             'click .CodeMirror': 'handle_keypress'
             'mousedown .suggestion_name_li': 'select_suggestion' # Keep mousedown to compete with blur on .input_query
@@ -148,6 +150,7 @@ module 'DataExplorerView', ->
             'fn(':
                 name: 'fn'
                 args: '( argument..., body )'
+
                 descrition: 'Create a function'
             'ifThenElse(':
                 name: 'ifThenElse'
@@ -239,7 +242,7 @@ module 'DataExplorerView', ->
             view:['pickAttrs(', 'del(', 'run(']
             db:['table(', 'list(', 'create(', 'drop(', 'run(']
             table:['insert(', 'get(' ,'filter(', 'length(', 'map(', 'slice(', 'orderby(', 'distinct(', 'reduce(', 'pluck(', 'extend(', 'run(']
-            r:['db(', 'dbCreate(', 'dbDrop(', 'dbList(','expr(', 'fn(', 'ifThenElse(', 'let(', 'run(']
+            r:['db(', 'dbCreate(', 'table(', 'dbDrop(', 'dbList(','expr(', 'fn(', 'ifThenElse(', 'let(', 'run(']
             array :['length(', 'limit(', 'run(']
             "" :['r', 'R(']
             expr: ['add(', 'sub(', 'mul(', 'div(', 'mod(', 'eq(', 'ne(', 'lt(', 'le(', 'gt(', 'ge(', 'not(', 'and(', 'or(', 'run(']
@@ -280,7 +283,7 @@ module 'DataExplorerView', ->
             @.$('.suggestion_name_li').removeClass 'suggestion_name_li_hl'
             @.$('.suggestion_name_li').eq(id).addClass 'suggestion_name_li_hl'
 
-            @.$('.suggestion_description').html @description_template @descriptions[@current_suggestions[id]]
+            @.$('.suggestion_description').html @description_template @extend_description @current_suggestions[id]
 
             @show_suggestion_description()
 
@@ -367,19 +370,95 @@ module 'DataExplorerView', ->
             @move_suggestion()
             @show_or_hide_arrow()
 
-        show_suggestion_description: ->
+        show_suggestion_description: =>
             margin = ((@codemirror.getCursor().line+1+@compute_extra_lines())*@line_height) + 'px'
             @.$('.suggestion_full_container').css 'margin-top', margin
             @.$('.arrow').css 'margin-top', margin
             @.$('.suggestion_description').css 'display', 'block'
             @show_or_hide_arrow()
 
+        # Extend description for db() and table() with a list of databases or namespaces
+        extend_description: (fn) =>
+            if fn is 'db('
+                description = _.extend {}, @descriptions[fn]
+                if databases.length is 0
+                    data =
+                        no_database: true
+                else
+                    data =
+                        no_database: false
+                        databases_available: _.map(databases.models, (database) -> return database.get('name'))
+                description.description += @databases_suggestions_template data
+            else if fn is 'table('
+                # Look for the argument of the previous db()
+                database_used = @extract_database_used()
+
+                description = _.extend {}, @descriptions[fn]
+                if database_used.error is false
+                    namespaces_available = []
+                    for namespace in namespaces.models
+                        if database_used.db_found is false or namespace.get('database') is database_used.id
+                            namespaces_available.push namespace.get('name')
+                    data =
+                        namespaces_available: namespaces_available
+                        no_namespace: namespaces_available.length is 0
+
+                    if database_used.name?
+                        data.database_name = database_used.name
+                else
+                    data =
+                        error: database_used.error
+
+                description.description += @namespaces_suggestions_template data
+            else
+                description = @descriptions[fn]
+            return description
+
+        extract_database_used: =>
+            query_lines = @codemirror.getValue().split '\n'
+            query_before_cursor = ''
+            if @codemirror.getCursor().line > 0
+                for i in [0..@codemirror.getCursor().line-1]
+                    query_before_cursor += query_lines[i] + '\n'
+            query_before_cursor += query_lines[@codemirror.getCursor().line].slice 0, @codemirror.getCursor().ch
+            # TODO: check that there is not a string containing db( before...
+            last_db_position = query_before_cursor.lastIndexOf('.db(')
+            if last_db_position is -1
+                return {
+                    db_found: false
+                    error: false
+                }
+            else
+                arg = query_before_cursor.slice last_db_position+5 # +4 for .db(
+                char = query_before_cursor.slice last_db_position+4, last_db_position+5 # ' or " used for the argument of db()
+                end_arg_position = arg.indexOf char # Check for the next quote or apostrophe
+                if end_arg_position is -1
+                    return {
+                        db_found: false
+                        error: true
+                    }
+                db_name = arg.slice 0, end_arg_position
+                for database in databases.models
+                    if database.get('name') is db_name
+                        return {
+                            db_found: true
+                            error: false
+                            id: database.get('id')
+                            name: db_name
+                        }
+                return {
+                    db_found: false
+                    error: true
+                }
+            
         add_description: (fn) =>
             if @descriptions[fn]?
                 margin = ((@codemirror.getCursor().line+1+@compute_extra_lines())*@line_height) + 'px'
                 @.$('.suggestion_full_container').css 'margin-top', margin
                 @.$('.arrow').css 'margin-top', margin
-                @.$('.suggestion_description').html @description_template @descriptions[fn]
+
+                @.$('.suggestion_description').html @description_template @extend_description fn
+
                 @.$('.suggestion_description').css 'display', 'block'
                 @move_suggestion()
                 @show_or_hide_arrow()
@@ -950,11 +1029,21 @@ module 'DataExplorerView', ->
                     json: true
                 onKeyEvent: @handle_keypress
                 onBlur: @hide_suggestion
+                onGutterClick: @handle_gutter_click
                 lineNumbers: true
                 lineWrapping: true
                 matchBrackets: true
 
             @codemirror.setSize '100%', 'auto'
+
+        handle_gutter_click: (editor, line) =>
+            start =
+                line: line
+                ch: 0
+            end =
+                line: line
+                ch: @codemirror.getLine(line).length
+            @codemirror.setSelection start, end
 
         # Switch between full view and normal view
         toggle_size: =>
@@ -971,10 +1060,11 @@ module 'DataExplorerView', ->
 
         display_normal: =>
             $('#cluster').addClass 'container'
-            @.event
+            @.$('.json_table_container').css 'width', '888px'
 
         display_full: =>
             $('#cluster').removeClass 'container'
+            @.$('.json_table_container').css 'width', ($(window).width()-52)+'px'
 
         destroy: =>
             @display_normal()
@@ -1371,8 +1461,8 @@ module 'DataExplorerView', ->
         render_result: (query, result) =>
             @.$el.html @template
                 query: query
-            @.$('#tree_view').html @json_to_tree result
-            @.$('#table_view').html @json_to_table result
+            @.$('.tree_view').html @json_to_tree result
+            @.$('.table_view').html @json_to_table result
             @.$('.raw_view_textarea').html JSON.stringify result
             @expand_raw_textarea()
 

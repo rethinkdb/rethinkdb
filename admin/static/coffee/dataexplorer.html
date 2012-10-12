@@ -17,8 +17,37 @@
 
 <script id="dataexplorer-description-template" type="text/x-handlebars-template">
 <p><span class="description_name">{{name}}</span>{{#if args}}<span class="description_arguments">{{args}}</span>{{/if}}</p>
-<p>{{description}}</p>
+<p>{{print_safe description}}</p>
 </script>
+
+<script id="dataexplorer-databases_suggestions-template" type="text/x-handlebars-template">
+{{#if no_database}}
+<br/>No database found. Use dbCreate() to create a new database first.
+{{else}}
+<br/>List of databases available: {{comma_separated_simple databases_available}}
+{{/if}}
+</script>
+<script id="dataexplorer-namespaces_suggestions-template" type="text/x-handlebars-template">
+{{#if error}}
+<br/>The database specified in db() was not found.
+{{else}}
+    {{#if no_namespace}}
+        {{#if database_name}}
+        <br/>No table found in {{database_name}}. Use create() to create a new table first.
+        {{else}}
+        <br/>You need to create a database then a table first.
+        {{/if}}
+    {{else}}
+    <br/>List of tables{{#if database_name}} in {{database_name}}{{/if}}: {{comma_separated_simple namespaces_available}}
+    {{/if}}
+{{/if}}
+
+
+
+
+</script>
+
+
 
 <script id="alert-reconnection_success-template" type="text/x-handlebars-template">
     <div class="alert" data-alert="alert">
@@ -143,11 +172,15 @@
     </div>
     <div class="tab-content">  
         <div class="tab-pane results active" id="tree_view">
+            <div class="results_wrap tree_view"></div>
         </div>
         <div class="tab-pane results" id="table_view">
+            <div class="results_wrap table_view"></div>
         </div>
         <div class="tab-pane results" id="raw_view">
-            <textarea class="raw_view_textarea"></textarea>
+            <div class="raw_view_container raw_view">
+                <textarea class="raw_view_textarea"></textarea>
+            </div>
         </div>
     </div>
     <div class="more_results"><p class="more_results_paragraph"><a href="#" class="more_results_link">More data &gt;&gt;</a><p></div>
