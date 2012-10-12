@@ -138,8 +138,6 @@ module 'NamespaceView', ->
             @model.set 'primary_pinnings', @empty_master_pin
             @model.set 'secondary_pinnings', @empty_replica_pins
 
-            @model.load_key_distr_once()
-
             @switch_to_read()
             @display_msg @alert_shard_template
                 changing: true
@@ -451,8 +449,6 @@ module 'NamespaceView', ->
             @num_shards = num_shards
 
         render: =>
-            @model.load_key_distr_once()
-
             super
                 modal_title: "Confirm rebalancing shards"
                 btn_primary_text: "Shard"
