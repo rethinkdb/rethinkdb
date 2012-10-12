@@ -209,10 +209,11 @@ std::string admin_cluster_link_t::truncate_uuid(const uuid_t& uuid) {
 }
 
 void admin_cluster_link_t::do_metadata_update(cluster_semilattice_metadata_t *cluster_metadata,
-                                              metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t *change_request) {
+                                              metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t *change_request,
+                                              bool prioritize_distribution) {
     std::string error;
     try {
-        fill_in_blueprints(cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id, false);
+        fill_in_blueprints(cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id, prioritize_distribution);
     } catch (missing_machine_exc_t &ex) {
         error = strprintf("Warning: %s", ex.what());
     }
@@ -569,7 +570,7 @@ void admin_cluster_link_t::do_admin_pin_shard(const admin_command_parser_t::comm
         throw admin_cluster_exc_t("unexpected error, unrecognized table protocol");
     }
 
-    do_metadata_update(&cluster_metadata, &change_request);
+    do_metadata_update(&cluster_metadata, &change_request, false);
 }
 
 template <class protocol_t>
@@ -790,7 +791,7 @@ void admin_cluster_link_t::do_admin_split_shard(const admin_command_parser_t::co
         throw admin_cluster_exc_t("invalid object type");
     }
 
-    do_metadata_update(&cluster_metadata, &change_request);
+    do_metadata_update(&cluster_metadata, &change_request, true);
 
     if (!error.empty()) {
         if (split_points.size() > 1) {
@@ -910,7 +911,7 @@ void admin_cluster_link_t::do_admin_merge_shard(const admin_command_parser_t::co
         throw admin_cluster_exc_t("invalid object type");
     }
 
-    do_metadata_update(&cluster_metadata, &change_request);
+    do_metadata_update(&cluster_metadata, &change_request, true);
 
     if (!error.empty()) {
         if (split_points.size() > 1) {
@@ -1857,7 +1858,7 @@ void admin_cluster_link_t::do_admin_create_database(const admin_command_parser_t
     database.name.get_mutable() = guarantee_param_0(data.params, "name");
     database.name.upgrade_version(change_request_id);
 
-    do_metadata_update(&cluster_metadata, &change_request);
+    do_metadata_update(&cluster_metadata, &change_request, false);
 
     printf("uuid: %s\n", uuid_to_str(new_id).c_str());
 }
@@ -1872,7 +1873,7 @@ void admin_cluster_link_t::do_admin_create_datacenter(const admin_command_parser
     datacenter.name.get_mutable() = guarantee_param_0(data.params, "name");
     datacenter.name.upgrade_version(change_request_id);
 
-    do_metadata_update(&cluster_metadata, &change_request);
+    do_metadata_update(&cluster_metadata, &change_request, false);
 
     printf("uuid: %s\n", uuid_to_str(new_id).c_str());
 }
@@ -1964,7 +1965,7 @@ void admin_cluster_link_t::do_admin_create_table(const admin_command_parser_t::c
         throw admin_parse_exc_t("unrecognized protocol: " + protocol);
     }
 
-    do_metadata_update(&cluster_metadata, &change_request);
+    do_metadata_update(&cluster_metadata, &change_request, false);
     printf("uuid: %s\n", uuid_to_str(new_id).c_str());
 }
 
@@ -2045,7 +2046,7 @@ void admin_cluster_link_t::do_admin_set_primary(const admin_command_parser_t::co
         throw admin_cluster_exc_t("target object is not a table");
     }
 
-    do_metadata_update(&cluster_metadata, &change_request);
+    do_metadata_update(&cluster_metadata, &change_request, false);
 }
 
 void admin_cluster_link_t::do_admin_unset_primary(const admin_command_parser_t::command_data& data) {
@@ -2069,7 +2070,7 @@ void admin_cluster_link_t::do_admin_unset_primary(const admin_command_parser_t::
         throw admin_cluster_exc_t("target object is not a table");
     }
 
-    do_metadata_update(&cluster_metadata, &change_request);
+    do_metadata_update(&cluster_metadata, &change_request, false);
 }
 
 void admin_cluster_link_t::do_admin_set_datacenter(const admin_command_parser_t::command_data& data) {
@@ -2093,7 +2094,7 @@ void admin_cluster_link_t::do_admin_set_datacenter(const admin_command_parser_t:
         throw admin_cluster_exc_t("target object is not a machine");
     }
 
-    do_metadata_update(&cluster_metadata, &change_request);
+    do_metadata_update(&cluster_metadata, &change_request, false);
 }
 
 void admin_cluster_link_t::do_admin_unset_datacenter(const admin_command_parser_t::command_data& data) {
@@ -2110,7 +2111,7 @@ void admin_cluster_link_t::do_admin_unset_datacenter(const admin_command_parser_
         throw admin_cluster_exc_t("target object is not a machine");
     }
 
-    do_metadata_update(&cluster_metadata, &change_request);
+    do_metadata_update(&cluster_metadata, &change_request, false);
 }
 
 void admin_cluster_link_t::do_admin_set_database(const admin_command_parser_t::command_data& data) {
@@ -2141,7 +2142,7 @@ void admin_cluster_link_t::do_admin_set_database(const admin_command_parser_t::c
         throw admin_cluster_exc_t("target object is not a machine");
     }
 
-    do_metadata_update(&cluster_metadata, &change_request);
+    do_metadata_update(&cluster_metadata, &change_request, false);
 }
 
 template <class obj_map>
@@ -2280,7 +2281,7 @@ void admin_cluster_link_t::do_admin_set_name(const admin_command_parser_t::comma
         throw admin_cluster_exc_t("unrecognized object type");
     }
 
-    do_metadata_update(&cluster_metadata, &change_request);
+    do_metadata_update(&cluster_metadata, &change_request, false);
 }
 
 template <class map_type>
@@ -2351,7 +2352,7 @@ void admin_cluster_link_t::do_admin_set_acks(const admin_command_parser_t::comma
         throw admin_parse_exc_t(guarantee_param_0(data.params, "table") + " is not a table");
     }
 
-    do_metadata_update(&cluster_metadata, &change_request);
+    do_metadata_update(&cluster_metadata, &change_request, false);
 }
 
 template <class protocol_t>
@@ -2437,7 +2438,7 @@ void admin_cluster_link_t::do_admin_set_replicas(const admin_command_parser_t::c
         throw admin_parse_exc_t(guarantee_param_0(data.params, "table") + " is not a table");  // TODO(sam): Check if this function body is copy/paste'd.
     }
 
-    do_metadata_update(&cluster_metadata, &change_request);
+    do_metadata_update(&cluster_metadata, &change_request, false);
 }
 
 template <class map_type>
@@ -2563,7 +2564,7 @@ void admin_cluster_link_t::do_admin_remove_internal(const std::string& obj_type,
     }
 
     if (do_update) {
-        do_metadata_update(&cluster_metadata, &change_request);
+        do_metadata_update(&cluster_metadata, &change_request, false);
     }
 
     if (!error.empty()) {
@@ -2671,7 +2672,7 @@ void admin_cluster_link_t::do_admin_touch(UNUSED const admin_command_parser_t::c
         change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
 
-    do_metadata_update(&cluster_metadata, &change_request);
+    do_metadata_update(&cluster_metadata, &change_request, false);
 }
 
 template <class protocol_t>
@@ -3221,7 +3222,7 @@ void admin_cluster_link_t::do_admin_resolve(const admin_command_parser_t::comman
         throw admin_cluster_exc_t("unexpected object type encountered: " + obj_info->path[0]);
     }
 
-    do_metadata_update(&cluster_metadata, &change_request);
+    do_metadata_update(&cluster_metadata, &change_request, false);
 }
 
 // Reads from stream until a newline is occurred.  Reads the newline
