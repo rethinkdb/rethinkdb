@@ -1,4 +1,4 @@
-#if AIOSUPPORT
+#ifdef AIOSUPPORT
 #include "arch/io/disk/aio/getevents_noeventfd.hpp"
 
 #include <linux/fs.h>

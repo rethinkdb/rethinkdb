@@ -1,6 +1,6 @@
 #ifndef ARCH_IO_DISK_AIO_GETEVENTS_EVENTFD_HPP_
 #define ARCH_IO_DISK_AIO_GETEVENTS_EVENTFD_HPP_
-#if AIOSUPPORT
+#ifdef AIOSUPPORT
 #include "arch/io/disk/aio.hpp"
 
 /* This strategy for calling io_getevents() uses io_set_eventfd(), which is only available on

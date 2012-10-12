@@ -1,6 +1,6 @@
 #ifndef ARCH_IO_DISK_AIO_HPP_
 #define ARCH_IO_DISK_AIO_HPP_
-#if AIOSUPPORT
+#ifdef AIOSUPPORT
 
 #include <libaio.h>
 

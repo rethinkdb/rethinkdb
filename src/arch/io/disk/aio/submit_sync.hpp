@@ -1,6 +1,6 @@
 #ifndef ARCH_IO_DISK_AIO_SUBMIT_SYNC_HPP_
 #define ARCH_IO_DISK_AIO_SUBMIT_SYNC_HPP_
-#if AIOSUPPORT
+#ifdef AIOSUPPORT
 
 #include <vector>
 

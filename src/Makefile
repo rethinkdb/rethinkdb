@@ -123,6 +123,7 @@ endif
 endif
 
 ifeq ($(AIOSUPPORT),1)
+CXXFLAGS+=-DAIOSUPPORT
 LDFLAGS+= -laio
 endif
 

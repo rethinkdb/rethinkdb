@@ -1,4 +1,4 @@
-#if AIOSUPPORT
+#ifdef AIOSUPPORT
 
 #include "arch/io/disk/aio.hpp"
 

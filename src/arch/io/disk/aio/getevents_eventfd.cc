@@ -1,5 +1,5 @@
 #ifndef NO_EVENTFD
-#if AIOSUPPORT
+#ifdef AIOSUPPORT
 
 #include "arch/io/disk/aio/getevents_eventfd.hpp"
 
