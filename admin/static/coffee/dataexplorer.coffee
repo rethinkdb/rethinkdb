@@ -89,7 +89,9 @@ module 'DataExplorerView', ->
             'let(': 'let( arguments..., body)'
             'length(': 'Return the length of the array'
             'limit(': 'limit( number )'
-            'r': 'The main ReQL namespace'
+            'r': 'The main ReQL namespace
+            All queries should start with r.
+            '
             'R(': 'R ( attribute_string )'
             'add': 'add( expression )'
             'sub(': 'sub( expression )'
@@ -143,12 +145,16 @@ module 'DataExplorerView', ->
         mouseout_suggestion: (event) =>
             @hide_suggestion_description()
 
+        # n2br
+        nl2br: (s) ->
+            return s.replace(/\n/g, '<br/>')
+
         # Highlight suggestion
         highlight_suggestion: (id) =>
             @.$('.suggestion_name_li').removeClass 'suggestion_name_li_hl'
             @.$('.suggestion_name_li').eq(id).addClass 'suggestion_name_li_hl'
 
-            @.$('.suggestion_description').html @descriptions[@current_suggestions[id]]
+            @.$('.suggestion_description').html @nl2br @descriptions[@current_suggestions[id]]
 
             @show_suggestion_description()
 
@@ -228,7 +234,7 @@ module 'DataExplorerView', ->
             if @descriptions[fn]?
                 margin = ((@codemirror.getCursor().line+1+@compute_extra_lines())*@line_height) + 'px'
                 @.$('.suggestion_full_container').css 'margin-top', margin
-                @.$('.suggestion_description').html @descriptions[fn]
+                @.$('.suggestion_description').html @nl2br @descriptions[fn]
                 @.$('.suggestion_description').css 'display', 'block'
 
 
