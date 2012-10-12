@@ -2,10 +2,13 @@ module 'DataExplorerView', ->
     class @Container extends Backbone.View
         id: 'dataexplorer'
         template: Handlebars.compile $('#dataexplorer_view-template').html()
+        description_template: Handlebars.compile $('#dataexplorer-description-template').html()
         template_suggestion_name: Handlebars.compile $('#dataexplorer_suggestion_name_li-template').html()
         alert_connection_fail_template: Handlebars.compile $('#alert-connection_fail-template').html()
         alert_reconnection_success_template: Handlebars.compile $('#alert-reconnection_success-template').html()
-        
+        databases_suggestions_template: Handlebars.compile $('#dataexplorer-databases_suggestions-template').html()
+        namespaces_suggestions_template: Handlebars.compile $('#dataexplorer-namespaces_suggestions-template').html()
+
         events:
             'click .CodeMirror': 'handle_keypress'
             'mousedown .suggestion_name_li': 'select_suggestion' # Keep mousedown to compete with blur on .input_query
@@ -30,6 +33,7 @@ module 'DataExplorerView', ->
 
         # Map function -> state
         map_state:
+            '': ''
             'r': 'r'
             'db': 'db'
             'table': 'table'
@@ -63,58 +67,184 @@ module 'DataExplorerView', ->
 
         # Descriptions of all the functions
         descriptions:
-            'get(': 'get( id )'
-            'filter(': 'filter ( predicate )'
-            'map(': 'map( attribute )'
-            'slice(': 'slice'
-            'orderby(': 'orderby( expression )'
-            'distinct(': 'distinct( expression )'
-            'pluck(': 'pluck('
-            'extend(': 'extend( object )'
-            'pickAttrs(': 'pickAttrs('
-            'del(': 'del()'
-            'table(': 'table( table_name )'
-            'list(': 'list()'
-            'create(': 'create('
-            'drop(': 'drop('
-            'insert(': 'insert( document )'
-            'dbCreate(': 'dbCreate( database_name )'
-            'db(': 'db( database_name )'
-            'dbDrop(': 'dbDrop( database_name )'
-            'dbList(': 'dbList('
-            'expr(':'expr( expression )'
-            'fn(': 'fn( argument..., body )'
-            'ifThenElse(': 'ifThenElse( expression, callback_true, callback_false)'
-            'let(': 'let( arguments..., body)'
-            'length(': 'Return the length of the array'
-            'limit(': 'limit( number )'
-            'r': 'The main ReQL namespace'
-            'R(': 'R ( attribute_string )'
-            'add': 'add( expression )'
-            'sub(': 'sub( expression )'
-            'mul(': 'mul( expression )'
-            'div(': 'div( expression )'
-            'mod(': 'mod( expression )'
-            'eq(': 'eq( expression )'
-            'ne(': 'ne( expression )'
-            'lt(': 'lt( expression )'
-            'le(': 'le( expression )'
-            'gt(': 'gt( expression )'
-            'ge(': 'ge( expression )'
-            'not(': 'not( expression )'
-            'and(': 'and( expression )'
-            'or(': 'or( expression )'
-            'run(': 'run()'
+            'get(':
+                name: 'get'
+                args: '( id )'
+                description: 'Get the document which primary key has the value id'
+            'filter(':
+                name: 'filter'
+                args: '( predicate )'
+                description: 'Filter a stream. A document passes the filter if the predicate returns true'
+            'map(':
+                name: 'map'
+                args: '( attribute )'
+                description: 'Map a stream to an array'
+            'slice(':
+                name: 'slice'
+                args: '( start, end )'
+                description: 'Returned a sliced array stating from start to end'
+            'orderby(':
+                name: 'orderby'
+                args: '( expression )'
+                description: 'order the stream with the expression'
+            'distinct(':
+                name: 'distinct'
+                args: '( expression )'
+                description: 'Formating text is not funny. I need a bunny. I need a hat first to make my bunny appear.'
+            'pluck(':
+                name: 'pluck'
+                args: '( attribute )'
+                description: 'Filter some attributes'
+            'extend(':
+                name: 'extend'
+                args: '( object )'
+                description: 'Extend something that I do not know'
+            'pickAttrs(':
+                name: 'pickAttrs'
+                args: '( attribute_to pick... )'
+                description: 'The VP debate is ridiculous. They should talk about serious issues...'
+            'del(':
+                name: 'del'
+                args: '()'
+                description: 'Delete all the rows returned by the query'
+            'table(':
+                name: 'table'
+                args: '( table_name )'
+                description: 'Select a table'
+            'list(':
+                name: 'list'
+                args: '()'
+                description: 'List all the data'
+            'create(':
+                name: 'create'
+                args: '( table_name )'
+                description: 'Create a new table'
+            'drop(':
+                name: 'drop'
+                args: '()'
+                description: 'Drop a table'
+            'insert(':
+                name: 'insert'
+                args: '( document)'
+                description:' Insert a new document'
+            'dbCreate(':
+                name: 'dbCreate'
+                args: '( database_name )'
+                description: 'Create a database'
+            'db(': 
+                name: 'db'
+                args: '( database_name )'
+                description: 'Select a database'
+            'dbDrop(':
+                name: 'dbDrop'
+                args: '( database_name )'
+                description: 'Drop a database'
+            'dbList(': 
+                name: 'dbList'
+                args: '()'
+                description: 'list the databases'
+            'expr(':
+                name: 'expr'
+                args: '( expression )'
+                description: 'Create an expression'
+            'fn(':
+                name: 'fn'
+                args: '( argument..., body )'
+
+                descrition: 'Create a function'
+            'ifThenElse(':
+                name: 'ifThenElse'
+                args: '( expression, callback_true, callback_false)'
+                description: 'In French we say si ou sinon for if then else'
+            'let(':
+                name: 'let'
+                args: '( arguments..., body)'
+                description: 'Create a variable'
+            'length(':
+                name: 'length'
+                args: '()'
+                description: 'Return the length of the array'
+            'limit(':
+                name: 'limit'
+                args: '( number )'
+                description: 'Limit the number of results'
+            'r': 
+                name: 'r'
+                description: 'The main ReQL namespace.'
+            'R(': 
+                name: 'R'
+                args: '( attribute_string )'
+                description: 'Select an attribute'
+            'add':
+                name: 'add'
+                args: '( expression )'
+                description: 'Add a value'
+            'sub(':
+                name: 'sub'
+                args: '( expression )'
+                description: 'Sub a value'
+            'mul(':
+                name: 'mul'
+                args: '( expression )'
+                description: 'Multiply a value'
+            'div(':
+                name: 'div'
+                args: '( expression )'
+                description: 'Divide something by something and youhouuuuuUUUuuu'
+            'mod(':
+                name: 'mod'
+                args: '( expression )'
+                description: 'Mod by a value'
+            'eq(':
+                name: 'eq'
+                args: '( expression )'
+                description: 'Check for equality'
+            'ne(':
+                name: 'ne'
+                args: '( expression )'
+                description: 'It is not really cool to format stuff, I am bored -_-'
+            'lt(':
+                name: 'lt'
+                args: '( expression )'
+                description: 'Less than'
+            'le(':
+                name: 'le'
+                args: '( expression )'
+                description: 'Less than'
+            'gt(':
+                name: 'gt'
+                args: '( expression )'
+                description: 'Greater than'
+            'ge(':
+                name: 'ge'
+                args: '( expression )'
+                description: 'Greater or equal'
+            'not(':
+                name: 'not'
+                args: '( expression )'
+                description: 'Not'
+            'and(':
+                name: 'and'
+                args: '( expression )'
+                description: 'And'
+            'or(':
+                name: 'or'
+                args: '( expression )'
+                description: 'Or means Gold in French. That is cool no?'
+            'run(':
+                name: 'run'
+                args: '()'
+                description: 'Run the query'
 
         # Suggestions[state] = function for this state
         suggestions:
             stream: ['get(' ,'filter(', 'length(', 'map(', 'slice(', 'orderby(', 'distinct(', 'reduce(', 'pluck(', 'extend(', 'run(']
             view:['pickAttrs(', 'del(', 'run(']
             db:['table(', 'list(', 'create(', 'drop(', 'run(']
-            table:['insert(', 'run(']
-            r:['db(', 'dbCreate(', 'dbDrop(', 'dbList(','expr(', 'fn(', 'ifThenElse(', 'let(', 'run(']
+            table:['insert(', 'get(' ,'filter(', 'length(', 'map(', 'slice(', 'orderby(', 'distinct(', 'reduce(', 'pluck(', 'extend(', 'run(']
+            r:['db(', 'dbCreate(', 'table(', 'dbDrop(', 'dbList(','expr(', 'fn(', 'ifThenElse(', 'let(', 'run(']
             array :['length(', 'limit(', 'run(']
-            "" :['r', 'R(', 'run(']
+            "" :['r', 'R(']
             expr: ['add(', 'sub(', 'mul(', 'div(', 'mod(', 'eq(', 'ne(', 'lt(', 'le(', 'gt(', 'ge(', 'not(', 'and(', 'or(', 'run(']
 
         # Define the height of a line (used for a line is too long)
@@ -130,6 +260,12 @@ module 'DataExplorerView', ->
         query_first_part: ''
         query_last_part: ''
 
+        show_or_hide_arrow: =>
+            if @.$('.suggestion_name_list').css('display') is 'none' and @.$('.suggestion_description').css('display') is 'none'
+                @.$('.arrow').hide()
+            else
+                @.$('.arrow').show()
+    
         # Write the suggestion
         write_suggestion: (suggestion_to_write) =>
             @codemirror.setValue @query_first_part + @current_completed_query + suggestion_to_write + @query_last_part
@@ -147,7 +283,7 @@ module 'DataExplorerView', ->
             @.$('.suggestion_name_li').removeClass 'suggestion_name_li_hl'
             @.$('.suggestion_name_li').eq(id).addClass 'suggestion_name_li_hl'
 
-            @.$('.suggestion_description').html @descriptions[@current_suggestions[id]]
+            @.$('.suggestion_description').html @description_template @extend_description @current_suggestions[id]
 
             @show_suggestion_description()
 
@@ -187,11 +323,13 @@ module 'DataExplorerView', ->
             @.$('.suggestion_name_list').css 'display', 'none'
             @hide_suggestion_description()
             @current_suggestions = []
+            @show_or_hide_arrow()
 
         # Hide the description
         hide_suggestion_description: ->
             @.$('.suggestion_description').html ''
             @.$('.suggestion_description').css 'display', 'none'
+            @show_or_hide_arrow()
 
         # Change the num_char_per_line value when we switch from normal view to full view and vice versa 
         set_char_per_line: =>
@@ -200,28 +338,130 @@ module 'DataExplorerView', ->
             else
                 @num_char_per_line = @default_num_char_per_line
 
+        # Compute the number of extra lines because of long lines
+        compute_extra_lines: =>
+            query_lines = @codemirror.getValue().split '\n'
+            i = 0
+            extra_lines = 0
+            while i < query_lines.length-1
+                extra_lines += Math.floor(query_lines[i].length/@num_char_per_line)
+                i++
+            extra_lines += Math.floor(@codemirror.getCursor().ch/@num_char_per_line)
+            return extra_lines
+
+        move_suggestion: =>
+            margin_left = (@codemirror.getCursor().ch%@num_char_per_line)*8+27
+            @.$('.arrow').css 'margin-left', margin_left
+
+            if margin_left < 200
+                @.$('.suggestion_full_container').css 'left', '0px'
+            else if margin_left > 468
+                @.$('.suggestion_full_container').css 'left', '440px'
+            else
+                margin_left = Math.min 468, Math.floor(margin_left/100)*100
+                @.$('.suggestion_full_container').css 'left', (margin_left-100)+'px'
+
         #TODO refactor show_suggestion, show_suggestion_description, add_description
         show_suggestion: =>
-            extra_lines = Math.floor(@codemirror.getCursor().ch/@num_char_per_line)
-            
-            margin = ((@codemirror.getCursor().line+1+extra_lines)*@line_height) + 'px'
+            margin = ((@codemirror.getCursor().line+1+@compute_extra_lines())*@line_height) + 'px'
             @.$('.suggestion_full_container').css 'margin-top', margin
+            @.$('.arrow').css 'margin-top', margin
             @.$('.suggestion_name_list').css 'display', 'block'
+            @move_suggestion()
+            @show_or_hide_arrow()
 
-        show_suggestion_description: ->
-            extra_lines = Math.floor(@codemirror.getCursor().ch/@num_char_per_line)
-            margin = ((@codemirror.getCursor().line+1+extra_lines)*@line_height) + 'px'
+        show_suggestion_description: =>
+            margin = ((@codemirror.getCursor().line+1+@compute_extra_lines())*@line_height) + 'px'
             @.$('.suggestion_full_container').css 'margin-top', margin
+            @.$('.arrow').css 'margin-top', margin
             @.$('.suggestion_description').css 'display', 'block'
+            @show_or_hide_arrow()
 
+        # Extend description for db() and table() with a list of databases or namespaces
+        extend_description: (fn) =>
+            if fn is 'db('
+                description = _.extend {}, @descriptions[fn]
+                if databases.length is 0
+                    data =
+                        no_database: true
+                else
+                    data =
+                        no_database: false
+                        databases_available: _.map(databases.models, (database) -> return database.get('name'))
+                description.description += @databases_suggestions_template data
+            else if fn is 'table('
+                # Look for the argument of the previous db()
+                database_used = @extract_database_used()
+
+                description = _.extend {}, @descriptions[fn]
+                if database_used.error is false
+                    namespaces_available = []
+                    for namespace in namespaces.models
+                        if database_used.db_found is false or namespace.get('database') is database_used.id
+                            namespaces_available.push namespace.get('name')
+                    data =
+                        namespaces_available: namespaces_available
+                        no_namespace: namespaces_available.length is 0
+
+                    if database_used.name?
+                        data.database_name = database_used.name
+                else
+                    data =
+                        error: database_used.error
+
+                description.description += @namespaces_suggestions_template data
+            else
+                description = @descriptions[fn]
+            return description
+
+        extract_database_used: =>
+            query_lines = @codemirror.getValue().split '\n'
+            query_before_cursor = ''
+            if @codemirror.getCursor().line > 0
+                for i in [0..@codemirror.getCursor().line-1]
+                    query_before_cursor += query_lines[i] + '\n'
+            query_before_cursor += query_lines[@codemirror.getCursor().line].slice 0, @codemirror.getCursor().ch
+            # TODO: check that there is not a string containing db( before...
+            last_db_position = query_before_cursor.lastIndexOf('.db(')
+            if last_db_position is -1
+                return {
+                    db_found: false
+                    error: false
+                }
+            else
+                arg = query_before_cursor.slice last_db_position+5 # +4 for .db(
+                char = query_before_cursor.slice last_db_position+4, last_db_position+5 # ' or " used for the argument of db()
+                end_arg_position = arg.indexOf char # Check for the next quote or apostrophe
+                if end_arg_position is -1
+                    return {
+                        db_found: false
+                        error: true
+                    }
+                db_name = arg.slice 0, end_arg_position
+                for database in databases.models
+                    if database.get('name') is db_name
+                        return {
+                            db_found: true
+                            error: false
+                            id: database.get('id')
+                            name: db_name
+                        }
+                return {
+                    db_found: false
+                    error: true
+                }
+            
         add_description: (fn) =>
             if @descriptions[fn]?
-                extra_lines = Math.floor(@codemirror.getCursor().ch/@num_char_per_line)
-                margin = ((@codemirror.getCursor().line+1+extra_lines)*@line_height) + 'px'
+                margin = ((@codemirror.getCursor().line+1+@compute_extra_lines())*@line_height) + 'px'
                 @.$('.suggestion_full_container').css 'margin-top', margin
-                @.$('.suggestion_description').html @descriptions[fn]
-                @.$('.suggestion_description').css 'display', 'block'
+                @.$('.arrow').css 'margin-top', margin
 
+                @.$('.suggestion_description').html @description_template @extend_description fn
+
+                @.$('.suggestion_description').css 'display', 'block'
+                @move_suggestion()
+                @show_or_hide_arrow()
 
         # Expand the textarea of the raw view
         expand_textarea: (event) =>
@@ -274,10 +514,11 @@ module 'DataExplorerView', ->
                     if event.type isnt 'keydown'
                         return true
                     @.$('suggestion_name_list').css 'display', 'none'
+                    @show_or_hide_arrow()
                     @execute_query()
             
             # We just look at key up so we don't fire the call 3 times
-            if event?.type? and event.type isnt 'keyup'
+            if event?.type? and event.type isnt 'keyup' or (event?.which? and event.which is 16) # We don't do anything for shift
                 return false
 
             @current_highlighted_suggestion = -1
@@ -318,7 +559,7 @@ module 'DataExplorerView', ->
                     next_non_white_character = query_after_cursor[index_next_character]
                     break
                 index_next_character++
-            if next_non_white_character? and next_non_white_character isnt '.' and next_non_white_character isnt ')'
+            if next_non_white_character? and next_non_white_character isnt '.' and next_non_white_character isnt ')' and next_non_white_character isnt ';'
                 @hide_suggestion()
                 last_function_for_description = @extract_last_function_for_description(query_before_cursor)
                 if last_function_for_description isnt ''
@@ -335,6 +576,16 @@ module 'DataExplorerView', ->
 
             # Get the last completed function for description and suggestion
             last_function = @extract_last_function(query)
+            # Hack in case a new parenthesis is opened
+            if last_function is ''
+                last_function_full = @extract_last_function_for_description(query_before_cursor)
+                if last_function_full isnt ''
+                    last_function = last_function_full
+
+            # Hack because last_function returns 'r' if the query is 'r'. and r isn't a function
+            if last_function is query and last_function is 'r'
+                last_function = null
+
             if @map_state[last_function]? and @suggestions[@map_state[last_function]]?
                 if not @suggestions[@map_state[last_function]]? or @suggestions[@map_state[last_function]].length is 0
                     @hide_suggestion()
@@ -505,10 +756,10 @@ module 'DataExplorerView', ->
                 @hide_suggestion()
             return @
 
-        # Callback used by the cursor
+        # Callback used by the cursor when the user hit 'more results'
         callback_query: (data) =>
             # If we get a run time error
-            if data instanceof rethinkdb.errors.RuntimeError
+            if data instanceof rethinkdb.errors.RuntimeError or data instanceof rethinkdb.errors.BadQuery or data instanceof rethinkdb.errors.ClientError or data instanceof rethinkdb.errors.ClientError
                 @.$('.loading_query_img').css 'display', 'none'
                 @.results_view.render_error(@query, data)
                 return false
@@ -536,29 +787,6 @@ module 'DataExplorerView', ->
                     @current_results.push data
                 return false
 
-        # Callback for multiple queries
-        callback_multiple_query: (data) =>
-            # If we get a run time error
-            if data instanceof rethinkdb.errors.RuntimeError
-                @.$('.loading_query_img').css 'display', 'none'
-                @.results_view.render_error(@query, data)
-                return false
-
-            @current_query_index++
-            if @current_query_index is @queries.length-1
-                if @cursor?
-                    @cursor.close()
-                @cursor = eval(@queries[@current_query_index])
-                @cursor.next(@callback_query)
-            else
-                if @cursor?
-                    @cursor.close()
-                @cursor = eval(@queries[@current_query_index])
-                @cursor.next(@callback_multiple_query)
-
-            return false
-           
-
         # Function triggered when the user click on 'more results'
         show_more_results: (event) =>
             try
@@ -569,6 +797,72 @@ module 'DataExplorerView', ->
                 @.$('.loading_query_img').css 'display', 'none'
                 @results_view.render_error(@query, err)
 
+        # Create tagged callback so we just execute the last query executed by the user
+        # Results:
+        # User execute q1
+        # User execute q2
+        # q1 returns but no results is displayed
+        # q2 returns, we display q2 results
+        create_tagged_callback: =>
+            id = Math.random() # That should be good enough for our application
+            @last_id = id
+            @current_results = []
+            @skip_value = 0
+            @current_query_index = 0
+            
+            # The callback with the id that we are going to return
+            callback_multiple_queries = (data) =>
+                if id is @last_id # We display things or fire the next query only if the user hasn't execute another query
+                    # Check if the data sent by the server is an error
+                    if data instanceof rethinkdb.errors.RuntimeError or data instanceof rethinkdb.errors.BadQuery or data instanceof rethinkdb.errors.ClientError or data instanceof rethinkdb.errors.ClientError
+                        @.$('.loading_query_img').css 'display', 'none'
+                        @.results_view.render_error(@query, data)
+                        return false
+
+                    # Look for the next query
+                    @current_query_index++
+
+                    # If we are dealing with the last query
+                    if @current_query_index >= @queries.length
+                        # If we get a run time error
+                        if data instanceof rethinkdb.errors.RuntimeError
+                            @.$('.loading_query_img').css 'display', 'none'
+                            @.results_view.render_error(@query, data)
+                            return false
+                        
+                        # if it's a valid result and we have not reach the maximum of results displayed
+                        if data? and  @current_results.length < @limit
+                            @current_results.push data
+                            return true
+                        else
+                            # Else we are going to display what we have
+                            @.$('.loading_query_img').css 'display', 'none'
+                            @results_view.render_result @query, @current_results
+
+                            execution_time = new Date() - @start_time
+                            @results_view.render_metadata
+                                limit_value: @current_results.length
+                                skip_value: @skip_value
+                                execution_time: execution_time
+                                query: @query
+                                has_more_data: true if data? # if data is undefined, it means that there is no more data
+
+                            if data? #there is nore data
+                                @skip_value += @current_results.length
+                                @current_results = []
+                                @current_results.push data
+                            return false
+                    else #  Else if it's not the last query, we just execute the next query
+                        if @cursor?
+                            @cursor.close()
+                        @cursor = eval(@queries[@current_query_index])
+                        @cursor.next(callback_multiple_queries)
+
+                    return false
+                else
+                    @cursor.close()
+                    return false
+            return callback_multiple_queries
         # Function that execute the query
         execute_query: =>
             # Postpone the reconnection
@@ -602,18 +896,16 @@ module 'DataExplorerView', ->
                 @start_time = new Date()
                 @current_results = []
                 @skip_value = 0
-                if @queries.length > 1
-                    @current_query_index = 0
-                    @cursor = eval(@queries[@current_query_index])
-                    @cursor.next(@callback_multiple_query)
-                else
-                    @cursor = eval(@query)
-                    @cursor.next(@callback_query)
+
+                tagged_callback = @create_tagged_callback()
+                @cursor = eval(@queries[@current_query_index])
+                @cursor.next(tagged_callback)
+
             catch err
                 @.$('.loading_query_img').css 'display', 'none'
                 @results_view.render_error(@query, err)
 
-        # Separate the queries so we can have an asychronous order
+        # Separate the queries so we can execute them in an synchronous order
         separate_queries: (query) =>
             start = 0
             count_dot = 0
@@ -742,11 +1034,21 @@ module 'DataExplorerView', ->
                     json: true
                 onKeyEvent: @handle_keypress
                 onBlur: @hide_suggestion
+                onGutterClick: @handle_gutter_click
                 lineNumbers: true
                 lineWrapping: true
                 matchBrackets: true
 
             @codemirror.setSize '100%', 'auto'
+
+        handle_gutter_click: (editor, line) =>
+            start =
+                line: line
+                ch: 0
+            end =
+                line: line
+                ch: @codemirror.getLine(line).length
+            @codemirror.setSelection start, end
 
         # Switch between full view and normal view
         toggle_size: =>
@@ -763,10 +1065,11 @@ module 'DataExplorerView', ->
 
         display_normal: =>
             $('#cluster').addClass 'container'
-            @.event
+            @.$('.json_table_container').css 'width', '888px'
 
         display_full: =>
             $('#cluster').removeClass 'container'
+            @.$('.json_table_container').css 'width', ($(window).width()-52)+'px'
 
         destroy: =>
             @display_normal()
@@ -776,6 +1079,8 @@ module 'DataExplorerView', ->
                 window.conn.close()
             catch err
                 #console.log 'Could not destroy connection'
+            if @cursor?
+                @cursor.close()
             clearTimeout @timeout
     
     class @InputQuery extends Backbone.View
@@ -1161,8 +1466,8 @@ module 'DataExplorerView', ->
         render_result: (query, result) =>
             @.$el.html @template
                 query: query
-            @.$('#tree_view').html @json_to_tree result
-            @.$('#table_view').html @json_to_table result
+            @.$('.tree_view').html @json_to_tree result
+            @.$('.table_view').html @json_to_table result
             @.$('.raw_view_textarea').html JSON.stringify result
             @expand_raw_textarea()
 
