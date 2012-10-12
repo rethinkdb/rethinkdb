@@ -118,6 +118,13 @@ bool term_type_least_upper_bound(term_info_t left, term_info_t right, term_info_
     return true;
 }
 
+void check_table_ref(const TableRef &tr, const backtrace_t &backtrace) {
+    name_string_t name;
+    if (!name.assign(tr.table_name())) {
+        throw bad_query_exc_t(strprintf("Invalid table name '%s'.", tr.table_name().c_str()), backtrace);
+    }
+}
+
 term_info_t get_term_type(Term *t, type_checking_environment_t *env, const backtrace_t &backtrace) {
     if (t->HasExtension(extension::inferred_type)) {
         guarantee_debug_throw_release(t->HasExtension(extension::deterministic), backtrace);
@@ -244,11 +251,15 @@ term_info_t get_term_type(Term *t, type_checking_environment_t *env, const backt
     } break;
     case Term::GETBYKEY: {
         check_protobuf(t->has_get_by_key());
+        check_table_ref(t->get_by_key().table_ref(), backtrace.with("table_ref"));
         check_term_type(t->mutable_get_by_key()->mutable_key(), TERM_TYPE_JSON, env, NULL, backtrace.with("key"));
         ret.reset(term_info_t(TERM_TYPE_JSON, false));
     } break;
     case Term::TABLE: {
         check_protobuf(t->has_table());
+        // TODO: I don't like or don't "get" how backtraces are supposed to work. Why do
+        // backtraces refer to the subfield of the type but not refer to the type itself?  -sam
+        check_table_ref(t->table().table_ref(), backtrace.with("table_ref"));
         ret.reset(term_info_t(TERM_TYPE_VIEW, false));
     } break;
     case Term::JAVASCRIPT: {
@@ -663,6 +674,7 @@ void check_write_query_type(WriteQuery *w, type_checking_environment_t *env, boo
     } break;
     case WriteQuery::INSERT: {
         check_protobuf(w->has_insert());
+        check_table_ref(w->insert().table_ref(), backtrace.with("table_ref"));
         if (w->insert().terms_size() == 1) {
             // We want to do the get to produce determinism information
             get_term_type(w->mutable_insert()->mutable_terms(0), env, backtrace);
@@ -683,16 +695,19 @@ void check_write_query_type(WriteQuery *w, type_checking_environment_t *env, boo
     } break;
     case WriteQuery::POINTUPDATE: {
         check_protobuf(w->has_point_update());
+        check_table_ref(w->point_update().table_ref(), backtrace.with("table_ref"));
         check_term_type(w->mutable_point_update()->mutable_key(), TERM_TYPE_JSON, env, is_det_out, backtrace.with("key"));
         implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic));
         check_mapping_type(w->mutable_point_update()->mutable_mapping(), TERM_TYPE_JSON, env, is_det_out, backtrace.with("point_map"));
     } break;
     case WriteQuery::POINTDELETE: {
         check_protobuf(w->has_point_delete());
+        check_table_ref(w->point_delete().table_ref(), backtrace.with("table_ref"));
         check_term_type(w->mutable_point_delete()->mutable_key(), TERM_TYPE_JSON, env, is_det_out, backtrace.with("key"));
     } break;
     case WriteQuery::POINTMUTATE: {
         check_protobuf(w->has_point_mutate());
+        check_table_ref(w->point_mutate().table_ref(), backtrace.with("table_ref"));
         check_term_type(w->mutable_point_mutate()->mutable_key(), TERM_TYPE_JSON, env, is_det_out, backtrace.with("key"));
         implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic));
         check_mapping_type(w->mutable_point_mutate()->mutable_mapping(), TERM_TYPE_JSON, env, is_det_out, backtrace.with("point_map"));
@@ -702,7 +717,7 @@ void check_write_query_type(WriteQuery *w, type_checking_environment_t *env, boo
     }
 }
 
-void check_meta_query_type(MetaQuery *t) {
+void check_meta_query_type(MetaQuery *t, const backtrace_t &backtrace) {
     check_protobuf(MetaQuery::MetaQueryType_IsValid(t->type()));
     switch(t->type()) {
     case MetaQuery::CREATE_DB:
@@ -720,15 +735,17 @@ void check_meta_query_type(MetaQuery *t) {
         check_protobuf(!t->has_create_table());
         check_protobuf(!t->has_drop_table());
         break;
-    case MetaQuery::CREATE_TABLE:
+    case MetaQuery::CREATE_TABLE: {
         check_protobuf(!t->has_db_name());
         check_protobuf(t->has_create_table());
+        check_table_ref(t->create_table().table_ref(), backtrace.with("create_table"));
         check_protobuf(!t->has_drop_table());
-        break;
+    } break;
     case MetaQuery::DROP_TABLE:
         check_protobuf(!t->has_db_name());
         check_protobuf(!t->has_create_table());
         check_protobuf(t->has_drop_table());
+        check_table_ref(t->drop_table(), backtrace.with("drop_table"));
         break;
     case MetaQuery::LIST_TABLES:
         check_protobuf(t->has_db_name());
@@ -768,7 +785,7 @@ void check_query_type(Query *q, type_checking_environment_t *env, bool *is_det_o
         check_protobuf(q->has_meta_query());
         check_protobuf(!q->has_read_query());
         check_protobuf(!q->has_write_query());
-        check_meta_query_type(q->mutable_meta_query());
+        check_meta_query_type(q->mutable_meta_query(), backtrace);
         break;
     default:
         unreachable("unhandled Query");
@@ -896,7 +913,6 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
     case MetaQuery::CREATE_TABLE: {
         std::string dc_name = m->create_table().datacenter();
         std::string db_name = m->create_table().table_ref().db_name();
-        // TODO(1253) do this here or push it up to the create_table() object?
         std::string table_name_str = m->create_table().table_ref().table_name();
         name_string_t table_name;
         if (!table_name.assign(table_name_str)) {
@@ -949,7 +965,6 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
     } break;
     case MetaQuery::DROP_TABLE: {
         std::string db_name = m->drop_table().db_name();
-        // TODO(1253): Push name_string_t up to the drop_table object or what?
         std::string table_name_str = m->drop_table().table_name();
         name_string_t table_name;
         if (!table_name.assign(table_name_str)) {
@@ -1001,7 +1016,6 @@ std::string get_primary_key(TableRef *t, runtime_environment_t *env,
                             const backtrace_t &bt) {
     std::string db_name = t->db_name();
     std::string table_name_str = t->table_name();
-    // TODO(1253): push name_string_t up to t?
     name_string_t table_name;
     if (!table_name.assign(table_name_str)) {
         throw runtime_exc_t("invalid table name: " + table_name_str /* TODO(1253) duplicate message, DRY */, bt);
@@ -2614,7 +2628,6 @@ boost::shared_ptr<json_stream_t> eval_call_as_stream(Term::Call *c, runtime_envi
 
 namespace_repo_t<rdb_protocol_t>::access_t eval_table_ref(TableRef *t, runtime_environment_t *env, const backtrace_t &bt)
     THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
-    // TODO(1253): push name_string_t up?
     std::string table_name_str = t->table_name();
     name_string_t table_name;
     if (!table_name.assign(table_name_str)) {
