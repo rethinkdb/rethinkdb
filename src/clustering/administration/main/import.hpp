@@ -14,7 +14,7 @@ class peer_address_set_t;
 class json_importer_t;
 
 struct json_import_target_t {
-    std::string db_name;
+    name_string_t db_name;
     boost::optional<std::string> datacenter_name;
     name_string_t table_name;
     std::string primary_key;

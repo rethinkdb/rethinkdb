@@ -118,11 +118,17 @@ bool term_type_least_upper_bound(term_info_t left, term_info_t right, term_info_
     return true;
 }
 
-void check_table_ref(const TableRef &tr, const backtrace_t &backtrace) {
+void check_name_string(const std::string& name_str, const backtrace_t &backtrace) THROWS_ONLY(bad_query_exc_t) {
     name_string_t name;
-    if (!name.assign(tr.table_name())) {
-        throw bad_query_exc_t(strprintf("Invalid table name '%s'.", tr.table_name().c_str()), backtrace);  // TODO(1253): duplicate error message, could be improved, DRY.
+    if (!name.assign(name_str)) {
+        throw bad_query_exc_t(strprintf("Invalid name '%s' (use only A-Za-z0-9_).", name_str.c_str()), backtrace);  // TODO(1253): duplicate error message, could be improved, DRY.
     }
+
+}
+
+void check_table_ref(const TableRef &tr, const backtrace_t &backtrace) THROWS_ONLY(bad_query_exc_t) {
+    check_name_string(tr.db_name(), backtrace.with("db_name"));
+    check_name_string(tr.table_name(), backtrace.with("table_name"));
 }
 
 term_info_t get_term_type(Term *t, type_checking_environment_t *env, const backtrace_t &backtrace) {
@@ -722,11 +728,13 @@ void check_meta_query_type(MetaQuery *t, const backtrace_t &backtrace) {
     switch(t->type()) {
     case MetaQuery::CREATE_DB:
         check_protobuf(t->has_db_name());
+        check_name_string(t->db_name(), backtrace.with("create_db"));
         check_protobuf(!t->has_create_table());
         check_protobuf(!t->has_drop_table());
         break;
     case MetaQuery::DROP_DB:
         check_protobuf(t->has_db_name());
+        check_name_string(t->db_name(), backtrace.with("drop_db"));
         check_protobuf(!t->has_create_table());
         check_protobuf(!t->has_drop_table());
         break;
@@ -738,7 +746,7 @@ void check_meta_query_type(MetaQuery *t, const backtrace_t &backtrace) {
     case MetaQuery::CREATE_TABLE: {
         check_protobuf(!t->has_db_name());
         check_protobuf(t->has_create_table());
-        check_table_ref(t->create_table().table_ref(), backtrace.with("create_table"));
+        check_table_ref(t->create_table().table_ref(), backtrace.with("create_table").with("table_ref"));
         check_protobuf(!t->has_drop_table());
     } break;
     case MetaQuery::DROP_TABLE:
@@ -749,6 +757,7 @@ void check_meta_query_type(MetaQuery *t, const backtrace_t &backtrace) {
         break;
     case MetaQuery::LIST_TABLES:
         check_protobuf(t->has_db_name());
+        check_name_string(t->db_name(), backtrace.with("list_tables"));
         check_protobuf(!t->has_create_table());
         check_protobuf(!t->has_drop_table());
         break;
@@ -826,12 +835,22 @@ uuid_t meta_get_uuid(T searcher, const U& predicate,
     return entry->first;
 }
 
-void assign_table_name(const std::string table_name_str, const backtrace_t& bt, name_string_t *table_name_out)
+void assign_name(const char *kind_of_name, const std::string &name_str, const backtrace_t& bt, name_string_t *name_out)
     THROWS_ONLY(runtime_exc_t) {
-    if (!table_name_out->assign(table_name_str)) {
+    if (!name_out->assign(name_str)) {
         // TODO(1253): still duplicate error messages, DRY.
-        throw runtime_exc_t(strprintf("table name '%s'invalid (use A-Za-z0-9_): ", table_name_str.c_str()), bt);
+        throw runtime_exc_t(strprintf("%s name '%s'invalid (use A-Za-z0-9_): ", kind_of_name, name_str.c_str()), bt);
     }
+}
+
+void assign_table_name(const std::string &table_name_str, const backtrace_t& bt, name_string_t *table_name_out)
+    THROWS_ONLY(runtime_exc_t) {
+    assign_name("table", table_name_str, bt, table_name_out);
+}
+
+void assign_db_name(const std::string &db_name_str, const backtrace_t& bt, name_string_t *db_name_out)
+    THROWS_ONLY(runtime_exc_t) {
+    assign_name("database", db_name_str, bt, db_name_out);
 }
 
 
@@ -856,16 +875,17 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
 
     switch(m->type()) {
     case MetaQuery::CREATE_DB: {
-        std::string db_name = m->db_name();
+        name_string_t db_name;
+        assign_db_name(m->db_name(), bt.with("db_name"), &db_name);
 
         /* Ensure database doesn't already exist. */
         metadata_search_status_t status;
-        db_searcher.find_uniq(db_name, &status);
-        meta_check(status, METADATA_ERR_NONE, "CREATE_DB " + db_name, bt);
+        db_searcher.find_uniq(db_name.str(), &status);  // TODO(1253)
+        meta_check(status, METADATA_ERR_NONE, "CREATE_DB " + db_name.str(), bt);
 
         /* Create namespace, insert into metadata, then join into real metadata. */
         database_semilattice_metadata_t db;
-        db.name = vclock_t<std::string>(db_name, env->this_machine);
+        db.name = vclock_t<name_string_t>(db_name, env->this_machine);
         metadata.databases.databases.insert(std::make_pair(generate_uuid(), db));
         try {
             fill_in_blueprints(&metadata, directory_metadata->get(), env->this_machine, false);

@@ -186,7 +186,7 @@ public:
 
     struct name_predicate_t {
         bool operator()(T metadata) const {
-            return !metadata.name.in_conflict() && metadata.name.get() == *name;
+            return !metadata.name.in_conflict() && undo_name_string(metadata.name.get()) == *name;  // TODO(1253)
         }
         explicit name_predicate_t(const std::string *_name): name(_name) { }
     private:

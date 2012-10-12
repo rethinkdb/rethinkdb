@@ -204,7 +204,10 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
             /* Create a test database. */
             database_id_t database_id = generate_uuid();
             database_semilattice_metadata_t database_metadata;
-            database_metadata.name = vclock_t<std::string>("test", our_machine_id);
+            name_string_t db_name;
+            bool db_name_success = db_name.assign("test");
+            guarantee(db_name_success);
+            database_metadata.name = vclock_t<name_string_t>(db_name, our_machine_id);
             semilattice_metadata.databases.databases.insert(std::make_pair(
                 database_id,
                 deletable_t<database_semilattice_metadata_t>(database_metadata)));
@@ -638,16 +641,21 @@ int main_rethinkdb_import(int argc, char *argv[]) {
         int client_port = port_defaults::client_port;
 #endif
         std::string db_table = vm["table"].as<std::string>();
-        std::string db_name;
+        std::string db_name_str;
         std::string table_name_str;
-        if (!split_db_table(db_table, &db_name, &table_name_str)) {
+        if (!split_db_table(db_table, &db_name_str, &table_name_str)) {
             printf("--table option should have format database_name.table_name\n");
             return EXIT_FAILURE;
         }
 
+        name_string_t db_name;
+        if (!db_name.assign(table_name_str)) {
+            printf("--table: database name invalid (use A-Za-z0-9_), e.g. database_name.table_name\n");
+        }
+
         name_string_t table_name;
         if (!table_name.assign(table_name_str)) {
-            printf("--table option table name invalid (use A-Za-z0-9_)\n");
+            printf("--table: table name invalid (use A-Za-z0-9_), e.g. database_name.table_name\n");
             return EXIT_FAILURE;
         }
 

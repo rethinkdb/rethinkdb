@@ -45,7 +45,7 @@ public:
                 it != map.end(); it++) {
             if (!it->second.is_deleted()) {
                 if (!it->second.get().name.in_conflict()) {
-                    by_name[it->second.get().name.get()].insert(it->first);
+                    by_name[undo_name_string(it->second.get().name.get())].insert(it->first);  // TODO(1253):  Make the map have name_string_t keys?
                 }
             }
         }
@@ -88,7 +88,7 @@ namespace_map_t(const std::map<uuid_t, deletable_t<database_semilattice_metadata
                     if (std_contains(databases, it->second.get().database.get())) {
                         deletable_t<database_semilattice_metadata_t> db = databases[it->second.get().database.get()];
                         if (!db.is_deleted() && !db.get().name.in_conflict()) {
-                            by_name[db.get().name.get() + "." + it->second.get().name.get().str()].insert(it->first);
+                            by_name[db.get().name.get().str() + "." + it->second.get().name.get().str()].insert(it->first);  // TODO(1253): Maybe the map should use some pair struct for keys?
                         }
                     }
                 }

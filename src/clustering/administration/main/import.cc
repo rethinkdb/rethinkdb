@@ -212,14 +212,14 @@ namespace_id_t get_or_create_namespace(cluster_semilattice_metadata_t *metadata,
 }
 
 database_id_t get_or_create_database(cluster_semilattice_metadata_t *metadata,
-                                     std::string db_name,
+                                     name_string_t db_name,
                                      const machine_id_t &sync_machine_id,
                                      bool *do_update) {
     database_id_t database_id = nil_uuid();
     metadata_searcher_t<database_semilattice_metadata_t> searcher(&metadata->databases.databases);
 
     metadata_search_status_t error;
-    std::map<database_id_t, deletable_t<database_semilattice_metadata_t> >::iterator it = searcher.find_uniq(db_name, &error);
+    std::map<database_id_t, deletable_t<database_semilattice_metadata_t> >::iterator it = searcher.find_uniq(db_name.str() /* TODO(1253) */, &error);
 
     if (error == METADATA_SUCCESS) {
         database_id = it->first;
@@ -228,7 +228,7 @@ database_id_t get_or_create_database(cluster_semilattice_metadata_t *metadata,
         *do_update = true;
         database_id = generate_uuid();
         database_semilattice_metadata_t& database = metadata->databases.databases[database_id].get_mutable();
-        database.name.get_mutable().assign(db_name);
+        database.name.get_mutable() = db_name;
         database.name.upgrade_version(sync_machine_id);
     } else if (error == METADATA_ERR_MULTIPLE) {
         printf("Error searching for database.  (Multiple databases are named '%s'.)\n", db_name.c_str());

@@ -38,3 +38,7 @@ void apply_json_to(cJSON *change, name_string_t *target) {
 }
 
 void on_subfield_change(name_string_t *) { }
+
+void debug_print(append_only_printf_buffer_t *buf, const name_string_t& s) {
+    debug_print(buf, s.str());
+}

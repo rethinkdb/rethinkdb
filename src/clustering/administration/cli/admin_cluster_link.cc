@@ -307,10 +307,6 @@ void admin_cluster_link_t::clear_metadata_maps() {
     uuid_map.clear();
 }
 
-// TODO(1253) Nothing really should use std::string here.
-std::string undo_name_string(const name_string_t& s) { return s.str(); }
-std::string undo_name_string(const std::string& s) { return s; }
-
 template <class T>
 void admin_cluster_link_t::add_subset_to_maps(const std::string& base, const T& data_map) {
     for (typename T::const_iterator i = data_map.begin(); i != data_map.end(); ++i) {
@@ -1496,7 +1492,7 @@ void admin_cluster_link_t::do_admin_list_databases(const admin_command_parser_t:
             if (i->second.get().name.in_conflict()) {
                 delta.push_back("<conflict>");
             } else {
-                delta.push_back(i->second.get().name.get());
+                delta.push_back(i->second.get().name.get().str() /* TODO(1253) */);
             }
 
             if (long_format) {
@@ -1862,7 +1858,9 @@ void admin_cluster_link_t::do_admin_create_database(const admin_command_parser_t
     database_id_t new_id = generate_uuid();
     database_semilattice_metadata_t& database = cluster_metadata.databases.databases[new_id].get_mutable();
 
-    database.name.get_mutable() = guarantee_param_0(data.params, "name");
+    if (!database.name.get_mutable().assign(guarantee_param_0(data.params, "name"))) {
+        throw admin_cluster_exc_t("invalid database name (use A-Za-z0-9_)");  // TODO(1253) DRY, right type of exception?
+    }
     database.name.upgrade_version(change_request_id);
 
     do_metadata_update(&cluster_metadata, &change_request);

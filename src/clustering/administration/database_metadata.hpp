@@ -4,6 +4,7 @@
 #include <map>
 #include <string>
 
+#include "containers/name_string.hpp"
 #include "containers/uuid.hpp"
 #include "http/json.hpp"
 #include "http/json/json_adapter.hpp"
@@ -18,7 +19,7 @@ typedef uuid_t database_id_t;
 
 class database_semilattice_metadata_t {
 public:
-    vclock_t<std::string> name;
+    vclock_t<name_string_t> name;
     RDB_MAKE_ME_SERIALIZABLE_1(name);
 };
 
