@@ -801,7 +801,7 @@ static void meta_check(metadata_search_status_t status, metadata_search_status_t
 }
 
 template<class T, class U>
-uuid_t meta_get_uuid(T searcher, U predicate,
+uuid_t meta_get_uuid(T searcher, const U& predicate,
                      const std::string &operation, const backtrace_t &backtrace) {
     metadata_search_status_t status;
     typename T::iterator entry = searcher.find_uniq(predicate, &status);
@@ -861,7 +861,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         uuid_t db_id = db_metadata->first;
 
         // Delete all tables in database.
-        namespace_predicate_t pred(db_id);
+        namespace_predicate_t pred(&db_id);
         for (metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >
                  ::iterator it = ns_searcher.find_next(ns_searcher.begin(), pred);
              it != ns_searcher.end(); it = ns_searcher.find_next(++it, pred)) {
@@ -907,9 +907,10 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
             dc_id = meta_get_uuid(dc_searcher, dc_name, "FIND_DATACENTER " + dc_name, bt.with("datacenter"));
         }
 
+        namespace_predicate_t search_predicate(&table_name, &db_id);
         /* Ensure table doesn't already exist. */
         metadata_search_status_t status;
-        ns_searcher.find_uniq(namespace_predicate_t(table_name, db_id), &status);
+        ns_searcher.find_uniq(search_predicate, &status);
         meta_check(status, METADATA_ERR_NONE, "CREATE_TABLE " + table_name, bt);
 
         /* Create namespace, insert into metadata, then join into real metadata. */
@@ -947,10 +948,11 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
 
         // Get namespace metadata.
         uuid_t db_id = meta_get_uuid(db_searcher, db_name, "FIND_DATABASE " + db_name, bt.with("db_name"));
+        namespace_predicate_t search_predicate(&table_name, &db_id);
         metadata_search_status_t status;
         metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >::iterator
             ns_metadata =
-            ns_searcher.find_uniq(namespace_predicate_t(table_name, db_id), &status);
+            ns_searcher.find_uniq(search_predicate, &status);
         std::string op = strprintf("FIND_TABLE %s.%s", db_name.c_str(), table_name.c_str());
         meta_check(status, METADATA_SUCCESS, op, bt.with("table_name"));
         guarantee(!ns_metadata->second.is_deleted());
@@ -968,7 +970,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
     case MetaQuery::LIST_TABLES: {
         std::string db_name = m->db_name();
         uuid_t db_id = meta_get_uuid(db_searcher, db_name, "FIND_DATABASE " + db_name, bt.with("db_name"));
-        namespace_predicate_t pred(db_id);
+        namespace_predicate_t pred(&db_id);
         for (metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >
                  ::iterator it = ns_searcher.find_next(ns_searcher.begin(), pred);
              it != ns_searcher.end(); it = ns_searcher.find_next(++it, pred)) {
@@ -999,7 +1001,7 @@ std::string get_primary_key(TableRef *t, runtime_environment_t *env,
         db_searcher(&db_metadata.databases);
 
     uuid_t db_id = meta_get_uuid(db_searcher, db_name, "FIND_DB " + db_name, bt);
-    namespace_predicate_t pred(table_name, db_id);
+    namespace_predicate_t pred(&table_name, &db_id);
     metadata_search_status_t status;
     metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >::iterator
         ns_metadata_it = ns_searcher.find_uniq(pred, &status);
@@ -2609,7 +2611,7 @@ namespace_repo_t<rdb_protocol_t>::access_t eval_table_ref(TableRef *t, runtime_e
         db_searcher(&databases_metadata.databases);
 
     uuid_t db_id = meta_get_uuid(db_searcher, db_name, "EVAL_DB " + db_name, bt);
-    namespace_predicate_t pred(table_name, db_id);
+    namespace_predicate_t pred(&table_name, &db_id);
     uuid_t id = meta_get_uuid(ns_searcher, pred, "EVAL_TABLE " + table_name, bt);
 
     return namespace_repo_t<rdb_protocol_t>::access_t(env->ns_repo, id, env->interruptor);

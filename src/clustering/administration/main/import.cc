@@ -185,8 +185,10 @@ namespace_id_t get_or_create_namespace(cluster_semilattice_metadata_t *metadata,
     cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t change(&metadata->rdb_namespaces);
     metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> > searcher(&change.get()->namespaces);
 
+    namespace_predicate_t search_predicate(&table_name, &db_id);
+
     metadata_search_status_t error;
-    std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<rdb_protocol_t> > >::iterator it = searcher.find_uniq(namespace_predicate_t(table_name, db_id), &error);
+    std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<rdb_protocol_t> > >::iterator it = searcher.find_uniq(search_predicate, &error);
 
     if (error == METADATA_SUCCESS) {
         std::string existing_pk = it->second.get().primary_key.get();

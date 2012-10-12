@@ -149,7 +149,7 @@ public:
 
     template<class callable_t>
     /* Find the next iterator >= [start] matching [predicate]. */
-    iterator find_next(iterator start, callable_t predicate) {
+    iterator find_next(iterator start, const callable_t& predicate) {
         iterator it;
         for (it = start; it != end(); ++it) {
             if (it->second.is_deleted()) continue;
@@ -167,7 +167,7 @@ public:
     /* Find the unique entry matching [predicate].  If there is no unique entry,
        return [end()] and set the optional status parameter appropriately. */
     template<class callable_t>
-    iterator find_uniq(callable_t predicate, metadata_search_status_t *out = 0) {
+    iterator find_uniq(const callable_t& predicate, metadata_search_status_t *out = 0) {
         iterator it, retval;
         if (out) *out = METADATA_SUCCESS;
         retval = it = find_next(begin(), predicate);
@@ -185,7 +185,7 @@ public:
     }
 
     struct name_predicate_t {
-        bool operator()(T metadata) {
+        bool operator()(T metadata) const {
             return !metadata.name.in_conflict() && metadata.name.get() == *name;
         }
         explicit name_predicate_t(const std::string *_name): name(_name) { }
@@ -198,8 +198,7 @@ private:
 
 class namespace_predicate_t {
 public:
-    // TODO: Can this not be a const reference?
-    bool operator()(namespace_semilattice_metadata_t<rdb_protocol_t> ns) {
+    bool operator()(const namespace_semilattice_metadata_t<rdb_protocol_t>& ns) const {
         if (name && (ns.name.in_conflict() || ns.name.get() != *name)) {
             return false;
         } else if (db_id && (ns.database.in_conflict() || ns.database.get() != *db_id)) {
@@ -207,13 +206,15 @@ public:
         }
         return true;
     }
-    explicit namespace_predicate_t(std::string &_name): name(&_name), db_id(0) { }
-    explicit namespace_predicate_t(uuid_t &_db_id): name(0), db_id(&_db_id) { }
-    namespace_predicate_t(std::string &_name, uuid_t &_db_id):
-        name(&_name), db_id(&_db_id) { }
+    explicit namespace_predicate_t(const std::string *_name): name(_name), db_id(NULL) { }
+    explicit namespace_predicate_t(const uuid_t *_db_id): name(NULL), db_id(_db_id) { }
+    namespace_predicate_t(const std::string *_name, const uuid_t *_db_id):
+        name(_name), db_id(_db_id) { }
 private:
     const std::string *name;
     const uuid_t *db_id;
+
+    DISABLE_COPYING(namespace_predicate_t);
 };
 
 
