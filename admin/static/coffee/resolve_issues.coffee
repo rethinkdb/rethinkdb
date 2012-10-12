@@ -110,7 +110,8 @@ module 'ResolveIssuesView', ->
             if (response)
                 @on_success_with_error()
                 return
-
+            
+            #TODO Remove this synchronous request and use proper callbacks.
             # Grab the new set of issues (so we don't have to wait)
             $.ajax
                 url: '/ajax/issues'
