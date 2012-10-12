@@ -119,6 +119,10 @@ std::string admin_value_to_string(const std::string& str) {
     return "\"" + str + "\"";
 }
 
+std::string admin_value_to_string(const name_string_t& name) {
+    return admin_value_to_string(name.str());
+}
+
 std::string admin_value_to_string(const std::map<uuid_t, int>& value) {
     std::string result;
     size_t count = 0;
@@ -303,6 +307,10 @@ void admin_cluster_link_t::clear_metadata_maps() {
     uuid_map.clear();
 }
 
+// TODO(1253) Nothing really should use std::string here.
+std::string undo_name_string(const name_string_t& s) { return s.str(); }
+std::string undo_name_string(const std::string& s) { return s; }
+
 template <class T>
 void admin_cluster_link_t::add_subset_to_maps(const std::string& base, const T& data_map) {
     for (typename T::const_iterator i = data_map.begin(); i != data_map.end(); ++i) {
@@ -317,7 +325,7 @@ void admin_cluster_link_t::add_subset_to_maps(const std::string& base, const T& 
         info->path.push_back(uuid_str);
 
         if (!i->second.get().name.in_conflict()) {
-            info->name = i->second.get().name.get();
+            info->name = undo_name_string(i->second.get().name.get());  // TODO(1253) should info->name be a name_string_t?
             name_map.insert(std::pair<std::string, metadata_info_t *>(info->name, info));
         }
         uuid_map.insert(std::pair<std::string, metadata_info_t *>(uuid_str, info));
@@ -1357,7 +1365,7 @@ void admin_cluster_link_t::list_all_internal(const std::string& type, bool long_
             if (i->second.get().name.in_conflict()) {
                 delta.push_back("<conflict>");
             } else {
-                delta.push_back(i->second.get().name.get());
+                delta.push_back(undo_name_string(i->second.get().name.get()) /* TODO(1253) */);
             }
 
             table->push_back(delta);
@@ -1673,7 +1681,7 @@ void admin_cluster_link_t::add_namespaces(UNUSED const std::string& protocol,
             }
 
             if (!i->second.get().name.in_conflict()) {
-                delta.push_back(i->second.get().name.get());
+                delta.push_back(i->second.get().name.get().str() /* TODO(1253) */);
             } else {
                 delta.push_back("<conflict>");
             }
@@ -1881,7 +1889,12 @@ void admin_cluster_link_t::do_admin_create_table(const admin_command_parser_t::c
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
         change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
-    std::string name = guarantee_param_0(data.params, "name");
+    std::string name_str = guarantee_param_0(data.params, "name");
+    name_string_t name;
+    if (!name.assign(name_str)) {
+        throw admin_parse_exc_t("table name invalid (use A-Za-z0-9_): " + name_str /* TODO(1253) duplicate message, DRY */);
+    }
+
     std::string database_id = guarantee_param_0(data.params, "database");
     metadata_info_t *database_info = get_info_from_id(database_id);
     database_id_t database = str_to_uuid(database_info->path[1]);
@@ -1970,7 +1983,7 @@ void admin_cluster_link_t::do_admin_create_table(const admin_command_parser_t::c
 
 // TODO: This is mostly redundant with the new_namespace function?  Or just outdated?
 template <class protocol_t>
-namespace_id_t admin_cluster_link_t::do_admin_create_table_internal(const std::string& name,
+namespace_id_t admin_cluster_link_t::do_admin_create_table_internal(const name_string_t& name,
                                                                     int port,
                                                                     const datacenter_id_t& primary,
                                                                     const std::string& primary_key,
@@ -2283,12 +2296,25 @@ void admin_cluster_link_t::do_admin_set_name(const admin_command_parser_t::comma
     do_metadata_update(&cluster_metadata, &change_request);
 }
 
+// TODO(1253): all names probably should be name_string_t.
+void do_assign_string_to_name(std::string& assignee, const std::string& s) THROWS_ONLY(admin_cluster_exc_t) {
+    assignee = s;
+}
+void do_assign_string_to_name(name_string_t &assignee, const std::string& s) THROWS_ONLY(admin_cluster_exc_t) {
+    name_string_t ret;
+    if (!ret.assign(s)) {
+        throw admin_cluster_exc_t("invalid name: " + s);
+    }
+    assignee = ret;
+}
+
+
 template <class map_type>
 void admin_cluster_link_t::do_admin_set_name_internal(const uuid_t& id, const std::string& name, map_type *obj_map) {
     // TODO: How do we know i != obj_map->end()?
     typename map_type::iterator i = obj_map->find(id);
     if (i != obj_map->end() && !i->second.is_deleted() && !i->second.get().name.in_conflict()) {
-        i->second.get_mutable().name.get_mutable() = name;
+        do_assign_string_to_name(i->second.get_mutable().name.get_mutable(), name);
         i->second.get_mutable().name.upgrade_version(change_request_id);
     } else {
         throw admin_cluster_exc_t("unexpected error, object not found: " + uuid_to_str(id));
@@ -2971,7 +2997,7 @@ void admin_cluster_link_t::add_single_datacenter_affinities(const datacenter_id_
             std::vector<std::string> delta;
 
             delta.push_back(uuid_to_str(i->first));
-            delta.push_back(ns.name.in_conflict() ? "<conflict>" : ns.name.get());
+            delta.push_back(ns.name.in_conflict() ? "<conflict>" : ns.name.get().str() /* TODO(1253) */);
             // TODO: fix this once multiple protocols are supported again
             // delta.push_back(protocol);
 
@@ -3048,7 +3074,7 @@ void admin_cluster_link_t::add_single_database_affinities(const datacenter_id_t&
                 std::vector<std::string> delta;
 
                 delta.push_back(uuid_to_str(i->first));
-                delta.push_back(ns.name.in_conflict() ? "<conflict>" : ns.name.get());
+                delta.push_back(ns.name.in_conflict() ? "<conflict>" : ns.name.get().str() /* TODO(1253) */);
                 // TODO: fix this once multiple protocols are supported again
                 // delta.push_back(protocol);
 
@@ -3121,7 +3147,7 @@ size_t admin_cluster_link_t::add_single_machine_replicas(const machine_id_t& mac
         if (!i->second.is_deleted() && !i->second.get().blueprint.in_conflict()) {
             typename map_type::mapped_type::value_t ns = i->second.get();
             std::string uuid = uuid_to_str(i->first);
-            std::string name = ns.name.in_conflict() ? "<conflict>" : ns.name.get();
+            std::string name = ns.name.in_conflict() ? "<conflict>" : ns.name.get().str() /* TODO(1253) */;
             matches += add_single_machine_blueprint(machine_id, ns.blueprint.get(), uuid, name, table);
         }
     }
@@ -3265,7 +3291,7 @@ void admin_cluster_link_t::resolve_value(vclock_t<T> *field) {
 
     printf("%ld values\n", values.size());
     for (size_t i = 0; i < values.size(); ++i) {
-        printf(" %ld: %s\n", i + 1, admin_value_to_string(values[i]).c_str());
+        printf(" %ld: %s\n", i + 1, admin_value_to_string(values[i]).c_str());  // TODO(1253)
     }
     printf(" 0: cancel\n");
     printf("select: ");

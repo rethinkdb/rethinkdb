@@ -206,12 +206,12 @@ public:
         }
         return true;
     }
-    explicit namespace_predicate_t(const std::string *_name): name(_name), db_id(NULL) { }
+    explicit namespace_predicate_t(const name_string_t *_name): name(_name), db_id(NULL) { }
     explicit namespace_predicate_t(const uuid_t *_db_id): name(NULL), db_id(_db_id) { }
-    namespace_predicate_t(const std::string *_name, const uuid_t *_db_id):
+    namespace_predicate_t(const name_string_t *_name, const uuid_t *_db_id):
         name(_name), db_id(_db_id) { }
 private:
-    const std::string *name;
+    const name_string_t *name;
     const uuid_t *db_id;
 
     DISABLE_COPYING(namespace_predicate_t);

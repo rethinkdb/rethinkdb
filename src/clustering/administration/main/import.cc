@@ -177,7 +177,7 @@ bool run_json_import(extproc::spawner_t::info_t *spawner_info, peer_address_set_
 namespace_id_t get_or_create_namespace(cluster_semilattice_metadata_t *metadata,
                                        datacenter_id_t dc_id,
                                        database_id_t db_id,
-                                       std::string table_name,
+                                       name_string_t table_name,
                                        std::string primary_key_in,
                                        const machine_id_t &sync_machine_id,
                                        bool *do_update) {

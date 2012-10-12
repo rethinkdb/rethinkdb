@@ -156,24 +156,6 @@ void run_rethinkdb_serve(extproc::spawner_t::info_t *spawner_info, const std::st
     }
 }
 
-void add_rdb_namespace(const char *name, machine_id_t our_machine_id, database_id_t database_id,
-                       datacenter_id_t datacenter_id, cluster_semilattice_metadata_t &semilattice_metadata) {
-    /* add an rdb namespace */
-    namespace_id_t namespace_id = generate_uuid();
-
-    namespace_semilattice_metadata_t<rdb_protocol_t> namespace_metadata =
-        new_namespace<rdb_protocol_t>(our_machine_id, database_id, datacenter_id, name, "id", port_defaults::reql_port, GIGABYTE);
-
-    persistable_blueprint_t<rdb_protocol_t> blueprint;
-    std::map<rdb_protocol_t::region_t, blueprint_role_t> roles;
-    roles.insert(std::make_pair(rdb_protocol_t::region_t::universe(), blueprint_role_primary));
-    blueprint.machines_roles.insert(std::make_pair(our_machine_id, roles));
-    namespace_metadata.blueprint = vclock_t<persistable_blueprint_t<rdb_protocol_t> >(blueprint, our_machine_id);
-
-    cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t change(&semilattice_metadata.rdb_namespaces);
-    change.get()->namespaces.insert(std::make_pair(namespace_id, namespace_metadata));
-}
-
 void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std::string &filepath, const std::string &machine_name, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets, bool new_directory) {
     os_signal_cond_t sigint_cond;
 
@@ -213,9 +195,8 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
         our_machine_metadata.name = vclock_t<std::string>(machine_name, our_machine_id);
         our_machine_metadata.datacenter = vclock_t<datacenter_id_t>(nil_uuid(), our_machine_id);
         semilattice_metadata.machines.machines.insert(std::make_pair(our_machine_id, our_machine_metadata));
-            
-        if (joins.empty())
-        {
+
+        if (joins.empty()) {
             logINF("Creating a default database for your convenience. (This is because you ran 'rethinkdb' "
                    "without 'create', 'serve', or '--join', and the directory '%s' did not already exist.)\n",
                    filepath.c_str());
@@ -227,10 +208,6 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
             semilattice_metadata.databases.databases.insert(std::make_pair(
                 database_id,
                 deletable_t<database_semilattice_metadata_t>(database_metadata)));
-
-            // We could use add_rdb_namespace() here if we wanted a
-            // default namespace
-
         }
 
         scoped_ptr_t<io_backender_t> io_backender;
@@ -662,9 +639,15 @@ int main_rethinkdb_import(int argc, char *argv[]) {
 #endif
         std::string db_table = vm["table"].as<std::string>();
         std::string db_name;
-        std::string table_name;
-        if (!split_db_table(db_table, &db_name, &table_name)) {
+        std::string table_name_str;
+        if (!split_db_table(db_table, &db_name, &table_name_str)) {
             printf("--table option should have format database_name.table_name\n");
+            return EXIT_FAILURE;
+        }
+
+        name_string_t table_name;
+        if (!table_name.assign(table_name_str)) {
+            printf("--table option table name invalid (use A-Za-z0-9_)\n");
             return EXIT_FAILURE;
         }
 

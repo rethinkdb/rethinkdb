@@ -24,6 +24,7 @@ private:
 
 public:
     typedef T value_t;
+    typedef T value_type;
 
     bool is_deleted() const {
         return deleted;

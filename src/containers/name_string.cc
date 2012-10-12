@@ -17,3 +17,24 @@ bool name_string_t::assign(const std::string& s) {
     str_ = s;
     return true;
 }
+
+
+json_adapter_if_t::json_adapter_map_t get_json_subfields(UNUSED name_string_t *target) {
+    std::string fake_target;
+    return get_json_subfields(&fake_target);
+}
+
+cJSON *render_as_json(name_string_t *target) {
+    std::string tmp = target->str();
+    return render_as_json(&tmp);
+}
+
+void apply_json_to(cJSON *change, name_string_t *target) {
+    std::string tmp;
+    apply_json_to(change, &tmp);
+    if (!target->assign(tmp)) {
+        throw schema_mismatch_exc_t("invalid name");
+    }
+}
+
+void on_subfield_change(name_string_t *) { }

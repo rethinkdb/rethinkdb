@@ -21,6 +21,7 @@
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/cow_ptr_type.hpp"
 #include "containers/cow_ptr.hpp"
+#include "containers/name_string.hpp"
 #include "containers/uuid.hpp"
 #include "http/json/json_adapter.hpp"
 #include "rpc/semilattice/joins/deletable.hpp"
@@ -49,7 +50,7 @@ public:
     vclock_t<std::map<datacenter_id_t, int> > replica_affinities;
     vclock_t<std::map<datacenter_id_t, int> > ack_expectations;
     vclock_t<nonoverlapping_regions_t<protocol_t> > shards;
-    vclock_t<std::string> name;
+    vclock_t<name_string_t> name;
     vclock_t<int> port;
     vclock_t<region_map_t<protocol_t, machine_id_t> > primary_pinnings;
     vclock_t<region_map_t<protocol_t, std::set<machine_id_t> > > secondary_pinnings;
@@ -100,7 +101,7 @@ void debug_print(append_only_printf_buffer_t *buf, const namespace_semilattice_m
 template<class protocol_t>
 namespace_semilattice_metadata_t<protocol_t> new_namespace(
     uuid_t machine, uuid_t database, uuid_t datacenter,
-    const std::string &name, const std::string &key, int port,
+    const name_string_t &name, const std::string &key, int port,
     int64_t cache_size) {
 
     vclock_builder_t vc(machine);

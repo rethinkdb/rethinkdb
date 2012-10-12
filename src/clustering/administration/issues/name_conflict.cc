@@ -88,7 +88,7 @@ namespace_map_t(const std::map<uuid_t, deletable_t<database_semilattice_metadata
                     if (std_contains(databases, it->second.get().database.get())) {
                         deletable_t<database_semilattice_metadata_t> db = databases[it->second.get().database.get()];
                         if (!db.is_deleted() && !db.get().name.in_conflict()) {
-                            by_name[db.get().name.get() + "." + it->second.get().name.get()].insert(it->first);
+                            by_name[db.get().name.get() + "." + it->second.get().name.get().str()].insert(it->first);
                         }
                     }
                 }

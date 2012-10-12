@@ -7,6 +7,7 @@
 #include "errors.hpp"
 #include <boost/optional.hpp>
 
+#include "containers/name_string.hpp"
 #include "extproc/spawner.hpp"
 
 class peer_address_set_t;
@@ -15,7 +16,7 @@ class json_importer_t;
 struct json_import_target_t {
     std::string db_name;
     boost::optional<std::string> datacenter_name;
-    std::string table_name;
+    name_string_t table_name;
     std::string primary_key;
 };
 
