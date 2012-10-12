@@ -581,6 +581,11 @@ module 'DataExplorerView', ->
                 last_function_full = @extract_last_function_for_description(query_before_cursor)
                 if last_function_full isnt ''
                     last_function = last_function_full
+
+            # Hack because last_function returns 'r' if the query is 'r'. and r isn't a function
+            if last_function is query and last_function is 'r'
+                last_function = null
+
             if @map_state[last_function]? and @suggestions[@map_state[last_function]]?
                 if not @suggestions[@map_state[last_function]]? or @suggestions[@map_state[last_function]].length is 0
                     @hide_suggestion()
