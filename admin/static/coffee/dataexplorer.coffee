@@ -257,6 +257,12 @@ module 'DataExplorerView', ->
         query_first_part: ''
         query_last_part: ''
 
+        show_or_hide_arrow: =>
+            if @.$('.suggestion_name_list').css('display') is 'none' and @.$('.suggestion_description').css('display') is 'none'
+                @.$('.arrow').hide()
+            else
+                @.$('.arrow').show()
+    
         # Write the suggestion
         write_suggestion: (suggestion_to_write) =>
             @codemirror.setValue @query_first_part + @current_completed_query + suggestion_to_write + @query_last_part
@@ -314,11 +320,13 @@ module 'DataExplorerView', ->
             @.$('.suggestion_name_list').css 'display', 'none'
             @hide_suggestion_description()
             @current_suggestions = []
+            @show_or_hide_arrow()
 
         # Hide the description
         hide_suggestion_description: ->
             @.$('.suggestion_description').html ''
             @.$('.suggestion_description').css 'display', 'none'
+            @show_or_hide_arrow()
 
         # Change the num_char_per_line value when we switch from normal view to full view and vice versa 
         set_char_per_line: =>
@@ -332,7 +340,7 @@ module 'DataExplorerView', ->
             query_lines = @codemirror.getValue().split '\n'
             i = 0
             extra_lines = 0
-            while i < query_lines.length
+            while i < query_lines.length-1
                 extra_lines += Math.floor(query_lines[i].length/@num_char_per_line)
                 i++
             extra_lines += Math.floor(@codemirror.getCursor().ch/@num_char_per_line)
@@ -343,37 +351,38 @@ module 'DataExplorerView', ->
             @.$('.arrow').css 'margin-left', margin_left
 
             if margin_left < 200
-                @.$('.suggestion_list_container').css 'margin-left', '0px'
-                @.$('.suggestion_description').css 'margin-left', '0px'
-            else if margin_left > 560
-                @.$('.suggestion_list_container').css 'margin-left', '560px'
-                @.$('.suggestion_description').css 'margin-left', '560px'
+                @.$('.suggestion_full_container').css 'left', '0px'
+            else if margin_left > 468
+                @.$('.suggestion_full_container').css 'left', '440px'
             else
-                margin_left = Math.floor(margin_left/100)*100
-                @.$('.suggestion_list_container').css 'margin-left', (margin_left-100)+'px'
-                @.$('.suggestion_description').css 'margin-left', (margin_left-100)+'px'
+                margin_left = Math.min 468, Math.floor(margin_left/100)*100
+                @.$('.suggestion_full_container').css 'left', (margin_left-100)+'px'
 
         #TODO refactor show_suggestion, show_suggestion_description, add_description
         show_suggestion: =>
             margin = ((@codemirror.getCursor().line+1+@compute_extra_lines())*@line_height) + 'px'
             @.$('.suggestion_full_container').css 'margin-top', margin
+            @.$('.arrow').css 'margin-top', margin
             @.$('.suggestion_name_list').css 'display', 'block'
             @move_suggestion()
-
+            @show_or_hide_arrow()
 
         show_suggestion_description: ->
             margin = ((@codemirror.getCursor().line+1+@compute_extra_lines())*@line_height) + 'px'
             @.$('.suggestion_full_container').css 'margin-top', margin
+            @.$('.arrow').css 'margin-top', margin
             @.$('.suggestion_description').css 'display', 'block'
-            @move_suggestion()
+            @show_or_hide_arrow()
 
         add_description: (fn) =>
             if @descriptions[fn]?
                 margin = ((@codemirror.getCursor().line+1+@compute_extra_lines())*@line_height) + 'px'
                 @.$('.suggestion_full_container').css 'margin-top', margin
+                @.$('.arrow').css 'margin-top', margin
                 @.$('.suggestion_description').html @description_template @descriptions[fn]
                 @.$('.suggestion_description').css 'display', 'block'
                 @move_suggestion()
+                @show_or_hide_arrow()
 
         # Expand the textarea of the raw view
         expand_textarea: (event) =>
@@ -426,6 +435,7 @@ module 'DataExplorerView', ->
                     if event.type isnt 'keydown'
                         return true
                     @.$('suggestion_name_list').css 'display', 'none'
+                    @show_or_hide_arrow()
                     @execute_query()
             
             # We just look at key up so we don't fire the call 3 times

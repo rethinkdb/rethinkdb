@@ -846,7 +846,31 @@ body:before {
     .query_control{
         position: relative;
         width: 100%;
-        .suggestion_full_container{
+        .suggestion_description_arrow{
+            display: none;
+            position: absolute;
+            z-index: 201;
+            top: 10px;
+            left: 0px;
+            width: 0; 
+            height: 0; 
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent; 
+            border-bottom:10px solid #bbb; 
+        }
+        .suggestion_description_arrow_overlay{
+            display: none;
+            position: absolute;
+            z-index: 202;
+            top: 11px;
+            left: 0px; //TODO
+            width: 0; 
+            height: 0; 
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent; 
+            border-bottom:10px solid #fff; 
+        }
+    .suggestion_full_container{
             position: absolute;
             width: 452px;
             top: 20px;
@@ -876,31 +900,9 @@ body:before {
                 }
                 .suggestion_name_li_hl{ color: #005388; }
             }
-            .suggestion_description_arrow{
-                position: absolute;
-                z-index: 201;
-                top: -10px;
-                left: 0px;
-                width: 0; 
-                height: 0; 
-                border-left: 10px solid transparent;
-                border-right: 10px solid transparent; 
-                border-bottom:10px solid #bbb; 
-            }
-            .suggestion_description_arrow_overlay{
-                position: absolute;
-                z-index: 202;
-                top: -9px;
-                left: 0px; //TODO
-                width: 0; 
-                height: 0; 
-                border-left: 10px solid transparent;
-                border-right: 10px solid transparent; 
-                border-bottom:10px solid #fff; 
-            }
             .suggestion_description{
                 display: none;
-                width: 452px;
+                width: 442px;
                 padding: 5px;
                 margin: 0px;
                 background: #fcfcfc;
