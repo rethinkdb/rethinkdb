@@ -121,7 +121,7 @@ bool term_type_least_upper_bound(term_info_t left, term_info_t right, term_info_
 void check_table_ref(const TableRef &tr, const backtrace_t &backtrace) {
     name_string_t name;
     if (!name.assign(tr.table_name())) {
-        throw bad_query_exc_t(strprintf("Invalid table name '%s'.", tr.table_name().c_str()), backtrace);
+        throw bad_query_exc_t(strprintf("Invalid table name '%s'.", tr.table_name().c_str()), backtrace);  // TODO(1253): duplicate error message, could be improved, DRY.
     }
 }
 
@@ -826,6 +826,15 @@ uuid_t meta_get_uuid(T searcher, const U& predicate,
     return entry->first;
 }
 
+void assign_table_name(const std::string table_name_str, const backtrace_t& bt, name_string_t *table_name_out)
+    THROWS_ONLY(runtime_exc_t) {
+    if (!table_name_out->assign(table_name_str)) {
+        // TODO(1253): still duplicate error messages, DRY.
+        throw runtime_exc_t(strprintf("table name '%s'invalid (use A-Za-z0-9_): ", table_name_str.c_str()), bt);
+    }
+}
+
+
 void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const backtrace_t &bt) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
     // This must be performed on the semilattice_metadata's home thread,
     int original_thread = get_thread_id();
@@ -915,9 +924,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         std::string db_name = m->create_table().table_ref().db_name();
         std::string table_name_str = m->create_table().table_ref().table_name();
         name_string_t table_name;
-        if (!table_name.assign(table_name_str)) {
-            throw runtime_exc_t("table name invalid (use A-Za-z0-9_): " + table_name_str /* TODO(1253) duplicate message, DRY */, bt);
-        }
+        assign_table_name(table_name_str, bt.with("table_ref").with("table_name"), &table_name);
         std::string primary_key = m->create_table().primary_key();
         int64_t cache_size = m->create_table().cache_size();
 
@@ -967,9 +974,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         std::string db_name = m->drop_table().db_name();
         std::string table_name_str = m->drop_table().table_name();
         name_string_t table_name;
-        if (!table_name.assign(table_name_str)) {
-            throw runtime_exc_t("table name invalid (use A-Za-z0-9_): " + table_name_str /* TODO(1253) duplicate message, DRY */, bt);
-        }
+        assign_table_name(table_name_str, bt.with("table_name"), &table_name);
 
         // Get namespace metadata.
         uuid_t db_id = meta_get_uuid(db_searcher, db_name, "FIND_DATABASE " + db_name, bt.with("db_name"));
@@ -1017,9 +1022,7 @@ std::string get_primary_key(TableRef *t, runtime_environment_t *env,
     std::string db_name = t->db_name();
     std::string table_name_str = t->table_name();
     name_string_t table_name;
-    if (!table_name.assign(table_name_str)) {
-        throw runtime_exc_t("invalid table name: " + table_name_str /* TODO(1253) duplicate message, DRY */, bt);
-    }
+    assign_table_name(table_name_str, bt.with("table_name"), &table_name);
 
     cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > ns_metadata = env->namespaces_semilattice_metadata->get();
     databases_semilattice_metadata_t db_metadata = env->databases_semilattice_metadata->get();
@@ -2630,9 +2633,8 @@ namespace_repo_t<rdb_protocol_t>::access_t eval_table_ref(TableRef *t, runtime_e
     THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
     std::string table_name_str = t->table_name();
     name_string_t table_name;
-    if (!table_name.assign(table_name_str)) {
-        throw runtime_exc_t("invalid table name: " + table_name_str, bt);  // TODO(1253) duplicate message, DRY
-    }
+    assign_table_name(table_name_str, bt.with("table_name"), &table_name);
+
     std::string db_name = t->db_name();
 
     cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > namespaces_metadata = env->namespaces_semilattice_metadata->get();
