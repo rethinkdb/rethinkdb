@@ -15,6 +15,11 @@
     </div>
 </script>
 
+<script id="dataexplorer-description-template" type="text/x-handlebars-template">
+<p><span class="description_name">{{name}}</span>{{#if args}}<span class="description_arguments">{{args}}</span>{{/if}}</p>
+<p>{{description}}</p>
+</script>
+
 <script id="alert-reconnection_success-template" type="text/x-handlebars-template">
     <div class="alert" data-alert="alert">
         <a class="close" href="#">&times;</a>
@@ -28,6 +33,8 @@
             <div class="suggestion_list_container">
                 <ul class="suggestion_name_list"></ul>
             </div>
+            <div class="suggestion_description_arrow arrow"></div>
+            <div class="suggestion_description_arrow_overlay arrow"></div>
             <div class="suggestion_description"></div>
         </div>
 

@@ -2,6 +2,7 @@ module 'DataExplorerView', ->
     class @Container extends Backbone.View
         id: 'dataexplorer'
         template: Handlebars.compile $('#dataexplorer_view-template').html()
+        description_template: Handlebars.compile $('#dataexplorer-description-template').html()
         template_suggestion_name: Handlebars.compile $('#dataexplorer_suggestion_name_li-template').html()
         alert_connection_fail_template: Handlebars.compile $('#alert-connection_fail-template').html()
         alert_reconnection_success_template: Handlebars.compile $('#alert-reconnection_success-template').html()
@@ -64,50 +65,173 @@ module 'DataExplorerView', ->
 
         # Descriptions of all the functions
         descriptions:
-            'get(': 'get( id )'
-            'filter(': 'filter ( predicate )'
-            'map(': 'map( attribute )'
-            'slice(': 'slice'
-            'orderby(': 'orderby( expression )'
-            'distinct(': 'distinct( expression )'
-            'pluck(': 'pluck('
-            'extend(': 'extend( object )'
-            'pickAttrs(': 'pickAttrs('
-            'del(': 'del()'
-            'table(': 'table( table_name )'
-            'list(': 'list()'
-            'create(': 'create('
-            'drop(': 'drop('
-            'insert(': 'insert( document )'
-            'dbCreate(': 'dbCreate( database_name )'
-            'db(': 'db( database_name )'
-            'dbDrop(': 'dbDrop( database_name )'
-            'dbList(': 'dbList('
-            'expr(':'expr( expression )'
-            'fn(': 'fn( argument..., body )'
-            'ifThenElse(': 'ifThenElse( expression, callback_true, callback_false)'
-            'let(': 'let( arguments..., body)'
-            'length(': 'Return the length of the array'
-            'limit(': 'limit( number )'
-            'r': 'The main ReQL namespace
-            All queries should start with r.
-            '
-            'R(': 'R ( attribute_string )'
-            'add': 'add( expression )'
-            'sub(': 'sub( expression )'
-            'mul(': 'mul( expression )'
-            'div(': 'div( expression )'
-            'mod(': 'mod( expression )'
-            'eq(': 'eq( expression )'
-            'ne(': 'ne( expression )'
-            'lt(': 'lt( expression )'
-            'le(': 'le( expression )'
-            'gt(': 'gt( expression )'
-            'ge(': 'ge( expression )'
-            'not(': 'not( expression )'
-            'and(': 'and( expression )'
-            'or(': 'or( expression )'
-            'run(': 'run()'
+            'get(':
+                name: 'get'
+                args: '( id )'
+                description: 'Get the document which primary key has the value id'
+            'filter(':
+                name: 'filter'
+                args: '( predicate )'
+                description: 'Filter a stream. A document passes the filter if the predicate returns true'
+            'map(':
+                name: 'map'
+                args: '( attribute )'
+                description: 'Map a stream to an array'
+            'slice(':
+                name: 'slice'
+                args: '( start, end )'
+                description: 'Returned a sliced array stating from start to end'
+            'orderby(':
+                name: 'orderby'
+                args: '( expression )'
+                description: 'order the stream with the expression'
+            'distinct(':
+                name: 'distinct'
+                args: '( expression )'
+                description: 'Formating text is not funny. I need a bunny. I need a hat first to make my bunny appear.'
+            'pluck(':
+                name: 'pluck'
+                args: '( attribute )'
+                description: 'Filter some attributes'
+            'extend(':
+                name: 'extend'
+                args: '( object )'
+                description: 'Extend something that I do not know'
+            'pickAttrs(':
+                name: 'pickAttrs'
+                args: '( attribute_to pick... )'
+                description: 'The VP debate is ridiculous. They should talk about serious issues...'
+            'del(':
+                name: 'del'
+                args: '()'
+                description: 'Delete all the rows returned by the query'
+            'table(':
+                name: 'table'
+                args: '( table_name )'
+                description: 'Select a table'
+            'list(':
+                name: 'list'
+                args: '()'
+                description: 'List all the data'
+            'create(':
+                name: 'create'
+                args: '( table_name )'
+                description: 'Create a new table'
+            'drop(':
+                name: 'drop'
+                args: '()'
+                description: 'Drop a table'
+            'insert(':
+                name: 'insert'
+                args: '( document)'
+                description:' Insert a new document'
+            'dbCreate(':
+                name: 'dbCreate'
+                args: '( database_name )'
+                description: 'Create a database'
+            'db(': 
+                name: 'db'
+                args: '( database_name )'
+                description: 'Select a database'
+            'dbDrop(':
+                name: 'dbDrop'
+                args: '( database_name )'
+                description: 'Drop a database'
+            'dbList(': 
+                name: 'dbList'
+                args: '()'
+                description: 'list the databases'
+            'expr(':
+                name: 'expr'
+                args: '( expression )'
+                description: 'Create an expression'
+            'fn(':
+                name: 'fn'
+                args: '( argument..., body )'
+                descrition: 'Create a function'
+            'ifThenElse(':
+                name: 'ifThenElse'
+                args: '( expression, callback_true, callback_false)'
+                description: 'In French we say si ou sinon for if then else'
+            'let(':
+                name: 'let'
+                args: '( arguments..., body)'
+                description: 'Create a variable'
+            'length(':
+                name: 'length'
+                args: '()'
+                description: 'Return the length of the array'
+            'limit(':
+                name: 'limit'
+                args: '( number )'
+                description: 'Limit the number of results'
+            'r': 
+                name: 'r'
+                description: 'The main ReQL namespace.'
+            'R(': 
+                name: 'R'
+                args: '( attribute_string )'
+                description: 'Select an attribute'
+            'add':
+                name: 'add'
+                args: '( expression )'
+                description: 'Add a value'
+            'sub(':
+                name: 'sub'
+                args: '( expression )'
+                description: 'Sub a value'
+            'mul(':
+                name: 'mul'
+                args: '( expression )'
+                description: 'Multiply a value'
+            'div(':
+                name: 'div'
+                args: '( expression )'
+                description: 'Divide something by something and youhouuuuuUUUuuu'
+            'mod(':
+                name: 'mod'
+                args: '( expression )'
+                description: 'Mod by a value'
+            'eq(':
+                name: 'eq'
+                args: '( expression )'
+                description: 'Check for equality'
+            'ne(':
+                name: 'ne'
+                args: '( expression )'
+                description: 'It is not really cool to format stuff, I am bored -_-'
+            'lt(':
+                name: 'lt'
+                args: '( expression )'
+                description: 'Less than'
+            'le(':
+                name: 'le'
+                args: '( expression )'
+                description: 'Less than'
+            'gt(':
+                name: 'gt'
+                args: '( expression )'
+                description: 'Greater than'
+            'ge(':
+                name: 'ge'
+                args: '( expression )'
+                description: 'Greater or equal'
+            'not(':
+                name: 'not'
+                args: '( expression )'
+                description: 'Not'
+            'and(':
+                name: 'and'
+                args: '( expression )'
+                description: 'And'
+            'or(':
+                name: 'or'
+                args: '( expression )'
+                description: 'Or means Gold in French. That is cool no?'
+            'run(':
+                name: 'run'
+                args: '()'
+                description: 'Run the query'
 
         # Suggestions[state] = function for this state
         suggestions:
@@ -145,16 +269,12 @@ module 'DataExplorerView', ->
         mouseout_suggestion: (event) =>
             @hide_suggestion_description()
 
-        # n2br
-        nl2br: (s) ->
-            return s.replace(/\n/g, '<br/>')
-
         # Highlight suggestion
         highlight_suggestion: (id) =>
             @.$('.suggestion_name_li').removeClass 'suggestion_name_li_hl'
             @.$('.suggestion_name_li').eq(id).addClass 'suggestion_name_li_hl'
 
-            @.$('.suggestion_description').html @nl2br @descriptions[@current_suggestions[id]]
+            @.$('.suggestion_description').html @description_template @descriptions[@current_suggestions[id]]
 
             @show_suggestion_description()
 
@@ -218,25 +338,42 @@ module 'DataExplorerView', ->
             extra_lines += Math.floor(@codemirror.getCursor().ch/@num_char_per_line)
             return extra_lines
 
+        move_suggestion: =>
+            margin_left = (@codemirror.getCursor().ch%@num_char_per_line)*8+27
+            @.$('.arrow').css 'margin-left', margin_left
+
+            if margin_left < 200
+                @.$('.suggestion_list_container').css 'margin-left', '0px'
+                @.$('.suggestion_description').css 'margin-left', '0px'
+            else if margin_left > 560
+                @.$('.suggestion_list_container').css 'margin-left', '560px'
+                @.$('.suggestion_description').css 'margin-left', '560px'
+            else
+                margin_left = Math.floor(margin_left/100)*100
+                @.$('.suggestion_list_container').css 'margin-left', (margin_left-100)+'px'
+                @.$('.suggestion_description').css 'margin-left', (margin_left-100)+'px'
 
         #TODO refactor show_suggestion, show_suggestion_description, add_description
         show_suggestion: =>
             margin = ((@codemirror.getCursor().line+1+@compute_extra_lines())*@line_height) + 'px'
             @.$('.suggestion_full_container').css 'margin-top', margin
             @.$('.suggestion_name_list').css 'display', 'block'
+            @move_suggestion()
+
 
         show_suggestion_description: ->
             margin = ((@codemirror.getCursor().line+1+@compute_extra_lines())*@line_height) + 'px'
             @.$('.suggestion_full_container').css 'margin-top', margin
             @.$('.suggestion_description').css 'display', 'block'
+            @move_suggestion()
 
         add_description: (fn) =>
             if @descriptions[fn]?
                 margin = ((@codemirror.getCursor().line+1+@compute_extra_lines())*@line_height) + 'px'
                 @.$('.suggestion_full_container').css 'margin-top', margin
-                @.$('.suggestion_description').html @nl2br @descriptions[fn]
+                @.$('.suggestion_description').html @description_template @descriptions[fn]
                 @.$('.suggestion_description').css 'display', 'block'
-
+                @move_suggestion()
 
         # Expand the textarea of the raw view
         expand_textarea: (event) =>
@@ -350,6 +487,11 @@ module 'DataExplorerView', ->
 
             # Get the last completed function for description and suggestion
             last_function = @extract_last_function(query)
+            # Hack in case a new parenthesis is opened
+            if last_function is ''
+                last_function_full = @extract_last_function_for_description(query_before_cursor)
+                if last_function_full isnt ''
+                    last_function = last_function_full
             if @map_state[last_function]? and @suggestions[@map_state[last_function]]?
                 if not @suggestions[@map_state[last_function]]? or @suggestions[@map_state[last_function]].length is 0
                     @hide_suggestion()
