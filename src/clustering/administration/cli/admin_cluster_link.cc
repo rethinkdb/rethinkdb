@@ -321,7 +321,7 @@ void admin_cluster_link_t::add_subset_to_maps(const std::string& base, const T& 
         info->path.push_back(uuid_str);
 
         if (!i->second.get().name.in_conflict()) {
-            info->name = undo_name_string(i->second.get().name.get());  // TODO(1253) should info->name be a name_string_t?
+            info->name = i->second.get().name.get().str();  // TODO(1253) should info->name be a name_string_t?
             name_map.insert(std::pair<std::string, metadata_info_t *>(info->name, info));
         }
         uuid_map.insert(std::pair<std::string, metadata_info_t *>(uuid_str, info));
@@ -1128,7 +1128,7 @@ void admin_cluster_link_t::list_pinnings_internal(const persistable_blueprint_t<
             if (m->second.get().name.in_conflict()) {
                 delta.push_back("<conflict>");
             } else {
-                delta.push_back(m->second.get().name.get().str());  // TODO(1253)
+                delta.push_back(m->second.get().name.get().str());
             }
 
             if (m->second.get().datacenter.in_conflict()) {
@@ -1146,7 +1146,7 @@ void admin_cluster_link_t::list_pinnings_internal(const persistable_blueprint_t<
                 if (dc->second.get().name.in_conflict()) {
                     delta.push_back("<conflict>");
                 } else {
-                    delta.push_back(dc->second.get().name.get().str());  // TODO(1253)
+                    delta.push_back(dc->second.get().name.get().str());
                 }
             }
 
@@ -1311,7 +1311,7 @@ void admin_cluster_link_t::do_admin_list_directory(const admin_command_parser_t:
             } else if (m->second.get().name.in_conflict()) {
                 delta.push_back("<conflict>");
             } else {
-                delta.push_back(m->second.get().name.get().str());  // TODO(1253)
+                delta.push_back(m->second.get().name.get().str());
             }
         } else {
             delta.push_back("");
@@ -1361,7 +1361,7 @@ void admin_cluster_link_t::list_all_internal(const std::string& type, bool long_
             if (i->second.get().name.in_conflict()) {
                 delta.push_back("<conflict>");
             } else {
-                delta.push_back(undo_name_string(i->second.get().name.get()) /* TODO(1253) */);
+                delta.push_back(i->second.get().name.get().str());
             }
 
             table->push_back(delta);
@@ -1492,7 +1492,7 @@ void admin_cluster_link_t::do_admin_list_databases(const admin_command_parser_t:
             if (i->second.get().name.in_conflict()) {
                 delta.push_back("<conflict>");
             } else {
-                delta.push_back(i->second.get().name.get().str() /* TODO(1253) */);
+                delta.push_back(i->second.get().name.get().str());
             }
 
             if (long_format) {
@@ -1544,7 +1544,7 @@ void admin_cluster_link_t::do_admin_list_datacenters(const admin_command_parser_
             if (i->second.get().name.in_conflict()) {
                 delta.push_back("<conflict>");
             } else {
-                delta.push_back(i->second.get().name.get().str());  // TODO(1253)
+                delta.push_back(i->second.get().name.get().str());
             }
 
             if (long_format) {
@@ -1677,7 +1677,7 @@ void admin_cluster_link_t::add_namespaces(UNUSED const std::string& protocol,
             }
 
             if (!i->second.get().name.in_conflict()) {
-                delta.push_back(i->second.get().name.get().str() /* TODO(1253) */);
+                delta.push_back(i->second.get().name.get().str());
             } else {
                 delta.push_back("<conflict>");
             }
@@ -1811,7 +1811,7 @@ void admin_cluster_link_t::do_admin_list_machines(const admin_command_parser_t::
             }
 
             if (!i->second.get().name.in_conflict()) {
-                delta.push_back(i->second.get().name.get().str());  // TODO(1253)
+                delta.push_back(i->second.get().name.get().str());
             } else {
                 delta.push_back("<conflict>");
             }
@@ -2296,10 +2296,6 @@ void admin_cluster_link_t::do_admin_set_name(const admin_command_parser_t::comma
     do_metadata_update(&cluster_metadata, &change_request);
 }
 
-// TODO(1253): all names probably should be name_string_t.
-void do_assign_string_to_name(std::string& assignee, const std::string& s) THROWS_ONLY(admin_cluster_exc_t) {
-    assignee = s;
-}
 void do_assign_string_to_name(name_string_t &assignee, const std::string& s) THROWS_ONLY(admin_cluster_exc_t) {
     name_string_t ret;
     if (!ret.assign_value(s)) {
@@ -2311,7 +2307,6 @@ void do_assign_string_to_name(name_string_t &assignee, const std::string& s) THR
 
 template <class map_type>
 void admin_cluster_link_t::do_admin_set_name_internal(const uuid_t& id, const std::string& name, map_type *obj_map) {
-    // TODO: How do we know i != obj_map->end()?
     typename map_type::iterator i = obj_map->find(id);
     if (i != obj_map->end() && !i->second.is_deleted() && !i->second.get().name.in_conflict()) {
         do_assign_string_to_name(i->second.get_mutable().name.get_mutable(), name);
@@ -2778,7 +2773,7 @@ void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
                 std::vector<std::string> delta;
 
                 delta.push_back(uuid_to_str(i->first));
-                delta.push_back(i->second.get().name.in_conflict() ? "<conflict>" : i->second.get().name.get().str());  // TODO(1253)
+                delta.push_back(i->second.get().name.in_conflict() ? "<conflict>" : i->second.get().name.get().str());
 
                 std::map<datacenter_id_t, int>::const_iterator replica_it = replica_affinities.find(i->first);
                 int replicas = 0;
@@ -2889,7 +2884,7 @@ void admin_cluster_link_t::add_single_namespace_replicas(const nonoverlapping_re
                 } else if (m->second.get().name.in_conflict()) {
                     delta.push_back("<conflict>");
                 } else {
-                    delta.push_back(m->second.get().name.get().str());  // TODO(1253)
+                    delta.push_back(m->second.get().name.get().str());
                 }
 
                 delta.push_back("yes");
@@ -2914,7 +2909,7 @@ void admin_cluster_link_t::add_single_namespace_replicas(const nonoverlapping_re
                 } else if (m->second.get().name.in_conflict()) {
                     delta.push_back("<conflict>");
                 } else {
-                    delta.push_back(m->second.get().name.get().str());  // TODO(1253)
+                    delta.push_back(m->second.get().name.get().str());
                 }
 
                 delta.push_back("no");
@@ -2950,7 +2945,7 @@ void admin_cluster_link_t::list_single_datacenter(const datacenter_id_t& dc_id,
             i->second.get().datacenter.get() == dc_id) {
             std::vector<std::string> delta;
             delta.push_back(uuid_to_str(i->first));
-            delta.push_back(i->second.get().name.in_conflict() ? "<conflict>" : i->second.get().name.get().str());  // TODO(1253)
+            delta.push_back(i->second.get().name.in_conflict() ? "<conflict>" : i->second.get().name.get().str());
             table.push_back(delta);
         }
     }
@@ -2997,7 +2992,7 @@ void admin_cluster_link_t::add_single_datacenter_affinities(const datacenter_id_
             std::vector<std::string> delta;
 
             delta.push_back(uuid_to_str(i->first));
-            delta.push_back(ns.name.in_conflict() ? "<conflict>" : ns.name.get().str() /* TODO(1253) */);
+            delta.push_back(ns.name.in_conflict() ? "<conflict>" : ns.name.get().str());
             // TODO: fix this once multiple protocols are supported again
             // delta.push_back(protocol);
 
@@ -3074,7 +3069,7 @@ void admin_cluster_link_t::add_single_database_affinities(const datacenter_id_t&
                 std::vector<std::string> delta;
 
                 delta.push_back(uuid_to_str(i->first));
-                delta.push_back(ns.name.in_conflict() ? "<conflict>" : ns.name.get().str() /* TODO(1253) */);
+                delta.push_back(ns.name.in_conflict() ? "<conflict>" : ns.name.get().str());
                 // TODO: fix this once multiple protocols are supported again
                 // delta.push_back(protocol);
 
@@ -3147,7 +3142,7 @@ size_t admin_cluster_link_t::add_single_machine_replicas(const machine_id_t& mac
         if (!i->second.is_deleted() && !i->second.get().blueprint.in_conflict()) {
             typename map_type::mapped_type::value_t ns = i->second.get();
             std::string uuid = uuid_to_str(i->first);
-            std::string name = ns.name.in_conflict() ? "<conflict>" : ns.name.get().str() /* TODO(1253) */;
+            std::string name = ns.name.in_conflict() ? "<conflict>" : ns.name.get().str();
             matches += add_single_machine_blueprint(machine_id, ns.blueprint.get(), uuid, name, table);
         }
     }

@@ -42,8 +42,6 @@ inline bool operator<(const name_string_t& x, const name_string_t& y) {
     return x.str() < y.str();
 }
 
-inline std::string undo_name_string(const name_string_t& s) { return s.str(); }
-
 // ctx-less json adapter concept for name_string_t
 json_adapter_if_t::json_adapter_map_t get_json_subfields(name_string_t *target);
 cJSON *render_as_json(name_string_t *target);
