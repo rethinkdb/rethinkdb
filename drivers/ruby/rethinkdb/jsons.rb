@@ -113,31 +113,17 @@ module RethinkDB
   # yields a Single_Row_Selection
   class Single_Row_Selection < JSON_Expression
     # Analagous to Multi_Row_Selection#update
-    def update(*args, &b)
-      b = S.arg_or_block(*args, &b)
+    def update(variant=nil)
       S.with_var {|vname,v|
-        Write_Query.new [:pointupdate, *(@body[1..-1] + [[vname, S.r(b.call(v))]])]}
-    end
-
-    # Like update, but doesn't guarantee atomicity.
-    def update_nonatomic(*args, &b)
-      res = update(*args, &b);
-      res.body[0] = :pointupdate_nonatomic
-      return res
+        Write_Query.new [:pointupdate, *(@body[1..-1] + [[vname, S.r(yield(v))]])]
+      }.apply_variant(variant)
     end
 
     # Analagous to Multi_Row_Selection#mutate
-    def mutate(*args, &b)
-      b = S.arg_or_block(*args, &b)
+    def mutate(variant=nil)
       S.with_var {|vname,v|
-        Write_Query.new [:pointmutate, *(@body[1..-1] + [[vname, S.r(b.call(v))]])]}
-    end
-
-    # Like mutate, but doesn't guarantee atomicity.
-    def mutate_nonatomic(*args, &b)
-      res = mutate(*args, &b);
-      res.body[0] = :pointmutate_nonatomic
-      return res
+        Write_Query.new [:pointmutate, *(@body[1..-1] + [[vname, S.r(yield(v))]])]
+      }.apply_variant(variant)
     end
 
     # Analagous to Multi_Row_Selection#delete
