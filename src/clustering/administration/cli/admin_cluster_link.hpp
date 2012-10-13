@@ -400,7 +400,9 @@ private:
         std::vector<std::string> path;
     };
 
+    // TODO: Why not make the keys be uuid_t?
     std::map<std::string, metadata_info_t*> uuid_map;
+    // TODO: Why not make the keys be std::string?
     std::multimap<std::string, metadata_info_t*> name_map;
 
     DISABLE_COPYING(admin_cluster_link_t);

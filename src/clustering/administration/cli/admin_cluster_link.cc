@@ -321,7 +321,7 @@ void admin_cluster_link_t::add_subset_to_maps(const std::string& base, const T& 
         info->path.push_back(uuid_str);
 
         if (!i->second.get().name.in_conflict()) {
-            info->name = i->second.get().name.get().str();  // TODO(1253) should info->name be a name_string_t?
+            info->name = i->second.get().name.get().str();
             name_map.insert(std::pair<std::string, metadata_info_t *>(info->name, info));
         }
         uuid_map.insert(std::pair<std::string, metadata_info_t *>(uuid_str, info));
@@ -1859,7 +1859,7 @@ void admin_cluster_link_t::do_admin_create_database(const admin_command_parser_t
     database_semilattice_metadata_t& database = cluster_metadata.databases.databases[new_id].get_mutable();
 
     if (!database.name.get_mutable().assign_value(guarantee_param_0(data.params, "name"))) {
-        throw admin_cluster_exc_t(strprintf("invalid database name.  (%s)", name_string_t::valid_char_msg));  // TODO(1253) right type of exception?
+        throw admin_parse_exc_t(strprintf("invalid database name.  (%s)", name_string_t::valid_char_msg));
     }
     database.name.upgrade_version(change_request_id);
 
@@ -1876,7 +1876,7 @@ void admin_cluster_link_t::do_admin_create_datacenter(const admin_command_parser
     datacenter_semilattice_metadata_t& datacenter = cluster_metadata.datacenters.datacenters[new_id].get_mutable();
 
     if (!datacenter.name.get_mutable().assign_value(guarantee_param_0(data.params, "name"))) {
-        throw admin_cluster_exc_t(strprintf("invalid datacenter name.  (%s)", name_string_t::valid_char_msg));  // TODO(1253) right type of exception?
+        throw admin_parse_exc_t(strprintf("invalid datacenter name.  (%s)", name_string_t::valid_char_msg));
     }
     datacenter.name.upgrade_version(change_request_id);
 
@@ -1892,7 +1892,7 @@ void admin_cluster_link_t::do_admin_create_table(const admin_command_parser_t::c
     std::string name_str = guarantee_param_0(data.params, "name");
     name_string_t name;
     if (!name.assign_value(name_str)) {
-        throw admin_parse_exc_t(strprintf("table name invalid. (%s): %s", name_string_t::valid_char_msg, name_str.c_str()));  // TODO(1253) right type of exception?
+        throw admin_parse_exc_t(strprintf("table name invalid. (%s): %s", name_string_t::valid_char_msg, name_str.c_str()));
     }
 
     std::string database_id = guarantee_param_0(data.params, "database");
@@ -3286,7 +3286,7 @@ void admin_cluster_link_t::resolve_value(vclock_t<T> *field) {
 
     printf("%ld values\n", values.size());
     for (size_t i = 0; i < values.size(); ++i) {
-        printf(" %ld: %s\n", i + 1, admin_value_to_string(values[i]).c_str());  // TODO(1253)
+        printf(" %ld: %s\n", i + 1, admin_value_to_string(values[i]).c_str());
     }
     printf(" 0: cancel\n");
     printf("select: ");
