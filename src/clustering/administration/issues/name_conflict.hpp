@@ -16,7 +16,7 @@ class name_conflict_issue_t : public global_issue_t {
 public:
     name_conflict_issue_t(
             const std::string &_type,
-            const std::string &_contested_name,  // TODO(1253) make this name_string_t?
+            const std::string &_contested_name,
             const std::set<uuid_t> &_contestants);
 
     std::string get_description() const;
@@ -25,6 +25,8 @@ public:
 
     name_conflict_issue_t *clone() const;
 
+    // TODO: Why is type not an enumeration?
+    // TODO: Why is every name conflict issue one of these things with "type"?
     std::string type;
     std::string contested_name;
     std::set<uuid_t> contestants;
