@@ -10,7 +10,7 @@ bool is_acceptable_name_character(int ch) {
 
 name_string_t::name_string_t() { }
 
-bool name_string_t::assign(const std::string& s) {
+bool name_string_t::assign_value(const std::string& s) {
     if (s.empty()) {
         return false;
     }
@@ -39,7 +39,7 @@ cJSON *render_as_json(name_string_t *target) {
 void apply_json_to(cJSON *change, name_string_t *target) {
     std::string tmp;
     apply_json_to(change, &tmp);
-    if (!target->assign(tmp)) {
+    if (!target->assign_value(tmp)) {
         throw schema_mismatch_exc_t("invalid name");
     }
 }

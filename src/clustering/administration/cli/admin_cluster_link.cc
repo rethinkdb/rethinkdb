@@ -1858,7 +1858,7 @@ void admin_cluster_link_t::do_admin_create_database(const admin_command_parser_t
     database_id_t new_id = generate_uuid();
     database_semilattice_metadata_t& database = cluster_metadata.databases.databases[new_id].get_mutable();
 
-    if (!database.name.get_mutable().assign(guarantee_param_0(data.params, "name"))) {
+    if (!database.name.get_mutable().assign_value(guarantee_param_0(data.params, "name"))) {
         throw admin_cluster_exc_t(strprintf("invalid database name.  (%s)", name_string_t::valid_char_msg));  // TODO(1253) right type of exception?
     }
     database.name.upgrade_version(change_request_id);
@@ -1875,7 +1875,7 @@ void admin_cluster_link_t::do_admin_create_datacenter(const admin_command_parser
     datacenter_id_t new_id = generate_uuid();
     datacenter_semilattice_metadata_t& datacenter = cluster_metadata.datacenters.datacenters[new_id].get_mutable();
 
-    if (!datacenter.name.get_mutable().assign(guarantee_param_0(data.params, "name"))) {
+    if (!datacenter.name.get_mutable().assign_value(guarantee_param_0(data.params, "name"))) {
         throw admin_cluster_exc_t(strprintf("invalid datacenter name.  (%s)", name_string_t::valid_char_msg));  // TODO(1253) right type of exception?
     }
     datacenter.name.upgrade_version(change_request_id);
@@ -1891,7 +1891,7 @@ void admin_cluster_link_t::do_admin_create_table(const admin_command_parser_t::c
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
     std::string name_str = guarantee_param_0(data.params, "name");
     name_string_t name;
-    if (!name.assign(name_str)) {
+    if (!name.assign_value(name_str)) {
         throw admin_parse_exc_t(strprintf("table name invalid. (%s): %s", name_string_t::valid_char_msg, name_str.c_str()));  // TODO(1253) right type of exception?
     }
 
@@ -2302,7 +2302,7 @@ void do_assign_string_to_name(std::string& assignee, const std::string& s) THROW
 }
 void do_assign_string_to_name(name_string_t &assignee, const std::string& s) THROWS_ONLY(admin_cluster_exc_t) {
     name_string_t ret;
-    if (!ret.assign(s)) {
+    if (!ret.assign_value(s)) {
         throw admin_cluster_exc_t("invalid name: " + s);
     }
     assignee = ret;

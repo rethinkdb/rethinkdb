@@ -15,7 +15,7 @@ public:
     name_string_t();
 
     // Succeeds on valid non-empty strings.
-    MUST_USE bool assign(const std::string& s);
+    MUST_USE bool assign_value(const std::string& s);
 
     const std::string& str() const { return str_; }
 
