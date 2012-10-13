@@ -64,18 +64,18 @@ module RethinkDB
     # If the object returned in <b>+update+</b> has attributes
     # which are not present in the original row, those attributes will
     # still be added to the new row.
+    #
+    # If you want to do a non-atomic update, you should pass
+    # <b>+:non_atomic+</b> as the optional variant:
+    #   table.update(:non_atomic){|row| r.js("...")}
+    # You need to do a non-atomic update when the block provided to mutate can't
+    # be proved deterministic (e.g. if it contains javascript or reads from
+    # another table).
     def update(variant=nil)
       raise_if_outdated
       S.with_var {|vname,v|
         Write_Query.new [:update, self, [vname, S.r(yield(v))]]
       }.apply_variant(variant)
-    end
-
-    # Like update, but doesn't guarantee atomicity.
-    def update_nonatomic(*args, &b)
-      res = update(*args, &b);
-      res.body[0] = :update_nonatomic
-      return res
     end
 
     # Replace all of the selected rows.  Unlike <b>+update+</b>, must return the
@@ -85,18 +85,18 @@ module RethinkDB
     # table <b>+table+</b>, then:
     #   table.mutate{|row| r.if(row[:id] < 5, nil, row)}
     # will delete everything with id less than 5, but leave the other rows untouched.
+    #
+    # If you want to do a non-atomic mutate, you should pass
+    # <b>+:non_atomic+</b> as the optional variant:
+    #   table.mutate(:non_atomic){|row| r.js("...")}
+    # You need to do a non-atomic mutate when the block provided to mutate can't
+    # be proved deterministic (e.g. if it contains javascript or reads from
+    # another table).
     def mutate(variant=nil)
       raise_if_outdated
       S.with_var {|vname,v|
         Write_Query.new [:mutate, self, [vname, S.r(yield(v))]]
       }.apply_variant(variant)
-    end
-
-    # Like mutate, but doesn't guarantee atomicity.
-    def mutate_nonatomic(*args, &b)
-      res = mutate(*args, &b)
-      res.body[0] = :mutate_nonatomic
-      return res
     end
   end
 end

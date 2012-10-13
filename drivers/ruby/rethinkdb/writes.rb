@@ -1,6 +1,9 @@
 module RethinkDB
   # A write operation, like an insert.
   class Write_Query < RQL_Query
+    # Internal tool for when we have commands that take a flag but
+    # which are most easily processed by the protobuf compiler as a
+    # separate command.
     def apply_variant(variant) # :nodoc:
       return self if variant.nil?
       if variant == :non_atomic
