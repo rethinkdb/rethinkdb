@@ -7,15 +7,21 @@
 #include "rpc/serialize_macros.hpp"
 
 // The kind of string that can only contain either the empty string or acceptable names for
-// things.
+// things.  You may only assign non-empty strings.
 
 class name_string_t {
 public:
+    // Initializes to the empty string.
     name_string_t();
+
+    // Succeeds on valid non-empty strings.
     MUST_USE bool assign(const std::string& s);
+
     const std::string& str() const { return str_; }
+
     bool empty() const { return str_.empty(); }  // TODO(1253): get rid of this.
     const char *c_str() const { return str_.c_str(); }  // TODO(1253): get rid of this.
+
     RDB_MAKE_ME_SERIALIZABLE_1(str_);
 
     static const char *const valid_char_msg;
