@@ -18,6 +18,8 @@ public:
     const char *c_str() const { return str_.c_str(); }  // TODO(1253): get rid of this.
     RDB_MAKE_ME_SERIALIZABLE_1(str_);
 
+    static const char *const valid_char_msg;
+
 private:
     std::string str_;
 };

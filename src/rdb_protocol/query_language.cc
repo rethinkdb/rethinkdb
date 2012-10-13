@@ -121,7 +121,7 @@ bool term_type_least_upper_bound(term_info_t left, term_info_t right, term_info_
 void check_name_string(const std::string& name_str, const backtrace_t &backtrace) THROWS_ONLY(bad_query_exc_t) {
     name_string_t name;
     if (!name.assign(name_str)) {
-        throw bad_query_exc_t(strprintf("Invalid name '%s' (use only A-Za-z0-9_).", name_str.c_str()), backtrace);  // TODO(1253): duplicate error message, could be improved, DRY.
+        throw bad_query_exc_t(strprintf("Invalid name '%s'.  (%s).", name_str.c_str(), name_string_t::valid_char_msg), backtrace);
     }
 
 }
@@ -839,8 +839,7 @@ uuid_t meta_get_uuid(T searcher, const U& predicate,
 void assign_name(const char *kind_of_name, const std::string &name_str, const backtrace_t& bt, name_string_t *name_out)
     THROWS_ONLY(runtime_exc_t) {
     if (!name_out->assign(name_str)) {
-        // TODO(1253): still duplicate error messages, DRY.
-        throw runtime_exc_t(strprintf("%s name '%s'invalid (use A-Za-z0-9_): ", kind_of_name, name_str.c_str()), bt);
+        throw runtime_exc_t(strprintf("%s name '%s' invalid. (%s)", kind_of_name, name_str.c_str(), name_string_t::valid_char_msg), bt);
     }
 }
 

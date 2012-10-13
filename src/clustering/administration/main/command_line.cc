@@ -427,7 +427,7 @@ int main_rethinkdb_create(int argc, char *argv[]) {
     std::string machine_name_str = vm["machine-name"].as<std::string>();
     name_string_t machine_name;
     if (!machine_name.assign(machine_name_str)) {
-        fprintf(stderr, "Machine name '%s' invalid.  (Use A-Za-z0-9_)", machine_name_str.c_str());  // TODO(1253)
+        fprintf(stderr, "ERROR: machine-name '%s' is invalid.  (%s)", machine_name_str.c_str(), name_string_t::valid_char_msg);
         return EXIT_FAILURE;
     }
 
@@ -656,12 +656,12 @@ int main_rethinkdb_import(int argc, char *argv[]) {
 
         name_string_t db_name;
         if (!db_name.assign(table_name_str)) {
-            printf("--table: database name invalid (use A-Za-z0-9_), e.g. database_name.table_name\n");  // TODO(1253) DRY
+            printf("ERROR: database name invalid. (%s)  e.g. --table database_name.table_name\n", name_string_t::valid_char_msg);
         }
 
         name_string_t table_name;
         if (!table_name.assign(table_name_str)) {
-            printf("--table: table name invalid (use A-Za-z0-9_), e.g. database_name.table_name\n");  // TODO(1253) DRY
+            printf("ERROR: table name invalid.  (%s)  e.g. database_name.table_name\n", name_string_t::valid_char_msg);
             return EXIT_FAILURE;
         }
 
@@ -670,7 +670,7 @@ int main_rethinkdb_import(int argc, char *argv[]) {
         if (!datacenter_name_arg.empty()) {
             name_string_t tmp;
             if (!tmp.assign(datacenter_name_arg)) {
-                printf("--datacenter: datacenter name invalid (use A-Za-z0-9_)\n");  // TODO(1253) DRY
+                printf("ERROR: datacenter name invalid.  (%s)\n", name_string_t::valid_char_msg);
                 return EXIT_FAILURE;
             }
             *datacenter_name = tmp;
@@ -724,7 +724,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
     std::string machine_name_str = vm["machine-name"].as<std::string>();
     name_string_t machine_name;
     if (!machine_name.assign(machine_name_str)) {
-        fprintf(stderr, "Invalid machine-name (use A-Za-z0-9_).\n");  // TODO(1253)
+        fprintf(stderr, "ERROR: machine-name invalid.  (%s)\n", name_string_t::valid_char_msg);
         return EXIT_FAILURE;
     }
     std::vector<host_and_port_t> joins;

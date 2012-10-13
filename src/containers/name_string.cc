@@ -2,6 +2,8 @@
 
 #include <ctype.h>
 
+const char *const name_string_t::valid_char_msg = "Use A-Za-z0-9_ only.";
+
 bool is_acceptable_name_character(int ch) {
     return isalpha(ch) || isdigit(ch) || ch == '_';
 }

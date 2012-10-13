@@ -1859,7 +1859,7 @@ void admin_cluster_link_t::do_admin_create_database(const admin_command_parser_t
     database_semilattice_metadata_t& database = cluster_metadata.databases.databases[new_id].get_mutable();
 
     if (!database.name.get_mutable().assign(guarantee_param_0(data.params, "name"))) {
-        throw admin_cluster_exc_t("invalid database name (use A-Za-z0-9_)");  // TODO(1253) DRY, right type of exception?
+        throw admin_cluster_exc_t(strprintf("invalid database name.  (%s)", name_string_t::valid_char_msg));  // TODO(1253) right type of exception?
     }
     database.name.upgrade_version(change_request_id);
 
@@ -1876,7 +1876,7 @@ void admin_cluster_link_t::do_admin_create_datacenter(const admin_command_parser
     datacenter_semilattice_metadata_t& datacenter = cluster_metadata.datacenters.datacenters[new_id].get_mutable();
 
     if (!datacenter.name.get_mutable().assign(guarantee_param_0(data.params, "name"))) {
-        throw admin_cluster_exc_t("invalid datacenter name (use A-Za-z0-9_)");  // TODO(1253) DRY, right type of exception?
+        throw admin_cluster_exc_t(strprintf("invalid datacenter name.  (%s)", name_string_t::valid_char_msg));  // TODO(1253) right type of exception?
     }
     datacenter.name.upgrade_version(change_request_id);
 
@@ -1892,7 +1892,7 @@ void admin_cluster_link_t::do_admin_create_table(const admin_command_parser_t::c
     std::string name_str = guarantee_param_0(data.params, "name");
     name_string_t name;
     if (!name.assign(name_str)) {
-        throw admin_parse_exc_t("table name invalid (use A-Za-z0-9_): " + name_str /* TODO(1253) duplicate message, DRY */);
+        throw admin_parse_exc_t(strprintf("table name invalid. (%s): %s", name_string_t::valid_char_msg, name_str.c_str()));  // TODO(1253) right type of exception?
     }
 
     std::string database_id = guarantee_param_0(data.params, "database");

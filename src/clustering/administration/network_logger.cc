@@ -81,7 +81,7 @@ std::string network_logger_t::pretty_print_machine(machine_id_t id) {
     } else if (jt->second.get().name.in_conflict()) {
         name = "<name in conflict>";
     } else {
-        name = "\"" + jt->second.get().name.get().str() + "\"";  // TODO(1253)
+        name = "\"" + jt->second.get().name.get().str() + "\"";
     }
     return name + " " + uuid_to_str(id);
 }
