@@ -32,6 +32,10 @@
                 Secondary
             {{/if}}
         </p>
+        <div class="make_primary-alert">
+            <div class="close" href="#">&times;</div>
+            <div class="make_primary-alert-content"></div>
+        </div>
     </div>
     <div class="dc-info replica_container">
         {{#if editable}}
@@ -67,7 +71,23 @@
         <div class="status-alert"></div>
     </div>
 </script>
-
+<script id="namespace_view-edit_datacenter_replica-alert_messages-template" type="text/x-handlebars-template">
+    {{#if need_replica_for_primary}}
+    You need to set at least one replica before making this datacenter primary.
+    {{/if}}
+    {{#if too_many_replicas}}
+    The number of replicas ({{num_replicas}}) cannot exceed the total number of machines ({{max_machines}}).
+    {{/if}}
+    {{#if need_at_least_one_replica}}
+    The number of replicas must be at least one because {{name}} is the primary datacenter for this table.
+    {{/if}}
+    {{#if too_many_acks}}
+    The number of acks ({{num_acks}}) cannot exceed the total number of replicas ({{num_replicas}}).
+    {{/if}}
+    {{#if acks_too_small}}
+    The value of acks must be greater than 0 if you have one replica or more.
+    {{/if}}
+</script>
 <script id="namespace_view-edit_datacenter_replica-replication_status-template" type="text/x-handlebars-template">
     {{num_replicas_ready}}/{{num_replicas}} replicas up to date.
 </script>
@@ -80,7 +100,7 @@
     <div class="close" href="#">&times;</div>
     <p>
     {{#each msg_errors}}
-     {{this}}<br/>
+     {{print_safe this}}<br/>
     {{/each}}
     </p>
 </script>

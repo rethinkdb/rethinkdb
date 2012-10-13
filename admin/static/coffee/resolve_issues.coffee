@@ -110,18 +110,16 @@ module 'ResolveIssuesView', ->
             if (response)
                 @on_success_with_error()
                 return
-
-            super
-
+            
+            #TODO Remove this synchronous request and use proper callbacks.
             # Grab the new set of issues (so we don't have to wait)
             $.ajax
                 url: '/ajax/issues'
                 contentType: 'application/json'
                 success: set_issues
                 async: false
-            
-            # rerender issue view (just the issues, not the whole thing)
-            #window.app.resolve_issues.render_issues()
+
+            super
             
             # notify the user that we succeeded
             $('#user-alert-space').append @alert_tmpl
@@ -160,7 +158,7 @@ module 'ResolveIssuesView', ->
         on_submit: ->
             super
             $.ajax
-                url: "/ajax/" + @resolution_url
+                url: "/ajax/semilattice/" + @resolution_url
                 type: 'POST'
                 contentType: 'application/json'
                 data: JSON.stringify(@final_value)
@@ -168,16 +166,13 @@ module 'ResolveIssuesView', ->
                 error: @on_error
 
         on_success: (response) ->
-            super
-            # Grab the new set of issues (so we don't have to wait)
             $.ajax
                 url: '/ajax/issues'
                 contentType: 'application/json'
                 success: set_issues
                 async: false
 
-            # rerender issue view (just the issues, not the whole thing)
-            window.app.resolve_issues.render_issues()
+            super
 
             # notify the user that we succeeded
             $('#user-alert-space').append @alert_tmpl
@@ -197,7 +192,7 @@ module 'ResolveIssuesView', ->
 
         render: (data)->
             log_render '(rendering) resolve unsatisfiable goal'
-            super 
+            super
                 datacenters_with_issues: @datacenters_with_issues
                 modal_title: "Lower number of replicas"
 
@@ -230,7 +225,6 @@ module 'ResolveIssuesView', ->
 
 
         on_success: ->
-            super
             # Grab the new set of issues (so we don't have to wait)
             $.ajax
                 url: '/ajax/issues'
@@ -238,8 +232,7 @@ module 'ResolveIssuesView', ->
                 success: set_issues
                 async: false
 
-            # rerender issue view (just the issues, not the whole thing)
-            #window.app.resolve_issues_view.render_issues()
+            super
 
             # notify the user that we succeeded
             $('#user-alert-space').append @alert_tmpl
@@ -345,11 +338,14 @@ module 'ResolveIssuesView', ->
 
         render_vclock_conflict: (_template) ->
             get_resolution_url = =>
-                return @model.get('object_type') + 's/' + @model.get('object_id') + '/' + @model.get('field') + '/resolve'
+                if @model.get('object_type') is 'namespace'
+                    return 'rdb_'+@model.get('object_type') + 's/' + @model.get('object_id') + '/' + @model.get('field') + '/resolve'
+                else
+                    return @model.get('object_type') + 's/' + @model.get('object_id') + '/' + @model.get('field') + '/resolve'
 
             # grab possible conflicting values
             $.ajax
-                url: '/ajax/' + get_resolution_url()
+                url: '/ajax/semilattice/' + get_resolution_url()
                 type: 'GET'
                 contentType: 'application/json'
                 async: false

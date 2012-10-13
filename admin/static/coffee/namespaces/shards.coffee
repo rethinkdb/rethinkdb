@@ -11,6 +11,7 @@ module 'NamespaceView', ->
         feedback_template: Handlebars.compile $('#edit_shards-feedback-template').html()
         error_ajax_template: Handlebars.compile $('#edit_shards-ajax_error-template').html()
         alert_shard_template: Handlebars.compile $('#alert_shard-template').html()
+        reasons_cannot_shard_template: Handlebars.compile $('#shards-reason_cannot_shard-template').html()
 
         shards_status_template: Handlebars.compile $('#shards_status-template').html()
         className: 'shards_container'
@@ -23,8 +24,9 @@ module 'NamespaceView', ->
 
         initialize: =>
             # Forbid changes if issues
-            issues.on 'all', @check_has_unsatisfiable_goals
-            @check_has_unsatisfiable_goals()
+            @can_change_shards = false
+            @reasons_cannot_shard = {}
+            issues.on 'all', @check_can_change_shards
 
             # Listeners/cache for the data repartition
             @model.on 'change:key_distr', @render_data_repartition
@@ -136,8 +138,6 @@ module 'NamespaceView', ->
             @model.set 'primary_pinnings', @empty_master_pin
             @model.set 'secondary_pinnings', @empty_replica_pins
 
-            @model.load_key_distr_once()
-
             @switch_to_read()
             @display_msg @alert_shard_template
                 changing: true
@@ -222,37 +222,42 @@ module 'NamespaceView', ->
 
             return data
 
-        check_has_unsatisfiable_goals: =>
-            if @should_be_hidden
-                should_be_hidden_new = false
-                for issue in issues.models
-                    if issue.get('type') is 'UNSATISFIABLE_GOALS' and issue.get('namespace_id') is @model.get('id') # If unsatisfiable goals, the user should not change shards
-                        should_be_hidden_new = true
-                        break
-                    if issue.get('type') is 'MACHINE_DOWN' # If a machine connected (even with a role nothing) is down, the user should not change shards
-                        if machines.get(issue.get('victim')).get('datacenter_uuid') of @model.get('replica_affinities')
-                            should_be_hidden_new = true
-                            break
+        check_can_change_shards: =>
+            reasons_cannot_shard = {}
 
-                if not should_be_hidden_new
-                    @should_be_hidden = false
-                    @render()
-            else
-                for issue in issues.models
-                    if issue.get('type') is 'UNSATISFIABLE_GOALS' and issue.get('namespace_id') is @model.get('id')
-                        @should_be_hidden = true
-                        @render()
-                        break
-                    if issue.get('type') is 'MACHINE_DOWN'
-                        if machines.get(issue.get('victim')).get('datacenter_uuid') of @model.get('replica_affinities')
-                            @should_be_hidden = true
-                            @render()
-                            break
+            can_change_shards_now = true
+            for issue in issues.models
+                if issue.get('type') is 'UNSATISFIABLE_GOALS' and issue.get('namespace_id') is @model.get('id') # If unsatisfiable goals, the user should not change shards
+                    can_change_shards_now = false
+                    reasons_cannot_shard.unsatisfiable_goals = true
+                if issue.get('type') is 'MACHINE_DOWN' # If a machine connected (even with a role nothing) is down, the user should not change shards
+                    can_change_shards_now = false
+                    reasons_cannot_shard.machine_down = true
+
+            if @can_change_shards is true and can_change_shards_now is false
+                @.$('.critical_error').html @reasons_cannot_shard_template @reasons_cannot_shard
+                @.$('.critical_error').slideDown()
+                @.$('.edit').prop 'disabled', 'disabled'
+                @.$('.rebalance').prop 'disabled', 'disabled'
+            else if @can_change_shards is false and can_change_shards_now is true
+                @.$('.critical_error').hide()
+                @.$('.critical_error').empty()
+                @.$('.edit').removeProp 'disabled'
+                @.$('.rebalance').removeProp 'disabled'
+            else if @can_change_shards is false and can_change_shards_now is false
+                if not _.isEqual reasons_cannot_shard, @reasons_cannot_shard
+                    @reasons_cannot_shard = reasons_cannot_shard
+                    @.$('.critical_error').html @reasons_cannot_shard_template @reasons_cannot_shard
+                    @.$('.critical_error').slideDown()
+                # Just for safety
+                @.$('.edit').prop 'disabled', 'disabled'
+                @.$('.rebalance').prop 'disabled', 'disabled'
 
         render: =>
             @.$el.html @template({})
             @switch_to_read()
             @render_status()
+            @check_can_change_shards()
             return @
 
         switch_to_read: =>
@@ -419,7 +424,7 @@ module 'NamespaceView', ->
             return @
 
         destroy: =>
-            issues.off 'all', @check_has_unsatisfiable_goals
+            issues.off 'all', @check_can_change_shards
             @model.off 'change:key_distr', @render_data_repartition
             @model.off 'change:shards', @render_data_repartition
 
@@ -444,8 +449,6 @@ module 'NamespaceView', ->
             @num_shards = num_shards
 
         render: =>
-            @model.load_key_distr_once()
-
             super
                 modal_title: "Confirm rebalancing shards"
                 btn_primary_text: "Shard"

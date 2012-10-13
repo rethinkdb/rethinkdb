@@ -1514,8 +1514,8 @@ body:before {
                     margin-top: 26px;
                 }
                 .save_replicas_and_acks{ margin: 30px 0px 0px 0px; }
-                .make_primary{ margin: 10px 0px 0px 0px; }
-                .replicas_acks-alert, .reason_cannot_become_primary-alert, .status-alert{
+                .make-primary{ margin: 10px 0px 0px 0px; }
+                .replicas_acks-alert, .reason_cannot_become_primary-alert, .status-alert, .make_primary-alert{
                     display: none;
                     clear: both;
                     padding: 10px 10px 10px 14px;
@@ -1541,6 +1541,21 @@ body:before {
         }
     }
     .section.sharding {
+        .critical_error{
+            display: none;
+            padding: 8px 35px 8px 14px;
+            margin-bottom: 20px;
+            color: #C09853;
+            text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+            background-color: #FCF8E3;
+            border: 1px solid #FBEED5;
+            -webkit-border-radius: 4px;
+            -moz-border-radius: 4px;
+            border-radius: 4px;
+            color: #B94A48;
+            background-color: #F2DEDE;
+            border-color: #EED3D7;
+        }
         .edit-shards {
             margin: 20px 0;
             button { float: right; }

@@ -69,7 +69,8 @@ class Namespace extends Backbone.Model
                 return -1
         return 0
 
-    load_key_distr_once: =>
+
+    load_key_distr: =>
         $.ajax
             processData: false
             url: "/ajax/distribution?namespace=#{@get('id')}&depth=2"
@@ -85,8 +86,9 @@ class Namespace extends Backbone.Model
 
                 @set('key_distr_sorted', distr_keys)
                 @set('key_distr', distr_data)
+                @timeout = setTimeout @load_key_distr, 5000
             error: =>
-                @timeout = setTimeout @load_key_distr_once, 1000
+                @timeout = setTimeout @load_key_distr, 1000
 
     clear_timeout: =>
         if @timeout?
