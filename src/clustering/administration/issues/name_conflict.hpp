@@ -16,7 +16,7 @@ class name_conflict_issue_t : public global_issue_t {
 public:
     name_conflict_issue_t(
             const std::string &_type,
-            const std::string &_contested_name,
+            const std::string &_contested_name,  // TODO(1253) make this name_string_t?
             const std::set<uuid_t> &_contestants);
 
     std::string get_description() const;

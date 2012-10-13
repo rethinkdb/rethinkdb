@@ -45,19 +45,17 @@ public:
                 it != map.end(); it++) {
             if (!it->second.is_deleted()) {
                 if (!it->second.get().name.in_conflict()) {
-                    by_name[undo_name_string(it->second.get().name.get())].insert(it->first);  // TODO(1253):  Make the map have name_string_t keys?
+                    by_name[it->second.get().name.get()].insert(it->first);
                 }
             }
         }
     }
 
-    void report(const std::string &type,
-            std::list<clone_ptr_t<global_issue_t> > *out) {
-        for (std::map<std::string, std::set<uuid_t>, case_insensitive_less_t>::iterator it =
+    void report(const std::string &type, std::list<clone_ptr_t<global_issue_t> > *out) const {
+        for (std::map<name_string_t, std::set<uuid_t>, case_insensitive_less_t>::const_iterator it =
                 by_name.begin(); it != by_name.end(); it++) {
             if (it->second.size() > 1) {
-                out->push_back(clone_ptr_t<global_issue_t>(
-                    new name_conflict_issue_t(type, it->first, it->second)));
+                out->push_back(clone_ptr_t<global_issue_t>(new name_conflict_issue_t(type, it->first.str(), it->second)));
             }
         }
     }
@@ -65,12 +63,12 @@ public:
 private:
     class case_insensitive_less_t : public std::binary_function<std::string, std::string, bool> {
     public:
-        bool operator()(const std::string &a, const std::string &b) {
-            return strcasecmp(a.c_str(), b.c_str()) < 0;
+        bool operator()(const name_string_t &a, const name_string_t &b) {
+            return strcasecmp(a.str().c_str(), b.str().c_str()) < 0;
         }
     };
 
-    std::map<std::string, std::set<uuid_t>, case_insensitive_less_t> by_name;
+    std::map<name_string_t, std::set<uuid_t>, case_insensitive_less_t> by_name;
 };
 
 class namespace_map_t {
