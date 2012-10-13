@@ -219,7 +219,7 @@ database_id_t get_or_create_database(cluster_semilattice_metadata_t *metadata,
     metadata_searcher_t<database_semilattice_metadata_t> searcher(&metadata->databases.databases);
 
     metadata_search_status_t error;
-    std::map<database_id_t, deletable_t<database_semilattice_metadata_t> >::iterator it = searcher.find_uniq(db_name.str() /* TODO(1253) */, &error);
+    std::map<database_id_t, deletable_t<database_semilattice_metadata_t> >::iterator it = searcher.find_uniq(db_name, &error);
 
     if (error == METADATA_SUCCESS) {
         database_id = it->first;
@@ -240,7 +240,7 @@ database_id_t get_or_create_database(cluster_semilattice_metadata_t *metadata,
 }
 
 datacenter_id_t get_datacenter(const cluster_semilattice_metadata_t &metadata,
-                               const std::string& datacenter_name) {
+                               const name_string_t& datacenter_name) {
     datacenter_id_t datacenter_id = nil_uuid();
     datacenters_semilattice_metadata_t::datacenter_map_t datacenters = metadata.datacenters.datacenters;
     metadata_searcher_t<datacenter_semilattice_metadata_t> dc_searcher(&datacenters);

@@ -15,7 +15,7 @@ class json_importer_t;
 
 struct json_import_target_t {
     name_string_t db_name;
-    boost::optional<std::string> datacenter_name;
+    boost::optional<name_string_t> datacenter_name;
     name_string_t table_name;
     std::string primary_key;
 };

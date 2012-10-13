@@ -656,19 +656,24 @@ int main_rethinkdb_import(int argc, char *argv[]) {
 
         name_string_t db_name;
         if (!db_name.assign(table_name_str)) {
-            printf("--table: database name invalid (use A-Za-z0-9_), e.g. database_name.table_name\n");
+            printf("--table: database name invalid (use A-Za-z0-9_), e.g. database_name.table_name\n");  // TODO(1253) DRY
         }
 
         name_string_t table_name;
         if (!table_name.assign(table_name_str)) {
-            printf("--table: table name invalid (use A-Za-z0-9_), e.g. database_name.table_name\n");
+            printf("--table: table name invalid (use A-Za-z0-9_), e.g. database_name.table_name\n");  // TODO(1253) DRY
             return EXIT_FAILURE;
         }
 
         std::string datacenter_name_arg = vm["datacenter"].as<std::string>();
-        boost::optional<std::string> datacenter_name;
+        boost::optional<name_string_t> datacenter_name;
         if (!datacenter_name_arg.empty()) {
-            datacenter_name = datacenter_name_arg;
+            name_string_t tmp;
+            if (!tmp.assign(datacenter_name_arg)) {
+                printf("--datacenter: datacenter name invalid (use A-Za-z0-9_)\n");  // TODO(1253) DRY
+                return EXIT_FAILURE;
+            }
+            *datacenter_name = tmp;
         }
 
         std::string primary_key = vm["primary-key"].as<std::string>();

@@ -180,17 +180,17 @@ public:
         return retval;
     }
     /* As above, but matches by name instead of a predicate. */
-    iterator find_uniq(const std::string &name, metadata_search_status_t *out = 0) {
+    iterator find_uniq(const name_string_t &name, metadata_search_status_t *out = 0) {
         return find_uniq(name_predicate_t(&name), out);
     }
 
     struct name_predicate_t {
         bool operator()(T metadata) const {
-            return !metadata.name.in_conflict() && undo_name_string(metadata.name.get()) == *name;  // TODO(1253)
+            return !metadata.name.in_conflict() && metadata.name.get() == *name;  // TODO(1253)
         }
-        explicit name_predicate_t(const std::string *_name): name(_name) { }
+        explicit name_predicate_t(const name_string_t *_name): name(_name) { }
     private:
-        const std::string *name;
+        const name_string_t *name;
     };
 private:
     metamap_t *map;
