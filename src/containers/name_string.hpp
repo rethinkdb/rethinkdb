@@ -42,12 +42,10 @@ inline bool operator<(const name_string_t& x, const name_string_t& y) {
     return x.str() < y.str();
 }
 
-// TODO(1253) Nothing really should use std::string here.
 inline std::string undo_name_string(const name_string_t& s) { return s.str(); }
-inline std::string undo_name_string(const std::string& s) { return s; }
 
 // ctx-less json adapter concept for name_string_t
-json_adapter_if_t::json_adapter_map_t get_json_subfields(UNUSED name_string_t *target);
+json_adapter_if_t::json_adapter_map_t get_json_subfields(name_string_t *target);
 cJSON *render_as_json(name_string_t *target);
 void apply_json_to(cJSON *change, name_string_t *target);
 void on_subfield_change(name_string_t *);
