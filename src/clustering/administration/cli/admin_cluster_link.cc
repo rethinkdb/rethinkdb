@@ -1146,7 +1146,7 @@ void admin_cluster_link_t::list_pinnings_internal(const persistable_blueprint_t<
                 if (dc->second.get().name.in_conflict()) {
                     delta.push_back("<conflict>");
                 } else {
-                    delta.push_back(dc->second.get().name.get());
+                    delta.push_back(dc->second.get().name.get().str());  // TODO(1253)
                 }
             }
 
@@ -1544,7 +1544,7 @@ void admin_cluster_link_t::do_admin_list_datacenters(const admin_command_parser_
             if (i->second.get().name.in_conflict()) {
                 delta.push_back("<conflict>");
             } else {
-                delta.push_back(i->second.get().name.get());
+                delta.push_back(i->second.get().name.get().str());  // TODO(1253)
             }
 
             if (long_format) {
@@ -1875,7 +1875,9 @@ void admin_cluster_link_t::do_admin_create_datacenter(const admin_command_parser
     datacenter_id_t new_id = generate_uuid();
     datacenter_semilattice_metadata_t& datacenter = cluster_metadata.datacenters.datacenters[new_id].get_mutable();
 
-    datacenter.name.get_mutable() = guarantee_param_0(data.params, "name");
+    if (!datacenter.name.get_mutable().assign(guarantee_param_0(data.params, "name"))) {
+        throw admin_cluster_exc_t("invalid datacenter name (use A-Za-z0-9_)");  // TODO(1253) DRY, right type of exception?
+    }
     datacenter.name.upgrade_version(change_request_id);
 
     do_metadata_update(&cluster_metadata, &change_request);
@@ -2776,7 +2778,7 @@ void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
                 std::vector<std::string> delta;
 
                 delta.push_back(uuid_to_str(i->first));
-                delta.push_back(i->second.get().name.in_conflict() ? "<conflict>" : i->second.get().name.get());
+                delta.push_back(i->second.get().name.in_conflict() ? "<conflict>" : i->second.get().name.get().str());  // TODO(1253)
 
                 std::map<datacenter_id_t, int>::const_iterator replica_it = replica_affinities.find(i->first);
                 int replicas = 0;
