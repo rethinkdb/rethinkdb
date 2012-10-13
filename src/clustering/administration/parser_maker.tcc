@@ -61,7 +61,7 @@ void parser_maker_t<protocol_t, parser_t>::on_change() {
         `serve_queries()` */
         if (handled_ns == namespaces_being_handled.end() && !it->second.is_deleted() && !it->second.get().port.in_conflict()) {
             vclock_t<name_string_t> v_ns_name = it->second.get().name;
-            std::string ns_name(v_ns_name.in_conflict() ? ns_name_in_conflict : v_ns_name.get().str() /* TODO(1253) */);
+            std::string ns_name = v_ns_name.in_conflict() ? ns_name_in_conflict : v_ns_name.get().str() /* TODO(1253) */;
 
             int port = get_port(it->second.get(), port_offset);
             namespace_id_t tmp = it->first;
