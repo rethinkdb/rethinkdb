@@ -886,7 +886,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
 
         /* Ensure database doesn't already exist. */
         metadata_search_status_t status;
-        db_searcher.find_uniq(db_name, &status);  // TODO(1253)
+        db_searcher.find_uniq(db_name, &status);
         meta_check(status, METADATA_ERR_NONE, "CREATE_DB " + db_name.str(), bt);
 
         /* Create namespace, insert into metadata, then join into real metadata. */
