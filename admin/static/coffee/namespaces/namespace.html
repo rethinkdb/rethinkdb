@@ -9,7 +9,6 @@
                 </ul>
             </div>
         </div>
-        <button class="btn show-assignments">Show servers used</button>
         <div class="main_title"></div>
         <div id="user-alert-space"></div>
         <div class="section statistics">
@@ -28,6 +27,7 @@
                 <div class="section replication"></div>
             </div>
         </div>
+        <div class="section server-assignments"></div>
     </div>
 </script>
 
@@ -53,13 +53,5 @@
             <p class="documents"><span class="big">N/A </span>documents</p>
             {{/if}}
         </div>
-        <!--
-            TODO: review and remove this info. ALSO: reachability of masters and replicas were removed
-        <p>Replication: {{> backfill_progress_summary}}</p>
-        {{#unless stats_up_to_date}}
-        <p>The stats displayed might not be up to date<br />
-            (One server might be overloaded with queries).</p>
-        {{/unless}}
-        -->
     </div>
 </script>

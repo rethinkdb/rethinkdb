@@ -181,6 +181,8 @@ class Namespace extends Backbone.Model
         return __s
 
 class Datacenter extends Backbone.Model
+    get_machines: =>
+        machines.filter (machine) => machine.get('datacenter_uuid') is @get('id')
     get_stats: =>
         stats =
             global_cpu_util:

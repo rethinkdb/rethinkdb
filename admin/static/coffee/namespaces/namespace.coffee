@@ -22,11 +22,9 @@ module 'NamespaceView', ->
             'click .tab-link': 'change_route'
             'click .close': 'close_alert'
             'click .change_shards-link': 'change_shards'
-            'click .namespace-pinning-link': 'change_pinning'
-            'click .show-assignments': 'show_assignments'
             # operations in the dropdown menu
-            'click .operations .rename':       'rename_namespace'
-            'click .operations .delete':        'delete_namespace'
+            'click .operations .rename': 'rename_namespace'
+            'click .operations .delete': 'delete_namespace'
 
         initialize: ->
             log_initial '(initializing) namespace view: container'
@@ -38,7 +36,7 @@ module 'NamespaceView', ->
             @profile = new NamespaceView.Profile(model: @model)
             @replicas = new NamespaceView.Replicas(model: @model)
             @shards = new NamespaceView.Sharding(model: @model)
-            @pins = new NamespaceView.Pinning(model: @model)
+            @server_assignments = new NamespaceView.ServerAssignments(model: @model)
             @performance_graph = new Vis.OpsPlot(@model.get_stats_for_performance,
                 width:  564             # width in pixels
                 height: 210             # height in pixels
@@ -81,9 +79,8 @@ module 'NamespaceView', ->
             # Display the shards
             @.$('.sharding').html @shards.render().el
 
-            # Display the pins
-            # REMOVED FOR NOW, moving to a modal TODO
-            #@.$('.pinning').html @pins.render().el
+            # Display the server assignments
+            @.$('.server-assignments').html @server_assignments.render().el
 
             return @
 
@@ -99,12 +96,6 @@ module 'NamespaceView', ->
             event.preventDefault()
             @.$('#namespace-pinning-link').tab('show')
             $(event.currentTarget).parent().parent().slideUp('fast', -> $(this).remove())
-
-        # Pop up a modal to show assignments
-        show_assignments: (event) =>
-            event.preventDefault()
-            modal = new NamespaceView.MachinesAssignmentsModal model: @model
-            modal.render()
 
         # Rename operation
         rename_namespace: (event) =>
@@ -131,9 +122,8 @@ module 'NamespaceView', ->
             @profile.destroy()
             @replicas.destroy()
             @shards.destroy()
-            @pins.destroy()
+            @server_assignments.destroy()
             @performance_graph.destroy()
-
 
     # NamespaceView.Title
     class @Title extends Backbone.View

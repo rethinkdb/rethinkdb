@@ -382,15 +382,3 @@ module 'NamespaceView', ->
 
             @model.off 'change:blueprint', @render_status
             directory.off 'all', @render_status
-
-    class @MachinesAssignmentsModal extends UIComponents.AbstractModal
-        render: =>
-            @pins = new NamespaceView.Pinning(model: @model)
-            $('#modal-dialog').html @pins.render().$el
-            modal = $('.modal').modal
-                'show': true
-                'backdrop': true
-                'keyboard': true
-
-            modal.on 'hidden', =>
-                modal.remove()
