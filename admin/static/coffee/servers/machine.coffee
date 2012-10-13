@@ -278,7 +278,7 @@ module 'MachineView', ->
                 if _shards.length > 0
                     if not @namespaces_with_listeners[namespace.get('id')]?
                         @namespaces_with_listeners[namespace.get('id')] = true
-                        namespace.load_key_distr_once()
+                        namespace.load_key_distr()
                         namespace.on 'change:key_distr', @render
 
                     _namespaces.push

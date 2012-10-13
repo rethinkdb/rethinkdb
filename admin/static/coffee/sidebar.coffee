@@ -110,6 +110,11 @@ module 'Sidebar', ->
                 _m = machines.get(m.get('id'))
                 if _m and _m.get('datacenter_uuid') and _m.get('datacenter_uuid') isnt universe_datacenter.get('id')
                     dc_visible.push _m.get('datacenter_uuid')
+            # Also add empty datacenters to visible -- we define them
+            # as reachable.
+            datacenters.each (dc) =>
+                if DataUtils.get_datacenter_machines(dc.get('id')).length is 0
+                    dc_visible.push dc.get('id')
             dc_visible = _.uniq(dc_visible)
             conn =
                 datacenters_active: dc_visible.length
@@ -167,7 +172,7 @@ module 'Sidebar', ->
             # Get a list of all other issues (non-critical)
             other_issues = issues.filter (issue) -> not issue.get('critical')
             other_issues = _.groupBy other_issues, (issue) -> issue.get('type')
-    
+
 
             reduced_issues = _.map(critical_issues, (issues, type) ->
                 json = {}
@@ -178,7 +183,7 @@ module 'Sidebar', ->
             if reduced_issues.length > 0
                 reduced_issues[0].is_first = true
 
-            
+
             reduced_other_issues = _.map(other_issues, (issues, type) ->
                 json = {}
                 json[type] = true

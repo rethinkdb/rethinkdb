@@ -74,6 +74,7 @@ module 'NamespaceView', ->
         template: Handlebars.compile $('#namespace_view-datacenter_replica-template').html()
         edit_template: Handlebars.compile $('#namespace_view-edit_datacenter_replica-template').html()
         error_template: Handlebars.compile $('#namespace_view-edit_datacenter_replica-error-template').html()
+        error_msg_template: Handlebars.compile $('#namespace_view-edit_datacenter_replica-alert_messages-template').html()
         replicas_acks_success_template: Handlebars.compile $('#namespace_view-edit_datacenter_replica-success-template').html()
         replication_complete_template: Handlebars.compile $('#namespace_view-edit_datacenter_replica-replication_done-template').html()
         replication_status: Handlebars.compile $('#namespace_view-edit_datacenter_replica-replication_status-template').html()
@@ -220,14 +221,22 @@ module 'NamespaceView', ->
 
             msg_error = []
             if num_replicas > @max_machines
-                msg_error.push('The number of replicas (' + num_replicas + ') cannot exceed the total number of machines (' + @max_machines + ').')
+                msg_error.push @error_msg_template
+                    too_many_replicas: true
+                    num_replicas: num_replicas
+                    max_machines: @max_machines
             if num_replicas is 0 and @model.get('primary_uuid') is @datacenter.get('id')
-                msg_error.push('The number of replicas must be at least one because ' + @datacenter.get('name') + ' is the primary datacenter for this table.')
+                msg_error.push @error_msg_template
+                    need_at_least_one_replica: true
+                    name: @datacenter.get('name')
             if num_acks > num_replicas
-                msg_error.push('The number of acks (' + num_acks + ') cannot exceed the total number of replicas (' + num_replicas + ').')
+                msg_error.push @error_msg_template
+                    too_many_acks: true
+                    num_acks: num_acks
+                    num_replicas: num_replicas
             if num_acks is 0 and num_replicas > 0
-                msg_error.push('The value of acks must be greater than 0 if you have one replica or more.')
-
+                msg_error.push @error_msg_template
+                    acks_too_small: true
             if msg_error.length isnt 0
                 @alert_replicas_acks msg_error
                 return false
@@ -346,6 +355,14 @@ module 'NamespaceView', ->
 
         make_primary: =>
             new_dc = @datacenter
+
+            # Checking if there is at least one replica because we need it.
+            if not @model.get('replica_affinities')[new_dc.get('id')]? or @model.get('replica_affinities')[new_dc.get('id')] < 1
+                @.$('.make_primary-alert-content').html @error_msg_template
+                    need_replica_for_primary: true
+                @.$('.make_primary-alert').slideDown 'fast'
+                return ''
+
 
             new_affinities = {}
             if @model.get('primary_uuid') is universe_datacenter.get('id')

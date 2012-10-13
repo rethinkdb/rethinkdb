@@ -953,7 +953,9 @@ module 'DataExplorerView', ->
                 @.$('#user-alert-space').css 'display', 'none'
                 @.$('#user-alert-space').html @alert_connection_fail_template({})
                 @.$('#user-alert-space').slideDown()
-
+            if @timeout?
+                clearTimeout @timeout
+            @timeout = setTimeout @connect, 5*60*1000
         # Reconnect, function triggered if the user click on reconnect
         reconnect: (event) =>
             event.preventDefault()
