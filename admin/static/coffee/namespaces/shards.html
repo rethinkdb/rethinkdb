@@ -1,6 +1,7 @@
 <script id="shards_container-template" type="text/x-handlebars-template">
     <h2 class="title">Sharding settings</h2>
     <div class="user-alert-space"></div>
+    <div class="critical_error"></div>
     <div class="edit-shards"></div>
     <div class="shards_status_container">
         <p class="caption">Status</p>
@@ -62,4 +63,15 @@
     {{#if is_sharding}}
     {{/if}}
     {{num_shards_ready}}/{{num_shards}} working.</p>
+</script>
+
+<script id="shards-reason_cannot_shard-template" type="text/x-handlebars-template">
+    {{#if machine_down}}
+    You have to remove the server down before sharding.
+    {{/if}}
+    {{#if unsatisfiable_goals}}
+    You have to solve the unsatisfiable goal before sharding.
+    {{/if}}
+       
+
 </script>

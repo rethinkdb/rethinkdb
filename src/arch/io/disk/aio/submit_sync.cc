@@ -1,3 +1,5 @@
+#ifdef AIOSUPPORT
+
 #include "arch/io/disk/aio/submit_sync.hpp"
 
 #include <boost/bind.hpp>
@@ -59,3 +61,4 @@ void linux_aio_submit_sync_t::pump() {
         }
     }
 }
+#endif // AIOSUPPORT

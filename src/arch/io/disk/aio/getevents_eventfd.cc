@@ -1,4 +1,5 @@
 #ifndef NO_EVENTFD
+#ifdef AIOSUPPORT
 
 #include "arch/io/disk/aio/getevents_eventfd.hpp"
 
@@ -81,5 +82,6 @@ void linux_aio_getevents_eventfd_t::on_event(int event_mask) {
     } while (nevents_total > 0);
 }
 
+#endif // AIOSUPPORT
 #endif // NO_EVENTFD
 

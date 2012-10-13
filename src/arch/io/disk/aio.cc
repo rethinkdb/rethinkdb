@@ -1,3 +1,5 @@
+#ifdef AIOSUPPORT
+
 #include "arch/io/disk/aio.hpp"
 
 #include <linux/fs.h>
@@ -70,3 +72,4 @@ void linux_diskmgr_aio_t::aio_notify(iocb *event, int64_t result) {
     // Pass the notification on up
     done_fun(a);
 }
+#endif // AIOSUPPORT

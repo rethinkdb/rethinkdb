@@ -69,7 +69,8 @@ class Namespace extends Backbone.Model
                 return -1
         return 0
 
-    load_key_distr_once: =>
+
+    load_key_distr: =>
         $.ajax
             processData: false
             url: "/ajax/distribution?namespace=#{@get('id')}&depth=2"
@@ -85,8 +86,9 @@ class Namespace extends Backbone.Model
 
                 @set('key_distr_sorted', distr_keys)
                 @set('key_distr', distr_data)
+                @timeout = setTimeout @load_key_distr, 5000
             error: =>
-                @timeout = setTimeout @load_key_distr_once, 1000
+                @timeout = setTimeout @load_key_distr, 1000
 
     clear_timeout: =>
         if @timeout?
@@ -313,6 +315,63 @@ class Machine extends Backbone.Model
                     for shard, role of peer_roles
                         if role is 'role_primary'
                             return true
+
+    # Return an object with warnings if a server cannot be moved
+    get_data_for_moving: =>
+        data = {}
+        dc_uuid = @get('datacenter_uuid')
+        # If the server is in Universe, we can move it since it's always safe
+        if dc_uuid isnt universe_datacenter.get('id')
+            # Count the number of servers in the same datacenter as this server
+            num_machines_in_dc = 0
+            machines.each (machine) => num_machines_in_dc++ if dc_uuid is machine.get('datacenter_uuid')
+
+            # Looking for critical issues (long term loss of availability)
+            # (look for namespaces where the datacenter is primary and with just one machine)
+            namespaces_with_critical_issue = []
+            # Find the tables that won't have sufficient replicas if we unassign this server
+            namespaces_with_unsatisfiable_goals = []
+            for namespace in namespaces.models
+                # Does the datacenter of this server have responsibilities for the namespace?
+                if dc_uuid of namespace.get('replica_affinities')
+                    num_replicas = namespace.get('replica_affinities')[dc_uuid]
+                    # If the datacenter acts as primary for the namespace, bump the replica count by one
+                    num_replicas++ if namespace.get('primary_uuid') is dc_uuid
+
+                # There will be a unsatisfiable goals if we unassign the machine
+                # We take for granted that acks < num_replicas. We might want to increase the safety.
+                if num_machines_in_dc <= num_replicas
+                    namespaces_with_unsatisfiable_goals.push
+                        id: namespace.get('id')
+                        name: namespace.get('name')
+
+                # The last machine in the datacenter is primary so no new master can be elected if the master is moved
+                if num_machines_in_dc is 1 and dc_uuid is namespace.get('primary_uuid')
+                    namespaces_with_critical_issue.push
+                        id: namespace.get('id')
+                        name: namespace.get('name')
+
+
+                # That's all, if the machine that's going to replace universe is already working for universe,
+                # it will start working for the datacenter and the unassigned one will start working for universe
+            if namespaces_with_unsatisfiable_goals.length > 0
+                data = _.extend data,
+                    has_warning: true
+                    namespaces_with_unsatisfiable_goals: namespaces_with_unsatisfiable_goals
+                    num_namespaces_with_unsatisfiable_goals: namespaces_with_unsatisfiable_goals.length
+            if namespaces_with_critical_issue.length > 0
+                data = _.extend data,
+                    namespaces_with_critical_issue: namespaces_with_critical_issue
+                    num_namespaces_with_critical_issue: namespaces_with_critical_issue.length
+
+            if namespaces_with_unsatisfiable_goals.length > 0 or namespaces_with_critical_issue.length > 0
+                data = _.extend data,
+                    has_warning: true
+                    datacenter_id: @get('datacenter_uuid')
+                    datacenter_name: datacenters.get(@get('datacenter_uuid')).get('name')
+                    machine_id: @get('id')
+                    machine_name: @get('name')
+        return data
 
 class LogEntry extends Backbone.Model
     get_iso_8601_timestamp: => new Date(@.get('timestamp') * 1000)

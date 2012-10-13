@@ -1,6 +1,6 @@
 #ifndef ARCH_IO_DISK_AIO_GETEVENTS_EVENTFD_HPP_
 #define ARCH_IO_DISK_AIO_GETEVENTS_EVENTFD_HPP_
-
+#ifdef AIOSUPPORT
 #include "arch/io/disk/aio.hpp"
 
 /* This strategy for calling io_getevents() uses io_set_eventfd(), which is only available on
@@ -19,6 +19,6 @@ struct linux_aio_getevents_eventfd_t :
     void prep(iocb *req);
     void on_event(int events);
 };
-
+#endif // AIOSUPPORT
 #endif // ARCH_IO_DISK_AIO_GETEVENTS_EVENTFD_HPP_
 

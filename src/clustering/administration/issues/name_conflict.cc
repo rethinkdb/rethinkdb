@@ -51,33 +51,31 @@ public:
         }
     }
 
-    void report(const std::string &type,
-            std::list<clone_ptr_t<global_issue_t> > *out) {
-        for (std::map<std::string, std::set<uuid_t>, case_insensitive_less_t>::iterator it =
+    void report(const std::string &type, std::list<clone_ptr_t<global_issue_t> > *out) const {
+        for (std::map<name_string_t, std::set<uuid_t>, case_insensitive_less_t>::const_iterator it =
                 by_name.begin(); it != by_name.end(); it++) {
             if (it->second.size() > 1) {
-                out->push_back(clone_ptr_t<global_issue_t>(
-                    new name_conflict_issue_t(type, it->first, it->second)));
+                out->push_back(clone_ptr_t<global_issue_t>(new name_conflict_issue_t(type, it->first.str(), it->second)));
             }
         }
     }
 
 private:
-    class case_insensitive_less_t : public std::binary_function<std::string, std::string, bool> {
+    class case_insensitive_less_t {
     public:
-        bool operator()(const std::string &a, const std::string &b) {
-            return strcasecmp(a.c_str(), b.c_str()) < 0;
+        bool operator()(const name_string_t &a, const name_string_t &b) {
+            return strcasecmp(a.str().c_str(), b.str().c_str()) < 0;
         }
     };
 
-    std::map<std::string, std::set<uuid_t>, case_insensitive_less_t> by_name;
+    std::map<name_string_t, std::set<uuid_t>, case_insensitive_less_t> by_name;
 };
 
 class namespace_map_t {
 public:
-namespace_map_t(const std::map<uuid_t, deletable_t<database_semilattice_metadata_t> > &_databases)
-    : databases(_databases)
-{ }
+    namespace_map_t(const std::map<uuid_t, deletable_t<database_semilattice_metadata_t> > &_databases)
+        : databases(_databases) { }
+
     template<class object_metadata_t>
     void file_away(const std::map<uuid_t, deletable_t<object_metadata_t> > &map) {
         for (typename std::map<uuid_t, deletable_t<object_metadata_t> >::const_iterator it = map.begin();
@@ -88,7 +86,7 @@ namespace_map_t(const std::map<uuid_t, deletable_t<database_semilattice_metadata
                     if (std_contains(databases, it->second.get().database.get())) {
                         deletable_t<database_semilattice_metadata_t> db = databases[it->second.get().database.get()];
                         if (!db.is_deleted() && !db.get().name.in_conflict()) {
-                            by_name[db.get().name.get() + "." + it->second.get().name.get()].insert(it->first);
+                            by_name[db_table_name_t(db.get().name.get(), it->second.get().name.get())].insert(it->first);
                         }
                     }
                 }
@@ -97,25 +95,35 @@ namespace_map_t(const std::map<uuid_t, deletable_t<database_semilattice_metadata
     }
 
     void report(const std::string &type,
-            std::list<clone_ptr_t<global_issue_t> > *out) {
-        for (std::map<std::string, std::set<uuid_t>, case_insensitive_less_t>::iterator it =
+            std::list<clone_ptr_t<global_issue_t> > *out) const {
+        for (std::map<db_table_name_t, std::set<uuid_t>, case_insensitive_less_t>::const_iterator it =
                 by_name.begin(); it != by_name.end(); it++) {
             if (it->second.size() > 1) {
-                out->push_back(clone_ptr_t<global_issue_t>(
-                    new name_conflict_issue_t(type, it->first, it->second)));
+                // TODO: This is awful, why is name_conflict_issue_t a single type for different kinds of issues?
+                const std::string formatted_db_table_name = it->first.db_name.str() + "." + it->first.table_name.str();
+                out->push_back(clone_ptr_t<global_issue_t>(new name_conflict_issue_t(type, formatted_db_table_name, it->second)));
             }
         }
     }
 
 private:
-    class case_insensitive_less_t : public std::binary_function<std::string, std::string, bool> {
+    struct db_table_name_t {
+        name_string_t db_name;
+        name_string_t table_name;
+        db_table_name_t(const name_string_t& _db_name, const name_string_t& _table_name)
+            : db_name(_db_name), table_name(_table_name) { }
+    };
+
+    class case_insensitive_less_t {
     public:
-        bool operator()(const std::string &a, const std::string &b) {
-            return strcasecmp(a.c_str(), b.c_str()) < 0;
+        bool operator()(const db_table_name_t &a, const db_table_name_t &b) {
+            int cmp = strcasecmp(a.db_name.c_str(), b.db_name.c_str());
+            if (cmp != 0) { return cmp < 0; }
+            return strcasecmp(a.table_name.c_str(), b.table_name.c_str()) < 0;
         }
     };
 
-    std::map<std::string, std::set<uuid_t>, case_insensitive_less_t> by_name;
+    std::map<db_table_name_t, std::set<uuid_t>, case_insensitive_less_t> by_name;
     std::map<uuid_t, deletable_t<database_semilattice_metadata_t> > databases;
 };
 

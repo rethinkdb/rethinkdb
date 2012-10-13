@@ -11,6 +11,7 @@ module 'NamespaceView', ->
         feedback_template: Handlebars.compile $('#edit_shards-feedback-template').html()
         error_ajax_template: Handlebars.compile $('#edit_shards-ajax_error-template').html()
         alert_shard_template: Handlebars.compile $('#alert_shard-template').html()
+        reasons_cannot_shard_template: Handlebars.compile $('#shards-reason_cannot_shard-template').html()
 
         shards_status_template: Handlebars.compile $('#shards_status-template').html()
         className: 'shards_container'
@@ -23,8 +24,9 @@ module 'NamespaceView', ->
 
         initialize: =>
             # Forbid changes if issues
-            issues.on 'all', @check_has_unsatisfiable_goals
-            @check_has_unsatisfiable_goals()
+            @can_change_shards = false
+            @reasons_cannot_shard = {}
+            issues.on 'all', @check_can_change_shards
 
             # Listeners/cache for the data repartition
             @model.on 'change:key_distr', @render_data_repartition
@@ -42,7 +44,7 @@ module 'NamespaceView', ->
                 error_msg = "The number of shards must be an integer."
                 @display_msg error_msg
                 return
-            
+
             if new_num_shards < 1 or new_num_shards > MAX_SHARD_COUNT
                 error_msg = "The number of shards must be beteen 1 and " + MAX_SHARD_COUNT + "."
                 @display_msg error_msg
@@ -58,31 +60,38 @@ module 'NamespaceView', ->
                 @display_msg error_msg
                 return
 
-            if distr_keys.length < 2
-                error_msg = "There is not enough data in the database to make balanced shards."
+            if distr_keys.length < new_num_shards
+                error_msg = 'There is not enough data in the database to make '+distr_keys.length+' balanced shards.'
                 @display_msg error_msg
                 return
 
-            current_shard_count = 0
-            split_points = [""]
+            current_count = 0 # Global count to spread errors among shards
+            split_points = []
             no_more_splits = false
-            for key in distr_keys
-                if split_points.length >= new_num_shards
-                    no_more_splits = true
-                current_shard_count += data[key]
-                if current_shard_count >= rows_per_shard and not no_more_splits
-                    split_points.push(key)
-                    current_shard_count = 0
+            for key, i in distr_keys
+                if i is 0
+                    if key isnt '' # For safety. The empty string is always the smallest key
+                        return 'Error'
+                    split_points.push key
+                    current_count += data[key]
+                    continue
+
+                # If we have just enough keys left, we just add all of them as split points
+                # keys_left <= splits_point left to add
+                if distr_keys.length-i <= new_num_shards-split_points.length # We don't add 1 because there is null
+                    split_points.push key
+                    continue
+
+                # Else we check if we have enough keys
+                if current_count >= rows_per_shard*split_points.length
+                    split_points.push key
+                current_count += data[key]
+
             split_points.push(null)
 
             shard_set = []
             for splitIndex in [0..(split_points.length - 2)]
                 shard_set.push(JSON.stringify([split_points[splitIndex], split_points[splitIndex + 1]]))
-
-            if shard_set.length < new_num_shards
-                error_msg = "There is only enough data to make " + shard_set.length + " balanced shards."
-                @display_msg error_msg
-                return
 
             if event?.which? and event.which is 13
                 @shard_table()
@@ -117,7 +126,7 @@ module 'NamespaceView', ->
 
                 $.ajax
                      processData: false
-                     url: "/ajax/semilattice/#{@model.attributes.protocol}_namespaces/#{@model.get('id')}"
+                     url: "/ajax/semilattice/#{@model.attributes.protocol}_namespaces/#{@model.get('id')}?prefer_distribution=1"
                      type: 'POST'
                      contentType: 'application/json'
                      data: JSON.stringify(data)
@@ -128,8 +137,6 @@ module 'NamespaceView', ->
             @model.set 'shards', @shard_set
             @model.set 'primary_pinnings', @empty_master_pin
             @model.set 'secondary_pinnings', @empty_replica_pins
-
-            @model.load_key_distr_once()
 
             @switch_to_read()
             @display_msg @alert_shard_template
@@ -215,37 +222,42 @@ module 'NamespaceView', ->
 
             return data
 
-        check_has_unsatisfiable_goals: =>
-            if @should_be_hidden
-                should_be_hidden_new = false
-                for issue in issues.models 
-                    if issue.get('type') is 'UNSATISFIABLE_GOALS' and issue.get('namespace_id') is @model.get('id') # If unsatisfiable goals, the user should not change shards
-                        should_be_hidden_new = true
-                        break
-                    if issue.get('type') is 'MACHINE_DOWN' # If a machine connected (even with a role nothing) is down, the user should not change shards
-                        if machines.get(issue.get('victim')).get('datacenter_uuid') of @model.get('replica_affinities')
-                            should_be_hidden_new = true
-                            break
+        check_can_change_shards: =>
+            reasons_cannot_shard = {}
 
-                if not should_be_hidden_new
-                    @should_be_hidden = false
-                    @render()
-            else
-                for issue in issues.models
-                    if issue.get('type') is 'UNSATISFIABLE_GOALS' and issue.get('namespace_id') is @model.get('id')
-                        @should_be_hidden = true
-                        @render()
-                        break
-                    if issue.get('type') is 'MACHINE_DOWN'
-                        if machines.get(issue.get('victim')).get('datacenter_uuid') of @model.get('replica_affinities')
-                            @should_be_hidden = true
-                            @render()
-                            break
+            can_change_shards_now = true
+            for issue in issues.models
+                if issue.get('type') is 'UNSATISFIABLE_GOALS' and issue.get('namespace_id') is @model.get('id') # If unsatisfiable goals, the user should not change shards
+                    can_change_shards_now = false
+                    reasons_cannot_shard.unsatisfiable_goals = true
+                if issue.get('type') is 'MACHINE_DOWN' # If a machine connected (even with a role nothing) is down, the user should not change shards
+                    can_change_shards_now = false
+                    reasons_cannot_shard.machine_down = true
+
+            if @can_change_shards is true and can_change_shards_now is false
+                @.$('.critical_error').html @reasons_cannot_shard_template @reasons_cannot_shard
+                @.$('.critical_error').slideDown()
+                @.$('.edit').prop 'disabled', 'disabled'
+                @.$('.rebalance').prop 'disabled', 'disabled'
+            else if @can_change_shards is false and can_change_shards_now is true
+                @.$('.critical_error').hide()
+                @.$('.critical_error').empty()
+                @.$('.edit').removeProp 'disabled'
+                @.$('.rebalance').removeProp 'disabled'
+            else if @can_change_shards is false and can_change_shards_now is false
+                if not _.isEqual reasons_cannot_shard, @reasons_cannot_shard
+                    @reasons_cannot_shard = reasons_cannot_shard
+                    @.$('.critical_error').html @reasons_cannot_shard_template @reasons_cannot_shard
+                    @.$('.critical_error').slideDown()
+                # Just for safety
+                @.$('.edit').prop 'disabled', 'disabled'
+                @.$('.rebalance').prop 'disabled', 'disabled'
 
         render: =>
             @.$el.html @template({})
             @switch_to_read()
             @render_status()
+            @check_can_change_shards()
             return @
 
         switch_to_read: =>
@@ -297,7 +309,7 @@ module 'NamespaceView', ->
 
                 # size of all bars and white space between bars
                 width_of_all_bars = bar_width*shards.length + margin_bar*(shards.length-1)
-                
+
                 # Update the margin on the right of the y-axis
                 margin_width_inner = Math.floor((svg_width-margin_width*2-width_of_all_bars)/2)
 
@@ -333,7 +345,7 @@ module 'NamespaceView', ->
                         result += '<br />'+d.num_keys+' keys'
                         return result
                     )
-            
+
 
                 # Create axes
                 extra_data = []
@@ -375,7 +387,7 @@ module 'NamespaceView', ->
                     .attr('y', (d) -> return d.y)
                     .attr('text-anchor', (d) -> return d.anchor)
                     .text((d) -> return d.string)
-                
+
                 # Create ticks
                 # First the tick's background
                 svg.selectAll('.cache').data(y.ticks(5))
@@ -412,7 +424,7 @@ module 'NamespaceView', ->
             return @
 
         destroy: =>
-            issues.off 'all', @check_has_unsatisfiable_goals
+            issues.off 'all', @check_can_change_shards
             @model.off 'change:key_distr', @render_data_repartition
             @model.off 'change:shards', @render_data_repartition
 
@@ -437,8 +449,6 @@ module 'NamespaceView', ->
             @num_shards = num_shards
 
         render: =>
-            @model.load_key_distr_once()
-
             super
                 modal_title: "Confirm rebalancing shards"
                 btn_primary_text: "Shard"

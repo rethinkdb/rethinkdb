@@ -63,6 +63,7 @@ private:
     void cull_old_values();
 
 public:
+    typedef T value_type;
     vclock_t();
 
     explicit vclock_t(const T &_t);

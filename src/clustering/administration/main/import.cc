@@ -16,6 +16,7 @@
 #include "clustering/administration/proc_stats.hpp"
 #include "clustering/administration/suggester.hpp"
 #include "clustering/administration/sys_stats.hpp"
+#include "clustering/administration/main/ports.hpp"
 #include "extproc/pool.hpp"
 #include "http/json.hpp"
 #include "rdb_protocol/query_language.hpp"
@@ -26,11 +27,11 @@
 #include "rpc/semilattice/view/field.hpp"
 #include "utils.hpp"
 
-bool do_json_importation(machine_id_t us,
-                         const boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > &metadata,
+bool do_json_importation(namespace_repo_t<rdb_protocol_t> *repo,
+                         json_importer_t *importer,
+                         const json_import_target_t &target,
+                         mailbox_manager_t *mailbox_manager,
                          const clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > &directory,
-                         namespace_repo_t<rdb_protocol_t> *repo, json_importer_t *importer,
-                         json_import_target_t target,
                          signal_t *interruptor);
 
 bool get_other_peer(const std::set<peer_id_t> &peers_list, const peer_id_t &me, peer_id_t *other_peer_out) {
@@ -164,200 +165,201 @@ bool run_json_import(extproc::spawner_t::info_t *spawner_info, peer_address_set_
     rdb_ctx.ns_repo = &rdb_namespace_repo;
 
     // TODO: Handle interrupted exceptions?
-    return do_json_importation(machine_id,
-                               semilattice_manager_cluster.get_root_view(),
+    return do_json_importation(&rdb_namespace_repo,
+                               importer,
+                               target,
+                               &mailbox_manager,
                                directory_read_manager.get_root_view(),
-                               &rdb_namespace_repo, importer, target, stop_cond);
+                               stop_cond);
 }
 
 
-bool get_or_create_namespace(machine_id_t us,
-                             namespace_repo_t<rdb_protocol_t> *ns_repo,
-                             const boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > &metadata,
-                             const clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > &directory,
-                             database_id_t db_id,
-                             boost::optional<std::string> datacenter_name,
-                             std::string table_name,
-                             boost::optional<std::string> maybe_primary_key,
-                             namespace_id_t *namespace_out,
-                             std::string *primary_key_out,
-                             signal_t *interruptor) {
-    boost::shared_ptr<semilattice_read_view_t<datacenters_semilattice_metadata_t> > datacenters = metadata_field(&cluster_semilattice_metadata_t::datacenters, metadata);
-    boost::shared_ptr<semilattice_readwrite_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > > namespaces = metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, metadata);
+namespace_id_t get_or_create_namespace(cluster_semilattice_metadata_t *metadata,
+                                       datacenter_id_t dc_id,
+                                       database_id_t db_id,
+                                       name_string_t table_name,
+                                       std::string primary_key_in,
+                                       const machine_id_t &sync_machine_id,
+                                       bool *do_update) {
+    namespace_id_t namespace_id = nil_uuid();
+    cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t change(&metadata->rdb_namespaces);
+    metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> > searcher(&change.get()->namespaces);
 
+    namespace_predicate_t search_predicate(&table_name, &db_id);
 
-    namespaces_semilattice_metadata_t<rdb_protocol_t> original_nss = *namespaces->get();
-    metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> > searcher(&original_nss.namespaces);
     metadata_search_status_t error;
-    std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<rdb_protocol_t> > >::iterator it = searcher.find_uniq(namespace_predicate_t(table_name, db_id), &error);
+    std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<rdb_protocol_t> > >::iterator it = searcher.find_uniq(search_predicate, &error);
 
     if (error == METADATA_SUCCESS) {
         std::string existing_pk = it->second.get().primary_key.get();
-        if (maybe_primary_key) {
-            if (existing_pk != *maybe_primary_key) {
-                printf("Successfully found namespace %s, with wrong primary key '%s'\n",
-                       uuid_to_str(it->first).c_str(), existing_pk.c_str());
-
-                *namespace_out = namespace_id_t();
-                primary_key_out->clear();
-                return false;
-            }
+        if (existing_pk != primary_key_in) {
+            printf("Successfully found namespace %s, with wrong primary key '%s'\n",
+                   uuid_to_str(it->first).c_str(), existing_pk.c_str());
+        } else {
+            printf("Successfully found namespace %s\n", uuid_to_str(it->first).c_str());
+            namespace_id = it->first;
         }
-
-        printf("Successfully found namespace %s\n", uuid_to_str(it->first).c_str());
-        *primary_key_out = existing_pk;
-        *namespace_out = it->first;
-        return true;
     } else if (error == METADATA_ERR_NONE) {
-        // We need a primary key if we are to be creating a namespace.
-        if (!maybe_primary_key) {
-            printf("Trying to create a namespace but lack primary key.\n");
-            *namespace_out = namespace_id_t();
-            primary_key_out->clear();
-            return false;
-        }
-        std::string primary_key = *maybe_primary_key;
-
-        if (!datacenter_name) {
-            printf("Trying to create a namespace but lack datacenter parameter.\n");
-            *namespace_out = namespace_id_t();
-            primary_key_out->clear();
-            return false;
-        }
-
-        datacenters_semilattice_metadata_t dcs = datacenters->get();
-        metadata_searcher_t<datacenter_semilattice_metadata_t> dc_searcher(&dcs.datacenters);
-        metadata_search_status_t dc_error;
-        std::map<datacenter_id_t, deletable_t<datacenter_semilattice_metadata_t> >::iterator jt = dc_searcher.find_uniq(*datacenter_name, &dc_error);
-
-        if (dc_error != METADATA_SUCCESS) {
-            printf("Could not find datacenter. error = %d\n", dc_error);
-            *namespace_out = namespace_id_t();
-            primary_key_out->clear();
-            return false;
-        }
-
-        datacenter_id_t dc_id = jt->first;
-
-        namespace_semilattice_metadata_t<rdb_protocol_t> ns = new_namespace<rdb_protocol_t>(us, db_id, dc_id, table_name, primary_key, 0 /* unused memcached port arg */, GIGABYTE);
-        namespaces_semilattice_metadata_t<rdb_protocol_t> nss;
-        namespace_id_t ns_id = generate_uuid();
-        nss.namespaces.insert(std::make_pair(ns_id, ns));
-        namespaces->join(cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >(nss));
-
-        // Try fill_in_blueprints twice.  Sigh.
-        cluster_semilattice_metadata_t metadata_copy = metadata->get();
-        bool try_another_fill_in_blueprints = false;
-        try {
-            fill_in_blueprints(&metadata_copy, directory->get(), us);
-        } catch (missing_machine_exc_t exc) {
-            try_another_fill_in_blueprints = true;
-        }
-
-        if (try_another_fill_in_blueprints) {
-            nap(1000);
-            metadata_copy = metadata->get();
-            fill_in_blueprints(&metadata_copy, directory->get(), us);
-        }
-
-        metadata->join(metadata_copy);
-
-        printf("Created namespace.  Waiting for readiness...\n");
-
-        wait_for_rdb_table_readiness(ns_repo, ns_id, interruptor);
-
-        printf("Done waiting for readiness.\n");
-
-        *namespace_out = ns_id;
-        *primary_key_out = primary_key;
-        return true;
+        printf("Table '%s' not found, creating it.\n", table_name.c_str());
+        *do_update = true;
+        namespace_id = generate_uuid();
+        change.get()->namespaces[namespace_id].get_mutable() =
+            new_namespace<rdb_protocol_t>(sync_machine_id, db_id, dc_id, table_name, primary_key_in, port_defaults::reql_port, GIGABYTE);
     } else {
         printf("Error searching for namespace.\n");
-        *namespace_out = namespace_id_t();
-        primary_key_out->clear();
-        return false;
     }
+    return namespace_id;
 }
 
-bool get_or_create_database(UNUSED machine_id_t us,
-                            const boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > &metadata,
-                            std::string db_name, database_id_t *db_out) {
-    guarantee(!db_name.empty());
-    boost::shared_ptr<semilattice_readwrite_view_t<databases_semilattice_metadata_t> > databases = metadata_field(&cluster_semilattice_metadata_t::databases, metadata);
-    std::map<database_id_t, deletable_t<database_semilattice_metadata_t> > dbmap = databases->get().databases;
-    metadata_searcher_t<database_semilattice_metadata_t> searcher(&dbmap);
+database_id_t get_or_create_database(cluster_semilattice_metadata_t *metadata,
+                                     name_string_t db_name,
+                                     const machine_id_t &sync_machine_id,
+                                     bool *do_update) {
+    database_id_t database_id = nil_uuid();
+    metadata_searcher_t<database_semilattice_metadata_t> searcher(&metadata->databases.databases);
 
     metadata_search_status_t error;
     std::map<database_id_t, deletable_t<database_semilattice_metadata_t> >::iterator it = searcher.find_uniq(db_name, &error);
 
     if (error == METADATA_SUCCESS) {
-        *db_out = it->first;
-        return true;
+        database_id = it->first;
     } else if (error == METADATA_ERR_NONE) {
-        printf("No database named '%s' found.\n", db_name.c_str());
+        printf("Database '%s' not found, creating it.\n", db_name.c_str());
+        *do_update = true;
+        database_id = generate_uuid();
+        database_semilattice_metadata_t& database = metadata->databases.databases[database_id].get_mutable();
+        database.name.get_mutable() = db_name;
+        database.name.upgrade_version(sync_machine_id);
     } else if (error == METADATA_ERR_MULTIPLE) {
         printf("Error searching for database.  (Multiple databases are named '%s'.)\n", db_name.c_str());
     } else {
         printf("Error when searching for database named '%s'.\n", db_name.c_str());
     }
 
-    *db_out = database_id_t();
-    return false;
+    return database_id;
+}
+
+datacenter_id_t get_datacenter(const cluster_semilattice_metadata_t &metadata,
+                               const name_string_t& datacenter_name) {
+    datacenter_id_t datacenter_id = nil_uuid();
+    datacenters_semilattice_metadata_t::datacenter_map_t datacenters = metadata.datacenters.datacenters;
+    metadata_searcher_t<datacenter_semilattice_metadata_t> dc_searcher(&datacenters);
+
+    metadata_search_status_t dc_error;
+    std::map<datacenter_id_t, deletable_t<datacenter_semilattice_metadata_t> >::iterator jt = dc_searcher.find_uniq(datacenter_name, &dc_error);
+
+    if (dc_error == METADATA_SUCCESS) {
+        datacenter_id = jt->first;
+    } else {
+        printf("Could not find datacenter '%s', error = %d\n", datacenter_name.c_str(), dc_error);
+    }
+
+    return datacenter_id;
 }
 
 
-bool do_json_importation(machine_id_t us,
-                         const boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > &metadata,
+bool get_change_request_info(const std::map<peer_id_t, cluster_directory_metadata_t> &directory,
+                             metadata_change_handler_t<cluster_semilattice_metadata_t>::request_mailbox_t::address_t *sync_mailbox,
+                             machine_id_t *sync_machine_id) {
+    for (std::map<peer_id_t, cluster_directory_metadata_t>::const_iterator i = directory.begin(); i != directory.end(); ++i) {
+        if (i->second.peer_type == SERVER_PEER) {
+            *sync_machine_id = i->second.machine_id;
+            *sync_mailbox = i->second.semilattice_change_mailbox;
+            return true;
+        }
+    }
+    return false;
+}
+
+namespace_id_t get_or_create_metadata(namespace_repo_t<rdb_protocol_t> *ns_repo,
+                                      mailbox_manager_t *mailbox_manager,
+                                      const clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > &directory,
+                                      json_import_target_t target,
+                                      signal_t *interruptor) {
+    namespace_id_t ns_id = nil_uuid();
+
+    while (!interruptor->is_pulsed())
+    {
+        // Choose a peer to do any metadata changes through
+        metadata_change_handler_t<cluster_semilattice_metadata_t>::request_mailbox_t::address_t sync_mailbox;
+        machine_id_t sync_machine_id;
+        
+        if (!get_change_request_info(directory->get(), &sync_mailbox, &sync_machine_id)) {
+            printf("No reachable server found in the cluster\n");
+            return nil_uuid();
+        }
+
+        // It's possible that this change request will not be used to do an update, but it will also
+        //  make sure we only use one version of the metadata, anyway
+        metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
+            change_request(mailbox_manager, sync_mailbox);
+
+        cluster_semilattice_metadata_t cluster_metadata = change_request.get();
+        bool do_update = false;
+
+         // Try to get the datacenter (if user-specified)
+        datacenter_id_t dc_id = nil_uuid();
+        if (target.datacenter_name) {
+            dc_id = get_datacenter(cluster_metadata, target.datacenter_name.get());
+
+            if (dc_id.is_nil()) {
+                return nil_uuid();
+            }
+        }
+
+        // Try to get or create the datacenter
+        database_id_t db_id = get_or_create_database(&cluster_metadata, target.db_name, sync_machine_id, &do_update);
+        if (db_id.is_nil()) {
+            return nil_uuid();
+        }
+
+        // Try to get or create the namespace
+        ns_id = get_or_create_namespace(&cluster_metadata, dc_id, db_id, target.table_name, target.primary_key, sync_machine_id, &do_update);
+        if (ns_id.is_nil()) {
+            return nil_uuid();
+        }
+
+        if (do_update) {
+            try {
+                fill_in_blueprints(&cluster_metadata, directory->get(), sync_machine_id, false);
+            } catch (missing_machine_exc_t exc) {
+                printf("Cannot fill in blueprints while a machine is missing from the cluster\n");
+                return nil_uuid();
+            }
+            if (!change_request.update(cluster_metadata)) {
+                continue;
+            }
+        }
+
+        printf("Waiting for table readiness...\n");
+        wait_for_rdb_table_readiness(ns_repo, ns_id, interruptor);
+        printf("Table is ready.\n");
+        break;
+    }
+
+    return ns_id;
+}
+
+bool do_json_importation(namespace_repo_t<rdb_protocol_t> *repo,
+                         json_importer_t *importer,
+                         const json_import_target_t &target,
+                         mailbox_manager_t *mailbox_manager,
                          const clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > &directory,
-                         namespace_repo_t<rdb_protocol_t> *repo, json_importer_t *importer,
-                         json_import_target_t target,
                          signal_t *interruptor) {
 
-    const std::string db_name = target.db_name;
-    const boost::optional<std::string> datacenter_name = target.datacenter_name;
-    const std::string table_name = target.table_name;
-    const boost::optional<std::string> maybe_primary_key = target.primary_key;
-    const bool autogen = target.autogen;
+    // This function will verify that the selected datacenter, database, and table exist
+    //  and will create the database and table if they don't, then return the table's namespace_id_t
+    namespace_id_t namespace_id = get_or_create_metadata(repo, mailbox_manager, directory, target, interruptor);
 
-    // Try early abort on primary key.
-    if (!autogen && maybe_primary_key && !importer->might_support_primary_key(*maybe_primary_key)) {
-        // TODO: Duplicate code.
-        // The column name cannot be found!  (This logic will be
-        // different when we support primary key autogeneration.)
-        printf("Requested primary key '%s' not found in import data.\n", maybe_primary_key->c_str());
-        return false;
-    }
-
-
-    database_id_t db_id;
-    if (!get_or_create_database(us, metadata, db_name, &db_id)) {
-        printf("could not get or create database named '%s'\n", db_name.c_str());
-        return false;
-    }
-
-    namespace_id_t namespace_id;
-    std::string primary_key;
-    if (!get_or_create_namespace(us, repo, metadata, directory, db_id, datacenter_name, table_name, maybe_primary_key, &namespace_id, &primary_key, interruptor)) {
-        printf("could not get or create table named '%s' (in db '%s')\n", table_name.c_str(), uuid_to_str(db_id).c_str());
-        return false;
-    }
-
-    if (!autogen && !importer->might_support_primary_key(primary_key)) {
-        // The column name cannot be found!  (This logic will be
-        // different when we support primary key autogeneration.)
-        printf("Primary key '%s' not found in import data.", primary_key.c_str());
+    if (namespace_id.is_nil()) {
         return false;
     }
 
     namespace_repo_t<rdb_protocol_t>::access_t access(repo, namespace_id, interruptor);
-
     namespace_interface_t<rdb_protocol_t> *ni = access.get_namespace_if();
-
     wait_interruptible(ni->get_initial_ready_signal(), interruptor);
 
     order_source_t order_source;
-
-    bool seen_primary_key = false;
 
     int64_t num_imported_rows = 0;
     int64_t num_duplicate_pkey = 0;
@@ -366,21 +368,13 @@ bool do_json_importation(machine_id_t us,
     try {
         printf("Importing data...\n");
         for (scoped_cJSON_t json; importer->next_json(&json); json.reset(NULL)) {
-            cJSON *pkey_value = json.GetObjectItem(primary_key.c_str());
+            cJSON *pkey_value = json.GetObjectItem(target.primary_key.c_str());
+
+            // Autogenerate primary keys for records without them
             if (!pkey_value) {
-                if (autogen) {
-                    std::string generated_pk = uuid_to_str(generate_uuid());
-                    pkey_value = cJSON_CreateString(generated_pk.c_str());
-                    json.AddItemToObject(primary_key.c_str(), pkey_value);
-                } else {
-                    // This can't happen with CSV because we can check headers up front.
-                    // This will need to change if autogeneration is turned on.
-                    if (!seen_primary_key) {
-                        printf("Some imported objects have no primary key ('%s'), and are ignored.\n", primary_key.c_str());
-                        seen_primary_key = true;
-                    }
-                    continue;
-                }
+                std::string generated_pk = uuid_to_str(generate_uuid());
+                pkey_value = cJSON_CreateString(generated_pk.c_str());
+                json.AddItemToObject(target.primary_key.c_str(), pkey_value);
             }
 
             // TODO: This code is duplicated with something.  Like insert(...) in query_language.cc.
@@ -427,7 +421,6 @@ bool do_json_importation(machine_id_t us,
 
         importation_complete = true;
     } catch (interrupted_exc_t exc) {
-        importation_complete = false;
         // do nothing.
     }
 

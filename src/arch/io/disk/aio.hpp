@@ -1,5 +1,6 @@
 #ifndef ARCH_IO_DISK_AIO_HPP_
 #define ARCH_IO_DISK_AIO_HPP_
+#ifdef AIOSUPPORT
 
 #include <libaio.h>
 
@@ -128,6 +129,6 @@ public:
     /* `getter` calls `aio_notify()` when an operation is complete. */
     void aio_notify(iocb *event, int64_t result) NON_NULL_ATTR(2);
 };
-
+#endif // AIOSUPPORT
 #endif // ARCH_IO_DISK_AIO_HPP_
 

@@ -84,7 +84,7 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
 
                 /* Fill in the blueprints */
                 try {
-                    fill_in_blueprints(&cluster_metadata, directory_metadata->get(), us);
+                    fill_in_blueprints(&cluster_metadata, directory_metadata->get(), us, (req.find_query_param("prefer_distribution") ? true : false)); //RSI this needs to be a parameter that we get from the request
                 } catch (const missing_machine_exc_t &e) { }
 
                 metadata_change_handler->update(cluster_metadata);
@@ -100,7 +100,7 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
                 logINF("Deleting %s", req.resource.as_string().c_str());
 
                 try {
-                    fill_in_blueprints(&cluster_metadata, directory_metadata->get(), us);
+                    fill_in_blueprints(&cluster_metadata, directory_metadata->get(), us, false);
                 } catch (const missing_machine_exc_t &e) { }
 
                 metadata_change_handler->update(cluster_metadata);
@@ -144,7 +144,7 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
 
                 /* Fill in the blueprints */
                 try {
-                    fill_in_blueprints(&cluster_metadata, directory_metadata->get(), us);
+                    fill_in_blueprints(&cluster_metadata, directory_metadata->get(), us, false);
                 } catch (const missing_machine_exc_t &e) { }
 
                 metadata_change_handler->update(cluster_metadata);

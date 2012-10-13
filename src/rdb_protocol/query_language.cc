@@ -118,6 +118,19 @@ bool term_type_least_upper_bound(term_info_t left, term_info_t right, term_info_
     return true;
 }
 
+void check_name_string(const std::string& name_str, const backtrace_t &backtrace) THROWS_ONLY(bad_query_exc_t) {
+    name_string_t name;
+    if (!name.assign_value(name_str)) {
+        throw bad_query_exc_t(strprintf("Invalid name '%s'.  (%s).", name_str.c_str(), name_string_t::valid_char_msg), backtrace);
+    }
+
+}
+
+void check_table_ref(const TableRef &tr, const backtrace_t &backtrace) THROWS_ONLY(bad_query_exc_t) {
+    check_name_string(tr.db_name(), backtrace.with("db_name"));
+    check_name_string(tr.table_name(), backtrace.with("table_name"));
+}
+
 term_info_t get_term_type(Term *t, type_checking_environment_t *env, const backtrace_t &backtrace) {
     if (t->HasExtension(extension::inferred_type)) {
         guarantee_debug_throw_release(t->HasExtension(extension::deterministic), backtrace);
@@ -244,11 +257,15 @@ term_info_t get_term_type(Term *t, type_checking_environment_t *env, const backt
     } break;
     case Term::GETBYKEY: {
         check_protobuf(t->has_get_by_key());
+        check_table_ref(t->get_by_key().table_ref(), backtrace.with("table_ref"));
         check_term_type(t->mutable_get_by_key()->mutable_key(), TERM_TYPE_JSON, env, NULL, backtrace.with("key"));
         ret.reset(term_info_t(TERM_TYPE_JSON, false));
     } break;
     case Term::TABLE: {
         check_protobuf(t->has_table());
+        // TODO: I don't like or don't "get" how backtraces are supposed to work. Why do
+        // backtraces refer to the subfield of the type but not refer to the type itself?  -sam
+        check_table_ref(t->table().table_ref(), backtrace.with("table_ref"));
         ret.reset(term_info_t(TERM_TYPE_VIEW, false));
     } break;
     case Term::JAVASCRIPT: {
@@ -663,6 +680,7 @@ void check_write_query_type(WriteQuery *w, type_checking_environment_t *env, boo
     } break;
     case WriteQuery::INSERT: {
         check_protobuf(w->has_insert());
+        check_table_ref(w->insert().table_ref(), backtrace.with("table_ref"));
         if (w->insert().terms_size() == 1) {
             // We want to do the get to produce determinism information
             get_term_type(w->mutable_insert()->mutable_terms(0), env, backtrace);
@@ -683,16 +701,19 @@ void check_write_query_type(WriteQuery *w, type_checking_environment_t *env, boo
     } break;
     case WriteQuery::POINTUPDATE: {
         check_protobuf(w->has_point_update());
+        check_table_ref(w->point_update().table_ref(), backtrace.with("table_ref"));
         check_term_type(w->mutable_point_update()->mutable_key(), TERM_TYPE_JSON, env, is_det_out, backtrace.with("key"));
         implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic));
         check_mapping_type(w->mutable_point_update()->mutable_mapping(), TERM_TYPE_JSON, env, is_det_out, backtrace.with("point_map"));
     } break;
     case WriteQuery::POINTDELETE: {
         check_protobuf(w->has_point_delete());
+        check_table_ref(w->point_delete().table_ref(), backtrace.with("table_ref"));
         check_term_type(w->mutable_point_delete()->mutable_key(), TERM_TYPE_JSON, env, is_det_out, backtrace.with("key"));
     } break;
     case WriteQuery::POINTMUTATE: {
         check_protobuf(w->has_point_mutate());
+        check_table_ref(w->point_mutate().table_ref(), backtrace.with("table_ref"));
         check_term_type(w->mutable_point_mutate()->mutable_key(), TERM_TYPE_JSON, env, is_det_out, backtrace.with("key"));
         implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic));
         check_mapping_type(w->mutable_point_mutate()->mutable_mapping(), TERM_TYPE_JSON, env, is_det_out, backtrace.with("point_map"));
@@ -702,16 +723,18 @@ void check_write_query_type(WriteQuery *w, type_checking_environment_t *env, boo
     }
 }
 
-void check_meta_query_type(MetaQuery *t) {
+void check_meta_query_type(MetaQuery *t, const backtrace_t &backtrace) {
     check_protobuf(MetaQuery::MetaQueryType_IsValid(t->type()));
     switch(t->type()) {
     case MetaQuery::CREATE_DB:
         check_protobuf(t->has_db_name());
+        check_name_string(t->db_name(), backtrace.with("create_db"));
         check_protobuf(!t->has_create_table());
         check_protobuf(!t->has_drop_table());
         break;
     case MetaQuery::DROP_DB:
         check_protobuf(t->has_db_name());
+        check_name_string(t->db_name(), backtrace.with("drop_db"));
         check_protobuf(!t->has_create_table());
         check_protobuf(!t->has_drop_table());
         break;
@@ -720,18 +743,22 @@ void check_meta_query_type(MetaQuery *t) {
         check_protobuf(!t->has_create_table());
         check_protobuf(!t->has_drop_table());
         break;
-    case MetaQuery::CREATE_TABLE:
+    case MetaQuery::CREATE_TABLE: {
         check_protobuf(!t->has_db_name());
         check_protobuf(t->has_create_table());
+        check_name_string(t->create_table().datacenter(), backtrace.with("create_table").with("datacenter"));
+        check_table_ref(t->create_table().table_ref(), backtrace.with("create_table").with("table_ref"));
         check_protobuf(!t->has_drop_table());
-        break;
+    } break;
     case MetaQuery::DROP_TABLE:
         check_protobuf(!t->has_db_name());
         check_protobuf(!t->has_create_table());
         check_protobuf(t->has_drop_table());
+        check_table_ref(t->drop_table(), backtrace.with("drop_table"));
         break;
     case MetaQuery::LIST_TABLES:
         check_protobuf(t->has_db_name());
+        check_name_string(t->db_name(), backtrace.with("list_tables"));
         check_protobuf(!t->has_create_table());
         check_protobuf(!t->has_drop_table());
         break;
@@ -768,7 +795,7 @@ void check_query_type(Query *q, type_checking_environment_t *env, bool *is_det_o
         check_protobuf(q->has_meta_query());
         check_protobuf(!q->has_read_query());
         check_protobuf(!q->has_write_query());
-        check_meta_query_type(q->mutable_meta_query());
+        check_meta_query_type(q->mutable_meta_query(), backtrace);
         break;
     default:
         unreachable("unhandled Query");
@@ -801,13 +828,36 @@ static void meta_check(metadata_search_status_t status, metadata_search_status_t
 }
 
 template<class T, class U>
-uuid_t meta_get_uuid(T searcher, U predicate,
+uuid_t meta_get_uuid(T searcher, const U& predicate,
                      const std::string &operation, const backtrace_t &backtrace) {
     metadata_search_status_t status;
     typename T::iterator entry = searcher.find_uniq(predicate, &status);
     meta_check(status, METADATA_SUCCESS, operation, backtrace);
     return entry->first;
 }
+
+void assign_name(const char *kind_of_name, const std::string &name_str, const backtrace_t& bt, name_string_t *name_out)
+    THROWS_ONLY(runtime_exc_t) {
+    if (!name_out->assign_value(name_str)) {
+        throw runtime_exc_t(strprintf("%s name '%s' invalid. (%s)", kind_of_name, name_str.c_str(), name_string_t::valid_char_msg), bt);
+    }
+}
+
+void assign_table_name(const std::string &table_name_str, const backtrace_t& bt, name_string_t *table_name_out)
+    THROWS_ONLY(runtime_exc_t) {
+    assign_name("table", table_name_str, bt, table_name_out);
+}
+
+void assign_db_name(const std::string &db_name_str, const backtrace_t& bt, name_string_t *db_name_out)
+    THROWS_ONLY(runtime_exc_t) {
+    assign_name("database", db_name_str, bt, db_name_out);
+}
+
+void assign_dc_name(const std::string &dc_name_str, const backtrace_t& bt, name_string_t *dc_name_out)
+    THROWS_ONLY(runtime_exc_t) {
+    assign_name("datacenter", dc_name_str, bt, dc_name_out);
+}
+
 
 void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const backtrace_t &bt) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
     // This must be performed on the semilattice_metadata's home thread,
@@ -830,35 +880,40 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
 
     switch(m->type()) {
     case MetaQuery::CREATE_DB: {
-        std::string db_name = m->db_name();
+        name_string_t db_name;
+        assign_db_name(m->db_name(), bt.with("db_name"), &db_name);
 
         /* Ensure database doesn't already exist. */
         metadata_search_status_t status;
         db_searcher.find_uniq(db_name, &status);
-        meta_check(status, METADATA_ERR_NONE, "CREATE_DB " + db_name, bt);
+        meta_check(status, METADATA_ERR_NONE, "CREATE_DB " + db_name.str(), bt);
 
         /* Create namespace, insert into metadata, then join into real metadata. */
         database_semilattice_metadata_t db;
-        db.name = vclock_t<std::string>(db_name, env->this_machine);
+        db.name = vclock_t<name_string_t>(db_name, env->this_machine);
         metadata.databases.databases.insert(std::make_pair(generate_uuid(), db));
-        //TODO: (!!!) catch machine_missing_exc_t (or something)
-        fill_in_blueprints(&metadata, directory_metadata->get(), env->this_machine);
+        try {
+            fill_in_blueprints(&metadata, directory_metadata->get(), env->this_machine, false);
+        } catch (const missing_machine_exc_t &e) {
+            throw runtime_exc_t(e.what(), bt);
+        }
         env->semilattice_metadata->join(metadata);
         res->set_status_code(Response::SUCCESS_EMPTY); //return immediately.
     } break;
     case MetaQuery::DROP_DB: {
-        std::string db_name = m->db_name();
+        name_string_t db_name;
+        assign_db_name(m->db_name(), bt.with("db_anme"), &db_name);
 
         // Get database metadata.
         metadata_search_status_t status;
         metadata_searcher_t<database_semilattice_metadata_t>::iterator
             db_metadata = db_searcher.find_uniq(db_name, &status);
-        meta_check(status, METADATA_SUCCESS, "DROP_DB " + db_name, bt);
+        meta_check(status, METADATA_SUCCESS, "DROP_DB " + db_name.str(), bt);
         guarantee(!db_metadata->second.is_deleted());
         uuid_t db_id = db_metadata->first;
 
         // Delete all tables in database.
-        namespace_predicate_t pred(db_id);
+        namespace_predicate_t pred(&db_id);
         for (metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >
                  ::iterator it = ns_searcher.find_next(ns_searcher.begin(), pred);
              it != ns_searcher.end(); it = ns_searcher.find_next(++it, pred)) {
@@ -869,7 +924,11 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         // Delete database.
         db_metadata->second.mark_deleted();
         //TODO: (!!!) catch machine_missing_exc_t (or something)
-        fill_in_blueprints(&metadata, directory_metadata->get(), env->this_machine);
+        try {
+            fill_in_blueprints(&metadata, directory_metadata->get(), env->this_machine, false);
+        } catch (const missing_machine_exc_t &e) {
+            throw runtime_exc_t(e.what(), bt);
+        }
         env->semilattice_metadata->join(metadata);
         res->set_status_code(Response::SUCCESS_EMPTY);
     } break;
@@ -887,23 +946,30 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         res->set_status_code(Response::SUCCESS_STREAM);
     } break;
     case MetaQuery::CREATE_TABLE: {
-        std::string dc_name = m->create_table().datacenter();
-        std::string db_name = m->create_table().table_ref().db_name();
-        std::string table_name = m->create_table().table_ref().table_name();
+        std::string dc_name_str = m->create_table().datacenter();
+        name_string_t dc_name;
+        assign_dc_name(dc_name_str, bt.with("table_ref").with("dc_name"), &dc_name);
+        std::string db_name_str = m->create_table().table_ref().db_name();
+        name_string_t db_name;
+        assign_db_name(db_name_str, bt.with("table_ref").with("db_name"), &db_name);
+        std::string table_name_str = m->create_table().table_ref().table_name();
+        name_string_t table_name;
+        assign_table_name(table_name_str, bt.with("table_ref").with("table_name"), &table_name);
         std::string primary_key = m->create_table().primary_key();
         int64_t cache_size = m->create_table().cache_size();
 
-        uuid_t db_id = meta_get_uuid(db_searcher, db_name, "FIND_DATABASE " + db_name, bt.with("table_ref").with("db_name"));
+        uuid_t db_id = meta_get_uuid(db_searcher, db_name, "FIND_DATABASE " + db_name.str(), bt.with("table_ref").with("db_name"));
 
         uuid_t dc_id = nil_uuid();
         if (m->create_table().has_datacenter()) {
-            dc_id = meta_get_uuid(dc_searcher, dc_name, "FIND_DATACENTER " + dc_name, bt.with("datacenter"));
+            dc_id = meta_get_uuid(dc_searcher, dc_name, "FIND_DATACENTER " + dc_name.str(), bt.with("datacenter"));
         }
 
+        namespace_predicate_t search_predicate(&table_name, &db_id);
         /* Ensure table doesn't already exist. */
         metadata_search_status_t status;
-        ns_searcher.find_uniq(namespace_predicate_t(table_name, db_id), &status);
-        meta_check(status, METADATA_ERR_NONE, "CREATE_TABLE " + table_name, bt);
+        ns_searcher.find_uniq(search_predicate, &status);
+        meta_check(status, METADATA_ERR_NONE, "CREATE_TABLE " + table_name.str(), bt);
 
         /* Create namespace, insert into metadata, then join into real metadata. */
         uuid_t namespace_id = generate_uuid();
@@ -915,8 +981,11 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
             cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t change(&metadata.rdb_namespaces);
             change.get()->namespaces.insert(std::make_pair(namespace_id, ns));
         }
-        //TODO: (!!!) catch machine_missing_exc_t (or something)
-        fill_in_blueprints(&metadata, directory_metadata->get(), env->this_machine);
+        try {
+            fill_in_blueprints(&metadata, directory_metadata->get(), env->this_machine, false);
+        } catch (const missing_machine_exc_t &e) {
+            throw runtime_exc_t(e.what(), bt);
+        }
         env->semilattice_metadata->join(metadata);
 
         /* UGLY HACK BELOW.  SEE wait_for_rdb_table_readiness for more info. */
@@ -932,30 +1001,39 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         res->set_status_code(Response::SUCCESS_EMPTY);
     } break;
     case MetaQuery::DROP_TABLE: {
-        std::string db_name = m->drop_table().db_name();
-        std::string table_name = m->drop_table().table_name();
+        std::string db_name_str = m->drop_table().db_name();
+        name_string_t db_name;
+        assign_db_name(db_name_str, bt.with("db_name"), &db_name);
+        std::string table_name_str = m->drop_table().table_name();
+        name_string_t table_name;
+        assign_table_name(table_name_str, bt.with("table_name"), &table_name);
 
         // Get namespace metadata.
-        uuid_t db_id = meta_get_uuid(db_searcher, db_name, "FIND_DATABASE " + db_name, bt.with("db_name"));
+        uuid_t db_id = meta_get_uuid(db_searcher, db_name, "FIND_DATABASE " + db_name.str(), bt.with("db_name"));
+        namespace_predicate_t search_predicate(&table_name, &db_id);
         metadata_search_status_t status;
         metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >::iterator
             ns_metadata =
-            ns_searcher.find_uniq(namespace_predicate_t(table_name, db_id), &status);
+            ns_searcher.find_uniq(search_predicate, &status);
         std::string op = strprintf("FIND_TABLE %s.%s", db_name.c_str(), table_name.c_str());
         meta_check(status, METADATA_SUCCESS, op, bt.with("table_name"));
         guarantee(!ns_metadata->second.is_deleted());
 
         // Delete namespace
         ns_metadata->second.mark_deleted();
-        //TODO: (!!!) catch machine_missing_exc_t (or something)
-        fill_in_blueprints(&metadata, directory_metadata->get(), env->this_machine);
+        try {
+            fill_in_blueprints(&metadata, directory_metadata->get(), env->this_machine, false);
+        } catch (const missing_machine_exc_t &e) {
+            throw runtime_exc_t(e.what(), bt);
+        }
         env->semilattice_metadata->join(metadata);
         res->set_status_code(Response::SUCCESS_EMPTY); //return immediately
     } break;
     case MetaQuery::LIST_TABLES: {
-        std::string db_name = m->db_name();
-        uuid_t db_id = meta_get_uuid(db_searcher, db_name, "FIND_DATABASE " + db_name, bt.with("db_name"));
-        namespace_predicate_t pred(db_id);
+        name_string_t db_name;
+        assign_db_name(m->db_name(), bt.with("db_name"), &db_name);
+        uuid_t db_id = meta_get_uuid(db_searcher, db_name, "FIND_DATABASE " + db_name.str(), bt.with("db_name"));
+        namespace_predicate_t pred(&db_id);
         for (metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >
                  ::iterator it = ns_searcher.find_next(ns_searcher.begin(), pred);
              it != ns_searcher.end(); it = ns_searcher.find_next(++it, pred)) {
@@ -974,8 +1052,11 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
 
 std::string get_primary_key(TableRef *t, runtime_environment_t *env,
                             const backtrace_t &bt) {
-    std::string db_name = t->db_name();
-    std::string table_name = t->table_name();
+    name_string_t db_name;
+    assign_db_name(t->db_name(), bt.with("db_name"), &db_name);
+    name_string_t table_name;
+    assign_table_name(t->table_name(), bt.with("table_name"), &table_name);
+
     cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > ns_metadata = env->namespaces_semilattice_metadata->get();
     databases_semilattice_metadata_t db_metadata = env->databases_semilattice_metadata->get();
 
@@ -985,12 +1066,12 @@ std::string get_primary_key(TableRef *t, runtime_environment_t *env,
     metadata_searcher_t<database_semilattice_metadata_t>
         db_searcher(&db_metadata.databases);
 
-    uuid_t db_id = meta_get_uuid(db_searcher, db_name, "FIND_DB " + db_name, bt);
-    namespace_predicate_t pred(table_name, db_id);
+    uuid_t db_id = meta_get_uuid(db_searcher, db_name, "FIND_DB " + db_name.str(), bt);
+    namespace_predicate_t pred(&table_name, &db_id);
     metadata_search_status_t status;
     metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >::iterator
         ns_metadata_it = ns_searcher.find_uniq(pred, &status);
-    meta_check(status, METADATA_SUCCESS, "FIND_TABLE " + table_name, bt);
+    meta_check(status, METADATA_SUCCESS, "FIND_TABLE " + table_name.str(), bt);
     guarantee(!ns_metadata_it->second.is_deleted());
     if (ns_metadata_it->second.get().primary_key.in_conflict()) {
         throw runtime_exc_t(strprintf(
@@ -2583,8 +2664,11 @@ boost::shared_ptr<json_stream_t> eval_call_as_stream(Term::Call *c, runtime_envi
 
 namespace_repo_t<rdb_protocol_t>::access_t eval_table_ref(TableRef *t, runtime_environment_t *env, const backtrace_t &bt)
     THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
-    std::string table_name = t->table_name();
-    std::string db_name = t->db_name();
+    name_string_t table_name;
+    assign_table_name(t->table_name(), bt.with("table_name"), &table_name);
+
+    name_string_t db_name;
+    assign_db_name(t->db_name(), bt.with("db_name"), &db_name);
 
     cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > namespaces_metadata = env->namespaces_semilattice_metadata->get();
     databases_semilattice_metadata_t databases_metadata = env->databases_semilattice_metadata->get();
@@ -2595,9 +2679,9 @@ namespace_repo_t<rdb_protocol_t>::access_t eval_table_ref(TableRef *t, runtime_e
     metadata_searcher_t<database_semilattice_metadata_t>
         db_searcher(&databases_metadata.databases);
 
-    uuid_t db_id = meta_get_uuid(db_searcher, db_name, "EVAL_DB " + db_name, bt);
-    namespace_predicate_t pred(table_name, db_id);
-    uuid_t id = meta_get_uuid(ns_searcher, pred, "EVAL_TABLE " + table_name, bt);
+    uuid_t db_id = meta_get_uuid(db_searcher, db_name, "EVAL_DB " + db_name.str(), bt);
+    namespace_predicate_t pred(&table_name, &db_id);
+    uuid_t id = meta_get_uuid(ns_searcher, pred, "EVAL_TABLE " + table_name.str(), bt);
 
     return namespace_repo_t<rdb_protocol_t>::access_t(env->ns_repo, id, env->interruptor);
 }
