@@ -1128,7 +1128,7 @@ void admin_cluster_link_t::list_pinnings_internal(const persistable_blueprint_t<
             if (m->second.get().name.in_conflict()) {
                 delta.push_back("<conflict>");
             } else {
-                delta.push_back(m->second.get().name.get());
+                delta.push_back(m->second.get().name.get().str());  // TODO(1253)
             }
 
             if (m->second.get().datacenter.in_conflict()) {
@@ -1311,7 +1311,7 @@ void admin_cluster_link_t::do_admin_list_directory(const admin_command_parser_t:
             } else if (m->second.get().name.in_conflict()) {
                 delta.push_back("<conflict>");
             } else {
-                delta.push_back(m->second.get().name.get());
+                delta.push_back(m->second.get().name.get().str());  // TODO(1253)
             }
         } else {
             delta.push_back("");
@@ -1811,7 +1811,7 @@ void admin_cluster_link_t::do_admin_list_machines(const admin_command_parser_t::
             }
 
             if (!i->second.get().name.in_conflict()) {
-                delta.push_back(i->second.get().name.get());
+                delta.push_back(i->second.get().name.get().str());  // TODO(1253)
             } else {
                 delta.push_back("<conflict>");
             }
@@ -2889,7 +2889,7 @@ void admin_cluster_link_t::add_single_namespace_replicas(const nonoverlapping_re
                 } else if (m->second.get().name.in_conflict()) {
                     delta.push_back("<conflict>");
                 } else {
-                    delta.push_back(m->second.get().name.get());
+                    delta.push_back(m->second.get().name.get().str());  // TODO(1253)
                 }
 
                 delta.push_back("yes");
@@ -2914,7 +2914,7 @@ void admin_cluster_link_t::add_single_namespace_replicas(const nonoverlapping_re
                 } else if (m->second.get().name.in_conflict()) {
                     delta.push_back("<conflict>");
                 } else {
-                    delta.push_back(m->second.get().name.get());
+                    delta.push_back(m->second.get().name.get().str());  // TODO(1253)
                 }
 
                 delta.push_back("no");
@@ -2950,7 +2950,7 @@ void admin_cluster_link_t::list_single_datacenter(const datacenter_id_t& dc_id,
             i->second.get().datacenter.get() == dc_id) {
             std::vector<std::string> delta;
             delta.push_back(uuid_to_str(i->first));
-            delta.push_back(i->second.get().name.in_conflict() ? "<conflict>" : i->second.get().name.get());
+            delta.push_back(i->second.get().name.in_conflict() ? "<conflict>" : i->second.get().name.get().str());  // TODO(1253)
             table.push_back(delta);
         }
     }

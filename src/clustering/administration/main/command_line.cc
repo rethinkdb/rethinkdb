@@ -51,7 +51,7 @@ bool check_existence(const std::string& file_path) {
     return 0 == access(file_path.c_str(), F_OK);
 }
 
-void run_rethinkdb_create(const std::string &filepath, const std::string &machine_name, const io_backend_t io_backend, bool *result_out) {
+void run_rethinkdb_create(const std::string &filepath, const name_string_t &machine_name, const io_backend_t io_backend, bool *result_out) {
     machine_id_t our_machine_id = generate_uuid();
     logINF("Our machine ID: %s\n", uuid_to_str(our_machine_id).c_str());
 
@@ -156,7 +156,7 @@ void run_rethinkdb_serve(extproc::spawner_t::info_t *spawner_info, const std::st
     }
 }
 
-void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std::string &filepath, const std::string &machine_name, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets, bool new_directory) {
+void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std::string &filepath, const name_string_t &machine_name, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets, bool new_directory) {
     os_signal_cond_t sigint_cond;
 
     logINF("Checking if directory '%s' already existed...\n", filepath.c_str());
@@ -192,7 +192,7 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
         cluster_semilattice_metadata_t semilattice_metadata;
 
         machine_semilattice_metadata_t our_machine_metadata;
-        our_machine_metadata.name = vclock_t<std::string>(machine_name, our_machine_id);
+        our_machine_metadata.name = vclock_t<name_string_t>(machine_name, our_machine_id);
         our_machine_metadata.datacenter = vclock_t<datacenter_id_t>(nil_uuid(), our_machine_id);
         semilattice_metadata.machines.machines.insert(std::make_pair(our_machine_id, our_machine_metadata));
 
@@ -424,19 +424,25 @@ int main_rethinkdb_create(int argc, char *argv[]) {
     std::string filepath = vm["directory"].as<std::string>();
     std::string logfilepath = get_logfilepath(filepath);
 
-    std::string machine_name = vm["machine-name"].as<std::string>();
+    std::string machine_name_str = vm["machine-name"].as<std::string>();
+    name_string_t machine_name;
+    if (!machine_name.assign(machine_name_str)) {
+        fprintf(stderr, "Machine name '%s' invalid.  (Use A-Za-z0-9_)", machine_name_str.c_str());  // TODO(1253)
+        return EXIT_FAILURE;
+    }
 
     const int num_workers = get_cpu_count();
 
+    // TODO: Why do we call check_existence when we just try calling mkdir anyway?  This is stupid.
     if (check_existence(filepath)) {
         fprintf(stderr, "The path '%s' already exists.  Delete it and try again.\n", filepath.c_str());
-        return 1;
+        return EXIT_FAILURE;
     }
 
     int res = mkdir(filepath.c_str(), 0755);
     if (res != 0) {
         fprintf(stderr, "Could not create directory: %s\n", errno_to_string(errno).c_str());
-        return 1;
+        return EXIT_FAILURE;
     }
 
     install_fallback_log_writer(logfilepath);
@@ -710,7 +716,12 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
     std::string filepath = vm["directory"].as<std::string>();
     std::string logfilepath = get_logfilepath(filepath);
 
-    std::string machine_name = vm["machine-name"].as<std::string>();
+    std::string machine_name_str = vm["machine-name"].as<std::string>();
+    name_string_t machine_name;
+    if (!machine_name.assign(machine_name_str)) {
+        fprintf(stderr, "Invalid machine-name (use A-Za-z0-9_).\n");  // TODO(1253)
+        return EXIT_FAILURE;
+    }
     std::vector<host_and_port_t> joins;
     if (vm.count("join") > 0) {
         joins = vm["join"].as<std::vector<host_and_port_t> >();
