@@ -19,8 +19,9 @@ public:
 
     const std::string& str() const { return str_; }
 
-    bool empty() const { return str_.empty(); }  // TODO(1253): get rid of this.
-    const char *c_str() const { return str_.c_str(); }  // TODO(1253): get rid of this.
+    // TODO: We should get rid of this, and code that uses this is known to be untrustworthy.
+    bool empty() const { return str_.empty(); }
+    const char *c_str() const { return str_.c_str(); }
 
     RDB_MAKE_ME_SERIALIZABLE_1(str_);
 
