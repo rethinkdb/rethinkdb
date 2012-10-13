@@ -289,6 +289,11 @@ void acquire_a_node(traversal_state_t *state, int level, block_id_t block_id, lo
     fsm->node_ready_cb = node_ready_cb;
 
     state->acquisition_waiter_stack(level).push_back(fsm);
+
+    if (state->interrupted) {
+        fsm->cancel();
+    }
+
     state->consider_pulsing();
 }
 
