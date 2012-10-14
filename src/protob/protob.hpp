@@ -2,6 +2,7 @@
 #define PROTOB_PROTOB_HPP_
 
 #include <string>
+#include <map>
 
 #include "errors.hpp"
 #include <boost/function.hpp>
