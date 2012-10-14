@@ -19,11 +19,14 @@ http_res_t file_http_app_t::handle(const http_req_t &req) {
         /* Method not allowed. */
         return http_res_t(HTTP_METHOD_NOT_ALLOWED);
     }
+
     std::string resource(req.resource.as_string());
+#ifndef NDEBUG
     if (resource != "/" && resource != "" && !std_contains(whitelist, resource)) {
         logINF("Someone asked for the nonwhitelisted file %s, if this should be accessible add it to the whitelist.", resource.c_str());
         return http_res_t(HTTP_FORBIDDEN);
     }
+#endif
 
     http_res_t res;
     std::string filename;
