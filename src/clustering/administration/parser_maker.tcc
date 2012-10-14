@@ -60,8 +60,9 @@ void parser_maker_t<protocol_t, parser_t>::on_change() {
         /* Create parsers as necessary by spawning instances of
         `serve_queries()` */
         if (handled_ns == namespaces_being_handled.end() && !it->second.is_deleted() && !it->second.get().port.in_conflict()) {
-            vclock_t<std::string> v_ns_name = it->second.get().name;
-            std::string ns_name(v_ns_name.in_conflict() ? ns_name_in_conflict : v_ns_name.get());
+            vclock_t<name_string_t> v_ns_name = it->second.get().name;
+            // TODO: Why not resort to uuid when the name is in conflict, if it's for user output?
+            std::string ns_name = v_ns_name.in_conflict() ? ns_name_in_conflict : v_ns_name.get().str();
 
             int port = get_port(it->second.get(), port_offset);
             namespace_id_t tmp = it->first;

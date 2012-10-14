@@ -8,6 +8,7 @@
 #include <sys/ioctl.h>
 
 #include <string>
+#include <vector>
 
 #include "containers/archive/archive.hpp"
 #include "errors.hpp"

@@ -42,11 +42,8 @@ public:
     }
 
     scoped_ptr_t<serializer_t> *serializer() { return &serializer_; }
-    scoped_ptr_t<serializer_multiplexer_t> *multiplexer() { return &multiplexer_; }    
-
-    scoped_array_t<scoped_ptr_t<typename protocol_t::store_t> > *stores() {
-        return &stores_;
-    }
+    scoped_ptr_t<serializer_multiplexer_t> *multiplexer() { return &multiplexer_; }
+    scoped_array_t<scoped_ptr_t<typename protocol_t::store_t> > *stores() { return &stores_; }
 
 private:
     scoped_ptr_t<serializer_t> serializer_;

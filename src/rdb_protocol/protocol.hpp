@@ -462,7 +462,7 @@ struct rdb_protocol_t {
     class store_t : public btree_store_t<rdb_protocol_t> {
     public:
         store_t(serializer_t *serializer,
-                const std::string &hash_shard_name,
+                const std::string &perfmon_name,
                 int64_t cache_target,
                 bool create,
                 perfmon_collection_t *parent_perfmon_collection,

@@ -5,6 +5,7 @@
 #include <utility>
 
 #include "clustering/administration/machine_metadata.hpp"
+#include "rpc/connectivity/connectivity.hpp"
 
 inline peer_id_t machine_id_to_peer_id(const machine_id_t &input, const std::map<peer_id_t, machine_id_t> &translation_table) {
     for (std::map<peer_id_t, machine_id_t>::const_iterator it = translation_table.begin(); it != translation_table.end(); ++it) {

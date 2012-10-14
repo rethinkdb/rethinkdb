@@ -51,7 +51,7 @@ bool check_existence(const std::string& file_path) {
     return 0 == access(file_path.c_str(), F_OK);
 }
 
-void run_rethinkdb_create(const std::string &filepath, const std::string &machine_name, const io_backend_t io_backend, bool *result_out) {
+void run_rethinkdb_create(const std::string &filepath, const name_string_t &machine_name, const io_backend_t io_backend, bool *result_out) {
     machine_id_t our_machine_id = generate_uuid();
     logINF("Our machine ID: %s\n", uuid_to_str(our_machine_id).c_str());
 
@@ -156,25 +156,7 @@ void run_rethinkdb_serve(extproc::spawner_t::info_t *spawner_info, const std::st
     }
 }
 
-void add_rdb_namespace(const char *name, machine_id_t our_machine_id, database_id_t database_id,
-                       datacenter_id_t datacenter_id, cluster_semilattice_metadata_t &semilattice_metadata) {
-    /* add an rdb namespace */
-    namespace_id_t namespace_id = generate_uuid();
-
-    namespace_semilattice_metadata_t<rdb_protocol_t> namespace_metadata =
-        new_namespace<rdb_protocol_t>(our_machine_id, database_id, datacenter_id, name, "id", port_defaults::reql_port, GIGABYTE);
-
-    persistable_blueprint_t<rdb_protocol_t> blueprint;
-    std::map<rdb_protocol_t::region_t, blueprint_role_t> roles;
-    roles.insert(std::make_pair(rdb_protocol_t::region_t::universe(), blueprint_role_primary));
-    blueprint.machines_roles.insert(std::make_pair(our_machine_id, roles));
-    namespace_metadata.blueprint = vclock_t<persistable_blueprint_t<rdb_protocol_t> >(blueprint, our_machine_id);
-
-    cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t change(&semilattice_metadata.rdb_namespaces);
-    change.get()->namespaces.insert(std::make_pair(namespace_id, namespace_metadata));
-}
-
-void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std::string &filepath, const std::string &machine_name, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets, bool new_directory) {
+void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std::string &filepath, const name_string_t &machine_name, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets, bool new_directory) {
     os_signal_cond_t sigint_cond;
 
     logINF("Checking if directory '%s' already existed...\n", filepath.c_str());
@@ -210,12 +192,11 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
         cluster_semilattice_metadata_t semilattice_metadata;
 
         machine_semilattice_metadata_t our_machine_metadata;
-        our_machine_metadata.name = vclock_t<std::string>(machine_name, our_machine_id);
+        our_machine_metadata.name = vclock_t<name_string_t>(machine_name, our_machine_id);
         our_machine_metadata.datacenter = vclock_t<datacenter_id_t>(nil_uuid(), our_machine_id);
         semilattice_metadata.machines.machines.insert(std::make_pair(our_machine_id, our_machine_metadata));
-            
-        if (joins.empty())
-        {
+
+        if (joins.empty()) {
             logINF("Creating a default database for your convenience. (This is because you ran 'rethinkdb' "
                    "without 'create', 'serve', or '--join', and the directory '%s' did not already exist.)\n",
                    filepath.c_str());
@@ -223,14 +204,13 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
             /* Create a test database. */
             database_id_t database_id = generate_uuid();
             database_semilattice_metadata_t database_metadata;
-            database_metadata.name = vclock_t<std::string>("test", our_machine_id);
+            name_string_t db_name;
+            bool db_name_success = db_name.assign_value("test");
+            guarantee(db_name_success);
+            database_metadata.name = vclock_t<name_string_t>(db_name, our_machine_id);
             semilattice_metadata.databases.databases.insert(std::make_pair(
                 database_id,
                 deletable_t<database_semilattice_metadata_t>(database_metadata)));
-
-            // We could use add_rdb_namespace() here if we wanted a
-            // default namespace
-
         }
 
         scoped_ptr_t<io_backender_t> io_backender;
@@ -444,19 +424,25 @@ int main_rethinkdb_create(int argc, char *argv[]) {
     std::string filepath = vm["directory"].as<std::string>();
     std::string logfilepath = get_logfilepath(filepath);
 
-    std::string machine_name = vm["machine-name"].as<std::string>();
+    std::string machine_name_str = vm["machine-name"].as<std::string>();
+    name_string_t machine_name;
+    if (!machine_name.assign_value(machine_name_str)) {
+        fprintf(stderr, "ERROR: machine-name '%s' is invalid.  (%s)", machine_name_str.c_str(), name_string_t::valid_char_msg);
+        return EXIT_FAILURE;
+    }
 
     const int num_workers = get_cpu_count();
 
+    // TODO: Why do we call check_existence when we just try calling mkdir anyway?  This is stupid.
     if (check_existence(filepath)) {
         fprintf(stderr, "The path '%s' already exists.  Delete it and try again.\n", filepath.c_str());
-        return 1;
+        return EXIT_FAILURE;
     }
 
     int res = mkdir(filepath.c_str(), 0755);
     if (res != 0) {
         fprintf(stderr, "Could not create directory: %s\n", errno_to_string(errno).c_str());
-        return 1;
+        return EXIT_FAILURE;
     }
 
     install_fallback_log_writer(logfilepath);
@@ -661,17 +647,33 @@ int main_rethinkdb_import(int argc, char *argv[]) {
         int client_port = port_defaults::client_port;
 #endif
         std::string db_table = vm["table"].as<std::string>();
-        std::string db_name;
-        std::string table_name;
-        if (!split_db_table(db_table, &db_name, &table_name)) {
+        std::string db_name_str;
+        std::string table_name_str;
+        if (!split_db_table(db_table, &db_name_str, &table_name_str)) {
             printf("--table option should have format database_name.table_name\n");
             return EXIT_FAILURE;
         }
 
+        name_string_t db_name;
+        if (!db_name.assign_value(table_name_str)) {
+            printf("ERROR: database name invalid. (%s)  e.g. --table database_name.table_name\n", name_string_t::valid_char_msg);
+        }
+
+        name_string_t table_name;
+        if (!table_name.assign_value(table_name_str)) {
+            printf("ERROR: table name invalid.  (%s)  e.g. database_name.table_name\n", name_string_t::valid_char_msg);
+            return EXIT_FAILURE;
+        }
+
         std::string datacenter_name_arg = vm["datacenter"].as<std::string>();
-        boost::optional<std::string> datacenter_name;
+        boost::optional<name_string_t> datacenter_name;
         if (!datacenter_name_arg.empty()) {
-            datacenter_name = datacenter_name_arg;
+            name_string_t tmp;
+            if (!tmp.assign_value(datacenter_name_arg)) {
+                printf("ERROR: datacenter name invalid.  (%s)\n", name_string_t::valid_char_msg);
+                return EXIT_FAILURE;
+            }
+            *datacenter_name = tmp;
         }
 
         std::string primary_key = vm["primary-key"].as<std::string>();
@@ -719,7 +721,12 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
     std::string filepath = vm["directory"].as<std::string>();
     std::string logfilepath = get_logfilepath(filepath);
 
-    std::string machine_name = vm["machine-name"].as<std::string>();
+    std::string machine_name_str = vm["machine-name"].as<std::string>();
+    name_string_t machine_name;
+    if (!machine_name.assign_value(machine_name_str)) {
+        fprintf(stderr, "ERROR: machine-name invalid.  (%s)\n", name_string_t::valid_char_msg);
+        return EXIT_FAILURE;
+    }
     std::vector<host_and_port_t> joins;
     if (vm.count("join") > 0) {
         joins = vm["join"].as<std::vector<host_and_port_t> >();

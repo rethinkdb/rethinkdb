@@ -19,7 +19,7 @@ typedef uuid_t machine_id_t;
 class machine_semilattice_metadata_t {
 public:
     vclock_t<datacenter_id_t> datacenter;
-    vclock_t<std::string> name;
+    vclock_t<name_string_t> name;
 
 
     RDB_MAKE_ME_SERIALIZABLE_2(datacenter, name);

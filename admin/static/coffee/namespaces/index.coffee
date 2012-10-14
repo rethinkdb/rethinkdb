@@ -155,8 +155,6 @@ module 'NamespaceView', ->
                 remove_database_dialog = new DatabaseView.RemoveDatabaseModal
                 remove_database_dialog.render db
 
-
-
         register_namespace_callback: (callbacks) =>
             @callbacks = callbacks
             @namespace_list.register_namespace_callbacks @callbacks

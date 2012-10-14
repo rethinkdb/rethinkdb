@@ -177,7 +177,7 @@ bool run_json_import(extproc::spawner_t::info_t *spawner_info, peer_address_set_
 namespace_id_t get_or_create_namespace(cluster_semilattice_metadata_t *metadata,
                                        datacenter_id_t dc_id,
                                        database_id_t db_id,
-                                       std::string table_name,
+                                       name_string_t table_name,
                                        std::string primary_key_in,
                                        const machine_id_t &sync_machine_id,
                                        bool *do_update) {
@@ -185,8 +185,10 @@ namespace_id_t get_or_create_namespace(cluster_semilattice_metadata_t *metadata,
     cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t change(&metadata->rdb_namespaces);
     metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> > searcher(&change.get()->namespaces);
 
+    namespace_predicate_t search_predicate(&table_name, &db_id);
+
     metadata_search_status_t error;
-    std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<rdb_protocol_t> > >::iterator it = searcher.find_uniq(namespace_predicate_t(table_name, db_id), &error);
+    std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<rdb_protocol_t> > >::iterator it = searcher.find_uniq(search_predicate, &error);
 
     if (error == METADATA_SUCCESS) {
         std::string existing_pk = it->second.get().primary_key.get();
@@ -210,7 +212,7 @@ namespace_id_t get_or_create_namespace(cluster_semilattice_metadata_t *metadata,
 }
 
 database_id_t get_or_create_database(cluster_semilattice_metadata_t *metadata,
-                                     std::string db_name,
+                                     name_string_t db_name,
                                      const machine_id_t &sync_machine_id,
                                      bool *do_update) {
     database_id_t database_id = nil_uuid();
@@ -226,7 +228,7 @@ database_id_t get_or_create_database(cluster_semilattice_metadata_t *metadata,
         *do_update = true;
         database_id = generate_uuid();
         database_semilattice_metadata_t& database = metadata->databases.databases[database_id].get_mutable();
-        database.name.get_mutable().assign(db_name);
+        database.name.get_mutable() = db_name;
         database.name.upgrade_version(sync_machine_id);
     } else if (error == METADATA_ERR_MULTIPLE) {
         printf("Error searching for database.  (Multiple databases are named '%s'.)\n", db_name.c_str());
@@ -238,7 +240,7 @@ database_id_t get_or_create_database(cluster_semilattice_metadata_t *metadata,
 }
 
 datacenter_id_t get_datacenter(const cluster_semilattice_metadata_t &metadata,
-                               const std::string& datacenter_name) {
+                               const name_string_t& datacenter_name) {
     datacenter_id_t datacenter_id = nil_uuid();
     datacenters_semilattice_metadata_t::datacenter_map_t datacenters = metadata.datacenters.datacenters;
     metadata_searcher_t<datacenter_semilattice_metadata_t> dc_searcher(&datacenters);

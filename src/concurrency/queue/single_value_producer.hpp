@@ -25,4 +25,4 @@ private:
     availability_control_t availability_control;
 };
 
-#endif
+#endif  // CONCURRENCY_QUEUE_SINGLE_VALUE_PRODUCER_HPP_

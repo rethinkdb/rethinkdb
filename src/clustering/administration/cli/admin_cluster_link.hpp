@@ -151,7 +151,7 @@ private:
                                  std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<protocol_t> > > *ns_map);
 
     template <class protocol_t>
-    namespace_id_t do_admin_create_table_internal(const std::string& name,
+    namespace_id_t do_admin_create_table_internal(const name_string_t& name,
                                                   int port,
                                                   const datacenter_id_t& primary,
                                                   const std::string& primary_key,
@@ -401,7 +401,9 @@ private:
         std::vector<std::string> path;
     };
 
+    // TODO: Why not make the keys be uuid_t?
     std::map<std::string, metadata_info_t*> uuid_map;
+    // TODO: Why not make the keys be std::string?
     std::multimap<std::string, metadata_info_t*> name_map;
 
     DISABLE_COPYING(admin_cluster_link_t);
