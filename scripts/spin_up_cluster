@@ -94,12 +94,15 @@ if n_machines < 1:
 else:
     parent_dir = ''
     valgrind = False
+    release = False
     keep_data = False
     for opt in os.sys.argv[3:]:
-        if (opt == '--keep'):
+        if opt == '--keep':
             keep_data = True
-        elif (opt == '--valgrind'):
+        elif opt == '--valgrind':
             valgrind = True
+        elif opt == '--release':
+            release = True
         else:
             parent_dir = opt
     kids = []
@@ -110,10 +113,17 @@ else:
         if not keep_data:
             os.system("rm -rf " + directory)
 
-        if (valgrind):
-            binary = "../build/debug-valgrind/rethinkdb"
+        if release:
+            if (valgrind):
+                binary = "../build/release-valgrind/rethinkdb"
+            else:
+                binary = "../build/release/rethinkdb"
         else:
-            binary = "../build/debug/rethinkdb"
+            if (valgrind):
+                binary = "../build/debug-valgrind/rethinkdb"
+            else:
+                binary = "../build/debug/rethinkdb"
+
 
         hostname = socket.gethostname()
         if (i == 0):
