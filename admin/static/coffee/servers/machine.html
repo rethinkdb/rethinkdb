@@ -10,7 +10,6 @@
                 </ul>
             </div>
         </div>
-        <button class="btn show-data">Show data on this server</button>
         <div class="main_title"></div>
         <div id="user-alert-space"></div>
         <div class="section statistics">
@@ -20,6 +19,7 @@
                 <div class="span8 performance-graph"></div>
             </div>
         </div>
+        <div class="section server-data tree-view"></div>
         <div class="recent-log-entries"></div>
     </div>
 </script>
@@ -46,7 +46,7 @@
                 {{#if assigned_to_datacenter}}
                     <span class="big">{{datacenter_name}} </span> datacenter
                 {{else}}
-                    <span class="big">Unassigned </span>datacenter
+                    <span jaclass="big">Unassigned </span>datacenter
                 {{/if}}
             </p>
         </div>
@@ -57,36 +57,44 @@
             <p class="ips"><span class="big">{{#if ips}}{{main_ip}}{{else}}N/A{{/if}} </span>IP address</p>
         </div>
     </div>
-        <!-- Review and remove
-            {{#unless stats_up_to_date}}
-            <p>The stats displayed might not be up to date<br />
-            (the server might be overload with queries).</p>
-            {{/unless}}
-        -->
 </script>
 
 <script id="machine_view_data-template" type="text/x-handlebars-template">
-    <h3 class="title">Data on this server</h3>
-    {{#unless data.namespaces}}
-    <p>No data found on this server.</p>
-    {{/unless}}
-    {{#each data.namespaces}}
-    <div class="namespace">
-        <h4>Table <a href="/#tables/{{uuid}}">{{name}}</a>:</h4>
-        <ul class="shard_ul">
-            {{#each shards}}
-            <li class="shard_li">
-                <h4>Shard {{name}}</h4>
-                {{#if keys}}
-                <p>About {{keys}} keys</p>
-                {{else}}
-                <p>Loading number of keys...</p>
-                {{/if}}
+    <h2 class="title">Data on this server</h2>
+    <ul class="tables">
+        {{#each tables}}
+            <li class="table parent">
+                <div class="tree-line"></div>
+                <div class="table-info parent-info">
+                    <p class="name">Table {{name}}</p>
+                </div>
+                <ul class="shards">
+                    {{#each shards}}
+                        <li class="shard child">
+                            <div class="tree-node"></div>
+                            <div class="shard-info child-info">
+                                <p class="name">{{name}}</p>
+                                <p class="role"><span class="highlight">
+                                    {{#if primary}}
+                                        Primary
+                                    {{else}}{{#if secondary}}
+                                        Secondary
+                                    {{/if}}{{/if}}
+                                </span> Role</p>
+                                <p class="num-keys">
+                                    {{#if num_keys}}
+                                        <span class="highlight">~{{num_keys}}</span> documents
+                                    {{else}}
+                                        <span class="highlight">N/A</span> documents  
+                                    {{/if}}
+                                </p>
+                            </div>
+                        </li>
+                    {{/each}}
+                </ul>
             </li>
-            {{/each}}
-        </ul>
-    </div>
-    {{/each}}
+        {{/each}}
+    </ul>
 </script>
 
 <script id="reason-set_secondary-need_replica-template" type="text/x-handlebars-template">

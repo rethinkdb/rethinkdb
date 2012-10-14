@@ -34,7 +34,6 @@ module 'MachineView', ->
         events: ->
             'click .close': 'close_alert'
             'click .tab-link': 'change_route'
-            'click .show-data': 'show_data'
             # operations in the dropdown menu
             'click .operations .rename':                'rename_machine'
             'click .operations .change-datacenter':     'change_datacenter'
@@ -52,6 +51,7 @@ module 'MachineView', ->
                 seconds: 73             # num seconds to track
                 type: 'server'
             )
+            @data = new MachineView.Data model: @model
             @logs = new LogView.Container
                 route: "/ajax/log/"+@model.get('id')+"_?"
                 type: 'machine'
@@ -88,6 +88,9 @@ module 'MachineView', ->
             @.$('.profile').html @profile.render().$el
             @.$('.performance-graph').html @performance_graph.render().$el
 
+            # data on this server
+            @.$('.server-data').html @data.render().$el
+
             # log entries
             @.$('.recent-log-entries').html @logs.render().$el
 
@@ -105,12 +108,6 @@ module 'MachineView', ->
         close_alert: (event) ->
             event.preventDefault()
             $(event.currentTarget).parent().slideUp('fast', -> $(this).remove())
-
-        # Pop up a modal to show assignments
-        show_data: (event) =>
-            event.preventDefault()
-            modal = new MachineView.DataModal model: @model
-            modal.render()
 
         rename_machine: (event) =>
             event.preventDefault()
@@ -132,6 +129,7 @@ module 'MachineView', ->
             @title.destroy()
             @profile.destroy()
             @performance_graph.destroy()
+            @data.destroy()
             @logs.destroy()
             @model.off '', @render_can_unassign_button
 
@@ -188,7 +186,6 @@ module 'MachineView', ->
                     assigned_to_datacenter: datacenter_uuid
                     datacenter_name: datacenters.get(datacenter_uuid).get('name')
 
-
             # Reachability
             _.extend json,
                 reachability: DataUtils.get_machine_reachability(@model.get('id'))
@@ -242,58 +239,49 @@ module 'MachineView', ->
             machines.get(@model.get('id')).set('datacenter_uuid', null)
             clear_modals()
 
-    class @DataModal extends UIComponents.AbstractModal
-        render: =>
-            @data = new MachineView.Data(model: @model)
-            $('#modal-dialog').html @data.render().$el
-            modal = $('.modal').modal
-                'show': true
-                'backdrop': true
-                'keyboard': true
-
-            modal.on 'hidden', =>
-                modal.remove()
-
     class @Data extends Backbone.View
-        className: 'machine-data-view modal overwrite_modal'
         template: Handlebars.compile $('#machine_view_data-template').html()
 
         initialize: =>
             @namespaces_with_listeners = {}
+
+            namespaces.on 'change:blueprint', @render
+            namespaces.on 'change:key_distr', @render
+            namespaces.each (namespace) -> namespace.load_key_distr()
+
         render: =>
-            json = {}
-            # If the machine is reachable, add relevant json
-            _namespaces = []
-            for namespace in namespaces.models
-                _shards = []
-                for machine_uuid, peer_roles of namespace.get('blueprint').peers_roles
-                    if machine_uuid is @model.get('id')
+            data_by_namespace = []
+                    
+            # Examine each namespace and collect info on its shards / attach listeners to count the number of keys
+            namespaces.each (namespace) =>
+                ns =
+                    name: namespace.get('name')
+                    id: namespace.get('id')
+                    shards: []
+                # Examine each machine's role for the namespace-- only consider namespaces that actually use this machine
+                for machine_id, peer_roles of namespace.get('blueprint').peers_roles
+                    if machine_id is @model.get('id')
+                        # Build up info on each shard present on this machine for this namespace
                         for shard, role of peer_roles
                             if role isnt 'role_nothing'
                                 keys = namespace.compute_shard_rows_approximation shard
-                                _shards[_shards.length] =
-                                    shard: shard
+                                ns.shards.push
                                     name: human_readable_shard shard
-                                    keys: keys if typeof keys is 'string'
-                if _shards.length > 0
-                    if not @namespaces_with_listeners[namespace.get('id')]?
-                        @namespaces_with_listeners[namespace.get('id')] = true
-                        namespace.load_key_distr()
-                        namespace.on 'change:key_distr', @render
+                                    num_keys: parseInt(keys) if typeof keys is 'string'
+                                    role: role
+                                    secondary: role is 'role_secondary'
+                                    primary: role is 'role_primary'
 
-                    _namespaces.push
-                        shards: _shards
-                        name: namespace.get('name')
-                        uuid: namespace.get('id')
+                # Finished building, add it to the list
+                data_by_namespace.push ns
 
-            json = _.extend json,
-                data:
-                    namespaces: _namespaces
 
-            @.$el.html @template(json)
+            @.$el.html @template
+                # Sort the tables alphabetically by name
+                tables: _.sortBy(data_by_namespace, (namespace) -> namespace.name)
+
             return @
 
         destroy: =>
-            for namespace_id of @namespaces_with_listeners
-                namespaces.get(namespace_id).off 'change:key_distr', @render
-                namespaces.get(namespace_id).clear_timeout()
+            namespaces.off 'change:blueprint'
+            namespaces.off 'change:key_distr'

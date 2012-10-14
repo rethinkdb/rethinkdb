@@ -31,7 +31,7 @@ module 'NamespaceView', ->
                     machine.num_keys += parseInt(keys) if typeof keys is 'string'
                     machine.num_primaries += 1 if role is 'role_primary'
                     machine.num_secondaries += 1 if role is 'role_secondary'
-                    machine['shards'].push
+                    machine.shards.push
                         name: human_readable_shard shard
                         keys: parseInt(keys) if typeof keys is 'string'
                         role: role

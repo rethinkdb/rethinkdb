@@ -2,9 +2,9 @@
     <h2 class="title">Servers used by this table</h2>
     <ul class="datacenters">
         {{#each datacenters}}
-            <li class="datacenter">
+            <li class="datacenter parent">
                 <div class="tree-line"></div>
-                <div class="datacenter-info">
+                <div class="datacenter-info parent-info">
                     <p class="name">
                         {{#unless is_universe}}
                             Datacenter <a href="/#datacenters/{{id}}">{{name}}</a>
@@ -13,11 +13,11 @@
                         {{/unless}}
                     </p>
                 </div>
-                <ul class="machines">
+                <ul class="servers">
                     {{#each machines}}
-                        <li class="machine">
+                        <li class="server child">
                             <div class="tree-node"></div>
-                            <div class="machine-info">
+                            <div class="server-info child-info">
                                 <p class="name"><a href="/#servers/{{id}}">{{name}}</a></p>
                                 <p class="num-primaries"><span class="highlight">{{num_primaries}}</span> primaries</p>
                                 <p class="num-secondaries"><span class="highlight">{{num_secondaries}}</span> secondaries</p>

@@ -1358,15 +1358,8 @@ body:before {
     .plot-container{
         margin: 10px 0px 0px 0px;
     }
-}
 
-#database-view {
-   .show-tables { float: right; } 
-}
-
-#table-view {
-    .show-assignments { float: right; }
-    .server-assignments {
+    .tree-view {
         overflow:hidden;
         @element_height: 40px;
         @square_bullet_width: 7px;
@@ -1377,7 +1370,8 @@ body:before {
             margin: 0;
             padding: 0;
         }
-        li.datacenter {
+        // top-level element in the tree
+        li.parent {
             // tree list styles
             position: relative;
             .tree-line {
@@ -1389,8 +1383,8 @@ body:before {
                 background-position: left top, ((@square_bullet_width / 2) - 1) center;
                 background-repeat: no-repeat, repeat-y;  
             }
-            // datacenter details
-            .datacenter-info {
+            // parent element details
+            .parent-info {
                 margin-left: @square_bullet_width + 12px;
                 p { 
                     text-overflow: ellipsis;
@@ -1403,7 +1397,8 @@ body:before {
                 }
             }
         }
-        li.machine {
+        // child element in the tree
+        li.child {
             // tree list styles
             position: relative;
             .tree-node {
@@ -1416,14 +1411,12 @@ body:before {
                 background-position: right center, ((@square_bullet_width / 2) - 1) center;
                 background-repeat: no-repeat, repeat-x;
             }
-            // machine details
+            // child element details
             @border: thin solid #f0f0f0;
-            .machine-info {
+            .child-info {
                 margin-left: @node_margin + 12px;
                 border-bottom: @border;
                 height: @element_height;
-                background: left center no-repeat url('http://bit.ly/VY1pqc');//server-icon.png
-                padding-left: 30px;
                 position: relative;
                 p { 
                     color: #a7a7a7;
@@ -1436,30 +1429,44 @@ body:before {
                     font-size: 16px;
                     .highlight { color: #f7ae41; }
                 }
-                .name {
-                    width: 300px;
-                    height: @element_height;
-                }
-                .num-primaries {
-                    right: 350px;
-                    width: 145px;
-                    padding-left: 30px;
-                    background: left center no-repeat url('http://bit.ly/RCkvPk'); //layers-icon.png
-                }
-                .num-secondaries {
-                    right: 175px;
-                    width: 145px;
-                    padding-left: 30px;
-                    background: left center no-repeat url('http://bit.ly/RCkomW'); //grid-icon.png
-                }
-                .num-keys {
-                    right: 0;
-                    padding-left: 35px;
-                    background: left center no-repeat url('http://bit.ly/TnC8jd'); //bars-icon_server-assignments.pn
-                }
             }
-            &:first-child .machine-info {
+            &:first-child .child {
                 border-top: @border;
+            }
+        }
+    }
+}
+
+#database-view {
+   .show-tables { float: right; } 
+}
+
+#table-view {
+    .section.tree-view.server-assignments {
+        @element_height: 40px;
+        li.server .server-info {
+            background: left center no-repeat url('http://bit.ly/VY1pqc');//server-icon.png
+            padding-left: 30px;
+            .name {
+                width: 300px;
+                height: @element_height;
+            }
+            .num-primaries {
+                right: 350px;
+                width: 145px;
+                padding-left: 30px;
+                background: left center no-repeat url('http://bit.ly/RCkvPk'); //layers-icon.png
+            }
+            .num-secondaries {
+                right: 175px;
+                width: 145px;
+                padding-left: 30px;
+                background: left center no-repeat url('http://bit.ly/RCkomW'); //grid-icon.png
+            }
+            .num-keys {
+                right: 0;
+                padding-left: 35px;
+                background: left center no-repeat url('http://bit.ly/TnC8jd'); //bars-icon_server-assignments.pn
             }
         }
     }
@@ -1767,7 +1774,28 @@ body:before {
 }
 
 #server-view {
-   .show-data { float: right; } 
+    .section.tree-view.server-data {
+        @element_height: 40px;
+        li.shard .shard-info {
+            background: left center no-repeat url('http://bit.ly/VY1pqc');//server-icon.png
+            padding-left: 30px;
+            .name {
+                width: 300px;
+                height: @element_height;
+            }
+            .role {
+                right: 175px;
+                width: 145px;
+                padding-left: 30px;
+                background: left center no-repeat url('http://bit.ly/RCkomW'); //grid-icon.png
+            }
+            .num-keys {
+                right: 0;
+                padding-left: 35px;
+                background: left center no-repeat url('http://bit.ly/TnC8jd'); //bars-icon_server-assignments.pn
+            }
+        }
+    }
 }
 
 /*
