@@ -746,7 +746,9 @@ void check_meta_query_type(MetaQuery *t, const backtrace_t &backtrace) {
     case MetaQuery::CREATE_TABLE: {
         check_protobuf(!t->has_db_name());
         check_protobuf(t->has_create_table());
-        check_name_string(t->create_table().datacenter(), backtrace.with("create_table").with("datacenter"));
+        if (!t->create_table().datacenter().empty()) {
+            check_name_string(t->create_table().datacenter(), backtrace.with("create_table").with("datacenter"));
+        }
         check_table_ref(t->create_table().table_ref(), backtrace.with("create_table").with("table_ref"));
         check_protobuf(!t->has_drop_table());
     } break;
@@ -855,7 +857,9 @@ void assign_db_name(const std::string &db_name_str, const backtrace_t& bt, name_
 
 void assign_dc_name(const std::string &dc_name_str, const backtrace_t& bt, name_string_t *dc_name_out)
     THROWS_ONLY(runtime_exc_t) {
-    assign_name("datacenter", dc_name_str, bt, dc_name_out);
+    if (!dc_name_str.empty()) {
+        assign_name("datacenter", dc_name_str, bt, dc_name_out);
+    }
 }
 
 
