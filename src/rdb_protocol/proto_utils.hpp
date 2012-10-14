@@ -8,9 +8,7 @@
 #include "http/json.hpp"
 #include "utils.hpp"
 
-using namespace query_language;
-
-std::string cJSON_print_primary(cJSON *json, const backtrace_t &backtrace);
+std::string cJSON_print_primary(cJSON *json, const query_language::backtrace_t &backtrace);
 
 #ifndef NDEBUG
 #define guarantee_debug_throw_release(cond, backtrace) guarantee(cond)
