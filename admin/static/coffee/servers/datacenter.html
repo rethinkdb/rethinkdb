@@ -9,7 +9,6 @@
                 </ul>
             </div>
         </div>
-        <button class="btn show-data">Show data in this datacenter</button>
         <div class="main_title"></div>
         <div id="user-alert-space"></div>
         <div class="section statistics">
@@ -19,6 +18,7 @@
                 <div class="span8 performance-graph"></div>
             </div>
         </div>
+        <div class="section server-list list-view"></div>
         <div class="recent-log-entries"></div>
     </div>
 </script>
@@ -50,7 +50,20 @@
     </div>
 </script>
 
-<script id="datacenter_view_data-template" type="text/x-handlebars-template">
+<script id="datacenter_view-machine_list-template" type="text/x-handlebars-template">
+    <h2 class="title">Servers in this datacenter</h2>
+    <ul class="servers">
+        {{#each servers}}
+            <li class="server">
+                <p class="name"><a href="/#servers/{{id}}">{{name}}</a></p>
+                <p class="info">{{num_primaries}} {{pluralize_noun "primary" num_primaries}}, {{num_secondaries}} {{pluralize_noun "secondary" num_secondaries}}</p>
+                <p class="status">{{humanize_machine_reachability status}}</p>
+            </li>
+        {{/each}}
+    </ul>
+</script>
+
+<script id="datacenter_view_OLD_data-template" type="text/x-handlebars-template">
     <h3 class="title">Data in this datacenter</h3>
     {{#unless data.namespaces}}
     <p>No data found in this datacenter.</p>

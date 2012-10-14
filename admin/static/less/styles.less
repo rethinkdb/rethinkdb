@@ -818,6 +818,10 @@ body:before {
                 font-size: 14px; 
                 font-family: @sans;
             }
+            li.pretty_logs_li {
+                font-family: @sans;
+                font-size: 13px;
+            }
             .from-machine {
                 font-style: italic;
                 font-family: @sans;
@@ -1358,6 +1362,33 @@ body:before {
     .plot-container{
         margin: 10px 0px 0px 0px;
     }
+    .list-view {
+        @element_height: 40px;
+        @border: thin solid #f0f0f0;
+        ul, li {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+        }
+        li {
+            position: relative;
+            border-bottom: @border;
+            height: @element_height;
+            position: relative;
+            list-style-type: none;
+            p { 
+                color: #a7a7a7;
+                position: absolute;
+                text-overflow: ellipsis;
+                overflow: hidden;
+                line-height: @element_height;
+                margin: 0;
+                font-family: @sans;
+                font-size: 16px;
+                .highlight { color: #f7ae41; }
+            }
+        }
+    }
 
     .tree-view {
         overflow:hidden;
@@ -1393,7 +1424,7 @@ body:before {
                     margin: 0;
                     font-family: @sans;
                     font-size: 16px;
-                    font-weight: bold;
+                    color: #5C6169;
                 }
             }
         }
@@ -1438,7 +1469,33 @@ body:before {
 }
 
 #database-view {
-   .show-tables { float: right; } 
+    .section.list-view.table-list {
+        @element_height: 40px;
+        li.table {
+            background: left center no-repeat url('http://bit.ly/VY1pqc');//server-icon.png
+            padding-left: 30px;
+            .name {
+                width: 375px;
+                height: @element_height;
+            }
+            .info {
+                right: 200px;
+                width: 200px;
+                padding-left: 30px;
+                background: left center no-repeat url('http://bit.ly/PyxuxE');//graph-icon.png
+            }
+            .status {
+                right: 0;
+                .label { padding-left: 23px; }
+                .label-success {
+                    background: left center no-repeat url('http://bit.ly/QYI4SN'); //green-light_glow_small.png
+                }
+                .label-failure {
+                    background: left center no-repeat url('http://bit.ly/TikAVI'); //red-light_glow_small.png
+                }
+            }
+        }
+    }
 }
 
 #table-view {
@@ -1770,7 +1827,33 @@ body:before {
 }
 
 #datacenter-view {
-   .show-data { float: right; } 
+    .section.list-view.server-list {
+        @element_height: 40px;
+        li.server {
+            background: left center no-repeat url('http://bit.ly/VY1pqc');//server-icon.png
+            padding-left: 30px;
+            .name {
+                width: 375px;
+                height: @element_height;
+            }
+            .info {
+                right: 200px;
+                width: 200px;
+                padding-left: 30px;
+                background: left center no-repeat url('http://bit.ly/PyxuxE');//graph-icon.png
+            }
+            .status {
+                right: 0;
+                .label { padding-left: 23px; }
+                .label-success {
+                    background: left center no-repeat url('http://bit.ly/QYI4SN'); //green-light_glow_small.png
+                }
+                .label-failure {
+                    background: left center no-repeat url('http://bit.ly/TikAVI'); //red-light_glow_small.png
+                }
+            }
+        }
+    }
 }
 
 #server-view {
@@ -1780,7 +1863,7 @@ body:before {
             background: left center no-repeat url('http://bit.ly/VY1pqc');//server-icon.png
             padding-left: 30px;
             .name {
-                width: 300px;
+                width: 455px;
                 height: @element_height;
             }
             .role {

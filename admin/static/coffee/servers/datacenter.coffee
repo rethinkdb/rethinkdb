@@ -18,9 +18,7 @@ module 'DatacenterView', ->
         template: Handlebars.compile $('#datacenter_view-container-template').html()
         events: ->
             'click .tab-link': 'change_route'
-            'click .display_more_machines': 'expand_profile'
             'click .close': 'close_alert'
-            'click .show-data': 'show_data'
             # operations in the dropdown menu
             'click .operations .rename': 'rename_datacenter'
             'click .operations .delete': 'delete_datacenter'
@@ -33,7 +31,7 @@ module 'DatacenterView', ->
             # Panels for datacenter view
             @title = new DatacenterView.Title model: @model
             @profile = new DatacenterView.Profile model: @model
-            @data = new DatacenterView.Data model: @model
+            @machine_list = new DatacenterView.MachineList model: @model
             @performance_graph = new Vis.OpsPlot(@model.get_stats_for_performance,
                 width:  564             # width in pixels
                 height: 210             # height in pixels
@@ -80,8 +78,8 @@ module 'DatacenterView', ->
             @.$('.profile').html @profile.render().$el
             @.$('.performance-graph').html @performance_graph.render().$el
 
-            # display the data on the datacenter
-            @.$('.data').html @data.render().$el
+            # display a list of servers
+            @.$('.server-list').html @machine_list.render().$el
 
             @.$('.performance-graph').html @performance_graph.render().$el
 
@@ -93,22 +91,9 @@ module 'DatacenterView', ->
 
             return @
 
-        expand_profile: (event) ->
-            event.preventDefault()
-            @profile.more_link_should_be_displayed = false
-            @.$('.more_machines').remove()
-            @.$('.profile-expandable').css('overflow', 'auto')
-            @.$('.profile-expandable').css('height', 'auto')
-
         close_alert: (event) ->
             event.preventDefault()
             $(event.currentTarget).parent().slideUp('fast', -> $(this).remove())
-
-        # Pop up a modal to show assignments
-        show_data: (event) =>
-            event.preventDefault()
-            modal = new DatacenterView.DataModal model: @model
-            modal.render()
 
         rename_datacenter: (event) =>
             event.preventDefault()
@@ -123,7 +108,7 @@ module 'DatacenterView', ->
         destroy: =>
             @title.destroy()
             @profile.destroy()
-            @data.destroy()
+            @machine_list.destroy()
             @performance_graph.destroy()
             @logs.destroy()
 
@@ -319,21 +304,46 @@ module 'DatacenterView', ->
             window.app.index_servers
                 alert_message: "The datacenter #{name} was successfully deleted."
 
-    class @DataModal extends UIComponents.AbstractModal
-        render: =>
-            @data = new DatacenterView.Data(model: @model)
-            $('#modal-dialog').html @data.render().$el
-            modal = $('.modal').modal
-                'show': true
-                'backdrop': true
-                'keyboard': true
+    class @MachineList extends Backbone.View
+        template: Handlebars.compile $('#datacenter_view-machine_list-template').html()
 
-            modal.on 'hidden', =>
-                modal.remove()
+        initialize: =>
+            machines.on 'change:name', @render
+            directory.on 'all', @render
+            namespaces.on 'change:blueprint', @render
+
+        render: =>
+            # Filter a list of machines in this datacenter
+            machines_in_dc = machines.filter (machine) => machine.get('datacenter_uuid') is @model.get('id')
+            # Collect basic info on machines in this datacenter-- we'll count up the primaries and secondaries shortly
+            data_on_machines = {}
+            for machine in machines_in_dc
+                data_on_machines[machine.get('id')] =
+                    name: machine.get('name')
+                    id: machine.get('id')
+                    num_primaries: 0
+                    num_secondaries: 0
+                    status: DataUtils.get_machine_reachability(machine.get('id'))
+
+            # Count up the number of primaries and secondaries for each machine across all tables
+            namespaces.each (namespace) =>
+                for machine_id, peer_roles of namespace.get('blueprint').peers_roles
+                    if data_on_machines[machine_id]?
+                        for shard, role of peer_roles
+                            machine = data_on_machines[machine_id]
+                            machine.num_primaries += 1 if role is 'role_primary'
+                            machine.num_secondaries += 1 if role is 'role_secondary'
+
+            @.$el.html @template
+                servers: _.sortBy(data_on_machines, (machine) -> machine.name)
+            return @
+
+        destroy: =>
+            machines.off 'change:name'
+            directory.off 'all'
+            namespaces.off 'change:blueprint'
 
     class @Data extends Backbone.View
-        className: 'datacenter-data-view modal overwrite_modal'
-        template: Handlebars.compile $('#datacenter_view_data-template').html()
 
         initialize: =>
             @namespaces_with_listeners = {}

@@ -9,7 +9,6 @@
                 </ul>
             </div>
         </div>
-        <button class="btn show-tables">Show tables</button>
         <div class="main_title"></div>
         <div id="user-alert-space"></div>
         <div class="section statistics">
@@ -19,6 +18,7 @@
                 <div class="span8 performance-graph"></div>
             </div>
         </div>
+        <div class="section table-list list-view"></div>
     </div>
 </script>
 
@@ -43,21 +43,17 @@
     </div>
 </script>
 
-
-<script id="database_overview-container-template" type="text/x-handlebars-template">
-    <h3 class="title">Tables in this database</h3>
-    <div class="namespaces-list"></div>
-</script>
-
-
-<script id="database-namespace_view-template" type="text/x-handlebars-template">
-    <span class="status">{{humanize_namespace_reachability reachability}}</span>
-    <span class="name">    
-        <a href="#tables/{{id}}">{{name}}</a>
-    </span>
-    <p class="quick_info">
-    {{nshards}} {{pluralize_noun "shard" nshards}}, {{nreplicas}} {{pluralize_noun "replica" nreplicas}} on {{ndatacenters}} {{pluralize_noun "datacenter" ndatacenters}} across {{nmachines}} {{pluralize_noun "server" nmachines}}, replication: {{> backfill_progress_summary}}
-    </p>
+<script id="database_view-namespace_list-template" type="text/x-handlebars-template">
+    <h2 class="title">Tables in this database</h2>
+    <ul class="tables">
+        {{#each tables}}
+            <li class="table">
+                <p class="name"><a href="/#tables/{{id}}">{{name}}</a></p>
+                <p class="info"><span class="highlight">{{nshards}}</span> {{pluralize_noun "shard" nshards}}, <span class="highlight">{{nreplicas}}</span> {{pluralize_noun "replica" nreplicas}}</p>
+                <p class="status">{{humanize_namespace_reachability reachability}}</p>
+            </li>
+        {{/each}}
+    </ul>
 </script>
 
 <script id="remove_database-modal-template" type="text/x-handlebars-template">

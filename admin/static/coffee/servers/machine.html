@@ -66,14 +66,14 @@
             <li class="table parent">
                 <div class="tree-line"></div>
                 <div class="table-info parent-info">
-                    <p class="name">Table {{name}}</p>
+                    <p class="name">Table <a href="/#tables/{{id}}">{{name}}</a></p>
                 </div>
                 <ul class="shards">
                     {{#each shards}}
                         <li class="shard child">
                             <div class="tree-node"></div>
                             <div class="shard-info child-info">
-                                <p class="name">{{name}}</p>
+                                <p class="name"><span class="highlight">{{shard.from}}</span> to <span class="highlight">{{shard.to}}</span></p>
                                 <p class="role"><span class="highlight">
                                     {{#if primary}}
                                         Primary
@@ -83,7 +83,7 @@
                                 </span> Role</p>
                                 <p class="num-keys">
                                     {{#if num_keys}}
-                                        <span class="highlight">~{{num_keys}}</span> documents
+                                        <span class="highlight">~{{num_keys}}</span> {{pluralize_noun "document" num_keys}}
                                     {{else}}
                                         <span class="highlight">N/A</span> documents  
                                     {{/if}}
