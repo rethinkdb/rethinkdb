@@ -1,5 +1,5 @@
-#ifndef RDB_PROTO_UTILS_HPP_
-#define RDB_PROTO_UTILS_HPP_
+#ifndef RDB_PROTOCOL_PROTO_UTILS_HPP_
+#define RDB_PROTOCOL_PROTO_UTILS_HPP_
 
 #include <string>
 #include "rdb_protocol/backtrace.hpp"
@@ -23,5 +23,5 @@ std::string cJSON_print_primary(cJSON *json, const backtrace_t &backtrace);
 
 
 
-#endif // RDB_PROTO_UTILS_HPP_
+#endif // RDB_PROTOCOL_PROTO_UTILS_HPP_
 
