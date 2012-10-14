@@ -99,19 +99,17 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
 
     const std::string serializer_filepath = file_name_for(namespace_id);
 
-    scoped_ptr_t<perfmon_collection_t> our_serializer_perfmon_collection(new perfmon_collection_t);
-    scoped_ptr_t<perfmon_membership_t> our_serializer_perfmon_collection_membership(new perfmon_membership_t(serializers_perfmon_collection, our_serializer_perfmon_collection.get(), serializer_filepath));
     scoped_ptr_t<standard_serializer_t> serializer;
     scoped_ptr_t<serializer_multiplexer_t> multiplexer;
 
     int res = access(serializer_filepath.c_str(), R_OK | W_OK);
-    store_args_t<protocol_t> store_args(io_backender_, namespace_id, cache_size, our_serializer_perfmon_collection.get(), ctx);
+    store_args_t<protocol_t> store_args(io_backender_, namespace_id, cache_size, serializers_perfmon_collection, ctx);
     if (res == 0) {
         // TODO: Could we handle failure when loading the serializer?  Right now, we don't.
         serializer.init(new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
                                                   io_backender_,
                                                   standard_serializer_t::private_dynamic_config_t(serializer_filepath),
-                                                  our_serializer_perfmon_collection.get()));
+                                                  serializers_perfmon_collection));
 
         std::vector<standard_serializer_t *> ptrs;
         ptrs.push_back(serializer.get());
@@ -141,7 +139,7 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
         serializer.init(new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
                                                   io_backender_,
                                                   standard_serializer_t::private_dynamic_config_t(serializer_filepath),
-                                                  our_serializer_perfmon_collection.get()));
+                                                  serializers_perfmon_collection));
 
         std::vector<standard_serializer_t *> ptrs;
         ptrs.push_back(serializer.get());
@@ -179,8 +177,6 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
                                  &dummy_interruptor);
     }
 
-    stores_out->perfmon_collection()->init(our_serializer_perfmon_collection.release());
-    stores_out->perfmon_collection_membership()->init(our_serializer_perfmon_collection_membership.release());
     stores_out->serializer()->init(serializer.release());
     stores_out->multiplexer()->init(multiplexer.release());
 }
