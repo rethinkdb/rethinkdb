@@ -1378,7 +1378,7 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
                 cJSON *id = json->GetObjectItem(pk.c_str());
                 point_modify::result_t mres =
                     point_modify(view.access, pk, id, point_modify::UPDATE, env, w->update().mapping(), scopes,
-                                 w->atomic(), json,backtrace.with("modify_map"));
+                                 w->atomic(), json, backtrace.with("modify_map"));
                 guarantee(mres == point_modify::MODIFIED || mres == point_modify::SKIPPED);
                 updated += (mres == point_modify::MODIFIED);
                 skipped += (mres == point_modify::SKIPPED);

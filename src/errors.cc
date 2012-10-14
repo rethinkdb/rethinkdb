@@ -142,12 +142,24 @@ void assertion_failed_msg(char const * expr, char const * msg, char const * func
 __attribute__((noreturn)) void mcheck_abortfunc(enum mcheck_status mstatus) {
     const char *err;
     switch(mstatus) {
-    case MCHECK_DISABLED : err = "MCHECK_DISABLED" ; break;
-    case MCHECK_OK       : err = "MCHECK_OK"       ; break;
-    case MCHECK_HEAD     : err = "MCHECK_HEAD"     ; break;
-    case MCHECK_TAIL     : err = "MCHECK_TAIL"     ; break;
-    case MCHECK_FREE     : err = "MCHECK_FREE"     ; break;
-    default              : err = "UNREACHABLE"     ; break;
+    case MCHECK_DISABLED:
+        err = "MCHECK_DISABLED";
+        break;
+    case MCHECK_OK:
+        err = "MCHECK_OK";
+        break;
+    case MCHECK_HEAD:
+        err = "MCHECK_HEAD";
+        break;
+    case MCHECK_TAIL:
+        err = "MCHECK_TAIL";
+        break;
+    case MCHECK_FREE:
+        err = "MCHECK_FREE";
+        break;
+    default:
+        err = "UNREACHABLE";
+        break;
     }
     crash("Mcheck failed with mstatus: %s\n", err);
 }

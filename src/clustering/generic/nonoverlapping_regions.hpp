@@ -2,6 +2,7 @@
 #define CLUSTERING_GENERIC_NONOVERLAPPING_REGIONS_HPP_
 
 #include <set>
+#include <vector>
 
 #include "errors.hpp"
 #include "http/json/json_adapter.hpp"

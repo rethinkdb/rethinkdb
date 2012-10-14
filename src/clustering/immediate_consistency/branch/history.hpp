@@ -2,6 +2,7 @@
 #define CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_HISTORY_HPP_
 
 #include <map>
+#include <set>
 
 #include "concurrency/signal.hpp"
 #include "containers/uuid.hpp"
