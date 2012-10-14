@@ -2,6 +2,7 @@
 #define RDB_PROTOCOL_PROTO_UTILS_HPP_
 
 #include <string>
+
 #include "rdb_protocol/backtrace.hpp"
 #include "rdb_protocol/exceptions.hpp"
 #include "http/json.hpp"
