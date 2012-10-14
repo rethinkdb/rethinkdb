@@ -7,14 +7,14 @@
 
 template <class protocol_t>
 btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
-                                         const std::string &hash_shard_name,
+                                         const std::string &perfmon_name,
                                          int64_t cache_target,
                                          bool create,
                                          perfmon_collection_t *parent_perfmon_collection,
                                          typename protocol_t::context_t *)
     : store_view_t<protocol_t>(protocol_t::region_t::universe()),
       perfmon_collection(),
-      perfmon_collection_membership(parent_perfmon_collection, &perfmon_collection, hash_shard_name) {
+      perfmon_collection_membership(parent_perfmon_collection, &perfmon_collection, perfmon_name) {
     if (create) {
         mirrored_cache_static_config_t cache_static_config;
         cache_t::create(serializer, &cache_static_config);
