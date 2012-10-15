@@ -77,7 +77,7 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, uuid_t *uuid) {
     int64_t res = force_read(s, uuid->data(), sz);
 
     if (res == -1) { return ARCHIVE_SOCK_ERROR; }
-    if (res < sz) { BREAKPOINT; return ARCHIVE_SOCK_EOF; }
+    if (res < sz) { return ARCHIVE_SOCK_EOF; }
     rassert(res == sz);
     return ARCHIVE_SUCCESS;
 }

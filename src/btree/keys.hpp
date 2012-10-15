@@ -143,7 +143,6 @@ public:
             return ARCHIVE_SOCK_ERROR;
         }
         if (num_read < sz) {
-            BREAKPOINT;
             return ARCHIVE_SOCK_EOF;
         }
         rassert(num_read == sz);

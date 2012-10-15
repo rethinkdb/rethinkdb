@@ -357,7 +357,7 @@ archive_result_t unix_socket_stream_t::recv_fds(size_t num_fds, int *fds, signal
         switch (::recv_fds(fd_.get(), num_fds, fds)) {
           case FD_RECV_OK: return ARCHIVE_SUCCESS;
 
-        case FD_RECV_EOF: BREAKPOINT; return ARCHIVE_SOCK_EOF;
+          case FD_RECV_EOF: return ARCHIVE_SOCK_EOF;
 
           case FD_RECV_ERROR:
             if (errno == EINTR // retry if interrupted
