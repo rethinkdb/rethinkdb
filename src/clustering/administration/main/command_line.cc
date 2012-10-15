@@ -655,7 +655,7 @@ int main_rethinkdb_import(int argc, char *argv[]) {
         }
 
         name_string_t db_name;
-        if (!db_name.assign_value(table_name_str)) {
+        if (!db_name.assign_value(db_name_str)) {
             printf("ERROR: database name invalid. (%s)  e.g. --table database_name.table_name\n", name_string_t::valid_char_msg);
         }
 
