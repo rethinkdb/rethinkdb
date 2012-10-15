@@ -335,6 +335,7 @@ module 'DatacenterView', ->
                             machine.num_secondaries += 1 if role is 'role_secondary'
 
             @.$el.html @template
+                has_servers: data_on_machines.length > 0
                 servers: _.sortBy(data_on_machines, (machine) -> machine.name)
             return @
 

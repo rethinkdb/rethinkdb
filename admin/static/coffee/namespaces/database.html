@@ -45,6 +45,7 @@
 
 <script id="database_view-namespace_list-template" type="text/x-handlebars-template">
     <h2 class="title">Tables in this database</h2>
+    {{#if has_tables}}
     <ul class="tables">
         {{#each tables}}
             <li class="table">
@@ -54,6 +55,11 @@
             </li>
         {{/each}}
     </ul>
+    {{else}}
+    <div class="no_element">
+        This database does not contain any tables.
+    </div>
+    {{/if}}
 </script>
 
 <script id="remove_database-modal-template" type="text/x-handlebars-template">

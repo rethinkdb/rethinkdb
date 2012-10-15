@@ -130,6 +130,29 @@ body:before {
     background: #2f2f30;
 }
 
+.no_element{
+    @bar_height: 44px;
+    background: #FFF;
+    border: thin solid #cfcfcf;
+    .border-radius(3px);
+    margin-top: 12px;
+
+    @shadow: 0 1px 0 rgba(255, 255, 255, 0.02), 0 1px 3px rgba(0, 0, 0, 0.08);
+
+    -webkit-box-shadow: @shadow;
+       -moz-box-shadow: @shadow;
+            box-shadow: @shadow;
+    padding: 8px 0px;
+    text-align: center;
+    font-family: @sans;
+    font-size: 14px;
+    color: #777;
+    p{
+        margin: 0px;
+    }
+}
+
+
 /*
     ----------------------------
     Footer
@@ -760,6 +783,28 @@ body:before {
 
             }
         }
+        .no_element{
+            @bar_height: 44px;
+            background: #FFF;
+            border: thin solid #cfcfcf;
+            .border-radius(3px);
+            margin-top: 12px;
+        
+            @shadow: 0 1px 0 rgba(255, 255, 255, 0.02), 0 1px 3px rgba(0, 0, 0, 0.08);
+
+            -webkit-box-shadow: @shadow;
+               -moz-box-shadow: @shadow;
+                    box-shadow: @shadow;
+            padding: 8px 0px 8px 45px;
+            text-align: left;
+            .no_element_content{
+                font-family: @sans;
+                font-size: 14px;
+                color: #777;
+                border-left: thin solid #e4e4e4;
+                padding: 0px 0px 0px 20px;
+            }
+        }
     }
 }
 
@@ -834,6 +879,9 @@ body:before {
                 color: #c4c4c4;
             }
         }
+    }
+    .no-more-entries{
+        display: none;
     }
 }
 

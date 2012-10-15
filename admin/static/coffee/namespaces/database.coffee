@@ -225,6 +225,7 @@ module 'DatabaseView', ->
                     namespaces_in_db.push ns
 
             @.$el.html @template
+                has_tables: namespaces_in_db.length > 0
                 tables: _.sortBy(namespaces_in_db, (namespace) -> namespace.name)
             return @
 
