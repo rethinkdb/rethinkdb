@@ -212,6 +212,7 @@ module 'DatabaseView', ->
             namespaces.on 'change:primary_pinnings', @render
             namespaces.on 'change:secondary_pinnings', @render
             namespaces.on 'change:replica_affinities', @render
+            @data = {}
 
         render: =>
             namespaces_in_db = []
@@ -224,13 +225,17 @@ module 'DatabaseView', ->
                     ns.nreplicas += ns.nshards
                     namespaces_in_db.push ns
 
-            @.$el.html @template
+            data =
                 has_tables: namespaces_in_db.length > 0
                 tables: _.sortBy(namespaces_in_db, (namespace) -> namespace.name)
+
+            if not @data isnt data
+                @data = data
+                @.$el.html @template @data
             return @
 
         destroy: =>
-            namespaces.off 'change:shards'
-            namespaces.off 'change:primary_pinnings'
-            namespaces.off 'change:secondary_pinnings'
-            namespaces.off 'change:replica_affinities'
+            namespaces.off 'change:shards', @render
+            namespaces.off 'change:primary_pinnings', @render
+            namespaces.off 'change:secondary_pinnings', @render
+            namespaces.off 'change:replica_affinities', @render

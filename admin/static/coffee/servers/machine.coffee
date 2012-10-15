@@ -248,6 +248,7 @@ module 'MachineView', ->
             namespaces.on 'change:blueprint', @render
             namespaces.on 'change:key_distr', @render
             namespaces.each (namespace) -> namespace.load_key_distr()
+            @data = {}
 
         render: =>
             data_by_namespace = []
@@ -269,7 +270,7 @@ module 'MachineView', ->
                                 ns.shards.push
                                     name: human_readable_shard shard
                                     shard: human_readable_shard_obj shard
-                                    num_keys: parseInt(keys) if typeof keys is 'string'
+                                    num_keys: keys
                                     role: role
                                     secondary: role is 'role_secondary'
                                     primary: role is 'role_primary'
@@ -277,13 +278,17 @@ module 'MachineView', ->
                 # Finished building, add it to the list (only if it has shards on this server)
                 data_by_namespace.push ns if ns.shards.length > 0
 
-            @.$el.html @template
+            data =
                 has_data: data_by_namespace.length > 0
                 # Sort the tables alphabetically by name
                 tables: _.sortBy(data_by_namespace, (namespace) -> namespace.name)
 
+            if not _.isEqual data, @data
+                @data = data
+                @.$el.html @template @data
+
             return @
 
         destroy: =>
-            namespaces.off 'change:blueprint'
-            namespaces.off 'change:key_distr'
+            namespaces.off 'change:blueprint', @render
+            namespaces.off 'change:key_distr', @render

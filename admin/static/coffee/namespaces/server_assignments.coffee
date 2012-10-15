@@ -5,6 +5,7 @@ module 'NamespaceView', ->
         initialize: =>
             @model.on 'change:blueprint', @render
             @model.on 'change:key_distr', @render
+            @data = {}
 
         render: =>
             data_on_machines = {}
@@ -37,6 +38,11 @@ module 'NamespaceView', ->
                         role: role
                 delete data_on_machines[machine_id] if machine.num_primaries is 0 and machine.num_secondaries is 0
 
+            # Set a boolean for num_keys to know if they are ready or not
+            for machine_id, machine of data_on_machines
+                if machine.num_keys?
+                    machine.keys_ready = true
+
             # Group the machines used by this table by datacenter id
             data_grouped_by_datacenter = _.groupBy data_on_machines, (machine) -> machines.get(machine.id).get('datacenter_uuid')
 
@@ -60,12 +66,15 @@ module 'NamespaceView', ->
                 return -1 if b.name < a.name
                 return 0
 
-            @.$el.html @template
+            data =
                 has_datacenters: datacenters_for_table.length > 0 # Should not be false if there is no error in the cluster
                 datacenters: datacenters_for_table
+            if not _.isEqual @data, data
+                @data = data
+                @.$el.html @template data
 
             return @
             
         destroy: =>
-            @model.off 'change:blueprint'
-            @model.off 'change:key_distr'
+            @model.off 'change:blueprint', @render
+            @model.off 'change:key_distr', @render
