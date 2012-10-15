@@ -76,11 +76,12 @@ int gcd(int x, int y);
 int64_t round_up_to_power_of_two(int64_t x);
 
 typedef uint64_t ticks_t;
-ticks_t secs_to_ticks(float secs);
+ticks_t secs_to_ticks(double secs);
 ticks_t get_ticks();
 time_t get_secs();
 int64_t get_ticks_res();
 double ticks_to_secs(ticks_t ticks);
+
 
 #ifndef NDEBUG
 #define trace_call(fn, args...) do {                                          \
