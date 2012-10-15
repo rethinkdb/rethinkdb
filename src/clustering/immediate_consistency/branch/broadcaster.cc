@@ -10,6 +10,7 @@
 #include "containers/uuid.hpp"
 #include "clustering/immediate_consistency/branch/listener.hpp"
 #include "clustering/immediate_consistency/branch/multistore.hpp"
+#include "query_measure.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/view/member.hpp"
@@ -368,16 +369,23 @@ void listener_writeread(
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t)
 {
+    TICKVAR(lw_A);
     cond_t resp_cond;
     mailbox_t<void(typename protocol_t::write_response_t)> resp_mailbox(
         mailbox_manager,
         boost::bind(&store_listener_response<typename protocol_t::write_response_t>, response, _1, &resp_cond),
         mailbox_callback_mode_inline);
 
+    TICKVAR(lw_B);
     send(mailbox_manager, writeread_mailbox,
          w, ts, order_token, token, resp_mailbox.get_address());
 
+    TICKVAR(lw_C);
     wait_interruptible(&resp_cond, interruptor);
+
+    TICKVAR(lw_D);
+    // logRQM("listener_writeread lw_A %ld B %ld C %ld D\n",
+    //        lw_B - lw_A, lw_C - lw_B, lw_D - lw_C);
 }
 
 template<class protocol_t>
@@ -517,9 +525,12 @@ void broadcaster_t<protocol_t>::pick_a_readable_dispatchee(dispatchee_t **dispat
 template<class protocol_t>
 void broadcaster_t<protocol_t>::background_write(dispatchee_t *mirror, auto_drainer_t::lock_t mirror_lock, incomplete_write_ref_t write_ref, order_token_t order_token, fifo_enforcer_write_token_t token) THROWS_NOTHING {
     try {
+        TICKVAR(bw_A);
         listener_write<protocol_t>(mailbox_manager, mirror->write_mailbox,
                                    write_ref.get()->write, write_ref.get()->timestamp, order_token, token,
                                    mirror_lock.get_drain_signal());
+        TICKVAR(bw_B);
+        // logRQM("background_write %ld\n", bw_B - bw_A);
     } catch (interrupted_exc_t) {
         return;
     }
@@ -528,14 +539,19 @@ void broadcaster_t<protocol_t>::background_write(dispatchee_t *mirror, auto_drai
 template<class protocol_t>
 void broadcaster_t<protocol_t>::background_writeread(dispatchee_t *mirror, auto_drainer_t::lock_t mirror_lock, incomplete_write_ref_t write_ref, order_token_t order_token, fifo_enforcer_write_token_t token) THROWS_NOTHING {
     try {
+        TICKVAR(bwr_A);
         typename protocol_t::write_response_t resp;
         listener_writeread<protocol_t>(mailbox_manager, mirror->writeread_mailbox,
                                        write_ref.get()->write, &resp, write_ref.get()->timestamp, order_token, token,
                                        mirror_lock.get_drain_signal());
+        TICKVAR(bwr_B);
 
         if (write_ref.get()->callback) {
             write_ref.get()->callback->on_response(mirror->get_peer(), resp);
         }
+
+        TICKVAR(bwr_C);
+        // logRQM("background_writeread A %ld B %ld C\n", bwr_B - bwr_A, bwr_C - bwr_B);
     } catch (interrupted_exc_t) {
         return;
     }

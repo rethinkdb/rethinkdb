@@ -27,7 +27,9 @@ void run_many_ints_test() {
 
     for (int i = 0; i < NUM_ELTS_IN_QUEUE; ++i) {
         EXPECT_FALSE(queue.empty());
-        EXPECT_EQ(queue.pop(), ref_queue.front());
+        int x;
+        queue.pop(&x);
+        EXPECT_EQ(ref_queue.front(), x);
         ref_queue.pop();
     }
 }
@@ -53,7 +55,9 @@ void run_big_values_test() {
 
     for (int i = 0; i < NUM_BIG_ELTS_IN_QUEUE; ++i) {
         EXPECT_FALSE(queue.empty());
-        EXPECT_EQ(queue.pop(), ref_queue.front());
+        std::string x;
+        queue.pop(&x);
+        EXPECT_EQ(ref_queue.front(), x);
         ref_queue.pop();
     }
 }

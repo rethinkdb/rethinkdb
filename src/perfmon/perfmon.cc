@@ -139,20 +139,19 @@ stddev_t::stddev_t()
 #endif
     : N(0), M(NAN), Q(NAN) { }
 
-stddev_t::stddev_t(size_t n, float mean, float variance)
-    : N(n), M(mean), Q(variance * n)
-{
+stddev_t::stddev_t(size_t n, double mean, double variance)
+    : N(n), M(mean), Q(variance * n) {
     if (N == 0)
         rassert(isnan(M) && isnan(Q));
 }
 
-void stddev_t::add(float value) {
+void stddev_t::add(double value) {
     // See http://www.cs.berkeley.edu/~mhoemmen/cs194/Tutorials/variance.pdf
     size_t k = N += 1;          // NB. the paper indexes from 1
     if (k != 1) {
         // Q_k = Q_{k-1} + ((k-1) (x_k - M_{k-1})^2) / k
         // M_k = M_{k-1} + (x_k - M_{k-1}) / k
-        float temp = value - M;
+        double temp = value - M;
         M += temp / k;
         Q += ((k - 1) * temp * temp) / k;
     } else {
@@ -162,9 +161,9 @@ void stddev_t::add(float value) {
 }
 
 size_t stddev_t::datapoints() const { return N; }
-float stddev_t::mean() const { return M; }
-float stddev_t::standard_variance() const { return Q / N; }
-float stddev_t::standard_deviation() const { return sqrt(standard_variance()); }
+double stddev_t::mean() const { return M; }
+double stddev_t::standard_variance() const { return Q / N; }
+double stddev_t::standard_deviation() const { return sqrt(standard_variance()); }
 
 stddev_t stddev_t::combine(size_t nelts, stddev_t *data) {
     // See http://en.wikipedia.org/wiki/Standard_deviation#Combining_standard_deviations
@@ -175,20 +174,20 @@ stddev_t stddev_t::combine(size_t nelts, stddev_t *data) {
     // V = (\sum_i N_i (V_i + M_i^2)) / N - M^2
 
     size_t total_datapoints = 0; // becomes N
-    float total_means = 0.0;     // becomes \sum_i N_i M_i
-    float total_var = 0.0;       // becomes \sum_i N_i (V_i + M_i^2)
+    double total_means = 0.0;     // becomes \sum_i N_i M_i
+    double total_var = 0.0;       // becomes \sum_i N_i (V_i + M_i^2)
     for (size_t i = 0; i < nelts; ++i) {
         const stddev_t &stat = data[i];
         size_t N = stat.datapoints();
         if (!N) continue;
-        float M = stat.mean(), V = stat.standard_variance();
+        double M = stat.mean(), V = stat.standard_variance();
         total_datapoints += N;
         total_means += N * M;
         total_var += N * (V + M * M);
     }
 
     if (total_datapoints) {
-        float mean = total_means / total_datapoints;
+        double mean = total_means / total_datapoints;
         return stddev_t(total_datapoints, mean, total_var / total_datapoints - mean * mean);
     }
     return stddev_t();
@@ -221,7 +220,7 @@ perfmon_result_t *perfmon_stddev_t::output_stat(const stddev_t &stat_data) {
     return stat;
 }
 
-void perfmon_stddev_t::record(float value) {
+void perfmon_stddev_t::record(double value) {
     rassert(get_thread_id() >= 0);
     thread_data[get_thread_id()].add(value);
 }

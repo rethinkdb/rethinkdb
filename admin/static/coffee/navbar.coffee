@@ -5,13 +5,11 @@ class NavBarView extends Backbone.View
     id: 'navbar'
     className: 'container'
     template: Handlebars.compile $('#navbar_view-template').html()
-    first_render: true
 
-    initialize: ->
-        log_initial '(initializing) NavBarView'
-        # rerender when route changes
+    initialize: =>
+        @first_render = true
 
-    init_typeahead: ->
+    init_typeahead: => # Has to be called after we have injected the template
         @.$('input.search-query').typeahead
             source: (typeahead, query) ->
                 _machines = _.map machines.models, (machine) ->

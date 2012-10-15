@@ -69,16 +69,14 @@ public:
         internal_.push(wm);
     }
 
-    T pop() {
+    void pop(T *out) {
         std::vector<char> data_vec;
 
         internal_.pop(&data_vec);
 
         vector_read_stream_t read_stream(&data_vec);
-        T t;
-        int res = deserialize(&read_stream, &t);
+        int res = deserialize(&read_stream, out);
         guarantee_err(res == 0, "corruption in disk-backed queue");
-        return t;
     }
 
     bool empty() {

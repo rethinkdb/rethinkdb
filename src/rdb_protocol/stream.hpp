@@ -37,7 +37,7 @@ public:
 
     virtual ~json_stream_t() { }
 
-    virtual void reset_interruptor(UNUSED signal_t *new_interruptor) { };
+    virtual void reset_interruptor(UNUSED signal_t *new_interruptor) { }
 
 private:
     DISABLE_COPYING(json_stream_t);

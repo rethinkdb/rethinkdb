@@ -7,7 +7,7 @@ class ClientTest < Test::Unit::TestCase
   include RethinkDB::Shortcuts
   def rdb
     @@c.use('test')
-    r.table('Welcome-rdb')
+    r.table('Welcome_rdb')
   end
   @@c = RethinkDB::Connection.new('localhost', $port_base + 12346)
   def c; @@c; end
@@ -21,7 +21,7 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test_outdated_raise
-    outdated = r.db('test').table('Welcome-rdb', {:use_outdated => true})
+    outdated = r.db('test').table('Welcome_rdb', {:use_outdated => true})
     assert_raise(RuntimeError){outdated.upsert({:id => 0})}
     assert_raise(RuntimeError){outdated.filter{|row| row[:id] < 5}.update{{}}}
     assert_raise(RuntimeError){outdated.update{{}}}
@@ -166,7 +166,7 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(r.expr(arr)[3].run, 3)
     assert_equal(r.expr(arr)[-1].run, 9)
     assert_raise(RuntimeError){r.expr(0)[0].run}
-    assert_raise(SyntaxError){r.expr(arr)[0.1].run}
+    assert_raise(ArgumentError){r.expr(arr)[0.1].run}
     assert_raise(RuntimeError){r.expr([0])[1].run}
 
     assert_equal(r.expr([]).length.run, 0)
@@ -320,7 +320,7 @@ class ClientTest < Test::Unit::TestCase
 
   def test_easy_read # TABLE
     assert_equal($data, id_sort(rdb.run.to_a))
-    assert_equal($data, id_sort(r.db('test').table('Welcome-rdb').run.to_a))
+    assert_equal($data, id_sort(r.db('test').table('Welcome_rdb').run.to_a))
   end
 
   def test_error # IF, JSON, ERROR
@@ -384,8 +384,8 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test_joins
-    db_name = rand().to_s
-    tbl_name = rand().to_s
+    db_name = rand(2**64).to_s
+    tbl_name = rand(2**64).to_s
     r.create_db(db_name).run
     r.db(db_name).create_table(tbl_name+"1").run
     r.db(db_name).create_table(tbl_name+"2").run
@@ -633,11 +633,11 @@ class ClientTest < Test::Unit::TestCase
 
   def test___setup
     begin
-      r.db('test').drop_table('Welcome-rdb').run()
+      r.db('test').drop_table('Welcome_rdb').run()
     rescue
       # It don't matter to Jesus
     end
-    r.db('test').create_table('Welcome-rdb').run()
+    r.db('test').create_table('Welcome_rdb').run()
   end
 
   def test__setup
@@ -688,8 +688,8 @@ class ClientTest < Test::Unit::TestCase
     end
 
     # TODO: still an error?
-    # assert_raise(SyntaxError){r[:a] == 5}
-    # assert_raise(SyntaxError){r[:a] != 5}
+    # assert_raise(ArgumentError){r[:a] == 5}
+    # assert_raise(ArgumentError){r[:a] != 5}
     assert_equal(id_sort(rdb.filter{|r| r[:a] < 5}.run.to_a), docs.select{|x| x['a'] < 5})
     assert_equal(id_sort(rdb.filter{|r| r[:a] <= 5}.run.to_a), docs.select{|x| x['a'] <= 5})
     assert_equal(id_sort(rdb.filter{|r| r[:a] > 5}.run.to_a), docs.select{|x| x['a'] > 5})
@@ -761,8 +761,8 @@ class ClientTest < Test::Unit::TestCase
   def test_array_foreach #FOREACH
     assert_equal(id_sort(rdb.run.to_a), $data)
     assert_equal(r.expr([2,3,4]).foreach{|x|
-                   [rdb.get(x).update({:num => 0}),
-                    rdb.get(x*2).update({:num => 0})]}.run,
+                   [rdb.get(x).update{{:num => 0}},
+                    rdb.get(x*2).update{{:num => 0}}]}.run,
                  {"skipped"=>0, "updated"=>6, "errors"=>0})
     assert_equal(rdb.to_array.foreach{|row|
                    rdb.filter{|r| r[:id].eq(row[:id])}.update{|row|
@@ -772,11 +772,11 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test_foreach_multi #FOREACH
-    db_name = "foreach_multi" + rand().to_s
-    table_name = "foreach_multi_tbl" + rand().to_s
-    table_name_2 = table_name + rand().to_s
-    table_name_3 = table_name_2 + rand().to_s
-    table_name_4 = table_name_3 + rand().to_s
+    db_name = "foreach_multi" + rand(2**64).to_s
+    table_name = "foreach_multi_tbl" + rand(2**64).to_s
+    table_name_2 = table_name + rand(2**64).to_s
+    table_name_3 = table_name_2 + rand(2**64).to_s
+    table_name_4 = table_name_3 + rand(2**64).to_s
 
     assert_equal(r.create_db(db_name).run, nil)
     assert_equal(r.db(db_name).create_table(table_name).run, nil)
@@ -830,8 +830,8 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test_fancy_foreach #FOREACH
-    db_name = rand().to_s
-    table_name = rand().to_s
+    db_name = rand(2**64).to_s
+    table_name = rand(2**64).to_s
     assert_equal(r.create_db(db_name).run, nil)
     assert_equal(r.db(db_name).create_table(table_name).run, nil)
     rdb = r.db(db_name).table(table_name)
@@ -928,11 +928,11 @@ class ClientTest < Test::Unit::TestCase
 
   def test_update_edge_cases #POINTUPDATE
     assert_equal(rdb.orderby(:id).run.to_a, $data)
-    assert_equal(rdb.get(0).update(nil).run,
+    assert_equal(rdb.get(0).update{nil}.run,
                  {'skipped' => 1, 'updated' => 0, 'errors' => 0})
-    assert_equal(rdb.get(11).update(nil).run,
+    assert_equal(rdb.get(11).update{nil}.run,
                  {'skipped' => 1, 'updated' => 0, 'errors' => 0})
-    assert_equal(rdb.get(11).update({}).run,
+    assert_equal(rdb.get(11).update{{}}.run,
                  {'skipped' => 1, 'updated' => 0, 'errors' => 0})
     assert_equal(rdb.orderby(:id).run.to_a, $data)
   end
@@ -947,8 +947,8 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test___write #three underscores so it runs first
-    db_name = rand().to_s
-    table_name = rand().to_s
+    db_name = rand(2**64).to_s
+    table_name = rand(2**64).to_s
 
     orig_dbs = r.list_dbs.run
     assert_equal(r.create_db(db_name).run, nil)
@@ -966,9 +966,9 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(r.db(db_name).create_table(table_name+table_name).run, nil)
     assert_equal(r.db(db_name).list_tables.run.length, 2)
 
-    assert_raise(RuntimeError){r.db('').table('').run.to_a}
+    assert_raise(ArgumentError){r.db('').table('').run.to_a}
     assert_raise(RuntimeError){r.db('test').table(table_name).run.to_a}
-    assert_raise(RuntimeError){r.db(db_name).table('').run.to_a}
+    assert_raise(ArgumentError){r.db(db_name).table('').run.to_a}
 
     assert_equal(r.db(db_name).drop_table(table_name+table_name).run, nil)
     assert_raise(RuntimeError){r.db(db_name).table(table_name+table_name).run.to_a}
@@ -1025,12 +1025,12 @@ class ClientTest < Test::Unit::TestCase
                  {'modified' => 10, 'inserted' => 0, 'deleted' => 0, 'errors' => 0})
     assert_equal(id_sort(rdb2.run.to_a), $data);
 
-    update = rdb2.get(0).update({:num => 2}).run
+    update = rdb2.get(0).update{{:num => 2}}.run
     assert_equal(update, {'errors' => 0, 'updated' => 1, 'skipped' => 0})
     assert_equal(rdb2.get(0).run['num'], 2);
-    update = rdb2.get(0).update(nil).run
+    update = rdb2.get(0).update{nil}.run
     assert_equal(update, {'errors' => 0, 'updated' => 0, 'skipped' => 1})
-    assert_equal(rdb2.get(0).mutate($data[0]).run,
+    assert_equal(rdb2.get(0).mutate{$data[0]}.run,
                  {"errors"=>0, 'inserted' => 0, "deleted"=>0, "modified"=>1, 'errors' => 0})
     assert_equal(id_sort(rdb2.run.to_a), $data)
 
@@ -1073,7 +1073,7 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(query.run, {'inserted'=>1, 'errors' => 0})
     assert_equal(id_sort(rdb2.run.to_a), $data)
 
-    assert_equal(rdb2.get(0).mutate(nil).run,
+    assert_equal(rdb2.get(0).mutate{nil}.run,
                  {'modified' => 0, 'inserted' => 0, 'deleted' => 1, 'errors' => 0, 'errors' => 0})
     assert_equal(id_sort(rdb2.run.to_a), $data[1..-1])
     assert_raise(RuntimeError){rdb2.get(1).mutate{{:id => -1}}.run.to_a}

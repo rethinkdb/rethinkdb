@@ -19,7 +19,7 @@ public:
     using home_thread_mixin_t::assert_thread;
 
     btree_store_t(serializer_t *serializer,
-                  const std::string &hash_shard_name,
+                  const std::string &perfmon_name,
                   int64_t cache_target,
                   bool create,
                   perfmon_collection_t *parent_perfmon_collection,

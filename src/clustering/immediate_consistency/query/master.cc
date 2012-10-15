@@ -1,6 +1,7 @@
 #include "clustering/immediate_consistency/query/master.hpp"
 
 #include "containers/archive/boost_types.hpp"
+#include "query_measure.hpp"
 
 template <class protocol_t>
 master_t<protocol_t>::master_t(mailbox_manager_t *mm, ack_checker_t *ac,
@@ -49,6 +50,7 @@ void master_t<protocol_t>::client_t::perform_request(
 
     } else if (const typename master_business_card_t<protocol_t>::write_request_t *write =
             boost::get<typename master_business_card_t<protocol_t>::write_request_t>(&request)) {
+        TICKVAR(mc_A);
 
         write->order_token.assert_write_mode();
 
@@ -76,6 +78,8 @@ void master_t<protocol_t>::client_t::perform_request(
             cond_t done_cond;
         } write_callback(parent->ack_checker);
 
+        TICKVAR(mc_B);
+
         /* Avoid a potential race condition where `parent->shutting_down` has
         been pulsed but the `multi_throttling_server_t` hasn't stopped accepting
         requests yet. If we didn't do this, we might let a whole bunch of
@@ -85,7 +89,9 @@ void master_t<protocol_t>::client_t::perform_request(
         }
 
         fifo_enforcer_sink_t::exit_write_t exiter(&fifo_sink, write->fifo_token);
+        TICKVAR(mc_C);
         parent->broadcaster->spawn_write(write->write, &exiter, write->order_token, &write_callback, interruptor);
+        TICKVAR(mc_D);
 
         wait_any_t waiter(&write_callback.done_cond, write_callback.response_promise.get_ready_signal());
         /* Now that we've called `spawn_write()`, we've added another entry to
@@ -98,7 +104,9 @@ void master_t<protocol_t>::client_t::perform_request(
         our parent's `shutting_down` signal as the interruptor. That way we
         won't bail out unless we're actually shutting down the broadcaster too.
         */
+        TICKVAR(mc_E);
         wait_interruptible(&waiter, &parent->shutdown_cond);
+        TICKVAR(mc_F);
 
         if (write_callback.response_promise.get_ready_signal()->is_pulsed()) {
             send(parent->mailbox_manager, write->cont_addr,
@@ -108,11 +116,15 @@ void master_t<protocol_t>::client_t::perform_request(
             send(parent->mailbox_manager, write->cont_addr,
                  boost::variant<typename protocol_t::write_response_t, std::string>("not enough replicas responded"));
         }
+        TICKVAR(mc_G);
 
         /* When we return, our multi-throttler ticket will be returned to the
         free pool. So don't return until the entry that we made on the
         broadcaster's write queue is gone. */
         wait_interruptible(&write_callback.done_cond, &parent->shutdown_cond);
+        TICKVAR(mc_H);
+        // logRQM("master client perform_request (write) mc_A %ld B %ld C %ld D %ld E %ld F %ld G %ld H\n",
+        //        mc_B - mc_A, mc_C - mc_B, mc_D - mc_C, mc_E - mc_D, mc_F - mc_E, mc_G - mc_F, mc_H - mc_G);
 
     } else {
         unreachable();

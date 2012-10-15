@@ -12,13 +12,13 @@ struct priority_t {
     bool pinned;
     bool would_rob_secondary;
     int redundancy_cost;
-    float backfill_cost;
+    double backfill_cost;
     bool prioritize_distribution;
 
     priority_t() { }  // TODO: fix priority_queue_t
 
     priority_t(machine_id_t _machine_id, bool _pinned, bool _would_rob_secondary,
-               int _redundancy_cost, float _backfill_cost,
+               int _redundancy_cost, double _backfill_cost,
                bool _prioritize_distribution)
         : machine_id(_machine_id), pinned(_pinned), would_rob_secondary(_would_rob_secondary),
           redundancy_cost(_redundancy_cost), backfill_cost(_backfill_cost),
@@ -109,11 +109,11 @@ bool operator<(const priority_t &x, const priority_t &y) {
 with the given business card into a primary or secondary for the given shard. */
 
 template<class protocol_t>
-float estimate_cost_to_get_up_to_date(
+double estimate_cost_to_get_up_to_date(
         const reactor_business_card_t<protocol_t> &business_card,
         const typename protocol_t::region_t &shard) {
     typedef reactor_business_card_t<protocol_t> rb_t;
-    region_map_t<protocol_t, float> costs(shard, 3);
+    region_map_t<protocol_t, double> costs(shard, 3);
     for (typename rb_t::activity_map_t::const_iterator it = business_card.activities.begin();
             it != business_card.activities.end(); it++) {
         typename protocol_t::region_t intersection = region_intersection(it->second.region, shard);
@@ -145,9 +145,9 @@ float estimate_cost_to_get_up_to_date(
             costs.set(intersection, cost);
         }
     }
-    float sum = 0;
+    double sum = 0;
     int count = 0;
-    for (typename region_map_t<protocol_t, float>::iterator it = costs.begin(); it != costs.end(); it++) {
+    for (typename region_map_t<protocol_t, double>::iterator it = costs.begin(); it != costs.end(); it++) {
         /* TODO: Scale by how much data is in `it->first` */
         sum += it->second;
         count++;
@@ -176,7 +176,7 @@ priority_t priority_for_machine(machine_id_t id, const std::set<machine_id_t> &p
     bool pinned = std_contains(positive_pinnings, id);
     bool would_rob_someone = std_contains(negative_pinnings, id);
     int redundancy_cost = const_get_with_default(usage, id, 0);
-    float backfill_cost;
+    double backfill_cost;
     if (std_contains(directory, id)) {
         backfill_cost = estimate_cost_to_get_up_to_date(directory.find(id)->second, shard);
     } else {

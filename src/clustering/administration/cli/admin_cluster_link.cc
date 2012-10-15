@@ -218,7 +218,7 @@ void admin_cluster_link_t::do_metadata_update(cluster_semilattice_metadata_t *cl
     std::string error;
     try {
         fill_in_blueprints(cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id, prioritize_distribution);
-    } catch (missing_machine_exc_t &ex) {
+    } catch (const missing_machine_exc_t &ex) {
         error = strprintf("Warning: %s", ex.what());
     }
 

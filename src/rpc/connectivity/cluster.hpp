@@ -4,6 +4,7 @@
 #include <map>
 #include <set>
 #include <utility>
+#include <vector>
 
 #include "arch/types.hpp"
 #include "concurrency/auto_drainer.hpp"

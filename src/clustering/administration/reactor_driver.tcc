@@ -5,6 +5,7 @@
 
 #include <map>
 #include <set>
+#include <utility>
 
 #include "clustering/administration/machine_id_to_peer_id.hpp"
 #include "clustering/administration/metadata.hpp"

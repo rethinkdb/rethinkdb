@@ -1,6 +1,8 @@
 #ifndef MOCK_BRANCH_HISTORY_MANAGER_HPP_
 #define MOCK_BRANCH_HISTORY_MANAGER_HPP_
 
+#include <set>
+
 #include "clustering/immediate_consistency/branch/history.hpp"
 
 namespace mock {

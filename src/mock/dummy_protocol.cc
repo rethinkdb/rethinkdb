@@ -200,7 +200,7 @@ dummy_protocol_t::store_t::store_t() : store_view_t<dummy_protocol_t>(dummy_prot
     initialize_empty();
 }
 
-dummy_protocol_t::store_t::store_t(serializer_t *_serializer, UNUSED const std::string& hash_shard_name,
+dummy_protocol_t::store_t::store_t(serializer_t *_serializer, UNUSED const std::string &perfmon_name,
                                    UNUSED int64_t cache_size, bool create,
                                    UNUSED perfmon_collection_t *perfmon_collection, UNUSED context_t *ctx) :
     store_view_t<dummy_protocol_t>(dummy_protocol_t::region_t('a', 'z')),

@@ -64,13 +64,13 @@ class adjustable_semaphore_t {
     };
 
     int capacity, current;
-    float trickle_fraction, trickle_points;
+    double trickle_fraction, trickle_points;
     intrusive_list_t<lock_request_t> waiters;
 
     bool in_callback;
 
 public:
-    explicit adjustable_semaphore_t(int cap, float tf = 0.0) :
+    explicit adjustable_semaphore_t(int cap, double tf = 0.0) :
         capacity(cap), current(0), trickle_fraction(tf), trickle_points(0), in_callback(false)
     {
         rassert(trickle_fraction <= 1.0 && trickle_fraction >= 0.0);

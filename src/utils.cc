@@ -435,28 +435,42 @@ int64_t round_up_to_power_of_two(int64_t x) {
     return x + 1;
 }
 
-
-ticks_t secs_to_ticks(float secs) {
+ticks_t secs_to_ticks(double secs) {
     // The timespec struct used in clock_gettime has a tv_nsec field.
     // That's why we use a billion.
-    return ticks_t(secs) * 1000000000L;
+    return secs * 1000000000L;
 }
 
+timespec clock_monotonic() {
+    timespec ret;
+    int res = clock_gettime(CLOCK_MONOTONIC, &ret);
+    guarantee_err(res == 0, "clock_gettime(CLOCK_MONOTIC, ...) failed");
+    return ret;
+}
+
+timespec clock_realtime() {
+    timespec ret;
+    int res = clock_gettime(CLOCK_REALTIME, &ret);
+    guarantee_err(res == 0, "clock_gettime(CLOCK_REALTIME) failed");
+    return ret;
+}
+
+
+
 ticks_t get_ticks() {
-    timespec tv;
-    clock_gettime(CLOCK_MONOTONIC, &tv);
+    timespec tv = clock_monotonic();
     return secs_to_ticks(tv.tv_sec) + tv.tv_nsec;
 }
 
 time_t get_secs() {
-    timespec tv;
-    clock_gettime(CLOCK_REALTIME, &tv);
+    timespec tv = clock_monotonic();
     return tv.tv_sec;
 }
 
 int64_t get_ticks_res() {
     timespec tv;
-    clock_getres(CLOCK_MONOTONIC, &tv);
+    int res = clock_getres(CLOCK_MONOTONIC, &tv);
+    guarantee_err(res == 0, "clock_getres(CLOCK_MONOTONIC, ...) failed");
     return int64_t(secs_to_ticks(tv.tv_sec)) + tv.tv_nsec;
 }
 

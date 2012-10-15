@@ -26,7 +26,7 @@ void progress_bar_t::reset_bar() {
 }
 
 /* progress should be in [0.0,1.0] */
-void progress_bar_t::draw_bar(float progress, int eta) {
+void progress_bar_t::draw_bar(double progress, int eta) {
     int percent_done = static_cast<int>(progress * 100);
     printf("%s: ", activity.c_str());
     printf("[");

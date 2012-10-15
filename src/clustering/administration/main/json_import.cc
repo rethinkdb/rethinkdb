@@ -56,7 +56,7 @@ bool csv_to_json_importer_t::next_json(scoped_cJSON_t *out) {
     }
 
     const std::vector<std::string> &row = rows_[position_];
-    ++ position_;
+    ++position_;
     if (row.size() != column_names_.size()) {
         ++num_ignored_rows;
         goto try_next_row;

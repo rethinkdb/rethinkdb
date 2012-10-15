@@ -4,17 +4,18 @@
 #include "serializer/config.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "concurrency/wait_any.hpp"
+#include "query_measure.hpp"
 
 template <class protocol_t>
 btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
-                                         const std::string &hash_shard_name,
+                                         const std::string &perfmon_name,
                                          int64_t cache_target,
                                          bool create,
                                          perfmon_collection_t *parent_perfmon_collection,
                                          typename protocol_t::context_t *)
     : store_view_t<protocol_t>(protocol_t::region_t::universe()),
       perfmon_collection(),
-      perfmon_collection_membership(parent_perfmon_collection, &perfmon_collection, hash_shard_name) {
+      perfmon_collection_membership(parent_perfmon_collection, &perfmon_collection, perfmon_name) {
     if (create) {
         mirrored_cache_static_config_t cache_static_config;
         cache_t::create(serializer, &cache_static_config);
@@ -95,16 +96,33 @@ void btree_store_t<protocol_t>::write(
         object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
+    TICKVAR(bw_A);
     assert_thread();
 
-    scoped_ptr_t<transaction_t> txn;
-    scoped_ptr_t<real_superblock_t> superblock;
-    const int expected_change_count = 2; // FIXME: this is incorrect, but will do for now
-    acquire_superblock_for_write(rwi_write, timestamp.to_repli_timestamp(), expected_change_count, token, &txn, &superblock, interruptor);
+    DTICKVAR(bw_B);
+    DTICKVAR(bw_C);
+    DTICKVAR(bw_D);
+    DTICKVAR(bw_E);
+    {
+        scoped_ptr_t<transaction_t> txn;
+        {
+            scoped_ptr_t<real_superblock_t> superblock;
+            const int expected_change_count = 2; // FIXME: this is incorrect, but will do for now
+            acquire_superblock_for_write(rwi_write, timestamp.to_repli_timestamp(), expected_change_count, token, &txn, &superblock, interruptor);
 
-    check_and_update_metainfo(DEBUG_ONLY(metainfo_checker, ) new_metainfo, txn.get(), superblock.get());
+            ATICKVAR(bw_B);
+            check_and_update_metainfo(DEBUG_ONLY(metainfo_checker, ) new_metainfo, txn.get(), superblock.get());
 
-    protocol_write(write, response, timestamp, btree.get(), txn.get(), superblock.get());
+            ATICKVAR(bw_C);
+            protocol_write(write, response, timestamp, btree.get(), txn.get(), superblock.get());
+
+            ATICKVAR(bw_D);
+        }
+        ATICKVAR(bw_E);
+    }
+    TICKVAR(bw_F);
+    logRQM("btree_store write (%p) bw_A %ld B %ld C %ld D %ld E %ld F\n", coro_t::self(),
+           bw_B - bw_A, bw_C - bw_B, bw_D - bw_C, bw_E - bw_D, bw_F - bw_E);
 }
 
 // TODO: Figure out wtf does the backfill filtering, figure out wtf constricts delete range operations to hit only a certain hash-interval, figure out what filters keys.

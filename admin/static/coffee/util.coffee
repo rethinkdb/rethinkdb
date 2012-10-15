@@ -350,27 +350,21 @@ pretty_key = (s) ->
     else
         return s
 
-human_readable_shard = (shard) ->
+human_readable_shard_obj = (shard) ->
+    name_len = 8
     json_shard = $.parseJSON(shard)
-    res = ""
-    res += pretty_key(json_shard[0])
-    res += " to "
-    res += pretty_key(json_shard[1])
-    return res
+    from = pretty_key(json_shard[0])
+    to = pretty_key(json_shard[1])
+    # Returns an object with shard names truncated to name_len characters, and
+    # appends ellipses if the shard name was longer
+    return {
+        from: "#{from.slice(0,8)}#{if from.length > name_len then '...' else ''}"
+        to: "#{to.slice(0,8)}#{if to.length > name_len then '...' else ''}"
+    }
 
 human_readable_shard = (shard) ->
-    json_shard = $.parseJSON(shard)
-    res = ""
-    key = pretty_key(json_shard[0])
-    if key.length > 10
-        key = key.slice(0, 10)+'...'
-    res += key
-    res += " to "
-    key = pretty_key(json_shard[1])
-    if key.length > 10
-        key = key.slice(0, 10)+'...'
-    res += key
-    return res
+    shard = human_readable_shard_obj shard
+    return "#{shard.from} to #{shard.to}"
 
 # Utils to print units
 units_space = ["B", "KB", "MB", "GB", "TB", "PB"]

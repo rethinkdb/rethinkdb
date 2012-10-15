@@ -1,6 +1,8 @@
 #ifndef ARCH_IO_DISK_POOL_HPP_
 #define ARCH_IO_DISK_POOL_HPP_
 
+#include <string>
+
 #include "errors.hpp"
 #include <boost/function.hpp>
 

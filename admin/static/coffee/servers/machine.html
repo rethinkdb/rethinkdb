@@ -61,19 +61,20 @@
 
 <script id="machine_view_data-template" type="text/x-handlebars-template">
     <h2 class="title">Data on this server</h2>
+    {{#if has_data}}
     <ul class="tables">
         {{#each tables}}
             <li class="table parent">
                 <div class="tree-line"></div>
                 <div class="table-info parent-info">
-                    <p class="name">Table {{name}}</p>
+                    <p class="name">Table <a href="/#tables/{{id}}">{{name}}</a></p>
                 </div>
                 <ul class="shards">
                     {{#each shards}}
                         <li class="shard child">
                             <div class="tree-node"></div>
                             <div class="shard-info child-info">
-                                <p class="name">{{name}}</p>
+                                <p class="name"><span class="highlight">{{shard.from}}</span> to <span class="highlight">{{shard.to}}</span></p>
                                 <p class="role"><span class="highlight">
                                     {{#if primary}}
                                         Primary
@@ -83,7 +84,7 @@
                                 </span> Role</p>
                                 <p class="num-keys">
                                     {{#if num_keys}}
-                                        <span class="highlight">~{{num_keys}}</span> documents
+                                        <span class="highlight">~{{num_keys}}</span> {{pluralize_noun "document" num_keys}}
                                     {{else}}
                                         <span class="highlight">N/A</span> documents  
                                     {{/if}}
@@ -95,6 +96,11 @@
             </li>
         {{/each}}
     </ul>
+    {{else}}
+    <div class="no_element">
+        This server does not have any data.
+    </div>
+    {{/if}}
 </script>
 
 <script id="reason-set_secondary-need_replica-template" type="text/x-handlebars-template">

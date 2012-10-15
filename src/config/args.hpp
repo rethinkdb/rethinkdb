@@ -64,7 +64,7 @@
 //
 // This is a one-per-serializer/file priority.
 #define GC_IO_PRIORITY_NICE                       8
-#define GC_IO_PRIORITY_HIGH                       (2 * CACHE_WRITES_IO_PRIORITY)
+#define GC_IO_PRIORITY_HIGH                       (4 * CACHE_WRITES_IO_PRIORITY)
 
 // Size of the buffer used to perform IO operations (in bytes).
 #define IO_BUFFER_SIZE                            (4 * KILOBYTE)
@@ -79,7 +79,7 @@
 #define MAX_DATA_EXTENTS                          (TERABYTE / (16 * KILOBYTE))
 
 // Size of each extent (in bytes)
-#define DEFAULT_EXTENT_SIZE                       (16 * KILOBYTE)
+#define DEFAULT_EXTENT_SIZE                       (512 * KILOBYTE)
 
 // Max number of blocks which can be read ahead in one i/o transaction (if enabled)
 #define MAX_READ_AHEAD_BLOCKS 32
@@ -198,7 +198,7 @@
 // The ratio at which we should start GCing.  (HEY: What's the extra
 // 0.000001 in MAX_GC_HIGH_RATIO for?  Is it because we told the user
 // that 0.99 was too high?)
-#define DEFAULT_GC_HIGH_RATIO                     0.25
+#define DEFAULT_GC_HIGH_RATIO                     0.20
 // TODO: MAX_GC_HIGH_RATIO is unused.  Use it!
 // TODO: Probably this value is way too high.
 //  - Keeping this around because if it becomes configurable again, we

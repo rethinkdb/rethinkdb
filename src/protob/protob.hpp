@@ -2,6 +2,7 @@
 #define PROTOB_PROTOB_HPP_
 
 #include <string>
+#include <map>
 
 #include "errors.hpp"
 #include <boost/function.hpp>
@@ -25,10 +26,20 @@ class http_conn_cache_t : public repeating_timer_callback_t {
 public:
     class http_conn_t {
     public:
-        http_conn_t() : last_accessed(time(0)) { ctx.interruptor = &interruptor; }
-        context_t *get_ctx() { last_accessed = time(0); return &ctx; }
-        void pulse() { rassert(!interruptor.is_pulsed()); interruptor.pulse(); }
-        bool is_expired() { return difftime(time(0), last_accessed) > TIMEOUT_SEC; }
+        http_conn_t() : last_accessed(time(0)) {
+            ctx.interruptor = &interruptor;
+        }
+        context_t *get_ctx() {
+            last_accessed = time(0);
+            return &ctx;
+        }
+        void pulse() {
+            rassert(!interruptor.is_pulsed());
+            interruptor.pulse();
+        }
+        bool is_expired() {
+            return difftime(time(0), last_accessed) > TIMEOUT_SEC;
+        }
     private:
         cond_t interruptor;
         context_t ctx;

@@ -81,7 +81,8 @@ private:
                     disk_queue_in_use = false;
                     break;
                 }
-                T value = disk_queue.pop();
+                T value;
+                disk_queue.pop(&value);
                 if (memory_queue.full()) {
                     cond_t cond;
                     assignment_sentry_t<cond_t *> assignment_sentry(&notify_when_room_in_memory_queue, &cond);

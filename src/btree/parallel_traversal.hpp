@@ -64,6 +64,8 @@ private:
     const btree_key_t *left_exclusive_or_null_;
     const btree_key_t *right_inclusive_or_null_;
     int level;
+
+    DISABLE_COPYING(ranged_block_ids_t);
 };
 
 class interesting_children_callback_t : public lock_in_line_callback_t {
@@ -72,14 +74,13 @@ public:
     void receive_interesting_child(int child_index);
     void no_more_interesting_children();
 
-    // internal
-    void on_in_line();
-    void decr_acquisition_countdown();
-
     interesting_children_callback_t(traversal_state_t *_state, parent_releaser_t *_releaser, int _level, const boost::shared_ptr<ranged_block_ids_t>& _ids_source)
         : state(_state), releaser(_releaser), level(_level), acquisition_countdown(1), ids_source(_ids_source) { }
 
 private:
+    void on_in_line();
+    void decr_acquisition_countdown();
+
     traversal_state_t *state;
     parent_releaser_t *releaser;
     int level;
