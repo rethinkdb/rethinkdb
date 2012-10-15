@@ -66,8 +66,8 @@ For additional functionality
 
       this.$menu.css({
         top: pos.top + pos.height
-      , left: pos.left
-      , width: 200
+      , left: pos.left-50
+      , width: 300
       })
 
       this.$menu.show()
