@@ -5,6 +5,7 @@
 #include "arch/timing.hpp"
 #include "concurrency/promise.hpp"
 #include "containers/archive/boost_types.hpp"
+#include "query_measure.hpp"
 
 // TODO: Was this macro supposed to be used?
 // #define THROTTLE_THRESHOLD 200
@@ -97,6 +98,7 @@ void master_access_t<protocol_t>::write(
         fifo_enforcer_sink_t::exit_write_t *token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t, cannot_perform_query_exc_t) {
+    TICKVAR(mw_A);
     rassert(region_is_superset(region, write.get_region()));
 
     promise_t<boost::variant<typename protocol_t::write_response_t, std::string> > result_or_failure;
@@ -105,24 +107,32 @@ void master_access_t<protocol_t>::write(
         boost::bind(&promise_t<boost::variant<typename protocol_t::write_response_t, std::string> >::pulse, &result_or_failure, _1),
         mailbox_callback_mode_inline);
 
+    TICKVAR(mw_B);
     wait_interruptible(token, interruptor);
+    TICKVAR(mw_C);
     fifo_enforcer_write_token_t token_for_master = source_for_master.enter_write();
+    TICKVAR(mw_D);
     typename multi_throttling_client_t<
             typename master_business_card_t<protocol_t>::request_t,
             typename master_business_card_t<protocol_t>::inner_client_business_card_t
             >::ticket_acq_t ticket(&multi_throttling_client);
+    TICKVAR(mw_E);
     token->end();
 
+    TICKVAR(mw_F);
     typename master_business_card_t<protocol_t>::write_request_t write_request(
         write,
         otok,
         token_for_master,
         result_or_failure_mailbox.get_address());
 
+    TICKVAR(mw_G);
     multi_throttling_client.spawn_request(write_request, &ticket, interruptor);
 
+    TICKVAR(mw_H);
     wait_any_t waiter(result_or_failure.get_ready_signal(), get_failed_signal());
     wait_interruptible(&waiter, interruptor);
+    TICKVAR(mw_I);
 
     if (result_or_failure.get_ready_signal()->is_pulsed()) {
         if (const std::string *error = boost::get<std::string>(&result_or_failure.get_value())) {
@@ -136,6 +146,9 @@ void master_access_t<protocol_t>::write(
     } else {
         throw resource_lost_exc_t();
     }
+    TICKVAR(mw_J);
+    // logRQM("master_access_t write mw_A %ld B %ld C %ld D %ld E %ld F %ld G %ld H %ld I %ld J (total = %ld)\n",
+    //        mw_B - mw_A, mw_C - mw_B, mw_D - mw_C, mw_E - mw_D, mw_F - mw_E, mw_G - mw_F, mw_H - mw_G, mw_I - mw_H, mw_J - mw_I, mw_J - mw_A);
 }
 
 

@@ -2,6 +2,7 @@
 #include "clustering/immediate_consistency/query/master_access.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/watchable.hpp"
+#include "query_measure.hpp"
 
 template <class protocol_t>
 cluster_namespace_interface_t<protocol_t>::cluster_namespace_interface_t(
@@ -86,11 +87,15 @@ void cluster_namespace_interface_t<protocol_t>::dispatch_immediate_op(
     order_token_t order_token,
     signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
+    TICKVAR(di_A);
     if (interruptor->is_pulsed()) throw interrupted_exc_t();
 
+    TICKVAR(di_B);
+    DTICKVAR(di_C);
     boost::ptr_vector<immediate_op_info_t<fifo_enforcer_token_type> > masters_to_contact;
     {
         region_map_t<protocol_t, std::set<relationship_t *> > submap = relationships.mask(op.get_region());
+        ATICKVAR(di_C);
         for (typename region_map_t<protocol_t, std::set<relationship_t *> >::iterator it = submap.begin(); it != submap.end(); it++) {
             relationship_t *chosen_relationship = NULL;
             for (typename std::set<relationship_t *>::const_iterator jt = it->second.begin(); jt != it->second.end(); jt++) {
@@ -114,13 +119,13 @@ void cluster_namespace_interface_t<protocol_t>::dispatch_immediate_op(
         }
     }
 
+    TICKVAR(di_D);
     // RSI: don't use vector
     std::vector<op_response_type> results(masters_to_contact.size());
     std::vector<std::string> failures(masters_to_contact.size());
-    // RSI: don't use pmap
-    pmap(masters_to_contact.size(), boost::bind(&cluster_namespace_interface_t::template perform_immediate_op<op_type,
-                                                fifo_enforcer_token_type,
-                                                op_response_type>,
+    TICKVAR(di_E);
+    // RSI: don't use pmap  // TODO: <- WTF are we supposed to use then?
+    pmap(masters_to_contact.size(), boost::bind(&cluster_namespace_interface_t::template perform_immediate_op<op_type, fifo_enforcer_token_type, op_response_type>,
                                                 this,
                                                 how_to_run_query,
                                                 &masters_to_contact,
@@ -130,7 +135,7 @@ void cluster_namespace_interface_t<protocol_t>::dispatch_immediate_op(
                                                 order_token,
                                                 _1,
                                                 interruptor));
-
+    TICKVAR(di_F);
 
     if (interruptor->is_pulsed()) throw interrupted_exc_t();
 
@@ -140,7 +145,11 @@ void cluster_namespace_interface_t<protocol_t>::dispatch_immediate_op(
         }
     }
 
+    TICKVAR(di_G);
     op.unshard(results.data(), results.size(), response, ctx);
+    TICKVAR(di_H);
+    // logRQM("dispatch_immediate_op di_A %ld B %ld C %ld D %ld E %ld F %ld G %ld H\n",
+    //        di_B - di_A, di_C - di_B, di_D - di_C, di_E - di_D, di_F - di_E, di_G - di_F, di_H - di_G);
 }
 
 template <class protocol_t>
@@ -156,10 +165,14 @@ void cluster_namespace_interface_t<protocol_t>::perform_immediate_op(
     signal_t *interruptor)
     THROWS_NOTHING
 {
+    TICKVAR(pi_A);
     immediate_op_info_t<fifo_enforcer_token_type> *master_to_contact = &(*masters_to_contact)[i];
     op_type sharded_op = operation->shard(master_to_contact->region);
+    TICKVAR(pi_B);
     rassert(region_is_superset(master_to_contact->region, sharded_op.get_region()));
+    TICKVAR(pi_C);
     rassert(region_is_superset(operation->get_region(), sharded_op.get_region()));
+    TICKVAR(pi_D);
 
     try {
         (master_to_contact->master_access->*how_to_run_query)(sharded_op,
@@ -167,6 +180,9 @@ void cluster_namespace_interface_t<protocol_t>::perform_immediate_op(
                                                               order_token,
                                                               &master_to_contact->enforcement_token,
                                                               interruptor);
+        TICKVAR(pi_E);
+        // logRQM("perform_immediate_op(i=%d) pi_A %ld B %ld C %ld D %ld E\n",
+        //        i, pi_B - pi_A, pi_C - pi_B, pi_D - pi_C, pi_E - pi_D);
     } catch (const resource_lost_exc_t&) {
         failures->at(i).assign("lost contact with master");
     } catch (const cannot_perform_query_exc_t& e) {
