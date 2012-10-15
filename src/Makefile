@@ -690,9 +690,32 @@ oprof-report:
 	@echo "    OPREPORT[$(OPROF_BINARY)] -> $(OPROF_RESULT)"
 	$(QUIET) opreport --merge=lib,unitmask -a --symbols --callgraph --threshold 1 --sort sample "--session-dir=$(realpath $(OPROF_SESSION))" -l "$(realpath $(OPROF_BINARY))" > $(OPROF_RESULT)
 
-drivers:
+PYTHON_PBDIR:=../build/drivers/python
+PYTHON_PBFILE:=query_language_pb2.py
+RUBY_PBDIR:=../build/drivers/ruby
+RUBY_PBFILE:=query_language.pb.rb
 ifeq ($(BUILD_DRIVERS), 1)
-	cd ../drivers ; $(MAKE) $(MFLAGS) ;
+$(PYTHON_PBDIR):
+	$(QUIET) mkdir -p $(PYTHON_PBDIR)
+$(RUBY_PBDIR):
+	$(QUIET) mkdir -p $(RUBY_PBDIR)
+
+drivers: $(PYTHON_PBDIR)/rdb_protocol/$(PYTHON_PBFILE) $(RUBY_PBDIR)/$(RUBY_PBFILE)
+PROTOFILE:=$(SOURCE_DIR)/rdb_protocol/query_language.proto
+$(PYTHON_PBDIR)/rdb_protocol/$(PYTHON_PBFILE): $(PYTHON_PBDIR) $(PROTOFILE)
+ifeq ($(VERBOSE),0)
+	@echo "    PROTOC[PY] $(PROTOFILE)"
+endif
+	$(QUIET) protoc $(PROTOCFLAGS) --python_out $(PYTHON_PBDIR) $(PROTOFILE)
+
+$(RUBY_PBDIR)/$(RUBY_PBFILE): $(RUBY_PBDIR) $(PROTOFILE)
+ifeq ($(VERBOSE),0)
+	@echo "    PROTOC[RB] $(PROTOFILE)"
+endif
+	$(QUIET) rprotoc $(PROTOCFLAGS) --out $(RUBY_PBDIR) $(PROTOFILE) | \
+		(grep -v 'writing...' || true)
+else
+drivers:
 endif #BUILD_DRIVERS
 
 rpc/semilattice/joins/macros.hpp: ../scripts/generate_join_macros.py
