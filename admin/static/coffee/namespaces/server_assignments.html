@@ -23,7 +23,7 @@
                                 <p class="num-primaries"><span class="highlight">{{num_primaries}}</span> {{pluralize_noun "primary" num_primaries}}</p>
                                 <p class="num-secondaries"><span class="highlight">{{num_secondaries}}</span> {{pluralize_noun "secondary" num_secondaries}}</p>
                                 <p class="num-keys">
-                                    {{#if num_keys}}
+                                    {{#if keys_ready}}
                                         <span class="highlight">~{{num_keys}}</span> {{pluralize_noun "document" num_keys}}
                                     {{else}}
                                         <span class="highlight">N/A</span> documents  

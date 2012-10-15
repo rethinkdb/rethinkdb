@@ -311,6 +311,7 @@ module 'DatacenterView', ->
             machines.on 'change:name', @render
             directory.on 'all', @render
             namespaces.on 'change:blueprint', @render
+            @data = {}
 
         render: =>
             # Filter a list of machines in this datacenter
@@ -334,15 +335,20 @@ module 'DatacenterView', ->
                             machine.num_primaries += 1 if role is 'role_primary'
                             machine.num_secondaries += 1 if role is 'role_secondary'
 
-            @.$el.html @template
-                has_servers: data_on_machines.length > 0
-                servers: _.sortBy(data_on_machines, (machine) -> machine.name)
+            servers = _.sortBy(data_on_machines, (machine) -> machine.name)
+            data =
+                has_servers: servers.length > 0
+                servers: servers
+
+            if not _.isEqual @data, data
+                @data = data
+                @.$el.html @template @data
             return @
 
         destroy: =>
-            machines.off 'change:name'
-            directory.off 'all'
-            namespaces.off 'change:blueprint'
+            machines.off 'change:name', @render
+            directory.off 'all', @render
+            namespaces.off 'change:blueprint', @render
 
     class @Data extends Backbone.View
 
