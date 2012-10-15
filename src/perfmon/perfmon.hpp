@@ -146,13 +146,13 @@ public:
 // http://www.cs.berkeley.edu/~mhoemmen/cs194/Tutorials/variance.pdf
 struct stddev_t {
     stddev_t();
-    stddev_t(size_t datapoints, float mean, float variance);
+    stddev_t(size_t datapoints, double mean, double variance);
 
-    void add(float value);
+    void add(double value);
     size_t datapoints() const;
-    float mean() const;
-    float standard_deviation() const;
-    float standard_variance() const;
+    double mean() const;
+    double standard_deviation() const;
+    double standard_variance() const;
     //stddev_t merge(const stddev_t &other);
     static stddev_t combine(size_t nelts, stddev_t *data);
 
@@ -164,7 +164,7 @@ private:
     // (Note that this is a better scheme numerically than using the
     // classic calculator technique of storing sum(x), sum(x^2), n.)
     size_t N;
-    float M, Q;
+    double M, Q;
 };
 
 /* Tracks the mean and standard deviation of a sequence value in constant space
@@ -175,7 +175,7 @@ private:
 public:
     // should be possible to make this a templated class if necessary
     perfmon_stddev_t();
-    void record(float value);
+    void record(double value);
 
 protected:
     void get_thread_stat(stddev_t *);

@@ -37,7 +37,7 @@ initial_joiner_t::initial_joiner_t(
 
 static const int initial_retry_interval_ms = 200;
 static const int max_retry_interval_ms = 1000 * 15;
-static const float retry_interval_growth_rate = 1.5;
+static const double retry_interval_growth_rate = 1.5;
 static const int grace_period_before_warn_ms = 1000 * 5;
 
 void initial_joiner_t::main_coro(connectivity_cluster_t::run_t *cluster_run, auto_drainer_t::lock_t keepalive) {

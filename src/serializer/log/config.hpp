@@ -49,7 +49,7 @@ struct log_serializer_dynamic_config_t {
 
     /* When the proportion of garbage blocks hits gc_high_ratio, then the serializer will collect
     garbage until it reaches gc_low_ratio. */
-    float gc_low_ratio, gc_high_ratio;
+    double gc_low_ratio, gc_high_ratio;
 
     /* How many data block extents the serializer will be writing to at once */
     unsigned num_active_data_extents;

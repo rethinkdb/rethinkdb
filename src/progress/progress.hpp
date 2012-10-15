@@ -20,7 +20,7 @@ public:
 
     void refresh(progress_bar_draw_callback_t *);
     void reset_bar();
-    void draw_bar(float, int eta = -1);
+    void draw_bar(double progress, int eta = -1);
 
     // repeating_timer_t callback
     void on_ring();
