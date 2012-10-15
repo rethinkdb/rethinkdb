@@ -446,6 +446,13 @@ void clock_monotonic(timespec *out) {
     guarantee_err(res == 0, "clock_gettime(CLOCK_MONOTIC, ...) failed");
 }
 
+void clock_realtime(timespec *out) {
+    int res = clock_gettime(CLOCK_REALTIME, out);
+    guarantee_err(res == 0, "clock_gettime(CLOCK_REALTIME) failed");
+}
+
+
+
 ticks_t get_ticks() {
     timespec tv;
     clock_monotonic(&tv);

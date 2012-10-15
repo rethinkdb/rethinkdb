@@ -153,15 +153,11 @@ log_message_t parse_log_message(const std::string &s) THROWS_ONLY(std::runtime_e
 }
 
 log_message_t assemble_log_message(log_level_t level, const std::string &message, struct timespec uptime_reference) {
-    int res;
-
     struct timespec timestamp;
-    res = clock_gettime(CLOCK_REALTIME, &timestamp);
-    guarantee_err(res == 0, "clock_gettime(CLOCK_REALTIME) failed");
+    clock_realtime(&timestamp);
 
     struct timespec uptime;
-    res = clock_gettime(CLOCK_MONOTONIC, &uptime);
-    guarantee_err(res == 0, "clock_gettime(CLOCK_MONOTONIC) failed");
+    clock_monotonic(&uptime);
     if (uptime.tv_nsec < uptime_reference.tv_nsec) {
         uptime.tv_nsec += 1000000000;
         uptime.tv_sec -= 1;
@@ -269,8 +265,7 @@ private:
 } fallback_log_writer;
 
 fallback_log_writer_t::fallback_log_writer_t() {
-    int res = clock_gettime(CLOCK_MONOTONIC, &uptime_reference);
-    guarantee_err(res == 0, "clock_gettime(CLOCK_MONOTONIC) failed");
+    clock_monotonic(&uptime_reference);
 
     filelock.l_type = F_WRLCK;
     filelock.l_whence = SEEK_SET;

@@ -75,6 +75,9 @@ int gcd(int x, int y);
 
 int64_t round_up_to_power_of_two(int64_t x);
 
+void clock_monotonic(timespec *out);
+void clock_realtime(timespec *out);
+
 typedef uint64_t ticks_t;
 ticks_t secs_to_ticks(double secs);
 ticks_t get_ticks();
