@@ -404,8 +404,18 @@ void connectivity_cluster_t::run_t::handle(
         {
             mutex_t::acq_t acq(&new_connection_mutex);
 
+            // Here's how this situation can happen:
+            // 1. We are connected to another node.
+            // 2. The connection is interrupted.
+            // 3. The other node gives up on the original TCP connection, but we have not given up on it yet.
+            // 4. The other node tries to reconnect, and the new TCP connection gets through and this node ends up here.
+            // 5. We now have a duplicate connection to the other node.
             if (routing_table.find(other_id) != routing_table.end()) {
-                crash("Why didn't the leader detect this conflict?");
+                // In this case, just exit this function, which will close the connection
+                // This will happen until the old connection dies
+                // TODO: ensure that the old connection shuts down?
+                logWRN("Received a connection from a peer we are already connected to");
+                return;
             }
 
             /* Make a copy of `routing_table` before exiting the critical

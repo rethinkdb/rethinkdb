@@ -90,9 +90,7 @@ body:before {
             margin-bottom: 20px;
         }
 
-        p {
-            font-family: @serif;
-        }
+
     }
 
     button.btn {
@@ -129,6 +127,36 @@ body:before {
     border-top: 4px @accent solid;
     background: #2f2f30;
 }
+
+/*
+    ----------------------------
+    Shared classes
+    ----------------------------
+*/
+.no_element{
+    @bar_height: 44px;
+    background: #FFF;
+    border: thin solid #cfcfcf;
+    .border-radius(3px);
+    margin-top: 12px;
+
+    @shadow: 0 1px 0 rgba(255, 255, 255, 0.02), 0 1px 3px rgba(0, 0, 0, 0.08);
+
+    -webkit-box-shadow: @shadow;
+       -moz-box-shadow: @shadow;
+            box-shadow: @shadow;
+    padding: 8px 0px;
+    text-align: center;
+    font-family: @sans;
+    font-size: 14px;
+    color: #777;
+    background: #f6f6f6;
+    p{
+        margin: 0px;
+    }
+}
+
+
 
 /*
     ----------------------------
@@ -835,6 +863,10 @@ body:before {
             }
         }
     }
+    .no-more-entries{
+        font-family: @sans;
+        display: none;
+    }
 }
 
 /*
@@ -1129,11 +1161,13 @@ body:before {
             .jt_close{ margin-left: 24px; }
             .jt_array{
                 list-style: none;
+                margin-left: 7px;
                 padding-left: 19px;
                 border-left: 1px dotted #bbb;
             }
             .jt_object{
                 list-style: none;
+                margin-left: 7px;
                 padding-left: 19px;
                 border-left: 1px dotted #bbb;
             }

@@ -104,7 +104,7 @@ module 'LogView', ->
                         @displayed_logs++
                     else
                         @.$('.no-more-entries').show()
-                        @.$('.next-log-entries').hide()
+                        @.$('.next-log-entries-container').hide()
  
             @render_header()
 
