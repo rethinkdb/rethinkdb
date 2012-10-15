@@ -404,8 +404,12 @@ void connectivity_cluster_t::run_t::handle(
         {
             mutex_t::acq_t acq(&new_connection_mutex);
 
-            // This situation can happen if the other side has lost the connection to us, but we
-            //  haven't lost our connection to them, yet
+            // Here's how this situation can happen:
+            // 1. We are connected to another node.
+            // 2. The connection is interrupted.
+            // 3. The other node gives up on the original TCP connection, but we have not given up on it yet.
+            // 4. The other node tries to reconnect, and the new TCP connection gets through and this node ends up here.
+            // 5. We now have a duplicate connection to the other node.
             if (routing_table.find(other_id) != routing_table.end()) {
                 // In this case, just exit this function, which will close the connection
                 // This will happen until the old connection dies
