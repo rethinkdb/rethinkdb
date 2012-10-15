@@ -61,6 +61,7 @@ module 'NamespaceView', ->
                 return 0
 
             @.$el.html @template
+                has_datacenters: datacenters_for_table.length > 0 # Should not be false if there is no error in the cluster
                 datacenters: datacenters_for_table
 
             return @

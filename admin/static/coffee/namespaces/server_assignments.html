@@ -1,5 +1,6 @@
 <script id="namespace_view-server_assignments-template" type="text/x-handlebars-template">
     <h2 class="title">Servers used by this table</h2>
+    {{#if has_datacenters}}
     <ul class="datacenters">
         {{#each datacenters}}
             <li class="datacenter parent">
@@ -35,4 +36,9 @@
             </li>
         {{/each}}
     </ul>
+    {{else}}
+    <div class="no_element">
+        No server contains data for this table.
+    </div>
+    {{/if}}
 </script>

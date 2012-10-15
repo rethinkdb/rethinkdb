@@ -52,6 +52,7 @@
 
 <script id="datacenter_view-machine_list-template" type="text/x-handlebars-template">
     <h2 class="title">Servers in this datacenter</h2>
+    {{#if has_servers}}
     <ul class="servers">
         {{#each servers}}
             <li class="server">
@@ -61,6 +62,11 @@
             </li>
         {{/each}}
     </ul>
+    {{else}}
+    <div class="no_element">
+        This datacenter does not contain any servers.
+    </div>
+    {{/if}}
 </script>
 
 <script id="datacenter_view_OLD_data-template" type="text/x-handlebars-template">

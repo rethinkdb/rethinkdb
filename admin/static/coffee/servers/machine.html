@@ -61,6 +61,7 @@
 
 <script id="machine_view_data-template" type="text/x-handlebars-template">
     <h2 class="title">Data on this server</h2>
+    {{#if has_data}}
     <ul class="tables">
         {{#each tables}}
             <li class="table parent">
@@ -95,6 +96,11 @@
             </li>
         {{/each}}
     </ul>
+    {{else}}
+    <div class="no_element">
+        This server does not have any data.
+    </div>
+    {{/if}}
 </script>
 
 <script id="reason-set_secondary-need_replica-template" type="text/x-handlebars-template">

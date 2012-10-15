@@ -278,6 +278,7 @@ module 'MachineView', ->
                 data_by_namespace.push ns if ns.shards.length > 0
 
             @.$el.html @template
+                has_data: data_by_namespace.length > 0
                 # Sort the tables alphabetically by name
                 tables: _.sortBy(data_by_namespace, (namespace) -> namespace.name)
 
