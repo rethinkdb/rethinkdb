@@ -250,6 +250,7 @@ inline json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(namespa
     default_namespace.primary_pinnings = default_namespace.primary_pinnings.make_new_version(default_primary_pinnings, ctx.us);
 
     default_namespace.database = default_namespace.database.make_new_version(nil_uuid(), ctx.us);
+    default_namespace.primary_datacenter = default_namespace.primary_datacenter.make_new_version(nil_uuid(), ctx.us);
 
     default_namespace.primary_key = default_namespace.primary_key.make_new_version("id", ctx.us);
 

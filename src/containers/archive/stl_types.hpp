@@ -132,6 +132,7 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, std::string *out) {
         return ARCHIVE_SOCK_ERROR;
     }
     if (num_read < sz) {
+        BREAKPOINT;
         return ARCHIVE_SOCK_EOF;
     }
 

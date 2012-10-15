@@ -141,6 +141,7 @@ MUST_USE int send_write_message(write_stream_t *s, const write_message_t *msg);
             return ARCHIVE_SOCK_ERROR;                                  \
         }                                                               \
         if (res < int64_t(sizeof(typ2))) {                              \
+            BREAKPOINT;                                                 \
             return ARCHIVE_SOCK_EOF;                                    \
         }                                                               \
         if (u.v < typ2(lo) || u.v > typ2(hi)) {                         \
@@ -165,6 +166,7 @@ MUST_USE int send_write_message(write_stream_t *s, const write_message_t *msg);
             return ARCHIVE_SOCK_ERROR;                                  \
         }                                                               \
         if (res < int64_t(sizeof(typ))) {                               \
+            BREAKPOINT;                                                 \
             return ARCHIVE_SOCK_EOF;                                    \
         }                                                               \
         *x = u.v;                                                       \

@@ -201,7 +201,7 @@ namespace_id_t get_or_create_namespace(cluster_semilattice_metadata_t *metadata,
         printf("Table '%s' not found, creating it.\n", table_name.c_str());
         *do_update = true;
         namespace_id = generate_uuid();
-        change.get()->namespaces[namespace_id].get_mutable() =
+        *change.get()->namespaces[namespace_id].get_mutable() =
             new_namespace<rdb_protocol_t>(sync_machine_id, db_id, dc_id, table_name, primary_key_in, port_defaults::reql_port, GIGABYTE);
     } else {
         printf("Error searching for namespace.\n");
@@ -225,9 +225,9 @@ database_id_t get_or_create_database(cluster_semilattice_metadata_t *metadata,
         printf("Database '%s' not found, creating it.\n", db_name.c_str());
         *do_update = true;
         database_id = generate_uuid();
-        database_semilattice_metadata_t& database = metadata->databases.databases[database_id].get_mutable();
-        database.name.get_mutable().assign(db_name);
-        database.name.upgrade_version(sync_machine_id);
+        database_semilattice_metadata_t *database = metadata->databases.databases[database_id].get_mutable();
+        database->name.get_mutable().assign(db_name);
+        database->name.upgrade_version(sync_machine_id);
     } else if (error == METADATA_ERR_MULTIPLE) {
         printf("Error searching for database.  (Multiple databases are named '%s'.)\n", db_name.c_str());
     } else {

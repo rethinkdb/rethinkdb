@@ -190,10 +190,12 @@ write_message_t &operator<<(write_message_t &msg, const boost::optional<T> &x) {
     return msg;
 }
 
+
 template <class T>
 MUST_USE archive_result_t deserialize(read_stream_t *s, boost::optional<T> *x) {
+    BREAKPOINT;
     bool exists;
-    rassert(!x->get_ptr());
+    //rassert(!x->get_ptr());
 
     archive_result_t res = deserialize(s, &exists);
     if (res) { return res; }

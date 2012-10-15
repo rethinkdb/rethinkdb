@@ -16,6 +16,24 @@
 #include "utils.hpp"
 #include "thread_local.hpp"
 
+#include "backtrace.hpp"
+
+static const char *const magic_unset_uuid = "UNSET_UUID_____";
+uuid_t::uuid_t() {
+    rassert(strlen(magic_unset_uuid) == kStaticSize-1);
+    memcpy(data_, magic_unset_uuid, kStaticSize);
+}
+bool uuid_t::is_unset() const {
+    return !memcmp(data_, magic_unset_uuid, kStaticSize);
+}
+
+bool uuid_t::is_nil() const {
+    for (size_t i = 0; i < kStaticSize; ++i) {
+        if (data_[i] != 0) return false;
+    }
+    return true;
+}
+
 bool operator==(const uuid_t& x, const uuid_t& y) {
     return memcmp(x.data(), y.data(), uuid_t::static_size()) == 0;
 }

@@ -67,6 +67,7 @@ int send_write_message(write_stream_t *s, const write_message_t *msg) {
 
 
 write_message_t &operator<<(write_message_t &msg, const uuid_t &uuid) {
+    rassert(!uuid.is_unset());
     msg.append(uuid.data(), uuid_t::static_size());
     return msg;
 }
@@ -76,7 +77,7 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, uuid_t *uuid) {
     int64_t res = force_read(s, uuid->data(), sz);
 
     if (res == -1) { return ARCHIVE_SOCK_ERROR; }
-    if (res < sz) { return ARCHIVE_SOCK_EOF; }
+    if (res < sz) { BREAKPOINT; return ARCHIVE_SOCK_EOF; }
     rassert(res == sz);
     return ARCHIVE_SUCCESS;
 }

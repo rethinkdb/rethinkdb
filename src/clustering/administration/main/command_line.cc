@@ -213,7 +213,7 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
         our_machine_metadata.name = vclock_t<std::string>(machine_name, our_machine_id);
         our_machine_metadata.datacenter = vclock_t<datacenter_id_t>(nil_uuid(), our_machine_id);
         semilattice_metadata.machines.machines.insert(std::make_pair(our_machine_id, our_machine_metadata));
-            
+
         if (joins.empty())
         {
             logINF("Creating a default database for your convenience. (This is because you ran 'rethinkdb' "

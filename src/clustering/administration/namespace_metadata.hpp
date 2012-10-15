@@ -40,9 +40,7 @@ typedef uuid_t namespace_id_t;
 template<class protocol_t>
 class namespace_semilattice_metadata_t {
 public:
-    namespace_semilattice_metadata_t()
-        : cache_size(GIGABYTE)
-    { }
+    namespace_semilattice_metadata_t() : cache_size(GIGABYTE) { }
 
     vclock_t<persistable_blueprint_t<protocol_t> > blueprint;
     vclock_t<datacenter_id_t> primary_datacenter;
