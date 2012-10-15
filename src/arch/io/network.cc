@@ -696,7 +696,7 @@ bool linux_nonthrowing_tcp_listener_t::bind_socket() {
     serv_addr.sin_addr.s_addr = INADDR_ANY;
     int res = bind(sock.get(), reinterpret_cast<sockaddr *>(&serv_addr), sizeof(serv_addr));
     if (res != 0) {
-        if (errno == EADDRINUSE) {
+        if (errno == EADDRINUSE || errno == EACCES) {
             bound = false;
             return bound;
         } else {
