@@ -404,8 +404,14 @@ void connectivity_cluster_t::run_t::handle(
         {
             mutex_t::acq_t acq(&new_connection_mutex);
 
+            // This situation can happen if the other side has lost the connection to us, but we
+            //  haven't lost our connection to them, yet
             if (routing_table.find(other_id) != routing_table.end()) {
-                crash("Why didn't the leader detect this conflict?");
+                // In this case, just exit this function, which will close the connection
+                // This will happen until the old connection dies
+                // TODO: ensure that the old connection shuts down?
+                logWRN("Received a connection from a peer we are already connected to");
+                return;
             }
 
             /* Make a copy of `routing_table` before exiting the critical
