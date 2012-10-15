@@ -441,27 +441,29 @@ ticks_t secs_to_ticks(double secs) {
     return secs * 1000000000L;
 }
 
-void clock_monotonic(timespec *out) {
-    int res = clock_gettime(CLOCK_MONOTONIC, out);
+timespec clock_monotonic() {
+    timespec ret;
+    int res = clock_gettime(CLOCK_MONOTONIC, &ret);
     guarantee_err(res == 0, "clock_gettime(CLOCK_MONOTIC, ...) failed");
+    return ret;
 }
 
-void clock_realtime(timespec *out) {
-    int res = clock_gettime(CLOCK_REALTIME, out);
+timespec clock_realtime() {
+    timespec ret;
+    int res = clock_gettime(CLOCK_REALTIME, &ret);
     guarantee_err(res == 0, "clock_gettime(CLOCK_REALTIME) failed");
+    return ret;
 }
 
 
 
 ticks_t get_ticks() {
-    timespec tv;
-    clock_monotonic(&tv);
+    timespec tv = clock_monotonic();
     return secs_to_ticks(tv.tv_sec) + tv.tv_nsec;
 }
 
 time_t get_secs() {
-    timespec tv;
-    clock_monotonic(&tv);
+    timespec tv = clock_monotonic();
     return tv.tv_sec;
 }
 

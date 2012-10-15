@@ -6,11 +6,8 @@ namespace unittest {
 
 TEST(LogMessageTest, ParseFormat) {
 
-    struct timespec timestamp;
-    clock_monotonic(&timestamp);
-
-    struct timespec uptime;
-    clock_monotonic(&uptime);
+    struct timespec timestamp = clock_realtime();
+    struct timespec uptime = clock_monotonic();
 
     log_message_t message(timestamp, uptime, log_level_info, "test message *(&Q(!#@LJVO");
     std::string formatted = format_log_message(message);

@@ -259,8 +259,7 @@ proc_stats_collector_t::proc_stats_collector_t(perfmon_collection_t *stats) :
 }
 
 proc_stats_collector_t::instantaneous_stats_collector_t::instantaneous_stats_collector_t() {
-    struct timespec now;
-    clock_monotonic(&now);
+    struct timespec now = clock_monotonic();
     start_time = now.tv_sec;
 }
 
@@ -277,8 +276,7 @@ perfmon_result_t *proc_stats_collector_t::instantaneous_stats_collector_t::end_s
     perfmon_result_t::alloc_map_result(&result);
 
     // Basic process stats (version, pid, uptime)
-    struct timespec now;
-    clock_monotonic(&now);
+    struct timespec now = clock_monotonic();
 
     result->insert("uptime", new perfmon_result_t(strprintf("%ld", now.tv_sec - start_time)));
     result->insert("timestamp", new perfmon_result_t(format_time(now)));
