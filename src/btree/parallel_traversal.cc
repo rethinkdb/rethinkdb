@@ -546,6 +546,8 @@ void ranged_block_ids_t::get_block_id_and_bounding_interval(int index,
 
     if (*left_excl_bound_out && *right_incl_bound_out &&
         sized_strcmp((*left_excl_bound_out)->contents, (*left_excl_bound_out)->size, (*right_incl_bound_out)->contents, (*right_incl_bound_out)->size) == 0) {
+        //TODO: why is this here?
+        BREAKPOINT;
     }
 }
 
