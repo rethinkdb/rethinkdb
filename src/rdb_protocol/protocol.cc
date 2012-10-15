@@ -13,6 +13,7 @@
 #include "concurrency/wait_any.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "protob/protob.hpp"
+#include "query_measure.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/query_language.hpp"
@@ -624,8 +625,12 @@ void store_t::protocol_write(const write_t &write,
                              btree_slice_t *btree,
                              transaction_t *txn,
                              superblock_t *superblock) {
+    TICKVAR(pw_A);
     write_visitor_t v(btree, txn, superblock, timestamp.to_repli_timestamp(), ctx, response);
+    TICKVAR(pw_B);
     boost::apply_visitor(v, write.write);
+    TICKVAR(pw_C);
+    logRQM("protocol_write A %ld B %ld C\n", pw_B - pw_A, pw_C - pw_B);
 }
 
 namespace {

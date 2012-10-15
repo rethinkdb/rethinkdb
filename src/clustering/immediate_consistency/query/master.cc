@@ -123,8 +123,8 @@ void master_t<protocol_t>::client_t::perform_request(
         broadcaster's write queue is gone. */
         wait_interruptible(&write_callback.done_cond, &parent->shutdown_cond);
         TICKVAR(mc_H);
-        logRQM("master client perform_request (write) mc_A %ld B %ld C %ld D %ld E %ld F %ld G %ld H\n",
-               mc_B - mc_A, mc_C - mc_B, mc_D - mc_C, mc_E - mc_D, mc_F - mc_E, mc_G - mc_F, mc_H - mc_G);
+        // logRQM("master client perform_request (write) mc_A %ld B %ld C %ld D %ld E %ld F %ld G %ld H\n",
+        //        mc_B - mc_A, mc_C - mc_B, mc_D - mc_C, mc_E - mc_D, mc_F - mc_E, mc_G - mc_F, mc_H - mc_G);
 
     } else {
         unreachable();

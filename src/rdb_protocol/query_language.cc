@@ -1423,7 +1423,7 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
         }
         res->add_response("{" + res_list + "}");
         TICKVAR(wt_G);
-        logRQM("execute_write_query UPDATE wt_A %ld wt_B %ld wt_C %ld wt_D %ld wt_E %ld wt_F %ld wt_G\n", wt_B - wt_A, wt_C - wt_B, wt_D - wt_C, wt_E - wt_D, wt_F - wt_E, wt_G - wt_F);
+        // logRQM("execute_write_query UPDATE wt_A %ld wt_B %ld wt_C %ld wt_D %ld wt_E %ld wt_F %ld wt_G\n", wt_B - wt_A, wt_C - wt_B, wt_D - wt_C, wt_E - wt_D, wt_F - wt_E, wt_G - wt_F);
     } break;
     case WriteQuery::MUTATE: {
         view_t view = eval_term_as_view(w->mutable_mutate()->mutable_view(), env, scopes, backtrace.with("view"));
@@ -1459,7 +1459,7 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
         }
         res->add_response("{" + res_list + "}");
         TICKVAR(wt_E);
-        logRQM("execute_write_query MUTATE wt_A %ld wt_B %ld wt_C %ld wt_D %ld wt_E\n", wt_B - wt_A, wt_C - wt_B, wt_D - wt_C, wt_E - wt_D);
+        // logRQM("execute_write_query MUTATE wt_A %ld wt_B %ld wt_C %ld wt_D %ld wt_E\n", wt_B - wt_A, wt_C - wt_B, wt_D - wt_C, wt_E - wt_D);
 
     } break;
     case WriteQuery::DELETE: {
@@ -1473,7 +1473,7 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
         TICKVAR(wt_D);
 
         res->add_response(strprintf("{\"deleted\": %d}", deleted));
-        logRQM("execute_write_query DELETE wt_A %ld wt_B %ld wt_C %ld wt_D\n", wt_B - wt_A, wt_C - wt_B, wt_D - wt_C);
+        // logRQM("execute_write_query DELETE wt_A %ld wt_B %ld wt_C %ld wt_D\n", wt_B - wt_A, wt_C - wt_B, wt_D - wt_C);
     } break;
     case WriteQuery::INSERT: {
         std::string pk = get_primary_key(w->mutable_insert()->mutable_table_ref(), env, backtrace);
@@ -1608,7 +1608,7 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
         }
         TICKVAR(wt_D);
         res->add_response(lhs.Print());
-        logRQM("execute_write_query FOREACH wt_A %ld wt_B %ld wt_C %ld wt_D\n", wt_B - wt_A, wt_C - wt_B, wt_D - wt_C);
+        // logRQM("execute_write_query FOREACH wt_A %ld wt_B %ld wt_C %ld wt_D\n", wt_B - wt_A, wt_C - wt_B, wt_D - wt_C);
 
     } break;
     case WriteQuery::POINTUPDATE: {
@@ -1633,7 +1633,7 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
         res->add_response(strprintf("{\"updated\": %d, \"skipped\": %d, \"errors\": %d}",
                                     mres == point_modify::MODIFIED, mres == point_modify::SKIPPED, 0));
         TICKVAR(wt_G);
-        logRQM("execute_write_query POINTUPDATE wt_A %ld wt_B %ld wt_C %ld wt_D %ld wt_E %ld wt_F %ld wt_G\n", wt_B - wt_A, wt_C - wt_B, wt_D - wt_C, wt_E - wt_D, wt_F - wt_E, wt_G - wt_F);
+        // logRQM("execute_write_query POINTUPDATE wt_A %ld wt_B %ld wt_C %ld wt_D %ld wt_E %ld wt_F %ld wt_G\n", wt_B - wt_A, wt_C - wt_B, wt_D - wt_C, wt_E - wt_D, wt_F - wt_E, wt_G - wt_F);
 
     } break;
     case WriteQuery::POINTDELETE: { //TODO: enforce primary key
@@ -1655,7 +1655,7 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
 
         res->add_response(strprintf("{\"deleted\": %d}", deleted));
         TICKVAR(wt_G);
-        logRQM("execute_write_query POINTDELETE wt_A %ld wt_B %ld wt_C %ld wt_D %ld wt_E %ld wt_F %ld wt_G\n", wt_B - wt_A, wt_C - wt_B, wt_D - wt_C, wt_E - wt_D, wt_F - wt_E, wt_G - wt_F);
+        // logRQM("execute_write_query POINTDELETE wt_A %ld wt_B %ld wt_C %ld wt_D %ld wt_E %ld wt_F %ld wt_G\n", wt_B - wt_A, wt_C - wt_B, wt_D - wt_C, wt_E - wt_D, wt_F - wt_E, wt_G - wt_F);
 
     } break;
     case WriteQuery::POINTMUTATE: {
@@ -1681,7 +1681,7 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
         res->add_response(strprintf("{\"modified\": %d, \"inserted\": %d, \"deleted\": %d, \"errors\": %d}",
                                     mres == point_modify::MODIFIED, mres == point_modify::INSERTED, mres == point_modify::DELETED, 0));
         TICKVAR(wt_G);
-        logRQM("execute_write_query POINTMUTATE wt_A %ld wt_B %ld wt_C %ld wt_D %ld wt_E %ld wt_F %ld wt_G\n", wt_B - wt_A, wt_C - wt_B, wt_D - wt_C, wt_E - wt_D, wt_F - wt_E, wt_G - wt_F);
+        // logRQM("execute_write_query POINTMUTATE wt_A %ld wt_B %ld wt_C %ld wt_D %ld wt_E %ld wt_F %ld wt_G\n", wt_B - wt_A, wt_C - wt_B, wt_D - wt_C, wt_E - wt_D, wt_F - wt_E, wt_G - wt_F);
     } break;
     default:
         unreachable();
