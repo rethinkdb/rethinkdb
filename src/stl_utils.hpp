@@ -16,9 +16,6 @@ std::set<K> keys(const std::map<K, V> &);
 template <class container_t>
 bool std_contains(const container_t &, const typename container_t::key_type &);
 
-template <class container_t>
-bool std_does_not_contain(const container_t &, const typename container_t::key_type &);
-
 template <class K, class V>
 void debug_print(append_only_printf_buffer_t *buf, const std::map<K, V> &map);
 

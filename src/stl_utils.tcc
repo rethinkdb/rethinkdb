@@ -25,11 +25,6 @@ bool std_contains(const container_t &container, const typename container_t::key_
     return container.find(key) != container.end();
 }
 
-template <class container_t>
-bool std_does_not_contain(const container_t &container, const typename container_t::key_type &key) {
-    return !std_contains<container_t>(container, key);
-}
-
 template <class It>
 void debug_print_iterators(append_only_printf_buffer_t *buf, It beg, It end) {
     for (It it = beg; it != end; ++it) {
