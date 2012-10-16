@@ -16,8 +16,6 @@
 #include "utils.hpp"
 #include "thread_local.hpp"
 
-#include "backtrace.hpp"
-
 static const char *const magic_unset_uuid = "UNSET_UUID_____";
 uuid_t::uuid_t() {
     rassert(strlen(magic_unset_uuid) == kStaticSize-1);
