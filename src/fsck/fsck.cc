@@ -11,8 +11,7 @@
 
 namespace fsck {
 
-// TODO: Should this still be UNUSED?
-NORETURN void usage(UNUSED const char *name) {
+NORETURN void usage() {
     help_pager_t *help = help_pager_t::instance();
     help->pagef("Usage:\n"
                 "        rethinkdb fsck [OPTIONS] -f <file_1> [-f <file_2> ...] [--metadata-file <file>]\n");
@@ -41,12 +40,10 @@ enum { ignore_diff_log = 256,  // Start these values above the ASCII range.
 };
 
 void parse_cmd_args(int argc, char **argv, config_t *config) {
-    // TODO disallow rogue options.
-
     optind = 1;  // reinit getopt.
     if (argc >= 2) {
         if (!strncmp("help", argv[1], 4)) {
-            usage(argv[0]);
+            usage();
         }
     }
     for (;;) {
@@ -106,11 +103,11 @@ void parse_cmd_args(int argc, char **argv, config_t *config) {
             config->print_file_version = true;
             break;
         case 'h':
-            usage(argv[0]);
+            usage();
             break;
         default:
             // getopt_long already printed an error message.
-            usage(argv[0]);
+            usage();
         }
     }
 
@@ -122,7 +119,7 @@ void parse_cmd_args(int argc, char **argv, config_t *config) {
 
     if (config->input_filenames.empty()) {
         fprintf(stderr, "Please specify some files.\n");
-        usage(argv[0]);
+        usage();
     }
 
     {
