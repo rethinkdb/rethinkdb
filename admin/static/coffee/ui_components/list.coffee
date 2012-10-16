@@ -74,9 +74,11 @@ module 'UIComponents', ->
             @.$(@container).append(view.render().$el) for view in @element_views
 
             if @element_views.length is 0 and @element_name? and @container_name?
-                @.$(@container).html @empty_list_template
-                    element: @element_name
-                    container: @container_name
+                # If there is no datacenter, we don't have to say it, there is the list of unassigned machines
+                if @collection isnt datacenters
+                    @.$(@container).html @empty_list_template
+                        element: @element_name
+                        container: @container_name
 
             @.delegateEvents()
             return @

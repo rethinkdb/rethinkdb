@@ -427,10 +427,21 @@ module 'ServerView', ->
         render: (datacenter) ->
             log_render '(rendering) remove datacenters dialog'
             @datacenter = datacenter
+
+            namespaces_where_primary = namespaces.filter (namespace) -> namespace.get('primary_uuid') is datacenter.get('id')
+            namespaces_where_primary = _.map(namespaces_where_primary, (namespace) ->
+                id: namespace.get('id')
+                name: namespace.get('name')
+            )
+
+            console.log namespaces_where_primary
             super
                 datacenter: datacenter.toJSON()
-                modal_title: "Remove datacenter"
+                modal_title: "Remove datacenter "+@datacenter.get('name')
                 btn_primary_text: 'Remove'
+                # Warning for deleting this datacenter
+                datacenter_is_primary: namespaces_where_primary.length > 0
+                namespaces_where_primary: namespaces_where_primary
 
         on_submit: ->
             super
@@ -454,7 +465,6 @@ module 'ServerView', ->
 
         delete_datacenter: =>
             # The first call to unassign the machines was a success, so we can change their datacenter to universe
-            datacenters.remove(@datacenter.id)
             for machine_id of @machines_to_delete
                 machines.get(machine_id).set 'datacenter_uuid', universe_datacenter.get('id')
 
@@ -480,11 +490,18 @@ module 'ServerView', ->
                 @on_success_with_error()
                 return
 
+            name = @datacenter.get('name')
+            datacenters.remove(@datacenter.id)
+
             super
 
-
-            $('#user-alert-space').html @alert_tmpl
-                name: @datacenter.get('name')
+            if /^(datacenters)/.test Backbone.history.fragment is true
+                window.router.navigate '#servers'
+                window.app.index_servers
+                    alert_message: "The datacenter #{name} was successfully deleted."
+            else
+                $('#user-alert-space').html @alert_tmpl
+                    name: @datacenter.get('name')
 
     class @SetDatacenterModal extends UIComponents.AbstractModal
         template: Handlebars.compile $('#set_datacenter-modal-template').html()
