@@ -195,7 +195,7 @@ collect_server_data_once = (async, optional_callback) ->
                 window.is_disconnected.display_fail()
             else
                 window.is_disconnected = new IsDisconnected
-        #timeout: updateInterval
+        timeout: updateInterval*2
 
 collect_progress = ->
     $.ajax
