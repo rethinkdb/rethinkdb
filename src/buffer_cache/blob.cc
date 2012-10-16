@@ -500,7 +500,7 @@ void blob_t::write_from_string(const std::string &val, transaction_t *txn, int64
     expose_region(txn, rwi_write, offset, val.size(), &dest, &acq);
 
     buffer_group_t src;
-    src.add_buffer(val.size(), val.c_str());
+    src.add_buffer(val.size(), val.data());
     buffer_group_copy_data(&dest, const_view(&src));
 }
 
