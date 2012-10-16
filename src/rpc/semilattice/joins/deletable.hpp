@@ -11,16 +11,10 @@ class append_only_printf_buffer_t;
 //for the fact that we don't have inverses in semilattices)
 template <class T>
 class deletable_t {
-private:
-    template <class U>
-    friend bool operator==(const deletable_t<U> &, const deletable_t<U> &);
-
-    template <class U>
-    friend void semilattice_join(deletable_t<U> *, const deletable_t<U> &);
-
-    template <class U>
-    friend void debug_print(append_only_printf_buffer_t *buf, const deletable_t<U> &x);
 public:
+    deletable_t() : t(T()) { }
+    explicit deletable_t(const T &_t) : t(_t) { }
+
     bool is_deleted() const { return !t; }
     void mark_deleted() { t = boost::optional<T>(); }
     /* return an object which when joined in will cause the object to be deleted */

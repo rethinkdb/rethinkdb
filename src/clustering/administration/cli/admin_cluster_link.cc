@@ -1876,18 +1876,10 @@ void admin_cluster_link_t::do_admin_create_datacenter(const admin_command_parser
     datacenter_id_t new_id = generate_uuid();
     datacenter_semilattice_metadata_t *datacenter = cluster_metadata.datacenters.datacenters[new_id].get_mutable();
 
-<<<<<<< HEAD
-    if (!datacenter.name.get_mutable().assign_value(guarantee_param_0(data.params, "name"))) {
+    if (!datacenter->name.get_mutable().assign_value(guarantee_param_0(data.params, "name"))) {
         throw admin_parse_exc_t(strprintf("invalid datacenter name.  (%s)", name_string_t::valid_char_msg));
     }
-    datacenter.name.upgrade_version(change_request_id);
-||||||| merged common ancestors
-    datacenter.name.get_mutable() = guarantee_param_0(data.params, "name");
-    datacenter.name.upgrade_version(change_request_id);
-=======
-    datacenter->name.get_mutable() = guarantee_param_0(data.params, "name");
     datacenter->name.upgrade_version(change_request_id);
->>>>>>> mlucy_deletable_fixes
 
     do_metadata_update(&cluster_metadata, &change_request, false);
 
@@ -2318,16 +2310,8 @@ template <class map_type>
 void admin_cluster_link_t::do_admin_set_name_internal(const uuid_t& id, const std::string& name, map_type *obj_map) {
     typename map_type::iterator i = obj_map->find(id);
     if (i != obj_map->end() && !i->second.is_deleted() && !i->second.get().name.in_conflict()) {
-<<<<<<< HEAD
-        do_assign_string_to_name(i->second.get_mutable().name.get_mutable(), name);
-        i->second.get_mutable().name.upgrade_version(change_request_id);
-||||||| merged common ancestors
-        i->second.get_mutable().name.get_mutable() = name;
-        i->second.get_mutable().name.upgrade_version(change_request_id);
-=======
-        i->second.get_mutable()->name.get_mutable() = name;
+        do_assign_string_to_name(i->second.get_mutable()->name.get_mutable(), name);
         i->second.get_mutable()->name.upgrade_version(change_request_id);
->>>>>>> mlucy_deletable_fixes
     } else {
         throw admin_cluster_exc_t("unexpected error, object not found: " + uuid_to_str(id));
     }
