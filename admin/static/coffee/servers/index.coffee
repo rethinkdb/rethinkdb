@@ -376,21 +376,21 @@ module 'ServerView', ->
             no_error = true
             if @formdata.name is ''
                 no_error = false
-                template_error =
+                $('.alert_modal').html @error_template
                     datacenter_is_empty: true
-                $('.alert_modal').html @error_template template_error
-                $('.alert_modal').alert()
-                @reset_buttons()
+            else if /^[a-zA-Z0-9_]+$/.test(@formdata.name) is false
+                no_error = false
+                $('.alert_modal').html @error_template
+                    special_char_detected: true
+                    type: 'datacenter'
             else
                 for datacenter in datacenters.models
-                    if datacenter.get('name') is @formdata.name
+                    if datacenter.get('name').toLowerCase() is @formdata.name.toLowerCase()
                         no_error = false
-                        template_error =
+                        $('.alert_modal').html @error_template
                             datacenter_exists: true
-                        $('.alert_modal').html @error_template template_error
-                        $('.alert_modal').alert()
-                        @reset_buttons()
                         break
+
             if no_error is true
                 $.ajax
                     processData: false
@@ -400,6 +400,9 @@ module 'ServerView', ->
                     data: JSON.stringify({"name" : @formdata.name})
                     success: @on_success
                     error: @on_error
+            else
+                $('.alert_modal_content').slideDown 'fast'
+                @reset_buttons()
 
         on_success: (response) ->
             super
