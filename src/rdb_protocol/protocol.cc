@@ -291,10 +291,7 @@ public:
                         scopes_t scopes_copy = rg.terminal->scopes;
                         query_language::new_val_scope_t inner_scope(&scopes_copy.scope);
                         scopes_copy.scope.put_in_scope(gmr->reduction().var1(),
-                            get_with_default(*res_groups, j->first,
-                                eval_term_as_json(&base, &env, rg.terminal->scopes, rg.terminal->backtrace.with("reduction").with("base"))
-                                )
-                            );
+                            res_groups->insert(std::make_pair(j->first, eval_term_as_json(&base, &env, rg.terminal->scopes, rg.terminal->backtrace.with("reduction").with("base")))).first->second);
                         scopes_copy.scope.put_in_scope(gmr->reduction().var2(), j->second);
                         (*res_groups)[j->first] = eval_term_as_json(&body, &env, scopes_copy, rg.terminal->backtrace.with("reduction").with("body"));
                     }

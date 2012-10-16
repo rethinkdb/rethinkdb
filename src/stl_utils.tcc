@@ -30,24 +30,6 @@ bool std_does_not_contain(const container_t &container, const typename container
     return !std_contains<container_t>(container, key);
 }
 
-template <class container_t>
-typename container_t::mapped_type &get_with_default(container_t &container, const typename container_t::key_type &key, const typename container_t::mapped_type &default_value) {
-    if (container.find(key) == container.end()) {
-        container[key] = default_value;
-    }
-
-    return container[key];
-}
-
-template <class container_t>
-const typename container_t::mapped_type &const_get_with_default(const container_t &container, const typename container_t::key_type &key, const typename container_t::mapped_type &default_value) {
-    if (container.find(key) == container.end()) {
-        return default_value;
-    } else {
-        return container.find(key)->second;
-    }
-}
-
 template <class It>
 void debug_print_iterators(append_only_printf_buffer_t *buf, It beg, It end) {
     for (It it = beg; it != end; ++it) {
