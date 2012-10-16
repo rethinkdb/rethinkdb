@@ -149,7 +149,7 @@ boost::shared_ptr<subfield_change_functor_t>  json_vclock_adapter_t<T>::get_chan
 //json adapter concept for deletable_t
 template <class T, class ctx_t>
 json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(deletable_t<T> *target, const ctx_t &ctx) {
-    return with_ctx_get_json_subfields(&target->get_mutable(), ctx);
+    return with_ctx_get_json_subfields(target->get_mutable(), ctx);
 }
 
 template <class T, class ctx_t>
@@ -157,7 +157,7 @@ cJSON *with_ctx_render_as_json(deletable_t<T> *target, const ctx_t &ctx) {
     if (target->is_deleted()) {
         return cJSON_CreateNull();
     } else {
-        return with_ctx_render_as_json(&target->get_mutable(), ctx);
+        return with_ctx_render_as_json(target->get_mutable(), ctx);
     }
 }
 
@@ -166,7 +166,7 @@ void with_ctx_apply_json_to(cJSON *change, deletable_t<T> *target, const ctx_t &
     if (is_null(change)) {
         target->mark_deleted();
     } else {
-        with_ctx_apply_json_to(change, &target->get_mutable(), ctx);
+        with_ctx_apply_json_to(change, target->get_mutable(), ctx);
     }
 }
 

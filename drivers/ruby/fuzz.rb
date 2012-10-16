@@ -3,35 +3,35 @@ require 'pp'
 require 'socket'
 require 'optparse'
 
-$options = {}
+$opt = {}
 OptionParser.new {|opts|
   opts.banner = "Usage: fuzz.rb [options]"
 
-  $options[:host] = "localhost"
+  $opt[:host] = "localhost"
   opts.on('-h', '--host HOST', 'Fuzz on host HOST (default localhost)') {|h|
-    $options[:host] = h
+    $opt[:host] = h
   }
 
-  $options[:port] = "0"
-  opts.on('-p', '--port PORT', 'Fuzz on PORT+12346 (default 0)') {|p| $options[:port] = p}
+  $opt[:port] = "0"
+  opts.on('-p', '--port PORT', 'Fuzz on PORT+12346 (default 0)') {|p| $opt[:port] = p}
 
-  $options[:seed] = srand()
-  opts.on('-s', '--seed SEED', 'Set the random seed to SEED') {|s| $options[:seed] = s}
+  $opt[:seed] = srand()
+  opts.on('-s', '--seed SEED', 'Set the random seed to SEED') {|s| $opt[:seed] = s}
 
-  $options[:tfile] = nil
-  opts.on('-t', '--templates FILE', 'Read templates from FILE') {|f| $options[:tfile] = f}
+  $opt[:tfile] = nil
+  opts.on('-t', '--templates FILE', 'Read templates from FILE') {|f| $opt[:tfile] = f}
 
-  $options[:ind] = 0
-  opts.on('-i', '--index INDEX', 'Start at index INDEX') {|i| $options[:ind] = i.to_i}
+  $opt[:ind] = 0
+  opts.on('-i', '--index INDEX', 'Start at index INDEX') {|i| $opt[:ind] = i.to_i}
 }.parse!
 
-print "Using seed: #{$options[:seed]}\n"
-srand($options[:seed].to_i)
+print "Using seed: #{$opt[:seed]}\n"
+srand($opt[:seed].to_i)
 
 templates = []
-if $options[:tfile]
-  print "Using templates from file: #{$options[:tfile]}\n"
-  File.open($options[:tfile], "r").each {|l| templates << eval(l.chomp)}
+if $opt[:tfile]
+  print "Using templates from file: #{$opt[:tfile]}\n"
+  File.open($opt[:tfile], "r").each {|l| templates << eval(l.chomp)}
 else
   print "Generating templates...\n"
   (0...100).each {|i|
@@ -41,8 +41,8 @@ else
   }
 end
 
-print "Connecting to cluster on port: #{$options[:port]}+12346...\n"
-$sock = TCPSocket.open($options[:host], ($options[:port].to_i)+12346)
+print "Connecting to cluster on port: #{$opt[:port]}+12346...\n"
+$sock = TCPSocket.open($opt[:host], ($opt[:port].to_i)+12346)
 $sock.send([0xaf61ba35].pack('L<'), 0)
 print "Connection established.\n"
 
@@ -50,7 +50,7 @@ $LOAD_PATH.unshift('./rethinkdb')
 load 'rethinkdb.rb'
 
 def bsend s
-  if $i >= $options[:ind]
+  if $i >= $opt[:ind]
     print "sending:  #{s.inspect}\n"
     packet = [s.length].pack('L<') + s
     $sock.send(packet, 0)
@@ -81,7 +81,7 @@ $i=0
 while true
   templates.each { |s|
     $i += 1
-    print "template: #{s.inspect} (##{$i})\n" if $i >= $options[:ind]
+    print "template: #{s.inspect} (##{$i})\n" if $i >= $opt[:ind]
     bsend(s)
     bsend(mangle_one_byte(s))
     bsend(mangle_many_bytes(s, 0.3))
