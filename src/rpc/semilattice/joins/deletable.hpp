@@ -34,8 +34,8 @@ public:
     }
 
     const T &get_ref() const { guarantee(t); return  *t; }
-    T        get()     const { guarantee(t); return  *t; }
-    T       *get_mutable()   { guarantee(t); return &*t; }
+          T  get() const     { guarantee(t); return  *t; }
+          T *get_mutable()   { guarantee(t); return &*t; }
 
     typedef T value_t;
     boost::optional<T> t;
