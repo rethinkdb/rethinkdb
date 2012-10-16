@@ -67,7 +67,6 @@ public:
             boost::bind(&multi_throttling_client_t::on_reclaim_tickets, this, _1),
             mailbox_callback_mode_inline)
     {
-        promise_t<server_business_card_t> intro_promise;
         mailbox_t<void(server_business_card_t)> intro_mailbox(
             mailbox_manager,
             boost::bind(&promise_t<server_business_card_t>::pulse, &intro_promise, _1),
@@ -89,8 +88,6 @@ public:
             throw resource_lost_exc_t();
         }
         rassert(intro_promise.get_ready_signal()->is_pulsed());
-        request_addr = intro_promise.get_value().request_addr;
-        relinquish_tickets_addr = intro_promise.get_value().relinquish_tickets_addr;
     }
 
     signal_t *get_failed_signal() {
@@ -101,7 +98,7 @@ public:
         wait_interruptible(ticket_acq, interruptor);
         guarantee(ticket_acq->state == ticket_acq_t::state_acquired_ticket);
         ticket_acq->state = ticket_acq_t::state_used_ticket;
-        send(mailbox_manager, request_addr, request);
+        send(mailbox_manager, intro_promise.wait().request_addr, request);
     }
 
 private:
@@ -129,7 +126,6 @@ private:
     }
 
     void on_reclaim_tickets(int count) {
-        // TODO: Why could count be greater than free_tickets?
         int to_relinquish = std::min(count, free_tickets);
         if (to_relinquish > 0) {
             free_tickets -= to_relinquish;
@@ -141,13 +137,12 @@ private:
     }
 
     void relinquish_tickets_blocking(int count, UNUSED auto_drainer_t::lock_t keepalive) {
-        send(mailbox_manager, relinquish_tickets_addr, count);
+        send(mailbox_manager, intro_promise.wait().relinquish_tickets_addr, count);
     }
 
     mailbox_manager_t *mailbox_manager;
 
-    mailbox_addr_t<void(request_type)> request_addr;
-    mailbox_addr_t<void(int)> relinquish_tickets_addr;
+    promise_t<server_business_card_t> intro_promise;
 
     int free_tickets;
     intrusive_list_t<ticket_acq_t> ticket_queue;
