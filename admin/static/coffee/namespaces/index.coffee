@@ -33,11 +33,9 @@ module 'NamespaceView', ->
         update_button_create_namespace: =>
             if databases.length is 0 and @can_create_namespace is true
                 @.$('.add-namespace').prop 'disabled', 'disabled'
-                @.$('.user_alert_space-cannot_create_namespace').html 'Bad boy'
                 @.$('.user_alert_space-cannot_create_namespace').show()
             else if databases.length > 0 and @can_create_namespace is false
                 @.$('.add-namespace').removeProp 'disabled'
-                @.$('.user_alert_space-cannot_create_namespace').html ''
                 @.$('.user_alert_space-cannot_create_namespace').hide()
 
         render: (message) =>
