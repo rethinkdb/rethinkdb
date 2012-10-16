@@ -65,7 +65,6 @@ module 'NamespaceView', ->
 
         # Hide the popup
         hide_details: (event) =>
-            console.log 'hiding'
             @.$('.popup_container').hide()
             @clean_dom_listeners()
 

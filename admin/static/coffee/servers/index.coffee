@@ -434,7 +434,6 @@ module 'ServerView', ->
                 name: namespace.get('name')
             )
 
-            console.log namespaces_where_primary
             super
                 datacenter: datacenter.toJSON()
                 modal_title: "Remove datacenter "+@datacenter.get('name')
