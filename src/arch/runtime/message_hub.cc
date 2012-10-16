@@ -112,6 +112,7 @@ void linux_message_hub_t::notify_t::on_event(int events) {
         if (m->reloop_count_ > 0) {
             --m->reloop_count_;
             parent->do_store_message(parent->current_thread_, m);
+            continue;
         }
 #endif
 
