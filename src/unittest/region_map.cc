@@ -1,7 +1,7 @@
 #include "unittest/gtest.hpp"
 
-#include "protocol_api.hpp"
 #include "mock/dummy_protocol.hpp"
+#include "protocol_api.hpp"
 
 namespace unittest {
 using mock::dummy_protocol_t;

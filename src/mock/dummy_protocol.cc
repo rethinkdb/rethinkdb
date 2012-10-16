@@ -170,6 +170,16 @@ std::vector<dummy_protocol_t::region_t> region_subtract_many(const dummy_protoco
     return result;
 }
 
+
+bool region_is_empty(const dummy_protocol_t::region_t &r) {
+    return r.keys.empty();
+}
+
+
+bool region_overlaps(const dummy_protocol_t::region_t &r1, const dummy_protocol_t::region_t &r2) {
+    return !region_is_empty(region_intersection(r1, r2));
+}
+
 dummy_protocol_t::region_t drop_cpu_sharding(const dummy_protocol_t::region_t &r) {
     // TODO: This implementation is actually broken.
     return r;

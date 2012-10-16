@@ -8,11 +8,12 @@
 #include <vector>
 
 #include "protocol_api.hpp"
-#include "hash_region.hpp"
 #include "btree/keys.hpp"
 #include "config/args.hpp"
 #include "containers/data_buffer.hpp"
 #include "containers/intrusive_ptr.hpp"
+#include "memcached/region.hpp"
+#include "hash_region.hpp"
 #include "utils.hpp"
 
 typedef uint32_t mcflags_t;
