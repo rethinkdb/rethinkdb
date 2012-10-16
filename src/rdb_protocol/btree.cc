@@ -11,6 +11,7 @@
 #include "btree/get_distribution.hpp"
 #include "btree/operations.hpp"
 #include "buffer_cache/blob.hpp"
+#include "containers/archive/buffer_group_stream.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "containers/scoped.hpp"
 #include "rdb_protocol/btree.hpp"
@@ -87,14 +88,11 @@ boost::shared_ptr<scoped_cJSON_t> get_data(const rdb_value_t *value, transaction
 
     boost::shared_ptr<scoped_cJSON_t> data;
 
-    /* Grab the data from the blob. */
-    //TODO unnecessary copies, I hate them
-    std::string serialized_data = blob.read_to_string(txn, 0, blob.valuesize());
+    blob_acq_t acq_group;
+    buffer_group_t buffer_group;
+    blob.expose_all(txn, rwi_read, &buffer_group, &acq_group);
 
-    /* Deserialize the value and return it. */
-    std::vector<char> data_vec(serialized_data.begin(), serialized_data.end());
-
-    vector_read_stream_t read_stream(&data_vec);
+    buffer_group_read_stream_t read_stream(const_view(&buffer_group));
 
     int res = deserialize(&read_stream, &data);
     guarantee_err(res == 0, "corruption detected... this should probably be an exception\n");
