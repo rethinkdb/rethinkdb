@@ -447,6 +447,7 @@ module 'DashboardView', ->
 
             return @
 
+        # Clean the dom listeners
         clean_dom_listeners: =>
             if @link_clicked?
                 @link_clicked.off 'click', @stop_propagation
@@ -456,12 +457,12 @@ module 'DashboardView', ->
         # Show popup
         show_details: (event) =>
             event.preventDefault()
-            @clean_dom_listeners()
+            @clean_dom_listeners() # Remove the DOM listeners because we are going to add them later
 
             @.$('.popup_container').css 'display', 'block'
             margin_top = event.pageY-60-13
             margin_left= event.pageX-12-470
-            @.$('.popup_container').css 'margin', margin_top+'px 0px 0px '+margin_left+'px'
+            @.$('.popup_container').css 'margin', margin_top+'px 0px 0px '+margin_left+'px' # Set the popup next to the mouse
 
 
             @.$('.popup_container').on 'click', @stop_propagation

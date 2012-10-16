@@ -373,7 +373,7 @@ module 'NamespaceView', ->
                 axe_legend.push
                     x: margin_width
                     y: Math.floor(margin_height/2)
-                    string: 'Keys'
+                    string: 'Docs'
                     anchor: 'middle'
                 axe_legend.push
                     x: Math.floor(svg_width/2)
