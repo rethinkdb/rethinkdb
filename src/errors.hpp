@@ -84,11 +84,10 @@
 #define UNUSED __attribute__((unused))
 #define MUST_USE __attribute__((warn_unused_result))
 
-// TODO: Abort probably is not the right thing to do here.
-#define fail_due_to_user_error(msg, ...) do {                           \
-        report_user_error(msg, ##__VA_ARGS__);                          \
-        BREAKPOINT;                                                     \
-        exit(-1);                                                       \
+#define fail_due_to_user_error(msg, ...) do {  \
+        report_user_error(msg, ##__VA_ARGS__); \
+        BREAKPOINT;                            \
+        exit(EXIT_FAILURE);                    \
     } while (0)
 
 #define crash(msg, ...) do {                                        \

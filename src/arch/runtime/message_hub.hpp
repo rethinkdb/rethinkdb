@@ -36,6 +36,10 @@ public:
     msg_local_list for that thread */
     void store_message(unsigned int nthread, linux_thread_message_t *msg);
 
+    // Schedules the given message to be sent to the given thread.  However, these are not
+    // guaranteed to be called in the same order relative to one another.
+    void store_message_sometime(unsigned int nthread, linux_thread_message_t *msg);
+
     // Called by the thread pool when it needs to deliver a message from the main thread
     // (which does not have an event queue)
     void insert_external_message(linux_thread_message_t *msg);
@@ -43,14 +47,19 @@ public:
     ~linux_message_hub_t();
 
 private:
+    // Does store_message or store_message_sometime, only without setting the reloop_count_ in
+    // debug mode.
+    void do_store_message(unsigned int nthread, linux_thread_message_t *msg);
+
+
     /* pull_messages should be called on thread N with N as its argument. (The argument is
     partially redundant.) It will cause the actual delivery of messages that originated
     on this->current_thread and are destined for thread N. It is (almost) the only method on
     linux_message_hub_t that is not called on the thread that the message hub belongs to. */
     void pull_messages(int thread);
 
-    linux_event_queue_t *queue_;
-    linux_thread_pool_t *thread_pool_;
+    linux_event_queue_t *const queue_;
+    linux_thread_pool_t *const thread_pool_;
 
     /* Queue for messages going from this->current_thread to other threads */
     struct thread_queue_t {
@@ -87,7 +96,7 @@ private:
 
     /* The thread that we queue messages originating from. (Recall that there is one
     message_hub_t per thread.) */
-    unsigned int current_thread_;
+    const unsigned int current_thread_;
 };
 
 #endif // ARCH_RUNTIME_MESSAGE_HUB_HPP_

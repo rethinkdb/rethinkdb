@@ -161,8 +161,12 @@ module 'Sidebar', ->
         template: Handlebars.compile $('#sidebar-issues_banner-template').html()
         resolve_issues_route: '#resolve_issues'
 
+        events: ->
+            'click .resolve-issues': 'show_all_issues'
+
         initialize: =>
-            issues.on 'all', @render
+            @all_issues = new ResolveIssuesView.Container
+            #issues.on 'all', @render
 
         render: =>
             # Group critical issues by type
@@ -205,6 +209,10 @@ module 'Sidebar', ->
                 no_issues: _.keys(critical_issues).length is 0 and _.keys(other_issues).length is 0
 
             return @
+
+        show_all_issues: (event) =>
+            event.preventDefault()
+            @.$('.show-all-issues').html @all_issues.render().el
 
         destroy: =>
             issues.off 'all', @render

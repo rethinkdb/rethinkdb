@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<!--
+Copyright 2012 The Closure Library Authors. All Rights Reserved.
+
+Use of this source code is governed by the Apache License, Version 2.0.
+See the COPYING file for details.
+-->
+<!--
+-->
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>Closure Unit Tests - goog.ui.TwoThumbSlider</title>
+<script src="../base.js"></script>
+<script>
+  goog.require('goog.testing.jsunit');
+  goog.require('goog.ui.TwoThumbSlider');
+</script>
+</head>
+<body>
+<script>
+
+var slider;
+
+function tearDown() {
+  goog.dispose(slider);
+}
+
+function testGetCssClass() {
+  slider = new goog.ui.TwoThumbSlider();
+  assertEquals('goog-twothumbslider-horizontal',
+      slider.getCssClass(goog.ui.SliderBase.Orientation.HORIZONTAL));
+  assertEquals('goog-twothumbslider-vertical',
+      slider.getCssClass(goog.ui.SliderBase.Orientation.VERTICAL));
+}
+
+</script>
+</body>
+</html>

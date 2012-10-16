@@ -49,8 +49,9 @@ std::vector<log_message_t> fetch_log_file(
     send(mm, bcard.address, max_lines, min_timestamp, max_timestamp, reply_mailbox.get_address());
     wait_any_t waiter(promise.get_ready_signal(), &dw);
     wait_interruptible(&waiter, interruptor);
-    if (promise.get_ready_signal()->is_pulsed()) {
-        boost::variant<std::vector<log_message_t>, std::string> res = promise.get_value();
+
+    boost::variant<std::vector<log_message_t>, std::string> res;
+    if (promise.try_get_value(&res)) {
         if (std::vector<log_message_t> *messages = boost::get<std::vector<log_message_t> >(&res)) {
             return *messages;
         } else {

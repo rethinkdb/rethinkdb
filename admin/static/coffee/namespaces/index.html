@@ -7,7 +7,7 @@
         </div>
         <h1 class="title">Tables in the cluster</h1>
         <div id="user-alert-space"></div>
-        <div class="user_alert_space-cannot_create_namespace"></div>
+        <div class="alert user_alert_space-cannot_create_namespace">You need to create a database before creating a table.</div>
         <div class="collapsible-list"></div>
     </div>
 </script>
@@ -58,7 +58,6 @@ You need to create a database before creating a table.
 </script>
 
 <script id="add_database-modal-template" type="text/x-handlebars-template"> 
-    <div class="alert alert-error error_answer"></div>
     <form class="form">
         <fieldset>
             <legend>Database details</legend>
@@ -80,7 +79,6 @@ You need to create a database before creating a table.
 </script>
 
 <script id="add_namespace-modal-template" type="text/x-handlebars-template">
-    <div class="alert alert-error error_answer"></div>
     <form class="form">
         <label for="name">Name</label>
         <input class="xlarge" id="focus_namespace_name" name="name" size="30" type="text" />

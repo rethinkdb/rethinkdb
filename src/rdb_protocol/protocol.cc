@@ -200,15 +200,17 @@ public:
 };
 
 // Scale the distribution down by combining ranges to fit it within the limit of the query
-void scale_down_distribution(size_t result_limit, std::map<store_key_t, int> *key_counts) {
+void scale_down_distribution(size_t result_limit, std::map<store_key_t, int64_t> *key_counts) {
+    guarantee(result_limit > 0);
     const size_t combine = (key_counts->size() / result_limit); // Combine this many other ranges into the previous range
-    for (std::map<store_key_t, int>::iterator it = key_counts->begin();
-                                              it != key_counts->end();) {
-        std::map<store_key_t, int>::iterator next = it;
+    for (std::map<store_key_t, int64_t>::iterator it = key_counts->begin(); it != key_counts->end(); ) {
+        std::map<store_key_t, int64_t>::iterator next = it;
         ++next;
         for (size_t i = 0; i < combine && next != key_counts->end(); ++i) {
             it->second += next->second;
-            key_counts->erase(next++);
+            std::map<store_key_t, int64_t>::iterator tmp = next;
+            ++next;
+            key_counts->erase(tmp);
         }
         it = next;
     }
@@ -289,10 +291,7 @@ public:
                         scopes_t scopes_copy = rg.terminal->scopes;
                         query_language::new_val_scope_t inner_scope(&scopes_copy.scope);
                         scopes_copy.scope.put_in_scope(gmr->reduction().var1(),
-                            get_with_default(*res_groups, j->first,
-                                eval_term_as_json(&base, &env, rg.terminal->scopes, rg.terminal->backtrace.with("reduction").with("base"))
-                                )
-                            );
+                            res_groups->insert(std::make_pair(j->first, eval_term_as_json(&base, &env, rg.terminal->scopes, rg.terminal->backtrace.with("reduction").with("base")))).first->second);
                         scopes_copy.scope.put_in_scope(gmr->reduction().var2(), j->second);
                         (*res_groups)[j->first] = eval_term_as_json(&body, &env, scopes_copy, rg.terminal->backtrace.with("reduction").with("body"));
                     }
@@ -375,9 +374,7 @@ public:
 
             while (i < results.size() && results[i].region.inner == range) {
                 size_t tmp_total_keys = 0;
-                for (std::map<store_key_t, int>::const_iterator mit = results[i].key_counts.begin();
-                     mit != results[i].key_counts.end();
-                     ++mit) {
+                for (std::map<store_key_t, int64_t>::const_iterator mit = results[i].key_counts.begin(); mit != results[i].key_counts.end(); ++mit) {
                     tmp_total_keys += mit->second;
                 }
 
@@ -396,10 +393,10 @@ public:
 
                 guarantee(scale_factor >= 1.0);  // Directly provable from the code above.
 
-                for (std::map<store_key_t, int>::iterator mit = results[largest_index].key_counts.begin();
+                for (std::map<store_key_t, int64_t>::iterator mit = results[largest_index].key_counts.begin();
                      mit != results[largest_index].key_counts.end();
                      ++mit) {
-                    mit->second = static_cast<int>(mit->second * scale_factor);
+                    mit->second = static_cast<int64_t>(mit->second * scale_factor);
                 }
 
                 res.key_counts.insert(results[largest_index].key_counts.begin(), results[largest_index].key_counts.end());
@@ -524,11 +521,11 @@ struct read_visitor_t : public boost::static_visitor<void> {
         response->response = distribution_read_response_t();
         distribution_read_response_t &res = boost::get<distribution_read_response_t>(response->response);
         rdb_distribution_get(btree, dg.max_depth, dg.region.inner.left, txn, superblock, &res);
-        for (std::map<store_key_t, int>::iterator it = res.key_counts.begin();
-                                                  it != res.key_counts.end();
-                                                  /* increments done in loop */) {
+        for (std::map<store_key_t, int64_t>::iterator it = res.key_counts.begin(); it != res.key_counts.end(); ) {
             if (!dg.region.inner.contains_key(store_key_t(it->first))) {
-                res.key_counts.erase(it++);
+                std::map<store_key_t, int64_t>::iterator tmp = it;
+                ++it;
+                res.key_counts.erase(tmp);
             } else {
                 ++it;
             }

@@ -180,7 +180,7 @@ http_res_t stat_http_app_t::handle(const http_req_t &req) {
     for (stats_promises_t::iterator it = stats_promises.begin(); it != stats_promises.end(); ++it) {
         machine_id_t machine = it->first;
 
-        signal_t * stats_ready = it->second->stats.get_ready_signal();
+        const signal_t * stats_ready = it->second->stats.get_ready_signal();
         wait_any_t waiter(&timer, stats_ready);
         waiter.wait();
 

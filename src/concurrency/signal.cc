@@ -13,10 +13,10 @@ private:
     DISABLE_COPYING(notify_later_ordered_subscription_t);
 };
 
-void signal_t::wait_lazily_ordered() {
+void signal_t::wait_lazily_ordered() const {
     if (!is_pulsed()) {
 	notify_later_ordered_subscription_t subs;
-	subs.reset(this);
+	subs.reset(const_cast<signal_t *>(this));
         coro_t::wait();
     }
 }
@@ -33,10 +33,10 @@ private:
     DISABLE_COPYING(notify_sometime_subscription_t);
 };
 
-void signal_t::wait_lazily_unordered() {
+void signal_t::wait_lazily_unordered() const {
     if (!is_pulsed()) {
 	notify_sometime_subscription_t subs;
-	subs.reset(this);
+	subs.reset(const_cast<signal_t *>(this));
         coro_t::wait();
     }
 }

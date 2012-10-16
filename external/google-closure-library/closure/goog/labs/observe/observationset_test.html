@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html>
+<!--
+Copyright 2012 The Closure Library Authors. All Rights Reserved.
+
+Use of this source code is governed by the Apache License, Version 2.0.
+See the COPYING file for details.
+-->
+<!--
+-->
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>Closure Unit Tests - goog.labs.observe.ObservationSet</title>
+<script src="../../base.js"></script>
+<script>
+  goog.require('goog.dispose');
+  goog.require('goog.labs.observe.Observer');
+  goog.require('goog.labs.observe.ObservationSet');
+  goog.require('goog.labs.observe.SimpleObservable');
+  goog.require('goog.testing.jsunit');
+  goog.require('goog.testing.recordFunction');
+</script>
+</head>
+<body>
+<script>
+var observable;
+var observable2;
+var observationSet;
+
+
+function setUp() {
+  observable = new goog.labs.observe.SimpleObservable();
+  observable2 = new goog.labs.observe.SimpleObservable();
+  observationSet = new goog.labs.observe.ObservationSet();
+}
+
+
+function tearDown() {
+  goog.dispose(observable);
+  goog.dispose(observable2);
+}
+
+
+function testObserveObservesCorrectly() {
+  var observerFn = goog.testing.recordFunction();
+  assertTrue(observationSet.observe(
+      observable, goog.labs.observe.Observer.fromFunction(observerFn)));
+
+  observable.notify();
+  assertEquals(1, observerFn.getCallCount());
+}
+
+
+function testObserveDoesNotRegisterDuplicateObserver() {
+  var observerFn = goog.testing.recordFunction();
+  assertTrue(observationSet.observe(
+      observable, goog.labs.observe.Observer.fromFunction(observerFn)));
+  assertFalse(observationSet.observe(
+      observable, goog.labs.observe.Observer.fromFunction(observerFn)));
+
+  observable.notify();
+  assertEquals(1, observerFn.getCallCount());
+}
+
+
+function testObserveWithMultipleObservers() {
+  var observerFn = goog.testing.recordFunction();
+  var observerFn2 = goog.testing.recordFunction();
+  assertTrue(observationSet.observe(
+      observable, goog.labs.observe.Observer.fromFunction(observerFn)));
+  assertTrue(observationSet.observe(
+      observable, goog.labs.observe.Observer.fromFunction(observerFn2)));
+
+  observable.notify();
+  assertEquals(1, observerFn.getCallCount());
+  assertEquals(1, observerFn2.getCallCount());
+}
+
+
+function testObserveWithFunction() {
+  var observerFn = goog.testing.recordFunction();
+  assertNotNull(observationSet.observeWithFunction(observable, observerFn));
+  assertNull(observationSet.observeWithFunction(observable, observerFn));
+  assertFalse(observationSet.observe(
+      observable, goog.labs.observe.Observer.fromFunction(observerFn)));
+
+  observable.notify();
+  assertEquals(1, observerFn.getCallCount());
+}
+
+
+function testObserveWithFunctionAndScope() {
+  var scope = {};
+
+  var observerFn = goog.testing.recordFunction(function() {
+    assertEquals(scope, this);
+  });
+  assertNotNull(observationSet.observeWithFunction(
+      observable, observerFn, scope));
+  assertNull(observationSet.observeWithFunction(
+      observable, observerFn, scope));
+  assertFalse(observationSet.observe(
+      observable, goog.labs.observe.Observer.fromFunction(observerFn, scope)));
+
+  observable.notify();
+  assertEquals(1, observerFn.getCallCount());
+}
+
+
+function testObserveWithFunctionWithDefaultScope() {
+  var scope = {};
+  observationSet = new goog.labs.observe.ObservationSet(scope);
+
+  var observerFn = goog.testing.recordFunction(function() {
+    assertEquals(scope, this);
+  });
+
+  assertNotNull(observationSet.observeWithFunction(observable, observerFn));
+  assertNull(observationSet.observeWithFunction(observable, observerFn));
+  assertNull(observationSet.observeWithFunction(observable, observerFn, scope));
+  assertFalse(observationSet.observe(
+      observable, goog.labs.observe.Observer.fromFunction(observerFn, scope)));
+
+  observable.notify();
+  assertEquals(1, observerFn.getCallCount());
+
+  // This should succeed since we use observe method, defaultScope is
+  // not used in this case.
+  assertTrue(observationSet.observe(
+      observable, goog.labs.observe.Observer.fromFunction(observerFn)));
+
+  // This should succeed since the scope is different.
+  var scope2 = {};
+  assertNotNull(observationSet.observeWithFunction(
+      observable, observerFn, scope2));
+}
+
+
+function testUnobserveUnobservesCorrectly() {
+  var observerFn = goog.testing.recordFunction();
+  assertTrue(observationSet.observe(
+      observable, goog.labs.observe.Observer.fromFunction(observerFn)));
+  assertTrue(observationSet.unobserve(
+      observable, goog.labs.observe.Observer.fromFunction(observerFn)));
+
+  observable.notify();
+  assertEquals(0, observerFn.getCallCount());
+}
+
+
+function testUnobserveDoesNotUnobserveObservationNotMadeByObservationSet() {
+  var observerFn = goog.testing.recordFunction();
+
+  // Observation via observable directly.
+  observable.observe(goog.labs.observe.Observer.fromFunction(observerFn));
+
+  assertFalse(observationSet.unobserve(
+      observable, goog.labs.observe.Observer.fromFunction(observerFn)));
+  observable.notify();
+  assertEquals(1, observerFn.getCallCount());
+  observerFn.reset();
+
+  // Observation via another ObservationSet.
+  var observationSet2 = new goog.labs.observe.ObservationSet();
+  observationSet2.observe(
+      observable2, goog.labs.observe.Observer.fromFunction(observerFn));
+
+  assertFalse(observationSet.unobserve(
+      observable2, goog.labs.observe.Observer.fromFunction(observerFn)));
+  observable2.notify();
+  assertEquals(1, observerFn.getCallCount());
+  observerFn.reset();
+}
+
+
+function testUnobserveWithFunction() {
+  var observerFn = goog.testing.recordFunction();
+  observationSet.observeWithFunction(observable, observerFn);
+  assertTrue(observationSet.unobserveWithFunction(observable, observerFn));
+  assertNotNull(observationSet.observeWithFunction(observable, observerFn));
+  assertTrue(observationSet.unobserve(
+      observable, goog.labs.observe.Observer.fromFunction(observerFn)));
+
+  observable.notify();
+  assertEquals(0, observerFn.getCallCount());
+}
+
+
+function testUnobserveWithFunctionAndScope() {
+  var scope = {};
+
+  var observerFn = goog.testing.recordFunction();
+  observationSet.observeWithFunction(
+      observable, observerFn, scope);
+  assertTrue(observationSet.unobserveWithFunction(
+      observable, observerFn, scope));
+  assertNotNull(observationSet.observeWithFunction(
+      observable, observerFn, scope));
+  assertTrue(observationSet.unobserve(
+      observable, goog.labs.observe.Observer.fromFunction(observerFn, scope)));
+
+  observable.notify();
+  assertEquals(0, observerFn.getCallCount());
+}
+
+
+function testUnobserveWithFunctionWithDefaultScope() {
+  var scope = {};
+  observationSet = new goog.labs.observe.ObservationSet(scope);
+
+  var observerFn = goog.testing.recordFunction();
+  observationSet.observeWithFunction(observable, observerFn);
+  assertTrue(observationSet.unobserveWithFunction(observable, observerFn));
+
+  assertNotNull(observationSet.observeWithFunction(
+      observable, observerFn, scope));
+  assertTrue(observationSet.unobserveWithFunction(observable, observerFn));
+
+  assertNotNull(observationSet.observeWithFunction(observable, observerFn));
+  assertTrue(observationSet.unobserveWithFunction(
+      observable, observerFn, scope));
+
+  observable.notify();
+  assertEquals(0, observerFn.getCallCount());
+}
+
+
+function testRemoveAllWithZeroObservation() {
+  observationSet.removeAll();
+}
+
+
+function testRemoveAll() {
+  var observerFn = goog.testing.recordFunction();
+  var observerFn2 = goog.testing.recordFunction();
+  assertTrue(observationSet.observe(
+      observable, goog.labs.observe.Observer.fromFunction(observerFn)));
+  assertTrue(observationSet.observe(
+      observable, goog.labs.observe.Observer.fromFunction(observerFn2)));
+  assertTrue(observationSet.observe(
+      observable2, goog.labs.observe.Observer.fromFunction(observerFn)));
+  observationSet.removeAll();
+
+  observable.notify();
+  observable2.notify();
+
+  assertEquals(0, observerFn.getCallCount());
+  assertEquals(0, observerFn2.getCallCount());
+}
+</script>
+</body>
+</html>

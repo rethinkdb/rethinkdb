@@ -292,21 +292,17 @@ void coro_t::notify_sometime() {
     // TODO: implement a notify_any_thread function if this is changed to not be thread-safe
     // rassert(current_thread_ == linux_thread_pool_t::thread_id);
 
-    /* For now we just implement `notify_sometime()` as
-    `notify_later_ordered()`, but later we could eliminate the full trip around
-    the event loop. */
-    notify_later_ordered();
+    rassert(!notified_);
+    notified_ = true;
+    linux_thread_pool_t::thread->message_hub.store_message_sometime(current_thread_, this);
 }
 
 void coro_t::notify_later_ordered() {
     rassert(!notified_);
     notified_ = true;
 
-    /* `notify_later_ordered()` doesn't switch to the coroutine immediately;
-    instead, it just pushes the coroutine onto the event queue. */
-
-    /* `current_thread` is the thread that the coroutine lives on, which may or
-    may not be the same as `get_thread_id()`. */
+    /* `current_thread` is the thread that the coroutine lives on, which may or may not be the
+    same as `get_thread_id()`.  (In a call to move_to_thread, it won't be.) */
     linux_thread_pool_t::thread->message_hub.store_message(current_thread_, this);
 }
 

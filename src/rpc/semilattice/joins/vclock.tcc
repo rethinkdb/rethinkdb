@@ -65,7 +65,7 @@ template <class T>
 vclock_t<T> vclock_t<T>::make_new_version(const T& t, const uuid_t &us) {
     throw_if_conflict();
     stamped_value_t tmp = *values.begin();
-    get_with_default(tmp.first, us, 0)++;
+    ++tmp.first[us];
     tmp.second = t;
     return vclock_t<T>(tmp);
 }
@@ -80,7 +80,7 @@ vclock_t<T> vclock_t<T>::make_resolving_version(const T& t, const uuid_t &us) {
         vmap = vclock_details::vmap_max(vmap, it->first);
     }
 
-    get_with_default(vmap, us, 0)++;
+    ++vmap[us];
 
     return vclock_t(std::make_pair(vmap, t));
 }
@@ -90,7 +90,7 @@ void vclock_t<T>::upgrade_version(const uuid_t &us) {
     throw_if_conflict();
 
     stamped_value_t tmp = *values.begin();
-    get_with_default(tmp.first, us, 0)++;
+    ++tmp.first[us];
     values.clear();
     values.insert(tmp);
 }

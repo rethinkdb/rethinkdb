@@ -102,7 +102,7 @@ module 'DatacenterView', ->
 
         delete_datacenter: (event) ->
             event.preventDefault()
-            remove_datacenter_dialog = new DatacenterView.RemoveDatacenterModal
+            remove_datacenter_dialog = new ServerView.RemoveDatacenterModal
             remove_datacenter_dialog.render @model
 
         destroy: =>
@@ -241,69 +241,6 @@ module 'DatacenterView', ->
             machines.off 'all', @render
             directory.off 'all', @render
 
-    class @RemoveDatacenterModal extends UIComponents.AbstractModal
-        template: Handlebars.compile $('#remove_datacenter-modal-template').html()
-        class: 'remove_datacenter-dialog'
-
-        initialize: ->
-            super
-
-        # Takes a datacenter argument-- the datacenter to be removed
-        render: (datacenter) ->
-            @datacenter_to_delete = datacenter
-
-            # Find the namespaces for whom this datacenter acts as primary
-            namespaces_where_primary = namespaces.filter (namespace) -> namespace.get('primary_uuid') is datacenter.get('id')
-
-            super
-                modal_title: 'Remove datacenter'
-                btn_primary_text: 'Remove'
-                id: datacenter.get('id')
-                name: datacenter.get('name')
-                # reasons we can't delete the datacenter
-                datacenter_is_primary: namespaces_where_primary.length > 0
-                namespaces_where_primary: namespaces_where_primary
-
-            @.$('.btn-primary').focus()
-
-        on_submit: =>
-            super
-
-            # That creates huge logs. Should post specific data multiple times instead?
-            data = {}
-            data['datacenters'] = {}
-            for datacenter in datacenters.models
-                data['datacenters'][datacenter.get('id')] = {}
-                data['datacenters'][datacenter.get('id')]['name'] = datacenter.get('name')
-            data['datacenters'][@datacenter_to_delete.get('id')] = null
-
-            data['machines'] = {}
-            for machine in machines.models
-                data['machines'][machine.get('id')] = {}
-                data['machines'][machine.get('id')]['name'] = machine.get('name')
-                data['machines'][machine.get('id')]['datacenter_uuid'] = if machine.get('datacenter_uuid') is @datacenter_to_delete.get('id') then null else machine.get('datacenter_uuid')
-
-            $.ajax
-                url: "/ajax/semilattice"
-                type: 'POST'
-                contentType: 'application/json'
-                data: JSON.stringify data
-                dataType: 'json'
-                success: @on_success
-                error: @on_error
-
-        on_success: (response) =>
-            name = datacenters.get(@datacenter_to_delete.get('id')).get 'name'
-            datacenters.remove @datacenter_to_delete.get('id')
-            for machine in machines.models
-                if machine.get('datacenter_uuid') is @datacenter_to_delete.get('id')
-                    machine.set('datacenter_uuid', null)
-            datacenters.trigger 'remove'
-
-            window.router.navigate '#servers'
-            window.app.index_servers
-                alert_message: "The datacenter #{name} was successfully deleted."
-
     class @MachineList extends Backbone.View
         template: Handlebars.compile $('#datacenter_view-machine_list-template').html()
 
@@ -311,6 +248,7 @@ module 'DatacenterView', ->
             machines.on 'change:name', @render
             directory.on 'all', @render
             namespaces.on 'change:blueprint', @render
+            @data = {}
 
         render: =>
             # Filter a list of machines in this datacenter
@@ -334,14 +272,20 @@ module 'DatacenterView', ->
                             machine.num_primaries += 1 if role is 'role_primary'
                             machine.num_secondaries += 1 if role is 'role_secondary'
 
-            @.$el.html @template
-                servers: _.sortBy(data_on_machines, (machine) -> machine.name)
+            servers = _.sortBy(data_on_machines, (machine) -> machine.name)
+            data =
+                has_servers: servers.length > 0
+                servers: servers
+
+            if not _.isEqual @data, data
+                @data = data
+                @.$el.html @template @data
             return @
 
         destroy: =>
-            machines.off 'change:name'
-            directory.off 'all'
-            namespaces.off 'change:blueprint'
+            machines.off 'change:name', @render
+            directory.off 'all', @render
+            namespaces.off 'change:blueprint', @render
 
     class @Data extends Backbone.View
 

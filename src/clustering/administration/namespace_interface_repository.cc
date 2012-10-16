@@ -108,7 +108,7 @@ typename namespace_repo_t<protocol_t>::access_t &namespace_repo_t<protocol_t>::a
 template <class protocol_t>
 namespace_interface_t<protocol_t> *namespace_repo_t<protocol_t>::access_t::get_namespace_if() {
     rassert(thread == get_thread_id());
-    return cache_entry->namespace_if.get_value();
+    return cache_entry->namespace_if.wait();
 }
 
 template <class protocol_t>
