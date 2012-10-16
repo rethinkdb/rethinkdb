@@ -132,6 +132,10 @@ public:
         reactor_has_been_initialized_.wait_lazily_unordered();
 
         reactor_directory_subscription_.reset();
+
+        /* Destroy the reactor. (Dun dun duhnnnn...) */
+        reactor_.reset();
+
         {
             mutex_assertion_t::acq_t acq(&parent_->watchable_variable_lock);
             namespaces_directory_metadata_t<protocol_t> directory = parent_->watchable_variable.get_watchable()->get();
@@ -139,9 +143,6 @@ public:
             guarantee(num_erased == 1);
             parent_->watchable_variable.set_value(directory);
         }
-
-        /* Destroy the reactor. (Dun dun duhnnnn...) */
-        reactor_.reset();
     }
 
     static bool compute_is_acceptable_ack_set(const std::set<peer_id_t> &acks, const namespace_id_t &namespace_id, per_thread_ack_info_t<protocol_t> *ack_info) {
@@ -225,8 +226,10 @@ private:
     void on_change_reactor_directory() {
         mutex_assertion_t::acq_t acq(&parent_->watchable_variable_lock);
         namespaces_directory_metadata_t<protocol_t> directory = parent_->watchable_variable.get_watchable()->get();
-        directory.reactor_bcards.find(namespace_id_)->second = reactor_->get_reactor_directory()->get();
-        parent_->watchable_variable.set_value(directory);
+        if (reactor_.has()) {
+            directory.reactor_bcards.find(namespace_id_)->second = reactor_->get_reactor_directory()->get();
+            parent_->watchable_variable.set_value(directory);
+        }
     }
 
     void initialize_reactor(io_backender_t *io_backender) {

@@ -185,6 +185,11 @@ void reactor_t<protocol_t>::run_cpu_sharded_role(
 }
 
 template<class protocol_t>
+bool we_see_our_bcard(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &bcards, peer_id_t me) {
+    return std_contains(bcards, me);
+}
+
+template<class protocol_t>
 void reactor_t<protocol_t>::run_role(
         typename protocol_t::region_t region,
         current_role_t *role,
@@ -198,11 +203,17 @@ void reactor_t<protocol_t>::run_role(
         //and interruptions... so we just unify those signals
         wait_any_t wait_any(&role->abort_roles, keepalive.get_drain_signal());
 
+        try {
+            directory_echo_mirror.get_internal()->run_until_satisfied(boost::bind(&we_see_our_bcard<protocol_t>, _1, get_me()), &wait_any);
+        } catch (const interrupted_exc_t &) {
+            goto CLEANUP;
+        }
         // guarantee(CLUSTER_CPU_SHARDING_FACTOR == svs_subview.num_stores());
 
         pmap(svs_subview.num_stores(), boost::bind(&reactor_t<protocol_t>::run_cpu_sharded_role, this, _1, role, region, &svs_subview, &wait_any, &role->abort_roles));
     }
 
+CLEANUP:
     //As promised, clean up the state from try_spawn_roles
     current_roles.erase(region);
     delete role;
