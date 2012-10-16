@@ -8,6 +8,9 @@
 #include "arch/runtime/thread_pool.hpp"
 #include "logger.hpp"
 
+// Set this to 1 if you would like some "unordered" messages to be unordered.
+#define RDB_RELOOP_MESSAGES 0
+
 linux_message_hub_t::linux_message_hub_t(linux_event_queue_t *queue, linux_thread_pool_t *thread_pool, int current_thread)
     : queue_(queue), thread_pool_(thread_pool), current_thread_(current_thread) {
 
@@ -52,10 +55,14 @@ void linux_message_hub_t::do_store_message(unsigned int nthread, linux_thread_me
 // Collects a message for a given thread onto a local list.
 void linux_message_hub_t::store_message(unsigned int nthread, linux_thread_message_t *msg) {
 #ifndef NDEBUG
+#if RDB_RELOOP_MESSAGES
     // We default to 1, not zero, to allow store_message_sometime messages to sometimes jump ahead of
     // store_message messages.
     msg->reloop_count_ = 1;
+#else
+    msg->reloop_count_ = 0;
 #endif
+#endif  // NDEBUG
     do_store_message(nthread, msg);
 }
 
@@ -69,8 +76,12 @@ int rand_reloop_count() {
 
 void linux_message_hub_t::store_message_sometime(unsigned int nthread, linux_thread_message_t *msg) {
 #ifndef NDEBUG
+#if RDB_RELOOP_MESSAGES
     msg->reloop_count_ = rand_reloop_count();
+#else
+    msg->reloop_count_ = 0;
 #endif
+#endif  // NDEBUG
     do_store_message(nthread, msg);
 }
 
