@@ -13,9 +13,6 @@
 template <class K, class V>
 std::set<K> keys(const std::map<K, V> &);
 
-template <class K, class V>
-std::set<V> range(const std::map<K, V> &);
-
 template <class container_t>
 bool std_contains(const container_t &, const typename container_t::key_type &);
 

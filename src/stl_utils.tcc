@@ -10,24 +10,11 @@
 #include <utility>
 #include <vector>
 
-//TODO this can be much more efficient with an iterator
 template <class K, class V>
 std::set<K> keys(const std::map<K, V> &map) {
     std::set<K> res;
     for (typename std::map<K, V>::const_iterator it = map.begin(); it != map.end(); ++it) {
         res.insert(it->first);
-    }
-
-    return res;
-}
-
-// If keys is called "keys", this should be called "values".
-template <class K, class V>
-std::set<V> range(const std::map<K, V> &map) {
-    std::set<V> res;
-
-    for (typename std::map<K, V>::const_iterator it =  map.begin(); it != map.end(); ++it) {
-        res.insert(it->second);
     }
 
     return res;
