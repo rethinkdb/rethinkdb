@@ -209,9 +209,8 @@ struct rdb_protocol_t {
         //Then k1 == left_key
         //and key_counts[ki] = the number of keys in [ki, ki+1) if i < n
         //key_counts[kn] = the number of keys in [kn, right_key)
-        // TODO: Just make this use an int64_t.
         region_t region;
-        std::map<store_key_t, int> key_counts;
+        std::map<store_key_t, int64_t> key_counts;
 
         RDB_MAKE_ME_SERIALIZABLE_2(region, key_counts);
     };
