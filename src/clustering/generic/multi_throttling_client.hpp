@@ -129,6 +129,7 @@ private:
     }
 
     void on_reclaim_tickets(int count) {
+        // TODO: Why could count be greater than free_tickets?
         int to_relinquish = std::min(count, free_tickets);
         if (to_relinquish > 0) {
             free_tickets -= to_relinquish;
@@ -159,6 +160,8 @@ private:
     scoped_ptr_t< registrant_t<
         typename multi_throttling_business_card_t<request_type, inner_client_business_card_type>::client_business_card_t
         > > registrant;
+
+    DISABLE_COPYING(multi_throttling_client_t);
 };
 
 #endif /* CLUSTERING_GENERIC_MULTI_THROTTLING_CLIENT_HPP_ */
