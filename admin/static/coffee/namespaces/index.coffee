@@ -393,7 +393,7 @@ module 'NamespaceView', ->
                 template_error.type = 'table'
             else # And a name that doesn't exist
                 for namespace in namespaces.models
-                    if namespace.get('name') is formdata.name and namespace.get('database') is formdata.database
+                    if namespace.get('name').toLowerCase() is formdata.name.toLowerCase() and namespace.get('database').toLowerCase() is formdata.database.toLowerCase()
                         input_error = true
                         template_error.namespace_exists = true
                         break
