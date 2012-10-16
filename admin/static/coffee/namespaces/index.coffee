@@ -251,26 +251,17 @@ module 'NamespaceView', ->
                 no_error = false
                 $('.alert_modal').html @error_template
                     database_is_empty: true
-                # We could keep track of the state and use fadeIn instead of slideDown if the error is already displayed
-                $('.alert_modal_content').slideDown 'fast'
-                @reset_buttons()
             else if /^[a-zA-Z0-9_]+$/.test(@formdata.name) is false
                 no_error = false
                 $('.alert_modal').html @error_template
                     special_char_detected: true
                     type: 'database'
-
-                $('.alert_modal_content').slideDown 'fast'
-                @reset_buttons()
             else
                 for database in databases.models
                     if database.get('name').toLowerCase() is @formdata.name.toLowerCase()
                         no_error = false
                         $('.alert_modal').html @error_template
                             database_exists: true
-
-                        $('.alert_modal_content').slideDown 'fast'
-                        @reset_buttons()
                         break
             if no_error is true
                 $.ajax
@@ -281,6 +272,9 @@ module 'NamespaceView', ->
                     data: JSON.stringify({"name" : @formdata.name})
                     success: @on_success
                     error: @on_error
+            else
+                $('.alert_modal_content').slideDown 'fast'
+                @reset_buttons()
 
         on_success: (response) =>
             super
