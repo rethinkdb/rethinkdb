@@ -37,6 +37,7 @@ public:
         return s;
     }
 
+    // TODO: Get rid of this overengineered crap.
     class iterator {
     private:
         std::vector<buffer_t>::iterator it;
