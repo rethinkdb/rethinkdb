@@ -434,13 +434,36 @@ module 'ServerView', ->
 
         on_submit: ->
             super
+            @machines_to_delete = {}
+            for machine in machines.models
+                if machine.get('datacenter_uuid') is @datacenter.id
+                    @machines_to_delete[machine.get('id')] = 
+                        datacenter_uuid: universe_datacenter.get('id')
+
+            # We first unassign machines
+            @unassign_machines_in_datacenter()
+
+        unassign_machines_in_datacenter: =>
+            $.ajax
+                url: "/ajax/semilattice/machines"
+                type: 'POST'
+                data: JSON.stringify(@machines_to_delete)
+                contentType: 'application/json'
+                success: @delete_datacenter
+                error: @on_error
+
+        delete_datacenter: =>
+            # The first call to unassign the machines was a success, so we can change their datacenter to universe
+            datacenters.remove(@datacenter.id)
+            for machine_id of @machines_to_delete
+                machines.get(machine_id).set 'datacenter_uuid', universe_datacenter.get('id')
+
             $.ajax
                 url: "/ajax/semilattice/datacenters/#{@datacenter.id}"
                 type: 'DELETE'
                 contentType: 'application/json'
                 success: @on_success
                 error: @on_error
-
 
         on_success_with_error: =>
             @.$('.error_answer').html @template_remove_error
@@ -459,7 +482,7 @@ module 'ServerView', ->
 
             super
 
-            datacenters.remove(@datacenter.id)
+
             $('#user-alert-space').html @alert_tmpl
                 name: @datacenter.get('name')
 
