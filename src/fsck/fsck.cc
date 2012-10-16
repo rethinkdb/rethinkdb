@@ -33,7 +33,7 @@ NORETURN void usage(UNUSED const char *name) {
 #endif
     help->pagef("\n"
                 "Fsck is used to check one or more files for consistency\n");
-    exit(0);
+    exit(EXIT_SUCCESS);
 }
 
 enum { ignore_diff_log = 256,  // Start these values above the ASCII range.
