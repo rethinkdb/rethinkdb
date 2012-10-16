@@ -78,11 +78,11 @@ module RethinkDB
 
     def arg_or_block(*args, &block)
       if args.length == 1 && block
-        raise SyntaxError,"Cannot provide both an argument *and* a block."
+        raise ArgumentError,"Cannot provide both an argument *and* a block."
       end
       return lambda { args[0] } if (args.length == 1)
       return block if block
-      raise SyntaxError,"Must provide either an argument or a block."
+      raise ArgumentError,"Must provide either an argument or a block."
     end
 
     def clean_lst lst # :nodoc:
@@ -147,6 +147,7 @@ module RethinkDB
       when 'attrname'       then []
       when 'base'           then [1+consume(:reduce)]
       when 'body'           then [4+consume(:reduce)]
+      when 'datacenter'     then []
       when 'db_name'        then []
       when 'expr'           then [2]
       when 'false'          then [3]

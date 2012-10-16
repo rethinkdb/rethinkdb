@@ -20,7 +20,7 @@ module RethinkDB
     end
 
     def ==(rhs) # :nodoc:
-      raise SyntaxError,"
+      raise ArgumentError,"
       Cannot use inline ==/!= with RQL queries, use .eq() instead if
       you want a query that does equality comparison.
 
