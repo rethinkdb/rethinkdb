@@ -336,8 +336,8 @@ template<class protocol_t>
 void reactor_driver_t<protocol_t>::on_change() {
     cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > namespaces = namespaces_view->get();
 
-    for (typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::const_iterator 
-                it =  namespaces->namespaces.begin(); it != namespaces->namespaces.end(); it++) {
+    for (typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::const_iterator
+             it =  namespaces->namespaces.begin(); it != namespaces->namespaces.end(); it++) {
         if (it->second.is_deleted() && std_contains(reactor_data, it->first)) {
             /* on_change cannot block because it is called as part of
              * semilattice subscription, however the
@@ -354,7 +354,7 @@ void reactor_driver_t<protocol_t>::on_change() {
                 new typename
                     reactor_map_t::auto_type(reactor_data.release(reactor_data.find(it->first))),
                 it->first));
-        } else {
+        } else if (!it->second.is_deleted()) {
             persistable_blueprint_t<protocol_t> pbp;
 
             try {
