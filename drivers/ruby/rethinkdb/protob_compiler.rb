@@ -72,7 +72,7 @@ module RethinkDB
           query_type = C.query_rewrites[query_type] || query_type
           field_metadata = message_class.fields.select{|x,y| y.name == query_type}[0]
           if not field_metadata
-          then raise SyntaxError,"No field '#{query_type}' in '#{message_class}'." end
+          then raise ArgumentError,"No field '#{query_type}' in '#{message_class}'." end
           field = field_metadata[1]
           message_set(message, query_type,
                       comp(field.type, query_args,field.rule==:repeated))

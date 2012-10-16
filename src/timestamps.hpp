@@ -37,11 +37,6 @@ public:
     }
 
     // TODO get rid of this. This is only for a hack until we know what to do with timestamps
-    uint64_t numeric_representation() const {
-        return num;
-    }
-
-    // TODO get rid of this. This is only for a hack until we know what to do with timestamps
     repli_timestamp_t to_repli_timestamp() const {
         repli_timestamp_t ts;
         ts.longtime = num;
@@ -86,11 +81,6 @@ public:
         after.num = before.num + 1;
         guarantee(after > before, "timestamp counter overflowed");
         return after;
-    }
-
-    // TODO get rid of this. This is only for a hack until we know what to do with timestamps
-    uint64_t numeric_representation() const {
-        return before.num;
     }
 
     // TODO get rid of this. This is only for a hack until we know what to do with timestamps

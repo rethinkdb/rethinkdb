@@ -5,7 +5,7 @@
 
 #include "arch/runtime/thread_pool.hpp"
 #include "buffer_cache/blob.hpp"
-#include "containers/archive/string_stream.hpp"
+#include "containers/archive/buffer_group_stream.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "serializer/config.hpp"
 
@@ -55,8 +55,10 @@ static void write_blob(transaction_t *txn, char *ref, int maxreflen, const T &va
 template<class T>
 static void read_blob(transaction_t *txn, const char *ref, int maxreflen, T *value_out) {
     blob_t blob(const_cast<char *>(ref), maxreflen);
-    std::string str = blob.read_to_string(txn, 0, blob.valuesize());
-    read_string_stream_t ss(str);
+    blob_acq_t acq_group;
+    buffer_group_t group;
+    blob.expose_all(txn, rwi_read, &group, &acq_group);
+    buffer_group_read_stream_t ss(const_view(&group));
     int res = deserialize(&ss, value_out);
     guarantee(res == 0);
 }

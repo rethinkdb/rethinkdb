@@ -53,7 +53,7 @@ struct btree_superblock_t {
 
 struct btree_statblock_t {
     //The total number of keys in the btree
-    int population;
+    int64_t population;
 
     btree_statblock_t()
         : population(0)

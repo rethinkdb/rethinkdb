@@ -129,7 +129,7 @@ public:
             const char *args[] = {"addr2line", "-s", "-e", executable, NULL};
 
             execvp("addr2line", const_cast<char *const *>(args));
-            exit(1);
+            exit(EXIT_FAILURE);
         }
     }
 

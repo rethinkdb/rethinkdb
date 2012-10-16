@@ -49,7 +49,7 @@ static bool is_satisfiable(
     }
 
     std::map<datacenter_id_t, int> machines_needed_in_dc = replica_affinities;
-    get_with_default(machines_needed_in_dc, primary_datacenter, 0)++;
+    ++machines_needed_in_dc[primary_datacenter];
 
     std::map<datacenter_id_t, int> unused_machines_in_dc = actual_machines_in_datacenters;
 
@@ -112,7 +112,7 @@ std::list<clone_ptr_t<global_issue_t> > unsatisfiable_goals_issue_tracker_t::get
     for (machines_semilattice_metadata_t::machine_map_t::iterator it = metadata.machines.machines.begin();
             it != metadata.machines.machines.end(); it++) {
         if (!it->second.is_deleted() && !it->second.get().datacenter.in_conflict()) {
-            get_with_default(actual_machines_in_datacenters, it->second.get().datacenter.get(), 0)++;
+            ++actual_machines_in_datacenters[it->second.get().datacenter.get()];
         }
     }
 

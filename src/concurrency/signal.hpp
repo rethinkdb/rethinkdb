@@ -62,14 +62,14 @@ public:
     queue when the signal is pulsed, but will not wake up immediately. Unless
     you really need the ordering guarantee, you should call
     `wait_lazily_unordered()`. */
-    void wait_lazily_ordered();
+    void wait_lazily_ordered() const;
 
     /* The coro that calls `wait_lazily_unordered()` will be notified soon after
     the signal has been pulsed, but not immediately. */
-    void wait_lazily_unordered();
+    void wait_lazily_unordered() const;
 
     /* `wait()` is a deprecated synonym for `wait_lazily_ordered()`. */
-    void wait() {
+    void wait() const {
         wait_lazily_ordered();
     }
 

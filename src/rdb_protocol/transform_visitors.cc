@@ -121,7 +121,7 @@ void terminal_visitor_t::operator()(const Builtin_GroupedMapReduce &gmr) const {
 
         scopes_t scopes_copy = scopes;
         new_val_scope_t inner_scope(&scopes_copy.scope);
-        scopes_copy.scope.put_in_scope(gmr.reduction().var1(), get_with_default(*res_groups, grouping, eval_term_as_json(&base, env, scopes, backtrace.with("reduction").with("base"))));
+        scopes_copy.scope.put_in_scope(gmr.reduction().var1(), res_groups->insert(std::make_pair(grouping, eval_term_as_json(&base, env, scopes, backtrace.with("reduction").with("base")))).first->second);
         scopes_copy.scope.put_in_scope(gmr.reduction().var2(), mapped_value);
         (*res_groups)[grouping] = eval_term_as_json(&body, env, scopes_copy, backtrace.with("reduction").with("body"));
     }

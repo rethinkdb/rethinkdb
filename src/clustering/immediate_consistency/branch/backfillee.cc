@@ -239,16 +239,16 @@ void backfillee(
         }
 
         /* Wait to get an allocation mailbox */
+        mailbox_addr_t<void(int)> allocation_mailbox;
         {
             wait_any_t waiter(alloc_mailbox_promise.get_ready_signal(), backfiller.get_failed_signal());
             wait_interruptible(&waiter, interruptor);
 
             /* Throw an exception if backfiller died */
             backfiller.access();
-            guarantee(alloc_mailbox_promise.get_ready_signal()->is_pulsed());
+            bool got_value = alloc_mailbox_promise.try_get_value(&allocation_mailbox);
+            guarantee(got_value);
         }
-
-        mailbox_addr_t<void(int)> allocation_mailbox = alloc_mailbox_promise.get_value();
 
         /* Wait until we get a message in `end_point_mailbox`. */
         {
@@ -267,7 +267,7 @@ void backfillee(
         history, and that would lead to crashes. */
         {
             cross_thread_signal_t ct_interruptor(interruptor, branch_history_manager->home_thread());
-            branch_history_t<protocol_t> branch_history = end_point_cond.get_value().second;
+            branch_history_t<protocol_t> branch_history = end_point_cond.wait().second;
             on_thread_t th(branch_history_manager->home_thread());
             branch_history_manager->import_branch_history(branch_history, &ct_interruptor);
         }
@@ -279,7 +279,7 @@ void backfillee(
 
         typedef region_map_t<protocol_t, version_range_t> version_map_t;
 
-        version_map_t end_point = end_point_cond.get_value().first;
+        version_map_t end_point = end_point_cond.wait().first;
 
         std::vector<std::pair<typename protocol_t::region_t, version_range_t> > span_parts;
 
@@ -287,12 +287,8 @@ void backfillee(
 #ifndef NDEBUG
             on_thread_t th(branch_history_manager->home_thread());
 #endif
-            for (typename version_map_t::const_iterator it  = start_point.begin();
-                 it != start_point.end();
-                 it++) {
-                for (typename version_map_t::const_iterator jt  = end_point.begin();
-                     jt != end_point.end();
-                     jt++) {
+            for (typename version_map_t::const_iterator it = start_point.begin(); it != start_point.end(); ++it) {
+                for (typename version_map_t::const_iterator jt = end_point.begin(); jt != end_point.end(); ++jt) {
                     typename protocol_t::region_t ixn = region_intersection(it->first, jt->first);
                     if (!region_is_empty(ixn)) {
                         rassert(version_is_ancestor(branch_history_manager,
@@ -345,7 +341,7 @@ void backfillee(
     svs->new_write_token(&write_token);
 
     svs->set_metainfo(
-        region_map_transform<protocol_t, version_range_t, binary_blob_t>(end_point_cond.get_value().first,
+        region_map_transform<protocol_t, version_range_t, binary_blob_t>(end_point_cond.wait().first,
                                                                          &binary_blob_t::make<version_range_t>),
         order_source.check_in("backfillee(C)"),
         &write_token,

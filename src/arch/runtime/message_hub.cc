@@ -1,11 +1,15 @@
 #include "arch/runtime/message_hub.hpp"
 
+#include <math.h>
 #include <unistd.h>
 
 #include "config/args.hpp"
 #include "arch/runtime/event_queue.hpp"
 #include "arch/runtime/thread_pool.hpp"
 #include "logger.hpp"
+
+// Set this to 1 if you would like some "unordered" messages to be unordered.
+#define RDB_RELOOP_MESSAGES 0
 
 linux_message_hub_t::linux_message_hub_t(linux_event_queue_t *queue, linux_thread_pool_t *thread_pool, int current_thread)
     : queue_(queue), thread_pool_(thread_pool), current_thread_(current_thread) {
@@ -43,11 +47,44 @@ linux_message_hub_t::~linux_message_hub_t() {
     delete[] notify_;
 }
 
-// Collects a message for a given thread onto a local list.
-void linux_message_hub_t::store_message(unsigned int nthread, linux_thread_message_t *msg) {
+void linux_message_hub_t::do_store_message(unsigned int nthread, linux_thread_message_t *msg) {
     rassert(nthread < (unsigned)thread_pool_->n_threads);
     queues_[nthread].msg_local_list.push_back(msg);
 }
+
+// Collects a message for a given thread onto a local list.
+void linux_message_hub_t::store_message(unsigned int nthread, linux_thread_message_t *msg) {
+#ifndef NDEBUG
+#if RDB_RELOOP_MESSAGES
+    // We default to 1, not zero, to allow store_message_sometime messages to sometimes jump ahead of
+    // store_message messages.
+    msg->reloop_count_ = 1;
+#else
+    msg->reloop_count_ = 0;
+#endif
+#endif  // NDEBUG
+    do_store_message(nthread, msg);
+}
+
+int rand_reloop_count() {
+    int x;
+    frexp(randint(10000) / 10000.0, &x);
+    int ret = -x;
+    rassert(ret >= 0);
+    return ret;
+}
+
+void linux_message_hub_t::store_message_sometime(unsigned int nthread, linux_thread_message_t *msg) {
+#ifndef NDEBUG
+#if RDB_RELOOP_MESSAGES
+    msg->reloop_count_ = rand_reloop_count();
+#else
+    msg->reloop_count_ = 0;
+#endif
+#endif  // NDEBUG
+    do_store_message(nthread, msg);
+}
+
 
 void linux_message_hub_t::insert_external_message(linux_thread_message_t *msg) {
     pthread_spin_lock(&incoming_messages_lock_);
@@ -82,6 +119,14 @@ void linux_message_hub_t::notify_t::on_event(int events) {
 
     while (linux_thread_message_t *m = msg_list.head()) {
         msg_list.remove(m);
+#ifndef NDEBUG
+        if (m->reloop_count_ > 0) {
+            --m->reloop_count_;
+            parent->do_store_message(parent->current_thread_, m);
+            continue;
+        }
+#endif
+
         m->on_thread_switch();
 
 #ifndef NDEBUG

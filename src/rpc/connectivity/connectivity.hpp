@@ -9,7 +9,7 @@
 #include "containers/uuid.hpp"
 #include "rpc/serialize_macros.hpp"
 
-/* `peer_idt_` is a wrapper around a `uuid_t`. Each newly
+/* `peer_id_t` is a wrapper around a `uuid_t`. Each newly
 created cluster node picks a UUID to be its peer-ID. */
 class peer_id_t {
 public:

@@ -729,13 +729,13 @@ void check_meta_query_type(MetaQuery *t, const backtrace_t &backtrace) {
     switch(t->type()) {
     case MetaQuery::CREATE_DB:
         check_protobuf(t->has_db_name());
-        check_name_string(t->db_name(), backtrace.with("create_db"));
+        check_name_string(t->db_name(), backtrace);
         check_protobuf(!t->has_create_table());
         check_protobuf(!t->has_drop_table());
         break;
     case MetaQuery::DROP_DB:
         check_protobuf(t->has_db_name());
-        check_name_string(t->db_name(), backtrace.with("drop_db"));
+        check_name_string(t->db_name(), backtrace);
         check_protobuf(!t->has_create_table());
         check_protobuf(!t->has_drop_table());
         break;
@@ -748,20 +748,20 @@ void check_meta_query_type(MetaQuery *t, const backtrace_t &backtrace) {
         check_protobuf(!t->has_db_name());
         check_protobuf(t->has_create_table());
         if (!t->create_table().datacenter().empty()) {
-            check_name_string(t->create_table().datacenter(), backtrace.with("create_table").with("datacenter"));
+            check_name_string(t->create_table().datacenter(), backtrace.with("datacenter"));
         }
-        check_table_ref(t->create_table().table_ref(), backtrace.with("create_table").with("table_ref"));
+        check_table_ref(t->create_table().table_ref(), backtrace.with("table_ref"));
         check_protobuf(!t->has_drop_table());
     } break;
     case MetaQuery::DROP_TABLE:
         check_protobuf(!t->has_db_name());
         check_protobuf(!t->has_create_table());
         check_protobuf(t->has_drop_table());
-        check_table_ref(t->drop_table(), backtrace.with("drop_table"));
+        check_table_ref(t->drop_table(), backtrace);
         break;
     case MetaQuery::LIST_TABLES:
         check_protobuf(t->has_db_name());
-        check_name_string(t->db_name(), backtrace.with("list_tables"));
+        check_name_string(t->db_name(), backtrace);
         check_protobuf(!t->has_create_table());
         check_protobuf(!t->has_drop_table());
         break;

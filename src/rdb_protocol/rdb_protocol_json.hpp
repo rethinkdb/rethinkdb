@@ -10,7 +10,6 @@
 /* This file is for storing a few extensions to json that are useful for
  * implementing the rdb_protocol. */
 
-// TODO: shared_ptr?  Die.
 write_message_t &operator<<(write_message_t &msg, const boost::shared_ptr<scoped_cJSON_t> &cjson);
 MUST_USE archive_result_t deserialize(read_stream_t *s, boost::shared_ptr<scoped_cJSON_t> *cjson);
 

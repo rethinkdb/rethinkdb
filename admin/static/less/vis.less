@@ -4,6 +4,15 @@
     --------------------
 */
 #dashboard .ops-plot {
+    /* GPU acceleration */
+    -webkit-transform : translateZ(0); 
+    -o-transform : translateZ(0); 
+    -moz-transform : translateZ(0); 
+    transform : translateZ(0); 
+    /* For Safari */
+    -webkit-perspective: 1000;
+    -webkit-backface-visibility: hidden;
+
     @plot_height: 300px;
 
     .ops-plot-legend { 
@@ -122,6 +131,14 @@
 }
 
 #database-view .ops-plot, #table-view .ops-plot, #datacenter-view .ops-plot, #server-view .ops-plot {
+    /* GPU acceleration */
+    -webkit-transform : translateZ(0); 
+    -o-transform : translateZ(0); 
+    -moz-transform : translateZ(0); 
+    transform : translateZ(0); 
+    /* For Safari */
+    -webkit-perspective: 1000;
+    -webkit-backface-visibility: hidden;
     @plot_height: 220px;
 
     .ops-plot-legend { 

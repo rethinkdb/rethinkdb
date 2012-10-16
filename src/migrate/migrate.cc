@@ -41,7 +41,7 @@ NORETURN void usage(UNUSED const char *name) {
                 "potential to leave the target files with missing data. Should this happen the\n"
                 "intermediate file will be the only remaining copy of the data. Please consult\n"
                 "support for help getting this data back in to a database.\n");
-    exit(0);
+    exit(EXIT_SUCCESS);
 }
 
 

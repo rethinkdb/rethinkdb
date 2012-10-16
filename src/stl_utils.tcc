@@ -10,7 +10,6 @@
 #include <utility>
 #include <vector>
 
-//TODO this can be much more efficient with an iterator
 template <class K, class V>
 std::set<K> keys(const std::map<K, V> &map) {
     std::set<K> res;
@@ -21,44 +20,9 @@ std::set<K> keys(const std::map<K, V> &map) {
     return res;
 }
 
-// If keys is called "keys", this should be called "values".
-template <class K, class V>
-std::set<V> range(const std::map<K, V> &map) {
-    std::set<V> res;
-
-    for (typename std::map<K, V>::const_iterator it =  map.begin(); it != map.end(); ++it) {
-        res.insert(it->second);
-    }
-
-    return res;
-}
-
 template <class container_t>
 bool std_contains(const container_t &container, const typename container_t::key_type &key) {
     return container.find(key) != container.end();
-}
-
-template <class container_t>
-bool std_does_not_contain(const container_t &container, const typename container_t::key_type &key) {
-    return !std_contains<container_t>(container, key);
-}
-
-template <class container_t>
-typename container_t::mapped_type &get_with_default(container_t &container, const typename container_t::key_type &key, const typename container_t::mapped_type &default_value) {
-    if (container.find(key) == container.end()) {
-        container[key] = default_value;
-    }
-
-    return container[key];
-}
-
-template <class container_t>
-const typename container_t::mapped_type &const_get_with_default(const container_t &container, const typename container_t::key_type &key, const typename container_t::mapped_type &default_value) {
-    if (container.find(key) == container.end()) {
-        return default_value;
-    } else {
-        return container.find(key)->second;
-    }
 }
 
 template <class It>

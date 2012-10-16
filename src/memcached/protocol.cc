@@ -192,11 +192,10 @@ public:
 };
 
 // Scale the distribution down by combining ranges to fit it within the limit of the query
-void scale_down_distribution(size_t result_limit, std::map<store_key_t, int> *key_counts) {
+void scale_down_distribution(size_t result_limit, std::map<store_key_t, int64_t> *key_counts) {
     const size_t combine = (key_counts->size() / result_limit); // Combine this many other ranges into the previous range
-    for (std::map<store_key_t, int>::iterator it = key_counts->begin();
-                                              it != key_counts->end();) {
-        std::map<store_key_t, int>::iterator next = it;
+    for (std::map<store_key_t, int64_t>::iterator it = key_counts->begin(); it != key_counts->end(); ) {
+        std::map<store_key_t, int64_t>::iterator next = it;
         ++next;
         for (size_t i = 0; i < combine && next != key_counts->end(); ++i) {
             it->second += next->second;
@@ -267,7 +266,7 @@ struct read_unshard_visitor_t : public boost::static_visitor<read_response_t> {
 
             while (i < results.size() && results[i].region.inner == range) {
                 size_t tmp_total_keys = 0;
-                for (std::map<store_key_t, int>::const_iterator mit = results[i].key_counts.begin();
+                for (std::map<store_key_t, int64_t>::const_iterator mit = results[i].key_counts.begin();
                      mit != results[i].key_counts.end();
                      ++mit) {
                     tmp_total_keys += mit->second;
@@ -288,7 +287,7 @@ struct read_unshard_visitor_t : public boost::static_visitor<read_response_t> {
 
                 guarantee(scale_factor >= 1.0);  // Directly provable from the code above.
 
-                for (std::map<store_key_t, int>::iterator mit = results[largest_index].key_counts.begin();
+                for (std::map<store_key_t, int64_t>::iterator mit = results[largest_index].key_counts.begin();
                      mit != results[largest_index].key_counts.end();
                      ++mit) {
                     mit->second = static_cast<int>(mit->second * scale_factor);
@@ -464,9 +463,7 @@ struct read_visitor_t : public boost::static_visitor<read_response_t> {
 
     read_response_t operator()(const distribution_get_query_t& dget) {
         distribution_result_t dstr = memcached_distribution_get(btree, dget.max_depth, dget.region.inner.left, effective_time, txn, superblock);
-        for (std::map<store_key_t, int>::iterator it  = dstr.key_counts.begin();
-                                                  it != dstr.key_counts.end();
-                                                  /* increments done in loop */) {
+        for (std::map<store_key_t, int64_t>::iterator it = dstr.key_counts.begin(); it != dstr.key_counts.end(); ) {
             if (!dget.region.inner.contains_key(store_key_t(it->first))) {
                 dstr.key_counts.erase(it++);
             } else {

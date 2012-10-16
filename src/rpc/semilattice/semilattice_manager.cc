@@ -194,7 +194,7 @@ void semilattice_manager_t<metadata_t>::root_view_t::sync_from(peer_id_t peer, s
     if (watcher.is_pulsed()) {
         throw sync_failed_exc_t();
     }
-    parent->wait_for_version_from_peer(peer, response_cond.get_value(), interruptor);
+    parent->wait_for_version_from_peer(peer, response_cond.wait(), interruptor);
 }
 
 template<class metadata_t>
