@@ -108,9 +108,10 @@ void master_t<protocol_t>::client_t::perform_request(
         wait_interruptible(&waiter, &parent->shutdown_cond);
         TICKVAR(mc_F);
 
-        if (write_callback.response_promise.get_ready_signal()->is_pulsed()) {
+        typename protocol_t::write_response_t write_response;
+        if (write_callback.response_promise.try_get_value(&write_response)) {
             send(parent->mailbox_manager, write->cont_addr,
-                 boost::variant<typename protocol_t::write_response_t, std::string>(write_callback.response_promise.get_value()));
+                 boost::variant<typename protocol_t::write_response_t, std::string>(write_response));
         } else {
             guarantee(write_callback.done_cond.is_pulsed());
             send(parent->mailbox_manager, write->cont_addr,

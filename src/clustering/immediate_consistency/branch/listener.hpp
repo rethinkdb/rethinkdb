@@ -115,7 +115,7 @@ public:
     void wait_for_version(state_timestamp_t timestamp, signal_t *interruptor);
 
     const listener_intro_t<protocol_t> &registration_done_cond_value() const {
-        return registration_done_cond_.get_value();
+        return registration_done_cond_.wait();
     }
 
 

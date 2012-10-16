@@ -19,27 +19,26 @@ public:
         cond.pulse();
     }
 
-    const val_t &wait() {
+    const val_t &wait() const {
         assert_thread();
         cond.wait_lazily_unordered();
         return *value.get();
-    }
-
-    signal_t *get_ready_signal() {
-        return &cond;
     }
 
     const signal_t *get_ready_signal() const {
         return &cond;
     }
 
-    // TODO: get_value is very questionable.
-    const val_t &get_value() const {
-        assert_thread();
-        return *value.get();
+    MUST_USE bool try_get_value(val_t *out) const {
+        if (is_pulsed()) {
+            *out = *value.get();
+            return true;
+        } else {
+            return false;
+        }
     }
 
-    bool is_pulsed() {
+    bool is_pulsed() const {
         return cond.is_pulsed();
     }
 
