@@ -14,6 +14,7 @@ module 'NamespaceView', ->
             datacenters.on 'add', @render_list
             datacenters.on 'remove', @render_list
             datacenters.on 'reset', @render_list
+            @model.on 'change:primary_uuid', @render_issue
 
         render_list: =>
             ordered_datacenters = _.map(datacenters.models, (datacenter) =>
@@ -54,10 +55,19 @@ module 'NamespaceView', ->
 
             @.$('.datacenter_content').html @datacenter_view.render().$el
 
+        render_issue: =>
+            if @model.get('primary_uuid') isnt universe_datacenter.get('id') and not datacenters.get(@model.get('primary_uuid'))?
+                if @.$('.no_datacenter_found').css('display') is 'none' or @.$('.no_datacenter_found').css('display') is 'hidden' or @.$('.no_datacenter_found').css('display') is ''
+                    @.$('.no_datacenter_found').show()
+            else
+                 if @.$('.no_datacenter_found').css('display') is 'block'
+                    @.$('.no_datacenter_found').hide()
+               
         render: =>
             @.$el.html @template()
 
             @render_list()
+            @render_issue()
 
             if datacenters.get(@model.get('primary_uuid'))?
                 @render_datacenter @model.get('primary_uuid')
@@ -67,6 +77,7 @@ module 'NamespaceView', ->
             return @
 
         destroy: =>
+            @datacenter_view.destroy()
             datacenters.off 'add', @render_list
             datacenters.off 'remove', @render_list
             datacenters.off 'reset', @render_list
@@ -394,6 +405,8 @@ module 'NamespaceView', ->
                 error: @on_error
 
         destroy: =>
+            @datacenter.off 'all', @render
+
             @model.off 'change:replica_affinities', @compute_max_machines_and_render
             @model.off 'change:primary_uuid', @compute_max_machines_and_render
             @model.off 'change:primary_uuid', @render
