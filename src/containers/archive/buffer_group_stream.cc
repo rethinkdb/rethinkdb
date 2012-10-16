@@ -14,7 +14,7 @@ int64_t buffer_group_read_stream_t::read(void *p, int64_t n) {
     while (bufnum_ < group_->num_buffers() && n > 0) {
         const_buffer_group_t::buffer_t buf = group_->get_buffer(bufnum_);
         int64_t bytes_to_copy = std::min(buf.size - bufpos_, n);
-        memcpy(v, buf.data, bytes_to_copy);
+        memcpy(v, static_cast<const char *>(buf.data) + bufpos_, bytes_to_copy);
         n -= bytes_to_copy;
         v += bytes_to_copy;
         bufpos_ += bytes_to_copy;

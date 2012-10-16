@@ -91,9 +91,7 @@ boost::shared_ptr<scoped_cJSON_t> get_data(const rdb_value_t *value, transaction
     blob_acq_t acq_group;
     buffer_group_t buffer_group;
     blob.expose_all(txn, rwi_read, &buffer_group, &acq_group);
-
     buffer_group_read_stream_t read_stream(const_view(&buffer_group));
-
     int res = deserialize(&read_stream, &data);
     guarantee_err(res == 0, "corruption detected... this should probably be an exception\n");
 
