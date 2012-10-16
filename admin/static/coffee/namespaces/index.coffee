@@ -97,7 +97,7 @@ module 'NamespaceView', ->
                 @.$('.btn.remove-namespace').prop 'disabled', 'disabled'
                 @.$('.btn.remove-namespace').addClass 'disabled'
             else if @get_selected_namespaces().length > 0 and @.$('.btn.remove-namespace').prop('disabled') is true
-                @.$('.btn.remove-namespace').prop 'disabled', 'disabled'
+                @.$('.btn.remove-namespace').removeProp 'disabled'
                 @.$('.btn.remove-namespace').removeClass 'disabled'
 
         destroy: =>
