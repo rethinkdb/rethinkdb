@@ -500,23 +500,8 @@ void blob_t::write_from_string(const std::string &val, transaction_t *txn, int64
     expose_region(txn, rwi_write, offset, val.size(), &dest, &acq);
 
     buffer_group_t src;
-    src.add_buffer(val.size(), val.c_str());
+    src.add_buffer(val.size(), val.data());
     buffer_group_copy_data(&dest, const_view(&src));
-}
-
-std::string blob_t::read_to_string(transaction_t *txn, int64_t offset, int64_t length) {
-    std::vector<char> s_out(length);
-
-    buffer_group_t dest;
-    dest.add_buffer(length, s_out.data());
-
-    buffer_group_t src;
-    blob_acq_t acq;
-    expose_region(txn, rwi_read, offset, length, &src, &acq);
-    buffer_group_copy_data(&dest, const_view(&src));
-
-    std::string ret(s_out.begin(), s_out.end());
-    return ret;
 }
 
 namespace blob {

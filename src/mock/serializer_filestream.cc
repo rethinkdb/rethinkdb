@@ -4,7 +4,7 @@
 
 namespace mock {
 
-// TODO: Uh, maybe we should just use a blob.
+// Maybe we should have just used a blob for this.
 
 serializer_file_read_stream_t::serializer_file_read_stream_t(serializer_t *serializer)
     : serializer_(serializer), known_size_(-1), position_(0) {

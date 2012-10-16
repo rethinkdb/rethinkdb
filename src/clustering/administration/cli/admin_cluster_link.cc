@@ -1249,7 +1249,7 @@ void admin_cluster_link_t::do_admin_list_stats(const admin_command_parser_t::com
 
     // Wait for responses and output them, filtering as necessary
     for (boost::ptr_map<machine_id_t, admin_stats_request_t>::iterator i = request_map.begin(); i != request_map.end(); ++i) {
-        signal_t *stats_ready = i->second->stats_promise.get_ready_signal();
+        const signal_t *stats_ready = i->second->stats_promise.get_ready_signal();
         wait_any_t waiter(&timer, stats_ready);
         waiter.wait();
 

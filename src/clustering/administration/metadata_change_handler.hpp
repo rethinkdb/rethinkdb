@@ -96,8 +96,9 @@ public:
             wait_any_t waiter(result_promise.get_ready_signal(), &dc_watcher);
             waiter.wait();
 
-            if (result_promise.get_ready_signal()->is_pulsed()) {
-                return result_promise.get_value();
+            bool result;
+            if (result_promise.try_get_value(&result)) {
+                return result;
             }
             return false;
         }

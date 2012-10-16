@@ -376,21 +376,21 @@ module 'ServerView', ->
             no_error = true
             if @formdata.name is ''
                 no_error = false
-                template_error =
+                $('.alert_modal').html @error_template
                     datacenter_is_empty: true
-                $('.alert_modal').html @error_template template_error
-                $('.alert_modal').alert()
-                @reset_buttons()
+            else if /^[a-zA-Z0-9_]+$/.test(@formdata.name) is false
+                no_error = false
+                $('.alert_modal').html @error_template
+                    special_char_detected: true
+                    type: 'datacenter'
             else
                 for datacenter in datacenters.models
-                    if datacenter.get('name') is @formdata.name
+                    if datacenter.get('name').toLowerCase() is @formdata.name.toLowerCase()
                         no_error = false
-                        template_error =
+                        $('.alert_modal').html @error_template
                             datacenter_exists: true
-                        $('.alert_modal').html @error_template template_error
-                        $('.alert_modal').alert()
-                        @reset_buttons()
                         break
+
             if no_error is true
                 $.ajax
                     processData: false
@@ -400,6 +400,9 @@ module 'ServerView', ->
                     data: JSON.stringify({"name" : @formdata.name})
                     success: @on_success
                     error: @on_error
+            else
+                $('.alert_modal_content').slideDown 'fast'
+                @reset_buttons()
 
         on_success: (response) ->
             super
@@ -424,20 +427,53 @@ module 'ServerView', ->
         render: (datacenter) ->
             log_render '(rendering) remove datacenters dialog'
             @datacenter = datacenter
+
+            namespaces_where_primary = namespaces.filter (namespace) -> namespace.get('primary_uuid') is datacenter.get('id')
+            namespaces_where_primary = _.map(namespaces_where_primary, (namespace) ->
+                id: namespace.get('id')
+                name: namespace.get('name')
+            )
+
+            console.log namespaces_where_primary
             super
                 datacenter: datacenter.toJSON()
-                modal_title: "Remove datacenter"
+                modal_title: "Remove datacenter "+@datacenter.get('name')
                 btn_primary_text: 'Remove'
+                # Warning for deleting this datacenter
+                datacenter_is_primary: namespaces_where_primary.length > 0
+                namespaces_where_primary: namespaces_where_primary
 
         on_submit: ->
             super
+            @machines_to_delete = {}
+            for machine in machines.models
+                if machine.get('datacenter_uuid') is @datacenter.id
+                    @machines_to_delete[machine.get('id')] = 
+                        datacenter_uuid: universe_datacenter.get('id')
+
+            # We first unassign machines
+            @unassign_machines_in_datacenter()
+
+        unassign_machines_in_datacenter: =>
+            $.ajax
+                url: "/ajax/semilattice/machines"
+                type: 'POST'
+                data: JSON.stringify(@machines_to_delete)
+                contentType: 'application/json'
+                success: @delete_datacenter
+                error: @on_error
+
+        delete_datacenter: =>
+            # The first call to unassign the machines was a success, so we can change their datacenter to universe
+            for machine_id of @machines_to_delete
+                machines.get(machine_id).set 'datacenter_uuid', universe_datacenter.get('id')
+
             $.ajax
                 url: "/ajax/semilattice/datacenters/#{@datacenter.id}"
                 type: 'DELETE'
                 contentType: 'application/json'
                 success: @on_success
                 error: @on_error
-
 
         on_success_with_error: =>
             @.$('.error_answer').html @template_remove_error
@@ -454,11 +490,18 @@ module 'ServerView', ->
                 @on_success_with_error()
                 return
 
+            name = @datacenter.get('name')
+            datacenters.remove(@datacenter.id)
+
             super
 
-            datacenters.remove(@datacenter.id)
-            $('#user-alert-space').html @alert_tmpl
-                name: @datacenter.get('name')
+            if /^(datacenters)/.test Backbone.history.fragment is true
+                window.router.navigate '#servers'
+                window.app.index_servers
+                    alert_message: "The datacenter #{name} was successfully deleted."
+            else
+                $('#user-alert-space').html @alert_tmpl
+                    name: @datacenter.get('name')
 
     class @SetDatacenterModal extends UIComponents.AbstractModal
         template: Handlebars.compile $('#set_datacenter-modal-template').html()

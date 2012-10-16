@@ -71,11 +71,11 @@ void master_access_t<protocol_t>::read(
     wait_any_t waiter(result_or_failure.get_ready_signal(), get_failed_signal());
     wait_interruptible(&waiter, interruptor);
 
-    if (result_or_failure.get_ready_signal()->is_pulsed()) {
-        if (const std::string *error = boost::get<std::string>(&result_or_failure.get_value())) {
+    if (result_or_failure.is_pulsed()) {
+        if (const std::string *error = boost::get<std::string>(&result_or_failure.wait())) {
             throw cannot_perform_query_exc_t(*error);
         } else if (const typename protocol_t::read_response_t *result =
-                boost::get<typename protocol_t::read_response_t>(&result_or_failure.get_value())) {
+                boost::get<typename protocol_t::read_response_t>(&result_or_failure.wait())) {
             *response = *result;
         } else {
             unreachable();
@@ -135,10 +135,10 @@ void master_access_t<protocol_t>::write(
     TICKVAR(mw_I);
 
     if (result_or_failure.get_ready_signal()->is_pulsed()) {
-        if (const std::string *error = boost::get<std::string>(&result_or_failure.get_value())) {
+        if (const std::string *error = boost::get<std::string>(&result_or_failure.wait())) {
             throw cannot_perform_query_exc_t(*error);
         } else if (const typename protocol_t::write_response_t *result =
-                boost::get<typename protocol_t::write_response_t>(&result_or_failure.get_value())) {
+                boost::get<typename protocol_t::write_response_t>(&result_or_failure.wait())) {
             *response = *result;
         } else {
             unreachable();

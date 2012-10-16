@@ -59,8 +59,10 @@ module 'NamespaceView', ->
 
             @render_list()
 
-            if not @current_tab?
+            if datacenters.get(@model.get('primary_uuid'))?
                 @render_datacenter @model.get('primary_uuid')
+            else
+                @render_datacenter universe_datacenter.get('id')
 
             return @
 
@@ -369,8 +371,8 @@ module 'NamespaceView', ->
                 old_dc = universe_datacenter
             else
                 old_dc = datacenters.get(@model.get('primary_uuid'))
-
-            new_affinities[old_dc.get('id')] = DataUtils.get_replica_affinities(@model.get('id'), old_dc.get('id')) + 1
+            if old_dc? # The datacenter may have been deleted
+                new_affinities[old_dc.get('id')] = DataUtils.get_replica_affinities(@model.get('id'), old_dc.get('id')) + 1
             new_affinities[new_dc.get('id')] = DataUtils.get_replica_affinities(@model.get('id'), new_dc.get('id')) - 1
 
             primary_pinnings = {}

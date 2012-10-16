@@ -22,26 +22,21 @@ module 'NamespaceView', ->
             @add_namespace_dialog = new NamespaceView.AddNamespaceModal
             @remove_namespace_dialog = new NamespaceView.RemoveNamespaceModal
 
-            super databases, NamespaceView.DatabaseListElement, '.collapsible-list'
+            super databases, NamespaceView.DatabaseListElement, '.collapsible-list', {}, 'database', 'cluster'
 
             @datacenters_length = -1
             @databases_length = -1
             datacenters.on 'all', @update_button_create_namespace
             databases.on 'all', @update_button_create_namespace
+            @can_create_namespace = true
 
         update_button_create_namespace: =>
-            need_update = false
-            if (datacenters.models.length>0) isnt (@datacenters_length>0) or @datacenters_length is -1
-                need_update = true
-                @datacenters_length = datacenters.models.length
-            if (databases.models.length>0) isnt (@databases_length>0) or @databases_length is -1
-                need_update = true
-                @databases_length = databases.models.length
-
-            if need_update
-                @.$('.user_alert_space-cannot_create_namespace').html ''
-                @.$('.user_alert_space-cannot_create_namespace').css 'display', 'none'
+            if databases.length is 0 and @can_create_namespace is true
+                @.$('.add-namespace').prop 'disabled', 'disabled'
+                @.$('.user_alert_space-cannot_create_namespace').show()
+            else if databases.length > 0 and @can_create_namespace is false
                 @.$('.add-namespace').removeProp 'disabled'
+                @.$('.user_alert_space-cannot_create_namespace').hide()
 
         render: (message) =>
             super
@@ -98,7 +93,12 @@ module 'NamespaceView', ->
 
         # Callback that will be registered: updates the toolbar buttons based on how many namespaces have been selected
         update_toolbar_buttons: =>
-            @.$('.btn.remove-namespace').toggleClass 'disabled', @get_selected_namespaces().length < 1
+            if @get_selected_namespaces().length < 1 and @.$('.btn.remove-namespace').prop('disabled') is false
+                @.$('.btn.remove-namespace').prop 'disabled', 'disabled'
+                @.$('.btn.remove-namespace').addClass 'disabled'
+            else if @get_selected_namespaces().length > 0 and @.$('.btn.remove-namespace').prop('disabled') is true
+                @.$('.btn.remove-namespace').removeProp 'disabled'
+                @.$('.btn.remove-namespace').removeClass 'disabled'
 
         destroy: =>
             super
@@ -178,36 +178,16 @@ module 'NamespaceView', ->
         initialize:  (database_id) =>
             log_initial '(initializing) namespace list view'
 
-            @add_namespace_dialog = new NamespaceView.AddNamespaceModal
-            @remove_namespace_dialog = new NamespaceView.RemoveNamespaceModal
-
             super namespaces, NamespaceView.NamespaceListElement, '.list',
                 {
                 filter: (model) -> model.get('database') is database_id
                 }
                 , 'table', 'database'
 
-        remove_parent_alert: (event) ->
-            event.preventDefault()
-            element = $(event.target).parent()
-            element.slideUp 'fast', -> element.remove()
-
         # Extend the AbstractList.add_element method to bind a callback to each namespace added to the list
         add_element: (element) =>
             namespace_list_element = super element
             @bind_callbacks_to_namespace namespace_list_element
-
-        add_namespace: (event) =>
-            event.preventDefault()
-            @add_namespace_dialog.render()
-            $('#focus_namespace_name').focus()
-
-        remove_namespace: (event) =>
-            log_action 'remove namespace button clicked'
-            # Make sure the button isn't disabled, and pass the list of namespace UUIDs selected
-            if not $(event.currentTarget).hasClass 'disabled'
-                @remove_namespace_dialog.render @get_selected_elements()
-            event.preventDefault()
 
         register_namespace_callbacks: (callbacks) =>
             @callbacks = callbacks
@@ -219,8 +199,6 @@ module 'NamespaceView', ->
 
         destroy: =>
             super()
-            @add_namespace_dialog.destroy()
-            @remove_namespace_dialog.destroy()
 
     # Namespace list element
     class @NamespaceListElement extends UIComponents.CheckboxListElement
@@ -271,20 +249,19 @@ module 'NamespaceView', ->
             no_error = true
             if @formdata.name is ''
                 no_error = false
-                template_error =
+                $('.alert_modal').html @error_template
                     database_is_empty: true
-                $('.alert_modal').html @error_template template_error
-                $('.alert_modal').alert()
-                @reset_buttons()
+            else if /^[a-zA-Z0-9_]+$/.test(@formdata.name) is false
+                no_error = false
+                $('.alert_modal').html @error_template
+                    special_char_detected: true
+                    type: 'database'
             else
                 for database in databases.models
-                    if database.get('name') is @formdata.name
+                    if database.get('name').toLowerCase() is @formdata.name.toLowerCase()
                         no_error = false
-                        template_error =
+                        $('.alert_modal').html @error_template
                             database_exists: true
-                        $('.alert_modal').html @error_template template_error
-                        $('.alert_modal').alert()
-                        @reset_buttons()
                         break
             if no_error is true
                 $.ajax
@@ -295,6 +272,9 @@ module 'NamespaceView', ->
                     data: JSON.stringify({"name" : @formdata.name})
                     success: @on_success
                     error: @on_error
+            else
+                $('.alert_modal_content').slideDown 'fast'
+                @reset_buttons()
 
         on_success: (response) =>
             super
@@ -401,9 +381,13 @@ module 'NamespaceView', ->
             if formdata.name is ''
                 input_error = true
                 template_error.namespace_is_empty = true
+            else if /^[a-zA-Z0-9_]+$/.test(formdata.name) is false
+                input_error = true
+                template_error.special_char_detected = true
+                template_error.type = 'table'
             else # And a name that doesn't exist
                 for namespace in namespaces.models
-                    if namespace.get('name') is formdata.name and namespace.get('database') is formdata.database
+                    if namespace.get('name').toLowerCase() is formdata.name.toLowerCase() and namespace.get('database').toLowerCase() is formdata.database.toLowerCase()
                         input_error = true
                         template_error.namespace_exists = true
                         break
@@ -428,7 +412,7 @@ module 'NamespaceView', ->
 
             if input_error is true
                 $('.alert_modal').html @error_template template_error
-                $('.alert_modal').alert()
+                $('.alert_modal_content').slideDown 'fast'
                 @reset_buttons()
             else
                 ack = {}

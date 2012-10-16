@@ -94,8 +94,19 @@ void internal_disk_backed_queue_t::pop(std::vector<char> *buf_out) {
     /* Grab the data from the blob and delete it. */
 
     memcpy(buffer, tail->data + tail->live_data_offset, blob::ref_size(cache->get_block_size(), tail->data + tail->live_data_offset, MAX_REF_SIZE));
+    std::vector<char> data_vec;
+
     blob_t blob(buffer, MAX_REF_SIZE);
-    std::string data = blob.read_to_string(&txn, 0, blob.valuesize());
+    {
+        blob_acq_t acq_group;
+        buffer_group_t blob_group;
+        blob.expose_all(&txn, rwi_read, &blob_group, &acq_group);
+
+        data_vec.resize(blob_group.get_size());
+        buffer_group_t data_vec_group;
+        data_vec_group.add_buffer(data_vec.size(), data_vec.data());
+        buffer_group_copy_data(&data_vec_group, const_view(&blob_group));
+    }
 
     /* Record how far along in the blob we are. */
     tail->live_data_offset += blob.refsize(cache->get_block_size());
@@ -111,7 +122,6 @@ void internal_disk_backed_queue_t::pop(std::vector<char> *buf_out) {
     }
 
     /* Deserialize the value and return it. */
-    std::vector<char> data_vec(data.begin(), data.end());
 
     buf_out->swap(data_vec);
 }

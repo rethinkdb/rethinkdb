@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+<!--
+Copyright 2012 The Closure Library Authors. All Rights Reserved.
+
+Use of this source code is governed by the Apache License, Version 2.0.
+See the COPYING file for details.
+-->
+<!--
+-->
+
+<head>
+  <title>Closure Unit Tests - goog.style.bidi</title>
+  <script src="../base.js"></script>
+  <script>
+    goog.require('goog.testing.jsunit');
+
+    goog.require('goog.style');
+    goog.require('goog.style.bidi');
+  </script>
+  <style>
+    /* Using borders, padding, and margins of various prime values. */
+    .scrollDiv {
+      left:50px; width:250px; height: 100px;
+      position:absolute; overflow:auto; border-left: 3px solid green;
+      border-right: 17px solid green; margin: 7px; padding: 13px;
+    }
+  </style>
+</head>
+<body>
+
+<span id="bodyChild" style="position:fixed;left:60px">bodyChild</span>
+
+<div>
+  <span>LTR</span>
+  <div dir="ltr" onscroll="updateInfo()"
+      id="scrollDivLtr" class="scrollDiv">
+    <div style="width: 1000px; height: 2000px;background-color: blue"></div>
+    <div id="scrolledElementLtr" style="background:yellow; top: 25px; left:85px;
+             width: 100px; position:absolute">elm</div>
+  </div>
+  <div style="left:400px; position:absolute;">
+    <div> elm.offsetParent.scrollLeft: <span id="elementScrollLeftLtr"></span>
+    </div>
+    <div> bidi.getScrollLeft(...): <span id="bidiScrollLeftLtr"></span></div>
+    <div> bidi.getOffsetStart(...): <span id="bidiOffsetStartLtr"></span></div>
+    <form name="formLtr" action="bidi_test.html#">
+      goog.style.bidi.setScrollOffset: <input name="pixelsLtr" type="text"/>
+      <a href="bidi_test.html#" onClick="goog.style.bidi.setScrollOffset(
+          document.getElementById('scrollDivLtr'),
+          parseInt(formLtr.elements['pixelsLtr'].value));">set</a>
+    </form>
+  </div>
+  <br/><br/><br/><br/><br/><br/><br/><br/>
+</div>
+
+<hr/>
+
+<div>
+  <span>RTL</span>
+  <div dir="rtl"
+      onscroll="updateInfo();"
+      id="scrollDivRtl" class="scrollDiv">
+    <div style="width:1000px; height:70px;background-color:blue"></div>
+    <div id="scrolledElementRtl"
+         style="background:yellow; top: 25px; right:85px;
+             width: 100px; position:absolute">elm</div>
+  </div>
+  <div style="left:400px; position:absolute;">
+    <div> elm.offsetParent.scrollLeft: <span id="elementScrollLeftRtl"></span>
+        </div>
+    <div> bidi.getScrollLeft(...): <span id="bidiScrollLeftRtl"></span></div>
+    <div> bidi.getOffsetStart(...): <span id="bidiOffsetStartRtl"></span></div>
+    <form name="formRtl" action="bidi_test.html#">
+      goog.style.setScrollOffset: <input name="pixelsRtl" type="text"/>
+      <a href="bidi_test.html#" onClick="goog.style.bidi.setScrollOffset(
+          document.getElementById('scrollDivRtl'),
+          parseInt(formRtl.elements['pixelsRtl'].value));">set</a>
+    </form>
+  </div>
+  <br/><br/><br/><br/><br/><br/><br/><br/>
+</div>
+
+<hr/>
+
+<br/><br/>
+<script type="text/javascript">
+
+// Updates the calculated metrics.
+function updateInfo() {
+  var element = document.getElementById('scrolledElementRtl');
+  document.getElementById('elementScrollLeftRtl').innerHTML =
+      element.offsetParent.scrollLeft;
+  document.getElementById('bidiOffsetStartRtl').innerHTML =
+      goog.style.bidi.getOffsetStart(element);
+  document.getElementById('bidiScrollLeftRtl').innerHTML =
+      goog.style.bidi.getScrollLeft(element.offsetParent);
+
+  element = document.getElementById('scrolledElementLtr');
+  document.getElementById('elementScrollLeftLtr').innerHTML =
+      element.offsetParent.scrollLeft;
+  document.getElementById('bidiOffsetStartLtr').innerHTML =
+      goog.style.bidi.getOffsetStart(element);
+  document.getElementById('bidiScrollLeftLtr').innerHTML =
+      goog.style.bidi.getScrollLeft(element.offsetParent);
+}
+
+function setUpPage() {
+  updateInfo();
+}
+
+function tearDown() {
+  document.documentElement.dir = 'ltr';
+  document.body.dir = 'ltr';
+}
+
+function testGetOffsetStart() {
+  var elm = document.getElementById('scrolledElementRtl');
+  assertEquals(elm.style['right'], goog.style.bidi.getOffsetStart(elm) + 'px');
+  elm = document.getElementById('scrolledElementLtr');
+  assertEquals(elm.style['left'], goog.style.bidi.getOffsetStart(elm) + 'px');
+}
+
+function testSetScrollOffsetRtl() {
+  var scrollElm = document.getElementById('scrollDivRtl');
+  var scrolledElm = document.getElementById('scrolledElementRtl');
+  var originalDistance =
+      goog.style.getRelativePosition(scrolledElm, document.body).x;
+  var scrollAndAssert = function(pixels) {
+    goog.style.bidi.setScrollOffset(scrollElm, pixels);
+    assertEquals(originalDistance + pixels,
+        goog.style.getRelativePosition(scrolledElm, document.body).x);
+  }
+  scrollAndAssert(0);
+  scrollAndAssert(50);
+  scrollAndAssert(100);
+  scrollAndAssert(150);
+  scrollAndAssert(155);
+  scrollAndAssert(0);
+}
+
+function testSetScrollOffsetLtr() {
+  var scrollElm = document.getElementById('scrollDivLtr');
+  var scrolledElm = document.getElementById('scrolledElementLtr');
+  var originalDistance =
+      goog.style.getRelativePosition(scrolledElm, document.body).x;
+  var scrollAndAssert = function(pixels) {
+    goog.style.bidi.setScrollOffset(scrollElm, pixels);
+    assertEquals(originalDistance - pixels,
+        goog.style.getRelativePosition(scrolledElm, document.body).x);
+  }
+  scrollAndAssert(0);
+  scrollAndAssert(50);
+  scrollAndAssert(100);
+  scrollAndAssert(150);
+  scrollAndAssert(155);
+  scrollAndAssert(0);
+}
+
+function testFixedBodyChildLtr() {
+  var bodyChild = document.getElementById('bodyChild');
+  assertEquals(goog.userAgent.GECKO ? document.body : null,
+      bodyChild.offsetParent);
+  assertEquals(60, goog.style.bidi.getOffsetStart(bodyChild));
+}
+
+function testFixedBodyChildRtl() {
+  document.documentElement.dir = 'rtl';
+  document.body.dir = 'rtl';
+
+  var bodyChild = document.getElementById('bodyChild');
+  assertEquals(goog.userAgent.GECKO ? document.body : null,
+      bodyChild.offsetParent);
+
+  var expectedOffsetStart =
+      goog.dom.getViewportSize().width - 60 - bodyChild.offsetWidth;
+
+  // Gecko seems to also add in the marginbox for the body.
+  // It's not really clear to me if this is true in the general case,
+  // or just under certain conditions.
+  if (goog.userAgent.GECKO) {
+    var marginBox = goog.style.getMarginBox(document.body);
+    expectedOffsetStart -= (marginBox.left + marginBox.right);
+  }
+
+  assertEquals(expectedOffsetStart,
+      goog.style.bidi.getOffsetStart(bodyChild));
+}
+
+</script>
+</body>
+</html>

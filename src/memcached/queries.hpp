@@ -8,11 +8,12 @@
 #include <vector>
 
 #include "protocol_api.hpp"
-#include "hash_region.hpp"
 #include "btree/keys.hpp"
 #include "config/args.hpp"
 #include "containers/data_buffer.hpp"
 #include "containers/intrusive_ptr.hpp"
+#include "memcached/region.hpp"
+#include "hash_region.hpp"
 #include "utils.hpp"
 
 typedef uint32_t mcflags_t;
@@ -97,9 +98,8 @@ struct distribution_result_t  {
     //Then k1 == left_key
     //and key_counts[ki] = the number of keys in [ki, ki+1) if i < n
     //key_counts[kn] = the number of keys in [kn, right_key)
-    // TODO: Just make this use an int64_t.
     hash_region_t<key_range_t> region;
-    std::map<store_key_t, int> key_counts;
+    std::map<store_key_t, int64_t> key_counts;
 };
 
 /* `gets` */

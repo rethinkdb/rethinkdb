@@ -10,13 +10,16 @@
 typedef int fd_t;
 #define INVALID_FD fd_t(-1)
 
-class linux_thread_message_t :
-    public intrusive_list_node_t<linux_thread_message_t>
-{
+class linux_thread_message_t : public intrusive_list_node_t<linux_thread_message_t> {
 public:
     virtual void on_thread_switch() = 0;
 protected:
     virtual ~linux_thread_message_t() {}
+private:
+    friend class linux_message_hub_t;
+#ifndef NDEBUG
+    int reloop_count_;
+#endif
 };
 
 typedef linux_thread_message_t thread_message_t;

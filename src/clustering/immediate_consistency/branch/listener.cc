@@ -134,10 +134,11 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
 
     /* Attempt to register for reads and writes */
     try_start_receiving_writes(broadcaster_metadata, interruptor);
-    guarantee(registration_done_cond_.get_ready_signal()->is_pulsed());
+    listener_intro_t<protocol_t> listener_intro;
+    bool registration_is_done = registration_done_cond_.try_get_value(&listener_intro);
+    guarantee(registration_is_done);
 
-    state_timestamp_t streaming_begin_point =
-        registration_done_cond_.get_value().broadcaster_begin_timestamp;
+    state_timestamp_t streaming_begin_point = listener_intro.broadcaster_begin_timestamp;
 
     try {
         /* Go through a little song and dance to make sure that the
@@ -286,18 +287,21 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
 
     /* Attempt to register for writes */
     try_start_receiving_writes(broadcaster_metadata, interruptor);
-    guarantee(registration_done_cond_.get_ready_signal()->is_pulsed());
+
+    listener_intro_t<protocol_t> listener_intro;
+    bool registration_is_done = registration_done_cond_.try_get_value(&listener_intro);
+    guarantee(registration_is_done);
 
 #ifndef NDEBUG
     region_map_t<protocol_t, version_range_t> expected_initial_metainfo(svs_->get_region(),
                                                                         version_range_t(version_t(branch_id_,
-                                                                                                  registration_done_cond_.get_value().broadcaster_begin_timestamp)));
+                                                                                                  listener_intro.broadcaster_begin_timestamp)));
 
     rassert(expected_initial_metainfo == initial_metainfo);
 #endif
 
     /* Start streaming, just like we do after we finish a backfill */
-    current_timestamp_ = registration_done_cond_.get_value().broadcaster_begin_timestamp;
+    current_timestamp_ = listener_intro.broadcaster_begin_timestamp;
     write_queue_coro_pool_callback_.init(new boost_function_callback_t<write_queue_entry_t>(
             boost::bind(&listener_t<protocol_t>::perform_enqueued_write, this, _1, current_timestamp_, _2)));
     write_queue_coro_pool_.init(
