@@ -387,6 +387,10 @@ module 'NamespaceView', ->
             if formdata.name is ''
                 input_error = true
                 template_error.namespace_is_empty = true
+            else if /^[a-zA-Z0-9_]+$/.test(formdata.name) is false
+                input_error = true
+                template_error.special_char_detected = true
+                template_error.type = 'table'
             else # And a name that doesn't exist
                 for namespace in namespaces.models
                     if namespace.get('name') is formdata.name and namespace.get('database') is formdata.database
@@ -414,7 +418,7 @@ module 'NamespaceView', ->
 
             if input_error is true
                 $('.alert_modal').html @error_template template_error
-                $('.alert_modal').alert()
+                $('.alert_modal_content').slideDown 'fast'
                 @reset_buttons()
             else
                 ack = {}

@@ -85,9 +85,10 @@ module 'UIComponents', ->
             @.$('.btn-primary').button('loading')
             @.$('.cancel').button('loading')
 
-        on_error: =>
+        on_error: (error) =>
             @.$('.alert_modal').html @error_template
                 ajax_fail: true
+                error: error if error? and error isnt ''
 
             if @.$('.alert_modal_content').css('display') is 'none'
                 @.$('.alert_modal_content').slideDown('fast')
