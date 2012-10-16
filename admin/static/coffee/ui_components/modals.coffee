@@ -195,58 +195,74 @@ module 'UIComponents', ->
             if @item_type is 'namespace'
                 if @formdata.new_name is ''
                     no_error = false
-                    template_error =
+                    $('.alert_modal').html @error_template
                         namespace_is_empty: true
-                    $('.alert_modal').html @error_template template_error
-                    $('.alert_modal').alert()
-                    @reset_buttons()
+                else if /^[a-zA-Z0-9_]+$/.test(@formdata.new_name) is false
+                    no_error = false
+                    $('.alert_modal').html @error_template
+                        special_char_detected: true
+                        type: 'table'
                 else
                     for namespace in namespaces.models
-                        if namespace.get('name') is @formdata.new_name
+                        if namespace.get('name').toLowerCase() is @formdata.new_name.toLowerCase()
                             no_error = false
-                            template_error =
+                            $('.alert_modal').html @error_template
                                 namespace_exists: true
-                            $('.alert_modal').html @error_template template_error
-                            $('.alert_modal').alert()
-                            @reset_buttons()
+                            break
+
+            if @item_type is 'database'
+                if @formdata.new_name is ''
+                    no_error = false
+                    $('.alert_modal').html @error_template
+                        database_is_empty: true
+                else if /^[a-zA-Z0-9_]+$/.test(@formdata.new_name) is false
+                    no_error = false
+                    $('.alert_modal').html @error_template
+                        special_char_detected: true
+                        type: 'database'
+                else
+                    for database in databases.models
+                        if database.get('name').toLowerCase() is @formdata.new_name.toLowerCase()
+                            no_error = false
+                            $('.alert_modal').html @error_template
+                                database_exists: true
                             break
 
             if @item_type is 'datacenter'
                 if @formdata.new_name is ''
                     no_error = false
-                    template_error =
+                    $('.alert_modal').html @error_template
                         datacenter_is_empty: true
-                    $('.alert_modal').html @error_template template_error
-                    $('.alert_modal').alert()
-                    @reset_buttons()
+                else if /^[a-zA-Z0-9_]+$/.test(@formdata.new_name) is false
+                    no_error = false
+                    $('.alert_modal').html @error_template
+                        special_char_detected: true
+                        type: 'datacenter'
                 else
                     for datacenter in datacenters.models
-                        if datacenter.get('name') is @formdata.new_name
+                        if datacenter.get('name').toLowerCase() is @formdata.new_name.toLowerCase()
                             no_error = false
-                            template_error =
+                            $('.alert_modal').html @error_template
                                 datacenter_exists: true
-                            $('.alert_modal').html @error_template template_error
-                            $('.alert_modal').alert()
-                            @reset_buttons()
                             break
 
             if @item_type is 'machine'
                 if @formdata.new_name is ''
                     no_error = false
-                    template_error =
+                    $('.alert_modal').html @error_template
                         machine_is_empty: true
-                    $('.alert_modal').html @error_template template_error
-                    $('.alert_modal').alert()
-                    @reset_buttons()
+                else if /^[a-zA-Z0-9_]+$/.test(@formdata.new_name) is false
+                    no_error = false
+                    $('.alert_modal').html @error_template
+                        special_char_detected: true
+                        type: 'server'
                 else
                     for machine in machines.models
-                        if machine.get('name') is @formdata.new_name
+                        if machine.get('name').toLowerCase() is @formdata.new_name.toLowerCase()
                             no_error = false
                             template_error =
                                 machine_exists: true
                             $('.alert_modal').html @error_template template_error
-                            $('.alert_modal').alert()
-                            @reset_buttons()
                             break
 
             if no_error is true
@@ -258,6 +274,9 @@ module 'UIComponents', ->
                     data: JSON.stringify(@formdata.new_name)
                     success: @on_success
                     error: @on_error
+            else
+                $('.alert_modal_content').slideDown 'fast'
+                @reset_buttons()
 
         on_success: (response) ->
             super

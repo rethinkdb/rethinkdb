@@ -64,6 +64,7 @@
       <a class="close_error" href="#">&times;</a>
     {{#if ajax_fail}}
     Sorry, something went wrong with the ajax request. Please try again.
+    {{#if error}}<br/>Error {{error.status}}: {{error.responseText}}{{/if}}
     {{/if}}
     {{#if port_is_used}}
         <p>Sorry the port you have chosen is already used.<p>
@@ -78,7 +79,7 @@
         <p>The chosen database's name is already being used. please choose another one.</p>
     {{/if}}
     {{#if namespace_is_empty}}
-        <p>Please do not use an empty table.</p>
+        <p>Please do not use an empty name for a table.</p>
     {{/if}}
     {{#if no_database}}
         <p>You have to select a database.</p>
@@ -108,7 +109,7 @@
         <p>The cache size must be smaller than 64MB.</p>
     {{/if}}
     {{#if special_char_detected}}
-    <p>You can only use alphanumeric characters and underscore for a {{type}}'s name.</p>
+    <p>You can only use alphanumeric characters and underscores for a {{type}}'s name.</p>
     {{/if}}
   </div>
 </script>
