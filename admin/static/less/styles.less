@@ -21,6 +21,8 @@
 // Utility classes
 @import "bootstrap/utilities.less"; // Has to be last to override when necessary
 
+@import "lesshat";
+
 @accent: #0597d8;
 @sans: 'Istok Web', sans-serif;
 @serif: 'Copse', serif;
@@ -69,18 +71,14 @@ body:before {
     padding-top: 30px;
     
     .section {
-       padding: 20px 25px; 
-       background: #fcfcfc;
-       border: thin solid #cfcfcf;
-       margin-bottom: 25px;
+        padding: 20px 25px; 
+        margin-bottom: 25px;
 
-       @shadow: 0 1px 0 rgba(255, 255, 255, 0.02), 0 1px 3px rgba(0, 0, 0, 0.08);
-
-        -webkit-box-shadow: @shadow;
-           -moz-box-shadow: @shadow;
-                box-shadow: @shadow;
-
-        .border-radius(4px);
+        // csshat
+        border: 1px solid #cfcfcf; // stroke
+        .border-radius(4px); // border radius
+        background-color: #fbfbfb; // layer fill content
+        .box-shadow(~"0 2px 1px rgba(0,0,0,.04), inset 0 -1px 2px rgba(0,0,0,.05)"); // drop shadow and inner shadow
 
         h2.title {
             margin-top: 0;
@@ -89,32 +87,43 @@ body:before {
             font-size: 19px;
             margin-bottom: 20px;
         }
-
-
     }
 
     button.btn {
         display: inline-block;
+        position: relative;
         padding: 6px 14px 5px;
         margin-bottom: 0;
         margin-left: 7px;
         vertical-align: middle;
+        cursor: pointer;
 
-        font-size: 14px;
         font-family: @sans;
         color: #464646;
         line-height: 18px;
         text-align: center;
 
-        background-color: #f9f9f9;
-        border: thin solid #cbcbcb; 
-        .border-radius(4px);
+        // csshat
+        color: #a4a4a4; // text color + color overlay
+        font-size: 14px;
+        text-shadow: 0 1px 0 #fff; // drop shadowV
 
-        @shadow: 0 1px 0 rgba(255, 255, 255, 0.02), 0 1px 3px rgba(0, 0, 0, 0.06);
-
-        -webkit-box-shadow: @shadow;
-           -moz-box-shadow: @shadow;
-                box-shadow: @shadow;
+        // csshat
+        border: 1px solid #ccc; // stroke
+        .border-radius(3px); // border radius
+        background-color: #fff; // layer fill content
+        .gradient(~"linear-gradient(bottom, rgba(0,0,0,.04) 0%, rgba(255,255,255,.04) 100%)"); // gradient overlay
+        &:hover {
+            // csshat
+            .box-shadow(~"inset 0 0 1px 1px #fff"); // inner glow
+            .gradient(~"linear-gradient(rgba(255,255,255,0.96), rgba(255,255,255,0.96)), linear-gradient(bottom, rgba(51,51,51,.23) 0%, rgba(255,255,255,.23) 100%)"); // color overlay + gradient overlay
+        }
+        &:active {
+            // csshat
+            background-color: #f2f2f2; // layer fill content
+            .box-shadow(~"inset 0 2px 1px rgba(0,0,0,.06)"); // inner shadow
+            .gradient(~"linear-gradient(bottom, rgba(255,255,255,.02) 0%, rgba(0,0,0,.02) 100%)"); // gradient overlay
+        }
 
         &.disabled {
             opacity: 0.65;
@@ -326,47 +335,77 @@ body:before {
     }
 
     .issues-banner {
-        background-color: #db4947;
-        color: #FFF;
-        .show-issues-banner { margin-bottom: 9px; }
-        .message { line-height: 52px; }
-
-        // This might have to be abstracted as a general button style (add some shadows and gradients when ready)
-        .btn.resolve-issues {
-            float: right;
-            margin-left: 20px;
-            margin-top: 11px;
-            padding: 6px 14px 4px;
-            margin-bottom: 0;
-            vertical-align: middle;
-
-            font-size: 13px;
-            font-family: @sans;
+        .show-issues-banner {
+            margin-top: 10px;
             color: #FFF;
-            text-align: center;
+            position: relative;
+            .message {
+                line-height: 30px;
+                margin: 0;
+                text-shadow: 0 -1px 0 rgba(0,0,0,.25); // drop shadow
+                font-size: 14px;
+            }
 
-            background-color: #eb5d5b;
-            border: thin solid #b8302e; 
-            .border-radius(3px);
+            @border: 1px solid #b54948; 
+            border-top: @border;
+            border-bottom: @border;
 
-            @shadow: 0 1px 0 rgba(255, 255, 255, 0.02), 0 1px 3px rgba(0, 0, 0, 0.06);
+            // This might have to be abstracted as a general button style (add some shadows and gradients when ready)
+            .btn.resolve-issues {
+                float: right;
+                margin-left: 20px;
+                padding: 6px 14px 4px;
+                margin-bottom: 0;
+                vertical-align: middle;
 
-            -webkit-box-shadow: @shadow;
-               -moz-box-shadow: @shadow;
-                    box-shadow: @shadow;
+                font-size: 13px;
+                font-family: @sans;
+                color: #FFF;
+                text-align: center;
+
+                background-color: #eb5d5b;
+                border: thin solid #b8302e; 
+                .border-radius(3px);
+
+                @shadow: 0 1px 0 rgba(255, 255, 255, 0.02), 0 1px 3px rgba(0, 0, 0, 0.06);
+
+                -webkit-box-shadow: @shadow;
+                   -moz-box-shadow: @shadow;
+                        box-shadow: @shadow;
+            }
+
+            // Hack required for the css arrow-- we need to hide the bottom half of the arrow, so fill it in with a gradient overlay
+            .gradient-overlay {
+                /* transform z-index hack */    
+                .transform(~"rotate(0deg)");
+
+                // lesshat
+                background-color: #dd4f4d; // layer fill content
+                .gradient(~"linear-gradient(bottom, rgba(0,0,0,.1) 0%, rgba(255,255,255,.1) 100%)"); // gradient overlay
+            }
+
+            // CSS arrow for the banner: this is basically a box turned 45 deg
+            &:before {
+                @size: 18px;
+                content: '';
+                position: absolute;
+
+                top: -(@size/2);
+                left: 50%;
+                margin-left: -220px;
+
+                background: #e0605e;
+                display: block;
+                width: @size;
+                height: @size;
+
+                .transform(~"rotate(45deg)");
+                border: @border;
+            }
         }
-        .show-issues-banner:after {
-            border: solid transparent;
-            content: " ";
-            height: 0;
-            width: 0;
-            position: absolute;
-
-            pointer-events: none;
-            border-top-color: #db4947;
-            border-width: 12px;
-            left: 50%;
-            margin-left: -220px;
+        .show-all-issues {
+            background-color: #fcfcfc;
+            border-bottom: 1px solid #ccc;
         }
     }
 }
@@ -612,39 +651,6 @@ body:before {
 */
 // Get ready to abstract this for use in the server list AND table list TODO
 #server-list, #table-list {
-    // This might have to be abstracted as a general button style (add some shadows and gradients when ready)
-    .btn {
-        display: inline-block;
-        padding: 6px 14px 5px;
-        margin-bottom: 0;
-        margin-left: 7px;
-        vertical-align: middle;
-
-        font-size: 14px;
-        font-family: @sans;
-        font-weight: 700;
-        color: #464646;
-        line-height: 18px;
-        text-align: center;
-
-        background-color: #f9f9f9;
-        border: thin solid #cbcbcb; 
-        .border-radius(4px);
-
-        @shadow: 0 1px 0 rgba(255, 255, 255, 0.02), 0 1px 3px rgba(0, 0, 0, 0.06);
-
-        -webkit-box-shadow: @shadow;
-           -moz-box-shadow: @shadow;
-                box-shadow: @shadow;
-
-        &.disabled {
-            opacity: 0.65;
-            .box-shadow(none);
-        }
-
-        // fix for buttons that are a tags (remove underline)
-        &:hover { text-decoration: none; }
-    }
     h1.title {
         font-family: @serif;
         color: #4d535c;
