@@ -178,30 +178,16 @@ module 'NamespaceView', ->
         initialize:  (database_id) =>
             log_initial '(initializing) namespace list view'
 
-            @remove_namespace_dialog = new NamespaceView.RemoveNamespaceModal
-
             super namespaces, NamespaceView.NamespaceListElement, '.list',
                 {
                 filter: (model) -> model.get('database') is database_id
                 }
                 , 'table', 'database'
 
-        remove_parent_alert: (event) ->
-            event.preventDefault()
-            element = $(event.target).parent()
-            element.slideUp 'fast', -> element.remove()
-
         # Extend the AbstractList.add_element method to bind a callback to each namespace added to the list
         add_element: (element) =>
             namespace_list_element = super element
             @bind_callbacks_to_namespace namespace_list_element
-
-        remove_namespace: (event) =>
-            log_action 'remove namespace button clicked'
-            # Make sure the button isn't disabled, and pass the list of namespace UUIDs selected
-            if not $(event.currentTarget).hasClass 'disabled'
-                @remove_namespace_dialog.render @get_selected_elements()
-            event.preventDefault()
 
         register_namespace_callbacks: (callbacks) =>
             @callbacks = callbacks
@@ -213,7 +199,6 @@ module 'NamespaceView', ->
 
         destroy: =>
             super()
-            @remove_namespace_dialog.destroy()
 
     # Namespace list element
     class @NamespaceListElement extends UIComponents.CheckboxListElement
@@ -264,19 +249,27 @@ module 'NamespaceView', ->
             no_error = true
             if @formdata.name is ''
                 no_error = false
-                template_error =
+                $('.alert_modal').html @error_template
                     database_is_empty: true
-                $('.alert_modal').html @error_template template_error
-                $('.alert_modal').alert()
+                # We could keep track of the state and use fadeIn instead of slideDown if the error is already displayed
+                $('.alert_modal_content').slideDown 'fast'
+                @reset_buttons()
+            else if /^[a-zA-Z0-9_]+$/.test(@formdata.name) is false
+                no_error = false
+                $('.alert_modal').html @error_template
+                    special_char_detected: true
+                    type: 'database'
+
+                $('.alert_modal_content').slideDown 'fast'
                 @reset_buttons()
             else
                 for database in databases.models
-                    if database.get('name') is @formdata.name
+                    if database.get('name').toLowerCase() is @formdata.name.toLowerCase()
                         no_error = false
-                        template_error =
+                        $('.alert_modal').html @error_template
                             database_exists: true
-                        $('.alert_modal').html @error_template template_error
-                        $('.alert_modal').alert()
+
+                        $('.alert_modal_content').slideDown 'fast'
                         @reset_buttons()
                         break
             if no_error is true

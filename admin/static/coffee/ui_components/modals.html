@@ -60,8 +60,11 @@
 
 
 <script id="error_input-template" type="text/x-handlebars-template">
-  <div class="alert alert-error" data-alert="alert">
+  <div class="alert alert-error alert_modal_content" data-alert="alert">
       <a class="close_error" href="#">&times;</a>
+    {{#if ajax_fail}}
+    Sorry, something went wrong with the ajax request. Please try again.
+    {{/if}}
     {{#if port_is_used}}
         <p>Sorry the port you have chosen is already used.<p>
     {{/if}}
@@ -103,6 +106,9 @@
     {{/if}}
     {{#if cache_size_too_big}}
         <p>The cache size must be smaller than 64MB.</p>
+    {{/if}}
+    {{#if special_char_detected}}
+    <p>You can only use alphanumeric characters and underscore for a {{type}}'s name.</p>
     {{/if}}
   </div>
 </script>

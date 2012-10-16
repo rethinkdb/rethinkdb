@@ -5,7 +5,7 @@ module 'UIComponents', ->
     # Modal that allows for form submission
     class @AbstractModal extends Backbone.View
         template_outer: Handlebars.compile $('#abstract-modal-outer-template').html()
-        template_ajax_error: Handlebars.compile $('#fail_ajax_request-template').html()
+        error_template: Handlebars.compile $('#error_input-template').html()
 
         events:
             'click .cancel': 'cancel_modal'
@@ -86,13 +86,14 @@ module 'UIComponents', ->
             @.$('.cancel').button('loading')
 
         on_error: =>
-            @.$('.error_answer').html @template_ajax_error
+            @.$('.alert_modal').html @error_template
+                ajax_fail: true
 
-            if @.$('.error_answer').css('display') is 'none'
-                @.$('.error_answer').slideDown('fast')
+            if @.$('.alert_modal_content').css('display') is 'none'
+                @.$('.alert_modal_content').slideDown('fast')
             else
-                @.$('.error_answer').css('display', 'none')
-                @.$('.error_answer').fadeIn()
+                @.$('.alert_modal_content').css('display', 'none')
+                @.$('.alert_modal_content').fadeIn()
             @reset_buttons()
 
         add_custom_button: (main_text, class_str, data_loading_text, on_click) =>
