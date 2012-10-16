@@ -178,7 +178,6 @@ module 'NamespaceView', ->
         initialize:  (database_id) =>
             log_initial '(initializing) namespace list view'
 
-            @add_namespace_dialog = new NamespaceView.AddNamespaceModal
             @remove_namespace_dialog = new NamespaceView.RemoveNamespaceModal
 
             super namespaces, NamespaceView.NamespaceListElement, '.list',
@@ -197,11 +196,6 @@ module 'NamespaceView', ->
             namespace_list_element = super element
             @bind_callbacks_to_namespace namespace_list_element
 
-        add_namespace: (event) =>
-            event.preventDefault()
-            @add_namespace_dialog.render()
-            $('#focus_namespace_name').focus()
-
         remove_namespace: (event) =>
             log_action 'remove namespace button clicked'
             # Make sure the button isn't disabled, and pass the list of namespace UUIDs selected
@@ -219,7 +213,6 @@ module 'NamespaceView', ->
 
         destroy: =>
             super()
-            @add_namespace_dialog.destroy()
             @remove_namespace_dialog.destroy()
 
     # Namespace list element
