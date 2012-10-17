@@ -28,7 +28,7 @@ endif
 
 clean:
 ifeq ($(VERBOSE),0)
-        @echo "    RM $(PYTHON_PBDIR)/rdb_protocol/$(PYTHON_PBFILE)"
+	@echo "    RM $(PYTHON_PBDIR)/rdb_protocol/$(PYTHON_PBFILE)"
 endif
 	$(QUIET) if [ -e $(PYTHON_PBDIR)/rdb_protocol/$(PYTHON_PBFILE) ] ; then rm $(PYTHON_PBDIR)/rdb_protocol/$(PYTHON_PBFILE) ; fi ;
 
