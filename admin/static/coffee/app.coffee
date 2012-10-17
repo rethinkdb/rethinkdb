@@ -14,6 +14,7 @@ progress_interval_default_value = 5000
 progress_interval_value = 5000
 progress_short_interval = 1000
 
+#TODO Duplicate this function, and remove element not found in case of a call to /ajax
 apply_to_collection = (collection, collection_data) ->
     for id, data of collection_data
         if data isnt null
@@ -27,7 +28,6 @@ apply_to_collection = (collection, collection_data) ->
             else
                 data.id = id
                 collection.add(new collection.model(data))
-            #TODO remove not found object
         else
             if collection.get(id)
                 collection.remove(id)
