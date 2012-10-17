@@ -1902,6 +1902,7 @@ body:before {
         }
         .edit-shards {
             margin: 20px 0;
+            min-height: 39px;
             button { float: right; }
             .icon_paragraph {
                 font-family: @sans;
@@ -1910,25 +1911,28 @@ body:before {
                 color: #a9a9a9;
                 padding-left: 30px;
                 span.big {
-                    margin: 0px 0px 0px 20px;
+                    margin: 0px 6px 0px 20px;
                     font-size: 24px;
                     color: #f7ae41;
                 }
-                background: left 5px no-repeat url('http://bit.ly/Pyxwpp');//bars-icon.png
+                span.shard_text{
+                    display: inline-block;
+                    padding-top: 10px;
+                }
+                background: left 9px no-repeat url('http://bit.ly/Pyxwpp');//bars-icon.png
             }
             input.num-shards { 
                 font-family: @sans;
                 font-size: 24px;
                 color: #6b6f76;
                 text-align: right;
-
                 width: 1.25em;
-                height: 24px;
+                height: 35px;
                 background: #fcfcfc;
                 border: thin solid #d9d9d9;
                 .border-radius(3px);
                 padding: 4px;
-                margin: -12px 0px 0px -1px;
+                margin: -8px 0px 0px -4px;
                
                 &:focus {
                     border-color: rgba(82,168,236,.8);
@@ -1938,7 +1942,7 @@ body:before {
                     outline: thin dotted \9; /* IE6-9 */
                 }
             }
-            .edit, .cancel, .rebalance{ margin: -7px 0px 0px 10px; }
+            .edit, .cancel, .rebalance{ margin: 0px 0px 0px 10px; }
             .cannot_shard-alert{
                 display: none;
                 clear: both;
