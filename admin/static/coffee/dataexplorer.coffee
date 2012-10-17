@@ -854,7 +854,7 @@ module 'DataExplorerView', ->
                             return false
                     else #  Else if it's not the last query, we just execute the next query
                         try
-                            if @cursor?
+                            if @cursor?.close?
                                 @cursor.close()
 
                             @cursor = eval(@queries[@current_query_index])
@@ -865,7 +865,8 @@ module 'DataExplorerView', ->
 
                     return false
                 else
-                    @cursor.close()
+                    if @cursor?.close?
+                        @cursor.close()
                     return false
             return callback_multiple_queries
         # Function that execute the query
@@ -1086,7 +1087,7 @@ module 'DataExplorerView', ->
                 window.conn.close()
             catch err
                 #console.log 'Could not destroy connection'
-            if @cursor?
+            if @cursor?.close?
                 @cursor.close()
             clearTimeout @timeout
     
