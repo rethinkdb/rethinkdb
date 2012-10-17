@@ -20,7 +20,7 @@ OUTPUTMODE=compiled
 JSDOC=/usr/share/jsdoc-toolkit/jsrun.jar
 
 # Compile the rethinkdb library
-lib: query_language.pb.js
+lib: query_language.pb.js protodeps
 	rm -rf rethinkdb.js
 	rm -rf rethinkdb.map.js
 	bash -c 'cat <(echo "(function(){") \
@@ -37,7 +37,7 @@ lib: query_language.pb.js
 		<(echo "}).call(this);") > rethinkdb.js'
 
 # Compile the javascript stubs for the rethinkdb protocol
-query_language.pb.js: $(PROTO_FILE)
+query_language.pb.js: $(PROTO_FILE) protodeps
 	$(PROTOC_JS) -I $(PROTO_FILE_DIR)  --js_out=rethinkdb $(PROTO_FILE)
 
 docs: rethinkdb.js
