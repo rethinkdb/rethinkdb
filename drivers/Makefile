@@ -7,32 +7,24 @@ BUILD_DRIVERS?=1
 PROTOCFLAGS:= --proto_path=$(SOURCE_DIR)
 all: drivers
 drivers: driver-javascript driver-python driver-ruby
-$(PYTHON_PBDIR):
-	$(QUIET) mkdir -p $(PYTHON_PBDIR)
-$(RUBY_PBDIR):
-	$(QUIET) mkdir -p $(RUBY_PBDIR)
 
-driver-python: $(PYTHON_PBDIR)/rdb_protocol/$(PYTHON_PBFILE)
-PROTOFILE:=$(SOURCE_DIR)/rdb_protocol/query_language.proto
-PROTOPATH:=$(SOURCE_DIR)/rdb_protocol
-$(PYTHON_PBDIR)/rdb_protocol/$(PYTHON_PBFILE): $(PYTHON_PBDIR) $(PROTOFILE)
-ifeq ($(VERBOSE),0)
-	@echo "    PROTOC[PY] $(PROTOFILE)"
-endif
-	$(QUIET) protoc $(PROTOCFLAGS) --python_out $(PYTHON_PBDIR) $(PROTOFILE)
+driver-python:
+	$(QUIET) cd python ; $(MAKE) $(MFLAGS) ;
 
-driver-ruby: $(RUBY_PBDIR)/$(RUBY_PBFILE)
-PROTOFILE:=$(SOURCE_DIR)/rdb_protocol/query_language.proto
-PROTOPATH:=$(SOURCE_DIR)/rdb_protocol
-$(RUBY_PBDIR)/$(RUBY_PBFILE): $(RUBY_PBDIR) $(PROTOFILE)
-ifeq ($(VERBOSE),0)
-	@echo "    PROTOC[RB] $(PROTOFILE)"
-endif
-	$(QUIET) rprotoc $(PROTOCFLAGS) --out $(RUBY_PBDIR) $(PROTOFILE) | \
-		(grep -v 'writing...' || true)
+driver-ruby:
+	$(QUIET) cd ruby ; $(MAKE) $(MFLAGS) ;
 
 driver-javascript:
 	$(QUIET) cd javascript ; $(MAKE) $(MFLAGS) ; cd .. ;
 
-clean:
+driver-javascript-clean:
 	$(QUIET) cd javascript ; $(MAKE) $(MFLAGS) clean ; cd .. ;
+
+driver-python-clean:
+	$(QUIET) cd python ; $(MAKE) $(MFLAGS) clean ; cd .. ;
+
+driver-ruby-clean:
+	$(QUIET) cd ruby ; $(MAKE) $(MFLAGS) clean ; cd .. ;
+
+clean: driver-javascript-clean driver-python-clean driver-ruby-clean
+
