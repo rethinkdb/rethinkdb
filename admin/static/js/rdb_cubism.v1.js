@@ -127,9 +127,12 @@ cubism.context = function() {
     return context;
   };
 
+  /*
+   * We don't need this thing, and it breaks the behavior or our inputs.
   d3.select(window).on("keydown.context-" + ++cubism_id, function() {
     switch (!d3.event.metaKey && d3.event.keyCode) {
       case 37: // left
+        console.log('trigger');
         if (focus == null) focus = size - 1;
         if (focus > 0) context.focus(--focus);
         break;
@@ -141,7 +144,7 @@ cubism.context = function() {
     }
     d3.event.preventDefault();
   });
-
+  */
   return update();
 };
 
