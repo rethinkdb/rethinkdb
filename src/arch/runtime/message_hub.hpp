@@ -20,7 +20,7 @@ class linux_thread_pool_t;
 Each message hub stores messages that are going from that message hub's home thread to
 other threads. It keeps a separate queue for messages destined for each other thread. */
 
-struct linux_message_hub_t
+class linux_message_hub_t
 {
 public:
     typedef intrusive_list_t<linux_thread_message_t> msg_list_t;
