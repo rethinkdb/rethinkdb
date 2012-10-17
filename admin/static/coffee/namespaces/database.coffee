@@ -1,6 +1,7 @@
 # Database view
 module 'DatabaseView', ->
     class @NotFound extends Backbone.View
+        className: 'section'
         template: Handlebars.compile $('#element_view-not_found-template').html()
         initialize: (id) ->
             @id = id
