@@ -284,6 +284,7 @@ module 'NamespaceView', ->
             for id, namespace of response
                 $('#user-alert-space').append @alert_tmpl
                     name: namespace.name
+                    id: id
 
     # A modal for adding namespaces
     class @AddNamespaceModal extends UIComponents.AbstractModal
@@ -438,7 +439,6 @@ module 'NamespaceView', ->
             super
 
             apply_to_collection(namespaces, add_protocol_tag(response, "rdb"))
-
             for id, namespace of response
                 $('#user-alert-space').append @alert_tmpl
                     uuid: id
@@ -494,6 +494,7 @@ module 'NamespaceView', ->
 
             $('#user-alert-space').append @alert_tmpl
                 deleted_namespaces: deleted_namespaces
+                num_deleted_namespaces: deleted_namespaces.length
 
             apply_diffs response
 

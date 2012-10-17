@@ -6,6 +6,9 @@ module 'DashboardView', ->
         template: Handlebars.compile $('#dashboard_view-template').html()
         id: 'dashboard_container'
 
+        events:
+            'click .view-logs': 'show_all_logs'
+
         initialize: =>
             log_initial '(initializing) dashboard container view'
 
@@ -22,6 +25,10 @@ module 'DashboardView', ->
             )
 
             @logs = new DashboardView.Logs()
+
+        show_all_logs: ->
+            window.router.navigate '#logs',
+                trigger: true
 
         render: =>
             @.$el.html @template({})

@@ -424,7 +424,7 @@ bool do_json_importation(namespace_repo_t<rdb_protocol_t> *repo,
         // do nothing.
     }
 
-    printf("%s  Successfully imported %ld row%s.  Ignored %ld row%s with duplicated primary key.  %s\n",
+    printf("%s  Successfully imported %" PRIi64 " row%s.  Ignored %" PRIi64 " row%s with duplicated primary key.  %s\n",
            importation_complete ? "Import completed." : "Interrupted, import partially completed.",
            num_imported_rows,
            num_imported_rows == 1 ? "" : "s",
