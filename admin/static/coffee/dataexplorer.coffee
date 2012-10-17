@@ -1106,7 +1106,7 @@ module 'DataExplorerView', ->
         option_template: Handlebars.compile $('#dataexplorer-option_page-template').html()
         error_template: Handlebars.compile $('#dataexplorer-error-template').html()
         template_no_result: Handlebars.compile $('#dataexplorer_result_empty-template').html()
-        template_json_tree: 
+        template_json_tree:
             'container' : Handlebars.compile $('#dataexplorer_result_json_tree_container-template').html()
             'span': Handlebars.compile $('#dataexplorer_result_json_tree_span-template').html()
             'span_with_quotes': Handlebars.compile $('#dataexplorer_result_json_tree_span_with_quotes-template').html()
@@ -1151,13 +1151,14 @@ module 'DataExplorerView', ->
             @view = view
 
         render_error: (query, err) =>
-            @.$el.html @error_template 
+            @.$el.html @error_template
                 query: query
                 error: err.toString()
+                forgot_run: err.type? and err.type is 'undefined_method' and err['arguments']?[0]? and err['arguments'][0] is 'next' # Check if next is undefined, in which case the user probably forgot to append .run()
             return @
 
         json_to_tree: (result) =>
-            return @template_json_tree.container 
+            return @template_json_tree.container
                 tree: @json_to_node(result)
 
         #TODO catch RangeError: Maximum call stack size exceeded?
@@ -1177,7 +1178,7 @@ module 'DataExplorerView', ->
                 else
                     sub_values = []
                     for element in value
-                        sub_values.push 
+                        sub_values.push
                             value: @json_to_node element
                         if typeof element is 'string' and (/^(http|https):\/\/[^\s]+$/i.test(element) or  /^[a-z0-9._-]+@[a-z0-9]+.[a-z0-9._-]{2,4}/i.test(element))
                             sub_values[sub_values.length-1]['no_comma'] = true
