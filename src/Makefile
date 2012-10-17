@@ -701,8 +701,8 @@ endif #BUILD_DRIVERS
 protodeps:
 	$(QUIET) cd ../external/protobuf-plugin-closure ; $(MAKE) $(MFLAGS) ;
 
-$(WEB_ASSETS_BUILD_DIR)/rethinkdb.js: drivers
-	$(QUIET) cp -pRP ../drivers/javascript/rethinkdb.js $(WEB_ASSETS_BUILD_DIR)/rethinkdb.js ;
+$(WEB_ASSETS_BUILD_DIR)/js/rethinkdb.js: drivers
+	$(QUIET) cp -pRP ../drivers/javascript/rethinkdb.js $(WEB_ASSETS_BUILD_DIR)/js/rethinkdb.js ;
 
 rpc/semilattice/joins/macros.hpp: ../scripts/generate_join_macros.py
 rpc/serialize_macros.hpp: ../scripts/generate_serialize_macros.py
