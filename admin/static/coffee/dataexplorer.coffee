@@ -1063,12 +1063,12 @@ module 'DataExplorerView', ->
         toggle_size: =>
             if @displaying_full_view
                 @display_normal()
-                $(window).unbind 'resize', @display_full
+                $(window).on 'resize', @display_full
                 @displaying_full_view = false
                 @set_char_per_line()
             else
                 @display_full()
-                $(window).bind 'resize', @display_full
+                $(window).on 'resize', @display_full
                 @displaying_full_view = true
                 @set_char_per_line()
 
@@ -1082,6 +1082,7 @@ module 'DataExplorerView', ->
 
         destroy: =>
             @display_normal()
+            $(window).off 'resize', @display_full
             @input_query.destroy()
             @results_view.destroy()
             try
