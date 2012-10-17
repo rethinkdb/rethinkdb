@@ -1498,7 +1498,7 @@ void admin_cluster_link_t::do_admin_list_databases(const admin_command_parser_t:
 
             if (long_format) {
                 database_info_t info = long_info[i->first];
-                delta.push_back(strprintf("%ld", info.tables));
+                delta.push_back(strprintf("%zu", info.tables));
             }
             table.push_back(delta);
         }
@@ -1551,13 +1551,13 @@ void admin_cluster_link_t::do_admin_list_datacenters(const admin_command_parser_
             if (long_format) {
                 char buffer[64];
                 datacenter_info_t info = long_info[i->first];
-                snprintf(buffer, sizeof(buffer), "%ld", info.machines);
+                snprintf(buffer, sizeof(buffer), "%zu", info.machines);
                 delta.push_back(buffer);
-                snprintf(buffer, sizeof(buffer), "%ld", info.tables);
+                snprintf(buffer, sizeof(buffer), "%zu", info.tables);
                 delta.push_back(buffer);
-                snprintf(buffer, sizeof(buffer), "%ld", info.primaries);
+                snprintf(buffer, sizeof(buffer), "%zu", info.primaries);
                 delta.push_back(buffer);
-                snprintf(buffer, sizeof(buffer), "%ld", info.secondaries);
+                snprintf(buffer, sizeof(buffer), "%zu", info.secondaries);
                 delta.push_back(buffer);
             }
             table.push_back(delta);
@@ -2822,7 +2822,7 @@ void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
             table.push_back(delta);
         }
 
-        printf("affinity with %ld datacenter%s\n", table.size() - 1, table.size() == 2 ? "" : "s");
+        printf("affinity with %zu datacenter%s\n", table.size() - 1, table.size() == 2 ? "" : "s");
         if (table.size() > 1) {
             admin_print_table(table);
         }
@@ -2851,7 +2851,7 @@ void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
                                       cluster_metadata.machines.machines,
                                       &table);
 
-        printf("%ld replica%s for %ld shard%s\n",
+        printf("%zu replica%s for %zu shard%s\n",
                table.size() - 1, table.size() == 2 ? "" : "s",
                ns.shards.get().size(), ns.shards.get().size() == 1 ? "" : "s");
         if (table.size() > 1) {
@@ -2951,7 +2951,7 @@ void admin_cluster_link_t::list_single_datacenter(const datacenter_id_t& dc_id,
         }
     }
 
-    printf("%ld machine%s\n", table.size() - 1, table.size() == 2 ? "" : "s");
+    printf("%zu machine%s\n", table.size() - 1, table.size() == 2 ? "" : "s");
     if (table.size() > 1) {
         admin_print_table(table);
     }
@@ -2974,7 +2974,7 @@ void admin_cluster_link_t::list_single_datacenter(const datacenter_id_t& dc_id,
     add_single_datacenter_affinities(dc_id, cluster_metadata.dummy_namespaces->namespaces, "dummy", &table);
     add_single_datacenter_affinities(dc_id, cluster_metadata.memcached_namespaces->namespaces, "memcached", &table);
 
-    printf("%ld table%s\n", table.size() - 1, table.size() == 2 ? "" : "s");
+    printf("%zu table%s\n", table.size() - 1, table.size() == 2 ? "" : "s");
     if (table.size() > 1) {
         admin_print_table(table);
     }
@@ -3015,7 +3015,7 @@ void admin_cluster_link_t::add_single_datacenter_affinities(const datacenter_id_
                 }
             }
 
-            delta.push_back(strprintf("%ld", replicas));
+            delta.push_back(strprintf("%zu", replicas));
 
             if (replicas > 0) {
                 table->push_back(delta);
@@ -3051,7 +3051,7 @@ void admin_cluster_link_t::list_single_database(const database_id_t& db_id,
     add_single_database_affinities(db_id, cluster_metadata.dummy_namespaces->namespaces, "dummy", &table);
     add_single_database_affinities(db_id, cluster_metadata.memcached_namespaces->namespaces, "memcached", &table);
 
-    printf("%ld table%s\n", table.size() - 1, table.size() == 2 ? "" : "s");
+    printf("%zu table%s\n", table.size() - 1, table.size() == 2 ? "" : "s");
     if (table.size() > 1) {
         admin_print_table(table);
     }
@@ -3126,7 +3126,7 @@ void admin_cluster_link_t::list_single_machine(const machine_id_t& machine_id,
     namespace_count += add_single_machine_replicas(machine_id, cluster_metadata.dummy_namespaces->namespaces, &table);
     namespace_count += add_single_machine_replicas(machine_id, cluster_metadata.memcached_namespaces->namespaces, &table);
 
-    printf("hosting %ld replica%s from %ld table%s\n", table.size() - 1, table.size() == 2 ? "" : "s", namespace_count, namespace_count == 1 ? "" : "s");
+    printf("hosting %zu replica%s from %zu table%s\n", table.size() - 1, table.size() == 2 ? "" : "s", namespace_count, namespace_count == 1 ? "" : "s");
     if (table.size() > 1) {
         admin_print_table(table);
     }
@@ -3285,9 +3285,9 @@ void admin_cluster_link_t::resolve_value(vclock_t<T> *field) {
 
     std::vector<T> values = field->get_all_values();
 
-    printf("%ld values\n", values.size());
+    printf("%zu values\n", values.size());
     for (size_t i = 0; i < values.size(); ++i) {
-        printf(" %ld: %s\n", i + 1, admin_value_to_string(values[i]).c_str());
+        printf(" %zu: %s\n", i + 1, admin_value_to_string(values[i]).c_str());
     }
     printf(" 0: cancel\n");
     printf("select: ");
