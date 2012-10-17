@@ -46,7 +46,7 @@
                 {{#if assigned_to_datacenter}}
                     <span class="big">{{datacenter_name}} </span> datacenter
                 {{else}}
-                    <span jaclass="big">Unassigned </span>datacenter
+                    <span class="big">Unassigned </span>datacenter
                 {{/if}}
             </p>
         </div>
@@ -54,7 +54,7 @@
             <p class="uptime"><span class="big">{{uptime}} </span>uptime</p>
         </div>
         <div class="stat-row">
-            <p class="ips"><span class="big">{{#if ips}}{{main_ip}}{{else}}N/A{{/if}} </span>IP address</p>
+            <p class="ips"><span class="big">{{#if main_ip}}{{main_ip}}{{else}}N/A{{/if}} </span>IP address</p>
         </div>
     </div>
 </script>

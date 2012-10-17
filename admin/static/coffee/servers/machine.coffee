@@ -160,37 +160,33 @@ module 'MachineView', ->
         template: Handlebars.compile $('#machine_view_profile-template').html()
         initialize: =>
             directory.on 'all', @render
-            @model.on 'all', @render
+            @model.on 'all', @render # We listen to all because we listen to stats for the uptime and that we are looking for a nested property
+            @data = {}
 
         render: =>
-            datacenter_uuid = @model.get('datacenter_uuid')
+            #TODO We have no guaranty that this is the main ip...
             ips = if directory.get(@model.get('id'))? then directory.get(@model.get('id')).get('ips') else null
-            json =
-                name: @model.get('name')
-                ips: ips
-                main_ip: ips[0] if ips?
-                nips: if ips then ips.length else 1
-                uptime: if @model.get_stats().proc.uptime? then $.timeago(new Date(Date.now() - @model.get_stats().proc.uptime * 1000)).slice(0, -4) else "N/A"
-                datacenter_uuid: datacenter_uuid
-                global_cpu_util: Math.floor(@model.get_stats().proc.global_cpu_util_avg * 100)
-                global_mem_total: human_readable_units(@model.get_stats().proc.global_mem_total * 1024, units_space)
-                global_mem_used: human_readable_units(@model.get_stats().proc.global_mem_used * 1024, units_space)
-                global_net_sent: if @model.get_stats().proc.global_net_sent_persec? then human_readable_units(@model.get_stats().proc.global_net_sent_persec.avg, units_space) else 0
-                global_net_recv: if @model.get_stats().proc.global_net_recv_persec? then human_readable_units(@model.get_stats().proc.global_net_recv_persec.avg, units_space) else 0
-                machine_disk_space: human_readable_units(@model.get_used_disk_space(), units_space)
-                stats_up_to_date: @model.get('stats_up_to_date')
+            if ips? and ips[0]?
+                main_ip = ips[0]
 
             # If the machine is assigned to a datacenter, add relevant json
-            if datacenters.get(datacenter_uuid)?
-                json = _.extend json,
-                    assigned_to_datacenter: datacenter_uuid
-                    datacenter_name: datacenters.get(datacenter_uuid).get('name')
+            if @model.get('datacenter_uuid') isnt universe_datacenter.get('id')
+                if datacenters.get(@model.get('datacenter_uuid'))?
+                    datacenter_name = datacenters.get(@model.get('datacenter_uuid')).get('name')
+                else
+                    datacenter_name = 'Not found datacenter'
 
-            # Reachability
-            _.extend json,
+            data =
+                main_ip: main_ip
+                uptime: if @model.get_stats().proc.uptime? then $.timeago(new Date(Date.now() - @model.get_stats().proc.uptime * 1000)).slice(0, -4) else "N/A"
+                assigned_to_datacenter: @model.get('datacenter_uuid') isnt universe_datacenter.get('id')
                 reachability: DataUtils.get_machine_reachability(@model.get('id'))
+                datacenter_name: datacenter_name if datacenter_name?
+                #stats_up_to_date: @model.get('stats_up_to_date')
 
-            @.$el.html @template(json)
+            if not _.isEqual @data, data
+                @data = data
+                @.$el.html @template @data
 
             return @
 
