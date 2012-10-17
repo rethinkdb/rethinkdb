@@ -247,7 +247,7 @@ struct reader_t
     }
 
     void start_more_readers() {
-        int limit = std::max(LBA_READ_BUFFER_SIZE / ds->em->extent_size / LBA_SHARD_FACTOR, 1ul);
+        int limit = std::max<int>(LBA_READ_BUFFER_SIZE / ds->em->extent_size / LBA_SHARD_FACTOR, 1);
         while (next_reader != static_cast<int>(readers.size()) && active_readers < limit) {
             readers[next_reader++]->start_reading();
         }

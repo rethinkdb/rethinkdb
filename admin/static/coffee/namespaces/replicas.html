@@ -1,5 +1,6 @@
 <script id="namespace_view-replica-template" type="text/x-handlebars-template">
     <h2 class="title">Replication settings</h2>
+    <div class="alert alert-error no_datacenter_found">The primary datacenter of this table was not found. Please specify another primary datacenter (or Universe).</div>
     <div class="row-fluid">
         <div class="span3 tabbable tabs-left datacenters_list_container"></div>
         <div class="span9 tab-content datacenter_content"></div>
@@ -32,9 +33,9 @@
                 Secondary
             {{/if}}
         </p>
-        <div class="make_primary-alert">
+        <div class="make_primary-alert alert">
             <div class="close" href="#">&times;</div>
-            <div class="make_primary-alert-content"></div>
+            <p class="make_primary-alert-content"></p>
         </div>
     </div>
     <div class="dc-info replica_container">
@@ -60,7 +61,7 @@
                 <p class="value">{{acks}}</p>
             {{/if}}
         </div>
-        <div class="replicas_acks-alert"></div>
+        <div class="replicas_acks-alert alert"></div>
     </div>
     <div class="dc-info progress_bar_full_container">
         <div class="progress_bar_container"></div>
@@ -68,7 +69,7 @@
     <div class="dc-info">
         <p class="caption">Status</p>
         <p class="value status_details"></p>
-        <div class="status-alert"></div>
+        <div class="status-alert alert"></div>
     </div>
 </script>
 <script id="namespace_view-edit_datacenter_replica-alert_messages-template" type="text/x-handlebars-template">
@@ -121,10 +122,7 @@
 </script>
 
 <script id="changed_primary_dc-replica-template" type="text/x-handlebars-template">
-  <div class="alert" data-alert="alert">
-    <a class="close" href="#">&times;</a>
-    <p>You successfully changed the primary datacenter for table <a href="/#tables/{{namespace_uuid}}">{{namespace_name}}</a> from <a href="/#datacenters/{{old_datacenter_uuid}}">{{old_datacenter_name}}</a> to <a href="/#datacenters/{{datacenter_uuid}}">{{datacenter_name}}</a>.</p>
-  </div>
+    You successfully set this datacenter as primary.
 </script>
 
 <script id="modified_replica-alert-template" type="text/x-handlebars-template">

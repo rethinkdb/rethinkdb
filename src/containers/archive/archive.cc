@@ -67,6 +67,7 @@ int send_write_message(write_stream_t *s, const write_message_t *msg) {
 
 
 write_message_t &operator<<(write_message_t &msg, const uuid_t &uuid) {
+    rassert(!uuid.is_unset());
     msg.append(uuid.data(), uuid_t::static_size());
     return msg;
 }

@@ -118,10 +118,11 @@ boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > > extra
  * Otherwise it will return false and best_backfiller_out will be unmodified.
  */
 template <class protocol_t>
-run_until_satisfied_result_t reactor_t<protocol_t>::is_safe_for_us_to_be_primary(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &_reactor_directory, 
+bool reactor_t<protocol_t>::is_safe_for_us_to_be_primary(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &_reactor_directory, 
                                                          const blueprint_t<protocol_t> &blueprint,
                                                          const typename protocol_t::region_t &region, best_backfiller_map_t *best_backfiller_out,
-                                                         branch_history_t<protocol_t> *branch_history_to_merge_out)
+                                                         branch_history_t<protocol_t> *branch_history_to_merge_out,
+                                                         bool *merge_branch_history_out)
 {
     typedef reactor_business_card_t<protocol_t> rb_t;
 
@@ -141,7 +142,7 @@ run_until_satisfied_result_t reactor_t<protocol_t>::is_safe_for_us_to_be_primary
 
         typename std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > >::const_iterator bcard_it = _reactor_directory.find(p_it->first);
         if (bcard_it == _reactor_directory.end()) {
-            return RUN_AGAIN;
+            return false;
         }
 
         std::vector<typename protocol_t::region_t> regions;
@@ -160,7 +161,8 @@ run_until_satisfied_result_t reactor_t<protocol_t>::is_safe_for_us_to_be_primary
                                 bt != bh.branches.end(); ++bt) {
                             if (!std_contains(known_branchs, bt->first)) {
                                 *branch_history_to_merge_out = bh;
-                                return ABORT;
+                                *merge_branch_history_out = true;
+                                return true;
                             }
                         }
 
@@ -179,7 +181,8 @@ run_until_satisfied_result_t reactor_t<protocol_t>::is_safe_for_us_to_be_primary
                                 bt != bh.branches.end(); ++bt) {
                             if (!std_contains(known_branchs, bt->first)) {
                                 *branch_history_to_merge_out = bh;
-                                return ABORT;
+                                *merge_branch_history_out = true;
+                                return true;
                             }
                         }
 
@@ -195,10 +198,10 @@ run_until_satisfied_result_t reactor_t<protocol_t>::is_safe_for_us_to_be_primary
                     } else if(boost::get<typename rb_t::nothing_when_done_erasing_t>(&it->second.activity)) {
                         //Everything's fine this peer cannot obstruct us so we shall proceed
                     } else {
-                        return RUN_AGAIN;
+                        return false;
                     }
                 } catch (divergent_data_exc_t) {
-                    return RUN_AGAIN;
+                    return false;
                 }
             }
         }
@@ -210,11 +213,11 @@ run_until_satisfied_result_t reactor_t<protocol_t>::is_safe_for_us_to_be_primary
         switch (join_result) {
         case REGION_JOIN_OK:
             if (join != region) {
-                return RUN_AGAIN;
+                return false;
             }
             break;
         case REGION_JOIN_BAD_REGION:
-            return RUN_AGAIN;
+            return false;
         case REGION_JOIN_BAD_JOIN:
             crash("Overlapping activities in directory, this can only happen due to programmer error.\n");
         default:
@@ -228,12 +231,14 @@ run_until_satisfied_result_t reactor_t<protocol_t>::is_safe_for_us_to_be_primary
      * until the most up to date data for a region is coherent. */
     for (typename best_backfiller_map_t::iterator it = res.begin(); it != res.end(); ++it) {
         if (!it->second.version_range.is_coherent()) {
-            return RUN_AGAIN;
+            return false;
         }
     }
 
     *best_backfiller_out = res;
-    return SATISFIED;
+
+    *merge_branch_history_out = false;
+    return true;
 }
 
 /* This function helps initialize best backfiller maps, by constructing
@@ -310,16 +315,23 @@ bool reactor_t<protocol_t>::attempt_backfill_from_peers(directory_entry_t *direc
      * will describe how to fill the store with the most up-to-date
      * data. */
 
+    /* Notice this run until satisfied can return for one of two reasons.
+     * Either it returns because it is safe for us to be primary or it returns
+     * because we found someone with a branch history we didn't know about and
+     * we need to merge it in. This has to be done outside of run until
+     * satisfied because it can't block. */
+
     while (true) {
         branch_history_t<protocol_t> branch_history_to_merge;
-        run_until_satisfied_result_t res = abortable_run_until_satisfied_2(directory_echo_mirror.get_internal(),
+        bool i_should_merge_branch_history = false;
+        run_until_satisfied_2(directory_echo_mirror.get_internal(),
                               blueprint,
-                              boost::bind(&reactor_t<protocol_t>::is_safe_for_us_to_be_primary, this, _1, _2, region, &best_backfillers, &branch_history_to_merge),
+                              boost::bind(&reactor_t<protocol_t>::is_safe_for_us_to_be_primary, this, _1, _2, region, &best_backfillers, &branch_history_to_merge, &i_should_merge_branch_history),
                               interruptor);
-        if (res == SATISFIED) {
-            break;
-        } else if (res == ABORT) {
+        if (i_should_merge_branch_history) {
             branch_history_manager->import_branch_history(branch_history_to_merge, interruptor);
+        } else {
+            break;
         }
     }
 

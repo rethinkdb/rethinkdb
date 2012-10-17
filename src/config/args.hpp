@@ -1,10 +1,10 @@
 #ifndef CONFIG_ARGS_HPP_
 #define CONFIG_ARGS_HPP_
 
-#define KILOBYTE 1024L
-#define MEGABYTE (KILOBYTE*1024L)
-#define GIGABYTE (MEGABYTE*1024L)
-#define TERABYTE (GIGABYTE*1024L)
+#define KILOBYTE 1024LL
+#define MEGABYTE (KILOBYTE * 1024LL)
+#define GIGABYTE (MEGABYTE * 1024LL)
+#define TERABYTE (GIGABYTE * 1024LL)
 
 /*!
  * Version strings
@@ -135,7 +135,7 @@
 // transactions will be throttled.
 // A value of 0 means that it will automatically be set to MAX_UNSAVED_DATA_LIMIT_FRACTION
 // times the max cache size
-#define DEFAULT_UNSAVED_DATA_LIMIT                4096 * MEGABYTE
+#define DEFAULT_UNSAVED_DATA_LIMIT                (4096 * MEGABYTE)
 
 // The unsaved data limit cannot exceed this fraction of the max cache size
 #define MAX_UNSAVED_DATA_LIMIT_FRACTION           0.9
@@ -158,7 +158,7 @@
 #define MAX_IN_NODE_VALUE_SIZE                    250
 
 // memcached specifies the maximum value size to be 1MB, but customers asked this to be much higher
-#define MAX_VALUE_SIZE                            10 * MEGABYTE
+#define MAX_VALUE_SIZE                            (10 * MEGABYTE)
 
 // Values larger than this will be streamed in a get operation
 #define MAX_BUFFERED_GET_SIZE                     MAX_VALUE_SIZE // streaming is too slow for now, so we disable it completely

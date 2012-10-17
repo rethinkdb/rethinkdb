@@ -13,7 +13,7 @@ distribution_result_t memcached_distribution_get(btree_slice_t *slice, int max_d
     if (key_splits.size() == 0) {
         keys_per_bucket = key_count_out;
     } else  {
-        keys_per_bucket = std::max(key_count_out / key_splits.size(), 1ul);
+        keys_per_bucket = std::max<int64_t>(key_count_out / key_splits.size(), 1);
     }
     res.key_counts[left_key] = keys_per_bucket;
 

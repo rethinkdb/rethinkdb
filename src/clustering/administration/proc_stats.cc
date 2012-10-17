@@ -155,11 +155,11 @@ public:
 
             char *_memtotal = strcasestr(buffer, "MemTotal");
             if (_memtotal) {
-                res = sscanf(_memtotal, "MemTotal:%*[ ]%ld kB", &stat.mem_total);
+                res = sscanf(_memtotal, "MemTotal:%*[ ]%" SCNi64 " kB", &stat.mem_total);
             }
             char *_memfree = strcasestr(buffer, "MemFree");
             if (_memfree) {
-                res = sscanf(_memfree, "MemFree:%*[ ]%ld kB", &stat.mem_free);
+                res = sscanf(_memfree, "MemFree:%*[ ]%" SCNi64 "kB", &stat.mem_free);
             }
         }
 
@@ -180,7 +180,7 @@ public:
             }
             buffer[res] = '\0';
 
-            res = sscanf(buffer, "cpu%*[ ]%ld %ld %ld %ld %ld",
+            res = sscanf(buffer, "cpu%*[ ]%" SCNi64 " %" SCNi64 " %" SCNi64 " %" SCNi64 " %" SCNi64,
                          &stat.utime, &stat.ntime, &stat.stime, &stat.itime, &stat.wtime);
 
             // Compute the number of cores
@@ -219,14 +219,14 @@ public:
                 if (netinfo) {
                     netinfo += 2;
                     int64_t recv, sent;
-                    res = sscanf(netinfo, "%ld%*[ ]%*d%*[ ]%*d%*[ ]%*d%*[ ]%*d%*[ ]%*d%*[ ]%*d%*[ ]%*d%*[ ]%ld%*[ ]", &recv, &sent);
+                    res = sscanf(netinfo, "%" SCNi64 "%*[ ]%*d%*[ ]%*d%*[ ]%*d%*[ ]%*d%*[ ]%*d%*[ ]%*d%*[ ]%*d%*[ ]%" SCNi64 "%*[ ]", &recv, &sent);
                     if (res == 2) {
                         stat.bytes_received += recv;
                         stat.bytes_sent += sent;
                     }
                 }
             } while (netinfo);
-            res = sscanf(buffer, "cpu%*[ ]%ld %ld %ld %ld %ld",
+            res = sscanf(buffer, "cpu%*[ ]%" SCNi64 " %" SCNi64 " %" SCNi64 " %" SCNi64 " %" SCNi64,
                          &stat.utime, &stat.ntime, &stat.stime, &stat.itime, &stat.wtime);
         }
 
@@ -278,7 +278,7 @@ perfmon_result_t *proc_stats_collector_t::instantaneous_stats_collector_t::end_s
     // Basic process stats (version, pid, uptime)
     struct timespec now = clock_monotonic();
 
-    result->insert("uptime", new perfmon_result_t(strprintf("%ld", now.tv_sec - start_time)));
+    result->insert("uptime", new perfmon_result_t(strprintf("%" PRIu64, now.tv_sec - start_time)));
     result->insert("timestamp", new perfmon_result_t(format_time(now)));
 
     result->insert("version", new perfmon_result_t(std::string(RETHINKDB_VERSION)));
@@ -286,12 +286,12 @@ perfmon_result_t *proc_stats_collector_t::instantaneous_stats_collector_t::end_s
 
     try {
         proc_pid_stat_t pid_stat = proc_pid_stat_t::for_pid(getpid());
-        result->insert("memory_virtual", new perfmon_result_t(strprintf("%lu", pid_stat.vsize)));
-        result->insert("memory_real", new perfmon_result_t(strprintf("%ld", pid_stat.rss * sysconf(_SC_PAGESIZE))));
+        result->insert("memory_virtual", new perfmon_result_t(strprintf("%" PRIu64, pid_stat.vsize)));
+        result->insert("memory_real", new perfmon_result_t(strprintf("%" PRIi64, pid_stat.rss * sysconf(_SC_PAGESIZE))));
 
         global_sys_stat_t global_stat = global_sys_stat_t::read_global_stats();
-        result->insert("global_mem_total", new perfmon_result_t(strprintf("%ld", global_stat.mem_total)));
-        result->insert("global_mem_used", new perfmon_result_t(strprintf("%ld", global_stat.mem_total - global_stat.mem_free)));
+        result->insert("global_mem_total", new perfmon_result_t(strprintf("%" PRIi64, global_stat.mem_total)));
+        result->insert("global_mem_used", new perfmon_result_t(strprintf("%" PRIi64, global_stat.mem_total - global_stat.mem_free)));
     } catch (const std::runtime_error &e) {
         logWRN("Error in collecting system stats (on demand): %s", e.what());
     }

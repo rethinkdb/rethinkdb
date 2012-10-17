@@ -1,4 +1,17 @@
+#ifndef __STDC_FORMAT_MACROS
+#define __STDC_FORMAT_MACROS
+#endif
+#ifndef __STDC_LIMIT_MACROS
+#define __STDC_LIMIT_MACROS
+#endif
+
+#include <inttypes.h>
+
 #include "http/json/json_adapter.hpp"
+
+#include <limits>
+
+#include "utils.hpp"
 
 bool is_null(cJSON *json) {
     return json->type == cJSON_NULL;
@@ -24,11 +37,19 @@ std::string get_string(cJSON *json) {
     }
 }
 
-int get_int(cJSON *json) {
+int64_t get_int(cJSON *json, int64_t min_value, int64_t max_value) {
     if (json->type == cJSON_Number) {
-        return json->valueint;
+        int64_t value = static_cast<int64_t>(json->valuedouble);
+        if (static_cast<double>(value) != json->valuedouble) {
+            throw schema_mismatch_exc_t(strprintf("Expected int instead got non-integer: %s\n", cJSON_print_std_string(json).c_str()).c_str());
+        }
+        if (value < min_value || value > max_value) {
+            throw schema_mismatch_exc_t(strprintf("Expected int in range (%" PRIi64 " to %" PRIi64 ") but instead got: %s\n", min_value, max_value, cJSON_print_std_string(json).c_str()).c_str());
+        }
+
+        return value;
     } else {
-        throw schema_mismatch_exc_t(strprintf("Expected int instead got: %s\n", cJSON_print_std_string(json).c_str()).c_str());
+        throw schema_mismatch_exc_t(strprintf("Expected int instead got a non-number: %s\n", cJSON_print_std_string(json).c_str()).c_str());
     }
 }
 
@@ -130,22 +151,6 @@ void json_adapter_if_t::reset() {
     }
 }
 
-// ctx-less JSON adapter for time_t
-json_adapter_if_t::json_adapter_map_t get_json_subfields(time_t *) {
-    return json_adapter_if_t::json_adapter_map_t();
-}
-
-cJSON *render_as_json(time_t *target) {
-    return cJSON_CreateNumber(*target);
-}
-
-void apply_json_to(cJSON *change, time_t *target) {
-    *target = get_int(change);
-}
-
-void on_subfield_change(time_t *) { }
-
-
 // ctx-less JSON adapter for bool
 json_adapter_if_t::json_adapter_map_t get_json_subfields(bool *) {
     return json_adapter_if_t::json_adapter_map_t();
@@ -219,17 +224,34 @@ json_adapter_if_t::json_adapter_map_t get_json_subfields(uint64_t *) {
 }
 
 cJSON *render_as_json(uint64_t *target) {
+    // TODO: Should we not fail when we cannot convert to double (or when we go outside 53-bit range?)
     return cJSON_CreateNumber(*target);
 }
 
 void apply_json_to(cJSON *change, uint64_t *target) {
-    *target = get_int(change);
+    *target = get_int(change, 0, INT64_MAX);
 }
 
 void on_subfield_change(uint64_t *) { }
 
+// ctx-less JSON adapter for int64_t.
+json_adapter_if_t::json_adapter_map_t get_json_subfields(int64_t *) {
+    return json_adapter_if_t::json_adapter_map_t();
+}
 
-// ctx-less JSON adapter for int
+cJSON *render_as_json(int64_t *target) {
+    // TODO: Should we not fail when we cannot convert to double (or when we go outside 53-bit range?)
+    return cJSON_CreateNumber(*target);
+}
+
+void apply_json_to(cJSON *change, int64_t *target) {
+    *target = get_int(change, INT64_MIN, INT64_MAX);
+}
+
+void on_subfield_change(int64_t *) { }
+
+
+// ctx-less JSON adapter for int  (TODO: Should we not be only using int32_t?  FFS.)
 json_adapter_if_t::json_adapter_map_t get_json_subfields(int *) {
     return json_adapter_if_t::json_adapter_map_t();
 }
@@ -239,7 +261,7 @@ cJSON *render_as_json(int *target) {
 }
 
 void apply_json_to(cJSON *change, int *target) {
-    *target = get_int(change);
+    *target = get_int(change, INT_MIN, INT_MAX);
 }
 
 void on_subfield_change(int *) { }
