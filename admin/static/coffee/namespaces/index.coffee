@@ -22,26 +22,21 @@ module 'NamespaceView', ->
             @add_namespace_dialog = new NamespaceView.AddNamespaceModal
             @remove_namespace_dialog = new NamespaceView.RemoveNamespaceModal
 
-            super databases, NamespaceView.DatabaseListElement, '.collapsible-list'
+            super databases, NamespaceView.DatabaseListElement, '.collapsible-list', {}, 'database', 'cluster'
 
             @datacenters_length = -1
             @databases_length = -1
             datacenters.on 'all', @update_button_create_namespace
             databases.on 'all', @update_button_create_namespace
+            @can_create_namespace = true
 
         update_button_create_namespace: =>
-            need_update = false
-            if (datacenters.models.length>0) isnt (@datacenters_length>0) or @datacenters_length is -1
-                need_update = true
-                @datacenters_length = datacenters.models.length
-            if (databases.models.length>0) isnt (@databases_length>0) or @databases_length is -1
-                need_update = true
-                @databases_length = databases.models.length
-
-            if need_update
-                @.$('.user_alert_space-cannot_create_namespace').html ''
-                @.$('.user_alert_space-cannot_create_namespace').css 'display', 'none'
+            if databases.length is 0 and @can_create_namespace is true
+                @.$('.add-namespace').prop 'disabled', 'disabled'
+                @.$('.user_alert_space-cannot_create_namespace').show()
+            else if databases.length > 0 and @can_create_namespace is false
                 @.$('.add-namespace').removeProp 'disabled'
+                @.$('.user_alert_space-cannot_create_namespace').hide()
 
         render: (message) =>
             super
@@ -98,7 +93,12 @@ module 'NamespaceView', ->
 
         # Callback that will be registered: updates the toolbar buttons based on how many namespaces have been selected
         update_toolbar_buttons: =>
-            @.$('.btn.remove-namespace').toggleClass 'disabled', @get_selected_namespaces().length < 1
+            if @get_selected_namespaces().length < 1 and @.$('.btn.remove-namespace').prop('disabled') is false
+                @.$('.btn.remove-namespace').prop 'disabled', 'disabled'
+                @.$('.btn.remove-namespace').addClass 'disabled'
+            else if @get_selected_namespaces().length > 0 and @.$('.btn.remove-namespace').prop('disabled') is true
+                @.$('.btn.remove-namespace').removeProp 'disabled'
+                @.$('.btn.remove-namespace').removeClass 'disabled'
 
         destroy: =>
             super

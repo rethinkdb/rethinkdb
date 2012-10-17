@@ -51,7 +51,7 @@ int64_t perfmon_counter_t::combine_stats(padded_int64_t *data) {
 }
 
 perfmon_result_t *perfmon_counter_t::output_stat(const int64_t &stat) {
-    return new perfmon_result_t(strprintf("%ld", stat));
+    return new perfmon_result_t(strprintf("%" PRIi64, stat));
 }
 
 /* perfmon_sampler_t */

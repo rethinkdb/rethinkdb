@@ -105,9 +105,12 @@
 
 <script id="remove_datacenter-modal-template" type="text/x-handlebars-template">
     {{#if datacenter_is_primary}}
-        <div class="alert alert-error">This datacenter cannot be deleted because it acts as primary for the following tables: {{links_to_namespaces_inline namespaces_where_primary "replication"}}</div>
+    <div class="alert alert-error displayed_alert">
+        <p>This datacenter is primary for the following tables: {{links_to_namespaces_inline namespaces_where_primary}}.<br/>
+        Deleting this datacenter will result in a loss of availability.</p>
+    </div>
     {{/if}}
-    <div class="alert alert-error">Removing the datacenter will remove all the responsabilities of the servers in it.</div>
+    <div class="alert alert-error displayed_alert">Removing the datacenter will remove all the responsabilities of the servers in it.</div>
     <div class="alert alert-error error_answer"></div>
     <p>Are you sure you want to remove this datacenter <a href="#datacenters/{{id}}">{{name}}</a>?</p>
 </script>
