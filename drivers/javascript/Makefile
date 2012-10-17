@@ -27,8 +27,12 @@ OUTPUTMODE=compiled
 
 JSDOC=/usr/share/jsdoc-toolkit/jsrun.jar
 
+all: lib
+
 # Compile the rethinkdb library
-lib: query_language.pb.js protodeps
+lib: rethinkdb.js
+
+rethinkdb.js: rethinkdb/query_language.pb.js $(PROTOC_JS_HOME_DIR)/protoc-gen-js
 ifeq ($(VERBOSE),0)
 	@echo "    CAT > rethinkdb.js"
 endif
@@ -48,7 +52,7 @@ endif
 		<(echo "}).call(this);") > rethinkdb.js'
 
 # Compile the javascript stubs for the rethinkdb protocol
-query_language.pb.js: $(PROTO_FILE) protodeps
+rethinkdb/query_language.pb.js: $(PROTO_FILE) $(PROTOC_JS_HOME_DIR)/protoc-gen-js
 ifeq ($(VERBOSE),0)
 	@echo "    PROTOC $@"
 endif
@@ -73,7 +77,9 @@ ifeq ($(VERBOSE),0)
 endif
 	$(QUIET) if [ -e rethinkdb/query_language.pb.js ] ; then rm rethinkdb/query_language.pb.js ; fi ;
 
-protodeps:
+protodeps: $(PROTOC_JS_HOME_DIR)/protoc-gen-js
+
+$(PROTOC_JS_HOME_DIR)/protoc-gen-js:
 	$(QUIET) cd ../../external/protobuf-plugin-closure ; $(MAKE) $(MFLAGS) ;
 
 protodeps-clean:
