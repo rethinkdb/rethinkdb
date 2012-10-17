@@ -853,10 +853,15 @@ module 'DataExplorerView', ->
                                 @current_results.push data
                             return false
                     else #  Else if it's not the last query, we just execute the next query
-                        if @cursor?
-                            @cursor.close()
-                        @cursor = eval(@queries[@current_query_index])
-                        @cursor.next(callback_multiple_queries)
+                        try
+                            if @cursor?
+                                @cursor.close()
+
+                            @cursor = eval(@queries[@current_query_index])
+                            @cursor.next(callback_multiple_queries)
+                        catch err
+                            @.$('.loading_query_img').css 'display', 'none'
+                            @results_view.render_error(@query, err)
 
                     return false
                 else
