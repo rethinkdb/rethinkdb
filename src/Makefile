@@ -690,33 +690,19 @@ oprof-report:
 	@echo "    OPREPORT[$(OPROF_BINARY)] -> $(OPROF_RESULT)"
 	$(QUIET) opreport --merge=lib,unitmask -a --symbols --callgraph --threshold 1 --sort sample "--session-dir=$(realpath $(OPROF_SESSION))" -l "$(realpath $(OPROF_BINARY))" > $(OPROF_RESULT)
 
-PYTHON_PBDIR:=../build/drivers/python
-PYTHON_PBFILE:=query_language_pb2.py
-RUBY_PBDIR:=../build/drivers/ruby
-RUBY_PBFILE:=query_language.pb.rb
+drivers: protodeps
 ifeq ($(BUILD_DRIVERS), 1)
-$(PYTHON_PBDIR):
-	$(QUIET) mkdir -p $(PYTHON_PBDIR)
-$(RUBY_PBDIR):
-	$(QUIET) mkdir -p $(RUBY_PBDIR)
-
-drivers: $(PYTHON_PBDIR)/rdb_protocol/$(PYTHON_PBFILE) $(RUBY_PBDIR)/$(RUBY_PBFILE)
-PROTOFILE:=$(SOURCE_DIR)/rdb_protocol/query_language.proto
-$(PYTHON_PBDIR)/rdb_protocol/$(PYTHON_PBFILE): $(PYTHON_PBDIR) $(PROTOFILE)
-ifeq ($(VERBOSE),0)
-	@echo "    PROTOC[PY] $(PROTOFILE)"
-endif
-	$(QUIET) protoc $(PROTOCFLAGS) --python_out $(PYTHON_PBDIR) $(PROTOFILE)
-
-$(RUBY_PBDIR)/$(RUBY_PBFILE): $(RUBY_PBDIR) $(PROTOFILE)
-ifeq ($(VERBOSE),0)
-	@echo "    PROTOC[RB] $(PROTOFILE)"
-endif
-	$(QUIET) rprotoc $(PROTOCFLAGS) --out $(RUBY_PBDIR) $(PROTOFILE) | \
-		(grep -v 'writing...' || true)
+	$(QUIET) cd ../drivers ; $(MAKE) $(MFLAGS) ;
 else
-drivers:
+	$(QUIET) cd ../drivers/javascript ; $(MAKE) $(MFLAGS) ;
 endif #BUILD_DRIVERS
+
+
+protodeps:
+	$(QUIET) cd ../external/protobuf-plugin-closure ; $(MAKE) $(MFLAGS) ;
+
+$(WEB_ASSETS_BUILD_DIR)/rethinkdb.js: drivers
+	$(QUIET) cp -pRP ../drivers/javascript/rethinkdb.js $(WEB_ASSETS_BUILD_DIR)/rethinkdb.js ;
 
 rpc/semilattice/joins/macros.hpp: ../scripts/generate_join_macros.py
 rpc/serialize_macros.hpp: ../scripts/generate_serialize_macros.py
@@ -725,7 +711,7 @@ rpc/mailbox/typed.hpp: ../scripts/generate_rpc_templates.py
 rpc/semilattice/joins/macros.hpp rpc/serialize_macros.hpp rpc/mailbox/typed.hpp:
 	$< > $@
 
-web-assets: $(WEB_ASSETS_BUILD_DIR)/cluster-min.js $(WEB_ASSETS_BUILD_DIR)/cluster.css $(WEB_ASSETS_BUILD_DIR)/index.html $(WEB_ASSETS_BUILD_DIR)/js $(WEB_ASSETS_BUILD_DIR)/images $(WEB_ASSETS_BUILD_DIR)/favicon.ico
+web-assets: $(WEB_ASSETS_BUILD_DIR)/cluster-min.js $(WEB_ASSETS_BUILD_DIR)/cluster.css $(WEB_ASSETS_BUILD_DIR)/index.html $(WEB_ASSETS_BUILD_DIR)/js $(WEB_ASSETS_BUILD_DIR)/images $(WEB_ASSETS_BUILD_DIR)/favicon.ico $(WEB_ASSETS_BUILD_DIR)/rethinkdb.js
 
 $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee: $(COFFEE_SOURCES)
 	$(QUIET) mkdir -p $(WEB_ASSETS_OBJ_DIR)
