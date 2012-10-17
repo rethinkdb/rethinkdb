@@ -12,8 +12,8 @@ module 'NamespaceView', ->
         error_ajax_template: Handlebars.compile $('#edit_shards-ajax_error-template').html()
         alert_shard_template: Handlebars.compile $('#alert_shard-template').html()
         reasons_cannot_shard_template: Handlebars.compile $('#shards-reason_cannot_shard-template').html()
-
         shards_status_template: Handlebars.compile $('#shards_status-template').html()
+
         className: 'shards_container'
 
         events:

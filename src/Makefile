@@ -376,7 +376,7 @@ COFFEE_SOURCES:=$(patsubst %, $(WEB_SOURCE_DIR)/static/coffee/%,\
 			body.coffee \
 			ui_components/modals.coffee ui_components/list.coffee \
 			namespaces/database.coffee \
-			namespaces/index.coffee namespaces/replicas.coffee namespaces/shards.coffee namespaces/server_assignments.coffee namespaces/machines.coffee namespaces/namespace.coffee \
+			namespaces/index.coffee namespaces/replicas.coffee namespaces/shards.coffee namespaces/server_assignments.coffee namespaces/namespace.coffee \
 			servers/index.coffee servers/machine.coffee servers/datacenter.coffee \
 			dashboard.coffee \
 			dataexplorer.coffee \

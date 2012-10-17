@@ -5,7 +5,6 @@ module 'NamespaceView', ->
         className: 'namespace-replicas'
         template: Handlebars.compile $('#namespace_view-replica-template').html()
         datacenter_list_template: Handlebars.compile $('#namespace_view-replica-datacenters_list-template').html()
-        alert_tmpl: Handlebars.compile $('#changed_primary_dc-replica-template').html()
 
         events:
             'click .nav_datacenter': 'handle_click_datacenter'
@@ -94,6 +93,7 @@ module 'NamespaceView', ->
         replicas_ajax_error_template: Handlebars.compile $('#namespace_view-edit_datacenter_replica-ajax_error-template').html()
         need_replicas_template: Handlebars.compile $('#need_replicas-template').html()
         progress_bar_template: Handlebars.compile $('#backfill_progress_bar').html()
+        success_set_primary: Handlebars.compile $('#changed_primary_dc-replica-template').html()
         states: ['read_only', 'editable']
 
         events:
@@ -394,15 +394,21 @@ module 'NamespaceView', ->
                 primary_uuid: new_dc.get('id')
                 replica_affinities: new_affinities
                 primary_pinnings: primary_pinnings
-            
+            @data_cached = data
             $.ajax
                 processData: false
                 url: "/ajax/semilattice/#{@model.get("protocol")}_namespaces/#{@model.get('id')}"
                 type: 'POST'
                 contentType: 'application/json'
                 data: JSON.stringify data
-                success: => @model.set data
+                success: @on_success
                 error: @on_error
+
+        on_success: => #TODO
+            @model.set @data_cached
+            @.$('.make_primary-alert-content').html @success_set_primary()
+            @.$('.make_primary-alert').slideDown 'fast'
+
 
         destroy: =>
             @datacenter.off 'all', @render

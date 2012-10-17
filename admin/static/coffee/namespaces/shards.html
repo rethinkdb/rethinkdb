@@ -18,7 +18,7 @@
 <script id="view_shards-template" type="text/x-handlebars-template">
     <button class="btn edit">Edit</button>
     <p class="icon_paragraph"><span class="big">{{num_shards}}</span> <span class="shard_text">{{pluralize_noun "shard" num_shards}}</span></p> 
-    <div class="cannot_shard-alert"></div>
+    <div class="cannot_shard-alert alert"></div>
 </script>
 
 
@@ -26,7 +26,7 @@
     <button class="btn cancel">&times;</button>
     <button class="btn rebalance">Rebalance</button>
     <p class="icon_paragraph"><input class="num-shards" type="text" value="{{num_shards}}" />  <span class="shard_text">{{pluralize_noun "shard" num_shards}}</span></p>
-    <div class="cannot_shard-alert"></div>
+    <div class="cannot_shard-alert alert"></div>
 </script>
 
 
