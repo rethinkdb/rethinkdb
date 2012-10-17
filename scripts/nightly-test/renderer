@@ -552,7 +552,7 @@ def list():
                         root.setResults(initialResults);
                         root.setOutput(initialOutput);
                         document.getElementsByTagName("body")[0].appendChild(root.element);
-                        setInterval("refresh()", 1000);
+                        refresh();
                     };
                 </script>
             </head>
