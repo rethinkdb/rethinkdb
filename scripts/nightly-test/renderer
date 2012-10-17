@@ -644,7 +644,7 @@ def build(name):
                         root.setResult(initialResult);
                         root.setOutput(initialOutput);
                         document.getElementsByTagName("body")[0].appendChild(root.element);
-                        setInterval("refresh()", 1000);
+                        refresh();
                     }
                 </script>
             </head>
@@ -731,7 +731,7 @@ def test(name):
                         root = new TestRootRenderer();
                         root.setResult(initialResult);
                         document.getElementsByTagName("body")[0].appendChild(root.element);
-                        setInterval("refresh()", 1000);
+                        refresh();
                     };
                 </script>
             </head>
@@ -964,7 +964,8 @@ def round(name, round):
                         root.setFiles(initialFiles);
                         document.getElementsByTagName("body")[0].appendChild(root.element);
                         if (!(initialResult.status == "pass" || initialResult.status == "fail" || initialResult.status == "bug")) {
-                            theRefreshTimer = setInterval("refresh()", 1000);
+                            // TODO: This refresh timer is not meant to refresh -- just a hack to stop us from refreshing.
+                            theRefreshTimer = setInterval("refresh()", 1000000000);
                         }
                     };
                 </script>
