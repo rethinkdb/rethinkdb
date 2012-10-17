@@ -131,11 +131,23 @@ public:
          * actually run. */
         reactor_has_been_initialized_.wait_lazily_unordered();
 
+        /* XXX the order in which the perform the operations is important and
+         * will cause bugs if any changes are made. */
+
+        /* First we destroy the subscription, this is because anytime this
+         * subscription receives a notification it propagates it to the reactor
+         * which we are about to destroy. If this line were after the reactory
+         * destruction we would get segfaults in on_change. */
         reactor_directory_subscription_.reset();
 
-        /* Destroy the reactor. (Dun dun duhnnnn...) */
+        /* Destroy the reactor. (Dun dun duhnnnn...). Next we destroy the
+         * reactor. We need to do this before we remove the reactor bcard. This
+         * is because there exists parts of the be_[role] (be_primary,
+         * be_secondary etc.) function which assume that the reactors own bcard
+         * will be in place for their duration. */
         reactor_.reset();
 
+        /* Finally we remove the reactor bcard. */
         {
             mutex_assertion_t::acq_t acq(&parent_->watchable_variable_lock);
             namespaces_directory_metadata_t<protocol_t> directory = parent_->watchable_variable.get_watchable()->get();
