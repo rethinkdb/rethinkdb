@@ -890,13 +890,16 @@ ifeq ($(VERBOSE),0)
 endif
 	$(QUIET) if test -d $(BUILD_ROOT_DIR); then find $(BUILD_ROOT_DIR) -name '*.d' -exec rm {} \; ; fi
 
-clean:
+clean: clean-drivers
 ifeq ($(VERBOSE),0)
 	@echo "    RM *~"
 	@echo "    RM -r $(BUILD_ROOT_DIR)"
 endif
 	$(QUIET) find -name '*~' -exec rm {} \;
 	$(QUIET) rm -rf $(BUILD_ROOT_DIR)
+
+clean-drivers:
+	$(QUIET) cd ../drivers ; $(MAKE) $(MFLAGS) clean ;
 
 # Directories
 $(BUILD_DIR):

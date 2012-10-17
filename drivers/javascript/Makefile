@@ -45,11 +45,14 @@ docs: rethinkdb.js
 	make -C docs/ html
 	cp -r docs/_build/* /var/www/jsdocs/
 
-clean:
+clean: protodeps-clean
 	rm -rf rethinkdb.js
 	rm -rf rethinkdb.js.map
 	rm -rf rethinkdb/query_language.pb.js
 
 protodeps:
 	$(QUIET) cd ../../external/protobuf-plugin-closure ; $(MAKE) $(MFLAGS) ;
+
+protodeps-clean:
+	$(QUIET) cd ../../external/protobuf-plugin-closure ; $(MAKE) $(MFLAGS) clean ;
 

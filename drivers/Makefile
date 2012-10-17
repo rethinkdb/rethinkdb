@@ -34,3 +34,5 @@ endif
 driver-javascript:
 	$(QUIET) cd javascript ; $(MAKE) $(MFLAGS) ; cd .. ;
 
+clean:
+	$(QUIET) cd javascript ; $(MAKE) $(MFLAGS) clean ; cd .. ;
