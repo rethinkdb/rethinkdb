@@ -280,15 +280,15 @@ body:before {
     }
 
     #nav-search {
-        input[type="text"] {
+        .search-query {
             font-family: @sans;
             font-size: 15px;
             color: white;
             border: 0 none;
 
             text-shadow: @text_shadow;
-            margin-top: 13px;
-            padding: 6px 12px 6px 40px;
+            margin-top: 11px;
+            padding: 8px 12px 6px 40px;
             width: 150px;
             .border-radius(18px);
             /*#gradient.vertical(rgba(255,255,255,0.03),rgba(0,0,0,0.03));
@@ -304,6 +304,19 @@ body:before {
                     box-shadow: @inset_shadow;
 
         }
+        .search-query::-webkit-input-placeholder {
+            padding: 2px 0px 0px 1px;
+            color: #888;
+        }
+        .search-query:-moz-placeholder {
+            padding: 8px 12px 6px 40px;
+            color: #888;
+        }
+        .search-query:-ms-input-placeholder {
+            padding: 8px 12px 6px 40px;
+            color: #888;
+        }
+
     }
 }
 
