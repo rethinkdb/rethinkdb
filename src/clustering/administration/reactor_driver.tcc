@@ -226,10 +226,8 @@ private:
     void on_change_reactor_directory() {
         mutex_assertion_t::acq_t acq(&parent_->watchable_variable_lock);
         namespaces_directory_metadata_t<protocol_t> directory = parent_->watchable_variable.get_watchable()->get();
-        if (reactor_.has()) {
-            directory.reactor_bcards.find(namespace_id_)->second = reactor_->get_reactor_directory()->get();
-            parent_->watchable_variable.set_value(directory);
-        }
+        directory.reactor_bcards.find(namespace_id_)->second = reactor_->get_reactor_directory()->get();
+        parent_->watchable_variable.set_value(directory);
     }
 
     void initialize_reactor(io_backender_t *io_backender) {

@@ -204,16 +204,22 @@ void reactor_t<protocol_t>::run_role(
         wait_any_t wait_any(&role->abort_roles, keepalive.get_drain_signal());
 
         try {
+            /* Notice this is necessary because the reactor first creates the
+             * reactor and then inserts its business card in to the map However
+             * we had an issue (#1132) in which reactor_be_primary was making
+             * the assumption that the bcard would be set while it was run. We
+             * decided that it was a good idea to have this actually be a
+             * correct assumption. The below line waits until the bcard shows
+             * up in the directory thus make sure that the bcard is in the
+             * directory before the be_role functions get called. */
             directory_echo_mirror.get_internal()->run_until_satisfied(boost::bind(&we_see_our_bcard<protocol_t>, _1, get_me()), &wait_any);
         } catch (const interrupted_exc_t &) {
-            goto CLEANUP;
-        }
-        // guarantee(CLUSTER_CPU_SHARDING_FACTOR == svs_subview.num_stores());
+            // guarantee(CLUSTER_CPU_SHARDING_FACTOR == svs_subview.num_stores());
 
-        pmap(svs_subview.num_stores(), boost::bind(&reactor_t<protocol_t>::run_cpu_sharded_role, this, _1, role, region, &svs_subview, &wait_any, &role->abort_roles));
+            pmap(svs_subview.num_stores(), boost::bind(&reactor_t<protocol_t>::run_cpu_sharded_role, this, _1, role, region, &svs_subview, &wait_any, &role->abort_roles));
+        }
     }
 
-CLEANUP:
     //As promised, clean up the state from try_spawn_roles
     current_roles.erase(region);
     delete role;
