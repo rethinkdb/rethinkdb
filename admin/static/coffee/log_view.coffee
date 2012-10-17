@@ -38,13 +38,13 @@ module 'LogView', ->
             @set_interval = setInterval @check_for_new_updates, @interval_update_log
 
         render: =>
-            @.$el.html @template({})
+            @.$el.html @template()
             # Initially, hide the message indicating no more entries are available. This will change depending on the results of the @fetch_log_entries call
             @.$('.no-more-entries').hide()
 
             @fetch_log_entries
                 max_length: @max_log_entries
-
+            @render_header()
             @.delegateEvents()
 
             return @
@@ -316,15 +316,16 @@ module 'LogView', ->
                                             for datacenter_id of json_data[group][namespace_id][attribute]
                                                 if datacenter_id is universe_datacenter.get('id')
                                                     datacenter_name = universe_datacenter.get 'name'
-                                                else if datacenters.get(datacenter_id)?
+                                                else if datacenters.get(datacenter_id)?.get('name')?
                                                     datacenter_name = datacenters.get(datacenter_id).get 'name'
                                                 else
                                                     datacenter_name = 'a removed datacenter'
-                                                _datacenters.push
-                                                    is_universe: true if datacenter_id is universe_datacenter.get('id')
+                                                data =
+                                                    is_universe: datacenter_id is universe_datacenter.get('id')
                                                     datacenter_id: datacenter_id
                                                     datacenter_name: datacenter_name
                                                     value: json_data[group][namespace_id][attribute][datacenter_id]
+                                                _datacenters.push data
                                             msg += @log_datacenters_values_template
                                                 namespace_id: namespace_id
                                                 namespace_name: if namespaces.get(namespace_id)? then namespaces.get(namespace_id).get 'name' else '[table no longer exists]'

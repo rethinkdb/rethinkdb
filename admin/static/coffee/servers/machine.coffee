@@ -234,6 +234,9 @@ module 'MachineView', ->
 
         on_success: (response) =>
             machines.get(@model.get('id')).set('datacenter_uuid', null)
+
+            $('#user-alert-space').html @alert_tmpl
+
             clear_modals()
 
     class @Data extends Backbone.View

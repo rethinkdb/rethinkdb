@@ -149,11 +149,43 @@ body:before {
             padding: 0px;
             margin: 5px 0px 10px 0px;
         }
+        p{
+            margin: 4px 0px;
+        }
+        .close{
+            float: right;
+            font-size: 20px;
+            font-weight: bold;
+            line-height: 20px;
+            color: black;
+            text-shadow: 0 1px 0 white;
+            opacity: 0.2;
+            filter: alpha(opacity=20);
+        }
+        a{
+            color: #BF9947;
+            font-weight: bold;
+            text-decoration: none
+        }
+        a:hover{
+            text-decoration: underline;
+        }
     }
     .alert-error{
         color: #d95c5c;
         background-color: #F1D6D6;
         border-color: #E59C9C;
+        a{
+            color: #d95c5c;
+            font-weight: bold;
+            text-decoration: none
+        }
+        a:hover{
+            text-decoration: underline;
+        }
+    }
+    .displayed_alert{
+        display: block;   
     }
 }
 #navbar-container{
@@ -1958,31 +1990,7 @@ body:before {
             }
             .edit, .cancel, .rebalance{ margin: 0px 0px 0px 10px; }
             .cannot_shard-alert{
-                display: none;
-                clear: both;
-                margin: 6px 0px 0px 0px;
-                padding: 10px 10px 10px 14px;
-                color: #C09853;
-                text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
-                background-color: #FCF8E3;
-                border: 1px solid #FBEED5;
-                .border-radius(4px);
-                p{
-                    font-family: @sans;
-                    margin: 0px;
-                }
-                .close{
-                    float: right;
-                    margin-top: -8px;
-                    font-size: 20px;
-                    font-weight: bold;
-                    line-height: 20px;
-                    color: black;
-                    text-shadow: 0 1px 0 white;
-                    opacity: 0.2;
-                    filter: alpha(opacity=20);
-                    cursor: pointer;
-                }
+                margin: 10px 0px;
             }
         }
         .shards_status_container{
