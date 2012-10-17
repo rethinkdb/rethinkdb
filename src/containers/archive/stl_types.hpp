@@ -1,6 +1,11 @@
 #ifndef CONTAINERS_ARCHIVE_STL_TYPES_HPP_
 #define CONTAINERS_ARCHIVE_STL_TYPES_HPP_
 
+#ifndef __STDC_FORMAT_MACROS
+#define __STDC_FORMAT_MACROS
+#endif  // __STDC_FORMAT_MACROS
+#include <inttypes.h>
+
 #include <list>  // ugh
 #include <map>
 #include <set>
@@ -135,7 +140,7 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, std::string *out) {
         return ARCHIVE_SOCK_EOF;
     }
 
-    rassert(num_read == sz, "force_read returned an invalid value %ld", num_read);
+    rassert(num_read == sz, "force_read returned an invalid value %" PRIi64, num_read);
 
     out->assign(v.data(), v.size());
 
