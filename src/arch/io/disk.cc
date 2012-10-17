@@ -301,7 +301,7 @@ bool linux_file_t::is_block_device() {
     return is_block;
 }
 
-size_t linux_file_t::get_size() {
+uint64_t linux_file_t::get_size() {
     return file_size;
 }
 

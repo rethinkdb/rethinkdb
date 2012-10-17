@@ -421,12 +421,19 @@ void apply_json_to(cJSON *, int *);
 void on_subfield_change(int *);
 
 
+// TODO: Get rid of json adapters for int, long, anything other than int32 and int64.
+// ctx-less JSON adapter for long
+json_adapter_if_t::json_adapter_map_t get_json_subfields(long *);
+cJSON *render_as_json(long *);
+void apply_json_to(cJSON *, long *);
+void on_subfield_change(long *);
+
+
 // ctx-less JSON adapter for time_t;
 json_adapter_if_t::json_adapter_map_t get_json_subfields(time_t *);
 cJSON *render_as_json(time_t *);
 void apply_json_to(cJSON *, time_t *);
 void on_subfield_change(time_t *);
-
 
 // ctx-less JSON adapter for uint64_t
 json_adapter_if_t::json_adapter_map_t get_json_subfields(uint64_t *);
@@ -434,6 +441,11 @@ cJSON *render_as_json(uint64_t *);
 void apply_json_to(cJSON *, uint64_t *);
 void on_subfield_change(uint64_t *);
 
+// ctx-less JSON adapter for int64_t
+json_adapter_if_t::json_adapter_map_t get_json_subfields(int64_t *);
+cJSON *render_as_json(int64_t *);
+void apply_json_to(cJSON *, int64_t *);
+void on_subfield_change(int64_t *);
 
 // ctx-less JSON adapter for bool
 json_adapter_if_t::json_adapter_map_t get_json_subfields(bool *);
