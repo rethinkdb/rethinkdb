@@ -161,7 +161,7 @@ std::string admin_value_to_string(const region_map_t<protocol_t, std::set<uuid_t
     bool first = true;
     for (typename region_map_t<protocol_t, std::set<uuid_t> >::const_iterator i = value.begin(); i != value.end(); ++i) {
         //TODO: print more detail
-        result += strprintf("%s%s: %ld machine%s", first ? "" : ", ", admin_value_to_string(i->first).c_str(), i->second.size(), i->second.size() == 1 ? "" : "s");
+        result += strprintf("%s%s: %zu machine%s", first ? "" : ", ", admin_value_to_string(i->first).c_str(), i->second.size(), i->second.size() == 1 ? "" : "s");
         first = false;
     }
     return result;
@@ -1833,11 +1833,11 @@ void admin_cluster_link_t::do_admin_list_machines(const admin_command_parser_t::
                 char buffer[64];
                 machine_info_t info = long_info[i->first];
                 delta.push_back(info.status);
-                snprintf(buffer, sizeof(buffer), "%ld", info.tables);
+                snprintf(buffer, sizeof(buffer), "%zu", info.tables);
                 delta.push_back(buffer);
-                snprintf(buffer, sizeof(buffer), "%ld", info.primaries);
+                snprintf(buffer, sizeof(buffer), "%zu", info.primaries);
                 delta.push_back(buffer);
-                snprintf(buffer, sizeof(buffer), "%ld", info.secondaries);
+                snprintf(buffer, sizeof(buffer), "%zu", info.secondaries);
                 delta.push_back(buffer);
             }
 

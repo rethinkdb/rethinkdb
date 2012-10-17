@@ -10,7 +10,7 @@ struct timerfd_provider_t : public linux_event_callback_t {
 public:
     timerfd_provider_t(linux_event_queue_t *_queue,
                        timer_provider_callback_t *_callback,
-                       int64_t secs, int32_t nsecs);
+                       time_t secs, int32_t nsecs);
     ~timerfd_provider_t();
 
     void on_event(int events);
