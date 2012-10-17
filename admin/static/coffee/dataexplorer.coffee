@@ -797,79 +797,74 @@ module 'DataExplorerView', ->
                 @.$('.loading_query_img').css 'display', 'none'
                 @results_view.render_error(@query, err)
 
-        # Create tagged callback so we just execute the last query executed by the user
-        # Results:
-        # User execute q1
-        # User execute q2
-        # q1 returns but no results is displayed
-        # q2 returns, we display q2 results
-        create_tagged_callback: =>
-            id = Math.random() # That should be good enough for our application
-            @last_id = id
-            @current_results = []
-            @skip_value = 0
-            @current_query_index = 0
-            
-            # The callback with the id that we are going to return
-            callback_multiple_queries = (data) =>
-                if id is @last_id # We display things or fire the next query only if the user hasn't execute another query
-                    # Check if the data sent by the server is an error
-                    if data instanceof rethinkdb.errors.RuntimeError or data instanceof rethinkdb.errors.BadQuery or data instanceof rethinkdb.errors.ClientError or data instanceof rethinkdb.errors.ClientError
-                        @.$('.loading_query_img').css 'display', 'none'
-                        @.results_view.render_error(@query, data)
-                        return false
+        callback_multiple_queries: (data) =>
+            # Check if the data sent by the server is an error
+            if data instanceof rethinkdb.errors.RuntimeError or data instanceof rethinkdb.errors.BadQuery or data instanceof rethinkdb.errors.ClientError or data instanceof rethinkdb.errors.ClientError
+                @.$('.loading_query_img').css 'display', 'none'
+                @.results_view.render_error(@query, data)
+                return false
 
-                    # Look for the next query
-                    @current_query_index++
+            # Look for the next query
+            @current_query_index++
 
-                    # If we are dealing with the last query
-                    if @current_query_index >= @queries.length
-                        # If we get a run time error
-                        if data instanceof rethinkdb.errors.RuntimeError
-                            @.$('.loading_query_img').css 'display', 'none'
-                            @.results_view.render_error(@query, data)
-                            return false
-                        
-                        # if it's a valid result and we have not reach the maximum of results displayed
-                        if data? and  @current_results.length < @limit
-                            @current_results.push data
-                            return true
-                        else
-                            # Else we are going to display what we have
-                            @.$('.loading_query_img').css 'display', 'none'
-                            @results_view.render_result @query, @current_results
-
-                            execution_time = new Date() - @start_time
-                            @results_view.render_metadata
-                                limit_value: @current_results.length
-                                skip_value: @skip_value
-                                execution_time: execution_time
-                                query: @query
-                                has_more_data: true if data? # if data is undefined, it means that there is no more data
-
-                            if data? #there is nore data
-                                @skip_value += @current_results.length
-                                @current_results = []
-                                @current_results.push data
-                            return false
-                    else #  Else if it's not the last query, we just execute the next query
-                        try
-                            if @cursor?.close?
-                                @cursor.close()
-
-                            @cursor = eval(@queries[@current_query_index])
-                            @cursor.next(callback_multiple_queries)
-                        catch err
-                            @.$('.loading_query_img').css 'display', 'none'
-                            @results_view.render_error(@query, err)
-
+            # If we are dealing with the last query
+            if @current_query_index >= @queries.length
+                # If we get a run time error
+                if data instanceof rethinkdb.errors.RuntimeError
+                    @.$('.loading_query_img').css 'display', 'none'
+                    @.results_view.render_error(@query, data)
                     return false
+                
+                # if it's a valid result and we have not reach the maximum of results displayed
+                if data? and  @current_results.length < @limit
+                    @current_results.push data
+                    return true
                 else
+                    # Else we are going to display what we have
+                    @.$('.loading_query_img').css 'display', 'none'
+                    @results_view.render_result @query, @current_results
+
+                    execution_time = new Date() - @start_time
+                    @results_view.render_metadata
+                        limit_value: @current_results.length
+                        skip_value: @skip_value
+                        execution_time: execution_time
+                        query: @query
+                        has_more_data: true if data? # if data is undefined, it means that there is no more data
+
+                    if data? #there is nore data
+                        @skip_value += @current_results.length
+                        @current_results = []
+                        @current_results.push data
+                    return false
+            else #  Else if it's not the last query, we just execute the next query
+                try
+                    #For safety only.
                     if @cursor?.close?
                         @cursor.close()
-                    return false
-            return callback_multiple_queries
+
+                    @current_results = []
+                    @skip_value = 0
+
+                    @cursor = eval(@queries[@current_query_index])
+                    @cursor.next(@callback_multiple_queries)
+                catch err
+                    @.$('.loading_query_img').css 'display', 'none'
+                    @results_view.render_error(@query, err)
+
+            return false
+
         # Function that execute the query
+        # Current behavior for user
+        # - User execute q1
+        # - User execute q2 (we stop listening to q1)
+        # - User retrieve results for q2
+        #
+        # In case of multiple queries
+        # - User execute q1_1, q1_2
+        # - User execute q2
+        # - We don't execute q1_3
+        # - User retrieve results for q2
         execute_query: =>
             # Postpone the reconnection
             clearTimeout @timeout
@@ -900,12 +895,15 @@ module 'DataExplorerView', ->
             try
                 @queries = @separate_queries @query
                 @start_time = new Date()
+
                 @current_results = []
                 @skip_value = 0
+                @current_query_index = 0
 
-                tagged_callback = @create_tagged_callback()
+                if @cursor?.close? # So if a old query was running, we won't listen to it.
+                    @cursor.close()
                 @cursor = eval(@queries[@current_query_index])
-                @cursor.next(tagged_callback)
+                @cursor.next(@callback_multiple_queries)
 
             catch err
                 @.$('.loading_query_img').css 'display', 'none'
