@@ -334,7 +334,7 @@ module 'DataExplorerView', ->
         # Change the num_char_per_line value when we switch from normal view to full view and vice versa 
         set_char_per_line: =>
             if @displaying_full_view is true
-                @num_char_per_line = Math.floor (@.$('Codemirror-scroll').width()-37)/8
+                @num_char_per_line = Math.floor (@.$('.CodeMirror-scroll').width()-37)/8
             else
                 @num_char_per_line = @default_num_char_per_line
 
@@ -355,11 +355,14 @@ module 'DataExplorerView', ->
 
             if margin_left < 200
                 @.$('.suggestion_full_container').css 'left', '0px'
-            else if margin_left > 468
-                @.$('.suggestion_full_container').css 'left', '440px'
             else
-                margin_left = Math.min 468, Math.floor(margin_left/100)*100
-                @.$('.suggestion_full_container').css 'left', (margin_left-100)+'px'
+                 max_margin = @.$('.CodeMirror-scroll').width()-418
+
+                if margin_left > max_margin
+                    @.$('.suggestion_full_container').css 'left', (max_margin-28)+'px'
+                else
+                    margin_left = Math.min max_margin, Math.floor(margin_left/100)*100
+                    @.$('.suggestion_full_container').css 'left', (margin_left-100)+'px'
 
         #TODO refactor show_suggestion, show_suggestion_description, add_description
         show_suggestion: =>
