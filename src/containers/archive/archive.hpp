@@ -181,10 +181,6 @@ ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(int64_t);
 ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(uint64_t);
 ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(double);
 
-// TODO: Get rid of this.
-ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(long);
-ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(unsigned long);
-
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(bool, int8_t, 0, 1);
 
 write_message_t &operator<<(write_message_t &msg, const uuid_t &uuid);
