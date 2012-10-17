@@ -49,3 +49,7 @@ clean:
 	rm -rf rethinkdb.js
 	rm -rf rethinkdb.js.map
 	rm -rf rethinkdb/query_language.pb.js
+
+protodeps:
+	$(QUIET) cd ../../external/protobuf-plugin-closure ; $(MAKE) $(MFLAGS) ;
+

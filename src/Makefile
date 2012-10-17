@@ -690,16 +690,13 @@ oprof-report:
 	@echo "    OPREPORT[$(OPROF_BINARY)] -> $(OPROF_RESULT)"
 	$(QUIET) opreport --merge=lib,unitmask -a --symbols --callgraph --threshold 1 --sort sample "--session-dir=$(realpath $(OPROF_SESSION))" -l "$(realpath $(OPROF_BINARY))" > $(OPROF_RESULT)
 
-drivers: protodeps
+drivers:
 ifeq ($(BUILD_DRIVERS), 1)
 	$(QUIET) cd ../drivers ; $(MAKE) $(MFLAGS) ;
 else
 	$(QUIET) cd ../drivers/javascript ; $(MAKE) $(MFLAGS) ;
 endif #BUILD_DRIVERS
 
-
-protodeps:
-	$(QUIET) cd ../external/protobuf-plugin-closure ; $(MAKE) $(MFLAGS) ;
 
 $(WEB_ASSETS_BUILD_DIR)/js/rethinkdb.js: drivers
 	$(QUIET) cp -pRP ../drivers/javascript/rethinkdb.js $(WEB_ASSETS_BUILD_DIR)/js/rethinkdb.js ;
