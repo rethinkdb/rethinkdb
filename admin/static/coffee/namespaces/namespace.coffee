@@ -1,6 +1,7 @@
 # Namespace view
 module 'NamespaceView', ->
     class @NotFound extends Backbone.View
+        className: 'section'
         template: Handlebars.compile $('#element_view-not_found-template').html()
         initialize: (id) ->
             @id = id
@@ -157,31 +158,31 @@ module 'NamespaceView', ->
             directory.on 'all', @render
             progress_list.on 'all', @render
             log_initial '(initializing) namespace view: replica'
+            @data = {}
 
         render: =>
-            namespace_status = DataUtils.get_namespace_status(@model.get('id'))
-
-            json = @model.toJSON()
-            json = _.extend json, namespace_status
+            data = DataUtils.get_namespace_status(@model.get('id'))
 
             #Compute the total number of keys
-            json.total_keys_available = false
+            data.total_keys_available = false
             if @model.get('key_distr')?
                 # we can't use 'total_keys' because we need to
                 # distinguish between zero and unavailable.
-                json.total_keys_available = true
-                json.total_keys = 0
+                data.total_keys_available = true
+                data.total_keys = 0
                 for key of @model.get('key_distr')
-                    json.total_keys += parseInt @model.get('key_distr')[key]
+                    data.total_keys += parseInt @model.get('key_distr')[key]
 
-            json.stats_up_to_date = true
+            data.stats_up_to_date = true
             for machine in machines.models
                 if machine.get('stats')? and @model.get('id') of machine.get('stats') and machine.is_reachable
                     if machine.get('stats_up_to_date') is false
-                        json.stats_up_to_date = false
+                        data.stats_up_to_date = false
                         break
 
-            @.$el.html @template json
+            if not _.isEqual @data, data
+                @data = data
+                @.$el.html @template data
 
             return @
 
