@@ -13,11 +13,14 @@ INCLUDE=$(SPREFIX)/include/
 LIB=$(SPREFIX)/lib/
 PROTOC=protoc
 
-all: javascript_package int64_encoding js_plugin ccjs_plugin
+all: js/javascript_package.pb.cc js/int64_encoding.pb.cc protoc-gen-js protoc-gen-ccjs
 
-javascript_package:
+# Note that building the cc files also builds the h files .
+# We needed a specific file name in order to avert unnecesary recompiles .
+
+js/javascript_package.pb.cc:
 ifeq ($(VERBOSE),0)
-	@echo "    PROTOC js/javascript_package.pb" ;
+	@echo "    PROTOC $@" ;
 endif
 	$(QUIET) $(PROTOC) \
     -I js \
@@ -25,7 +28,7 @@ endif
     --cpp_out=js \
     js/javascript_package.proto
 
-int64_encoding:
+js/int64_encoding.pb.cc:
 ifeq ($(VERBOSE),0)
 	@echo "    PROTOC js/int64_encoding.pb" ;
 endif
@@ -35,7 +38,7 @@ endif
     --cpp_out=js \
     js/int64_encoding.proto
 
-js_plugin: javascript_package int64_encoding
+protoc-gen-js: js/javascript_package.pb.cc js/int64_encoding.pb.cc
 ifeq ($(VERBOSE),0)
 	@echo "    PROTOC protoc-gen-js" ;
 endif
@@ -50,7 +53,7 @@ endif
     -o ./protoc-gen-js \
     -lpthread
 
-ccjs_plugin: javascript_package int64_encoding
+protoc-gen-ccjs: js/javascript_package.pb.cc js/int64_encoding.pb.cc
 ifeq ($(VERBOSE),0)
 	@echo "    PROTOC protoc-gen-ccjs" ;
 endif
