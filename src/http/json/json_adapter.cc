@@ -1,6 +1,17 @@
+#ifndef __STDC_FORMAT_MACROS
+#define __STDC_FORMAT_MACROS
+#endif
+#ifndef __STDC_LIMIT_MACROS
+#define __STDC_LIMIT_MACROS
+#endif
+
+#include <inttypes.h>
+
 #include "http/json/json_adapter.hpp"
 
 #include <limits>
+
+#include "utils.hpp"
 
 bool is_null(cJSON *json) {
     return json->type == cJSON_NULL;
@@ -140,22 +151,6 @@ void json_adapter_if_t::reset() {
     }
 }
 
-// ctx-less JSON adapter for time_t
-json_adapter_if_t::json_adapter_map_t get_json_subfields(time_t *) {
-    return json_adapter_if_t::json_adapter_map_t();
-}
-
-cJSON *render_as_json(time_t *target) {
-    return cJSON_CreateNumber(*target);
-}
-
-void apply_json_to(cJSON *change, time_t *target) {
-    *target = get_int(change, std::numeric_limits<time_t>::min(), std::numeric_limits<time_t>::max());
-}
-
-void on_subfield_change(time_t *) { }
-
-
 // ctx-less JSON adapter for bool
 json_adapter_if_t::json_adapter_map_t get_json_subfields(bool *) {
     return json_adapter_if_t::json_adapter_map_t();
@@ -253,7 +248,7 @@ void apply_json_to(cJSON *change, int64_t *target) {
     *target = get_int(change, INT64_MIN, INT64_MAX);
 }
 
-void on_subfield_change(uint64_t *) { }
+void on_subfield_change(int64_t *) { }
 
 
 // ctx-less JSON adapter for int  (TODO: Should we not be only using int32_t?  FFS.)
@@ -270,19 +265,3 @@ void apply_json_to(cJSON *change, int *target) {
 }
 
 void on_subfield_change(int *) { }
-
-// TODO: What the fuck, a json adapter for long??
-// ctx-less JSON adapter for long
-json_adapter_if_t::json_adapter_map_t get_json_subfields(long *) {
-    return json_adapter_if_t::json_adapter_map_t();
-}
-
-cJSON *render_as_json(long *target) {
-    return cJSON_CreateNumber(*target);
-}
-
-void apply_json_to(cJSON *change, long *target) {
-    *target = get_int(change, LONG_MIN, LONG_MAX);
-}
-
-void on_subfield_change(long *) { }

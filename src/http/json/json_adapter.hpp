@@ -413,27 +413,11 @@ void with_ctx_reset_json(T *target, const ctx_t &ctx) {
  * prominent types, these could in theory be relocated to a different file if
  * need be */
 
-
 // ctx-less JSON adapter for int
 json_adapter_if_t::json_adapter_map_t get_json_subfields(int *);
 cJSON *render_as_json(int *);
 void apply_json_to(cJSON *, int *);
 void on_subfield_change(int *);
-
-
-// TODO: Get rid of json adapters for int, long, anything other than int32 and int64.
-// ctx-less JSON adapter for long
-json_adapter_if_t::json_adapter_map_t get_json_subfields(long *);
-cJSON *render_as_json(long *);
-void apply_json_to(cJSON *, long *);
-void on_subfield_change(long *);
-
-
-// ctx-less JSON adapter for time_t;
-json_adapter_if_t::json_adapter_map_t get_json_subfields(time_t *);
-cJSON *render_as_json(time_t *);
-void apply_json_to(cJSON *, time_t *);
-void on_subfield_change(time_t *);
 
 // ctx-less JSON adapter for uint64_t
 json_adapter_if_t::json_adapter_map_t get_json_subfields(uint64_t *);
