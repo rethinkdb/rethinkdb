@@ -122,11 +122,6 @@ LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -lv8 -lcrypto
 endif
 endif
 
-ifeq ($(AIOSUPPORT),1)
-CXXFLAGS+=-DAIOSUPPORT
-LDFLAGS+= -laio
-endif
-
 STATIC_LIBRARIES:=boost_serialization protobuf boost_program_options
 
 CXXFLAGS?=
@@ -297,6 +292,12 @@ ifeq ($(VALGRIND),1)
 CXXFLAGS+=-DVALGRIND
 BUILD_DIR:=$(BUILD_DIR)-valgrind
 NO_TCMALLOC:=1
+endif
+
+ifeq ($(AIOSUPPORT),1)
+BUILD_DIR:=$(BUILD_DIR)-aiosupport
+CXXFLAGS+=-DAIOSUPPORT
+LDFLAGS+=-laio
 endif
 
 ifeq ($(LEGACY_PROC_STAT),1)

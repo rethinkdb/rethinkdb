@@ -130,6 +130,7 @@ subprocess.Popen(" ".join(["scp", "%s:%s/tmp.tar.gz tmp.tar.gz" % (target.host, 
 subprocess.Popen(" ".join(["tar", "xzf", "tmp.tar.gz"]), shell = True).wait()
 
 print "***Removing temporary files and shutting down VM..."
+target.command("rm -rf %s" % dir_name).wait()
 target.shut_down(True)
 
 sys_exit("Done.", 0, False)
