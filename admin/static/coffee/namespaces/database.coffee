@@ -138,12 +138,12 @@ module 'DatabaseView', ->
         render: =>
             # Initialize the data for this view
             data =
-                num_namespaces: 0 # Number of namespaces
-                num_live_namespaces: 0 # Number of namespaces alived
-                reachability: true # Status of the table
-                nshards: 0 # Number of shards
-                nreplicas: 0 # Number of replicas (numbers of copies of each shards)
-                ndatacenters: 0 # Number of datacenter
+                num_namespaces: 0       # Number of namespaces
+                num_live_namespaces: 0  # Number of namespaces alived
+                reachability: true      # Status of the table
+                nshards: 0              # Number of shards
+                nreplicas: 0            # Number of replicas (numbers of copies of each shards)
+                ndatacenters: 0         # Number of datacenter
                 #stats_up_to_date: true # Not display for now. We should put it back. Issue #1286
                 
             datacenters_working = {}
@@ -156,8 +156,9 @@ module 'DatabaseView', ->
                         data.num_live_namespaces++
                     data.nshards += namespace_status.nshards
                     data.nreplicas += data.nshards + namespace_status.nreplicas
-                    # We should use _.uniq on the datacenters for all the tables, not on each tablea
+
                     for datacenter_id of namespace.get('replica_affinities')
+                        # We don't count universe, and we add the datacenter only if it has at least one replica
                         if datacenter_id isnt universe_datacenter.get('id') and (namespace.get('replica_affinities')[datacenter_id] > 0 or namespace.get('primary_uuid') is datacenter_id)
                             datacenters_working[datacenter_id] = true
 
@@ -175,6 +176,7 @@ module 'DatabaseView', ->
         destroy: =>
             namespaces.off 'all', @render
 
+    # The modal to remove a database, it extends UIComponents.AbstractModal
     class @RemoveDatabaseModal extends UIComponents.AbstractModal
         template: Handlebars.compile $('#remove_database-modal-template').html()
         class: 'remove_database-dialog'
@@ -185,20 +187,26 @@ module 'DatabaseView', ->
         render: (_database_to_delete) ->
             @database_to_delete = _database_to_delete
 
+            # Call render of AbstractModal with the data for the template
             super
                 modal_title: 'Remove database'
                 btn_primary_text: 'Remove'
                 id: _database_to_delete.get('id')
                 name: _database_to_delete.get('name')
 
-            @.$('.btn-primary').focus()
+            # Giving focus to the "submit" button
+            # Commenting the next line for now because the operation is dangerous.
+            #@.$('.btn-primary').focus()
 
         on_submit: =>
             super
 
+            # We remove the database
             post_data = {}
             post_data.databases = {}
             post_data.databases[@database_to_delete.get('id')] = null
+
+            # We also remove all the namespaces in the database
             for namespace in namespaces.models
                 if namespace.get('database') is @database_to_delete.get('id')
                     if not post_data[namespace.get('protocol')+'_namespaces']?
@@ -215,10 +223,13 @@ module 'DatabaseView', ->
                 error: @on_error
 
         on_success: (response) =>
+            # If the user was on a database view, we have to redirect him
+            # If he was on #tables, we are just refreshing
             window.router.navigate '#tables'
             window.app.index_namespaces
                 alert_message: "The database #{@database_to_delete.get('name')} was successfully deleted."
 
+            # Update the data
             namespace_id_to_remove = []
             for namespace in namespaces.models
                 if namespace.get('database') is @database_to_delete.get('id')
@@ -229,10 +240,15 @@ module 'DatabaseView', ->
 
             databases.remove @database_to_delete.get 'id'
 
+
+    # List of all the namespaces in the database
     class @NamespaceList extends Backbone.View
         template: Handlebars.compile $('#database_view-namespace_list-template').html()
 
+        # Bind some listeners
         initialize: =>
+            # We bind listeners on all table.
+            # TODO We should add a listeners only on namespaces in the databases
             namespaces.on 'change:shards', @render
             namespaces.on 'change:primary_pinnings', @render
             namespaces.on 'change:secondary_pinnings', @render
@@ -253,12 +269,14 @@ module 'DatabaseView', ->
             data =
                 has_tables: namespaces_in_db.length > 0
                 tables: _.sortBy(namespaces_in_db, (namespace) -> namespace.name)
-
+            
+            # Render only if something has changed. @render is executed everytime someone change the shards on a table (even if not in the database)
             if not @data isnt data
                 @data = data
                 @.$el.html @template @data
             return @
 
+        # Unbind listeners
         destroy: =>
             namespaces.off 'change:shards', @render
             namespaces.off 'change:primary_pinnings', @render
