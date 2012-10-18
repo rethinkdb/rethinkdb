@@ -1440,7 +1440,7 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
                 point_modify::result_t mres =
                     point_modify(view.access, pk, id, point_modify::MUTATE, env, w->mutate().mapping(), scopes,
                                  w->atomic(), json, backtrace.with("modify_map"));
-                guarantee(mres == point_modify::MODIFIED || mres == point_modify::DELETED);
+                //guarantee(mres == point_modify::MODIFIED || mres == point_modify::DELETED);
                 modified += (mres == point_modify::MODIFIED);
                 deleted += (mres == point_modify::DELETED);
             } catch (const query_language::broken_client_exc_t &e) {
