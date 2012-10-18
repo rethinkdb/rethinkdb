@@ -151,7 +151,7 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location, const store_
     //                                                                  ^^^^^ That means the key isn't expired.
 }
 
-void rdb_modify(const std::string &primary_key, const store_key_t &key, point_modify::op_t op,
+void rdb_modify(const std::string &primary_key, const store_key_t &key, point_modify_ns::op_t op,
                 query_language::runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace,
                 const Mapping &mapping,
                 btree_slice_t *slice, repli_timestamp_t timestamp,
@@ -169,30 +169,30 @@ void rdb_modify(const std::string &primary_key, const store_key_t &key, point_mo
         }
         boost::shared_ptr<scoped_cJSON_t> new_row;
         std::string new_key;
-        point_modify::result_t res = query_language::calculate_modify(
+        point_modify_ns::result_t res = query_language::calculate_modify(
             lhs, primary_key, op, mapping, env, scopes, backtrace, &new_row, &new_key);
         switch(res) {
-        case point_modify::INSERTED:
+        case point_modify_ns::INSERTED:
             if (new_key != key_to_unescaped_str(key)) {
                 throw query_language::runtime_exc_t(strprintf("mutate can't change the primary key (%s) when doing an insert of %s",
                                                               primary_key.c_str(), new_row->Print().c_str()), backtrace);
             }
             //FALLTHROUGH
-        case point_modify::MODIFIED: {
+        case point_modify_ns::MODIFIED: {
             guarantee(new_row);
             kv_location_set(&kv_location, key, new_row, slice, timestamp, txn);
         } break;
-        case point_modify::DELETED: {
+        case point_modify_ns::DELETED: {
             kv_location_delete(&kv_location, key, slice, timestamp, txn);
         } break;
-        case point_modify::SKIPPED: break;
-        case point_modify::NOP: break;
-        case point_modify::ERROR: unreachable("execute_modify should never return ERROR, it should throw");
+        case point_modify_ns::SKIPPED: break;
+        case point_modify_ns::NOP: break;
+        case point_modify_ns::ERROR: unreachable("execute_modify should never return ERROR, it should throw");
         default: unreachable();
         }
         response->result = res;
     } catch (const query_language::runtime_exc_t &e) {
-        response->result = point_modify::ERROR;
+        response->result = point_modify_ns::ERROR;
         response->exc = e;
     }
 }
