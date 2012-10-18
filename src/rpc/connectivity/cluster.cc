@@ -424,7 +424,6 @@ void connectivity_cluster_t::run_t::handle(
                 // In this case, just exit this function, which will close the connection
                 // This will happen until the old connection dies
                 // TODO: ensure that the old connection shuts down?
-                logWRN("Received a connection from a peer we are already connected to");
                 return;
             }
 
