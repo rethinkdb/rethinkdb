@@ -69,7 +69,7 @@ module 'NamespaceView', ->
         remove_namespace: (event) =>
             log_action 'remove namespace button clicked'
             # Make sure the button isn't disabled, and pass the list of namespace UUIDs selected
-            if not $(event.currentTarget).hasClass 'disabled'
+            if not $(event.currentTarget).is ':disabled'
                 @remove_namespace_dialog.render @get_selected_namespaces()
             event.preventDefault()
 
@@ -93,12 +93,7 @@ module 'NamespaceView', ->
 
         # Callback that will be registered: updates the toolbar buttons based on how many namespaces have been selected
         update_toolbar_buttons: =>
-            if @get_selected_namespaces().length < 1 and @.$('.btn.remove-namespace').prop('disabled') is false
-                @.$('.btn.remove-namespace').prop 'disabled', 'disabled'
-                @.$('.btn.remove-namespace').addClass 'disabled'
-            else if @get_selected_namespaces().length > 0 and @.$('.btn.remove-namespace').prop('disabled') is true
-                @.$('.btn.remove-namespace').removeProp 'disabled'
-                @.$('.btn.remove-namespace').removeClass 'disabled'
+            @.$('.btn.remove-namespace').is ':disabled', @get_selected_namespaces().length < 1
 
         destroy: =>
             super
@@ -188,6 +183,18 @@ module 'NamespaceView', ->
         add_element: (element) =>
             namespace_list_element = super element
             @bind_callbacks_to_namespace namespace_list_element
+
+        add_namespace: (event) =>
+            event.preventDefault()
+            @add_namespace_dialog.render()
+            $('#focus_namespace_name').focus()
+
+        remove_namespace: (event) =>
+            log_action 'remove namespace button clicked'
+            # Make sure the button isn't disabled, and pass the list of namespace UUIDs selected
+            if not $(event.currentTarget).is ':disabled'
+                @remove_namespace_dialog.render @get_selected_elements()
+            event.preventDefault()
 
         register_namespace_callbacks: (callbacks) =>
             @callbacks = callbacks
@@ -321,7 +328,7 @@ module 'NamespaceView', ->
         # Check if we have a database (if not, we cannot create a table)
         check_if_can_create_table: =>
             if databases.length is 0
-                if @can_create_table_status is true
+                if @can_create_table_status true
                     @.$('.btn-primary').prop 'disabled', 'disabled'
                     @.$('.alert_modal').html 'You need to create a database before creating a table.'
             else
