@@ -49,7 +49,7 @@ endif
 		--compiler_flags="--create_source_map=./rethinkdb.js.map" \
 		--compiler_flags="--source_map_format=V3" \
 		--output_mode=$(OUTPUTMODE)) \
-		<(echo "}).call(this);") > rethinkdb.js'
+		<(echo "}).call(this);") > rethinkdb.js' 2> /dev/null || ( echo "      Build failure." ; false ; )
 
 # Compile the javascript stubs for the rethinkdb protocol
 rethinkdb/query_language.pb.js: $(PROTO_FILE) $(PROTOC_JS_HOME_DIR)/protoc-gen-js
