@@ -99,7 +99,7 @@ module 'UIComponents', ->
             element_view = new @element_view_class
                 model: model
                 collection: @collection
-                args: @options.element_args if @options?
+                args: (@options.element_args if @options?)
 
             @element_views.push element_view
             @size = @element_views.length

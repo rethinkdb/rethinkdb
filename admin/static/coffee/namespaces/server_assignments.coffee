@@ -111,7 +111,7 @@ module 'NamespaceView', ->
                     machine.num_secondaries += 1 if role is 'role_secondary'
                     machine.shards.push
                         name: human_readable_shard shard
-                        keys: parseInt(keys) if typeof keys is 'string'
+                        keys: (parseInt(keys) if typeof keys is 'string')
                         role: role
                 delete data_on_machines[machine_id] if machine.num_primaries is 0 and machine.num_secondaries is 0
 

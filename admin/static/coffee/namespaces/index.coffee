@@ -436,8 +436,8 @@ module 'NamespaceView', ->
                         primary_uuid: formdata.primary_datacenter
                         database: formdata.database
                         ack_expectations: ack
-                        cache_size: parseInt(formdata.cache_size)*1024*1024 if formdata.cache_size isnt ''
-                        primary_key: formdata.primary_key if formdata.primary_key isnt ''
+                        cache_size: (parseInt(formdata.cache_size)*1024*1024 if formdata.cache_size isnt '')
+                        primary_key: (formdata.primary_key if formdata.primary_key isnt '')
                         )
                     success: @on_success
                     error: @on_error
