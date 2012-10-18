@@ -74,7 +74,7 @@ VERBOSE?=0
 # UNIT_TESTS?=$(DEBUG)
 UNIT_TESTS?=0
 AIOSUPPORT?=0
-BUILD_DRIVERS?=0
+BUILD_DRIVERS?=1
 
 # Set TRIAL to 1 to build a 21-day trial version. If you want a different number of days, set TIMEBOMB to the number of days instead.
 TRIAL?=0
