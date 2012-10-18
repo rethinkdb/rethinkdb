@@ -890,15 +890,16 @@ module 'DataUtils', ->
 
         return output_json
 
-    # datacenter_uuid is optional and limits the information to a
-    # specific datacenter
+    # datacenter_uuid is optional and limits the information to a specific datacenter
+    # If datacenter is not defined, we get the status for all datacenters
+    # TODO We should clean this function. We don't need so much data most of the time
     @get_namespace_status = (namespace_uuid, datacenter_uuid) ->
         namespace = namespaces.get(namespace_uuid)
         json =
             nshards: 0
             nreplicas: 0
-            nashards: 0
-            nareplicas: 0
+            nashards: 0 # Number of available shards
+            nareplicas: 0 # Number of available replicas
 
         # If we can't see the namespace...
         if not namespace?
@@ -911,9 +912,8 @@ module 'DataUtils', ->
         for machine_uuid, role of namespace.get('blueprint').peers_roles
             if !machines.get(machine_uuid)? # If the machine is dead
                 continue
-            if datacenter_uuid? and
-               machines.get(machine_uuid) and
-               machines.get(machine_uuid).get('datacenter_uuid') isnt datacenter_uuid
+            # We filter machines. If 
+            if datacenter_uuid? and machines.get(machine_uuid)?.get('datacenter_uuid') isnt datacenter_uuid
                 continue
             peer_accessible = directory.get(machine_uuid)
             machine_active_for_namespace = false
@@ -929,8 +929,9 @@ module 'DataUtils', ->
                     if peer_accessible?
                         json.nareplicas += 1
             if machine_active_for_namespace
-                _machines[_machines.length] = machine_uuid
-                _datacenters[_datacenters.length] = machines.get(machine_uuid).get('datacenter_uuid')
+                _machines.push machine_uuid
+                if not datacenter_uuid? or datacenter_uuid isnt universe_datacenter.get('id') # If datacenter_uuid is defined, we don't want to count universe
+                    _datacenters.push machines.get(machine_uuid).get('datacenter_uuid')
 
         json.nmachines = _.uniq(_machines).length
         json.ndatacenters = _.uniq(_datacenters).length
