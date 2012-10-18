@@ -177,6 +177,15 @@ public:
 
         void on_new_connection(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn, auto_drainer_t::lock_t lock) THROWS_NOTHING;
 
+        /* `connectivity_cluster_t::connect_to_peer` is spawned for each known
+        ip address of a peer which we want to connect to, all but one should
+        fail */
+        void connect_to_peer(const peer_address_t *addr,
+                             int index,
+                             boost::optional<peer_id_t> expected_id,
+                             auto_drainer_t::lock_t drainer_lock,
+                             bool *successful_join) THROWS_NOTHING;
+
         /* `connectivity_cluster_t::join_blocking()` is spawned in a new
         coroutine by `connectivity_cluster_t::join()`. It's also run by
         `connectivity_cluster_t::handle()` when we hear about a new peer from a
@@ -193,7 +202,8 @@ public:
         void handle(tcp_conn_stream_t *c,
             boost::optional<peer_id_t> expected_id,
             boost::optional<peer_address_t> expected_address,
-            auto_drainer_t::lock_t) THROWS_NOTHING;
+            auto_drainer_t::lock_t,
+            bool *successful_join) THROWS_NOTHING;
 
         connectivity_cluster_t *parent;
 
