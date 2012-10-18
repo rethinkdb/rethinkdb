@@ -73,7 +73,7 @@ MOCK_CACHE_CHECK?=0
 VERBOSE?=0
 UNIT_TESTS?=0
 AIOSUPPORT?=0
-BUILD_DRIVERS?=0
+BUILD_DRIVERS?=1
 
 # Set TRIAL to 1 to build a 21-day trial version. If you want a different number of days, set TIMEBOMB to the number of days instead.
 TRIAL?=0
@@ -699,7 +699,7 @@ endif #BUILD_DRIVERS
 
 
 $(WEB_ASSETS_BUILD_DIR)/js/rethinkdb.js: drivers
-	$(QUIET) cp -pRP ../drivers/javascript/rethinkdb.js $(WEB_ASSETS_BUILD_DIR)/js/rethinkdb.js ;
+	$(QUIET) cp -pRP ../build/drivers/javascript/rethinkdb.js $(WEB_ASSETS_BUILD_DIR)/js/rethinkdb.js ;
 
 rpc/semilattice/joins/macros.hpp: ../scripts/generate_join_macros.py
 rpc/serialize_macros.hpp: ../scripts/generate_serialize_macros.py
