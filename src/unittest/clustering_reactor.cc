@@ -5,8 +5,8 @@
 #include "mock/clustering_utils.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "mock/dummy_protocol_json_adapter.hpp"
-#include "mock/test_cluster_group.hpp"
 #include "mock/unittest_utils.hpp"
+#include "unittest/test_cluster_group.hpp"
 
 using mock::dummy_protocol_t;
 

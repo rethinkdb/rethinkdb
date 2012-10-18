@@ -235,9 +235,11 @@ template class directory_read_manager_t<int>;
 #include "clustering/administration/metadata.hpp"
 template class directory_read_manager_t<cluster_directory_metadata_t>;
 
-#include "mock/test_cluster_group.hpp"
+#ifdef UNIT_TESTS
+#include "unittest/test_cluster_group.hpp"
 #include "mock/dummy_protocol.hpp"
 template class directory_read_manager_t<mock::test_cluster_directory_t<mock::dummy_protocol_t> >;
+#endif  // UNIT_TESTS
 
 #include "clustering/reactor/directory_echo.hpp"
 template class directory_read_manager_t<directory_echo_wrapper_t<std::string> >;
