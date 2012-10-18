@@ -32,6 +32,7 @@ bool do_json_importation(namespace_repo_t<rdb_protocol_t> *repo,
                          const json_import_target_t &target,
                          mailbox_manager_t *mailbox_manager,
                          const clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > &directory,
+                         boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > semilattice_metadata,
                          signal_t *interruptor);
 
 bool get_other_peer(const std::set<peer_id_t> &peers_list, const peer_id_t &me, peer_id_t *other_peer_out) {
@@ -170,6 +171,7 @@ bool run_json_import(extproc::spawner_t::info_t *spawner_info, peer_address_set_
                                target,
                                &mailbox_manager,
                                directory_read_manager.get_root_view(),
+                               semilattice_manager_cluster.get_root_view(),
                                stop_cond);
 }
 
@@ -274,6 +276,7 @@ bool get_change_request_info(const std::map<peer_id_t, cluster_directory_metadat
 namespace_id_t get_or_create_metadata(namespace_repo_t<rdb_protocol_t> *ns_repo,
                                       mailbox_manager_t *mailbox_manager,
                                       const clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > &directory,
+                                      boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > semilattice_metadata,
                                       json_import_target_t target,
                                       signal_t *interruptor) {
     namespace_id_t ns_id = nil_uuid();
@@ -332,7 +335,7 @@ namespace_id_t get_or_create_metadata(namespace_repo_t<rdb_protocol_t> *ns_repo,
         }
 
         printf("Waiting for table readiness...\n");
-        wait_for_rdb_table_readiness(ns_repo, ns_id, interruptor);
+        wait_for_rdb_table_readiness(ns_repo, ns_id, interruptor, semilattice_metadata);
         printf("Table is ready.\n");
         break;
     }
@@ -345,11 +348,12 @@ bool do_json_importation(namespace_repo_t<rdb_protocol_t> *repo,
                          const json_import_target_t &target,
                          mailbox_manager_t *mailbox_manager,
                          const clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > &directory,
+                         boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > semilattice_metadata,
                          signal_t *interruptor) {
 
     // This function will verify that the selected datacenter, database, and table exist
     //  and will create the database and table if they don't, then return the table's namespace_id_t
-    namespace_id_t namespace_id = get_or_create_metadata(repo, mailbox_manager, directory, target, interruptor);
+    namespace_id_t namespace_id = get_or_create_metadata(repo, mailbox_manager, directory, semilattice_metadata, target, interruptor);
 
     if (namespace_id.is_nil()) {
         return false;
