@@ -192,7 +192,7 @@ void test_header_parser() {
 }
 
 http_server_t::http_server_t(int port, http_app_t *_application) : application(_application) {
-    tcp_listener.init(new repeated_nonthrowing_tcp_listener_t(port, boost::bind(&http_server_t::handle_conn, this, _1, auto_drainer_t::lock_t(&auto_drainer))));
+    tcp_listener.init(new repeated_nonthrowing_tcp_listener_t(port, 0, boost::bind(&http_server_t::handle_conn, this, _1, auto_drainer_t::lock_t(&auto_drainer))));
     tcp_listener->begin_repeated_listening_attempts();
 }
 

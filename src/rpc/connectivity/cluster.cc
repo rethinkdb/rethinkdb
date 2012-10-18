@@ -20,6 +20,8 @@
 #define CLUSTER_PROTO_HEADER "RethinkDB " RETHINKDB_VERSION " cluster\n"
 const char *const cluster_proto_header = CLUSTER_PROTO_HEADER;
 
+const int connectivity_cluster_t::run_t::default_user_timeout(12000);
+
 void debug_print(append_only_printf_buffer_t *buf, const peer_address_t &address) {
     buf->appendf("peer_address{ips=[");
     const std::vector<ip_address_t> *ips = address.all_ips();
@@ -44,7 +46,7 @@ connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
 
     /* Create the socket to use when listening for connections from peers */
     cluster_listener_port(port),
-    cluster_listener_socket(new tcp_bound_socket_t(port)),
+    cluster_listener_socket(new tcp_bound_socket_t(port, default_user_timeout)),
 
     /* This sets `parent->current_run` to `this`. It's necessary to do it in the
     constructor of a subfield rather than in the body of the `run_t` constructor
@@ -64,10 +66,9 @@ connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
     `connection_map` and again notify any listeners. */
     connection_to_ourself(this, parent->me, NULL, routing_table[parent->me]),
 
-    listener(new tcp_listener_t(cluster_listener_socket.get(), boost::bind(&connectivity_cluster_t::run_t::on_new_connection,
-                                                                           this,
-                                                                           _1,
-                                                                           auto_drainer_t::lock_t(&drainer))))
+    listener(new tcp_listener_t(cluster_listener_socket.get(),
+                                boost::bind(&connectivity_cluster_t::run_t::on_new_connection,
+                                            this, _1, auto_drainer_t::lock_t(&drainer))))
 {
     parent->assert_thread();
 }
@@ -262,10 +263,10 @@ void connectivity_cluster_t::run_t::handle(
     cluster_conn_closing_subscription_t conn_closer_1(conn);
     conn_closer_1.reset(drainer_lock.get_drain_signal());
 
-    /* Send a heartbeat every ten seconds of inactivity; if heartbeat is not
-    acked, try again every three seconds and declare connection dead after three
-    tries. */
-    conn->get_underlying_conn()->set_keepalive(10, 3, 3);
+    /* Send a heartbeat after three seconds of inactivity; if heartbeat is not
+    acked, try again every three seconds and declare connection dead after twelve
+    seconds total. */
+    conn->get_underlying_conn()->set_keepalive(3, 3, 3);
 
     // Each side sends a header followed by its own ID and address, then receives and checks the
     // other side's.
