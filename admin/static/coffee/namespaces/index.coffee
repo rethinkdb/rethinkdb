@@ -2,7 +2,7 @@
 # This file extends the namespace module with functionality to present
 # the index of namespaces.
 module 'NamespaceView', ->
-    # Show a list of databases, this view extends AbstractList
+    # Show a list of databases
     class @DatabaseList extends UIComponents.AbstractList
         # Use a namespace-specific template for the namespace list
         template: Handlebars.compile $('#database_list-template').html()
@@ -18,20 +18,18 @@ module 'NamespaceView', ->
         initialize: ->
             log_initial '(initializing) namespace list view'
 
-            # Create the modal we may need
             @add_database_dialog = new NamespaceView.AddDatabaseModal
             @add_namespace_dialog = new NamespaceView.AddNamespaceModal
             @remove_namespace_dialog = new NamespaceView.RemoveNamespaceModal
 
-            
             super databases, NamespaceView.DatabaseListElement, '.collapsible-list', {}, 'database', 'cluster'
 
             @datacenters_length = -1
             @databases_length = -1
+            datacenters.on 'all', @update_button_create_namespace
             databases.on 'all', @update_button_create_namespace
             @can_create_namespace = true
 
-        # User cannot create a namespace if there is no database
         update_button_create_namespace: =>
             if databases.length is 0 and @can_create_namespace is true
                 @.$('.add-namespace').prop 'disabled', 'disabled'
@@ -95,10 +93,15 @@ module 'NamespaceView', ->
 
         # Callback that will be registered: updates the toolbar buttons based on how many namespaces have been selected
         update_toolbar_buttons: =>
-            @.$('.btn.remove-namespace').is ':disabled', @get_selected_namespaces().length < 1
+            if @get_selected_namespaces().length < 1
+                @.$('.btn.remove-namespace').prop 'disabled', 'disabled'
+            else
+                @.$('.btn.remove-namespace').removeProp 'disabled'
+            #@.$('.btn.remove-namespace').is ':disabled', @get_selected_namespaces().length < 1
 
         destroy: =>
             super
+            datacenters.off 'all', @update_button_create_namespace
             databases.off 'all', @update_button_create_namespace
             @add_database_dialog.destroy()
             @add_namespace_dialog.destroy()
