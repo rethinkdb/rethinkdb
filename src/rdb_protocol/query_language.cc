@@ -16,8 +16,11 @@
 #include "query_measure.hpp"
 
 
-//TODO: why is this not in the query_language namespace?
-void wait_for_rdb_table_readiness(namespace_repo_t<rdb_protocol_t> *ns_repo, namespace_id_t namespace_id, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+//TODO: why is this not in the query_language namespace? - because it's also used by rethinkdb import at the moment
+void wait_for_rdb_table_readiness(namespace_repo_t<rdb_protocol_t> *ns_repo,
+                                  namespace_id_t namespace_id,
+                                  signal_t *interruptor,
+                                  boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > semilattice_metadata) THROWS_ONLY(interrupted_exc_t) {
     /* The following is an ugly hack, but it's probably what we want.  It
        takes about a third of a second for the new namespace to get to the
        point where we can do reads/writes on it.  We don't want to return
@@ -36,6 +39,18 @@ void wait_for_rdb_table_readiness(namespace_repo_t<rdb_protocol_t> *ns_repo, nam
         signal_timer_t start_poll(poll_ms);
         wait_interruptible(&start_poll, interruptor);
         try {
+            // Make sure the namespace still exists in the metadata, if not, abort
+            {
+                // TODO: use a cross thread watchable instead?  not exactly pressed for time here...
+                on_thread_t rethread(semilattice_metadata->home_thread());
+                cluster_semilattice_metadata_t metadata = semilattice_metadata->get();
+                cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t change(&metadata.rdb_namespaces);
+                std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<rdb_protocol_t> > >::iterator
+                    nsi = change.get()->namespaces.find(namespace_id);
+                rassert(nsi != change.get()->namespaces.end());
+                if (nsi->second.is_deleted()) throw interrupted_exc_t();
+            }
+
             namespace_repo_t<rdb_protocol_t>::access_t ns_access(ns_repo, namespace_id, interruptor);
             rdb_protocol_t::read_response_t read_res;
             // TODO: We should not use order_token_t::ignore.
@@ -1000,7 +1015,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         //  immediately following queries will succeed.
         on_thread_t rethreader_original(original_thread);
         try {
-            wait_for_rdb_table_readiness(env->ns_repo, namespace_id, env->interruptor);
+            wait_for_rdb_table_readiness(env->ns_repo, namespace_id, env->interruptor, env->semilattice_metadata);
         } catch (interrupted_exc_t e) {
             throw runtime_exc_t("Query interrupted, probably by user.", bt);
         }
@@ -1440,7 +1455,7 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
                 point_modify::result_t mres =
                     point_modify(view.access, pk, id, point_modify::MUTATE, env, w->mutate().mapping(), scopes,
                                  w->atomic(), json, backtrace.with("modify_map"));
-                guarantee(mres == point_modify::MODIFIED || mres == point_modify::DELETED);
+                //guarantee(mres == point_modify::MODIFIED || mres == point_modify::DELETED);
                 modified += (mres == point_modify::MODIFIED);
                 deleted += (mres == point_modify::DELETED);
             } catch (const query_language::broken_client_exc_t &e) {

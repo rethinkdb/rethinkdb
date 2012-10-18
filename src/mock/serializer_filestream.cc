@@ -1,6 +1,7 @@
 #include "mock/serializer_filestream.hpp"
 
 #include "buffer_cache/buffer_cache.hpp"
+#include "perfmon/core.hpp"
 
 namespace mock {
 

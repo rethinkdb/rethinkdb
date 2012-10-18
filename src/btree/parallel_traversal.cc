@@ -548,10 +548,6 @@ void ranged_block_ids_t::get_block_id_and_bounding_interval(int index,
         *left_excl_bound_out = left_exclusive_or_null_;
         *right_incl_bound_out = right_inclusive_or_null_;
     }
-
-    if (*left_excl_bound_out && *right_incl_bound_out &&
-        sized_strcmp((*left_excl_bound_out)->contents, (*left_excl_bound_out)->size, (*right_incl_bound_out)->contents, (*right_incl_bound_out)->size) == 0) {
-    }
 }
 
 int ranged_block_ids_t::get_level() {

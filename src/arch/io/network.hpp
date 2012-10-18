@@ -343,7 +343,7 @@ the provided callback will be called in a new coroutine every time something con
 
 class linux_nonthrowing_tcp_listener_t : private linux_event_callback_t {
 public:
-    linux_nonthrowing_tcp_listener_t(int _port,
+    linux_nonthrowing_tcp_listener_t(int _port, int user_timeout,
         const boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> &callback);
 
     ~linux_nonthrowing_tcp_listener_t();
@@ -356,7 +356,7 @@ protected:
     friend class linux_tcp_listener_t;
     friend class linux_tcp_bound_socket_t;
 
-    void init_socket();
+    void init_socket(int user_timeout);
     MUST_USE bool bind_socket();
 
     /* accept_loop() runs in a separate coroutine. It repeatedly tries to accept
@@ -392,7 +392,7 @@ protected:
 /* Used by the old style tcp listener */
 class linux_tcp_bound_socket_t {
 public:
-    explicit linux_tcp_bound_socket_t(int _port);
+    explicit linux_tcp_bound_socket_t(int _port, int user_timeout);
     int get_port() const;
 private:
     friend class linux_tcp_listener_t;
@@ -405,7 +405,7 @@ class linux_tcp_listener_t {
 public:
     linux_tcp_listener_t(linux_tcp_bound_socket_t *bound_socket,
         const boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> &callback);
-    linux_tcp_listener_t(int port,
+    linux_tcp_listener_t(int port, int user_timeout,
         const boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> &callback);
 
 private:
@@ -415,7 +415,7 @@ private:
 /* Like a linux tcp listener but repeatedly tries to bind to its port until successful */
 class linux_repeated_nonthrowing_tcp_listener_t {
 public:
-    linux_repeated_nonthrowing_tcp_listener_t(int port,
+    linux_repeated_nonthrowing_tcp_listener_t(int port, int user_timeout,
         const boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> &callback);
     void begin_repeated_listening_attempts();
     signal_t *get_bound_signal();
