@@ -22,26 +22,21 @@ module 'NamespaceView', ->
             @add_namespace_dialog = new NamespaceView.AddNamespaceModal
             @remove_namespace_dialog = new NamespaceView.RemoveNamespaceModal
 
-            super databases, NamespaceView.DatabaseListElement, '.collapsible-list'
+            super databases, NamespaceView.DatabaseListElement, '.collapsible-list', {}, 'database', 'cluster'
 
             @datacenters_length = -1
             @databases_length = -1
             datacenters.on 'all', @update_button_create_namespace
             databases.on 'all', @update_button_create_namespace
+            @can_create_namespace = true
 
         update_button_create_namespace: =>
-            need_update = false
-            if (datacenters.models.length>0) isnt (@datacenters_length>0) or @datacenters_length is -1
-                need_update = true
-                @datacenters_length = datacenters.models.length
-            if (databases.models.length>0) isnt (@databases_length>0) or @databases_length is -1
-                need_update = true
-                @databases_length = databases.models.length
-
-            if need_update
-                @.$('.user_alert_space-cannot_create_namespace').html ''
-                @.$('.user_alert_space-cannot_create_namespace').css 'display', 'none'
+            if databases.length is 0 and @can_create_namespace is true
+                @.$('.add-namespace').prop 'disabled', 'disabled'
+                @.$('.user_alert_space-cannot_create_namespace').show()
+            else if databases.length > 0 and @can_create_namespace is false
                 @.$('.add-namespace').removeProp 'disabled'
+                @.$('.user_alert_space-cannot_create_namespace').hide()
 
         render: (message) =>
             super
@@ -178,19 +173,11 @@ module 'NamespaceView', ->
         initialize:  (database_id) =>
             log_initial '(initializing) namespace list view'
 
-            @add_namespace_dialog = new NamespaceView.AddNamespaceModal
-            @remove_namespace_dialog = new NamespaceView.RemoveNamespaceModal
-
             super namespaces, NamespaceView.NamespaceListElement, '.list',
                 {
                 filter: (model) -> model.get('database') is database_id
                 }
                 , 'table', 'database'
-
-        remove_parent_alert: (event) ->
-            event.preventDefault()
-            element = $(event.target).parent()
-            element.slideUp 'fast', -> element.remove()
 
         # Extend the AbstractList.add_element method to bind a callback to each namespace added to the list
         add_element: (element) =>
@@ -219,8 +206,6 @@ module 'NamespaceView', ->
 
         destroy: =>
             super()
-            @add_namespace_dialog.destroy()
-            @remove_namespace_dialog.destroy()
 
     # Namespace list element
     class @NamespaceListElement extends UIComponents.CheckboxListElement
@@ -271,20 +256,19 @@ module 'NamespaceView', ->
             no_error = true
             if @formdata.name is ''
                 no_error = false
-                template_error =
+                $('.alert_modal').html @error_template
                     database_is_empty: true
-                $('.alert_modal').html @error_template template_error
-                $('.alert_modal').alert()
-                @reset_buttons()
+            else if /^[a-zA-Z0-9_]+$/.test(@formdata.name) is false
+                no_error = false
+                $('.alert_modal').html @error_template
+                    special_char_detected: true
+                    type: 'database'
             else
                 for database in databases.models
-                    if database.get('name') is @formdata.name
+                    if database.get('name').toLowerCase() is @formdata.name.toLowerCase()
                         no_error = false
-                        template_error =
+                        $('.alert_modal').html @error_template
                             database_exists: true
-                        $('.alert_modal').html @error_template template_error
-                        $('.alert_modal').alert()
-                        @reset_buttons()
                         break
             if no_error is true
                 $.ajax
@@ -295,6 +279,9 @@ module 'NamespaceView', ->
                     data: JSON.stringify({"name" : @formdata.name})
                     success: @on_success
                     error: @on_error
+            else
+                $('.alert_modal_content').slideDown 'fast'
+                @reset_buttons()
 
         on_success: (response) =>
             super
@@ -304,6 +291,7 @@ module 'NamespaceView', ->
             for id, namespace of response
                 $('#user-alert-space').append @alert_tmpl
                     name: namespace.name
+                    id: id
 
     # A modal for adding namespaces
     class @AddNamespaceModal extends UIComponents.AbstractModal
@@ -401,9 +389,13 @@ module 'NamespaceView', ->
             if formdata.name is ''
                 input_error = true
                 template_error.namespace_is_empty = true
+            else if /^[a-zA-Z0-9_]+$/.test(formdata.name) is false
+                input_error = true
+                template_error.special_char_detected = true
+                template_error.type = 'table'
             else # And a name that doesn't exist
                 for namespace in namespaces.models
-                    if namespace.get('name') is formdata.name and namespace.get('database') is formdata.database
+                    if namespace.get('name').toLowerCase() is formdata.name.toLowerCase() and namespace.get('database').toLowerCase() is formdata.database.toLowerCase()
                         input_error = true
                         template_error.namespace_exists = true
                         break
@@ -428,7 +420,7 @@ module 'NamespaceView', ->
 
             if input_error is true
                 $('.alert_modal').html @error_template template_error
-                $('.alert_modal').alert()
+                $('.alert_modal_content').slideDown 'fast'
                 @reset_buttons()
             else
                 ack = {}
@@ -454,7 +446,6 @@ module 'NamespaceView', ->
             super
 
             apply_to_collection(namespaces, add_protocol_tag(response, "rdb"))
-
             for id, namespace of response
                 $('#user-alert-space').append @alert_tmpl
                     uuid: id
@@ -510,6 +501,7 @@ module 'NamespaceView', ->
 
             $('#user-alert-space').append @alert_tmpl
                 deleted_namespaces: deleted_namespaces
+                num_deleted_namespaces: deleted_namespaces.length
 
             apply_diffs response
 

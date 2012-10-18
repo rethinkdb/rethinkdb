@@ -157,16 +157,16 @@
 </script>
 
 <script id="set_datacenter-alert-template" type="text/x-handlebars-template">
-  <div class="alert" data-alert="alert">
+  <div class="alert displayed_alert" data-alert="alert">
     <a class="close" href="#">&times;</a>
     <p>Set datacenter for {{pluralize_noun "server" machine_count}} {{machines_first.name}}{{#each machines_rest}}, {{name}}{{/each}} to {{datacenter_name}}.</p>
   </div>
 </script>
 
 <script id="alert_message-template" type="text/x-handlebars-template">
-    <div class="alert" data-alert="alert">
-    <a class="close" href="#">&times;</a>
-        {{print_safe message}}
+    <div class="alert displayed_alert" data-alert="alert">
+        <a class="close" href="#">&times;</a>
+        <p>{{print_safe message}}</p>
     </div>
 </script>
 

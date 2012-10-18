@@ -334,7 +334,7 @@ module 'DataExplorerView', ->
         # Change the num_char_per_line value when we switch from normal view to full view and vice versa 
         set_char_per_line: =>
             if @displaying_full_view is true
-                @num_char_per_line = Math.floor (@.$('Codemirror-scroll').width()-37)/8
+                @num_char_per_line = Math.floor (@.$('.CodeMirror-scroll').width()-37)/8
             else
                 @num_char_per_line = @default_num_char_per_line
 
@@ -355,11 +355,14 @@ module 'DataExplorerView', ->
 
             if margin_left < 200
                 @.$('.suggestion_full_container').css 'left', '0px'
-            else if margin_left > 468
-                @.$('.suggestion_full_container').css 'left', '440px'
             else
-                margin_left = Math.min 468, Math.floor(margin_left/100)*100
-                @.$('.suggestion_full_container').css 'left', (margin_left-100)+'px'
+                 max_margin = @.$('.CodeMirror-scroll').width()-418
+
+                if margin_left > max_margin
+                    @.$('.suggestion_full_container').css 'left', (max_margin-28)+'px'
+                else
+                    margin_left = Math.min max_margin, Math.floor(margin_left/100)*100
+                    @.$('.suggestion_full_container').css 'left', (margin_left-100)+'px'
 
         #TODO refactor show_suggestion, show_suggestion_description, add_description
         show_suggestion: =>
@@ -797,73 +800,74 @@ module 'DataExplorerView', ->
                 @.$('.loading_query_img').css 'display', 'none'
                 @results_view.render_error(@query, err)
 
-        # Create tagged callback so we just execute the last query executed by the user
-        # Results:
-        # User execute q1
-        # User execute q2
-        # q1 returns but no results is displayed
-        # q2 returns, we display q2 results
-        create_tagged_callback: =>
-            id = Math.random() # That should be good enough for our application
-            @last_id = id
-            @current_results = []
-            @skip_value = 0
-            @current_query_index = 0
-            
-            # The callback with the id that we are going to return
-            callback_multiple_queries = (data) =>
-                if id is @last_id # We display things or fire the next query only if the user hasn't execute another query
-                    # Check if the data sent by the server is an error
-                    if data instanceof rethinkdb.errors.RuntimeError or data instanceof rethinkdb.errors.BadQuery or data instanceof rethinkdb.errors.ClientError or data instanceof rethinkdb.errors.ClientError
-                        @.$('.loading_query_img').css 'display', 'none'
-                        @.results_view.render_error(@query, data)
-                        return false
+        callback_multiple_queries: (data) =>
+            # Check if the data sent by the server is an error
+            if data instanceof rethinkdb.errors.RuntimeError or data instanceof rethinkdb.errors.BadQuery or data instanceof rethinkdb.errors.ClientError or data instanceof rethinkdb.errors.ClientError
+                @.$('.loading_query_img').css 'display', 'none'
+                @.results_view.render_error(@query, data)
+                return false
 
-                    # Look for the next query
-                    @current_query_index++
+            # Look for the next query
+            @current_query_index++
 
-                    # If we are dealing with the last query
-                    if @current_query_index >= @queries.length
-                        # If we get a run time error
-                        if data instanceof rethinkdb.errors.RuntimeError
-                            @.$('.loading_query_img').css 'display', 'none'
-                            @.results_view.render_error(@query, data)
-                            return false
-                        
-                        # if it's a valid result and we have not reach the maximum of results displayed
-                        if data? and  @current_results.length < @limit
-                            @current_results.push data
-                            return true
-                        else
-                            # Else we are going to display what we have
-                            @.$('.loading_query_img').css 'display', 'none'
-                            @results_view.render_result @query, @current_results
-
-                            execution_time = new Date() - @start_time
-                            @results_view.render_metadata
-                                limit_value: @current_results.length
-                                skip_value: @skip_value
-                                execution_time: execution_time
-                                query: @query
-                                has_more_data: true if data? # if data is undefined, it means that there is no more data
-
-                            if data? #there is nore data
-                                @skip_value += @current_results.length
-                                @current_results = []
-                                @current_results.push data
-                            return false
-                    else #  Else if it's not the last query, we just execute the next query
-                        if @cursor?
-                            @cursor.close()
-                        @cursor = eval(@queries[@current_query_index])
-                        @cursor.next(callback_multiple_queries)
-
+            # If we are dealing with the last query
+            if @current_query_index >= @queries.length
+                # If we get a run time error
+                if data instanceof rethinkdb.errors.RuntimeError
+                    @.$('.loading_query_img').css 'display', 'none'
+                    @.results_view.render_error(@query, data)
                     return false
+                
+                # if it's a valid result and we have not reach the maximum of results displayed
+                if data? and  @current_results.length < @limit
+                    @current_results.push data
+                    return true
                 else
-                    @cursor.close()
+                    # Else we are going to display what we have
+                    @.$('.loading_query_img').css 'display', 'none'
+                    @results_view.render_result @query, @current_results
+
+                    execution_time = new Date() - @start_time
+                    @results_view.render_metadata
+                        limit_value: @current_results.length
+                        skip_value: @skip_value
+                        execution_time: execution_time
+                        query: @query
+                        has_more_data: true if data? # if data is undefined, it means that there is no more data
+
+                    if data? #there is nore data
+                        @skip_value += @current_results.length
+                        @current_results = []
+                        @current_results.push data
                     return false
-            return callback_multiple_queries
+            else #  Else if it's not the last query, we just execute the next query
+                try
+                    #For safety only.
+                    if @cursor?.close?
+                        @cursor.close()
+
+                    @current_results = []
+                    @skip_value = 0
+
+                    @cursor = eval(@queries[@current_query_index])
+                    @cursor.next(@callback_multiple_queries)
+                catch err
+                    @.$('.loading_query_img').css 'display', 'none'
+                    @results_view.render_error(@query, err)
+
+            return false
+
         # Function that execute the query
+        # Current behavior for user
+        # - User execute q1
+        # - User execute q2 (we stop listening to q1)
+        # - User retrieve results for q2
+        #
+        # In case of multiple queries
+        # - User execute q1_1, q1_2
+        # - User execute q2
+        # - We don't execute q1_3
+        # - User retrieve results for q2
         execute_query: =>
             # Postpone the reconnection
             clearTimeout @timeout
@@ -894,12 +898,15 @@ module 'DataExplorerView', ->
             try
                 @queries = @separate_queries @query
                 @start_time = new Date()
+
                 @current_results = []
                 @skip_value = 0
+                @current_query_index = 0
 
-                tagged_callback = @create_tagged_callback()
+                if @cursor?.close? # So if a old query was running, we won't listen to it.
+                    @cursor.close()
                 @cursor = eval(@queries[@current_query_index])
-                @cursor.next(tagged_callback)
+                @cursor.next(@callback_multiple_queries)
 
             catch err
                 @.$('.loading_query_img').css 'display', 'none'
@@ -1056,12 +1063,12 @@ module 'DataExplorerView', ->
         toggle_size: =>
             if @displaying_full_view
                 @display_normal()
-                $(window).unbind 'resize', @display_full
+                $(window).on 'resize', @display_full
                 @displaying_full_view = false
                 @set_char_per_line()
             else
                 @display_full()
-                $(window).bind 'resize', @display_full
+                $(window).on 'resize', @display_full
                 @displaying_full_view = true
                 @set_char_per_line()
 
@@ -1075,13 +1082,14 @@ module 'DataExplorerView', ->
 
         destroy: =>
             @display_normal()
+            $(window).off 'resize', @display_full
             @input_query.destroy()
             @results_view.destroy()
             try
                 window.conn.close()
             catch err
                 #console.log 'Could not destroy connection'
-            if @cursor?
+            if @cursor?.close?
                 @cursor.close()
             clearTimeout @timeout
     
@@ -1101,7 +1109,7 @@ module 'DataExplorerView', ->
         option_template: Handlebars.compile $('#dataexplorer-option_page-template').html()
         error_template: Handlebars.compile $('#dataexplorer-error-template').html()
         template_no_result: Handlebars.compile $('#dataexplorer_result_empty-template').html()
-        template_json_tree: 
+        template_json_tree:
             'container' : Handlebars.compile $('#dataexplorer_result_json_tree_container-template').html()
             'span': Handlebars.compile $('#dataexplorer_result_json_tree_span-template').html()
             'span_with_quotes': Handlebars.compile $('#dataexplorer_result_json_tree_span_with_quotes-template').html()
@@ -1146,13 +1154,14 @@ module 'DataExplorerView', ->
             @view = view
 
         render_error: (query, err) =>
-            @.$el.html @error_template 
+            @.$el.html @error_template
                 query: query
                 error: err.toString()
+                forgot_run: err.type? and err.type is 'undefined_method' and err['arguments']?[0]? and err['arguments'][0] is 'next' # Check if next is undefined, in which case the user probably forgot to append .run()
             return @
 
         json_to_tree: (result) =>
-            return @template_json_tree.container 
+            return @template_json_tree.container
                 tree: @json_to_node(result)
 
         #TODO catch RangeError: Maximum call stack size exceeded?
@@ -1172,7 +1181,7 @@ module 'DataExplorerView', ->
                 else
                     sub_values = []
                     for element in value
-                        sub_values.push 
+                        sub_values.push
                             value: @json_to_node element
                         if typeof element is 'string' and (/^(http|https):\/\/[^\s]+$/i.test(element) or  /^[a-z0-9._-]+@[a-z0-9]+.[a-z0-9._-]{2,4}/i.test(element))
                             sub_values[sub_values.length-1]['no_comma'] = true

@@ -248,5 +248,5 @@ void csv_to_json_importer_t::import_json_from_file(std::string separators, std::
 }
 
 std::string csv_to_json_importer_t::get_error_information() const {
-    return strprintf("%ld malformed row%s ignored.", num_ignored_rows_, num_ignored_rows_ == 1 ? "" : "s");
+    return strprintf("%" PRIi64 " malformed row%s ignored.", num_ignored_rows_, num_ignored_rows_ == 1 ? "" : "s");
 }

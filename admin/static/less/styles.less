@@ -37,10 +37,12 @@
         - Uses Adham Dannaway's sticky footer approach (adhamdannaway.com)
     ----------------------------------------------------------------------
 */
-html, body { height: 100%; }
+html, body {
+    height: 100%;
+    background: #E5E5E5;
+}
 #sticky-wrap { min-height: 100%; }
 #main-container {
-    overflow: auto;
     padding-bottom: 95px;
 }
 #footer {
@@ -192,6 +194,61 @@ body:before {
             opacity: 0.65;
         }
     }
+    .alert{
+        display: none;
+        padding: 8px 20px 8px 14px;
+        margin-bottom: 20px;
+        text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+        -webkit-border-radius: 4px;
+        -moz-border-radius: 4px;
+        border-radius: 4px;
+        color: #BF9947;
+        background-color: #FAF4D8;
+        border: 1px solid #E9D296;
+        h4{
+            font-size: 14px;
+            text-align: center;
+            padding: 0px;
+            margin: 5px 0px 10px 0px;
+        }
+        p{
+            margin: 4px 0px;
+        }
+        .close{
+            float: right;
+            font-size: 20px;
+            font-weight: bold;
+            line-height: 20px;
+            color: black;
+            text-shadow: 0 1px 0 white;
+            opacity: 0.2;
+            filter: alpha(opacity=20);
+        }
+        a{
+            color: #BF9947;
+            font-weight: bold;
+            text-decoration: none
+        }
+        a:hover{
+            text-decoration: underline;
+        }
+    }
+    .alert-error{
+        color: #d95c5c;
+        background-color: #F1D6D6;
+        border-color: #E59C9C;
+        a{
+            color: #d95c5c;
+            font-weight: bold;
+            text-decoration: none
+        }
+        a:hover{
+            text-decoration: underline;
+        }
+    }
+    .displayed_alert{
+        display: block;   
+    }
 }
 
 /*
@@ -317,6 +374,7 @@ TODO: retire this
                 }
             }
         }
+
         /* right nav (search) */
         .right-nav {
             margin: 0;
@@ -332,8 +390,8 @@ TODO: retire this
                 border: 0 none;
 
                 text-shadow: @text_shadow;
-                margin-top: 13px;
-                padding: 6px 12px 6px 40px;
+                margin-top: 11px;
+                padding: 8px 12px 6px 40px;
                 width: 150px;
 
                 // csshat
@@ -344,6 +402,19 @@ TODO: retire this
 
             }
         }
+        .search-query::-webkit-input-placeholder {
+            padding: 2px 0px 0px 1px;
+            color: #888;
+        }
+        .search-query:-moz-placeholder {
+            padding: 8px 12px 6px 40px;
+            color: #888;
+        }
+        .search-query:-ms-input-placeholder {
+            padding: 8px 12px 6px 40px;
+            color: #888;
+        }
+
     }
 }
 
@@ -509,15 +580,15 @@ TODO: retire this
     }
     .alert{
         display: none;
-        padding: 8px 35px 8px 14px;
+        padding: 8px 20px 8px 14px;
         margin-bottom: 20px;
-        color: #C09853;
         text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
-        background-color: #FCF8E3;
-        border: 1px solid #FBEED5;
         -webkit-border-radius: 4px;
         -moz-border-radius: 4px;
         border-radius: 4px;
+        color: #BF9947;
+        background-color: #FAF4D8;
+        border: 1px solid #E9D296;
         h4{
             font-size: 14px;
             text-align: center;
@@ -526,12 +597,28 @@ TODO: retire this
         }
     }
     .alert-error{
-        color: #B94A48;
-        background-color: #F2DEDE;
-        border-color: #EED3D7;
+        color: #d95c5c;
+        background-color: #F1D6D6;
+        border-color: #E59C9C;
+    }
+    .alert_modal{
+        margin: 0px 20px;
     }
     .displayed_alert{
         display: block;   
+    }
+    .close_error, .close{
+        float: right;
+        font-size: 20px;
+        font-weight: bold;
+        line-height: 20px;
+        color: black;
+        text-shadow: 0 1px 0 white;
+        opacity: 0.2;
+        filter: alpha(opacity=20);
+    }
+    a.close:hover{
+        text-decoration: none;
     }
 }
 
@@ -540,7 +627,7 @@ TODO: retire this
     Dashboard
     ----------------------------
 */
-#dashboard {
+#dashboard_container {
     #cluster_status_container {
         padding: 0;
         overflow: auto;
@@ -951,9 +1038,7 @@ TODO: retire this
     ----------------------------
 */
 #dataexplorer{
-    position: relative;
     margin: 0px;
-    overflow: auto;
 
     h1.title{
         font-family: @serif;
@@ -1027,6 +1112,7 @@ TODO: retire this
                 border: 1px solid #d7d7d7;
                 color: #9ea2a8;
                 font-family: @monospace;
+                word-wrap: break-word;
                 .border-radius(4px);
                 -webkit-box-shadow: inset 0 -6px 6px -6px #ddd;
                 -moz-box-shadow: inset 0 -6px 6px -6px #ddd;
@@ -1446,13 +1532,14 @@ TODO: retire this
             @height: 60px;
             border-top: thin solid #f0f0f0;
             p {
-                margin: 0px+(@height - 18)/2 0;
+                margin: 0px+(@height - 24)/2 0;
                 font-family: @sans;
                 font-size: 15px;
                 color: #72bddf;
                 padding-left: 30px;
                 span.big {
                     font-size: 24px;
+                    line-height: 24px;
                     color: #5c6169;
                 }
                 &.availability { background: left center no-repeat url('http://bit.ly/PyxKg9'); }//live-icon.png
@@ -1930,6 +2017,7 @@ TODO: retire this
         }
         .edit-shards {
             margin: 20px 0;
+            min-height: 39px;
             button { float: right; }
             .icon_paragraph {
                 font-family: @sans;
@@ -1938,25 +2026,28 @@ TODO: retire this
                 color: #a9a9a9;
                 padding-left: 30px;
                 span.big {
-                    margin: 0px 0px 0px 20px;
+                    margin: 0px 6px 0px 20px;
                     font-size: 24px;
                     color: #f7ae41;
                 }
-                background: left 5px no-repeat url('http://bit.ly/Pyxwpp');//bars-icon.png
+                span.shard_text{
+                    display: inline-block;
+                    padding-top: 10px;
+                }
+                background: left 9px no-repeat url('http://bit.ly/Pyxwpp');//bars-icon.png
             }
             input.num-shards { 
                 font-family: @sans;
                 font-size: 24px;
                 color: #6b6f76;
                 text-align: right;
-
                 width: 1.25em;
-                height: 24px;
+                height: 35px;
                 background: #fcfcfc;
                 border: thin solid #d9d9d9;
                 .border-radius(3px);
                 padding: 4px;
-                margin: -12px 0px 0px -1px;
+                margin: -8px 0px 0px -4px;
                
                 &:focus {
                     border-color: rgba(82,168,236,.8);
@@ -1966,33 +2057,9 @@ TODO: retire this
                     outline: thin dotted \9; /* IE6-9 */
                 }
             }
-            .edit, .cancel, .rebalance{ margin: -7px 0px 0px 10px; }
+            .edit, .cancel, .rebalance{ margin: 0px 0px 0px 10px; }
             .cannot_shard-alert{
-                display: none;
-                clear: both;
-                margin: 6px 0px 0px 0px;
-                padding: 10px 10px 10px 14px;
-                color: #C09853;
-                text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
-                background-color: #FCF8E3;
-                border: 1px solid #FBEED5;
-                .border-radius(4px);
-                p{
-                    font-family: @sans;
-                    margin: 0px;
-                }
-                .close{
-                    float: right;
-                    margin-top: -8px;
-                    font-size: 20px;
-                    font-weight: bold;
-                    line-height: 20px;
-                    color: black;
-                    text-shadow: 0 1px 0 white;
-                    opacity: 0.2;
-                    filter: alpha(opacity=20);
-                    cursor: pointer;
-                }
+                margin: 10px 0px;
             }
         }
         .shards_status_container{

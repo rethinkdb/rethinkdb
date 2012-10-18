@@ -8,33 +8,13 @@ clear_modals = ->
     modal_registry = []
 register_modal = (modal) -> modal_registry.push(modal)
 
-#TODO Just for development, CHANGE IT BACK TO 5000
 updateInterval = 5000
 statUpdateInterval = 1000
 progress_interval_default_value = 5000
 progress_interval_value = 5000
 progress_short_interval = 1000
 
-# Check if new_data is included in old_data and if the values are equals. (Note: We don't check if the objects are equals)
-need_update_objects = (new_data, old_data) ->
-    for key of new_data
-        if key of old_data is false
-            return true
-
-    for key of new_data
-        if typeof new_data[key] is object and typeof old_data[key] is object
-            need_update = compare_object(new_data[key], old_data[key])
-            if need_update is true
-                return need_update
-        else if typeof new_data[key] isnt typeof old_data[key]
-            return true
-        else if new_data[key] isnt old_data[key]
-            return true
-
-    return false
-
-
-
+#TODO Duplicate this function, and remove element not found in case of a call to /ajax
 apply_to_collection = (collection, collection_data) ->
     for id, data of collection_data
         if data isnt null
@@ -44,17 +24,10 @@ apply_to_collection = (collection, collection_data) ->
                         if !machines.get(machine_uuid)?
                             delete collection_data[id].blueprint.peers_roles[machine_uuid]
             if collection.get(id)
-                # We update only if something changed so we don't trigger to much 'update'
-                ###
-                need_update = need_update_objects(data, collection.get(id))
-                if need_update is true
-                ###
                 collection.get(id).set(data)
-                collection.trigger('change')
             else
                 data.id = id
                 collection.add(new collection.model(data))
-            #TODO remove not found object
         else
             if collection.get(id)
                 collection.remove(id)
@@ -195,7 +168,7 @@ collect_server_data_once = (async, optional_callback) ->
                 window.is_disconnected.display_fail()
             else
                 window.is_disconnected = new IsDisconnected
-        #timeout: updateInterval
+        timeout: updateInterval*3
 
 collect_progress = ->
     $.ajax

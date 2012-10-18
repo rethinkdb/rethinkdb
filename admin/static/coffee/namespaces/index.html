@@ -7,7 +7,7 @@
         </div>
         <h1 class="title">Tables in the cluster</h1>
         <div id="user-alert-space"></div>
-        <div class="user_alert_space-cannot_create_namespace"></div>
+        <div class="alert user_alert_space-cannot_create_namespace">You need to create a database before creating a table.</div>
         <div class="collapsible-list"></div>
     </div>
 </script>
@@ -58,7 +58,6 @@ You need to create a database before creating a table.
 </script>
 
 <script id="add_database-modal-template" type="text/x-handlebars-template"> 
-    <div class="alert alert-error error_answer"></div>
     <form class="form">
         <fieldset>
             <legend>Database details</legend>
@@ -73,14 +72,13 @@ You need to create a database before creating a table.
 </script>
 
 <script id="added_database-alert-template" type="text/x-handlebars-template">
-    <div class="alert" data-alert="alert">
+    <div class="alert displayed_alert">
         <a class="close" href="#">&times;</a>
-        <p>You successfully added database <span class="name">{{name}}</span>.</p>
+        <p>You successfully added database <a href="#databases/{{id}}">{{name}}</a>.</p>
     </div>
 </script>
 
 <script id="add_namespace-modal-template" type="text/x-handlebars-template">
-    <div class="alert alert-error error_answer"></div>
     <form class="form">
         <label for="name">Name</label>
         <input class="xlarge" id="focus_namespace_name" name="name" size="30" type="text" />
@@ -115,14 +113,14 @@ You need to create a database before creating a table.
 </script>
 
 <script id="added_namespace-alert-template" type="text/x-handlebars-template">
-    <div class="alert" data-alert="alert">
+    <div class="alert displayed_alert">
         <a class="close" href="#">&times;</a>
         <p>You added table <span class="name">{{name}}</span>. You can now <a href="#tables/{{uuid}}">configure</a> it further.</p>
     </div>
 </script>
 
 <script id="remove_namespace-modal-template" type="text/x-handlebars-template">
-    <div class="alert alert-error">Removing the table will delete all the data. This action cannot be reversed.</div>
+    <div class="alert alert-error displayed_alert">Removing the table will delete all the data. This action cannot be reversed.</div>
     <div class="alert alert-error error_answer"></div>
     <h4>Are you sure you want to remove {{#if namespaces_length_is_one}}this{{else}}these{{/if}} tables:</h4>
     <ul class="namespace-list">
@@ -133,14 +131,14 @@ You need to create a database before creating a table.
 </script>
 
 <script id="removed_namespace-alert-template" type="text/x-handlebars-template">
-    <div class="alert" data-alert="alert">
+    <div class="alert displayed_alert">
         <a class="close" href="#">&times;</a>
-        <p>You removed table <span class="name">{{comma_separated_simple deleted_namespaces}}</span>.</p>
+        <p>The {{pluralize_noun "table" num_deleted_namespaces}} <span class="name">{{comma_separated_simple deleted_namespaces}}</span> {{pluralize_verb_to_have num_deleted_namespaces}} been removed.</p>
     </div>
 </script>
 
 <script id="error_adding_namespace-template" type="text/x-handlebars-template">
-    <div class="alert reason_cannot_create_namespace">
+    <div class="alert reason_cannot_create_namespace displayed_alert">
         {{#if need_something}}<p>{{/if}}
         {{#if need_datacenter}}
         You need to create a datacenter before creating a new table. <a href="#servers">Create one</a>.<br/>

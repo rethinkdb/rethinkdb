@@ -2,7 +2,7 @@
 <script id="abstract-modal-outer-template" type="text/x-handlebars-template">
   <div class="modal {{modal_class}}">
     <div class="modal-header">
-      <button class="close" data-dismiss="modal">&times;</button>
+      <a href="#" class="close">&times;</a>
       <h3>{{modal_title}}</h3>
     </div>
     <div class="alert_modal"></div>
@@ -51,7 +51,7 @@
 
 <!-- Confirmation dialog alert -->
 <script id="renamed_item-alert-template" type="text/x-handlebars-template">
-  <div class="alert" data-alert="alert">
+  <div class="alert displayed_alert" data-alert="alert">
     <a class="close" href="#">&times;</a>
     <p>You successfully renamed {{type}} from <span class="name">{{old_name}}</span> to <span class="name">{{new_name}}</span>.</p>
   </div>
@@ -60,8 +60,12 @@
 
 
 <script id="error_input-template" type="text/x-handlebars-template">
-  <div class="alert alert-error" data-alert="alert">
+  <div class="alert alert-error alert_modal_content" data-alert="alert">
       <a class="close_error" href="#">&times;</a>
+    {{#if ajax_fail}}
+    Sorry, something went wrong with the ajax request. Please try again.
+    {{#if error}}<br/>Error {{error.status}}: {{error.responseText}}{{/if}}
+    {{/if}}
     {{#if port_is_used}}
         <p>Sorry the port you have chosen is already used.<p>
     {{/if}}
@@ -75,7 +79,7 @@
         <p>The chosen database's name is already being used. please choose another one.</p>
     {{/if}}
     {{#if namespace_is_empty}}
-        <p>Please do not use an empty table.</p>
+        <p>Please do not use an empty name for a table.</p>
     {{/if}}
     {{#if no_database}}
         <p>You have to select a database.</p>
@@ -103,6 +107,9 @@
     {{/if}}
     {{#if cache_size_too_big}}
         <p>The cache size must be smaller than 64MB.</p>
+    {{/if}}
+    {{#if special_char_detected}}
+    <p>You can only use alphanumeric characters and underscores for a {{type}}'s name.</p>
     {{/if}}
   </div>
 </script>

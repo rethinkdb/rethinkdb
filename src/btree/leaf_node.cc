@@ -214,7 +214,7 @@ std::string strprint_leaf(value_sizer_t<void> *sizer, const leaf_node_t *node) {
         out += strprintf(":");
         if (iter.offset < node->tstamp_cutpoint) {
             repli_timestamp_t tstamp = get_timestamp(node, iter.offset);
-            out += strprintf("[t=%lu]", tstamp.longtime);
+            out += strprintf("[t=%" PRIu64 "]", tstamp.longtime);
         }
         strprint_entry(&out, sizer, get_entry(node, iter.offset));
         iter.step(sizer, node);
@@ -270,7 +270,7 @@ void print(FILE *fp, value_sizer_t<void> *sizer, const leaf_node_t *node) {
         fflush(fp);
         if (iter.offset < node->tstamp_cutpoint) {
             repli_timestamp_t tstamp = get_timestamp(node, iter.offset);
-            fprintf(fp, "[t=%lu]", tstamp.longtime);
+            fprintf(fp, "[t=%" PRIu64 "]", tstamp.longtime);
             fflush(fp);
         }
         print_entry(fp, sizer, get_entry(node, iter.offset));
@@ -1468,7 +1468,7 @@ void dump_entries_since_time(value_sizer_t<void> *sizer, const leaf_node_t *node
         entry_iter_t iter = entry_iter_t::make(node);
         while (!iter.done(sizer) && iter.offset < node->tstamp_cutpoint) {
             repli_timestamp_t tstamp = get_timestamp(node, iter.offset);
-            rassert(earliest_so_far >= tstamp, "asserted earliest_so_far (%lu) >= tstamp (%lu)", earliest_so_far.longtime, tstamp.longtime);
+            rassert(earliest_so_far >= tstamp, "asserted earliest_so_far (%" PRIu64 ") >= tstamp (%" PRIu64 ")", earliest_so_far.longtime, tstamp.longtime);
             earliest_so_far = tstamp;
 
             if (tstamp < minimum_tstamp) {

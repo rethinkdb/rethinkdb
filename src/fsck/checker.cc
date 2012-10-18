@@ -327,7 +327,7 @@ bool check_static_config(nondirect_file_t *file, file_knowledge_t *knog, static_
     printf("Pre-scanning file %s:\n", knog->filename.c_str());
     printf("static_header software_name: %.*s\n", static_cast<int>(sizeof(SOFTWARE_NAME_STRING)), buf->software_name);
     printf("static_header version: %.*s\n", static_cast<int>(sizeof(VERSION_STRING)), buf->version);
-    printf("              DEVICE_BLOCK_SIZE: %lu\n", DEVICE_BLOCK_SIZE);
+    printf("              DEVICE_BLOCK_SIZE: %llu\n", DEVICE_BLOCK_SIZE);
     printf("static_header block_size: %u\n", block_size.ser_value());
     printf("static_header extent_size: %lu\n", extent_size);
     printf("              file_size: %lu\n", file_size);

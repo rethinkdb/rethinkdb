@@ -5,7 +5,7 @@ module 'UIComponents', ->
     # Modal that allows for form submission
     class @AbstractModal extends Backbone.View
         template_outer: Handlebars.compile $('#abstract-modal-outer-template').html()
-        template_ajax_error: Handlebars.compile $('#fail_ajax_request-template').html()
+        error_template: Handlebars.compile $('#error_input-template').html()
 
         events:
             'click .cancel': 'cancel_modal'
@@ -56,8 +56,9 @@ module 'UIComponents', ->
 
             register_modal @
 
-        hide_modal: ->
+        hide_modal: =>
             @$modal.modal('hide') if @$modal?
+            @destroy()
 
         cancel_modal: (e) ->
             @.hide_modal()
@@ -85,14 +86,16 @@ module 'UIComponents', ->
             @.$('.btn-primary').button('loading')
             @.$('.cancel').button('loading')
 
-        on_error: =>
-            @.$('.error_answer').html @template_ajax_error
+        on_error: (error) =>
+            @.$('.alert_modal').html @error_template
+                ajax_fail: true
+                error: error if error? and error isnt ''
 
-            if @.$('.error_answer').css('display') is 'none'
-                @.$('.error_answer').slideDown('fast')
+            if @.$('.alert_modal_content').css('display') is 'none'
+                @.$('.alert_modal_content').slideDown('fast')
             else
-                @.$('.error_answer').css('display', 'none')
-                @.$('.error_answer').fadeIn()
+                @.$('.alert_modal_content').css('display', 'none')
+                @.$('.alert_modal_content').fadeIn()
             @reset_buttons()
 
         add_custom_button: (main_text, class_str, data_loading_text, on_click) =>
@@ -193,58 +196,74 @@ module 'UIComponents', ->
             if @item_type is 'namespace'
                 if @formdata.new_name is ''
                     no_error = false
-                    template_error =
+                    $('.alert_modal').html @error_template
                         namespace_is_empty: true
-                    $('.alert_modal').html @error_template template_error
-                    $('.alert_modal').alert()
-                    @reset_buttons()
+                else if /^[a-zA-Z0-9_]+$/.test(@formdata.new_name) is false
+                    no_error = false
+                    $('.alert_modal').html @error_template
+                        special_char_detected: true
+                        type: 'table'
                 else
                     for namespace in namespaces.models
-                        if namespace.get('name') is @formdata.new_name
+                        if namespace.get('name').toLowerCase() is @formdata.new_name.toLowerCase()
                             no_error = false
-                            template_error =
+                            $('.alert_modal').html @error_template
                                 namespace_exists: true
-                            $('.alert_modal').html @error_template template_error
-                            $('.alert_modal').alert()
-                            @reset_buttons()
+                            break
+
+            if @item_type is 'database'
+                if @formdata.new_name is ''
+                    no_error = false
+                    $('.alert_modal').html @error_template
+                        database_is_empty: true
+                else if /^[a-zA-Z0-9_]+$/.test(@formdata.new_name) is false
+                    no_error = false
+                    $('.alert_modal').html @error_template
+                        special_char_detected: true
+                        type: 'database'
+                else
+                    for database in databases.models
+                        if database.get('name').toLowerCase() is @formdata.new_name.toLowerCase()
+                            no_error = false
+                            $('.alert_modal').html @error_template
+                                database_exists: true
                             break
 
             if @item_type is 'datacenter'
                 if @formdata.new_name is ''
                     no_error = false
-                    template_error =
+                    $('.alert_modal').html @error_template
                         datacenter_is_empty: true
-                    $('.alert_modal').html @error_template template_error
-                    $('.alert_modal').alert()
-                    @reset_buttons()
+                else if /^[a-zA-Z0-9_]+$/.test(@formdata.new_name) is false
+                    no_error = false
+                    $('.alert_modal').html @error_template
+                        special_char_detected: true
+                        type: 'datacenter'
                 else
                     for datacenter in datacenters.models
-                        if datacenter.get('name') is @formdata.new_name
+                        if datacenter.get('name').toLowerCase() is @formdata.new_name.toLowerCase()
                             no_error = false
-                            template_error =
+                            $('.alert_modal').html @error_template
                                 datacenter_exists: true
-                            $('.alert_modal').html @error_template template_error
-                            $('.alert_modal').alert()
-                            @reset_buttons()
                             break
 
             if @item_type is 'machine'
                 if @formdata.new_name is ''
                     no_error = false
-                    template_error =
+                    $('.alert_modal').html @error_template
                         machine_is_empty: true
-                    $('.alert_modal').html @error_template template_error
-                    $('.alert_modal').alert()
-                    @reset_buttons()
+                else if /^[a-zA-Z0-9_]+$/.test(@formdata.new_name) is false
+                    no_error = false
+                    $('.alert_modal').html @error_template
+                        special_char_detected: true
+                        type: 'server'
                 else
                     for machine in machines.models
-                        if machine.get('name') is @formdata.new_name
+                        if machine.get('name').toLowerCase() is @formdata.new_name.toLowerCase()
                             no_error = false
                             template_error =
                                 machine_exists: true
                             $('.alert_modal').html @error_template template_error
-                            $('.alert_modal').alert()
-                            @reset_buttons()
                             break
 
             if no_error is true
@@ -256,6 +275,9 @@ module 'UIComponents', ->
                     data: JSON.stringify(@formdata.new_name)
                     success: @on_success
                     error: @on_error
+            else
+                $('.alert_modal_content').slideDown 'fast'
+                @reset_buttons()
 
         on_success: (response) ->
             super

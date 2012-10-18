@@ -146,13 +146,6 @@ void run_until_satisfied_2(
         const callable_type &fun,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
-template<class a_type, class b_type, class callable_type>
-MUST_USE run_until_satisfied_result_t abortable_run_until_satisfied_2(
-        const clone_ptr_t<watchable_t<a_type> > &a,
-        const clone_ptr_t<watchable_t<b_type> > &b,
-        const callable_type &fun,
-        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
-
 inline void call_function(const boost::function<void()> &f) {
     f();
 }

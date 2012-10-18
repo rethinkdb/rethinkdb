@@ -1,15 +1,18 @@
 # Database view
 module 'DatabaseView', ->
+    # Class in case the database is not found (propably a deleted database). Links to this view can be found in old logs.
     class @NotFound extends Backbone.View
+        className: 'section'
         template: Handlebars.compile $('#element_view-not_found-template').html()
-        initialize: (id) ->
+        initialize: (id) =>
             @id = id
+
         render: =>
             @.$el.html @template
                 id: @id
                 type: 'database'
-                type_url: 'databases'
-                type_all_url: 'tables'
+                type_url: 'databases' # Use to build a url to a specific database
+                type_all_url: 'tables' # Use to build a url to the list of all databases
             return @
 
     # Container for the entire database view
@@ -19,7 +22,6 @@ module 'DatabaseView', ->
         alert_tmpl: Handlebars.compile $('#modify_shards-alert-template').html()
 
         events: ->
-            'click .tab-link': 'change_route'
             'click .close': 'close_alert'
             # operations in the dropdown menu
             'click .operations .rename': 'rename_database'
@@ -41,6 +43,7 @@ module 'DatabaseView', ->
 
             databases.on 'remove', @check_if_still_exists
 
+        # If we were on this view and the database has been deleted somewhere else, we redirect the user to the list of databases
         check_if_still_exists: =>
             exist = false
             for database in databases.models
@@ -52,11 +55,8 @@ module 'DatabaseView', ->
                 window.app.index_namespaces
                     alert_message: "The database <a href=\"#databases/#{@model.get('id')}\">#{@model.get('name')}</a> could not be found and was probably deleted."
 
-        change_route: (event) =>
-            # Because we are using bootstrap tab. We should remove them later.
-            window.router.navigate @.$(event.target).attr('href')
-
-        render: (tab) =>
+        # Function to render the view
+        render: =>
             log_render '(rendering) database view: container'
 
             @.$el.html @template
@@ -74,21 +74,26 @@ module 'DatabaseView', ->
 
             return @
 
+        # Method to close an alert/warning/arror
         close_alert: (event) ->
             event.preventDefault()
             $(event.currentTarget).parent().slideUp('fast', -> $(this).remove())
 
+        # Create a modal to renane the database
         rename_database: (event) =>
             event.preventDefault()
             rename_modal = new UIComponents.RenameItemModal @model.get('id'), 'database'
             rename_modal.render()
 
+        # Create a modal to delete the databse
         delete_database: (event) ->
             event.preventDefault()
             remove_database_dialog = new DatabaseView.RemoveDatabaseModal
             remove_database_dialog.render @model
 
+        # Remove listeners
         destroy: =>
+            databases.off 'remove', @check_if_still_exists
             @title.destroy()
             @profile.destroy()
             @performance_graph.destroy()
@@ -97,20 +102,25 @@ module 'DatabaseView', ->
     class @Title extends Backbone.View
         className: 'database-info-view'
         template: Handlebars.compile $('#database_view_title-template').html()
-        initialize: ->
+
+        # Bind listeners
+        initialize: =>
             @name = @model.get('name')
             @model.on 'change:name', @update
 
+        # Update the title if the database has a new name
         update: =>
             if @name isnt @model.get('name')
                 @name = @model.get('name')
                 @render()
 
+        # Render the view for the title
         render: =>
             @.$el.html @template
                 name: @name
             return @
 
+        # Unbind listeners
         destroy: =>
             @model.off 'change:name', @update
 
@@ -118,21 +128,25 @@ module 'DatabaseView', ->
     class @Profile extends Backbone.View
         className: 'database-profile'
         template: Handlebars.compile $('#database_view-profile-template').html()
+        
+        # Bind listeners and initialize the data of this view
+        initialize: =>
+            @data = {} # This will be used to know whether we need to rerender our view or not
+            namespaces.on 'all', @render # We listen to all namespaces since they can be moved while the user is on this view
 
-        initialize: ->
-            @data = {}
-            namespaces.on 'all', @render
-
+        # Render the view
         render: =>
+            # Initialize the data for this view
             data =
-                num_namespaces: 0
-                num_live_namespaces: 0
-                reachability: true
-                stats_up_to_date: true
-                nshards: 0
-                nreplicas: 0
-                ndatacenters: 0
-
+                num_namespaces: 0 # Number of namespaces
+                num_live_namespaces: 0 # Number of namespaces alived
+                reachability: true # Status of the table
+                nshards: 0 # Number of shards
+                nreplicas: 0 # Number of replicas (numbers of copies of each shards)
+                ndatacenters: 0 # Number of datacenter
+                #stats_up_to_date: true # Not display for now. We should put it back. Issue #1286
+                
+            # Compute the data for this view
             for namespace in namespaces.models
                 if namespace.get('database') is @model.get('id')
                     data.num_namespaces++
@@ -141,12 +155,17 @@ module 'DatabaseView', ->
                         data.num_live_namespaces++
                     data.nshards += namespace_status.nshards
                     data.nreplicas += data.nshards + namespace_status.nreplicas
+                    # We should use _.uniq on the datacenters for all the tables, not on each table
                     data.ndatacenters += namespace_status.ndatacenters
 
-            @.$el.html @template data
+            # We update only if the data has changed
+            if not _.isEqual @data, data
+                @data = data
+                @.$el.html @template data
 
             return @
 
+        # Unbind listeners
         destroy: =>
             namespaces.off 'all', @render
 

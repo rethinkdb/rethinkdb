@@ -10,29 +10,22 @@
 
 class append_only_printf_buffer_t;
 
+
 class uuid_t {
 public:
-    uuid_t() { }
+    uuid_t();
 
-    bool is_nil() const {
-        for (size_t i = 0; i < kStaticSize; ++i) {
-            if (data_[i] != 0) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    uint8_t *data() { return data_; }
-    const uint8_t *data() const { return data_; }
+    bool is_unset() const;
+    bool is_nil() const;
 
     static const size_t kStaticSize = 16;
-
     static size_t static_size() {
         CT_ASSERT(sizeof(uuid_t) == kStaticSize);
         return kStaticSize;
     }
 
+    uint8_t *data() { return data_; }
+    const uint8_t *data() const { return data_; }
 private:
     uint8_t data_[kStaticSize];
 };

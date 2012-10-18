@@ -45,7 +45,7 @@ public:
     void print() {
         printf("Buffer group with %zu buffers\n", buffers_.size());
         for (std::vector<buffer_t>::const_iterator it = buffers_.begin(); it != buffers_.end(); ++it) {
-            fprintf(stderr, "-- Buffer %ld --\n", it - buffers_.begin());
+            fprintf(stderr, "-- Buffer %zd --\n", it - buffers_.begin());
             print_hd(it->data, 0, it->size);
         }
     }
