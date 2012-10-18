@@ -40,10 +40,14 @@ void wait_for_rdb_table_readiness(namespace_repo_t<rdb_protocol_t> *ns_repo,
         wait_interruptible(&start_poll, interruptor);
         try {
             // Make sure the namespace still exists in the metadata, if not, abort
-            cluster_semilattice_metadata_t metadata = semilattice_metadata->get();
-            cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t change(&metadata.rdb_namespaces);
-            if (change.get()->namespaces.find(namespace_id) == change.get()->namespaces.end()) {
-                throw interrupted_exc_t();
+            {
+                // TODO: use a cross thread watchable instead?  not exactly pressed for time here...
+                on_thread_t rethread(semilattice_metadata->home_thread());
+                cluster_semilattice_metadata_t metadata = semilattice_metadata->get();
+                cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t change(&metadata.rdb_namespaces);
+                if (change.get()->namespaces.find(namespace_id) == change.get()->namespaces.end()) {
+                    throw interrupted_exc_t();
+                }
             }
 
             namespace_repo_t<rdb_protocol_t>::access_t ns_access(ns_repo, namespace_id, interruptor);
