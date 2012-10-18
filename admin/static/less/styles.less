@@ -99,48 +99,106 @@ body:before {
         cursor: pointer;
 
         font-family: @sans;
+        font-size: 13px;
         color: #464646;
         line-height: 18px;
         text-align: center;
 
         // csshat
-        color: #a4a4a4; // text color + color overlay
-        font-size: 14px;
-        text-shadow: 0 1px 0 #fff; // drop shadowV
-
-        // csshat
-        border: 1px solid #ccc; // stroke
         .border-radius(3px); // border radius
+
+        // ===== Normal button style
+        color: #a4a4a4; // text color + color overlay
+        text-shadow: 0 1px 0 #fff; // drop shadow
+        border: 1px solid #ccc; // stroke
         background-color: #fff; // layer fill content
         .gradient(~"linear-gradient(bottom, rgba(0,0,0,.04) 0%, rgba(255,255,255,.04) 100%)"); // gradient overlay
-        &:hover {
-            // csshat
-            .box-shadow(~"inset 0 0 1px 1px #fff"); // inner glow
-            .gradient(~"linear-gradient(rgba(255,255,255,0.96), rgba(255,255,255,0.96)), linear-gradient(bottom, rgba(51,51,51,.23) 0%, rgba(255,255,255,.23) 100%)"); // color overlay + gradient overlay
-        }
-        &:active {
-            // csshat
-            background-color: #f2f2f2; // layer fill content
-            .box-shadow(~"inset 0 2px 1px rgba(0,0,0,.06)"); // inner shadow
-            .gradient(~"linear-gradient(bottom, rgba(255,255,255,.02) 0%, rgba(0,0,0,.02) 100%)"); // gradient overlay
+
+        &:not([disabled]) {
+            &:hover {
+                .box-shadow(~"inset 0 0 1px 1px #fff"); // inner glow
+                // here we add a fake gradient -- opacity layer of white with 96% visibility on top of the button before applying the real gradient below
+                .gradient(~"linear-gradient(rgba(255,255,255,0.96), rgba(255,255,255,0.96)), linear-gradient(bottom, rgba(51,51,51,.23) 0%, rgba(255,255,255,.23) 100%)"); // color overlay + gradient overlay
+            }
+            &:active {
+                background-color: #f2f2f2; // layer fill content
+                .box-shadow(~"inset 0 2px 1px rgba(0,0,0,.06)"); // inner shadow
+                .gradient(~"linear-gradient(bottom, rgba(255,255,255,.02) 0%, rgba(0,0,0,.02) 100%)"); // gradient overlay
+            }
         }
 
-        &.disabled {
+        // ===== Primary button style (blue)
+        &.btn-primary {
+            color: #fff;
+            text-shadow: 0 -1px 0 rgba(0,0,0,.3); // drop shadow
+            border: 1px solid #2f89b1; // stroke
+            background-color: #1da3dd; // layer fill content
+            .gradient(~"linear-gradient(bottom, rgba(11,155,222,1), rgba(75,181,229, 1))"); // gradient overlay
+
+            &:not(.disabled) {
+                &:hover {
+                    .box-shadow(~"inset 0 0 2px 0 rgba(255,255,255,0.8)"); // inner glow
+                    .gradient(~"linear-gradient(bottom, rgba(32,164,222,1), rgba(74,181,228, 1))"); // gradient overlay
+                }
+                &:active {
+                    .box-shadow(~"inset 0 1px 1px rgba(0,0,0,0.08)"); // inner shadow
+                    .gradient(~"linear-gradient(bottom, rgba(65,158,198,1), rgba(51,143,184, 1))"); // gradient overlay
+                }
+            }
+        }
+
+        // ===== Danger button style (red)
+        &.btn-danger {
+            color: #fff;
+            text-shadow: 0 -1px 0 rgba(0,0,0,.3); // drop shadow
+            border: 1px solid #b23f37; // stroke
+            background-color: #d6544a; // layer fill content
+            .gradient(~"linear-gradient(bottom, rgba(226,89,79,1), rgba(232,121,113, 1))"); // gradient overlay
+
+            &:not([disabled]) {
+                &:hover {
+                    .box-shadow(~"inset 0 0 2px 0 rgba(255,255,255,0.8)"); // inner glow
+                    .gradient(~"linear-gradient(bottom, rgba(230,114,105,1), rgba(235,141,134, 1))"); // gradient overlay
+                }
+                &:active {
+                    .box-shadow(~"inset 0 1px 1px rgba(0,0,0,0.08)"); // inner shadow
+                    .gradient(~"linear-gradient(bottom, rgba(216,93,85,1), rgba(201,79,71, 1))"); // gradient overlay
+                }
+            }
+        }
+
+        // ===== Success button style (green)
+        &.btn-success {
+            color: #fff;
+            text-shadow: 0 -1px 0 rgba(0,0,0,.3); // drop shadow
+            border: 1px solid #4fa435; // stroke
+            background-color: #72c459; // layer fill content
+            .gradient(~"linear-gradient(bottom, rgba(115,196,91,1), rgba(142,208,123,1))"); // gradient overlay
+
+            &:not([disabled]) {
+                &:hover {
+                    .box-shadow(~"inset 0 0 2px 0 rgba(255,255,255,0.8)"); // inner glow
+                    .gradient(~"linear-gradient(bottom, rgba(136,205,115,1), rgba(159,215,1421))"); // gradient overlay
+                }
+                &:active {
+                    .box-shadow(~"inset 0 1px 1px rgba(0,0,0,0.08)"); // inner shadow
+                    .gradient(~"linear-gradient(bottom, rgba(113,181,93,1), rgba(99,167,78,1))"); // gradient overlay
+                }
+            }
+        }
+
+        // ===== Disabled button styles
+        &:disabled {
             opacity: 0.65;
-            .box-shadow(none);
         }
     }
-}
-#navbar-container{
-    width: 100%;
-    border-top: 4px @accent solid;
-    background: #2f2f30;
 }
 
 /*
     ----------------------------
     Shared classes
     ----------------------------
+TODO: retire this
 */
 .no_element{
     @bar_height: 44px;
@@ -201,83 +259,90 @@ body:before {
     Navbar at the top
     ----------------------------
 */
-#navbar {
-    font-family: @sans;
-    @text_shadow: 0 -1px 0 rgba(0, 0, 0, 0.4);
-    
-    /* left nav (logo, links, etc.) */
-    ul.nav-left {
-        margin: 0;
-        padding: 0;
-        float: left;
-        li {
-            font-size: 15px;
-            display: inline-block;
-            vertical-align: middle;
-            text-shadow: @text_shadow;
-            margin-left: -3px;
+#navbar-container {
+    width: 100%;
+    // REMOVED HIGHLIGHT border-top: 4px @accent solid;
+    //background: #2f2f30;
+    background-color: #272729; // layer fill content
+    .box-shadow(~"0 1px 3px rgba(0,0,0,.2), inset 0 -2px 4px rgba(0,0,0,.15)"); // drop shadow and inner shadow
+    .gradient(~"linear-gradient(bottom, rgba(0,0,0,.07) 0%, rgba(255,255,255,.07) 100%)"); // gradient overlay
 
-            @fancy_dividers: -1px 0 0 rgba(0, 0, 0, .30) inset, 1px 0 0 rgba(255, 255, 255, .05);
-            -webkit-box-shadow: @fancy_dividers;
-               -moz-box-shadow: @fancy_dividers;
-                    box-shadow: @fancy_dividers;
-            a {
-                padding: 21px 26px;
-                color: #ababab;
-                display: block;
-                &:hover {
-                    text-decoration: none;
-                    color: white;
-                }
-            }
-            &#nav-logo {
-                padding-left: 0;
+
+    #navbar {
+        font-family: @sans;
+        @text_shadow: 0 -1px 0 rgba(0, 0, 0, 0.4);
+        
+        /* left nav (logo, links, etc.) */
+        ul.nav-left {
+            margin: 0;
+            padding: 0;
+            float: left;
+            li {
+                font-size: 15px;
+                display: inline-block;
+                vertical-align: middle;
+                text-shadow: @text_shadow;
+                margin-left: -3px;
+
+                /* FIXING TODO
+                @fancy_dividers: -1px 0 0 rgba(0, 0, 0, .30) inset, 1px 0 0 rgba(255, 255, 255, .05);
+                -webkit-box-shadow: @fancy_dividers;
+                   -moz-box-shadow: @fancy_dividers;
+                        box-shadow: @fancy_dividers;
+                */
                 a {
-                    font-family: @serif;
-                    font-size: 22px;
-                    font-weight: bold;
-                    color: white;
-                    padding-left: 0;
-                    span.highlight { color: @accent; }
+                    padding: 21px 26px;
+                    color: #ababab;
+                    display: block;
+                    &:hover {
+                        text-decoration: none;
+                        color: white;
+                    }
                 }
-            }
-            &.active {
-                background: url('http://bit.ly/RCkvyP'); //navbar-active.png
-                a { color: white; }
+                &#nav-logo {
+                    padding-left: 0;
+                    a {
+                        font-family: @serif;
+                        font-size: 22px;
+                        font-weight: bold;
+                        color: white;
+                        padding-left: 0;
+                        span.highlight { color: @accent; }
+                    }
+                }
+
+                &.active {
+                    // REMOVING TODO background: url('http://bit.ly/RCkvyP'); //navbar-active.png
+                    a { color: white; }
+                }
             }
         }
-    }
-    /* right nav (search) */
-    .right-nav {
-        margin: 0;
-        padding: 0;
-        float: right;
-    }
+        /* right nav (search) */
+        .right-nav {
+            margin: 0;
+            padding: 0;
+            float: right;
+        }
 
-    #nav-search {
-        input[type="text"] {
-            font-family: @sans;
-            font-size: 15px;
-            color: white;
-            border: 0 none;
+        #nav-search {
+            input[type="text"] {
+                font-family: @sans;
+                font-size: 15px;
+                color: white;
+                border: 0 none;
 
-            text-shadow: @text_shadow;
-            margin-top: 13px;
-            padding: 6px 12px 6px 40px;
-            width: 150px;
-            .border-radius(18px);
-            /*#gradient.vertical(rgba(255,255,255,0.03),rgba(0,0,0,0.03));
-            background-color: rgba(28,28,39,1); */
-            background: url('http://bit.ly/PyxttF') no-repeat 12px rgba(28,28,39,1); //icon-magnifying_glass.png
+                text-shadow: @text_shadow;
+                margin-top: 13px;
+                padding: 6px 12px 6px 40px;
+                width: 150px;
 
-            /*#gradient.vertical(rgba(28,28,39,1), rgba(35, 35, 36, 1));*/
+                // csshat
+                .border-radius(14px); // border radius
+                .box-shadow(~"0 1px 0 rgba(255,255,255,.07), inset 0 1px 0 rgba(0,0,0,.15)"); // drop shadow and inner shadow
+                .gradient(~"linear-gradient(bottom, rgba(255,255,255,.02) 0%, rgba(0,0,0,.02) 100%)"); // gradient overlay
+                background: url('http://bit.ly/PyxttF') no-repeat 12px #232323; //icon-magnifying_glass.png
 
-            @inset_shadow: 0 1px 0 rgba(255, 255, 255, 0.08), 0 1px 3px rgba(0, 0, 0, 0.3) inset;
-
-            -webkit-box-shadow: @inset_shadow;
-               -moz-box-shadow: @inset_shadow;
-                    box-shadow: @inset_shadow;
-
+            }
         }
     }
 }
@@ -288,7 +353,10 @@ body:before {
     ----------------------------
 */
 #sidebar {
+    // texture, so we need a background image
     background: url('http://bit.ly/RCksTK');//status_panel-background.png
+    // csshat
+    .box-shadow(~"0 1px 0 rgba(255,255,255,.4), inset 0 -1px 1px #c3c3c3"); // drop shadow and inner shadow
     border-bottom: thin solid #d0d0d0;
     .cluster-status { padding: 20px 0; }
     .panel {
@@ -381,7 +449,7 @@ body:before {
 
                 // lesshat
                 background-color: #dd4f4d; // layer fill content
-                .gradient(~"linear-gradient(bottom, rgba(0,0,0,.1) 0%, rgba(255,255,255,.1) 100%)"); // gradient overlay
+                .gradient(~"linear-gradient(bottom, rgba(221,80,78,1), rgba(224,96,94,1))");
             }
 
             // CSS arrow for the banner: this is basically a box turned 45 deg

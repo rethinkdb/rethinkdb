@@ -74,7 +74,7 @@ module 'NamespaceView', ->
         remove_namespace: (event) =>
             log_action 'remove namespace button clicked'
             # Make sure the button isn't disabled, and pass the list of namespace UUIDs selected
-            if not $(event.currentTarget).hasClass 'disabled'
+            if not $(event.currentTarget).is ':disabled'
                 @remove_namespace_dialog.render @get_selected_namespaces()
             event.preventDefault()
 
@@ -98,7 +98,7 @@ module 'NamespaceView', ->
 
         # Callback that will be registered: updates the toolbar buttons based on how many namespaces have been selected
         update_toolbar_buttons: =>
-            @.$('.btn.remove-namespace').toggleClass 'disabled', @get_selected_namespaces().length < 1
+            @.$('.btn.remove-namespace').is ':disabled', @get_selected_namespaces().length < 1
 
         destroy: =>
             super
@@ -205,7 +205,7 @@ module 'NamespaceView', ->
         remove_namespace: (event) =>
             log_action 'remove namespace button clicked'
             # Make sure the button isn't disabled, and pass the list of namespace UUIDs selected
-            if not $(event.currentTarget).hasClass 'disabled'
+            if not $(event.currentTarget).is ':disabled'
                 @remove_namespace_dialog.render @get_selected_elements()
             event.preventDefault()
 
@@ -340,7 +340,7 @@ module 'NamespaceView', ->
         # Check if we have a database (if not, we cannot create a table)
         check_if_can_create_table: =>
             if databases.length is 0
-                if @can_create_table_status is true
+                if @can_create_table_status true
                     @.$('.btn-primary').prop 'disabled', 'disabled'
                     @.$('.alert_modal').html 'You need to create a database before creating a table.'
             else

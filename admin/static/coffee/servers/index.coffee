@@ -57,7 +57,7 @@ module 'ServerView', ->
             log_action 'set datacenter button clicked'
 
             # Show the dialog and provide it with a list of selected machines
-            if not $(event.currentTarget).hasClass 'disabled'
+            if not $(event.currentTarget).is ':disabled'
                 @set_datacenter_dialog.render @get_selected_machines()
             event.preventDefault()
 
@@ -84,7 +84,7 @@ module 'ServerView', ->
         # Callback that will be registered: updates the toolbar buttons based on how many machines have been selected
         update_toolbar_buttons: =>
             # We need to check which machines have been checked off to decide which buttons to enable/disable
-            @.$('.actions-bar .btn.set-datacenter').toggleClass 'disabled', @get_selected_machines().length is 0
+            @.$('.actions-bar .btn.set-datacenter').prop 'disabled', @get_selected_machines().length is 0
 
         destroy: =>
             super
@@ -157,7 +157,7 @@ module 'ServerView', ->
 
         remove_datacenter: (event) ->
             log_action 'remove datacenter button clicked'
-            if not @.$(event.currentTarget).hasClass 'disabled'
+            if not @.$(event.currentTarget).is ':disabled'
                 @remove_datacenter_dialog.render @model
 
             event.preventDefault()

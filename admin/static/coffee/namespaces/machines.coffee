@@ -35,9 +35,9 @@ module 'NamespaceView', ->
                 for option in $('option', dropdown)
                     mid = $(option).attr('value')
                     if mid in selected_machines or mid is @secondary.primary_uuid
-                        $(option).attr('disabled', 'disabled') unless option is selected_option
+                        $(option).prop('disabled', 'disabled') unless option is selected_option
                     else
-                        $(option).removeAttr('disabled')
+                        $(option).removeProp('disabled')
 
         render_inner: ->
             # compute all machines in the datacenter (note, it's
