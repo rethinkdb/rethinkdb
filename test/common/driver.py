@@ -185,7 +185,7 @@ class Files(object):
             self.db_path = db_path
 
         if machine_name is None:
-            self.machine_name = "node-%d" % self.id_number
+            self.machine_name = "node_%d" % self.id_number
         else:
             self.machine_name = machine_name
 
