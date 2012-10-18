@@ -146,6 +146,7 @@ module 'DatabaseView', ->
                 ndatacenters: 0 # Number of datacenter
                 #stats_up_to_date: true # Not display for now. We should put it back. Issue #1286
                 
+            datacenters_working = {}
             # Compute the data for this view
             for namespace in namespaces.models
                 if namespace.get('database') is @model.get('id')
@@ -155,8 +156,13 @@ module 'DatabaseView', ->
                         data.num_live_namespaces++
                     data.nshards += namespace_status.nshards
                     data.nreplicas += data.nshards + namespace_status.nreplicas
-                    # We should use _.uniq on the datacenters for all the tables, not on each table
-                    data.ndatacenters += namespace_status.ndatacenters
+                    # We should use _.uniq on the datacenters for all the tables, not on each tablea
+                    for datacenter_id of namespace.get('replica_affinities')
+                        if datacenter_id isnt universe_datacenter.get('id') and (namespace.get('replica_affinities')[datacenter_id] > 0 or namespace.get('primary_uuid') is datacenter_id)
+                            datacenters_working[datacenter_id] = true
+
+            for datacenters_id of datacenters_working
+                data.ndatacenters++
 
             # We update only if the data has changed
             if not _.isEqual @data, data
