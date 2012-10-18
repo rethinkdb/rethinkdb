@@ -137,7 +137,7 @@ module 'DashboardView', ->
                     num_namespaces: namespaces.length
                     num_masters: num_masters
                     num_masters_down: num_masters_down
-                    namespaces_down: namespaces_down_array if namespaces_down_array.length > 0
+                    namespaces_down: (namespaces_down_array if namespaces_down_array.length > 0)
             else
                 data =
                     status_is_ok: true
@@ -313,7 +313,7 @@ module 'DashboardView', ->
                     num_namespaces: namespaces.length
                     num_replicas: num_replicas
                     num_replicas_down: num_replicas_down
-                    namespaces_down: namespaces_down_array if namespaces_down_array.length > 0
+                    namespaces_down: (namespaces_down_array if namespaces_down_array.length > 0)
                     has_unsatisfiable_goals: num_unsatisfiable_goals > 0
                     num_unsatisfiable_goals: num_unsatisfiable_goals
                     namespaces_with_unsatisfiable_goals: namespaces_with_unsatisfiable_goals
@@ -558,8 +558,8 @@ module 'DashboardView', ->
             conflicts: conflicts
             has_multiple_types: num_types_conflicts > 1
             num_types_conflicts:num_types_conflicts
-            types: type if num_types_conflicts is 1
-            type: type if type?
+            types: (type if num_types_conflicts is 1)
+            type: (type if type?)
             num_conflicts: conflicts.length
             num_namespaces_conflicting: conflicts.length
             num_namespaces: namespaces.length

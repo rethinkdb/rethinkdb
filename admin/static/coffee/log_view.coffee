@@ -471,7 +471,7 @@ module 'LogView', ->
                         raw_data = JSON.stringify $.parseJSON(data), undefined, 2
                 return {
                     msg: msg
-                    raw_data: raw_data if raw_data?
+                    raw_data: (raw_data if raw_data?)
                 }
             else
                 return {

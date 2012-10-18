@@ -782,7 +782,7 @@ module 'DataExplorerView', ->
                     skip_value: @skip_value
                     execution_time: execution_time
                     query: @query
-                    has_more_data: true if data? # if data is undefined, it means that there is no more data
+                    has_more_data: (true if data?) # if data is undefined, it means that there is no more data
 
                 if data? #there is nore data
                     @skip_value += @current_results.length
@@ -833,7 +833,7 @@ module 'DataExplorerView', ->
                         skip_value: @skip_value
                         execution_time: execution_time
                         query: @query
-                        has_more_data: true if data? # if data is undefined, it means that there is no more data
+                        has_more_data: (true if data?) # if data is undefined, it means that there is no more data
 
                     if data? #there is nore data
                         @skip_value += @current_results.length
@@ -1157,7 +1157,7 @@ module 'DataExplorerView', ->
             @.$el.html @error_template
                 query: query
                 error: err.toString()
-                forgot_run: err.type? and err.type is 'undefined_method' and err['arguments']?[0]? and err['arguments'][0] is 'next' # Check if next is undefined, in which case the user probably forgot to append .run()
+                forgot_run: (err.type? and err.type is 'undefined_method' and err['arguments']?[0]? and err['arguments'][0] is 'next') # Check if next is undefined, in which case the user probably forgot to append .run()
             return @
 
         json_to_tree: (result) =>
@@ -1510,7 +1510,7 @@ module 'DataExplorerView', ->
             data =
                 skip_value: skip_value
                 limit_value: limit_value
-                execution_time: execution_time_pretty if execution_time_pretty?
+                execution_time: (execution_time_pretty if execution_time_pretty?)
 
             @.$('.metadata').html @metadata_template data
 

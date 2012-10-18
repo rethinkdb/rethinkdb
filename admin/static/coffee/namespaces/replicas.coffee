@@ -164,9 +164,9 @@ module 'NamespaceView', ->
                 name: @datacenter.get('name')
                 total_machines: machines.length
                 acks: DataUtils.get_ack_expectations(@model.get('id'), @datacenter.get('id'))
-                primary: true if @model.get('primary_uuid') is @datacenter.get('id')
+                primary: @model.get('primary_uuid') is @datacenter.get('id')
                 replicas: replicas_count
-                editable: true if @current_state is @states[1]
+                editable: @current_state is @states[1]
 
             # Don't re-render if the data hasn't changed
             if not _.isEqual(data, @data)
