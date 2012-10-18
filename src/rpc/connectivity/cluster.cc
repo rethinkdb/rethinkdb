@@ -20,6 +20,8 @@
 #define CLUSTER_PROTO_HEADER "RethinkDB " RETHINKDB_VERSION " cluster\n"
 const char *const cluster_proto_header = CLUSTER_PROTO_HEADER;
 
+const int connectivity_cluster_t::run_t::default_user_timeout(12000);
+
 void debug_print(append_only_printf_buffer_t *buf, const peer_address_t &address) {
     buf->appendf("peer_address{ips=[");
     const std::vector<ip_address_t> *ips = address.all_ips();
@@ -44,7 +46,7 @@ connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
 
     /* Create the socket to use when listening for connections from peers */
     cluster_listener_port(port),
-    cluster_listener_socket(new tcp_bound_socket_t(port)),
+    cluster_listener_socket(new tcp_bound_socket_t(port, default_user_timeout)),
 
     /* This sets `parent->current_run` to `this`. It's necessary to do it in the
     constructor of a subfield rather than in the body of the `run_t` constructor
@@ -64,10 +66,9 @@ connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
     `connection_map` and again notify any listeners. */
     connection_to_ourself(this, parent->me, NULL, routing_table[parent->me]),
 
-    listener(new tcp_listener_t(cluster_listener_socket.get(), boost::bind(&connectivity_cluster_t::run_t::on_new_connection,
-                                                                           this,
-                                                                           _1,
-                                                                           auto_drainer_t::lock_t(&drainer))))
+    listener(new tcp_listener_t(cluster_listener_socket.get(),
+                                boost::bind(&connectivity_cluster_t::run_t::on_new_connection,
+                                            this, _1, auto_drainer_t::lock_t(&drainer))))
 {
     parent->assert_thread();
 }
@@ -156,7 +157,18 @@ void connectivity_cluster_t::run_t::on_new_connection(const scoped_ptr_t<tcp_con
     nconn->make_overcomplicated(&conn);
     tcp_conn_stream_t conn_stream(conn);
 
-    handle(&conn_stream, boost::none, boost::none, lock);
+    handle(&conn_stream, boost::none, boost::none, lock, NULL);
+}
+
+void connectivity_cluster_t::run_t::connect_to_peer(const peer_address_t *addr, int index, boost::optional<peer_id_t> expected_id, auto_drainer_t::lock_t drainer_lock, bool *successful_join) THROWS_NOTHING {
+    try {
+        tcp_conn_stream_t conn(addr->all_ips()->at(index), addr->port, drainer_lock.get_drain_signal(), cluster_client_port);
+        handle(&conn, expected_id, boost::optional<peer_address_t>(*addr), drainer_lock, successful_join);
+    } catch (tcp_conn_t::connect_failed_exc_t) {
+        /* Ignore */
+    } catch (interrupted_exc_t) {
+        /* Ignore */
+    }
 }
 
 void connectivity_cluster_t::run_t::join_blocking(
@@ -172,14 +184,12 @@ void connectivity_cluster_t::run_t::join_blocking(
         }
         attempt_table.insert(address);
     }
-    try {
-        tcp_conn_stream_t conn(address.primary_ip(), address.port, drainer_lock.get_drain_signal(), cluster_client_port);
-        handle(&conn, expected_id, boost::optional<peer_address_t>(address), drainer_lock);
-    } catch (tcp_conn_t::connect_failed_exc_t) {
-        /* Ignore */
-    } catch (interrupted_exc_t) {
-        /* Ignore */
-    }
+
+    // Attempt to connect to all known ip addresses of the peer
+    bool successful_join = false; // Variable so that handle() can check that only one connection succeeds
+    pmap(address.all_ips()->size(), boost::bind(&connectivity_cluster_t::run_t::connect_to_peer, this, &address, _1, expected_id, drainer_lock, &successful_join));
+
+    // All attempts have completed
     {
         mutex_assertion_t::acq_t acq(&attempt_table_mutex);
         attempt_table.erase(address);
@@ -236,7 +246,8 @@ void connectivity_cluster_t::run_t::handle(
         tcp_conn_stream_t *conn,
         boost::optional<peer_id_t> expected_id,
         boost::optional<peer_address_t> expected_address,
-        auto_drainer_t::lock_t drainer_lock) THROWS_NOTHING
+        auto_drainer_t::lock_t drainer_lock,
+        bool *successful_join) THROWS_NOTHING
 {
     parent->assert_thread();
 
@@ -252,10 +263,10 @@ void connectivity_cluster_t::run_t::handle(
     cluster_conn_closing_subscription_t conn_closer_1(conn);
     conn_closer_1.reset(drainer_lock.get_drain_signal());
 
-    /* Send a heartbeat every ten seconds of inactivity; if heartbeat is not
-    acked, try again every three seconds and declare connection dead after three
-    tries. */
-    conn->get_underlying_conn()->set_keepalive(10, 3, 3);
+    /* Send a heartbeat after three seconds of inactivity; if heartbeat is not
+    acked, try again every three seconds and declare connection dead after twelve
+    seconds total. */
+    conn->get_underlying_conn()->set_keepalive(3, 3, 3);
 
     // Each side sends a header followed by its own ID and address, then receives and checks the
     // other side's.
@@ -414,7 +425,6 @@ void connectivity_cluster_t::run_t::handle(
                 // In this case, just exit this function, which will close the connection
                 // This will happen until the old connection dies
                 // TODO: ensure that the old connection shuts down?
-                logWRN("Received a connection from a peer we are already connected to");
                 return;
             }
 
@@ -438,6 +448,16 @@ void connectivity_cluster_t::run_t::handle(
 
     // Just saying: We haven't left the RPC listener thread.
     parent->assert_thread();
+
+    // This check is so that when trying multiple connections to a peer in parallel, we can
+    //  make sure only one of them succeeds
+    if (successful_join != NULL) {
+        if (*successful_join) {
+            logWRN("Somehow ended up with two successful joins to a peer, closing one");
+            return;
+        }
+        *successful_join = true;
+    }
 
     /* For each peer that our new friend told us about that we don't already
     know about, start a new connection. If the cluster is shutting down, skip

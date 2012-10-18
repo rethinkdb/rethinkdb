@@ -169,6 +169,7 @@ with simple_linear_db.LinearDBWriter("result_log.txt") as result_log:
                 ("MOCK_CACHE_CHECK", [(0, ""),        (1, "-mockcache")]),
                 ("NO_EPOLL",         [(0, ""),        (1, "-noepoll")  ]),
                 ("VALGRIND",         [(0, ""),        (1, "-valgrind") ]),
+                ("AIOSUPPORT",       [(0, ""),        (1, "-aiosupport") ])
                 ]
             def generate_configs(configs, make_flags, config_name):
                 if configs:
@@ -183,6 +184,7 @@ with simple_linear_db.LinearDBWriter("result_log.txt") as result_log:
                     products = [build_path + "/rethinkdb", build_path + "/web/"]
                     if "DEBUG=0" not in make_flags:
                         products = products + [build_path + "/rethinkdb-unittest"]
+                        make_flags = make_flags + ["UNIT_TESTS=1"]
                     builds[config_name] = {
                         "command_line": "cd rethinkdb/src; make -j12 " + " ".join(make_flags),
                         "products": products

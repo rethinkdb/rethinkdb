@@ -56,8 +56,9 @@ module 'UIComponents', ->
 
             register_modal @
 
-        hide_modal: ->
+        hide_modal: =>
             @$modal.modal('hide') if @$modal?
+            @destroy()
 
         cancel_modal: (e) ->
             @.hide_modal()

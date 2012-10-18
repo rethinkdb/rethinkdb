@@ -7,7 +7,7 @@ include RethinkDB::Shortcuts
 
 $opt = {}
 OptionParser.new {|opts|
-  opts.banner = "Usage: fuzz.rb [options]"
+  opts.banner = "Usage: valid_fuzz.rb [options]"
 
   $opt[:host] = "localhost"
   opts.on('-h', '--host HOST', 'Fuzz on host HOST (default localhost)') {|h|

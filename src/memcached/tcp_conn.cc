@@ -105,7 +105,7 @@ memcache_listener_t::memcache_listener_t(int _port,
       next_thread(0),
       parent(_parent),
       stats(parent),
-      tcp_listener(new repeated_nonthrowing_tcp_listener_t(port,
+      tcp_listener(new repeated_nonthrowing_tcp_listener_t(port, 0,
           boost::bind(&memcache_listener_t::handle, this, auto_drainer_t::lock_t(&drainer), _1)))
 {
     tcp_listener->begin_repeated_listening_attempts();
