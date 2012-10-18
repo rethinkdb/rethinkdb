@@ -513,10 +513,10 @@ module 'DataExplorerView', ->
 
                 # If the user hit enter and (Ctrl or Shift)
                 if event.which is 13 and (event.shiftKey or event.ctrlKey)
+                    @hide_suggestion()
                     event.preventDefault()
                     if event.type isnt 'keydown'
                         return true
-                    @.$('suggestion_name_list').css 'display', 'none'
                     @show_or_hide_arrow()
                     @execute_query()
             
