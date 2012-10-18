@@ -1270,14 +1270,14 @@ int point_delete(namespace_repo_t<rdb_protocol_t>::access_t ns_access, cJSON *id
     }
 }
 
-point_modify::result_t calculate_modify(boost::shared_ptr<scoped_cJSON_t> lhs, const std::string &primary_key, point_modify::op_t op,
-                                        const Mapping &mapping, runtime_environment_t *env, const scopes_t &scopes,
-                                        const backtrace_t &backtrace, boost::shared_ptr<scoped_cJSON_t> *json_out,
-                                        std::string *new_key_out) THROWS_ONLY(runtime_exc_t) {
+point_modify_ns::result_t calculate_modify(boost::shared_ptr<scoped_cJSON_t> lhs, const std::string &primary_key, point_modify_ns::op_t op,
+                                           const Mapping &mapping, runtime_environment_t *env, const scopes_t &scopes,
+                                           const backtrace_t &backtrace, boost::shared_ptr<scoped_cJSON_t> *json_out,
+                                           std::string *new_key_out) THROWS_ONLY(runtime_exc_t) {
     guarantee(lhs);
     //CASE 1: UPDATE skips nonexistant entries
-    if (lhs->type() == cJSON_NULL && op == point_modify::UPDATE) return point_modify::SKIPPED;
-    guarantee_debug_throw_release((lhs->type() == cJSON_NULL && op == point_modify::MUTATE)
+    if (lhs->type() == cJSON_NULL && op == point_modify_ns::UPDATE) return point_modify_ns::SKIPPED;
+    guarantee_debug_throw_release((lhs->type() == cJSON_NULL && op == point_modify_ns::MUTATE)
                                   || lhs->type() == cJSON_Object, backtrace);
 
     // Evaluate the mapping.
@@ -1285,9 +1285,9 @@ point_modify::result_t calculate_modify(boost::shared_ptr<scoped_cJSON_t> lhs, c
     guarantee_debug_throw_release(rhs, backtrace);
 
     if (rhs->type() == cJSON_NULL) { //CASE 2: if [rhs] is NULL, we either SKIP or DELETE (or NOP if already deleted)
-        if (op == point_modify::UPDATE) return point_modify::SKIPPED;
-        guarantee(op == point_modify::MUTATE);
-        return (lhs->type() == cJSON_NULL) ? point_modify::NOP : point_modify::DELETED;
+        if (op == point_modify_ns::UPDATE) return point_modify_ns::SKIPPED;
+        guarantee(op == point_modify_ns::MUTATE);
+        return (lhs->type() == cJSON_NULL) ? point_modify_ns::NOP : point_modify_ns::DELETED;
     } else if (rhs->type() != cJSON_Object) {
         throw runtime_exc_t(strprintf("Got %s, but expected Object.", rhs->Print().c_str()), backtrace);
     }
@@ -1299,11 +1299,11 @@ point_modify::result_t calculate_modify(boost::shared_ptr<scoped_cJSON_t> lhs, c
     cJSON *rhs_pk = rhs->GetObjectItem(primary_key.c_str());
     if (lhs_pk && rhs_pk && !cJSON_Equal(lhs_pk, rhs_pk)) { //CHECK 1: Primary key isn't changed
         throw runtime_exc_t(strprintf("%s cannot change primary key %s (got objects %s, %s)",
-                                      point_modify::op_name(op).c_str(), primary_key.c_str(),
+                                      point_modify_ns::op_name(op).c_str(), primary_key.c_str(),
                                       lhs->Print().c_str(), rhs->Print().c_str()), backtrace);
     }
 
-    if (op == point_modify::MUTATE) {
+    if (op == point_modify_ns::MUTATE) {
         *json_out = rhs;
         if (lhs->type() == cJSON_Object) { //CASE 3: a normal MUTATE
             if (!rhs_pk) { //CHECK 2: Primary key isn't removed
@@ -1311,7 +1311,7 @@ point_modify::result_t calculate_modify(boost::shared_ptr<scoped_cJSON_t> lhs, c
                                               primary_key.c_str(), lhs->Print().c_str(), rhs->Print().c_str()), backtrace);
             }
             guarantee(cJSON_Equal(lhs_pk, rhs_pk)); //See CHECK 1 above
-            return point_modify::MODIFIED;
+            return point_modify_ns::MODIFIED;
         }
 
         //CASE 4: a deleting MUTATE
@@ -1321,26 +1321,26 @@ point_modify::result_t calculate_modify(boost::shared_ptr<scoped_cJSON_t> lhs, c
                                           primary_key.c_str(), rhs->Print().c_str()), backtrace);
         }
         *new_key_out = cJSON_print_primary(rhs_pk, backtrace); //CHECK 4: valid primary key for insert (may throw)
-        return point_modify::INSERTED;
+        return point_modify_ns::INSERTED;
     } else { //CASE 5: a normal UPDATE
-        guarantee(op == point_modify::UPDATE && lhs->type() == cJSON_Object);
+        guarantee(op == point_modify_ns::UPDATE && lhs->type() == cJSON_Object);
         json_out->reset(new scoped_cJSON_t(cJSON_merge(lhs->get(), rhs->get())));
         guarantee_debug_throw_release(cJSON_Equal((*json_out)->GetObjectItem(primary_key.c_str()),
                                                   lhs->GetObjectItem(primary_key.c_str())), backtrace);
-        return point_modify::MODIFIED;
+        return point_modify_ns::MODIFIED;
     }
     //[point_modify::ERROR] never returned; we throw instead and the caller should catch it.
 }
 
-point_modify::result_t point_modify(namespace_repo_t<rdb_protocol_t>::access_t ns_access,
-                                    const std::string &pk, cJSON *id, point_modify::op_t op,
+point_modify_ns::result_t point_modify(namespace_repo_t<rdb_protocol_t>::access_t ns_access,
+                                    const std::string &pk, cJSON *id, point_modify_ns::op_t op,
                                     runtime_environment_t *env, const Mapping &m, const scopes_t &scopes,
                                     bool atomic, boost::shared_ptr<scoped_cJSON_t> row,
                                     const backtrace_t &backtrace) {
     guarantee_debug_throw_release(m.body().HasExtension(extension::deterministic), backtrace);
     bool deterministic = m.body().GetExtension(extension::deterministic);
-    point_modify::result_t res;
-    std::string opname = point_modify::op_name(op);
+    point_modify_ns::result_t res;
+    std::string opname = point_modify_ns::op_name(op);
     try {
         if (!deterministic) {
             /* Non-deterministic modifications need to be precomputed to ensure that all the replicas end up with the same value. */
@@ -1359,26 +1359,26 @@ point_modify::result_t point_modify(namespace_repo_t<rdb_protocol_t>::access_t n
             std::string new_key;
             res = calculate_modify(row, pk, op, m, env, scopes, backtrace, &new_row, &new_key);
             switch (res) {
-            case point_modify::INSERTED:
+            case point_modify_ns::INSERTED:
                 if (!cJSON_Equal(new_row->GetObjectItem(pk.c_str()), id)) {
                     throw runtime_exc_t(strprintf("%s can't change the primary key (%s) (original: %s, new row: %s)",
                                                   opname.c_str(), pk.c_str(), cJSON_print_std_string(id).c_str(),
                                                   new_row->Print().c_str()), backtrace);
                 }
                 //FALLTHROUGH
-            case point_modify::MODIFIED: {
+            case point_modify_ns::MODIFIED: {
                 guarantee_debug_throw_release(new_row, backtrace);
                 boost::optional<std::string> generated_key;
                 throwing_insert(ns_access, pk, new_row, env, backtrace, true /*overwrite*/, &generated_key);
                 guarantee(!generated_key); //overwriting inserts never generate keys
             } break;
-            case point_modify::DELETED: {
+            case point_modify_ns::DELETED: {
                 int num_deleted = point_delete(ns_access, id, env, backtrace);
-                if (num_deleted == 0) res = point_modify::NOP;
+                if (num_deleted == 0) res = point_modify_ns::NOP;
             } break;
-            case point_modify::SKIPPED: break;
-            case point_modify::NOP: break;
-            case point_modify::ERROR: unreachable("compute_modify should never return ERROR, it should throw");
+            case point_modify_ns::SKIPPED: break;
+            case point_modify_ns::NOP: break;
+            case point_modify_ns::ERROR: unreachable("compute_modify should never return ERROR, it should throw");
             default: unreachable();
             }
             return res;
@@ -1387,7 +1387,7 @@ point_modify::result_t point_modify(namespace_repo_t<rdb_protocol_t>::access_t n
             rdb_protocol_t::write_response_t response;
             ns_access.get_namespace_if()->write(write, &response, order_token_t::ignore, env->interruptor);
             rdb_protocol_t::point_modify_response_t mod_res = boost::get<rdb_protocol_t::point_modify_response_t>(response.response);
-            if (mod_res.result == point_modify::ERROR) throw mod_res.exc;
+            if (mod_res.result == point_modify_ns::ERROR) throw mod_res.exc;
             return mod_res.result;
         }
     } catch (const cannot_perform_query_exc_t &e) {
@@ -1417,12 +1417,12 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
             try {
                 std::string pk = view.primary_key;
                 cJSON *id = json->GetObjectItem(pk.c_str());
-                point_modify::result_t mres =
-                    point_modify(view.access, pk, id, point_modify::UPDATE, env, w->update().mapping(), scopes,
+                point_modify_ns::result_t mres =
+                    point_modify(view.access, pk, id, point_modify_ns::UPDATE, env, w->update().mapping(), scopes,
                                  w->atomic(), json, backtrace.with("modify_map"));
-                guarantee(mres == point_modify::MODIFIED || mres == point_modify::SKIPPED);
-                updated += (mres == point_modify::MODIFIED);
-                skipped += (mres == point_modify::SKIPPED);
+                guarantee(mres == point_modify_ns::MODIFIED || mres == point_modify_ns::SKIPPED);
+                updated += (mres == point_modify_ns::MODIFIED);
+                skipped += (mres == point_modify_ns::SKIPPED);
             } catch (const query_language::broken_client_exc_t &e) {
                 ++errors;
                 if (reported_error == "") reported_error = e.message;
@@ -1452,12 +1452,12 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
             try {
                 std::string pk = view.primary_key;
                 cJSON *id = json->GetObjectItem(pk.c_str());
-                point_modify::result_t mres =
-                    point_modify(view.access, pk, id, point_modify::MUTATE, env, w->mutate().mapping(), scopes,
+                point_modify_ns::result_t mres =
+                    point_modify(view.access, pk, id, point_modify_ns::MUTATE, env, w->mutate().mapping(), scopes,
                                  w->atomic(), json, backtrace.with("modify_map"));
-                //guarantee(mres == point_modify::MODIFIED || mres == point_modify::DELETED);
-                modified += (mres == point_modify::MODIFIED);
-                deleted += (mres == point_modify::DELETED);
+                //guarantee(mres == point_modify_ns::MODIFIED || mres == point_modify_ns::DELETED);
+                modified += (mres == point_modify_ns::MODIFIED);
+                deleted += (mres == point_modify_ns::DELETED);
             } catch (const query_language::broken_client_exc_t &e) {
                 ++errors;
                 if (reported_error == "") reported_error = e.message;
@@ -1641,13 +1641,13 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
         boost::shared_ptr<scoped_cJSON_t> id = eval_term_as_json(w->mutable_point_update()->mutable_key(),
                                                                  env, scopes, backtrace.with("key"));
         TICKVAR(wt_E);
-        point_modify::result_t mres =
-            point_modify(ns_access, pk, id->get(), point_modify::UPDATE, env, w->point_update().mapping(), scopes,
+        point_modify_ns::result_t mres =
+            point_modify(ns_access, pk, id->get(), point_modify_ns::UPDATE, env, w->point_update().mapping(), scopes,
                          w->atomic(), boost::shared_ptr<scoped_cJSON_t>(), backtrace.with("point_map"));
         TICKVAR(wt_F);
-        guarantee(mres == point_modify::MODIFIED || mres == point_modify::SKIPPED);
+        guarantee(mres == point_modify_ns::MODIFIED || mres == point_modify_ns::SKIPPED);
         res->add_response(strprintf("{\"updated\": %d, \"skipped\": %d, \"errors\": %d}",
-                                    mres == point_modify::MODIFIED, mres == point_modify::SKIPPED, 0));
+                                    mres == point_modify_ns::MODIFIED, mres == point_modify_ns::SKIPPED, 0));
         TICKVAR(wt_G);
         // logRQM("execute_write_query POINTUPDATE wt_A %ld wt_B %ld wt_C %ld wt_D %ld wt_E %ld wt_F %ld wt_G\n", wt_B - wt_A, wt_C - wt_B, wt_D - wt_C, wt_E - wt_D, wt_F - wt_E, wt_G - wt_F);
 
@@ -1688,14 +1688,14 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
         boost::shared_ptr<scoped_cJSON_t> id = eval_term_as_json(w->mutable_point_mutate()->mutable_key(),
                                                                  env, scopes, backtrace.with("key"));
         TICKVAR(wt_E);
-        point_modify::result_t mres =
-            point_modify(ns_access, pk, id->get(), point_modify::MUTATE, env, w->point_mutate().mapping(), scopes,
+        point_modify_ns::result_t mres =
+            point_modify(ns_access, pk, id->get(), point_modify_ns::MUTATE, env, w->point_mutate().mapping(), scopes,
                          w->atomic(), boost::shared_ptr<scoped_cJSON_t>(), backtrace.with("point_map"));
         TICKVAR(wt_F);
-        guarantee(mres == point_modify::MODIFIED || mres == point_modify::INSERTED ||
-                           mres == point_modify::DELETED  || mres == point_modify::NOP);
+        guarantee(mres == point_modify_ns::MODIFIED || mres == point_modify_ns::INSERTED ||
+                           mres == point_modify_ns::DELETED  || mres == point_modify_ns::NOP);
         res->add_response(strprintf("{\"modified\": %d, \"inserted\": %d, \"deleted\": %d, \"errors\": %d}",
-                                    mres == point_modify::MODIFIED, mres == point_modify::INSERTED, mres == point_modify::DELETED, 0));
+                                    mres == point_modify_ns::MODIFIED, mres == point_modify_ns::INSERTED, mres == point_modify_ns::DELETED, 0));
         TICKVAR(wt_G);
         // logRQM("execute_write_query POINTMUTATE wt_A %ld wt_B %ld wt_C %ld wt_D %ld wt_E %ld wt_F %ld wt_G\n", wt_B - wt_A, wt_C - wt_B, wt_D - wt_C, wt_E - wt_D, wt_F - wt_E, wt_G - wt_F);
     } break;
@@ -2558,7 +2558,8 @@ private:
     backtrace_t backtrace;
 };
 
-boost::shared_ptr<scoped_cJSON_t> map(std::string arg, Term *term, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace, boost::shared_ptr<scoped_cJSON_t> val) {
+/* Renaming map here because otherwise it conflicts with std::map. */
+boost::shared_ptr<scoped_cJSON_t> map_rdb(std::string arg, Term *term, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace, boost::shared_ptr<scoped_cJSON_t> val) {
     scopes_t scopes_copy = scopes;
 
     variable_val_scope_t::new_scope_t scope_maker(&scopes_copy.scope, arg, val);
@@ -2571,7 +2572,7 @@ boost::shared_ptr<scoped_cJSON_t> map(std::string arg, Term *term, runtime_envir
 
 boost::shared_ptr<scoped_cJSON_t> eval_mapping(Mapping m, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace,
                                                boost::shared_ptr<scoped_cJSON_t> val) {
-    return map(m.arg(), m.mutable_body(), env, scopes, backtrace, val);
+    return map_rdb(m.arg(), m.mutable_body(), env, scopes, backtrace, val);
 }
 
 boost::shared_ptr<json_stream_t> concatmap(std::string arg, Term *term, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace, boost::shared_ptr<scoped_cJSON_t> val) {

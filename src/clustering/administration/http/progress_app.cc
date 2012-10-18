@@ -171,7 +171,7 @@ void send_backfill_requests_t::operator()<reactor_business_card_t<rdb_protocol_t
         return;
     }
 
-    typename reactor_business_card_t<rdb_protocol_t>::activity_entry_t region_activity_entry =
+    reactor_business_card_t<rdb_protocol_t>::activity_entry_t region_activity_entry =
         namespaces_directory_metadata.reactor_bcards[n_id].internal->activities.find(b_loc.activity_id)->second;
 
     boost::optional<backfiller_business_card_t<rdb_protocol_t> > backfiller = boost::apply_visitor(get_backfiller_business_card_t<rdb_protocol_t>(), region_activity_entry.activity);

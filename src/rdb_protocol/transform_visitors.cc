@@ -16,7 +16,7 @@ void transform_visitor_t::operator()(const Builtin_Filter &filter) const {
 
 void transform_visitor_t::operator()(const Mapping &mapping) const {
     Term t = mapping.body();
-    out->push_back(query_language::map(mapping.arg(), &t, env, scopes, backtrace, json));
+    out->push_back(query_language::map_rdb(mapping.arg(), &t, env, scopes, backtrace, json));
 }
 
 void transform_visitor_t::operator()(const Builtin_ConcatMap &concatmap) const {
@@ -104,14 +104,14 @@ void terminal_visitor_t::operator()(const Builtin_GroupedMapReduce &gmr) const {
     boost::shared_ptr<scoped_cJSON_t> grouping;
     {
         Term body = gmr.group_mapping().body();
-        grouping = query_language::map(gmr.group_mapping().arg(), &body, env, scopes, backtrace.with("group_mapping"), json);
+        grouping = query_language::map_rdb(gmr.group_mapping().arg(), &body, env, scopes, backtrace.with("group_mapping"), json);
     }
 
     //Apply the mapping
     boost::shared_ptr<scoped_cJSON_t> mapped_value;
     {
         Term body = gmr.value_mapping().body();
-        mapped_value = query_language::map(gmr.value_mapping().arg(), &body, env, scopes, backtrace.with("value_mapping"), json);
+        mapped_value = query_language::map_rdb(gmr.value_mapping().arg(), &body, env, scopes, backtrace.with("value_mapping"), json);
     }
 
     //Finally reduce it in
