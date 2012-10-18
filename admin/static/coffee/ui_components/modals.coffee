@@ -89,7 +89,7 @@ module 'UIComponents', ->
         on_error: (error) =>
             @.$('.alert_modal').html @error_template
                 ajax_fail: true
-                error: error if error? and error isnt ''
+                error: (error if error? and error isnt '')
 
             if @.$('.alert_modal_content').css('display') is 'none'
                 @.$('.alert_modal_content').slideDown('fast')

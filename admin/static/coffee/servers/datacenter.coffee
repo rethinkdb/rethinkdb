@@ -326,7 +326,7 @@ module 'DatacenterView', ->
                                 name: human_readable_shard shard.shard
                                 nprimaries: if shard.role is 'role_primary' then 1 else 0
                                 nsecondaries: if shard.role is 'role_secondary' then 1 else 0
-                                keys: keys if typeof keys is 'string'
+                                keys: (keys if typeof keys is 'string')
                         else
                             if shard.role is 'role_primary'
                                 __shards[shard_repr].nprimaries += 1

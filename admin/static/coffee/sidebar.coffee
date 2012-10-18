@@ -47,7 +47,7 @@ module 'Sidebar', ->
         render: =>
             data =
                 disconnected: connection_status.get('client_disconnected')
-                machine_name: machines.get(connection_status.get('contact_machine_id')).get 'name' if connection_status.get('contact_machine_id')? and machines.get(connection_status.get('contact_machine_id'))?
+                machine_name: (machines.get(connection_status.get('contact_machine_id')).get 'name' if connection_status.get('contact_machine_id')? and machines.get(connection_status.get('contact_machine_id'))?)
 
             data_in_json = JSON.stringify data
             if @data isnt data_in_json

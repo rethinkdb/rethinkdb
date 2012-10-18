@@ -9,8 +9,8 @@
 #include "mock/branch_history_manager.hpp"
 #include "mock/clustering_utils.hpp"
 #include "mock/dummy_protocol.hpp"
-#include "mock/test_cluster_group.hpp"
 #include "mock/unittest_utils.hpp"
+#include "unittest/test_cluster_group.hpp"
 
 using mock::dummy_protocol_t;
 

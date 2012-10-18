@@ -182,7 +182,7 @@ module 'MachineView', ->
                 uptime: if @model.get_stats().proc.uptime? then $.timeago(new Date(Date.now() - @model.get_stats().proc.uptime * 1000)).slice(0, -4) else "N/A"
                 assigned_to_datacenter: @model.get('datacenter_uuid') isnt universe_datacenter.get('id')
                 reachability: DataUtils.get_machine_reachability(@model.get('id'))
-                datacenter_name: datacenter_name if datacenter_name?
+                datacenter_name: (datacenter_name if datacenter_name?)
                 #stats_up_to_date: @model.get('stats_up_to_date')
 
             if not _.isEqual @data, data

@@ -129,12 +129,10 @@ struct tester_t :
         }
 
         fprintf(stderr, "Creating a database...\n");
-        log_serializer_t::create(config->ser_dynamic_config,
-                                 io_backender.get(),
+        log_serializer_t::create(io_backender.get(),
                                  config->ser_private_dynamic_config,
-                                 config->ser_static_config,
-                                 &get_global_perfmon_collection());
-        
+                                 config->ser_static_config);
+
         fprintf(stderr, "Starting serializer...\n");
         ser = new log_serializer_t(config->ser_dynamic_config,
                                    io_backender.get(),
@@ -142,18 +140,19 @@ struct tester_t :
                                    &get_global_perfmon_collection());
         on_serializer_ready(ser);
     }
-    
+
     void on_serializer_ready(log_serializer_t *ls) {
         fprintf(stderr, "Running test...\n");
         if(config->duration != RUN_FOREVER) {
             timer = fire_timer_once(config->duration * 1000, &tester_t::on_timer, this);
         }
-        
-        pool->set_interrupt_message(&interruptor);
-        
+
+        linux_thread_message_t *prev_interrupt_message = pool->set_interrupt_message(&interruptor);
+        guarantee(prev_interrupt_message == NULL);
+
         pump();
     }
-    
+
     static void on_timer(void *self) {
         tester_t *tester = (tester_t *)self;
         fprintf(stderr, "Time's up.\n");
@@ -194,7 +193,8 @@ struct tester_t :
     void stop_test() {
         
         if (stop) return;
-        pool->set_interrupt_message(NULL);
+        linux_thread_message_t *prev_interrupt_message = pool->set_interrupt_message(NULL);
+        guarantee(prev_interrupt_message == &interruptor);
         
         fprintf(stderr, "Started %d transactions and completed %d of them\n",
             total_txns, total_txns - active_txns);
