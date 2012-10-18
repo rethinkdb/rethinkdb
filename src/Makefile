@@ -327,9 +327,9 @@ QUIET:=@
 endif
 endif
 
-# googletest flags
 ifeq ($(UNIT_TESTS),1)
 LDFLAGS+=-L/usr/local/lib -lgtest
+CXXFLAGS+=-DUNIT_TESTS
 endif
 
 UNIT_TEST_FILTER?=*
