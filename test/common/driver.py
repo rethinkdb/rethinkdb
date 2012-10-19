@@ -194,7 +194,7 @@ class Files(object):
             "--machine-name=" + self.machine_name]
 
         if log_path is None:
-            print "setting log_path to /dev/null"
+            print "setting log_path to /dev/null."
             log_path = "/dev/null"
         with open(log_path, "w") as log_file:
             subprocess.check_call(create_args, stdout = log_file, stderr = log_file)

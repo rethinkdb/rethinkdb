@@ -13,9 +13,14 @@ with driver.Metacluster() as metacluster:
     print "Starting cluster..."
     cluster = driver.Cluster(metacluster)
     executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
-    process1 = driver.Process(cluster, driver.Files(metacluster, db_path = "db-1", executable_path = executable_path, command_prefix = command_prefix), log_path = "serve-output-1",
-        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
-    process2 = driver.Process(cluster, driver.Files(metacluster, db_path = "db-2", executable_path = executable_path, command_prefix = command_prefix), log_path = "serve-output-2",
+    files1 = driver.Files(metacluster, db_path = "db-1", log_path = "create-output-1",
+                          executable_path = executable_path, command_prefix = command_prefix)
+    process1 = driver.Process(cluster, files1, log_path = "serve-output-1",
+                              executable_path = executable_path, command_prefix = command_prefix,
+                              extra_options = serve_options)
+    files2 = driver.Files(metacluster, db_path = "db-2", log_path = "create-output-2",
+                          executable_path = executable_path, command_prefix = command_prefix)
+    process2 = driver.Process(cluster, files2, log_path = "serve-output-2",
         executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
     process1.wait_until_started_up()
     process2.wait_until_started_up()

@@ -15,6 +15,7 @@ with driver.Metacluster() as metacluster:
     processes = [
         driver.Process(cluster,
                        driver.Files(metacluster,
+                                    log_path = "create-output-%d" % i,
                                     executable_path = executable_path,
                                     command_prefix = command_prefix),
                        executable_path = executable_path,
