@@ -121,6 +121,13 @@ $(document).ready( function() {
             $('#semilattice_raw').css('height', height);
             
             $('#nice_representation').html(json_to_node(JSON.parse(response)));
+
+            $('.jt_arrow').click(function(event) {
+                $(event.target).nextAll('.jt_collapsible').toggleClass('jt_collapsed')
+                $(event.target).nextAll('.jt_points').toggleClass('jt_points_collapsed')
+                $(event.target).nextAll('.jt_b').toggleClass('jt_b_collapsed')
+                $(event.target).toggleClass('jt_arrow_hidden')
+            });
         }
     });
 
