@@ -24,12 +24,18 @@ module 'DataExplorerView', ->
             'click .link_to_tree_view': 'save_tab'
             'click .link_to_table_view': 'save_tab'
             'click .link_to_raw_view': 'save_tab'
-            
+            'click .close': 'close_alert'
+
         save_tab: (event) =>
             @results_view.set_view @.$(event.target).data('view')
 
 
         displaying_full_view: false # Boolean for the full view (true if full view)
+
+        # Method to close an alert/warning/arror
+        close_alert: (event) ->
+            event.preventDefault()
+            $(event.currentTarget).parent().slideUp('fast', -> $(this).remove())
 
         # Map function -> state
         map_state:
@@ -948,7 +954,7 @@ module 'DataExplorerView', ->
         # Connect to the server
         connect: (data) =>
             server =
-                host: window.location.hostname+'f'
+                host: window.location.hostname
                 port: parseInt window.location.port
 
             that = @
