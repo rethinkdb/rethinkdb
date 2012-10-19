@@ -129,7 +129,7 @@ rethinkdb.HttpConnection = function(host, onConnect, onFailure) {
         if (xhr.readyState === 4) {
             if (xhr.status === 200) {
                 self.url_ = url;
-                self.conn_id_ = (new DataView(xhr.response)).getInt32(0, true);
+                self.conn_id_ = (new DataView(/**@type{ArrayBuffer}*/(xhr.response))).getInt32(0, true);
                 if (onConnect) onConnect(self);
             } else {
                 self.error_(new rethinkdb.errors.ClientError('Unabled to establish HTTP connection'));
@@ -164,7 +164,7 @@ rethinkdb.HttpConnection.prototype.send_ = function(data) {
     xhr.onreadystatechange = function(e) {
         if (xhr.readyState === 4 &&
             xhr.status === 200) {
-                self.recv_(new Uint8Array(xhr.response));
+                self.recv_(new Uint8Array(/**@type{ArrayBuffer}*/(xhr.response)));
         }
     };
 
