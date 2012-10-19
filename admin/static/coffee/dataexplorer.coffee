@@ -948,21 +948,29 @@ module 'DataExplorerView', ->
         # Connect to the server
         connect: (data) =>
             server =
-                host: window.location.hostname
+                host: window.location.hostname+'f'
                 port: parseInt window.location.port
 
-            try
-                that = @
-                r.connect server
-                if data? and data.reconnecting is true
-                    @.$('#user-alert-space').html @alert_reconnection_success_template({})
-            catch err
-                @.$('#user-alert-space').css 'display', 'none'
-                @.$('#user-alert-space').html @alert_connection_fail_template({})
-                @.$('#user-alert-space').slideDown()
+            that = @
+            if data? and data.reconnecting is true
+                r.connect server, @success_on_connect, @error_on_connect
+            else
+                r.connect server, undefined, @error_on_connect
+
             if @timeout?
                 clearTimeout @timeout
             @timeout = setTimeout @connect, 5*60*1000
+        success_on_connect: =>
+            @.$('#user-alert-space').hide()
+            @.$('#user-alert-space').html @alert_reconnection_success_template()
+            @.$('#user-alert-space').slideDown 'fast'
+
+        error_on_connect: =>
+            @.$('#user-alert-space').hide()
+            @.$('#user-alert-space').html @alert_connection_fail_template({})
+            @.$('#user-alert-space').slideDown 'fast'
+
+
         # Reconnect, function triggered if the user click on reconnect
         reconnect: (event) =>
             event.preventDefault()
