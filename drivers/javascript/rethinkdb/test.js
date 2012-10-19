@@ -15,7 +15,7 @@ function testConnect() {
                 r.db('test').drop(table).run();
                 return true;
             } else {
-                r.db('test').create('Welcome-rdb').run(function() {
+                r.db('test').create('test').run(function() {
                     done();
                 });
                 return false;
@@ -146,7 +146,7 @@ function testR() {
     r.let({a:r.expr({b:1})}, r.letVar('a.b')).run(aeq(1));
 }
 
-var tab = r.table('Welcome-rdb');
+var tab = r.table('test');
 function testInsert() {
     tab.insert({id:0, num:20}).run(objeq({inserted:1}));
 
@@ -320,10 +320,10 @@ function testJoin2() {
     ));
 }
 
-var tab2 = r.table('table-2');
+var tab2 = r.table('table2');
 function testSetupOtherTable() {
     wait();
-    r.db('test').create('table-2').run(function() {
+    r.db('test').create('table2').run(function() {
         tab2.insert([
             {id:20, name:'bob'},
             {id:19, name:'tom'},
@@ -475,17 +475,23 @@ function testDet() {
     });
 }
 
-function testNonAtomic() {
-    var rerr = rethinkdb.errors.RuntimeError;
+var rerr = rethinkdb.errors.RuntimeError;
+function testNonAtomic1() {
 
     // Update modify
     tbl.update(function(row) {return r.expr({x: r.js('return 1')})}).run(attreq('errors', 10));
     tbl.update(function(row) {return r.expr({x:r.js('return 1')})}, true).run(attreq('updated', 10));
+}
+
+function testNonAtomic2() {
     tbl.map(function(row) {return row('x')}).reduce(0, function(a,b) {return a.add(b)}).run(aeq(10));
 
     tbl.get(0).update(function(row) {return r.expr({x: r.js('return 1')})}).run(atype(rerr));
     tbl.get(0).update(function(row) {return r.expr({x: r.js('return 2')})}, true).run(
         attreq('updated', 1));
+}
+
+function testNonAtomic3() {
     tbl.map(function(a){return a('x')}).reduce(0, function(a,b){return a.add(b);}).run(aeq(11));
 
     // Update error
@@ -494,6 +500,9 @@ function testNonAtomic() {
     tbl.map(function(a){return a('x')}).reduce(0, function(a,b){return a.add(b);}).run(aeq(11));
     tbl.get(0).update(function(row){return r.expr({x:r.js('x')})}).run(atype(rerr));
     tbl.get(0).update(function(row){return r.expr({x:r.js('x')})}, true).run(atype(rerr));
+}
+
+function testNonAtomic4() {
     tbl.map(function(a){return a('x')}).reduce(0, function(a,b){return a.add(b);}).run(aeq(11));
 
     // Update skipped
@@ -503,6 +512,9 @@ function testNonAtomic() {
     tbl.update(function(row){return r.ifThenElse(r.js('return true'),
                                         r.expr(null),
                                         r.expr({x:0.1}))}, true).run(attreq('skipped',10));
+}
+
+function testNonAtomic5() {
     tbl.map(function(a){return a('x')}).reduce(0, function(a,b){return a.add(b);}).run(aeq(11));
     tbl.get(0).update(function(row){return r.ifThenElse(r.js('return true'),
                                             r.expr(null),
@@ -522,6 +534,9 @@ function testNonAtomic() {
         r.letVar('rowA')))).run(attreq('errors', 10));
     tbl.mutate(r.fn('rowA', r.ifThenElse(r.js('return rowA.id == 1'), r.letVar('rowA').extend({x:2}),
         r.letVar('rowA'))), true).run(attreq('modified', 10));
+}
+
+function testNonAtomic6() {
     tbl.map(function(a){return a('x')}).reduce(0, function(a,b){return a.add(b);}).run(aeq(12));
 
     // Mutate error
@@ -536,11 +551,17 @@ function testNonAtomic() {
         atype(rerr));
     tbl.get(0).mutate(function(row){return r.ifThenElse(r.js('return true'), r.expr(null), row)},
         true).run(attreq('deleted', 1));
+}
+
+function testNonAtomic7() {
     tbl.map(function(a){return a('x')}).reduce(0, function(a,b){return a.add(b);}).run(aeq(10));
     tbl.mutate(r.fn('rowA', r.ifThenElse(r.js('return rowA.id < 3'), r.expr(null),
         r.letVar('rowA')))).run(attreq('errors', 9));
     tbl.mutate(r.fn('rowA', r.ifThenElse(r.js('return rowA.id < 3'), r.expr(null),
         r.letVar('rowA'))), true).run(attreq('deleted', 2));
+}
+
+function testNonAtomic8() {
     tbl.map(function(a){return a('x')}).reduce(0, function(a,b){return a.add(b);}).run(aeq(7));
 
     // Mutate insert
@@ -550,6 +571,9 @@ function testNonAtomic() {
     tbl.get(1).mutate(tbl.get(3).extend({id:1})).run(atype(rerr));
     tbl.get(1).mutate(tbl.get(3).extend({id:1}), true).run(attreq('inserted', 1));
     tbl.get(2).mutate(tbl.get(1).extend({id:2}), true).run(attreq('inserted', 1));
+}
+
+function testNonAtomic9() {
     tbl.map(function(a){return a('x')}).reduce(0, function(a,b){return a.add(b);}).run(aeq(10));
 }
 
@@ -651,7 +675,15 @@ runTests([
     testPointMutate2,
     testSetupDetYNonAtom,
     testDet,
-    testNonAtomic,
+    testNonAtomic1,
+    testNonAtomic2,
+    testNonAtomic3,
+    testNonAtomic4,
+    testNonAtomic5,
+    testNonAtomic6,
+    testNonAtomic7,
+    testNonAtomic8,
+    testNonAtomic9,
     testPointDelete1,
     testPointDelete2,
     testDelete1,

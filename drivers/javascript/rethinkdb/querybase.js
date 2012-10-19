@@ -8,6 +8,7 @@
  * A shortcut function for referencing ReQL variables and attributes.
  * @name rethinkdb
  * @namespace namespace for all rethinkdb functions and classes
+ * @suppress {checkTypes}
  */
 goog.global.rethinkdb = function(jsobj) {
     return rethinkdb.R(jsobj);
@@ -87,11 +88,12 @@ function newExpr_(var_args) {
     var constructor = arguments[0];
     var args = Array.prototype.slice.call(arguments, 1);
 
-    var self = function(prop) {
-        return rethinkdb.Expression.prototype.getAttr.call(self, prop);
+    var newObj = function(prop) {
+        return rethinkdb.Expression.prototype.getAttr.call(
+                        /**@type rethinkdb.Expression*/(newObj), prop);
     };
 
-    self.__proto__ = constructor.prototype;
-    constructor.apply(self, args);
-    return self;
+    newObj.__proto__ = constructor.prototype;
+    constructor.apply(newObj, args);
+    return newObj;
 }
