@@ -93,7 +93,11 @@ module 'NamespaceView', ->
 
         # Callback that will be registered: updates the toolbar buttons based on how many namespaces have been selected
         update_toolbar_buttons: =>
-            @.$('.btn.remove-namespace').is ':disabled', @get_selected_namespaces().length < 1
+            if @get_selected_namespaces().length < 1
+                @.$('.btn.remove-namespace').prop 'disabled', 'disabled'
+            else
+                @.$('.btn.remove-namespace').removeProp 'disabled'
+            #@.$('.btn.remove-namespace').is ':disabled', @get_selected_namespaces().length < 1
 
         destroy: =>
             super
