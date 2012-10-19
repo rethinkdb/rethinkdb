@@ -12,10 +12,12 @@ with driver.Metacluster() as metacluster:
     cluster1 = driver.Cluster(metacluster)
     executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
     print "Spinning up two processes..."
-    files1 = driver.Files(metacluster, executable_path = executable_path, command_prefix = command_prefix)
+    files1 = driver.Files(metacluster, log_path = "create-output-1",
+                          executable_path = executable_path, command_prefix = command_prefix)
     proc1 = driver.Process(cluster1, files1,
         executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
-    files2 = driver.Files(metacluster, executable_path = executable_path, command_prefix = command_prefix)
+    files2 = driver.Files(metacluster, log_path = "create-output-2",
+                          executable_path = executable_path, command_prefix = command_prefix)
     proc2 = driver.Process(cluster1, files2,
         executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
     proc1.wait_until_started_up()

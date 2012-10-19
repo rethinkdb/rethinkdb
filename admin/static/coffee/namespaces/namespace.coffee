@@ -1,7 +1,6 @@
 # Namespace view
 module 'NamespaceView', ->
     class @NotFound extends Backbone.View
-        className: 'section'
         template: Handlebars.compile $('#element_view-not_found-template').html()
         initialize: (id) ->
             @id = id
@@ -119,6 +118,7 @@ module 'NamespaceView', ->
             remove_namespace_dialog.render [@model]
 
         destroy: =>
+            namespaces.off 'remove', @check_if_still_exists
             @title.destroy()
             @profile.destroy()
             @replicas.destroy()

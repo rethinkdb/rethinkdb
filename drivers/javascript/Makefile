@@ -23,13 +23,17 @@ PROTOC_JS=$(PROTOC) --plugin=$(PROTOC_JS_PLUGIN) -I $(PROTOC_JS_IMPORT_DIR)
 PROTO_FILE_DIR=../../src/rdb_protocol/
 PROTO_FILE=$(PROTO_FILE_DIR)query_language.proto
 
-JS_BUILD_DIR=$(RETHINKDB_HOME)/build/drivers/javascript
+MAIN_BUILD_DIR=$(RETHINKDB_HOME)/build
+DRIVERS_BUILD_DIR=$(MAIN_BUILD_DIR)/drivers
+JS_BUILD_DIR=$(DRIVERS_BUILD_DIR)/javascript
 
 OUTPUTMODE=compiled
 
 JSDOC=/usr/share/jsdoc-toolkit/jsrun.jar
 
 all: lib
+
+
 
 # Compile the rethinkdb library
 lib: $(JS_BUILD_DIR)/rethinkdb.js
@@ -60,8 +64,14 @@ endif
 $(JS_BUILD_DIR)/rethinkdb: $(JS_BUILD_DIR)
 	$(QUIET) if [ ! -e $(JS_BUILD_DIR)/rethinkdb ] ; then mkdir $(JS_BUILD_DIR)/rethinkdb ; fi ;
 
-$(JS_BUILD_DIR):
+$(JS_BUILD_DIR): $(DRIVERS_BUILD_DIR)
 	$(QUIET) if [ ! -e $(JS_BUILD_DIR) ] ; then mkdir $(JS_BUILD_DIR) ; fi ;
+
+$(DRIVERS_BUILD_DIR): $(MAIN_BUILD_DIR)
+	$(QUIET) if [ ! -e $(DRIVERS_BUILD_DIR) ] ; then mkdir $(DRIVERS_BUILD_DIR) ; fi ;
+
+$(MAIN_BUILD_DIR):
+	$(QUIET) if [ ! -e $(MAIN_BUILD_DIR) ] ; then mkdir $(MAIN_BUILD_DIR) ; fi ;
 
 # Compile the javascript stubs for the rethinkdb protocol
 $(JS_BUILD_DIR)/rethinkdb/query_language.pb.js: $(PROTO_FILE) $(PROTOC_JS_HOME_DIR)/protoc-gen-js $(JS_BUILD_DIR)/rethinkdb

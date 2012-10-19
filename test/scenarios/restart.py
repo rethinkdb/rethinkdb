@@ -15,7 +15,8 @@ with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
     executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
     print "Starting cluster..."
-    files = driver.Files(metacluster, executable_path = executable_path, command_prefix = command_prefix)
+    files = driver.Files(metacluster, log_path = "create-output",
+                         executable_path = executable_path, command_prefix = command_prefix)
     process = driver.Process(cluster, files,
         executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
     process.wait_until_started_up()

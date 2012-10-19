@@ -10,7 +10,7 @@ class NavBarView extends Backbone.View
         @first_render = true
 
     init_typeahead: => # Has to be called after we have injected the template
-        @.$('input.search-query').typeahead
+        @.$('input.search-box').typeahead
             source: (typeahead, query) ->
                 _machines = _.map machines.models, (machine) ->
                     uuid: machine.get('id')

@@ -53,7 +53,7 @@ enum point_delete_result_t {
 };
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(point_delete_result_t, int8_t, DELETED, MISSING);
 
-namespace point_modify {
+namespace point_modify_ns {
 enum result_t { MODIFIED, INSERTED, SKIPPED, DELETED, NOP, ERROR };
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(result_t, int8_t, MODIFIED, ERROR);
 enum op_t { UPDATE, MUTATE };
@@ -327,14 +327,14 @@ struct rdb_protocol_t {
     };
 
     struct point_modify_response_t {
-        point_modify::result_t result;
+        point_modify_ns::result_t result;
         query_language::runtime_exc_t exc;
         point_modify_response_t() { }
-        explicit point_modify_response_t(point_modify::result_t _result) : result(_result) {
-            guarantee(result != point_modify::ERROR);
+        explicit point_modify_response_t(point_modify_ns::result_t _result) : result(_result) {
+            guarantee(result != point_modify_ns::ERROR);
         }
         explicit point_modify_response_t(const query_language::runtime_exc_t &_exc)
-            : result(point_modify::ERROR), exc(_exc) { }
+            : result(point_modify_ns::ERROR), exc(_exc) { }
         RDB_MAKE_ME_SERIALIZABLE_2(result, exc);
     };
 
@@ -353,13 +353,13 @@ struct rdb_protocol_t {
     class point_modify_t {
     public:
         point_modify_t() { }
-        point_modify_t(const std::string &_primary_key, const store_key_t &_key, const point_modify::op_t &_op,
+        point_modify_t(const std::string &_primary_key, const store_key_t &_key, const point_modify_ns::op_t &_op,
                        const query_language::scopes_t &_scopes, const backtrace_t &_backtrace, const Mapping &_mapping)
             : primary_key(_primary_key), key(_key), op(_op), scopes(_scopes), backtrace(_backtrace), mapping(_mapping) { }
 
         std::string primary_key;
         store_key_t key;
-        point_modify::op_t op;
+        point_modify_ns::op_t op;
         query_language::scopes_t scopes;
         backtrace_t backtrace;
         Mapping mapping;

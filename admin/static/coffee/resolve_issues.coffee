@@ -35,7 +35,7 @@ module 'ResolveIssuesView', ->
             for view in @issue_views # For safety, Issue doesn't bind any listeners on our main elements
                 view.destroy()
 
-            @issue_views = [] 
+            @issue_views = []
             issues.each (issue) =>
                 @issue_views.push new ResolveIssuesView.Issue
                     model: issue
@@ -285,8 +285,8 @@ module 'ResolveIssuesView', ->
             @.$el.html _template(json)
 
             # Declare machine dead handler
-            @.$('.btn-solve').off "click"
-            @.$('.btn-solve').click =>
+            @.$('.solve-issue').off "click"
+            @.$('.solve-issue').click =>
                 declare_dead_modal = new ResolveIssuesView.DeclareMachineDeadModal
                 declare_dead_modal.render machine
 
@@ -327,8 +327,8 @@ module 'ResolveIssuesView', ->
                 machine_uuid: @model.get('location')
             @.$el.html _template(json)
             # Declare machine dead handler
-            @.$('.btn-solve').off "click"
-            @.$('.btn-solve').click =>
+            @.$('.solve-issue').off "click"
+            @.$('.solve-issue').click =>
                 declare_dead_modal = new ResolveIssuesView.DeclareMachineDeadModal
                 declare_dead_modal.render machines.get(@model.get('location'))
 
@@ -408,7 +408,7 @@ module 'ResolveIssuesView', ->
 
             @.$el.html _template(json)
             # bind resolution events
-            @.$('.btn-solve').click (event) =>
+            @.$('.solve-issue').click (event) =>
                 event.preventDefault()
                 resolve_modal = new ResolveIssuesView.ResolveUnsatisfiableGoal namespace, json.datacenters_with_issues
                 resolve_modal.render()

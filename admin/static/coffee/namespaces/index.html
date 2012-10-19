@@ -53,10 +53,6 @@ You need to create a database before creating a table.
     </div>
 </script>
 
-<script id="fail_rename_namespace-template" type="text/x-handlebars-template">
-    Sorry, something went wrong. The table might not be up to date, please refresh.
-</script>
-
 <script id="add_database-modal-template" type="text/x-handlebars-template"> 
     <form class="form">
         <fieldset>
@@ -136,17 +132,3 @@ You need to create a database before creating a table.
         <p>The {{pluralize_noun "table" num_deleted_namespaces}} <span class="name">{{comma_separated_simple deleted_namespaces}}</span> {{pluralize_verb_to_have num_deleted_namespaces}} been removed.</p>
     </div>
 </script>
-
-<script id="error_adding_namespace-template" type="text/x-handlebars-template">
-    <div class="alert reason_cannot_create_namespace displayed_alert">
-        {{#if need_something}}<p>{{/if}}
-        {{#if need_datacenter}}
-        You need to create a datacenter before creating a new table. <a href="#servers">Create one</a>.<br/>
-        {{/if}}
-        {{#if need_database}}
-        You need to create a database before creating a new table. <a href="#" class="add-database">Create one</a>.
-        {{/if}}   
-        {{#if need_something}}</p>{{/if}}
-    </div>
-</script>
-

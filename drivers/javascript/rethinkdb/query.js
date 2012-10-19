@@ -100,7 +100,7 @@ rethinkdb.Query.prototype.runp = function(opt_conn) {
     if (opt_conn) {
         c = opt_conn.run(this);
     } else {
-        c = this.run();
+        c = this.run(/**@type{function()}*/(undefined));
     }
     c.collect(function(res) {
         if (res.length === 1) {

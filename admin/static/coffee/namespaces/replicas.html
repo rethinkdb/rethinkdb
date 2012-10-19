@@ -1,11 +1,13 @@
 <script id="namespace_view-replica-template" type="text/x-handlebars-template">
     <h2 class="title">Replication settings</h2>
     <div class="alert alert-error no_datacenter_found">The primary datacenter of this table was not found. Please specify another primary datacenter (or Universe).</div>
+    <div class="universe_container"></div>
     <div class="row-fluid">
         <div class="span3 tabbable tabs-left datacenters_list_container"></div>
         <div class="span9 tab-content datacenter_content"></div>
     </div>
 </script>
+
 
 <script id="namespace_view-replica-datacenters_list-template" type="text/x-handlebars-template">
     <div class="datacenter_list_container">
@@ -16,6 +18,63 @@
         {{/each}}
     </div>
 </script>
+
+
+<script id="namespace_view-universe_replica-template" type="text/x-handlebars-template">
+    <h3>Replication settings for Universe</h3>
+    <div class="universe-info universe-role">
+        <p class="caption">Role</p>
+        {{#unless primary}}
+            <button class="btn make-primary">Make Primary</button>
+        {{/unless}}
+        <p class="value">
+            {{#if primary}}
+                Primary
+            {{else}}
+                Secondary
+            {{/if}}
+        </p>
+        <div class="make_primary-alert alert">
+            <div class="close" href="#">&times;</div>
+            <p class="make_primary-alert-content"></p>
+        </div>
+    </div>
+    <div class="universe-info replica_container">
+        {{#if editable}}
+            <button class="cancel btn">&times;</button>
+            <button class="save update-replicas btn">Update</button>
+        {{else}}
+            <button class="edit btn">Change</button>
+        {{/if}}
+        <div class="replica_value">
+            <p class="caption">Replicas</p>
+            {{#if editable}}
+                <input type="text" id="replicas_value" value="{{replicas}}" class="inline_edit_input">
+            {{else}}
+                <p class="value">{{replicas}}</p>
+            {{/if}}
+        </div>
+        <div class="ack_value">
+            <p class="caption">Acks</p>
+            {{#if editable}}
+                <input type="text" id="acks_value" value="{{acks}}" class="inline_edit_input">
+            {{else}}
+                <p class="value">{{acks}}</p>
+            {{/if}}
+        </div>
+        <div class="replicas_acks-alert alert"></div>
+    </div>
+    <div class="universe-info progress_bar_full_container">
+        <div class="progress_bar_container"></div>
+    </div>
+</script>
+
+<script id="namespace_view-replica-no_datacenter-template" type="text/x-handlebars-template">
+    <div class="dc-info">
+        <p>No datacenter selected.</p>
+    </div>
+</script>
+
 <script id="namespace_view-datacenter_replica-template" type="text/x-handlebars-template">
     <div class="dc-info">
         <p class="caption">Datacenter</p>

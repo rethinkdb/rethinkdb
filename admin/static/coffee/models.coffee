@@ -682,7 +682,7 @@ module 'DataUtils', ->
             datacenter = universe_datacenter
         else
             datacenter = datacenters.get(datacenter_uuid)
-        affs = namespace.get('replica_affinities')[datacenter.get('id')]
+        affs = namespace?.get('replica_affinities')?[datacenter?.get('id')]
         if affs?
             return affs
         else

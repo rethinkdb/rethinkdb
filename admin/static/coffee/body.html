@@ -48,7 +48,9 @@
 </script>
 
 <script id="element_view-not_found-template" type="text/x-handlebars-template">
-    <h2 class="title">Error</h1>
-    <p>{{capitalize type}} {{id}} could not be found.</p>
-    <p>You can try to <a href="/#{{type_url}}/{{id}}">refresh</a> or see a list of all <a href="/#{{type_all_url}}">{{pluralize_noun type 2}}</a>.</p>
+    <div class="section">
+        <h2 class="title">Error</h1>
+        <p>{{capitalize type}} {{id}} could not be found.</p>
+        <p>You can try to <a href="/#{{type_url}}/{{id}}">refresh</a> or see a list of all <a href="/#{{type_all_url}}">{{pluralize_noun type 2}}</a>.</p>
+    </div>
 </script>
