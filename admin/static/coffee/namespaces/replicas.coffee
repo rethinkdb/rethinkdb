@@ -159,8 +159,8 @@ module 'NamespaceView', ->
                 @datacenter = universe_datacenter
             else if datacenters.get(datacenter_id)?
                 @datacenter = datacenters.get datacenter_id
-
-            @datacenter.on 'all', @render
+            if @datacenter?
+                @datacenter.on 'all', @render
 
             @model.on 'change:primary_uuid', @render
             progress_list.on 'all', @render_progress
@@ -184,6 +184,8 @@ module 'NamespaceView', ->
             @render()
 
         render_progress: =>
+            if not @datacenter?
+                return ''
             progress_data = DataUtils.get_backfill_progress_agg @model.get('id'), @datacenter.get('id')
 
             if progress_data? and _.isNaN(progress_data.percentage) is false
@@ -198,6 +200,8 @@ module 'NamespaceView', ->
                 @.$('.progress_bar_full_container').slideUp 'fast'
 
         render: =>
+            if not @datacenter?
+                return ''
             replicas_count = DataUtils.get_replica_affinities(@model.get('id'), @datacenter.get('id'))
             if @model.get('primary_uuid') is @datacenter.get('id')
                 replicas_count++
@@ -454,7 +458,8 @@ module 'NamespaceView', ->
 
 
         destroy: =>
-            @datacenter.off 'all', @render
+            if @datacenter?
+                @datacenter.off 'all', @render
 
             @model.off 'change:primary_uuid', @render
             progress_list.off 'all', @render_progress
