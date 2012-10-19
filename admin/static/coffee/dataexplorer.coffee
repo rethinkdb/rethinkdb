@@ -948,7 +948,7 @@ module 'DataExplorerView', ->
         # Connect to the server
         connect: (data) =>
             server =
-                host: window.location.hostname
+                host: window.location.hostname+'f'
                 port: parseInt window.location.port
 
             that = @
@@ -961,14 +961,14 @@ module 'DataExplorerView', ->
                 clearTimeout @timeout
             @timeout = setTimeout @connect, 5*60*1000
         success_on_connect: =>
-            @.$('#user-alert-space').show()
+            @.$('#user-alert-space').hide()
             @.$('#user-alert-space').html @alert_reconnection_success_template()
-            @.$('.alert').slideDown 'fast'
+            @.$('#user-alert-space').slideDown 'fast'
 
         error_on_connect: =>
-            @.$('#user-alert-space').show()
+            @.$('#user-alert-space').hide()
             @.$('#user-alert-space').html @alert_connection_fail_template({})
-            @.$('.alert').slideDown 'fast'
+            @.$('#user-alert-space').slideDown 'fast'
 
 
         # Reconnect, function triggered if the user click on reconnect
