@@ -167,6 +167,7 @@ module 'Sidebar', ->
 
         initialize: =>
             @all_issues = new ResolveIssuesView.Container
+            @showing_all_issues = false
             issues.on 'all', @render
 
         render: =>
@@ -209,14 +210,18 @@ module 'Sidebar', ->
                     data: reduced_other_issues
                 no_issues: _.keys(critical_issues).length is 0 and _.keys(other_issues).length is 0
 
+            @show_all_issues() if @showing_all_issues
+
             return @
 
         show_all_issues: =>
+            @showing_all_issues = true
             @.$('.all-issues').html(@all_issues.render().el).show()
             @.$('.show-issues').hide()
             @.$('.hide-issues').show()
 
         hide_all_issues: =>
+            @showing_all_issues = false
             @.$('.all-issues').hide()
             @.$('.show-issues').show()
             @.$('.hide-issues').hide()
