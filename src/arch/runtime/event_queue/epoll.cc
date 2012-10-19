@@ -31,7 +31,7 @@ int user_to_epoll(int mode) {
 
 int epoll_to_user(int mode) {
 
-    rassert((mode & (EPOLLIN | EPOLLOUT | EPOLLERR | EPOLLHUP | EPOLLRDHUP)) == mode);
+    rassert((mode & (EPOLLIN | EPOLLOUT | EPOLLERR | EPOLLHUP | EPOLLRDHUP)) == (unsigned)mode);
 
     int out_mode = 0;
     if (mode & EPOLLIN) out_mode |= poll_event_in;
