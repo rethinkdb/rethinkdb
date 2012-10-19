@@ -118,6 +118,7 @@ module 'NamespaceView', ->
             remove_namespace_dialog.render [@model]
 
         destroy: =>
+            namespaces.off 'remove', @check_if_still_exists
             @title.destroy()
             @profile.destroy()
             @replicas.destroy()

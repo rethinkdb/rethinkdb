@@ -125,7 +125,9 @@ module 'MachineView', ->
             unassign_dialog.render()
 
         destroy: =>
-            @model.off 'change:name', @render
+            machines.off 'remove', @check_if_still_exists
+            @model.off 'change:datacenter_uuid', @render_can_unassign_button
+
             @title.destroy()
             @profile.destroy()
             @performance_graph.destroy()
