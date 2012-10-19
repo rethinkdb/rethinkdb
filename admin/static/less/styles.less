@@ -1893,6 +1893,80 @@ TODO: retire this
                 }
             }
         }
+        .universe_container{
+            overflow: auto;
+            border-bottom: 1px solid #888;
+            .universe-role{
+                 p {
+                    font-family: @sans;
+                    margin: 0;
+                    &.caption {
+                        padding: 0px 20px 0px 0px;
+                        color: #7ec4e3;
+                        font-weight: bold;
+                        font-size: 24px;
+                        line-height: 48px;
+                        float: left;
+                    }
+                    &.value {
+                        padding: 3px 20px 0px 6px;
+                        color: #5c6169;
+                        font-size: 24px;
+                        line-height: 48px;
+                    }
+                }           
+                .make-primary{
+                    float: right;
+                    margin-right: 15px;
+                }
+                .make_primary-alert{
+                    clear: both;
+                }
+            }
+            .replica_container{
+
+                p {
+                    font-family: @sans;
+                    margin: 0;
+                    &.caption {
+                        padding: 0px 20px 0px 0px;
+                        color: #7ec4e3;
+                        font-weight: bold;
+                        font-size: 24px;
+                        line-height: 48px;
+                        float: left;
+                    }
+                    &.value {
+                        padding: 3px 20px 0px 6px;
+                        color: #5c6169;
+                        font-size: 24px;
+                        line-height: 48px;
+                    }
+                }
+                .replica_value, .ack_value{
+                    float: left;
+                    width: 170px;
+                }
+                .inline_edit_input{
+                    margin: 4px 0px 3px 0px;
+                    width: 40px;
+                    padding: 3px 4px;
+                    height: 36px;
+                    font-size: 24px;
+                    font-family: @sans;
+                }
+                .btn{
+                    margin-top: 6px;
+                }               
+                .edit{
+                    float: right;
+                    margin-right: 15px;
+                }
+                .replicas_acks-alert{
+                    clear: both;
+                }
+            }
+        }
         .datacenter_content{
             margin: 0px;
             padding-left: 10px;

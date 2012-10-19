@@ -4,6 +4,7 @@ module 'NamespaceView', ->
     class @Replicas extends Backbone.View
         className: 'namespace-replicas'
         template: Handlebars.compile $('#namespace_view-replica-template').html()
+        no_datacenter_template: Handlebars.compile $('#namespace_view-replica-no_datacenter-template').html()
         datacenter_list_template: Handlebars.compile $('#namespace_view-replica-datacenters_list-template').html()
 
         events:
@@ -15,13 +16,15 @@ module 'NamespaceView', ->
             datacenters.on 'reset', @render_list
             @model.on 'change:primary_uuid', @render_issue
 
+            @universe_replicas = new NamespaceView.DatacenterReplicas universe_datacenter.get('id'), @model
+
         render_list: =>
-            ordered_datacenters = _.map(datacenters.models, (datacenter) =>
+            @ordered_datacenters = _.map(datacenters.models, (datacenter) =>
                 id: datacenter.get('id')
                 name: if datacenter.get('name').length>8 then datacenter.get('name').slice(0, 8)+'...' else datacenter.get('name')
-                active: @model.get('primary_uuid') is datacenter.get('id')
             )
-            ordered_datacenters = ordered_datacenters.sort (a, b) ->
+            # Sort datacenters by name
+            @ordered_datacenters = @ordered_datacenters.sort (a, b) ->
                 if a.name > b.name
                     return 1
                 else if a.name < b.name
@@ -29,16 +32,44 @@ module 'NamespaceView', ->
                 else
                     return 0
 
-            ordered_datacenters.push
-                id: universe_datacenter.get('id')
-                name: universe_datacenter.get('name')
-                active: @model.get('primary_uuid') is universe_datacenter.get('id')
-                is_universe: true
+            # If an active datacenter exists, we activate the same
+            found_active = false
+            if @active_datacenter_id?
+                for datacenter, i in @ordered_datacenters
+                    if datacenter.id is @active_datacenter_id
+                        datacenter.active = true
+                        found_active = true
+                        break
+
+            # If we couldn't find the last active datacenter
+            if found_active is false
+                # If the primary is Universe, we pick fhe first datacenter
+                if @model.get('primary_uuid') is universe_datacenter.get('id')
+                    if @ordered_datacenters.length > 0
+                        @ordered_datacenters[0].active = true
+                        @active_datacenter_id = @ordered_datacenters[0].id
+                else # Else, we look for the datacenter to display
+                    for datacenter, i in @ordered_datacenters
+                        if datacenter.id is @model.get('primary_uuid')
+                            datacenter.active = true
+                            @active_datacenter_id = datacenter.id
+                            break
 
 
             @.$('.datacenters_list_container').html @datacenter_list_template
                 id: @model.get 'id'
-                datacenters: ordered_datacenters
+                datacenters: @ordered_datacenters
+
+            # If datacenter_view is null (there used to be no datacenter before, we display a datacenter
+            if @datacenter_view is null
+                @render_datacenter @active_datacenter_id
+
+            # If there is no more datacenter, we display a message saying that there is no datacenter
+            if @ordered_datacenters.length is 0
+                if @datacenter_view?
+                    @datacenter_view.destroy()
+                @datacenter_view = null
+                @.$('.datacenter_content').html @no_datacenter_template()
 
         handle_click_datacenter: (event) =>
             event.preventDefault()
@@ -48,6 +79,7 @@ module 'NamespaceView', ->
             @.$(event.target).parent().addClass 'active'
 
         render_datacenter: (datacenter_id) =>
+            @active_datacenter_id = datacenter_id
             @datacenter_id_shown = datacenter_id
             @datacenter_view.destroy() if @datacenter_view?
             @datacenter_view = new NamespaceView.DatacenterReplicas @datacenter_id_shown, @model
@@ -62,16 +94,25 @@ module 'NamespaceView', ->
                  if @.$('.no_datacenter_found').css('display') is 'block'
                     @.$('.no_datacenter_found').hide()
                
+        render_universe: =>
+            @.$('.universe_container').html @universe_replicas.render().$el
+
         render: =>
             @.$el.html @template()
 
             @render_list()
             @render_issue()
+            @render_universe()
 
-            if datacenters.get(@model.get('primary_uuid'))?
-                @render_datacenter @model.get('primary_uuid')
+            if @model.get('primary_uuid') is universe_datacenter.get('id')
+                if @ordered_datacenters.length > 0
+                    @datacenter_picked = @ordered_datacenters[0]
+                    @render_datacenter @datacenter_picked.id
+                else
+                    @datacenter_view = null
+                    @.$('.datacenter_content').html @no_datacenter_template()
             else
-                @render_datacenter universe_datacenter.get('id')
+                @render_datacenter @model.get('primary_uuid')
 
             return @
 
@@ -81,9 +122,12 @@ module 'NamespaceView', ->
             datacenters.off 'remove', @render_list
             datacenters.off 'reset', @render_list
 
+
+
     class @DatacenterReplicas extends Backbone.View
         className: 'datacenter_view'
         template: Handlebars.compile $('#namespace_view-datacenter_replica-template').html()
+        universe_template: Handlebars.compile $('#namespace_view-universe_replica-template').html()
         edit_template: Handlebars.compile $('#namespace_view-edit_datacenter_replica-template').html()
         error_template: Handlebars.compile $('#namespace_view-edit_datacenter_replica-error-template').html()
         error_msg_template: Handlebars.compile $('#namespace_view-edit_datacenter_replica-alert_messages-template').html()
@@ -171,7 +215,10 @@ module 'NamespaceView', ->
             # Don't re-render if the data hasn't changed
             if not _.isEqual(data, @data)
                 @data = data
-                @.$el.html @template data
+                if @datacenter.get('id') is universe_datacenter.get('id')
+                    @.$el.html @universe_template data
+                else
+                    @.$el.html @template data
 
             @render_status()
 
