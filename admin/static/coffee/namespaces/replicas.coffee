@@ -162,8 +162,6 @@ module 'NamespaceView', ->
 
             @datacenter.on 'all', @render
 
-            @model.on 'change:replica_affinities', @compute_max_machines_and_render
-            @model.on 'change:primary_uuid', @compute_max_machines_and_render
             @model.on 'change:primary_uuid', @render
             progress_list.on 'all', @render_progress
 
@@ -171,7 +169,6 @@ module 'NamespaceView', ->
             directory.on 'all', @render_status
             
             @render_progress()
-            @compute_max_machines_and_render()
 
         remove_parent_alert: (event) ->
             event.preventDefault()
@@ -225,25 +222,20 @@ module 'NamespaceView', ->
 
             return @
 
-        compute_max_machines_and_render: =>
-            if @datacenter is universe_datacenter
-                @max_machines = machines.length
-                for datacenter_id of @model.get('replica_affinities')
-                    if datacenter_id isnt universe_datacenter.get('id')
-                        @max_machines -= @model.get('replica_affinities')[datacenter_id]
-                if @model.get('primary_uuid') isnt universe_datacenter.get('id')
-                    @max_machines -= 1
-            else
-                @max_machines = machines.length
-                for datacenter_id of @model.get('replica_affinities')
-                    if datacenter_id isnt @datacenter.get('id')
-                        @max_machines -= @model.get('replica_affinities')[datacenter_id]
-                if @model.get('primary_uuid') isnt @datacenter.get('id')
-                    @max_machines -= 1
-                
-                @need_explanation = @max_machines < DataUtils.get_datacenter_machines(@datacenter.get('id')).length
-                @max_machines = Math.min @max_machines, DataUtils.get_datacenter_machines(@datacenter.get('id')).length
+        # Compute how many replica we can set for @datacenter
+        compute_max_machines: =>
+            @max_machines = machines.length
+            for datacenter_id of @model.get('replica_affinities')
+                if datacenter_id isnt @datacenter.get('id')
+                    @max_machines -= @model.get('replica_affinities')[datacenter_id]
+            if @model.get('primary_uuid') isnt @datacenter.get('id')
+                @max_machines -= 1
+ 
+            # If we can't use all our machines in the datacenter because the replicas value of Universe is too high, we give a little more explanation
+            @need_explanation = @max_machines < DataUtils.get_datacenter_machines(@datacenter.get('id')).length
+            @max_machines = Math.min @max_machines, DataUtils.get_datacenter_machines(@datacenter.get('id')).length
 
+            # We render only if we are not editing
             if @current_state isnt @states[1]
                 @render()
 
@@ -259,6 +251,9 @@ module 'NamespaceView', ->
             @.$('.replicas_acks-alert').html ''
 
         check_replicas_acks: (event) =>
+            # Update @max_machines
+            @compute_max_machines()
+
             if event?.which? and event.which is 13
                 @submit_replicas_acks()
 
@@ -461,8 +456,6 @@ module 'NamespaceView', ->
         destroy: =>
             @datacenter.off 'all', @render
 
-            @model.off 'change:replica_affinities', @compute_max_machines_and_render
-            @model.off 'change:primary_uuid', @compute_max_machines_and_render
             @model.off 'change:primary_uuid', @render
             progress_list.off 'all', @render_progress
 
