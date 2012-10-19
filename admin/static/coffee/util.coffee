@@ -77,6 +77,15 @@ Handlebars.registerHelper 'links_to_datacenters_inline', (datacenters) ->
         out += ", " if i isnt datacenters.length-1
     return new Handlebars.SafeString(out)
 
+#Returns a list of links to datacenters on one line
+#TODO create links that will open the appropriate tab.
+Handlebars.registerHelper 'links_to_datacenters_inline_for_replica', (datacenters) ->
+    out = ""
+    for i in [0...datacenters.length]
+        out += '<strong>'+datacenters[i].name+'</strong>'
+        out += ", " if i isnt datacenters.length-1
+    return new Handlebars.SafeString(out)
+
 #Returns a list of links to machines and namespaces
 Handlebars.registerHelper 'links_to_masters_and_namespaces', (machines) ->
     out = ""

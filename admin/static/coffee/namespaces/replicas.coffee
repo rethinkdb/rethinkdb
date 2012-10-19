@@ -6,7 +6,7 @@ module 'NamespaceView', ->
         template: Handlebars.compile $('#namespace_view-replica-template').html()
         no_datacenter_template: Handlebars.compile $('#namespace_view-replica-no_datacenter-template').html()
         datacenter_list_template: Handlebars.compile $('#namespace_view-replica-datacenters_list-template').html()
-
+        acks_greater_than_replicas_template: Handlebars.compile $('#namespace_view-acks_greater_than_replicas-template').html()
         events:
             'click .nav_datacenter': 'handle_click_datacenter'
 
@@ -14,7 +14,9 @@ module 'NamespaceView', ->
             datacenters.on 'add', @render_list
             datacenters.on 'remove', @render_list
             datacenters.on 'reset', @render_list
-            @model.on 'change:primary_uuid', @render_issue
+            @model.on 'change:primary_uuid', @render_primary_not_found
+            @model.on 'change:replica_affinities', @render_acks_greater_than_replicas
+            @model.on 'change:ack_expectations', @render_acks_greater_than_replicas
 
             @universe_replicas = new NamespaceView.DatacenterReplicas universe_datacenter.get('id'), @model
 
@@ -86,7 +88,7 @@ module 'NamespaceView', ->
 
             @.$('.datacenter_content').html @datacenter_view.render().$el
 
-        render_issue: =>
+        render_primary_not_found: =>
             if @model.get('primary_uuid') isnt universe_datacenter.get('id') and not datacenters.get(@model.get('primary_uuid'))?
                 if @.$('.no_datacenter_found').css('display') is 'none' or @.$('.no_datacenter_found').css('display') is 'hidden' or @.$('.no_datacenter_found').css('display') is ''
                     @.$('.no_datacenter_found').show()
@@ -94,6 +96,38 @@ module 'NamespaceView', ->
                  if @.$('.no_datacenter_found').css('display') is 'block'
                     @.$('.no_datacenter_found').hide()
                
+        render_acks_greater_than_replicas: =>
+            datacenters_with_issues = []
+            for datacenter_id of @model.get('ack_expectations')
+                # If the datacenter doesn't exist anymore, there is no problem
+                if datacenters.get(datacenter_id)? or datacenter_id is universe_datacenter.get('id')
+                    replicas_value = 0
+                    if @model.get('replica_affinities')[datacenter_id]?
+                        replicas_value = @model.get('replica_affinities')[datacenter_id]
+
+                    if @model.get('primary_uuid') is datacenter_id
+                        replicas_value++
+
+                    if replicas_value < @model.get('ack_expectations')[datacenter_id]
+                        if datacenters.get(datacenter_id)?
+                            datacenter_name = datacenters.get(datacenter_id).get('name')
+                        else if datacenter_id is universe_datacenter.get('id')
+                            datacenter_name = universe_datacenter.get('name')
+                        datacenters_with_issues.push
+                            id: datacenter_id
+                            name: datacenter_name
+
+            if datacenters_with_issues.length>0
+                if @.$('.ack_greater_than_replicas').css('display') is 'none' or @.$('.no_datacenter_found').css('display') is 'hidden' or @.$('.no_datacenter_found').css('display') is ''
+                    @.$('.ack_greater_than_replicas').html @acks_greater_than_replicas_template
+                        num_datacenters_with_issues: datacenters_with_issues.length
+                        datacenters_with_issues: datacenters_with_issues
+                    @.$('.ack_greater_than_replicas').show()
+            else
+                if @.$('.ack_greater_than_replicas').css('display') is 'block'
+                    @.$('.ack_greater_than_replicas').hide()
+
+
         render_universe: =>
             @.$('.universe_container').html @universe_replicas.render().$el
 
@@ -101,7 +135,8 @@ module 'NamespaceView', ->
             @.$el.html @template()
 
             @render_list()
-            @render_issue()
+            @render_primary_not_found()
+            @render_acks_greater_than_replicas()
             @render_universe()
 
             if @model.get('primary_uuid') is universe_datacenter.get('id')
@@ -122,7 +157,9 @@ module 'NamespaceView', ->
             datacenters.off 'add', @render_list
             datacenters.off 'remove', @render_list
             datacenters.off 'reset', @render_list
-
+            @model.off 'change:primary_uuid', @render_primary_not_found
+            @model.off 'change:replica_affinities', @render_acks_greater_than_replicas
+            @model.off 'change:ack_expectations', @render_acks_greater_than_replicas
 
 
     class @DatacenterReplicas extends Backbone.View
@@ -168,6 +205,9 @@ module 'NamespaceView', ->
             @model.on 'change:blueprint', @render_status
             directory.on 'all', @render_status
             
+            @model.on 'change:ack_expectations', @render_acks_replica
+            @model.on 'change:replica_affinities', @render_acks_replica
+
             @render_progress()
 
         remove_parent_alert: (event) ->
@@ -182,6 +222,10 @@ module 'NamespaceView', ->
         cancel_edit: =>
             @current_state = @states[0]
             @render()
+
+        render_acks_replica: =>
+            if @current_state is @states[0]
+                @render()
 
         render_progress: =>
             if not @datacenter?
@@ -466,3 +510,6 @@ module 'NamespaceView', ->
 
             @model.off 'change:blueprint', @render_status
             directory.off 'all', @render_status
+            
+            @model.off 'change:ack_expectations', @render_acks_replica
+            @model.off 'change:replica_affinities', @render_acks_replica

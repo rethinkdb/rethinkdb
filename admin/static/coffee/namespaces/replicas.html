@@ -1,6 +1,7 @@
 <script id="namespace_view-replica-template" type="text/x-handlebars-template">
     <h2 class="title">Replication settings</h2>
-    <div class="alert alert-error no_datacenter_found">The primary datacenter of this table was not found. Please specify another primary datacenter (or Universe).</div>
+    <div class="alert alert-error no_datacenter_found"><p>The primary datacenter of this table was not found. Please specify another primary datacenter (or Universe).</p></div>
+    <div class="alert alert-error ack_greater_than_replicas"></div>
     <div class="universe_container"></div>
     <div class="row-fluid">
         <div class="span3 tabbable tabs-left datacenters_list_container"></div>
@@ -8,6 +9,10 @@
     </div>
 </script>
 
+
+<script id="namespace_view-acks_greater_than_replicas-template" type="text/x-handlebars-template">
+    <p>The {{pluralize_noun "table" num_datacenters_with_issues}} {{links_to_datacenters_inline_for_replica datacenters_with_issues}} have an ack value greater than the number of replicas.</p>
+</script>
 
 <script id="namespace_view-replica-datacenters_list-template" type="text/x-handlebars-template">
     <div class="datacenter_list_container">
@@ -35,7 +40,7 @@
             {{/if}}
         </p>
         <div class="make_primary-alert alert">
-            <div class="close" href="#">&times;</div>
+            <a class="close" href="#">&times;</a>
             <p class="make_primary-alert-content"></p>
         </div>
     </div>
@@ -63,6 +68,7 @@
             {{/if}}
         </div>
         <div class="replicas_acks-alert alert"></div>
+        <div class="status-alert alert"></div>
     </div>
     <div class="universe-info progress_bar_full_container">
         <div class="progress_bar_container"></div>
@@ -93,7 +99,7 @@
             {{/if}}
         </p>
         <div class="make_primary-alert alert">
-            <div class="close" href="#">&times;</div>
+            <a class="close" href="#">&times;</a>
             <p class="make_primary-alert-content"></p>
         </div>
     </div>
