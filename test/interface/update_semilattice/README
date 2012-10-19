@@ -1,0 +1,10 @@
+Usage
+node server.js <rethinkdb_port>
+A node server will start on <rethinkdb_port>+123 where you can update semilattice without any constraints.
+
+Libraries used
+- http
+- request
+- fs
+- jquery
+Use npm to install them (request and jquery).
