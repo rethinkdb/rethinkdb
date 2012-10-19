@@ -71,10 +71,13 @@ module RethinkDB
       @body = [:table, @db_name, @table_name, use_od]
     end
 
-    # Insert one or more rows into the table.  If you try to insert a
+    # Insert one or more rows into the table.  For example:
+    #   table.insert({:id => 0})
+    #   table.insert([{:id => 1}, {:id => 2}])
+    # If you try to insert a
     # row with a primary key already in the table, you will get back
     # an error.  For example, if you have a table <b>+table+</b>:
-    #   table.insert({:id => 1}, {:id => 1})
+    #   table.insert([{:id => 1}, {:id => 1}])
     # Will return something like:
     #   {'inserted' => 1, 'errors' => 1, 'first_error' => ...}
     # You may also provide a stream.  So to make a copy of a table, you can do:
