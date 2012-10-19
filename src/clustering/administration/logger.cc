@@ -493,7 +493,7 @@ thread_log_writer_disabler_t::thread_log_writer_disabler_t() {
 
 thread_log_writer_disabler_t::~thread_log_writer_disabler_t() {
     TLS_set_log_writer_block(TLS_get_log_writer_block() - 1);
-    guarantee(TLS_get_log_writer_block() >= 0);
+    guarantee(*TLS_get_log_writer_block() >= 0);
 }
 
 void install_fallback_log_writer(const std::string &logfile_name) {

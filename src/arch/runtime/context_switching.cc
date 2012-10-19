@@ -1,6 +1,7 @@
 #include "arch/runtime/context_switching.hpp"
 
 #include <sys/mman.h>
+#include <unistd.h>
 
 #ifndef NDEBUG
 #include <cxxabi.h>   // For __cxa_current_exception_type (see below)
