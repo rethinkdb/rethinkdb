@@ -117,7 +117,8 @@ module 'NamespaceView', ->
             return @
 
         destroy: =>
-            @datacenter_view.destroy()
+            if @datacenter_view
+                @datacenter_view.destroy()
             datacenters.off 'add', @render_list
             datacenters.off 'remove', @render_list
             datacenters.off 'reset', @render_list
