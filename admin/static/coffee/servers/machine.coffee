@@ -1,7 +1,6 @@
 # Machine view
 module 'MachineView', ->
     class @NotFound extends Backbone.View
-        className: 'section'
         template: Handlebars.compile $('#element_view-not_found-template').html()
         ghost_template: Handlebars.compile $('#machine_view-ghost-template').html()
         initialize: (id) =>

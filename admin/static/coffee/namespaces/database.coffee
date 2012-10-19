@@ -2,7 +2,6 @@
 module 'DatabaseView', ->
     # Class in case the database is not found (propably a deleted database). Links to this view can be found in old logs.
     class @NotFound extends Backbone.View
-        className: 'section'
         template: Handlebars.compile $('#element_view-not_found-template').html()
         initialize: (id) =>
             @id = id

@@ -412,38 +412,26 @@ TODO: retire this
         }
 
         #nav-search {
-            input[type="text"] {
+            margin-bottom: 0;
+            .search-box {
                 font-family: @sans;
                 font-size: 15px;
-                color: white;
                 border: 0 none;
+                color: #888;
 
                 text-shadow: @text_shadow;
-                margin-top: 11px;
-                padding: 8px 12px 6px 40px;
+                margin-top: 15px;
+                padding: 6px 12px 6px 40px;
                 width: 150px;
+                line-height: normal;
 
                 // csshat
                 .border-radius(14px); // border radius
                 .box-shadow(~"0 1px 0 rgba(255,255,255,.07), inset 0 1px 0 rgba(0,0,0,.15)"); // drop shadow and inner shadow
                 .gradient(~"linear-gradient(bottom, rgba(255,255,255,.02) 0%, rgba(0,0,0,.02) 100%)"); // gradient overlay
                 background: url('http://bit.ly/PyxttF') no-repeat 12px #232323; //icon-magnifying_glass.png
-
             }
         }
-        .search-query::-webkit-input-placeholder {
-            padding: 2px 0px 0px 1px;
-            color: #888;
-        }
-        .search-query:-moz-placeholder {
-            padding: 8px 12px 6px 40px;
-            color: #888;
-        }
-        .search-query:-ms-input-placeholder {
-            padding: 8px 12px 6px 40px;
-            color: #888;
-        }
-
     }
 }
 
