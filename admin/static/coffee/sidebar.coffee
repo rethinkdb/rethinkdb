@@ -162,11 +162,12 @@ module 'Sidebar', ->
         resolve_issues_route: '#resolve_issues'
 
         events: ->
-            'click .resolve-issues': 'show_all_issues'
+            'click .show-issues': 'show_all_issues'
+            'click .hide-issues': 'hide_all_issues'
 
         initialize: =>
             @all_issues = new ResolveIssuesView.Container
-            #issues.on 'all', @render
+            issues.on 'all', @render
 
         render: =>
             # Group critical issues by type
@@ -210,9 +211,15 @@ module 'Sidebar', ->
 
             return @
 
-        show_all_issues: (event) =>
-            event.preventDefault()
-            @.$('.show-all-issues').html @all_issues.render().el
+        show_all_issues: =>
+            @.$('.all-issues').html(@all_issues.render().el).show()
+            @.$('.show-issues').hide()
+            @.$('.hide-issues').show()
+
+        hide_all_issues: =>
+            @.$('.all-issues').hide()
+            @.$('.show-issues').show()
+            @.$('.hide-issues').hide()
 
         destroy: =>
             issues.off 'all', @render

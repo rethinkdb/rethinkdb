@@ -24,7 +24,7 @@
 @import "lesshat";
 
 @accent: #0597d8;
-@sans: 'Istok Web', sans-serif;
+@sans: 'Open Sans', sans-serif;
 @serif: 'Copse', serif;
 @monospace: 'Inconsolata', monospace;
 
@@ -40,6 +40,8 @@
 html, body {
     height: 100%;
     background: #E5E5E5;
+    // fix poor font rendering on OS X webkit
+    -webkit-font-smoothing: antialiased;
 }
 #sticky-wrap { min-height: 100%; }
 #main-container {
@@ -58,6 +60,136 @@ body:before {
     float: left;
     width: 0;
     margin-top: -32767px;
+}
+
+/*
+    ----------------------------
+    Button styles
+    ----------------------------
+*/
+button.btn {
+    display: inline-block;
+    position: relative;
+    padding: 6px 14px 5px;
+    margin-bottom: 0;
+    margin-left: 7px;
+    vertical-align: middle;
+    cursor: pointer;
+
+    font-family: @sans;
+    font-size: 13px;
+    color: #464646;
+    line-height: 18px;
+    text-align: center;
+
+    // csshat
+    .border-radius(3px); // border radius
+    .box-shadow(~"0 2px 1px rgba(0,0,0,.05)"); // drop shadow
+
+    // ===== Normal button style
+    color: #a4a4a4; // text color + color overlay
+    text-shadow: 0 1px 0 #fff; // drop shadow
+    border: 1px solid #ccc; // stroke
+    background-color: #fff; // layer fill content
+    .gradient(~"linear-gradient(bottom, rgba(0,0,0,.04) 0%, rgba(255,255,255,.04) 100%)"); // gradient overlay
+
+    &:not([disabled]) {
+        &:hover {
+            .box-shadow(~"inset 0 0 1px 1px #fff"); // inner glow
+            // here we add a fake gradient -- opacity layer of white with 96% visibility on top of the button before applying the real gradient below
+            .gradient(~"linear-gradient(rgba(255,255,255,0.96), rgba(255,255,255,0.96)), linear-gradient(bottom, rgba(51,51,51,.23) 0%, rgba(255,255,255,.23) 100%)"); // color overlay + gradient overlay
+        }
+        &:active {
+            background-color: #f2f2f2; // layer fill content
+            .box-shadow(~"inset 0 2px 1px rgba(0,0,0,.06)"); // inner shadow
+            .gradient(~"linear-gradient(bottom, rgba(255,255,255,.02) 0%, rgba(0,0,0,.02) 100%)"); // gradient overlay
+        }
+    }
+
+    // ===== Primary button style (blue)
+    &.btn-primary {
+        color: #fff;
+        text-shadow: 0 -1px 0 rgba(0,0,0,.3); // drop shadow
+        border: 1px solid #2f89b1; // stroke
+        background-color: #1da3dd; // layer fill content
+        .gradient(~"linear-gradient(bottom, rgba(11,155,222,1), rgba(75,181,229, 1))"); // gradient overlay
+
+        &:not(.disabled) {
+            &:hover {
+                .box-shadow(~"inset 0 0 2px 0 rgba(255,255,255,0.8)"); // inner glow
+                .gradient(~"linear-gradient(bottom, rgba(32,164,222,1), rgba(74,181,228, 1))"); // gradient overlay
+            }
+            &:active {
+                .box-shadow(~"inset 0 1px 1px rgba(0,0,0,0.08)"); // inner shadow
+                .gradient(~"linear-gradient(bottom, rgba(65,158,198,1), rgba(51,143,184, 1))"); // gradient overlay
+            }
+        }
+    }
+
+    // ===== Danger button style (red)
+    &.btn-danger {
+        color: #fff;
+        text-shadow: 0 -1px 0 rgba(0,0,0,.3); // drop shadow
+        border: 1px solid #b23f37; // stroke
+        background-color: #d6544a; // layer fill content
+        .gradient(~"linear-gradient(bottom, rgba(226,89,79,1), rgba(232,121,113, 1))"); // gradient overlay
+
+        &:not([disabled]) {
+            &:hover {
+                .box-shadow(~"inset 0 0 2px 0 rgba(255,255,255,0.8)"); // inner glow
+                .gradient(~"linear-gradient(bottom, rgba(230,114,105,1), rgba(235,141,134, 1))"); // gradient overlay
+            }
+            &:active {
+                .box-shadow(~"inset 0 1px 1px rgba(0,0,0,0.08)"); // inner shadow
+                .gradient(~"linear-gradient(bottom, rgba(216,93,85,1), rgba(201,79,71, 1))"); // gradient overlay
+            }
+        }
+    }
+
+    // ===== Danger button style (red) -- variant for resolve issues
+    &.btn-resolve-issues {
+        color: #fff;
+        text-shadow: 0 -1px 0 rgba(0,0,0,.3); // drop shadow
+        border: 1px solid #a94240; // stroke
+        background-color: #ed6f66; // layer fill content
+        .gradient(~"linear-gradient(bottom, rgba(237,112,102,1), rgba(239,129,121, 1))"); // gradient overlay
+
+        &:not([disabled]) {
+            &:hover {
+                .box-shadow(~"inset 0 0 2px 0 rgba(255,255,255,0.8)"); // inner glow
+                .gradient(~"linear-gradient(bottom, rgba(230,114,105,1), rgba(235,141,134, 1))"); // gradient overlay
+            }
+            &:active {
+                .box-shadow(~"inset 0 1px 1px rgba(0,0,0,0.08)"); // inner shadow
+                .gradient(~"linear-gradient(bottom, rgba(216,93,85,1), rgba(201,79,71, 1))"); // gradient overlay
+            }
+        }
+    }
+
+    // ===== Success button style (green)
+    &.btn-success {
+        color: #fff;
+        text-shadow: 0 -1px 0 rgba(0,0,0,.3); // drop shadow
+        border: 1px solid #4fa435; // stroke
+        background-color: ; // layer fill content
+        .gradient(~"linear-gradient(bottom, rgba(115,196,91,1), rgba(142,208,123,1))"); // gradient overlay
+
+        &:not([disabled]) {
+            &:hover {
+                .box-shadow(~"inset 0 0 2px 0 rgba(255,255,255,0.8)"); // inner glow
+                .gradient(~"linear-gradient(bottom, rgba(136,205,115,1), rgba(159,215,1421))"); // gradient overlay
+            }
+            &:active {
+                .box-shadow(~"inset 0 1px 1px rgba(0,0,0,0.08)"); // inner shadow
+                .gradient(~"linear-gradient(bottom, rgba(113,181,93,1), rgba(99,167,78,1))"); // gradient overlay
+            }
+        }
+    }
+
+    // ===== Disabled button styles
+    &:disabled {
+        opacity: 0.65;
+    }
 }
 
 /*
@@ -91,108 +223,6 @@ body:before {
         }
     }
 
-    button.btn {
-        display: inline-block;
-        position: relative;
-        padding: 6px 14px 5px;
-        margin-bottom: 0;
-        margin-left: 7px;
-        vertical-align: middle;
-        cursor: pointer;
-
-        font-family: @sans;
-        font-size: 13px;
-        color: #464646;
-        line-height: 18px;
-        text-align: center;
-
-        // csshat
-        .border-radius(3px); // border radius
-
-        // ===== Normal button style
-        text-shadow: 0 1px 0 #fff; // drop shadow
-        border: 1px solid #ccc; // stroke
-        background-color: #fff; // layer fill content
-        .gradient(~"linear-gradient(bottom, rgba(0,0,0,.04) 0%, rgba(255,255,255,.04) 100%)"); // gradient overlay
-
-        &:not([disabled]) {
-            &:hover {
-                .box-shadow(~"inset 0 0 1px 1px #fff"); // inner glow
-                // here we add a fake gradient -- opacity layer of white with 96% visibility on top of the button before applying the real gradient below
-                .gradient(~"linear-gradient(rgba(255,255,255,0.96), rgba(255,255,255,0.96)), linear-gradient(bottom, rgba(51,51,51,.23) 0%, rgba(255,255,255,.23) 100%)"); // color overlay + gradient overlay
-            }
-            &:active {
-                background-color: #f2f2f2; // layer fill content
-                .box-shadow(~"inset 0 2px 1px rgba(0,0,0,.06)"); // inner shadow
-                .gradient(~"linear-gradient(bottom, rgba(255,255,255,.02) 0%, rgba(0,0,0,.02) 100%)"); // gradient overlay
-            }
-        }
-
-        // ===== Primary button style (blue)
-        &.btn-primary {
-            color: #fff;
-            text-shadow: 0 -1px 0 rgba(0,0,0,.3); // drop shadow
-            border: 1px solid #2f89b1; // stroke
-            background-color: #1da3dd; // layer fill content
-            .gradient(~"linear-gradient(bottom, rgba(11,155,222,1), rgba(75,181,229, 1))"); // gradient overlay
-
-            &:not(.disabled) {
-                &:hover {
-                    .box-shadow(~"inset 0 0 2px 0 rgba(255,255,255,0.8)"); // inner glow
-                    .gradient(~"linear-gradient(bottom, rgba(32,164,222,1), rgba(74,181,228, 1))"); // gradient overlay
-                }
-                &:active {
-                    .box-shadow(~"inset 0 1px 1px rgba(0,0,0,0.08)"); // inner shadow
-                    .gradient(~"linear-gradient(bottom, rgba(65,158,198,1), rgba(51,143,184, 1))"); // gradient overlay
-                }
-            }
-        }
-
-        // ===== Danger button style (red)
-        &.btn-danger {
-            color: #fff;
-            text-shadow: 0 -1px 0 rgba(0,0,0,.3); // drop shadow
-            border: 1px solid #b23f37; // stroke
-            background-color: #d6544a; // layer fill content
-            .gradient(~"linear-gradient(bottom, rgba(226,89,79,1), rgba(232,121,113, 1))"); // gradient overlay
-
-            &:not([disabled]) {
-                &:hover {
-                    .box-shadow(~"inset 0 0 2px 0 rgba(255,255,255,0.8)"); // inner glow
-                    .gradient(~"linear-gradient(bottom, rgba(230,114,105,1), rgba(235,141,134, 1))"); // gradient overlay
-                }
-                &:active {
-                    .box-shadow(~"inset 0 1px 1px rgba(0,0,0,0.08)"); // inner shadow
-                    .gradient(~"linear-gradient(bottom, rgba(216,93,85,1), rgba(201,79,71, 1))"); // gradient overlay
-                }
-            }
-        }
-
-        // ===== Success button style (green)
-        &.btn-success {
-            color: #fff;
-            text-shadow: 0 -1px 0 rgba(0,0,0,.3); // drop shadow
-            border: 1px solid #4fa435; // stroke
-            background-color: #72c459; // layer fill content
-            .gradient(~"linear-gradient(bottom, rgba(115,196,91,1), rgba(142,208,123,1))"); // gradient overlay
-
-            &:not([disabled]) {
-                &:hover {
-                    .box-shadow(~"inset 0 0 2px 0 rgba(255,255,255,0.8)"); // inner glow
-                    .gradient(~"linear-gradient(bottom, rgba(136,205,115,1), rgba(159,215,1421))"); // gradient overlay
-                }
-                &:active {
-                    .box-shadow(~"inset 0 1px 1px rgba(0,0,0,0.08)"); // inner shadow
-                    .gradient(~"linear-gradient(bottom, rgba(113,181,93,1), rgba(99,167,78,1))"); // gradient overlay
-                }
-            }
-        }
-
-        // ===== Disabled button styles
-        &:disabled {
-            opacity: 0.65;
-        }
-    }
     .alert{
         display: none;
         padding: 8px 20px 8px 14px;
@@ -474,42 +504,29 @@ TODO: retire this
 
     .issues-banner {
         .show-issues-banner {
-            margin-top: 10px;
+            margin-top: 8px;
             color: #FFF;
             position: relative;
-            .message {
-                line-height: 30px;
-                margin: 0;
-                text-shadow: 0 -1px 0 rgba(0,0,0,.25); // drop shadow
-                font-size: 14px;
-            }
 
-            @border: 1px solid #b54948; 
+            @border: 1px solid #b54a48; 
             border-top: @border;
             border-bottom: @border;
 
-            // This might have to be abstracted as a general button style (add some shadows and gradients when ready)
-            .btn.resolve-issues {
+            @bar_height: 42px;
+
+            .message {
+                line-height: @bar_height;
+                margin: 0;
+                text-shadow: 0 -1px 0 rgba(0,0,0,.25); // drop shadow
+                font-size: 15px;
+            }
+
+
+            .btn-resolve-issues {
                 float: right;
                 margin-left: 20px;
-                padding: 6px 14px 4px;
-                margin-bottom: 0;
-                vertical-align: middle;
-
-                font-size: 13px;
-                font-family: @sans;
-                color: #FFF;
-                text-align: center;
-
-                background-color: #eb5d5b;
-                border: thin solid #b8302e; 
-                .border-radius(3px);
-
-                @shadow: 0 1px 0 rgba(255, 255, 255, 0.02), 0 1px 3px rgba(0, 0, 0, 0.06);
-
-                -webkit-box-shadow: @shadow;
-                   -moz-box-shadow: @shadow;
-                        box-shadow: @shadow;
+                margin-top: (@bar_height - 31px)/2;
+                &.hide-issues { display: none;}
             }
 
             // Hack required for the css arrow-- we need to hide the bottom half of the arrow, so fill it in with a gradient overlay
@@ -517,22 +534,20 @@ TODO: retire this
                 /* transform z-index hack */    
                 .transform(~"rotate(0deg)");
 
-                // lesshat
-                background-color: #dd4f4d; // layer fill content
-                .gradient(~"linear-gradient(bottom, rgba(221,80,78,1), rgba(224,96,94,1))");
+                background-color: #dd504e; // layer fill content
             }
 
             // CSS arrow for the banner: this is basically a box turned 45 deg
             &:before {
-                @size: 18px;
+                @size: 14px;
                 content: '';
                 position: absolute;
 
                 top: -(@size/2);
                 left: 50%;
-                margin-left: -220px;
+                margin-left: -215px;
 
-                background: #e0605e;
+                background: #dd504e;
                 display: block;
                 width: @size;
                 height: @size;
@@ -541,7 +556,8 @@ TODO: retire this
                 border: @border;
             }
         }
-        .show-all-issues {
+        .all-issues {
+            display: none;
             background-color: #fcfcfc;
             border-bottom: 1px solid #ccc;
         }
@@ -1454,43 +1470,78 @@ TODO: retire this
     ----------------------------
 */
 #resolve-issues{
-     h1.title {
-        font-family: @serif;
-        color: #4d535c;
-        font-size: 19px;
-        margin-bottom: 25px;
-    }
-    .issue-container{
-        overflow: auto;
-        border-top: thin solid #f0f0f0;
-        padding: 10px 0px;
-        .btn-solve{
-            float: left;
-            padding: 3px 4px;
-            margin: 3px 3px;
-            font-size: @baseFontSize;
-            line-height: @baseLineHeight;
-            color: @grayDark;
-            text-align: center;
-            text-shadow: 0 1px 1px rgba(255,255,255,.75);
-            vertical-align: middle;
-            .buttonBackground(@btnBackground, @btnBackgroundHighlight);
-            border: 1px solid @btnBorder;
-            border-bottom-color: darken(@btnBorder, 10%);
-            .border-radius(3px);
-            cursor: pointer;
+    .container { padding: 18px 0; }
+    .issue-container {
+        border: 1px solid #dcdcdc; // stroke
+        .border-radius(3px); // border radius
+        background-color: #f7f7f7; // layer fill content
+        .gradient(~"linear-gradient(bottom, rgba(247,247,247,1), rgba(250,250,250, 1))"); // gradient overlay
+        .box-shadow(~"0 2px 1px rgba(0,0,0,.05)"); // drop shadow
+        padding: 6px;
+        margin-top: 10px;
+
+        &:first-child {
+            margin-top: 0;
         }
-        p{
+
+        p {
             font-family: @sans;
-            font-size: 13px;
+            font-size: 14px;
         }
-        .datetime {
+
+        .solve-issue {
             float: right;
-            width: 194px;
-            background: left center no-repeat url('http://bit.ly/RCkoTS');//clock-icon.png
-            text-align: right;
-            color: #c4c4c4;
-            font-family: @serif;
+        }
+
+        hr {
+            border: none;
+            height: 1px;
+            background-color: #eaeaea;
+            .box-shadow(~"0 1px 0 rgba(255,255,255,.8)"); // drop shadow
+        }
+
+        .issue-header {
+            @header_height: 31px;
+            @divider_width: 1px;
+            position: relative;
+            height: @header_height;
+            // Mixin for creating a divider
+            .divider (@left_offset) {
+                content: '';
+                display: block;
+                float: left;
+                height: @header_height;
+                width: @divider_width;
+                margin-left: @left_offset;
+                background-color: #eaeaea;
+                .box-shadow(~"1px 0 0 #fff"); // drop shadow
+            }
+
+            p {
+                position: absolute;
+                text-overflow: ellipsis;
+                overflow: hidden;
+                margin: 0;
+                color: #a6a6a6;
+                line-height: @header_height;
+
+                &.name {
+
+                }
+                &.datetime {
+                    right: 200px;
+                    width: 200px;
+                    @icon_width: 30px;
+                    @icon_padding: 20px;
+                    background: @icon_padding center no-repeat url('http://bit.ly/RCkoTS');//clock-icon.png
+                    padding-left: @icon_width + @icon_padding;
+                    &:before { .divider(-(@icon_width + @icon_padding)); }
+                }
+            }
+
+        }
+        .issue-details {
+            p { color: #838383; }
         }
     }
 }

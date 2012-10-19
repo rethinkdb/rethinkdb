@@ -38,7 +38,8 @@
         <div class="show-issues-banner">
             <div class="gradient-overlay">
                 <div class="container">
-                    <button class="btn resolve-issues">Resolve issues</button>
+                    <button class="btn btn-resolve-issues show-issues">Resolve issues</button>
+                    <button class="btn btn-resolve-issues hide-issues">Hide issues</button>
                     {{#if critical_issues.exist}}
                     <div class="critical-issues">
                         <p class="message"><strong>Critical {{pluralize_noun "issue" critical_issues.num}} detected:</strong>
@@ -57,7 +58,7 @@
             </div>
         </div>
     {{/unless}}
-    <div class="show-all-issues"></div>
+    <div class="all-issues"></div>
 </script>
 
 <script id="sidebar-servers_connected-template" type="text/x-handlebars-template">

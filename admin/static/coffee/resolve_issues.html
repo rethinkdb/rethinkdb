@@ -51,37 +51,41 @@
     <p>Are you sure you want to lower the number of replicas for the datacenter</p>
     <ul>
         {{#each datacenters_with_issues}}
-        <li>
-        <a href="#datacenters/{{this.datacenter_id}}">{{this.datacenter_name}}</a> from <strong>{{this.num_replicas}}</strong> to <strong>{{num_machines}}</strong>
-        {{#if this.change_ack}}
-        <br />Warning: The number of acks will be lowered too.
-        {{/if}}
-        </li>
+            <li>
+                <a href="#datacenters/{{this.datacenter_id}}">{{this.datacenter_name}}</a> from <strong>{{this.num_replicas}}</strong> to <strong>{{num_machines}}</strong>
+                {{#if this.change_ack}}
+                    <br />Warning: The number of acks will be lowered too.
+                {{/if}}
+            </li>
         {{/each}}
-        <ul>
-        </script>
+    </ul>
+</script>
+
+<script id="resolved_issues_unsatisfiable_goals-template" type="text/x-handlebars-template">
+    <div class="alert" data-alert="alert">
+        <a class="close" href="#">&times;</a>
+        <p>You successfully solved the unsatisfiable goals issue.</p>
+    </div>
+</script>
 
 
-        <script id="resolved_issues_unsatisfiable_goals-template" type="text/x-handlebars-template">
-            <div class="alert" data-alert="alert">
-                <a class="close" href="#">&times;</a>
-                <p>You successfully solved the unsatisfiable goals issue.</p>
-            </div>
-        </script>
-
-
-        <script id="resolve_issues-machine_down-template" type="text/x-handlebars-template">
-            <div class="issue {{#if critical }}critical{{/if}}">
-                <p class="datetime">{{prettify_date datetime}}</p>
-                <h3 class="title">Server {{name}} is unreachable.</h3>
-                {{#if no_responsibilities}}
+<script id="resolve_issues-machine_down-template" type="text/x-handlebars-template">
+    <div class="issue {{#if critical }}critical{{/if}}">
+        <button class="btn btn-danger solve-issue">Declare Dead</button>
+        <div class="issue-header">
+            <p class="name">Server {{name}} is unreachable</p>
+            <p class="datetime">{{prettify_date datetime}}</p>
+        </div>
+        <hr />
+        <div class="issue-details">
+            {{#if no_responsibilities}}
                 <p>This server has no master or replica responsibilities.</p>
-                {{else}}
+            {{else}}
                 {{#if masters}}
                 <p>This server is responsible for the following shards:</p>
                 <ul>
                     {{#each masters}}
-                    <li>Namespace <a href="#tables/{{uuid}}">{{name}}</a> for the shard {{shard}}.</li>
+                        <li>Namespace <a href="#tables/{{uuid}}">{{name}}</a> for the shard {{shard}}.</li>
                     {{/each}}
                 </ul>
                 {{/if}}
@@ -90,51 +94,51 @@
                 <p>This server is a secondary for the following shards:</p>
                 <ul>
                     {{#each replicas}}
-                    <li>Namespace <a href="#tables/{{uuid}}">{{name}}</a> for the shard {{shard}}.</li>
+                        <li>Namespace <a href="#tables/{{uuid}}">{{name}}</a> for the shard {{shard}}.</li>
                     {{/each}}
                 </ul>
                 {{/if}}
-                {{/if}}
-                <p><button class="btn btn-solve">Declare Dead</button></p>
-            </div>
-        </script>
-
-        <script id="resolve_issues-name_conflict-template" type="text/x-handlebars-template">
-            <div class="issue {{#if critical }}critical{{/if}} name-conflict">
-                <p class="datetime">{{prettify_date datetime}}</p>
-                <h3 class="title">The name {{name}} is used by more than one {{type}}.</h3>
-
-                <p>{{capitalize type}} with the name {{name}}:</p>
-                <ul>
-                    {{#each contestants}}
-                    <li><a href="#{{pluralize_noun type 2}}/{{uuid}}"><span class="uuid">{{humanize_uuid uuid}}</span></a> (<a id="rename_{{uuid}}" href="#">rename</a>)</li>
-                    {{/each}}
-                </ul>
-            </div>
-        </script>
-
-        <script id="resolve_issues-logfile_write-template" type="text/x-handlebars-template">
-            <div class="issue {{#if critical }}critical{{/if}}">
-                <p class="datetime">{{prettify_date datetime}}</p>
-                <h3 class="title">Can't write logs.</h3>
-
-                <p>Log file is inaccessible on server <a href="/#servers/{{machine_uuid}}">{{machine_name}}</a>. Please resolve the issue on the server, or declare it dead.<p>
-                <p><button class="btn btn-solve">Declare Dead</button></p>
-            </div>
-        </script>
-        <script id="resolve_issues-vclock_conflict-template" type="text/x-handlebars-template">
-            <div class="issue {{#if critical }}critical{{/if}} vclock-conflict">
-                <p class="datetime">{{prettify_date datetime}}</p>
-                <h3 class="title">Cluster configuration conflict.</h3>
-
-                <p>This issue is caused by making changes to the cluster configuration on both sides of an intermittent network connection.</p>
-                <p>{{capitalize field}} of {{object_type}} <a href="">{{#if name_contest}}{{humanize_uuid object_id}}{{else}}{{object_name}}{{/if}}</a> has the following conflicting values:</h4>
-            <ul>
-                {{#each contestants}}
-                <li>{{value}} (<a id="resolve_{{contestant_id}}" href="#">use this value</a>)</li>
-                {{/each}}
-            </ul>
+            {{/if}}
         </div>
+    </div>
+</script>
+
+<script id="resolve_issues-name_conflict-template" type="text/x-handlebars-template">
+    <div class="issue {{#if critical }}critical{{/if}} name-conflict">
+        <p class="datetime">{{prettify_date datetime}}</p>
+        <h3 class="title">The name {{name}} is used by more than one {{type}}.</h3>
+
+        <p>{{capitalize type}} with the name {{name}}:</p>
+        <ul>
+            {{#each contestants}}
+                <li><a href="#{{pluralize_noun type 2}}/{{uuid}}"><span class="uuid">{{humanize_uuid uuid}}</span></a> (<a id="rename_{{uuid}}" href="#">rename</a>)</li>
+            {{/each}}
+        </ul>
+    </div>
+</script>
+
+<script id="resolve_issues-logfile_write-template" type="text/x-handlebars-template">
+    <div class="issue {{#if critical }}critical{{/if}}">
+        <p class="datetime">{{prettify_date datetime}}</p>
+        <h3 class="title">Can't write logs.</h3>
+
+        <p>Log file is inaccessible on server <a href="/#servers/{{machine_uuid}}">{{machine_name}}</a>. Please resolve the issue on the server, or declare it dead.<p>
+        <p><button class="btn btn-danger solve-issue">Declare Dead</button></p>
+    </div>
+</script>
+<script id="resolve_issues-vclock_conflict-template" type="text/x-handlebars-template">
+    <div class="issue {{#if critical }}critical{{/if}} vclock-conflict">
+        <p class="datetime">{{prettify_date datetime}}</p>
+        <h3 class="title">Cluster configuration conflict.</h3>
+
+        <p>This issue is caused by making changes to the cluster configuration on both sides of an intermittent network connection.</p>
+        <p>{{capitalize field}} of {{object_type}} <a href="">{{#if name_contest}}{{humanize_uuid object_id}}{{else}}{{object_name}}{{/if}}</a> has the following conflicting values:</h4>
+    <ul>
+        {{#each contestants}}
+            <li>{{value}} (<a id="resolve_{{contestant_id}}" href="#">use this value</a>)</li>
+        {{/each}}
+    </ul>
+</div>
     </script>
 
     <script id="resolve_issues-unsatisfiable_goals-template" type="text/x-handlebars-template">
@@ -146,12 +150,12 @@
             {{#if no_primary}}<p>You have to <a href="#tables/{{namespace_id}}/replication">choose</a> a primary datacenter to make this table works.</p>{{/if}}
 
             {{#each datacenters_with_issues}}
-            <p class="description">You require {{this.num_replicas}} {{pluralize_noun "replica" this.num_replicas}} for the datacenter <a href="#datacenters/{{this.datacenter_id}}">{{this.datacenter_name}}</a> but you only have {{num_machines}} {{pluralize_noun "server" this.num_machines}} available.</p>
+                <p class="description">You require {{this.num_replicas}} {{pluralize_noun "replica" this.num_replicas}} for the datacenter <a href="#datacenters/{{this.datacenter_id}}">{{this.datacenter_name}}</a> but you only have {{num_machines}} {{pluralize_noun "server" this.num_machines}} available.</p>
             {{/each}}
             {{#if datacenters_with_issues}}
-            <p class="description">To solve this issue, you can lower the number of replicas or connect a new server to the datacenter.</p>
+                <p class="description">To solve this issue, you can lower the number of replicas or connect a new server to the datacenter.</p>
 
-            <p><button class="btn btn-solve">Lower the number of replicas</button></p>
+                <p><button class="btn btn-danger solve-issue">Lower the number of replicas</button></p>
             {{/if}}
         </div>
     </script>
