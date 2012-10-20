@@ -50,20 +50,28 @@ module 'NamespaceView', ->
                     if @ordered_datacenters.length > 0
                         @ordered_datacenters[0].active = true
                         @active_datacenter_id = @ordered_datacenters[0].id
+                        found_active = true
                 else # Else, we look for the datacenter to display
                     for datacenter, i in @ordered_datacenters
-                        if datacenter.id is @model.get('primary_uuid')
+                        if datacenter.id is @model.get('primary_uuid') and datacenters.get(datacenter.id)? # We are going to display it if it's the primary AND if it does exist
                             datacenter.active = true
                             @active_datacenter_id = datacenter.id
+                            found_active = true
                             break
+            
+            # If we still coundn't find it, we activate the first one
+            if found_active is false
+                if @ordered_datacenters.length > 0
+                    @ordered_datacenters[0].active = true
+                    @active_datacenter_id = @ordered_datacenters[0].id
 
-
+            # Show the list of datacenters
             @.$('.datacenters_list_container').html @datacenter_list_template
                 id: @model.get 'id'
                 datacenters: @ordered_datacenters
 
-            # If datacenter_view is null (there used to be no datacenter before, we display a datacenter
-            if @datacenter_view is null
+            # If datacenter_view is null (no datacenter) or undefined (first pass), we display the active datacenter.
+            if not @datacenter_view? and @active_datacenter_id?
                 @render_datacenter @active_datacenter_id
 
             # If there is no more datacenter, we display a message saying that there is no datacenter
