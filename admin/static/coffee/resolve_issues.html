@@ -85,7 +85,7 @@
                 <p>This server is responsible for the following shards:</p>
                 <ul>
                     {{#each masters}}
-                        <li>Namespace <a href="#tables/{{uuid}}">{{name}}</a> for the shard {{shard}}.</li>
+                        <li>Table <a href="#tables/{{uuid}}">{{name}}</a> for the shard {{shard}}.</li>
                     {{/each}}
                 </ul>
                 {{/if}}
@@ -94,7 +94,7 @@
                 <p>This server is a secondary for the following shards:</p>
                 <ul>
                     {{#each replicas}}
-                        <li>Namespace <a href="#tables/{{uuid}}">{{name}}</a> for the shard {{shard}}.</li>
+                        <li>Table <a href="#tables/{{uuid}}">{{name}}</a> for the shard {{shard}}.</li>
                     {{/each}}
                 </ul>
                 {{/if}}
