@@ -172,29 +172,29 @@ module 'DashboardView', ->
 
         clean_dom_listeners: =>
             if @link_clicked?
-                @link_clicked.off 'click', @stop_propagation
-            @.$('.popup_container').off 'click', @stop_propagation
-            $(window).off 'click', @hide_details
+                @link_clicked.off 'mouseup', @stop_propagation
+            @.$('.popup_container').off 'mouseup', @stop_propagation
+            $(window).off 'mouseup', @hide_details
 
         show_details: (event) =>
             event.preventDefault()
             @clean_dom_listeners()
 
-            @.$('.popup_container').css 'display', 'block'
+            @.$('.popup_container').show()
             margin_top = event.pageY-60-13
             margin_left= event.pageX+12
             @.$('.popup_container').css 'margin', margin_top+'px 0px 0px '+margin_left+'px'
 
             @link_clicked = @.$(event.target)
-            @link_clicked.on 'click', @stop_propagation
-            @.$('.popup_container').on 'click', @stop_propagation
-            $(window).on 'click', @hide_details
+            @link_clicked.on 'mouseup', @stop_propagation
+            @.$('.popup_container').on 'mouseup', @stop_propagation
+            $(window).on 'mouseup', @hide_details
 
         stop_propagation: (event) ->
             event.stopPropagation()
 
         hide_details: (event) =>
-            @.$('.popup_container').css 'display', 'none'
+            @.$('.popup_container').hide()
             @clean_dom_listeners()
 
         destroy: =>
@@ -210,8 +210,8 @@ module 'DashboardView', ->
         popup_template: Handlebars.compile $('#cluster_status-redundancy-popup-template').html()
 
         events:
-            'mouseup .show_details': 'show_details'
-            'mouseup .close': 'hide_details'
+            'click .show_details': 'show_details'
+            'click .close': 'hide_details'
 
         initialize: =>
             @data = ''
@@ -356,31 +356,31 @@ module 'DashboardView', ->
 
         clean_dom_listeners: =>
             if @link_clicked?
-                @link_clicked.off 'click', @stop_propagation
-            @.$('.popup_container').off 'click', @stop_propagation
-            $(window).off 'click', @hide_details
+                @link_clicked.off 'mouseup', @stop_propagation
+            @.$('.popup_container').off 'mouseup', @stop_propagation
+            $(window).off 'mouseup', @hide_details
 
         show_details: (event) =>
             event.preventDefault()
             @clean_dom_listeners()
 
-            @.$('.popup_container').css 'display', 'block'
+            @.$('.popup_container').show()
             margin_top = event.pageY-60-13
             margin_left= event.pageX+12
             @.$('.popup_container').css 'margin', margin_top+'px 0px 0px '+margin_left+'px'
 
 
-            @.$('.popup_container').on 'click', @stop_propagation
+            @.$('.popup_container').on 'mouseup', @stop_propagation
             @link_clicked = @.$(event.target)
-            @link_clicked.on 'click', @stop_propagation
+            @link_clicked.on 'mouseup', @stop_propagation
 
-            $(window).on 'click', @hide_details
+            $(window).on 'mouseup', @hide_details
 
         stop_propagation: (event) ->
             event.stopPropagation()
 
         hide_details: (event) =>
-            @.$('.popup_container').css 'display', 'none'
+            @.$('.popup_container').hide()
             @clean_dom_listeners()
 
         destroy: =>
@@ -396,8 +396,8 @@ module 'DashboardView', ->
         popup_template: Handlebars.compile $('#cluster_status-reachability-popup-template').html()
 
         events:
-            'mouseup .show_details': 'show_details'
-            'mouseup .close': 'hide_details'
+            'click .show_details': 'show_details'
+            'click .close': 'hide_details'
 
         initialize: =>
             @data = ''
@@ -457,31 +457,31 @@ module 'DashboardView', ->
         # Clean the dom listeners
         clean_dom_listeners: =>
             if @link_clicked?
-                @link_clicked.off 'click', @stop_propagation
-            @.$('.popup_container').off 'click', @stop_propagation
-            $(window).off 'click', @hide_details
+                @link_clicked.off 'mouseup', @stop_propagation
+            @.$('.popup_container').off 'mouseup', @stop_propagation
+            $(window).off 'mouseup', @hide_details
 
         # Show popup
         show_details: (event) =>
             event.preventDefault()
             @clean_dom_listeners() # Remove the DOM listeners because we are going to add them later
 
-            @.$('.popup_container').css 'display', 'block'
+            @.$('.popup_container').show()
             margin_top = event.pageY-60-13
             margin_left= event.pageX-12-470
             @.$('.popup_container').css 'margin', margin_top+'px 0px 0px '+margin_left+'px' # Set the popup next to the mouse
 
 
-            @.$('.popup_container').on 'click', @stop_propagation
+            @.$('.popup_container').on 'mouseup', @stop_propagation
             @link_clicked = @.$(event.target)
-            @link_clicked.on 'click', @stop_propagation
-            $(window).on 'click', @hide_details
+            @link_clicked.on 'mouseup', @stop_propagation
+            $(window).on 'mouseup', @hide_details
 
         stop_propagation: (event) ->
             event.stopPropagation()
 
         hide_details: (event) =>
-            @.$('.popup_container').css 'display', 'none'
+            @.$('.popup_container').hide()
             @clean_dom_listeners()
 
         destroy: =>
@@ -584,29 +584,29 @@ module 'DashboardView', ->
 
         clean_dom_listeners: =>
             if @link_clicked?
-                @link_clicked.off 'click', @stop_propagation
-            @.$('.popup_container').off 'click', @stop_propagation
-            $(window).off 'click', @hide_details
+                @link_clicked.off 'mouseup', @stop_propagation
+            @.$('.popup_container').off 'mouseup', @stop_propagation
+            $(window).off 'mouseup', @hide_details
 
         show_details: (event) =>
             event.preventDefault()
             @clean_dom_listeners()
-            @.$('.popup_container').css 'display', 'block'
+            @.$('.popup_container').show()
             margin_top = event.pageY-60-13
             margin_left= event.pageX-12-470
             @.$('.popup_container').css 'margin', margin_top+'px 0px 0px '+margin_left+'px'
 
 
-            @.$('.popup_container').on 'click', @stop_propagation
+            @.$('.popup_container').on 'mouseup', @stop_propagation
             @link_clicked = @.$(event.target)
-            @link_clicked.on 'click', @stop_propagation
-            $(window).on 'click', @hide_details
+            @link_clicked.on 'mouseup', @stop_propagation
+            $(window).on 'mouseup', @hide_details
 
         stop_propagation: (event) ->
             event.stopPropagation()
 
         hide_details: (event) =>
-            @.$('.popup_container').css 'display', 'none'
+            @.$('.popup_container').hide()
             @clean_dom_listeners()
 
         destroy: =>
