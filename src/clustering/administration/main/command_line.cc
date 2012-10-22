@@ -479,6 +479,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
 
     path_t web_path ;
     if ( vm.count("web-static-directory" ) ) {
+      fprintf( stderr , "web-static-directory: %s\n" , vm["web-static-directory"].as<std::string>().c_str() ) ;
       web_path = parse_as_path( vm["web-static-directory"].as<std::string>() );
     } else {
       web_path = parse_as_path(argv[0]);
@@ -590,9 +591,15 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
     int reql_port = vm["reql-port"].as<int>();
     int port_offset = vm["port-offset"].as<int>();
 
-    path_t web_path = parse_as_path(argv[0]);
-    web_path.nodes.pop_back();
-    web_path.nodes.push_back("web");
+    path_t web_path ;
+    if ( vm.count("web-static-directory" ) ) {
+      fprintf( stderr , "web-static-directory: %s\n" , vm["web-static-directory"].as<std::string>().c_str() ) ;
+      web_path = parse_as_path( vm["web-static-directory"].as<std::string>() );
+    } else {
+      web_path = parse_as_path(argv[0]);
+      web_path.nodes.pop_back();
+      web_path.nodes.push_back("web");
+    }
 
 
     io_backend_t io_backend;
@@ -746,9 +753,15 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
     int reql_port = vm["reql-port"].as<int>();
     int port_offset = vm["port-offset"].as<int>();
 
-    path_t web_path = parse_as_path(argv[0]);
-    web_path.nodes.pop_back();
-    web_path.nodes.push_back("web");
+    path_t web_path ;
+    if ( vm.count("web-static-directory" ) ) {
+      fprintf( stderr , "web-static-directory: %s\n" , vm["web-static-directory"].as<std::string>().c_str() ) ;
+      web_path = parse_as_path( vm["web-static-directory"].as<std::string>() );
+    } else {
+      web_path = parse_as_path(argv[0]);
+      web_path.nodes.pop_back();
+      web_path.nodes.push_back("web");
+    }
 
 
     io_backend_t io_backend;
