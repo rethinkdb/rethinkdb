@@ -388,6 +388,9 @@ module 'DataExplorerView', ->
 
         # Extend description for db() and table() with a list of databases or namespaces
         extend_description: (fn) =>
+            if @options?.can_extend? and @options?.can_extend is false
+                return @descriptions[fn]
+
             if fn is 'db('
                 description = _.extend {}, @descriptions[fn]
                 if databases.length is 0
@@ -959,9 +962,15 @@ module 'DataExplorerView', ->
 
             that = @
             if data? and data.reconnecting is true
-                r.connect server, @success_on_connect, @error_on_connect
+                if @options? and @options.local_connect? is true
+                    console.log 'local'
+                else
+                    r.connect server, @success_on_connect, @error_on_connect
             else
-                r.connect server, undefined, @error_on_connect
+                if @options? and @options.local_connect? is true
+                    console.log 'local'
+                else
+                    r.connect server, undefined, @error_on_connect
 
             if @timeout?
                 clearTimeout @timeout
@@ -983,7 +992,10 @@ module 'DataExplorerView', ->
             @connect
                 reconnecting: true
 
-        initialize: =>
+        initialize: (options) =>
+            if options?
+                @options = options
+
             @timeout = setTimeout @connect, 5*60*1000
             window.r = rethinkdb
             window.R = r.R
