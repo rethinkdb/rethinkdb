@@ -261,7 +261,8 @@ po::options_description get_machine_options(UNUSED bool omit_hidden) {
 po::options_description get_file_options(UNUSED bool omit_hidden) {
     po::options_description desc("File path options");
     desc.add_options()
-        ("directory,d", po::value<std::string>()->default_value("rethinkdb_cluster_data"), "specify directory to store data and metadata");
+        ("directory,d", po::value<std::string>()->default_value("rethinkdb_cluster_data"), "specify directory to store data and metadata")
+	("web-static-directory", po::value<std::string>()->default_value("web"), "specify directory from which to serve web resources");
     return desc;
 }
 
@@ -476,9 +477,14 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
     int reql_port = vm["reql-port"].as<int>();
     int port_offset = vm["port-offset"].as<int>();
 
-    path_t web_path = parse_as_path(argv[0]);
-    web_path.nodes.pop_back();
-    web_path.nodes.push_back("web");
+    path_t web_path ;
+    if ( vm.count("web-static-directory" ) ) {
+      web_path = parse_as_path( vm["web-static-directory"].as<std::string>() );
+    } else {
+      web_path = parse_as_path(argv[0]);
+      web_path.nodes.pop_back();
+      web_path.nodes.push_back("web");
+    }
 
 
     io_backend_t io_backend;
