@@ -262,7 +262,7 @@ po::options_description get_file_options(UNUSED bool omit_hidden) {
     po::options_description desc("File path options");
     desc.add_options()
         ("directory,d", po::value<std::string>()->default_value("rethinkdb_cluster_data"), "specify directory to store data and metadata")
-	("web-static-directory", po::value<std::string>()->default_value("web"), "specify directory from which to serve web resources");
+	("web-static-directory", po::value<std::string>(), "specify directory from which to serve web resources");
     return desc;
 }
 
