@@ -479,7 +479,6 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
 
     path_t web_path ;
     if ( vm.count("web-static-directory" ) ) {
-      fprintf( stderr , "web-static-directory: %s\n" , vm["web-static-directory"].as<std::string>().c_str() ) ;
       web_path = parse_as_path( vm["web-static-directory"].as<std::string>() );
     } else {
       web_path = parse_as_path(argv[0]);
@@ -593,7 +592,6 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
 
     path_t web_path ;
     if ( vm.count("web-static-directory" ) ) {
-      fprintf( stderr , "web-static-directory: %s\n" , vm["web-static-directory"].as<std::string>().c_str() ) ;
       web_path = parse_as_path( vm["web-static-directory"].as<std::string>() );
     } else {
       web_path = parse_as_path(argv[0]);
@@ -755,7 +753,6 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
 
     path_t web_path ;
     if ( vm.count("web-static-directory" ) ) {
-      fprintf( stderr , "web-static-directory: %s\n" , vm["web-static-directory"].as<std::string>().c_str() ) ;
       web_path = parse_as_path( vm["web-static-directory"].as<std::string>() );
     } else {
       web_path = parse_as_path(argv[0]);
