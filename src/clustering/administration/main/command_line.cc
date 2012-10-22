@@ -477,15 +477,23 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
     int reql_port = vm["reql-port"].as<int>();
     int port_offset = vm["port-offset"].as<int>();
 
+    // We check first for a run-time option . We then check the home of the binary , and then we check in the install location if such a location was provided at compile time .
     path_t web_path ;
+    std::string chkdir ;
     if ( vm.count("web-static-directory" ) ) {
       web_path = parse_as_path( vm["web-static-directory"].as<std::string>() );
     } else {
       web_path = parse_as_path(argv[0]);
       web_path.nodes.pop_back();
       web_path.nodes.push_back("web");
+      #ifdef CPREFIX
+      // Note that the unnecessary cast is designed to make sure that the statement breaks in C instead of performing pointer arithmetic .
+      chkdir = ( std::string )( CPREFIX ) + "/lib/rethinkdb/web" ;
+      if ( ( ! access( argv[0] , F_OK ) ) && ( access( chkdir.c_str() , F_OK ) ) ) {
+	web_path = parse_as_path( chkdir ) ;
+      }
+      #endif // CPREFIX
     }
-
 
     io_backend_t io_backend;
     if (!pull_io_backend_option(vm, &io_backend)) {
@@ -590,15 +598,23 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
     int reql_port = vm["reql-port"].as<int>();
     int port_offset = vm["port-offset"].as<int>();
 
+    // We check first for a run-time option . We then check the home of the binary , and then we check in the install location if such a location was provided at compile time .
     path_t web_path ;
+    std::string chkdir ;
     if ( vm.count("web-static-directory" ) ) {
       web_path = parse_as_path( vm["web-static-directory"].as<std::string>() );
     } else {
       web_path = parse_as_path(argv[0]);
       web_path.nodes.pop_back();
       web_path.nodes.push_back("web");
+      #ifdef CPREFIX
+      // Note that the unnecessary cast is designed to make sure that the statement breaks in C instead of performing pointer arithmetic .
+      chkdir = ( std::string )( CPREFIX ) + "/lib/rethinkdb/web" ;
+      if ( ( ! access( argv[0] , F_OK ) ) && ( access( chkdir.c_str() , F_OK ) ) ) {
+	web_path = parse_as_path( chkdir ) ;
+      }
+      #endif // CPREFIX
     }
-
 
     io_backend_t io_backend;
     if (!pull_io_backend_option(vm, &io_backend)) {
@@ -751,15 +767,23 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
     int reql_port = vm["reql-port"].as<int>();
     int port_offset = vm["port-offset"].as<int>();
 
+// We check first for a run-time option . We then check the home of the binary , and then we check in the install location if such a location was provided at compile time .
     path_t web_path ;
+    std::string chkdir ;
     if ( vm.count("web-static-directory" ) ) {
       web_path = parse_as_path( vm["web-static-directory"].as<std::string>() );
     } else {
       web_path = parse_as_path(argv[0]);
       web_path.nodes.pop_back();
       web_path.nodes.push_back("web");
+      #ifdef CPREFIX
+      // Note that the unnecessary cast is designed to make sure that the statement breaks in C instead of performing pointer arithmetic .
+      chkdir = ( std::string )( CPREFIX ) + "/lib/rethinkdb/web" ;
+      if ( ( ! access( argv[0] , F_OK ) ) && ( access( chkdir.c_str() , F_OK ) ) ) {
+	web_path = parse_as_path( chkdir ) ;
+      }
+      #endif // CPREFIX
     }
-
 
     io_backend_t io_backend;
     if (!pull_io_backend_option(vm, &io_backend)) {
