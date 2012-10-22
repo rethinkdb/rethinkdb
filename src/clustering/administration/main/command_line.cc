@@ -292,7 +292,8 @@ po::options_description get_network_options(bool omit_hidden) {
         ("cluster-port", po::value<int>()->default_value(port_defaults::peer_port), "port for receiving connections from other nodes")
         DEBUG_ONLY(("client-port", po::value<int>()->default_value(port_defaults::client_port), "port to use when connecting to other nodes (for development)"))
         ("http-port", po::value<int>()->default_value(port_defaults::http_port), "port for http admin console (defaults to `port + 1000`)")
-        ("reql-port", po::value<int>()->default_value(port_defaults::reql_port), "port for rethinkdb protocol to be hosted on")
+        // ("reql-port", po::value<int>()->default_value(port_defaults::reql_port), "port for rethinkdb protocol to be hosted on")
+	("driver-port", po::value<int>()->default_value(port_defaults::reql_port), "port for rethinkdb protocol for client drivers")
         ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a node that we will connect to");
 
     if (!omit_hidden) {
@@ -474,7 +475,8 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
 #else
     int client_port = port_defaults::client_port;
 #endif
-    int reql_port = vm["reql-port"].as<int>();
+    // int reql_port = vm["reql-port"].as<int>();
+    int reql_port = vm["driver-port"].as<int>();
     int port_offset = vm["port-offset"].as<int>();
 
 // We check first for a run-time option . We then check the home of the binary , and then we check in the install location if such a location was provided at compile time .
@@ -595,7 +597,8 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
 #else
     int client_port = port_defaults::client_port;
 #endif
-    int reql_port = vm["reql-port"].as<int>();
+    // int reql_port = vm["reql-port"].as<int>();
+    int reql_port = vm["driver-port"].as<int>();
     int port_offset = vm["port-offset"].as<int>();
 
 // We check first for a run-time option . We then check the home of the binary , and then we check in the install location if such a location was provided at compile time .
@@ -764,7 +767,8 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
 #else
     int client_port = port_defaults::client_port;
 #endif
-    int reql_port = vm["reql-port"].as<int>();
+    // int reql_port = vm["reql-port"].as<int>();
+    int reql_port = vm["driver-port"].as<int>();
     int port_offset = vm["port-offset"].as<int>();
 
 // We check first for a run-time option . We then check the home of the binary , and then we check in the install location if such a location was provided at compile time .
