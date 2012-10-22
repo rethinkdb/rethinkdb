@@ -106,7 +106,7 @@ private:
 template <class metadata_t>
 class semilattice_manager_t<metadata_t>::sync_from_query_writer_t : public send_message_write_callback_t {
 public:
-    sync_from_query_writer_t(sync_from_query_id_t _query_id) :
+    explicit sync_from_query_writer_t(sync_from_query_id_t _query_id) :
         query_id(_query_id) { }
 
     void write(write_stream_t *stream) {
@@ -164,7 +164,7 @@ private:
 template <class metadata_t>
 class semilattice_manager_t<metadata_t>::sync_to_reply_writer_t : public send_message_write_callback_t {
 public:
-    sync_to_reply_writer_t(sync_to_query_id_t _query_id) :
+    explicit sync_to_reply_writer_t(sync_to_query_id_t _query_id) :
         query_id(_query_id) { }
 
     void write(write_stream_t *stream) {
