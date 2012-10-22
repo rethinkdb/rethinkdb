@@ -11,6 +11,7 @@
 
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/pmap.hpp"
+#include "concurrency/semaphore.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "containers/object_buffer.hpp"
 #include "containers/uuid.hpp"
@@ -160,15 +161,36 @@ void connectivity_cluster_t::run_t::on_new_connection(const scoped_ptr_t<tcp_con
     handle(&conn_stream, boost::none, boost::none, lock, NULL);
 }
 
-void connectivity_cluster_t::run_t::connect_to_peer(const peer_address_t *addr, int index, boost::optional<peer_id_t> expected_id, auto_drainer_t::lock_t drainer_lock, bool *successful_join) THROWS_NOTHING {
+void connectivity_cluster_t::run_t::connect_to_peer(const peer_address_t *addr, int index, boost::optional<peer_id_t> expected_id, auto_drainer_t::lock_t drainer_lock, bool *successful_join, semaphore_t *rate_control) THROWS_NOTHING {
+    // Wait to start the connection attempt, max time is one second per address
+    signal_timer_t timeout(index * 1000);
     try {
-        tcp_conn_stream_t conn(addr->all_ips()->at(index), addr->port, drainer_lock.get_drain_signal(), cluster_client_port);
-        handle(&conn, expected_id, boost::optional<peer_address_t>(*addr), drainer_lock, successful_join);
-    } catch (tcp_conn_t::connect_failed_exc_t) {
-        /* Ignore */
+        wait_any_t interrupt(&timeout, drainer_lock.get_drain_signal());
+        rate_control->co_lock_interruptible(&interrupt);
     } catch (interrupted_exc_t) {
-        /* Ignore */
+        // Stop if interrupted externally, keep going if we timed out waiting
+        if (drainer_lock.get_drain_signal()->is_pulsed()) {
+            return;
+        }
+        rassert(timeout.is_pulsed());
     }
+
+    // Don't bother if there's already a connection
+    if (!*successful_join) {
+        try {
+            tcp_conn_stream_t conn(addr->all_ips()->at(index), addr->port, drainer_lock.get_drain_signal(), cluster_client_port);
+            if (!*successful_join) {
+                handle(&conn, expected_id, boost::optional<peer_address_t>(*addr), drainer_lock, successful_join);
+            }
+        } catch (tcp_conn_t::connect_failed_exc_t) {
+            /* Ignore */
+        } catch (interrupted_exc_t) {
+            /* Ignore */
+        }
+    }
+
+    // Allow the next address attempt to run
+    rate_control->unlock(1);
 }
 
 void connectivity_cluster_t::run_t::join_blocking(
@@ -187,7 +209,10 @@ void connectivity_cluster_t::run_t::join_blocking(
 
     // Attempt to connect to all known ip addresses of the peer
     bool successful_join = false; // Variable so that handle() can check that only one connection succeeds
-    pmap(address.all_ips()->size(), boost::bind(&connectivity_cluster_t::run_t::connect_to_peer, this, &address, _1, expected_id, drainer_lock, &successful_join));
+    semaphore_t rate_control(address.all_ips()->size()); // Mutex to control the rate that connection attempts are made
+    rate_control.co_lock(address.all_ips()->size() - 1); // Start with only one coroutine able to run
+
+    pmap(address.all_ips()->size(), boost::bind(&connectivity_cluster_t::run_t::connect_to_peer, this, &address, _1, expected_id, drainer_lock, &successful_join, &rate_control));
 
     // All attempts have completed
     {
