@@ -489,8 +489,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
       #ifdef CPREFIX
       // Note that the unnecessary cast is designed to make sure that the statement breaks in C instead of performing pointer arithmetic .
       chkdir = ( std::string )( CPREFIX ) + "/lib/rethinkdb/web" ;
-      fprintf( stderr , "%s: %d\n" , chkdir.c_str() , access( chkdir.c_str() , F_OK ) ) ;
-      if ( ( ! access( render_as_path( web_path ).c_str() , F_OK ) ) && ( access( chkdir.c_str() , F_OK ) ) ) {
+      if ( ( access( render_as_path( web_path ).c_str() , F_OK ) ) && ( ! access( chkdir.c_str() , F_OK ) ) ) {
 	web_path = parse_as_path( chkdir ) ;
       }
       #endif // CPREFIX
@@ -611,8 +610,7 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
       #ifdef CPREFIX
       // Note that the unnecessary cast is designed to make sure that the statement breaks in C instead of performing pointer arithmetic .
       chkdir = ( std::string )( CPREFIX ) + "/lib/rethinkdb/web" ;
-      fprintf( stderr , "%s: %d\n" , chkdir.c_str() , access( chkdir.c_str() , F_OK ) ) ;
-      if ( ( ! access( render_as_path( web_path ).c_str() , F_OK ) ) && ( access( chkdir.c_str() , F_OK ) ) ) {
+      if ( ( access( render_as_path( web_path ).c_str() , F_OK ) ) && ( ! access( chkdir.c_str() , F_OK ) ) ) {
 	web_path = parse_as_path( chkdir ) ;
       }
       #endif // CPREFIX
@@ -781,8 +779,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
       #ifdef CPREFIX
       // Note that the unnecessary cast is designed to make sure that the statement breaks in C instead of performing pointer arithmetic .
       chkdir = ( std::string )( CPREFIX ) + "/lib/rethinkdb/web" ;
-      fprintf( stderr , "%s: %d\n" , chkdir.c_str() , access( chkdir.c_str() , F_OK ) ) ;
-      if ( ( ! access( render_as_path( web_path ).c_str() , F_OK ) ) && ( access( chkdir.c_str() , F_OK ) ) ) {
+      if ( ( access( render_as_path( web_path ).c_str() , F_OK ) ) && ( ! access( chkdir.c_str() , F_OK ) ) ) {
 	web_path = parse_as_path( chkdir ) ;
       }
       #endif // CPREFIX
