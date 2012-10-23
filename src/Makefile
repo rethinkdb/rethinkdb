@@ -39,6 +39,8 @@ TRIAL_PACKAGE_NAME:=$(VANILLA_PACKAGE_NAME)-trial
 PACKAGE_NAME:=$(VANILLA_PACKAGE_NAME)
 SERVER_UNIT_TEST_NAME:=$(SERVER_EXEC_NAME)-unittest
 
+PREFIX?=
+
 SCRIPTS_DIR:=../scripts
 START_DB_NAME:=start_rethinkdb
 GDB_FUNCTIONS_NAME:=rethinkdb-gdb.py
@@ -152,6 +154,10 @@ endif
 
 ifeq ($(AGRESSIVE_BUF_UNLOADING),1)
 CXXFLAGS+=-DAGRESSIVE_BUF_UNLOADING=1
+endif
+
+ifneq ($(PREFIX),)
+CXXFLAGS+=-DCPREFIX='"$(PREFIX)"'
 endif
 
 ifeq ($(COMPILER),INTEL)
@@ -368,7 +374,7 @@ SERVER_UNIT_TEST_OBJS:=$(SERVER_NOMAIN_OBJS) $(OBJ_DIR)/unittest/main.o
 WEB_SOURCE_DIR:=../admin
 WEB_ASSETS_BUILD_DIR:=$(BUILD_DIR)/web
 WEB_ASSETS_OBJ_DIR:=$(BUILD_DIR)/webobj
-#This atrociousness comes from the fact... fuck it blah blah blah coffee script.
+#This atrociousness comes from the fact... forget it blah blah blah coffee script.
 #Basically coffee script can't handle dependencies.
 COFFEE_SOURCES:=$(patsubst %, $(WEB_SOURCE_DIR)/static/coffee/%,\
 			util.coffee \
@@ -416,7 +422,9 @@ SERVER_EXEC_NAME_VERSIONED:=$(SERVER_EXEC_NAME)-$(RETHINKDB_SHORT_VERSION)
 
 # High level build targets
 
-all: $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(BUILD_DIR)/$(START_DB_NAME) $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME) web-assets drivers
+# Frank removed $(BUILD_DIR)/$(START_DB_NAME) from this list .
+
+all: $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME) web-assets drivers
 	@echo "    Finished building RethinkDB key-value store server version '${RETHINKDB_VERSION}'"
 
 ifeq ($(UNIT_TESTS),1)

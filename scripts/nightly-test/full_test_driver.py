@@ -96,7 +96,7 @@ def run_rethinkdb_test_remotely(dependencies, command_line, stdout_file, zipfile
 set +e
 export RETHINKDB=$(pwd)/rethinkdb/
 mkdir output_from_test
-echo "stdout:About to start test..."
+echo 'stdout:About to start test on ' `hostname` '...'
 (cd output_from_test; echo "stdout:$PWD"; PYTHONUNBUFFERED=1 %(command_line)s 2>&1 | sed -u s/^/stdout:/)
 echo "exitcode:$?"
 zip -r %(zipfile_name)s output_from_test >/dev/null

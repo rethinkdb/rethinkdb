@@ -153,7 +153,7 @@ class unix_socket_stream_t : public socket_stream_t {
     // arch/fd_send_recv.hpp. TODO(rntz): fix this.
 
     // Sends open file descriptors. Must be matched by a call to recv_fd{s,} on
-    // the other end, or weird shit could happen.
+    // the other end, or weird excretions could happen.
     //
     // Returns -1 on error, 0 on success. Blocks until all fds are written.
     int send_fds(size_t num_fds, fd_t *fds, signal_t *interruptor = NULL);

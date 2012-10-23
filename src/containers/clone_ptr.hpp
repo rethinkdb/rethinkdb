@@ -43,7 +43,7 @@ private:
     void rdb_serialize(write_message_t &msg /* NOLINT */) const {
         // clone pointers own their pointees exclusively, so we don't
         // have to worry about replicating any boost pointer
-        // serialization bullshit.
+        // serialization matter.
         bool exists = object;
         msg << exists;
         if (exists) {

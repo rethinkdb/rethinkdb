@@ -1,0 +1,111 @@
+html, body{
+    margin: 0px;
+    padding: 0px;
+    width: 100%;
+    overflow: auto;
+}
+
+#left_container{
+    float: left;
+    width: 50%;
+    height: 100%;
+    border-right: 1px solid #444;
+    overflow: auto
+}
+h1 {
+    font-size: 18px;
+    margin: 20px 3% 0px 3%;
+}
+#semilattice_raw{
+   margin: 20px 3%;
+   width: 94%;
+}
+p{
+    font-size: 14px;
+    margin: 10px 3% 0px 3%;
+}
+
+#right_container{
+    float: right;
+    width: 50%;
+    height: 100%;
+    overflow: auto;
+}
+
+.submit_data, .refresh{
+    float: right;
+    margin: 20px 3% 0px 3%;
+}
+
+#nice_representation{
+    margin: 20px;
+}
+
+
+.json_tree {
+    float: left;
+    font: 13px/18px monospace, mono, consolas;
+    /*.jt_b{ font-weight: bold; }*/
+}
+.json_tree .jt_null {
+    color: #ff0000;
+}
+.json_tree .jt_bool {
+    color: #ee00ff;
+}
+.json_tree .jt_num {
+    color: blue;
+}
+.json_tree .jt_link {
+    text-decoration: none;
+    color: #000;
+}
+.json_tree .jt_url {
+    color: #08c;
+}
+.json_tree .jt_email {
+    color: #08c;
+}
+.json_tree .jt_string {
+    padding: 2px 0px;
+    color: green;
+}
+.json_tree .jt_close {
+    margin-left: 24px;
+}
+.json_tree .jt_array {
+    list-style: none;
+    margin-left: 7px;
+    padding-left: 19px;
+    border-left: 1px dotted #bbb;
+}
+.json_tree .jt_object {
+    list-style: none;
+    margin-left: 7px;
+    padding-left: 19px;
+    border-left: 1px dotted #bbb;
+}
+.json_tree .jt_arrow {
+    width: 15px;
+    height: 15px;
+    margin: 3px 2px 0px 2px;
+    float: left;
+    display: block;
+    background: url('arrow_down.gif') no-repeat;
+}
+.json_tree .jt_arrow_hidden {
+    background: url('arrow_right.gif') no-repeat;
+}
+.json_tree .jt_points {
+    display: none;
+}
+.json_tree .jt_points_collapsed {
+    display: inline;
+}
+.json_tree .jt_collapsed {
+    display: none;
+}
+.json_tree .jt_b_collapsed {
+    display: inline;
+    margin-left: 0px;
+}

@@ -104,10 +104,10 @@ void poll_event_queue_t::run() {
         }
 
 #ifdef LEGACY_LINUX
-        // If ppoll is busy with file descriptors, the piece of shit
+        // If ppoll is busy with file descriptors, the piece of waste
         // kernel starves out signals, so we need to unblock them to
         // let the signal handlers get called, and then block them
-        // right back. What a sensible fucking system.
+        // right back. What a sensible poking system.
         res = pthread_sigmask(SIG_SETMASK, &sigmask_restricted, NULL);
         guarantee_err(res == 0, "Could not unblock signals");
         res = pthread_sigmask(SIG_SETMASK, &sigmask_full, NULL);

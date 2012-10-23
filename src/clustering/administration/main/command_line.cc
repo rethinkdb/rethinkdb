@@ -261,7 +261,8 @@ po::options_description get_machine_options(UNUSED bool omit_hidden) {
 po::options_description get_file_options(UNUSED bool omit_hidden) {
     po::options_description desc("File path options");
     desc.add_options()
-        ("directory,d", po::value<std::string>()->default_value("rethinkdb_cluster_data"), "specify directory to store data and metadata");
+        ("directory,d", po::value<std::string>()->default_value("rethinkdb_cluster_data"), "specify directory to store data and metadata")
+	("web-static-directory", po::value<std::string>(), "specify directory from which to serve web resources");
     return desc;
 }
 
@@ -291,7 +292,8 @@ po::options_description get_network_options(bool omit_hidden) {
         ("cluster-port", po::value<int>()->default_value(port_defaults::peer_port), "port for receiving connections from other nodes")
         DEBUG_ONLY(("client-port", po::value<int>()->default_value(port_defaults::client_port), "port to use when connecting to other nodes (for development)"))
         ("http-port", po::value<int>()->default_value(port_defaults::http_port), "port for http admin console (defaults to `port + 1000`)")
-        ("reql-port", po::value<int>()->default_value(port_defaults::reql_port), "port for rethinkdb protocol to be hosted on")
+        // ("reql-port", po::value<int>()->default_value(port_defaults::reql_port), "port for rethinkdb protocol to be hosted on")
+	("driver-port", po::value<int>()->default_value(port_defaults::reql_port), "port for rethinkdb protocol for client drivers")
         ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a node that we will connect to");
 
     if (!omit_hidden) {
@@ -356,7 +358,7 @@ po::options_description get_rethinkdb_import_options(UNUSED bool omit_hidden = f
     desc.add_options()
         DEBUG_ONLY(("client-port", po::value<int>()->default_value(port_defaults::client_port), "port to use when connecting to other nodes (for development)"))
         ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a node that we will connect to")
-        // Default value of empty string?  Because who knows what the fuck it returns with
+        // Default value of empty string?  Because who knows what the duck returns with
         // no default value.  Or am I supposed to wade my way back into the
         // program_options documentation again?
         ("table", po::value<std::string>()->default_value(""), "the database and table into which to import, of the format 'database.table'")
@@ -473,13 +475,27 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
 #else
     int client_port = port_defaults::client_port;
 #endif
-    int reql_port = vm["reql-port"].as<int>();
+    // int reql_port = vm["reql-port"].as<int>();
+    int reql_port = vm["driver-port"].as<int>();
     int port_offset = vm["port-offset"].as<int>();
 
-    path_t web_path = parse_as_path(argv[0]);
-    web_path.nodes.pop_back();
-    web_path.nodes.push_back("web");
-
+// We check first for a run-time option . We then check the home of the binary , and then we check in the install location if such a location was provided at compile time .
+    path_t web_path ;
+    std::string chkdir ;
+    if ( vm.count("web-static-directory" ) ) {
+      web_path = parse_as_path( vm["web-static-directory"].as<std::string>() );
+    } else {
+      web_path = parse_as_path(argv[0]);
+      web_path.nodes.pop_back();
+      web_path.nodes.push_back("web");
+      #ifdef CPREFIX
+      // Note that the unnecessary cast is designed to make sure that the statement breaks in C instead of performing pointer arithmetic .
+      chkdir = ( std::string )( CPREFIX ) + "/lib/rethinkdb/web" ;
+      if ( ( access( render_as_path( web_path ).c_str() , F_OK ) ) && ( ! access( chkdir.c_str() , F_OK ) ) ) {
+	web_path = parse_as_path( chkdir ) ;
+      }
+      #endif // CPREFIX
+    }
 
     io_backend_t io_backend;
     if (!pull_io_backend_option(vm, &io_backend)) {
@@ -581,13 +597,27 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
 #else
     int client_port = port_defaults::client_port;
 #endif
-    int reql_port = vm["reql-port"].as<int>();
+    // int reql_port = vm["reql-port"].as<int>();
+    int reql_port = vm["driver-port"].as<int>();
     int port_offset = vm["port-offset"].as<int>();
 
-    path_t web_path = parse_as_path(argv[0]);
-    web_path.nodes.pop_back();
-    web_path.nodes.push_back("web");
-
+// We check first for a run-time option . We then check the home of the binary , and then we check in the install location if such a location was provided at compile time .
+    path_t web_path ;
+    std::string chkdir ;
+    if ( vm.count("web-static-directory" ) ) {
+      web_path = parse_as_path( vm["web-static-directory"].as<std::string>() );
+    } else {
+      web_path = parse_as_path(argv[0]);
+      web_path.nodes.pop_back();
+      web_path.nodes.push_back("web");
+      #ifdef CPREFIX
+      // Note that the unnecessary cast is designed to make sure that the statement breaks in C instead of performing pointer arithmetic .
+      chkdir = ( std::string )( CPREFIX ) + "/lib/rethinkdb/web" ;
+      if ( ( access( render_as_path( web_path ).c_str() , F_OK ) ) && ( ! access( chkdir.c_str() , F_OK ) ) ) {
+	web_path = parse_as_path( chkdir ) ;
+      }
+      #endif // CPREFIX
+    }
 
     io_backend_t io_backend;
     if (!pull_io_backend_option(vm, &io_backend)) {
@@ -737,13 +767,27 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
 #else
     int client_port = port_defaults::client_port;
 #endif
-    int reql_port = vm["reql-port"].as<int>();
+    // int reql_port = vm["reql-port"].as<int>();
+    int reql_port = vm["driver-port"].as<int>();
     int port_offset = vm["port-offset"].as<int>();
 
-    path_t web_path = parse_as_path(argv[0]);
-    web_path.nodes.pop_back();
-    web_path.nodes.push_back("web");
-
+// We check first for a run-time option . We then check the home of the binary , and then we check in the install location if such a location was provided at compile time .
+    path_t web_path ;
+    std::string chkdir ;
+    if ( vm.count("web-static-directory" ) ) {
+      web_path = parse_as_path( vm["web-static-directory"].as<std::string>() );
+    } else {
+      web_path = parse_as_path(argv[0]);
+      web_path.nodes.pop_back();
+      web_path.nodes.push_back("web");
+      #ifdef CPREFIX
+      // Note that the unnecessary cast is designed to make sure that the statement breaks in C instead of performing pointer arithmetic .
+      chkdir = ( std::string )( CPREFIX ) + "/lib/rethinkdb/web" ;
+      if ( ( access( render_as_path( web_path ).c_str() , F_OK ) ) && ( ! access( chkdir.c_str() , F_OK ) ) ) {
+	web_path = parse_as_path( chkdir ) ;
+      }
+      #endif // CPREFIX
+    }
 
     io_backend_t io_backend;
     if (!pull_io_backend_option(vm, &io_backend)) {
