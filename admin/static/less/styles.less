@@ -291,12 +291,8 @@ TODO: retire this
     border: thin solid #cfcfcf;
     .border-radius(3px);
     margin-top: 12px;
+    .box-shadow(~"0 1px 0 rgba(255, 255, 255, 0.02), 0 1px 3px rgba(0, 0, 0, 0.08)");
 
-    @shadow: 0 1px 0 rgba(255, 255, 255, 0.02), 0 1px 3px rgba(0, 0, 0, 0.08);
-
-    -webkit-box-shadow: @shadow;
-       -moz-box-shadow: @shadow;
-            box-shadow: @shadow;
     padding: 8px 0px;
     text-align: center;
     font-family: @sans;
@@ -346,8 +342,6 @@ TODO: retire this
 */
 #navbar-container {
     width: 100%;
-    // REMOVED HIGHLIGHT border-top: 4px @accent solid;
-    //background: #2f2f30;
     background-color: #272729; // layer fill content
     .box-shadow(~"0 1px 3px rgba(0,0,0,.2), inset 0 -2px 4px rgba(0,0,0,.15)"); // drop shadow and inner shadow
     .gradient(~"linear-gradient(bottom, rgba(0,0,0,.07) 0%, rgba(255,255,255,.07) 100%)"); // gradient overlay
@@ -369,12 +363,6 @@ TODO: retire this
                 text-shadow: @text_shadow;
                 margin-left: -3px;
 
-                /* FIXING TODO
-                @fancy_dividers: -1px 0 0 rgba(0, 0, 0, .30) inset, 1px 0 0 rgba(255, 255, 255, .05);
-                -webkit-box-shadow: @fancy_dividers;
-                   -moz-box-shadow: @fancy_dividers;
-                        box-shadow: @fancy_dividers;
-                */
                 a {
                     padding: 21px 26px;
                     color: #ababab;
@@ -401,16 +389,27 @@ TODO: retire this
                 }
             }
         }
-
         /* right nav (search) */
         .right-nav {
             margin: 0;
             padding: 0;
             float: right;
+            position: relative;
+
+            .divider {
+                position: absolute;
+                left: 0;
+                width: 1px;
+                height: 36px;
+                margin: 12px 0;
+                background-color: #212122; // layer fill content
+                .box-shadow(~"1px 0 0 rgba(255,255,255,.04)"); // drop shadow
+            }
         }
 
         #nav-search {
             margin-bottom: 0;
+            margin-left: 28px;
             .search-box {
                 font-family: @sans;
                 font-size: 15px;
@@ -750,6 +749,7 @@ TODO: retire this
             padding-bottom: 22px;
             margin-bottom: 0;
         }
+        .btn.view-logs { float: right; }
         ul.log-entries { margin-bottom: 5px; }
     }
 }
@@ -821,11 +821,7 @@ TODO: retire this
             .border-radius(3px);
             margin-top: 12px;
         
-            @shadow: 0 1px 0 rgba(255, 255, 255, 0.02), 0 1px 3px rgba(0, 0, 0, 0.08);
-
-            -webkit-box-shadow: @shadow;
-               -moz-box-shadow: @shadow;
-                    box-shadow: @shadow;
+            .box-shadow(~"0 1px 0 rgba(255, 255, 255, 0.02), 0 1px 3px rgba(0, 0, 0, 0.08)");
 
             .checkbox-container {
                 float: left;
@@ -842,7 +838,7 @@ TODO: retire this
                     padding: 7px;
                     display: inline-block;
                     position: relative;
-                    &:active { box-shadow: 0 1px 2px rgba(0,0,0,0.05), inset 0 1px 3px rgba(0,0,0,0.1); }
+                    &:active { .box-shadow(~"0 1px 2px rgba(0,0,0,0.05), inset 0 1px 3px rgba(0,0,0,0.1)"); }
                 }
                 input[type="checkbox"]:checked + label:after {
                     content: '\2714';
@@ -1039,10 +1035,8 @@ TODO: retire this
                 border: 1px solid #d7d7d7;
                 color: #23a5df;
                 .border-radius(4px);
+                .box-shadow(~"inset 0 -6px 6px -6px #ddd");
 
-                -webkit-box-shadow: inset 0 -6px 6px -6px #ddd;
-                -moz-box-shadow: inset 0 -6px 6px -6px #ddd;
-                box-shadow: inset 0 -6px 6px -6px #ddd;
                 .suggestion_name_li{
                     display: inline-block;
                     margin: 5px 0px;
@@ -1064,9 +1058,7 @@ TODO: retire this
                 font-family: @monospace;
                 word-wrap: break-word;
                 .border-radius(4px);
-                -webkit-box-shadow: inset 0 -6px 6px -6px #ddd;
-                -moz-box-shadow: inset 0 -6px 6px -6px #ddd;
-                box-shadow: inset 0 -6px 6px -6px #ddd;
+                .box-shadow(~"inset 0 -6px 6px -6px #ddd;");
                 p{
                     font-family: @monospace;
                     margin: 3px 0px;
@@ -1093,9 +1085,7 @@ TODO: retire this
 
             .CodeMirror{
                 background: #f8f8f8;
-                -webkit-box-sizing: border-box;
-                -moz-box-sizing: border-box;
-                box-sizing: border-box;
+                .box-sizing(border-box);
                 border: 1px solid #e3e3e3;
                 cursor: text;
                 .CodeMirror-gutter{
@@ -1227,9 +1217,7 @@ TODO: retire this
             .border-radius(4px);
             border: 1px solid #e3e3e3;
             background: #f8f8f8;
-            -webkit-box-shadow: inset 0 3px 3px -3px #ddd;
-            -moz-box-shadow: inset 0 3px 3px -3px #ddd;
-            box-shadow: inset 0 3px 3px -3px #ddd;
+            .box-shadow(~"inset 0 3px 3px -3px #ddd");
         }
         .json_tree{
             float: left; // Clear the horizontal arrow
@@ -1302,9 +1290,7 @@ TODO: retire this
                 .td_attr{
                     color: #000;
                     background: #f1f1f1;
-                    -webkit-box-shadow: inset 0 4px 4px -4px #fff;
-                    -moz-box-shadow: inset 0 4px 4px -4px #fff;
-                    box-shadow: inset 0 4px 4px -4px #fff;
+                    .box-shadow(~"inset 0 4px 4px -4px #fff");
                 }
                 .jta_undefined{ color: #ccc; }
                 .jta_null{
@@ -1979,17 +1965,12 @@ TODO: retire this
                         .border-radius(5px);
                         height: 10px;
                         background: #eee;
-                        -moz-box-shadow:    inset 1px 1px 2px #ddd;
-                        -webkit-box-shadow: inset 1px 1px 2px #ddd;
-                        box-shadow:         inset 1px 1px 2px #ddd;
+                        .box-shadow(~"inset 1px 1px 2px #ddd");
                         .bar{
                             height: 10px;
                             .border-radius(5px);
                             background: #f7ae41;
-                            -moz-box-shadow:    inset 1px -2px 4px #DB8812;
-                            -webkit-box-shadow: inset 1px -2px 4px #DB8812;
-                            box-shadow:         inset 1px -2px 4px #DB8812;
-
+                            .box-shadow(~"inset 1px -2px 4px #DB8812");
                         }
                     }
                 }
