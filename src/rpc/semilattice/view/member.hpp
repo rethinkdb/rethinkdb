@@ -8,7 +8,7 @@
 
 #include "rpc/semilattice/view.hpp"
 
-// TODO: For a member's sake that's not what a member is.
+// TODO: For fuck's sake that's not what a member is.
 
 /* `metadata_member` is used to construct a metadata view that points to some
 member of a `std::map` in another metadata view. */

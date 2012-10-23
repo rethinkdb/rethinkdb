@@ -356,8 +356,8 @@ void reactor_driver_t<protocol_t>::on_change() {
             /* on_change cannot block because it is called as part of
              * semilattice subscription, however the
              * watchable_and_reactor_t destructor can block... therefore
-             * bovine waste takes place. We must release a value from the
-             * ptr_map into this methane-emitting auto_type so that it's not in the
+             * bullshit takes place. We must release a value from the
+             * ptr_map into this bullshit auto_type so that it's not in the
              * map but the destructor hasn't been called... then this needs
              * to be heap allocated so that it can be safely passed to a
              * coroutine for destruction. */

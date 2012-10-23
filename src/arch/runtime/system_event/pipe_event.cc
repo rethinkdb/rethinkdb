@@ -30,7 +30,7 @@ uint64_t pipe_event_t::read() {
     // TODO: in practice, we might not be able to read eight bytes at
     // once, so we should have a buffer in this class to manage
     // it. However, we never really use events for their counters, so
-    // duck it for now.
+    // fuck it for now.
     int res;
     uint64_t value = 0, _temp;
     do {

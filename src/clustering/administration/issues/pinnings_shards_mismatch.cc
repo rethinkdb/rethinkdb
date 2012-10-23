@@ -16,8 +16,8 @@ pinnings_shards_mismatch_issue_t<protocol_t>::pinnings_shards_mismatch_issue_t(
 
 template <class protocol_t>
 std::string pinnings_shards_mismatch_issue_t<protocol_t>::get_description() const {
-    //XXX XXX god work woe upon this. We have to make copies because
-    // we don't have constness worked out in json_adapters and just duck everything.
+    //XXX XXX god fuck this. We have to make copies because we don't have
+    //constness worked out in json_adapters and just fuck everything.
     nonoverlapping_regions_t<protocol_t> _shards = shards;
     region_map_t<protocol_t, machine_id_t> _primary_pinnings = primary_pinnings;
     region_map_t<protocol_t, std::set<machine_id_t> > _secondary_pinnings = secondary_pinnings;
