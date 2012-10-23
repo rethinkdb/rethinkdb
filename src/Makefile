@@ -374,7 +374,7 @@ SERVER_UNIT_TEST_OBJS:=$(SERVER_NOMAIN_OBJS) $(OBJ_DIR)/unittest/main.o
 WEB_SOURCE_DIR:=../admin
 WEB_ASSETS_BUILD_DIR:=$(BUILD_DIR)/web
 WEB_ASSETS_OBJ_DIR:=$(BUILD_DIR)/webobj
-#This atrociousness comes from the fact... fuck it blah blah blah coffee script.
+#This atrociousness comes from the fact... forget it blah blah blah coffee script.
 #Basically coffee script can't handle dependencies.
 COFFEE_SOURCES:=$(patsubst %, $(WEB_SOURCE_DIR)/static/coffee/%,\
 			util.coffee \

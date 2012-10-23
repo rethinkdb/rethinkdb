@@ -358,7 +358,7 @@ po::options_description get_rethinkdb_import_options(UNUSED bool omit_hidden = f
     desc.add_options()
         DEBUG_ONLY(("client-port", po::value<int>()->default_value(port_defaults::client_port), "port to use when connecting to other nodes (for development)"))
         ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a node that we will connect to")
-        // Default value of empty string?  Because who knows what the fuck it returns with
+        // Default value of empty string?  Because who knows what the duck returns with
         // no default value.  Or am I supposed to wade my way back into the
         // program_options documentation again?
         ("table", po::value<std::string>()->default_value(""), "the database and table into which to import, of the format 'database.table'")
