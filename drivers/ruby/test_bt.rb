@@ -3,7 +3,7 @@ require 'test/unit'
 require 'rethinkdb.rb'
 extend RethinkDB::Shortcuts
 $port_base = ARGV[0].to_i # 0 if none given
-$c = RethinkDB::Connection.new('localhost', $port_base + 12346)
+$c = RethinkDB::Connection.new('localhost', $port_base + 28015)
 begin
   r.db('test').create_table('tbl').run
 rescue

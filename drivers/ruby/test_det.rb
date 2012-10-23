@@ -8,7 +8,7 @@ class DetTest < Test::Unit::TestCase
     @@c.use('test')
     r.table('tbl')
   end
-  @@c = RethinkDB::Connection.new('localhost', $port_base + 12346)
+  @@c = RethinkDB::Connection.new('localhost', $port_base + 28015)
   def c; @@c; end
   def server_data; rdb.orderby(:id).run.to_a; end
 

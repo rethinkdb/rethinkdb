@@ -15,7 +15,7 @@ OptionParser.new {|opts|
   }
 
   $opt[:port] = "0"
-  opts.on('-p', '--port PORT', 'Fuzz on PORT+12346 (default 0)') {|p| $opt[:port] = p}
+  opts.on('-p', '--port PORT', 'Fuzz on PORT+28015 (default 0)') {|p| $opt[:port] = p}
 
   $opt[:seed] = srand()
   opts.on('-s', '--seed SEED', 'Set the random seed to SEED') {|s| $opt[:seed] = s}
@@ -37,8 +37,8 @@ else
   print "ERROR: must provide templates with `-t`\n"
 end
 
-print "Connecting to cluster on port: #{$opt[:port]}+12346...\n"
-c = RethinkDB::Connection.new($opt[:host], ($opt[:port].to_i)+12346)
+print "Connecting to cluster on port: #{$opt[:port]}+28015...\n"
+c = RethinkDB::Connection.new($opt[:host], ($opt[:port].to_i)+28015)
 print "Connection established.\n"
 
 def crossover(s1, s2, p=0.3)
