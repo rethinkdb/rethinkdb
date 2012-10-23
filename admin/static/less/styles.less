@@ -1111,26 +1111,10 @@ TODO: retire this
             margin: 10px 0px;
             overflow: auto;
 
-            .button_container{
-                overflow: auto;
-                margin: 0px 0px 5px 0px;
-                .button_query{
-                    float: right;
-                    width: 80px;
-                    margin: 0px 0px 0px 10px;
-                    padding: 4px 10px 4px;
-                    font-size: @baseFontSize;
-                    line-height: @baseLineHeight;
-                    color: @grayDark;
-                    text-align: center;
-                    text-shadow: 0 1px 1px rgba(255,255,255,.75);
-                    vertical-align: middle;
-                    .buttonBackground(@btnBackground, @btnBackgroundHighlight);
-                    border: 1px solid @btnBorder;
-                    border-bottom-color: darken(@btnBorder, 10%);
-                    .border-radius(4px);
-                }
+            button {
+                float: right;
             }
+
             .CodeMirror{
                 background: #f8f8f8;
                 -webkit-box-sizing: border-box;
