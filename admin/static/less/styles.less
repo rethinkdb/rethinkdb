@@ -188,8 +188,62 @@ button.btn {
 
     // ===== Disabled button styles
     &:disabled {
-        opacity: 0.65;
+        .opacity(0.65);
     }
+}
+
+/*
+    ----------------------------
+    Alert styles
+    ----------------------------
+*/
+.alert{
+    display: none; // by default, alerts are hidden until they're shown with JS
+    clear: both;
+    font-family: @sans;
+    font-size: 13px;
+    .border-radius(3px); // border radius
+    padding: 10px 35px 10px 10px;
+
+    // default is the same as for alert-warning
+    border: 1px solid #e9d295; // stroke
+    background-color: #faf3d7; // layer fill content
+    color: #bf9947; // text color + color overlay
+
+    p { margin: 0; }
+
+    &.alert-success {
+        border: 1px solid #bdd4b6; // stroke
+        background-color: #effceb; // layer fill content
+        color: #69925c; // text color
+    }
+
+    &.alert-warning {
+        border: 1px solid #e9d295; // stroke
+        background-color: #faf3d7; // layer fill content
+        color: #bf9947; // text color + color overlay
+    }
+
+    &.alert-error {
+        border: 1px solid #e59c9c; // stroke
+        background-color: #f1d5d5; // layer fill content
+        color: #d95b5b; // text color + color overlay
+    }
+
+    .close {
+        position: relative;
+        float: right;
+        right: -23px;
+        font-weight: bold;
+        font-size: 24px;
+        color: black;
+        .opacity(0.2);
+        &:hover {
+            .opacity(0.4);
+            text-decoration: none;
+        }
+    }
+    &.displayed_alert { display: block; } // a displayed alert is one that should be shown by default (helps with re-renders)
 }
 
 /*
@@ -223,61 +277,6 @@ button.btn {
         }
     }
 
-    .alert{
-        display: none;
-        padding: 8px 20px 8px 14px;
-        margin-bottom: 20px;
-        text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
-        -webkit-border-radius: 4px;
-        -moz-border-radius: 4px;
-        border-radius: 4px;
-        color: #BF9947;
-        background-color: #FAF4D8;
-        border: 1px solid #E9D296;
-        h4{
-            font-size: 14px;
-            text-align: center;
-            padding: 0px;
-            margin: 5px 0px 10px 0px;
-        }
-        p{
-            margin: 4px 0px;
-        }
-        .close{
-            float: right;
-            font-size: 20px;
-            font-weight: bold;
-            line-height: 20px;
-            color: black;
-            text-shadow: 0 1px 0 white;
-            opacity: 0.2;
-            filter: alpha(opacity=20);
-        }
-        a{
-            color: #BF9947;
-            font-weight: bold;
-            text-decoration: none
-        }
-        a:hover{
-            text-decoration: underline;
-        }
-    }
-    .alert-error{
-        color: #d95c5c;
-        background-color: #F1D6D6;
-        border-color: #E59C9C;
-        a{
-            color: #d95c5c;
-            font-weight: bold;
-            text-decoration: none
-        }
-        a:hover{
-            text-decoration: underline;
-        }
-    }
-    .displayed_alert{
-        display: block;   
-    }
 }
 
 /*
@@ -398,7 +397,6 @@ TODO: retire this
                 }
 
                 &.active {
-                    // REMOVING TODO background: url('http://bit.ly/RCkvyP'); //navbar-active.png
                     a { color: white; }
                 }
             }
@@ -568,7 +566,7 @@ TODO: retire this
 
 /* 
     ----------------------------
-    modal 
+    Modal styles
     ----------------------------
 */
 
@@ -581,47 +579,20 @@ TODO: retire this
     p{
         margin: 8px 0px;
     }
-    .alert{
-        display: none;
-        padding: 8px 20px 8px 14px;
-        margin-bottom: 20px;
-        text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
-        -webkit-border-radius: 4px;
-        -moz-border-radius: 4px;
-        border-radius: 4px;
-        color: #BF9947;
-        background-color: #FAF4D8;
-        border: 1px solid #E9D296;
-        h4{
-            font-size: 14px;
-            text-align: center;
-            padding: 0px;
-            margin: 5px 0px 10px 0px;
-        }
-    }
-    .alert-error{
-        color: #d95c5c;
-        background-color: #F1D6D6;
-        border-color: #E59C9C;
-    }
     .alert_modal{
-        margin: 0px 20px;
+        margin: 10px;
+        p { margin: 0; }
     }
-    .displayed_alert{
-        display: block;   
-    }
-    .close_error, .close{
+    .close_modal {
         float: right;
-        font-size: 20px;
         font-weight: bold;
-        line-height: 20px;
+        font-size: 24px;
         color: black;
-        text-shadow: 0 1px 0 white;
-        opacity: 0.2;
-        filter: alpha(opacity=20);
-    }
-    a.close:hover{
-        text-decoration: none;
+        .opacity(0.2);
+        &:hover {
+            .opacity(0.4);
+            text-decoration: none;
+        }
     }
 }
 
@@ -807,7 +778,6 @@ TODO: retire this
     Server list and table list
     ----------------------------
 */
-// Get ready to abstract this for use in the server list AND table list TODO
 #server-list, #table-list {
     h1.title {
         font-family: @serif;
@@ -1958,9 +1928,6 @@ TODO: retire this
                     float: right;
                     margin-right: 15px;
                 }
-                .make_primary-alert{
-                    clear: both;
-                }
             }
             .replica_container{
 
@@ -2000,9 +1967,6 @@ TODO: retire this
                 .edit{
                     float: right;
                     margin-right: 15px;
-                }
-                .replicas_acks-alert{
-                    clear: both;
                 }
             }
         }
@@ -2086,28 +2050,6 @@ TODO: retire this
                 }
                 .save_replicas_and_acks{ margin: 30px 0px 0px 0px; }
                 .make-primary{ margin: 10px 0px 0px 0px; }
-                .replicas_acks-alert, .reason_cannot_become_primary-alert, .status-alert, .make_primary-alert{
-                    display: none;
-                    clear: both;
-                    padding: 10px 10px 10px 14px;
-                    color: #C09853;
-                    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
-                    background-color: #FCF8E3;
-                    border: 1px solid #FBEED5;
-                    .border-radius(4px);
-                    .close{
-                        float: right;
-                        margin-top: -8px;
-                        font-size: 20px;
-                        font-weight: bold;
-                        line-height: 20px;
-                        color: black;
-                        text-shadow: 0 1px 0 white;
-                        opacity: 0.2;
-                        filter: alpha(opacity=20);
-                        cursor: pointer;
-                    }
-                }
             }
         }
     }
@@ -2155,9 +2097,6 @@ TODO: retire this
                 }
             }
             .edit, .cancel, .rebalance{ margin: 0px 0px 0px 10px; }
-            .cannot_shard-alert{
-                margin: 10px 0px;
-            }
         }
         .shards_status_container{
             .caption {
