@@ -70,7 +70,7 @@ enum protocol_enum_t {
 
 struct server_t {
     server_t() : protocol(protocol_rethinkdb) {
-        strcpy(host, "localhost:12346");
+        strcpy(host, "localhost:28015");
     }
 
     protocol_enum_t parse_protocol(const char *name) {

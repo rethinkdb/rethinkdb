@@ -11,7 +11,7 @@ OptionParser.new {|opts|
   opts.on('-h', '--host HOST', 'Fuzz on HOST (default localhost)') {|h| $opt[:host] = h}
 
   $opt[:port] = "0"
-  opts.on('-p', '--port PORT', 'Fuzz on PORT+12346 (default 0)') {|p| $opt[:port] = p}
+  opts.on('-p', '--port PORT', 'Fuzz on PORT+28015 (default 0)') {|p| $opt[:port] = p}
 
   $opt[:seed] = srand()
   opts.on('-s', '--seed SEED', 'Set the random seed to SEED') {|s| $opt[:seed] = s}
@@ -34,7 +34,7 @@ print "Using templates from file: #{$opt[:tfile]}\n"
 File.open($opt[:tfile], "r").each {|l| $templates << eval(l.chomp)}
 
 host = $opt[:host]
-port = ($opt[:port].to_i)+12346
+port = ($opt[:port].to_i)+28015
 print "Connecting to #{host}:#{port}...\n"
 $sock = TCPSocket.open(host, port)
 $sock.send([0xaf61ba35].pack('L<'), 0)

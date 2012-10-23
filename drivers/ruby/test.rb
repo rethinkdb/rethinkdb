@@ -9,7 +9,7 @@ class ClientTest < Test::Unit::TestCase
     @@c.use('test')
     r.table('Welcome_rdb')
   end
-  @@c = RethinkDB::Connection.new('localhost', $port_base + 12346)
+  @@c = RethinkDB::Connection.new('localhost', $port_base + 28015)
   def c; @@c; end
   def id_sort x; x.sort_by{|y| y['id']}; end
 

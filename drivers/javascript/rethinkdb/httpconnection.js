@@ -34,7 +34,7 @@ rethinkdb.HttpConnection = function(host_or_list, onConnect, onFailure) {
     rethinkdb.util.typeCheck_(onConnect, 'function');
     rethinkdb.util.typeCheck_(onFailure, 'function');
 
-    var DEFAULT_PORT = 21300;
+    var DEFAULT_PORT = 8080;
 	var DEFAULT_HOST = 'localhost';
 
     goog.base(this, null, onFailure);
@@ -144,7 +144,7 @@ goog.inherits(rethinkdb.HttpConnection, rethinkdb.Connection);
 /**
  * @type {number}
  */
-rethinkdb.HttpConnection.prototype.DEFAULT_PORT = 21300;
+rethinkdb.HttpConnection.prototype.DEFAULT_PORT = 8080;
 
 /**
  * Send data over the underlying HTTP connection.
