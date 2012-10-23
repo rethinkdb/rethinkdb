@@ -7,7 +7,7 @@ html, body{
 
 #left_container{
     float: left;
-    width: 50%;
+    width: 49%;
     height: 100%;
     border-right: 1px solid #444;
     overflow: auto
