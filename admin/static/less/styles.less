@@ -493,6 +493,7 @@ TODO: retire this
             margin-top: 8px;
             color: #FFF;
             position: relative;
+            background-color: #dd504e;
 
             @border: 1px solid #b54a48; 
             border-top: @border;
@@ -1442,7 +1443,7 @@ TODO: retire this
             margin-top: 0;
         }
 
-        p {
+        p, li {
             font-family: @sans;
             font-size: 14px;
         }
@@ -1482,24 +1483,46 @@ TODO: retire this
                 margin: 0;
                 color: #a6a6a6;
                 line-height: @header_height;
+                height: @header_height;
 
-                &.name {
-
+                &.issue-type {
+                    background: 7px center no-repeat url('http://bit.ly/Vl54tN'); //resolve_issue-danger_icon.png
+                    padding-left: 35px;
+                    color: #e65b54; // text color + color overlay
+                    font-weight: bold;
+                    text-shadow: 0 1px 0 #fff; // drop shadow
                 }
-                &.datetime {
-                    right: 200px;
-                    width: 200px;
+
+                &.message {
+                    right: 375px;
+                    width: 310px;
                     @icon_width: 30px;
                     @icon_padding: 20px;
-                    background: @icon_padding center no-repeat url('http://bit.ly/RCkoTS');//clock-icon.png
+                    background: @icon_padding center no-repeat url('http://bit.ly/PmYCWb'); //resolve_issue-message_icon.png
+                    padding-left: @icon_width + @icon_padding;
+                    &:before { .divider(-(@icon_width + @icon_padding)); }
+                }
+
+                &.datetime {
+                    right: 125px;
+                    width: 175px;
+                    @icon_width: 30px;
+                    @icon_padding: 20px;
+                    background: @icon_padding center no-repeat url('http://bit.ly/PmYBlc'); //resolve_issue-clock_icon.png
                     padding-left: @icon_width + @icon_padding;
                     &:before { .divider(-(@icon_width + @icon_padding)); }
                 }
             }
-
         }
         .issue-details {
-            p { color: #838383; }
+            margin-top: 10px;
+            background: 7px 3px no-repeat url('http://bit.ly/QPZUE7'); //resolve_issue-details_icon.png
+            padding-left: 35px;
+            p, li {
+                color: #838383;
+                font-size: 13px;
+                &:first-child { margin-top: 0; }
+            }
         }
     }
 }
