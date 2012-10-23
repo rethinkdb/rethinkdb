@@ -45,7 +45,7 @@ lib: $(JS_BUILD_DIR)/rethinkdb.js
 # SILENCER_1=2> /dev/null || ( echo "      Build failure." ; false ; )
 SILENCER_1=
 
-$(JS_BUILD_DIR)/rethinkdb.js: $(JS_BUILD_DIR)/rethinkdb/query_language.pb.js $(PROTOC_JS_HOME_DIR)/protoc-gen-js ./rethinkdb.js
+$(JS_BUILD_DIR)/rethinkdb.js: $(JS_BUILD_DIR)/rethinkdb/query_language.pb.js $(PROTOC_JS_HOME_DIR)/protoc-gen-js
 ifeq ($(VERBOSE),0)
 	@echo "    CAT > $(JS_BUILD_DIR)/rethinkdb.js"
 endif
@@ -64,8 +64,6 @@ endif
 		--compiler_flags="--source_map_format=V3" \
 		--output_mode=$(OUTPUTMODE)) \
 		<(echo "})();") > $(JS_BUILD_DIR)/rethinkdb.js' $(SILENCER_1) || ( echo "      Build failure." ; rm $(JS_BUILD_DIR)/rethinkdb.js ; false ; )
-	cp $(JS_BUILD_DIR)/rethinkdb.js .
-
 
 $(JS_BUILD_DIR)/rethinkdb: $(JS_BUILD_DIR)
 	$(QUIET) if [ ! -e $(JS_BUILD_DIR)/rethinkdb ] ; then mkdir $(JS_BUILD_DIR)/rethinkdb ; fi ;
