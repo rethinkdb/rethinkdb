@@ -164,6 +164,7 @@ module 'Sidebar', ->
         events: ->
             'click .show-issues': 'show_all_issues'
             'click .hide-issues': 'hide_all_issues'
+            'click a.change-route': 'hide_all_issues'
 
         initialize: =>
             @all_issues = new ResolveIssuesView.Container
@@ -208,6 +209,7 @@ module 'Sidebar', ->
                     exist: _.keys(other_issues).length > 0
                     num: _.keys(other_issues).length
                     data: reduced_other_issues
+                num_issues: issues.length
                 no_issues: _.keys(critical_issues).length is 0 and _.keys(other_issues).length is 0
 
             @show_all_issues() if @showing_all_issues

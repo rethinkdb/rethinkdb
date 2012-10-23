@@ -6,7 +6,7 @@
 #include "perfmon/perfmon.hpp"
 #include "serializer/log/stats.hpp"
 
-// TODO: Some of the code in this file is disgusting and bears strong resemblance to solid waste.
+// TODO: Some of the code in this file is bullshit disgusting shit.
 
 lba_list_t::lba_list_t(extent_manager_t *em)
     : shutdown_callback(NULL), gc_count(0), extent_manager(em),

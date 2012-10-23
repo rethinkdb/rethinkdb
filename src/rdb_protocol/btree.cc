@@ -294,9 +294,9 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
 }
 
 size_t estimate_rget_response_size(const boost::shared_ptr<scoped_cJSON_t> &/*json*/) {
-    // TODO: don't be stupid, be a smarty, come and join the ....
+    // TODO: don't be stupid, be a smarty, come and join the nazy
     // party (json size estimation will be much easier once we switch
-    // to bson -- duck it for now).
+    // to bson -- fuck it for now).
     return 250;
 }
 

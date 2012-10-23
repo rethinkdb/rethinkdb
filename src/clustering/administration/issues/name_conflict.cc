@@ -149,7 +149,7 @@ std::list<clone_ptr_t<global_issue_t> > name_conflict_issue_tracker_t::get_issue
 
     name_map_t machines;
     machines.file_away(metadata.machines.machines);
-    machines.report("machine", &issues);
+    machines.report("server", &issues);
 
     name_map_t databases;
     databases.file_away(metadata.databases.databases);

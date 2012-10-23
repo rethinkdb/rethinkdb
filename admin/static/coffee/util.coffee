@@ -5,10 +5,9 @@ Handlebars.registerHelper 'debug', (inputs..., options) ->
         for input in inputs
             console.log input, 'Input ##{_i}'
 
-# Prettifies a date given in ISO 8601 format
+# Prettifies a date given in Unix time (ms since epoch)
 Handlebars.registerHelper 'prettify_date', (date) ->
     return new XDate(date*1000).toString("HH:mm - MMMM dd, yyyy")
-
 
 # Returns a comma-separated list of the provided array
 Handlebars.registerHelper 'comma_separated', (context, block) ->

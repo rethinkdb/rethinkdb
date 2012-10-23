@@ -204,8 +204,8 @@ module RethinkDB
     # Create a new connection to <b>+host+</b> on port <b>+port+</b>.
     # You may also optionally provide a default database to use when
     # running queries over that connection.  Example:
-    #   c = Connection.new('localhost', 12346, 'default_db')
-    def initialize(host='localhost', port=12346, default_db='test')
+    #   c = Connection.new('localhost', 28015, 'default_db')
+    def initialize(host='localhost', port=28015, default_db='test')
       begin
         @abort_module = ::IRB
       rescue NameError => e

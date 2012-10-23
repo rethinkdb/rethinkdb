@@ -29,9 +29,9 @@ rethinkdb.Connection = function(host, opt_errorHandler) {
     this.port_ = host['port'] || this.DEFAULT_PORT;
     this.db_   = host['db']   || this.DEFAULT_DB;
 
-    typeCheck_(this.host_, 'string');
-    typeCheck_(this.port_, 'number');
-    typeCheck_(this.db_,   'string');
+    rethinkdb.util.typeCheck_(this.host_, 'string');
+    rethinkdb.util.typeCheck_(this.port_, 'number');
+    rethinkdb.util.typeCheck_(this.db_,   'string');
 
     this.outstandingQueries_ = {};
     this.nextToken_ = 1;
@@ -52,7 +52,7 @@ rethinkdb.Connection.prototype.DEFAULT_HOST = 'localhost';
  * The default port to use for new connections that don't specify a port
  * @type {number}
  */
-rethinkdb.Connection.prototype.DEFAULT_PORT = 12346;
+rethinkdb.Connection.prototype.DEFAULT_PORT = 28015;
 
 /**
  * The default database to use for new connections that don't specify one
@@ -143,7 +143,7 @@ rethinkdb.Connection.prototype.sendProtoBuf_ = function(pbObj) {
  * @param {function(...)=} opt_callback If supplied, shortcut for calling collect on the cursor.
  */
 rethinkdb.Connection.prototype.run = function(query, opt_callback) {
-    argCheck_(arguments, 1);
+    rethinkdb.util.argCheck_(arguments, 1);
 
     var pb = query.buildQuery({defaultAllowOutdated:false});
 
@@ -198,7 +198,7 @@ rethinkdb.Connection.prototype.recv_ = function(data) {
         break;
     case Response.StatusCode.RUNTIME_ERROR:
         var error =
-            new rethinkdb.errors.RuntimeError(formatServerError_(response, cursor.query_));
+            new rethinkdb.errors.RuntimeError(rethinkdb.util.formatServerError_(response, cursor.query_));
         cursor.concatResults(error, true);
         break;
     case Response.StatusCode.BAD_QUERY:
@@ -235,8 +235,8 @@ rethinkdb.Connection.prototype.recv_ = function(data) {
  * @param {string} dbName
  */
 rethinkdb.Connection.prototype.use = function(dbName) {
-    argCheck_(arguments, 1);
-    typeCheck_(dbName, 'string');
+    rethinkdb.util.argCheck_(arguments, 1);
+    rethinkdb.util.typeCheck_(dbName, 'string');
 	this.db_ = dbName;
 };
 goog.exportProperty(rethinkdb.Connection.prototype, 'use',
