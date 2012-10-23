@@ -27,6 +27,12 @@ bench/stress-client/protocols/query_language.pb.cc
 bench/serializer-bench/serializer-bench
 bench/serializer-bench/gmon.out
 bench/serializer-bench/main.o
+external/protobuf-plugin-closure/js/int64_encoding.pb.cc
+external/protobuf-plugin-closure/js/int64_encoding.pb.h
+external/protobuf-plugin-closure/js/javascript_package.pb.cc
+external/protobuf-plugin-closure/js/javascript_package.pb.h
+external/protobuf-plugin-closure/protoc-gen-ccjs
+external/protobuf-plugin-closure/protoc-gen-js
 last_tested_versions
 .deps/
 src/spin_up_clusters.py
