@@ -210,7 +210,7 @@ struct read_unshard_visitor_t : public boost::static_visitor<read_response_t> {
     const read_response_t *bits;
     const size_t count;
 
-    explicit read_unshard_visitor_t(const read_response_t *b, size_t c) : bits(b), count(c) { }
+    read_unshard_visitor_t(const read_response_t *b, size_t c) : bits(b), count(c) { }
     read_response_t operator()(UNUSED get_query_t get) {
         guarantee(count == 1);
         return read_response_t(boost::get<get_result_t>(bits[0].result));
