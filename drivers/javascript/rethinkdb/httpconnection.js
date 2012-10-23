@@ -31,8 +31,8 @@ goog.require('rethinkdb.Connection');
  */
 /*
 rethinkdb.HttpConnection = function(host_or_list, onConnect, onFailure) {
-    typeCheck_(onConnect, 'function');
-    typeCheck_(onFailure, 'function');
+    rethinkdb.util.typeCheck_(onConnect, 'function');
+    rethinkdb.util.typeCheck_(onFailure, 'function');
 
     var DEFAULT_PORT = 21300;
 	var DEFAULT_HOST = 'localhost';
@@ -111,8 +111,8 @@ goog.inherits(rethinkdb.HttpConnection, rethinkdb.Connection);
  * @export
  */
 rethinkdb.HttpConnection = function(host, onConnect, onFailure) {
-    typeCheck_(onConnect, 'function');
-    typeCheck_(onFailure, 'function');
+    rethinkdb.util.typeCheck_(onConnect, 'function');
+    rethinkdb.util.typeCheck_(onFailure, 'function');
 
     goog.base(this, host, onFailure);
     this.url_ = '';
@@ -122,10 +122,10 @@ rethinkdb.HttpConnection = function(host, onConnect, onFailure) {
     var url = 'http://'+this.host_+':'+this.port_+'/ajax/reql/';
 
     var xhr = new XMLHttpRequest();
-    xhr.responseType = "arraybuffer";
     xhr.open("GET", url + 'open-new-connection', true);
+    xhr.responseType = "arraybuffer";
 
-    xhr.onreadystatechange = function(e) {
+    xhr.onreadystatechange = function f(e) {
         if (xhr.readyState === 4) {
             if (xhr.status === 200) {
                 self.url_ = url;
@@ -157,8 +157,8 @@ rethinkdb.HttpConnection.prototype.send_ = function(data) {
         this.error_(new rethinkdb.errors.ClientError("Connection not open"));
 
     var xhr = new XMLHttpRequest();
-    xhr.responseType = "arraybuffer";
     xhr.open("POST", this.url_+'?conn_id='+this.conn_id_, true);
+    xhr.responseType = "arraybuffer";
 
     var self = this;
     xhr.onreadystatechange = function(e) {

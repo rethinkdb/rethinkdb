@@ -1,6 +1,6 @@
 goog.provide('rethinkdb.query2');
 
-goog.require('rethinkdb');
+goog.require('rethinkdbmdl');
 
 /**
  * Constructs a primitive ReQL type from a javascript value.
@@ -12,17 +12,17 @@ rethinkdb.expr = function(value) {
     if (value instanceof rethinkdb.Expression) {
         return value;
     } else if (value === null || goog.isNumber(value)) {
-        return newExpr_(rethinkdb.NumberExpression, value);
+        return rethinkdb.util.newExpr_(rethinkdb.NumberExpression, value);
     } else if (goog.isBoolean(value)) {
-        return newExpr_(rethinkdb.BooleanExpression, value);
+        return rethinkdb.util.newExpr_(rethinkdb.BooleanExpression, value);
     } else if (goog.isString(value)) {
-        return newExpr_(rethinkdb.StringExpression, value);
+        return rethinkdb.util.newExpr_(rethinkdb.StringExpression, value);
     } else if (goog.isArray(value)) {
-        return newExpr_(rethinkdb.ArrayExpression, value);
+        return rethinkdb.util.newExpr_(rethinkdb.ArrayExpression, value);
     } else if (goog.isObject(value)) {
-        return newExpr_(rethinkdb.ObjectExpression, value);
+        return rethinkdb.util.newExpr_(rethinkdb.ObjectExpression, value);
     } else {
-        return newExpr_(rethinkdb.JSONExpression, value);
+        return rethinkdb.util.newExpr_(rethinkdb.JSONExpression, value);
     }
 };
 
@@ -33,9 +33,9 @@ rethinkdb.expr = function(value) {
  * @export
  */
 rethinkdb.js = function(jsExpr) {
-    argCheck_(arguments, 1);
-    typeCheck_(jsExpr, 'string');
-    return newExpr_(rethinkdb.JSExpression, jsExpr);
+    rethinkdb.util.argCheck_(arguments, 1);
+    rethinkdb.util.typeCheck_(jsExpr, 'string');
+    return rethinkdb.util.newExpr_(rethinkdb.JSExpression, jsExpr);
 };
 
 /**
@@ -46,11 +46,11 @@ rethinkdb.js = function(jsExpr) {
  * @export
  */
 rethinkdb.table = function(tableName, opt_allowOutdated) {
-    argCheck_(arguments, 1);
-    typeCheck_(tableName, 'string');
-    typeCheck_(opt_allowOutdated, 'boolean');
+    rethinkdb.util.argCheck_(arguments, 1);
+    rethinkdb.util.typeCheck_(tableName, 'string');
+    rethinkdb.util.typeCheck_(opt_allowOutdated, 'boolean');
 
-    return newExpr_(rethinkdb.Table, tableName, null, opt_allowOutdated);
+    return rethinkdb.util.newExpr_(rethinkdb.Table, tableName, null, opt_allowOutdated);
 };
 
 /**
@@ -59,8 +59,8 @@ rethinkdb.table = function(tableName, opt_allowOutdated) {
  * @export
  */
 rethinkdb.union = function(var_args) {
-    argCheck_(arguments, 2);
-    var one = wrapIf_(arguments[0]);
+    rethinkdb.util.argCheck_(arguments, 2);
+    var one = rethinkdb.util.wrapIf_(arguments[0]);
     return rethinkdb.Expression.prototype.union.apply(one,
                 Array.prototype.slice.call(arguments, 1));
 };

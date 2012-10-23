@@ -14,7 +14,8 @@ goog.global.rethinkdb = function(jsobj) {
     return rethinkdb.R(jsobj);
 };
 
-goog.provide('rethinkdb');
+goog.provide('rethinkdbmdl');
+goog.provide('rethinkdb.util');
 
 /**
  * Internal utility for wrapping API function arguments
@@ -22,7 +23,7 @@ goog.provide('rethinkdb');
  * @returns rethinkdb.Expression
  * @ignore
  */
-function wrapIf_(val) {
+rethinkdb.util.wrapIf_ = function(val) {
     if (val instanceof rethinkdb.Query) {
         return val;
     } else {
@@ -37,7 +38,7 @@ function wrapIf_(val) {
  * @returns {rethinkdb.FunctionExpression}
  * @ignore
  */
-function functionWrap_(fun) {
+rethinkdb.util.functionWrap_ = function(fun) {
     if (fun instanceof rethinkdb.FunctionExpression) {
         return fun;
     } else {
@@ -49,7 +50,7 @@ function functionWrap_(fun) {
  * Internal utility to enforce API types
  * @ignore
  */
-function typeCheck_(value, types) {
+rethinkdb.util.typeCheck_ = function(value, types) {
     if (!value) return;
 
     var type_array = types;
@@ -71,7 +72,7 @@ function typeCheck_(value, types) {
 /**
  * Internal utility to verify min arg counts
  */
-function argCheck_(args, expected) {
+rethinkdb.util.argCheck_ = function(args, expected) {
     if (args.length < expected) {
         throw new TypeError("Function requires at least "+expected+" argument"+
                             (expected > 1 ? 's.' : '.'));
@@ -84,7 +85,7 @@ function argCheck_(args, expected) {
  * @param {...*} var_args
  * @ignore
  */
-function newExpr_(var_args) {
+rethinkdb.util.newExpr_ = function(var_args) {
     var constructor = arguments[0];
     var args = Array.prototype.slice.call(arguments, 1);
 
