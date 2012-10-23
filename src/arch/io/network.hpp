@@ -392,7 +392,7 @@ protected:
 /* Used by the old style tcp listener */
 class linux_tcp_bound_socket_t {
 public:
-    explicit linux_tcp_bound_socket_t(int _port, int user_timeout);
+    linux_tcp_bound_socket_t(int _port, int user_timeout);
     int get_port() const;
 private:
     friend class linux_tcp_listener_t;

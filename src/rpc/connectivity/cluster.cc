@@ -4,10 +4,7 @@
 #include <boost/optional.hpp>
 
 #include "arch/io/network.hpp"
-
-#ifndef NDEBUG
 #include "arch/timing.hpp"
-#endif
 
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/pmap.hpp"

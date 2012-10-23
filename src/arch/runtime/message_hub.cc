@@ -9,7 +9,9 @@
 #include "logger.hpp"
 
 // Set this to 1 if you would like some "unordered" messages to be unordered.
+#ifndef NDEBUG
 #define RDB_RELOOP_MESSAGES 0
+#endif
 
 linux_message_hub_t::linux_message_hub_t(linux_event_queue_t *queue, linux_thread_pool_t *thread_pool, int current_thread)
     : queue_(queue), thread_pool_(thread_pool), current_thread_(current_thread) {
