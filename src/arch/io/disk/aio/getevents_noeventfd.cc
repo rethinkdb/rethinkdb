@@ -19,7 +19,7 @@
 
 /* Async IO scheduler - the io_getevents part */
 void shutdown_signal_handler(UNUSED int signum, UNUSED siginfo_t *siginfo, UNUSED void *uctx) {
-    // Don't do shit...
+    // Don't excrete...
 }
 
 void* linux_aio_getevents_noeventfd_t::io_event_loop(void *arg) {
@@ -56,7 +56,7 @@ void* linux_aio_getevents_noeventfd_t::io_event_loop(void *arg) {
         int lockres = pthread_mutex_lock(&parent->io_mutex);
         guarantee(lockres == 0, "Could not lock io mutex");
 
-        // TODO: WTF is this shit?  This is a complete bullshit way to send this information between threads.
+        // TODO: From what duck came this waste product?  This is a completely excremental way to send this information between threads.
         std::copy(events, events + nevents, std::back_inserter(parent->io_events));
 
         res = pthread_mutex_unlock(&parent->io_mutex);
