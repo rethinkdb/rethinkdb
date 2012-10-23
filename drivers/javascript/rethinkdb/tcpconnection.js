@@ -35,7 +35,7 @@ rethinkdb.TcpConnection = function(host_or_list, onConnect, onFailure) {
     rethinkdb.util.typeCheck_(onConnect, 'function');
     rethinkdb.util.typeCheck_(onFailure, 'function');
 
-	var DEFAULT_PORT = 12346;
+	var DEFAULT_PORT = 28015;
 	var DEFAULT_HOST = 'localhost';
 
     if (!rethinkdb.TcpConnection.isAvailable()) {

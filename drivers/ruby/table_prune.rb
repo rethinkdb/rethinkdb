@@ -15,7 +15,7 @@ OptionParser.new{|opts|
   }
 
   $opt[:port] = "0"
-  opts.on('-p', '--port PORT', 'Prune on PORT+12346 (default 0)') {|p|
+  opts.on('-p', '--port PORT', 'Prune on PORT+28015 (default 0)') {|p|
     $opt[:port] = p
   }
 
@@ -26,7 +26,7 @@ OptionParser.new{|opts|
 }.parse!
 
 include RethinkDB::Shortcuts
-$c = RethinkDB::Connection.new($opt[:host], $opt[:port].to_i + 12346)
+$c = RethinkDB::Connection.new($opt[:host], $opt[:port].to_i + 28015)
 while true
   dbs = r.list_dbs.run
   tables = dbs.map{|x| [x, r.db(x).list_tables.run]}
