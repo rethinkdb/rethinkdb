@@ -52,7 +52,7 @@ rethinkdb.Connection.prototype.DEFAULT_HOST = 'localhost';
  * The default port to use for new connections that don't specify a port
  * @type {number}
  */
-rethinkdb.Connection.prototype.DEFAULT_PORT = 28015;
+rethinkdb.Connection.prototype.DEFAULT_PORT = 12346;
 
 /**
  * The default database to use for new connections that don't specify one

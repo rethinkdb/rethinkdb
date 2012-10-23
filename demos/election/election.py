@@ -4,7 +4,7 @@ p = pprint.PrettyPrinter(indent = 4)
 pp = p.pprint
 
 #connect to the server.
-connect("localhost", 28015+14850)
+connect("localhost", 12346+14850)
 
 #The tables I have to work with.
 pop = db("test").table("pop")

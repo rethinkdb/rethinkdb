@@ -9,7 +9,7 @@ OptionParser.new {|opts|
   $opt[:host] = "localhost"
   opts.on('-h', '--host HOST', 'Fuzz on HOST (default localhost)') {|h| $opt[:host] = h}
   $opt[:port] = "0"
-  opts.on('-p', '--port PORT', 'Fuzz on PORT+28015 (default 0)') {|p| $opt[:port] = p}
+  opts.on('-p', '--port PORT', 'Fuzz on PORT+12346 (default 0)') {|p| $opt[:port] = p}
   $opt[:log] = nil
   opts.on('-l', '--log LOG', 'Replay LOG') {|l| $opt[:log] = l}
   $opt[:relog] = nil
@@ -29,7 +29,7 @@ class Slave
     @r,@w = Socket.pair(Socket::AF_UNIX, Socket::SOCK_DGRAM, 0)
     @pid = fork do
       @w.close
-      sock = TCPSocket.open($opt[:host], $opt[:port].to_i+28015)
+      sock = TCPSocket.open($opt[:host], $opt[:port].to_i+12346)
       sock.send([0xaf61ba35].pack('L<'), 0)
       print "*** #{@id} starting ***\n"
       while (packet = @r.recv(2**30, 0)) != @@STOP

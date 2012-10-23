@@ -273,7 +273,7 @@ try {
 
             {
                 if (0 == ports.http_port)
-                    ports.http_port = port_defaults::http_port;
+                    ports.http_port = ports.port + port_offsets::http;
 
                 // TODO: Pardon me what, but is this how we fail here?
                 guarantee(ports.http_port < 65536);

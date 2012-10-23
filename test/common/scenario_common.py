@@ -50,6 +50,6 @@ def get_workload_ports(parsed_opts, namespace, processes):
         return workload_runner.RDBPorts(
             host = "localhost",
             http_port = process.http_port,
-            rdb_port = 28015 + process.port_offset,
+            rdb_port = 12346 + process.port_offset,
             table_name = namespace.name,
             db_name = "test_database")

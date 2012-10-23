@@ -13,7 +13,7 @@ OptionParser.new {|opts|
   }
 
   $opt[:port] = "0"
-  opts.on('-p', '--port PORT', 'Fuzz on PORT+28015 (default 0)') {|p| $opt[:port] = p}
+  opts.on('-p', '--port PORT', 'Fuzz on PORT+12346 (default 0)') {|p| $opt[:port] = p}
 
   $opt[:seed] = srand()
   opts.on('-s', '--seed SEED', 'Set the random seed to SEED') {|s| $opt[:seed] = s}
@@ -41,8 +41,8 @@ else
   }
 end
 
-print "Connecting to cluster on port: #{$opt[:port]}+28015...\n"
-$sock = TCPSocket.open($opt[:host], ($opt[:port].to_i)+28015)
+print "Connecting to cluster on port: #{$opt[:port]}+12346...\n"
+$sock = TCPSocket.open($opt[:host], ($opt[:port].to_i)+12346)
 $sock.send([0xaf61ba35].pack('L<'), 0)
 print "Connection established.\n"
 

@@ -24,7 +24,7 @@ class RDBTest(unittest.TestCase):
     def setUpClass(cls):
         cls.conn = connect(
             os.environ.get('HOST', 'localhost'),
-            int(os.environ.get('PORT', 28015+2010))
+            int(os.environ.get('PORT', 12346+2010))
             )
         cls.db = db(os.environ.get('DB_NAME', 'test'))
         cls.table_name = os.environ.get('TABLE_NAME', 'Welcome-rdb')
