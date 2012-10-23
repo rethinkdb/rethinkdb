@@ -32,8 +32,8 @@ goog.require('rethinkdb.Connection');
  */
 /*
 rethinkdb.TcpConnection = function(host_or_list, onConnect, onFailure) {
-    typeCheck_(onConnect, 'function');
-    typeCheck_(onFailure, 'function');
+    rethinkdb.util.typeCheck_(onConnect, 'function');
+    rethinkdb.util.typeCheck_(onFailure, 'function');
 
 	var DEFAULT_PORT = 12346;
 	var DEFAULT_HOST = 'localhost';
@@ -119,8 +119,8 @@ rethinkdb.TcpConnection = function(host, onConnect, onFailure) {
             "TCP sockets are not available in this environment."));
     }
 
-    typeCheck_(onConnect, 'function');
-    typeCheck_(onFailure, 'function');
+    rethinkdb.util.typeCheck_(onConnect, 'function');
+    rethinkdb.util.typeCheck_(onFailure, 'function');
 
     goog.base(this, host, onFailure);
 

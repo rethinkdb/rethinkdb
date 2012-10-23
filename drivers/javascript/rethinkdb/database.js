@@ -1,6 +1,6 @@
 goog.provide('rethinkdb.Database');
 
-goog.require('rethinkdb');
+goog.require('rethinkdbmdl');
 
 /**
  * Construct a new metaquery node of the given type on the given database
@@ -61,7 +61,7 @@ rethinkdb.MetaQuery.prototype.formatQuery = function(bt) {
         return result2;
     } else {
         goog.asserts.assert(bt.length === 0);
-        return carrotify_(result1)+spaceify_(finalize);
+        return rethinkdb.util.carrotify_(result1)+rethinkdb.util.spaceify_(finalize);
     }
 };
 
@@ -71,8 +71,8 @@ rethinkdb.MetaQuery.prototype.formatQuery = function(bt) {
  * @export
  */
 rethinkdb.dbCreate = function(dbName) {
-    argCheck_(arguments, 1);
-    typeCheck_(dbName, 'string');
+    rethinkdb.util.argCheck_(arguments, 1);
+    rethinkdb.util.typeCheck_(dbName, 'string');
     return new rethinkdb.MetaQuery(MetaQuery.MetaQueryType.CREATE_DB, dbName);
 };
 
@@ -82,8 +82,8 @@ rethinkdb.dbCreate = function(dbName) {
  * @export
  */
 rethinkdb.dbDrop = function(dbName) {
-    argCheck_(arguments, 1);
-    typeCheck_(dbName, 'string');
+    rethinkdb.util.argCheck_(arguments, 1);
+    rethinkdb.util.typeCheck_(dbName, 'string');
     return new rethinkdb.MetaQuery(MetaQuery.MetaQueryType.DROP_DB, dbName);
 };
 
@@ -111,8 +111,8 @@ rethinkdb.Database = function(dbName) {
  * @export
  */
 rethinkdb.db = function(dbName) {
-    argCheck_(arguments, 1);
-    typeCheck_(dbName, 'string');
+    rethinkdb.util.argCheck_(arguments, 1);
+    rethinkdb.util.typeCheck_(dbName, 'string');
     return new rethinkdb.Database(dbName);
 };
 
@@ -187,7 +187,7 @@ rethinkdb.CreateTableQuery.prototype.formatQuery = function(bt) {
     if (!bt) {
         return result;
     } else {
-        return carrotify_(result);
+        return rethinkdb.util.carrotify_(result);
     }
 };
 
@@ -201,7 +201,7 @@ rethinkdb.CreateTableQuery.prototype.formatQuery = function(bt) {
  *      cacheSize - the cache size limit for the new table
  */
 rethinkdb.Database.prototype.create = function(tableNameOrOptions) {
-    argCheck_(arguments, 1);
+    rethinkdb.util.argCheck_(arguments, 1);
 
     var options = {};
     if (typeof tableNameOrOptions === 'string') {
@@ -210,10 +210,10 @@ rethinkdb.Database.prototype.create = function(tableNameOrOptions) {
         options = tableNameOrOptions;
     }
 
-    typeCheck_(options['tableName'], 'string');
-    typeCheck_(options['primaryKey'], 'string');
-    typeCheck_(options['dataCenter'], 'string');
-    typeCheck_(options['cacheSize'], 'string');
+    rethinkdb.util.typeCheck_(options['tableName'], 'string');
+    rethinkdb.util.typeCheck_(options['primaryKey'], 'string');
+    rethinkdb.util.typeCheck_(options['dataCenter'], 'string');
+    rethinkdb.util.typeCheck_(options['cacheSize'], 'string');
 
     return new rethinkdb.CreateTableQuery(options['dataCenter'], this.name_, options['tableName'], options['primaryKey'], options['cacheSize']);
 };
@@ -229,7 +229,7 @@ goog.exportProperty(rethinkdb.Database.prototype, 'create',
  * @ignore
  */
 rethinkdb.DropTableQuery = function(dbName, tableName) {
-    argCheck_(arguments, 1);
+    rethinkdb.util.argCheck_(arguments, 1);
     this.dbName_ = dbName;
     this.tableName_ = tableName;
 };
@@ -257,7 +257,7 @@ rethinkdb.DropTableQuery.prototype.formatQuery = function(bt) {
     if (!bt) {
         return "r.db('"+this.dbName_+"').drop('"+this.tableName_+"')";
     } else {
-        return carrotify_("r.db('"+this.dbName_+"').drop('"+this.tableName_+"')");
+        return rethinkdb.util.carrotify_("r.db('"+this.dbName_+"').drop('"+this.tableName_+"')");
     }
 };
 
@@ -266,8 +266,8 @@ rethinkdb.DropTableQuery.prototype.formatQuery = function(bt) {
  * @param {string} tableName
  */
 rethinkdb.Database.prototype.drop = function(tableName) {
-    argCheck_(arguments, 1);
-    typeCheck_(tableName, 'string');
+    rethinkdb.util.argCheck_(arguments, 1);
+    rethinkdb.util.typeCheck_(tableName, 'string');
     return new rethinkdb.DropTableQuery(this.name_, tableName);
 };
 goog.exportProperty(rethinkdb.Database.prototype, 'drop',
@@ -279,9 +279,9 @@ goog.exportProperty(rethinkdb.Database.prototype, 'drop',
  * @param {boolean=} opt_allowOutdated
  */
 rethinkdb.Database.prototype.table = function(tableName, opt_allowOutdated) {
-    argCheck_(arguments, 1);
-    typeCheck_(tableName, 'string');
-    typeCheck_(opt_allowOutdated, 'boolean');
+    rethinkdb.util.argCheck_(arguments, 1);
+    rethinkdb.util.typeCheck_(tableName, 'string');
+    rethinkdb.util.typeCheck_(opt_allowOutdated, 'boolean');
     return new rethinkdb.Table(tableName, this.name_, opt_allowOutdated);
 };
 goog.exportProperty(rethinkdb.Database.prototype, 'table',

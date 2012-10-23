@@ -251,18 +251,18 @@ void run_rethinkdb_proxy(extproc::spawner_t::info_t *spawner_info, const std::ve
                               &sigint_cond);
 }
 
-po::options_description get_machine_options(UNUSED bool omit_hidden) {
+po::options_description get_machine_options() {
     po::options_description desc("Machine name options");
     desc.add_options()
         ("machine-name,n", po::value<std::string>()->default_value("NN"), "The name for this machine (as will appear in the metadata).");
     return desc;
 }
 
-po::options_description get_file_options(UNUSED bool omit_hidden) {
+po::options_description get_file_options() {
     po::options_description desc("File path options");
     desc.add_options()
         ("directory,d", po::value<std::string>()->default_value("rethinkdb_cluster_data"), "specify directory to store data and metadata")
-	("web-static-directory", po::value<std::string>()->default_value("web"), "specify directory from which to serve web resources");
+	("web-static-directory", po::value<std::string>(), "specify directory from which to serve web resources");
     return desc;
 }
 
@@ -286,78 +286,75 @@ void validate(boost::any& value_out, const std::vector<std::string>& words,
     }
 }
 
-po::options_description get_network_options(bool omit_hidden) {
+po::options_description get_network_options() {
     po::options_description desc("Network options");
     desc.add_options()
         ("cluster-port", po::value<int>()->default_value(port_defaults::peer_port), "port for receiving connections from other nodes")
         DEBUG_ONLY(("client-port", po::value<int>()->default_value(port_defaults::client_port), "port to use when connecting to other nodes (for development)"))
         ("http-port", po::value<int>()->default_value(port_defaults::http_port), "port for http admin console (defaults to `port + 1000`)")
-        ("reql-port", po::value<int>()->default_value(port_defaults::reql_port), "port for rethinkdb protocol to be hosted on")
-        ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a node that we will connect to");
-
-    if (!omit_hidden) {
-        desc.add_options()("port-offset,o", po::value<int>()->default_value(port_defaults::port_offset), "set up parsers for namespaces on the namespace's port + this value (for development)");
-    }
+        ("driver-port", po::value<int>()->default_value(port_defaults::reql_port), "port for rethinkdb protocol for client drivers")
+        ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a node that we will connect to")
+        ("port-offset,o", po::value<int>()->default_value(port_defaults::port_offset), "all ports used locally will have this value added");
     return desc;
 }
 
-po::options_description get_disk_options(UNUSED bool omit_hidden) {
+po::options_description get_disk_options() {
     po::options_description desc("Disk I/O options");
     desc.add_options()
         ("io-backend", po::value<std::string>()->default_value("pool"), "event backend to use: native or pool.  Defaults to native.");
     return desc;
 }
 
-po::options_description get_cpu_options(UNUSED bool omit_hidden) {
+po::options_description get_cpu_options() {
     po::options_description desc("CPU options");
     desc.add_options()
         ("cores,c", po::value<int>()->default_value(get_cpu_count()), "the number of cores to utilize");
     return desc;
 }
 
-po::options_description get_rethinkdb_create_options(bool omit_hidden = false) {
+po::options_description get_rethinkdb_create_options() {
     po::options_description desc("Allowed options");
-    desc.add(get_file_options(omit_hidden));
-    desc.add(get_machine_options(omit_hidden));
-    desc.add(get_disk_options(omit_hidden));
+    desc.add(get_file_options());
+    desc.add(get_machine_options());
+    desc.add(get_disk_options());
     return desc;
 }
 
-po::options_description get_rethinkdb_serve_options(bool omit_hidden = false) {
+po::options_description get_rethinkdb_serve_options() {
     po::options_description desc("Allowed options");
-    desc.add(get_file_options(omit_hidden));
-    desc.add(get_network_options(omit_hidden));
-    desc.add(get_disk_options(omit_hidden));
-    desc.add(get_cpu_options(omit_hidden));
+    desc.add(get_file_options());
+    desc.add(get_network_options());
+    desc.add(get_disk_options());
+    desc.add(get_cpu_options());
     return desc;
 }
 
-po::options_description get_rethinkdb_proxy_options(bool omit_hidden = false) {
+po::options_description get_rethinkdb_proxy_options() {
     po::options_description desc("Allowed options");
-    desc.add(get_network_options(omit_hidden));
-    desc.add(get_disk_options(omit_hidden));
+    desc.add(get_network_options());
+    desc.add(get_disk_options());
     desc.add_options()
         ("log-file", po::value<std::string>()->default_value("log_file"), "specify log file");
     return desc;
 }
 
-po::options_description get_rethinkdb_admin_options(bool omit_hidden = false) {
+po::options_description get_rethinkdb_admin_options() {
     po::options_description desc("Allowed options");
     desc.add_options()
         DEBUG_ONLY(("client-port", po::value<int>()->default_value(port_defaults::client_port), "port to use when connecting to other nodes (for development)"))
         ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a node that we will connect to")
         ("exit-failure,x", po::value<bool>()->zero_tokens(), "exit with an error code immediately if a command fails");
-    desc.add(get_disk_options(omit_hidden));
+    desc.add(get_disk_options());
     // TODO: The admin client doesn't use the io-backend option!  So why are we calling get_disk_options()?
     return desc;
 }
 
-po::options_description get_rethinkdb_import_options(UNUSED bool omit_hidden = false) {
+po::options_description get_rethinkdb_import_options() {
     po::options_description desc("Allowed options");
     desc.add_options()
         DEBUG_ONLY(("client-port", po::value<int>()->default_value(port_defaults::client_port), "port to use when connecting to other nodes (for development)"))
         ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a node that we will connect to")
-        // Default value of empty string?  Because who knows what the fuck it returns with
+        // Default value of empty string?  Because who knows what the duck returns with
         // no default value.  Or am I supposed to wade my way back into the
         // program_options documentation again?
         ("table", po::value<std::string>()->default_value(""), "the database and table into which to import, of the format 'database.table'")
@@ -369,13 +366,13 @@ po::options_description get_rethinkdb_import_options(UNUSED bool omit_hidden = f
     return desc;
 }
 
-po::options_description get_rethinkdb_porcelain_options(bool omit_hidden = false) {
+po::options_description get_rethinkdb_porcelain_options() {
     po::options_description desc("Allowed options");
-    desc.add(get_file_options(omit_hidden));
-    desc.add(get_machine_options(omit_hidden));
-    desc.add(get_network_options(omit_hidden));
-    desc.add(get_disk_options(omit_hidden));
-    desc.add(get_cpu_options(omit_hidden));
+    desc.add(get_file_options());
+    desc.add(get_machine_options());
+    desc.add(get_network_options());
+    desc.add(get_disk_options());
+    desc.add(get_cpu_options());
     return desc;
 }
 
@@ -474,18 +471,27 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
 #else
     int client_port = port_defaults::client_port;
 #endif
-    int reql_port = vm["reql-port"].as<int>();
+    // int reql_port = vm["reql-port"].as<int>();
+    int reql_port = vm["driver-port"].as<int>();
     int port_offset = vm["port-offset"].as<int>();
 
+// We check first for a run-time option . We then check the home of the binary , and then we check in the install location if such a location was provided at compile time .
     path_t web_path ;
+    std::string chkdir ;
     if ( vm.count("web-static-directory" ) ) {
       web_path = parse_as_path( vm["web-static-directory"].as<std::string>() );
     } else {
       web_path = parse_as_path(argv[0]);
       web_path.nodes.pop_back();
       web_path.nodes.push_back("web");
+      #ifdef CPREFIX
+      // Note that the unnecessary cast is designed to make sure that the statement breaks in C instead of performing pointer arithmetic .
+      chkdir = ( std::string )( CPREFIX ) + "/lib/rethinkdb/web" ;
+      if ( ( access( render_as_path( web_path ).c_str() , F_OK ) ) && ( ! access( chkdir.c_str() , F_OK ) ) ) {
+	web_path = parse_as_path( chkdir ) ;
+      }
+      #endif // CPREFIX
     }
-
 
     io_backend_t io_backend;
     if (!pull_io_backend_option(vm, &io_backend)) {
@@ -587,18 +593,27 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
 #else
     int client_port = port_defaults::client_port;
 #endif
-    int reql_port = vm["reql-port"].as<int>();
+    // int reql_port = vm["reql-port"].as<int>();
+    int reql_port = vm["driver-port"].as<int>();
     int port_offset = vm["port-offset"].as<int>();
 
+// We check first for a run-time option . We then check the home of the binary , and then we check in the install location if such a location was provided at compile time .
     path_t web_path ;
+    std::string chkdir ;
     if ( vm.count("web-static-directory" ) ) {
       web_path = parse_as_path( vm["web-static-directory"].as<std::string>() );
     } else {
       web_path = parse_as_path(argv[0]);
       web_path.nodes.pop_back();
       web_path.nodes.push_back("web");
+      #ifdef CPREFIX
+      // Note that the unnecessary cast is designed to make sure that the statement breaks in C instead of performing pointer arithmetic .
+      chkdir = ( std::string )( CPREFIX ) + "/lib/rethinkdb/web" ;
+      if ( ( access( render_as_path( web_path ).c_str() , F_OK ) ) && ( ! access( chkdir.c_str() , F_OK ) ) ) {
+	web_path = parse_as_path( chkdir ) ;
+      }
+      #endif // CPREFIX
     }
-
 
     io_backend_t io_backend;
     if (!pull_io_backend_option(vm, &io_backend)) {
@@ -748,18 +763,27 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
 #else
     int client_port = port_defaults::client_port;
 #endif
-    int reql_port = vm["reql-port"].as<int>();
+    // int reql_port = vm["reql-port"].as<int>();
+    int reql_port = vm["driver-port"].as<int>();
     int port_offset = vm["port-offset"].as<int>();
 
+// We check first for a run-time option . We then check the home of the binary , and then we check in the install location if such a location was provided at compile time .
     path_t web_path ;
+    std::string chkdir ;
     if ( vm.count("web-static-directory" ) ) {
       web_path = parse_as_path( vm["web-static-directory"].as<std::string>() );
     } else {
       web_path = parse_as_path(argv[0]);
       web_path.nodes.pop_back();
       web_path.nodes.push_back("web");
+      #ifdef CPREFIX
+      // Note that the unnecessary cast is designed to make sure that the statement breaks in C instead of performing pointer arithmetic .
+      chkdir = ( std::string )( CPREFIX ) + "/lib/rethinkdb/web" ;
+      if ( ( access( render_as_path( web_path ).c_str() , F_OK ) ) && ( ! access( chkdir.c_str() , F_OK ) ) ) {
+	web_path = parse_as_path( chkdir ) ;
+      }
+      #endif // CPREFIX
     }
-
 
     io_backend_t io_backend;
     if (!pull_io_backend_option(vm, &io_backend)) {
@@ -802,43 +826,27 @@ void help_rethinkdb_create() {
     printf("'rethinkdb create' is used to prepare a directory to act "
            "as the storage location for a RethinkDB cluster node.\n");
     std::stringstream sstream;
-#ifndef NDEBUG
     sstream << get_rethinkdb_create_options();
-#else
-    sstream << get_rethinkdb_create_options(true);
-#endif
     printf("%s\n", sstream.str().c_str());
 }
 
 void help_rethinkdb_serve() {
     printf("'rethinkdb serve' is the actual process for a RethinkDB cluster node.\n");
     std::stringstream sstream;
-#ifndef NDEBUG
     sstream << get_rethinkdb_serve_options();
-#else
-    sstream << get_rethinkdb_create_options(true);
-#endif
     printf("%s\n", sstream.str().c_str());
 }
 
 void help_rethinkdb_proxy() {
     printf("'rethinkdb proxy' serves as a proxy to an existing RethinkDB cluster.\n");
     std::stringstream sstream;
-#ifndef NDEBUG
     sstream << get_rethinkdb_proxy_options();
-#else
-    sstream << get_rethinkdb_proxy_options(true);
-#endif
     printf("%s\n", sstream.str().c_str());
 }
 
 void help_rethinkdb_import() {
     printf("'rethinkdb import' imports content from a CSV file.\n");
     std::stringstream s;
-#ifndef NDEBUG
     s << get_rethinkdb_import_options();
-#else
-    s << get_rethinkdb_import_options(true);
-#endif
     printf("%s\n", s.str().c_str());
 }

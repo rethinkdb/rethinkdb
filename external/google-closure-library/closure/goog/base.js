@@ -36,14 +36,25 @@ var COMPILED = false;
  *
  * @const
  */
+function nn(){
 var goog = goog || {}; // Identifies this file as the Closure base.
+}
 
 
 /**
  * Reference to the global context.  In most cases this will be 'window'.
  */
-goog.global = this;
+//goog.global = this;
 
+/**
+ * *fix* global and goog references so it'll work in both node and the browser
+ */
+var gbl = (typeof global === 'undefined') ? window : global;
+if (!gbl.goog) {
+    gbl.goog = {};
+}
+var goog = gbl.goog;
+goog.global = gbl;
 
 /**
  * @define {boolean} DEBUG is provided as a convenience so that debugging code

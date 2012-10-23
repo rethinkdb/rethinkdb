@@ -279,7 +279,7 @@ module 'ResolveIssuesView', ->
                 masters: if _.isEmpty(masters) then null else masters
                 replicas: if _.isEmpty(replicas) then null else replicas
                 no_responsibilities: if (_.isEmpty(replicas) and _.isEmpty(masters)) then true else false
-                datetime: @model.get('time')
+                datetime: iso_date_from_unix_time @model.get('time')
                 critical: @model.get('critical')
 
             @.$el.html _template(json)
@@ -299,7 +299,7 @@ module 'ResolveIssuesView', ->
                     uuid: uuid
                     type: @model.get('contested_type')
                 )
-                datetime: @model.get('time')
+                datetime: iso_date_from_unix_time @model.get('time')
                 critical: @model.get('critical')
 
             @.$el.html _template(json)
@@ -358,9 +358,9 @@ module 'ResolveIssuesView', ->
             else if datacenters.get(@model.get('object_id'))?
                 datacenter_name = datacenters.get(@model.get('object_id')).get('name')
             else
-                datacenter_name = "Not found datacenter"
+                datacenter_name = "Unknown datacenter"
             json =
-                datetime: @model.get('time')
+                datetime: iso_date_from_unix_time @model.get('time')
                 critical: @model.get('critical')
                 object_type: @model.get('object_type')
                 object_id: @model.get('object_id')
@@ -381,7 +381,7 @@ module 'ResolveIssuesView', ->
         render_unsatisfiable_goals: (_template) ->
             # render
             json =
-                datetime: @model.get('time')
+                datetime: iso_date_from_unix_time @model.get('time')
                 critical: @model.get('critical')
                 namespace_id: @model.get('namespace_id')
                 namespace_name: namespaces.get(@model.get('namespace_id')).get('name')
@@ -416,7 +416,7 @@ module 'ResolveIssuesView', ->
         render_machine_ghost: (_template) ->
             # render
             json =
-                datetime: @model.get('time')
+                datetime: iso_date_from_unix_time @model.get('time')
                 critical: @model.get('critical')
                 machine_id: @model.get('ghost')
                 machine_name: @model.get('ghost')
@@ -425,7 +425,7 @@ module 'ResolveIssuesView', ->
         render_port_conflict: (_template) ->
             # render
             json =
-                datetime: @model.get('time')
+                datetime: iso_date_from_unix_time @model.get('time')
                 critical: @model.get('critical')
                 machine_id: @model.get('location')
                 machine_name: machines.get(@model.get('location')).get('name')
