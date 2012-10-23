@@ -467,7 +467,7 @@ module 'LogView', ->
                                             database_id_trunked: database_id.slice 24
 
                     else
-                        msg += "We were unable to parse this log. Click on 'More details' to see the raw log"
+                        msg += "We were unable to parse this log. Click on 'More details' to see the raw log data."
                         raw_data = JSON.stringify $.parseJSON(data), undefined, 2
                 return {
                     msg: msg

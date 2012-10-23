@@ -571,6 +571,10 @@ TODO: retire this
     ----------------------------
 */
 
+.modal-backdrop {
+    .opacity(0.8);
+}
+
 .add-namespace{
     .hide_advanced_settings-link_container, .advanced_settings{
         display: none;
@@ -745,29 +749,6 @@ TODO: retire this
             border-bottom: thin solid #f0f0f0;
             padding-bottom: 22px;
             margin-bottom: 0;
-        }
-        // This might have to be abstracted as a general button style (add some shadows and gradients when ready)
-        .btn.view-logs {
-            float: right;
-            padding: 6px 14px 4px;
-            margin-bottom: 0;
-            vertical-align: middle;
-
-            font-size: 13px;
-            font-family: @sans;
-            color: #FFF;
-            text-align: center;
-
-            background-color: #509ecb;
-            border: thin solid #509ecb; 
-            .border-radius(3px);
-
-            @shadow: 0 1px 0 rgba(255, 255, 255, 0.02), 0 1px 3px rgba(0, 0, 0, 0.06);
-
-            -webkit-box-shadow: @shadow;
-               -moz-box-shadow: @shadow;
-                    box-shadow: @shadow;
-
         }
         ul.log-entries { margin-bottom: 5px; }
     }
@@ -969,7 +950,6 @@ TODO: retire this
         margin-top: 0;
 
         li.log-entry {
-            width: 848px;
             color: #4d535c;
             border-top: thin solid #f0f0f0;
             background: left 22px no-repeat url('http://bit.ly/PyxKg4');//pencil-icon_big.png
@@ -978,18 +958,14 @@ TODO: retire this
             &:first-child {
                 border-top: 0;
             }
-            p { margin: 0; }
-            .message {
-                font-size: 14px; 
+            p {
+                margin: 0; 
                 font-family: @sans;
             }
-            li.pretty_logs_li {
-                font-family: @sans;
-                font-size: 13px;
-            }
+            .message { font-size: 14px; }
+            li.pretty_logs_li { font-size: 13px; }
             .from-machine {
                 font-style: italic;
-                font-family: @sans;
                 margin-top: 5px;
                 font-size: 13px;
             }
@@ -2211,12 +2187,4 @@ TODO: retire this
     right: 0;
     width: 190px;
     z-index: 1000;
-    .btn {
-        line-height: 16px;
-        margin: 5px 0px;
-        padding-top: 8px;
-        padding-bottom: 8px;
-        text-align: center;
-        width: 150px;
-    }
 }
