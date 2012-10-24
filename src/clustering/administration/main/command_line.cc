@@ -704,7 +704,7 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
     }
 
     if (!vm.count("join")) {
-        printf("No --join option(s) given. A proxy needs to connect to something!\n"
+        fprintf(stderr, "No --join option(s) given. A proxy needs to connect to something!\n"
                "Run 'rethinkdb proxy help' for more information.\n");
         return EXIT_FAILURE;
      }
@@ -781,7 +781,7 @@ int main_rethinkdb_import(int argc, char *argv[]) {
 
         // TODO: Does this not work with a zero count?
         if (vm.count("join") == 0) {
-            printf("--join HOST:PORT must be specified\n");
+            fprintf(stderr, "--join HOST:PORT must be specified\n");
             return EXIT_FAILURE;
         }
         std::vector<host_and_port_t> joins;
@@ -795,18 +795,18 @@ int main_rethinkdb_import(int argc, char *argv[]) {
         std::string db_name_str;
         std::string table_name_str;
         if (!split_db_table(db_table, &db_name_str, &table_name_str)) {
-            printf("--table option should have format database_name.table_name\n");
+            fprintf(stderr, "--table option should have format database_name.table_name\n");
             return EXIT_FAILURE;
         }
 
         name_string_t db_name;
         if (!db_name.assign_value(db_name_str)) {
-            printf("ERROR: database name invalid. (%s)  e.g. --table database_name.table_name\n", name_string_t::valid_char_msg);
+            fprintf(stderr, "ERROR: database name invalid. (%s)  e.g. --table database_name.table_name\n", name_string_t::valid_char_msg);
         }
 
         name_string_t table_name;
         if (!table_name.assign_value(table_name_str)) {
-            printf("ERROR: table name invalid.  (%s)  e.g. database_name.table_name\n", name_string_t::valid_char_msg);
+            fprintf(stderr, "ERROR: table name invalid.  (%s)  e.g. database_name.table_name\n", name_string_t::valid_char_msg);
             return EXIT_FAILURE;
         }
 
@@ -815,7 +815,7 @@ int main_rethinkdb_import(int argc, char *argv[]) {
         if (!datacenter_name_arg.empty()) {
             name_string_t tmp;
             if (!tmp.assign_value(datacenter_name_arg)) {
-                printf("ERROR: datacenter name invalid.  (%s)\n", name_string_t::valid_char_msg);
+                fprintf(stderr, "ERROR: datacenter name invalid.  (%s)\n", name_string_t::valid_char_msg);
                 return EXIT_FAILURE;
             }
             *datacenter_name = tmp;
@@ -829,7 +829,7 @@ int main_rethinkdb_import(int argc, char *argv[]) {
         }
         std::string input_filepath = vm["input-file"].as<std::string>();
         if (input_filepath.empty()) {
-            printf("Please supply an --input-file option.\n");
+            fprintf(stderr, "Please supply an --input-file option.\n");
             return EXIT_FAILURE;
         }
 
