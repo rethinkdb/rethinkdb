@@ -914,12 +914,13 @@ std::vector<std::string> get_ips() {
                 struct sockaddr_in6 *in6_addr = reinterpret_cast<sockaddr_in6 *>(p->ifa_addr);
 
                 const int buflength = INET6_ADDRSTRLEN;
-                char buf[buflength + 1] = { 0 };
-                const char *res = inet_ntop(AF_INET6, &in6_addr->sin6_addr, buf, buflength);
+                scoped_array_t<char> buf(buflength + 1);
+                memset(buf.data(), 0, buf.size());
+                const char *res = inet_ntop(AF_INET6, &in6_addr->sin6_addr, buf.data(), buflength);
 
                 guarantee_err(res != NULL, "inet_ntop failed on an ipv6 address");
 
-                ret.push_back(std::string(buf));
+                ret.push_back(std::string(buf.data()));
             }
         }
     }
