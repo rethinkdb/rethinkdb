@@ -901,8 +901,9 @@ std::vector<std::string> get_ips() {
                 struct sockaddr_in *in_addr = reinterpret_cast<sockaddr_in *>(p->ifa_addr);
                 // I don't think the "+ 1" is necessary, we're being
                 // paranoid about weak documentation.
-                char buf[INET_ADDRSTRLEN + 1] = { 0 };
-                const char *res = inet_ntop(AF_INET, &in_addr->sin_addr, buf, INET_ADDRSTRLEN);
+                const int buflength = INET_ADDRSTRLEN;
+                char buf[buflength + 1] = { 0 };
+                const char *res = inet_ntop(AF_INET, &in_addr->sin_addr, buf, buflength);
 
                 guarantee_err(res != NULL, "inet_ntop failed");
 
@@ -912,8 +913,9 @@ std::vector<std::string> get_ips() {
             if (!(p->ifa_flags & IFF_LOOPBACK)) {
                 struct sockaddr_in6 *in6_addr = reinterpret_cast<sockaddr_in6 *>(p->ifa_addr);
 
-                char buf[INET6_ADDRSTRLEN + 1] = { 0 };
-                const char *res = inet_ntop(AF_INET6, &in6_addr->sin6_addr, buf, INET6_ADDRSTRLEN);
+                const int buflength = INET6_ADDRSTRLEN;
+                char buf[buflength + 1] = { 0 };
+                const char *res = inet_ntop(AF_INET6, &in6_addr->sin6_addr, buf, buflength);
 
                 guarantee_err(res != NULL, "inet_ntop failed on an ipv6 address");
 
