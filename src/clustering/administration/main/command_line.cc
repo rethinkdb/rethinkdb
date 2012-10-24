@@ -780,10 +780,12 @@ int main_rethinkdb_import(int argc, char *argv[]) {
         }
 
         // TODO: Does this not work with a zero count?
-        std::vector<host_and_port_t> joins;
-        if (vm.count("join") > 0) {
-            joins = vm["join"].as<std::vector<host_and_port_t> >();
+        if (vm.count("join") == 0) {
+            printf("--join HOST:PORT must be specified\n");
+            return EXIT_FAILURE;
         }
+        std::vector<host_and_port_t> joins;
+        joins = vm["join"].as<std::vector<host_and_port_t> >();
 #ifndef NDEBUG
         int client_port = vm["client-port"].as<int>();
 #else
