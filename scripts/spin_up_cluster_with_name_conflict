@@ -5,116 +5,116 @@ import signal
 import time
 import random
 
-names = """Nervous Energy
-Prosthetic Conscience
+names = """Nervous_Energy
+Prosthetic_Conscience
 Determinist
-Irregular Apocalypse
-No More Mr Nice Guy
-Profit Margin
+Irregular_Apocalypse
+No_More_Mr_Nice_Guy
+Profit_Margin
 Revisionist
-Trade Surplus
-The Ends Of Invention
-Clear Air Turbulence
-Flexible Demeanour
-Just Read The Instructions
-Of Course I Still Love You
-Limiting Factor
-Cargo Cult
-Little Rascal
-So Much For Subtlety
-Unfortunate Conflict Of Evidence
-Just Testing
-Very Little Gravitas Indeed
-What Are The Civilian Applications?
-Congenital Optimist
-Size Isn't Everything
-Sweet and Full of Grace
-Different Tan
-Fate Amenable To Change
-It's Character Forming
-Jaundiced Outlook
-Problem Child
-Reasonable Excuse
-Recent Convert
-Tactical Grace
-Unacceptable Behaviour
-Steely Glint
+Trade_Surplus
+The_Ends_Of_Invention
+Clear_Air_Turbulence
+Flexible_Demeanour
+Just_Read_The_Instructions
+Of_Course_I_Still_Love_You
+Limiting_Factor
+Cargo_Cult
+Little_Rascal
+So_Much_For_Subtlety
+Unfortunate_Conflict_Of_Evidence
+Just_Testing
+Very_Little_Gravitas_Indeed
+What_Are_The_Civilian_Applications?
+Congenital_Optimist
+Size_Isn't_Everything
+Sweet_and_Full_of_Grace
+Different_Tan
+Fate_Amenable_To_Change
+It's_Character_Forming
+Jaundiced_Outlook
+Problem_Child
+Reasonable_Excuse
+Recent_Convert
+Tactical_Grace
+Unacceptable_Behaviour
+Steely_Glint
 Highpoint
-Shoot Them Later
-Attitude Adjuster
-Killing Time
-Heavy Messing
-Frank Exchange Of Views
-Death and Gravity
-Ethics Gradient
-Honest Mistake
+Shoot_Them_Later
+Attitude_Adjuster
+Killing_Time
+Heavy_Messing
+Frank_Exchange_Of_Views
+Death_and_Gravity
+Ethics_Gradient
+Honest_Mistake
 Limnivorous
-No Fixed Abode
-Quietly Confident
-Uninvited Guest
-Use Psychology
-What Is The Answer and Why?
-Wisdom Like Silence
-Yawning Angel
-Zero Gravitas
+No_Fixed_Abode
+Quietly_Confident
+Uninvited_Guest
+Use_Psychology
+What_Is_The_Answer_and_Why?
+Wisdom_Like_Silence
+Yawning_Angel
+Zero_Gravitas
 Misophist
-Serious Callers Only
-Not Invented Here
-Charitable View
-I Blame My Mother
-I Blame Your Mother
-Just Passing Through
-Appeal To Reason
-Break Even
-Long View
-Peace Makes Plenty
-Sober Counsel
-Within Reason
-Kiss the Blade
+Serious_Callers_Only
+Not_Invented_Here
+Charitable_View
+I_Blame_My_Mother
+I_Blame_Your_Mother
+Just_Passing_Through
+Appeal_To_Reason
+Break_Even
+Long_View
+Peace_Makes_Plenty
+Sober_Counsel
+Within_Reason
+Kiss_the_Blade
 Frightspear
-Furious Purpose
+Furious_Purpose
 Riptalon
 Xenoclast
-Bad for Business
+Bad_for_Business
 Arbitrary
 Cantankerous
-Only Slightly Bent
-I Thought He Was With You
-Space Monster
-A Series Of Unlikely Explanations
-Never Talk To Strangers
-Funny, It Worked Last Time...
-Don't Try This At Home
-Eight Rounds Rapid
-Lightly Seared On The Reality Grill
-Now We Try It My Way
-Liveware Problem
-Pure Big Mad Boat Man
+Only_Slightly_Bent
+I_Thought_He_Was_With_You
+Space_Monster
+A_Series_Of_Unlikely_Explanations
+Never_Talk_To_Strangers
+Funny,_It_Worked_Last_Time...
+Don't_Try_This_At_Home
+Eight_Rounds_Rapid
+Lightly_Seared_On_The_Reality_Grill
+Now_We_Try_It_My_Way
+Liveware_Problem
+Pure_Big_Mad_Boat_Man
 Qualifier
-Seed Drill
-Subtle Shift In Emphasis
-Transient Atmospheric Phenomenon
-You Naughty Monsters
-You'll Clean That Up Before You Leave
-Sense Amid Madness, Wit Amidst Folly
-Me, I'm Counting
-Total Internal Reflection
-Armchair Traveller
-Hidden Income
+Seed_Drill
+Subtle_Shift_In_Emphasis
+Transient_Atmospheric_Phenomenon
+You_Naughty_Monsters
+You'll_Clean_That_Up_Before_You_Leave
+Sense_Amid_Madness,_Wit_Amidst_Folly
+Me,_I'm_Counting
+Total_Internal_Reflection
+Armchair_Traveller
+Hidden_Income
 Hylozoist
-No One Knows What The Dead Think
+No_One_Knows_What_The_Dead_Think
 Pelagian
-Fixed Grin
-Scar Glamour
+Fixed_Grin
+Scar_Glamour
 Labtebricolephile
-Dressed Up To Party
+Dressed_Up_To_Party
 Ucalegon
-Messenger Of Truth
-Fractious Person
-Rubric Of Ruin
-Abundance Of Onslaught
-Vision Of Hope Surpassed
-Partial Photic Boundary""".splitlines()
+Messenger_Of_Truth
+Fractious_Person
+Rubric_Of_Ruin
+Abundance_Of_Onslaught
+Vision_Of_Hope_Surpassed
+Partial_Photic_Boundary""".splitlines()
 
 
 def usage():

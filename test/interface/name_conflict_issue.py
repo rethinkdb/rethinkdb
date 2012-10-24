@@ -23,8 +23,8 @@ with driver.Metacluster() as metacluster:
     print "Creating two namespaces with the same name..."
     datacenter = access.add_datacenter()
     access.move_server_to_datacenter(next(iter(access.machines)), datacenter)
-    namespace1 = access.add_namespace(primary = datacenter, name = "John Jacob Jingleheimer Schmidt")
-    namespace2 = access.add_namespace(primary = datacenter, name = "John Jacob Jingleheimer Schmidt".upper())
+    namespace1 = access.add_namespace(primary = datacenter, name = "John_Jacob_Jingleheimer_Schmidt")
+    namespace2 = access.add_namespace(primary = datacenter, name = "John_Jacob_Jingleheimer_Schmidt".upper())
     time.sleep(1)
     cluster.check()
     print "Checking that there is an issue about this..."
