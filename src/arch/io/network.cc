@@ -912,7 +912,7 @@ std::vector<std::string> get_ips() {
             if (!(p->ifa_flags & IFF_LOOPBACK)) {
                 struct sockaddr_in6 *in6_addr = reinterpret_cast<sockaddr_in6 *>(p->ifa_addr);
 
-                char buf[INET_ADDRSTRLEN + 1] = { 0 };
+                char buf[INET6_ADDRSTRLEN + 1] = { 0 };
                 const char *res = inet_ntop(AF_INET6, &in6_addr->sin6_addr, buf, INET6_ADDRSTRLEN);
 
                 guarantee_err(res != NULL, "inet_ntop failed on an ipv6 address");
