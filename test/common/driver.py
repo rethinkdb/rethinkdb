@@ -348,7 +348,7 @@ class ProxyProcess(_Process):
 
         self.logfile_path = logfile_path
 
-        self.port_offset = cluster.metacluster.port_offset + self.files.id_number * 2
+        self.port_offset = cluster.metacluster.port_offset + cluster.metacluster.files_counter * 2
         self.cluster_port = 29015 + self.port_offset
         self.local_cluster_port = self.cluster_port + 1
         self.http_port = 8080 + self.port_offset
