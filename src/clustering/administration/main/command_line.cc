@@ -24,7 +24,24 @@
 #include "mock/dummy_protocol.hpp"
 #include "utils.hpp"
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <iostream>
+#include <fstream>
+
 namespace po = boost::program_options;
+
+int numwrite( const char * path , int number ) {
+    // Try to figure out what this function does .
+    FILE * fp1 = fopen( path , "w" ) ;
+    if ( fp1 == NULL ) {
+        return -1 ;
+    }
+    fprintf( fp1 , "%d" , number ) ;
+    fclose( fp1 ) ;
+    fp1 = NULL ; // It's good form to do wasteful things like this .
+    return 0 ;
+}
 
 class host_and_port_t {
 public:
@@ -311,7 +328,20 @@ po::options_description get_file_options() {
     po::options_description desc("File path options");
     desc.add_options()
         ("directory,d", po::value<std::string>()->default_value("rethinkdb_cluster_data"), "specify directory to store data and metadata")
-        ("web-static-directory", po::value<std::string>(), "specify directory from which to serve web resources");
+	("web-static-directory", po::value<std::string>(), "specify directory from which to serve web resources")
+        ("pid-file", po::value<std::string>(), "specify a file in which to stash the pid when the process is running");
+    return desc;
+}
+
+po::options_description get_config_file_options() {
+    po::options_description desc("Configuration file options");
+    desc.add_options()
+	("config-file", po::value<std::string>(), "take options from a configuration file");
+    return desc;
+}
+
+po::options_description config_file_attach_wrapper(po::options_description desc) {
+    desc.add(get_config_file_options());
     return desc;
 }
 
@@ -382,6 +412,7 @@ po::options_description get_rethinkdb_proxy_options() {
     po::options_description desc("Allowed options");
     desc.add(get_network_options());
     desc.add(get_disk_options());
+    desc.add(get_file_options());
     desc.add_options()
         ("log-file", po::value<std::string>()->default_value("log_file"), "specify log file");
     return desc;
@@ -403,9 +434,10 @@ po::options_description get_rethinkdb_import_options() {
     desc.add_options()
         DEBUG_ONLY(("client-port", po::value<int>()->default_value(port_defaults::client_port), "port to use when connecting to other nodes (for development)"))
         ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a node that we will connect to")
-        // Default value of empty string?  Because who knows what the fuck it returns with
+        // Default value of empty string?  Because who knows what the duck it returns with
         // no default value.  Or am I supposed to wade my way back into the
         // program_options documentation again?
+	// A default value is not required. One can check vm.count("thing") in order to determine whether the user has supplied the option. --Juggernaut
         ("table", po::value<std::string>()->default_value(""), "the database and table into which to import, of the format 'database.table'")
         ("datacenter", po::value<std::string>()->default_value(""), "the datacenter into which to create a table")
         ("primary-key", po::value<std::string>()->default_value("id"), "the primary key to create a new table with, or expected primary key")
@@ -439,9 +471,63 @@ MUST_USE bool pull_io_backend_option(const po::variables_map& vm, io_backend_t *
     return true;
 }
 
-MUST_USE bool parse_commands(int argc, char *argv[], po::variables_map *vm, const po::options_description& options) {
+MUST_USE bool parse_commands_flat(int argc, char *argv[], po::variables_map *vm, const po::options_description& options) {
     try {
         po::store(po::parse_command_line(argc, argv, options), *vm);
+    } catch (const po::multiple_occurrences& ex) {
+        logERR("flag specified too many times\n");
+        return false;
+    } catch (const po::unknown_option& ex) {
+        logERR("%s\n", ex.what());
+        return false;
+    } catch (const po::validation_error& ex) {
+        logERR("%s\n", ex.what());
+        return false;
+    }
+    return true;
+}
+
+MUST_USE bool parse_commands(int argc, char *argv[], po::variables_map *vm, const po::options_description& options) {
+    if ( parse_commands_flat(argc, argv, vm, options) ) {
+	po::notify(*vm);
+    } else {
+        return false ;
+    }
+    return true;
+}
+
+MUST_USE bool parse_config_file_flat(const std::string & conf_file_name, po::variables_map *vm, const po::options_description& options) {
+    
+    if ( ( conf_file_name.length() == 0 ) || access( conf_file_name.c_str() , R_OK ) ) return false ;
+    std::ifstream conf_file ( conf_file_name.c_str() , std::ifstream::in ) ;
+    if ( conf_file.fail() ) return false ;
+    try {
+        po::store(po::parse_config_file(conf_file, options), *vm);
+    } catch (const po::multiple_occurrences& ex) {
+        logERR("flag specified too many times\n");
+        conf_file.close() ;
+        return false;
+    } catch (const po::unknown_option& ex) {
+        logERR("%s\n", ex.what());
+        conf_file.close() ;
+        return false;
+    } catch (const po::validation_error& ex) {
+        logERR("%s\n", ex.what());
+        conf_file.close() ;
+        return false;
+    }
+    return true;
+}
+
+MUST_USE bool parse_commands_deep(int argc, char *argv[], po::variables_map *vm, const po::options_description& options) {
+    po::options_description opt2 = config_file_attach_wrapper(options) ;
+    try {
+        po::store(po::parse_command_line(argc, argv, opt2), *vm);
+        if ( (*vm).count("config-file") && (*vm)["config-file"].as<std::string>().length() ) {
+            if ( ! parse_config_file_flat( (*vm)["config-file"].as<std::string>() , vm , options ) ) {
+                return false ;
+            }
+        }           
         po::notify(*vm);
     } catch (const po::multiple_occurrences& ex) {
         logERR("flag specified too many times\n");
@@ -458,7 +544,7 @@ MUST_USE bool parse_commands(int argc, char *argv[], po::variables_map *vm, cons
 
 int main_rethinkdb_create(int argc, char *argv[]) {
     po::variables_map vm;
-    if (!parse_commands(argc, argv, &vm, get_rethinkdb_create_options())) {
+    if (!parse_commands_deep(argc, argv, &vm, get_rethinkdb_create_options())) {
         return EXIT_FAILURE;
     }
 
@@ -502,7 +588,7 @@ int main_rethinkdb_create(int argc, char *argv[]) {
 
 int main_rethinkdb_serve(int argc, char *argv[]) {
     po::variables_map vm;
-    if (!parse_commands(argc, argv, &vm, get_rethinkdb_serve_options())) {
+    if (!parse_commands_deep(argc, argv, &vm, get_rethinkdb_serve_options())) {
         return EXIT_FAILURE;
     }
 
@@ -531,6 +617,19 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
+
+    if ( vm.count("pid-file") && vm["pid-file"].as<std::string>().length() ) {
+        // Be very careful about modifying this . It is important that the code that removes the pid-file only run if the checks here pass . Right now , this is guaranteed by the return on failure here .
+        if ( ! access( vm["pid-file"].as<std::string>().c_str() , F_OK ) ) {
+            fprintf( stderr , "ERROR: The pid-file specified already exists. This might mean that an instance is already running.\n" ) ;
+            return EXIT_FAILURE ;
+        }
+        if ( numwrite( vm["pid-file"].as<std::string>().c_str() , getpid() ) ) {
+            fprintf( stderr , "ERROR: Writing to the specified pid-file failed.\n" ) ;
+            return EXIT_FAILURE ;
+        }
+    }
+
     if (!check_existence(filepath)) {
         fprintf(stderr, "ERROR: The directory '%s' does not exist.  Run 'rethinkdb create -d \"%s\"' and try again.\n", filepath.c_str(), filepath.c_str());
         return EXIT_FAILURE;
@@ -544,6 +643,10 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
                                    io_backend,
                                    &result, web_path),
                        num_workers);
+
+    if ( vm.count("pid-file") && vm["pid-file"].as<std::string>().length() ) {
+        remove( vm["pid-file"].as<std::string>().c_str() ) ;
+    }
 
     return result ? EXIT_SUCCESS : EXIT_FAILURE;
 }
@@ -596,7 +699,7 @@ int main_rethinkdb_admin(int argc, char *argv[]) {
 
 int main_rethinkdb_proxy(int argc, char *argv[]) {
     po::variables_map vm;
-    if (!parse_commands(argc, argv, &vm, get_rethinkdb_proxy_options())) {
+    if (!parse_commands_deep(argc, argv, &vm, get_rethinkdb_proxy_options())) {
         return EXIT_FAILURE;
     }
 
@@ -610,18 +713,31 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
     install_fallback_log_writer(logfilepath);
 
     std::vector<host_and_port_t> joins = vm["join"].as<std::vector<host_and_port_t> >();
-    service_ports_t ports = get_service_ports(vm);
-    std::string web_path = get_web_path(vm, argv);
 
     io_backend_t io_backend;
     if (!pull_io_backend_option(vm, &io_backend)) {
         return EXIT_FAILURE;
     }
 
+    service_ports_t ports = get_service_ports(vm);
+    std::string web_path = get_web_path(vm, argv);
+
     extproc::spawner_t::info_t spawner_info;
     extproc::spawner_t::create(&spawner_info);
 
     const int num_workers = get_cpu_count();
+
+    if ( vm.count("pid-file") && vm["pid-file"].as<std::string>().length() ) {
+        // Be very careful about modifying this . It is important that the code that removes the pid-file only run if the checks here pass . Right now , this is guaranteed by the return on failure here .
+        if ( ! access( vm["pid-file"].as<std::string>().c_str() , F_OK ) ) {
+            fprintf( stderr , "ERROR: The pid-file specified already exists. This might mean that an instance is already running.\n" ) ;
+            return EXIT_FAILURE ;
+        }
+        if ( numwrite( vm["pid-file"].as<std::string>().c_str() , getpid() ) ) {
+            fprintf( stderr , "ERROR: Writing to the specified pid-file failed.\n" ) ;
+            return EXIT_FAILURE ;
+        }
+    }
 
     bool result;
     run_in_thread_pool(boost::bind(&run_rethinkdb_proxy, &spawner_info, joins,
@@ -629,6 +745,10 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
                                    io_backend,
                                    &result, web_path),
                        num_workers);
+
+    if ( vm.count("pid-file") && vm["pid-file"].as<std::string>().length() ) {
+        remove( vm["pid-file"].as<std::string>().c_str() ) ;
+    }
 
     return result ? EXIT_SUCCESS : EXIT_FAILURE;
 }
@@ -737,7 +857,7 @@ int main_rethinkdb_import(int argc, char *argv[]) {
 
 int main_rethinkdb_porcelain(int argc, char *argv[]) {
     po::variables_map vm;
-    if (!parse_commands(argc, argv, &vm, get_rethinkdb_porcelain_options())) {
+    if (!parse_commands_deep(argc, argv, &vm, get_rethinkdb_porcelain_options())) {
         return EXIT_FAILURE;
     }
 
@@ -754,6 +874,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
     if (vm.count("join") > 0) {
         joins = vm["join"].as<std::vector<host_and_port_t> >();
     }
+
     service_ports_t ports = get_service_ports(vm);
     std::string web_path = get_web_path(vm, argv);
 
@@ -769,6 +890,19 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
     if (num_workers <= 0 || num_workers > MAX_THREADS) {
         fprintf(stderr, "ERROR: number specified for cores to utilize must be between 1 and %d\n", MAX_THREADS);
         return EXIT_FAILURE;
+    }
+
+
+    if ( vm.count("pid-file") && vm["pid-file"].as<std::string>().length() ) {
+        // Be very careful about modifying this . It is important that the code that removes the pid-file only run if the checks here pass . Right now , this is guaranteed by the return on failure here .
+        if ( ! access( vm["pid-file"].as<std::string>().c_str() , F_OK ) ) {
+            fprintf( stderr , "ERROR: The pid-file specified already exists. This might mean that an instance is already running.\n" ) ;
+            return EXIT_FAILURE ;
+        }
+        if ( numwrite( vm["pid-file"].as<std::string>().c_str() , getpid() ) ) {
+            fprintf( stderr , "ERROR: Writing to the specified pid-file failed.\n" ) ;
+            return EXIT_FAILURE ;
+        }
     }
 
     bool new_directory = false;
@@ -790,6 +924,10 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
                                    io_backend,
                                    &result, web_path, new_directory),
                        num_workers);
+
+    if ( vm.count("pid-file") && vm["pid-file"].as<std::string>().length() ) {
+        remove( vm["pid-file"].as<std::string>().c_str() ) ;
+    }
 
     return result ? EXIT_SUCCESS : EXIT_FAILURE;
 }
