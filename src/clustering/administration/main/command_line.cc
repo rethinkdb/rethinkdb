@@ -51,6 +51,55 @@ bool check_existence(const std::string& file_path) {
     return 0 == access(file_path.c_str(), F_OK);
 }
 
+std::string get_web_path(const po::variables_map& vm, char *argv[]) {
+    // We check first for a run-time option, then check the home of the binary,
+    //  and then we check in the install location if such a location was provided at compile time.
+    path_t result;
+    if (vm.count("web-static-directory")) {
+        result = parse_as_path(vm["web-static-directory"].as<std::string>());
+    } else {
+        result = parse_as_path(argv[0]);
+        result.nodes.pop_back();
+        result.nodes.push_back("web");
+        #ifdef CPREFIX
+        std::string chkdir(CPREFIX "/lib/rethinkdb/web");
+        if ((access(render_as_path(result).c_str(), F_OK)) && (!access(chkdir.c_str(), F_OK))) {
+            result = parse_as_path(chkdir) ;
+        }
+        #endif
+    }
+
+    return render_as_path(result);
+}
+
+service_ports_t get_service_ports(const po::variables_map& vm) {
+    // serve
+    int cluster_port = vm["cluster-port"].as<int>();
+    int http_port = vm["http-port"].as<int>();
+#ifndef NDEBUG
+    int cluster_client_port = vm["client-port"].as<int>();
+#else
+    int cluster_client_port = port_defaults::client_port;
+#endif
+    // int reql_port = vm["reql-port"].as<int>();
+    int reql_port = vm["driver-port"].as<int>();
+    int port_offset = vm["port-offset"].as<int>();
+
+    if (cluster_port != 0) {
+        cluster_port += port_offset;
+    }
+
+    if (http_port != 0) {
+        http_port += port_offset;
+    }
+
+    if (reql_port != 0) {
+        reql_port += port_offset;
+    }
+
+    return service_ports_t(cluster_port, cluster_client_port, http_port, reql_port, port_offset);
+}
+
 void run_rethinkdb_create(const std::string &filepath, const name_string_t &machine_name, const io_backend_t io_backend, bool *result_out) {
     machine_id_t our_machine_id = generate_uuid();
     logINF("Our machine ID: %s\n", uuid_to_str(our_machine_id).c_str());
@@ -262,7 +311,7 @@ po::options_description get_file_options() {
     po::options_description desc("File path options");
     desc.add_options()
         ("directory,d", po::value<std::string>()->default_value("rethinkdb_cluster_data"), "specify directory to store data and metadata")
-	("web-static-directory", po::value<std::string>(), "specify directory from which to serve web resources");
+        ("web-static-directory", po::value<std::string>(), "specify directory from which to serve web resources");
     return desc;
 }
 
@@ -291,7 +340,7 @@ po::options_description get_network_options() {
     desc.add_options()
         ("cluster-port", po::value<int>()->default_value(port_defaults::peer_port), "port for receiving connections from other nodes")
         DEBUG_ONLY(("client-port", po::value<int>()->default_value(port_defaults::client_port), "port to use when connecting to other nodes (for development)"))
-        ("http-port", po::value<int>()->default_value(port_defaults::http_port), "port for http admin console (defaults to `port + 1000`)")
+        ("http-port", po::value<int>()->default_value(port_defaults::http_port), "port for http admin console")
         ("driver-port", po::value<int>()->default_value(port_defaults::reql_port), "port for rethinkdb protocol for client drivers")
         ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a node that we will connect to")
         ("port-offset,o", po::value<int>()->default_value(port_defaults::port_offset), "all ports used locally will have this value added");
@@ -464,34 +513,9 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
     if (vm.count("join") > 0) {
         joins = vm["join"].as<std::vector<host_and_port_t> >();
     }
-    int port = vm["cluster-port"].as<int>();
-    int http_port = vm["http-port"].as<int>();
-#ifndef NDEBUG
-    int client_port = vm["client-port"].as<int>();
-#else
-    int client_port = port_defaults::client_port;
-#endif
-    // int reql_port = vm["reql-port"].as<int>();
-    int reql_port = vm["driver-port"].as<int>();
-    int port_offset = vm["port-offset"].as<int>();
 
-// We check first for a run-time option . We then check the home of the binary , and then we check in the install location if such a location was provided at compile time .
-    path_t web_path ;
-    std::string chkdir ;
-    if ( vm.count("web-static-directory" ) ) {
-      web_path = parse_as_path( vm["web-static-directory"].as<std::string>() );
-    } else {
-      web_path = parse_as_path(argv[0]);
-      web_path.nodes.pop_back();
-      web_path.nodes.push_back("web");
-      #ifdef CPREFIX
-      // Note that the unnecessary cast is designed to make sure that the statement breaks in C instead of performing pointer arithmetic .
-      chkdir = ( std::string )( CPREFIX ) + "/lib/rethinkdb/web" ;
-      if ( ( access( render_as_path( web_path ).c_str() , F_OK ) ) && ( ! access( chkdir.c_str() , F_OK ) ) ) {
-	web_path = parse_as_path( chkdir ) ;
-      }
-      #endif // CPREFIX
-    }
+    service_ports_t ports = get_service_ports(vm);
+    std::string web_path = get_web_path(vm, argv);
 
     io_backend_t io_backend;
     if (!pull_io_backend_option(vm, &io_backend)) {
@@ -516,9 +540,9 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
 
     bool result;
     run_in_thread_pool(boost::bind(&run_rethinkdb_serve, &spawner_info, filepath, joins,
-                                   service_ports_t(port, client_port, http_port, reql_port, port_offset),
+                                   ports,
                                    io_backend,
-                                   &result, render_as_path(web_path)),
+                                   &result, web_path),
                        num_workers);
 
     return result ? EXIT_SUCCESS : EXIT_FAILURE;
@@ -586,34 +610,8 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
     install_fallback_log_writer(logfilepath);
 
     std::vector<host_and_port_t> joins = vm["join"].as<std::vector<host_and_port_t> >();
-    int port = vm["cluster-port"].as<int>();
-    int http_port = vm["http-port"].as<int>();
-#ifndef NDEBUG
-    int client_port = vm["client-port"].as<int>();
-#else
-    int client_port = port_defaults::client_port;
-#endif
-    // int reql_port = vm["reql-port"].as<int>();
-    int reql_port = vm["driver-port"].as<int>();
-    int port_offset = vm["port-offset"].as<int>();
-
-// We check first for a run-time option . We then check the home of the binary , and then we check in the install location if such a location was provided at compile time .
-    path_t web_path ;
-    std::string chkdir ;
-    if ( vm.count("web-static-directory" ) ) {
-      web_path = parse_as_path( vm["web-static-directory"].as<std::string>() );
-    } else {
-      web_path = parse_as_path(argv[0]);
-      web_path.nodes.pop_back();
-      web_path.nodes.push_back("web");
-      #ifdef CPREFIX
-      // Note that the unnecessary cast is designed to make sure that the statement breaks in C instead of performing pointer arithmetic .
-      chkdir = ( std::string )( CPREFIX ) + "/lib/rethinkdb/web" ;
-      if ( ( access( render_as_path( web_path ).c_str() , F_OK ) ) && ( ! access( chkdir.c_str() , F_OK ) ) ) {
-	web_path = parse_as_path( chkdir ) ;
-      }
-      #endif // CPREFIX
-    }
+    service_ports_t ports = get_service_ports(vm);
+    std::string web_path = get_web_path(vm, argv);
 
     io_backend_t io_backend;
     if (!pull_io_backend_option(vm, &io_backend)) {
@@ -627,9 +625,9 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
 
     bool result;
     run_in_thread_pool(boost::bind(&run_rethinkdb_proxy, &spawner_info, joins,
-                                   service_ports_t(port, client_port, http_port, reql_port, port_offset),
+                                   ports,
                                    io_backend,
-                                   &result, render_as_path(web_path)),
+                                   &result, web_path),
                        num_workers);
 
     return result ? EXIT_SUCCESS : EXIT_FAILURE;
@@ -756,34 +754,8 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
     if (vm.count("join") > 0) {
         joins = vm["join"].as<std::vector<host_and_port_t> >();
     }
-    int port = vm["cluster-port"].as<int>();
-    int http_port = vm["http-port"].as<int>();
-#ifndef NDEBUG
-    int client_port = vm["client-port"].as<int>();
-#else
-    int client_port = port_defaults::client_port;
-#endif
-    // int reql_port = vm["reql-port"].as<int>();
-    int reql_port = vm["driver-port"].as<int>();
-    int port_offset = vm["port-offset"].as<int>();
-
-// We check first for a run-time option . We then check the home of the binary , and then we check in the install location if such a location was provided at compile time .
-    path_t web_path ;
-    std::string chkdir ;
-    if ( vm.count("web-static-directory" ) ) {
-      web_path = parse_as_path( vm["web-static-directory"].as<std::string>() );
-    } else {
-      web_path = parse_as_path(argv[0]);
-      web_path.nodes.pop_back();
-      web_path.nodes.push_back("web");
-      #ifdef CPREFIX
-      // Note that the unnecessary cast is designed to make sure that the statement breaks in C instead of performing pointer arithmetic .
-      chkdir = ( std::string )( CPREFIX ) + "/lib/rethinkdb/web" ;
-      if ( ( access( render_as_path( web_path ).c_str() , F_OK ) ) && ( ! access( chkdir.c_str() , F_OK ) ) ) {
-	web_path = parse_as_path( chkdir ) ;
-      }
-      #endif // CPREFIX
-    }
+    service_ports_t ports = get_service_ports(vm);
+    std::string web_path = get_web_path(vm, argv);
 
     io_backend_t io_backend;
     if (!pull_io_backend_option(vm, &io_backend)) {
@@ -814,9 +786,9 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
 
     bool result;
     run_in_thread_pool(boost::bind(&run_rethinkdb_porcelain, &spawner_info, filepath, machine_name, joins,
-                                   service_ports_t(port, client_port, http_port, reql_port, port_offset),
+                                   ports,
                                    io_backend,
-                                   &result, render_as_path(web_path), new_directory),
+                                   &result, web_path, new_directory),
                        num_workers);
 
     return result ? EXIT_SUCCESS : EXIT_FAILURE;

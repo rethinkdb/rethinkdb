@@ -19,6 +19,10 @@ http_app_t *query_server_t::get_http_app() {
     return &server;
 }
 
+int query_server_t::get_port() const {
+    return server.get_port();
+}
+
 static void put_backtrace(const query_language::backtrace_t &bt, Response *res_out) {
     std::vector<std::string> frames = bt.get_frames();
     for (size_t i = 0; i < frames.size(); ++i) {

@@ -669,9 +669,13 @@ bool linux_nonthrowing_tcp_listener_t::begin_listening() {
     return true;
 }
 
-bool linux_nonthrowing_tcp_listener_t::is_bound() { return bound; }
+bool linux_nonthrowing_tcp_listener_t::is_bound() const {
+    return bound;
+}
 
-int linux_nonthrowing_tcp_listener_t::get_port() { return port; }
+int linux_nonthrowing_tcp_listener_t::get_port() const {
+    return port;
+}
 
 void linux_nonthrowing_tcp_listener_t::init_socket(int user_timeout) {
     int sock_fd = sock.get();
@@ -841,10 +845,18 @@ linux_tcp_listener_t::linux_tcp_listener_t(
     }
 }
 
+int linux_tcp_listener_t::get_port() const {
+    return listener->get_port();
+}
+
 linux_repeated_nonthrowing_tcp_listener_t::linux_repeated_nonthrowing_tcp_listener_t(int port, int user_timeout,
     const boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> &callback) :
         listener(port, user_timeout, callback)
 { }
+
+int linux_repeated_nonthrowing_tcp_listener_t::get_port() const {
+    return listener.get_port();
+}
 
 void linux_repeated_nonthrowing_tcp_listener_t::begin_repeated_listening_attempts() {
     auto_drainer_t::lock_t lock(&drainer);

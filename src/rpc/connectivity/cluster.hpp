@@ -230,9 +230,9 @@ public:
         redundant connections to the same peer. */
         mutex_t new_connection_mutex;
 
-        int cluster_client_port;
-        int cluster_listener_port;
         scoped_ptr_t<tcp_bound_socket_t> cluster_listener_socket;
+        int cluster_listener_port;
+        int cluster_client_port;
 
         variable_setter_t register_us_with_parent;
 

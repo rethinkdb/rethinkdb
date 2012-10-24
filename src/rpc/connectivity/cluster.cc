@@ -39,12 +39,12 @@ connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
     parent(p),
     message_handler(mh),
 
+    /* Create the socket to use when listening for connections from peers */
+    cluster_listener_socket(new tcp_bound_socket_t(port, default_user_timeout)),
+    cluster_listener_port(cluster_listener_socket->get_port()),
+
     /* The local port to use when connecting to the cluster port of peers */
     cluster_client_port(client_port),
-
-    /* Create the socket to use when listening for connections from peers */
-    cluster_listener_port(port),
-    cluster_listener_socket(new tcp_bound_socket_t(port, default_user_timeout)),
 
     /* This sets `parent->current_run` to `this`. It's necessary to do it in the
     constructor of a subfield rather than in the body of the `run_t` constructor

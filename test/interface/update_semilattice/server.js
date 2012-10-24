@@ -4,21 +4,20 @@ var request = require('request');
 var fs = require('fs');
 var $ = require('jquery')
 
-// Global variables
-var port_offset = 123
-var port_offset_ui = 1000
-
 // Slice arguments and look for port.
 var arguments = process.argv.splice(2);
 if (arguments.length < 1) {
-    console.log('Usage: node update_server.js <port>')
+    console.log('Usage: node update_server.js <node-port-offset>')
     return 1
 }
-port = parseInt(arguments[0]);
-if (isNaN(port)) {
-    console.log('Port must be an integer');
+node_port_offset = parseInt(arguments[0]);
+if (isNaN(node_port_offset)) {
+    console.log('node-port-offset must be an integer');
     return 1
 }
+
+// Global variables
+var service_port = 29015+node_port_offset+123
 
 
 var send_file = function(req, res, file, type) {
@@ -43,7 +42,7 @@ http.createServer(function (req, res) {
             send_file(req, res, './index.html', 'text/html');
             break;
         case '/get_semilattice':
-             request('http://newton:'+(port+port_offset_ui)+'/ajax/semilattice', function (error, response, body) {
+             request('http://newton:'+(node_port_offset+8080)+'/ajax/semilattice', function (error, response, body) {
                 if (!error && response.statusCode == 200) {
                     res.writeHead(200, {'Content-Type': 'text/plain'});
                     res.end(body);
@@ -93,7 +92,7 @@ http.createServer(function (req, res) {
                 console.log('Submitting...');
                 $.ajax({
                     contentType: 'application/json',
-                    url: 'http://newton:'+(port+port_offset_ui)+'/ajax/semilattice',
+                    url: 'http://newton:'+(node_port_offset+8080)+'/ajax/semilattice',
                     type: 'POST',
                     data: JSON.stringify(data),
                     success: function() {
@@ -115,7 +114,7 @@ http.createServer(function (req, res) {
                 /*
                 // This thing send data but the server doesn't get it... (node does...)
                 request({
-                        url: 'http://newton:'+(port+port_offset_ui)+'/ajax/semilattice',
+                        url: 'http://newton:'+(node_port_offset+8080)+'/ajax/semilattice',
                         headers: default_headers,
                         method: 'POST',
                         body: JSON.stringify(data)
@@ -126,7 +125,7 @@ http.createServer(function (req, res) {
                     }
                 });
                 request({
-                        url: 'http://newton:'+(port+port_offset)+'/test',
+                        url: 'http://newton:'+(service_port)+'/test',
                         headers: default_headers,
                         method: 'POST',
                         body: JSON.stringify(data)
@@ -139,8 +138,8 @@ http.createServer(function (req, res) {
                 */                                                                 
 
                 /*
-                request.post('http://newton:'+(port+port_offset_ui)+'/ajax/semilattice').form(data);
-                request.post('http://newton:'+(port+port_offset)+'/').form(data);
+                request.post('http://newton:'+(node_port_offset+8080)+'/ajax/semilattice').form(data);
+                request.post('http://newton:'+(service_port)+'/').form(data);
                 */
 
                 res.end('', 'utf-8');
@@ -160,7 +159,7 @@ http.createServer(function (req, res) {
     }
 
 
-}).listen((port+port_offset));
+}).listen((service_port));
 
-console.log('Server running on port:'+(port+port_offset));
+console.log('Server running on port:'+(service_port));
 

@@ -54,9 +54,9 @@ class Metacluster(object):
         self.files_counter = 0
         self.closed = False
         try:
-            self.base_port = int(os.environ["RETHINKDB_BASE_PORT"])
+            self.port_offset = int(os.environ["RETHINKDB_PORT_OFFSET"])
         except KeyError:
-            self.base_port = random.randint(10000, 20000)
+            self.port_offset = random.randint(0, 1800) * 10
 
     def close(self):
         """Kills all processes and deletes all files. Also, makes the
@@ -227,6 +227,8 @@ class _Process(object):
             else:
                 self.log_file = open(self.log_path, "w")
 
+            print "Launching: "
+            print self.args
             self.process = subprocess.Popen(self.args, stdout = self.log_file, stderr = self.log_file)
 
         except Exception, e:
@@ -318,14 +320,13 @@ class Process(_Process):
 
         self.files = files
 
-        self.cluster_port = cluster.metacluster.base_port + self.files.id_number * 2
-        self.local_cluster_port = cluster.metacluster.base_port + self.files.id_number * 2 + 1
-        self.http_port = self.cluster_port + 1000
-        self.port_offset = self.cluster_port
+        self.port_offset = cluster.metacluster.port_offset + self.files.id_number * 2
+        self.cluster_port = 29015 + self.port_offset
+        self.local_cluster_port = self.cluster_port + 1
+        self.http_port = 8080 + self.port_offset
 
         options = ["serve",
                    "--directory=" + self.files.db_path,
-                   "--cluster-port=" + str(self.cluster_port),
                    "--port-offset=" + str(self.port_offset),
                    "--client-port=" + str(self.local_cluster_port)] + extra_options
 
@@ -347,14 +348,13 @@ class ProxyProcess(_Process):
 
         self.logfile_path = logfile_path
 
-        self.cluster_port = cluster.metacluster.base_port + self.id_number * 2
-        self.local_cluster_port = cluster.metacluster.base_port + self.id_number * 2 + 1
-        self.http_port = self.cluster_port + 1000
-        self.port_offset = self.cluster_port
+        self.port_offset = cluster.metacluster.port_offset + self.files.id_number * 2
+        self.cluster_port = 29015 + self.port_offset
+        self.local_cluster_port = self.cluster_port + 1
+        self.http_port = 8080 + self.port_offset
 
         options = ["proxy",
                    "--log-file=" + self.logfile_path,
-                   "--cluster-port=" + str(self.cluster_port),
                    "--port-offset=" + str(self.port_offset),
                    "--client-port=" + str(self.local_cluster_port)] + extra_options
 

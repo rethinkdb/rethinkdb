@@ -36,9 +36,13 @@ protob_server_t<request_t, response_t, context_t>::protob_server_t(
         nice_crash("%s. Cannot bind to RDB protocol port. Exiting.\n", e.what());
     }
 }
-
 template <class request_t, class response_t, class context_t>
 protob_server_t<request_t, response_t, context_t>::~protob_server_t() { }
+
+template <class request_t, class response_t, class context_t>
+int protob_server_t<request_t, response_t, context_t>::get_port() const {
+    return tcp_listener->get_port();
+}
 
 template <class request_t, class response_t, class context_t>
 void protob_server_t<request_t, response_t, context_t>::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn, auto_drainer_t::lock_t keepalive) {

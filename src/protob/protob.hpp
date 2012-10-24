@@ -91,6 +91,8 @@ public:
     protob_server_t(int port, boost::function<response_t(request_t *, context_t *)> _f, response_t (*_on_unparsable_query)(request_t *, std::string), protob_server_callback_mode_t _cb_mode = CORO_ORDERED);
     ~protob_server_t();
     static const int32_t magic_number;
+
+    int get_port() const;
 private:
 
     void handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn, auto_drainer_t::lock_t);

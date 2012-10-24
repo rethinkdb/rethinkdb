@@ -177,3 +177,7 @@ administrative_http_server_manager_t::~administrative_http_server_manager_t() {
     destructors for the things in `scoped_ptr_t`s are not available from
     the `.hpp` file. */
 }
+
+int administrative_http_server_manager_t::get_port() const {
+    return server->get_port();
+}
