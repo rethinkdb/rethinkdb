@@ -3,6 +3,7 @@ goog.provide('rethinkdb.net');
 goog.require('rethinkdb.Connection');
 goog.require('rethinkdb.TcpConnection');
 goog.require('rethinkdb.HttpConnection');
+goog.require('rethinkdb.FakeConnection');
 
 /**
  * This shortcut function invokes either the {@link rethinkdb.TcpConnection}
@@ -23,6 +24,16 @@ rethinkdb.connect = function(host_or_list, onConnect, onFailure) {
     } else {
         return new rethinkdb.HttpConnection(host_or_list, onConnect, onFailure);
     }
+}
+
+
+/**
+ * This function connect to a javascript server living in the browser
+ * @param {JavaScriptServer} local_server The server where we will simulate queries
+ * @export
+ */
+rethinkdb.fake_connect = function(fake_server) {
+    return new rethinkdb.FakeConnection(fake_server);
 }
 
 /**

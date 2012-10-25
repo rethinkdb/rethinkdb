@@ -132,7 +132,7 @@ rethinkdb.Connection.prototype.sendProtoBuf_ = function(pbObj) {
     var finalArray = new Uint8Array(length + 4);
     (new DataView(finalArray.buffer)).setInt32(0, length, true);
     finalArray.set(data, 4);
-
+    
     this.send_(finalArray.buffer);
 };
 
