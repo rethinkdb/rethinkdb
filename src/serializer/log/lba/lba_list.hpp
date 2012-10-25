@@ -49,7 +49,8 @@ public:
 
 public:
     void set_block_info(block_id_t block, repli_timestamp_t recency,
-                        flagged_off64_t offset, file_account_t *io_account);
+                        flagged_off64_t offset, file_account_t *io_account,
+                        extent_transaction_t *txn);
 
     struct sync_callback_t {
         virtual void on_lba_sync() = 0;
@@ -59,7 +60,7 @@ public:
 
     void prepare_metablock(metablock_mixin_t *mb_out);
 
-    void consider_gc(file_account_t *io_account);
+    void consider_gc(file_account_t *io_account, extent_transaction_t *txn);
 
 public:
     struct shutdown_callback_t {
@@ -71,7 +72,7 @@ public:
 private:
     shutdown_callback_t *shutdown_callback;
     int gc_count;   // Number of active GC fsms
-    bool __shutdown();
+    bool shutdown_now();
 
 private:
     extent_manager_t *const extent_manager;
@@ -91,7 +92,7 @@ private:
     lba_disk_structure_t *disk_structures[LBA_SHARD_FACTOR];
 
     // Garbage-collect the given shard
-    void gc(int i, file_account_t *io_account);
+    void gc(int i, file_account_t *io_account, extent_transaction_t *txn);
 
     // Returns true if the garbage ratio is bad enough that we want to
     // gc. The integer is which shard to GC.
