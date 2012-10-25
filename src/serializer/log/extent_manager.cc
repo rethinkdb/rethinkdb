@@ -237,7 +237,7 @@ void extent_manager_t::shutdown() {
     state = state_shut_down;
 }
 
-void extent_manager_t::begin_transaction(transaction_t *out) {
+void extent_manager_t::begin_transaction(extent_transaction_t *out) {
     assert_thread();
     rassert(!current_transaction);
     current_transaction = out;
@@ -289,13 +289,13 @@ void extent_manager_t::release_extent(off64_t extent) {
     current_transaction->free_queue().push_back(extent);
 }
 
-void extent_manager_t::end_transaction(DEBUG_VAR const transaction_t &t) {
+void extent_manager_t::end_transaction(DEBUG_VAR const extent_transaction_t &t) {
     assert_thread();
     rassert(current_transaction == &t);
     current_transaction = NULL;
 }
 
-void extent_manager_t::commit_transaction(transaction_t *t) {
+void extent_manager_t::commit_transaction(extent_transaction_t *t) {
     assert_thread();
     for (std::deque<off64_t>::iterator it = t->free_queue().begin(); it != t->free_queue().end(); it++) {
         off64_t extent = *it;

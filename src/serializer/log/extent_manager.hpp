@@ -54,8 +54,6 @@ public:
         int64_t padding;
     };
 
-    typedef extent_transaction_t transaction_t;
-
     extent_manager_t(direct_file_t *file, const log_serializer_on_disk_static_config_t *static_config, const log_serializer_dynamic_config_t *dynamic_config, log_serializer_stats_t *);
     ~extent_manager_t();
 
@@ -78,11 +76,11 @@ public:
     has been written. This guarantees that we will not overwrite extents that the
     most recent metablock points to. */
 
-    void begin_transaction(transaction_t *out);
+    void begin_transaction(extent_transaction_t *out);
     off64_t gen_extent();
     void release_extent(off64_t extent);
-    void end_transaction(const transaction_t &t);
-    void commit_transaction(transaction_t *t);
+    void end_transaction(const extent_transaction_t &t);
+    void commit_transaction(extent_transaction_t *t);
 
     /* Number of extents that have been released but not handed back out again. */
     int held_extents();
@@ -111,7 +109,7 @@ private:
         state_shut_down
     } state;
 
-    transaction_t *current_transaction;
+    extent_transaction_t *current_transaction;
 
     DISABLE_COPYING(extent_manager_t);
 };

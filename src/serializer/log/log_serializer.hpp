@@ -152,7 +152,7 @@ private:
 
     struct index_write_context_t {
         index_write_context_t() : next_metablock_write(NULL) { }
-        extent_manager_t::transaction_t extent_txn;
+        extent_transaction_t extent_txn;
         cond_t *next_metablock_write;
 
     private:

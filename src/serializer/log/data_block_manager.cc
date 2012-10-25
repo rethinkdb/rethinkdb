@@ -413,7 +413,7 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_wr
 
         {
             ASSERT_NO_CORO_WAITING;
-            extent_manager_t::transaction_t em_trx;
+            extent_transaction_t em_trx;
             parent->serializer->extent_manager->begin_transaction(&em_trx);
             // Step 1: Write buffers to disk and assemble index operations
             for (int i = 0; i < num_writes; ++i) {
@@ -507,7 +507,7 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_wr
 void data_block_manager_t::on_gc_write_done() {
 
     // Process GC data changes which have been caused by the tokens
-    extent_manager_t::transaction_t em_trx;
+    extent_transaction_t em_trx;
     serializer->extent_manager->begin_transaction(&em_trx);
     check_and_handle_outstanding_empty_extents();
     serializer->extent_manager->end_transaction(em_trx);
