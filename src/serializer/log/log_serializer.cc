@@ -546,6 +546,7 @@ log_serializer_t::block_write(const void *buf, block_id_t block_id, file_account
 intrusive_ptr_t<ls_block_token_pointee_t>
 log_serializer_t::block_write(const void *buf, block_id_t block_id, file_account_t *io_account) {
     assert_thread();
+    rassert(block_id != NULL_BLOCK_ID, "If this assertion fails, inform Sam and remove the assertion.");
     return serializer_block_write(this, buf, block_id, io_account);
 }
 
