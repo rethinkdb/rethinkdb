@@ -72,7 +72,7 @@ public:
 private:
     shutdown_callback_t *shutdown_callback;
     int gc_count;   // Number of active GC fsms
-    bool __shutdown();
+    bool shutdown_now();
 
 private:
     extent_manager_t *const extent_manager;

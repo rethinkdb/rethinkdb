@@ -214,7 +214,7 @@ public:
         owner->gc_count--;
 
         if(owner->state == lba_list_t::state_shutting_down && owner->gc_count == 0)
-            owner->__shutdown();
+            owner->shutdown_now();
 
         delete this;
     }
@@ -263,11 +263,11 @@ bool lba_list_t::shutdown(shutdown_callback_t *cb) {
         return false;
     } else {
         shutdown_callback = NULL;
-        return __shutdown();
+        return shutdown_now();
     }
 }
 
-bool lba_list_t::__shutdown() {
+bool lba_list_t::shutdown_now() {
     for (int i = 0; i < LBA_SHARD_FACTOR; i++) {
         disk_structures[i]->shutdown();   // Also deletes it
         disk_structures[i] = NULL;
