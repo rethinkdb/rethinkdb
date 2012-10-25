@@ -581,7 +581,14 @@ void data_block_manager_t::run_gc() {
 
                 /* If other forces cause all of the blocks in the extent to become garbage
                 before we even finish GCing it, they will set current_entry to NULL. */
-                check_and_handle_outstanding_empty_extents();  // Give one last chance for current extent.
+
+                // Give one last chance for current extent.
+                extent_manager_t::transaction_t em_trx;
+                serializer->extent_manager->begin_transaction(&em_trx);
+                check_and_handle_outstanding_empty_extents();
+                serializer->extent_manager->end_transaction(em_trx);
+                serializer->extent_manager->commit_transaction(&em_trx);
+
                 if (gc_state.current_entry == NULL) {
                     gc_state.set_step(gc_ready);
                     break;
