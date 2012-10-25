@@ -1,16 +1,12 @@
-<script id="resolve_issues-container-outer-template" type="text/x-handlebars-template">
+<script id="resolve_issues-container-template" type="text/x-handlebars-template">
     <div class="container">
-        <div id="user-alert-space"></div>
-        <div id="resolve_issues-container-inner-placeholder"></div>
+        <div id="issue-alerts"></div>
+        <div class="issue-list"></div>
     </div>
 </script>
 
-<script id="resolve_issues-container-inner-template" type="text/x-handlebars-template">
-    {{#if issues_exist}}
+<script id="resolve_issues-issue_list-template" type="text/x-handlebars-template">
     <div class="issues"></div>
-    {{else}}
-    <p class="no-issues">No issues reported in the cluster.</p>
-    {{/if}}
 </script>
 
 <script id="declare_machine_dead-modal-template" type="text/x-handlebars-template">
@@ -27,23 +23,9 @@
     Sorry, something went wrong. The issue might not be up to date, please refresh.
 </script>
 
-<script id="declared_machine_dead-alert-template" type="text/x-handlebars-template">
-    <div class="alert" data-alert="alert">
-        <a class="close" href="#">&times;</a>
-        <p>You successfully declared server <span class="name">{{machine_name}}</span> dead.</p>
-    </div>
-</script>
-
 <script id="resolve_vclock-modal-template" type="text/x-handlebars-template">
     <div class="alert alert-error error_answer"></div>
     <p>Are you sure you want to use the value <strong>{{final_value}}</strong>?</p>
-</script>
-
-<script id="resolved_vclock-alert-template" type="text/x-handlebars-template">
-    <div class="alert" data-alert="alert">
-        <a class="close" href="#">&times;</a>
-        <p>You successfully resolved the configuration value to <span class="name">{{final_value}}</span>.</p>
-    </div>
 </script>
 
 <script id="resolve_unsatisfiable_goals_modal-template" type="text/x-handlebars-template">
@@ -61,17 +43,28 @@
     </ul>
 </script>
 
-<script id="resolved_issues_unsatisfiable_goals-template" type="text/x-handlebars-template">
+<script id="resolve_issues-resolved-template" type="text/x-handlebars-template">
     <div class="alert" data-alert="alert">
         <a class="close" href="#">&times;</a>
-        <p>You successfully solved the unsatisfiable goals issue.</p>
+        {{#if name_conflict}}
+            <p>You successfully solved the name conflict.</p>
+        {{/if}}
+        {{#if machine_dead}}
+            <p>You successfully declared server <span class="name">{{machine_name}}</span> dead.</p>
+        {{/if}}
+        {{#if vclock_conflict}}
+            <p>You successfully resolved the configuration value to <span class="name">{{final_value}}</span>.</p>
+        {{/if}}
+        {{#if unsatisfiable_goals}}
+            <p>You successfully solved the unsatisfiable goals issue.</p>
+        {{/if}}
     </div>
 </script>
 
 <script id="resolve_issues-machine_down-template" type="text/x-handlebars-template">
     <div class="issue {{#if critical }}critical{{/if}}">
-        <button class="btn btn-danger solve-issue">Declare Dead</button>
         <div class="issue-header">
+            <button class="btn btn-danger solve-issue">Declare Dead</button>
             <p class="issue-type">Server down</p>
             <p class="message">{{name}} is unreachable</p>
             <p class="datetime"><abbr class="timeago" title="{{datetime}}">{{datetime}}</abbr></p>
@@ -124,8 +117,8 @@
 
 <script id="resolve_issues-logfile_write-template" type="text/x-handlebars-template">
     <div class="issue {{#if critical }}critical{{/if}} name-conflict">
-        <button class="btn btn-danger solve-issue">Declare Dead</button>
         <div class="issue-header">
+            <button class="btn btn-danger solve-issue">Declare Dead</button>
             <p class="issue-type">Cannot write logs</p>
             <p class="message">File cannot be written on server <a class="change-route" href="/#servers/{{machine_uuid}}">{{machine_name}}</a></p>
             <p class="datetime"><abbr class="timeago" title="{{datetime}}">{{datetime}}</abbr></p>
@@ -159,6 +152,9 @@
 <script id="resolve_issues-unsatisfiable_goals-template" type="text/x-handlebars-template">
     <div class="issue {{#if critical }}critical{{/if}} name-conflict">
         <div class="issue-header">
+            {{#if datacenters_with_issues}}
+                <button class="btn btn-danger solve-issue">Lower the number of replicas</button>
+            {{/if}}
             <p class="issue-type">Unsatisfiable goals</p>
             <p class="datetime"><abbr class="timeago" title="{{datetime}}">{{datetime}}</abbr></p>
         </div>
@@ -172,8 +168,6 @@
             {{/each}}
             {{#if datacenters_with_issues}}
                 <p class="description">To solve this issue, you can lower the number of replicas or connect a new server to the datacenter.</p>
-
-                <p><button class="btn btn-danger solve-issue">Lower the number of replicas</button></p>
             {{/if}}
         </div>
     </div>
