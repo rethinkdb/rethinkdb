@@ -23,15 +23,16 @@ with driver.Metacluster() as metacluster:
     print "Creating two namespaces with the same name..."
     datacenter = access.add_datacenter()
     access.move_server_to_datacenter(next(iter(access.machines)), datacenter)
-    namespace1 = access.add_namespace(primary = datacenter, name = "John_Jacob_Jingleheimer_Schmidt")
-    namespace2 = access.add_namespace(primary = datacenter, name = "John_Jacob_Jingleheimer_Schmidt".upper())
+    database = access.add_database("test")
+    namespace1 = access.add_namespace(primary = datacenter, database = database, name = "John_Jacob_Jingleheimer_Schmidt")
+    namespace2 = access.add_namespace(primary = datacenter, database = database, name = "John_Jacob_Jingleheimer_Schmidt".upper())
     time.sleep(1)
     cluster.check()
     print "Checking that there is an issue about this..."
     issues = access.get_issues()
     assert len(issues) == 1
     assert issues[0]["type"] == "NAME_CONFLICT_ISSUE"
-    assert issues[0]["contested_name"].upper() == "John Jacob Jingleheimer Schmidt".upper()
+    assert issues[0]["contested_name"].upper() == "test.John_Jacob_Jingleheimer_Schmidt".upper()
     assert set(issues[0]["contestants"]) == set([namespace1.uuid, namespace2.uuid])
     cluster.check_and_stop()
 print "Done."
