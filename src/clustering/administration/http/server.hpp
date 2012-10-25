@@ -45,6 +45,7 @@ public:
         std::string _path);
     ~administrative_http_server_manager_t();
 
+    int get_port() const;
 private:
 
     scoped_ptr_t<file_http_app_t> file_app;

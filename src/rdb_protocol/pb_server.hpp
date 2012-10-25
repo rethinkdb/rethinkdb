@@ -22,6 +22,8 @@ public:
 
     http_app_t *get_http_app();
 
+    int get_port() const;
+
     struct context_t {
         context_t() : interruptor(0) { }
         stream_cache_t stream_cache;

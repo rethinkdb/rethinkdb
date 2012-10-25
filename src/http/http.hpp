@@ -163,6 +163,7 @@ public:
     http_server_t(int port, http_app_t *application);
     ~http_server_t();
     signal_t *get_bound_signal();
+    int get_port() const;
 private:
     void handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &conn, auto_drainer_t::lock_t);
     http_app_t *application;

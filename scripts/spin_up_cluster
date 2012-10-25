@@ -132,14 +132,14 @@ else:
         hostname = socket.gethostname()
         if (i == 0):
             if (valgrind):
-                cl = ["valgrind", "--leak-check=full", "--track-origins=yes", "--suppressions=../scripts/rethinkdb-valgrind-suppressions.supp", binary, "--cluster-port", str(port), "--directory", directory, "--machine-name", machine_name, "--port-offset", str(i+port), "--web-static-directory", web]
+                cl = ["valgrind", "--leak-check=full", "--track-origins=yes", "--suppressions=../scripts/rethinkdb-valgrind-suppressions.supp", binary, "--directory", directory, "--machine-name", machine_name, "--port-offset", str(i+port), "--web-static-directory", web]
             else:
-                cl = [binary, "--cluster-port", str(port), "--directory", directory, "--machine-name", machine_name, "--port-offset", str(i+port), "--web-static-directory", web]
+                cl = [binary, "--directory", directory, "--machine-name", machine_name, "--port-offset", str(i+port), "--web-static-directory", web]
         else:
             if (valgrind):
-                cl = ["valgrind", "--leak-check=full", "--track-origins=yes", "--suppressions=../scripts/rethinkdb-valgrind-suppressions.supp", binary, "--cluster-port", str(port+i), "--directory", directory, "--machine-name", machine_name, "--join", "%s:%d" % (hostname, port), "--port-offset", str(i+port), "--web-static-directory", web]
+                cl = ["valgrind", "--leak-check=full", "--track-origins=yes", "--suppressions=../scripts/rethinkdb-valgrind-suppressions.supp", binary, "--directory", directory, "--machine-name", machine_name, "--join", "%s:%d" % (hostname, 29015 + port), "--port-offset", str(i+port), "--web-static-directory", web]
             else:
-                cl = [binary, "--cluster-port", str(port+i), "--directory", directory, "--machine-name", machine_name, "--join", "%s:%d" % (hostname, port), "--port-offset", str(i+port), "--web-static-directory", web]
+                cl = [binary, "--directory", directory, "--machine-name", machine_name, "--join", "%s:%d" % (hostname, 29015 + port), "--port-offset", str(i+port), "--web-static-directory", web]
         print ' '.join(cl)
         kids += [subprocess.Popen(cl, stdout=sys.stdout, stderr=sys.stderr)]
         time.sleep(1)

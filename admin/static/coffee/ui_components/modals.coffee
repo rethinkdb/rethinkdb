@@ -146,32 +146,39 @@ module 'UIComponents', ->
             @on_user_success(response)
 
     # Rename common items (namespaces, machines, datacenters)
+    # The modal takes a few arguments:
+    #   - item_uuid: uuid of the element to rename
+    #   - item_type: type of the element to rename
+    #   - on_success: function to perform on successful rename
+    #   - options:
+    #     * hide_alert: hide the alert shown in the user space on success
     class @RenameItemModal extends @AbstractModal
         template: Handlebars.compile $('#rename_item-modal-template').html()
         alert_tmpl: Handlebars.compile $('#renamed_item-alert-template').html()
         error_template: Handlebars.compile $('#error_input-template').html()
         class: 'rename-item-modal'
 
-        initialize: (uuid, type, on_success) ->
+        initialize: (uuid, type, on_success, options) ->
             log_initial '(initializing) modal dialog: rename item'
             @item_uuid = uuid
             @item_type = type
             @user_on_success = on_success
+            @options = options
             super
 
         get_item_object: ->
             switch @item_type
                 when 'datacenter' then return datacenters.get(@item_uuid)
-                when 'namespace' then return namespaces.get(@item_uuid)
-                when 'machine' then return machines.get(@item_uuid)
+                when 'table' then return namespaces.get(@item_uuid)
+                when 'server' then return machines.get(@item_uuid)
                 when 'database' then return databases.get(@item_uuid)
                 else return null
 
         get_item_url: ->
             switch @item_type
                 when 'datacenter' then return 'datacenters'
-                when 'namespace' then return namespaces.get(@item_uuid).get('protocol') + '_namespaces'
-                when 'machine' then return 'machines'
+                when 'table' then return namespaces.get(@item_uuid).get('protocol') + '_namespaces'
+                when 'server' then return 'machines'
                 when 'database' then return 'databases'
                 else return null
 
@@ -284,11 +291,13 @@ module 'UIComponents', ->
             # update proper model with the name
             @get_item_object().set('name', @formdata.new_name)
 
-            # notify the user that we succeeded
-            $('#user-alert-space').html @alert_tmpl
-                type: @item_type
-                old_name: @old_name
-                new_name: @formdata.new_name
+            # Unless an alerts should be suppressed, show an alert
+            if @options and not @options.hide_alert
+                # notify the user that we succeeded
+                $('#user-alert-space').html @alert_tmpl
+                    type: @item_type
+                    old_name: @old_name
+                    new_name: @formdata.new_name
 
             # Call custom success function
             if @user_on_success?

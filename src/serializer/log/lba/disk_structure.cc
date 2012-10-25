@@ -62,7 +62,7 @@ void lba_disk_structure_t::on_extent_read() {
     start_callback->on_lba_load();
 }
 
-void lba_disk_structure_t::add_entry(block_id_t block_id, repli_timestamp_t recency, flagged_off64_t offset, file_account_t *io_account) {
+void lba_disk_structure_t::add_entry(block_id_t block_id, repli_timestamp_t recency, flagged_off64_t offset, file_account_t *io_account, extent_transaction_t *txn) {
     if (last_extent && last_extent->full()) {
         /* We have filled up an extent. Transfer it to the superblock. */
 
@@ -76,12 +76,12 @@ void lba_disk_structure_t::add_entry(block_id_t block_id, repli_timestamp_t rece
         rassert(superblock_size <= em->extent_size);
 
         if (superblock_extent && superblock_extent->amount_filled + superblock_size > em->extent_size) {
-            superblock_extent->destroy();
+            superblock_extent->destroy(txn);
             superblock_extent = NULL;
         }
 
         if (!superblock_extent) {
-            superblock_extent = new extent_t(em, file);
+            superblock_extent = new extent_t(em, file, txn);
         }
 
         /* Prepare the new superblock. */
@@ -105,7 +105,7 @@ void lba_disk_structure_t::add_entry(block_id_t block_id, repli_timestamp_t rece
     }
 
     if (!last_extent) {
-        last_extent = new lba_disk_extent_t(em, file, io_account);
+        last_extent = new lba_disk_extent_t(em, file, io_account, txn);
     }
 
     rassert(!last_extent->full());
@@ -288,13 +288,20 @@ int lba_disk_structure_t::num_entries_that_can_fit_in_an_extent() const {
     return (em->extent_size - offsetof(lba_extent_t, entries[0])) / sizeof(lba_entry_t);
 }
 
-void lba_disk_structure_t::destroy() {
-    if (superblock_extent) superblock_extent->destroy();
+void lba_disk_structure_t::destroy(extent_transaction_t *txn) {
+    if (superblock_extent) {
+        superblock_extent->destroy(txn);
+    }
+
     while (lba_disk_extent_t *e = extents_in_superblock.head()) {
         extents_in_superblock.remove(e);
-        e->destroy();
+        e->destroy(txn);
     }
-    if (last_extent) last_extent->destroy();
+
+    if (last_extent) {
+        last_extent->destroy(txn);
+    }
+
     delete this;
 }
 

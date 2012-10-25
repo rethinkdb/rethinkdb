@@ -1,6 +1,7 @@
 #ifndef __STRESS_CLIENT_OPS_RANGE_READ_OPS_HPP__
 #define __STRESS_CLIENT_OPS_RANGE_READ_OPS_HPP__
 
+#include <vector>
 #include "ops/seed_key_generator.hpp"
 #include "ops/watcher_and_tracker.hpp"
 #include "op.hpp"

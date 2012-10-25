@@ -6,12 +6,26 @@ module 'Sidebar', ->
         template: Handlebars.compile $('#sidebar-container-template').html()
         template_dataexplorer: Handlebars.compile $('#sidebar-dataexplorer_container-template').html()
 
+        events: ->
+            'click .show-issues': 'toggle_showing_issues'
+            'click .hide-issues': 'toggle_showing_issues'
+            'click a.change-route': 'toggle_showing_issues'
+            'click #issue-alerts .alert .close': 'remove_parent_alert'
+
         initialize: =>
             @client_connectivity_status = new Sidebar.ClientConnectionStatus()
             @servers_connected = new Sidebar.ServersConnected()
             @datacenters_connected = new Sidebar.DatacentersConnected()
             @issues = new Sidebar.Issues()
             @issues_banner = new Sidebar.IssuesBanner()
+            @all_issues = new ResolveIssuesView.Container
+
+            # whether we're currently showing the issue list expanded (@all_issues)
+            @showing_all_issues = false
+
+            # Watch as issues get removed / reset. If the size is zero, let's figure out what to show
+            @issues.on 'remove', @issues_being_resolved
+            @issues.on 'reset', @issues_being_resolved
 
         render: =>
             @.$el.html @template({})
@@ -24,7 +38,29 @@ module 'Sidebar', ->
             # Render issue summary and issue banner
             @.$('.issues').html @issues.render().el
             @.$('.issues-banner').html @issues_banner.render().el
+
             return @
+
+        # Change the state of the issue banner and show / hide the issue list based on state
+        toggle_showing_issues: =>
+            @showing_all_issues = not @showing_all_issues
+            if @showing_all_issues
+                @.$('.all-issues').html(@all_issues.render().el).show()
+            else
+                @.$('.all-issues').hide()
+
+            @issues_banner.set_showing_issues @showing_all_issues
+
+        remove_parent_alert: (event) =>
+            element = $(event.target).parent()
+            element.slideUp 'fast', =>
+                element.remove()
+                @issues_being_resolved()
+                @issues_banner.render()
+
+        # As issues get resolved, we need to make sure that we're showing the right elements
+        issues_being_resolved: =>
+            @.$('.all-issues').hide() if issues.length is 0 and @.$('#issue-alerts').children().length is 0
 
         destroy: =>
             @client_connectivity_status.destroy()
@@ -32,7 +68,7 @@ module 'Sidebar', ->
             @datacenters_connected.destroy()
             @issues.destroy()
             @issues_banner.destroy()
-
+            @all_issues.destroy()
 
     # Sidebar.ClientConnectionStatus
     class @ClientConnectionStatus extends Backbone.View
@@ -137,6 +173,7 @@ module 'Sidebar', ->
             datacenters.off 'all', @render
 
     # Sidebar.Issues
+    # Issue count panel at the top
     class @Issues extends Backbone.View
         className: 'issues'
         template: Handlebars.compile $('#sidebar-issues-template').html()
@@ -161,15 +198,9 @@ module 'Sidebar', ->
         template: Handlebars.compile $('#sidebar-issues_banner-template').html()
         resolve_issues_route: '#resolve_issues'
 
-        events: ->
-            'click .show-issues': 'show_all_issues'
-            'click .hide-issues': 'hide_all_issues'
-            'click a.change-route': 'hide_all_issues'
-
         initialize: =>
-            @all_issues = new ResolveIssuesView.Container
-            @showing_all_issues = false
             issues.on 'all', @render
+            @showing_issues = false
 
         render: =>
             # Group critical issues by type
@@ -210,24 +241,22 @@ module 'Sidebar', ->
                     num: _.keys(other_issues).length
                     data: reduced_other_issues
                 num_issues: issues.length
-                no_issues: _.keys(critical_issues).length is 0 and _.keys(other_issues).length is 0
+                no_issues: issues.length is 0
+                show_banner: issues.length > 0 or $('#issue-alerts').children().length > 0
 
-            @show_all_issues() if @showing_all_issues
+            # Preserve the state of the button (show or hide issues) between renders
+            @set_showing_issues(@showing_issues) if @showing_issues
 
             return @
 
-        show_all_issues: =>
-            @showing_all_issues = true
-            @.$('.all-issues').html(@all_issues.render().el).show()
-            @.$('.show-issues').hide()
-            @.$('.hide-issues').show()
-
-        hide_all_issues: =>
-            @showing_all_issues = false
-            @.$('.all-issues').hide()
-            @.$('.show-issues').show()
-            @.$('.hide-issues').hide()
+        set_showing_issues: (showing) =>
+            @showing_issues = showing
+            if showing
+                @.$('.show-issues').hide()
+                @.$('.hide-issues').show()
+            else
+                @.$('.show-issues').show()
+                @.$('.hide-issues').hide()
 
         destroy: =>
             issues.off 'all', @render
-
