@@ -69,6 +69,8 @@ private:
 
     /* Use destroy() or shutdown() instead */
     ~lba_disk_structure_t() {}
+
+    DISABLE_COPYING(lba_disk_structure_t);
 };
 
 #endif  // SERIALIZER_LOG_LBA_DISK_STRUCTURE_HPP_
