@@ -399,6 +399,16 @@ po::options_description get_rethinkdb_create_options() {
     return desc;
 }
 
+po::options_description get_rethinkdb_create_options_visible() {
+    po::options_description desc("Allowed options");
+    desc.add(get_file_options());
+    desc.add(get_machine_options());
+#ifdef AIOSUPPORT
+    desc.add(get_disk_options());
+#endif // AIOSUPPORT
+    return desc;
+}
+
 po::options_description get_rethinkdb_serve_options() {
     po::options_description desc("Allowed options");
     desc.add(get_file_options());
@@ -408,11 +418,34 @@ po::options_description get_rethinkdb_serve_options() {
     return desc;
 }
 
+po::options_description get_rethinkdb_serve_options_visible() {
+    po::options_description desc("Allowed options");
+    desc.add(get_file_options());
+    desc.add(get_network_options());
+#ifdef AIOSUPPORT
+    desc.add(get_disk_options());
+#endif // AIOSUPPORT
+    desc.add(get_cpu_options());
+    return desc;
+}
+
 po::options_description get_rethinkdb_proxy_options() {
     po::options_description desc("Allowed options");
+    desc.add(get_file_options());
     desc.add(get_network_options());
     desc.add(get_disk_options());
+    desc.add_options()
+        ("log-file", po::value<std::string>()->default_value("log_file"), "specify log file");
+    return desc;
+}
+
+po::options_description get_rethinkdb_proxy_options_visible() {
+    po::options_description desc("Allowed options");
     desc.add(get_file_options());
+    desc.add(get_network_options());
+#ifdef AIOSUPPORT
+    desc.add(get_disk_options());
+#endif // AIOSUPPORT
     desc.add_options()
         ("log-file", po::value<std::string>()->default_value("log_file"), "specify log file");
     return desc;
@@ -457,13 +490,29 @@ po::options_description get_rethinkdb_porcelain_options() {
     return desc;
 }
 
+po::options_description get_rethinkdb_porcelain_options_visible() {
+    po::options_description desc("Allowed options");
+    desc.add(get_file_options());
+    desc.add(get_machine_options());
+    desc.add(get_network_options());
+#ifdef AIOSUPPORT
+    desc.add(get_disk_options());
+#endif // AIOSUPPORT
+    desc.add(get_cpu_options());
+    return desc;
+}
+
 // Returns true upon success.
 MUST_USE bool pull_io_backend_option(const po::variables_map& vm, io_backend_t *out) {
     std::string io_backend = vm["io-backend"].as<std::string>();
     if (io_backend == "pool") {
         *out = aio_pool;
     } else if (io_backend == "native") {
+#ifdef AIOSUPPORT
         *out = aio_native;
+#else
+        return false;
+#endif
     } else {
         return false;
     }
@@ -550,6 +599,7 @@ int main_rethinkdb_create(int argc, char *argv[]) {
 
     io_backend_t io_backend;
     if (!pull_io_backend_option(vm, &io_backend)) {
+        fprintf(stderr, "ERROR: selected io-backend is invalid or unsupported.\n");
         return EXIT_FAILURE;
     }
 
@@ -605,6 +655,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
 
     io_backend_t io_backend;
     if (!pull_io_backend_option(vm, &io_backend)) {
+        fprintf(stderr, "ERROR: selected io-backend is invalid or unsupported.\n");
         return EXIT_FAILURE;
     }
 
@@ -716,6 +767,7 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
 
     io_backend_t io_backend;
     if (!pull_io_backend_option(vm, &io_backend)) {
+        fprintf(stderr, "ERROR: selected io-backend is invalid or unsupported.\n");
         return EXIT_FAILURE;
     }
 
@@ -882,6 +934,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
 
     io_backend_t io_backend;
     if (!pull_io_backend_option(vm, &io_backend)) {
+        fprintf(stderr, "ERROR: selected io-backend is invalid or unsupported.\n");
         return EXIT_FAILURE;
     }
 
@@ -938,21 +991,21 @@ void help_rethinkdb_create() {
     printf("'rethinkdb create' is used to prepare a directory to act "
            "as the storage location for a RethinkDB cluster node.\n");
     std::stringstream sstream;
-    sstream << get_rethinkdb_create_options();
+    sstream << get_rethinkdb_create_options_visible();
     printf("%s\n", sstream.str().c_str());
 }
 
 void help_rethinkdb_serve() {
     printf("'rethinkdb serve' is the actual process for a RethinkDB cluster node.\n");
     std::stringstream sstream;
-    sstream << get_rethinkdb_serve_options();
+    sstream << get_rethinkdb_serve_options_visible();
     printf("%s\n", sstream.str().c_str());
 }
 
 void help_rethinkdb_proxy() {
     printf("'rethinkdb proxy' serves as a proxy to an existing RethinkDB cluster.\n");
     std::stringstream sstream;
-    sstream << get_rethinkdb_proxy_options();
+    sstream << get_rethinkdb_proxy_options_visible();
     printf("%s\n", sstream.str().c_str());
 }
 
