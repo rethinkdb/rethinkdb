@@ -1,6 +1,6 @@
 goog.provide('rethinkdb.Table');
 
-goog.require('rethinkdb');
+goog.require('rethinkdbmdl');
 goog.require('rethinkdb.Expression');
 
 /**
@@ -60,9 +60,9 @@ rethinkdb.Table.prototype.formatQuery = function(bt) {
         }
     } else {
         if (this.db_) {
-            return carrotify_("r.db('"+this.db_+"').table('"+this.name_+"')");
+            return rethinkdb.util.carrotify_("r.db('"+this.db_+"').table('"+this.name_+"')");
         } else {
-            return carrotify_("r.table('"+this.name_+"')");
+            return rethinkdb.util.carrotify_("r.table('"+this.name_+"')");
         }
     }
 };
@@ -103,14 +103,14 @@ rethinkdb.GetExpression.prototype.formatQuery = function(bt) {
     } else {
         var a = bt.shift();
         if (a === 'key') {
-            return spaceify_(this.table_.formatQuery()+".get(")+
-                this.key_.formatQuery(bt)+spaceify_(", '"+this.primaryKey_+"')");
+            return rethinkdb.util.spaceify_(this.table_.formatQuery()+".get(")+
+                this.key_.formatQuery(bt)+rethinkdb.util.spaceify_(", '"+this.primaryKey_+"')");
         } else if (a === 'attrname') {
-            return spaceify_(this.table_.formatQuery()+".get("+
-                this.key_.formatQuery()+", ")+carrotify_("'"+this.primaryKey_+"'")+" ";
+            return rethinkdb.util.spaceify_(this.table_.formatQuery()+".get("+
+                this.key_.formatQuery()+", ")+rethinkdb.util.carrotify_("'"+this.primaryKey_+"'")+" ";
         } else {
             goog.asserts.assert(a === undefined);
-            return this.table_.formatQuery(bt)+spaceify_(".get("+
+            return this.table_.formatQuery(bt)+rethinkdb.util.spaceify_(".get("+
                 this.key_.formatQuery()+", '"+this.primaryKey_+"')");
         }
     }
@@ -122,9 +122,9 @@ rethinkdb.GetExpression.prototype.formatQuery = function(bt) {
  * @param {string=} opt_primaryKey
  */
 rethinkdb.Table.prototype.get = function(key, opt_primaryKey) {
-    argCheck_(arguments, 1);
-    key = wrapIf_(key);
-    return newExpr_(rethinkdb.GetExpression, this, key, opt_primaryKey);
+    rethinkdb.util.argCheck_(arguments, 1);
+    key = rethinkdb.util.wrapIf_(key);
+    return rethinkdb.util.newExpr_(rethinkdb.GetExpression, this, key, opt_primaryKey);
 };
 goog.exportProperty(rethinkdb.Table.prototype, 'get',
                     rethinkdb.Table.prototype.get);
@@ -173,11 +173,11 @@ rethinkdb.InsertQuery.prototype.formatQuery = function(bt) {
         var docsStr = "["+docs.join(', ')+"]";
         return this.table_.formatQuery()+".insert("+docsStr+")";
     } else {
-        docs = docs.map(spaceify_);
+        docs = docs.map(rethinkdb.util.spaceify_);
         var a = bt.shift();
         var tab
         if (a !== undefined) {
-            tab = spaceify_(this.table_.formatQuery());
+            tab = rethinkdb.util.spaceify_(this.table_.formatQuery());
             var b = a.split(':');
             goog.asserts.assert(b[0] === 'term');
             var i = parseInt(b[1], 10);
@@ -196,7 +196,7 @@ rethinkdb.InsertQuery.prototype.formatQuery = function(bt) {
  * @param {*} docs An object or list of objects to insert
  */
 rethinkdb.Table.prototype.insert = function(docs) {
-    argCheck_(arguments, 1);
+    rethinkdb.util.argCheck_(arguments, 1);
     if (!goog.isArray(docs))
         docs = [docs];
     docs = docs.map(rethinkdb.expr);
@@ -284,9 +284,9 @@ rethinkdb.PointDeleteQuery.prototype.formatQuery = function(bt) {
         var a = bt.shift();
         if (a !== undefined) {
             goog.asserts.assert(a === 'key');
-            return spaceify_(this.table_.formatQuery()+".get(")+this.key_.formatQuery(bt)+"       ";
+            return rethinkdb.util.spaceify_(this.table_.formatQuery()+".get(")+this.key_.formatQuery(bt)+"       ";
         } else {
-            return this.table_.formatQuery(bt)+spaceify_(".get("+this.key_.formatQuery()+").del()");
+            return this.table_.formatQuery(bt)+rethinkdb.util.spaceify_(".get("+this.key_.formatQuery()+").del()");
         }
     }
 };
@@ -347,10 +347,10 @@ rethinkdb.UpdateQuery.prototype.formatQuery = function(bt) {
     } else {
         var a = bt.shift();
         if (a === 'view') {
-            return this.view_.formatQuery(bt)+spaceify_(".update("+this.mapping_.formatQuery()+")");
+            return this.view_.formatQuery(bt)+rethinkdb.util.spaceify_(".update("+this.mapping_.formatQuery()+")");
         } else {
             goog.asserts.assert(a === 'mapping');
-            return spaceify_(this.view_.formatQuery()+".update(")+this.mapping_.formatQuery(bt)+" ";
+            return rethinkdb.util.spaceify_(this.view_.formatQuery()+".update(")+this.mapping_.formatQuery(bt)+" ";
         }
     }
 };
@@ -404,18 +404,18 @@ rethinkdb.PointUpdateQuery.prototype.formatQuery = function(bt) {
     } else {
         var a = bt.shift();
         if (a === undefined) {
-            return this.table_.formatQuery(bt)+spaceify_(".get("+this.key_.formatQuery()+
+            return this.table_.formatQuery(bt)+rethinkdb.util.spaceify_(".get("+this.key_.formatQuery()+
                 ", '"+this.primaryKey_+"').update("+this.mapping_.formatQuery()+")");
         } else if (a === 'key') {
-            return spaceify_(this.table_.formatQuery()+".get(")+this.key_.formatQuery(bt)+
-                    spaceify_(", '"+this.primaryKey_+"').update("+this.mapping_.formatQuery()+")");
+            return rethinkdb.util.spaceify_(this.table_.formatQuery()+".get(")+this.key_.formatQuery(bt)+
+                    rethinkdb.util.spaceify_(", '"+this.primaryKey_+"').update("+this.mapping_.formatQuery()+")");
         } else if (a === 'keyname') {
-            return spaceify_(this.table_.formatQuery()+".get("+this.key_.formatQuery()+
-                    ", ")+carrotify_("'"+this.primaryKey_+"'")+spaceify_(").update("+
+            return rethinkdb.util.spaceify_(this.table_.formatQuery()+".get("+this.key_.formatQuery()+
+                    ", ")+rethinkdb.util.carrotify_("'"+this.primaryKey_+"'")+rethinkdb.util.spaceify_(").update("+
                     this.mapping_.formatQuery()+")");
         } else {
             goog.asserts.assert(a === 'point_map');
-            return spaceify_(this.table_.formatQuery()+".get("+this.key_.formatQuery()+", '"+
+            return rethinkdb.util.spaceify_(this.table_.formatQuery()+".get("+this.key_.formatQuery()+", '"+
                     this.primaryKey_+"').update(")+this.mapping_.formatQuery(bt)+" ";
         }
     }
@@ -429,8 +429,8 @@ rethinkdb.PointUpdateQuery.prototype.formatQuery = function(bt) {
  *  faster at the expence of guaranteed atomicity. Defaults to false.
  */
 rethinkdb.Expression.prototype.update = function(mapping, opt_allowNonAtomic) {
-    argCheck_(arguments, 1);
-    mapping = functionWrap_(mapping);
+    rethinkdb.util.argCheck_(arguments, 1);
+    mapping = rethinkdb.util.functionWrap_(mapping);
     opt_allowNonAtomic = (opt_allowNonAtomic === undefined) ? false : opt_allowNonAtomic;
 
     if (this instanceof rethinkdb.GetExpression) {
@@ -486,10 +486,10 @@ rethinkdb.MutateQuery.prototype.formatQuery = function(bt) {
     } else {
         var a = bt.shift();
         if (a === 'view') {
-            return this.view_.formatQuery(bt)+spaceify_(".mutate("+this.mapping_.formatQuery()+")");
+            return this.view_.formatQuery(bt)+rethinkdb.util.spaceify_(".mutate("+this.mapping_.formatQuery()+")");
         } else {
             goog.asserts.assert(a === 'mapping');
-            return spaceify_(this.view_.formatQuery()+".mutate(")+this.mapping_.formatQuery(bt)+" ";
+            return rethinkdb.util.spaceify_(this.view_.formatQuery()+".mutate(")+this.mapping_.formatQuery(bt)+" ";
         }
     }
 };
@@ -543,18 +543,18 @@ rethinkdb.PointMutateQuery.prototype.formatQuery = function(bt) {
     } else {
         var a = bt.shift();
         if (a === undefined) {
-            return this.table_.formatQuery(bt)+spaceify_(".get("+this.key_.formatQuery()+
+            return this.table_.formatQuery(bt)+rethinkdb.util.spaceify_(".get("+this.key_.formatQuery()+
                 ", '"+this.primaryKey_+"').mutate("+this.mapping_.formatQuery()+")");
         } else if (a === 'key') {
-            return spaceify_(this.table_.formatQuery()+".get(")+this.key_.formatQuery(bt)+
-                    spaceify_(", '"+this.primaryKey_+"').mutate("+this.mapping_.formatQuery()+")");
+            return rethinkdb.util.spaceify_(this.table_.formatQuery()+".get(")+this.key_.formatQuery(bt)+
+                    rethinkdb.util.spaceify_(", '"+this.primaryKey_+"').mutate("+this.mapping_.formatQuery()+")");
         } else if (a === 'keyname') {
-            return spaceify_(this.table_.formatQuery()+".get("+this.key_.formatQuery()+
-                    ", ")+carrotify_("'"+this.primaryKey_+"'")+spaceify_(").mutate("+
+            return rethinkdb.util.spaceify_(this.table_.formatQuery()+".get("+this.key_.formatQuery()+
+                    ", ")+rethinkdb.util.carrotify_("'"+this.primaryKey_+"'")+rethinkdb.util.spaceify_(").mutate("+
                     this.mapping_.formatQuery()+")");
         } else {
             goog.asserts.assert(a === 'point_map');
-            return spaceify_(this.table_.formatQuery()+".get("+this.key_.formatQuery()+", '"+
+            return rethinkdb.util.spaceify_(this.table_.formatQuery()+".get("+this.key_.formatQuery()+", '"+
                     this.primaryKey_+"').mutate(")+this.mapping_.formatQuery(bt)+" ";
         }
     }
@@ -568,8 +568,8 @@ rethinkdb.PointMutateQuery.prototype.formatQuery = function(bt) {
  *  faster at the expence of guaranteed atomicity. Defaults to false.
  */
 rethinkdb.Expression.prototype.mutate = function(mapping, opt_allowNonAtomic) {
-    argCheck_(arguments, 1);
-    mapping = functionWrap_(mapping);
+    rethinkdb.util.argCheck_(arguments, 1);
+    mapping = rethinkdb.util.functionWrap_(mapping);
     opt_allowNonAtomic = (opt_allowNonAtomic === undefined) ? false : opt_allowNonAtomic;
 
     if (this instanceof rethinkdb.GetExpression) {

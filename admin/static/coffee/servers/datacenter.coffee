@@ -106,6 +106,7 @@ module 'DatacenterView', ->
             remove_datacenter_dialog.render @model
 
         destroy: =>
+            datacenters.off 'remove', @check_if_still_exists
             @title.destroy()
             @profile.destroy()
             @machine_list.destroy()

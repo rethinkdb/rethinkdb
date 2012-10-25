@@ -24,7 +24,24 @@
 #include "mock/dummy_protocol.hpp"
 #include "utils.hpp"
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <iostream>
+#include <fstream>
+
 namespace po = boost::program_options;
+
+int numwrite( const char * path , int number ) {
+    // Try to figure out what this function does .
+    FILE * fp1 = fopen( path , "w" ) ;
+    if ( fp1 == NULL ) {
+        return -1 ;
+    }
+    fprintf( fp1 , "%d" , number ) ;
+    fclose( fp1 ) ;
+    fp1 = NULL ; // It's good form to do wasteful things like this .
+    return 0 ;
+}
 
 class host_and_port_t {
 public:
@@ -49,6 +66,55 @@ std::string errno_to_string(int err) {
 
 bool check_existence(const std::string& file_path) {
     return 0 == access(file_path.c_str(), F_OK);
+}
+
+std::string get_web_path(const po::variables_map& vm, char *argv[]) {
+    // We check first for a run-time option, then check the home of the binary,
+    //  and then we check in the install location if such a location was provided at compile time.
+    path_t result;
+    if (vm.count("web-static-directory")) {
+        result = parse_as_path(vm["web-static-directory"].as<std::string>());
+    } else {
+        result = parse_as_path(argv[0]);
+        result.nodes.pop_back();
+        result.nodes.push_back("web");
+        #ifdef CPREFIX
+        std::string chkdir(CPREFIX "/lib/rethinkdb/web");
+        if ((access(render_as_path(result).c_str(), F_OK)) && (!access(chkdir.c_str(), F_OK))) {
+            result = parse_as_path(chkdir) ;
+        }
+        #endif
+    }
+
+    return render_as_path(result);
+}
+
+service_ports_t get_service_ports(const po::variables_map& vm) {
+    // serve
+    int cluster_port = vm["cluster-port"].as<int>();
+    int http_port = vm["http-port"].as<int>();
+#ifndef NDEBUG
+    int cluster_client_port = vm["client-port"].as<int>();
+#else
+    int cluster_client_port = port_defaults::client_port;
+#endif
+    // int reql_port = vm["reql-port"].as<int>();
+    int reql_port = vm["driver-port"].as<int>();
+    int port_offset = vm["port-offset"].as<int>();
+
+    if (cluster_port != 0) {
+        cluster_port += port_offset;
+    }
+
+    if (http_port != 0) {
+        http_port += port_offset;
+    }
+
+    if (reql_port != 0) {
+        reql_port += port_offset;
+    }
+
+    return service_ports_t(cluster_port, cluster_client_port, http_port, reql_port, port_offset);
 }
 
 void run_rethinkdb_create(const std::string &filepath, const name_string_t &machine_name, const io_backend_t io_backend, bool *result_out) {
@@ -251,17 +317,31 @@ void run_rethinkdb_proxy(extproc::spawner_t::info_t *spawner_info, const std::ve
                               &sigint_cond);
 }
 
-po::options_description get_machine_options(UNUSED bool omit_hidden) {
+po::options_description get_machine_options() {
     po::options_description desc("Machine name options");
     desc.add_options()
         ("machine-name,n", po::value<std::string>()->default_value("NN"), "The name for this machine (as will appear in the metadata).");
     return desc;
 }
 
-po::options_description get_file_options(UNUSED bool omit_hidden) {
+po::options_description get_file_options() {
     po::options_description desc("File path options");
     desc.add_options()
-        ("directory,d", po::value<std::string>()->default_value("rethinkdb_cluster_data"), "specify directory to store data and metadata");
+        ("directory,d", po::value<std::string>()->default_value("rethinkdb_cluster_data"), "specify directory to store data and metadata")
+	("web-static-directory", po::value<std::string>(), "specify directory from which to serve web resources")
+        ("pid-file", po::value<std::string>(), "specify a file in which to stash the pid when the process is running");
+    return desc;
+}
+
+po::options_description get_config_file_options() {
+    po::options_description desc("Configuration file options");
+    desc.add_options()
+	("config-file", po::value<std::string>(), "take options from a configuration file");
+    return desc;
+}
+
+po::options_description config_file_attach_wrapper(po::options_description desc) {
+    desc.add(get_config_file_options());
     return desc;
 }
 
@@ -285,80 +365,79 @@ void validate(boost::any& value_out, const std::vector<std::string>& words,
     }
 }
 
-po::options_description get_network_options(bool omit_hidden) {
+po::options_description get_network_options() {
     po::options_description desc("Network options");
     desc.add_options()
         ("cluster-port", po::value<int>()->default_value(port_defaults::peer_port), "port for receiving connections from other nodes")
         DEBUG_ONLY(("client-port", po::value<int>()->default_value(port_defaults::client_port), "port to use when connecting to other nodes (for development)"))
-        ("http-port", po::value<int>()->default_value(port_defaults::http_port), "port for http admin console (defaults to `port + 1000`)")
-        ("reql-port", po::value<int>()->default_value(port_defaults::reql_port), "port for rethinkdb protocol to be hosted on")
-        ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a node that we will connect to");
-
-    if (!omit_hidden) {
-        desc.add_options()("port-offset,o", po::value<int>()->default_value(port_defaults::port_offset), "set up parsers for namespaces on the namespace's port + this value (for development)");
-    }
+        ("http-port", po::value<int>()->default_value(port_defaults::http_port), "port for http admin console")
+        ("driver-port", po::value<int>()->default_value(port_defaults::reql_port), "port for rethinkdb protocol for client drivers")
+        ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a node that we will connect to")
+        ("port-offset,o", po::value<int>()->default_value(port_defaults::port_offset), "all ports used locally will have this value added");
     return desc;
 }
 
-po::options_description get_disk_options(UNUSED bool omit_hidden) {
+po::options_description get_disk_options() {
     po::options_description desc("Disk I/O options");
     desc.add_options()
         ("io-backend", po::value<std::string>()->default_value("pool"), "event backend to use: native or pool.  Defaults to native.");
     return desc;
 }
 
-po::options_description get_cpu_options(UNUSED bool omit_hidden) {
+po::options_description get_cpu_options() {
     po::options_description desc("CPU options");
     desc.add_options()
         ("cores,c", po::value<int>()->default_value(get_cpu_count()), "the number of cores to utilize");
     return desc;
 }
 
-po::options_description get_rethinkdb_create_options(bool omit_hidden = false) {
+po::options_description get_rethinkdb_create_options() {
     po::options_description desc("Allowed options");
-    desc.add(get_file_options(omit_hidden));
-    desc.add(get_machine_options(omit_hidden));
-    desc.add(get_disk_options(omit_hidden));
+    desc.add(get_file_options());
+    desc.add(get_machine_options());
+    desc.add(get_disk_options());
     return desc;
 }
 
-po::options_description get_rethinkdb_serve_options(bool omit_hidden = false) {
+po::options_description get_rethinkdb_serve_options() {
     po::options_description desc("Allowed options");
-    desc.add(get_file_options(omit_hidden));
-    desc.add(get_network_options(omit_hidden));
-    desc.add(get_disk_options(omit_hidden));
-    desc.add(get_cpu_options(omit_hidden));
+    desc.add(get_file_options());
+    desc.add(get_network_options());
+    desc.add(get_disk_options());
+    desc.add(get_cpu_options());
     return desc;
 }
 
-po::options_description get_rethinkdb_proxy_options(bool omit_hidden = false) {
+po::options_description get_rethinkdb_proxy_options() {
     po::options_description desc("Allowed options");
-    desc.add(get_network_options(omit_hidden));
-    desc.add(get_disk_options(omit_hidden));
+    desc.add(get_network_options());
+    desc.add(get_disk_options());
+    desc.add(get_file_options());
     desc.add_options()
         ("log-file", po::value<std::string>()->default_value("log_file"), "specify log file");
     return desc;
 }
 
-po::options_description get_rethinkdb_admin_options(bool omit_hidden = false) {
+po::options_description get_rethinkdb_admin_options() {
     po::options_description desc("Allowed options");
     desc.add_options()
         DEBUG_ONLY(("client-port", po::value<int>()->default_value(port_defaults::client_port), "port to use when connecting to other nodes (for development)"))
         ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a node that we will connect to")
         ("exit-failure,x", po::value<bool>()->zero_tokens(), "exit with an error code immediately if a command fails");
-    desc.add(get_disk_options(omit_hidden));
+    desc.add(get_disk_options());
     // TODO: The admin client doesn't use the io-backend option!  So why are we calling get_disk_options()?
     return desc;
 }
 
-po::options_description get_rethinkdb_import_options(UNUSED bool omit_hidden = false) {
+po::options_description get_rethinkdb_import_options() {
     po::options_description desc("Allowed options");
     desc.add_options()
         DEBUG_ONLY(("client-port", po::value<int>()->default_value(port_defaults::client_port), "port to use when connecting to other nodes (for development)"))
         ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a node that we will connect to")
-        // Default value of empty string?  Because who knows what the fuck it returns with
+        // Default value of empty string?  Because who knows what the duck it returns with
         // no default value.  Or am I supposed to wade my way back into the
         // program_options documentation again?
+	// A default value is not required. One can check vm.count("thing") in order to determine whether the user has supplied the option. --Juggernaut
         ("table", po::value<std::string>()->default_value(""), "the database and table into which to import, of the format 'database.table'")
         ("datacenter", po::value<std::string>()->default_value(""), "the datacenter into which to create a table")
         ("primary-key", po::value<std::string>()->default_value("id"), "the primary key to create a new table with, or expected primary key")
@@ -368,13 +447,13 @@ po::options_description get_rethinkdb_import_options(UNUSED bool omit_hidden = f
     return desc;
 }
 
-po::options_description get_rethinkdb_porcelain_options(bool omit_hidden = false) {
+po::options_description get_rethinkdb_porcelain_options() {
     po::options_description desc("Allowed options");
-    desc.add(get_file_options(omit_hidden));
-    desc.add(get_machine_options(omit_hidden));
-    desc.add(get_network_options(omit_hidden));
-    desc.add(get_disk_options(omit_hidden));
-    desc.add(get_cpu_options(omit_hidden));
+    desc.add(get_file_options());
+    desc.add(get_machine_options());
+    desc.add(get_network_options());
+    desc.add(get_disk_options());
+    desc.add(get_cpu_options());
     return desc;
 }
 
@@ -392,9 +471,63 @@ MUST_USE bool pull_io_backend_option(const po::variables_map& vm, io_backend_t *
     return true;
 }
 
-MUST_USE bool parse_commands(int argc, char *argv[], po::variables_map *vm, const po::options_description& options) {
+MUST_USE bool parse_commands_flat(int argc, char *argv[], po::variables_map *vm, const po::options_description& options) {
     try {
         po::store(po::parse_command_line(argc, argv, options), *vm);
+    } catch (const po::multiple_occurrences& ex) {
+        logERR("flag specified too many times\n");
+        return false;
+    } catch (const po::unknown_option& ex) {
+        logERR("%s\n", ex.what());
+        return false;
+    } catch (const po::validation_error& ex) {
+        logERR("%s\n", ex.what());
+        return false;
+    }
+    return true;
+}
+
+MUST_USE bool parse_commands(int argc, char *argv[], po::variables_map *vm, const po::options_description& options) {
+    if ( parse_commands_flat(argc, argv, vm, options) ) {
+	po::notify(*vm);
+    } else {
+        return false ;
+    }
+    return true;
+}
+
+MUST_USE bool parse_config_file_flat(const std::string & conf_file_name, po::variables_map *vm, const po::options_description& options) {
+    
+    if ( ( conf_file_name.length() == 0 ) || access( conf_file_name.c_str() , R_OK ) ) return false ;
+    std::ifstream conf_file ( conf_file_name.c_str() , std::ifstream::in ) ;
+    if ( conf_file.fail() ) return false ;
+    try {
+        po::store(po::parse_config_file(conf_file, options), *vm);
+    } catch (const po::multiple_occurrences& ex) {
+        logERR("flag specified too many times\n");
+        conf_file.close() ;
+        return false;
+    } catch (const po::unknown_option& ex) {
+        logERR("%s\n", ex.what());
+        conf_file.close() ;
+        return false;
+    } catch (const po::validation_error& ex) {
+        logERR("%s\n", ex.what());
+        conf_file.close() ;
+        return false;
+    }
+    return true;
+}
+
+MUST_USE bool parse_commands_deep(int argc, char *argv[], po::variables_map *vm, const po::options_description& options) {
+    po::options_description opt2 = config_file_attach_wrapper(options) ;
+    try {
+        po::store(po::parse_command_line(argc, argv, opt2), *vm);
+        if ( (*vm).count("config-file") && (*vm)["config-file"].as<std::string>().length() ) {
+            if ( ! parse_config_file_flat( (*vm)["config-file"].as<std::string>() , vm , options ) ) {
+                return false ;
+            }
+        }           
         po::notify(*vm);
     } catch (const po::multiple_occurrences& ex) {
         logERR("flag specified too many times\n");
@@ -411,7 +544,7 @@ MUST_USE bool parse_commands(int argc, char *argv[], po::variables_map *vm, cons
 
 int main_rethinkdb_create(int argc, char *argv[]) {
     po::variables_map vm;
-    if (!parse_commands(argc, argv, &vm, get_rethinkdb_create_options())) {
+    if (!parse_commands_deep(argc, argv, &vm, get_rethinkdb_create_options())) {
         return EXIT_FAILURE;
     }
 
@@ -455,7 +588,7 @@ int main_rethinkdb_create(int argc, char *argv[]) {
 
 int main_rethinkdb_serve(int argc, char *argv[]) {
     po::variables_map vm;
-    if (!parse_commands(argc, argv, &vm, get_rethinkdb_serve_options())) {
+    if (!parse_commands_deep(argc, argv, &vm, get_rethinkdb_serve_options())) {
         return EXIT_FAILURE;
     }
 
@@ -466,20 +599,9 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
     if (vm.count("join") > 0) {
         joins = vm["join"].as<std::vector<host_and_port_t> >();
     }
-    int port = vm["cluster-port"].as<int>();
-    int http_port = vm["http-port"].as<int>();
-#ifndef NDEBUG
-    int client_port = vm["client-port"].as<int>();
-#else
-    int client_port = port_defaults::client_port;
-#endif
-    int reql_port = vm["reql-port"].as<int>();
-    int port_offset = vm["port-offset"].as<int>();
 
-    path_t web_path = parse_as_path(argv[0]);
-    web_path.nodes.pop_back();
-    web_path.nodes.push_back("web");
-
+    service_ports_t ports = get_service_ports(vm);
+    std::string web_path = get_web_path(vm, argv);
 
     io_backend_t io_backend;
     if (!pull_io_backend_option(vm, &io_backend)) {
@@ -495,6 +617,19 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
+
+    if ( vm.count("pid-file") && vm["pid-file"].as<std::string>().length() ) {
+        // Be very careful about modifying this . It is important that the code that removes the pid-file only run if the checks here pass . Right now , this is guaranteed by the return on failure here .
+        if ( ! access( vm["pid-file"].as<std::string>().c_str() , F_OK ) ) {
+            fprintf( stderr , "ERROR: The pid-file specified already exists. This might mean that an instance is already running.\n" ) ;
+            return EXIT_FAILURE ;
+        }
+        if ( numwrite( vm["pid-file"].as<std::string>().c_str() , getpid() ) ) {
+            fprintf( stderr , "ERROR: Writing to the specified pid-file failed.\n" ) ;
+            return EXIT_FAILURE ;
+        }
+    }
+
     if (!check_existence(filepath)) {
         fprintf(stderr, "ERROR: The directory '%s' does not exist.  Run 'rethinkdb create -d \"%s\"' and try again.\n", filepath.c_str(), filepath.c_str());
         return EXIT_FAILURE;
@@ -504,10 +639,14 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
 
     bool result;
     run_in_thread_pool(boost::bind(&run_rethinkdb_serve, &spawner_info, filepath, joins,
-                                   service_ports_t(port, client_port, http_port, reql_port, port_offset),
+                                   ports,
                                    io_backend,
-                                   &result, render_as_path(web_path)),
+                                   &result, web_path),
                        num_workers);
+
+    if ( vm.count("pid-file") && vm["pid-file"].as<std::string>().length() ) {
+        remove( vm["pid-file"].as<std::string>().c_str() ) ;
+    }
 
     return result ? EXIT_SUCCESS : EXIT_FAILURE;
 }
@@ -560,12 +699,12 @@ int main_rethinkdb_admin(int argc, char *argv[]) {
 
 int main_rethinkdb_proxy(int argc, char *argv[]) {
     po::variables_map vm;
-    if (!parse_commands(argc, argv, &vm, get_rethinkdb_proxy_options())) {
+    if (!parse_commands_deep(argc, argv, &vm, get_rethinkdb_proxy_options())) {
         return EXIT_FAILURE;
     }
 
     if (!vm.count("join")) {
-        printf("No --join option(s) given. A proxy needs to connect to something!\n"
+        fprintf(stderr, "No --join option(s) given. A proxy needs to connect to something!\n"
                "Run 'rethinkdb proxy help' for more information.\n");
         return EXIT_FAILURE;
      }
@@ -574,37 +713,42 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
     install_fallback_log_writer(logfilepath);
 
     std::vector<host_and_port_t> joins = vm["join"].as<std::vector<host_and_port_t> >();
-    int port = vm["cluster-port"].as<int>();
-    int http_port = vm["http-port"].as<int>();
-#ifndef NDEBUG
-    int client_port = vm["client-port"].as<int>();
-#else
-    int client_port = port_defaults::client_port;
-#endif
-    int reql_port = vm["reql-port"].as<int>();
-    int port_offset = vm["port-offset"].as<int>();
-
-    path_t web_path = parse_as_path(argv[0]);
-    web_path.nodes.pop_back();
-    web_path.nodes.push_back("web");
-
 
     io_backend_t io_backend;
     if (!pull_io_backend_option(vm, &io_backend)) {
         return EXIT_FAILURE;
     }
 
+    service_ports_t ports = get_service_ports(vm);
+    std::string web_path = get_web_path(vm, argv);
+
     extproc::spawner_t::info_t spawner_info;
     extproc::spawner_t::create(&spawner_info);
 
     const int num_workers = get_cpu_count();
 
+    if ( vm.count("pid-file") && vm["pid-file"].as<std::string>().length() ) {
+        // Be very careful about modifying this . It is important that the code that removes the pid-file only run if the checks here pass . Right now , this is guaranteed by the return on failure here .
+        if ( ! access( vm["pid-file"].as<std::string>().c_str() , F_OK ) ) {
+            fprintf( stderr , "ERROR: The pid-file specified already exists. This might mean that an instance is already running.\n" ) ;
+            return EXIT_FAILURE ;
+        }
+        if ( numwrite( vm["pid-file"].as<std::string>().c_str() , getpid() ) ) {
+            fprintf( stderr , "ERROR: Writing to the specified pid-file failed.\n" ) ;
+            return EXIT_FAILURE ;
+        }
+    }
+
     bool result;
     run_in_thread_pool(boost::bind(&run_rethinkdb_proxy, &spawner_info, joins,
-                                   service_ports_t(port, client_port, http_port, reql_port, port_offset),
+                                   ports,
                                    io_backend,
-                                   &result, render_as_path(web_path)),
+                                   &result, web_path),
                        num_workers);
+
+    if ( vm.count("pid-file") && vm["pid-file"].as<std::string>().length() ) {
+        remove( vm["pid-file"].as<std::string>().c_str() ) ;
+    }
 
     return result ? EXIT_SUCCESS : EXIT_FAILURE;
 }
@@ -636,10 +780,12 @@ int main_rethinkdb_import(int argc, char *argv[]) {
         }
 
         // TODO: Does this not work with a zero count?
-        std::vector<host_and_port_t> joins;
-        if (vm.count("join") > 0) {
-            joins = vm["join"].as<std::vector<host_and_port_t> >();
+        if (vm.count("join") == 0) {
+            fprintf(stderr, "--join HOST:PORT must be specified\n");
+            return EXIT_FAILURE;
         }
+        std::vector<host_and_port_t> joins;
+        joins = vm["join"].as<std::vector<host_and_port_t> >();
 #ifndef NDEBUG
         int client_port = vm["client-port"].as<int>();
 #else
@@ -649,18 +795,18 @@ int main_rethinkdb_import(int argc, char *argv[]) {
         std::string db_name_str;
         std::string table_name_str;
         if (!split_db_table(db_table, &db_name_str, &table_name_str)) {
-            printf("--table option should have format database_name.table_name\n");
+            fprintf(stderr, "--table option should have format database_name.table_name\n");
             return EXIT_FAILURE;
         }
 
         name_string_t db_name;
         if (!db_name.assign_value(db_name_str)) {
-            printf("ERROR: database name invalid. (%s)  e.g. --table database_name.table_name\n", name_string_t::valid_char_msg);
+            fprintf(stderr, "ERROR: database name invalid. (%s)  e.g. --table database_name.table_name\n", name_string_t::valid_char_msg);
         }
 
         name_string_t table_name;
         if (!table_name.assign_value(table_name_str)) {
-            printf("ERROR: table name invalid.  (%s)  e.g. database_name.table_name\n", name_string_t::valid_char_msg);
+            fprintf(stderr, "ERROR: table name invalid.  (%s)  e.g. database_name.table_name\n", name_string_t::valid_char_msg);
             return EXIT_FAILURE;
         }
 
@@ -669,7 +815,7 @@ int main_rethinkdb_import(int argc, char *argv[]) {
         if (!datacenter_name_arg.empty()) {
             name_string_t tmp;
             if (!tmp.assign_value(datacenter_name_arg)) {
-                printf("ERROR: datacenter name invalid.  (%s)\n", name_string_t::valid_char_msg);
+                fprintf(stderr, "ERROR: datacenter name invalid.  (%s)\n", name_string_t::valid_char_msg);
                 return EXIT_FAILURE;
             }
             *datacenter_name = tmp;
@@ -683,7 +829,7 @@ int main_rethinkdb_import(int argc, char *argv[]) {
         }
         std::string input_filepath = vm["input-file"].as<std::string>();
         if (input_filepath.empty()) {
-            printf("Please supply an --input-file option.\n");
+            fprintf(stderr, "Please supply an --input-file option.\n");
             return EXIT_FAILURE;
         }
 
@@ -713,7 +859,7 @@ int main_rethinkdb_import(int argc, char *argv[]) {
 
 int main_rethinkdb_porcelain(int argc, char *argv[]) {
     po::variables_map vm;
-    if (!parse_commands(argc, argv, &vm, get_rethinkdb_porcelain_options())) {
+    if (!parse_commands_deep(argc, argv, &vm, get_rethinkdb_porcelain_options())) {
         return EXIT_FAILURE;
     }
 
@@ -730,20 +876,9 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
     if (vm.count("join") > 0) {
         joins = vm["join"].as<std::vector<host_and_port_t> >();
     }
-    int port = vm["cluster-port"].as<int>();
-    int http_port = vm["http-port"].as<int>();
-#ifndef NDEBUG
-    int client_port = vm["client-port"].as<int>();
-#else
-    int client_port = port_defaults::client_port;
-#endif
-    int reql_port = vm["reql-port"].as<int>();
-    int port_offset = vm["port-offset"].as<int>();
 
-    path_t web_path = parse_as_path(argv[0]);
-    web_path.nodes.pop_back();
-    web_path.nodes.push_back("web");
-
+    service_ports_t ports = get_service_ports(vm);
+    std::string web_path = get_web_path(vm, argv);
 
     io_backend_t io_backend;
     if (!pull_io_backend_option(vm, &io_backend)) {
@@ -757,6 +892,19 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
     if (num_workers <= 0 || num_workers > MAX_THREADS) {
         fprintf(stderr, "ERROR: number specified for cores to utilize must be between 1 and %d\n", MAX_THREADS);
         return EXIT_FAILURE;
+    }
+
+
+    if ( vm.count("pid-file") && vm["pid-file"].as<std::string>().length() ) {
+        // Be very careful about modifying this . It is important that the code that removes the pid-file only run if the checks here pass . Right now , this is guaranteed by the return on failure here .
+        if ( ! access( vm["pid-file"].as<std::string>().c_str() , F_OK ) ) {
+            fprintf( stderr , "ERROR: The pid-file specified already exists. This might mean that an instance is already running.\n" ) ;
+            return EXIT_FAILURE ;
+        }
+        if ( numwrite( vm["pid-file"].as<std::string>().c_str() , getpid() ) ) {
+            fprintf( stderr , "ERROR: Writing to the specified pid-file failed.\n" ) ;
+            return EXIT_FAILURE ;
+        }
     }
 
     bool new_directory = false;
@@ -774,10 +922,14 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
 
     bool result;
     run_in_thread_pool(boost::bind(&run_rethinkdb_porcelain, &spawner_info, filepath, machine_name, joins,
-                                   service_ports_t(port, client_port, http_port, reql_port, port_offset),
+                                   ports,
                                    io_backend,
-                                   &result, render_as_path(web_path), new_directory),
+                                   &result, web_path, new_directory),
                        num_workers);
+
+    if ( vm.count("pid-file") && vm["pid-file"].as<std::string>().length() ) {
+        remove( vm["pid-file"].as<std::string>().c_str() ) ;
+    }
 
     return result ? EXIT_SUCCESS : EXIT_FAILURE;
 }
@@ -786,43 +938,27 @@ void help_rethinkdb_create() {
     printf("'rethinkdb create' is used to prepare a directory to act "
            "as the storage location for a RethinkDB cluster node.\n");
     std::stringstream sstream;
-#ifndef NDEBUG
     sstream << get_rethinkdb_create_options();
-#else
-    sstream << get_rethinkdb_create_options(true);
-#endif
     printf("%s\n", sstream.str().c_str());
 }
 
 void help_rethinkdb_serve() {
     printf("'rethinkdb serve' is the actual process for a RethinkDB cluster node.\n");
     std::stringstream sstream;
-#ifndef NDEBUG
     sstream << get_rethinkdb_serve_options();
-#else
-    sstream << get_rethinkdb_create_options(true);
-#endif
     printf("%s\n", sstream.str().c_str());
 }
 
 void help_rethinkdb_proxy() {
     printf("'rethinkdb proxy' serves as a proxy to an existing RethinkDB cluster.\n");
     std::stringstream sstream;
-#ifndef NDEBUG
     sstream << get_rethinkdb_proxy_options();
-#else
-    sstream << get_rethinkdb_proxy_options(true);
-#endif
     printf("%s\n", sstream.str().c_str());
 }
 
 void help_rethinkdb_import() {
     printf("'rethinkdb import' imports content from a CSV file.\n");
     std::stringstream s;
-#ifndef NDEBUG
     s << get_rethinkdb_import_options();
-#else
-    s << get_rethinkdb_import_options(true);
-#endif
     printf("%s\n", s.str().c_str());
 }

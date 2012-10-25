@@ -14,7 +14,9 @@ with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
     executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
     print "Starting cluster..."
-    serve_process = driver.Process(cluster, driver.Files(metacluster, db_path = "db", executable_path = executable_path, command_prefix = command_prefix), log_path = "serve-output",
+    serve_files = driver.Files(metacluster, db_path = "db", log_path = "create-output",
+                               executable_path = executable_path, command_prefix = command_prefix)
+    serve_process = driver.Process(cluster, serve_files, log_path = "serve-output",
         executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
     proxy_process = driver.ProxyProcess(cluster, 'proxy-logfile', log_path = 'proxy-output',
         executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)

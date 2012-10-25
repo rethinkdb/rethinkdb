@@ -1,3 +1,9 @@
+ifeq ($(VERBOSE),1)
+QUIET:=
+else
+QUIET:=@
+endif
+
 SOURCE_DIR?=../src
 PYTHON_PBDIR:=../build/drivers/python
 PYTHON_PBFILE:=query_language_pb2.py

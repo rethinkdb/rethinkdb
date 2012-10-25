@@ -349,8 +349,8 @@ public:
     ~linux_nonthrowing_tcp_listener_t();
 
     MUST_USE bool begin_listening();
-    bool is_bound();
-    int get_port();
+    bool is_bound() const;
+    int get_port() const;
 
 protected:
     friend class linux_tcp_listener_t;
@@ -392,7 +392,7 @@ protected:
 /* Used by the old style tcp listener */
 class linux_tcp_bound_socket_t {
 public:
-    explicit linux_tcp_bound_socket_t(int _port, int user_timeout);
+    linux_tcp_bound_socket_t(int _port, int user_timeout);
     int get_port() const;
 private:
     friend class linux_tcp_listener_t;
@@ -408,6 +408,8 @@ public:
     linux_tcp_listener_t(int port, int user_timeout,
         const boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> &callback);
 
+    int get_port() const;
+
 private:
     scoped_ptr_t<linux_nonthrowing_tcp_listener_t> listener;
 };
@@ -418,7 +420,9 @@ public:
     linux_repeated_nonthrowing_tcp_listener_t(int port, int user_timeout,
         const boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> &callback);
     void begin_repeated_listening_attempts();
+
     signal_t *get_bound_signal();
+    int get_port() const;
 
 private:
     void retry_loop(auto_drainer_t::lock_t lock);

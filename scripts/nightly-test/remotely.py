@@ -40,7 +40,8 @@ def run(command_line, stdout = sys.stdout, inputs = [], outputs = [],
         on_begin_script = lambda: None, on_end_script = lambda: None,
         input_root = ".", output_root = ".",
         constraint = None,
-        timeout = 60 * 6   # minutes
+        timeout = 60 * 6,   # minutes
+        exclude = None
         ):
     """Runs `command_line` on a remote machine. Output will be written to
 `stdout`. The working directory will be a temporary directory; paths in `inputs`
@@ -106,6 +107,8 @@ rm -rf "$DIR"
         srun_command += ["-C", constraint]
     if timeout is not None:
         srun_command += ["-t", str(timeout)]
+    if exclude is not None:
+        srun_command += ["--exclude=" + ",".join(exclude)]
     srun_command += ["bash", "-c", command_script]
     # For some reason, it's essential to set `close_fds` to `True` or else
     # `run()` will lock up if you run it in multiple threads concurrently.

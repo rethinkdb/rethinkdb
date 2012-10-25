@@ -31,3 +31,4 @@ var node_data;
 node_data.length;
 node_data.readUInt32LE;
 var process;
+var global;

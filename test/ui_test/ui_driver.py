@@ -18,8 +18,10 @@ with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
     print "Starting cluster..."
     executable_path = driver.find_rethinkdb_executable(opts["mode"])
-    processes = [driver.Process(cluster, driver.Files(metacluster, db_path = "db-%d" % i), executable_path = executable_path, log_path = "serve-output-%d" % i)
-        for i in xrange(opts["num-nodes"])]
+    processes = [driver.Process(cluster,
+                                driver.Files(metacluster, db_path = "db-%d" % i, log_path = "create-output-%d" % i),
+                                executable_path = executable_path, log_path = "serve-output-%d" % i)
+                 for i in xrange(opts["num-nodes"])]
     for process in processes:
         process.wait_until_started_up()
 

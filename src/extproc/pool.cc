@@ -194,7 +194,7 @@ pool_t::worker_t::worker_t(pool_t *pool, pid_t pid, scoped_fd_t *fd)
       pool_(pool), pid_(pid),
       attached_(true)
 {
-    guarantee(pid > 1 && fd > 0); // sanity
+    guarantee(pid > 1 && fd != NULL); // sanity
 }
 
 pool_t::worker_t::~worker_t() {}

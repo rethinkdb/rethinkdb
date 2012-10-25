@@ -175,7 +175,7 @@ class _PathSource(source.Source):
 
 def main():
   logging.basicConfig(format=(sys.argv[0] + ': %(message)s'),
-                      level=logging.INFO)
+                      level=logging.WARNING)
   options, args = _GetOptionsParser().parse_args()
 
   # Make our output pipe.

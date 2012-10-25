@@ -40,7 +40,7 @@ void apply_json_to(cJSON *change, name_string_t *target) {
     std::string tmp;
     apply_json_to(change, &tmp);
     if (!target->assign_value(tmp)) {
-        throw schema_mismatch_exc_t("invalid name");
+        throw schema_mismatch_exc_t("invalid name: " + tmp);
     }
 }
 

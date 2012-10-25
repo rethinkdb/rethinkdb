@@ -24,12 +24,18 @@ module 'DataExplorerView', ->
             'click .link_to_tree_view': 'save_tab'
             'click .link_to_table_view': 'save_tab'
             'click .link_to_raw_view': 'save_tab'
-            
+            'click .close': 'close_alert'
+
         save_tab: (event) =>
             @results_view.set_view @.$(event.target).data('view')
 
 
         displaying_full_view: false # Boolean for the full view (true if full view)
+
+        # Method to close an alert/warning/arror
+        close_alert: (event) ->
+            event.preventDefault()
+            $(event.currentTarget).parent().slideUp('fast', -> $(this).remove())
 
         # Map function -> state
         map_state:
@@ -382,6 +388,9 @@ module 'DataExplorerView', ->
 
         # Extend description for db() and table() with a list of databases or namespaces
         extend_description: (fn) =>
+            if @options?.can_extend? and @options?.can_extend is false
+                return @descriptions[fn]
+
             if fn is 'db('
                 description = _.extend {}, @descriptions[fn]
                 if databases.length is 0
@@ -951,25 +960,42 @@ module 'DataExplorerView', ->
                 host: window.location.hostname
                 port: parseInt window.location.port
 
-            try
-                that = @
-                r.connect server
-                if data? and data.reconnecting is true
-                    @.$('#user-alert-space').html @alert_reconnection_success_template({})
-            catch err
-                @.$('#user-alert-space').css 'display', 'none'
-                @.$('#user-alert-space').html @alert_connection_fail_template({})
-                @.$('#user-alert-space').slideDown()
+            that = @
+            if data? and data.reconnecting is true
+                if @options? and @options.local_connect? is true
+                    console.log 'local'
+                else
+                    r.connect server, @success_on_connect, @error_on_connect
+            else
+                if @options? and @options.local_connect? is true
+                    console.log 'local'
+                else
+                    r.connect server, undefined, @error_on_connect
+
             if @timeout?
                 clearTimeout @timeout
             @timeout = setTimeout @connect, 5*60*1000
+        success_on_connect: =>
+            @.$('#user-alert-space').hide()
+            @.$('#user-alert-space').html @alert_reconnection_success_template()
+            @.$('#user-alert-space').slideDown 'fast'
+
+        error_on_connect: =>
+            @.$('#user-alert-space').hide()
+            @.$('#user-alert-space').html @alert_connection_fail_template({})
+            @.$('#user-alert-space').slideDown 'fast'
+
+
         # Reconnect, function triggered if the user click on reconnect
         reconnect: (event) =>
             event.preventDefault()
             @connect
                 reconnecting: true
 
-        initialize: =>
+        initialize: (options) =>
+            if options?
+                @options = options
+
             @timeout = setTimeout @connect, 5*60*1000
             window.r = rethinkdb
             window.R = r.R

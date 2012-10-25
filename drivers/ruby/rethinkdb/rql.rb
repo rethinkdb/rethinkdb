@@ -389,7 +389,7 @@ module RethinkDB
     # Refer to a table by name.  When run over a connection, this query uses the
     # default database of that connection.  If we have a connection <b>+$c+</b>
     # like so:
-    #   $c = Connection.new('localhost', 12346, 'db_name')
+    #   $c = Connection.new('localhost', 28015, 'db_name')
     # then the following are equivalent:
     #   c.run(r.table('tbl_name'))
     #   c.run(r.db('db_name').table('tbl_name')

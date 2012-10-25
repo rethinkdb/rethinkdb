@@ -5,10 +5,9 @@ Handlebars.registerHelper 'debug', (inputs..., options) ->
         for input in inputs
             console.log input, 'Input ##{_i}'
 
-# Prettifies a date given in ISO 8601 format
+# Prettifies a date given in Unix time (ms since epoch)
 Handlebars.registerHelper 'prettify_date', (date) ->
     return new XDate(date*1000).toString("HH:mm - MMMM dd, yyyy")
-
 
 # Returns a comma-separated list of the provided array
 Handlebars.registerHelper 'comma_separated', (context, block) ->
@@ -74,6 +73,15 @@ Handlebars.registerHelper 'links_to_datacenters_inline', (datacenters) ->
     out = ""
     for i in [0...datacenters.length]
         out += '<a href="#datacenters/'+datacenters[i].id+'" class="links_to_other_view">'+datacenters[i].name+'</a>'
+        out += ", " if i isnt datacenters.length-1
+    return new Handlebars.SafeString(out)
+
+#Returns a list of links to datacenters on one line
+#TODO create links that will open the appropriate tab.
+Handlebars.registerHelper 'links_to_datacenters_inline_for_replica', (datacenters) ->
+    out = ""
+    for i in [0...datacenters.length]
+        out += '<strong>'+datacenters[i].name+'</strong>'
         out += ", " if i isnt datacenters.length-1
     return new Handlebars.SafeString(out)
 

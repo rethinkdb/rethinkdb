@@ -2,7 +2,7 @@
 <script id="abstract-modal-outer-template" type="text/x-handlebars-template">
   <div class="modal {{modal_class}}">
     <div class="modal-header">
-      <a href="#" class="close">&times;</a>
+      <a href="#" class="close_modal">&times;</a>
       <h3>{{modal_title}}</h3>
     </div>
     <div class="alert_modal"></div>
@@ -61,7 +61,7 @@
 
 <script id="error_input-template" type="text/x-handlebars-template">
   <div class="alert alert-error alert_modal_content" data-alert="alert">
-      <a class="close_error" href="#">&times;</a>
+      <a class="close" href="#">&times;</a>
     {{#if ajax_fail}}
     Sorry, something went wrong with the ajax request. Please try again.
     {{#if error}}<br/>Error {{error.status}}: {{error.responseText}}{{/if}}

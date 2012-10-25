@@ -196,6 +196,10 @@ http_server_t::http_server_t(int port, http_app_t *_application) : application(_
     tcp_listener->begin_repeated_listening_attempts();
 }
 
+int http_server_t::get_port() const {
+    return tcp_listener->get_port();
+}
+
 signal_t *http_server_t::get_bound_signal() {
     return tcp_listener->get_bound_signal();
 }

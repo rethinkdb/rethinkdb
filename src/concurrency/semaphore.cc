@@ -38,7 +38,20 @@ void semaphore_t::co_lock_interruptible(signal_t *interruptor) {
         void on_semaphore_available() { pulse(); }
     } cb;
     lock(&cb, 1);
-    wait_interruptible(&cb, interruptor);
+
+    try {
+        wait_interruptible(&cb, interruptor);
+    } catch (interrupted_exc_t &ex) {
+        // Remove our lock request from the queue
+        for (lock_request_t *request = waiters.head(); request != NULL; request = waiters.next(request)) {
+            if (request->cb == &cb) {
+                waiters.remove(request);
+                delete request;
+                break;
+            }
+        }
+        throw;
+    }
 }
 
 void semaphore_t::unlock(int count) {
@@ -100,7 +113,20 @@ void adjustable_semaphore_t::co_lock_interruptible(signal_t *interruptor) {
         void on_semaphore_available() { pulse(); }
     } cb;
     lock(&cb, 1);
-    wait_interruptible(&cb, interruptor);
+
+    try {
+        wait_interruptible(&cb, interruptor);
+    } catch (interrupted_exc_t& ex) {
+        // Remove our lock request from the queue
+        for (lock_request_t *request = waiters.head(); request != NULL; request = waiters.next(request)) {
+            if (request->cb == &cb) {
+                waiters.remove(request);
+                delete request;
+                break;
+            }
+        }
+        throw;
+    }
 }
 
 void adjustable_semaphore_t::unlock(int count) {

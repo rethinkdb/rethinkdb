@@ -13,7 +13,7 @@ goog.require('rethinkdb.query2');
 goog.require('rethinkdb.Table');
 goog.require('rethinkdb.Database');
 goog.require('rethinkdb.Expression');
-goog.require('rethinkdb');
+goog.require('rethinkdbmdl');
 
 // Export RethinDB namespace to commonjs module
 if (typeof exports !== 'undefined') {

@@ -27,7 +27,11 @@ MAIN_BUILD_DIR=$(RETHINKDB_HOME)/build
 DRIVERS_BUILD_DIR=$(MAIN_BUILD_DIR)/drivers
 JS_BUILD_DIR=$(DRIVERS_BUILD_DIR)/javascript
 
+ifeq ($(NO_COMPILE),1)
+OUTPUTMODE=script
+else
 OUTPUTMODE=compiled
+endif
 
 JSDOC=/usr/share/jsdoc-toolkit/jsrun.jar
 
@@ -56,10 +60,10 @@ endif
 		--compiler_flags="--generate_exports" \
 		--compiler_flags="--externs=externs.js" \
 		--compiler_flags="--warning_level=VERBOSE" \
-		--compiler_flags="--create_source_map=./rethinkdb.js.map" \
+		--compiler_flags="--create_source_map=$(JS_BUILD_DIR)/rethinkdb.js.map" \
 		--compiler_flags="--source_map_format=V3" \
 		--output_mode=$(OUTPUTMODE)) \
-		<(echo "}).call(this);") > $(JS_BUILD_DIR)/rethinkdb.js' $(SILENCER_1)
+		<(echo "})();") > $(JS_BUILD_DIR)/rethinkdb.js' $(SILENCER_1) || ( echo "      Build failure." ; rm $(JS_BUILD_DIR)/rethinkdb.js ; false ; )
 
 $(JS_BUILD_DIR)/rethinkdb: $(JS_BUILD_DIR)
 	$(QUIET) if [ ! -e $(JS_BUILD_DIR)/rethinkdb ] ; then mkdir $(JS_BUILD_DIR)/rethinkdb ; fi ;

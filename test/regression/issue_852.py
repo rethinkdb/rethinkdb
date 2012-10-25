@@ -15,8 +15,8 @@ with driver.Metacluster() as metacluster:
     print "Starting cluster..."
     cluster = driver.Cluster(metacluster)
     executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
-    files1 = driver.Files(metacluster, db_path = "db-1", executable_path = executable_path, command_prefix = command_prefix)
-    files2 = driver.Files(metacluster, db_path = "db-2", executable_path = executable_path, command_prefix = command_prefix)
+    files1 = driver.Files(metacluster, db_path = "db-1", log_path = "create-output-1", executable_path = executable_path, command_prefix = command_prefix)
+    files2 = driver.Files(metacluster, db_path = "db-2", log_path = "create-output-2", executable_path = executable_path, command_prefix = command_prefix)
     if opts["fast-workload"]:
         print "Fast workload mode--starting processes in release mode."
         process1 = driver.Process(cluster, files1, log_path = "serve-output-1-fast",

@@ -96,7 +96,7 @@ def run_rethinkdb_test_remotely(dependencies, command_line, stdout_file, zipfile
 set +e
 export RETHINKDB=$(pwd)/rethinkdb/
 mkdir output_from_test
-echo "stdout:About to start test..."
+echo 'stdout:About to start test on ' `hostname` '...'
 (cd output_from_test; echo "stdout:$PWD"; PYTHONUNBUFFERED=1 %(command_line)s 2>&1 | sed -u s/^/stdout:/)
 echo "exitcode:$?"
 zip -r %(zipfile_name)s output_from_test >/dev/null
@@ -263,8 +263,13 @@ tar --extract --gzip --touch --file=rethinkdb.tar.gz -- rethinkdb
                             on_begin_script = lambda: result_log.write("builds", name, status = "running", start_time = time.time()),
                             on_end_script = lambda: result_log.write("builds", name, status = "ok", end_time = time.time()),
                             constraint = "build-ready",
-                            timeout = 30   # minutes
+                            timeout = 30,   # minutes
+                            exclude = ["magneto"]  # magneto is ubuntu 12.04, see below.
                             )
+                        # magneto has ubuntu 12.04, so we can't run executables built by it on our
+                        # 11.10 systems.  We can run ubuntu 11.10-compiled executables on magneto,
+                        # we think, because we manually copied a few libs over to /usr/local/lib on
+                        # magneto.
                     except remotely.ScriptFailedError:
                         result_log.write("builds", name, status = "fail", end_time = time.time())
             except Exception, e:

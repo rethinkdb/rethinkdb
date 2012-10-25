@@ -669,9 +669,13 @@ bool linux_nonthrowing_tcp_listener_t::begin_listening() {
     return true;
 }
 
-bool linux_nonthrowing_tcp_listener_t::is_bound() { return bound; }
+bool linux_nonthrowing_tcp_listener_t::is_bound() const {
+    return bound;
+}
 
-int linux_nonthrowing_tcp_listener_t::get_port() { return port; }
+int linux_nonthrowing_tcp_listener_t::get_port() const {
+    return port;
+}
 
 void linux_nonthrowing_tcp_listener_t::init_socket(int user_timeout) {
     int sock_fd = sock.get();
@@ -841,10 +845,18 @@ linux_tcp_listener_t::linux_tcp_listener_t(
     }
 }
 
+int linux_tcp_listener_t::get_port() const {
+    return listener->get_port();
+}
+
 linux_repeated_nonthrowing_tcp_listener_t::linux_repeated_nonthrowing_tcp_listener_t(int port, int user_timeout,
     const boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> &callback) :
         listener(port, user_timeout, callback)
 { }
+
+int linux_repeated_nonthrowing_tcp_listener_t::get_port() const {
+    return listener.get_port();
+}
 
 void linux_repeated_nonthrowing_tcp_listener_t::begin_repeated_listening_attempts() {
     auto_drainer_t::lock_t lock(&drainer);
@@ -880,7 +892,8 @@ std::vector<std::string> get_ips() {
     std::vector<std::string> ret;
 
     struct ifaddrs *if_addrs = NULL;
-    getifaddrs(&if_addrs);
+    int res = getifaddrs(&if_addrs);
+    guarantee_err(res == 0, "getifaddrs failed, could not determine local ip addresses");
 
     for (ifaddrs *p = if_addrs; p != NULL; p = p->ifa_next) {
         if (p->ifa_addr->sa_family == AF_INET) {
@@ -888,8 +901,9 @@ std::vector<std::string> get_ips() {
                 struct sockaddr_in *in_addr = reinterpret_cast<sockaddr_in *>(p->ifa_addr);
                 // I don't think the "+ 1" is necessary, we're being
                 // paranoid about weak documentation.
-                char buf[INET_ADDRSTRLEN + 1] = { 0 };
-                const char *res = inet_ntop(AF_INET, &in_addr->sin_addr, buf, INET_ADDRSTRLEN);
+                const int buflength = INET_ADDRSTRLEN;
+                char buf[buflength + 1] = { 0 };
+                const char *res = inet_ntop(AF_INET, &in_addr->sin_addr, buf, buflength);
 
                 guarantee_err(res != NULL, "inet_ntop failed");
 
@@ -899,12 +913,14 @@ std::vector<std::string> get_ips() {
             if (!(p->ifa_flags & IFF_LOOPBACK)) {
                 struct sockaddr_in6 *in6_addr = reinterpret_cast<sockaddr_in6 *>(p->ifa_addr);
 
-                char buf[INET_ADDRSTRLEN + 1] = { 0 };
-                const char *res = inet_ntop(AF_INET6, &in6_addr->sin6_addr, buf, INET6_ADDRSTRLEN);
+                const int buflength = INET6_ADDRSTRLEN;
+                scoped_array_t<char> buf(buflength + 1);
+                memset(buf.data(), 0, buf.size());
+                const char *res = inet_ntop(AF_INET6, &in6_addr->sin6_addr, buf.data(), buflength);
 
                 guarantee_err(res != NULL, "inet_ntop failed on an ipv6 address");
 
-                ret.push_back(std::string(buf));
+                ret.push_back(std::string(buf.data()));
             }
         }
     }

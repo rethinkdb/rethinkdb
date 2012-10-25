@@ -4,7 +4,7 @@ LIBS = -lpthread -ldl -lprotobuf
 SRC = utils.cc random.cc protocol.cc protocols/sqlite3.c protocols/query_language.pb.cc
 HEADERS = $(wildcard *.hpp) $(wildcard */*.hpp) $(wildcard *.h) $(wildcard */*.h)
 
-MYSQL ?= 1
+MYSQL ?= 0
 LIBMEMCACHED ?= 0
 LIBGSL ?= 0
 TAGS=.tags

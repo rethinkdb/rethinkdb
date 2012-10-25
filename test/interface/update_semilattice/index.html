@@ -1,0 +1,84 @@
+<html lang="en-US"><head> 
+<meta charset="utf-8"> 
+<title>Update semilattice without any constraint</title> 
+
+<link rel="stylesheet" href="style.css" type="text/css">
+
+<!-- Keep </script> without space/new line before so the comma stick to the value of the object-->
+<script id="dataexplorer_result_json_tree_container-template" type="text/x-handlebars-template">
+    <span class="jta_arrow jta_arrow_h"></span><div class="json_tree">{{print_safe tree}}</div></script>
+
+<script id="dataexplorer_result_json_tree_span-template" type="text/x-handlebars-template">
+    <span class="jt_editable {{classname}}" >{{value}}</span></script>
+
+<script id="dataexplorer_result_json_tree_span_with_quotes-template" type="text/x-handlebars-template">
+    <span class="{{classname}}">"</span><span class="jt_editable {{classname}}" >{{value}}</span><span class="{{classname}}">"</span></script>
+
+<script id="dataexplorer_result_json_tree_url-template" type="text/xs-handlebars-template">
+    <span class="jt_editable jt_url" >{{url}}</span>,
+    <a href="{{url}}" class="jt_link">»</a></script>
+
+<script id="dataexplorer_result_json_tree_email-template" type="text/xs-handlebars-template">
+    <span class="jt_editable jt_email" >{{email}}</span>,
+    <a href="mailto:{{email}}" class="jt_link">»</a></script>
+
+<script id="dataexplorer_result_json_tree_array-template" type="text/x-handlebars-template">
+
+    {{#if no_value}}
+    [ ]
+    {{else}}
+    <span class="jt_arrow"></span>
+    <span class="jt_b">[</span>
+    <span class="jt_points">...</span>
+    <ul class="jt_array jt_collapsible">
+        {{#each values}}
+        <li>
+            {{print_safe value}}{{#unless no_comma}}, {{/unless}}
+        </li>
+        {{/each}}
+    </ul>
+    <span class="jt_b jt_close">]</span>{{/if}}</script>
+
+<script id="dataexplorer_result_json_tree_object-template" type="text/x-handlebars-template">
+    {{#if no_value}}
+    { } 
+    {{else}}
+    <span class="jt_arrow"></span>
+    <span class="jt_b">{</span>
+    <span class="jt_points">...</span>
+    <ul class="jt_object jt_collapsible">
+        {{#each values}}
+        <li>
+                "{{this.key}}": {{print_safe this.value}}{{#unless no_comma}}, {{/unless}}
+        </li>
+        {{/each}}
+    </ul>
+    <span class="jt_b jt_close">}</span>{{/if}}</script>
+
+
+
+
+<script type="text/javascript" src="jquery-1.8.2.min.js"></script>
+<script type="text/javascript" src="handlebars-1.0.0.beta.6.js"></script>
+<script type="text/javascript" src="main.js"></script>
+
+
+
+</head>
+<body>
+    <div id="left_container">
+        <button class="submit_data">Submit</button>
+        <button class="refresh">Refresh</button>
+        <h1>Raw data</h1>
+        <p>The whole semilattice will be sent except for blueprints and me.</p>
+        <div id="raw_data">
+            <textarea id="semilattice_raw" name="semilattice_raw"></textarea>
+        </div>
+    </div>
+
+    <div id="right_container">
+        <div id="nice_representation" class="json_tree">
+        </div>
+    </div>
+
+</body></html>
