@@ -8,6 +8,7 @@
         </div>
     </div>
     <div class="issues-banner"></div>
+    <div class="all-issues"></div>
 </script>
 
 <script id="sidebar-client_connection_status-template" type="text/x-handlebars-template">
@@ -34,18 +35,23 @@
 </script>
 
 <script id="sidebar-issues_banner-template" type="text/x-handlebars-template">
-    {{#unless no_issues}}
-        <div class="show-issues-banner">
-            <div class="gradient-overlay">
+    {{#if show_banner}}
+    <div class="show-issues-banner {{#if no_issues}}no-issues{{/if}}">
+            <div class="gradient-overlay {{#if no_issues}}no-issues{{/if}}">
                 <div class="container">
-                    <button class="btn btn-resolve-issues show-issues">Resolve issues</button>
-                    <button class="btn btn-resolve-issues hide-issues">Hide issues</button>
-                    <p class="message"><strong>{{num_issues}} {{pluralize_noun "issue" num_issues}}</strong> need to be resolved</p>
+                    {{#unless no_issues}}
+                        <button class="btn btn-resolve-issues show-issues">Resolve issues</button>
+                        <button class="btn btn-resolve-issues hide-issues">Hide issues</button>
+                    {{/unless}}
+                    {{#if no_issues}}
+                        <p class="message">All issues have been successfully resolved.</p>
+                    {{else}}
+                        <p class="message"><strong>{{num_issues}} {{pluralize_noun "issue" num_issues}}</strong> need to be resolved</p>
+                    {{/if}}
                 </div>
             </div>
         </div>
-    {{/unless}}
-    <div class="all-issues"></div>
+    {{/if}}
 </script>
 
 <script id="sidebar-servers_connected-template" type="text/x-handlebars-template">

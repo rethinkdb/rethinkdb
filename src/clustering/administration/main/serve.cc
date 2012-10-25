@@ -103,7 +103,7 @@ bool do_serve(
         if (ports.port != 0) {
             guarantee(ports.port == connectivity_cluster_run.get_port());
         }
-        logINF("Listening for intracluster traffic on port %d.\n", connectivity_cluster_run.get_port());
+        logINF("Listening for intracluster connections on port %d.\n", connectivity_cluster_run.get_port());
 
         auto_reconnector_t auto_reconnector(
             &connectivity_cluster,
@@ -262,7 +262,7 @@ bool do_serve(
                 rdb_protocol::query_http_app_t rdb_parser(semilattice_manager_cluster.get_root_view(), &rdb_namespace_repo);
 
                 query_server_t rdb_pb_server(ports.reql_port, &rdb_ctx);
-                logINF("Listening for RDB protocol traffic on port %d.\n", rdb_pb_server.get_port());
+                logINF("Listening for client driver connections on port %d.\n", rdb_pb_server.get_port());
 
                 scoped_ptr_t<metadata_persistence::semilattice_watching_persister_t> persister(!i_am_a_server ? NULL :
                     new metadata_persistence::semilattice_watching_persister_t(

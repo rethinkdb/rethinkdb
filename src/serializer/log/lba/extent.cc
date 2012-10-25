@@ -61,9 +61,9 @@ struct extent_block_t :
     }
 };
 
-extent_t::extent_t(extent_manager_t *_em, direct_file_t *_file)
-    : offset(_em->gen_extent()), amount_filled(0), em(_em), file(_file), last_block(NULL), current_block(NULL)
-{
+extent_t::extent_t(extent_manager_t *_em, direct_file_t *_file, extent_transaction_t *txn)
+    : offset(_em->gen_extent(txn)), amount_filled(0), em(_em),
+      file(_file), last_block(NULL), current_block(NULL) {
     ++em->stats->pm_serializer_lba_extents;
 }
 
@@ -76,8 +76,8 @@ extent_t::extent_t(extent_manager_t *_em, direct_file_t *_file, off64_t loc, siz
     ++em->stats->pm_serializer_lba_extents;
 }
 
-void extent_t::destroy() {
-    em->release_extent(offset);
+void extent_t::destroy(extent_transaction_t *txn) {
+    em->release_extent(offset, txn);
     shutdown();
 }
 

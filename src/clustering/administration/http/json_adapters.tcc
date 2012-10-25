@@ -165,6 +165,8 @@ template <class T, class ctx_t>
 void with_ctx_apply_json_to(cJSON *change, deletable_t<T> *target, const ctx_t &ctx) {
     if (is_null(change)) {
         target->mark_deleted();
+    } else if (target->is_deleted()) {
+        throw gone_exc_t();
     } else {
         with_ctx_apply_json_to(change, target->get_mutable(), ctx);
     }
@@ -197,8 +199,10 @@ template <class T>
 void apply_json_to(cJSON *change, deletable_t<T> *target) {
     if (is_null(change)) {
         target->mark_deleted();
+    } else if (target->is_deleted()) {
+        throw gone_exc_t();
     } else {
-        apply_json_to(change, &target->get_mutable());
+        with_ctx_apply_json_to(change, target->get_mutable());
     }
 }
 

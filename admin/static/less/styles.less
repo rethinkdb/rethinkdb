@@ -204,6 +204,7 @@ button.btn {
     font-size: 13px;
     .border-radius(3px); // border radius
     padding: 10px 35px 10px 10px;
+    margin-bottom: 10px;
 
     // default is the same as for alert-warning
     border: 1px solid #e9d295; // stroke
@@ -501,6 +502,15 @@ TODO: retire this
 
             @bar_height: 42px;
 
+            &.no-issues {
+                background-color: #4E9258;
+                border-color: #41834a;
+                &:before { 
+                    background-color: #4E9258;
+                    border-color: #41834a;
+                }
+            }
+
             .message {
                 line-height: @bar_height;
                 margin: 0;
@@ -522,6 +532,7 @@ TODO: retire this
                 .transform(~"rotate(0deg)");
 
                 background-color: #dd504e; // layer fill content
+                &.no-issues { background-color: #4E9258; }
             }
 
             // CSS arrow for the banner: this is basically a box turned 45 deg
@@ -543,10 +554,20 @@ TODO: retire this
                 border: @border;
             }
         }
-        .all-issues {
-            display: none;
-            background-color: #fcfcfc;
-            border-bottom: 1px solid #ccc;
+    }
+    .all-issues {
+        display: none;
+        background-color: #fcfcfc;
+        border-bottom: 1px solid #ccc;
+        #issue-alerts .alert {
+            display: block; 
+
+            background: 15px center no-repeat url('http://bit.ly/RXpDeO'); //resolve_issue-resolved_icon.png
+            padding-left: 40px;
+            color: #628857; // text color
+            border: 1px solid #cae8c3; // stroke
+            .border-radius(3px); // border radius
+            background-color: #effceb; // layer fill content
         }
     }
 }
@@ -1396,7 +1417,7 @@ TODO: retire this
         }
 
         .solve-issue {
-            float: right;
+            float:right;
         }
 
         hr {
