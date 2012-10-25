@@ -221,15 +221,11 @@ void translator_serializer_t::index_write(const std::vector<index_write_op_t>& w
 
 intrusive_ptr_t<standard_block_token_t>
 translator_serializer_t::block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb) {
+    // TODO: Does anybody even pass NULL_BLOCK_ID?
     // NULL_BLOCK_ID is special: it indicates no block id specified.
     if (block_id != NULL_BLOCK_ID)
         block_id = translate_block_id(block_id);
     return inner->block_write(buf, block_id, io_account, cb);
-}
-
-intrusive_ptr_t<standard_block_token_t>
-translator_serializer_t::block_write(const void *buf, file_account_t *io_account, iocallback_t *cb) {
-    return inner->block_write(buf, io_account, cb);
 }
 
 void translator_serializer_t::block_read(const intrusive_ptr_t<standard_block_token_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb) {

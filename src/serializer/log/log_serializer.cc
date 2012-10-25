@@ -544,19 +544,9 @@ log_serializer_t::block_write(const void *buf, block_id_t block_id, file_account
 }
 
 intrusive_ptr_t<ls_block_token_pointee_t>
-log_serializer_t::block_write(const void *buf, file_account_t *io_account, iocallback_t *cb) {
-    assert_thread();
-    return serializer_block_write(this, buf, io_account, cb);
-}
-intrusive_ptr_t<ls_block_token_pointee_t>
 log_serializer_t::block_write(const void *buf, block_id_t block_id, file_account_t *io_account) {
     assert_thread();
     return serializer_block_write(this, buf, block_id, io_account);
-}
-intrusive_ptr_t<ls_block_token_pointee_t>
-log_serializer_t::block_write(const void *buf, file_account_t *io_account) {
-    assert_thread();
-    return serializer_block_write(this, buf, io_account);
 }
 
 
