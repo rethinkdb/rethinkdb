@@ -8,6 +8,8 @@
 #include "serializer/log/lba/disk_format.hpp"
 #include "serializer/log/lba/in_memory_index.hpp"
 
+// TODO: Don't include extent_manager.hpp.
+
 class lba_disk_extent_t :
     public intrusive_list_node_t<lba_disk_extent_t> {
 private:
@@ -18,7 +20,7 @@ public:
     off64_t offset;
     int count;
 
-    lba_disk_extent_t(extent_manager_t *_em, direct_file_t *file, file_account_t *io_account);
+    lba_disk_extent_t(extent_manager_t *_em, direct_file_t *file, file_account_t *io_account, extent_transaction_t *txn);
 
     lba_disk_extent_t(extent_manager_t *_em, direct_file_t *file, off64_t _offset, int _count);
 
@@ -45,8 +47,8 @@ public:
 
     /* destroy() deletes the structure in memory and also tells the extent manager that the extent
     can be safely reused */
-    void destroy() {
-        data->destroy();
+    void destroy(extent_transaction_t *txn) {
+        data->destroy(txn);
         delete this;
     }
 

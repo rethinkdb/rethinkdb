@@ -244,10 +244,11 @@ void extent_manager_t::begin_transaction(extent_transaction_t *out) {
     out->init();
 }
 
-off64_t extent_manager_t::gen_extent() {
+off64_t extent_manager_t::gen_extent(extent_transaction_t *txn) {
     assert_thread();
     rassert(state == state_running);
     rassert(current_transaction);
+    rassert(current_transaction == txn);
     ++stats->pm_extents_in_use;
     stats->pm_bytes_in_use += extent_size;
 
@@ -276,7 +277,7 @@ off64_t extent_manager_t::gen_extent() {
     return extent;
 }
 
-void extent_manager_t::release_extent(off64_t extent) {
+void extent_manager_t::release_extent(off64_t extent, extent_transaction_t *txn) {
     assert_thread();
 #ifdef DEBUG_EXTENTS
     debugf("EM %p: Release extent %.8lx\n", this, extent);
@@ -286,7 +287,7 @@ void extent_manager_t::release_extent(off64_t extent) {
     rassert(current_transaction);
     --stats->pm_extents_in_use;
     stats->pm_bytes_in_use -= extent_size;
-    current_transaction->free_queue().push_back(extent);
+    txn->free_queue().push_back(extent);
 }
 
 void extent_manager_t::end_transaction(DEBUG_VAR const extent_transaction_t &t) {

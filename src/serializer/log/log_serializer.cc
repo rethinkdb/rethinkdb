@@ -413,8 +413,9 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
                 intrusive_ptr_t<ls_block_token_pointee_t> token = get_ls_block_token(op.token.get());
 
                 // Mark old offset as garbage
-                if (offset.has_value())
-                    data_block_manager->mark_garbage(offset.get_value());
+                if (offset.has_value()) {
+                    data_block_manager->mark_garbage(offset.get_value(), &context.extent_txn);
+                }
 
                 // Write new token to index, or remove from index as appropriate.
                 if (token) {
@@ -434,7 +435,7 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
             repli_timestamp_t recency = op.recency ? op.recency.get()
                 : lba_index->get_block_recency(op.block_id);
 
-            lba_index->set_block_info(op.block_id, recency, offset, io_account);
+            lba_index->set_block_info(op.block_id, recency, offset, io_account, &context.extent_txn);
         }
     }
 
@@ -451,7 +452,7 @@ void log_serializer_t::index_write_prepare(index_write_context_t *context, file_
     extent_manager->begin_transaction(&context->extent_txn);
 
     /* Just to make sure that the LBA GC gets exercised */
-    lba_index->consider_gc(io_account);
+    lba_index->consider_gc(io_account, &context->extent_txn);
 }
 
 void log_serializer_t::index_write_finish(index_write_context_t *context, file_account_t *io_account) {
@@ -535,7 +536,7 @@ log_serializer_t::block_write(const void *buf, block_id_t block_id, file_account
 
     extent_transaction_t em_trx;
     extent_manager->begin_transaction(&em_trx);
-    const off64_t offset = data_block_manager->write(buf, block_id, true, io_account, cb, true, false);
+    const off64_t offset = data_block_manager->write(buf, block_id, true, io_account, cb, true, false, &em_trx);
     extent_manager->end_transaction(em_trx);
     extent_manager->commit_transaction(&em_trx);
 

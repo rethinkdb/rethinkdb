@@ -2,8 +2,8 @@
 
 #include "arch/arch.hpp"
 
-lba_disk_extent_t::lba_disk_extent_t(extent_manager_t *_em, direct_file_t *file, file_account_t *io_account)
-  : em(_em), data(new extent_t(em, file)), offset(data->offset), count(0) {
+lba_disk_extent_t::lba_disk_extent_t(extent_manager_t *_em, direct_file_t *file, file_account_t *io_account, extent_transaction_t *txn)
+    : em(_em), data(new extent_t(em, file, txn)), offset(data->offset), count(0) {
     em->assert_thread();
 
     // debugf("Constructing lba_disk_extent_t and given offset %ld\n", offset);

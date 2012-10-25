@@ -77,8 +77,8 @@ public:
     most recent metablock points to. */
 
     void begin_transaction(extent_transaction_t *out);
-    off64_t gen_extent();
-    void release_extent(off64_t extent);
+    off64_t gen_extent(extent_transaction_t *txn);
+    void release_extent(off64_t extent, extent_transaction_t *txn);
     void end_transaction(const extent_transaction_t &t);
     void commit_transaction(extent_transaction_t *t);
 

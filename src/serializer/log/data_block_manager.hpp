@@ -60,13 +60,13 @@ public:
 
 public:
     /* This constructor is for starting a new extent. */
-    explicit gc_entry(data_block_manager_t *parent);
+    explicit gc_entry(data_block_manager_t *parent, extent_transaction_t *txn);
 
     /* This constructor is for reconstructing extents that the LBA tells us contained
        data blocks. */
     gc_entry(data_block_manager_t *parent, off64_t offset);
 
-    void destroy();
+    void destroy(extent_transaction_t *txn);
     ~gc_entry();
 
 #ifndef NDEBUG
@@ -122,11 +122,12 @@ public:
     /* Returns the offset to which the block will be written */
     off64_t write(const void *buf_in, block_id_t block_id, bool assign_new_block_sequence_id,
                   file_account_t *io_account, iocallback_t *cb,
-                  bool token_referenced, bool index_referenced);
+                  bool token_referenced, bool index_referenced,
+                  extent_transaction_t *txn);
 
     /* exposed gc api */
     /* mark a buffer as garbage */
-    void mark_garbage(off64_t);  // Takes a real off64_t.
+    void mark_garbage(off64_t offset, extent_transaction_t *txn);  // Takes a real off64_t.
 
     bool is_extent_in_use(unsigned int extent_id) {
         return entries.get(extent_id) != NULL;
@@ -182,14 +183,14 @@ private:
 
     file_account_t *choose_gc_io_account();
 
-    off64_t gimme_a_new_offset(bool token_referenced, bool index_referenced);
+    off64_t gimme_a_new_offset(bool token_referenced, bool index_referenced, extent_transaction_t *txn);
 
     /* Checks whether the extent is empty and if it is, notifies the extent manager and cleans up */
-    void check_and_handle_empty_extent(unsigned int extent_id);
+    void check_and_handle_empty_extent(unsigned int extent_id, extent_transaction_t *txn);
     /* Just pushes the given extent on the potentially_empty_extents queue */
     void check_and_handle_empty_extent_later(unsigned int extent_id);
     /* Runs check_and_handle_empty extent() for each extent in potentially_empty_extents */
-    void check_and_handle_outstanding_empty_extents();
+    void check_and_handle_outstanding_empty_extents(extent_transaction_t *txn);
 
     // Tells if we should keep gc'ing, being told the next extent that
     // would be gc'ed.

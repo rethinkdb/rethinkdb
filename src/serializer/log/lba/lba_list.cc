@@ -103,7 +103,7 @@ repli_timestamp_t lba_list_t::get_block_recency(block_id_t block) {
     return in_memory_index.get_block_info(block).recency;
 }
 
-void lba_list_t::set_block_info(block_id_t block, repli_timestamp_t recency, flagged_off64_t offset, file_account_t *io_account) {
+void lba_list_t::set_block_info(block_id_t block, repli_timestamp_t recency, flagged_off64_t offset, file_account_t *io_account, extent_transaction_t *txn) {
     rassert(state == state_ready);
 
     in_memory_index.set_block_info(block, recency, offset);
@@ -113,7 +113,7 @@ void lba_list_t::set_block_info(block_id_t block, repli_timestamp_t recency, fla
     current disk_structure, so it's meaningless but harmless to call add_entry(). However,
     since our changes are also being put into the in_memory_index, they will be
     incorporated into the new disk_structure that the GC creates, so they won't get lost. */
-    disk_structures[block % LBA_SHARD_FACTOR]->add_entry(block, recency, offset, io_account);
+    disk_structures[block % LBA_SHARD_FACTOR]->add_entry(block, recency, offset, io_account, txn);
 }
 
 class lba_syncer_t :
@@ -165,9 +165,11 @@ void lba_list_t::prepare_metablock(metablock_mixin_t *mb_out) {
     }
 }
 
-void lba_list_t::consider_gc(file_account_t *io_account) {
+void lba_list_t::consider_gc(file_account_t *io_account, extent_transaction_t *txn) {
     for (int i = 0; i < LBA_SHARD_FACTOR; i++) {
-        if (we_want_to_gc(i)) gc(i, io_account);
+        if (we_want_to_gc(i)) {
+            gc(i, io_account, txn);
+        }
     }
 }
 
@@ -178,16 +180,16 @@ public:
     lba_list_t *owner;
     int i;
 
-    gc_fsm_t(lba_list_t *_owner, int _i, file_account_t *io_account) : owner(_owner), i(_i) {
+    gc_fsm_t(lba_list_t *_owner, int _i, file_account_t *io_account, extent_transaction_t *txn) : owner(_owner), i(_i) {
         ++owner->extent_manager->stats->pm_serializer_lba_gcs; //This is kinda bad that we go through the extent manager... but whatever
         ++owner->gc_count;
-        do_replace_disk_structure(io_account);
+        do_replace_disk_structure(io_account, txn);
     }
 
-    void do_replace_disk_structure(file_account_t *io_account) {
+    void do_replace_disk_structure(file_account_t *io_account, extent_transaction_t *txn) {
         /* Replace the LBA with a new empty LBA */
 
-        owner->disk_structures[i]->destroy();
+        owner->disk_structures[i]->destroy(txn);
         owner->disk_structures[i] = new lba_disk_structure_t(owner->extent_manager, owner->dbfile);
 
         /* Put entries in the new empty LBA */
@@ -198,7 +200,7 @@ public:
             block_id_t block_id = id;
             flagged_off64_t off = owner->get_block_offset(block_id);
             if (off.has_value()) {
-                owner->disk_structures[i]->add_entry(block_id, owner->get_block_recency(block_id), off, io_account);
+                owner->disk_structures[i]->add_entry(block_id, owner->get_block_recency(block_id), off, io_account, txn);
             }
         }
 
@@ -246,8 +248,8 @@ bool lba_list_t::we_want_to_gc(int i) {
     return true;
 }
 
-void lba_list_t::gc(int i, file_account_t *io_account) {
-    new gc_fsm_t(this, i, io_account);
+void lba_list_t::gc(int i, file_account_t *io_account, extent_transaction_t *txn) {
+    new gc_fsm_t(this, i, io_account, txn);
 }
 
 bool lba_list_t::shutdown(shutdown_callback_t *cb) {

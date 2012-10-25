@@ -29,7 +29,8 @@ public:
 
     // Put entries in an LBA and then call sync() to write to disk
     void add_entry(block_id_t block_id, repli_timestamp_t recency,
-                   flagged_off64_t offset, file_account_t *io_account);
+                   flagged_off64_t offset, file_account_t *io_account,
+                   extent_transaction_t *txn);
     struct sync_callback_t {
         virtual void on_lba_sync() = 0;
         virtual ~sync_callback_t() {}
@@ -46,7 +47,7 @@ public:
 
     void prepare_metablock(lba_shard_metablock_t *mb_out);
 
-    void destroy();   // Delete both in memory and on disk
+    void destroy(extent_transaction_t *txn);   // Delete both in memory and on disk
     void shutdown();   // Delete just in memory
 
     int num_entries_that_can_fit_in_an_extent() const;
