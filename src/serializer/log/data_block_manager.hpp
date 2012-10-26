@@ -244,7 +244,7 @@ private:
     std::vector<unsigned int> potentially_empty_extents;
 
     /* Contains a pointer to every gc_entry, regardless of what its current state is */
-    two_level_array_t<gc_entry *, MAX_DATA_EXTENTS> entries;
+    two_level_array_t<gc_entry *, MAX_DATA_EXTENTS, (1 << 12)> entries;
 
     /* Contains every extent in the gc_entry::state_reconstructing state */
     intrusive_list_t< gc_entry > reconstructed_extents;
