@@ -470,8 +470,8 @@ conf_dir:=/etc/rethinkdb
 conf_instance_dir:=$(conf_dir)/instances.d
 lib_dir:=$(prefix)/lib/rethinkdb
 web_res_dir:=$(lib_dir)/web
-pidfile_dir:=$(prefix)/var/run/rethinkdb
-data_dir:=$(prefix)/var/lib/rethinkdb
+pidfile_dir:=/var/run/rethinkdb
+data_dir:=/var/lib/rethinkdb
 
 ASSET_SCRIPTS:=$(ASSETS_DIR)/scripts/rdb_migrate
 INIT_SCRIPTS:=$(ASSETS_DIR)/init/rethinkdb
