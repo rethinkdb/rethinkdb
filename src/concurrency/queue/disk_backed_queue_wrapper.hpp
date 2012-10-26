@@ -103,7 +103,7 @@ private:
     availability_control_t available_control;
     mutex_t push_mutex;
     object_buffer_t<disk_backed_queue_t<T> > disk_queue;
-    boost::circular_buffer<T> memory_queue;
+    boost::circular_buffer_space_optimized<T> memory_queue;
     cond_t *notify_when_room_in_memory_queue;
     size_t items_in_queue;
     auto_drainer_t drainer;
