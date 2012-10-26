@@ -7,6 +7,7 @@
 #include "utils.hpp"
 #include "help.hpp"
 #include "config/args.hpp"
+#include "/home/wmrowan/rethinkdb/external/gperftools-2.0/instal_dir/include/gperftools/heap-profiler.h"
 
 void print_version_message() {
     printf("rethinkdb " RETHINKDB_VERSION
@@ -17,7 +18,7 @@ void print_version_message() {
 }
 
 int main(int argc, char *argv[]) {
-    mcheck_init();
+    HeapProfilerStart("rdb-hprof");
     install_generic_crash_handler();
 
 #ifndef NDEBUG
@@ -99,4 +100,5 @@ int main(int argc, char *argv[]) {
             return 1;
         }
     }
+    HeapProfilerStop();
 }

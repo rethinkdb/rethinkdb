@@ -65,6 +65,13 @@ endif
 # Set SYMBOLS to 1 to enable symbols, even in release mode
 SYMBOLS?=0
 
+ifeq ($(GPERF),1)
+DEBUG=0
+NO_TCMALLOC:=1
+SYMBOLS:=1
+NO_OMIT_FRAME_POINTER:=1
+endif
+
 JSON_SHORTCUTS?=0
 DEBUG?=1
 VALGRIND?=0
@@ -320,6 +327,10 @@ endif
 # look for the static library in the same directory as the .so file
 STATIC_LIBRARY_PATHS:=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }'))
 
+ifeq ($(GPERF),1)
+STATIC_LIBRARY_PATHS+=/home/wmrowan/rethinkdb/external/gperftools-2.0/instal_dir/lib/libtcmalloc_and_profiler.a
+endif
+
 #  /usr/lib/x86_64-linux-gnu/libQtCore.so.4
 
 # Should makefile be noisy?
@@ -362,7 +373,6 @@ PROTOCFLAGS:= --proto_path=$(SOURCE_DIR)
 NAMES:=$(patsubst $(SOURCE_DIR)/%.cc,%,$(SOURCES))
 DEPS:=$(patsubst %,$(DEP_DIR)/%.d,$(NAMES))
 OBJS:=$(PROTO_OBJS) $(patsubst %,$(OBJ_DIR)/%.o,$(NAMES))
-
 
 SERVER_EXEC_OBJS:=$(PROTO_OBJS) $(patsubst %.cc,$(OBJ_DIR)/%.o,$(filter-out $(SOURCE_DIR)/unittest/%,$(SOURCES)))
 

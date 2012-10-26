@@ -15,7 +15,7 @@
 
 // This "must" be hard-coded because a cluster cannot run with
 // differing cpu sharding factors.
-const int CLUSTER_CPU_SHARDING_FACTOR = 4;
+const int CLUSTER_CPU_SHARDING_FACTOR = 24;
 
 class io_backender_t;
 template <class> class multistore_ptr_t;
