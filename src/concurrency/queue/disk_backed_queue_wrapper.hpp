@@ -28,22 +28,26 @@ class disk_backed_queue_wrapper_t : public passive_producer_t<T> {
 public:
     static const int memory_queue_capacity = 1000;
 
-    disk_backed_queue_wrapper_t(io_backender_t *io_backender, const std::string &filename, perfmon_collection_t *stats_parent) :
+    disk_backed_queue_wrapper_t(io_backender_t *io_backender,
+            const std::string &filename, perfmon_collection_t *stats_parent) :
         passive_producer_t<T>(&available_control),
-        disk_queue(io_backender, filename, stats_parent), disk_queue_in_use(false),
         memory_queue(memory_queue_capacity),
         notify_when_room_in_memory_queue(NULL),
-        items_in_queue(0) { }
+        items_in_queue(0),
+        io_backender(io_backender),
+        filename(filename),
+        stats_parent(stats_parent)
+        { }
 
     void push(const T &value) {
         mutex_t::acq_t acq(&push_mutex);
         items_in_queue++;
-        if (disk_queue_in_use) {
-            disk_queue.push(value);
+        if (disk_queue.has()) {
+            disk_queue->push(value);
         } else {
             if (memory_queue.full()) {
-                disk_queue.push(value);
-                disk_queue_in_use = true;
+                disk_queue.create(io_backender, filename, stats_parent);
+                disk_queue->push(value);
                 coro_t::spawn_sometime(boost::bind(
                     &disk_backed_queue_wrapper_t<T>::copy_from_disk_queue_to_memory_queue,
                     this, auto_drainer_t::lock_t(&drainer)));
@@ -77,12 +81,12 @@ private:
     void copy_from_disk_queue_to_memory_queue(auto_drainer_t::lock_t keepalive) {
         try {
             while (!keepalive.get_drain_signal()->is_pulsed()) {
-                if (disk_queue.empty()) {
-                    disk_queue_in_use = false;
+                if (disk_queue->empty()) {
+                    disk_queue.reset();
                     break;
                 }
                 T value;
-                disk_queue.pop(&value);
+                disk_queue->pop(&value);
                 if (memory_queue.full()) {
                     cond_t cond;
                     assignment_sentry_t<cond_t *> assignment_sentry(&notify_when_room_in_memory_queue, &cond);
@@ -98,12 +102,15 @@ private:
 
     availability_control_t available_control;
     mutex_t push_mutex;
-    disk_backed_queue_t<T> disk_queue;
-    bool disk_queue_in_use;
+    object_buffer_t<disk_backed_queue_t<T> > disk_queue;
     boost::circular_buffer<T> memory_queue;
     cond_t *notify_when_room_in_memory_queue;
     size_t items_in_queue;
     auto_drainer_t drainer;
+
+    io_backender_t *io_backender; 
+    const std::string &filename; 
+    perfmon_collection_t *stats_parent;
 };
 
 #endif /* CONCURRENCY_QUEUE_DISK_BACKED_QUEUE_WRAPPER_HPP_ */
