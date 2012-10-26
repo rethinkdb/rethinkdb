@@ -638,11 +638,11 @@ rpm: all prepare_rpm_package_dirs
 else
 # Ubuntu/Debian
 deb: clean
-	$(QUIET) $(MAKE) PACKAGING=1 DEBUG=0 SYMBOLS=1 deb
+	$(QUIET) $(MAKE) PACKAGING=1 DEBUG=0 deb
 
 # RPM for CentOS/RedHat
 rpm: clean
-	$(QUIET) $(MAKE) PACKAGING=1 DEBUG=0 SYMBOLS=1 rpm
+	$(QUIET) $(MAKE) PACKAGING=1 DEBUG=0 rpm
 
 # RPM for Suse 10
 rpm-suse10:
