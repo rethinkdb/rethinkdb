@@ -840,11 +840,11 @@ std::string admin_cluster_link_t::admin_split_shard_internal(namespaces_semilatt
 template <class protocol_t>
 std::string admin_cluster_link_t::split_shards(vclock_t<nonoverlapping_regions_t<protocol_t> > *shards_vclock,
                                                const std::vector<std::string> &split_points) {
-    // TODO: Non-const reference.
-    nonoverlapping_regions_t<protocol_t> &shards = shards_vclock->get_mutable();
     std::string error;
 
     for (size_t i = 0; i < split_points.size(); ++i) {
+        // TODO: Non-const reference.
+        nonoverlapping_regions_t<protocol_t> &shards = shards_vclock->get_mutable();
         try {
             store_key_t key;
             if (!cli_str_to_key(split_points[i], &key)) {
@@ -961,9 +961,9 @@ std::string admin_cluster_link_t::admin_merge_shard_internal(namespaces_semilatt
 template <class protocol_t>
 std::string admin_cluster_link_t::merge_shards(vclock_t<nonoverlapping_regions_t<protocol_t> > *shards_vclock,
                                                const std::vector<std::string> &split_points) {
-    nonoverlapping_regions_t<protocol_t> &shards = shards_vclock->get_mutable();
     std::string error;
     for (size_t i = 0; i < split_points.size(); ++i) {
+        nonoverlapping_regions_t<protocol_t> &shards = shards_vclock->get_mutable();
         try {
             store_key_t key;
             if (!cli_str_to_key(split_points[i], &key)) {

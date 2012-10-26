@@ -34,7 +34,6 @@ workloads = {
     ],
     "rdb": [
     "$RETHINKDB/test/rdb_workloads/test.py",
-    "$RETHINKDB/test/rdb_workloads/test2.py"
     "node $RETHINKDB/test/rdb_workloads/test.js $HOST $PORT"
     ]
     }

@@ -62,8 +62,14 @@ public:
 };
 
 struct multiple_choices_exc_t : public json_adapter_exc_t {
-    virtual const char *what() const throw () {
+    const char *what() const throw () {
         return "Multiple choices exists for this json value (probably vector clock divergence).";
+    }
+};
+
+struct gone_exc_t : public json_adapter_exc_t {
+    const char *what() const throw () {
+        return "Trying to access a deleted value.";
     }
 };
 

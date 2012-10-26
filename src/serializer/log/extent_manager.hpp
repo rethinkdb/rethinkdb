@@ -22,36 +22,36 @@ class extent_zone_t;
 
 struct log_serializer_stats_t;
 
+class extent_transaction_t {
+public:
+    friend class extent_manager_t;
+    extent_transaction_t() : active_(false) { }
+    ~extent_transaction_t() {
+        rassert(!active_);
+    }
+
+    void init() { active_ = true; }
+    void reset() {
+        free_queue_.clear();
+        active_ = false;
+    }
+
+    std::deque<off64_t> &free_queue() {
+        rassert(active_);
+        return free_queue_;
+    }
+
+private:
+    bool active_;
+    std::deque<off64_t> free_queue_;
+
+    DISABLE_COPYING(extent_transaction_t);
+};
+
 class extent_manager_t : public home_thread_mixin_debug_only_t {
 public:
     struct metablock_mixin_t {
         int64_t padding;
-    };
-
-    class transaction_t {
-    public:
-        friend class extent_manager_t;
-        transaction_t() : active_(false) { }
-        ~transaction_t() {
-            rassert(!active_);
-        }
-
-        void init() { active_ = true; }
-        void reset() {
-            free_queue_.clear();
-            active_ = false;
-        }
-
-        std::deque<off64_t> &free_queue() {
-            rassert(active_);
-            return free_queue_;
-        }
-
-    private:
-        bool active_;
-        std::deque<off64_t> free_queue_;
-
-        DISABLE_COPYING(transaction_t);
     };
 
     extent_manager_t(direct_file_t *file, const log_serializer_on_disk_static_config_t *static_config, const log_serializer_dynamic_config_t *dynamic_config, log_serializer_stats_t *);
@@ -76,11 +76,11 @@ public:
     has been written. This guarantees that we will not overwrite extents that the
     most recent metablock points to. */
 
-    void begin_transaction(transaction_t *out);
-    off64_t gen_extent();
-    void release_extent(off64_t extent);
-    void end_transaction(const transaction_t &t);
-    void commit_transaction(transaction_t *t);
+    void begin_transaction(extent_transaction_t *out);
+    off64_t gen_extent(extent_transaction_t *txn);
+    void release_extent(off64_t extent, extent_transaction_t *txn);
+    void end_transaction(const extent_transaction_t &t);
+    void commit_transaction(extent_transaction_t *t);
 
     /* Number of extents that have been released but not handed back out again. */
     int held_extents();
@@ -109,7 +109,7 @@ private:
         state_shut_down
     } state;
 
-    transaction_t *current_transaction;
+    extent_transaction_t *current_transaction;
 
     DISABLE_COPYING(extent_manager_t);
 };

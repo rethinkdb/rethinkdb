@@ -254,20 +254,8 @@ block_write(const void *buf, block_id_t block_id, file_account_t *io_account, io
 
 template<class inner_serializer_t>
 intrusive_ptr_t< scs_block_token_t<inner_serializer_t> > semantic_checking_serializer_t<inner_serializer_t>::
-block_write(const void *buf, file_account_t *io_account, iocallback_t *cb) {
-    return wrap_buf_token(NULL_BLOCK_ID, buf, inner_serializer.block_write(buf, io_account, cb));
-}
-
-template<class inner_serializer_t>
-intrusive_ptr_t< scs_block_token_t<inner_serializer_t> > semantic_checking_serializer_t<inner_serializer_t>::
 block_write(const void *buf, block_id_t block_id, file_account_t *io_account) {
     return wrap_buf_token(block_id, buf, inner_serializer.block_write(buf, block_id, io_account));
-}
-
-template<class inner_serializer_t>
-intrusive_ptr_t< scs_block_token_t<inner_serializer_t> > semantic_checking_serializer_t<inner_serializer_t>::
-block_write(const void *buf, file_account_t *io_account) {
-    return wrap_buf_token(NULL_BLOCK_ID, buf, inner_serializer.block_write(buf, io_account));
 }
 
 template<class inner_serializer_t>

@@ -123,7 +123,6 @@ public:
 
     /* Non-blocking variant */
     intrusive_ptr_t<standard_block_token_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb);
-    intrusive_ptr_t<standard_block_token_t> block_write(const void *buf, file_account_t *io_account, iocallback_t *cb);
     using serializer_t::block_write;
 
     block_size_t get_block_size();

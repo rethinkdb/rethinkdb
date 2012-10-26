@@ -1,59 +1,28 @@
 # Resolve issues view
 module 'ResolveIssuesView', ->
     # ResolveIssuesView.Container
-    class @Container extends Backbone.View
+    class @Container extends UIComponents.AbstractList
         id: 'resolve-issues'
         className: 'section'
-        template_outer: Handlebars.compile $('#resolve_issues-container-outer-template').html()
-        template_inner: Handlebars.compile $('#resolve_issues-container-inner-template').html()
+        template: Handlebars.compile $('#resolve_issues-container-template').html()
 
-        events:
-            'click .close': 'remove_parent_alert'
+        initialize: ->
+            @issue_list = new ResolveIssuesView.IssueList()
 
-        remove_parent_alert: (event) ->
-            event.preventDefault()
-            element = $(event.target).parent()
-            element.slideUp 'fast', -> element.remove()
-
-        initialize: =>
-            @issue_views = []
-            issues.on 'add', @render_issues
-            issues.on 'remove', @render_issues
-            issues.on 'reset', @render_issues
-        
         render: =>
-            @.$el.html @template_outer
-            @render_issues()
-
+            @.$el.html @template()
+            @.$('.issue-list').html @issue_list.render().el
             return @
 
-        render_issues: =>
-            @.$('#resolve_issues-container-inner-placeholder').html @template_inner
-                issues_exist: if issues.length > 0 then true else false
+    class @IssueList extends UIComponents.AbstractList
+        template: Handlebars.compile $('#resolve_issues-issue_list-template').html()
 
-            
-            for view in @issue_views # For safety, Issue doesn't bind any listeners on our main elements
-                view.destroy()
-
-            @issue_views = []
-            issues.each (issue) =>
-                @issue_views.push new ResolveIssuesView.Issue
-                    model: issue
-            for view in @issue_views
-                @.$('.issues').append view.render().$el
-
-            return @
-
-        destroy: =>
-            issues.off 'add', @render_issues
-            issues.off 'remove', @render_issues
-            issues.off 'reset', @render_issues
-            for view in @issue_views
-                view.destroy()
+        initialize: ->
+            super issues, ResolveIssuesView.Issue, '.issues'
 
     class @DeclareMachineDeadModal extends UIComponents.AbstractModal
         template: Handlebars.compile $('#declare_machine_dead-modal-template').html()
-        alert_tmpl: Handlebars.compile $('#declared_machine_dead-alert-template').html()
+        alert_tmpl: Handlebars.compile $('#resolve_issues-resolved-template').html()
         template_issue_error: Handlebars.compile $('#fail_solve_issue-template').html()
 
         class: 'declare-machine-dead'
@@ -73,21 +42,6 @@ module 'ResolveIssuesView', ->
         on_submit: ->
             super
 
-            ###
-            data = 
-                semilattice:
-                    machines: {}
-
-            data.semilattice.machines[@machine_to_kill.get('id')] = null
-            $.ajax
-                url: "/ajax"
-                type: 'POST'
-                contentType: 'application/json'
-                data: JSON.stringify(data)
-                success: @on_success
-                error: @on_error
-            ###
- 
             $.ajax
                 url: "/ajax/semilattice/machines/#{@machine_to_kill.id}"
                 type: 'DELETE'
@@ -110,6 +64,11 @@ module 'ResolveIssuesView', ->
             if (response)
                 @on_success_with_error()
                 return
+
+            # notify the user that we succeeded
+            $('#issue-alerts').append @alert_tmpl
+                machine_dead:
+                    machine_name: @machine_to_kill.get("name")
             
             #TODO Remove this synchronous request and use proper callbacks.
             # Grab the new set of issues (so we don't have to wait)
@@ -121,11 +80,6 @@ module 'ResolveIssuesView', ->
 
             super
             
-            # notify the user that we succeeded
-            $('#user-alert-space').append @alert_tmpl
-                machine_name: @machine_to_kill.get("name")
-
-
             # We clean data now to have data fresher than if we were waiting for the next call to ajax/
             # remove from bluprints
             for namespace in namespaces.models
@@ -136,10 +90,35 @@ module 'ResolveIssuesView', ->
 
             # remove the dead machine from the models (this must be last)
             machines.remove(@machine_to_kill.id)
-            
+
+    class @ResolveNameConflictModal extends Backbone.View
+        alert_tmpl_: Handlebars.compile $('#resolve_issues-resolved-template').html()
+
+        render: (uuid, type) =>
+            @type = type
+            rename_modal = new UIComponents.RenameItemModal(uuid, type, @on_success_, { hide_alert: true })
+            rename_modal.render()
+            return @
+
+        on_success_: =>
+            # notify the user that we succeeded
+            $('#issue-alerts').append @alert_tmpl_
+                name_conflict:
+                    type: @type
+
+            # Grab the new set of issues (so we don't have to wait)
+            $.ajax
+                url: '/ajax/issues'
+                contentType: 'application/json'
+                success: set_issues
+                async: false
+
+            return @
+                
+
     class @ResolveVClockModal extends UIComponents.AbstractModal
         template: Handlebars.compile $('#resolve_vclock-modal-template').html()
-        alert_tmpl: Handlebars.compile $('#resolved_vclock-alert-template').html()
+        alert_tmpl: Handlebars.compile $('#resolve_issues-resolved-template').html()
         class: 'resolve-vclock-modal'
 
         initialize: ->
@@ -166,6 +145,11 @@ module 'ResolveIssuesView', ->
                 error: @on_error
 
         on_success: (response) ->
+            # notify the user that we succeeded
+            $('#issue-alerts').append @alert_tmpl
+                vclock_conflict:
+                    final_value: @final_value
+
             $.ajax
                 url: '/ajax/issues'
                 contentType: 'application/json'
@@ -174,14 +158,10 @@ module 'ResolveIssuesView', ->
 
             super
 
-            # notify the user that we succeeded
-            $('#user-alert-space').append @alert_tmpl
-                final_value: @final_value
-
 
     class @ResolveUnsatisfiableGoal extends UIComponents.AbstractModal
         template: Handlebars.compile $('#resolve_unsatisfiable_goals_modal-template').html()
-        alert_tmpl: Handlebars.compile $('#resolved_issues_unsatisfiable_goals-template').html()
+        alert_tmpl: Handlebars.compile $('#resolve_issues-resolved-template').html()
         class: 'resolve-vclock-modal'
 
         initialize: (namespace, datacenters_with_issues)->
@@ -225,6 +205,10 @@ module 'ResolveIssuesView', ->
 
 
         on_success: ->
+            # notify the user that we succeeded
+            $('#issue-alerts').append @alert_tmpl
+                unsatisfiable_goals: true
+
             # Grab the new set of issues (so we don't have to wait)
             $.ajax
                 url: '/ajax/issues'
@@ -233,9 +217,6 @@ module 'ResolveIssuesView', ->
                 async: false
 
             super
-
-            # notify the user that we succeeded
-            $('#user-alert-space').append @alert_tmpl
 
     # ResolveIssuesView.Issue
     class @Issue extends Backbone.View
@@ -308,20 +289,13 @@ module 'ResolveIssuesView', ->
             _.each(@model.get('contestants'), (uuid) =>
                 @.$("a#rename_" + uuid).click (e) =>
                     e.preventDefault()
-                    rename_modal = new UIComponents.RenameItemModal(uuid, @model.get('contested_type'), (response) =>
-                        # Grab the new set of issues (so we don't have to wait)
-                        $.ajax
-                            url: '/ajax/issues'
-                            contentType: 'application/json'
-                            success: set_issues
-                            async: false
-                    )
-                    rename_modal.render()
+                    rename_modal = new ResolveIssuesView.ResolveNameConflictModal()
+                    rename_modal.render uuid, @model.get('contested_type')
             )
 
         render_logfile_write_issue: (_template) ->
             json =
-                datetime: @model.get('time')
+                datetime: iso_date_from_unix_time @model.get('time')
                 critical: @model.get('critical')
                 machine_name: machines.get(@model.get('location')).get('name')
                 machine_uuid: @model.get('location')
@@ -333,8 +307,6 @@ module 'ResolveIssuesView', ->
                 declare_dead_modal.render machines.get(@model.get('location'))
 
             @.$el.html _template(json)
-
-
 
         render_vclock_conflict: (_template) ->
             get_resolution_url = =>
