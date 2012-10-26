@@ -328,7 +328,7 @@ endif
 STATIC_LIBRARY_PATHS:=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }'))
 
 ifeq ($(GPERF),1)
-STATIC_LIBRARY_PATHS+=/home/wmrowan/rethinkdb/external/gperftools-2.0/instal_dir/lib/libtcmalloc_and_profiler.a
+STATIC_LIBRARY_PATHS+= # path to patched libtcmalloc_and_profiler.a
 endif
 
 #  /usr/lib/x86_64-linux-gnu/libQtCore.so.4

@@ -967,8 +967,6 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         res->set_status_code(Response::SUCCESS_STREAM);
     } break;
     case MetaQuery::CREATE_TABLE: {
-        HeapProfilerDump("before_table_create");
-
         std::string dc_name_str = m->create_table().datacenter();
         name_string_t dc_name;
         assign_dc_name(dc_name_str, bt.with("table_ref").with("dc_name"), &dc_name);
@@ -1023,8 +1021,6 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
             throw runtime_exc_t("Query interrupted, probably by user.", bt);
         }
         res->set_status_code(Response::SUCCESS_EMPTY);
-
-        HeapProfilerDump("after_table_create");
     } break;
     case MetaQuery::DROP_TABLE: {
         std::string db_name_str = m->drop_table().db_name();
