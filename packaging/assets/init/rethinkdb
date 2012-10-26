@@ -1,0 +1,49 @@
+#!/bin/sh
+# Copyright 2012 RethinkDB.
+# Portions from Frank Trampe and Novell used with permission.
+
+# This file targets Ubuntu and is not in line with the Linux specification. Move runlevel 2 from Default-Start to Default-Stop for compliance.
+
+### BEGIN INIT INFO
+# Provides:          rethinkdb
+# Required-Start:    
+# Required-Stop:
+# Default-Start:     2 3 5
+# Default-Stop:      0 1 6
+# Short-Description: This starts a set of rethinkdb server instances.
+# Description:       This looks in /etc/rethinkdb/instancds.d for rethinkdb config files and launches, stops, or examines each instance described there.
+### END INIT INFO
+
+rtdbbin=/usr/bin/rethinkdb ;
+# We check for active configurations .
+if [ -e /etc/rethinkdb/instances.d/*.conf ] ;
+then
+for rtdbconffile in /etc/rethinkdb/instances.d/*.conf ;
+do
+	# We seek the pid-file .
+	rtdbpidfile="`cat "$rtdbconffile" | grep '^[ \t]*pid-file[ \t]*\=' | sed -e 's/^\([ \ta-zA-Z0-9]\|[-]\)*\=[ \t]*//g'`" ;
+	if [ "$itask" = "stop" ] || [ "$itask" = "restart" ] || [ "$itask" = "reload" ] || [ "$itask" = "force-reload" ] ;
+	then
+		start-stop-daemon --stop --pidfile "$rtdbpidfile" --signal SIGINT ;
+	fi ;
+	if [ "$itask" = "start" ] || [ "$itask" = "restart" ] || [ "$itask" = "reload" ] || [ "$itask" = "force-reload" ] ;
+	then
+		start-stop-daemon --start --pidfile "$rtdbpidfile" --startas "$rtdbbin" -- --config-file="$rtdbconffile" ;
+	fi ;
+	if [ "$itask" = "status" ] ;
+	then
+		if [ -e "$rtdbpidfile" ] ;
+		then
+			if [ "`ps -Af | awk 'BEGIN { inited = 0 ; pidpos = 0 ; } { if ( inited == 0 ) { count1 = 0 ; while ( count1 < NF ) { count1 ++ ; if ( $count1 ~ /^[Pp][Ii][Dd]$/ ) { pidpos = count1 ; inited = 1 ; } } } else { printf "%s\n" , $pidpos ; } }' | grep '^'"\`cat \"$rtdbpidfile\"\`"'$'`" == "" ] ;
+			then
+				echo "rethinkdb:""$rtdbconffile"" stop/crashed" ;
+			else
+				echo "rethinkdb:""$rtdbconffile"" start/running, pid `cat $rtdbpidfile | grep '^[0-9]*$'`" ;
+			fi ;
+		else
+			echo "rethinkdb:""$rtdbconffile"" stop/waiting" ;
+		fi ;
+	fi ;
+done ;
+fi ;
+
