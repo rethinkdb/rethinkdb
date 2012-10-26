@@ -551,7 +551,7 @@ MUST_USE bool parse_config_file_flat(const std::string & conf_file_name, po::var
     std::ifstream conf_file ( conf_file_name.c_str() , std::ifstream::in ) ;
     if ( conf_file.fail() ) return false ;
     try {
-        po::store(po::parse_config_file(conf_file, options), *vm);
+        po::store(po::parse_config_file(conf_file, options, true), *vm);
     } catch (const po::multiple_occurrences& ex) {
         logERR("flag specified too many times\n");
         conf_file.close() ;
