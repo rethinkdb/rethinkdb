@@ -18,30 +18,29 @@ rtdbbin=/usr/bin/rethinkdb ;
 rtdbconfigdir=/etc/rethinkdb ;
 rtdbconfigglob="$rtdbconfigdir"/main.conf ;
 
-# We check for instructions about which user and group ought to run the service .
-runuser="" ;
-rungroup="" ;
-if [ -e "$rtdbconfigglob" ] ;
-then
-	runuser="`cat "$rtdbconffile" | grep '^[ \t]*runuser[ \t]*\=' | head -n 1 | sed -e 's/^\([ \ta-zA-Z0-9]\|[-]\)*\=[ \t]*//g'`" ;
-	rungroup="`cat "$rtdbconffile" | grep '^[ \t]*rungroup[ \t]*\=' | head -n 1 | sed -e 's/^\([ \ta-zA-Z0-9]\|[-]\)*\=[ \t]*//g'`" ;
-fi ;
-useropt="" ;
-if [ "$runuser" != "" ] ;
-then
-	useropt="--chuid" ;
-fi ;
-groupopt="" ;
-if [ "$runuser" != "" ] ;
-then
-	groupopt="--group" ;
-fi ;
-
 # We check for active configurations .
 if [ -e "$rtdbconfigdir"/instances.d/*.conf ] ;
 then
 for rtdbconffile in "$rtdbconfigdir"/instances.d/*.conf ;
 do
+	# We check for instructions about which user and group ought to run the service .
+	runuser="" ;
+	rungroup="" ;
+	if [ -e "$rtdbconffile" ] ;
+	then
+		runuser="`cat "$rtdbconffile" | grep '^[ \t]*runuser[ \t]*\=' | head -n 1 | sed -e 's/^\([ \ta-zA-Z0-9]\|[-]\)*\=[ \t]*//g'`" ;
+		rungroup="`cat "$rtdbconffile" | grep '^[ \t]*rungroup[ \t]*\=' | head -n 1 | sed -e 's/^\([ \ta-zA-Z0-9]\|[-]\)*\=[ \t]*//g'`" ;
+	fi ;
+	useropt="" ;
+	if [ "$runuser" != "" ] ;
+	then
+		useropt="--chuid" ;
+	fi ;
+	groupopt="" ;
+	if [ "$runuser" != "" ] ;
+	then
+		groupopt="--group" ;
+	fi ;
 	# We seek the pid-file .
 	rtdbpidfile="`cat "$rtdbconffile" | grep '^[ \t]*pid-file[ \t]*\=' | head -n 1 | sed -e 's/^\([ \ta-zA-Z0-9]\|[-]\)*\=[ \t]*//g'`" ;
 	if [ "$itask" = "stop" ] || [ "$itask" = "restart" ] || [ "$itask" = "reload" ] || [ "$itask" = "force-reload" ] ;

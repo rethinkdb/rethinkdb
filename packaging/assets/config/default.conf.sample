@@ -2,6 +2,8 @@
 # It is generally necessary to run
 # mkdir /var/lib/rethinkdb/instances.d/default ; rethinkdb create -d /var/lib/rethinkdb/instances.d/default ;
 # as root before enabling this configuration.
+runuser=root
+rungroup=root
 directory=/var/lib/rethinkdb/instances.d/default
 pid-file=/var/run/rethinkdb/instances.d/default.pid
 driver-port=28015
