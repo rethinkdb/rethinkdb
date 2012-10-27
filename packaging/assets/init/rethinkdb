@@ -47,7 +47,7 @@ do
 	rtdbpidfile="`cat "$rtdbconffile" | grep '^[ \t]*pid-file[ \t]*\=' | head -n 1 | sed -e 's/^\([ \ta-zA-Z0-9]\|[-]\)*\=[ \t]*//g'`" ;
 	if [ "$itask" = "stop" ] || [ "$itask" = "restart" ] || [ "$itask" = "reload" ] || [ "$itask" = "force-reload" ] ;
 	then
-		start-stop-daemon --stop --pidfile "$rtdbpidfile" --signal SIGINT "$useropt" "$runuser" "$groupopt" "$rungroup" ;
+		start-stop-daemon --stop --pidfile "$rtdbpidfile" --signal INT "$useropt" "$runuser" "$groupopt" "$rungroup" ;
 	fi ;
 	if [ "$itask" = "start" ] || [ "$itask" = "restart" ] || [ "$itask" = "reload" ] || [ "$itask" = "force-reload" ] ;
 	then
