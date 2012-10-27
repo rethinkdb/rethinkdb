@@ -14,7 +14,7 @@ dnl
 Package: VERSIONED_PACKAGE_NAME
 Version: PACKAGE_VERSION
 Architecture: amd64
-Maintainer: Package Maintainer <support@rethinkdb.com>
+Maintainer: Package Maintainer <packaging@rethinkdb.com>
 Installed-Size: DISK_SIZE
 Pre-Depends: adduser (>= 3.40)
 Depends: ifelse(LEGACY_LINUX, 1,
@@ -27,11 +27,10 @@ Section: database
 Priority: optional
 Homepage: http://rethinkdb.com/
 Description: ifelse(SOLO, 1,
-` RethinkDB is a key-value storage system designed for persistent
- data.
- .
- It conforms to the memcache text protocol, so any memcached client
- can have connectivity with it.',
-` FIXME: Put RethinkDB Cache description here.
- .
- It must be at least two paragraphs, with the first being the summary.')
+`RethinkDB is a scalable database.
+
+It is also very mysterious.',
+`RethinkDB is a scalable database.
+
+It is also very mysterious.')
+
