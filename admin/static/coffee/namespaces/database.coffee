@@ -188,8 +188,8 @@ module 'DatabaseView', ->
 
             # Call render of AbstractModal with the data for the template
             super
-                modal_title: 'Remove database'
-                btn_primary_text: 'Remove'
+                modal_title: 'Delete database'
+                btn_primary_text: 'Delete'
                 id: _database_to_delete.get('id')
                 name: _database_to_delete.get('name')
 

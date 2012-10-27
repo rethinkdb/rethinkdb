@@ -3,7 +3,7 @@
         <div class="actions-bar">
             <button class="btn add-database">+ Add Database</button>
             <button class="btn add-namespace">+ Add Table</button>
-            <button class="btn for-multiple-elements remove-namespace" disabled="disabled">&ndash; Remove selected tables</button>
+            <button class="btn for-multiple-elements remove-namespace" disabled="disabled">&ndash; Delete selected tables</button>
         </div>
         <h1 class="title">Tables in the cluster</h1>
         <div id="user-alert-space"></div>
@@ -56,7 +56,6 @@ You need to create a database before creating a table.
 <script id="add_database-modal-template" type="text/x-handlebars-template"> 
     <form class="form">
         <fieldset>
-            <legend>Database details</legend>
             <div class="clearfix">
                 <label for="name">Name</label>
                 <div class="input">
@@ -79,7 +78,7 @@ You need to create a database before creating a table.
         <label for="name">Name</label>
         <input class="xlarge" id="focus_namespace_name" name="name" size="30" type="text" />
 
-        <label for="primary_datacenter">Select a database:</label>
+        <label for="primary_datacenter">Select a database</label>
         <select class="database" name="database">
             {{#each databases}}
             <option value="{{this.id}}">{{this.name}}</option>
@@ -90,16 +89,6 @@ You need to create a database before creating a table.
         <p class="hide_advanced_settings-link_container"><a href="#" class="hide_advanced_settings-link">Hide optional settings</a></p>
 
         <div class="advanced_settings">
-            <label for="primary_datacenter">Select a primary datacenter:</label>
-            <select class="primary_datacenter" name="primary_datacenter">
-                {{#each datacenters}}
-                <option value="{{this.id}}">{{this.name}}</option>
-                {{/each}}
-            </select>
-            {{#unless all_datacenters}}
-            <p>Note: The empty datacenters cannot be selected as primary.</p>
-            {{/unless}}
-
             <label for="name">Primary key</label>
             <input class="xlarge" name="primary_key" size="30" type="text" placeholder="id"/>
             <label for="name">Cache size in MB</label>
@@ -116,9 +105,9 @@ You need to create a database before creating a table.
 </script>
 
 <script id="remove_namespace-modal-template" type="text/x-handlebars-template">
-    <div class="alert alert-error displayed_alert">Removing the table will delete all the data. This action cannot be reversed.</div>
+    <div class="alert alert-error displayed_alert">Deleting a table will delete all its data. This action cannot be reversed.</div>
     <div class="alert alert-error error_answer"></div>
-    <h4>Are you sure you want to remove {{#if namespaces_length_is_one}}this{{else}}these{{/if}} tables:</h4>
+    <h4>Are you sure you want to delete these tables:</h4>
     <ul class="namespace-list">
         {{#each namespaces}}
         <li><a href="#tables/{{id}}">{{name}}</a></li>
@@ -129,6 +118,6 @@ You need to create a database before creating a table.
 <script id="removed_namespace-alert-template" type="text/x-handlebars-template">
     <div class="alert displayed_alert">
         <a class="close" href="#">&times;</a>
-        <p>The {{pluralize_noun "table" num_deleted_namespaces}} <span class="name">{{comma_separated_simple deleted_namespaces}}</span> {{pluralize_verb_to_have num_deleted_namespaces}} been removed.</p>
+        <p>The {{pluralize_noun "table" num_deleted_namespaces}} <span class="name">{{comma_separated_simple deleted_namespaces}}</span> {{pluralize_verb_to_have num_deleted_namespaces}} been deleted.</p>
     </div>
 </script>
