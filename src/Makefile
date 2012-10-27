@@ -486,6 +486,7 @@ lib_dir:=$(prefix)/lib/rethinkdb
 web_res_dir:=$(share_dir)/web
 pidfile_dir:=/var/run/rethinkdb
 data_dir:=/var/lib/rethinkdb
+language_drivers_dir:=$(share_dir)/drivers
 
 ASSET_SCRIPTS:=$(ASSETS_DIR)/scripts/rdb_migrate
 INIT_SCRIPTS:=$(ASSETS_DIR)/init/rethinkdb
@@ -551,6 +552,8 @@ install-web:
 	# This might break some ownership or permissions stuff.
 	$(QUIET) cp -pRP $(BUILD_DIR)/web/* $(DESTDIR)$(web_res_dir)/
 
+install-drivers:
+	
 $(libdir):
 	$(QUIET) install -m755 -d $(DESTDIR)$(lib_dir)
 
