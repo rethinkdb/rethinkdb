@@ -66,16 +66,16 @@ endif
 		<(echo "})();") > $(JS_BUILD_DIR)/rethinkdb.js' $(SILENCER_1) || ( echo "      Build failure." ; rm $(JS_BUILD_DIR)/rethinkdb.js ; false ; )
 
 $(JS_BUILD_DIR)/rethinkdb: $(JS_BUILD_DIR)
-	$(QUIET) if [ ! -e $(JS_BUILD_DIR)/rethinkdb ] ; then mkdir $(JS_BUILD_DIR)/rethinkdb ; fi ;
+	$(QUIET) mkdir -p $(JS_BUILD_DIR)/rethinkdb ;
 
 $(JS_BUILD_DIR): $(DRIVERS_BUILD_DIR)
-	$(QUIET) if [ ! -e $(JS_BUILD_DIR) ] ; then mkdir $(JS_BUILD_DIR) ; fi ;
+	$(QUIET) mkdir -p  $(JS_BUILD_DIR) ;
 
 $(DRIVERS_BUILD_DIR): $(MAIN_BUILD_DIR)
-	$(QUIET) if [ ! -e $(DRIVERS_BUILD_DIR) ] ; then mkdir $(DRIVERS_BUILD_DIR) ; fi ;
+	$(QUIET) mkdir -p  $(DRIVERS_BUILD_DIR) ;
 
 $(MAIN_BUILD_DIR):
-	$(QUIET) if [ ! -e $(MAIN_BUILD_DIR) ] ; then mkdir $(MAIN_BUILD_DIR) ; fi ;
+	$(QUIET) mkdir -p $(MAIN_BUILD_DIR) ;
 
 # Compile the javascript stubs for the rethinkdb protocol
 $(JS_BUILD_DIR)/rethinkdb/query_language.pb.js: $(PROTO_FILE) $(PROTOC_JS_HOME_DIR)/protoc-gen-js $(JS_BUILD_DIR)/rethinkdb

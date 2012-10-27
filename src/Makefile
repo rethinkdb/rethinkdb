@@ -65,6 +65,13 @@ endif
 # Set SYMBOLS to 1 to enable symbols, even in release mode
 SYMBOLS?=0
 
+ifeq ($(GPERF),1)
+DEBUG=0
+NO_TCMALLOC:=1
+SYMBOLS:=1
+NO_OMIT_FRAME_POINTER:=1
+endif
+
 JSON_SHORTCUTS?=0
 DEBUG?=1
 VALGRIND?=0
@@ -320,6 +327,10 @@ endif
 # look for the static library in the same directory as the .so file
 STATIC_LIBRARY_PATHS:=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }'))
 
+ifeq ($(GPERF),1)
+STATIC_LIBRARY_PATHS+= # path to patched libtcmalloc_and_profiler.a
+endif
+
 #  /usr/lib/x86_64-linux-gnu/libQtCore.so.4
 
 # Should makefile be noisy?
@@ -362,7 +373,6 @@ PROTOCFLAGS:= --proto_path=$(SOURCE_DIR)
 NAMES:=$(patsubst $(SOURCE_DIR)/%.cc,%,$(SOURCES))
 DEPS:=$(patsubst %,$(DEP_DIR)/%.d,$(NAMES))
 OBJS:=$(PROTO_OBJS) $(patsubst %,$(OBJ_DIR)/%.o,$(NAMES))
-
 
 SERVER_EXEC_OBJS:=$(PROTO_OBJS) $(patsubst %.cc,$(OBJ_DIR)/%.o,$(filter-out $(SOURCE_DIR)/unittest/%,$(SOURCES)))
 
@@ -465,8 +475,16 @@ share_dir:=$(prefix)/share/$(VERSIONED_PACKAGE_NAME)
 bash_completion_dir:=/etc/bash_completion.d
 internal_bash_completion_dir:=$(share_dir)$(bash_completion_dir)
 scripts_dir:=$(share_dir)/scripts
+init_dir:=/etc/init.d
+conf_dir:=/etc/rethinkdb
+conf_instance_dir:=$(conf_dir)/instances.d
+lib_dir:=$(prefix)/lib/rethinkdb
+web_res_dir:=$(lib_dir)/web
+pidfile_dir:=/var/run/rethinkdb
+data_dir:=/var/lib/rethinkdb
 
 ASSET_SCRIPTS:=$(ASSETS_DIR)/scripts/rdb_migrate
+INIT_SCRIPTS:=$(ASSETS_DIR)/init/rethinkdb
 
 CXXFLAGS+=-DMIGRATION_SCRIPT_LOCATION=\"$(scripts_dir)/rdb_migrate\"
 
@@ -508,12 +526,34 @@ install-tools: $(ASSETS_DIR)/scripts/rethinkdb.bash $(ASSET_SCRIPTS)
 			$(ASSETS_DIR)/scripts/rethinkdb.bash | install -m644 /dev/stdin $(DESTDIR)$(internal_bash_completion_dir)/$(SERVER_EXEC_NAME).bash
 	$(QUIET) install -m755 -d $(DESTDIR)$(scripts_dir)
 	$(QUIET) for s in $(ASSET_SCRIPTS); do install -m755 "$$s" $(DESTDIR)$(scripts_dir)/$$(basename $$s); done
+	$(QUIET) install -m755 -d $(DESTDIR)$(init_dir) ;
+	$(QUIET) for s in $(INIT_SCRIPTS); do install -m755 "$$s" $(DESTDIR)$(init_dir)/$$(basename $$s); done ;
+
+install-config:
+	$(QUIET) install -m755 -d $(DESTDIR)$(conf_dir) ;
+	$(QUIET) install -m644 $(ASSETS_DIR)/config/main.conf $(DESTDIR)$(conf_dir)/main.conf ;
+	$(QUIET) install -m755 -d $(DESTDIR)$(conf_instance_dir) ;
+	$(QUIET) install -m644 $(ASSETS_DIR)/config/default.conf.sample $(DESTDIR)$(conf_dir)/default.conf.sample ;
+
+install-data:
+	$(QUIET) install -m755 -d $(DESTDIR)$(data_dir)
+	$(QUIET) install -m755 -d $(DESTDIR)$(data_dir)/instances.d
+	$(QUIET) install -m755 -d $(DESTDIR)$(pidfile_dir)
+	$(QUIET) install -m755 -d $(DESTDIR)$(pidfile_dir)/instances.d
+
+install-web: $(libdir)
+	$(QUIET) install -m755 -d $(DESTDIR)$(web_res_dir)
+	# This might break some ownership or permissions stuff.
+	$(QUIET) cp -pRP $(BUILD_DIR)/web/* $(DESTDIR)$(web_res_dir)/
+
+$(libdir):
+	$(QUIET) install -m755 -d $(DESTDIR)$(lib_dir)
 
 install-docs:
 	$(QUIET) install -m755 -d $(DESTDIR)$(doc_dir)
 	$(QUIET) install -m644 -T $(ASSETS_DIR)/docs/LICENSE $(DESTDIR)$(doc_dir)/copyright
 
-install: install-binaries install-manpages install-docs install-tools
+install: install-binaries install-manpages install-docs install-tools install-web install-data install-config
 install-rpm: install
 install-deb: install
 	$(QUIET) install -m755 -d $(DESTDIR)$(doc_dir)
@@ -637,12 +677,12 @@ rpm: all prepare_rpm_package_dirs
 
 else
 # Ubuntu/Debian
-deb: clean
-	$(QUIET) $(MAKE) PACKAGING=1 DEBUG=0 SYMBOLS=1 deb
+deb:
+	$(QUIET) $(MAKE) PACKAGING=1 DEBUG=0 deb
 
 # RPM for CentOS/RedHat
 rpm: clean
-	$(QUIET) $(MAKE) PACKAGING=1 DEBUG=0 SYMBOLS=1 rpm
+	$(QUIET) $(MAKE) PACKAGING=1 DEBUG=0 rpm
 
 # RPM for Suse 10
 rpm-suse10:
