@@ -51,6 +51,10 @@ do
 	fi ;
 	if [ "$itask" = "start" ] || [ "$itask" = "restart" ] || [ "$itask" = "reload" ] || [ "$itask" = "force-reload" ] ;
 	then
+		if [ -e /var/run ] && [ "`echo "$rtdbpidfile" | grep '^/var/run'`" != "" ] ;
+		then
+			mkdir -p "`dirname "$rtdbpidfile"`" ;
+		fi ;
 		start-stop-daemon --start --pidfile "$rtdbpidfile" "$useropt" "$runuser" "$groupopt" "$rungroup" --startas "$rtdbbin" --background -- --config-file="$rtdbconffile" ;
 	fi ;
 	if [ "$itask" = "status" ] ;

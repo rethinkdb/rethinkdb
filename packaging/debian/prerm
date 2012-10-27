@@ -9,8 +9,8 @@ case "$1" in
   remove|upgrade|deconfigure|failed-upgrade)
     update-alternatives --remove $server_exec_name $bin_dir/$server_exec_name_versioned
     ;;
+  invoke-rc.d rethinkdb stop ;
   update-rc.d rethinkdb remove ;
-  /etc/init.d/rethinkdb stop ;
   *)
     echo "Warning: RethinkDB prerm script called with unknown set of arguments: $*"
     ;;
