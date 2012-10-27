@@ -6,8 +6,8 @@
 
 ### BEGIN INIT INFO
 # Provides:          rethinkdb
-# Required-Start:    
-# Required-Stop:
+# Required-Start: $remote_fs 
+# Required-Stop: $remote_fs
 # Default-Start:     2 3 5
 # Default-Stop:      0 1 6
 # Short-Description: This starts a set of rethinkdb server instances.

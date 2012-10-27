@@ -542,8 +542,9 @@ install-config:
 install-data:
 	$(QUIET) install -m755 -d $(DESTDIR)$(data_dir)
 	$(QUIET) install -m755 -d $(DESTDIR)$(data_dir)/instances.d
-	$(QUIET) install -m755 -d $(DESTDIR)$(pidfile_dir)
-	$(QUIET) install -m755 -d $(DESTDIR)$(pidfile_dir)/instances.d
+	# We disabled the /var/run creation and added the functionality to the init script because Lintian observed that /var/run can get purged .
+	#	$(QUIET) install -m755 -d $(DESTDIR)$(pidfile_dir)
+	#	$(QUIET) install -m755 -d $(DESTDIR)$(pidfile_dir)/instances.d
 
 install-web:
 	$(QUIET) install -m755 -d $(DESTDIR)$(web_res_dir)
