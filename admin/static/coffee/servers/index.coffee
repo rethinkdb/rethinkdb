@@ -84,7 +84,8 @@ module 'ServerView', ->
         # Callback that will be registered: updates the toolbar buttons based on how many machines have been selected
         update_toolbar_buttons: =>
             # We need to check which machines have been checked off to decide which buttons to enable/disable
-            @.$('.actions-bar .btn.set-datacenter').prop 'disabled', @get_selected_machines().length is 0
+            $button = @.$('.actions-bar .btn.set-datacenter')
+            $button.prop 'disabled', not (datacenters.length > 0 and @get_selected_machines().length > 0)
 
         destroy: =>
             super
@@ -172,6 +173,8 @@ module 'ServerView', ->
             @machine_list.register_machine_callbacks callbacks
 
         destroy: ->
+            for callback in @callbacks
+                callback()
             @model.off 'change', @render_summary
             directory.off 'all', @render_summary
             @machine_list.off 'need_render', @render
@@ -270,7 +273,6 @@ module 'ServerView', ->
 
             # Load abstract list element view with the machine template
             super @template
-
 
         json_for_template: =>
             data =
@@ -408,9 +410,12 @@ module 'ServerView', ->
             super
             # Parse the response JSON, apply appropriate diffs, and show an alert
             apply_to_collection(datacenters, response)
+            # Gets a value for response_uuid from the response
             for response_uuid, blah of response
                 break
-            $('#user-alert-space').html @alert_tmpl
+
+            console.log $('#user-alert-space')
+            $('#user-alert-space').append @alert_tmpl
                 name: @formdata.name
                 uuid: response_uuid
 
@@ -436,8 +441,8 @@ module 'ServerView', ->
 
             super
                 datacenter: datacenter.toJSON()
-                modal_title: "Remove datacenter "+@datacenter.get('name')
-                btn_primary_text: 'Remove'
+                modal_title: "Delete datacenter"
+                btn_primary_text: 'Delete'
                 # Warning for deleting this datacenter
                 datacenter_is_primary: namespaces_where_primary.length > 0
                 namespaces_where_primary: namespaces_where_primary
@@ -537,7 +542,7 @@ module 'ServerView', ->
                 window.app.index_servers
                     alert_message: "The datacenter #{name} was successfully deleted."
             else
-                $('#user-alert-space').html @alert_tmpl
+                $('#user-alert-space').append @alert_tmpl
                     name: @datacenter.get('name')
 
     class @SetDatacenterModal extends UIComponents.AbstractModal

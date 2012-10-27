@@ -1,14 +1,14 @@
 <script id="namespace_view-replica-template" type="text/x-handlebars-template">
-    <h2 class="title">Replication settings</h2>
+    <h2 class="title">Replication across the cluster</h2>
     <div class="alert alert-error no_datacenter_found"><p>The primary datacenter of this table was not found. Please specify another primary datacenter (or Universe).</p></div>
     <div class="alert alert-error ack_greater_than_replicas"></div>
     <div class="universe_container"></div>
+    <h2 class="title">Replication on each datacenter</h2>
     <div class="row-fluid">
         <div class="span3 tabbable tabs-left datacenters_list_container"></div>
         <div class="span9 tab-content datacenter_content"></div>
     </div>
 </script>
-
 
 <script id="namespace_view-acks_greater_than_replicas-template" type="text/x-handlebars-template">
     <p>The acks for the {{pluralize_noun "table" num_datacenters_with_issues}} {{links_to_datacenters_inline_for_replica datacenters_with_issues}} are greater than the number of replicas.</p>
@@ -24,9 +24,7 @@
     </div>
 </script>
 
-
 <script id="namespace_view-universe_replica-template" type="text/x-handlebars-template">
-    <h3>Replication settings for Universe</h3>
     <div class="universe-info universe-role">
         <p class="caption">Role</p>
         {{#unless primary}}
@@ -82,10 +80,6 @@
 </script>
 
 <script id="namespace_view-datacenter_replica-template" type="text/x-handlebars-template">
-    <div class="dc-info">
-        <p class="caption">Datacenter</p>
-        <p class="value">{{name}}</p>
-    </div>
     <div class="dc-info">
         <p class="caption">Role</p>
         {{#unless primary}}

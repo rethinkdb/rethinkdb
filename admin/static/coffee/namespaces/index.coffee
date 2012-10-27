@@ -332,7 +332,7 @@ module 'NamespaceView', ->
         # Check if we have a database (if not, we cannot create a table)
         check_if_can_create_table: =>
             if databases.length is 0
-                if @can_create_table_status true
+                if @can_create_table_status
                     @.$('.btn-primary').prop 'disabled', 'disabled'
                     @.$('.alert_modal').html 'You need to create a database before creating a table.'
             else
@@ -371,7 +371,7 @@ module 'NamespaceView', ->
                 name: universe_datacenter.get('name')
 
             super
-                modal_title: 'Add a table'
+                modal_title: 'Add table'
                 btn_primary_text: 'Add'
                 datacenters: ordered_datacenters
                 all_datacenters: datacenters.length is ordered_datacenters.length
@@ -428,7 +428,7 @@ module 'NamespaceView', ->
                 @reset_buttons()
             else
                 ack = {}
-                ack[formdata.primary_datacenter] = 1
+                ack[universe_datacenter.get('id')] = 1
 
                 $.ajax
                     processData: false
@@ -437,7 +437,7 @@ module 'NamespaceView', ->
                     contentType: 'application/json'
                     data: JSON.stringify(
                         name: formdata.name
-                        primary_uuid: formdata.primary_datacenter
+                        primary_uuid: universe_datacenter.get('id')
                         database: formdata.database
                         ack_expectations: ack
                         cache_size: (parseInt(formdata.cache_size)*1024*1024 if formdata.cache_size isnt '')
@@ -472,10 +472,9 @@ module 'NamespaceView', ->
 
             array_for_template = _.map @namespaces_to_delete, (namespace) -> namespace.toJSON()
             super
-                modal_title: 'Remove namespace'
-                btn_primary_text: 'Remove'
+                modal_title: 'Delete tables'
+                btn_primary_text: 'Delete'
                 namespaces: array_for_template
-                namespaces_length_is_one: @namespaces_to_delete.length is 1
 
             @.$('.btn-primary').focus()
 

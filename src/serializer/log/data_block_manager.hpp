@@ -244,7 +244,7 @@ private:
     std::vector<unsigned int> potentially_empty_extents;
 
     /* Contains a pointer to every gc_entry, regardless of what its current state is */
-    two_level_array_t<gc_entry *, MAX_DATA_EXTENTS> entries;
+    two_level_array_t<gc_entry *, MAX_DATA_EXTENTS, (1 << 12)> entries;
 
     /* Contains every extent in the gc_entry::state_reconstructing state */
     intrusive_list_t< gc_entry > reconstructed_extents;
@@ -301,7 +301,7 @@ private:
         int refcount;
 
         // A buffer for blocks we're transferring.
-        char *const gc_blocks;
+        char *gc_blocks;
 
         // The entry we're currently GCing.
         gc_entry *current_entry;
@@ -309,9 +309,9 @@ private:
         data_block_manager_t::gc_read_callback_t gc_read_callback;
         data_block_manager_t::gc_disable_callback_t *gc_disable_callback;
 
-        explicit gc_state_t(size_t extent_size)
+        explicit gc_state_t()
             : step_(gc_ready), should_be_stopped(0), refcount(0),
-              gc_blocks(static_cast<char *>(malloc_aligned(extent_size, DEVICE_BLOCK_SIZE))),
+              gc_blocks(NULL),
               current_entry(NULL) { }
 
         ~gc_state_t() {

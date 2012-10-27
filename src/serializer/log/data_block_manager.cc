@@ -21,7 +21,7 @@ garbage collection. */
 data_block_manager_t::data_block_manager_t(const log_serializer_dynamic_config_t *_dynamic_config, extent_manager_t *em, log_serializer_t *_serializer, const log_serializer_on_disk_static_config_t *_static_config, log_serializer_stats_t *_stats)
     : stats(_stats), shutdown_callback(NULL), state(state_unstarted), dynamic_config(_dynamic_config),
       static_config(_static_config), extent_manager(em), serializer(_serializer),
-      next_active_extent(0), gc_state(extent_manager->extent_size), gc_stats(stats)
+      next_active_extent(0), gc_state(), gc_stats(stats)
 {
     rassert(dynamic_config);
     rassert(static_config);
@@ -556,6 +556,9 @@ void data_block_manager_t::run_gc() {
                 // gc_read, before any calls to read_async.
                 gc_state.refcount++;
 
+                guarantee(gc_state.gc_blocks == NULL);
+                gc_state.gc_blocks = static_cast<char *>(malloc_aligned(extent_manager->extent_size, 
+                        DEVICE_BLOCK_SIZE));
                 gc_state.set_step(gc_read);
                 for (unsigned int i = 0, bpe = static_config->blocks_per_extent(); i < bpe; i++) {
                     if (!gc_state.current_entry->g_array[i]) {
@@ -643,6 +646,8 @@ void data_block_manager_t::run_gc() {
 
                 rassert(gc_state.refcount == 0);
 
+                free(gc_state.gc_blocks);
+                gc_state.gc_blocks = NULL;
                 gc_state.set_step(gc_ready);
 
                 if(state == state_shutting_down) {

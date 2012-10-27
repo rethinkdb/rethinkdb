@@ -77,6 +77,10 @@ public:
         return reinterpret_cast<T *>(&object_data[0]);
     }
 
+    T * operator->() {
+        return get();
+    }
+
     const T * get() const {
         rassert(instantiated);
         return reinterpret_cast<const T *>(&object_data[0]);

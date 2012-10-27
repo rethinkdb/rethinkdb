@@ -100,7 +100,7 @@ module 'NamespaceView', ->
         # Rename operation
         rename_namespace: (event) =>
             event.preventDefault()
-            rename_modal = new UIComponents.RenameItemModal @model.get('id'), 'namespace'
+            rename_modal = new UIComponents.RenameItemModal @model.get('id'), 'table'
             rename_modal.render()
 
         # Delete operation
