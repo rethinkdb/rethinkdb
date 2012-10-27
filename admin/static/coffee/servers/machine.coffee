@@ -111,7 +111,7 @@ module 'MachineView', ->
 
         rename_machine: (event) =>
             event.preventDefault()
-            rename_modal = new UIComponents.RenameItemModal @model.get('id'), 'machine'
+            rename_modal = new UIComponents.RenameItemModal @model.get('id'), 'server'
             rename_modal.render()
 
         change_datacenter: (event) =>
