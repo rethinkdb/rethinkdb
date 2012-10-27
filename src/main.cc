@@ -7,7 +7,6 @@
 #include "utils.hpp"
 #include "help.hpp"
 #include "config/args.hpp"
-#include "/home/wmrowan/rethinkdb/external/gperftools-2.0/instal_dir/include/gperftools/heap-profiler.h"
 
 void print_version_message() {
     printf("rethinkdb " RETHINKDB_VERSION

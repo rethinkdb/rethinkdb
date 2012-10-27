@@ -14,7 +14,6 @@
 #include "rpc/directory/read_manager.hpp"
 #include "rdb_protocol/proto_utils.hpp"
 #include "query_measure.hpp"
-#include "/home/wmrowan/rethinkdb/external/gperftools-2.0/instal_dir/include/gperftools/heap-profiler.h"
 
 
 //TODO: why is this not in the query_language namespace? - because it's also used by rethinkdb import at the moment
