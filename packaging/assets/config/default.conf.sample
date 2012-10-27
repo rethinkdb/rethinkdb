@@ -1,6 +1,6 @@
 # Give this file the extension .conf and put it in /etc/rethinkdb/instances.d in order to enable it.
 # It is generally necessary to run
-# mkdir /var/lib/rethinkdb/instances.d/default ; rethinkdb create -d /var/lib/rethinkdb/instances.d/default ;
+# rethinkdb create -d /var/lib/rethinkdb/instances.d/default ;
 # as root before enabling this configuration.
 runuser=root
 rungroup=root
