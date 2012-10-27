@@ -78,8 +78,8 @@ std::string get_web_path(const po::variables_map& vm, char *argv[]) {
         result = parse_as_path(argv[0]);
         result.nodes.pop_back();
         result.nodes.push_back("web");
-        #ifdef CPREFIX
-        std::string chkdir(CPREFIX "/lib/rethinkdb/web");
+        #ifdef WEBRESDIR
+        std::string chkdir(WEBRESDIR);
         if ((access(render_as_path(result).c_str(), F_OK)) && (!access(chkdir.c_str(), F_OK))) {
             result = parse_as_path(chkdir) ;
         }

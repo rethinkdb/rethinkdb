@@ -167,6 +167,10 @@ ifneq ($(PREFIX),)
 CXXFLAGS+=-DCPREFIX='"$(PREFIX)"'
 endif
 
+ifneq ($(WEBRESDIR),)
+CXXFLAGS+=-DWEBRESDIR='"$(WEBRESDIR)"'
+endif
+
 ifeq ($(COMPILER),INTEL)
 IGNORE_SOME_ICC_LD_WARNINGS?=1
 else
@@ -479,7 +483,7 @@ init_dir:=/etc/init.d
 conf_dir:=/etc/rethinkdb
 conf_instance_dir:=$(conf_dir)/instances.d
 lib_dir:=$(prefix)/lib/rethinkdb
-web_res_dir:=$(lib_dir)/web
+web_res_dir:=$(share_dir)/web
 pidfile_dir:=/var/run/rethinkdb
 data_dir:=/var/lib/rethinkdb
 
@@ -541,7 +545,7 @@ install-data:
 	$(QUIET) install -m755 -d $(DESTDIR)$(pidfile_dir)
 	$(QUIET) install -m755 -d $(DESTDIR)$(pidfile_dir)/instances.d
 
-install-web: $(libdir)
+install-web:
 	$(QUIET) install -m755 -d $(DESTDIR)$(web_res_dir)
 	# This might break some ownership or permissions stuff.
 	$(QUIET) cp -pRP $(BUILD_DIR)/web/* $(DESTDIR)$(web_res_dir)/
@@ -576,7 +580,7 @@ build-deb: all prepare_deb_package_dirs
 		> $(DEB_CONTROL_ROOT)/md5sums
 
 # List configuration files in conffiles
-	$(QUIET) find $(DEB_PACKAGE_DIR) -type f -printf "/%P\n" | (grep '^/etc/' | true) > $(DEB_CONTROL_ROOT)/conffiles
+	$(QUIET) find $(DEB_PACKAGE_DIR) -type f -printf "/%P\n" | (grep '^/etc/' | grep -v '^/etc/init\.d' || true) > $(DEB_CONTROL_ROOT)/conffiles
 
 # Copy {pre,post}{inst,rm} scripts
 	$(QUIET) for script in preinst postinst prerm postrm; do		                  		\
@@ -613,7 +617,7 @@ build-deb: all prepare_deb_package_dirs
 deb: all prepare_deb_package_dirs
 	# We have disabled building of stripped debs for now.
 	# $(QUIET) $(MAKE) STRIP_ON_INSTALL=0 RETHINKDB_PACKAGING_VERSION=$(RETHINKDB_VERSION)-unstripped build-deb
-	$(QUIET) $(MAKE) STRIP_ON_INSTALL=1 RETHINKDB_PACKAGING_VERSION=$(RETHINKDB_VERSION) build-deb
+	$(QUIET) $(MAKE) STRIP_ON_INSTALL=1 RETHINKDB_PACKAGING_VERSION=$(RETHINKDB_VERSION) WEBRESDIR=$(web_res_dir) build-deb
 
 # Print a nice message with the location of the created package
 	@echo
