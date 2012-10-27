@@ -27,10 +27,6 @@ Section: database
 Priority: optional
 Homepage: http://rethinkdb.com/
 Description: ifelse(SOLO, 1,
-`RethinkDB is a scalable database.
-
-It is also very mysterious.',
-`RethinkDB is a scalable database.
-
-It is also very mysterious.')
+`RethinkDB is a scalable database.',
+`RethinkDB is a scalable database.')
 
