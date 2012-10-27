@@ -615,6 +615,9 @@ build-deb: all prepare_deb_package_dirs
 				-D "DISK_SIZE=$${disk_size}"														\
 			../packaging/$(DEBIAN_PKG_DIR)/control >$(DEB_CONTROL_ROOT)/control
 
+# Copy the license file.
+	cat ../packaging/$(DEBIAN_PKG_DIR)/copyright > $(DEB_CONTROL_ROOT)/copyright
+
 # Finally, produce a debian package
 	$(QUIET) fakeroot dpkg-deb -b $(DEB_PACKAGE_DIR) $(PACKAGES_DIR)
 
