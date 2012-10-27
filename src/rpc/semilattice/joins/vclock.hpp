@@ -87,6 +87,11 @@ public:
     std::vector<T> get_all_values() const;
 };
 
+template <class T>
+vclock_t<T> make_vclock(const T& arg, const uuid_t& us) {
+    return vclock_t<T>(arg, us);
+}
+
 //semilattice concept for vclock_t
 template <class T>
 bool operator==(const vclock_t<T> &, const vclock_t<T> &);
