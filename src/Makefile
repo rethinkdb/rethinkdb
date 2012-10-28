@@ -548,9 +548,9 @@ install-config:
 install-data:
 	$(QUIET) install -m755 -d $(DESTDIR)$(data_dir)
 	$(QUIET) install -m755 -d $(DESTDIR)$(data_dir)/instances.d
-	# We disabled the /var/run creation and added the functionality to the init script because Lintian observed that /var/run can get purged .
-	#	$(QUIET) install -m755 -d $(DESTDIR)$(pidfile_dir)
-	#	$(QUIET) install -m755 -d $(DESTDIR)$(pidfile_dir)/instances.d
+# We disabled the /var/run creation and added the functionality to the init script because Lintian observed that /var/run can get purged .
+#	$(QUIET) install -m755 -d $(DESTDIR)$(pidfile_dir)
+#	$(QUIET) install -m755 -d $(DESTDIR)$(pidfile_dir)/instances.d
 
 install-web:
 	$(QUIET) install -m755 -d $(DESTDIR)$(web_res_dir)
@@ -627,8 +627,8 @@ build-deb: all prepare_deb_package_dirs
 	$(QUIET) fakeroot dpkg-deb -b $(DEB_PACKAGE_DIR) $(PACKAGES_DIR)
 
 deb: prepare_deb_package_dirs
-	# We have disabled building of stripped debs for now.
-	# $(QUIET) $(MAKE) STRIP_ON_INSTALL=0 RETHINKDB_PACKAGING_VERSION=$(RETHINKDB_VERSION)-unstripped build-deb
+# We have disabled building of stripped debs for now.
+# $(QUIET) $(MAKE) STRIP_ON_INSTALL=0 RETHINKDB_PACKAGING_VERSION=$(RETHINKDB_VERSION)-unstripped build-deb
 	$(QUIET) $(MAKE) STRIP_ON_INSTALL=1 RETHINKDB_PACKAGING_VERSION=$(RETHINKDB_VERSION) WEBRESDIR=$(web_res_dir) build-deb
 
 # Print a nice message with the location of the created package
