@@ -83,6 +83,8 @@ VERBOSE?=0
 UNIT_TESTS?=0
 AIOSUPPORT?=0
 BUILD_DRIVERS?=1
+LINT?=0
+STATICFORCE?=0
 
 # Set TRIAL to 1 to build a 21-day trial version. If you want a different number of days, set TIMEBOMB to the number of days instead.
 TRIAL?=0
@@ -128,6 +130,9 @@ else
 # GCC
 LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -lv8 -lcrypto
 endif
+endif
+ifeq ($(STATICFORCE),1)
+LDFLAGS+= -static
 endif
 
 STATIC_LIBRARIES:=boost_serialization protobuf boost_program_options
@@ -629,11 +634,18 @@ deb: all prepare_deb_package_dirs
 # Print a nice message with the location of the created package
 	@echo
 	@echo "$(ANSI_BOLD_ON)Your DEB packages are here (with lintian output following each package):$(ANSI_BOLD_OFF)"
+ifeq ($(LINT),1)
 	$(QUIET) for f in $(PACKAGES_DIR)/*.deb; do \
 			deb_name=`readlink -f $(PACKAGES_DIR)`/$$(basename $$f); \
 			echo "  $(ANSI_UL_ON)$${deb_name}$(ANSI_UL_OFF)"; \
 			lintian --color auto --suppress-tags "no-copyright-file,$(subst $(space),$(comma),$(SUPPRESSED_LINTIAN_TAGS))" $${deb_name} || true; \
 		done
+else
+	$(QUIET) for f in $(PACKAGES_DIR)/*.deb; do \
+			deb_name=`readlink -f $(PACKAGES_DIR)`/$$(basename $$f); \
+			echo "  $(ANSI_UL_ON)$${deb_name}$(ANSI_UL_OFF)"; \
+		done
+endif
 	$(QUIET) echo
 
 build-rpm: all prepare_rpm_package_dirs
