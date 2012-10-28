@@ -1,3 +1,11 @@
 #!/bin/sh
 set -e
 
+case "$1" in
+  remove|upgrade|deconfigure|failed-upgrade)
+    update-rc.d rethinkdb remove ;
+    ;;
+  *)
+    echo "Warning: RethinkDB postrm script called with unknown set of arguments: $*"
+    ;;
+esac
