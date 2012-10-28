@@ -20,7 +20,7 @@ rtdbbin=/usr/bin/rethinkdb ;
 rtdbconfigdir=/etc/rethinkdb ;
 rtdbconfigglob="$rtdbconfigdir"/main.conf ;
 
-if [ "$itask" == "" ] ;
+if [ "$itask" = "" ] ;
 then
 	echo "Usage: /etc/init.d/rethinkdb COMMAND" ;
 else
