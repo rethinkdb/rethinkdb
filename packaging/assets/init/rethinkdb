@@ -20,57 +20,61 @@ rtdbbin=/usr/bin/rethinkdb ;
 rtdbconfigdir=/etc/rethinkdb ;
 rtdbconfigglob="$rtdbconfigdir"/main.conf ;
 
-# We check for active configurations .
-if [ -e "$rtdbconfigdir"/instances.d/*.conf ] ;
+if [ "$itask" == "" ] ;
 then
-for rtdbconffile in "$rtdbconfigdir"/instances.d/*.conf ;
-do
-	# We check for instructions about which user and group ought to run the service .
-	runuser="" ;
-	rungroup="" ;
-	if [ -e "$rtdbconffile" ] ;
+	echo "Usage: /etc/init.d/rethinkdb COMMAND" ;
+else
+	# We check for active configurations .
+	if [ -e "$rtdbconfigdir"/instances.d/*.conf ] ;
 	then
-		runuser="`cat "$rtdbconffile" | grep '^[ \t]*runuser[ \t]*\=' | head -n 1 | sed -e 's/^\([ \ta-zA-Z0-9]\|[-]\)*\=[ \t]*//g'`" ;
-		rungroup="`cat "$rtdbconffile" | grep '^[ \t]*rungroup[ \t]*\=' | head -n 1 | sed -e 's/^\([ \ta-zA-Z0-9]\|[-]\)*\=[ \t]*//g'`" ;
-	fi ;
-	useropt="" ;
-	if [ "$runuser" != "" ] ;
-	then
-		useropt="--chuid" ;
-	fi ;
-	groupopt="" ;
-	if [ "$runuser" != "" ] ;
-	then
-		groupopt="--group" ;
-	fi ;
-	# We seek the pid-file .
-	rtdbpidfile="`cat "$rtdbconffile" | grep '^[ \t]*pid-file[ \t]*\=' | head -n 1 | sed -e 's/^\([ \ta-zA-Z0-9]\|[-]\)*\=[ \t]*//g'`" ;
-	if [ "$itask" = "stop" ] || [ "$itask" = "restart" ] || [ "$itask" = "reload" ] || [ "$itask" = "force-reload" ] ;
-	then
-		start-stop-daemon --stop --pidfile "$rtdbpidfile" --signal INT "$useropt" "$runuser" "$groupopt" "$rungroup" ;
-	fi ;
-	if [ "$itask" = "start" ] || [ "$itask" = "restart" ] || [ "$itask" = "reload" ] || [ "$itask" = "force-reload" ] ;
-	then
-		if [ -e /var/run ] && [ "`echo "$rtdbpidfile" | grep '^/var/run'`" != "" ] ;
-		then
-			mkdir -p "`dirname "$rtdbpidfile"`" ;
-		fi ;
-		start-stop-daemon --start --pidfile "$rtdbpidfile" "$useropt" "$runuser" "$groupopt" "$rungroup" --startas "$rtdbbin" --background -- --config-file="$rtdbconffile" ;
-	fi ;
-	if [ "$itask" = "status" ] ;
-	then
-		if [ -e "$rtdbpidfile" ] ;
-		then
-			if [ "`ps -Af | awk 'BEGIN { inited = 0 ; pidpos = 0 ; } { if ( inited == 0 ) { count1 = 0 ; while ( count1 < NF ) { count1 ++ ; if ( $count1 ~ /^[Pp][Ii][Dd]$/ ) { pidpos = count1 ; inited = 1 ; } } } else { printf "%s\n" , $pidpos ; } }' | grep '^'"\`cat \"$rtdbpidfile\"\`"'$'`" = "" ] ;
+		for rtdbconffile in "$rtdbconfigdir"/instances.d/*.conf ;
+		do
+			# We check for instructions about which user and group ought to run the service .
+			runuser="" ;
+			rungroup="" ;
+			if [ -e "$rtdbconffile" ] ;
 			then
-				echo "rethinkdb:""$rtdbconffile"" stop/crashed" ;
-			else
-				echo "rethinkdb:""$rtdbconffile"" start/running, pid `cat $rtdbpidfile | grep '^[0-9]*$'`" ;
+				runuser="`cat "$rtdbconffile" | grep '^[ \t]*runuser[ \t]*\=' | head -n 1 | sed -e 's/^\([ \ta-zA-Z0-9]\|[-]\)*\=[ \t]*//g'`" ;
+				rungroup="`cat "$rtdbconffile" | grep '^[ \t]*rungroup[ \t]*\=' | head -n 1 | sed -e 's/^\([ \ta-zA-Z0-9]\|[-]\)*\=[ \t]*//g'`" ;
 			fi ;
-		else
-			echo "rethinkdb:""$rtdbconffile"" stop/waiting" ;
-		fi ;
+			useropt="" ;
+			if [ "$runuser" != "" ] ;
+			then
+				useropt="--chuid" ;
+			fi ;
+			groupopt="" ;
+			if [ "$runuser" != "" ] ;
+			then
+				groupopt="--group" ;
+			fi ;
+			# We seek the pid-file .
+			rtdbpidfile="`cat "$rtdbconffile" | grep '^[ \t]*pid-file[ \t]*\=' | head -n 1 | sed -e 's/^\([ \ta-zA-Z0-9]\|[-]\)*\=[ \t]*//g'`" ;
+			if [ "$itask" = "stop" ] || [ "$itask" = "restart" ] || [ "$itask" = "reload" ] || [ "$itask" = "force-reload" ] ;
+			then
+				start-stop-daemon --stop --pidfile "$rtdbpidfile" --signal INT "$useropt" "$runuser" "$groupopt" "$rungroup" ;
+			fi ;
+			if [ "$itask" = "start" ] || [ "$itask" = "restart" ] || [ "$itask" = "reload" ] || [ "$itask" = "force-reload" ] ;
+			then
+				if [ -e /var/run ] && [ "`echo "$rtdbpidfile" | grep '^/var/run'`" != "" ] ;
+				then
+					mkdir -p "`dirname "$rtdbpidfile"`" ;
+				fi ;
+				start-stop-daemon --start --pidfile "$rtdbpidfile" "$useropt" "$runuser" "$groupopt" "$rungroup" --startas "$rtdbbin" --background -- --config-file="$rtdbconffile" ;
+			fi ;
+			if [ "$itask" = "status" ] ;
+			then
+				if [ -e "$rtdbpidfile" ] ;
+				then
+					if [ "`ps -Af | awk 'BEGIN { inited = 0 ; pidpos = 0 ; } { if ( inited == 0 ) { count1 = 0 ; while ( count1 < NF ) { count1 ++ ; if ( $count1 ~ /^[Pp][Ii][Dd]$/ ) { pidpos = count1 ; inited = 1 ; } } } else { printf "%s\n" , $pidpos ; } }' | grep '^'"\`cat \"$rtdbpidfile\"\`"'$'`" = "" ] ;
+					then
+						echo "rethinkdb:""$rtdbconffile"" stop/crashed" ;
+					else
+						echo "rethinkdb:""$rtdbconffile"" start/running, pid `cat $rtdbpidfile | grep '^[0-9]*$'`" ;
+					fi ;
+				else
+					echo "rethinkdb:""$rtdbconffile"" stop/waiting" ;
+				fi ;
+			fi ;
+		done ;
 	fi ;
-done ;
 fi ;
-
