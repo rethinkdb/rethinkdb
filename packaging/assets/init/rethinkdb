@@ -8,7 +8,7 @@
 # Provides:          rethinkdb
 # Required-Start: $remote_fs 
 # Required-Stop: $remote_fs
-# Default-Start:     2 3 5
+# Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
 # Short-Description: This starts a set of rethinkdb server instances.
 # Description:       This looks in /etc/rethinkdb/instancds.d for rethinkdb config files and launches, stops, or examines each instance described there.
