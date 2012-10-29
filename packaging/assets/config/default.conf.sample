@@ -1,9 +1,9 @@
 # Give this file the extension .conf and put it in /etc/rethinkdb/instances.d in order to enable it.
 # It is generally necessary to run
 # rethinkdb create -d /var/lib/rethinkdb/instances.d/default ;
-# as root before enabling this configuration.
-runuser=root
-rungroup=root
+# as the target user before enabling this configuration.
+runuser=somebody
+rungroup=somegroup
 directory=/var/lib/rethinkdb/instances.d/default
 pid-file=/var/run/rethinkdb/instances.d/default.pid
 driver-port=28015

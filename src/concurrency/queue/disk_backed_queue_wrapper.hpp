@@ -28,15 +28,15 @@ class disk_backed_queue_wrapper_t : public passive_producer_t<T> {
 public:
     static const int memory_queue_capacity = 1000;
 
-    disk_backed_queue_wrapper_t(io_backender_t *io_backender,
-            const std::string &filename, perfmon_collection_t *stats_parent) :
+    disk_backed_queue_wrapper_t(io_backender_t *_io_backender,
+            const std::string &_filename, perfmon_collection_t *_stats_parent) :
         passive_producer_t<T>(&available_control),
         memory_queue(memory_queue_capacity),
         notify_when_room_in_memory_queue(NULL),
         items_in_queue(0),
-        io_backender(io_backender),
-        filename(filename),
-        stats_parent(stats_parent)
+        io_backender(_io_backender),
+        filename(_filename),
+        stats_parent(_stats_parent)
         { }
 
     void push(const T &value) {
@@ -108,7 +108,7 @@ private:
     size_t items_in_queue;
     auto_drainer_t drainer;
 
-    io_backender_t *io_backender; 
+    io_backender_t *io_backender;
     const std::string &filename; 
     perfmon_collection_t *stats_parent;
 };
