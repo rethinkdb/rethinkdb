@@ -317,8 +317,8 @@ bool serve(extproc::spawner_t::info_t *spawner_info, io_backender_t *io_backende
     return do_serve(spawner_info, io_backender, true, filepath, persistent_file, joins, ports, machine_id, semilattice_metadata, web_assets, stop_cond);
 }
 
-bool serve_proxy(extproc::spawner_t::info_t *spawner_info, io_backender_t *io_backender, const peer_address_set_t &joins, service_ports_t ports, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
+bool serve_proxy(extproc::spawner_t::info_t *spawner_info, const peer_address_set_t &joins, service_ports_t ports, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
     // TODO: filepath doesn't _seem_ ignored.
     // filepath and persistent_file are ignored for proxies, so we use the empty string & NULL respectively.
-    return do_serve(spawner_info, io_backender, false, "", NULL, joins, ports, machine_id, semilattice_metadata, web_assets, stop_cond);
+    return do_serve(spawner_info, NULL, false, "", NULL, joins, ports, machine_id, semilattice_metadata, web_assets, stop_cond);
 }
