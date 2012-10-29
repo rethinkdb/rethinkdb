@@ -36,8 +36,8 @@ module 'ResolveIssuesView', ->
             @machine_to_kill = _machine_to_kill
             super
                 machine_name: @machine_to_kill.get("name")
-                modal_title: "Declare machine dead"
-                btn_primary_text: 'Kill'
+                modal_title: "Declare server dead"
+                btn_primary_text: 'Declare Dead'
 
         on_submit: ->
             super
@@ -48,7 +48,7 @@ module 'ResolveIssuesView', ->
                 contentType: 'application/json'
                 success: @on_success
                 error: @on_error
- 
+
         on_success_with_error: =>
             @.$('.error_answer').html @template_issue_error
 
@@ -58,7 +58,7 @@ module 'ResolveIssuesView', ->
                 @.$('.error_answer').css('display', 'none')
                 @.$('.error_answer').fadeIn()
             @reset_buttons()
- 
+
 
         on_success: (response) ->
             if (response)
@@ -69,7 +69,7 @@ module 'ResolveIssuesView', ->
             $('#issue-alerts').append @alert_tmpl
                 machine_dead:
                     machine_name: @machine_to_kill.get("name")
-            
+
             #TODO Remove this synchronous request and use proper callbacks.
             # Grab the new set of issues (so we don't have to wait)
             $.ajax
@@ -79,7 +79,7 @@ module 'ResolveIssuesView', ->
                 async: false
 
             super
-            
+
             # We clean data now to have data fresher than if we were waiting for the next call to ajax/
             # remove from bluprints
             for namespace in namespaces.models
@@ -114,7 +114,7 @@ module 'ResolveIssuesView', ->
                 async: false
 
             return @
-                
+
 
     class @ResolveVClockModal extends UIComponents.AbstractModal
         template: Handlebars.compile $('#resolve_vclock-modal-template').html()
@@ -263,10 +263,12 @@ module 'ResolveIssuesView', ->
                 datetime: iso_date_from_unix_time @model.get('time')
                 critical: @model.get('critical')
 
+            # Remove the old handler before we rerender
+            @.$('.solve-issue').off "click"
+
             @.$el.html _template(json)
 
             # Declare machine dead handler
-            @.$('.solve-issue').off "click"
             @.$('.solve-issue').click =>
                 declare_dead_modal = new ResolveIssuesView.DeclareMachineDeadModal
                 declare_dead_modal.render machine
@@ -294,19 +296,22 @@ module 'ResolveIssuesView', ->
             )
 
         render_logfile_write_issue: (_template) ->
+            _machine = machines.get(@model.get('location'))
             json =
                 datetime: iso_date_from_unix_time @model.get('time')
                 critical: @model.get('critical')
-                machine_name: machines.get(@model.get('location')).get('name')
+                machine_name: if _machine then _machine.get('name') else "N/A"
                 machine_uuid: @model.get('location')
-            @.$el.html _template(json)
-            # Declare machine dead handler
+
+            # Remove the old handler before we rerender
             @.$('.solve-issue').off "click"
-            @.$('.solve-issue').click =>
-                declare_dead_modal = new ResolveIssuesView.DeclareMachineDeadModal
-                declare_dead_modal.render machines.get(@model.get('location'))
 
             @.$el.html _template(json)
+
+            # Declare machine dead handler
+            @.$('.solve-issue').click =>
+                declare_dead_modal = new ResolveIssuesView.DeclareMachineDeadModal
+                declare_dead_modal.render machines.get(_machine)
 
         render_vclock_conflict: (_template) ->
             get_resolution_url = =>
@@ -340,11 +345,14 @@ module 'ResolveIssuesView', ->
                 field: @model.get('field')
                 name_contest: @model.get('field') is 'name'
                 contestants: @contestants
+
+            # Remove the old handler before we rerender
+            @.$('#resolve_' + contestant.contestant_id).off 'click'
+
             @.$el.html _template(json)
 
             # bind resolution events
             _.each @contestants, (contestant) =>
-                @.$('#resolve_' + contestant.contestant_id).off 'click' #TODO turn off later?
                 @.$('#resolve_' + contestant.contestant_id).click (event) =>
                     event.preventDefault()
                     resolve_modal = new ResolveIssuesView.ResolveVClockModal
@@ -391,7 +399,6 @@ module 'ResolveIssuesView', ->
                 datetime: iso_date_from_unix_time @model.get('time')
                 critical: @model.get('critical')
                 machine_id: @model.get('ghost')
-                machine_name: @model.get('ghost')
             @.$el.html _template(json)
 
         render_port_conflict: (_template) ->

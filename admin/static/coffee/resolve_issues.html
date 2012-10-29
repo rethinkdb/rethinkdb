@@ -30,7 +30,7 @@
 
 <script id="resolve_unsatisfiable_goals_modal-template" type="text/x-handlebars-template">
     <div class="alert alert-error error_answer"></div>
-    <p>Are you sure you want to lower the number of replicas for the datacenter</p>
+    <p>Are you sure you want to lower the number of replicas for table <a class="change-route" href="#tables/{{namespace_id}}">{{namespace_name}}</a> in the following datacenters:</p>
     <ul>
         {{#each datacenters_with_issues}}
             <li>
@@ -153,22 +153,19 @@
     <div class="issue {{#if critical }}critical{{/if}} name-conflict">
         <div class="issue-header">
             {{#if datacenters_with_issues}}
-                <button class="btn btn-danger solve-issue">Lower the number of replicas</button>
+                <button class="btn btn-danger solve-issue">Lower replicas</button>
             {{/if}}
             <p class="issue-type">Unsatisfiable goals</p>
             <p class="datetime"><abbr class="timeago" title="{{datetime}}">{{datetime}}</abbr></p>
         </div>
         <hr />
         <div class="issue-details">
-            <p>The goals you have specified are impossible for the table <a class="change-route" href="#tables/{{namespace_id}}">{{namespace_name}}</a></p>
-            {{#if no_primary}}<p>You have to <a class="change-route" href="#tables/{{namespace_id}}/replication">choose</a> a primary datacenter to make this table works.</p>{{/if}}
-
-            {{#each datacenters_with_issues}}
-                <p class="description">You require {{this.num_replicas}} {{pluralize_noun "replica" this.num_replicas}} for the datacenter <a class="change-route" href="#datacenters/{{this.datacenter_id}}">{{this.datacenter_name}}</a> but you only have {{num_machines}} {{pluralize_noun "server" this.num_machines}} available.</p>
-            {{/each}}
-            {{#if datacenters_with_issues}}
-                <p class="description">To solve this issue, you can lower the number of replicas or connect a new server to the datacenter.</p>
-            {{/if}}
+            <p>The goals specified for table <a class="change-route" href="#tables/{{namespace_id}}">{{namespace_name}}</a> cannot be satisfied.</p>
+            <ul>
+                {{#each datacenters_with_issues}}
+                <li>Datacenter <a class="change-route" href="#datacenters/{{this.datacenter_id}}">{{this.datacenter_name}}</a>: {{this.num_replicas}} {{pluralize_noun "replica" this.num_replicas}} specified, {{this.num_machines}} {{pluralize_noun "server" this.num_machines}} available.</li>
+                {{/each}}
+            </ul>
         </div>
     </div>
 </script>
@@ -182,8 +179,8 @@
         <hr />
         <div class="issue-details">
             <p>A server was declared dead, but is now connected to the cluster.</p>
-            <p class="description">Server's id: <a class="change-route" href="#servers/{{machine_id}}">{{machine_name}}</a></p>
-            <p>Please manually remove it (by killing the rethinkDB instance for example)</p>
+            <p class="description">Server's id: <a class="change-route" href="#servers/{{machine_id}}">{{machine_id}}</a></p>
+            <p>Please manually remove it (e.g. by killing the RethinkDB process on the server).</p>
         </div>
     </div>
 </script>
@@ -213,7 +210,7 @@
         </div>
         <hr />
         <div class="issue-details">
-            <p>An issue was sent by the server, but we could not parse it.</p>
+            <p>An unknown issue was sent by the server. Please contact support.</p>
             <p>Raw data: {{raw_data}}</p>
         </div>
     </div>
