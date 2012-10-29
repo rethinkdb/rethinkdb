@@ -323,8 +323,7 @@ po::options_description get_machine_options() {
 po::options_description get_file_options() {
     po::options_description desc("File path options");
     desc.add_options()
-        ("directory,d", po::value<std::string>()->default_value("rethinkdb_cluster_data"), "specify directory to store data and metadata")
-        ("pid-file", po::value<std::string>(), "specify a file in which to stash the pid when the process is running");
+        ("directory,d", po::value<std::string>()->default_value("rethinkdb_cluster_data"), "specify directory to store data and metadata");
     return desc;
 }
 
@@ -383,7 +382,7 @@ po::options_description get_network_options() {
 po::options_description get_disk_options() {
     po::options_description desc("Disk I/O options");
     desc.add_options()
-        ("io-backend", po::value<std::string>()->default_value("pool"), "event backend to use: native or pool.  Defaults to native.");
+        ("io-backend", po::value<std::string>()->default_value("pool"), "event backend to use: native or pool.");
     return desc;
 }
 
@@ -391,6 +390,13 @@ po::options_description get_cpu_options() {
     po::options_description desc("CPU options");
     desc.add_options()
         ("cores,c", po::value<int>()->default_value(get_cpu_count()), "the number of cores to utilize");
+    return desc;
+}
+
+po::options_description get_service_options() {
+    po::options_description desc("Service options");
+    desc.add_options()
+        ("pid-file", po::value<std::string>(), "specify a file in which to stash the pid when the process is running");
     return desc;
 }
 
@@ -419,6 +425,7 @@ po::options_description get_rethinkdb_serve_options() {
     desc.add(get_web_options());
     desc.add(get_disk_options());
     desc.add(get_cpu_options());
+    desc.add(get_service_options());
     return desc;
 }
 
@@ -431,6 +438,7 @@ po::options_description get_rethinkdb_serve_options_visible() {
     desc.add(get_disk_options());
 #endif // AIOSUPPORT
     desc.add(get_cpu_options());
+    desc.add(get_service_options());
     return desc;
 }
 
@@ -438,18 +446,7 @@ po::options_description get_rethinkdb_proxy_options() {
     po::options_description desc("Allowed options");
     desc.add(get_network_options());
     desc.add(get_web_options());
-    desc.add_options()
-        ("log-file", po::value<std::string>()->default_value("log_file"), "specify log file");
-    return desc;
-}
-
-po::options_description get_rethinkdb_proxy_options_visible() {
-    po::options_description desc("Allowed options");
-    desc.add(get_network_options());
-    desc.add(get_web_options());
-#ifdef AIOSUPPORT
-    desc.add(get_disk_options());
-#endif // AIOSUPPORT
+    desc.add(get_service_options());
     desc.add_options()
         ("log-file", po::value<std::string>()->default_value("log_file"), "specify log file");
     return desc;
@@ -461,8 +458,6 @@ po::options_description get_rethinkdb_admin_options() {
         DEBUG_ONLY(("client-port", po::value<int>()->default_value(port_defaults::client_port), "port to use when connecting to other nodes (for development)"))
         ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a node that we will connect to")
         ("exit-failure,x", po::value<bool>()->zero_tokens(), "exit with an error code immediately if a command fails");
-    desc.add(get_disk_options());
-    // TODO: The admin client doesn't use the io-backend option!  So why are we calling get_disk_options()?
     return desc;
 }
 
@@ -492,6 +487,7 @@ po::options_description get_rethinkdb_porcelain_options() {
     desc.add(get_web_options());
     desc.add(get_disk_options());
     desc.add(get_cpu_options());
+    desc.add(get_service_options());
     return desc;
 }
 
@@ -505,6 +501,7 @@ po::options_description get_rethinkdb_porcelain_options_visible() {
     desc.add(get_disk_options());
 #endif // AIOSUPPORT
     desc.add(get_cpu_options());
+    desc.add(get_service_options());
     return desc;
 }
 
@@ -1004,7 +1001,7 @@ void help_rethinkdb_serve() {
 void help_rethinkdb_proxy() {
     printf("'rethinkdb proxy' serves as a proxy to an existing RethinkDB cluster.\n");
     std::stringstream sstream;
-    sstream << get_rethinkdb_proxy_options_visible();
+    sstream << get_rethinkdb_proxy_options();
     printf("%s\n", sstream.str().c_str());
 }
 
