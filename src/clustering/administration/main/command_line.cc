@@ -445,7 +445,6 @@ po::options_description get_rethinkdb_proxy_options() {
 
 po::options_description get_rethinkdb_proxy_options_visible() {
     po::options_description desc("Allowed options");
-    desc.add(get_file_options());
     desc.add(get_network_options());
     desc.add(get_web_options());
 #ifdef AIOSUPPORT
