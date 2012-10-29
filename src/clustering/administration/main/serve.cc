@@ -281,7 +281,6 @@ bool do_serve(
                         &memcached_namespace_repo,
                         &rdb_namespace_repo,
                         &admin_tracker,
-                        &local_issue_tracker,
                         rdb_pb_server.get_http_app(),
                         machine_id,
                         web_assets);
