@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "clustering/administration/main/command_line.hpp"
 
 #include <signal.h>
@@ -78,8 +79,8 @@ std::string get_web_path(const po::variables_map& vm, char *argv[]) {
         result = parse_as_path(argv[0]);
         result.nodes.pop_back();
         result.nodes.push_back("web");
-        #ifdef CPREFIX
-        std::string chkdir(CPREFIX "/lib/rethinkdb/web");
+        #ifdef WEBRESDIR
+        std::string chkdir(WEBRESDIR);
         if ((access(render_as_path(result).c_str(), F_OK)) && (!access(chkdir.c_str(), F_OK))) {
             result = parse_as_path(chkdir) ;
         }
@@ -301,15 +302,11 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
     }
 }
 
-void run_rethinkdb_proxy(extproc::spawner_t::info_t *spawner_info, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets) {
+void run_rethinkdb_proxy(extproc::spawner_t::info_t *spawner_info, const std::vector<host_and_port_t> &joins, service_ports_t ports, bool *result_out, std::string web_assets) {
     os_signal_cond_t sigint_cond;
     guarantee(!joins.empty());
 
-    scoped_ptr_t<io_backender_t> io_backender;
-    make_io_backender(io_backend, &io_backender);
-
     *result_out = serve_proxy(spawner_info,
-                              io_backender.get(),
                               look_up_peers_addresses(joins),
                               ports,
                               generate_uuid(), cluster_semilattice_metadata_t(),
@@ -327,9 +324,7 @@ po::options_description get_machine_options() {
 po::options_description get_file_options() {
     po::options_description desc("File path options");
     desc.add_options()
-        ("directory,d", po::value<std::string>()->default_value("rethinkdb_cluster_data"), "specify directory to store data and metadata")
-	("web-static-directory", po::value<std::string>(), "specify directory from which to serve web resources")
-        ("pid-file", po::value<std::string>(), "specify a file in which to stash the pid when the process is running");
+        ("directory,d", po::value<std::string>()->default_value("rethinkdb_cluster_data"), "specify directory to store data and metadata");
     return desc;
 }
 
@@ -365,12 +360,20 @@ void validate(boost::any& value_out, const std::vector<std::string>& words,
     }
 }
 
+po::options_description get_web_options() {
+    po::options_description desc("Web options");
+    desc.add_options()
+        ("web-static-directory", po::value<std::string>(), "specify directory from which to serve web resources")
+        ("http-port", po::value<int>()->default_value(port_defaults::http_port), "port for http admin console");
+    return desc;
+
+}
+
 po::options_description get_network_options() {
     po::options_description desc("Network options");
     desc.add_options()
         ("cluster-port", po::value<int>()->default_value(port_defaults::peer_port), "port for receiving connections from other nodes")
         DEBUG_ONLY(("client-port", po::value<int>()->default_value(port_defaults::client_port), "port to use when connecting to other nodes (for development)"))
-        ("http-port", po::value<int>()->default_value(port_defaults::http_port), "port for http admin console")
         ("driver-port", po::value<int>()->default_value(port_defaults::reql_port), "port for rethinkdb protocol for client drivers")
         ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a node that we will connect to")
         ("port-offset,o", po::value<int>()->default_value(port_defaults::port_offset), "all ports used locally will have this value added");
@@ -380,7 +383,7 @@ po::options_description get_network_options() {
 po::options_description get_disk_options() {
     po::options_description desc("Disk I/O options");
     desc.add_options()
-        ("io-backend", po::value<std::string>()->default_value("pool"), "event backend to use: native or pool.  Defaults to native.");
+        ("io-backend", po::value<std::string>()->default_value("pool"), "event backend to use: native or pool.");
     return desc;
 }
 
@@ -388,6 +391,13 @@ po::options_description get_cpu_options() {
     po::options_description desc("CPU options");
     desc.add_options()
         ("cores,c", po::value<int>()->default_value(get_cpu_count()), "the number of cores to utilize");
+    return desc;
+}
+
+po::options_description get_service_options() {
+    po::options_description desc("Service options");
+    desc.add_options()
+        ("pid-file", po::value<std::string>(), "specify a file in which to stash the pid when the process is running");
     return desc;
 }
 
@@ -399,20 +409,45 @@ po::options_description get_rethinkdb_create_options() {
     return desc;
 }
 
+po::options_description get_rethinkdb_create_options_visible() {
+    po::options_description desc("Allowed options");
+    desc.add(get_file_options());
+    desc.add(get_machine_options());
+#ifdef AIOSUPPORT
+    desc.add(get_disk_options());
+#endif // AIOSUPPORT
+    return desc;
+}
+
 po::options_description get_rethinkdb_serve_options() {
     po::options_description desc("Allowed options");
     desc.add(get_file_options());
     desc.add(get_network_options());
+    desc.add(get_web_options());
     desc.add(get_disk_options());
     desc.add(get_cpu_options());
+    desc.add(get_service_options());
+    return desc;
+}
+
+po::options_description get_rethinkdb_serve_options_visible() {
+    po::options_description desc("Allowed options");
+    desc.add(get_file_options());
+    desc.add(get_network_options());
+    desc.add(get_web_options());
+#ifdef AIOSUPPORT
+    desc.add(get_disk_options());
+#endif // AIOSUPPORT
+    desc.add(get_cpu_options());
+    desc.add(get_service_options());
     return desc;
 }
 
 po::options_description get_rethinkdb_proxy_options() {
     po::options_description desc("Allowed options");
     desc.add(get_network_options());
-    desc.add(get_disk_options());
-    desc.add(get_file_options());
+    desc.add(get_web_options());
+    desc.add(get_service_options());
     desc.add_options()
         ("log-file", po::value<std::string>()->default_value("log_file"), "specify log file");
     return desc;
@@ -424,8 +459,6 @@ po::options_description get_rethinkdb_admin_options() {
         DEBUG_ONLY(("client-port", po::value<int>()->default_value(port_defaults::client_port), "port to use when connecting to other nodes (for development)"))
         ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a node that we will connect to")
         ("exit-failure,x", po::value<bool>()->zero_tokens(), "exit with an error code immediately if a command fails");
-    desc.add(get_disk_options());
-    // TODO: The admin client doesn't use the io-backend option!  So why are we calling get_disk_options()?
     return desc;
 }
 
@@ -452,8 +485,24 @@ po::options_description get_rethinkdb_porcelain_options() {
     desc.add(get_file_options());
     desc.add(get_machine_options());
     desc.add(get_network_options());
+    desc.add(get_web_options());
     desc.add(get_disk_options());
     desc.add(get_cpu_options());
+    desc.add(get_service_options());
+    return desc;
+}
+
+po::options_description get_rethinkdb_porcelain_options_visible() {
+    po::options_description desc("Allowed options");
+    desc.add(get_file_options());
+    desc.add(get_machine_options());
+    desc.add(get_network_options());
+    desc.add(get_web_options());
+#ifdef AIOSUPPORT
+    desc.add(get_disk_options());
+#endif // AIOSUPPORT
+    desc.add(get_cpu_options());
+    desc.add(get_service_options());
     return desc;
 }
 
@@ -463,7 +512,11 @@ MUST_USE bool pull_io_backend_option(const po::variables_map& vm, io_backend_t *
     if (io_backend == "pool") {
         *out = aio_pool;
     } else if (io_backend == "native") {
+#ifdef AIOSUPPORT
         *out = aio_native;
+#else
+        return false;
+#endif
     } else {
         return false;
     }
@@ -502,7 +555,7 @@ MUST_USE bool parse_config_file_flat(const std::string & conf_file_name, po::var
     std::ifstream conf_file ( conf_file_name.c_str() , std::ifstream::in ) ;
     if ( conf_file.fail() ) return false ;
     try {
-        po::store(po::parse_config_file(conf_file, options), *vm);
+        po::store(po::parse_config_file(conf_file, options, true), *vm);
     } catch (const po::multiple_occurrences& ex) {
         logERR("flag specified too many times\n");
         conf_file.close() ;
@@ -550,6 +603,7 @@ int main_rethinkdb_create(int argc, char *argv[]) {
 
     io_backend_t io_backend;
     if (!pull_io_backend_option(vm, &io_backend)) {
+        fprintf(stderr, "ERROR: selected io-backend is invalid or unsupported.\n");
         return EXIT_FAILURE;
     }
 
@@ -605,6 +659,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
 
     io_backend_t io_backend;
     if (!pull_io_backend_option(vm, &io_backend)) {
+        fprintf(stderr, "ERROR: selected io-backend is invalid or unsupported.\n");
         return EXIT_FAILURE;
     }
 
@@ -714,11 +769,6 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
 
     std::vector<host_and_port_t> joins = vm["join"].as<std::vector<host_and_port_t> >();
 
-    io_backend_t io_backend;
-    if (!pull_io_backend_option(vm, &io_backend)) {
-        return EXIT_FAILURE;
-    }
-
     service_ports_t ports = get_service_ports(vm);
     std::string web_path = get_web_path(vm, argv);
 
@@ -742,7 +792,6 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
     bool result;
     run_in_thread_pool(boost::bind(&run_rethinkdb_proxy, &spawner_info, joins,
                                    ports,
-                                   io_backend,
                                    &result, web_path),
                        num_workers);
 
@@ -882,6 +931,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
 
     io_backend_t io_backend;
     if (!pull_io_backend_option(vm, &io_backend)) {
+        fprintf(stderr, "ERROR: selected io-backend is invalid or unsupported.\n");
         return EXIT_FAILURE;
     }
 
@@ -938,14 +988,14 @@ void help_rethinkdb_create() {
     printf("'rethinkdb create' is used to prepare a directory to act "
            "as the storage location for a RethinkDB cluster node.\n");
     std::stringstream sstream;
-    sstream << get_rethinkdb_create_options();
+    sstream << get_rethinkdb_create_options_visible();
     printf("%s\n", sstream.str().c_str());
 }
 
 void help_rethinkdb_serve() {
     printf("'rethinkdb serve' is the actual process for a RethinkDB cluster node.\n");
     std::stringstream sstream;
-    sstream << get_rethinkdb_serve_options();
+    sstream << get_rethinkdb_serve_options_visible();
     printf("%s\n", sstream.str().c_str());
 }
 

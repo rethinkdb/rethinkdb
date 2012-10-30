@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef CONCURRENCY_CROSS_THREAD_WATCHABLE_HPP_
 #define CONCURRENCY_CROSS_THREAD_WATCHABLE_HPP_
 

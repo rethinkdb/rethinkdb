@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 module RethinkDB
   # A query returning a JSON expression.  Most of the functions that you
   # can run on a JSON object are found in RethinkDB::RQL and accessed

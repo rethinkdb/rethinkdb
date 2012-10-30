@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "arch/runtime/runtime_utils.hpp"
 
 #include <unistd.h>

@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 module RethinkDB
   # A "Sequence" is either a JSON array or a stream.  The functions in
   # this module may be invoked as instance methods of both JSON_Expression and

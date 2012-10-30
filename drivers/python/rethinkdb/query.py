@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 """To communicate with a RethinkDB server, construct queries using this module
 and then pass them to the server using the :mod:`rethinkdb.net` module.
 

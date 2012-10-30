@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 (function(exports){
 var cubism = exports.cubism = {version: "1.0.0"};
 var cubism_id = 0;

@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "rpc/connectivity/connectivity.hpp"
 
 connectivity_service_t::peers_list_freeze_t::peers_list_freeze_t(connectivity_service_t *connectivity) :

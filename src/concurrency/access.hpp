@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef CONCURRENCY_ACCESS_HPP_
 #define CONCURRENCY_ACCESS_HPP_
 

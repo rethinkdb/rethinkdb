@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef SERIALIZER_LOG_LOG_SERIALIZER_HPP_
 #define SERIALIZER_LOG_LOG_SERIALIZER_HPP_
 
@@ -130,9 +131,7 @@ public:
     void index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account);
 
     intrusive_ptr_t<ls_block_token_pointee_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb);
-    intrusive_ptr_t<ls_block_token_pointee_t> block_write(const void *buf, file_account_t *io_account, iocallback_t *cb);
     intrusive_ptr_t<ls_block_token_pointee_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account);
-    intrusive_ptr_t<ls_block_token_pointee_t> block_write(const void *buf, file_account_t *io_account);
 
     block_sequence_id_t get_block_sequence_id(block_id_t block_id, const void* buf) const;
 
@@ -152,7 +151,7 @@ private:
 
     struct index_write_context_t {
         index_write_context_t() : next_metablock_write(NULL) { }
-        extent_manager_t::transaction_t extent_txn;
+        extent_transaction_t extent_txn;
         cond_t *next_metablock_write;
 
     private:

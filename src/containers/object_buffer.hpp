@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef CONTAINERS_OBJECT_BUFFER_HPP_
 #define CONTAINERS_OBJECT_BUFFER_HPP_
 
@@ -75,6 +76,10 @@ public:
     T * get() {
         rassert(instantiated);
         return reinterpret_cast<T *>(&object_data[0]);
+    }
+
+    T * operator->() {
+        return get();
     }
 
     const T * get() const {

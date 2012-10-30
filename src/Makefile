@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 space=$(eval) $(eval)
 comma=,
 
@@ -65,6 +66,13 @@ endif
 # Set SYMBOLS to 1 to enable symbols, even in release mode
 SYMBOLS?=0
 
+ifeq ($(GPERF),1)
+DEBUG=0
+NO_TCMALLOC:=1
+SYMBOLS:=1
+NO_OMIT_FRAME_POINTER:=1
+endif
+
 JSON_SHORTCUTS?=0
 DEBUG?=1
 VALGRIND?=0
@@ -76,6 +84,8 @@ VERBOSE?=0
 UNIT_TESTS?=0
 AIOSUPPORT?=0
 BUILD_DRIVERS?=1
+LINT?=0
+STATICFORCE?=0
 
 # Set TRIAL to 1 to build a 21-day trial version. If you want a different number of days, set TIMEBOMB to the number of days instead.
 TRIAL?=0
@@ -122,6 +132,9 @@ else
 LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -lv8 -lcrypto
 endif
 endif
+ifeq ($(STATICFORCE),1)
+LDFLAGS+= -static
+endif
 
 STATIC_LIBRARIES:=boost_serialization protobuf boost_program_options
 
@@ -158,6 +171,10 @@ endif
 
 ifneq ($(PREFIX),)
 CXXFLAGS+=-DCPREFIX='"$(PREFIX)"'
+endif
+
+ifneq ($(WEBRESDIR),)
+CXXFLAGS+=-DWEBRESDIR='"$(WEBRESDIR)"'
 endif
 
 ifeq ($(COMPILER),INTEL)
@@ -320,6 +337,10 @@ endif
 # look for the static library in the same directory as the .so file
 STATIC_LIBRARY_PATHS:=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }'))
 
+ifeq ($(GPERF),1)
+STATIC_LIBRARY_PATHS+= # path to patched libtcmalloc_and_profiler.a
+endif
+
 #  /usr/lib/x86_64-linux-gnu/libQtCore.so.4
 
 # Should makefile be noisy?
@@ -362,7 +383,6 @@ PROTOCFLAGS:= --proto_path=$(SOURCE_DIR)
 NAMES:=$(patsubst $(SOURCE_DIR)/%.cc,%,$(SOURCES))
 DEPS:=$(patsubst %,$(DEP_DIR)/%.d,$(NAMES))
 OBJS:=$(PROTO_OBJS) $(patsubst %,$(OBJ_DIR)/%.o,$(NAMES))
-
 
 SERVER_EXEC_OBJS:=$(PROTO_OBJS) $(patsubst %.cc,$(OBJ_DIR)/%.o,$(filter-out $(SOURCE_DIR)/unittest/%,$(SOURCES)))
 
@@ -465,8 +485,17 @@ share_dir:=$(prefix)/share/$(VERSIONED_PACKAGE_NAME)
 bash_completion_dir:=/etc/bash_completion.d
 internal_bash_completion_dir:=$(share_dir)$(bash_completion_dir)
 scripts_dir:=$(share_dir)/scripts
+init_dir:=/etc/init.d
+conf_dir:=/etc/rethinkdb
+conf_instance_dir:=$(conf_dir)/instances.d
+lib_dir:=$(prefix)/lib/rethinkdb
+web_res_dir:=$(share_dir)/web
+pidfile_dir:=/var/run/rethinkdb
+data_dir:=/var/lib/rethinkdb
+language_drivers_dir:=$(share_dir)/drivers
 
 ASSET_SCRIPTS:=$(ASSETS_DIR)/scripts/rdb_migrate
+INIT_SCRIPTS:=$(ASSETS_DIR)/init/rethinkdb
 
 CXXFLAGS+=-DMIGRATION_SCRIPT_LOCATION=\"$(scripts_dir)/rdb_migrate\"
 
@@ -508,12 +537,37 @@ install-tools: $(ASSETS_DIR)/scripts/rethinkdb.bash $(ASSET_SCRIPTS)
 			$(ASSETS_DIR)/scripts/rethinkdb.bash | install -m644 /dev/stdin $(DESTDIR)$(internal_bash_completion_dir)/$(SERVER_EXEC_NAME).bash
 	$(QUIET) install -m755 -d $(DESTDIR)$(scripts_dir)
 	$(QUIET) for s in $(ASSET_SCRIPTS); do install -m755 "$$s" $(DESTDIR)$(scripts_dir)/$$(basename $$s); done
+	$(QUIET) install -m755 -d $(DESTDIR)$(init_dir) ;
+	$(QUIET) for s in $(INIT_SCRIPTS); do install -m755 "$$s" $(DESTDIR)$(init_dir)/$$(basename $$s); done ;
+
+install-config:
+	$(QUIET) install -m755 -d $(DESTDIR)$(conf_dir) ;
+	$(QUIET) install -m644 $(ASSETS_DIR)/config/main.conf $(DESTDIR)$(conf_dir)/main.conf ;
+	$(QUIET) install -m755 -d $(DESTDIR)$(conf_instance_dir) ;
+	$(QUIET) install -m644 $(ASSETS_DIR)/config/default.conf.sample $(DESTDIR)$(conf_dir)/default.conf.sample ;
+
+install-data:
+	$(QUIET) install -m755 -d $(DESTDIR)$(data_dir)
+	$(QUIET) install -m755 -d $(DESTDIR)$(data_dir)/instances.d
+# We disabled the /var/run creation and added the functionality to the init script because Lintian observed that /var/run can get purged .
+#	$(QUIET) install -m755 -d $(DESTDIR)$(pidfile_dir)
+#	$(QUIET) install -m755 -d $(DESTDIR)$(pidfile_dir)/instances.d
+
+install-web:
+	$(QUIET) install -m755 -d $(DESTDIR)$(web_res_dir)
+	# This might break some ownership or permissions stuff.
+	$(QUIET) cp -pRP $(BUILD_DIR)/web/* $(DESTDIR)$(web_res_dir)/
+
+install-drivers:
+	
+$(libdir):
+	$(QUIET) install -m755 -d $(DESTDIR)$(lib_dir)
 
 install-docs:
 	$(QUIET) install -m755 -d $(DESTDIR)$(doc_dir)
 	$(QUIET) install -m644 -T $(ASSETS_DIR)/docs/LICENSE $(DESTDIR)$(doc_dir)/copyright
 
-install: install-binaries install-manpages install-docs install-tools
+install: install-binaries install-manpages install-docs install-tools install-web install-data install-config
 install-rpm: install
 install-deb: install
 	$(QUIET) install -m755 -d $(DESTDIR)$(doc_dir)
@@ -536,7 +590,7 @@ build-deb: all prepare_deb_package_dirs
 		> $(DEB_CONTROL_ROOT)/md5sums
 
 # List configuration files in conffiles
-	$(QUIET) find $(DEB_PACKAGE_DIR) -type f -printf "/%P\n" | (grep '^/etc/' | true) > $(DEB_CONTROL_ROOT)/conffiles
+	$(QUIET) find $(DEB_PACKAGE_DIR) -type f -printf "/%P\n" | (grep '^/etc/' | grep -v '^/etc/init\.d' || true) > $(DEB_CONTROL_ROOT)/conffiles
 
 # Copy {pre,post}{inst,rm} scripts
 	$(QUIET) for script in preinst postinst prerm postrm; do		                  		\
@@ -567,21 +621,32 @@ build-deb: all prepare_deb_package_dirs
 				-D "DISK_SIZE=$${disk_size}"														\
 			../packaging/$(DEBIAN_PKG_DIR)/control >$(DEB_CONTROL_ROOT)/control
 
+# Copy the license file.
+	cat ../packaging/$(DEBIAN_PKG_DIR)/copyright > $(DEB_CONTROL_ROOT)/copyright
+
 # Finally, produce a debian package
 	$(QUIET) fakeroot dpkg-deb -b $(DEB_PACKAGE_DIR) $(PACKAGES_DIR)
 
-deb: all prepare_deb_package_dirs
-	$(QUIET) $(MAKE) STRIP_ON_INSTALL=0 RETHINKDB_PACKAGING_VERSION=$(RETHINKDB_VERSION)-unstripped build-deb
-	$(QUIET) $(MAKE) STRIP_ON_INSTALL=1 RETHINKDB_PACKAGING_VERSION=$(RETHINKDB_VERSION) build-deb
+deb: prepare_deb_package_dirs
+# We have disabled building of stripped debs for now.
+# $(QUIET) $(MAKE) STRIP_ON_INSTALL=0 RETHINKDB_PACKAGING_VERSION=$(RETHINKDB_VERSION)-unstripped build-deb
+	$(QUIET) $(MAKE) STRIP_ON_INSTALL=1 RETHINKDB_PACKAGING_VERSION=$(RETHINKDB_VERSION) WEBRESDIR=$(web_res_dir) BUILD_DRIVERS=0 build-deb
 
 # Print a nice message with the location of the created package
 	@echo
 	@echo "$(ANSI_BOLD_ON)Your DEB packages are here (with lintian output following each package):$(ANSI_BOLD_OFF)"
+ifeq ($(LINT),1)
 	$(QUIET) for f in $(PACKAGES_DIR)/*.deb; do \
 			deb_name=`readlink -f $(PACKAGES_DIR)`/$$(basename $$f); \
 			echo "  $(ANSI_UL_ON)$${deb_name}$(ANSI_UL_OFF)"; \
 			lintian --color auto --suppress-tags "no-copyright-file,$(subst $(space),$(comma),$(SUPPRESSED_LINTIAN_TAGS))" $${deb_name} || true; \
 		done
+else
+	$(QUIET) for f in $(PACKAGES_DIR)/*.deb; do \
+			deb_name=`readlink -f $(PACKAGES_DIR)`/$$(basename $$f); \
+			echo "  $(ANSI_UL_ON)$${deb_name}$(ANSI_UL_OFF)"; \
+		done
+endif
 	$(QUIET) echo
 
 build-rpm: all prepare_rpm_package_dirs
@@ -637,12 +702,12 @@ rpm: all prepare_rpm_package_dirs
 
 else
 # Ubuntu/Debian
-deb: clean
-	$(QUIET) $(MAKE) PACKAGING=1 DEBUG=0 SYMBOLS=1 deb
+deb:
+	$(QUIET) $(MAKE) PACKAGING=1 DEBUG=0 deb
 
 # RPM for CentOS/RedHat
 rpm: clean
-	$(QUIET) $(MAKE) PACKAGING=1 DEBUG=0 SYMBOLS=1 rpm
+	$(QUIET) $(MAKE) PACKAGING=1 DEBUG=0 rpm
 
 # RPM for Suse 10
 rpm-suse10:

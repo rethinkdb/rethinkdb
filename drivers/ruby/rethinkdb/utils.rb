@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 module RethinkDB
   module C_Mixin #Constants
     # We often have shorter names for things, or inline variants, specified here.

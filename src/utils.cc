@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #define __STDC_LIMIT_MACROS
 #define __STDC_FORMAT_MACROS
 
@@ -467,7 +468,7 @@ ticks_t get_ticks() {
 }
 
 time_t get_secs() {
-    timespec tv = clock_monotonic();
+    timespec tv = clock_realtime();
     return tv.tv_sec;
 }
 

@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 module RethinkDB
   # This module contains the RQL query construction functions.  By far
   # the most common way of gaining access to those functions, however,

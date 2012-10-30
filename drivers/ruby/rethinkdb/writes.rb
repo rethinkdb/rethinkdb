@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 module RethinkDB
   # A write operation, like an insert.
   class Write_Query < RQL_Query

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 
 import shelve, threading, subprocess32, os, sys, atexit, time, traceback, cStringIO, signal
 import cgi_as_wsgi, send_gmail

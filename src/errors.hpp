@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef ERRORS_HPP_
 #define ERRORS_HPP_
 

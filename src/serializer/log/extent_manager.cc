@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "serializer/log/extent_manager.hpp"
 
 #include "arch/arch.hpp"
@@ -237,17 +238,18 @@ void extent_manager_t::shutdown() {
     state = state_shut_down;
 }
 
-void extent_manager_t::begin_transaction(transaction_t *out) {
+void extent_manager_t::begin_transaction(extent_transaction_t *out) {
     assert_thread();
     rassert(!current_transaction);
     current_transaction = out;
     out->init();
 }
 
-off64_t extent_manager_t::gen_extent() {
+off64_t extent_manager_t::gen_extent(DEBUG_VAR extent_transaction_t *txn) {
     assert_thread();
     rassert(state == state_running);
     rassert(current_transaction);
+    rassert(current_transaction == txn);
     ++stats->pm_extents_in_use;
     stats->pm_bytes_in_use += extent_size;
 
@@ -276,7 +278,7 @@ off64_t extent_manager_t::gen_extent() {
     return extent;
 }
 
-void extent_manager_t::release_extent(off64_t extent) {
+void extent_manager_t::release_extent(off64_t extent, extent_transaction_t *txn) {
     assert_thread();
 #ifdef DEBUG_EXTENTS
     debugf("EM %p: Release extent %.8lx\n", this, extent);
@@ -286,16 +288,16 @@ void extent_manager_t::release_extent(off64_t extent) {
     rassert(current_transaction);
     --stats->pm_extents_in_use;
     stats->pm_bytes_in_use -= extent_size;
-    current_transaction->free_queue().push_back(extent);
+    txn->free_queue().push_back(extent);
 }
 
-void extent_manager_t::end_transaction(DEBUG_VAR const transaction_t &t) {
+void extent_manager_t::end_transaction(DEBUG_VAR const extent_transaction_t &t) {
     assert_thread();
     rassert(current_transaction == &t);
     current_transaction = NULL;
 }
 
-void extent_manager_t::commit_transaction(transaction_t *t) {
+void extent_manager_t::commit_transaction(extent_transaction_t *t) {
     assert_thread();
     for (std::deque<off64_t>::iterator it = t->free_queue().begin(); it != t->free_queue().end(); it++) {
         off64_t extent = *it;

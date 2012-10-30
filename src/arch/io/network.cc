@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "arch/io/network.hpp"
 
 #include <arpa/inet.h>
@@ -892,8 +893,8 @@ std::vector<std::string> get_ips() {
     std::vector<std::string> ret;
 
     struct ifaddrs *if_addrs = NULL;
-    int res = getifaddrs(&if_addrs);
-    guarantee_err(res == 0, "getifaddrs failed, could not determine local ip addresses");
+    int addr_res = getifaddrs(&if_addrs);
+    guarantee_err(addr_res == 0, "getifaddrs failed, could not determine local ip addresses");
 
     for (ifaddrs *p = if_addrs; p != NULL; p = p->ifa_next) {
         if (p->ifa_addr->sa_family == AF_INET) {

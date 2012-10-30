@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 /* linenoise.h -- guerrilla line editing library against the idea that a
  * line editing lib needs to be 20,000 lines of C code.
  *

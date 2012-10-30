@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef ARCH_IO_BLOCKER_POOL_HPP_
 #define ARCH_IO_BLOCKER_POOL_HPP_
 

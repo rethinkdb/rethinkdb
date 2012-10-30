@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 # Dashboard: provides an overview and visualizations of the cluster
 # Dashboard View
 module 'DashboardView', ->

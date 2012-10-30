@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef ARCH_SPINLOCK_HPP_
 #define ARCH_SPINLOCK_HPP_
 

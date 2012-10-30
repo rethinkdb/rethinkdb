@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 var plot_bm = {
 	data: {},
 	default_sets: ['rethinkdb'],

@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 # This file contains all the good stuff we do to set up the
 # application. We should refactor this at some point, but I'm leaving
 # it as is for now.

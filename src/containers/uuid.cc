@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "containers/uuid.hpp"
 
 #include <sys/stat.h>
@@ -85,6 +86,10 @@ void hash_uuid(uuid_t *uuid) {
     guarantee(SHA1_Update(&ctx, uuid->data(), uuid_t::static_size()) == 1);
     guarantee(SHA1_Final(output_buffer, &ctx) == 1);
 
+    // Set some bits to obey standard for version 4 UUIDs.
+    output_buffer[6] = ((output_buffer[6] & 0x0f) | 0x40);
+    output_buffer[8] = ((output_buffer[8] & 0x3f) | 0x80);
+
     // Copy the beginning of the hash into our uuid
     memcpy(uuid->data(), output_buffer, uuid_t::static_size());
 }
@@ -117,9 +122,40 @@ void debug_print(append_only_printf_buffer_t *buf, const uuid_t& id) {
     buf->appendf("%s", uuid_to_str(id).c_str());
 }
 
+void push_hex(std::string *s, uint8_t byte) {
+    const char *buf = "0123456789abcdef";
+    s->push_back(buf[byte >> 4]);
+    s->push_back(buf[byte & 0x0f]);
+}
 
 std::string uuid_to_str(uuid_t id) {
-    return boost::uuids::to_string(as_boost_uuid(id));
+    const uint8_t *data = id.data();
+
+    std::string ret;
+    ret.reserve(uuid_t::kStaticSize * 2 + 4);  // hexadecimal, 4 hyphens
+    size_t i = 0;
+    for (; i < 4; ++i) {
+        push_hex(&ret, data[i]);
+    }
+    ret.push_back('-');
+    for (; i < 6; ++i) {
+        push_hex(&ret, data[i]);
+    }
+    ret.push_back('-');
+    for (; i < 8; ++i) {
+        push_hex(&ret, data[i]);
+    }
+    ret.push_back('-');
+    for (; i < 10; ++i) {
+        push_hex(&ret, data[i]);
+    }
+    ret.push_back('-');
+    CT_ASSERT(uuid_t::kStaticSize == 16);  // This code just feels this assertion in its bones.
+    for (; i < uuid_t::kStaticSize; ++i) {
+        push_hex(&ret, data[i]);
+    }
+
+    return ret;
 }
 
 uuid_t str_to_uuid(const std::string& uuid) {

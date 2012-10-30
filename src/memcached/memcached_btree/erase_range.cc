@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "memcached/memcached_btree/erase_range.hpp"
 
 #include "btree/slice.hpp"

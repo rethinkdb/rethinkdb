@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "serializer/serializer.hpp"
 #include "arch/arch.hpp"
 
@@ -15,20 +16,9 @@ void serializer_t::block_read(const intrusive_ptr_t<standard_block_token_t>& tok
     cb.wait();
 }
 
-// Blocking block_write implementation
-intrusive_ptr_t<standard_block_token_t>
-serializer_t::block_write(const void *buf, file_account_t *io_account) {
-    return serializer_block_write(this, buf, io_account);
-}
-
 intrusive_ptr_t<standard_block_token_t>
 serializer_t::block_write(const void *buf, block_id_t block_id, file_account_t *io_account) {
     return serializer_block_write(this, buf, block_id, io_account);
-}
-
-intrusive_ptr_t<standard_block_token_t>
-serializer_t::block_write(const void *buf, file_account_t *io_account, iocallback_t *cb) {
-    return serializer_block_write(this, buf, io_account, cb);
 }
 
 serializer_write_t serializer_write_t::make_touch(block_id_t block_id, repli_timestamp_t recency) {

@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 { One_Byte_Transformation =>
   # PRIORITY, PROC
   [[100, :mangle_byte],

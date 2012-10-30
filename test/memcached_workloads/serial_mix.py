@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 import random, time, sys, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import memcached_workload_common

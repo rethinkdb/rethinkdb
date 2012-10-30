@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef SERIALIZER_TYPES_HPP_
 #define SERIALIZER_TYPES_HPP_
 

@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef ARCH_RANDOM_DELAY_HPP_
 #define ARCH_RANDOM_DELAY_HPP_
 

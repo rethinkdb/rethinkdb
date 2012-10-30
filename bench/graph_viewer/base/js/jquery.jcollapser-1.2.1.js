@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 /**
  * Small plugin to make toggling the visibility of certain parts of a page 
  * easier.

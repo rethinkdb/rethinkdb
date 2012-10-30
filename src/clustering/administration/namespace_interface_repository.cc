@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "clustering/administration/namespace_interface_repository.hpp"
 
 #include "errors.hpp"

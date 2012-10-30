@@ -76,7 +76,6 @@
   <div class="alert alert-error error_answer"></div>
   <form class="form">
     <fieldset>
-      <legend>Datacenter details</legend>
       <div class="clearfix">
         <label for="name">Name</label>
         <div class="input">
@@ -88,7 +87,7 @@
 </script>
 
 <script id="added_datacenter-alert-template" type="text/x-handlebars-template">
-  <div class="alert" data-alert="alert">
+  <div class="alert displayed_alert" data-alert="alert">
     <a class="close" href="#">&times;</a>
     <p>You added datacenter <span class="name">{{name}}</span>. You can now <a href="#datacenters/{{uuid}}">configure</a> it further.</p>
   </div>
@@ -104,46 +103,53 @@
     <div class="alert block-message error">
       <p>
         <strong>Be careful.</strong>
-        If you remove these datacenters, all
-        replica counts in these datacenters will be
+        If you delete these datacenters, all
+        replica counts in them will be
         reduced to zero.
       </p>
     </div>
-    <p>Are you sure you want to remove the datacenter <a href="#datacenters/{{datacenter.id}}" target="_blank">{{datacenter.name}}</a>?</p>
+    <p>Are you sure you want to delete the datacenter <a href="#datacenters/{{datacenter.id}}" target="_blank">{{datacenter.name}}</a>?</p>
   </form>
 </script>
 
 <script id="removed_datacenter-alert-template" type="text/x-handlebars-template">
-  <div class="alert" data-alert="alert">
+    {{debug}}
+  <div class="alert displayed_alert" data-alert="alert">
     <a class="close" href="#">&times;</a>
-    <p>You successfully removed datacenter <span class="name">{{name}}</span>.</p>
+    <p>You successfully deleted datacenter <span class="name">{{name}}</span>.</p>
   </div>
 </script>
 
 <script id="set_datacenter-modal-template" type="text/x-handlebars-template">
     {{#if has_warning}}
     <div class="alert alert-error displayed_alert">
-        <h4>Warning</h4>
         {{#each warnings_by_machines}}
         <p><strong>Server <a href="#servers/{{machine_id}}">{{machine_name}}</a>:</strong></p>
 
         {{#if namespaces_with_critical_issue}}
-        <p>You have just one server left in this datacenter and this server is master for the {{pluralize_noun "table" num_namespaces_with_critical_issue}} {{links_to_namespaces_inline namespaces_with_critical_issue}}.<br/>
-        Moving this server will results in a loss of availability as long as a no server are added in <a href="#datacenters/{{datacenter_id}}">{{datacenter_name}}</a> or a new datacenter is set primary for {{pluralize_this num_namespaces_with_critical_issue}} {{pluralize_noun "table" num_namespaces_with_critical_issue}}.</a></p>
-        {{/if}}
-        {{#if namespaces_with_unsatisfiable_goals}}
-        <p>The number of replicas for {{pluralize_noun "table" num_namespaces_with_unsatisfiable_goals}} {{links_to_namespaces_inline namespaces_with_unsatisfiable_goals}} you require will be lower than the number of servers available in <a href="#datacenters/{{datacenter_id}}">{{datacenter_name}}</a>.<br/>
-        You can lower the number of replicas required or add a server in this datacenter to avoid creating unsatisfiable goals.</p>
+        <p>You have just one server left in this datacenter and this server is
+        master for the {{pluralize_noun "table" num_namespaces_with_critical_issue}}
+        {{links_to_namespaces_inline namespaces_with_critical_issue}}.
+        Moving this server will results in a loss of availability unless a new
+        server is added to datacenter <a href="#datacenters/{{datacenter_id}}">{{datacenter_name}}</a>, or
+        the masters for this table are pinned to another datacenter.</a></p>
+        {{else}}
+            {{#if namespaces_with_unsatisfiable_goals}}
+            <p>The number of replicas for {{pluralize_noun "table" num_namespaces_with_unsatisfiable_goals}}
+            {{links_to_namespaces_inline namespaces_with_unsatisfiable_goals}} you
+            specified will be lower than the number of servers available in datacenter <a
+                href="#datacenters/{{datacenter_id}}">{{datacenter_name}}</a>.
+            You can lower the number of replicas required for this table or add a server in this datacenter to avoid creating unsatisfiable goals.</p>
+            {{/if}}
         {{/if}}
         {{/each}}
     </div>
     {{/if}}
 
-    <div class="alert displayed_alert">Removing this server from its datacenter will remove all its responsabilities.</div>
+    <div class="alert displayed_alert">Removing servers from datacenters removes their responsibilities.</div>
     <div class="alert alert-error error_answer"></div>
     <form class="form">
         <fieldset>
-            <legend>Which datacenter?</legend>
             <label for="datacenter_uuid">Select a datacenter</label>
             <div class="clearfix">
                 <select class="datacenter_uuid" name="datacenter_uuid">

@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef BUFFER_CACHE_MIRRORED_PAGE_REPL_RANDOM_HPP_
 #define BUFFER_CACHE_MIRRORED_PAGE_REPL_RANDOM_HPP_
 
@@ -74,7 +75,7 @@ public:
 private:
     unsigned int unload_threshold;
     cache_t *cache;
-    two_level_array_t<evictable_t*, MAX_BLOCKS_IN_MEMORY> array;
+    two_level_array_t<evictable_t*, MAX_BLOCKS_IN_MEMORY, (1 << 12)> array;
 };
 
 #endif // BUFFER_CACHE_MIRRORED_PAGE_REPL_RANDOM_HPP_

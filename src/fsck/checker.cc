@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "fsck/checker.hpp"
 
 #define __STDC_FORMAT_MACROS

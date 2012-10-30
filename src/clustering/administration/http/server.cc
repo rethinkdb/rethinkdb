@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "clustering/administration/http/server.hpp"
 
 #include "clustering/administration/http/cyanide.hpp"
@@ -40,14 +41,9 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
         namespace_repo_t<memcached_protocol_t> *_namespace_repo,
         namespace_repo_t<rdb_protocol_t> *_rdb_namespace_repo,
         admin_tracker_t *_admin_tracker,
-        local_issue_tracker_t *_local_issue_tracker,
         http_app_t *reql_app,
         uuid_t _us,
-        std::string path) :
-            bound_issue("PORT_CONFLICT",
-                        true,
-                        strprintf("could not bind to administrative http server port at %d", port)),
-            bound_subscription(&bound_issue_tracker_entry)
+        std::string path)
 {
     std::set<std::string> white_list;
     white_list.insert("/cluster.css");
@@ -157,19 +153,6 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     root_routing_app.init(new routing_http_app_t(file_app.get(), root_routes));
 
     server.init(new http_server_t(port, root_routing_app.get()));
-    signal_t *is_bound = server->get_bound_signal();
-
-    // Only bother to create the issue if it hasn't already been able to bind to the port
-    if (!is_bound->is_pulsed()) {
-
-        // Creating the new entry will insert the issue into the issue tracker
-        bound_issue_tracker_entry.init(
-                new local_issue_tracker_t::entry_t(_local_issue_tracker, bound_issue));
-
-        // As soon as the tcp listener connects this reset will be triggered and the issue will
-        // be removed from the issue tracker
-        bound_subscription.reset(is_bound);
-    }
 }
 
 administrative_http_server_manager_t::~administrative_http_server_manager_t() {

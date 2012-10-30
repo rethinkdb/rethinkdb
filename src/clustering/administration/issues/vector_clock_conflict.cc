@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "clustering/administration/issues/vector_clock_conflict.hpp"
 
 namespace {

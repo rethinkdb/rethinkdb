@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "memcached/memcached_btree/append_prepend.hpp"
 #include "memcached/memcached_btree/modify_oper.hpp"
 #include "containers/buffer_group.hpp"

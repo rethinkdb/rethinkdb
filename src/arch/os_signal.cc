@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "arch/os_signal.hpp"
 #include "arch/arch.hpp"
 

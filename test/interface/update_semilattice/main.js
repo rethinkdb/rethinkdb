@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 // I know I'm writing all this things in window, but it's a testing tool
 
 Handlebars.registerHelper('print_safe', function(str) {

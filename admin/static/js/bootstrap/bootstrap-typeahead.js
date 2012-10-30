@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 /*
 Using fork from here: https://gist.github.com/1866577
 For additional functionality

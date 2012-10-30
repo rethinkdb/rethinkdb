@@ -18,6 +18,8 @@ case "$1" in
       --install $bin_dir/$server_exec_name $server_exec_name $bin_dir/$server_exec_name_versioned $priority \
       --slave $man1_dir/$server_exec_name.1.gz $server_exec_name.1.gz $man1_dir/$server_exec_name_versioned.1.gz \
       --slave $bash_completion_dir/$server_exec_name.bash $server_exec_name.bash $internal_bash_completion_dir/$server_exec_name.bash
+    update-rc.d rethinkdb defaults ;
+    invoke-rc.d rethinkdb start ;
     ;;
   *)
     echo "Warning: RethinkDB postinst script called with unknown set of arguments: $*"

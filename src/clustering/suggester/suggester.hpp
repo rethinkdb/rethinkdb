@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_SUGGESTER_SUGGESTER_HPP_
 #define CLUSTERING_SUGGESTER_SUGGESTER_HPP_
 

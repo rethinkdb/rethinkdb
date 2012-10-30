@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 import sys, os, time
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import driver, http_admin, scenario_common
@@ -22,6 +23,7 @@ with driver.Metacluster() as metacluster:
     assert access.get_issues() == []
     print "Creating two namespaces with the same name..."
     datacenter = access.add_datacenter()
+    database = access.add_database(name="Germany")
     access.move_server_to_datacenter(next(iter(access.machines)), datacenter)
     database = access.add_database("test")
     namespace1 = access.add_namespace(primary = datacenter, database = database, name = "John_Jacob_Jingleheimer_Schmidt")

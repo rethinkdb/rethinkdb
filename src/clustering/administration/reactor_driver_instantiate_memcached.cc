@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "clustering/administration/reactor_driver.tcc"
 #include "memcached/protocol.hpp"
 #include "serializer/serializer.hpp"

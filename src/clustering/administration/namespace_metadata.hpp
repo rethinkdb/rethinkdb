@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_NAMESPACE_METADATA_HPP_
 #define CLUSTERING_ADMINISTRATION_NAMESPACE_METADATA_HPP_
 
@@ -59,16 +60,6 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_12(blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, port, primary_pinnings, secondary_pinnings, primary_key, database, cache_size);
 };
 
-
-class vclock_builder_t {
-public:
-    explicit vclock_builder_t(const machine_id_t &_machine) : machine(_machine) { }
-    template<class T>
-    vclock_t<T> build(const T &arg) { return vclock_t<T>(arg, machine); }
-private:
-    machine_id_t machine;
-};
-
 template <class protocol_t>
 void debug_print(append_only_printf_buffer_t *buf, const namespace_semilattice_metadata_t<protocol_t> &m) {
     buf->appendf("ns_sl_metadata{blueprint=");
@@ -102,32 +93,31 @@ namespace_semilattice_metadata_t<protocol_t> new_namespace(
     const name_string_t &name, const std::string &key, int port,
     int64_t cache_size) {
 
-    vclock_builder_t vc(machine);
     namespace_semilattice_metadata_t<protocol_t> ns;
-    ns.database           = vc.build(database);
-    ns.primary_datacenter = vc.build(datacenter);
-    ns.name               = vc.build(name);
-    ns.primary_key        = vc.build(key);
-    ns.port               = vc.build(port);
+    ns.database           = make_vclock(database, machine);
+    ns.primary_datacenter = make_vclock(datacenter, machine);
+    ns.name               = make_vclock(name, machine);
+    ns.primary_key        = make_vclock(key, machine);
+    ns.port               = make_vclock(port, machine);
 
     std::map<uuid_t, int> ack_expectations;
     ack_expectations[datacenter] = 1;
-    ns.ack_expectations = vc.build(ack_expectations);
+    ns.ack_expectations = make_vclock(ack_expectations, machine);
 
     nonoverlapping_regions_t<protocol_t> shards;
     bool add_region_success = shards.add_region(protocol_t::region_t::universe());
     guarantee(add_region_success);
-    ns.shards = vc.build(shards);
+    ns.shards = make_vclock(shards, machine);
 
     region_map_t<protocol_t, uuid_t> primary_pinnings(
         protocol_t::region_t::universe(), nil_uuid());
-    ns.primary_pinnings = vc.build(primary_pinnings);
+    ns.primary_pinnings = make_vclock(primary_pinnings, machine);
 
     region_map_t<protocol_t, std::set<uuid_t> > secondary_pinnings(
         protocol_t::region_t::universe(), std::set<machine_id_t>());
-    ns.secondary_pinnings = vc.build(secondary_pinnings);
+    ns.secondary_pinnings = make_vclock(secondary_pinnings, machine);
 
-    ns.cache_size = vc.build(cache_size);
+    ns.cache_size = make_vclock(cache_size, machine);
     return ns;
 }
 

@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "clustering/administration/issues/pinnings_shards_mismatch.hpp"
 
 #include "clustering/administration/http/json_adapters.hpp"

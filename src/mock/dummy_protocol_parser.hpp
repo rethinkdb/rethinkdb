@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef MOCK_DUMMY_PROTOCOL_PARSER_HPP_
 #define MOCK_DUMMY_PROTOCOL_PARSER_HPP_
 
@@ -26,10 +27,12 @@ public:
         ns_access(ns_repo, ns_id, &interruptor),
         query_app(ns_access.get_namespace_if()),
         server(port, &query_app)
-        { }
+    {
+        always_bound.pulse();
+    }
 
     signal_t *get_bound_signal() {
-        return server.get_bound_signal();
+        return &always_bound;
     }
 
 private:
@@ -37,6 +40,7 @@ private:
     namespace_repo_t<dummy_protocol_t>::access_t ns_access;
     query_http_app_t query_app;
     http_server_t server;
+    cond_t always_bound;
 };
 
 } //namespace mock

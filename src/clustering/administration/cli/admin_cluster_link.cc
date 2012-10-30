@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #define __STDC_FORMAT_MACROS
 #include "clustering/administration/cli/admin_cluster_link.hpp"
 
@@ -840,7 +841,6 @@ std::string admin_cluster_link_t::admin_split_shard_internal(namespaces_semilatt
 template <class protocol_t>
 std::string admin_cluster_link_t::split_shards(vclock_t<nonoverlapping_regions_t<protocol_t> > *shards_vclock,
                                                const std::vector<std::string> &split_points) {
-    // TODO: Non-const reference.
     nonoverlapping_regions_t<protocol_t> &shards = shards_vclock->get_mutable();
     std::string error;
 
@@ -855,17 +855,17 @@ std::string admin_cluster_link_t::split_shards(vclock_t<nonoverlapping_regions_t
 
             // TODO: use a better search than linear
             std::set<hash_region_t<key_range_t> >::iterator shard = shards.begin();
-            while (true) {
+            while (shard != shards.end() && !shard->inner.contains_key(key)) {
                 // TODO: This assertion is too low-level, there should be a function for hash_region_t that computes the expression.
                 guarantee(shard->beg == 0 && shard->end == HASH_REGION_HASH_SIZE);
-
-                if (shard == shards.end()) {
-                    throw admin_cluster_exc_t("split point could not be placed: " + split_points[i]);
-                } else if (shard->inner.contains_key(key)) {
-                    break;
-                }
                 ++shard;
             }
+
+            if (shard == shards.end()) {
+                throw admin_cluster_exc_t("split point could not be placed: " + split_points[i]);
+            }
+
+            guarantee(shard->beg == 0 && shard->end == HASH_REGION_HASH_SIZE);
 
             // Don't split if this key is already the split point
             if (shard->inner.left == key) {
@@ -886,12 +886,12 @@ std::string admin_cluster_link_t::split_shards(vclock_t<nonoverlapping_regions_t
             add_success = shards.add_region(hash_region_t<key_range_t>(right));
             guarantee(add_success);
 
-            shards_vclock->upgrade_version(change_request_id);
         } catch (const std::exception& ex) {
             error += ex.what();
             error += "\n";
         }
     }
+    shards_vclock->upgrade_version(change_request_id);
     return error;
 }
 
@@ -980,18 +980,18 @@ std::string admin_cluster_link_t::merge_shards(vclock_t<nonoverlapping_regions_t
             guarantee(shard->beg == 0 && shard->end == HASH_REGION_HASH_SIZE);
 
             ++shard;
-            while (true) {
+            while (shard != shards.end() && !shard->inner.contains_key(key)) {
                 // TODO: This assertion's expression is too low-level, there should be a function for it.
                 guarantee(shard->beg == 0 && shard->end == HASH_REGION_HASH_SIZE);
-
-                if (shard == shards.end()) {
-                    throw admin_cluster_exc_t("split point does not exist: " + split_points[i]);
-                } else if (shard->inner.contains_key(key)) {
-                    break;
-                }
                 prev = shard;
                 ++shard;
             }
+
+            if (shard == shards.end()) {
+                throw admin_cluster_exc_t("split point does not exist: " + split_points[i]);
+            }
+
+            guarantee(shard->beg == 0 && shard->end == HASH_REGION_HASH_SIZE);
 
             if (shard->inner.left != store_key_t(key)) {
                 throw admin_cluster_exc_t("split point does not exist: " + split_points[i]);
@@ -1007,12 +1007,13 @@ std::string admin_cluster_link_t::merge_shards(vclock_t<nonoverlapping_regions_t
             bool add_success = shards.add_region(hash_region_t<key_range_t>(merged));
             guarantee(add_success);
 
-            shards_vclock->upgrade_version(change_request_id);
         } catch (const std::exception& ex) {
             error += ex.what();
             error += "\n";
         }
     }
+
+    shards_vclock->upgrade_version(change_request_id);
     return error;
 }
 

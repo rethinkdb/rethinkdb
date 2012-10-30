@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "clustering/reactor/blueprint.hpp"
 
 template <class protocol_t>

@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 import sys, os, time, socket, signal, subprocess, shutil, tempfile, random
 
 """`driver.py` is a module for starting groups of RethinkDB cluster nodes and

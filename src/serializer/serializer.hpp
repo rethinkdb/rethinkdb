@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef SERIALIZER_SERIALIZER_HPP_
 #define SERIALIZER_SERIALIZER_HPP_
 
@@ -92,13 +93,6 @@ public:
 
     /* Non-blocking variants */
     virtual intrusive_ptr_t<standard_block_token_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb) = 0;
-    // `block_write(buf, acct, cb)` must behave identically to `block_write(buf, NULL_BLOCK_ID, acct, cb)`
-    // a default implementation is provided using this
-    virtual intrusive_ptr_t<standard_block_token_t> block_write(const void *buf, file_account_t *io_account, iocallback_t *cb);
-
-    /* Blocking variants (use in coroutine context) with and without known block_id */
-    // these have default implementations in serializer.cc in terms of the non-blocking variants above
-    virtual intrusive_ptr_t<standard_block_token_t> block_write(const void *buf, file_account_t *io_account);
     virtual intrusive_ptr_t<standard_block_token_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account);
 
     virtual block_sequence_id_t get_block_sequence_id(block_id_t block_id, const void* buf) const = 0;
@@ -155,22 +149,6 @@ void serializer_index_write(serializer_type *ser, const index_write_op_t& op, fi
     std::vector<index_write_op_t> ops;
     ops.push_back(op);
     return ser->index_write(ops, io_account);
-}
-
-template <class serializer_type>
-intrusive_ptr_t<typename serializer_traits_t<serializer_type>::block_token_type> serializer_block_write(serializer_type *ser, const void *buf, file_account_t *io_account, iocallback_t *cb) {
-    return ser->block_write(buf, NULL_BLOCK_ID, io_account, cb);
-}
-
-// Blocking variants.
-template <class serializer_type>
-intrusive_ptr_t<typename serializer_traits_t<serializer_type>::block_token_type> serializer_block_write(serializer_type *ser, const void *buf, file_account_t *io_account) {
-    struct : public cond_t, public iocallback_t {
-        void on_io_complete() { pulse(); }
-    } cb;
-    intrusive_ptr_t<typename serializer_traits_t<serializer_type>::block_token_type> result = ser->block_write(buf, io_account, &cb);
-    cb.wait();
-    return result;
 }
 
 template <class serializer_type>

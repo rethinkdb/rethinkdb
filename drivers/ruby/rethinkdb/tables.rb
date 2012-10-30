@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 module RethinkDB
   # A database stored on the cluster.  Usually created with the <b>+r+</b>
   # shortcut, like:

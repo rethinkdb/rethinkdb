@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "concurrency/wait_any.hpp"
 
 void wait_any_t::wait_any_subscription_t::run() {

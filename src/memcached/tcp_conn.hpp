@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef MEMCACHED_TCP_CONN_HPP_
 #define MEMCACHED_TCP_CONN_HPP_
 

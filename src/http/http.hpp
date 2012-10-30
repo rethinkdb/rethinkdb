@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef HTTP_HTTP_HPP_
 #define HTTP_HTTP_HPP_
 
@@ -90,6 +91,7 @@ enum http_status_code_t {
     HTTP_FORBIDDEN = 403,
     HTTP_NOT_FOUND = 404,
     HTTP_METHOD_NOT_ALLOWED = 405,
+    HTTP_GONE = 410,
     HTTP_UNSUPPORTED_MEDIA_TYPE = 415,
     HTTP_INTERNAL_SERVER_ERROR = 500
 };
@@ -162,13 +164,12 @@ class http_server_t {
 public:
     http_server_t(int port, http_app_t *application);
     ~http_server_t();
-    signal_t *get_bound_signal();
     int get_port() const;
 private:
     void handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &conn, auto_drainer_t::lock_t);
     http_app_t *application;
     auto_drainer_t auto_drainer;
-    scoped_ptr_t<repeated_nonthrowing_tcp_listener_t> tcp_listener;
+    scoped_ptr_t<tcp_listener_t> tcp_listener;
 };
 
 std::string percent_escaped_string(const std::string &s);

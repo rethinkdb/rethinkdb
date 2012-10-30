@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include <sys/resource.h>
 
 #include <set>
@@ -17,7 +18,6 @@ void print_version_message() {
 }
 
 int main(int argc, char *argv[]) {
-    mcheck_init();
     install_generic_crash_handler();
 
 #ifndef NDEBUG

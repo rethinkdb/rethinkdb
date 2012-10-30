@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 
 # Usage: ./full_test_driver.sh [--just-tests] [--git-branch <branch-name>] [--build-mode (two|all)] [--test-dir <directory location, to be appended to rethinkdb/>]
 # Environment variables: SLURM_CONF
@@ -264,7 +265,7 @@ tar --extract --gzip --touch --file=rethinkdb.tar.gz -- rethinkdb
                             on_end_script = lambda: result_log.write("builds", name, status = "ok", end_time = time.time()),
                             constraint = "build-ready",
                             timeout = 30,   # minutes
-                            exclude = ["magneto"]  # magneto is ubuntu 12.04, see below.
+                            exclude = ["magneto", "newton"]  # magneto is ubuntu 12.04, see below.
                             )
                         # magneto has ubuntu 12.04, so we can't run executables built by it on our
                         # 11.10 systems.  We can run ubuntu 11.10-compiled executables on magneto,

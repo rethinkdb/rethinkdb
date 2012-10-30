@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef CONTAINERS_TWO_LEVEL_ARRAY_HPP_
 #define CONTAINERS_TWO_LEVEL_ARRAY_HPP_
 

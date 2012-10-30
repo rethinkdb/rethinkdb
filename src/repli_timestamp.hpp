@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef REPLI_TIMESTAMP_HPP_
 #define REPLI_TIMESTAMP_HPP_
 

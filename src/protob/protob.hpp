@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef PROTOB_PROTOB_HPP_
 #define PROTOB_PROTOB_HPP_
 
