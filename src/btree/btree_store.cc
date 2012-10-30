@@ -75,7 +75,9 @@ void btree_store_t<protocol_t>::read(
     assert_thread();
     scoped_ptr_t<transaction_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
-    acquire_superblock_for_read(rwi_read, token, &txn, &superblock, interruptor);
+
+    acquire_superblock_for_read(rwi_read, token, &txn, &superblock, interruptor,
+                                read.use_snapshot());
 
     check_metainfo(DEBUG_ONLY(metainfo_checker, ) txn.get(), superblock.get());
 
@@ -256,7 +258,7 @@ void btree_store_t<protocol_t>::do_get_metainfo(UNUSED order_token_t order_token
     assert_thread();
     scoped_ptr_t<transaction_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
-    acquire_superblock_for_read(rwi_read, token, &txn, &superblock, interruptor);
+    acquire_superblock_for_read(rwi_read, token, &txn, &superblock, interruptor, false);
 
     get_metainfo_internal(txn.get(), superblock->get(), out);
 }
@@ -306,7 +308,8 @@ void btree_store_t<protocol_t>::acquire_superblock_for_read(
         object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
         scoped_ptr_t<transaction_t> *txn_out,
         scoped_ptr_t<real_superblock_t> *sb_out,
-        signal_t *interruptor)
+        signal_t *interruptor,
+        bool use_snapshot)
         THROWS_ONLY(interrupted_exc_t) {
 
     assert_thread();
@@ -318,7 +321,10 @@ void btree_store_t<protocol_t>::acquire_superblock_for_read(
     order_token_t order_token = order_source.check_in("btree_store_t<" + protocol_t::protocol_name + ">::acquire_superblock_for_read").with_read_mode();
     order_token = btree->pre_begin_txn_checkpoint_.check_through(order_token);
 
-    get_btree_superblock_and_txn_for_reading(btree.get(), access, order_token, CACHE_SNAPSHOTTED_NO, sb_out, txn_out);
+    cache_snapshotted_t cache_snapshotted =
+        use_snapshot ? CACHE_SNAPSHOTTED_YES : CACHE_SNAPSHOTTED_NO;
+    get_btree_superblock_and_txn_for_reading(
+        btree.get(), access, order_token, cache_snapshotted, sb_out, txn_out);
 }
 
 template <class protocol_t>
