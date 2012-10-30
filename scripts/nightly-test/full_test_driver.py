@@ -121,7 +121,7 @@ with simple_linear_db.LinearDBWriter("result_log.txt") as result_log:
 
         print "Checking out RethinkDB..."
 
-        subprocess32.check_call(["git", "clone", "git@github.com:rethinkdb/rethinkdb.git", "--depth", "0", "rethinkdb"])
+        subprocess32.check_call(["git", "clone", "git@github.com:rethinkdb/rethinkdb-internal.git", "--depth", "0", "rethinkdb"])
         subprocess32.check_call(["git", "checkout", options.git_branch], cwd="rethinkdb")
 
         print "Done checking out RethinkDB."
