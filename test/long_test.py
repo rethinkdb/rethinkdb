@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 import sys, os, signal, math, thread
 from datetime import datetime
 from subprocess import Popen, PIPE

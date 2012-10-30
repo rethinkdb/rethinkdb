@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 goog.provide('rethinkdb.query2');
 
 goog.require('rethinkdbmdl');

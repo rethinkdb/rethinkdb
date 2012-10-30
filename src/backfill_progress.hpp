@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef BACKFILL_PROGRESS_HPP_
 #define BACKFILL_PROGRESS_HPP_
 

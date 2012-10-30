@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef DO_ON_THREAD_HPP_
 #define DO_ON_THREAD_HPP_
 

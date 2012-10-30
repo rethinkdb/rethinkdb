@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef NO_EPOLL // To make the build system happy.
 
 #include "arch/runtime/event_queue/epoll.hpp"

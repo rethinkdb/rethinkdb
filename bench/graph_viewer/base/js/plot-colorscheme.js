@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 plot_bm.color_scheme = [
 '#556270', // mighty slate
 '#4ECDC4', // pacifica

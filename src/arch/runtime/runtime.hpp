@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef ARCH_RUNTIME_RUNTIME_HPP_
 #define ARCH_RUNTIME_RUNTIME_HPP_
 

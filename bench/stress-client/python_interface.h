@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef STRESS_CLIENT_PYTHON_INTERFACE_H_
 #define STRESS_CLIENT_PYTHON_INTERFACE_H_
 

@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "arch/io/timer/timer_signal_provider.hpp"
 
 #include <signal.h>

@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "arch/runtime/system_event/pipe_event.hpp"
 
 #include <fcntl.h>

@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef RPC_SEMILATTICE_VIEW_MEMBER_HPP_
 #define RPC_SEMILATTICE_VIEW_MEMBER_HPP_
 

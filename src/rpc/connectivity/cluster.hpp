@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef RPC_CONNECTIVITY_CLUSTER_HPP_
 #define RPC_CONNECTIVITY_CLUSTER_HPP_
 

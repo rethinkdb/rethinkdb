@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef CONCURRENCY_ONE_PER_THREAD_HPP_
 #define CONCURRENCY_ONE_PER_THREAD_HPP_
 

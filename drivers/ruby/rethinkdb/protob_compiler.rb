@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 module RethinkDB
   module RQL_Protob_Mixin
     include P_Mixin

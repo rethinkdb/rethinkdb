@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef ARCH_FD_SEND_RECV_HPP_
 #define ARCH_FD_SEND_RECV_HPP_
 

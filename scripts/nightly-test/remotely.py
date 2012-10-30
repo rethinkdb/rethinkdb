@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 import sys, subprocess32, tempfile, string, signal, os
 
 class RemotelyInternalError(Exception):

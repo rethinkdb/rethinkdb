@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 /**
  * This file contains no publically exported functions but does
  * coordinate compilation and loading.

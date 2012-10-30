@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "clustering/suggester/suggester.hpp"
 
 #include "stl_utils.hpp"

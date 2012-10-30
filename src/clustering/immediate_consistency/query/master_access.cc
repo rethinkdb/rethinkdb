@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "clustering/immediate_consistency/query/master_access.hpp"
 
 #include <math.h>

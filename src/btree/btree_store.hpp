@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef BTREE_BTREE_STORE_HPP_
 #define BTREE_BTREE_STORE_HPP_
 

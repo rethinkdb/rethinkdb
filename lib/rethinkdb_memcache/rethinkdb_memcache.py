@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 
 """
 This is a customized version of python-memcached.

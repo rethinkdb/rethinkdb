@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef CONTAINERS_CLONE_PTR_HPP_
 #define CONTAINERS_CLONE_PTR_HPP_
 

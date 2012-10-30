@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef MOCK_SERIALIZER_FILESTREAM_HPP_
 #define MOCK_SERIALIZER_FILESTREAM_HPP_
 

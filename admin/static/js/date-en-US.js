@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 /**
  * @version: 1.0 Alpha-1
  * @author: Coolite Inc. http://www.coolite.com/

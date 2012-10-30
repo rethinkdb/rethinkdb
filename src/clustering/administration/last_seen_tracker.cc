@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "clustering/administration/last_seen_tracker.hpp"
 
 #include "errors.hpp"

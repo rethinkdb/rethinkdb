@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef PROGRESS_PROGRESS_HPP_
 #define PROGRESS_PROGRESS_HPP_
 

@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef ARCH_TIMER_HPP_
 #define ARCH_TIMER_HPP_
 

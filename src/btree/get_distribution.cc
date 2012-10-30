@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "btree/get_distribution.hpp"
 #include "btree/parallel_traversal.hpp"
 #include "btree/node.hpp"

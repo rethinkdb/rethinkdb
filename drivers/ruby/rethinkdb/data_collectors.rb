@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 module RethinkDB
   # Data collectors are ways of aggregating data (for use with
   # Sequence#groupby).  You can define your own; all they are is a hash

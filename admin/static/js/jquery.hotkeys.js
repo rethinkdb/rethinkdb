@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 /*
  * jQuery Hotkeys Plugin
  * Copyright 2010, John Resig

@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "protocol.hpp"
 #include "protocols/memcached_sock_protocol.hpp"
 #ifdef USE_LIBMEMCACHED

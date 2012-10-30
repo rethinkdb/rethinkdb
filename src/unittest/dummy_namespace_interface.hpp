@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef UNITTEST_DUMMY_NAMESPACE_INTERFACE_HPP_
 #define UNITTEST_DUMMY_NAMESPACE_INTERFACE_HPP_
 

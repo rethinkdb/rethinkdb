@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "clustering/administration/main/import.hpp"
 
 // TODO: Which of these headers, other than rdb_protocol/query_language.hpp, contains rdb_protocol_t stuff?

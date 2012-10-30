@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef PERFMON_ARCHIVE_HPP_
 #define PERFMON_ARCHIVE_HPP_
 

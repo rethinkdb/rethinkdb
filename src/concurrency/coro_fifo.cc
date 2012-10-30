@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "concurrency/coro_fifo.hpp"
 
 // This is an inefficient implementation but we'd need extreme hacks

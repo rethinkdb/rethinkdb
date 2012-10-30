@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef BACKTRACE_HPP_
 #define BACKTRACE_HPP_
 

@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef CONTAINERS_BINARY_BLOB_HPP_
 #define CONTAINERS_BINARY_BLOB_HPP_
 

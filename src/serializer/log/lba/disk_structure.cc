@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "serializer/log/lba/disk_structure.hpp"
 #include "containers/scoped.hpp"
 

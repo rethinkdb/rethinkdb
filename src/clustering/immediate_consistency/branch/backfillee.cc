@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "clustering/immediate_consistency/branch/backfillee.hpp"
 
 #include "clustering/immediate_consistency/branch/history.hpp"

@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 /* ===================================================
  * bootstrap-transition.js v2.0.2
  * http://twitter.github.com/bootstrap/javascript.html#transitions

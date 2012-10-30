@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef CONTAINERS_ARCHIVE_COW_PTR_TYPE_HPP_
 #define CONTAINERS_ARCHIVE_COW_PTR_TYPE_HPP_
 

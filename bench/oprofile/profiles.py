@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 from oprofile import Event, Ratio, Profile
 
 #Events
