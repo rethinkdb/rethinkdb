@@ -85,6 +85,10 @@ void hash_uuid(uuid_t *uuid) {
     guarantee(SHA1_Update(&ctx, uuid->data(), uuid_t::static_size()) == 1);
     guarantee(SHA1_Final(output_buffer, &ctx) == 1);
 
+    // Set some bits to obey standard for version 4 UUIDs.
+    output_buffer[6] = ((output_buffer[6] & 0x0f) | 0x40);
+    output_buffer[8] = ((output_buffer[8] & 0x3f) | 0x80);
+
     // Copy the beginning of the hash into our uuid
     memcpy(uuid->data(), output_buffer, uuid_t::static_size());
 }
