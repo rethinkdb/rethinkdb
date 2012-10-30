@@ -42,7 +42,7 @@ void semaphore_t::co_lock_interruptible(signal_t *interruptor) {
 
     try {
         wait_interruptible(&cb, interruptor);
-    } catch (interrupted_exc_t &ex) {
+    } catch (const interrupted_exc_t &ex) {
         // Remove our lock request from the queue
         for (lock_request_t *request = waiters.head(); request != NULL; request = waiters.next(request)) {
             if (request->cb == &cb) {
@@ -117,7 +117,7 @@ void adjustable_semaphore_t::co_lock_interruptible(signal_t *interruptor) {
 
     try {
         wait_interruptible(&cb, interruptor);
-    } catch (interrupted_exc_t& ex) {
+    } catch (const interrupted_exc_t& ex) {
         // Remove our lock request from the queue
         for (lock_request_t *request = waiters.head(); request != NULL; request = waiters.next(request)) {
             if (request->cb == &cb) {
