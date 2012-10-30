@@ -1454,11 +1454,16 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
                 std::string pk = view.primary_key;
                 cJSON *id = json->GetObjectItem(pk.c_str());
                 point_modify_ns::result_t mres =
-                    point_modify(view.access, pk, id, point_modify_ns::MUTATE, env, w->mutate().mapping(), scopes,
+                    point_modify(view.access, pk, id, point_modify_ns::MUTATE,
+                                 env, w->mutate().mapping(), scopes,
                                  w->atomic(), json, backtrace.with("modify_map"));
-                //guarantee(mres == point_modify_ns::MODIFIED || mres == point_modify_ns::DELETED);
-                modified += (mres == point_modify_ns::MODIFIED);
-                deleted += (mres == point_modify_ns::DELETED);
+                switch(mres) {
+                case point_modify_ns::INSERTED: //if non-atomic (fallthrough)
+                case point_modify_ns::MODIFIED: modified += 1; break;
+                case point_modify_ns::NOP: //if non-atomic (fallthrough)
+                case point_modify_ns::DELETED: deleted += 1; break;
+                default: unreachable("bad return value from `point_modify`");
+                }
             } catch (const query_language::broken_client_exc_t &e) {
                 ++errors;
                 if (reported_error == "") reported_error = e.message;
