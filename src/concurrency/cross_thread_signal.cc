@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "concurrency/cross_thread_signal.hpp"
 
 #include "errors.hpp"

@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 import subprocess, shlex, signal, os, time, shutil, tempfile, sys, traceback, types, gitroot, random, atexit, stat
 base_directory = os.path.dirname(os.path.join(os.getcwd(), sys.argv[0])) + "/../test"
 use_local_retester = os.getenv("USE_CLOUD", "false") == "false"

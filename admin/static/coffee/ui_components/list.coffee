@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 # This file extends the UIComponents module with commonly used list
 # components.
 module 'UIComponents', ->

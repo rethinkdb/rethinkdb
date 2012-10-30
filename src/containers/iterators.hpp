@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef CONTAINERS_ITERATORS_HPP_
 #define CONTAINERS_ITERATORS_HPP_
 

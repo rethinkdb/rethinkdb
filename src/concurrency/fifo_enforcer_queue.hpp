@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef CONCURRENCY_FIFO_ENFORCER_QUEUE_HPP_
 #define CONCURRENCY_FIFO_ENFORCER_QUEUE_HPP_
 

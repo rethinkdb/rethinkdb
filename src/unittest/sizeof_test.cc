@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "unittest/gtest.hpp"
 
 #include "buffer_cache/buffer_cache.hpp"

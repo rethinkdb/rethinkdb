@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 # Extend Backbone View
 Backbone.View.prototype.destroy = ->
     return

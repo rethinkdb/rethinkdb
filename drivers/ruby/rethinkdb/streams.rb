@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 module RethinkDB
   # A lazy sequence of rows, e.g. what we get when reading from a table.
   # Includes the Sequence module, so look there for the methods.

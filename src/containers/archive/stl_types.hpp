@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef CONTAINERS_ARCHIVE_STL_TYPES_HPP_
 #define CONTAINERS_ARCHIVE_STL_TYPES_HPP_
 

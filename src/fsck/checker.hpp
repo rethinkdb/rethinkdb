@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef FSCK_CHECKER_HPP_
 #define FSCK_CHECKER_HPP_
 

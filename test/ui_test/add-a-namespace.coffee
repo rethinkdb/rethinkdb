@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 # add-a-namespace: tests adding a namespace to the cluster
 # Tests performed:
 #   - List namespaces

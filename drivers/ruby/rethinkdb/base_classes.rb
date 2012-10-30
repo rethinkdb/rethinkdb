@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 #TODO: toplevel doc
 module RethinkDB
   class RQL_Query; end

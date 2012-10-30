@@ -1,4 +1,5 @@
 #!/bin/bash
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 pushd rethinkdb
 rdoc1.9.1 "$@" net.rb query.rb rql.rb \
     sequence.rb writes.rb streams.rb jsons.rb \

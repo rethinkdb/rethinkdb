@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "serializer/log/extent_manager.hpp"
 
 #include "arch/arch.hpp"

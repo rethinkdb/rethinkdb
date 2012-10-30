@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #if defined(LEGACY_LINUX) && !defined(NO_EVENTFD)
 
 #include <sys/syscall.h>

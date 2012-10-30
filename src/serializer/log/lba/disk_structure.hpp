@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef SERIALIZER_LOG_LBA_DISK_STRUCTURE_HPP_
 #define SERIALIZER_LOG_LBA_DISK_STRUCTURE_HPP_
 

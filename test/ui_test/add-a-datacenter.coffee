@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 # add-a-datacenter: tests adding a datacenter to the cluster
 # Tests performed:
 #   - List datacenters

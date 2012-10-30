@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef HTTP_HTTP_HPP_
 #define HTTP_HTTP_HPP_
 

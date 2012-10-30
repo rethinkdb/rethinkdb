@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef UNITTEST_GTEST_HPP_
 #define UNITTEST_GTEST_HPP_
 

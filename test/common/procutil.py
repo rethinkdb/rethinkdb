@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 import subprocess, os, signal, time, sys
 
 def cmd_join(x):

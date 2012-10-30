@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #define __STDC_LIMIT_MACROS
 
 #include "btree/operations.hpp"

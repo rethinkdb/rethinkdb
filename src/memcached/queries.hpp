@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef MEMCACHED_QUERIES_HPP_
 #define MEMCACHED_QUERIES_HPP_
 

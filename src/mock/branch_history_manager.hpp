@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef MOCK_BRANCH_HISTORY_MANAGER_HPP_
 #define MOCK_BRANCH_HISTORY_MANAGER_HPP_
 

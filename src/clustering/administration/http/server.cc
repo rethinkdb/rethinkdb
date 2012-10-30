@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "clustering/administration/http/server.hpp"
 
 #include "clustering/administration/http/cyanide.hpp"

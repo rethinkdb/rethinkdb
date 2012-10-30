@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 /**
  * @fileoverview This file is somewhat of a hack, designed to be included
  * first by the dependency generator so that we can provide the top level

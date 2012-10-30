@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef MEMCACHED_STATS_HPP_
 #define MEMCACHED_STATS_HPP_
 

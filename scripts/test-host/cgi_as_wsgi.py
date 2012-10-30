@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 # This file was originally part of Paste, but Tim Maxwell pulled it out as a
 # separate file in 2011 and made some modifications. The original license text
 # was:

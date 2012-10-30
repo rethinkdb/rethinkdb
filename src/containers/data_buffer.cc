@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "containers/data_buffer.hpp"
 #include "utils.hpp"
 

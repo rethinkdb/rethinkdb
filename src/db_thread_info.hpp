@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef DB_THREAD_INFO_HPP_
 #define DB_THREAD_INFO_HPP_
 

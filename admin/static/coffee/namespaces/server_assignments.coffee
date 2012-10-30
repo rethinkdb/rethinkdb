@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 module 'NamespaceView', ->
     class @ServerAssignments extends Backbone.View
         template: Handlebars.compile $('#namespace_view-server_assignments-template').html()

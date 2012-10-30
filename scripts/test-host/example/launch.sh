@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 if [ -z $TEST_HOST ]
 then
     echo "You must define TEST_HOST" 2>&1

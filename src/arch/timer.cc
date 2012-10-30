@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include <string.h>
 #include <unistd.h>
 #include "arch/runtime/event_queue.hpp"

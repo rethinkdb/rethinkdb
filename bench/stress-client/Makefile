@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 .PHONY: build
 LIBS = -lpthread -ldl -lprotobuf
 # Do not include main.cc or python_interface.cc in SRC

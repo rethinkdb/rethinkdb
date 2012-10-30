@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 import subprocess, shlex, signal, os, time, shutil, tempfile, sys, traceback, types, gitroot, shutil
 import socket
 from vcoptparse import *

@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "btree/node.hpp"
 
 #include "btree/leaf_node.hpp"

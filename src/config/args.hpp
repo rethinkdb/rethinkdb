@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef CONFIG_ARGS_HPP_
 #define CONFIG_ARGS_HPP_
 

@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 from __future__ import division
 import os, sys, socket, random
 import time

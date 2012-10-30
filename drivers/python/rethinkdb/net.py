@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 """This module implements a way to access RethinkDB clusters over the
 network. It is used to send ReQL commands to RethinkDB in order to do
 data manipulation."""

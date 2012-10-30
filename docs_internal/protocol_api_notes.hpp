@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 /* NOTE: In this document, for a type to "act like a data type" means that it
 is default-constructible, copy-constructible, copy-assignable, and destructible.
 If it allocates heap memory, it must manage it on its own. */

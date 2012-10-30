@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 render_body = ->
     template = Handlebars.compile $('#body-structure-template').html()
     $('body').html(template())

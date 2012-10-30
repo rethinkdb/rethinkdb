@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef MEMCACHED_MEMCACHED_BTREE_INCR_DECR_HPP_
 #define MEMCACHED_MEMCACHED_BTREE_INCR_DECR_HPP_
 

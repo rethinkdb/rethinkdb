@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "hash_region.hpp"
 
 #include <limits.h>

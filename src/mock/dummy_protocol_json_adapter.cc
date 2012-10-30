@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "mock/dummy_protocol_json_adapter.hpp"
 
 #include <set>

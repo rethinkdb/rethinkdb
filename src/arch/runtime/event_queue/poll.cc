@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "arch/runtime/event_queue/poll.hpp"
 
 #include <unistd.h>

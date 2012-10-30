@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 /*
  XDate v0.7
  Docs & Licensing: http://arshaw.com/xdate/

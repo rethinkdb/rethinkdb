@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_REACTOR_DIRECTORY_ECHO_HPP_
 #define CLUSTERING_REACTOR_DIRECTORY_ECHO_HPP_
 

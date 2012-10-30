@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef BTREE_GET_DISTRIBUTION_HPP_
 #define BTREE_GET_DISTRIBUTION_HPP_
 

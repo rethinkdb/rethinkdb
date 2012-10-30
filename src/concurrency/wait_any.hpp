@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef CONCURRENCY_WAIT_ANY_HPP_
 #define CONCURRENCY_WAIT_ANY_HPP_
 

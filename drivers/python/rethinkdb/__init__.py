@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 """This package implements ReQL - a domain specific language for
 generation of RethinkDB queries embedded into Python. ReQL can be used
 to query and update the database. It is designed to be very expressive

@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "clustering/administration/cli/admin_command_parser.hpp"
 
 #include <stdarg.h>

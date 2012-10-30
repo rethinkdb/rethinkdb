@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 /*
 Flot plugin for adding panning and zooming capabilities to a plot.
 

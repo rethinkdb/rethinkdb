@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifdef AIOSUPPORT
 
 #include "arch/io/disk/aio/submit_sync.hpp"

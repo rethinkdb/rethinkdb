@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef BTREE_DEPTH_FIRST_TRAVERSAL_HPP_
 #define BTREE_DEPTH_FIRST_TRAVERSAL_HPP_
 
