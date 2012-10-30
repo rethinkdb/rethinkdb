@@ -5,6 +5,7 @@ module 'ResolveIssuesView', ->
     class @Container extends UIComponents.AbstractList
         id: 'resolve-issues'
         className: 'section'
+
         template: Handlebars.compile $('#resolve_issues-container-template').html()
 
         initialize: ->
@@ -37,8 +38,8 @@ module 'ResolveIssuesView', ->
             @machine_to_kill = _machine_to_kill
             super
                 machine_name: @machine_to_kill.get("name")
-                modal_title: "Declare machine dead"
-                btn_primary_text: 'Kill'
+                modal_title: "Declare server dead"
+                btn_primary_text: 'Declare Dead'
 
         on_submit: ->
             super
@@ -49,7 +50,7 @@ module 'ResolveIssuesView', ->
                 contentType: 'application/json'
                 success: @on_success
                 error: @on_error
- 
+
         on_success_with_error: =>
             @.$('.error_answer').html @template_issue_error
 
@@ -59,7 +60,7 @@ module 'ResolveIssuesView', ->
                 @.$('.error_answer').css('display', 'none')
                 @.$('.error_answer').fadeIn()
             @reset_buttons()
- 
+
 
         on_success: (response) ->
             if (response)
@@ -70,7 +71,7 @@ module 'ResolveIssuesView', ->
             $('#issue-alerts').append @alert_tmpl
                 machine_dead:
                     machine_name: @machine_to_kill.get("name")
-            
+
             #TODO Remove this synchronous request and use proper callbacks.
             # Grab the new set of issues (so we don't have to wait)
             $.ajax
@@ -80,7 +81,7 @@ module 'ResolveIssuesView', ->
                 async: false
 
             super
-            
+
             # We clean data now to have data fresher than if we were waiting for the next call to ajax/
             # remove from bluprints
             for namespace in namespaces.models
@@ -115,7 +116,7 @@ module 'ResolveIssuesView', ->
                 async: false
 
             return @
-                
+
 
     class @ResolveVClockModal extends UIComponents.AbstractModal
         template: Handlebars.compile $('#resolve_vclock-modal-template').html()
@@ -165,10 +166,11 @@ module 'ResolveIssuesView', ->
         alert_tmpl: Handlebars.compile $('#resolve_issues-resolved-template').html()
         class: 'resolve-vclock-modal'
 
-        initialize: (namespace, datacenters_with_issues)->
+        initialize: (namespace, datacenters_with_issues, can_be_solved)->
             log_initial '(initializing) modal dialog: resolve vclock'
             @namespace = namespace
             @datacenters_with_issues = datacenters_with_issues
+            @can_be_solved = can_be_solved # Whether we are going to completly solve the issue or not
             super
 
         render: (data)->
@@ -209,6 +211,7 @@ module 'ResolveIssuesView', ->
             # notify the user that we succeeded
             $('#issue-alerts').append @alert_tmpl
                 unsatisfiable_goals: true
+                can_be_solved: @can_be_solved
 
             # Grab the new set of issues (so we don't have to wait)
             $.ajax
@@ -264,10 +267,12 @@ module 'ResolveIssuesView', ->
                 datetime: iso_date_from_unix_time @model.get('time')
                 critical: @model.get('critical')
 
+            # Remove the old handler before we rerender
+            @.$('.solve-issue').off "click"
+
             @.$el.html _template(json)
 
             # Declare machine dead handler
-            @.$('.solve-issue').off "click"
             @.$('.solve-issue').click =>
                 declare_dead_modal = new ResolveIssuesView.DeclareMachineDeadModal
                 declare_dead_modal.render machine
@@ -295,19 +300,22 @@ module 'ResolveIssuesView', ->
             )
 
         render_logfile_write_issue: (_template) ->
+            _machine = machines.get(@model.get('location'))
             json =
                 datetime: iso_date_from_unix_time @model.get('time')
                 critical: @model.get('critical')
-                machine_name: machines.get(@model.get('location')).get('name')
+                machine_name: if _machine then _machine.get('name') else "N/A"
                 machine_uuid: @model.get('location')
-            @.$el.html _template(json)
-            # Declare machine dead handler
+
+            # Remove the old handler before we rerender
             @.$('.solve-issue').off "click"
-            @.$('.solve-issue').click =>
-                declare_dead_modal = new ResolveIssuesView.DeclareMachineDeadModal
-                declare_dead_modal.render machines.get(@model.get('location'))
 
             @.$el.html _template(json)
+
+            # Declare machine dead handler
+            @.$('.solve-issue').click =>
+                declare_dead_modal = new ResolveIssuesView.DeclareMachineDeadModal
+                declare_dead_modal.render machines.get(_machine)
 
         render_vclock_conflict: (_template) ->
             get_resolution_url = =>
@@ -341,18 +349,20 @@ module 'ResolveIssuesView', ->
                 field: @model.get('field')
                 name_contest: @model.get('field') is 'name'
                 contestants: @contestants
+
+            # Remove the old handler before we rerender
+            @.$('#resolve_' + contestant.contestant_id).off 'click'
+
             @.$el.html _template(json)
 
             # bind resolution events
             _.each @contestants, (contestant) =>
-                @.$('#resolve_' + contestant.contestant_id).off 'click' #TODO turn off later?
                 @.$('#resolve_' + contestant.contestant_id).click (event) =>
                     event.preventDefault()
                     resolve_modal = new ResolveIssuesView.ResolveVClockModal
                     resolve_modal.render contestant.value, get_resolution_url()
 
         render_unsatisfiable_goals: (_template) ->
-            # render
             json =
                 datetime: iso_date_from_unix_time @model.get('time')
                 critical: @model.get('critical')
@@ -360,31 +370,90 @@ module 'ResolveIssuesView', ->
                 namespace_name: namespaces.get(@model.get('namespace_id')).get('name')
                 datacenters_with_issues: []
 
+
             namespace = namespaces.get(@model.get('namespace_id'))
-            if not namespace.get('primary_uuid')?
+            if not datacenters.get(@model.get('primary_datacenter'))?
                 json.no_primary = true
             else
+                # known issues = issue where replica > number of machines in a datacenter (not universe)
+                number_machines_universe_can_use_if_no_known_issues = machines.length
+                if @model.get('primary_datacenter') is universe_datacenter
+                    number_machines_universe_can_use_if_no_known_issues-- #-1 because there is a primary somewhere
+
+                # Find the datacenters in which we are sure that there is a unsatisfiable goal ( replicas > number of machines in the datacenter )
                 for datacenter_id of @model.get('replica_affinities')
-                    number_replicas = if datacenter_id is @model.get('primary_datacenter') then @model.get('replica_affinities')[datacenter_id]+1 else @model.get('replica_affinities')[datacenter_id]
-
-                    if datacenter_id is universe_datacenter.get('id')
-                        datacenter_name = universe_datacenter.get('name')
+                    #If the datacenter was removed
+                    if not datacenters.get(datacenter_id)? and datacenter_id isnt universe_datacenter.get('id')
+                        if @model.get('replica_affinities')[datacenter_id] isnt 0
+                            # We have a datacenter that was removed, but the replicas_affinities of this table was not cleaned.
+                            json.datacenters_with_issues.push
+                                datacenter_removed: true
+                                datacenter_name: 'A removed datacenter'
+                                datacenter_id: datacenter_id
+                                datacenter_id_small: datacenter_id.slice 30
+                                num_replicas: number_replicas
+                                num_machines: 0
                     else
-                        datacenter_name = datacenters.get(datacenter_id).get('name')
+                        # Compute the number of replicas required
+                        number_replicas = @model.get('replica_affinities')[datacenter_id]
+                        if datacenter_id is @model.get('primary_datacenter')
+                            number_replicas++
 
-                    if number_replicas > @model.get('actual_machines_in_datacenters')[datacenter_id]
-                        json.datacenters_with_issues.push
-                            datacenter_id: datacenter_id
-                            datacenter_name: datacenter_name
-                            num_replicas: number_replicas
-                            num_machines: @model.get('actual_machines_in_datacenters')[datacenter_id]
+                        # We won't add universe here because if universe has too many replicas, it's an issue in which there are two solutions.
+                        if datacenter_id isnt universe_datacenter.get('id') and number_replicas > @model.get('actual_machines_in_datacenters')[datacenter_id]
+                            datacenter_name = datacenters.get(datacenter_id).get('name') # That's safe, datacenters.get(datacenter_id) is defined
+                            json.datacenters_with_issues.push
+                                known_issue: true
+                                datacenter_id: datacenter_id
+                                datacenter_name: datacenter_name
+                                num_replicas: number_replicas
+                                num_machines: @model.get('actual_machines_in_datacenters')[datacenter_id]
+
+                        # We substract the number of machines used by the datacenter if we solve the issue
+                        if datacenter_id isnt universe_datacenter.get('id')
+                            number_machines_universe_can_use_if_no_known_issues -= Math.min number_replicas, @model.get('actual_machines_in_datacenters')[datacenter_id]
+
+                # If universe has some responsabilities and that the user is asking for too many replicas across the whole cluster
+                if @model.get('replica_affinities')[universe_datacenter.get('id')]? and number_machines_universe_can_use_if_no_known_issues < @model.get('replica_affinities')[universe_datacenter.get('id')]
+                    extra_replicas_accross_cluster = @model.get('replica_affinities')[universe_datacenter.get('id')] - number_machines_universe_can_use_if_no_known_issues
+
+                    # We have an unsatisfiable goals now, but we cannot tell the user where the problem comes from
+                    json.extra_replicas_accross_cluster =
+                        value: extra_replicas_accross_cluster
+                        datacenters_that_can_help: []
+                    # Let's add to datacenters_that_can_help all the datacenters that have some responsabilities (so servers that could potentially work for universe instead of its datacenter)
+                    for datacenter_id of @model.get('replica_affinities')
+                        if @model.get('replica_affinities')[datacenter_id] > 0 and @model.get('actual_machines_in_datacenters')[datacenter_id] > 0 and datacenters.get(datacenter_id)? and datacenter_id isnt universe_datacenter.get('id')
+                            datacenter_name = datacenters.get(datacenter_id)?.get('name')
+                            num_replicas_requested = @model.get('replica_affinities')[datacenter_id]
+                            if @model.get('primary_datacenter') is datacenter_id
+                                num_replicas_requested++
+                            json.extra_replicas_accross_cluster.datacenters_that_can_help.push
+                                datacenter_id: datacenter_id
+                                datacenter_name: (datacenter_name if datacenter_name?)
+                                num_replicas_requested: num_replicas_requested
+
+                    # Let's add universe at the beginning
+                    json.extra_replicas_accross_cluster.datacenters_that_can_help.unshift
+                        datacenter_id: universe_datacenter.get('id')
+                        is_universe: true
+                        num_replicas_requested: @model.get('replica_affinities')[universe_datacenter.get('id')]
+
+
+                json.can_solve_issue = json.datacenters_with_issues.length > 0
 
             @.$el.html _template(json)
+
             # bind resolution events
-            @.$('.solve-issue').click (event) =>
-                event.preventDefault()
-                resolve_modal = new ResolveIssuesView.ResolveUnsatisfiableGoal namespace, json.datacenters_with_issues
-                resolve_modal.render()
+            if json.can_solve_issue
+                @.$('.solve-issue').click (event) =>
+                    event.preventDefault()
+                    resolve_modal = new ResolveIssuesView.ResolveUnsatisfiableGoal namespace, json.datacenters_with_issues, not json.extra_replicas_accross_cluster?
+                    resolve_modal.render()
+            else
+                that = @
+                @.$('.try-solve-issue').click ->
+                    window.router.navigate '#tables/'+that.model.get('namespace_id'), {trigger: true}
 
         render_machine_ghost: (_template) ->
             # render
@@ -392,7 +461,6 @@ module 'ResolveIssuesView', ->
                 datetime: iso_date_from_unix_time @model.get('time')
                 critical: @model.get('critical')
                 machine_id: @model.get('ghost')
-                machine_name: @model.get('ghost')
             @.$el.html _template(json)
 
         render_port_conflict: (_template) ->

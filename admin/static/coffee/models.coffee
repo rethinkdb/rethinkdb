@@ -184,6 +184,19 @@ class Namespace extends Backbone.Model
         return __s
 
 class Datacenter extends Backbone.Model
+    # Compute the number of machines not used by other datacenters for one namespace
+    compute_num_machines_not_used_by_other_datacenters: (namespace) =>
+        max_machines = machines.length
+        for datacenter_id of namespace.get('replica_affinities')
+            # The second condition is to make sure that the datacenter does exist (and was not deleted)
+            if datacenter_id isnt @get('id') and datacenters.get(datacenter_id)?
+                max_machines -= namespace.get('replica_affinities')[datacenter_id]
+        if namespace.get('primary_uuid') isnt @get('id')
+            max_machines -= 1
+
+        return max_machines
+
+
     get_machines: =>
         machines.filter (machine) => machine.get('datacenter_uuid') is @get('id')
     get_stats: =>

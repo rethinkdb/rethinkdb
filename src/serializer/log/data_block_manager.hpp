@@ -317,6 +317,7 @@ private:
 
         ~gc_state_t() {
             free(gc_blocks);
+            gc_blocks = NULL;  // An extra bit of paranoia in this async area.
         }
 
         inline gc_step step() const { return step_; }
@@ -330,6 +331,7 @@ private:
             }
 
             step_ = next_step;
+            rassert(step_ != gc_ready || gc_blocks == NULL);
         }
     };
 

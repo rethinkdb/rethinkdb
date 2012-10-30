@@ -61,9 +61,11 @@ module 'Sidebar', ->
 
         # As issues get resolved, we need to make sure that we're showing the right elements
         issues_being_resolved: =>
-            @.$('.all-issues').hide() if issues.length is 0 and @.$('#issue-alerts').children().length is 0
+            @.$('.all-issues').hide() if issues.length is 0
 
         destroy: =>
+            @issues.off 'remove', @issues_being_resolved
+            @issues.off 'reset', @issues_being_resolved
             @client_connectivity_status.destroy()
             @servers_connected.destroy()
             @datacenters_connected.destroy()

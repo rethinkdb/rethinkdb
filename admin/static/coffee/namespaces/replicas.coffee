@@ -281,18 +281,12 @@ module 'NamespaceView', ->
 
         # Compute how many replica we can set for @datacenter
         compute_max_machines: =>
-            @max_machines = machines.length
-            for datacenter_id of @model.get('replica_affinities')
-                if datacenter_id isnt @datacenter.get('id')
-                    @max_machines -= @model.get('replica_affinities')[datacenter_id]
-            if @model.get('primary_uuid') isnt @datacenter.get('id')
-                @max_machines -= 1
+            @max_machines = @datacenter.compute_num_machines_not_used_by_other_datacenters(@model)
  
             # If we can't use all our machines in the datacenter because the replicas value of Universe is too high, we give a little more explanation
             @need_explanation = @max_machines < DataUtils.get_datacenter_machines(@datacenter.get('id')).length
             if @datacenter.get('id') isnt universe_datacenter.get('id')
                 @max_machines = Math.min @max_machines, DataUtils.get_datacenter_machines(@datacenter.get('id')).length
-
 
             # We render only if we are not editing
             if @current_state isnt @states[1]
