@@ -161,6 +161,10 @@ private:
     template <class activity_t>
     clone_ptr_t<watchable_t<boost::optional<boost::optional<activity_t> > > > get_directory_entry_view(peer_id_t id, const reactor_activity_id_t&);
 
+    perfmon_collection_t *parent_perfmon_collection;
+    perfmon_collection_t regions_perfmon_collection;
+    perfmon_membership_t regions_perfmon_membership;
+
     io_backender_t *io_backender;
 
     mailbox_manager_t *mailbox_manager;
@@ -180,11 +184,6 @@ private:
     auto_drainer_t drainer;
 
     typename watchable_t<blueprint_t<protocol_t> >::subscription_t blueprint_subscription;
-
-    perfmon_collection_t *parent_perfmon_collection;
-    perfmon_collection_t regions_perfmon_collection;
-    perfmon_membership_t regions_perfmon_membership;
-
     typename protocol_t::context_t *ctx;
 
     DISABLE_COPYING(reactor_t);

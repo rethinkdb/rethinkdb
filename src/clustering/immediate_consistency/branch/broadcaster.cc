@@ -37,13 +37,14 @@ broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
         perfmon_collection_t *parent_perfmon_collection,
         order_source_t *order_source,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t)
-    : mailbox_manager(mm),
+    : broadcaster_collection(),
+      broadcaster_membership(parent_perfmon_collection, &broadcaster_collection, "broadcaster"),
+      mailbox_manager(mm),
       branch_id(generate_uuid()),
       branch_history_manager(bhm),
       enforce_max_outstanding_writes(MAX_OUTSTANDING_WRITES),
-      registrar(mailbox_manager, this),
-      broadcaster_collection(),
-      broadcaster_membership(parent_perfmon_collection, &broadcaster_collection, "broadcaster")
+      registrar(mailbox_manager, this)
+
 {
     order_checkpoint.set_tagappend("broadcaster_t");
 

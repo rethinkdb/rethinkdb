@@ -183,6 +183,7 @@ mc_inner_buf_t::mc_inner_buf_t(mc_cache_t *_cache, block_id_t _block_id, file_ac
       subtree_recency(repli_timestamp_t::invalid),  // Gets initialized by load_inner_buf
       data(_cache->serializer->malloc()),
       version_id(_cache->get_min_snapshot_version(_cache->get_current_version_id())),
+      lock(),
       next_patch_counter(1),
       refcount(0),
       do_delete(false),
@@ -218,6 +219,7 @@ mc_inner_buf_t::mc_inner_buf_t(mc_cache_t *_cache, block_id_t _block_id, void *_
       data(_buf),
       version_id(_cache->get_min_snapshot_version(_cache->get_current_version_id())),
       data_token(token),
+      lock(),
       refcount(0),
       do_delete(false),
       cow_refcount(0),
@@ -287,6 +289,7 @@ mc_inner_buf_t::mc_inner_buf_t(mc_cache_t *_cache, block_id_t _block_id, version
       subtree_recency(_recency_timestamp),
       data(_cache->serializer->malloc()),
       version_id(_snapshot_version),
+      lock(),
       next_patch_counter(1),
       refcount(0),
       do_delete(false),

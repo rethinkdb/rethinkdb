@@ -301,6 +301,9 @@ struct rdb_protocol_t {
         read_t(const read_t& r) : read(r.read) { }
         explicit read_t(const _read_t &r) : read(r) { }
 
+        // Only use snapshotting if we're doing a range get.
+        bool use_snapshot() const { return boost::get<rget_read_t>(&read); }
+
         RDB_MAKE_ME_SERIALIZABLE_1(read);
     };
 
