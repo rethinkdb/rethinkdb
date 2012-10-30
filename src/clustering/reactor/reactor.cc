@@ -30,6 +30,9 @@ reactor_t<protocol_t>::reactor_t(
         multistore_ptr_t<protocol_t> *_underlying_svs,
         perfmon_collection_t *_parent_perfmon_collection,
         typename protocol_t::context_t *_ctx) THROWS_NOTHING :
+    parent_perfmon_collection(_parent_perfmon_collection),
+    regions_perfmon_collection(),
+    regions_perfmon_membership(parent_perfmon_collection, &regions_perfmon_collection, "regions"),
     io_backender(_io_backender),
     mailbox_manager(mm),
     ack_checker(ack_checker_),
@@ -39,9 +42,6 @@ reactor_t<protocol_t>::reactor_t(
     blueprint_watchable(b),
     underlying_svs(_underlying_svs),
     blueprint_subscription(boost::bind(&reactor_t<protocol_t>::on_blueprint_changed, this)),
-    parent_perfmon_collection(_parent_perfmon_collection),
-    regions_perfmon_collection(),
-    regions_perfmon_membership(parent_perfmon_collection, &regions_perfmon_collection, "regions"),
     ctx(_ctx)
 {
     {
