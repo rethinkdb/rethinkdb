@@ -189,7 +189,9 @@ void extent_manager_t::prepare_initial_metablock(metablock_mixin_t *mb) {
 void extent_manager_t::start_existing(UNUSED metablock_mixin_t *last_metablock) {
     assert_thread();
     rassert(state == state_reserving_extents);
+#ifndef NDEBUG
     current_transaction = NULL;
+#endif
     for (boost::ptr_vector<extent_zone_t>::iterator it = zones.begin(); it != zones.end(); ++it) {
         it->reconstruct_free_list();
     }
@@ -241,7 +243,9 @@ void extent_manager_t::shutdown() {
 void extent_manager_t::begin_transaction(extent_transaction_t *out) {
     assert_thread();
     rassert(!current_transaction);
+#ifndef NDEBUG
     current_transaction = out;
+#endif
     out->init();
 }
 
@@ -294,7 +298,9 @@ void extent_manager_t::release_extent(off64_t extent, extent_transaction_t *txn)
 void extent_manager_t::end_transaction(DEBUG_VAR const extent_transaction_t &t) {
     assert_thread();
     rassert(current_transaction == &t);
+#ifndef NDEBUG
     current_transaction = NULL;
+#endif
 }
 
 void extent_manager_t::commit_transaction(extent_transaction_t *t) {

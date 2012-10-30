@@ -110,7 +110,9 @@ private:
         state_shut_down
     } state;
 
+#ifndef NDEBUG
     extent_transaction_t *current_transaction;
+#endif
 
     DISABLE_COPYING(extent_manager_t);
 };
