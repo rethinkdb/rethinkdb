@@ -56,9 +56,11 @@ end
 load 'transformation.rb'
 $transform = Transformer.new('transformation_conf.rb')
 
+def time; Time.now.to_f; end
+
 def maybe_log packet
   return if not $opt[:log]
-  File.open($opt[:log], 'a') {|f| f.write([$$, Time.now.to_f, packet].inspect + "\n")}
+  File.open($opt[:log], 'a') {|f| f.write([$$, time, packet].inspect + "\n")}
 end
 
 def bsend s
