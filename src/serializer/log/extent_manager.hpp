@@ -26,24 +26,33 @@ struct log_serializer_stats_t;
 class extent_transaction_t {
 public:
     friend class extent_manager_t;
-    extent_transaction_t() : active_(false) { }
+    extent_transaction_t() : state_(inactive) { }
     ~extent_transaction_t() {
-        rassert(!active_);
+        guarantee(state_ == committed);
     }
 
-    void init() { active_ = true; }
+    void init() {
+        guarantee(state_ == inactive);
+        state_ = begun;
+    }
+
+    void mark_end() {
+        guarantee(state_ == begun);
+        state_ = ended;
+    }
+
     void reset() {
+        guarantee(state_ == ended);
         free_queue_.clear();
-        active_ = false;
+        state_ = committed;
     }
 
     std::deque<off64_t> &free_queue() {
-        rassert(active_);
         return free_queue_;
     }
 
 private:
-    bool active_;
+    enum { inactive, begun, ended, committed } state_;
     std::deque<off64_t> free_queue_;
 
     DISABLE_COPYING(extent_transaction_t);
@@ -80,7 +89,7 @@ public:
     void begin_transaction(extent_transaction_t *out);
     off64_t gen_extent(extent_transaction_t *txn);
     void release_extent(off64_t extent, extent_transaction_t *txn);
-    void end_transaction(const extent_transaction_t &t);
+    void end_transaction(extent_transaction_t *t);
     void commit_transaction(extent_transaction_t *t);
 
     /* Number of extents that have been released but not handed back out again. */

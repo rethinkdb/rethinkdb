@@ -290,9 +290,10 @@ void extent_manager_t::release_extent(off64_t extent, extent_transaction_t *txn)
     txn->free_queue().push_back(extent);
 }
 
-void extent_manager_t::end_transaction(UNUSED const extent_transaction_t &t) {
+void extent_manager_t::end_transaction(extent_transaction_t *t) {
     assert_thread();
     guarantee(num_unended_transactions > 0);
+    t->mark_end();
     --num_unended_transactions;
 }
 

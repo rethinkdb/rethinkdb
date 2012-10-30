@@ -473,7 +473,7 @@ void log_serializer_t::index_write_finish(index_write_context_t *context, file_a
 
     /* Stop the extent manager transaction so another one can start, but don't commit it
     yet */
-    extent_manager->end_transaction(context->extent_txn);
+    extent_manager->end_transaction(&context->extent_txn);
 
     /* Get in line for the metablock manager */
     bool waiting_for_prev_write;
@@ -538,7 +538,7 @@ log_serializer_t::block_write(const void *buf, block_id_t block_id, file_account
     extent_transaction_t em_trx;
     extent_manager->begin_transaction(&em_trx);
     const off64_t offset = data_block_manager->write(buf, block_id, true, io_account, cb, true, false, &em_trx);
-    extent_manager->end_transaction(em_trx);
+    extent_manager->end_transaction(&em_trx);
     extent_manager->commit_transaction(&em_trx);
 
     return generate_block_token(offset);

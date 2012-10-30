@@ -432,7 +432,7 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_wr
                 // We pass true because we know there is a token for this block: we just constructed one!
                 writes[i].new_offset = parent->write(writes[i].buf, data->block_id, false, parent->choose_gc_io_account(), block_write_conds.back(), true, false, &em_trx);
             }
-            parent->serializer->extent_manager->end_transaction(em_trx);
+            parent->serializer->extent_manager->end_transaction(&em_trx);
             parent->serializer->extent_manager->commit_transaction(&em_trx);
         }
 
@@ -514,7 +514,7 @@ void data_block_manager_t::on_gc_write_done() {
     extent_transaction_t em_trx;
     serializer->extent_manager->begin_transaction(&em_trx);
     check_and_handle_outstanding_empty_extents(&em_trx);
-    serializer->extent_manager->end_transaction(em_trx);
+    serializer->extent_manager->end_transaction(&em_trx);
     serializer->extent_manager->commit_transaction(&em_trx);
 
     // Continue GC
@@ -593,7 +593,7 @@ void data_block_manager_t::run_gc() {
                 extent_transaction_t em_trx;
                 serializer->extent_manager->begin_transaction(&em_trx);
                 check_and_handle_outstanding_empty_extents(&em_trx);
-                serializer->extent_manager->end_transaction(em_trx);
+                serializer->extent_manager->end_transaction(&em_trx);
                 serializer->extent_manager->commit_transaction(&em_trx);
 
                 if (gc_state.current_entry == NULL) {
