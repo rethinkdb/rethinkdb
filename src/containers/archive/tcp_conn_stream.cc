@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "containers/archive/tcp_conn_stream.hpp"
 
 #include "arch/io/network.hpp"

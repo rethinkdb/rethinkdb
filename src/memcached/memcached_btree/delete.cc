@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "memcached/memcached_btree/delete.hpp"
 #include "memcached/memcached_btree/modify_oper.hpp"
 #include "repli_timestamp.hpp"

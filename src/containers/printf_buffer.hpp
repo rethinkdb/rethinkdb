@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef CONTAINERS_PRINTF_BUFFER_HPP_
 #define CONTAINERS_PRINTF_BUFFER_HPP_
 

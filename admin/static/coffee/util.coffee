@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 Handlebars.registerHelper 'debug', (inputs..., options) ->
     console.log @, "Current Context"
     console.log options, 'Options'

@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "rpc/semilattice/joins/vclock.hpp"
 
 #include "containers/uuid.hpp"

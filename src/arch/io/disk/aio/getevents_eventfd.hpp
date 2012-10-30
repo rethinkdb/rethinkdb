@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef ARCH_IO_DISK_AIO_GETEVENTS_EVENTFD_HPP_
 #define ARCH_IO_DISK_AIO_GETEVENTS_EVENTFD_HPP_
 #ifdef AIOSUPPORT

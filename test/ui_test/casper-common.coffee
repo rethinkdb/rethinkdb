@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 class Casper
     constructor: ->
         casper = require('casper').create

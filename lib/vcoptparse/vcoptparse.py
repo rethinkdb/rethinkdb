@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 """
 vcoptparse is short for Value-Centric Option Parser. It's a tiny argument parsing library. It has
 less features than optparse or argparse, but it kicks more ass.

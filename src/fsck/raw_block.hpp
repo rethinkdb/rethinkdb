@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef FSCK_RAW_BLOCK_HPP_
 #define FSCK_RAW_BLOCK_HPP_
 

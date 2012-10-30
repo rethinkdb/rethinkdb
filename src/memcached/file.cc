@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "memcached/file.hpp"
 #include "memcached/parser.hpp"
 #include "progress/progress.hpp"

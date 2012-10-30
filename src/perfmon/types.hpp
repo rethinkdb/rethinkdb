@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef PERFMON_TYPES_HPP_
 #define PERFMON_TYPES_HPP_
 

@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "buffer_cache/buf_patch.hpp"
 
 /* For now, we have to include all buf_patches files here to allow deserialization */

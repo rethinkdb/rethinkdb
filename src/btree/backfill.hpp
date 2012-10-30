@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef BTREE_BACKFILL_HPP_
 #define BTREE_BACKFILL_HPP_
 

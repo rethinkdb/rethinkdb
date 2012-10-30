@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 # Database view
 module 'DatabaseView', ->
     # Class in case the database is not found (propably a deleted database). Links to this view can be found in old logs.

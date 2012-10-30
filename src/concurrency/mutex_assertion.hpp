@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef CONCURRENCY_MUTEX_ASSERTION_HPP_
 #define CONCURRENCY_MUTEX_ASSERTION_HPP_
 

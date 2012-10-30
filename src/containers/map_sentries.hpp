@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef CONTAINERS_MAP_SENTRIES_HPP_
 #define CONTAINERS_MAP_SENTRIES_HPP_
 

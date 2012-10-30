@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 // Copyright 2012 Hexagram 49 Inc. All rights reserved.
 
 

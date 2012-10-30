@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 #!/usr/bin/env python
 
 # Usage: ./full_test_driver.sh [--just-tests] [--git-branch <branch-name>] [--build-mode (two|all)] [--test-dir <directory location, to be appended to rethinkdb/>]

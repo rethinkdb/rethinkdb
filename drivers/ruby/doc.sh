@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 #!/bin/bash
 pushd rethinkdb
 rdoc1.9.1 "$@" net.rb query.rb rql.rb \

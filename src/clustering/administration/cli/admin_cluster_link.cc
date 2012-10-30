@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #define __STDC_FORMAT_MACROS
 #include "clustering/administration/cli/admin_cluster_link.hpp"
 

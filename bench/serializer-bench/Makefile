@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 DEBUG?=0
 CXXFLAGS=-Wall -pg -g -DUSE_UCONTEXT -DNDEBUG=1
 LDFLAGS=-Wall -rdynamic -lrt -laio -pg -g -lgsl -lgslcblas -pthread -lv8 -lcrypto

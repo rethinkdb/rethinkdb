@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 /*!
  * jQuery Cookie Plugin
  * https://github.com/carhartl/jquery-cookie

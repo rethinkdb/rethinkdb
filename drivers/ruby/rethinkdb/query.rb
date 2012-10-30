@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 module RethinkDB
   # An RQL query that can be sent to the RethinkDB cluster.  This class contains
   # only functions that work for any type of query.  Queries are either

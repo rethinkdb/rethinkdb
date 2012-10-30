@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 import query
 import query_language_pb2 as p
 import bpdb

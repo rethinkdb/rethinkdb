@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 // Include libraries
 var http = require('http');
 var request = require('request');

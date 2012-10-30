@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 var isNode = (typeof module !== 'undefined' && module.exports);
 
 var exports;

@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 #!/usr/bin/ruby
 $LOAD_PATH.unshift('./rethinkdb')
 require 'pp'

@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 module 'Vis', ->
     @num_formatter = (i) ->
         if isNaN(i)

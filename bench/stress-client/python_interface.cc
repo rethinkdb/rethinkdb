@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "python_interface.h"
 #include "protocol.hpp"
 #ifdef USE_MYSQL

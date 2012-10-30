@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef LEGACY_LINUX // So the build system doesn't try to compile this file otherwise.
 
 #include "arch/io/timer/timerfd_provider.hpp"

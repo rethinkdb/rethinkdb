@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 from rethinkdb import *
 import pprint
 p = pprint.PrettyPrinter(indent = 4)

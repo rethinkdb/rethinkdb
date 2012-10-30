@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef CONTAINERS_INTRUSIVE_PTR_HPP_
 #define CONTAINERS_INTRUSIVE_PTR_HPP_
 

@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "rdb_protocol/pb_server.hpp"
 
 #include "errors.hpp"

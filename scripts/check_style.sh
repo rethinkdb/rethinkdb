@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 #!/bin/sh
 DIR=`dirname $0`
 IGNORE='/(linenoise\.cc|cJSON\.(cc|hpp))$'

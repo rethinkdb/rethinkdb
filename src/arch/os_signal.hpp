@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef ARCH_OS_SIGNAL_HPP_
 #define ARCH_OS_SIGNAL_HPP_
 

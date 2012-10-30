@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef USE_MYSQL
 #error "This file shouldn't be included if USE_MYSQL is not set."
 #endif

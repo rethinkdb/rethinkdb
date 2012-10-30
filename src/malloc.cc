@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifdef MALLOC_PROF
 #include <google/tcmalloc.h>
 #include <stdio.h>

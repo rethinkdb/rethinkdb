@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 #!/usr/bin/python
 import os, sys, subprocess, argparse
 from termcolor import colored, cprint

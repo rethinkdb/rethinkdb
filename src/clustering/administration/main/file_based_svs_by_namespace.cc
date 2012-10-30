@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "clustering/administration/main/file_based_svs_by_namespace.hpp"
 
 #include "clustering/immediate_consistency/branch/multistore.hpp"

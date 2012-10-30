@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 /**
  * Version: 1.0 Alpha-1 
  * Build Date: 13-Nov-2007

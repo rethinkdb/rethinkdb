@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "containers/archive/file_stream.hpp"
 
 blocking_read_file_stream_t::blocking_read_file_stream_t() : fp_(NULL) { }

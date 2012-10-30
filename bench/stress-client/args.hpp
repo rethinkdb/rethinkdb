@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef __STRESS_CLIENT_ARGS_HPP__
 #define __STRESS_CLIENT_ARGS_HPP__
 #include <getopt.h>

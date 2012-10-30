@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef CONTAINERS_BITSET_HPP_
 #define CONTAINERS_BITSET_HPP_
 

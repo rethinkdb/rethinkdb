@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "buffer_cache/mirrored/flush_time_randomizer.hpp"
 
 #include <stdlib.h>

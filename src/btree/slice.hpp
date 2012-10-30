@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef BTREE_SLICE_HPP_
 #define BTREE_SLICE_HPP_
 

@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "rpc/semilattice/semilattice_manager.hpp"
 
 #include "errors.hpp"

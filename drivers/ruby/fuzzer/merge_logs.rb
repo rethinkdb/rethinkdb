@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 #!/usr/bin/ruby
 require 'pp'
 x = ARGV.map {|f|

@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "mock/unittest_utils.hpp"
 
 #include <stdlib.h>

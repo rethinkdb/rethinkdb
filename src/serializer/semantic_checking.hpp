@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef SERIALIZER_SEMANTIC_CHECKING_HPP_
 #define SERIALIZER_SEMANTIC_CHECKING_HPP_
 

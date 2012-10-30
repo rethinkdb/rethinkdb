@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_PARSER_HPP_
 #define RDB_PROTOCOL_PARSER_HPP_
 
