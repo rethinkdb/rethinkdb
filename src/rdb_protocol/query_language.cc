@@ -997,8 +997,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
 
         /* Create namespace, insert into metadata, then join into real metadata. */
         uuid_t namespace_id = generate_uuid();
-        //TODO(mlucy): What is the port for?  Why is it always the same?
-        //TODONE(jdoliner): The port is a legacy from memcached days when each table was accessed through a different port.
+        // The port here is a legacy from memcached days when each table was accessed through a different port.
         namespace_semilattice_metadata_t<rdb_protocol_t> ns =
             new_namespace<rdb_protocol_t>(env->this_machine, db_id, dc_id, table_name,
                                           primary_key, port_defaults::reql_port, cache_size);

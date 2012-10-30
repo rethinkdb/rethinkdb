@@ -17,7 +17,10 @@ public:
     explicit deletable_t(const T &_t) : t(_t) { }
 
     bool is_deleted() const { return !t; }
-    void mark_deleted() { t = boost::optional<T>(); }
+    void mark_deleted() {
+        t = boost::optional<T>();
+    }
+
     /* return an object which when joined in will cause the object to be deleted */
     deletable_t get_deletion() const {
         deletable_t<T> res;
@@ -27,9 +30,18 @@ public:
 
     /* Usage: [get] is the normal case, [get_ref] is for efficiency, and
        [get_mutable] is for when you need to modify something. */
-    const T &get_ref() const { guarantee(t); return  *t; }
-          T  get() const     { guarantee(t); return  *t; }
-          T *get_mutable()   { guarantee(t); return &*t; }
+    const T &get_ref() const {
+        guarantee(t);
+        return *t;
+    }
+    T get() const {
+        guarantee(t);
+        return *t;
+    }
+    T *get_mutable() {
+        guarantee(t);
+        return &*t;
+    }
 
     typedef T value_t;
     typedef T value_type;
