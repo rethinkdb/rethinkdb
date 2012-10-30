@@ -1,8 +1,7 @@
-#include "unittest/gtest.hpp"
-
 #include <arpa/inet.h>
 
 #include "containers/uuid.hpp"
+#include "unittest/gtest.hpp"
 
 // We keep the sha1 function hidden to avoid encouraging others from using it.
 namespace sha1 {

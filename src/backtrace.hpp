@@ -4,8 +4,11 @@
 
 #include <execinfo.h>
 #include <stdio.h>
-#include <string>
 #include <time.h>
+
+#include <string>
+
+#include "errors.hpp"
 
 /* `demangle_cpp_name()` attempts to de-mangle the given symbol name. If it
 succeeds, it returns the result as a `std::string`. If it fails, it throws
@@ -34,6 +37,8 @@ private:
 
     time_t timestamp;
     std::string timestr;
+
+    DISABLE_COPYING(lazy_backtrace_t);
 };
 
 #endif /* BACKTRACE_HPP_ */

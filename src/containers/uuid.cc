@@ -274,7 +274,7 @@ void innerHash(unsigned int* result, unsigned int* w)
 
     int round = 0;
 
-    #define sha1macro(func,val) \
+    #define sha1macro(func, val) \
                 { \
         const unsigned int t = rol(a, 5) + (func) + e + val + w[round]; \
                         e = d; \
@@ -361,7 +361,7 @@ void calc(const void* src, const int bytelength, unsigned char* hash)
     endCurrentBlock = bytelength - currentBlock;
     clearWBuffert(w);
     int lastBlockBytes = 0;
-    for (;lastBlockBytes < endCurrentBlock; ++lastBlockBytes)
+    for (; lastBlockBytes < endCurrentBlock; ++lastBlockBytes)
     {
         w[lastBlockBytes >> 2] |= (unsigned int) sarray[lastBlockBytes + currentBlock] << ((3 - (lastBlockBytes & 3)) << 3);
     }
