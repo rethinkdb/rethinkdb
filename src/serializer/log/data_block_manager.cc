@@ -68,6 +68,7 @@ void data_block_manager_t::mark_live(off64_t offset) {
 
 void data_block_manager_t::end_reconstruct() {
     rassert(state == state_unstarted);
+    rassert(gc_state.step() == gc_reconstruct);
     gc_state.set_step(gc_ready);
 }
 
@@ -595,6 +596,9 @@ void data_block_manager_t::run_gc() {
                 serializer->extent_manager->commit_transaction(&em_trx);
 
                 if (gc_state.current_entry == NULL) {
+                    rassert(gc_state.gc_blocks != NULL);
+                    free(gc_state.gc_blocks);
+                    gc_state.gc_blocks = NULL;
                     gc_state.set_step(gc_ready);
                     break;
                 }
@@ -646,6 +650,7 @@ void data_block_manager_t::run_gc() {
 
                 rassert(gc_state.refcount == 0);
 
+                rassert(gc_state.gc_blocks != NULL);
                 free(gc_state.gc_blocks);
                 gc_state.gc_blocks = NULL;
                 gc_state.set_step(gc_ready);

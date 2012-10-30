@@ -25,6 +25,6 @@ long time to compile. */
 
 bool serve(extproc::spawner_t::info_t *spawner_info, io_backender_t *io_backender, const std::string &filepath, metadata_persistence::persistent_file_t *persistent_file, const peer_address_set_t &joins, service_ports_t ports, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond);
 
-bool serve_proxy(extproc::spawner_t::info_t *spawner_info, io_backender_t *io_backender, const peer_address_set_t &joins, service_ports_t ports, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond);
+bool serve_proxy(extproc::spawner_t::info_t *spawner_info, const peer_address_set_t &joins, service_ports_t ports, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond);
 
 #endif /* CLUSTERING_ADMINISTRATION_MAIN_SERVE_HPP_ */
