@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "rdb_protocol/query_language.hpp"
 
 #include <math.h>
@@ -30,11 +31,9 @@ void wait_for_rdb_table_readiness(namespace_repo_t<rdb_protocol_t> *ns_repo,
     // This read won't succeed, but we care whether it fails with an exception.
     // It must be an rget to make sure that access is available to all shards.
 
-    //TODO: lower this for release?
-    const int poll_ms = 100; //with this value, usually polls twice
-    //TODO: why is this still named bad*_read?  It looks like a valid read to me.
-    rdb_protocol_t::rget_read_t bad_rget_read(hash_region_t<key_range_t>::universe());
-    rdb_protocol_t::read_t bad_read(bad_rget_read);
+    const int poll_ms = 10;
+    rdb_protocol_t::rget_read_t empty_rget_read(hash_region_t<key_range_t>::universe());
+    rdb_protocol_t::read_t empty_read(empty_rget_read);
     for (;;) {
         signal_timer_t start_poll(poll_ms);
         wait_interruptible(&start_poll, interruptor);
@@ -54,7 +53,7 @@ void wait_for_rdb_table_readiness(namespace_repo_t<rdb_protocol_t> *ns_repo,
             namespace_repo_t<rdb_protocol_t>::access_t ns_access(ns_repo, namespace_id, interruptor);
             rdb_protocol_t::read_response_t read_res;
             // TODO: We should not use order_token_t::ignore.
-            ns_access.get_namespace_if()->read(bad_read, &read_res, order_token_t::ignore, interruptor);
+            ns_access.get_namespace_if()->read(empty_read, &read_res, order_token_t::ignore, interruptor);
             break;
         } catch (cannot_perform_query_exc_t e) { } //continue loop
     }
@@ -279,8 +278,14 @@ term_info_t get_term_type(Term *t, type_checking_environment_t *env, const backt
     } break;
     case Term::TABLE: {
         check_protobuf(t->has_table());
-        // TODO: I don't like or don't "get" how backtraces are supposed to work. Why do
-        // backtraces refer to the subfield of the type but not refer to the type itself?  -sam
+        // TODO: I don't like or don't "get" how backtraces are supposed to
+        // work. Why do backtraces refer to the subfield of the type but not
+        // refer to the type itself?  -sam
+        // RE: Backtraces sort of suck right now.  We're hoping to redo them.
+        // Basically they provide the minimum amount of information necessary to
+        // locate the right portion of the query, except when they don't because
+        // somebody thought it made more semantic sense to include extra
+        // information.
         check_table_ref(t->table().table_ref(), backtrace.with("table_ref"));
         ret.reset(term_info_t(TERM_TYPE_VIEW, false));
     } break;
@@ -943,7 +948,6 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
 
         // Delete database.
         db_metadata->second.mark_deleted();
-        //TODO: (!!!) catch machine_missing_exc_t (or something)
         try {
             fill_in_blueprints(&metadata, directory_metadata->get(), env->this_machine, false);
         } catch (const missing_machine_exc_t &e) {
@@ -1133,35 +1137,26 @@ void execute_query(Query *q, runtime_environment_t *env, Response *res, const sc
 }
 
 void execute_read_query(ReadQuery *r, runtime_environment_t *env, Response *res, const scopes_t &scopes, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
-    TICKVAR(rt_A);
     int type = r->GetExtension(extension::inferred_read_type);
-    TICKVAR(rt_B);
 
     switch (type) {
     case TERM_TYPE_JSON: {
         boost::shared_ptr<scoped_cJSON_t> json = eval_term_as_json(r->mutable_term(), env, scopes, backtrace);
-        TICKVAR(rt_C);
         res->add_response(json->PrintUnformatted());
         res->set_status_code(Response::SUCCESS_JSON);
-        TICKVAR(rt_D);
-        // logRQM("execute_read_query TERM_TYPE_JSON rt_A %ld rt_B %ld rt_C %ld rt_D\n", rt_B - rt_A, rt_C - rt_B, rt_D - rt_C);
         break;
     }
     case TERM_TYPE_STREAM:
     case TERM_TYPE_VIEW: {
         boost::shared_ptr<json_stream_t> stream = eval_term_as_stream(r->mutable_term(), env, scopes, backtrace);
-        TICKVAR(rt_C);
         int64_t key = res->token();
         if (stream_cache->contains(key)) {
             throw runtime_exc_t(strprintf("Token %ld already in stream cache, use CONTINUE.", key), backtrace);
         } else {
             stream_cache->insert(r, key, stream);
         }
-        TICKVAR(rt_D);
         bool b = stream_cache->serve(key, res, env->interruptor);
-        TICKVAR(rt_E);
         guarantee_debug_throw_release(b, backtrace);
-        logRQM("execute_read_query TERM_TYPE_VIEW rt_A %ld rt_B %ld rt_C %ld rt_D %ld rt_E\n", rt_B - rt_A, rt_C - rt_B, rt_D - rt_C, rt_E - rt_D);
         break; //status code set in [serve]
     }
     case TERM_TYPE_ARBITRARY: {
@@ -1178,12 +1173,10 @@ void throwing_insert(namespace_repo_t<rdb_protocol_t>::access_t ns_access, const
                      boost::shared_ptr<scoped_cJSON_t> data, runtime_environment_t *env,
                      const backtrace_t &backtrace, bool overwrite,
                      boost::optional<std::string> *generated_pk_out) {
-    TICKVAR(ti_A);
     bool generated_key = false;
     if (data->type() != cJSON_Object) {
         throw runtime_exc_t(strprintf("Cannot insert non-object %s", data->Print().c_str()), backtrace);
     }
-    TICKVAR(ti_B);
     if (!data->GetObjectItem(pk.c_str())) {
         if (overwrite) {
             throw runtime_exc_t(strprintf("Must have a field named \"%s\" (The primary key) if you are attempting to overwrite.", pk.c_str()), backtrace);
@@ -1193,22 +1186,17 @@ void throwing_insert(namespace_repo_t<rdb_protocol_t>::access_t ns_access, const
         data->AddItemToObject(pk.c_str(), cJSON_CreateString(generated_pk.c_str()));
         generated_key = true;
     }
-    TICKVAR(ti_C);
 
     cJSON *primary_key = data->GetObjectItem(pk.c_str());
     if (primary_key->type != cJSON_String && primary_key->type != cJSON_Number) {
         throw runtime_exc_t(strprintf("Cannot insert row %s with primary key %s of non-string, non-number type.",
                                       data->Print().c_str(), cJSON_print_std_string(primary_key).c_str()), backtrace);
     }
-    TICKVAR(ti_D);
 
     try {
-        TICKVAR(ti_E);
         rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(store_key_t(cJSON_print_primary(data->GetObjectItem(pk.c_str()), backtrace)), data, overwrite));
-        TICKVAR(ti_F);
         rdb_protocol_t::write_response_t response;
         ns_access.get_namespace_if()->write(write, &response, order_token_t::ignore, env->interruptor);
-        TICKVAR(ti_G);
 
         if (generated_key && boost::get<rdb_protocol_t::point_write_response_t>(response.response).result == DUPLICATE) {
             throw runtime_exc_t("Generated key was a duplicate either you've " \
@@ -1220,9 +1208,6 @@ void throwing_insert(namespace_repo_t<rdb_protocol_t>::access_t ns_access, const
         if (!overwrite && boost::get<rdb_protocol_t::point_write_response_t>(response.response).result == DUPLICATE) {
             throw runtime_exc_t(strprintf("Duplicate primary key %s in %s", pk.c_str(), data->Print().c_str()), backtrace);
         }
-        TICKVAR(ti_H);
-        // logRQM("throwing_insert: ti_A %ld B %ld C %ld D %ld E %ld F %ld G %ld H\n",
-        //        ti_B - ti_A, ti_C - ti_B, ti_D - ti_C, ti_E - ti_D, ti_F - ti_E, ti_G - ti_F, ti_H - ti_G);
     } catch (cannot_perform_query_exc_t e) {
         throw runtime_exc_t("cannot perform write: " + std::string(e.what()), backtrace);
     }
@@ -1400,18 +1385,13 @@ int point_delete(namespace_repo_t<rdb_protocol_t>::access_t ns_access, boost::sh
 }
 
 void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *res, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
-    TICKVAR(wt_A);
     res->set_status_code(Response::SUCCESS_JSON);
-    TICKVAR(wt_B);
     switch (w->type()) {
     case WriteQuery::UPDATE: {
-        TICKVAR(wt_C);
         view_t view = eval_term_as_view(w->mutable_update()->mutable_view(), env, scopes, backtrace.with("view"));
-        TICKVAR(wt_D);
         std::string reported_error = "";
 
         int updated = 0, errors = 0, skipped = 0;
-        TICKVAR(wt_E);
         while (boost::shared_ptr<scoped_cJSON_t> json = view.stream->next()) {
             guarantee_debug_throw_release(json && json->type() == cJSON_Object, backtrace);
             try {
@@ -1431,19 +1411,15 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
                 if (reported_error == "") reported_error = e.message + "\nBacktrace:\n" + e.backtrace.print();
             }
         }
-        TICKVAR(wt_F);
         std::string res_list = strprintf("\"updated\": %d, \"skipped\": %d, \"errors\": %d", updated, skipped, errors);
         if (reported_error != "") {
             res_list = strprintf("%s, \"first_error\": %s", res_list.c_str(),
                                  scoped_cJSON_t(cJSON_CreateString(reported_error.c_str())).Print().c_str());
         }
         res->add_response("{" + res_list + "}");
-        TICKVAR(wt_G);
-        // logRQM("execute_write_query UPDATE wt_A %ld wt_B %ld wt_C %ld wt_D %ld wt_E %ld wt_F %ld wt_G\n", wt_B - wt_A, wt_C - wt_B, wt_D - wt_C, wt_E - wt_D, wt_F - wt_E, wt_G - wt_F);
     } break;
     case WriteQuery::MUTATE: {
         view_t view = eval_term_as_view(w->mutable_mutate()->mutable_view(), env, scopes, backtrace.with("view"));
-        TICKVAR(wt_C);
 
         int modified = 0, deleted = 0, errors = 0;
         std::string reported_error = "";
@@ -1453,11 +1429,16 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
                 std::string pk = view.primary_key;
                 cJSON *id = json->GetObjectItem(pk.c_str());
                 point_modify_ns::result_t mres =
-                    point_modify(view.access, pk, id, point_modify_ns::MUTATE, env, w->mutate().mapping(), scopes,
+                    point_modify(view.access, pk, id, point_modify_ns::MUTATE,
+                                 env, w->mutate().mapping(), scopes,
                                  w->atomic(), json, backtrace.with("modify_map"));
-                //guarantee(mres == point_modify_ns::MODIFIED || mres == point_modify_ns::DELETED);
-                modified += (mres == point_modify_ns::MODIFIED);
-                deleted += (mres == point_modify_ns::DELETED);
+                switch(mres) {
+                case point_modify_ns::INSERTED: //if non-atomic (fallthrough)
+                case point_modify_ns::MODIFIED: modified += 1; break;
+                case point_modify_ns::NOP: //if non-atomic (fallthrough)
+                case point_modify_ns::DELETED: deleted += 1; break;
+                default: unreachable("bad return value from `point_modify`");
+                }
             } catch (const query_language::broken_client_exc_t &e) {
                 ++errors;
                 if (reported_error == "") reported_error = e.message;
@@ -1466,7 +1447,6 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
                 if (reported_error == "") reported_error = e.message + "\nBacktrace:\n" + e.backtrace.print();
             }
         }
-        TICKVAR(wt_D);
         std::string res_list = strprintf("\"modified\": %d, \"inserted\": %d, \"deleted\": %d, \"errors\": %d",
                                          modified, 0, deleted, errors);
         if (reported_error != "") {
@@ -1474,88 +1454,56 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
                                  scoped_cJSON_t(cJSON_CreateString(reported_error.c_str())).Print().c_str());
         }
         res->add_response("{" + res_list + "}");
-        TICKVAR(wt_E);
-        // logRQM("execute_write_query MUTATE wt_A %ld wt_B %ld wt_C %ld wt_D %ld wt_E\n", wt_B - wt_A, wt_C - wt_B, wt_D - wt_C, wt_E - wt_D);
-
     } break;
     case WriteQuery::DELETE: {
         view_t view = eval_term_as_view(w->mutable_delete_()->mutable_view(), env, scopes, backtrace.with("view"));
-        TICKVAR(wt_C);
 
         int deleted = 0;
         while (boost::shared_ptr<scoped_cJSON_t> json = view.stream->next()) {
             deleted += point_delete(view.access, json->GetObjectItem(view.primary_key.c_str()), env, backtrace);
         }
-        TICKVAR(wt_D);
 
         res->add_response(strprintf("{\"deleted\": %d}", deleted));
-        // logRQM("execute_write_query DELETE wt_A %ld wt_B %ld wt_C %ld wt_D\n", wt_B - wt_A, wt_C - wt_B, wt_D - wt_C);
     } break;
     case WriteQuery::INSERT: {
         std::string pk = get_primary_key(w->mutable_insert()->mutable_table_ref(), env, backtrace);
         bool overwrite = w->mutable_insert()->overwrite();
-        TICKVAR(wt_C);
         namespace_repo_t<rdb_protocol_t>::access_t ns_access =
             eval_table_ref(w->mutable_insert()->mutable_table_ref(), env, backtrace);
-        TICKVAR(wt_D);
-
-        DTICKVAR(wt_DA);
-        DTICKVAR(wt_DB);
-        DTICKVAR(wt_DC);
-        DTICKVAR(wt_DD);
-        DTICKVAR(wt_DE);
-        DTICKVAR(wt_PATH);
 
         std::string first_error;
-        int errors = 0; //TODO: error reporting
+        int errors = 0;
         int inserted = 0;
         std::vector<std::string> generated_keys;
         if (w->insert().terms_size() == 1) {
             Term *t = w->mutable_insert()->mutable_terms(0);
             int32_t t_type = t->GetExtension(extension::inferred_type);
-            ATICKVAR(wt_DA);
             boost::shared_ptr<json_stream_t> stream;
             if (t_type == TERM_TYPE_JSON) {
-                ATICKVAR(wt_DB);
                 boost::shared_ptr<scoped_cJSON_t> data = eval_term_as_json(t, env, scopes, backtrace.with("term:0"));
                 if (data->type() == cJSON_Array) {
                     stream.reset(new in_memory_stream_t(json_array_iterator_t(data->get())));
-                    SETPATH(wt_PATH, 1);
                 } else {
                     nonthrowing_insert(ns_access, pk, data, env, backtrace.with("term:0"), overwrite, &generated_keys,
                                        &inserted, &errors, &first_error);
-                    SETPATH(wt_PATH, 2);
                 }
-                ATICKVAR(wt_DC);
             } else if (t_type == TERM_TYPE_STREAM || t_type == TERM_TYPE_VIEW) {
-                ATICKVAR(wt_DB);
                 stream = eval_term_as_stream(w->mutable_insert()->mutable_terms(0), env, scopes, backtrace.with("term:0"));
-                ATICKVAR(wt_DC);
-                SETPATH(wt_PATH, 3);
             } else { unreachable("bad term type"); }
-            ATICKVAR(wt_DD);
             if (stream) {
                 while (boost::shared_ptr<scoped_cJSON_t> data = stream->next()) {
                     nonthrowing_insert(ns_access, pk, data, env, backtrace.with("term:0"), overwrite, &generated_keys,
                                        &inserted, &errors, &first_error);
                 }
             }
-            ATICKVAR(wt_DE);
         } else {
-            ATICKVAR(wt_DA);
             for (int i = 0; i < w->insert().terms_size(); ++i) {
                 boost::shared_ptr<scoped_cJSON_t> data =
                     eval_term_as_json(w->mutable_insert()->mutable_terms(i), env, scopes, backtrace.with(strprintf("term:%d", i)));
                 nonthrowing_insert(ns_access, pk, data, env, backtrace.with(strprintf("term:%d", i)), overwrite, &generated_keys,
                                    &inserted, &errors, &first_error);
             }
-            ATICKVAR(wt_DB);
-            ATICKVAR(wt_DC);
-            ATICKVAR(wt_DD);
-            ATICKVAR(wt_DE);
-            SETPATH(wt_PATH, 4);
         }
-        TICKVAR(wt_E);
 
         /* Construct a response. */
         boost::shared_ptr<scoped_cJSON_t> res_json(new scoped_cJSON_t(cJSON_CreateObject()));
@@ -1572,14 +1520,10 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
             }
         }
         res->add_response(res_json->Print());
-        TICKVAR(wt_F);
-        // logRQM("execute_write_query INSERT wt_A %ld wt_B %ld wt_C %ld wt_D %ld wt_E %ld wt_F (path %ld: D %ld DA %ld DB %ld DC %ld DD %ld DE %ld E)\n", wt_B - wt_A, wt_C - wt_B, wt_D - wt_C, wt_E - wt_D, wt_F - wt_E, wt_PATH, wt_DA - wt_D, wt_DB - wt_DA, wt_DC - wt_DB, wt_DD - wt_DC, wt_DE - wt_DD, wt_E - wt_DE);
-
     } break;
     case WriteQuery::FOREACH: {
         boost::shared_ptr<json_stream_t> stream =
             eval_term_as_stream(w->mutable_for_each()->mutable_stream(), env, scopes, backtrace.with("stream"));
-        TICKVAR(wt_C);
 
         // The cJSON object we'll eventually return (named `lhs` because it's merged with `rhs` below).
         scoped_cJSON_t lhs(cJSON_CreateObject());
@@ -1622,64 +1566,45 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
                 lhs.reset(merged.release());
             }
         }
-        TICKVAR(wt_D);
         res->add_response(lhs.Print());
-        // logRQM("execute_write_query FOREACH wt_A %ld wt_B %ld wt_C %ld wt_D\n", wt_B - wt_A, wt_C - wt_B, wt_D - wt_C);
-
     } break;
     case WriteQuery::POINTUPDATE: {
         namespace_repo_t<rdb_protocol_t>::access_t ns_access =
             eval_table_ref(w->mutable_point_update()->mutable_table_ref(), env, backtrace);
-        TICKVAR(wt_C);
         std::string pk = get_primary_key(w->mutable_point_update()->mutable_table_ref(), env, backtrace);
         std::string attr = w->mutable_point_update()->attrname();
-        TICKVAR(wt_D);
         if (attr != "" && attr != pk) {
             throw runtime_exc_t(strprintf("Attribute %s is not a primary key (options: %s).", attr.c_str(), pk.c_str()),
                                 backtrace.with("keyname"));
         }
         boost::shared_ptr<scoped_cJSON_t> id = eval_term_as_json(w->mutable_point_update()->mutable_key(),
                                                                  env, scopes, backtrace.with("key"));
-        TICKVAR(wt_E);
         point_modify_ns::result_t mres =
             point_modify(ns_access, pk, id->get(), point_modify_ns::UPDATE, env, w->point_update().mapping(), scopes,
                          w->atomic(), boost::shared_ptr<scoped_cJSON_t>(), backtrace.with("point_map"));
-        TICKVAR(wt_F);
         guarantee(mres == point_modify_ns::MODIFIED || mres == point_modify_ns::SKIPPED);
         res->add_response(strprintf("{\"updated\": %d, \"skipped\": %d, \"errors\": %d}",
                                     mres == point_modify_ns::MODIFIED, mres == point_modify_ns::SKIPPED, 0));
-        TICKVAR(wt_G);
-        // logRQM("execute_write_query POINTUPDATE wt_A %ld wt_B %ld wt_C %ld wt_D %ld wt_E %ld wt_F %ld wt_G\n", wt_B - wt_A, wt_C - wt_B, wt_D - wt_C, wt_E - wt_D, wt_F - wt_E, wt_G - wt_F);
-
     } break;
-    case WriteQuery::POINTDELETE: { //TODO: enforce primary key
+    case WriteQuery::POINTDELETE: {
         int deleted = -1;
         std::string pk = get_primary_key(w->mutable_point_delete()->mutable_table_ref(), env, backtrace);
-        TICKVAR(wt_C);
         std::string attr = w->mutable_point_delete()->attrname();
         if (attr != "" && attr != pk) {
             throw runtime_exc_t(strprintf("Attribute %s is not a primary key (options: %s).", attr.c_str(), pk.c_str()),
                                 backtrace.with("keyname"));
         }
         namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval_table_ref(w->mutable_point_delete()->mutable_table_ref(), env, backtrace);
-        TICKVAR(wt_D);
         boost::shared_ptr<scoped_cJSON_t> id = eval_term_as_json(w->mutable_point_delete()->mutable_key(), env, scopes, backtrace.with("key"));
-        TICKVAR(wt_E);
         deleted = point_delete(ns_access, id, env, backtrace);
-        TICKVAR(wt_F);
         guarantee_debug_throw_release(deleted == 0 || deleted == 1, backtrace);
 
         res->add_response(strprintf("{\"deleted\": %d}", deleted));
-        TICKVAR(wt_G);
-        // logRQM("execute_write_query POINTDELETE wt_A %ld wt_B %ld wt_C %ld wt_D %ld wt_E %ld wt_F %ld wt_G\n", wt_B - wt_A, wt_C - wt_B, wt_D - wt_C, wt_E - wt_D, wt_F - wt_E, wt_G - wt_F);
-
     } break;
     case WriteQuery::POINTMUTATE: {
         namespace_repo_t<rdb_protocol_t>::access_t ns_access =
             eval_table_ref(w->mutable_point_mutate()->mutable_table_ref(), env, backtrace);
-        TICKVAR(wt_C);
         std::string pk = get_primary_key(w->mutable_point_mutate()->mutable_table_ref(), env, backtrace);
-        TICKVAR(wt_D);
         std::string attr = w->mutable_point_mutate()->attrname();
         if (attr != "" && attr != pk) {
             throw runtime_exc_t(strprintf("Attribute %s is not a primary key (options: %s).", attr.c_str(), pk.c_str()),
@@ -1687,17 +1612,13 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
         }
         boost::shared_ptr<scoped_cJSON_t> id = eval_term_as_json(w->mutable_point_mutate()->mutable_key(),
                                                                  env, scopes, backtrace.with("key"));
-        TICKVAR(wt_E);
         point_modify_ns::result_t mres =
             point_modify(ns_access, pk, id->get(), point_modify_ns::MUTATE, env, w->point_mutate().mapping(), scopes,
                          w->atomic(), boost::shared_ptr<scoped_cJSON_t>(), backtrace.with("point_map"));
-        TICKVAR(wt_F);
         guarantee(mres == point_modify_ns::MODIFIED || mres == point_modify_ns::INSERTED ||
                            mres == point_modify_ns::DELETED  || mres == point_modify_ns::NOP);
         res->add_response(strprintf("{\"modified\": %d, \"inserted\": %d, \"deleted\": %d, \"errors\": %d}",
                                     mres == point_modify_ns::MODIFIED, mres == point_modify_ns::INSERTED, mres == point_modify_ns::DELETED, 0));
-        TICKVAR(wt_G);
-        // logRQM("execute_write_query POINTMUTATE wt_A %ld wt_B %ld wt_C %ld wt_D %ld wt_E %ld wt_F %ld wt_G\n", wt_B - wt_A, wt_C - wt_B, wt_D - wt_C, wt_E - wt_D, wt_F - wt_E, wt_G - wt_F);
     } break;
     default:
         unreachable();
@@ -1966,8 +1887,6 @@ boost::shared_ptr<json_stream_t> eval_term_as_stream(Term *t, runtime_environmen
     case Term::GETBYKEY:
     case Term::JAVASCRIPT:
     case Term::ARRAY: {
-        /* TODO: The type checker should have rejected these cases. Why are
-           we handling them? */
         boost::shared_ptr<scoped_cJSON_t> arr = eval_term_as_json(t, env, scopes, backtrace);
         require_type(arr->get(), cJSON_Array, backtrace);
         json_array_iterator_t it(arr->get());
@@ -2760,10 +2679,7 @@ boost::shared_ptr<json_stream_t> eval_call_as_stream(Term::Call *c, runtime_envi
 
                 return boost::shared_ptr<json_stream_t>(
                     new range_stream_t(stream, range, r->attrname(), backtrace));
-            }
-            //TODO: wtf is this still doing here?
-            throw runtime_exc_t("Unimplemented: Builtin::RANGE", backtrace);
-            break;
+            } break;
         default:
             crash("unreachable");
             break;

@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 /*************************************************************************
 	jquery.dynatree.js
 	Dynamic tree view control, with support for lazy loading of branches.

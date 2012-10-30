@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "rdb_protocol/transform_visitors.hpp"
 #include "rdb_protocol/query_language.hpp"
 

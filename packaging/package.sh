@@ -1,4 +1,5 @@
 #!/bin/bash
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 
 
 echo "THIS SCRIPT IS UNFINISHED!!!"

@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 
 # This file extends the namespace module with functionality to present
 # the index of namespaces.

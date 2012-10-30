@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef QUERY_MEASURE_HPP_
 #define QUERY_MEASURE_HPP_
 

@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef UTILS_HPP_
 #define UTILS_HPP_
 
@@ -307,6 +308,11 @@ private:
 };
 
 std::string sanitize_for_logger(const std::string &s);
+static inline std::string time2str(const time_t &t) {
+    char timebuf[26]; // I apologize for the magic constant.
+    //           ^^ See man 3 ctime_r
+    return ctime_r(&t, timebuf);
+}
 
 #define NULLPTR (static_cast<void *>(0))
 

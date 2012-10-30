@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef PARSING_UTIL_HPP_
 #define PARSING_UTIL_HPP_
 

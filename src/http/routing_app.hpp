@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef HTTP_ROUTING_APP_HPP_
 #define HTTP_ROUTING_APP_HPP_
 

@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef BTREE_LEAF_NODE_HPP_
 #define BTREE_LEAF_NODE_HPP_
 

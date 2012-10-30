@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef MEMCACHED_REGION_HPP_
 #define MEMCACHED_REGION_HPP_
 

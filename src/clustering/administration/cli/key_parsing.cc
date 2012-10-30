@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "clustering/administration/cli/key_parsing.hpp"
 
 #include "errors.hpp"

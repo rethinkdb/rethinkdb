@@ -30,7 +30,7 @@
 
 <script id="resolve_unsatisfiable_goals_modal-template" type="text/x-handlebars-template">
     <div class="alert alert-error error_answer"></div>
-    <p>Are you sure you want to lower the number of replicas for the datacenter</p>
+    <p>Are you sure you want to lower the number of replicas for table <a class="change-route" href="#tables/{{namespace_id}}">{{namespace_name}}</a> in the following datacenters:</p>
     <ul>
         {{#each datacenters_with_issues}}
             <li>
@@ -56,7 +56,7 @@
             <p>You successfully resolved the configuration value to <span class="name">{{final_value}}</span>.</p>
         {{/if}}
         {{#if unsatisfiable_goals}}
-            <p>You successfully solved the unsatisfiable goals issue.</p>
+        <p>You successfully solved {{#unless can_be_solved}}a part of{{/unless}} the unsatisfiable goals issue.</p>
         {{/if}}
     </div>
 </script>
@@ -152,22 +152,48 @@
 <script id="resolve_issues-unsatisfiable_goals-template" type="text/x-handlebars-template">
     <div class="issue {{#if critical }}critical{{/if}} name-conflict">
         <div class="issue-header">
-            {{#if datacenters_with_issues}}
-                <button class="btn btn-danger solve-issue">Lower the number of replicas</button>
+            {{#unless no_primary}}
+            {{#if can_solve_issue}}
+            <button class="btn btn-danger solve-issue">Lower replicas</button>
+            {{else}}
+            <button class="btn btn-danger try-solve-issue">Manually solve</button>
             {{/if}}
+            {{/unless}}
             <p class="issue-type">Unsatisfiable goals</p>
             <p class="datetime"><abbr class="timeago" title="{{datetime}}">{{datetime}}</abbr></p>
         </div>
         <hr />
         <div class="issue-details">
-            <p>The goals you have specified are impossible for the table <a class="change-route" href="#tables/{{namespace_id}}">{{namespace_name}}</a></p>
-            {{#if no_primary}}<p>You have to <a class="change-route" href="#tables/{{namespace_id}}/replication">choose</a> a primary datacenter to make this table works.</p>{{/if}}
+            {{#if no_primary}}
+            <p>The primary datacenter of the table <a class="change-route" href="#tables/{{namespace_id}}">{{namespace_name}}</a> was not found (probably deleted). Please <a class="change-route" href="#tables/{{namespace_id}}">choose</a> another primary datacenter.</p>
+            {{else}}
+                <p>The goals specified for table <a class="change-route" href="#tables/{{namespace_id}}">{{namespace_name}}</a> cannot be satisfied.</p>
+                {{#if can_solve_issue}}
+                <p>The number of replicas requested for these datacenters is greater than the number of servers available:</p>
+                <ul>
+                    {{#each datacenters_with_issues}}
+                    {{#if datacenter_removed}}
+                    <li>A removed datacenter (id: <a href="#datacenters/{{datacenter_id}}">{{datacenter_id_small}}</a>): {{this.num_replicas}} {{pluralize_noun "replica" this.num_replicas}} specified, {{this.num_machines}} {{pluralize_noun "server" this.num_machines}} available.</li>
+                    {{else}}
+                    <li>Datacenter <a class="change-route" href="#datacenters/{{this.datacenter_id}}">{{this.datacenter_name}}</a>: {{this.num_replicas}} {{pluralize_noun "replica" this.num_replicas}} specified, {{this.num_machines}} {{pluralize_noun "server" this.num_machines}} available.</li>
+                    {{/if}}
+                    {{/each}}
+                </ul>
+                {{/if}}
 
-            {{#each datacenters_with_issues}}
-                <p class="description">You require {{this.num_replicas}} {{pluralize_noun "replica" this.num_replicas}} for the datacenter <a class="change-route" href="#datacenters/{{this.datacenter_id}}">{{this.datacenter_name}}</a> but you only have {{num_machines}} {{pluralize_noun "server" this.num_machines}} available.</p>
-            {{/each}}
-            {{#if datacenters_with_issues}}
-                <p class="description">To solve this issue, you can lower the number of replicas or connect a new server to the datacenter.</p>
+                {{#if extra_replicas_accross_cluster}}
+                <p>
+                {{#if can_solve_issue}}Once you will have solved the issues above, you will still require{{else}}You have required{{/if}} {{extra_replicas_accross_cluster.value}} extra {{pluralize_noun "replica" extra_replicas_accross_cluster.value}} across the cluster. You have to lower the value of replicas in one of these datacenters or in the whole cluster:</p>
+                <ul>
+                    {{#each extra_replicas_accross_cluster.datacenters_that_can_help}}
+                    {{#if is_universe}}
+                        <li>Whole cluster: {{this.num_replicas_requested}} {{pluralize_noun "replica" this.num_replicas_requested}} requested.</li>
+                    {{else}}
+                        <li>Datacenter <a class="change-route" href="#datacenters/{{datacenter_id}}">{{datacenter_name}}</a>: {{this.num_replicas_requested}} {{pluralize_noun "replica" this.num_replicas_requested}} requested.</li>
+                    {{/if}}
+                    {{/each}}
+                </ul>
+                {{/if}}
             {{/if}}
         </div>
     </div>
@@ -182,8 +208,8 @@
         <hr />
         <div class="issue-details">
             <p>A server was declared dead, but is now connected to the cluster.</p>
-            <p class="description">Server's id: <a class="change-route" href="#servers/{{machine_id}}">{{machine_name}}</a></p>
-            <p>Please manually remove it (by killing the rethinkDB instance for example)</p>
+            <p class="description">Server's id: <a class="change-route" href="#servers/{{machine_id}}">{{machine_id}}</a></p>
+            <p>Please manually remove it (e.g. by killing the RethinkDB process on the server).</p>
         </div>
     </div>
 </script>
@@ -213,7 +239,7 @@
         </div>
         <hr />
         <div class="issue-details">
-            <p>An issue was sent by the server, but we could not parse it.</p>
+            <p>An unknown issue was sent by the server. Please contact support.</p>
             <p>Raw data: {{raw_data}}</p>
         </div>
     </div>

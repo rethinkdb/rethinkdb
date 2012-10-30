@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 # -*- coding: utf-8 -*-
 #
 # RethinkDB Python Driver documentation build configuration file, created by

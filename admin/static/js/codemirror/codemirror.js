@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 // CodeMirror version 2.33
 //
 // All functions that need access to the editor's state live inside

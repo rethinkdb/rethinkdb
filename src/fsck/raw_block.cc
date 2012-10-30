@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "fsck/raw_block.hpp"
 
 #include "arch/arch.hpp"

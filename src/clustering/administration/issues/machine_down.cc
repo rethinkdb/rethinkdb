@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "clustering/administration/issues/machine_down.hpp"
 #include "clustering/administration/machine_id_to_peer_id.hpp"
 

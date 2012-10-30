@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "containers/uuid.hpp"
 
 #include <sys/stat.h>
@@ -6,11 +7,6 @@
 #include <openssl/sha.h>
 
 #include "errors.hpp"
-#define BOOST_UUID_NO_TYPE_TRAITS
-#include <boost/uuid/uuid.hpp>
-#include <boost/uuid/uuid_generators.hpp>
-#include <boost/uuid/uuid_io.hpp>
-
 #include "containers/printf_buffer.hpp"
 
 #include "utils.hpp"
@@ -38,20 +34,6 @@ bool operator==(const uuid_t& x, const uuid_t& y) {
 
 bool operator<(const uuid_t& x, const uuid_t& y) {
     return memcmp(x.data(), y.data(), uuid_t::static_size()) < 0;
-}
-
-uuid_t from_boost_uuid(const boost::uuids::uuid& uuid) {
-    CT_ASSERT(sizeof(uuid_t) == sizeof(boost::uuids::uuid));
-
-    uuid_t ret;
-    memcpy(ret.data(), uuid.data, uuid_t::static_size());
-    return ret;
-}
-
-boost::uuids::uuid as_boost_uuid(const uuid_t& uuid) {
-    boost::uuids::uuid ret;
-    memcpy(ret.data, uuid.data(), uuid_t::static_size());
-    return ret;
 }
 
 static __thread bool next_uuid_initialized = false;
@@ -85,6 +67,10 @@ void hash_uuid(uuid_t *uuid) {
     guarantee(SHA1_Update(&ctx, uuid->data(), uuid_t::static_size()) == 1);
     guarantee(SHA1_Final(output_buffer, &ctx) == 1);
 
+    // Set some bits to obey standard for version 4 UUIDs.
+    output_buffer[6] = ((output_buffer[6] & 0x0f) | 0x40);
+    output_buffer[8] = ((output_buffer[8] & 0x3f) | 0x80);
+
     // Copy the beginning of the hash into our uuid
     memcpy(uuid->data(), output_buffer, uuid_t::static_size());
 }
@@ -117,13 +103,105 @@ void debug_print(append_only_printf_buffer_t *buf, const uuid_t& id) {
     buf->appendf("%s", uuid_to_str(id).c_str());
 }
 
-
-std::string uuid_to_str(uuid_t id) {
-    return boost::uuids::to_string(as_boost_uuid(id));
+void push_hex(std::string *s, uint8_t byte) {
+    const char *buf = "0123456789abcdef";
+    s->push_back(buf[byte >> 4]);
+    s->push_back(buf[byte & 0x0f]);
 }
 
-uuid_t str_to_uuid(const std::string& uuid) {
-    return from_boost_uuid(boost::uuids::string_generator()(uuid));
+std::string uuid_to_str(uuid_t id) {
+    const uint8_t *data = id.data();
+
+    std::string ret;
+    ret.reserve(uuid_t::kStringSize);
+    size_t i = 0;
+    for (; i < 4; ++i) {
+        push_hex(&ret, data[i]);
+    }
+    ret.push_back('-');
+    for (; i < 6; ++i) {
+        push_hex(&ret, data[i]);
+    }
+    ret.push_back('-');
+    for (; i < 8; ++i) {
+        push_hex(&ret, data[i]);
+    }
+    ret.push_back('-');
+    for (; i < 10; ++i) {
+        push_hex(&ret, data[i]);
+    }
+    ret.push_back('-');
+    CT_ASSERT(uuid_t::kStaticSize == 16);  // This code just feels this assertion in its bones.
+    for (; i < uuid_t::kStaticSize; ++i) {
+        push_hex(&ret, data[i]);
+    }
+
+    return ret;
+}
+
+uuid_t str_to_uuid(const std::string &uuid) {
+    uuid_t ret;
+    if (str_to_uuid(uuid, &ret)) {
+        return ret;
+    } else {
+        throw std::runtime_error("invalid uuid");  // Sigh.
+    }
+}
+
+MUST_USE bool from_hexdigit(int ch, int *out) {
+    if (isdigit(ch)) {
+        *out = ch - '0';
+        return true;
+    }
+    ch = tolower(ch);
+    if ('a' <= ch && ch <= 'f') {  // Death to EBCDIC.
+        *out = 10 + (ch - 'a');
+        return true;
+    }
+    return false;
+}
+
+MUST_USE bool str_to_uuid(const std::string &str, uuid_t *uuid) {
+    if (str.size() != uuid_t::kStaticSize * 2 + 4) {
+        return false;
+    }
+
+    uint8_t *data = uuid->data();
+
+    size_t j = 0;
+    for (size_t i = 0; i < uuid_t::kStaticSize; ++i) {
+        // Uh oh.. a for/switch loop!
+        switch (i) {
+        case 4:
+        case 6:
+        case 8:
+        case 10:
+            rassert(j < uuid_t::kStringSize);
+            if (str[j] != '-') {
+                return false;
+            }
+            ++j;
+            // fall through
+        default: {
+            rassert(j < uuid_t::kStringSize);
+            int high;
+            if (!from_hexdigit(str[j], &high)) {
+                return false;
+            }
+            ++j;
+            rassert(j < uuid_t::kStringSize);
+            int low;
+            if (!from_hexdigit(str[j], &low)) {
+                return false;
+            }
+            ++j;
+            data[i] = ((high << 4) | low);
+        } break;
+        }
+    }
+
+    rassert(j == uuid_t::kStringSize);
+    return true;
 }
 
 bool is_uuid(const std::string& str) {

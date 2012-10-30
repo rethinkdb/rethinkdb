@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 $LOAD_PATH.unshift('../rethinkdb')
 require 'rethinkdb.rb'
 

@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef BUFFER_CACHE_SEMANTIC_CHECKING_HPP_
 #define BUFFER_CACHE_SEMANTIC_CHECKING_HPP_
 

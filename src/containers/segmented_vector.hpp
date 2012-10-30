@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef CONTAINERS_SEGMENTED_VECTOR_HPP_
 #define CONTAINERS_SEGMENTED_VECTOR_HPP_
 

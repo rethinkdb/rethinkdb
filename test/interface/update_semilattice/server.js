@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 // Include libraries
 var http = require('http');
 var request = require('request');
@@ -78,7 +79,9 @@ http.createServer(function (req, res) {
                 data = JSON.parse(data);
                 delete data['me']; // It's a read only value
                 for(var namespace in data['rdb_namespaces']) {
-                    delete data['rdb_namespaces'][namespace]['blueprint']; // Removing read only values
+                    if (data['rdb_namespaces'][namespace] !== null) {
+                        delete data['rdb_namespaces'][namespace]['blueprint']; // Removing read only values
+                    }
                 }
 
 

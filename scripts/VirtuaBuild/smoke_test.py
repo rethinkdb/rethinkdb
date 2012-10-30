@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 
 # usage: ./smoke_test.py --mode OS_NAME --num-keys SOME_NUMBER_HERE
 

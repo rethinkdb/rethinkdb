@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 // CSS Reset
 @import "bootstrap/reset.less";
 
@@ -607,6 +608,8 @@ TODO: retire this
     }
     .alert_modal{
         p { margin: 0; }
+        .close { display: none; }
+        margin: 15px 15px 0 15px;
     }
 
     .modal-header h3 {
@@ -1427,7 +1430,7 @@ TODO: retire this
             font-size: 14px;
         }
 
-        .solve-issue {
+        .solve-issue, .try-solve-issue{
             float:right;
         }
 

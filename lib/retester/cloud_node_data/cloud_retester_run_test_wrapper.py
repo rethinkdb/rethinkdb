@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 # General approach of this wrapper:
 #  read files test_command and test_timeout, then do like run_test
 #  write the result of the test into the files result_start_time, result_result and result_description

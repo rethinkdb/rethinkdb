@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef THREAD_LOCAL_HPP_
 #define THREAD_LOCAL_HPP_
 

@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #define _GNU_SOURCE
 
 #include <stdio.h>

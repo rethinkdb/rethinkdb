@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef HTTP_JSON_JSON_ADAPTER_HPP_
 #define HTTP_JSON_JSON_ADAPTER_HPP_
 

@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 import riak
 c = riak.RiakClient(port=2222)
 foo_bucket = c.bucket('foo')

@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef MEMCACHED_PARSER_HPP_
 #define MEMCACHED_PARSER_HPP_
 

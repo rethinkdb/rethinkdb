@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 # Machine view
 module 'MachineView', ->
     class @NotFound extends Backbone.View

@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include <string>
 
 #include "clustering/administration/issues/json.hpp"

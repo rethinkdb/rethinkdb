@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 # Makefile for various bits of the javascript driver
 
 VERBOSE?=0

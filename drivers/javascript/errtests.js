@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 var r = require('./rethinkdb');
 
 var one = r.expr(1);

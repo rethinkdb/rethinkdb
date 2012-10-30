@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "clustering/administration/issues/name_conflict.hpp"
 
 name_conflict_issue_t::name_conflict_issue_t(

@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef MOCK_DUMMY_PROTOCOL_HPP_
 #define MOCK_DUMMY_PROTOCOL_HPP_
 

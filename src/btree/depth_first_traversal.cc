@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "btree/depth_first_traversal.hpp"
 
 #include "btree/operations.hpp"

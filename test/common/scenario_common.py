@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 import shlex, random
 from vcoptparse import *
 import driver, http_admin, workload_runner

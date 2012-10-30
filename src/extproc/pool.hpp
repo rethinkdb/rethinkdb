@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef EXTPROC_POOL_HPP_
 #define EXTPROC_POOL_HPP_
 

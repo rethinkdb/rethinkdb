@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "concurrency/semaphore.hpp"
 
 #include "arch/runtime/runtime.hpp"

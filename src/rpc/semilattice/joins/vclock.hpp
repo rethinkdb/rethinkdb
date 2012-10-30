@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef RPC_SEMILATTICE_JOINS_VCLOCK_HPP_
 #define RPC_SEMILATTICE_JOINS_VCLOCK_HPP_
 

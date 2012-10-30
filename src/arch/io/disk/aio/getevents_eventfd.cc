@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef NO_EVENTFD
 #ifdef AIOSUPPORT
 

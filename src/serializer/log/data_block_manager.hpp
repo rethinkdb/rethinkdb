@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef SERIALIZER_LOG_DATA_BLOCK_MANAGER_HPP_
 #define SERIALIZER_LOG_DATA_BLOCK_MANAGER_HPP_
 
@@ -316,6 +317,7 @@ private:
 
         ~gc_state_t() {
             free(gc_blocks);
+            gc_blocks = NULL;  // An extra bit of paranoia in this async area.
         }
 
         inline gc_step step() const { return step_; }
@@ -329,6 +331,7 @@ private:
             }
 
             step_ = next_step;
+            rassert(step_ != gc_ready || gc_blocks == NULL);
         }
     };
 

@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "clustering/administration/network_logger.hpp"
 
 network_logger_t::network_logger_t(

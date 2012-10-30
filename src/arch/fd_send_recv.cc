@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "arch/fd_send_recv.hpp"
 
 #include <sys/types.h>

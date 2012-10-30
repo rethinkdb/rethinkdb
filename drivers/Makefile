@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 ifeq ($(VERBOSE),1)
 QUIET:=
 else

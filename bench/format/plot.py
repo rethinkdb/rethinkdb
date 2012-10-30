@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 import os, sys
 import numpy as np
 import matplotlib as mpl

@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef HASH_REGION_HPP_
 #define HASH_REGION_HPP_
 

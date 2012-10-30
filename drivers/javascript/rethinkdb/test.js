@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 // Assumes that rethinkdb is loaded already in whichever environment we happen to be running in
 
 function print(msg) {

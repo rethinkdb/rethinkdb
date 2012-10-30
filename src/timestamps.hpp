@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef TIMESTAMPS_HPP_
 #define TIMESTAMPS_HPP_
 

@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 require 'rubygems'
 require 'query_language.pb.rb'
 require 'socket'

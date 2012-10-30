@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "mock/dummy_protocol.hpp"
 
 // TODO: Move version_range_t out of clustering/immediate_consistency/branch/metadata.hpp.

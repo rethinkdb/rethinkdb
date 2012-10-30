@@ -1,4 +1,5 @@
 #!/usr/bin/ruby
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 require 'pp'
 require 'socket'
 require 'optparse'
@@ -33,9 +34,10 @@ class Slave
       sock.send([0xaf61ba35].pack('L<'), 0)
       print "*** #{@id} starting ***\n"
       while (packet = @r.recv(2**30, 0)) != @@STOP
-        str = [@id, Time.now.to_f, packet].inspect+"\n"
+        str = [@id, time, packet].inspect+"\n"
         File.open($relog, 'a') {|f| f.write str} if $relog
-        print [@id, Time.now.to_f, packet].inspect+"\n" if $opt[:verbose]
+        print str if $opt[:verbose]
+
         sock.send(packet, 0)
         res = len = sock.recv(4).unpack('L<')[0]
         res = sock.recv(len) if len
@@ -51,10 +53,15 @@ class Slave
   def stop; @w.send(@@STOP, 0); @w.close; end
 end
 
+def time; (Time.now.to_f - $real_start_time) + $packet_start_time; end
+
 $slaves = Hash.new {|hash,val| hash[val] = Slave.new val}
 File.open($opt[:log]) {|f|
   f.each {|l|
-    process, time, packet = eval(l.chomp)
+    process, packet_time, packet = eval(l.chomp)
+    $real_start_time = Time.now.to_f if not $real_start_time
+    $packet_start_time = packet_time if not $packet_start_time
+    sleep [(packet_time - time), 0].max
     $slaves[process].send(packet)
   }
 }

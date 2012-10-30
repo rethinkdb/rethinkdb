@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "http/http.hpp"
 
 #include <exception>
@@ -140,8 +141,8 @@ http_res_t::http_res_t(http_status_code_t rescode)
 { }
 
 http_res_t::http_res_t(http_status_code_t rescode, const std::string& content_type,
-                       const std::string& content) 
-    : code(rescode) 
+                       const std::string& content)
+    : code(rescode)
 {
     set_body(content_type, content);
 }
@@ -192,16 +193,15 @@ void test_header_parser() {
 }
 
 http_server_t::http_server_t(int port, http_app_t *_application) : application(_application) {
-    tcp_listener.init(new repeated_nonthrowing_tcp_listener_t(port, 0, boost::bind(&http_server_t::handle_conn, this, _1, auto_drainer_t::lock_t(&auto_drainer))));
-    tcp_listener->begin_repeated_listening_attempts();
+    try {
+        tcp_listener.init(new tcp_listener_t(port, 0, boost::bind(&http_server_t::handle_conn, this, _1, auto_drainer_t::lock_t(&auto_drainer))));
+    } catch (address_in_use_exc_t &ex) {
+        nice_crash("%s. Could not bind to http port. Exiting.\n", ex.what());
+    }
 }
 
 int http_server_t::get_port() const {
     return tcp_listener->get_port();
-}
-
-signal_t *http_server_t::get_bound_signal() {
-    return tcp_listener->get_bound_signal();
 }
 
 http_server_t::~http_server_t() { }

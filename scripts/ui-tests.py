@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 import os, sys, subprocess, argparse
 from termcolor import colored, cprint
 import time

@@ -1,4 +1,5 @@
 #!/usr/bin/perl
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 
 # process_timings_output.pl processes the output of `make TIMINGS=1`.
 # Take the output of `make TIMINGS=1` (being sure to have -j1

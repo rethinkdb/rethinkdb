@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 import time, random, sys
 
 with open("log.txt", "w") as log:
