@@ -31,11 +31,9 @@ void wait_for_rdb_table_readiness(namespace_repo_t<rdb_protocol_t> *ns_repo,
     // This read won't succeed, but we care whether it fails with an exception.
     // It must be an rget to make sure that access is available to all shards.
 
-    //TODO: lower this for release?
-    const int poll_ms = 10; //with this value, usually polls twice
-    //TODO: why is this still named bad*_read?  It looks like a valid read to me.
-    rdb_protocol_t::rget_read_t bad_rget_read(hash_region_t<key_range_t>::universe());
-    rdb_protocol_t::read_t bad_read(bad_rget_read);
+    const int poll_ms = 10;
+    rdb_protocol_t::rget_read_t empty_rget_read(hash_region_t<key_range_t>::universe());
+    rdb_protocol_t::read_t empty_read(empty_rget_read);
     for (;;) {
         signal_timer_t start_poll(poll_ms);
         wait_interruptible(&start_poll, interruptor);
@@ -55,7 +53,7 @@ void wait_for_rdb_table_readiness(namespace_repo_t<rdb_protocol_t> *ns_repo,
             namespace_repo_t<rdb_protocol_t>::access_t ns_access(ns_repo, namespace_id, interruptor);
             rdb_protocol_t::read_response_t read_res;
             // TODO: We should not use order_token_t::ignore.
-            ns_access.get_namespace_if()->read(bad_read, &read_res, order_token_t::ignore, interruptor);
+            ns_access.get_namespace_if()->read(empty_read, &read_res, order_token_t::ignore, interruptor);
             break;
         } catch (cannot_perform_query_exc_t e) { } //continue loop
     }
