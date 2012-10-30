@@ -32,7 +32,7 @@ void wait_for_rdb_table_readiness(namespace_repo_t<rdb_protocol_t> *ns_repo,
     // It must be an rget to make sure that access is available to all shards.
 
     //TODO: lower this for release?
-    const int poll_ms = 100; //with this value, usually polls twice
+    const int poll_ms = 10; //with this value, usually polls twice
     //TODO: why is this still named bad*_read?  It looks like a valid read to me.
     rdb_protocol_t::rget_read_t bad_rget_read(hash_region_t<key_range_t>::universe());
     rdb_protocol_t::read_t bad_read(bad_rget_read);
