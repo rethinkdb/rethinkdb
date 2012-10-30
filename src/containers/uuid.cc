@@ -132,7 +132,7 @@ std::string uuid_to_str(uuid_t id) {
     const uint8_t *data = id.data();
 
     std::string ret;
-    ret.reserve(uuid_t::kStaticSize * 2 + 4);  // hexadecimal, 4 hyphens
+    ret.reserve(uuid_t::kStringSize);
     size_t i = 0;
     for (; i < 4; ++i) {
         push_hex(&ret, data[i]);
@@ -158,8 +158,64 @@ std::string uuid_to_str(uuid_t id) {
     return ret;
 }
 
-uuid_t str_to_uuid(const std::string& uuid) {
+uuid_t str_to_uuid(const std::string &uuid) {
     return from_boost_uuid(boost::uuids::string_generator()(uuid));
+}
+
+MUST_USE bool from_hexdigit(int ch, int *out) {
+    if (isdigit(ch)) {
+        *out = ch - '0';
+        return true;
+    }
+    ch = tolower(ch);
+    if ('a' <= ch && ch <= 'f') {  // Death to EBCDIC.
+        *out = 10 + (ch - 'a');
+        return true;
+    }
+    return false;
+}
+
+MUST_USE bool str_to_uuid(const std::string &str, uuid_t *uuid) {
+    if (str.size() != uuid_t::kStaticSize * 2 + 4) {
+        return false;
+    }
+
+    uint8_t *data = uuid->data();
+
+    size_t j = 0;
+    for (size_t i = 0; i < uuid_t::kStaticSize; ++i) {
+        // Uh oh.. a for/switch loop!
+        switch (i) {
+        case 4:
+        case 6:
+        case 8:
+        case 10:
+            rassert(j < uuid_t::kStringSize);
+            if (str[j] != '-') {
+                return false;
+            }
+            ++j;
+            // fall through
+        default: {
+            rassert(j < uuid_t::kStringSize);
+            int high;
+            if (!from_hexdigit(str[j], &high)) {
+                return false;
+            }
+            ++j;
+            rassert(j < uuid_t::kStringSize);
+            int low;
+            if (!from_hexdigit(str[j], &low)) {
+                return false;
+            }
+            ++j;
+            data[i] = ((high << 4) | low);
+        } break;
+        }
+    }
+
+    rassert(j == uuid_t::kStringSize);
+    return true;
 }
 
 bool is_uuid(const std::string& str) {
