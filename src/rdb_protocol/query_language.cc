@@ -1437,6 +1437,9 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
                 case point_modify_ns::MODIFIED: modified += 1; break;
                 case point_modify_ns::NOP: //if non-atomic (fallthrough)
                 case point_modify_ns::DELETED: deleted += 1; break;
+
+                case point_modify_ns::SKIPPED:
+                case point_modify_ns::ERROR:
                 default: unreachable("bad return value from `point_modify`");
                 }
             } catch (const query_language::broken_client_exc_t &e) {
