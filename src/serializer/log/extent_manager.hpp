@@ -110,9 +110,8 @@ private:
         state_shut_down
     } state;
 
-#ifndef NDEBUG
-    extent_transaction_t *current_transaction;
-#endif
+    intptr_t num_unended_transactions;
+    intptr_t num_uncommitted_transactions;
 
     DISABLE_COPYING(extent_manager_t);
 };

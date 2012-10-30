@@ -120,7 +120,8 @@ public:
 extent_manager_t::extent_manager_t(direct_file_t *file, const log_serializer_on_disk_static_config_t *_static_config,
                                    const log_serializer_dynamic_config_t *_dynamic_config, log_serializer_stats_t *_stats)
     : stats(_stats), extent_size(_static_config->extent_size()), static_config(_static_config),
-      dynamic_config(_dynamic_config), dbfile(file), state(state_reserving_extents) {
+      dynamic_config(_dynamic_config), dbfile(file), state(state_reserving_extents),
+      num_unended_transactions(0), num_uncommitted_transactions(0) {
     guarantee(divides(DEVICE_BLOCK_SIZE, extent_size));
 
     // TODO: Why does dynamic_config have the possibility of setting a file size?
@@ -155,7 +156,7 @@ extent_manager_t::extent_manager_t(direct_file_t *file, const log_serializer_on_
 }
 
 extent_manager_t::~extent_manager_t() {
-    rassert(state == state_reserving_extents || state == state_shut_down);
+    guarantee(state == state_reserving_extents || state == state_shut_down);
 }
 
 extent_zone_t *extent_manager_t::zone_for_offset(off64_t offset) {
@@ -176,7 +177,7 @@ void extent_manager_t::reserve_extent(off64_t extent) {
     debugf("EM %p: Reserve extent %.8lx\n", this, extent);
     debugf("%s", format_backtrace(false).c_str());
 #endif
-    rassert(state == state_reserving_extents);
+    guarantee(state == state_reserving_extents);
     ++stats->pm_extents_in_use;
     stats->pm_bytes_in_use += extent_size;
     zone_for_offset(extent)->reserve_extent(extent);
@@ -188,10 +189,8 @@ void extent_manager_t::prepare_initial_metablock(metablock_mixin_t *mb) {
 
 void extent_manager_t::start_existing(UNUSED metablock_mixin_t *last_metablock) {
     assert_thread();
-    rassert(state == state_reserving_extents);
-#ifndef NDEBUG
-    current_transaction = NULL;
-#endif
+    guarantee(state == state_reserving_extents);
+
     for (boost::ptr_vector<extent_zone_t>::iterator it = zones.begin(); it != zones.end(); ++it) {
         it->reconstruct_free_list();
     }
@@ -219,7 +218,7 @@ void extent_manager_t::prepare_metablock(metablock_mixin_t *metablock) {
     }
     fprintf(stderr, "\n");
 #endif
-    rassert(state == state_running);
+    guarantee(state == state_running);
     metablock->padding = 0;
 }
 
@@ -235,25 +234,22 @@ void extent_manager_t::shutdown() {
     fprintf(stderr, "\n");
 #endif
 
-    rassert(state == state_running);
-    rassert(!current_transaction);
+    guarantee(state == state_running);
+    guarantee(num_unended_transactions == 0);
+    guarantee(num_uncommitted_transactions == 0);
     state = state_shut_down;
 }
 
 void extent_manager_t::begin_transaction(extent_transaction_t *out) {
     assert_thread();
-    rassert(!current_transaction);
-#ifndef NDEBUG
-    current_transaction = out;
-#endif
+    ++num_unended_transactions;
+    ++num_uncommitted_transactions;
     out->init();
 }
 
-off64_t extent_manager_t::gen_extent(DEBUG_VAR extent_transaction_t *txn) {
+off64_t extent_manager_t::gen_extent(UNUSED extent_transaction_t *txn) {
     assert_thread();
-    rassert(state == state_running);
-    rassert(current_transaction);
-    rassert(current_transaction == txn);
+    guarantee(state == state_running);
     ++stats->pm_extents_in_use;
     stats->pm_bytes_in_use += extent_size;
 
@@ -288,28 +284,28 @@ void extent_manager_t::release_extent(off64_t extent, extent_transaction_t *txn)
     debugf("EM %p: Release extent %.8lx\n", this, extent);
     debugf("%s", format_backtrace(false).c_str());
 #endif
-    rassert(state == state_running);
-    rassert(current_transaction);
+    guarantee(state == state_running);
     --stats->pm_extents_in_use;
     stats->pm_bytes_in_use -= extent_size;
     txn->free_queue().push_back(extent);
 }
 
-void extent_manager_t::end_transaction(DEBUG_VAR const extent_transaction_t &t) {
+void extent_manager_t::end_transaction(UNUSED const extent_transaction_t &t) {
     assert_thread();
-    rassert(current_transaction == &t);
-#ifndef NDEBUG
-    current_transaction = NULL;
-#endif
+    guarantee(num_unended_transactions > 0);
+    --num_unended_transactions;
 }
 
 void extent_manager_t::commit_transaction(extent_transaction_t *t) {
     assert_thread();
+    ASSERT_NO_CORO_WAITING;
     for (std::deque<off64_t>::iterator it = t->free_queue().begin(); it != t->free_queue().end(); it++) {
         off64_t extent = *it;
         zone_for_offset(extent)->release_extent(extent);
     }
     t->reset();
+    guarantee(num_uncommitted_transactions > 0);
+    --num_uncommitted_transactions;
 }
 
 int extent_manager_t::held_extents() {
