@@ -4,8 +4,9 @@
 
 #include <execinfo.h>
 #include <stdio.h>
-#include <string>
 #include <time.h>
+
+#include <string>
 
 /* `demangle_cpp_name()` attempts to de-mangle the given symbol name. If it
 succeeds, it returns the result as a `std::string`. If it fails, it throws
