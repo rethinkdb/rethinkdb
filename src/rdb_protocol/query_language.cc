@@ -278,8 +278,14 @@ term_info_t get_term_type(Term *t, type_checking_environment_t *env, const backt
     } break;
     case Term::TABLE: {
         check_protobuf(t->has_table());
-        // TODO: I don't like or don't "get" how backtraces are supposed to work. Why do
-        // backtraces refer to the subfield of the type but not refer to the type itself?  -sam
+        // TODO: I don't like or don't "get" how backtraces are supposed to
+        // work. Why do backtraces refer to the subfield of the type but not
+        // refer to the type itself?  -sam
+        // RE: Backtraces sort of suck right now.  We're hoping to redo them.
+        // Basically they provide the minimum amount of information necessary to
+        // locate the right portion of the query, except when they don't because
+        // somebody thought it made more semantic sense to include extra
+        // information.
         check_table_ref(t->table().table_ref(), backtrace.with("table_ref"));
         ret.reset(term_info_t(TERM_TYPE_VIEW, false));
     } break;
@@ -942,7 +948,6 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
 
         // Delete database.
         db_metadata->second.mark_deleted();
-        //TODO: (!!!) catch machine_missing_exc_t (or something)
         try {
             fill_in_blueprints(&metadata, directory_metadata->get(), env->this_machine, false);
         } catch (const missing_machine_exc_t &e) {
@@ -1467,7 +1472,7 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
             eval_table_ref(w->mutable_insert()->mutable_table_ref(), env, backtrace);
 
         std::string first_error;
-        int errors = 0; //TODO: error reporting
+        int errors = 0;
         int inserted = 0;
         std::vector<std::string> generated_keys;
         if (w->insert().terms_size() == 1) {
@@ -1581,7 +1586,7 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
         res->add_response(strprintf("{\"updated\": %d, \"skipped\": %d, \"errors\": %d}",
                                     mres == point_modify_ns::MODIFIED, mres == point_modify_ns::SKIPPED, 0));
     } break;
-    case WriteQuery::POINTDELETE: { //TODO: enforce primary key
+    case WriteQuery::POINTDELETE: {
         int deleted = -1;
         std::string pk = get_primary_key(w->mutable_point_delete()->mutable_table_ref(), env, backtrace);
         std::string attr = w->mutable_point_delete()->attrname();
@@ -1882,8 +1887,6 @@ boost::shared_ptr<json_stream_t> eval_term_as_stream(Term *t, runtime_environmen
     case Term::GETBYKEY:
     case Term::JAVASCRIPT:
     case Term::ARRAY: {
-        /* TODO: The type checker should have rejected these cases. Why are
-           we handling them? */
         boost::shared_ptr<scoped_cJSON_t> arr = eval_term_as_json(t, env, scopes, backtrace);
         require_type(arr->get(), cJSON_Array, backtrace);
         json_array_iterator_t it(arr->get());
@@ -2676,10 +2679,7 @@ boost::shared_ptr<json_stream_t> eval_call_as_stream(Term::Call *c, runtime_envi
 
                 return boost::shared_ptr<json_stream_t>(
                     new range_stream_t(stream, range, r->attrname(), backtrace));
-            }
-            //TODO: wtf is this still doing here?
-            throw runtime_exc_t("Unimplemented: Builtin::RANGE", backtrace);
-            break;
+            } break;
         default:
             crash("unreachable");
             break;
