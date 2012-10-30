@@ -159,7 +159,12 @@ std::string uuid_to_str(uuid_t id) {
 }
 
 uuid_t str_to_uuid(const std::string &uuid) {
-    return from_boost_uuid(boost::uuids::string_generator()(uuid));
+    uuid_t ret;
+    if (str_to_uuid(uuid, &ret)) {
+        return ret;
+    } else {
+        throw std::runtime_error("invalid uuid");  // Sigh.
+    }
 }
 
 MUST_USE bool from_hexdigit(int ch, int *out) {
