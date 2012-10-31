@@ -36,19 +36,21 @@ public:
         state_ = begun;
     }
 
+    void push_extent(off64_t extent) {
+        guarantee(state_ == begun);
+        free_queue_.push_back(extent);
+    }
+
     void mark_end() {
         guarantee(state_ == begun);
         state_ = ended;
     }
 
-    void reset() {
+    void reset(std::deque<off64_t> *free_queue_out) {
         guarantee(state_ == ended);
-        free_queue_.clear();
+        guarantee(free_queue_out->empty());
+        free_queue_out->swap(free_queue_);
         state_ = committed;
-    }
-
-    std::deque<off64_t> &free_queue() {
-        return free_queue_;
     }
 
 private:
