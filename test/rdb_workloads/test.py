@@ -1,12 +1,12 @@
 #!/usr/bin/python
-# Copyright 2010-2012 RethinkDB, all rights reserved.
 # coding=utf8
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 
 # Environment variables:
 # HOST: location of server (default = "localhost")
 # PORT: port that server listens for RDB protocol traffic on (default = 14356)
-# DB_NAME: database to look for test table in (default = "Welcome-db")
-# TABLE_NAME: table to run tests against (default = "Welcome-rdb")
+# DB_NAME: database to look for test table in (default = "test")
+# TABLE_NAME: table to run tests against (default = "test")
 
 import json
 import os
@@ -25,10 +25,10 @@ class RDBTest(unittest.TestCase):
     def setUpClass(cls):
         cls.conn = connect(
             os.environ.get('HOST', 'localhost'),
-            int(os.environ.get('PORT', 28015+2010))
+            int(os.environ.get('PORT', 28015))
             )
         cls.db = db(os.environ.get('DB_NAME', 'test'))
-        cls.table_name = os.environ.get('TABLE_NAME', 'Welcome-rdb')
+        cls.table_name = os.environ.get('TABLE_NAME', 'test')
         cls.table = cls.db.table(cls.table_name)
         try:
             cls.db.table_create(cls.table_name)
@@ -42,7 +42,7 @@ class RDBTest(unittest.TestCase):
             self.assertEqual(res, expected)
         except Exception, e:
             root_ast = rethinkdb.internal.p.Query()
-            query._finalize_query(root_ast)
+            query._finalize_query(root_ast, {})
             print e
             raise
 
@@ -66,8 +66,7 @@ class RDBTest(unittest.TestCase):
         self.conn.run(self.table.delete())
 
     def do_insert(self, docs):
-        self.expect(self.table.insert(docs), {'generated_keys': [],
-                                              'errors': 0,
+        self.expect(self.table.insert(docs), {'errors': 0,
                                               'inserted': 1 if isinstance(docs, dict) else len(docs)})
 
     def test_arith(self):
@@ -157,15 +156,15 @@ class RDBTest(unittest.TestCase):
         self.error_query(letvar("x"), "not in scope")
 
     def test_if(self):
-        self.expect(if_then_else(True, 3, 4), 3)
-        self.expect(if_then_else(False, 4, 5), 5)
-        self.expect(if_then_else(expr(3) == 3, "foo", "bar"), "foo")
+        self.expect(branch(True, 3, 4), 3)
+        self.expect(branch(False, 4, 5), 5)
+        self.expect(branch(expr(3) == 3, "foo", "bar"), "foo")
 
-        self.error_exec(if_then_else(5, 1, 2), "bool")
+        self.error_exec(branch(5, 1, 2), "bool")
 
     def test_attr(self):
-        self.expect(expr({"foo": 3}).has_attr("foo"), True)
-        self.expect(expr({"foo": 3}).has_attr("bar"), False)
+        self.expect(expr({"foo": 3}).contains("foo"), True)
+        self.expect(expr({"foo": 3}).contains("bar"), False)
 
         self.expect(expr({"foo": 3})["foo"], 3)
         self.error_exec(expr({"foo": 3})["bar"], "missing")
@@ -179,6 +178,16 @@ class RDBTest(unittest.TestCase):
 
         self.error_exec(expr(5).extend({"a": 3}), "object")
         self.error_exec(expr({"a": 5}).extend(5), "object")
+
+    def test_picks(self):
+        obj = expr({"a": 1, "b": 2, "c": 3})
+        arr = expr([{"a": 1, "b": 2, "c": 3}, {"a": 1, "b": 2, "c": 3}])
+
+        self.expect(obj.pick('a', 'b'), {'a': 1, 'b': 2})
+        self.expect(obj.unpick('a', 'b'), {'c': 3})
+
+        self.expect(arr.pluck('a', 'b'), [{'a': 1, 'b': 2}, {'a': 1, 'b': 2}])
+        self.expect(arr.without('a', 'b'), [{'c': 3}, {'c': 3}])
 
     def test_array(self):
         expect = self.expect
@@ -218,32 +227,32 @@ class RDBTest(unittest.TestCase):
         fail(expr(arr)[expr(.1)], "integer")
         fail(expr([0])[1], "bounds")
 
-        expect(expr([]).length(), 0)
-        expect(expr(arr).length(), len(arr))
-        fail(expr(0).length(), "array")
+        expect(expr([]).count(), 0)
+        expect(expr(arr).count(), len(arr))
+        fail(expr(0).count(), "array")
 
     def test_stream(self):
         expect = self.expect
         fail = self.error_exec
         arr = range(10)
 
-        expect(expr(arr).to_stream().to_array(), arr)
+        expect(expr(arr).array_to_stream().stream_to_array(), arr)
 
-        expect(expr(arr).to_stream()[0], 0)
-        expect(expr(arr).to_stream()[5], 5)
-        fail(expr(arr).to_stream()[.4], "integer")
-        fail(expr(arr).to_stream()[-1], "nonnegative")
-        fail(expr([0]).to_stream()[1], "bounds")
+        expect(expr(arr).array_to_stream()[0], 0)
+        expect(expr(arr).array_to_stream()[5], 5)
+        fail(expr(arr).array_to_stream()[.4], "integer")
+        fail(expr(arr).array_to_stream()[-1], "nonnegative")
+        fail(expr([0]).array_to_stream()[1], "bounds")
 
     def test_stream_fancy(self):
         expect = self.expect
         fail = self.error_exec
 
         def limit(arr, count):
-            return expr(arr).to_stream().limit(count).to_array()
+            return expr(arr).array_to_stream().limit(count).stream_to_array()
 
         def skip(arr, offset):
-            return expr(arr).to_stream().skip(offset).to_array()
+            return expr(arr).array_to_stream().skip(offset).stream_to_array()
 
         expect(limit([], 0), [])
         expect(limit([1, 2], 0), [])
@@ -257,7 +266,7 @@ class RDBTest(unittest.TestCase):
         expect(skip([1, 2], 1), [2])
 
         def distinct(arr):
-            return expr(arr).to_stream().distinct()
+            return expr(arr).array_to_stream().distinct()
 
         expect(distinct([]), [])
         expect(distinct(range(10)*10), range(10))
@@ -265,7 +274,7 @@ class RDBTest(unittest.TestCase):
         expect(distinct([True, 2, False, 2]), [True, 2, False])
 
         expect(
-            expr([1, 2, 3]).to_stream().concat_map(lambda a: expr([a * 10, "test"]).to_stream()).to_array(),
+            expr([1, 2, 3]).array_to_stream().concat_map(lambda a: expr([a * 10, "test"]).array_to_stream()).stream_to_array(),
             [10, "test", 20, "test", 30, "test"]
             )
 
@@ -278,7 +287,7 @@ class RDBTest(unittest.TestCase):
             {"category": "entertainment", "cost": 6}
             ]
         self.expect(
-            expr(purchases).to_stream().grouped_map_reduce(
+            expr(purchases).array_to_stream().grouped_map_reduce(
                 R("category"),
                 R("cost"),
                 0,
@@ -289,7 +298,7 @@ class RDBTest(unittest.TestCase):
 
     def test_reduce(self):
         raise ValueError("Skip this test because it locks up for some reason")
-        expect(expr([1, 2, 3]).to_stream().reduce(0, fn("a", "b", R("$a") + R("$b"))), 6)
+        expect(expr([1, 2, 3]).array_to_stream().reduce(0, fn("a", "b", R("$a") + R("$b"))), 6)
         expect(expr([1, 2, 3]).reduce(0, fn("a", "b", R("$a") + R("$b"))), 6)
         expect(expr([]).reduce(21, fn("a", "b", 0)), 21)
 
@@ -298,7 +307,7 @@ class RDBTest(unittest.TestCase):
         fail = self.error_exec
 
         def order(arr, *args):
-            return expr(arr).to_stream().orderby(*args)
+            return expr(arr).array_to_stream().orderby(*args)
 
         docs = [{"id": 100 + n, "a": n, "b": n % 3} for n in range(10)]
 
@@ -333,7 +342,7 @@ class RDBTest(unittest.TestCase):
 
         self.expect(self.table.filter({"a": 3}), [docs[0]])
 
-        self.error_exec(self.table.filter({"a": self.table.length() + ""}), "numbers")
+        self.error_exec(self.table.filter({"a": self.table.count() + ""}), "numbers")
 
 
     def test_nonexistent_key(self):
@@ -360,9 +369,8 @@ class RDBTest(unittest.TestCase):
         self.clear_table()
 
         docs = [{"id": 100 + n, "a": n, "b": n % 3} for n in range(4)]
-        self.expect(self.table.insert(expr(docs).to_stream()),
+        self.expect(self.table.insert(expr(docs).array_to_stream()),
                     {'inserted': len(docs),
-                     'generated_keys': [],
                      'errors': 0})
 
         for doc in docs:
@@ -435,7 +443,7 @@ class RDBTest(unittest.TestCase):
 
     def test_stream_getitem(self):
         arr = range(10)
-        s = expr(arr).to_stream()
+        s = expr(arr).array_to_stream()
 
         self.expect(s[:], arr[:])
         self.expect(s[3:], arr[3:])
@@ -450,7 +458,7 @@ class RDBTest(unittest.TestCase):
         docs = [{"id": n, "a": "x" * n} for n in range(10)]
         self.do_insert(docs)
 
-        self.expect(self.table.orderby("id").range(2, 3), docs[2:4])
+        self.expect(self.table.orderby("id").between(2, 3), docs[2:4])
 
     def test_union(self):
         self.clear_table()
@@ -458,9 +466,9 @@ class RDBTest(unittest.TestCase):
         docs = [{'id':n} for n in xrange(20)]
         self.do_insert(docs)
 
-        self.expect(self.table.union(self.table).length(), 40)
-        #self.expect(r.union(self.table, self.table).length(), 40)
-        #self.expect((self.table + self.table).length(), 40)
+        self.expect(self.table.union(self.table).count(), 40)
+        #self.expect(r.union(self.table, self.table).count(), 40)
+        #self.expect((self.table + self.table).count(), 40)
 
         self.expect(expr([1,2]).union([3,4]), [1,2,3,4])
         self.expect(union([1,2], [3,4]), [1,2,3,4])
@@ -492,12 +500,12 @@ class RDBTest(unittest.TestCase):
         self.do_insert(docs)
         self.expect(self.table.orderby("id").map(lambda x: x), docs) # sanity check
 
-        self.expect(self.table.orderby("id").map(lambda x: js('x')), docs)
-        self.expect(self.table.orderby("id").map(lambda x: js('x.name')), names)
-        self.expect(self.table.orderby("id").filter(lambda x: js('x.id > 2')),
-                    [x for x in docs if x['id'] > 2])
-        self.expect(self.table.orderby("id").map(lambda x: js('x.id + ": " + x.name')),
-                    ["%s: %s" % (x['id'], x['name']) for x in docs])
+        #self.expect(self.table.orderby("id").map(lambda x: js('x')), docs)
+        #self.expect(self.table.orderby("id").map(lambda x: js('x.name')), names)
+        #self.expect(self.table.orderby("id").filter(lambda x: js('x.id > 2')),
+        #            [x for x in docs if x['id'] > 2])
+        #self.expect(self.table.orderby("id").map(lambda x: js('x.id + ": " + x.name')),
+        #            ["%s: %s" % (x['id'], x['name']) for x in docs])
 
         self.expect(self.table.orderby("id"), docs)
         self.expect(self.table.orderby("id").map(js('this')), docs)
@@ -566,54 +574,54 @@ class RDBTest(unittest.TestCase):
         self.expect(tbl.map(lambda row: row['x']).reduce(0, lambda a,b: a+b), 11)
 
         # Update skipped
-        res = tbl.update(lambda row: if_then_else(js('true'), None, {'x':0.1})).run()
+        res = tbl.update(lambda row: branch(js('true'), None, {'x':0.1})).run()
         self.assertEqual(res['errors'], 10)
-        res = tbl.update(lambda row: if_then_else(js('true'), None, {'x':0.1}), True).run()
+        res = tbl.update(lambda row: branch(js('true'), None, {'x':0.1}), True).run()
         self.assertEqual(res['skipped'], 10)
         self.expect(tbl.map(lambda row: row['x']).reduce(0, lambda a,b: a+b), 11)
 
-        self.error_exec(tbl.get(0).update(if_then_else(js('true'), None, {'x':0.1})), "deterministic")
-        res = tbl.get(0).update(if_then_else(js('true'), None, {'x':0.1}), True).run()
+        self.error_exec(tbl.get(0).update(branch(js('true'), None, {'x':0.1})), "deterministic")
+        res = tbl.get(0).update(branch(js('true'), None, {'x':0.1}), True).run()
         self.assertEqual(res['skipped'], 1)
         self.expect(tbl.map(lambda row: row['x']).reduce(0, lambda a,b: a+b), 11)
 
         # Mutate modify
-        self.error_exec(tbl.get(0).replace(lambda row: if_then_else(js('true'), row, None)), "deterministic")
-        res = tbl.get(0).replace(lambda row: if_then_else(js('true'), row, None), True).run()
+        self.error_exec(tbl.get(0).replace(lambda row: branch(js('true'), row, None)), "deterministic")
+        res = tbl.get(0).replace(lambda row: branch(js('true'), row, None), True).run()
         self.assertEqual(res['modified'], 1);
         self.expect(tbl.map(lambda row: row['x']).reduce(0, lambda a,b: a+b), 11)
 
-        res = tbl.replace(lambda row: if_then_else(js(str(row)+".id == 1"),
+        res = tbl.replace(lambda row: branch(js(str(row)+".id == 1"),
                                                 row.extend({'x':2}), row)).run()
         self.assertEqual(res['errors'], 10)
-        res = tbl.replace(lambda row: if_then_else(js(str(row)+".id == 1"),
+        res = tbl.replace(lambda row: branch(js(str(row)+".id == 1"),
                                                 row.extend({'x':2}), row), True).run()
         self.assertEqual(res['modified'], 10)
         self.expect(tbl.map(lambda row: row['x']).reduce(0, lambda a,b: a+b), 12)
 
         # Mutate error
-        self.error_exec(tbl.get(0).replace(lambda row: if_then_else(js('x'), row, None)),
+        self.error_exec(tbl.get(0).replace(lambda row: branch(js('x'), row, None)),
             "deterministic")
-        self.error_exec(tbl.get(0).replace(lambda row: if_then_else(js('x'), row, None), True),
+        self.error_exec(tbl.get(0).replace(lambda row: branch(js('x'), row, None), True),
             "not defined")
         self.expect(tbl.map(lambda row: row['x']).reduce(0, lambda a,b: a+b), 12)
 
-        res = tbl.replace(lambda row: if_then_else(js('x'), row, None)).run()
+        res = tbl.replace(lambda row: branch(js('x'), row, None)).run()
         self.assertEqual(res['errors'], 10)
-        res = tbl.replace(lambda row: if_then_else(js('x'), row, None), True).run()
+        res = tbl.replace(lambda row: branch(js('x'), row, None), True).run()
         self.assertEqual(res['errors'], 10)
         self.expect(tbl.map(lambda row: row['x']).reduce(0, lambda a,b: a+b), 12)
 
         # Mutate delete
-        self.error_exec(tbl.get(0).replace(lambda row: if_then_else(js('true'), None, row)),
+        self.error_exec(tbl.get(0).replace(lambda row: branch(js('true'), None, row)),
             "deterministic")
-        res = tbl.get(0).replace(lambda row: if_then_else(js('true'), None, row), True).run()
+        res = tbl.get(0).replace(lambda row: branch(js('true'), None, row), True).run()
         self.assertEqual(res['deleted'], 1)
         self.expect(tbl.map(lambda row: row['x']).reduce(0, lambda a,b: a+b), 10)
 
-        res = tbl.replace(lambda row: if_then_else(js(str(row)+".id < 3"), None, row)).run()
+        res = tbl.replace(lambda row: branch(js(str(row)+".id < 3"), None, row)).run()
         self.assertEqual(res['errors'], 9)
-        res = tbl.replace(lambda row: if_then_else(js(str(row)+".id < 3"), None, row), True).run()
+        res = tbl.replace(lambda row: branch(js(str(row)+".id < 3"), None, row), True).run()
         self.assertEqual(res, {'inserted':0, 'deleted':2, 'errors':0, 'modified':7})
         self.expect(tbl.map(lambda row: row['x']).reduce(0, lambda a,b: a+b), 7)
 

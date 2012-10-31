@@ -403,19 +403,23 @@ module 'ResolveIssuesView', ->
                                 num_machines: 0
                     else
                         # We won't add universe here because if universe has too many replicas, it's an issue in which there might two solutions. We will deal with this case later
-                        if datacenter_id isnt universe_datacenter.get('id') and number_replicas > @model.get('actual_machines_in_datacenters')[datacenter_id]
+                        if @model.get('actual_machines_in_datacenters')[datacenter_id]?
+                            number_machines_in_datacenter = @model.get('actual_machines_in_datacenters')[datacenter_id]
+                        else
+                            number_machines_in_datacenter = 0
+                        if datacenter_id isnt universe_datacenter.get('id') and number_replicas > number_machines_in_datacenter
                             datacenter_name = datacenters.get(datacenter_id).get('name') # That's safe, datacenters.get(datacenter_id) is defined
 
                             json.datacenters_with_issues.push
                                 datacenter_id: datacenter_id
                                 datacenter_name: datacenter_name
                                 num_replicas: number_replicas
-                                num_machines: @model.get('actual_machines_in_datacenters')[datacenter_id]
-                                change_ack: namespace.get('ack_expectations')[datacenter_id] > @model.get('actual_machines_in_datacenters')[datacenter_id]
+                                num_machines: number_machines_in_datacenter
+                                change_ack: namespace.get('ack_expectations')[datacenter_id] > number_machines_in_datacenter
 
                         # We substract the number of machines used by the datacenter if we solve the issue
                         if datacenter_id isnt universe_datacenter.get('id')
-                            number_machines_universe_can_use_if_no_known_issues -= Math.min number_replicas, @model.get('actual_machines_in_datacenters')[datacenter_id]
+                            number_machines_universe_can_use_if_no_known_issues -= Math.min number_replicas, number_machines_in_datacenter
 
                 # The primary might not have a value in @model.get('replica_affinities'), in which case we just missed it, so let's check
                 if not @model.get('replica_affinities')[@model.get('primary_datacenter')]? and @model.get('primary_datacenter') isnt universe_datacenter.get('id')
@@ -428,12 +432,18 @@ module 'ResolveIssuesView', ->
                     if found_machine is false
                         # We didn't find any machine in the datacenter
                         datacenter_id = @model.get('primary_datacenter')
+
+                        if @model.get('actual_machines_in_datacenters')[datacenter_id]?
+                            number_machines_in_datacenter = @model.get('actual_machines_in_datacenters')[datacenter_id]
+                        else
+                            number_machines_in_datacenter = 0
+
                         json.datacenters_with_issues.push
                             datacenter_id: datacenter_id
                             datacenter_name: datacenters.get(datacenter_id).get('name') # Safe since it cannot be universe
                             num_replicas: number_replicas
                             num_machines: 0
-                            change_ack: namespace.get('ack_expectations')[datacenter_id] > @model.get('actual_machines_in_datacenters')[datacenter_id]
+                            change_ack: namespace.get('ack_expectations')[datacenter_id] > number_machines_in_datacenter
 
 
                 number_machines_requested_by_universe = @model.get('replica_affinities')[universe_datacenter.get('id')]
@@ -441,6 +451,10 @@ module 'ResolveIssuesView', ->
                     number_machines_requested_by_universe++
                 # If universe has some responsabilities and that the user is asking for too many replicas across the whole cluster
                 if @model.get('replica_affinities')[universe_datacenter.get('id')]? and number_machines_universe_can_use_if_no_known_issues < number_machines_requested_by_universe
+                    number_replicas = @model.get('replica_affinities')[universe_datacenter.get('id')]
+                    if datacenter_id is @model.get('primary_datacenter')
+                        number_replicas++
+
                     extra_replicas_accross_cluster = @model.get('replica_affinities')[universe_datacenter.get('id')] - number_machines_universe_can_use_if_no_known_issues
 
                     # We might still be able to solve the issue if the table is just using universe. Let's check that
