@@ -34,7 +34,7 @@ class PrettyPrintTest(unittest.TestCase):
         self.assertEqual(str(expr([expr(2)])), "expr([2])")
 
         # Make sure this doesn't crash
-        str(expr([1,2,3]).to_stream().map(fn("x", R("$x") * 2)))
+        str(expr([1,2,3]).array_to_stream().map(fn("x", R("$x") * 2)))
 
     def test_backtraces(self):
         try:
