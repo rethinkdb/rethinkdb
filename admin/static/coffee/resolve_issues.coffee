@@ -157,7 +157,7 @@ module 'ResolveIssuesView', ->
                 contentType: 'application/json'
                 success: set_issues
                 async: false
-
+            super
 
 
     class @ResolveUnsatisfiableGoal extends UIComponents.AbstractModal
