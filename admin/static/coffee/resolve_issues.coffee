@@ -498,7 +498,8 @@ module 'ResolveIssuesView', ->
             json =
                 issue_type: @model.get('type')
                 critical: @model.get('critical')
-                raw_data: @model.toJSON()
+                raw_data: JSON.stringify(@model, undefined, 2)
+                datetime: iso_date_from_unix_time @model.get('time')
             @.$el.html _template(json)
 
         render: ->
