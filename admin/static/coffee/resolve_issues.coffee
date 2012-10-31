@@ -325,6 +325,11 @@ module 'ResolveIssuesView', ->
                 else
                     return @model.get('object_type') + 's/' + @model.get('object_id') + '/' + @model.get('field') + '/resolve'
 
+            # Remove the old handler before we rerender
+            if @contestants?
+                _.each @contestants, (contestant) =>
+                    @.$('#resolve_' + contestant.contestant_id).off 'click'
+                
             # grab possible conflicting values
             $.ajax
                 url: '/ajax/semilattice/' + get_resolution_url()
@@ -350,9 +355,6 @@ module 'ResolveIssuesView', ->
                 field: @model.get('field')
                 name_contest: @model.get('field') is 'name'
                 contestants: @contestants
-
-            # Remove the old handler before we rerender
-            @.$('#resolve_' + contestant.contestant_id).off 'click'
 
             @.$el.html _template(json)
 
@@ -414,6 +416,25 @@ module 'ResolveIssuesView', ->
                         # We substract the number of machines used by the datacenter if we solve the issue
                         if datacenter_id isnt universe_datacenter.get('id')
                             number_machines_universe_can_use_if_no_known_issues -= Math.min number_replicas, @model.get('actual_machines_in_datacenters')[datacenter_id]
+
+                # The primary might not have a value in @model.get('replica_affinities'), in which case we just missed it, so let's check
+                if not @model.get('replica_affinities')[@model.get('primary_datacenter')]? and @model.get('primary_datacenter') isnt universe_datacenter.get('id')
+                    number_replicas = 1 # No secondaries, and is primary
+                    found_machine = false
+                    for machine in machines.models
+                        if machine.get('datacenter_uuid') is @model.get('primary_datacenter')
+                            found_machine = true
+                            break
+                    if found_machine is false
+                        # We didn't find any machine in the datacenter
+                        datacenter_id = @model.get('primary_datacenter')
+                        json.datacenters_with_issues.push
+                            datacenter_id: datacenter_id
+                            datacenter_name: datacenters.get(datacenter_id).get('name') # Safe since it cannot be universe
+                            num_replicas: number_replicas
+                            num_machines: 0
+                            change_ack: namespace.get('ack_expectations')[datacenter_id] > @model.get('actual_machines_in_datacenters')[datacenter_id]
+
 
                 number_machines_requested_by_universe = @model.get('replica_affinities')[universe_datacenter.get('id')]
                 if @model.get('primary_datacenter') is universe_datacenter.get('id')
