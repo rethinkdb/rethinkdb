@@ -158,7 +158,6 @@ module 'ResolveIssuesView', ->
                 success: set_issues
                 async: false
 
-            super
 
 
     class @ResolveUnsatisfiableGoal extends UIComponents.AbstractModal
@@ -176,6 +175,8 @@ module 'ResolveIssuesView', ->
         render: (data)->
             log_render '(rendering) resolve unsatisfiable goal'
             super
+                namespace_id: @namespace.get('id')
+                namespace_name: @namespace.get('name')
                 datacenters_with_issues: @datacenters_with_issues
                 modal_title: "Lower number of replicas"
 
@@ -382,6 +383,11 @@ module 'ResolveIssuesView', ->
 
                 # Find the datacenters in which we are sure that there is a unsatisfiable goal ( replicas > number of machines in the datacenter )
                 for datacenter_id of @model.get('replica_affinities')
+                    # Compute the number of replicas required
+                    number_replicas = @model.get('replica_affinities')[datacenter_id]
+                    if datacenter_id is @model.get('primary_datacenter')
+                        number_replicas++
+
                     #If the datacenter was removed
                     if not datacenters.get(datacenter_id)? and datacenter_id isnt universe_datacenter.get('id')
                         if @model.get('replica_affinities')[datacenter_id] isnt 0
@@ -394,54 +400,69 @@ module 'ResolveIssuesView', ->
                                 num_replicas: number_replicas
                                 num_machines: 0
                     else
-                        # Compute the number of replicas required
-                        number_replicas = @model.get('replica_affinities')[datacenter_id]
-                        if datacenter_id is @model.get('primary_datacenter')
-                            number_replicas++
-
-                        # We won't add universe here because if universe has too many replicas, it's an issue in which there are two solutions.
+                        # We won't add universe here because if universe has too many replicas, it's an issue in which there might two solutions. We will deal with this case later
                         if datacenter_id isnt universe_datacenter.get('id') and number_replicas > @model.get('actual_machines_in_datacenters')[datacenter_id]
                             datacenter_name = datacenters.get(datacenter_id).get('name') # That's safe, datacenters.get(datacenter_id) is defined
+
                             json.datacenters_with_issues.push
-                                known_issue: true
                                 datacenter_id: datacenter_id
                                 datacenter_name: datacenter_name
                                 num_replicas: number_replicas
                                 num_machines: @model.get('actual_machines_in_datacenters')[datacenter_id]
+                                change_ack: namespace.get('ack_expectations')[datacenter_id] > @model.get('actual_machines_in_datacenters')[datacenter_id]
 
                         # We substract the number of machines used by the datacenter if we solve the issue
                         if datacenter_id isnt universe_datacenter.get('id')
                             number_machines_universe_can_use_if_no_known_issues -= Math.min number_replicas, @model.get('actual_machines_in_datacenters')[datacenter_id]
 
+                number_machines_requested_by_universe = @model.get('replica_affinities')[universe_datacenter.get('id')]
+                if @model.get('primary_datacenter') is universe_datacenter.get('id')
+                    number_machines_requested_by_universe++
                 # If universe has some responsabilities and that the user is asking for too many replicas across the whole cluster
-                if @model.get('replica_affinities')[universe_datacenter.get('id')]? and number_machines_universe_can_use_if_no_known_issues < @model.get('replica_affinities')[universe_datacenter.get('id')]
+                if @model.get('replica_affinities')[universe_datacenter.get('id')]? and number_machines_universe_can_use_if_no_known_issues < number_machines_requested_by_universe
                     extra_replicas_accross_cluster = @model.get('replica_affinities')[universe_datacenter.get('id')] - number_machines_universe_can_use_if_no_known_issues
 
-                    # We have an unsatisfiable goals now, but we cannot tell the user where the problem comes from
-                    json.extra_replicas_accross_cluster =
-                        value: extra_replicas_accross_cluster
-                        datacenters_that_can_help: []
-                    # Let's add to datacenters_that_can_help all the datacenters that have some responsabilities (so servers that could potentially work for universe instead of its datacenter)
+                    # We might still be able to solve the issue if the table is just using universe. Let's check that
+                    num_active_datacenters = 0
                     for datacenter_id of @model.get('replica_affinities')
-                        if @model.get('replica_affinities')[datacenter_id] > 0 and @model.get('actual_machines_in_datacenters')[datacenter_id] > 0 and datacenters.get(datacenter_id)? and datacenter_id isnt universe_datacenter.get('id')
-                            datacenter_name = datacenters.get(datacenter_id)?.get('name')
-                            num_replicas_requested = @model.get('replica_affinities')[datacenter_id]
-                            if @model.get('primary_datacenter') is datacenter_id
-                                num_replicas_requested++
-                            json.extra_replicas_accross_cluster.datacenters_that_can_help.push
-                                datacenter_id: datacenter_id
-                                datacenter_name: (datacenter_name if datacenter_name?)
-                                num_replicas_requested: num_replicas_requested
+                        if @model.get('replica_affinities')[datacenter_id] > 0
+                            num_active_datacenters++
+                    # Because the primary might ask for no secondary, we may have missed one datacenter. Let's make sure that we don't
+                    if (not @model.get('replica_affinities')[@model.get('primary_datacenter')]?) or @model.get('replica_affinities')[@model.get('primary_datacenter')] is 0
+                        num_active_datacenters++
+                    # If only universe has too many replicas
+                    if num_active_datacenters is 1
+                        json.datacenters_with_issues.push
+                            is_universe: true
+                            datacenter_id: universe_datacenter.get('id')
+                            num_replicas: number_replicas
+                            num_machines: machines.length
+                            change_ack: namespace.get('ack_expectations')[universe_datacenter.get('id')] > machines.length
+                    else
+                        # We have an unsatisfiable goals now, but we cannot tell the user where the problem comes from
+                        json.extra_replicas_accross_cluster =
+                            value: extra_replicas_accross_cluster
+                            datacenters_that_can_help: []
+                        # Let's add to datacenters_that_can_help all the datacenters that have some responsabilities (so servers that could potentially work for universe instead of its datacenter)
+                        for datacenter_id of @model.get('replica_affinities')
+                            if @model.get('replica_affinities')[datacenter_id] > 0 and @model.get('actual_machines_in_datacenters')[datacenter_id] > 0 and datacenters.get(datacenter_id)? and datacenter_id isnt universe_datacenter.get('id')
+                                datacenter_name = datacenters.get(datacenter_id)?.get('name')
+                                num_replicas_requested = @model.get('replica_affinities')[datacenter_id]
+                                if @model.get('primary_datacenter') is datacenter_id
+                                    num_replicas_requested++
+                                json.extra_replicas_accross_cluster.datacenters_that_can_help.push
+                                    datacenter_id: datacenter_id
+                                    datacenter_name: (datacenter_name if datacenter_name?)
+                                    num_replicas_requested: num_replicas_requested
 
-                    # Let's add universe at the beginning
-                    json.extra_replicas_accross_cluster.datacenters_that_can_help.unshift
-                        datacenter_id: universe_datacenter.get('id')
-                        is_universe: true
-                        num_replicas_requested: @model.get('replica_affinities')[universe_datacenter.get('id')]
+                        # Let's add universe at the beginning
+                        json.extra_replicas_accross_cluster.datacenters_that_can_help.unshift
+                            datacenter_id: universe_datacenter.get('id')
+                            is_universe: true
+                            num_replicas_requested: @model.get('replica_affinities')[universe_datacenter.get('id')]
 
 
                 json.can_solve_issue = json.datacenters_with_issues.length > 0
-
             @.$el.html _template(json)
 
             # bind resolution events
