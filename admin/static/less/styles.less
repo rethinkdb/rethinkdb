@@ -1828,7 +1828,7 @@ TODO: retire this
                     list-style: square;
                     width: 400px;
                     border-bottom: 1px solid #eee;
-                    .name{
+                    .name {
                         width: 180px;
                         display: inline-block;
                         padding: 0px 0px 4px 0px;
@@ -1840,127 +1840,26 @@ TODO: retire this
     .section.replication {
         .nav-tabs { padding-left: 0; }
 
-        .datacenter_list_container {
-            padding: 0px;
-            @default: #efefef; 
-            @active: #23a5df;
-            @universe: #f7ae41;
-            @height: 40px;
-
-            .datacenter_tab {
-                position: relative;
-                width: 100px;
-                margin: 10px 0;
-                background: @default;
-                height: @height;
-                line-height: @height;
-                padding: 0 10px;
-                a {
-                    display: block;
-                    cursor: pointer;
-                    @color: #7e7e7e;
-                    color: @color;
-                    &:hover {
-                        color: @color;
-                        text-decoration: none;
-                    }
-                }
-                .border-radius(3px);
-                
-                &.active {
-                    background-color: @active;
-                    border-color: @active;
-                    a { 
-                        @color: #fff;
-                        color: @color;
-                        &:hover { color: @color; }
-                    }
-                    .border-radius(3px 0 0 3px);
-                    // chevron for the active tab
-                    &:after {
-                        content: " ";
-                        font-size:0;
-                        height:0;
-                        line-height:0;
-                        border-style: solid;
-                        border-color: transparent;
-                        border-width: @height/2 0 @height/2 @height/2;
-                        border-left-color: @active;
-                        position: absolute;
-                        right: 0px - @height/2;
-                        top:0;
-                    }
-                }
-                
-
-                &.universe {
-                    background: @universe url('http://bit.ly/RCkmeT') 8px center no-repeat; //globe-icon_white.png
-                    border-color: @universe;
-                    color: #fcfcfc;
-                    a {
-                        @color: #fcfcfc;
-                        color: @color;
-                        &:hover { color: @color; }
-                        padding-left: 24px;
-                    }
-                    
-                    &.active:after {
-                        border-left-color: @universe;
-                    }
-                    
-                }
-            }
-        }
-        .universe_container{
+        .cluster_container{
             overflow: auto;
-            border-bottom: 1px solid #888;
-            .universe-role{
-                 p {
-                    font-family: @sans;
-                    margin: 0;
-                    &.caption {
-                        padding: 0px 20px 0px 0px;
-                        color: #7ec4e3;
-                        font-weight: bold;
-                        font-size: 24px;
-                        line-height: 48px;
-                        float: left;
-                    }
-                    &.value {
-                        padding: 3px 20px 0px 6px;
-                        color: #5c6169;
-                        font-size: 24px;
-                        line-height: 48px;
-                    }
-                }           
-                .make-primary{
-                    float: right;
-                    margin-right: 15px;
-                }
-            }
+            border-bottom: 1px solid #efefef;
+            padding: 10px 0;
+            margin-bottom: 20px;
             .replica_container{
-
                 p {
+                    display: inline-block;
                     font-family: @sans;
-                    margin: 0;
-                    &.caption {
-                        padding: 0px 20px 0px 0px;
-                        color: #7ec4e3;
-                        font-weight: bold;
-                        font-size: 24px;
-                        line-height: 48px;
-                        float: left;
-                    }
-                    &.value {
-                        padding: 3px 20px 0px 6px;
-                        color: #5c6169;
+                    margin: 0 40px 0 0;
+                    span.value {
+                        padding: 0px 6px 0px 0px;
+                        color: #f7ae41;
                         font-size: 24px;
                         line-height: 48px;
                     }
-                }
-                .replica_value, .ack_value{
-                    float: left;
-                    width: 170px;
+                    span.caption {
+                        color: #a9a9a9;
+                        font-size: 14px;
+                    }
                 }
                 .inline_edit_input{
                     margin: 4px 0px 3px 0px;
@@ -1972,88 +1871,160 @@ TODO: retire this
                 }
                 .btn{
                     margin-top: 6px;
-                }               
-                .edit{
                     float: right;
-                    margin-right: 15px;
-                }
+                    margin-left: 15px;
+                }               
             }
         }
-        .datacenter_content{
-            margin: 0px;
-            padding-left: 10px;
-            .datacenter_view{ margin: 0px 0px 0px 40px; }
-            .progress_bar_full_container{
-                display: none;
-                .progress_bar_container{
-                    padding: 11px 0px 10px 0px;
-                    .details{
-                        font-family: @sans;
-                        margin: 0px;
-                        font-size: 14px;
-                        line-height: 20px;
+        .hide-mdc { display: none; }
+        .mdc-options {
+            margin-top: 20px;
+            &.hidden { display: none; }
+            .datacenter_list_container {
+                padding: 0px;
+                @default: #efefef; 
+                @active: #23a5df;
+                @universe: #f7ae41;
+                @height: 40px;
+
+                .datacenter_tab {
+                    position: relative;
+                    width: 100px;
+                    margin: 10px 0;
+                    background: @default;
+                    height: @height;
+                    line-height: @height;
+                    padding: 0 10px;
+                    a {
+                        display: block;
+                        cursor: pointer;
+                        @color: #7e7e7e;
+                        color: @color;
+                        &:hover {
+                            color: @color;
+                            text-decoration: none;
+                        }
                     }
-                    .replicating{
-                        font-family: @sans;
-                        margin: 0px;
-                        color: #7ec4e3;
-                        font-size: 14px;
-                        line-height: 20px;
-                        font-weight: bold;
+                    .border-radius(3px);
+                    
+                    &.active {
+                        background-color: @active;
+                        border-color: @active;
+                        a { 
+                            @color: #fff;
+                            color: @color;
+                            &:hover { color: @color; }
+                        }
+                        .border-radius(3px 0 0 3px);
+                        // chevron for the active tab
+                        &:after {
+                            content: " ";
+                            font-size:0;
+                            height:0;
+                            line-height:0;
+                            border-style: solid;
+                            border-color: transparent;
+                            border-width: @height/2 0 @height/2 @height/2;
+                            border-left-color: @active;
+                            position: absolute;
+                            right: 0px - @height/2;
+                            top:0;
+                        }
                     }
-                    .full_bar{
-                        .border-radius(5px);
-                        height: 10px;
-                        background: #eee;
-                        .box-shadow(~"inset 1px 1px 2px #ddd");
-                        .bar{
-                            height: 10px;
+                    
+
+                    &.universe {
+                        background: @universe url('http://bit.ly/RCkmeT') 8px center no-repeat; //globe-icon_white.png
+                        border-color: @universe;
+                        color: #fcfcfc;
+                        a {
+                            @color: #fcfcfc;
+                            color: @color;
+                            &:hover { color: @color; }
+                            padding-left: 24px;
+                        }
+                        
+                        &.active:after {
+                            border-left-color: @universe;
+                        }
+                        
+                    }
+                }
+            }
+            .datacenter_content{
+                margin: 0px;
+                padding-left: 10px;
+                .datacenter_view{ margin: 0px 0px 0px 40px; }
+                .progress_bar_full_container{
+                    display: none;
+                    .progress_bar_container{
+                        padding: 11px 0px 10px 0px;
+                        .details{
+                            font-family: @sans;
+                            margin: 0px;
+                            font-size: 14px;
+                            line-height: 20px;
+                        }
+                        .replicating{
+                            font-family: @sans;
+                            margin: 0px;
+                            color: #7ec4e3;
+                            font-size: 14px;
+                            line-height: 20px;
+                            font-weight: bold;
+                        }
+                        .full_bar{
                             .border-radius(5px);
-                            background: #f7ae41;
-                            .box-shadow(~"inset 1px -2px 4px #DB8812");
+                            height: 10px;
+                            background: #eee;
+                            .box-shadow(~"inset 1px 1px 2px #ddd");
+                            .bar{
+                                height: 10px;
+                                .border-radius(5px);
+                                background: #f7ae41;
+                                .box-shadow(~"inset 1px -2px 4px #DB8812");
+                            }
                         }
                     }
                 }
-            }
-            .dc-info {
-                border-bottom: thin solid #f0f0f0;
-                margin-bottom: 14px;
-                overflow: hidden;
-                button { float: right; }
+                .dc-info {
+                    border-bottom: thin solid #f0f0f0;
+                    margin-bottom: 14px;
+                    overflow: hidden;
+                    button { float: right; }
 
-                p {
-                    font-family: @sans;
-                    margin: 0;
-                    &.caption {
-                        color: #7ec4e3;
-                        font-size: 14px;
-                        line-height: 20px;
-                        font-weight: bold;
+                    p {
+                        font-family: @sans;
+                        margin: 0;
+                        &.caption {
+                            color: #7ec4e3;
+                            font-size: 14px;
+                            line-height: 20px;
+                        }
+                        &.value {
+                            color: #5c6169;
+                            font-size: 24px;
+                            line-height: 48px;
+                        }
                     }
-                    &.value {
-                        padding: 3px 0px 0px 6px;
-                        color: #5c6169;
+                    .replica_value, .ack_value{
+                        float: left;
+                        width: 80px;
+                    }
+                    .inline_edit_input{
+                        margin: 4px 0px 3px 0px;
+                        width: 40px;
+                        padding: 3px 4px;
+                        height: 36px;
                         font-size: 24px;
-                        line-height: 48px;
+                        font-family: @sans;
                     }
+                    .btn{
+                        margin-top: 26px;
+                    }
+                    .save_replicas_and_acks{ margin: 30px 0px 0px 0px; }
+                    .make-primary{ margin: 10px 0px 0px 0px; }
                 }
-                .replica_value, .ack_value{
-                    float: left;
-                    width: 80px;
-                }
-                .inline_edit_input{
-                    margin: 4px 0px 3px 0px;
-                    width: 40px;
-                    padding: 3px 4px;
-                    height: 36px;
-                    font-size: 24px;
-                    font-family: @sans;
-                }
-                .btn{
-                    margin-top: 26px;
-                }
-                .save_replicas_and_acks{ margin: 30px 0px 0px 0px; }
-                .make-primary{ margin: 10px 0px 0px 0px; }
             }
         }
     }
@@ -2101,35 +2072,6 @@ TODO: retire this
                 }
             }
             .edit, .cancel, .rebalance{ margin: 0px 0px 0px 10px; }
-        }
-        .shards_status_container{
-            .caption {
-                font-family: @sans;
-                color: #7ec4e3;
-                font-size: 14px;
-                line-height: 20px;
-                font-weight: bold;
-            }
-            .value {
-                padding: 3px 0px 0px 6px;
-                color: #5c6169;
-                font-size: 24px;
-                line-height: 48px;
-            }
-            .sharding_img_container{
-                height: 16px;
-                width: 16px;
-                margin: 0px 15px 0px 0px;
-                float: left;
-                .sharding_img{
-                    display: none;
-                }
-            }
-            .shards_status{
-                font-family: @sans;
-                font-size: 16px;
-            }
-
         }
         .shard-graph {
             line { stroke: #dcdcdc; }
@@ -2193,6 +2135,196 @@ TODO: retire this
         }
     }
 }
+/*
+    ----------------------------
+    Progress bar UIComponent
+    ----------------------------
+*/
+.replica-status, .shard-status {
+    font-family: @sans;
+    font-size: 15px;
+    color: #72BDDF;
+    padding: 10px 0;
+    border-bottom: 1px solid #efefef;
+    margin-bottom: 20px;
+    p {
+        margin: 0;
+        line-height: 48px;
+    }
+    span.big {
+        font-size: 24px;
+        color: #5C6169;
+    }
+
+    .progress-status {
+        p {
+            color: #a9a9a9;
+            line-height: normal;
+            margin-bottom: 10px;
+        }
+
+        .progress {
+            height: 12px;
+            .border-radius(12px);
+            width: 65%;
+            .bar { 
+                width: 100%;
+                background-color: #f7ad41;
+            }
+        }
+        .stages {
+            width: 30%;
+            float: right;
+            p {
+                text-align: right;
+                font-size: 13px;
+                margin-bottom: 15px;
+                &.completed:before {
+                    content: '\2714';
+                    display: block;
+                    float: left;
+                    font-size: 13px;
+                    color: #4E9258;
+                    padding-left: 10px;
+                }
+            }
+        }
+    }
+}
+/*
+    ----------------------------
+    Progress bars from Bootstrap 2.2.0
+    -- note: we did not want to upgrade all of
+    our dependencies to the new version of
+    Bootstrap, but we needed some critical fixes
+    for progress bars. To that end, the following
+    styles are taken from progress-bars.less of
+    v2.2.0. Remove on upgrade! TODO
+    ----------------------------
+*/
+
+
+// ANIMATIONS
+// ----------
+.progress_striped(@color: #555, @angle: 45deg) {
+    background-color: @color;
+    background-image: -webkit-gradient(linear, 0 100%, 100% 0, color-stop(.25, rgba(255,255,255,.15)), color-stop(.25, transparent), color-stop(.5, transparent), color-stop(.5, rgba(255,255,255,.15)), color-stop(.75, rgba(255,255,255,.15)), color-stop(.75, transparent), to(transparent));
+    background-image: -webkit-linear-gradient(@angle, rgba(255,255,255,.15) 25%, transparent 25%, transparent 50%, rgba(255,255,255,.15) 50%, rgba(255,255,255,.15) 75%, transparent 75%, transparent);
+    background-image: -moz-linear-gradient(@angle, rgba(255,255,255,.15) 25%, transparent 25%, transparent 50%, rgba(255,255,255,.15) 50%, rgba(255,255,255,.15) 75%, transparent 75%, transparent);
+    background-image: -o-linear-gradient(@angle, rgba(255,255,255,.15) 25%, transparent 25%, transparent 50%, rgba(255,255,255,.15) 50%, rgba(255,255,255,.15) 75%, transparent 75%, transparent);
+    background-image: linear-gradient(@angle, rgba(255,255,255,.15) 25%, transparent 25%, transparent 50%, rgba(255,255,255,.15) 50%, rgba(255,255,255,.15) 75%, transparent 75%, transparent);
+}
+
+// Webkit
+@-webkit-keyframes progress-bar-stripes {
+  from  { background-position: 40px 0; }
+  to    { background-position: 0 0; }
+}
+
+// Firefox
+@-moz-keyframes progress-bar-stripes {
+  from  { background-position: 40px 0; }
+  to    { background-position: 0 0; }
+}
+
+// IE9
+@-ms-keyframes progress-bar-stripes {
+  from  { background-position: 40px 0; }
+  to    { background-position: 0 0; }
+}
+
+// Opera
+@-o-keyframes progress-bar-stripes {
+  from  { background-position: 0 0; }
+  to    { background-position: 40px 0; }
+}
+
+// Spec
+@keyframes progress-bar-stripes {
+  from  { background-position: 40px 0; }
+  to    { background-position: 0 0; }
+}
+
+// THE BARS
+// --------
+
+// Outer container
+.progress {
+  overflow: hidden;
+  height: @baseLineHeight;
+  margin-bottom: @baseLineHeight;
+  #gradient > .vertical(#f5f5f5, #f9f9f9);
+  .box-shadow(~"inset 0 1px 2px rgba(0,0,0,.1)");
+  .border-radius(4px);
+}
+
+// Bar of progress
+.progress .bar {
+  width: 0%;
+  height: 100%;
+  color: @white;
+  float: left;
+  font-size: 12px;
+  text-align: center;
+  text-shadow: 0 -1px 0 rgba(0,0,0,.25);
+  #gradient > .vertical(#149bdf, #0480be);
+  .box-shadow(~"inset 0 -1px 0 rgba(0,0,0,.15)");
+  .box-sizing(border-box);
+  .transition(~"width .6s ease");
+}
+.progress .bar + .bar {
+  .box-shadow(~"inset 1px 0 0 rgba(0,0,0,.15), inset 0 -1px 0 rgba(0,0,0,.15)");
+}
+
+// Striped bars
+.progress-striped .bar {
+  .progress_striped(#149bdf);
+  .background-size(~"40px 40px");
+}
+
+// Call animation for the active one
+.progress.active .bar {
+  -webkit-animation: progress-bar-stripes 2s linear infinite;
+     -moz-animation: progress-bar-stripes 2s linear infinite;
+      -ms-animation: progress-bar-stripes 2s linear infinite;
+       -o-animation: progress-bar-stripes 2s linear infinite;
+          animation: progress-bar-stripes 2s linear infinite;
+}
+
+// COLORS
+// ------
+
+// Danger (red)
+.progress-danger .bar, .progress .bar-danger {
+  #gradient > .vertical(#ee5f5b, #c43c35);
+}
+.progress-danger.progress-striped .bar, .progress-striped .bar-danger {
+  .progress_striped(#ee5f5b);
+}
+
+// Success (green)
+.progress-success .bar, .progress .bar-success {
+  #gradient > .vertical(#62c462, #57a957);
+}
+.progress-success.progress-striped .bar, .progress-striped .bar-success {
+  .progress_striped(#62c462);
+}
+
+// Info (teal)
+.progress-info .bar, .progress .bar-info {
+  #gradient > .vertical(#5bc0de, #339bb9);
+}
+.progress-info.progress-striped .bar, .progress-striped .bar-info {
+  .progress_striped(#5bc0de);
+}
+
+// Warning (orange)
+.progress-warning .bar, .progress .bar-warning {
+  #gradient > .vertical(lighten(@orange, 15%), @orange);
+}
+.progress-warning.progress-striped .bar, .progress-striped .bar-warning {
+  .progress_striped(lighten(@orange, 15%));
+}
 
 /*
     ----------------------------
@@ -2204,7 +2336,7 @@ TODO: retire this
     #translucent > .background(#000, 0.1);
     border: thin solid #BBB;
     padding: 10px 15px 20px 30px;
-    position: absolute;
+    position: fixed;
     right: 0;
     width: 190px;
     z-index: 1000;

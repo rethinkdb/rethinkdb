@@ -1,15 +1,10 @@
 <script id="shards_container-template" type="text/x-handlebars-template">
+    <h2 class="title">Shard status</h2>
+    <div class="shard-status"></div>
     <h2 class="title">Sharding settings</h2>
     <div class="user-alert-space"></div>
     <div class="critical_error alert alert-error"></div>
     <div class="edit-shards"></div>
-    <div class="shards_status_container">
-        <p class="caption">Status</p>
-        <div class="sharding_img_container">
-            <img src="/images/ajax-loader.gif" class="sharding_img">
-        </div>
-        <div class="shards_status"></div>
-    </div>
     <div class="data_repartition-container">
         <p>Loading...</p>
     </div>
@@ -32,9 +27,7 @@
 
 <script id="edit_shards-feedback-template" type="text/x-handlebars-template">
     <div class="close" href="#">&times;</div>
-    <p>
-    {{this}}
-    </p>
+    <p>{{this}}</p>
 </script>
 
 <script id="alert_shard-template" type="text/x-handlebars-template">
@@ -57,12 +50,32 @@
     </div>
 </script>
 
-
-<script id="shards_status-template" type="text/x-handlebars-template">
-    <p>
-    {{#if is_sharding}}
+<script id="shard_status-template" type="text/x-handlebars-template">
+    {{#if operation_active}}
+        <div class="progress-status">
+            <div class="stages">
+                {{#if starting}}
+                    <p>Started</p>
+                {{/if}}
+                {{#if processing}}
+                    <p class="completed">Started</p>
+                    <p>Sharding</p>
+                {{/if}}
+                {{#if finished}}
+                    <p class="completed">Started</p>
+                    <p class="completed">Sharded</p>
+                {{/if}}
+            </div>
+            {{#if starting}}
+                <p>0/{{new_value}} shards completed</p>
+            {{else}}
+                <p>{{current_value}}/{{max_value}} shards completed</p>
+            {{/if}}
+            <div class="progress"><div class="bar" style="width:{{#if starting}}0{{else}}{{percent_complete}}{{/if}}%"></div></div>
+        </div>
+    {{else}}
+        <p><span class="big">{{current_value}}/{{max_value}}</span> shards reachable</p>
     {{/if}}
-    {{num_shards_ready}}/{{num_shards}} working.</p>
 </script>
 
 <script id="shards-reason_cannot_shard-template" type="text/x-handlebars-template">
@@ -72,6 +85,4 @@
     {{#if unsatisfiable_goals}}
     You have to solve the unsatisfiable goal before sharding.
     {{/if}}
-       
-
 </script>

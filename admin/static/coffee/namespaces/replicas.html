@@ -1,12 +1,18 @@
 <script id="namespace_view-replica-template" type="text/x-handlebars-template">
-    <h2 class="title">Replication across the cluster</h2>
+    <h2 class="title">Replication status</h2>
+    <div class="progress_bar_container"></div>
+    <div class="replica-status"></div>
+    <h2 class="title">Replication settings</h2>
     <div class="alert alert-error no_datacenter_found"><p>The primary datacenter of this table was not found. Please specify another primary datacenter (or Universe).</p></div>
     <div class="alert alert-error ack_greater_than_replicas"></div>
-    <div class="universe_container"></div>
-    <h2 class="title">Replication on each datacenter</h2>
-    <div class="row-fluid">
-        <div class="span3 tabbable tabs-left datacenters_list_container"></div>
-        <div class="span9 tab-content datacenter_content"></div>
+    <div class="cluster_container"></div>
+    <a href="#" class="toggle-mdc show-mdc">Show multi-datacenter options</a>
+    <a href="#" class="toggle-mdc hide-mdc">Hide multi-datacenter options</a>
+    <div class="mdc-options hidden">
+        <div class="row-fluid">
+            <div class="span3 tabbable tabs-left datacenters_list_container"></div>
+            <div class="span9 tab-content datacenter_content"></div>
+        </div>
     </div>
 </script>
 
@@ -25,52 +31,31 @@
 </script>
 
 <script id="namespace_view-universe_replica-template" type="text/x-handlebars-template">
-    <div class="replica-status"></div>
-    <div class="universe-info universe-role">
-        <p class="caption">Role</p>
-        {{#unless primary}}
-            <button class="btn make-primary">Make Primary</button>
-        {{/unless}}
-        <p class="value">
-            {{#if primary}}
-                Primary
-            {{else}}
-                Secondary
-            {{/if}}
-        </p>
-        <div class="make_primary-alert alert">
-            <a class="close" href="#">&times;</a>
-            <p class="make_primary-alert-content"></p>
-        </div>
-    </div>
-    <div class="universe-info replica_container">
+    <div class="cluster-info replica_container">
         {{#if editable}}
             <button class="cancel btn">&times;</button>
             <button class="save update-replicas btn">Update</button>
         {{else}}
-            <button class="edit btn">Change</button>
+            <button class="edit btn">Edit</button>
         {{/if}}
-        <div class="replica_value">
-            <p class="caption">Replicas</p>
+        <p class="cluster-replicas">
             {{#if editable}}
                 <input type="text" id="replicas_value" value="{{replicas}}" class="inline_edit_input">
             {{else}}
-                <p class="value">{{replicas}}</p>
+                <span class="value">{{replicas}}</span>
             {{/if}}
-        </div>
-        <div class="ack_value">
-            <p class="caption">Acks</p>
+            <span class="caption">replicas</span>
+        </p>
+        <p class="cluster-acks">
             {{#if editable}}
                 <input type="text" id="acks_value" value="{{acks}}" class="inline_edit_input">
             {{else}}
-                <p class="value">{{acks}}</p>
+                <span class="value">{{acks}}</span>
             {{/if}}
-        </div>
+            <span class="caption">write acks</span>
+        </p>
         <div class="replicas_acks-alert alert"></div>
         <div class="status-alert alert"></div>
-    </div>
-    <div class="universe-info progress_bar_full_container">
-        <div class="progress_bar_container"></div>
     </div>
 </script>
 
@@ -82,54 +67,33 @@
 
 <script id="namespace_view-datacenter_replica-template" type="text/x-handlebars-template">
     <div class="dc-info">
-        <p class="caption">Role</p>
-        {{#unless primary}}
-            <button class="btn make-primary">Make Primary</button>
-        {{/unless}}
-        <p class="value">
-            {{#if primary}}
-                Primary
-            {{else}}
-                Secondary
-            {{/if}}
-        </p>
-        <div class="make_primary-alert alert">
-            <a class="close" href="#">&times;</a>
-            <p class="make_primary-alert-content"></p>
-        </div>
+        <p class="value">{{name}}</p>
+        <p class="caption">Datacenter</p>
     </div>
     <div class="dc-info replica_container">
         {{#if editable}}
             <button class="cancel btn">&times;</button>
             <button class="save update-replicas btn">Update</button>
         {{else}}
-            <button class="edit btn">Change</button>
+            <button class="edit btn">Edit</button>
         {{/if}}
         <div class="replica_value">
-            <p class="caption">Replicas</p>
             {{#if editable}}
                 <input type="text" id="replicas_value" value="{{replicas}}" class="inline_edit_input">
             {{else}}
                 <p class="value">{{replicas}}</p>
             {{/if}}
+            <p class="caption">Replicas</p>
         </div>
         <div class="ack_value">
-            <p class="caption">Acks</p>
             {{#if editable}}
                 <input type="text" id="acks_value" value="{{acks}}" class="inline_edit_input">
             {{else}}
                 <p class="value">{{acks}}</p>
             {{/if}}
+            <p class="caption">Write Acks</p>
         </div>
         <div class="replicas_acks-alert alert"></div>
-    </div>
-    <div class="dc-info progress_bar_full_container">
-        <div class="progress_bar_container"></div>
-    </div>
-    <div class="dc-info">
-        <p class="caption">Status</p>
-        <p class="value status_details"></p>
-        <div class="status-alert alert"></div>
     </div>
 </script>
 <script id="namespace_view-edit_datacenter_replica-alert_messages-template" type="text/x-handlebars-template">
@@ -197,5 +161,33 @@
       for datacenter <a href="/#datacenters/{{datacenter_uuid}}">{{datacenter_name}}</a>.
     </p>
   </div>
+</script>
+
+<script id="replica_status-template" type="text/x-handlebars-template">
+    {{#if operation_active}}
+        <div class="progress-status">
+            <div class="stages">
+                {{#if starting}}
+                    <p>Started</p>
+                {{/if}}
+                {{#if processing}}
+                    <p class="completed">Started</p>
+                    <p>Replicating</p>
+                {{/if}}
+                {{#if finished}}
+                    <p class="completed">Started</p>
+                    <p class="completed">Replicated</p>
+                {{/if}}
+            </div>
+            {{#if starting}}
+                <p>0/{{new_value}} replicas completed</p>
+            {{else}}
+                <p>{{current_value}}/{{max_value}} replicas completed</p>
+            {{/if}}
+            <div class="progress"><div class="bar" style="width:{{#if starting}}0{{else}}{{percent_complete}}{{/if}}%"></div></div>
+        </div>
+    {{else}}
+        <p><span class="big">{{current_value}}/{{max_value}}</span> replicas reachable</p>
+    {{/if}}
 </script>
 

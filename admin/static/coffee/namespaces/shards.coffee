@@ -13,7 +13,7 @@ module 'NamespaceView', ->
         error_ajax_template: Handlebars.compile $('#edit_shards-ajax_error-template').html()
         alert_shard_template: Handlebars.compile $('#alert_shard-template').html()
         reasons_cannot_shard_template: Handlebars.compile $('#shards-reason_cannot_shard-template').html()
-        shards_status_template: Handlebars.compile $('#shards_status-template').html()
+        shard_status_template: Handlebars.compile $('#shard_status-template').html()
 
         className: 'shards_container'
 
@@ -22,6 +22,7 @@ module 'NamespaceView', ->
             'click .edit': 'switch_to_edit'
             'click .cancel': 'switch_to_read'
             'click .rebalance': 'shard_table'
+
 
         initialize: =>
             # Forbid changes if issues
@@ -33,10 +34,11 @@ module 'NamespaceView', ->
             @model.on 'change:key_distr', @render_data_repartition
             @model.on 'change:shards', @render_data_repartition
 
-            @model.on 'change:shards', @render_status
-            @model.on 'change:ack_expectations', @render_status
-            directory.on 'all', @render_status
+            @model.on 'change:shards', @render_status_from_event
+            @model.on 'change:ack_expectations', @render_status_from_event
+            directory.on 'all', @render_status_from_event
 
+            @progress_bar = new UIComponents.OperationProgressBar @shard_status_template
 
         keypress_shards_changes: (event) =>
             new_num_shards = @.$('.num-shards').val()
@@ -125,6 +127,10 @@ module 'NamespaceView', ->
 
                 @data_sent = data
 
+                # Indicate that we're starting the sharding process-- provide the number of shards requested
+                @render_status
+                    new_value: @shard_set.length
+
                 $.ajax
                      processData: false
                      url: "/ajax/semilattice/#{@model.attributes.protocol}_namespaces/#{@model.get('id')}?prefer_distribution=1"
@@ -140,16 +146,20 @@ module 'NamespaceView', ->
             @model.set 'secondary_pinnings', @empty_replica_pins
 
             @switch_to_read()
-            @display_msg @alert_shard_template
-                changing: true
-                num_shards: @shard_set.length
 
-            @is_sharding = true
+            # Indicate that we've gotten a response, time to move to the next state
+            @render_status
+                got_response: true
 
         on_error: =>
             @display_msg @error_ajax_template()
 
-        render_status: =>
+        # Wrapper function that responds to Backbone events. Necessary because
+        # we want render_status to have a custom parameter for template options
+        render_status_from_event: => @render_status()
+        # Render the status of sharding
+        #   - pbar_info: optional argument that informs the progress bar backing this status
+        render_status: (progress_bar_info) =>
             # If blueprint not ready, we just skip. It shouldn't happen.
             blueprint = @model.get('blueprint').peers_roles
             if not blueprint?
@@ -202,26 +212,11 @@ module 'NamespaceView', ->
                 if shards[shard]?.found_master is true and shards[shard].num_secondaries_left_to_find <= 0
                     num_shards_ready++
 
-            # If the user changed shards and if we detect a change in the status, we say that the Sharding is completed.
-            if @is_sharding? and @is_sharding is true
-                if num_shards is num_shards_ready
-                    @is_sharding = false
-                    @display_msg @alert_shard_template
-                        changing: false
+            # Render the template
+            progress_bar_info = {} if not progress_bar_info?
+            @.$('.shard-status').html @progress_bar.render(num_shards_ready, num_shards, progress_bar_info).$el
 
-            data =
-                all_shards_ready: num_shards is num_shards_ready
-                num_shards: num_shards
-                num_shards_ready: num_shards_ready
-                is_sharding: @is_sharding
-
-            if @is_sharding
-                @.$('.sharding_img').show()
-            else
-                @.$('.sharding_img').hide()
-            @.$('.shards_status').html @shards_status_template data
-
-            return data
+            return @
 
         check_can_change_shards: =>
             reasons_cannot_shard = {}
@@ -429,9 +424,9 @@ module 'NamespaceView', ->
             @model.off 'change:key_distr', @render_data_repartition
             @model.off 'change:shards', @render_data_repartition
 
-            @model.off 'change:shards', @render_status
-            @model.off 'change:ack_expectations', @render_status
-            directory.off 'all', @render_status
+            @model.off 'change:shards', @render_status_event
+            @model.off 'change:ack_expectations', @render_status_event
+            directory.off 'all', @render_status_event
 
     # Modify replica counts and ack counts in each datacenter
     class @ChangeShardsModal extends UIComponents.AbstractModal

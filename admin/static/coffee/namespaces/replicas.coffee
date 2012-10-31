@@ -8,19 +8,29 @@ module 'NamespaceView', ->
         no_datacenter_template: Handlebars.compile $('#namespace_view-replica-no_datacenter-template').html()
         datacenter_list_template: Handlebars.compile $('#namespace_view-replica-datacenters_list-template').html()
         acks_greater_than_replicas_template: Handlebars.compile $('#namespace_view-acks_greater_than_replicas-template').html()
+        replica_status_template: Handlebars.compile $('#replica_status-template').html()
         events:
             'click .nav_datacenter': 'handle_click_datacenter'
+            'click .toggle-mdc': 'toggle_mdc'
 
         initialize: =>
+            @progress_bar = new UIComponents.OperationProgressBar @replica_status_template
+
             datacenters.on 'add', @render_list
             datacenters.on 'remove', @render_list
             datacenters.on 'reset', @render_list
+
             @model.on 'change:primary_uuid', @render_primary_not_found
+
             @model.on 'change:replica_affinities', @render_acks_greater_than_replicas
             @model.on 'change:ack_expectations', @render_acks_greater_than_replicas
 
+            @model.on 'change:blueprint', @render_status_from_event
+            directory.on 'all', @render_status_from_event
+
             @universe_replicas = new NamespaceView.DatacenterReplicas universe_datacenter.get('id'), @model
 
+        # Render the list of datacenters for MDC
         render_list: =>
             @ordered_datacenters = _.map(datacenters.models, (datacenter) =>
                 id: datacenter.get('id')
@@ -137,9 +147,69 @@ module 'NamespaceView', ->
                     @.$('.ack_greater_than_replicas').hide()
 
 
-        render_universe: =>
-            @.$('.universe_container').html @universe_replicas.render().$el
+        toggle_mdc: (event) =>
+            event.preventDefault()
+            @.$('.mdc-options').toggleClass('hidden')
+            @.$('.show-mdc, .hide-mdc').toggle()
 
+        render_universe: =>
+            @.$('.cluster_container').html @universe_replicas.render().$el
+
+
+        # Wrapper function that responds to Backbone events. Necessary because
+        # we want render_status to have a custom parameter for template options
+        render_status_from_event: => @render_status()
+        # Compute the status of all replicas
+        #   - progress_bar_info: optional argument that informs the progress bar backing this status
+        render_status: (progress_bar_info) =>
+            # If the blueprint is not ready, we just skip it
+            blueprint = @model.get('blueprint').peers_roles
+            if not blueprint?
+                return ''
+
+            num_replicas_not_ready = 0
+            num_replicas_ready = 0
+
+            # Loop over the blueprint
+            for machine_id of blueprint
+                for shard of blueprint[machine_id]
+                    found_shard = false
+                    shard_ready = true
+
+                    role = blueprint[machine_id][shard]
+                    if role is 'role_nothing'
+                        continue
+
+                    if role is 'role_primary'
+                        expected_status = 'primary'
+                    else if role is 'role_secondary'
+                        expected_status = 'secondary_up_to_date'
+
+                    # Loop over directory
+                    activities = directory.get(machine_id)?.get(@model.get('protocol')+'_namespaces')?['reactor_bcards'][@model.get('id')]?['activity_map']
+                    if activities?
+                        for activity_id of activities
+                            activity = activities[activity_id]
+                            if activity[0] is shard
+                                found_shard = true
+                                if activity[1]['type'] isnt expected_status
+                                    shard_ready = false
+                                    break
+
+                    if found_shard is false or shard_ready is false
+                        num_replicas_not_ready++
+                    else
+                        num_replicas_ready++
+
+            data =
+                num_replicas_not_ready: num_replicas_not_ready
+                num_replicas_ready: num_replicas_ready
+                num_replicas: num_replicas_ready+num_replicas_not_ready
+            
+            progress_bar_info = {} if not progress_bar_info?
+            @.$('.replica-status').html @progress_bar.render(data.num_replicas_ready, data.num_replicas, progress_bar_info).$el
+
+            return @
         render: =>
             @.$el.html @template()
 
@@ -147,6 +217,7 @@ module 'NamespaceView', ->
             @render_primary_not_found()
             @render_acks_greater_than_replicas()
             @render_universe()
+            @render_status()
 
             if @model.get('primary_uuid') is universe_datacenter.get('id')
                 if @ordered_datacenters.length > 0
@@ -169,6 +240,9 @@ module 'NamespaceView', ->
             @model.off 'change:primary_uuid', @render_primary_not_found
             @model.off 'change:replica_affinities', @render_acks_greater_than_replicas
             @model.off 'change:ack_expectations', @render_acks_greater_than_replicas
+            @model.off 'change:blueprint', @render_status
+            directory.off 'all', @render_status
+            
 
 
     class @DatacenterReplicas extends Backbone.View
@@ -211,9 +285,6 @@ module 'NamespaceView', ->
             @model.on 'change:primary_uuid', @render
             progress_list.on 'all', @render_progress
 
-            @model.on 'change:blueprint', @render_status
-            directory.on 'all', @render_status
-            
             @model.on 'change:ack_expectations', @render_acks_replica
             @model.on 'change:replica_affinities', @render_acks_replica
 
@@ -274,8 +345,6 @@ module 'NamespaceView', ->
                     @.$el.html @universe_template data
                 else
                     @.$el.html @template data
-
-            @render_status()
 
             return @
 
@@ -383,62 +452,6 @@ module 'NamespaceView', ->
                 success: @on_success_replicas_and_acks
                 error: @on_error
 
-        # Compute the status of all replicas
-        render_status: =>
-            # If the blueprint is not ready, we just skip it
-            blueprint = @model.get('blueprint').peers_roles
-            if not blueprint?
-                return ''
-
-            num_replicas_not_ready = 0
-            num_replicas_ready = 0
-
-            # Loop over the blueprint
-            for machine_id of blueprint
-                for shard of blueprint[machine_id]
-                    found_shard = false
-                    shard_ready = true
-
-                    role = blueprint[machine_id][shard]
-                    if role is 'role_nothing'
-                        continue
-
-                    if role is 'role_primary'
-                        expected_status = 'primary'
-                    else if role is 'role_secondary'
-                        expected_status = 'secondary_up_to_date'
-
-                    # Loop over directory
-                    activities = directory.get(machine_id)?.get(@model.get('protocol')+'_namespaces')?['reactor_bcards'][@model.get('id')]?['activity_map']
-                    if activities?
-                        for activity_id of activities
-                            activity = activities[activity_id]
-                            if activity[0] is shard
-                                found_shard = true
-                                if activity[1]['type'] isnt expected_status
-                                    shard_ready = false
-                                    break
-
-                    if found_shard is false or shard_ready is false
-                        num_replicas_not_ready++
-                    else
-                        num_replicas_ready++
-            data =
-                num_replicas_not_ready: num_replicas_not_ready
-                num_replicas_ready: num_replicas_ready
-                num_replicas: num_replicas_ready+num_replicas_not_ready
-            
-
-            @.$('.status_details').html @replication_status data
-            if @replicating? and @replicating is true
-                if num_replicas_not_ready is 0
-                    @replicating = false
-
-                    @.$('.status-alert').html @replication_complete_template()
-                    @.$('.status-alert').slideDown 'fast'
-
-            return data
-
         on_success_replicas_and_acks: =>
             window.collect_progress()
             new_replicas = @model.get 'replica_affinities'
@@ -513,8 +526,5 @@ module 'NamespaceView', ->
             @model.off 'change:primary_uuid', @render
             progress_list.off 'all', @render_progress
 
-            @model.off 'change:blueprint', @render_status
-            directory.off 'all', @render_status
-            
             @model.off 'change:ack_expectations', @render_acks_replica
             @model.off 'change:replica_affinities', @render_acks_replica
