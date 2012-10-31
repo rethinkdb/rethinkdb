@@ -133,7 +133,7 @@ rethinkdb.Connection.prototype.sendProtoBuf_ = function(pbObj) {
     var finalArray = new Uint8Array(length + 4);
     (new DataView(finalArray.buffer)).setInt32(0, length, true);
     finalArray.set(data, 4);
-
+    
     this.send_(finalArray.buffer);
 };
 
@@ -170,6 +170,8 @@ goog.exportProperty(rethinkdb.Connection.prototype, 'run',
  * @private
  */
 rethinkdb.Connection.prototype.recv_ = function(data) {
+    console.log('Server: data received')
+    console.log(new Uint8Array(data));
     goog.asserts.assert(data.length >= 4);
     var msgLength = (new DataView(data.buffer)).getUint32(0, true);
     if (msgLength !== (data.length - 4)) {
@@ -184,6 +186,9 @@ rethinkdb.Connection.prototype.recv_ = function(data) {
     } catch(err) {
         this.error_(new rethinkdb.errors.ClientError("response deserialization failed"));
     }
+
+    console.log('Server: deserialized response');
+    console.log(response);
 
     var cursor = this.outstandingQueries_[response.getToken()];
     if (!cursor) {

@@ -56,7 +56,6 @@ endif
 	$(QUIET) bash -c 'cat <(echo "(function(){") \
 		<($(CLOSURE_BUILDER) --root=$(CLOSURE_LIB) --root=$(JS_BUILD_DIR)/rethinkdb/ --namespace=topLevel \
 		--compiler_jar=$(CLOSURE_COMPILER) \
-		--compiler_flags="--compilation_level=ADVANCED_OPTIMIZATIONS" \
 		--compiler_flags="--accept_const_keyword" \
 		--compiler_flags="--generate_exports" \
 		--compiler_flags="--externs=externs.js" \
