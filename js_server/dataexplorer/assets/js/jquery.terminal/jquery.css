@@ -1,0 +1,63 @@
+.terminal .clipboard {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    opacity: 0.01;
+    filter: alpha(opacity = 0.01);
+    filter: progid:DXImageTransform.Microsoft.Alpha(opacity=0.01);
+    width: 2px;
+}
+.cmd > .clipboard {
+    position: fixed;
+}
+.terminal {
+    padding: 15px;
+    position: relative;
+    overflow: hidden;
+    border: 1px black solid;
+}
+.cmd {
+    padding: 0;
+    margin: 0;
+    height: 1.3em;
+}
+.terminal .terminal-output div {
+    display: block;
+}
+.terminal, .terminal .terminal-output, .terminal .terminal-output div,
+.terminal .terminal-output div div, .cmd, .terminal .cmd span, .terminal .cmd div {
+    font-family: monospace;
+    color: #93a1a1;
+    background-color: #002b36;
+    font-size: 15px;
+    line-height: 16px;
+}
+.terminal .cmd span {
+    float: left;
+}
+.terminal .cmd span.inverted {
+    background-color: #aaa;
+    color: #000;
+}
+.terminal div::-moz-selection, .terminal span::-moz-selection {
+    background-color: #aaa;
+    color: #000;
+}
+.terminal div::selection, .terminal span::selection {
+    background-color: #aaa;
+    color: #000;
+}
+.terminal .terminal-output div.error, .terminal .terminal-output div.error div {
+    color: red;
+}
+.tilda {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1100;
+}
+.clear {
+    clear: both;
+}
+                    

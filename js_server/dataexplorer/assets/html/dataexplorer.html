@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>RethinkDB</title>
+        <link rel="stylesheet" media="screen" href="/assets/css/bootstrap.min.css"/>
+        <link rel="stylesheet" media="screen" href="/assets/css/styles.css"/>
+
+        <link href='http://fonts.googleapis.com/css?family=Lato:100,300,400,700,900,100italic,300italic,400italic,700italic,900italic|Istok+Web:400,700,400italic,700italic|Droid+Serif:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
+        
+
+        
+        <script type="text/javascript" src="assets/js/jquery-1.8.1.min.js"></script>
+        
+        <link rel="stylesheet" type="text/css" href="/assets/js/codemirror/ambiance.css"/>
+        <link rel="stylesheet" type="text/css" href="/assets/js/codemirror/codemirror.css"/>
+        <link rel="stylesheet" type="text/css" href="/assets/css/dataexplorer.css"/>
+
+ <script id="dataexplorer_view-template" type="text/x-handlebars-template">
+    <div class="section">
+        <h1 class="title">Data Explorer</h1>
+        <div id="user-alert-space"></div>
+        <div class="input_query_full_container"></div>
+    </div>
+    <div class="results_container section">
+    </div>
+</script>
+
+<script id="alert-connection_fail-template" type="text/x-handlebars-template">
+    <div class="alert alert-error displayed_alert" data-alert="alert">
+        <a class="close" href="#">&times;</a>
+        <p>The connection to the server failed. Please try to <a href="#" id="reconnect">reconnect</a></p>
+    </div>
+</script>
+
+<script id="dataexplorer-description-template" type="text/x-handlebars-template">
+<p><span class="description_name">{{name}}</span>{{#if args}}<span class="description_arguments">{{args}}</span>{{/if}}</p>
+<p>{{print_safe description}}</p>
+</script>
+
+<script id="dataexplorer-databases_suggestions-template" type="text/x-handlebars-template">
+{{#if no_database}}
+<br/>No database found. Use dbCreate() to create a new database first.
+{{else}}
+<br/>List of databases available: {{comma_separated_simple databases_available}}
+{{/if}}
+</script>
+<script id="dataexplorer-namespaces_suggestions-template" type="text/x-handlebars-template">
+{{#if error}}
+<br/>The database specified in db() was not found.
+{{else}}
+    {{#if no_namespace}}
+        {{#if database_name}}
+        <br/>No table found in {{database_name}}. Use create() to create a new table first.
+        {{else}}
+        <br/>You need to create a database then a table first.
+        {{/if}}
+    {{else}}
+    <br/>List of tables{{#if database_name}} in {{database_name}}{{/if}}: {{comma_separated_simple namespaces_available}}
+    {{/if}}
+{{/if}}
+
+
+
+
+</script>
+
+
+
+<script id="alert-reconnection_success-template" type="text/x-handlebars-template">
+    <div class="alert" data-alert="alert">
+        <a class="close" href="#">&times;</a>
+        <p>Successfully reconnected.</p>
+    </div>
+</script>
+
+<script id="dataexplorer_input_query-template" type="text/x-handlebars-template">
+    <div class="input_query_container" >
+        <div class="suggestion_full_container">
+            <div class="suggestion_list_container">
+                <ul class="suggestion_name_list"></ul>
+            </div>
+            <div class="suggestion_description"></div>
+        </div>
+        <div class="suggestion_description_arrow arrow"></div>
+        <div class="suggestion_description_arrow_overlay arrow"></div>
+
+
+        <textarea class="input_query" id="input_query"></textarea>
+        <div class="button_container">
+            <button class="btn button_query execute_query">Execute</button>
+            <button class="btn button_query clear_query">Clear</button>
+        </div>
+
+    </div>
+    <div class="loading_query">
+        <img src="/images/ajax-loader.gif" class="loading_query_img"/>
+    </div>
+</script>
+
+ 
+<script id="dataexplorer_suggestion_name_li-template" type="text/x-handlebars-template">
+    <li class="suggestion_name_li" data-has_argument="{{has_argument}}" data-id={{id}}>{{suggestion}}</li>
+</script>
+
+<script id="dataexplorer_default_view-template" type="text/x-handlebars-template">
+    <p>You can automatically build a query by clicking on a table or on a previous query. You can then modify them as you wish.</p>
+    <p>The data explorer is equipped with a suggestion feature, but if you are lost, you can find more details in the <a href="#help">help page</a>.</p>
+
+    <div class="namespaces_available_container">
+        <h3>Tables available</h3>
+
+        {{#if has_namespaces}}
+        {{#each databases}}
+        <h4>{{name}}</h4>
+        <ul class="namespaces_available_list queries_list">
+            {{#each namespaces}}
+            <li class="namespace_element"><a href="#" data-database="{{database}}" data-name="{{name}}" class="namespace_link">{{name}}</a></li>
+            {{/each}}
+        </ul>
+        {{/each}}
+        {{else}}
+        <p>There is no table available. <br />Start by <a href="#tables">creating one</a>.</p>
+        {{/if}}
+   </div>
+    <div class="history_queries">
+        <h3>Previous query</h3>
+        
+        <div class="history_query_container">
+        {{#if has_old_queries}}
+        <ul class="history_queries_list queries_list">
+            {{#each old_queries}}
+            <li class="query_element"><a href="#" class="old_query" data-query="{{query}}">{{query_summary}}</a></li>
+            {{/each}}
+        </ul>
+        {{else}}
+        <p>There are no previous queries.</p>
+        {{/if}}
+    </div>
+    </div>
+</script>
+
+<script id="dataexplorer-error-template" type="text/x-handlebars-template">
+    <h1 class="title">Error</h1>
+    <p class="error">The following query could not be executed.</p>
+    <p class="error query">{{query}}</p>
+    <p class="error">Error: </p>
+    <pre class="error error_details">{{error}}{{#if forgot_run}}{{!Spacing matters here, we are in a <pre>}}
+Did you forget to append .run() at the end of your query?{{/if}}</pre>
+</script>
+
+<script id="dataexplorer_query_list-template" type="text/x-handlebars-template">
+    <ul class="history_query_list queries_list">
+    </ul>
+</script>
+
+<script id="dataexplorer_query_element-template" type="text/x-handlebars-template">
+    <li class="query_element"><a href="#" class="old_query" data-query="{{query}}">{{query_summary}}</a></li>
+</script>
+
+<script id="dataexplorer_default_result_container-template" type="text/x-handlebars-template">
+    <div class="results_header">
+        <h1 class="title">Results</h1>
+        <p class="error">No query executed.</p>
+    </div>
+</script>
+<script id="dataexplorer_result_container-template" type="text/x-handlebars-template">
+    <div class="results_header">
+        <div class="options_container">
+            <button class="btn button_query change_size">Full view</button> 
+        </div>
+
+        <h1 class="title">Results</h1>
+        <p class="query_executed">For query: {{query}}</p>
+        <p class="metadata"></p>
+        
+
+        <ul class="nav nav-tabs change_view_container"">
+            <li><a href="#raw_view" data-toggle="tab" class="link_to_raw_view" data-view="raw">Raw view</a></li>
+            <li><a href="#table_view" data-toggle="tab" class="link_to_table_view" data-view="table">Table view</a></li>
+            <li class="active"><a href="#tree_view" data-toggle="tab" class="link_to_tree_view active" data-view="tree">Tree view</a></li>
+        </ul>
+    </div>
+    <div class="tab-content">  
+        <div class="tab-pane results active" id="tree_view">
+            <div class="results_wrap tree_view"></div>
+        </div>
+        <div class="tab-pane results" id="table_view">
+            <div class="results_wrap table_view"></div>
+        </div>
+        <div class="tab-pane results" id="raw_view">
+            <div class="raw_view_container raw_view">
+                <textarea class="raw_view_textarea"></textarea>
+            </div>
+        </div>
+    </div>
+    <div class="more_results"><p class="more_results_paragraph"><a href="#" class="more_results_link">More data &gt;&gt;</a><p></div>
+</script>
+
+<script id="dataexplorer-option_page-template" type="text/x-handlebars-template">
+    <option class="page" value="{{page}}" {{#if selected}}selected="selected"{{/if}}>{{page}}</option>
+</script>
+
+<script id="dataexplorer-metadata-template" type="text/x-handlebars-template">
+    {{#if execution_time}}Executed in {{execution_time}}.{{/if}}
+    {{#if limit_value}}{{limit_value}} {{pluralize_noun "row" limit_value}} displayed.{{/if}}
+    {{#if skip_value}}{{skip_value}} {{pluralize_noun "row" skip_value}} skipped.{{/if}}
+</script>
+
+<script id="dataexplorer_result_empty-template" type="text/x-handlebars-template">
+    <p>No result were returned for this query</p>
+</script>
+
+
+<!-- Keep </script> without space/new line before so the comma stick to the value of the object-->
+<script id="dataexplorer_result_json_tree_container-template" type="text/x-handlebars-template">
+    <span class="jta_arrow jta_arrow_h"></span><div class="json_tree">{{print_safe tree}}</div></script>
+
+<script id="dataexplorer_result_json_tree_span-template" type="text/x-handlebars-template">
+    <span class="jt_editable {{classname}}" >{{value}}</span></script>
+
+<script id="dataexplorer_result_json_tree_span_with_quotes-template" type="text/x-handlebars-template">
+    <span class="{{classname}}">"</span><span class="jt_editable {{classname}}" >{{value}}</span><span class="{{classname}}">"</span></script>
+
+<script id="dataexplorer_result_json_tree_url-template" type="text/xs-handlebars-template">
+    <span class="jt_editable jt_url" >{{url}}</span>,
+    <a href="{{url}}" class="jt_link">»</a></script>
+
+<script id="dataexplorer_result_json_tree_email-template" type="text/xs-handlebars-template">
+    <span class="jt_editable jt_email" >{{email}}</span>,
+    <a href="mailto:{{email}}" class="jt_link">»</a></script>
+
+<script id="dataexplorer_result_json_tree_array-template" type="text/x-handlebars-template">
+
+    {{#if no_value}}
+    [ ]
+    {{else}}
+    <span class="jt_arrow"></span>
+    <span class="jt_b">[</span>
+    <span class="jt_points">...</span>
+    <ul class="jt_array jt_collapsible">
+        {{#each values}}
+        <li>
+            {{print_safe value}}{{#unless no_comma}}, {{/unless}}
+        </li>
+        {{/each}}
+    </ul>
+    <span class="jt_b jt_close">]</span>{{/if}}</script>
+
+<script id="dataexplorer_result_json_tree_object-template" type="text/x-handlebars-template">
+    {{#if no_value}}
+    { } 
+    {{else}}
+    <span class="jt_arrow"></span>
+    <span class="jt_b">{</span>
+    <span class="jt_points">...</span>
+    <ul class="jt_object jt_collapsible">
+        {{#each values}}
+        <li>
+                "{{this.key}}": {{print_safe this.value}}{{#unless no_comma}}, {{/unless}}
+        </li>
+        {{/each}}
+    </ul>
+    <span class="jt_b jt_close">}</span>{{/if}}</script>
+
+
+
+
+
+<script id="dataexplorer_result_json_table_container-template" type="text/x-handlebars-template">
+    <div class="json_table_container">
+        <table class="json_table">
+            {{print_safe table_attr}}
+            {{print_safe table_data}}
+        </table>
+    </div>
+</script>
+
+<script id="dataexplorer_result_json_table_tr_attr-template" type="text/xs-handlebars-template">
+    <tr class="jta_tr">
+        {{#each attr}}
+        <td class="td_attr col-{{col}}" data-col={{col}}>
+            <div class="jta_attr">{{key}}</div>
+        </td>
+        {{/each}}
+    </tr>
+</script>
+
+
+
+<script id="dataexplorer_result_json_table_tr_value-template" type="text/xs-handlebars-template">
+    {{#each document}}
+    <tr class="jta_tr">
+        {{#each cells}}
+            {{print_safe this}}
+        {{/each}}
+    </tr>
+    {{/each}}
+</script>
+
+<script id="dataexplorer_result_json_table_td_attr-template" type="text/xs-handlebars-template">
+    <td class="td_attr {{classtd}}" data-col={{col}}>
+        <div class="jta_attr">{{key}}</div>
+    </td>
+</script>
+
+<script id="dataexplorer_result_json_table_td_value-template" type="text/xs-handlebars-template">
+    <td class="{{class_td}}">
+        {{print_safe cell_content}}
+    </td>
+</script>
+
+<script id="dataexplorer_result_json_table_td_value_content-template" type="text/xs-handlebars-template">
+        {{#if data_to_expand}}
+        <div class="{{class_value}} jta_value {{classname}}">       
+            <span data-json_data="{{data_to_expand}}" class="jta_object">
+                <span class="jta_arrow jta_arrow_v"></span>
+                <span class="jta_arrow jta_arrow_h"></span>
+                <strong>{{print_safe value}}</strong>
+            </span>
+        </div>
+        {{else}}
+        <div class="jta_value {{class_value}} {{classname}}">
+            <span>
+                {{value}}
+            </span>
+        </div>
+        {{/if}}
+</script>
+
+
+
+<!-- Ugly indentation to avoid extra spaces before comma -->
+<script id="dataexplorer_result_json_table_data_inline-template" type="text/xs-handlebars-template">
+    {{#if data_to_expand}}
+    <span data-json_data="{{data_to_expand}}" class="jta_object">
+        <span class="jta_arrow jta_arrow_v"></span>
+        {{#unless is_inline}}<span class="jta_arrow jta_arrow_h"></span>{{/unless}}
+        <strong>{{print_safe value}}</strong>
+        {{#if need_comma}}, {{/if}}
+    </span>
+    {{else}}
+    <span class={{classname}}>{{print_safe value}}</span>{{#if need_comma}}, {{/if}}
+    {{/if}}
+</script>
+       
+
+        <script type="text/javascript" src="assets/js/codemirror/codemirror.js"></script>
+        <script type="text/javascript" src="assets/js/codemirror/javascript.js"></script>
+        <script type="text/javascript" src="assets/js/handlebars-1.0.0.beta.6.js"></script>
+        <script type="text/javascript" src="assets/js/underscore-min.js"></script>
+        <script type="text/javascript" src="assets/js/backbone-min.js"></script>
+
+        <script type="text/javascript" src="assets/js/rethinkdb.js"></script>
+        <script type="text/javascript" src="assets/js/dataexplorer_app.js"></script>
+        <script type="text/javascript" src="assets/js/dataexplorer.js"></script>
+        
+
+        
+    </head>
+    <body>
+        <div id="header">
+    <div class="container">
+        <div class="row logo_and_links">
+            <h1 class="span3">Rethink<span class="blue_highlight">DB</span></h1>
+            <div class="span5">
+                <ul class="links">
+                    <li>Documentation</li>
+                    <li>Community</li>
+                </ul>
+            </div>
+            <div class="span4"><img class="social_icons" src="/images/social_icons.png" /></div>
+        </div>
+        <div class="row">
+            <p class="span8 tagline">
+                An open-source <strong><em>distributed</em></strong> database system
+                for small teams with big <strong><em>data challenges</em></strong>.
+            </p>
+            <div class="span4 action_items">
+                <!--<p class="download"><a href="#">Download</a></p>-->
+                <a href="#"><img src="/images/download.png" /></a>
+                <p class="release_version">Release 1.2 (<em>release notes</em>)</p>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="second_header">
+    <div class="container">
+        <div class="row">
+            <h1>Ho ho ho, Santa Claus is coming</h1>
+
+            <div id="dataexplorer_container"></div>
+
+
+
+
+
+
+
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>
