@@ -1,5 +1,5 @@
-# Copyright 2010-2012 RethinkDB, all rights reserved.
 # -*- coding: utf-8 -*-
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 $LOAD_PATH.unshift('./rethinkdb')
 require 'rethinkdb.rb'
 require 'test/unit'
@@ -100,17 +100,17 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test_scopes # TODO: more here
-    assert_equal(r.let({:a => 1}, [r.letvar('a'), r.letvar('a')]).run, [1,1])
+    assert_equal(r.let(:a => 1){[r.letvar('a'), r.letvar('a')]}.run, [1,1])
   end
 
   def test_let # from python tests
-    assert_equal(r.let([["x", 3]], r.letvar("x")).run, 3)
-    assert_equal(r.let([["x", 3], ["x", 4]], r.letvar("x")).run, 4)
-    assert_equal(r.let([["x", 3], ["y", 4]], r.letvar("x")).run, 3)
-    assert_equal(r.let([['a', 2], ['b', r.letvar('a')+1]], r.letvar('b')*2).run, 6)
+    assert_equal(r.let([["x", 3]]){r.letvar("x")}.run, 3)
+    assert_equal(r.let([["x", 3], ["x", 4]]){r.letvar("x")}.run, 4)
+    assert_equal(r.let([["x", 3], ["y", 4]]){r.letvar("x")}.run, 3)
+    assert_equal(r.let([['a', 2], ['b', r.letvar('a')+1]]){r.letvar('b')*2}.run, 6)
 
-    assert_equal(r.let({:x => 3}, r.letvar("x")).run, 3)
-    assert_equal(r.let({:x => 3, :y => 4}, r.letvar("y")).run, 4)
+    assert_equal(r.let({:x => 3}){r.letvar("x")}.run, 3)
+    assert_equal(r.let(:x => 3, :y => 4){r.letvar("y")}.run, 4)
   end
 
   def test_if # from python tests
@@ -591,8 +591,8 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test_javascript_vars # JAVASCRIPT
-    assert_equal(r.let([['x', 2]], r.js('x')).run, 2)
-    assert_equal(r.let([['x', 2], ['y', 3]], r.js('x+y')).run, 5)
+    assert_equal(r.let([['x', 2]]){r.js('x')}.run, 2)
+    assert_equal(r.let([['x', 2], ['y', 3]]){r.js('x+y')}.run, 5)
     assert_equal(id_sort(rdb.map{|x| r.js("#{x}")}.run.to_a), id_sort(rdb.run.to_a))
     assert_equal(id_sort(rdb.map{ r.js("this")}.run.to_a), id_sort(rdb.run.to_a))
     assert_equal(rdb.map{|x| r.js("#{x}.num")}.run.to_a.sort, rdb.map{|r| r[:num]}.run.to_a.sort)

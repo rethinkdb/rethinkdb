@@ -158,10 +158,10 @@ class ClientBacktraceTest < Test::Unit::TestCase
   end
 
   def test_let
-    check(r.let({:a => 1}, r.letvar('b')),
+    check(r.let(:a => 1){r.letvar('b')},
           'Query: let([["a", 1]], letvar("b"))',
           '                       ^^^^^^^^^^^')
-    check(r.let({:a => r.add(1, "a")}, r.letvar('a')),
+    check(r.let({:a => r.add(1, "a")}){r.letvar('a')},
           'Query: let([["a", add(1, "a")]], letvar("a"))',
           '                         ^^^')
   end
