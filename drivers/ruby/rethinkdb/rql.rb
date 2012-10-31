@@ -107,9 +107,7 @@ module RethinkDB
     #   r.expr(5)
     def self.let(varbinds, body)
       varbinds = varbinds.to_a
-      varbinds.map! { |pair|
-        raise ArgumentError,"Malformed LET expression #{body.inspect}" if pair.length != 2
-        [pair[0].to_s, expr(pair[1])]}
+      varbinds.map! {|name, value| [name.to_s, expr(value)]}
       res = S.r(body)
       res.class.new [:let, varbinds, res]
     end
