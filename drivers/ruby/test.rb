@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # Copyright 2010-2012 RethinkDB, all rights reserved.
-$LOAD_PATH.unshift('./rethinkdb')
+$LOAD_PATH.unshift('./lib')
 require 'rethinkdb.rb'
 require 'test/unit'
 $port_base = ARGV[0].to_i # 0 if none given
