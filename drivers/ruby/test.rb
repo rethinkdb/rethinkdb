@@ -14,6 +14,12 @@ class ClientTest < Test::Unit::TestCase
   def c; @@c; end
   def id_sort x; x.sort_by{|y| y['id']}; end
 
+  def test_op_raise
+    assert_raise(ArgumentError) {r.db('a').create_table('b').run(:bad_opt => true)}
+    assert_raise(ArgumentError) {r.db('a').create_table('b', :bad_opt => true)}
+    assert_raise(ArgumentError) {r.db('a').table('b', :bad_opt => true)}
+  end
+
   def test_numops
     assert_raise(RuntimeError){r.div(1,0).run}
     assert_raise(RuntimeError){r.div(0,0).run}

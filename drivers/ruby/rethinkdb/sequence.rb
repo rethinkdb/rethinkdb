@@ -41,8 +41,7 @@ module RethinkDB
         if obj.class == Hash         then self.filter { |row|
             JSON_Expression.new [:call, [:all], obj.map{|kv|
                                    row.getattr(kv[0]).eq(S.r(kv[1]))}]}
-        elsif obj.kind_of? RQL_Query then self.filter {obj}
-        else raise ArgumentError,"Filter: Not a hash or RQL query: #{obj.inspect}."
+        else raise ArgumentError,"Filter: Not a hash: #{obj.inspect}."
         end
       else
         S.with_var{|vname,v|
@@ -173,6 +172,7 @@ module RethinkDB
     def groupby(*args)
       raise ArgumentError,"groupby requires at least one argument" if args.length < 1
       attrs, opts = args[0..-2], args[-1]
+      S.check_opts(opts, [:mapping, :base, :reduction, :finalizer])
       map = opts.has_key?(:mapping) ? opts[:mapping] : lambda {|row| row}
       if !opts.has_key?(:base) || !opts.has_key?(:reduction)
         raise TypeError, "Group by requires a reduction and base to be specified"

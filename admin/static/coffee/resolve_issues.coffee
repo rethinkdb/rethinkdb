@@ -132,7 +132,7 @@ module 'ResolveIssuesView', ->
             @resolution_url = _resolution_url
             log_render '(rendering) resolve vclock'
             super
-                final_value: @final_value
+                final_value: JSON.stringify @final_value
                 modal_title: 'Resolve configuration conflict'
                 btn_primary_text: 'Resolve'
 
@@ -329,29 +329,60 @@ module 'ResolveIssuesView', ->
             if @contestants?
                 _.each @contestants, (contestant) =>
                     @.$('#resolve_' + contestant.contestant_id).off 'click'
-                
-            # grab possible conflicting values
-            $.ajax
-                url: '/ajax/semilattice/' + get_resolution_url()
-                type: 'GET'
-                contentType: 'application/json'
-                async: false
-                success: (response) =>
-                    @contestants = _.map response, (x, index) -> { value: x[1], contestant_id: index }
+         
+            if @model.get('object_type') is 'blueprint'
+                @contestants = []
+            else
+                # grab possible conflicting values
+                $.ajax
+                    url: '/ajax/semilattice/' + get_resolution_url()
+                    type: 'GET'
+                    contentType: 'application/json'
+                    async: false
+                    success: (response) =>
+                        @contestants = _.map response, (x, index) -> { value: JSON.stringify(x[1]), contestant_id: index }
 
             # renderevsky
-            if @model.get('object_id') is universe_datacenter.get('id')
-                datacenter_name = universe_datacenter.get('name')
-            else if datacenters.get(@model.get('object_id'))?
-                datacenter_name = datacenters.get(@model.get('object_id')).get('name')
-            else
-                datacenter_name = "Unknown datacenter"
+            switch @model.get('object_type')
+                when 'machine'
+                    object_type_url = 'servers'
+                    object_type = 'server'
+                    if machines.get(@model.get('object_id'))?
+                        name = machines.get(@model.get('object_id')).get('name')
+                    else
+                        name = 'Unknown machine'
+                when 'datacenter'
+                    object_type_url = 'datacenters'
+                    object_type = 'datacenter'
+                    if @model.get('object_id') is universe_datacenter.get('id')
+                        name = universe_datacenter.get('name')
+                    else if datacenters.get(@model.get('object_id'))?
+                        name = datacenters.get(@model.get('object_id')).get('name')
+                    else
+                        name = "Unknown datacenter"
+                when 'database'
+                    object_type_url = 'databases'
+                    object_type = 'database'
+                    if databases.get(@model.get('object_id'))?
+                        name = databases.get(@model.get('object_id')).get('name')
+                    else
+                        name = 'Unknown database'
+                when 'namespace'
+                    object_type = 'table'
+                    object_type_url = 'tables'
+                    if namespaces.get(@model.get('object_id'))?
+                        name = namespaces.get(@model.get('object_id')).get('name')
+                    else
+                        name = 'Unknown table'
+
+            
             json =
                 datetime: iso_date_from_unix_time @model.get('time')
                 critical: @model.get('critical')
-                object_type: @model.get('object_type')
+                object_type: object_type
                 object_id: @model.get('object_id')
-                object_name: datacenter_name
+                object_name: name
+                object_type_url: object_type_url
                 field: @model.get('field')
                 name_contest: @model.get('field') is 'name'
                 contestants: @contestants
@@ -363,7 +394,7 @@ module 'ResolveIssuesView', ->
                 @.$('#resolve_' + contestant.contestant_id).click (event) =>
                     event.preventDefault()
                     resolve_modal = new ResolveIssuesView.ResolveVClockModal
-                    resolve_modal.render contestant.value, get_resolution_url()
+                    resolve_modal.render JSON.parse(contestant.value), get_resolution_url()
 
         render_unsatisfiable_goals: (_template) ->
             json =
