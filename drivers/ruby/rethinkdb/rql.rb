@@ -58,9 +58,12 @@ module RethinkDB
       when Array.hash      then JSON_Expression.new [:array, *x.map{|y| expr(y)}]
       when Hash.hash       then
         JSON_Expression.new [:object, *x.map{|var,term| [S.checkdict(var), expr(term)]}]
-      else raise TypeError, "RQL.expr can't handle '#{x.class()}'"
-      end) { x.inspect }
-    end
+
+      else raise TypeError, "RQL.expr can't handle object `#{x.inspect}` of class `#{x.class()}`.
+Make sure you're providing a RQL expression or an object that can be coerced
+to a JSON type (a String, Fixnum, Float, TrueClass, FalseClass, NilClass, Array,
+or Hash)."
+      end) { x.inspect } end
 
     # Explicitly construct an RQL variable from a string.  See RQL::let.
     #   r.letvar('varname')
