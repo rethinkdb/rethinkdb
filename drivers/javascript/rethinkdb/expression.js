@@ -1594,7 +1594,7 @@ rethinkdb.IfExpression.prototype.compile = function(opt_buildOpts) {
 /** @override */
 rethinkdb.IfExpression.prototype.formatQuery = function(bt) {
     if (!bt) {
-        return "r.ifThenElse("+this.test_.formatQuery()+", "+this.trueBranch_.formatQuery()+
+        return "r.branch("+this.test_.formatQuery()+", "+this.trueBranch_.formatQuery()+
                ", "+this.falseBranch_.formatQuery()+")";
     } else {
         var spot = bt.shift();
@@ -1624,7 +1624,7 @@ rethinkdb.IfExpression.prototype.formatQuery = function(bt) {
  * @return {rethinkdb.Expression}
  * @export
  */
-rethinkdb.ifThenElse = function(test, trueBranch, falseBranch) {
+rethinkdb.branch = function(test, trueBranch, falseBranch) {
     rethinkdb.util.typeCheck_(trueBranch, rethinkdb.Query);
     rethinkdb.util.typeCheck_(falseBranch, rethinkdb.Query);
     test = rethinkdb.util.wrapIf_(test);
@@ -1780,7 +1780,7 @@ goog.exportProperty(rethinkdb.Expression.prototype, 'forEach',
 rethinkdb.Expression.prototype.innerJoin = function(other, predicate) {
     return this.concatMap(function(row) {
         return other.concatMap(function(row2) {
-            return rethinkdb.ifThenElse(predicate(row, row2),
+            return rethinkdb.branch(predicate(row, row2),
                 rethinkdb.expr([{left:row, right:row2}]),
                 rethinkdb.expr([])
             );
@@ -1796,12 +1796,12 @@ goog.exportProperty(rethinkdb.Expression.prototype, 'innerJoin',
 rethinkdb.Expression.prototype.outerJoin = function(other, predicate) {
     return this.concatMap(function(row) {
         return rethinkdb.let({'matches': other.concatMap(function(row2) {
-            return rethinkdb.ifThenElse(predicate(row, row2),
+            return rethinkdb.branch(predicate(row, row2),
                 rethinkdb.expr([{left: row, right: row2}]),
                 rethinkdb.expr([])
             );
         }).streamToArray()},
-            rethinkdb.ifThenElse(rethinkdb.letVar('matches').count()['gt'](0),
+            rethinkdb.branch(rethinkdb.letVar('matches').count()['gt'](0),
                 rethinkdb.letVar('matches'),
                 rethinkdb.expr([{left:row}])
             )
@@ -1817,7 +1817,7 @@ goog.exportProperty(rethinkdb.Expression.prototype, 'outerJoin',
 rethinkdb.Expression.prototype.equiJoin = function(leftAttr, other, opt_rightAttr) {
     return this.concatMap(function(row) {
         return rethinkdb.let({'right': other.get(row(leftAttr))},
-            rethinkdb.ifThenElse(rethinkdb.letVar('right')['ne'](rethinkdb.expr(null)),
+            rethinkdb.branch(rethinkdb.letVar('right')['ne'](rethinkdb.expr(null)),
                 rethinkdb.expr([{'left':row, 'right':rethinkdb.letVar('right')}]),
                 rethinkdb.expr([])
             )
@@ -1832,7 +1832,7 @@ goog.exportProperty(rethinkdb.Expression.prototype, 'equiJoin',
  */
 rethinkdb.Expression.prototype.zip = function() {
     return this.map(function(row) {
-        return rethinkdb.ifThenElse(row.contains('right'),
+        return rethinkdb.branch(row.contains('right'),
             row('left').extend(row('right')),
             row('left'));
     });

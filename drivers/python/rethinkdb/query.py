@@ -45,7 +45,7 @@ Stream expressions
     .. automethod:: __getitem__
 
 .. autofunction:: expr
-.. autofunction:: if_then_else
+.. autofunction:: branch
 .. autofunction:: R
 .. autofunction:: js
 .. autofunction:: let
@@ -97,7 +97,7 @@ class BaseQuery(object):
     def run(self, conn=None, debug=False, allow_outdated=None):
         """Evaluate the expression on the server using the connection
         specified by `conn`. If `conn` is empty, uses the last created
-        connection (located in :data:`rethinkdb.net.last_connection`).
+        connection (located in :data:`rethinkdb.net.last_connection()`).
 
         This method is shorthand for
         :func:`rethinkdb.net.Connection.run` - see its documentation
@@ -113,9 +113,9 @@ class BaseQuery(object):
         >>> res = table('db_name.table_name').run() # uses conn since it's the last created connection
         """
         if conn is None:
-            if net.last_connection is None:
+            if net.last_connection() is None:
                 raise StandardError("Call rethinkdb.net.connect() to connect to a server before calling run()")
-            conn = net.last_connection
+            conn = net.last_connection()
         return conn.run(self, debug=debug, allow_outdated=allow_outdated)
 
 class ReadQuery(BaseQuery):
@@ -389,7 +389,7 @@ class JSONExpression(ReadQuery):
         """
         return JSONExpression(internal.Not(self))
 
-    def has_attr(self, name):
+    def contains(self, name):
         """Determines whether an object has a key called `name`.
         Evaluates to `true` if the key is present, or `false` if not.
 
@@ -399,9 +399,9 @@ class JSONExpression(ReadQuery):
         :type name: string
         :returns: :class:`JSONExpression` evaluating to a boolean
 
-        >>> expr({}).has_attr("foo").run()
+        >>> expr({}).contains("foo").run()
         False
-        >>> expr({"a": 1}).has_attr("a").run()
+        >>> expr({"a": 1}).contains("a").run()
         True
         """
         return JSONExpression(internal.Has(self, name))
@@ -541,7 +541,7 @@ class JSONExpression(ReadQuery):
         :type mapping: :class:`StreamExpression` or :class:`FunctionExpr`
         :returns: :class:`JSONExpression`
 
-        >>> expr([1, 2, 3]).concat_map(lambda x: expr([x, 'test']).to_stream()).run()
+        >>> expr([1, 2, 3]).concat_map(lambda x: expr([x, 'test']).array_to_stream()).run()
         [1, "test", 2, "test", 3, "test"]
         """
         if not isinstance(mapping, FunctionExpr):
@@ -633,6 +633,31 @@ class JSONExpression(ReadQuery):
         """
         return JSONExpression(internal.Distinct(self))
 
+    def pick(self, *attrs):
+        """Return a new object containing just the specified attributes from
+        this object.
+
+        :param attrs: The attributes to pick
+        :type attrs: strings
+        :returns: :class:`JSONExpression`
+
+        >>> expr({ 'a': 1, 'b': 1, 'c': 1}).pick('a', 'b').run()
+        { 'a': 1, 'b': 1 }
+        """
+        return JSONExpression(internal.GetAttrs(self, attrs))
+
+    def unpick(self, *attrs):
+        """Return a new object containing just those attributes of this not specified.
+
+        :param attrs: The attributes to unpick
+        :type attrs: strings
+        :returns: :class:`JSONExpression`
+
+        >>> expr({ 'a': 1, 'b': 1, 'c': 1}).unpick('a', 'b').run()
+        { 'a': 1, 'b': 1 }
+        """
+        return JSONExpression(internal.UnGetAttrs(self, attrs))
+
     def pluck(self, *attrs):
         """For each element of an array, picks out the specified
         attributes from the object and returns only those.
@@ -650,8 +675,26 @@ class JSONExpression(ReadQuery):
                   { 'a': 2, 'b': 2, 'c': 2}]).pluck('a', 'b').run()
         [{ 'a': 1, 'b': 1 }, { 'a': 2, 'b': 2 }]
         """
-        # TODO: reimplement in terms of pickattr when that's done
-        return self.map(lambda x: {a: x[a] for a in attrs})
+        return self.map(lambda x: x.pick(*attrs))
+
+    def without(self, *attrs):
+        """For each element of an array, picks out the specified
+        attributes from the object and returns the residual object.
+
+        This is like :meth:`StreamExpression.unpick()`, but with arrays instead
+        of streams.
+
+        If the input is not an array, fails when the query is run.
+
+        :param attrs: The attributes to pluck out
+        :type attrs: strings
+        :returns: :class:`JSONExpression`
+
+        >>> expr([{ 'a': 1, 'b': 1, 'c': 1},
+                  { 'a': 2, 'b': 2, 'c': 2}]).without('a', 'b').run()
+        [{ 'c': 1 }, { 'c': 2 }]
+        """
+        return self.map(lambda x: x.unpick(*attrs))
 
     def for_each(self, fun):
         if not isinstance(fun, FunctionExpr):
@@ -661,7 +704,7 @@ class JSONExpression(ReadQuery):
     def inner_join(self, other, predicate):
         return self.concat_map(
             lambda row: other.concat_map(
-                lambda row2: if_then_else(predicate(row, row2),
+                lambda row2: branch(predicate(row, row2),
                     expr([{'left':row, 'right':row2}]),
                     expr([]))
                 )
@@ -670,11 +713,11 @@ class JSONExpression(ReadQuery):
     def outer_join(self, other, predicate):
         return self.concat_map(
             lambda row: let(('matches', other.concat_map(
-                lambda row2: if_then_else(predicate(row, row2),
+                lambda row2: branch(predicate(row, row2),
                     expr([{'left':row, 'right':row2}]),
                     expr([])
                 )
-            )), if_then_else(letvar('matches').length() > 0,
+            )), branch(letvar('matches').length() > 0,
                 letvar('matches'),
                 expr([{'left':row}])
             ))
@@ -683,7 +726,7 @@ class JSONExpression(ReadQuery):
     def equi_join(self, left_attr, other, opt_right_attr=None):
         return self.concat_map(
             lambda row: let(('right', other.get(row[left_attr])),
-                if_then_else(letvar('right') != None,
+                branch(letvar('right') != None,
                     expr([{'left':row, 'right':letvar('right')}]),
                     expr([])
                 )
@@ -691,12 +734,12 @@ class JSONExpression(ReadQuery):
         )
 
     def zip(self):
-        return self.map(lambda row: if_then_else(row.has_attr('right'),
+        return self.map(lambda row: branch(row.contains('right'),
             row['left'].extend(row['right']),
             row['left']
         ))
 
-    def length(self):
+    def count(self):
         """Returns the length of an array.
 
         TODO: Strings?
@@ -715,9 +758,9 @@ class JSONExpression(ReadQuery):
             "illegal to return anything other than an integer from `__len__()` "
             "in Python.)")
 
-    def to_stream(self):
+    def array_to_stream(self):
         """Converts a JSON array to a stream. This is the reverse of
-        :meth:`StreamExpression.to_array()`.
+        :meth:`StreamExpression.stream_to_array()`.
 
         If the input is not an array, fails when the query is run.
 
@@ -739,20 +782,20 @@ class StreamExpression(ReadQuery):
         else:
             return StreamExpression(inner)
 
-    def to_array(self):
+    def stream_to_array(self):
         """Convert the stream into a JSON array.
 
         :returns: :class:`JSONExpression`"""
         return JSONExpression(internal.ToArray(self))
 
-    def range(self, lower_bound, upper_bound, attr_name = "id"):
+    def between(self, lower_bound, upper_bound, attr_name = "id"):
         """Filter a stream of objects according to whether the `attr_name`
         attribute of each object falls between `lower_bound` and `upper_bound`.
         Both bounds are inclusive.
 
         The most common use case for this is to filter tables by primary key.
         RethinkDB will take advantage of the primary key index if you call
-        :meth:`range()` on a :class:`Table` where `attr_name` is the primary
+        :meth:`between()` on a :class:`Table` where `attr_name` is the primary
         key.
 
         :param lower_bound: lower bound of range, inclusive
@@ -819,11 +862,11 @@ class StreamExpression(ReadQuery):
         """Extract the `index`'th element of the stream, or extract some
         sub-sequence of the stream.
 
-        >>> expr([1, 2, 3, 4]).to_stream()[2]
+        >>> expr([1, 2, 3, 4]).array_to_stream()[2]
         3
-        >>> expr([1, 2, 3, 4]).to_stream()[1:2].to_array()
+        >>> expr([1, 2, 3, 4]).array_to_stream()[1:2].stream_to_array()
         [2]
-        >>> expr([1, 2, 3, 4]).to_stream()[1:].to_array()
+        >>> expr([1, 2, 3, 4]).array_to_stream()[1:].stream_to_array()
         [2, 3, 4]
 
         :param index: the index or slice to fetch
@@ -1010,14 +1053,27 @@ class StreamExpression(ReadQuery):
         :param attrs: The attributes to pluck out
         :type attrs: strings
         :returns: :class:`JSONExpression`
-        
+
         >>> table('foo').insert([{ 'a': 1, 'b': 1, 'c': 1},
                                  { 'a': 2, 'b': 2, 'c': 2}]).run()
         >>> table('foo').pluck('a', 'b').run()
         <BatchedIterator [{ 'a': 1, 'b': 1 }, { 'a': 2, 'b': 2 }]>
         """
-        # TODO: reimplement in terms of pickattr when that's done
-        return self.map(lambda r: {a: r[a] for a in attrs})
+        return self.map(lambda x: x.pick(*attrs))
+
+    def without(self, *attrs):
+        """For each row of the stream, picks out the specified
+        attributes from the object and returns the residual object.
+
+        :param attrs: The attributes to pluck out
+        :type attrs: strings
+        :returns: :class:`JSONExpression`
+
+        >>> expr([{ 'a': 1, 'b': 1, 'c': 1},
+                  { 'a': 2, 'b': 2, 'c': 2}]).without('a', 'b').run()
+        [{ 'c': 1 }, { 'c': 2 }]
+        """
+        return self.map(lambda x: x.unpick(*attrs))
 
     def for_each(self, fun):
         if not isinstance(fun, FunctionExpr):
@@ -1027,7 +1083,7 @@ class StreamExpression(ReadQuery):
     def inner_join(self, other, predicate):
         return self.concat_map(
             lambda row: other.concat_map(
-                lambda row2: if_then_else(predicate(row, row2),
+                lambda row2: branch(predicate(row, row2),
                     expr([{'left':row, 'right':row2}]),
                     expr([]))
                 )
@@ -1036,11 +1092,11 @@ class StreamExpression(ReadQuery):
     def outer_join(self, other, predicate):
         return self.concat_map(
             lambda row: let(('matches', other.concat_map(
-                lambda row2: if_then_else(predicate(row, row2),
+                lambda row2: branch(predicate(row, row2),
                     expr([{'left':row, 'right':row2}]),
                     expr([])
                 )
-            )), if_then_else(letvar('matches').length() > 0,
+            )), branch(letvar('matches').length() > 0,
                 letvar('matches'),
                 expr({'left':row})
             ))
@@ -1049,7 +1105,7 @@ class StreamExpression(ReadQuery):
     def equi_join(self, left_attr, other, opt_right_attr=None):
         return self.concat_map(
             lambda row: let(('right', other.get(row[left_attr])),
-                if_then_else(letvar('right') != None,
+                branch(letvar('right') != None,
                     expr([{'left':row, 'right':letvar('right')}]),
                     expr([])
                 )
@@ -1057,12 +1113,12 @@ class StreamExpression(ReadQuery):
         )
 
     def zip(self):
-        return self.map(lambda row: if_then_else(row.has_attr('right'),
+        return self.map(lambda row: branch(row.contains('right'),
             row['left'].extend(row['right']),
             row['left']
         ))
 
-    def length(self):
+    def count(self):
         """Returns the length of the stream.
 
         :returns: :class:`JSONExpression`
@@ -1131,7 +1187,7 @@ def expr(val):
     else:
         raise TypeError("%r is not a valid JSONExpression" % val)
 
-def if_then_else(test, true_branch, false_branch):
+def branch(test, true_branch, false_branch):
     """If `test` returns `true`, evaluates to `true_branch`. If `test` returns
     `false`, evaluates to `false_branch`. If `test` returns a non-boolean value,
     fails when the query is run.
@@ -1139,11 +1195,11 @@ def if_then_else(test, true_branch, false_branch):
     `true_branch` and `false_branch` can be any subclass of
     :class:`ReadQuery`. They need not be the same, but they must be
     convertible to the same type; the type that they can both be converted to
-    will be the return type of `if_then_else()`. So if one is a
+    will be the return type of `branch()`. So if one is a
     :class:`StreamExpression` and the other is a :class:`MultiRowSelection`, the
     result will be a :class:`StreamExpression`. But if one is a
     :class:`StreamExpression` and the other is a :class:`JSONExpression`, then
-    `if_then_else()` will throw an exception rather than return an expression
+    `branch()` will throw an exception rather than return an expression
     object at all.
 
     :param test: The condition to switch on
@@ -1605,7 +1661,7 @@ class Table(MultiRowSelection):
         if self.db_expr:
             parent.db_name = self.db_expr.db_name
         else:
-            parent.db_name = net.last_connection.db_name
+            parent.db_name = net.last_connection().db_name
 
         if self.allow_outdated is None:
             if not 'allow_outdated' in opts or opts['allow_outdated'] is None or opts['allow_outdated'] is False:
@@ -1646,7 +1702,7 @@ def error(msg=''):
     :param msg: Error message to return to the client
     :type msg: str
 
-    >>> if_then_else(true, expr(1), error("Unreachable path"))
+    >>> branch(true, expr(1), error("Unreachable path"))
     """
     return JSONExpression(internal.RdbError(msg))
 

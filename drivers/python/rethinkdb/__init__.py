@@ -14,7 +14,7 @@ expressing queries friendly and convenient."""
 __all__ = [
     'connect',
     'db_create', 'db_drop', 'db_list', 'db', 'table', 'error',
-    'expr', 'r', 'union', 'js', 'let', 'letvar', 'if_then_else',
+    'expr', 'r', 'union', 'js', 'let', 'letvar', 'branch',
     'ExecutionError', 'BadQueryError']
 
 from query import *

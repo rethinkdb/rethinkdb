@@ -81,21 +81,22 @@ module RethinkDB
     #   table.insert([{:id => 1}, {:id => 1}])
     # Will return something like:
     #   {'inserted' => 1, 'errors' => 1, 'first_error' => ...}
+    # If you want to overwrite a row, you should set <b>+mode+</b> to
+    # <b>+:upsert+</b>, like so:
+    #   table.insert([{:id => 1}, {:id => 1}], :upsert)
+    # which will return:
+    #   {'inserted' => 2, 'errors' => 0}
     # You may also provide a stream.  So to make a copy of a table, you can do:
     #   r.create_db('new_db').run
     #   r.db('new_db').create_table('new_table').run
     #   r.db('new_db').new_table.insert(table).run
-    def insert(rows)
+    def insert(rows, mode=:new)
       raise_if_outdated
       rows = [rows] if rows.class != Array
-      Write_Query.new [:insert, [@db_name, @table_name], rows.map{|x| S.r(x)}, false]
+      do_upsert = (mode == :upsert ? true : false)
+      Write_Query.new [:insert, [@db_name, @table_name], rows.map{|x| S.r(x)}, do_upsert]
     end
 
-    def upsert(rows) # :nodoc:
-      raise_if_outdated
-      rows = [rows] if rows.class != Array
-      Write_Query.new [:insert, [@db_name, @table_name], rows.map{|x| S.r(x)}, true]
-    end
     # Get the row of the invoking table with key <b>+key+</b>.  You may also
     # optionally specify the name of the attribute to use as your key
     # (<b>+keyname+</b>), but note that your table must be indexed by that

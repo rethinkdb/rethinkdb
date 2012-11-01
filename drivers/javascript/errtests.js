@@ -17,7 +17,7 @@ var c = r.connect({}, function() {
     arr.reduce('a', function(acc, row) {return row.add(acc)}).runp();
     r.expr([{a:1}]).filter({a:one.div(zero)}).runp();
 
-    r.ifThenElse(r.expr(false), r.expr(1), r.error()).runp();
+    r.branch(r.expr(false), r.expr(1), r.error()).runp();
     r.table('test').orderby('bob').runp();
     r.expr([{id:0},{id:1}]).distinct().runp();
 
@@ -52,8 +52,8 @@ var c = r.connect({}, function() {
 
     r.table('bo').update(function(a) {return r.error()}).runp();
     r.table('test').get(1).update(function(row) {return r.error()}).runp();
-    r.table('bo').mutate(function(a) {return r.error()}).runp();
-    r.table('test').get(1).mutate(function(row) {return r.error()}).runp();
+    r.table('bo').replace(function(a) {return r.error()}).runp();
+    r.table('test').get(1).replace(function(row) {return r.error()}).runp();
 
     r.table('test').forEach(function(a) {
         return r.table('bo').insert(r.error());
@@ -66,7 +66,7 @@ var c = r.connect({}, function() {
     r.table('test').get(0).update(function(val) {return val.extend({'bob':1})}).runp();
 
     r.table('test').get(1, 'bob').update(function(row) {return row.extend({bob:3})}).runp();
-    r.table('test').get(1, 'bob').mutate(function(row) {return row.extend({bob:3})}).runp();
+    r.table('test').get(1, 'bob').replace(function(row) {return row.extend({bob:3})}).runp();
     r.table('test').get(1, 'bob').del().runp();
     r.table('test').insert({id:1}).runp();
 

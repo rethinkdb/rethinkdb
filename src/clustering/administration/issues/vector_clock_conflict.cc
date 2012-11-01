@@ -68,7 +68,7 @@ std::list<clone_ptr_t<vector_clock_conflict_issue_t> > vector_clock_conflict_iss
     for (machines_semilattice_metadata_t::machine_map_t::const_iterator it =
             metadata.machines.machines.begin(); it != metadata.machines.machines.end(); it++) {
         if (!it->second.is_deleted()) {
-            check("machine", it->first, "datacenter", it->second.get().datacenter, &issues);
+            check("machine", it->first, "datacenter_uuid", it->second.get().datacenter, &issues);
             check("machine", it->first, "name", it->second.get().name, &issues);
         }
     }
