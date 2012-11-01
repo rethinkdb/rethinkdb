@@ -80,7 +80,7 @@ public:
     void begin_transaction(extent_transaction_t *out);
     off64_t gen_extent();
     void release_extent(off64_t extent, extent_transaction_t *txn);
-    void end_transaction(const extent_transaction_t &t);
+    void end_transaction(extent_transaction_t *t);
     void commit_transaction(extent_transaction_t *t);
 
     /* Number of extents that have been released but not handed back out again. */

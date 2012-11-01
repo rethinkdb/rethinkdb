@@ -473,7 +473,7 @@ void log_serializer_t::index_write_finish(index_write_context_t *context, file_a
 
     /* Stop the extent manager transaction so another one can start, but don't commit it
     yet */
-    extent_manager->end_transaction(context->extent_txn);
+    extent_manager->end_transaction(&context->extent_txn);
 
     /* Get in line for the metablock manager */
     bool waiting_for_prev_write;

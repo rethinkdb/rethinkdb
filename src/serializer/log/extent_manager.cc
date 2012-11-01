@@ -289,9 +289,9 @@ void extent_manager_t::release_extent(off64_t extent, extent_transaction_t *txn)
     txn->free_queue().push_back(extent);
 }
 
-void extent_manager_t::end_transaction(DEBUG_VAR const extent_transaction_t &t) {
+void extent_manager_t::end_transaction(DEBUG_VAR extent_transaction_t *t) {
     assert_thread();
-    rassert(current_transaction == &t);
+    rassert(current_transaction == t);
     current_transaction = NULL;
 }
 
