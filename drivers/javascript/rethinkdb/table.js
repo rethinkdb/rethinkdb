@@ -296,6 +296,11 @@ rethinkdb.PointDeleteQuery.prototype.formatQuery = function(bt) {
  * Deletes all rows the current view
  */
 rethinkdb.Expression.prototype.del = function() {
+    if (arguments.length > 0) {
+        throw new TypeError("Method del does not take any arguments. Calling del directly on a "+
+                            "table reference will delete the whole table. Tod delete a single row "+
+                            "call table.get(key).del()");
+    }
     if (this instanceof rethinkdb.GetExpression) {
         return new rethinkdb.PointDeleteQuery(this.table_, this.key_, this.primaryKey_);
     } else {
