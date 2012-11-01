@@ -58,11 +58,14 @@ module RethinkDB
       when Array.hash      then JSON_Expression.new [:array, *x.map{|y| expr(y)}]
       when Hash.hash       then
         JSON_Expression.new [:object, *x.map{|var,term| [S.checkdict(var), expr(term)]}]
-      else raise TypeError, "RQL.expr can't handle '#{x.class()}'"
-      end) { x.inspect }
-    end
 
-    # Explicitly construct an RQL variable from a string:
+      else raise TypeError, "RQL::expr can't handle object `#{x.inspect}` of class `#{x.class()}`.
+Make sure you're providing a RQL expression or an object that can be coerced
+to a JSON type (a String, Fixnum, Float, TrueClass, FalseClass, NilClass, Array,
+or Hash)."
+      end) { x.inspect } end
+
+    # Explicitly construct an RQL variable from a string.  See RQL::let.
     #   r.letvar('varname')
     def self.letvar(varname)
       B.alt_inspect(Var_Expression.new [:var, varname]) { "letvar(#{varname.inspect})" }
@@ -100,17 +103,16 @@ module RethinkDB
       resclass.new [:if, S.r(test), S.r(t_branch), S.r(f_branch)]
     end
 
-    # Construct a query that binds some values to variable (as specified by
-    # <b>+varbinds+</b>) and then executes <b>+body+</b> with those variables in
-    # scope.  For example, the following are equivalent:
-    #   r.let({:a => 2, :b => 3}, r[:$a] + r[:$b])
+    # Construct a query that binds some values to variable (as
+    # specified by <b>+varbinds+</b>) and then executes <b>+body+</b>
+    # with those variables accessible through RQL::letvar.  For
+    # example, the following are equivalent:
+    #   r.let(:a => 2, :b => 3) { r.letvar('a') + r.letvar('b') }
     #   r.expr(5)
-    def self.let(varbinds, body)
+    def self.let(varbinds, &body)
       varbinds = varbinds.to_a
-      varbinds.map! { |pair|
-        raise ArgumentError,"Malformed LET expression #{body.inspect}" if pair.length != 2
-        [pair[0].to_s, expr(pair[1])]}
-      res = S.r(body)
+      varbinds.map! {|name, value| [name.to_s, expr(value)]}
+      res = S.r(body.call)
       res.class.new [:let, varbinds, res]
     end
 

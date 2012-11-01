@@ -299,8 +299,9 @@ module RethinkDB
           RQL.let({vname => other.concatmap {|row2|
                       RQL.if(yield(row, row2),
                              [{:left => row, :right => row2}],
-                             [])}.to_array},
-                  RQL.if(v.length() > 0, v, [{:left => row}]))
+                             [])}.to_array}) {
+            RQL.if(v.length() > 0, v, [{:left => row}])
+          }
         }
       }
     end
@@ -315,8 +316,9 @@ module RethinkDB
     def eq_join(leftattr, other)
       S.with_var {|vname, v|
         self.concatmap {|row|
-            RQL.let({vname => other.get(row[leftattr])},
-                    RQL.if(v.ne(nil), [{:left => row, :right => v}], []))
+          RQL.let({vname => other.get(row[leftattr])}) {
+            RQL.if(v.ne(nil), [{:left => row, :right => v}], [])
+          }
         }
       }
     end

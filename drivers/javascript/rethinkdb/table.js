@@ -483,14 +483,14 @@ rethinkdb.MutateQuery.prototype.buildQuery = function(opt_buildOpts) {
 /** @override */
 rethinkdb.MutateQuery.prototype.formatQuery = function(bt) {
     if (!bt) {
-        return this.view_.formatQuery()+".mutate("+this.mapping_.formatQuery()+")";
+        return this.view_.formatQuery()+".replace("+this.mapping_.formatQuery()+")";
     } else {
         var a = bt.shift();
         if (a === 'view') {
-            return this.view_.formatQuery(bt)+rethinkdb.util.spaceify_(".mutate("+this.mapping_.formatQuery()+")");
+            return this.view_.formatQuery(bt)+rethinkdb.util.spaceify_(".replace("+this.mapping_.formatQuery()+")");
         } else {
             goog.asserts.assert(a === 'mapping');
-            return rethinkdb.util.spaceify_(this.view_.formatQuery()+".mutate(")+this.mapping_.formatQuery(bt)+" ";
+            return rethinkdb.util.spaceify_(this.view_.formatQuery()+".replace(")+this.mapping_.formatQuery(bt)+" ";
         }
     }
 };
@@ -568,7 +568,7 @@ rethinkdb.PointMutateQuery.prototype.formatQuery = function(bt) {
  * @param {boolean=} opt_allowNonAtomic Optional flag to allow the mutate to run
  *  faster at the expence of guaranteed atomicity. Defaults to false.
  */
-rethinkdb.Expression.prototype.mutate = function(mapping, opt_allowNonAtomic) {
+rethinkdb.Expression.prototype.replace = function(mapping, opt_allowNonAtomic) {
     rethinkdb.util.argCheck_(arguments, 1);
     mapping = rethinkdb.util.functionWrap_(mapping);
     opt_allowNonAtomic = (opt_allowNonAtomic === undefined) ? false : opt_allowNonAtomic;
@@ -580,5 +580,5 @@ rethinkdb.Expression.prototype.mutate = function(mapping, opt_allowNonAtomic) {
         return new rethinkdb.MutateQuery(this, mapping, opt_allowNonAtomic);
     }
 };
-goog.exportProperty(rethinkdb.Expression.prototype, 'mutate',
-                    rethinkdb.Expression.prototype.mutate);
+goog.exportProperty(rethinkdb.Expression.prototype, 'replace',
+                    rethinkdb.Expression.prototype.replace);
