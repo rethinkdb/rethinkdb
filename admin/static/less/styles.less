@@ -1838,7 +1838,12 @@ TODO: retire this
         }
     }
     .section.replication {
+        h2.title {
+            border-bottom: none;
+            padding-bottom: 10px;
+        }
         .nav-tabs { padding-left: 0; }
+        p, a { font-family: @sans; }
 
         .cluster_container{
             overflow: auto;
@@ -1880,6 +1885,33 @@ TODO: retire this
         .mdc-options {
             margin-top: 20px;
             &.hidden { display: none; }
+            .primary-dc {
+                border-top: thin solid #efefef;
+                padding-top: 15px;
+
+                .btn{
+                    float: right;
+                    margin-left: 15px;
+                }               
+                p {
+                    margin: 0;
+                    &.caption {
+                        line-height: 24px;
+                        font-size: 14px;
+                    }
+                }
+
+                .toggle-primary {
+                    margin-bottom: 10px;
+                    .switch {
+                        float: left;
+                        margin-right: 20px;
+                    }
+                }
+                form.change-primary select {
+                    margin-top: 4px;
+                }
+            }
             .datacenter_list_container {
                 padding: 0px;
                 @default: #efefef; 
@@ -1988,10 +2020,13 @@ TODO: retire this
                     }
                 }
                 .dc-info {
-                    border-bottom: thin solid #f0f0f0;
-                    margin-bottom: 14px;
+                    padding-bottom: 14px;
                     overflow: hidden;
                     button { float: right; }
+
+                    &:first-child {
+                        border-bottom: thin solid #f0f0f0;
+                    }
 
                     p {
                         font-family: @sans;
@@ -2029,6 +2064,10 @@ TODO: retire this
         }
     }
     .section.sharding {
+        h2.title {
+            border-bottom: none;
+            padding-bottom: 10px;
+        }
         .edit-shards {
             margin: 20px 0;
             min-height: 39px;
@@ -2135,6 +2174,105 @@ TODO: retire this
         }
     }
 }
+
+/*
+    ----------------------------
+    Toggle switches courtesy of Thibaut Courouble (webinterfacelab.com).
+
+    License for this toggle switch snippet (.switch class) follows:
+    Copyright (c) 2012 Thibaut Courouble
+
+    Permission is hereby granted, free of charge, to any person obtaining
+    a copy of this software and associated documentation files (the
+    "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish,
+    distribute, sublicense, and/or sell copies of the Software, and to
+    permit persons to whom the Software is furnished to do so, subject to
+    the following conditions:
+
+    The above copyright notice and this permission notice shall be
+    included in all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+    LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+    OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+    ----------------------------
+*/
+.switch {
+    @height: 24px;
+    @width: 100px;
+    float: left;
+    position: relative;
+    height: @height;
+    width: @width;
+    background: rgba(0, 0, 0, 0.10);
+    .border-radius(3px);
+    .box-shadow(~"inset 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px rgba(255, 255, 255, 0.1)");
+
+    .switch-label {
+        position: relative;
+        z-index: 2;
+        float: left;
+        width: @width/2 - 2px;
+        line-height: @height;
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.15);
+        text-align: center;
+        text-shadow: 0 1px 1px rgba(0, 0, 0, 0.55);
+        text-transform: uppercase;
+        cursor: pointer;
+
+        &:active { font-weight: bold; }
+        &.switch-label-off { padding-left: 2px; }
+        &.switch-label-on { padding-right: 2px; }
+    }
+
+    .switch-input {
+        display: none;
+
+        &:checked + .switch-label {
+            font-weight: bold;
+            color: rgba(0, 0, 0, 0.65);
+            text-shadow: 0 1px rgba(255, 255, 255, 0.25);
+            .transition(~"0.15s ease-out");
+            .transition-property(color, text-shadow);
+        }
+        &:checked + .switch-label-on ~ .switch-selection {
+            left: @width/2; /* Note: left: 50%; doesn't transition in WebKit */
+        }
+    }
+
+    .switch-selection {
+        position: absolute;
+        z-index: 1;
+        top: 2px;
+        left: 2px;
+        display: block;
+        width: @width/2 - 2px;
+        height: @height - 4px;
+        .border-radius(2px);
+        .box-shadow(~"inset 0 1px rgba(255, 255, 255, 0.5), 0 0 2px rgba(0, 0, 0, 0.2)");
+        .transition(~"left 0.15s ease-out");
+        background-color: #F7AE41;
+    }
+    &.switch-green { 
+        background-color: #65bd63;
+        .gradient(~"linear-gradient(top, #9dd993, #65bd63)");
+    }
+    &.switch-blue .switch-selection {
+        background-color: #3aa2d0;
+        .gradient(~"linear-gradient(top, #4fc9ee, #3aa2d0)");
+    }
+    &.switch-yellow .switch-selection {
+        background-color: #c4bb61;
+        .gradient(~"linear-gradient(top, #e0dd94, #c4bb61)");
+    }
+}
+
 /*
     ----------------------------
     Progress bar UIComponent
@@ -2170,6 +2308,8 @@ TODO: retire this
             .bar { 
                 width: 100%;
                 background-color: #f7ad41;
+                .gradient(~"linear-gradient(bottom, rgba(247,175,67,1), rgba(249,190,103, 1))"); // gradient overlay
+                .box-shadow(~"0 2px 1px rgba(0,0,0,.04), inset 0 -1px 2px rgba(0,0,0,.05)"); // drop shadow and inner shadow
             }
         }
         .stages {
@@ -2267,7 +2407,7 @@ TODO: retire this
   font-size: 12px;
   text-align: center;
   text-shadow: 0 -1px 0 rgba(0,0,0,.25);
-  #gradient > .vertical(#149bdf, #0480be);
+  //#gradient > .vertical(#149bdf, #0480be);
   .box-shadow(~"inset 0 -1px 0 rgba(0,0,0,.15)");
   .box-sizing(border-box);
   .transition(~"width .6s ease");

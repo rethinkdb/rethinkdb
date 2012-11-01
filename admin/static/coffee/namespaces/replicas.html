@@ -13,6 +13,7 @@
             <div class="span3 tabbable tabs-left datacenters_list_container"></div>
             <div class="span9 tab-content datacenter_content"></div>
         </div>
+        <div class="primary-dc"></div>
     </div>
 </script>
 
@@ -191,3 +192,36 @@
     {{/if}}
 </script>
 
+<script id="namespace_view-primary_datacenter-template" type="text/x-handlebars-template">
+    <div class="toggle-primary">
+        <div class="switch">
+            <input type="radio" class="switch-input" name="view" value="primary-on" id="primary-on">
+            <label for="primary-on" class="switch-label switch-label-off">On</label>
+            <input type="radio" class="switch-input" name="view" value="primary-off" id="primary-off" checked>
+            <label for="primary-off" class="switch-label switch-label-on">Off</label>
+            <span class="switch-selection"></span>
+        </div>
+        <p class="caption">Pin masters to a single datacenter</p>
+    </div>
+    {{#if show_primary_dc}}
+        Primary DC
+    {{else}}
+        {{#if choose_primary}}
+            <button class="cancel-change-primary btn">&times;</button>
+            <button class="save submit-change-primary btn">Change</button>
+            <form class="form change-primary">
+                <fieldset>
+                    <select class="datacenter_uuid" name="datacenter_uuid">
+                        {{#each datacenters}}
+                            <option value="{{this.id}}">{{this.name}}</option>
+                        {{/each}}
+                    </select>
+                </fieldset>
+            </form>
+        {{else}}
+            <div class="alert alert-success displayed_alert">
+                You can pin the master of each shard for this table to a single datacenter-- designating it as the primary datacenter for this table.
+            </div>
+        {{/if}}
+    {{/if}}
+</script>
