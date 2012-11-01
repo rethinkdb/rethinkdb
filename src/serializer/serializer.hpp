@@ -89,11 +89,16 @@ public:
     virtual intrusive_ptr_t<standard_block_token_t> index_read(block_id_t block_id) = 0;
 
     /* index_write() applies all given index operations in an atomic way */
-    virtual void index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account) = 0;
+    virtual void index_write(serializer_transaction_t *ser_txn,
+                             const std::vector<index_write_op_t>& write_ops, file_account_t *io_account) = 0;
 
     /* Non-blocking variants */
-    virtual intrusive_ptr_t<standard_block_token_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb) = 0;
-    virtual intrusive_ptr_t<standard_block_token_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account);
+    virtual intrusive_ptr_t<standard_block_token_t>
+    block_write(serializer_transaction_t *ser_txn,
+                const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb) = 0;
+    virtual intrusive_ptr_t<standard_block_token_t>
+    block_write(serializer_transaction_t *ser_txn,
+                const void *buf, block_id_t block_id, file_account_t *io_account) = 0;
 
     virtual block_sequence_id_t get_block_sequence_id(block_id_t block_id, const void* buf) const = 0;
 
@@ -101,6 +106,7 @@ public:
     virtual block_size_t get_block_size() = 0;
 
     /* Return true if no other processes have the file locked */
+    // TODO: Fix this bad API.  It should not be possible to even construct a serializer if somebody else has the file lock.
     virtual bool coop_lock_and_check() = 0;
 
 private:
@@ -145,21 +151,11 @@ void do_writes(serializer_t *ser, const std::vector<serializer_write_t>& writes,
 // Helpers for default implementations that can be used on log_serializer_t.
 
 template <class serializer_type>
-void serializer_index_write(serializer_type *ser, const index_write_op_t& op, file_account_t *io_account) {
+void serializer_index_write(serializer_type *ser, serializer_transaction_t *ser_txn,
+                            const index_write_op_t& op, file_account_t *io_account) {
     std::vector<index_write_op_t> ops;
     ops.push_back(op);
-    return ser->index_write(ops, io_account);
-}
-
-template <class serializer_type>
-intrusive_ptr_t<typename serializer_traits_t<serializer_type>::block_token_type> serializer_block_write(serializer_type *ser, const void *buf, block_id_t block_id, file_account_t *io_account) {
-    struct : public cond_t, public iocallback_t {
-        void on_io_complete() { pulse(); }
-    } cb;
-    intrusive_ptr_t<typename serializer_traits_t<serializer_type>::block_token_type> result = ser->block_write(buf, block_id, io_account, &cb);
-    cb.wait();
-    return result;
-
+    return ser->index_write(ser_txn, ops, io_account);
 }
 
 #endif /* SERIALIZER_SERIALIZER_HPP_ */

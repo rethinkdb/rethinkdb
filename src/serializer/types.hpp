@@ -6,6 +6,7 @@
 #include <time.h>
 
 #include <algorithm>
+#include <deque>
 
 #include "containers/intrusive_ptr.hpp"
 #include "errors.hpp"
@@ -49,11 +50,44 @@ private:
     uint32_t ser_bs_;
 };
 
+
+
 class repli_timestamp_t;
 
 template <class serializer_type> struct serializer_traits_t;
 
 class log_serializer_t;
+
+#define FAKE_SERIALIZER_TRANSACTION 0
+
+class serializer_transaction_t {
+public:
+    serializer_transaction_t();
+    ~serializer_transaction_t();
+
+private:
+    friend class log_serializer_t;
+
+    // Used to add a block which, once the transaction is committed,
+    // should have its i_array entry erased.
+    void add_block_for_freeing_later(off64_t block_offset);
+
+    // Commits a transaction, updating the i_array entries.
+    // TODO: Add parameters to this function.
+    void commit_transaction();
+
+    void commit_transaction_fake() {
+        // FAKE_SERIALIZER_TRANSACTION
+        guarantee(state_ == uncommitted);
+        state_ = committed;
+    }
+
+    enum { uncommitted, committed } state_;
+
+    std::deque<off64_t> offsets_for_erasure_;
+
+    DISABLE_COPYING(serializer_transaction_t);
+};
 
 class ls_block_token_pointee_t {
     friend class log_serializer_t;

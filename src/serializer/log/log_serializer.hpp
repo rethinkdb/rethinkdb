@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <deque>
 #include <map>
 #include <string>
 #include <vector>
@@ -54,7 +55,7 @@ class log_serializer_t :
 #ifndef SEMANTIC_SERIALIZER_CHECK
     public serializer_t,
 #else
-    public home_thread_mixin_debug_t,
+    public home_thread_mixin_t,
 #endif  // SEMANTIC_SERIALIZER_CHECK
     private data_block_manager_t::shutdown_callback_t,
     private lba_list_t::shutdown_callback_t
@@ -128,10 +129,14 @@ public:
 
     void block_read(const intrusive_ptr_t<ls_block_token_pointee_t>& token, void *buf, file_account_t *io_account);
 
-    void index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account);
+    void index_write(serializer_transaction_t *ser_txn,
+                     const std::vector<index_write_op_t>& write_ops, file_account_t *io_account);
 
-    intrusive_ptr_t<ls_block_token_pointee_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb);
-    intrusive_ptr_t<ls_block_token_pointee_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account);
+    intrusive_ptr_t<ls_block_token_pointee_t>
+    block_write(serializer_transaction_t *ser_txn,
+                const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb);
+    intrusive_ptr_t<ls_block_token_pointee_t>
+    block_write(serializer_transaction_t *ser_txn, const void *buf, block_id_t block_id, file_account_t *io_account);
 
     block_sequence_id_t get_block_sequence_id(block_id_t block_id, const void* buf) const;
 

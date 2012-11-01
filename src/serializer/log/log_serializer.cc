@@ -12,6 +12,15 @@
 #include "buffer_cache/types.hpp"
 #include "perfmon/perfmon.hpp"
 
+serializer_transaction_t::serializer_transaction_t() : state_(uncommitted) { }
+serializer_transaction_t::~serializer_transaction_t() {
+    guarantee(state_ == committed);
+}
+
+void serializer_transaction_t::add_block_for_freeing_later(off64_t block_offset) {
+    offsets_for_erasure_.push_back(block_offset);
+}
+
 log_serializer_stats_t::log_serializer_stats_t(perfmon_collection_t *parent) 
     : serializer_collection(),
       pm_serializer_block_reads(secs_to_ticks(1)),
@@ -388,7 +397,8 @@ intrusive_ptr_t<ls_block_token_pointee_t> get_ls_block_token(const intrusive_ptr
 #endif  // SEMANTIC_SERIALIZER_CHECK
 
 
-void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account) {
+void log_serializer_t::index_write(serializer_transaction_t *ser_txn,
+                                   const std::vector<index_write_op_t>& write_ops, file_account_t *io_account) {
     assert_thread();
     ticks_t pm_time;
     stats->pm_serializer_index_writes.begin(&pm_time);
@@ -441,6 +451,8 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
     }
 
     index_write_finish(&context, io_account);
+
+    ser_txn->commit_transaction_fake();  // Not necessarily the right place for commit_transaction.
 
     stats->pm_serializer_index_writes.end(&pm_time);
 }
@@ -530,7 +542,8 @@ intrusive_ptr_t<ls_block_token_pointee_t> log_serializer_t::generate_block_token
 }
 
 intrusive_ptr_t<ls_block_token_pointee_t>
-log_serializer_t::block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb) {
+log_serializer_t::block_write(UNUSED serializer_transaction_t *ser_txn,
+                              const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb) {
     assert_thread();
     // TODO: Implement a duration sampler perfmon for this
     ++stats->pm_serializer_block_writes;
@@ -545,10 +558,15 @@ log_serializer_t::block_write(const void *buf, block_id_t block_id, file_account
 }
 
 intrusive_ptr_t<ls_block_token_pointee_t>
-log_serializer_t::block_write(const void *buf, block_id_t block_id, file_account_t *io_account) {
+log_serializer_t::block_write(serializer_transaction_t *ser_txn, const void *buf, block_id_t block_id, file_account_t *io_account) {
     assert_thread();
     rassert(block_id != NULL_BLOCK_ID, "If this assertion fails, inform Sam and remove the assertion.");
-    return serializer_block_write(this, buf, block_id, io_account);
+    struct : public cond_t, public iocallback_t {
+        void on_io_complete() { pulse(); }
+    } cb;
+    intrusive_ptr_t<ls_block_token_pointee_t> result = block_write(ser_txn, buf, block_id, io_account, &cb);
+    cb.wait();
+    return result;
 }
 
 

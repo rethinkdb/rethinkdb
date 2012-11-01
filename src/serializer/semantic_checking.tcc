@@ -1,5 +1,7 @@
 #include "serializer/semantic_checking.hpp"
 
+#include <fcntl.h>
+
 #include <vector>
 
 #include "serializer/semantic_checking_internal.hpp"
@@ -33,14 +35,14 @@ wrap_token(block_id_t block_id, scs_block_info_t info, intrusive_ptr_t<typename 
 
 template<class inner_serializer_t>
 void semantic_checking_serializer_t<inner_serializer_t>::
-create(dynamic_config_t config, io_backender_t *backender, private_dynamic_config_t private_config, static_config_t static_config) {
-    inner_serializer_t::create(config, backender, private_config, static_config);
+create(io_backender_t *backender, private_dynamic_config_t private_config, static_config_t static_config) {
+    inner_serializer_t::create(backender, private_config, static_config);
 }
 
 template<class inner_serializer_t>
 semantic_checking_serializer_t<inner_serializer_t>::
-semantic_checking_serializer_t(dynamic_config_t config, io_backender_t *io_backender, private_dynamic_config_t private_config)
-    : inner_serializer(config, io_backender, private_config),
+semantic_checking_serializer_t(dynamic_config_t config, io_backender_t *io_backender, private_dynamic_config_t private_config, perfmon_collection_t *perfmon_collection)
+    : inner_serializer(config, io_backender, private_config, perfmon_collection),
       last_index_write_started(0), last_index_write_finished(0),
       semantic_fd(-1)
 {
@@ -68,8 +70,8 @@ semantic_checking_serializer_t<inner_serializer_t>::
 }
 
 template<class inner_serializer_t>
-void semantic_checking_serializer_t<inner_serializer_t>::check_existing(const char *db_path, check_callback_t *cb) {
-    inner_serializer_t::check_existing(db_path, cb);
+void semantic_checking_serializer_t<inner_serializer_t>::check_existing(const char *db_path, io_backender_t *backender, check_callback_t *cb) {
+    inner_serializer_t::check_existing(db_path, backender, cb);
 }
 
 template<class inner_serializer_t>
@@ -205,7 +207,7 @@ get_block_sequence_id(block_id_t block_id, const void* buf) const {
 
 template<class inner_serializer_t>
 void semantic_checking_serializer_t<inner_serializer_t>::
-index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account) {
+index_write(serializer_transaction_t *ser_txn, const std::vector<index_write_op_t>& write_ops, file_account_t *io_account) {
     std::vector<index_write_op_t> inner_ops;
     inner_ops.reserve(write_ops.size());
 
@@ -235,7 +237,7 @@ index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_a
     }
 
     int our_index_write = ++last_index_write_started;
-    inner_serializer.index_write(inner_ops, io_account);
+    inner_serializer.index_write(ser_txn, inner_ops, io_account);
     guarantee(last_index_write_finished == our_index_write - 1, "Serializer completed index_writes in the wrong order");
     last_index_write_finished = our_index_write;
 }
@@ -248,14 +250,14 @@ wrap_buf_token(block_id_t block_id, const void *buf, intrusive_ptr_t<typename se
 
 template<class inner_serializer_t>
 intrusive_ptr_t< scs_block_token_t<inner_serializer_t> > semantic_checking_serializer_t<inner_serializer_t>::
-block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb) {
-    return wrap_buf_token(block_id, buf, inner_serializer.block_write(buf, block_id, io_account, cb));
+block_write(serializer_transaction_t *ser_txn, const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb) {
+    return wrap_buf_token(block_id, buf, inner_serializer.block_write(ser_txn, buf, block_id, io_account, cb));
 }
 
 template<class inner_serializer_t>
 intrusive_ptr_t< scs_block_token_t<inner_serializer_t> > semantic_checking_serializer_t<inner_serializer_t>::
-block_write(const void *buf, block_id_t block_id, file_account_t *io_account) {
-    return wrap_buf_token(block_id, buf, inner_serializer.block_write(buf, block_id, io_account));
+block_write(serializer_transaction_t *ser_txn, const void *buf, block_id_t block_id, file_account_t *io_account) {
+    return wrap_buf_token(block_id, buf, inner_serializer.block_write(ser_txn, buf, block_id, io_account));
 }
 
 template<class inner_serializer_t>

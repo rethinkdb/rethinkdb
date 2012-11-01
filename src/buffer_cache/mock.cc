@@ -192,17 +192,19 @@ void mock_cache_t::create(serializer_t *serializer, UNUSED mirrored_cache_static
     void *superblock = serializer->malloc();
     bzero(superblock, serializer->get_block_size().value());
 
+    serializer_transaction_t ser_txn;
+
     index_write_op_t op(SUPERBLOCK_ID);
-    op.token = serializer->block_write(superblock, SUPERBLOCK_ID, DEFAULT_DISK_ACCOUNT);
+    op.token = serializer->block_write(&ser_txn, superblock, SUPERBLOCK_ID, DEFAULT_DISK_ACCOUNT);
     op.recency = repli_timestamp_t::invalid;
-    serializer_index_write(serializer, op, DEFAULT_DISK_ACCOUNT);
+    serializer_index_write(serializer, &ser_txn, op, DEFAULT_DISK_ACCOUNT);
 
     serializer->free(superblock);
 }
 
 // dynamic_config is unused because this is a mock cache and the
 // configuration parameters don't apply.
-mock_cache_t::mock_cache_t( serializer_t *_serializer, UNUSED mirrored_cache_config_t *dynamic_config, UNUSED perfmon_collection_t *parent)
+mock_cache_t::mock_cache_t(serializer_t *_serializer, UNUSED mirrored_cache_config_t *dynamic_config, UNUSED perfmon_collection_t *parent)
     : serializer(_serializer), transaction_counter(new auto_drainer_t),
       block_size(_serializer->get_block_size()),
       bufs(new segmented_vector_t<internal_buf_t *, MAX_BLOCK_ID>) {

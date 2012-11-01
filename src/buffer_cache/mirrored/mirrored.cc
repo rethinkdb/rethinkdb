@@ -1280,10 +1280,11 @@ void mc_cache_t::create(serializer_t *serializer, mirrored_cache_static_config_t
     void *superblock = serializer->malloc();
     bzero(superblock, serializer->get_block_size().value());
 
+    serializer_transaction_t ser_txn;
     index_write_op_t op(SUPERBLOCK_ID);
-    op.token = serializer->block_write(superblock, SUPERBLOCK_ID, DEFAULT_DISK_ACCOUNT);
+    op.token = serializer->block_write(&ser_txn, superblock, SUPERBLOCK_ID, DEFAULT_DISK_ACCOUNT);
     op.recency = repli_timestamp_t::invalid;
-    serializer_index_write(serializer, op, DEFAULT_DISK_ACCOUNT);
+    serializer_index_write(serializer, &ser_txn, op, DEFAULT_DISK_ACCOUNT);
 
     serializer->free(superblock);
 }

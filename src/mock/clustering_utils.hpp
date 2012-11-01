@@ -11,7 +11,7 @@
 #include "clustering/immediate_consistency/query/master_access.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "mock/unittest_utils.hpp"
-#include "serializer/log/log_serializer.hpp"
+#include "serializer/config.hpp"
 
 class memcached_protocol_t;
 

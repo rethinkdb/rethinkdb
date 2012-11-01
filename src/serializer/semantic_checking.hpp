@@ -57,12 +57,12 @@ public:
     typedef typename inner_serializer_t::static_config_t static_config_t;
     typedef typename inner_serializer_t::config_t config_t;
 
-    static void create(dynamic_config_t config, io_backender_t *backender, private_dynamic_config_t private_config, static_config_t static_config);
-    semantic_checking_serializer_t(dynamic_config_t config, io_backender_t *backender, private_dynamic_config_t private_config);
+    static void create(io_backender_t *backender, private_dynamic_config_t private_config, static_config_t static_config);
+    semantic_checking_serializer_t(dynamic_config_t config, io_backender_t *backender, private_dynamic_config_t private_config, perfmon_collection_t *perfmon_collection);
     ~semantic_checking_serializer_t();
 
     typedef typename inner_serializer_t::check_callback_t check_callback_t;
-    static void check_existing(const char *db_path, check_callback_t *cb);
+    static void check_existing(const char *db_path, io_backender_t *backender, check_callback_t *cb);
 
     void *malloc();
     void *clone(void *data);
@@ -76,10 +76,12 @@ public:
 
     block_sequence_id_t get_block_sequence_id(block_id_t block_id, const void* buf) const;
 
-    void index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account);
+    void index_write(serializer_transaction_t *ser_txn, const std::vector<index_write_op_t>& write_ops, file_account_t *io_account);
 
-    intrusive_ptr_t< scs_block_token_t<inner_serializer_t> > block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb);
-    intrusive_ptr_t< scs_block_token_t<inner_serializer_t> > block_write(const void *buf, block_id_t block_id, file_account_t *io_account);
+    intrusive_ptr_t< scs_block_token_t<inner_serializer_t> >
+    block_write(serializer_transaction_t *ser_txn, const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb);
+    intrusive_ptr_t< scs_block_token_t<inner_serializer_t> >
+    block_write(serializer_transaction_t *ser_txn, const void *buf, block_id_t block_id, file_account_t *io_account);
 
     block_size_t get_block_size();
 

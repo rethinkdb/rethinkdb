@@ -16,11 +16,6 @@ void serializer_t::block_read(const intrusive_ptr_t<standard_block_token_t>& tok
     cb.wait();
 }
 
-intrusive_ptr_t<standard_block_token_t>
-serializer_t::block_write(const void *buf, block_id_t block_id, file_account_t *io_account) {
-    return serializer_block_write(this, buf, block_id, io_account);
-}
-
 serializer_write_t serializer_write_t::make_touch(block_id_t block_id, repli_timestamp_t recency) {
     serializer_write_t w;
     w.block_id = block_id;
@@ -60,11 +55,12 @@ struct write_cond_t : public cond_t, public iocallback_t {
     iocallback_t *callback;
 };
 
-void perform_write(const serializer_write_t *write, serializer_t *ser, file_account_t *acct, std::vector<write_cond_t *> *conds, index_write_op_t *op) {
+void perform_write(const serializer_write_t *write, serializer_t *ser, serializer_transaction_t *ser_txn,
+                   file_account_t *acct, std::vector<write_cond_t *> *conds, index_write_op_t *op) {
     switch (write->action_type) {
     case serializer_write_t::UPDATE: {
         conds->push_back(new write_cond_t(write->action.update.io_callback));
-        op->token = ser->block_write(write->action.update.buf, op->block_id, acct, conds->back());
+        op->token = ser->block_write(ser_txn, write->action.update.buf, op->block_id, acct, conds->back());
         if (write->action.update.launch_callback) {
             write->action.update.launch_callback->on_write_launched(op->token.get());
         }
@@ -84,6 +80,7 @@ void perform_write(const serializer_write_t *write, serializer_t *ser, file_acco
 
 void do_writes(serializer_t *ser, const std::vector<serializer_write_t>& writes, file_account_t *io_account) {
     ser->assert_thread();
+    serializer_transaction_t ser_txn;
     std::vector<write_cond_t*> block_write_conds;
     std::vector<index_write_op_t> index_write_ops;
     block_write_conds.reserve(writes.size());
@@ -94,7 +91,7 @@ void do_writes(serializer_t *ser, const std::vector<serializer_write_t>& writes,
         const serializer_write_t *write = &writes[i];
         index_write_op_t op(write->block_id);
 
-        perform_write(write, ser, io_account, &block_write_conds, &op);
+        perform_write(write, &ser_txn, io_account, &block_write_conds, &op);
 
         index_write_ops.push_back(op);
     }
@@ -107,7 +104,7 @@ void do_writes(serializer_t *ser, const std::vector<serializer_write_t>& writes,
     block_write_conds.clear();
 
     // Step 3: Commit the transaction to the serializer
-    ser->index_write(index_write_ops, io_account);
+    ser->index_write(&ser_txn, index_write_ops, io_account);
 }
 
 void serializer_data_ptr_t::free(serializer_t *ser) {
