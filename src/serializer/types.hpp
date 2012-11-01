@@ -9,7 +9,7 @@
 #include <deque>
 
 #include "containers/intrusive_ptr.hpp"
-#include "errors.hpp"
+#include "utils.hpp"
 
 // A relatively "lightweight" header file (we wish), in a sense.
 
@@ -60,7 +60,7 @@ class log_serializer_t;
 
 #define FAKE_SERIALIZER_TRANSACTION 0
 
-class serializer_transaction_t {
+class serializer_transaction_t : private home_thread_mixin_t {
 public:
     serializer_transaction_t();
     ~serializer_transaction_t();

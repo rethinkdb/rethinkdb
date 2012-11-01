@@ -18,6 +18,8 @@ serializer_transaction_t::~serializer_transaction_t() {
 }
 
 void serializer_transaction_t::add_block_for_freeing_later(off64_t block_offset) {
+    assert_thread();
+    guarantee(state_ == uncommitted);
     offsets_for_erasure_.push_back(block_offset);
 }
 
@@ -425,7 +427,7 @@ void log_serializer_t::index_write(serializer_transaction_t *ser_txn,
 
                 // Mark old offset as garbage
                 if (offset.has_value()) {
-                    data_block_manager->mark_garbage(offset.get_value(), &context.extent_txn);
+                    data_block_manager->mark_garbage(offset.get_value(), &context.extent_txn, ser_txn);
                 }
 
                 // Write new token to index, or remove from index as appropriate.
@@ -450,7 +452,7 @@ void log_serializer_t::index_write(serializer_transaction_t *ser_txn,
         }
     }
 
-    index_write_finish(&context, io_account);
+    index_write_finish(&context, io_account, ser_txn);
 
     ser_txn->commit_transaction_fake();  // Not necessarily the right place for commit_transaction.
 
@@ -468,7 +470,8 @@ void log_serializer_t::index_write_prepare(index_write_context_t *context, file_
     lba_index->consider_gc(io_account, &context->extent_txn);
 }
 
-void log_serializer_t::index_write_finish(index_write_context_t *context, file_account_t *io_account) {
+void log_serializer_t::index_write_finish(index_write_context_t *context, file_account_t *io_account,
+                                          serializer_transaction_t *ser_txn) {
     assert_thread();
     metablock_t mb_buffer;
 
@@ -522,6 +525,9 @@ void log_serializer_t::index_write_finish(index_write_context_t *context, file_a
     /* End the extent manager transaction so the extents can actually get reused. */
     extent_manager->commit_transaction(&context->extent_txn);
 
+    // End the serializer transaction so that extents can actually get reused. */
+    ser_txn->commit_transaction_fake();
+
     //TODO I'm kind of unhappy that we're calling this from in here we should figure out better where to trigger gc
     consider_start_gc();
 
@@ -550,7 +556,7 @@ log_serializer_t::block_write(UNUSED serializer_transaction_t *ser_txn,
 
     extent_transaction_t em_trx;
     extent_manager->begin_transaction(&em_trx);
-    const off64_t offset = data_block_manager->write(buf, block_id, true, io_account, cb, true, false, &em_trx);
+    const off64_t offset = data_block_manager->write(buf, block_id, true, io_account, cb, true, &em_trx);
     extent_manager->end_transaction(&em_trx);
     extent_manager->commit_transaction(&em_trx);
 

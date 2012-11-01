@@ -91,7 +91,7 @@ void do_writes(serializer_t *ser, const std::vector<serializer_write_t>& writes,
         const serializer_write_t *write = &writes[i];
         index_write_op_t op(write->block_id);
 
-        perform_write(write, &ser_txn, io_account, &block_write_conds, &op);
+        perform_write(write, ser, &ser_txn, io_account, &block_write_conds, &op);
 
         index_write_ops.push_back(op);
     }

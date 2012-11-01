@@ -234,14 +234,14 @@ void data_block_manager_t::read(off64_t off_in, void *buf_out, file_account_t *i
  */
 off64_t data_block_manager_t::write(const void *buf_in, block_id_t block_id, bool assign_new_block_sequence_id,
                                     file_account_t *io_account, iocallback_t *cb,
-                                    bool token_referenced, bool index_referenced,
+                                    bool token_referenced,
                                     extent_transaction_t *txn) {
     // Either we're ready to write, or we're shutting down and just
     // finished reading blocks for gc and called do_write.
     rassert(state == state_ready
            || (state == state_shutting_down && gc_state.step() == gc_write));
 
-    off64_t offset = gimme_a_new_offset(token_referenced, index_referenced, txn);
+    off64_t offset = gimme_a_new_offset(token_referenced, txn);
 
     ++stats->pm_serializer_data_blocks_written;
 
@@ -331,7 +331,7 @@ void data_block_manager_t::check_and_handle_outstanding_empty_extents(extent_tra
     potentially_empty_extents.clear();
 }
 
-void data_block_manager_t::mark_garbage(off64_t offset, extent_transaction_t *txn) {
+void data_block_manager_t::mark_garbage(off64_t offset, extent_transaction_t *txn, UNUSED serializer_transaction_t *ser_txn) {
     unsigned int extent_id = static_config->extent_index(offset);
     unsigned int block_id = static_config->block_index(offset);
 
@@ -430,7 +430,7 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_wr
 
                 // the first "false" argument indicates that we do not with to assign a new block sequence id
                 // We pass true because we know there is a token for this block: we just constructed one!
-                writes[i].new_offset = parent->write(writes[i].buf, data->block_id, false, parent->choose_gc_io_account(), block_write_conds.back(), true, false, &em_trx);
+                writes[i].new_offset = parent->write(writes[i].buf, data->block_id, false, parent->choose_gc_io_account(), block_write_conds.back(), true, &em_trx);
             }
             parent->serializer->extent_manager->end_transaction(&em_trx);
             parent->serializer->extent_manager->commit_transaction(&em_trx);
@@ -445,6 +445,8 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_wr
         // We created block tokens for our blocks we're writing, so
         // there's no way the current entry could have become NULL.
         guarantee(parent->gc_state.current_entry != NULL);
+
+        serializer_transaction_t ser_txn;
 
         std::vector<index_write_op_t> index_write_ops;
 
@@ -727,8 +729,8 @@ void data_block_manager_t::actually_shutdown() {
     }
 }
 
-off64_t data_block_manager_t::gimme_a_new_offset(bool token_referenced, bool index_referenced, extent_transaction_t *txn) {
-    rassert(token_referenced || index_referenced);
+off64_t data_block_manager_t::gimme_a_new_offset(bool token_referenced, extent_transaction_t *txn) {
+    rassert(token_referenced);
     /* Start a new extent if necessary */
 
     if (!active_extents[next_active_extent]) {
@@ -750,7 +752,7 @@ off64_t data_block_manager_t::gimme_a_new_offset(bool token_referenced, bool ind
 
     rassert(active_extents[next_active_extent]->g_array[blocks_in_active_extent[next_active_extent]]);
     active_extents[next_active_extent]->t_array.set(blocks_in_active_extent[next_active_extent], token_referenced);
-    active_extents[next_active_extent]->i_array.set(blocks_in_active_extent[next_active_extent], index_referenced);
+    active_extents[next_active_extent]->i_array.set(blocks_in_active_extent[next_active_extent], 0);
     active_extents[next_active_extent]->update_g_array(blocks_in_active_extent[next_active_extent]);
 
     blocks_in_active_extent[next_active_extent]++;

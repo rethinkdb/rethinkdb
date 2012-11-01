@@ -165,7 +165,8 @@ private:
     /* Starts a new transaction, updates perfmons etc. */
     void index_write_prepare(index_write_context_t *context, file_account_t *io_account);
     /* Finishes a write transaction */
-    void index_write_finish(index_write_context_t *context, file_account_t *io_account);
+    void index_write_finish(index_write_context_t *context, file_account_t *io_account,
+                            serializer_transaction_t *ser_txn);
 
     /* This mess is because the serializer is still mostly FSM-based */
     bool shutdown(cond_t *cb);
