@@ -498,8 +498,8 @@ module 'DashboardView', ->
         popup_template: Handlebars.compile $('#cluster_status-consistency-popup-template').html()
 
         events:
-            'mouseup .show_details': 'show_details'
-            'mouseup .close': 'hide_details'
+            'click .show_details': 'show_details'
+            'click .close': 'hide_details'
 
         initialize: =>
             @data = ''
