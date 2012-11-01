@@ -164,5 +164,5 @@ http.createServer(function (req, res) {
 
 }).listen((service_port));
 
-console.log('Server running on port:'+(service_port));
+console.log('Server running on port: '+(service_port));
 
