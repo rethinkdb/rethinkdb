@@ -407,7 +407,7 @@ or Hash)."
     # A shortcut for Data_Collectors::avg
     def self.avg(*args); Data_Collectors.avg(*args); end
 
-    def self.boolprop(op, l, r)
+    def self.boolprop(op, l, r) # :nodoc:
       if l.boolop?
         larg,rarg = l.body[2]
         sexp =  [l.body[0], l.body[1], [larg, boolprop(op, rarg, r)]]
@@ -429,9 +429,17 @@ or Hash)."
     # See RQL::ge
     def self.>=(l,r); boolprop(:ge, S.r(l), S.r(r)); end
 
-    # See RQL::any
-    def self.|(l,r); S.mark_boolop(any(l,r)); end
-    # See RQL::all
-    def self.&(l,r); S.mark_boolop(all(l,r)); end
+    def self.|(l,r) # :nodoc:
+      S.mark_boolop(any(l,r))
+    end
+    def self.all_h4x(l,r) # :nodoc:
+      S.mark_boolop(all(l,r))
+    end
+    include Mixin_H4x
+  end
+  module Mixin_H4x # :nodoc:
+    def &(l,r) # :nodoc:
+      RQL.all_h4x(l,r)
+    end
   end
 end
