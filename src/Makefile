@@ -66,6 +66,8 @@ endif
 # Set SYMBOLS to 1 to enable symbols, even in release mode
 SYMBOLS?=0
 
+STATICFORCE?=1
+
 ifeq ($(GPERF),1)
 DEBUG=0
 NO_TCMALLOC:=1
@@ -122,18 +124,32 @@ CXX:=icc
 endif
 endif
 
+
+
 ifeq ($(COMPILER),CLANG)
-LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -lstdc++ -lm -lv8 -lcrypto
-else
-ifeq ($(COMPILER),INTEL)
-LDFLAGS:= -B/opt/intel/bin -pthread -lrt -lstdc++ -lv8 -lcrypto
-else
-# GCC
-LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -lv8 -lcrypto
-endif
-endif
+LDFLAGS:=-Wl,--no-as-needed 
 ifeq ($(STATICFORCE),1)
 LDFLAGS+= -static
+STATIC_LIBGCC=1
+endif
+LDFLAGS+=-pthread -lrt -lstdc++ -lm -lv8 -lcrypto
+else
+ifeq ($(COMPILER),INTEL)
+LDFLAGS:= -B/opt/intel/bin 
+ifeq ($(STATICFORCE),1)
+LDFLAGS+= -static
+STATIC_LIBGCC=1
+endif
+LDFLAGS+=-pthread -lrt -lstdc++ -lv8 -lcrypto
+else
+# GCC
+LDFLAGS:=-Wl,--no-as-needed 
+ifeq ($(STATICFORCE),1)
+LDFLAGS+= -static
+STATIC_LIBGCC=1
+endif
+LDFLAGS+=-pthread -lrt -lv8 -lcrypto
+endif
 endif
 
 STATIC_LIBRARIES:=boost_serialization protobuf boost_program_options
