@@ -633,7 +633,11 @@ void data_block_manager_t::run_gc() {
 
                 /* schedule the write */
                 gc_writer_t *gc_writer = new gc_writer_t(gc_writes.data(), gc_writes.size(), this);
-                if (!gc_writer->done) break;
+                if (!gc_writer->done) {
+                    break;
+                } else {
+                    delete gc_writer;
+                }
             }
 
             case gc_write:
