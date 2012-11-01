@@ -234,14 +234,13 @@ void data_block_manager_t::read(off64_t off_in, void *buf_out, file_account_t *i
  */
 off64_t data_block_manager_t::write(const void *buf_in, block_id_t block_id, bool assign_new_block_sequence_id,
                                     file_account_t *io_account, iocallback_t *cb,
-                                    bool token_referenced, bool index_referenced,
-                                    extent_transaction_t *txn) {
+                                    bool token_referenced, bool index_referenced) {
     // Either we're ready to write, or we're shutting down and just
     // finished reading blocks for gc and called do_write.
     rassert(state == state_ready
            || (state == state_shutting_down && gc_state.step() == gc_write));
 
-    off64_t offset = gimme_a_new_offset(token_referenced, index_referenced, txn);
+    off64_t offset = gimme_a_new_offset(token_referenced, index_referenced);
 
     ++stats->pm_serializer_data_blocks_written;
 
@@ -417,8 +416,6 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_wr
 
         {
             ASSERT_NO_CORO_WAITING;
-            extent_transaction_t em_trx;
-            parent->serializer->extent_manager->begin_transaction(&em_trx);
             // Step 1: Write buffers to disk and assemble index operations
             for (int i = 0; i < num_writes; ++i) {
                 block_write_conds.push_back(new block_write_cond_t());
@@ -430,10 +427,8 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_wr
 
                 // the first "false" argument indicates that we do not with to assign a new block sequence id
                 // We pass true because we know there is a token for this block: we just constructed one!
-                writes[i].new_offset = parent->write(writes[i].buf, data->block_id, false, parent->choose_gc_io_account(), block_write_conds.back(), true, false, &em_trx);
+                writes[i].new_offset = parent->write(writes[i].buf, data->block_id, false, parent->choose_gc_io_account(), block_write_conds.back(), true, false);
             }
-            parent->serializer->extent_manager->end_transaction(em_trx);
-            parent->serializer->extent_manager->commit_transaction(&em_trx);
         }
 
         // Step 2: Wait on all writes to finish
@@ -727,12 +722,12 @@ void data_block_manager_t::actually_shutdown() {
     }
 }
 
-off64_t data_block_manager_t::gimme_a_new_offset(bool token_referenced, bool index_referenced, extent_transaction_t *txn) {
+off64_t data_block_manager_t::gimme_a_new_offset(bool token_referenced, bool index_referenced) {
     rassert(token_referenced || index_referenced);
     /* Start a new extent if necessary */
 
     if (!active_extents[next_active_extent]) {
-        active_extents[next_active_extent] = new gc_entry(this, txn);
+        active_extents[next_active_extent] = new gc_entry(this);
         active_extents[next_active_extent]->state = gc_entry::state_active;
         blocks_in_active_extent[next_active_extent] = 0;
 
@@ -811,9 +806,9 @@ void data_block_manager_t::remove_last_unyoung_entry() {
 }
 
 
-gc_entry::gc_entry(data_block_manager_t *_parent, extent_transaction_t *txn)
+gc_entry::gc_entry(data_block_manager_t *_parent)
     : parent(_parent),
-      offset(parent->extent_manager->gen_extent(txn)),
+      offset(parent->extent_manager->gen_extent()),
       g_array(parent->static_config->blocks_per_extent()),
       t_array(parent->static_config->blocks_per_extent()),
       i_array(parent->static_config->blocks_per_extent()),

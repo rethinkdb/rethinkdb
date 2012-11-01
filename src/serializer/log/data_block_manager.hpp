@@ -61,7 +61,7 @@ public:
 
 public:
     /* This constructor is for starting a new extent. */
-    explicit gc_entry(data_block_manager_t *parent, extent_transaction_t *txn);
+    explicit gc_entry(data_block_manager_t *parent);
 
     /* This constructor is for reconstructing extents that the LBA tells us contained
        data blocks. */
@@ -123,8 +123,7 @@ public:
     /* Returns the offset to which the block will be written */
     off64_t write(const void *buf_in, block_id_t block_id, bool assign_new_block_sequence_id,
                   file_account_t *io_account, iocallback_t *cb,
-                  bool token_referenced, bool index_referenced,
-                  extent_transaction_t *txn);
+                  bool token_referenced, bool index_referenced);
 
     /* exposed gc api */
     /* mark a buffer as garbage */
@@ -184,7 +183,7 @@ private:
 
     file_account_t *choose_gc_io_account();
 
-    off64_t gimme_a_new_offset(bool token_referenced, bool index_referenced, extent_transaction_t *txn);
+    off64_t gimme_a_new_offset(bool token_referenced, bool index_referenced);
 
     /* Checks whether the extent is empty and if it is, notifies the extent manager and cleans up */
     void check_and_handle_empty_extent(unsigned int extent_id, extent_transaction_t *txn);

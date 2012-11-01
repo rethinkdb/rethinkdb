@@ -11,7 +11,7 @@ class extent_t {
     friend struct extent_block_t;
 
 public:
-    extent_t(extent_manager_t *em, direct_file_t *file, extent_transaction_t *txn);   // Creates new extent
+    extent_t(extent_manager_t *em, direct_file_t *file);   // Creates new extent
     extent_t(extent_manager_t *em, direct_file_t *file, off64_t loc, size_t size);   // Recreates extent at given offset (used during startup)
 
     void destroy(extent_transaction_t *txn);   // Releases extent and destroys structure in memory

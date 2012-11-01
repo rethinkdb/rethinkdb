@@ -245,11 +245,9 @@ void extent_manager_t::begin_transaction(extent_transaction_t *out) {
     out->init();
 }
 
-off64_t extent_manager_t::gen_extent(DEBUG_VAR extent_transaction_t *txn) {
+off64_t extent_manager_t::gen_extent() {
     assert_thread();
     rassert(state == state_running);
-    rassert(current_transaction);
-    rassert(current_transaction == txn);
     ++stats->pm_extents_in_use;
     stats->pm_bytes_in_use += extent_size;
 

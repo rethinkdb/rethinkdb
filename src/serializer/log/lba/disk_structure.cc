@@ -82,7 +82,7 @@ void lba_disk_structure_t::add_entry(block_id_t block_id, repli_timestamp_t rece
         }
 
         if (!superblock_extent) {
-            superblock_extent = new extent_t(em, file, txn);
+            superblock_extent = new extent_t(em, file);
         }
 
         /* Prepare the new superblock. */
@@ -106,7 +106,7 @@ void lba_disk_structure_t::add_entry(block_id_t block_id, repli_timestamp_t rece
     }
 
     if (!last_extent) {
-        last_extent = new lba_disk_extent_t(em, file, io_account, txn);
+        last_extent = new lba_disk_extent_t(em, file, io_account);
     }
 
     rassert(!last_extent->full());
