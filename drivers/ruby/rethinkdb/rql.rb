@@ -1,5 +1,11 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 module RethinkDB
+  module Mixin_H4x # :nodoc:
+    def &(l,r) # :nodoc:
+      RQL.all_h4x(l,r)
+    end
+  end
+
   # This module contains the RQL query construction functions.  By far
   # the most common way of gaining access to those functions, however,
   # is to include/extend RethinkDB::Shortcuts to gain access to the
@@ -47,7 +53,7 @@ module RethinkDB
     #   r[r[5]]
     def self.expr x
       return x if x.kind_of? RQL_Query
-      B.alt_inspect(case x.class().hash
+      BT.alt_inspect(case x.class().hash
       when Table.hash      then x.to_mrs
       when String.hash     then JSON_Expression.new [:string, x]
       when Fixnum.hash     then JSON_Expression.new [:number, x]
@@ -68,7 +74,7 @@ or Hash)."
     # Explicitly construct an RQL variable from a string.  See RQL::let.
     #   r.letvar('varname')
     def self.letvar(varname)
-      B.alt_inspect(Var_Expression.new [:var, varname]) { "letvar(#{varname.inspect})" }
+      BT.alt_inspect(Var_Expression.new [:var, varname]) { "letvar(#{varname.inspect})" }
     end
 
     # Provide a literal JSON string that will be parsed by the server.  For
@@ -406,5 +412,35 @@ or Hash)."
     def self.sum(*args); Data_Collectors.sum(*args); end
     # A shortcut for Data_Collectors::avg
     def self.avg(*args); Data_Collectors.avg(*args); end
+
+    def self.boolprop(op, l, r) # :nodoc:
+      if l.boolop?
+        larg,rarg = l.body[2]
+        sexp =  [l.body[0], l.body[1], [larg, boolprop(op, rarg, r)]]
+      elsif r.boolop?
+        larg,rarg = r.body[2]
+        sexp =  [r.body[0], r.body[1], [boolprop(op, l, larg), rarg]]
+      else
+        return RQL.send(op, l, r);
+      end
+      return S.mark_boolop(JSON_Expression.new sexp)
+    end
+
+    # See RQL::lt
+    def self.< (l,r); boolprop(:lt, S.r(l), S.r(r)); end
+    # See RQL::le
+    def self.<=(l,r); boolprop(:le, S.r(l), S.r(r)); end
+    # See RQL::gt
+    def self.> (l,r); boolprop(:gt, S.r(l), S.r(r)); end
+    # See RQL::ge
+    def self.>=(l,r); boolprop(:ge, S.r(l), S.r(r)); end
+
+    def self.|(l,r) # :nodoc:
+      S.mark_boolop(any(l,r))
+    end
+    extend Mixin_H4x
+    def self.all_h4x(l,r) # :nodoc:
+      S.mark_boolop(all(l,r))
+    end
   end
 end
