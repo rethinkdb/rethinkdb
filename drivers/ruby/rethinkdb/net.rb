@@ -247,6 +247,7 @@ module RethinkDB
                    query.kind_of?(Write_Query))
       map = {}
       map[:default_db] = @default_db if @default_db
+      S.check_opts(opts, [:use_outdated])
       map[S.conn_outdated] = !!opts[:use_outdated]
       protob = query.query(map)
       if is_atomic
