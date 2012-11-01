@@ -61,9 +61,10 @@ module 'Sidebar', ->
 
         # As issues get resolved, we need to make sure that we're showing the right elements
         issues_being_resolved: =>
-            if issues.length is 0
+            if issues.length is 0 and @.$('#issue-alerts').children().length is 0
                 @.$('.all-issues').hide()
                 @showing_all_issues = false
+                @issues_banner.set_showing_issues @showing_all_issues
 
         destroy: =>
             issues.off 'remove', @issues_being_resolved
