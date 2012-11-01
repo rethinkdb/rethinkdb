@@ -380,9 +380,11 @@ void data_block_manager_t::mark_token_garbage(off64_t offset) {
         ++gc_stats.old_garbage_blocks;
     }
 
-    // We delay this check as we don't want to interfere with active extent manager transactions
-    // TODO: Maybe change how stuff works to make delaying this unnecessary?
-    check_and_handle_empty_extent_later(extent_id);
+    if (entry->g_array.count() == static_config->blocks_per_extent()) {
+        // We delay this check as we don't want to interfere with active extent manager transactions
+        // TODO: Maybe change how stuff works to make delaying this unnecessary?
+        check_and_handle_empty_extent_later(extent_id);
+    }
 }
 
 void data_block_manager_t::start_gc() {
