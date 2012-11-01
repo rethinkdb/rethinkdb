@@ -59,7 +59,7 @@ module RethinkDB
       when Hash.hash       then
         JSON_Expression.new [:object, *x.map{|var,term| [S.checkdict(var), expr(term)]}]
 
-      else raise TypeError, "RQL.expr can't handle object `#{x.inspect}` of class `#{x.class()}`.
+      else raise TypeError, "RQL::expr can't handle object `#{x.inspect}` of class `#{x.class()}`.
 Make sure you're providing a RQL expression or an object that can be coerced
 to a JSON type (a String, Fixnum, Float, TrueClass, FalseClass, NilClass, Array,
 or Hash)."
