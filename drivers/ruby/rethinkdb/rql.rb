@@ -406,5 +406,32 @@ or Hash)."
     def self.sum(*args); Data_Collectors.sum(*args); end
     # A shortcut for Data_Collectors::avg
     def self.avg(*args); Data_Collectors.avg(*args); end
+
+    def self.boolprop(op, l, r)
+      if l.boolop?
+        larg,rarg = l.body[2]
+        sexp =  [l.body[0], l.body[1], [larg, boolprop(op, rarg, r)]]
+      elsif r.boolop?
+        larg,rarg = r.body[2]
+        sexp =  [r.body[0], r.body[1], [boolprop(op, l, larg), rarg]]
+      else
+        return RQL.send(op, l, r);
+      end
+      return S.mark_boolop(JSON_Expression.new sexp)
+    end
+
+    # See RQL::lt
+    def self.< (l,r); boolprop(:lt, S.r(l), S.r(r)); end
+    # See RQL::le
+    def self.<=(l,r); boolprop(:le, S.r(l), S.r(r)); end
+    # See RQL::gt
+    def self.> (l,r); boolprop(:gt, S.r(l), S.r(r)); end
+    # See RQL::ge
+    def self.>=(l,r); boolprop(:ge, S.r(l), S.r(r)); end
+
+    # See RQL::any
+    def self.|(l,r); S.mark_boolop(any(l,r)); end
+    # See RQL::all
+    def self.&(l,r); S.mark_boolop(all(l,r)); end
   end
 end

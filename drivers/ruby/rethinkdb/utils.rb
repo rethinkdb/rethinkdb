@@ -5,11 +5,10 @@ module RethinkDB
     def method_aliases
       { :attr => :getattr, :attrs => :pickattrs, :attr? => :hasattr,
         :get => :getattr, :pick => :pickattrs, :has => :hasattr,
-        :equals => :eq, :neq => :neq,
-        :neq => :ne, :< => :lt, :<= => :le, :> => :gt, :>= => :ge,
+        :equals => :eq, :neq => :ne,
         :sub => :subtract, :mul => :multiply, :div => :divide, :mod => :modulo,
         :+ => :add, :- => :subtract, :* => :multiply, :/ => :divide, :% => :modulo,
-        :and => :all, :& => :all, :or => :any, :| => :any, :js => :javascript,
+        :and => :all, :or => :any, :js => :javascript,
         :to_stream => :arraytostream, :to_array => :streamtoarray} end
 
     # Allows us to identify protobuf classes which are actually variant types,
@@ -64,6 +63,7 @@ module RethinkDB
   module P; extend P_Mixin; end
 
   module S_Mixin #S-expression Utils
+    def mark_boolop(x); class << x; def boolop?; true; end; end; x; end
     def check_opts(opts, set)
       if (bad_opts = opts.map{|k,_|k} - set) != []
         raise ArgumentError,"Unrecognized options: #{bad_opts.inspect}"
