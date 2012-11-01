@@ -329,15 +329,18 @@ module 'ResolveIssuesView', ->
             if @contestants?
                 _.each @contestants, (contestant) =>
                     @.$('#resolve_' + contestant.contestant_id).off 'click'
-                
-            # grab possible conflicting values
-            $.ajax
-                url: '/ajax/semilattice/' + get_resolution_url()
-                type: 'GET'
-                contentType: 'application/json'
-                async: false
-                success: (response) =>
-                    @contestants = _.map response, (x, index) -> { value: JSON.stringify(x[1]), contestant_id: index }
+         
+            if @model.get('object_type') is 'blueprint'
+                @contestants = []
+            else
+                # grab possible conflicting values
+                $.ajax
+                    url: '/ajax/semilattice/' + get_resolution_url()
+                    type: 'GET'
+                    contentType: 'application/json'
+                    async: false
+                    success: (response) =>
+                        @contestants = _.map response, (x, index) -> { value: JSON.stringify(x[1]), contestant_id: index }
 
             # renderevsky
             switch @model.get('object_type')
