@@ -64,6 +64,11 @@ module RethinkDB
   module P; extend P_Mixin; end
 
   module S_Mixin #S-expression Utils
+    def check_opts(opts, set)
+      if (bad_opts = opts.map{|k,_|k} - set) != []
+        raise ArgumentError,"Unrecognized options: #{bad_opts.inspect}"
+      end
+    end
     @@gensym_counter = 1000
     def gensym; '_var_'+(@@gensym_counter += 1).to_s; end
     def with_var

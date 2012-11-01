@@ -24,6 +24,7 @@ module RethinkDB
     #                                   :cache_size  => 1073741824})
     # When run, either returns <b>+nil+</b> or throws on error.
     def create_table(name, optargs={})
+      S.check_opts(optargs, [:datacenter, :primary_key, :cache_size])
       dc = optargs[:datacenter] || S.skip
       pkey = optargs[:primary_key] || S.skip
       cache = optargs[:cache_size] || S.skip
@@ -68,9 +69,7 @@ module RethinkDB
       @table_name = name;
       @opts = opts
       @context = caller
-      if (bad_opts = (@opts.map{|k,_|k}) - [:use_outdated]) != []
-        raise ArgumentError,"Unrecognized options: #{bad_opts.inspect}"
-      end
+      S.check_opts(@opts, [:use_outdated])
       use_od = (@opts.include? :use_outdated) ? @opts[:use_outdated] : S.conn_outdated
       @body = [:table, @db_name, @table_name, use_od]
     end
