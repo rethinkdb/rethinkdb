@@ -66,7 +66,7 @@ endif
 # Set SYMBOLS to 1 to enable symbols, even in release mode
 SYMBOLS?=0
 
-STATICFORCE?=1
+STATICFORCE?=0
 
 ifeq ($(GPERF),1)
 DEBUG=0
@@ -132,7 +132,7 @@ ifeq ($(STATICFORCE),1)
 LDFLAGS+= -static
 STATIC_LIBGCC=1
 endif
-LDFLAGS+=-pthread -lrt -lstdc++ -lm -lv8 -lcrypto
+LDFLAGS+=-pthread -lrt -lstdc++ -lm -lv8
 else
 ifeq ($(COMPILER),INTEL)
 LDFLAGS:= -B/opt/intel/bin 
@@ -140,7 +140,7 @@ ifeq ($(STATICFORCE),1)
 LDFLAGS+= -static
 STATIC_LIBGCC=1
 endif
-LDFLAGS+=-pthread -lrt -lstdc++ -lv8 -lcrypto
+LDFLAGS+=-pthread -lrt -lstdc++ -lv8 
 else
 # GCC
 LDFLAGS:=-Wl,--no-as-needed 
@@ -148,8 +148,12 @@ ifeq ($(STATICFORCE),1)
 LDFLAGS+= -static
 STATIC_LIBGCC=1
 endif
-LDFLAGS+=-pthread -lrt -lv8 -lcrypto
+LDFLAGS+=-pthread -lrt -lv8
 endif
+endif
+
+ifeq ($(LIBCRYPTO),1)
+LDFLAGS+=-lcrypto 
 endif
 
 STATIC_LIBRARIES:=boost_serialization protobuf boost_program_options
