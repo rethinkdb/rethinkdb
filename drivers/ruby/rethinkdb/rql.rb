@@ -1,5 +1,11 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 module RethinkDB
+  module Mixin_H4x # :nodoc:
+    def &(l,r) # :nodoc:
+      RQL.all_h4x(l,r)
+    end
+  end
+
   # This module contains the RQL query construction functions.  By far
   # the most common way of gaining access to those functions, however,
   # is to include/extend RethinkDB::Shortcuts to gain access to the
@@ -432,14 +438,9 @@ or Hash)."
     def self.|(l,r) # :nodoc:
       S.mark_boolop(any(l,r))
     end
+    extend Mixin_H4x
     def self.all_h4x(l,r) # :nodoc:
       S.mark_boolop(all(l,r))
-    end
-    include Mixin_H4x
-  end
-  module Mixin_H4x # :nodoc:
-    def &(l,r) # :nodoc:
-      RQL.all_h4x(l,r)
     end
   end
 end
