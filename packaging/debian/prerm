@@ -8,7 +8,10 @@ server_exec_name_versioned=SERVER_EXEC_NAME_VERSIONED
 case "$1" in
   remove|upgrade|deconfigure|failed-upgrade)
     invoke-rc.d rethinkdb stop ;
+  if [ UPDATE_ALTERNATIVES = 1 ] ;
+  then
     update-alternatives --remove $server_exec_name $bin_dir/$server_exec_name_versioned
+  fi ;
     ;;
   *)
     echo "Warning: RethinkDB prerm script called with unknown set of arguments: $*"
