@@ -17,12 +17,13 @@ class ClientBacktraceTest < Test::Unit::TestCase
   include RethinkDB::Shortcuts
   def check(query, str1, str2, debug=false)
     begin
-      RethinkDB::B.force_raise(query)
+      RethinkDB::BT.force_raise(query, debug)
     rescue Exception => e
       print e.message if debug
       lines = e.message.split("\n")
       expected = [str1.gsub(/_var_[0-9]+/,'VAR'), str2]
       got = [lines[-2].gsub(/_var_[0-9]+/,'VAR'), lines[-1]]
+      print [expected, got] if debug
       assert_equal(expected, got)
       return
     end

@@ -46,11 +46,11 @@ module RethinkDB
     end
 
     def print_backtrace(bt) # :nodoc:
-      #PP.pp [bt, bt.map{|x| B.expand x}.flatten, sexp]
+      #PP.pp [bt, bt.map{|x| BT.expand x}.flatten, sexp]
       begin
-        B.with_marked_error(self, bt) {
-          query = "Query: #{inspect}\n       #{B.with_highlight {inspect}}"
-          line = "Line: #{B.line || "Unknown"}"
+        BT.with_marked_error(self, bt) {
+          query = "Query: #{inspect}\n       #{BT.with_highlight {inspect}}"
+          line = "Line: #{BT.line || "Unknown"}"
           line + "\n" + query
         }
       rescue Exception => e
@@ -81,7 +81,7 @@ module RethinkDB
 
     def real_inspect(args) # :nodoc:
       str = args[:str] || pprint
-      (B.highlight and @marked) ? "\000"*str.length : str
+      (BT.highlight and @marked) ? "\000"*str.length : str
     end
 
     def inspect # :nodoc:

@@ -47,7 +47,7 @@ module RethinkDB
     #   r[r[5]]
     def self.expr x
       return x if x.kind_of? RQL_Query
-      B.alt_inspect(case x.class().hash
+      BT.alt_inspect(case x.class().hash
       when Table.hash      then x.to_mrs
       when String.hash     then JSON_Expression.new [:string, x]
       when Fixnum.hash     then JSON_Expression.new [:number, x]
@@ -68,7 +68,7 @@ or Hash)."
     # Explicitly construct an RQL variable from a string.  See RQL::let.
     #   r.letvar('varname')
     def self.letvar(varname)
-      B.alt_inspect(Var_Expression.new [:var, varname]) { "letvar(#{varname.inspect})" }
+      BT.alt_inspect(Var_Expression.new [:var, varname]) { "letvar(#{varname.inspect})" }
     end
 
     # Provide a literal JSON string that will be parsed by the server.  For

@@ -28,7 +28,7 @@ module RethinkDB
       dc = optargs[:datacenter] || S.skip
       pkey = optargs[:primary_key] || S.skip
       cache = optargs[:cache_size] || S.skip
-      B.alt_inspect(Meta_Query.new [:create_table, dc, [@db_name, name], pkey, cache]) {
+      BT.alt_inspect(Meta_Query.new [:create_table, dc, [@db_name, name], pkey, cache]) {
         "db(#{@db_name.inspect}).create_table(#{name.inspect})"
       }
     end
@@ -36,7 +36,7 @@ module RethinkDB
     # Drop the table <b>+name+</b> from this database.  When run,
     # either returns <b>+nil+</b> or throws on error.
     def drop_table(name)
-      B.alt_inspect(Meta_Query.new [:drop_table, @db_name, name]) {
+      BT.alt_inspect(Meta_Query.new [:drop_table, @db_name, name]) {
         "db(#{@db_name.inspect}).drop_table(#{name.inspect})"
       }
     end
@@ -44,7 +44,7 @@ module RethinkDB
     # List all the tables in this database.  When run, either returns
     # <b>+nil+</b> or throws on error.
     def list_tables
-      B.alt_inspect(Meta_Query.new [:list_tables, @db_name]) {
+      BT.alt_inspect(Meta_Query.new [:list_tables, @db_name]) {
         "db(#{@db_name.inspect}).list_tables"
       }
     end
@@ -113,7 +113,7 @@ module RethinkDB
     end
 
     def to_mrs # :nodoc:
-      B.alt_inspect(Multi_Row_Selection.new(@body, @context, @opts)) {
+      BT.alt_inspect(Multi_Row_Selection.new(@body, @context, @opts)) {
         "db(#{@db_name.inspect}).table(#{@table_name.inspect})"
       }
     end
