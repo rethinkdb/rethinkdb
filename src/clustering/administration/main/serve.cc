@@ -55,7 +55,9 @@ bool do_serve(
 
         thread_pool_log_writer_t log_writer(&local_issue_tracker);
 
+#ifndef NDEBUG
         logINF("Our machine ID is %s", uuid_to_str(machine_id).c_str());
+#endif
 
         connectivity_cluster_t connectivity_cluster;
         message_multiplexer_t message_multiplexer(&connectivity_cluster);
@@ -287,7 +289,7 @@ bool do_serve(
                         web_assets);
                     logINF("Listening for administrative HTTP connections on port %d.\n", administrative_http_interface.get_port());
 
-                    logINF("Server started; send SIGINT to stop.\n");
+                    logINF("Server ready\n");
 
                     stop_cond->wait_lazily_unordered();
 
