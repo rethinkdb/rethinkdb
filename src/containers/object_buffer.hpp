@@ -4,6 +4,10 @@
 
 #include "errors.hpp"
 
+// Caveat: do not use this template with an object that has a blocking destructor, if
+//  you are going to allocate multiple times using a single object_buffer_t.  It is
+//  up to the user to make sure that you do not allocate a new object on top of one
+//  that is currently destructing.
 template <class T>
 class object_buffer_t {
 public:
