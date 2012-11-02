@@ -145,7 +145,7 @@ Handlebars.registerHelper 'ifequal', (val_a, val_b, if_block, else_block) ->
 # Helpers for pluralization of nouns and verbs
 Handlebars.registerHelper 'pluralize_noun', (noun, num, capitalize) ->
     ends_with_y = noun.substr(-1) is 'y'
-    if num < 2
+    if num is 1
         result = noun
     else
         if ends_with_y and (noun isnt 'key')

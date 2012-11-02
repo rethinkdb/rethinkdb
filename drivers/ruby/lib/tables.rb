@@ -24,10 +24,11 @@ module RethinkDB
     #                                   :cache_size  => 1073741824})
     # When run, either returns <b>+nil+</b> or throws on error.
     def table_create(name, optargs={})
+      S.check_opts(optargs, [:datacenter, :primary_key, :cache_size])
       dc = optargs[:datacenter] || S.skip
       pkey = optargs[:primary_key] || S.skip
       cache = optargs[:cache_size] || S.skip
-      B.alt_inspect(Meta_Query.new [:create_table, dc, [@db_name, name], pkey, cache]) {
+      BT.alt_inspect(Meta_Query.new [:create_table, dc, [@db_name, name], pkey, cache]) {
         "db(#{@db_name.inspect}).create_table(#{name.inspect})"
       }
     end
@@ -35,7 +36,7 @@ module RethinkDB
     # Drop the table <b>+name+</b> from this database.  When run,
     # either returns <b>+nil+</b> or throws on error.
     def table_drop(name)
-      B.alt_inspect(Meta_Query.new [:drop_table, @db_name, name]) {
+      BT.alt_inspect(Meta_Query.new [:drop_table, @db_name, name]) {
         "db(#{@db_name.inspect}).drop_table(#{name.inspect})"
       }
     end
@@ -43,7 +44,7 @@ module RethinkDB
     # List all the tables in this database.  When run, either returns
     # <b>+nil+</b> or throws on error.
     def table_list
-      B.alt_inspect(Meta_Query.new [:list_tables, @db_name]) {
+      BT.alt_inspect(Meta_Query.new [:list_tables, @db_name]) {
         "db(#{@db_name.inspect}).list_tables"
       }
     end
@@ -68,6 +69,7 @@ module RethinkDB
       @table_name = name;
       @opts = opts
       @context = caller
+      S.check_opts(@opts, [:use_outdated])
       use_od = (@opts.include? :use_outdated) ? @opts[:use_outdated] : S.conn_outdated
       @body = [:table, @db_name, @table_name, use_od]
     end
@@ -81,21 +83,22 @@ module RethinkDB
     #   table.insert([{:id => 1}, {:id => 1}])
     # Will return something like:
     #   {'inserted' => 1, 'errors' => 1, 'first_error' => ...}
+    # If you want to overwrite a row, you should set <b>+mode+</b> to
+    # <b>+:upsert+</b>, like so:
+    #   table.insert([{:id => 1}, {:id => 1}], :upsert)
+    # which will return:
+    #   {'inserted' => 2, 'errors' => 0}
     # You may also provide a stream.  So to make a copy of a table, you can do:
     #   r.db_create('new_db').run
     #   r.db('new_db').table_create('new_table').run
     #   r.db('new_db').new_table.insert(table).run
-    def insert(rows)
+    def insert(rows, mode=:new)
       raise_if_outdated
       rows = [rows] if rows.class != Array
-      Write_Query.new [:insert, [@db_name, @table_name], rows.map{|x| S.r(x)}, false]
+      do_upsert = (mode == :upsert ? true : false)
+      Write_Query.new [:insert, [@db_name, @table_name], rows.map{|x| S.r(x)}, do_upsert]
     end
 
-    def upsert(rows) # :nodoc:
-      raise_if_outdated
-      rows = [rows] if rows.class != Array
-      Write_Query.new [:insert, [@db_name, @table_name], rows.map{|x| S.r(x)}, true]
-    end
     # Get the row of the invoking table with key <b>+key+</b>.  You may also
     # optionally specify the name of the attribute to use as your key
     # (<b>+keyname+</b>), but note that your table must be indexed by that
@@ -110,7 +113,7 @@ module RethinkDB
     end
 
     def to_mrs # :nodoc:
-      B.alt_inspect(Multi_Row_Selection.new(@body, @context, @opts)) {
+      BT.alt_inspect(Multi_Row_Selection.new(@body, @context, @opts)) {
         "db(#{@db_name.inspect}).table(#{@table_name.inspect})"
       }
     end

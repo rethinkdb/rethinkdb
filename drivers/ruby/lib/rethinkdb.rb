@@ -4,6 +4,7 @@ require 'query_language.pb.rb'
 require 'socket'
 require 'pp'
 
+load 'bt.rb'
 load 'utils.rb'
 load 'protob_compiler.rb'
 

@@ -5,6 +5,9 @@ module RethinkDB
   # constructed by methods in the RQL module, or by invoking the instance
   # methods of a query on other queries.
   class RQL_Query
+    def boolop? # :nodoc:
+      false
+    end
     # Run the invoking query using the most recently opened connection.  See
     # Connection#run for more details.
     def run(*args)
@@ -46,11 +49,11 @@ module RethinkDB
     end
 
     def print_backtrace(bt) # :nodoc:
-      #PP.pp [bt, bt.map{|x| B.expand x}.flatten, sexp]
+      #PP.pp [bt, bt.map{|x| BT.expand x}.flatten, sexp]
       begin
-        B.with_marked_error(self, bt) {
-          query = "Query: #{inspect}\n       #{B.with_highlight {inspect}}"
-          line = "Line: #{B.line || "Unknown"}"
+        BT.with_marked_error(self, bt) {
+          query = "Query: #{inspect}\n       #{BT.with_highlight {inspect}}"
+          line = "Line: #{BT.line || "Unknown"}"
           line + "\n" + query
         }
       rescue Exception => e
@@ -81,7 +84,7 @@ module RethinkDB
 
     def real_inspect(args) # :nodoc:
       str = args[:str] || pprint
-      (B.highlight and @marked) ? "\000"*str.length : str
+      (BT.highlight and @marked) ? "\000"*str.length : str
     end
 
     def inspect # :nodoc:
@@ -93,7 +96,7 @@ module RethinkDB
     # inline version of an RQL function).
     def method_missing(m, *args, &block) # :nodoc:
       if (m2 = C.method_aliases[m]); then return self.send(m2, *args, &block); end
-      return RQL.send(m, *[self, *args], &block) if RQL.methods.include? m.to_s
+      return RQL.send(m, *[self, *args], &block) if RQL.methods.include?(m.to_s)
       super(m, *args, &block)
     end
   end

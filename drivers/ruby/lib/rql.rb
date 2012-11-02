@@ -1,5 +1,11 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 module RethinkDB
+  module Mixin_H4x # :nodoc:
+    def &(l,r) # :nodoc:
+      RQL.all_h4x(l,r)
+    end
+  end
+
   # This module contains the RQL query construction functions.  By far
   # the most common way of gaining access to those functions, however,
   # is to include/extend RethinkDB::Shortcuts to gain access to the
@@ -47,7 +53,7 @@ module RethinkDB
     #   r[r[5]]
     def self.expr x
       return x if x.kind_of? RQL_Query
-      B.alt_inspect(case x.class().hash
+      BT.alt_inspect(case x.class().hash
       when Table.hash      then x.to_mrs
       when String.hash     then JSON_Expression.new [:string, x]
       when Fixnum.hash     then JSON_Expression.new [:number, x]
@@ -58,14 +64,17 @@ module RethinkDB
       when Array.hash      then JSON_Expression.new [:array, *x.map{|y| expr(y)}]
       when Hash.hash       then
         JSON_Expression.new [:object, *x.map{|var,term| [S.checkdict(var), expr(term)]}]
-      else raise TypeError, "RQL.expr can't handle '#{x.class()}'"
-      end) { x.inspect }
-    end
 
-    # Explicitly construct an RQL variable from a string:
+      else raise TypeError, "RQL::expr can't handle object `#{x.inspect}` of class `#{x.class()}`.
+Make sure you're providing a RQL expression or an object that can be coerced
+to a JSON type (a String, Fixnum, Float, TrueClass, FalseClass, NilClass, Array,
+or Hash)."
+      end) { x.inspect } end
+
+    # Explicitly construct an RQL variable from a string.  See RQL::let.
     #   r.letvar('varname')
     def self.letvar(varname)
-      B.alt_inspect(Var_Expression.new [:var, varname]) { "letvar(#{varname.inspect})" }
+      BT.alt_inspect(Var_Expression.new [:var, varname]) { "letvar(#{varname.inspect})" }
     end
 
     # Provide a literal JSON string that will be parsed by the server.  For
@@ -100,17 +109,16 @@ module RethinkDB
       resclass.new [:if, S.r(test), S.r(t_branch), S.r(f_branch)]
     end
 
-    # Construct a query that binds some values to variable (as specified by
-    # <b>+varbinds+</b>) and then executes <b>+body+</b> with those variables in
-    # scope.  For example, the following are equivalent:
-    #   r.let({:a => 2, :b => 3}, r[:$a] + r[:$b])
+    # Construct a query that binds some values to variable (as
+    # specified by <b>+varbinds+</b>) and then executes <b>+body+</b>
+    # with those variables accessible through RQL::letvar.  For
+    # example, the following are equivalent:
+    #   r.let(:a => 2, :b => 3) { r.letvar('a') + r.letvar('b') }
     #   r.expr(5)
-    def self.let(varbinds, body)
+    def self.let(varbinds, &body)
       varbinds = varbinds.to_a
-      varbinds.map! { |pair|
-        raise ArgumentError,"Malformed LET expression #{body.inspect}" if pair.length != 2
-        [pair[0].to_s, expr(pair[1])]}
-      res = S.r(body)
+      varbinds.map! {|name, value| [name.to_s, expr(value)]}
+      res = S.r(body.call)
       res.class.new [:let, varbinds, res]
     end
 
@@ -404,5 +412,35 @@ module RethinkDB
     def self.sum(*args); Data_Collectors.sum(*args); end
     # A shortcut for Data_Collectors::avg
     def self.avg(*args); Data_Collectors.avg(*args); end
+
+    def self.boolprop(op, l, r) # :nodoc:
+      if l.boolop?
+        larg,rarg = l.body[2]
+        sexp =  [l.body[0], l.body[1], [larg, boolprop(op, rarg, r)]]
+      elsif r.boolop?
+        larg,rarg = r.body[2]
+        sexp =  [r.body[0], r.body[1], [boolprop(op, l, larg), rarg]]
+      else
+        return RQL.send(op, l, r);
+      end
+      return S.mark_boolop(JSON_Expression.new sexp)
+    end
+
+    # See RQL::lt
+    def self.< (l,r); boolprop(:lt, S.r(l), S.r(r)); end
+    # See RQL::le
+    def self.<=(l,r); boolprop(:le, S.r(l), S.r(r)); end
+    # See RQL::gt
+    def self.> (l,r); boolprop(:gt, S.r(l), S.r(r)); end
+    # See RQL::ge
+    def self.>=(l,r); boolprop(:ge, S.r(l), S.r(r)); end
+
+    def self.|(l,r) # :nodoc:
+      S.mark_boolop(any(l,r))
+    end
+    extend Mixin_H4x
+    def self.all_h4x(l,r) # :nodoc:
+      S.mark_boolop(all(l,r))
+    end
   end
 end

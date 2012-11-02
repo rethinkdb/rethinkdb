@@ -18,8 +18,8 @@ Maintainer: Package Maintainer <packaging@rethinkdb.com>
 Installed-Size: DISK_SIZE
 Pre-Depends: adduser (>= 3.40)
 Depends: ifelse(LEGACY_LINUX, 1,
-  `libc6 (>= 2.5), libstdc++6 (>= 4.6), libgcc1, libv8-dev (>=3.7)',
-  `libc6 (>= 2.10.1), libstdc++6 (>= 4.6), libgcc1, libv8-dev (>=3.7)')
+  `libc6 (>= 2.5), libstdc++6 (>= 4.6), libgcc1, libv8-dev (>=3.1)',
+  `libc6 (>= 2.10.1), libstdc++6 (>= 4.6), libgcc1, libv8-dev (>=3.1)')
 Replaces: ifelse(TRIAL, 0, `VERSIONED_TRIAL_PACKAGE_NAME (<= PACKAGE_VERSION)')
 Conflicts: ifelse(TRIAL, 0, `VERSIONED_TRIAL_PACKAGE_NAME (<= PACKAGE_VERSION)')
 Provides: VANILLA_PACKAGE_NAME, memcached

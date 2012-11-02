@@ -29,7 +29,7 @@ module RethinkDB
     # Otherwise, if <b>+ind+</b> is a number or a range, invokes RQL::[]
     def [](ind)
       if ind.class == Symbol || ind.class == String
-        B.alt_inspect(JSON_Expression.new [:call, [:getattr, ind], [self]]) {
+        BT.alt_inspect(JSON_Expression.new [:call, [:getattr, ind], [self]]) {
           "#{self.inspect}[#{ind.inspect}]"
         }
       else
