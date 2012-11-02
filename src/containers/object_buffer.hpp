@@ -5,9 +5,8 @@
 #include "errors.hpp"
 
 // Caveat: do not use this template with an object that has a blocking destructor, if
-//  you are going to allocate multiple times using a single object_buffer_t.  It is
-//  up to the user to make sure that you do not allocate a new object on top of one
-//  that is currently destructing.
+//  you are going to allocate multiple times using a single object_buffer_t.  This object
+//  should catch it if you try to do anything particularly stupid, though.
 template <class T>
 class object_buffer_t {
 public:
@@ -26,15 +25,23 @@ public:
         DISABLE_COPYING(destruction_sentinel_t);
     };
 
-    object_buffer_t() : instantiated(false) { }
+    object_buffer_t() : state(EMPTY) { }
     ~object_buffer_t() {
-        if (instantiated) { reset(); }
+        // The buffer cannot be destroyed while an object is in the middle of
+        //  constructing or destructing
+        if (state == INSTANTIATED) {
+            reset();
+        } else {
+            rassert(state == EMPTY);
+        }
     }
 
-#define OBJECT_BUFFER_CREATE_INTERNAL(...) do {                         \
-        rassert(!instantiated);                                         \
-        instantiated = true;                                            \
-        return new (&object_data[0]) T(__VA_ARGS__);                    \
+#define OBJECT_BUFFER_CREATE_INTERNAL(...) do {     \
+        rassert(state == EMPTY);                    \
+        state = CONSTRUCTING;                       \
+        new (&object_data[0]) T(__VA_ARGS__);       \
+        state = INSTANTIATED;                       \
+        return get();                               \
     } while (0)
 
     // 9 arguments ought to be enough for anybody
@@ -78,7 +85,7 @@ public:
     { OBJECT_BUFFER_CREATE_INTERNAL(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9); }
 
     T * get() {
-        rassert(instantiated);
+        rassert(state == INSTANTIATED);
         return reinterpret_cast<T *>(&object_data[0]);
     }
 
@@ -87,25 +94,32 @@ public:
     }
 
     const T * get() const {
-        rassert(instantiated);
+        rassert(state == INSTANTIATED);
         return reinterpret_cast<const T *>(&object_data[0]);
     }
 
     void reset() {
-        rassert(instantiated);
-        get()->~T();
-        instantiated = false;
+        T *obj_ptr = get();
+        state = DESTRUCTING;
+        obj_ptr->~T();
+        state = EMPTY;
     }
 
     bool has() const {
-        return instantiated;
+        return (state == INSTANTIATED);
     }
 
 private:
     // We're going more for a high probability of good alignment than
     // proof of good alignment.
     uint8_t object_data[sizeof(T)];
-    bool instantiated;
+
+    enum buffer_state_t {
+        EMPTY,
+        CONSTRUCTING,
+        INSTANTIATED,
+        DESTRUCTING
+    } state;
 
     DISABLE_COPYING(object_buffer_t);
 };
