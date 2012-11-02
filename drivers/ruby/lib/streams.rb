@@ -11,12 +11,12 @@ module RethinkDB
     # implications.  Also, if you return an array instead of a stream
     # from a query, the whole thing gets sent over the network at once
     # instead of lazily consuming chunks.  Also has the shorter alias
-    # <b>+to_array+</b>.  If you have a table <b>+table+</b> with at
+    # <b>+stream_to_array+</b>.  If you have a table <b>+table+</b> with at
     # least 3 elements, the following are equivalent:
     #   r[[1,1,1]]
     #   table.limit(3).map{1}.streamtoarray
-    #   table.limit(3).map{1}.to_array
-    def streamtoarray(); JSON_Expression.new [:call, [:streamtoarray], [self]]; end
+    #   table.limit(3).map{1}.stream_to_array
+    def stream_to_array(); JSON_Expression.new [:call, [:streamtoarray], [self]]; end
   end
 
   # A special case of Stream_Expression that you can write to.  You
@@ -84,16 +84,16 @@ module RethinkDB
     # combined with RQL::mapmerge to mimic <b>+update+</b>'s behavior).
     # May also return <b>+nil+</b> to delete the row.  For example, if we have a
     # table <b>+table+</b>, then:
-    #   table.mutate{|row| r.if(row[:id] < 5, nil, row)}
+    #   table.replace{|row| r.if(row[:id] < 5, nil, row)}
     # will delete everything with id less than 5, but leave the other rows untouched.
     #
-    # If you want to do a non-atomic mutate, you should pass
+    # If you want to do a non-atomic replace, you should pass
     # <b>+:non_atomic+</b> as the optional variant:
-    #   table.mutate(:non_atomic){|row| r.js("...")}
-    # You need to do a non-atomic mutate when the block provided to mutate can't
+    #   table.replace(:non_atomic){|row| r.js("...")}
+    # You need to do a non-atomic replace when the block provided to replace can't
     # be proved deterministic (e.g. if it contains javascript or reads from
     # another table).
-    def mutate(variant=nil)
+    def replace(variant=nil)
       raise_if_outdated
       S.with_var {|vname,v|
         Write_Query.new [:mutate, self, [vname, S.r(yield(v))]]

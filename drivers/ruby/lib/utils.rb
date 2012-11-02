@@ -9,7 +9,7 @@ module RethinkDB
         :sub => :subtract, :mul => :multiply, :div => :divide, :mod => :modulo,
         :+ => :add, :- => :subtract, :* => :multiply, :/ => :divide, :% => :modulo,
         :and => :all, :or => :any, :js => :javascript,
-        :to_stream => :arraytostream, :to_array => :streamtoarray} end
+        :to_stream => :array_to_stream, :to_array => :stream_to_array} end
 
     # Allows us to identify protobuf classes which are actually variant types,
     # and to get their corresponding enums.

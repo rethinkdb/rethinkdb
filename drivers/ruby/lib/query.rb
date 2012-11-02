@@ -11,7 +11,7 @@ module RethinkDB
     # Run the invoking query using the most recently opened connection.  See
     # Connection#run for more details.
     def run(*args)
-      Connection.last.send(:run, self, *args)
+      Connection.last_connection.send(:run, self, *args)
     end
 
     def set_body(val, context=nil) # :nodoc:

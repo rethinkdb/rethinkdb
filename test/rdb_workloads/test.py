@@ -171,13 +171,13 @@ class RDBTest(unittest.TestCase):
 
         self.expect(expr({"a": {"b": 3}})["a"]["b"], 3)
 
-    def test_extend(self):
-        self.expect(expr({"a": 5}).extend({"b": 3}), {"a": 5, "b": 3})
-        self.expect(expr({"a": 5}).extend({"a": 3}), {"a": 3})
-        self.expect(expr({"a": 5, "b": 1}).extend({"a": 3}).extend({"b": 6}), {"a": 3, "b": 6})
+    def test_merge(self):
+        self.expect(expr({"a": 5}).merge({"b": 3}), {"a": 5, "b": 3})
+        self.expect(expr({"a": 5}).merge({"a": 3}), {"a": 3})
+        self.expect(expr({"a": 5, "b": 1}).merge({"a": 3}).merge({"b": 6}), {"a": 3, "b": 6})
 
-        self.error_exec(expr(5).extend({"a": 3}), "object")
-        self.error_exec(expr({"a": 5}).extend(5), "object")
+        self.error_exec(expr(5).merge({"a": 3}), "object")
+        self.error_exec(expr({"a": 5}).merge(5), "object")
 
     def test_picks(self):
         obj = expr({"a": 1, "b": 2, "c": 3})
@@ -592,10 +592,10 @@ class RDBTest(unittest.TestCase):
         self.expect(tbl.map(lambda row: row['x']).reduce(0, lambda a,b: a+b), 11)
 
         res = tbl.replace(lambda row: branch(js(str(row)+".id == 1"),
-                                                row.extend({'x':2}), row)).run()
+                                                row.merge({'x':2}), row)).run()
         self.assertEqual(res['errors'], 10)
         res = tbl.replace(lambda row: branch(js(str(row)+".id == 1"),
-                                                row.extend({'x':2}), row), True).run()
+                                                row.merge({'x':2}), row), True).run()
         self.assertEqual(res['modified'], 10)
         self.expect(tbl.map(lambda row: row['x']).reduce(0, lambda a,b: a+b), 12)
 
@@ -631,10 +631,10 @@ class RDBTest(unittest.TestCase):
 
         res = tbl.get(0).replace({'id':0, 'count':tbl.get(3)['count'], 'x':tbl.get(3)['x']}, True).run()
         self.assertEqual(res['inserted'], 1)
-        self.error_exec(tbl.get(1).replace(tbl.get(3).extend({'id':1})), "deterministic")
-        res = tbl.get(1).replace(tbl.get(3).extend({'id':1}), True).run()
+        self.error_exec(tbl.get(1).replace(tbl.get(3).merge({'id':1})), "deterministic")
+        res = tbl.get(1).replace(tbl.get(3).merge({'id':1}), True).run()
         self.assertEqual(res['inserted'], 1)
-        res = tbl.get(2).replace(tbl.get(3).extend({'id':2}), True).run()
+        res = tbl.get(2).replace(tbl.get(3).merge({'id':2}), True).run()
         self.assertEqual(res['inserted'], 1)
         self.expect(tbl.map(lambda row: row['x']).reduce(0, lambda a,b: a+b), 10)
 
@@ -645,7 +645,7 @@ class RDBTest(unittest.TestCase):
     #     self.do_insert([{"id": 1}])
 
     #     increase = self.table.insert_stream(self.table.concat_map(r.stream(r.toTerm(range(10))).map(
-    #         r.extend(r.var('r'), {'id': r.add(r.mul(r.var('r').attr('id'), 10), r.var('y'))}), row='y'), row='r'))
+    #         r.merge(r.var('r'), {'id': r.add(r.mul(r.var('r').attr('id'), 10), r.var('y'))}), row='y'), row='r'))
 
     #     self.expect(increase, {'inserted': '10'})
 

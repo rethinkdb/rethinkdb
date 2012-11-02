@@ -406,7 +406,7 @@ class JSONExpression(ReadQuery):
         """
         return JSONExpression(internal.Has(self, name))
 
-    def extend(self, other):
+    def merge(self, other):
         """Combines two objects by taking all the key-value pairs from both. If
         a given key is present in both objects, take the value from `other`.
 
@@ -416,7 +416,7 @@ class JSONExpression(ReadQuery):
         :type other: :class:`JSONExpression`
         :returns: :class:`JSONExpression` evaluating to an object
 
-        >>> expr({"a": 1, "b": 2}).extend({"b": 3, "c": 4}).run()
+        >>> expr({"a": 1, "b": 2}).merge({"b": 3, "c": 4}).run()
         {"a": 1, "b": 3, "c": 4}
         """
         return JSONExpression(internal.Extend(self, other))
@@ -612,7 +612,7 @@ class JSONExpression(ReadQuery):
 
         try:
             finalizer = groupByObject['finalizer']
-            gmr = gmr.map(lambda group: group.extend({'reduction': finalizer(group['reduction'])}))
+            gmr = gmr.map(lambda group: group.merge({'reduction': finalizer(group['reduction'])}))
         except KeyError:
             pass
 
@@ -735,7 +735,7 @@ class JSONExpression(ReadQuery):
 
     def zip(self):
         return self.map(lambda row: branch(row.contains('right'),
-            row['left'].extend(row['right']),
+            row['left'].merge(row['right']),
             row['left']
         ))
 
@@ -1033,7 +1033,7 @@ class StreamExpression(ReadQuery):
 
         try:
             finalizer = groupByObject['finalizer']
-            gmr = gmr.map(lambda group: group.extend({'reduction': finalizer(group['reduction'])}))
+            gmr = gmr.map(lambda group: group.merge({'reduction': finalizer(group['reduction'])}))
         except KeyError:
             pass
 
@@ -1114,7 +1114,7 @@ class StreamExpression(ReadQuery):
 
     def zip(self):
         return self.map(lambda row: branch(row.contains('right'),
-            row['left'].extend(row['right']),
+            row['left'].merge(row['right']),
             row['left']
         ))
 
