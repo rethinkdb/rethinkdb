@@ -17,6 +17,10 @@ module 'NamespaceView', ->
 
         className: 'shards_container'
 
+        state:
+            0: 'read'
+            1: 'edit'
+    
         events:
             'keyup .num-shards': 'keypress_shards_changes'
             'click .edit': 'switch_to_edit'
@@ -186,6 +190,9 @@ module 'NamespaceView', ->
 
         # We can add just one method on one listener, so it's just a container. Triggered when shards have been changed
         global_trigger_for_shards: =>
+            if @current_state is @state[0]
+                @switch_to_read() # We are already reading, but we will also refresh the value of the number of shards
+                
             @render_data_repartition()
             @render_status_server_update()
 
@@ -333,10 +340,12 @@ module 'NamespaceView', ->
             return @
 
         switch_to_read: =>
+            @current_state = @state[0]
             @.$('.edit-shards').html @view_template
                 num_shards: @model.get('shards').length
 
         switch_to_edit: =>
+            @current_state = @state[1]
             @.$('.edit-shards').html @edit_template
                 num_shards: @model.get('shards').length
 
