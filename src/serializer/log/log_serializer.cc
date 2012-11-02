@@ -71,6 +71,8 @@ void log_serializer_t::create(io_backender_t *backender, private_dynamic_config_
     mb_manager_t::create(&df, static_config.extent_size(), &metablock);
 }
 
+// This is a comment inserted to test the code review system.
+
 /* The process of starting up the serializer is handled by the ls_start_*_fsm_t. This is not
 necessary, because there is only ever one startup process for each serializer; the serializer could
 handle its own startup process. It is done this way to make it clear which parts of the serializer
