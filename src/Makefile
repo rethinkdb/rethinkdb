@@ -447,7 +447,7 @@ build-deb-src-control:
 	$(QUIET) cd .. ; rm -rf debian ; DEBFULLNAME="RethinkDB Packaging" dh_make -p rethinkdb_$(RETHINKDB_VERSION) -n -s -e packaging@rethinkdb.com --copyright blank ; cp -pRP packaging/debian/copyright debian/ ; mv debian/changelog debian/changelog.old ; sed -e 's/unstable/precise/' < debian/changelog.old > debian/changelog ;
 
 ##### Build targets
-.PHONY: all build-deb build-rpm callgrind callgrind clean cscope deb deb depclean drivers etags gdb install install-binaries install-deb install-docs install-manpages install-rpm install-tools prepare_deb_package_dirs prepare_rpm_package_dirs regdb rerun revalgrind rpm rpm rpm-suse10 run sembuild showdefines style tags unit valgrind web-assets coffeelint
+.PHONY: all build-deb build-rpm callgrind callgrind clean cscope deb deb depclean drivers etags gdb install install-binaries install-deb install-docs install-manpages install-rpm install-tools prepare_deb_package_dirs prepare_rpm_package_dirs regdb rerun revalgrind rpm rpm rpm-suse10 run sembuild showdefines style tags unit valgrind web-assets coffeelint build-deb-src-control
 
 # High level build targets
 
