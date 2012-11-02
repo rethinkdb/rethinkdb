@@ -33,6 +33,8 @@ module RethinkDB
 
     # Compile an RQL query into a protobuf.
     def comp(message_class, args, repeating=false)
+      # H4x to make the backtraces print right until we fix the protobuf.
+      message_class = S.rewrite(message_class);
       #PP.pp(["A", message_class, args, repeating]) #DEBUG
 
       # Handle special cases of arguments:
@@ -58,7 +60,7 @@ module RethinkDB
       # Handle nonterminal parts of the protobuf, where we have to descend
       message = message_class.new
       if (message_type_class = C.class_types[message_class])
-        query_type = args[0] # Our first argument is the type of our variant.
+        query_type = S.rewrite(args[0]) # Our first argument is the type of our variant.
         message.type = enum_type(message_type_class, query_type)
         raise TypeError,"No type '#{query_type}' for '#{message_class}'."if !message.type
 
@@ -121,7 +123,7 @@ module RethinkDB
       raise TypeError, "Cannot build query from #{sexp.inspect}" if sexp.class != Array
       if (m = handle_special_query_cases(sexp))
       then q = m
-      elsif enum_type(WriteQuery::WriteQueryType, sexp[0])
+      elsif enum_type(WriteQuery::WriteQueryType, S.rewrite(sexp[0]))
       then q = comp(Query, [:write, *sexp])
       elsif enum_type(MetaQuery::MetaQueryType, sexp[0])
       then q = comp(Query, [:meta, *sexp])

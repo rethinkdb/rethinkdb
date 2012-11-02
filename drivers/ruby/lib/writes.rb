@@ -9,10 +9,10 @@ module RethinkDB
       return self if variant.nil?
       if variant == :non_atomic
         @body[0] = case @body[0]
-                   when :update      then :update_nonatomic
-                   when :mutate      then :mutate_nonatomic
-                   when :pointupdate then :pointupdate_nonatomic
-                   when :pointmutate then :pointmutate_nonatomic
+                   when :update        then :update_nonatomic
+                   when :replace       then :replace_nonatomic
+                   when :pointupdate   then :pointupdate_nonatomic
+                   when :pointreplace  then :pointreplace_nonatomic
                    else raise RuntimeError,"#{@body[0]} cannot be made nonatomic"
                    end
       else

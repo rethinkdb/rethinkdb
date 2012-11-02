@@ -31,9 +31,9 @@ module RethinkDB
     #   r.let([['a', 1],
     #          ['b', 2]],
     #         r.js('a+b+1'))
-    def self.javascript(str, type=:expr);
-      if    type == :expr then JSON_Expression.new [:javascript, "return #{str}"]
-      elsif type == :func then JSON_Expression.new [:javascript, str]
+    def self.js(str, type=:expr);
+      if    type == :expr then JSON_Expression.new [:js, "return #{str}"]
+      elsif type == :func then JSON_Expression.new [:js, str]
       else  raise TypeError, 'Type of javascript must be either :expr or :func.'
       end
     end
@@ -106,7 +106,7 @@ or Hash)."
       else
         raise TypeError, "Both branches of IF must be of compatible types."
       end
-      resclass.new [:if, S.r(test), S.r(t_branch), S.r(f_branch)]
+      resclass.new [:branch, S.r(test), S.r(t_branch), S.r(f_branch)]
     end
 
     # Construct a query that binds some values to variable (as
@@ -268,7 +268,7 @@ or Hash)."
     #   r.merge({:a => 1, :b => 2}, {:a => 10, :c => 30})
     #   r[{:a => 1, :b => 2}].merge({:a => 10, :c => 30})
     def self.merge(obj1, obj2)
-      JSON_Expression.new [:call, [:mapmerge], [S.r(obj1), S.r(obj2)]]
+      JSON_Expression.new [:call, [:merge], [S.r(obj1), S.r(obj2)]]
     end
 
     # Check whether two JSON expressions are equal.  May also be called as

@@ -76,7 +76,7 @@ module RethinkDB
     def between(start_key, end_key, keyname=:id)
       start_key = S.r(start_key || S.skip)
       end_key = S.r(end_key || S.skip)
-      self.class.new [:call, [:range, keyname, start_key, end_key], [self]]
+      self.class.new [:call, [:between, keyname, start_key, end_key], [self]]
     end
 
     # Map a function over a sequence.  The provided block should take
@@ -266,7 +266,7 @@ module RethinkDB
     # equivalent:
     #   table[0...5].count
     #   r[[1,2,3,4,5]].count
-    def count(); JSON_Expression.new [:call, [:length], [self]]; end
+    def count(); JSON_Expression.new [:call, [:count], [self]]; end
 
     # Get element <b>+n+</b> of the sequence.  For example, the following are
     # equivalent:
