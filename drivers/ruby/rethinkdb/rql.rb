@@ -87,7 +87,7 @@ module RethinkDB
     # <b>+table+</b>:
     #   table.update{|row| r.if(row[:score] < 10, {:score => 10}, {})}
     # will change every row with score below 10 in <b>+table+</b> to have score 10.
-    def self.if(test, t_branch, f_branch)
+    def self.branch(test, t_branch, f_branch)
       tb = S.r(t_branch)
       fb = S.r(f_branch)
       if tb.kind_of? fb.class
@@ -257,9 +257,9 @@ module RethinkDB
     # were an instance method of JSON_Expression, for convenience.  The following are
     # equivalent:
     #   r[{:a => 10, :b => 2, :c => 30}]
-    #   r.mapmerge({:a => 1, :b => 2}, {:a => 10, :c => 30})
-    #   r[{:a => 1, :b => 2}].mapmerge({:a => 10, :c => 30})
-    def self.mapmerge(obj1, obj2)
+    #   r.merge({:a => 1, :b => 2}, {:a => 10, :c => 30})
+    #   r[{:a => 1, :b => 2}].merge({:a => 10, :c => 30})
+    def self.merge(obj1, obj2)
       JSON_Expression.new [:call, [:mapmerge], [S.r(obj1), S.r(obj2)]]
     end
 
@@ -373,14 +373,14 @@ module RethinkDB
 
     # Create a new database with name <b>+db_name+</b>.  Either
     # returns <b>+nil+</b> or raises an error.
-    def self.create_db(db_name); Meta_Query.new [:create_db, db_name]; end
+    def self.db_create(db_name); Meta_Query.new [:create_db, db_name]; end
 
     # List all databases.  Either returns an array of strings or raises an error.
-    def self.list_dbs(); Meta_Query.new [:list_dbs]; end
+    def self.db_list(); Meta_Query.new [:list_dbs]; end
 
     # Drop the database with name <b>+db_name+</b>.  Either returns
     # <b>+nil+</b> or raises an error.
-    def self.drop_db(db_name); Meta_Query.new [:drop_db, db_name]; end
+    def self.db_drop(db_name); Meta_Query.new [:drop_db, db_name]; end
 
     # Dereference aliases (seet utils.rb)
     def self.method_missing(m, *args, &block) # :nodoc:

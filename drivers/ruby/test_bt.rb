@@ -6,7 +6,7 @@ extend RethinkDB::Shortcuts
 $port_base = ARGV[0].to_i # 0 if none given
 $c = RethinkDB::Connection.new('localhost', $port_base + 28015)
 begin
-  r.db('test').create_table('tbl').run
+  r.db('test').table_create('tbl').run
 rescue
 end
 $rdb = r.db('test').table('tbl')
@@ -52,36 +52,36 @@ class ClientBacktraceTest < Test::Unit::TestCase
           'Query: 1[:b]',
           '       ^')
 
-    check(r.add(r.expr({:a => 1}).pickattrs(:b), 1),
+    check(r.add(r.expr({:a => 1}).pick(:b), 1),
           'Query: add({:a=>1}.pickattrs(:b), 1)',
           '           ^^^^^^^^^^^^^^^^^^^^^')
-    check(r.add(r.expr({:a => 1}).pickattrs(:b, :c), 1),
+    check(r.add(r.expr({:a => 1}).pick(:b, :c), 1),
           'Query: add({:a=>1}.pickattrs(:b, :c), 1)',
           '           ^^^^^^^^^^^^^^^^^^^^^^^^^')
-    check(r.expr(1).pickattrs(:a),
+    check(r.expr(1).pick(:a),
           'Query: 1.pickattrs(:a)',
           '       ^')
 
-    check(r.expr(1).hasattr(:b),
+    check(r.expr(1).contains(:b),
           'Query: 1.hasattr(:b)',
           '       ^')
 
-    check(r.expr(1).without(:id),
+    check(r.expr(1).unpick(:id),
           'Query: 1.without(:id)',
           '       ^')
   end
 
   def test_if
-    check(r.if(1, 2, 3),
+    check(r.branch(1, 2, 3),
           'Query: if(1, 2, 3)',
           '          ^')
-    check(r.if(r.if(true,1,false),2,3),
+    check(r.branch(r.branch(true,1,false),2,3),
           'Query: if(if(true, 1, false), 2, 3)',
           '          ^^^^^^^^^^^^^^^^^^')
-    check(r.if(true, r.add(1, "a"), r.add("b", 2)),
+    check(r.branch(true, r.add(1, "a"), r.add("b", 2)),
           'Query: if(true, add(1, "a"), add("b", 2))',
           '                       ^^^')
-    check(r.if(false, r.add(1, "a"), r.add("b", 2)),
+    check(r.branch(false, r.add(1, "a"), r.add("b", 2)),
           'Query: if(false, add(1, "a"), add("b", 2))',
           '                                  ^^^')
   end
@@ -93,7 +93,7 @@ class ClientBacktraceTest < Test::Unit::TestCase
     check($rdb.get(0).update{|row| {:id => 1}},
           'Query: pointupdate(["test", "tbl"], :id, 0, ["_var_1001", {:id=>1}])',
           '                                                          ^^^^^^^^')
-    check($rdb.get(0).mutate{|row| {:id => 2}},
+    check($rdb.get(0).replace{|row| {:id => 2}},
           'Query: pointmutate(["test", "tbl"], :id, 0, ["_var_1002", {:id=>2}])',
           '                                                          ^^^^^^^^')
     check($rdb.get(0, :bah),
@@ -102,14 +102,14 @@ class ClientBacktraceTest < Test::Unit::TestCase
     check($rdb.get(0, :bah).update{{}},
           'Query: pointupdate(["test", "tbl"], :bah, 0, ["_var_1003", {}])',
           '       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^')
-    check($rdb.get(0, :bah).mutate{{}},
+    check($rdb.get(0, :bah).replace{{}},
           'Query: pointmutate(["test", "tbl"], :bah, 0, ["_var_1004", {}])',
           '       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^')
 
     check($rdb.get(0).update{{:new => r.add(1,"a")}},
           'Query: pointupdate(["test", "tbl"], :id, 0, ["_var_1046", {:new=>add(1, "a")}])',
           '                                                                        ^^^')
-    check($rdb.get(0).mutate{{:new => r.add(1,"a")}},
+    check($rdb.get(0).replace{{:new => r.add(1,"a")}},
           'Query: pointmutate(["test", "tbl"], :id, 0, ["_var_1047", {:new=>add(1, "a")}])',
           '                                                                        ^^^')
   end
@@ -140,19 +140,19 @@ class ClientBacktraceTest < Test::Unit::TestCase
   end
 
   def test_meta
-    check(r.db('test').create_table('tbl'),
+    check(r.db('test').table_create('tbl'),
           'Query: db("test").create_table("tbl")',
           '       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^')
-    check(r.db('test').drop_table('fake'),
+    check(r.db('test').table_drop('fake'),
           'Query: db("test").drop_table("fake")',
           '       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^')
-    check(r.db('a').create_table(''),
+    check(r.db('a').table_create(''),
           'Query: db("a").create_table("")',
           '       ^^^^^^^^^^^^^^^^^^^^^^^^')
-    check(r.db('a').drop_table(''),
+    check(r.db('a').table_drop(''),
           'Query: db("a").drop_table("")',
           '       ^^^^^^^^^^^^^^^^^^^^^^')
-    check(r.db('a').list_tables,
+    check(r.db('a').table_list,
           'Query: db("a").list_tables',
           '       ^^^^^^^^^^^^^^^^^^^')
   end
@@ -194,13 +194,13 @@ class ClientBacktraceTest < Test::Unit::TestCase
     check($rdb.update{{:id => -1}},
           'Query: update(db("test").table("tbl"), ["_var_1054", {:id=>-1}])',
           '                                                     ^^^^^^^^^')
-    check(r.db('a').table('b').mutate{{}},
+    check(r.db('a').table('b').replace{{}},
           'Query: mutate(db("a").table("b"), ["_var_1008", {}])',
           '              ^^^^^^^^^^^^^^^^^^')
-    check($rdb.mutate{{:new => r.add(1, "a")}},
+    check($rdb.replace{{:new => r.add(1, "a")}},
           'Query: mutate(db("test").table("tbl"), ["_var_1056", {:new=>add(1, "a")}])',
           '                                                                   ^^^')
-    check($rdb.mutate{{:new => 1}},
+    check($rdb.replace{{:new => 1}},
           'Query: mutate(db("test").table("tbl"), ["_var_1056", {:new=>1}])',
           '                                                     ^^^^^^^^^')
     check($rdb.filter{1},
@@ -227,10 +227,10 @@ class ClientBacktraceTest < Test::Unit::TestCase
     check(r.db('a').table('b').foreach{|row| $rdb.get(0).update{{:new => row[:id]}}},
           'Query: foreach(db("a").table("b"), "_var_1066", [pointupdate(["test", "tbl"], :id, 0, ["_var_1067", {:new=>_var_1066[:id]}])])',
           '               ^^^^^^^^^^^^^^^^^^')
-    check($rdb.foreach{|row| [$rdb.get(0).update{{:id => row[:id]}}, $rdb.mutate{|row| row}]},
+    check($rdb.foreach{|row| [$rdb.get(0).update{{:id => row[:id]}}, $rdb.replace{|row| row}]},
           'Query: foreach(db("test").table("tbl"), "_var_1071", [pointupdate(["test", "tbl"], :id, 0, ["_var_1072", {:id=>_var_1071[:id]}]), mutate(db("test").table("tbl"), ["_var_1073", _var_1073])])',
           '                                                                                                         ^^^^^^^^^^^^^^^^^^^^^')
-    check($rdb.foreach{|row| [$rdb.get(0).update{{:new => row[:id]}}, $rdb.mutate{|row| {}}]},
+    check($rdb.foreach{|row| [$rdb.get(0).update{{:new => row[:id]}}, $rdb.replace{|row| {}}]},
           'Query: foreach(db("test").table("tbl"), "_var_1001", [pointupdate(["test", "tbl"], :id, 0, ["_var_1002", {:new=>_var_1001[:id]}]), mutate(db("test").table("tbl"), ["_var_1003", {}])])',
           '                                                                                                                                                                                 ^^')
   end
@@ -255,7 +255,7 @@ class ClientBacktraceTest < Test::Unit::TestCase
     check(r.db('a').table('b').insert({:id => -1337}),
           'Query: insert(["a", "b"], [{:id=>-1337}], false)',
           '       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^')
-    check($rdb.insert(r.expr([{:id => {}}]).to_stream),
+    check($rdb.insert(r.expr([{:id => {}}]).array_to_stream),
           'Query: insert(["test", "tbl"], [[{:id=>{}}].arraytostream()], false)',
           '                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^')
   end

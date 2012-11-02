@@ -96,7 +96,17 @@ module RethinkDB
     #         { 'a' => 2, 'b' => 2, 'c' => 2}]).pluck('a', 'b').run()
     #   [{ 'a' => 1, 'b' => 1 }, { 'a' => 2, 'b' => 2 }]
     def pluck(*args)
-      self.map {|x| x.pickattrs(*args)}
+      self.map {|x| x.pick(*args)}
+    end
+
+    # For each element of a sequence, picks out the specified
+    # attributes from the object and returns the residual object.
+    # If the input is not an array, fails when the query is run.
+    #   expr([{ 'a' => 1, 'b' => 1, 'c' => 1},
+    #         { 'a' => 2, 'b' => 2, 'c' => 2}]).without('a', 'b').run()
+    #   [{ 'c' => 1 }, { 'c' => 2 }]
+    def without(*args)
+      self.map {|x| x.unpick(*args)}
     end
 
     # Order a sequence of objects by one or more attributes.  For
@@ -182,7 +192,7 @@ module RethinkDB
 
       gmr = self.groupedmapreduce(lambda{|r| attrs.map{|a| r[a]}}, map, base, reduction)
       if (f = opts[:finalizer])
-        gmr = gmr.map{|group| group.mapmerge({:reduction => f.call(group[:reduction])})}
+        gmr = gmr.map{|group| group.merge({:reduction => f.call(group[:reduction])})}
       end
       return gmr
     end
@@ -254,9 +264,9 @@ module RethinkDB
     # Get the length of the sequence.  If we have a table
     # <b>+table+</b> with at least 5 elements, the following are
     # equivalent:
-    #   table[0...5].length
-    #   r[[1,2,3,4,5]].length
-    def length(); JSON_Expression.new [:call, [:length], [self]]; end
+    #   table[0...5].count
+    #   r[[1,2,3,4,5]].count
+    def count(); JSON_Expression.new [:call, [:length], [self]]; end
 
     # Get element <b>+n+</b> of the sequence.  For example, the following are
     # equivalent:
@@ -279,7 +289,7 @@ module RethinkDB
     def innerjoin(other)
         self.concatmap {|row|
             other.concatmap {|row2|
-                RQL.if(yield(row, row2), [{:left => row, :right => row2}], [])
+                RQL.branch(yield(row, row2), [{:left => row, :right => row2}], [])
             }
         }
     end
@@ -297,10 +307,10 @@ module RethinkDB
       S.with_var {|vname, v|
         self.concatmap {|row|
           RQL.let({vname => other.concatmap {|row2|
-                      RQL.if(yield(row, row2),
+                      RQL.branch(yield(row, row2),
                              [{:left => row, :right => row2}],
                              [])}.to_array},
-                  RQL.if(v.length() > 0, v, [{:left => row}]))
+                  RQL.branch(v.count() > 0, v, [{:left => row}]))
         }
       }
     end
@@ -316,7 +326,7 @@ module RethinkDB
       S.with_var {|vname, v|
         self.concatmap {|row|
             RQL.let({vname => other.get(row[leftattr])},
-                    RQL.if(v.ne(nil), [{:left => row, :right => v}], []))
+                    RQL.branch(v.ne(nil), [{:left => row, :right => v}], []))
         }
       }
     end
@@ -325,10 +335,10 @@ module RethinkDB
     # Sequence#eq_join and merge the results together.  The following are
     # equivalent:
     #   table1.eq_join(:id, table2).zip
-    #   table1.eq_join(:id, table2).map{|obj| obj['left'].mapmerge(obj['right'])}
+    #   table1.eq_join(:id, table2).map{|obj| obj['left'].merge(obj['right'])}
     def zip
       self.map {|row|
-        RQL.if(row.hasattr('right'), row['left'].mapmerge(row['right']), row['left'])
+        RQL.branch(row.contains('right'), row['left'].merge(row['right']), row['left'])
       }
     end
   end
