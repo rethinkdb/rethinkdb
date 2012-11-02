@@ -16,7 +16,7 @@ module RethinkDB
     #   r[[1,1,1]]
     #   table.limit(3).map{1}.streamtoarray
     #   table.limit(3).map{1}.stream_to_array
-    def stream_to_array(); JSON_Expression.new [:call, [:streamtoarray], [self]]; end
+    def stream_to_array(); JSON_Expression.new [:call, [:stream_to_array], [self]]; end
   end
 
   # A special case of Stream_Expression that you can write to.  You

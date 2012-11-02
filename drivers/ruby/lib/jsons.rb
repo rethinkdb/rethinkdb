@@ -64,7 +64,7 @@ module RethinkDB
     #   r[{:a => 1, :b => 2, :c => 3}].pick(:a, :c)
     #   r[{:a => 1, :c => 3}]
     def pick(*attrnames)
-      JSON_Expression.new [:call, [:pickattrs, *attrnames], [self]]
+      JSON_Expression.new [:call, [:pick, *attrnames], [self]]
     end
 
     # Construct a JSON object that has a subset of the attributes of
@@ -72,7 +72,7 @@ module RethinkDB
     #   r[{:a => 1, :b => 2, :c => 3}].without(:a, :c)
     #   r[{:b => 2}]
     def unpick(*attrnames)
-      JSON_Expression.new [:call, [:without, *attrnames], [self]]
+      JSON_Expression.new [:call, [:unpick, *attrnames], [self]]
     end
 
     # Convert from an array to a stream.  Also has the synonym
@@ -83,7 +83,7 @@ module RethinkDB
     # working with effects error handling.  The following are equivalent:
     #   r[[1,2,3]].arraytostream
     #   r[[1,2,3]].to_stream
-    def array_to_stream(); Stream_Expression.new [:call, [:arraytostream], [self]]; end
+    def array_to_stream(); Stream_Expression.new [:call, [:array_to_stream], [self]]; end
 
     # Prefix numeric -.  The following are equivalent:
     #   -r[1]

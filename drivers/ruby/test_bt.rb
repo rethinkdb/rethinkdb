@@ -1,5 +1,5 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
-$LOAD_PATH.unshift('./rethinkdb')
+$LOAD_PATH.unshift('./lib')
 require 'test/unit'
 require 'rethinkdb.rb'
 extend RethinkDB::Shortcuts
@@ -54,13 +54,13 @@ class ClientBacktraceTest < Test::Unit::TestCase
           '       ^')
 
     check(r.add(r.expr({:a => 1}).pick(:b), 1),
-          'Query: add({:a=>1}.pickattrs(:b), 1)',
-          '           ^^^^^^^^^^^^^^^^^^^^^')
+          'Query: add({:a=>1}.pick(:b), 1)',
+          '           ^^^^^^^^^^^^^^^^')
     check(r.add(r.expr({:a => 1}).pick(:b, :c), 1),
-          'Query: add({:a=>1}.pickattrs(:b, :c), 1)',
-          '           ^^^^^^^^^^^^^^^^^^^^^^^^^')
+          'Query: add({:a=>1}.pick(:b, :c), 1)',
+          '           ^^^^^^^^^^^^^^^^^^^^')
     check(r.expr(1).pick(:a),
-          'Query: 1.pickattrs(:a)',
+          'Query: 1.pick(:a)',
           '       ^')
 
     check(r.expr(1).contains(:b),
@@ -68,23 +68,23 @@ class ClientBacktraceTest < Test::Unit::TestCase
           '       ^')
 
     check(r.expr(1).unpick(:id),
-          'Query: 1.without(:id)',
+          'Query: 1.unpick(:id)',
           '       ^')
   end
 
   def test_if
     check(r.branch(1, 2, 3),
-          'Query: if(1, 2, 3)',
-          '          ^')
+          'Query: branch(1, 2, 3)',
+          '              ^')
     check(r.branch(r.branch(true,1,false),2,3),
-          'Query: if(if(true, 1, false), 2, 3)',
-          '          ^^^^^^^^^^^^^^^^^^')
+          'Query: branch(branch(true, 1, false), 2, 3)',
+          '              ^^^^^^^^^^^^^^^^^^^^^^')
     check(r.branch(true, r.add(1, "a"), r.add("b", 2)),
-          'Query: if(true, add(1, "a"), add("b", 2))',
-          '                       ^^^')
+          'Query: branch(true, add(1, "a"), add("b", 2))',
+          '                           ^^^')
     check(r.branch(false, r.add(1, "a"), r.add("b", 2)),
-          'Query: if(false, add(1, "a"), add("b", 2))',
-          '                                  ^^^')
+          'Query: branch(false, add(1, "a"), add("b", 2))',
+          '                                      ^^^')
   end
 
   def test_point
@@ -169,17 +169,17 @@ class ClientBacktraceTest < Test::Unit::TestCase
 
   def test_between
     check($rdb.between({}, 4),
-          'Query: db("test").table("tbl").range(:id, {}, 4)',
-          '                                          ^^')
+          'Query: db("test").table("tbl").between(:id, {}, 4)',
+          '                                            ^^')
     check($rdb.between(0, {}),
-          'Query: db("test").table("tbl").range(:id, 0, {})',
-          '                                             ^^')
+          'Query: db("test").table("tbl").between(:id, 0, {})',
+          '                                               ^^')
     check($rdb.between(r.add(1,"a"), r.add(1,"a")),
-          'Query: db("test").table("tbl").range(:id, add(1, "a"), add(1, "a"))',
-          '                                                 ^^^')
+          'Query: db("test").table("tbl").between(:id, add(1, "a"), add(1, "a"))',
+          '                                                   ^^^')
     check($rdb.between(0, r.add(1,"a")),
-          'Query: db("test").table("tbl").range(:id, 0, add(1, "a"))',
-          '                                                    ^^^')
+          'Query: db("test").table("tbl").between(:id, 0, add(1, "a"))',
+          '                                                      ^^^')
   end
 
   def test_streamops
@@ -257,7 +257,7 @@ class ClientBacktraceTest < Test::Unit::TestCase
           'Query: insert(["a", "b"], [{:id=>-1337}], false)',
           '       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^')
     check($rdb.insert(r.expr([{:id => {}}]).array_to_stream),
-          'Query: insert(["test", "tbl"], [[{:id=>{}}].arraytostream()], false)',
-          '                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^')
+          'Query: insert(["test", "tbl"], [[{:id=>{}}].array_to_stream()], false)',
+          '                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^')
   end
 end

@@ -8,8 +8,7 @@ module RethinkDB
         :equals => :eq, :neq => :ne,
         :sub => :subtract, :mul => :multiply, :div => :divide, :mod => :modulo,
         :+ => :add, :- => :subtract, :* => :multiply, :/ => :divide, :% => :modulo,
-        :and => :all, :or => :any, :js => :javascript,
-        :to_stream => :array_to_stream, :to_array => :stream_to_array} end
+        :and => :all, :or => :any, :to_stream => :array_to_stream, :to_array => :stream_to_array} end
 
     # Allows us to identify protobuf classes which are actually variant types,
     # and to get their corresponding enums.
@@ -32,6 +31,12 @@ module RethinkDB
         :pointmutate => :point_mutate, :concatmap => :concat_map,
         :read => :read_query, :write => :write_query, :meta => :meta_query,
         :create_db => :db_name, :drop_db => :db_name, :list_tables => :db_name
+      } end
+
+    def name_rewrites
+      { :between => :range, :js => :javascript,
+        :array_to_stream => :arraytostream, :stream_to_array => :streamtoarray,
+        :merge => :mapmerge, :branch => :if, :pick => :pickattrs, :unpick => :without
       } end
 
     # These classes go through a useless intermediate type.

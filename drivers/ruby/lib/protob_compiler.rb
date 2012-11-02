@@ -33,6 +33,10 @@ module RethinkDB
 
     # Compile an RQL query into a protobuf.
     def comp(message_class, args, repeating=false)
+      # H4x to make the backtraces print right until we fix the protobuf.
+      args = args.map {|x|
+        x.class == Symbol && (new_name = C.name_rewrites[x]) ? new_name : x
+      } if args.class == Array
       #PP.pp(["A", message_class, args, repeating]) #DEBUG
 
       # Handle special cases of arguments:

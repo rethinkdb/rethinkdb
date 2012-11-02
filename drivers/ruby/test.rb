@@ -587,7 +587,6 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test_javascript # JAVASCRIPT
-    assert_equal(r.javascript('1').run, 1)
     assert_equal(r.js('1').run, 1)
     assert_equal(r.js('1').add(r.js('2')).run, 3)
     assert_equal(r.js('2+2').run, 4)
