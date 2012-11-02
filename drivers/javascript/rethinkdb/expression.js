@@ -1131,7 +1131,7 @@ rethinkdb.Expression.prototype.groupBy = function(var_args) {
     var finalizer = groupbyObject['finalizer'];
     if (finalizer) {
         gmr = gmr.map(function(group) {
-            return group.extend({'reduction': finalizer(group('reduction'))});
+            return group.merge({'reduction': finalizer(group('reduction'))});
         });
     }
 
@@ -1471,27 +1471,27 @@ rethinkdb.letVar = function(varString) {
  *  object when conflicts exist.
  * @return {rethinkdb.Expression}
  */
-rethinkdb.Expression.prototype.extend = function(other) {
+rethinkdb.Expression.prototype.merge = function(other) {
     other = rethinkdb.util.wrapIf_(other);
     var self = this;
     return rethinkdb.util.newExpr_(rethinkdb.BuiltinExpression, Builtin.BuiltinType.MAPMERGE, [this, other],
         function(bt) {
             if (!bt) {
-                return self.formatQuery()+".extend("+other.formatQuery()+")";
+                return self.formatQuery()+".merge("+other.formatQuery()+")";
             } else {
                 var a = bt.shift();
                 if (a === 'arg:0') {
-                    return self.formatQuery(bt)+rethinkdb.util.spaceify_(".extend("+other.formatQuery()+")");
+                    return self.formatQuery(bt)+rethinkdb.util.spaceify_(".merge("+other.formatQuery()+")");
                 } else if (a === 'arg:1') {
-                    return rethinkdb.util.spaceify_(self.formatQuery()+".extend(")+other.formatQuery(bt)+" ";
+                    return rethinkdb.util.spaceify_(self.formatQuery()+".merge(")+other.formatQuery(bt)+" ";
                 } else {
-                    return rethinkdb.util.carrotify_(self.formatQuery()+".extend("+other.formatQuery()+")");
+                    return rethinkdb.util.carrotify_(self.formatQuery()+".merge("+other.formatQuery()+")");
                 }
             }
         });
 };
-goog.exportProperty(rethinkdb.Expression.prototype, 'extend',
-                    rethinkdb.Expression.prototype.extend);
+goog.exportProperty(rethinkdb.Expression.prototype, 'merge',
+                    rethinkdb.Expression.prototype.merge);
 
 /**
  * Returns the concatenation of multiple sequences.
@@ -1833,7 +1833,7 @@ goog.exportProperty(rethinkdb.Expression.prototype, 'equiJoin',
 rethinkdb.Expression.prototype.zip = function() {
     return this.map(function(row) {
         return rethinkdb.branch(row.contains('right'),
-            row('left').extend(row('right')),
+            row('left').merge(row('right')),
             row('left'));
     });
 };
