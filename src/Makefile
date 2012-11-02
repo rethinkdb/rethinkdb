@@ -444,7 +444,7 @@ SERVER_EXEC_NAME_VERSIONED:=$(SERVER_EXEC_NAME)-$(RETHINKDB_SHORT_VERSION)
 endif
 
 build-deb-src-control:
-	$(QUIET) cd .. ; rm -rf debian ; DEBFULLNAME="RethinkDB Packaging" dh_make -p rethinkdb_$(RETHINKDB_VERSION) -n -s -e packaging@rethinkdb.com ;
+	$(QUIET) cd .. ; rm -rf debian ; DEBFULLNAME="RethinkDB Packaging" dh_make -p rethinkdb_$(RETHINKDB_VERSION) -n -s -e packaging@rethinkdb.com --copyright AGPL-3.0 ;
 
 ##### Build targets
 .PHONY: all build-deb build-rpm callgrind callgrind clean cscope deb deb depclean drivers etags gdb install install-binaries install-deb install-docs install-manpages install-rpm install-tools prepare_deb_package_dirs prepare_rpm_package_dirs regdb rerun revalgrind rpm rpm rpm-suse10 run sembuild showdefines style tags unit valgrind web-assets coffeelint
