@@ -36,6 +36,7 @@ module 'NamespaceView', ->
             @expected_num_replicas = num_replicas*num_shards # Stores the number of replicas we expect
 
             @universe_replicas = new NamespaceView.DatacenterReplicas universe_datacenter.get('id'), @model
+            @primary_datacenter = new NamespaceView.PrimaryDatacenter model: @model
 
         # A method that is going to call multiple methods (triggered when replica_affinities are changed
         global_trigger_for_replica: =>
@@ -283,6 +284,8 @@ module 'NamespaceView', ->
             @render_acks_greater_than_replicas()
             @render_universe()
             @render_status()
+
+            @.$('.primary-dc').html @primary_datacenter.render().$el
 
             if @model.get('primary_uuid') is universe_datacenter.get('id')
                 if @ordered_datacenters.length > 0
@@ -617,3 +620,63 @@ module 'NamespaceView', ->
 
             @model.off 'change:ack_expectations', @render_acks_replica
             @model.off 'change:replica_affinities', @render_acks_replica
+
+    class @PrimaryDatacenter extends Backbone.View
+        template: Handlebars.compile $('#namespace_view-primary_datacenter-template').html()
+
+        # These are the possible states for the ProgressBar
+        states: ['none', 'show_primary', 'choose_primary']
+        state: 'none'
+
+        events: ->
+            'click label[for=primary-on]': 'turn_primary_on'
+            'click label[for=primary-off]': 'turn_primary_off'
+            'click .btn.change-primary': 'change_primary'
+            'click .btn.submit-change-primary': 'submit_change_primary'
+            'click .btn.cancel-change-primary': 'cancel_change_primary'
+
+        render: =>
+            data = {}
+            
+            if @state is 'show_primary'
+                data.show_primary_dc = true
+                data.primary_dc_uuid = @model.get('primary_uuid')
+                data.primary_dc_name = datacenters.get(@model.get('primary_uuid')).get('name')
+
+            if @state is 'choose_primary'
+                data.choose_primary = true
+                data.datacenters = datacenters.toJSON()
+                if @model.get('primary_uuid') isnt universe_datacenter.get('id')
+                    data.primary_dc_uuid = @model.get('primary_uuid')
+                    data.primary_dc_name = datacenters.get(@model.get('primary_uuid')).get('name')
+
+            @.$el.html @template data
+
+            return @
+
+        # Event handlers that change state
+        turn_primary_off: =>
+            @state = 'none'
+            @render()
+
+        turn_primary_on: =>
+            if @model.get('primary_uuid') is universe_datacenter.get('id')
+                @state = 'choose_primary'
+            else
+                @state = 'show_primary'
+            @render()
+
+        change_primary: =>
+            @state = 'choose_primary'
+            @render()
+
+        submit_change_primary: =>
+            @state = 'show_primary'
+            @render()
+
+        cancel_change_primary: =>
+            if @model.get('primary_uuid') is universe_datacenter.get('id')
+                @state = 'none'
+            else
+                @state = 'show_primary'
+            @render()

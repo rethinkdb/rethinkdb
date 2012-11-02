@@ -21,33 +21,27 @@
 </script>
 
 <script id="dataexplorer-databases_suggestions-template" type="text/x-handlebars-template">
-{{#if no_database}}
-<br/>No database found. Use dbCreate() to create a new database first.
-{{else}}
-<br/>List of databases available: {{comma_separated_simple databases_available}}
-{{/if}}
+    {{#if no_database}}
+        <br/>No database found. Use dbCreate() to create a new database first.
+    {{else}}
+        <br/>List of databases available: {{comma_separated_simple databases_available}}
+    {{/if}}
 </script>
 <script id="dataexplorer-namespaces_suggestions-template" type="text/x-handlebars-template">
-{{#if error}}
-<br/>The database specified in db() was not found.
-{{else}}
-    {{#if no_namespace}}
-        {{#if database_name}}
-        <br/>No table found in {{database_name}}. Use create() to create a new table first.
-        {{else}}
-        <br/>You need to create a database then a table first.
-        {{/if}}
+    {{#if error}}
+        <br/>The database specified in db() was not found.
     {{else}}
-    <br/>List of tables{{#if database_name}} in {{database_name}}{{/if}}: {{comma_separated_simple namespaces_available}}
+        {{#if no_namespace}}
+            {{#if database_name}}
+                <br/>No table found in {{database_name}}. Use create() to create a new table first.
+            {{else}}
+                <br/>You need to create a database then a table first.
+            {{/if}}
+        {{else}}
+            <br/>List of tables{{#if database_name}} in {{database_name}}{{/if}}: {{comma_separated_simple namespaces_available}}
+        {{/if}}
     {{/if}}
-{{/if}}
-
-
-
-
 </script>
-
-
 
 <script id="alert-reconnection_success-template" type="text/x-handlebars-template">
     <div class="alert" data-alert="alert">
@@ -67,20 +61,17 @@
         <div class="suggestion_description_arrow arrow"></div>
         <div class="suggestion_description_arrow_overlay arrow"></div>
 
-
         <textarea class="input_query" id="input_query"></textarea>
         <div class="button_container">
             <button class="btn button_query execute_query">Execute</button>
             <button class="btn button_query clear_query">Clear</button>
         </div>
-
     </div>
     <div class="loading_query">
         <img src="/images/ajax-loader.gif" class="loading_query_img"/>
     </div>
 </script>
 
- 
 <script id="dataexplorer_suggestion_name_li-template" type="text/x-handlebars-template">
     <li class="suggestion_name_li" data-has_argument="{{has_argument}}" data-id={{id}}>{{suggestion}}</li>
 </script>
@@ -93,14 +84,14 @@
         <h3>Tables available</h3>
 
         {{#if has_namespaces}}
-        {{#each databases}}
-        <h4>{{name}}</h4>
-        <ul class="namespaces_available_list queries_list">
-            {{#each namespaces}}
-            <li class="namespace_element"><a href="#" data-database="{{database}}" data-name="{{name}}" class="namespace_link">{{name}}</a></li>
+            {{#each databases}}
+                <h4>{{name}}</h4>
+                <ul class="namespaces_available_list queries_list">
+                    {{#each namespaces}}
+                        <li class="namespace_element"><a href="#" data-database="{{database}}" data-name="{{name}}" class="namespace_link">{{name}}</a></li>
+                    {{/each}}
+                </ul>
             {{/each}}
-        </ul>
-        {{/each}}
         {{else}}
         <p>There is no table available. <br />Start by <a href="#tables">creating one</a>.</p>
         {{/if}}
@@ -231,23 +222,21 @@ Did you forget to append .run() at the end of your query?{{/if}}</pre>
 
 <script id="dataexplorer_result_json_tree_object-template" type="text/x-handlebars-template">
     {{#if no_value}}
-    { } 
+        { } 
     {{else}}
-    <span class="jt_arrow"></span>
-    <span class="jt_b">{</span>
-    <span class="jt_points">...</span>
-    <ul class="jt_object jt_collapsible">
-        {{#each values}}
-        <li>
-                "{{this.key}}": {{print_safe this.value}}{{#unless no_comma}}, {{/unless}}
-        </li>
-        {{/each}}
-    </ul>
-    <span class="jt_b jt_close">}</span>{{/if}}</script>
-
-
-
-
+        <span class="jt_arrow"></span>
+        <span class="jt_b">{</span>
+        <span class="jt_points">...</span>
+        <ul class="jt_object jt_collapsible">
+            {{#each values}}
+            <li>
+                    "{{this.key}}": {{print_safe this.value}}{{#unless no_comma}}, {{/unless}}
+            </li>
+            {{/each}}
+        </ul>
+        <span class="jt_b jt_close">}</span>
+    {{/if}}
+</script>
 
 <script id="dataexplorer_result_json_table_container-template" type="text/x-handlebars-template">
     <div class="json_table_container">
@@ -267,8 +256,6 @@ Did you forget to append .run() at the end of your query?{{/if}}</pre>
         {{/each}}
     </tr>
 </script>
-
-
 
 <script id="dataexplorer_result_json_table_tr_value-template" type="text/xs-handlebars-template">
     {{#each document}}
@@ -310,19 +297,16 @@ Did you forget to append .run() at the end of your query?{{/if}}</pre>
         {{/if}}
 </script>
 
-
-
 <!-- Ugly indentation to avoid extra spaces before comma -->
 <script id="dataexplorer_result_json_table_data_inline-template" type="text/xs-handlebars-template">
     {{#if data_to_expand}}
-    <span data-json_data="{{data_to_expand}}" class="jta_object">
-        <span class="jta_arrow jta_arrow_v"></span>
-        {{#unless is_inline}}<span class="jta_arrow jta_arrow_h"></span>{{/unless}}
-        <strong>{{print_safe value}}</strong>
-        {{#if need_comma}}, {{/if}}
-    </span>
+        <span data-json_data="{{data_to_expand}}" class="jta_object">
+            <span class="jta_arrow jta_arrow_v"></span>
+            {{#unless is_inline}}<span class="jta_arrow jta_arrow_h"></span>{{/unless}}
+            <strong>{{print_safe value}}</strong>
+            {{#if need_comma}}, {{/if}}
+        </span>
     {{else}}
-    <span class={{classname}}>{{print_safe value}}</span>{{#if need_comma}}, {{/if}}
+        <span class={{classname}}>{{print_safe value}}</span>{{#if need_comma}}, {{/if}}
     {{/if}}
 </script>
-

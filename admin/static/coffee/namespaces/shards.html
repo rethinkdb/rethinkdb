@@ -11,30 +11,33 @@
 </script>
 
 <script id="view_shards-template" type="text/x-handlebars-template">
+    <div class="cannot_shard-alert alert alert-error"></div>
     <button class="btn edit">Edit</button>
     <p class="icon_paragraph"><span class="big">{{num_shards}}</span> <span class="shard_text">{{pluralize_noun "shard" num_shards}}</span></p> 
-    <div class="cannot_shard-alert alert"></div>
 </script>
 
 
 <script id="edit_shards-template" type="text/x-handlebars-template">
+    <div class="cannot_shard-alert alert alert-error"></div>
     <button class="btn cancel">&times;</button>
     <button class="btn rebalance">Rebalance</button>
-    <p class="icon_paragraph"><input class="num-shards" type="text" value="{{num_shards}}" />  <span class="shard_text">{{pluralize_noun "shard" num_shards}}</span></p>
-    <div class="cannot_shard-alert alert"></div>
+    <p class="icon_paragraph">
+        <input class="num-shards" type="text" value="{{num_shards}}" />
+        <span class="shard_text">{{pluralize_noun "shard" num_shards}}</span>
+    </p>
+    <p class="max-value">max shards: 32</p>
 </script>
 
 
 <script id="edit_shards-feedback-template" type="text/x-handlebars-template">
-    <div class="close" href="#">&times;</div>
     <p>{{this}}</p>
 </script>
 
 <script id="alert_shard-template" type="text/x-handlebars-template">
     {{#if changing}}
-    Changing number of shards to {{num_shards}}.
+        Changing number of shards to {{num_shards}}.
     {{else}}
-    Sharding complete.
+        Sharding complete.
     {{/if}}
 </script>
 
@@ -80,9 +83,9 @@
 
 <script id="shards-reason_cannot_shard-template" type="text/x-handlebars-template">
     {{#if machine_down}}
-    You have to remove the server down before sharding.
+        Please resolve pending issues before sharding.
     {{/if}}
     {{#if unsatisfiable_goals}}
-    You have to solve the unsatisfiable goal before sharding.
+        Please resolve pending issues before sharding.
     {{/if}}
 </script>
