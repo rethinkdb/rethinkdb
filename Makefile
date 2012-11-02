@@ -1,5 +1,4 @@
 all:
-	cd src ; make $(MFLAGS) ;
 
 build-deb-src-control:
 	cd src ; make $(MFLAGS) build-deb-src-control ;
