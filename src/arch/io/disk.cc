@@ -331,7 +331,7 @@ void linux_file_t::set_size_at_least(size_t size) {
 
 void linux_file_t::read_async(size_t offset, size_t length, void *buf, linux_file_account_t *account, linux_iocallback_t *callback) {
     rassert(diskmgr, "No diskmgr has been constructed (are we running without an event queue?)");
-    verify(offset, length, buf);
+    verify_aligned_file_access(file_size, offset, length, buf);
     diskmgr->submit_read(fd.get(), buf, length, offset,
         account == DEFAULT_DISK_ACCOUNT ? default_account->get_account() : account->get_account(),
         callback);
@@ -347,14 +347,14 @@ void linux_file_t::write_async(size_t offset, size_t length, const void *buf, li
     debugf("---- WRITE END ----\n\n");
 #endif
 
-    verify(offset, length, buf);
+    verify_aligned_file_access(file_size, offset, length, buf);
     diskmgr->submit_write(fd.get(), buf, length, offset,
         account == DEFAULT_DISK_ACCOUNT ? default_account->get_account() : account->get_account(),
         callback);
 }
 
 void linux_file_t::read_blocking(size_t offset, size_t length, void *buf) {
-    verify(offset, length, buf);
+    verify_aligned_file_access(file_size, offset, length, buf);
  tryagain:
     ssize_t res = pread(fd.get(), buf, length, offset);
     if (res == -1 && errno == EINTR) {
@@ -365,7 +365,7 @@ void linux_file_t::read_blocking(size_t offset, size_t length, void *buf) {
 }
 
 void linux_file_t::write_blocking(size_t offset, size_t length, const void *buf) {
-    verify(offset, length, buf);
+    verify_aligned_file_access(file_size, offset, length, buf);
  tryagain:
     ssize_t res = pwrite(fd.get(), buf, length, offset);
     if (res == -1 && errno == EINTR) {
@@ -387,12 +387,10 @@ linux_file_t::~linux_file_t() {
     // scoped_fd_t's destructor takes care of close()ing the file
 }
 
-void linux_file_t::verify(DEBUG_VAR size_t offset, DEBUG_VAR size_t length, DEBUG_VAR const void *buf) {
+void verify_aligned_file_access(DEBUG_VAR size_t file_size, DEBUG_VAR size_t offset, DEBUG_VAR size_t length, DEBUG_VAR const void *buf) {
     rassert(buf);
     rassert(offset + length <= file_size);
     rassert(divides(DEVICE_BLOCK_SIZE, intptr_t(buf)));
     rassert(divides(DEVICE_BLOCK_SIZE, offset));
     rassert(divides(DEVICE_BLOCK_SIZE, length));
 }
-
-

@@ -125,7 +125,6 @@ private:
     bool is_block;
     bool file_exists;
     uint64_t file_size;
-    void verify(size_t offset, size_t length, const void *buf);
 
     /* In a scoped pointer because it's polymorphic */
     linux_disk_manager_t *diskmgr;
@@ -156,6 +155,8 @@ public:
 private:
     DISABLE_COPYING(linux_nondirect_file_t);
 };
+
+void verify_aligned_file_access(size_t file_size, size_t offset, size_t length, const void *buf);
 
 #endif // ARCH_IO_DISK_HPP_
 
