@@ -95,8 +95,8 @@ class ClientBacktraceTest < Test::Unit::TestCase
           'Query: pointupdate(["test", "tbl"], :id, 0, ["_var_1001", {:id=>1}])',
           '                                                          ^^^^^^^^')
     check($rdb.get(0).replace{|row| {:id => 2}},
-          'Query: pointmutate(["test", "tbl"], :id, 0, ["_var_1002", {:id=>2}])',
-          '                                                          ^^^^^^^^')
+          'Query: pointreplace(["test", "tbl"], :id, 0, ["_var_1002", {:id=>2}])',
+          '                                                           ^^^^^^^^')
     check($rdb.get(0, :bah),
           'Query: getbykey(["test", "tbl"], :bah, 0)',
           '       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^')
@@ -104,15 +104,15 @@ class ClientBacktraceTest < Test::Unit::TestCase
           'Query: pointupdate(["test", "tbl"], :bah, 0, ["_var_1003", {}])',
           '       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^')
     check($rdb.get(0, :bah).replace{{}},
-          'Query: pointmutate(["test", "tbl"], :bah, 0, ["_var_1004", {}])',
-          '       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^')
+          'Query: pointreplace(["test", "tbl"], :bah, 0, ["_var_1004", {}])',
+          '       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^')
 
     check($rdb.get(0).update{{:new => r.add(1,"a")}},
           'Query: pointupdate(["test", "tbl"], :id, 0, ["_var_1046", {:new=>add(1, "a")}])',
           '                                                                        ^^^')
     check($rdb.get(0).replace{{:new => r.add(1,"a")}},
-          'Query: pointmutate(["test", "tbl"], :id, 0, ["_var_1047", {:new=>add(1, "a")}])',
-          '                                                                        ^^^')
+          'Query: pointreplace(["test", "tbl"], :id, 0, ["_var_1047", {:new=>add(1, "a")}])',
+          '                                                                         ^^^')
   end
 
   def test_reduce
@@ -196,14 +196,14 @@ class ClientBacktraceTest < Test::Unit::TestCase
           'Query: update(db("test").table("tbl"), ["_var_1054", {:id=>-1}])',
           '                                                     ^^^^^^^^^')
     check(r.db('a').table('b').replace{{}},
-          'Query: mutate(db("a").table("b"), ["_var_1008", {}])',
-          '              ^^^^^^^^^^^^^^^^^^')
+          'Query: replace(db("a").table("b"), ["_var_1008", {}])',
+          '               ^^^^^^^^^^^^^^^^^^')
     check($rdb.replace{{:new => r.add(1, "a")}},
-          'Query: mutate(db("test").table("tbl"), ["_var_1056", {:new=>add(1, "a")}])',
-          '                                                                   ^^^')
+          'Query: replace(db("test").table("tbl"), ["_var_1056", {:new=>add(1, "a")}])',
+          '                                                                    ^^^')
     check($rdb.replace{{:new => 1}},
-          'Query: mutate(db("test").table("tbl"), ["_var_1056", {:new=>1}])',
-          '                                                     ^^^^^^^^^')
+          'Query: replace(db("test").table("tbl"), ["_var_1056", {:new=>1}])',
+          '                                                      ^^^^^^^^^')
     check($rdb.filter{1},
           'Query: db("test").table("tbl").filter("_var_1060", 1)',
           '                                                   ^')
@@ -229,11 +229,11 @@ class ClientBacktraceTest < Test::Unit::TestCase
           'Query: foreach(db("a").table("b"), "_var_1066", [pointupdate(["test", "tbl"], :id, 0, ["_var_1067", {:new=>_var_1066[:id]}])])',
           '               ^^^^^^^^^^^^^^^^^^')
     check($rdb.foreach{|row| [$rdb.get(0).update{{:id => row[:id]}}, $rdb.replace{|row| row}]},
-          'Query: foreach(db("test").table("tbl"), "_var_1071", [pointupdate(["test", "tbl"], :id, 0, ["_var_1072", {:id=>_var_1071[:id]}]), mutate(db("test").table("tbl"), ["_var_1073", _var_1073])])',
+          'Query: foreach(db("test").table("tbl"), "_var_1071", [pointupdate(["test", "tbl"], :id, 0, ["_var_1072", {:id=>_var_1071[:id]}]), replace(db("test").table("tbl"), ["_var_1073", _var_1073])])',
           '                                                                                                         ^^^^^^^^^^^^^^^^^^^^^')
     check($rdb.foreach{|row| [$rdb.get(0).update{{:new => row[:id]}}, $rdb.replace{|row| {}}]},
-          'Query: foreach(db("test").table("tbl"), "_var_1001", [pointupdate(["test", "tbl"], :id, 0, ["_var_1002", {:new=>_var_1001[:id]}]), mutate(db("test").table("tbl"), ["_var_1003", {}])])',
-          '                                                                                                                                                                                 ^^')
+          'Query: foreach(db("test").table("tbl"), "_var_1001", [pointupdate(["test", "tbl"], :id, 0, ["_var_1002", {:new=>_var_1001[:id]}]), replace(db("test").table("tbl"), ["_var_1003", {}])])',
+          '                                                                                                                                                                                  ^^')
   end
 
   def test_obj_access

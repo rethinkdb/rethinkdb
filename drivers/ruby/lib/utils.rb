@@ -36,7 +36,8 @@ module RethinkDB
     def name_rewrites
       { :between => :range, :js => :javascript,
         :array_to_stream => :arraytostream, :stream_to_array => :streamtoarray,
-        :merge => :mapmerge, :branch => :if, :pick => :pickattrs, :unpick => :without
+        :merge => :mapmerge, :branch => :if, :pick => :pickattrs, :unpick => :without,
+        :replace => :mutate, :pointreplace => :pointmutate
       } end
 
     # These classes go through a useless intermediate type.
@@ -51,8 +52,8 @@ module RethinkDB
        :create, :drop] end
 
     def nonatomic_variants
-      [:update_nonatomic, :mutate_nonatomic,
-       :pointupdate_nonatomic, :pointmutate_nonatomic] end
+      [:update_nonatomic, :replace_nonatomic,
+       :pointupdate_nonatomic, :pointreplace_nonatomic] end
   end
   module C; extend C_Mixin; end
 
@@ -68,6 +69,7 @@ module RethinkDB
   module P; extend P_Mixin; end
 
   module S_Mixin #S-expression Utils
+    def rewrite(q); C.name_rewrites[q] || q; end
     def mark_boolop(x); class << x; def boolop?; true; end; end; x; end
     def check_opts(opts, set)
       if (bad_opts = opts.map{|k,_|k} - set) != []

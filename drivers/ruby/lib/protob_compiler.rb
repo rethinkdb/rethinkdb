@@ -125,7 +125,7 @@ module RethinkDB
       raise TypeError, "Cannot build query from #{sexp.inspect}" if sexp.class != Array
       if (m = handle_special_query_cases(sexp))
       then q = m
-      elsif enum_type(WriteQuery::WriteQueryType, sexp[0])
+      elsif enum_type(WriteQuery::WriteQueryType, S.rewrite(sexp[0]))
       then q = comp(Query, [:write, *sexp])
       elsif enum_type(MetaQuery::MetaQueryType, sexp[0])
       then q = comp(Query, [:meta, *sexp])

@@ -123,7 +123,7 @@ module RethinkDB
     # Analagous to Multi_Row_Selection#mutate
     def replace(variant=nil)
       S.with_var {|vname,v|
-        Write_Query.new [:pointmutate, *(@body[1..-1] + [[vname, S.r(yield(v))]])]
+        Write_Query.new [:pointreplace, *(@body[1..-1] + [[vname, S.r(yield(v))]])]
       }.apply_variant(variant)
     end
 

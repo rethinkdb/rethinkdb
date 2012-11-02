@@ -96,7 +96,7 @@ module RethinkDB
     def replace(variant=nil)
       raise_if_outdated
       S.with_var {|vname,v|
-        Write_Query.new [:mutate, self, [vname, S.r(yield(v))]]
+        Write_Query.new [:replace, self, [vname, S.r(yield(v))]]
       }.apply_variant(variant)
     end
   end
