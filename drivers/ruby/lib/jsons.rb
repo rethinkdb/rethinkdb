@@ -16,7 +16,7 @@ module RethinkDB
   #   r.add(1,2).run
   #   3
   # As are:
-  #   r[{:a => 1, :b => 2}].pickattrs(:a).run
+  #   r[{:a => 1, :b => 2}].pick(:a).run
   #   {'a' => 1}
   # (Note that the symbol keys were coerced into string keys in the
   # object.  JSON doesn't distinguish between keys and strings.)
@@ -29,7 +29,7 @@ module RethinkDB
     # Otherwise, if <b>+ind+</b> is a number or a range, invokes RQL::[]
     def [](ind)
       if ind.class == Symbol || ind.class == String
-        B.alt_inspect(JSON_Expression.new [:call, [:getattr, ind], [self]]) {
+        BT.alt_inspect(JSON_Expression.new [:call, [:getattr, ind], [self]]) {
           "#{self.inspect}[#{ind.inspect}]"
         }
       else
@@ -53,37 +53,37 @@ module RethinkDB
 
     # Check whether a JSON object has a particular attribute.  The
     # following are equivalent:
-    #   r[{:id => 1}].hasattr(:id)
+    #   r[{:id => 1}].contains(:id)
     #   r[true]
-    def hasattr(attrname)
-      JSON_Expression.new [:call, [:hasattr, attrname], [self]]
+    def contains(attrname)
+      JSON_Expression.new [:call, [:contains, attrname], [self]]
     end
 
     # Construct a JSON object that has a subset of the attributes of
     # another JSON object by specifying which to keep.  The following are equivalent:
-    #   r[{:a => 1, :b => 2, :c => 3}].pickattrs(:a, :c)
+    #   r[{:a => 1, :b => 2, :c => 3}].pick(:a, :c)
     #   r[{:a => 1, :c => 3}]
-    def pickattrs(*attrnames)
-      JSON_Expression.new [:call, [:pickattrs, *attrnames], [self]]
+    def pick(*attrnames)
+      JSON_Expression.new [:call, [:pick, *attrnames], [self]]
     end
 
     # Construct a JSON object that has a subset of the attributes of
     # another JSON object by specifying which to drop.  The following are equivalent:
     #   r[{:a => 1, :b => 2, :c => 3}].without(:a, :c)
     #   r[{:b => 2}]
-    def without(*attrnames)
-      JSON_Expression.new [:call, [:without, *attrnames], [self]]
+    def unpick(*attrnames)
+      JSON_Expression.new [:call, [:unpick, *attrnames], [self]]
     end
 
     # Convert from an array to a stream.  Also has the synonym
-    # <b>+to_stream+</b>.  While most sequence functions are polymorphic
+    # <b>+array_to_stream+</b>.  While most sequence functions are polymorphic
     # and handle both arrays and streams, when arrays or streams need to be
     # combined (e.g. via <b>+union+</b>) you need to explicitly convert between
     # the types.  This is mostly for safety, but also because which type you're
     # working with effects error handling.  The following are equivalent:
     #   r[[1,2,3]].arraytostream
     #   r[[1,2,3]].to_stream
-    def arraytostream(); Stream_Expression.new [:call, [:arraytostream], [self]]; end
+    def array_to_stream(); Stream_Expression.new [:call, [:array_to_stream], [self]]; end
 
     # Prefix numeric -.  The following are equivalent:
     #   -r[1]
@@ -121,9 +121,9 @@ module RethinkDB
     end
 
     # Analagous to Multi_Row_Selection#mutate
-    def mutate(variant=nil)
+    def replace(variant=nil)
       S.with_var {|vname,v|
-        Write_Query.new [:pointmutate, *(@body[1..-1] + [[vname, S.r(yield(v))]])]
+        Write_Query.new [:pointreplace, *(@body[1..-1] + [[vname, S.r(yield(v))]])]
       }.apply_variant(variant)
     end
 

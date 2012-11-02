@@ -25,8 +25,8 @@ module 'Sidebar', ->
             @showing_all_issues = false
 
             # Watch as issues get removed / reset. If the size is zero, let's figure out what to show
-            @issues.on 'remove', @issues_being_resolved
-            @issues.on 'reset', @issues_being_resolved
+            issues.on 'remove', @issues_being_resolved
+            issues.on 'reset', @issues_being_resolved
 
         render: =>
             @.$el.html @template({})
@@ -61,11 +61,14 @@ module 'Sidebar', ->
 
         # As issues get resolved, we need to make sure that we're showing the right elements
         issues_being_resolved: =>
-            @.$('.all-issues').hide() if issues.length is 0
+            if issues.length is 0 and @.$('#issue-alerts').children().length is 0
+                @.$('.all-issues').hide()
+                @showing_all_issues = false
+                @issues_banner.set_showing_issues @showing_all_issues
 
         destroy: =>
-            @issues.off 'remove', @issues_being_resolved
-            @issues.off 'reset', @issues_being_resolved
+            issues.off 'remove', @issues_being_resolved
+            issues.off 'reset', @issues_being_resolved
             @client_connectivity_status.destroy()
             @servers_connected.destroy()
             @datacenters_connected.destroy()

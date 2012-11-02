@@ -435,10 +435,16 @@ PACKAGING_ALTERNATIVES_PRIORITY:=$(shell expr $$(../scripts/gen-version.sh -r) /
 RETHINKDB_PACKAGING_VERSION?=$(RETHINKDB_VERSION)
 CXXFLAGS+=-DRETHINKDB_VERSION=\"$(RETHINKDB_VERSION)\"
 
+NAMEVERSIONED?=0
+ifeq ($(NAMEVERSIONED),1)
 SERVER_EXEC_NAME_VERSIONED:=$(SERVER_EXEC_NAME)-$(RETHINKDB_SHORT_VERSION)
+else
+# update-alternatives breaks if we ditch the distinguishing mark .
+SERVER_EXEC_NAME_VERSIONED:=$(SERVER_EXEC_NAME)-$(RETHINKDB_SHORT_VERSION)
+endif
 
 ##### Build targets
-.PHONY: all build-deb build-rpm callgrind callgrind clean cscope deb deb depclean drivers etags gdb install install-binaries install-deb install-docs install-manpages install-rpm install-tools prepare_deb_package_dirs prepare_rpm_package_dirs regdb rerun revalgrind rpm rpm rpm-suse10 run sembuild showdefines style tags unit valgrind web-assets coffeelint
+.PHONY: all build-deb build-rpm callgrind callgrind clean cscope deb deb depclean drivers etags gdb install install-binaries install-deb install-docs install-manpages install-rpm install-tools prepare_deb_package_dirs prepare_rpm_package_dirs regdb rerun revalgrind rpm rpm rpm-suse10 run sembuild showdefines style tags unit valgrind web-assets coffeelint build-deb-src-control
 
 # High level build targets
 
@@ -450,6 +456,9 @@ all: $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME) web-ass
 ifeq ($(UNIT_TESTS),1)
 all: $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME)
 endif
+
+build-deb-src-control:
+	$(QUIET) cd .. ; rm -rf debian ; DEBFULLNAME="RethinkDB Packaging" dh_make -p rethinkdb_$(RETHINKDB_VERSION) -n -s -e packaging@rethinkdb.com --copyright blank ; cp -pRP packaging/debian/copyright debian/ ; mv debian/changelog debian/changelog.old ; sed -e 's/unstable/precise/' < debian/changelog.old > debian/changelog ;
 
 unit:
 	$(MAKE) UNIT_TESTS=1
@@ -471,10 +480,16 @@ RETHINKDB_VERSION_RPM=$(subst -,_,$(RETHINKDB_PACKAGING_VERSION))
 DEB_PACKAGE_REVISION?=1
 RETHINKDB_VERSION_DEB=$(RETHINKDB_PACKAGING_VERSION)-$(DEB_PACKAGE_REVISION)
 
+ifeq ($(NAMEVERSIONED),1)
 VERSIONED_PACKAGE_NAME:=$(PACKAGE_NAME)-$(RETHINKDB_SHORT_VERSION)
 VERSIONED_TRIAL_PACKAGE_NAME:=$(TRIAL_PACKAGE_NAME)-$(RETHINKDB_SHORT_VERSION)
-
 VERSIONED_PRODUCT_SHARE_DIR:=/usr/share/$(VERSIONED_PACKAGE_NAME)
+else
+VERSIONED_PACKAGE_NAME:=$(PACKAGE_NAME)
+VERSIONED_TRIAL_PACKAGE_NAME:=$(TRIAL_PACKAGE_NAME)
+VERSIONED_PRODUCT_SHARE_DIR:=/usr/share/$(PACKAGE_NAME)
+endif
+
 
 prefix?=/usr
 bin_dir:=$(prefix)/bin
@@ -559,7 +574,7 @@ install-web:
 	$(QUIET) cp -pRP $(BUILD_DIR)/web/* $(DESTDIR)$(web_res_dir)/
 
 install-drivers:
-	
+
 $(libdir):
 	$(QUIET) install -m755 -d $(DESTDIR)$(lib_dir)
 
@@ -592,6 +607,8 @@ build-deb: all prepare_deb_package_dirs
 # List configuration files in conffiles
 	$(QUIET) find $(DEB_PACKAGE_DIR) -type f -printf "/%P\n" | (grep '^/etc/' | grep -v '^/etc/init\.d' || true) > $(DEB_CONTROL_ROOT)/conffiles
 
+	DebianV8Version=$(shell apt-cache show libv8-dev | grep '^Version:' | sed -e 's/^Version: \([0-9]*\(\.[0-9]*\)*\).*$/\1/g' || true ; )
+
 # Copy {pre,post}{inst,rm} scripts
 	$(QUIET) for script in preinst postinst prerm postrm; do		                  		\
 			m4 																																						\
@@ -601,6 +618,7 @@ build-deb: all prepare_deb_package_dirs
 					-D "INTERNAL_BASH_COMPLETION_DIR=$(internal_bash_completion_dir)" 				\
 					-D "SERVER_EXEC_NAME=$(SERVER_EXEC_NAME)" 																\
 					-D "SERVER_EXEC_NAME_VERSIONED=$(SERVER_EXEC_NAME_VERSIONED)" 						\
+					-D "UPDATE_ALTERNATIVES=$(NAMEVERSIONED)" 													\
 					-D "PRIORITY=$(PACKAGING_ALTERNATIVES_PRIORITY)" 													\
 				../packaging/$(DEBIAN_PKG_DIR)/$${script} > $(DEB_CONTROL_ROOT)/$${script}; \
 			chmod 0755 $(DEB_CONTROL_ROOT)/$${script};																		\

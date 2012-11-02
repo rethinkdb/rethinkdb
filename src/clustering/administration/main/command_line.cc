@@ -226,9 +226,8 @@ void run_rethinkdb_serve(extproc::spawner_t::info_t *spawner_info, const std::st
 void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std::string &filepath, const name_string_t &machine_name, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets, bool new_directory) {
     os_signal_cond_t sigint_cond;
 
-    logINF("Checking if directory '%s' already existed...\n", filepath.c_str());
     if (!new_directory) {
-        logINF("It already existed.  Loading data...\n");
+        logINF("Loading data from directory %s\n", filepath.c_str());
 
         scoped_ptr_t<io_backender_t> io_backender;
         make_io_backender(io_backend, &io_backender);
@@ -252,7 +251,7 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
         }
 
     } else {
-        logINF("It did not already exist. It has been created.\n");
+        logINF("Creating directory %s\n", filepath.c_str());
 
         machine_id_t our_machine_id = generate_uuid();
 
@@ -324,7 +323,7 @@ po::options_description get_machine_options() {
 po::options_description get_file_options() {
     po::options_description desc("File path options");
     desc.add_options()
-        ("directory,d", po::value<std::string>()->default_value("rethinkdb_cluster_data"), "specify directory to store data and metadata");
+        ("directory,d", po::value<std::string>()->default_value("rethinkdb_data"), "specify directory to store data and metadata");
     return desc;
 }
 

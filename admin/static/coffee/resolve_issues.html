@@ -30,13 +30,18 @@
 
 <script id="resolve_unsatisfiable_goals_modal-template" type="text/x-handlebars-template">
     <div class="alert alert-error error_answer"></div>
-    <p>Are you sure you want to lower the number of replicas for table <a class="change-route" href="#tables/{{namespace_id}}">{{namespace_name}}</a> in the following datacenters:</p>
+    <p>Are you sure you want to lower the number of replicas for table <a class="change-route" href="#tables/{{namespace_id}}">{{namespace_name}}</a> in the following datacenters or in the whole cluster:</p>
     <ul>
         {{#each datacenters_with_issues}}
-            <li>
-                <a class="change-route" href="#datacenters/{{this.datacenter_id}}">{{this.datacenter_name}}</a> from <strong>{{this.num_replicas}}</strong> to <strong>{{num_machines}}</strong>
+        <li>
+        {{#if is_universe}}
+        Whole cluster
+        {{else}}
+        <a class="change-route" href="#datacenters/{{this.datacenter_id}}">{{this.datacenter_name}}</a> from
+        {{/if}}
+            <strong>{{this.num_replicas}}</strong> to <strong>{{num_machines}}</strong>
                 {{#if this.change_ack}}
-                    <br />Warning: The number of acks will be lowered too.
+                <br /><strong>Warning</strong>: The number of acks will be lowered too.
                 {{/if}}
             </li>
         {{/each}}
@@ -139,7 +144,7 @@
         <hr />
         <div class="issue-details">
             <p>This issue is caused by making changes to the cluster configuration on both sides of an intermittent network connection.</p>
-            <p>{{capitalize field}} of {{object_type}} <a href="">{{#if name_contest}}{{humanize_uuid object_id}}{{else}}{{object_name}}{{/if}}</a> has the following conflicting values:</h4>
+            <p>{{capitalize field}} of {{object_type}} <a href="#{{object_type_url}}/{{object_id}}">{{#if name_contest}}{{humanize_uuid object_id}}{{else}}{{object_name}}{{/if}}</a> has the following conflicting values:</h4>
             <ul>
                 {{#each contestants}}
                     <li>{{value}} (<a id="resolve_{{contestant_id}}" href="#">use this value</a>)</li>
@@ -152,13 +157,11 @@
 <script id="resolve_issues-unsatisfiable_goals-template" type="text/x-handlebars-template">
     <div class="issue {{#if critical }}critical{{/if}} name-conflict">
         <div class="issue-header">
-            {{#unless no_primary}}
             {{#if can_solve_issue}}
             <button class="btn btn-danger solve-issue">Lower replicas</button>
             {{else}}
             <button class="btn btn-danger try-solve-issue">Manually solve</button>
             {{/if}}
-            {{/unless}}
             <p class="issue-type">Unsatisfiable goals</p>
             <p class="datetime"><abbr class="timeago" title="{{datetime}}">{{datetime}}</abbr></p>
         </div>
@@ -169,13 +172,17 @@
             {{else}}
                 <p>The goals specified for table <a class="change-route" href="#tables/{{namespace_id}}">{{namespace_name}}</a> cannot be satisfied.</p>
                 {{#if can_solve_issue}}
-                <p>The number of replicas requested for these datacenters is greater than the number of servers available:</p>
+                <p>The number of replicas requested for these datacenters or for the whole cluster is greater than the number of servers available:</p>
                 <ul>
                     {{#each datacenters_with_issues}}
                     {{#if datacenter_removed}}
                     <li>A removed datacenter (id: <a href="#datacenters/{{datacenter_id}}">{{datacenter_id_small}}</a>): {{this.num_replicas}} {{pluralize_noun "replica" this.num_replicas}} specified, {{this.num_machines}} {{pluralize_noun "server" this.num_machines}} available.</li>
                     {{else}}
+                    {{#if is_universe}}
+                    <li>Whole cluster: {{this.num_replicas}} {{pluralize_noun "replica" this.num_replicas}} specified, {{this.num_machines}} {{pluralize_noun "server" this.num_machines}} available.</li>
+                    {{else}}
                     <li>Datacenter <a class="change-route" href="#datacenters/{{this.datacenter_id}}">{{this.datacenter_name}}</a>: {{this.num_replicas}} {{pluralize_noun "replica" this.num_replicas}} specified, {{this.num_machines}} {{pluralize_noun "server" this.num_machines}} available.</li>
+                    {{/if}}
                     {{/if}}
                     {{/each}}
                 </ul>
@@ -240,7 +247,7 @@
         <hr />
         <div class="issue-details">
             <p>An unknown issue was sent by the server. Please contact support.</p>
-            <p>Raw data: {{raw_data}}</p>
+            <p>Raw data: </p><pre>{{raw_data}}</pre>
         </div>
     </div>
 </script>

@@ -23,7 +23,7 @@ void check_namespaces_for_protocol(
             namespaces->namespaces.begin(); it != namespaces->namespaces.end(); it++) {
         if (!it->second.is_deleted()) {
             check("namespace", it->first, "blueprint", it->second.get().blueprint, out);
-            check("namespace", it->first, "primary_datacenter", it->second.get().primary_datacenter, out);
+            check("namespace", it->first, "primary_uuid", it->second.get().primary_datacenter, out);
             check("namespace", it->first, "replica_affinities", it->second.get().replica_affinities, out);
             check("namespace", it->first, "ack_expectations", it->second.get().ack_expectations, out);
             check("namespace", it->first, "shards", it->second.get().shards, out);
@@ -68,7 +68,7 @@ std::list<clone_ptr_t<vector_clock_conflict_issue_t> > vector_clock_conflict_iss
     for (machines_semilattice_metadata_t::machine_map_t::const_iterator it =
             metadata.machines.machines.begin(); it != metadata.machines.machines.end(); it++) {
         if (!it->second.is_deleted()) {
-            check("machine", it->first, "datacenter", it->second.get().datacenter, &issues);
+            check("machine", it->first, "datacenter_uuid", it->second.get().datacenter, &issues);
             check("machine", it->first, "name", it->second.get().name, &issues);
         }
     }

@@ -132,7 +132,7 @@ module 'ResolveIssuesView', ->
             @resolution_url = _resolution_url
             log_render '(rendering) resolve vclock'
             super
-                final_value: @final_value
+                final_value: JSON.stringify @final_value
                 modal_title: 'Resolve configuration conflict'
                 btn_primary_text: 'Resolve'
 
@@ -157,7 +157,6 @@ module 'ResolveIssuesView', ->
                 contentType: 'application/json'
                 success: set_issues
                 async: false
-
             super
 
 
@@ -176,6 +175,8 @@ module 'ResolveIssuesView', ->
         render: (data)->
             log_render '(rendering) resolve unsatisfiable goal'
             super
+                namespace_id: @namespace.get('id')
+                namespace_name: @namespace.get('name')
                 datacenters_with_issues: @datacenters_with_issues
                 modal_title: "Lower number of replicas"
 
@@ -324,34 +325,67 @@ module 'ResolveIssuesView', ->
                 else
                     return @model.get('object_type') + 's/' + @model.get('object_id') + '/' + @model.get('field') + '/resolve'
 
-            # grab possible conflicting values
-            $.ajax
-                url: '/ajax/semilattice/' + get_resolution_url()
-                type: 'GET'
-                contentType: 'application/json'
-                async: false
-                success: (response) =>
-                    @contestants = _.map response, (x, index) -> { value: x[1], contestant_id: index }
+            # Remove the old handler before we rerender
+            if @contestants?
+                _.each @contestants, (contestant) =>
+                    @.$('#resolve_' + contestant.contestant_id).off 'click'
+         
+            if @model.get('object_type') is 'blueprint'
+                @contestants = []
+            else
+                # grab possible conflicting values
+                $.ajax
+                    url: '/ajax/semilattice/' + get_resolution_url()
+                    type: 'GET'
+                    contentType: 'application/json'
+                    async: false
+                    success: (response) =>
+                        @contestants = _.map response, (x, index) -> { value: JSON.stringify(x[1]), contestant_id: index }
 
             # renderevsky
-            if @model.get('object_id') is universe_datacenter.get('id')
-                datacenter_name = universe_datacenter.get('name')
-            else if datacenters.get(@model.get('object_id'))?
-                datacenter_name = datacenters.get(@model.get('object_id')).get('name')
-            else
-                datacenter_name = "Unknown datacenter"
+            switch @model.get('object_type')
+                when 'machine'
+                    object_type_url = 'servers'
+                    object_type = 'server'
+                    if machines.get(@model.get('object_id'))?
+                        name = machines.get(@model.get('object_id')).get('name')
+                    else
+                        name = 'Unknown machine'
+                when 'datacenter'
+                    object_type_url = 'datacenters'
+                    object_type = 'datacenter'
+                    if @model.get('object_id') is universe_datacenter.get('id')
+                        name = universe_datacenter.get('name')
+                    else if datacenters.get(@model.get('object_id'))?
+                        name = datacenters.get(@model.get('object_id')).get('name')
+                    else
+                        name = "Unknown datacenter"
+                when 'database'
+                    object_type_url = 'databases'
+                    object_type = 'database'
+                    if databases.get(@model.get('object_id'))?
+                        name = databases.get(@model.get('object_id')).get('name')
+                    else
+                        name = 'Unknown database'
+                when 'namespace'
+                    object_type = 'table'
+                    object_type_url = 'tables'
+                    if namespaces.get(@model.get('object_id'))?
+                        name = namespaces.get(@model.get('object_id')).get('name')
+                    else
+                        name = 'Unknown table'
+
+            
             json =
                 datetime: iso_date_from_unix_time @model.get('time')
                 critical: @model.get('critical')
-                object_type: @model.get('object_type')
+                object_type: object_type
                 object_id: @model.get('object_id')
-                object_name: datacenter_name
+                object_name: name
+                object_type_url: object_type_url
                 field: @model.get('field')
                 name_contest: @model.get('field') is 'name'
                 contestants: @contestants
-
-            # Remove the old handler before we rerender
-            @.$('#resolve_' + contestant.contestant_id).off 'click'
 
             @.$el.html _template(json)
 
@@ -360,7 +394,7 @@ module 'ResolveIssuesView', ->
                 @.$('#resolve_' + contestant.contestant_id).click (event) =>
                     event.preventDefault()
                     resolve_modal = new ResolveIssuesView.ResolveVClockModal
-                    resolve_modal.render contestant.value, get_resolution_url()
+                    resolve_modal.render JSON.parse(contestant.value), get_resolution_url()
 
         render_unsatisfiable_goals: (_template) ->
             json =
@@ -372,7 +406,7 @@ module 'ResolveIssuesView', ->
 
 
             namespace = namespaces.get(@model.get('namespace_id'))
-            if not datacenters.get(@model.get('primary_datacenter'))?
+            if @model.get('primary_datacenter') isnt universe_datacenter.get('id') and not datacenters.get(@model.get('primary_datacenter'))?
                 json.no_primary = true
             else
                 # known issues = issue where replica > number of machines in a datacenter (not universe)
@@ -382,6 +416,11 @@ module 'ResolveIssuesView', ->
 
                 # Find the datacenters in which we are sure that there is a unsatisfiable goal ( replicas > number of machines in the datacenter )
                 for datacenter_id of @model.get('replica_affinities')
+                    # Compute the number of replicas required
+                    number_replicas = @model.get('replica_affinities')[datacenter_id]
+                    if datacenter_id is @model.get('primary_datacenter')
+                        number_replicas++
+
                     #If the datacenter was removed
                     if not datacenters.get(datacenter_id)? and datacenter_id isnt universe_datacenter.get('id')
                         if @model.get('replica_affinities')[datacenter_id] isnt 0
@@ -394,54 +433,102 @@ module 'ResolveIssuesView', ->
                                 num_replicas: number_replicas
                                 num_machines: 0
                     else
-                        # Compute the number of replicas required
-                        number_replicas = @model.get('replica_affinities')[datacenter_id]
-                        if datacenter_id is @model.get('primary_datacenter')
-                            number_replicas++
-
-                        # We won't add universe here because if universe has too many replicas, it's an issue in which there are two solutions.
-                        if datacenter_id isnt universe_datacenter.get('id') and number_replicas > @model.get('actual_machines_in_datacenters')[datacenter_id]
+                        # We won't add universe here because if universe has too many replicas, it's an issue in which there might two solutions. We will deal with this case later
+                        if @model.get('actual_machines_in_datacenters')[datacenter_id]?
+                            number_machines_in_datacenter = @model.get('actual_machines_in_datacenters')[datacenter_id]
+                        else
+                            number_machines_in_datacenter = 0
+                        if datacenter_id isnt universe_datacenter.get('id') and number_replicas > number_machines_in_datacenter
                             datacenter_name = datacenters.get(datacenter_id).get('name') # That's safe, datacenters.get(datacenter_id) is defined
+
                             json.datacenters_with_issues.push
-                                known_issue: true
                                 datacenter_id: datacenter_id
                                 datacenter_name: datacenter_name
                                 num_replicas: number_replicas
-                                num_machines: @model.get('actual_machines_in_datacenters')[datacenter_id]
+                                num_machines: number_machines_in_datacenter
+                                change_ack: namespace.get('ack_expectations')[datacenter_id] > number_machines_in_datacenter
 
                         # We substract the number of machines used by the datacenter if we solve the issue
                         if datacenter_id isnt universe_datacenter.get('id')
-                            number_machines_universe_can_use_if_no_known_issues -= Math.min number_replicas, @model.get('actual_machines_in_datacenters')[datacenter_id]
+                            number_machines_universe_can_use_if_no_known_issues -= Math.min number_replicas, number_machines_in_datacenter
 
+                # The primary might not have a value in @model.get('replica_affinities'), in which case we just missed it, so let's check
+                if not @model.get('replica_affinities')[@model.get('primary_datacenter')]? and @model.get('primary_datacenter') isnt universe_datacenter.get('id')
+                    number_replicas = 1 # No secondaries, and is primary
+                    found_machine = false
+                    for machine in machines.models
+                        if machine.get('datacenter_uuid') is @model.get('primary_datacenter')
+                            found_machine = true
+                            break
+                    if found_machine is false
+                        # We didn't find any machine in the datacenter
+                        datacenter_id = @model.get('primary_datacenter')
+
+                        if @model.get('actual_machines_in_datacenters')[datacenter_id]?
+                            number_machines_in_datacenter = @model.get('actual_machines_in_datacenters')[datacenter_id]
+                        else
+                            number_machines_in_datacenter = 0
+
+                        json.datacenters_with_issues.push
+                            datacenter_id: datacenter_id
+                            datacenter_name: datacenters.get(datacenter_id).get('name') # Safe since it cannot be universe
+                            num_replicas: number_replicas
+                            num_machines: 0
+                            change_ack: namespace.get('ack_expectations')[datacenter_id] > number_machines_in_datacenter
+
+
+                number_machines_requested_by_universe = @model.get('replica_affinities')[universe_datacenter.get('id')]
+                if @model.get('primary_datacenter') is universe_datacenter.get('id')
+                    number_machines_requested_by_universe++
                 # If universe has some responsabilities and that the user is asking for too many replicas across the whole cluster
-                if @model.get('replica_affinities')[universe_datacenter.get('id')]? and number_machines_universe_can_use_if_no_known_issues < @model.get('replica_affinities')[universe_datacenter.get('id')]
+                if @model.get('replica_affinities')[universe_datacenter.get('id')]? and number_machines_universe_can_use_if_no_known_issues < number_machines_requested_by_universe
+                    number_replicas = @model.get('replica_affinities')[universe_datacenter.get('id')]
+                    if datacenter_id is @model.get('primary_datacenter')
+                        number_replicas++
+
                     extra_replicas_accross_cluster = @model.get('replica_affinities')[universe_datacenter.get('id')] - number_machines_universe_can_use_if_no_known_issues
 
-                    # We have an unsatisfiable goals now, but we cannot tell the user where the problem comes from
-                    json.extra_replicas_accross_cluster =
-                        value: extra_replicas_accross_cluster
-                        datacenters_that_can_help: []
-                    # Let's add to datacenters_that_can_help all the datacenters that have some responsabilities (so servers that could potentially work for universe instead of its datacenter)
+                    # We might still be able to solve the issue if the table is just using universe. Let's check that
+                    num_active_datacenters = 0
                     for datacenter_id of @model.get('replica_affinities')
-                        if @model.get('replica_affinities')[datacenter_id] > 0 and @model.get('actual_machines_in_datacenters')[datacenter_id] > 0 and datacenters.get(datacenter_id)? and datacenter_id isnt universe_datacenter.get('id')
-                            datacenter_name = datacenters.get(datacenter_id)?.get('name')
-                            num_replicas_requested = @model.get('replica_affinities')[datacenter_id]
-                            if @model.get('primary_datacenter') is datacenter_id
-                                num_replicas_requested++
-                            json.extra_replicas_accross_cluster.datacenters_that_can_help.push
-                                datacenter_id: datacenter_id
-                                datacenter_name: (datacenter_name if datacenter_name?)
-                                num_replicas_requested: num_replicas_requested
+                        if @model.get('replica_affinities')[datacenter_id] > 0
+                            num_active_datacenters++
+                    # Because the primary might ask for no secondary, we may have missed one datacenter. Let's make sure that we don't
+                    if (not @model.get('replica_affinities')[@model.get('primary_datacenter')]?) or @model.get('replica_affinities')[@model.get('primary_datacenter')] is 0
+                        num_active_datacenters++
+                    # If only universe has too many replicas
+                    if num_active_datacenters is 1
+                        json.datacenters_with_issues.push
+                            is_universe: true
+                            datacenter_id: universe_datacenter.get('id')
+                            num_replicas: number_replicas
+                            num_machines: machines.length
+                            change_ack: namespace.get('ack_expectations')[universe_datacenter.get('id')] > machines.length
+                    else
+                        # We have an unsatisfiable goals now, but we cannot tell the user where the problem comes from
+                        json.extra_replicas_accross_cluster =
+                            value: extra_replicas_accross_cluster
+                            datacenters_that_can_help: []
+                        # Let's add to datacenters_that_can_help all the datacenters that have some responsabilities (so servers that could potentially work for universe instead of its datacenter)
+                        for datacenter_id of @model.get('replica_affinities')
+                            if @model.get('replica_affinities')[datacenter_id] > 0 and @model.get('actual_machines_in_datacenters')[datacenter_id] > 0 and datacenters.get(datacenter_id)? and datacenter_id isnt universe_datacenter.get('id')
+                                datacenter_name = datacenters.get(datacenter_id)?.get('name')
+                                num_replicas_requested = @model.get('replica_affinities')[datacenter_id]
+                                if @model.get('primary_datacenter') is datacenter_id
+                                    num_replicas_requested++
+                                json.extra_replicas_accross_cluster.datacenters_that_can_help.push
+                                    datacenter_id: datacenter_id
+                                    datacenter_name: (datacenter_name if datacenter_name?)
+                                    num_replicas_requested: num_replicas_requested
 
-                    # Let's add universe at the beginning
-                    json.extra_replicas_accross_cluster.datacenters_that_can_help.unshift
-                        datacenter_id: universe_datacenter.get('id')
-                        is_universe: true
-                        num_replicas_requested: @model.get('replica_affinities')[universe_datacenter.get('id')]
+                        # Let's add universe at the beginning
+                        json.extra_replicas_accross_cluster.datacenters_that_can_help.unshift
+                            datacenter_id: universe_datacenter.get('id')
+                            is_universe: true
+                            num_replicas_requested: @model.get('replica_affinities')[universe_datacenter.get('id')]
 
 
                 json.can_solve_issue = json.datacenters_with_issues.length > 0
-
             @.$el.html _template(json)
 
             # bind resolution events
@@ -477,7 +564,8 @@ module 'ResolveIssuesView', ->
             json =
                 issue_type: @model.get('type')
                 critical: @model.get('critical')
-                raw_data: @model.toJSON()
+                raw_data: JSON.stringify(@model, undefined, 2)
+                datetime: iso_date_from_unix_time @model.get('time')
             @.$el.html _template(json)
 
         render: ->

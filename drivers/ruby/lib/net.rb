@@ -66,7 +66,7 @@ module RethinkDB
 
     # Return the last opened connection, or throw if there is no such
     # connection.  Used by e.g. RQL_Query#run.
-    def self.last
+    def self.last_connection
       return @@last if @@last
       raise RuntimeError, "No last connection.  Use RethinkDB::Connection.new."
     end
@@ -247,11 +247,14 @@ module RethinkDB
                    query.kind_of?(Write_Query))
       map = {}
       map[:default_db] = @default_db if @default_db
+      S.check_opts(opts, [:use_outdated])
       map[S.conn_outdated] = !!opts[:use_outdated]
       protob = query.query(map)
       if is_atomic
         a = []
-        token_iter(query, dispatch(protob)){|row| a.push row} ? a : a[0]
+        singular = token_iter(query, dispatch(protob)){|row| a.push row}
+        a.each{|o| BT.maybe_reformat_err(query, o)}
+        singular ? a : a[0]
       else
         return Query_Results.new(query, self, dispatch(protob))
       end
