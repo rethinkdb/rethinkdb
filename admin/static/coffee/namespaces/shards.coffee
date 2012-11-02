@@ -423,7 +423,7 @@ module 'NamespaceView', ->
 
                         result = 'Shard: '
                         result += '[ '+keys[0]+', '+keys[1]+']'
-                        result += '<br />'+d.num_keys+' keys'
+                        result += '<br />~'+d.num_keys+' keys'
                         return result
                     )
 
