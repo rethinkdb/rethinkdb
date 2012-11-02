@@ -94,6 +94,10 @@ set_progress = (progress_data_from_server) ->
         clearInterval window.progress_interval
         progress_interval_value = progress_interval_default_value
         window.progress_interval = setInterval collect_progress, progress_interval_value
+    
+    # Since backfilling is half working, we want to often check directory/blueprint to give users feedback
+    if is_empty is true
+        setTimeout collect_server_data_async, 2500
 
 set_directory = (attributes_from_server) ->
     # Convert directory representation from RethinkDB into backbone friendly one

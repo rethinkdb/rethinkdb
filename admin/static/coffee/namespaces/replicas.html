@@ -181,13 +181,20 @@
             </div>
             {{#if starting}}
                 <p>0/{{new_value}} replicas completed</p>
+                {{else}}
+            <p>
+            {{current_value}}/{{max_value}} {{pluralize_noun "replica" num_replicas}}{{#if total_blocks}}, 
+            {{! Keep the if above so we do not have an extra space before the comma}}
+            {{replicated_blocks}}/{{total_blocks}} blocks copied
             {{else}}
-                <p>{{current_value}}/{{max_value}} replicas completed</p>
+            up to date
+            {{/if}}
+            </p>
             {{/if}}
             <div class="progress"><div class="bar" style="width:{{#if starting}}0{{else}}{{percent_complete}}{{/if}}%"></div></div>
         </div>
     {{else}}
-        <p><span class="big">{{current_value}}/{{max_value}}</span> replicas reachable</p>
+    <p><span class="big">{{current_value}}/{{max_value}}</span> {{pluralize_noun "replica" max_value}} reachable</p>
     {{/if}}
 </script>
 

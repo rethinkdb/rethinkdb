@@ -3,7 +3,6 @@
 module 'UIComponents', ->
     # Progress bar that has different states
     class @OperationProgressBar extends Backbone.View
-        template: Handlebars.compile $('#progressbar-template').html()
         # These are the possible states for the ProgressBar
         states: ['none', 'starting', 'processing', 'finished']
         stage: 'none'
@@ -11,7 +10,10 @@ module 'UIComponents', ->
         # The initialize function takes one optional argument:
         #   - template: optional custom template
         initialize: (template) ->
-            @template = template if template?
+            if template?
+                @template = template
+            else
+                template = Handlebars.compile $('#progressbar-template').html()
 
         # The render function takes a number of arguments:
         #   - current_value: current value of the operation or status being monitored
@@ -44,7 +46,7 @@ module 'UIComponents', ->
                 if current_value is max_value
                     percent_complete = 0
                 else
-                    percent_complete = current_value / max_value * 100 
+                    percent_complete = Math.floor current_value/max_value*100
                 data = _.extend data,
                     operation_active: true
                     processing: true
@@ -56,11 +58,17 @@ module 'UIComponents', ->
                     finished: true
                     percent_complete: 100
 
+
+                @stage = 'none'
                 setTimeout =>
                     @render current_value, max_value, {}
-                    @stage = 'none'
                 , 2000
             
             @.$el.html @template data
 
             return @
+       
+        skip_to_processing: =>
+            @stage = 'processing'
+        set_none_state: =>
+            @stage = 'none'

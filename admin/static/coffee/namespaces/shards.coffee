@@ -28,15 +28,16 @@ module 'NamespaceView', ->
             # Forbid changes if issues
             @can_change_shards = false
             @reasons_cannot_shard = {}
+            @expected_num_shards = @model.get('shards').length
             issues.on 'all', @check_can_change_shards
 
             # Listeners/cache for the data repartition
             @model.on 'change:key_distr', @render_data_repartition
-            @model.on 'change:shards', @render_data_repartition
 
-            @model.on 'change:shards', @render_status_from_event
-            @model.on 'change:ack_expectations', @render_status_from_event
-            directory.on 'all', @render_status_from_event
+            # Listeners for the progress bar
+            @model.on 'change:shards', @global_trigger_for_shards  #This one contains render_data_repartition too
+            @model.on 'change:ack_expectations', @render_status_server_update
+            directory.on 'all', @render_status
 
             @progress_bar = new UIComponents.OperationProgressBar @shard_status_template
 
@@ -128,8 +129,18 @@ module 'NamespaceView', ->
                 @data_sent = data
 
                 # Indicate that we're starting the sharding process-- provide the number of shards requested
+                @expected_num_shards = @shard_set.length
                 @render_status
                     new_value: @shard_set.length
+
+                # Indicate that we're going to start replicating on the replication taba
+                new_replicas = @model.get('replica_affinities')
+                replicas_length = 1 # 1 for the master
+                for datacenter_id of new_replicas
+                    replicas_length += new_replicas[datacenter_id]
+
+                window.app.current_view.replicas.render_status
+                    new_value: replicas_length*@model.get('shards').length
 
                 $.ajax
                      processData: false
@@ -147,43 +158,90 @@ module 'NamespaceView', ->
 
             @switch_to_read()
 
-            # Indicate that we've gotten a response, time to move to the next state
+            # Indicate that we've gotten a response, time to move to the next state for both tabs (shards and replication)
             @render_status
                 got_response: true
+            # Replicas'tab turn now
+            new_replicas = @model.get('replica_affinities')
+            replicas_length = 1 # 1 for the master
+            for datacenter_id of new_replicas
+                replicas_length += new_replicas[datacenter_id]
+
+            window.app.current_view.replicas.render_status
+                got_response: true
+                replicas_length: replicas_length
+                shards_length: @model.get('shards').length
+
+
 
         on_error: =>
+            @.$('.rebalance').removeProp 'disabled'
+
             @display_msg @error_ajax_template()
 
-        # Wrapper function that responds to Backbone events. Necessary because
-        # we want render_status to have a custom parameter for template options
-        render_status_from_event: => @render_status()
+            # In case the ajax request failed, we remove the progress bar.
+            @progress_bar.set_none_state()
+            @expected_num_shards = @model.get('shards').length
+            @render_status()
+
+        # We can add just one method on one listener, so it's just a container. Triggered when shards have been changed
+        global_trigger_for_shards: =>
+            @render_data_repartition()
+            @render_status_server_update()
+
+        # Shards or acks have been change (probably on another window, so let's skip the start and process things
+        render_status_server_update: =>
+            @expected_num_shards = @model.get('shards').length
+
+            @progress_bar.skip_to_processing()
+            @render_status()
+
         # Render the status of sharding
         #   - pbar_info: optional argument that informs the progress bar backing this status
         render_status: (progress_bar_info) =>
+            # We check for the type because the listener on directory is called with the event type (which is a string like 'reset')
+            if not progress_bar_info? or typeof progress_bar_info isnt 'object' 
+                progress_bar_info = {}
+
             # If blueprint not ready, we just skip. It shouldn't happen.
             blueprint = @model.get('blueprint').peers_roles
             if not blueprint?
                 return ''
 
-            # Compute an object tracking is we have found the master of each shard and if we have enough secondary up to date
+            # Initialize an object tracking if for each shards we have found the master and the machines that are not ready/used
+            # We will also use it to know if a shard is eventually available or not
             shards = {}
-            num_shards = 0
+            num_shards = @model.get('shards').length
             for shard in @model.get('shards')
-                num_shards++
                 shards[shard] =
-                    found_master: false
-                    num_secondaries_left_to_find: @model.get('ack_expectations')[@model.get('primary_uuid')]
+                    master: null
+                    machines_not_ready: {}
+                    acks_expected: _.extend {}, @model.get('ack_expectations')
+                if (not (shards[shard]['acks_expected'][@model.get('primary_uuid')]?)) or shards[shard]['acks_expected'][@model.get('primary_uuid')] is 0
+                    shards[shard]['acks_expected'][@model.get('primary_uuid')] = 1
+        
+            # Let's make sure that the bluprint has been regenerated. If not we just exit
+            for machine_id of blueprint
+                num_shards_in_blueprint = 0
+                for shard of blueprint[machine_id]
+                    num_shards_in_blueprint++
+                if num_shards_in_blueprint isnt @expected_num_shards
+                    @.$('.shard-status').html @progress_bar.render(0, @expected_num_shards, progress_bar_info).$el
+                    return ''
 
             # Loop over the blueprint
             for machine_id of blueprint
                 for shard of blueprint[machine_id]
+                    # If there is a mismatch in the blueprint, it means that the blueprint has not been regenerated.
                     if not shards[shard]?
-                        continue
-                    if shards[shard].found_master is true and shards[shard].num_secondaries_left_to_find <= 0
-                        continue
+                        @.$('.shard-status').html @progress_bar.render(0, @expected_num_shards, progress_bar_info).$el
+                        return ''
 
                     role = blueprint[machine_id][shard]
+
+                    # This machine is doing nothing so let's save it
                     if role is 'role_nothing'
+                        shards[shard]['machines_not_ready'][machine_id] = true
                         continue
 
                     # Because the back end doesn't match the terms in blueprint and directory
@@ -198,22 +256,40 @@ module 'NamespaceView', ->
                         for activity_id of activities
                             activity = activities[activity_id]
                             if activity[0] is shard
-                                if activity[1]['type'] is expected_status
+                                if activity[1]['type'] isnt expected_status # The activity doesn't match the blueprint, so the machine is not ready
+                                    shards[shard]['machines_not_ready'][machine_id] = true
+                                else
+                                    # The activity matched and it's a primary, so let's save it
                                     if activity[1]['type'] is 'primary'
-                                        shards[shard].found_master = true
-                                    shards[shard].num_secondaries_left_to_find--
+                                        shards[shard].master = machine_id
 
-                                    if shards[shard].found_master is true and shards[shard].num_secondaries_left_to_find <= 0
-                                        break
+            #TODO That is approximate since we cannot make sure that a machine is working for a datacenter or for universe
+            for shard of shards
+                for machine in machines.models
+                    machine_id = machine.get('id')
+
+                    # We have one machine up to date
+                    if not shards[shard]['machines_not_ready'][machine_id]?
+                        datacenter_id = machine.get('datacenter_uuid')
+                        if (not shards[shard]['acks_expected'][datacenter_id]?) or shards[shard]['acks_expected'][datacenter_id] <= 0
+                            shards[shard]['acks_expected'][universe_datacenter.get('id')]--
+                        else
+                            shards[shard]['acks_expected'][datacenter_id]--
 
             # Compute the number of shards that are ready
-            num_shards_ready = 0
-            for shard in @model.get('shards')
-                if shards[shard]?.found_master is true and shards[shard].num_secondaries_left_to_find <= 0
-                    num_shards_ready++
+            num_shards_not_ready = 0
+            for shard of shards
+                master = shards[shard]['master']
+                if master is null or (shards[shard]['machines_not_ready'][master]?) # If no master found or if the master is not completly ready yet.
+                    num_shards_not_ready++
+                    continue
+                for datacenter_id of shards[shard]['acks_expected']
+                    if shards[shard]['acks_expected'][datacenter_id] > 0 # We don't meeet the number of acks, so the shard is not ready yet
+                        num_shards_not_ready++
+                        break
 
-            # Render the template
-            progress_bar_info = {} if not progress_bar_info?
+            # The blueprint has been regenerated, so let's render everything
+            num_shards_ready = num_shards-num_shards_not_ready
             @.$('.shard-status').html @progress_bar.render(num_shards_ready, num_shards, progress_bar_info).$el
 
             return @
@@ -422,11 +498,9 @@ module 'NamespaceView', ->
         destroy: =>
             issues.off 'all', @check_can_change_shards
             @model.off 'change:key_distr', @render_data_repartition
-            @model.off 'change:shards', @render_data_repartition
-
-            @model.off 'change:shards', @render_status_event
-            @model.off 'change:ack_expectations', @render_status_event
-            directory.off 'all', @render_status_event
+            @model.off 'change:shards', @global_trigger_for_shards
+            @model.off 'change:ack_expectations', @render_status_server_update
+            directory.off 'all', @render_status
 
     # Modify replica counts and ack counts in each datacenter
     class @ChangeShardsModal extends UIComponents.AbstractModal

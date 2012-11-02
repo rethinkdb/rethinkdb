@@ -21,14 +21,131 @@ module 'NamespaceView', ->
             datacenters.on 'reset', @render_list
 
             @model.on 'change:primary_uuid', @render_primary_not_found
-
-            @model.on 'change:replica_affinities', @render_acks_greater_than_replicas
+            @model.on 'change:replica_affinities', @global_trigger_for_replica
             @model.on 'change:ack_expectations', @render_acks_greater_than_replicas
+            @model.on 'change:shards', @render_progress_server_update
+            progress_list.on 'all', @render_progress
+            directory.on 'all', @render_status
 
-            @model.on 'change:blueprint', @render_status_from_event
-            directory.on 'all', @render_status_from_event
+            
+            # Initialize @expected_num_replicas
+            num_shards = @model.get('shards').length
+            num_replicas = 1 # For master
+            for datacenter_id of @model.get('replica_affinities')
+                num_replicas += @model.get('replica_affinities')[datacenter_id]
+            @expected_num_replicas = num_replicas*num_shards # Stores the number of replicas we expect
 
             @universe_replicas = new NamespaceView.DatacenterReplicas universe_datacenter.get('id'), @model
+
+        # A method that is going to call multiple methods (triggered when replica_affinities are changed
+        global_trigger_for_replica: =>
+            @render_acks_greater_than_replicas()
+            @render_progress_server_update()
+
+        # Update the progress bar if the server send us an update (so we can handle the case something was changed from another place)
+        render_progress_server_update: =>
+            @progress_bar.skip_to_processing() # We set the state to processing
+
+            # Compute the number of replicas we require
+            new_replicas = @model.get('replica_affinities')
+            replicas_length = 1 # 1 for the master
+            for datacenter_id of new_replicas
+                replicas_length += new_replicas[datacenter_id]
+
+            shards_length = @model.get('shards').length
+
+            @render_status
+                got_response: true
+                replicas_length: replicas_length
+                shards_length: shards_length
+
+        # Trigger by progress_list
+        render_progress: =>
+            @render_status
+                backfilling_updated: true
+
+        # Compute the status of all replicas
+        #   - progress_bar_info: optional argument that informs the progress bar backing this status
+        render_status: (progress_bar_info) =>
+            if not progress_bar_info? or typeof progress_bar_info isnt 'object'
+                progress_bar_info = {}
+
+            # If the blueprint is not ready, we just skip it
+            blueprint = @model.get('blueprint').peers_roles
+            if not blueprint?
+                return ''
+
+
+            # Compute how many replicas are ready according to the blueprint
+            num_replicas_not_ready = 0
+            num_replicas_ready = 0
+            for machine_id of blueprint
+                for shard of blueprint[machine_id]
+                    found_shard = false
+                    shard_ready = true
+
+                    role = blueprint[machine_id][shard]
+                    if role is 'role_nothing'
+                        continue
+
+                    if role is 'role_primary'
+                        expected_status = 'primary'
+                    else if role is 'role_secondary'
+                        expected_status = 'secondary_up_to_date'
+
+                    # Loop over directory
+                    activities = directory.get(machine_id)?.get(@model.get('protocol')+'_namespaces')?['reactor_bcards'][@model.get('id')]?['activity_map']
+                    if activities?
+                        for activity_id of activities
+                            activity = activities[activity_id]
+                            if activity[0] is shard
+                                found_shard = true
+                                if activity[1]['type'] isnt expected_status
+                                    shard_ready = false
+                                    break
+
+                    if found_shard is false or shard_ready is false
+                        num_replicas_not_ready++
+                    else
+                        num_replicas_ready++
+            num_replicas = num_replicas_ready + num_replicas_not_ready
+
+            # The user just changed the number of replicas
+            if progress_bar_info?.new_value?
+                @.$('.replica-status').html @progress_bar.render(0, expected_num_replicas, progress_bar_info).$el
+                @expected_num_replicas = progress_bar_info.new_value # Let's cache this value for the case when the blueprint was not regenerated (yet)
+
+            # The server did valid the changes the user just made
+            else if progress_bar_info?.got_response is true
+                expected_num_replicas = progress_bar_info.replicas_length*progress_bar_info.shards_length
+                @.$('.replica-status').html @progress_bar.render(0, expected_num_replicas, progress_bar_info).$el
+
+                @expected_num_replicas = expected_num_replicas # Let's cache this value for the case when the blueprint was not regenerated (yet)
+
+            # If we got an update from progress_list
+            else if progress_bar_info?.backfilling_updated is true
+                # Make sure we have a match between what we want and what we have ( = blueprints have been regenerated)
+                if num_replicas_ready+num_replicas_not_ready is @expected_num_replicas
+                    backfilling_info = DataUtils.get_backfill_progress_agg @model.get('id')
+
+                    if backfilling_info is null or backfilling_info.total_blocks is -1 # If there is no backfilling
+                        # We don't know if the backfilling hasn't started yet or is completed, so let's check the directory status
+                        if num_replicas_not_ready is 0 # Well, everything is up to date
+                            @.$('.replica-status').html @progress_bar.render(num_replicas_ready, num_replicas_ready, progress_bar_info).$el
+                        else # We are going to backfill
+                            @.$('.replica-status').html @progress_bar.render(num_replicas_ready, num_replicas_ready+num_replicas_not_ready, progress_bar_info).$el
+                    else
+                        # We can have replicated_blocks > total_blocks sometimes. Need a back end fix.
+                        progress_bar_info = _.extend progress_bar_info,
+                            total_blocks: backfilling_info.total_blocks
+                            replicated_blocks: if backfilling_info.replicated_blocks>backfilling_info.replicated_blocks then backfilling_info.total_blocks else backfilling_info.replicated_blocks
+                    
+                        @.$('.replica-status').html @progress_bar.render(num_replicas_ready, num_replicas_ready+num_replicas_not_ready, progress_bar_info).$el
+            else
+                # Blueprint was regenerated, so we can display the bar
+                if num_replicas_ready+num_replicas_not_ready is @expected_num_replicas
+                    @.$('.replica-status').html @progress_bar.render(num_replicas_ready, num_replicas_ready+num_replicas_not_ready, progress_bar_info).$el
+            return @
 
         # Render the list of datacenters for MDC
         render_list: =>
@@ -115,6 +232,7 @@ module 'NamespaceView', ->
                  if @.$('.no_datacenter_found').css('display') is 'block'
                     @.$('.no_datacenter_found').hide()
                
+        # While waiting for the back end to create this unsatisfiable goals
         render_acks_greater_than_replicas: =>
             datacenters_with_issues = []
             for datacenter_id of @model.get('ack_expectations')
@@ -156,60 +274,7 @@ module 'NamespaceView', ->
             @.$('.cluster_container').html @universe_replicas.render().$el
 
 
-        # Wrapper function that responds to Backbone events. Necessary because
-        # we want render_status to have a custom parameter for template options
-        render_status_from_event: => @render_status()
-        # Compute the status of all replicas
-        #   - progress_bar_info: optional argument that informs the progress bar backing this status
-        render_status: (progress_bar_info) =>
-            # If the blueprint is not ready, we just skip it
-            blueprint = @model.get('blueprint').peers_roles
-            if not blueprint?
-                return ''
 
-            num_replicas_not_ready = 0
-            num_replicas_ready = 0
-
-            # Loop over the blueprint
-            for machine_id of blueprint
-                for shard of blueprint[machine_id]
-                    found_shard = false
-                    shard_ready = true
-
-                    role = blueprint[machine_id][shard]
-                    if role is 'role_nothing'
-                        continue
-
-                    if role is 'role_primary'
-                        expected_status = 'primary'
-                    else if role is 'role_secondary'
-                        expected_status = 'secondary_up_to_date'
-
-                    # Loop over directory
-                    activities = directory.get(machine_id)?.get(@model.get('protocol')+'_namespaces')?['reactor_bcards'][@model.get('id')]?['activity_map']
-                    if activities?
-                        for activity_id of activities
-                            activity = activities[activity_id]
-                            if activity[0] is shard
-                                found_shard = true
-                                if activity[1]['type'] isnt expected_status
-                                    shard_ready = false
-                                    break
-
-                    if found_shard is false or shard_ready is false
-                        num_replicas_not_ready++
-                    else
-                        num_replicas_ready++
-
-            data =
-                num_replicas_not_ready: num_replicas_not_ready
-                num_replicas_ready: num_replicas_ready
-                num_replicas: num_replicas_ready+num_replicas_not_ready
-            
-            progress_bar_info = {} if not progress_bar_info?
-            @.$('.replica-status').html @progress_bar.render(data.num_replicas_ready, data.num_replicas, progress_bar_info).$el
-
-            return @
         render: =>
             @.$el.html @template()
 
@@ -240,10 +305,9 @@ module 'NamespaceView', ->
             @model.off 'change:primary_uuid', @render_primary_not_found
             @model.off 'change:replica_affinities', @render_acks_greater_than_replicas
             @model.off 'change:ack_expectations', @render_acks_greater_than_replicas
-            @model.off 'change:blueprint', @render_status
-            directory.off 'all', @render_status
-            
-
+            @model.on 'change:shards', @render_progress_server_update
+            progress_list.on 'all', @render_progress
+            directory.on 'all', @render_status
 
     class @DatacenterReplicas extends Backbone.View
         className: 'datacenter_view'
@@ -284,6 +348,7 @@ module 'NamespaceView', ->
 
             @model.on 'change:primary_uuid', @render
             progress_list.on 'all', @render_progress
+            #TODO Clean progress bar from this view
 
             @model.on 'change:ack_expectations', @render_acks_replica
             @model.on 'change:replica_affinities', @render_acks_replica
@@ -428,6 +493,7 @@ module 'NamespaceView', ->
 
             num_replicas = parseInt @.$('#replicas_value').val()
             num_acks = parseInt @.$('#acks_value').val()
+
             # adjust the replica count to only include secondaries
             if @model.get('primary_uuid') is @datacenter.get('id')
                 num_replicas -= 1
@@ -440,6 +506,18 @@ module 'NamespaceView', ->
             @data_cached =
                 num_replicas: num_replicas
                 num_acks: num_acks
+
+            # Add the progress bar
+            # We count master, so we don't substract one
+            replicas_length = 1 # 1 for the master
+            for datacenter_id of replica_affinities_to_send
+                replicas_length += replica_affinities_to_send[datacenter_id]
+            window.app.current_view.replicas.render_status
+                new_value: replicas_length*@model.get('shards').length
+
+            window.app.current_view.shards.render_status
+                new_value: @model.get('shards').length
+                
 
             $.ajax
                 processData: false
@@ -465,8 +543,19 @@ module 'NamespaceView', ->
             @current_state = @states[0]
             @render()
 
-            @.$('.replicas_acks-alert').html @replicas_acks_success_template()
-            @.$('.replicas_acks-alert').slideDown 'fast'
+            replicas_length = 1 # 1 for the master
+            for datacenter_id of new_replicas
+                replicas_length += new_replicas[datacenter_id]
+            window.app.current_view.replicas.render_status
+                got_response: true
+                replicas_length: replicas_length
+                shards_length: @model.get('shards').length
+
+            window.app.current_view.replicas
+            window.app.current_view.shards.render_status
+                got_response: true
+            #@.$('.replicas_acks-alert').html @replicas_acks_success_template()
+            #@.$('.replicas_acks-alert').slideDown 'fast'
             # create listener + state
             @replicating = true
             @.$('.status-alert').hide()
