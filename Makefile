@@ -1,3 +1,5 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
+
 all:
 
 build-deb-src-control:
