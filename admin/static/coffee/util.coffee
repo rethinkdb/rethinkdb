@@ -362,8 +362,8 @@ pretty_key = (s) ->
 human_readable_shard_obj = (shard) ->
     name_len = 8
     json_shard = $.parseJSON(shard)
-    from = pretty_key(json_shard[0])
-    to = pretty_key(json_shard[1])
+    from = pretty_key(json_shard[0]).toString()
+    to = pretty_key(json_shard[1]).toString()
     # Returns an object with shard names truncated to name_len characters, and
     # appends ellipses if the shard name was longer
     return {
