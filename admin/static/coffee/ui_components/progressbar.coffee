@@ -59,8 +59,8 @@ module 'UIComponents', ->
                     percent_complete: 100
 
 
-                @stage = 'none'
                 setTimeout =>
+                    @stage = 'none'
                     @render current_value, max_value, {}
                 , 2000
             
