@@ -315,7 +315,7 @@ pretty_key = (s) ->
     if s is null
         return "+∞"
     else if s is ""
-        return "+∞"
+        return "-∞"
     else if typeof s is "string" and s[0]? and s[0] is 'N'
         s = s.slice(s.indexOf("%23")+3)
         if _.isNaN(parseFloat(s)) is false
