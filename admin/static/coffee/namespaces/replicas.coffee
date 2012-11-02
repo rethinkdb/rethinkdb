@@ -549,8 +549,6 @@ module 'NamespaceView', ->
         render: =>
             data = {}
             
-            console.log @state
-
             if @state is 'show_primary'
                 data.show_primary_dc = true
                 data.primary_dc_uuid = @model.get('primary_uuid')
