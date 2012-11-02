@@ -56,7 +56,7 @@ module RethinkDB
     #   r[{:id => 1}].contains(:id)
     #   r[true]
     def contains(attrname)
-      JSON_Expression.new [:call, [:hasattr, attrname], [self]]
+      JSON_Expression.new [:call, [:contains, attrname], [self]]
     end
 
     # Construct a JSON object that has a subset of the attributes of

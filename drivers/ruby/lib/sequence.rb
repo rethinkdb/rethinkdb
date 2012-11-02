@@ -266,7 +266,7 @@ module RethinkDB
     # equivalent:
     #   table[0...5].count
     #   r[[1,2,3,4,5]].count
-    def count(); JSON_Expression.new [:call, [:length], [self]]; end
+    def count(); JSON_Expression.new [:call, [:count], [self]]; end
 
     # Get element <b>+n+</b> of the sequence.  For example, the following are
     # equivalent:

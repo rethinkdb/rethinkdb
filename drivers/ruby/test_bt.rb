@@ -64,7 +64,7 @@ class ClientBacktraceTest < Test::Unit::TestCase
           '       ^')
 
     check(r.expr(1).contains(:b),
-          'Query: 1.hasattr(:b)',
+          'Query: 1.contains(:b)',
           '       ^')
 
     check(r.expr(1).unpick(:id),

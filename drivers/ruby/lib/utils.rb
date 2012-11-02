@@ -37,7 +37,8 @@ module RethinkDB
       { :between => :range, :js => :javascript,
         :array_to_stream => :arraytostream, :stream_to_array => :streamtoarray,
         :merge => :mapmerge, :branch => :if, :pick => :pickattrs, :unpick => :without,
-        :replace => :mutate, :pointreplace => :pointmutate
+        :replace => :mutate, :pointreplace => :pointmutate, :contains => :hasattr,
+        :count => :length
       } end
 
     # These classes go through a useless intermediate type.
