@@ -935,8 +935,10 @@ module 'DataUtils', ->
                 if role_name is 'role_primary'
                     machine_active_for_namespace = true
                     json.nshards += 1
+                    json.nreplicas += 1
                     if peer_accessible?
                         json.nashards += 1
+                        json.nareplicas += 1
                 if role_name is 'role_secondary'
                     machine_active_for_namespace = true
                     json.nreplicas += 1
