@@ -210,6 +210,11 @@ module 'NamespaceView', ->
                 @datacenter_view = null
                 @.$('.datacenter_content').html @no_datacenter_template()
 
+            if @ordered_datacenters.length is 0
+                @.$('.primary-dc').hide()
+            else
+                @.$('.primary-dc').show()
+
         handle_click_datacenter: (event) =>
             event.preventDefault()
 
