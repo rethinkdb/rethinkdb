@@ -623,10 +623,12 @@ module 'NamespaceView', ->
 
     class @PrimaryDatacenter extends Backbone.View
         template: Handlebars.compile $('#namespace_view-primary_datacenter-template').html()
+        content_template: Handlebars.compile $('#namespace_view-primary_datacenter_content-template').html()
 
         # These are the possible states for the ProgressBar
-        states: ['none', 'show_primary', 'choose_primary']
-        state: 'none'
+        states: ['none', 'show_primary', 'choose_primary', 'confirm_off']
+        initialize: =>
+            @state = 'none'
 
         events: ->
             'click label[for=primary-on]': 'turn_primary_on'
@@ -634,45 +636,180 @@ module 'NamespaceView', ->
             'click .btn.change-primary': 'change_primary'
             'click .btn.submit-change-primary': 'submit_change_primary'
             'click .btn.cancel-change-primary': 'cancel_change_primary'
+            'click .btn.cancel-confirm-off': 'cancel_confirm_off'
+            'click .btn.submit-confirm-off': 'submit_confirm_off'
+            'click .btn.edit': 'edit_primary'
+            'click .alert .close': 'close_error'
+
+        close_error: (event) ->
+            event.preventDefault()
+            $(event.currentTarget).parent().slideUp('fast', -> $(this).remove())
+
+
+        edit_primary: =>
+            @state = 'choose_primary'
+            @turn_primary_on true
+        cancel_confirm_off: =>
+            @.$('#primary-on').trigger('click')
+            @turn_primary_on()
+
+        submit_confirm_off: =>
+            new_primary = universe_datacenter.get('id')
+            current_primary = @model.get('primary_uuid')
+            @set_new_primary new_primary, current_primary, @on_success_off, @on_error_off
+
+        on_success_off: =>
+            data_to_set =
+                replica_affinities: @model.get('replica_affinities')
+            data_to_set = _.extend @data_cached, data_to_set
+            @model.set data_to_set
+            @model.trigger 'change:primary_uuid'
+            # Not working?
+            @turn_primary_off()
+
+        on_error_off: =>
+            @.$('.alert-error').slideDown 'fast'
 
         render: =>
-            data = {}
+            data =
+                force_on: false
+
+            if @model.get('primary_uuid') isnt universe_datacenter.get('id')
+                @state = 'show_primary'
+                data.force_on = true
+            @.$el.html @template data
+            @render_content()
+            return @
+
+        render_content: (data) =>
+            if not data?
+                data = {}
+            if @model.get('primary_uuid') is universe_datacenter
+                primary_name = 'No primary' # never displayed
+            else if datacenters.get(@model.get('primary_uuid'))?
+                primary_name = datacenters.get(@model.get('primary_uuid')).get('name')
+            else
+                primary_name = 'Not found datacenter'
+            data = _.extend data,
+                primary_isnt_universe: @model.get('primary_uuid') isnt universe_datacenter.get('id')
+                primary_id: @model.get('primary_uuid')
+                primary_name: primary_name
             
+            if @state is 'confirm_off'
+                data.confirm_off = true
+                data.primary_id = @model.get('primary_uuid')
+                if @model.get('primary_uuid') is universe_datacenter.get('id')
+                    datacenter_name = 'Cluster' # Should not be used
+                else if datacenters.get(@model.get('primary_uuid'))?
+                    datacenter_name = datacenters.get(@model.get('primary_uuid')).get('name')
+                else
+                    datacenter_name = 'A deleted datacenter'
+                data.primary_name = datacenter_name
+
             if @state is 'show_primary'
-                data.show_primary_dc = true
-                data.primary_dc_uuid = @model.get('primary_uuid')
-                data.primary_dc_name = datacenters.get(@model.get('primary_uuid')).get('name')
+                data.show_primary = true
+                data.primary_id = @model.get('primary_uuid')
+
+                if @model.get('primary_uuid') is universe_datacenter.get('id')
+                    datacenter_name = 'Cluster' # Should not be used
+                else if datacenters.get(@model.get('primary_uuid'))?
+                    datacenter_name = datacenters.get(@model.get('primary_uuid')).get('name')
+                else
+                    datacenter_name = 'A deleted datacenter'
+                data.primary_name = datacenter_name
 
             if @state is 'choose_primary'
                 data.choose_primary = true
-                data.datacenters = datacenters.toJSON()
+                that = @
+
+                #TODO order these datacenters and remove the empty ones
+                data.datacenters = _.map datacenters.models, (datacenter) ->
+                    id: datacenter.get('id')
+                    name: datacenter.get('name')
+                    is_primary: datacenter.get('id') is that.model.get('primary_uuid')
                 if @model.get('primary_uuid') isnt universe_datacenter.get('id')
                     data.primary_dc_uuid = @model.get('primary_uuid')
                     data.primary_dc_name = datacenters.get(@model.get('primary_uuid')).get('name')
 
-            @.$el.html @template data
 
-            return @
+            @.$('.content').html @content_template data
 
         # Event handlers that change state
         turn_primary_off: =>
-            @state = 'none'
-            @render()
+            if @model.get('primary_uuid') is universe_datacenter.get('id') # Universe is being used so no need to confirm
+                @state = 'none'
+            else
+                @state = 'confirm_off'
+            @render_content()
 
-        turn_primary_on: =>
-            if @model.get('primary_uuid') is universe_datacenter.get('id')
+        turn_primary_on: (force_choose) =>
+            if @model.get('primary_uuid') is universe_datacenter.get('id') or force_choose is true
                 @state = 'choose_primary'
             else
                 @state = 'show_primary'
-            @render()
+            @render_content()
 
         change_primary: =>
             @state = 'choose_primary'
-            @render()
+            @render_content()
 
         submit_change_primary: =>
-            @state = 'show_primary'
-            @render()
+            new_primary = @.$('.datacenter_uuid_list').val()
+            current_primary = @model.get('primary_uuid')
+
+            @set_new_primary new_primary, current_primary, @on_success_pin, @on_error_pin
+
+        set_new_primary: (new_primary, current_primary, on_success, on_error) =>
+
+            primary_pinnings = {}
+            for shard in @model.get('primary_pinnings')
+                primary_pinnings[shard] = null
+
+            # Create new replica affinities
+            new_replica_affinities = {}
+            # For the current primary, it's plus one
+            if @model.get('replica_affinities')[current_primary]?
+                new_replica_affinities[current_primary] = @model.get('replica_affinities')[current_primary]+1
+            else
+                new_replica_affinities[current_primary] = 1
+
+            # For the new primary, it's -1 or 0
+            if @model.get('replica_affinities')[new_primary]?
+                if @model.get('replica_affinities')[new_primary] > 0
+                    new_replica_affinities[new_primary] = @model.get('replica_affinities')[new_primary] - 1
+                else
+                    new_replica_affinities[new_primary] = 0
+            else
+                new_replica_affinities[new_primary] = 0
+
+
+
+            data =
+                primary_uuid: new_primary
+                primary_pinnings: primary_pinnings
+                replica_affinities: new_replica_affinities
+
+            @data_cached = data
+            $.ajax
+                url: "/ajax/semilattice/#{@model.get("protocol")}_namespaces/#{@model.get('id')}"
+                type: 'POST'
+                contentType: 'application/json'
+                data: JSON.stringify data
+                success: on_success
+                error: on_error
+
+
+
+        on_success_pin: =>
+            data_to_set =
+                replica_affinities: @model.get('replica_affinities')
+            data_to_set = _.extend @data_cached, data_to_set
+            @model.set data_to_set
+            @model.trigger 'change:primary_uuid'
+            @turn_primary_on()
+
+        on_error_pin: =>
+            @.$('.alert-error').slideDown 'fast'
 
         cancel_change_primary: =>
             if @model.get('primary_uuid') is universe_datacenter.get('id')

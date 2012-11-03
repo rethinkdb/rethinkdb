@@ -212,33 +212,48 @@
 <script id="namespace_view-primary_datacenter-template" type="text/x-handlebars-template">
     <div class="toggle-primary">
         <div class="switch">
-            <input type="radio" class="switch-input" name="view" value="primary-on" id="primary-on">
+            <input type="radio" class="switch-input" name="view" value="primary-on" id="primary-on"{{#if force_on}} checked{{/if}}>
             <label for="primary-on" class="switch-label switch-label-off">On</label>
-            <input type="radio" class="switch-input" name="view" value="primary-off" id="primary-off" checked>
+            <input type="radio" class="switch-input" name="view" value="primary-off" id="primary-off"{{#unless force_on}} checked{{/unless}}>
             <label for="primary-off" class="switch-label switch-label-on">Off</label>
             <span class="switch-selection"></span>
         </div>
         <p class="caption">Pin masters to a single datacenter</p>
     </div>
-    {{#if show_primary_dc}}
-        Primary DC
+    <div class="content"></div>
+
+    <div class="alert alert-error">
+        <a class="close" href="#">&times;</a>
+        Sorry, something went wrong with the ajax request. Please try again.
+    </div>
+</script>
+
+<script id="namespace_view-primary_datacenter_content-template" type="text/x-handlebars-template">
+    {{#if show_primary}}
+    <button class="edit btn">Edit</button>
+    <p>Current datacenter used: <a href="#datacenters/{{primary_id}}">{{primary_name}}</a></p>
     {{else}}
-        {{#if choose_primary}}
-            <button class="cancel-change-primary btn">&times;</button>
-            <button class="save submit-change-primary btn">Change</button>
-            <form class="form change-primary">
-                <fieldset>
-                    <select class="datacenter_uuid" name="datacenter_uuid">
-                        {{#each datacenters}}
-                            <option value="{{this.id}}">{{this.name}}</option>
-                        {{/each}}
-                    </select>
-                </fieldset>
-            </form>
+    {{#if choose_primary}}
+        {{#if primary_isnt_universe}}
+        <p>Current datacenter used: <a href="#datacenters/{{primary_id}}">{{primary_name}}</a></p>
+        {{/if}}
+        <button class="cancel-change-primary btn">&times;</button>
+        <button class="save submit-change-primary btn">Change</button>
+        <select class="datacenter_uuid_list" name="datacenter_uuid_list">
+            {{#each datacenters}}
+            <option value="{{this.id}}"{{#if is_primary}} disabled="disabled"{{/if}}>{{this.name}}</option>
+            {{/each}}
+        </select>
+    {{else}}
+        {{#if confirm_off}}
+        <button class="cancel-confirm-off btn">&times;</button>
+        <button class="save submit-confirm-off btn">Confirm</button>
+        <p>Are you sure you want not to force masters in <a href="#datacenters/{{primary_id}}">{{primary_name}}</a>?</p>
         {{else}}
-            <div class="alert alert-success displayed_alert">
-                You can pin the master of each shard for this table to a single datacenter-- designating it as the primary datacenter for this table.
-            </div>
+        <div class="alert alert-success displayed_alert">
+            You can pin the master of each shard for this table to a single datacenter-- designating it as the primary datacenter for this table.
+        </div>
+        {{/if}}
         {{/if}}
     {{/if}}
 </script>
