@@ -723,7 +723,7 @@ class JSONExpression(ReadQuery):
             ))
         )
 
-    def equi_join(self, left_attr, other, opt_right_attr=None):
+    def eq_join(self, left_attr, other, opt_right_attr=None):
         return self.concat_map(
             lambda row: let(('right', other.get(row[left_attr])),
                 branch(letvar('right') != None,
@@ -1102,7 +1102,7 @@ class StreamExpression(ReadQuery):
             ))
         )
 
-    def equi_join(self, left_attr, other, opt_right_attr=None):
+    def eq_join(self, left_attr, other, opt_right_attr=None):
         return self.concat_map(
             lambda row: let(('right', other.get(row[left_attr])),
                 branch(letvar('right') != None,
