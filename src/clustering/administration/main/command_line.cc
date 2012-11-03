@@ -13,6 +13,7 @@
 #include "arch/os_signal.hpp"
 #include "arch/runtime/starter.hpp"
 #include "clustering/administration/cli/admin_command_parser.hpp"
+#include "clustering/administration/main/names.hpp"
 #include "clustering/administration/main/import.hpp"
 #include "clustering/administration/main/json_import.hpp"
 #include "clustering/administration/main/ports.hpp"
@@ -316,7 +317,7 @@ void run_rethinkdb_proxy(extproc::spawner_t::info_t *spawner_info, const std::ve
 po::options_description get_machine_options() {
     po::options_description desc("Machine name options");
     desc.add_options()
-        ("machine-name,n", po::value<std::string>()->default_value("NN"), "The name for this machine (as will appear in the metadata).");
+        ("machine-name,n", po::value<std::string>()->default_value(get_random_machine_name()), "The name for this machine (as will appear in the metadata).");
     return desc;
 }
 
