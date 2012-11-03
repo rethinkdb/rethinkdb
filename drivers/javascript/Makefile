@@ -72,8 +72,7 @@ publish: $(JS_BUILD_DIR)/rethinkdb.js package.json
 	mkdir -p $(TMP_PKG_DIR)
 	cp package.json $(TMP_PKG_DIR)
 	cp $(JS_BUILD_DIR)/rethinkdb.js $(TMP_PKG_DIR)
-	cd $(TMP_PKG_DIR)
-	npm publish --force
+	cd $(TMP_PKG_DIR); npm publish --force
 
 $(JS_BUILD_DIR)/rethinkdb: $(JS_BUILD_DIR)
 	$(QUIET) mkdir -p $(JS_BUILD_DIR)/rethinkdb ;
