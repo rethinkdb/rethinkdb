@@ -47,7 +47,7 @@
                     <input type="text" id="replicas_value" value="{{replicas}}" class="inline_edit_input">
                     <span class="caption">replicas</span>
                 </p>
-                <p class="max-value">max replicas</p>
+                <p class="max-value">max replicas: {{max_replicas}}</p>
             {{else}}
                 <p><span class="value">{{replicas}}</span> <span class="caption">replicas</p>
             {{/if}}
@@ -58,7 +58,7 @@
                     <input type="text" id="acks_value" value="{{acks}}" class="inline_edit_input">
                     <span class="caption">write acks</span>
                 </p>
-                <p class="max-value">max acks</p>
+                <p class="max-value">max acks: {{max_acks}}</p>
             {{else}}
                 <p><span class="value">{{acks}}</span> <span class="caption">write acks</span></p>
             {{/if}}
@@ -93,7 +93,7 @@
             {{/if}}
             <p class="caption">Replicas</p>
             {{#if editable}}
-                <p class="max-value">max replicas: 20</p>
+            <p class="max-value">max replicas: {{max_replicas}}</p>
             {{/if}}
         </div>
         <div class="ack_value">
@@ -104,7 +104,7 @@
             {{/if}}
             <p class="caption">Write Acks</p>
             {{#if editable}}
-                <p class="max-value">max acks: 20</p>
+            <p class="max-value">max acks: {{max_acks}}</p>
             {{/if}}
         </div>
     </div>

@@ -22,7 +22,7 @@ module 'NamespaceView', ->
             1: 'edit'
     
         events:
-            'keyup .num-shards': 'keypress_shards_changes'
+            'keypress .num-shards': 'keypress_shards_changes'
             'click .edit': 'switch_to_edit'
             'click .cancel': 'switch_to_read'
             'click .rebalance': 'shard_table'
@@ -46,6 +46,11 @@ module 'NamespaceView', ->
             @progress_bar = new UIComponents.OperationProgressBar @shard_status_template
 
         keypress_shards_changes: (event) =>
+            if event.which is 13
+                event.preventDefault()
+                @shard_table()
+
+        check_shards_changes: =>
             new_num_shards = @.$('.num-shards').val()
 
             if DataUtils.is_integer(new_num_shards) is false
@@ -117,7 +122,7 @@ module 'NamespaceView', ->
         shard_table: (event) =>
             if event?
                 event.preventDefault()
-            if @keypress_shards_changes() is true
+            if @check_shards_changes() is true
 
                 @empty_master_pin = {}
                 @empty_replica_pins = {}

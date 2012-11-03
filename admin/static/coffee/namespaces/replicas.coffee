@@ -330,12 +330,17 @@ module 'NamespaceView', ->
 
         events:
             'click .close': 'remove_parent_alert'
-            'keyup #replicas_value': 'check_replicas_acks'
-            'keyup #acks_value': 'check_replicas_acks'
             'click .make-primary.btn': 'make_primary'
             'click .update-replicas.btn': 'submit_replicas_acks'
             'click .edit.btn': 'edit'
             'click .cancel.btn': 'cancel_edit'
+            'keyup #replicas_value': 'keypress_replicas_acks'
+            'keyup #acks_value': 'keypress_replicas_acks'
+
+        keypress_replicas_acks: (event) =>
+            if event.which is 13
+                event.preventDefault()
+                @submit_replicas_acks()
 
         initialize: (datacenter_id, model) =>
             @model = model
@@ -398,6 +403,11 @@ module 'NamespaceView', ->
             if @model.get('primary_uuid') is @datacenter.get('id')
                 replicas_count++
 
+            if @current_state is @states[1]
+                max_machines = @datacenter.compute_num_machines_not_used_by_other_datacenters(@model)
+                if @datacenter.get('id') isnt universe_datacenter.get('id')
+                    max_machines = Math.min max_machines, DataUtils.get_datacenter_machines(@datacenter.get('id')).length
+
             data =
                 name: @datacenter.get('name')
                 total_machines: machines.length
@@ -405,6 +415,8 @@ module 'NamespaceView', ->
                 primary: @model.get('primary_uuid') is @datacenter.get('id')
                 replicas: replicas_count
                 editable: @current_state is @states[1]
+                max_replicas: (max_machines if max_machines?)
+                max_acks: (max_machines if max_machines?)
 
             # Don't re-render if the data hasn't changed
             if not _.isEqual(data, @data)
