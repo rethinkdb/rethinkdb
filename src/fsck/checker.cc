@@ -144,13 +144,13 @@ struct knowledge_t {
         : files(filenames.size()), file_knog(filenames.size()) {
 
         for (int i = 0, n = filenames.size(); i < n; ++i) {
-            nondirect_file_t *file = new nondirect_file_t(filenames[i].c_str(), file_t::mode_read, io_backender);
+            nondirect_file_t *file = new nondirect_file_t(filenames[i].c_str(), nondirect_file_t::mode_read, io_backender);
             files[i].init(file);
             file_knog[i].init(new file_knowledge_t(filenames[i]));
         }
 
         if (!metadata_filename.empty()) {
-            metadata_file.init(new nondirect_file_t(metadata_filename.c_str(), file_t::mode_read, io_backender));
+            metadata_file.init(new nondirect_file_t(metadata_filename.c_str(), nondirect_file_t::mode_read, io_backender));
             metadata_file_knog.init(new file_knowledge_t(metadata_filename));
         }
     }

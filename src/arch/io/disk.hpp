@@ -75,6 +75,8 @@ public:
 
 void make_io_backender(io_backend_t backend, scoped_ptr_t<io_backender_t> *out);
 
+class linux_file_t;
+
 class linux_file_account_t {
 public:
     linux_file_account_t(linux_file_t *f, int p, int outstanding_requests_limit = UNLIMITED_OUTSTANDING_REQUESTS);
@@ -92,7 +94,7 @@ private:
     void *account;
 };
 
-class linux_file_t {
+class linux_file_t : public file_t {
 public:
     friend class linux_file_account_t;
 

@@ -52,9 +52,6 @@ public:
 class linux_thread_pool_t;
 typedef linux_thread_pool_t thread_pool_t;
 
-class linux_file_t;
-typedef linux_file_t file_t;
-
 class linux_file_account_t;
 typedef linux_file_account_t file_account_t;
 
@@ -84,6 +81,26 @@ typedef linux_tcp_conn_descriptor_t tcp_conn_descriptor_t;
 
 class linux_tcp_conn_t;
 typedef linux_tcp_conn_t tcp_conn_t;
+
+// A linux file.  It expects reads and writes and buffers to have an
+// alignment of DEVICE_BLOCK_SIZE.
+class file_t {
+public:
+    virtual ~file_t() { }
+    virtual bool exists() = 0;
+    virtual bool is_block_device() = 0;
+    virtual uint64_t get_size() = 0;
+    virtual void set_size(size_t size) = 0;
+    virtual void set_size_at_least(size_t size) = 0;
+
+    virtual void read_async(size_t offset, size_t length, void *buf, linux_file_account_t *account, linux_iocallback_t *cb) = 0;
+    virtual void write_async(size_t offset, size_t length, const void *buf, linux_file_account_t *account, linux_iocallback_t *cb) = 0;
+
+    virtual void read_blocking(size_t offset, size_t length, void *buf) = 0;
+    virtual void write_blocking(size_t offset, size_t length, const void *buf) = 0;
+
+    virtual bool coop_lock_and_check() = 0;
+};
 
 
 

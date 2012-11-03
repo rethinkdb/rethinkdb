@@ -2,11 +2,12 @@
 #define UNITTEST_MOCK_FILE_HPP_
 
 #include "arch/types.hpp"
+
 #include "errors.hpp"
 
 namespace unittest {
 
-class mock_file_t {
+class mock_file_t : public file_t {
 public:
     mock_file_t();
     ~mock_file_t();

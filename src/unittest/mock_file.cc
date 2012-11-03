@@ -41,7 +41,7 @@ void mock_file_t::write_blocking(size_t offset, size_t length, const void *buf) 
     memcpy(data_.data() + offset, buf, length);
 }
 
-bool coop_lock_and_check() { return true; }
+bool mock_file_t::coop_lock_and_check() { return true; }
 
 
 
