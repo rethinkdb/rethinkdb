@@ -126,7 +126,7 @@ private:
     auto_drainer_t drainer;
 
     io_backender_t *io_backender;
-    const std::string &filename; 
+    const std::string filename;
     perfmon_collection_t *stats_parent;
 
     // This is used to tell a push operation to restart the copy_from_disk_queue_to_memory_queue

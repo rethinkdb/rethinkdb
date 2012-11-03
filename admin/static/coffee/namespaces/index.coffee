@@ -226,7 +226,6 @@ module 'NamespaceView', ->
 
         json_for_template: =>
             json = _.extend super(), DataUtils.get_namespace_status(@model.get('id'))
-            json.nreplicas += json.nshards
             return json
 
         render: =>

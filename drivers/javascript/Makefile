@@ -28,6 +28,8 @@ MAIN_BUILD_DIR=$(RETHINKDB_HOME)/build
 DRIVERS_BUILD_DIR=$(MAIN_BUILD_DIR)/drivers
 JS_BUILD_DIR=$(DRIVERS_BUILD_DIR)/javascript
 
+TMP_PKG_DIR=/tmp/js_pkg
+
 ifeq ($(NO_COMPILE),1)
 OUTPUTMODE=script
 else
@@ -65,6 +67,13 @@ endif
 		--compiler_flags="--source_map_format=V3" \
 		--output_mode=$(OUTPUTMODE)) \
 		<(echo "})();") > $(JS_BUILD_DIR)/rethinkdb.js' $(SILENCER_1) || ( echo "      Build failure." ; rm $(JS_BUILD_DIR)/rethinkdb.js ; false ; )
+
+publish: $(JS_BUILD_DIR)/rethinkdb.js package.json
+	mkdir -p $(TMP_PKG_DIR)
+	cp package.json $(TMP_PKG_DIR)
+	cp $(JS_BUILD_DIR)/rethinkdb.js $(TMP_PKG_DIR)
+	cd $(TMP_PKG_DIR)
+	npm publish --force
 
 $(JS_BUILD_DIR)/rethinkdb: $(JS_BUILD_DIR)
 	$(QUIET) mkdir -p $(JS_BUILD_DIR)/rethinkdb ;

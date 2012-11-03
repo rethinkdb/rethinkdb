@@ -8,19 +8,147 @@ module 'NamespaceView', ->
         no_datacenter_template: Handlebars.compile $('#namespace_view-replica-no_datacenter-template').html()
         datacenter_list_template: Handlebars.compile $('#namespace_view-replica-datacenters_list-template').html()
         acks_greater_than_replicas_template: Handlebars.compile $('#namespace_view-acks_greater_than_replicas-template').html()
+        replica_status_template: Handlebars.compile $('#replica_status-template').html()
         events:
             'click .nav_datacenter': 'handle_click_datacenter'
+            'click .toggle-mdc': 'toggle_mdc'
 
         initialize: =>
+            @progress_bar = new UIComponents.OperationProgressBar @replica_status_template
+
             datacenters.on 'add', @render_list
             datacenters.on 'remove', @render_list
             datacenters.on 'reset', @render_list
+
             @model.on 'change:primary_uuid', @render_primary_not_found
-            @model.on 'change:replica_affinities', @render_acks_greater_than_replicas
+            @model.on 'change:replica_affinities', @global_trigger_for_replica
             @model.on 'change:ack_expectations', @render_acks_greater_than_replicas
+            @model.on 'change:shards', @render_progress_server_update
+            progress_list.on 'all', @render_progress
+            directory.on 'all', @render_status
+
+            
+            # Initialize @expected_num_replicas
+            num_shards = @model.get('shards').length
+            num_replicas = 1 # For master
+            for datacenter_id of @model.get('replica_affinities')
+                num_replicas += @model.get('replica_affinities')[datacenter_id]
+            @expected_num_replicas = num_replicas*num_shards # Stores the number of replicas we expect
 
             @universe_replicas = new NamespaceView.DatacenterReplicas universe_datacenter.get('id'), @model
+            @primary_datacenter = new NamespaceView.PrimaryDatacenter model: @model
 
+        # A method that is going to call multiple methods (triggered when replica_affinities are changed
+        global_trigger_for_replica: =>
+            @render_acks_greater_than_replicas()
+            @render_progress_server_update()
+
+        # Update the progress bar if the server send us an update (so we can handle the case something was changed from another place)
+        render_progress_server_update: =>
+            @progress_bar.skip_to_processing() # We set the state to processing
+
+            # Compute the number of replicas we require
+            new_replicas = @model.get('replica_affinities')
+            replicas_length = 1 # 1 for the master
+            for datacenter_id of new_replicas
+                replicas_length += new_replicas[datacenter_id]
+
+            shards_length = @model.get('shards').length
+
+            @render_status
+                got_response: true
+                replicas_length: replicas_length
+                shards_length: shards_length
+
+        # Trigger by progress_list
+        render_progress: =>
+            @render_status
+                backfilling_updated: true
+
+        # Compute the status of all replicas
+        #   - progress_bar_info: optional argument that informs the progress bar backing this status
+        render_status: (progress_bar_info) =>
+            if not progress_bar_info? or typeof progress_bar_info isnt 'object'
+                progress_bar_info = {}
+
+            # If the blueprint is not ready, we just skip it
+            blueprint = @model.get('blueprint').peers_roles
+            if not blueprint?
+                return ''
+
+
+            # Compute how many replicas are ready according to the blueprint
+            num_replicas_not_ready = 0
+            num_replicas_ready = 0
+            for machine_id of blueprint
+                for shard of blueprint[machine_id]
+                    found_shard = false
+                    shard_ready = true
+
+                    role = blueprint[machine_id][shard]
+                    if role is 'role_nothing'
+                        continue
+
+                    if role is 'role_primary'
+                        expected_status = 'primary'
+                    else if role is 'role_secondary'
+                        expected_status = 'secondary_up_to_date'
+
+                    # Loop over directory
+                    activities = directory.get(machine_id)?.get(@model.get('protocol')+'_namespaces')?['reactor_bcards'][@model.get('id')]?['activity_map']
+                    if activities?
+                        for activity_id of activities
+                            activity = activities[activity_id]
+                            if activity[0] is shard
+                                found_shard = true
+                                if activity[1]['type'] isnt expected_status
+                                    shard_ready = false
+                                    break
+
+                    if found_shard is false or shard_ready is false
+                        num_replicas_not_ready++
+                    else
+                        num_replicas_ready++
+            num_replicas = num_replicas_ready + num_replicas_not_ready
+
+            # The user just changed the number of replicas
+            if progress_bar_info?.new_value?
+                @.$('.replica-status').html @progress_bar.render(0, expected_num_replicas, progress_bar_info).$el
+                @expected_num_replicas = progress_bar_info.new_value # Let's cache this value for the case when the blueprint was not regenerated (yet)
+
+            # The server did valid the changes the user just made
+            else if progress_bar_info?.got_response is true
+                expected_num_replicas = progress_bar_info.replicas_length*progress_bar_info.shards_length
+                @.$('.replica-status').html @progress_bar.render(0, expected_num_replicas, progress_bar_info).$el
+
+                @expected_num_replicas = expected_num_replicas # Let's cache this value for the case when the blueprint was not regenerated (yet)
+
+            # If we got an update from progress_list
+            else if progress_bar_info?.backfilling_updated is true
+                # Make sure we have a match between what we want and what we have ( = blueprints have been regenerated)
+                if num_replicas_ready+num_replicas_not_ready is @expected_num_replicas
+                    backfilling_info = DataUtils.get_backfill_progress_agg @model.get('id')
+
+                    if backfilling_info is null or backfilling_info.total_blocks is -1 # If there is no backfilling
+                        # We don't know if the backfilling hasn't started yet or is completed, so let's check the directory status
+                        if num_replicas_not_ready is 0 # Well, everything is up to date
+                            @.$('.replica-status').html @progress_bar.render(num_replicas_ready, num_replicas_ready, progress_bar_info).$el
+                        else # We are going to backfill
+                            @.$('.replica-status').html @progress_bar.render(num_replicas_ready, num_replicas_ready+num_replicas_not_ready, progress_bar_info).$el
+                    else
+                        # We can have replicated_blocks > total_blocks sometimes. Need a back end fix.
+                        progress_bar_info = _.extend progress_bar_info,
+                            total_blocks: backfilling_info.total_blocks
+                            replicated_blocks: if backfilling_info.replicated_blocks>backfilling_info.replicated_blocks then backfilling_info.total_blocks else backfilling_info.replicated_blocks
+                    
+                        @.$('.replica-status').html @progress_bar.render(num_replicas_ready, num_replicas_ready+num_replicas_not_ready, progress_bar_info).$el
+            else
+                # Blueprint was regenerated, so we can display the bar
+                if num_replicas_ready+num_replicas_not_ready is @expected_num_replicas
+                    @.$('.replica-status').html @progress_bar.render(num_replicas_ready, num_replicas_ready+num_replicas_not_ready, progress_bar_info).$el
+            return @
+
+        # Render the list of datacenters for MDC
         render_list: =>
             @ordered_datacenters = _.map(datacenters.models, (datacenter) =>
                 id: datacenter.get('id')
@@ -82,6 +210,11 @@ module 'NamespaceView', ->
                 @datacenter_view = null
                 @.$('.datacenter_content').html @no_datacenter_template()
 
+            if @ordered_datacenters.length is 0
+                @.$('.primary-dc').hide()
+            else
+                @.$('.primary-dc').show()
+
         handle_click_datacenter: (event) =>
             event.preventDefault()
 
@@ -105,6 +238,7 @@ module 'NamespaceView', ->
                  if @.$('.no_datacenter_found').css('display') is 'block'
                     @.$('.no_datacenter_found').hide()
                
+        # While waiting for the back end to create this unsatisfiable goals
         render_acks_greater_than_replicas: =>
             datacenters_with_issues = []
             for datacenter_id of @model.get('ack_expectations')
@@ -137,8 +271,15 @@ module 'NamespaceView', ->
                     @.$('.ack_greater_than_replicas').hide()
 
 
+        toggle_mdc: (event) =>
+            event.preventDefault()
+            @.$('.mdc-options').toggleClass('hidden')
+            @.$('.show-mdc, .hide-mdc').toggle()
+
         render_universe: =>
-            @.$('.universe_container').html @universe_replicas.render().$el
+            @.$('.cluster_container').html @universe_replicas.render().$el
+
+
 
         render: =>
             @.$el.html @template()
@@ -147,6 +288,9 @@ module 'NamespaceView', ->
             @render_primary_not_found()
             @render_acks_greater_than_replicas()
             @render_universe()
+            @render_status()
+
+            @.$('.primary-dc').html @primary_datacenter.render().$el
 
             if @model.get('primary_uuid') is universe_datacenter.get('id')
                 if @ordered_datacenters.length > 0
@@ -169,7 +313,9 @@ module 'NamespaceView', ->
             @model.off 'change:primary_uuid', @render_primary_not_found
             @model.off 'change:replica_affinities', @render_acks_greater_than_replicas
             @model.off 'change:ack_expectations', @render_acks_greater_than_replicas
-
+            @model.on 'change:shards', @render_progress_server_update
+            progress_list.on 'all', @render_progress
+            directory.on 'all', @render_status
 
     class @DatacenterReplicas extends Backbone.View
         className: 'datacenter_view'
@@ -189,12 +335,17 @@ module 'NamespaceView', ->
 
         events:
             'click .close': 'remove_parent_alert'
-            'keyup #replicas_value': 'check_replicas_acks'
-            'keyup #acks_value': 'check_replicas_acks'
             'click .make-primary.btn': 'make_primary'
             'click .update-replicas.btn': 'submit_replicas_acks'
             'click .edit.btn': 'edit'
             'click .cancel.btn': 'cancel_edit'
+            'keyup #replicas_value': 'keypress_replicas_acks'
+            'keyup #acks_value': 'keypress_replicas_acks'
+
+        keypress_replicas_acks: (event) =>
+            if event.which is 13
+                event.preventDefault()
+                @submit_replicas_acks()
 
         initialize: (datacenter_id, model) =>
             @model = model
@@ -210,10 +361,8 @@ module 'NamespaceView', ->
 
             @model.on 'change:primary_uuid', @render
             progress_list.on 'all', @render_progress
+            #TODO Clean progress bar from this view
 
-            @model.on 'change:blueprint', @render_status
-            directory.on 'all', @render_status
-            
             @model.on 'change:ack_expectations', @render_acks_replica
             @model.on 'change:replica_affinities', @render_acks_replica
 
@@ -259,6 +408,11 @@ module 'NamespaceView', ->
             if @model.get('primary_uuid') is @datacenter.get('id')
                 replicas_count++
 
+            if @current_state is @states[1]
+                max_machines = @datacenter.compute_num_machines_not_used_by_other_datacenters(@model)
+                if @datacenter.get('id') isnt universe_datacenter.get('id')
+                    max_machines = Math.min max_machines, DataUtils.get_datacenter_machines(@datacenter.get('id')).length
+
             data =
                 name: @datacenter.get('name')
                 total_machines: machines.length
@@ -266,6 +420,8 @@ module 'NamespaceView', ->
                 primary: @model.get('primary_uuid') is @datacenter.get('id')
                 replicas: replicas_count
                 editable: @current_state is @states[1]
+                max_replicas: (max_machines if max_machines?)
+                max_acks: (max_machines if max_machines?)
 
             # Don't re-render if the data hasn't changed
             if not _.isEqual(data, @data)
@@ -274,8 +430,6 @@ module 'NamespaceView', ->
                     @.$el.html @universe_template data
                 else
                     @.$el.html @template data
-
-            @render_status()
 
             return @
 
@@ -359,6 +513,7 @@ module 'NamespaceView', ->
 
             num_replicas = parseInt @.$('#replicas_value').val()
             num_acks = parseInt @.$('#acks_value').val()
+
             # adjust the replica count to only include secondaries
             if @model.get('primary_uuid') is @datacenter.get('id')
                 num_replicas -= 1
@@ -372,6 +527,18 @@ module 'NamespaceView', ->
                 num_replicas: num_replicas
                 num_acks: num_acks
 
+            # Add the progress bar
+            # We count master, so we don't substract one
+            replicas_length = 1 # 1 for the master
+            for datacenter_id of replica_affinities_to_send
+                replicas_length += replica_affinities_to_send[datacenter_id]
+            window.app.current_view.replicas.render_status
+                new_value: replicas_length*@model.get('shards').length
+
+            window.app.current_view.shards.render_status
+                new_value: @model.get('shards').length
+                
+
             $.ajax
                 processData: false
                 url: "/ajax/semilattice/#{@model.get("protocol")}_namespaces/#{@model.get('id')}"
@@ -382,62 +549,6 @@ module 'NamespaceView', ->
                     ack_expectations: ack_expectations_to_send
                 success: @on_success_replicas_and_acks
                 error: @on_error
-
-        # Compute the status of all replicas
-        render_status: =>
-            # If the blueprint is not ready, we just skip it
-            blueprint = @model.get('blueprint').peers_roles
-            if not blueprint?
-                return ''
-
-            num_replicas_not_ready = 0
-            num_replicas_ready = 0
-
-            # Loop over the blueprint
-            for machine_id of blueprint
-                for shard of blueprint[machine_id]
-                    found_shard = false
-                    shard_ready = true
-
-                    role = blueprint[machine_id][shard]
-                    if role is 'role_nothing'
-                        continue
-
-                    if role is 'role_primary'
-                        expected_status = 'primary'
-                    else if role is 'role_secondary'
-                        expected_status = 'secondary_up_to_date'
-
-                    # Loop over directory
-                    activities = directory.get(machine_id)?.get(@model.get('protocol')+'_namespaces')?['reactor_bcards'][@model.get('id')]?['activity_map']
-                    if activities?
-                        for activity_id of activities
-                            activity = activities[activity_id]
-                            if activity[0] is shard
-                                found_shard = true
-                                if activity[1]['type'] isnt expected_status
-                                    shard_ready = false
-                                    break
-
-                    if found_shard is false or shard_ready is false
-                        num_replicas_not_ready++
-                    else
-                        num_replicas_ready++
-            data =
-                num_replicas_not_ready: num_replicas_not_ready
-                num_replicas_ready: num_replicas_ready
-                num_replicas: num_replicas_ready+num_replicas_not_ready
-            
-
-            @.$('.status_details').html @replication_status data
-            if @replicating? and @replicating is true
-                if num_replicas_not_ready is 0
-                    @replicating = false
-
-                    @.$('.status-alert').html @replication_complete_template()
-                    @.$('.status-alert').slideDown 'fast'
-
-            return data
 
         on_success_replicas_and_acks: =>
             window.collect_progress()
@@ -452,8 +563,19 @@ module 'NamespaceView', ->
             @current_state = @states[0]
             @render()
 
-            @.$('.replicas_acks-alert').html @replicas_acks_success_template()
-            @.$('.replicas_acks-alert').slideDown 'fast'
+            replicas_length = 1 # 1 for the master
+            for datacenter_id of new_replicas
+                replicas_length += new_replicas[datacenter_id]
+            window.app.current_view.replicas.render_status
+                got_response: true
+                replicas_length: replicas_length
+                shards_length: @model.get('shards').length
+
+            window.app.current_view.replicas
+            window.app.current_view.shards.render_status
+                got_response: true
+            #@.$('.replicas_acks-alert').html @replicas_acks_success_template()
+            #@.$('.replicas_acks-alert').slideDown 'fast'
             # create listener + state
             @replicating = true
             @.$('.status-alert').hide()
@@ -513,8 +635,202 @@ module 'NamespaceView', ->
             @model.off 'change:primary_uuid', @render
             progress_list.off 'all', @render_progress
 
-            @model.off 'change:blueprint', @render_status
-            directory.off 'all', @render_status
-            
             @model.off 'change:ack_expectations', @render_acks_replica
             @model.off 'change:replica_affinities', @render_acks_replica
+
+    class @PrimaryDatacenter extends Backbone.View
+        template: Handlebars.compile $('#namespace_view-primary_datacenter-template').html()
+        content_template: Handlebars.compile $('#namespace_view-primary_datacenter_content-template').html()
+
+        # These are the possible states for the ProgressBar
+        states: ['none', 'show_primary', 'choose_primary', 'confirm_off']
+        initialize: =>
+            @state = 'none'
+
+        events: ->
+            'click label[for=primary-on]': 'turn_primary_on'
+            'click label[for=primary-off]': 'turn_primary_off'
+            'click .btn.change-primary': 'change_primary'
+            'click .btn.submit-change-primary': 'submit_change_primary'
+            'click .btn.cancel-change-primary': 'cancel_change_primary'
+            'click .btn.cancel-confirm-off': 'cancel_confirm_off'
+            'click .btn.submit-confirm-off': 'submit_confirm_off'
+            'click .btn.edit': 'edit_primary'
+            'click .alert .close': 'close_error'
+
+        close_error: (event) ->
+            event.preventDefault()
+            $(event.currentTarget).parent().slideUp('fast', -> $(this).remove())
+
+
+        edit_primary: =>
+            @state = 'choose_primary'
+            @turn_primary_on true
+        cancel_confirm_off: =>
+            @.$('#primary-on').trigger('click')
+            @turn_primary_on()
+
+        submit_confirm_off: =>
+            new_primary = universe_datacenter.get('id')
+            current_primary = @model.get('primary_uuid')
+            @set_new_primary new_primary, current_primary, @on_success_off, @on_error_off
+
+        on_success_off: =>
+            data_to_set =
+                replica_affinities: @model.get('replica_affinities')
+            data_to_set = _.extend @data_cached, data_to_set
+            @model.set data_to_set
+            @model.trigger 'change:primary_uuid'
+            # Not working?
+            @turn_primary_off()
+
+        on_error_off: =>
+            @.$('.alert-error').slideDown 'fast'
+
+        render: =>
+            data =
+                force_on: false
+
+            if @model.get('primary_uuid') isnt universe_datacenter.get('id')
+                @state = 'show_primary'
+                data.force_on = true
+            @.$el.html @template data
+            @render_content()
+            return @
+
+        render_content: (data) =>
+            if not data?
+                data = {}
+            if @model.get('primary_uuid') is universe_datacenter
+                primary_name = 'No primary' # never displayed
+            else if datacenters.get(@model.get('primary_uuid'))?
+                primary_name = datacenters.get(@model.get('primary_uuid')).get('name')
+            else
+                primary_name = 'Not found datacenter'
+            data = _.extend data,
+                primary_isnt_universe: @model.get('primary_uuid') isnt universe_datacenter.get('id')
+                primary_id: @model.get('primary_uuid')
+                primary_name: primary_name
+            
+            if @state is 'confirm_off'
+                data.confirm_off = true
+                data.primary_id = @model.get('primary_uuid')
+                if @model.get('primary_uuid') is universe_datacenter.get('id')
+                    datacenter_name = 'Cluster' # Should not be used
+                else if datacenters.get(@model.get('primary_uuid'))?
+                    datacenter_name = datacenters.get(@model.get('primary_uuid')).get('name')
+                else
+                    datacenter_name = 'A deleted datacenter'
+                data.primary_name = datacenter_name
+
+            if @state is 'show_primary'
+                data.show_primary = true
+                data.primary_id = @model.get('primary_uuid')
+
+                if @model.get('primary_uuid') is universe_datacenter.get('id')
+                    datacenter_name = 'Cluster' # Should not be used
+                else if datacenters.get(@model.get('primary_uuid'))?
+                    datacenter_name = datacenters.get(@model.get('primary_uuid')).get('name')
+                else
+                    datacenter_name = 'A deleted datacenter'
+                data.primary_name = datacenter_name
+
+            if @state is 'choose_primary'
+                data.choose_primary = true
+                that = @
+
+                #TODO order these datacenters and remove the empty ones
+                data.datacenters = _.map datacenters.models, (datacenter) ->
+                    id: datacenter.get('id')
+                    name: datacenter.get('name')
+                    is_primary: datacenter.get('id') is that.model.get('primary_uuid')
+                if @model.get('primary_uuid') isnt universe_datacenter.get('id')
+                    data.primary_dc_uuid = @model.get('primary_uuid')
+                    data.primary_dc_name = datacenters.get(@model.get('primary_uuid')).get('name')
+
+
+            @.$('.content').html @content_template data
+
+        # Event handlers that change state
+        turn_primary_off: =>
+            if @model.get('primary_uuid') is universe_datacenter.get('id') # Universe is being used so no need to confirm
+                @state = 'none'
+            else
+                @state = 'confirm_off'
+            @render_content()
+
+        turn_primary_on: (force_choose) =>
+            if @model.get('primary_uuid') is universe_datacenter.get('id') or force_choose is true
+                @state = 'choose_primary'
+            else
+                @state = 'show_primary'
+            @render_content()
+
+        change_primary: =>
+            @state = 'choose_primary'
+            @render_content()
+
+        submit_change_primary: =>
+            new_primary = @.$('.datacenter_uuid_list').val()
+            current_primary = @model.get('primary_uuid')
+
+            @set_new_primary new_primary, current_primary, @on_success_pin, @on_error_pin
+
+        set_new_primary: (new_primary, current_primary, on_success, on_error) =>
+
+            primary_pinnings = {}
+            for shard in @model.get('primary_pinnings')
+                primary_pinnings[shard] = null
+
+            # Create new replica affinities
+            new_replica_affinities = {}
+            # For the current primary, it's plus one
+            if @model.get('replica_affinities')[current_primary]?
+                new_replica_affinities[current_primary] = @model.get('replica_affinities')[current_primary]+1
+            else
+                new_replica_affinities[current_primary] = 1
+
+            # For the new primary, it's -1 or 0
+            if @model.get('replica_affinities')[new_primary]?
+                if @model.get('replica_affinities')[new_primary] > 0
+                    new_replica_affinities[new_primary] = @model.get('replica_affinities')[new_primary] - 1
+                else
+                    new_replica_affinities[new_primary] = 0
+            else
+                new_replica_affinities[new_primary] = 0
+
+
+
+            data =
+                primary_uuid: new_primary
+                primary_pinnings: primary_pinnings
+                replica_affinities: new_replica_affinities
+
+            @data_cached = data
+            $.ajax
+                url: "/ajax/semilattice/#{@model.get("protocol")}_namespaces/#{@model.get('id')}"
+                type: 'POST'
+                contentType: 'application/json'
+                data: JSON.stringify data
+                success: on_success
+                error: on_error
+
+
+
+        on_success_pin: =>
+            data_to_set =
+                replica_affinities: @model.get('replica_affinities')
+            data_to_set = _.extend @data_cached, data_to_set
+            @model.set data_to_set
+            @model.trigger 'change:primary_uuid'
+            @turn_primary_on()
+
+        on_error_pin: =>
+            @.$('.alert-error').slideDown 'fast'
+
+        cancel_change_primary: =>
+            if @model.get('primary_uuid') is universe_datacenter.get('id')
+                @state = 'none'
+            else
+                @state = 'show_primary'
+            @render()
