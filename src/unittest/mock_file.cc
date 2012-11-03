@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "unittest/mock_file.hpp"
 
 #include "arch/io/disk.hpp"

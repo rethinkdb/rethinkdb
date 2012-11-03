@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef UNITTEST_MOCK_FILE_HPP_
 #define UNITTEST_MOCK_FILE_HPP_
 
