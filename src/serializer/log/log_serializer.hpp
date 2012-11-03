@@ -245,8 +245,6 @@ private:
 
     block_sequence_id_t latest_block_sequence_id;
 
-    io_backender_t *const io_backender;
-
     DISABLE_COPYING(log_serializer_t);
 };
 
