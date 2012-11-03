@@ -9,7 +9,9 @@ namespace unittest {
 
 class mock_file_t : public file_t {
 public:
-    mock_file_t();
+    enum mode_t { mode_read = 1 << 0, mode_write = 1 << 1 };
+
+    mock_file_t(mode_t mode);
     ~mock_file_t();
 
     bool exists();
@@ -27,6 +29,7 @@ public:
     bool coop_lock_and_check();
 
 private:
+    mode_t mode_;
     std::vector<char> data_;
 
     DISABLE_COPYING(mock_file_t);

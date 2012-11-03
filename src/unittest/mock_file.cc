@@ -4,7 +4,9 @@
 
 namespace unittest {
 
-mock_file_t::mock_file_t() { }
+mock_file_t::mock_file_t(mode_t mode) : mode_(mode) {
+    guarantee(mode != 0);
+}
 mock_file_t::~mock_file_t() { }
 
 bool mock_file_t::exists() { return true; }
@@ -30,12 +32,14 @@ void mock_file_t::write_async(size_t offset, size_t length, const void *buf,
 }
 
 void mock_file_t::read_blocking(size_t offset, size_t length, void *buf) {
+    guarantee(mode_ & mode_read);
     verify_aligned_file_access(data_.size(), offset, length, buf);
     guarantee(!(offset > SIZE_MAX - length || offset + length > data_.size()));
     memcpy(buf, data_.data() + offset, length);
 }
 
 void mock_file_t::write_blocking(size_t offset, size_t length, const void *buf) {
+    guarantee(mode_ & mode_write);
     verify_aligned_file_access(data_.size(), offset, length, buf);
     guarantee(!(offset > SIZE_MAX - length || offset + length > data_.size()));
     memcpy(data_.data() + offset, buf, length);
