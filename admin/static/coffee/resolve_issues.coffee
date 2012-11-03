@@ -406,7 +406,7 @@ module 'ResolveIssuesView', ->
 
 
             namespace = namespaces.get(@model.get('namespace_id'))
-            if @model.get('primary_datacenter') isnt universe_datacenter.get('id') and not datacenters.get(@model.get('primary_datacenter'))?
+            if @model.get('primary_uuid') isnt universe_datacenter.get('id') and not datacenters.get(@model.get('primary_datacenter'))?
                 json.no_primary = true
             else
                 # known issues = issue where replica > number of machines in a datacenter (not universe)

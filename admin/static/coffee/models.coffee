@@ -114,8 +114,8 @@ class Namespace extends Backbone.Model
 
         for key in @get('key_distr_sorted')
             # TODO Might be unsafe when comparing string and integers. Need to be checked when the back end will have decided what to do.
-            if @compare_keys(key, start_key) >= 0
-                if @compare_keys(key, end_key) <= 0
+            if @compare_keys(key, start_key) >= 0 or start_key is ''
+                if @compare_keys(key, end_key) < 0 or end_key is null
                     if @get('key_distr')[key]?
                         count += @get('key_distr')[key]
 
@@ -935,8 +935,10 @@ module 'DataUtils', ->
                 if role_name is 'role_primary'
                     machine_active_for_namespace = true
                     json.nshards += 1
+                    json.nreplicas += 1
                     if peer_accessible?
                         json.nashards += 1
+                        json.nareplicas += 1
                 if role_name is 'role_secondary'
                     machine_active_for_namespace = true
                     json.nreplicas += 1
