@@ -1,6 +1,6 @@
 # Test heavy backfilling while under continuous load
 do_test(
-    "$RETHINKDB/test/scenarios/more_or_less_secondaries.py 1+1 --workload-during '$RETHINKDB/bench/stress-client/stress -s sockmemcached,$HOST:$PORT -w 0/0/1/0 -d infinity -q qps_out' --extra-before 1000",
+    "$RETHINKDB/test/scenarios/more_or_less_secondaries.py 1+1 --workload-during '$RETHINKDB/bench/stress-client/stress -s sockmemcached,$HOST:$PORT -w 0/0/1/0 -d infinity -q qps_out' --extra-before 200",
     repeat = 3,
     inputs = ["build/debug/rethinkdb", "test/scenarios", "test/common", "test/memcached_workloads", "bench/stress-client/stress"]
     )
