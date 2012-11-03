@@ -94,9 +94,10 @@ struct ls_start_existing_fsm_t :
         rassert(ser->state == log_serializer_t::state_unstarted);
         ser->state = log_serializer_t::state_starting_up;
 
-        ser->dbfile = new direct_file_t(ser->db_path, direct_file_t::mode_read | direct_file_t::mode_write, ser->io_backender);
+        const char *db_path = ser->private_config.db_filename.c_str();
+        ser->dbfile = new direct_file_t(db_path, direct_file_t::mode_read | direct_file_t::mode_write, ser->io_backender);
         if (!ser->dbfile->exists()) {
-            crash("Database file \"%s\" does not exist.\n", ser->db_path);
+            crash("Database file \"%s\" does not exist.\n", db_path);
         }
 
         start_existing_state = state_read_static_header;
@@ -253,7 +254,6 @@ log_serializer_t::log_serializer_t(dynamic_config_t _dynamic_config, io_backende
       private_config(_private_config),
       shutdown_callback(NULL),
       state(state_unstarted),
-      db_path(private_config.db_filename.c_str()),
       dbfile(NULL),
       extent_manager(NULL),
       metablock_manager(NULL),

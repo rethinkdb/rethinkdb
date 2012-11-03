@@ -228,7 +228,6 @@ private:
         state_shut_down
     } state;
 
-    const char *const db_path;
     direct_file_t *dbfile;
 
     extent_manager_t *extent_manager;
