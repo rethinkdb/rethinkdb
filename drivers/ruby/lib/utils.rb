@@ -8,8 +8,7 @@ module RethinkDB
         :equals => :eq, :neq => :ne,
         :sub => :subtract, :mul => :multiply, :div => :divide, :mod => :modulo,
         :+ => :add, :- => :subtract, :* => :multiply, :/ => :divide, :% => :modulo,
-        :and => :all, :or => :any, :js => :javascript,
-        :to_stream => :arraytostream, :to_array => :streamtoarray} end
+        :and => :all, :or => :any, :to_stream => :array_to_stream, :to_array => :stream_to_array} end
 
     # Allows us to identify protobuf classes which are actually variant types,
     # and to get their corresponding enums.
@@ -34,6 +33,14 @@ module RethinkDB
         :create_db => :db_name, :drop_db => :db_name, :list_tables => :db_name
       } end
 
+    def name_rewrites
+      { :between => :range, :js => :javascript,
+        :array_to_stream => :arraytostream, :stream_to_array => :streamtoarray,
+        :merge => :mapmerge, :branch => :if, :pick => :pickattrs, :unpick => :without,
+        :replace => :mutate, :pointreplace => :pointmutate, :contains => :hasattr,
+        :count => :length
+      } end
+
     # These classes go through a useless intermediate type.
     def trampolines; [:table, :map, :concatmap, :filter] end
 
@@ -46,8 +53,8 @@ module RethinkDB
        :create, :drop] end
 
     def nonatomic_variants
-      [:update_nonatomic, :mutate_nonatomic,
-       :pointupdate_nonatomic, :pointmutate_nonatomic] end
+      [:update_nonatomic, :replace_nonatomic,
+       :pointupdate_nonatomic, :pointreplace_nonatomic] end
   end
   module C; extend C_Mixin; end
 
@@ -63,6 +70,7 @@ module RethinkDB
   module P; extend P_Mixin; end
 
   module S_Mixin #S-expression Utils
+    def rewrite(q); C.name_rewrites[q] || q; end
     def mark_boolop(x); class << x; def boolop?; true; end; end; x; end
     def check_opts(opts, set)
       if (bad_opts = opts.map{|k,_|k} - set) != []

@@ -19,11 +19,11 @@ module RethinkDB
     # Create a new table in this database.  You may also optionally
     # specify the datacenter it should reside in, its primary key, and
     # its cache size.  For example:
-    #   r.db('db').create_table('tbl', {:datacenter  => 'dc',
+    #   r.db('db').table_create('tbl', {:datacenter  => 'dc',
     #                                   :primary_key => 'id',
     #                                   :cache_size  => 1073741824})
     # When run, either returns <b>+nil+</b> or throws on error.
-    def create_table(name, optargs={})
+    def table_create(name, optargs={})
       S.check_opts(optargs, [:datacenter, :primary_key, :cache_size])
       dc = optargs[:datacenter] || S.skip
       pkey = optargs[:primary_key] || S.skip
@@ -35,7 +35,7 @@ module RethinkDB
 
     # Drop the table <b>+name+</b> from this database.  When run,
     # either returns <b>+nil+</b> or throws on error.
-    def drop_table(name)
+    def table_drop(name)
       BT.alt_inspect(Meta_Query.new [:drop_table, @db_name, name]) {
         "db(#{@db_name.inspect}).drop_table(#{name.inspect})"
       }
@@ -43,7 +43,7 @@ module RethinkDB
 
     # List all the tables in this database.  When run, either returns
     # <b>+nil+</b> or throws on error.
-    def list_tables
+    def table_list
       BT.alt_inspect(Meta_Query.new [:list_tables, @db_name]) {
         "db(#{@db_name.inspect}).list_tables"
       }
@@ -89,8 +89,8 @@ module RethinkDB
     # which will return:
     #   {'inserted' => 2, 'errors' => 0}
     # You may also provide a stream.  So to make a copy of a table, you can do:
-    #   r.create_db('new_db').run
-    #   r.db('new_db').create_table('new_table').run
+    #   r.db_create('new_db').run
+    #   r.db('new_db').table_create('new_table').run
     #   r.db('new_db').new_table.insert(table).run
     def insert(rows, mode=:new)
       raise_if_outdated
