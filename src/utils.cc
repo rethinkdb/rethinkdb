@@ -12,6 +12,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #ifdef VALGRIND
 #include <valgrind/memcheck.h>
@@ -328,10 +331,12 @@ TLS(drand48_data, rng_data)
 int randint(int n) {
     drand48_data buffer;
     if (!TLS_get_rng_initialized()) {
-        struct timespec ts;
-        int res = clock_gettime(CLOCK_REALTIME, &ts);
-        guarantee_err(res == 0, "clock_gettime(CLOCK_REALTIME) failed");
-        srand48_r(ts.tv_nsec, &buffer);
+        long int seed_buffer;
+        int random_fd = open("/dev/urandom", O_RDONLY);
+        guarantee(random_fd != -1, "failed to open /dev/urandom to initialize thread rng");
+        ssize_t readres = read(random_fd, &seed_buffer, sizeof(seed_buffer));
+        guarantee_err(readres == sizeof(seed_buffer), "failed to read from /dev/urandom to initialize thread rng");
+        srand48_r(seed_buffer, &buffer);
         TLS_set_rng_initialized(true);
     } else {
         buffer = TLS_get_rng_data();
