@@ -126,16 +126,16 @@ class ClientBacktraceTest < Test::Unit::TestCase
           'Query: db("test").table("tbl").map("_var_1019", _var_1019[:id]).reduce(db("test").table("tbl"), "_var_1020", "_var_1021", add(_var_1020, _var_1021))',
           '                                                                       ^^^^^^^^^^^^^^^^^^^^^^^')
 
-    check($rdb.groupedmapreduce(lambda {|x| x[:id] % "a"}, lambda {|x| x[:id]}, 0, lambda {|a,b| a+b}),
+    check($rdb.grouped_map_reduce(lambda {|x| x[:id] % "a"}, lambda {|x| x[:id]}, 0, lambda {|a,b| a+b}),
           'Query: db("test").table("tbl").groupedmapreduce(["_var_1030", modulo(_var_1030[:id], "a")], ["_var_1031", _var_1031[:id]], [0, "_var_1032", "_var_1033", add(_var_1032, _var_1033)])',
           '                                                                                     ^^^')
-    check($rdb.groupedmapreduce(lambda {|x| x[:id] % 4}, lambda {|x| x[:id]+"a"}, 0, lambda {|a,b| a+b}),
+    check($rdb.grouped_map_reduce(lambda {|x| x[:id] % 4}, lambda {|x| x[:id]+"a"}, 0, lambda {|a,b| a+b}),
           'Query: db("test").table("tbl").groupedmapreduce(["_var_1034", modulo(_var_1034[:id], 4)], ["_var_1035", add(_var_1035[:id], "a")], [0, "_var_1036", "_var_1037", add(_var_1036, _var_1037)])',
           '                                                                                                                            ^^^')
-    check($rdb.groupedmapreduce(lambda {|x| x[:id] % 4}, lambda {|x| x[:id]}, r.add(1,"a"), lambda {|a,b| a+b}),
+    check($rdb.grouped_map_reduce(lambda {|x| x[:id] % 4}, lambda {|x| x[:id]}, r.add(1,"a"), lambda {|a,b| a+b}),
           'Query: db("test").table("tbl").groupedmapreduce(["_var_1038", modulo(_var_1038[:id], 4)], ["_var_1039", _var_1039[:id]], [add(1, "a"), "_var_1040", "_var_1041", add(_var_1040, _var_1041)])',
           '                                                                                                                                 ^^^')
-    check($rdb.groupedmapreduce(lambda {|x| x[:id] % 4}, lambda {|x| x[:id]}, 0, lambda {|a,b| a+b+"a"}),
+    check($rdb.grouped_map_reduce(lambda {|x| x[:id] % 4}, lambda {|x| x[:id]}, 0, lambda {|a,b| a+b+"a"}),
           'Query: db("test").table("tbl").groupedmapreduce(["_var_1042", modulo(_var_1042[:id], 4)], ["_var_1043", _var_1043[:id]], [0, "_var_1044", "_var_1045", add(add(_var_1044, _var_1045), "a")])',
           '                                                                                                                                                                                      ^^^')
   end
@@ -219,19 +219,19 @@ class ClientBacktraceTest < Test::Unit::TestCase
   end
 
   def test_orderby
-    check($rdb.orderby(:bah),
+    check($rdb.order_by(:bah),
           'Query: db("test").table("tbl").orderby([:bah, true])',
           '       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^')
   end
 
   def test_foreach
-    check(r.db('a').table('b').foreach{|row| $rdb.get(0).update{{:new => row[:id]}}},
+    check(r.db('a').table('b').for_each{|row| $rdb.get(0).update{{:new => row[:id]}}},
           'Query: foreach(db("a").table("b"), "_var_1066", [pointupdate(["test", "tbl"], :id, 0, ["_var_1067", {:new=>_var_1066[:id]}])])',
           '               ^^^^^^^^^^^^^^^^^^')
-    check($rdb.foreach{|row| [$rdb.get(0).update{{:id => row[:id]}}, $rdb.replace{|row| row}]},
+    check($rdb.for_each{|row| [$rdb.get(0).update{{:id => row[:id]}}, $rdb.replace{|row| row}]},
           'Query: foreach(db("test").table("tbl"), "_var_1071", [pointupdate(["test", "tbl"], :id, 0, ["_var_1072", {:id=>_var_1071[:id]}]), replace(db("test").table("tbl"), ["_var_1073", _var_1073])])',
           '                                                                                                         ^^^^^^^^^^^^^^^^^^^^^')
-    check($rdb.foreach{|row| [$rdb.get(0).update{{:new => row[:id]}}, $rdb.replace{|row| {}}]},
+    check($rdb.for_each{|row| [$rdb.get(0).update{{:new => row[:id]}}, $rdb.replace{|row| {}}]},
           'Query: foreach(db("test").table("tbl"), "_var_1001", [pointupdate(["test", "tbl"], :id, 0, ["_var_1002", {:new=>_var_1001[:id]}]), replace(db("test").table("tbl"), ["_var_1003", {}])])',
           '                                                                                                                                                                                  ^^')
   end

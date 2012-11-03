@@ -12,12 +12,12 @@ Python's facilities as possible have been overloaded in order to make
 expressing queries friendly and convenient."""
 
 __all__ = [
-    'connect',
+    'connect', 'last_connection',
     'db_create', 'db_drop', 'db_list', 'db', 'table', 'error',
     'expr', 'r', 'union', 'js', 'let', 'letvar', 'branch',
     'ExecutionError', 'BadQueryError']
 
 from query import *
-from net import connect, ExecutionError, BadQueryError
+from net import connect, last_connection, ExecutionError, BadQueryError
 
 # Package initialization

@@ -11,7 +11,7 @@ class DetTest < Test::Unit::TestCase
   end
   @@c = RethinkDB::Connection.new('localhost', $port_base + 28015)
   def c; @@c; end
-  def server_data; rdb.orderby(:id).run.to_a; end
+  def server_data; rdb.order_by(:id).run.to_a; end
 
   def test__init
     begin

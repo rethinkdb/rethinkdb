@@ -166,16 +166,16 @@ function testGet() {
 }
 
 function testOrderby() {
-    tab.orderby('num').nth(2).run(objeq({id:7,num:13}));
-    tab.orderby('num').nth(2).pick('num').run(objeq({num:13}));
+    tab.orderBy('num').nth(2).run(objeq({id:7,num:13}));
+    tab.orderBy('num').nth(2).pick('num').run(objeq({num:13}));
 }
 
 function testPluck() {
-    tab.orderby('num').pluck('num').nth(0).run(objeq({num:11}));
+    tab.orderBy('num').pluck('num').nth(0).run(objeq({num:11}));
 }
 
 function testWithout() {
-    tab.orderby('num').without('num').nth(0).run(objeq({id:9}));
+    tab.orderBy('num').without('num').nth(0).run(objeq({id:9}));
 }
 
 function testUnion() {
@@ -198,7 +198,7 @@ function testTabFilter() {
 }
 
 function testTabMap() {
-    tab.orderby('num').map(r('num')).nth(2).run(aeq(13));
+    tab.orderBy('num').map(r('num')).nth(2).run(aeq(13));
 }
 
 function testTabReduce() {
@@ -228,7 +228,7 @@ function testJS() {
 
 function testBetween() {
     tab.between(2,3).count().run(aeq(2));
-    tab.between(2,3).orderby('id').nth(0).run(objeq({
+    tab.between(2,3).orderBy('id').nth(0).run(objeq({
         id:2,
         num:18
     }));
@@ -302,20 +302,20 @@ function testJoin2() {
 
     s1.innerJoin(s2, function(one, two) {
         return one('id').eq(two('id'));
-    }).zip().orderby('id').run(objeq(
+    }).zip().orderBy('id').run(objeq(
         {id:0, name: 'bob', title: 'goof'},
         {id:2, name: 'joe', title: 'lmoe'}
     ));
 
     s1.outerJoin(s2, function(one, two) {
         return one('id').eq(two('id'));
-    }).zip().orderby('id').run(objeq(
+    }).zip().orderBy('id').run(objeq(
         {id:0, name: 'bob', title: 'goof'},
         {id:1, name: 'tom'},
         {id:2, name: 'joe', title: 'lmoe'}
     ));
 
-    s1.equiJoin('id', r.table('joins2')).zip().orderby('id').run(objeq(
+    s1.equiJoin('id', r.table('joins2')).zip().orderBy('id').run(objeq(
         {id:0, name: 'bob', title: 'goof'},
         {id:2, name: 'joe', title: 'lmoe'}
     ));
