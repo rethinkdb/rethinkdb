@@ -497,9 +497,6 @@ module 'NamespaceView', ->
                     too_many_acks: true
                     num_acks: num_acks
                     num_replicas: num_replicas
-            if num_acks is 0 and num_replicas > 0
-                msg_error.push @error_msg_template
-                    acks_too_small: true
             if msg_error.length isnt 0
                 @alert_replicas_acks msg_error
                 return false
