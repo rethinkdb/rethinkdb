@@ -345,14 +345,23 @@ module 'NamespaceView', ->
             return @
 
         switch_to_read: =>
+
+            
             @current_state = @state[0]
             @.$('.edit-shards').html @view_template
                 num_shards: @model.get('shards').length
 
         switch_to_edit: =>
+            if not @model.get('key_distr_sorted')?
+                max_shards = 1
+            else
+                max_shards = Math.min 32, @model.get('key_distr_sorted').length
+                max_shards = Math.max 1, max_shards
+
             @current_state = @state[1]
             @.$('.edit-shards').html @edit_template
                 num_shards: @model.get('shards').length
+                max_shards: max_shards
 
         render_data_repartition: =>
             $('.tooltip').remove()
