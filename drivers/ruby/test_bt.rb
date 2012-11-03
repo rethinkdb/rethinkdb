@@ -219,7 +219,7 @@ class ClientBacktraceTest < Test::Unit::TestCase
   end
 
   def test_orderby
-    check($rdb.orderby(:bah),
+    check($rdb.order_by(:bah),
           'Query: db("test").table("tbl").orderby([:bah, true])',
           '       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^')
   end

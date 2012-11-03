@@ -485,13 +485,13 @@ class JSONExpression(ReadQuery):
         """
         return self[:count]
 
-    def orderby(self, *attributes):
+    def order_by(self, *attributes):
         """Sorts an array of objects according to the given attributes.
 
         Items are sorted in ascending order unless the attribute name starts
         with '-', which sorts the attribute in descending order.
 
-        This is like :meth:`StreamExpression.orderby` but with arrays instead
+        This is like :meth:`StreamExpression.order_by` but with arrays instead
         of streams.
 
         If the input is not an array, fails when the query is run.
@@ -902,7 +902,7 @@ class StreamExpression(ReadQuery):
         """
         return self[:count]
 
-    def orderby(self, *attributes):
+    def order_by(self, *attributes):
         """Sort the stream according to the given attributes.
 
         Items are sorted in ascending order unless the attribute name starts
@@ -914,8 +914,8 @@ class StreamExpression(ReadQuery):
         :type attributes: strings
         :returns: :class:`StreamExpression` or :class:`MultiRowSelection` (same as input)
 
-        >>> table('users').orderby('name')  # order users by name A-Z
-        >>> table('users').orderby('-level', 'name') # levels high-low, then names A-Z
+        >>> table('users').order_by('name')  # order users by name A-Z
+        >>> table('users').order_by('-level', 'name') # levels high-low, then names A-Z
         """
         order = []
         for attr in attributes:
