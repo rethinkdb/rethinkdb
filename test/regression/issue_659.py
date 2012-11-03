@@ -35,7 +35,7 @@ with driver.Metacluster() as metacluster:
     cluster.check()
 
     print "Inserting some data..."
-    subprocess.check_call(["%s/bench/stress-client/stress" % rethinkdb_root, "-w", "0/0/1/0", "-d", "20000q", "-s", "%s:%d" % (host, port)])
+    subprocess.check_call(["%s/bench/stress-client/stress" % rethinkdb_root, "-w", "0/0/1/0", "-d", "20000q", "-s", "sockmemcached,%s:%d" % (host, port)])
     cluster.check()
 
     print "Decreasing replication factor..."
