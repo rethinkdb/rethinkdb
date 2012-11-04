@@ -2,10 +2,6 @@
 #ifndef SERIALIZER_LOG_LOG_SERIALIZER_HPP_
 #define SERIALIZER_LOG_LOG_SERIALIZER_HPP_
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-
 #include <map>
 #include <string>
 #include <vector>
@@ -45,9 +41,6 @@ struct log_serializer_metablock_t {
 typedef metablock_manager_t<log_serializer_metablock_t> mb_manager_t;
 
 // Used internally
-struct ls_block_writer_t;
-struct ls_read_fsm_t;
-struct ls_start_new_fsm_t;
 struct ls_start_existing_fsm_t;
 
 class log_serializer_t :
@@ -59,9 +52,6 @@ class log_serializer_t :
     private data_block_manager_t::shutdown_callback_t,
     private lba_list_t::shutdown_callback_t
 {
-    friend struct ls_block_writer_t;
-    friend struct ls_read_fsm_t;
-    friend struct ls_start_new_fsm_t;
     friend struct ls_start_existing_fsm_t;
     friend class data_block_manager_t;
     friend class dbm_read_ahead_fsm_t;
