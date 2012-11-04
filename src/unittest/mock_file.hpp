@@ -3,6 +3,7 @@
 #define UNITTEST_MOCK_FILE_HPP_
 
 #include "arch/types.hpp"
+#include "serializer/types.hpp"
 
 #include "errors.hpp"
 
@@ -10,9 +11,10 @@ namespace unittest {
 
 class mock_file_t : public file_t {
 public:
-    enum mode_t { mode_read = 1 << 0, mode_write = 1 << 1 };
+    // That mode_rw == (mode_read | mode_write) is no accident.
+    enum mode_t { mode_read = 1, mode_write = 2, mode_rw = 3 };
 
-    mock_file_t(mode_t mode);
+    mock_file_t(mode_t mode, std::vector<char> *data);
     ~mock_file_t();
 
     bool exists();
@@ -31,9 +33,27 @@ public:
 
 private:
     mode_t mode_;
-    std::vector<char> data_;
+    std::vector<char> *data_;
 
     DISABLE_COPYING(mock_file_t);
+};
+
+class mock_file_opener_t : public serializer_file_opener_t {
+public:
+    MUST_USE bool open_serializer_file_create(scoped_ptr_t<file_t> *file_out);
+    MUST_USE bool open_serializer_file_existing(scoped_ptr_t<file_t> *file_out);
+#ifdef SEMANTIC_SERIALIZER_CHECK
+    MUST_USE bool open_semantic_checking_file(int *fd_out);
+#endif
+
+private:
+    bool file_exists_;
+    std::vector<char> file_;
+#ifdef SEMANTIC_SERIALIZER_CHECK
+    std::vector<char> semantic_checking_file_;
+#endif
+
+    DISABLE_COPYING(mock_file_opener_t);
 };
 
 }  // namespace unittest

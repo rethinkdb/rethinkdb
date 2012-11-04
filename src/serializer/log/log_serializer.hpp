@@ -40,6 +40,28 @@ struct log_serializer_metablock_t {
 // TODO: This header data should maybe go to the cache
 typedef metablock_manager_t<log_serializer_metablock_t> mb_manager_t;
 
+// Used to open a file (with the given filepath) for the log serializer.
+class filepath_file_opener_t : public serializer_file_opener_t {
+public:
+    filepath_file_opener_t(const std::string &filepath, io_backender_t *backender);
+    ~filepath_file_opener_t();
+
+    MUST_USE bool open_serializer_file_create(scoped_ptr_t<file_t> *file_out);
+    MUST_USE bool open_serializer_file_existing(scoped_ptr_t<file_t> *file_out);
+#ifdef SEMANTIC_SERIALIZER_CHECK
+    MUST_USE bool open_semantic_checking_file(scoped_ptr_t<file_t> *file_out);
+#endif
+
+private:
+    MUST_USE bool open_serializer_file(int extra_flag, scoped_ptr_t<file_t> *file_out);
+
+    std::string filepath_;
+    io_backender_t *backender_;
+
+    DISABLE_COPYING(filepath_file_opener_t);
+};
+
+
 // Used internally
 struct ls_start_existing_fsm_t;
 

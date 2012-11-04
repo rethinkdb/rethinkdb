@@ -8,6 +8,7 @@
 #include <algorithm>
 
 #include "containers/intrusive_ptr.hpp"
+#include "containers/scoped.hpp"
 #include "errors.hpp"
 
 // A relatively "lightweight" header file (we wish), in a sense.
@@ -77,6 +78,19 @@ void intrusive_ptr_release(ls_block_token_pointee_t *p);
 template <>
 struct serializer_traits_t<log_serializer_t> {
     typedef ls_block_token_pointee_t block_token_type;
+};
+
+class file_t;
+
+class serializer_file_opener_t {
+public:
+    virtual ~serializer_file_opener_t() { }
+
+    virtual MUST_USE bool open_serializer_file_create(scoped_ptr_t<file_t> *file_out) = 0;
+    virtual MUST_USE bool open_serializer_file_existing(scoped_ptr_t<file_t> *file_out) = 0;
+#ifdef SEMANTIC_SERIALIZER_CHECK
+    virtual MUST_USE bool open_semantic_checking_file(scoped_ptr_t<file_t> *file_out) = 0;
+#endif
 };
 
 #ifdef SEMANTIC_SERIALIZER_CHECK

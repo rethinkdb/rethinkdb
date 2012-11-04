@@ -12,6 +12,49 @@
 #include "buffer_cache/types.hpp"
 #include "perfmon/perfmon.hpp"
 
+filepath_file_opener_t::filepath_file_opener_t(const std::string &filepath, io_backender_t *backender)
+    : filepath_(filepath), backender_(backender) {
+    guarantee(!filepath.empty());
+}
+
+filepath_file_opener_t::~filepath_file_opener_t() { }
+
+bool filepath_file_opener_t::open_serializer_file(int extra_flag, scoped_ptr_t<file_t> *file_out) {
+    scoped_ptr_t<direct_file_t> file(new direct_file_t(filepath_.c_str(),
+						       direct_file_t::mode_read | direct_file_t::mode_write | extra_flag,
+						       backender_));
+    if (!file->exists()) {
+	return false;
+    } else {
+	file_out->init(file.release());
+	return true;
+    }
+}
+
+bool filepath_file_opener_t::open_serializer_file_create(scoped_ptr_t<file_t> *file_out) {
+    return open_serializer_file(direct_file_t::mode_create, file_out);
+}
+
+bool filepath_file_opener_t::open_serializer_file_existing(scoped_ptr_t<file_t> *file_out) {
+    return open_serializer_file(0, file_out);
+}
+
+#ifdef SEMANTIC_SERIALIZER_CHECK
+bool filepath_file_opener_t::open_semantic_checking_file(int *fd_out) {
+    std::string semantic_filepath = filepath_ + "_semantic";
+    int semantic_fd = open(semantic_filepath.c_str(),
+			   O_RDWR | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO);
+    if (semantic_fd == INVALID_FD) {
+        fail_due_to_user_error("Inaccessible semantic checking file: \"%s\": %s", semantic_filepath.c_str(), strerror(errno));
+    } else {
+	*fd_out = semantic_fd;
+	return true;
+    }
+}
+#endif
+
+
+
 log_serializer_stats_t::log_serializer_stats_t(perfmon_collection_t *parent) 
     : serializer_collection(),
       pm_serializer_block_reads(secs_to_ticks(1)),
