@@ -279,7 +279,6 @@ class RDBTest(unittest.TestCase):
             )
 
     def test_grouped_map_reduce(self):
-        raise ValueError("Skip this test because it locks up for some reason")
         purchases = [
             {"category": "food", "cost": 8},
             {"category": "food", "cost": 22},
@@ -288,19 +287,18 @@ class RDBTest(unittest.TestCase):
             ]
         self.expect(
             expr(purchases).array_to_stream().grouped_map_reduce(
-                R("category"),
-                R("cost"),
+                lambda a: a["category"],
+                lambda a: a["cost"],
                 0,
-                fn("a", "b", R("$a") + R("$b"))
+                lambda a, b: a + b
                 ),
-            {"food": 41, "entertainment": 6}
+            [{"group": "entertainment", "reduction": 6}, {"group": "food", "reduction": 41}]
             )
 
     def test_reduce(self):
-        raise ValueError("Skip this test because it locks up for some reason")
-        expect(expr([1, 2, 3]).array_to_stream().reduce(0, fn("a", "b", R("$a") + R("$b"))), 6)
-        expect(expr([1, 2, 3]).reduce(0, fn("a", "b", R("$a") + R("$b"))), 6)
-        expect(expr([]).reduce(21, fn("a", "b", 0)), 21)
+        self.expect(expr([1, 2, 3]).array_to_stream().reduce(0, lambda a, b: a + b), 6)
+        self.expect(expr([1, 2, 3]).reduce(0, lambda a, b: a + b), 6)
+        self.expect(expr([]).reduce(21, lambda a, b: 0), 21)
 
     def test_ordering(self):
         expect = self.expect
@@ -523,9 +521,13 @@ class RDBTest(unittest.TestCase):
         self.expect(self.table.update(None), {'updated': 0, 'skipped': 10, 'errors': 0})
 
     def test_det(self):
-        tbl = table('tbl')
-        db('test').table_drop('tbl').run()
+        if 'test' not in db_list().run():
+            db_create('test').run()
+        if 'tbl' in db('test').table_list().run():
+            db('test').table_drop('tbl').run()
+
         db('test').table_create('tbl').run()
+        tbl = table('tbl')
         data = [{'id':x} for x in range(0,10)]
         tbl.insert(data).run()
 
@@ -543,12 +545,9 @@ class RDBTest(unittest.TestCase):
         self.assertEqual(res['updated'], 10)
 
     def test_nonatomic(self):
+        if 'test' not in db_list().run():
+            db_create('test').run()
         tbl = table('tbl')
-        #db('test').table_drop('tbl').run()
-        #db('test').table_create('tbl').run()
-        #tbl = table('tbl')
-        #data = [{'id':x} for x in range(0,10)]
-        #tbl.insert(data).run()
 
         # Update modify
         res = tbl.update(lambda row: {'x':js('1')}).run()
