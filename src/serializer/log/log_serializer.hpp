@@ -49,7 +49,7 @@ public:
     MUST_USE bool open_serializer_file_create(scoped_ptr_t<file_t> *file_out);
     MUST_USE bool open_serializer_file_existing(scoped_ptr_t<file_t> *file_out);
 #ifdef SEMANTIC_SERIALIZER_CHECK
-    MUST_USE bool open_semantic_checking_file(scoped_ptr_t<file_t> *file_out);
+    MUST_USE bool open_semantic_checking_file(int *fd_out);
 #endif
 
 private:
@@ -69,7 +69,7 @@ class log_serializer_t :
 #ifndef SEMANTIC_SERIALIZER_CHECK
     public serializer_t,
 #else
-    public home_thread_mixin_debug_t,
+    public home_thread_mixin_t,
 #endif  // SEMANTIC_SERIALIZER_CHECK
     private data_block_manager_t::shutdown_callback_t,
     private lba_list_t::shutdown_callback_t
@@ -118,7 +118,7 @@ public:
         virtual void on_serializer_check(bool is_existing) = 0;
         virtual ~check_callback_t() {}
     };
-    static void check_existing(const char *filename, io_backender_t *io_backend, check_callback_t *cb);
+    static void check_existing(const char *filename, io_backender_t *backender, check_callback_t *cb);
 
 public:
     /* Implementation of the serializer_t API */

@@ -1,5 +1,9 @@
 #include "serializer/semantic_checking.hpp"
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
 #include <vector>
 
 #include "serializer/semantic_checking_internal.hpp"
@@ -33,14 +37,14 @@ wrap_token(block_id_t block_id, scs_block_info_t info, intrusive_ptr_t<typename 
 
 template<class inner_serializer_t>
 void semantic_checking_serializer_t<inner_serializer_t>::
-create(dynamic_config_t config, io_backender_t *backender, private_dynamic_config_t private_config, static_config_t static_config) {
-    inner_serializer_t::create(config, backender, private_config, static_config);
+create(io_backender_t *backender, private_dynamic_config_t private_config, static_config_t static_config) {
+    inner_serializer_t::create(backender, private_config, static_config);
 }
 
 template<class inner_serializer_t>
 semantic_checking_serializer_t<inner_serializer_t>::
-semantic_checking_serializer_t(dynamic_config_t config, io_backender_t *io_backender, private_dynamic_config_t private_config)
-    : inner_serializer(config, io_backender, private_config),
+semantic_checking_serializer_t(dynamic_config_t config, io_backender_t *io_backender, private_dynamic_config_t private_config, perfmon_collection_t *perfmon_collection)
+    : inner_serializer(config, io_backender, private_config, perfmon_collection),
       last_index_write_started(0), last_index_write_finished(0),
       semantic_fd(-1)
 {
@@ -68,8 +72,8 @@ semantic_checking_serializer_t<inner_serializer_t>::
 }
 
 template<class inner_serializer_t>
-void semantic_checking_serializer_t<inner_serializer_t>::check_existing(const char *db_path, check_callback_t *cb) {
-    inner_serializer_t::check_existing(db_path, cb);
+void semantic_checking_serializer_t<inner_serializer_t>::check_existing(const char *db_path, io_backender_t *backender, check_callback_t *cb) {
+    inner_serializer_t::check_existing(db_path, backender, cb);
 }
 
 template<class inner_serializer_t>

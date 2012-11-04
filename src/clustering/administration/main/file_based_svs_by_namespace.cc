@@ -4,7 +4,7 @@
 #include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "clustering/reactor/reactor.hpp"
 #include "db_thread_info.hpp"
-#include "serializer/log/log_serializer.hpp"
+#include "serializer/config.hpp"
 #include "serializer/translator.hpp"
 
 /* This object serves mostly as a container for arguments to the

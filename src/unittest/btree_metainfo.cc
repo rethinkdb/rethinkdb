@@ -4,7 +4,7 @@
 #include "arch/io/disk.hpp"
 #include "btree/operations.hpp"
 #include "mock/unittest_utils.hpp"
-#include "serializer/log/log_serializer.hpp"
+#include "serializer/config.hpp"
 
 namespace unittest {
 

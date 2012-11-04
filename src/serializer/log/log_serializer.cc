@@ -1,6 +1,7 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "serializer/log/log_serializer.hpp"
 
+#include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -321,8 +322,8 @@ log_serializer_t::~log_serializer_t() {
     rassert(active_write_count == 0);
 }
 
-void ls_check_existing(const char *filename, io_backender_t *io_backender, log_serializer_t::check_callback_t *cb) {
-    direct_file_t df(filename, direct_file_t::mode_read, io_backender);
+void ls_check_existing(const char *filename, io_backender_t *backender, log_serializer_t::check_callback_t *cb) {
+    direct_file_t df(filename, direct_file_t::mode_read, backender);
     cb->on_serializer_check(static_header_check(&df));
 }
 
