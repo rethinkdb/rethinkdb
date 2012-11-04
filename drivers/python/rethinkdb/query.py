@@ -1318,7 +1318,7 @@ class FunctionExpr(object):
         assert len(self.args) == 2
         mapp = self.body
         if not isinstance(mapp, BaseQuery):
-            mapp = expr(res)
+            mapp = expr(mapp)
         base._inner._write_ast(reduction.base, opts)
         reduction.var1 = self.args[0]
         reduction.var2 = self.args[1]
