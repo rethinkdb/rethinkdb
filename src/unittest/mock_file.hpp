@@ -40,6 +40,8 @@ private:
 
 class mock_file_opener_t : public serializer_file_opener_t {
 public:
+    std::string file_name() const;
+
     MUST_USE bool open_serializer_file_create(scoped_ptr_t<file_t> *file_out);
     MUST_USE bool open_serializer_file_existing(scoped_ptr_t<file_t> *file_out);
 #ifdef SEMANTIC_SERIALIZER_CHECK

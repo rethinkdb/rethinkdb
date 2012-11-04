@@ -52,6 +52,9 @@ bool mock_file_t::coop_lock_and_check() {
     return true;
 }
 
+std::string mock_file_opener_t::file_name() const {
+    return "<mock file>";
+}
 
 MUST_USE bool mock_file_opener_t::open_serializer_file_create(scoped_ptr_t<file_t> *file_out) {
     file_out->init(new mock_file_t(mock_file_t::mode_rw, &file_));

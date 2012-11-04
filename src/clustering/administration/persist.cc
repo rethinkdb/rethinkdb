@@ -223,8 +223,8 @@ void persistent_file_t::construct_serializer_and_cache(io_backender_t *io_backen
     standard_serializer_t::dynamic_config_t serializer_dynamic_config;
 
     if (create) {
-        standard_serializer_t::create(io_backender,
-                                      standard_serializer_t::private_dynamic_config_t(filename),
+	filepath_file_opener_t file_opener(filename, io_backender);
+        standard_serializer_t::create(&file_opener,
                                       standard_serializer_t::static_config_t());
     }
 

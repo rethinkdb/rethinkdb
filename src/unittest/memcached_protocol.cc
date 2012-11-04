@@ -28,8 +28,8 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<mem
 
     scoped_ptr_t<standard_serializer_t> serializer;
 
-    standard_serializer_t::create(io_backender.get(),
-                                  standard_serializer_t::private_dynamic_config_t(temp_file.name()),
+    filepath_file_opener_t file_opener(temp_file.name(), io_backender.get());
+    standard_serializer_t::create(&file_opener,
                                   standard_serializer_t::static_config_t());
 
     serializer.init(new standard_serializer_t(standard_serializer_t::dynamic_config_t(),

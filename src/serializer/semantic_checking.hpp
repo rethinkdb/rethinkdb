@@ -57,7 +57,7 @@ public:
     typedef typename inner_serializer_t::static_config_t static_config_t;
     typedef typename inner_serializer_t::config_t config_t;
 
-    static void create(io_backender_t *backender, private_dynamic_config_t private_config, static_config_t static_config);
+    static void create(serializer_file_opener_t *file_opener, static_config_t static_config);
     semantic_checking_serializer_t(dynamic_config_t config, io_backender_t *backender, private_dynamic_config_t private_config, perfmon_collection_t *perfmon_collection);
     ~semantic_checking_serializer_t();
 

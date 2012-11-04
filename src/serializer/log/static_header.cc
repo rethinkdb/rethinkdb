@@ -8,7 +8,7 @@
 #include "config/args.hpp"
 
 
-bool static_header_check(direct_file_t *file) {
+bool static_header_check(file_t *file) {
     if (!file->exists() || file->get_size() < DEVICE_BLOCK_SIZE) {
         return false;
     } else {
@@ -20,7 +20,7 @@ bool static_header_check(direct_file_t *file) {
     }
 }
 
-void co_static_header_write(direct_file_t *file, void *data, size_t data_size) {
+void co_static_header_write(file_t *file, void *data, size_t data_size) {
     static_header_t *buffer = reinterpret_cast<static_header_t *>(malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE));
     rassert(sizeof(static_header_t) + data_size < DEVICE_BLOCK_SIZE);
 
@@ -41,17 +41,17 @@ void co_static_header_write(direct_file_t *file, void *data, size_t data_size) {
     free(buffer);
 }
 
-void co_static_header_write_helper(direct_file_t *file, static_header_write_callback_t *cb, void *data, size_t data_size) {
+void co_static_header_write_helper(file_t *file, static_header_write_callback_t *cb, void *data, size_t data_size) {
     co_static_header_write(file, data, data_size);
     cb->on_static_header_write();
 }
 
-bool static_header_write(direct_file_t *file, void *data, size_t data_size, static_header_write_callback_t *cb) {
+bool static_header_write(file_t *file, void *data, size_t data_size, static_header_write_callback_t *cb) {
     coro_t::spawn(boost::bind(co_static_header_write_helper, file, cb, data, data_size));
     return false;
 }
 
-void co_static_header_read(direct_file_t *file, static_header_read_callback_t *callback, void *data_out, size_t data_size) {
+void co_static_header_read(file_t *file, static_header_read_callback_t *callback, void *data_out, size_t data_size) {
     rassert(sizeof(static_header_t) + data_size < DEVICE_BLOCK_SIZE);
     rassert(file->exists());
     static_header_t *buffer = reinterpret_cast<static_header_t *>(malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE));
@@ -70,7 +70,7 @@ void co_static_header_read(direct_file_t *file, static_header_read_callback_t *c
     free(buffer);
 }
 
-bool static_header_read(direct_file_t *file, void *data_out, size_t data_size, static_header_read_callback_t *cb) {
+bool static_header_read(file_t *file, void *data_out, size_t data_size, static_header_read_callback_t *cb) {
     coro_t::spawn(boost::bind(co_static_header_read, file, cb, data_out, data_size));
     return false;
 }

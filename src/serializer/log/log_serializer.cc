@@ -20,6 +20,10 @@ filepath_file_opener_t::filepath_file_opener_t(const std::string &filepath, io_b
 
 filepath_file_opener_t::~filepath_file_opener_t() { }
 
+std::string filepath_file_opener_t::file_name() const {
+    return filepath_;
+}
+
 bool filepath_file_opener_t::open_serializer_file(int extra_flag, scoped_ptr_t<file_t> *file_out) {
     scoped_ptr_t<direct_file_t> file(new direct_file_t(filepath_.c_str(),
 						       direct_file_t::mode_read | direct_file_t::mode_write | extra_flag,
@@ -95,12 +99,15 @@ log_serializer_stats_t::log_serializer_stats_t(perfmon_collection_t *parent)
           NULLPTR)
 { }
 
-void log_serializer_t::create(io_backender_t *backender, private_dynamic_config_t private_dynamic_config, static_config_t static_config) {
+void log_serializer_t::create(serializer_file_opener_t *file_opener, static_config_t static_config) {
     log_serializer_on_disk_static_config_t *on_disk_config = &static_config;
 
-    direct_file_t df(private_dynamic_config.db_filename.c_str(), direct_file_t::mode_read | direct_file_t::mode_write | direct_file_t::mode_create, backender);
+    scoped_ptr_t<file_t> file;
+    if (!file_opener->open_serializer_file_create(&file)) {
+	crash("could not open file %s for creation", file_opener->file_name().c_str());
+    }
 
-    co_static_header_write(&df, on_disk_config, sizeof(*on_disk_config));
+    co_static_header_write(file.get(), on_disk_config, sizeof(*on_disk_config));
 
     metablock_t metablock;
     bzero(&metablock, sizeof(metablock));
@@ -112,7 +119,7 @@ void log_serializer_t::create(io_backender_t *backender, private_dynamic_config_
 
     metablock.block_sequence_id = NULL_BLOCK_SEQUENCE_ID;
 
-    mb_manager_t::create(&df, static_config.extent_size(), &metablock);
+    mb_manager_t::create(file.get(), static_config.extent_size(), &metablock);
 }
 
 /* The process of starting up the serializer is handled by the ls_start_*_fsm_t. This is not

@@ -6,6 +6,7 @@
 #include <time.h>
 
 #include <algorithm>
+#include <string>
 
 #include "containers/intrusive_ptr.hpp"
 #include "containers/scoped.hpp"
@@ -86,10 +87,14 @@ class serializer_file_opener_t {
 public:
     virtual ~serializer_file_opener_t() { }
 
+    // A name to describe the file for use in error messages.  For
+    // real files, this should be the filepath.
+    virtual std::string file_name() const = 0;
+
     virtual MUST_USE bool open_serializer_file_create(scoped_ptr_t<file_t> *file_out) = 0;
     virtual MUST_USE bool open_serializer_file_existing(scoped_ptr_t<file_t> *file_out) = 0;
 #ifdef SEMANTIC_SERIALIZER_CHECK
-    virtual MUST_USE bool open_semantic_checking_file(scoped_ptr_t<file_t> *file_out) = 0;
+    virtual MUST_USE bool open_semantic_checking_file(int *fd_out) = 0;
 #endif
 };
 

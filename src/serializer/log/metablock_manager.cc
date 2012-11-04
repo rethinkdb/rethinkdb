@@ -91,7 +91,7 @@ metablock_manager_t<metablock_t>::~metablock_manager_t() {
 }
 
 template<class metablock_t>
-void metablock_manager_t<metablock_t>::create(direct_file_t *dbfile, off64_t extent_size, metablock_t *initial) {
+void metablock_manager_t<metablock_t>::create(file_t *dbfile, off64_t extent_size, metablock_t *initial) {
 
     std::vector<off64_t> metablock_offsets = initial_metablock_offsets(extent_size);
 

@@ -133,8 +133,8 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
     } else {
         stores_out->stores()->init(num_stores);
 
-        standard_serializer_t::create(io_backender_,
-                                      standard_serializer_t::private_dynamic_config_t(serializer_filepath),
+	filepath_file_opener_t file_opener(serializer_filepath, io_backender_);
+        standard_serializer_t::create(&file_opener,
                                       standard_serializer_t::static_config_t());
 
         serializer.init(new standard_serializer_t(standard_serializer_t::dynamic_config_t(),

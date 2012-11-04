@@ -46,6 +46,8 @@ public:
     filepath_file_opener_t(const std::string &filepath, io_backender_t *backender);
     ~filepath_file_opener_t();
 
+    std::string file_name() const;
+
     MUST_USE bool open_serializer_file_create(scoped_ptr_t<file_t> *file_out);
     MUST_USE bool open_serializer_file_existing(scoped_ptr_t<file_t> *file_out);
 #ifdef SEMANTIC_SERIALIZER_CHECK
@@ -105,7 +107,7 @@ public:
 public:
 
     /* Blocks. Does not check for an existing database--use check_existing for that. */
-    static void create(io_backender_t *backender, private_dynamic_config_t private_dynamic_config, static_config_t static_config);
+    static void create(serializer_file_opener_t *file_opener, static_config_t static_config);
 
     /* Blocks. */
     log_serializer_t(dynamic_config_t dynamic_config, io_backender_t *io_backender, private_dynamic_config_t private_dynamic_config, perfmon_collection_t *perfmon_collection);

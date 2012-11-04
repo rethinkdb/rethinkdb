@@ -44,9 +44,9 @@ void run_metainfo_test() {
     scoped_ptr_t<io_backender_t> io_backender;
     make_io_backender(aio_default, &io_backender);
 
+    filepath_file_opener_t file_opener(temp_file.name(), io_backender.get());
     standard_serializer_t::create(
-        io_backender.get(),
-        standard_serializer_t::private_dynamic_config_t(temp_file.name()),
+        &file_opener,
         standard_serializer_t::static_config_t());
 
     standard_serializer_t serializer(

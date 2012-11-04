@@ -15,8 +15,8 @@ internal_disk_backed_queue_t::internal_disk_backed_queue_t(io_backender_t *io_ba
      * need to set up a serializer and cache for them to go in to. */
     //perfmon_collection_t backfill_stats_collection("queue-" + filename, NULL, true, true);
 
-    standard_serializer_t::create(io_backender,
-                                  standard_serializer_t::private_dynamic_config_t(filename),
+    filepath_file_opener_t file_opener(filename, io_backender);
+    standard_serializer_t::create(&file_opener,
                                   standard_serializer_t::static_config_t());
 
     serializer.init(new standard_serializer_t(standard_serializer_t::dynamic_config_t(),

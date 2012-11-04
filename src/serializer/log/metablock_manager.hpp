@@ -108,7 +108,7 @@ public:
 
 public:
     /* Clear metablock slots and write an initial metablock to the database file */
-    static void create(direct_file_t *dbfile, off64_t extent_size, metablock_t *initial);
+    static void create(file_t *dbfile, off64_t extent_size, metablock_t *initial);
 
     /* Tries to load existing metablocks */
     void co_start_existing(direct_file_t *dbfile, bool *mb_found, metablock_t *mb_out);

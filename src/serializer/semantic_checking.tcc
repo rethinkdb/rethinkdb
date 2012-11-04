@@ -37,8 +37,8 @@ wrap_token(block_id_t block_id, scs_block_info_t info, intrusive_ptr_t<typename 
 
 template<class inner_serializer_t>
 void semantic_checking_serializer_t<inner_serializer_t>::
-create(io_backender_t *backender, private_dynamic_config_t private_config, static_config_t static_config) {
-    inner_serializer_t::create(backender, private_config, static_config);
+create(serializer_file_opener_t *file_opener, static_config_t static_config) {
+    inner_serializer_t::create(file_opener, static_config);
 }
 
 template<class inner_serializer_t>

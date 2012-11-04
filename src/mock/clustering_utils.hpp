@@ -22,18 +22,22 @@ struct fake_fifo_enforcement_t {
     fifo_enforcer_sink_t sink;
 };
 
+inline standard_serializer_t *create_and_construct_serializer(temp_file_t *temp_file, io_backender_t *io_backender) {
+    filepath_file_opener_t file_opener(temp_file->name(), io_backender);
+    standard_serializer_t::create(&file_opener,
+				  standard_serializer_t::static_config_t());
+    return new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
+				     io_backender,
+				     standard_serializer_t::private_dynamic_config_t(temp_file->name()),
+				     &get_global_perfmon_collection());
+}
+
 template<class protocol_t>
 class test_store_t {
 public:
     test_store_t(io_backender_t *io_backender, order_source_t *order_source) :
             temp_file("/tmp/rdb_unittest.XXXXXX"),
-            serializer((standard_serializer_t::create(io_backender,
-                                                      standard_serializer_t::private_dynamic_config_t(temp_file.name()),
-                                                      standard_serializer_t::static_config_t()),
-                        new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
-                                                  io_backender,
-                                                  standard_serializer_t::private_dynamic_config_t(temp_file.name()),
-                                                  &get_global_perfmon_collection()))),
+            serializer(create_and_construct_serializer(&temp_file, io_backender)),
             store(serializer.get(), temp_file.name(), GIGABYTE, true, &get_global_perfmon_collection(), &ctx) {
         /* Initialize store metadata */
         cond_t non_interruptor;
