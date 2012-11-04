@@ -26,7 +26,7 @@ do_test(
 
 do_test(
     "$RETHINKDB/test/scenarios/rebalance.py --sequence 0,++++++++,----,++++++++,------------ "
-        "--workload-before '$RETHINKDB../bench/stress-client/stress -s sockmemcached,$HOST:$PORT -w 0/0/1/0 -d 10s -o keys.out' "
+        "--workload-before '$RETHINKDB/bench/stress-client/stress -s sockmemcached,$HOST:$PORT -w 0/0/1/0 -d 10s -o keys.out' "
         "--workload-during '$RETHINKDB/bench/stress-client/stress -s sockmemcached,$HOST:$PORT -w 0/0/1/0 -d infinity -q qps_out -i keys.out --ignore-protocol-errors' "
         "--workload-during '$RETHINKDB/test/memcached_workloads/simulate_web_ui.py $HOST:$HTTP_PORT' "
         "--workload-after '$RETHINKDB/bench/stress-client/stress -s sockmemcached,$HOST:$PORT -d 10s -i keys.out'",
