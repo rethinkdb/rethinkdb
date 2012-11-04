@@ -19,12 +19,13 @@ with driver.Metacluster() as metacluster:
             executable_path = driver.find_rethinkdb_executable("debug"))
         for i in xrange(num_nodes)]
     time.sleep(3)
-    print "Creating namespace..."
+    print "Creating table..."
     http = http_admin.ClusterAccess([("localhost", p.http_port) for p in processes])
+    db = http.add_database("test")
     dc = http.add_datacenter()
     for machine_id in http.machines:
         http.move_server_to_datacenter(machine_id, dc)
-    ns = http.add_namespace(protocol = "memcached", primary = dc)
+    ns = http.add_namespace(protocol = "rdb", primary = dc, name = "stress", database = db)
     time.sleep(3)
     host, port = driver.get_namespace_host(ns.port, processes)
     cluster.check()
@@ -35,7 +36,7 @@ with driver.Metacluster() as metacluster:
     cluster.check()
 
     print "Inserting some data..."
-    subprocess.check_call(["%s/bench/stress-client/stress" % rethinkdb_root, "-w", "0/0/1/0", "-d", "20000q", "-s", "sockmemcached,%s:%d" % (host, port)])
+    subprocess.check_call(["%s/bench/stress-client/stress" % rethinkdb_root, "-w", "0/0/1/0", "-d", "20000q", "-s", "%s:%d" % (host, port)])
     cluster.check()
 
     print "Decreasing replication factor..."
