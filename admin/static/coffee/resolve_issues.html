@@ -113,7 +113,8 @@
             <p>{{capitalize type}} with the name {{name}}:</p>
             <ul>
                 {{#each contestants}}
-                    <li><a class="change-route" href="#{{pluralize_noun type 2}}/{{uuid}}"><span class="uuid">{{humanize_uuid uuid}}</span></a> (<a id="rename_{{uuid}}" href="#">rename</a>)</li>
+                <li><a class="change-route" href="#{{pluralize_noun type 2}}/{{uuid}}"><span class="uuid">{{humanize_uuid uuid}}</span></a>
+                (<a id="rename_{{uuid}}" href="#{{pluralize_noun type 2}}/{{uuid}}">rename</a>)</li>
                 {{/each}}
             </ul>
         </div>
