@@ -390,7 +390,7 @@ or Hash)."
     # <b>+nil+</b> or raises an error.
     def self.db_drop(db_name); Meta_Query.new [:drop_db, db_name]; end
 
-    # Dereference aliases (seet utils.rb)
+    # Dereference aliases (see utils.rb)
     def self.method_missing(m, *args, &block) # :nodoc:
       (m2 = C.method_aliases[m]) ? self.send(m2, *args, &block) : super(m, *args, &block)
     end
