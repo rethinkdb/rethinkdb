@@ -530,7 +530,7 @@ class ClusterAccess(object):
         if primary is not None:
             primary = self.find_datacenter(primary).uuid
         else:
-            primary = random.choice(self.datacenters.keys())
+            primary = "00000000-0000-0000-0000-000000000000"
         aff_dict = { }
         for datacenter, count in affinities.iteritems():
             aff_dict[self.find_datacenter(datacenter).uuid] = count

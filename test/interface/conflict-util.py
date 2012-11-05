@@ -38,8 +38,6 @@ with driver.Metacluster() as metacluster:
     print "Splitting cluster..."
     cluster2 = driver.Cluster(metacluster)
     metacluster.move_processes(cluster1, cluster2, [proc2])
-    time.sleep(20)
-
 
     print "Hit enter to rejoin the cluster"
     raw_input()
