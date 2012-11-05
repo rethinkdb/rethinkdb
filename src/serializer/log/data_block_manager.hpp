@@ -191,10 +191,6 @@ private:
 
     /* Checks whether the extent is empty and if it is, notifies the extent manager and cleans up */
     void check_and_handle_empty_extent(unsigned int extent_id);
-    /* Just pushes the given extent on the potentially_empty_extents queue */
-    void check_and_handle_empty_extent_later(unsigned int extent_id);
-    /* Runs check_and_handle_empty extent() for each extent in potentially_empty_extents */
-    void check_and_handle_outstanding_empty_extents();
 
     // Tells if we should keep gc'ing, being told the next extent that
     // would be gc'ed.
@@ -244,8 +240,6 @@ private:
     file_t *dbfile;
     scoped_ptr_t<file_account_t> gc_io_account_nice;
     scoped_ptr_t<file_account_t> gc_io_account_high;
-
-    std::vector<unsigned int> potentially_empty_extents;
 
     /* Contains a pointer to every gc_entry, regardless of what its current state is */
     two_level_array_t<gc_entry *, MAX_DATA_EXTENTS, (1 << 12)> entries;

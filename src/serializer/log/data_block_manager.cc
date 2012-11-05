@@ -318,18 +318,6 @@ file_account_t *data_block_manager_t::choose_gc_io_account() {
     }
 }
 
-void data_block_manager_t::check_and_handle_empty_extent_later(unsigned int extent_id) {
-    potentially_empty_extents.push_back(extent_id);
-}
-
-void data_block_manager_t::check_and_handle_outstanding_empty_extents() {
-    for (size_t i = 0; i < potentially_empty_extents.size(); ++i) {
-        check_and_handle_empty_extent(potentially_empty_extents[i]);
-    }
-
-    potentially_empty_extents.clear();
-}
-
 void data_block_manager_t::mark_garbage(off64_t offset, extent_transaction_t *txn) {
     unsigned int extent_id = static_config->extent_index(offset);
     unsigned int block_id = static_config->block_index(offset);
@@ -358,8 +346,6 @@ void data_block_manager_t::mark_garbage(off64_t offset, extent_transaction_t *tx
     }
 
     check_and_handle_empty_extent(extent_id);
-    /* We handle outstanding cleanup work now */
-    check_and_handle_outstanding_empty_extents();
 }
 
 void data_block_manager_t::mark_token_live(off64_t offset) {
@@ -390,11 +376,7 @@ void data_block_manager_t::mark_token_garbage(off64_t offset) {
         ++gc_stats.old_garbage_blocks;
     }
 
-    if (entry->g_array.count() == static_config->blocks_per_extent()) {
-        // We delay this check as we don't want to interfere with active extent manager transactions
-        // TODO: Maybe change how stuff works to make delaying this unnecessary?
-        check_and_handle_empty_extent_later(extent_id);
-    }
+    check_and_handle_empty_extent(extent_id);
 }
 
 void data_block_manager_t::start_gc() {
@@ -517,9 +499,6 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_wr
 
 void data_block_manager_t::on_gc_write_done() {
 
-    // Process GC data changes which have been caused by the tokens
-    check_and_handle_outstanding_empty_extents();
-
     // Continue GC
     run_gc();
 }
@@ -562,7 +541,7 @@ void data_block_manager_t::run_gc() {
                 gc_state.refcount++;
 
                 guarantee(gc_state.gc_blocks == NULL);
-                gc_state.gc_blocks = static_cast<char *>(malloc_aligned(extent_manager->extent_size, 
+                gc_state.gc_blocks = static_cast<char *>(malloc_aligned(extent_manager->extent_size,
                         DEVICE_BLOCK_SIZE));
                 gc_state.set_step(gc_read);
                 for (unsigned int i = 0, bpe = static_config->blocks_per_extent(); i < bpe; i++) {
@@ -591,10 +570,6 @@ void data_block_manager_t::run_gc() {
 
                 /* If other forces cause all of the blocks in the extent to become garbage
                 before we even finish GCing it, they will set current_entry to NULL. */
-
-                // Give one last chance for current extent.
-                check_and_handle_outstanding_empty_extents();
-
                 if (gc_state.current_entry == NULL) {
                     rassert(gc_state.gc_blocks != NULL);
                     free(gc_state.gc_blocks);
