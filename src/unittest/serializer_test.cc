@@ -5,6 +5,8 @@
 
 namespace unittest {
 
+// This test is completely vacuous, and will need to be expanded in the future.
+
 void run_CreateConstructDestroy() {
     mock_file_opener_t file_opener;
     standard_serializer_t::create(&file_opener, standard_serializer_t::static_config_t());
