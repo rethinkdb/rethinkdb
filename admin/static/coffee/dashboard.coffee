@@ -658,7 +658,8 @@ module 'DashboardView', ->
             if need_render
                 @render()
 
-            @min_timestamp = parseFloat(@log_entries[0].get('timestamp'))+1
+            if @log_entries[0]? and _.isNaN(parseFloat(@log_entries[0].get('timestamp'))) is false
+                @min_timestamp = parseFloat(@log_entries[0].get('timestamp'))+1
 
         render: =>
             @.$el.html ''
