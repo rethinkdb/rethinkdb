@@ -136,7 +136,7 @@ void fill_in_blueprints_for_protocol(
     for (typename blueprint_map_t::iterator it  = suggested_blueprints.begin();
                                             it != suggested_blueprints.end();
                                             ++it) {
-        ns_goals->namespaces[it->first].get_mutable()->blueprint = ns_goals->namespaces[it->first].get().blueprint.make_new_version(it->second, us);
+        ns_goals->namespaces[it->first].get_mutable()->blueprint = ns_goals->namespaces[it->first].get().blueprint.make_resolving_version(it->second, us);
     }
 }
 
