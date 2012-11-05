@@ -94,14 +94,14 @@ void lba_disk_structure_t::add_entry(block_id_t block_id, repli_timestamp_t rece
         memcpy(new_superblock->magic, lba_super_magic, LBA_SUPER_MAGIC_SIZE);
         int i = 0;
         for (lba_disk_extent_t *e = extents_in_superblock.head(); e; e = extents_in_superblock.next(e)) {
-            new_superblock->entries[i].offset = e->offset;
+            new_superblock->entries[i].offset = e->data->extent_ref.get();
             new_superblock->entries[i].lba_entries_count = e->count;
             i++;
         }
 
         /* Write the new superblock */
 
-        superblock_offset = superblock_extent->offset + superblock_extent->amount_filled;
+        superblock_offset = superblock_extent->extent_ref.get() + superblock_extent->amount_filled;
         superblock_extent->append(buffer.get(), ceil_aligned(superblock_size, DEVICE_BLOCK_SIZE), io_account);
     }
 
@@ -266,7 +266,7 @@ void lba_disk_structure_t::read(in_memory_index_t *index, read_callback_t *cb) {
 
 void lba_disk_structure_t::prepare_metablock(lba_shard_metablock_t *mb_out) {
     if (last_extent) {
-        mb_out->last_lba_extent_offset = last_extent->offset;
+        mb_out->last_lba_extent_offset = last_extent->data->extent_ref.get();
         mb_out->last_lba_extent_entries_count = last_extent->count;
 
         rassert(divides(DEVICE_BLOCK_SIZE, offsetof(lba_extent_t, entries[0]) + sizeof(lba_entry_t) * mb_out->last_lba_extent_entries_count));

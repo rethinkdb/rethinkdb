@@ -18,7 +18,7 @@ private:
 
 public:
     extent_t *data;
-    off64_t offset;
+    // off64_t offset;
     int count;
 
     lba_disk_extent_t(extent_manager_t *_em, file_t *file, file_account_t *io_account);
@@ -62,6 +62,8 @@ public:
 private:
     /* Use destroy() or shutdown() instead */
     ~lba_disk_extent_t() {}
+
+    DISABLE_COPYING(lba_disk_extent_t);
 };
 
 #endif  // SERIALIZER_LOG_LBA_DISK_EXTENT_HPP_

@@ -23,6 +23,53 @@ class extent_zone_t;
 
 struct log_serializer_stats_t;
 
+class extent_reference_t {
+public:
+    extent_reference_t() : extent_offset_(-1) { }
+    ~extent_reference_t() { guarantee(extent_offset_ == -1); }
+
+    void init(off64_t offset) {
+        guarantee(extent_offset_ == -1);
+        extent_offset_ = offset;
+    }
+
+    off64_t get() {
+        guarantee(extent_offset_ != -1);
+        return extent_offset_;
+    }
+
+    MUST_USE off64_t release() {
+        guarantee(extent_offset_ != -1);
+        off64_t ret = extent_offset_;
+        extent_offset_ = -1;
+        return ret;
+    }
+
+private:
+    off64_t extent_offset_;
+    DISABLE_COPYING(extent_reference_t);
+};
+
+
+class extent_reference_set_t {
+public:
+    extent_reference_set_t() { }
+    ~extent_reference_set_t() { guarantee(extent_offsets_.empty()); }
+
+    void move_extent_reference(extent_reference_t *ref) {
+        extent_offsets_.push_back(ref->release());
+    }
+
+    void reset(std::deque<off64_t> *extents_out) {
+        guarantee(extents_out->empty());
+        extents_out->swap(extent_offsets_);
+    }
+
+private:
+    std::deque<off64_t> extent_offsets_;
+    DISABLE_COPYING(extent_reference_set_t);
+};
+
 class extent_transaction_t {
 public:
     friend class extent_manager_t;
@@ -35,9 +82,9 @@ public:
         guarantee(state_ == uninitialized);
         state_ = begun;
     }
-    void push_extent(off64_t extent) {
+    void push_extent(extent_reference_t *extent_ref) {
         guarantee(state_ == begun);
-        free_queue_.push_back(extent);
+        extent_ref_set_.move_extent_reference(extent_ref);
     }
     void mark_end() {
         guarantee(state_ == begun);
@@ -45,14 +92,13 @@ public:
     }
     void reset(std::deque<off64_t> *extents_out) {
         guarantee(state_ == ended);
-        guarantee(extents_out->empty());
-        extents_out->swap(free_queue_);
+        extent_ref_set_.reset(extents_out);
         state_ = committed;
     }
 
 private:
     enum { uninitialized, begun, ended, committed } state_;
-    std::deque<off64_t> free_queue_;
+    extent_reference_set_t extent_ref_set_;
 
     DISABLE_COPYING(extent_transaction_t);
 };
@@ -69,7 +115,7 @@ public:
     /* When we load a database, we use reserve_extent() to inform the extent manager
     which extents were already in use */
 
-    void reserve_extent(off64_t extent);
+    void reserve_extent(off64_t extent, extent_reference_t *extent_ref_out);
 
     static void prepare_initial_metablock(metablock_mixin_t *mb);
     void start_existing(metablock_mixin_t *last_metablock);
@@ -86,8 +132,8 @@ public:
     most recent metablock points to. */
 
     void begin_transaction(extent_transaction_t *out);
-    off64_t gen_extent();
-    void release_extent(off64_t extent, extent_transaction_t *txn);
+    void gen_extent(extent_reference_t *extent_ref_out);
+    void release_extent(extent_reference_t *extent_ref, extent_transaction_t *txn);
     void end_transaction(extent_transaction_t *t);
     void commit_transaction(extent_transaction_t *t);
 

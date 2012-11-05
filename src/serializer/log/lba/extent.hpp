@@ -34,14 +34,16 @@ public:
     };
     void sync(sync_callback_t *cb);
 
-    off64_t offset;
+    extent_reference_t extent_ref;
     size_t amount_filled;
 
 private:
     ~extent_t();   // Use destroy() or shutdown() instead
-    extent_manager_t *em;
+    extent_manager_t *const em;
     file_t *file;
     extent_block_t *last_block, *current_block;
+
+    DISABLE_COPYING(extent_t);
 };
 
 #endif /* SERIALIZER_LOG_LBA_EXTENT_HPP_ */

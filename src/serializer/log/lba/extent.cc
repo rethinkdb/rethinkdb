@@ -35,7 +35,7 @@ struct extent_block_t :
         parent->last_block = this;
         is_last_block = true;
 
-        parent->file->write_async(parent->offset + offset, DEVICE_BLOCK_SIZE, data, io_account, this);
+        parent->file->write_async(parent->extent_ref.get() + offset, DEVICE_BLOCK_SIZE, data, io_account, this);
     }
 
     void on_extent_sync() {
@@ -63,26 +63,28 @@ struct extent_block_t :
 };
 
 extent_t::extent_t(extent_manager_t *_em, file_t *_file)
-    : offset(_em->gen_extent()), amount_filled(0), em(_em),
+    : amount_filled(0), em(_em),
       file(_file), last_block(NULL), current_block(NULL) {
+    em->gen_extent(&extent_ref);
     ++em->stats->pm_serializer_lba_extents;
 }
 
 extent_t::extent_t(extent_manager_t *_em, file_t *_file, off64_t loc, size_t size)
-    : offset(loc), amount_filled(size), em(_em), file(_file), last_block(NULL), current_block(NULL)
+    : amount_filled(size), em(_em), file(_file), last_block(NULL), current_block(NULL)
 {
-    em->reserve_extent(offset);
+    em->reserve_extent(loc, &extent_ref);
 
     rassert(divides(DEVICE_BLOCK_SIZE, amount_filled));
     ++em->stats->pm_serializer_lba_extents;
 }
 
 void extent_t::destroy(extent_transaction_t *txn) {
-    em->release_extent(offset, txn);
-    shutdown();
+    em->release_extent(&extent_ref, txn);
+    delete this;
 }
 
 void extent_t::shutdown() {
+    UNUSED off64_t extent = extent_ref.release();
     delete this;
 }
 
@@ -94,7 +96,7 @@ extent_t::~extent_t() {
 
 void extent_t::read(size_t pos, size_t length, void *buffer, read_callback_t *cb) {
     rassert(!last_block);
-    file->read_async(offset + pos, length, buffer, DEFAULT_DISK_ACCOUNT, cb);
+    file->read_async(extent_ref.get() + pos, length, buffer, DEFAULT_DISK_ACCOUNT, cb);
 }
 
 void extent_t::append(void *buffer, size_t length, file_account_t *io_account) {

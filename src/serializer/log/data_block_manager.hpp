@@ -34,7 +34,7 @@ class gc_entry :
 public:
     data_block_manager_t *parent;
 
-    off64_t offset; /* !< the offset that this extent starts at */
+    extent_reference_t extent_ref;
     bitset_t g_array; /* !< bit array for whether or not each block is garbage */
     bitset_t t_array; /* !< bit array for whether or not each block is referenced by some token */
     bitset_t i_array; /* !< bit array for whether or not each block is referenced by the current lba (*i*ndex) */
@@ -75,6 +75,10 @@ public:
 #endif
 
 private:
+    // Only to be used by the destructor, used to look up the gc entry in the parent's entries
+    // array.
+    off64_t offset;
+
     DISABLE_COPYING(gc_entry);
 };
 
