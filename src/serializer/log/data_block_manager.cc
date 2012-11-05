@@ -255,7 +255,7 @@ off64_t data_block_manager_t::write(const void *buf_in, block_id_t block_id, boo
     return offset;
 }
 
-void data_block_manager_t::check_and_handle_empty_extent(unsigned int extent_id, extent_transaction_t *txn) {
+void data_block_manager_t::check_and_handle_empty_extent(unsigned int extent_id) {
     gc_entry *entry = entries.get(extent_id);
     if (!entry) {
         return; // The extent has already been deleted
@@ -293,7 +293,7 @@ void data_block_manager_t::check_and_handle_empty_extent(unsigned int extent_id,
         }
 
         ++stats->pm_serializer_data_extents_reclaimed;
-        entry->destroy(txn);
+        entry->destroy();
         entries.set(extent_id, NULL);
 
     } else if (entry->state == gc_entry::state_old) {
@@ -322,9 +322,9 @@ void data_block_manager_t::check_and_handle_empty_extent_later(unsigned int exte
     potentially_empty_extents.push_back(extent_id);
 }
 
-void data_block_manager_t::check_and_handle_outstanding_empty_extents(extent_transaction_t *txn) {
+void data_block_manager_t::check_and_handle_outstanding_empty_extents() {
     for (size_t i = 0; i < potentially_empty_extents.size(); ++i) {
-        check_and_handle_empty_extent(potentially_empty_extents[i], txn);
+        check_and_handle_empty_extent(potentially_empty_extents[i]);
     }
 
     potentially_empty_extents.clear();
@@ -357,9 +357,9 @@ void data_block_manager_t::mark_garbage(off64_t offset, extent_transaction_t *tx
         ++gc_stats.old_garbage_blocks;
     }
 
-    check_and_handle_empty_extent(extent_id, txn);
+    check_and_handle_empty_extent(extent_id);
     /* We handle outstanding cleanup work now */
-    check_and_handle_outstanding_empty_extents(txn);
+    check_and_handle_outstanding_empty_extents();
 }
 
 void data_block_manager_t::mark_token_live(off64_t offset) {
@@ -518,11 +518,7 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_wr
 void data_block_manager_t::on_gc_write_done() {
 
     // Process GC data changes which have been caused by the tokens
-    extent_transaction_t em_trx;
-    serializer->extent_manager->begin_transaction(&em_trx);
-    check_and_handle_outstanding_empty_extents(&em_trx);
-    serializer->extent_manager->end_transaction(&em_trx);
-    serializer->extent_manager->commit_transaction(&em_trx);
+    check_and_handle_outstanding_empty_extents();
 
     // Continue GC
     run_gc();
@@ -597,11 +593,7 @@ void data_block_manager_t::run_gc() {
                 before we even finish GCing it, they will set current_entry to NULL. */
 
                 // Give one last chance for current extent.
-                extent_transaction_t em_trx;
-                serializer->extent_manager->begin_transaction(&em_trx);
-                check_and_handle_outstanding_empty_extents(&em_trx);
-                serializer->extent_manager->end_transaction(&em_trx);
-                serializer->extent_manager->commit_transaction(&em_trx);
+                check_and_handle_outstanding_empty_extents();
 
                 if (gc_state.current_entry == NULL) {
                     rassert(gc_state.gc_blocks != NULL);
@@ -867,8 +859,8 @@ gc_entry::~gc_entry() {
     --parent->stats->pm_serializer_data_extents;
 }
 
-void gc_entry::destroy(extent_transaction_t *txn) {
-    parent->extent_manager->release_extent(&extent_ref, txn);
+void gc_entry::destroy() {
+    parent->extent_manager->release_extent(&extent_ref);
     delete this;
 }
 

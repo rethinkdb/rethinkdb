@@ -67,7 +67,7 @@ public:
        data blocks. */
     gc_entry(data_block_manager_t *parent, off64_t offset);
 
-    void destroy(extent_transaction_t *txn);
+    void destroy();
     ~gc_entry();
 
 #ifndef NDEBUG
@@ -190,11 +190,11 @@ private:
     off64_t gimme_a_new_offset(bool token_referenced);
 
     /* Checks whether the extent is empty and if it is, notifies the extent manager and cleans up */
-    void check_and_handle_empty_extent(unsigned int extent_id, extent_transaction_t *txn);
+    void check_and_handle_empty_extent(unsigned int extent_id);
     /* Just pushes the given extent on the potentially_empty_extents queue */
     void check_and_handle_empty_extent_later(unsigned int extent_id);
     /* Runs check_and_handle_empty extent() for each extent in potentially_empty_extents */
-    void check_and_handle_outstanding_empty_extents(extent_transaction_t *txn);
+    void check_and_handle_outstanding_empty_extents();
 
     // Tells if we should keep gc'ing, being told the next extent that
     // would be gc'ed.

@@ -135,7 +135,8 @@ public:
 
     void begin_transaction(extent_transaction_t *out);
     void gen_extent(extent_reference_t *extent_ref_out);
-    void release_extent(extent_reference_t *extent_ref, extent_transaction_t *txn);
+    void release_extent_into_transaction(extent_reference_t *extent_ref, extent_transaction_t *txn);
+    void release_extent(extent_reference_t *extent_ref);
     void end_transaction(extent_transaction_t *t);
     void commit_transaction(extent_transaction_t *t);
 
@@ -147,6 +148,7 @@ public:
 
 private:
     extent_zone_t *zone_for_offset(off64_t offset);
+    void release_extent_preliminaries();
 
     const log_serializer_on_disk_static_config_t *const static_config;
     const log_serializer_dynamic_config_t *const dynamic_config;

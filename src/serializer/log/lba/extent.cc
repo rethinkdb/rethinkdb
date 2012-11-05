@@ -79,7 +79,7 @@ extent_t::extent_t(extent_manager_t *_em, file_t *_file, off64_t loc, size_t siz
 }
 
 void extent_t::destroy(extent_transaction_t *txn) {
-    em->release_extent(&extent_ref, txn);
+    em->release_extent_into_transaction(&extent_ref, txn);
     delete this;
 }
 

@@ -318,7 +318,17 @@ void extent_manager_t::copy_extent_reference(extent_reference_t *extent_ref, ext
     zone_for_offset(offset)->make_extent_reference(offset, extent_ref_out);
 }
 
-void extent_manager_t::release_extent(extent_reference_t *extent_ref, extent_transaction_t *txn) {
+void extent_manager_t::release_extent_into_transaction(extent_reference_t *extent_ref, extent_transaction_t *txn) {
+    release_extent_preliminaries();
+    txn->push_extent(extent_ref);
+}
+
+void extent_manager_t::release_extent(extent_reference_t *extent_ref) {
+    release_extent_preliminaries();
+    zone_for_offset(extent_ref->get())->release_extent(extent_ref);
+}
+
+void extent_manager_t::release_extent_preliminaries() {
     assert_thread();
 #ifdef DEBUG_EXTENTS
     debugf("EM %p: Release extent %.8lx\n", this, extent);
@@ -328,8 +338,9 @@ void extent_manager_t::release_extent(extent_reference_t *extent_ref, extent_tra
     rassert(current_transaction);
     --stats->pm_extents_in_use;
     stats->pm_bytes_in_use -= extent_size;
-    txn->push_extent(extent_ref);
 }
+
+
 
 void extent_manager_t::end_transaction(extent_transaction_t *t) {
     assert_thread();
