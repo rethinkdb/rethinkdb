@@ -22,6 +22,7 @@
 #include "arch/runtime/runtime.hpp"
 #include "config/args.hpp"
 #include "containers/archive/archive.hpp"
+#include "containers/archive/file_stream.hpp"
 #include "containers/printf_buffer.hpp"
 #include "logger.hpp"
 #include "thread_local.hpp"
@@ -328,10 +329,11 @@ TLS(drand48_data, rng_data)
 int randint(int n) {
     drand48_data buffer;
     if (!TLS_get_rng_initialized()) {
-        struct timespec ts;
-        int res = clock_gettime(CLOCK_REALTIME, &ts);
-        guarantee_err(res == 0, "clock_gettime(CLOCK_REALTIME) failed");
-        srand48_r(ts.tv_nsec, &buffer);
+        long int seed_buffer;
+        blocking_read_file_stream_t urandom;
+        guarantee(urandom.init("/dev/urandom"), "failed to open /dev/urandom to initialize thread rng");
+        while (urandom.read(&seed_buffer, sizeof(seed_buffer)) != sizeof(seed_buffer));
+        srand48_r(seed_buffer, &buffer);
         TLS_set_rng_initialized(true);
     } else {
         buffer = TLS_get_rng_data();

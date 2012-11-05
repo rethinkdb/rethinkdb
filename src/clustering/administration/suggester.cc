@@ -151,7 +151,9 @@ void fill_in_blueprints(cluster_semilattice_metadata_t *cluster_metadata,
             it != cluster_metadata->machines.machines.end();
             it++) {
         if (!it->second.is_deleted()) {
-            machine_assignments[it->first] = it->second.get().datacenter.get();
+            if (!it->second.get().datacenter.in_conflict()) {
+                machine_assignments[it->first] = it->second.get().datacenter.get();
+            }
         }
     }
 
