@@ -320,6 +320,7 @@ void extent_manager_t::copy_extent_reference(extent_reference_t *extent_ref, ext
 
 void extent_manager_t::release_extent_into_transaction(extent_reference_t *extent_ref, extent_transaction_t *txn) {
     release_extent_preliminaries();
+    rassert(current_transaction);
     txn->push_extent(extent_ref);
 }
 
@@ -335,7 +336,6 @@ void extent_manager_t::release_extent_preliminaries() {
     debugf("%s", format_backtrace(false).c_str());
 #endif
     rassert(state == state_running);
-    rassert(current_transaction);
     --stats->pm_extents_in_use;
     stats->pm_bytes_in_use -= extent_size;
 }
