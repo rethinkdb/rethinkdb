@@ -330,7 +330,7 @@ module 'ResolveIssuesView', ->
                 _.each @contestants, (contestant) =>
                     @.$('#resolve_' + contestant.contestant_id).off 'click'
          
-            if @model.get('object_type') is 'blueprint'
+            if @model.get('field') is 'blueprint'
                 @contestants = []
             else
                 # grab possible conflicting values
