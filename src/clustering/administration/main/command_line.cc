@@ -491,20 +491,6 @@ po::options_description get_rethinkdb_porcelain_options() {
     return desc;
 }
 
-po::options_description get_rethinkdb_porcelain_options_visible() {
-    po::options_description desc("Allowed options");
-    desc.add(get_file_options());
-    desc.add(get_machine_options());
-    desc.add(get_network_options());
-    desc.add(get_web_options());
-#ifdef AIOSUPPORT
-    desc.add(get_disk_options());
-#endif // AIOSUPPORT
-    desc.add(get_cpu_options());
-    desc.add(get_service_options());
-    return desc;
-}
-
 // Returns true upon success.
 MUST_USE bool pull_io_backend_option(const po::variables_map& vm, io_backend_t *out) {
     std::string io_backend = vm["io-backend"].as<std::string>();

@@ -5,7 +5,7 @@ data manipulation."""
 
 __all__ = ["QueryError", "ExecutionError", "BadQueryError",
     "BatchedIterator",
-    "Connection", "connect"]
+    "Connection", "connect", "last_connection"]
 
 import json
 import socket
@@ -15,7 +15,7 @@ import query_language_pb2 as p
 import query
 import internal
 
-__last_connection = None
+_last_connection = None
 
 PRETTY_PRINT_BEGIN_TARGET = "\0begin\0"
 PRETTY_PRINT_END_TARGET = "\0end\0"
@@ -238,7 +238,7 @@ class Connection():
         Use :func:`rethinkdb.connect` - as shorthand for
         this constructor.
 
-        Creating a connection sets :data:`__last_connection` to
+        Creating a connection sets :data:`_last_connection` to
         the this new connection. This is used by
         :func:`rethinkdb.query.Expression.run` as a default
         connection if no connection object is passed.
@@ -268,8 +268,8 @@ class Connection():
             c.invalidate()
         self.socket = socket.create_connection((self.host, self.port))
         self.socket.sendall(struct.pack("<L", 0xaf61ba35))
-        global __last_connection
-        __last_connection = self
+        global _last_connection
+        _last_connection = self
 
     def _get_token(self):
         token = self.token
@@ -419,4 +419,10 @@ def connect(host='localhost', port=28015, db_name='test'):
     return Connection(host, port, db_name)
 
 def last_connection():
-    return __last_connection
+    """
+    Return the last created :class:`Connection` object.
+
+    :returns: :class:`Connection`
+    """
+    global _last_connection
+    return _last_connection
