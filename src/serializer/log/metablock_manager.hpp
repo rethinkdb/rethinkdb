@@ -51,7 +51,7 @@ public:
     struct crc_metablock_t {
         char magic_marker[sizeof(MB_MARKER_MAGIC)];
         char crc_marker[sizeof(MB_MARKER_CRC)];
-        uint32_t _crc;            /* !< cyclic redundancy check */
+        uint32_t _crc;
         char version_marker[sizeof(MB_MARKER_VERSION)];
         metablock_version_t version;
         metablock_t metablock;
@@ -75,38 +75,10 @@ public:
             return crc_computer.checksum();
         }
     };
-/* \brief struct head_t is used to keep track of where we are writing or reading the metablock from
- */
-private:
-    struct head_t {
-        private:
-            uint32_t mb_slot;
-            uint32_t saved_mb_slot;
-        public:
-            bool wraparound; /* !< whether or not we've wrapped around the edge (used during startup) */
-        public:
-            explicit head_t(metablock_manager_t *mgr);
-            metablock_manager_t *const mgr;
 
-            /* \brief handles moving along successive mb slots
-             */
-            void operator++();
-            /* \brief return the offset we should be writing to
-             */
-            off64_t offset();
-            /* \brief save the state to be loaded later (used to save the last known uncorrupted metablock)
-             */
-            void push();
-            /* \brief load a previously saved state (stack has max depth one)
-             */
-            void pop();
-    };
-
-public:
     explicit metablock_manager_t(extent_manager_t *em);
     ~metablock_manager_t();
 
-public:
     /* Clear metablock slots and write an initial metablock to the database file */
     static void create(file_t *dbfile, off64_t extent_size, metablock_t *initial);
 
@@ -116,39 +88,59 @@ public:
         virtual void on_metablock_read() = 0;
         virtual ~metablock_read_callback_t() {}
     };
-private:
-    void start_existing_callback(file_t *dbfile, bool *mb_found, metablock_t *mb_out, metablock_read_callback_t *cb);
-public:
+
     bool start_existing(file_t *dbfile, bool *mb_found, metablock_t *mb_out, metablock_read_callback_t *cb);
 
-public:
     struct metablock_write_callback_t {
         virtual void on_metablock_write() = 0;
         virtual ~metablock_write_callback_t() {}
     };
     bool write_metablock(metablock_t *mb, file_account_t *io_account, metablock_write_callback_t *cb);
-private:
-    void write_metablock_callback(metablock_t *mb, file_account_t *io_account, metablock_write_callback_t *cb);
-public:
     void co_write_metablock(metablock_t *mb, file_account_t *io_account);
 
-private:
-    mutex_t write_lock;
-
-public:
     void shutdown();
 
-public:
     void read_next_metablock();
 
 private:
-    head_t head; /* !< keeps track of where we are in the extents */
+    struct head_t {
+    private:
+        uint32_t mb_slot;
+        uint32_t saved_mb_slot;
+    public:
+        // whether or not we've wrapped around the edge (used during startup)
+        bool wraparound;
+    public:
+        explicit head_t(metablock_manager_t *mgr);
+        metablock_manager_t *const mgr;
+
+        // handles moving along successive mb slots
+        void operator++();
+
+        // return the offset we should be writing to
+        off64_t offset();
+
+        // save the state to be loaded later (used to save the last known uncorrupted metablock)
+        void push();
+
+        //load a previously saved state (stack has max depth one)
+        void pop();
+    };
+
+    void start_existing_callback(file_t *dbfile, bool *mb_found, metablock_t *mb_out, metablock_read_callback_t *cb);
+    void write_metablock_callback(metablock_t *mb, file_account_t *io_account, metablock_write_callback_t *cb);
     void on_io_complete();
+
+    mutex_t write_lock;
+
+    // keeps track of where we are in the extents
+    head_t head;
 
     metablock_version_t next_version_number;
 
     crc_metablock_t *const mb_buffer;
-    bool mb_buffer_in_use;   /* !< true: we're using the buffer, no one else can */
+    // true: we're using the buffer, no one else can
+    bool mb_buffer_in_use;
 
     // Just some compartmentalization to make this mildly cleaner.
     struct startup {
@@ -169,6 +161,8 @@ private:
     } state;
 
     file_t *dbfile;
+
+    DISABLE_COPYING(metablock_manager_t);
 };
 
 #endif /* SERIALIZER_LOG_METABLOCK_MANAGER_HPP_ */
