@@ -1005,7 +1005,20 @@ module 'DataExplorerView', ->
             'r':
                 name: 'r'
                 description: 'The main ReQL namespace'
-                
+        relations: []
+        ###
+        [
+            {
+                small_class: 'stream'
+                big_class: 'selection'
+            },
+            {
+                small_class: 'runnable'
+                big_class: 'selection'
+            }
+        ]
+        ###
+               
         initialize: (options) =>
             if not window.r? # If window.r doesn't exist, it's the first time we initialize, let's create the docs
                 #TODO remove the parenthesis from the name
@@ -1022,13 +1035,7 @@ module 'DataExplorerView', ->
                         @suggestions[parent_name].push(command_name+'(')
                 #Update suggestions ( take care of 'sub classes')
                 # the method of small class will be suggested for big_class too.
-                relations = [
-                    {
-                        small_class: 'stream'
-                        big_class: 'selection'
-                    }
-                ]
-                for relation in relations
+                for relation in @relations
                     small_class = relation.small_class
                     big_class = relation.big_class
                     for suggestion in @suggestions[small_class]
