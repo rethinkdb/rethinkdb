@@ -286,22 +286,24 @@ void extent_manager_t::release_extent(off64_t extent, extent_transaction_t *txn)
     rassert(current_transaction);
     --stats->pm_extents_in_use;
     stats->pm_bytes_in_use -= extent_size;
-    txn->free_queue().push_back(extent);
+    txn->push_extent(extent);
 }
 
-void extent_manager_t::end_transaction(DEBUG_VAR extent_transaction_t *t) {
+void extent_manager_t::end_transaction(extent_transaction_t *t) {
     assert_thread();
     rassert(current_transaction == t);
     current_transaction = NULL;
+    t->mark_end();
 }
 
 void extent_manager_t::commit_transaction(extent_transaction_t *t) {
     assert_thread();
-    for (std::deque<off64_t>::iterator it = t->free_queue().begin(); it != t->free_queue().end(); it++) {
+    std::deque<off64_t> extents;
+    t->reset(&extents);
+    for (std::deque<off64_t>::const_iterator it = extents.begin(); it != extents.end(); ++it) {
         off64_t extent = *it;
         zone_for_offset(extent)->release_extent(extent);
     }
-    t->reset();
 }
 
 int extent_manager_t::held_extents() {

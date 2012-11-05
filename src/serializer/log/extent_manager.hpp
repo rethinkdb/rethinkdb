@@ -26,24 +26,32 @@ struct log_serializer_stats_t;
 class extent_transaction_t {
 public:
     friend class extent_manager_t;
-    extent_transaction_t() : active_(false) { }
+    extent_transaction_t() : state_(uninitialized) { }
     ~extent_transaction_t() {
-        rassert(!active_);
+        rassert(state_ == committed);
     }
 
-    void init() { active_ = true; }
-    void reset() {
-        free_queue_.clear();
-        active_ = false;
+    void init() {
+        guarantee(state_ == uninitialized);
+        state_ = begun;
     }
-
-    std::deque<off64_t> &free_queue() {
-        rassert(active_);
-        return free_queue_;
+    void push_extent(off64_t extent) {
+        guarantee(state_ == begun);
+        free_queue_.push_back(extent);
+    }
+    void mark_end() {
+        guarantee(state_ == begun);
+        state_ = ended;
+    }
+    void reset(std::deque<off64_t> *extents_out) {
+        guarantee(state_ == ended);
+        guarantee(extents_out->empty());
+        extents_out->swap(free_queue_);
+        state_ = committed;
     }
 
 private:
-    bool active_;
+    enum { uninitialized, begun, ended, committed } state_;
     std::deque<off64_t> free_queue_;
 
     DISABLE_COPYING(extent_transaction_t);
