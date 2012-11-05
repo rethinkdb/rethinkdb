@@ -590,7 +590,7 @@ log_serializer_t::block_write(const void *buf, block_id_t block_id, file_account
     // TODO: Implement a duration sampler perfmon for this
     ++stats->pm_serializer_block_writes;
 
-    const off64_t offset = data_block_manager->write(buf, block_id, true, io_account, cb, true, false);
+    const off64_t offset = data_block_manager->write(buf, block_id, true, io_account, cb, true);
 
     return generate_block_token(offset);
 }
