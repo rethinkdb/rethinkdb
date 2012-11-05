@@ -337,7 +337,17 @@ void data_block_manager_t::mark_garbage(off64_t offset, extent_transaction_t *tx
     gc_entry *entry = entries.get(extent_id);
     rassert(entry->i_array[block_id] == 1, "with block_id = %u", block_id);
     rassert(entry->g_array[block_id] == 0, "with block_id = %u", block_id);
+
+    // Now we set the i_array entry to zero.  We make an extra reference to the extent which gets
+    // held until we commit the transaction.
     entry->i_array.set(block_id, 0);
+
+    {
+        extent_reference_t local_extent_ref;
+        extent_manager->copy_extent_reference(&entry->extent_ref, &local_extent_ref);
+        txn->push_extent(&local_extent_ref);
+    }
+
     entry->update_g_array(block_id);
 
     rassert(entry->g_array.size() == static_config->blocks_per_extent());

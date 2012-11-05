@@ -313,6 +313,11 @@ void extent_manager_t::gen_extent(extent_reference_t *extent_ref_out) {
     extent_ref_out->init(extent_ref.release());
 }
 
+void extent_manager_t::copy_extent_reference(extent_reference_t *extent_ref, extent_reference_t *extent_ref_out) {
+    off64_t offset = extent_ref->get();
+    zone_for_offset(offset)->make_extent_reference(offset, extent_ref_out);
+}
+
 void extent_manager_t::release_extent(extent_reference_t *extent_ref, extent_transaction_t *txn) {
     assert_thread();
 #ifdef DEBUG_EXTENTS

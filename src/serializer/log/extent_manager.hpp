@@ -131,6 +131,8 @@ public:
     has been written. This guarantees that we will not overwrite extents that the
     most recent metablock points to. */
 
+    void copy_extent_reference(extent_reference_t *extent_ref, extent_reference_t *extent_ref_out);
+
     void begin_transaction(extent_transaction_t *out);
     void gen_extent(extent_reference_t *extent_ref_out);
     void release_extent(extent_reference_t *extent_ref, extent_transaction_t *txn);
