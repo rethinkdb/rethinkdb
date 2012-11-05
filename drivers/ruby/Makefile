@@ -14,6 +14,8 @@ RUBY_PBDIR:=../../build/drivers/ruby
 RUBY_PBFILE:=query_language.pb.rb
 BUILD_DRIVERS?=1
 PROTOCFLAGS:= --proto_path=$(SOURCE_DIR)
+GEMSPEC:=rethinkdb.gemspec
+
 all: driver-ruby
 $(RUBY_PBDIR):
 	$(QUIET) mkdir -p $(RUBY_PBDIR)
@@ -27,6 +29,10 @@ ifeq ($(VERBOSE),0)
 endif
 	$(QUIET) rprotoc $(PROTOCFLAGS) --out $(RUBY_PBDIR) $(PROTOFILE) | \
 		(grep -v 'writing...' || true)
+
+publish: $(GEMSPEC) driver-ruby
+	gem build $(GEMSPEC)
+	gem push rethinkdb-*.gem
 
 clean:
 ifeq ($(VERBOSE),0)
