@@ -10,17 +10,15 @@ module RethinkDB
     # reading a giant table), that has serious performance
     # implications.  Also, if you return an array instead of a stream
     # from a query, the whole thing gets sent over the network at once
-    # instead of lazily consuming chunks.  Also has the shorter alias
-    # <b>+stream_to_array+</b>.  If you have a table <b>+table+</b> with at
+    # instead of lazily consuming chunks.  If you have a table <b>+table+</b> with at
     # least 3 elements, the following are equivalent:
     #   r[[1,1,1]]
-    #   table.limit(3).map{1}.streamtoarray
     #   table.limit(3).map{1}.stream_to_array
     def stream_to_array(); JSON_Expression.new [:call, [:stream_to_array], [self]]; end
   end
 
   # A special case of Stream_Expression that you can write to.  You
-  # will get a Multi_Row_selection from most operations that access
+  # will get a Multi_Row_Selection from most operations that access
   # tables.  For example, consider the following two queries:
   #   q1 = table.filter{|row| row[:id] < 5}
   #   q2 = table.map{|row| row[:id]}
@@ -53,7 +51,7 @@ module RethinkDB
     # Delete all of the selected rows.  For example, if we have
     # a table <b>+table+</b>:
     #   table.filter{|row| row[:id] < 5}.delete
-    # will delete everything with <b>+id+</b> less than 5 in <b>+table+</b>
+    # will delete everything with <b>+id+</b> less than 5 in <b>+table+</b>.
     def delete
       raise_if_outdated
       Write_Query.new [:delete, self]
@@ -61,7 +59,7 @@ module RethinkDB
 
     # Update all of the selected rows.  For example, if we have a table <b>+table+</b>:
     #   table.filter{|row| row[:id] < 5}.update{|row| {:score => row[:score]*2}}
-    # will double the score of everything with <b>+id+</b> less than 4.
+    # will double the score of everything with <b>+id+</b> less than 5.
     # If the object returned in <b>+update+</b> has attributes
     # which are not present in the original row, those attributes will
     # still be added to the new row.
@@ -69,7 +67,7 @@ module RethinkDB
     # If you want to do a non-atomic update, you should pass
     # <b>+:non_atomic+</b> as the optional variant:
     #   table.update(:non_atomic){|row| r.js("...")}
-    # You need to do a non-atomic update when the block provided to mutate can't
+    # You need to do a non-atomic update when the block provided to update can't
     # be proved deterministic (e.g. if it contains javascript or reads from
     # another table).
     def update(variant=nil)
@@ -81,7 +79,7 @@ module RethinkDB
 
     # Replace all of the selected rows.  Unlike <b>+update+</b>, must return the
     # new row rather than an object containing attributes to be updated (may be
-    # combined with RQL::mapmerge to mimic <b>+update+</b>'s behavior).
+    # combined with RQL::merge to mimic <b>+update+</b>'s behavior).
     # May also return <b>+nil+</b> to delete the row.  For example, if we have a
     # table <b>+table+</b>, then:
     #   table.replace{|row| r.if(row[:id] < 5, nil, row)}

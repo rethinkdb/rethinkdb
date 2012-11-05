@@ -14,7 +14,7 @@ module RethinkDB
   #
   # <b>NOTE:</b> unlike most enumerable objects, you can only iterate over Query
   # results once.  The results are fetched lazily from the server in chunks
-  # of 1000.  If you need to access to values multiple times, use the <b>+to_a+</b>
+  # of 1000.  If you need to access values multiple times, use the <b>+to_a+</b>
   # instance method to get an Array, and then work with that.
   class Query_Results
     def out_of_date # :nodoc:
