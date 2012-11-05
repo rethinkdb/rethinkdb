@@ -397,6 +397,7 @@ WEB_ASSETS_OBJ_DIR:=$(BUILD_DIR)/webobj
 #This atrociousness comes from the fact... fuck it blah blah blah coffee script.
 #Basically coffee script can't handle dependencies.
 COFFEE_SOURCES:=$(patsubst %, $(WEB_SOURCE_DIR)/static/coffee/%,\
+			reql_docs.coffee \
 			util.coffee \
 			loading.coffee \
 			body.coffee \

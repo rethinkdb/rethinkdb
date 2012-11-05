@@ -38,6 +38,8 @@ module 'DataExplorerView', ->
             event.preventDefault()
             $(event.currentTarget).parent().slideUp('fast', -> $(this).remove())
 
+
+        ###
         # Map function -> state
         map_state:
             '': ''
@@ -253,12 +255,13 @@ module 'DataExplorerView', ->
             array :['length(', 'limit(', 'run(']
             "" :['r', 'R(']
             expr: ['add(', 'sub(', 'mul(', 'div(', 'mod(', 'eq(', 'ne(', 'lt(', 'le(', 'gt(', 'ge(', 'not(', 'and(', 'or(', 'run(']
+        ###
 
         # Define the height of a line (used for a line is too long)
-        line_height: 13 
+        line_height: 13
         #TODO bind suggestions to keyup so we don't have an extra line when at the end of a line without a next char
-        num_char_per_line: 106 
-        default_num_char_per_line: 106 
+        num_char_per_line: 106
+        default_num_char_per_line: 106
 
         # We have to keep track of a lot of things because web-kit browsers handle the events keydown, keyup, blur etc... in a strange way.
         current_suggestions: []
@@ -993,7 +996,44 @@ module 'DataExplorerView', ->
             @connect
                 reconnecting: true
 
+        map_state:
+            '': ''
+            'r': 'r'
+        suggestions:
+            '': ['r']
+        descriptions:
+            'r':
+                name: 'r'
+                description: 'The main ReQL namespace'
+                
         initialize: (options) =>
+            if not window.r? # If window.r doesn't exist, it's the first time we initialize, let's create the docs
+                #TODO remove the parenthesis from the name
+                for group of reql_docs[0]
+                    for command_name, command_data of reql_docs[0][group]['commands'][0]
+                        @map_state[command_name] = command_data['returns']
+                        @descriptions[command_name+'('] =
+                            name: command_name
+                            args: '( '+command_data['langs']['js']['body']+' )'
+                            description: command_data['description']
+                        parent_name = command_data['parent']
+                        if not @suggestions[parent_name]?
+                            @suggestions[parent_name] = []
+                        @suggestions[parent_name].push(command_name+'(')
+                #Update suggestions ( take care of 'sub classes')
+                # the method of small class will be suggested for big_class too.
+                relations = [
+                    {
+                        small_class: 'stream'
+                        big_class: 'selection'
+                    }
+                ]
+                for relation in relations
+                    small_class = relation.small_class
+                    big_class = relation.big_class
+                    for suggestion in @suggestions[small_class]
+                        @suggestions[big_class].push suggestion
+
             if options?
                 @options = options
 
