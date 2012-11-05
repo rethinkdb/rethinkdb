@@ -51,8 +51,7 @@ void run_metainfo_test() {
 
     standard_serializer_t serializer(
         standard_serializer_t::dynamic_config_t(),
-        io_backender.get(),
-        standard_serializer_t::private_dynamic_config_t(temp_file.name()),
+	&file_opener,
         &get_global_perfmon_collection());
 
     mirrored_cache_static_config_t cache_static_config;

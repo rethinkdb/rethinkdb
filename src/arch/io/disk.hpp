@@ -79,13 +79,13 @@ class linux_file_t;
 
 class linux_file_account_t {
 public:
-    linux_file_account_t(linux_file_t *f, int p, int outstanding_requests_limit = UNLIMITED_OUTSTANDING_REQUESTS);
+    linux_file_account_t(file_t *f, int p, int outstanding_requests_limit = UNLIMITED_OUTSTANDING_REQUESTS);
     ~linux_file_account_t();
     void *get_account() { return account; }
 
 private:
     friend class linux_file_t;
-    linux_file_t *parent;
+    file_t *parent;
     /* account is internally a pointer to a accounting_diskmgr_t::account_t object. It has to be
        a void* because accounting_diskmgr_t is a template, so its actual type depends on what
        IO backend is chosen. */
@@ -119,6 +119,14 @@ public:
     void write_blocking(size_t offset, size_t length, const void *buf);
 
     bool coop_lock_and_check();
+
+    void *create_account(int priority, int outstanding_requests_limit) {
+	return diskmgr->create_account(priority, outstanding_requests_limit);
+    }
+
+    void destroy_account(void *account) {
+	diskmgr->destroy_account(account);
+    }
 
     ~linux_file_t();
 

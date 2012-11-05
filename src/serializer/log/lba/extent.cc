@@ -62,13 +62,13 @@ struct extent_block_t :
     }
 };
 
-extent_t::extent_t(extent_manager_t *_em, direct_file_t *_file)
+extent_t::extent_t(extent_manager_t *_em, file_t *_file)
     : offset(_em->gen_extent()), amount_filled(0), em(_em),
       file(_file), last_block(NULL), current_block(NULL) {
     ++em->stats->pm_serializer_lba_extents;
 }
 
-extent_t::extent_t(extent_manager_t *_em, direct_file_t *_file, off64_t loc, size_t size)
+extent_t::extent_t(extent_manager_t *_em, file_t *_file, off64_t loc, size_t size)
     : offset(loc), amount_filled(size), em(_em), file(_file), last_block(NULL), current_block(NULL)
 {
     em->reserve_extent(offset);

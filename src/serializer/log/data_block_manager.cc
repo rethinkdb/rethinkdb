@@ -73,7 +73,7 @@ void data_block_manager_t::end_reconstruct() {
     gc_state.set_step(gc_ready);
 }
 
-void data_block_manager_t::start_existing(direct_file_t *file, metablock_mixin_t *last_metablock) {
+void data_block_manager_t::start_existing(file_t *file, metablock_mixin_t *last_metablock) {
     rassert(state == state_unstarted);
     dbfile = file;
     gc_io_account_nice.init(new file_account_t(file, GC_IO_PRIORITY_NICE));

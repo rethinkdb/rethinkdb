@@ -33,8 +33,7 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<mem
                                   standard_serializer_t::static_config_t());
 
     serializer.init(new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
-                                              io_backender.get(),
-                                              standard_serializer_t::private_dynamic_config_t(temp_file.name()),
+					      &file_opener,
                                               &get_global_perfmon_collection()));
 
 

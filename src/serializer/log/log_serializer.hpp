@@ -110,7 +110,7 @@ public:
     static void create(serializer_file_opener_t *file_opener, static_config_t static_config);
 
     /* Blocks. */
-    log_serializer_t(dynamic_config_t dynamic_config, io_backender_t *io_backender, private_dynamic_config_t private_dynamic_config, perfmon_collection_t *perfmon_collection);
+    log_serializer_t(dynamic_config_t dynamic_config, serializer_file_opener_t *file_opener, perfmon_collection_t *perfmon_collection);
 
     /* Blocks. */
     virtual ~log_serializer_t();
@@ -220,7 +220,6 @@ private:
     std::vector<serializer_read_ahead_callback_t *> read_ahead_callbacks;
 
     const dynamic_config_t dynamic_config;
-    const private_dynamic_config_t private_config;
     static_config_t static_config;
 
     cond_t *shutdown_callback;
@@ -242,7 +241,7 @@ private:
         state_shut_down
     } state;
 
-    direct_file_t *dbfile;
+    file_t *dbfile;
 
     extent_manager_t *extent_manager;
     mb_manager_t *metablock_manager;

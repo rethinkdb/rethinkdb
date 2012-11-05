@@ -43,15 +43,14 @@ create(serializer_file_opener_t *file_opener, static_config_t static_config) {
 
 template<class inner_serializer_t>
 semantic_checking_serializer_t<inner_serializer_t>::
-semantic_checking_serializer_t(dynamic_config_t config, io_backender_t *io_backender, private_dynamic_config_t private_config, perfmon_collection_t *perfmon_collection)
-    : inner_serializer(config, io_backender, private_config, perfmon_collection),
+semantic_checking_serializer_t(dynamic_config_t config, serializer_file_opener_t *file_opener, perfmon_collection_t *perfmon_collection)
+    : inner_serializer(config, file_opener, perfmon_collection),
       last_index_write_started(0), last_index_write_finished(0),
       semantic_fd(-1)
 {
-    semantic_fd = open(private_config.semantic_filename.c_str(),
-        O_RDWR | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO);
-    if (semantic_fd == INVALID_FD)
-        fail_due_to_user_error("Inaccessible semantic checking file: \"%s\": %s", private_config.semantic_filename.c_str(), strerror(errno));
+    if (!file_opener->open_semantic_checking_file(&semantic_fd)) {
+        fail_due_to_user_error("Inaccessible semantic checking file: \"%s\"", file_opener->file_name().c_str());
+    }
 
     // fill up the blocks from the semantic checking file
     int res = -1;

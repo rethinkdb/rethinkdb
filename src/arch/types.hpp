@@ -99,6 +99,9 @@ public:
     virtual void read_blocking(size_t offset, size_t length, void *buf) = 0;
     virtual void write_blocking(size_t offset, size_t length, const void *buf) = 0;
 
+    virtual void *create_account(int priority, int outstanding_requests_limit) = 0;
+    virtual void destroy_account(void *account) = 0;
+
     virtual bool coop_lock_and_check() = 0;
 };
 

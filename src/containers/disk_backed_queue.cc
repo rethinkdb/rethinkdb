@@ -20,8 +20,7 @@ internal_disk_backed_queue_t::internal_disk_backed_queue_t(io_backender_t *io_ba
                                   standard_serializer_t::static_config_t());
 
     serializer.init(new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
-                                              io_backender,
-                                              standard_serializer_t::private_dynamic_config_t(filename),
+					      &file_opener,
                                               stats_parent));
 
     /* Remove the file we just created from the filesystem, so that it will

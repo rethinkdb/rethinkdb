@@ -116,7 +116,7 @@ public:
     restarting an existing database, call start() with the last metablock. */
 
     static void prepare_initial_metablock(metablock_mixin_t *mb);
-    void start_existing(direct_file_t *dbfile, metablock_mixin_t *last_metablock);
+    void start_existing(file_t *dbfile, metablock_mixin_t *last_metablock);
 
     void read(off64_t off_in, void *buf_out, file_account_t *io_account, iocallback_t *cb);
 
@@ -237,7 +237,7 @@ private:
     extent_manager_t *const extent_manager;
     log_serializer_t *const serializer;
 
-    direct_file_t *dbfile;
+    file_t *dbfile;
     scoped_ptr_t<file_account_t> gc_io_account_nice;
     scoped_ptr_t<file_account_t> gc_io_account_high;
 

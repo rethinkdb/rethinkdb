@@ -55,7 +55,7 @@ public:
         int64_t padding;
     };
 
-    extent_manager_t(direct_file_t *file, const log_serializer_on_disk_static_config_t *static_config, const log_serializer_dynamic_config_t *dynamic_config, log_serializer_stats_t *);
+    extent_manager_t(file_t *file, const log_serializer_on_disk_static_config_t *static_config, const log_serializer_dynamic_config_t *dynamic_config, log_serializer_stats_t *);
     ~extent_manager_t();
 
     /* When we load a database, we use reserve_extent() to inform the extent manager
@@ -98,7 +98,7 @@ private:
     boost::ptr_vector<extent_zone_t> zones;
     int next_zone;    /* Which zone to give the next extent from */
 
-    direct_file_t *const dbfile;
+    file_t *const dbfile;
 
     /* During serializer startup, each component informs the extent manager
     which extents in the file it was using at shutdown. This is the

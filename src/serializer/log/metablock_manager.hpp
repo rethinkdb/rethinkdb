@@ -111,15 +111,15 @@ public:
     static void create(file_t *dbfile, off64_t extent_size, metablock_t *initial);
 
     /* Tries to load existing metablocks */
-    void co_start_existing(direct_file_t *dbfile, bool *mb_found, metablock_t *mb_out);
+    void co_start_existing(file_t *dbfile, bool *mb_found, metablock_t *mb_out);
     struct metablock_read_callback_t {
         virtual void on_metablock_read() = 0;
         virtual ~metablock_read_callback_t() {}
     };
 private:
-    void start_existing_callback(direct_file_t *dbfile, bool *mb_found, metablock_t *mb_out, metablock_read_callback_t *cb);
+    void start_existing_callback(file_t *dbfile, bool *mb_found, metablock_t *mb_out, metablock_read_callback_t *cb);
 public:
-    bool start_existing(direct_file_t *dbfile, bool *mb_found, metablock_t *mb_out, metablock_read_callback_t *cb);
+    bool start_existing(file_t *dbfile, bool *mb_found, metablock_t *mb_out, metablock_read_callback_t *cb);
 
 public:
     struct metablock_write_callback_t {
@@ -168,7 +168,7 @@ private:
         state_shut_down
     } state;
 
-    direct_file_t *dbfile;
+    file_t *dbfile;
 };
 
 #endif /* SERIALIZER_LOG_METABLOCK_MANAGER_HPP_ */

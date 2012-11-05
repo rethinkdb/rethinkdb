@@ -139,17 +139,17 @@ struct ls_start_existing_fsm_t :
     ~ls_start_existing_fsm_t() {
     }
 
-    bool run(cond_t *to_signal, io_backender_t *io_backender) {
+    bool run(cond_t *to_signal, serializer_file_opener_t *file_opener) {
         // STATE A
         rassert(start_existing_state == state_start);
         rassert(ser->state == log_serializer_t::state_unstarted);
         ser->state = log_serializer_t::state_starting_up;
 
-        const char *db_path = ser->private_config.db_filename.c_str();
-        ser->dbfile = new direct_file_t(db_path, direct_file_t::mode_read | direct_file_t::mode_write, io_backender);
-        if (!ser->dbfile->exists()) {
-            crash("Database file \"%s\" does not exist.\n", db_path);
-        }
+	scoped_ptr_t<file_t> dbfile;
+	if (!file_opener->open_serializer_file_existing(&dbfile)) {
+            crash("Database file \"%s\" could not be opened.  (It does not exist?)\n", file_opener->file_name().c_str());
+	}
+        ser->dbfile = dbfile.release();
 
         start_existing_state = state_read_static_header;
         // STATE A above implies STATE B here
@@ -294,7 +294,7 @@ private:
     DISABLE_COPYING(ls_start_existing_fsm_t);
 };
 
-log_serializer_t::log_serializer_t(dynamic_config_t _dynamic_config, io_backender_t *io_backender, private_dynamic_config_t _private_config, perfmon_collection_t *_perfmon_collection)
+log_serializer_t::log_serializer_t(dynamic_config_t _dynamic_config, serializer_file_opener_t *file_opener, perfmon_collection_t *_perfmon_collection)
     : stats(new log_serializer_stats_t(_perfmon_collection)),  // can block in a perfmon_collection_t::add call.
       disk_stats_collection(),
       disk_stats_membership(_perfmon_collection, &disk_stats_collection, "disk"),  // can block in a perfmon_collection_t::add call.
@@ -302,7 +302,6 @@ log_serializer_t::log_serializer_t(dynamic_config_t _dynamic_config, io_backende
       expecting_no_more_tokens(false),
 #endif
       dynamic_config(_dynamic_config),
-      private_config(_private_config),
       shutdown_callback(NULL),
       state(state_unstarted),
       dbfile(NULL),
@@ -316,7 +315,7 @@ log_serializer_t::log_serializer_t(dynamic_config_t _dynamic_config, io_backende
     /* This is because the serializer is not completely converted to coroutines yet. */
     ls_start_existing_fsm_t *s = new ls_start_existing_fsm_t(this);
     cond_t cond;
-    if (!s->run(&cond, io_backender)) cond.wait();
+    if (!s->run(&cond, file_opener)) cond.wait();
 }
 
 log_serializer_t::~log_serializer_t() {

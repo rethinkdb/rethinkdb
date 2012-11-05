@@ -27,8 +27,7 @@ inline standard_serializer_t *create_and_construct_serializer(temp_file_t *temp_
     standard_serializer_t::create(&file_opener,
 				  standard_serializer_t::static_config_t());
     return new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
-				     io_backender,
-				     standard_serializer_t::private_dynamic_config_t(temp_file->name()),
+				     &file_opener,
 				     &get_global_perfmon_collection());
 }
 
