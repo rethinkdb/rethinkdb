@@ -48,10 +48,8 @@ module 'DashboardView', ->
             @cluster_status_redundancy.destroy()
             @cluster_status_reachability.destroy()
             @cluster_status_consistency.destroy()
-
             @cluster_performance.destroy()
 
-    # TODO: dropped RAM and disk distribution in the templates, need to remove support for them here as well
     class @ClusterStatusAvailability extends Backbone.View
         className: 'cluster-status-availability '
 
