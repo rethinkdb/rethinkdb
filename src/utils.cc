@@ -12,9 +12,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
 
 #ifdef VALGRIND
 #include <valgrind/memcheck.h>
@@ -25,6 +22,7 @@
 #include "arch/runtime/runtime.hpp"
 #include "config/args.hpp"
 #include "containers/archive/archive.hpp"
+#include "containers/archive/file_stream.hpp"
 #include "containers/printf_buffer.hpp"
 #include "logger.hpp"
 #include "thread_local.hpp"
@@ -332,10 +330,9 @@ int randint(int n) {
     drand48_data buffer;
     if (!TLS_get_rng_initialized()) {
         long int seed_buffer;
-        int random_fd = open("/dev/urandom", O_RDONLY);
-        guarantee(random_fd != -1, "failed to open /dev/urandom to initialize thread rng");
-        ssize_t readres = read(random_fd, &seed_buffer, sizeof(seed_buffer));
-        guarantee_err(readres == sizeof(seed_buffer), "failed to read from /dev/urandom to initialize thread rng");
+        blocking_read_file_stream_t urandom;
+        guarantee(urandom.init("/dev/urandom"), "failed to open /dev/urandom to initialize thread rng");
+        while (urandom.read(&seed_buffer, sizeof(seed_buffer)) != sizeof(seed_buffer));
         srand48_r(seed_buffer, &buffer);
         TLS_set_rng_initialized(true);
     } else {
