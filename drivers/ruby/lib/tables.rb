@@ -11,10 +11,10 @@ module RethinkDB
 
     # Access the table <b>+name+</b> in this database.  For example:
     #   r.db('test').table('tbl')
-    # May also provide a set of options OPTS.  Right now the only
+    # May also provide a set of options <b>+opts+</b>.  Right now the only
     # useful option is :use_outdated:
     #   r.db('test').table('tbl', {:use_outdated => true})
-    def table(name, opts={}); Table.new(@db_name, name, opts); end
+    def table(name, opts={:use_outdated => false}); Table.new(@db_name, name, opts); end
 
     # Create a new table in this database.  You may also optionally
     # specify the datacenter it should reside in, its primary key, and
@@ -63,7 +63,9 @@ module RethinkDB
     end
 
     attr_accessor :opts
-    # A table named <b>+name+</b> residing in database <b>+db_name+</b>.
+    # A table named <b>+name+</b> residing in database
+    # <b>+db_name+</b>.  Usually you would instead write:
+    #   r.db(db_name).table(name)
     def initialize(db_name, name, opts)
       @db_name = db_name;
       @table_name = name;
@@ -83,7 +85,7 @@ module RethinkDB
     #   table.insert([{:id => 1}, {:id => 1}])
     # Will return something like:
     #   {'inserted' => 1, 'errors' => 1, 'first_error' => ...}
-    # If you want to overwrite a row, you should set <b>+mode+</b> to
+    # If you want to overwrite a row, you should specifiy <b>+mode+</b> to be
     # <b>+:upsert+</b>, like so:
     #   table.insert([{:id => 1}, {:id => 1}], :upsert)
     # which will return:
@@ -99,7 +101,7 @@ module RethinkDB
       Write_Query.new [:insert, [@db_name, @table_name], rows.map{|x| S.r(x)}, do_upsert]
     end
 
-    # Get the row of the invoking table with key <b>+key+</b>.  You may also
+    # Get the row  with key <b>+key+</b>.  You may also
     # optionally specify the name of the attribute to use as your key
     # (<b>+keyname+</b>), but note that your table must be indexed by that
     # attribute.  For example, if we have a table <b>+table+</b>:

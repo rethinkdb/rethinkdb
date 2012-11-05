@@ -153,6 +153,8 @@ void fill_in_blueprints(cluster_semilattice_metadata_t *cluster_metadata,
         if (!it->second.is_deleted()) {
             if (!it->second.get().datacenter.in_conflict()) {
                 machine_assignments[it->first] = it->second.get().datacenter.get();
+            } else {
+                machine_assignments[it->first] = nil_uuid();
             }
         }
     }
