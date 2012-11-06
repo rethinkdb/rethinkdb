@@ -513,6 +513,10 @@ module 'NamespaceView', ->
         submit_replicas_acks: (event) =>
             if @check_replicas_acks() is false
                 return
+            if @sending? and @sending is true
+                return
+            @sending = true
+            @.$('.update-replicas').prop 'disabled', 'disabled'
 
             num_replicas = parseInt @.$('#replicas_value').val()
             num_acks = parseInt @.$('#acks_value').val()
@@ -554,6 +558,8 @@ module 'NamespaceView', ->
                 error: @on_error
 
         on_success_replicas_and_acks: =>
+            @sending = false
+            @.$('.update-replicas').removeProp 'disabled'
             window.collect_progress()
             new_replicas = @model.get 'replica_affinities'
             new_replicas[@datacenter.get('id')] = @data_cached.num_replicas
@@ -584,6 +590,9 @@ module 'NamespaceView', ->
             @.$('.status-alert').hide()
 
         on_error: =>
+            @sending = false
+            @.$('.update-replicas').removeProp 'disabled'
+
             @.$('.replicas_acks-alert').html @replicas_ajax_error_template()
             @.$('.replicas_acks-alert').slideDown 'fast'
 
