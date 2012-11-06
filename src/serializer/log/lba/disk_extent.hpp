@@ -18,7 +18,6 @@ private:
 
 public:
     extent_t *data;
-    // off64_t offset;
     int count;
 
     lba_disk_extent_t(extent_manager_t *_em, file_t *file, file_account_t *io_account);
