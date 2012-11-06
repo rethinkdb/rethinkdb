@@ -849,14 +849,14 @@ $(WEB_ASSETS_BUILD_DIR)/cluster-min.js: nodejstools $(WEB_ASSETS_OBJ_DIR)/cluste
 ifeq ($(VERBOSE),0)
 	@echo "    COFFEE $@"
 endif
-	$(QUIET) coffee -bp --stdio < $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee > $@ || ( echo "      Build failure." ; rm $@ ; false ; )
+	$(QUIET) $(TC_COFFEE_EXE) -bp --stdio < $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee > $@ || ( echo "      Build failure." ; rm $@ ; false ; )
 
 $(WEB_ASSETS_BUILD_DIR)/cluster.css: $(LESS_MAIN)
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
 ifeq ($(VERBOSE),0)
 	@echo "    LESSC $@"
 endif
-	$(QUIET) lessc $(LESS_MAIN) > $@ || ( echo "      Build failure." ; rm $@ ; false ; )
+	$(QUIET) $(TC_LESSC_EXE) $(LESS_MAIN) > $@ || ( echo "      Build failure." ; rm $@ ; false ; )
 
 $(WEB_ASSETS_BUILD_DIR)/index.html: $(CLUSTER_HTML) $(HANDLEBARS_SOURCES)
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
