@@ -125,8 +125,8 @@ else:
                 binary = "../build/debug-valgrind/rethinkdb"
                 web = "../build/debug-valgrind/web"
             else:
-                binary = "../build/release/rethinkdb"
-                web = "../build/release/web"
+                binary = "../build/debug/rethinkdb"
+                web = "../build/debug/web"
 
 
         hostname = socket.gethostname()
