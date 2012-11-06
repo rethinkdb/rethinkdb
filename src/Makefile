@@ -643,6 +643,7 @@ build-deb-src-control:
 				-D "LEGACY_LINUX=$(LEGACY_LINUX)"												\
 				-D "TRIAL=$(TRIAL)"																			\
 				-D "DISK_SIZE=$${disk_size}"														\
+				-D "SOURCEBUILD=1" \
 			../packaging/$(DEBIAN_PKG_DIR)/control > ../debian/control
 
 # Copy the license file.
@@ -692,6 +693,7 @@ build-deb: all prepare_deb_package_dirs
 				-D "LEGACY_LINUX=$(LEGACY_LINUX)"												\
 				-D "TRIAL=$(TRIAL)"																			\
 				-D "DISK_SIZE=$${disk_size}"														\
+				-D "SOURCEBUILD=0" \
 			../packaging/$(DEBIAN_PKG_DIR)/control >$(DEB_CONTROL_ROOT)/control
 
 # Copy the license file.

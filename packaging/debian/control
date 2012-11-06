@@ -6,23 +6,24 @@ dnl   PACKAGE_NAME - package name to be used (e.g. rethinkdb)
 dnl   PACKAGE_VERSION - version string, dashes are fine
 dnl   LEGACY_LINUX - 0 or 1 (specifies which library versions we can use)
 dnl
-Source: rethinkdb
+Source: PACKAGE_NAME
 Section: database
 Priority: optional
 Maintainer: Package Maintainer <packaging@rethinkdb.com>
 Build-Depends: g++, protobuf-compiler, protobuf-c-compiler, libprotobuf-dev, libprotobuf-c0-dev, libboost-dev, libssl-dev, libv8-dev, libboost-program-options-dev, libgoogle-perftools-dev, npm, jsdoc-toolkit, libprotoc-dev, curl, exuberant-ctags, m4, debhelper, fakeroot
 Homepage: http://www.rethinkdb.com
-
-Package: PACKAGE_NAME
+ifelse(SOURCEBUILD, 1, `
+Package: PACKAGE_NAME',`Package: PACKAGE_NAME')
 Version: PACKAGE_VERSION
 Architecture: amd64
 Pre-Depends: adduser (>= 3.40)
 Depends: ifelse(LEGACY_LINUX, 1,
   `libc6 (>= 2.5), libstdc++6 (>= 4.6), libgcc1, libv8-dev (>=3.1)',
   `libc6 (>= 2.10.1), libstdc++6 (>= 4.6), libgcc1, libv8-dev (>=3.1)')
-Breaks: PACKAGE_NAME (< PACKAGE_VERSION)
-Conflicts: PACKAGE_NAME (< PACKAGE_VERSION)
+Breaks: PACKAGE_NAME (<< PACKAGE_VERSION)
+Conflicts: PACKAGE_NAME (<< PACKAGE_VERSION)
 Provides: PACKAGE_NAME
+ifelse(SOURCEBUILD, 1, `', `Installed-Size: DISK_SIZE')
 Description: RethinkDB supports replication, sharding, and powerful queries via its JavaScript, Python, and Ruby bindings.
 
 
