@@ -10,7 +10,7 @@ Source: rethinkdb
 Section: database
 Priority: optional
 Maintainer: Package Maintainer <packaging@rethinkdb.com>
-Build-Depends: g++, protobuf-compiler, protobuf-c-compiler, libprotobuf-dev, libprotobuf-c0-dev, libboost-dev, libssl-dev, libv8-dev, libboost-program-options-dev, libgoogle-perftools-dev, npm, jsdoc-toolkit, libprotoc-dev, curl, exuberant-ctags, m4, dh
+Build-Depends: g++, protobuf-compiler, protobuf-c-compiler, libprotobuf-dev, libprotobuf-c0-dev, libboost-dev, libssl-dev, libv8-dev, libboost-program-options-dev, libgoogle-perftools-dev, npm, jsdoc-toolkit, libprotoc-dev, curl, exuberant-ctags, m4, debhelper
 Homepage: http://www.rethinkdb.com
 
 Package: PACKAGE_NAME
