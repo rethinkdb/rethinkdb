@@ -129,7 +129,7 @@ or Hash)."
     # JSON_Expression for convenience.  The following are equivalent:
     #   r.not(true)
     #   r(true).not
-    def self.not(pred); JSON_Expression.new [:call, [:not], [S.r pred]]; end
+    def self.not(pred); JSON_Expression.new [:call, [:not], [S.r(pred)]]; end
 
     # Add two or more numbers together.  May also be called as if it
     # were a instance method of JSON_Expression for convenience, and
