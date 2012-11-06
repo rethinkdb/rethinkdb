@@ -57,8 +57,15 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
 #ifdef NDEBUG
                 {
                     boost::optional<std::string> content_type = req.find_header_line("Content-Type");
-                    if (!content_type || content_type.get() != "application/json") {
-                        logINF("Bad request, Content-Type should be application/json.");
+                    const std::string expected_content_type = "application/json";
+                    // Only compare the beginning of the content-type. Some browsers may add additional
+                    // information, and e.g. send "application/json; charset=UTF-8"
+                    std::string actual_content_type; 
+                    if (content_type) {
+                        actual_content_type = content_type->substr(0, expected_content_type.length());
+                    }
+                    if (!content_type || actual_content_type != expected_content_type) {
+                        logINF("Bad request, Content-Type should be application/json, but is %s.", content_type.get().c_str());
                         return http_res_t(HTTP_UNSUPPORTED_MEDIA_TYPE);
                     }
                 }
@@ -116,8 +123,15 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
 #ifdef NDEBUG
                 {
                     boost::optional<std::string> content_type = req.find_header_line("Content-Type");
-                    if (!content_type || content_type.get() != "application/json") {
-                        logINF("Bad request, Content-Type should be application/json.");
+                    const std::string expected_content_type = "application/json";
+                    // Only compare the beginning of the content-type. Some browsers may add additional
+                    // information, and e.g. send "application/json; charset=UTF-8"
+                    std::string actual_content_type; 
+                    if (content_type) {
+                        actual_content_type = content_type->substr(0, expected_content_type.length());
+                    }
+                    if (!content_type || actual_content_type != expected_content_type) {
+                        logINF("Bad request, Content-Type should be application/json, but is %s.", content_type.get().c_str());
                         return http_res_t(HTTP_UNSUPPORTED_MEDIA_TYPE);
                     }
                 }
