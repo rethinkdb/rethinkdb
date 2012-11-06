@@ -120,6 +120,10 @@ module 'NamespaceView', ->
             if event?
                 event.preventDefault()
             if @check_shards_changes() is true
+                if @sending? and @sending is true
+                    return ''
+                @sending = true
+                @.$('.rebalance').prop 'disabled', 'disabled'
 
                 @empty_master_pin = {}
                 @empty_replica_pins = {}
@@ -158,6 +162,9 @@ module 'NamespaceView', ->
                      error: @on_error
 
         on_success: =>
+            @sending = false
+            @.$('.rebalance').removeProp 'disabled'
+
             @model.set 'shards', @shard_set
             @model.set 'primary_pinnings', @empty_master_pin
             @model.set 'secondary_pinnings', @empty_replica_pins
@@ -181,7 +188,9 @@ module 'NamespaceView', ->
 
 
         on_error: =>
+            @sending = false
             @.$('.rebalance').removeProp 'disabled'
+
 
             @display_msg @error_ajax_template()
 
