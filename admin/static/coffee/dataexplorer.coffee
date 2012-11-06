@@ -996,6 +996,8 @@ module 'DataExplorerView', ->
             @connect
                 reconnecting: true
 
+
+        # These 3 objects in prototype will be extended once with the data in reql_docs.coffee
         map_state:
             '': ''
             'r': 'r'
@@ -1005,6 +1007,8 @@ module 'DataExplorerView', ->
             'r':
                 name: 'r'
                 description: 'The main ReQL namespace'
+
+        # Relations between state (for instance all suggestions for a stream must be included in the suggestions for a selection
         relations: []
         ###
         [
@@ -1033,6 +1037,7 @@ module 'DataExplorerView', ->
                         if not @suggestions[parent_name]?
                             @suggestions[parent_name] = []
                         @suggestions[parent_name].push(command_name+'(')
+
                 #Update suggestions ( take care of 'sub classes')
                 # the method of small class will be suggested for big_class too.
                 for relation in @relations
