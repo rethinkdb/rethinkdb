@@ -23,7 +23,7 @@ Depends: ifelse(LEGACY_LINUX, 1,
 Build-Depends: g++ protobuf-compiler protobuf-c-compiler libprotobuf-dev libprotobuf-c0-dev libboost-dev libssl-dev libv8-dev libboost-program-options-dev libgoogle-perftools-dev npm jsdoc-toolkit libprotoc-dev curl exuberant-ctags m4
 Replaces: ifelse(TRIAL, 0, `VERSIONED_TRIAL_PACKAGE_NAME (<= PACKAGE_VERSION)')
 Conflicts: ifelse(TRIAL, 0, `VERSIONED_TRIAL_PACKAGE_NAME (<= PACKAGE_VERSION)')
-Provides: VANILLA_PACKAGE_NAME, memcached
+Provides: VANILLA_PACKAGE_NAME
 Section: database
 Priority: optional
 Homepage: http://rethinkdb.com/
