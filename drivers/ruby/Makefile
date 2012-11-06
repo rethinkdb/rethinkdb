@@ -34,7 +34,7 @@ $(RUBY_PBDIR):
 driver-ruby: $(RUBY_PBDIR)/$(RUBY_PBFILE)
 PROTOFILE:=$(SOURCE_DIR)/rdb_protocol/query_language.proto
 PROTOPATH:=$(SOURCE_DIR)/rdb_protocol
-$(RUBY_PBDIR)/$(RUBY_PBFILE): $(RUBY_PBDIR) $(PROTOFILE)
+$(RUBY_PBDIR)/$(RUBY_PBFILE): $(RUBY_PBDIR) $(PROTOFILE) $(TC_RPROTOC_EXE)
 ifeq ($(VERBOSE),0)
 	@echo "    PROTOC[RB] $(PROTOFILE)"
 endif
