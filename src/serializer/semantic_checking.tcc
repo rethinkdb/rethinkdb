@@ -1,9 +1,5 @@
 #include "serializer/semantic_checking.hpp"
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-
 #include <vector>
 
 #include "serializer/semantic_checking_internal.hpp"

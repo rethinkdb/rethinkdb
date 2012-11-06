@@ -2,9 +2,6 @@
 #ifndef SERIALIZER_SEMANTIC_CHECKING_HPP_
 #define SERIALIZER_SEMANTIC_CHECKING_HPP_
 
-#include <sys/types.h>
-#include <sys/stat.h>
-
 #include <set>
 #include <string>
 #include <vector>
