@@ -27,6 +27,7 @@ Provides: VANILLA_PACKAGE_NAME
 Section: database
 Priority: optional
 Homepage: http://rethinkdb.com/
+Source: rethinkdb
 Description: ifelse(SOLO, 1,
 `RethinkDB is a highly scalable non-SQL database.
  It supports replication, sharding, and powerful queries via its JavaScript, Python, and Ruby bindings.',
