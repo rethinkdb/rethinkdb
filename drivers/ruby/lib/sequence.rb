@@ -8,10 +8,10 @@ module RethinkDB
     # For each element of the sequence, execute 1 or more write queries (to
     # execute more than 1, yield a list of write queries in the block).  For
     # example:
-    #   table.foreach{|row| [table2.get(row[:id]).delete, table3.insert(row)]}
-    # will, for each row in <b>+table+</b>, delete the row that shares that id
+    #   table.for_each{|row| [table2.get(row[:id]).delete, table3.insert(row)]}
+    # will, for each row in <b>+table+</b>, delete the row that shares its id
     # in <b>+table2+</b> and insert the row into <b>+table3+</b>.
-    def foreach
+    def for_each
       S.with_var { |vname,v|
         queries = yield(v)
         queries = [queries] if queries.class != Array
@@ -35,7 +35,7 @@ module RethinkDB
     #   people.filter({:name => 'Bob', :age => 50})
     # Note that the values of attributes may themselves be queries.  For
     # instance, here is a query that matches anyone whose age is double their height:
-    #   people.filter({:age => r.mul(:height, 2)})
+    #   people.filter({:age => r.mul(2, 3)})
     def filter(obj=nil)
       if obj
         if obj.class == Hash         then self.filter { |row|
@@ -53,9 +53,9 @@ module RethinkDB
     # provided block should take a single variable, an element in the sequence, and
     # return a list of elements to include in the resulting sequence.  If you have a
     # table <b>+table+</b>, the following are all equivalent:
-    #   table.concatmap {|row| [row[:id], row[:id]*2]}
+    #   table.concat_map {|row| [row[:id], row[:id]*2]}
     #   table.map{|row| [row[:id], row[:id]*2]}.reduce([]){|a,b| r.union(a,b)}
-    def concatmap
+    def concat_map
       S.with_var { |vname,v|
         self.class.new [:call, [:concatmap, vname, S.r(yield(v))], [self]]}
     end
@@ -68,7 +68,6 @@ module RethinkDB
     # unbounded.  For example, if we have a table <b>+table+</b>, these are
     # equivalent:
     #   r.between(table, 3, 7)
-    #   table.between(3,7)
     #   table.filter{|row| (row[:id] >= 3) & (row[:id] <= 7)}
     # as are these:
     #   table.between(nil,7,:index)
@@ -76,7 +75,7 @@ module RethinkDB
     def between(start_key, end_key, keyname=:id)
       start_key = S.r(start_key || S.skip)
       end_key = S.r(end_key || S.skip)
-      self.class.new [:call, [:range, keyname, start_key, end_key], [self]]
+      self.class.new [:call, [:between, keyname, start_key, end_key], [self]]
     end
 
     # Map a function over a sequence.  The provided block should take
@@ -89,21 +88,23 @@ module RethinkDB
     end
 
     # For each element of a sequence, picks out the specified
-    # attributes from the object and returns only those.
-    # If the input is not an array, fails when the query is run.
-    #   expr([{ 'a' => 1, 'b' => 1, 'c' => 1},
-    #         { 'a' => 2, 'b' => 2, 'c' => 2}]).pluck('a', 'b').run()
-    #   [{ 'a' => 1, 'b' => 1 }, { 'a' => 2, 'b' => 2 }]
+    # attributes from the object and returns only those.  If the input
+    # is not an array, fails when the query is run.  The folling are
+    # equivalent:
+    #   r([{:a => 1, :b => 1, :c => 1},
+    #      {:a => 2, :b => 2, :c => 2}]).pluck('a', 'b')
+    #   r([{:a => 1, :b => 1}, {:a => 2, :b => 2}])
     def pluck(*args)
       self.map {|x| x.pick(*args)}
     end
 
     # For each element of a sequence, picks out the specified
-    # attributes from the object and returns the residual object.
-    # If the input is not an array, fails when the query is run.
-    #   expr([{ 'a' => 1, 'b' => 1, 'c' => 1},
-    #         { 'a' => 2, 'b' => 2, 'c' => 2}]).without('a', 'b').run()
-    #   [{ 'c' => 1 }, { 'c' => 2 }]
+    # attributes from the object and returns the residual object.  If
+    # the input is not an array, fails when the query is run.  The
+    # following are equivalent:
+    #   r([{:a => 1, :b => 1, :c => 1},
+    #      {:a => 2, :b => 2, :c => 2}]).without('a', 'b')
+    #   r([{:c => 1}, {:c => 2}])
     def without(*args)
       self.map {|x| x.unpick(*args)}
     end
@@ -111,14 +112,14 @@ module RethinkDB
     # Order a sequence of objects by one or more attributes.  For
     # example, to sort first by name and then by social security
     # number for the table <b>+people+</b>, you could do:
-    #   people.orderby(:name, :ssn)
+    #   people.order_by(:name, :ssn)
     # In place of an attribute name, you may provide a tuple of an attribute
     # name and a boolean specifying whether to sort in ascending order (which is
     # the default).  For example:
-    #   people.orderby([:name, false], :ssn)
+    #   people.order_by([:name, false], :ssn)
     # will sort first by name in descending order, and then by ssn in ascending
     # order.
-    def orderby(*orderings)
+    def order_by(*orderings)
       orderings.map!{|x| x.class == Array ? x : [x, true]}
       self.class.new [:call, [:orderby, *orderings], [self]]
     end
@@ -128,11 +129,11 @@ module RethinkDB
     # arguments, just like Ruby's reduce.  For example, if we have a table
     # <b>+table+</b>, the following will add up the <b>+count+</b> attribute of
     # all the rows:
-    #   table.map{|row| row[:count]}.reduce(0) {|a,b| a+b}
+    #   table.map{|row| row[:count]}.reduce(0){|a,b| a+b}
     # <b>NOTE:</b> unlike Ruby's reduce, this reduce only works on
     # sequences with elements of the same type as the base case.  For
     # example, the following is incorrect:
-    #   table.reduce(0){|a,b| a + b[:count]}
+    #   table.reduce(0){|a,b| a + b[:count]} # INCORRECT
     # because the base case is a number but the sequence contains
     # objects.  RQL reduce has this limitation so that it can be
     # distributed across shards efficiently.
@@ -150,16 +151,16 @@ module RethinkDB
     # 3. Reduce the groups with <b>+base+</b> and <b>+reduction+</b>.  Base should be the base term of the reduction, and <b>+reduction+</b> should be a callable that behaves the same as the block passed to Sequence#reduce.
     #
     # For example, the following are equivalent:
-    #   table.groupedmapreduce(lambda {|row| row[:id] % 4},
-    #                          lambda {|row| row[:id]},
-    #                          0,
-    #                          lambda {|a,b| a+b})
-    #   r[[0,1,2,3]].map {|n|
+    #   table.grouped_map_reduce(lambda {|row| row[:id] % 4},
+    #                            lambda {|row| row[:id]},
+    #                            0,
+    #                            lambda {|a,b| a+b})
+    #   r([0,1,2,3]).map {|n|
     #     table.filter{|row| row[:id].eq(n)}.map{|row| row[:id]}.reduce(0){|a,b| a+b}
     #   }
     # Groupedmapreduce is more efficient than the second form because
     # it only has to traverse <b>+table+</b> once.
-    def groupedmapreduce(grouping, mapping, base, reduction)
+    def grouped_map_reduce(grouping, mapping, base, reduction)
       grouping_term = S.with_var{|vname,v| [vname, S.r(grouping.call(v))]}
       mapping_term = S.with_var{|vname,v| [vname, S.r(mapping.call(v))]}
       reduction_term = S.with_var {|aname, a| S.with_var {|bname, b|
@@ -173,14 +174,14 @@ module RethinkDB
 
     # Group a sequence by one or more attributes and return some data about each
     # group.  For example, if you have a table <b>+people+</b>:
-    #   people.groupby(:name, :town, r.count).filter{|row| row[:reduction] > 1}
+    #   people.group_by(:name, :town, r.count).filter{|row| row[:reduction] > 1}
     # Will find all cases where two people in the same town share a name, and
     # return a list of those name/town pairs along with the number of people who
     # share that name in that town.  You can find a list of builtin data
     # collectors at Data_Collectors (which will also show you how to
     # define your own).
-    def groupby(*args)
-      raise ArgumentError,"groupby requires at least one argument" if args.length < 1
+    def group_by(*args)
+      raise ArgumentError,"group_by requires at least one argument" if args.length < 1
       attrs, opts = args[0..-2], args[-1]
       S.check_opts(opts, [:mapping, :base, :reduction, :finalizer])
       map = opts.has_key?(:mapping) ? opts[:mapping] : lambda {|row| row}
@@ -190,7 +191,7 @@ module RethinkDB
       base = opts[:base]
       reduction = opts[:reduction]
 
-      gmr = self.groupedmapreduce(lambda{|r| attrs.map{|a| r[a]}}, map, base, reduction)
+      gmr = self.grouped_map_reduce(lambda{|r| attrs.map{|a| r[a]}}, map, base, reduction)
       if (f = opts[:finalizer])
         gmr = gmr.map{|group| group.merge({:reduction => f.call(group[:reduction])})}
       end
@@ -199,16 +200,16 @@ module RethinkDB
 
     # Gets one or more elements from the sequence, much like [] in Ruby.
     # The following are all equivalent:
-    #   r[[1,2,3]]
-    #   r[[0,1,2,3]][1...4]
-    #   r[[0,1,2,3]][1..3]
-    #   r[[0,1,2,3]][1..-1]
+    #   r([1,2,3])
+    #   r([0,1,2,3])[1...4]
+    #   r([0,1,2,3])[1..3]
+    #   r([0,1,2,3])[1..-1]
     # As are:
-    #   r[1]
-    #   r[[0,1,2]][1]
+    #   r(1)
+    #   r([0,1,2])[1]
     # And:
-    #   r[2]
-    #   r[{:a => 2}][:a]
+    #   r(2)
+    #   r({:a => 2})[:a]
     # <b>NOTE:</b> If you are slicing an array, you can provide any negative index you
     # want, but if you're slicing a stream then for efficiency reasons the only
     # allowable negative index is '-1', and you must be using a closed range
@@ -229,15 +230,15 @@ module RethinkDB
 
     # Return at most <b>+n+</b> elements from the sequence.  The
     # following are equivalent:
-    #   r[[1,2,3]]
-    #   r[[1,2,3,4]].limit(3)
-    #   r[[1,2,3,4]][0...3]
+    #   r([1,2,3])
+    #   r([1,2,3,4]).limit(3)
+    #   r([1,2,3,4])[0...3]
     def limit(n); self[0...n]; end
 
     # Skip the first <b>+n+</b> elements of the sequence.  The following are equivalent:
-    #   r[[2,3,4]]
-    #   r[[1,2,3,4]].skip(1)
-    #   r[[1,2,3,4]][1..-1]
+    #   r([2,3,4])
+    #   r([1,2,3,4]).skip(1)
+    #   r([1,2,3,4])[1..-1]
     def skip(n); self[n..-1]; end
 
     # Removes duplicate values from the sequence (similar to the *nix
@@ -250,11 +251,11 @@ module RethinkDB
     #   table.map{|row| row[:id]}.distinct
     #   table.distinct(:id)
     # As are:
-    #   r[[1,2,3]]
-    #   r[[1,2,3,1]].distinct
+    #   r([1,2,3])
+    #   r([1,2,3,1]).distinct
     # And:
-    #   r[[1,2]]
-    #   r[[{:x => 1}, {:x => 2}, {:x => 1}]].distinct(:x)
+    #   r([1,2])
+    #   r([{:x => 1}, {:x => 2}, {:x => 1}]).distinct(:x)
     def distinct(attr=nil);
       if attr then self.map{|row| row[attr]}.distinct
               else self.class.new [:call, [:distinct], [self]];
@@ -265,13 +266,13 @@ module RethinkDB
     # <b>+table+</b> with at least 5 elements, the following are
     # equivalent:
     #   table[0...5].count
-    #   r[[1,2,3,4,5]].count
-    def count(); JSON_Expression.new [:call, [:length], [self]]; end
+    #   r([1,2,3,4,5]).count
+    def count(); JSON_Expression.new [:call, [:count], [self]]; end
 
     # Get element <b>+n+</b> of the sequence.  For example, the following are
     # equivalent:
-    #   r[2]
-    #   r[[0,1,2,3]].nth(2)
+    #   r(2)
+    #   r([0,1,2,3]).nth(2)
     # (Note the 0-indexing.)
     def nth(n)
       JSON_Expression.new [:call, [:nth], [self, S.r(n)]]
@@ -281,14 +282,14 @@ module RethinkDB
     # block.  The block you provide should accept two tows and return
     # <b>+true+</b> if they should be joined or <b>+false+</b> otherwise.  For
     # example:
-    #   table1.innerjoin(table2) {|row1, row2| row1[:attr1] > row2[:attr2]}
+    #   table1.inner_join(table2) {|row1, row2| row1[:attr1] > row2[:attr2]}
     # Note that we don't merge the two tables when you do this.  The output will
     # be a list of objects like:
     #   {'left' => ..., 'right' => ...}
     # You can use Sequence#zip to get back a list of merged rows.
-    def innerjoin(other)
-        self.concatmap {|row|
-            other.concatmap {|row2|
+    def inner_join(other)
+        self.concat_map {|row|
+            other.concat_map {|row2|
                 RQL.branch(yield(row, row2), [{:left => row, :right => row2}], [])
             }
         }
@@ -299,14 +300,15 @@ module RethinkDB
     # block.  The block you provide should accept two tows and return
     # <b>+true+</b> if they should be joined or <b>+false+</b> otherwise.  For
     # example:
-    #   table1.outerjoin(table2) {|row1, row2| row1[:attr1] > row2[:attr2]}
+    #   table1.outer_join(table2) {|row1, row2| row1[:attr1] > row2[:attr2]}
     # Note that we don't merge the two tables when you do this.  The output will
     # be a list of objects like:
     #   {'left' => ..., 'right' => ...}
-    def outerjoin(other)
+    # You can use Sequence#zip to get back a list of merged rows.
+    def outer_join(other)
       S.with_var {|vname, v|
-        self.concatmap {|row|
-          RQL.let({vname => other.concatmap {|row2|
+        self.concat_map {|row|
+          RQL.let({vname => other.concat_map {|row2|
                       RQL.branch(yield(row, row2),
                              [{:left => row, :right => row2}],
                              [])}.to_array}) {
@@ -316,16 +318,16 @@ module RethinkDB
       }
     end
 
-    # A special case of Sequence#innerjoin that is guaranteed to run in
-    # O(nlog(n)) time.  It does equality comparison between <b>+leftattr+</b> of
+    # A special case of Sequence#inner_join that is guaranteed to run in
+    # O(n*log(n)) time.  It does equality comparison between <b>+leftattr+</b> of
     # the invoking stream and the primary key of the <b>+other+</b> stream.  For
     # example, the following are equivalent (if <b>+id+</b> is the primary key
     # of <b>+table2+</b>):
     #   table1.eq_join(:a, table2)
-    #   table2.innerjoin(table2) {|row1, row2| r.eq row1[:a],row2[:id]}
+    #   table2.inner_join(table2) {|row1, row2| r.eq row1[:a],row2[:id]}
     def eq_join(leftattr, other)
       S.with_var {|vname, v|
-        self.concatmap {|row|
+        self.concat_map {|row|
           RQL.let({vname => other.get(row[leftattr])}) {
             RQL.branch(v.ne(nil), [{:left => row, :right => v}], [])
           }
@@ -333,7 +335,7 @@ module RethinkDB
       }
     end
 
-    # Take the output of Sequence#innerjoin, Sequence#outerjoin, or
+    # Take the output of Sequence#inner_join, Sequence#outer_join, or
     # Sequence#eq_join and merge the results together.  The following are
     # equivalent:
     #   table1.eq_join(:id, table2).zip

@@ -32,6 +32,7 @@ void check_namespaces_for_protocol(
             check("namespace", it->first, "primary_pinnings", it->second.get().primary_pinnings, out);
             check("namespace", it->first, "secondary_pinnings", it->second.get().secondary_pinnings, out);
             check("namespace", it->first, "database", it->second.get().database, out);
+            check("namespace", it->first, "cache_size", it->second.get().cache_size, out);
         }
     }
 }

@@ -1,0 +1,27 @@
+<script id="progressbar-template" type="text/x-handlebars-template">
+    {{#if operation_active}}
+        <div class="progress">
+            <div class="stages">
+                {{#if starting}}
+                    <p>Started</p>
+                {{/if}}
+                {{#if processing}}
+                    <p class="completed">Started</p>
+                    <p>Processing</p>
+                {{/if}}
+                {{#if finished}}
+                    <p class="completed">Started</p>
+                    <p class="completed">Processed</p>
+                {{/if}}
+            </div>
+            {{#if starting}}
+                <p>0/{{new_value}} completed</p>
+            {{else}}
+                <p>{{current_value}}/{{max_value}} completed</p>
+            {{/if}}
+            <div class="progress"><div class="bar" style="width:{{#if starting}}0{{else}}{{percent_complete}}{{/if}}%"></div></div>
+        </div>
+    {{else}}
+        <p><span class="big">{{current_value}}/{{max_value}}</span> reachable</p>
+    {{/if}}
+</script>

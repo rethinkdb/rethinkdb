@@ -66,6 +66,8 @@ endif
 # Set SYMBOLS to 1 to enable symbols, even in release mode
 SYMBOLS?=0
 
+STATICFORCE?=0
+
 ifeq ($(GPERF),1)
 DEBUG=0
 NO_TCMALLOC:=1
@@ -122,18 +124,36 @@ CXX:=icc
 endif
 endif
 
+
+
 ifeq ($(COMPILER),CLANG)
-LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -lstdc++ -lm -lv8 -lcrypto
-else
-ifeq ($(COMPILER),INTEL)
-LDFLAGS:= -B/opt/intel/bin -pthread -lrt -lstdc++ -lv8 -lcrypto
-else
-# GCC
-LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -lv8 -lcrypto
-endif
-endif
+LDFLAGS:=-Wl,--no-as-needed 
 ifeq ($(STATICFORCE),1)
 LDFLAGS+= -static
+STATIC_LIBGCC=1
+endif
+LDFLAGS+=-pthread -lrt -lstdc++ -lm -lv8
+else
+ifeq ($(COMPILER),INTEL)
+LDFLAGS:= -B/opt/intel/bin 
+ifeq ($(STATICFORCE),1)
+LDFLAGS+= -static
+STATIC_LIBGCC=1
+endif
+LDFLAGS+=-pthread -lrt -lstdc++ -lv8 
+else
+# GCC
+LDFLAGS:=-Wl,--no-as-needed 
+ifeq ($(STATICFORCE),1)
+LDFLAGS+= -static
+STATIC_LIBGCC=1
+endif
+LDFLAGS+=-pthread -lrt -lv8
+endif
+endif
+
+ifeq ($(LIBCRYPTO),1)
+LDFLAGS+=-lcrypto 
 endif
 
 STATIC_LIBRARIES:=boost_serialization protobuf boost_program_options
@@ -400,7 +420,7 @@ COFFEE_SOURCES:=$(patsubst %, $(WEB_SOURCE_DIR)/static/coffee/%,\
 			util.coffee \
 			loading.coffee \
 			body.coffee \
-			ui_components/modals.coffee ui_components/list.coffee \
+			ui_components/modals.coffee ui_components/list.coffee ui_components/progressbar.coffee \
 			namespaces/database.coffee \
 			namespaces/index.coffee namespaces/replicas.coffee namespaces/shards.coffee namespaces/server_assignments.coffee namespaces/namespace.coffee \
 			servers/index.coffee servers/machine.coffee servers/datacenter.coffee \
@@ -441,6 +461,23 @@ SERVER_EXEC_NAME_VERSIONED:=$(SERVER_EXEC_NAME)-$(RETHINKDB_SHORT_VERSION)
 else
 # update-alternatives breaks if we ditch the distinguishing mark .
 SERVER_EXEC_NAME_VERSIONED:=$(SERVER_EXEC_NAME)-$(RETHINKDB_SHORT_VERSION)
+endif
+
+AUTOCHAIN?=0
+ifeq ($(AUTOCHAIN),1)
+ifeq ($(shell which lessc || true),"")
+TC_LESSC_EXE:=$(BUILD_DIR)/toolchain/node_modules/less/bin/lessc	
+else
+TC_LESSC_EXE:=$(shell which lessc || true)
+endif
+ifeq ($(shell which coffee || true),"")
+TC_COFFEE_EXE:=$(BUILD_DIR)/toolchain/node_modules/less/bin/coffee	
+else
+TC_COFFEE_EXE:=$(shell which coffee || true)
+endif
+else
+TC_LESSC_EXE:=$(shell which lessc || true)
+TC_COFFEE_EXE:=$(shell which coffee || true)
 endif
 
 ##### Build targets
@@ -590,6 +627,7 @@ install-deb: install
 		gzip -c9 | \
 		install -m644 -T /dev/stdin $(DESTDIR)$(doc_dir)/changelog.Debian.gz
 
+DebianV8Version:=$(shell apt-cache show libv8-dev | grep '^Version:' | sed -e 's/^Version: \\([0-9]*\\(\\.[0-9]*\\)*\\).*$$/\\1/g' || true ; )
 
 build-deb: all prepare_deb_package_dirs
 	@echo
@@ -606,8 +644,6 @@ build-deb: all prepare_deb_package_dirs
 
 # List configuration files in conffiles
 	$(QUIET) find $(DEB_PACKAGE_DIR) -type f -printf "/%P\n" | (grep '^/etc/' | grep -v '^/etc/init\.d' || true) > $(DEB_CONTROL_ROOT)/conffiles
-
-	DebianV8Version=$(shell apt-cache show libv8-dev | grep '^Version:' | sed -e 's/^Version: \([0-9]*\(\.[0-9]*\)*\).*$/\1/g' || true ; )
 
 # Copy {pre,post}{inst,rm} scripts
 	$(QUIET) for script in preinst postinst prerm postrm; do		                  		\
@@ -808,19 +844,19 @@ ifeq ($(VERBOSE),0)
 endif
 	$(QUIET) cat $+ > $@ || ( echo "      Build failure." ; rm $@ ; false ; )
 
-$(WEB_ASSETS_BUILD_DIR)/cluster-min.js: $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee
+$(WEB_ASSETS_BUILD_DIR)/cluster-min.js: $(TC_COFFEE_EXE) $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
 ifeq ($(VERBOSE),0)
 	@echo "    COFFEE $@"
 endif
-	$(QUIET) coffee -bp --stdio < $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee > $@ || ( echo "      Build failure." ; rm $@ ; false ; )
+	$(QUIET) $(TC_COFFEE_EXE) -bp --stdio < $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee > $@ || ( echo "      Build failure." ; rm $@ ; false ; )
 
-$(WEB_ASSETS_BUILD_DIR)/cluster.css: $(LESS_MAIN)
+$(WEB_ASSETS_BUILD_DIR)/cluster.css: $(LESS_MAIN) $(TC_LESSC_EXE)
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
 ifeq ($(VERBOSE),0)
 	@echo "    LESSC $@"
 endif
-	$(QUIET) lessc $(LESS_MAIN) > $@ || ( echo "      Build failure." ; rm $@ ; false ; )
+	$(QUIET) $(TC_LESSC_EXE) $(LESS_MAIN) > $@ || ( echo "      Build failure." ; rm $@ ; false ; )
 
 $(WEB_ASSETS_BUILD_DIR)/index.html: $(CLUSTER_HTML) $(HANDLEBARS_SOURCES)
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
@@ -1033,3 +1069,24 @@ NO_DEPS_TARGETS:=clean depclean tags etags analyze cscope style $(OPROF_TARGETS)
 ifneq (,$(if $(MAKECMDGOALS),$(filter-out $(NO_DEPS_TARGETS),$(MAKECMDGOALS)),non-empty-placeholder))
 -include $(DEPS)
 endif
+
+# JavaScript tools from node.js
+
+# Note that this assumes that its locations match those earlier in the Makefile. If you change TC_LESSC_EXE, you probably ought to change these as well .
+
+$(TC_LESSC_EXE): $(BUILD_DIR)
+ifeq ($(AUTOCHAIN),1)
+ifeq ($(shell npm list --global --parseable | grep '\/less$'),"")
+	if [ -d $(BUILD_DIR) ] && [ ! -e $(BUILD_DIR)/toolchain ] ; then mkdir -p $(BUILD_DIR)/toolchain ; fi ;
+	cd $(BUILD_DIR)/toolchain ; npm install less ;
+endif
+endif
+
+$(TC_COFFEE_EXE): $(BUILD_DIR)
+ifeq ($(AUTOCHAIN),1)
+ifeq ($(shell npm list --global --parseable | grep '\/coffee-script$'),"")
+	if [ -d $(BUILD_DIR) ] && [ ! -e $(BUILD_DIR)/toolchain ] ; then mkdir -p $(BUILD_DIR)/toolchain ; fi ;
+	cd $(BUILD_DIR)/toolchain ; npm install coffee-script ;
+endif
+endif
+

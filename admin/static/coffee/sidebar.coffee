@@ -40,13 +40,14 @@ module 'Sidebar', ->
             @.$('.issues').html @issues.render().el
             @.$('.issues-banner').html @issues_banner.render().el
 
+            @.$('.all-issues').html @all_issues.render().$el
             return @
 
         # Change the state of the issue banner and show / hide the issue list based on state
         toggle_showing_issues: =>
             @showing_all_issues = not @showing_all_issues
             if @showing_all_issues
-                @.$('.all-issues').html(@all_issues.render().el).show()
+                @.$('.all-issues').show()
             else
                 @.$('.all-issues').hide()
 
@@ -207,51 +208,20 @@ module 'Sidebar', ->
         initialize: =>
             issues.on 'all', @render
             @showing_issues = false
+            @data = {}
 
         render: =>
-            # Group critical issues by type
-            critical_issues = issues.filter (issue) -> issue.get('critical')
-            critical_issues = _.groupBy critical_issues, (issue) -> issue.get('type')
-
-            # Get a list of all other issues (non-critical)
-            other_issues = issues.filter (issue) -> not issue.get('critical')
-            other_issues = _.groupBy other_issues, (issue) -> issue.get('type')
-
-
-            reduced_issues = _.map(critical_issues, (issues, type) ->
-                json = {}
-                json[type] = true
-                json['num'] = issues.length
-                return json
-            )
-            if reduced_issues.length > 0
-                reduced_issues[0].is_first = true
-
-
-            reduced_other_issues = _.map(other_issues, (issues, type) ->
-                json = {}
-                json[type] = true
-                json['num'] = issues.length
-                return json
-            )
-            if reduced_other_issues.length > 0
-                reduced_other_issues[0].is_first = true
-
-            @.$el.html @template
-                critical_issues:
-                    exist: _.keys(critical_issues).length > 0
-                    num: _.keys(critical_issues).length
-                    data: reduced_issues
-                other_issues:
-                    exist: _.keys(other_issues).length > 0
-                    num: _.keys(other_issues).length
-                    data: reduced_other_issues
+            data =
                 num_issues: issues.length
                 no_issues: issues.length is 0
                 show_banner: issues.length > 0 or $('#issue-alerts').children().length > 0
 
-            # Preserve the state of the button (show or hide issues) between renders
-            @set_showing_issues(@showing_issues) if @showing_issues
+            if _.isEqual(data, @data) is false
+                @data = data
+                @.$el.html @template @data
+
+                # Preserve the state of the button (show or hide issues) between renders
+                @set_showing_issues(@showing_issues) if @showing_issues
 
             return @
 

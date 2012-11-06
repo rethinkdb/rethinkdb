@@ -15,7 +15,7 @@ import unittest
 import sys
 import traceback
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'drivers', 'python2')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'drivers', 'python')))
 
 from rethinkdb import *
 import rethinkdb.internal
@@ -279,7 +279,6 @@ class RDBTest(unittest.TestCase):
             )
 
     def test_grouped_map_reduce(self):
-        raise ValueError("Skip this test because it locks up for some reason")
         purchases = [
             {"category": "food", "cost": 8},
             {"category": "food", "cost": 22},
@@ -288,26 +287,25 @@ class RDBTest(unittest.TestCase):
             ]
         self.expect(
             expr(purchases).array_to_stream().grouped_map_reduce(
-                R("category"),
-                R("cost"),
+                lambda a: a["category"],
+                lambda a: a["cost"],
                 0,
-                fn("a", "b", R("$a") + R("$b"))
+                lambda a, b: a + b
                 ),
-            {"food": 41, "entertainment": 6}
+            [{"group": "entertainment", "reduction": 6}, {"group": "food", "reduction": 41}]
             )
 
     def test_reduce(self):
-        raise ValueError("Skip this test because it locks up for some reason")
-        expect(expr([1, 2, 3]).array_to_stream().reduce(0, fn("a", "b", R("$a") + R("$b"))), 6)
-        expect(expr([1, 2, 3]).reduce(0, fn("a", "b", R("$a") + R("$b"))), 6)
-        expect(expr([]).reduce(21, fn("a", "b", 0)), 21)
+        self.expect(expr([1, 2, 3]).array_to_stream().reduce(0, lambda a, b: a + b), 6)
+        self.expect(expr([1, 2, 3]).reduce(0, lambda a, b: a + b), 6)
+        self.expect(expr([]).reduce(21, lambda a, b: 0), 21)
 
     def test_ordering(self):
         expect = self.expect
         fail = self.error_exec
 
         def order(arr, *args):
-            return expr(arr).array_to_stream().orderby(*args)
+            return expr(arr).array_to_stream().order_by(*args)
 
         docs = [{"id": 100 + n, "a": n, "b": n % 3} for n in range(10)]
 
@@ -319,13 +317,13 @@ class RDBTest(unittest.TestCase):
         self.clear_table()
         self.do_insert(docs)
 
-        expect(self.table.orderby("a"), sorted(docs, key=get('a')))
-        expect(self.table.orderby("-a"), sorted(docs, key=get('a'), reverse=True))
+        expect(self.table.order_by("a"), sorted(docs, key=get('a')))
+        expect(self.table.order_by("-a"), sorted(docs, key=get('a'), reverse=True))
 
-        expect(self.table.filter({'b': 0}).orderby("a"),
+        expect(self.table.filter({'b': 0}).order_by("a"),
                sorted(doc for doc in docs if doc['b'] == 0))
 
-        expect(self.table.filter({'b': 0}).orderby("a").delete(),
+        expect(self.table.filter({'b': 0}).order_by("a").delete(),
                {'deleted': len(sorted(doc for doc in docs if doc['b'] == 0))})
 
     def test_table_insert(self):
@@ -338,7 +336,7 @@ class RDBTest(unittest.TestCase):
         for doc in docs:
             self.expect(self.table.get(doc['id']), doc)
 
-        self.expect(self.table.orderby("id").map(r["a"]).distinct(), [3, 9])
+        self.expect(self.table.order_by("id").map(r["a"]).distinct(), [3, 9])
 
         self.expect(self.table.filter({"a": 3}), [docs[0]])
 
@@ -383,7 +381,7 @@ class RDBTest(unittest.TestCase):
         self.do_insert(docs)
 
         def filt(exp, fn):
-            self.expect(self.table.filter(exp).orderby("id"), filter(fn, docs))
+            self.expect(self.table.filter(exp).order_by("id"), filter(fn, docs))
 
         filt(r['a'] == 5, lambda r: r['a'] == 5)
         filt(r['a'] != 5, lambda r: r['a'] != 5)
@@ -458,7 +456,7 @@ class RDBTest(unittest.TestCase):
         docs = [{"id": n, "a": "x" * n} for n in range(10)]
         self.do_insert(docs)
 
-        self.expect(self.table.orderby("id").between(2, 3), docs[2:4])
+        self.expect(self.table.order_by("id").between(2, 3), docs[2:4])
 
     def test_union(self):
         self.clear_table()
@@ -498,18 +496,18 @@ class RDBTest(unittest.TestCase):
         self.expect(let(('x', 2), ('y', 3), js('x + y')), 5)
 
         self.do_insert(docs)
-        self.expect(self.table.orderby("id").map(lambda x: x), docs) # sanity check
+        self.expect(self.table.order_by("id").map(lambda x: x), docs) # sanity check
 
-        #self.expect(self.table.orderby("id").map(lambda x: js('x')), docs)
-        #self.expect(self.table.orderby("id").map(lambda x: js('x.name')), names)
-        #self.expect(self.table.orderby("id").filter(lambda x: js('x.id > 2')),
+        #self.expect(self.table.order_by("id").map(lambda x: js('x')), docs)
+        #self.expect(self.table.order_by("id").map(lambda x: js('x.name')), names)
+        #self.expect(self.table.order_by("id").filter(lambda x: js('x.id > 2')),
         #            [x for x in docs if x['id'] > 2])
-        #self.expect(self.table.orderby("id").map(lambda x: js('x.id + ": " + x.name')),
+        #self.expect(self.table.order_by("id").map(lambda x: js('x.id + ": " + x.name')),
         #            ["%s: %s" % (x['id'], x['name']) for x in docs])
 
-        self.expect(self.table.orderby("id"), docs)
-        self.expect(self.table.orderby("id").map(js('this')), docs)
-        self.expect(self.table.orderby("id").map(js('this.name')), names)
+        self.expect(self.table.order_by("id"), docs)
+        self.expect(self.table.order_by("id").map(js('this')), docs)
+        self.expect(self.table.order_by("id").map(js('this.name')), names)
 
     def test_updatemutate(self):
         self.clear_table()
@@ -518,14 +516,18 @@ class RDBTest(unittest.TestCase):
         self.do_insert(docs)
 
         self.expect(self.table.replace(lambda x: x), {"modified": len(docs), "deleted": 0, "inserted": 0,  "errors": 0})
-        self.expect(self.table.orderby("id"), docs)
+        self.expect(self.table.order_by("id"), docs)
 
         self.expect(self.table.update(None), {'updated': 0, 'skipped': 10, 'errors': 0})
 
     def test_det(self):
-        tbl = table('tbl')
-        db('test').table_drop('tbl').run()
+        if 'test' not in db_list().run():
+            db_create('test').run()
+        if 'tbl' in db('test').table_list().run():
+            db('test').table_drop('tbl').run()
+
         db('test').table_create('tbl').run()
+        tbl = table('tbl')
         data = [{'id':x} for x in range(0,10)]
         tbl.insert(data).run()
 
@@ -543,12 +545,9 @@ class RDBTest(unittest.TestCase):
         self.assertEqual(res['updated'], 10)
 
     def test_nonatomic(self):
+        if 'test' not in db_list().run():
+            db_create('test').run()
         tbl = table('tbl')
-        #db('test').table_drop('tbl').run()
-        #db('test').table_create('tbl').run()
-        #tbl = table('tbl')
-        #data = [{'id':x} for x in range(0,10)]
-        #tbl.insert(data).run()
 
         # Update modify
         res = tbl.update(lambda row: {'x':js('1')}).run()

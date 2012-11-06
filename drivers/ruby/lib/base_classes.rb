@@ -31,6 +31,7 @@ module RethinkDB
     #   r.add(1, 2)
     #   RethinkDB::RQL.add(1, 2)
     #   r(1) + r(2)
+    #   r(3)
     def r(*args)
       (args == [] ) ? RethinkDB::RQL : RQL.expr(*args)
     end
