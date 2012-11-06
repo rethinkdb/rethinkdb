@@ -2,6 +2,7 @@
 #include "errors.hpp"
 
 #include <string>
+#include <boost/algorithm/string/predicate.hpp>
 
 #include "http/http.hpp"
 #include "clustering/administration/http/json_adapters.hpp"
@@ -55,12 +56,8 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
             {
                 // TODO: Get rid of this release mode wrapper, make Michael unhappy.
 #ifdef NDEBUG
-                {
-                    boost::optional<std::string> content_type = req.find_header_line("Content-Type");
-                    if (!content_type || content_type.get() != "application/json") {
-                        logINF("Bad request, Content-Type should be application/json.");
-                        return http_res_t(HTTP_UNSUPPORTED_MEDIA_TYPE);
-                    }
+                if (!verify_content_type(req, "application/json")) {
+                    return http_res_t(HTTP_UNSUPPORTED_MEDIA_TYPE);
                 }
 #endif
                 scoped_cJSON_t change(cJSON_Parse(req.body.c_str()));
@@ -114,12 +111,8 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
             {
                 // TODO: Get rid of this release mode wrapper, make Michael unhappy.
 #ifdef NDEBUG
-                {
-                    boost::optional<std::string> content_type = req.find_header_line("Content-Type");
-                    if (!content_type || content_type.get() != "application/json") {
-                        logINF("Bad request, Content-Type should be application/json.");
-                        return http_res_t(HTTP_UNSUPPORTED_MEDIA_TYPE);
-                    }
+                if (!verify_content_type(req, "application/json")) {
+                    return http_res_t(HTTP_UNSUPPORTED_MEDIA_TYPE);
                 }
 #endif
                 scoped_cJSON_t change(cJSON_Parse(req.body.c_str()));
@@ -177,5 +170,18 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
         return http_error_res(e.what(), HTTP_GONE);
     }
     unreachable();
+}
+
+bool semilattice_http_app_t::verify_content_type(const http_req_t &req, const std::string &expected_content_type) const {
+    boost::optional<std::string> content_type = req.find_header_line("Content-Type");
+    // Only compare the beginning of the content-type. Some browsers may add additional
+    // information, and e.g. send "application/json; charset=UTF-8" instead of "application/json"
+    if (!content_type || !boost::starts_with(content_type.get(), expected_content_type)) {
+        std::string actual_content_type = (content_type ? content_type.get() : "<NONE>");
+        logINF("Bad request, Content-Type should be %s, but is %s.", expected_content_type.c_str(), actual_content_type.c_str());
+        return false;
+    }
+    
+    return true;
 }
 
