@@ -23,6 +23,8 @@ class extent_zone_t;
 
 struct log_serializer_stats_t;
 
+// A reference to an extent in the extent manager.  An extent may not be freed until all of the
+// references go away (unless the server is shutting down).
 class extent_reference_t {
 public:
     extent_reference_t() : extent_offset_(-1) { }
@@ -50,7 +52,9 @@ private:
     DISABLE_COPYING(extent_reference_t);
 };
 
-
+// extent_reference_t is noncopyable and this is C++03 so we can't nonchalantly use a standard
+// collection for them.  So we have extent_reference_set_t to safely store sets of extent
+// references without violating RAII rules.
 class extent_reference_set_t {
 public:
     extent_reference_set_t() { }
