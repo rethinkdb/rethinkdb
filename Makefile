@@ -9,6 +9,8 @@ install:
 clean:
 	rm -rf build
 
+distclean: clean
+
 build-deb-src-control:
 	cd src ; $(MAKE) $(MFLAGS) build-deb-src-control ;
 
