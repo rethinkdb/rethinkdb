@@ -463,6 +463,23 @@ else
 SERVER_EXEC_NAME_VERSIONED:=$(SERVER_EXEC_NAME)-$(RETHINKDB_SHORT_VERSION)
 endif
 
+AUTOCHAIN?=0
+ifeq ($(AUTOCHAIN),1)
+ifeq ($(shell which lessc || true),"")
+TC_LESSC_EXE:=$(BUILD_DIR)/toolchain/node_modules/less/bin/lessc	
+else
+TC_LESSC_EXE:=$(shell which lessc || true)
+endif
+ifeq ($(shell which coffee || true),"")
+TC_COFFEE_EXE:=$(BUILD_DIR)/toolchain/node_modules/less/bin/coffee	
+else
+TC_COFFEE_EXE:=$(shell which coffee || true)
+endif
+else
+TC_LESSC_EXE:=$(shell which lessc || true)
+TC_COFFEE_EXE:=$(shell which coffee || true)
+endif
+
 ##### Build targets
 .PHONY: all build-deb build-rpm callgrind callgrind clean cscope deb deb depclean drivers etags gdb install install-binaries install-deb install-docs install-manpages install-rpm install-tools prepare_deb_package_dirs prepare_rpm_package_dirs regdb rerun revalgrind rpm rpm rpm-suse10 run sembuild showdefines style tags unit valgrind web-assets coffeelint build-deb-src-control
 
@@ -827,7 +844,7 @@ ifeq ($(VERBOSE),0)
 endif
 	$(QUIET) cat $+ > $@ || ( echo "      Build failure." ; rm $@ ; false ; )
 
-$(WEB_ASSETS_BUILD_DIR)/cluster-min.js: $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee
+$(WEB_ASSETS_BUILD_DIR)/cluster-min.js: nodejstools $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
 ifeq ($(VERBOSE),0)
 	@echo "    COFFEE $@"
@@ -1052,3 +1069,24 @@ NO_DEPS_TARGETS:=clean depclean tags etags analyze cscope style $(OPROF_TARGETS)
 ifneq (,$(if $(MAKECMDGOALS),$(filter-out $(NO_DEPS_TARGETS),$(MAKECMDGOALS)),non-empty-placeholder))
 -include $(DEPS)
 endif
+
+# JavaScript tools from node.js
+
+# Note that this assumes that its locations match those earlier in the Makefile. If you change TC_LESSC_EXE, you probably ought to change these as well .
+
+$(TC_LESSC_EXE): $(BUILD_DIR)
+ifeq ($(AUTOCHAIN),1)
+ifeq ($(shell npm list --global --parseable | grep '\/less$'),"")
+	if [ -d $(BUILD_DIR) ] && [ ! -e $(BUILD_DIR)/toolchain ] ; then mkdir -p $(BUILD_DIR)/toolchain ; fi ;
+	cd $(BUILD_DIR)/toolchain ; npm install less ;
+endif
+endif
+
+$(TC_COFFEE_EXE): $(BUILD_DIR)
+ifeq ($(AUTOCHAIN),1)
+ifeq ($(shell npm list --global --parseable | grep '\/coffee-script$'),"")
+	if [ -d $(BUILD_DIR) ] && [ ! -e $(BUILD_DIR)/toolchain ] ; then mkdir -p $(BUILD_DIR)/toolchain ; fi ;
+	cd $(BUILD_DIR)/toolchain ; npm install coffee-script ;
+endif
+endif
+
