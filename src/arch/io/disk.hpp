@@ -145,6 +145,8 @@ private:
     DISABLE_COPYING(linux_nondirect_file_t);
 };
 
+// Runs some assertios to make sure that we're aligned to DEVICE_BLOCK_SIZE, not overrunning the
+// file size, and that buf is not null.
 void verify_aligned_file_access(size_t file_size, size_t offset, size_t length, const void *buf);
 
 #endif // ARCH_IO_DISK_HPP_
