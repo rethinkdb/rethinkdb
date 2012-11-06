@@ -7,7 +7,7 @@ DEBUG?=0
 
 clean:
 	dh_clean
-	if [ -e build ] ; then rm -rf build fi ;
+	if [ -e build ] ; then rm -rf build ; fi ;
 	[ ! -f Makefile ] || $(MAKE) distclean
 
 install: build
