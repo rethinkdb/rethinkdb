@@ -22,12 +22,12 @@ build:
 binary-indep: install
 
 binary-arch: install
-	dh_installdocs -a NEWS
-	dh_installchangelogs -a ChangeLog
+	fakeroot dh_installdocs -a NEWS
+	fakeroot dh_installchangelogs -a ChangeLog
 	dh_strip -a
 	dh_compress -a
 	dh_fixperms -a
-	dh_installdeb -a
+	fakeroot dh_installdeb -a
 	dh_shlibdeps -a
 	dh_gencontrol -a
 	dh_md5sums -a
