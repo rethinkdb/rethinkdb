@@ -784,6 +784,10 @@ rpm: clean
 # RPM for Suse 10
 rpm-suse10:
 	$(QUIET) $(MAKE) PACKAGE_FOR_SUSE_10=1 rpm
+
+build-deb-src-control:
+	$(QUIET) $(MAKE) $(MFLAGS) PACKAGING=1 build-deb-src-control
+
 endif
 
 .PHONY: sense
