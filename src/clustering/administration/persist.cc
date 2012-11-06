@@ -223,15 +223,15 @@ void persistent_file_t::construct_serializer_and_cache(io_backender_t *io_backen
     standard_serializer_t::dynamic_config_t serializer_dynamic_config;
 
     {
-	filepath_file_opener_t file_opener(filename, io_backender);
-	if (create) {
-	    standard_serializer_t::create(&file_opener,
-					  standard_serializer_t::static_config_t());
-	}
+        filepath_file_opener_t file_opener(filename, io_backender);
+        if (create) {
+            standard_serializer_t::create(&file_opener,
+                                          standard_serializer_t::static_config_t());
+        }
 
-	serializer.init(new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
-						  &file_opener,
-						  perfmon_parent));
+        serializer.init(new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
+                                                  &file_opener,
+                                                  perfmon_parent));
     }
 
     if (!serializer->coop_lock_and_check()) {

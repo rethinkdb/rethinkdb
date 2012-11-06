@@ -339,7 +339,7 @@ po::options_description get_file_options() {
 po::options_description get_config_file_options() {
     po::options_description desc("Configuration file options");
     desc.add_options()
-	("config-file", po::value<std::string>(), "take options from a configuration file");
+        ("config-file", po::value<std::string>(), "take options from a configuration file");
     return desc;
 }
 
@@ -478,7 +478,7 @@ po::options_description get_rethinkdb_import_options() {
         // Default value of empty string?  Because who knows what the duck it returns with
         // no default value.  Or am I supposed to wade my way back into the
         // program_options documentation again?
-	// A default value is not required. One can check vm.count("thing") in order to determine whether the user has supplied the option. --Juggernaut
+        // A default value is not required. One can check vm.count("thing") in order to determine whether the user has supplied the option. --Juggernaut
         ("table", po::value<std::string>()->default_value(""), "the database and table into which to import, of the format 'database.table'")
         ("datacenter", po::value<std::string>()->default_value(""), "the datacenter into which to create a table")
         ("primary-key", po::value<std::string>()->default_value("id"), "the primary key to create a new table with, or expected primary key")
@@ -536,7 +536,7 @@ MUST_USE bool parse_commands_flat(int argc, char *argv[], po::variables_map *vm,
 
 MUST_USE bool parse_commands(int argc, char *argv[], po::variables_map *vm, const po::options_description& options) {
     if ( parse_commands_flat(argc, argv, vm, options) ) {
-	po::notify(*vm);
+        po::notify(*vm);
     } else {
         return false ;
     }

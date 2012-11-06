@@ -176,11 +176,11 @@ void pool_io_backender_t::make_disk_manager(linux_event_queue_t *queue, const in
 
 void make_io_backender(io_backend_t backend, scoped_ptr_t<io_backender_t> *out) {
     if (backend == aio_native) {
-	#ifdef AIOSUPPORT
+        #ifdef AIOSUPPORT
         out->init(new native_io_backender_t);
-	#else
-	crash("This version has no native aio support. Consider using the pool back-end.\n");
-	#endif
+        #else
+        crash("This version has no native aio support. Consider using the pool back-end.\n");
+        #endif
     } else if (backend == aio_pool) {
         out->init(new pool_io_backender_t);
     } else {

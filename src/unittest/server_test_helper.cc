@@ -32,13 +32,13 @@ void server_test_helper_t::setup_server_and_run_tests() {
     make_io_backender(aio_default, &io_backender);
 
     {
-	filepath_file_opener_t file_opener(db_file.name(), io_backender.get());
+        filepath_file_opener_t file_opener(db_file.name(), io_backender.get());
         standard_serializer_t::create(
             &file_opener,
             standard_serializer_t::static_config_t());
         standard_serializer_t log_serializer(
             standard_serializer_t::dynamic_config_t(),
-	    &file_opener,
+            &file_opener,
             &get_global_perfmon_collection());
 
         std::vector<standard_serializer_t *> serializers;

@@ -64,10 +64,10 @@ MUST_USE bool mock_file_opener_t::open_serializer_file_create(scoped_ptr_t<file_
 
 MUST_USE bool mock_file_opener_t::open_serializer_file_existing(scoped_ptr_t<file_t> *file_out) {
     if (!file_exists_) {
-	return false;
+        return false;
     } else {
-	file_out->init(new mock_file_t(mock_file_t::mode_rw, &file_));
-	return true;
+        file_out->init(new mock_file_t(mock_file_t::mode_rw, &file_));
+        return true;
     }
 }
 

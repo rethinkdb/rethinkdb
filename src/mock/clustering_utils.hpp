@@ -25,10 +25,10 @@ struct fake_fifo_enforcement_t {
 inline standard_serializer_t *create_and_construct_serializer(temp_file_t *temp_file, io_backender_t *io_backender) {
     filepath_file_opener_t file_opener(temp_file->name(), io_backender);
     standard_serializer_t::create(&file_opener,
-				  standard_serializer_t::static_config_t());
+                                  standard_serializer_t::static_config_t());
     return new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
-				     &file_opener,
-				     &get_global_perfmon_collection());
+                                     &file_opener,
+                                     &get_global_perfmon_collection());
 }
 
 template<class protocol_t>

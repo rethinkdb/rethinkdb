@@ -26,13 +26,13 @@ std::string filepath_file_opener_t::file_name() const {
 
 bool filepath_file_opener_t::open_serializer_file(int extra_flag, scoped_ptr_t<file_t> *file_out) {
     scoped_ptr_t<direct_file_t> file(new direct_file_t(filepath_.c_str(),
-						       direct_file_t::mode_read | direct_file_t::mode_write | extra_flag,
-						       backender_));
+                                                       direct_file_t::mode_read | direct_file_t::mode_write | extra_flag,
+                                                       backender_));
     if (!file->exists()) {
-	return false;
+        return false;
     } else {
-	file_out->init(file.release());
-	return true;
+        file_out->init(file.release());
+        return true;
     }
 }
 
@@ -48,12 +48,12 @@ bool filepath_file_opener_t::open_serializer_file_existing(scoped_ptr_t<file_t> 
 bool filepath_file_opener_t::open_semantic_checking_file(int *fd_out) {
     std::string semantic_filepath = filepath_ + "_semantic";
     int semantic_fd = open(semantic_filepath.c_str(),
-			   O_RDWR | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO);
+                           O_RDWR | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO);
     if (semantic_fd == INVALID_FD) {
         fail_due_to_user_error("Inaccessible semantic checking file: \"%s\": %s", semantic_filepath.c_str(), strerror(errno));
     } else {
-	*fd_out = semantic_fd;
-	return true;
+        *fd_out = semantic_fd;
+        return true;
     }
 }
 #endif
@@ -104,7 +104,7 @@ void log_serializer_t::create(serializer_file_opener_t *file_opener, static_conf
 
     scoped_ptr_t<file_t> file;
     if (!file_opener->open_serializer_file_create(&file)) {
-	crash("could not open file %s for creation", file_opener->file_name().c_str());
+        crash("could not open file %s for creation", file_opener->file_name().c_str());
     }
 
     co_static_header_write(file.get(), on_disk_config, sizeof(*on_disk_config));
@@ -145,10 +145,10 @@ struct ls_start_existing_fsm_t :
         rassert(ser->state == log_serializer_t::state_unstarted);
         ser->state = log_serializer_t::state_starting_up;
 
-	scoped_ptr_t<file_t> dbfile;
-	if (!file_opener->open_serializer_file_existing(&dbfile)) {
+        scoped_ptr_t<file_t> dbfile;
+        if (!file_opener->open_serializer_file_existing(&dbfile)) {
             crash("Database file \"%s\" could not be opened.  (It does not exist?)\n", file_opener->file_name().c_str());
-	}
+        }
         ser->dbfile = dbfile.release();
 
         start_existing_state = state_read_static_header;

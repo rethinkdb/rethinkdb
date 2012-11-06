@@ -51,7 +51,7 @@ void run_metainfo_test() {
 
     standard_serializer_t serializer(
         standard_serializer_t::dynamic_config_t(),
-	&file_opener,
+        &file_opener,
         &get_global_perfmon_collection());
 
     mirrored_cache_static_config_t cache_static_config;

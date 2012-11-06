@@ -30,12 +30,12 @@ public:
     void write_blocking(size_t offset, size_t length, const void *buf);
 
     void *create_account(UNUSED int priority, UNUSED int outstanding_requests_limit) {
-	// We don't care about accounts.  Return an arbitrary non-null pointer.
-	return this;
+        // We don't care about accounts.  Return an arbitrary non-null pointer.
+        return this;
     }
 
     void destroy_account(UNUSED void *account) {
-	/* do nothing */
+        /* do nothing */
     }
 
     bool coop_lock_and_check();
