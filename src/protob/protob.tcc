@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "protob/protob.hpp"
 
 #include <google/protobuf/stubs/common.h>
