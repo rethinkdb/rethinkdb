@@ -256,7 +256,7 @@ button.btn {
 */
 #sticky-wrap {
     min-width: 940px;
-    background: url('http://bit.ly/QS6qxO'); // background.png
+    background: url('/images/body_bg_tile.png'); // background.png
 }
 #main-container {
     padding-top: 30px;
@@ -433,7 +433,7 @@ TODO: retire this
                 .border-radius(14px); // border radius
                 .box-shadow(~"0 1px 0 rgba(255,255,255,.07), inset 0 1px 0 rgba(0,0,0,.15)"); // drop shadow and inner shadow
                 .gradient(~"linear-gradient(bottom, rgba(255,255,255,.02) 0%, rgba(0,0,0,.02) 100%)"); // gradient overlay
-                background: url('http://bit.ly/PyxttF') no-repeat 12px #232323; //icon-magnifying_glass.png
+                background: url('/images/icon-magnifying_glass.png') no-repeat 12px #232323;
             }
         }
     }
@@ -446,7 +446,7 @@ TODO: retire this
 */
 #sidebar {
     // texture, so we need a background image
-    background: url('http://bit.ly/RCksTK');//status_panel-background.png
+    background: url('/images/status-panel_bg_tile.png');
     // csshat
     .box-shadow(~"0 1px 0 rgba(255,255,255,.4), inset 0 -1px 1px #c3c3c3"); // drop shadow and inner shadow
     border-bottom: thin solid #d0d0d0;
@@ -478,20 +478,20 @@ TODO: retire this
     }
 
     .client-connection-status .panel {
-        background: url('http://bit.ly/PyxJc3') no-repeat left center; //status_panel-icon_1.png
-        &.error { background: url('http://bit.ly/QcqgSD') no-repeat left center; }//status_panel-icon_1-error.png
+        background: url('/images/status_panel-icon_1.png') no-repeat left center;
+        &.error { background: url('/images/status_panel-icon_1-error.png') no-repeat left center; }
     }
     .issues .panel {
-        background: url('http://bit.ly/PyxJJe') no-repeat left center; //status_panel-icon_2.png
-        &.error { background: url('http://bit.ly/RCksTG') no-repeat left center; }//status_panel-icon_2-error.png
+        background: url('/images/status_panel-icon_2.png') no-repeat left center;
+        &.error { background: url('/images/status_panel-icon_2-error.png') no-repeat left center; }
     }
     .servers-connected .panel {
-        background: url('http://bit.ly/RCksTE') no-repeat left center; //status_panel-icon_3.png
-        &.error { background: url('http://bit.ly/TuK5bD') no-repeat left center; }//status_panel-icon_3-error.png
+        background: url('/images/status_panel-icon_3.png') no-repeat left center;
+        &.error { background: url('/images/status_panel-icon_3-error.png') no-repeat left center; }
     }
     .datacenters-connected .panel {
-        background: url('http://bit.ly/RCkyLc') no-repeat left center; //status_panel-icon_4.png
-        &.error { background: url('http://bit.ly/QcqgSA') no-repeat left center; }//status_panel-icon_4-error.png
+        background: url('/images/status_panel-icon_4.png') no-repeat left center;
+        &.error { background: url('/images/status_panel-icon_4-error.png') no-repeat left center; }
     }
 
     .issues-banner {
@@ -567,7 +567,7 @@ TODO: retire this
         #issue-alerts .alert {
             display: block; 
 
-            background: 15px center no-repeat url('http://bit.ly/RXpDeO'); //resolve_issue-resolved_icon.png
+            background: 15px center no-repeat url('/images/resolve_issue-resolved_icon.png');
             padding-left: 40px;
             color: #628857; // text color
             border: 1px solid #cae8c3; // stroke
@@ -666,8 +666,9 @@ TODO: retire this
                 color: #4c4c4c;
                 padding-left: 21px;
             }
-            .no-problems-detected h3 { background: 0 3px no-repeat url('http://bit.ly/PyxttH'); }//green-light.png
-            .problems-detected h3 { background: 0 3px no-repeat url('http://bit.ly/PyxJZG'); }//red-light.png
+            
+            .no-problems-detected h3 { background: 0 3px no-repeat url('/images/green-light.png'); }
+            .problems-detected h3 { background: 0 3px no-repeat url('/images/red-light.png'); }
 
             p {
                 font-family: @sans;
@@ -831,7 +832,7 @@ TODO: retire this
                     margin-right: 20px;
                     color: #fff;
                     font-size: 10px;
-                    font-weight: 700
+                    font-weight: bold;
                 }
                 h3.name {
                     font-family: @serif;
@@ -910,7 +911,7 @@ TODO: retire this
                     border-left: thin solid #e4e4e4;
                 }
                 .name {
-                    background: @border_padding center no-repeat url('http://bit.ly/RCkvyL');//server-icon.png
+                    background: @border_padding center no-repeat url('/images/server-icon.png');
                     padding-left: 38px + @border_padding;
                     a { color: #0597d8; }
                     font-size: 16px;
@@ -921,7 +922,7 @@ TODO: retire this
                     text-overflow: ellipsis;
                 }
                 .quick_info {
-                    background: @border_padding center no-repeat url('http://bit.ly/PyxuxE');//graph-icon.png
+                    background: @border_padding center no-repeat url('/images/graph-icon.png');
                     color: #626264;
                     padding-left: 30px + @border_padding;
                 }
@@ -929,11 +930,11 @@ TODO: retire this
                     padding-right: 20px;
                     color: #818181;
                     .label-success {
-                        background: @border_padding center no-repeat url('http://bit.ly/RCkomY');//green-light_glow.png
+                        background: @border_padding center no-repeat url('/images/green-light_glow.png');
                         padding-left: 23px + @border_padding;
                     }
                     .label-failure {
-                        background: @border_padding center no-repeat url('http://bit.ly/PyxJZG');//red-light_glow.png
+                        background: @border_padding center no-repeat url('/images/red-light_glow.png');
                         padding-left: 23px + @border_padding;
                     }
                 }
@@ -988,7 +989,7 @@ TODO: retire this
         li.log-entry {
             color: #4d535c;
             border-top: thin solid #f0f0f0;
-            background: left 22px no-repeat url('http://bit.ly/PyxKg4');//pencil-icon_big.png
+            background: left 22px no-repeat url('/images/pencil-icon_big.png');
             padding: 20px 0 20px 55px;
             word-wrap: break-word;
             &:first-child {
@@ -1006,7 +1007,7 @@ TODO: retire this
                 font-size: 13px;
             }
             .datetime {
-                background: left center no-repeat url('http://bit.ly/RCkoTS');//clock-icon.png
+                background: left center no-repeat url('/images/clock-icon.png');
                 text-align: right;
                 color: #c4c4c4;
             }
@@ -1225,7 +1226,13 @@ TODO: retire this
         width: 100%;
     }
     .helper_view { overflow: auto; }
-    .nav-tabs > li { float: right; }
+    .nav-tabs > li {
+        float: right;
+        &.active a {
+            border-bottom-color: #FBFBFB;
+            background-color: #FBFBFB;
+        }
+    }
 
     .tab-pane{
         display: none;
@@ -1460,7 +1467,7 @@ TODO: retire this
                 height: @header_height;
 
                 &.issue-type {
-                    background: 7px center no-repeat url('http://bit.ly/Vl54tN'); //resolve_issue-danger_icon.png
+                    background: 7px center no-repeat url('/images/resolve_issue-danger_icon.png');
                     padding-left: 35px;
                     color: #e65b54; // text color + color overlay
                     font-weight: bold;
@@ -1472,7 +1479,7 @@ TODO: retire this
                     width: 310px;
                     @icon_width: 30px;
                     @icon_padding: 20px;
-                    background: @icon_padding center no-repeat url('http://bit.ly/PmYCWb'); //resolve_issue-message_icon.png
+                    background: @icon_padding center no-repeat url('/images/resolve_issue-message_icon.png');
                     padding-left: @icon_width + @icon_padding;
                     &:before { .divider(-(@icon_width + @icon_padding)); }
                 }
@@ -1482,7 +1489,7 @@ TODO: retire this
                     width: 175px;
                     @icon_width: 30px;
                     @icon_padding: 20px;
-                    background: @icon_padding center no-repeat url('http://bit.ly/PmYBlc'); //resolve_issue-clock_icon.png
+                    background: @icon_padding center no-repeat url('/images/resolve_issue-clock_icon.png');
                     padding-left: @icon_width + @icon_padding;
                     &:before { .divider(-(@icon_width + @icon_padding)); }
                 }
@@ -1490,7 +1497,7 @@ TODO: retire this
         }
         .issue-details {
             margin-top: 10px;
-            background: 7px 3px no-repeat url('http://bit.ly/QPZUE7'); //resolve_issue-details_icon.png
+            background: 7px 3px no-repeat url('/images/resolve_issue-details_icon.png');
             padding-left: 35px;
             p, li {
                 color: #838383;
@@ -1552,16 +1559,16 @@ TODO: retire this
                     line-height: 24px;
                     color: #5c6169;
                 }
-                &.availability { background: left center no-repeat url('http://bit.ly/PyxKg9'); }//live-icon.png
-                &.masters { background: left center no-repeat url('http://bit.ly/RCkvPk'); }//layers-icon.png
-                &.replicas { background: left center no-repeat url('http://bit.ly/RCkomW'); }//grid-icon.png
-                &.documents { background: left center no-repeat url('http://bit.ly/RCkoDu'); }//document-icon.png
-                &.datacenter { background: left center no-repeat url('http://bit.ly/RCkvPk'); }//layers-icon.png
-                &.uptime { background: left center no-repeat url('http://bit.ly/RCkomW'); }//grid-icon.png
-                &.ips { background: left center no-repeat url('http://bit.ly/RCkoDu'); }//document-icon.png
-                &.tables { background: left center no-repeat url('http://bit.ly/RCkoDu'); }//document-icon.png
-                &.datacenters { background: left center no-repeat url('http://bit.ly/RCkvPk'); }//layers-icon.png
-                &.servers { background: left center no-repeat url('http://bit.ly/RCkoDu'); }//document-icon.png
+                &.availability { background: left center no-repeat url('/images/live-icon.png'); }
+                &.masters { background: left center no-repeat url('/images/layers-icon.png'); }
+                &.replicas { background: left center no-repeat url('/images/grid-icon.png'); }
+                &.documents { background: left center no-repeat url('/images/document-icon.png'); }
+                &.datacenter { background: left center no-repeat url('/images/layers-icon.png'); }
+                &.uptime { background: left center no-repeat url('/images/grid-icon.png'); }
+                &.ips { background: left center no-repeat url('/images/document-icon.png'); }
+                &.tables { background: left center no-repeat url('/images/document-icon.png'); }
+                &.datacenters { background: left center no-repeat url('/images/layers-icon.png'); }
+                &.servers { background: left center no-repeat url('/images/document-icon.png'); }
             }
             &.first { border-top: none; }
         }
@@ -1621,7 +1628,7 @@ TODO: retire this
                 top: (@element_height / 2) - (@square_bullet_width / 2) + 1;
                 bottom: (@element_height / 2) - 1;
                 width: @square_bullet_width;
-                background-image: url('http://bit.ly/RAFakX'), url('http://bit.ly/RSqmQD'); //list-square-bullet.png, list-vert-dash.png
+                background-image: url('/images/list-square-bullet.png'), url('/images/list-vert-dash.png'); 
                 background-position: left top, ((@square_bullet_width / 2) - 1) center;
                 background-repeat: no-repeat, repeat-y;  
             }
@@ -1652,7 +1659,7 @@ TODO: retire this
                 top: 0;
                 bottom: 0;
 
-                background-image: url('http://bit.ly/RAFakX'), url('http://bit.ly/RSqlw7');//list-horiz-dash.png, list-square-bullet.png 
+                background-image: url('/images/list-horiz-dash.png'), url('/images/list-square-bullet.png');  
                 background-position: right center, ((@square_bullet_width / 2) - 1) center;
                 background-repeat: no-repeat, repeat-x;
             }
@@ -1686,7 +1693,7 @@ TODO: retire this
     .section.list-view.table-list {
         @element_height: 40px;
         li.table {
-            background: left center no-repeat url('http://bit.ly/VY1pqc');//server-icon.png
+            background: left center no-repeat url('/images/server-icon.png');
             padding-left: 30px;
             .name {
                 width: 375px;
@@ -1696,16 +1703,16 @@ TODO: retire this
                 right: 200px;
                 width: 200px;
                 padding-left: 30px;
-                background: left center no-repeat url('http://bit.ly/PyxuxE');//graph-icon.png
+                background: left center no-repeat url('/images/graph-icon.png');
             }
             .status {
                 right: 0;
                 .label { padding-left: 23px; }
                 .label-success {
-                    background: left center no-repeat url('http://bit.ly/QYI4SN'); //green-light_glow_small.png
+                    background: left center no-repeat url('/images/green-light_glow_small.png');
                 }
                 .label-failure {
-                    background: left center no-repeat url('http://bit.ly/TikAVI'); //red-light_glow_small.png
+                    background: left center no-repeat url('/images/red-light_glow_small.png');
                 }
             }
         }
@@ -1716,7 +1723,7 @@ TODO: retire this
     .section.tree-view.server-assignments {
         @element_height: 40px;
         li.server .server-info {
-            background: left center no-repeat url('http://bit.ly/VY1pqc');//server-icon.png
+            background: left center no-repeat url('/images/server-icon.png');
             padding-left: 30px;
             .name {
                 width: 300px;
@@ -1726,18 +1733,18 @@ TODO: retire this
                 right: 350px;
                 width: 145px;
                 padding-left: 30px;
-                background: left center no-repeat url('http://bit.ly/RCkvPk'); //layers-icon.png
+                background: left center no-repeat url('/images/layers-icon.png');
             }
             .num-secondaries {
                 right: 175px;
                 width: 145px;
                 padding-left: 30px;
-                background: left center no-repeat url('http://bit.ly/RCkomW'); //grid-icon.png
+                background: left center no-repeat url('/images/grid-icon.png');
             }
             .num-keys {
                 right: 0;
                 padding-left: 35px;
-                background: left center no-repeat url('http://bit.ly/TnC8jd'); //bars-icon_server-assignments.pn
+                background: left center no-repeat url('/images/bars-icon_server-assignments.png');
             }
         }
         .popup_container{
@@ -1970,7 +1977,7 @@ TODO: retire this
                     
 
                     &.universe {
-                        background: @universe url('http://bit.ly/RCkmeT') 8px center no-repeat; //globe-icon_white.png
+                        background: @universe url('/images/globe-icon_white.png') 8px center no-repeat;
                         border-color: @universe;
                         color: #fcfcfc;
                         a {
@@ -2096,7 +2103,7 @@ TODO: retire this
                     display: inline-block;
                     padding-top: 10px;
                 }
-                background: left 9px no-repeat url('http://bit.ly/Pyxwpp');//bars-icon.png
+                background: left 9px no-repeat url('/images/bars-icon.png');
             }
             input.num-shards { 
                 margin: -5px 6px 3px 0px;
@@ -2127,7 +2134,7 @@ TODO: retire this
     .section.list-view.server-list {
         @element_height: 40px;
         li.server {
-            background: left center no-repeat url('http://bit.ly/VY1pqc');//server-icon.png
+            background: left center no-repeat url('/images/server-icon.png');
             padding-left: 30px;
             .name {
                 width: 375px;
@@ -2137,16 +2144,16 @@ TODO: retire this
                 right: 200px;
                 width: 200px;
                 padding-left: 30px;
-                background: left center no-repeat url('http://bit.ly/PyxuxE');//graph-icon.png
+                background: left center no-repeat url('/images/graph-icon.png');
             }
             .status {
                 right: 0;
                 .label { padding-left: 23px; }
                 .label-success {
-                    background: left center no-repeat url('http://bit.ly/QYI4SN'); //green-light_glow_small.png
+                    background: left center no-repeat url('/images/green-light_glow_small.png');
                 }
                 .label-failure {
-                    background: left center no-repeat url('http://bit.ly/TikAVI'); //red-light_glow_small.png
+                    background: left center no-repeat url('/images/red-light_glow_small.png');
                 }
             }
         }
@@ -2157,7 +2164,7 @@ TODO: retire this
     .section.tree-view.server-data {
         @element_height: 40px;
         li.shard .shard-info {
-            background: left center no-repeat url('http://bit.ly/VY1pqc');//server-icon.png
+            background: left center no-repeat url('/images/server-icon.png');
             padding-left: 30px;
             .name {
                 width: 455px;
@@ -2167,12 +2174,12 @@ TODO: retire this
                 right: 175px;
                 width: 145px;
                 padding-left: 30px;
-                background: left center no-repeat url('http://bit.ly/RCkomW'); //grid-icon.png
+                background: left center no-repeat url('/images/grid-icon.png');
             }
             .num-keys {
                 right: 0;
                 padding-left: 35px;
-                background: left center no-repeat url('http://bit.ly/TnC8jd'); //bars-icon_server-assignments.pn
+                background: left center no-repeat url('/images/bars-icon_server-assignments.png');
             }
         }
     }
