@@ -142,10 +142,14 @@ module 'NamespaceView', ->
                             replicated_blocks: if backfilling_info.replicated_blocks>backfilling_info.replicated_blocks then backfilling_info.total_blocks else backfilling_info.replicated_blocks
                     
                         @.$('.replica-status').html @progress_bar.render(num_replicas_ready, num_replicas_ready+num_replicas_not_ready, progress_bar_info).$el
+                else # The blueprint was not regenerated, so we can consider that no replica is up to date
+                    @.$('.replica-status').html @progress_bar.render(0, @expected_num_replicas, {}).$el
             else
                 # Blueprint was regenerated, so we can display the bar
                 if num_replicas_ready+num_replicas_not_ready is @expected_num_replicas
                     @.$('.replica-status').html @progress_bar.render(num_replicas_ready, num_replicas_ready+num_replicas_not_ready, progress_bar_info).$el
+                else # The blueprint was not regenerated, so we can consider that no replica is up to date
+                    @.$('.replica-status').html @progress_bar.render(0, @expected_num_replicas, {}).$el
             return @
 
         # Render the list of datacenters for MDC
@@ -430,6 +434,8 @@ module 'NamespaceView', ->
                     @.$el.html @universe_template data
                 else
                     @.$el.html @template data
+                if @current_state is @states[1]
+                    @.$('#replicas_value').focus()
 
             return @
 
@@ -507,6 +513,10 @@ module 'NamespaceView', ->
         submit_replicas_acks: (event) =>
             if @check_replicas_acks() is false
                 return
+            if @sending? and @sending is true
+                return
+            @sending = true
+            @.$('.update-replicas').prop 'disabled', 'disabled'
 
             num_replicas = parseInt @.$('#replicas_value').val()
             num_acks = parseInt @.$('#acks_value').val()
@@ -548,6 +558,8 @@ module 'NamespaceView', ->
                 error: @on_error
 
         on_success_replicas_and_acks: =>
+            @sending = false
+            @.$('.update-replicas').removeProp 'disabled'
             window.collect_progress()
             new_replicas = @model.get 'replica_affinities'
             new_replicas[@datacenter.get('id')] = @data_cached.num_replicas
@@ -578,6 +590,9 @@ module 'NamespaceView', ->
             @.$('.status-alert').hide()
 
         on_error: =>
+            @sending = false
+            @.$('.update-replicas').removeProp 'disabled'
+
             @.$('.replicas_acks-alert').html @replicas_ajax_error_template()
             @.$('.replicas_acks-alert').slideDown 'fast'
 

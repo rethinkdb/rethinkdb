@@ -11,7 +11,7 @@ module RethinkDB
       #PP.pp ["special_case", message, query_type, query_args]
       case query_type
       when :compare then
-        message.comparison = enum_type(Builtin::Comparison, query_args)
+        message.comparison = enum_type(Builtin::Comparison, *query_args)
         throw :unknown_comparator_error if not message.comparison
         return true
       else return false
@@ -73,7 +73,7 @@ module RethinkDB
 
           # The general, non-special case.
           query_type = C.query_rewrites[query_type] || query_type
-          field_metadata = message_class.fields.select{|x,y| y.name == query_type}[0]
+          field_metadata = message_class.fields.select{|x,y| y.name==query_type}.to_a[0]
           if not field_metadata
           then raise ArgumentError,"No field '#{query_type}' in '#{message_class}'." end
           field = field_metadata[1]

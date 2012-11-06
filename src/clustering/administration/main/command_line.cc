@@ -374,7 +374,13 @@ po::options_description get_web_options() {
         ("web-static-directory", po::value<std::string>(), "specify directory from which to serve web resources")
         ("http-port", po::value<int>()->default_value(port_defaults::http_port), "port for http admin console");
     return desc;
+}
 
+po::options_description get_web_options_visible() {
+    po::options_description desc("Web options");
+    desc.add_options()
+        ("http-port", po::value<int>()->default_value(port_defaults::http_port), "port for http admin console");
+    return desc;
 }
 
 po::options_description get_network_options() {
@@ -442,7 +448,7 @@ po::options_description get_rethinkdb_serve_options_visible() {
     po::options_description desc("Allowed options");
     desc.add(get_file_options());
     desc.add(get_network_options());
-    desc.add(get_web_options());
+    desc.add(get_web_options_visible());
 #ifdef AIOSUPPORT
     desc.add(get_disk_options());
 #endif // AIOSUPPORT
@@ -455,6 +461,16 @@ po::options_description get_rethinkdb_proxy_options() {
     po::options_description desc("Allowed options");
     desc.add(get_network_options());
     desc.add(get_web_options());
+    desc.add(get_service_options());
+    desc.add_options()
+        ("log-file", po::value<std::string>()->default_value("log_file"), "specify log file");
+    return desc;
+}
+
+po::options_description get_rethinkdb_proxy_options_visible() {
+    po::options_description desc("Allowed options");
+    desc.add(get_network_options());
+    desc.add(get_web_options_visible());
     desc.add(get_service_options());
     desc.add_options()
         ("log-file", po::value<std::string>()->default_value("log_file"), "specify log file");
@@ -996,7 +1012,7 @@ void help_rethinkdb_serve() {
 void help_rethinkdb_proxy() {
     printf("'rethinkdb proxy' serves as a proxy to an existing RethinkDB cluster.\n");
     std::stringstream sstream;
-    sstream << get_rethinkdb_proxy_options();
+    sstream << get_rethinkdb_proxy_options_visible();
     printf("%s\n", sstream.str().c_str());
 }
 
