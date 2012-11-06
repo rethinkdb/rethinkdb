@@ -495,7 +495,24 @@ all: $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME)
 endif
 
 build-deb-src-control:
-	$(QUIET) cd .. ; rm -rf debian ; DEBFULLNAME="RethinkDB Packaging" dh_make -p rethinkdb_$(RETHINKDB_VERSION) -n -s -e packaging@rethinkdb.com --copyright blank ; cp -pRP packaging/debian/copyright debian/ ; mv debian/changelog debian/changelog.old ; sed -e 's/unstable/precise/' < debian/changelog.old > debian/changelog ;
+	$(QUIET) cd .. ; cp -pRP debian.template debian ; ./scripts/gen-changelog.sh ;
+# Replace version/size fields in the deb control file
+	$(QUIET) disk_size=0;	\
+		m4																													\
+				-D "SOLO=$(SOLO)"																				\
+				-D "PACKAGE_NAME=$(PACKAGE_NAME)"												\
+				-D "VERSIONED_PACKAGE_NAME=$(VERSIONED_PACKAGE_NAME)"		\
+				-D "VANILLA_PACKAGE_NAME=$(VANILLA_PACKAGE_NAME)"				\
+				-D "TRIAL_PACKAGE_NAME=$(TRIAL_PACKAGE_NAME)"						\
+				-D "VERSIONED_TRIAL_PACKAGE_NAME=$(VERSIONED_TRIAL_PACKAGE_NAME)"						\
+				-D "PACKAGE_VERSION=$(RETHINKDB_VERSION_DEB)"						\
+				-D "LEGACY_LINUX=$(LEGACY_LINUX)"												\
+				-D "TRIAL=$(TRIAL)"																			\
+				-D "DISK_SIZE=$${disk_size}"														\
+			../packaging/$(DEBIAN_PKG_DIR)/control > ../debian/control
+
+# Copy the license file.
+	cat ../packaging/$(DEBIAN_PKG_DIR)/copyright > ../debian/copyright
 
 unit:
 	$(MAKE) UNIT_TESTS=1
