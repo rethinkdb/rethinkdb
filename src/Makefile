@@ -494,26 +494,6 @@ ifeq ($(UNIT_TESTS),1)
 all: $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME)
 endif
 
-build-deb-src-control:
-	$(QUIET) cd .. ; cp -pRP debian.template debian ; ./scripts/gen-changelog.sh ;
-# Replace version/size fields in the deb control file
-	$(QUIET) disk_size=0;	\
-		m4																													\
-				-D "SOLO=$(SOLO)"																				\
-				-D "PACKAGE_NAME=$(PACKAGE_NAME)"												\
-				-D "VERSIONED_PACKAGE_NAME=$(VERSIONED_PACKAGE_NAME)"		\
-				-D "VANILLA_PACKAGE_NAME=$(VANILLA_PACKAGE_NAME)"				\
-				-D "TRIAL_PACKAGE_NAME=$(TRIAL_PACKAGE_NAME)"						\
-				-D "VERSIONED_TRIAL_PACKAGE_NAME=$(VERSIONED_TRIAL_PACKAGE_NAME)"						\
-				-D "PACKAGE_VERSION=$(RETHINKDB_VERSION_DEB)"						\
-				-D "LEGACY_LINUX=$(LEGACY_LINUX)"												\
-				-D "TRIAL=$(TRIAL)"																			\
-				-D "DISK_SIZE=$${disk_size}"														\
-			../packaging/$(DEBIAN_PKG_DIR)/control > ../debian/control
-
-# Copy the license file.
-	cat ../packaging/$(DEBIAN_PKG_DIR)/copyright > ../debian/copyright
-
 unit:
 	$(MAKE) UNIT_TESTS=1
 	$(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME) --gtest_filter=$(UNIT_TEST_FILTER)
@@ -645,6 +625,27 @@ install-deb: install
 		install -m644 -T /dev/stdin $(DESTDIR)$(doc_dir)/changelog.Debian.gz
 
 DebianV8Version:=$(shell apt-cache show libv8-dev | grep '^Version:' | sed -e 's/^Version: \\([0-9]*\\(\\.[0-9]*\\)*\\).*$$/\\1/g' || true ; )
+
+
+build-deb-src-control:
+	$(QUIET) cd .. ; cp -pRP debian.template debian ; ./scripts/gen-changelog.sh ;
+# Replace version/size fields in the deb control file
+	$(QUIET) disk_size=0;	\
+		m4																													\
+				-D "SOLO=$(SOLO)"																				\
+				-D "PACKAGE_NAME=$(PACKAGE_NAME)"												\
+				-D "VERSIONED_PACKAGE_NAME=$(VERSIONED_PACKAGE_NAME)"		\
+				-D "VANILLA_PACKAGE_NAME=$(VANILLA_PACKAGE_NAME)"				\
+				-D "TRIAL_PACKAGE_NAME=$(TRIAL_PACKAGE_NAME)"						\
+				-D "VERSIONED_TRIAL_PACKAGE_NAME=$(VERSIONED_TRIAL_PACKAGE_NAME)"						\
+				-D "PACKAGE_VERSION=$(RETHINKDB_VERSION_DEB)"						\
+				-D "LEGACY_LINUX=$(LEGACY_LINUX)"												\
+				-D "TRIAL=$(TRIAL)"																			\
+				-D "DISK_SIZE=$${disk_size}"														\
+			../packaging/$(DEBIAN_PKG_DIR)/control > ../debian/control
+
+# Copy the license file.
+	cat ../packaging/$(DEBIAN_PKG_DIR)/copyright > ../debian/copyright
 
 build-deb: all prepare_deb_package_dirs
 	@echo
