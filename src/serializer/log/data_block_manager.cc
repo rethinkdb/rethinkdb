@@ -549,7 +549,7 @@ void data_block_manager_t::run_gc() {
                         // Increment the refcount before read_async, because read_async can call
                         // its callback immediately, causing the decrement of the refcount.
                         gc_state.refcount++;
-                        dbfile->read_async(gc_state.current_entry->extent_ref.get() + (i * static_config->block_size().ser_value()),
+                        dbfile->read_async(gc_state.current_entry->extent_ref.offset() + (i * static_config->block_size().ser_value()),
                                            static_config->block_size().ser_value(),
                                            gc_state.gc_blocks + (i * static_config->block_size().ser_value()),
                                            choose_gc_io_account(),
@@ -592,7 +592,7 @@ void data_block_manager_t::run_gc() {
                     if (gc_state.current_entry->g_array[i]) continue;
 
                     char *block = gc_state.gc_blocks + i * static_config->block_size().ser_value();
-                    const off64_t block_offset = gc_state.current_entry->extent_ref.get() + (i * static_config->block_size().ser_value());
+                    const off64_t block_offset = gc_state.current_entry->extent_ref.offset() + (i * static_config->block_size().ser_value());
                     block_id_t id;
                     // The block is either referenced by an index or by a token (or both)
                     if (gc_state.current_entry->i_array[i]) {
@@ -654,7 +654,7 @@ void data_block_manager_t::prepare_metablock(metablock_mixin_t *metablock) {
 
     for (int i = 0; i < MAX_ACTIVE_DATA_EXTENTS; i++) {
         if (active_extents[i]) {
-            metablock->active_extents[i] = active_extents[i]->extent_ref.get();
+            metablock->active_extents[i] = active_extents[i]->extent_ref.offset();
             metablock->blocks_in_active_extent[i] = blocks_in_active_extent[i];
         } else {
             metablock->active_extents[i] = NULL_OFFSET;
@@ -727,7 +727,7 @@ off64_t data_block_manager_t::gimme_a_new_offset(bool token_referenced) {
     rassert(active_extents[next_active_extent]->g_array.count() > 0);
     rassert(blocks_in_active_extent[next_active_extent] < static_config->blocks_per_extent());
 
-    off64_t offset = active_extents[next_active_extent]->extent_ref.get() + blocks_in_active_extent[next_active_extent] * static_config->block_size().ser_value();
+    off64_t offset = active_extents[next_active_extent]->extent_ref.offset() + blocks_in_active_extent[next_active_extent] * static_config->block_size().ser_value();
     active_extents[next_active_extent]->was_written = true;
 
     rassert(active_extents[next_active_extent]->g_array[blocks_in_active_extent[next_active_extent]]);
@@ -802,9 +802,9 @@ gc_entry::gc_entry(data_block_manager_t *_parent)
       was_written(false)
 {
     parent->extent_manager->gen_extent(&extent_ref);
-    offset = extent_ref.get();
-    rassert(parent->entries.get(extent_ref.get() / parent->extent_manager->extent_size) == NULL);
-    parent->entries.set(extent_ref.get() / parent->extent_manager->extent_size, this);
+    offset = extent_ref.offset();
+    rassert(parent->entries.get(extent_ref.offset() / parent->extent_manager->extent_size) == NULL);
+    parent->entries.set(extent_ref.offset() / parent->extent_manager->extent_size, this);
     g_array.set();
 
     ++parent->stats->pm_serializer_data_extents;
@@ -819,9 +819,9 @@ gc_entry::gc_entry(data_block_manager_t *_parent, off64_t _offset)
       was_written(false)
 {
     parent->extent_manager->reserve_extent(_offset, &extent_ref);
-    offset = extent_ref.get();
-    rassert(parent->entries.get(extent_ref.get() / parent->extent_manager->extent_size) == NULL);
-    parent->entries.set(extent_ref.get() / parent->extent_manager->extent_size, this);
+    offset = extent_ref.offset();
+    rassert(parent->entries.get(extent_ref.offset() / parent->extent_manager->extent_size) == NULL);
+    parent->entries.set(extent_ref.offset() / parent->extent_manager->extent_size, this);
     g_array.set();
 
     ++parent->stats->pm_serializer_data_extents;
@@ -842,9 +842,9 @@ void gc_entry::destroy() {
 #ifndef NDEBUG
 void gc_entry::print() {
     debugf("gc_entry:\n");
-    debugf("extent_ref offset: %ld\n", extent_ref.get());
+    debugf("extent_ref offset: %ld\n", extent_ref.offset());
     for (unsigned int i = 0; i < g_array.size(); i++)
-        debugf("%.8x:\t%d\n", (unsigned int) (extent_ref.get() + (i * DEVICE_BLOCK_SIZE)), g_array.test(i));
+        debugf("%.8x:\t%d\n", (unsigned int) (extent_ref.offset() + (i * DEVICE_BLOCK_SIZE)), g_array.test(i));
     debugf("\n");
     debugf("\n");
 }

@@ -33,7 +33,7 @@ public:
         extent_offset_ = offset;
     }
 
-    off64_t get() {
+    off64_t offset() {
         guarantee(extent_offset_ != -1);
         return extent_offset_;
     }

@@ -304,7 +304,7 @@ void extent_manager_t::gen_extent(extent_reference_t *extent_ref_out) {
     }
 
     /* In case we are not on a block device */
-    dbfile->set_size_at_least(extent_ref.get() + extent_size);
+    dbfile->set_size_at_least(extent_ref.offset() + extent_size);
 
 #ifdef DEBUG_EXTENTS
     debugf("EM %p: Gen extent %.8lx\n", this, extent);
@@ -314,7 +314,7 @@ void extent_manager_t::gen_extent(extent_reference_t *extent_ref_out) {
 }
 
 void extent_manager_t::copy_extent_reference(extent_reference_t *extent_ref, extent_reference_t *extent_ref_out) {
-    off64_t offset = extent_ref->get();
+    off64_t offset = extent_ref->offset();
     zone_for_offset(offset)->make_extent_reference(offset, extent_ref_out);
 }
 
@@ -326,7 +326,7 @@ void extent_manager_t::release_extent_into_transaction(extent_reference_t *exten
 
 void extent_manager_t::release_extent(extent_reference_t *extent_ref) {
     release_extent_preliminaries();
-    zone_for_offset(extent_ref->get())->release_extent(extent_ref);
+    zone_for_offset(extent_ref->offset())->release_extent(extent_ref);
 }
 
 void extent_manager_t::release_extent_preliminaries() {
@@ -356,7 +356,7 @@ void extent_manager_t::commit_transaction(extent_transaction_t *t) {
     for (std::deque<off64_t>::const_iterator it = extents.begin(); it != extents.end(); ++it) {
         extent_reference_t extent_ref;
         extent_ref.init(*it);
-        zone_for_offset(extent_ref.get())->release_extent(&extent_ref);
+        zone_for_offset(extent_ref.offset())->release_extent(&extent_ref);
     }
 }
 
