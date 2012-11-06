@@ -48,10 +48,8 @@ module 'DashboardView', ->
             @cluster_status_redundancy.destroy()
             @cluster_status_reachability.destroy()
             @cluster_status_consistency.destroy()
-
             @cluster_performance.destroy()
 
-    # TODO: dropped RAM and disk distribution in the templates, need to remove support for them here as well
     class @ClusterStatusAvailability extends Backbone.View
         className: 'cluster-status-availability '
 
@@ -60,8 +58,8 @@ module 'DashboardView', ->
         popup_template: Handlebars.compile $('#cluster_status-availability-popup-template').html()
 
         events:
-            'mouseup .show_details': 'show_details'
-            'mouseup .close': 'hide_details'
+            'click .show_details': 'show_details'
+            'click .close': 'hide_details'
 
         initialize: =>
             @data = ''
@@ -498,8 +496,8 @@ module 'DashboardView', ->
         popup_template: Handlebars.compile $('#cluster_status-consistency-popup-template').html()
 
         events:
-            'mouseup .show_details': 'show_details'
-            'mouseup .close': 'hide_details'
+            'click .show_details': 'show_details'
+            'click .close': 'hide_details'
 
         initialize: =>
             @data = ''
@@ -660,7 +658,8 @@ module 'DashboardView', ->
             if need_render
                 @render()
 
-            @min_timestamp = parseFloat(@log_entries[0].get('timestamp'))+1
+            if @log_entries[0]? and _.isNaN(parseFloat(@log_entries[0].get('timestamp'))) is false
+                @min_timestamp = parseFloat(@log_entries[0].get('timestamp'))+1
 
         render: =>
             @.$el.html ''

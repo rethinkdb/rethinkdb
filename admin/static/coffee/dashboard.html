@@ -22,12 +22,12 @@
 <script id="cluster_status-availability_status-template" type="text/x-handlebars-template">
     <h3>Availability</h3>
     {{#if status_is_ok}}
-        <p class="message"><span class="good">0</span> issue detected</p>
-        <p class="details"><span class="good">{{num_masters}}/{{num_masters}}</span> {{pluralize_noun "master" num_masters}} {{pluralize_verb_to_be num_masters}} online</p>
+        <p class="message"><span class="good">0</span> issues detected</p>
+        <p class="details"><span class="good">{{num_masters}}/{{num_masters}}</span> masters are online</p>
     </div>
     {{else}}
-        <p class="message"><span class="bad">{{num_namespaces_down}}/{{num_namespaces}} </span> <a href="#" class="show_details">{{pluralize_noun "table" num_namespaces_down}}</a> {{pluralize_verb_to_have num_namespaces_down}} issues</p>
-        <p class="details"><span class="bad">{{num_masters_down}}/{{num_masters}}</span> <a href="#" class="show_details">{{pluralize_noun "master" num_masters}}</a> {{pluralize_verb_to_be num_masters}} not available</p>
+        <p class="message"><span class="bad">{{num_namespaces_down}}/{{num_namespaces}} </span> <a href="#" class="show_details">tables</a> are affected</p>
+        <p class="details"><span class="bad">{{num_masters_down}}/{{num_masters}}</span> <a href="#" class="show_details">masters</a> not available</p>
     {{/if}}
 </script>
 
@@ -63,20 +63,20 @@
 <script id="cluster_status-redundancy_status-template" type="text/x-handlebars-template">
     <h3>Redundancy</h3>
     {{#if status_is_ok}}
-        <p class="message"><span class="good">0</span> issue detected</p>
-        <p class="details"><span class="good">{{num_replicas}}/{{num_replicas}}</span> {{pluralize_noun "replica" num_replicas}} {{pluralize_verb_to_be num_replicas}} online</p>
+        <p class="message"><span class="good">0</span> issues detected</p>
+        <p class="details"><span class="good">{{num_replicas}}/{{num_replicas}}</span> replicas are online</p>
     </div>
     {{else}}
         {{#if has_unsatisfiable_goals}}
         <p class="message"><span class="bad">{{num_unsatisfiable_goals}}</span> <a href="#" class="show_details">unsatisfiable {{pluralize_noun "goal" num_unsatisfiable_goals}}</a></p>
         {{else}}
-        <p class="message"><span class="bad">{{num_namespaces_down}}/{{num_namespaces}} </span> <a href="#" class="show_details">{{pluralize_noun "table" num_namespaces_down}}</a> {{pluralize_verb_to_have num_namespaces_down}} issues</p>
+        <p class="message"><span class="bad">{{num_namespaces_down}}/{{num_namespaces}} </span> <a href="#" class="show_details">tables</a> are affected</p>
         {{/if}}
 
         {{#if has_namespaces_down}}
-        <p class="details"><span class="bad">{{num_replicas_down}}/{{num_replicas}}</span> <a href="#" class="show_details">{{pluralize_noun "replica" num_replicas}}</a> not up to date</p>
+        <p class="details"><span class="bad">{{num_replicas_down}}/{{num_replicas}}</span> <a href="#" class="show_details">replicas</a> not up to date</p>
         {{else}}
-        <p class="details"><span class="bad">{{num_replicas}}/{{num_replicas}}</span> {{pluralize_noun "replica" num_replicas}} {{pluralize_verb_to_be num_replicas}} online</p>
+        <p class="details"><span class="bad">{{num_replicas}}/{{num_replicas}}</span> replicas are online</p>
         {{/if}}
     {{/if}}
 </script>
@@ -161,10 +161,10 @@
     <h3>Reachability</h3>
     {{#if has_machines_down}}
     <p class="message"><span class="bad">{{num_machines_down}}</span> <a href="#" class="show_details">{{pluralize_noun "issue" num_machines_down}}</a> detected</p>
-    <p class="details"><span class="bad">{{num_machines_down}}/{{num_machines}}</span> <a href="#" class="show_details">servers</a> {{pluralize_verb_to_be num_machines_down}} down</p>
+    <p class="details"><span class="bad">{{num_machines_down}}/{{num_machines}}</span> <a href="#" class="show_details">servers</a> are down</p>
     {{else}}
-    <p class="message"><span class="good">0</span> issue detected</p>
-    <p class="details"><span class="good">{{num_machines}}/{{num_machines}}</span> {{pluralize_noun "server" num_machines}} reachable</p>
+    <p class="message"><span class="good">0</span> issues detected</p>
+    <p class="details"><span class="good">{{num_machines}}/{{num_machines}}</span> servers reachable</p>
     {{/if}}
 </script>
 
@@ -198,8 +198,8 @@
     <p class="details"><span class="bad">{{num_conflicts}}</span> {{type}} {{pluralize_verb_to_have num_conflicts}} conflicts</p>
     {{/if}}
     {{else}}
-    <p class="message"><span class="good">0</span> issue detected</p>
-    <p class="details"><span class="good">{{num_namespaces}}/{{num_namespaces}}</span> {{pluralize_noun "table" num_namespaces}} reachable</p>
+    <p class="message"><span class="good">0</span> issues detected</p>
+    <p class="details"><span class="good">{{num_namespaces}}/{{num_namespaces}}</span> tables are consistent</p>
     {{/if}}
 </script>
 

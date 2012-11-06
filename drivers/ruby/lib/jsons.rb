@@ -7,8 +7,8 @@ module RethinkDB
   # methods of JSON_Expression.  For example, the following are
   # equivalent:
   #   r.add(1, 2)
-  #   r[1].add(2)
-  #   r[3]
+  #   r(1).add(2)
+  #   r(3)
   #
   # Running a JSON_Expression query will return a literal Ruby
   # representation of the resulting JSON, rather than a stream or a
@@ -16,20 +16,20 @@ module RethinkDB
   #   r.add(1,2).run
   #   3
   # As are:
-  #   r[{:a => 1, :b => 2}].pickattrs(:a).run
+  #   r({:a => 1, :b => 2}).pick(:a).run
   #   {'a' => 1}
   # (Note that the symbol keys were coerced into string keys in the
-  # object.  JSON doesn't distinguish between keys and strings.)
+  # object.  JSON doesn't distinguish between symbols and strings.)
   class JSON_Expression
     # If <b>+ind+</b> is a symbol or a string, gets the corresponding
     # attribute of an object.  For example, the following are equivalent:
-    #   r[{:id => 1}][:id]
-    #   r[{:id => 1}]['id']
-    #   r[1]
-    # Otherwise, if <b>+ind+</b> is a number or a range, invokes RQL::[]
+    #   r({:id => 1})[:id]
+    #   r({:id => 1})['id']
+    #   r(1)
+    # Otherwise, if <b>+ind+</b> is a number or a range, invokes RethinkDB::Sequence#[]
     def [](ind)
       if ind.class == Symbol || ind.class == String
-        B.alt_inspect(JSON_Expression.new [:call, [:getattr, ind], [self]]) {
+        BT.alt_inspect(JSON_Expression.new [:call, [:getattr, ind], [self]]) {
           "#{self.inspect}[#{ind.inspect}]"
         }
       else
@@ -38,66 +38,67 @@ module RethinkDB
     end
 
     # Append a single element to an array.  The following are equivalent:
-    #   r[[1,2,3,4]]
-    #   r[[1,2,3]].append(4)
+    #   r([1,2,3,4])
+    #   r([1,2,3]).append(4)
     def append(el)
       JSON_Expression.new [:call, [:arrayappend], [self, S.r(el)]]
     end
 
-    # Get an attribute of a JSON object.  The following are equivalent:
-    #   r[{:id => 1}].getattr(:id)
-    #   r[1]
+    # Get an attribute of a JSON object (the same as
+    # JSON_Expression#[]).  The following are equivalent.
+    #   r({:id => 1}).getattr(:id)
+    #   r({:id => 1})[:id]
+    #   r(1)
     def getattr(attrname)
       JSON_Expression.new [:call, [:getattr, attrname], [self]]
     end
 
     # Check whether a JSON object has a particular attribute.  The
     # following are equivalent:
-    #   r[{:id => 1}].hasattr(:id)
-    #   r[true]
-    def hasattr(attrname)
-      JSON_Expression.new [:call, [:hasattr, attrname], [self]]
+    #   r({:id => 1}).contains(:id)
+    #   r(true)
+    def contains(attrname)
+      JSON_Expression.new [:call, [:contains, attrname], [self]]
     end
 
     # Construct a JSON object that has a subset of the attributes of
     # another JSON object by specifying which to keep.  The following are equivalent:
-    #   r[{:a => 1, :b => 2, :c => 3}].pickattrs(:a, :c)
-    #   r[{:a => 1, :c => 3}]
-    def pickattrs(*attrnames)
-      JSON_Expression.new [:call, [:pickattrs, *attrnames], [self]]
+    #   r({:a => 1, :b => 2, :c => 3}).pick(:a, :c)
+    #   r({:a => 1, :c => 3})
+    def pick(*attrnames)
+      JSON_Expression.new [:call, [:pick, *attrnames], [self]]
     end
 
     # Construct a JSON object that has a subset of the attributes of
     # another JSON object by specifying which to drop.  The following are equivalent:
-    #   r[{:a => 1, :b => 2, :c => 3}].without(:a, :c)
-    #   r[{:b => 2}]
-    def without(*attrnames)
-      JSON_Expression.new [:call, [:without, *attrnames], [self]]
+    #   r({:a => 1, :b => 2, :c => 3}).without(:a, :c)
+    #   r({:b => 2})
+    def unpick(*attrnames)
+      JSON_Expression.new [:call, [:unpick, *attrnames], [self]]
     end
 
-    # Convert from an array to a stream.  Also has the synonym
-    # <b>+to_stream+</b>.  While most sequence functions are polymorphic
+    # Convert from an array to a stream.  While most sequence functions are polymorphic
     # and handle both arrays and streams, when arrays or streams need to be
     # combined (e.g. via <b>+union+</b>) you need to explicitly convert between
     # the types.  This is mostly for safety, but also because which type you're
-    # working with effects error handling.  The following are equivalent:
-    #   r[[1,2,3]].arraytostream
-    #   r[[1,2,3]].to_stream
-    def arraytostream(); Stream_Expression.new [:call, [:arraytostream], [self]]; end
+    # working with affects error handling.  The following are equivalent:
+    #   r([1,2,3]).arraytostream
+    #   r([1,2,3]).to_stream
+    def array_to_stream(); Stream_Expression.new [:call, [:array_to_stream], [self]]; end
 
     # Prefix numeric -.  The following are equivalent:
-    #   -r[1]
-    #   r[-1]
+    #   -r(1)
+    #   r(-1)
     def -@; JSON_Expression.new [:call, [:subtract], [self]]; end
     # Prefix numeric +.  The following are equivalent:
-    #   +r[-1]
-    #   r[-1]
+    #   +r(-1)
+    #   r(-1)
     def +@; JSON_Expression.new [:call, [:add], [self]]; end
   end
 
-  # A query representing a variable.  Produced by e.g. RQL::var.  This
+  # A query representing a variable.  Produced by e.g. RQL::letvar.  This
   # is its own class because it needs to behave correctly when spliced
-  # into a string (see RQL::javascript).
+  # into a string (see RQL::js).
   class Var_Expression < JSON_Expression
     # Convert from an RQL query representing a variable to the name of that
     # variable.  Used e.g. in constructing javascript functions.
@@ -121,9 +122,9 @@ module RethinkDB
     end
 
     # Analagous to Multi_Row_Selection#mutate
-    def mutate(variant=nil)
+    def replace(variant=nil)
       S.with_var {|vname,v|
-        Write_Query.new [:pointmutate, *(@body[1..-1] + [[vname, S.r(yield(v))]])]
+        Write_Query.new [:pointreplace, *(@body[1..-1] + [[vname, S.r(yield(v))]])]
       }.apply_variant(variant)
     end
 

@@ -883,13 +883,13 @@ goog.exportProperty(rethinkdb.Expression.prototype, 'map',
 
 /**
  * Order the elements of the sequence by their values of the specified attributes.
- * @param {...string} var_args Some number of strings giving the fields to orderby.
+ * @param {...string} var_args Some number of strings giving the fields to orderBy.
  *  Values are first orderd by the first field given, then by the second, etc. Prefix
  *  a field name with a '-' to request a decending order. Attributes without prefixes
  *  will be given in ascending order.
  * @return {rethinkdb.Expression}
  */
-rethinkdb.Expression.prototype.orderby = function(var_args) {
+rethinkdb.Expression.prototype.orderBy = function(var_args) {
     rethinkdb.util.argCheck_(arguments, 1);
     var orderings = Array.prototype.slice.call(arguments, 0);
     orderings.forEach(function(order) {rethinkdb.util.typeCheck_(order, 'string')});
@@ -899,14 +899,14 @@ rethinkdb.Expression.prototype.orderby = function(var_args) {
         function(bt) {
             var os = orderings.map(function(o) {return "'"+o+"'";});
             if (!bt) {
-                return self.formatQuery()+".orderby("+os.join(', ')+")";
+                return self.formatQuery()+".orderBy("+os.join(', ')+")";
             } else {
                 var a = bt.shift();
                 if (a === 'order_by') {
-                    return rethinkdb.util.spaceify_(self.formatQuery()+".orderby(")+rethinkdb.util.carrotify_(os.join(', '))+" ";
+                    return rethinkdb.util.spaceify_(self.formatQuery()+".orderBy(")+rethinkdb.util.carrotify_(os.join(', '))+" ";
                 } else {
                     goog.asserts.assert(bt[0] === 'arg:0');
-                    return self.formatQuery(bt)+rethinkdb.util.spaceify_(".orderby("+os.join(', ')+")");
+                    return self.formatQuery(bt)+rethinkdb.util.spaceify_(".orderBy("+os.join(', ')+")");
                 }
             }
         },
@@ -928,8 +928,8 @@ rethinkdb.Expression.prototype.orderby = function(var_args) {
             }
         });
 }
-goog.exportProperty(rethinkdb.Expression.prototype, 'orderby',
-                    rethinkdb.Expression.prototype.orderby);
+goog.exportProperty(rethinkdb.Expression.prototype, 'orderBy',
+                    rethinkdb.Expression.prototype.orderBy);
 
 /**
  * Remove duplicate values in this sequence.
@@ -1131,7 +1131,7 @@ rethinkdb.Expression.prototype.groupBy = function(var_args) {
     var finalizer = groupbyObject['finalizer'];
     if (finalizer) {
         gmr = gmr.map(function(group) {
-            return group.extend({'reduction': finalizer(group('reduction'))});
+            return group.merge({'reduction': finalizer(group('reduction'))});
         });
     }
 
@@ -1471,27 +1471,27 @@ rethinkdb.letVar = function(varString) {
  *  object when conflicts exist.
  * @return {rethinkdb.Expression}
  */
-rethinkdb.Expression.prototype.extend = function(other) {
+rethinkdb.Expression.prototype.merge = function(other) {
     other = rethinkdb.util.wrapIf_(other);
     var self = this;
     return rethinkdb.util.newExpr_(rethinkdb.BuiltinExpression, Builtin.BuiltinType.MAPMERGE, [this, other],
         function(bt) {
             if (!bt) {
-                return self.formatQuery()+".extend("+other.formatQuery()+")";
+                return self.formatQuery()+".merge("+other.formatQuery()+")";
             } else {
                 var a = bt.shift();
                 if (a === 'arg:0') {
-                    return self.formatQuery(bt)+rethinkdb.util.spaceify_(".extend("+other.formatQuery()+")");
+                    return self.formatQuery(bt)+rethinkdb.util.spaceify_(".merge("+other.formatQuery()+")");
                 } else if (a === 'arg:1') {
-                    return rethinkdb.util.spaceify_(self.formatQuery()+".extend(")+other.formatQuery(bt)+" ";
+                    return rethinkdb.util.spaceify_(self.formatQuery()+".merge(")+other.formatQuery(bt)+" ";
                 } else {
-                    return rethinkdb.util.carrotify_(self.formatQuery()+".extend("+other.formatQuery()+")");
+                    return rethinkdb.util.carrotify_(self.formatQuery()+".merge("+other.formatQuery()+")");
                 }
             }
         });
 };
-goog.exportProperty(rethinkdb.Expression.prototype, 'extend',
-                    rethinkdb.Expression.prototype.extend);
+goog.exportProperty(rethinkdb.Expression.prototype, 'merge',
+                    rethinkdb.Expression.prototype.merge);
 
 /**
  * Returns the concatenation of multiple sequences.
@@ -1833,7 +1833,7 @@ goog.exportProperty(rethinkdb.Expression.prototype, 'equiJoin',
 rethinkdb.Expression.prototype.zip = function() {
     return this.map(function(row) {
         return rethinkdb.branch(row.contains('right'),
-            row('left').extend(row('right')),
+            row('left').merge(row('right')),
             row('left'));
     });
 };

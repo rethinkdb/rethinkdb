@@ -13,6 +13,7 @@
 #include "arch/os_signal.hpp"
 #include "arch/runtime/starter.hpp"
 #include "clustering/administration/cli/admin_command_parser.hpp"
+#include "clustering/administration/main/names.hpp"
 #include "clustering/administration/main/import.hpp"
 #include "clustering/administration/main/json_import.hpp"
 #include "clustering/administration/main/ports.hpp"
@@ -226,9 +227,8 @@ void run_rethinkdb_serve(extproc::spawner_t::info_t *spawner_info, const std::st
 void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std::string &filepath, const name_string_t &machine_name, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets, bool new_directory) {
     os_signal_cond_t sigint_cond;
 
-    logINF("Checking if directory '%s' already existed...\n", filepath.c_str());
     if (!new_directory) {
-        logINF("It already existed.  Loading data...\n");
+        logINF("Loading data from directory %s\n", filepath.c_str());
 
         scoped_ptr_t<io_backender_t> io_backender;
         make_io_backender(io_backend, &io_backender);
@@ -252,7 +252,7 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
         }
 
     } else {
-        logINF("It did not already exist. It has been created.\n");
+        logINF("Creating directory %s\n", filepath.c_str());
 
         machine_id_t our_machine_id = generate_uuid();
 
@@ -317,14 +317,22 @@ void run_rethinkdb_proxy(extproc::spawner_t::info_t *spawner_info, const std::ve
 po::options_description get_machine_options() {
     po::options_description desc("Machine name options");
     desc.add_options()
-        ("machine-name,n", po::value<std::string>()->default_value("NN"), "The name for this machine (as will appear in the metadata).");
+        ("machine-name,n", po::value<std::string>()->default_value(get_random_machine_name()), "the name for this machine (as will appear in the metadata).");
+    return desc;
+}
+
+// A separate version of this for help since we don't have fine-tuned control over default options blah blah blah
+po::options_description get_machine_options_visible() {
+    po::options_description desc("Machine name options");
+    desc.add_options()
+        ("machine-name,n", po::value<std::string>(), "the name for this machine (as will appear in the metadata).  If not specified, it will be randomly chosen from a short list of names.");
     return desc;
 }
 
 po::options_description get_file_options() {
     po::options_description desc("File path options");
     desc.add_options()
-        ("directory,d", po::value<std::string>()->default_value("rethinkdb_cluster_data"), "specify directory to store data and metadata");
+        ("directory,d", po::value<std::string>()->default_value("rethinkdb_data"), "specify directory to store data and metadata");
     return desc;
 }
 
@@ -412,7 +420,7 @@ po::options_description get_rethinkdb_create_options() {
 po::options_description get_rethinkdb_create_options_visible() {
     po::options_description desc("Allowed options");
     desc.add(get_file_options());
-    desc.add(get_machine_options());
+    desc.add(get_machine_options_visible());
 #ifdef AIOSUPPORT
     desc.add(get_disk_options());
 #endif // AIOSUPPORT
@@ -487,20 +495,6 @@ po::options_description get_rethinkdb_porcelain_options() {
     desc.add(get_network_options());
     desc.add(get_web_options());
     desc.add(get_disk_options());
-    desc.add(get_cpu_options());
-    desc.add(get_service_options());
-    return desc;
-}
-
-po::options_description get_rethinkdb_porcelain_options_visible() {
-    po::options_description desc("Allowed options");
-    desc.add(get_file_options());
-    desc.add(get_machine_options());
-    desc.add(get_network_options());
-    desc.add(get_web_options());
-#ifdef AIOSUPPORT
-    desc.add(get_disk_options());
-#endif // AIOSUPPORT
     desc.add(get_cpu_options());
     desc.add(get_service_options());
     return desc;

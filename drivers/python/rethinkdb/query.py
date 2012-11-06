@@ -406,7 +406,7 @@ class JSONExpression(ReadQuery):
         """
         return JSONExpression(internal.Has(self, name))
 
-    def extend(self, other):
+    def merge(self, other):
         """Combines two objects by taking all the key-value pairs from both. If
         a given key is present in both objects, take the value from `other`.
 
@@ -416,7 +416,7 @@ class JSONExpression(ReadQuery):
         :type other: :class:`JSONExpression`
         :returns: :class:`JSONExpression` evaluating to an object
 
-        >>> expr({"a": 1, "b": 2}).extend({"b": 3, "c": 4}).run()
+        >>> expr({"a": 1, "b": 2}).merge({"b": 3, "c": 4}).run()
         {"a": 1, "b": 3, "c": 4}
         """
         return JSONExpression(internal.Extend(self, other))
@@ -485,13 +485,13 @@ class JSONExpression(ReadQuery):
         """
         return self[:count]
 
-    def orderby(self, *attributes):
+    def order_by(self, *attributes):
         """Sorts an array of objects according to the given attributes.
 
         Items are sorted in ascending order unless the attribute name starts
         with '-', which sorts the attribute in descending order.
 
-        This is like :meth:`StreamExpression.orderby` but with arrays instead
+        This is like :meth:`StreamExpression.order_by` but with arrays instead
         of streams.
 
         If the input is not an array, fails when the query is run.
@@ -612,7 +612,7 @@ class JSONExpression(ReadQuery):
 
         try:
             finalizer = groupByObject['finalizer']
-            gmr = gmr.map(lambda group: group.extend({'reduction': finalizer(group['reduction'])}))
+            gmr = gmr.map(lambda group: group.merge({'reduction': finalizer(group['reduction'])}))
         except KeyError:
             pass
 
@@ -723,7 +723,7 @@ class JSONExpression(ReadQuery):
             ))
         )
 
-    def equi_join(self, left_attr, other, opt_right_attr=None):
+    def eq_join(self, left_attr, other, opt_right_attr=None):
         return self.concat_map(
             lambda row: let(('right', other.get(row[left_attr])),
                 branch(letvar('right') != None,
@@ -735,7 +735,7 @@ class JSONExpression(ReadQuery):
 
     def zip(self):
         return self.map(lambda row: branch(row.contains('right'),
-            row['left'].extend(row['right']),
+            row['left'].merge(row['right']),
             row['left']
         ))
 
@@ -902,7 +902,7 @@ class StreamExpression(ReadQuery):
         """
         return self[:count]
 
-    def orderby(self, *attributes):
+    def order_by(self, *attributes):
         """Sort the stream according to the given attributes.
 
         Items are sorted in ascending order unless the attribute name starts
@@ -914,8 +914,8 @@ class StreamExpression(ReadQuery):
         :type attributes: strings
         :returns: :class:`StreamExpression` or :class:`MultiRowSelection` (same as input)
 
-        >>> table('users').orderby('name')  # order users by name A-Z
-        >>> table('users').orderby('-level', 'name') # levels high-low, then names A-Z
+        >>> table('users').order_by('name')  # order users by name A-Z
+        >>> table('users').order_by('-level', 'name') # levels high-low, then names A-Z
         """
         order = []
         for attr in attributes:
@@ -1033,7 +1033,7 @@ class StreamExpression(ReadQuery):
 
         try:
             finalizer = groupByObject['finalizer']
-            gmr = gmr.map(lambda group: group.extend({'reduction': finalizer(group['reduction'])}))
+            gmr = gmr.map(lambda group: group.merge({'reduction': finalizer(group['reduction'])}))
         except KeyError:
             pass
 
@@ -1102,7 +1102,7 @@ class StreamExpression(ReadQuery):
             ))
         )
 
-    def equi_join(self, left_attr, other, opt_right_attr=None):
+    def eq_join(self, left_attr, other, opt_right_attr=None):
         return self.concat_map(
             lambda row: let(('right', other.get(row[left_attr])),
                 branch(letvar('right') != None,
@@ -1114,7 +1114,7 @@ class StreamExpression(ReadQuery):
 
     def zip(self):
         return self.map(lambda row: branch(row.contains('right'),
-            row['left'].extend(row['right']),
+            row['left'].merge(row['right']),
             row['left']
         ))
 
@@ -1318,7 +1318,7 @@ class FunctionExpr(object):
         assert len(self.args) == 2
         mapp = self.body
         if not isinstance(mapp, BaseQuery):
-            mapp = expr(res)
+            mapp = expr(mapp)
         base._inner._write_ast(reduction.base, opts)
         reduction.var1 = self.args[0]
         reduction.var2 = self.args[1]

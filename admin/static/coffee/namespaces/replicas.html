@@ -1,12 +1,19 @@
 <script id="namespace_view-replica-template" type="text/x-handlebars-template">
-    <h2 class="title">Replication across the cluster</h2>
+    <h2 class="title">Replication status</h2>
+    <div class="progress_bar_container"></div>
+    <div class="replica-status"></div>
+    <h2 class="title">Replication settings</h2>
     <div class="alert alert-error no_datacenter_found"><p>The primary datacenter of this table was not found. Please specify another primary datacenter (or Universe).</p></div>
     <div class="alert alert-error ack_greater_than_replicas"></div>
-    <div class="universe_container"></div>
-    <h2 class="title">Replication on each datacenter</h2>
-    <div class="row-fluid">
-        <div class="span3 tabbable tabs-left datacenters_list_container"></div>
-        <div class="span9 tab-content datacenter_content"></div>
+    <div class="cluster_container"></div>
+    <a href="#" class="toggle-mdc show-mdc">Show multi-datacenter options</a>
+    <a href="#" class="toggle-mdc hide-mdc">Hide multi-datacenter options</a>
+    <div class="mdc-options hidden">
+        <div class="row-fluid">
+            <div class="span3 tabbable tabs-left datacenters_list_container"></div>
+            <div class="span9 tab-content datacenter_content"></div>
+        </div>
+        <div class="primary-dc"></div>
     </div>
 </script>
 
@@ -25,52 +32,37 @@
 </script>
 
 <script id="namespace_view-universe_replica-template" type="text/x-handlebars-template">
-    <div class="replica-status"></div>
-    <div class="universe-info universe-role">
-        <p class="caption">Role</p>
-        {{#unless primary}}
-            <button class="btn make-primary">Make Primary</button>
-        {{/unless}}
-        <p class="value">
-            {{#if primary}}
-                Primary
-            {{else}}
-                Secondary
-            {{/if}}
-        </p>
-        <div class="make_primary-alert alert">
-            <a class="close" href="#">&times;</a>
-            <p class="make_primary-alert-content"></p>
-        </div>
-    </div>
-    <div class="universe-info replica_container">
+    <div class="cluster-info replica_container">
+        <div class="replicas_acks-alert alert alert-error"></div>
+        <div class="status-alert alert"></div>
         {{#if editable}}
             <button class="cancel btn">&times;</button>
             <button class="save update-replicas btn">Update</button>
         {{else}}
-            <button class="edit btn">Change</button>
+            <button class="edit btn">Edit</button>
         {{/if}}
-        <div class="replica_value">
-            <p class="caption">Replicas</p>
+        <div class="cluster-replicas">
             {{#if editable}}
-                <input type="text" id="replicas_value" value="{{replicas}}" class="inline_edit_input">
+                <p>
+                    <input type="text" id="replicas_value" value="{{replicas}}" class="inline_edit_input">
+                    <span class="caption">replicas</span>
+                </p>
+                <p class="max-value">max replicas: {{max_replicas}}</p>
             {{else}}
-                <p class="value">{{replicas}}</p>
+                <p><span class="value">{{replicas}}</span> <span class="caption">replicas</p>
             {{/if}}
         </div>
-        <div class="ack_value">
-            <p class="caption">Acks</p>
+        <div class="cluster-acks">
             {{#if editable}}
-                <input type="text" id="acks_value" value="{{acks}}" class="inline_edit_input">
+                <p>
+                    <input type="text" id="acks_value" value="{{acks}}" class="inline_edit_input">
+                    <span class="caption">write acks</span>
+                </p>
+                <p class="max-value">max acks: {{max_acks}}</p>
             {{else}}
-                <p class="value">{{acks}}</p>
+                <p><span class="value">{{acks}}</span> <span class="caption">write acks</span></p>
             {{/if}}
         </div>
-        <div class="replicas_acks-alert alert"></div>
-        <div class="status-alert alert"></div>
-    </div>
-    <div class="universe-info progress_bar_full_container">
-        <div class="progress_bar_container"></div>
     </div>
 </script>
 
@@ -82,54 +74,39 @@
 
 <script id="namespace_view-datacenter_replica-template" type="text/x-handlebars-template">
     <div class="dc-info">
-        <p class="caption">Role</p>
-        {{#unless primary}}
-            <button class="btn make-primary">Make Primary</button>
-        {{/unless}}
-        <p class="value">
-            {{#if primary}}
-                Primary
-            {{else}}
-                Secondary
-            {{/if}}
-        </p>
-        <div class="make_primary-alert alert">
-            <a class="close" href="#">&times;</a>
-            <p class="make_primary-alert-content"></p>
-        </div>
+        <p class="value">{{name}}</p>
+        <p class="caption">Datacenter</p>
     </div>
     <div class="dc-info replica_container">
+        <div class="replicas_acks-alert alert alert-error"></div>
         {{#if editable}}
             <button class="cancel btn">&times;</button>
             <button class="save update-replicas btn">Update</button>
         {{else}}
-            <button class="edit btn">Change</button>
+            <button class="edit btn">Edit</button>
         {{/if}}
         <div class="replica_value">
-            <p class="caption">Replicas</p>
             {{#if editable}}
                 <input type="text" id="replicas_value" value="{{replicas}}" class="inline_edit_input">
             {{else}}
                 <p class="value">{{replicas}}</p>
             {{/if}}
+            <p class="caption">Replicas</p>
+            {{#if editable}}
+            <p class="max-value">max replicas: {{max_replicas}}</p>
+            {{/if}}
         </div>
         <div class="ack_value">
-            <p class="caption">Acks</p>
             {{#if editable}}
                 <input type="text" id="acks_value" value="{{acks}}" class="inline_edit_input">
             {{else}}
                 <p class="value">{{acks}}</p>
             {{/if}}
+            <p class="caption">Write Acks</p>
+            {{#if editable}}
+            <p class="max-value">max acks: {{max_acks}}</p>
+            {{/if}}
         </div>
-        <div class="replicas_acks-alert alert"></div>
-    </div>
-    <div class="dc-info progress_bar_full_container">
-        <div class="progress_bar_container"></div>
-    </div>
-    <div class="dc-info">
-        <p class="caption">Status</p>
-        <p class="value status_details"></p>
-        <div class="status-alert alert"></div>
     </div>
 </script>
 <script id="namespace_view-edit_datacenter_replica-alert_messages-template" type="text/x-handlebars-template">
@@ -137,16 +114,13 @@
     You need to set at least one replica before making this datacenter primary.
     {{/if}}
     {{#if too_many_replicas}}
-    The number of replicas ({{num_replicas}}) cannot exceed the total number of machines ({{max_machines}}).
+    The number of replicas ({{num_replicas}}) cannot exceed the total number of servers ({{max_machines}}).
     {{/if}}
     {{#if need_at_least_one_replica}}
     The number of replicas must be at least one because {{name}} is the primary datacenter for this table.
     {{/if}}
     {{#if too_many_acks}}
     The number of acks ({{num_acks}}) cannot exceed the total number of replicas ({{num_replicas}}).
-    {{/if}}
-    {{#if acks_too_small}}
-    The value of acks must be greater than 0 if you have one replica or more.
     {{/if}}
 </script>
 <script id="namespace_view-edit_datacenter_replica-replication_status-template" type="text/x-handlebars-template">
@@ -158,7 +132,6 @@
 </script>
 
 <script id="namespace_view-edit_datacenter_replica-error-template" type="text/x-handlebars-template">
-    <div class="close" href="#">&times;</div>
     <p>
     {{#each msg_errors}}
      {{print_safe this}}<br/>
@@ -177,7 +150,6 @@
 </script>
 
 <script id="need_replicas-template" type="text/x-handlebars-template">
-    <div class="close" href="#">&times;</div>
     <p>This datacenter needs at least one replica to become master.</p>
 </script>
 
@@ -199,3 +171,86 @@
   </div>
 </script>
 
+<script id="replica_status-template" type="text/x-handlebars-template">
+    {{#if operation_active}}
+        <div class="progress-status">
+            <div class="stages">
+                {{#if starting}}
+                    <p>Started</p>
+                {{/if}}
+                {{#if processing}}
+                    <p class="completed">Started</p>
+                    <p>Replicating</p>
+                {{/if}}
+                {{#if finished}}
+                    <p class="completed">Started</p>
+                    <p class="completed">Replicated</p>
+                {{/if}}
+            </div>
+            {{#if starting}}
+                <p>0/{{new_value}} replicas completed</p>
+                {{else}}
+            <p>
+            {{current_value}}/{{max_value}} {{pluralize_noun "replica" num_replicas}}{{#if total_blocks}}, 
+            {{! Keep the if above so we do not have an extra space before the comma}}
+            {{replicated_blocks}}/{{total_blocks}} blocks copied
+            {{else}}
+            up to date
+            {{/if}}
+            </p>
+            {{/if}}
+            <div class="progress"><div class="bar" style="width:{{#if starting}}0{{else}}{{percent_complete}}{{/if}}%"></div></div>
+        </div>
+    {{else}}
+    <p><span class="big">{{current_value}}/{{max_value}}</span> {{pluralize_noun "replica" max_value}} reachable</p>
+    {{/if}}
+</script>
+
+<script id="namespace_view-primary_datacenter-template" type="text/x-handlebars-template">
+    <div class="toggle-primary">
+        <div class="switch">
+            <input type="radio" class="switch-input" name="view" value="primary-on" id="primary-on"{{#if force_on}} checked{{/if}}>
+            <label for="primary-on" class="switch-label switch-label-off">On</label>
+            <input type="radio" class="switch-input" name="view" value="primary-off" id="primary-off"{{#unless force_on}} checked{{/unless}}>
+            <label for="primary-off" class="switch-label switch-label-on">Off</label>
+            <span class="switch-selection"></span>
+        </div>
+        <p class="caption">Pin masters to a single datacenter</p>
+    </div>
+    <div class="content"></div>
+
+    <div class="alert alert-error">
+        <a class="close" href="#">&times;</a>
+        Sorry, something went wrong with the ajax request. Please try again.
+    </div>
+</script>
+
+<script id="namespace_view-primary_datacenter_content-template" type="text/x-handlebars-template">
+    {{#if show_primary}}
+    <button class="edit btn">Edit</button>
+    <p>Current datacenter used: <a href="#datacenters/{{primary_id}}">{{primary_name}}</a></p>
+    {{else}}
+    {{#if choose_primary}}
+        {{#if primary_isnt_universe}}
+        <p>Current datacenter used: <a href="#datacenters/{{primary_id}}">{{primary_name}}</a></p>
+        {{/if}}
+        <button class="cancel-change-primary btn">&times;</button>
+        <button class="save submit-change-primary btn">Change</button>
+        <select class="datacenter_uuid_list" name="datacenter_uuid_list">
+            {{#each datacenters}}
+            <option value="{{this.id}}"{{#if is_primary}} disabled="disabled"{{/if}}>{{this.name}}</option>
+            {{/each}}
+        </select>
+    {{else}}
+        {{#if confirm_off}}
+        <button class="cancel-confirm-off btn">&times;</button>
+        <button class="save submit-confirm-off btn">Confirm</button>
+        <p>Are you sure you want not to force masters in <a href="#datacenters/{{primary_id}}">{{primary_name}}</a>?</p>
+        {{else}}
+        <div class="alert alert-success displayed_alert">
+            You can pin the master of each shard for this table to a single datacenter-- designating it as the primary datacenter for this table.
+        </div>
+        {{/if}}
+        {{/if}}
+    {{/if}}
+</script>

@@ -11,12 +11,12 @@ var conn;
 function testConnect() {
     wait();
     conn = r.connect({host:HOST, port:PORT}, function() {
-        r.db('test').list().run(function(table) {
+        r.db('test').tableList().run(function(table) {
             if (table) {
-                r.db('test').drop(table).run();
+                r.db('test').tableDrop(table).run();
                 return true;
             } else {
-                r.db('test').create('test').run(function() {
+                r.db('test').tableCreate('test').run(function() {
                     done();
                 });
                 return false;
@@ -79,8 +79,8 @@ function testAppend() {
     arr.append(7).nth(6).run(aeq(7));
 }
 
-function testExtend() {
-    r.expr({a:1}).extend({b:2}).run(objeq({a:1,b:2}));
+function testMerge() {
+    r.expr({a:1}).merge({b:2}).run(objeq({a:1,b:2}));
 }
 
 function testIf() {
@@ -166,16 +166,16 @@ function testGet() {
 }
 
 function testOrderby() {
-    tab.orderby('num').nth(2).run(objeq({id:7,num:13}));
-    tab.orderby('num').nth(2).pick('num').run(objeq({num:13}));
+    tab.orderBy('num').nth(2).run(objeq({id:7,num:13}));
+    tab.orderBy('num').nth(2).pick('num').run(objeq({num:13}));
 }
 
 function testPluck() {
-    tab.orderby('num').pluck('num').nth(0).run(objeq({num:11}));
+    tab.orderBy('num').pluck('num').nth(0).run(objeq({num:11}));
 }
 
 function testWithout() {
-    tab.orderby('num').without('num').nth(0).run(objeq({id:9}));
+    tab.orderBy('num').without('num').nth(0).run(objeq({id:9}));
 }
 
 function testUnion() {
@@ -198,7 +198,7 @@ function testTabFilter() {
 }
 
 function testTabMap() {
-    tab.orderby('num').map(r('num')).nth(2).run(aeq(13));
+    tab.orderBy('num').map(r('num')).nth(2).run(aeq(13));
 }
 
 function testTabReduce() {
@@ -228,7 +228,7 @@ function testJS() {
 
 function testBetween() {
     tab.between(2,3).count().run(aeq(2));
-    tab.between(2,3).orderby('id').nth(0).run(objeq({
+    tab.between(2,3).orderBy('id').nth(0).run(objeq({
         id:2,
         num:18
     }));
@@ -286,12 +286,12 @@ function testJoin1() {
     var s2 = r.expr([{id:0, title:'goof'}, {id:2, title:'lmoe'}]);
 
     wait();
-    r.db('test').create('joins1').run(function() {
+    r.db('test').tableCreate('joins1').run(function() {
         r.table('joins1').insert(s1).run(done);
     });
 
     wait();
-    r.db('test').create('joins2').run(function() {
+    r.db('test').tableCreate('joins2').run(function() {
         r.table('joins2').insert(s2).run(done);
     });
 }
@@ -302,20 +302,20 @@ function testJoin2() {
 
     s1.innerJoin(s2, function(one, two) {
         return one('id').eq(two('id'));
-    }).zip().orderby('id').run(objeq(
+    }).zip().orderBy('id').run(objeq(
         {id:0, name: 'bob', title: 'goof'},
         {id:2, name: 'joe', title: 'lmoe'}
     ));
 
     s1.outerJoin(s2, function(one, two) {
         return one('id').eq(two('id'));
-    }).zip().orderby('id').run(objeq(
+    }).zip().orderBy('id').run(objeq(
         {id:0, name: 'bob', title: 'goof'},
         {id:1, name: 'tom'},
         {id:2, name: 'joe', title: 'lmoe'}
     ));
 
-    s1.equiJoin('id', r.table('joins2')).zip().orderby('id').run(objeq(
+    s1.equiJoin('id', r.table('joins2')).zip().orderBy('id').run(objeq(
         {id:0, name: 'bob', title: 'goof'},
         {id:2, name: 'joe', title: 'lmoe'}
     ));
@@ -324,7 +324,7 @@ function testJoin2() {
 var tab2 = r.table('table2');
 function testSetupOtherTable() {
     wait();
-    r.db('test').create('table2').run(function() {
+    r.db('test').tableCreate('table2').run(function() {
         tab2.insert([
             {id:20, name:'bob'},
             {id:19, name:'tom'},
@@ -335,14 +335,14 @@ function testSetupOtherTable() {
 }
 
 function testDropTable() {
-    r.db('test').drop('table-2').run();
+    r.db('test').tableDrop('table-2').run();
 }
 
 function testUpdate1() {
     tab.filter(function(row) {
         return row('id').ge(5);
     }).update(function(a) {
-        return a.extend({updated:true});
+        return a.merge({updated:true});
     }).run(objeq({
         errors:0,
         skipped:0,
@@ -373,7 +373,7 @@ function testUpdate2() {
 
 function testPointUpdate1() {
     tab.get(0).update(function(a) {
-        return a.extend({pointupdated:true});
+        return a.merge({pointupdated:true});
     }).run(objeq({
         errors:0,
         skipped:0,
@@ -387,7 +387,7 @@ function testPointUpdate2() {
 
 function testReplace1() {
     tab.replace(function(a) {
-        return a.pick('id').extend({mutated:true});
+        return a.pick('id').merge({mutated:true});
     }).run(objeq({
         deleted:0,
         errors:0,
@@ -411,7 +411,7 @@ function testReplace2() {
 
 function testPointReplace1() {
     tab.get(0).replace(function(a) {
-        return a.pick('id').extend({pointmutated:true});
+        return a.pick('id').merge({pointmutated:true});
     }).run(objeq({
         deleted:0,
         errors:0,
@@ -430,7 +430,7 @@ var tbl = r.table('tbl');
 
 function testSetupDetYNonAtom() {
     wait();
-    r.db('test').create('tbl').run(function() {
+    r.db('test').tableCreate('tbl').run(function() {
         tbl.insert(docs).run(function() {
             done();
         });
@@ -530,9 +530,9 @@ function testNonAtomic5() {
     tbl.get(0).replace(function(row){return r.branch(r.js('return true'), row, r.expr(null))},
         true).run(attreq('modified', 1));
     tbl.map(function(a){return a('x')}).reduce(0, function(a,b){return a.add(b);}).run(aeq(11));
-    tbl.replace(r.fn('rowA', r.branch(r.js('return rowA.id == 1'), r.letVar('rowA').extend({x:2}),
+    tbl.replace(r.fn('rowA', r.branch(r.js('return rowA.id == 1'), r.letVar('rowA').merge({x:2}),
         r.letVar('rowA')))).run(attreq('errors', 10));
-    tbl.replace(r.fn('rowA', r.branch(r.js('return rowA.id == 1'), r.letVar('rowA').extend({x:2}),
+    tbl.replace(r.fn('rowA', r.branch(r.js('return rowA.id == 1'), r.letVar('rowA').merge({x:2}),
         r.letVar('rowA'))), true).run(attreq('modified', 10));
 }
 
@@ -568,9 +568,9 @@ function testNonAtomic8() {
     tbl.get(0).replace({id:0, count:tbl.get(3)('count'), x:tbl.get(3)('x')}).run(atype(rerr));
     tbl.get(0).replace({id:0, count:tbl.get(3)('count'), x:tbl.get(3)('x')}, true).run(
         attreq('inserted', 1));
-    tbl.get(1).replace(tbl.get(3).extend({id:1})).run(atype(rerr));
-    tbl.get(1).replace(tbl.get(3).extend({id:1}), true).run(attreq('inserted', 1));
-    tbl.get(2).replace(tbl.get(1).extend({id:2}), true).run(attreq('inserted', 1));
+    tbl.get(1).replace(tbl.get(3).merge({id:1})).run(atype(rerr));
+    tbl.get(1).replace(tbl.get(3).merge({id:1}), true).run(attreq('inserted', 1));
+    tbl.get(2).replace(tbl.get(1).merge({id:2}), true).run(attreq('inserted', 1));
 }
 
 function testNonAtomic9() {
@@ -635,7 +635,7 @@ runTests([
     testBool,
     testSlices,
     testAppend,
-    testExtend,
+    testMerge,
     testIf,
     testLet,
     testDistinct,

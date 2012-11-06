@@ -25,11 +25,15 @@ module RethinkDB
 
   # Shortcuts to easily build RQL queries.
   module Shortcuts
-    # The only shortcut right now.  The following are equivalent:
+    # The only shortcut right now.  May be used as a wrapper to create
+    # RQL values or as a shortcut to access function in the RQL
+    # namespace.  For example, the following are equivalent:
     #   r.add(1, 2)
     #   RethinkDB::RQL.add(1, 2)
-    def r
-      RethinkDB::RQL
+    #   r(1) + r(2)
+    #   r(3)
+    def r(*args)
+      (args == [] ) ? RethinkDB::RQL : RQL.expr(*args)
     end
   end
 end

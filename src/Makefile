@@ -420,7 +420,7 @@ COFFEE_SOURCES:=$(patsubst %, $(WEB_SOURCE_DIR)/static/coffee/%,\
 			util.coffee \
 			loading.coffee \
 			body.coffee \
-			ui_components/modals.coffee ui_components/list.coffee \
+			ui_components/modals.coffee ui_components/list.coffee ui_components/progressbar.coffee \
 			namespaces/database.coffee \
 			namespaces/index.coffee namespaces/replicas.coffee namespaces/shards.coffee namespaces/server_assignments.coffee namespaces/namespace.coffee \
 			servers/index.coffee servers/machine.coffee servers/datacenter.coffee \
@@ -463,9 +463,8 @@ else
 SERVER_EXEC_NAME_VERSIONED:=$(SERVER_EXEC_NAME)-$(RETHINKDB_SHORT_VERSION)
 endif
 
-
 ##### Build targets
-.PHONY: all build-deb build-rpm callgrind callgrind clean cscope deb deb depclean drivers etags gdb install install-binaries install-deb install-docs install-manpages install-rpm install-tools prepare_deb_package_dirs prepare_rpm_package_dirs regdb rerun revalgrind rpm rpm rpm-suse10 run sembuild showdefines style tags unit valgrind web-assets coffeelint
+.PHONY: all build-deb build-rpm callgrind callgrind clean cscope deb deb depclean drivers etags gdb install install-binaries install-deb install-docs install-manpages install-rpm install-tools prepare_deb_package_dirs prepare_rpm_package_dirs regdb rerun revalgrind rpm rpm rpm-suse10 run sembuild showdefines style tags unit valgrind web-assets coffeelint build-deb-src-control
 
 # High level build targets
 
@@ -477,6 +476,9 @@ all: $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME) web-ass
 ifeq ($(UNIT_TESTS),1)
 all: $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME)
 endif
+
+build-deb-src-control:
+	$(QUIET) cd .. ; rm -rf debian ; DEBFULLNAME="RethinkDB Packaging" dh_make -p rethinkdb_$(RETHINKDB_VERSION) -n -s -e packaging@rethinkdb.com --copyright blank ; cp -pRP packaging/debian/copyright debian/ ; mv debian/changelog debian/changelog.old ; sed -e 's/unstable/precise/' < debian/changelog.old > debian/changelog ;
 
 unit:
 	$(MAKE) UNIT_TESTS=1
@@ -592,7 +594,7 @@ install-web:
 	$(QUIET) cp -pRP $(BUILD_DIR)/web/* $(DESTDIR)$(web_res_dir)/
 
 install-drivers:
-	
+
 $(libdir):
 	$(QUIET) install -m755 -d $(DESTDIR)$(lib_dir)
 

@@ -46,7 +46,7 @@
                     {{#if no_issues}}
                         <p class="message">All issues have been successfully resolved.</p>
                     {{else}}
-                        <p class="message"><strong>{{num_issues}} {{pluralize_noun "issue" num_issues}}</strong> need to be resolved</p>
+                        <p class="message"><strong>{{num_issues}} {{pluralize_noun "issue" num_issues}}</strong> {{pluralize_verb "need" num_issues}} to be resolved</p>
                     {{/if}}
                 </div>
             </div>

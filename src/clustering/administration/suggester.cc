@@ -136,7 +136,7 @@ void fill_in_blueprints_for_protocol(
     for (typename blueprint_map_t::iterator it  = suggested_blueprints.begin();
                                             it != suggested_blueprints.end();
                                             ++it) {
-        ns_goals->namespaces[it->first].get_mutable()->blueprint = ns_goals->namespaces[it->first].get().blueprint.make_new_version(it->second, us);
+        ns_goals->namespaces[it->first].get_mutable()->blueprint = ns_goals->namespaces[it->first].get().blueprint.make_resolving_version(it->second, us);
     }
 }
 
@@ -151,7 +151,11 @@ void fill_in_blueprints(cluster_semilattice_metadata_t *cluster_metadata,
             it != cluster_metadata->machines.machines.end();
             it++) {
         if (!it->second.is_deleted()) {
-            machine_assignments[it->first] = it->second.get().datacenter.get();
+            if (!it->second.get().datacenter.in_conflict()) {
+                machine_assignments[it->first] = it->second.get().datacenter.get();
+            } else {
+                machine_assignments[it->first] = nil_uuid();
+            }
         }
     }
 

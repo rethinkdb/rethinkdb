@@ -14,7 +14,7 @@ module RethinkDB
   #
   # <b>NOTE:</b> unlike most enumerable objects, you can only iterate over Query
   # results once.  The results are fetched lazily from the server in chunks
-  # of 1000.  If you need to access to values multiple times, use the <b>+to_a+</b>
+  # of 1000.  If you need to access values multiple times, use the <b>+to_a+</b>
   # instance method to get an Array, and then work with that.
   class Query_Results
     def out_of_date # :nodoc:
@@ -45,7 +45,7 @@ module RethinkDB
   end
 
   # TODO: Make sure tokens don't overflow.
-  #
+
   # A connection to the RethinkDB
   # cluster.  You need to create at least one connection before you can run
   # queries.  After creating a connection <b>+conn+</b> and constructing a
@@ -54,6 +54,10 @@ module RethinkDB
   #  q.run
   # (This is because by default, invoking the <b>+run+</b> instance method on a
   # query runs it on the most-recently-opened connection.)
+  #
+  # ==== Attributes
+  # * +default_db+ - The current default database (can be set with Connection#use).  Defaults to 'test'.
+  # * +conn_id+ - You probably don't care about this.  Used in some advanced situations where you care about whether a connection object has reconnected.
   class Connection
     def inspect # :nodoc:
       properties = "(#{@host}:#{@port}) (Default Database: '#{@default_db}')"
@@ -64,56 +68,8 @@ module RethinkDB
     @@last = nil
     @@magic_number = 0xaf61ba35
 
-    # Return the last opened connection, or throw if there is no such
-    # connection.  Used by e.g. RQL_Query#run.
-    def self.last
-      return @@last if @@last
-      raise RuntimeError, "No last connection.  Use RethinkDB::Connection.new."
-    end
-
     def debug_socket # :nodoc:
       @socket;
-    end
-
-    def start_listener # :nodoc:
-      class << @socket
-        def read_exn(len) # :nodoc:
-          buf = read len
-          raise RuntimeError,"Connection closed by server." if !buf or buf.length != len
-          return buf
-        end
-      end
-      @socket.send([@@magic_number].pack('L<'), 0)
-      @listener.terminate! if @listener
-      @listener = Thread.new do
-        loop do
-          begin
-            response_length = @socket.read_exn(4).unpack('L<')[0]
-            response = @socket.read_exn(response_length)
-          rescue RuntimeError => e
-            @mutex.synchronize do
-              @listener = nil
-              @waiters.each {|kv| kv[1].signal}
-            end
-            Thread.current.terminate!
-            abort("unreachable")
-          end
-          #TODO: Recovery
-          begin
-            protob = Response.new.parse_from_string(response)
-          rescue
-            p response
-            abort("Bad Protobuf.")
-          end
-          @mutex.synchronize do
-            @data[protob.token] = protob
-            if (@waiters[protob.token])
-              cond = @waiters.delete protob.token
-              cond.signal
-            end
-          end
-        end
-      end
     end
 
     # Reconnect to the server.  This will interrupt all queries on the
@@ -235,23 +191,26 @@ module RethinkDB
     # argument.  The only useful option right now is
     # <b>+:use_outdated+</b>, which specifies whether tables can use
     # outdated information.  (If you specified this on a per-table
-    # basis, specifying it again here won't override the original
-    # choice.)
+    # basis in your query, specifying it again here won't override the
+    # original choice.)
     #
-    # <b>NOTE:</b> unlike most enumerably objects, you can only iterate over the
+    # <b>NOTE:</b> unlike most enumerable objects, you can only iterate over the
     # result once.  See RethinkDB::Query_Results for more details.
-    def run (query, opts={})
+    def run (query, opts={:use_outdated => false})
       #File.open('sexp.txt', 'a') {|f| f.write(query.sexp.inspect+"\n")}
       is_atomic = (query.kind_of?(JSON_Expression) ||
                    query.kind_of?(Meta_Query) ||
                    query.kind_of?(Write_Query))
       map = {}
       map[:default_db] = @default_db if @default_db
+      S.check_opts(opts, [:use_outdated])
       map[S.conn_outdated] = !!opts[:use_outdated]
       protob = query.query(map)
       if is_atomic
         a = []
-        token_iter(query, dispatch(protob)){|row| a.push row} ? a : a[0]
+        singular = token_iter(query, dispatch(protob)){|row| a.push row}
+        a.each{|o| BT.maybe_reformat_err(query, o)}
+        singular ? a : a[0]
       else
         return Query_Results.new(query, self, dispatch(protob))
       end
@@ -263,6 +222,54 @@ module RethinkDB
       @listener = nil
       @socket.close
       @socket = nil
+    end
+
+    # Return the last opened connection, or throw if there is no such
+    # connection.  Used by e.g. RQL_Query#run.
+    def self.last_connection
+      return @@last if @@last
+      raise RuntimeError, "No last connection.  Use RethinkDB::Connection.new."
+    end
+
+    def start_listener # :nodoc:
+      class << @socket
+        def read_exn(len) # :nodoc:
+          buf = read len
+          raise RuntimeError,"Connection closed by server." if !buf or buf.length != len
+          return buf
+        end
+      end
+      @socket.send([@@magic_number].pack('L<'), 0)
+      @listener.terminate! if @listener
+      @listener = Thread.new do
+        loop do
+          begin
+            response_length = @socket.read_exn(4).unpack('L<')[0]
+            response = @socket.read_exn(response_length)
+          rescue RuntimeError => e
+            @mutex.synchronize do
+              @listener = nil
+              @waiters.each {|kv| kv[1].signal}
+            end
+            Thread.current.terminate!
+            abort("unreachable")
+          end
+          #TODO: Recovery
+          begin
+            protob = Response.new.parse_from_string(response)
+          rescue
+            p response
+            abort("Bad Protobuf.")
+          end
+          @mutex.synchronize do
+            @data[protob.token] = protob
+            if (@waiters[protob.token])
+              cond = @waiters.delete protob.token
+              cond.signal
+            end
+          end
+        end
+      end
     end
   end
 end
