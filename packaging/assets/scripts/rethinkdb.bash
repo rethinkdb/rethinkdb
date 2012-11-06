@@ -53,12 +53,12 @@ _complete_rethinkdb() {
     local io_backends=("native" "pool")
     local commands=("create" "help" "serve" "admin" "proxy" "import")
     local file_args=("--input-file" "--pid-file")
-    local directory_args=("-d" "--directory" "-l" "--log-file" "--web-static-directory")
+    local directory_args=("-d" "--directory" "-l" "--log-file")
     local numb_args=("-c" "--cores" "--client-port" "--cluster-port" "--driver-port" "-o" "--port-offset" "--http-port")
     local help_tokens=("create" "serve" "admin" "proxy" "import")
     local create_tokens=("-d" "--directory" "-n" "--machine-name" "--io-backend")
-    local serve_tokens=("-d" "--directory" "--cluster-port" "--driver-port" "-o" "--port-offset" "-j" "--join" "--http-port" "--web-static-directory" "-c" "--cores" "--pid-file" "--io-backend")
-    local proxy_tokens=("--log-file" "--cluster-port" "--driver-port" "-o" "--port-offset" "-j" "--join" "--http-port" "--web-static-directory" "--pid-file" "--io-backend")
+    local serve_tokens=("-d" "--directory" "--cluster-port" "--driver-port" "-o" "--port-offset" "-j" "--join" "--http-port" "-c" "--cores" "--pid-file" "--io-backend")
+    local proxy_tokens=("--log-file" "--cluster-port" "--driver-port" "-o" "--port-offset" "-j" "--join" "--http-port" "--pid-file" "--io-backend")
     local import_tokens=("-j" "--join" "--table" "--datacenter" "--primary-key" "-s" "--separators" "--input-file")
 
     local cur=${COMP_WORDS[COMP_CWORD]}
