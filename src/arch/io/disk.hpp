@@ -77,8 +77,6 @@ void make_io_backender(io_backend_t backend, scoped_ptr_t<io_backender_t> *out);
 
 class linux_file_t : public file_t {
 public:
-    friend class linux_file_account_t;
-
     enum mode_t {
         mode_read = 1 << 0,
         mode_write = 1 << 1,
@@ -93,8 +91,8 @@ public:
     void set_size(size_t size);
     void set_size_at_least(size_t size);
 
-    void read_async(size_t offset, size_t length, void *buf, linux_file_account_t *account, linux_iocallback_t *cb);
-    void write_async(size_t offset, size_t length, const void *buf, linux_file_account_t *account, linux_iocallback_t *cb);
+    void read_async(size_t offset, size_t length, void *buf, file_account_t *account, linux_iocallback_t *cb);
+    void write_async(size_t offset, size_t length, const void *buf, file_account_t *account, linux_iocallback_t *cb);
 
     void read_blocking(size_t offset, size_t length, void *buf);
     void write_blocking(size_t offset, size_t length, const void *buf);
@@ -121,7 +119,7 @@ private:
     linux_disk_manager_t *diskmgr;
 
     /* In a scoped_ptr so we can initialize it after "diskmgr" */
-    scoped_ptr_t<linux_file_account_t> default_account;
+    scoped_ptr_t<file_account_t> default_account;
 
     DISABLE_COPYING(linux_file_t);
 };

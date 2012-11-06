@@ -280,7 +280,7 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, io
     // Construct a disk manager. (given that we have an event pool)
     if (linux_thread_pool_t::thread) {
         diskmgr = io_backender->get_diskmgr_ptr();
-        default_account.init(new linux_file_account_t(this, 1, UNLIMITED_OUTSTANDING_REQUESTS));
+        default_account.init(new file_account_t(this, 1, UNLIMITED_OUTSTANDING_REQUESTS));
     }
 }
 
@@ -319,7 +319,7 @@ void linux_file_t::set_size_at_least(size_t size) {
     }
 }
 
-void linux_file_t::read_async(size_t offset, size_t length, void *buf, linux_file_account_t *account, linux_iocallback_t *callback) {
+void linux_file_t::read_async(size_t offset, size_t length, void *buf, file_account_t *account, linux_iocallback_t *callback) {
     rassert(diskmgr, "No diskmgr has been constructed (are we running without an event queue?)");
     verify_aligned_file_access(file_size, offset, length, buf);
     diskmgr->submit_read(fd.get(), buf, length, offset,
@@ -327,7 +327,7 @@ void linux_file_t::read_async(size_t offset, size_t length, void *buf, linux_fil
         callback);
 }
 
-void linux_file_t::write_async(size_t offset, size_t length, const void *buf, linux_file_account_t *account, linux_iocallback_t *callback) {
+void linux_file_t::write_async(size_t offset, size_t length, const void *buf, file_account_t *account, linux_iocallback_t *callback) {
     rassert(diskmgr, "No diskmgr has been constructed (are we running without an event queue?)");
 
 #ifdef DEBUG_DUMP_WRITES

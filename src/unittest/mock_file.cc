@@ -22,13 +22,13 @@ void mock_file_t::set_size_at_least(size_t size) {
 }
 
 void mock_file_t::read_async(size_t offset, size_t length, void *buf,
-                             UNUSED linux_file_account_t *account, linux_iocallback_t *cb) {
+                             UNUSED file_account_t *account, linux_iocallback_t *cb) {
     read_blocking(offset, length, buf);
     cb->on_io_complete();
 }
 
 void mock_file_t::write_async(size_t offset, size_t length, const void *buf,
-                              UNUSED linux_file_account_t *account, linux_iocallback_t *cb) {
+                              UNUSED file_account_t *account, linux_iocallback_t *cb) {
     write_blocking(offset, length, buf);
     cb->on_io_complete();
 }

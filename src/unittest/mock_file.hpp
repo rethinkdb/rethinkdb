@@ -23,8 +23,8 @@ public:
     void set_size(size_t size);
     void set_size_at_least(size_t size);
 
-    void read_async(size_t offset, size_t length, void *buf, linux_file_account_t *account, linux_iocallback_t *cb);
-    void write_async(size_t offset, size_t length, const void *buf, linux_file_account_t *account, linux_iocallback_t *cb);
+    void read_async(size_t offset, size_t length, void *buf, file_account_t *account, linux_iocallback_t *cb);
+    void write_async(size_t offset, size_t length, const void *buf, file_account_t *account, linux_iocallback_t *cb);
 
     void read_blocking(size_t offset, size_t length, void *buf);
     void write_blocking(size_t offset, size_t length, const void *buf);

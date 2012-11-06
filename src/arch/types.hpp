@@ -6,7 +6,7 @@
 
 #include "utils.hpp"
 
-#define DEFAULT_DISK_ACCOUNT (static_cast<linux_file_account_t *>(0))
+#define DEFAULT_DISK_ACCOUNT (static_cast<file_account_t *>(0))
 #define UNLIMITED_OUTSTANDING_REQUESTS (-1)
 
 // TODO: Remove this from this header.
@@ -52,8 +52,7 @@ public:
 class linux_thread_pool_t;
 typedef linux_thread_pool_t thread_pool_t;
 
-class linux_file_account_t;
-typedef linux_file_account_t file_account_t;
+class file_account_t;
 
 class linux_direct_file_t;
 typedef linux_direct_file_t direct_file_t;
@@ -93,8 +92,8 @@ public:
     virtual void set_size(size_t size) = 0;
     virtual void set_size_at_least(size_t size) = 0;
 
-    virtual void read_async(size_t offset, size_t length, void *buf, linux_file_account_t *account, linux_iocallback_t *cb) = 0;
-    virtual void write_async(size_t offset, size_t length, const void *buf, linux_file_account_t *account, linux_iocallback_t *cb) = 0;
+    virtual void read_async(size_t offset, size_t length, void *buf, file_account_t *account, linux_iocallback_t *cb) = 0;
+    virtual void write_async(size_t offset, size_t length, const void *buf, file_account_t *account, linux_iocallback_t *cb) = 0;
 
     virtual void read_blocking(size_t offset, size_t length, void *buf) = 0;
     virtual void write_blocking(size_t offset, size_t length, const void *buf) = 0;
@@ -105,14 +104,13 @@ public:
     virtual bool coop_lock_and_check() = 0;
 };
 
-class linux_file_account_t {
+class file_account_t {
 public:
-    linux_file_account_t(file_t *f, int p, int outstanding_requests_limit = UNLIMITED_OUTSTANDING_REQUESTS);
-    ~linux_file_account_t();
+    file_account_t(file_t *f, int p, int outstanding_requests_limit = UNLIMITED_OUTSTANDING_REQUESTS);
+    ~file_account_t();
     void *get_account() { return account; }
 
 private:
-    friend class linux_file_t;
     file_t *parent;
     /* account is internally a pointer to a accounting_diskmgr_t::account_t object. It has to be
        a void* because accounting_diskmgr_t is a template, so its actual type depends on what
@@ -121,7 +119,7 @@ private:
 
     void *account;
 
-    DISABLE_COPYING(linux_file_account_t);
+    DISABLE_COPYING(file_account_t);
 };
 
 
