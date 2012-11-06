@@ -430,6 +430,8 @@ module 'NamespaceView', ->
                     @.$el.html @universe_template data
                 else
                     @.$el.html @template data
+                if @current_state is @states[1]
+                    @.$('#replicas_value').focus()
 
             return @
 

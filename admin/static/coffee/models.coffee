@@ -89,7 +89,8 @@ class Namespace extends Backbone.Model
                 @set('key_distr', distr_data)
                 @timeout = setTimeout @load_key_distr, 5000
             error: =>
-                @timeout = setTimeout @load_key_distr, 1000
+                if namespaces.get(@get('id'))?
+                    @timeout = setTimeout @load_key_distr, 1000
 
     clear_timeout: =>
         if @timeout?
