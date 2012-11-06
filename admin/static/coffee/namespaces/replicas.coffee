@@ -142,10 +142,14 @@ module 'NamespaceView', ->
                             replicated_blocks: if backfilling_info.replicated_blocks>backfilling_info.replicated_blocks then backfilling_info.total_blocks else backfilling_info.replicated_blocks
                     
                         @.$('.replica-status').html @progress_bar.render(num_replicas_ready, num_replicas_ready+num_replicas_not_ready, progress_bar_info).$el
+                else # The blueprint was not regenerated, so we can consider that no replica is up to date
+                    @.$('.replica-status').html @progress_bar.render(0, @expected_num_replicas, {}).$el
             else
                 # Blueprint was regenerated, so we can display the bar
                 if num_replicas_ready+num_replicas_not_ready is @expected_num_replicas
                     @.$('.replica-status').html @progress_bar.render(num_replicas_ready, num_replicas_ready+num_replicas_not_ready, progress_bar_info).$el
+                else # The blueprint was not regenerated, so we can consider that no replica is up to date
+                    @.$('.replica-status').html @progress_bar.render(0, @expected_num_replicas, {}).$el
             return @
 
         # Render the list of datacenters for MDC
