@@ -440,6 +440,7 @@ LESS_SOURCES:=$(shell find $(WEB_SOURCE_DIR)/static/less -name '*.less')
 LESS_MAIN:=$(WEB_SOURCE_DIR)/static/less/styles.less
 CLUSTER_HTML:=$(WEB_SOURCE_DIR)/templates/cluster.html
 JS_EXTERNAL_DIR:=$(WEB_SOURCE_DIR)/static/js
+FONTS_EXTERNAL_DIR:=$(WEB_SOURCE_DIR)/static/fonts
 IMAGES_EXTERNAL_DIR:=$(WEB_SOURCE_DIR)/static/images
 FAVICON:=$(WEB_SOURCE_DIR)/favicon.ico
 
@@ -857,7 +858,7 @@ rpc/mailbox/typed.hpp: ../scripts/generate_rpc_templates.py
 rpc/semilattice/joins/macros.hpp rpc/serialize_macros.hpp rpc/mailbox/typed.hpp:
 	$< > $@
 
-web-assets: $(WEB_ASSETS_BUILD_DIR)/cluster-min.js $(WEB_ASSETS_BUILD_DIR)/cluster.css $(WEB_ASSETS_BUILD_DIR)/index.html $(WEB_ASSETS_BUILD_DIR)/js $(WEB_ASSETS_BUILD_DIR)/images $(WEB_ASSETS_BUILD_DIR)/favicon.ico $(WEB_ASSETS_BUILD_DIR)/js/rethinkdb.js
+web-assets: $(WEB_ASSETS_BUILD_DIR)/cluster-min.js $(WEB_ASSETS_BUILD_DIR)/cluster.css $(WEB_ASSETS_BUILD_DIR)/index.html $(WEB_ASSETS_BUILD_DIR)/js $(WEB_ASSETS_BUILD_DIR)/fonts $(WEB_ASSETS_BUILD_DIR)/images $(WEB_ASSETS_BUILD_DIR)/favicon.ico $(WEB_ASSETS_BUILD_DIR)/js/rethinkdb.js
 
 $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee: $(COFFEE_SOURCES)
 	$(QUIET) mkdir -p $(WEB_ASSETS_OBJ_DIR)
@@ -894,6 +895,13 @@ ifeq ($(VERBOSE),0)
 	@echo "    CP $(JS_EXTERNAL_DIR) -> $(WEB_ASSETS_BUILD_DIR)"
 endif
 	$(QUIET) cp -rP $(JS_EXTERNAL_DIR) $(WEB_ASSETS_BUILD_DIR)
+
+$(WEB_ASSETS_BUILD_DIR)/fonts:
+	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
+ifeq ($(VERBOSE),0)
+	@echo "    CP $(FONTS_EXTERNAL_DIR) -> $(WEB_ASSETS_BUILD_DIR)"
+endif
+	$(QUIET) cp -rP $(FONTS_EXTERNAL_DIR) $(WEB_ASSETS_BUILD_DIR)
 
 $(WEB_ASSETS_BUILD_DIR)/images:
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
