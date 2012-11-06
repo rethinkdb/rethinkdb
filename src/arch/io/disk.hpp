@@ -75,25 +75,6 @@ public:
 
 void make_io_backender(io_backend_t backend, scoped_ptr_t<io_backender_t> *out);
 
-class linux_file_t;
-
-class linux_file_account_t {
-public:
-    linux_file_account_t(file_t *f, int p, int outstanding_requests_limit = UNLIMITED_OUTSTANDING_REQUESTS);
-    ~linux_file_account_t();
-    void *get_account() { return account; }
-
-private:
-    friend class linux_file_t;
-    file_t *parent;
-    /* account is internally a pointer to a accounting_diskmgr_t::account_t object. It has to be
-       a void* because accounting_diskmgr_t is a template, so its actual type depends on what
-       IO backend is chosen. */
-    // Maybe accounting_diskmgr_t shouldn't be a templated class then.
-
-    void *account;
-};
-
 class linux_file_t : public file_t {
 public:
     friend class linux_file_account_t;
