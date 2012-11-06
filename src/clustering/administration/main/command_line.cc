@@ -13,6 +13,7 @@
 #include "arch/os_signal.hpp"
 #include "arch/runtime/starter.hpp"
 #include "clustering/administration/cli/admin_command_parser.hpp"
+#include "clustering/administration/main/names.hpp"
 #include "clustering/administration/main/import.hpp"
 #include "clustering/administration/main/json_import.hpp"
 #include "clustering/administration/main/ports.hpp"
@@ -316,7 +317,15 @@ void run_rethinkdb_proxy(extproc::spawner_t::info_t *spawner_info, const std::ve
 po::options_description get_machine_options() {
     po::options_description desc("Machine name options");
     desc.add_options()
-        ("machine-name,n", po::value<std::string>()->default_value("NN"), "The name for this machine (as will appear in the metadata).");
+        ("machine-name,n", po::value<std::string>()->default_value(get_random_machine_name()), "the name for this machine (as will appear in the metadata).");
+    return desc;
+}
+
+// A separate version of this for help since we don't have fine-tuned control over default options blah blah blah
+po::options_description get_machine_options_visible() {
+    po::options_description desc("Machine name options");
+    desc.add_options()
+        ("machine-name,n", po::value<std::string>(), "the name for this machine (as will appear in the metadata).  If not specified, it will be randomly chosen from a short list of names.");
     return desc;
 }
 
@@ -365,7 +374,13 @@ po::options_description get_web_options() {
         ("web-static-directory", po::value<std::string>(), "specify directory from which to serve web resources")
         ("http-port", po::value<int>()->default_value(port_defaults::http_port), "port for http admin console");
     return desc;
+}
 
+po::options_description get_web_options_visible() {
+    po::options_description desc("Web options");
+    desc.add_options()
+        ("http-port", po::value<int>()->default_value(port_defaults::http_port), "port for http admin console");
+    return desc;
 }
 
 po::options_description get_network_options() {
@@ -411,7 +426,7 @@ po::options_description get_rethinkdb_create_options() {
 po::options_description get_rethinkdb_create_options_visible() {
     po::options_description desc("Allowed options");
     desc.add(get_file_options());
-    desc.add(get_machine_options());
+    desc.add(get_machine_options_visible());
 #ifdef AIOSUPPORT
     desc.add(get_disk_options());
 #endif // AIOSUPPORT
@@ -433,7 +448,7 @@ po::options_description get_rethinkdb_serve_options_visible() {
     po::options_description desc("Allowed options");
     desc.add(get_file_options());
     desc.add(get_network_options());
-    desc.add(get_web_options());
+    desc.add(get_web_options_visible());
 #ifdef AIOSUPPORT
     desc.add(get_disk_options());
 #endif // AIOSUPPORT
@@ -446,6 +461,16 @@ po::options_description get_rethinkdb_proxy_options() {
     po::options_description desc("Allowed options");
     desc.add(get_network_options());
     desc.add(get_web_options());
+    desc.add(get_service_options());
+    desc.add_options()
+        ("log-file", po::value<std::string>()->default_value("log_file"), "specify log file");
+    return desc;
+}
+
+po::options_description get_rethinkdb_proxy_options_visible() {
+    po::options_description desc("Allowed options");
+    desc.add(get_network_options());
+    desc.add(get_web_options_visible());
     desc.add(get_service_options());
     desc.add_options()
         ("log-file", po::value<std::string>()->default_value("log_file"), "specify log file");
@@ -987,7 +1012,7 @@ void help_rethinkdb_serve() {
 void help_rethinkdb_proxy() {
     printf("'rethinkdb proxy' serves as a proxy to an existing RethinkDB cluster.\n");
     std::stringstream sstream;
-    sstream << get_rethinkdb_proxy_options();
+    sstream << get_rethinkdb_proxy_options_visible();
     printf("%s\n", sstream.str().c_str());
 }
 
