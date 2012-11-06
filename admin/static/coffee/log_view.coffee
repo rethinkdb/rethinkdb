@@ -208,6 +208,7 @@ module 'LogView', ->
         log_new_datacenter_template: Handlebars.compile $('#log-new_datacenter-template').html()
         log_new_database_template: Handlebars.compile $('#log-new_database-template').html()
         log_delete_something_template: Handlebars.compile $('#log-delete_something-template').html()
+        log_namespace_new_name_template: Handlebars.compile $('#log-namespace-new_name-template').html()
         log_server_new_name_template: Handlebars.compile $('#log-server-new_name-template').html()
         log_server_set_datacenter_template: Handlebars.compile $('#log-server-set_datacenter-template').html()
         log_datacenter_new_name_template: Handlebars.compile $('#log-datacenter-new_name-template').html()
@@ -334,9 +335,11 @@ module 'LogView', ->
                                                 attribute: attribute
                                                 datacenters: _datacenters
                                         else if attribute is 'name'
-                                            msg += @log_single_value_template
+                                            msg += @log_namespace_new_name_template
+                                                name: json_data[group][namespace_id][attribute]
                                                 namespace_id: namespace_id
-                                                namespace_name: if namespaces.get(namespace_id)? then namespaces.get(namespace_id).get 'name' else '[table no longer exists]'
+                                                namespace_id_trunked: namespace_id.slice 24
+
                                                 namespace_exists: namespaces.get(namespace_id)?
                                                 attribute: attribute
                                                 value: json_data[group][namespace_id][attribute]

@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef __CONCURRENCY_FIFO_ENFORCER_QUEUE_TCC__
 #define __CONCURRENCY_FIFO_ENFORCER_QUEUE_TCC__
 

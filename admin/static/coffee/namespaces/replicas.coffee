@@ -513,6 +513,10 @@ module 'NamespaceView', ->
         submit_replicas_acks: (event) =>
             if @check_replicas_acks() is false
                 return
+            if @sending? and @sending is true
+                return
+            @sending = true
+            @.$('.update-replicas').prop 'disabled', 'disabled'
 
             num_replicas = parseInt @.$('#replicas_value').val()
             num_acks = parseInt @.$('#acks_value').val()
@@ -554,6 +558,8 @@ module 'NamespaceView', ->
                 error: @on_error
 
         on_success_replicas_and_acks: =>
+            @sending = false
+            @.$('.update-replicas').removeProp 'disabled'
             window.collect_progress()
             new_replicas = @model.get 'replica_affinities'
             new_replicas[@datacenter.get('id')] = @data_cached.num_replicas
@@ -584,6 +590,9 @@ module 'NamespaceView', ->
             @.$('.status-alert').hide()
 
         on_error: =>
+            @sending = false
+            @.$('.update-replicas').removeProp 'disabled'
+
             @.$('.replicas_acks-alert').html @replicas_ajax_error_template()
             @.$('.replicas_acks-alert').slideDown 'fast'
 
@@ -649,6 +658,7 @@ module 'NamespaceView', ->
         states: ['none', 'show_primary', 'choose_primary', 'confirm_off']
         initialize: =>
             @state = 'none'
+            @model.on 'change:primary_uuid', @change_pin
 
         events: ->
             'click label[for=primary-on]': 'turn_primary_on'
@@ -665,6 +675,15 @@ module 'NamespaceView', ->
             event.preventDefault()
             $(event.currentTarget).parent().slideUp('fast', -> $(this).remove())
 
+        change_pin: =>
+            if @model.get('primary_uuid') is universe_datacenter.get('id')
+                @state = 'none'
+                @.$('#primary-off').trigger('click')
+                @turn_primary_off()
+            else
+                @state = 'none'
+                @.$('#primary-on').trigger('click')
+                @turn_primary_on()
 
         edit_primary: =>
             @state = 'choose_primary'
@@ -802,12 +821,17 @@ module 'NamespaceView', ->
             else
                 new_replica_affinities[new_primary] = 0
 
+            if (not @model.get('ack_expectations')[new_primary]?) or @model.get('ack_expectations')[new_primary] is 0
+                new_ack = {}
+                new_ack[new_primary] = 1
+
 
 
             data =
                 primary_uuid: new_primary
                 primary_pinnings: primary_pinnings
                 replica_affinities: new_replica_affinities
+                ack_expectations: (new_ack if new_ack?)
 
             @data_cached = data
             $.ajax
@@ -823,7 +847,7 @@ module 'NamespaceView', ->
         on_success_pin: =>
             data_to_set =
                 replica_affinities: @model.get('replica_affinities')
-            data_to_set = _.extend @data_cached, data_to_set
+            data_to_set = _.extend data_to_set, @data_cached
             @model.set data_to_set
             @model.trigger 'change:primary_uuid'
             @turn_primary_on()
@@ -837,3 +861,6 @@ module 'NamespaceView', ->
             else
                 @state = 'show_primary'
             @render()
+    
+        destroy: =>
+            @model.off 'change:primary_uuid', @change_pin
