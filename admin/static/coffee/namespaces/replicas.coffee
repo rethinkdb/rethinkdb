@@ -658,6 +658,7 @@ module 'NamespaceView', ->
         states: ['none', 'show_primary', 'choose_primary', 'confirm_off']
         initialize: =>
             @state = 'none'
+            @model.on 'change:primary_uuid', @change_pin
 
         events: ->
             'click label[for=primary-on]': 'turn_primary_on'
@@ -674,6 +675,15 @@ module 'NamespaceView', ->
             event.preventDefault()
             $(event.currentTarget).parent().slideUp('fast', -> $(this).remove())
 
+        change_pin: =>
+            if @model.get('primary_uuid') is universe_datacenter.get('id')
+                @state = 'none'
+                @.$('#primary-off').trigger('click')
+                @turn_primary_off()
+            else
+                @state = 'none'
+                @.$('#primary-on').trigger('click')
+                @turn_primary_on()
 
         edit_primary: =>
             @state = 'choose_primary'
