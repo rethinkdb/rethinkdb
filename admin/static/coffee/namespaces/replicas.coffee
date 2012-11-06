@@ -811,12 +811,17 @@ module 'NamespaceView', ->
             else
                 new_replica_affinities[new_primary] = 0
 
+            if (not @model.get('ack_expectations')[new_primary]?) or @model.get('ack_expectations')[new_primary] is 0
+                new_ack = {}
+                new_ack[new_primary] = 1
+
 
 
             data =
                 primary_uuid: new_primary
                 primary_pinnings: primary_pinnings
                 replica_affinities: new_replica_affinities
+                ack_expectations: (new_ack if new_ack?)
 
             @data_cached = data
             $.ajax
@@ -832,7 +837,7 @@ module 'NamespaceView', ->
         on_success_pin: =>
             data_to_set =
                 replica_affinities: @model.get('replica_affinities')
-            data_to_set = _.extend @data_cached, data_to_set
+            data_to_set = _.extend data_to_set, @data_cached
             @model.set data_to_set
             @model.trigger 'change:primary_uuid'
             @turn_primary_on()
