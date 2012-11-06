@@ -861,3 +861,6 @@ module 'NamespaceView', ->
             else
                 @state = 'show_primary'
             @render()
+    
+        destroy: =>
+            @model.off 'change:primary_uuid', @change_pin
