@@ -3,7 +3,7 @@
 # The script omits automatic base-finding and presently expects to be run from the root of the repository.
 PRODBASE=. ;
 PRODUCTNAME="rethinkdb" ;
-PRODUCTVERSION="`"$PRODBASE"/gen-version.sh`" ;
+PRODUCTVERSION="`"$PRODBASE"/scripts/gen-version.sh`" ;
 UBRELEASE="precise" ;
 TIMESTAMPTIME="`date "+%a, %d %b %Y %H:%M:%S"`" ;
 TIMESTAMPOFFSET="-0800" ;
