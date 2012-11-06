@@ -359,6 +359,7 @@ module 'NamespaceView', ->
             @.$('.edit-shards').html @edit_template
                 num_shards: @model.get('shards').length
                 max_shards: max_shards
+            @.$('.num-shards').focus()
 
         render_data_repartition: =>
             $('.tooltip').remove()
