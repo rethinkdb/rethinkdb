@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 /*
  * jQuery Color Animations v@VERSION
  * http://jquery.org/

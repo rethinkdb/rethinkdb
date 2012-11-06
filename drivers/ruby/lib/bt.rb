@@ -1,3 +1,4 @@
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 module RethinkDB
   module BT_Mixin
     attr_accessor :highlight, :line

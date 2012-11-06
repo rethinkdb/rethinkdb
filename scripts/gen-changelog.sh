@@ -1,4 +1,5 @@
 #!/bin/sh
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 # This script is for generating a changelog file for the Debian source package. git-dch is problematic, so we generate a stub changelog each time.
 # The script omits automatic base-finding and presently expects to be run from the root of the repository.
 PRODBASE=. ;
