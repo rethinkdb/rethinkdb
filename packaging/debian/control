@@ -2,34 +2,30 @@ dnl Important: This is a debian control file template which is preprocessed by m
 dnl Please be gentle (and test your changes in all relevant configurations!).
 dnl
 dnl List of macros to be substituted (please update, if you're adding some):
-dnl   SOLO - 0 or 1 (are we packaging RethinkDB Cache (0), or RethinkDB Solo (1)?)
-dnl   PACKAGE_NAME - full package name to be used (e.g. rethinkdb or rethinkdb-trial)
-dnl   VANILLA_PACKAGE_NAME - package name without modifiers (e.g. rethinkdb, even when TRIAL=1)
-dnl   TRIAL_PACKAGE_NAME - name of the trial package (e.g. rethinkdb-trial, even when TRIAL=0)
+dnl   PACKAGE_NAME - package name to be used (e.g. rethinkdb)
 dnl   PACKAGE_VERSION - version string, dashes are fine
 dnl   LEGACY_LINUX - 0 or 1 (specifies which library versions we can use)
-dnl   TRIAL - 0 or 1
-dnl   DISK_SIZE - approximate size in KB of the installed package
 dnl
-Package: VERSIONED_PACKAGE_NAME
+Source: PACKAGE_NAME
+Section: database
+Priority: optional
+Maintainer: Package Maintainer <packaging@rethinkdb.com>
+Build-Depends: g++, protobuf-compiler, protobuf-c-compiler, libprotobuf-dev, libprotobuf-c0-dev, libboost-dev, libssl-dev, libv8-dev, libboost-program-options-dev, libgoogle-perftools-dev, npm, jsdoc-toolkit, libprotoc-dev, curl, exuberant-ctags, m4, debhelper, fakeroot, ruby, rubygems, git
+Homepage: http://www.rethinkdb.com
+ifelse(SOURCEBUILD, 1, `
+',`')dnl
+Package: PACKAGE_NAME
 Version: PACKAGE_VERSION
 Architecture: amd64
-Maintainer: Package Maintainer <packaging@rethinkdb.com>
-Installed-Size: DISK_SIZE
 Pre-Depends: adduser (>= 3.40)
 Depends: ifelse(LEGACY_LINUX, 1,
   `libc6 (>= 2.5), libstdc++6 (>= 4.6), libgcc1, libv8-dev (>=3.1)',
   `libc6 (>= 2.10.1), libstdc++6 (>= 4.6), libgcc1, libv8-dev (>=3.1)')
-Build-Depends: g++ protobuf-compiler protobuf-c-compiler libprotobuf-dev libprotobuf-c0-dev libboost-dev libssl-dev libv8-dev libboost-program-options-dev libgoogle-perftools-dev npm jsdoc-toolkit libprotoc-dev curl exuberant-ctags m4
-Replaces: ifelse(TRIAL, 0, `VERSIONED_TRIAL_PACKAGE_NAME (<= PACKAGE_VERSION)')
-Conflicts: ifelse(TRIAL, 0, `VERSIONED_TRIAL_PACKAGE_NAME (<= PACKAGE_VERSION)')
-Provides: VANILLA_PACKAGE_NAME, memcached
-Section: database
-Priority: optional
-Homepage: http://rethinkdb.com/
-Description: ifelse(SOLO, 1,
-`RethinkDB is a highly scalable non-SQL database.
- It supports replication, sharding, and powerful queries via its JavaScript, Python, and Ruby bindings.',
-`RethinkDB is a highly scalable non-SQL database.
- It supports replication, sharding, and powerful queries via its JavaScript, Python, and Ruby bindings.')
+Breaks: PACKAGE_NAME (<< PACKAGE_VERSION)
+Conflicts: PACKAGE_NAME (<< PACKAGE_VERSION)
+Provides: PACKAGE_NAME
+ifelse(SOURCEBUILD, 1, `', `Installed-Size: DISK_SIZE
+')dnl
+Description: RethinkDB supports replication, sharding, and powerful queries via its JavaScript, Python, and Ruby bindings.
+
 

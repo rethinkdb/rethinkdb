@@ -511,11 +511,11 @@ module 'ResolveIssuesView', ->
                             datacenters_that_can_help: []
                         # Let's add to datacenters_that_can_help all the datacenters that have some responsabilities (so servers that could potentially work for universe instead of its datacenter)
                         for datacenter_id of @model.get('replica_affinities')
-                            if @model.get('replica_affinities')[datacenter_id] > 0 and @model.get('actual_machines_in_datacenters')[datacenter_id] > 0 and datacenters.get(datacenter_id)? and datacenter_id isnt universe_datacenter.get('id')
+                            num_replicas_requested = @model.get('replica_affinities')[datacenter_id]
+                            if @model.get('primary_datacenter') is datacenter_id
+                                num_replicas_requested++
+                            if num_replicas_requested > 0 and @model.get('actual_machines_in_datacenters')[datacenter_id] > 0 and datacenters.get(datacenter_id)? and datacenter_id isnt universe_datacenter.get('id')
                                 datacenter_name = datacenters.get(datacenter_id)?.get('name')
-                                num_replicas_requested = @model.get('replica_affinities')[datacenter_id]
-                                if @model.get('primary_datacenter') is datacenter_id
-                                    num_replicas_requested++
                                 json.extra_replicas_accross_cluster.datacenters_that_can_help.push
                                     datacenter_id: datacenter_id
                                     datacenter_name: (datacenter_name if datacenter_name?)

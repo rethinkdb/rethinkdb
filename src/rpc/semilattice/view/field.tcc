@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "rpc/semilattice/view/field.hpp"
 
 #include "errors.hpp"

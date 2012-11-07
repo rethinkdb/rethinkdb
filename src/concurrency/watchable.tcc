@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "concurrency/watchable.hpp"
 
 #include "errors.hpp"

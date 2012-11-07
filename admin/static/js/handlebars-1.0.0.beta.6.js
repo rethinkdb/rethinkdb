@@ -1,4 +1,3 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
 // lib/handlebars/base.js
 var Handlebars = {};
 

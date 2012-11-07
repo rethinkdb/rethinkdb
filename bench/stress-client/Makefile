@@ -30,6 +30,7 @@ endif
 EXEC_NAME = stress
 SO_NAME = libstress.so
 CXX = g++
+CC = gcc
 CFLAGS = -fPIC
 CXXFLAGS = $(INCLUDE) -I . $(DEFINES) -fPIC -g # -O3
 PROTO_DIR = ../../src/rdb_protocol
@@ -46,6 +47,9 @@ protocols/query_language.pb.cc: proto_files
 
 %.o: %.cc $(HEADERS) Makefile
 	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+%.o: %.c $(HEADERS) Makefile
+	$(CC) $(CFLAGS) -c $< -o $@
 
 $(EXEC_NAME): proto_files $(OBJ) main.o $(HEADERS) Makefile
 	$(CXX) $(CXXFLAGS) -o $(EXEC_NAME) $(OBJ) main.o -lm -lrt $(TLIB) $(LIBS)

@@ -18,7 +18,7 @@ GEMSPEC:=rethinkdb.gemspec
 
 AUTOCHAIN?=0
 ifeq ($(AUTOCHAIN),1)
-ifeq ($(shell which rprotoc || true),"")
+ifeq ($(shell which rprotoc || true),)
 TC_RPROTOC_EXE:=$(RUBY_PBDIR)/toolchain/bin/rprotoc
 else
 TC_RPROTOC_EXE:=$(shell which rprotoc || true)
@@ -54,7 +54,7 @@ endif
 
 $(TC_RPROTOC_EXE): $(RUBY_PBDIR)
 ifeq ($(AUTOCHAIN),1)
-ifeq ($(shell gem list --local | grep "^ruby_protobuf "),"")
+ifeq ($(shell gem list --local | grep "^ruby_protobuf "),)
 	if [ -d $(RUBY_PBDIR) ] && [ ! -e $(RUBY_PBDIR)/toolchain ] ; then mkdir -p $(RUBY_PBDIR)/toolchain ; fi ;
 	gem install --install-dir $(RUBY_PBDIR)/toolchain ruby_protobuf ;
 endif
