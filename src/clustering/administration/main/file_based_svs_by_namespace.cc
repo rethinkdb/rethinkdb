@@ -4,7 +4,7 @@
 #include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "clustering/reactor/reactor.hpp"
 #include "db_thread_info.hpp"
-#include "serializer/log/log_serializer.hpp"
+#include "serializer/config.hpp"
 #include "serializer/translator.hpp"
 
 /* This object serves mostly as a container for arguments to the
@@ -106,10 +106,11 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
     int res = access(serializer_filepath.c_str(), R_OK | W_OK);
     store_args_t<protocol_t> store_args(io_backender_, namespace_id, cache_size, serializers_perfmon_collection, ctx);
     if (res == 0) {
+        filepath_file_opener_t file_opener(serializer_filepath, io_backender_);
+
         // TODO: Could we handle failure when loading the serializer?  Right now, we don't.
         serializer.init(new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
-                                                  io_backender_,
-                                                  standard_serializer_t::private_dynamic_config_t(serializer_filepath),
+                                                  &file_opener,
                                                   serializers_perfmon_collection));
 
         std::vector<standard_serializer_t *> ptrs;
@@ -133,13 +134,12 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
     } else {
         stores_out->stores()->init(num_stores);
 
-        standard_serializer_t::create(io_backender_,
-                                      standard_serializer_t::private_dynamic_config_t(serializer_filepath),
+        filepath_file_opener_t file_opener(serializer_filepath, io_backender_);
+        standard_serializer_t::create(&file_opener,
                                       standard_serializer_t::static_config_t());
 
         serializer.init(new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
-                                                  io_backender_,
-                                                  standard_serializer_t::private_dynamic_config_t(serializer_filepath),
+                                                  &file_opener,
                                                   serializers_perfmon_collection));
 
         std::vector<standard_serializer_t *> ptrs;
