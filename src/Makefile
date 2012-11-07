@@ -446,9 +446,18 @@ IMAGES_EXTERNAL_DIR:=$(WEB_SOURCE_DIR)/static/images
 FAVICON:=$(WEB_SOURCE_DIR)/favicon.ico
 
 #### Version number handling
+FORCEVERSION?=0
+ifeq($(FORCEVERSION),1)
+RETHINKDB_VERSION:=$(PVERSION)
+RETHINKDB_SHORT_VERSION:=$(shell echo $(RETHINKDB_VERSION) | sed 's/\([^.]\+\.[^.]\+\).*$$/\1/')
+# RETHINKDB_SHORT_VERSION:=$(shell ../scripts/gen-version.sh -s)
+PACKAGING_ALTERNATIVES_PRIORITY:=0
+else
 RETHINKDB_VERSION:=$(shell ../scripts/gen-version.sh)
-RETHINKDB_SHORT_VERSION:=$(shell ../scripts/gen-version.sh -s)
+RETHINKDB_SHORT_VERSION:=$(shell echo $(RETHINKDB_VERSION) | sed 's/\([^.]\+\.[^.]\+\).*$$/\1/')
+# RETHINKDB_SHORT_VERSION:=$(shell ../scripts/gen-version.sh -s)
 PACKAGING_ALTERNATIVES_PRIORITY:=$(shell expr $$(../scripts/gen-version.sh -r) / 100)
+endif
 
 # ifneq ($(TIMEBOMB),0)
 # RETHINKDB_VERSION:=$(RETHINKDB_VERSION)-trial
