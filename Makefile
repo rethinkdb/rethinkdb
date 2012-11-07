@@ -1,7 +1,7 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 
 all:
-	cd src ; $(MAKE) ;
+	cd src ; $(MAKE) PACKAGING=1 WEBRESDIR=/usr/share/rethinkdb/web ;
 
 install: all
 	cd src ; $(MAKE) PACKAGING=1 install ;
