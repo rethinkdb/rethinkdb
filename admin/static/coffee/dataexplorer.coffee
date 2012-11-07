@@ -279,10 +279,22 @@ module 'DataExplorerView', ->
             # TODO: check that there is not a string containing db( before...
             last_db_position = query_before_cursor.lastIndexOf('.db(')
             if last_db_position is -1
-                return {
-                    db_found: false
-                    error: false
-                }
+                for database in databases.models
+                    if database.get('name') is 'test'
+                        database_test_id = database.get('id')
+                        break
+                if database_test_id?
+                    return {
+                        db_found: true
+                        error: false
+                        id: database_test_id
+                        name: 'test'
+                    }
+                else
+                    return {
+                        db_found: false
+                        error: true
+                    }
             else
                 arg = query_before_cursor.slice last_db_position+5 # +4 for .db(
                 char = query_before_cursor.slice last_db_position+4, last_db_position+5 # ' or " used for the argument of db()

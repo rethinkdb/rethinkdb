@@ -23,6 +23,7 @@
 
 <script id="dataexplorer-description_with_example-template" type="text/x-handlebars-template">
     <p>{{description}}</p>
+    <div class="db_table_available"></div>
     <div class="separation"></div>
     {{#each examples}}
     <p><u>Ex</u>: {{description}}</br>
@@ -32,26 +33,32 @@
 </script>
 
 <script id="dataexplorer-databases_suggestions-template" type="text/x-handlebars-template">
+    <div class="separation"></div>
+    <p>
     {{#if no_database}}
-        <br/>No database found. Use dbCreate() to create a new database first.
+        No database found. Use dbCreate() to create a new database first.
     {{else}}
-        <br/>List of databases available: {{comma_separated_simple databases_available}}
+        List of databases available: {{comma_separated_simple databases_available}}
     {{/if}}
+    </p>
 </script>
 <script id="dataexplorer-namespaces_suggestions-template" type="text/x-handlebars-template">
+    <div class="separation"></div>
+    <p>
     {{#if error}}
-        <br/>The database specified in db() was not found.
+        The database specified in db() was not found.
     {{else}}
         {{#if no_namespace}}
             {{#if database_name}}
-                <br/>No table found in {{database_name}}. Use create() to create a new table first.
+                No table found in {{database_name}}. Use create() to create a new table first.
             {{else}}
-                <br/>You need to create a database then a table first.
+                You need to create a database then a table first.
             {{/if}}
         {{else}}
-            <br/>List of tables{{#if database_name}} in {{database_name}}{{/if}}: {{comma_separated_simple namespaces_available}}
+            List of tables{{#if database_name}} in {{database_name}}{{/if}}: {{comma_separated_simple namespaces_available}}
         {{/if}}
     {{/if}}
+    </p>
 </script>
 
 <script id="alert-reconnection_success-template" type="text/x-handlebars-template">
