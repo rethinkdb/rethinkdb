@@ -13,7 +13,8 @@ Maintainer: Package Maintainer <packaging@rethinkdb.com>
 Build-Depends: g++, protobuf-compiler, protobuf-c-compiler, libprotobuf-dev, libprotobuf-c0-dev, libboost-dev, libssl-dev, libv8-dev, libboost-program-options-dev, libgoogle-perftools-dev, npm, jsdoc-toolkit, libprotoc-dev, curl, exuberant-ctags, m4, debhelper, fakeroot, ruby, rubygems
 Homepage: http://www.rethinkdb.com
 ifelse(SOURCEBUILD, 1, `
-Package: PACKAGE_NAME',`Package: PACKAGE_NAME')
+',`')dnl
+Package: PACKAGE_NAME
 Version: PACKAGE_VERSION
 Architecture: amd64
 Pre-Depends: adduser (>= 3.40)
@@ -23,7 +24,7 @@ Depends: ifelse(LEGACY_LINUX, 1,
 Breaks: PACKAGE_NAME (<< PACKAGE_VERSION)
 Conflicts: PACKAGE_NAME (<< PACKAGE_VERSION)
 Provides: PACKAGE_NAME
-ifelse(SOURCEBUILD, 1, `', `Installed-Size: DISK_SIZE')
+ifelse(SOURCEBUILD, 1, `', `Installed-Size: DISK_SIZE')dnl
 Description: RethinkDB supports replication, sharding, and powerful queries via its JavaScript, Python, and Ruby bindings.
 
 
