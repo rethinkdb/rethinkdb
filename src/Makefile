@@ -557,6 +557,8 @@ language_drivers_dir:=$(share_dir)/drivers
 ASSET_SCRIPTS:=$(ASSETS_DIR)/scripts/rdb_migrate
 INIT_SCRIPTS:=$(ASSETS_DIR)/init/rethinkdb
 
+UBRELEASE?=precise
+
 CXXFLAGS+=-DMIGRATION_SCRIPT_LOCATION=\"$(scripts_dir)/rdb_migrate\"
 
 FULL_SERVER_EXEC_NAME=$(bin_dir)/$(SERVER_EXEC_NAME)
@@ -639,7 +641,7 @@ DebianV8Version:=$(shell apt-cache show libv8-dev | grep '^Version:' | sed -e 's
 
 
 build-deb-src-control:
-	$(QUIET) cd .. ; if [ -e debian ] ; then rm -rf debian ; fi ; cp -pRP debian.template debian ; ./scripts/gen-changelog.sh ;
+	$(QUIET) cd .. ; if [ -e debian ] ; then rm -rf debian ; fi ; cp -pRP debian.template debian ; env UBRELEASE=$(UBRELEASE) ./scripts/gen-changelog.sh ;
 # Replace version/size fields in the deb control file
 	$(QUIET) disk_size=0;	\
 		m4																													\
