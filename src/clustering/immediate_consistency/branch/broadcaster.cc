@@ -11,7 +11,6 @@
 #include "containers/uuid.hpp"
 #include "clustering/immediate_consistency/branch/listener.hpp"
 #include "clustering/immediate_consistency/branch/multistore.hpp"
-#include "query_measure.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/view/member.hpp"
@@ -520,12 +519,9 @@ void broadcaster_t<protocol_t>::pick_a_readable_dispatchee(dispatchee_t **dispat
 template<class protocol_t>
 void broadcaster_t<protocol_t>::background_write(dispatchee_t *mirror, auto_drainer_t::lock_t mirror_lock, incomplete_write_ref_t write_ref, order_token_t order_token, fifo_enforcer_write_token_t token) THROWS_NOTHING {
     try {
-        TICKVAR(bw_A);
         listener_write<protocol_t>(mailbox_manager, mirror->write_mailbox,
                                    write_ref.get()->write, write_ref.get()->timestamp, order_token, token,
                                    mirror_lock.get_drain_signal());
-        TICKVAR(bw_B);
-        // logRQM("background_write %ld\n", bw_B - bw_A);
     } catch (interrupted_exc_t) {
         return;
     }
@@ -534,13 +530,10 @@ void broadcaster_t<protocol_t>::background_write(dispatchee_t *mirror, auto_drai
 template<class protocol_t>
 void broadcaster_t<protocol_t>::background_writeread(dispatchee_t *mirror, auto_drainer_t::lock_t mirror_lock, incomplete_write_ref_t write_ref, order_token_t order_token, fifo_enforcer_write_token_t token) THROWS_NOTHING {
     try {
-        TICKVAR(bwr_A);
         typename protocol_t::write_response_t resp;
         listener_writeread<protocol_t>(mailbox_manager, mirror->writeread_mailbox,
                                        write_ref.get()->write, &resp, write_ref.get()->timestamp, order_token, token,
                                        mirror_lock.get_drain_signal());
-        TICKVAR(bwr_B);
-        // logRQM("background_writeread %ld\n", bwr_B - bwr_A);
 
         if (write_ref.get()->callback) {
             write_ref.get()->callback->on_response(mirror->get_peer(), resp);

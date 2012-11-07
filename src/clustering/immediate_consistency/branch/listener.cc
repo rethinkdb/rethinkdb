@@ -8,7 +8,6 @@
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "concurrency/coro_pool.hpp"
 #include "concurrency/cross_thread_signal.hpp"
-#include "query_measure.hpp"
 
 
 /* `WRITE_QUEUE_CORO_POOL_SIZE` is the number of coroutines that will be used
@@ -439,46 +438,29 @@ template <class protocol_t>
 void listener_t<protocol_t>::perform_enqueued_write(const write_queue_entry_t &qe,
         state_timestamp_t backfill_end_timestamp,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-    TICKVAR(pw_A);
     write_queue_semaphore_.unlock();
-    TICKVAR(pw_B);
     if (write_queue_.size() <= WRITE_QUEUE_SEMAPHORE_LONG_TERM_CAPACITY) {
         write_queue_has_drained_.pulse_if_not_already_pulsed();
     }
-    TICKVAR(pw_C);
-
-    DTICKVAR(pw_D);
-    DTICKVAR(pw_E);
-    DTICKVAR(pw_F);
-    DTICKVAR(pw_G);
 
     object_buffer_t<fifo_enforcer_sink_t::exit_write_t> write_token;
     {
-        ATICKVAR(pw_D);
         fifo_enforcer_sink_t::exit_write_t fifo_exit(&store_entrance_sink_, qe.fifo_token);
-        ATICKVAR(pw_E);
         if (qe.transition_timestamp.timestamp_before() < backfill_end_timestamp) {
-            logRQM("exiting due to weird backfill timestamp thing pw_A %ld B %ld C %ld D %ld E\n",
-                   pw_B - pw_A, pw_C - pw_B, pw_D - pw_C, pw_E - pw_D);
             return;
         }
         wait_interruptible(&fifo_exit, interruptor);
-        ATICKVAR(pw_F);
         advance_current_timestamp_and_pulse_waiters(qe.transition_timestamp);
-        ATICKVAR(pw_G);
         svs_->new_write_token(&write_token);
     }
 
-    TICKVAR(pw_H);
 #ifndef NDEBUG
-    version_leq_metainfo_checker_callback_t<protocol_t> metainfo_checker_callback(qe.transition_timestamp.timestamp_before());
-    metainfo_checker_t<protocol_t> metainfo_checker(&metainfo_checker_callback, svs_->get_region());
+        version_leq_metainfo_checker_callback_t<protocol_t> metainfo_checker_callback(qe.transition_timestamp.timestamp_before());
+        metainfo_checker_t<protocol_t> metainfo_checker(&metainfo_checker_callback, svs_->get_region());
 #endif
-    TICKVAR(pw_I);
 
     typename protocol_t::write_response_t response;
 
-    TICKVAR(pw_J);
     svs_->write(
         DEBUG_ONLY(metainfo_checker, )
         region_map_t<protocol_t, binary_blob_t>(svs_->get_region(),
@@ -489,11 +471,6 @@ void listener_t<protocol_t>::perform_enqueued_write(const write_queue_entry_t &q
         qe.order_token,
         &write_token,
         interruptor);
-    TICKVAR(pw_K);
-
-    logRQM("perform_enqueued_write pw_A %ld B %ld C %ld D %ld E %ld F %ld G %ld H %ld I %ld J %ld K\n",
-           pw_B - pw_A, pw_C - pw_B, pw_D - pw_C, pw_E - pw_D, pw_F - pw_E, pw_G - pw_F, pw_H - pw_G, pw_I - pw_H, pw_J - pw_I, pw_K - pw_J);
-
 }
 
 template <class protocol_t>
@@ -522,40 +499,26 @@ void listener_t<protocol_t>::perform_writeread(const typename protocol_t::write_
         fifo_enforcer_write_token_t fifo_token,
         mailbox_addr_t<void(typename protocol_t::write_response_t)> ack_addr,
         auto_drainer_t::lock_t keepalive)
-        THROWS_NOTHING {
-    TICKVAR(pw_A);
-
+        THROWS_NOTHING
+{
     try {
         /* Make sure the broadcaster isn't sending us too many writes */
         semaphore_assertion_t::acq_t sem_acq(&enforce_max_outstanding_writes_from_broadcaster_);
-        TICKVAR(pw_B);
 
-        DTICKVAR(pw_C);
-        DTICKVAR(pw_D);
-        DTICKVAR(pw_E);
-        DTICKVAR(pw_F);
-        DTICKVAR(pw_G);
-        DTICKVAR(pw_H);
         object_buffer_t<fifo_enforcer_sink_t::exit_write_t> write_token;
         {
             {
                 /* Briefly pass through `write_queue_entrance_sink_` in case we
                 are receiving a mix of writes and write-reads */
                 fifo_enforcer_sink_t::exit_write_t fifo_exit_1(&write_queue_entrance_sink_, fifo_token);
-                ATICKVAR(pw_C);
             }
-            ATICKVAR(pw_D);
 
             fifo_enforcer_sink_t::exit_write_t fifo_exit_2(&store_entrance_sink_, fifo_token);
-            ATICKVAR(pw_E);
             wait_interruptible(&fifo_exit_2, keepalive.get_drain_signal());
-            ATICKVAR(pw_F);
 
             advance_current_timestamp_and_pulse_waiters(transition_timestamp);
-            ATICKVAR(pw_G);
 
             svs_->new_write_token(&write_token);
-            ATICKVAR(pw_H);
         }
 
         // Make sure we can serve the entire operation without masking it.
@@ -567,7 +530,6 @@ void listener_t<protocol_t>::perform_writeread(const typename protocol_t::write_
         version_leq_metainfo_checker_callback_t<protocol_t> metainfo_checker_callback(transition_timestamp.timestamp_before());
         metainfo_checker_t<protocol_t> metainfo_checker(&metainfo_checker_callback, svs_->get_region());
 #endif
-        TICKVAR(pw_I);
 
         // Perform the operation
         cond_t non_interruptor;
@@ -582,18 +544,10 @@ void listener_t<protocol_t>::perform_writeread(const typename protocol_t::write_
                     &write_token,
                     keepalive.get_drain_signal());
 
-        TICKVAR(pw_J);
-
         /* Release the semaphore before sending the response, because the
         broadcaster can send us a new write as soon as we send the ack */
         sem_acq.reset();
-        TICKVAR(pw_K);
         send(mailbox_manager_, ack_addr, response);
-
-        TICKVAR(pw_L);
-
-        logRQM("perform_writeread pw_A %ld B %ld C %ld D %ld E %ld F %ld G %ld H %ld I %ld J %ld K %ld L\n",
-               pw_B - pw_A, pw_C - pw_B, pw_D - pw_C, pw_E - pw_D, pw_F - pw_E, pw_G - pw_F, pw_H - pw_G, pw_I - pw_H, pw_J - pw_I, pw_K - pw_J, pw_L - pw_K);
 
     } catch (interrupted_exc_t) {
         /* pass */

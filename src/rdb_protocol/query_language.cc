@@ -14,7 +14,6 @@
 #include "rdb_protocol/js.hpp"
 #include "rpc/directory/read_manager.hpp"
 #include "rdb_protocol/proto_utils.hpp"
-#include "query_measure.hpp"
 
 
 //TODO: why is this not in the query_language namespace? - because it's also used by rethinkdb import at the moment

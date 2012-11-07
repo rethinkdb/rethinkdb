@@ -8,7 +8,6 @@
 #include "concurrency/watchable.hpp"
 #include "rdb_protocol/stream_cache.hpp"
 #include "rpc/semilattice/view/field.hpp"
-#include "query_measure.hpp"
 
 query_server_t::query_server_t(int port, rdb_protocol_t::context_t *_ctx) :
     server(port, boost::bind(&query_server_t::handle, this, _1, _2),
@@ -40,38 +39,22 @@ Response on_unparsable_query(Query *q, std::string msg) {
 }
 
 Response query_server_t::handle(Query *q, context_t *query_context) {
-    TICKVAR(qt_A);
-
     stream_cache_t *stream_cache = &query_context->stream_cache;
     signal_t *interruptor = query_context->interruptor;
     guarantee(interruptor);
     Response res;
     res.set_token(q->token());
 
-    TICKVAR(qt_B);
-
     query_language::type_checking_environment_t type_environment;
 
-    TICKVAR(qt_C);
-
     query_language::backtrace_t root_backtrace;
-
-    TICKVAR(qt_D);
-
     bool is_deterministic;
-    try {
-        TICKVAR(qt_E);
 
+    try {
         query_language::check_query_type(
             q, &type_environment, &is_deterministic, root_backtrace);
-
-        TICKVAR(qt_F);
-
         boost::shared_ptr<js::runner_t> js_runner = boost::make_shared<js::runner_t>();
         int thread = get_thread_id();
-
-        TICKVAR(qt_G);
-
         query_language::runtime_environment_t runtime_environment(
             ctx->pool_group, ctx->ns_repo,
             ctx->cross_thread_namespace_watchables[thread]->get_watchable(),
@@ -79,17 +62,9 @@ Response query_server_t::handle(Query *q, context_t *query_context) {
             ctx->semilattice_metadata,
             ctx->directory_read_manager,
             js_runner, interruptor, ctx->machine_id);
-
-        TICKVAR(qt_H);
-
         //[execute_query] will set the status code unless it throws
         execute_query(q, &runtime_environment, &res, scopes_t(),
                       root_backtrace, stream_cache);
-
-        TICKVAR(qt_I);
-
-        // logRQM("QUERY_MEASURE: A %ld B %ld C %ld D %ld E %ld F %ld G %ld H %ld I",
-        //        qt_B - qt_A, qt_C - qt_B, qt_D - qt_C, qt_E - qt_D, qt_F - qt_E, qt_G - qt_F, qt_H - qt_G, qt_I - qt_H);
     } catch (const query_language::broken_client_exc_t &e) {
         res.set_status_code(Response::BROKEN_CLIENT);
         res.set_error_message(e.message);
