@@ -15,7 +15,7 @@ build-deb-src-control:
 	cd src ; $(MAKE) build-deb-src-control ;
 
 build-deb-src: build-deb-src-control
-	$(shell scripts/gen-version.sh > VERSION)
+#	$(shell scripts/gen-version.sh > VERSION)
 	yes | debuild -S -sa ;
 
 deb:
