@@ -5,6 +5,7 @@ module 'DataExplorerView', ->
         template: Handlebars.compile $('#dataexplorer_view-template').html()
         description_template: Handlebars.compile $('#dataexplorer-description-template').html()
         template_suggestion_name: Handlebars.compile $('#dataexplorer_suggestion_name_li-template').html()
+        description_with_example_template: Handlebars.compile $('#dataexplorer-description_with_example-template').html()
         alert_connection_fail_template: Handlebars.compile $('#alert-connection_fail-template').html()
         alert_reconnection_success_template: Handlebars.compile $('#alert-reconnection_success-template').html()
         databases_suggestions_template: Handlebars.compile $('#dataexplorer-databases_suggestions-template').html()
@@ -67,13 +68,17 @@ module 'DataExplorerView', ->
                         full_tag = tag # Here full_tag is just the name of the tag
                         @descriptions[tag] =
                             name: tag
-                            description: command['description']
+                            description: @description_with_example_template
+                                description: command['description']
+                                examples: command['langs']['js']['examples']
                     else
                         full_tag = tag+'(' # full tag is the name plus a parenthesis (we will match the parenthesis too)
                         @descriptions[full_tag] =
                             name: tag
                             args: '( '+command['langs']['js']['body']+' )'
-                            description: command['description']
+                            description: @description_with_example_template
+                                description: command['description']
+                                examples: command['langs']['js']['examples']
 
                     parent = command['parent']
                     if parent is null

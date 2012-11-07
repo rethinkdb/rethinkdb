@@ -17,7 +17,18 @@
 
 <script id="dataexplorer-description-template" type="text/x-handlebars-template">
 <p><span class="description_name">{{name}}</span>{{#if args}}<span class="description_arguments">{{args}}</span>{{/if}}</p>
-<p>{{print_safe description}}</p>
+{{print_safe description}}
+</script>
+
+
+<script id="dataexplorer-description_with_example-template" type="text/x-handlebars-template">
+    <p>{{description}}</p>
+    <div class="separation"></div>
+    {{#each examples}}
+    <p><u>Ex</u>: {{description}}</br>
+    {{code}}
+    </p>
+    {{/each}}
 </script>
 
 <script id="dataexplorer-databases_suggestions-template" type="text/x-handlebars-template">
