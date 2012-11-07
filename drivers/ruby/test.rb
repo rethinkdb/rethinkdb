@@ -16,9 +16,7 @@ class ClientTest < Test::Unit::TestCase
 
   def test_precedence_hacks
     lst = (0...10).to_a
-    assert_equal(r(lst).filter{|x| x < r(3) | x > r(5)}.run,
-                 lst.select{|x| x < 3 || x > 5})
-    assert_equal(r(lst).filter{|x| x < r(3) & x > 5}.run, [])
+    assert_raise(RuntimeError){r(lst).filter{|x| x < r(3) | x > r(5)}}
   end
 
   def test_op_raise
