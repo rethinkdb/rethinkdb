@@ -630,7 +630,7 @@ DebianV8Version:=$(shell apt-cache show libv8-dev | grep '^Version:' | sed -e 's
 
 
 build-deb-src-control:
-	$(QUIET) cd .. ; rm -r debian ; cp -pRP debian.template debian ; ./scripts/gen-changelog.sh ;
+	$(QUIET) cd .. ; if [ -e debian ] ; then rm -rf debian ; fi ; cp -pRP debian.template debian ; ./scripts/gen-changelog.sh ;
 # Replace version/size fields in the deb control file
 	$(QUIET) disk_size=0;	\
 		m4																													\
