@@ -4,8 +4,16 @@
 # The script omits automatic base-finding and presently expects to be run from the root of the repository.
 PRODBASE=. ;
 PRODUCTNAME="rethinkdb" ;
-PRODUCTVERSION="`"$PRODBASE"/scripts/gen-version.sh`" ;
-UBRELEASE="precise" ;
+PRODUCTVERSION="`"$PRODBASE"/scripts/gen-version.sh`""-0"
+if [ "$UBRELEASE" != "" ] ;
+then
+	PRODUCTVERSION="$PRODUCTVERSION"ubuntu1~"$UBRELEASE" ;
+	OSRELEASE="$UBRELEASE" ;
+else
+	OSRELEASE="unstable" ;
+fi ;
+# UBRELEASE="precise" ;
+# We now provide UBRELEASE in the environment .
 TIMESTAMPTIME="`date "+%a, %d %b %Y %H:%M:%S"`" ;
 TIMESTAMPOFFSET="-0800" ;
 TIMESTAMPFULL="$TIMESTAMPTIME"" ""$TIMESTAMPOFFSET" ;
