@@ -1124,7 +1124,7 @@ endif
 
 $(TC_LESSC_EXE): $(BUILD_DIR)
 ifeq ($(AUTOCHAIN),1)
-ifeq ($(shell npm list --global --parseable | grep '\/less$'),"")
+ifeq ($(shell npm list --global --parseable | grep '\/less$$'),"")
 	if [ -d $(BUILD_DIR) ] && [ ! -e $(BUILD_DIR)/toolchain ] ; then mkdir -p $(BUILD_DIR)/toolchain ; fi ;
 	cd $(BUILD_DIR)/toolchain ; npm install less ;
 endif
@@ -1132,7 +1132,7 @@ endif
 
 $(TC_COFFEE_EXE): $(BUILD_DIR)
 ifeq ($(AUTOCHAIN),1)
-ifeq ($(shell npm list --global --parseable | grep '\/coffee-script$'),"")
+ifeq ($(shell npm list --global --parseable | grep '\/coffee-script$$'),"")
 	if [ -d $(BUILD_DIR) ] && [ ! -e $(BUILD_DIR)/toolchain ] ; then mkdir -p $(BUILD_DIR)/toolchain ; fi ;
 	cd $(BUILD_DIR)/toolchain ; npm install coffee-script ;
 endif

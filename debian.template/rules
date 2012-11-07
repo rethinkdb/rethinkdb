@@ -4,6 +4,7 @@
 package = rethinkdb
 
 DEBUG?=0
+AUTOCHAIN?=1
 
 clean:
 	dh_clean
@@ -13,10 +14,10 @@ clean:
 install: build
 	dh_clean
 	dh_installdirs
-	$(MAKE) DEBUG=$(DEBUG) prefix=/usr DESTDIR=$(CURDIR)/debian/$(package) install
+	$(MAKE) DEBUG=$(DEBUG) AUTOCHAIN=$(AUTOCHAIN) prefix=/usr DESTDIR=$(CURDIR)/debian/$(package) install
 
 build:
-	$(MAKE) DEBUG=$(DEBUG) prefix=/usr DESTDIR=$(CURDIR)/debian/$(package)
+	$(MAKE) DEBUG=$(DEBUG) AUTOCHAIN=$(AUTOCHAIN) prefix=/usr DESTDIR=$(CURDIR)/debian/$(package)
 	touch build
 
 binary-indep: install
