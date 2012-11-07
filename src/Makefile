@@ -447,7 +447,7 @@ FAVICON:=$(WEB_SOURCE_DIR)/favicon.ico
 
 #### Version number handling
 FORCEVERSION?=0
-ifeq($(FORCEVERSION),1)
+ifeq ($(FORCEVERSION),1)
 RETHINKDB_VERSION:=$(PVERSION)
 RETHINKDB_SHORT_VERSION:=$(shell echo $(RETHINKDB_VERSION) | sed 's/\([^.]\+\.[^.]\+\).*$$/\1/')
 # RETHINKDB_SHORT_VERSION:=$(shell ../scripts/gen-version.sh -s)
