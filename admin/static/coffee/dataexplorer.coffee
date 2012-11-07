@@ -41,224 +41,68 @@ module 'DataExplorerView', ->
         # Map function -> state
         map_state:
             '': ''
-            'r': 'r'
-            'db': 'db'
-            'table': 'table'
-            'get': 'view'
-            'filter': 'stream'
-            'length': 'value'
-            'map': 'array'
-            'slice': 'stream'
-            'orderby': 'stream'
-            'distinct': 'array'
-            'reduce': 'stream'
-            'pluck': 'stream'
-            'extend': 'array'
-            'expr': 'expr'
-            'R': 'expr'
-            'add': 'expr'
-            'sub': 'expr'
-            'mul': 'expr'
-            'div': 'expr'
-            'mod': 'expr'
-            'eq': 'expr'
-            'ne': 'expr'
-            'lt': 'expr'
-            'le': 'expr'
-            'gt': 'expr'
-            'ge': 'expr'
-            'not': 'expr'
-            'and': 'expr'
-            'or': 'expr'
-            'range': 'stream'
-
-        # Descriptions of all the functions
-        descriptions:
-            'get(':
-                name: 'get'
-                args: '( id )'
-                description: 'Get the document which primary key has the value id'
-            'filter(':
-                name: 'filter'
-                args: '( predicate )'
-                description: 'Filter a stream. A document passes the filter if the predicate returns true'
-            'map(':
-                name: 'map'
-                args: '( attribute )'
-                description: 'Map a stream to an array'
-            'slice(':
-                name: 'slice'
-                args: '( start, end )'
-                description: 'Returned a sliced array stating from start to end'
-            'orderby(':
-                name: 'orderby'
-                args: '( expression )'
-                description: 'order the stream with the expression'
-            'distinct(':
-                name: 'distinct'
-                args: '( expression )'
-                description: 'Formating text is not funny. I need a bunny. I need a hat first to make my bunny appear.'
-            'pluck(':
-                name: 'pluck'
-                args: '( attribute )'
-                description: 'Filter some attributes'
-            'extend(':
-                name: 'extend'
-                args: '( object )'
-                description: 'Extend something that I do not know'
-            'pickAttrs(':
-                name: 'pickAttrs'
-                args: '( attribute_to pick... )'
-                description: 'The VP debate is ridiculous. They should talk about serious issues...'
-            'del(':
-                name: 'del'
-                args: '()'
-                description: 'Delete all the rows returned by the query'
-            'table(':
-                name: 'table'
-                args: '( table_name )'
-                description: 'Select a table'
-            'list(':
-                name: 'list'
-                args: '()'
-                description: 'List all the data'
-            'create(':
-                name: 'create'
-                args: '( table_name )'
-                description: 'Create a new table'
-            'drop(':
-                name: 'drop'
-                args: '()'
-                description: 'Drop a table'
-            'insert(':
-                name: 'insert'
-                args: '( document)'
-                description:' Insert a new document'
-            'dbCreate(':
-                name: 'dbCreate'
-                args: '( database_name )'
-                description: 'Create a database'
-            'db(': 
-                name: 'db'
-                args: '( database_name )'
-                description: 'Select a database'
-            'dbDrop(':
-                name: 'dbDrop'
-                args: '( database_name )'
-                description: 'Drop a database'
-            'dbList(': 
-                name: 'dbList'
-                args: '()'
-                description: 'list the databases'
-            'expr(':
-                name: 'expr'
-                args: '( expression )'
-                description: 'Create an expression'
-            'fn(':
-                name: 'fn'
-                args: '( argument..., body )'
-
-                descrition: 'Create a function'
-            'ifThenElse(':
-                name: 'ifThenElse'
-                args: '( expression, callback_true, callback_false)'
-                description: 'In French we say si ou sinon for if then else'
-            'let(':
-                name: 'let'
-                args: '( arguments..., body)'
-                description: 'Create a variable'
-            'length(':
-                name: 'length'
-                args: '()'
-                description: 'Return the length of the array'
-            'limit(':
-                name: 'limit'
-                args: '( number )'
-                description: 'Limit the number of results'
-            'r': 
-                name: 'r'
-                description: 'The main ReQL namespace.'
-            'R(': 
-                name: 'R'
-                args: '( attribute_string )'
-                description: 'Select an attribute'
-            'add':
-                name: 'add'
-                args: '( expression )'
-                description: 'Add a value'
-            'sub(':
-                name: 'sub'
-                args: '( expression )'
-                description: 'Sub a value'
-            'mul(':
-                name: 'mul'
-                args: '( expression )'
-                description: 'Multiply a value'
-            'div(':
-                name: 'div'
-                args: '( expression )'
-                description: 'Divide something by something and youhouuuuuUUUuuu'
-            'mod(':
-                name: 'mod'
-                args: '( expression )'
-                description: 'Mod by a value'
-            'eq(':
-                name: 'eq'
-                args: '( expression )'
-                description: 'Check for equality'
-            'ne(':
-                name: 'ne'
-                args: '( expression )'
-                description: 'It is not really cool to format stuff, I am bored -_-'
-            'lt(':
-                name: 'lt'
-                args: '( expression )'
-                description: 'Less than'
-            'le(':
-                name: 'le'
-                args: '( expression )'
-                description: 'Less than'
-            'gt(':
-                name: 'gt'
-                args: '( expression )'
-                description: 'Greater than'
-            'ge(':
-                name: 'ge'
-                args: '( expression )'
-                description: 'Greater or equal'
-            'not(':
-                name: 'not'
-                args: '( expression )'
-                description: 'Not'
-            'and(':
-                name: 'and'
-                args: '( expression )'
-                description: 'And'
-            'or(':
-                name: 'or'
-                args: '( expression )'
-                description: 'Or means Gold in French. That is cool no?'
-            'run(':
-                name: 'run'
-                args: '()'
-                description: 'Run the query'
-
+        # Descriptions
+        descriptions: {}
         # Suggestions[state] = function for this state
-        suggestions:
-            stream: ['get(' ,'filter(', 'length(', 'map(', 'slice(', 'orderby(', 'distinct(', 'reduce(', 'pluck(', 'extend(', 'run(']
-            view:['pickAttrs(', 'del(', 'run(']
-            db:['table(', 'list(', 'create(', 'drop(', 'run(']
-            table:['insert(', 'get(' ,'filter(', 'length(', 'map(', 'slice(', 'orderby(', 'distinct(', 'reduce(', 'pluck(', 'extend(', 'run(']
-            r:['db(', 'dbCreate(', 'table(', 'dbDrop(', 'dbList(','expr(', 'fn(', 'ifThenElse(', 'let(', 'run(']
-            array :['length(', 'limit(', 'run(']
-            "" :['r', 'R(']
-            expr: ['add(', 'sub(', 'mul(', 'div(', 'mod(', 'eq(', 'ne(', 'lt(', 'le(', 'gt(', 'ge(', 'not(', 'and(', 'or(', 'run(']
+        suggestions: {}
+        # Relations between type (a table is a selection, a selection is a stream etc.) 
+        # Note: order matters
+        # TODO Add runnable
+        relations: [
+            {
+                container: 'selection'
+                included: 'sequence'
+            },
+            {
+                container: 'table' # A table is also a selection and a sequence
+                included: 'selection'
+            }
+        ]
+    
+        set_docs: (data) =>
+            for group in data
+                for command in group['commands']
+                    tag = command['langs']['js']['name']
+                    if tag is 'r'
+                        full_tag = tag # Here full_tag is just the name of the tag
+                        @descriptions[tag] =
+                            name: tag
+                            description: command['description']
+                    else
+                        full_tag = tag+'(' # full tag is the name plus a parenthesis (we will match the parenthesis too)
+                        @descriptions[full_tag] =
+                            name: tag
+                            args: '( '+command['langs']['js']['body']+' )'
+                            description: command['description']
+
+                    parent = command['parent']
+                    if parent is null
+                        parent = ''
+                    if not @suggestions[parent]?
+                        @suggestions[parent] = []
+                    @suggestions[parent].push full_tag #+something
+
+                    @map_state[tag] = command['returns']
+
+            for relation in @relations
+                container = relation.container
+                included = relation.included
+                # Extends @suggestions[container] with @suggestions[included]
+                for suggestion in @suggestions[included]
+                    @suggestions[container].push suggestion
+
+            console.log 'map state'
+            console.log @map_state
+            console.log 'descriptions'
+            console.log @descriptions
+            console.log 'suggestions'
+            console.log @suggestions
 
         # Define the height of a line (used for a line is too long)
-        line_height: 13 
+        line_height: 13
         #TODO bind suggestions to keyup so we don't have an extra line when at the end of a line without a next char
-        num_char_per_line: 106 
-        default_num_char_per_line: 106 
+        num_char_per_line: 106
+        default_num_char_per_line: 106
 
         # We have to keep track of a lot of things because web-kit browsers handle the events keydown, keyup, blur etc... in a strange way.
         current_suggestions: []

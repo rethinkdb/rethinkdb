@@ -51,6 +51,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     white_list.insert("/cluster.html");
     white_list.insert("/cluster-min.js");
     white_list.insert("/favicon.ico");
+    white_list.insert("/js/reql_docs.json");
     white_list.insert("/js/backbone.js");
     white_list.insert("/js/rethinkdb.js");
     white_list.insert("/js/encoding.js");

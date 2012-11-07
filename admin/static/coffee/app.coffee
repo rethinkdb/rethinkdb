@@ -134,15 +134,26 @@ set_stats = (stat_data) ->
             ###
 
 
+set_reql_docs = (data) ->
+    DataExplorerView.Container.prototype.set_docs data
 
-
-
+error_load_reql_docs = ->
+    #TODO Do we need to display a nice message?
+    console.log 'Could not load reql documentation'
 
 collections_ready = ->
     # Data is now ready, let's get rockin'!
     render_body()
     window.router = new BackboneCluster
     Backbone.history.start()
+
+collect_reql_doc = ->
+    $.ajax
+        url: '/js/reql_docs.json'
+        dataType: 'json'
+        contentType: 'application/json'
+        success: set_reql_docs
+        error: error_load_reql_docs
 
 # A helper function to collect data from all of our shitty
 # routes. TODO: somebody fix this in the server for heaven's
@@ -257,3 +268,6 @@ $ ->
     # Set interval to update the data
     setInterval collect_server_data_async, updateInterval
     window.progress_interval = setInterval collect_progress, progress_interval_value
+
+    # Collect reql docs
+    collect_reql_doc()
