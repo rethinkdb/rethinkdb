@@ -20,7 +20,7 @@ TIMESTAMPFULL="$TIMESTAMPTIME"" ""$TIMESTAMPOFFSET" ;
 AGENTNAME="RethinkDB Packaging"
 AGENTMAIL="packaging@rethinkdb.com"
 CHANGELOGFILE="$PRODBASE"/"debian/changelog" ;
-echo "$PRODUCTNAME"" (""$PRODUCTVERSION"") ""$UBRELEASE""; urgency=low" > "$CHANGELOGFILE" ;
+echo "$PRODUCTNAME"" (""$PRODUCTVERSION"") ""$OSRELEASE""; urgency=low" > "$CHANGELOGFILE" ;
 echo "" >> "$CHANGELOGFILE" ;
 echo "  * Release." >> "$CHANGELOGFILE" ;
 echo "" >> "$CHANGELOGFILE" ;
