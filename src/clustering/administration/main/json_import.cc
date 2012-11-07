@@ -50,28 +50,31 @@ bool csv_to_json_importer_t::next_json(scoped_cJSON_t *out) {
 
     int64_t num_ignored_rows = 0;
 
- try_next_row:
-    if (position_ == rows_.size()) {
-        num_ignored_rows_ += num_ignored_rows;
-        return false;
+    const std::vector<std::string> *row;
+    for (;;) {
+        if (position_ == rows_.size()) {
+            num_ignored_rows_ += num_ignored_rows;
+            return false;
+        }
+
+        row = &rows_[position_];
+        ++position_;
+        if (row->size() == column_names_.size()) {
+            break;
+        }
+        ++num_ignored_rows;
     }
 
-    const std::vector<std::string> &row = rows_[position_];
-    ++position_;
-    if (row.size() != column_names_.size()) {
-        ++num_ignored_rows;
-        goto try_next_row;
-    }
 
     out->reset(cJSON_CreateObject());
 
-    for (size_t i = 0; i < row.size(); ++i) {
+    for (size_t i = 0; i < row->size(); ++i) {
         cJSON *item;
         double number;
-        if (detect_number(row[i].c_str(), &number)) {
+        if (detect_number(row->at(i).c_str(), &number)) {
             item = cJSON_CreateNumber(number);
         } else {
-            item = cJSON_CreateString(row[i].c_str());
+            item = cJSON_CreateString(row->at(i).c_str());
         }
         out->AddItemToObject(column_names_[i].c_str(), item);
     }

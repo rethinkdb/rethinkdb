@@ -355,22 +355,20 @@ void linux_file_t::write_async(size_t offset, size_t length, const void *buf, li
 
 void linux_file_t::read_blocking(size_t offset, size_t length, void *buf) {
     verify(offset, length, buf);
- tryagain:
-    ssize_t res = pread(fd.get(), buf, length, offset);
-    if (res == -1 && errno == EINTR) {
-        goto tryagain;
-    }
+    ssize_t res;
+    do {
+        res = pread(fd.get(), buf, length, offset);
+    } while (res == -1 && errno == EINTR);
 
     nice_guarantee(size_t(res) == length, "Blocking read from file failed. Exiting.");
 }
 
 void linux_file_t::write_blocking(size_t offset, size_t length, const void *buf) {
     verify(offset, length, buf);
- tryagain:
-    ssize_t res = pwrite(fd.get(), buf, length, offset);
-    if (res == -1 && errno == EINTR) {
-        goto tryagain;
-    }
+    ssize_t res;
+    do {
+        res = pwrite(fd.get(), buf, length, offset);
+    } while (res == -1 && errno == EINTR);
 
     nice_guarantee(size_t(res) == length, "Blocking write from file failed. Exiting.");
 }

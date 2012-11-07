@@ -581,19 +581,21 @@ void log_serializer_t::unregister_block_token(ls_block_token_pointee_t *token) {
     std::map<ls_block_token_pointee_t *, off64_t>::iterator token_offset_it = token_offsets.find(token);
     rassert(token_offset_it != token_offsets.end());
 
-    typedef std::multimap<off64_t, ls_block_token_pointee_t *>::iterator ot_iter;
-    for (std::pair<ot_iter, ot_iter> range = offset_tokens.equal_range(token_offset_it->second);
-         range.first != range.second;
-         ++range.first) {
-        if (range.first->second == token) {
-            offset_tokens.erase(range.first);
-            goto successfully_removed_entry;
+    {
+        typedef std::multimap<off64_t, ls_block_token_pointee_t *>::iterator ot_iter;
+        ot_iter erase_it = offset_tokens.end();
+        for (std::pair<ot_iter, ot_iter> range = offset_tokens.equal_range(token_offset_it->second);
+             range.first != range.second;
+             ++range.first) {
+            if (range.first->second == token) {
+                erase_it = range.first;
+                break;
+            }
         }
+
+        guarantee(erase_it != offset_tokens.end(), "We probably tried unregistering the same token twice.");
+        offset_tokens.erase(erase_it);
     }
-
-    unreachable("We probably tried unregistering the same token twice.");
-
- successfully_removed_entry:
 
     const bool last_token_for_offset = offset_tokens.find(token_offset_it->second) == offset_tokens.end();
     if (last_token_for_offset) {

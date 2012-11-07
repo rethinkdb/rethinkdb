@@ -86,7 +86,7 @@ std::list<clone_ptr_t<global_issue_t> > pinnings_shards_mismatch_issue_tracker_t
                  pit != primary_masked_pinnings.end(); ++pit) {
                 if (pit->second != primary_expected_val) {
                     res.push_back(clone_ptr_t<global_issue_t>(new pinnings_shards_mismatch_issue_t<protocol_t>(it->first, shards, primary_pinnings, secondary_pinnings)));
-                    goto NAMESPACE_HAS_ISSUE;
+                    goto namespace_has_issue;
                 }
             }
 
@@ -99,11 +99,12 @@ std::list<clone_ptr_t<global_issue_t> > pinnings_shards_mismatch_issue_tracker_t
                                                                                       ++pit) {
                 if (pit->second!= secondary_expected_val) {
                     res.push_back(clone_ptr_t<global_issue_t>(new pinnings_shards_mismatch_issue_t<protocol_t>(it->first, shards, primary_pinnings, secondary_pinnings)));
-                    goto NAMESPACE_HAS_ISSUE;
+                    goto namespace_has_issue;
                 }
             }
         }
-    NAMESPACE_HAS_ISSUE:
+
+    namespace_has_issue:
         (void)0;
         // do nothing, continue around loop.
     }
