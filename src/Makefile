@@ -110,6 +110,7 @@ ifeq ($(COMPILER), INTEL)
 BUILD_DIR:=$(BUILD_DIR)_intel
 endif
 endif
+DESTDIR?=/tmp/
 
 PACKAGES_DIR:=$(BUILD_ROOT_DIR)/packages
 RPM_PACKAGE_DIR:=$(PACKAGES_DIR)/rpm
@@ -461,7 +462,7 @@ ifeq ($(NAMEVERSIONED),1)
 SERVER_EXEC_NAME_VERSIONED:=$(SERVER_EXEC_NAME)-$(RETHINKDB_SHORT_VERSION)
 else
 # update-alternatives breaks if we ditch the distinguishing mark .
-SERVER_EXEC_NAME_VERSIONED:=$(SERVER_EXEC_NAME)-$(RETHINKDB_SHORT_VERSION)
+SERVER_EXEC_NAME_VERSIONED:=$(SERVER_EXEC_NAME)
 endif
 
 AUTOCHAIN?=0
@@ -629,7 +630,7 @@ DebianV8Version:=$(shell apt-cache show libv8-dev | grep '^Version:' | sed -e 's
 
 
 build-deb-src-control:
-	$(QUIET) cd .. ; cp -pRP debian.template debian ; ./scripts/gen-changelog.sh ;
+	$(QUIET) cd .. ; if [ -e debian ] ; then rm -rf debian ; fi ; cp -pRP debian.template debian ; ./scripts/gen-changelog.sh ;
 # Replace version/size fields in the deb control file
 	$(QUIET) disk_size=0;	\
 		m4																													\
@@ -645,6 +646,21 @@ build-deb-src-control:
 				-D "DISK_SIZE=$${disk_size}"														\
 				-D "SOURCEBUILD=1" \
 			../packaging/$(DEBIAN_PKG_DIR)/control > ../debian/control
+# Copy {pre,post}{inst,rm} scripts
+	$(QUIET) for script in preinst postinst prerm postrm; do		                  		\
+			m4 																																						\
+					-D "BIN_DIR=$(bin_dir)" 																									\
+					-D "MAN1_DIR=$(man1_dir)" 																								\
+					-D "BASH_COMPLETION_DIR=$(bash_completion_dir)" 													\
+					-D "INTERNAL_BASH_COMPLETION_DIR=$(internal_bash_completion_dir)" 				\
+					-D "SERVER_EXEC_NAME=$(SERVER_EXEC_NAME)" 																\
+					-D "SERVER_EXEC_NAME_VERSIONED=$(SERVER_EXEC_NAME_VERSIONED)" 						\
+					-D "UPDATE_ALTERNATIVES=$(NAMEVERSIONED)" 													\
+					-D "PRIORITY=$(PACKAGING_ALTERNATIVES_PRIORITY)" 													\
+				../packaging/$(DEBIAN_PKG_DIR)/$${script} > ../debian/$${script}; \
+			chmod 0755 ../debian/$${script};																		\
+		done
+
 
 # Copy the license file.
 	cat ../packaging/$(DEBIAN_PKG_DIR)/copyright > ../debian/copyright
@@ -789,7 +805,7 @@ rpm-suse10:
 	$(QUIET) $(MAKE) PACKAGE_FOR_SUSE_10=1 rpm
 
 build-deb-src-control:
-	$(QUIET) $(MAKE) $(MFLAGS) PACKAGING=1 build-deb-src-control
+	$(QUIET) $(MAKE) PACKAGING=1 build-deb-src-control
 
 endif
 
@@ -844,9 +860,9 @@ oprof-report:
 
 drivers:
 ifeq ($(BUILD_DRIVERS), 1)
-	$(QUIET) cd ../drivers ; $(MAKE) $(MFLAGS) ;
+	$(QUIET) cd ../drivers ; $(MAKE) ;
 else
-	$(QUIET) cd ../drivers/javascript ; $(MAKE) $(MFLAGS) ;
+	$(QUIET) cd ../drivers/javascript ; $(MAKE) ;
 endif #BUILD_DRIVERS
 
 
@@ -1058,7 +1074,7 @@ endif
 	$(QUIET) rm -rf $(BUILD_ROOT_DIR)
 
 clean-drivers:
-	$(QUIET) cd ../drivers ; $(MAKE) $(MFLAGS) clean ;
+	$(QUIET) cd ../drivers ; $(MAKE) clean ;
 
 # Directories
 $(BUILD_DIR):
