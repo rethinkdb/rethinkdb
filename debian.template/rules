@@ -1,0 +1,39 @@
+#!/usr/bin/make -f
+# Copyright 2013 hello-debhelper project (used according to license) with modifications by RethinkDB
+
+package = rethinkdb
+
+DEBUG?=0
+
+clean:
+	dh_clean
+	if [ -e build ] ; then rm -rf build ; fi ;
+	[ ! -f Makefile ] || $(MAKE) distclean
+
+install: build
+	dh_clean
+	dh_installdirs
+	$(MAKE) DEBUG=$(DEBUG) prefix=/usr DESTDIR=$(CURDIR)/debian/$(package) install
+
+build:
+	$(MAKE) DEBUG=$(DEBUG) prefix=/usr DESTDIR=$(CURDIR)/debian/$(package)
+	touch build
+
+binary-indep: install
+
+binary-arch: install
+	dh_installdocs -a NEWS
+	dh_installchangelogs -a ChangeLog
+	dh_strip -a
+	dh_compress -a
+	dh_fixperms -a
+	dh_installdeb -a
+	dh_shlibdeps -a
+	dh_gencontrol -a
+	dh_md5sums -a
+	dh_builddeb -a
+
+binary: binary-indep binary-arch
+
+.PHONY: binary binary-arch binary-indep clean
+
