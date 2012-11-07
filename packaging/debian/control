@@ -24,7 +24,8 @@ Depends: ifelse(LEGACY_LINUX, 1,
 Breaks: PACKAGE_NAME (<< PACKAGE_VERSION)
 Conflicts: PACKAGE_NAME (<< PACKAGE_VERSION)
 Provides: PACKAGE_NAME
-ifelse(SOURCEBUILD, 1, `', `Installed-Size: DISK_SIZE')dnl
+ifelse(SOURCEBUILD, 1, `', `Installed-Size: DISK_SIZE
+')dnl
 Description: RethinkDB supports replication, sharding, and powerful queries via its JavaScript, Python, and Ruby bindings.
 
 
