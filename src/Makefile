@@ -36,6 +36,13 @@ VANILLA_PACKAGE_NAME?=rethinkdb-cache
 SERVER_EXEC_NAME?=rethinkdb-cache
 endif
 
+STATIC?=0
+
+ifeq ($(STATIC),1)
+VANILLA_PACKAGE_NAME+=-static
+STATICFORCE?=1
+endif
+
 TRIAL_PACKAGE_NAME:=$(VANILLA_PACKAGE_NAME)-trial
 PACKAGE_NAME:=$(VANILLA_PACKAGE_NAME)
 SERVER_UNIT_TEST_NAME:=$(SERVER_EXEC_NAME)-unittest
@@ -66,8 +73,6 @@ endif
 # Set SYMBOLS to 1 to enable symbols, even in release mode
 SYMBOLS?=0
 
-STATICFORCE?=0
-
 ifeq ($(GPERF),1)
 DEBUG=0
 NO_TCMALLOC:=1
@@ -87,7 +92,6 @@ UNIT_TESTS?=0
 AIOSUPPORT?=0
 BUILD_DRIVERS?=1
 LINT?=0
-STATICFORCE?=0
 
 # Set TRIAL to 1 to build a 21-day trial version. If you want a different number of days, set TIMEBOMB to the number of days instead.
 TRIAL?=0
@@ -641,7 +645,7 @@ DebianV8Version:=$(shell apt-cache show libv8-dev | grep '^Version:' | sed -e 's
 
 
 build-deb-src-control:
-	$(QUIET) cd .. ; if [ -e debian ] ; then rm -rf debian ; fi ; cp -pRP debian.template debian ; env UBRELEASE=$(UBRELEASE) ./scripts/gen-changelog.sh ;
+	$(QUIET) cd .. ; if [ -e debian ] ; then rm -rf debian ; fi ; cp -pRP debian.template debian ; env UBRELEASE=$(UBRELEASE) PACKAGE_NAME=$(PACKAGE_NAME) VERSIONED_PACKAGE_NAME=$(VERSIONED_PACKAGE_NAME) VANILLA_PACKAGE_NAME=$(VANILLA_PACKAGE_NAME) PACKAGE_VERSION=$(RETHINKDB_VERSION_DEB) ./scripts/gen-changelog.sh ;
 # Replace version/size fields in the deb control file
 	$(QUIET) disk_size=0;	\
 		m4																													\

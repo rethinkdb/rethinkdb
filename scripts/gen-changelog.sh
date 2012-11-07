@@ -3,8 +3,10 @@
 # This script is for generating a changelog file for the Debian source package. git-dch is problematic, so we generate a stub changelog each time.
 # The script omits automatic base-finding and presently expects to be run from the root of the repository.
 PRODBASE=. ;
-PRODUCTNAME="rethinkdb" ;
-PRODUCTVERSION="`"$PRODBASE"/scripts/gen-version.sh`""-0"
+PRODUCTNAME="$VERSIONED_PACKAGE_NAME" ;
+# PRODUCTVERSION="`"$PRODBASE"/scripts/gen-version.sh`""-0"
+PRODUCTVERSION="$PACKAGE_VERSION""-0"
+# We append a zero for Debian compliance and append Ubuntu stuff if we are aiming for an Ubuntu package.
 if [ "$UBRELEASE" != "" ] ;
 then
 	PRODUCTVERSION="$PRODUCTVERSION"ubuntu1~"$UBRELEASE" ;
