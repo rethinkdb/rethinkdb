@@ -15,7 +15,6 @@
 #include "containers/binary_blob.hpp"
 #include "containers/scoped.hpp"
 #include "containers/object_buffer.hpp"
-#include "query_measure.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "timestamps.hpp"
 
@@ -516,17 +515,11 @@ public:
             object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
-        TICKVAR(svw_A);
         home_thread_mixin_t::assert_thread();
         rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
         rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
 
-        TICKVAR(svw_B);
-        store_view->write(DEBUG_ONLY(metainfo_checker, ) new_metainfo, write, response, timestamp, order_token, token, interruptor);
-
-        TICKVAR(svw_C);
-        logRQM("subview write (%p) svw_A %ld B %ld C\n", coro_t::self(),
-               svw_B - svw_A, svw_C - svw_B);
+        return store_view->write(DEBUG_ONLY(metainfo_checker, ) new_metainfo, write, response, timestamp, order_token, token, interruptor);
     }
 
     // TODO: Make this take protocol_t::progress_t again (or maybe a

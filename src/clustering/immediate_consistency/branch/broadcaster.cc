@@ -371,23 +371,16 @@ void listener_writeread(
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t)
 {
-    TICKVAR(lw_A);
     cond_t resp_cond;
     mailbox_t<void(typename protocol_t::write_response_t)> resp_mailbox(
         mailbox_manager,
         boost::bind(&store_listener_response<typename protocol_t::write_response_t>, response, _1, &resp_cond),
         mailbox_callback_mode_inline);
 
-    TICKVAR(lw_B);
     send(mailbox_manager, writeread_mailbox,
          w, ts, order_token, token, resp_mailbox.get_address());
 
-    TICKVAR(lw_C);
     wait_interruptible(&resp_cond, interruptor);
-
-    TICKVAR(lw_D);
-    // logRQM("listener_writeread lw_A %ld B %ld C %ld D\n",
-    //        lw_B - lw_A, lw_C - lw_B, lw_D - lw_C);
 }
 
 template<class protocol_t>
@@ -547,13 +540,11 @@ void broadcaster_t<protocol_t>::background_writeread(dispatchee_t *mirror, auto_
                                        write_ref.get()->write, &resp, write_ref.get()->timestamp, order_token, token,
                                        mirror_lock.get_drain_signal());
         TICKVAR(bwr_B);
+        // logRQM("background_writeread %ld\n", bwr_B - bwr_A);
 
         if (write_ref.get()->callback) {
             write_ref.get()->callback->on_response(mirror->get_peer(), resp);
         }
-
-        TICKVAR(bwr_C);
-        // logRQM("background_writeread A %ld B %ld C\n", bwr_B - bwr_A, bwr_C - bwr_B);
     } catch (interrupted_exc_t) {
         return;
     }
