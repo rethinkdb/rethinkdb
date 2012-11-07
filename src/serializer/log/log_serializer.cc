@@ -1,6 +1,7 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "serializer/log/log_serializer.hpp"
 
+#include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -11,6 +12,53 @@
 #include "arch/arch.hpp"
 #include "buffer_cache/types.hpp"
 #include "perfmon/perfmon.hpp"
+
+filepath_file_opener_t::filepath_file_opener_t(const std::string &filepath, io_backender_t *backender)
+    : filepath_(filepath), backender_(backender) {
+    guarantee(!filepath.empty());
+}
+
+filepath_file_opener_t::~filepath_file_opener_t() { }
+
+std::string filepath_file_opener_t::file_name() const {
+    return filepath_;
+}
+
+bool filepath_file_opener_t::open_serializer_file(int extra_flag, scoped_ptr_t<file_t> *file_out) {
+    scoped_ptr_t<direct_file_t> file(new direct_file_t(filepath_.c_str(),
+                                                       direct_file_t::mode_read | direct_file_t::mode_write | extra_flag,
+                                                       backender_));
+    if (!file->exists()) {
+        return false;
+    } else {
+        file_out->init(file.release());
+        return true;
+    }
+}
+
+bool filepath_file_opener_t::open_serializer_file_create(scoped_ptr_t<file_t> *file_out) {
+    return open_serializer_file(direct_file_t::mode_create, file_out);
+}
+
+bool filepath_file_opener_t::open_serializer_file_existing(scoped_ptr_t<file_t> *file_out) {
+    return open_serializer_file(0, file_out);
+}
+
+#ifdef SEMANTIC_SERIALIZER_CHECK
+bool filepath_file_opener_t::open_semantic_checking_file(int *fd_out) {
+    std::string semantic_filepath = filepath_ + "_semantic";
+    int semantic_fd = open(semantic_filepath.c_str(),
+                           O_RDWR | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO);
+    if (semantic_fd == INVALID_FD) {
+        fail_due_to_user_error("Inaccessible semantic checking file: \"%s\": %s", semantic_filepath.c_str(), strerror(errno));
+    } else {
+        *fd_out = semantic_fd;
+        return true;
+    }
+}
+#endif
+
+
 
 log_serializer_stats_t::log_serializer_stats_t(perfmon_collection_t *parent) 
     : serializer_collection(),
@@ -51,12 +99,15 @@ log_serializer_stats_t::log_serializer_stats_t(perfmon_collection_t *parent)
           NULLPTR)
 { }
 
-void log_serializer_t::create(io_backender_t *backender, private_dynamic_config_t private_dynamic_config, static_config_t static_config) {
+void log_serializer_t::create(serializer_file_opener_t *file_opener, static_config_t static_config) {
     log_serializer_on_disk_static_config_t *on_disk_config = &static_config;
 
-    direct_file_t df(private_dynamic_config.db_filename.c_str(), file_t::mode_read | file_t::mode_write | file_t::mode_create, backender);
+    scoped_ptr_t<file_t> file;
+    if (!file_opener->open_serializer_file_create(&file)) {
+        crash("could not open file %s for creation", file_opener->file_name().c_str());
+    }
 
-    co_static_header_write(&df, on_disk_config, sizeof(*on_disk_config));
+    co_static_header_write(file.get(), on_disk_config, sizeof(*on_disk_config));
 
     metablock_t metablock;
     bzero(&metablock, sizeof(metablock));
@@ -68,7 +119,7 @@ void log_serializer_t::create(io_backender_t *backender, private_dynamic_config_
 
     metablock.block_sequence_id = NULL_BLOCK_SEQUENCE_ID;
 
-    mb_manager_t::create(&df, static_config.extent_size(), &metablock);
+    mb_manager_t::create(file.get(), static_config.extent_size(), &metablock);
 }
 
 /* The process of starting up the serializer is handled by the ls_start_*_fsm_t. This is not
@@ -88,16 +139,17 @@ struct ls_start_existing_fsm_t :
     ~ls_start_existing_fsm_t() {
     }
 
-    bool run(cond_t *to_signal) {
+    bool run(cond_t *to_signal, serializer_file_opener_t *file_opener) {
         // STATE A
         rassert(start_existing_state == state_start);
         rassert(ser->state == log_serializer_t::state_unstarted);
         ser->state = log_serializer_t::state_starting_up;
 
-        ser->dbfile = new direct_file_t(ser->db_path, file_t::mode_read | file_t::mode_write, ser->io_backender);
-        if (!ser->dbfile->exists()) {
-            crash("Database file \"%s\" does not exist.\n", ser->db_path);
+        scoped_ptr_t<file_t> dbfile;
+        if (!file_opener->open_serializer_file_existing(&dbfile)) {
+            crash("Database file \"%s\" could not be opened.  (It does not exist?)\n", file_opener->file_name().c_str());
         }
+        ser->dbfile = dbfile.release();
 
         start_existing_state = state_read_static_header;
         // STATE A above implies STATE B here
@@ -132,7 +184,13 @@ struct ls_start_existing_fsm_t :
         if (start_existing_state == state_find_metablock) {
             // STATE D
             ser->extent_manager = new extent_manager_t(ser->dbfile, &ser->static_config, &ser->dynamic_config, ser->stats.get());
-            ser->extent_manager->reserve_extent(0);   /* For static header */
+            {
+                // We never end up releasing the static header extent reference.  Nobody says we
+                // have to.
+                extent_reference_t extent_ref;
+                ser->extent_manager->reserve_extent(0, &extent_ref);   /* For static header */
+                UNUSED off64_t extent = extent_ref.release();
+            }
 
             ser->metablock_manager = new mb_manager_t(ser->extent_manager);
             ser->lba_index = new lba_list_t(ser->extent_manager);
@@ -242,7 +300,7 @@ private:
     DISABLE_COPYING(ls_start_existing_fsm_t);
 };
 
-log_serializer_t::log_serializer_t(dynamic_config_t _dynamic_config, io_backender_t *_io_backender, private_dynamic_config_t _private_config, perfmon_collection_t *_perfmon_collection)
+log_serializer_t::log_serializer_t(dynamic_config_t _dynamic_config, serializer_file_opener_t *file_opener, perfmon_collection_t *_perfmon_collection)
     : stats(new log_serializer_stats_t(_perfmon_collection)),  // can block in a perfmon_collection_t::add call.
       disk_stats_collection(),
       disk_stats_membership(_perfmon_collection, &disk_stats_collection, "disk"),  // can block in a perfmon_collection_t::add call.
@@ -250,23 +308,20 @@ log_serializer_t::log_serializer_t(dynamic_config_t _dynamic_config, io_backende
       expecting_no_more_tokens(false),
 #endif
       dynamic_config(_dynamic_config),
-      private_config(_private_config),
       shutdown_callback(NULL),
       state(state_unstarted),
-      db_path(private_config.db_filename.c_str()),
       dbfile(NULL),
       extent_manager(NULL),
       metablock_manager(NULL),
       lba_index(NULL),
       data_block_manager(NULL),
       last_write(NULL),
-      active_write_count(0),
-      io_backender(_io_backender) {
+      active_write_count(0) {
     // STATE A
     /* This is because the serializer is not completely converted to coroutines yet. */
     ls_start_existing_fsm_t *s = new ls_start_existing_fsm_t(this);
     cond_t cond;
-    if (!s->run(&cond)) cond.wait();
+    if (!s->run(&cond, file_opener)) cond.wait();
 }
 
 log_serializer_t::~log_serializer_t() {
@@ -279,8 +334,8 @@ log_serializer_t::~log_serializer_t() {
     rassert(active_write_count == 0);
 }
 
-void ls_check_existing(const char *filename, io_backender_t *io_backender, log_serializer_t::check_callback_t *cb) {
-    direct_file_t df(filename, file_t::mode_read, io_backender);
+void ls_check_existing(const char *filename, io_backender_t *backender, log_serializer_t::check_callback_t *cb) {
+    direct_file_t df(filename, direct_file_t::mode_read, backender);
     cb->on_serializer_check(static_header_check(&df));
 }
 
@@ -473,7 +528,7 @@ void log_serializer_t::index_write_finish(index_write_context_t *context, file_a
 
     /* Stop the extent manager transaction so another one can start, but don't commit it
     yet */
-    extent_manager->end_transaction(context->extent_txn);
+    extent_manager->end_transaction(&context->extent_txn);
 
     /* Get in line for the metablock manager */
     bool waiting_for_prev_write;
@@ -535,11 +590,7 @@ log_serializer_t::block_write(const void *buf, block_id_t block_id, file_account
     // TODO: Implement a duration sampler perfmon for this
     ++stats->pm_serializer_block_writes;
 
-    extent_transaction_t em_trx;
-    extent_manager->begin_transaction(&em_trx);
-    const off64_t offset = data_block_manager->write(buf, block_id, true, io_account, cb, true, false, &em_trx);
-    extent_manager->end_transaction(em_trx);
-    extent_manager->commit_transaction(&em_trx);
+    const off64_t offset = data_block_manager->write(buf, block_id, true, io_account, cb, true);
 
     return generate_block_token(offset);
 }

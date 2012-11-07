@@ -2,10 +2,6 @@
 #ifndef SERIALIZER_LOG_LOG_SERIALIZER_HPP_
 #define SERIALIZER_LOG_LOG_SERIALIZER_HPP_
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-
 #include <map>
 #include <string>
 #include <vector>
@@ -44,24 +40,42 @@ struct log_serializer_metablock_t {
 // TODO: This header data should maybe go to the cache
 typedef metablock_manager_t<log_serializer_metablock_t> mb_manager_t;
 
+// Used to open a file (with the given filepath) for the log serializer.
+class filepath_file_opener_t : public serializer_file_opener_t {
+public:
+    filepath_file_opener_t(const std::string &filepath, io_backender_t *backender);
+    ~filepath_file_opener_t();
+
+    std::string file_name() const;
+
+    MUST_USE bool open_serializer_file_create(scoped_ptr_t<file_t> *file_out);
+    MUST_USE bool open_serializer_file_existing(scoped_ptr_t<file_t> *file_out);
+#ifdef SEMANTIC_SERIALIZER_CHECK
+    MUST_USE bool open_semantic_checking_file(int *fd_out);
+#endif
+
+private:
+    MUST_USE bool open_serializer_file(int extra_flag, scoped_ptr_t<file_t> *file_out);
+
+    std::string filepath_;
+    io_backender_t *backender_;
+
+    DISABLE_COPYING(filepath_file_opener_t);
+};
+
+
 // Used internally
-struct ls_block_writer_t;
-struct ls_read_fsm_t;
-struct ls_start_new_fsm_t;
 struct ls_start_existing_fsm_t;
 
 class log_serializer_t :
 #ifndef SEMANTIC_SERIALIZER_CHECK
     public serializer_t,
 #else
-    public home_thread_mixin_debug_t,
+    public home_thread_mixin_t,
 #endif  // SEMANTIC_SERIALIZER_CHECK
     private data_block_manager_t::shutdown_callback_t,
     private lba_list_t::shutdown_callback_t
 {
-    friend struct ls_block_writer_t;
-    friend struct ls_read_fsm_t;
-    friend struct ls_start_new_fsm_t;
     friend struct ls_start_existing_fsm_t;
     friend class data_block_manager_t;
     friend class dbm_read_ahead_fsm_t;
@@ -93,10 +107,10 @@ public:
 public:
 
     /* Blocks. Does not check for an existing database--use check_existing for that. */
-    static void create(io_backender_t *backender, private_dynamic_config_t private_dynamic_config, static_config_t static_config);
+    static void create(serializer_file_opener_t *file_opener, static_config_t static_config);
 
     /* Blocks. */
-    log_serializer_t(dynamic_config_t dynamic_config, io_backender_t *io_backender, private_dynamic_config_t private_dynamic_config, perfmon_collection_t *perfmon_collection);
+    log_serializer_t(dynamic_config_t dynamic_config, serializer_file_opener_t *file_opener, perfmon_collection_t *perfmon_collection);
 
     /* Blocks. */
     virtual ~log_serializer_t();
@@ -106,7 +120,7 @@ public:
         virtual void on_serializer_check(bool is_existing) = 0;
         virtual ~check_callback_t() {}
     };
-    static void check_existing(const char *filename, io_backender_t *io_backend, check_callback_t *cb);
+    static void check_existing(const char *filename, io_backender_t *backender, check_callback_t *cb);
 
 public:
     /* Implementation of the serializer_t API */
@@ -206,7 +220,6 @@ private:
     std::vector<serializer_read_ahead_callback_t *> read_ahead_callbacks;
 
     const dynamic_config_t dynamic_config;
-    const private_dynamic_config_t private_config;
     static_config_t static_config;
 
     cond_t *shutdown_callback;
@@ -228,8 +241,7 @@ private:
         state_shut_down
     } state;
 
-    const char *const db_path;
-    direct_file_t *dbfile;
+    file_t *dbfile;
 
     extent_manager_t *extent_manager;
     mb_manager_t *metablock_manager;
@@ -245,8 +257,6 @@ private:
     int active_write_count;
 
     block_sequence_id_t latest_block_sequence_id;
-
-    io_backender_t *const io_backender;
 
     DISABLE_COPYING(log_serializer_t);
 };

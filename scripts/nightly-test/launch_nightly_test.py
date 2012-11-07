@@ -7,7 +7,7 @@
 #            [--title "<Title>"]
 #            [-- <flags for full_test_driver.py>]
 
-import sys, subprocess32, os, optparse
+import sys, subprocess, os, optparse
 
 if __name__ != "__main__":
     raise ImportError("It doesn't make any sense to import this as a module")
@@ -24,10 +24,10 @@ if options.test_host is None:
 def escape(arg):
     return "'" + arg.replace("'", "'\''") + "'"
 
-tar_proc = subprocess32.Popen(
+tar_proc = subprocess.Popen(
     ["tar", "--create", "--gzip", "--file=-", "-C", os.path.dirname(__file__), "--"] +
         ["full_test_driver.py", "remotely.py", "simple_linear_db.py", "renderer"],
-    stdout = subprocess32.PIPE
+    stdout = subprocess.PIPE
     )
 try:
     command = "SLURM_CONF=/home/teapot/slurm/slurm.conf ./full_test_driver.py %s >output.txt 2>&1" % " ".join(escape(x) for x in args)
@@ -37,7 +37,7 @@ try:
     curl_cmd_line += ["-F", "title=%s" % options.title]
     for emailee in options.emailees:
         curl_cmd_line += ["-F", "emailee=%s" % emailee]
-    subprocess32.check_call(curl_cmd_line, stdin = tar_proc.stdout)
+    subprocess.check_call(curl_cmd_line, stdin = tar_proc.stdout)
 finally:
     try:
         tar_proc.terminate()

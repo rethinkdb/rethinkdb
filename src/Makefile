@@ -36,6 +36,13 @@ VANILLA_PACKAGE_NAME?=rethinkdb-cache
 SERVER_EXEC_NAME?=rethinkdb-cache
 endif
 
+STATIC?=0
+
+ifeq ($(STATIC),1)
+VANILLA_PACKAGE_NAME+=-static
+STATICFORCE?=1
+endif
+
 TRIAL_PACKAGE_NAME:=$(VANILLA_PACKAGE_NAME)-trial
 PACKAGE_NAME:=$(VANILLA_PACKAGE_NAME)
 SERVER_UNIT_TEST_NAME:=$(SERVER_EXEC_NAME)-unittest
@@ -66,8 +73,6 @@ endif
 # Set SYMBOLS to 1 to enable symbols, even in release mode
 SYMBOLS?=0
 
-STATICFORCE?=0
-
 ifeq ($(GPERF),1)
 DEBUG=0
 NO_TCMALLOC:=1
@@ -87,7 +92,6 @@ UNIT_TESTS?=0
 AIOSUPPORT?=0
 BUILD_DRIVERS?=1
 LINT?=0
-STATICFORCE?=0
 
 # Set TRIAL to 1 to build a 21-day trial version. If you want a different number of days, set TIMEBOMB to the number of days instead.
 TRIAL?=0
@@ -446,9 +450,18 @@ IMAGES_EXTERNAL_DIR:=$(WEB_SOURCE_DIR)/static/images
 FAVICON:=$(WEB_SOURCE_DIR)/favicon.ico
 
 #### Version number handling
+FORCEVERSION?=0
+ifeq ($(FORCEVERSION),1)
+RETHINKDB_VERSION:=$(PVERSION)
+RETHINKDB_SHORT_VERSION:=$(shell echo $(RETHINKDB_VERSION) | sed 's/\([^.]\+\.[^.]\+\).*$$/\1/')
+# RETHINKDB_SHORT_VERSION:=$(shell ../scripts/gen-version.sh -s)
+PACKAGING_ALTERNATIVES_PRIORITY:=0
+else
 RETHINKDB_VERSION:=$(shell ../scripts/gen-version.sh)
-RETHINKDB_SHORT_VERSION:=$(shell ../scripts/gen-version.sh -s)
+RETHINKDB_SHORT_VERSION:=$(shell echo $(RETHINKDB_VERSION) | sed 's/\([^.]\+\.[^.]\+\).*$$/\1/')
+# RETHINKDB_SHORT_VERSION:=$(shell ../scripts/gen-version.sh -s)
 PACKAGING_ALTERNATIVES_PRIORITY:=$(shell expr $$(../scripts/gen-version.sh -r) / 100)
+endif
 
 # ifneq ($(TIMEBOMB),0)
 # RETHINKDB_VERSION:=$(RETHINKDB_VERSION)-trial
@@ -467,12 +480,12 @@ endif
 
 AUTOCHAIN?=0
 ifeq ($(AUTOCHAIN),1)
-ifeq ($(shell which lessc || true),"")
+ifeq ($(shell which lessc || true),)
 TC_LESSC_EXE:=$(BUILD_DIR)/toolchain/node_modules/less/bin/lessc	
 else
 TC_LESSC_EXE:=$(shell which lessc || true)
 endif
-ifeq ($(shell which coffee || true),"")
+ifeq ($(shell which coffee || true),)
 TC_COFFEE_EXE:=$(BUILD_DIR)/toolchain/node_modules/less/bin/coffee	
 else
 TC_COFFEE_EXE:=$(shell which coffee || true)
@@ -547,6 +560,8 @@ language_drivers_dir:=$(share_dir)/drivers
 
 ASSET_SCRIPTS:=$(ASSETS_DIR)/scripts/rdb_migrate
 INIT_SCRIPTS:=$(ASSETS_DIR)/init/rethinkdb
+
+UBRELEASE?=precise
 
 CXXFLAGS+=-DMIGRATION_SCRIPT_LOCATION=\"$(scripts_dir)/rdb_migrate\"
 
@@ -630,7 +645,7 @@ DebianV8Version:=$(shell apt-cache show libv8-dev | grep '^Version:' | sed -e 's
 
 
 build-deb-src-control:
-	$(QUIET) cd .. ; if [ -e debian ] ; then rm -rf debian ; fi ; cp -pRP debian.template debian ; ./scripts/gen-changelog.sh ;
+	$(QUIET) cd .. ; if [ -e debian ] ; then rm -rf debian ; fi ; cp -pRP debian.template debian ; env UBRELEASE=$(UBRELEASE) PACKAGE_NAME=$(PACKAGE_NAME) VERSIONED_PACKAGE_NAME=$(VERSIONED_PACKAGE_NAME) VANILLA_PACKAGE_NAME=$(VANILLA_PACKAGE_NAME) PACKAGE_VERSION=$(RETHINKDB_VERSION_DEB) ./scripts/gen-changelog.sh ;
 # Replace version/size fields in the deb control file
 	$(QUIET) disk_size=0;	\
 		m4																													\
@@ -1124,7 +1139,7 @@ endif
 
 $(TC_LESSC_EXE): $(BUILD_DIR)
 ifeq ($(AUTOCHAIN),1)
-ifeq ($(shell npm list --global --parseable | grep '\/less$$'),"")
+ifeq ($(shell npm list --global --parseable | grep '\/less$$'),)
 	if [ -d $(BUILD_DIR) ] && [ ! -e $(BUILD_DIR)/toolchain ] ; then mkdir -p $(BUILD_DIR)/toolchain ; fi ;
 	cd $(BUILD_DIR)/toolchain ; npm install less ;
 endif
@@ -1132,7 +1147,7 @@ endif
 
 $(TC_COFFEE_EXE): $(BUILD_DIR)
 ifeq ($(AUTOCHAIN),1)
-ifeq ($(shell npm list --global --parseable | grep '\/coffee-script$$'),"")
+ifeq ($(shell npm list --global --parseable | grep '\/coffee-script$$'),)
 	if [ -d $(BUILD_DIR) ] && [ ! -e $(BUILD_DIR)/toolchain ] ; then mkdir -p $(BUILD_DIR)/toolchain ; fi ;
 	cd $(BUILD_DIR)/toolchain ; npm install coffee-script ;
 endif

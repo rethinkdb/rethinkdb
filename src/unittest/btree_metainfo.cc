@@ -4,7 +4,7 @@
 #include "arch/io/disk.hpp"
 #include "btree/operations.hpp"
 #include "mock/unittest_utils.hpp"
-#include "serializer/log/log_serializer.hpp"
+#include "serializer/config.hpp"
 
 namespace unittest {
 
@@ -44,15 +44,14 @@ void run_metainfo_test() {
     scoped_ptr_t<io_backender_t> io_backender;
     make_io_backender(aio_default, &io_backender);
 
+    filepath_file_opener_t file_opener(temp_file.name(), io_backender.get());
     standard_serializer_t::create(
-        io_backender.get(),
-        standard_serializer_t::private_dynamic_config_t(temp_file.name()),
+        &file_opener,
         standard_serializer_t::static_config_t());
 
     standard_serializer_t serializer(
         standard_serializer_t::dynamic_config_t(),
-        io_backender.get(),
-        standard_serializer_t::private_dynamic_config_t(temp_file.name()),
+        &file_opener,
         &get_global_perfmon_collection());
 
     mirrored_cache_static_config_t cache_static_config;

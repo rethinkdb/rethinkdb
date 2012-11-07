@@ -36,13 +36,13 @@ class hash_region_t {
 public:
     // Produces the empty region.
     hash_region_t()
-	: beg(0), end(0), inner(inner_region_t::empty()) { }
+        : beg(0), end(0), inner(inner_region_t::empty()) { }
 
     // For use with non-equal beg and end, non-empty inner.
     hash_region_t(uint64_t _beg, uint64_t _end, const inner_region_t &_inner)
-	: beg(_beg), end(_end), inner(_inner) {
-	guarantee(beg < end);
-	guarantee(!region_is_empty(inner));
+        : beg(_beg), end(_end), inner(_inner) {
+        guarantee(beg < end);
+        guarantee(!region_is_empty(inner));
     }
 
     // For use with a non-empty inner, I think.
@@ -75,29 +75,29 @@ bool region_is_empty(const hash_region_t<inner_region_t> &r) {
 
 template <class inner_region_t>
 bool region_is_superset(const hash_region_t<inner_region_t> &potential_superset,
-			const hash_region_t<inner_region_t> &potential_subset) {
+                        const hash_region_t<inner_region_t> &potential_subset) {
     return region_is_empty(potential_subset)
-	|| (potential_superset.beg <= potential_subset.beg
-	    && potential_superset.end >= potential_subset.end
-	    && region_is_superset(potential_superset.inner, potential_subset.inner));
+        || (potential_superset.beg <= potential_subset.beg
+            && potential_superset.end >= potential_subset.end
+            && region_is_superset(potential_superset.inner, potential_subset.inner));
 }
 
 template <class inner_region_t>
 hash_region_t<inner_region_t> region_intersection(const hash_region_t<inner_region_t> &r1,
-						  const hash_region_t<inner_region_t> &r2) {
+                                                  const hash_region_t<inner_region_t> &r2) {
     if (r1.end <= r2.beg || r2.end <= r1.beg) {
-	return hash_region_t<inner_region_t>();
+        return hash_region_t<inner_region_t>();
     }
 
     inner_region_t inner_intersection = region_intersection(r1.inner, r2.inner);
 
     if (region_is_empty(inner_intersection)) {
-	return hash_region_t<inner_region_t>();
+        return hash_region_t<inner_region_t>();
     }
 
     return hash_region_t<inner_region_t>(std::max(r1.beg, r2.beg),
-					 std::min(r1.end, r2.end),
-					 inner_intersection);
+                                         std::min(r1.end, r2.end),
+                                         inner_intersection);
 }
 
 template <class inner_region_t>
@@ -105,9 +105,9 @@ bool all_have_same_hash_interval(const std::vector< hash_region_t<inner_region_t
     rassert(!vec.empty());
 
     for (int i = 1, e = vec.size(); i < e; ++i) {
-	if (vec[i].beg != vec[0].beg || vec[i].end != vec[0].end) {
-	    return false;
-	}
+        if (vec[i].beg != vec[0].beg || vec[i].end != vec[0].end) {
+            return false;
+        }
     }
     return true;
 }
@@ -116,21 +116,21 @@ template <class inner_region_t>
 bool all_have_same_inner(const std::vector< hash_region_t<inner_region_t> > &vec) {
     rassert(!vec.empty());
     for (int i = 1, e = vec.size(); i < e; ++i) {
-	if (vec[0].inner != vec[i].inner) {
-	    return false;
-	}
+        if (vec[0].inner != vec[i].inner) {
+            return false;
+        }
     }
     return true;
 }
 
 MUST_USE region_join_result_t region_join(const std::vector< hash_region_t<key_range_t> > &vec,
-					  hash_region_t<key_range_t> *out);
+                                          hash_region_t<key_range_t> *out);
 
 
 template <class inner_region_t>
 bool region_overlaps(const hash_region_t<inner_region_t> &r1, const hash_region_t<inner_region_t> &r2) {
     return r1.beg < r2.end && r2.beg < r1.end
-	&& region_overlaps(r1.inner, r2.inner);
+        && region_overlaps(r1.inner, r2.inner);
 }
 
 template <class inner_region_t>
@@ -212,13 +212,13 @@ std::vector< hash_region_t<inner_region_t> > region_subtract_many(const hash_reg
 
 template <class inner_region_t>
 bool operator==(const hash_region_t<inner_region_t> &r1,
-		const hash_region_t<inner_region_t> &r2) {
+                const hash_region_t<inner_region_t> &r2) {
     return r1.beg == r2.beg && r1.end == r2.end && r1.inner == r2.inner;
 }
 
 template <class inner_region_t>
 bool operator!=(const hash_region_t<inner_region_t> &r1,
-		const hash_region_t<inner_region_t> &r2) {
+                const hash_region_t<inner_region_t> &r2) {
     return !(r1 == r2);
 }
 

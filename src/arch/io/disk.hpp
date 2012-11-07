@@ -75,27 +75,8 @@ public:
 
 void make_io_backender(io_backend_t backend, scoped_ptr_t<io_backender_t> *out);
 
-class linux_file_account_t {
+class linux_file_t : public file_t {
 public:
-    linux_file_account_t(linux_file_t *f, int p, int outstanding_requests_limit = UNLIMITED_OUTSTANDING_REQUESTS);
-    ~linux_file_account_t();
-    void *get_account() { return account; }
-
-private:
-    friend class linux_file_t;
-    linux_file_t *parent;
-    /* account is internally a pointer to a accounting_diskmgr_t::account_t object. It has to be
-       a void* because accounting_diskmgr_t is a template, so its actual type depends on what
-       IO backend is chosen. */
-    // Maybe accounting_diskmgr_t shouldn't be a templated class then.
-
-    void *account;
-};
-
-class linux_file_t {
-public:
-    friend class linux_file_account_t;
-
     enum mode_t {
         mode_read = 1 << 0,
         mode_write = 1 << 1,
@@ -110,13 +91,21 @@ public:
     void set_size(size_t size);
     void set_size_at_least(size_t size);
 
-    void read_async(size_t offset, size_t length, void *buf, linux_file_account_t *account, linux_iocallback_t *cb);
-    void write_async(size_t offset, size_t length, const void *buf, linux_file_account_t *account, linux_iocallback_t *cb);
+    void read_async(size_t offset, size_t length, void *buf, file_account_t *account, linux_iocallback_t *cb);
+    void write_async(size_t offset, size_t length, const void *buf, file_account_t *account, linux_iocallback_t *cb);
 
     void read_blocking(size_t offset, size_t length, void *buf);
     void write_blocking(size_t offset, size_t length, const void *buf);
 
     bool coop_lock_and_check();
+
+    void *create_account(int priority, int outstanding_requests_limit) {
+        return diskmgr->create_account(priority, outstanding_requests_limit);
+    }
+
+    void destroy_account(void *account) {
+        diskmgr->destroy_account(account);
+    }
 
     ~linux_file_t();
 
@@ -125,13 +114,12 @@ private:
     bool is_block;
     bool file_exists;
     uint64_t file_size;
-    void verify(size_t offset, size_t length, const void *buf);
 
     /* In a scoped pointer because it's polymorphic */
     linux_disk_manager_t *diskmgr;
 
     /* In a scoped_ptr so we can initialize it after "diskmgr" */
-    scoped_ptr_t<linux_file_account_t> default_account;
+    scoped_ptr_t<file_account_t> default_account;
 
     DISABLE_COPYING(linux_file_t);
 };
@@ -156,6 +144,10 @@ public:
 private:
     DISABLE_COPYING(linux_nondirect_file_t);
 };
+
+// Runs some assertios to make sure that we're aligned to DEVICE_BLOCK_SIZE, not overrunning the
+// file size, and that buf is not null.
+void verify_aligned_file_access(size_t file_size, size_t offset, size_t length, const void *buf);
 
 #endif // ARCH_IO_DISK_HPP_
 
