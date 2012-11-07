@@ -91,13 +91,6 @@ module 'DataExplorerView', ->
                 for suggestion in @suggestions[included]
                     @suggestions[container].push suggestion
 
-            console.log 'map state'
-            console.log @map_state
-            console.log 'descriptions'
-            console.log @descriptions
-            console.log 'suggestions'
-            console.log @suggestions
-
         # Define the height of a line (used for a line is too long)
         line_height: 13
         #TODO bind suggestions to keyup so we don't have an extra line when at the end of a line without a next char
