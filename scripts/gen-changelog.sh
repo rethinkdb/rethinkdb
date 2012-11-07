@@ -16,5 +16,5 @@ echo "$PRODUCTNAME"" (""$PRODUCTVERSION"") ""$UBRELEASE""; urgency=low" > "$CHAN
 echo "" >> "$CHANGELOGFILE" ;
 echo "  * Release." >> "$CHANGELOGFILE" ;
 echo "" >> "$CHANGELOGFILE" ;
-echo " -- ""$AGENTNAME"" <""$AGENTMAIL""> ""$TIMESTAMPFULL" >> "$CHANGELOGFILE" ;
+echo " -- ""$AGENTNAME"" <""$AGENTMAIL"">  ""$TIMESTAMPFULL" >> "$CHANGELOGFILE" ;
 

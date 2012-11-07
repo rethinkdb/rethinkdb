@@ -110,6 +110,7 @@ ifeq ($(COMPILER), INTEL)
 BUILD_DIR:=$(BUILD_DIR)_intel
 endif
 endif
+DESTDIR?=/tmp/
 
 PACKAGES_DIR:=$(BUILD_ROOT_DIR)/packages
 RPM_PACKAGE_DIR:=$(PACKAGES_DIR)/rpm
@@ -440,6 +441,7 @@ LESS_SOURCES:=$(shell find $(WEB_SOURCE_DIR)/static/less -name '*.less')
 LESS_MAIN:=$(WEB_SOURCE_DIR)/static/less/styles.less
 CLUSTER_HTML:=$(WEB_SOURCE_DIR)/templates/cluster.html
 JS_EXTERNAL_DIR:=$(WEB_SOURCE_DIR)/static/js
+FONTS_EXTERNAL_DIR:=$(WEB_SOURCE_DIR)/static/fonts
 IMAGES_EXTERNAL_DIR:=$(WEB_SOURCE_DIR)/static/images
 FAVICON:=$(WEB_SOURCE_DIR)/favicon.ico
 
@@ -460,7 +462,7 @@ ifeq ($(NAMEVERSIONED),1)
 SERVER_EXEC_NAME_VERSIONED:=$(SERVER_EXEC_NAME)-$(RETHINKDB_SHORT_VERSION)
 else
 # update-alternatives breaks if we ditch the distinguishing mark .
-SERVER_EXEC_NAME_VERSIONED:=$(SERVER_EXEC_NAME)-$(RETHINKDB_SHORT_VERSION)
+SERVER_EXEC_NAME_VERSIONED:=$(SERVER_EXEC_NAME)
 endif
 
 AUTOCHAIN?=0
@@ -628,7 +630,7 @@ DebianV8Version:=$(shell apt-cache show libv8-dev | grep '^Version:' | sed -e 's
 
 
 build-deb-src-control:
-	$(QUIET) cd .. ; cp -pRP debian.template debian ; ./scripts/gen-changelog.sh ;
+	$(QUIET) cd .. ; if [ -e debian ] ; then rm -rf debian ; fi ; cp -pRP debian.template debian ; ./scripts/gen-changelog.sh ;
 # Replace version/size fields in the deb control file
 	$(QUIET) disk_size=0;	\
 		m4																													\
@@ -642,7 +644,23 @@ build-deb-src-control:
 				-D "LEGACY_LINUX=$(LEGACY_LINUX)"												\
 				-D "TRIAL=$(TRIAL)"																			\
 				-D "DISK_SIZE=$${disk_size}"														\
+				-D "SOURCEBUILD=1" \
 			../packaging/$(DEBIAN_PKG_DIR)/control > ../debian/control
+# Copy {pre,post}{inst,rm} scripts
+	$(QUIET) for script in preinst postinst prerm postrm; do		                  		\
+			m4 																																						\
+					-D "BIN_DIR=$(bin_dir)" 																									\
+					-D "MAN1_DIR=$(man1_dir)" 																								\
+					-D "BASH_COMPLETION_DIR=$(bash_completion_dir)" 													\
+					-D "INTERNAL_BASH_COMPLETION_DIR=$(internal_bash_completion_dir)" 				\
+					-D "SERVER_EXEC_NAME=$(SERVER_EXEC_NAME)" 																\
+					-D "SERVER_EXEC_NAME_VERSIONED=$(SERVER_EXEC_NAME_VERSIONED)" 						\
+					-D "UPDATE_ALTERNATIVES=$(NAMEVERSIONED)" 													\
+					-D "PRIORITY=$(PACKAGING_ALTERNATIVES_PRIORITY)" 													\
+				../packaging/$(DEBIAN_PKG_DIR)/$${script} > ../debian/$${script}; \
+			chmod 0755 ../debian/$${script};																		\
+		done
+
 
 # Copy the license file.
 	cat ../packaging/$(DEBIAN_PKG_DIR)/copyright > ../debian/copyright
@@ -691,6 +709,7 @@ build-deb: all prepare_deb_package_dirs
 				-D "LEGACY_LINUX=$(LEGACY_LINUX)"												\
 				-D "TRIAL=$(TRIAL)"																			\
 				-D "DISK_SIZE=$${disk_size}"														\
+				-D "SOURCEBUILD=0" \
 			../packaging/$(DEBIAN_PKG_DIR)/control >$(DEB_CONTROL_ROOT)/control
 
 # Copy the license file.
@@ -786,7 +805,7 @@ rpm-suse10:
 	$(QUIET) $(MAKE) PACKAGE_FOR_SUSE_10=1 rpm
 
 build-deb-src-control:
-	$(QUIET) $(MAKE) $(MFLAGS) PACKAGING=1 build-deb-src-control
+	$(QUIET) $(MAKE) PACKAGING=1 build-deb-src-control
 
 endif
 
@@ -841,9 +860,9 @@ oprof-report:
 
 drivers:
 ifeq ($(BUILD_DRIVERS), 1)
-	$(QUIET) cd ../drivers ; $(MAKE) $(MFLAGS) ;
+	$(QUIET) cd ../drivers ; $(MAKE) ;
 else
-	$(QUIET) cd ../drivers/javascript ; $(MAKE) $(MFLAGS) ;
+	$(QUIET) cd ../drivers/javascript ; $(MAKE) ;
 endif #BUILD_DRIVERS
 
 
@@ -857,7 +876,7 @@ rpc/mailbox/typed.hpp: ../scripts/generate_rpc_templates.py
 rpc/semilattice/joins/macros.hpp rpc/serialize_macros.hpp rpc/mailbox/typed.hpp:
 	$< > $@
 
-web-assets: $(WEB_ASSETS_BUILD_DIR)/cluster-min.js $(WEB_ASSETS_BUILD_DIR)/cluster.css $(WEB_ASSETS_BUILD_DIR)/index.html $(WEB_ASSETS_BUILD_DIR)/js $(WEB_ASSETS_BUILD_DIR)/images $(WEB_ASSETS_BUILD_DIR)/favicon.ico $(WEB_ASSETS_BUILD_DIR)/js/rethinkdb.js
+web-assets: $(WEB_ASSETS_BUILD_DIR)/cluster-min.js $(WEB_ASSETS_BUILD_DIR)/cluster.css $(WEB_ASSETS_BUILD_DIR)/index.html $(WEB_ASSETS_BUILD_DIR)/js $(WEB_ASSETS_BUILD_DIR)/fonts $(WEB_ASSETS_BUILD_DIR)/images $(WEB_ASSETS_BUILD_DIR)/favicon.ico $(WEB_ASSETS_BUILD_DIR)/js/rethinkdb.js
 
 $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee: $(COFFEE_SOURCES)
 	$(QUIET) mkdir -p $(WEB_ASSETS_OBJ_DIR)
@@ -894,6 +913,13 @@ ifeq ($(VERBOSE),0)
 	@echo "    CP $(JS_EXTERNAL_DIR) -> $(WEB_ASSETS_BUILD_DIR)"
 endif
 	$(QUIET) cp -rP $(JS_EXTERNAL_DIR) $(WEB_ASSETS_BUILD_DIR)
+
+$(WEB_ASSETS_BUILD_DIR)/fonts:
+	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
+ifeq ($(VERBOSE),0)
+	@echo "    CP $(FONTS_EXTERNAL_DIR) -> $(WEB_ASSETS_BUILD_DIR)"
+endif
+	$(QUIET) cp -rP $(FONTS_EXTERNAL_DIR) $(WEB_ASSETS_BUILD_DIR)
 
 $(WEB_ASSETS_BUILD_DIR)/images:
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
@@ -1048,7 +1074,7 @@ endif
 	$(QUIET) rm -rf $(BUILD_ROOT_DIR)
 
 clean-drivers:
-	$(QUIET) cd ../drivers ; $(MAKE) $(MFLAGS) clean ;
+	$(QUIET) cd ../drivers ; $(MAKE) clean ;
 
 # Directories
 $(BUILD_DIR):
