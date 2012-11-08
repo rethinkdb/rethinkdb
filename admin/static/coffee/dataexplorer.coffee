@@ -46,22 +46,11 @@ module 'DataExplorerView', ->
         descriptions: {}
         # Suggestions[state] = function for this state
         suggestions: {}
-        # Relations between type (a table is a selection, a selection is a stream etc.) 
-        # Note: order matters
-        # TODO Add runnable
-        relations: [
-            {
-                container: 'selection'
-                included: 'sequence'
-            },
-            {
-                container: 'table' # A table is also a selection and a sequence
-                included: 'selection'
-            }
-        ]
     
         set_docs: (data) =>
-            for group in data
+            # Create the suggestions table
+            suggestions = {}
+            for group in data['sections']
                 for command in group['commands']
                     tag = command['langs']['js']['name']
                     if tag is '()'
@@ -85,18 +74,30 @@ module 'DataExplorerView', ->
                     parent = command['parent']
                     if parent is null
                         parent = ''
-                    if not @suggestions[parent]?
-                        @suggestions[parent] = []
-                    @suggestions[parent].push full_tag #+something
+                    if not suggestions[parent]?
+                        suggestions[parent] = []
+                    suggestions[parent].push full_tag #+something
 
                     @map_state[tag] = command['returns']
 
-            for relation in @relations
-                container = relation.container
-                included = relation.included
-                # Extends @suggestions[container] with @suggestions[included]
-                for suggestion in @suggestions[included]
-                    @suggestions[container].push suggestion
+            # Deep copy of suggestions
+            @suggestions = _.extend @suggestions, suggestions
+            relations = data['types']
+
+            # For each element, we add its parent's functions to it suggestions
+            for element of relations
+                if not @suggestions[element]?
+                    @suggestions[element] = []
+                parent = relations[element]['parent']
+                while parent?
+                    if not suggestions[parent]?
+                        break
+                    for suggestion in suggestions[parent]
+                        @suggestions[element].push suggestion
+                    parent = relations[parent]['parent']
+
+            for state of @suggestions
+                @suggestions[state].sort()
 
         # Define the height of a line (used for a line is too long)
         line_height: 13
