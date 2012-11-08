@@ -138,7 +138,12 @@ private:
     }
 
     void relinquish_tickets_blocking(int count, UNUSED auto_drainer_t::lock_t keepalive) {
-        send(mailbox_manager, intro_promise.wait().relinquish_tickets_addr, count);
+        try {
+            wait_interruptible(intro_promise.get_ready_signal(), keepalive.get_drain_signal());
+            send(mailbox_manager, intro_promise.wait().relinquish_tickets_addr, count);
+        } catch (interrupted_exc_t &ex) {
+            // Abandon all tickets, ship is going down!
+        }
     }
 
     mailbox_manager_t *mailbox_manager;
