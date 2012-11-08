@@ -69,7 +69,7 @@ struct config_t {
     const char *log_file, *tps_log_file;
     log_serializer_static_config_t ser_static_config;
     log_serializer_dynamic_config_t ser_dynamic_config;
-    log_serializer_private_dynamic_config_t ser_private_dynamic_config;
+    std::string db_filename;
     int duration;   /* Seconds */
     unsigned concurrent_txns;
     unsigned inserts_per_txn, updates_per_txn;
@@ -130,7 +130,7 @@ struct tester_t :
         }
 
         fprintf(stderr, "Creating a database...\n");
-        filepath_file_opener_t file_opener(config->ser_private_dynamic_config.db_filename, io_backender.get());
+        filepath_file_opener_t file_opener(config->db_filename, io_backender.get());
         log_serializer_t::create(&file_opener,
                                  config->ser_static_config);
 
@@ -248,10 +248,7 @@ const char *read_arg(int &argc, char **&argv) {
 
 void parse_config(int argc, char *argv[], config_t *config) {
     
-    config->ser_private_dynamic_config.db_filename = "rethinkdb_data";
-#ifdef SEMANTIC_SERIALIZER_CHECK
-    config->ser_private_dynamic_config.semantic_filename = "rethinkdb_data.semantic";
-#endif
+    config->db_filename = "rethinkdb_data";
     config->log_file = NULL;
     config->tps_log_file = NULL;
     
@@ -269,10 +266,7 @@ void parse_config(int argc, char *argv[], config_t *config) {
         const char *flag = read_arg(argc, argv);
         
         if (strcmp(flag, "-f") == 0) {
-            config->ser_private_dynamic_config.db_filename = read_arg(argc, argv);
-#ifdef SEMANTIC_SERIALIZER_CHECK
-            config->ser_private_dynamic_config.semantic_filename = config->ser_private_dynamic_config.db_filename + ".semantic";
-#endif
+            config->db_filename = read_arg(argc, argv);
         } else if (strcmp(flag, "--log") == 0) {
             config->log_file = read_arg(argc, argv);
         } else if (strcmp(flag, "--tps-log") == 0) {
