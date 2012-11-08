@@ -9,7 +9,7 @@ install: all
 	cd src ; $(MAKE) DEBUG=$(DEBUG) PACKAGING=1 install ;
 
 clean:
-	rm -rf build
+	rm -rf build support
 
 distclean: clean
 
@@ -18,6 +18,7 @@ build-deb-src-control:
 
 build-deb-src: build-deb-src-control
 #	$(shell scripts/gen-version.sh > VERSION)
+	cd src ; $(MAKE) DEBUG=$(DEBUG) PACKAGING=1 build-deb-support ;
 	yes | debuild -S -sa ;
 
 deb:

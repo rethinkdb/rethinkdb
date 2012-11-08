@@ -135,8 +135,8 @@ CXXPATHDS:=
 CPATHDS:=
 ifeq ($(V8CHAIN),1)
 LDPATHDS+= -L ../external/v8/out/native/obj.target/tools/gyp
-CXXPATHDS+= -I ../external/v8/include
-CPATHDS+= -I ../external/v8/include
+CXXPATHDS+= -isystem ../external/v8/include
+CPATHDS+= -isystem ../external/v8/include
 endif
 
 ifeq ($(COMPILER),CLANG)
@@ -163,6 +163,10 @@ STATIC_LIBGCC=1
 endif
 LDFLAGS+=$(LDPATHDS) -pthread -lrt -lv8
 endif
+endif
+
+ifeq ($(V8CHAIN),1)
+LDFLAGS+= -lv8_base -lv8_snapshot
 endif
 
 ifeq ($(LIBCRYPTO),1)
@@ -486,15 +490,18 @@ else
 SERVER_EXEC_NAME_VERSIONED:=$(SERVER_EXEC_NAME)
 endif
 
+SUPPORT_DIR:=../support
 AUTOCHAIN?=0
+TC_LESSC_INT_EXE:=$(SUPPORT_DIR)/toolchain/node_modules/less/bin/lessc
+TC_COFFEE_INT_EXE:=$(SUPPORT_DIR)/toolchain/node_modules/coffee/bin/coffee
 ifeq ($(AUTOCHAIN),1)
 ifeq ($(shell which lessc || true),)
-TC_LESSC_EXE:=$(BUILD_DIR)/toolchain/node_modules/less/bin/lessc	
+TC_LESSC_EXE:=$(TC_LESSC_INT_EXE)	
 else
 TC_LESSC_EXE:=$(shell which lessc || true)
 endif
 ifeq ($(shell which coffee || true),)
-TC_COFFEE_EXE:=$(BUILD_DIR)/toolchain/node_modules/coffee/bin/coffee	
+TC_COFFEE_EXE:=$(TC_COFFEE_INT_EXE)
 else
 TC_COFFEE_EXE:=$(shell which coffee || true)
 endif
@@ -651,6 +658,7 @@ install-deb: install
 
 DebianV8Version:=$(shell apt-cache show libv8-dev | grep '^Version:' | sed -e 's/^Version: \\([0-9]*\\(\\.[0-9]*\\)*\\).*$$/\\1/g' || true ; )
 
+build-deb-support: $(TC_LESSC_INT_EXE) $(TC_COFFEE_INT_EXE)
 
 build-deb-src-control:
 	$(QUIET) cd .. ; if [ -e debian ] ; then rm -rf debian ; fi ; cp -pRP debian.template debian ; env UBRELEASE=$(UBRELEASE) PACKAGE_NAME=$(PACKAGE_NAME) VERSIONED_PACKAGE_NAME=$(VERSIONED_PACKAGE_NAME) VANILLA_PACKAGE_NAME=$(VANILLA_PACKAGE_NAME) PACKAGE_VERSION=$(RETHINKDB_VERSION_DEB) ./scripts/gen-changelog.sh ;
@@ -1145,19 +1153,22 @@ endif
 
 # Note that this assumes that its locations match those earlier in the Makefile. If you change TC_LESSC_EXE, you probably ought to change these as well .
 
-$(TC_LESSC_EXE): $(BUILD_DIR)
+$(TC_LESSC_INT_EXE): $(SUPPORT_DIR)
 ifeq ($(AUTOCHAIN),1)
 ifeq ($(shell npm list --global --parseable | grep '\/less$$'),)
-	if [ -d $(BUILD_DIR) ] && [ ! -e $(BUILD_DIR)/toolchain ] ; then mkdir -p $(BUILD_DIR)/toolchain ; fi ;
-	cd $(BUILD_DIR)/toolchain ; npm install less ;
+	if [ -d $(SUPPORT_DIR) ] && [ ! -e $(SUPPORT_DIR)/toolchain ] ; then mkdir -p $(SUPPORT_DIR)/toolchain ; fi ;
+	cd $(SUPPORT_DIR)/toolchain ; npm install less ;
 endif
 endif
 
-$(TC_COFFEE_EXE): $(BUILD_DIR)
+$(TC_COFFEE_INT_EXE): $(SUPPORT_DIR)
 ifeq ($(AUTOCHAIN),1)
 ifeq ($(shell npm list --global --parseable | grep '\/coffee-script$$'),)
-	if [ -d $(BUILD_DIR) ] && [ ! -e $(BUILD_DIR)/toolchain ] ; then mkdir -p $(BUILD_DIR)/toolchain ; fi ;
-	cd $(BUILD_DIR)/toolchain ; npm install coffee-script ;
+	if [ -d $(SUPPORT_DIR) ] && [ ! -e $(SUPPORT_DIR)/toolchain ] ; then mkdir -p $(SUPPORT_DIR)/toolchain ; fi ;
+	cd $(SUPPORT_DIR)/toolchain ; npm install coffee-script ;
 endif
 endif
+
+$(SUPPORT_DIR):
+	mkdir -p $(SUPPORT_DIR) ;
 
