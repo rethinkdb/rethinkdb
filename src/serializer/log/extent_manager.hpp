@@ -23,28 +23,86 @@ class extent_zone_t;
 
 struct log_serializer_stats_t;
 
-class extent_transaction_t {
+// A reference to an extent in the extent manager.  An extent may not be freed until all of the
+// references go away (unless the server is shutting down).
+class extent_reference_t {
 public:
-    friend class extent_manager_t;
-    extent_transaction_t() : active_(false) { }
-    ~extent_transaction_t() {
-        rassert(!active_);
+    extent_reference_t() : extent_offset_(-1) { }
+    ~extent_reference_t() { guarantee(extent_offset_ == -1); }
+
+    void init(off64_t offset) {
+        guarantee(extent_offset_ == -1);
+        extent_offset_ = offset;
     }
 
-    void init() { active_ = true; }
-    void reset() {
-        free_queue_.clear();
-        active_ = false;
+    off64_t offset() {
+        guarantee(extent_offset_ != -1);
+        return extent_offset_;
     }
 
-    std::deque<off64_t> &free_queue() {
-        rassert(active_);
-        return free_queue_;
+    MUST_USE off64_t release() {
+        guarantee(extent_offset_ != -1);
+        off64_t ret = extent_offset_;
+        extent_offset_ = -1;
+        return ret;
     }
 
 private:
-    bool active_;
-    std::deque<off64_t> free_queue_;
+    off64_t extent_offset_;
+    DISABLE_COPYING(extent_reference_t);
+};
+
+// extent_reference_t is noncopyable and this is C++03 so we can't nonchalantly use a standard
+// collection for them.  So we have extent_reference_set_t to safely store sets of extent
+// references without violating RAII rules.
+class extent_reference_set_t {
+public:
+    extent_reference_set_t() { }
+    ~extent_reference_set_t() { guarantee(extent_offsets_.empty()); }
+
+    void move_extent_reference(extent_reference_t *ref) {
+        extent_offsets_.push_back(ref->release());
+    }
+
+    void reset(std::deque<off64_t> *extents_out) {
+        guarantee(extents_out->empty());
+        extents_out->swap(extent_offsets_);
+    }
+
+private:
+    std::deque<off64_t> extent_offsets_;
+    DISABLE_COPYING(extent_reference_set_t);
+};
+
+class extent_transaction_t {
+public:
+    friend class extent_manager_t;
+    extent_transaction_t() : state_(uninitialized) { }
+    ~extent_transaction_t() {
+        rassert(state_ == committed);
+    }
+
+    void init() {
+        guarantee(state_ == uninitialized);
+        state_ = begun;
+    }
+    void push_extent(extent_reference_t *extent_ref) {
+        guarantee(state_ == begun);
+        extent_ref_set_.move_extent_reference(extent_ref);
+    }
+    void mark_end() {
+        guarantee(state_ == begun);
+        state_ = ended;
+    }
+    void reset(std::deque<off64_t> *extents_out) {
+        guarantee(state_ == ended);
+        extent_ref_set_.reset(extents_out);
+        state_ = committed;
+    }
+
+private:
+    enum { uninitialized, begun, ended, committed } state_;
+    extent_reference_set_t extent_ref_set_;
 
     DISABLE_COPYING(extent_transaction_t);
 };
@@ -55,13 +113,13 @@ public:
         int64_t padding;
     };
 
-    extent_manager_t(direct_file_t *file, const log_serializer_on_disk_static_config_t *static_config, const log_serializer_dynamic_config_t *dynamic_config, log_serializer_stats_t *);
+    extent_manager_t(file_t *file, const log_serializer_on_disk_static_config_t *static_config, const log_serializer_dynamic_config_t *dynamic_config, log_serializer_stats_t *);
     ~extent_manager_t();
 
     /* When we load a database, we use reserve_extent() to inform the extent manager
     which extents were already in use */
 
-    void reserve_extent(off64_t extent);
+    void reserve_extent(off64_t extent, extent_reference_t *extent_ref_out);
 
     static void prepare_initial_metablock(metablock_mixin_t *mb);
     void start_existing(metablock_mixin_t *last_metablock);
@@ -77,10 +135,13 @@ public:
     has been written. This guarantees that we will not overwrite extents that the
     most recent metablock points to. */
 
+    void copy_extent_reference(extent_reference_t *extent_ref, extent_reference_t *extent_ref_out);
+
     void begin_transaction(extent_transaction_t *out);
-    off64_t gen_extent(extent_transaction_t *txn);
-    void release_extent(off64_t extent, extent_transaction_t *txn);
-    void end_transaction(const extent_transaction_t &t);
+    void gen_extent(extent_reference_t *extent_ref_out);
+    void release_extent_into_transaction(extent_reference_t *extent_ref, extent_transaction_t *txn);
+    void release_extent(extent_reference_t *extent_ref);
+    void end_transaction(extent_transaction_t *t);
     void commit_transaction(extent_transaction_t *t);
 
     /* Number of extents that have been released but not handed back out again. */
@@ -91,6 +152,7 @@ public:
 
 private:
     extent_zone_t *zone_for_offset(off64_t offset);
+    void release_extent_preliminaries();
 
     const log_serializer_on_disk_static_config_t *const static_config;
     const log_serializer_dynamic_config_t *const dynamic_config;
@@ -98,7 +160,7 @@ private:
     boost::ptr_vector<extent_zone_t> zones;
     int next_zone;    /* Which zone to give the next extent from */
 
-    direct_file_t *const dbfile;
+    file_t *const dbfile;
 
     /* During serializer startup, each component informs the extent manager
     which extents in the file it was using at shutdown. This is the

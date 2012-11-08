@@ -3,8 +3,8 @@
 
 #include "arch/arch.hpp"
 
-lba_disk_extent_t::lba_disk_extent_t(extent_manager_t *_em, direct_file_t *file, file_account_t *io_account, extent_transaction_t *txn)
-    : em(_em), data(new extent_t(em, file, txn)), offset(data->offset), count(0) {
+lba_disk_extent_t::lba_disk_extent_t(extent_manager_t *_em, file_t *file, file_account_t *io_account)
+    : em(_em), data(new extent_t(em, file)), count(0) {
     em->assert_thread();
 
     // debugf("Constructing lba_disk_extent_t and given offset %ld\n", offset);
@@ -19,8 +19,8 @@ lba_disk_extent_t::lba_disk_extent_t(extent_manager_t *_em, direct_file_t *file,
     data->append(&header, sizeof(header), io_account);
 }
 
-lba_disk_extent_t::lba_disk_extent_t(extent_manager_t *_em, direct_file_t *file, off64_t _offset, int _count)
-    : em(_em), data(new extent_t(em, file, _offset, offsetof(lba_extent_t, entries[0]) + sizeof(lba_entry_t) * _count)), offset(_offset), count(_count) {
+lba_disk_extent_t::lba_disk_extent_t(extent_manager_t *_em, file_t *file, off64_t _offset, int _count)
+    : em(_em), data(new extent_t(em, file, _offset, offsetof(lba_extent_t, entries[0]) + sizeof(lba_entry_t) * _count)), count(_count) {
     em->assert_thread();
     // debugf("Constructing lba_disk_extent_t choosing offset %ld\n", offset);
 }

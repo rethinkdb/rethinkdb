@@ -7,7 +7,7 @@ class notify_later_ordered_subscription_t : public signal_t::subscription_t {
 public:
     notify_later_ordered_subscription_t() : coro_(coro_t::self()) { }
     virtual void run() {
-	coro_->notify_later_ordered();
+        coro_->notify_later_ordered();
     }
 private:
     coro_t *coro_;
@@ -16,8 +16,8 @@ private:
 
 void signal_t::wait_lazily_ordered() const {
     if (!is_pulsed()) {
-	notify_later_ordered_subscription_t subs;
-	subs.reset(const_cast<signal_t *>(this));
+        notify_later_ordered_subscription_t subs;
+        subs.reset(const_cast<signal_t *>(this));
         coro_t::wait();
     }
 }
@@ -26,7 +26,7 @@ class notify_sometime_subscription_t : public signal_t::subscription_t {
 public:
     notify_sometime_subscription_t() : coro_(coro_t::self()) { }
     virtual void run() {
-	coro_->notify_sometime();
+        coro_->notify_sometime();
     }
 
 private:
@@ -36,8 +36,8 @@ private:
 
 void signal_t::wait_lazily_unordered() const {
     if (!is_pulsed()) {
-	notify_sometime_subscription_t subs;
-	subs.reset(const_cast<signal_t *>(this));
+        notify_sometime_subscription_t subs;
+        subs.reset(const_cast<signal_t *>(this));
         coro_t::wait();
     }
 }

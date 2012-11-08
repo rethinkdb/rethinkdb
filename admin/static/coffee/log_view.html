@@ -38,7 +38,7 @@
 <script id="log-entry-template" type="text/x-handlebars-template">
     <div class="row-fluid">
         <div class="span9">
-            <p class="message">{{print_safe msg}}</p>
+            {{print_safe msg}}
             <p class="from-machine">Posted by <a href="#servers/{{machine_uuid}}">{{machine_name}}</a></p>
         </div>
         <div class="span3">
@@ -62,6 +62,10 @@
         for <a href="#datacenters/{{datacenter_id}}">{{datacenter_name}}</a>
     {{/if}}
     <br/>
+</script>
+
+<script id="log-namespace-new_name-template" type="text/x-handlebars-template">
+    Set table <a href="#tables/{{namespace_id}}">{{namespace_id_trunked}}</a>'s name to {{name}}<br/>
 </script>
 
 <script id="log-machines_values-template" type="text/x-handlebars-template">

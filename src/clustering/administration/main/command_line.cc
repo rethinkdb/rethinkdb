@@ -339,7 +339,7 @@ po::options_description get_file_options() {
 po::options_description get_config_file_options() {
     po::options_description desc("Configuration file options");
     desc.add_options()
-	("config-file", po::value<std::string>(), "take options from a configuration file");
+        ("config-file", po::value<std::string>(), "take options from a configuration file");
     return desc;
 }
 
@@ -374,7 +374,13 @@ po::options_description get_web_options() {
         ("web-static-directory", po::value<std::string>(), "specify directory from which to serve web resources")
         ("http-port", po::value<int>()->default_value(port_defaults::http_port), "port for http admin console");
     return desc;
+}
 
+po::options_description get_web_options_visible() {
+    po::options_description desc("Web options");
+    desc.add_options()
+        ("http-port", po::value<int>()->default_value(port_defaults::http_port), "port for http admin console");
+    return desc;
 }
 
 po::options_description get_network_options() {
@@ -442,7 +448,7 @@ po::options_description get_rethinkdb_serve_options_visible() {
     po::options_description desc("Allowed options");
     desc.add(get_file_options());
     desc.add(get_network_options());
-    desc.add(get_web_options());
+    desc.add(get_web_options_visible());
 #ifdef AIOSUPPORT
     desc.add(get_disk_options());
 #endif // AIOSUPPORT
@@ -455,6 +461,16 @@ po::options_description get_rethinkdb_proxy_options() {
     po::options_description desc("Allowed options");
     desc.add(get_network_options());
     desc.add(get_web_options());
+    desc.add(get_service_options());
+    desc.add_options()
+        ("log-file", po::value<std::string>()->default_value("log_file"), "specify log file");
+    return desc;
+}
+
+po::options_description get_rethinkdb_proxy_options_visible() {
+    po::options_description desc("Allowed options");
+    desc.add(get_network_options());
+    desc.add(get_web_options_visible());
     desc.add(get_service_options());
     desc.add_options()
         ("log-file", po::value<std::string>()->default_value("log_file"), "specify log file");
@@ -478,7 +494,7 @@ po::options_description get_rethinkdb_import_options() {
         // Default value of empty string?  Because who knows what the duck it returns with
         // no default value.  Or am I supposed to wade my way back into the
         // program_options documentation again?
-	// A default value is not required. One can check vm.count("thing") in order to determine whether the user has supplied the option. --Juggernaut
+        // A default value is not required. One can check vm.count("thing") in order to determine whether the user has supplied the option. --Juggernaut
         ("table", po::value<std::string>()->default_value(""), "the database and table into which to import, of the format 'database.table'")
         ("datacenter", po::value<std::string>()->default_value(""), "the datacenter into which to create a table")
         ("primary-key", po::value<std::string>()->default_value("id"), "the primary key to create a new table with, or expected primary key")
@@ -536,7 +552,7 @@ MUST_USE bool parse_commands_flat(int argc, char *argv[], po::variables_map *vm,
 
 MUST_USE bool parse_commands(int argc, char *argv[], po::variables_map *vm, const po::options_description& options) {
     if ( parse_commands_flat(argc, argv, vm, options) ) {
-	po::notify(*vm);
+        po::notify(*vm);
     } else {
         return false ;
     }
@@ -996,7 +1012,7 @@ void help_rethinkdb_serve() {
 void help_rethinkdb_proxy() {
     printf("'rethinkdb proxy' serves as a proxy to an existing RethinkDB cluster.\n");
     std::stringstream sstream;
-    sstream << get_rethinkdb_proxy_options();
+    sstream << get_rethinkdb_proxy_options_visible();
     printf("%s\n", sstream.str().c_str());
 }
 

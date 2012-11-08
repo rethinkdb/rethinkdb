@@ -227,6 +227,6 @@ bool version_is_divergent(
         branch_history_manager_t<protocol_t> *branch_history_manager,
         version_t v1,
         version_t v2,
-        typename protocol_t::region_t relevant_region);
+        const typename protocol_t::region_t &relevant_region);
 
 #endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_HISTORY_HPP_ */

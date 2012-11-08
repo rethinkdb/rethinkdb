@@ -96,7 +96,9 @@ module RethinkDB
     # inline version of an RQL function).
     def method_missing(m, *args, &block) # :nodoc:
       if (m2 = C.method_aliases[m]); then return self.send(m2, *args, &block); end
-      return RQL.send(m, *[self, *args], &block) if RQL.methods.include?(m.to_s)
+      if RQL.methods.map{|x| x.to_sym}.include?(m)
+        return RQL.send(m, *[self, *args], &block)
+      end
       super(m, *args, &block)
     end
   end

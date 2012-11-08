@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 
 #ifndef STL_UTILS_TCC_
 #define STL_UTILS_TCC_

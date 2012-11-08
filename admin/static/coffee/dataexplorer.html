@@ -115,8 +115,7 @@
 
 <script id="dataexplorer-error-template" type="text/x-handlebars-template">
     <h1 class="title">Error</h1>
-    <p class="error">The following query could not be executed.</p>
-    <p class="error query">{{query}}</p>
+    <p class="error">The query could not be executed.</p>
     <p class="error">Error: </p>
     <pre class="error error_details">{{error}}{{#if forgot_run}}{{!Spacing matters here, we are in a <pre>}}
 Did you forget to append .run() at the end of your query?{{/if}}</pre>

@@ -147,13 +147,13 @@ struct knowledge_t {
         : files(filenames.size()), file_knog(filenames.size()) {
 
         for (int i = 0, n = filenames.size(); i < n; ++i) {
-            nondirect_file_t *file = new nondirect_file_t(filenames[i].c_str(), file_t::mode_read, io_backender);
+            nondirect_file_t *file = new nondirect_file_t(filenames[i].c_str(), nondirect_file_t::mode_read, io_backender);
             files[i].init(file);
             file_knog[i].init(new file_knowledge_t(filenames[i]));
         }
 
         if (!metadata_filename.empty()) {
-            metadata_file.init(new nondirect_file_t(metadata_filename.c_str(), file_t::mode_read, io_backender));
+            metadata_file.init(new nondirect_file_t(metadata_filename.c_str(), nondirect_file_t::mode_read, io_backender));
             metadata_file_knog.init(new file_knowledge_t(metadata_filename));
         }
     }
@@ -330,7 +330,7 @@ bool check_static_config(nondirect_file_t *file, file_knowledge_t *knog, static_
 
     printf("Pre-scanning file %s:\n", knog->filename.c_str());
     printf("static_header software_name: %.*s\n", static_cast<int>(sizeof(SOFTWARE_NAME_STRING)), buf->software_name);
-    printf("static_header version: %.*s\n", static_cast<int>(sizeof(VERSION_STRING)), buf->version);
+    printf("static_header serializer version: %.*s\n", static_cast<int>(sizeof(SERIALIZER_VERSION_STRING)), buf->version);
     printf("              DEVICE_BLOCK_SIZE: %llu\n", DEVICE_BLOCK_SIZE);
     printf("static_header block_size: %u\n", block_size.ser_value());
     printf("static_header extent_size: %lu\n", extent_size);
@@ -340,7 +340,7 @@ bool check_static_config(nondirect_file_t *file, file_knowledge_t *knog, static_
         *err = bad_software_name;
         return false;
     }
-    if (0 != strcmp(buf->version, VERSION_STRING) && !cfg->print_command_line) {
+    if (0 != strcmp(buf->version, SERIALIZER_VERSION_STRING) && !cfg->print_command_line) {
         *err = bad_version;
         return false;
     }
@@ -367,7 +367,7 @@ std::string extract_static_config_version(nondirect_file_t *file, UNUSED file_kn
         return "(not available, could not load first block of file)";
     }
     static_header_t *buf = reinterpret_cast<static_header_t *>(header.realbuf);
-    return std::string(buf->version, sizeof(VERSION_STRING));
+    return std::string(buf->version, sizeof(SERIALIZER_VERSION_STRING));
 }
 
 std::string extract_static_config_flags(nondirect_file_t *file, UNUSED file_knowledge_t *knog) {

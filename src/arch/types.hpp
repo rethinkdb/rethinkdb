@@ -6,7 +6,7 @@
 
 #include "utils.hpp"
 
-#define DEFAULT_DISK_ACCOUNT (static_cast<linux_file_account_t *>(0))
+#define DEFAULT_DISK_ACCOUNT (static_cast<file_account_t *>(0))
 #define UNLIMITED_OUTSTANDING_REQUESTS (-1)
 
 // TODO: Remove this from this header.
@@ -52,11 +52,7 @@ public:
 class linux_thread_pool_t;
 typedef linux_thread_pool_t thread_pool_t;
 
-class linux_file_t;
-typedef linux_file_t file_t;
-
-class linux_file_account_t;
-typedef linux_file_account_t file_account_t;
+class file_account_t;
 
 class linux_direct_file_t;
 typedef linux_direct_file_t direct_file_t;
@@ -85,6 +81,46 @@ typedef linux_tcp_conn_descriptor_t tcp_conn_descriptor_t;
 class linux_tcp_conn_t;
 typedef linux_tcp_conn_t tcp_conn_t;
 
+// A linux file.  It expects reads and writes and buffers to have an
+// alignment of DEVICE_BLOCK_SIZE.
+class file_t {
+public:
+    virtual ~file_t() { }
+    virtual bool exists() = 0;
+    virtual bool is_block_device() = 0;
+    virtual uint64_t get_size() = 0;
+    virtual void set_size(size_t size) = 0;
+    virtual void set_size_at_least(size_t size) = 0;
+
+    virtual void read_async(size_t offset, size_t length, void *buf, file_account_t *account, linux_iocallback_t *cb) = 0;
+    virtual void write_async(size_t offset, size_t length, const void *buf, file_account_t *account, linux_iocallback_t *cb) = 0;
+
+    virtual void read_blocking(size_t offset, size_t length, void *buf) = 0;
+    virtual void write_blocking(size_t offset, size_t length, const void *buf) = 0;
+
+    virtual void *create_account(int priority, int outstanding_requests_limit) = 0;
+    virtual void destroy_account(void *account) = 0;
+
+    virtual bool coop_lock_and_check() = 0;
+};
+
+class file_account_t {
+public:
+    file_account_t(file_t *f, int p, int outstanding_requests_limit = UNLIMITED_OUTSTANDING_REQUESTS);
+    ~file_account_t();
+    void *get_account() { return account; }
+
+private:
+    file_t *parent;
+    /* account is internally a pointer to a accounting_diskmgr_t::account_t object. It has to be
+       a void* because accounting_diskmgr_t is a template, so its actual type depends on what
+       IO backend is chosen. */
+    // Maybe accounting_diskmgr_t shouldn't be a templated class then.
+
+    void *account;
+
+    DISABLE_COPYING(file_account_t);
+};
 
 
 #endif  // ARCH_TYPES_HPP_

@@ -16,22 +16,22 @@ all: drivers
 drivers: driver-javascript driver-python driver-ruby
 
 driver-python:
-	$(QUIET) cd python ; $(MAKE) $(MFLAGS) ;
+	$(QUIET) cd python ; $(MAKE) ;
 
 driver-ruby:
-	$(QUIET) cd ruby ; $(MAKE) $(MFLAGS) ;
+	$(QUIET) cd ruby ; $(MAKE) ;
 
 driver-javascript:
-	$(QUIET) cd javascript ; $(MAKE) $(MFLAGS) ; cd .. ;
+	$(QUIET) cd javascript ; $(MAKE) ; cd .. ;
 
 driver-javascript-clean:
-	$(QUIET) cd javascript ; $(MAKE) $(MFLAGS) clean ; cd .. ;
+	$(QUIET) cd javascript ; $(MAKE) clean ; cd .. ;
 
 driver-python-clean:
-	$(QUIET) cd python ; $(MAKE) $(MFLAGS) clean ; cd .. ;
+	$(QUIET) cd python ; $(MAKE) clean ; cd .. ;
 
 driver-ruby-clean:
-	$(QUIET) cd ruby ; $(MAKE) $(MFLAGS) clean ; cd .. ;
+	$(QUIET) cd ruby ; $(MAKE) clean ; cd .. ;
 
 clean: driver-javascript-clean driver-python-clean driver-ruby-clean
 

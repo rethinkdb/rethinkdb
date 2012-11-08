@@ -11,8 +11,8 @@ class extent_t {
     friend struct extent_block_t;
 
 public:
-    extent_t(extent_manager_t *em, direct_file_t *file, extent_transaction_t *txn);   // Creates new extent
-    extent_t(extent_manager_t *em, direct_file_t *file, off64_t loc, size_t size);   // Recreates extent at given offset (used during startup)
+    extent_t(extent_manager_t *em, file_t *file);   // Creates new extent
+    extent_t(extent_manager_t *em, file_t *file, off64_t loc, size_t size);   // Recreates extent at given offset (used during startup)
 
     void destroy(extent_transaction_t *txn);   // Releases extent and destroys structure in memory
     void shutdown();   // Only destroys structure in memory
@@ -34,14 +34,16 @@ public:
     };
     void sync(sync_callback_t *cb);
 
-    off64_t offset;
+    extent_reference_t extent_ref;
     size_t amount_filled;
 
 private:
     ~extent_t();   // Use destroy() or shutdown() instead
-    extent_manager_t *em;
-    direct_file_t *file;
+    extent_manager_t *const em;
+    file_t *file;
     extent_block_t *last_block, *current_block;
+
+    DISABLE_COPYING(extent_t);
 };
 
 #endif /* SERIALIZER_LOG_LBA_EXTENT_HPP_ */

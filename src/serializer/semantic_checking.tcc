@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "serializer/semantic_checking.hpp"
 
 #include <vector>
@@ -33,21 +34,20 @@ wrap_token(block_id_t block_id, scs_block_info_t info, intrusive_ptr_t<typename 
 
 template<class inner_serializer_t>
 void semantic_checking_serializer_t<inner_serializer_t>::
-create(dynamic_config_t config, io_backender_t *backender, private_dynamic_config_t private_config, static_config_t static_config) {
-    inner_serializer_t::create(config, backender, private_config, static_config);
+create(serializer_file_opener_t *file_opener, static_config_t static_config) {
+    inner_serializer_t::create(file_opener, static_config);
 }
 
 template<class inner_serializer_t>
 semantic_checking_serializer_t<inner_serializer_t>::
-semantic_checking_serializer_t(dynamic_config_t config, io_backender_t *io_backender, private_dynamic_config_t private_config)
-    : inner_serializer(config, io_backender, private_config),
+semantic_checking_serializer_t(dynamic_config_t config, serializer_file_opener_t *file_opener, perfmon_collection_t *perfmon_collection)
+    : inner_serializer(config, file_opener, perfmon_collection),
       last_index_write_started(0), last_index_write_finished(0),
       semantic_fd(-1)
 {
-    semantic_fd = open(private_config.semantic_filename.c_str(),
-        O_RDWR | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO);
-    if (semantic_fd == INVALID_FD)
-        fail_due_to_user_error("Inaccessible semantic checking file: \"%s\": %s", private_config.semantic_filename.c_str(), strerror(errno));
+    if (!file_opener->open_semantic_checking_file(&semantic_fd)) {
+        fail_due_to_user_error("Inaccessible semantic checking file: \"%s\"", file_opener->file_name().c_str());
+    }
 
     // fill up the blocks from the semantic checking file
     int res = -1;
@@ -68,8 +68,8 @@ semantic_checking_serializer_t<inner_serializer_t>::
 }
 
 template<class inner_serializer_t>
-void semantic_checking_serializer_t<inner_serializer_t>::check_existing(const char *db_path, check_callback_t *cb) {
-    inner_serializer_t::check_existing(db_path, cb);
+void semantic_checking_serializer_t<inner_serializer_t>::check_existing(const char *db_path, io_backender_t *backender, check_callback_t *cb) {
+    inner_serializer_t::check_existing(db_path, backender, cb);
 }
 
 template<class inner_serializer_t>

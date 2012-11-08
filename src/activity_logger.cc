@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "activity_logger.hpp"
 
 log_event_t::log_event_t(const std::string &_msg, bool log_bt)
