@@ -82,7 +82,7 @@ struct file_knowledge_t {
     // The metablock with the most recent version.
     learned_t<log_serializer_metablock_t> metablock;
 
-    // The block from CONFIG_BLOCK_ID (well, the beginning of such a block).
+    // The block from MULTIPLEXER_CONFIG_BLOCK_ID (well, the beginning of such a block).
     learned_t<multiplexer_config_block_t> config_block;
 
     // The block from MC_CONFIGBLOCK_ID
@@ -201,7 +201,7 @@ struct slicecx_t {
     }
 
     block_id_t to_ser_block_id(block_id_t id) const {
-        return translator_serializer_t::translate_block_id(id, mod_count, local_slice_id, CONFIG_BLOCK_ID);
+        return translator_serializer_t::translate_block_id(id, mod_count, local_slice_id);
     }
 
     bool is_valid_key(const btree_key_t *key) const {
@@ -700,7 +700,7 @@ check_mc_config_block(nondirect_file_t *file, file_knowledge_t *knog, config_blo
 
 bool check_multiplexed_config_block(nondirect_file_t *file, file_knowledge_t *knog, config_block_errors *errs) {
     btree_block_t config_block;
-    if (!config_block.init(file, knog, CONFIG_BLOCK_ID.ser_id)) {
+    if (!config_block.init(file, knog, MULTIPLEXER_CONFIG_BLOCK_ID)) {
         errs->block_open_code = config_block.err;
         return false;
     }
@@ -716,7 +716,7 @@ bool check_multiplexed_config_block(nondirect_file_t *file, file_knowledge_t *kn
     // Load all cache config blocks and check them for consistency
     const int mod_count = serializer_multiplexer_t::compute_mod_count(knog->config_block->this_serializer, knog->config_block->n_files, knog->config_block->n_proxies);
     for (int slice_id = 0; slice_id < mod_count; ++slice_id) {
-        block_id_t config_block_ser_id = translator_serializer_t::translate_block_id(MC_CONFIGBLOCK_ID, mod_count, slice_id, CONFIG_BLOCK_ID);
+        block_id_t config_block_ser_id = translator_serializer_t::translate_block_id(MC_CONFIGBLOCK_ID, mod_count, slice_id);
         btree_block_t mc_config_block;
         const mc_config_block_t *mc_buf = check_mc_config_block(file, knog, errs, config_block_ser_id, &mc_config_block);
         if (mc_buf == NULL) return false;

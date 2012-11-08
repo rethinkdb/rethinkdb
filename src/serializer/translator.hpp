@@ -36,22 +36,8 @@ public:
 /* The multiplex_serializer_t writes a multiplexer_config_block_t in block ID 0 of each of its
 underlying serializers. */
 
-struct config_block_id_t {
-    /* This type is kind of silly. */
-
-    block_id_t ser_id;
-
-    block_id_t subsequent_ser_id() const { return ser_id + 1; }
-    static inline config_block_id_t make(block_id_t num) {
-        rassert(num == 0);  // only one possible config_block_id_t value.
-
-        config_block_id_t ret;
-        ret.ser_id = num;
-        return ret;
-    }
-};
-
-#define CONFIG_BLOCK_ID (config_block_id_t::make(0))
+#define MULTIPLEXER_CONFIG_BLOCK_ID (static_cast<block_id_t>(0))
+#define MULTIPLEXER_SUBSEQUENT_SER_ID (static_cast<block_id_t>(MULTIPLEXER_CONFIG_BLOCK_ID + 1))
 
 struct multiplexer_config_block_t {
     block_magic_t magic;
@@ -90,7 +76,6 @@ public:
 private:
     standard_serializer_t *inner;
     int mod_count, mod_id;
-    config_block_id_t cfgid;
 
     serializer_read_ahead_callback_t *read_ahead_callback;
 
@@ -100,18 +85,18 @@ public:
     // Translates a block id from external (meaningful to the translator_serializer_t) to internal
     // (meaningful to the underlying inner serializer) given the particular parameters. This needs
     // to be exposed in some way because recovery tools depend on it.
-    static block_id_t translate_block_id(block_id_t id, int mod_count, int mod_id, config_block_id_t cfgid);
+    static block_id_t translate_block_id(block_id_t id, int mod_count, int mod_id);
     block_id_t translate_block_id(block_id_t id) const;
 
     // "Inverts" translate_block_id, converting inner_id back to mod_id (not back to id).
-    static int untranslate_block_id_to_mod_id(block_id_t inner_id, int mod_count, config_block_id_t cfgid);
+    static int untranslate_block_id_to_mod_id(block_id_t inner_id, int mod_count);
     // ... and this one converts inner_id back to id, given mod_id.
-    static block_id_t untranslate_block_id_to_id(block_id_t inner_id, int mod_count, int mod_id, config_block_id_t cfgid);
+    static block_id_t untranslate_block_id_to_id(block_id_t inner_id, int mod_count, int mod_id);
 
 public:
     /* The translator serializer will only use block IDs on the inner serializer that
     are greater than or equal to 'min' and such that ((id - min) % mod_count) == mod_id. */
-    translator_serializer_t(standard_serializer_t *inner, int mod_count, int mod_id, config_block_id_t cfgid);
+    translator_serializer_t(standard_serializer_t *inner, int mod_count, int mod_id);
 
     void *malloc();
     void *clone(void*);

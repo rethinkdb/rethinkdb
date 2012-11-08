@@ -43,8 +43,8 @@ void prep_serializer(
     c->this_serializer = i;
     c->n_proxies = n_proxies;
 
-    index_write_op_t op(CONFIG_BLOCK_ID.ser_id);
-    op.token = ser->block_write(c, CONFIG_BLOCK_ID.ser_id, DEFAULT_DISK_ACCOUNT);
+    index_write_op_t op(MULTIPLEXER_CONFIG_BLOCK_ID);
+    op.token = ser->block_write(c, MULTIPLEXER_CONFIG_BLOCK_ID, DEFAULT_DISK_ACCOUNT);
     op.recency = repli_timestamp_t::invalid;
     serializer_index_write(ser, op, DEFAULT_DISK_ACCOUNT);
 
@@ -73,7 +73,7 @@ void create_proxies(const std::vector<standard_serializer_t *>& underlying,
 
     /* Load config block */
     multiplexer_config_block_t *c = reinterpret_cast<multiplexer_config_block_t *>(ser->malloc());
-    ser->block_read(ser->index_read(CONFIG_BLOCK_ID.ser_id), c, DEFAULT_DISK_ACCOUNT);
+    ser->block_read(ser->index_read(MULTIPLEXER_CONFIG_BLOCK_ID), c, DEFAULT_DISK_ACCOUNT);
 
     /* Verify that stuff is sane */
     if (c->magic != multiplexer_config_block_t::expected_magic) {
@@ -112,8 +112,8 @@ void create_proxies(const std::vector<standard_serializer_t *>& underlying,
         (*proxies)[k] = new translator_serializer_t(
             ser,
             num_on_this_serializer,
-            k / underlying.size(),
-            CONFIG_BLOCK_ID   /* Reserve block ID 0 */);
+            k / underlying.size());
+
     }
 
     ser->free(c);
@@ -132,7 +132,7 @@ serializer_multiplexer_t::serializer_multiplexer_t(const std::vector<standard_se
         /* Load config block */
         multiplexer_config_block_t *c = reinterpret_cast<multiplexer_config_block_t *>(
             underlying[0]->malloc());
-        underlying[0]->block_read(underlying[0]->index_read(CONFIG_BLOCK_ID.ser_id), c, DEFAULT_DISK_ACCOUNT);
+        underlying[0]->block_read(underlying[0]->index_read(MULTIPLEXER_CONFIG_BLOCK_ID), c, DEFAULT_DISK_ACCOUNT);
 
         rassert(c->magic == multiplexer_config_block_t::expected_magic);
         creation_timestamp = c->creation_timestamp;
@@ -167,31 +167,31 @@ int serializer_multiplexer_t::compute_mod_count(int32_t file_number, int32_t n_f
 
 /* translator_serializer_t */
 
-block_id_t translator_serializer_t::translate_block_id(block_id_t id, int mod_count, int mod_id, config_block_id_t cfgid) {
-    return id * mod_count + mod_id + cfgid.subsequent_ser_id();
+block_id_t translator_serializer_t::translate_block_id(block_id_t id, int mod_count, int mod_id) {
+    return id * mod_count + mod_id + MULTIPLEXER_SUBSEQUENT_SER_ID;
 }
 
-int translator_serializer_t::untranslate_block_id_to_mod_id(block_id_t inner_id, int mod_count, config_block_id_t cfgid) {
+int translator_serializer_t::untranslate_block_id_to_mod_id(block_id_t inner_id, int mod_count) {
     // We know that inner_id == id * mod_count + mod_id + min.
     // Thus inner_id - min == id * mod_count + mod_id.
     // It follows that inner_id - min === mod_id (modulo mod_count).
     // So (inner_id - min) % mod_count == mod_id (since 0 <= mod_id < mod_count).
     // (And inner_id - min >= 0, so '%' works as expected.)
-    return (inner_id - cfgid.subsequent_ser_id()) % mod_count;
+    return (inner_id - MULTIPLEXER_SUBSEQUENT_SER_ID) % mod_count;
 }
 
-block_id_t translator_serializer_t::untranslate_block_id_to_id(block_id_t inner_id, int mod_count, int mod_id, config_block_id_t cfgid) {
+block_id_t translator_serializer_t::untranslate_block_id_to_id(block_id_t inner_id, int mod_count, int mod_id) {
     // (simply dividing by mod_count should be sufficient, but this is cleaner)
-    return (inner_id - cfgid.subsequent_ser_id() - mod_id) / mod_count;
+    return (inner_id - MULTIPLEXER_SUBSEQUENT_SER_ID - mod_id) / mod_count;
 }
 
 block_id_t translator_serializer_t::translate_block_id(block_id_t id) const {
     rassert(id != NULL_BLOCK_ID);
-    return translate_block_id(id, mod_count, mod_id, cfgid);
+    return translate_block_id(id, mod_count, mod_id);
 }
 
-translator_serializer_t::translator_serializer_t(standard_serializer_t *_inner, int _mod_count, int _mod_id, config_block_id_t _cfgid)
-    : inner(_inner), mod_count(_mod_count), mod_id(_mod_id), cfgid(_cfgid), read_ahead_callback(NULL) {
+translator_serializer_t::translator_serializer_t(standard_serializer_t *_inner, int _mod_count, int _mod_id)
+    : inner(_inner), mod_count(_mod_count), mod_id(_mod_id), read_ahead_callback(NULL) {
     rassert(mod_count > 0);
     rassert(mod_id >= 0);
     rassert(mod_id < mod_count);
@@ -255,7 +255,7 @@ bool translator_serializer_t::coop_lock_and_check() {
 }
 
 block_id_t translator_serializer_t::max_block_id() {
-    int64_t x = inner->max_block_id() - cfgid.subsequent_ser_id();
+    int64_t x = inner->max_block_id() - MULTIPLEXER_SUBSEQUENT_SER_ID;
     if (x <= 0) {
         x = 0;
     } else {
@@ -286,14 +286,14 @@ bool translator_serializer_t::offer_read_ahead_buf(block_id_t block_id, void *bu
     inner->assert_thread();
 
     // Offer the buffer if we are the correct shard
-    const int buf_mod_id = untranslate_block_id_to_mod_id(block_id, mod_count, cfgid);
+    const int buf_mod_id = untranslate_block_id_to_mod_id(block_id, mod_count);
     if (buf_mod_id != this->mod_id) {
         // We are not responsible...
         return false;
     }
 
     if (read_ahead_callback) {
-        const block_id_t inner_block_id = untranslate_block_id_to_id(block_id, mod_count, mod_id, cfgid);
+        const block_id_t inner_block_id = untranslate_block_id_to_id(block_id, mod_count, mod_id);
         if (!read_ahead_callback->offer_read_ahead_buf(inner_block_id, buf, token, recency_timestamp)) {
             // They aren't going to free the buffer, so we do.
             inner->free(buf);
