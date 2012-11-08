@@ -93,9 +93,7 @@ module 'DataExplorerView', ->
                 if not @suggestions[element]?
                     @suggestions[element] = []
                 parent = relations[element]['parent']
-                while parent?
-                    if not suggestions[parent]?
-                        break
+                while parent? and suggestions[parent]
                     for suggestion in suggestions[parent]
                         @suggestions[element].push suggestion
                     parent = relations[parent]['parent']
