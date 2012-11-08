@@ -1646,5 +1646,754 @@
         }
       }
     ]
+  },
+  {
+    "tag": "operators",
+    "name": "JSON Operators",
+    "description": "These commands provide basic operators for manipulating JSON values",
+    "commands": [
+      {
+        "tag": "add",
+        "description": "Sum two numbers or concatenate two arrays",
+        "parent": "json",
+        "returns": "json",
+        "langs": {
+          "js": {
+            "name": "add",
+            "body": "other",
+            "examples" : [
+              {
+                "description": "It's as easy as 2 + 2 = 4",
+                "code": "r.expr(2).add(2).run()"
+              },
+              {
+                "description": "Array objects can be concatenated too",
+                "code": "r.expr([1,2,3]).add([4,5,6]).run()"
+              }
+
+            ]
+          },
+          "py": {
+            "name": "+",
+            "body": "other",
+            "examples" : [
+              {
+                "description": "It's as easy as 2 + 2 = 4",
+                "code": "(r.expr(2) + 2).run()"
+              },
+              {
+                "description": "Array objects can be concatenated too",
+                "code": "(r.expr([1,2,3]) + [4,5,6]).run()"
+              }
+            ]
+          },
+          "rb": {
+            "name": "+",
+            "body": "other",
+            "examples" : [
+              {
+                "description": "It's as easy as 2 + 2 = 4",
+                "code": "(r.expr(2) + 2).run"
+              },
+              {
+                "description": "Array objects can be concatenated too",
+                "code": "(r.expr([1,2,3]) + [4,5,6]).run"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "tag": "sub",
+        "description": "Subtract two numbers",
+        "parent": "json",
+        "returns": "json",
+        "langs": {
+          "js": {
+            "name": "sub",
+            "body": "other",
+            "examples" : [
+              {
+                "description": "It's as easy as 2 - 2 = 0",
+                "code": "r.expr(2).sub(2).run()"
+              }
+            ]
+          },
+          "py": {
+            "name": "-",
+            "body": "other",
+            "examples" : [
+              {
+                "description": "It's as easy as 2 - 2 = 0",
+                "code": "(r.expr(2) - 2).run()"
+              }
+            ]
+          },
+          "rb": {
+            "name": "-",
+            "body": "other",
+            "examples" : [
+              {
+                "description": "It's as easy as 2 - 2 = 0",
+                "code": "(r.expr(2) - 2).run"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "tag": "mul",
+        "description": "Multiply two numbers",
+        "parent": "json",
+        "returns": "json",
+        "langs": {
+          "js": {
+            "name": "mul",
+            "body": "other",
+            "examples" : [
+              {
+                "description": "It's as easy as 2 * 2 = 4",
+                "code": "r.expr(2).mul(2).run()"
+              }
+            ]
+          },
+          "py": {
+            "name": "*",
+            "body": "other",
+            "examples" : [
+              {
+                "description": "It's as easy as 2 * 2 = 4",
+                "code": "(r.expr(2) * 2).run()"
+              }
+            ]
+          },
+          "rb": {
+            "name": "*",
+            "body": "other",
+            "examples" : [
+              {
+                "description": "It's as easy as 2 * 2 = 4",
+                "code": "(r.expr(2) * 2).run"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "tag": "div",
+        "description": "Divide two numbers",
+        "parent": "json",
+        "returns": "json",
+        "langs": {
+          "js": {
+            "name": "div",
+            "body": "other",
+            "examples" : [
+              {
+                "description": "It's as easy as 2 / 2 = 1",
+                "code": "r.expr(2).div(2).run()"
+              }
+            ]
+          },
+          "py": {
+            "name": "/",
+            "body": "other",
+            "examples" : [
+              {
+                "description": "It's as easy as 2 / 2 = 1",
+                "code": "(r.expr(2) / 2).run()"
+              }
+            ]
+          },
+          "rb": {
+            "name": "/",
+            "body": "other",
+            "examples" : [
+              {
+                "description": "It's as easy as 2 / 2 = 1",
+                "code": "(r.expr(2) / 2).run"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "tag": "mod",
+        "description": "Find the remainder when dividing two numbers",
+        "parent": "json",
+        "returns": "json",
+        "langs": {
+          "js": {
+            "name": "mod",
+            "body": "other",
+            "examples" : [
+              {
+                "description": "It's as easy as 2 % 2 = 0",
+                "code": "r.expr(2).mod(2).run()"
+              }
+            ]
+          },
+          "py": {
+            "name": "%",
+            "body": "other",
+            "examples" : [
+              {
+                "description": "It's as easy as 2 % 2 = 0",
+                "code": "(r.expr(2) % 2).run()"
+              }
+            ]
+          },
+          "rb": {
+            "name": "%",
+            "body": "other",
+            "examples" : [
+              {
+                "description": "It's as easy as 2 % 2 = 0",
+                "code": "(r.expr(2) % 2).run"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "tag": "and",
+        "description": "Compute the logical and of two values",
+        "parent": "json",
+        "returns": "bool",
+        "langs": {
+          "js": {
+            "name": "and",
+            "body": "other",
+            "examples" : [
+              {
+                "description": "True and false anded is false?",
+                "code": "r.expr(true).and(false).run()"
+              }
+            ]
+          },
+          "py": {
+            "name": "&&",
+            "body": "other",
+            "examples" : [
+              {
+                "description": "True and false anded is false?",
+                "code": "(r.expr(true) && false).run()"
+              }
+            ]
+          },
+          "rb": {
+            "name": "&",
+            "body": "other",
+            "examples" : [
+              {
+                "description": "True and false anded is false?",
+                "code": "(r.expr(true) & false).run"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "tag": "or",
+        "description": "Compute the logical or of two values",
+        "parent": "json",
+        "returns": "bool",
+        "langs": {
+          "js": {
+            "name": "or",
+            "body": "other",
+            "examples" : [
+              {
+                "description": "True or false ored is true?",
+                "code": "r.expr(true).or(false).run()"
+              }
+            ]
+          },
+          "py": {
+            "name": "||",
+            "body": "other",
+            "examples" : [
+              {
+                "description": "True or false ored is false?",
+                "code": "(r.expr(true) || false).run()"
+              }
+            ]
+          },
+          "rb": {
+            "name": "|",
+            "body": "other",
+            "examples" : [
+              {
+                "description": "True and false ored is false?",
+                "code": "(r.expr(true) | false).run"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "tag": "eq",
+        "description": "Test if two values are equal",
+        "parent": "json",
+        "returns": "bool",
+        "langs": {
+          "js": {
+            "name": "eq",
+            "body": "other",
+            "examples" : [
+              {
+                "description": "Does 2 equal 2?",
+                "code": "r.expr(2).eq(2).run()"
+              }
+            ]
+          },
+          "py": {
+            "name": "==",
+            "body": "other",
+            "examples" : [
+              {
+                "description": "Does 2 equal 2?",
+                "code": "(r.expr(2) == 2).run()"
+              }
+            ]
+          },
+          "rb": {
+            "name": "==",
+            "body": "other",
+            "examples" : [
+              {
+                "description": "Does 2 equal 2?",
+                "code": "(r.expr(2) == 2).run"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "tag": "ne",
+        "description": "Test if two values are not equal",
+        "parent": "json",
+        "returns": "bool",
+        "langs": {
+          "js": {
+            "name": "ne",
+            "body": "other",
+            "examples" : [
+              {
+                "description": "Does 2 not equal 2?",
+                "code": "r.expr(2).ne(2).run()"
+              }
+            ]
+          },
+          "py": {
+            "name": "!=",
+            "body": "other",
+            "examples" : [
+              {
+                "description": "Does 2 not equal 2?",
+                "code": "(r.expr(2) != 2).run()"
+              }
+            ]
+          },
+          "rb": {
+            "name": "!=",
+            "body": "other",
+            "examples" : [
+              {
+                "description": "Does 2 not equal 2?",
+                "code": "(r.expr(2) != 2).run"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "tag": "gt",
+        "description": "Test if the first value is greater than other",
+        "parent": "json",
+        "returns": "bool",
+        "langs": {
+          "js": {
+            "name": "gt",
+            "body": "other",
+            "examples" : [
+              {
+                "description": "Is 2 greater than 2?",
+                "code": "r.expr(2).gt(2).run()"
+              }
+            ]
+          },
+          "py": {
+            "name": ">",
+            "body": "other",
+            "examples" : [
+              {
+                "description": "Is 2 greater than 2?",
+                "code": "(r.expr(2) > 2).run()"
+              }
+            ]
+          },
+          "rb": {
+            "name": ">",
+            "body": "other",
+            "examples" : [
+              {
+                "description": "Is 2 greater than 2?",
+                "code": "(r.expr(2) > 2).run"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "tag": "ge",
+        "description": "Test if the first value is greater than or equal to other",
+        "parent": "json",
+        "returns": "bool",
+        "langs": {
+          "js": {
+            "name": "ge",
+            "body": "other",
+            "examples" : [
+              {
+                "description": "Is 2 greater than or equal to 2?",
+                "code": "r.expr(2).ge(2).run()"
+              }
+            ]
+          },
+          "py": {
+            "name": ">=",
+            "body": "other",
+            "examples" : [
+              {
+                "description": "Is 2 greater than or equal to 2?",
+                "code": "(r.expr(2) >= 2).run()"
+              }
+            ]
+          },
+          "rb": {
+            "name": ">=",
+            "body": "other",
+            "examples" : [
+              {
+                "description": "Is 2 greater than or equal to 2?",
+                "code": "(r.expr(2) >= 2).run"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "tag": "lt",
+        "description": "Test if the first value is less than other",
+        "parent": "json",
+        "returns": "bool",
+        "langs": {
+          "js": {
+            "name": "lt",
+            "body": "other",
+            "examples" : [
+              {
+                "description": "Is 2 less than 2?",
+                "code": "r.expr(2).lt(2).run()"
+              }
+            ]
+          },
+          "py": {
+            "name": "<",
+            "body": "other",
+            "examples" : [
+              {
+                "description": "Is 2 less than 2?",
+                "code": "(r.expr(2) < 2).run()"
+              }
+            ]
+          },
+          "rb": {
+            "name": "<",
+            "body": "other",
+            "examples" : [
+              {
+                "description": "Is 2 less than 2?",
+                "code": "(r.expr(2) < 2).run"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "tag": "le",
+        "description": "Test if the first value is less than or equal to other",
+        "parent": "json",
+        "returns": "bool",
+        "langs": {
+          "js": {
+            "name": "le",
+            "body": "other",
+            "examples" : [
+              {
+                "description": "Is 2 less than or equal to 2?",
+                "code": "r.expr(2).le(2).run()"
+              }
+            ]
+          },
+          "py": {
+            "name": "<=",
+            "body": "other",
+            "examples" : [
+              {
+                "description": "Is 2 less than or equal to 2?",
+                "code": "(r.expr(2) <= 2).run()"
+              }
+            ]
+          },
+          "rb": {
+            "name": "<=",
+            "body": "other",
+            "examples" : [
+              {
+                "description": "Is 2 less than or equal to 2?",
+                "code": "(r.expr(2) <= 2).run"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "tag": "not",
+        "description": "Compute the logical inverse",
+        "parent": "json",
+        "returns": "bool",
+        "langs": {
+          "js": {
+            "name": "not",
+            "body": "",
+            "examples" : [
+              {
+                "description": "This is all pretty self explanatory really",
+                "code": "r.expr(true).not().run()"
+              }
+            ]
+          },
+          "py": {
+            "name": "~",
+            "body": "",
+            "examples" : [
+              {
+                "description": "This is all pretty self explanatory really",
+                "code": "(~r.expr(true)).run()"
+              }
+            ]
+          },
+          "rb": {
+            "name": "not",
+            "body": "",
+            "examples" : [
+              {
+                "description": "This is all pretty self explanatory really",
+                "code": "r.expr(true).not.run"
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "tag": "control",
+    "name": "Control Structures",
+    "description": "These commands provide basic control structures for the composition of complex queries",
+    "commands": [
+      {
+        "tag": "let",
+        "description": "Bind a value to a variable",
+        "parent": "r",
+        "returns": "query",
+        "langs": {
+          "js": {
+            "name": "let",
+            "body": "bindings, inExpr",
+            "examples" : [
+              {
+                "description": "The object passed to let specifies variable names and values to bind to them. The second argument is the expression to evalate in the context of the bindings.",
+                "code": "r.let({ironman: r.table('marvel').get('IronMan')}, r.letVar('ironman')('name')).run()"
+              }
+            ]
+          },
+          "py": {
+            "name": "let",
+            "body": "bindings, in_expr",
+            "examples" : [
+              {
+                "description": "The object passed to let specifies variable names and values to bind to them. The second argument is the expression to evalate in the context of the bindings.",
+                "code": "r.let({'ironman': r.table('marvel').get('IronMan')}, r.let_var('ironman')['name']).run()"
+              }
+            ]
+          },
+          "rb": {
+            "name": "let",
+            "body": "bindings, in_expr",
+            "examples" : [
+              {
+                "description": "The object passed to let specifies variable names and values to bind to them. The second argument is the expression to evalate in the context of the bindings.",
+                "code": "r.let({:ironman => r.table('marvel').get('IronMan')}, r.let_var('ironman')['name']).run"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "tag": "letvar",
+        "description": "Reference a RQL variable",
+        "parent": "r",
+        "returns": "json",
+        "langs": {
+          "js": {
+            "name": "letVar",
+            "body": "varName",
+            "examples" : [
+              {
+                "description": "Use letVar to reference the name previously bound in an outer let expression",
+                "code": "r.let({ironman: r.table('marvel').get('IronMan')}, r.letVar('ironman')('name')).run()"
+              }
+            ]
+          },
+          "py": {
+            "name": "let_var",
+            "body": "var_name",
+            "examples" : [
+              {
+                "description": "Use let_var to reference the name previously bound in an outer let expression",
+                "code": "r.let({'ironman': r.table('marvel').get('IronMan')}, r.let_var('ironman')['name']).run()"
+              }
+            ]
+          },
+          "rb": {
+            "name": "let_var",
+            "body": "var_name",
+            "examples" : [
+              {
+                "description": "Use let_var to reference the name previously bound in an outer let expression",
+                "code": "r.let({:ironman => r.table('marvel').get('IronMan')}, r.let_var('ironman')['name']).run"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "tag": "branch",
+        "description": "Evaluate one of two control paths based on the value of an expression",
+        "parent": "r",
+        "returns": "r",
+        "langs": {
+          "js": {
+            "name": "branch",
+            "body": "test, trueBranch, falseBranch",
+            "examples" : [
+              {
+                "description": "Return the manlier of two heros",
+                "code": "r.let({ironman: r.table('marvel').get('IronMan'), thor: r.table('marvel').get('Thor')},\n r.branch(r.letVar('ironman')('manliness').gt(r.letVar('thor')('manliness')),\n  r.letVar('ironman'),\n  r.letVar('thor')).run()"
+              }
+            ]
+          },
+          "py": {
+            "name": "branch",
+            "body": "test, true_branch, false_branch",
+            "examples" : [
+              {
+                "description": "Return the manlier of two heros",
+                "code": "r.let({'ironman': r.table('marvel').get('IronMan'), 'thor': r.table('marvel').get('Thor')},\n r.branch(r.let_var('ironman')['manliness'] > r.let_var('thor')['manliness'],\n  r.let_var('ironman'),\n  r.let_var('thor')).run()"
+              }
+            ]
+          },
+          "rb": {
+            "name": "branch",
+            "body": "test, true_branch, false_branch",
+            "examples" : [
+              {
+                "description": "Return the manlier of two heros",
+                "code": "r.let({:ironman => r.table('marvel').get('IronMan'), :thor => r.table('marvel').get('Thor')},\n r.branch(r.let_var(:ironman)['manliness'] > r.let_var('thor')['manliness'],\n  r.let_var(:ironman),\n  r.let_var(:thor)).run"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "tag": "foreach",
+        "description": "Loop over a sequence, evaluating the given write query for each element",
+        "parent": "r",
+        "returns": "r",
+        "langs": {
+          "js": {
+            "name": "forEach",
+            "body": "queryFunction",
+            "examples" : [
+              {
+                "description": "Now that our heros have defedated their villians, we can safely remove them from the villian table",
+                "code": "r.table('marvel').forEach(function(hero) {\n return r.table('villians').get(hero('villianDefeated')).del();\n}).run()"
+              }
+            ]
+          },
+          "py": {
+            "name": "for_each",
+            "body": "query_function",
+            "examples" : [
+              {
+                "description": "Now that our heros have defedated their villians, we can safely remove them from the villian table",
+                "code": "r.table('marvel').for_each(lambda hero: r.table('villians').get(hero['villianDefeated']).delete()).run()"
+              }
+            ]
+          },
+          "rb": {
+            "name": "for_each",
+            "body": "query_function",
+            "examples" : [
+              {
+                "description": "Now that our heros have defedated their villians, we can safely remove them from the villian table",
+                "code": "r.table('marvel').for_each({|hero|\n r.table('villians').get(hero['villianDefeated']).delete\n}).run"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "tag": "error",
+        "description": "Throw a runtime error",
+        "parent": "r",
+        "returns": "error",
+        "langs": {
+          "js": {
+            "name": "error",
+            "body": "message",
+            "examples" : [
+              {
+                "description": "Iron Man can't possibly have lost a battle",
+                "code": "r.let({ironman: r.table('marvel').get('IronMan')},\n r.branch(r.letVar('ironman')('victories').lt(r.letVar('ironman')('battles')),\n  r.error('impossible code path'),\n  r.letVar('ironman')\n)).run()"
+              }
+            ]
+          },
+          "py": {
+            "name": "error",
+            "body": "message",
+            "examples" : [
+              {
+                "description": "Iron Man can't possibly have lost a battle",
+                "code": "r.let('ironman': r.table('marvel').get('IronMan')},\n r.branch(r.let_var('ironman')['victories'] < r.letVar(:ironman)['battles'],\n  r.error('impossible code path'),\n  r.let_var('ironman')\n)).run()"
+              }
+            ]
+          },
+          "rb": {
+            "name": "error",
+            "body": "message",
+            "examples" : [
+              {
+                "description": "Iron Man can't possibly have lost a battle",
+                "code": "r.let(:ironman => r.table('marvel').get('IronMan')},\n r.branch(r.let_var('ironman')['victories'] < r.letVar(:ironman)['battles'],\n  r.error('impossible code path'),\n  r.let_var('ironman')\n)).run"
+              }
+            ]
+          }
+        }
+      }
+    ]
   }
 ]
