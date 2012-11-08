@@ -579,6 +579,11 @@ ASSET_SCRIPTS:=$(ASSETS_DIR)/scripts/rdb_migrate
 INIT_SCRIPTS:=$(ASSETS_DIR)/init/rethinkdb
 
 UBRELEASE?=precise
+ifeq ($(shell echo $(UBRELEASE) | grep '^[p-zP-Z]'),)
+NODEJS_NEW?=0
+else
+NODEJS_NEW?=1
+endif
 
 CXXFLAGS+=-DMIGRATION_SCRIPT_LOCATION=\"$(scripts_dir)/rdb_migrate\"
 
@@ -678,6 +683,7 @@ build-deb-src-control:
 				-D "TRIAL=$(TRIAL)"																			\
 				-D "DISK_SIZE=$${disk_size}"														\
 				-D "SOURCEBUILD=1" \
+				-D "NODEJS_NEW=$(NODEJS_NEW)" \
 			../packaging/$(DEBIAN_PKG_DIR)/control > ../debian/control
 # Copy {pre,post}{inst,rm} scripts
 	$(QUIET) for script in preinst postinst prerm postrm; do		                  		\
@@ -743,6 +749,7 @@ build-deb: all prepare_deb_package_dirs
 				-D "TRIAL=$(TRIAL)"																			\
 				-D "DISK_SIZE=$${disk_size}"														\
 				-D "SOURCEBUILD=0" \
+				-D "NODEJS_NEW=$(NODEJS_NEW)" \
 			../packaging/$(DEBIAN_PKG_DIR)/control >$(DEB_CONTROL_ROOT)/control
 
 # Copy the license file.
@@ -752,7 +759,7 @@ build-deb: all prepare_deb_package_dirs
 	$(QUIET) fakeroot dpkg-deb -b $(DEB_PACKAGE_DIR) $(PACKAGES_DIR)
 
 deb: prepare_deb_package_dirs
-# We have disabled building of stripped debs for now.
+# We have disabled building of unstripped debs for now.
 # $(QUIET) $(MAKE) STRIP_ON_INSTALL=0 RETHINKDB_PACKAGING_VERSION=$(RETHINKDB_VERSION)-unstripped build-deb
 	$(QUIET) $(MAKE) STRIP_ON_INSTALL=1 RETHINKDB_PACKAGING_VERSION=$(RETHINKDB_VERSION) WEBRESDIR=$(web_res_dir) BUILD_DRIVERS=0 build-deb
 
