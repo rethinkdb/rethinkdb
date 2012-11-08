@@ -1,7 +1,9 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
-#define __STDC_FORMAT_MACROS
-
 #include "serializer/log/lba/in_memory_index.hpp"
+
+#ifndef __STDC_FORMAT_MACROS
+#define __STDC_FORMAT_MACROS
+#endif
 
 #include <inttypes.h>
 
