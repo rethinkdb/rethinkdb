@@ -85,24 +85,8 @@ public:
     /* Serializer configuration. dynamic_config_t is everything that can be changed from run
     to run; static_config_t is the parameters that are set when the database is created and
     cannot be changed after that. */
-    typedef log_serializer_private_dynamic_config_t private_dynamic_config_t;
     typedef log_serializer_dynamic_config_t dynamic_config_t;
     typedef log_serializer_static_config_t static_config_t;
-
-    struct log_serializer_config_t {
-        dynamic_config_t dynamic_config;
-        private_dynamic_config_t private_dynamic_config;
-        static_config_t static_config;
-
-        explicit log_serializer_config_t(const std::string& file_name)
-            : private_dynamic_config(file_name)
-        { }
-
-        log_serializer_config_t() { }
-        RDB_MAKE_ME_SERIALIZABLE_3(dynamic_config, private_dynamic_config, static_config);
-    };
-
-    typedef log_serializer_config_t config_t;
 
 public:
 
