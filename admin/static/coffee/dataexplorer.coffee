@@ -64,6 +64,8 @@ module 'DataExplorerView', ->
             for group in data
                 for command in group['commands']
                     tag = command['langs']['js']['name']
+                    if tag is '()'
+                        continue
                     if tag is 'r'
                         full_tag = tag # Here full_tag is just the name of the tag
                         @descriptions[tag] =
