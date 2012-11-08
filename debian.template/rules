@@ -15,10 +15,10 @@ clean:
 install: build
 	dh_clean
 	dh_installdirs
-	$(MAKE) DEBUG=$(DEBUG) AUTOCHAIN=$(AUTOCHAIN) prefix=/usr DESTDIR=$(CURDIR)/debian/$(package) FORCEVERSION=1 PVERSION=$(PVERSION) install
+	$(MAKE) DEBUG=$(DEBUG) AUTOCHAIN=$(AUTOCHAIN) prefix=/usr DESTDIR=$(CURDIR)/debian/$(package) FORCEVERSION=1 PVERSION=$(PVERSION) BUILD_DRIVERS=0 install
 
 build:
-	$(MAKE) DEBUG=$(DEBUG) AUTOCHAIN=$(AUTOCHAIN) prefix=/usr DESTDIR=$(CURDIR)/debian/$(package) FORCEVERSION=1 PVERSION=$(PVERSION)
+	$(MAKE) DEBUG=$(DEBUG) AUTOCHAIN=$(AUTOCHAIN) prefix=/usr DESTDIR=$(CURDIR)/debian/$(package) FORCEVERSION=1 PVERSION=$(PVERSION) BUILD_DRIVERS=0
 	touch build
 
 binary-indep: install

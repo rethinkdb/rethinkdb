@@ -129,7 +129,15 @@ CXX:=icc
 endif
 endif
 
-
+# We assemble path directives.
+LDPATHDS:=
+CXXPATHDS:=
+CPATHDS:=
+ifeq ($(V8CHAIN),1)
+LDPATHDS+= -L ../external/v8/out/native/obj.target/tools/gyp
+CXXPATHDS+= -I ../external/v8/include
+CPATHDS+= -I ../external/v8/include
+endif
 
 ifeq ($(COMPILER),CLANG)
 LDFLAGS:=-Wl,--no-as-needed 
@@ -137,7 +145,7 @@ ifeq ($(STATICFORCE),1)
 LDFLAGS+= -static
 STATIC_LIBGCC=1
 endif
-LDFLAGS+=-pthread -lrt -lstdc++ -lm -lv8
+LDFLAGS+=$(LDPATHDS) -pthread -lrt -lstdc++ -lm -lv8
 else
 ifeq ($(COMPILER),INTEL)
 LDFLAGS:= -B/opt/intel/bin 
@@ -145,7 +153,7 @@ ifeq ($(STATICFORCE),1)
 LDFLAGS+= -static
 STATIC_LIBGCC=1
 endif
-LDFLAGS+=-pthread -lrt -lstdc++ -lv8 
+LDFLAGS+=$(LDPATHDS) -pthread -lrt -lstdc++ -lv8 
 else
 # GCC
 LDFLAGS:=-Wl,--no-as-needed 
@@ -153,7 +161,7 @@ ifeq ($(STATICFORCE),1)
 LDFLAGS+= -static
 STATIC_LIBGCC=1
 endif
-LDFLAGS+=-pthread -lrt -lv8
+LDFLAGS+=$(LDPATHDS) -pthread -lrt -lv8
 endif
 endif
 
@@ -165,7 +173,7 @@ STATIC_LIBRARIES:=boost_serialization protobuf boost_program_options
 
 CXXFLAGS?=
 
-CXXFLAGS+=-I$(SOURCE_DIR) -pthread
+CXXFLAGS+=-I$(SOURCE_DIR) $(CXXPATHDS) -pthread
 CXXFLAGS+="-DPRODUCT_NAME=\"$(PRODUCT_NAME)\""
 
 ifeq ($(SOLO),1)
@@ -486,7 +494,7 @@ else
 TC_LESSC_EXE:=$(shell which lessc || true)
 endif
 ifeq ($(shell which coffee || true),)
-TC_COFFEE_EXE:=$(BUILD_DIR)/toolchain/node_modules/less/bin/coffee	
+TC_COFFEE_EXE:=$(BUILD_DIR)/toolchain/node_modules/coffee/bin/coffee	
 else
 TC_COFFEE_EXE:=$(shell which coffee || true)
 endif
