@@ -1,14 +1,14 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 DEBUG?=0
 CXXFLAGS=-Wall -pg -g -DUSE_UCONTEXT -DNDEBUG=1
-LDFLAGS=-Wall -rdynamic -lrt -laio -pg -g -lgsl -lgslcblas -pthread -lv8 -lcrypto
+LDFLAGS=-Wall -rdynamic -lrt -laio -pg -g -pthread -lv8 -lcrypto
 OBJDIR:=../../build/release/obj
 #STATIC_LIBRARIES:=boost_serialization protobuf boost_program_options
 STATIC_LIBRARIES:=protobuf boost_program_options
 EXTERNAL_SOURCE_DIR:=/usr/src/rethinkdb_lib_external
 
 # look for the static library in the same directory as the .so file
-STATIC_LIBRARY_PATHS:=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }')) $(EXTERNAL_SOURCE_DIR)/WebKit/WebKitBuild/Release/JavaScriptCore/release/libjscore.a
+STATIC_LIBRARY_PATHS:=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }'))
 
 serializer-bench: main.cc Makefile
 	cd ../../src && make DEBUG=0 -j8

@@ -86,6 +86,8 @@ private:
             typename master_business_card_t<protocol_t>::request_t,
             typename master_business_card_t<protocol_t>::inner_client_business_card_t
             > multi_throttling_client;
+
+    DISABLE_COPYING(master_access_t);
 };
 
 #endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_MASTER_ACCESS_HPP_ */

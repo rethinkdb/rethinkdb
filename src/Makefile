@@ -129,7 +129,15 @@ CXX:=icc
 endif
 endif
 
-
+# We assemble path directives.
+LDPATHDS:=
+CXXPATHDS:=
+CPATHDS:=
+ifeq ($(V8CHAIN),1)
+LDPATHDS+= -L ../external/v8/out/native/obj.target/tools/gyp
+CXXPATHDS+= -isystem ../external/v8/include
+CPATHDS+= -isystem ../external/v8/include
+endif
 
 ifeq ($(COMPILER),CLANG)
 LDFLAGS:=-Wl,--no-as-needed 
@@ -137,7 +145,7 @@ ifeq ($(STATICFORCE),1)
 LDFLAGS+= -static
 STATIC_LIBGCC=1
 endif
-LDFLAGS+=-pthread -lrt -lstdc++ -lm -lv8
+LDFLAGS+=$(LDPATHDS) -pthread -lrt -lstdc++ -lm -lv8
 else
 ifeq ($(COMPILER),INTEL)
 LDFLAGS:= -B/opt/intel/bin 
@@ -145,7 +153,7 @@ ifeq ($(STATICFORCE),1)
 LDFLAGS+= -static
 STATIC_LIBGCC=1
 endif
-LDFLAGS+=-pthread -lrt -lstdc++ -lv8 
+LDFLAGS+=$(LDPATHDS) -pthread -lrt -lstdc++ -lv8 
 else
 # GCC
 LDFLAGS:=-Wl,--no-as-needed 
@@ -153,8 +161,12 @@ ifeq ($(STATICFORCE),1)
 LDFLAGS+= -static
 STATIC_LIBGCC=1
 endif
-LDFLAGS+=-pthread -lrt -lv8
+LDFLAGS+=$(LDPATHDS) -pthread -lrt -lv8
 endif
+endif
+
+ifeq ($(V8CHAIN),1)
+LDFLAGS+= -lv8_base -lv8_snapshot
 endif
 
 ifeq ($(LIBCRYPTO),1)
@@ -165,7 +177,7 @@ STATIC_LIBRARIES:=boost_serialization protobuf boost_program_options
 
 CXXFLAGS?=
 
-CXXFLAGS+=-I$(SOURCE_DIR) -pthread
+CXXFLAGS+=-I$(SOURCE_DIR) $(CXXPATHDS) -pthread
 CXXFLAGS+="-DPRODUCT_NAME=\"$(PRODUCT_NAME)\""
 
 ifeq ($(SOLO),1)
@@ -478,15 +490,18 @@ else
 SERVER_EXEC_NAME_VERSIONED:=$(SERVER_EXEC_NAME)
 endif
 
+SUPPORT_DIR:=../support
 AUTOCHAIN?=0
+TC_LESSC_INT_EXE:=$(SUPPORT_DIR)/toolchain/node_modules/less/bin/lessc
+TC_COFFEE_INT_EXE:=$(SUPPORT_DIR)/toolchain/node_modules/coffee-script/bin/coffee
 ifeq ($(AUTOCHAIN),1)
 ifeq ($(shell which lessc || true),)
-TC_LESSC_EXE:=$(BUILD_DIR)/toolchain/node_modules/less/bin/lessc	
+TC_LESSC_EXE:=$(TC_LESSC_INT_EXE)	
 else
 TC_LESSC_EXE:=$(shell which lessc || true)
 endif
 ifeq ($(shell which coffee || true),)
-TC_COFFEE_EXE:=$(BUILD_DIR)/toolchain/node_modules/less/bin/coffee	
+TC_COFFEE_EXE:=$(TC_COFFEE_INT_EXE)
 else
 TC_COFFEE_EXE:=$(shell which coffee || true)
 endif
@@ -496,7 +511,7 @@ TC_COFFEE_EXE:=$(shell which coffee || true)
 endif
 
 ##### Build targets
-.PHONY: all build-deb build-rpm callgrind callgrind clean cscope deb deb depclean drivers etags gdb install install-binaries install-deb install-docs install-manpages install-rpm install-tools prepare_deb_package_dirs prepare_rpm_package_dirs regdb rerun revalgrind rpm rpm rpm-suse10 run sembuild showdefines style tags unit valgrind web-assets coffeelint build-deb-src-control
+.PHONY: all build-deb build-rpm callgrind callgrind clean cscope deb deb depclean drivers etags gdb install install-binaries install-deb install-docs install-manpages install-rpm install-tools prepare_deb_package_dirs prepare_rpm_package_dirs regdb rerun revalgrind rpm rpm rpm-suse10 run sembuild showdefines style tags unit valgrind web-assets coffeelint build-deb-src-control build-deb-support
 
 # High level build targets
 
@@ -643,6 +658,7 @@ install-deb: install
 
 DebianV8Version:=$(shell apt-cache show libv8-dev | grep '^Version:' | sed -e 's/^Version: \\([0-9]*\\(\\.[0-9]*\\)*\\).*$$/\\1/g' || true ; )
 
+build-deb-support: $(TC_LESSC_INT_EXE) $(TC_COFFEE_INT_EXE)
 
 build-deb-src-control:
 	$(QUIET) cd .. ; if [ -e debian ] ; then rm -rf debian ; fi ; cp -pRP debian.template debian ; env UBRELEASE=$(UBRELEASE) PACKAGE_NAME=$(PACKAGE_NAME) VERSIONED_PACKAGE_NAME=$(VERSIONED_PACKAGE_NAME) VANILLA_PACKAGE_NAME=$(VANILLA_PACKAGE_NAME) PACKAGE_VERSION=$(RETHINKDB_VERSION_DEB) ./scripts/gen-changelog.sh ;
@@ -900,14 +916,14 @@ ifeq ($(VERBOSE),0)
 endif
 	$(QUIET) cat $+ > $@ || ( echo "      Build failure." ; rm $@ ; false ; )
 
-$(WEB_ASSETS_BUILD_DIR)/cluster-min.js: $(TC_COFFEE_EXE) $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee
+$(WEB_ASSETS_BUILD_DIR)/cluster-min.js: $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
 ifeq ($(VERBOSE),0)
 	@echo "    COFFEE $@"
 endif
 	$(QUIET) $(TC_COFFEE_EXE) -bp --stdio < $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee > $@ || ( echo "      Build failure." ; rm $@ ; false ; )
 
-$(WEB_ASSETS_BUILD_DIR)/cluster.css: $(LESS_MAIN) $(TC_LESSC_EXE)
+$(WEB_ASSETS_BUILD_DIR)/cluster.css: $(LESS_MAIN)
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
 ifeq ($(VERBOSE),0)
 	@echo "    LESSC $@"
@@ -1137,19 +1153,23 @@ endif
 
 # Note that this assumes that its locations match those earlier in the Makefile. If you change TC_LESSC_EXE, you probably ought to change these as well .
 
-$(TC_LESSC_EXE): $(BUILD_DIR)
-ifeq ($(AUTOCHAIN),1)
-ifeq ($(shell npm list --global --parseable | grep '\/less$$'),)
-	if [ -d $(BUILD_DIR) ] && [ ! -e $(BUILD_DIR)/toolchain ] ; then mkdir -p $(BUILD_DIR)/toolchain ; fi ;
-	cd $(BUILD_DIR)/toolchain ; npm install less ;
-endif
-endif
+$(TC_LESSC_INT_EXE): $(SUPPORT_DIR)
+# ifeq ($(AUTOCHAIN),1)
+# ifeq ($(shell npm list --global --parseable | grep '\/less$$'),)
+# We must do this either way now.
+	if [ -d $(SUPPORT_DIR) ] && [ ! -e $(SUPPORT_DIR)/toolchain ] ; then mkdir -p $(SUPPORT_DIR)/toolchain ; fi ;
+	cd $(SUPPORT_DIR)/toolchain ; npm install less ;
+# endif
+# endif
 
-$(TC_COFFEE_EXE): $(BUILD_DIR)
-ifeq ($(AUTOCHAIN),1)
-ifeq ($(shell npm list --global --parseable | grep '\/coffee-script$$'),)
-	if [ -d $(BUILD_DIR) ] && [ ! -e $(BUILD_DIR)/toolchain ] ; then mkdir -p $(BUILD_DIR)/toolchain ; fi ;
-	cd $(BUILD_DIR)/toolchain ; npm install coffee-script ;
-endif
-endif
+$(TC_COFFEE_INT_EXE): $(SUPPORT_DIR)
+# ifeq ($(AUTOCHAIN),1)
+# ifeq ($(shell npm list --global --parseable | grep '\/coffee-script$$'),)
+	if [ -d $(SUPPORT_DIR) ] && [ ! -e $(SUPPORT_DIR)/toolchain ] ; then mkdir -p $(SUPPORT_DIR)/toolchain ; fi ;
+	cd $(SUPPORT_DIR)/toolchain ; npm install coffee-script ;
+# endif
+# endif
+
+$(SUPPORT_DIR):
+	mkdir -p $(SUPPORT_DIR) ;
 
