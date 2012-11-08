@@ -66,7 +66,7 @@ class Metacluster(object):
         assert not self.closed
         self.closed = True
         while self.clusters:
-            iter(self.clusters).next().close()
+            iter(self.clusters).next().check_and_stop()
         self.clusters = None
         shutil.rmtree(self.dbs_path)
 
@@ -128,22 +128,16 @@ class Cluster(object):
     def check_and_stop(self):
         """First checks that each process in the cluster is still running, then
         stops them by sending SIGINT. Throws an exception if any exit with a
-        nonzero exit code. Also makes the cluster object invalid, like
-        `close()`. """
+        nonzero exit code. Also makes the cluster object invalid """
         try:
             while self.processes:
                 iter(self.processes).next().check_and_stop()
         finally:
-            self.close()
-
-    def close(self):
-        """Kills every process in the cluster (that is still running) and
-        makes the `Cluster` object invalid."""
-        assert self.metacluster is not None
-        while self.processes:
-            iter(self.processes).next().close()
-        self.metacluster.clusters.remove(self)
-        self.metacluster = None
+            assert self.metacluster is not None
+            while self.processes:
+                iter(self.processes).next().close()
+            self.metacluster.clusters.remove(self)
+            self.metacluster = None
 
     def _block_process(self, process):
         assert process not in self.processes
