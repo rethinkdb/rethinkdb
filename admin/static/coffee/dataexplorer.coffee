@@ -81,7 +81,11 @@ module 'DataExplorerView', ->
                     @map_state[tag] = command['returns']
 
             # Deep copy of suggestions
-            @suggestions = _.extend @suggestions, suggestions
+            for group of suggestions
+                @suggestions[group] = []
+                for suggestion in suggestions[group]
+                    @suggestions[group].push suggestion
+            
             relations = data['types']
 
             # For each element, we add its parent's functions to it suggestions
