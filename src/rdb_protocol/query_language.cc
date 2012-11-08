@@ -1116,12 +1116,12 @@ void execute_query(Query *q, runtime_environment_t *env, Response *res, const sc
     } break; //status set in [execute_write_query]
     case Query::CONTINUE: {
         if (!stream_cache->serve(q->token(), res, env->interruptor)) {
-            throw runtime_exc_t(strprintf("Could not serve key %ld from stream cache.", q->token()), backtrace);
+            throw runtime_exc_t(strprintf("Could not serve key %lld from stream cache.", (long long int)q->token()), backtrace);
         }
     } break; //status set in [serve]
     case Query::STOP: {
         if (!stream_cache->contains(q->token())) {
-            throw broken_client_exc_t(strprintf("No key %ld in stream cache.", q->token()));
+            throw broken_client_exc_t(strprintf("No key %lld in stream cache.", (long long int)q->token()));
         } else {
             res->set_status_code(Response::SUCCESS_EMPTY);
             stream_cache->erase(q->token());
@@ -1150,7 +1150,7 @@ void execute_read_query(ReadQuery *r, runtime_environment_t *env, Response *res,
         boost::shared_ptr<json_stream_t> stream = eval_term_as_stream(r->mutable_term(), env, scopes, backtrace);
         int64_t key = res->token();
         if (stream_cache->contains(key)) {
-            throw runtime_exc_t(strprintf("Token %ld already in stream cache, use CONTINUE.", key), backtrace);
+            throw runtime_exc_t(strprintf("Token %lld already in stream cache, use CONTINUE.", (long long int)key), backtrace);
         } else {
             stream_cache->insert(r, key, stream);
         }
