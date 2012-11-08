@@ -492,9 +492,11 @@ endif
 
 SUPPORT_DIR:=../support
 AUTOCHAIN?=0
+ALLOW_INTERNAL_TOOLS?=1
+INSTALL_INTERNAL_TOOLS?=0
 TC_LESSC_INT_EXE:=$(SUPPORT_DIR)/toolchain/node_modules/less/bin/lessc
 TC_COFFEE_INT_EXE:=$(SUPPORT_DIR)/toolchain/node_modules/coffee-script/bin/coffee
-ifeq ($(AUTOCHAIN),1)
+ifeq ($(ALLOW_INTERNAL_TOOLS),1)
 ifeq ($(shell which lessc || true),)
 TC_LESSC_EXE:=$(TC_LESSC_INT_EXE)	
 else
@@ -1154,21 +1156,21 @@ endif
 # Note that this assumes that its locations match those earlier in the Makefile. If you change TC_LESSC_EXE, you probably ought to change these as well .
 
 $(TC_LESSC_INT_EXE): $(SUPPORT_DIR)
-# ifeq ($(AUTOCHAIN),1)
+ifeq ($(INSTALL_INTERNAL_TOOLS),1)
 # ifeq ($(shell npm list --global --parseable | grep '\/less$$'),)
 # We must do this either way now.
 	if [ -d $(SUPPORT_DIR) ] && [ ! -e $(SUPPORT_DIR)/toolchain ] ; then mkdir -p $(SUPPORT_DIR)/toolchain ; fi ;
 	cd $(SUPPORT_DIR)/toolchain ; npm install less ;
 # endif
-# endif
+endif
 
 $(TC_COFFEE_INT_EXE): $(SUPPORT_DIR)
-# ifeq ($(AUTOCHAIN),1)
+ifeq ($(INSTALL_INTERNAL_TOOLS),1)
 # ifeq ($(shell npm list --global --parseable | grep '\/coffee-script$$'),)
 	if [ -d $(SUPPORT_DIR) ] && [ ! -e $(SUPPORT_DIR)/toolchain ] ; then mkdir -p $(SUPPORT_DIR)/toolchain ; fi ;
 	cd $(SUPPORT_DIR)/toolchain ; npm install coffee-script ;
 # endif
-# endif
+endif
 
 $(SUPPORT_DIR):
 	mkdir -p $(SUPPORT_DIR) ;
