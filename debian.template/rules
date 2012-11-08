@@ -24,8 +24,8 @@ build:
 binary-indep: install
 
 binary-arch: install
-	dh_installdocs -a NEWS
-	dh_installchangelogs -a ChangeLog
+	dh_installdocs -a
+	dh_installchangelogs -a
 	dh_strip -a
 	dh_compress -a
 	dh_fixperms -a
