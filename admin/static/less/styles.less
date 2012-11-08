@@ -1082,9 +1082,11 @@ TODO: retire this
                     display: inline-block;
                     margin: 5px 0px;
                     padding: 0px 5px;
-                    min-width: 97px;
-                    min-height: 18px;
+                    width: 132px;
+                    height: 18px;
                     cursor: pointer;
+                    text-overflow: ellipsis;
+
                 }
                 .suggestion_name_li_hl{ color: #005388; }
             }
@@ -1100,6 +1102,12 @@ TODO: retire this
                 word-wrap: break-word;
                 .border-radius(4px);
                 .box-shadow(~"inset 0 -6px 6px -6px #ddd;");
+                .separation{
+                    height: 1px;
+                    border-top: 1px solid #dadada;
+                    margin: 3px auto;
+                    width: 300px;
+                }
                 p{
                     font-family: @monospace;
                     margin: 3px 0px;
