@@ -493,7 +493,7 @@ endif
 SUPPORT_DIR:=../support
 AUTOCHAIN?=0
 TC_LESSC_INT_EXE:=$(SUPPORT_DIR)/toolchain/node_modules/less/bin/lessc
-TC_COFFEE_INT_EXE:=$(SUPPORT_DIR)/toolchain/node_modules/coffee/bin/coffee
+TC_COFFEE_INT_EXE:=$(SUPPORT_DIR)/toolchain/node_modules/coffee-script/bin/coffee
 ifeq ($(AUTOCHAIN),1)
 ifeq ($(shell which lessc || true),)
 TC_LESSC_EXE:=$(TC_LESSC_INT_EXE)	
