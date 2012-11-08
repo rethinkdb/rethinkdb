@@ -141,7 +141,7 @@ private:
         send(mailbox_manager, intro_promise.wait().relinquish_tickets_addr, count);
     }
 
-    mailbox_manager_t *mailbox_manager;
+    mailbox_manager_t *const mailbox_manager;
 
     promise_t<server_business_card_t> intro_promise;
 
