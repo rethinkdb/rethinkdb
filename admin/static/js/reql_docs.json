@@ -21,6 +21,9 @@
     "table": {
       "parent": "selection"
     },
+    "db": {
+      "parent": null
+    },
     "json": {
       "parent": "query",
       "children": [
@@ -103,7 +106,7 @@
           "tag" : "db_create",
           "description": "Create a database. A RethinkDB database is a collection of tables, similar to relational databases.",
           "parent": "r",
-          "returns": null,
+          "returns": "query",
           "langs": {
             "js": {
               "name": "dbCreate",
@@ -141,7 +144,7 @@
           "tag": "db_drop",
           "description": "Drop a database. The database, all its tables, and corresponding data will be deleted.",
           "parent": "r",
-          "returns": null,
+          "returns": "query",
           "langs": {
             "js": {
               "name": "dbDrop",
@@ -179,7 +182,7 @@
           "tag": "db_list",
           "description": "List all database names in the system.",
           "parent": "r",
-          "returns": null,
+          "returns": "query",
           "langs": {
             "js": {
               "name": "dbList",
@@ -224,7 +227,7 @@
           "tag": "table_create",
           "description": "Create a table. A RethinkDB table is a collection of JSON documents.",
           "parent": "db",
-          "returns": null,
+          "returns": "query",
           "langs": {
             "js": {
               "name": "tableCreate",
@@ -262,7 +265,7 @@
           "tag": "table_drop",
           "description": "Drop a table. The table and all its rows will be deleted.",
           "parent": "db",
-          "returns": null,
+          "returns": "query",
           "langs": {
             "js": {
               "name": "tableDrop",
@@ -300,7 +303,7 @@
           "tag": "table_list",
           "description": "List all table names in the system.",
           "parent": "db",
-          "returns": null,
+          "returns": "query",
           "langs": {
             "js": {
               "name": "tableList",
@@ -345,7 +348,7 @@
           "tag": "insert",
           "description": "Insert JSON documents into a table. Accepts a single JSON document or an array of documents.",
           "parent": "table",
-          "returns": null,
+          "returns": "query",
           "langs": {
             "js": {
               "name": "insert",
@@ -392,7 +395,7 @@
           "tag": "update",
           "description": "Update JSON documents in a table. Accepts a JSON document, a ReQL expression, or a combination of the two.",
           "parent": "selection",
-          "returns": null,
+          "returns": "query",
           "langs": {
             "js": {
               "name": "update",
@@ -439,7 +442,7 @@
           "tag": "replace",
           "description": "Replace documents in a table. Accepts a JSON document or a ReQL expression, and replaces the original\ndocument with the new one. The new document must have the same primary key as the original document.",
           "parent": "selection",
-          "returns": null,
+          "returns": "query",
           "langs": {
             "js": {
               "name": "replace",
@@ -477,7 +480,7 @@
           "tag": "delete",
           "description": "Delete one or more documents from a table.",
           "parent": "selection",
-          "returns": null,
+          "returns": "query",
           "langs": {
             "js": {
               "name": "del",
@@ -527,6 +530,44 @@
       "name": "Selecting data",
       "description": "These commands allow searching for data in the database.",
       "commands": [
+        {
+          "tag": "db",
+          "description": "Reference a database",
+          "parent": "r",
+          "returns": "db",
+          "langs": {
+            "js": {
+              "name": "db",
+              "body": "dbName",
+              "examples" : [
+                {
+                  "description": "Before we can select the right table we have to select the correct database",
+                  "code": "r.db('heros').table('marvel').run()"
+                }
+              ]
+            },
+            "py": {
+              "name": "db",
+              "body": "db_name",
+              "examples" : [
+                {
+                  "description": "Before we can select the right table we have to select the correct database",
+                  "code": "r.db('heros').table('marvel').run()"
+                }
+              ]
+            },
+            "rb": {
+              "name": "db",
+              "body": "db_name",
+              "examples" : [
+                {
+                  "description": "Before we can select the right table we have to select the correct database",
+                  "code": "r.db('heros').table('marvel').run"
+                }
+              ]
+            }
+          }
+        },
         {
           "tag": "table",
           "description": "Select all documents in a table. This command can be chained with other commands to do further processing on the data.",
@@ -1092,6 +1133,44 @@
           }
         },
         {
+          "tag": "nth",
+          "description": "Get the nth element of a sequence",
+          "parent": "sequence",
+          "returns": "json",
+          "langs": {
+            "js": {
+              "name": "nth",
+              "body": "index",
+              "examples" : [
+                {
+                  "description": "Select the second element in the array",
+                  "code": "r.expr([1,2,3]).nth(1).run()"
+                }
+              ]
+            },
+            "py": {
+              "name": "[]",
+              "body": "index",
+              "examples" : [
+                {
+                  "description": "Select the second element in the array",
+                  "code": "r.expr([1,2,3]).nth(1).run()"
+                }
+              ]
+            },
+            "rb": {
+              "name": "[]",
+              "body": "index",
+              "examples" : [
+                {
+                  "description": "Select the second element in the array",
+                  "code": "r.expr([1,2,3]).nth(1).run"
+                }
+              ]
+            }
+          }
+        },
+        {
           "tag": "pluck",
           "description": "A map that picks just the given attributes from each document in the sequence",
           "parent": "sequence",
@@ -1103,7 +1182,7 @@
               "examples" : [
                 {
                   "description": "For the hero beauty contest we only care about certain qualities",
-                  "code": "r.table('marvel').pluck('beauty', 'mussleTone', 'charm').run()"
+                  "code": "r.table('marvel').pluck('beauty', 'muscleTone', 'charm').run()"
                 }
               ]
             },
@@ -1162,6 +1241,44 @@
                 {
                   "description": "Without their prized weapons, our enemies will quickly be vanquished",
                   "code": "r.table('enemies').without('weapons').run"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "tag": "union",
+          "description": "Concatenate two sequences",
+          "parent": "sequence",
+          "returns": "sequence",
+          "langs": {
+            "js": {
+              "name": "union",
+              "body": "other",
+              "examples" : [
+                {
+                  "description": "Construct a stream of all heros",
+                  "code": "r.table('marvel').union(r.table('dc')).run()"
+                }
+              ]
+            },
+            "py": {
+              "name": "union",
+              "body": "other",
+              "examples" : [
+                {
+                  "description": "Construct a stream of all heros",
+                  "code": "r.table('marvel').union(r.table('dc')).run()"
+                }
+              ]
+            },
+            "rb": {
+              "name": "union",
+              "body": "other",
+              "examples" : [
+                {
+                  "description": "Construct a stream of all heros",
+                  "code": "r.table('marvel').union(r.table('dc')).run"
                 }
               ]
             }
@@ -1375,7 +1492,7 @@
           "tag": "count",
           "description": "Count the total size of the group",
           "parent": "r",
-          "returns": "json",
+          "returns": null,
           "langs": {
             "js": {
               "name": "count",
@@ -1413,7 +1530,7 @@
           "tag": "sum",
           "description": "Compute the sum of the given field in the group",
           "parent": "r",
-          "returns": "json",
+          "returns": null,
           "langs": {
             "js": {
               "name": "sum",
@@ -1451,7 +1568,7 @@
           "tag": "avg",
           "description": "Compute the average value of the given attribute for the group",
           "parent": "r",
-          "returns": "json",
+          "returns": null,
           "langs": {
             "js": {
               "name": "avg",
@@ -1607,6 +1724,44 @@
           }
         },
         {
+          "tag": "append",
+          "description": "Append a value to an array",
+          "parent": "json",
+          "returns": "json",
+          "langs": {
+            "js": {
+              "name": "append",
+              "body": "value",
+              "examples" : [
+                {
+                  "description": "Retreive Iron Man's equipment list with the additon of some new boots",
+                  "code": "r.table('marvel').get('IronMan')('equipment').append('newBoots').run()"
+                }
+              ]
+            },
+            "py": {
+              "name": "append",
+              "body": "value",
+              "examples" : [
+                {
+                  "description": "Retreive Iron Man's equipment list with the additon of some new boots",
+                  "code": "r.table('marvel').get('IronMan')['equipment'].append('newBoots').run()"
+                }
+              ]
+            },
+            "rb": {
+              "name": "append",
+              "body": "value",
+              "examples" : [
+                {
+                  "description": "Retreive Iron Man's equipment list with the additon of some new boots",
+                  "code": "r.table('marvel').get('IronMan')['equipment'].append('newBoots').run"
+                }
+              ]
+            }
+          }
+        },
+        {
           "tag": "getattr",
           "description": "Get a single attribute from an object",
           "parent": "json",
@@ -1743,8 +1898,8 @@
         {
           "tag": "sub",
           "description": "Subtract two numbers",
-          "parent": "json",
-          "returns": "json",
+          "parent": "number",
+          "returns": "number",
           "langs": {
             "js": {
               "name": "sub",
@@ -1781,8 +1936,8 @@
         {
           "tag": "mul",
           "description": "Multiply two numbers",
-          "parent": "json",
-          "returns": "json",
+          "parent": "number",
+          "returns": "number",
           "langs": {
             "js": {
               "name": "mul",
@@ -1819,8 +1974,8 @@
         {
           "tag": "div",
           "description": "Divide two numbers",
-          "parent": "json",
-          "returns": "json",
+          "parent": "number",
+          "returns": "number",
           "langs": {
             "js": {
               "name": "div",
@@ -1857,8 +2012,8 @@
         {
           "tag": "mod",
           "description": "Find the remainder when dividing two numbers",
-          "parent": "json",
-          "returns": "json",
+          "parent": "number",
+          "returns": "number",
           "langs": {
             "js": {
               "name": "mod",
@@ -2321,7 +2476,7 @@
           "tag": "branch",
           "description": "Evaluate one of two control paths based on the value of an expression",
           "parent": "r",
-          "returns": "r",
+          "returns": "query",
           "langs": {
             "js": {
               "name": "branch",
@@ -2359,7 +2514,7 @@
           "tag": "foreach",
           "description": "Loop over a sequence, evaluating the given write query for each element",
           "parent": "r",
-          "returns": "r",
+          "returns": "query",
           "langs": {
             "js": {
               "name": "forEach",
@@ -2397,7 +2552,7 @@
           "tag": "error",
           "description": "Throw a runtime error",
           "parent": "r",
-          "returns": "error",
+          "returns": "query",
           "langs": {
             "js": {
               "name": "error",
@@ -2426,6 +2581,362 @@
                 {
                   "description": "Iron Man can't possibly have lost a battle",
                   "code": "r.let(:ironman => r.table('marvel').get('IronMan')},\n r.branch(r.let_var('ironman')['victories'] < r.letVar(:ironman)['battles'],\n  r.error('impossible code path'),\n  r.let_var('ironman')\n)).run"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "tag": "expr",
+          "description": "Construct a RQL JSON object from a native object",
+          "parent": "r",
+          "returns": "json",
+          "langs": {
+            "js": {
+              "name": "expr",
+              "body": "obj",
+              "examples" : [
+                {
+                  "description": "Objects wrapped with expr can then be manipulated by RQL API functions",
+                  "code": "r.expr({a:'b'}).merge({b:[1,2,3]}).run()"
+                }
+              ]
+            },
+            "py": {
+              "name": "expr",
+              "body": "obj",
+              "examples" : [
+                {
+                  "description": "Objects wrapped with expr can then be manipulated by RQL API functions",
+                  "code": "r.expr({'a':'b'}).merge({'b':[1,2,3]}).run()"
+                }
+              ]
+            },
+            "rb": {
+              "name": "expr",
+              "body": "obj",
+              "examples" : [
+                {
+                  "description": "Objects wrapped with expr can then be manipulated by RQL API functions",
+                  "code": "r.expr({:a => 'b'}).merge({:b => [1,2,3]}).run()"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "tag": "js",
+          "description": "Create a javascript expression",
+          "parent": "r",
+          "returns": "js",
+          "langs": {
+            "js": {
+              "name": "js",
+              "body": "jsString",
+              "examples" : [
+                {
+                  "description": "String concatenation is not otherwise possible in RQL, but with js there are few limits",
+                  "code": "r.js(\"'str1' + 'str2'\").run()"
+                }
+              ]
+            },
+            "py": {
+              "name": "js",
+              "body": "js_string",
+              "examples" : [
+                {
+                  "description": "String concatenation is not otherwise possible in RQL, but with js there are few limits",
+                  "code": "r.js(\"'str1' + 'str2'\").run()"
+                }
+              ]
+            },
+            "rb": {
+              "name": "js",
+              "body": "jsString",
+              "examples" : [
+                {
+                  "description": "String concatenation is not otherwise possible in RQL, but with js there are few limits",
+                  "code": "r.js(\"'str1' + 'str2'\").run"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "tag": "sequenceconversion",
+      "name": "Sequence Conversion",
+      "description": "These commands convert between the two sequence types, stream and arrays",
+      "commands": [
+        {
+          "tag": "streamtoarray",
+          "description": "Converts a stream into an array",
+          "parent": "sequence",
+          "returns": "sequence",
+          "langs": {
+            "js": {
+              "name": "streamToArray",
+              "body": "",
+              "examples" : [
+                {
+                  "description": "References to streams cannot be stored in a variable requiring conversion to an array",
+                  "code": "r.let({heros: r.table('marvel').streamToArray()}, heros).run()"
+                }
+              ]
+            },
+            "py": {
+              "name": "stream_to_array",
+              "body": "",
+              "examples" : [
+                {
+                  "description": "References to streams cannot be stored in a variable requiring conversion to an array",
+                  "code": "r.let({heros: r.table('marvel').stream_to_array()}, heros).run()"
+                }
+              ]
+            },
+            "rb": {
+              "name": "stream_to_array",
+              "body": "",
+              "examples" : [
+                {
+                  "description": "References to streams cannot be stored in a variable requiring conversion to an array",
+                  "code": "r.let({heros: r.table('marvel').stream_to_array}, heros).run"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "tag": "arraytostream",
+          "description": "Converts an array into a stream",
+          "parent": "sequence",
+          "returns": "sequence",
+          "langs": {
+            "js": {
+              "name": "arrayToStream",
+              "body": "",
+              "examples" : [
+                {
+                  "description": "Union requires its operands to be of the same type so we have to convert one to the other",
+                  "code": "r.expr([1,2,3]).arrayToStream().union(r.table('marvel')).run()"
+                }
+              ]
+            },
+            "py": {
+              "name": "stream_to_array",
+              "body": "",
+              "examples" : [
+                {
+                  "description": "References to streams cannot be stored in a variable requiring conversion to an array",
+                  "code": "r.expr([1,2,3]).array_to_stream().union(r.table('marvel')).run()"
+                }
+              ]
+            },
+            "rb": {
+              "name": "stream_to_array",
+              "body": "",
+              "examples" : [
+                {
+                  "description": "References to streams cannot be stored in a variable requiring conversion to an array",
+                  "code": "r.expr([1,2,3]).array_to_stream.union(r.table('marvel')).run"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "tag": "connections",
+      "name": "Connections",
+      "description": "These commands are used to establish and manipulate connections",
+      "commands": [
+        {
+          "tag": "connect",
+          "description": "Create a new connection to the database server",
+          "parent": "r",
+          "returns": "connection",
+          "langs": {
+            "js": {
+              "name": "connect",
+              "body": "host, onConnect, onFailure",
+              "examples" : [
+                {
+                  "description": "Opens a new connection specifying callbacks both for when the connection is successfully established and in case the connection cannot be opened",
+                  "code": "r.connect({host:'localhost', port:28015}, function(conn) {\n ...\n}, {\n throw 'Connect failed';\n})"
+                }
+              ]
+            },
+            "py": {
+              "name": "connect",
+              "body": "host='localhost', port=28015, db_name='test'",
+              "examples" : [
+                {
+                  "description": "Opens a connection using the default host and port but specifying the default database",
+                  "code": "conn = r.connect(db_name='heros')"
+                }
+              ]
+            },
+            "rb": {
+              "name": "connect",
+              "body": "host='localhost', port=28015, default_db='test'",
+              "examples" : [
+                {
+                  "description": "Opens a connection using the default host and port but specifying the default database",
+                  "code": "conn = r.connect(default_db='heros')"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "tag": "close",
+          "description": "Close an open connection",
+          "parent": "connection",
+          "returns": null,
+          "langs": {
+            "js": {
+              "name": "close",
+              "body": "",
+              "examples" : [
+                {
+                  "description": "Close an open connection to cancel outstanding requests and free the memory associated with the open requests",
+                  "code": "conn.close()"
+                }
+              ]
+            },
+            "py": {
+              "name": "close",
+              "body": "",
+              "examples" : [
+                {
+                  "description": "Close an open connection to cancel outstanding requests and free the memory associated with the open requests",
+                  "code": "conn.close()"
+                }
+              ]
+            },
+            "rb": {
+              "name": "close",
+              "body": "",
+              "examples" : [
+                {
+                  "description": "Close an open connection to cancel outstanding requests and free the memory associated with the open requests",
+                  "code": "conn.close"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "tag": "reconnect",
+          "description": "Close and attempt to reopen a connection. Has the effect of canceling any outstanding request while keeping the connection open",
+          "parent": "connection",
+          "returns": null,
+          "langs": {
+            "js": {
+              "name": "reconnect",
+              "body": "",
+              "examples" : [
+                {
+                  "description": "Cancel outstanding requests queries that are no longer needed",
+                  "code": "conn.reconnect()"
+                }
+              ]
+            },
+            "py": {
+              "name": "reconnect",
+              "body": "",
+              "examples" : [
+                {
+                  "description": "Cancel outstanding requests queries that are no longer needed",
+                  "code": "conn.reconnect()"
+                }
+              ]
+            },
+            "rb": {
+              "name": "reconnect",
+              "body": "",
+              "examples" : [
+                {
+                  "description": "Cancel outstanding requests queries that are no longer needed",
+                  "code": "conn.reconnect"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "tag": "use",
+          "description": "Change the default database on this connection",
+          "parent": "connection",
+          "returns": null,
+          "langs": {
+            "js": {
+              "name": "use",
+              "body": "dbName",
+              "examples" : [
+                {
+                  "description": "Change the default database so that we don't need to specify database when referencing a table",
+                  "code": "conn.use('heros')"
+                }
+              ]
+            },
+            "py": {
+              "name": "use",
+              "body": "dbName",
+              "examples" : [
+                {
+                  "description": "Change the default database so that we don't need to specify database when referencing a table",
+                  "code": "conn.use('heros')"
+                }
+              ]
+            },
+            "rb": {
+              "name": "use",
+              "body": "dbName",
+              "examples" : [
+                {
+                  "description": "Change the default database so that we don't need to specify database when referencing a table",
+                  "code": "conn.use('heros')"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "tag": "run",
+          "description": "Run a query on this connection",
+          "parent": "query",
+          "returns": "cursor",
+          "langs": {
+            "js": {
+              "name": "run",
+              "body": "query[, callback]",
+              "examples" : [
+                {
+                  "description": "Passing a callback invokes next on the resulting cursor with the callback",
+                  "code": "conn.run(r.table('marvel'), function(hero) {\n ...\n})"
+                }
+              ]
+            },
+            "py": {
+              "name": "run",
+              "body": "query",
+              "examples" : [
+                {
+                  "description": "Use the cursor to lazily iterate over the results",
+                  "code": "cursor = conn.run(r.table('marvel'))"
+                }
+              ]
+            },
+            "rb": {
+              "name": "run",
+              "body": "query",
+              "examples" : [
+                {
+                  "description": "Use the cursor to lazily iterate over the results",
+                  "code": "cursor = conn.run(r.table('marvel'))"
                 }
               ]
             }
