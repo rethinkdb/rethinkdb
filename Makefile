@@ -9,7 +9,7 @@ install: all
 	cd src ; $(MAKE) DEBUG=$(DEBUG) PACKAGING=1 install ;
 
 clean:
-	rm -rf build support
+	rm -rf build
 
 distclean: clean
 
