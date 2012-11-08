@@ -130,14 +130,13 @@ struct tester_t :
         }
 
         fprintf(stderr, "Creating a database...\n");
-        log_serializer_t::create(io_backender.get(),
-                                 config->ser_private_dynamic_config,
+        filepath_file_opener_t file_opener(config->ser_private_dynamic_config.db_filename, io_backender.get());
+        log_serializer_t::create(&file_opener,
                                  config->ser_static_config);
 
         fprintf(stderr, "Starting serializer...\n");
         ser = new log_serializer_t(config->ser_dynamic_config,
-                                   io_backender.get(),
-                                   config->ser_private_dynamic_config,
+                                   &file_opener,
                                    &get_global_perfmon_collection());
         on_serializer_ready(ser);
     }
