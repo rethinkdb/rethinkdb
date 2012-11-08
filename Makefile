@@ -14,11 +14,11 @@ clean:
 distclean: clean
 
 build-deb-src-control:
-	cd src ; $(MAKE) DEBUG=$(DEBUG) build-deb-src-control ;
+	cd src ; $(MAKE) DEBUG=$(DEBUG) ALLOW_INTERNAL_TOOLS=1 INSTALL_INTERNAL_TOOLS=1 build-deb-src-control ;
 
 build-deb-src: build-deb-src-control
 #	$(shell scripts/gen-version.sh > VERSION)
-	cd src ; $(MAKE) DEBUG=$(DEBUG) PACKAGING=1 build-deb-support ;
+	cd src ; $(MAKE) DEBUG=$(DEBUG) ALLOW_INTERNAL_TOOLS=1 INSTALL_INTERNAL_TOOLS=1 PACKAGING=1 build-deb-support ;
 	yes | debuild -S -sa ;
 
 deb:
