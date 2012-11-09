@@ -121,7 +121,7 @@ void multi_throttling_client_t<request_type, inner_client_business_card_type>::o
 }
 
 template <class request_type, class inner_client_business_card_type>
-void multi_throttling_client_t<request_type, inner_client_business_card_type>::relinquish_tickets_blocking(int count, UNUSED auto_drainer_t::lock_t keepalive) {
+void multi_throttling_client_t<request_type, inner_client_business_card_type>::relinquish_tickets_blocking(int count, auto_drainer_t::lock_t keepalive) {
     try {
         wait_interruptible(intro_promise.get_ready_signal(), keepalive.get_drain_signal());
         send(mailbox_manager, intro_promise.wait().relinquish_tickets_addr, count);
