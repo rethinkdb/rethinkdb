@@ -41,6 +41,6 @@ Depends: ifelse(LEGACY_LINUX, 1,
 Breaks: PACKAGE_NAME (<< PACKAGE_VERSION)
 Conflicts: PACKAGE_NAME (<< PACKAGE_VERSION)
 Provides: PACKAGE_NAME`'-dbg
-',`')
 Description: RethinkDB supports replication, sharding, and powerful queries via its JavaScript, Python, and Ruby bindings. This package provides debug symbols.
+',`')
 
