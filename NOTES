@@ -1,0 +1,31 @@
+
+# Release 1.2.0 (Rashomon) #
+
+## Changes ##
+
+This is the first release of the product. It includes:
+
+* JSON data model and immediate consistency support
+* Distributed joins, subqueries, aggregation, atomic updates
+* Hadoop-style map/reduce
+* Friendly web and command-line administration tools
+* Takes care of machine failures and network interrupts
+* Multi-datacenter replication and failover
+* Sharding and replication to multiple nodes
+* Queries are automatically parallelized and distributed
+* Lock-free operation via MVCC concurrency
+
+## Limitations ##
+
+There are a number of technical limitations that aren't baked into the
+architecture, but were not resolved in this release due to time
+pressure. They will be resolved in subsequent releases.
+
+* Write requests have minimal batching in memory and are flushed to
+  disk on every write. This significantly limits write performance,
+  expecially on rotational disks.
+* Range commands currently don't use an index.
+* The clustering system has a bottleneck in cluster metadata
+  propagation. Cluster management slows down significantly when more
+  than sixteen shards are used.
+
