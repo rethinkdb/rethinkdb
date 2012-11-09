@@ -94,6 +94,196 @@
               ]
             }
           }
+        },
+        {
+          "tag": "connect",
+          "description": "Create a new connection to the database server",
+          "parent": "r",
+          "returns": "connection",
+          "langs": {
+            "js": {
+              "name": "connect",
+              "body": "host, onConnect, onFailure",
+              "examples" : [
+                {
+                  "description": "Opens a new connection specifying callbacks both for when the connection is successfully established and in case the connection cannot be opened",
+                  "code": "r.connect({host:'localhost', port:28015}, function(conn) {\n ...\n}, {\n throw 'Connect failed';\n})"
+                }
+              ]
+            },
+            "py": {
+              "name": "connect",
+              "body": "host='localhost', port=28015, db_name='test'",
+              "examples" : [
+                {
+                  "description": "Opens a connection using the default host and port but specifying the default database",
+                  "code": "conn = r.connect(db_name='heros')"
+                }
+              ]
+            },
+            "rb": {
+              "name": "connect",
+              "body": "host='localhost', port=28015, default_db='test'",
+              "examples" : [
+                {
+                  "description": "Opens a connection using the default host and port but specifying the default database",
+                  "code": "conn = r.connect(default_db='heros')"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "tag": "close",
+          "description": "Close an open connection",
+          "parent": "connection",
+          "returns": null,
+          "langs": {
+            "js": {
+              "name": "close",
+              "body": "",
+              "examples" : [
+                {
+                  "description": "Close an open connection to cancel outstanding requests and free the memory associated with the open requests",
+                  "code": "conn.close()"
+                }
+              ]
+            },
+            "py": {
+              "name": "close",
+              "body": "",
+              "examples" : [
+                {
+                  "description": "Close an open connection to cancel outstanding requests and free the memory associated with the open requests",
+                  "code": "conn.close()"
+                }
+              ]
+            },
+            "rb": {
+              "name": "close",
+              "body": "",
+              "examples" : [
+                {
+                  "description": "Close an open connection to cancel outstanding requests and free the memory associated with the open requests",
+                  "code": "conn.close"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "tag": "reconnect",
+          "description": "Close and attempt to reopen a connection. Has the effect of canceling any outstanding request while keeping the connection open",
+          "parent": "connection",
+          "returns": null,
+          "langs": {
+            "js": {
+              "name": "reconnect",
+              "body": "",
+              "examples" : [
+                {
+                  "description": "Cancel outstanding requests queries that are no longer needed",
+                  "code": "conn.reconnect()"
+                }
+              ]
+            },
+            "py": {
+              "name": "reconnect",
+              "body": "",
+              "examples" : [
+                {
+                  "description": "Cancel outstanding requests queries that are no longer needed",
+                  "code": "conn.reconnect()"
+                }
+              ]
+            },
+            "rb": {
+              "name": "reconnect",
+              "body": "",
+              "examples" : [
+                {
+                  "description": "Cancel outstanding requests queries that are no longer needed",
+                  "code": "conn.reconnect"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "tag": "use",
+          "description": "Change the default database on this connection",
+          "parent": "connection",
+          "returns": null,
+          "langs": {
+            "js": {
+              "name": "use",
+              "body": "dbName",
+              "examples" : [
+                {
+                  "description": "Change the default database so that we don't need to specify database when referencing a table",
+                  "code": "conn.use('heros')"
+                }
+              ]
+            },
+            "py": {
+              "name": "use",
+              "body": "dbName",
+              "examples" : [
+                {
+                  "description": "Change the default database so that we don't need to specify database when referencing a table",
+                  "code": "conn.use('heros')"
+                }
+              ]
+            },
+            "rb": {
+              "name": "use",
+              "body": "dbName",
+              "examples" : [
+                {
+                  "description": "Change the default database so that we don't need to specify database when referencing a table",
+                  "code": "conn.use('heros')"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "tag": "run",
+          "description": "Run a query on this connection",
+          "parent": "query",
+          "returns": "cursor",
+          "langs": {
+            "js": {
+              "name": "run",
+              "body": "query[, callback]",
+              "examples" : [
+                {
+                  "description": "Passing a callback invokes next on the resulting cursor with the callback",
+                  "code": "conn.run(r.table('marvel'), function(hero) {\n ...\n})"
+                }
+              ]
+            },
+            "py": {
+              "name": "run",
+              "body": "query",
+              "examples" : [
+                {
+                  "description": "Use the cursor to lazily iterate over the results",
+                  "code": "cursor = conn.run(r.table('marvel'))"
+                }
+              ]
+            },
+            "rb": {
+              "name": "run",
+              "body": "query",
+              "examples" : [
+                {
+                  "description": "Use the cursor to lazily iterate over the results",
+                  "code": "cursor = conn.run(r.table('marvel'))"
+                }
+              ]
+            }
+          }
         }
       ]
     },
@@ -2740,203 +2930,6 @@
                 {
                   "description": "References to streams cannot be stored in a variable requiring conversion to an array",
                   "code": "r.expr([1,2,3]).array_to_stream.union(r.table('marvel')).run"
-                }
-              ]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "tag": "connections",
-      "name": "Connections",
-      "description": "These commands are used to establish and manipulate connections",
-      "commands": [
-        {
-          "tag": "connect",
-          "description": "Create a new connection to the database server",
-          "parent": "r",
-          "returns": "connection",
-          "langs": {
-            "js": {
-              "name": "connect",
-              "body": "host, onConnect, onFailure",
-              "examples" : [
-                {
-                  "description": "Opens a new connection specifying callbacks both for when the connection is successfully established and in case the connection cannot be opened",
-                  "code": "r.connect({host:'localhost', port:28015}, function(conn) {\n ...\n}, {\n throw 'Connect failed';\n})"
-                }
-              ]
-            },
-            "py": {
-              "name": "connect",
-              "body": "host='localhost', port=28015, db_name='test'",
-              "examples" : [
-                {
-                  "description": "Opens a connection using the default host and port but specifying the default database",
-                  "code": "conn = r.connect(db_name='heros')"
-                }
-              ]
-            },
-            "rb": {
-              "name": "connect",
-              "body": "host='localhost', port=28015, default_db='test'",
-              "examples" : [
-                {
-                  "description": "Opens a connection using the default host and port but specifying the default database",
-                  "code": "conn = r.connect(default_db='heros')"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "tag": "close",
-          "description": "Close an open connection",
-          "parent": "connection",
-          "returns": null,
-          "langs": {
-            "js": {
-              "name": "close",
-              "body": "",
-              "examples" : [
-                {
-                  "description": "Close an open connection to cancel outstanding requests and free the memory associated with the open requests",
-                  "code": "conn.close()"
-                }
-              ]
-            },
-            "py": {
-              "name": "close",
-              "body": "",
-              "examples" : [
-                {
-                  "description": "Close an open connection to cancel outstanding requests and free the memory associated with the open requests",
-                  "code": "conn.close()"
-                }
-              ]
-            },
-            "rb": {
-              "name": "close",
-              "body": "",
-              "examples" : [
-                {
-                  "description": "Close an open connection to cancel outstanding requests and free the memory associated with the open requests",
-                  "code": "conn.close"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "tag": "reconnect",
-          "description": "Close and attempt to reopen a connection. Has the effect of canceling any outstanding request while keeping the connection open",
-          "parent": "connection",
-          "returns": null,
-          "langs": {
-            "js": {
-              "name": "reconnect",
-              "body": "",
-              "examples" : [
-                {
-                  "description": "Cancel outstanding requests queries that are no longer needed",
-                  "code": "conn.reconnect()"
-                }
-              ]
-            },
-            "py": {
-              "name": "reconnect",
-              "body": "",
-              "examples" : [
-                {
-                  "description": "Cancel outstanding requests queries that are no longer needed",
-                  "code": "conn.reconnect()"
-                }
-              ]
-            },
-            "rb": {
-              "name": "reconnect",
-              "body": "",
-              "examples" : [
-                {
-                  "description": "Cancel outstanding requests queries that are no longer needed",
-                  "code": "conn.reconnect"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "tag": "use",
-          "description": "Change the default database on this connection",
-          "parent": "connection",
-          "returns": null,
-          "langs": {
-            "js": {
-              "name": "use",
-              "body": "dbName",
-              "examples" : [
-                {
-                  "description": "Change the default database so that we don't need to specify database when referencing a table",
-                  "code": "conn.use('heros')"
-                }
-              ]
-            },
-            "py": {
-              "name": "use",
-              "body": "dbName",
-              "examples" : [
-                {
-                  "description": "Change the default database so that we don't need to specify database when referencing a table",
-                  "code": "conn.use('heros')"
-                }
-              ]
-            },
-            "rb": {
-              "name": "use",
-              "body": "dbName",
-              "examples" : [
-                {
-                  "description": "Change the default database so that we don't need to specify database when referencing a table",
-                  "code": "conn.use('heros')"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "tag": "run",
-          "description": "Run a query on this connection",
-          "parent": "query",
-          "returns": "cursor",
-          "langs": {
-            "js": {
-              "name": "run",
-              "body": "query[, callback]",
-              "examples" : [
-                {
-                  "description": "Passing a callback invokes next on the resulting cursor with the callback",
-                  "code": "conn.run(r.table('marvel'), function(hero) {\n ...\n})"
-                }
-              ]
-            },
-            "py": {
-              "name": "run",
-              "body": "query",
-              "examples" : [
-                {
-                  "description": "Use the cursor to lazily iterate over the results",
-                  "code": "cursor = conn.run(r.table('marvel'))"
-                }
-              ]
-            },
-            "rb": {
-              "name": "run",
-              "body": "query",
-              "examples" : [
-                {
-                  "description": "Use the cursor to lazily iterate over the results",
-                  "code": "cursor = conn.run(r.table('marvel'))"
                 }
               ]
             }

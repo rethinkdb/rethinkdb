@@ -19,6 +19,14 @@ module RethinkDB
   #   r(1) + 2
   #   r.+(1, 2)
   module RQL
+    # A shortcut for Connection::new
+    def self.connect(*args, &block)
+      Connection.new(*args, &block)
+    end
+
+    # Return the most recently opened connection.
+    def self.last_connection; Connection.last; end
+
     # Construct a javascript expression, which may refer to variables in scope
     # (use <b>+to_s+</b> to get the name of a variable query, or simply splice
     # it in).  Defaults to a javascript expression, but if the optional second

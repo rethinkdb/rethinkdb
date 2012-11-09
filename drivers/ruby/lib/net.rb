@@ -226,7 +226,7 @@ module RethinkDB
 
     # Return the last opened connection, or throw if there is no such
     # connection.  Used by e.g. RQL_Query#run.
-    def self.last_connection
+    def self.last
       return @@last if @@last
       raise RuntimeError, "No last connection.  Use RethinkDB::Connection.new."
     end

@@ -10,7 +10,7 @@ To get started, checkout www.rethinkdb.com!
 Quick start
 -----------
 
-For a thirty second quickstart, look at www.rethinkdb.com/docs/guides/basic_quickstart.html
+For a thirty second quickstart, look at http://www.rethinkdb.com/docs/guides/quickstart
 
 Get Help
 --------
