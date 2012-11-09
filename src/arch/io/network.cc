@@ -545,7 +545,7 @@ void linux_tcp_conn_t::rethread(int new_thread) {
 
 int linux_tcp_conn_t::getsockname(ip_address_t *ip) {
     struct sockaddr_in addr;
-    socklen_t len = sizeof addr;
+    socklen_t len = sizeof(addr);
     int res = ::getsockname(sock.get(), reinterpret_cast<struct sockaddr*>(&addr), &len);
     if (!res) ip->set_addr(addr.sin_addr);
     return res;
@@ -553,7 +553,7 @@ int linux_tcp_conn_t::getsockname(ip_address_t *ip) {
 
 int linux_tcp_conn_t::getpeername(ip_address_t *ip) {
     struct sockaddr_in addr;
-    socklen_t len = sizeof addr;
+    socklen_t len = sizeof(addr);
     int res = ::getpeername(sock.get(), reinterpret_cast<struct sockaddr*>(&addr), &len);
     if (!res) ip->set_addr(addr.sin_addr);
     return res;

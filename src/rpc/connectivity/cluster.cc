@@ -293,7 +293,7 @@ void connectivity_cluster_t::run_t::handle(
 
     // Each side sends a header followed by its own ID and address, then receives and checks the
     // other side's.
-    const int64_t header_size = sizeof CLUSTER_PROTO_HEADER - 1;
+    const int64_t header_size = sizeof(CLUSTER_PROTO_HEADER) - 1;
 
     // Send header, id, address.
     {
