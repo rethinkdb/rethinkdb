@@ -579,7 +579,7 @@ ASSET_SCRIPTS:=$(ASSETS_DIR)/scripts/rdb_migrate
 INIT_SCRIPTS:=$(ASSETS_DIR)/init/rethinkdb
 
 UBRELEASE?=precise
-ifeq ($(shell echo $(UBRELEASE) | grep '^[p-zP-Z]'),)
+ifeq ($(shell echo $(UBRELEASE) | grep '^[q-zQ-Z]'),)
 NODEJS_NEW?=0
 else
 NODEJS_NEW?=1
