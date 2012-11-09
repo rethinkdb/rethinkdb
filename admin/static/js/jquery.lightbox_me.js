@@ -1,4 +1,3 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
 /*
 * $ lightbox_me
 * By: Buck Wilson

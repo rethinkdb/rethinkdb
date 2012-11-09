@@ -111,6 +111,7 @@ class BackboneCluster extends Backbone.Router
         @$container.html @current_view.render().el
         @current_view.call_codemirror()
 
+    #TODO Clean the next 3 methods. We don't need tab anymore
     database: (id, tab) ->
         #TODO We can make it better
         @set_stats_call '/ajax/stat?filter=.*/serializers'

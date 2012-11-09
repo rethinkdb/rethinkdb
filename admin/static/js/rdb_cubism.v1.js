@@ -1,4 +1,3 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
 (function(exports){
 var cubism = exports.cubism = {version: "1.0.0"};
 var cubism_id = 0;
@@ -133,7 +132,6 @@ cubism.context = function() {
   d3.select(window).on("keydown.context-" + ++cubism_id, function() {
     switch (!d3.event.metaKey && d3.event.keyCode) {
       case 37: // left
-        console.log('trigger');
         if (focus == null) focus = size - 1;
         if (focus > 0) context.focus(--focus);
         break;

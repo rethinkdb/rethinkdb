@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "buffer_cache/semantic_checking.hpp"
 
 #include <algorithm>

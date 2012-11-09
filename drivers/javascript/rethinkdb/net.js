@@ -49,6 +49,6 @@ rethinkdb.last_connection_ = null;
  * @return {rethinkdb.Connection}
  * @export
  */
-rethinkdb.getLastConnection = function() {
+rethinkdb.lastConnection = function() {
     return rethinkdb.last_connection_;
 };

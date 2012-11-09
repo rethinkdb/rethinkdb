@@ -79,7 +79,6 @@ button.btn {
 
     font-family: @sans;
     font-size: 13px;
-    color: #464646;
     line-height: 18px;
     text-align: center;
 
@@ -88,7 +87,7 @@ button.btn {
     .box-shadow(~"0 2px 1px rgba(0,0,0,.05)"); // drop shadow
 
     // ===== Normal button style
-    color: #a4a4a4; // text color + color overlay
+    color: #7D7D7D; // text color + color overlay
     text-shadow: 0 1px 0 #fff; // drop shadow
     border: 1px solid #ccc; // stroke
     background-color: #fff; // layer fill content
@@ -256,7 +255,7 @@ button.btn {
 */
 #sticky-wrap {
     min-width: 940px;
-    background: url('http://bit.ly/QS6qxO'); // background.png
+    background: url('/images/body_bg_tile.png'); // background.png
 }
 #main-container {
     padding-top: 30px;
@@ -332,7 +331,8 @@ TODO: retire this
         list-style-type: none;
         li {
             display: inline-block;
-            margin-right: 25px;
+            margin-right: 65px;
+            a { color: #a3a3a3; }
         }
     }
 
@@ -433,7 +433,7 @@ TODO: retire this
                 .border-radius(14px); // border radius
                 .box-shadow(~"0 1px 0 rgba(255,255,255,.07), inset 0 1px 0 rgba(0,0,0,.15)"); // drop shadow and inner shadow
                 .gradient(~"linear-gradient(bottom, rgba(255,255,255,.02) 0%, rgba(0,0,0,.02) 100%)"); // gradient overlay
-                background: url('http://bit.ly/PyxttF') no-repeat 12px #232323; //icon-magnifying_glass.png
+                background: url('/images/icon-magnifying_glass.png') no-repeat 12px #232323;
             }
         }
     }
@@ -446,7 +446,7 @@ TODO: retire this
 */
 #sidebar {
     // texture, so we need a background image
-    background: url('http://bit.ly/RCksTK');//status_panel-background.png
+    background: url('/images/status-panel_bg_tile.png');
     // csshat
     .box-shadow(~"0 1px 0 rgba(255,255,255,.4), inset 0 -1px 1px #c3c3c3"); // drop shadow and inner shadow
     border-bottom: thin solid #d0d0d0;
@@ -478,20 +478,20 @@ TODO: retire this
     }
 
     .client-connection-status .panel {
-        background: url('http://bit.ly/PyxJc3') no-repeat left center; //status_panel-icon_1.png
-        &.error { background: url('http://bit.ly/QcqgSD') no-repeat left center; }//status_panel-icon_1-error.png
+        background: url('/images/status_panel-icon_1.png') no-repeat left center;
+        &.error { background: url('/images/status_panel-icon_1-error.png') no-repeat left center; }
     }
     .issues .panel {
-        background: url('http://bit.ly/PyxJJe') no-repeat left center; //status_panel-icon_2.png
-        &.error { background: url('http://bit.ly/RCksTG') no-repeat left center; }//status_panel-icon_2-error.png
+        background: url('/images/status_panel-icon_2.png') no-repeat left center;
+        &.error { background: url('/images/status_panel-icon_2-error.png') no-repeat left center; }
     }
     .servers-connected .panel {
-        background: url('http://bit.ly/RCksTE') no-repeat left center; //status_panel-icon_3.png
-        &.error { background: url('http://bit.ly/TuK5bD') no-repeat left center; }//status_panel-icon_3-error.png
+        background: url('/images/status_panel-icon_3.png') no-repeat left center;
+        &.error { background: url('/images/status_panel-icon_3-error.png') no-repeat left center; }
     }
     .datacenters-connected .panel {
-        background: url('http://bit.ly/RCkyLc') no-repeat left center; //status_panel-icon_4.png
-        &.error { background: url('http://bit.ly/QcqgSA') no-repeat left center; }//status_panel-icon_4-error.png
+        background: url('/images/status_panel-icon_4.png') no-repeat left center;
+        &.error { background: url('/images/status_panel-icon_4-error.png') no-repeat left center; }
     }
 
     .issues-banner {
@@ -567,7 +567,7 @@ TODO: retire this
         #issue-alerts .alert {
             display: block; 
 
-            background: 15px center no-repeat url('http://bit.ly/RXpDeO'); //resolve_issue-resolved_icon.png
+            background: 15px center no-repeat url('/images/resolve_issue-resolved_icon.png');
             padding-left: 40px;
             color: #628857; // text color
             border: 1px solid #cae8c3; // stroke
@@ -666,8 +666,9 @@ TODO: retire this
                 color: #4c4c4c;
                 padding-left: 21px;
             }
-            .no-problems-detected h3 { background: 0 3px no-repeat url('http://bit.ly/PyxttH'); }//green-light.png
-            .problems-detected h3 { background: 0 3px no-repeat url('http://bit.ly/PyxJZG'); }//red-light.png
+            
+            .no-problems-detected h3 { background: 0 3px no-repeat url('/images/green-light.png'); }
+            .problems-detected h3 { background: 0 3px no-repeat url('/images/red-light.png'); }
 
             p {
                 font-family: @sans;
@@ -831,7 +832,7 @@ TODO: retire this
                     margin-right: 20px;
                     color: #fff;
                     font-size: 10px;
-                    font-weight: 700
+                    font-weight: bold;
                 }
                 h3.name {
                     font-family: @serif;
@@ -910,7 +911,7 @@ TODO: retire this
                     border-left: thin solid #e4e4e4;
                 }
                 .name {
-                    background: @border_padding center no-repeat url('http://bit.ly/RCkvyL');//server-icon.png
+                    background: @border_padding center no-repeat url('/images/server-icon.png');
                     padding-left: 38px + @border_padding;
                     a { color: #0597d8; }
                     font-size: 16px;
@@ -921,7 +922,7 @@ TODO: retire this
                     text-overflow: ellipsis;
                 }
                 .quick_info {
-                    background: @border_padding center no-repeat url('http://bit.ly/PyxuxE');//graph-icon.png
+                    background: @border_padding center no-repeat url('/images/graph-icon.png');
                     color: #626264;
                     padding-left: 30px + @border_padding;
                 }
@@ -929,11 +930,11 @@ TODO: retire this
                     padding-right: 20px;
                     color: #818181;
                     .label-success {
-                        background: @border_padding center no-repeat url('http://bit.ly/RCkomY');//green-light_glow.png
+                        background: @border_padding center no-repeat url('/images/green-light_glow.png');
                         padding-left: 23px + @border_padding;
                     }
                     .label-failure {
-                        background: @border_padding center no-repeat url('http://bit.ly/PyxJZG');//red-light_glow.png
+                        background: @border_padding center no-repeat url('/images/red-light_glow.png');
                         padding-left: 23px + @border_padding;
                     }
                 }
@@ -986,9 +987,10 @@ TODO: retire this
         margin-top: 0;
 
         li.log-entry {
+            font-size: 14px;
             color: #4d535c;
             border-top: thin solid #f0f0f0;
-            background: left 22px no-repeat url('http://bit.ly/PyxKg4');//pencil-icon_big.png
+            background: left 22px no-repeat url('/images/pencil-icon_big.png');
             padding: 20px 0 20px 55px;
             word-wrap: break-word;
             &:first-child {
@@ -1006,7 +1008,7 @@ TODO: retire this
                 font-size: 13px;
             }
             .datetime {
-                background: left center no-repeat url('http://bit.ly/RCkoTS');//clock-icon.png
+                background: left center no-repeat url('/images/clock-icon.png');
                 text-align: right;
                 color: #c4c4c4;
             }
@@ -1081,9 +1083,11 @@ TODO: retire this
                     display: inline-block;
                     margin: 5px 0px;
                     padding: 0px 5px;
-                    min-width: 97px;
-                    min-height: 18px;
+                    width: 132px;
+                    height: 18px;
                     cursor: pointer;
+                    text-overflow: ellipsis;
+
                 }
                 .suggestion_name_li_hl{ color: #005388; }
             }
@@ -1099,6 +1103,12 @@ TODO: retire this
                 word-wrap: break-word;
                 .border-radius(4px);
                 .box-shadow(~"inset 0 -6px 6px -6px #ddd;");
+                .separation{
+                    height: 1px;
+                    border-top: 1px solid #dadada;
+                    margin: 3px auto;
+                    width: 300px;
+                }
                 p{
                     font-family: @monospace;
                     margin: 3px 0px;
@@ -1202,18 +1212,6 @@ TODO: retire this
         .results_header{
             .options_container{
                 float: right;
-                .change_size{
-                    font-size: @baseFontSize;
-                    line-height: @baseLineHeight;
-                    color: @grayDark;
-                    text-align: center;
-                    text-shadow: 0 1px 1px rgba(255,255,255,.75);
-                    vertical-align: middle;
-                    .buttonBackground(@btnBackground, @btnBackgroundHighlight);
-                    border: 1px solid @btnBorder;
-                    border-bottom-color: darken(@btnBorder, 10%);
-                    .border-radius(4px);
-                }
             }
             .query_executed{
                 font-family: @sans;
@@ -1237,7 +1235,13 @@ TODO: retire this
         width: 100%;
     }
     .helper_view { overflow: auto; }
-    .nav-tabs > li { float: right; }
+    .nav-tabs > li {
+        float: right;
+        &.active a {
+            border-bottom-color: #FBFBFB;
+            background-color: #FBFBFB;
+        }
+    }
 
     .tab-pane{
         display: none;
@@ -1472,7 +1476,7 @@ TODO: retire this
                 height: @header_height;
 
                 &.issue-type {
-                    background: 7px center no-repeat url('http://bit.ly/Vl54tN'); //resolve_issue-danger_icon.png
+                    background: 7px center no-repeat url('/images/resolve_issue-danger_icon.png');
                     padding-left: 35px;
                     color: #e65b54; // text color + color overlay
                     font-weight: bold;
@@ -1484,7 +1488,7 @@ TODO: retire this
                     width: 310px;
                     @icon_width: 30px;
                     @icon_padding: 20px;
-                    background: @icon_padding center no-repeat url('http://bit.ly/PmYCWb'); //resolve_issue-message_icon.png
+                    background: @icon_padding center no-repeat url('/images/resolve_issue-message_icon.png');
                     padding-left: @icon_width + @icon_padding;
                     &:before { .divider(-(@icon_width + @icon_padding)); }
                 }
@@ -1494,7 +1498,7 @@ TODO: retire this
                     width: 175px;
                     @icon_width: 30px;
                     @icon_padding: 20px;
-                    background: @icon_padding center no-repeat url('http://bit.ly/PmYBlc'); //resolve_issue-clock_icon.png
+                    background: @icon_padding center no-repeat url('/images/resolve_issue-clock_icon.png');
                     padding-left: @icon_width + @icon_padding;
                     &:before { .divider(-(@icon_width + @icon_padding)); }
                 }
@@ -1502,7 +1506,7 @@ TODO: retire this
         }
         .issue-details {
             margin-top: 10px;
-            background: 7px 3px no-repeat url('http://bit.ly/QPZUE7'); //resolve_issue-details_icon.png
+            background: 7px 3px no-repeat url('/images/resolve_issue-details_icon.png');
             padding-left: 35px;
             p, li {
                 color: #838383;
@@ -1564,16 +1568,16 @@ TODO: retire this
                     line-height: 24px;
                     color: #5c6169;
                 }
-                &.availability { background: left center no-repeat url('http://bit.ly/PyxKg9'); }//live-icon.png
-                &.masters { background: left center no-repeat url('http://bit.ly/RCkvPk'); }//layers-icon.png
-                &.replicas { background: left center no-repeat url('http://bit.ly/RCkomW'); }//grid-icon.png
-                &.documents { background: left center no-repeat url('http://bit.ly/RCkoDu'); }//document-icon.png
-                &.datacenter { background: left center no-repeat url('http://bit.ly/RCkvPk'); }//layers-icon.png
-                &.uptime { background: left center no-repeat url('http://bit.ly/RCkomW'); }//grid-icon.png
-                &.ips { background: left center no-repeat url('http://bit.ly/RCkoDu'); }//document-icon.png
-                &.tables { background: left center no-repeat url('http://bit.ly/RCkoDu'); }//document-icon.png
-                &.datacenters { background: left center no-repeat url('http://bit.ly/RCkvPk'); }//layers-icon.png
-                &.servers { background: left center no-repeat url('http://bit.ly/RCkoDu'); }//document-icon.png
+                &.availability { background: left center no-repeat url('/images/live-icon.png'); }
+                &.masters { background: left center no-repeat url('/images/layers-icon.png'); }
+                &.replicas { background: left center no-repeat url('/images/grid-icon.png'); }
+                &.documents { background: left center no-repeat url('/images/document-icon.png'); }
+                &.datacenter { background: left center no-repeat url('/images/layers-icon.png'); }
+                &.uptime { background: left center no-repeat url('/images/grid-icon.png'); }
+                &.ips { background: left center no-repeat url('/images/document-icon.png'); }
+                &.tables { background: left center no-repeat url('/images/document-icon.png'); }
+                &.datacenters { background: left center no-repeat url('/images/layers-icon.png'); }
+                &.servers { background: left center no-repeat url('/images/document-icon.png'); }
             }
             &.first { border-top: none; }
         }
@@ -1633,7 +1637,7 @@ TODO: retire this
                 top: (@element_height / 2) - (@square_bullet_width / 2) + 1;
                 bottom: (@element_height / 2) - 1;
                 width: @square_bullet_width;
-                background-image: url('http://bit.ly/RAFakX'), url('http://bit.ly/RSqmQD'); //list-square-bullet.png, list-vert-dash.png
+                background-image: url('/images/list-square-bullet.png'), url('/images/list-vert-dash.png'); 
                 background-position: left top, ((@square_bullet_width / 2) - 1) center;
                 background-repeat: no-repeat, repeat-y;  
             }
@@ -1664,7 +1668,7 @@ TODO: retire this
                 top: 0;
                 bottom: 0;
 
-                background-image: url('http://bit.ly/RAFakX'), url('http://bit.ly/RSqlw7');//list-horiz-dash.png, list-square-bullet.png 
+                background-image: url('/images/list-square-bullet.png'), url('/images/list-horiz-dash.png');  
                 background-position: right center, ((@square_bullet_width / 2) - 1) center;
                 background-repeat: no-repeat, repeat-x;
             }
@@ -1698,7 +1702,7 @@ TODO: retire this
     .section.list-view.table-list {
         @element_height: 40px;
         li.table {
-            background: left center no-repeat url('http://bit.ly/VY1pqc');//server-icon.png
+            background: left center no-repeat url('/images/server-icon.png');
             padding-left: 30px;
             .name {
                 width: 375px;
@@ -1708,16 +1712,16 @@ TODO: retire this
                 right: 200px;
                 width: 200px;
                 padding-left: 30px;
-                background: left center no-repeat url('http://bit.ly/PyxuxE');//graph-icon.png
+                background: left center no-repeat url('/images/graph-icon.png');
             }
             .status {
                 right: 0;
                 .label { padding-left: 23px; }
                 .label-success {
-                    background: left center no-repeat url('http://bit.ly/QYI4SN'); //green-light_glow_small.png
+                    background: left center no-repeat url('/images/green-light_glow_small.png');
                 }
                 .label-failure {
-                    background: left center no-repeat url('http://bit.ly/TikAVI'); //red-light_glow_small.png
+                    background: left center no-repeat url('/images/red-light_glow_small.png');
                 }
             }
         }
@@ -1728,7 +1732,7 @@ TODO: retire this
     .section.tree-view.server-assignments {
         @element_height: 40px;
         li.server .server-info {
-            background: left center no-repeat url('http://bit.ly/VY1pqc');//server-icon.png
+            background: left center no-repeat url('/images/server-icon.png');
             padding-left: 30px;
             .name {
                 width: 300px;
@@ -1738,18 +1742,18 @@ TODO: retire this
                 right: 350px;
                 width: 145px;
                 padding-left: 30px;
-                background: left center no-repeat url('http://bit.ly/RCkvPk'); //layers-icon.png
+                background: left center no-repeat url('/images/layers-icon.png');
             }
             .num-secondaries {
                 right: 175px;
                 width: 145px;
                 padding-left: 30px;
-                background: left center no-repeat url('http://bit.ly/RCkomW'); //grid-icon.png
+                background: left center no-repeat url('/images/grid-icon.png');
             }
             .num-keys {
                 right: 0;
                 padding-left: 35px;
-                background: left center no-repeat url('http://bit.ly/TnC8jd'); //bars-icon_server-assignments.pn
+                background: left center no-repeat url('/images/bars-icon_server-assignments.png');
             }
         }
         .popup_container{
@@ -1833,7 +1837,7 @@ TODO: retire this
                     list-style: square;
                     width: 400px;
                     border-bottom: 1px solid #eee;
-                    .name{
+                    .name {
                         width: 180px;
                         display: inline-block;
                         padding: 0px 0px 4px 0px;
@@ -1843,227 +1847,253 @@ TODO: retire this
         }
     }
     .section.replication {
-        .nav-tabs { padding-left: 0; }
-
-        .datacenter_list_container {
-            padding: 0px;
-            @default: #efefef; 
-            @active: #23a5df;
-            @universe: #f7ae41;
-            @height: 40px;
-
-            .datacenter_tab {
-                position: relative;
-                width: 100px;
-                margin: 10px 0;
-                background: @default;
-                height: @height;
-                line-height: @height;
-                padding: 0 10px;
-                a {
-                    display: block;
-                    cursor: pointer;
-                    @color: #7e7e7e;
-                    color: @color;
-                    &:hover {
-                        color: @color;
-                        text-decoration: none;
-                    }
-                }
-                .border-radius(3px);
-                
-                &.active {
-                    background-color: @active;
-                    border-color: @active;
-                    a { 
-                        @color: #fff;
-                        color: @color;
-                        &:hover { color: @color; }
-                    }
-                    .border-radius(3px 0 0 3px);
-                    // chevron for the active tab
-                    &:after {
-                        content: " ";
-                        font-size:0;
-                        height:0;
-                        line-height:0;
-                        border-style: solid;
-                        border-color: transparent;
-                        border-width: @height/2 0 @height/2 @height/2;
-                        border-left-color: @active;
-                        position: absolute;
-                        right: 0px - @height/2;
-                        top:0;
-                    }
-                }
-                
-
-                &.universe {
-                    background: @universe url('http://bit.ly/RCkmeT') 8px center no-repeat; //globe-icon_white.png
-                    border-color: @universe;
-                    color: #fcfcfc;
-                    a {
-                        @color: #fcfcfc;
-                        color: @color;
-                        &:hover { color: @color; }
-                        padding-left: 24px;
-                    }
-                    
-                    &.active:after {
-                        border-left-color: @universe;
-                    }
-                    
-                }
-            }
+        h2.title {
+            border-bottom: none;
+            padding-bottom: 10px;
         }
-        .universe_container{
-            overflow: auto;
-            border-bottom: 1px solid #888;
-            .universe-role{
-                 p {
-                    font-family: @sans;
-                    margin: 0;
-                    &.caption {
-                        padding: 0px 20px 0px 0px;
-                        color: #7ec4e3;
-                        font-weight: bold;
-                        font-size: 24px;
-                        line-height: 48px;
-                        float: left;
-                    }
-                    &.value {
-                        padding: 3px 20px 0px 6px;
-                        color: #5c6169;
-                        font-size: 24px;
-                        line-height: 48px;
-                    }
-                }           
-                .make-primary{
-                    float: right;
-                    margin-right: 15px;
-                }
-            }
-            .replica_container{
+        .nav-tabs { padding-left: 0; }
+        p, a { font-family: @sans; }
 
+        .cluster_container{
+            overflow: auto;
+            border-bottom: 1px solid #efefef;
+            padding: 10px 0;
+            margin-bottom: 20px;
+            .replica_container{
+                .cluster-acks, .cluster-replicas {
+                    display: inline-block;
+                }
                 p {
                     font-family: @sans;
-                    margin: 0;
-                    &.caption {
-                        padding: 0px 20px 0px 0px;
-                        color: #7ec4e3;
-                        font-weight: bold;
-                        font-size: 24px;
-                        line-height: 48px;
-                        float: left;
-                    }
-                    &.value {
-                        padding: 3px 20px 0px 6px;
-                        color: #5c6169;
+                    margin: 0 60px 0 0;
+                    span.value {
+                        padding: 0px 6px 0px 0px;
+                        color: #f7ae41;
                         font-size: 24px;
                         line-height: 48px;
                     }
-                }
-                .replica_value, .ack_value{
-                    float: left;
-                    width: 170px;
+                    span.caption {
+                        color: #a9a9a9;
+                        font-size: 14px;
+                    }
+                    &.max-value {
+                        color: #a9a9a9;
+                        font-size: 11px;
+                    }
                 }
                 .inline_edit_input{
-                    margin: 4px 0px 3px 0px;
-                    width: 40px;
+                    margin: 4px 6px 3px 0px;
+                    width: 30px;
                     padding: 3px 4px;
-                    height: 36px;
-                    font-size: 24px;
+                    height: 28px;
+                    font-size: 20px;
                     font-family: @sans;
                 }
                 .btn{
                     margin-top: 6px;
-                }               
-                .edit{
                     float: right;
-                    margin-right: 15px;
-                }
+                    margin-left: 15px;
+                }               
             }
         }
-        .datacenter_content{
-            margin: 0px;
-            padding-left: 10px;
-            .datacenter_view{ margin: 0px 0px 0px 40px; }
-            .progress_bar_full_container{
-                display: none;
-                .progress_bar_container{
-                    padding: 11px 0px 10px 0px;
-                    .details{
-                        font-family: @sans;
-                        margin: 0px;
-                        font-size: 14px;
-                        line-height: 20px;
+        .hide-mdc { display: none; }
+        .mdc-options {
+            margin-top: 20px;
+            &.hidden { display: none; }
+            .primary-dc {
+                border-top: thin solid #efefef;
+                padding-top: 15px;
+                .content{
+                    padding: 5px 0px 15px 0px;
+                    p{
+                        margin: 7px 0px;
                     }
-                    .replicating{
-                        font-family: @sans;
-                        margin: 0px;
-                        color: #7ec4e3;
+                }
+                .btn{
+                    float: right;
+                    margin-left: 15px;
+                }               
+                p {
+                    margin: 0;
+                    &.caption {
+                        line-height: 24px;
                         font-size: 14px;
-                        line-height: 20px;
-                        font-weight: bold;
                     }
-                    .full_bar{
-                        .border-radius(5px);
-                        height: 10px;
-                        background: #eee;
-                        .box-shadow(~"inset 1px 1px 2px #ddd");
-                        .bar{
-                            height: 10px;
+                }
+
+                .toggle-primary {
+                    margin-bottom: 10px;
+                    .switch {
+                        float: left;
+                        margin-right: 20px;
+                    }
+                }
+                form.change-primary select {
+                    margin-top: 4px;
+                }
+            }
+            .datacenter_list_container {
+                padding: 0px;
+                @default: #efefef; 
+                @active: #23a5df;
+                @universe: #f7ae41;
+                @height: 40px;
+
+                .datacenter_tab {
+                    position: relative;
+                    width: 100px;
+                    margin: 10px 0;
+                    background: @default;
+                    height: @height;
+                    line-height: @height;
+                    padding: 0 10px;
+                    a {
+                        display: block;
+                        cursor: pointer;
+                        @color: #7e7e7e;
+                        color: @color;
+                        &:hover {
+                            color: @color;
+                            text-decoration: none;
+                        }
+                    }
+                    .border-radius(3px);
+                    
+                    &.active {
+                        background-color: @active;
+                        border-color: @active;
+                        a { 
+                            @color: #fff;
+                            color: @color;
+                            &:hover { color: @color; }
+                        }
+                        .border-radius(3px 0 0 3px);
+                        // chevron for the active tab
+                        &:after {
+                            content: " ";
+                            font-size:0;
+                            height:0;
+                            line-height:0;
+                            border-style: solid;
+                            border-color: transparent;
+                            border-width: @height/2 0 @height/2 @height/2;
+                            border-left-color: @active;
+                            position: absolute;
+                            right: 0px - @height/2;
+                            top:0;
+                        }
+                    }
+                    
+
+                    &.universe {
+                        background: @universe url('/images/globe-icon_white.png') 8px center no-repeat;
+                        border-color: @universe;
+                        color: #fcfcfc;
+                        a {
+                            @color: #fcfcfc;
+                            color: @color;
+                            &:hover { color: @color; }
+                            padding-left: 24px;
+                        }
+                        
+                        &.active:after {
+                            border-left-color: @universe;
+                        }
+                        
+                    }
+                }
+            }
+            .datacenter_content{
+                margin: 0px;
+                padding-left: 10px;
+                .datacenter_view{ margin: 0px 0px 0px 40px; }
+                .progress_bar_full_container{
+                    display: none;
+                    .progress_bar_container{
+                        padding: 11px 0px 10px 0px;
+                        .details{
+                            font-family: @sans;
+                            margin: 0px;
+                            font-size: 14px;
+                            line-height: 20px;
+                        }
+                        .replicating{
+                            font-family: @sans;
+                            margin: 0px;
+                            color: #7ec4e3;
+                            font-size: 14px;
+                            line-height: 20px;
+                            font-weight: bold;
+                        }
+                        .full_bar{
                             .border-radius(5px);
-                            background: #f7ae41;
-                            .box-shadow(~"inset 1px -2px 4px #DB8812");
+                            height: 10px;
+                            background: #eee;
+                            .box-shadow(~"inset 1px 1px 2px #ddd");
+                            .bar{
+                                height: 10px;
+                                .border-radius(5px);
+                                background: #f7ae41;
+                                .box-shadow(~"inset 1px -2px 4px #DB8812");
+                            }
                         }
                     }
                 }
-            }
-            .dc-info {
-                border-bottom: thin solid #f0f0f0;
-                margin-bottom: 14px;
-                overflow: hidden;
-                button { float: right; }
+                .dc-info {
+                    padding-bottom: 14px;
+                    overflow: hidden;
+                    button { float: right; }
 
-                p {
-                    font-family: @sans;
-                    margin: 0;
-                    &.caption {
-                        color: #7ec4e3;
-                        font-size: 14px;
-                        line-height: 20px;
-                        font-weight: bold;
+                    &:first-child {
+                        border-bottom: thin solid #f0f0f0;
                     }
-                    &.value {
-                        padding: 3px 0px 0px 6px;
-                        color: #5c6169;
-                        font-size: 24px;
-                        line-height: 48px;
+
+                    p {
+                        font-family: @sans;
+                        margin: 0;
+                        &.caption {
+                            color: #7ec4e3;
+                            font-size: 14px;
+                            line-height: 20px;
+                        }
+                        &.value {
+                            color: #5c6169;
+                            font-size: 24px;
+                            line-height: 48px;
+                        }
+                        &.max-value {
+                            color: #a9a9a9;
+                            font-size: 11px;
+                        }
                     }
+                    .replica_value, .ack_value{
+                        float: left;
+                        width: 90px;
+                    }
+                    .inline_edit_input{
+                        margin: 8px 0px 4px 0px;
+                        width: 40px;
+                        padding: 0px 4px;
+                        height: 34px;
+                        font-size: 20px;
+                        font-family: @sans;
+                    }
+                    .btn{
+                        margin-top: 26px;
+                    }
+                    .save_replicas_and_acks{ margin: 30px 0px 0px 0px; }
+                    .make-primary{ margin: 10px 0px 0px 0px; }
                 }
-                .replica_value, .ack_value{
-                    float: left;
-                    width: 80px;
-                }
-                .inline_edit_input{
-                    margin: 4px 0px 3px 0px;
-                    width: 40px;
-                    padding: 3px 4px;
-                    height: 36px;
-                    font-size: 24px;
-                    font-family: @sans;
-                }
-                .btn{
-                    margin-top: 26px;
-                }
-                .save_replicas_and_acks{ margin: 30px 0px 0px 0px; }
-                .make-primary{ margin: 10px 0px 0px 0px; }
             }
         }
     }
     .section.sharding {
+        h2.title {
+            border-bottom: none;
+            padding-bottom: 10px;
+        }
         .edit-shards {
+            @icon_width: 40px;
             margin: 20px 0;
             min-height: 39px;
             button { float: right; }
@@ -2072,9 +2102,9 @@ TODO: retire this
                 margin: 9px 0px 0px 0px;
                 font-size: 15px;
                 color: #a9a9a9;
-                padding-left: 30px;
+                padding-left: @icon_width;
                 span.big {
-                    margin: 0px 6px 0px 20px;
+                    padding: 0px 6px 0px 0px;
                     font-size: 24px;
                     color: #f7ae41;
                 }
@@ -2082,59 +2112,24 @@ TODO: retire this
                     display: inline-block;
                     padding-top: 10px;
                 }
-                background: left 9px no-repeat url('http://bit.ly/Pyxwpp');//bars-icon.png
+                background: left 9px no-repeat url('/images/bars-icon.png');
             }
             input.num-shards { 
+                margin: -5px 6px 3px 0px;
+                width: 30px;
+                padding: 3px 4px;
+                height: 28px;
+                font-size: 20px;
                 font-family: @sans;
-                font-size: 24px;
-                color: #6b6f76;
-                text-align: right;
-                width: 1.25em;
-                height: 35px;
-                background: #fcfcfc;
-                border: thin solid #d9d9d9;
-                .border-radius(3px);
-                padding: 4px;
-                margin: -8px 0px 0px -4px;
-               
-                &:focus {
-                    border-color: rgba(82,168,236,.8);
-                    @shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgba(82,168,236,.6);
-                    .box-shadow(@shadow);
-                    outline: 0;
-                    outline: thin dotted \9; /* IE6-9 */
-                }
             }
             .edit, .cancel, .rebalance{ margin: 0px 0px 0px 10px; }
-        }
-        .shards_status_container{
-            .caption {
-                font-family: @sans;
-                color: #7ec4e3;
-                font-size: 14px;
+            p.max-value {
+                color: #a9a9a9;
+                font-size: 11px;
+                padding-left: @icon_width;
+                margin: 0;
                 line-height: 20px;
-                font-weight: bold;
             }
-            .value {
-                padding: 3px 0px 0px 6px;
-                color: #5c6169;
-                font-size: 24px;
-                line-height: 48px;
-            }
-            .sharding_img_container{
-                height: 16px;
-                width: 16px;
-                margin: 0px 15px 0px 0px;
-                float: left;
-                .sharding_img{
-                    display: none;
-                }
-            }
-            .shards_status{
-                font-family: @sans;
-                font-size: 16px;
-            }
-
         }
         .shard-graph {
             line { stroke: #dcdcdc; }
@@ -2148,7 +2143,7 @@ TODO: retire this
     .section.list-view.server-list {
         @element_height: 40px;
         li.server {
-            background: left center no-repeat url('http://bit.ly/VY1pqc');//server-icon.png
+            background: left center no-repeat url('/images/server-icon.png');
             padding-left: 30px;
             .name {
                 width: 375px;
@@ -2158,16 +2153,16 @@ TODO: retire this
                 right: 200px;
                 width: 200px;
                 padding-left: 30px;
-                background: left center no-repeat url('http://bit.ly/PyxuxE');//graph-icon.png
+                background: left center no-repeat url('/images/graph-icon.png');
             }
             .status {
                 right: 0;
                 .label { padding-left: 23px; }
                 .label-success {
-                    background: left center no-repeat url('http://bit.ly/QYI4SN'); //green-light_glow_small.png
+                    background: left center no-repeat url('/images/green-light_glow_small.png');
                 }
                 .label-failure {
-                    background: left center no-repeat url('http://bit.ly/TikAVI'); //red-light_glow_small.png
+                    background: left center no-repeat url('/images/red-light_glow_small.png');
                 }
             }
         }
@@ -2178,7 +2173,7 @@ TODO: retire this
     .section.tree-view.server-data {
         @element_height: 40px;
         li.shard .shard-info {
-            background: left center no-repeat url('http://bit.ly/VY1pqc');//server-icon.png
+            background: left center no-repeat url('/images/server-icon.png');
             padding-left: 30px;
             .name {
                 width: 455px;
@@ -2188,15 +2183,306 @@ TODO: retire this
                 right: 175px;
                 width: 145px;
                 padding-left: 30px;
-                background: left center no-repeat url('http://bit.ly/RCkomW'); //grid-icon.png
+                background: left center no-repeat url('/images/grid-icon.png');
             }
             .num-keys {
                 right: 0;
                 padding-left: 35px;
-                background: left center no-repeat url('http://bit.ly/TnC8jd'); //bars-icon_server-assignments.pn
+                background: left center no-repeat url('/images/bars-icon_server-assignments.png');
             }
         }
     }
+}
+
+/*
+    ----------------------------
+    Toggle switches courtesy of Thibaut Courouble (webinterfacelab.com).
+
+    License for this toggle switch snippet (.switch class) follows:
+    Copyright (c) 2012 Thibaut Courouble
+
+    Permission is hereby granted, free of charge, to any person obtaining
+    a copy of this software and associated documentation files (the
+    "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish,
+    distribute, sublicense, and/or sell copies of the Software, and to
+    permit persons to whom the Software is furnished to do so, subject to
+    the following conditions:
+
+    The above copyright notice and this permission notice shall be
+    included in all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+    LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+    OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+    ----------------------------
+*/
+.switch {
+    @height: 24px;
+    @width: 100px;
+    float: left;
+    position: relative;
+    height: @height;
+    width: @width;
+    background: rgba(0, 0, 0, 0.10);
+    .border-radius(3px);
+    .box-shadow(~"inset 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px rgba(255, 255, 255, 0.1)");
+
+    .switch-label {
+        position: relative;
+        z-index: 2;
+        float: left;
+        width: @width/2 - 2px;
+        line-height: @height;
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.15);
+        text-align: center;
+        text-shadow: 0 1px 1px rgba(0, 0, 0, 0.55);
+        text-transform: uppercase;
+        cursor: pointer;
+
+        &:active { font-weight: bold; }
+        &.switch-label-off { padding-left: 2px; }
+        &.switch-label-on { padding-right: 2px; }
+    }
+
+    .switch-input {
+        display: none;
+
+        &:checked + .switch-label {
+            font-weight: bold;
+            color: rgba(0, 0, 0, 0.65);
+            text-shadow: 0 1px rgba(255, 255, 255, 0.25);
+            .transition(~"0.15s ease-out");
+            .transition-property(color, text-shadow);
+        }
+        &:checked + .switch-label-on ~ .switch-selection {
+            left: @width/2; /* Note: left: 50%; doesn't transition in WebKit */
+        }
+    }
+
+    .switch-selection {
+        position: absolute;
+        z-index: 1;
+        top: 2px;
+        left: 2px;
+        display: block;
+        width: @width/2 - 2px;
+        height: @height - 4px;
+        .border-radius(2px);
+        .box-shadow(~"inset 0 1px rgba(255, 255, 255, 0.5), 0 0 2px rgba(0, 0, 0, 0.2)");
+        .transition(~"left 0.15s ease-out");
+        background-color: #F7AE41;
+    }
+    &.switch-green { 
+        background-color: #65bd63;
+        .gradient(~"linear-gradient(top, #9dd993, #65bd63)");
+    }
+    &.switch-blue .switch-selection {
+        background-color: #3aa2d0;
+        .gradient(~"linear-gradient(top, #4fc9ee, #3aa2d0)");
+    }
+    &.switch-yellow .switch-selection {
+        background-color: #c4bb61;
+        .gradient(~"linear-gradient(top, #e0dd94, #c4bb61)");
+    }
+}
+
+/*
+    ----------------------------
+    Progress bar UIComponent
+    ----------------------------
+*/
+.replica-status, .shard-status {
+    font-family: @sans;
+    font-size: 15px;
+    color: #72BDDF;
+    padding: 10px 0;
+    border-bottom: 1px solid #efefef;
+    margin-bottom: 20px;
+    p {
+        margin: 0;
+        line-height: 48px;
+    }
+    span.big {
+        font-size: 24px;
+        color: #5C6169;
+    }
+
+    .progress-status {
+        p {
+            color: #a9a9a9;
+            line-height: normal;
+            margin-bottom: 10px;
+        }
+
+        .progress {
+            height: 12px;
+            .border-radius(12px);
+            width: 65%;
+            .bar { 
+                width: 100%;
+                background-color: #f7ad41;
+                .gradient(~"linear-gradient(bottom, rgba(247,175,67,1), rgba(249,190,103, 1))"); // gradient overlay
+                .box-shadow(~"0 2px 1px rgba(0,0,0,.04), inset 0 -1px 2px rgba(0,0,0,.05)"); // drop shadow and inner shadow
+            }
+        }
+        .stages {
+            width: 30%;
+            float: right;
+            p {
+                text-align: right;
+                font-size: 13px;
+                margin-bottom: 15px;
+                &.completed:before {
+                    content: '\2714';
+                    display: block;
+                    float: left;
+                    font-size: 13px;
+                    color: #4E9258;
+                    padding-left: 10px;
+                }
+            }
+        }
+    }
+}
+/*
+    ----------------------------
+    Progress bars from Bootstrap 2.2.0
+    -- note: we did not want to upgrade all of
+    our dependencies to the new version of
+    Bootstrap, but we needed some critical fixes
+    for progress bars. To that end, the following
+    styles are taken from progress-bars.less of
+    v2.2.0. Remove on upgrade! TODO
+    ----------------------------
+*/
+
+
+// ANIMATIONS
+// ----------
+.progress_striped(@color: #555, @angle: 45deg) {
+    background-color: @color;
+    background-image: -webkit-gradient(linear, 0 100%, 100% 0, color-stop(.25, rgba(255,255,255,.15)), color-stop(.25, transparent), color-stop(.5, transparent), color-stop(.5, rgba(255,255,255,.15)), color-stop(.75, rgba(255,255,255,.15)), color-stop(.75, transparent), to(transparent));
+    background-image: -webkit-linear-gradient(@angle, rgba(255,255,255,.15) 25%, transparent 25%, transparent 50%, rgba(255,255,255,.15) 50%, rgba(255,255,255,.15) 75%, transparent 75%, transparent);
+    background-image: -moz-linear-gradient(@angle, rgba(255,255,255,.15) 25%, transparent 25%, transparent 50%, rgba(255,255,255,.15) 50%, rgba(255,255,255,.15) 75%, transparent 75%, transparent);
+    background-image: -o-linear-gradient(@angle, rgba(255,255,255,.15) 25%, transparent 25%, transparent 50%, rgba(255,255,255,.15) 50%, rgba(255,255,255,.15) 75%, transparent 75%, transparent);
+    background-image: linear-gradient(@angle, rgba(255,255,255,.15) 25%, transparent 25%, transparent 50%, rgba(255,255,255,.15) 50%, rgba(255,255,255,.15) 75%, transparent 75%, transparent);
+}
+
+// Webkit
+@-webkit-keyframes progress-bar-stripes {
+  from  { background-position: 40px 0; }
+  to    { background-position: 0 0; }
+}
+
+// Firefox
+@-moz-keyframes progress-bar-stripes {
+  from  { background-position: 40px 0; }
+  to    { background-position: 0 0; }
+}
+
+// IE9
+@-ms-keyframes progress-bar-stripes {
+  from  { background-position: 40px 0; }
+  to    { background-position: 0 0; }
+}
+
+// Opera
+@-o-keyframes progress-bar-stripes {
+  from  { background-position: 0 0; }
+  to    { background-position: 40px 0; }
+}
+
+// Spec
+@keyframes progress-bar-stripes {
+  from  { background-position: 40px 0; }
+  to    { background-position: 0 0; }
+}
+
+// THE BARS
+// --------
+
+// Outer container
+.progress {
+  overflow: hidden;
+  height: @baseLineHeight;
+  margin-bottom: @baseLineHeight;
+  #gradient > .vertical(#f5f5f5, #f9f9f9);
+  .box-shadow(~"inset 0 1px 2px rgba(0,0,0,.1)");
+  .border-radius(4px);
+}
+
+// Bar of progress
+.progress .bar {
+  width: 0%;
+  height: 100%;
+  color: @white;
+  float: left;
+  font-size: 12px;
+  text-align: center;
+  text-shadow: 0 -1px 0 rgba(0,0,0,.25);
+  //#gradient > .vertical(#149bdf, #0480be);
+  .box-shadow(~"inset 0 -1px 0 rgba(0,0,0,.15)");
+  .box-sizing(border-box);
+  .transition(~"width .6s ease");
+}
+.progress .bar + .bar {
+  .box-shadow(~"inset 1px 0 0 rgba(0,0,0,.15), inset 0 -1px 0 rgba(0,0,0,.15)");
+}
+
+// Striped bars
+.progress-striped .bar {
+  .progress_striped(#149bdf);
+  .background-size(~"40px 40px");
+}
+
+// Call animation for the active one
+.progress.active .bar {
+  -webkit-animation: progress-bar-stripes 2s linear infinite;
+     -moz-animation: progress-bar-stripes 2s linear infinite;
+      -ms-animation: progress-bar-stripes 2s linear infinite;
+       -o-animation: progress-bar-stripes 2s linear infinite;
+          animation: progress-bar-stripes 2s linear infinite;
+}
+
+// COLORS
+// ------
+
+// Danger (red)
+.progress-danger .bar, .progress .bar-danger {
+  #gradient > .vertical(#ee5f5b, #c43c35);
+}
+.progress-danger.progress-striped .bar, .progress-striped .bar-danger {
+  .progress_striped(#ee5f5b);
+}
+
+// Success (green)
+.progress-success .bar, .progress .bar-success {
+  #gradient > .vertical(#62c462, #57a957);
+}
+.progress-success.progress-striped .bar, .progress-striped .bar-success {
+  .progress_striped(#62c462);
+}
+
+// Info (teal)
+.progress-info .bar, .progress .bar-info {
+  #gradient > .vertical(#5bc0de, #339bb9);
+}
+.progress-info.progress-striped .bar, .progress-striped .bar-info {
+  .progress_striped(#5bc0de);
+}
+
+// Warning (orange)
+.progress-warning .bar, .progress .bar-warning {
+  #gradient > .vertical(lighten(@orange, 15%), @orange);
+}
+.progress-warning.progress-striped .bar, .progress-striped .bar-warning {
+  .progress_striped(lighten(@orange, 15%));
 }
 
 /*
@@ -2209,7 +2495,7 @@ TODO: retire this
     #translucent > .background(#000, 0.1);
     border: thin solid #BBB;
     padding: 10px 15px 20px 30px;
-    position: absolute;
+    position: fixed;
     right: 0;
     width: 190px;
     z-index: 1000;

@@ -54,7 +54,7 @@ module 'MachineView', ->
             )
             @data = new MachineView.Data model: @model
             @logs = new LogView.Container
-                route: "/ajax/log/"+@model.get('id')+"_?"
+                route: "/ajax/log/"+@model.get('id')+"?"
                 type: 'machine'
 
             machines.on 'remove', @check_if_still_exists

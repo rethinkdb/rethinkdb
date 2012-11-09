@@ -155,7 +155,7 @@ module 'DatabaseView', ->
                     if namespace_status? and namespace_status.reachability is 'Live'
                         data.num_live_namespaces++
                     data.nshards += namespace_status.nshards
-                    data.nreplicas += data.nshards + namespace_status.nreplicas
+                    data.nreplicas += namespace_status.nreplicas
 
                     for datacenter_id of namespace.get('replica_affinities')
                         # We don't count universe, and we add the datacenter only if it has at least one replica
@@ -263,7 +263,6 @@ module 'DatabaseView', ->
                     ns = _.extend DataUtils.get_namespace_status(namespace.get('id')),
                         name: namespace.get 'name'
                         id: namespace.get 'id'
-                    ns.nreplicas += ns.nshards
                     namespaces_in_db.push ns
 
             data =

@@ -18,12 +18,11 @@ private:
 
 public:
     extent_t *data;
-    off64_t offset;
     int count;
 
-    lba_disk_extent_t(extent_manager_t *_em, direct_file_t *file, file_account_t *io_account, extent_transaction_t *txn);
+    lba_disk_extent_t(extent_manager_t *_em, file_t *file, file_account_t *io_account);
 
-    lba_disk_extent_t(extent_manager_t *_em, direct_file_t *file, off64_t _offset, int _count);
+    lba_disk_extent_t(extent_manager_t *_em, file_t *file, off64_t _offset, int _count);
 
     bool full() {
         return data->amount_filled == em->extent_size;
@@ -62,6 +61,8 @@ public:
 private:
     /* Use destroy() or shutdown() instead */
     ~lba_disk_extent_t() {}
+
+    DISABLE_COPYING(lba_disk_extent_t);
 };
 
 #endif  // SERIALIZER_LOG_LBA_DISK_EXTENT_HPP_

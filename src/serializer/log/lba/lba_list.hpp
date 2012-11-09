@@ -32,7 +32,7 @@ public:
         virtual void on_lba_ready() = 0;
         virtual ~ready_callback_t() {}
     };
-    bool start_existing(direct_file_t *dbfile, metablock_mixin_t *last_metablock, ready_callback_t *cb);
+    bool start_existing(file_t *dbfile, metablock_mixin_t *last_metablock, ready_callback_t *cb);
 
 public:
     flagged_off64_t get_block_offset(block_id_t block);
@@ -86,7 +86,7 @@ private:
         state_shut_down
     } state;
 
-    direct_file_t *dbfile;
+    file_t *dbfile;
 
     in_memory_index_t in_memory_index;
 

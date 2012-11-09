@@ -34,7 +34,7 @@ class gc_entry :
 public:
     data_block_manager_t *parent;
 
-    off64_t offset; /* !< the offset that this extent starts at */
+    extent_reference_t extent_ref;
     bitset_t g_array; /* !< bit array for whether or not each block is garbage */
     bitset_t t_array; /* !< bit array for whether or not each block is referenced by some token */
     bitset_t i_array; /* !< bit array for whether or not each block is referenced by the current lba (*i*ndex) */
@@ -61,13 +61,13 @@ public:
 
 public:
     /* This constructor is for starting a new extent. */
-    explicit gc_entry(data_block_manager_t *parent, extent_transaction_t *txn);
+    explicit gc_entry(data_block_manager_t *parent);
 
     /* This constructor is for reconstructing extents that the LBA tells us contained
        data blocks. */
     gc_entry(data_block_manager_t *parent, off64_t offset);
 
-    void destroy(extent_transaction_t *txn);
+    void destroy();
     ~gc_entry();
 
 #ifndef NDEBUG
@@ -75,6 +75,10 @@ public:
 #endif
 
 private:
+    // Only to be used by the destructor, used to look up the gc entry in the parent's entries
+    // array.
+    off64_t offset;
+
     DISABLE_COPYING(gc_entry);
 };
 
@@ -116,15 +120,14 @@ public:
     restarting an existing database, call start() with the last metablock. */
 
     static void prepare_initial_metablock(metablock_mixin_t *mb);
-    void start_existing(direct_file_t *dbfile, metablock_mixin_t *last_metablock);
+    void start_existing(file_t *dbfile, metablock_mixin_t *last_metablock);
 
     void read(off64_t off_in, void *buf_out, file_account_t *io_account, iocallback_t *cb);
 
     /* Returns the offset to which the block will be written */
     off64_t write(const void *buf_in, block_id_t block_id, bool assign_new_block_sequence_id,
                   file_account_t *io_account, iocallback_t *cb,
-                  bool token_referenced, bool index_referenced,
-                  extent_transaction_t *txn);
+                  bool token_referenced);
 
     /* exposed gc api */
     /* mark a buffer as garbage */
@@ -184,14 +187,10 @@ private:
 
     file_account_t *choose_gc_io_account();
 
-    off64_t gimme_a_new_offset(bool token_referenced, bool index_referenced, extent_transaction_t *txn);
+    off64_t gimme_a_new_offset(bool token_referenced);
 
     /* Checks whether the extent is empty and if it is, notifies the extent manager and cleans up */
-    void check_and_handle_empty_extent(unsigned int extent_id, extent_transaction_t *txn);
-    /* Just pushes the given extent on the potentially_empty_extents queue */
-    void check_and_handle_empty_extent_later(unsigned int extent_id);
-    /* Runs check_and_handle_empty extent() for each extent in potentially_empty_extents */
-    void check_and_handle_outstanding_empty_extents(extent_transaction_t *txn);
+    void check_and_handle_empty_extent(unsigned int extent_id);
 
     // Tells if we should keep gc'ing, being told the next extent that
     // would be gc'ed.
@@ -238,11 +237,9 @@ private:
     extent_manager_t *const extent_manager;
     log_serializer_t *const serializer;
 
-    direct_file_t *dbfile;
+    file_t *dbfile;
     scoped_ptr_t<file_account_t> gc_io_account_nice;
     scoped_ptr_t<file_account_t> gc_io_account_high;
-
-    std::vector<unsigned int> potentially_empty_extents;
 
     /* Contains a pointer to every gc_entry, regardless of what its current state is */
     two_level_array_t<gc_entry *, MAX_DATA_EXTENTS, (1 << 12)> entries;

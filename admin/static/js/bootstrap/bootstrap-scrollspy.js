@@ -1,4 +1,3 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
 /* =============================================================
  * bootstrap-scrollspy.js v2.0.2
  * http://twitter.github.com/bootstrap/javascript.html#scrollspy

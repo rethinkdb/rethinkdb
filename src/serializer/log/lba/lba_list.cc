@@ -72,7 +72,7 @@ public:
     }
 };
 
-bool lba_list_t::start_existing(direct_file_t *file, metablock_mixin_t *last_metablock, ready_callback_t *cb) {
+bool lba_list_t::start_existing(file_t *file, metablock_mixin_t *last_metablock, ready_callback_t *cb) {
     rassert(state == state_unstarted);
 
     dbfile = file;
