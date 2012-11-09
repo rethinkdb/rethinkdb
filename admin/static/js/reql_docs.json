@@ -52,17 +52,23 @@
           "langs": {
             "js": {
               "name": "r",
-              "dont_need_parenthesis": true,
               "examples": [
                 {
                   "description": "Setup your top level namespace",
                   "code": "var r = require('rethinkdb');"
+                },
+                {
+                  "description": "In javascript, 'r' can also be used to access an attribute of the row currently being visited",
+                  "code": "r.table('users').filter(r('age').gt(5)).run()"
+                },
+                {
+                  "description": "It can also be used to access currently visited row via a special symbol '@'",
+                  "code": "r.table('users').filter(r('@')('age').gt(5)).run()"
                 }
               ]
             },
             "rb": {
               "name": "r",
-              "dont_need_parenthesis": true,
               "examples": [
                 {
                   "description": "Setup your top level namespace",
@@ -72,11 +78,18 @@
             },
             "py": {
               "name": "r",
-              "dont_need_parenthesis": true,
               "examples": [
                 {
                   "description": "Setup your top level namespace",
                   "code": "import rethinkdb as r"
+                },
+                {
+                  "description": "In python, 'r' can also be used to access an attribute of the row currently being visited",
+                  "code": "r.table('users').filter(r['age'] > 5).run()"
+                },
+                {
+                  "description": "It can also be used to access currently visited row via a special symbol '@'",
+                  "code": "r.table('users').filter(r['@']['age'] > 5).run()"
                 }
               ]
             }
@@ -193,7 +206,6 @@
             },
             "rb": {
               "name": "db_list",
-              "dont_need_parenthesis": true,
               "body": "",
               "examples": [
                 {
@@ -219,7 +231,7 @@
           "langs": {
             "js": {
               "name": "tableCreate",
-              "body": "tableName",
+              "body": "tableNameOrOptions",
               "examples": [
                 {
                   "description": "Create a table named 'marvel'.",
@@ -229,7 +241,7 @@
             },
             "py": {
               "name": "table_create",
-              "body": "table_name",
+              "body": "table_name[, primary_key=None, primary_datacenter=None, cache_size=None]",
               "examples": [
                 {
                   "description": "Create a table named 'marvel'",
@@ -239,7 +251,7 @@
             },
             "rb": {
               "name": "table_create",
-              "body": "table_name",
+              "body": "table_name[, options]",
               "examples": [
                 {
                   "description": "Create a table named 'marvel'",
@@ -498,7 +510,6 @@
             },
             "rb": {
               "name": "delete",
-              "dont_need_parenthesis": true,
               "body": "",
               "examples": [
                 {
@@ -590,45 +601,6 @@
                 {
                   "description": "Return all documents in the table 'marvel'.",
                   "code": "r.table('marvel').run"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "tag" : "r",
-          "description": "Select an attribute",
-          "parent": null,
-          "returns": "r",
-          "langs": {
-            "js": {
-              "name": "r",
-              "body": "key_attribute",
-              "examples": [
-                {
-                  "description": "Get all users whose age is greater than 5",
-                  "code": "r.table('users').filter(r('age').gt(5)).run()"
-                },
-                {
-                  "description": "It can also be used to access currently visited row via a special symbol '@'",
-                  "code": "r.table('users').filter(r('@')('age').gt(5)).run()"
-                }
-              ]
-            },
-            "rb": false,
-            "py": {
-              "name": "r",
-              "body": "key_attribute",
-              "dont_need_parenthesis": true,
-              "use_bracket": true,
-              "examples": [
-                {
-                  "description": "Get all users whose age is greater than 5",
-                  "code": "r.table('users').filter(r['age'] > 5).run()"
-                },
-                {
-                  "description": "It can also be used to access currently visited row via a special symbol '@'",
-                  "code": "r.table('users').filter(r['@']['age'] > 5).run()"
                 }
               ]
             }
@@ -757,11 +729,10 @@
             "rb": {
               "name": "filter",
               "body": "predicate",
-              "dont_need_parenthesis": true,
               "examples": [
                 {
                   "description": "Select all documents where the 'abilities' field contains a key called 'super-strength'",
-                  "code": "r.table('marvel').filter {|hero|\n hero['abilities'].contains('super-strength')\n}.run"
+                  "code": "r.table('marvel').filter {|hero|\n hero['abilities'].contains('super-strength')\n}).run"
                 }
               ]
             }
@@ -916,7 +887,6 @@
             },
             "rb": {
               "name": "zip",
-              "dont_need_parenthesis": true,
               "body": "",
               "examples": [
                 {
@@ -946,7 +916,7 @@
               "examples": [
                 {
                   "description": "Construct a sequence of hero power ratings",
-                  "code": "r.table('marvel').map(function(hero) {\n return hero('combatPower').add(hero('compassionPower').mul(2));\n}).run()"
+                  "code": "r.table('marvel').concatMap(function(hero) {\n return hero('combatPower').add(hero('compassionPower').mul(2));\n}).run()"
                 }
               ]
             },
@@ -956,18 +926,17 @@
               "examples": [
                 {
                   "description": "Construct a sequence of hero power ratings",
-                  "code": "r.table('marvel').map(lambda hero: hero['combatPower'] + hero['compassionPower'] * 2).run()"
+                  "code": "r.table('marvel').concat_map(lambda hero: hero['combatPower'] + hero['compassionPower'] * 2).run()"
                 }
               ]
             },
             "rb": {
               "name": "map",
-              "dont_need_parenthesis": true,
               "body": "mapping_function",
               "examples": [
                 {
                   "description": "Construct a sequence of hero power ratings",
-                  "code": "r.table('marvel').map {|hero|\n hero['combatPower'] + hero['compassionPower'] * 2\n}.run"
+                  "code": "r.table('marvel').concat_map {|hero|\n hero['combatPower'] + hero['compassionPower'] * 2\n}.run"
                 }
               ]
             }
@@ -1001,7 +970,6 @@
             },
             "rb": {
               "name": "concat_map",
-              "dont_need_parenthesis": true,
               "body": "mapping_function",
               "examples": [
                 {
@@ -1144,9 +1112,6 @@
             },
             "py": {
               "name": "[]",
-              "is_selector": true,
-              "name1": "[",
-              "name2": "]",
               "body": "startIndex[, endIndex]",
               "examples" : [
                 {
@@ -1157,9 +1122,6 @@
             },
             "rb": {
               "name": "[]",
-              "is_selector": true,
-              "name1": "[",
-              "name2": "]",
               "body": "startindex[, endindex]",
               "examples" : [
                 {
@@ -1188,27 +1150,21 @@
             },
             "py": {
               "name": "[]",
-              "is_selector": true,
-              "name1": "[",
-              "name2": "]",
               "body": "index",
               "examples" : [
                 {
                   "description": "Select the second element in the array",
-                  "code": "r.expr([1,2,3])[1].run()"
+                  "code": "r.expr([1,2,3]).nth(1).run()"
                 }
               ]
             },
             "rb": {
               "name": "[]",
-              "is_selector": true,
-              "name1": "[",
-              "name2": "]",
               "body": "index",
               "examples" : [
                 {
                   "description": "Select the second element in the array",
-                  "code": "r.expr([1,2,3])[1].run"
+                  "code": "r.expr([1,2,3]).nth(1).run"
                 }
               ]
             }
@@ -1439,7 +1395,6 @@
             },
             "rb": {
               "name": "distinct",
-              "dont_need_parenthesis": true,
               "body": "",
               "examples" : [
                 {
@@ -1561,7 +1516,6 @@
             },
             "rb": {
               "name": "count",
-              "dont_need_parenthesis": true,
               "body": "",
               "examples" : [
                 {
@@ -1815,9 +1769,6 @@
           "langs": {
             "js": {
               "name": "()",
-              "is_selector": true,
-              "name1": "(",
-              "name2": ")",
               "body": "attr",
               "examples" : [
                 {
@@ -1828,9 +1779,6 @@
             },
             "py": {
               "name": "[]",
-              "is_selector": true,
-              "name1": "[",
-              "name2": "]",
               "body": "attr",
               "examples" : [
                 {
@@ -1841,9 +1789,6 @@
             },
             "rb": {
               "name": "[]",
-              "is_selector": true,
-              "name1": "[",
-              "name2": "]",
               "body": "attr",
               "examples" : [
                 {
@@ -1922,7 +1867,6 @@
             },
             "py": {
               "name": "+",
-              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
@@ -1937,7 +1881,6 @@
             },
             "rb": {
               "name": "+",
-              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
@@ -1970,7 +1913,6 @@
             },
             "py": {
               "name": "-",
-              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
@@ -1981,7 +1923,6 @@
             },
             "rb": {
               "name": "-",
-              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
@@ -2010,7 +1951,6 @@
             },
             "py": {
               "name": "*",
-              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
@@ -2021,7 +1961,6 @@
             },
             "rb": {
               "name": "*",
-              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
@@ -2050,7 +1989,6 @@
             },
             "py": {
               "name": "/",
-              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
@@ -2061,7 +1999,6 @@
             },
             "rb": {
               "name": "/",
-              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
@@ -2090,7 +2027,6 @@
             },
             "py": {
               "name": "%",
-              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
@@ -2101,7 +2037,6 @@
             },
             "rb": {
               "name": "%",
-              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
@@ -2130,7 +2065,6 @@
             },
             "py": {
               "name": "&&",
-              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
@@ -2141,7 +2075,6 @@
             },
             "rb": {
               "name": "&",
-              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
@@ -2170,7 +2103,6 @@
             },
             "py": {
               "name": "||",
-              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
@@ -2181,7 +2113,6 @@
             },
             "rb": {
               "name": "|",
-              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
@@ -2210,7 +2141,6 @@
             },
             "py": {
               "name": "==",
-              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
@@ -2221,7 +2151,6 @@
             },
             "rb": {
               "name": "==",
-              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
@@ -2250,7 +2179,6 @@
             },
             "py": {
               "name": "!=",
-              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
@@ -2261,7 +2189,6 @@
             },
             "rb": {
               "name": "!=",
-              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
@@ -2290,7 +2217,6 @@
             },
             "py": {
               "name": ">",
-              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
@@ -2301,7 +2227,6 @@
             },
             "rb": {
               "name": ">",
-              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
@@ -2330,7 +2255,6 @@
             },
             "py": {
               "name": ">=",
-              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
@@ -2341,7 +2265,6 @@
             },
             "rb": {
               "name": ">=",
-              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
@@ -2370,7 +2293,6 @@
             },
             "py": {
               "name": "<",
-              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
@@ -2381,7 +2303,6 @@
             },
             "rb": {
               "name": "<",
-              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
@@ -2410,7 +2331,6 @@
             },
             "py": {
               "name": "<=",
-              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
@@ -2421,7 +2341,6 @@
             },
             "rb": {
               "name": "<=",
-              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
@@ -2450,8 +2369,6 @@
             },
             "py": {
               "name": "~",
-              "is_operator": true,
-              "operator_first": true,
               "body": "",
               "examples" : [
                 {
@@ -2462,7 +2379,6 @@
             },
             "rb": {
               "name": "not",
-              "dont_need_parenthesis": true,
               "body": "",
               "examples" : [
                 {
@@ -2902,7 +2818,6 @@
             },
             "rb": {
               "name": "close",
-              "dont_need_parenthesis": true,
               "body": "",
               "examples" : [
                 {
@@ -2941,7 +2856,6 @@
             },
             "rb": {
               "name": "reconnect",
-              "dont_need_parenthesis": true,
               "body": "",
               "examples" : [
                 {
