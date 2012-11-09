@@ -331,7 +331,8 @@ TODO: retire this
         list-style-type: none;
         li {
             display: inline-block;
-            margin-right: 25px;
+            margin-right: 65px;
+            a { color: #a3a3a3; }
         }
     }
 
@@ -1082,9 +1083,11 @@ TODO: retire this
                     display: inline-block;
                     margin: 5px 0px;
                     padding: 0px 5px;
-                    min-width: 97px;
-                    min-height: 18px;
+                    width: 132px;
+                    height: 18px;
                     cursor: pointer;
+                    text-overflow: ellipsis;
+
                 }
                 .suggestion_name_li_hl{ color: #005388; }
             }
@@ -1100,6 +1103,12 @@ TODO: retire this
                 word-wrap: break-word;
                 .border-radius(4px);
                 .box-shadow(~"inset 0 -6px 6px -6px #ddd;");
+                .separation{
+                    height: 1px;
+                    border-top: 1px solid #dadada;
+                    margin: 3px auto;
+                    width: 300px;
+                }
                 p{
                     font-family: @monospace;
                     margin: 3px 0px;
@@ -1659,7 +1668,7 @@ TODO: retire this
                 top: 0;
                 bottom: 0;
 
-                background-image: url('/images/list-horiz-dash.png'), url('/images/list-square-bullet.png');  
+                background-image: url('/images/list-square-bullet.png'), url('/images/list-horiz-dash.png');  
                 background-position: right center, ((@square_bullet_width / 2) - 1) center;
                 background-repeat: no-repeat, repeat-x;
             }

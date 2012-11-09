@@ -445,7 +445,7 @@ int64_t round_up_to_power_of_two(int64_t x) {
 ticks_t secs_to_ticks(double secs) {
     // The timespec struct used in clock_gettime has a tv_nsec field.
     // That's why we use a billion.
-    return secs * 1000000000L;
+    return static_cast<ticks_t>(secs * 1000000000L);
 }
 
 timespec clock_monotonic() {

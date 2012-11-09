@@ -492,9 +492,11 @@ endif
 
 SUPPORT_DIR:=../support
 AUTOCHAIN?=0
+ALLOW_INTERNAL_TOOLS?=1
+INSTALL_INTERNAL_TOOLS?=0
 TC_LESSC_INT_EXE:=$(SUPPORT_DIR)/toolchain/node_modules/less/bin/lessc
 TC_COFFEE_INT_EXE:=$(SUPPORT_DIR)/toolchain/node_modules/coffee-script/bin/coffee
-ifeq ($(AUTOCHAIN),1)
+ifeq ($(ALLOW_INTERNAL_TOOLS),1)
 ifeq ($(shell which lessc || true),)
 TC_LESSC_EXE:=$(TC_LESSC_INT_EXE)	
 else
@@ -577,6 +579,11 @@ ASSET_SCRIPTS:=$(ASSETS_DIR)/scripts/rdb_migrate
 INIT_SCRIPTS:=$(ASSETS_DIR)/init/rethinkdb
 
 UBRELEASE?=precise
+ifeq ($(shell echo $(UBRELEASE) | grep '^[p-zP-Z]'),)
+NODEJS_NEW?=0
+else
+NODEJS_NEW?=1
+endif
 
 CXXFLAGS+=-DMIGRATION_SCRIPT_LOCATION=\"$(scripts_dir)/rdb_migrate\"
 
@@ -676,6 +683,7 @@ build-deb-src-control:
 				-D "TRIAL=$(TRIAL)"																			\
 				-D "DISK_SIZE=$${disk_size}"														\
 				-D "SOURCEBUILD=1" \
+				-D "NODEJS_NEW=$(NODEJS_NEW)" \
 			../packaging/$(DEBIAN_PKG_DIR)/control > ../debian/control
 # Copy {pre,post}{inst,rm} scripts
 	$(QUIET) for script in preinst postinst prerm postrm; do		                  		\
@@ -741,6 +749,7 @@ build-deb: all prepare_deb_package_dirs
 				-D "TRIAL=$(TRIAL)"																			\
 				-D "DISK_SIZE=$${disk_size}"														\
 				-D "SOURCEBUILD=0" \
+				-D "NODEJS_NEW=$(NODEJS_NEW)" \
 			../packaging/$(DEBIAN_PKG_DIR)/control >$(DEB_CONTROL_ROOT)/control
 
 # Copy the license file.
@@ -750,7 +759,7 @@ build-deb: all prepare_deb_package_dirs
 	$(QUIET) fakeroot dpkg-deb -b $(DEB_PACKAGE_DIR) $(PACKAGES_DIR)
 
 deb: prepare_deb_package_dirs
-# We have disabled building of stripped debs for now.
+# We have disabled building of unstripped debs for now.
 # $(QUIET) $(MAKE) STRIP_ON_INSTALL=0 RETHINKDB_PACKAGING_VERSION=$(RETHINKDB_VERSION)-unstripped build-deb
 	$(QUIET) $(MAKE) STRIP_ON_INSTALL=1 RETHINKDB_PACKAGING_VERSION=$(RETHINKDB_VERSION) WEBRESDIR=$(web_res_dir) BUILD_DRIVERS=0 build-deb
 
@@ -1154,21 +1163,21 @@ endif
 # Note that this assumes that its locations match those earlier in the Makefile. If you change TC_LESSC_EXE, you probably ought to change these as well .
 
 $(TC_LESSC_INT_EXE): $(SUPPORT_DIR)
-# ifeq ($(AUTOCHAIN),1)
+ifeq ($(INSTALL_INTERNAL_TOOLS),1)
 # ifeq ($(shell npm list --global --parseable | grep '\/less$$'),)
 # We must do this either way now.
 	if [ -d $(SUPPORT_DIR) ] && [ ! -e $(SUPPORT_DIR)/toolchain ] ; then mkdir -p $(SUPPORT_DIR)/toolchain ; fi ;
 	cd $(SUPPORT_DIR)/toolchain ; npm install less ;
 # endif
-# endif
+endif
 
 $(TC_COFFEE_INT_EXE): $(SUPPORT_DIR)
-# ifeq ($(AUTOCHAIN),1)
+ifeq ($(INSTALL_INTERNAL_TOOLS),1)
 # ifeq ($(shell npm list --global --parseable | grep '\/coffee-script$$'),)
 	if [ -d $(SUPPORT_DIR) ] && [ ! -e $(SUPPORT_DIR)/toolchain ] ; then mkdir -p $(SUPPORT_DIR)/toolchain ; fi ;
 	cd $(SUPPORT_DIR)/toolchain ; npm install coffee-script ;
 # endif
-# endif
+endif
 
 $(SUPPORT_DIR):
 	mkdir -p $(SUPPORT_DIR) ;

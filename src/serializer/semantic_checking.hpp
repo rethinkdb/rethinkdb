@@ -20,9 +20,6 @@ the log serializer. */
 
 //#define SERIALIZER_DEBUG_PRINT 1
 
-// TODO make this just an interface and move implementation into semantic_checking.tcc, then use
-// tim's template hack to instantiate as necessary in a .cc file.
-
 struct scs_block_info_t;
 struct scs_persisted_block_info_t;
 
@@ -49,10 +46,8 @@ private:
     void read_check_state(scs_block_token_t<inner_serializer_t> *token, const void *buf);
 
 public:
-    typedef typename inner_serializer_t::private_dynamic_config_t private_dynamic_config_t;
     typedef typename inner_serializer_t::dynamic_config_t dynamic_config_t;
     typedef typename inner_serializer_t::static_config_t static_config_t;
-    typedef typename inner_serializer_t::config_t config_t;
 
     static void create(serializer_file_opener_t *file_opener, static_config_t static_config);
     semantic_checking_serializer_t(dynamic_config_t config, serializer_file_opener_t *file_opener, perfmon_collection_t *perfmon_collection);

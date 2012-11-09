@@ -265,7 +265,7 @@ void job_handle_t::interrupt() THROWS_NOTHING {
 
 int64_t job_handle_t::read_interruptible(void *p, int64_t n, signal_t *interruptor) {
     rassert(worker_ && worker_->attached_);
-    int res;
+    int res = -1;
     try {
         interruptor_wrapper_t wrapper(this, interruptor);
         res = worker_->read_interruptible(p, n, &wrapper);
@@ -285,7 +285,7 @@ int64_t job_handle_t::read_interruptible(void *p, int64_t n, signal_t *interrupt
 
 int64_t job_handle_t::write_interruptible(const void *p, int64_t n, signal_t *interruptor) {
     rassert(worker_ && worker_->attached_);
-    int res;
+    int res = -1;
     try {
         interruptor_wrapper_t wrapper(this, interruptor);
         res = worker_->write_interruptible(p, n, &wrapper);
