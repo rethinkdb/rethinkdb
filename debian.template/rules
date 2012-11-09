@@ -26,7 +26,7 @@ binary-indep: install
 binary-arch: install
 	dh_installdocs -a
 	dh_installchangelogs -a
-	dh_strip -a
+	dh_strip --dbg-package=$(package)-dbg
 	dh_compress -a
 	dh_fixperms -a
 	dh_installdeb -a
