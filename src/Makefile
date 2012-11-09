@@ -1152,7 +1152,7 @@ endif
 # bug in GNU Make, possibly a bug in our Makefile.
 .SECONDARY: $(PROTO_HEADERS)
 
-NO_DEPS_TARGETS:=clean depclean tags etags analyze cscope style web-assets build-deb-src build-deb-src-control $(OPROF_TARGETS)
+NO_DEPS_TARGETS:=clean depclean tags etags analyze cscope style web-assets build-deb-src build-deb-src-control $(TC_LESSC_INT_EXE) $(TC_COFFEE_INT_EXE) $(SUPPORT_DIR) $(WEB_ASSETS_BUILD_DIR)/cluster-min.js $(WEB_ASSETS_BUILD_DIR)/cluster.css $(WEB_ASSETS_BUILD_DIR)/index.html $(WEB_ASSETS_BUILD_DIR)/js $(WEB_ASSETS_BUILD_DIR)/fonts $(WEB_ASSETS_BUILD_DIR)/images $(WEB_ASSETS_BUILD_DIR)/favicon.ico $(WEB_ASSETS_BUILD_DIR)/js/rethinkdb.js $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee $(COFFEE_SOURCES) $(OPROF_TARGETS)
 # Include the dependencies into the makefile so that they take effect
 ifneq (,$(if $(MAKECMDGOALS),$(filter-out $(NO_DEPS_TARGETS),$(MAKECMDGOALS)),non-empty-placeholder))
 -include $(DEPS)
