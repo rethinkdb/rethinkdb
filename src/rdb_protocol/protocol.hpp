@@ -478,14 +478,16 @@ struct rdb_protocol_t {
                            read_response_t *response,
                            btree_slice_t *btree,
                            transaction_t *txn,
-                           superblock_t *superblock);
+                           superblock_t *superblock,
+                           signal_t *interruptor);
 
         void protocol_write(const write_t &write,
                             write_response_t *response,
                             transition_timestamp_t timestamp,
                             btree_slice_t *btree,
                             transaction_t *txn,
-                            superblock_t *superblock);
+                            superblock_t *superblock,
+                            signal_t *interruptor);
 
         void protocol_send_backfill(const region_map_t<rdb_protocol_t, state_timestamp_t> &start_point,
                                     chunk_fun_callback_t<rdb_protocol_t> *chunk_fun_cb,
