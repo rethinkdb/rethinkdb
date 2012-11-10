@@ -773,7 +773,7 @@ bool log_serializer_t::shutdown(cond_t *cb) {
 bool log_serializer_t::next_shutdown_step() {
     assert_thread();
 
-    if(shutdown_state == shutdown_begin) {
+    if (shutdown_state == shutdown_begin) {
         // First shutdown step
         shutdown_state = shutdown_waiting_on_serializer;
         if (last_write || active_write_count > 0) {
@@ -784,19 +784,19 @@ bool log_serializer_t::next_shutdown_step() {
         state = state_shutting_down;
     }
 
-    if(shutdown_state == shutdown_waiting_on_serializer) {
+    if (shutdown_state == shutdown_waiting_on_serializer) {
         shutdown_state = shutdown_waiting_on_datablock_manager;
-        if(!data_block_manager->shutdown(this)) {
+        if (!data_block_manager->shutdown(this)) {
             shutdown_in_one_shot = false;
             return false;
         }
     }
 
     // The datablock manager uses block tokens, so it goes before.
-    if(shutdown_state == shutdown_waiting_on_datablock_manager) {
+    if (shutdown_state == shutdown_waiting_on_datablock_manager) {
         shutdown_state = shutdown_waiting_on_block_tokens;
         rassert(!(token_offsets.empty() ^ offset_tokens.empty()));
-        if(!(token_offsets.empty() && offset_tokens.empty())) {
+        if (!(token_offsets.empty() && offset_tokens.empty())) {
             shutdown_in_one_shot = false;
             return false;
         } else {
@@ -808,15 +808,15 @@ bool log_serializer_t::next_shutdown_step() {
 
     rassert(expecting_no_more_tokens);
 
-    if(shutdown_state == shutdown_waiting_on_block_tokens) {
+    if (shutdown_state == shutdown_waiting_on_block_tokens) {
         shutdown_state = shutdown_waiting_on_lba;
-        if(!lba_index->shutdown(this)) {
+        if (!lba_index->shutdown(this)) {
             shutdown_in_one_shot = false;
             return false;
         }
     }
 
-    if(shutdown_state == shutdown_waiting_on_lba) {
+    if (shutdown_state == shutdown_waiting_on_lba) {
         metablock_manager->shutdown();
         extent_manager->shutdown();
 

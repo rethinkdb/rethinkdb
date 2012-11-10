@@ -55,10 +55,10 @@ semantic_checking_serializer_t(dynamic_config_t config, serializer_file_opener_t
         scs_persisted_block_info_t buf;
         res = read(semantic_fd, &buf, sizeof(buf));
         guarantee_err(res != -1, "Could not read from the semantic checker file");
-        if(res == sizeof(scs_persisted_block_info_t)) {
+        if (res == sizeof(scs_persisted_block_info_t)) {
             blocks.set(buf.block_id, buf.block_info);
         }
-    } while(res == sizeof(scs_persisted_block_info_t));
+    } while (res == sizeof(scs_persisted_block_info_t));
 }
 
 template<class inner_serializer_t>

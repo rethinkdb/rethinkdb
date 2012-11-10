@@ -543,7 +543,7 @@ std::string read_file(const char *path) {
     do {
         count = fread(buffer, 1, sizeof(buffer), fp);
         s.append(buffer, buffer + count);
-    } while(count == sizeof(buffer));
+    } while (count == sizeof(buffer));
 
     rassert(feof(fp));
 

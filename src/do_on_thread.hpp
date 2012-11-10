@@ -67,7 +67,7 @@ template<class callable_t>
 void do_on_thread(int thread, const callable_t &callable) {
     assert_good_thread_id(thread);
 
-    if(thread == get_thread_id()) {
+    if (thread == get_thread_id()) {
       // Run the function directly since we are already in the requested thread
       callable();
     } else {

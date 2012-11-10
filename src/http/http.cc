@@ -207,7 +207,7 @@ int http_server_t::get_port() const {
 http_server_t::~http_server_t() { }
 
 std::string human_readable_status(int code) {
-    switch(code) {
+    switch (code) {
     case 100:
         return "Continue";
     case 101:
@@ -337,23 +337,23 @@ bool tcp_http_msg_parser_t::parse(tcp_conn_t *conn, http_req_t *req, signal_t *c
     LineParser parser(conn);
 
     std::string method = parser.readWord(closer);
-    if(method == "HEAD") {
+    if (method == "HEAD") {
         req->method = HEAD;
-    } else if(method == "GET") {
+    } else if (method == "GET") {
         req->method = GET;
-    } else if(method == "POST") {
+    } else if (method == "POST") {
         req->method = POST;
-    } else if(method == "PUT") {
+    } else if (method == "PUT") {
         req->method = PUT;
-    } else if(method == "DELETE") {
+    } else if (method == "DELETE") {
         req->method = DELETE;
-    } else if(method == "TRACE") {
+    } else if (method == "TRACE") {
         req->method = TRACE;
-    } else if(method == "OPTIONS") {
+    } else if (method == "OPTIONS") {
         req->method = OPTIONS;
-    } else if(method == "CONNECT") {
+    } else if (method == "CONNECT") {
         req->method = CONNECT;
-    } else if(method == "PATCH") {
+    } else if (method == "PATCH") {
         req->method = PATCH;
     } else {
         return false;
@@ -362,7 +362,7 @@ bool tcp_http_msg_parser_t::parse(tcp_conn_t *conn, http_req_t *req, signal_t *c
     // Parse out the query params from the resource
     resource_string_parser_t resource_string;
     std::string src_string = parser.readWord(closer);
-    if(!resource_string.parse(src_string)) {
+    if (!resource_string.parse(src_string)) {
         return false;
     }
 
@@ -375,15 +375,15 @@ bool tcp_http_msg_parser_t::parse(tcp_conn_t *conn, http_req_t *req, signal_t *c
     req->version = version_parser.version;
 
     // Parse header lines.
-    while(true) {
+    while (true) {
         std::string header_line = parser.readLine(closer);
-        if(header_line.length() == 0) {
+        if (header_line.length() == 0) {
             // Blank line separates header from body. We're done here.
             break;
         }
 
         header_line_parser_t header_parser;
-        if(!header_parser.parse(header_line)) {
+        if (!header_parser.parse(header_line)) {
             return false;
         }
 
@@ -405,7 +405,7 @@ bool tcp_http_msg_parser_t::parse(tcp_conn_t *conn, http_req_t *req, signal_t *c
 #define HTTP_VERSION_PREFIX "HTTP/"
 bool tcp_http_msg_parser_t::version_parser_t::parse(const std::string &src) {
     // Very simple, src will almost always be 'HTTP/1.1', we just need the '1.1'
-    if(strncmp(HTTP_VERSION_PREFIX, src.c_str(), strlen(HTTP_VERSION_PREFIX)) == 0) {
+    if (strncmp(HTTP_VERSION_PREFIX, src.c_str(), strlen(HTTP_VERSION_PREFIX)) == 0) {
         version = std::string(src.begin() + strlen(HTTP_VERSION_PREFIX), src.end());
         return true;
     }
@@ -414,38 +414,38 @@ bool tcp_http_msg_parser_t::version_parser_t::parse(const std::string &src) {
 
 bool tcp_http_msg_parser_t::resource_string_parser_t::parse(const std::string &src) {
     std::string::const_iterator iter = src.begin();
-    while(iter != src.end() && *iter != '?') {
+    while (iter != src.end() && *iter != '?') {
         ++iter;
     }
 
     resource = std::string(src.begin(), iter);
 
-    if(iter == src.end()) {
+    if (iter == src.end()) {
         // No query string, leave it empty
         return true;
     }
 
     ++iter; // To skip the '?'
 
-    while(iter != src.end()) {
+    while (iter != src.end()) {
 
         // Parse single query param
         query_parameter_t param;
 
         // Skip to the end of this param
         std::string::const_iterator query_start = iter;
-        while(!(iter == src.end() || *iter == '&')) {
+        while (!(iter == src.end() || *iter == '&')) {
             ++iter;
         }
 
         // Find '=' that splits the key and value
         std::string::const_iterator query_iter = query_start;
-        while(!(query_iter == iter || *query_iter == '=')) {
+        while (!(query_iter == iter || *query_iter == '=')) {
             ++query_iter;
         }
 
         param.key = std::string(query_start, query_iter);
-        if(query_iter == iter) {
+        if (query_iter == iter) {
             // There was no '=' and subsequent value, default to ""
             param.val = "";
         } else {
@@ -455,7 +455,7 @@ bool tcp_http_msg_parser_t::resource_string_parser_t::parse(const std::string &s
         query_params.push_back(param);
 
         // Skip the '&'
-        if(iter != src.end()) ++iter;
+        if (iter != src.end()) ++iter;
     }
 
     return true;
@@ -463,11 +463,11 @@ bool tcp_http_msg_parser_t::resource_string_parser_t::parse(const std::string &s
 
 bool tcp_http_msg_parser_t::header_line_parser_t::parse(const std::string &src) {
     std::string::const_iterator iter = src.begin();
-    while(iter != src.end() && *iter != ':') {
+    while (iter != src.end() && *iter != ':') {
         ++iter;
     }
 
-    if(iter == src.end()) {
+    if (iter == src.end()) {
         // No ':' found, error
         return false;
     }

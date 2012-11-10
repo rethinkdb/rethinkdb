@@ -55,7 +55,7 @@ void rwi_lock_t::unlock() {
             break;
         case rwis_reading:
             nreaders--;
-            if(nreaders == 0)
+            if (nreaders == 0)
                 state = rwis_unlocked;
             rassert(nreaders >= 0);
             break;
@@ -78,7 +78,7 @@ void rwi_lock_t::unlock() {
 // write, and are now unlocking.
 void rwi_lock_t::unlock_intent() {
     rassert(state == rwis_reading_with_intent);
-    if(nreaders == 0)
+    if (nreaders == 0)
         state = rwis_unlocked;
     else
         state = rwis_reading;

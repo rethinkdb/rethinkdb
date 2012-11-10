@@ -214,7 +214,7 @@ public:
         rassert(owner->gc_count > 0);
         owner->gc_count--;
 
-        if(owner->state == lba_list_t::state_shutting_down && owner->gc_count == 0)
+        if (owner->state == lba_list_t::state_shutting_down && owner->gc_count == 0)
             owner->shutdown_now();
 
         delete this;
@@ -276,7 +276,7 @@ bool lba_list_t::shutdown_now() {
 
     state = state_shut_down;
 
-    if(shutdown_callback)
+    if (shutdown_callback)
         shutdown_callback->on_lba_shutdown();
 
     return true;

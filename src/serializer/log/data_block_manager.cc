@@ -634,7 +634,7 @@ void data_block_manager_t::run_gc() {
                 gc_state.gc_blocks = NULL;
                 gc_state.set_step(gc_ready);
 
-                if(state == state_shutting_down) {
+                if (state == state_shutting_down) {
                     actually_shutdown();
                     return;
                 }
@@ -668,7 +668,7 @@ bool data_block_manager_t::shutdown(shutdown_callback_t *cb) {
     rassert(state == state_ready);
     state = state_shutting_down;
 
-    if(gc_state.step() != gc_ready) {
+    if (gc_state.step() != gc_ready) {
         shutdown_callback = cb;
         return false;
     } else {
