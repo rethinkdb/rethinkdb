@@ -13,26 +13,30 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
-#include "arch/io/io_utils.hpp"   /* for `scoped_fd_t` and `_gettid()` */
+#include "arch/io/io_utils.hpp"
 #include "arch/timing.hpp"
 #include "logger.hpp"
+#include "containers/archive/file_stream.hpp"
 #include "containers/printf_buffer.hpp"
 
-/* Class to represent and parse the contents of /proc/[pid]/stat */
+void read_to_static_buffer_or_throw(const char *path, char *buf, size_t nbytes) THROWS_ONLY(std::runtime_error) {
+    guarantee(nbytes > 1);
 
-void open_RDONLY_or_throw(const char *path, scoped_fd_t *fd_out) THROWS_ONLY(std::runtime_error) {
-    int res;
-    do {
-        res = open(path, O_RDONLY);
-    } while (res == -1 && errno == EINTR);
-
-    if (res == -1) {
-        throw std::runtime_error(strprintf("Could not open '%s': %s "
-                                           "(errno = %d)", path, strerror(errno), errno));
+    blocking_read_file_stream_t stream;
+    if (!stream.init(path)) {
+        // TODO: Get error information from a blocking_read_file_stream_t.
+        throw std::runtime_error(strprintf("Could not open '%s'.", path));
     }
 
-    fd_out->reset(res);
+    int64_t readres = force_read(&stream, buf, nbytes - 1);
+    if (readres <= 0) {
+        throw std::runtime_error(strprintf("Could not read from '%s'.", path));
+    }
+
+    buf[readres] = '\0';
 }
+
+/* Class to represent and parse the contents of /proc/[pid]/stat */
 
 struct proc_pid_stat_t {
     int pid;
@@ -69,17 +73,8 @@ struct proc_pid_stat_t {
 
 private:
     void read_from_file(const char *path) {
-        scoped_fd_t stat_file;
-        open_RDONLY_or_throw(path, &stat_file);
-
         char buffer[1000];
-        int res = ::read(stat_file.get(), buffer, sizeof(buffer));
-        if (res <= 0) {
-            throw std::runtime_error(strprintf("Could not read '%s': %s (errno "
-                "= %d)", path, strerror(errno), errno));
-        }
-
-        buffer[res] = '\0';
+        read_to_static_buffer_or_throw(path, buffer, sizeof(buffer));
 
 #ifndef LEGACY_PROC_STAT
         const int items_to_parse = 44;
@@ -144,50 +139,34 @@ public:
 public:
     static global_sys_stat_t read_global_stats() {
         global_sys_stat_t stat;
-        stat.mem_total = stat.mem_free = stat.utime = stat.ntime = stat.stime = stat.itime = stat.wtime = 0;
+        stat.mem_total = stat.mem_free = 0;
+        stat.utime = stat.ntime = stat.stime = stat.itime = stat.wtime = 0;
         stat.ncpus = 0;
         stat.bytes_received = stat.bytes_sent = 0;
 
         // Grab memory info
         {
-            const char *path = "/proc/meminfo";
-            scoped_fd_t stat_file;
-            open_RDONLY_or_throw(path, &stat_file);
-
             char buffer[1000];
-            int res = ::read(stat_file.get(), buffer, sizeof(buffer));
-            if (res <= 0) {
-                throw std::runtime_error(strprintf("Could not read '%s': %s "
-                    "(errno = %d)", path, strerror(errno), errno));
-            }
-            buffer[res] = '\0';
+            read_to_static_buffer_or_throw("/proc/meminfo", buffer, sizeof(buffer));
 
             char *_memtotal = strcasestr(buffer, "MemTotal");
             if (_memtotal) {
-                res = sscanf(_memtotal, "MemTotal:%*[ ]%" SCNi64 " kB", &stat.mem_total);
+                sscanf(_memtotal, "MemTotal:%*[ ]%" SCNi64 " kB", &stat.mem_total);
             }
             char *_memfree = strcasestr(buffer, "MemFree");
             if (_memfree) {
-                res = sscanf(_memfree, "MemFree:%*[ ]%" SCNi64 "kB", &stat.mem_free);
+                sscanf(_memfree, "MemFree:%*[ ]%" SCNi64 "kB", &stat.mem_free);
             }
         }
 
         // Grab CPU info
         {
-            const char *path = "/proc/stat";
-            scoped_fd_t stat_file;
-            open_RDONLY_or_throw(path, &stat_file);
-
             char buffer[1024 * 10];
-            int res = ::read(stat_file.get(), buffer, sizeof(buffer));
-            if (res <= 0) {
-                throw std::runtime_error(strprintf("Could not read '%s': %s "
-                    "(errno = %d)", path, strerror(errno), errno));
-            }
-            buffer[res] = '\0';
+            read_to_static_buffer_or_throw("/proc/stat", buffer, sizeof(buffer));
 
-            res = sscanf(buffer, "cpu%*[ ]%" SCNi64 " %" SCNi64 " %" SCNi64 " %" SCNi64 " %" SCNi64,
-                         &stat.utime, &stat.ntime, &stat.stime, &stat.itime, &stat.wtime);
+            // TODO: Why do we assign to res below?
+            sscanf(buffer, "cpu%*[ ]%" SCNi64 " %" SCNi64 " %" SCNi64 " %" SCNi64 " %" SCNi64,
+                   &stat.utime, &stat.ntime, &stat.stime, &stat.itime, &stat.wtime);
 
             // Compute the number of cores
             char *core = buffer;
@@ -203,17 +182,8 @@ public:
 
         // Grab network info
         {
-            const char *path = "/proc/net/dev";
-            scoped_fd_t stat_file;
-            open_RDONLY_or_throw(path, &stat_file);
-
             char buffer[1024 * 10];
-            int res = ::read(stat_file.get(), buffer, sizeof(buffer));
-            if (res <= 0) {
-                throw std::runtime_error(strprintf("Could not read '%s': %s "
-                    "(errno = %d)", path, strerror(errno), errno));
-            }
-            buffer[res] = '\0';
+            read_to_static_buffer_or_throw("/proc/net/dev", buffer, sizeof(buffer));
 
             // Scan for bytes received and sent on each interface
             char *netinfo = buffer;
@@ -222,15 +192,15 @@ public:
                 if (netinfo) {
                     netinfo += 2;
                     int64_t recv, sent;
-                    res = sscanf(netinfo, "%" SCNi64 "%*[ ]%*d%*[ ]%*d%*[ ]%*d%*[ ]%*d%*[ ]%*d%*[ ]%*d%*[ ]%*d%*[ ]%" SCNi64 "%*[ ]", &recv, &sent);
+                    int res = sscanf(netinfo, "%" SCNi64 "%*[ ]%*d%*[ ]%*d%*[ ]%*d%*[ ]%*d%*[ ]%*d%*[ ]%*d%*[ ]%*d%*[ ]%" SCNi64 "%*[ ]", &recv, &sent);
                     if (res == 2) {
                         stat.bytes_received += recv;
                         stat.bytes_sent += sent;
                     }
                 }
             } while (netinfo);
-            res = sscanf(buffer, "cpu%*[ ]%" SCNi64 " %" SCNi64 " %" SCNi64 " %" SCNi64 " %" SCNi64,
-                         &stat.utime, &stat.ntime, &stat.stime, &stat.itime, &stat.wtime);
+            sscanf(buffer, "cpu%*[ ]%" SCNi64 " %" SCNi64 " %" SCNi64 " %" SCNi64 " %" SCNi64,
+                   &stat.utime, &stat.ntime, &stat.stime, &stat.itime, &stat.wtime);
         }
 
         // Whoo, we're done.
