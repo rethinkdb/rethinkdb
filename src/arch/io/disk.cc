@@ -232,7 +232,15 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, io
 
     // Open the file
 
-    fd.reset(open(path, flags, 0644));
+    {
+        int res;
+        do {
+            res = open(path, flags, 0644);
+        } while (res == -1 && errno == EINTR);
+
+        fd.reset(res);
+    }
+
     if (fd.get() == INVALID_FD) {
         /* TODO: Throw an exception instead. */
         fail_due_to_user_error(

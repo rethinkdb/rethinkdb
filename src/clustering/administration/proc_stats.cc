@@ -20,6 +20,20 @@
 
 /* Class to represent and parse the contents of /proc/[pid]/stat */
 
+void open_RDONLY_or_throw(const char *path, scoped_fd_t *fd_out) THROWS_ONLY(std::runtime_error) {
+    int res;
+    do {
+        res = open(path, O_RDONLY);
+    } while (res == -1 && errno == EINTR);
+
+    if (res == -1) {
+        throw std::runtime_error(strprintf("Could not open '%s': %s "
+                                           "(errno = %d)", path, strerror(errno), errno));
+    }
+
+    fd_out->reset(res);
+}
+
 struct proc_pid_stat_t {
     int pid;
     char name[500];
@@ -54,12 +68,9 @@ struct proc_pid_stat_t {
     }
 
 private:
-    void read_from_file(const char * path) {
-        scoped_fd_t stat_file(open(path, O_RDONLY));
-        if (stat_file.get() == INVALID_FD) {
-            throw std::runtime_error(strprintf("Could not open '%s': %s (errno "
-                "= %d)", path, strerror(errno), errno));
-        }
+    void read_from_file(const char *path) {
+        scoped_fd_t stat_file;
+        open_RDONLY_or_throw(path, &stat_file);
 
         char buffer[1000];
         int res = ::read(stat_file.get(), buffer, sizeof(buffer));
@@ -140,11 +151,8 @@ public:
         // Grab memory info
         {
             const char *path = "/proc/meminfo";
-            scoped_fd_t stat_file(open(path, O_RDONLY));
-            if (stat_file.get() == INVALID_FD) {
-                throw std::runtime_error(strprintf("Could not open '%s': %s "
-                    "(errno = %d)", path, strerror(errno), errno));
-            }
+            scoped_fd_t stat_file;
+            open_RDONLY_or_throw(path, &stat_file);
 
             char buffer[1000];
             int res = ::read(stat_file.get(), buffer, sizeof(buffer));
@@ -167,11 +175,8 @@ public:
         // Grab CPU info
         {
             const char *path = "/proc/stat";
-            scoped_fd_t stat_file(open(path, O_RDONLY));
-            if (stat_file.get() == INVALID_FD) {
-                throw std::runtime_error(strprintf("Could not open '%s': %s "
-                    "(errno = %d)", path, strerror(errno), errno));
-            }
+            scoped_fd_t stat_file;
+            open_RDONLY_or_throw(path, &stat_file);
 
             char buffer[1024 * 10];
             int res = ::read(stat_file.get(), buffer, sizeof(buffer));
@@ -199,11 +204,8 @@ public:
         // Grab network info
         {
             const char *path = "/proc/net/dev";
-            scoped_fd_t stat_file(open(path, O_RDONLY));
-            if (stat_file.get() == INVALID_FD) {
-                throw std::runtime_error(strprintf("Could not open '%s': %s "
-                    "(errno = %d)", path, strerror(errno), errno));
-            }
+            scoped_fd_t stat_file;
+            open_RDONLY_or_throw(path, &stat_file);
 
             char buffer[1024 * 10];
             int res = ::read(stat_file.get(), buffer, sizeof(buffer));

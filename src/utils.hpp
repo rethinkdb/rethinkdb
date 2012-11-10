@@ -154,6 +154,9 @@ private:
     DISABLE_COPYING(rng_t);
 };
 
+// Reads from /dev/urandom.  Use this sparingly, please.
+void get_dev_urandom(void *out, int64_t nbytes);
+
 int randint(int n);
 std::string rand_string(int len);
 
