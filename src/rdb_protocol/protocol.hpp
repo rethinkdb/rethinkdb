@@ -82,8 +82,12 @@ struct backfill_atom_t {
     repli_timestamp_t recency;
 
     backfill_atom_t() { }
-    backfill_atom_t(const store_key_t& key_, const boost::shared_ptr<scoped_cJSON_t>& value_, const repli_timestamp_t& recency_)
-        : key(key_), value(value_), recency(recency_)
+    backfill_atom_t(const store_key_t& _key,
+                    const boost::shared_ptr<scoped_cJSON_t>& _value,
+                    const repli_timestamp_t& _recency) :
+        key(_key),
+        value(_value),
+        recency(_recency)
     { }
 
     RDB_MAKE_ME_SERIALIZABLE_3(key, value, recency);
@@ -386,8 +390,8 @@ struct rdb_protocol_t {
     class point_delete_t {
     public:
         point_delete_t() { }
-        explicit point_delete_t(const store_key_t& key_)
-            : key(key_) { }
+        explicit point_delete_t(const store_key_t& _key)
+            : key(_key) { }
 
         store_key_t key;
 
@@ -416,7 +420,7 @@ struct rdb_protocol_t {
             repli_timestamp_t recency;
 
             delete_key_t() { }
-            delete_key_t(const store_key_t& key_, const repli_timestamp_t& recency_) : key(key_), recency(recency_) { }
+            delete_key_t(const store_key_t& _key, const repli_timestamp_t& _recency) : key(_key), recency(_recency) { }
 
             RDB_MAKE_ME_SERIALIZABLE_1(key);
         };
@@ -432,13 +436,13 @@ struct rdb_protocol_t {
             rdb_protocol_details::backfill_atom_t backfill_atom;
 
             key_value_pair_t() { }
-            explicit key_value_pair_t(const rdb_protocol_details::backfill_atom_t& backfill_atom_) : backfill_atom(backfill_atom_) { }
+            explicit key_value_pair_t(const rdb_protocol_details::backfill_atom_t& _backfill_atom) : backfill_atom(_backfill_atom) { }
 
             RDB_MAKE_ME_SERIALIZABLE_1(backfill_atom);
         };
 
         backfill_chunk_t() { }
-        explicit backfill_chunk_t(boost::variant<delete_range_t, delete_key_t, key_value_pair_t> val_) : val(val_) { }
+        explicit backfill_chunk_t(boost::variant<delete_range_t, delete_key_t, key_value_pair_t> _val) : val(_val) { }
         boost::variant<delete_range_t, delete_key_t, key_value_pair_t> val;
 
         static backfill_chunk_t delete_range(const region_t& range) {

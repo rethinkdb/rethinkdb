@@ -770,8 +770,11 @@ void store_t::protocol_send_backfill(const region_map_t<rdb_protocol_t, state_ti
 namespace {
 
 struct receive_backfill_visitor_t : public boost::static_visitor<void> {
-    receive_backfill_visitor_t(btree_slice_t *btree_, transaction_t *txn_, superblock_t *superblock_, signal_t *interruptor_) :
-      btree(btree_), txn(txn_), superblock(superblock_), interruptor(interruptor_) { }
+    receive_backfill_visitor_t(btree_slice_t *_btree,
+                               transaction_t *_txn,
+                               superblock_t *_superblock,
+                               signal_t *_interruptor) :
+      btree(_btree), txn(_txn), superblock(_superblock), interruptor(_interruptor) { }
 
     void operator()(const backfill_chunk_t::delete_key_t& delete_key) const {
         point_delete_response_t response;
@@ -796,7 +799,7 @@ private:
     originally necessary because in v1.1.x the hashing scheme might be different
     between the source and destination machines. */
     struct range_key_tester_t : public key_tester_t {
-        explicit range_key_tester_t(const region_t& delete_range_) : delete_range(delete_range_) { }
+        explicit range_key_tester_t(const region_t& _delete_range) : delete_range(_delete_range) { }
         bool key_should_be_erased(const btree_key_t *key) {
             uint64_t h = hash_region_hasher(key->contents, key->size);
             return delete_range.beg <= h && h < delete_range.end

@@ -4,8 +4,8 @@
 #include "http/json.hpp"
 #include "logger.hpp"
 
-combining_http_app_t::combining_http_app_t(std::map<std::string, http_json_app_t *> components_)
-    : components(components_) { }
+combining_http_app_t::combining_http_app_t(std::map<std::string, http_json_app_t *> _components)
+    : components(_components) { }
 
 http_res_t combining_http_app_t::handle(const http_req_t &req) {
     if (req.method != GET && req.method != POST) {

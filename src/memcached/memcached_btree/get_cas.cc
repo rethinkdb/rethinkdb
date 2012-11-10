@@ -18,8 +18,8 @@
 // unnecessary.
 
 struct memcached_get_cas_oper_t : public memcached_modify_oper_t, public home_thread_mixin_debug_only_t {
-    memcached_get_cas_oper_t(cas_t proposed_cas_, promise_t<get_result_t> *res_)
-        : proposed_cas(proposed_cas_), res(res_) { }
+    memcached_get_cas_oper_t(cas_t _proposed_cas, promise_t<get_result_t> *_res)
+        : proposed_cas(_proposed_cas), res(_res) { }
 
     bool operate(transaction_t *txn, scoped_malloc_t<memcached_value_t> *value) {
         if (!value->has()) {

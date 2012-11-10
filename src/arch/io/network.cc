@@ -269,8 +269,8 @@ bool linux_tcp_conn_t::is_read_open() {
     return !read_closed.is_pulsed();
 }
 
-linux_tcp_conn_t::write_handler_t::write_handler_t(linux_tcp_conn_t *parent_) :
-    parent(parent_)
+linux_tcp_conn_t::write_handler_t::write_handler_t(linux_tcp_conn_t *_parent) :
+    parent(_parent)
 { }
 
 void linux_tcp_conn_t::write_handler_t::coro_pool_callback(write_queue_op_t *operation, UNUSED signal_t *interruptor) {

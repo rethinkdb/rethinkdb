@@ -5,7 +5,7 @@
 
 #include "arch/io/network.hpp"
 
-LineParser::LineParser(tcp_conn_t *conn_) : conn(conn_) {
+LineParser::LineParser(tcp_conn_t *_conn) : conn(_conn) {
     peek();
     bytes_read = 0;
 }
