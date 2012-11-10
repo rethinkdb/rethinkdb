@@ -540,15 +540,24 @@ struct read_visitor_t : public boost::static_visitor<void> {
         res.region = dg.region;
     }
 
-    read_visitor_t(btree_slice_t *btree_, transaction_t *txn_, superblock_t *superblock_, rdb_protocol_t::context_t *ctx, read_response_t *response_) :
-        response(response_), btree(btree_), txn(txn_), superblock(superblock_),
+    read_visitor_t(btree_slice_t *_btree,
+                   transaction_t *_txn,
+                   superblock_t *_superblock,
+                   rdb_protocol_t::context_t *ctx,
+                   read_response_t *_response,
+                   signal_t *_interruptor) :
+        response(_response),
+        btree(_btree),
+        txn(_txn),
+        superblock(_superblock),
+        interruptor(_interruptor, ctx->signals[get_thread_id()].get()),
         env(ctx->pool_group,
             ctx->ns_repo,
             ctx->cross_thread_namespace_watchables[get_thread_id()].get()->get_watchable(),
             ctx->cross_thread_database_watchables[get_thread_id()].get()->get_watchable(),
             ctx->semilattice_metadata,
             boost::make_shared<js::runner_t>(),
-            ctx->signals[get_thread_id()].get(),
+            &interruptor,
             ctx->machine_id)
     { }
 
@@ -557,6 +566,7 @@ private:
     btree_slice_t *btree;
     transaction_t *txn;
     superblock_t *superblock;
+    wait_any_t interruptor;
     query_language::runtime_environment_t env;
 };
 
@@ -566,8 +576,9 @@ void store_t::protocol_read(const read_t &read,
                             read_response_t *response,
                             btree_slice_t *btree,
                             transaction_t *txn,
-                            superblock_t *superblock) {
-    read_visitor_t v(btree, txn, superblock, ctx, response);
+                            superblock_t *superblock,
+                            signal_t *interruptor) {
+    read_visitor_t v(btree, txn, superblock, ctx, response, interruptor);
     boost::apply_visitor(v, read.read);
 }
 
@@ -593,16 +604,26 @@ struct write_visitor_t : public boost::static_visitor<void> {
         rdb_delete(d.key, btree, timestamp, txn, superblock, &res);
     }
 
-    write_visitor_t(btree_slice_t *btree_, transaction_t *txn_, superblock_t *superblock_,
-                    repli_timestamp_t timestamp_, rdb_protocol_t::context_t *ctx, write_response_t *_response) :
-        btree(btree_), txn(txn_), response(_response), superblock(superblock_), timestamp(timestamp_),
+    write_visitor_t(btree_slice_t *_btree,
+                    transaction_t *_txn,
+                    superblock_t *_superblock,
+                    repli_timestamp_t _timestamp,
+                    rdb_protocol_t::context_t *ctx,
+                    write_response_t *_response,
+                    signal_t *_interruptor) :
+        btree(_btree),
+        txn(_txn),
+        response(_response),
+        superblock(_superblock),
+        timestamp(_timestamp),
+        interruptor(_interruptor, ctx->signals[get_thread_id()].get()),
         env(ctx->pool_group,
             ctx->ns_repo,
             ctx->cross_thread_namespace_watchables[get_thread_id()].get()->get_watchable(),
             ctx->cross_thread_database_watchables[get_thread_id()].get()->get_watchable(),
             ctx->semilattice_metadata,
             boost::make_shared<js::runner_t>(),
-            ctx->signals[get_thread_id()].get(),
+            &interruptor,
             ctx->machine_id)
     { }
 
@@ -612,6 +633,7 @@ private:
     write_response_t *response;
     superblock_t *superblock;
     repli_timestamp_t timestamp;
+    wait_any_t interruptor;
     query_language::runtime_environment_t env;
 };
 
@@ -622,9 +644,10 @@ void store_t::protocol_write(const write_t &write,
                              transition_timestamp_t timestamp,
                              btree_slice_t *btree,
                              transaction_t *txn,
-                             superblock_t *superblock) {
+                             superblock_t *superblock,
+                             signal_t *interruptor) {
     TICKVAR(pw_A);
-    write_visitor_t v(btree, txn, superblock, timestamp.to_repli_timestamp(), ctx, response);
+    write_visitor_t v(btree, txn, superblock, timestamp.to_repli_timestamp(), ctx, response, interruptor);
     TICKVAR(pw_B);
     boost::apply_visitor(v, write.write);
     TICKVAR(pw_C);
