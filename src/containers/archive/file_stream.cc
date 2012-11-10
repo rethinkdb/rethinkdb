@@ -9,7 +9,7 @@ blocking_read_file_stream_t::blocking_read_file_stream_t() { }
 
 blocking_read_file_stream_t::~blocking_read_file_stream_t() { }
 
-bool blocking_read_file_stream_t::init(const char *path) {
+bool blocking_read_file_stream_t::init(const char *path, int *errsv_out) {
     guarantee(fd_.get() == INVALID_FD);
 
     int res;
@@ -18,11 +18,19 @@ bool blocking_read_file_stream_t::init(const char *path) {
     } while (res == -1 && errno == EINTR);
 
     if (res == -1) {
+        *errsv_out = errno;
         return false;
     } else {
         fd_.reset(res);
+        *errsv_out = 0;
         return true;
     }
+}
+
+
+bool blocking_read_file_stream_t::init(const char *path) {
+    int errsv;
+    return init(path, &errsv);
 }
 
 int64_t blocking_read_file_stream_t::read(void *p, int64_t n) {

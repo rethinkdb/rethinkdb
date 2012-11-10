@@ -15,6 +15,7 @@ public:
 
     // Returns true upon success.
     MUST_USE bool init(const char *path);
+    MUST_USE bool init(const char *path, int *errsv_out);
     virtual ~blocking_read_file_stream_t();
 
     virtual MUST_USE int64_t read(void *p, int64_t n);
