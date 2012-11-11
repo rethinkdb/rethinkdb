@@ -248,7 +248,7 @@ public:
 
         try {
             /* First check to see if any of the responses we're unsharding threw. */
-            for(size_t i = 0; i < count; ++i) {
+            for (size_t i = 0; i < count; ++i) {
                 // TODO: we're ignoring the limit when recombining.
                 const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
                 guarantee(_rr);
