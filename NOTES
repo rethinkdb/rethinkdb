@@ -1,4 +1,11 @@
 
+# Release 1.2.3 (Rashomon) #
+
+## Changes ##
+
+* Fixes a bug in the query engine that causes large range queries to
+  return incorrect results.
+
 # Release 1.2.0 (Rashomon) #
 
 ## Changes ##

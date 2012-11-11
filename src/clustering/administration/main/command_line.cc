@@ -188,7 +188,12 @@ void run_rethinkdb_import(extproc::spawner_t::info_t *spawner_info, std::vector<
     csv_to_json_importer_t importer(separators, input_filepath);
 
     // TODO: Make the peer port be configurable?
-    *result_out = run_json_import(spawner_info, look_up_peers_addresses(joins), 0, client_port, target, &importer, &sigint_cond);
+    try {
+        *result_out = run_json_import(spawner_info, look_up_peers_addresses(joins), 0, client_port, target, &importer, &sigint_cond);
+    } catch (const host_lookup_exc_t &ex) {
+        logERR("%s\n", ex.what());
+        *result_out = false;
+    }
 }
 
 void run_rethinkdb_serve(extproc::spawner_t::info_t *spawner_info, const std::string &filepath, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets) {
@@ -221,6 +226,9 @@ void run_rethinkdb_serve(extproc::spawner_t::info_t *spawner_info, const std::st
     } catch (const metadata_persistence::file_in_use_exc_t &ex) {
         logINF("Directory '%s' is in use by another rethinkdb process.\n", filepath.c_str());
         *result_out = false;
+    } catch (const host_lookup_exc_t &ex) {
+        logERR("%s\n", ex.what());
+        *result_out = false;
     }
 }
 
@@ -248,6 +256,9 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
                                 &sigint_cond);
         } catch (const metadata_persistence::file_in_use_exc_t &ex) {
             logINF("Directory '%s' is in use by another rethinkdb process.\n", filepath.c_str());
+            *result_out = false;
+        } catch (const host_lookup_exc_t &ex) {
+            logERR("%s\n", ex.what());
             *result_out = false;
         }
 
@@ -298,6 +309,9 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
         } catch (const metadata_persistence::file_in_use_exc_t &ex) {
             logINF("Directory '%s' is in use by another rethinkdb process.\n", filepath.c_str());
             *result_out = false;
+        } catch (const host_lookup_exc_t &ex) {
+            logERR("%s\n", ex.what());
+            *result_out = false;
         }
     }
 }
@@ -306,12 +320,17 @@ void run_rethinkdb_proxy(extproc::spawner_t::info_t *spawner_info, const std::ve
     os_signal_cond_t sigint_cond;
     guarantee(!joins.empty());
 
-    *result_out = serve_proxy(spawner_info,
-                              look_up_peers_addresses(joins),
-                              ports,
-                              generate_uuid(), cluster_semilattice_metadata_t(),
-                              web_assets,
-                              &sigint_cond);
+    try {
+        *result_out = serve_proxy(spawner_info,
+                                  look_up_peers_addresses(joins),
+                                  ports,
+                                  generate_uuid(), cluster_semilattice_metadata_t(),
+                                  web_assets,
+                                  &sigint_cond);
+    } catch (const host_lookup_exc_t &ex) {
+        logERR("%s\n", ex.what());
+        *result_out = false;
+    }
 }
 
 po::options_description get_machine_options() {

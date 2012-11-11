@@ -173,7 +173,21 @@ ifeq ($(LIBCRYPTO),1)
 LDFLAGS+=-lcrypto 
 endif
 
-STATIC_LIBRARIES:=boost_serialization protobuf boost_program_options
+STATIC_LIBRARIES:=
+
+STATIC_RECOMMENDS:=boost_serialization protobuf boost_program_options
+
+ifeq ($(NO_TCMALLOC),0)
+STATIC_RECOMMENDS+=tcmalloc_minimal
+endif
+
+RECOMMENDED_STATIC?=1
+
+ifeq ($(RECOMMENDED_STATIC),1)
+STATIC_LIBRARIES+=$(STATIC_RECOMMENDS)
+else
+LDFLAGS+=$(foreach TLIB, $(STATIC_RECOMMENDS), -l$(TLIB))
+endif
 
 CXXFLAGS?=
 
@@ -366,10 +380,6 @@ endif
 
 PROTO_DIR:=$(BUILD_DIR)/proto
 CXXFLAGS += -I$(PROTO_DIR)
-
-ifeq ($(NO_TCMALLOC),0)
-STATIC_LIBRARIES+=tcmalloc_minimal
-endif
 
 # look for the static library in the same directory as the .so file
 STATIC_LIBRARY_PATHS:=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }'))

@@ -37,7 +37,7 @@ Architecture: amd64
 Pre-Depends: adduser (>= 3.40)
 Depends: ifelse(LEGACY_LINUX, 1,
   `libc6 (>= 2.5), libstdc++6 (>= 4.6), libgcc1, libv8-dev (>=3.1)',
-  `libc6 (>= 2.10.1), libstdc++6 (>= 4.6), libgcc1, libv8-dev (>=3.1)')`, 'PACKAGE_NAME`'(= PACKAGE_VERSION)
+  `libc6 (>= 2.10.1), libstdc++6 (>= 4.6), libgcc1, libv8-dev (>=3.1)')`, 'PACKAGE_NAME`'(>= PACKAGE_VERSION)
 Breaks: PACKAGE_NAME (<< PACKAGE_VERSION)
 Conflicts: PACKAGE_NAME (<< PACKAGE_VERSION)
 Provides: PACKAGE_NAME`'-dbg
