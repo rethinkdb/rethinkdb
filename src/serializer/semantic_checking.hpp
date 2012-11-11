@@ -63,8 +63,8 @@ public:
     file_account_t *make_io_account(int priority, int outstanding_requests_limit = UNLIMITED_OUTSTANDING_REQUESTS);
     intrusive_ptr_t< scs_block_token_t<inner_serializer_t> > index_read(block_id_t block_id);
 
-    void block_read(const intrusive_ptr_t< scs_block_token_t<inner_serializer_t> >& token_, void *buf, file_account_t *io_account, iocallback_t *callback);
-    void block_read(const intrusive_ptr_t< scs_block_token_t<inner_serializer_t> >& token_, void *buf, file_account_t *io_account);
+    void block_read(const intrusive_ptr_t< scs_block_token_t<inner_serializer_t> >& _token, void *buf, file_account_t *io_account, iocallback_t *callback);
+    void block_read(const intrusive_ptr_t< scs_block_token_t<inner_serializer_t> >& _token, void *buf, file_account_t *io_account);
 
     block_sequence_id_t get_block_sequence_id(block_id_t block_id, const void* buf) const;
 

@@ -5,7 +5,7 @@
 
 #include "arch/io/network.hpp"
 
-LineParser::LineParser(tcp_conn_t *conn_) : conn(conn_) {
+LineParser::LineParser(tcp_conn_t *_conn) : conn(_conn) {
     peek();
     bytes_read = 0;
 }
@@ -13,7 +13,7 @@ LineParser::LineParser(tcp_conn_t *conn_) : conn(conn_) {
 // Returns a charslice to the next CRLF line in the TCP conn's buffer
 // blocks until a full line is available
 std::string LineParser::readLine(signal_t *closer) {
-    while(!readCRLF(closer)) {
+    while (!readCRLF(closer)) {
         bytes_read++;
     }
 
@@ -34,7 +34,7 @@ std::string LineParser::readLineOf(size_t bytes, signal_t *closer) {
     conn->read(buff, bytes + 2, closer);
 
     // Now we expect the line to be demarcated by a CRLF
-    if((buff[bytes] == '\r') && (buff[bytes+1] == '\n')) {
+    if ((buff[bytes] == '\r') && (buff[bytes+1] == '\n')) {
         return std::string(buff, buff + bytes);
     } else {
         // Error: line incorrectly terminated.
@@ -50,14 +50,14 @@ std::string LineParser::readLineOf(size_t bytes, signal_t *closer) {
 }
 
 std::string LineParser::readWord(signal_t *closer) {
-    while(current(closer) != ' ') {
+    while (current(closer) != ' ') {
         bytes_read++;
     }
 
     std::string word(start_position, bytes_read);
 
     // Remove spaces to leave the conn in a clean state for the next call
-    while(current(closer) == ' ') {
+    while (current(closer) == ' ') {
         bytes_read++;
     }
     pop(closer);
@@ -77,7 +77,7 @@ void LineParser::pop(signal_t *closer) {
 }
 
 char LineParser::current(signal_t *closer) {
-    while(bytes_read >= (end_position - start_position)) {
+    while (bytes_read >= (end_position - start_position)) {
         conn->read_more_buffered(closer);
         peek();
     }
@@ -87,10 +87,10 @@ char LineParser::current(signal_t *closer) {
 // Attempts to read a crlf at the current position
 // possibily advanes the current position in its attempt to do so
 bool LineParser::readCRLF(signal_t *closer) {
-    if(current(closer) == '\r') {
+    if (current(closer) == '\r') {
         bytes_read++;
 
-        if(current(closer) == '\n') {
+        if (current(closer) == '\n') {
             bytes_read++;
             return true;
         }

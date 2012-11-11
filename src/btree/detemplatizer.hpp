@@ -30,7 +30,7 @@
                   static_cast<int>(sizeof(block_magic_t)),              \
                   leaf_node->magic.bytes);                              \
         }                                                               \
-    } while(0)
+    } while (0)
 
 #endif /* BTREE_DETEMPLATIZER_HPP_ */
 

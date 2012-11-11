@@ -70,7 +70,7 @@ void parse_cmd_args(int argc, char **argv, config_t *config) {
             c = 'h';
         }
 
-        if(command_line) {
+        if (command_line) {
             c = 'c';
         }
 

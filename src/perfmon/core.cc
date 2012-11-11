@@ -315,7 +315,7 @@ perfmon_filter_t::perfmon_filter_t(const std::set<std::string> &paths) {
                     logWRN("Error: regex %s failed to compile (%s), treating as empty.",
                            sanitize_for_logger(*it).c_str(),
                            sanitize_for_logger(path->back()->get_error()).c_str());
-                    if(!path->back()->compile("^$")) {
+                    if (!path->back()->compile("^$")) {
                         crash("Regex '^$' failed to compile (%s).\n",
                               sanitize_for_logger(path->back()->get_error()).c_str());
                     }

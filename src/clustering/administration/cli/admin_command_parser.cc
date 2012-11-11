@@ -269,15 +269,15 @@ void admin_command_parser_t::param_options_t::add_options(const char *term, ...)
 }
 
 admin_command_parser_t::command_info_t::~command_info_t() {
-    for(std::map<std::string, param_options_t *>::iterator i = flags.begin(); i != flags.end(); ++i) {
+    for (std::map<std::string, param_options_t *>::iterator i = flags.begin(); i != flags.end(); ++i) {
         delete i->second;
     }
 
-    for(std::vector<param_options_t *>::iterator i = positionals.begin(); i != positionals.end(); ++i) {
+    for (std::vector<param_options_t *>::iterator i = positionals.begin(); i != positionals.end(); ++i) {
         delete *i;
     }
 
-    for(std::map<std::string, command_info_t *>::iterator i = subcommands.begin(); i != subcommands.end(); ++i) {
+    for (std::map<std::string, command_info_t *>::iterator i = subcommands.begin(); i != subcommands.end(); ++i) {
         delete i->second;
     }
 }
@@ -703,7 +703,7 @@ admin_command_parser_t::command_data admin_command_parser_t::parse_command(comma
                         throw admin_parse_exc_t("not enough arguments provided for flag: " + line[index]);
                     }
 
-                    while(remaining > 0 && index < line.size() - 1) {
+                    while (remaining > 0 && index < line.size() - 1) {
                         ++index;
                         --remaining;
                         if (line[index].find("--") == 0) {
@@ -1056,7 +1056,7 @@ void admin_command_parser_t::run_console(bool exit_on_failure) {
     linenoiseSetCompletionCallback(completion_generator_hook);
     thread_pool_t::run_in_blocker_pool(linenoise_blocker);
 
-    while(raw_line != NULL) {
+    while (raw_line != NULL) {
         line.assign(raw_line);
 
         if (line == exit_command) {

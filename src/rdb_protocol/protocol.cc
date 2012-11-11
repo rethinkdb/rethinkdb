@@ -248,7 +248,7 @@ public:
 
         try {
             /* First check to see if any of the responses we're unsharding threw. */
-            for(size_t i = 0; i < count; ++i) {
+            for (size_t i = 0; i < count; ++i) {
                 // TODO: we're ignoring the limit when recombining.
                 const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
                 guarantee(_rr);
@@ -260,26 +260,39 @@ public:
 
             if (!rg.terminal) {
                 //A vanilla range get
+                //First we need to determine the cutoff key:
+                rg_response.last_considered_key = store_key_t::max();
+                for (size_t i = 0; i < count; ++i) {
+                    const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
+                    guarantee(_rr);
+
+                    if (rg_response.last_considered_key > _rr->last_considered_key && _rr->truncated) {
+                        rg_response.last_considered_key = _rr->last_considered_key;
+                    }
+                }
+
                 rg_response.result = stream_t();
                 stream_t *res_stream = boost::get<stream_t>(&rg_response.result);
-                for(size_t i = 0; i < count; ++i) {
+                for (size_t i = 0; i < count; ++i) {
                     // TODO: we're ignoring the limit when recombining.
                     const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
                     guarantee(_rr);
 
                     const stream_t *stream = boost::get<stream_t>(&(_rr->result));
 
-                    res_stream->insert(res_stream->end(), stream->begin(), stream->end());
-                    rg_response.truncated = rg_response.truncated || _rr->truncated;
-                    if (rg_response.last_considered_key < _rr->last_considered_key) {
-                        rg_response.last_considered_key = _rr->last_considered_key;
+                    for (stream_t::const_iterator it = stream->begin(); it != stream->end(); ++it) {
+                        if (it->first <= rg_response.last_considered_key) {
+                            res_stream->push_back(*it);
+                        }
                     }
+
+                    rg_response.truncated = rg_response.truncated || _rr->truncated;
                 }
             } else if (const Builtin_GroupedMapReduce *gmr = boost::get<Builtin_GroupedMapReduce>(&rg.terminal->variant)) {
                 //GroupedMapreduce
                 rg_response.result = groups_t();
                 groups_t *res_groups = boost::get<groups_t>(&rg_response.result);
-                for(size_t i = 0; i < count; ++i) {
+                for (size_t i = 0; i < count; ++i) {
                     const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
                     guarantee(_rr);
 
@@ -305,7 +318,7 @@ public:
                 Term base = r->base();
                 *res_atom = eval_term_as_json(&base, &env, rg.terminal->scopes, rg.terminal->backtrace.with("base"));
 
-                for(size_t i = 0; i < count; ++i) {
+                for (size_t i = 0; i < count; ++i) {
                     const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
                     guarantee(_rr);
 
@@ -323,7 +336,7 @@ public:
                 length_t *res_length = boost::get<length_t>(&rg_response.result);
                 res_length->length = 0;
 
-                for(size_t i = 0; i < count; ++i) {
+                for (size_t i = 0; i < count; ++i) {
                     const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
                     guarantee(_rr);
 
@@ -335,7 +348,7 @@ public:
                 inserted_t *res_inserted = boost::get<inserted_t>(&rg_response.result);
                 res_inserted->inserted = 0;
 
-                for(size_t i = 0; i < count; ++i) {
+                for (size_t i = 0; i < count; ++i) {
                     const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
                     guarantee(_rr);
 
@@ -770,8 +783,11 @@ void store_t::protocol_send_backfill(const region_map_t<rdb_protocol_t, state_ti
 namespace {
 
 struct receive_backfill_visitor_t : public boost::static_visitor<void> {
-    receive_backfill_visitor_t(btree_slice_t *btree_, transaction_t *txn_, superblock_t *superblock_, signal_t *interruptor_) :
-      btree(btree_), txn(txn_), superblock(superblock_), interruptor(interruptor_) { }
+    receive_backfill_visitor_t(btree_slice_t *_btree,
+                               transaction_t *_txn,
+                               superblock_t *_superblock,
+                               signal_t *_interruptor) :
+      btree(_btree), txn(_txn), superblock(_superblock), interruptor(_interruptor) { }
 
     void operator()(const backfill_chunk_t::delete_key_t& delete_key) const {
         point_delete_response_t response;
@@ -796,7 +812,7 @@ private:
     originally necessary because in v1.1.x the hashing scheme might be different
     between the source and destination machines. */
     struct range_key_tester_t : public key_tester_t {
-        explicit range_key_tester_t(const region_t& delete_range_) : delete_range(delete_range_) { }
+        explicit range_key_tester_t(const region_t& _delete_range) : delete_range(_delete_range) { }
         bool key_should_be_erased(const btree_key_t *key) {
             uint64_t h = hash_region_hasher(key->contents, key->size);
             return delete_range.beg <= h && h < delete_range.end

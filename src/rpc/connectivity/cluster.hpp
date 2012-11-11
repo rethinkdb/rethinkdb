@@ -28,19 +28,19 @@ extern const char *const cluster_proto_header;
 
 class peer_address_t {
 public:
-    peer_address_t(const std::vector<ip_address_t> &_ips, int p) : port(p), ips(_ips) { }
+    peer_address_t(const std::set<ip_address_t> &_ips, int p) : port(p), ips(_ips) { }
     peer_address_t() : port(0) { } // For deserialization
     ip_address_t primary_ip() const {
         guarantee(ips.begin() != ips.end());
         return *ips.begin();
     }
-    const std::vector<ip_address_t> *all_ips() const { return &ips; }
+    const std::set<ip_address_t> *all_ips() const { return &ips; }
     int port;
 
     /* Two addresses are considered equal if *any* of their IPs match. */
     bool operator==(const peer_address_t &a) const {
         if (port != a.port) return false;
-        std::vector<ip_address_t>::const_iterator it, ita;
+        std::set<ip_address_t>::const_iterator it, ita;
         for (it = ips.begin(); it != ips.end(); ++it) {
             for (ita = a.all_ips()->begin(); ita != a.all_ips()->end(); ++ita) {
                 if (*it == *ita) return true;
@@ -53,7 +53,7 @@ public:
     }
 
 private:
-    std::vector<ip_address_t> ips;
+    std::set<ip_address_t> ips;
     RDB_MAKE_ME_SERIALIZABLE_2(ips, port);
 };
 class peer_address_set_t {

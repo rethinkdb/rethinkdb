@@ -68,7 +68,7 @@ void file_http_app_t::handle_blocking(std::string filename, http_res_t *res_out)
     } else if (ends_with(filename, ".ttf")) {
         mimetype = "application/x-font-ttf";
     } else if (ends_with(filename, ".svg")) {
-        mimetype = "image/sng+xml";
+        mimetype = "image/svg+xml";
     } else if (ends_with(filename, ".ico")) {
         mimetype = "image/vnd.microsoft.icon";
     } else if (ends_with(filename, ".png")) {
