@@ -259,6 +259,17 @@ public:
             }
 
             if (!rg.terminal) {
+                //First we need to determine the cutoff key:
+                rg_response.last_considered_key = store_key_t::max();
+                for(size_t i = 0; i < count; ++i) {
+                    const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
+                    guarantee(_rr);
+
+                    if (rg_response.last_considered_key > _rr->last_considered_key && _rr->truncated) {
+                        rg_response.last_considered_key = _rr->last_considered_key;
+                    }
+                }
+
                 //A vanilla range get
                 rg_response.result = stream_t();
                 stream_t *res_stream = boost::get<stream_t>(&rg_response.result);
@@ -269,11 +280,13 @@ public:
 
                     const stream_t *stream = boost::get<stream_t>(&(_rr->result));
 
-                    res_stream->insert(res_stream->end(), stream->begin(), stream->end());
-                    rg_response.truncated = rg_response.truncated || _rr->truncated;
-                    if (rg_response.last_considered_key < _rr->last_considered_key) {
-                        rg_response.last_considered_key = _rr->last_considered_key;
+                    for (stream_t::const_iterator it = stream->begin(); it != stream->end(); ++it) {
+                        if (it->first <= rg_response.last_considered_key) {
+                            res_stream->push_back(*it);
+                        }
                     }
+
+                    rg_response.truncated = rg_response.truncated || _rr->truncated;
                 }
             } else if (const Builtin_GroupedMapReduce *gmr = boost::get<Builtin_GroupedMapReduce>(&rg.terminal->variant)) {
                 //GroupedMapreduce
