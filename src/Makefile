@@ -173,6 +173,8 @@ ifeq ($(LIBCRYPTO),1)
 LDFLAGS+=-lcrypto 
 endif
 
+STATIC_LIBRARIES:=
+
 STATIC_RECOMMENDS:=boost_serialization protobuf boost_program_options
 
 ifeq ($(NO_TCMALLOC),0)
