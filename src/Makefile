@@ -134,7 +134,7 @@ LDPATHDS:=
 CXXPATHDS:=
 CPATHDS:=
 ifeq ($(V8CHAIN),1)
-LDPATHDS+= -L ../external/v8/out/native/obj.target/tools/gyp
+LDPATHDS+= -L ../external/v8/
 CXXPATHDS+= -isystem ../external/v8/include
 CPATHDS+= -isystem ../external/v8/include
 endif
@@ -165,7 +165,8 @@ LDFLAGS+=$(LDPATHDS) -pthread -lrt -lv8
 endif
 endif
 
-ifeq ($(V8CHAIN),1)
+ifeq ($(V8CHAIN),2)
+# This is only in foreign static mode.
 LDFLAGS+= -lv8_base -lv8_snapshot
 endif
 
