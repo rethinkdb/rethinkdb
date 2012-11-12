@@ -594,3 +594,12 @@ std::string sanitize_for_logger(const std::string &s) {
     }
     return sanitized;
 }
+
+// GCC and CLANG are smart enough to optimize out strlen(""), so this works.
+// This is the simplist thing I could find that gave warning in all of these
+// cases:
+// * RETHINKDB_VERSION=
+// * RETHINKDB_VERSION=""
+// * RETHINKDB_VERSION=1.2
+// (the correct case is something like RETHINKDB_VERSION="1.2")
+UNUSED static const char _assert_RETHINKDB_VERSION_nonempty = 1/(!!strlen(RETHINKDB_VERSION));
