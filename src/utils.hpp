@@ -324,6 +324,15 @@ static inline std::string time2str(const time_t &t) {
 #define COMPILER "UNKNOWN COMPILER"
 #endif
 
+// GCC and CLANG are smart enough to optimize out strlen(""), so this works.
+// This is the simplist thing I could find that gave warning in all of these
+// cases:
+// * RETHINKDB_VERSION=
+// * RETHINKDB_VERSION=""
+// * RETHINKDB_VERSION=1.2
+// (the correct case is something like RETHINKDB_VERSION="1.2")
+UNUSED static char _assert_RETHINKDB_VERSION_nonempty = 1/(!!strlen(RETHINKDB_VERSION));
+
 #ifndef NDEBUG
 #define RETHINKDB_VERSION_STR "rethinkdb " RETHINKDB_VERSION " (debug)" " (" COMPILER ")"
 #else
