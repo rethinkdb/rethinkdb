@@ -33,7 +33,7 @@ http_res_t query_http_app_t::handle(const http_req_t &req) {
                     return http_res_t(HTTP_BAD_REQUEST, "text/plain", "No namespace specified");
                 }
 
-                uuid_t namespace_uuid;
+                uuid_u namespace_uuid;
                 if (!str_to_uuid(*it, &namespace_uuid)) {
                     return http_res_t(HTTP_BAD_REQUEST, "text/plain", "Failed to parse namespace\n");
                 }
@@ -85,7 +85,7 @@ http_res_t query_http_app_t::handle(const http_req_t &req) {
                     return http_res_t(HTTP_BAD_REQUEST, "text/plain", "Namespace not specified");
                 }
 
-                uuid_t namespace_uuid;
+                uuid_u namespace_uuid;
                 if (!str_to_uuid(*it, &namespace_uuid)) {
                     return http_res_t(HTTP_BAD_REQUEST, "text/plain", "namespace uuid did not parse as uuid");
                 }

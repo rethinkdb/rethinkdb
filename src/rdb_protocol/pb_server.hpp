@@ -34,7 +34,7 @@ private:
     Response handle(Query *q, context_t *query_context);
     protob_server_t<Query, Response, context_t> server;
     rdb_protocol_t::context_t *ctx;
-    uuid_t parser_id;
+    uuid_u parser_id;
     one_per_thread_t<int> thread_counters;
 };
 

@@ -41,7 +41,7 @@ public:
         namespace_repo_t<rdb_protocol_t> *_rdb_namespace_repo,
         admin_tracker_t *_admin_tracker,
         http_app_t *reql_app,
-        uuid_t _us,
+        uuid_u _us,
         std::string _path);
     ~administrative_http_server_manager_t();
 

@@ -15,7 +15,7 @@
 #include "rpc/semilattice/joins/vclock.hpp"
 #include "rpc/serialize_macros.hpp"
 
-typedef uuid_t machine_id_t;
+typedef uuid_u machine_id_t;
 
 class machine_semilattice_metadata_t {
 public:

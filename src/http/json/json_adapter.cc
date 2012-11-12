@@ -192,16 +192,16 @@ std::string to_string_for_json_key(const std::string *s) {
 }  // namespace std
 
 
-// ctx-less JSON adapter for uuid_t
-json_adapter_if_t::json_adapter_map_t get_json_subfields(uuid_t *) {
+// ctx-less JSON adapter for uuid_u
+json_adapter_if_t::json_adapter_map_t get_json_subfields(uuid_u *) {
     return std::map<std::string, boost::shared_ptr<json_adapter_if_t> >();
 }
 
-cJSON *render_as_json(const uuid_t *uuid) {
+cJSON *render_as_json(const uuid_u *uuid) {
     return cJSON_CreateString(uuid_to_str(*uuid).c_str());
 }
 
-void apply_json_to(cJSON *change, uuid_t *uuid) {
+void apply_json_to(cJSON *change, uuid_u *uuid) {
     if (change->type == cJSON_NULL) {
         *uuid = nil_uuid();
     } else {
@@ -213,9 +213,9 @@ void apply_json_to(cJSON *change, uuid_t *uuid) {
     }
 }
 
-void on_subfield_change(uuid_t *) { }
+void on_subfield_change(uuid_u *) { }
 
-std::string to_string_for_json_key(const uuid_t *uuid) {
+std::string to_string_for_json_key(const uuid_u *uuid) {
     return uuid_to_str(*uuid);
 }
 

@@ -15,7 +15,7 @@ namespace vclock_details {
 
 // TODO: This should _NOT_ be an int.
 // TODO: There are other things named version_map_t.  Some of these need to change.
-typedef std::map<uuid_t, int> version_map_t;
+typedef std::map<uuid_u, int> version_map_t;
 
 bool dominates(const version_map_t &, const version_map_t &);
 
@@ -69,17 +69,17 @@ public:
 
     explicit vclock_t(const T &_t);
 
-    vclock_t(const T &_t, const uuid_t &us);
+    vclock_t(const T &_t, const uuid_u &us);
 
     bool in_conflict() const;
 
     void throw_if_conflict() const;
 
-    vclock_t<T> make_new_version(const T& t, const uuid_t &us);
+    vclock_t<T> make_new_version(const T& t, const uuid_u &us);
 
-    vclock_t<T> make_resolving_version(const T& t, const uuid_t &us);
+    vclock_t<T> make_resolving_version(const T& t, const uuid_u &us);
 
-    void upgrade_version(const uuid_t &us);
+    void upgrade_version(const uuid_u &us);
 
     T get() const;
 
@@ -89,7 +89,7 @@ public:
 };
 
 template <class T>
-vclock_t<T> make_vclock(const T& arg, const uuid_t& us) {
+vclock_t<T> make_vclock(const T& arg, const uuid_u& us) {
     return vclock_t<T>(arg, us);
 }
 
@@ -107,8 +107,8 @@ void debug_print(append_only_printf_buffer_t *buf, const vclock_t<T> &x);
 // vclock context type for use with json adapters.
 class vclock_ctx_t {
 public:
-    const uuid_t us;
-    explicit vclock_ctx_t(uuid_t _us)
+    const uuid_u us;
+    explicit vclock_ctx_t(uuid_u _us)
         : us(_us)
     { }
 };

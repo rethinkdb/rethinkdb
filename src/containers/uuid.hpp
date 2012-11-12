@@ -11,10 +11,10 @@
 
 class append_only_printf_buffer_t;
 
-
-class uuid_t {
+// TODO(OSX) uuid_u is funny but not up to our naming scheme.  (uuid_t is reserved by Darwin.)
+class uuid_u {
 public:
-    uuid_t();
+    uuid_u();
 
     bool is_unset() const;
     bool is_nil() const;
@@ -22,7 +22,7 @@ public:
     static const size_t kStaticSize = 16;
     static const size_t kStringSize = 2 * kStaticSize + 4;  // hexadecimal, 4 hyphens
     static size_t static_size() {
-        CT_ASSERT(sizeof(uuid_t) == kStaticSize);
+        CT_ASSERT(sizeof(uuid_u) == kStaticSize);
         return kStaticSize;
     }
 
@@ -33,24 +33,24 @@ private:
 };
 
 
-bool operator==(const uuid_t& x, const uuid_t& y);
-inline bool operator!=(const uuid_t& x, const uuid_t& y) { return !(x == y); }
-bool operator<(const uuid_t& x, const uuid_t& y);
+bool operator==(const uuid_u& x, const uuid_u& y);
+inline bool operator!=(const uuid_u& x, const uuid_u& y) { return !(x == y); }
+bool operator<(const uuid_u& x, const uuid_u& y);
 
 /* This does the same thing as `boost::uuids::random_generator()()`, except that
 Valgrind won't complain about it. */
-uuid_t generate_uuid();
+uuid_u generate_uuid();
 
 // Returns boost::uuids::nil_generator()().
-uuid_t nil_uuid();
+uuid_u nil_uuid();
 
-void debug_print(append_only_printf_buffer_t *buf, const uuid_t& id);
+void debug_print(append_only_printf_buffer_t *buf, const uuid_u& id);
 
-std::string uuid_to_str(uuid_t id);
+std::string uuid_to_str(uuid_u id);
 
-uuid_t str_to_uuid(const std::string &str);
+uuid_u str_to_uuid(const std::string &str);
 
-MUST_USE bool str_to_uuid(const std::string &str, uuid_t *out);
+MUST_USE bool str_to_uuid(const std::string &str, uuid_u *out);
 
 bool is_uuid(const std::string& str);
 
