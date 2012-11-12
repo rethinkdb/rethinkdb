@@ -2662,7 +2662,7 @@ boost::shared_ptr<json_stream_t> eval_call_as_stream(Term::Call *c, runtime_envi
                 }
 
                 if (lowerbound && upperbound) {
-                    if (cJSON_cmp(lowerbound->get(), upperbound->get(), backtrace) >= 0) {
+                    if (cJSON_cmp(lowerbound->get(), upperbound->get(), backtrace) > 0) {
                         throw runtime_exc_t(strprintf("Lower bound of RANGE must be <= upper bound (%s vs. %s).",
                                                       lowerbound->Print().c_str(), upperbound->Print().c_str()),
                                             backtrace.with("lowerbound"));

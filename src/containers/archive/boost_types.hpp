@@ -222,31 +222,23 @@ write_message_t &operator<<(write_message_t &msg, const boost::ptr_map<K, V> &x)
 template <class K, class V>
 MUST_USE archive_result_t deserialize(read_stream_t *s, boost::ptr_map<K, V> *x) {
     x->clear();
+    boost::ptr_map<K, V> tmp;
 
     typename boost::ptr_map<K, V>::size_type size;
     archive_result_t res = deserialize(s, &size);
-    if (res != ARCHIVE_SUCCESS) {
-        goto FAIL;
-    }
+    if (res != ARCHIVE_SUCCESS) { return res; }
 
     for (typename boost::ptr_map<K, V>::size_type i = 0; i < size; ++i) {
         K k;
         res = deserialize(s, &k);
-        if (res != ARCHIVE_SUCCESS) {
-            goto FAIL;
-        }
+        if (res != ARCHIVE_SUCCESS) { return res; }
 
-        res = deserialize(s, &((*x)[k]));
-        if (res != ARCHIVE_SUCCESS) {
-            goto FAIL;
-        }
+        res = deserialize(s, &tmp[k]);
+        if (res != ARCHIVE_SUCCESS) { return res; }
     }
 
+    x->swap(tmp);
     return ARCHIVE_SUCCESS;
-
-FAIL:
-    x->clear();
-    return res;
 }
 
 #endif  // CONTAINERS_ARCHIVE_BOOST_TYPES_HPP_

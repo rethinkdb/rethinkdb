@@ -31,7 +31,6 @@ struct priority_t {
 //is y of higher priority than x
 
 bool operator<(const priority_t &x, const priority_t &y) {
-//CONTINUE:
     //Round 1: Pinnings.
     //F I G H T
     if (x.pinned && !y.pinned) {
@@ -88,18 +87,14 @@ bool operator<(const priority_t &x, const priority_t &y) {
         }
     }
 
-    //You Lose!!
-    //Continue?
-    //(uncomment the below line to continue)
-    //goto CONTINUE;
-    //5
-    //4
-    //3
-    //2
-    //1
-    //Last chance:
-    //goto CONTINUE;
-    //Didn't continue: Game Over
+    // You Lose!!
+    // Continue?
+    // 5
+    // 4
+    // 3
+    // 2
+    // 1
+    // Didn't continue: Game Over
     return false; //They're equal
 }
 
