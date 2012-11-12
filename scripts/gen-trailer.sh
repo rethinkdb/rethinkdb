@@ -5,7 +5,6 @@
 # 	UBUNTU_RELEASE
 #	DEB_RELEASE
 #	DEB_RELEASE_NUM
-#	VERSIONED_PACKAGE_NAME
 # 	PACKAGE_VERSION
 # . These can be blank as desired.
 
