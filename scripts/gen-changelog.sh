@@ -20,6 +20,7 @@ then
 	PRODUCT_VERSION="$PACKAGE_VERSION"-0ubuntu1~"$UBUNTU_RELEASE" ;
 	OS_RELEASE="$UBUNTU_RELEASE" ;
 elif [ "$DEB_RELEASE" != "" ] ;
+then
 	# For Debian, we choose a Debian number corresponding to the Debian release.
 	PRODUCT_VERSION="$PACKAGE_VERSION"-"$DEB_RELEASE_NUM" ;
 	OS_RELEASE="$DEB_RELEASE" ;
