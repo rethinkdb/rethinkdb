@@ -85,7 +85,9 @@ std::set<ip_address_t> ip_address_t::us() {
 
     for (struct ifaddrs *current_addr = addrs; current_addr != NULL; current_addr = current_addr->ifa_next) {
         struct sockaddr *addr_data = current_addr->ifa_addr;
-        if (addr_data->sa_family == AF_INET) {
+        if (addr_data == NULL) {
+            continue;
+        } else if (addr_data->sa_family == AF_INET) {
             ips.insert(ip_address_t(addr_data));
         }
     }

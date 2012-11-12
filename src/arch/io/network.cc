@@ -897,7 +897,9 @@ std::vector<std::string> get_ips() {
     guarantee_err(addr_res == 0, "getifaddrs failed, could not determine local ip addresses");
 
     for (ifaddrs *p = if_addrs; p != NULL; p = p->ifa_next) {
-        if (p->ifa_addr->sa_family == AF_INET) {
+        if (p->ifa_addr == NULL) {
+            continue;
+        } else if (p->ifa_addr->sa_family == AF_INET) {
             if (!(p->ifa_flags & IFF_LOOPBACK)) {
                 struct sockaddr_in *in_addr = reinterpret_cast<sockaddr_in *>(p->ifa_addr);
                 // I don't think the "+ 1" is necessary, we're being
