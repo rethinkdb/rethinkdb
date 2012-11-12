@@ -183,6 +183,9 @@ ifeq ($(LIBCRYPTO),1)
 LDFLAGS+=-lcrypto 
 endif
 
+LIB_SEARCH_PATHS?=
+LDFLAGS+=$(foreach TLIB, $(LIB_SEARCH_PATHS), -L $(TLIB))
+
 STATIC_LIBRARIES:=
 
 STATIC_RECOMMENDS:=boost_serialization protobuf boost_program_options
