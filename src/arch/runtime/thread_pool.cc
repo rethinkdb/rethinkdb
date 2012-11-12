@@ -36,22 +36,17 @@ linux_thread_pool_t::linux_thread_pool_t(int worker_threads, bool _do_set_affini
 
     res = pthread_mutex_init(&shutdown_cond_mutex, NULL);
     guarantee(res == 0, "Could not create shutdown cond mutex");
-
-    res = pthread_spin_init(&interrupt_message_lock, PTHREAD_PROCESS_PRIVATE);
-    guarantee(res == 0, "Could not create interrupt spin lock");
 }
 
 linux_thread_message_t *linux_thread_pool_t::set_interrupt_message(linux_thread_message_t *m) {
     int res;
 
-    res = pthread_spin_lock(&thread_pool->interrupt_message_lock);
-    guarantee(res == 0, "Could not acquire interrupt message lock");
+    thread_pool->interrupt_message_lock.lock();
 
     linux_thread_message_t *o = thread_pool->interrupt_message;
     thread_pool->interrupt_message = m;
 
-    res = pthread_spin_unlock(&thread_pool->interrupt_message_lock);
-    guarantee(res == 0, "Could not release interrupt message lock");
+    thread_pool->interrupt_message_lock.unlock();
 
     return o;
 }
@@ -353,9 +348,6 @@ linux_thread_pool_t::~linux_thread_pool_t() {
 
     res = pthread_mutex_destroy(&shutdown_cond_mutex);
     guarantee(res == 0, "Could not destroy shutdown cond mutex");
-
-    res = pthread_spin_destroy(&interrupt_message_lock);
-    guarantee(res == 0, "Could not destroy interrupt spin lock");
 }
 
 linux_thread_t::linux_thread_t(linux_thread_pool_t *parent_pool, int thread_id)

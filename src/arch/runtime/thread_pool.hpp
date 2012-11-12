@@ -68,7 +68,7 @@ private:
 
     static void interrupt_handler(int);
     static void sigsegv_handler(int, siginfo_t *, void *) NORETURN;
-    pthread_spinlock_t interrupt_message_lock;
+    spinlock_t interrupt_message_lock;
     linux_thread_message_t *interrupt_message;
 
     // Used to signal the main thread for shutdown
