@@ -35,7 +35,7 @@ publish: $(PYTHON_PBDIR)/rdb_protocol/$(PYTHON_PBFILE)
 	cp -r rethinkdb $(TMP_PKG_DIR)
 	rm $(TMP_PKG_DIR)/rethinkdb/$(PYTHON_PBFILE)
 	cp $(PYTHON_PBDIR)/rdb_protocol/$(PYTHON_PBFILE) $(TMP_PKG_DIR)/rethinkdb
-	cd $(TMP_PKG_DIR); python setup.py sdist upload
+	cd $(TMP_PKG_DIR); python setup.py register sdist upload
 
 clean:
 ifeq ($(VERBOSE),0)
