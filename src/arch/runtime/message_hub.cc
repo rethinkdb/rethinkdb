@@ -24,9 +24,6 @@ linux_message_hub_t::linux_message_hub_t(linux_event_queue_t *queue, linux_threa
     notify_ = new notify_t[thread_pool_->n_threads];
 
     for (int i = 0; i < thread_pool_->n_threads; i++) {
-        int res = pthread_spin_init(&incoming_messages_lock_, PTHREAD_PROCESS_PRIVATE);
-        guarantee(res == 0, "Could not initialize spin lock");
-
         // Create notify fd for other cores that send work to us
         notify_[i].notifier_thread = i;
         notify_[i].parent = this;
@@ -39,13 +36,10 @@ linux_message_hub_t::~linux_message_hub_t() {
     int res;
 
     for (int i = 0; i < thread_pool_->n_threads; i++) {
-        rassert(queues_[i].msg_local_list.empty());
-
-        res = pthread_spin_destroy(&incoming_messages_lock_);
-        guarantee(res == 0, "Could not destroy spin lock");
+        guarantee(queues_[i].msg_local_list.empty());
     }
 
-    rassert(incoming_messages_.empty());
+    guarantee(incoming_messages_.empty());
 
     delete[] notify_;
 }
@@ -90,9 +84,9 @@ void linux_message_hub_t::store_message_sometime(unsigned int nthread, linux_thr
 
 
 void linux_message_hub_t::insert_external_message(linux_thread_message_t *msg) {
-    pthread_spin_lock(&incoming_messages_lock_);
+    incoming_messages_lock_.lock();
     incoming_messages_.push_back(msg);
-    pthread_spin_unlock(&incoming_messages_lock_);
+    incoming_messages_lock_.unlock();
 
     // Wakey wakey eggs and bakey
     notify_[current_thread_].event.write(1);
@@ -110,11 +104,11 @@ void linux_message_hub_t::notify_t::on_event(int events) {
 
     msg_list_t msg_list;
 
-    pthread_spin_lock(&parent->incoming_messages_lock_);
+    parent->incoming_messages_lock_.lock();
     // Pull the messages
     //msg_list.append_and_clear(parent->thread_pool_->threads[parent->current_thread_]->message_hub);
     msg_list.append_and_clear(&parent->incoming_messages_);
-    pthread_spin_unlock(&parent->incoming_messages_lock_);
+    parent->incoming_messages_lock_.unlock();
 
 #ifndef NDEBUG
     start_watchdog(); // Initialize watchdog before handling messages
@@ -148,14 +142,14 @@ void linux_message_hub_t::push_messages() {
         if (!queue->msg_local_list.empty()) {
             // Transfer messages to the other core
 
-            pthread_spin_lock(&thread_pool_->threads[i]->message_hub.incoming_messages_lock_);
+            thread_pool_->threads[i]->message_hub.incoming_messages_lock_.lock();
 
             //We only need to do a wake up if the global
             bool do_wake_up = thread_pool_->threads[i]->message_hub.incoming_messages_.empty();
 
             thread_pool_->threads[i]->message_hub.incoming_messages_.append_and_clear(&queue->msg_local_list);
 
-            pthread_spin_unlock(&thread_pool_->threads[i]->message_hub.incoming_messages_lock_);
+            thread_pool_->threads[i]->message_hub.incoming_messages_lock_.unlock();
 
             // Wakey wakey, perhaps eggs and bakey
             if (do_wake_up) {
