@@ -21,7 +21,7 @@ parser.add_option("--build-mode", action = "store", choices = ["minimal", "minim
 parser.add_option("--git-branch", action = "store", dest = "git_branch")
 parser.add_option("--just-tests", action = "store_true", dest = "just_tests")
 parser.add_option("--test-dir", action="store", dest = "test_dir")
-parser.set_defaults(build_mode = "all", git_branch = "master", test_dir = "test/full_test/")
+parser.set_defaults(build_mode = "all", git_branch = "next", test_dir = "test/full_test/")
 (options, args) = parser.parse_args()
 assert not args
 assert not os.path.isabs(options.test_dir)
@@ -121,7 +121,7 @@ with simple_linear_db.LinearDBWriter("result_log.txt") as result_log:
 
         print "Checking out RethinkDB..."
 
-        subprocess32.check_call(["git", "clone", "git@github.com:rethinkdb/rethinkdb-internal.git", "--depth", "0", "rethinkdb"])
+        subprocess32.check_call(["git", "clone", "git@github.com:rethinkdb/rethinkdb.git", "--depth", "0", "rethinkdb"])
         subprocess32.check_call(["git", "checkout", options.git_branch], cwd="rethinkdb")
 
         print "Done checking out RethinkDB."
