@@ -1130,7 +1130,7 @@ ifeq ($(VERBOSE),0)
 	@echo "    RM *~"
 	@echo "    RM -r $(BUILD_ROOT_DIR)"
 endif
-	$(QUIET) find -name '*~' -exec rm {} \;
+	$(QUIET) find . -name '*~' -exec rm {} \;
 	$(QUIET) rm -rf $(BUILD_ROOT_DIR)
 
 clean-drivers:
