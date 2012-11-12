@@ -186,8 +186,8 @@ void spawner_t::exec_spawner(fd_t socket) {
 void spawner_t::exec_worker(fd_t sockfd) {
     // Makes sure we get SIGTERMed when our parent (the spawner) dies.
     // TODO(rntz): prctl is linux-specific.
-    guarantee_err(0 == prctl(PR_SET_PDEATHSIG, SIGTERM),
-                  "worker: could not set parent-death signal");
+    int res = prctl(PR_SET_PDEATHSIG, SIGTERM);
+    guarantee_err(res == 0, "worker: could not set parent-death signal");
 
     // Receive one job and run it.
     scoped_fd_t fd(sockfd);
