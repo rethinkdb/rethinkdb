@@ -1629,7 +1629,7 @@ class Table(MultiRowSelection):
         else:
             return "<Table %r>" % self.table_name
 
-    def insert(self, docs):
+    def insert(self, docs, upsert=False):
         """Insert documents into the table.
 
         :param docs: the document(s) to insert
@@ -1637,9 +1637,9 @@ class Table(MultiRowSelection):
         :rtype: :class:`WriteQuery`
         """
         if isinstance(docs, dict):
-            return WriteQuery(internal.Insert(self, [docs]))
+            return WriteQuery(internal.Insert(self, [docs], upsert))
         else:
-            return WriteQuery(internal.Insert(self, docs))
+            return WriteQuery(internal.Insert(self, docs, upsert))
 
     def get(self, key, attr_name = "id"):
         """Select the row whose value for `attr_name` is equal to `key`. If no
