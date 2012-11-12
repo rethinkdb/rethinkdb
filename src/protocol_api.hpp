@@ -502,7 +502,7 @@ public:
         home_thread_mixin_t::assert_thread();
         rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
 
-        return store_view->read(DEBUG_ONLY(metainfo_checker, ) read, response, order_token, token, interruptor);
+        store_view->read(DEBUG_ONLY(metainfo_checker, ) read, response, order_token, token, interruptor);
     }
 
     void write(
@@ -519,7 +519,7 @@ public:
         rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
         rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
 
-        return store_view->write(DEBUG_ONLY(metainfo_checker, ) new_metainfo, write, response, timestamp, order_token, token, interruptor);
+        store_view->write(DEBUG_ONLY(metainfo_checker, ) new_metainfo, write, response, timestamp, order_token, token, interruptor);
     }
 
     // TODO: Make this take protocol_t::progress_t again (or maybe a
