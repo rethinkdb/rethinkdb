@@ -74,7 +74,7 @@ module 'NamespaceView', ->
                 return
 
             if distr_keys.length < new_num_shards
-                error_msg = 'There is not enough data in the database to make '+distr_keys.length+' balanced shards.'
+                error_msg = 'There is not enough data in the database to make this number of balanced shards.'
                 @display_msg error_msg
                 return
 

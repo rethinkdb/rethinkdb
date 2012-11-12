@@ -2,9 +2,6 @@
 #ifndef SERIALIZER_SEMANTIC_CHECKING_HPP_
 #define SERIALIZER_SEMANTIC_CHECKING_HPP_
 
-#include <sys/types.h>
-#include <sys/stat.h>
-
 #include <set>
 #include <string>
 #include <vector>
@@ -22,9 +19,6 @@ serializer has the correct semantics. It must have exactly the same API as
 the log serializer. */
 
 //#define SERIALIZER_DEBUG_PRINT 1
-
-// TODO make this just an interface and move implementation into semantic_checking.tcc, then use
-// tim's template hack to instantiate as necessary in a .cc file.
 
 struct scs_block_info_t;
 struct scs_persisted_block_info_t;
@@ -52,17 +46,15 @@ private:
     void read_check_state(scs_block_token_t<inner_serializer_t> *token, const void *buf);
 
 public:
-    typedef typename inner_serializer_t::private_dynamic_config_t private_dynamic_config_t;
     typedef typename inner_serializer_t::dynamic_config_t dynamic_config_t;
     typedef typename inner_serializer_t::static_config_t static_config_t;
-    typedef typename inner_serializer_t::config_t config_t;
 
-    static void create(dynamic_config_t config, io_backender_t *backender, private_dynamic_config_t private_config, static_config_t static_config);
-    semantic_checking_serializer_t(dynamic_config_t config, io_backender_t *backender, private_dynamic_config_t private_config);
+    static void create(serializer_file_opener_t *file_opener, static_config_t static_config);
+    semantic_checking_serializer_t(dynamic_config_t config, serializer_file_opener_t *file_opener, perfmon_collection_t *perfmon_collection);
     ~semantic_checking_serializer_t();
 
     typedef typename inner_serializer_t::check_callback_t check_callback_t;
-    static void check_existing(const char *db_path, check_callback_t *cb);
+    static void check_existing(const char *db_path, io_backender_t *backender, check_callback_t *cb);
 
     void *malloc();
     void *clone(void *data);
@@ -71,8 +63,8 @@ public:
     file_account_t *make_io_account(int priority, int outstanding_requests_limit = UNLIMITED_OUTSTANDING_REQUESTS);
     intrusive_ptr_t< scs_block_token_t<inner_serializer_t> > index_read(block_id_t block_id);
 
-    void block_read(const intrusive_ptr_t< scs_block_token_t<inner_serializer_t> >& token_, void *buf, file_account_t *io_account, iocallback_t *callback);
-    void block_read(const intrusive_ptr_t< scs_block_token_t<inner_serializer_t> >& token_, void *buf, file_account_t *io_account);
+    void block_read(const intrusive_ptr_t< scs_block_token_t<inner_serializer_t> >& _token, void *buf, file_account_t *io_account, iocallback_t *callback);
+    void block_read(const intrusive_ptr_t< scs_block_token_t<inner_serializer_t> >& _token, void *buf, file_account_t *io_account);
 
     block_sequence_id_t get_block_sequence_id(block_id_t block_id, const void* buf) const;
 

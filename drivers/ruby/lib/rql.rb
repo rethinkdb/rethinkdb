@@ -19,6 +19,14 @@ module RethinkDB
   #   r(1) + 2
   #   r.+(1, 2)
   module RQL
+    # A shortcut for Connection::new
+    def self.connect(*args, &block)
+      Connection.new(*args, &block)
+    end
+
+    # Return the most recently opened connection.
+    def self.last_connection; Connection.last; end
+
     # Construct a javascript expression, which may refer to variables in scope
     # (use <b>+to_s+</b> to get the name of a variable query, or simply splice
     # it in).  Defaults to a javascript expression, but if the optional second
@@ -415,17 +423,28 @@ or Hash)."
     def self.avg(*args); Data_Collectors.avg(*args); end
 
     def self.boolprop(op, l, r) # :nodoc:
-      if l.boolop?
-        larg,rarg = l.body[2]
-        sexp =  [l.body[0], l.body[1], [larg, boolprop(op, rarg, r)]]
-      elsif r.boolop?
-        larg,rarg = r.body[2]
-        sexp =  [r.body[0], r.body[1], [boolprop(op, l, larg), rarg]]
-      else
-        return RQL.send(op, l, r);
+      badop = l.boolop? ? l : r
+      if l.boolop? || r.boolop?
+        raise RuntimeError,"Error: Cannot use infix #{op} operator on infix boolean expression:
+#{badop.inspect}
+This is almost always a precedence error; try adding parentheses.  If you
+actually need to compare booleans, use non-infix operators like `r.all(a,b)`
+instead of `a & b`."
       end
-      return S.mark_boolop(JSON_Expression.new sexp)
+      return RQL.send(op, l, r)
     end
+    # def self.boolprop(op, l, r) # :nodoc:
+    #   if l.boolop?
+    #     larg,rarg = l.body[2]
+    #     sexp =  [l.body[0], l.body[1], [larg, boolprop(op, rarg, r)]]
+    #   elsif r.boolop?
+    #     larg,rarg = r.body[2]
+    #     sexp =  [r.body[0], r.body[1], [boolprop(op, l, larg), rarg]]
+    #   else
+    #     return RQL.send(op, l, r);
+    #   end
+    #   return S.mark_boolop(JSON_Expression.new sexp)
+    # end
 
     # See RQL::lt
     def self.< (l,r); boolprop(:lt, S.r(l), S.r(r)); end

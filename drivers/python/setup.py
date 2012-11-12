@@ -8,4 +8,5 @@ setup(name="rethinkdb"
      ,maintainer="RethinkDB Inc."
      ,maintainer_email="bugs@rethinkdb.com"
      ,packages=['rethinkdb']
+     ,requires=['protobuf']
      )

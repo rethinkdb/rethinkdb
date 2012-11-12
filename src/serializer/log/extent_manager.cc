@@ -7,16 +7,35 @@
 #include "serializer/log/log_serializer.hpp"
 
 struct extent_info_t {
-
+public:
     enum state_t {
         state_unreserved,
         state_in_use,
         state_free
-    } state;
+    };
+private:
+    state_t state_;
+
+public:
+    void set_state(state_t new_state) {
+        guarantee(state_ != state_in_use || extent_use_refcount == 0);
+        state_ = new_state;
+    }
+
+    state_t state() const { return state_; }
+
+    // Valid and non-zero when state_in_use.  There are two ways to own a part of this refcount.
+    // One is if you believe you're currently "using" the extent (if you're the LBA or
+    // data_block_manager_t).  The other is (at the time of writing) for every
+    // (extent_transaction_t, block_id) for live extent transactions that have set an i_array entry
+    // to zero (in the data block manager) but have not yet been commmitted.  The
+    // data_block_manager_t and LBA ownership of the refcount also can get passed into the
+    // extent_transaction_t object.
+    int32_t extent_use_refcount;
 
     off64_t next_in_free_list;   // Valid if state == state_free
-public:
-    extent_info_t() : state(state_unreserved), next_in_free_list(-1) {}
+
+    extent_info_t() : state_(state_unreserved), extent_use_refcount(0), next_in_free_list(-1) {}
 };
 
 class extent_zone_t {
@@ -62,25 +81,25 @@ public:
 #endif
     }
 
-    void reserve_extent(off64_t extent) {
+    void reserve_extent(off64_t extent, extent_reference_t *extent_ref_out) {
         unsigned int id = offset_to_id(extent);
 
         if (id >= extents.get_size()) {
             extent_info_t default_info;
-            default_info.state = extent_info_t::state_unreserved;
             extents.set_size(id + 1, default_info);
         }
 
-        rassert(extents[id].state == extent_info_t::state_unreserved);
-        extents[id].state = extent_info_t::state_in_use;
+        rassert(extents[id].state() == extent_info_t::state_unreserved);
+        extents[id].set_state(extent_info_t::state_in_use);
+        make_extent_reference(extent, extent_ref_out);
     }
 
     void reconstruct_free_list() {
         free_list_head = NULL_OFFSET;
 
         for (off64_t extent = start; extent < start + (off64_t)(extents.get_size() * extent_size); extent += extent_size) {
-            if (extents[offset_to_id(extent)].state == extent_info_t::state_unreserved) {
-                extents[offset_to_id(extent)].state = extent_info_t::state_free;
+            if (extents[offset_to_id(extent)].state() == extent_info_t::state_unreserved) {
+                extents[offset_to_id(extent)].set_state(extent_info_t::state_free);
                 extents[offset_to_id(extent)].next_in_free_list = free_list_head;
                 free_list_head = extent;
                 held_extents_++;
@@ -88,12 +107,14 @@ public:
         }
     }
 
-    off64_t gen_extent() {
+    bool gen_extent(extent_reference_t *extent_ref_out) {
         off64_t extent;
 
         if (free_list_head == NULL_OFFSET) {
             extent = start + extents.get_size() * extent_size;
-            if (extent == end) return NULL_OFFSET;
+            if (extent == end) {
+                return false;
+            }
 
             extents.set_size(extents.get_size() + 1);
         } else {
@@ -102,22 +123,39 @@ public:
             held_extents_--;
         }
 
-        extents[offset_to_id(extent)].state = extent_info_t::state_in_use;
+        extent_info_t *info = &extents[offset_to_id(extent)];
+        info->set_state(extent_info_t::state_in_use);
 
-        return extent;
+        make_extent_reference(extent, extent_ref_out);
+
+        return true;
     }
 
-    void release_extent(off64_t extent) {
+    void make_extent_reference(off64_t extent, extent_reference_t *extent_ref_out) {
+        unsigned int id = offset_to_id(extent);
+        guarantee(id < extents.get_size());
+        extent_info_t *info = &extents[id];
+        guarantee(info->state() == extent_info_t::state_in_use);
+        ++info->extent_use_refcount;
+        extent_ref_out->init(extent);
+    }
+
+    void release_extent(extent_reference_t *extent_ref) {
+        off64_t extent = extent_ref->release();
         extent_info_t *info = &extents[offset_to_id(extent)];
-        rassert(info->state == extent_info_t::state_in_use);
-        info->state = extent_info_t::state_free;
-        info->next_in_free_list = free_list_head;
-        free_list_head = extent;
-        held_extents_++;
+        guarantee(info->state() == extent_info_t::state_in_use);
+        guarantee(info->extent_use_refcount > 0);
+        --info->extent_use_refcount;
+        if (info->extent_use_refcount == 0) {
+            info->set_state(extent_info_t::state_free);
+            info->next_in_free_list = free_list_head;
+            free_list_head = extent;
+            held_extents_++;
+        }
     }
 };
 
-extent_manager_t::extent_manager_t(direct_file_t *file, const log_serializer_on_disk_static_config_t *_static_config,
+extent_manager_t::extent_manager_t(file_t *file, const log_serializer_on_disk_static_config_t *_static_config,
                                    const log_serializer_dynamic_config_t *_dynamic_config, log_serializer_stats_t *_stats)
     : stats(_stats), extent_size(_static_config->extent_size()), static_config(_static_config),
       dynamic_config(_dynamic_config), dbfile(file), state(state_reserving_extents) {
@@ -170,7 +208,7 @@ extent_zone_t *extent_manager_t::zone_for_offset(off64_t offset) {
 }
 
 
-void extent_manager_t::reserve_extent(off64_t extent) {
+void extent_manager_t::reserve_extent(off64_t extent, extent_reference_t *extent_ref) {
     assert_thread();
 #ifdef DEBUG_EXTENTS
     debugf("EM %p: Reserve extent %.8lx\n", this, extent);
@@ -179,7 +217,7 @@ void extent_manager_t::reserve_extent(off64_t extent) {
     rassert(state == state_reserving_extents);
     ++stats->pm_extents_in_use;
     stats->pm_bytes_in_use += extent_size;
-    zone_for_offset(extent)->reserve_extent(extent);
+    zone_for_offset(extent)->reserve_extent(extent, extent_ref);
 }
 
 void extent_manager_t::prepare_initial_metablock(metablock_mixin_t *mb) {
@@ -245,22 +283,19 @@ void extent_manager_t::begin_transaction(extent_transaction_t *out) {
     out->init();
 }
 
-off64_t extent_manager_t::gen_extent(DEBUG_VAR extent_transaction_t *txn) {
+void extent_manager_t::gen_extent(extent_reference_t *extent_ref_out) {
     assert_thread();
     rassert(state == state_running);
-    rassert(current_transaction);
-    rassert(current_transaction == txn);
     ++stats->pm_extents_in_use;
     stats->pm_bytes_in_use += extent_size;
 
-    off64_t extent;
+    extent_reference_t extent_ref;
     int first_zone = next_zone;
     for (;;) {   /* Loop looking for a zone with a free extent */
-
-        extent = zones[next_zone].gen_extent();
+        bool success = zones[next_zone].gen_extent(&extent_ref);
         next_zone = (next_zone+1) % zones.size();
 
-        if (extent != NULL_OFFSET) break;
+        if (success) break;
 
         if (next_zone == first_zone) {
             /* We tried every zone and there were no free extents */
@@ -269,41 +304,60 @@ off64_t extent_manager_t::gen_extent(DEBUG_VAR extent_transaction_t *txn) {
     }
 
     /* In case we are not on a block device */
-    dbfile->set_size_at_least(extent + extent_size);
+    dbfile->set_size_at_least(extent_ref.offset() + extent_size);
 
 #ifdef DEBUG_EXTENTS
     debugf("EM %p: Gen extent %.8lx\n", this, extent);
     debugf("%s", format_backtrace(false).c_str());
 #endif
-    return extent;
+    extent_ref_out->init(extent_ref.release());
 }
 
-void extent_manager_t::release_extent(off64_t extent, extent_transaction_t *txn) {
+void extent_manager_t::copy_extent_reference(extent_reference_t *extent_ref, extent_reference_t *extent_ref_out) {
+    off64_t offset = extent_ref->offset();
+    zone_for_offset(offset)->make_extent_reference(offset, extent_ref_out);
+}
+
+void extent_manager_t::release_extent_into_transaction(extent_reference_t *extent_ref, extent_transaction_t *txn) {
+    release_extent_preliminaries();
+    rassert(current_transaction);
+    txn->push_extent(extent_ref);
+}
+
+void extent_manager_t::release_extent(extent_reference_t *extent_ref) {
+    release_extent_preliminaries();
+    zone_for_offset(extent_ref->offset())->release_extent(extent_ref);
+}
+
+void extent_manager_t::release_extent_preliminaries() {
     assert_thread();
 #ifdef DEBUG_EXTENTS
     debugf("EM %p: Release extent %.8lx\n", this, extent);
     debugf("%s", format_backtrace(false).c_str());
 #endif
     rassert(state == state_running);
-    rassert(current_transaction);
     --stats->pm_extents_in_use;
     stats->pm_bytes_in_use -= extent_size;
-    txn->free_queue().push_back(extent);
 }
 
-void extent_manager_t::end_transaction(DEBUG_VAR const extent_transaction_t &t) {
+
+
+void extent_manager_t::end_transaction(extent_transaction_t *t) {
     assert_thread();
-    rassert(current_transaction == &t);
+    rassert(current_transaction == t);
     current_transaction = NULL;
+    t->mark_end();
 }
 
 void extent_manager_t::commit_transaction(extent_transaction_t *t) {
     assert_thread();
-    for (std::deque<off64_t>::iterator it = t->free_queue().begin(); it != t->free_queue().end(); it++) {
-        off64_t extent = *it;
-        zone_for_offset(extent)->release_extent(extent);
+    std::deque<off64_t> extents;
+    t->reset(&extents);
+    for (std::deque<off64_t>::const_iterator it = extents.begin(); it != extents.end(); ++it) {
+        extent_reference_t extent_ref;
+        extent_ref.init(*it);
+        zone_for_offset(extent_ref.offset())->release_extent(&extent_ref);
     }
-    t->reset();
 }
 
 int extent_manager_t::held_extents() {

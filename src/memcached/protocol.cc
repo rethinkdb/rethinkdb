@@ -482,8 +482,14 @@ struct read_visitor_t : public boost::static_visitor<read_response_t> {
         return read_response_t(dstr);
     }
 
-    read_visitor_t(btree_slice_t *btree_, transaction_t *txn_, superblock_t *superblock_, exptime_t effective_time_) :
-        btree(btree_), txn(txn_), superblock(superblock_), effective_time(effective_time_) { }
+    read_visitor_t(btree_slice_t *_btree,
+                   transaction_t *_txn,
+                   superblock_t *_superblock,
+                   exptime_t _effective_time) :
+        btree(_btree),
+        txn(_txn),
+        superblock(_superblock),
+        effective_time(_effective_time) { }
 
 private:
     btree_slice_t *btree;
@@ -498,7 +504,8 @@ void store_t::protocol_read(const read_t &read,
                             read_response_t *response,
                             btree_slice_t *btree,
                             transaction_t *txn,
-                            superblock_t *superblock) {
+                            superblock_t *superblock,
+                            UNUSED signal_t *interruptor) {
     read_visitor_t v(btree, txn, superblock, read.effective_time);
     *response = boost::apply_visitor(v, read.query);
 }
@@ -529,7 +536,18 @@ struct write_visitor_t : public boost::static_visitor<write_response_t> {
             memcached_delete(m.key, m.dont_put_in_delete_queue, btree, effective_time, timestamp, txn, superblock));
     }
 
-    write_visitor_t(btree_slice_t *btree_, transaction_t *txn_, superblock_t *superblock_, cas_t proposed_cas_, exptime_t effective_time_, repli_timestamp_t timestamp_) : btree(btree_), txn(txn_), superblock(superblock_), proposed_cas(proposed_cas_), effective_time(effective_time_), timestamp(timestamp_) { }
+    write_visitor_t(btree_slice_t *_btree,
+                    transaction_t *_txn,
+                    superblock_t *_superblock,
+                    cas_t _proposed_cas,
+                    exptime_t _effective_time,
+                    repli_timestamp_t _timestamp) :
+        btree(_btree),
+        txn(_txn),
+        superblock(_superblock),
+        proposed_cas(_proposed_cas),
+        effective_time(_effective_time),
+        timestamp(_timestamp) { }
 
 private:
     btree_slice_t *btree;
@@ -547,7 +565,8 @@ void store_t::protocol_write(const write_t &write,
                              transition_timestamp_t timestamp,
                              btree_slice_t *btree,
                              transaction_t *txn,
-                             superblock_t *superblock) {
+                             superblock_t *superblock,
+                             UNUSED signal_t *interruptor) {
     // TODO: should this be calling to_repli_timestamp on a transition_timestamp_t?  Does this not use the timestamp-before, when we'd want the timestamp-after?
     write_visitor_t v(btree, txn, superblock, write.proposed_cas, write.effective_time, timestamp.to_repli_timestamp());
     *response = boost::apply_visitor(v, write.mutation);

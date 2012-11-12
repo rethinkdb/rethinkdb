@@ -46,7 +46,7 @@ void* linux_aio_getevents_noeventfd_t::io_event_loop(void *arg) {
         int nevents = io_getevents(parent->parent->aio_context.id, 1, MAX_IO_EVENT_PROCESSING_BATCH_SIZE,
                                    events, &timeout);
         if (nevents == -EINTR || nevents == 0) {
-            if(parent->shutting_down)
+            if (parent->shutting_down)
                 break;
             else
                 continue;
@@ -132,7 +132,7 @@ void linux_aio_getevents_noeventfd_t::on_event(int event_mask) {
     int res = pthread_mutex_lock(&io_mutex);
     guarantee(res == 0, "Could not lock io mutex");
 
-    for(unsigned int i = 0; i < io_events.size(); i++) {
+    for (unsigned int i = 0; i < io_events.size(); i++) {
         parent->aio_notify(reinterpret_cast<iocb *>(io_events[i].obj), io_events[i].res);
     }
     io_events.clear();

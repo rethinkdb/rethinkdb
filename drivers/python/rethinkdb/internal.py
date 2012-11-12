@@ -164,8 +164,9 @@ class WriteQueryInner(object):
         raise NotImplementedError()
 
 class Insert(WriteQueryInner):
-    def __init__(self, table, entries):
+    def __init__(self, table, entries, upsert):
         self.table = table
+        self.upsert = upsert
         if isinstance(entries, query.StreamExpression):
             self.entries = [entries]
         else:
@@ -173,6 +174,7 @@ class Insert(WriteQueryInner):
 
     def _write_write_query(self, parent, opts):
         parent.type = p.WriteQuery.INSERT
+        parent.insert.overwrite = self.upsert
         self.table._write_ref_ast(parent.insert.table_ref, opts)
         for entry in self.entries:
             entry._inner._write_ast(parent.insert.terms.add(), opts)

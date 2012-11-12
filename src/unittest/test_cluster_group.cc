@@ -203,12 +203,11 @@ test_cluster_group_t<protocol_t>::test_cluster_group_t(int n_machines) {
 
     for (int i = 0; i < n_machines; i++) {
         files.push_back(new temp_file_t("/tmp/rdb_unittest.XXXXXX"));
-        standard_serializer_t::create(io_backender.get(),
-                                      standard_serializer_t::private_dynamic_config_t(files[i].name()),
+        filepath_file_opener_t file_opener(files[i].name(), io_backender.get());
+        standard_serializer_t::create(&file_opener,
                                       standard_serializer_t::static_config_t());
         serializers.push_back(new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
-                                                        io_backender.get(),
-                                                        standard_serializer_t::private_dynamic_config_t(files[i].name()),
+                                                        &file_opener,
                                                         &get_global_perfmon_collection()));
         stores.push_back(new typename protocol_t::store_t(&serializers[i], files[i].name(), GIGABYTE, true, NULL, &ctx));
         store_view_t<protocol_t> *store_ptr = &stores[i];

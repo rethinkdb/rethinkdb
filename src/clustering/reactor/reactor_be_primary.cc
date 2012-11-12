@@ -194,9 +194,9 @@ bool reactor_t<protocol_t>::is_safe_for_us_to_be_primary(const std::map<peer_id_
                                                    peer,
                                                    it->first),
                                                &res);
-                    } else if(boost::get<typename rb_t::nothing_t>(&it->second.activity)) {
+                    } else if (boost::get<typename rb_t::nothing_t>(&it->second.activity)) {
                         //Everything's fine this peer cannot obstruct us so we shall proceed
-                    } else if(boost::get<typename rb_t::nothing_when_done_erasing_t>(&it->second.activity)) {
+                    } else if (boost::get<typename rb_t::nothing_when_done_erasing_t>(&it->second.activity)) {
                         //Everything's fine this peer cannot obstruct us so we shall proceed
                     } else {
                         return false;

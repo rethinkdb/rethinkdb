@@ -18,14 +18,14 @@ class lba_disk_structure_t :
 
 public:
     // Create a new LBA
-    lba_disk_structure_t(extent_manager_t *em, direct_file_t *file);
+    lba_disk_structure_t(extent_manager_t *em, file_t *file);
 
     // Load an existing LBA from disk
     struct load_callback_t {
         virtual void on_lba_load() = 0;
         virtual ~load_callback_t() {}
     };
-    lba_disk_structure_t(extent_manager_t *em, direct_file_t *file, lba_shard_metablock_t *metablock);
+    lba_disk_structure_t(extent_manager_t *em, file_t *file, lba_shard_metablock_t *metablock);
     void set_load_callback(load_callback_t *lcb);
 
     // Put entries in an LBA and then call sync() to write to disk
@@ -54,7 +54,7 @@ public:
     int num_entries_that_can_fit_in_an_extent() const;
 
     extent_manager_t *em;
-    direct_file_t *file;
+    file_t *file;
 
     extent_t *superblock_extent;   // Can be NULL
     off64_t superblock_offset;

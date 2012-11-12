@@ -16,9 +16,10 @@ BUILD_DRIVERS?=1
 PROTOCFLAGS:= --proto_path=$(SOURCE_DIR)
 GEMSPEC:=rethinkdb.gemspec
 
-AUTOCHAIN?=0
-ifeq ($(AUTOCHAIN),1)
-ifeq ($(shell which rprotoc || true),"")
+ALLOW_INTERNAL_TOOLS?=1
+INSTALL_INTERNAL_TOOLS?=0
+ifeq ($(ALLOW_INTERNAL_TOOLS),1)
+ifeq ($(shell which rprotoc || true),)
 TC_RPROTOC_EXE:=$(RUBY_PBDIR)/toolchain/bin/rprotoc
 else
 TC_RPROTOC_EXE:=$(shell which rprotoc || true)
@@ -53,10 +54,10 @@ endif
 	$(QUIET) if [ -e $(RUBY_PBDIR)/toolchain ] ; then rm -rf $(RUBY_PBDIR)/toolchain ; fi ;
 
 $(TC_RPROTOC_EXE): $(RUBY_PBDIR)
-ifeq ($(AUTOCHAIN),1)
-ifeq ($(shell gem list --local | grep "^ruby_protobuf "),"")
+ifeq ($(INSTALL_INTERNAL_TOOLS),1)
+# ifeq ($(shell gem list --local | grep "^ruby_protobuf "),)
 	if [ -d $(RUBY_PBDIR) ] && [ ! -e $(RUBY_PBDIR)/toolchain ] ; then mkdir -p $(RUBY_PBDIR)/toolchain ; fi ;
 	gem install --install-dir $(RUBY_PBDIR)/toolchain ruby_protobuf ;
-endif
+# endif
 endif
 

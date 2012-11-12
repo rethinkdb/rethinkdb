@@ -145,7 +145,7 @@ void linux_message_hub_t::push_messages() {
         // Append the local list for ith thread to that thread's global
         // message list.
         thread_queue_t *queue = &queues_[i];
-        if(!queue->msg_local_list.empty()) {
+        if (!queue->msg_local_list.empty()) {
             // Transfer messages to the other core
 
             pthread_spin_lock(&thread_pool_->threads[i]->message_hub.incoming_messages_lock_);

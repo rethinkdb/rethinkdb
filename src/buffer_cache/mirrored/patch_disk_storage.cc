@@ -1,7 +1,10 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "buffer_cache/mirrored/patch_disk_storage.hpp"
 
+#ifndef __STDC_FORMAT_MACROS
 #define __STDC_FORMAT_MACROS
+#endif
+
 #include <inttypes.h>
 #include <string.h>
 

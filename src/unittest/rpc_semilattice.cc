@@ -19,7 +19,7 @@ namespace {
 
 class sl_pair_t {
 public:
-    sl_pair_t(sl_int_t x_, sl_int_t y_) : x(x_), y(y_) { }
+    sl_pair_t(sl_int_t _x, sl_int_t _y) : x(_x), y(_y) { }
     sl_int_t x, y;
 
     // FIXME: serialization functions are never referenced and build with Intel fails

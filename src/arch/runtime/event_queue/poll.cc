@@ -95,12 +95,12 @@ void poll_event_queue_t::run() {
 
         int count = 0;
         for (unsigned int i = 0; i < watched_fds.size(); i++) {
-            if(watched_fds[i].revents != 0) {
+            if (watched_fds[i].revents != 0) {
                 linux_event_callback_t *cb = callbacks[watched_fds[i].fd];
                 cb->on_event(poll_to_user(watched_fds[i].revents));
                 count++;
             }
-            if(count == res)
+            if (count == res)
                 break;
         }
 
@@ -138,7 +138,7 @@ void poll_event_queue_t::adjust_resource(fd_t resource, int events, linux_event_
     // Find and adjust the event
     callbacks[resource] = cb;
     for (unsigned int i = 0; i < watched_fds.size(); i++) {
-        if(watched_fds[i].fd == resource) {
+        if (watched_fds[i].fd == resource) {
             watched_fds[i].events = user_to_poll(events);
             watched_fds[i].revents &= user_to_poll(events);
             return;
@@ -154,7 +154,7 @@ void poll_event_queue_t::forget_resource(fd_t resource, DEBUG_VAR linux_event_ca
 
     // Find and erase the event
     for (unsigned int i = 0; i < watched_fds.size(); i++) {
-        if(watched_fds[i].fd == resource) {
+        if (watched_fds[i].fd == resource) {
             watched_fds.erase(watched_fds.begin() + i);
             return;
         }

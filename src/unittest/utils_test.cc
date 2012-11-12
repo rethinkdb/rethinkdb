@@ -84,8 +84,8 @@ TEST(UtilsTest, SizedStrcmp)
 new file just for it. */
 
 void run_ip_address_test() {
-    std::vector<ip_address_t> ips = ip_address_t::from_hostname("111.112.113.114");
-    EXPECT_EQ("111.112.113.114", ips[0].as_dotted_decimal());
+    std::set<ip_address_t> ips = ip_address_t::from_hostname("111.112.113.114");
+    EXPECT_EQ("111.112.113.114", ips.begin()->as_dotted_decimal());
 }
 
 TEST(UtilsTest, IPAddress)

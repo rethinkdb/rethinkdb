@@ -74,11 +74,11 @@ public:
 #endif
         value->next = _head;
         value->prev = NULL;
-        if(_head) {
+        if (_head) {
             static_cast<intrusive_list_node_t<node_t> *>(_head)->prev = _value;
         }
         _head = _value;
-        if(_tail == NULL) {
+        if (_tail == NULL) {
             _tail = _value;
         }
         _size++;
@@ -93,11 +93,11 @@ public:
 #endif
         value->prev = _tail;
         value->next = NULL;
-        if(_tail) {
+        if (_tail) {
             static_cast<intrusive_list_node_t<node_t> *>(_tail)->next = _value;
         }
         _tail = _value;
-        if(_head == NULL) {
+        if (_head == NULL) {
             _head = _value;
         }
         _size++;
@@ -112,12 +112,12 @@ public:
         value->parent_list = NULL;
 #endif
 
-        if(value->next) {
+        if (value->next) {
             static_cast<intrusive_list_node_t<node_t> *>(value->next)->prev = value->prev;
         } else {
             _tail = value->prev;
         }
-        if(value->prev) {
+        if (value->prev) {
             static_cast<intrusive_list_node_t<node_t> *>(value->prev)->next = value->next;
         } else {
             _head = value->next;
@@ -137,7 +137,7 @@ public:
 
     void append_and_clear(intrusive_list_t<node_t> *list) {
 
-        if(list->empty())
+        if (list->empty())
             return;
 
 #ifndef NDEBUG
@@ -147,7 +147,7 @@ public:
         }
 #endif
 
-        if(!_head) {
+        if (!_head) {
             // We're empty, just set head and tail to the new list
             _head = list->head();
             _tail = list->tail();

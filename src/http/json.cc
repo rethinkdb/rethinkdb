@@ -235,7 +235,7 @@ std::string cJSON_type_to_string(int type) {
 write_message_t &operator<<(write_message_t &msg, const cJSON &cjson) {
     msg << cjson.type;
 
-    switch(cjson.type) {
+    switch (cjson.type) {
     case cJSON_False:
         break;
     case cJSON_True:
