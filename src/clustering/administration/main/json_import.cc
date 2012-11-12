@@ -50,7 +50,8 @@ bool csv_to_json_importer_t::next_json(scoped_cJSON_t *out) {
 
     int64_t num_ignored_rows = 0;
 
-    const std::vector<std::string> *row;
+    // Iterate to the next valid row.
+    const std::vector<std::string> *row = NULL;
     for (;;) {
         if (position_ == rows_.size()) {
             num_ignored_rows_ += num_ignored_rows;
@@ -65,7 +66,7 @@ bool csv_to_json_importer_t::next_json(scoped_cJSON_t *out) {
         ++num_ignored_rows;
     }
 
-
+    // Construct output object from row.
     out->reset(cJSON_CreateObject());
 
     for (size_t i = 0; i < row->size(); ++i) {
