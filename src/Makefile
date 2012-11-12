@@ -142,7 +142,7 @@ endif
 ifeq ($(COMPILER),CLANG)
 LDFLAGS:=-Wl,--no-as-needed 
 ifeq ($(STATICFORCE),1)
-LDFLAGS+= -Wl,-Bstatic
+LDFLAGS+= -static
 STATIC_LIBGCC=1
 endif
 LDFLAGS+=$(LDPATHDS) -pthread -lrt -lstdc++ -lm -lv8
@@ -153,7 +153,7 @@ else
 ifeq ($(COMPILER),INTEL)
 LDFLAGS:= -B/opt/intel/bin 
 ifeq ($(STATICFORCE),1)
-LDFLAGS+= -Wl,-Bstatic
+LDFLAGS+= -static
 STATIC_LIBGCC=1
 endif
 LDFLAGS+=$(LDPATHDS) -pthread -lrt -lstdc++ -lv8
@@ -164,7 +164,7 @@ else
 # GCC
 LDFLAGS:=-Wl,--no-as-needed 
 ifeq ($(STATICFORCE),1)
-LDFLAGS+= -Wl,-Bstatic
+LDFLAGS+= -static
 STATIC_LIBGCC=1
 endif
 LDFLAGS+=$(LDPATHDS) -pthread -lrt -lv8
