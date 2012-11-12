@@ -136,7 +136,7 @@ http_res_t query_http_app_t::handle(const http_req_t &req) {
             return http_res_t(HTTP_BAD_REQUEST);
         }
         crash("Unreachable\n");
-    } catch(cannot_perform_query_exc_t e) {
+    } catch (cannot_perform_query_exc_t e) {
         http_res_t res;
         res.set_body("text/plain", e.what());
         return http_res_t(HTTP_INTERNAL_SERVER_ERROR);

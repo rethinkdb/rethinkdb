@@ -85,7 +85,7 @@ void btree_store_t<protocol_t>::read(
     scoped_ptr_t<superblock_t> superblock2;
     superblock2.init(superblock.release());
 
-    protocol_read(read, response, btree.get(), txn.get(), superblock2.get());
+    protocol_read(read, response, btree.get(), txn.get(), superblock2.get(), interruptor);
 }
 
 template <class protocol_t>
@@ -117,7 +117,7 @@ void btree_store_t<protocol_t>::write(
             check_and_update_metainfo(DEBUG_ONLY(metainfo_checker, ) new_metainfo, txn.get(), superblock.get());
 
             ATICKVAR(bw_C);
-            protocol_write(write, response, timestamp, btree.get(), txn.get(), superblock.get());
+            protocol_write(write, response, timestamp, btree.get(), txn.get(), superblock.get(), interruptor);
 
             ATICKVAR(bw_D);
         }

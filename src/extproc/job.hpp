@@ -77,7 +77,7 @@ class auto_job_t : public base_job_t {
                          res == ARCHIVE_SOCK_EOF ? "end of file" :
                          res == ARCHIVE_RANGE_ERROR ? "range error" :
                          "unknown error");
-            crash_or_trap("worker: could not deserialize job");
+            crash("worker: could not deserialize job");
         }
 
         // Run it.

@@ -91,7 +91,7 @@ metablock_manager_t<metablock_t>::~metablock_manager_t() {
 }
 
 template<class metablock_t>
-void metablock_manager_t<metablock_t>::create(direct_file_t *dbfile, off64_t extent_size, metablock_t *initial) {
+void metablock_manager_t<metablock_t>::create(file_t *dbfile, off64_t extent_size, metablock_t *initial) {
 
     std::vector<off64_t> metablock_offsets = initial_metablock_offsets(extent_size);
 
@@ -124,7 +124,7 @@ void metablock_manager_t<metablock_t>::create(direct_file_t *dbfile, off64_t ext
 }
 
 template<class metablock_t>
-void metablock_manager_t<metablock_t>::co_start_existing(direct_file_t *file, bool *mb_found, metablock_t *mb_out) {
+void metablock_manager_t<metablock_t>::co_start_existing(file_t *file, bool *mb_found, metablock_t *mb_out) {
     rassert(state == state_unstarted);
     dbfile = file;
     rassert(dbfile != NULL);
@@ -162,7 +162,7 @@ void metablock_manager_t<metablock_t>::co_start_existing(direct_file_t *file, bo
         }
     } callback;
     callback.refcount = metablock_offsets.size();
-    for(unsigned i = 0; i < metablock_offsets.size(); i++) {
+    for (unsigned i = 0; i < metablock_offsets.size(); i++) {
         dbfile->read_async(metablock_offsets[i], DEVICE_BLOCK_SIZE, lbm.get_metablock(i),
                            DEFAULT_DISK_ACCOUNT, &callback);
     }
@@ -175,7 +175,7 @@ void metablock_manager_t<metablock_t>::co_start_existing(direct_file_t *file, bo
 
     // We've read everything from disk. Now find the last good metablock.
     crc_metablock_t *last_good_mb = NULL;
-    for(unsigned i = 0; i < metablock_offsets.size(); i++) {
+    for (unsigned i = 0; i < metablock_offsets.size(); i++) {
         crc_metablock_t *mb_temp = lbm.get_metablock(i);
         if (mb_temp->check_crc()) {
             if (mb_temp->version > startup_values.version) {
@@ -220,13 +220,13 @@ void metablock_manager_t<metablock_t>::co_start_existing(direct_file_t *file, bo
 
 //The following two functions will go away in favor of the preceding one
 template<class metablock_t>
-void metablock_manager_t<metablock_t>::start_existing_callback(direct_file_t *file, bool *mb_found, metablock_t *mb_out, metablock_read_callback_t *cb) {
+void metablock_manager_t<metablock_t>::start_existing_callback(file_t *file, bool *mb_found, metablock_t *mb_out, metablock_read_callback_t *cb) {
     co_start_existing(file, mb_found, mb_out);
     cb->on_metablock_read();
 }
 
 template<class metablock_t>
-bool metablock_manager_t<metablock_t>::start_existing(direct_file_t *file, bool *mb_found, metablock_t *mb_out, metablock_read_callback_t *cb) {
+bool metablock_manager_t<metablock_t>::start_existing(file_t *file, bool *mb_found, metablock_t *mb_out, metablock_read_callback_t *cb) {
     coro_t::spawn(boost::bind(&metablock_manager_t<metablock_t>::start_existing_callback, this, file, mb_found, mb_out, cb));
     return false;
 }

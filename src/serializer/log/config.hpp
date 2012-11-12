@@ -8,33 +8,6 @@
 #include "serializer/types.hpp"
 #include "rpc/serialize_macros.hpp"
 
-/* Private serializer dynamic configuration values */
-
-struct log_serializer_private_dynamic_config_t {
-    std::string db_filename;
-
-    // TODO: Get rid of this field, instead have a method that
-    // retrieves the value based on db_filename.
-#ifdef SEMANTIC_SERIALIZER_CHECK
-    std::string semantic_filename;
-#endif
-
-    log_serializer_private_dynamic_config_t() { }
-
-    explicit log_serializer_private_dynamic_config_t(const std::string& _db_filename)
-        : db_filename(_db_filename)
-#ifdef SEMANTIC_SERIALIZER_CHECK
-          , semantic_filename(db_filename + "_semantic")
-#endif
-    { }
-
-#ifdef SEMANTIC_SERIALIZER_CHECK
-    RDB_MAKE_ME_SERIALIZABLE_2(db_filename, semantic_filename);
-#else
-    RDB_MAKE_ME_SERIALIZABLE_1(db_filename);
-#endif
-};
-
 /* Configuration for the serializer that can change from run to run */
 
 struct log_serializer_dynamic_config_t {

@@ -222,16 +222,17 @@ branch_history_manager_t<rdb_protocol_t> *persistent_file_t::get_rdb_branch_hist
 void persistent_file_t::construct_serializer_and_cache(io_backender_t *io_backender, const bool create, const std::string &filename, perfmon_collection_t *const perfmon_parent) {
     standard_serializer_t::dynamic_config_t serializer_dynamic_config;
 
-    if (create) {
-        standard_serializer_t::create(io_backender,
-                                      standard_serializer_t::private_dynamic_config_t(filename),
-                                      standard_serializer_t::static_config_t());
-    }
+    {
+        filepath_file_opener_t file_opener(filename, io_backender);
+        if (create) {
+            standard_serializer_t::create(&file_opener,
+                                          standard_serializer_t::static_config_t());
+        }
 
-    serializer.init(new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
-                                              io_backender,
-                                              standard_serializer_t::private_dynamic_config_t(filename),
-                                              perfmon_parent));
+        serializer.init(new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
+                                                  &file_opener,
+                                                  perfmon_parent));
+    }
 
     if (!serializer->coop_lock_and_check()) {
         throw file_in_use_exc_t();

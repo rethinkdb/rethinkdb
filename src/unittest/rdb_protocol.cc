@@ -33,12 +33,11 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb
 
     scoped_array_t<scoped_ptr_t<serializer_t> > serializers(shards.size());
     for (size_t i = 0; i < shards.size(); ++i) {
-        standard_serializer_t::create(io_backender.get(),
-                                      standard_serializer_t::private_dynamic_config_t(temp_files[i].name()),
+        filepath_file_opener_t file_opener(temp_files[i].name(), io_backender.get());
+        standard_serializer_t::create(&file_opener,
                                       standard_serializer_t::static_config_t());
         serializers[i].init(new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
-                                                      io_backender.get(),
-                                                      standard_serializer_t::private_dynamic_config_t(temp_files[i].name()),
+                                                      &file_opener,
                                                       &get_global_perfmon_collection()));
     }
 

@@ -572,7 +572,7 @@ void parallel_traversal_progress_t::inform(int level, action_t action, node_type
         rassert(height == level);
     }
 
-    switch(action) {
+    switch (action) {
     case LEARN:
         learned[level]++;
         break;

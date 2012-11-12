@@ -172,7 +172,7 @@ void rdb_modify(const std::string &primary_key, const store_key_t &key, point_mo
         std::string new_key;
         point_modify_ns::result_t res = query_language::calculate_modify(
             lhs, primary_key, op, mapping, env, scopes, backtrace, &new_row, &new_key);
-        switch(res) {
+        switch (res) {
         case point_modify_ns::INSERTED:
             if (new_key != key_to_unescaped_str(key)) {
                 throw query_language::runtime_exc_t(strprintf("mutate can't change the primary key (%s) when doing an insert of %s",
@@ -373,7 +373,7 @@ public:
                 }
                 return true;
             }
-        } catch(const query_language::runtime_exc_t &e) {
+        } catch (const query_language::runtime_exc_t &e) {
             /* Evaluation threw so we're not going to be accepting any more requests. */
             response->result = e;
             return false;

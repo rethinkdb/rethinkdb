@@ -23,8 +23,8 @@ const int connectivity_cluster_t::run_t::default_user_timeout(12000);
 
 void debug_print(append_only_printf_buffer_t *buf, const peer_address_t &address) {
     buf->appendf("peer_address{ips=[");
-    const std::vector<ip_address_t> *ips = address.all_ips();
-    for (std::vector<ip_address_t>::const_iterator
+    const std::set<ip_address_t> *ips = address.all_ips();
+    for (std::set<ip_address_t>::const_iterator
              it = ips->begin(); it != ips->end(); ++it) {
         if (it != ips->begin()) buf->appendf(", ");
         debug_print(buf, *it);
@@ -173,10 +173,16 @@ void connectivity_cluster_t::run_t::connect_to_peer(const peer_address_t *addr, 
         rassert(timeout.is_pulsed());
     }
 
+    // Indexing through a std::set is rather awkward
+    const std::set<ip_address_t> *all_ips = addr->all_ips();
+    std::set<ip_address_t>::const_iterator selected_addr;
+    for (selected_addr = all_ips->begin(); selected_addr != all_ips->end() && index > 0; ++selected_addr, --index);
+    guarantee(index == 0);
+
     // Don't bother if there's already a connection
     if (!*successful_join) {
         try {
-            tcp_conn_stream_t conn(addr->all_ips()->at(index), addr->port, drainer_lock.get_drain_signal(), cluster_client_port);
+            tcp_conn_stream_t conn(*selected_addr, addr->port, drainer_lock.get_drain_signal(), cluster_client_port);
             if (!*successful_join) {
                 handle(&conn, expected_id, boost::optional<peer_address_t>(*addr), drainer_lock, successful_join);
             }
@@ -293,7 +299,7 @@ void connectivity_cluster_t::run_t::handle(
 
     // Each side sends a header followed by its own ID and address, then receives and checks the
     // other side's.
-    const int64_t header_size = sizeof CLUSTER_PROTO_HEADER - 1;
+    const int64_t header_size = sizeof(CLUSTER_PROTO_HEADER) - 1;
 
     // Send header, id, address.
     {

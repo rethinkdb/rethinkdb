@@ -420,7 +420,7 @@ void run_blob_join_test() {
     // Allow some time for the two blobs to join with themselves
     uint32_t total_waits = 0;
     bool pass = false;
-    while(!pass) {
+    while (!pass) {
         mock::let_stuff_happen();
         ASSERT_LT(++total_waits, 50); // cluster blobs took to long to coalesce internally
 
@@ -434,7 +434,7 @@ void run_blob_join_test() {
     runs[1]->join(nodes[blob_size+1]->get_peer_address(nodes[blob_size+1]->get_me()));
 
     pass = false;
-    while(!pass) {
+    while (!pass) {
         mock::let_stuff_happen();
         ASSERT_LT(++total_waits, 50); // cluster blobs took to long to coalesce with each other
 

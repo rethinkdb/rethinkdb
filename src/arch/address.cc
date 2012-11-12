@@ -20,8 +20,17 @@ std::string str_gethostname() {
     return std::string(name);
 }
 
-void do_getaddrinfo(const char *node, const char *service, const struct addrinfo *hints, struct addrinfo **res, int *retval) {
+void do_getaddrinfo(const char *node,
+                    const char *service,
+                    const struct addrinfo *hints,
+                    struct addrinfo **res,
+                    int *retval,
+                    int *errno_res) {
+    *errno_res = 0;
     *retval = getaddrinfo(node, service, hints, res);
+    if (*retval < 0) {
+        *errno_res = errno;
+    }
 }
 
 /* Format an `in_addr` in dotted deciaml notation. */
@@ -33,63 +42,58 @@ std::string addr_as_dotted_decimal(struct in_addr addr) {
     return std::string(buffer);
 }
 
-std::vector<ip_address_t> ip_address_t::from_hostname(const std::string &host) {
-    std::vector<ip_address_t> ips;
+std::set<ip_address_t> ip_address_t::from_hostname(const std::string &host) {
+    std::set<ip_address_t> ips;
     struct addrinfo hint;
     memset(&hint, 0, sizeof(hint));
     hint.ai_family = AF_INET;
     hint.ai_socktype = SOCK_STREAM;
 
     int res;
+    int errno_res;
     struct addrinfo *addrs;
     boost::function<void ()> fn =
         boost::bind(do_getaddrinfo, host.c_str(), static_cast<const char*>(NULL),
-                    &hint, &addrs, &res);
-    thread_pool_t::run_in_blocker_pool(fn); //ALLOC 0
-    guarantee_err(res == 0, "getaddrinfo() failed");
-    guarantee(addrs);
-    for (struct addrinfo *ai = addrs; ai; ai = ai->ai_next) {
-        ips.push_back(ip_address_t(ai));
+                    &hint, &addrs, &res, &errno_res);
+    thread_pool_t::run_in_blocker_pool(fn);
+
+    if (res != 0) {
+        throw host_lookup_exc_t(host, errno_res);
     }
 
-    if (host == str_gethostname()) {
-        /* If we're creating the `ip_address_t` for the machine we're currently
-           on, we also want to add all of the IP addresses of the interfaces.
-           We want to do this IN ADDITION TO the per-hostname lookup above
-           because there might be shenanigans.  (For example, on Debian/Ubuntu
-           the current hostname is sometimes mapped to 127.0.1.1 in /etc/hosts,
-           which resolves correctly over the loopback interface, but doesn't
-           show up in the interfaces). */
-        int fd = socket(AF_INET, SOCK_STREAM, 0); //ALLOC 1
-        guarantee(fd != -1);
-        struct if_nameindex *ifs = if_nameindex(); //ALLOC 2
-        guarantee(ifs);
-        for (struct if_nameindex *it = ifs; it->if_name != NULL; ++it) {
-            struct ifreq req;
-            strncpy(req.ifr_name, it->if_name, IFNAMSIZ);
-            if (req.ifr_name[IFNAMSIZ-1] != 0) { // make sure the strncpy didn't truncate
-                req.ifr_name[IFNAMSIZ-1] = 0;
-                guarantee(strlen(req.ifr_name) < (IFNAMSIZ-1));
-            }
-            //SIOCGIFADDR : Socket IO Control Get InterFace ADDRess (I think?)
-            res = ioctl(fd, SIOCGIFADDR, &req);
-            if (res >= 0) {
-                ips.push_back(ip_address_t(&req));
-            } else {
-                // TODO: perhaps handle individual errnos
-                // It is possible to get here with errno EADDRNOTAVAIL if the interface is not configured
-            }
-        }
-        if_freenameindex(ifs); //FREE 2
-        res = close(fd); //FREE 1
-        guarantee(res == 0 || (res == -1 && errno == EINTR));
+    guarantee(addrs);
+    for (struct addrinfo *ai = addrs; ai; ai = ai->ai_next) {
+        ips.insert(ip_address_t(ai));
     }
-    freeaddrinfo(addrs); //FREE 0
+
+    freeaddrinfo(addrs);
     return ips;
 }
 
-std::vector<ip_address_t> ip_address_t::us() {
-    return from_hostname(str_gethostname());
+std::set<ip_address_t> ip_address_t::us() {
+    std::set<ip_address_t> ips;
+
+    try {
+        ips = from_hostname(str_gethostname());
+    } catch (const host_lookup_exc_t &ex) {
+        // Continue on, this probably means there's no DNS entry for this host
+    }
+
+    struct ifaddrs *addrs;
+    int res = getifaddrs(&addrs);
+    guarantee_err(res == 0, "getifaddrs() failed");
+
+    for (struct ifaddrs *current_addr = addrs; current_addr != NULL; current_addr = current_addr->ifa_next) {
+        struct sockaddr *addr_data = current_addr->ifa_addr;
+        if (addr_data == NULL) {
+            continue;
+        } else if (addr_data->sa_family == AF_INET) {
+            ips.insert(ip_address_t(addr_data));
+        }
+    }
+
+    freeifaddrs(addrs);
+    return ips;
 }
 
 std::string ip_address_t::as_dotted_decimal() const {

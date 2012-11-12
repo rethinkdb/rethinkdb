@@ -94,14 +94,16 @@ protected:
                                typename protocol_t::read_response_t *response,
                                btree_slice_t *btree,
                                transaction_t *txn,
-                               superblock_t *superblock) = 0;
+                               superblock_t *superblock,
+                               signal_t *interruptor) = 0;
 
     virtual void protocol_write(const typename protocol_t::write_t &write,
                                 typename protocol_t::write_response_t *response,
                                 transition_timestamp_t timestamp,
                                 btree_slice_t *btree,
                                 transaction_t *txn,
-                                superblock_t *superblock) = 0;
+                                superblock_t *superblock,
+                                signal_t *interruptor) = 0;
 
     virtual void protocol_send_backfill(const region_map_t<protocol_t, state_timestamp_t> &start_point,
                                         chunk_fun_callback_t<protocol_t> *chunk_fun_cb,

@@ -494,11 +494,14 @@ mc_buf_lock_t::mc_buf_lock_t() :
 
 
 /* Constructor to obtain a buffer lock within a transaction */
-mc_buf_lock_t::mc_buf_lock_t(mc_transaction_t *transaction, block_id_t block_id, access_t mode_, UNUSED buffer_cache_order_mode_t order_mode, lock_in_line_callback_t *call_when_in_line) THROWS_NOTHING :
+mc_buf_lock_t::mc_buf_lock_t(mc_transaction_t *transaction,
+                             block_id_t block_id, access_t _mode,
+                             UNUSED buffer_cache_order_mode_t order_mode,
+                             lock_in_line_callback_t *call_when_in_line) THROWS_NOTHING :
     acquired(false),
     snapshotted(transaction->snapshotted),
     non_locking_access(snapshotted),
-    mode(mode_),
+    mode(_mode),
     inner_buf(transaction->cache->find_buf(block_id)),
     data(NULL),
     subtree_recency(repli_timestamp_t::invalid),

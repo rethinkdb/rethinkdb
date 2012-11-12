@@ -10,8 +10,8 @@ class cross_thread_signal_t;
 class cross_thread_signal_subscription_t : public signal_t::subscription_t {
 public:
     cross_thread_signal_subscription_t(cross_thread_signal_t *parent,
-				       auto_drainer_t::lock_t keepalive)
-	: parent_(parent), keepalive_(keepalive) { }
+                                       auto_drainer_t::lock_t keepalive)
+        : parent_(parent), keepalive_(keepalive) { }
 
     virtual void run();
 

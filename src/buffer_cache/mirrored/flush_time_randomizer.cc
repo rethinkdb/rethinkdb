@@ -7,8 +7,8 @@
 
 #include "utils.hpp"
 
-flush_time_randomizer_t::flush_time_randomizer_t(int flush_timer_ms_)
-    : rng(), flush_timer_ms(flush_timer_ms_), first_time_interval(rng.randint(std::max(1, flush_timer_ms))), done_first_time_interval(false) {
+flush_time_randomizer_t::flush_time_randomizer_t(int _flush_timer_ms)
+    : rng(), flush_timer_ms(_flush_timer_ms), first_time_interval(rng.randint(std::max(1, flush_timer_ms))), done_first_time_interval(false) {
     rassert(flush_timer_ms >= 0 || flush_timer_ms == NEVER_FLUSH);
 }
 

@@ -72,7 +72,7 @@ public:
     }
 };
 
-bool lba_list_t::start_existing(direct_file_t *file, metablock_mixin_t *last_metablock, ready_callback_t *cb) {
+bool lba_list_t::start_existing(file_t *file, metablock_mixin_t *last_metablock, ready_callback_t *cb) {
     rassert(state == state_unstarted);
 
     dbfile = file;
@@ -214,7 +214,7 @@ public:
         rassert(owner->gc_count > 0);
         owner->gc_count--;
 
-        if(owner->state == lba_list_t::state_shutting_down && owner->gc_count == 0)
+        if (owner->state == lba_list_t::state_shutting_down && owner->gc_count == 0)
             owner->shutdown_now();
 
         delete this;
@@ -276,7 +276,7 @@ bool lba_list_t::shutdown_now() {
 
     state = state_shut_down;
 
-    if(shutdown_callback)
+    if (shutdown_callback)
         shutdown_callback->on_lba_shutdown();
 
     return true;

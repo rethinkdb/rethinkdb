@@ -36,7 +36,7 @@ template <typename T> struct one_way_iterator_t;
 struct get_query_t {
     store_key_t key;
     get_query_t() { }
-    explicit get_query_t(const store_key_t& key_) : key(key_) { }
+    explicit get_query_t(const store_key_t& _key) : key(_key) { }
 };
 
 struct get_result_t {
@@ -59,8 +59,8 @@ struct rget_query_t {
     int maximum;
 
     rget_query_t() { }
-    rget_query_t(const hash_region_t<key_range_t> &region_, int maximum_)
-        : region(region_), maximum(maximum_) { }
+    rget_query_t(const hash_region_t<key_range_t> &_region, int _maximum)
+        : region(_region), maximum(_maximum) { }
 };
 
 struct key_with_data_buffer_t {
@@ -159,8 +159,20 @@ struct sarc_mutation_t {
     cas_t old_cas;
 
     sarc_mutation_t() { }
-    sarc_mutation_t(const store_key_t& key_, const intrusive_ptr_t<data_buffer_t>& data_, mcflags_t flags_, exptime_t exptime_, add_policy_t add_policy_, replace_policy_t replace_policy_, cas_t old_cas_) :
-        key(key_), data(data_), flags(flags_), exptime(exptime_), add_policy(add_policy_), replace_policy(replace_policy_), old_cas(old_cas_) { }
+    sarc_mutation_t(const store_key_t& _key,
+                    const intrusive_ptr_t<data_buffer_t>& _data,
+                    mcflags_t _flags,
+                    exptime_t _exptime,
+                    add_policy_t _add_policy,
+                    replace_policy_t _replace_policy,
+                    cas_t _old_cas) :
+        key(_key),
+        data(_data),
+        flags(_flags),
+        exptime(_exptime),
+        add_policy(_add_policy),
+        replace_policy(_replace_policy),
+        old_cas(_old_cas) { }
 };
 
 void debug_print(append_only_printf_buffer_t *buf, const sarc_mutation_t& mut);
@@ -190,7 +202,7 @@ struct delete_mutation_t {
     bool dont_put_in_delete_queue;
 
     delete_mutation_t() { }
-    delete_mutation_t(const store_key_t& key_, bool dont_put_in_delete_queue_) : key(key_), dont_put_in_delete_queue(dont_put_in_delete_queue_) { }
+    delete_mutation_t(const store_key_t& _key, bool _dont_put_in_delete_queue) : key(_key), dont_put_in_delete_queue(_dont_put_in_delete_queue) { }
 };
 
 void debug_print(append_only_printf_buffer_t *buf, const delete_mutation_t& mut);
@@ -248,8 +260,8 @@ struct append_prepend_mutation_t {
     intrusive_ptr_t<data_buffer_t> data;
 
     append_prepend_mutation_t() { }
-    append_prepend_mutation_t(append_prepend_kind_t kind_, const store_key_t &key_, const intrusive_ptr_t<data_buffer_t> &data_) :
-        kind(kind_), key(key_), data(data_) { }
+    append_prepend_mutation_t(append_prepend_kind_t _kind, const store_key_t &_key, const intrusive_ptr_t<data_buffer_t> &_data) :
+        kind(_kind), key(_key), data(_data) { }
 };
 
 void debug_print(append_only_printf_buffer_t *buf, const append_prepend_mutation_t& mut);
