@@ -37,5 +37,5 @@ binary-arch: install
 
 binary: binary-indep binary-arch
 
-.PHONY: binary binary-arch binary-indep clean
+.PHONY: binary binary-arch binary-indep clean install build
 
