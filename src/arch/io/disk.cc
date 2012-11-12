@@ -2,7 +2,7 @@
 #include "arch/io/disk.hpp"
 
 #include <fcntl.h>
-#include <linux/fs.h>
+// #include <linux/fs.h>  // TODO(OSX)
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
