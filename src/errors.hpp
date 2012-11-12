@@ -3,6 +3,7 @@
 #define ERRORS_HPP_
 
 #include <errno.h>
+#include <signal.h>
 #include <stdlib.h>
 
 #ifndef DISABLE_BREAKPOINTS
