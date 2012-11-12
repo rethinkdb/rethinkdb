@@ -344,7 +344,7 @@ void linux_file_t::write_async(size_t offset, size_t length, const void *buf, fi
 }
 
 void linux_file_t::read_blocking(size_t offset, size_t length, void *buf) {
-    verify_aligned_file_access(offset, length, buf);
+    verify_aligned_file_access(file_size, offset, length, buf);
     ssize_t res;
     do {
         res = pread(fd.get(), buf, length, offset);
@@ -354,7 +354,7 @@ void linux_file_t::read_blocking(size_t offset, size_t length, void *buf) {
 }
 
 void linux_file_t::write_blocking(size_t offset, size_t length, const void *buf) {
-    verify_aligned_file_access(offset, length, buf);
+    verify_aligned_file_access(file_size, offset, length, buf);
     ssize_t res;
     do {
         res = pwrite(fd.get(), buf, length, offset);
