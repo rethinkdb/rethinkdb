@@ -19,6 +19,7 @@
 static __thread bool crashed = false; // to prevent crashing within crashes
 
 void report_user_error(const char *msg, ...) {
+    fprintf(stderr, "Version: " RETHINKDB_VERSION_STR "\n");
     if (crashed) {
         va_list args;
         va_start(args, msg);
@@ -39,6 +40,7 @@ void report_user_error(const char *msg, ...) {
 }
 
 void report_fatal_error(const char *file, int line, const char *msg, ...) {
+    fprintf(stderr, "Version: " RETHINKDB_VERSION_STR "\n");
     if (crashed) {
         va_list args;
         va_start(args, msg);
