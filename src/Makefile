@@ -221,7 +221,8 @@ else
 ifeq ($(LEGACY_GCC), 1)
 CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default
 else
-CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default -Wno-array-bounds
+# TODO(OSX) Get rid of -Wno-format-nonliteral and figure out a local solution.
+CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default -Wno-array-bounds -Wno-format-nonliteral
 endif
 endif
 endif

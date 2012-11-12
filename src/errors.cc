@@ -2,7 +2,7 @@
 #include "errors.hpp"
 
 #include <cxxabi.h>
-#include <mcheck.h>
+// #include <mcheck.h>  // TODO(OSX)
 #include <signal.h>
 #include <stdarg.h>
 #include <stdlib.h>
