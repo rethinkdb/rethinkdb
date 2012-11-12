@@ -188,11 +188,13 @@ LDFLAGS+=$(foreach TLIB, $(LIB_SEARCH_PATHS), -L $(TLIB))
 
 STATIC_LIBRARIES:=
 
-STATIC_RECOMMENDS:=boost_serialization protobuf boost_program_options
+STATIC_RECOMMENDS_INDIFFERENT:=boost_serialization protobuf boost_program_options
 
 ifeq ($(NO_TCMALLOC),0)
 STATIC_RECOMMENDS+=tcmalloc_minimal
 endif
+
+STATIC_RECOMMENDS_IMPORTANT
 
 RECOMMENDED_STATIC?=1
 
