@@ -431,7 +431,7 @@ module 'DataExplorerView', ->
                     next_non_white_character = query_after_cursor[index_next_character]
                     break
                 index_next_character++
-            if next_non_white_character? and next_non_white_character isnt '.' and next_non_white_character isnt ')' and next_non_white_character isnt ';'
+            if next_non_white_character? and next_non_white_character isnt '.' and next_non_white_character isnt ',' and next_non_white_character isnt ')' and next_non_white_character isnt ';'
                 @hide_suggestion()
                 last_function_for_description = @extract_last_function_for_description(query_before_cursor)
                 if last_function_for_description isnt ''
@@ -450,7 +450,7 @@ module 'DataExplorerView', ->
             last_function = @extract_last_function(query)
             just_description = false # Boolean to know if we want to display just the description and not the suggestions
             # Hack in case a new parenthesis is opened. Ex: r.table('foo').filter( // We want to describe filter, not suggest r(
-            if /\s*/.test(query) is true # We have an empty cursor
+            if /^\s*$/.test(query) is true or last_function is '' # We have an empty cursor
                 last_function_full = @extract_last_function_for_description(query_before_cursor)
                 if last_function_full isnt ''
                     last_function = last_function_full
@@ -459,6 +459,7 @@ module 'DataExplorerView', ->
             # Hack because last_function returns 'r' if the query is 'r'. and r isn't a function
             if last_function is query and last_function is 'r'
                 last_function = ''
+
             if @map_state[last_function]? and @suggestions[@map_state[last_function]]?
                 if not @suggestions[@map_state[last_function]]? or @suggestions[@map_state[last_function]].length is 0 or just_description is true
                     @hide_suggestion()
@@ -467,7 +468,12 @@ module 'DataExplorerView', ->
                     if last_function_for_description isnt ''
                         @add_description last_function_for_description
                 else
-                    @append_suggestion(query, @suggestions[@map_state[last_function]])
+                    could_append = @append_suggestion(query, @suggestions[@map_state[last_function]])
+                    if could_append is false
+                        last_function_for_description = @extract_last_function_for_description(query_before_cursor)
+
+                        if last_function_for_description isnt ''
+                            @add_description last_function_for_description
             else
                 @hide_suggestion()
                 last_function_for_description = @extract_last_function_for_description(query_before_cursor)
@@ -483,24 +489,16 @@ module 'DataExplorerView', ->
             count_dot = 0
             num_not_open_parenthesis = 0
 
-            is_string = false
-            char_used = ''
             for i in [query.length-1..0] by -1
-                if is_string is false
-                    if (query[i] is '"' or query[i] is '\'')
-                        #is_string = true
-                        char_used = query[i]
-                    else if query[i] is '(' and num_not_open_parenthesis is 0
-                        num_not_open_parenthesis--
-                        end = i+1
-                    else if query[i] is '(' and num_not_open_parenthesis isnt 0
-                        return query.slice i+1, end
-                    else if query[i] is ')'
-                        return ''
-                    else if query[i] is '.' and num_not_open_parenthesis is 0
-                        return ''
-                    else if query[i] is '.' and num_not_open_parenthesis isnt 0
-                        return query.slice i+1, end
+                if query[i] is '(' and num_not_open_parenthesis >= 0
+                    num_not_open_parenthesis--
+                    end = i+1
+                else if query[i] is '(' and num_not_open_parenthesis < 0
+                    return query.slice i+1, end
+                else if query[i] is ')'
+                    num_not_open_parenthesis++
+                else if query[i] is '.' and num_not_open_parenthesis < 0
+                    return query.slice i+1, end
             if end?
                 return query.slice 0, end
 
@@ -542,6 +540,10 @@ module 'DataExplorerView', ->
                     if (query[i] is '"' or query[i] is '\'')
                         is_string = true
                         char_used = query[i]
+                    else if query[i] is ',' and num_not_open_parenthesis<=0
+                        if first_dot_position is 0
+                            first_dot_position = i+1
+                        break
                     else if query[i] is '('
                         num_not_open_parenthesis--
                     else if query[i] is ')'
@@ -559,7 +561,6 @@ module 'DataExplorerView', ->
                             continue
                         else
                             is_string = false
-
 
             parenthesis_position = query.indexOf('(', first_dot_position+1)
             if parenthesis_position is -1
@@ -594,6 +595,11 @@ module 'DataExplorerView', ->
                         while query[i+1+k]? and /\s/.test(query[i+1+k])
                             k++
                         return i+1+k
+                    else if query[i] is ',' and count_opening_parenthesis >= 0
+                            k = 0 # Strip white char
+                            while query[i+1+k]? and /\s/.test(query[i+1+k])
+                                k++
+                            return i+1+k
                     else if query[i] is '('
                         count_opening_parenthesis++
                         if count_opening_parenthesis > 0
@@ -635,15 +641,16 @@ module 'DataExplorerView', ->
                 if pattern.test(suggestion)
                     found_suggestion = true
                     @current_suggestions.push suggestion
-                    @.$('.suggestion_name_list').append @template_suggestion_name 
+                    @.$('.suggestion_name_list').append @template_suggestion_name
                         id: i
                         suggestion: suggestion
 
             if found_suggestion
                 @show_suggestion()
+                return true
             else
                 @hide_suggestion()
-            return @
+                return false
 
         # Callback used by the cursor when the user hit 'more results'
         callback_query: (data) =>
