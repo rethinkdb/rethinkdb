@@ -417,7 +417,7 @@ CXXFLAGS += -I$(PROTO_DIR)
 # look for the static library in the same directory as the .so file
 STATIC_LIBRARY_PATHS:=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }'))
 
-ifeq ($(V8STATIC),2)
+ifeq ($(STATIC_V8),2)
 ifeq ($(V8CHAIN),1)
 STATIC_LIBRARY_PATHS+=../external/v8/libv8.a
 endif
