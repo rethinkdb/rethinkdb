@@ -314,6 +314,22 @@ static inline std::string time2str(const time_t &t) {
     return ctime_r(&t, timebuf);
 }
 
+#define STR(x) #x
+#define MSTR(x) STR(x) // Stringify a macro
+#if defined __clang__
+#define COMPILER "CLANG " __clang_version__
+#elif defined __GNUC__
+#define COMPILER "GCC " MSTR(__GNUC__) "." MSTR(__GNUC_MINOR__) "." MSTR(__GNUC_PATCHLEVEL__)
+#else
+#define COMPILER "UNKNOWN COMPILER"
+#endif
+
+#ifndef NDEBUG
+#define RETHINKDB_VERSION_STR "rethinkdb " RETHINKDB_VERSION " (debug)" " (" COMPILER ")"
+#else
+#define RETHINKDB_VERSION_STR "rethinkdb " RETHINKDB_VERSION " (" COMPILER ")"
+#endif
+
 #define NULLPTR (static_cast<void *>(0))
 
 #endif // UTILS_HPP_

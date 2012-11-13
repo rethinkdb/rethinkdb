@@ -10,16 +10,12 @@
 #include "config/args.hpp"
 
 void print_version_message() {
-    printf("rethinkdb " RETHINKDB_VERSION
-#ifndef NDEBUG
-           " (debug)"
-#endif
-           "\n");
+    printf("%s\n", RETHINKDB_VERSION_STR);
 }
+
 
 int main(int argc, char *argv[]) {
     install_generic_crash_handler();
-
 #ifndef NDEBUG
     rlimit core_limit;
     core_limit.rlim_cur = 100 * MEGABYTE;
