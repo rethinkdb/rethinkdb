@@ -550,6 +550,9 @@
                 }, {
                   "description": "Insert multiple rows into a table named 'marvel'.",
                   "code": "r.table('marvel').insert([{ superhero: 'Wolverine', superpower: 'Adamantium' }, { superhero: 'Spiderman', superpower: 'spidy sense' }]).run()"
+                }, {
+                  "description": "Insert a row into a table named 'marvel'. Overwriting if the document already exists.",
+                  "code": "r.table('marvel').insert({ superhero: 'Iron Man', superpower: 'Arc Reactor' }, true).run()"
                 }
               ]
             },
@@ -563,6 +566,9 @@
                 }, {
                   "description": "Insert multiple rows into a table named 'marvel'.",
                   "code": "r.table('marvel').insert([{ 'superhero': 'Wolverine', 'superpower': 'Adamantium' }, { 'superhero': 'Spiderman', 'superpower': 'spidy sense' }]).run()"
+                }, {
+                  "description": "Insert a row into a table named 'marvel'. Overwriting if the document already exists.",
+                  "code": "r.table('marvel').insert({ 'superhero': 'Iron Man', 'superpower': 'Arc Reactor' }, true).run()"
                 }
               ]
             },
@@ -576,6 +582,9 @@
                 }, {
                   "description": "Insert multiple rows into a table named 'marvel'.",
                   "code": "r.table('marvel').insert([{:superhero => 'Wolverine', :superpower => 'Adamantium'}, {:superhero => 'Spiderman', :superpower => 'spidy sense'}]).run"
+                }, {
+                  "description": "Insert a row into a table named 'marvel'. Overwriting if the document already exists.",
+                  "code": "r.table('marvel').insert({:superhero => 'Iron Man', :superpower => 'Arc Reactor' }, :upsert).run()"
                 }
               ]
             }
@@ -1048,37 +1057,55 @@
         },
         {
           "tag": "eqJoin",
-          "description": "An inner join with a simple equality filter on the given attribute.",
+          "description": "An efficient join that looks up elements in the right table by primary key.",
           "parent": "sequence",
           "returns": "sequence",
           "langs": {
             "js": {
               "name": "eqJoin",
-              "body": "leftAttr, other",
+              "body": "leftAttr, other[, rightAttr]",
               "examples": [
                 {
                   "description": "Let our heroes join forces to battle evil!",
                   "code": "r.table('marvel').eqJoin('main_dc_collaborator', r.table('dc')).run()"
+                }, {
+                  "description": "Table 'dc' has a primary key of 'hero_name'. Without specifying it we'll default to 'id'.",
+                  "code": "r.table('marvel').eqJoin('main_dc_collaborator', r.table('dc'), 'hero_name').run()"
+                }, {
+                  "description": "The above query is equivalent to this inner join but runs in O(n log(m)) time rather than the O(n * m) time the inner join takes.",
+                  "code": "r.table('marvel').innerJoin(r.table('dc'), function(left, right) {\n return left('main_dc_collaborator').eq(right('id'));\n}).run()"
                 }
               ]
             },
             "py": {
               "name": "eq_join",
-              "body": "left_attr, other",
+              "body": "left_attr, other[, right_attr]",
               "examples": [
                 {
                   "description": "Let our heroes join forces to battle evil!",
                   "code": "r.table('marvel').eq_join('main_dc_collaborator', r.table('dc')).run()"
+                }, {
+                  "description": "Table 'dc' has a primary key of 'hero_name'. Without specifying it we'll default to 'id'.",
+                  "code": "r.table('marvel').eq_join('main_dc_collaborator', r.table('dc'), 'hero_name').run()"
+                }, {
+                  "description": "The above query is equivalent to this inner join but runs in O(n log(m)) time rather than the O(n * m) time the inner join takes.",
+                  "code": "r.table('marvel').inner_join(r.table('dc'), lambda left, right: left['main_dc_collaborator'] == right['hero_name'])).run()"
                 }
               ]
             },
             "rb": {
               "name": "eq_join",
-              "body": "left_attr, other",
+              "body": "left_attr, other[, right_attr]",
               "examples": [
                 {
                   "description": "Let our heroes join forces to battle evil!",
                   "code": "r.table('marvel').eq_join(:main_dc_collaborator, r.table('dc')).run"
+                }, {
+                  "description": "Table 'dc' has a primary key of 'hero_name'. Without specifying it we'll default to 'id'.",
+                  "code": "r.table('marvel').eq_join(:main_dc_collaborator, r.table('dc'), :hero_name).run"
+                }, {
+                  "description": "The above query is equivalent to this inner join but runs in O(n log(m)) time rather than the O(n * m) time the inner join takes.",
+                  "code": "r.table('marvel').inner_join(r.table('dc')) {|left, right|\n left[:main_dc_collaborator].eq(right[:hero_name])\n}.run"
                 }
               ]
             }
