@@ -101,7 +101,7 @@ void *linux_thread_pool_t::start_thread(void *arg) {
 
         struct sigaction action;
         bzero(&action, sizeof(action));
-        action.sa_flags = SA_SIGINFO | SA_STACK;
+        action.sa_flags = SA_SIGINFO | SA_ONSTACK;
         action.sa_sigaction = &linux_thread_pool_t::sigsegv_handler;
         r = sigaction(SIGSEGV, &action, NULL);
         guarantee_err(r == 0, "Could not install SEGV handler");
