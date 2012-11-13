@@ -495,8 +495,7 @@ module 'DataExplorerView', ->
             return false
 
         # Extract the last function to give a description, regardless of if we are in a string or not
-        # TODO we currently fail for queries like r.db('test').table('table_with_parenthesis(
-        # We should parse from left to right to avoid that.
+        # Note: We are really not efficient... We can do way better parsing from left to right. Let's do it next time we refactor all this thing
         extract_last_function_for_description: (query) =>
             # query = query_before_cursor
             count_dot = 0
@@ -504,12 +503,14 @@ module 'DataExplorerView', ->
 
             for i in [query.length-1..0] by -1
                 if query[i] is '(' and num_not_open_parenthesis >= 0
-                    num_not_open_parenthesis--
-                    end = i+1
+                    if @is_in_string(query.slice(0, i)) is false
+                        num_not_open_parenthesis--
+                        end = i+1
                 else if query[i] is '(' and num_not_open_parenthesis < 0
                     return query.slice i+1, end
                 else if query[i] is ')'
-                    num_not_open_parenthesis++
+                    if @is_in_string(query.slice(0, i)) is false
+                        num_not_open_parenthesis++
                 else if query[i] is '.' and num_not_open_parenthesis < 0
                     return query.slice i+1, end
             if end?
