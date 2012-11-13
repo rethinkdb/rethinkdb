@@ -1,7 +1,7 @@
 {
   "types": {
     "r": {
-      "parent": null
+      "parent": "db"
     },
     "query": {
       "parent": null
@@ -46,29 +46,23 @@
       "commands": [
         {
           "tag" : "r",
-          "description": "The toplevel RQL namespace",
+          "description": "The top-level RQL namespace",
           "parent": null,
           "returns": "r",
           "langs": {
             "js": {
               "name": "r",
+              "dont_need_parenthesis": true,
               "examples": [
                 {
                   "description": "Setup your top level namespace",
                   "code": "var r = require('rethinkdb');"
-                },
-                {
-                  "description": "In javascript, 'r' can also be used to access an attribute of the row currently being visited",
-                  "code": "r.table('users').filter(r('age').gt(5)).run()"
-                },
-                {
-                  "description": "It can also be used to access currently visited row via a special symbol '@'",
-                  "code": "r.table('users').filter(r('@')('age').gt(5)).run()"
                 }
               ]
             },
             "rb": {
               "name": "r",
+              "dont_need_parenthesis": true,
               "examples": [
                 {
                   "description": "Setup your top level namespace",
@@ -78,18 +72,11 @@
             },
             "py": {
               "name": "r",
+              "dont_need_parenthesis": true,
               "examples": [
                 {
                   "description": "Setup your top level namespace",
                   "code": "import rethinkdb as r"
-                },
-                {
-                  "description": "In python, 'r' can also be used to access an attribute of the row currently being visited",
-                  "code": "r.table('users').filter(r['age'] > 5).run()"
-                },
-                {
-                  "description": "It can also be used to access currently visited row via a special symbol '@'",
-                  "code": "r.table('users').filter(r['@']['age'] > 5).run()"
                 }
               ]
             }
@@ -107,7 +94,7 @@
               "examples" : [
                 {
                   "description": "Opens a new connection specifying callbacks both for when the connection is successfully established and in case the connection cannot be opened",
-                  "code": "r.connect({host:'localhost', port:28015}, function(conn) {\n ...\n}, {\n throw 'Connect failed';\n})"
+                  "code": "r.connect({host:'localhost', port:28015}, function(conn) {\n ...\n}, function() {\n throw 'Connect failed';\n})"
                 }
               ]
             },
@@ -117,7 +104,7 @@
               "examples" : [
                 {
                   "description": "Opens a connection using the default host and port but specifying the default database",
-                  "code": "conn = r.connect(db_name='heros')"
+                  "code": "conn = r.connect(db_name='heroes')"
                 }
               ]
             },
@@ -126,8 +113,8 @@
               "body": "host='localhost', port=28015, default_db='test'",
               "examples" : [
                 {
-                  "description": "Opens a connection using the default host and port but specifying the default database",
-                  "code": "conn = r.connect(default_db='heros')"
+                  "description": "Opens a connection to localhost:28015 with 'heroes' as the default database",
+                  "code": "conn = r.connect('localhost', 28015, 'heroes')"
                 }
               ]
             }
@@ -182,7 +169,7 @@
               "body": "",
               "examples" : [
                 {
-                  "description": "Cancel outstanding requests queries that are no longer needed",
+                  "description": "Cancel outstanding requests/queries that are no longer needed",
                   "code": "conn.reconnect()"
                 }
               ]
@@ -192,7 +179,7 @@
               "body": "",
               "examples" : [
                 {
-                  "description": "Cancel outstanding requests queries that are no longer needed",
+                  "description": "Cancel outstanding requests/queries that are no longer needed",
                   "code": "conn.reconnect()"
                 }
               ]
@@ -202,7 +189,7 @@
               "body": "",
               "examples" : [
                 {
-                  "description": "Cancel outstanding requests queries that are no longer needed",
+                  "description": "Cancel outstanding requests/queries that are no longer needed",
                   "code": "conn.reconnect"
                 }
               ]
@@ -221,7 +208,7 @@
               "examples" : [
                 {
                   "description": "Change the default database so that we don't need to specify database when referencing a table",
-                  "code": "conn.use('heros')"
+                  "code": "conn.use('heroes')"
                 }
               ]
             },
@@ -231,7 +218,7 @@
               "examples" : [
                 {
                   "description": "Change the default database so that we don't need to specify database when referencing a table",
-                  "code": "conn.use('heros')"
+                  "code": "conn.use('heroes')"
                 }
               ]
             },
@@ -241,7 +228,7 @@
               "examples" : [
                 {
                   "description": "Change the default database so that we don't need to specify database when referencing a table",
-                  "code": "conn.use('heros')"
+                  "code": "conn.use('heroes')"
                 }
               ]
             }
@@ -260,6 +247,10 @@
                 {
                   "description": "Passing a callback invokes next on the resulting cursor with the callback",
                   "code": "conn.run(r.table('marvel'), function(hero) {\n ...\n})"
+                },
+                {
+                  "description": "Calling run on the query itself will run it on the last opened connection, a handy shortcut used in the rest of these docs",
+                  "code": "r.table('marvel').run(function(hero) {\n ...\n})"
                 }
               ]
             },
@@ -270,6 +261,10 @@
                 {
                   "description": "Use the cursor to lazily iterate over the results",
                   "code": "cursor = conn.run(r.table('marvel'))"
+                },
+                {
+                  "description": "Calling run on the query itself will run it on the last opened connection, a handy shortcut used in the rest of these docs",
+                  "code": "cursor = r.table('marvel').run()"
                 }
               ]
             },
@@ -278,8 +273,12 @@
               "body": "query",
               "examples" : [
                 {
-                  "description": "Use the cursor to lazily iterate over the results",
-                  "code": "cursor = conn.run(r.table('marvel'))"
+                  "description": "Use the cursor (enumerable) to iterate over the results and print them.",
+                  "code": "conn.run(r.table('marvel')).each{|x| p x}"
+                },
+                {
+                   "description": "The same as the first example, but uses the most recently opened connection.",
+                   "code": "r.table('marvel').run.each{|x| p x}"
                 }
               ]
             }
@@ -396,6 +395,7 @@
             },
             "rb": {
               "name": "db_list",
+              "dont_need_parenthesis": true,
               "body": "",
               "examples": [
                 {
@@ -425,7 +425,7 @@
               "examples": [
                 {
                   "description": "Create a table named 'marvel'.",
-                  "code": "r.tableCreate('marvel').run()"
+                  "code": "r.db('test').tableCreate('marvel').run()"
                 }
               ]
             },
@@ -435,7 +435,7 @@
               "examples": [
                 {
                   "description": "Create a table named 'marvel'",
-                  "code": "r.table_create('marvel').run()"
+                  "code": "r.db('test').table_create('marvel').run()"
                 }
               ]
             },
@@ -445,7 +445,7 @@
               "examples": [
                 {
                   "description": "Create a table named 'marvel'",
-                  "code": "r.table_create('marvel').run"
+                  "code": "r.db('test').table_create('marvel').run"
                 }
               ]
             }
@@ -463,7 +463,7 @@
               "examples": [
                 {
                   "description": "Drop a table named 'marvel'",
-                  "code": "r.tableDrop('marvel').run()"
+                  "code": "r.db('test').tableDrop('marvel').run()"
                 }
               ]
             },
@@ -473,7 +473,7 @@
               "examples": [
                 {
                   "description": "Drop a table named 'marvel'",
-                  "code": "r.table_drop('marvel').run()"
+                  "code": "r.db('test').table_drop('marvel').run()"
                 }
               ]
             },
@@ -483,7 +483,7 @@
               "examples": [
                 {
                   "description": "Drop a table named 'marvel'",
-                  "code": "r.table_drop('marvel').run"
+                  "code": "r.db('test').table_drop('marvel').run"
                 }
               ]
             }
@@ -501,7 +501,7 @@
               "examples": [
                 {
                   "description": "List all tables",
-                  "code": "r.tableList().run()"
+                  "code": "r.db('test').tableList().run()"
                 }
               ]
             },
@@ -511,7 +511,7 @@
               "examples": [
                 {
                   "description": "List all tables",
-                  "code": "r.table_list().run()"
+                  "code": "r.db('test').table_list().run()"
                 }
               ]
             },
@@ -521,7 +521,7 @@
               "examples": [
                 {
                   "description": "List all tables",
-                  "code": "r.table_list().run"
+                  "code": "r.db('test').table_list().run"
                 }
               ]
             }
@@ -542,7 +542,7 @@
           "langs": {
             "js": {
               "name": "insert",
-              "body": "json | [json]",
+              "body": "json | [json][, upsert]",
               "examples": [
                 {
                   "description": "Insert a row into a table named 'marvel'.",
@@ -555,7 +555,7 @@
             },
             "py": {
               "name": "insert",
-              "body": "json | [json]",
+              "body": "json | [json][, upsert]",
               "examples": [
                 {
                   "description": "Insert a row into a table named 'marvel'.",
@@ -568,14 +568,14 @@
             },
             "rb": {
               "name": "insert",
-              "body": "json | [json]",
+              "body": "json | [json][, upsert]",
               "examples": [
                 {
                   "description": "Insert a row into a table named 'marvel'.",
-                  "code": "r.table('marvel').insert({ 'superhero'=>'Iron Man', 'superpower'=>'Arc Reactor' }).run"
+                  "code": "r.table('marvel').insert({:superhero => 'Iron Man', :superpower => 'Arc Reactor'}).run"
                 }, {
                   "description": "Insert multiple rows into a table named 'marvel'.",
-                  "code": "r.table('marvel').insert([{ 'superhero'=>'Wolverine', 'superpower'=>'Adamantium' }, { 'superhero'=>'Spiderman', 'superpower'=>'spidy sense' }]).run"
+                  "code": "r.table('marvel').insert([{:superhero => 'Wolverine', :superpower => 'Adamantium'}, {:superhero => 'Spiderman', :superpower => 'spidy sense'}]).run"
                 }
               ]
             }
@@ -583,7 +583,7 @@
         },
         {
           "tag": "update",
-          "description": "Update JSON documents in a table. Accepts a JSON document, a ReQL expression, or a combination of the two.",
+          "description": "Update JSON documents in a table. Accepts a JSON document, a RQL expression, or a combination of the two.",
           "parent": "selection",
           "returns": "query",
           "langs": {
@@ -609,7 +609,7 @@
                   "code": "r.table('marvel').get('superman').update({ 'age': 30 }).run()"
                 }, {
                   "description": "Increment every superhero's age. If age doesn't exist, throws an error",
-                  "code": "r.table('marvel').update({ 'age': r['age'] + 1 }).run()"
+                  "code": "r.table('marvel').update(lambda x: {'age': x['age'] + 1}).run()"
                 }
               ]
             },
@@ -619,10 +619,10 @@
               "examples": [
                 {
                   "description": "Update Superman's age to 30. If attribute 'age' doesn't exist, adds it to the document",
-                  "code": "r.table('marvel').get('superman').update({ 'age'=>30 }).run"
+                  "code": "r.table('marvel').get('superman').update{ {:age => 30} }.run"
                 }, {
                   "description": "Increment every superhero's age. If age doesn't exist, throws an error",
-                  "code": "r.table('marvel').update{ |hero| { 'age'=>hero['age'] + 1 } }.run"
+                  "code": "r.table('marvel').update{|hero| {:age => hero[:age] + 1}}.run"
                 }
               ]
             }
@@ -630,7 +630,7 @@
         },
         {
           "tag": "replace",
-          "description": "Replace documents in a table. Accepts a JSON document or a ReQL expression, and replaces the original\ndocument with the new one. The new document must have the same primary key as the original document.",
+          "description": "Replace documents in a table. Accepts a JSON document or a RQL expression, and replaces the original\ndocument with the new one. The new document must have the same primary key as the original document.",
           "parent": "selection",
           "returns": "query",
           "langs": {
@@ -660,7 +660,7 @@
               "examples": [
                 {
                   "description": "Remove all existing attributes from Superman's document, and add an attribute 'age'",
-                  "code": "r.table('marvel').get('superman').replace({ 'id'=>'superman', 'age'=>30 }).run"
+                  "code": "r.table('marvel').get('superman').replace{ {:id => 'superman', :age => 30} }.run"
                 }
               ]
             }
@@ -700,6 +700,7 @@
             },
             "rb": {
               "name": "delete",
+              "dont_need_parenthesis": true,
               "body": "",
               "examples": [
                 {
@@ -732,7 +733,7 @@
               "examples" : [
                 {
                   "description": "Before we can select the right table we have to select the correct database",
-                  "code": "r.db('heros').table('marvel').run()"
+                  "code": "r.db('heroes').table('marvel').run()"
                 }
               ]
             },
@@ -742,7 +743,7 @@
               "examples" : [
                 {
                   "description": "Before we can select the right table we have to select the correct database",
-                  "code": "r.db('heros').table('marvel').run()"
+                  "code": "r.db('heroes').table('marvel').run()"
                 }
               ]
             },
@@ -752,7 +753,7 @@
               "examples" : [
                 {
                   "description": "Before we can select the right table we have to select the correct database",
-                  "code": "r.db('heros').table('marvel').run"
+                  "code": "r.db('heroes').table('marvel').run"
                 }
               ]
             }
@@ -769,8 +770,11 @@
               "body": "name",
               "examples": [
                 {
-                  "description": "Return all documents in the table 'marvel'.",
+                  "description": "Return all documents in the table 'marvel' of the default database.",
                   "code": "r.table('marvel').run()"
+                }, {
+                  "description": "Return all documents in the table 'marvel' of the database 'heroes'.",
+                  "code": "r.db('heroes').table('marvel').run()"
                 }
               ]
             },
@@ -779,8 +783,11 @@
               "body": "name",
               "examples": [
                 {
-                  "description": "Return all documents in the table 'marvel'.",
+                  "description": "Return all documents in the table 'marvel' of the default database.",
                   "code": "r.table('marvel').run()"
+                }, {
+                  "description": "Return all documents in the table 'marvel' of the database 'heroes'.",
+                  "code": "r.db('heroes').table('marvel').run()"
                 }
               ]
             },
@@ -789,13 +796,55 @@
               "body": "name",
               "examples": [
                 {
-                  "description": "Return all documents in the table 'marvel'.",
+                  "description": "Return all documents in the table 'marvel' of the default database.",
                   "code": "r.table('marvel').run"
+                }, {
+                  "description": "Return all documents in the table 'marvel' of the database 'heroes'.",
+                  "code": "r.db('heroes').table('marvel').run"
                 }
               ]
             }
           }
         },
+         {
+           "tag" : "r",
+           "description": "Select an attribute",
+           "parent": null,
+           "returns": "json",
+           "langs": {
+             "js": {
+               "name": "r",
+               "body": "key_attribute",
+               "examples": [
+                 {
+                   "description": "Get all users whose age is greater than 5",
+                   "code": "r.table('users').filter(r('age').gt(5)).run()"
+                 },
+                 {
+                   "description": "It can also be used to access currently visited row via a special symbol '@'",
+                   "code": "r.table('users').filter(r('@')('age').gt(5)).run()"
+                 }
+               ]
+             },
+             "rb": false,
+             "py": {
+               "name": "r",
+               "body": "key_attribute",
+               "dont_need_parenthesis": true,
+               "use_bracket": true,
+               "examples": [
+                 {
+                   "description": "Get all users whose age is greater than 5",
+                   "code": "r.table('users').filter(lambda x: x['age'] > 5).run()"
+                 },
+                 {
+                   "description": "It can also be used to access currently visited row via a special symbol '@'",
+                   "code": "r.table('users').filter(r['@']['age'] > 5).run()"
+                 }
+               ]
+             }
+           }
+         },
         {
           "tag": "get",
           "description": "Get a document by primary key. If the primary key is 'id', the second argument is optional.",
@@ -837,7 +886,7 @@
                   "code": "r.table('marvel').get('superman').run"
                 }, {
                   "description": "Find a document with the primary key 'superman'. Expects the primary key to be in an attribute 'name'",
-                  "code": "r.table('marvel').get('superman', 'name').run"
+                  "code": "r.table('marvel').get('superman', :name).run"
                 }
               ]
             }
@@ -884,7 +933,7 @@
                   "code": "r.table('marvel').between(10, 20).run"
                 }, {
                   "description": "Find all users with primary keys between 10 and 20, inclusive. The primary key is expected to be in an attribute 'user_id'",
-                  "code": "r.table('marvel').between(10, 20, 'user_id').run"
+                  "code": "r.table('marvel').between(10, 20, :user_id).run"
                 }
               ]
             }
@@ -902,7 +951,7 @@
               "examples": [
                 {
                   "description": "Select all documents where the 'abilities' field contains a key called 'super-strength'",
-                  "code": "r.table('marvel').filter(function(hero) {\n return hero('abilities').contains('super-strength');\n}).run()"
+                  "code": "r.table('marvel').filter(function(hero) {\n return hero('abilities').contains('super-strength')\n}).run()"
                 }
               ]
             },
@@ -919,10 +968,11 @@
             "rb": {
               "name": "filter",
               "body": "predicate",
+              "dont_need_parenthesis": true,
               "examples": [
                 {
                   "description": "Select all documents where the 'abilities' field contains a key called 'super-strength'",
-                  "code": "r.table('marvel').filter {|hero|\n hero['abilities'].contains('super-strength')\n}).run"
+                  "code": "r.table('marvel').filter {|hero|\n hero[:abilities].contains('super-strength')\n}.run"
                 }
               ]
             }
@@ -947,7 +997,7 @@
               "examples": [
                 {
                   "description": "Construct a sequence of documents containing all pairwise collaborations between a marvel hero and a DC hero",
-                  "code": "r.table('marvel').innerJoin(r.table('dc'), function(marvelHero, DCHero) {\n return marvelHero('collaborators').contains(DCHero('name'));\n}).run()"
+                  "code": "r.table('marvel').innerJoin(r.table('dc'), function(marvelHero, DCHero) {\n return marvelHero('collaborators').contains(DCHero('name'))\n}).run()"
                 }
               ]
             },
@@ -967,7 +1017,7 @@
               "examples": [
                 {
                   "description": "Construct a sequence of documents containing all pairwise collaborations between a marvel hero and a DC hero",
-                  "code": "r.table('marvel').inner_join(r.table('dc'), {|marvelHero, DCHero|\n marvelHero['collaborators'].contains(DCHero('name'))\n}).run"
+                  "code": "r.table('marvel').inner_join(r.table('dc')) {|marvel_hero, DC_hero|\n marvel_hero[:collaborators].contains(DC_hero[:name])\n}.run"
                 }
               ]
             }
@@ -984,8 +1034,8 @@
               "body": "other, predicate",
               "examples": [
                 {
-                  "description": "Construct a sequence of documents containing all pairwise collaborations between a marvel hero and a DC hero and marvel heros who have never collaborated with a DC hero",
-                  "code": "r.table('marvel').outerJoin(r.table('dc'), function(marvelHero, DCHero) {\n return marvelHero('collaborators').contains(DCHero('name'));\n}).run()"
+                  "description": "Construct a sequence of documents containing all pairwise collaborations between a marvel hero and a DC hero and marvel heroes who have never collaborated with a DC hero",
+                  "code": "r.table('marvel').outerJoin(r.table('dc'), function(marvelHero, DCHero) {\n return marvelHero('collaborators').contains(DCHero('name'))\n}).run()"
                 }
               ]
             },
@@ -994,7 +1044,7 @@
               "body": "other, predicate",
               "examples": [
                 {
-                  "description": "Construct a sequence of documents containing all pairwise collaborations between a marvel hero and a DC hero and marvel heros who have never collaborated with a DC hero",
+                  "description": "Construct a sequence of documents containing all pairwise collaborations between a marvel hero and a DC hero and marvel heroes who have never collaborated with a DC hero",
                   "code": "r.table('marvel').outer_join(r.table('dc'), lambda marvelHero, DCHero: marvelHero['collaborators'].contains(DCHero['name'])).run()"
                 }
               ]
@@ -1004,8 +1054,8 @@
               "body": "other, predicate",
               "examples": [
                 {
-                  "description": "Construct a sequence of documents containing all pairwise collaborations between a marvel hero and a DC hero and marvel heros who have never collaborated with a DC hero",
-                  "code": "r.table('marvel').outer_join(r.table('dc'), {|marvelHero, DCHero|\n marvelHero['collaborators'].contains(DCHero('name'))\n}).run"
+                  "description": "Construct a sequence of documents containing all pairwise collaborations between a marvel hero and a DC hero and marvel heroes who have never collaborated with a DC hero",
+                  "code": "r.table('marvel').outer_join(r.table('dc')) {|marvel_hero, DC_hero|\n marvel_hero[:collaborators].contains(DC_hero[:name])\n}.run"
                 }
               ]
             }
@@ -1013,37 +1063,37 @@
         },
         {
           "tag": "eqJoin",
-          "description": "An inner join with a simple equality filter on the given attribute. If no right attribute is given, assumed to be the same as the left attribute.", 
+          "description": "An inner join with a simple equality filter on the given attribute.",
           "parent": "sequence",
           "returns": "sequence",
           "langs": {
             "js": {
               "name": "eqJoin",
-              "body": "leftAttr, other [, rightAttr]",
+              "body": "leftAttr, other",
               "examples": [
                 {
-                  "description": "Construct a sequence of documents containing all pairs of Marvel and DC introduced in the same comic",
-                  "code": "r.table('marvel').eqJoin('initial_appearance', r.table('dc')).run()"
+                  "description": "Let our heroes join forces to battle evil!",
+                  "code": "r.table('marvel').eqJoin('main_dc_collaborator', r.table('dc')).run()"
                 }
               ]
             },
             "py": {
               "name": "eq_join",
-              "body": "left_attr, other [, right_attr]",
+              "body": "left_attr, other",
               "examples": [
                 {
-                  "description": "Construct a sequence of documents containing all pairs of Marvel and DC introduced in the same comic",
-                  "code": "r.table('marvel').eq_join('initial_appearance', r.table('dc')).run()"
+                  "description": "Let our heroes join forces to battle evil!",
+                  "code": "r.table('marvel').eq_join('main_dc_collaborator', r.table('dc')).run()"
                 }
               ]
             },
             "rb": {
               "name": "eq_join",
-              "body": "left_attr, other [, right_attr]",
+              "body": "left_attr, other",
               "examples": [
                 {
-                  "description": "Construct a sequence of documents containing all pairs of Marvel and DC introduced in the same comic",
-                  "code": "r.table('marvel').eq_join('initial_appearance', r.table('dc')).run()"
+                  "description": "Let our heroes join forces to battle evil!",
+                  "code": "r.table('marvel').eq_join(:main_dc_collaborator, r.table('dc')).run"
                 }
               ]
             }
@@ -1077,6 +1127,7 @@
             },
             "rb": {
               "name": "zip",
+              "dont_need_parenthesis": true,
               "body": "",
               "examples": [
                 {
@@ -1106,7 +1157,7 @@
               "examples": [
                 {
                   "description": "Construct a sequence of hero power ratings",
-                  "code": "r.table('marvel').concatMap(function(hero) {\n return hero('combatPower').add(hero('compassionPower').mul(2));\n}).run()"
+                  "code": "r.table('marvel').concatMap(function(hero) {\n return hero('combatPower').add(hero('compassionPower').mul(2))\n}).run()"
                 }
               ]
             },
@@ -1122,11 +1173,12 @@
             },
             "rb": {
               "name": "map",
+              "dont_need_parenthesis": true,
               "body": "mapping_function",
               "examples": [
                 {
                   "description": "Construct a sequence of hero power ratings",
-                  "code": "r.table('marvel').concat_map {|hero|\n hero['combatPower'] + hero['compassionPower'] * 2\n}.run"
+                  "code": "r.table('marvel').map {|hero|\n hero[:combat_power] + hero[:compassion_power] * 2\n}.run"
                 }
               ]
             }
@@ -1143,8 +1195,8 @@
               "body": "mappingFunction",
               "examples": [
                 {
-                  "description": "Construct a sequence of all monsters defeated by Marvel heros. Here the field 'defeatedMonsters' is a list that is concatenated to the sequence",
-                  "code": "r.table('marvel').map(function(hero) {\n return hero('defeatedMonsters');\n}).run()"
+                  "description": "Construct a sequence of all monsters defeated by Marvel heroes. Here the field 'defeatedMonsters' is a list that is concatenated to the sequence",
+                  "code": "r.table('marvel').map(function(hero) {\n return hero('defeatedMonsters')\n}).run()"
                 }
               ]
             },
@@ -1153,18 +1205,19 @@
               "body": "mapping_function",
               "examples": [
                 {
-                  "description": "Construct a sequence of all monsters defeated by Marvel heros. Here the field 'defeatedMonsters' is a list that is concatenated to the sequence",
+                  "description": "Construct a sequence of all monsters defeated by Marvel heroes. Here the field 'defeatedMonsters' is a list that is concatenated to the sequence",
                   "code": "r.table('marvel').map(lambda hero: hero['defeatedMonsters']).run()"
                 }
               ]
             },
             "rb": {
               "name": "concat_map",
+              "dont_need_parenthesis": true,
               "body": "mapping_function",
               "examples": [
                 {
-                  "description": "Construct a sequence of all monsters defeated by Marvel heros. Here the field 'defeatedMonsters' is a list that is concatenated to the sequence",
-                  "code": "r.table('marvel').map {|hero|\n hero['defeatedMonsters']\n}.run"
+                  "description": "Construct a sequence of all monsters defeated by Marvel heroes. Here the field :defeated_monsters is a list that is concatenated to the sequence",
+                  "code": "r.table('marvel').concat_map {|hero|\n hero[:defeated_monsters]\n}.run"
                 }
               ]
             }
@@ -1181,7 +1234,7 @@
               "body": "key1, [key2...]",
               "examples" : [
                 {
-                  "description": "Order our heros by a series of performance metrics",
+                  "description": "Order our heroes by a series of performance metrics",
                   "code": "r.table('marvel').orderBy('enemiesVanquished', 'damselsSaved').run()"
                 }
               ]
@@ -1191,7 +1244,7 @@
               "body": "key1, [key2...]",
               "examples" : [
                 {
-                  "description": "Order our heros by a series of performance metrics",
+                  "description": "Order our heroes by a series of performance metrics",
                   "code": "r.table('marvel').order_by('enemiesVanquished', 'damselsSaved').run()"
                 }
               ]
@@ -1201,8 +1254,8 @@
               "body": "key1, [key2...]",
               "examples" : [
                 {
-                  "description": "Order our heros by a series of performance metrics",
-                  "code": "r.table('marvel').order_by('enemiesVanquished', 'damselsSaved').run"
+                  "description": "Order our heroes by a series of performance metrics",
+                  "code": "r.table('marvel').order_by(:enemies_vanquished, :damsels_saved).run"
                 }
               ]
             }
@@ -1219,7 +1272,7 @@
               "body": "n",
               "examples" : [
                 {
-                  "description": "Here in conjuction with orderBy we choose to ignore the most successful heros",
+                  "description": "Here in conjunction with orderBy we choose to ignore the most successful heroes",
                   "code": "r.table('marvel').orderBy('successMetric').skip(10).run()"
                 }
               ]
@@ -1229,7 +1282,7 @@
               "body": "n",
               "examples" : [
                 {
-                  "description": "Here in conjuction with orderBy we choose to ignore the most successful heros",
+                  "description": "Here in conjunction with order_by we choose to ignore the most successful heroes",
                   "code": "r.table('marvel').order_by('successMetric').skip(10).run()"
                 }
               ]
@@ -1239,8 +1292,8 @@
               "body": "n",
               "examples" : [
                 {
-                  "description": "Here in conjuction with orderBy we choose to ignore the most successful heros",
-                  "code": "r.table('marvel').order_by('successMetric').skip(10).run"
+                  "description": "Here in conjunction with orderBy we choose to ignore the most successful heroes",
+                  "code": "r.table('marvel').order_by(:success_metric).skip(10).run"
                 }
               ]
             }
@@ -1257,8 +1310,8 @@
               "body": "n",
               "examples" : [
                 {
-                  "description": "Only so many can fit in our Pantheon of heros",
-                  "code": "r.table('marvel').orderBy('belovedness').limit(10).run()"
+                  "description": "Only so many can fit in our Pantheon of heroes",
+                  "code": "r.table('marvel').orderBy(:belovedness).limit(10).run()"
                 }
               ]
             },
@@ -1267,8 +1320,8 @@
               "body": "n",
               "examples" : [
                 {
-                  "description": "Only so many can fit in our Pantheon of heros",
-                  "code": "r.table('marvel').order_by('belovedness').limit(10).run()"
+                  "description": "Only so many can fit in our Pantheon of heroes",
+                  "code": "r.table('marvel').order_by(:belovedness:).limit(10).run()"
                 }
               ]
             },
@@ -1277,8 +1330,8 @@
               "body": "n",
               "examples" : [
                 {
-                  "description": "Only so many can fit in our Pantheon of heros",
-                  "code": "r.table('marvel').order_by('belovedness').limit(10).run"
+                  "description": "Only so many can fit in our Pantheon of heroes",
+                  "code": "r.table('marvel').order_by(:belovedness).limit(10).run"
                 }
               ]
             }
@@ -1295,28 +1348,34 @@
               "body": "startIndex[, endIndex]",
               "examples" : [
                 {
-                  "description": "For this fight, we need heros with a good mix of strength and agility",
+                  "description": "For this fight, we need heroes with a good mix of strength and agility",
                   "code": "r.table('marvel').orderBy('strength').slice(5, 10).run()"
                 }
               ]
             },
             "py": {
               "name": "[]",
+              "is_selector": true,
+              "name1": "[",
+              "name2": "]",
               "body": "startIndex[, endIndex]",
               "examples" : [
                 {
-                  "description": "For this fight, we need heros with a good mix of strength and agility",
-                  "code": "r.table('marvel').orderBy('strength')[5:10].run()"
+                  "description": "For this fight, we need heroes with a good mix of strength and agility",
+                  "code": "r.table('marvel').order_by('strength')[5:10].run()"
                 }
               ]
             },
             "rb": {
               "name": "[]",
+              "is_selector": true,
+              "name1": "[",
+              "name2": "]",
               "body": "startindex[, endindex]",
               "examples" : [
                 {
-                  "description": "For this fight, we need heros with a good mix of strength and agility",
-                  "code": "r.table('marvel').order_by('strength')[5, 10].run"
+                  "description": "For this fight, we need heroes with a good mix of strength and agility",
+                  "code": "r.table('marvel').order_by(:strength)[5..10].run"
                 }
               ]
             }
@@ -1340,21 +1399,27 @@
             },
             "py": {
               "name": "[]",
+              "is_selector": true,
+              "name1": "[",
+              "name2": "]",
               "body": "index",
               "examples" : [
                 {
                   "description": "Select the second element in the array",
-                  "code": "r.expr([1,2,3]).nth(1).run()"
+                  "code": "r.expr([1,2,3])[1].run()"
                 }
               ]
             },
             "rb": {
               "name": "[]",
+              "is_selector": true,
+              "name1": "[",
+              "name2": "]",
               "body": "index",
               "examples" : [
                 {
                   "description": "Select the second element in the array",
-                  "code": "r.expr([1,2,3]).nth(1).run"
+                  "code": "r([1,2,3])[1].run"
                 }
               ]
             }
@@ -1382,7 +1447,7 @@
               "examples" : [
                 {
                   "description": "For the hero beauty contest we only care about certain qualities",
-                  "code": "r.table('marvel').pluck('beauty', 'mussleTone', 'charm').run()"
+                  "code": "r.table('marvel').pluck('beauty', 'muscleTone', 'charm').run()"
                 }
               ]
             },
@@ -1392,7 +1457,7 @@
               "examples" : [
                 {
                   "description": "For the hero beauty contest we only care about certain qualities",
-                  "code": "r.table('marvel').pluck('beauty', 'mussleTone', 'charm').run"
+                  "code": "r.table('marvel').pluck(:beauty, :muscle_tone, :charm).run"
                 }
               ]
             }
@@ -1430,7 +1495,7 @@
               "examples" : [
                 {
                   "description": "Without their prized weapons, our enemies will quickly be vanquished",
-                  "code": "r.table('enemies').without('weapons').run"
+                  "code": "r.table('enemies').without(:weapons).run"
                 }
               ]
             }
@@ -1447,7 +1512,7 @@
               "body": "other",
               "examples" : [
                 {
-                  "description": "Construct a stream of all heros",
+                  "description": "Construct a stream of all heroes",
                   "code": "r.table('marvel').union(r.table('dc')).run()"
                 }
               ]
@@ -1457,7 +1522,7 @@
               "body": "other",
               "examples" : [
                 {
-                  "description": "Construct a stream of all heros",
+                  "description": "Construct a stream of all heroes",
                   "code": "r.table('marvel').union(r.table('dc')).run()"
                 }
               ]
@@ -1467,7 +1532,7 @@
               "body": "other",
               "examples" : [
                 {
-                  "description": "Construct a stream of all heros",
+                  "description": "Construct a stream of all heroes",
                   "code": "r.table('marvel').union(r.table('dc')).run"
                 }
               ]
@@ -1492,8 +1557,8 @@
               "body": "base, reductionFunction",
               "examples" : [
                 {
-                  "description": "How many enemies have our heros defeated?",
-                  "code": "r.table('marvel').reduce(0, function(acc, hero) {\n return acc.add(hero('monstersKilled')).add(hero('superVilliansVanquished'));\n}).run()"
+                  "description": "How many enemies have our heroes defeated?",
+                  "code": "r.table('marvel').map(function(hero) {\n return hero('monstersKilled')).add(hero('superVillainsVanquished'))\n}).reduce(0, function(acc, val) {\n return acc.add(val)\n}).run()"
                 }
               ]
             },
@@ -1502,8 +1567,8 @@
               "body": "base, reduction_function",
               "examples" : [
                 {
-                  "description": "How many enemies have our heros defeated?",
-                  "code": "r.table('marvel').reduce(0, lambda acc, hero: acc + hero['monstersKilled'] + hero['superVilliansVanquished']).run()"
+                  "description": "How many enemies have our heroes defeated?",
+                  "code": "r.table('marvel').map(lambda hero: hero['monstersKilled'] + hero['superVillainsVanquished']).reduce(0, lambda acc, val: acc + val).run()"
                 }
               ]
             },
@@ -1512,8 +1577,8 @@
               "body": "base, reduction_function",
               "examples" : [
                 {
-                  "description": "How many enemies have our heros defeated?",
-                  "code": "r.table('marvel').reduce(0, {|acc, hero|\n acc + hero['monstersKilled'] + hero['superVilliansVanquished']\n}).run"
+                  "description": "How many enemies have our heroes defeated?",
+                  "code": "r.table('marvel').map {|hero|\n  hero[:monsters_killed] + hero[:super_villains_vanquished]\n}.reduce(0) {|acc, val|\n  acc + val\n}.run"
                 }
               ]
             }
@@ -1530,7 +1595,7 @@
               "body": "",
               "examples" : [
                 {
-                  "description": "Just how many super heros are there?",
+                  "description": "Just how many super heroes are there?",
                   "code": "r.table('marvel').count().add(r.table('dc').count()).run()"
                 }
               ]
@@ -1540,7 +1605,7 @@
               "body": "",
               "examples" : [
                 {
-                  "description": "Just how many super heros are there?",
+                  "description": "Just how many super heroes are there?",
                   "code": "(r.table('marvel').count() + r.table('dc').count()).run()"
                 }
               ]
@@ -1550,7 +1615,7 @@
               "body": "",
               "examples" : [
                 {
-                  "description": "Just how many super heros are there?",
+                  "description": "Just how many super heroes are there?",
                   "code": "(r.table('marvel').count + r.table('dc').count).run"
                 }
               ]
@@ -1568,8 +1633,8 @@
               "body": "",
               "examples" : [
                 {
-                  "description": "How many unique villians have been vanquished by marvel heros?",
-                  "code": "r.table('marvel').concatMap(function(hero) {return hero('villianList');}).distinct().count().run()"
+                  "description": "How many unique villains have been vanquished by marvel heroes?",
+                  "code": "r.table('marvel').concatMap(function(hero) {return hero('villainList')}).distinct().count().run()"
                 }
               ]
             },
@@ -1578,18 +1643,19 @@
               "body": "",
               "examples" : [
                 {
-                  "description": "How many unique villians have been vanquished by marvel heros?",
-                  "code": "r.table('marvel').concat_map(lambda hero: hero['villianList']).distinct().count().run()"
+                  "description": "How many unique villains have been vanquished by marvel heroes?",
+                  "code": "r.table('marvel').concat_map(lambda hero: hero['villainList']).distinct().count().run()"
                 }
               ]
             },
             "rb": {
               "name": "distinct",
+              "dont_need_parenthesis": true,
               "body": "",
               "examples" : [
                 {
-                  "description": "How many unique villians have been vanquished by marvel heros?",
-                  "code": "r.table('marvel').concat_map({|hero| hero['villianList']}).distinct.count.run"
+                  "description": "How many unique villains have been vanquished by marvel heroes?",
+                  "code": "r.table('marvel').concat_map{|hero| hero[:villain_list]}.distinct.count.run"
                 }
               ]
             }
@@ -1606,8 +1672,8 @@
               "body": "grouping, mapping, base, reduction",
               "examples" : [
                 {
-                  "description": "It's only fair that heros be compared against their weight class",
-                  "code": "r.table('marvel').groupedMapReduce(function(hero) {\n return hero('weightClass');\n}, function(hero) {\n return hero.pick('name', 'strength');\n}, {name:'none', strength:0}, function(acc, hero) {\n return r.branch(acc('strength').lt(hero('strength')), hero, acc);\n}).run()"
+                  "description": "It's only fair that heroes be compared against their weight class",
+                  "code": "r.table('marvel').groupedMapReduce(function(hero) {\n return hero('weightClass')\n}, function(hero) {\n return hero.pick('name', 'strength')\n}, {name:'none', strength:0}, function(acc, hero) {\n return r.branch(acc('strength').lt(hero('strength')), hero, acc)\n}).run()"
                 }
               ]
             },
@@ -1616,8 +1682,8 @@
               "body": "grouping, mapping, base, reduction",
               "examples" : [
                 {
-                  "description": "It's only fair that heros be compared against their weight class",
-                  "code": "r.table('marvel').grouped_map_reduce(lambda hero: hero['weightClass'],\n  lambda hero: hero.pick('name', 'strength'),\n  {'name':'none', 'strength':0},\n  lambda acc, hero: r.branch(acc['strength'] < hero['strength']), hero, acc)\n).run()"
+                  "description": "It's only fair that heroes be compared against their weight class",
+                  "code": "r.table('marvel').grouped_map_reduce(lambda hero: hero['weightClass'],\n  lambda hero: hero.pick('name', 'strength'),\n  {'name':'none', 'strength':0},\n  lambda acc, hero: r.branch(acc['strength'] < hero['strength'], hero, acc)\n).run()"
                 }
               ]
             },
@@ -1626,8 +1692,8 @@
               "body": "grouping, mapping, base, reduction",
               "examples" : [
                 {
-                  "description": "It's only fair that heros be compared against their weight class",
-                  "code": "r.table('marvel').grouped_map_reduce({|hero|\n hero['weightClass']\n}, {|hero|\n hero.pick('name', 'strength')\n}, {name:'none', strength:0}, {|acc, hero|\n r.branch(acc['strength'] < hero['strength'], hero, acc)\n}).run"
+                  "description": "It's only fair that heroes be compared against their weight class",
+                  "code": "r.table('marvel').grouped_map_reduce(lambda {|hero|\n hero[:weight_class]\n}, lambda {|hero|\n hero.pick(:name, :strength)\n}, {:name => 'none', :strength => 0}, lambda {|acc, hero|\n r.branch(acc[:strength] < hero[:strength], hero, acc)\n}).run"
                 }
               ]
             }
@@ -1665,7 +1731,7 @@
               "examples" : [
                 {
                   "description": "Using a predefined reduction we can easily find the average strength of members of each weight class",
-                  "code": "r.table('marvel').group_by('weightClass', r.avg('strength')).run"
+                  "code": "r.table('marvel').group_by(:weight_class, r.avg(:strength)).run"
                 }
               ]
             }
@@ -1676,7 +1742,7 @@
     {
       "tag": "reductions",
       "name": "Reductions",
-      "description": "These standard reduction objects are to be used in conjunction with group by",
+      "description": "These standard reduction objects are to be used in conjunction with group_by",
       "commands": [
         {
           "tag": "count",
@@ -1689,7 +1755,7 @@
               "body": "",
               "examples" : [
                 {
-                  "description": "Just how many heros do we have at each strength level?",
+                  "description": "Just how many heroes do we have at each strength level?",
                   "code": "r.table('marvel').groupBy('strength', r.count).run()"
                 }
               ]
@@ -1699,18 +1765,19 @@
               "body": "",
               "examples" : [
                 {
-                  "description": "Just how many heros do we have at each strength level?",
+                  "description": "Just how many heroes do we have at each strength level?",
                   "code": "r.table('marvel').group_by('strength', r.count).run()"
                 }
               ]
             },
             "rb": {
               "name": "count",
+              "dont_need_parenthesis": true,
               "body": "",
               "examples" : [
                 {
-                  "description": "Just how many heros do we have at each strength level?",
-                  "code": "r.table('marvel').group_by('strength', r.count).run"
+                  "description": "Just how many heroes do we have at each strength level?",
+                  "code": "r.table('marvel').group_by(:strength, r.count).run"
                 }
               ]
             }
@@ -1727,7 +1794,7 @@
               "body": "attr",
               "examples" : [
                 {
-                  "description": "How many enemies have been vanquished by heros at each strength level?",
+                  "description": "How many enemies have been vanquished by heroes at each strength level?",
                   "code": "r.table('marvel').groupBy('strength', r.sum('enemiesVanquished')).run()"
                 }
               ]
@@ -1737,7 +1804,7 @@
               "body": "attr",
               "examples" : [
                 {
-                  "description": "How many enemies have been vanquished by heros at each strength level?",
+                  "description": "How many enemies have been vanquished by heroes at each strength level?",
                   "code": "r.table('marvel').group_by('strength', r.sum('enemiesVanquished')).run()"
                 }
               ]
@@ -1747,8 +1814,8 @@
               "body": "attr",
               "examples" : [
                 {
-                  "description": "How many enemies have been vanquished by heros at each strength level?",
-                  "code": "r.table('marvel').group_by('strength', r.sum('enemiesVanquished')).run"
+                  "description": "How many enemies have been vanquished by heroes at each strength level?",
+                  "code": "r.table('marvel').group_by(:strength, r.sum(:enemies_vanquished)).run"
                 }
               ]
             }
@@ -1765,7 +1832,7 @@
               "body": "attr",
               "examples" : [
                 {
-                  "description": "What's the average agility of heros at each strength level?",
+                  "description": "What's the average agility of heroes at each strength level?",
                   "code": "r.table('marvel').groupBy('strength', r.avg('agility')).run()"
                 }
               ]
@@ -1775,7 +1842,7 @@
               "body": "attr",
               "examples" : [
                 {
-                  "description": "What's the average agility of heros at each strength level?",
+                  "description": "What's the average agility of heroes at each strength level?",
                   "code": "r.table('marvel').group_by('strength', r.avg('agility')).run()"
                 }
               ]
@@ -1785,8 +1852,8 @@
               "body": "attr",
               "examples" : [
                 {
-                  "description": "What's the average agility of heros at each strength level?",
-                  "code": "r.table('marvel').group_by('strength', r.avg('agility')).run"
+                  "description": "What's the average agility of heroes at each strength level?",
+                  "code": "r.table('marvel').group_by(:strength, r.avg(:agility)).run"
                 }
               ]
             }
@@ -1831,7 +1898,7 @@
               "examples" : [
                 {
                   "description": "We just need information about IronMan's reactor and not the rest of the document",
-                  "code": "r.table('marvel').get('IronMan').pick('reactorState', 'reactorPower').run"
+                  "code": "r.table('marvel').get('IronMan').pick(:reactor_state, :reactor_power).run"
                 }
               ]
             }
@@ -1849,7 +1916,7 @@
               "examples" : [
                 {
                   "description": "Since we don't need it for this computation we'll save bandwidth and leave out the list of IronMan's romantic conquests",
-                  "code": "r.table('marvel').get('IronMan').unpick('personlVictoriesList').run()"
+                  "code": "r.table('marvel').get('IronMan').unpick('personalVictoriesList').run()"
                 }
               ]
             },
@@ -1859,7 +1926,7 @@
               "examples" : [
                 {
                   "description": "Since we don't need it for this computation we'll save bandwidth and leave out the list of IronMan's romantic conquests",
-                  "code": "r.table('marvel').get('IronMan').unpick('personlVictoriesList').run()"
+                  "code": "r.table('marvel').get('IronMan').unpick('personalVictoriesList').run()"
                 }
               ]
             },
@@ -1869,7 +1936,7 @@
               "examples" : [
                 {
                   "description": "Since we don't need it for this computation we'll save bandwidth and leave out the list of IronMan's romantic conquests",
-                  "code": "r.table('marvel').get('IronMan').unpick('personlVictoriesList').run"
+                  "code": "r.table('marvel').get('IronMan').unpick(:personal_victories_list).run"
                 }
               ]
             }
@@ -1907,7 +1974,7 @@
               "examples" : [
                 {
                   "description": "Equip IronMan for battle",
-                  "code": "r.table('marvel').get('IronMan').merge(r.table('loadouts').get('alienInvasionKit')).run"
+                  "code": "r.table('marvel').get('IronMan').merge(r.table('loadouts').get('alien_invasion_kit')).run"
                 }
               ]
             }
@@ -1924,7 +1991,7 @@
               "body": "value",
               "examples" : [
                 {
-                  "description": "Retreive Iron Man's equipment list with the additon of some new boots",
+                  "description": "Retrieve Iron Man's equipment list with the addition of some new boots",
                   "code": "r.table('marvel').get('IronMan')('equipment').append('newBoots').run()"
                 }
               ]
@@ -1934,7 +2001,7 @@
               "body": "value",
               "examples" : [
                 {
-                  "description": "Retreive Iron Man's equipment list with the additon of some new boots",
+                  "description": "Retrieve Iron Man's equipment list with the addition of some new boots",
                   "code": "r.table('marvel').get('IronMan')['equipment'].append('newBoots').run()"
                 }
               ]
@@ -1944,8 +2011,8 @@
               "body": "value",
               "examples" : [
                 {
-                  "description": "Retreive Iron Man's equipment list with the additon of some new boots",
-                  "code": "r.table('marvel').get('IronMan')['equipment'].append('newBoots').run"
+                  "description": "Retrieve Iron Man's equipment list with the addition of some new boots",
+                  "code": "r.table('marvel').get('IronMan')[:equipment].append('new_boots').run"
                 }
               ]
             }
@@ -1959,6 +2026,9 @@
           "langs": {
             "js": {
               "name": "()",
+              "is_selector": true,
+              "name1": "(",
+              "name2": ")",
               "body": "attr",
               "examples" : [
                 {
@@ -1969,6 +2039,9 @@
             },
             "py": {
               "name": "[]",
+              "is_selector": true,
+              "name1": "[",
+              "name2": "]",
               "body": "attr",
               "examples" : [
                 {
@@ -1979,11 +2052,14 @@
             },
             "rb": {
               "name": "[]",
+              "is_selector": true,
+              "name1": "[",
+              "name2": "]",
               "body": "attr",
               "examples" : [
                 {
                   "description": "What was Iron Man's first appearance in a comic?",
-                  "code": "r.table('marvel').get('IronMan')['firstAppearance'].run"
+                  "code": "r.table('marvel').get('IronMan')[:first_appearance].run"
                 }
               ]
             }
@@ -2000,8 +2076,8 @@
               "body": "attr",
               "examples" : [
                 {
-                  "description": "Which heros are married?",
-                  "code": "r.table('marvel').filter(function(hero) {return hero.contains('spouse');}).run()"
+                  "description": "Which heroes are married?",
+                  "code": "r.table('marvel').filter(function(hero) {return hero.contains('spouse')}).run()"
                 }
               ]
             },
@@ -2010,7 +2086,7 @@
               "body": "attr",
               "examples" : [
                 {
-                  "description": "Which heros are married?",
+                  "description": "Which heroes are married?",
                   "code": "r.table('marvel').filter(lambda hero: hero.contains('spouse')).run()"
                 }
               ]
@@ -2020,8 +2096,8 @@
               "body": "attr",
               "examples" : [
                 {
-                  "description": "Which heros are married?",
-                  "code": "r.table('marvel').filter({|hero| hero.contains('spouse')}).run"
+                  "description": "Which heroes are married?",
+                  "code": "r.table('marvel').filter{|hero| hero.contains(:spouse)}.run"
                 }
               ]
             }
@@ -2057,6 +2133,7 @@
             },
             "py": {
               "name": "+",
+              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
@@ -2071,15 +2148,16 @@
             },
             "rb": {
               "name": "+",
+              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
                   "description": "It's as easy as 2 + 2 = 4",
-                  "code": "(r.expr(2) + 2).run"
+                  "code": "(r(2) + 2).run"
                 },
                 {
                   "description": "Array objects can be concatenated too",
-                  "code": "(r.expr([1,2,3]) + [4,5,6]).run"
+                  "code": "(r([1,2,3]) + [4,5,6]).run"
                 }
               ]
             }
@@ -2103,6 +2181,7 @@
             },
             "py": {
               "name": "-",
+              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
@@ -2113,11 +2192,12 @@
             },
             "rb": {
               "name": "-",
+              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
                   "description": "It's as easy as 2 - 2 = 0",
-                  "code": "(r.expr(2) - 2).run"
+                  "code": "(r(2) - 2).run"
                 }
               ]
             }
@@ -2141,6 +2221,7 @@
             },
             "py": {
               "name": "*",
+              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
@@ -2151,11 +2232,12 @@
             },
             "rb": {
               "name": "*",
+              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
                   "description": "It's as easy as 2 * 2 = 4",
-                  "code": "(r.expr(2) * 2).run"
+                  "code": "(r(2) * 2).run"
                 }
               ]
             }
@@ -2179,6 +2261,7 @@
             },
             "py": {
               "name": "/",
+              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
@@ -2189,11 +2272,12 @@
             },
             "rb": {
               "name": "/",
+              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
                   "description": "It's as easy as 2 / 2 = 1",
-                  "code": "(r.expr(2) / 2).run"
+                  "code": "(r(2) / 2).run"
                 }
               ]
             }
@@ -2217,6 +2301,7 @@
             },
             "py": {
               "name": "%",
+              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
@@ -2227,11 +2312,12 @@
             },
             "rb": {
               "name": "%",
+              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
                   "description": "It's as easy as 2 % 2 = 0",
-                  "code": "(r.expr(2) % 2).run"
+                  "code": "(r(2) % 2).run"
                 }
               ]
             }
@@ -2254,22 +2340,24 @@
               ]
             },
             "py": {
-              "name": "&&",
+              "name": "&",
+              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
                   "description": "True and false anded is false?",
-                  "code": "(r.expr(true) && false).run()"
+                  "code": "(r.expr(true) & false).run()"
                 }
               ]
             },
             "rb": {
               "name": "&",
+              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
                   "description": "True and false anded is false?",
-                  "code": "(r.expr(true) & false).run"
+                  "code": "(r(true) & false).run"
                 }
               ]
             }
@@ -2292,22 +2380,24 @@
               ]
             },
             "py": {
-              "name": "||",
+              "name": "|",
+              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
                   "description": "True or false ored is false?",
-                  "code": "(r.expr(true) || false).run()"
+                  "code": "(r.expr(true) | false).run()"
                 }
               ]
             },
             "rb": {
               "name": "|",
+              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
                   "description": "True and false ored is false?",
-                  "code": "(r.expr(true) | false).run"
+                  "code": "(r(true) | false).run"
                 }
               ]
             }
@@ -2331,6 +2421,7 @@
             },
             "py": {
               "name": "==",
+              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
@@ -2340,12 +2431,13 @@
               ]
             },
             "rb": {
-              "name": "==",
+              "name": "eq",
+              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
                   "description": "Does 2 equal 2?",
-                  "code": "(r.expr(2) == 2).run"
+                  "code": "(r(2).eq 2).run"
                 }
               ]
             }
@@ -2369,6 +2461,7 @@
             },
             "py": {
               "name": "!=",
+              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
@@ -2378,12 +2471,13 @@
               ]
             },
             "rb": {
-              "name": "!=",
+              "name": "ne",
+              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
                   "description": "Does 2 not equal 2?",
-                  "code": "(r.expr(2) != 2).run"
+                  "code": "(r(2).ne 2).run"
                 }
               ]
             }
@@ -2407,6 +2501,7 @@
             },
             "py": {
               "name": ">",
+              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
@@ -2417,11 +2512,12 @@
             },
             "rb": {
               "name": ">",
+              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
                   "description": "Is 2 greater than 2?",
-                  "code": "(r.expr(2) > 2).run"
+                  "code": "(r(2) > 2).run"
                 }
               ]
             }
@@ -2445,6 +2541,7 @@
             },
             "py": {
               "name": ">=",
+              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
@@ -2455,11 +2552,12 @@
             },
             "rb": {
               "name": ">=",
+              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
                   "description": "Is 2 greater than or equal to 2?",
-                  "code": "(r.expr(2) >= 2).run"
+                  "code": "(r(2) >= 2).run"
                 }
               ]
             }
@@ -2483,6 +2581,7 @@
             },
             "py": {
               "name": "<",
+              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
@@ -2493,11 +2592,12 @@
             },
             "rb": {
               "name": "<",
+              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
                   "description": "Is 2 less than 2?",
-                  "code": "(r.expr(2) < 2).run"
+                  "code": "(r(2) < 2).run"
                 }
               ]
             }
@@ -2521,6 +2621,7 @@
             },
             "py": {
               "name": "<=",
+              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
@@ -2531,11 +2632,12 @@
             },
             "rb": {
               "name": "<=",
+              "is_operator": true,
               "body": "other",
               "examples" : [
                 {
                   "description": "Is 2 less than or equal to 2?",
-                  "code": "(r.expr(2) <= 2).run"
+                  "code": "(r(2) <= 2).run"
                 }
               ]
             }
@@ -2559,6 +2661,8 @@
             },
             "py": {
               "name": "~",
+              "is_operator": true,
+              "operator_first": true,
               "body": "",
               "examples" : [
                 {
@@ -2569,11 +2673,12 @@
             },
             "rb": {
               "name": "not",
+              "dont_need_parenthesis": true,
               "body": "",
               "examples" : [
                 {
                   "description": "This is all pretty self explanatory really",
-                  "code": "r.expr(true).not.run"
+                  "code": "r(true).not.run"
                 }
               ]
             }
@@ -2597,7 +2702,7 @@
               "body": "bindings, inExpr",
               "examples" : [
                 {
-                  "description": "The object passed to let specifies variable names and values to bind to them. The second argument is the expression to evalate in the context of the bindings.",
+                  "description": "The object passed to let specifies variable names and values to bind to them. The second argument is the expression to evaluate in the context of the bindings.",
                   "code": "r.let({ironman: r.table('marvel').get('IronMan')}, r.letVar('ironman')('name')).run()"
                 }
               ]
@@ -2607,8 +2712,8 @@
               "body": "bindings, in_expr",
               "examples" : [
                 {
-                  "description": "The object passed to let specifies variable names and values to bind to them. The second argument is the expression to evalate in the context of the bindings.",
-                  "code": "r.let({'ironman': r.table('marvel').get('IronMan')}, r.let_var('ironman')['name']).run()"
+                  "description": "The object passed to let specifies variable names and values to bind to them. The second argument is the expression to evaluate in the context of the bindings.",
+                  "code": "r.let({'ironman': r.table('marvel').get('IronMan')}, r.letvar('ironman')['name']).run()"
                 }
               ]
             },
@@ -2617,8 +2722,8 @@
               "body": "bindings, in_expr",
               "examples" : [
                 {
-                  "description": "The object passed to let specifies variable names and values to bind to them. The second argument is the expression to evalate in the context of the bindings.",
-                  "code": "r.let({:ironman => r.table('marvel').get('IronMan')}, r.let_var('ironman')['name']).run"
+                  "description": "The object passed to let specifies variable names and values to bind to them. The second argument is the expression to evaluate in the context of the bindings.",
+                  "code": "r.let(:ironman => r.table('marvel').get('IronMan')) {\n  r.letvar(:ironman)[:name]\n}.run"
                 }
               ]
             }
@@ -2641,22 +2746,22 @@
               ]
             },
             "py": {
-              "name": "let_var",
+              "name": "letvar",
               "body": "var_name",
               "examples" : [
                 {
-                  "description": "Use let_var to reference the name previously bound in an outer let expression",
-                  "code": "r.let({'ironman': r.table('marvel').get('IronMan')}, r.let_var('ironman')['name']).run()"
+                  "description": "Use letvar to reference the name previously bound in an outer let expression",
+                  "code": "r.let({'ironman': r.table('marvel').get('IronMan')}, r.letvar('ironman')['name']).run()"
                 }
               ]
             },
             "rb": {
-              "name": "let_var",
+              "name": "letvar",
               "body": "var_name",
               "examples" : [
                 {
-                  "description": "Use let_var to reference the name previously bound in an outer let expression",
-                  "code": "r.let({:ironman => r.table('marvel').get('IronMan')}, r.let_var('ironman')['name']).run"
+                  "description": "Use letvar to reference the name previously bound in an outer let expression",
+                  "code": "r.let(:ironman => r.table('marvel').get('IronMan')) {\n  r.letvar(:ironman)[:name]\n}.run"
                 }
               ]
             }
@@ -2673,7 +2778,7 @@
               "body": "test, trueBranch, falseBranch",
               "examples" : [
                 {
-                  "description": "Return the manlier of two heros",
+                  "description": "Return the manlier of two heroes",
                   "code": "r.let({ironman: r.table('marvel').get('IronMan'), thor: r.table('marvel').get('Thor')},\n r.branch(r.letVar('ironman')('manliness').gt(r.letVar('thor')('manliness')),\n  r.letVar('ironman'),\n  r.letVar('thor')).run()"
                 }
               ]
@@ -2683,8 +2788,8 @@
               "body": "test, true_branch, false_branch",
               "examples" : [
                 {
-                  "description": "Return the manlier of two heros",
-                  "code": "r.let({'ironman': r.table('marvel').get('IronMan'), 'thor': r.table('marvel').get('Thor')},\n r.branch(r.let_var('ironman')['manliness'] > r.let_var('thor')['manliness'],\n  r.let_var('ironman'),\n  r.let_var('thor')).run()"
+                  "description": "Return the manlier of two heroes",
+                  "code": "r.let({'ironman': r.table('marvel').get('IronMan'), 'thor': r.table('marvel').get('Thor')},\n r.branch(r.letvar('ironman')['manliness'] > r.letvar('thor')['manliness'],\n  r.letvar('ironman'),\n  r.letvar('thor')).run()"
                 }
               ]
             },
@@ -2693,8 +2798,8 @@
               "body": "test, true_branch, false_branch",
               "examples" : [
                 {
-                  "description": "Return the manlier of two heros",
-                  "code": "r.let({:ironman => r.table('marvel').get('IronMan'), :thor => r.table('marvel').get('Thor')},\n r.branch(r.let_var(:ironman)['manliness'] > r.let_var('thor')['manliness'],\n  r.let_var(:ironman),\n  r.let_var(:thor)).run"
+                  "description": "Return the manlier of two heroes",
+                  "code": "r.let(:ironman => r.table('marvel').get('IronMan'), :thor => r.table('marvel').get('Thor')) {\n  r.branch(r.letvar(:ironman)[:manliness] > r.letvar(:thor)[:manliness],\n    r.letvar(:ironman),\n    r.letvar(:thor))\n}.run"
                 }
               ]
             }
@@ -2711,8 +2816,8 @@
               "body": "queryFunction",
               "examples" : [
                 {
-                  "description": "Now that our heros have defedated their villians, we can safely remove them from the villian table",
-                  "code": "r.table('marvel').forEach(function(hero) {\n return r.table('villians').get(hero('villianDefeated')).del();\n}).run()"
+                  "description": "Now that our heroes have defeated their villains, we can safely remove them from the villain table",
+                  "code": "r.table('marvel').forEach(function(hero) {\n return r.table('villains').get(hero('villainDefeated')).del()\n}).run()"
                 }
               ]
             },
@@ -2721,8 +2826,8 @@
               "body": "query_function",
               "examples" : [
                 {
-                  "description": "Now that our heros have defedated their villians, we can safely remove them from the villian table",
-                  "code": "r.table('marvel').for_each(lambda hero: r.table('villians').get(hero['villianDefeated']).delete()).run()"
+                  "description": "Now that our heroes have defedated their villains, we can safely remove them from the villain table",
+                  "code": "r.table('marvel').for_each(lambda hero: r.table('villains').get(hero['villainDefeated']).delete()).run()"
                 }
               ]
             },
@@ -2731,8 +2836,8 @@
               "body": "query_function",
               "examples" : [
                 {
-                  "description": "Now that our heros have defedated their villians, we can safely remove them from the villian table",
-                  "code": "r.table('marvel').for_each({|hero|\n r.table('villians').get(hero['villianDefeated']).delete\n}).run"
+                  "description": "Now that our heroes have defedated their villains, we can safely remove them from the villain table",
+                  "code": "r.table('marvel').for_each {|hero|\n  r.table('villains').get(hero[:villain_defeated]).delete\n}.run"
                 }
               ]
             }
@@ -2760,7 +2865,7 @@
               "examples" : [
                 {
                   "description": "Iron Man can't possibly have lost a battle",
-                  "code": "r.let('ironman': r.table('marvel').get('IronMan')},\n r.branch(r.let_var('ironman')['victories'] < r.letVar(:ironman)['battles'],\n  r.error('impossible code path'),\n  r.let_var('ironman')\n)).run()"
+                  "code": "r.let('ironman': r.table('marvel').get('IronMan')},\n r.branch(r.letvar('ironman')['victories'] < r.letVar(:ironman)['battles'],\n  r.error('impossible code path'),\n  r.letvar('ironman')\n)).run()"
                 }
               ]
             },
@@ -2770,7 +2875,7 @@
               "examples" : [
                 {
                   "description": "Iron Man can't possibly have lost a battle",
-                  "code": "r.let(:ironman => r.table('marvel').get('IronMan')},\n r.branch(r.let_var('ironman')['victories'] < r.letVar(:ironman)['battles'],\n  r.error('impossible code path'),\n  r.let_var('ironman')\n)).run"
+                  "code": "r.let(:ironman => r.table('marvel').get('IronMan')) {\n  r.branch(r.letvar(:ironman)[:victories] < r.letvar(:ironman)[:battles],\n    r.error('impossible code path'),\n    r.letvar('ironman'))\n}.run"
                 }
               ]
             }
@@ -2808,7 +2913,10 @@
               "examples" : [
                 {
                   "description": "Objects wrapped with expr can then be manipulated by RQL API functions",
-                  "code": "r.expr({:a => 'b'}).merge({:b => [1,2,3]}).run()"
+                  "code": "r.expr({:a => 'b'}).merge({:b => [1,2,3]}).run"
+                }, {
+                  "description": "In Ruby, you can also do this with just r.",
+                  "code": "r({:a => 'b'}).merge({:b => [1,2,3]}).run"
                 }
               ]
             }
@@ -2871,7 +2979,7 @@
               "examples" : [
                 {
                   "description": "References to streams cannot be stored in a variable requiring conversion to an array",
-                  "code": "r.let({heros: r.table('marvel').streamToArray()}, heros).run()"
+                  "code": "r.let({heroes: r.table('marvel').streamToArray()}, heroes).run()"
                 }
               ]
             },
@@ -2881,7 +2989,7 @@
               "examples" : [
                 {
                   "description": "References to streams cannot be stored in a variable requiring conversion to an array",
-                  "code": "r.let({heros: r.table('marvel').stream_to_array()}, heros).run()"
+                  "code": "r.let({heroes: r.table('marvel').stream_to_array()}, heroes).run()"
                 }
               ]
             },
@@ -2891,7 +2999,7 @@
               "examples" : [
                 {
                   "description": "References to streams cannot be stored in a variable requiring conversion to an array",
-                  "code": "r.let({heros: r.table('marvel').stream_to_array}, heros).run"
+                  "code": "r.let(:heroes => r.table('marvel').stream_to_array){heroes}.run"
                 }
               ]
             }
@@ -2914,7 +3022,7 @@
               ]
             },
             "py": {
-              "name": "stream_to_array",
+              "name": "array_to_stream",
               "body": "",
               "examples" : [
                 {
@@ -2924,7 +3032,7 @@
               ]
             },
             "rb": {
-              "name": "stream_to_array",
+              "name": "array_to_stream",
               "body": "",
               "examples" : [
                 {
