@@ -634,14 +634,14 @@ DEB_NUM_MAX:=13
 
 DEB_RELEASE?=
 DEB_RELEASE_NUM?=$(shell echo "$(DEB_RELEASE)" | $(DEB_TOY_TO_NUM) | grep '^[0-9]*$$')
-DEB_REAL_NUM_RELEASE:=$(shell echo "$(DEB_NUM_RELEASE)" | grep '^[0-9]*$$' | awk '{ if ( ( NF >= 1 ) && ( $$1 >=1 ) && ( $$1 <= 13 ) ) { printf "%d" , $$1 ; } }' )
+DEB_REAL_NUM_RELEASE:=$(shell echo "$(DEB_RELEASE_NUM)" | grep '^[0-9]*$$' | awk '{ if ( ( NF >= 1 ) && ( $$1 >=1 ) && ( $$1 <= 13 ) ) { printf "%d" , $$1 ; } }' )
 
 ifneq ($(DEB_RELEASE_NUM),)
 ifeq ($(DEB_REAL_NUM_RELEASE),)
-	@echo The Debian version specification is invalid. We will ignore it.
+	FOO:=$(warning The Debian version specification is invalid. We will ignore it.)
 endif
 ifneq ($(UBUNTU_RELEASE),)
-	@echo We seem to have received an Ubuntu release specification and a Debian release specification. We will ignore the Debian release specification.
+	FOO:=$(warning We seem to have received an Ubuntu release specification and a Debian release specification. We will ignore the Debian release specification.)
 endif
 endif
 
