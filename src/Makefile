@@ -133,11 +133,8 @@ endif
 LDPATHDS:=
 CXXPATHDS:=
 CPATHDS:=
-ifeq ($(V8CHAIN),1)
-LDPATHDS+= -L ../external/v8/
-CXXPATHDS+= -isystem ../external/v8/include
-CPATHDS+= -isystem ../external/v8/include
-endif
+
+STATICFORCE?=0
 
 ifeq ($(COMPILER),CLANG)
 LDFLAGS:=-Wl,--no-as-needed 
@@ -145,7 +142,7 @@ ifeq ($(STATICFORCE),1)
 LDFLAGS+= -static
 STATIC_LIBGCC=1
 endif
-LDFLAGS+=$(LDPATHDS) -pthread -lrt -lstdc++ -lm -lv8
+LDFLAGS+=$(LDPATHDS) -pthread -lrt -lstdc++ -lm
 ifeq ($(STATICFORCE),1)
 LDFLAGS+= -Wl,-Bdynamic
 endif
@@ -156,7 +153,7 @@ ifeq ($(STATICFORCE),1)
 LDFLAGS+= -static
 STATIC_LIBGCC=1
 endif
-LDFLAGS+=$(LDPATHDS) -pthread -lrt -lstdc++ -lv8
+LDFLAGS+=$(LDPATHDS) -pthread -lrt -lstdc++
 ifeq ($(STATICFORCE),1)
 LDFLAGS+= -Wl,-Bdynamic
 endif
@@ -167,14 +164,31 @@ ifeq ($(STATICFORCE),1)
 LDFLAGS+= -static
 STATIC_LIBGCC=1
 endif
-LDFLAGS+=$(LDPATHDS) -pthread -lrt -lv8
+LDFLAGS+=$(LDPATHDS) -pthread -lrt
 ifeq ($(STATICFORCE),1)
 LDFLAGS+= -Wl,-Bdynamic
 endif
 endif
 endif
 
-ifeq ($(V8CHAIN),2)
+V8_CHAIN?=0
+STATIC_V8?=$(STATICFORCE)
+
+ifeq ($(V8_CHAIN),1)
+LDFLAGS+= -L ../external/v8
+CXXPATHDS+= -isystem ../external/v8/include
+CPATHDS+= -isystem ../external/v8/include
+endif
+
+ifeq ($(STATIC_V8),0)
+LDFLAGS+=-lv8
+else
+ifeq ($(STATIC_V8),1)
+LDFLAGS+=-static -lv8 -dynamic
+endif
+endif
+
+ifeq ($(V8_CHAIN),2)
 # This is only in foreign static mode.
 LDFLAGS+= -lv8_base -lv8_snapshot
 endif
@@ -403,8 +417,18 @@ endif
 PROTO_DIR:=$(BUILD_DIR)/proto
 CXXFLAGS += -I$(PROTO_DIR)
 
+STATIC_LIBRARY_PATHS:=
+
+ifeq ($(STATIC_V8),2)
+ifeq ($(V8_CHAIN),1)
+STATIC_LIBRARY_PATHS+=../external/v8/libv8.a
+else
+STATIC_LIBRARIES+=libv8
+endif
+endif
+
 # look for the static library in the same directory as the .so file
-STATIC_LIBRARY_PATHS:=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }'))
+STATIC_LIBRARY_PATHS+=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }'))
 
 ifeq ($(GPERF),1)
 STATIC_LIBRARY_PATHS+= # path to patched libtcmalloc_and_profiler.a
@@ -501,7 +525,8 @@ RETHINKDB_SHORT_VERSION:=$(shell echo $(RETHINKDB_VERSION) | sed 's/\([^.]\+\.[^
 # RETHINKDB_SHORT_VERSION:=$(shell ../scripts/gen-version.sh -s)
 PACKAGING_ALTERNATIVES_PRIORITY:=0
 else
-RETHINKDB_VERSION:=$(shell ../scripts/gen-version.sh)
+RETHINKDB_FALLBACK_VERSION:=$(shell if [ -e ../NOTES ] ; then cat ../NOTES | grep '^. Release' | head -n 1 | awk '{ printf "%s" , $$3 ; }' ; fi ; )
+RETHINKDB_VERSION:=$(shell env FALLBACK_VERSION=$(RETHINKDB_FALLBACK_VERSION) ../scripts/gen-version.sh)
 RETHINKDB_SHORT_VERSION:=$(shell echo $(RETHINKDB_VERSION) | sed 's/\([^.]\+\.[^.]\+\).*$$/\1/')
 # RETHINKDB_SHORT_VERSION:=$(shell ../scripts/gen-version.sh -s)
 PACKAGING_ALTERNATIVES_PRIORITY:=$(shell expr $$(../scripts/gen-version.sh -r) / 100)
