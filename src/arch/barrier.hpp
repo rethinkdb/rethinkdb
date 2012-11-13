@@ -1,6 +1,10 @@
 #ifndef ARCH_BARRIER_HPP_
 #define ARCH_BARRIER_HPP_
 
+#include <pthread.h>
+
+#include "errors.hpp"
+
 // We call this a pthread_barrier_t so as to differentiate from other barrier types.
 class thread_barrier_t {
 public:
@@ -10,7 +14,7 @@ public:
     void wait();
 
 private:
-    thread_barrier_t barrier_;
+    pthread_barrier_t barrier_;
 
     DISABLE_COPYING(thread_barrier_t);
 };

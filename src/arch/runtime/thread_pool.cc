@@ -6,6 +6,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "arch/barrier.hpp"
 #include "arch/runtime/event_queue.hpp"
 #include "arch/runtime/runtime.hpp"
 #include "errors.hpp"
@@ -163,7 +164,7 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
     do_shutdown = false;
 
     // Start child threads
-    thread_barrier_t barrier;
+    thread_barrier_t barrier(n_threads);
 
     for (int i = 0; i < n_threads; i++) {
         thread_data_t *tdata = new thread_data_t();
