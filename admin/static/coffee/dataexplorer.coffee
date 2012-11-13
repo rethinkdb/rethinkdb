@@ -1,4 +1,5 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
+# TODO: We changed so many times the behavior of the suggestions, the code is a mess. We should refactor soon.
 module 'DataExplorerView', ->
     class @Container extends Backbone.View
         id: 'dataexplorer'
@@ -47,6 +48,8 @@ module 'DataExplorerView', ->
         # Suggestions[state] = function for this state
         suggestions: {}
     
+        # Method called on the content of reql_docs.json
+        # Load the suggestions in @suggestions, @map_state, @descriptions
         set_docs: (data) =>
             # Create the suggestions table
             suggestions = {}
@@ -469,7 +472,7 @@ module 'DataExplorerView', ->
                         @add_description last_function_for_description
                 else
                     could_append = @append_suggestion(query, @suggestions[@map_state[last_function]])
-                    if could_append is false
+                    if could_append is false # We couldn't find any suggestion that matched. We are probably at the end of a function (closing parenthesis)
                         last_function_for_description = @extract_last_function_for_description(query_before_cursor)
 
                         if last_function_for_description isnt ''
@@ -484,6 +487,8 @@ module 'DataExplorerView', ->
             return false
 
         # Extract the last function to give a description, regardless of if we are in a string or not
+        # TODO we currently fail for queries like r.db('test').table('table_with_parenthesis(
+        # We should parse from left to right to avoid that.
         extract_last_function_for_description: (query) =>
             # query = query_before_cursor
             count_dot = 0
@@ -619,6 +624,7 @@ module 'DataExplorerView', ->
             return 0
 
         # Append suggestion and display them or hide them if suggestions is empty
+        # Returns true if we found some suggestion, else false
         append_suggestion: (query, suggestions) =>
             @hide_suggestion()
             splitdata = query.split('.')
