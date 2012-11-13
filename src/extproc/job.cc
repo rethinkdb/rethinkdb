@@ -1,41 +1,29 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "extproc/job.hpp"
+#include "clustering/administration/proc_stats.hpp"
 
 namespace extproc {
 
 bool is_rdb_alive(pid_t rdb_pid) {
-    std::string stat_filename(strprintf("/proc/%d/stat", rdb_pid));
-    FILE *stat_file = fopen(stat_filename.c_str(), "r");
-
-    // This could fail for a lot of reasons, but it wouldn't really help to
-    //  handle them all differently
-    if (stat_file == NULL) {
-        return false;
+    bool retval = false;
+    try {
+        proc_pid_stat_t stats = proc_pid_stat_t::for_pid(rdb_pid);
+        switch (stats.state) {
+            case 'R':
+            case 'S':
+            case 'D':
+            case 'T':
+            case 'W':
+                retval = true;
+                break;
+            default:
+                break;
+        }
+    } catch (const std::runtime_error &ex) {
+        // Failed to check stats, assume the rdb process has died
     }
 
-    char data[1024];
-    char state = 'X';
-    if (fgets(data, 1024, stat_file) == NULL) {
-        fclose(stat_file);
-        return false;
-    }
-    fclose(stat_file);
-
-    if (sscanf(data, "%*d %*s %c", &state) != 1) {
-        fclose(stat_file);
-        return false;
-    }
-
-    switch (state) {
-        case 'R':
-        case 'S':
-        case 'D':
-        case 'T':
-        case 'W':
-            return true;
-        default:
-            return false;
-    }
+    return retval;
 }
 
 // ---------- job_t ----------
