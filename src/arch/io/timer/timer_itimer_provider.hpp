@@ -18,6 +18,7 @@ private:
     void on_event(int events);
 
     linux_event_queue_t *queue_;
+    timer_provider_callback_t *callback_;
 
     DISABLE_COPYING(timer_itimer_provider_t);
 };

@@ -1,9 +1,12 @@
 #include "arch/io/timer/timer_itimer_provider.hpp"
+#include "arch/io/timer_provider.hpp"
+
+#include <sys/time.h>
 
 timer_itimer_provider_t::timer_itimer_provider_t(linux_event_queue_t *queue,
                                                  timer_provider_callback_t *callback,
                                                  time_t secs, int32_t nsecs)
-    : queue_(queue) {
+    : queue_(queue), callback_(callback) {
     // Tell the event queue to start watching the signal.
     sigevent evp;
     evp.sigev_signo = SIGALRM;
@@ -38,11 +41,11 @@ timer_itimer_provider_t::~timer_itimer_provider_t() {
               "setitimer reported that the old timer was present");
 }
 
-timer_itimer_provider_t::on_event(int events) {
+void timer_itimer_provider_t::on_event(int events) {
     // TODO(OSX): This change is bullshit so far, in order to trick ourselves into compiling at all.
     // This callback never actually gets called.
 
     // TODO(OSX): See the comment in timer_signal_provider_t, we just made the same assumption here
     // and passed events + 1.
-    callback->on_timer(events + 1);
+    callback_->on_timer(events + 1);
 }
