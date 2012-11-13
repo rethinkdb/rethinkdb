@@ -1,4 +1,14 @@
 
+# Release 1.2.6 (Rashomon) #
+
+## Changes ##
+
+* Fixed the version string
+* Fixed 'crashing after crashed'
+* Fixed json docs
+
+---
+
 # Release 1.2.5 (Rashomon) #
 
 ## Changes ##
