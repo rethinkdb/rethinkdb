@@ -66,15 +66,27 @@ module 'DataExplorerView', ->
                                 description: command['description']
                                 examples: command['langs']['js']['examples']
                     else
-                        full_tag = tag+'(' # full tag is the name plus a parenthesis (we will match the parenthesis too)
-                        @descriptions[full_tag] =
-                            name: tag
-                            args: '( '+command['langs']['js']['body']+' )'
-                            description: @description_with_example_template
-                                description: command['description']
-                                examples: command['langs']['js']['examples']
+                        if tag is 'run'
+                            full_tag = tag+'(' # full tag is the name plus a parenthesis (we will match the parenthesis too)
+                            @descriptions[full_tag] =
+                                name: tag
+                                args: '( )'
+                                description: @description_with_example_template
+                                    description: command['description']
+                                    examples: command['langs']['js']['examples']
+                        else
+                            full_tag = tag+'(' # full tag is the name plus a parenthesis (we will match the parenthesis too)
+                            @descriptions[full_tag] =
+                                name: tag
+                                args: '( '+command['langs']['js']['body']+' )'
+                                description: @description_with_example_template
+                                    description: command['description']
+                                    examples: command['langs']['js']['examples']
 
                     parent = command['parent']
+                    if tag is 'run'
+                        parent = 'query'
+
                     if parent is null
                         parent = ''
                     if not suggestions[parent]?
