@@ -51,7 +51,7 @@ linux_thread_message_t *linux_thread_pool_t::set_interrupt_message(linux_thread_
 }
 
 struct thread_data_t {
-    pthread_barrier_t *barrier;
+    thread_barrier_t *barrier;
     linux_thread_pool_t *thread_pool;
     int current_thread;
     linux_thread_message_t *initial_message;
@@ -117,8 +117,7 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         // If one thread is allowed to run before another one has finished
         // starting up, then it might try to access an uninitialized part of the
         // unstarted one.
-        int res = pthread_barrier_wait(tdata->barrier);
-        guarantee(res == 0 || res == PTHREAD_BARRIER_SERIAL_THREAD, "Could not wait at start barrier");
+        tdata->barrier->wait();
         rassert(tdata->thread_pool->generic_blocker_pool != NULL,
                 "Thread passed start barrier while generic_blocker_pool uninitialized");
 
@@ -132,8 +131,7 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         // If one thread is allowed to delete itself before another one has
         // broken out of its loop, it might delete something that the other thread
         // needed to access.
-        res = pthread_barrier_wait(tdata->barrier);
-        guarantee(res == 0 || res == PTHREAD_BARRIER_SERIAL_THREAD, "Could not wait at stop barrier");
+        tdata->barrier->wait();
 
 #ifndef VALGRIND
         free(segv_stack.ss_sp);
@@ -165,9 +163,7 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
     do_shutdown = false;
 
     // Start child threads
-    pthread_barrier_t barrier;
-    res = pthread_barrier_init(&barrier, NULL, n_threads);
-    guarantee(res == 0, "Could not create barrier");
+    thread_barrier_t barrier;
 
     for (int i = 0; i < n_threads; i++) {
         thread_data_t *tdata = new thread_data_t();
@@ -281,9 +277,6 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
         }
     }
 #endif
-
-    res = pthread_barrier_destroy(&barrier);
-    guarantee(res == 0, "Could not destroy barrier");
 }
 
 // Note: Maybe we should use a signalfd instead of a signal handler, and then
