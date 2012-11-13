@@ -46,7 +46,7 @@
       "commands": [
         {
           "tag" : "r",
-          "description": "The top-level RQL namespace",
+          "description": "The toplevel RQL namespace",
           "parent": null,
           "returns": "r",
           "langs": {
@@ -237,7 +237,7 @@
         {
           "tag": "run",
           "description": "Run a query on this connection",
-          "parent": "query",
+          "parent": "connection",
           "returns": "cursor",
           "langs": {
             "js": {
@@ -542,7 +542,7 @@
           "langs": {
             "js": {
               "name": "insert",
-              "body": "json | [json][, upsert]",
+              "body": "json | [json]",
               "examples": [
                 {
                   "description": "Insert a row into a table named 'marvel'.",
@@ -555,7 +555,7 @@
             },
             "py": {
               "name": "insert",
-              "body": "json | [json][, upsert]",
+              "body": "json | [json]",
               "examples": [
                 {
                   "description": "Insert a row into a table named 'marvel'.",
@@ -806,45 +806,30 @@
             }
           }
         },
-         {
-           "tag" : "r",
-           "description": "Select an attribute",
-           "parent": null,
-           "returns": "json",
-           "langs": {
-             "js": {
-               "name": "r",
-               "body": "key_attribute",
-               "examples": [
-                 {
-                   "description": "Get all users whose age is greater than 5",
-                   "code": "r.table('users').filter(r('age').gt(5)).run()"
-                 },
-                 {
-                   "description": "It can also be used to access currently visited row via a special symbol '@'",
-                   "code": "r.table('users').filter(r('@')('age').gt(5)).run()"
-                 }
-               ]
-             },
-             "rb": false,
-             "py": {
-               "name": "r",
-               "body": "key_attribute",
-               "dont_need_parenthesis": true,
-               "use_bracket": true,
-               "examples": [
-                 {
-                   "description": "Get all users whose age is greater than 5",
-                   "code": "r.table('users').filter(lambda x: x['age'] > 5).run()"
-                 },
-                 {
-                   "description": "It can also be used to access currently visited row via a special symbol '@'",
-                   "code": "r.table('users').filter(r['@']['age'] > 5).run()"
-                 }
-               ]
-             }
-           }
-         },
+        {
+          "tag" : "r",
+          "description": "Select an attribute",
+          "parent": null,
+          "returns": "r",
+          "langs": {
+            "js": {
+              "name": "r",
+              "body": "key_attribute",
+              "examples": [
+                {
+                  "description": "Get all users whose age is greater than 5",
+                  "code": "r.table('users').filter(r('age').gt(5)).run()"
+                },
+                {
+                  "description": "It can also be used to access currently visited row via a special symbol '@'",
+                  "code": "r.table('users').filter(r('@')('age').gt(5)).run()"
+                }
+              ]
+            },
+            "rb": false,
+            "py": false
+          }
+        },
         {
           "tag": "get",
           "description": "Get a document by primary key. If the primary key is 'id', the second argument is optional.",
@@ -1157,7 +1142,7 @@
               "examples": [
                 {
                   "description": "Construct a sequence of hero power ratings",
-                  "code": "r.table('marvel').concatMap(function(hero) {\n return hero('combatPower').add(hero('compassionPower').mul(2))\n}).run()"
+                  "code": "r.table('marvel').map(function(hero) {\n return hero('combatPower').add(hero('compassionPower').mul(2))\n}).run()"
                 }
               ]
             },
@@ -1167,7 +1152,7 @@
               "examples": [
                 {
                   "description": "Construct a sequence of hero power ratings",
-                  "code": "r.table('marvel').concat_map(lambda hero: hero['combatPower'] + hero['compassionPower'] * 2).run()"
+                  "code": "r.table('marvel').map(lambda hero: hero['combatPower'] + hero['compassionPower'] * 2).run()"
                 }
               ]
             },
@@ -1196,7 +1181,7 @@
               "examples": [
                 {
                   "description": "Construct a sequence of all monsters defeated by Marvel heroes. Here the field 'defeatedMonsters' is a list that is concatenated to the sequence",
-                  "code": "r.table('marvel').map(function(hero) {\n return hero('defeatedMonsters')\n}).run()"
+                  "code": "r.table('marvel').concatMap(function(hero) {\n return hero('defeatedMonsters')\n}).run()"
                 }
               ]
             },
@@ -1206,7 +1191,7 @@
               "examples": [
                 {
                   "description": "Construct a sequence of all monsters defeated by Marvel heroes. Here the field 'defeatedMonsters' is a list that is concatenated to the sequence",
-                  "code": "r.table('marvel').map(lambda hero: hero['defeatedMonsters']).run()"
+                  "code": "r.table('marvel').concat_map(lambda hero: hero['defeatedMonsters']).run()"
                 }
               ]
             },
