@@ -14,10 +14,19 @@
 
 /* Get our hostname as an std::string. */
 std::string str_gethostname() {
-    char name[HOST_NAME_MAX+1];
-    int res = gethostname(name, sizeof(name));
-    guarantee(res == 0, "gethostname() failed: %s\n", strerror(errno));
-    return std::string(name);
+    // TODO(OSX) reconsider how to detect OS X
+    // TODO(OSX) see if sysconf works on linux.  On older Linuxes?
+#if __APPLE__
+    const int namelen = sysconf(_SC_HOST_NAME_MAX);
+#else
+    const int namelen = HOST_NAME_MAX;
+#endif
+    std::vector<char> bytes(namelen + 1);
+    bytes[namelen] = '0';
+
+    int res = gethostname(bytes.data(), namelen);
+    guarantee_err(res == 0, "gethostname() failed");
+    return std::string(bytes.data());
 }
 
 void do_getaddrinfo(const char *node,
