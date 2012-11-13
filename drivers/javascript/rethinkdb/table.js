@@ -133,13 +133,15 @@ goog.exportProperty(rethinkdb.Table.prototype, 'get',
 /**
  * @param {rethinkdb.Table} table
  * @param {Array.<rethinkdb.Expression>} docs
+ * @param {boolean=} opt_upsert
  * @constructor
  * @extends {rethinkdb.Query}
  * @ignore
  */
-rethinkdb.InsertQuery = function(table, docs) {
+rethinkdb.InsertQuery = function(table, docs, opt_upsert) {
     this.table_ = table;
     this.docs_ = docs;
+    this.upsert_ = (typeof opt_upsert === 'undefined') ? false : true
 };
 goog.inherits(rethinkdb.InsertQuery, rethinkdb.Query);
 
@@ -154,6 +156,8 @@ rethinkdb.InsertQuery.prototype.buildQuery = function(opt_buildOpts) {
     for (var i = 0; i < this.docs_.length; i++) {
         insert.addTerms(this.docs_[i].compile(opt_buildOpts));
     }
+
+    insert.setOverwrite(this.upsert_);
 
     var writeQuery = new WriteQuery();
     writeQuery.setType(WriteQuery.WriteQueryType.INSERT);
@@ -195,13 +199,14 @@ rethinkdb.InsertQuery.prototype.formatQuery = function(bt) {
 /**
  * Insert a json document into this table
  * @param {*} docs An object or list of objects to insert
+ * @param {boolean=} opt_upsert Allow overwrite if doc with this id already exists
  */
-rethinkdb.Table.prototype.insert = function(docs) {
+rethinkdb.Table.prototype.insert = function(docs, opt_upsert) {
     rethinkdb.util.argCheck_(arguments, 1);
     if (!goog.isArray(docs))
         docs = [docs];
     docs = docs.map(rethinkdb.expr);
-    return new rethinkdb.InsertQuery(this, docs);
+    return new rethinkdb.InsertQuery(this, docs, opt_upsert);
 };
 goog.exportProperty(rethinkdb.Table.prototype, 'insert',
                     rethinkdb.Table.prototype.insert);
