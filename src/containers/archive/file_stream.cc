@@ -29,6 +29,8 @@ bool blocking_read_file_stream_t::init(const char *path, int *errsv_out) {
 
 
 bool blocking_read_file_stream_t::init(const char *path) {
+    // This version of init simply doesn't provide the errno value to
+    // the caller.
     int errsv;
     return init(path, &errsv);
 }
