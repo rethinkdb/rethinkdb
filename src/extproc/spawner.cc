@@ -2,7 +2,8 @@
 #include "extproc/spawner.hpp"
 
 #include <signal.h>             // sigaction
-#include <sys/prctl.h>          // prctl
+// TODO(OSX) How are we going to detect parent death?
+// #include <sys/prctl.h>          // prctl
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/un.h>
@@ -186,8 +187,9 @@ void spawner_t::exec_spawner(fd_t socket) {
 void spawner_t::exec_worker(fd_t sockfd) {
     // Makes sure we get SIGTERMed when our parent (the spawner) dies.
     // TODO(rntz): prctl is linux-specific.
-    int res = prctl(PR_SET_PDEATHSIG, SIGTERM);
-    guarantee_err(res == 0, "worker: could not set parent-death signal");
+    // TODO(OSX) How are we going to detect parent death?
+    // int res = prctl(PR_SET_PDEATHSIG, SIGTERM);
+    // guarantee_err(res == 0, "worker: could not set parent-death signal");
 
     // Receive one job and run it.
     scoped_fd_t fd(sockfd);
