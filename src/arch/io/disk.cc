@@ -2,7 +2,11 @@
 #include "arch/io/disk.hpp"
 
 #include <fcntl.h>
-// #include <linux/fs.h>  // TODO(OSX)
+
+#if !__APPLE__
+#include <linux/fs.h>  // TODO(OSX)
+#endif
+
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
@@ -258,8 +262,13 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, io
     // Determine the file size
 
     if (is_block) {
+// TODO(OSX) Figure out block device support questions.
+#if __APPLE__
+        crash("No support for block devices on OS X");
+#else
         res = ioctl(fd.get(), BLKGETSIZE64, &file_size);
         guarantee_err(res != -1, "Could not determine block device size");
+#endif
     } else {
         off64_t size = lseek64(fd.get(), 0, SEEK_END);
         guarantee_err(size != -1, "Could not determine file size");

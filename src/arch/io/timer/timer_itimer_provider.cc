@@ -2,6 +2,7 @@
 #include "arch/io/timer_provider.hpp"
 
 #include <sys/time.h>
+#include <string.h>
 
 timer_itimer_provider_t::timer_itimer_provider_t(linux_event_queue_t *queue,
                                                  timer_provider_callback_t *callback,

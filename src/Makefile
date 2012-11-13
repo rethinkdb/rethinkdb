@@ -393,9 +393,9 @@ PROTO_DIR:=$(BUILD_DIR)/proto
 CXXFLAGS += -I$(PROTO_DIR)
 
 # look for the static library in the same directory as the .so file
-# STATIC_LIBRARY_PATHS:=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }'))
+STATIC_LIBRARY_PATHS:=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }'))
 # TODO(OSX)
-STATIC_LIBRARY_PATHS:=
+# STATIC_LIBRARY_PATHS:=
 
 ifeq ($(GPERF),1)
 STATIC_LIBRARY_PATHS+= # path to patched libtcmalloc_and_profiler.a

@@ -2,7 +2,11 @@
 #include "errors.hpp"
 
 #include <cxxabi.h>
-// #include <mcheck.h>  // TODO(OSX)
+
+#if !__APPLE__
+#include <mcheck.h>  // TODO(OSX)
+#endif
+
 #include <signal.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -140,6 +144,7 @@ void assertion_failed_msg(char const * expr, char const * msg, char const * func
 
 }
 
+#if !__APPLE__
 __attribute__((noreturn)) void mcheck_abortfunc(enum mcheck_status mstatus) {
     const char *err;
     switch (mstatus) {
@@ -183,3 +188,5 @@ void mcheck_all(void) {
     mcheck_check_all();
 #endif // MCHECK
 }
+
+#endif  // !__APPLE__
