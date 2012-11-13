@@ -611,6 +611,8 @@ ASSET_SCRIPTS:=$(ASSETS_DIR)/scripts/rdb_migrate
 INIT_SCRIPTS:=$(ASSETS_DIR)/init/rethinkdb
 
 UBUNTU_RELEASE?=
+
+# Ubuntu quantal and later require nodejs-legacy.
 ifeq ($(shell echo $(UBUNTU_RELEASE) | grep '^[q-zQ-Z]'),)
 NODEJS_NEW?=0
 else
