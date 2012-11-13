@@ -174,8 +174,10 @@ endif
 V8_CHAIN?=0
 STATIC_V8?=$(STATICFORCE)
 
-ifeq ($(V8_CHAIN),1)
+ifneq ($(V8_CHAIN),0)
+ifeq ($(V8_CHAIN),2)
 LDFLAGS+= -L ../external/v8
+endif
 CXXPATHDS+= -isystem ../external/v8/include
 CPATHDS+= -isystem ../external/v8/include
 endif
@@ -186,11 +188,6 @@ else
 ifeq ($(STATIC_V8),1)
 LDFLAGS+=-static -lv8 -dynamic
 endif
-endif
-
-ifeq ($(V8_CHAIN),2)
-# This is only in foreign static mode.
-LDFLAGS+= -lv8_base -lv8_snapshot
 endif
 
 ifeq ($(LIBCRYPTO),1)
@@ -420,10 +417,10 @@ CXXFLAGS += -I$(PROTO_DIR)
 STATIC_LIBRARY_PATHS:=
 
 ifeq ($(STATIC_V8),2)
-ifeq ($(V8_CHAIN),1)
-STATIC_LIBRARY_PATHS+=../external/v8/libv8.a
-else
+ifeq ($(V8_CHAIN),0)
 STATIC_LIBRARIES+=libv8
+else
+STATIC_LIBRARY_PATHS+=../external/v8/libv8.a
 endif
 endif
 
