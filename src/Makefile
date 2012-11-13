@@ -177,9 +177,12 @@ endif
 
 STATIC_V8?=$(STATICFORCE)
 
+ifeq ($(STATIC_V8),0)
+LDFLAGS+=-lv8
+else
 ifeq ($(STATIC_V8),1)
 LDFLAGS+=-static -lv8 -dynamic
-LDFLAGS+=-lv8
+endif
 endif
 
 ifeq ($(V8CHAIN),2)
@@ -413,6 +416,14 @@ CXXFLAGS += -I$(PROTO_DIR)
 
 # look for the static library in the same directory as the .so file
 STATIC_LIBRARY_PATHS:=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }'))
+
+ifeq ($(V8STATIC),2)
+ifeq ($(V8CHAIN),1)
+STATIC_LIBRARY_PATHS+=../external/v8/libv8.a
+endif
+else
+
+endif
 
 ifeq ($(GPERF),1)
 STATIC_LIBRARY_PATHS+= # path to patched libtcmalloc_and_profiler.a
