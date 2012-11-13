@@ -169,7 +169,7 @@ endif
 endif
 endif
 
-ifeq ($(V8CHAIN),1)
+ifeq ($(V8_CHAIN),1)
 LDFLAGS+= -L ../external/v8
 CXXPATHDS+= -isystem ../external/v8/include
 CPATHDS+= -isystem ../external/v8/include
@@ -185,7 +185,7 @@ LDFLAGS+=-static -lv8 -dynamic
 endif
 endif
 
-ifeq ($(V8CHAIN),2)
+ifeq ($(V8_CHAIN),2)
 # This is only in foreign static mode.
 LDFLAGS+= -lv8_base -lv8_snapshot
 endif
@@ -418,7 +418,7 @@ CXXFLAGS += -I$(PROTO_DIR)
 STATIC_LIBRARY_PATHS:=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }'))
 
 ifeq ($(STATIC_V8),2)
-ifeq ($(V8CHAIN),1)
+ifeq ($(V8_CHAIN),1)
 STATIC_LIBRARY_PATHS+=../external/v8/libv8.a
 endif
 else
