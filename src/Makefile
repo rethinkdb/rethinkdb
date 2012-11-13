@@ -620,7 +620,7 @@ endif
 # We have facilities for converting between toy names and Debian release numbers.
 
 DEB_NUM_TO_TOY:=sed -e 's/^1$$/buzz/g' -e 's/^2$$/rex/g' -e 's/^3$$/bo/g' -e 's/^4$$/hamm/g' -e 's/^5$$/slink/g' -e 's/^6$$/potato/g' -e 's/^7$$/woody/g' -e 's/^8$$/sarge/g' -e 's/^9$$/etch/g' -e 's/^10$$/lenny/g' -e 's/^11$$/squeeze/g' -e 's/^12$$/wheezy/g' -e 's/^13$$/jessie/g'
-DEB_TOY_TO_NUM:=sed -e 's/^buzz$$/1/g' -e 's/^rex$$/2/g' -e 's/^bo$$/3/g' -e 's/^hamm$$/4/g' -e 's/^slink$$/5/g' -e 's/^potato$$/6/g' -e 's/^woody$$/7/g' -e 's/^sarge$$/8/g' -e 's/^etch$$/9/g' -e 's/^lenny$$/10/g' -e 's/^squeeze$$/11/g' -e 's/^wheezy$/12/g' -e 's/^jessie$/13/g'
+DEB_TOY_TO_NUM:=sed -e 's/^buzz$$/1/g' -e 's/^rex$$/2/g' -e 's/^bo$$/3/g' -e 's/^hamm$$/4/g' -e 's/^slink$$/5/g' -e 's/^potato$$/6/g' -e 's/^woody$$/7/g' -e 's/^sarge$$/8/g' -e 's/^etch$$/9/g' -e 's/^lenny$$/10/g' -e 's/^squeeze$$/11/g' -e 's/^wheezy$$/12/g' -e 's/^jessie$$/13/g'
 DEB_NUM_MAX:=13
 
 # Here are unescaped versions for use in shell scripts.
