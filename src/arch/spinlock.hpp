@@ -14,6 +14,8 @@
 #define PTHREAD_HAS_SPINLOCK 1
 #endif
 
+// TODO: we should use regular mutexes on single core CPU
+// instead of spinlocks
 
 class spinlock_t {
 public:

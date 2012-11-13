@@ -82,9 +82,10 @@ void linux_message_hub_t::store_message_sometime(unsigned int nthread, linux_thr
 
 
 void linux_message_hub_t::insert_external_message(linux_thread_message_t *msg) {
-    incoming_messages_lock_.lock();
-    incoming_messages_.push_back(msg);
-    incoming_messages_lock_.unlock();
+    {
+        spinlock_acq_t acq(&incoming_messages_lock_);
+        incoming_messages_.push_back(msg);
+    }
 
     // Wakey wakey eggs and bakey
     notify_[current_thread_].event.write(1);
@@ -102,11 +103,11 @@ void linux_message_hub_t::notify_t::on_event(int events) {
 
     msg_list_t msg_list;
 
-    parent->incoming_messages_lock_.lock();
     // Pull the messages
-    //msg_list.append_and_clear(parent->thread_pool_->threads[parent->current_thread_]->message_hub);
-    msg_list.append_and_clear(&parent->incoming_messages_);
-    parent->incoming_messages_lock_.unlock();
+    {
+        spinlock_acq_t acq(&parent->incoming_messages_lock_);
+        msg_list.append_and_clear(&parent->incoming_messages_);
+    }
 
 #ifndef NDEBUG
     start_watchdog(); // Initialize watchdog before handling messages
@@ -140,22 +141,20 @@ void linux_message_hub_t::push_messages() {
         if (!queue->msg_local_list.empty()) {
             // Transfer messages to the other core
 
-            thread_pool_->threads[i]->message_hub.incoming_messages_lock_.lock();
+            bool do_wake_up;
+            {
+                spinlock_acq_t acq(&thread_pool_->threads[i]->message_hub.incoming_messages_lock_);
 
-            //We only need to do a wake up if the global
-            bool do_wake_up = thread_pool_->threads[i]->message_hub.incoming_messages_.empty();
+                //We only need to do a wake up if the global
+                do_wake_up = thread_pool_->threads[i]->message_hub.incoming_messages_.empty();
 
-            thread_pool_->threads[i]->message_hub.incoming_messages_.append_and_clear(&queue->msg_local_list);
-
-            thread_pool_->threads[i]->message_hub.incoming_messages_lock_.unlock();
+                thread_pool_->threads[i]->message_hub.incoming_messages_.append_and_clear(&queue->msg_local_list);
+            }
 
             // Wakey wakey, perhaps eggs and bakey
             if (do_wake_up) {
                 thread_pool_->threads[i]->message_hub.notify_[current_thread_].event.write(1);
             }
         }
-
-        // TODO: we should use regular mutexes on single core CPU
-        // instead of spinlocks
     }
 }

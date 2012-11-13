@@ -41,12 +41,12 @@ linux_thread_pool_t::linux_thread_pool_t(int worker_threads, bool _do_set_affini
 linux_thread_message_t *linux_thread_pool_t::set_interrupt_message(linux_thread_message_t *m) {
     int res;
 
-    thread_pool->interrupt_message_lock.lock();
+    {
+        spinlock_acq_t acq(&thread_pool->interrupt_message_lock);
 
-    linux_thread_message_t *o = thread_pool->interrupt_message;
-    thread_pool->interrupt_message = m;
-
-    thread_pool->interrupt_message_lock.unlock();
+        linux_thread_message_t *o = thread_pool->interrupt_message;
+        thread_pool->interrupt_message = m;
+    }
 
     return o;
 }
