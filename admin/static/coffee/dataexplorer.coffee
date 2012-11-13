@@ -195,19 +195,10 @@ module 'DataExplorerView', ->
             else
                 @num_char_per_line = @default_num_char_per_line
 
-        # Compute the number of extra lines because of long lines
-        compute_extra_lines: =>
-            query_lines = @codemirror.getValue().split '\n'
-            i = 0
-            extra_lines = 0
-            while i < query_lines.length-1
-                extra_lines += Math.floor(query_lines[i].length/@num_char_per_line)
-                i++
-            extra_lines += Math.floor(@codemirror.getCursor().ch/@num_char_per_line)
-            return extra_lines
-
         move_suggestion: =>
-            margin_left = (@codemirror.getCursor().ch%@num_char_per_line)*8+27
+
+            margin_left = parseInt(@.$('.CodeMirror-cursor').css('left').replace('px', ''))+27
+
             @.$('.arrow').css 'margin-left', margin_left
 
             if margin_left < 200
@@ -223,7 +214,7 @@ module 'DataExplorerView', ->
 
         #TODO refactor show_suggestion, show_suggestion_description, add_description
         show_suggestion: =>
-            margin = ((@codemirror.getCursor().line+1+@compute_extra_lines())*@line_height) + 'px'
+            margin = (parseInt(@.$('.CodeMirror-cursor').css('top').replace('px', ''))+@line_height)+'px'
             @.$('.suggestion_full_container').css 'margin-top', margin
             @.$('.arrow').css 'margin-top', margin
             @.$('.suggestion_name_list').css 'display', 'block'
@@ -231,7 +222,7 @@ module 'DataExplorerView', ->
             @show_or_hide_arrow()
 
         show_suggestion_description: =>
-            margin = ((@codemirror.getCursor().line+1+@compute_extra_lines())*@line_height) + 'px'
+            margin = (parseInt(@.$('.CodeMirror-cursor').css('top').replace('px', ''))+@line_height)+'px'
             @.$('.suggestion_full_container').css 'margin-top', margin
             @.$('.arrow').css 'margin-top', margin
             @.$('.suggestion_description').css 'display', 'block'
@@ -328,7 +319,8 @@ module 'DataExplorerView', ->
             
         add_description: (fn) =>
             if @descriptions[fn]?
-                margin = ((@codemirror.getCursor().line+1+@compute_extra_lines())*@line_height) + 'px'
+                margin = (parseInt(@.$('.CodeMirror-cursor').css('top').replace('px', ''))+@line_height)+'px'
+
                 @.$('.suggestion_full_container').css 'margin-top', margin
                 @.$('.arrow').css 'margin-top', margin
 
