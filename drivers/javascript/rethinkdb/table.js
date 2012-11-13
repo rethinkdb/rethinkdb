@@ -141,7 +141,7 @@ goog.exportProperty(rethinkdb.Table.prototype, 'get',
 rethinkdb.InsertQuery = function(table, docs, opt_upsert) {
     this.table_ = table;
     this.docs_ = docs;
-    this.upsert_ = (typeof opt_upsert === 'undefined') ? false : true
+    this.upsert_ = (typeof opt_upsert === 'undefined') ? false : opt_upsert
 };
 goog.inherits(rethinkdb.InsertQuery, rethinkdb.Query);
 
