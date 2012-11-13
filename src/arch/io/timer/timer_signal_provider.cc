@@ -1,4 +1,5 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
+#if !__APPLE__
 #include "arch/io/timer/timer_signal_provider.hpp"
 
 #include <signal.h>
@@ -62,3 +63,4 @@ void timer_signal_provider_t::on_event(int events) {
     callback->on_timer(events + 1);
 }
 
+#endif  // !__APPLE__

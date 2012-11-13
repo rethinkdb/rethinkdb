@@ -2,7 +2,11 @@
 #ifndef ARCH_IO_TIMER_TIMER_SIGNAL_PROVIDER_HPP_
 #define ARCH_IO_TIMER_TIMER_SIGNAL_PROVIDER_HPP_
 
+#if !__APPLE__
+
 #include "arch/runtime/event_queue.hpp"
+
+// TODO(OSX) Implement proper posix feature-testing macros for timing and such.
 
 struct timer_provider_callback_t;
 
@@ -23,7 +27,11 @@ private:
     timer_provider_callback_t *callback;
     timer_t timerid;
     sigevent evp;    // notify event
+
+    DISABLE_COPYING(timer_signal_provider_t);
 };
+
+#endif  // !__APPLE__
 
 #endif // ARCH_IO_TIMER_TIMER_SIGNAL_PROVIDER_HPP_
 

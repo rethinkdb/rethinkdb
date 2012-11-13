@@ -1,6 +1,9 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef LEGACY_LINUX // So the build system doesn't try to compile this file otherwise.
 
+// TODO(OSX) Handle apple-detection, maybe timerfd-detection, differently.
+#if !__APPLE__
+
 #include "arch/io/timer/timerfd_provider.hpp"
 
 #include <sys/timerfd.h>
@@ -59,4 +62,5 @@ void timerfd_provider_t::on_event(int events) {
     }
 }
 
-#endif
+#endif  // !__APPLE__
+#endif  // LEGACY_LINUX

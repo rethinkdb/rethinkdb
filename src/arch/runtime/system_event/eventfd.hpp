@@ -4,7 +4,10 @@
 
 #ifndef LEGACY_LINUX
 
+// TODO(OSX) Reconsider the hiding of this.
+#if !defined(NO_EVENTFD)
 #include <sys/eventfd.h>
+#endif
 
 #else
 
