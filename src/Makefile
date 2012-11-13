@@ -177,7 +177,7 @@ endif
 STATIC_V8?=$(STATICFORCE)
 
 ifeq ($(STATIC_V8),1)
-LDFLAGS+=-static -lv8 -Wl,-Bdynamic
+LDFLAGS+=-static -lv8 -dynamic
 LDFLAGS+=-lv8
 endif
 
