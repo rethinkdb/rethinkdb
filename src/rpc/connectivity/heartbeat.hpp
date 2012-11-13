@@ -9,20 +9,20 @@
 #include "concurrency/one_per_thread.hpp"
 #include "arch/timer.hpp"
 
-// This class implements a heartbeat on top of intra-cluster connections 
-class heartbeat_manager_t : 
+// This class implements a heartbeat on top of intra-cluster connections
+class heartbeat_manager_t :
     private peers_list_callback_t,
     public message_handler_t,
-    public home_thread_mixin_t { 
-public: 
+    public home_thread_mixin_t {
+public:
     explicit heartbeat_manager_t(message_service_t *_message_service);
     ~heartbeat_manager_t();
- 
-private: 
+
+private:
     // TODO: make these configurable
-    static const int64_t TIMER_INTERVAL_MS = 2000; 
+    static const int64_t TIMER_INTERVAL_MS = 2000;
     static const uint32_t MAX_KEEPALIVES = 5;
- 
+
     // Start heartbeat on a new peer connection
     void on_connect(peer_id_t peer_id);
 
@@ -42,7 +42,7 @@ private:
 
     message_service_t *message_service;
     heartbeat_writer_t writer;
-    timer_token_t *timer_token;  
+    timer_token_t *timer_token;
     std::map<peer_id_t, uint32_t> connections;
     connectivity_service_t::peers_list_subscription_t connection_watcher;
 };

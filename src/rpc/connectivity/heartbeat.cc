@@ -3,7 +3,7 @@
 #include "arch/io/arch.hpp"
 #include "arch/runtime/runtime_utils.hpp"
 
-// This class implements a heartbeat on top of intra-cluster connections 
+// This class implements a heartbeat on top of intra-cluster connections
 heartbeat_manager_t::heartbeat_manager_t(message_service_t *_message_service) :
     message_service(_message_service),
     connection_watcher(this) {
@@ -32,7 +32,7 @@ void heartbeat_manager_t::on_connect(peer_id_t peer_id) {
 void heartbeat_manager_t::on_disconnect(peer_id_t peer_id) {
     assert_thread();
     guarantee(connections.erase(peer_id) == 1);
-    
+
     rassert(timer_token != NULL);
     if (connections.empty()) {
         cancel_timer(timer_token);
