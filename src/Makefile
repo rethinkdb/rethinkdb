@@ -145,7 +145,7 @@ ifeq ($(STATICFORCE),1)
 LDFLAGS+= -static
 STATIC_LIBGCC=1
 endif
-LDFLAGS+=$(LDPATHDS) -pthread -lrt -lstdc++ -lm -lv8
+LDFLAGS+=$(LDPATHDS) -pthread -lrt -lstdc++ -lm
 ifeq ($(STATICFORCE),1)
 LDFLAGS+= -Wl,-Bdynamic
 endif
@@ -156,7 +156,7 @@ ifeq ($(STATICFORCE),1)
 LDFLAGS+= -static
 STATIC_LIBGCC=1
 endif
-LDFLAGS+=$(LDPATHDS) -pthread -lrt -lstdc++ -lv8
+LDFLAGS+=$(LDPATHDS) -pthread -lrt -lstdc++
 ifeq ($(STATICFORCE),1)
 LDFLAGS+= -Wl,-Bdynamic
 endif
@@ -167,11 +167,18 @@ ifeq ($(STATICFORCE),1)
 LDFLAGS+= -static
 STATIC_LIBGCC=1
 endif
-LDFLAGS+=$(LDPATHDS) -pthread -lrt -lv8
+LDFLAGS+=$(LDPATHDS) -pthread -lrt
 ifeq ($(STATICFORCE),1)
 LDFLAGS+= -Wl,-Bdynamic
 endif
 endif
+endif
+
+STATIC_V8?=$(STATICFORCE)
+
+ifeq ($(STATIC_V8),1)
+LDFLAGS+=-static -lv8 -Wl,-Bdynamic
+LDFLAGS+=-lv8
 endif
 
 ifeq ($(V8CHAIN),2)
