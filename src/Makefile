@@ -633,10 +633,10 @@ DEB_NUM_MAX:=13
 # In order to provide bijective mappings, we must reject numbers that are out of bounds. So we accept 1 (buzz) to 13 (jessie) at this time.
 
 DEB_RELEASE?=
-DEB_NUM_RELEASE?=$(shell echo "$(DEB_RELEASE)" | $(DEB_TOY_TO_NUM) | grep '^[0-9]*$$')
+DEB_RELEASE_NUM?=$(shell echo "$(DEB_RELEASE)" | $(DEB_TOY_TO_NUM) | grep '^[0-9]*$$')
 DEB_REAL_NUM_RELEASE:=$(shell echo "$(DEB_NUM_RELEASE)" | grep '^[0-9]*$$' | awk '{ if ( ( NF >= 1 ) && ( $$1 >=1 ) && ( $$1 <= 13 ) ) { printf "%d" , $$1 ; } }' )
 
-ifneq ($(DEB_NUM_RELEASE),)
+ifneq ($(DEB_RELEASE_NUM),)
 ifeq ($(DEB_REAL_NUM_RELEASE),)
 	@echo The Debian version specification is invalid. We will ignore it.
 endif
