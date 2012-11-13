@@ -170,7 +170,7 @@ endif
 endif
 
 ifeq ($(V8CHAIN),1)
-LDFLAGS+= -L ../external/v8/lib
+LDFLAGS+= -L ../external/v8
 CXXPATHDS+= -isystem ../external/v8/include
 CPATHDS+= -isystem ../external/v8/include
 endif
