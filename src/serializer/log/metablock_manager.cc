@@ -162,7 +162,7 @@ void metablock_manager_t<metablock_t>::co_start_existing(file_t *file, bool *mb_
         }
     } callback;
     callback.refcount = metablock_offsets.size();
-    for(unsigned i = 0; i < metablock_offsets.size(); i++) {
+    for (unsigned i = 0; i < metablock_offsets.size(); i++) {
         dbfile->read_async(metablock_offsets[i], DEVICE_BLOCK_SIZE, lbm.get_metablock(i),
                            DEFAULT_DISK_ACCOUNT, &callback);
     }
@@ -175,7 +175,7 @@ void metablock_manager_t<metablock_t>::co_start_existing(file_t *file, bool *mb_
 
     // We've read everything from disk. Now find the last good metablock.
     crc_metablock_t *last_good_mb = NULL;
-    for(unsigned i = 0; i < metablock_offsets.size(); i++) {
+    for (unsigned i = 0; i < metablock_offsets.size(); i++) {
         crc_metablock_t *mb_temp = lbm.get_metablock(i);
         if (mb_temp->check_crc()) {
             if (mb_temp->version > startup_values.version) {

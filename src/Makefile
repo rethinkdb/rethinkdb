@@ -134,7 +134,7 @@ LDPATHDS:=
 CXXPATHDS:=
 CPATHDS:=
 ifeq ($(V8CHAIN),1)
-LDPATHDS+= -L ../external/v8/out/native/obj.target/tools/gyp
+LDPATHDS+= -L ../external/v8/
 CXXPATHDS+= -isystem ../external/v8/include
 CPATHDS+= -isystem ../external/v8/include
 endif
@@ -146,6 +146,9 @@ LDFLAGS+= -static
 STATIC_LIBGCC=1
 endif
 LDFLAGS+=$(LDPATHDS) -pthread -lrt -lstdc++ -lm -lv8
+ifeq ($(STATICFORCE),1)
+LDFLAGS+= -Wl,-Bdynamic
+endif
 else
 ifeq ($(COMPILER),INTEL)
 LDFLAGS:= -B/opt/intel/bin 
@@ -153,7 +156,10 @@ ifeq ($(STATICFORCE),1)
 LDFLAGS+= -static
 STATIC_LIBGCC=1
 endif
-LDFLAGS+=$(LDPATHDS) -pthread -lrt -lstdc++ -lv8 
+LDFLAGS+=$(LDPATHDS) -pthread -lrt -lstdc++ -lv8
+ifeq ($(STATICFORCE),1)
+LDFLAGS+= -Wl,-Bdynamic
+endif
 else
 # GCC
 LDFLAGS:=-Wl,--no-as-needed 
@@ -162,10 +168,14 @@ LDFLAGS+= -static
 STATIC_LIBGCC=1
 endif
 LDFLAGS+=$(LDPATHDS) -pthread -lrt -lv8
+ifeq ($(STATICFORCE),1)
+LDFLAGS+= -Wl,-Bdynamic
+endif
 endif
 endif
 
-ifeq ($(V8CHAIN),1)
+ifeq ($(V8CHAIN),2)
+# This is only in foreign static mode.
 LDFLAGS+= -lv8_base -lv8_snapshot
 endif
 

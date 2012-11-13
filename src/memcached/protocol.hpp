@@ -115,7 +115,7 @@ public:
             repli_timestamp_t recency;
 
             delete_key_t() { }
-            delete_key_t(const store_key_t& key_, const repli_timestamp_t& recency_) : key(key_), recency(recency_) { }
+            delete_key_t(const store_key_t& _key, const repli_timestamp_t& _recency) : key(_key), recency(_recency) { }
         };
         struct delete_range_t {
             region_t range;
@@ -127,11 +127,11 @@ public:
             backfill_atom_t backfill_atom;
 
             key_value_pair_t() { }
-            explicit key_value_pair_t(const backfill_atom_t& backfill_atom_) : backfill_atom(backfill_atom_) { }
+            explicit key_value_pair_t(const backfill_atom_t& _backfill_atom) : backfill_atom(_backfill_atom) { }
         };
 
         backfill_chunk_t() { }
-        explicit backfill_chunk_t(boost::variant<delete_range_t, delete_key_t, key_value_pair_t> val_) : val(val_) { }
+        explicit backfill_chunk_t(boost::variant<delete_range_t, delete_key_t, key_value_pair_t> _val) : val(_val) { }
 
         region_t get_region() const THROWS_NOTHING;
         backfill_chunk_t shard(const region_t &r) const THROWS_NOTHING;

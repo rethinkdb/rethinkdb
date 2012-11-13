@@ -274,7 +274,7 @@ int64_t job_handle_t::read_interruptible(void *p, int64_t n, signal_t *interrupt
         // by job_handle_t::interruptor_wrapper_t::run(). We do this by falling
         // through to check_attached(), which will re-raise an interrupted_exc_t
         // for us. The reason we don't just handle it here is that it isn't safe
-        // to do anything that might block in a catch() block.
+        // to do anything that might block in a catch block.
         rassert(worker_ && !worker_->attached_);
     }
     check_attached();

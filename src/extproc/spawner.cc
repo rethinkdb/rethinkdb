@@ -50,7 +50,7 @@ spawner_t::spawner_t(info_t *info)
 
     // Establish SIGCHLD handler for spawner.
     struct sigaction act;
-    memset(&act, 0, sizeof act);
+    memset(&act, 0, sizeof(act));
     act.sa_handler = sigchld_handler;
     guarantee_err(0 == sigemptyset(&act.sa_mask), "could not empty signal mask");
     guarantee_err(0 == sigaction(SIGCHLD, &act, NULL), "could not set SIGCHLD handler");
@@ -59,7 +59,7 @@ spawner_t::spawner_t(info_t *info)
 spawner_t::~spawner_t() {
     // De-establish SIGCHLD handler.
     struct sigaction act;
-    memset(&act, 0, sizeof act);
+    memset(&act, 0, sizeof(act));
     act.sa_handler = SIG_DFL;
     guarantee_err(0 == sigemptyset(&act.sa_mask), "could not empty signal mask");
     guarantee_err(0 == sigaction(SIGCHLD, &act, NULL), "could not unset SIGCHLD handler");
@@ -108,7 +108,7 @@ pid_t spawner_t::spawn_process(scoped_fd_t *socket) {
 
     // Receive the pid from the spawner process.
     pid_t pid;
-    guarantee(sizeof pid == force_read(&socket_, &pid, sizeof pid));
+    guarantee(sizeof(pid) == force_read(&socket_, &pid, sizeof(pid)));
     guarantee(pid > 0);
 
     return pid;
@@ -134,7 +134,7 @@ void spawner_t::exec_spawner(fd_t socket) {
         // NB. According to `man 2 sigaction` on linux, POSIX.1-2001 says that
         // this will prevent zombies, but may not be "fully portable".
         struct sigaction act;
-        memset(&act, 0, sizeof act);
+        memset(&act, 0, sizeof(act));
         act.sa_handler = SIG_IGN;
 
         guarantee_err(0 == sigaction(SIGCHLD, &act, NULL),
@@ -171,7 +171,7 @@ void spawner_t::exec_spawner(fd_t socket) {
         // but its destructor calls shutdown(), and we can't have that happening
         // in the worker child.
         const char *buf = reinterpret_cast<const char *>(&pid);
-        size_t sz = sizeof pid;
+        size_t sz = sizeof(pid);
         while (sz) {
             ssize_t w = write(socket, buf, sz);
             if (w == -1 && errno == EINTR) continue;
