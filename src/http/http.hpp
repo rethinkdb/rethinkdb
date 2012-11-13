@@ -3,6 +3,7 @@
 #define HTTP_HTTP_HPP_
 
 #include <string>
+#include <stdexcept>
 #include <vector>
 
 #include "errors.hpp"
@@ -47,8 +48,8 @@ struct http_req_t {
         explicit resource_t(const std::string &_val);
         resource_t(const char* _val, size_t size);
 
-        void assign(const std::string &_val);
-        void assign(const char* _val, size_t size);
+        MUST_USE bool assign(const std::string &_val);
+        MUST_USE bool assign(const char* _val, size_t size);
         iterator begin() const;
         iterator end() const;
         std::string as_string(const iterator &from) const;
