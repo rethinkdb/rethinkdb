@@ -10,7 +10,7 @@
 #include "config/args.hpp"
 
 void print_version_message() {
-    printf(RETHINKDB_VERSION_STR "\n");
+    printf("%s\n", RETHINKDB_VERSION_STR);
 }
 
 
