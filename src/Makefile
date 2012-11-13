@@ -169,6 +169,8 @@ endif
 endif
 endif
 
+V8_CHAIN?=0
+
 ifeq ($(V8_CHAIN),1)
 LDFLAGS+= -L ../external/v8
 CXXPATHDS+= -isystem ../external/v8/include

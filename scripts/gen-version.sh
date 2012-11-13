@@ -17,7 +17,7 @@
 
 set -euo pipefail
 
-default_version=${FALLBACK_VERSION:-'0.0-internal-unknown'}
+default_version=${FALLBACK_VERSION:-'0.0-internal-unknown'}-fallback
 
 lf='
 '
