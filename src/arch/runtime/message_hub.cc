@@ -33,8 +33,6 @@ linux_message_hub_t::linux_message_hub_t(linux_event_queue_t *queue, linux_threa
 }
 
 linux_message_hub_t::~linux_message_hub_t() {
-    int res;
-
     for (int i = 0; i < thread_pool_->n_threads; i++) {
         guarantee(queues_[i].msg_local_list.empty());
     }
