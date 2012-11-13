@@ -237,8 +237,8 @@
         {
           "tag": "run",
           "description": "Run a query on this connection",
-          "parent": "query",
-          "returns": "connection",
+          "parent": "connection",
+          "returns": "cursor",
           "langs": {
             "js": {
               "name": "run",
