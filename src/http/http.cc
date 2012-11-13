@@ -21,20 +21,21 @@ http_req_t::resource_t::resource_t(const http_req_t::resource_t &from, const htt
 }
 
 http_req_t::resource_t::resource_t(const std::string &_val) {
-    assign(_val);
+    if (!assign(_val)) throw std::invalid_argument(_val);
 }
 
 http_req_t::resource_t::resource_t(const char * _val, size_t size) {
-    assign(_val, size);
+    if (!assign(_val, size)) throw std::invalid_argument(_val);
 }
 
-void http_req_t::resource_t::assign(const std::string &_val) {
-    assign(_val.data(), _val.length());
+// Returns false if the assignment fails.
+MUST_USE bool http_req_t::resource_t::assign(const std::string &_val) {
+    return assign(_val.data(), _val.length());
 }
 
-void http_req_t::resource_t::assign(const char * _val, size_t size) {
-    // TODO: Do we actually prevent clients from getting a bad resource path up to here?
-    guarantee(size > 0 && _val[0] == resource_parts_sep_char[0], "resource path must start with a '/'");
+// Returns false if the assignment fails.
+MUST_USE bool http_req_t::resource_t::assign(const char * _val, size_t size) {
+    if (!(size > 0 && _val[0] == resource_parts_sep_char[0])) return false;
     val.reset(new char[size]);
     memcpy(val.get(), _val, size);
     val_size = size;
@@ -43,6 +44,7 @@ void http_req_t::resource_t::assign(const char * _val, size_t size) {
     tokenizer t(val.get() + 1, val.get() + size, resource_parts_sep);
     b = t.begin();
     e = t.end();
+    return true;
 }
 
 http_req_t::resource_t::iterator http_req_t::resource_t::begin() const {
@@ -176,6 +178,7 @@ http_res_t http_error_res(const std::string &content, http_status_code_t rescode
     return http_res_t(rescode, "application/text", content);
 }
 
+//TODO: What the hell is this?
 void test_header_parser() {
     http_req_t res("/foo/bar");
     //str_http_msg_parser_t http_msg_parser;
@@ -366,7 +369,7 @@ bool tcp_http_msg_parser_t::parse(tcp_conn_t *conn, http_req_t *req, signal_t *c
         return false;
     }
 
-    req->resource.assign(resource_string.resource);
+    if (!req->resource.assign(resource_string.resource)) return false;
     req->query_params = resource_string.query_params;
 
     std::string version_str = parser.readLine(closer);
