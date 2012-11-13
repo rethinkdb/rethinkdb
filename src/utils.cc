@@ -326,13 +326,18 @@ int rng_t::randint(int n) {
 TLS_with_init(bool, rng_initialized, false)
 TLS(drand48_data, rng_data)
 
+void get_dev_urandom(void *out, int64_t nbytes) {
+    blocking_read_file_stream_t urandom;
+    guarantee(urandom.init("/dev/urandom"), "failed to open /dev/urandom to initialize thread rng");
+    int64_t readres = force_read(&urandom, out, nbytes);
+    guarantee(readres == nbytes);
+}
+
 int randint(int n) {
     drand48_data buffer;
     if (!TLS_get_rng_initialized()) {
         long int seed_buffer;
-        blocking_read_file_stream_t urandom;
-        guarantee(urandom.init("/dev/urandom"), "failed to open /dev/urandom to initialize thread rng");
-        while (urandom.read(&seed_buffer, sizeof(seed_buffer)) != sizeof(seed_buffer));
+        get_dev_urandom(&seed_buffer, sizeof(seed_buffer));
         srand48_r(seed_buffer, &buffer);
         TLS_set_rng_initialized(true);
     } else {
@@ -594,3 +599,12 @@ std::string sanitize_for_logger(const std::string &s) {
     }
     return sanitized;
 }
+
+// GCC and CLANG are smart enough to optimize out strlen(""), so this works.
+// This is the simplist thing I could find that gave warning in all of these
+// cases:
+// * RETHINKDB_VERSION=
+// * RETHINKDB_VERSION=""
+// * RETHINKDB_VERSION=1.2
+// (the correct case is something like RETHINKDB_VERSION="1.2")
+UNUSED static const char _assert_RETHINKDB_VERSION_nonempty = 1/(!!strlen(RETHINKDB_VERSION));

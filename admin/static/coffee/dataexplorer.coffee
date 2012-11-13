@@ -1,4 +1,5 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
+# TODO: We changed so many times the behavior of the suggestions, the code is a mess. We should refactor soon.
 module 'DataExplorerView', ->
     class @Container extends Backbone.View
         id: 'dataexplorer'
@@ -47,6 +48,8 @@ module 'DataExplorerView', ->
         # Suggestions[state] = function for this state
         suggestions: {}
     
+        # Method called on the content of reql_docs.json
+        # Load the suggestions in @suggestions, @map_state, @descriptions
         set_docs: (data) =>
             # Create the suggestions table
             suggestions = {}
@@ -63,22 +66,34 @@ module 'DataExplorerView', ->
                                 description: command['description']
                                 examples: command['langs']['js']['examples']
                     else
-                        full_tag = tag+'(' # full tag is the name plus a parenthesis (we will match the parenthesis too)
-                        @descriptions[full_tag] =
-                            name: tag
-                            args: '( '+command['langs']['js']['body']+' )'
-                            description: @description_with_example_template
-                                description: command['description']
-                                examples: command['langs']['js']['examples']
+                        if tag is 'run'
+                            full_tag = tag+'(' # full tag is the name plus a parenthesis (we will match the parenthesis too)
+                            @descriptions[full_tag] =
+                                name: tag
+                                args: '( )'
+                                description: @description_with_example_template
+                                    description: command['description']
+                                    examples: command['langs']['js']['examples']
+                        else
+                            full_tag = tag+'(' # full tag is the name plus a parenthesis (we will match the parenthesis too)
+                            @descriptions[full_tag] =
+                                name: tag
+                                args: '( '+command['langs']['js']['body']+' )'
+                                description: @description_with_example_template
+                                    description: command['description']
+                                    examples: command['langs']['js']['examples']
 
                     parent = command['parent']
+                    if tag is 'run'
+                        parent = 'query'
+
                     if parent is null
                         parent = ''
                     if not suggestions[parent]?
                         suggestions[parent] = []
                     suggestions[parent].push full_tag #+something
 
-                    @map_state[tag] = command['returns']
+                    @map_state[full_tag] = command['returns'] # We use full_tag because we need to differentiate between r. and r(
 
             # Deep copy of suggestions
             for group of suggestions
@@ -192,19 +207,10 @@ module 'DataExplorerView', ->
             else
                 @num_char_per_line = @default_num_char_per_line
 
-        # Compute the number of extra lines because of long lines
-        compute_extra_lines: =>
-            query_lines = @codemirror.getValue().split '\n'
-            i = 0
-            extra_lines = 0
-            while i < query_lines.length-1
-                extra_lines += Math.floor(query_lines[i].length/@num_char_per_line)
-                i++
-            extra_lines += Math.floor(@codemirror.getCursor().ch/@num_char_per_line)
-            return extra_lines
-
         move_suggestion: =>
-            margin_left = (@codemirror.getCursor().ch%@num_char_per_line)*8+27
+
+            margin_left = parseInt(@.$('.CodeMirror-cursor').css('left').replace('px', ''))+27
+
             @.$('.arrow').css 'margin-left', margin_left
 
             if margin_left < 200
@@ -220,7 +226,7 @@ module 'DataExplorerView', ->
 
         #TODO refactor show_suggestion, show_suggestion_description, add_description
         show_suggestion: =>
-            margin = ((@codemirror.getCursor().line+1+@compute_extra_lines())*@line_height) + 'px'
+            margin = (parseInt(@.$('.CodeMirror-cursor').css('top').replace('px', ''))+@line_height)+'px'
             @.$('.suggestion_full_container').css 'margin-top', margin
             @.$('.arrow').css 'margin-top', margin
             @.$('.suggestion_name_list').css 'display', 'block'
@@ -228,7 +234,7 @@ module 'DataExplorerView', ->
             @show_or_hide_arrow()
 
         show_suggestion_description: =>
-            margin = ((@codemirror.getCursor().line+1+@compute_extra_lines())*@line_height) + 'px'
+            margin = (parseInt(@.$('.CodeMirror-cursor').css('top').replace('px', ''))+@line_height)+'px'
             @.$('.suggestion_full_container').css 'margin-top', margin
             @.$('.arrow').css 'margin-top', margin
             @.$('.suggestion_description').css 'display', 'block'
@@ -325,7 +331,8 @@ module 'DataExplorerView', ->
             
         add_description: (fn) =>
             if @descriptions[fn]?
-                margin = ((@codemirror.getCursor().line+1+@compute_extra_lines())*@line_height) + 'px'
+                margin = (parseInt(@.$('.CodeMirror-cursor').css('top').replace('px', ''))+@line_height)+'px'
+
                 @.$('.suggestion_full_container').css 'margin-top', margin
                 @.$('.arrow').css 'margin-top', margin
 
@@ -374,9 +381,17 @@ module 'DataExplorerView', ->
                             line: saved_cursor.line
                             ch: position
 
-
                     if @current_suggestions.length is 0
-                        return false
+                        query_lines = @codemirror.getValue().split '\n'
+
+                        # Get query before the cursor
+                        query_before_cursor = ''
+                        if @codemirror.getCursor().line > 0
+                            for i in [0..@codemirror.getCursor().line-1]
+                                query_before_cursor += query_lines[i] + '\n'
+                        query_before_cursor += query_lines[@codemirror.getCursor().line].slice 0, @codemirror.getCursor().ch
+                        if query_before_cursor[query_before_cursor.length-1] isnt '('
+                            return false
 
                     return true
 
@@ -431,7 +446,7 @@ module 'DataExplorerView', ->
                     next_non_white_character = query_after_cursor[index_next_character]
                     break
                 index_next_character++
-            if next_non_white_character? and next_non_white_character isnt '.' and next_non_white_character isnt ')' and next_non_white_character isnt ';'
+            if next_non_white_character? and next_non_white_character isnt '.' and next_non_white_character isnt ',' and next_non_white_character isnt ')' and next_non_white_character isnt ';'
                 @hide_suggestion()
                 last_function_for_description = @extract_last_function_for_description(query_before_cursor)
                 if last_function_for_description isnt ''
@@ -448,25 +463,32 @@ module 'DataExplorerView', ->
 
             # Get the last completed function for description and suggestion
             last_function = @extract_last_function(query)
-            # Hack in case a new parenthesis is opened
-            if last_function is ''
+            just_description = false # Boolean to know if we want to display just the description and not the suggestions
+            # Hack in case a new parenthesis is opened. Ex: r.table('foo').filter( // We want to describe filter, not suggest r(
+            if /^\s*$/.test(query) is true or last_function is '' # We have an empty cursor
                 last_function_full = @extract_last_function_for_description(query_before_cursor)
                 if last_function_full isnt ''
                     last_function = last_function_full
+                    just_description = true
 
             # Hack because last_function returns 'r' if the query is 'r'. and r isn't a function
             if last_function is query and last_function is 'r'
-                last_function = null
+                last_function = ''
 
             if @map_state[last_function]? and @suggestions[@map_state[last_function]]?
-                if not @suggestions[@map_state[last_function]]? or @suggestions[@map_state[last_function]].length is 0
+                if not @suggestions[@map_state[last_function]]? or @suggestions[@map_state[last_function]].length is 0 or just_description is true
                     @hide_suggestion()
                     last_function_for_description = @extract_last_function_for_description(query_before_cursor)
 
                     if last_function_for_description isnt ''
                         @add_description last_function_for_description
                 else
-                    @append_suggestion(query, @suggestions[@map_state[last_function]])
+                    could_append = @append_suggestion(query, @suggestions[@map_state[last_function]])
+                    if could_append is false # We couldn't find any suggestion that matched. We are probably at the end of a function (closing parenthesis)
+                        last_function_for_description = @extract_last_function_for_description(query_before_cursor)
+
+                        if last_function_for_description isnt ''
+                            @add_description last_function_for_description
             else
                 @hide_suggestion()
                 last_function_for_description = @extract_last_function_for_description(query_before_cursor)
@@ -477,29 +499,24 @@ module 'DataExplorerView', ->
             return false
 
         # Extract the last function to give a description, regardless of if we are in a string or not
+        # Note: We are really not efficient... We can do way better parsing from left to right. Let's do it next time we refactor all this thing
         extract_last_function_for_description: (query) =>
             # query = query_before_cursor
             count_dot = 0
             num_not_open_parenthesis = 0
 
-            is_string = false
-            char_used = ''
             for i in [query.length-1..0] by -1
-                if is_string is false
-                    if (query[i] is '"' or query[i] is '\'')
-                        #is_string = true
-                        char_used = query[i]
-                    else if query[i] is '(' and num_not_open_parenthesis is 0
+                if query[i] is '(' and num_not_open_parenthesis >= 0
+                    if @is_in_string(query.slice(0, i)) is false
                         num_not_open_parenthesis--
                         end = i+1
-                    else if query[i] is '(' and num_not_open_parenthesis isnt 0
-                        return query.slice i+1, end
-                    else if query[i] is ')'
-                        return ''
-                    else if query[i] is '.' and num_not_open_parenthesis is 0
-                        return ''
-                    else if query[i] is '.' and num_not_open_parenthesis isnt 0
-                        return query.slice i+1, end
+                else if query[i] is '(' and num_not_open_parenthesis < 0
+                    return query.slice i+1, end
+                else if query[i] is ')'
+                    if @is_in_string(query.slice(0, i)) is false
+                        num_not_open_parenthesis++
+                else if query[i] is '.' and num_not_open_parenthesis < 0
+                    return query.slice i+1, end
             if end?
                 return query.slice 0, end
 
@@ -523,10 +540,15 @@ module 'DataExplorerView', ->
                             is_string = false
             return is_string
 
-        # Extract the last function of the current line, taking in account if we are in a string
+        # Extract the last completed function of the current line, taking in account if we are in a string
+        # Ex: r.d => r
+        # Ex: r.db('test').table( => db(
+        # Ex: r.db( => r
         extract_last_function: (query) =>
-            start = 0
             count_dot = 0
+            first_dot_position = 0
+            second_dot_position = query.length
+
             num_not_open_parenthesis = 0
 
             is_string = false
@@ -536,14 +558,20 @@ module 'DataExplorerView', ->
                     if (query[i] is '"' or query[i] is '\'')
                         is_string = true
                         char_used = query[i]
+                    else if query[i] is ',' and num_not_open_parenthesis<=0
+                        if first_dot_position is 0
+                            first_dot_position = i+1
+                        break
                     else if query[i] is '('
                         num_not_open_parenthesis--
                     else if query[i] is ')'
                         num_not_open_parenthesis++
                     else if query[i] is '.' and num_not_open_parenthesis <= 0
                         count_dot++
-                        if count_dot is 2
-                            start = i+1
+                        if count_dot is 1
+                            second_dot_position = i
+                        else if count_dot is 2
+                            first_dot_position = i+1
                             break
                 else if is_string is true
                     if query[i] is char_used
@@ -552,14 +580,21 @@ module 'DataExplorerView', ->
                         else
                             is_string = false
 
-            dot_position = query.indexOf('.', start) 
-            dot_position = query.length if dot_position is -1
-            parenthesis_position = query.indexOf('(', start) 
-            parenthesis_position = query.length if parenthesis_position is -1
+            parenthesis_position = query.indexOf('(', first_dot_position+1)
+            if parenthesis_position is -1
+                parenthesis_position = query.length
+            else
+                parenthesis_position++
 
-            end = Math.min dot_position, parenthesis_position
+            if parenthesis_position is 0
+                end = second_dot_position
+            else if parenthesis_position < second_dot_position
+                end = parenthesis_position
+            else
+                end = second_dot_position
+        
 
-            return query.slice(start, end).replace(/\s/g, '')
+            return query.slice(first_dot_position, end).replace(/\s/g, '')
 
 
 
@@ -578,6 +613,11 @@ module 'DataExplorerView', ->
                         while query[i+1+k]? and /\s/.test(query[i+1+k])
                             k++
                         return i+1+k
+                    else if query[i] is ',' and count_opening_parenthesis >= 0
+                            k = 0 # Strip white char
+                            while query[i+1+k]? and /\s/.test(query[i+1+k])
+                                k++
+                            return i+1+k
                     else if query[i] is '('
                         count_opening_parenthesis++
                         if count_opening_parenthesis > 0
@@ -597,6 +637,7 @@ module 'DataExplorerView', ->
             return 0
 
         # Append suggestion and display them or hide them if suggestions is empty
+        # Returns true if we found some suggestion, else false
         append_suggestion: (query, suggestions) =>
             @hide_suggestion()
             splitdata = query.split('.')
@@ -604,7 +645,10 @@ module 'DataExplorerView', ->
             if splitdata.length>1
                 for i in [0..splitdata.length-2]
                     @current_completed_query += splitdata[i]+'.'
-            element_currently_written = splitdata[splitdata.length-1]
+            if splitdata.length > 1
+                element_currently_written = splitdata[splitdata.length-1]
+            else
+                element_currently_written = query
 
 
             for char in @unsafe_to_safe_regexstr
@@ -614,19 +658,18 @@ module 'DataExplorerView', ->
             @current_suggestions = []
             for suggestion, i in suggestions
                 if pattern.test(suggestion)
-                    if splitdata[splitdata.length-1] is suggestion
-                        continue # Skip the case when we have an exact match including parenthesis
                     found_suggestion = true
                     @current_suggestions.push suggestion
-                    @.$('.suggestion_name_list').append @template_suggestion_name 
+                    @.$('.suggestion_name_list').append @template_suggestion_name
                         id: i
                         suggestion: suggestion
 
             if found_suggestion
                 @show_suggestion()
+                return true
             else
                 @hide_suggestion()
-            return @
+                return false
 
         # Callback used by the cursor when the user hit 'more results'
         callback_query: (data) =>
@@ -781,7 +824,7 @@ module 'DataExplorerView', ->
                 @.$('.loading_query_img').css 'display', 'none'
                 @results_view.render_error(@query, err)
 
-        # Separate the queries so we can execute them in an synchronous order
+        # Separate the queries so we can execute them in a synchronous order. We use .run()\s*; to separate queries (and we make sure that the separator is not in a string)
         separate_queries: (query) =>
             start = 0
             count_dot = 0
@@ -789,14 +832,36 @@ module 'DataExplorerView', ->
             is_string = false
             char_used = ''
             queries = []
+
+            # Again because of strings, we cannot know use a pretty regex
+            is_parsing_function = false # Track if we are parsing a function (between a dot and a opening parenthesis)
+            is_parsing_args = false # Track if we are parsing the arguments of a function so we can match for .run( ) but not for .ru n()
+            last_function = '' # The last function used with its arguments 
             for i in [0..query.length-1]
                 if is_string is false
                     if (query[i] is '"' or query[i] is '\'')
                         is_string = true
                         char_used = query[i]
                     else if query[i] is ';'
-                        queries.push query.slice start, i
-                        start = i+1
+                        if last_function is 'run()' # If the last function is run(), we have one query
+                            queries.push query.slice start, i
+                            start = i+1
+
+                    # Keep track of the last function used
+                    if query[i] is '.' # New function detected, let's reset last_function and switch on is_parsing_function
+                        last_function = ''
+                        is_parsing_function = true
+                    else if is_parsing_function is true
+                        if is_parsing_args is false or /\s/.test(query[i]) is false # If we are parsing arguments, we are not interested in white space
+                            last_function += query[i]
+
+                        if query[i] is '(' # We are going to parse arguments now
+                            is_parsing_args = true
+                        else if query[i] is ')' # End of the function
+                            is_parsing_function = false
+                            is_parsing_args = false
+
+
                 else if is_string is true
                     if query[i] is char_used
                         if query[i-1]? and query[i-1] is '\\'

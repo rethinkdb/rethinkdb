@@ -2,29 +2,41 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 # This script is for generating a changelog file for the Debian source package. git-dch is problematic, so we generate a stub changelog each time.
 # The script omits automatic base-finding and presently expects to be run from the root of the repository.
+# Variables expected in the environment include
+# 	UBUNTU_RELEASE
+#	DEB_RELEASE
+#	DEB_RELEASE_NUM
+#	VERSIONED_PACKAGE_NAME
+# 	PACKAGE_VERSION
+# .
+
 PRODBASE=. ;
-PRODUCTNAME="$VERSIONED_PACKAGE_NAME" ;
+PRODUCT_NAME="$VERSIONED_PACKAGE_NAME" ;
 # PRODUCTVERSION="`"$PRODBASE"/scripts/gen-version.sh`""-0"
-PRODUCTVERSION="$PACKAGE_VERSION""-0"
-# We append a zero for Debian compliance and append Ubuntu stuff if we are aiming for an Ubuntu package.
-if [ "$UBRELEASE" != "" ] ;
+PRODUCT_VERSION="$PACKAGE_VERSION""-0"
+if [ "$UBUNTU_RELEASE" != "" ] ;
 then
-	PRODUCTVERSION="$PRODUCTVERSION"ubuntu1~"$UBRELEASE" ;
-	OSRELEASE="$UBRELEASE" ;
+	# For Ubuntu, we use Debian number 0 and append the Ubuntu stuff.
+	PRODUCT_VERSION="$PACKAGE_VERSION"-0ubuntu1~"$UBUNTU_RELEASE" ;
+	OS_RELEASE="$UBUNTU_RELEASE" ;
+elif [ "$DEB_RELEASE" != "" ] ;
+then
+	# For Debian, we choose a Debian number corresponding to the Debian release.
+	PRODUCT_VERSION="$PACKAGE_VERSION"-"$DEB_RELEASE_NUM" ;
+	OS_RELEASE="$DEB_RELEASE" ;
 else
-	OSRELEASE="unstable" ;
+	OS_RELEASE="unstable" ;
 fi ;
-# UBRELEASE="precise" ;
-# We now provide UBRELEASE in the environment .
-TIMESTAMPTIME="`date "+%a, %d %b %Y %H:%M:%S"`" ;
-TIMESTAMPOFFSET="-0800" ;
-TIMESTAMPFULL="$TIMESTAMPTIME"" ""$TIMESTAMPOFFSET" ;
-AGENTNAME="RethinkDB Packaging"
-AGENTMAIL="packaging@rethinkdb.com"
-CHANGELOGFILE="$PRODBASE"/"debian/changelog" ;
-echo "$PRODUCTNAME"" (""$PRODUCTVERSION"") ""$OSRELEASE""; urgency=low" > "$CHANGELOGFILE" ;
-echo "" >> "$CHANGELOGFILE" ;
-echo "  * Release." >> "$CHANGELOGFILE" ;
-echo "" >> "$CHANGELOGFILE" ;
-echo " -- ""$AGENTNAME"" <""$AGENTMAIL"">  ""$TIMESTAMPFULL" >> "$CHANGELOGFILE" ;
+TIMESTAMP_TIME="`date "+%a, %d %b %Y %H:%M:%S"`" ;
+TIMESTAMP_OFFSET="-0800" ;
+TIMESTAMP_FULL="$TIMESTAMP_TIME"" ""$TIMESTAMP_OFFSET" ;
+AGENT_NAME="RethinkDB Packaging"
+AGENT_MAIL="packaging@rethinkdb.com"
+CHANGELOG_FILE="$PRODBASE"/"debian/changelog" ;
+echo "$PRODUCT_NAME"" (""$PRODUCT_VERSION"") ""$OS_RELEASE""; urgency=low" > "$CHANGELOG_FILE" ;
+echo "" >> "$CHANGELOG_FILE" ;
+echo "  * Release." >> "$CHANGELOG_FILE" ;
+echo "" >> "$CHANGELOG_FILE" ;
+echo " -- ""$AGENT_NAME"" <""$AGENT_MAIL"">  ""$TIMESTAMP_FULL" >> "$CHANGELOG_FILE" ;
+# Note that there are two spaces between the e-mail address and the time-stamp. This was no accident.
 

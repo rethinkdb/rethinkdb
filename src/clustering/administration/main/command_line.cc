@@ -233,6 +233,7 @@ void run_rethinkdb_serve(extproc::spawner_t::info_t *spawner_info, const std::st
 }
 
 void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std::string &filepath, const name_string_t &machine_name, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets, bool new_directory) {
+    logINF("Running %s...\n", RETHINKDB_VERSION_STR);
     os_signal_cond_t sigint_cond;
 
     if (!new_directory) {

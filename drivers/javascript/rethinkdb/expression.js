@@ -1812,9 +1812,9 @@ goog.exportProperty(rethinkdb.Expression.prototype, 'outerJoin',
                     rethinkdb.Expression.prototype.outerJoin);
 
 /**
- * Eqi join
+ * Eq join
  */
-rethinkdb.Expression.prototype.equiJoin = function(leftAttr, other, opt_rightAttr) {
+rethinkdb.Expression.prototype.eqJoin = function(leftAttr, other, opt_rightAttr) {
     return this.concatMap(function(row) {
         return rethinkdb.let({'right': other.get(row(leftAttr))},
             rethinkdb.branch(rethinkdb.letVar('right')['ne'](rethinkdb.expr(null)),
@@ -1824,8 +1824,8 @@ rethinkdb.Expression.prototype.equiJoin = function(leftAttr, other, opt_rightAtt
         );
     });
 };
-goog.exportProperty(rethinkdb.Expression.prototype, 'equiJoin',
-                    rethinkdb.Expression.prototype.equiJoin);
+goog.exportProperty(rethinkdb.Expression.prototype, 'eqJoin',
+                    rethinkdb.Expression.prototype.eqJoin);
 
 /**
  * Zip the result of a join
