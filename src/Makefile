@@ -520,7 +520,7 @@ RETHINKDB_SHORT_VERSION:=$(shell echo $(RETHINKDB_VERSION) | sed 's/\([^.]\+\.[^
 # RETHINKDB_SHORT_VERSION:=$(shell ../scripts/gen-version.sh -s)
 PACKAGING_ALTERNATIVES_PRIORITY:=0
 else
-RETHINKDB_FALLBACK_VERSION:=$(shell if [ -e ../NOTES ] ; then cat ../NOTES | grep '^. Release' | head -n 1 | awk '{ printf "%s" , $$3 ; }' ; fi ; )
+RETHINKDB_FALLBACK_VERSION:=$(shell if [ -e ../NOTES ] ; then cat ../NOTES | grep '^# Release' | head -n 1 | awk '{ printf "%s" , $$3 ; }' ; fi ; )
 RETHINKDB_VERSION:=$(shell env FALLBACK_VERSION=$(RETHINKDB_FALLBACK_VERSION) ../scripts/gen-version.sh)
 RETHINKDB_SHORT_VERSION:=$(shell echo $(RETHINKDB_VERSION) | sed 's/\([^.]\+\.[^.]\+\).*$$/\1/')
 # RETHINKDB_SHORT_VERSION:=$(shell ../scripts/gen-version.sh -s)
