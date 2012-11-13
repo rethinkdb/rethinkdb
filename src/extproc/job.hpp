@@ -19,15 +19,18 @@ class job_t {
     class control_t : public unix_socket_stream_t {
       private:
         friend class spawner_t;
-        control_t(pid_t pid, scoped_fd_t *fd);
+        control_t(pid_t _pid, pid_t _rdb_pid, scoped_fd_t *fd);
 
       public:
         void vlog(const char *fmt, va_list ap);
         void log(const char *fmt, ...)
             __attribute__((format (printf, 2, 3)));
 
+        pid_t get_rdb_pid() const;
+
       private:
-        pid_t pid_;
+        const pid_t pid;
+        const pid_t rdb_pid;
     };
 
     // Sends us over a stream. The recipient must be a fork()ed child (or

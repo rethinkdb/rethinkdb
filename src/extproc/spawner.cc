@@ -73,13 +73,14 @@ void spawner_t::create(info_t *info) {
     guarantee_err(0 == socketpair(AF_UNIX, SOCK_STREAM, 0, fds),
                   "could not create socketpair for spawner");
 
+    pid_t rdb_pid = getpid();
     pid_t pid = fork();
     guarantee_err(-1 != pid, "could not fork spawner process");
 
     if (0 == pid) {
         // We're the child; run the spawner.
         guarantee_err(0 == close(fds[0]), "could not close fd");
-        exec_spawner(fds[1]);
+        exec_spawner(rdb_pid, fds[1]);
         unreachable();
     }
 
@@ -117,7 +118,7 @@ pid_t spawner_t::spawn_process(scoped_fd_t *socket) {
 
 // ---------- Spawner & worker processes ----------
 // Runs the spawner process. Does not return.
-void spawner_t::exec_spawner(fd_t socket) {
+void spawner_t::exec_spawner(pid_t rdb_pid, fd_t socket) {
     // We set our PGID to our own PID (rather than inheriting our parent's PGID)
     // so that a signal (eg. SIGINT) sent to the parent's PGID (by eg. hitting
     // Ctrl-C at a terminal) will not propagate to us or our children.
@@ -160,7 +161,7 @@ void spawner_t::exec_spawner(fd_t socket) {
         if (0 == pid) {
             // We're the child/worker.
             guarantee_err(0 == close(socket), "worker: could not close fd");
-            exec_worker(fd);
+            exec_worker(rdb_pid, fd);
             unreachable();
         }
 
@@ -183,7 +184,7 @@ void spawner_t::exec_spawner(fd_t socket) {
 }
 
 // Runs the worker process. Does not return.
-void spawner_t::exec_worker(fd_t sockfd) {
+void spawner_t::exec_worker(pid_t rdb_pid, fd_t sockfd) {
     // Makes sure we get SIGTERMed when our parent (the spawner) dies.
     // TODO(rntz): prctl is linux-specific.
     guarantee_err(0 == prctl(PR_SET_PDEATHSIG, SIGTERM),
@@ -191,7 +192,7 @@ void spawner_t::exec_worker(fd_t sockfd) {
 
     // Receive one job and run it.
     scoped_fd_t fd(sockfd);
-    job_t::control_t control(getpid(), &fd);
+    job_t::control_t control(getpid(), rdb_pid, &fd);
     exit(job_t::accept_job(&control, NULL));
 }
 
