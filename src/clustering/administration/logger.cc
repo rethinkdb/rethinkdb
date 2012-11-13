@@ -359,7 +359,7 @@ void fallback_log_writer_t::initiate_write(log_level_t level, const std::string 
 
 TLS_with_init(thread_pool_log_writer_t *, global_log_writer, NULL);
 TLS_with_init(auto_drainer_t *, global_log_drainer, NULL);
-TLS_with_init(int *, log_writer_block, 0);
+TLS_with_init(int, log_writer_block, 0);
 
 thread_pool_log_writer_t::thread_pool_log_writer_t(local_issue_tracker_t *it) : issue_tracker(it) {
     pmap(get_num_threads(), boost::bind(&thread_pool_log_writer_t::install_on_thread, this, _1));
@@ -509,7 +509,7 @@ thread_log_writer_disabler_t::thread_log_writer_disabler_t() {
 
 thread_log_writer_disabler_t::~thread_log_writer_disabler_t() {
     TLS_set_log_writer_block(TLS_get_log_writer_block() - 1);
-    guarantee(*TLS_get_log_writer_block() >= 0);
+    guarantee(TLS_get_log_writer_block() >= 0);
 }
 
 void install_fallback_log_writer(const std::string &logfile_name) {

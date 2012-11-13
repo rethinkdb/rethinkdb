@@ -148,7 +148,7 @@ void priority_queue_t<T, Less>::update(int index) {
 template<class T, class Less>
 void priority_queue_t<T, Less>::validate() {
     for (unsigned int i = 0; i < heap.size(); i++) {
-        if(i != 0)
+        if (i != 0)
             rassert(!Less()(heap[parent(i)]->data, heap[i]->data));
 
         rassert(heap[i]->index == static_cast<int>(i));

@@ -548,7 +548,7 @@ std::string read_file(const char *path) {
     do {
         count = fread(buffer, 1, sizeof(buffer), fp);
         s.append(buffer, buffer + count);
-    } while(count == sizeof(buffer));
+    } while (count == sizeof(buffer));
 
     rassert(feof(fp));
 
@@ -599,3 +599,12 @@ std::string sanitize_for_logger(const std::string &s) {
     }
     return sanitized;
 }
+
+// GCC and CLANG are smart enough to optimize out strlen(""), so this works.
+// This is the simplist thing I could find that gave warning in all of these
+// cases:
+// * RETHINKDB_VERSION=
+// * RETHINKDB_VERSION=""
+// * RETHINKDB_VERSION=1.2
+// (the correct case is something like RETHINKDB_VERSION="1.2")
+UNUSED static const char _assert_RETHINKDB_VERSION_nonempty = 1/(!!strlen(RETHINKDB_VERSION));

@@ -14,7 +14,6 @@
 #include "concurrency/wait_any.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "protob/protob.hpp"
-#include "query_measure.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/query_language.hpp"
@@ -248,7 +247,7 @@ public:
 
         try {
             /* First check to see if any of the responses we're unsharding threw. */
-            for(size_t i = 0; i < count; ++i) {
+            for (size_t i = 0; i < count; ++i) {
                 // TODO: we're ignoring the limit when recombining.
                 const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
                 guarantee(_rr);
@@ -260,26 +259,39 @@ public:
 
             if (!rg.terminal) {
                 //A vanilla range get
+                //First we need to determine the cutoff key:
+                rg_response.last_considered_key = store_key_t::max();
+                for (size_t i = 0; i < count; ++i) {
+                    const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
+                    guarantee(_rr);
+
+                    if (rg_response.last_considered_key > _rr->last_considered_key && _rr->truncated) {
+                        rg_response.last_considered_key = _rr->last_considered_key;
+                    }
+                }
+
                 rg_response.result = stream_t();
                 stream_t *res_stream = boost::get<stream_t>(&rg_response.result);
-                for(size_t i = 0; i < count; ++i) {
+                for (size_t i = 0; i < count; ++i) {
                     // TODO: we're ignoring the limit when recombining.
                     const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
                     guarantee(_rr);
 
                     const stream_t *stream = boost::get<stream_t>(&(_rr->result));
 
-                    res_stream->insert(res_stream->end(), stream->begin(), stream->end());
-                    rg_response.truncated = rg_response.truncated || _rr->truncated;
-                    if (rg_response.last_considered_key < _rr->last_considered_key) {
-                        rg_response.last_considered_key = _rr->last_considered_key;
+                    for (stream_t::const_iterator it = stream->begin(); it != stream->end(); ++it) {
+                        if (it->first <= rg_response.last_considered_key) {
+                            res_stream->push_back(*it);
+                        }
                     }
+
+                    rg_response.truncated = rg_response.truncated || _rr->truncated;
                 }
             } else if (const Builtin_GroupedMapReduce *gmr = boost::get<Builtin_GroupedMapReduce>(&rg.terminal->variant)) {
                 //GroupedMapreduce
                 rg_response.result = groups_t();
                 groups_t *res_groups = boost::get<groups_t>(&rg_response.result);
-                for(size_t i = 0; i < count; ++i) {
+                for (size_t i = 0; i < count; ++i) {
                     const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
                     guarantee(_rr);
 
@@ -305,7 +317,7 @@ public:
                 Term base = r->base();
                 *res_atom = eval_term_as_json(&base, &env, rg.terminal->scopes, rg.terminal->backtrace.with("base"));
 
-                for(size_t i = 0; i < count; ++i) {
+                for (size_t i = 0; i < count; ++i) {
                     const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
                     guarantee(_rr);
 
@@ -323,7 +335,7 @@ public:
                 length_t *res_length = boost::get<length_t>(&rg_response.result);
                 res_length->length = 0;
 
-                for(size_t i = 0; i < count; ++i) {
+                for (size_t i = 0; i < count; ++i) {
                     const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
                     guarantee(_rr);
 
@@ -335,7 +347,7 @@ public:
                 inserted_t *res_inserted = boost::get<inserted_t>(&rg_response.result);
                 res_inserted->inserted = 0;
 
-                for(size_t i = 0; i < count; ++i) {
+                for (size_t i = 0; i < count; ++i) {
                     const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
                     guarantee(_rr);
 
@@ -540,15 +552,24 @@ struct read_visitor_t : public boost::static_visitor<void> {
         res.region = dg.region;
     }
 
-    read_visitor_t(btree_slice_t *btree_, transaction_t *txn_, superblock_t *superblock_, rdb_protocol_t::context_t *ctx, read_response_t *response_) :
-        response(response_), btree(btree_), txn(txn_), superblock(superblock_),
+    read_visitor_t(btree_slice_t *_btree,
+                   transaction_t *_txn,
+                   superblock_t *_superblock,
+                   rdb_protocol_t::context_t *ctx,
+                   read_response_t *_response,
+                   signal_t *_interruptor) :
+        response(_response),
+        btree(_btree),
+        txn(_txn),
+        superblock(_superblock),
+        interruptor(_interruptor, ctx->signals[get_thread_id()].get()),
         env(ctx->pool_group,
             ctx->ns_repo,
             ctx->cross_thread_namespace_watchables[get_thread_id()].get()->get_watchable(),
             ctx->cross_thread_database_watchables[get_thread_id()].get()->get_watchable(),
             ctx->semilattice_metadata,
             boost::make_shared<js::runner_t>(),
-            ctx->signals[get_thread_id()].get(),
+            &interruptor,
             ctx->machine_id)
     { }
 
@@ -557,6 +578,7 @@ private:
     btree_slice_t *btree;
     transaction_t *txn;
     superblock_t *superblock;
+    wait_any_t interruptor;
     query_language::runtime_environment_t env;
 };
 
@@ -566,8 +588,9 @@ void store_t::protocol_read(const read_t &read,
                             read_response_t *response,
                             btree_slice_t *btree,
                             transaction_t *txn,
-                            superblock_t *superblock) {
-    read_visitor_t v(btree, txn, superblock, ctx, response);
+                            superblock_t *superblock,
+                            signal_t *interruptor) {
+    read_visitor_t v(btree, txn, superblock, ctx, response, interruptor);
     boost::apply_visitor(v, read.read);
 }
 
@@ -593,16 +616,26 @@ struct write_visitor_t : public boost::static_visitor<void> {
         rdb_delete(d.key, btree, timestamp, txn, superblock, &res);
     }
 
-    write_visitor_t(btree_slice_t *btree_, transaction_t *txn_, superblock_t *superblock_,
-                    repli_timestamp_t timestamp_, rdb_protocol_t::context_t *ctx, write_response_t *_response) :
-        btree(btree_), txn(txn_), response(_response), superblock(superblock_), timestamp(timestamp_),
+    write_visitor_t(btree_slice_t *_btree,
+                    transaction_t *_txn,
+                    superblock_t *_superblock,
+                    repli_timestamp_t _timestamp,
+                    rdb_protocol_t::context_t *ctx,
+                    write_response_t *_response,
+                    signal_t *_interruptor) :
+        btree(_btree),
+        txn(_txn),
+        response(_response),
+        superblock(_superblock),
+        timestamp(_timestamp),
+        interruptor(_interruptor, ctx->signals[get_thread_id()].get()),
         env(ctx->pool_group,
             ctx->ns_repo,
             ctx->cross_thread_namespace_watchables[get_thread_id()].get()->get_watchable(),
             ctx->cross_thread_database_watchables[get_thread_id()].get()->get_watchable(),
             ctx->semilattice_metadata,
             boost::make_shared<js::runner_t>(),
-            ctx->signals[get_thread_id()].get(),
+            &interruptor,
             ctx->machine_id)
     { }
 
@@ -612,6 +645,7 @@ private:
     write_response_t *response;
     superblock_t *superblock;
     repli_timestamp_t timestamp;
+    wait_any_t interruptor;
     query_language::runtime_environment_t env;
 };
 
@@ -622,13 +656,10 @@ void store_t::protocol_write(const write_t &write,
                              transition_timestamp_t timestamp,
                              btree_slice_t *btree,
                              transaction_t *txn,
-                             superblock_t *superblock) {
-    TICKVAR(pw_A);
-    write_visitor_t v(btree, txn, superblock, timestamp.to_repli_timestamp(), ctx, response);
-    TICKVAR(pw_B);
+                             superblock_t *superblock,
+                             signal_t *interruptor) {
+    write_visitor_t v(btree, txn, superblock, timestamp.to_repli_timestamp(), ctx, response, interruptor);
     boost::apply_visitor(v, write.write);
-    TICKVAR(pw_C);
-    logRQM("protocol_write A %ld B %ld C\n", pw_B - pw_A, pw_C - pw_B);
 }
 
 namespace {
@@ -747,8 +778,11 @@ void store_t::protocol_send_backfill(const region_map_t<rdb_protocol_t, state_ti
 namespace {
 
 struct receive_backfill_visitor_t : public boost::static_visitor<void> {
-    receive_backfill_visitor_t(btree_slice_t *btree_, transaction_t *txn_, superblock_t *superblock_, signal_t *interruptor_) :
-      btree(btree_), txn(txn_), superblock(superblock_), interruptor(interruptor_) { }
+    receive_backfill_visitor_t(btree_slice_t *_btree,
+                               transaction_t *_txn,
+                               superblock_t *_superblock,
+                               signal_t *_interruptor) :
+      btree(_btree), txn(_txn), superblock(_superblock), interruptor(_interruptor) { }
 
     void operator()(const backfill_chunk_t::delete_key_t& delete_key) const {
         point_delete_response_t response;
@@ -773,7 +807,7 @@ private:
     originally necessary because in v1.1.x the hashing scheme might be different
     between the source and destination machines. */
     struct range_key_tester_t : public key_tester_t {
-        explicit range_key_tester_t(const region_t& delete_range_) : delete_range(delete_range_) { }
+        explicit range_key_tester_t(const region_t& _delete_range) : delete_range(_delete_range) { }
         bool key_should_be_erased(const btree_key_t *key) {
             uint64_t h = hash_region_hasher(key->contents, key->size);
             return delete_range.beg <= h && h < delete_range.end

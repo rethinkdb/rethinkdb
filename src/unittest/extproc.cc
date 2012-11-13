@@ -177,7 +177,7 @@ void run_serialjob_test(extproc::pool_t *pool) {
     }
 
     char msg[4];
-    ASSERT_EQ(sizeof msg, force_read(&handle, msg, sizeof msg));
+    ASSERT_EQ(sizeof(msg), force_read(&handle, msg, sizeof(msg)));
     ASSERT_EQ(0, memcmp(msg, "done", 4));
 
     handle.release();

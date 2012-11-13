@@ -191,7 +191,7 @@ static void refreshLine(int fd, const char *prompt, char *buf, size_t len, size_
     char seq[64];
     size_t plen = strlen(prompt);
 
-    while((plen+pos) >= cols) {
+    while ((plen+pos) >= cols) {
         buf++;
         len--;
         pos--;
@@ -258,7 +258,7 @@ static void printPossibleCompletions(linenoiseCompletions* lc, int fd, size_t co
         num_columns = 1;
     size_t num_rows = lc->len / num_columns + 1;
 
-    for(size_t i = 0; i < num_rows * num_columns; ++i) {
+    for (size_t i = 0; i < num_rows * num_columns; ++i) {
         size_t index = (i % num_columns) * num_rows + (i / num_columns);
         if (index < lc->len) {
             if (i % num_columns == num_columns - 1)
@@ -374,7 +374,7 @@ static int completeLine(int fd, const char *prompt, char *buf, size_t buflen, si
 
             refreshLine(fd, prompt, new_buf, total_length, total_length, cols);
 
-            while(true) {
+            while (true) {
 
                 nread = read(fd,&c,1);
                 if (nread <= 0) {
@@ -426,7 +426,7 @@ static int linenoisePrompt(int fd, char *buf, size_t buflen, const char *prompt)
     linenoiseHistoryAdd("");
 
     if (write(fd,prompt,plen) == -1) return -1;
-    while(1) {
+    while (1) {
         char c;
         int nread;
         char seq[2], seq2[2];
@@ -445,7 +445,7 @@ static int linenoisePrompt(int fd, char *buf, size_t buflen, const char *prompt)
             if (c == 0) continue;
         }
 
-        switch(c) {
+        switch (c) {
         case 13:    /* enter */
             // Reset the line, then output the prompt/full buffer (with line wrap)
             {
@@ -652,7 +652,7 @@ char *linenoise(const char *prompt) {
         fflush(stdout);
         if (fgets(buf,LINENOISE_MAX_LINE,stdin) == NULL) return NULL;
         len = strlen(buf);
-        while(len && (buf[len-1] == '\n' || buf[len-1] == '\r')) {
+        while (len && (buf[len-1] == '\n' || buf[len-1] == '\r')) {
             len--;
             buf[len] = '\0';
         }

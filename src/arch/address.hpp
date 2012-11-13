@@ -9,19 +9,35 @@
 #include <sys/ioctl.h>
 
 #include <string>
-#include <vector>
+#include <set>
 
 #include "containers/archive/archive.hpp"
 #include "errors.hpp"
+#include "utils.hpp"
 #include "rpc/serialize_macros.hpp"
 
 class append_only_printf_buffer_t;
 
+class host_lookup_exc_t : public std::exception {
+public:
+    explicit host_lookup_exc_t(const std::string& _host, int _errno_val) :
+        host(_host),
+        errno_val(_errno_val),
+        error_string(strprintf("getaddrinfo() failed for hostname: %s, errno: %d", host.c_str(), errno_val)) { }
+    const char *what() const throw () {
+        return error_string.c_str();
+    }
+    ~host_lookup_exc_t() throw () { }
+    const std::string host;
+    const int errno_val;
+    const std::string error_string;
+};
+
 /* ip_address_t represents an IPv4 address. */
 class ip_address_t {
 public:
-    static std::vector<ip_address_t> from_hostname(const std::string &host);
-    static std::vector<ip_address_t> us();
+    static std::set<ip_address_t> from_hostname(const std::string &host);
+    static std::set<ip_address_t> us();
 
     ip_address_t() { } //for deserialization
 

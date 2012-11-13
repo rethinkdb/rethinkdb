@@ -7,8 +7,8 @@ namespace extproc {
 int job_t::accept_job(control_t *control, void *extra) {
     // Try to receive the job.
     job_t::func_t jobfunc;
-    int64_t res = force_read(control, &jobfunc, sizeof jobfunc);
-    if (res < (int64_t) sizeof jobfunc) {
+    int64_t res = force_read(control, &jobfunc, sizeof(jobfunc));
+    if (res < (int64_t) sizeof(jobfunc)) {
         control->log("Couldn't read job function: %s",
                       res == -1 ? strerror(errno) : "end-of-file received");
         return -1;
@@ -26,7 +26,7 @@ void job_t::append_to(write_message_t *msg) const {
     // only because the worker processes we are sending to are fork()s of
     // ourselves, and so have the same address space layout.
     job_t::func_t funcptr = job_runner();
-    msg->append(&funcptr, sizeof funcptr);
+    msg->append(&funcptr, sizeof(funcptr));
 
     // We send the job over as well; job_runner will deserialize it.
     this->rdb_serialize(*msg);

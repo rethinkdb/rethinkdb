@@ -19,6 +19,7 @@
 static __thread bool crashed = false; // to prevent crashing within crashes
 
 void report_user_error(const char *msg, ...) {
+    fprintf(stderr, "Version: %s\n", RETHINKDB_VERSION_STR);
     if (crashed) {
         va_list args;
         va_start(args, msg);
@@ -39,6 +40,7 @@ void report_user_error(const char *msg, ...) {
 }
 
 void report_fatal_error(const char *file, int line, const char *msg, ...) {
+    fprintf(stderr, "Version: %s\n", RETHINKDB_VERSION_STR);
     if (crashed) {
         va_list args;
         va_start(args, msg);
@@ -142,7 +144,7 @@ void assertion_failed_msg(char const * expr, char const * msg, char const * func
 
 __attribute__((noreturn)) void mcheck_abortfunc(enum mcheck_status mstatus) {
     const char *err;
-    switch(mstatus) {
+    switch (mstatus) {
     case MCHECK_DISABLED:
         err = "MCHECK_DISABLED";
         break;

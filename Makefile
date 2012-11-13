@@ -3,10 +3,10 @@
 DEBUG?=0
 
 all:
-	cd src ; $(MAKE) DEBUG=$(DEBUG) PACKAGING=1 WEBRESDIR=/usr/share/rethinkdb/web ;
+	cd src ; $(MAKE) STRIP_ON_INSTALL=0 DEBUG=$(DEBUG) PACKAGING=1 WEBRESDIR=/usr/share/rethinkdb/web ;
 
 install: all
-	cd src ; $(MAKE) DEBUG=$(DEBUG) PACKAGING=1 install ;
+	cd src ; $(MAKE) STRIP_ON_INSTALL=0 DEBUG=$(DEBUG) PACKAGING=1 install ;
 
 clean:
 	rm -rf build

@@ -256,7 +256,7 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, io
             is_really_direct ?
                 (is_block ?
                     "\n- the database block device cannot be opened with O_DIRECT flag" :
-                    "\n- the database file is located on a filesystem that doesn't support O_DIRECT open flag (e.g. in case when the filesystem is working in journaled mode)"
+                    "\n- the database file is located on a filesystem that doesn't support O_DIRECT open flag (e.g. some encrypted or journaled file systems)"
                 ) : "",
             !is_block ? "\n- user which was used to start the database is not an owner of the file" : "");
     }
@@ -353,22 +353,20 @@ void linux_file_t::write_async(size_t offset, size_t length, const void *buf, fi
 
 void linux_file_t::read_blocking(size_t offset, size_t length, void *buf) {
     verify_aligned_file_access(file_size, offset, length, buf);
- tryagain:
-    ssize_t res = pread(fd.get(), buf, length, offset);
-    if (res == -1 && errno == EINTR) {
-        goto tryagain;
-    }
+    ssize_t res;
+    do {
+        res = pread(fd.get(), buf, length, offset);
+    } while (res == -1 && errno == EINTR);
 
     nice_guarantee(size_t(res) == length, "Blocking read from file failed. Exiting.");
 }
 
 void linux_file_t::write_blocking(size_t offset, size_t length, const void *buf) {
     verify_aligned_file_access(file_size, offset, length, buf);
- tryagain:
-    ssize_t res = pwrite(fd.get(), buf, length, offset);
-    if (res == -1 && errno == EINTR) {
-        goto tryagain;
-    }
+    ssize_t res;
+    do {
+        res = pwrite(fd.get(), buf, length, offset);
+    } while (res == -1 && errno == EINTR);
 
     nice_guarantee(size_t(res) == length, "Blocking write from file failed. Exiting.");
 }

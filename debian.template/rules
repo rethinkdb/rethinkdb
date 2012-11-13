@@ -5,7 +5,7 @@ package = rethinkdb
 
 DEBUG?=0
 AUTOCHAIN?=1
-PVERSION?=$(shell cat debian/control | grep '^Version: ' | head -n 1 | awk '{ printf "%s" , $2 }')
+PVERSION?=$(shell cat debian/control | grep '^Version: ' | head -n 1 | awk '{ printf "%s" , $$2 }')
 
 clean:
 	dh_clean
@@ -26,7 +26,7 @@ binary-indep: install
 binary-arch: install
 	dh_installdocs -a
 	dh_installchangelogs -a
-	dh_strip -a
+	dh_strip --dbg-package=$(package)-dbg
 	dh_compress -a
 	dh_fixperms -a
 	dh_installdeb -a
@@ -37,5 +37,5 @@ binary-arch: install
 
 binary: binary-indep binary-arch
 
-.PHONY: binary binary-arch binary-indep clean
+.PHONY: binary binary-arch binary-indep clean install build
 

@@ -13,40 +13,42 @@ bool version_is_ancestor(
     // A stack of version maps and iterators pointing an the next element in the map to traverse.
     std::stack<std::pair<version_map_t *, typename version_map_t::const_iterator> > origin_stack;
 
- continue_running:
-    if (region_is_empty(relevant_region)) {
-        goto run_next;
-    } else if (ancestor.branch.is_nil()) {
-        /* Everything is descended from the root pseudobranch. */
-        goto run_next;
-    } else if (descendent.branch.is_nil()) {
-        /* The root psuedobranch is descended from nothing but itself. */
-        goto fail;
-    } else if (ancestor.branch == descendent.branch) {
-        if (ancestor.timestamp <= descendent.timestamp) {
-            goto run_next;
+    // We break from this for loop when the version is shown not to be an ancestor.
+    for (;;) {
+        if (region_is_empty(relevant_region)) {
+            // do nothing, continue to next part of tree.
+        } else if (ancestor.branch.is_nil()) {
+            /* Everything is descended from the root pseudobranch. */
+            // do nothing, continue to next part of tree.
+        } else if (descendent.branch.is_nil()) {
+            /* The root psuedobranch is descended from nothing but itself. */
+            // fail!
+            break;
+        } else if (ancestor.branch == descendent.branch) {
+            if (ancestor.timestamp <= descendent.timestamp) {
+                // do nothing, continue to next part of tree.
+            } else {
+                // fail!
+                break;
+            }
         } else {
-            goto fail;
+            branch_birth_certificate_t<protocol_t> descendent_branch_metadata = bhm->get_branch(descendent.branch);
+
+            rassert(region_is_superset(descendent_branch_metadata.region, relevant_region));
+            guarantee(descendent.timestamp >= descendent_branch_metadata.initial_timestamp);
+
+            version_map_t *relevant_origin = new version_map_t(descendent_branch_metadata.origin.mask(relevant_region));
+            guarantee(relevant_origin->begin() != relevant_origin->end());
+
+            origin_stack.push(std::make_pair(relevant_origin, relevant_origin->begin()));
         }
-    } else {
-        branch_birth_certificate_t<protocol_t> descendent_branch_metadata = bhm->get_branch(descendent.branch);
 
-        rassert(region_is_superset(descendent_branch_metadata.region, relevant_region));
-        guarantee(descendent.timestamp >= descendent_branch_metadata.initial_timestamp);
+        if (origin_stack.empty()) {
+            // We've navigated the entire tree and succeed in seeing version_is_ancestor for all
+            // children.  Yay.
+            return true;
+        }
 
-        version_map_t *relevant_origin = new version_map_t(descendent_branch_metadata.origin.mask(relevant_region));
-        guarantee(relevant_origin->begin() != relevant_origin->end());
-
-        origin_stack.push(std::make_pair(relevant_origin, relevant_origin->begin()));
-        goto run_next;
-    }
-
-    unreachable("This should be unreachable.");
-
- run_next:
-    if (origin_stack.empty()) {
-        return true;
-    } else {
         typename version_map_t::const_iterator it = origin_stack.top().second;
         descendent = it->second.earliest;
         relevant_region = it->first;
@@ -58,11 +60,9 @@ bool version_is_ancestor(
         } else {
             origin_stack.top().second = it;
         }
-
-        goto continue_running;
     }
 
- fail:
+    // We failed.  We need to clean up some memory.
     while (!origin_stack.empty()) {
         delete origin_stack.top().first;
         origin_stack.pop();

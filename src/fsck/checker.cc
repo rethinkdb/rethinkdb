@@ -1186,8 +1186,8 @@ struct all_slices_errors_t {
     scoped_array_t<slice_errors> slice;
     scoped_ptr_t<slice_errors> metadata_slice;
 
-    all_slices_errors_t(int n_slices_, bool has_metadata_file)
-        : slice(n_slices_) {
+    all_slices_errors_t(int n_slices, bool has_metadata_file)
+        : slice(n_slices) {
         if (has_metadata_file) {
             metadata_slice.init(new slice_errors);
         }

@@ -1,4 +1,39 @@
 
+# Release 1.2.6 (Rashomon) #
+
+## Changes ##
+
+* Fixed the version string
+* Fixed 'crashing after crashed'
+* Fixed json docs
+
+---
+
+# Release 1.2.5 (Rashomon) #
+
+## Changes ##
+
+* Checking for a null ifaattrs
+
+---
+
+# Release 1.2.4 (Rashomon) #
+
+## Changes ##
+
+* Local interface lookup is now more robust.
+
+---
+
+# Release 1.2.3 (Rashomon) #
+
+## Changes ##
+
+* Fixes a bug in the query engine that causes large range queries to
+  return incorrect results.
+
+---
+
 # Release 1.2.0 (Rashomon) #
 
 ## Changes ##

@@ -315,7 +315,7 @@ function testJoin2() {
         {id:2, name: 'joe', title: 'lmoe'}
     ));
 
-    s1.equiJoin('id', r.table('joins2')).zip().orderBy('id').run(objeq(
+    s1.eqJoin('id', r.table('joins2')).zip().orderBy('id').run(objeq(
         {id:0, name: 'bob', title: 'goof'},
         {id:2, name: 'joe', title: 'lmoe'}
     ));

@@ -14,7 +14,6 @@
 #include "rdb_protocol/js.hpp"
 #include "rpc/directory/read_manager.hpp"
 #include "rdb_protocol/proto_utils.hpp"
-#include "query_measure.hpp"
 
 
 //TODO: why is this not in the query_language namespace? - because it's also used by rethinkdb import at the moment
@@ -746,7 +745,7 @@ void check_write_query_type(WriteQuery *w, type_checking_environment_t *env, boo
 
 void check_meta_query_type(MetaQuery *t, const backtrace_t &backtrace) {
     check_protobuf(MetaQuery::MetaQueryType_IsValid(t->type()));
-    switch(t->type()) {
+    switch (t->type()) {
     case MetaQuery::CREATE_DB:
         check_protobuf(t->has_db_name());
         check_name_string(t->db_name(), backtrace);
@@ -903,7 +902,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
     metadata_searcher_t<datacenter_semilattice_metadata_t>
         dc_searcher(&metadata.datacenters.datacenters);
 
-    switch(m->type()) {
+    switch (m->type()) {
     case MetaQuery::CREATE_DB: {
         name_string_t db_name;
         assign_db_name(m->db_name(), bt.with("db_name"), &db_name);
@@ -1107,7 +1106,7 @@ std::string get_primary_key(TableRef *t, runtime_environment_t *env,
 
 void execute_query(Query *q, runtime_environment_t *env, Response *res, const scopes_t &scopes, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
     guarantee_debug_throw_release(q->token() == res->token(), backtrace);
-    switch(q->type()) {
+    switch (q->type()) {
     case Query::READ: {
         execute_read_query(q->mutable_read_query(), env, res, scopes, backtrace, stream_cache);
     } break; //status set in [execute_read_query]
@@ -1431,7 +1430,7 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
                     point_modify(view.access, pk, id, point_modify_ns::MUTATE,
                                  env, w->mutate().mapping(), scopes,
                                  w->atomic(), json, backtrace.with("modify_map"));
-                switch(mres) {
+                switch (mres) {
                 case point_modify_ns::INSERTED: //if non-atomic (fallthrough)
                 case point_modify_ns::MODIFIED: modified += 1; break;
                 case point_modify_ns::NOP: //if non-atomic (fallthrough)
@@ -2093,7 +2092,7 @@ boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term::Call *c, runtime_envir
                     throw runtime_exc_t("The second argument cannot be greater than the third argument.", backtrace.with("arg:2"));
                 }
                 boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateArray()));
-                for(int i = start; i < stop; i++) {
+                for (int i = start; i < stop; i++) {
                     res->AddItemToArray(cJSON_DeepCopy(array->GetArrayItem(i)));
                 }
 
@@ -2121,7 +2120,7 @@ boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term::Call *c, runtime_envir
                     boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(arg->DeepCopy()));
                     for (int i = 1; i < c->args_size(); ++i) {
                         boost::shared_ptr<scoped_cJSON_t> arg2 = eval_term_as_json_and_check(c->mutable_args(i), env, scopes, backtrace.with(strprintf("arg:%d", i)), cJSON_Array, "Cannot ADD arrays to non-arrays");
-                        for(int j = 0; j < arg2->GetArraySize(); ++j) {
+                        for (int j = 0; j < arg2->GetArraySize(); ++j) {
                             res->AddItemToArray(cJSON_DeepCopy(arg2->GetArrayItem(j)));
                         }
                     }
@@ -2663,7 +2662,7 @@ boost::shared_ptr<json_stream_t> eval_call_as_stream(Term::Call *c, runtime_envi
                 }
 
                 if (lowerbound && upperbound) {
-                    if (cJSON_cmp(lowerbound->get(), upperbound->get(), backtrace) >= 0) {
+                    if (cJSON_cmp(lowerbound->get(), upperbound->get(), backtrace) > 0) {
                         throw runtime_exc_t(strprintf("Lower bound of RANGE must be <= upper bound (%s vs. %s).",
                                                       lowerbound->Print().c_str(), upperbound->Print().c_str()),
                                             backtrace.with("lowerbound"));

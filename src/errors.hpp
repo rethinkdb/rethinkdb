@@ -2,7 +2,6 @@
 #ifndef ERRORS_HPP_
 #define ERRORS_HPP_
 
-
 #include <errno.h>
 #include <stdlib.h>
 

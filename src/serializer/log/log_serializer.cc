@@ -636,19 +636,21 @@ void log_serializer_t::unregister_block_token(ls_block_token_pointee_t *token) {
     std::map<ls_block_token_pointee_t *, off64_t>::iterator token_offset_it = token_offsets.find(token);
     rassert(token_offset_it != token_offsets.end());
 
-    typedef std::multimap<off64_t, ls_block_token_pointee_t *>::iterator ot_iter;
-    for (std::pair<ot_iter, ot_iter> range = offset_tokens.equal_range(token_offset_it->second);
-         range.first != range.second;
-         ++range.first) {
-        if (range.first->second == token) {
-            offset_tokens.erase(range.first);
-            goto successfully_removed_entry;
+    {
+        typedef std::multimap<off64_t, ls_block_token_pointee_t *>::iterator ot_iter;
+        ot_iter erase_it = offset_tokens.end();
+        for (std::pair<ot_iter, ot_iter> range = offset_tokens.equal_range(token_offset_it->second);
+             range.first != range.second;
+             ++range.first) {
+            if (range.first->second == token) {
+                erase_it = range.first;
+                break;
+            }
         }
+
+        guarantee(erase_it != offset_tokens.end(), "We probably tried unregistering the same token twice.");
+        offset_tokens.erase(erase_it);
     }
-
-    unreachable("We probably tried unregistering the same token twice.");
-
- successfully_removed_entry:
 
     const bool last_token_for_offset = offset_tokens.find(token_offset_it->second) == offset_tokens.end();
     if (last_token_for_offset) {
@@ -777,7 +779,7 @@ bool log_serializer_t::shutdown(cond_t *cb) {
 bool log_serializer_t::next_shutdown_step() {
     assert_thread();
 
-    if(shutdown_state == shutdown_begin) {
+    if (shutdown_state == shutdown_begin) {
         // First shutdown step
         shutdown_state = shutdown_waiting_on_serializer;
         if (last_write || active_write_count > 0) {
@@ -788,19 +790,19 @@ bool log_serializer_t::next_shutdown_step() {
         state = state_shutting_down;
     }
 
-    if(shutdown_state == shutdown_waiting_on_serializer) {
+    if (shutdown_state == shutdown_waiting_on_serializer) {
         shutdown_state = shutdown_waiting_on_datablock_manager;
-        if(!data_block_manager->shutdown(this)) {
+        if (!data_block_manager->shutdown(this)) {
             shutdown_in_one_shot = false;
             return false;
         }
     }
 
     // The datablock manager uses block tokens, so it goes before.
-    if(shutdown_state == shutdown_waiting_on_datablock_manager) {
+    if (shutdown_state == shutdown_waiting_on_datablock_manager) {
         shutdown_state = shutdown_waiting_on_block_tokens;
         rassert(!(token_offsets.empty() ^ offset_tokens.empty()));
-        if(!(token_offsets.empty() && offset_tokens.empty())) {
+        if (!(token_offsets.empty() && offset_tokens.empty())) {
             shutdown_in_one_shot = false;
             return false;
         } else {
@@ -812,15 +814,15 @@ bool log_serializer_t::next_shutdown_step() {
 
     rassert(expecting_no_more_tokens);
 
-    if(shutdown_state == shutdown_waiting_on_block_tokens) {
+    if (shutdown_state == shutdown_waiting_on_block_tokens) {
         shutdown_state = shutdown_waiting_on_lba;
-        if(!lba_index->shutdown(this)) {
+        if (!lba_index->shutdown(this)) {
             shutdown_in_one_shot = false;
             return false;
         }
     }
 
-    if(shutdown_state == shutdown_waiting_on_lba) {
+    if (shutdown_state == shutdown_waiting_on_lba) {
         metablock_manager->shutdown();
         extent_manager->shutdown();
 
