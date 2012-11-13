@@ -325,10 +325,10 @@ module RethinkDB
     # of <b>+table2+</b>):
     #   table1.eq_join(:a, table2)
     #   table2.inner_join(table2) {|row1, row2| r.eq row1[:a],row2[:id]}
-    def eq_join(leftattr, other)
+    def eq_join(leftattr, other, rightattr=:id)
       S.with_var {|vname, v|
         self.concat_map {|row|
-          RQL.let({vname => other.get(row[leftattr])}) {
+          RQL.let({vname => other.get(row[leftattr], rightattr)}) {
             RQL.branch(v.ne(nil), [{:left => row, :right => v}], [])
           }
         }
