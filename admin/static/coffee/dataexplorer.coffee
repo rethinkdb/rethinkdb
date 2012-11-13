@@ -377,9 +377,17 @@ module 'DataExplorerView', ->
                             line: saved_cursor.line
                             ch: position
 
-
                     if @current_suggestions.length is 0
-                        return false
+                        query_lines = @codemirror.getValue().split '\n'
+
+                        # Get query before the cursor
+                        query_before_cursor = ''
+                        if @codemirror.getCursor().line > 0
+                            for i in [0..@codemirror.getCursor().line-1]
+                                query_before_cursor += query_lines[i] + '\n'
+                        query_before_cursor += query_lines[@codemirror.getCursor().line].slice 0, @codemirror.getCursor().ch
+                        if query_before_cursor[query_before_cursor.length-1] isnt '('
+                            return false
 
                     return true
 
