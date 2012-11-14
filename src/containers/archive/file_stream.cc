@@ -4,6 +4,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <unistd.h>
 
 blocking_read_file_stream_t::blocking_read_file_stream_t() { }
 
