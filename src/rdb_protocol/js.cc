@@ -249,7 +249,7 @@ struct compile_task_t : auto_task_t<compile_task_t> {
 
         memcpy(p, end, endsz);
         guarantee(p - buf->data() == size - endsz,
-                "\np - buf->data() = %ld\nsize = %ld\nendsz = %lu",
+                "\np - buf->data() = %d\nsize = %Zd\nendsz = %d",
                 p - buf->data(),
                 size,
                 endsz);
