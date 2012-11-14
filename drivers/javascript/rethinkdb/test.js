@@ -168,6 +168,12 @@ function testGet() {
 function testOrderby() {
     tab.orderBy('num').nth(2).run(objeq({id:7,num:13}));
     tab.orderBy('num').nth(2).pick('num').run(objeq({num:13}));
+
+    tab.orderBy(['num', true]).nth(2).run(objeq({id:7,num:13}));
+    tab.orderBy(['num', true]).nth(2).pick('num').run(objeq({num:13}));
+
+    tab.orderBy(['num', false]).nth(2).run(objeq({id:2,num:18}));
+    tab.orderBy(['num', false]).nth(2).pick('num').run(objeq({num:18}));
 }
 
 function testPluck() {

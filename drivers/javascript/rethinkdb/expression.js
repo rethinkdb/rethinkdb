@@ -884,20 +884,28 @@ goog.exportProperty(rethinkdb.Expression.prototype, 'map',
 /**
  * Order the elements of the sequence by their values of the specified attributes.
  * @param {...string} var_args Some number of strings giving the fields to orderBy.
- *  Values are first orderd by the first field given, then by the second, etc. Prefix
- *  a field name with a '-' to request a decending order. Attributes without prefixes
- *  will be given in ascending order.
+ *  Values are first orderd by the first field given, then by the second, etc. To
+ *  select ascending or decending ordering specifically, pass a tuple giving [attr,
+ *  flag] where a true flag means ascending order and a false flag is descending.
+ *  ascending ordering is the default.
  * @return {rethinkdb.Expression}
  */
 rethinkdb.Expression.prototype.orderBy = function(var_args) {
     rethinkdb.util.argCheck_(arguments, 1);
-    var orderings = Array.prototype.slice.call(arguments, 0);
-    orderings.forEach(function(order) {rethinkdb.util.typeCheck_(order, 'string')});
+    var orderings = Array.prototype.map.call(arguments, function(order) {
+        if (typeof order === 'string') {
+            return [order, true];
+        } else {
+            rethinkdb.util.typeCheck_(order[0], 'string');
+            rethinkdb.util.typeCheck_(order[1], 'boolean');
+            return order;
+        }
+    });
 
     var self = this;
     return rethinkdb.util.newExpr_(rethinkdb.BuiltinExpression, Builtin.BuiltinType.ORDERBY, [this],
         function(bt) {
-            var os = orderings.map(function(o) {return "'"+o+"'";});
+            var os = orderings.map(function(o) {return "['"+o[0]+"', "+o[1]+"]";});
             if (!bt) {
                 return self.formatQuery()+".orderBy("+os.join(', ')+")";
             } else {
@@ -912,13 +920,8 @@ rethinkdb.Expression.prototype.orderBy = function(var_args) {
         },
         function(builtin, opt_buildOpts) {
             for (var i = 0; i < orderings.length; i++) {
-                var ascending = true;
-                var attr = orderings[i];
-
-                if (attr[0] === '-') {
-                    ascending = false;
-                    attr = attr.slice(1);
-                }
+                var attr = orderings[i][0];
+                var ascending = orderings[i][1];
 
                 var orderby = new Builtin.OrderBy();
                 orderby.setAttr(attr);
