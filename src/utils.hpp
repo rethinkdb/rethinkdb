@@ -317,6 +317,8 @@ static inline std::string time2str(const time_t &t) {
     return ctime_r(&t, timebuf);
 }
 
+std::string errno_string(int errsv);
+
 #define STR(x) #x
 #define MSTR(x) STR(x) // Stringify a macro
 #if defined __clang__
