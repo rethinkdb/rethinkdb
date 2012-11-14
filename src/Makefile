@@ -171,8 +171,15 @@ endif
 endif
 endif
 
+BUILD_PORTABLE?=0
+
+ifeq ($(BUILD_PORTABLE),1)
+V8_CHAIN?=1
+STATIC_V8?=2
+else
 V8_CHAIN?=0
 STATIC_V8?=$(STATICFORCE)
+endif
 
 ifneq ($(V8_CHAIN),0)
 ifeq ($(V8_CHAIN),2)
@@ -600,13 +607,33 @@ RETHINKDB_VERSION_RPM=$(subst -,_,$(RETHINKDB_PACKAGING_VERSION))
 DEB_PACKAGE_REVISION?=$(shell env UBUNTU_RELEASE="$(UBUNTU_RELEASE)" DEB_RELEASE="$(DEB_RELEASE)" DEB_RELEASE_NUM="$(DEB_RELEASE_NUM)" PACKAGE_VERSION="" ../scripts/gen-trailer.sh)
 RETHINKDB_VERSION_DEB=$(RETHINKDB_PACKAGING_VERSION)$(DEB_PACKAGE_REVISION)
 
+# We need a space for the subst rule later.
+wspace:=
+wspace+=
+
+PACKAGE_NAME_QUALIFIER:=
+
+ifeq ($(BUILD_PORTABLE),1)
+PACKAGE_NAME_QUALIFIER+=-portable
+endif
+
+ifeq ($(TRIAL),1)
+PACKAGE_NAME_QUALIFIER+=-trial
+endif
+
+PACKAGE_NAME_QUALIFIER:=$(subst $(wspace),-,$(PACKAGE_NAME_QUALIFIER))
+
 ifeq ($(NAMEVERSIONED),1)
+VERSIONED_QUALIFIED_PACKAGE_NAME:=$(PACKAGE_NAME)$(PACKAGE_NAME_QUALIFIER)-$(RETHINKDB_SHORT_VERSION)
 VERSIONED_PACKAGE_NAME:=$(PACKAGE_NAME)-$(RETHINKDB_SHORT_VERSION)
-VERSIONED_TRIAL_PACKAGE_NAME:=$(TRIAL_PACKAGE_NAME)-$(RETHINKDB_SHORT_VERSION)
+# VERSIONED_TRIAL_PACKAGE_NAME:=$(TRIAL_PACKAGE_NAME)-$(RETHINKDB_SHORT_VERSION)
+# Remove this line if nothing breaks.
 VERSIONED_PRODUCT_SHARE_DIR:=/usr/share/$(VERSIONED_PACKAGE_NAME)
 else
+VERSIONED_QUALIFIED_PACKAGE_NAME:=$(PACKAGE_NAME)$(PACKAGE_NAME_QUALIFIER)-$(RETHINKDB_SHORT_VERSION)
 VERSIONED_PACKAGE_NAME:=$(PACKAGE_NAME)
-VERSIONED_TRIAL_PACKAGE_NAME:=$(TRIAL_PACKAGE_NAME)
+# VERSIONED_TRIAL_PACKAGE_NAME:=$(TRIAL_PACKAGE_NAME)
+# Remove this line if nothing breaks.
 VERSIONED_PRODUCT_SHARE_DIR:=/usr/share/$(PACKAGE_NAME)
 endif
 
@@ -749,7 +776,7 @@ install-deb: install
 		gzip -c9 | \
 		install -m644 -T /dev/stdin $(DESTDIR)$(doc_dir)/changelog.Debian.gz
 
-DebianV8Version:=$(shell apt-cache show libv8-dev | grep '^Version:' | sed -e 's/^Version: \\([0-9]*\\(\\.[0-9]*\\)*\\).*$$/\\1/g' || true ; )
+DEBIAN_V8_VERSION:=$(shell apt-cache show libv8-dev | grep '^Version:' | sed -e 's/^Version: \\([0-9]*\\(\\.[0-9]*\\)*\\).*$$/\\1/g' || true ; )
 
 build-deb-support: $(TC_LESSC_INT_EXE) $(TC_COFFEE_INT_EXE)
 
@@ -764,6 +791,8 @@ build-deb-src-control:
 				-D "VANILLA_PACKAGE_NAME=$(VANILLA_PACKAGE_NAME)"				\
 				-D "TRIAL_PACKAGE_NAME=$(TRIAL_PACKAGE_NAME)"						\
 				-D "VERSIONED_TRIAL_PACKAGE_NAME=$(VERSIONED_TRIAL_PACKAGE_NAME)"						\
+				-D "VERSIONED_QUALIFIED_PACKAGE_NAME=$(VERSIONED_QUALIFIED_PACKAGE_NAME)" \
+				-D "DEBIAN_V8_VERSION=$(DEBIAN_V8_VERSION)"
 				-D "PACKAGE_VERSION=$(RETHINKDB_VERSION_DEB)"						\
 				-D "LEGACY_LINUX=$(LEGACY_LINUX)"												\
 				-D "TRIAL=$(TRIAL)"																			\

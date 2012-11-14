@@ -7,7 +7,7 @@ dnl   PACKAGE_VERSION - version string, dashes are fine
 dnl   LEGACY_LINUX - 0 or 1 (specifies which library versions we can use)
 dnl
 define(`concatmove',`$1$2')dnl
-Source: PACKAGE_NAME
+Source: VERSIONED_QUALIFIED_PACKAGE_NAME
 Section: database
 Priority: optional
 Maintainer: Package Maintainer <packaging@rethinkdb.com>
@@ -17,7 +17,7 @@ BASE_DEPENDS`'NODEJS_DEPENDS_EXTRA
 Homepage: http://www.rethinkdb.com
 ifelse(SOURCEBUILD, 1, `
 ',`')dnl
-Package: PACKAGE_NAME
+Package: VERSIONED_QUALIFIED_PACKAGE_NAME
 Version: PACKAGE_VERSION
 Architecture: amd64
 Pre-Depends: adduser (>= 3.40)
@@ -31,13 +31,13 @@ ifelse(SOURCEBUILD, 1, `', `Installed-Size: DISK_SIZE
 ')dnl
 Description: RethinkDB supports replication, sharding, and powerful queries via its JavaScript, Python, and Ruby bindings.
 ifelse(SOURCEBUILD, 1,`
-Package: PACKAGE_NAME`'-dbg
+Package: VERSIONED_QUALIFIED_PACKAGE_NAME`'-dbg
 Version: PACKAGE_VERSION
 Architecture: amd64
 Pre-Depends: adduser (>= 3.40)
 Depends: ifelse(LEGACY_LINUX, 1,
-  `libc6 (>= 2.5), libstdc++6 (>= 4.6), libgcc1, libv8-dev (>=3.1)',
-  `libc6 (>= 2.10.1), libstdc++6 (>= 4.6), libgcc1, libv8-dev (>=3.1)')`, 'PACKAGE_NAME`'(= PACKAGE_VERSION)
+  `libc6 (>= 2.5), libstdc++6 (>= 4.6), libgcc1',
+  `libc6 (>= 2.10.1), libstdc++6 (>= 4.6), libgcc1')`'ifelse(STATIC_V8, 1, `', `'libv8-dev (>= 3.1)`, 'VERSIONED_QUALIFIED_PACKAGE_NAME` '(= PACKAGE_VERSION)
 Breaks: PACKAGE_NAME (<< PACKAGE_VERSION)
 Conflicts: PACKAGE_NAME (<< PACKAGE_VERSION)
 Provides: PACKAGE_NAME`'-dbg
