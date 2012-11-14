@@ -13,113 +13,99 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
-#include "arch/io/io_utils.hpp"   /* for `scoped_fd_t` and `_gettid()` */
+#include "arch/io/io_utils.hpp"
 #include "arch/timing.hpp"
 #include "logger.hpp"
+#include "containers/archive/file_stream.hpp"
 #include "containers/printf_buffer.hpp"
+
+void read_to_static_buffer_or_throw(const char *path, char *buf, size_t nbytes) THROWS_ONLY(std::runtime_error) {
+    guarantee(nbytes > 1);
+
+    blocking_read_file_stream_t stream;
+    int errsv;
+    if (!stream.init(path, &errsv)) {
+        // TODO: Get error information from a blocking_read_file_stream_t.
+        throw std::runtime_error(strprintf("Could not open '%s': %s (errno = %d).", path, strerror(errsv), errsv));
+    }
+
+    int64_t readres = force_read(&stream, buf, nbytes - 1);
+    if (readres <= 0) {
+        throw std::runtime_error(strprintf("Could not read from '%s'.", path));
+    }
+
+    buf[readres] = '\0';
+}
 
 /* Class to represent and parse the contents of /proc/[pid]/stat */
 
-struct proc_pid_stat_t {
-    int pid;
-    char name[500];
-    char state;
-    int ppid, pgrp, session, tty_nr, tpgid;
-    unsigned int flags;
-    uint64_t minflt, cminflt, majflt, cmajflt, utime, stime;
-    int64_t cutime, cstime, priority, nice, num_threads, itrealvalue;
-    uint64_t starttime;
-    uint64_t vsize;
-    int64_t rss;
-    uint64_t rsslim, startcode, endcode, startstack, kstkesp, kstkeip, signal, blocked,
-        sigignore, sigcatch, wchan, nswap, cnswap;
-    int exit_signal, processor;
-    unsigned int rt_priority, policy;
-    uint64_t delayacct_blkio_ticks;
-    uint64_t guest_time;
-    int64_t cguest_time;
+proc_pid_stat_t proc_pid_stat_t::for_pid(pid_t pid) {
+    printf_buffer_t<100> path("/proc/%d/stat", pid);
+    proc_pid_stat_t stat;
+    stat.read_from_file(path.c_str());
+    return stat;
+}
 
-    static proc_pid_stat_t for_pid(pid_t pid) {
-        printf_buffer_t<100> path("/proc/%d/stat", pid);
-        proc_pid_stat_t stat;
-        stat.read_from_file(path.c_str());
-        return stat;
-    }
+proc_pid_stat_t proc_pid_stat_t::for_pid_and_tid(pid_t pid, pid_t tid) {
+    printf_buffer_t<100> path("/proc/%d/task/%d/stat", pid, tid);
+    proc_pid_stat_t stat;
+    stat.read_from_file(path.c_str());
+    return stat;
+}
 
-    static proc_pid_stat_t for_pid_and_tid(pid_t pid, pid_t tid) {
-        printf_buffer_t<100> path("/proc/%d/task/%d/stat", pid, tid);
-        proc_pid_stat_t stat;
-        stat.read_from_file(path.c_str());
-        return stat;
-    }
-
-private:
-    void read_from_file(const char * path) {
-        scoped_fd_t stat_file(open(path, O_RDONLY));
-        if (stat_file.get() == INVALID_FD) {
-            throw std::runtime_error(strprintf("Could not open '%s': %s (errno "
-                "= %d)", path, strerror(errno), errno));
-        }
-
-        char buffer[1000];
-        int res = ::read(stat_file.get(), buffer, sizeof(buffer));
-        if (res <= 0) {
-            throw std::runtime_error(strprintf("Could not read '%s': %s (errno "
-                "= %d)", path, strerror(errno), errno));
-        }
-
-        buffer[res] = '\0';
+void proc_pid_stat_t::read_from_file(const char *path) {
+    char buffer[1000];
+    read_to_static_buffer_or_throw(path, buffer, sizeof(buffer));
 
 #ifndef LEGACY_PROC_STAT
-        const int items_to_parse = 44;
+    const int items_to_parse = 44;
 #else
-        const int items_to_parse = 42;
+    const int items_to_parse = 42;
 #endif
 
-        int res2 = sscanf(buffer, "%d %s %c %d %d %d %d %d %u"
-                          " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64
-                          " %" SCNd64 " %" SCNd64 " %" SCNd64 " %" SCNd64 " %" SCNd64 " %" SCNd64
-                          " %" SCNu64 " %" SCNu64 " %" SCNd64
-                          " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64
-                          " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64
-                          " %d %d"
-                          " %u %u"
+    int res2 = sscanf(buffer, "%d %s %c %d %d %d %d %d %u"
+                      " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64
+                      " %" SCNd64 " %" SCNd64 " %" SCNd64 " %" SCNd64 " %" SCNd64 " %" SCNd64
+                      " %" SCNu64 " %" SCNu64 " %" SCNd64
+                      " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64
+                      " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64
+                      " %d %d"
+                      " %u %u"
 #ifndef LEGACY_PROC_STAT
-                          " %" SCNu64
-                          " %" SCNu64
-                          " %" SCNd64,
+                      " %" SCNu64
+                      " %" SCNu64
+                      " %" SCNd64,
 #else
-                          " %" SCNu64,
+                      " %" SCNu64,
 #endif
-                          &pid,
-                          name,
-                          &state,
-                          &ppid, &pgrp, &session, &tty_nr, &tpgid,
-                          &flags,
-                          &minflt, &cminflt, &majflt, &cmajflt, &utime, &stime,
-                          &cutime, &cstime, &priority, &nice, &num_threads, &itrealvalue,
-                          &starttime,
-                          &vsize,
-                          &rss,
-                          &rsslim, &startcode, &endcode, &startstack, &kstkesp, &kstkeip, &signal, &blocked,
-                          &sigignore, &sigcatch, &wchan, &nswap, &cnswap,
-                          &exit_signal, &processor,
-                          &rt_priority, &policy,
+                      &pid,
+                      name,
+                      &state,
+                      &ppid, &pgrp, &session, &tty_nr, &tpgid,
+                      &flags,
+                      &minflt, &cminflt, &majflt, &cmajflt, &utime, &stime,
+                      &cutime, &cstime, &priority, &nice, &num_threads, &itrealvalue,
+                      &starttime,
+                      &vsize,
+                      &rss,
+                      &rsslim, &startcode, &endcode, &startstack, &kstkesp, &kstkeip, &signal, &blocked,
+                      &sigignore, &sigcatch, &wchan, &nswap, &cnswap,
+                      &exit_signal, &processor,
+                      &rt_priority, &policy,
 #ifndef LEGACY_PROC_STAT
-                          &delayacct_blkio_ticks,
-                          &guest_time,
-                          &cguest_time
+                      &delayacct_blkio_ticks,
+                      &guest_time,
+                      &cguest_time
 #else
-                          &delayacct_blkio_ticks
+                      &delayacct_blkio_ticks
 #endif
-                          );
-        if (res2 != items_to_parse) {
-            throw std::runtime_error(strprintf("Could not parse '%s': expected "
-                "to parse %d items, parsed %d. Buffer contents: %s", path,
-                items_to_parse, res2, buffer));
-        }
+                      );
+    if (res2 != items_to_parse) {
+        throw std::runtime_error(strprintf("Could not parse '%s': expected "
+            "to parse %d items, parsed %d. Buffer contents: %s", path,
+            items_to_parse, res2, buffer));
     }
-};
+}
 
 // This structure reads various global system stats such as total
 // memory consumption, network stats, etc.
@@ -133,56 +119,34 @@ public:
 public:
     static global_sys_stat_t read_global_stats() {
         global_sys_stat_t stat;
-        stat.mem_total = stat.mem_free = stat.utime = stat.ntime = stat.stime = stat.itime = stat.wtime = 0;
+        stat.mem_total = stat.mem_free = 0;
+        stat.utime = stat.ntime = stat.stime = stat.itime = stat.wtime = 0;
         stat.ncpus = 0;
         stat.bytes_received = stat.bytes_sent = 0;
 
         // Grab memory info
         {
-            const char *path = "/proc/meminfo";
-            scoped_fd_t stat_file(open(path, O_RDONLY));
-            if (stat_file.get() == INVALID_FD) {
-                throw std::runtime_error(strprintf("Could not open '%s': %s "
-                    "(errno = %d)", path, strerror(errno), errno));
-            }
-
             char buffer[1000];
-            int res = ::read(stat_file.get(), buffer, sizeof(buffer));
-            if (res <= 0) {
-                throw std::runtime_error(strprintf("Could not read '%s': %s "
-                    "(errno = %d)", path, strerror(errno), errno));
-            }
-            buffer[res] = '\0';
+            read_to_static_buffer_or_throw("/proc/meminfo", buffer, sizeof(buffer));
 
             char *_memtotal = strcasestr(buffer, "MemTotal");
             if (_memtotal) {
-                res = sscanf(_memtotal, "MemTotal:%*[ ]%" SCNi64 " kB", &stat.mem_total);
+                sscanf(_memtotal, "MemTotal:%*[ ]%" SCNi64 " kB", &stat.mem_total);
             }
             char *_memfree = strcasestr(buffer, "MemFree");
             if (_memfree) {
-                res = sscanf(_memfree, "MemFree:%*[ ]%" SCNi64 "kB", &stat.mem_free);
+                sscanf(_memfree, "MemFree:%*[ ]%" SCNi64 "kB", &stat.mem_free);
             }
         }
 
         // Grab CPU info
         {
-            const char *path = "/proc/stat";
-            scoped_fd_t stat_file(open(path, O_RDONLY));
-            if (stat_file.get() == INVALID_FD) {
-                throw std::runtime_error(strprintf("Could not open '%s': %s "
-                    "(errno = %d)", path, strerror(errno), errno));
-            }
-
             char buffer[1024 * 10];
-            int res = ::read(stat_file.get(), buffer, sizeof(buffer));
-            if (res <= 0) {
-                throw std::runtime_error(strprintf("Could not read '%s': %s "
-                    "(errno = %d)", path, strerror(errno), errno));
-            }
-            buffer[res] = '\0';
+            read_to_static_buffer_or_throw("/proc/stat", buffer, sizeof(buffer));
 
-            res = sscanf(buffer, "cpu%*[ ]%" SCNi64 " %" SCNi64 " %" SCNi64 " %" SCNi64 " %" SCNi64,
-                         &stat.utime, &stat.ntime, &stat.stime, &stat.itime, &stat.wtime);
+            // TODO: Why do we assign to res below?
+            sscanf(buffer, "cpu%*[ ]%" SCNi64 " %" SCNi64 " %" SCNi64 " %" SCNi64 " %" SCNi64,
+                   &stat.utime, &stat.ntime, &stat.stime, &stat.itime, &stat.wtime);
 
             // Compute the number of cores
             char *core = buffer;
@@ -198,20 +162,8 @@ public:
 
         // Grab network info
         {
-            const char *path = "/proc/net/dev";
-            scoped_fd_t stat_file(open(path, O_RDONLY));
-            if (stat_file.get() == INVALID_FD) {
-                throw std::runtime_error(strprintf("Could not open '%s': %s "
-                    "(errno = %d)", path, strerror(errno), errno));
-            }
-
             char buffer[1024 * 10];
-            int res = ::read(stat_file.get(), buffer, sizeof(buffer));
-            if (res <= 0) {
-                throw std::runtime_error(strprintf("Could not read '%s': %s "
-                    "(errno = %d)", path, strerror(errno), errno));
-            }
-            buffer[res] = '\0';
+            read_to_static_buffer_or_throw("/proc/net/dev", buffer, sizeof(buffer));
 
             // Scan for bytes received and sent on each interface
             char *netinfo = buffer;
@@ -220,15 +172,15 @@ public:
                 if (netinfo) {
                     netinfo += 2;
                     int64_t recv, sent;
-                    res = sscanf(netinfo, "%" SCNi64 "%*[ ]%*d%*[ ]%*d%*[ ]%*d%*[ ]%*d%*[ ]%*d%*[ ]%*d%*[ ]%*d%*[ ]%" SCNi64 "%*[ ]", &recv, &sent);
+                    int res = sscanf(netinfo, "%" SCNi64 "%*[ ]%*d%*[ ]%*d%*[ ]%*d%*[ ]%*d%*[ ]%*d%*[ ]%*d%*[ ]%*d%*[ ]%" SCNi64 "%*[ ]", &recv, &sent);
                     if (res == 2) {
                         stat.bytes_received += recv;
                         stat.bytes_sent += sent;
                     }
                 }
             } while (netinfo);
-            res = sscanf(buffer, "cpu%*[ ]%" SCNi64 " %" SCNi64 " %" SCNi64 " %" SCNi64 " %" SCNi64,
-                         &stat.utime, &stat.ntime, &stat.stime, &stat.itime, &stat.wtime);
+            sscanf(buffer, "cpu%*[ ]%" SCNi64 " %" SCNi64 " %" SCNi64 " %" SCNi64 " %" SCNi64,
+                   &stat.utime, &stat.ntime, &stat.stime, &stat.itime, &stat.wtime);
         }
 
         // Whoo, we're done.

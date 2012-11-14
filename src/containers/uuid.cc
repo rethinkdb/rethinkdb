@@ -79,11 +79,7 @@ void hash_uuid(uuid_t *uuid) {
 }
 
 void initialize_dev_random_uuid() {
-    int random_fd = open("/dev/urandom", O_RDONLY);
-    guarantee(random_fd != -1);
-    ssize_t readres = read(random_fd, next_uuid, uuid_t::static_size());
-    guarantee(readres == static_cast<ssize_t>(uuid_t::static_size()));
-    close(random_fd);
+    get_dev_urandom(next_uuid, uuid_t::static_size());
 }
 
 uuid_t generate_uuid() {

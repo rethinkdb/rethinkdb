@@ -45,8 +45,8 @@ class spawner_t :
     pid_t spawn_process(scoped_fd_t *socket);
 
   private:
-    static void exec_spawner(fd_t socket) NORETURN;
-    static void exec_worker(fd_t socket) NORETURN;
+    static void exec_spawner(pid_t rdb_pid, fd_t socket) NORETURN;
+    static void exec_worker(pid_t rdb_pid, fd_t socket) NORETURN;
 
   private:
     pid_t pid_;
