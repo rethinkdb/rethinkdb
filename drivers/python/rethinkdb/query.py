@@ -488,8 +488,9 @@ class JSONExpression(ReadQuery):
     def order_by(self, *attributes):
         """Sorts an array of objects according to the given attributes.
 
-        Items are sorted in ascending order unless the attribute name starts
-        with '-', which sorts the attribute in descending order.
+        To specify ascending or decending ordering, pass a tuple giving the
+        attribute and a flag specifying the ordering. Defaults to True for
+        ascending ordering.
 
         This is like :meth:`StreamExpression.order_by` but with arrays instead
         of streams.
@@ -502,10 +503,10 @@ class JSONExpression(ReadQuery):
         """
         order = []
         for attr in attributes:
-            if attr.startswith('-'):
-                order.append((attr[1:], False))
-            else:
+            if isinstance(attr, str):
                 order.append((attr, True))
+            else:
+                order.append(attr)
         return JSONExpression(internal.OrderBy(self, order))
 
     def map(self, mapping):
@@ -905,8 +906,9 @@ class StreamExpression(ReadQuery):
     def order_by(self, *attributes):
         """Sort the stream according to the given attributes.
 
-        Items are sorted in ascending order unless the attribute name starts
-        with '-', which sorts the attribute in descending order.
+        To specify ascending or decending ordering, pass a tuple giving the
+        attribute and a flag specifying the ordering. Defaults to True for
+        ascending ordering.
 
         TODO: What if an attribute is missing?
 
@@ -919,10 +921,10 @@ class StreamExpression(ReadQuery):
         """
         order = []
         for attr in attributes:
-            if attr.startswith('-'):
-                order.append((attr[1:], False))
-            else:
+            if isinstance(attr, str):
                 order.append((attr, True))
+            else:
+                order.append(attr)
         return self._make_selector(internal.OrderBy(self, order))
 
     def union(self, *others):
