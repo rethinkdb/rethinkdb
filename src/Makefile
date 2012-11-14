@@ -792,25 +792,25 @@ build-deb-src-control:
 				-D "TRIAL_PACKAGE_NAME=$(TRIAL_PACKAGE_NAME)"						\
 				-D "VERSIONED_TRIAL_PACKAGE_NAME=$(VERSIONED_TRIAL_PACKAGE_NAME)"						\
 				-D "VERSIONED_QUALIFIED_PACKAGE_NAME=$(VERSIONED_QUALIFIED_PACKAGE_NAME)" \
-				-D "DEBIAN_V8_VERSION=$(DEBIAN_V8_VERSION)"
-				-D "PACKAGE_VERSION=$(RETHINKDB_VERSION_DEB)"						\
-				-D "LEGACY_LINUX=$(LEGACY_LINUX)"												\
-				-D "TRIAL=$(TRIAL)"																			\
-				-D "DISK_SIZE=$${disk_size}"														\
+				-D "DEBIAN_V8_VERSION=$(DEBIAN_V8_VERSION)" \
+				-D "PACKAGE_VERSION=$(RETHINKDB_VERSION_DEB)" \
+				-D "LEGACY_LINUX=$(LEGACY_LINUX)" \
+				-D "TRIAL=$(TRIAL)" \
+				-D "DISK_SIZE=$${disk_size}" \
 				-D "SOURCEBUILD=1" \
 				-D "NODEJS_NEW=$(NODEJS_NEW)" \
 			../packaging/$(DEBIAN_PKG_DIR)/control > ../debian/control
 # Copy {pre,post}{inst,rm} scripts
 	$(QUIET) for script in preinst postinst prerm postrm; do		                  		\
-			m4 																																						\
-					-D "BIN_DIR=$(bin_dir)" 																									\
-					-D "MAN1_DIR=$(man1_dir)" 																								\
-					-D "BASH_COMPLETION_DIR=$(bash_completion_dir)" 													\
-					-D "INTERNAL_BASH_COMPLETION_DIR=$(internal_bash_completion_dir)" 				\
-					-D "SERVER_EXEC_NAME=$(SERVER_EXEC_NAME)" 																\
-					-D "SERVER_EXEC_NAME_VERSIONED=$(SERVER_EXEC_NAME_VERSIONED)" 						\
-					-D "UPDATE_ALTERNATIVES=$(NAMEVERSIONED)" 													\
-					-D "PRIORITY=$(PACKAGING_ALTERNATIVES_PRIORITY)" 													\
+			m4 \
+					-D "BIN_DIR=$(bin_dir)" \
+					-D "MAN1_DIR=$(man1_dir)" \
+					-D "BASH_COMPLETION_DIR=$(bash_completion_dir)" \
+					-D "INTERNAL_BASH_COMPLETION_DIR=$(internal_bash_completion_dir)" \
+					-D "SERVER_EXEC_NAME=$(SERVER_EXEC_NAME)" \
+					-D "SERVER_EXEC_NAME_VERSIONED=$(SERVER_EXEC_NAME_VERSIONED)" \
+					-D "UPDATE_ALTERNATIVES=$(NAMEVERSIONED)" \
+					-D "PRIORITY=$(PACKAGING_ALTERNATIVES_PRIORITY)" \
 				../packaging/$(DEBIAN_PKG_DIR)/$${script} > ../debian/$${script}; \
 			chmod 0755 ../debian/$${script};																		\
 		done
@@ -860,6 +860,8 @@ build-deb: all prepare_deb_package_dirs
 				-D "TRIAL_PACKAGE_NAME=$(TRIAL_PACKAGE_NAME)"						\
 				-D "VERSIONED_TRIAL_PACKAGE_NAME=$(VERSIONED_TRIAL_PACKAGE_NAME)"						\
 				-D "PACKAGE_VERSION=$(RETHINKDB_VERSION_DEB)"						\
+				-D "VERSIONED_QUALIFIED_PACKAGE_NAME=$(VERSIONED_QUALIFIED_PACKAGE_NAME)" \
+				-D "DEBIAN_V8_VERSION=$(DEBIAN_V8_VERSION)" \
 				-D "LEGACY_LINUX=$(LEGACY_LINUX)"												\
 				-D "TRIAL=$(TRIAL)"																			\
 				-D "DISK_SIZE=$${disk_size}"														\
