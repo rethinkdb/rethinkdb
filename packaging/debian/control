@@ -11,9 +11,10 @@ Source: VERSIONED_QUALIFIED_PACKAGE_NAME
 Section: database
 Priority: optional
 Maintainer: Package Maintainer <packaging@rethinkdb.com>
-define(`BASE_DEPENDS',`Build-Depends: g++, protobuf-compiler, protobuf-c-compiler, libprotobuf-dev, libprotobuf-c0-dev, libboost-dev, libssl-dev, libv8-dev, libboost-program-options-dev, libgoogle-perftools-dev, npm, jsdoc-toolkit, libprotoc-dev, curl, exuberant-ctags, m4, debhelper, fakeroot, ruby, rubygems, git')dnl
+define(`BASE_DEPENDS',`Build-Depends: g++, protobuf-compiler, protobuf-c-compiler, libprotobuf-dev, libprotobuf-c0-dev, libboost-dev, libssl-dev, libboost-program-options-dev, libgoogle-perftools-dev, npm, jsdoc-toolkit, libprotoc-dev, curl, exuberant-ctags, m4, debhelper, fakeroot, ruby, rubygems, git')dnl
 define(`NODEJS_DEPENDS_EXTRA',`ifelse(NODEJS_NEW,1,`, nodejs-legacy',`')')dnl
-BASE_DEPENDS`'NODEJS_DEPENDS_EXTRA
+define(`V8_DEPENDS_EXTRA',`ifelse(STATIC_V8,0,`, libv8-dev',`')')dnl
+BASE_DEPENDS`'NODEJS_DEPENDS_EXTRA`'V8_DEPENDS_EXTRA
 Homepage: http://www.rethinkdb.com
 ifelse(SOURCEBUILD, 1, `
 ',`')dnl
@@ -22,8 +23,9 @@ Version: PACKAGE_VERSION
 Architecture: amd64
 Pre-Depends: adduser (>= 3.40)
 Depends: ifelse(LEGACY_LINUX, 1,
-  `libc6 (>= 2.5), libstdc++6 (>= 4.6), libgcc1, libv8-dev (>=3.1)',
-  `libc6 (>= 2.10.1), libstdc++6 (>= 4.6), libgcc1, libv8-dev (>=3.1)')
+  `libc6 (>= 2.5), libstdc++6 (>= 4.6), libgcc1',
+  `libc6 (>= 2.10.1), libstdc++6 (>= 4.6), libgcc1')`'dnl
+ifelse(STATIC_V8, 0, `, libv8-dev (>= 3.1)', `')
 Breaks: PACKAGE_NAME (<< PACKAGE_VERSION)
 Conflicts: PACKAGE_NAME (<< PACKAGE_VERSION)
 Provides: PACKAGE_NAME
