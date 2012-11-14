@@ -190,8 +190,8 @@ ifneq ($(V8_CHAIN),0)
 ifeq ($(V8_CHAIN),2)
 LDFLAGS+= -L $(V8_DIR)
 endif
-CXXPATHDS+= -isystem $(V8_DIR)/v8/include
-CPATHDS+= -isystem $(V8_DIR)/v8/include
+CXXPATHDS+= -isystem $(V8_DIR)/include
+CPATHDS+= -isystem $(V8_DIR)/include
 ifeq ($(STATIC_V8),2)
 OBJ_SUPPS+=$(V8_LIB)
 endif
