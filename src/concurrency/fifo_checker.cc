@@ -98,12 +98,12 @@ void order_sink_t::verify_token_value_and_update(order_token_t token, std::pair<
     // to ensure that multiple actions don't get interrupted.  And
     // resending the same action isn't normally a problem.
     if (token.read_mode_) {
-        rassert(token.value_ >= ls_pair->first.value, "read_mode expected (0x%lx >= 0x%lx), (%s >= %s), bucket = (%s)", token.value_, ls_pair->first.value, token.tag_.c_str(), ls_pair->first.tag.c_str(), uuid_to_str(token.bucket_.uuid_).c_str());
+        rassert(token.value_ >= ls_pair->first.value, "read_mode expected (0x%" PRIx64 " >= 0x%" PRIx64 "), (%s >= %s), bucket = (%s)", token.value_, ls_pair->first.value, token.tag_.c_str(), ls_pair->first.tag.c_str(), uuid_to_str(token.bucket_.uuid_).c_str());
         if (ls_pair->second.value < token.value_) {
             ls_pair->second = tagged_seen_t(token.value_, token.tag_);
         }
     } else {
-        rassert(token.value_ >= ls_pair->second.value, "write_mode expected (0x%lx >= 0x%lx), (%s >= %s), bucket = (%s)", token.value_, ls_pair->second.value, token.tag_.c_str(), ls_pair->second.tag.c_str(), uuid_to_str(token.bucket_.uuid_).c_str());
+        rassert(token.value_ >= ls_pair->second.value, "write_mode expected (0x%" PRIx64 " >= 0x%" PRIx64 "), (%s >= %s), bucket = (%s)", token.value_, ls_pair->second.value, token.tag_.c_str(), ls_pair->second.tag.c_str(), uuid_to_str(token.bucket_.uuid_).c_str());
         ls_pair->first = ls_pair->second = tagged_seen_t(token.value_, token.tag_);
     }
 }

@@ -30,7 +30,7 @@ peer_id_t raw_mailbox_t::address_t::get_peer() const {
 }
 
 std::string raw_mailbox_t::address_t::human_readable() const {
-    return strprintf("%s:%d:%ld", uuid_to_str(peer.get_uuid()).c_str(), thread, mailbox_id);
+    return strprintf("%s:%d:%" PRIi64 , uuid_to_str(peer.get_uuid()).c_str(), thread, mailbox_id);
 }
 
 raw_mailbox_t::raw_mailbox_t(mailbox_manager_t *m, mailbox_thread_mode_t tm, mailbox_read_callback_t *_callback) :
