@@ -78,7 +78,7 @@ public:
         }
 
         /* Actually resize the bitset */
-        bits.resize(ceil_aligned(new_size, 64) / 64, value ? 0xFFFFFFFFFFFFFFFF : 0);
+        bits.resize(ceil_aligned(new_size, 64) / 64, value ? -1 : 0);
         _size = new_size;
 
         /* `std::vector::resize()` correctly initialized any new chunks, but we must correctly set
