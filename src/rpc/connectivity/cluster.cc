@@ -292,11 +292,6 @@ void connectivity_cluster_t::run_t::handle(
     cluster_conn_closing_subscription_t conn_closer_1(conn);
     conn_closer_1.reset(drainer_lock.get_drain_signal());
 
-    /* Send a heartbeat after three seconds of inactivity; if heartbeat is not
-    acked, try again every three seconds and declare connection dead after twelve
-    seconds total. */
-    conn->get_underlying_conn()->set_keepalive(3, 3, 3);
-
     // Each side sends a header followed by its own ID and address, then receives and checks the
     // other side's.
     const int64_t header_size = sizeof(CLUSTER_PROTO_HEADER) - 1;
@@ -707,6 +702,20 @@ peer_address_t connectivity_cluster_t::get_peer_address(peer_id_t p) THROWS_NOTH
         "considered to be connected to ourself until after the "
         "connectivity_cluster_t::run_t has been constructed.");
     return it->second.first->address;
+}
+
+void connectivity_cluster_t::kill_connection(peer_id_t remote_peer) THROWS_NOTHING {
+    thread_info_t *info = thread_info.get();
+    std::map<peer_id_t, std::pair<run_t::connection_entry_t *, auto_drainer_t::lock_t> >::iterator i = info->connection_map.find(remote_peer);
+
+    // If the search fails, it means the connection already died for other reasons
+    if (i != info->connection_map.end()) {
+        on_thread_t rethreader(i->second.first->conn->home_thread());
+
+        // This should cause the run_t to error out pretty quickly
+        i->second.first->conn->shutdown_read();
+        i->second.first->conn->shutdown_write();
+    }
 }
 
 rwi_lock_assertion_t *connectivity_cluster_t::get_peers_list_lock() THROWS_NOTHING {

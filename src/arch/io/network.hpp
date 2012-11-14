@@ -114,13 +114,6 @@ public:
     /* Returns false if the half of the pipe that goes from us to the peer has been closed. */
     bool is_write_open();
 
-    /* Call to enable/disable `SO_KEEPALIVE` for this socket. First version
-    enables and configures it; second version disables it. */
-    /* TODO: This API is insufficient because there's no way to use it on a
-    connection before `connect()` is called. */
-    void set_keepalive(int idle_seconds, int try_interval_seconds, int try_count);
-    void set_keepalive();
-
     /* Put a `perfmon_rate_monitor_t` here if you want to record stats on how fast data is being
     transmitted over the network. */
     perfmon_rate_monitor_t *write_perfmon;
