@@ -33,16 +33,16 @@ public:
     // extent_transaction_t object.
     int32_t extent_use_refcount;
 
-    off64_t next_in_free_list;   // Valid if state == state_free
+    int64_t next_in_free_list;   // Valid if state == state_free
 
     extent_info_t() : state_(state_unreserved), extent_use_refcount(0), next_in_free_list(-1) {}
 };
 
 class extent_zone_t {
-    off64_t start, end;
+    int64_t start, end;
     size_t extent_size;
 
-    unsigned int offset_to_id(off64_t extent) {
+    unsigned int offset_to_id(int64_t extent) {
         rassert(extent < end);
         rassert(extent >= start);
 #ifndef NDEBUG
@@ -61,7 +61,7 @@ class extent_zone_t {
 
     segmented_vector_t<extent_info_t, MAX_DATA_EXTENTS> extents;
 
-    off64_t free_list_head;
+    int64_t free_list_head;
 private:
     int held_extents_;
 public:
@@ -70,7 +70,7 @@ public:
     }
 
 public:
-    extent_zone_t(off64_t _start, off64_t _end, size_t _extent_size)
+    extent_zone_t(int64_t _start, int64_t _end, size_t _extent_size)
         : start(_start), end(_end), extent_size(_extent_size), held_extents_(0)
     {
 #ifndef NDEBUG
@@ -81,7 +81,7 @@ public:
 #endif
     }
 
-    void reserve_extent(off64_t extent, extent_reference_t *extent_ref_out) {
+    void reserve_extent(int64_t extent, extent_reference_t *extent_ref_out) {
         unsigned int id = offset_to_id(extent);
 
         if (id >= extents.get_size()) {
@@ -97,7 +97,7 @@ public:
     void reconstruct_free_list() {
         free_list_head = NULL_OFFSET;
 
-        for (off64_t extent = start; extent < start + (off64_t)(extents.get_size() * extent_size); extent += extent_size) {
+        for (int64_t extent = start; extent < start + (int64_t)(extents.get_size() * extent_size); extent += extent_size) {
             if (extents[offset_to_id(extent)].state() == extent_info_t::state_unreserved) {
                 extents[offset_to_id(extent)].set_state(extent_info_t::state_free);
                 extents[offset_to_id(extent)].next_in_free_list = free_list_head;
@@ -108,7 +108,7 @@ public:
     }
 
     bool gen_extent(extent_reference_t *extent_ref_out) {
-        off64_t extent;
+        int64_t extent;
 
         if (free_list_head == NULL_OFFSET) {
             extent = start + extents.get_size() * extent_size;
@@ -131,7 +131,7 @@ public:
         return true;
     }
 
-    void make_extent_reference(off64_t extent, extent_reference_t *extent_ref_out) {
+    void make_extent_reference(int64_t extent, extent_reference_t *extent_ref_out) {
         unsigned int id = offset_to_id(extent);
         guarantee(id < extents.get_size());
         extent_info_t *info = &extents[id];
@@ -141,7 +141,7 @@ public:
     }
 
     void release_extent(extent_reference_t *extent_ref) {
-        off64_t extent = extent_ref->release();
+        int64_t extent = extent_ref->release();
         extent_info_t *info = &extents[offset_to_id(extent)];
         guarantee(info->state() == extent_info_t::state_in_use);
         guarantee(info->extent_use_refcount > 0);
@@ -176,9 +176,9 @@ extent_manager_t::extent_manager_t(file_t *file, const log_serializer_on_disk_st
         /* On a block device, chop the block device up into equal-sized zones, the number of
         which is determined by a configuration parameter. */
         size_t zone_size = ceil_aligned(dynamic_config->file_zone_size, extent_size);
-        off64_t end = 0;
-        while (end != floor_aligned((off64_t)file->get_size(), extent_size)) {
-            off64_t start = end;
+        int64_t end = 0;
+        while (end != floor_aligned((int64_t)file->get_size(), extent_size)) {
+            int64_t start = end;
             end = std::min(start + zone_size, floor_aligned(file->get_size(), extent_size));
             zones.push_back(new extent_zone_t(start, end, extent_size));
         }
@@ -196,7 +196,7 @@ extent_manager_t::~extent_manager_t() {
     rassert(state == state_reserving_extents || state == state_shut_down);
 }
 
-extent_zone_t *extent_manager_t::zone_for_offset(off64_t offset) {
+extent_zone_t *extent_manager_t::zone_for_offset(int64_t offset) {
     assert_thread();
     if (dbfile->is_block_device() || dynamic_config->file_size > 0) {
         size_t zone_size = ceil_aligned(dynamic_config->file_zone_size, extent_size);
@@ -208,7 +208,7 @@ extent_zone_t *extent_manager_t::zone_for_offset(off64_t offset) {
 }
 
 
-void extent_manager_t::reserve_extent(off64_t extent, extent_reference_t *extent_ref) {
+void extent_manager_t::reserve_extent(int64_t extent, extent_reference_t *extent_ref) {
     assert_thread();
 #ifdef DEBUG_EXTENTS
     debugf("EM %p: Reserve extent %.8lx\n", this, extent);
@@ -235,7 +235,7 @@ void extent_manager_t::start_existing(UNUSED metablock_mixin_t *last_metablock) 
 
 #ifdef DEBUG_EXTENTS
     debugf("EM %p: Start. Extents in use:\n", this);
-    for (off64_t extent = 0; extent < (unsigned)(extents.get_size() * extent_size); extent += extent_size) {
+    for (int64_t extent = 0; extent < (unsigned)(extents.get_size() * extent_size); extent += extent_size) {
         if (extent_info(extent) == EXTENT_IN_USE) {
             fprintf(stderr, "%.8lx ", extent);
         }
@@ -248,7 +248,7 @@ void extent_manager_t::prepare_metablock(metablock_mixin_t *metablock) {
     assert_thread();
 #ifdef DEBUG_EXTENTS
     debugf("EM %p: Prepare metablock. Extents in use:\n", this);
-    for (off64_t extent = 0; extent < (unsigned)(extents.get_size() * extent_size); extent += extent_size) {
+    for (int64_t extent = 0; extent < (unsigned)(extents.get_size() * extent_size); extent += extent_size) {
         if (extent_info(extent) == EXTENT_IN_USE) {
             fprintf(stderr, "%.8lx ", extent);
         }
@@ -263,7 +263,7 @@ void extent_manager_t::shutdown() {
     assert_thread();
 #ifdef DEBUG_EXTENTS
     debugf("EM %p: Shutdown. Extents in use:\n", this);
-    for (off64_t extent = 0; extent < (unsigned)(extents.get_size() * extent_size); extent += extent_size) {
+    for (int64_t extent = 0; extent < (unsigned)(extents.get_size() * extent_size); extent += extent_size) {
         if (extent_info(extent) == EXTENT_IN_USE) {
             fprintf(stderr, "%.8lx ", extent);
         }
@@ -314,7 +314,7 @@ void extent_manager_t::gen_extent(extent_reference_t *extent_ref_out) {
 }
 
 void extent_manager_t::copy_extent_reference(extent_reference_t *extent_ref, extent_reference_t *extent_ref_out) {
-    off64_t offset = extent_ref->offset();
+    int64_t offset = extent_ref->offset();
     zone_for_offset(offset)->make_extent_reference(offset, extent_ref_out);
 }
 
@@ -351,9 +351,9 @@ void extent_manager_t::end_transaction(extent_transaction_t *t) {
 
 void extent_manager_t::commit_transaction(extent_transaction_t *t) {
     assert_thread();
-    std::deque<off64_t> extents;
+    std::deque<int64_t> extents;
     t->reset(&extents);
-    for (std::deque<off64_t>::const_iterator it = extents.begin(); it != extents.end(); ++it) {
+    for (std::deque<int64_t>::const_iterator it = extents.begin(); it != extents.end(); ++it) {
         extent_reference_t extent_ref;
         extent_ref.init(*it);
         zone_for_offset(extent_ref.offset())->release_extent(&extent_ref);

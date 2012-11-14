@@ -278,7 +278,7 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, io
         guarantee_err(res != -1, "Could not determine block device size");
 #endif
     } else {
-        off64_t size = lseek64(fd.get(), 0, SEEK_END);
+        int64_t size = lseek64(fd.get(), 0, SEEK_END);
         guarantee_err(size != -1, "Could not determine file size");
         res = lseek64(fd.get(), 0, SEEK_SET);
         guarantee_err(res != -1, "Could not reset file position");

@@ -409,7 +409,7 @@ bool check_metablock(nondirect_file_t *file, file_knowledge_t *knog, metablock_e
     errs->no_valid_metablocks = false;
     errs->implausible_block_failure = false;
 
-    std::vector<off64_t> metablock_offsets = initial_metablock_offsets(knog->static_config->extent_size());
+    std::vector<int64_t> metablock_offsets = initial_metablock_offsets(knog->static_config->extent_size());
 
     errs->total_count = metablock_offsets.size();
 
@@ -425,7 +425,7 @@ bool check_metablock(nondirect_file_t *file, file_knowledge_t *knog, metablock_e
 
 
     for (int i = 0, n = metablock_offsets.size(); i < n; ++i) {
-        off64_t off = metablock_offsets[i];
+        int64_t off = metablock_offsets[i];
 
         block_t b;
         if (!b.init(DEVICE_BLOCK_SIZE, file, off)) {
@@ -493,11 +493,11 @@ bool check_metablock(nondirect_file_t *file, file_knowledge_t *knog, metablock_e
     return true;
 }
 
-bool is_valid_offset(file_knowledge_t *knog, off64_t offset, off64_t alignment) {
+bool is_valid_offset(file_knowledge_t *knog, int64_t offset, int64_t alignment) {
     return offset >= 0 && offset % alignment == 0 && (uint64_t)offset < *knog->filesize;
 }
 
-bool is_valid_extent(file_knowledge_t *knog, off64_t offset) {
+bool is_valid_extent(file_knowledge_t *knog, int64_t offset) {
     return is_valid_offset(knog, offset, knog->static_config->extent_size());
 }
 
@@ -505,7 +505,7 @@ bool is_valid_btree_offset(file_knowledge_t *knog, flagged_off64_t offset) {
     return !offset.has_value() || is_valid_offset(knog, offset.get_value(), knog->static_config->block_size().ser_value());
 }
 
-bool is_valid_device_block(file_knowledge_t *knog, off64_t offset) {
+bool is_valid_device_block(file_knowledge_t *knog, int64_t offset) {
     return is_valid_offset(knog, offset, DEVICE_BLOCK_SIZE);
 }
 
@@ -526,7 +526,7 @@ struct lba_extent_errors {
     }
 };
 
-bool check_lba_extent(nondirect_file_t *file, file_knowledge_t *knog, unsigned int shard_number, off64_t extent_offset, int entries_count, lba_extent_errors *errs) {
+bool check_lba_extent(nondirect_file_t *file, file_knowledge_t *knog, unsigned int shard_number, int64_t extent_offset, int entries_count, lba_extent_errors *errs) {
     if (!is_valid_extent(knog, extent_offset)) {
         errs->code = lba_extent_errors::bad_extent_offset;
         return false;

@@ -240,7 +240,7 @@ private:
     scoped_fd_t fd;
     scoped_array_t<char> current_chunk;
     int remaining_in_current_chunk;
-    off64_t current_chunk_start;
+    int64_t current_chunk_start;
 
     DISABLE_COPYING(file_reverse_reader_t);
 };

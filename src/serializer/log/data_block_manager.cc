@@ -50,7 +50,7 @@ void data_block_manager_t::start_reconstruct() {
 // gc_entry in the entries table.  (This is used when we start up, when
 // everything is presumed to be garbage, until we mark it as
 // non-garbage.)
-void data_block_manager_t::mark_live(off64_t offset) {
+void data_block_manager_t::mark_live(int64_t offset) {
     int extent_id = static_config->extent_index(offset);
     int block_id = static_config->block_index(offset);
 
@@ -81,7 +81,7 @@ void data_block_manager_t::start_existing(file_t *file, metablock_mixin_t *last_
 
     /* Reconstruct the active data block extents from the metablock. */
     for (unsigned int i = 0; i < MAX_ACTIVE_DATA_EXTENTS; i++) {
-        off64_t offset = last_metablock->active_extents[i];
+        int64_t offset = last_metablock->active_extents[i];
 
         if (offset != NULL_OFFSET) {
             /* It is possible to have an active data block extent with no actual data
@@ -128,14 +128,14 @@ class dbm_read_ahead_fsm_t : public iocallback_t {
 public:
     data_block_manager_t *parent;
     iocallback_t *callback;
-    off64_t extent;
+    int64_t extent;
     void *read_ahead_buf;
-    off64_t read_ahead_size;
-    off64_t read_ahead_offset;
-    off64_t off_in;
+    int64_t read_ahead_size;
+    int64_t read_ahead_offset;
+    int64_t off_in;
     void *buf_out;
 
-    dbm_read_ahead_fsm_t(data_block_manager_t *p, off64_t _off_in, void *_buf_out, file_account_t *io_account, iocallback_t *cb)
+    dbm_read_ahead_fsm_t(data_block_manager_t *p, int64_t _off_in, void *_buf_out, file_account_t *io_account, iocallback_t *cb)
         : parent(p), callback(cb), read_ahead_buf(NULL), off_in(_off_in), buf_out(_buf_out)
     {
         extent = floor_aligned(off_in, parent->static_config->extent_size());
@@ -158,7 +158,7 @@ public:
 
             const char *current_buf = reinterpret_cast<char *>(read_ahead_buf) + (current_block * parent->static_config->block_size().ser_value());
 
-            const off64_t current_offset = read_ahead_offset + (current_block * parent->static_config->block_size().ser_value());
+            const int64_t current_offset = read_ahead_offset + (current_block * parent->static_config->block_size().ser_value());
 
             // Copy either into buf_out or create a new buffer for read ahead
             if (current_offset == off_in) {
@@ -201,7 +201,7 @@ public:
     }
 };
 
-bool data_block_manager_t::should_perform_read_ahead(off64_t offset) {
+bool data_block_manager_t::should_perform_read_ahead(int64_t offset) {
     unsigned int extent_id = static_config->extent_index(offset);
 
     gc_entry *entry = entries.get(extent_id);
@@ -212,7 +212,7 @@ bool data_block_manager_t::should_perform_read_ahead(off64_t offset) {
     return !entry->was_written && serializer->should_perform_read_ahead();
 }
 
-void data_block_manager_t::read(off64_t off_in, void *buf_out, file_account_t *io_account, iocallback_t *cb) {
+void data_block_manager_t::read(int64_t off_in, void *buf_out, file_account_t *io_account, iocallback_t *cb) {
     rassert(state == state_ready);
 
     if (should_perform_read_ahead(off_in)) {
@@ -232,7 +232,7 @@ void data_block_manager_t::read(off64_t off_in, void *buf_out, file_account_t *i
  Also this makes stuff easier in other places, as we get the offset as well as a freshly
  set block_sequence_id immediately.
  */
-off64_t data_block_manager_t::write(const void *buf_in, block_id_t block_id, bool assign_new_block_sequence_id,
+int64_t data_block_manager_t::write(const void *buf_in, block_id_t block_id, bool assign_new_block_sequence_id,
                                     file_account_t *io_account, iocallback_t *cb,
                                     bool token_referenced) {
     // Either we're ready to write, or we're shutting down and just
@@ -240,7 +240,7 @@ off64_t data_block_manager_t::write(const void *buf_in, block_id_t block_id, boo
     rassert(state == state_ready
            || (state == state_shutting_down && gc_state.step() == gc_write));
 
-    off64_t offset = gimme_a_new_offset(token_referenced);
+    int64_t offset = gimme_a_new_offset(token_referenced);
 
     ++stats->pm_serializer_data_blocks_written;
 
@@ -318,7 +318,7 @@ file_account_t *data_block_manager_t::choose_gc_io_account() {
     }
 }
 
-void data_block_manager_t::mark_garbage(off64_t offset, extent_transaction_t *txn) {
+void data_block_manager_t::mark_garbage(int64_t offset, extent_transaction_t *txn) {
     unsigned int extent_id = static_config->extent_index(offset);
     unsigned int block_id = static_config->block_index(offset);
 
@@ -348,7 +348,7 @@ void data_block_manager_t::mark_garbage(off64_t offset, extent_transaction_t *tx
     check_and_handle_empty_extent(extent_id);
 }
 
-void data_block_manager_t::mark_token_live(off64_t offset) {
+void data_block_manager_t::mark_token_live(int64_t offset) {
     unsigned int extent_id = static_config->extent_index(offset);
     unsigned int block_id = static_config->block_index(offset);
 
@@ -358,7 +358,7 @@ void data_block_manager_t::mark_token_live(off64_t offset) {
     entry->update_g_array(block_id);
 }
 
-void data_block_manager_t::mark_token_garbage(off64_t offset) {
+void data_block_manager_t::mark_token_garbage(int64_t offset) {
     unsigned int extent_id = static_config->extent_index(offset);
     unsigned int block_id = static_config->block_index(offset);
 
@@ -592,7 +592,7 @@ void data_block_manager_t::run_gc() {
                     if (gc_state.current_entry->g_array[i]) continue;
 
                     char *block = gc_state.gc_blocks + i * static_config->block_size().ser_value();
-                    const off64_t block_offset = gc_state.current_entry->extent_ref.offset() + (i * static_config->block_size().ser_value());
+                    const int64_t block_offset = gc_state.current_entry->extent_ref.offset() + (i * static_config->block_size().ser_value());
                     block_id_t id;
                     // The block is either referenced by an index or by a token (or both)
                     if (gc_state.current_entry->i_array[i]) {
@@ -686,7 +686,7 @@ void data_block_manager_t::actually_shutdown() {
 
     for (unsigned int i = 0; i < dynamic_config->num_active_data_extents; i++) {
         if (active_extents[i]) {
-            UNUSED off64_t extent = active_extents[i]->extent_ref.release();
+            UNUSED int64_t extent = active_extents[i]->extent_ref.release();
             delete active_extents[i];
             active_extents[i] = NULL;
         }
@@ -694,13 +694,13 @@ void data_block_manager_t::actually_shutdown() {
 
     while (gc_entry *entry = young_extent_queue.head()) {
         young_extent_queue.remove(entry);
-        UNUSED off64_t extent = entry->extent_ref.release();
+        UNUSED int64_t extent = entry->extent_ref.release();
         delete entry;
     }
 
     while (!gc_pq.empty()) {
         gc_entry *entry = gc_pq.pop();
-        UNUSED off64_t extent = entry->extent_ref.release();
+        UNUSED int64_t extent = entry->extent_ref.release();
         delete entry;
     }
 
@@ -709,7 +709,7 @@ void data_block_manager_t::actually_shutdown() {
     }
 }
 
-off64_t data_block_manager_t::gimme_a_new_offset(bool token_referenced) {
+int64_t data_block_manager_t::gimme_a_new_offset(bool token_referenced) {
     rassert(token_referenced);
     /* Start a new extent if necessary */
 
@@ -727,7 +727,7 @@ off64_t data_block_manager_t::gimme_a_new_offset(bool token_referenced) {
     rassert(active_extents[next_active_extent]->g_array.count() > 0);
     rassert(blocks_in_active_extent[next_active_extent] < static_config->blocks_per_extent());
 
-    off64_t offset = active_extents[next_active_extent]->extent_ref.offset() + blocks_in_active_extent[next_active_extent] * static_config->block_size().ser_value();
+    int64_t offset = active_extents[next_active_extent]->extent_ref.offset() + blocks_in_active_extent[next_active_extent] * static_config->block_size().ser_value();
     active_extents[next_active_extent]->was_written = true;
 
     rassert(active_extents[next_active_extent]->g_array[blocks_in_active_extent[next_active_extent]]);
@@ -810,7 +810,7 @@ gc_entry::gc_entry(data_block_manager_t *_parent)
     ++parent->stats->pm_serializer_data_extents;
 }
 
-gc_entry::gc_entry(data_block_manager_t *_parent, off64_t _offset)
+gc_entry::gc_entry(data_block_manager_t *_parent, int64_t _offset)
     : parent(_parent),
       g_array(parent->static_config->blocks_per_extent()),
       t_array(parent->static_config->blocks_per_extent()),
