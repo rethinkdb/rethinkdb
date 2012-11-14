@@ -173,6 +173,9 @@ endif
 
 BUILD_PORTABLE?=0
 
+V8_DIR:=../support/v8
+V8_LIB:=$(V8_DIR)/libv8.a
+
 ifeq ($(BUILD_PORTABLE),1)
 V8_CHAIN?=1
 STATIC_V8?=2
@@ -181,12 +184,17 @@ V8_CHAIN?=0
 STATIC_V8?=$(STATICFORCE)
 endif
 
+OBJ_SUPPS:=
+
 ifneq ($(V8_CHAIN),0)
 ifeq ($(V8_CHAIN),2)
-LDFLAGS+= -L ../external/v8
+LDFLAGS+= -L $(V8_DIR)
 endif
-CXXPATHDS+= -isystem ../external/v8/include
-CPATHDS+= -isystem ../external/v8/include
+CXXPATHDS+= -isystem $(V8_DIR)/v8/include
+CPATHDS+= -isystem $(V8_DIR)/v8/include
+ifeq ($(STATIC_V8),2)
+OBJ_SUPPS+=$(V8_LIB)
+endif
 endif
 
 ifeq ($(STATIC_V8),0)
@@ -427,7 +435,7 @@ ifeq ($(STATIC_V8),2)
 ifeq ($(V8_CHAIN),0)
 STATIC_LIBRARIES+=libv8
 else
-STATIC_LIBRARY_PATHS+=../external/v8/libv8.a
+STATIC_LIBRARY_PATHS+=$(V8_LIB)
 endif
 endif
 
@@ -778,7 +786,11 @@ install-deb: install
 
 DEBIAN_V8_VERSION:=$(shell apt-cache show libv8-dev | grep '^Version:' | sed -e 's/^Version: \\([0-9]*\\(\\.[0-9]*\\)*\\).*$$/\\1/g' || true ; )
 
+ifeq ($(BUILD_PORTABLE),1)
+build-deb-support: $(TC_LESSC_INT_EXE) $(TC_COFFEE_INT_EXE) $(V8_DIR)
+else
 build-deb-support: $(TC_LESSC_INT_EXE) $(TC_COFFEE_INT_EXE)
+endif
 
 build-deb-src-control:
 	$(QUIET) cd .. ; if [ -e debian ] ; then rm -rf debian ; fi ; cp -pRP debian.template debian ; env UBUNTU_RELEASE=$(UBUNTU_RELEASE) DEB_RELEASE=$(DEB_RELEASE) DEB_RELEASE_NUM=$(DEB_RELEASE_NUM) PACKAGE_NAME=$(PACKAGE_NAME) VERSIONED_PACKAGE_NAME=$(VERSIONED_PACKAGE_NAME) VANILLA_PACKAGE_NAME=$(VANILLA_PACKAGE_NAME) PACKAGE_VERSION_EXTENDED=$(RETHINKDB_VERSION_DEB) PACKAGE_VERSION=$(RETHINKDB_PACKAGING_VERSION) ./scripts/gen-changelog.sh ;
@@ -1106,7 +1118,7 @@ endif
 
 $(PROTO_HEADERS) $(PROTO_CODE): $(PROTO_DIR)/dummy
 
-$(BUILD_DIR)/$(SERVER_EXEC_NAME): $(OBJS) $(BUILD_DIR)
+$(BUILD_DIR)/$(SERVER_EXEC_NAME): $(OBJS) $(BUILD_DIR) $(OBJ_SUPPS)
 ifeq ($(VERBOSE),0)
 	@echo "    LD $@"
 endif
@@ -1300,4 +1312,11 @@ endif
 
 $(SUPPORT_DIR):
 	mkdir -p $(SUPPORT_DIR) ;
+
+$(V8_DIR): $(SUPPORT_DIR)
+	cd ../external && svn checkout http://v8.googlecode.com/svn/trunk/ v8 && cd v8 && make dependencies && for svndir in `find ./ -name ".svn"` ; do rm -rf "$$svndir".unused ; mv "$$svndir" "$$svndir".unused ; done ;
+
+$(V8_LIB): $(V8_DIR)
+	cd ../external/v8 && make native && find ./ -iname "*.o" | xargs ar cqs libv8.a ;
+
 
