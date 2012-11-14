@@ -621,7 +621,7 @@ ifeq ($(TRIAL),1)
 PACKAGE_NAME_QUALIFIER+=-trial
 endif
 
-PACKAGE_NAME_QUALIFIER:=$(subst $(wspace),-,$(PACKAGE_NAME_QUALIFIER))
+PACKAGE_NAME_QUALIFIER:=$(subst $(wspace),,$(PACKAGE_NAME_QUALIFIER))
 
 ifeq ($(NAMEVERSIONED),1)
 VERSIONED_QUALIFIED_PACKAGE_NAME:=$(PACKAGE_NAME)$(PACKAGE_NAME_QUALIFIER)-$(RETHINKDB_SHORT_VERSION)
@@ -795,6 +795,7 @@ build-deb-src-control:
 				-D "DEBIAN_V8_VERSION=$(DEBIAN_V8_VERSION)" \
 				-D "PACKAGE_VERSION=$(RETHINKDB_VERSION_DEB)" \
 				-D "LEGACY_LINUX=$(LEGACY_LINUX)" \
+				-D "STATIC_V8=$(STATIC_V8)" \
 				-D "TRIAL=$(TRIAL)" \
 				-D "DISK_SIZE=$${disk_size}" \
 				-D "SOURCEBUILD=1" \
@@ -863,6 +864,7 @@ build-deb: all prepare_deb_package_dirs
 				-D "VERSIONED_QUALIFIED_PACKAGE_NAME=$(VERSIONED_QUALIFIED_PACKAGE_NAME)" \
 				-D "DEBIAN_V8_VERSION=$(DEBIAN_V8_VERSION)" \
 				-D "LEGACY_LINUX=$(LEGACY_LINUX)"												\
+				-D "STATIC_V8=$(STATIC_V8)" \
 				-D "TRIAL=$(TRIAL)"																			\
 				-D "DISK_SIZE=$${disk_size}"														\
 				-D "SOURCEBUILD=0" \
