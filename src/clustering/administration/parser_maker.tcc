@@ -9,12 +9,14 @@
 template<class protocol_t, class parser_t>
 parser_maker_t<protocol_t, parser_t>::parser_maker_t(mailbox_manager_t *_mailbox_manager,
                                boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > > _namespaces_semilattice_metadata,
+                               const std::set<ip_address_t> &_local_addresses,
                                int _port_offset,
                                namespace_repo_t<protocol_t> *_repo,
                                local_issue_tracker_t *_local_issue_tracker,
                                perfmon_collection_repo_t *_perfmon_collection_repo)
     : mailbox_manager(_mailbox_manager),
       namespaces_semilattice_metadata(_namespaces_semilattice_metadata),
+      local_addresses(_local_addresses),
       port_offset(_port_offset),
       repo(_repo),
       namespaces_subscription(boost::bind(&parser_maker_t::on_change, this), namespaces_semilattice_metadata),
@@ -76,12 +78,15 @@ void parser_maker_t<protocol_t, parser_t>::on_change() {
 }
 
 template<class protocol_t, class parser_t>
-void parser_maker_t<protocol_t, parser_t>::serve_queries(std::string ns_name, namespace_id_t ns, int port, auto_drainer_t::lock_t keepalive) {
+void parser_maker_t<protocol_t, parser_t>::serve_queries(std::string ns_name,
+                                                         namespace_id_t ns,
+                                                         int port,
+                                                         auto_drainer_t::lock_t keepalive) {
     try {
         logINF("Listening for queries for the namespace '%s' %s on port %d.\n", ns_name.c_str(), uuid_to_str(ns).c_str(), port);
 
         wait_any_t interruptor(&namespaces_being_handled.find(ns)->second->stopper, keepalive.get_drain_signal());
-        parser_t parser(port, repo, ns, &perfmon_collection_repo->get_perfmon_collections_for_namespace(ns)->namespace_collection);
+        parser_t parser(local_addresses, port, repo, ns, &perfmon_collection_repo->get_perfmon_collections_for_namespace(ns)->namespace_collection);
 
         signal_t *is_bound = parser.get_bound_signal();
 

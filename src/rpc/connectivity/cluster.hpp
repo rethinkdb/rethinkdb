@@ -57,18 +57,33 @@ private:
     std::set<ip_address_t> ips;
     RDB_MAKE_ME_SERIALIZABLE_2(ips, port);
 };
+
 class peer_address_set_t {
 public:
     size_t erase(const peer_address_t &addr) {
-        size_t erased = 0;
-        for (iterator it = vec.begin(); it != vec.end(); ++it) {
-            if (*it == addr) {
-                vec.erase(it);
-                ++erased;
-                guarantee(find(addr) == vec.end());
-                break;
+        // We need to make sure we remove the *right* address from the set
+        // Example:
+        //  Set contains [127.0.1.1] and [192.168.0.15]
+        //  erase is called with [127.0.0.1, 127.0.1.1, 192.168.0.15]
+        // In this case, only 192.168.0.15 should be removed, because the loopback
+        //  address is obviously talking about a different peer
+        // So, first we create a peer_address_t without any loopback addresses
+        //  then, if there are no matches for that, use the original
+        const std::set<ip_address_t> *ips = addr.all_ips();
+        std::set<ip_address_t> ips_no_loopback;
+        for (std::set<ip_address_t>::const_iterator i = ips->begin(); i != ips->end(); ++i) {
+            if (!i->is_loopback()) {
+                ips_no_loopback.insert(*i);
             }
         }
+
+        peer_address_t addr_no_loopback(ips_no_loopback, addr.port);
+        size_t erased = erase_internal(addr_no_loopback);
+
+        if (erased == 0) {
+            erased = erase_internal(addr);
+        }
+
         return erased;
     }
     typedef std::vector<peer_address_t>::iterator iterator;
@@ -84,6 +99,17 @@ public:
     }
     bool empty() const { return vec.empty(); }
 private:
+    size_t erase_internal(const peer_address_t &addr) {
+        size_t erased = 0;
+        for (iterator it = vec.begin(); it != vec.end(); ++it) {
+            if (*it == addr) {
+                vec.erase(it);
+                ++erased;
+                break;
+            }
+        }
+        return erased;
+    }
     std::vector<peer_address_t> vec;
 };
 
@@ -98,10 +124,11 @@ public:
     class run_t {
     public:
         run_t(connectivity_cluster_t *parent,
-            int port,
-            message_handler_t *message_handler,
-            int client_port,
-            heartbeat_manager_t *_heartbeat_manager) THROWS_ONLY(address_in_use_exc_t);
+              const std::set<ip_address_t> &local_addresses,
+              int port,
+              message_handler_t *message_handler,
+              int client_port,
+              heartbeat_manager_t *_heartbeat_manager) THROWS_ONLY(address_in_use_exc_t);
 
         ~run_t();
 

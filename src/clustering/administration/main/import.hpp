@@ -10,6 +10,7 @@
 
 #include "containers/name_string.hpp"
 #include "extproc/spawner.hpp"
+#include "arch/address.hpp"
 
 class peer_address_set_t;
 class json_importer_t;
@@ -21,7 +22,14 @@ struct json_import_target_t {
     std::string primary_key;
 };
 
-bool run_json_import(extproc::spawner_t::info_t *spawner_info, peer_address_set_t peers, int ports_port, int ports_client_port, json_import_target_t import_args, json_importer_t *importer, signal_t *stop_cond);
+bool run_json_import(extproc::spawner_t::info_t *spawner_info,
+                     peer_address_set_t peers,
+                     const std::set<ip_address_t> &local_addresses,
+                     int ports_port,
+                     int ports_client_port,
+                     json_import_target_t import_args,
+                     json_importer_t *importer,
+                     signal_t *stop_cond);
 
 
 

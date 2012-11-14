@@ -76,7 +76,7 @@ void run_mailbox_start_stop_test() {
     int port = mock::randport();
     connectivity_cluster_t c;
     mailbox_manager_t m(&c);
-    connectivity_cluster_t::run_t r(&c, port, &m, 0, NULL);
+    connectivity_cluster_t::run_t r(&c, mock::get_unittest_addresses(), port, &m, 0, NULL);
 
     /* Make sure we can create a mailbox */
     dummy_mailbox_t mbox1(&m);
@@ -95,8 +95,8 @@ void run_mailbox_message_test() {
     int port = mock::randport();
     connectivity_cluster_t c1, c2;
     mailbox_manager_t m1(&c1), m2(&c2);
-    connectivity_cluster_t::run_t r1(&c1, port, &m1, 0, NULL);
-    connectivity_cluster_t::run_t r2(&c2, port+1, &m2, 0, NULL);
+    connectivity_cluster_t::run_t r1(&c1, mock::get_unittest_addresses(), port, &m1, 0, NULL);
+    connectivity_cluster_t::run_t r2(&c2, mock::get_unittest_addresses(), port+1, &m2, 0, NULL);
     r1.join(c2.get_peer_address(c2.get_me()));
     mock::let_stuff_happen();
 
@@ -129,8 +129,8 @@ void run_dead_mailbox_test() {
     int port = mock::randport();
     connectivity_cluster_t c1, c2;
     mailbox_manager_t m1(&c1), m2(&c2);
-    connectivity_cluster_t::run_t r1(&c1, port, &m1, 0, NULL);
-    connectivity_cluster_t::run_t r2(&c2, port+1, &m2, 0, NULL);
+    connectivity_cluster_t::run_t r1(&c1, mock::get_unittest_addresses(), port, &m1, 0, NULL);
+    connectivity_cluster_t::run_t r2(&c2, mock::get_unittest_addresses(), port+1, &m2, 0, NULL);
 
     /* Create a mailbox, take its address, then destroy it. */
     raw_mailbox_t::address_t address;
@@ -161,7 +161,7 @@ void run_mailbox_address_semantics_test() {
     int port = mock::randport();
     connectivity_cluster_t c;
     mailbox_manager_t m(&c);
-    connectivity_cluster_t::run_t r(&c, port, &m, 0, NULL);
+    connectivity_cluster_t::run_t r(&c, mock::get_unittest_addresses(), port, &m, 0, NULL);
 
     dummy_mailbox_t mbox(&m);
     raw_mailbox_t::address_t mbox_addr = mbox.mailbox.get_address();
@@ -182,7 +182,7 @@ void run_typed_mailbox_test() {
     int port = mock::randport();
     connectivity_cluster_t c;
     mailbox_manager_t m(&c);
-    connectivity_cluster_t::run_t r(&c, port, &m, 0, NULL);
+    connectivity_cluster_t::run_t r(&c, mock::get_unittest_addresses(), port, &m, 0, NULL);
 
     std::vector<std::string> inbox;
     mailbox_t<void(std::string)> mbox(&m, boost::bind(&std::vector<std::string>::push_back, &inbox, _1), mailbox_callback_mode_inline);

@@ -32,16 +32,17 @@ void debug_print(append_only_printf_buffer_t *buf, const peer_address_t &address
 
 
 connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
-        int port,
-        message_handler_t *mh,
-        int client_port,
-        heartbeat_manager_t *_heartbeat_manager) THROWS_ONLY(address_in_use_exc_t) :
+                                     const std::set<ip_address_t> &local_addresses,
+                                     int port,
+                                     message_handler_t *mh,
+                                     int client_port,
+                                     heartbeat_manager_t *_heartbeat_manager) THROWS_ONLY(address_in_use_exc_t) :
     parent(p),
     message_handler(mh),
     heartbeat_manager(_heartbeat_manager),
 
     /* Create the socket to use when listening for connections from peers */
-    cluster_listener_socket(new tcp_bound_socket_t(port)),
+    cluster_listener_socket(new tcp_bound_socket_t(local_addresses, port)),
     cluster_listener_port(cluster_listener_socket->get_port()),
 
     /* The local port to use when connecting to the cluster port of peers */
@@ -56,8 +57,13 @@ connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
     register_us_with_parent(&parent->current_run, this),
 
     /* This constructor makes an entry for us in `routing_table`. The destructor
-    will remove the entry. */
-    routing_table_entry_for_ourself(&routing_table, parent->me, peer_address_t(ip_address_t::us(), cluster_listener_socket->get_port())),
+    will remove the entry. If the set of local addresses passed in is empty, it
+    means that we bind to all local addresses.  That also means we need to get
+    a new set of all local addresses from get_local_addresses() in that case. */
+    routing_table_entry_for_ourself(&routing_table,
+                                    parent->me,
+                                    peer_address_t(local_addresses.empty() ? ip_address_t::get_local_addresses(std::set<ip_address_t>(), true) : local_addresses,
+                                                   cluster_listener_socket->get_port())),
 
     /* The `connection_entry_t` constructor takes care of putting itself in the
     `connection_map` on each thread and notifying any listeners that we're now
@@ -372,8 +378,10 @@ void connectivity_cluster_t::run_t::handle(
         return;
     }
     if (expected_id && other_id != *expected_id) {
-        logERR("received inconsistent routing information (wrong ID) from %s, closing connection", peername);
-
+        // This is only a problem if we're not using a loopback address
+        if (!peer_addr.is_loopback()) {
+            logERR("received inconsistent routing information (wrong ID) from %s, closing connection", peername);
+        }
         return;
     }
     if (expected_address && other_address != *expected_address) {

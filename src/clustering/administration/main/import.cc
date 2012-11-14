@@ -57,7 +57,14 @@ bool find_server_peer_in_directory(const std::map<peer_id_t, cluster_directory_m
     return false;
 }
 
-bool run_json_import(extproc::spawner_t::info_t *spawner_info, peer_address_set_t joins, int ports_port, int ports_client_port, json_import_target_t target, json_importer_t *importer, signal_t *stop_cond) {
+bool run_json_import(extproc::spawner_t::info_t *spawner_info,
+                     peer_address_set_t joins,
+                     const std::set<ip_address_t> &local_addresses,
+                     int ports_port,
+                     int ports_client_port,
+                     json_import_target_t target,
+                     json_importer_t *importer,
+                     signal_t *stop_cond) {
 
     guarantee(spawner_info);
     extproc::pool_group_t extproc_pool_group(spawner_info, extproc::pool_group_t::DEFAULTS);
@@ -111,6 +118,7 @@ bool run_json_import(extproc::spawner_t::info_t *spawner_info, peer_address_set_
 
     message_multiplexer_t::run_t message_multiplexer_run(&message_multiplexer);
     connectivity_cluster_t::run_t connectivity_cluster_run(&connectivity_cluster,
+                                                           local_addresses,
                                                            ports_port,
                                                            &message_multiplexer_run,
                                                            ports_client_port,

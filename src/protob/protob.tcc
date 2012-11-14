@@ -14,9 +14,10 @@
 #include "db_thread_info.hpp"
 
 template <class request_t, class response_t, class context_t>
-protob_server_t<request_t, response_t, context_t>::protob_server_t(
-    int port, boost::function<response_t(request_t *, context_t *)> _f,
-    response_t (*_on_unparsable_query)(request_t *, std::string),
+protob_server_t<request_t, response_t, context_t>::protob_server_t(const std::set<ip_address_t> &local_addresses,
+                                                                   int port,
+                                                                   boost::function<response_t(request_t *, context_t *)> _f,
+                                                                   response_t (*_on_unparsable_query)(request_t *, std::string),
     protob_server_callback_mode_t _cb_mode)
     : f(_f),
       on_unparsable_query(_on_unparsable_query),
@@ -32,7 +33,7 @@ protob_server_t<request_t, response_t, context_t>::protob_server_t(
     }
 
     try {
-        tcp_listener.init(new tcp_listener_t(port, boost::bind(&protob_server_t<request_t, response_t, context_t>::handle_conn, this, _1, auto_drainer_t::lock_t(&auto_drainer))));
+        tcp_listener.init(new tcp_listener_t(local_addresses, port, boost::bind(&protob_server_t<request_t, response_t, context_t>::handle_conn, this, _1, auto_drainer_t::lock_t(&auto_drainer))));
     } catch (address_in_use_exc_t e) {
         nice_crash("%s. Cannot bind to RDB protocol port. Exiting.\n", e.what());
     }
