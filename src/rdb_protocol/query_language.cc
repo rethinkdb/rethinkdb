@@ -525,6 +525,11 @@ term_info_t get_function_type(Term::Call *c, type_checking_environment_t *env, c
                 }
                 term_info_t res = get_term_type(c->mutable_args(0), env, backtrace);
                 res.deterministic &= deterministic;
+
+                if (term_type_is_convertible(res.type, TERM_TYPE_STREAM)) {
+                    res.type = TERM_TYPE_STREAM;
+                }
+
                 return res;
             }
             break;
@@ -538,6 +543,11 @@ term_info_t get_function_type(Term::Call *c, type_checking_environment_t *env, c
                 }
                 term_info_t res = get_term_type(c->mutable_args(0), env, backtrace);
                 res.deterministic &= deterministic;
+
+                if (term_type_is_convertible(res.type, TERM_TYPE_STREAM)) {
+                    res.type = TERM_TYPE_STREAM;
+                }
+
                 return res;
             }
             break;
@@ -547,6 +557,11 @@ term_info_t get_function_type(Term::Call *c, type_checking_environment_t *env, c
 
                 term_info_t res = get_term_type(c->mutable_args(0), env, backtrace);
                 res.deterministic &= deterministic;
+
+                if (term_type_is_convertible(res.type, TERM_TYPE_STREAM)) {
+                    res.type = TERM_TYPE_STREAM;
+                }
+
                 return res;
             }
             break;
@@ -615,6 +630,11 @@ term_info_t get_function_type(Term::Call *c, type_checking_environment_t *env, c
             term_info_t res = get_term_type(c->mutable_args(0), env, backtrace);
             check_function_args(c, res.type, 2, env, &deterministic, backtrace);
             res.deterministic &= deterministic;
+
+            if (term_type_is_convertible(res.type, TERM_TYPE_STREAM)) {
+                res.type = TERM_TYPE_STREAM;
+            }
+
             return res;
         } break;
         case Builtin::ARRAYTOSTREAM: {

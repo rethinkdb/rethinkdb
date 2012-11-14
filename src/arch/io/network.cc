@@ -25,9 +25,6 @@
 #include "logger.hpp"
 #include "perfmon/perfmon.hpp"
 
-// TODO: THIS IS A REALLY BAD IDEA, BUT linux/tcp.h WON'T INCLUDE ON GCC 4.4.1+
-#define TCP_USER_TIMEOUT 18
-
 /* Network connection object */
 
 linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port, signal_t *interruptor, int local_port) THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t) :
@@ -487,30 +484,6 @@ bool linux_tcp_conn_t::is_write_open() {
     return !write_closed.is_pulsed();
 }
 
-void linux_tcp_conn_t::set_keepalive(int idle_seconds, int try_interval_seconds, int try_count) {
-    int res;
-    int keepalive = 1;
-    res = setsockopt(sock.get(), SOL_SOCKET, SO_KEEPALIVE, &keepalive, sizeof(keepalive));
-    guarantee_err(res == 0, "setsockopt(SO_KEEPALIVE) failed");
-    res = setsockopt(sock.get(), IPPROTO_TCP, TCP_KEEPIDLE, &idle_seconds, sizeof(idle_seconds));
-    guarantee_err(res == 0, "setsockopt(TCP_KEEPIDLE) failed");
-    res = setsockopt(sock.get(), IPPROTO_TCP, TCP_KEEPINTVL, &try_interval_seconds, sizeof(try_interval_seconds));
-    guarantee_err(res == 0, "setsockopt(TCP_KEEPINTVL) failed");
-    res = setsockopt(sock.get(), IPPROTO_TCP, TCP_KEEPCNT, &try_count, sizeof(try_count));
-    guarantee_err(res == 0, "setsockopt(TCP_KEEPCNT) failed");
-    // Also set an option to make sure the connection fails in a reasonable amount of time
-    // even if there is traffic on it
-    int user_timeout = (idle_seconds + (try_interval_seconds * try_count)) * 1000;
-    res = setsockopt(sock.get(), IPPROTO_TCP, TCP_USER_TIMEOUT, &user_timeout, sizeof(user_timeout));
-    guarantee_err(res == 0, "setsockopt(TCP_USER_TiMEOUT) failed");
-}
-
-void linux_tcp_conn_t::set_keepalive() {
-    int keepalive = 0;
-    int res = setsockopt(sock.get(), SOL_SOCKET, SO_KEEPALIVE, &keepalive, sizeof(keepalive));
-    guarantee_err(res == 0, "setsockopt(SO_KEEPALIVE) failed");
-}
-
 linux_tcp_conn_t::~linux_tcp_conn_t() THROWS_NOTHING {
     assert_thread();
 
@@ -637,7 +610,7 @@ void linux_tcp_conn_descriptor_t::make_overcomplicated(linux_tcp_conn_t **tcp_co
 /* Network listener object */
 
 linux_nonthrowing_tcp_listener_t::linux_nonthrowing_tcp_listener_t(
-        int _port, int user_timeout,
+        int _port,
         const boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> &cb) :
     port(_port),
     bound(false),
@@ -646,7 +619,7 @@ linux_nonthrowing_tcp_listener_t::linux_nonthrowing_tcp_listener_t(
     callback(cb),
     log_next_error(true)
 {
-    init_socket(user_timeout);
+    init_socket();
 }
 
 bool linux_nonthrowing_tcp_listener_t::begin_listening() {
@@ -678,7 +651,7 @@ int linux_nonthrowing_tcp_listener_t::get_port() const {
     return port;
 }
 
-void linux_nonthrowing_tcp_listener_t::init_socket(int user_timeout) {
+void linux_nonthrowing_tcp_listener_t::init_socket() {
     int sock_fd = sock.get();
     guarantee_err(sock_fd != INVALID_FD, "Couldn't create socket");
 
@@ -699,11 +672,20 @@ void linux_nonthrowing_tcp_listener_t::init_socket(int user_timeout) {
      */
     res = setsockopt(sock_fd, IPPROTO_TCP, TCP_NODELAY, &sockoptval, sizeof(sockoptval));
     guarantee_err(res != -1, "Could not set TCP_NODELAY option");
+<<<<<<< HEAD
 
     if (user_timeout > 0) {
         res = setsockopt(sock.get(), IPPROTO_TCP, TCP_USER_TIMEOUT, &user_timeout, sizeof(user_timeout));
         guarantee_err(res == 0, "setsockopt(TCP_USER_TiMEOUT) failed");
     }
+||||||| merged common ancestors
+
+    if (user_timeout > 0) {
+        res = setsockopt(sock.get(), SOL_TCP, TCP_USER_TIMEOUT, &user_timeout, sizeof(user_timeout));
+        guarantee_err(res == 0, "setsockopt(TCP_USER_TiMEOUT) failed");
+    }
+=======
+>>>>>>> next
 }
 
 bool linux_nonthrowing_tcp_listener_t::bind_socket() {
@@ -814,8 +796,8 @@ void linux_nonthrowing_tcp_listener_t::on_event(int) {
 
 void noop_fun(UNUSED const scoped_ptr_t<linux_tcp_conn_descriptor_t>& arg) { }
 
-linux_tcp_bound_socket_t::linux_tcp_bound_socket_t(int _port, int user_timeout) :
-        listener(new linux_nonthrowing_tcp_listener_t(_port, user_timeout, noop_fun))
+linux_tcp_bound_socket_t::linux_tcp_bound_socket_t(int _port) :
+        listener(new linux_nonthrowing_tcp_listener_t(_port, noop_fun))
 {
     if (!listener->bind_socket()) {
         throw address_in_use_exc_t("localhost", listener->port);
@@ -826,9 +808,9 @@ int linux_tcp_bound_socket_t::get_port() const {
     return listener->get_port();
 }
 
-linux_tcp_listener_t::linux_tcp_listener_t(int port, int user_timeout,
+linux_tcp_listener_t::linux_tcp_listener_t(int port,
     const boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> &callback) :
-        listener(new linux_nonthrowing_tcp_listener_t(port, user_timeout, callback))
+        listener(new linux_nonthrowing_tcp_listener_t(port, callback))
 {
     if (!listener->begin_listening()) {
         throw address_in_use_exc_t("localhost", port);
@@ -850,9 +832,9 @@ int linux_tcp_listener_t::get_port() const {
     return listener->get_port();
 }
 
-linux_repeated_nonthrowing_tcp_listener_t::linux_repeated_nonthrowing_tcp_listener_t(int port, int user_timeout,
+linux_repeated_nonthrowing_tcp_listener_t::linux_repeated_nonthrowing_tcp_listener_t(int port,
     const boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> &callback) :
-        listener(port, user_timeout, callback)
+        listener(port, callback)
 { }
 
 int linux_repeated_nonthrowing_tcp_listener_t::get_port() const {

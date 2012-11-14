@@ -39,94 +39,73 @@ void read_to_static_buffer_or_throw(const char *path, char *buf, size_t nbytes) 
 
 /* Class to represent and parse the contents of /proc/[pid]/stat */
 
-struct proc_pid_stat_t {
-    int pid;
-    char name[500];
-    char state;
-    int ppid, pgrp, session, tty_nr, tpgid;
-    unsigned int flags;
-    uint64_t minflt, cminflt, majflt, cmajflt, utime, stime;
-    int64_t cutime, cstime, priority, nice, num_threads, itrealvalue;
-    uint64_t starttime;
-    uint64_t vsize;
-    int64_t rss;
-    uint64_t rsslim, startcode, endcode, startstack, kstkesp, kstkeip, signal, blocked,
-        sigignore, sigcatch, wchan, nswap, cnswap;
-    int exit_signal, processor;
-    unsigned int rt_priority, policy;
-    uint64_t delayacct_blkio_ticks;
-    uint64_t guest_time;
-    int64_t cguest_time;
+proc_pid_stat_t proc_pid_stat_t::for_pid(pid_t pid) {
+    printf_buffer_t<100> path("/proc/%d/stat", pid);
+    proc_pid_stat_t stat;
+    stat.read_from_file(path.c_str());
+    return stat;
+}
 
-    static proc_pid_stat_t for_pid(pid_t pid) {
-        printf_buffer_t<100> path("/proc/%d/stat", pid);
-        proc_pid_stat_t stat;
-        stat.read_from_file(path.c_str());
-        return stat;
-    }
+proc_pid_stat_t proc_pid_stat_t::for_pid_and_tid(pid_t pid, pid_t tid) {
+    printf_buffer_t<100> path("/proc/%d/task/%d/stat", pid, tid);
+    proc_pid_stat_t stat;
+    stat.read_from_file(path.c_str());
+    return stat;
+}
 
-    static proc_pid_stat_t for_pid_and_tid(pid_t pid, pid_t tid) {
-        printf_buffer_t<100> path("/proc/%d/task/%d/stat", pid, tid);
-        proc_pid_stat_t stat;
-        stat.read_from_file(path.c_str());
-        return stat;
-    }
-
-private:
-    void read_from_file(const char *path) {
-        char buffer[1000];
-        read_to_static_buffer_or_throw(path, buffer, sizeof(buffer));
+void proc_pid_stat_t::read_from_file(const char *path) {
+    char buffer[1000];
+    read_to_static_buffer_or_throw(path, buffer, sizeof(buffer));
 
 #ifndef LEGACY_PROC_STAT
-        const int items_to_parse = 44;
+    const int items_to_parse = 44;
 #else
-        const int items_to_parse = 42;
+    const int items_to_parse = 42;
 #endif
 
-        int res2 = sscanf(buffer, "%d %s %c %d %d %d %d %d %u"
-                          " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64
-                          " %" SCNd64 " %" SCNd64 " %" SCNd64 " %" SCNd64 " %" SCNd64 " %" SCNd64
-                          " %" SCNu64 " %" SCNu64 " %" SCNd64
-                          " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64
-                          " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64
-                          " %d %d"
-                          " %u %u"
+    int res2 = sscanf(buffer, "%d %s %c %d %d %d %d %d %u"
+                      " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64
+                      " %" SCNd64 " %" SCNd64 " %" SCNd64 " %" SCNd64 " %" SCNd64 " %" SCNd64
+                      " %" SCNu64 " %" SCNu64 " %" SCNd64
+                      " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64
+                      " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64
+                      " %d %d"
+                      " %u %u"
 #ifndef LEGACY_PROC_STAT
-                          " %" SCNu64
-                          " %" SCNu64
-                          " %" SCNd64,
+                      " %" SCNu64
+                      " %" SCNu64
+                      " %" SCNd64,
 #else
-                          " %" SCNu64,
+                      " %" SCNu64,
 #endif
-                          &pid,
-                          name,
-                          &state,
-                          &ppid, &pgrp, &session, &tty_nr, &tpgid,
-                          &flags,
-                          &minflt, &cminflt, &majflt, &cmajflt, &utime, &stime,
-                          &cutime, &cstime, &priority, &nice, &num_threads, &itrealvalue,
-                          &starttime,
-                          &vsize,
-                          &rss,
-                          &rsslim, &startcode, &endcode, &startstack, &kstkesp, &kstkeip, &signal, &blocked,
-                          &sigignore, &sigcatch, &wchan, &nswap, &cnswap,
-                          &exit_signal, &processor,
-                          &rt_priority, &policy,
+                      &pid,
+                      name,
+                      &state,
+                      &ppid, &pgrp, &session, &tty_nr, &tpgid,
+                      &flags,
+                      &minflt, &cminflt, &majflt, &cmajflt, &utime, &stime,
+                      &cutime, &cstime, &priority, &nice, &num_threads, &itrealvalue,
+                      &starttime,
+                      &vsize,
+                      &rss,
+                      &rsslim, &startcode, &endcode, &startstack, &kstkesp, &kstkeip, &signal, &blocked,
+                      &sigignore, &sigcatch, &wchan, &nswap, &cnswap,
+                      &exit_signal, &processor,
+                      &rt_priority, &policy,
 #ifndef LEGACY_PROC_STAT
-                          &delayacct_blkio_ticks,
-                          &guest_time,
-                          &cguest_time
+                      &delayacct_blkio_ticks,
+                      &guest_time,
+                      &cguest_time
 #else
-                          &delayacct_blkio_ticks
+                      &delayacct_blkio_ticks
 #endif
-                          );
-        if (res2 != items_to_parse) {
-            throw std::runtime_error(strprintf("Could not parse '%s': expected "
-                "to parse %d items, parsed %d. Buffer contents: %s", path,
-                items_to_parse, res2, buffer));
-        }
+                      );
+    if (res2 != items_to_parse) {
+        throw std::runtime_error(strprintf("Could not parse '%s': expected "
+            "to parse %d items, parsed %d. Buffer contents: %s", path,
+            items_to_parse, res2, buffer));
     }
-};
+}
 
 // This structure reads various global system stats such as total
 // memory consumption, network stats, etc.
