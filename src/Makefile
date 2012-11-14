@@ -1314,9 +1314,9 @@ $(SUPPORT_DIR):
 	mkdir -p $(SUPPORT_DIR) ;
 
 $(V8_DIR): $(SUPPORT_DIR)
-	cd ../external && svn checkout http://v8.googlecode.com/svn/trunk/ v8 && cd v8 && make dependencies && for svndir in `find ./ -name ".svn"` ; do rm -rf "$$svndir".unused ; mv "$$svndir" "$$svndir".unused ; done ;
+	cd ../support && svn checkout http://v8.googlecode.com/svn/trunk/ v8 && cd v8 && make dependencies ;
 
 $(V8_LIB): $(V8_DIR)
-	cd ../external/v8 && make native && find ./ -iname "*.o" | xargs ar cqs libv8.a ;
+	cd ../support/v8 && make native && find ./ -iname "*.o" | xargs ar cqs libv8.a ;
 
 

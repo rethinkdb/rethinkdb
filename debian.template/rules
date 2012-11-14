@@ -1,11 +1,16 @@
 #!/usr/bin/make -f
 # Copyright 2013 hello-debhelper project (used according to license) with modifications by RethinkDB
 
-package = rethinkdb
-
+package?=$(shell cat debian/control | grep '^Source:' | awk '{ printf "%s" , $$2 }')
 DEBUG?=0
 AUTOCHAIN?=1
 PVERSION?=$(shell cat debian/control | grep '^Version: ' | head -n 1 | awk '{ printf "%s" , $$2 }')
+
+ifneq ($(shell echo "$(package)" | grep '[A-Za-z0-9]-portable'),)
+BUILD_PORTABLE?=1
+else
+BUILD_PORTABLE?=0
+endif
 
 clean:
 	dh_clean
