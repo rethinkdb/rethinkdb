@@ -163,6 +163,7 @@ void mc_inner_buf_t::load_inner_buf(bool should_lock, file_account_t *io_account
         subtree_recency = cache->serializer->get_recency(block_id);
         // TODO: Merge this initialization with the read itself eventually
         data_token = cache->serializer->index_read(block_id);
+        guarantee(data_token);
         cache->serializer->block_read(data_token, data.get(), io_account);
     }
 
