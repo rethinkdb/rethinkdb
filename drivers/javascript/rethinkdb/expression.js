@@ -885,7 +885,7 @@ goog.exportProperty(rethinkdb.Expression.prototype, 'map',
  * Order the elements of the sequence by their values of the specified attributes.
  * @param {...string} var_args Some number of strings giving the fields to orderBy.
  *  Values are first orderd by the first field given, then by the second, etc. To
- *  select ascending or decending ordering specifically, pass a tuple giving [attr,
+ *  select ascending or descending ordering specifically, pass a tuple giving [attr,
  *  flag] where a true flag means ascending order and a false flag is descending.
  *  ascending ordering is the default.
  * @return {rethinkdb.Expression}

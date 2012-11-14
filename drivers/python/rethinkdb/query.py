@@ -488,7 +488,7 @@ class JSONExpression(ReadQuery):
     def order_by(self, *attributes):
         """Sorts an array of objects according to the given attributes.
 
-        To specify ascending or decending ordering, pass a tuple giving the
+        To specify ascending or descending ordering, pass a tuple giving the
         attribute and a flag specifying the ordering. Defaults to True for
         ascending ordering.
 
@@ -906,7 +906,7 @@ class StreamExpression(ReadQuery):
     def order_by(self, *attributes):
         """Sort the stream according to the given attributes.
 
-        To specify ascending or decending ordering, pass a tuple giving the
+        To specify ascending or descending ordering, pass a tuple giving the
         attribute and a flag specifying the ordering. Defaults to True for
         ascending ordering.
 
