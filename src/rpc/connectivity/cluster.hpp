@@ -248,8 +248,6 @@ public:
         /* This must be destroyed before `drainer` is. */
         scoped_ptr_t<tcp_listener_t> listener;
 
-        static const int default_user_timeout;
-
         /* A place to put our stats */
     };
 

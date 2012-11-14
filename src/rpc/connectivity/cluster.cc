@@ -19,8 +19,6 @@
 #define CLUSTER_PROTO_HEADER "RethinkDB " RETHINKDB_VERSION " cluster\n"
 const char *const cluster_proto_header = CLUSTER_PROTO_HEADER;
 
-const int connectivity_cluster_t::run_t::default_user_timeout(12000);
-
 void debug_print(append_only_printf_buffer_t *buf, const peer_address_t &address) {
     buf->appendf("peer_address{ips=[");
     const std::set<ip_address_t> *ips = address.all_ips();
@@ -41,7 +39,7 @@ connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
     message_handler(mh),
 
     /* Create the socket to use when listening for connections from peers */
-    cluster_listener_socket(new tcp_bound_socket_t(port, default_user_timeout)),
+    cluster_listener_socket(new tcp_bound_socket_t(port)),
     cluster_listener_port(cluster_listener_socket->get_port()),
 
     /* The local port to use when connecting to the cluster port of peers */
