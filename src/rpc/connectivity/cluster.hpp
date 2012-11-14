@@ -248,8 +248,6 @@ public:
         /* This must be destroyed before `drainer` is. */
         scoped_ptr_t<tcp_listener_t> listener;
 
-        static const int default_user_timeout;
-
         /* A place to put our stats */
     };
 
@@ -270,6 +268,8 @@ public:
     /* Returns the address of the given peer. Fatal error if we are not
     connected to the peer. */
     peer_address_t get_peer_address(peer_id_t) THROWS_NOTHING;
+
+    void kill_connection(peer_id_t remote_peer) THROWS_NOTHING;
 
 private:
     friend class run_t;
