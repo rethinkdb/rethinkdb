@@ -672,20 +672,6 @@ void linux_nonthrowing_tcp_listener_t::init_socket() {
      */
     res = setsockopt(sock_fd, IPPROTO_TCP, TCP_NODELAY, &sockoptval, sizeof(sockoptval));
     guarantee_err(res != -1, "Could not set TCP_NODELAY option");
-<<<<<<< HEAD
-
-    if (user_timeout > 0) {
-        res = setsockopt(sock.get(), IPPROTO_TCP, TCP_USER_TIMEOUT, &user_timeout, sizeof(user_timeout));
-        guarantee_err(res == 0, "setsockopt(TCP_USER_TiMEOUT) failed");
-    }
-||||||| merged common ancestors
-
-    if (user_timeout > 0) {
-        res = setsockopt(sock.get(), SOL_TCP, TCP_USER_TIMEOUT, &user_timeout, sizeof(user_timeout));
-        guarantee_err(res == 0, "setsockopt(TCP_USER_TiMEOUT) failed");
-    }
-=======
->>>>>>> next
 }
 
 bool linux_nonthrowing_tcp_listener_t::bind_socket() {
