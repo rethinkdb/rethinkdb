@@ -33,16 +33,16 @@ $(PROTOC_JS_HOME_DIR)/protoc-gen-js:
 $(JS_BUILD_DIR)/rethinkdb/query_language.pb.js: $(PROTO_FILE) $(PROTOC_JS_HOME_DIR)/protoc-gen-js
 	$(PROTOC_JS) -I $(PROTO_FILE_DIR)  --js_out=$(JS_BUILD_DIR) $(PROTO_FILE)
 
-js_server.js: js_server.coffee
+js_server.js: $(SERVER_SRC_DIR)*
 	bash -c 'cat $(SERVER_SRC_DIR)* >> $(TEMP_DIR)demo_server.coffee'
 	bash -c 'cat <(echo "goog.require(\"Query\");") \
 				 <(echo "goog.require(\"goog.proto2.WireFormatSerializer\");") \
 				 <(echo "goog.provide(\"demo_server\");") \
 				 <(cat sha1.js) > $(TEMP_DIR)js_server.js \
-				 <(coffee -p js_server.coffee)' > $(TEMP_DIR)js_server.js
+				 <(coffee -p $(TEMP_DIR)demo_server.coffee)' > $(TEMP_DIR)js_server.js
 
 $(JS_BUILD_DIR)/demo-server.js: $(JS_BUILD_DIR)/rethinkdb/query_language.pb.js js_server.js
-	$(CLOSURE_BUILDER) --root=$(CLOSURE_LIB) --root=$(JS_BUILD_DIR) --root=. --namespace=demo_server --output_mode=script > $(JS_BUILD_DIR)/demo-server.js
+	$(CLOSURE_BUILDER) --root=$(CLOSURE_LIB) --root=$(JS_BUILD_DIR) --root=$(TEMP_DIR) --namespace=demo_server --output_mode=script > $(JS_BUILD_DIR)/demo-server.js
 
 test: $(JS_BUILD_DIR)/demo-server.js test.html
 	mkdir -p $(DEMO_SERVER_DIR)
