@@ -323,6 +323,8 @@ class RDBTest(unittest.TestCase):
         expect(self.table.order_by(asc("a")), sorted(docs, key=get('a')))
         expect(self.table.order_by(desc("a")), sorted(docs, key=get('a'), reverse=True))
 
+        expect(self.table.order_by(asc("a")).stream_to_array(), self.table.order_by("a").stream_to_array().run())
+
         expect(self.table.filter({'b': 0}).order_by("a"),
                sorted(doc for doc in docs if doc['b'] == 0))
 
