@@ -37,8 +37,9 @@ void TLS_set_ ## name (type val) {\
     *static_cast<type *>(pthread_getspecific(TLS_ ## name ## _key)) = val;\
 }
 
-#else
-#ifdef __GNUC__
+#else  // ifdef __ICC
+// TODO(OSX) Recognize the clang/apple platform more correctly than using __APPLE__.  (Similarly for __GNUC__, too?)
+#if __GNUC__ || __APPLE__
 
 #define TLS_with_init(type, name, initial)\
 static __thread type TLS_ ## name = initial;\
@@ -51,13 +52,13 @@ void TLS_set_ ## name(type val) {\
     TLS_ ## name = val;\
 }\
 
-#else
+#else  // if __GNUC__ || __APPLE__
 
 #error Unrecognized compiler.
 
-#endif
+#endif  // if __GNUC__ || __APPLE__
 
-#endif
+#endif  // ifdef __ICC
 
 #ifdef __ICC
 #define TLS(type, name) \

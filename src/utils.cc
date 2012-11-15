@@ -300,31 +300,31 @@ debugf_in_dtor_t::~debugf_in_dtor_t() {
 }
 
 rng_t::rng_t(DEBUG_VAR int seed) {
-    memset(&buffer_, 0, sizeof(buffer_));
 #ifndef NDEBUG
     if (seed == -1) {
         struct timeval tv;
         gettimeofday(&tv, NULL);
         seed = tv.tv_usec;
     }
-    srand48_r(seed, &buffer_);
 #else
-    srand48_r(314159, &buffer_);
+    seed = 314159;
 #endif
+    xsubi[2] = seed / (1 << 16);
+    xsubi[1] = seed % (1 << 16);
+    xsubi[0] = 0x330E;
 }
 
 int rng_t::randint(int n) {
-    // We return int, and use it in the moduloizer, so the long here
-    // (which is necessary for the lrand48_r API) is okay.
-
-    long x;  // NOLINT(runtime/int)
-    lrand48_r(&buffer_, &x);
-
+    long x = nrand48(xsubi);  // NOLINT(runtime/int)
     return x % n;
 }
 
+struct nrand_xsubi_t {
+    unsigned short xsubi[3];
+};
+
 TLS_with_init(bool, rng_initialized, false)
-TLS(drand48_data, rng_data)
+TLS(nrand_xsubi_t, rng_data)
 
 void get_dev_urandom(void *out, int64_t nbytes) {
     blocking_read_file_stream_t urandom;
@@ -334,17 +334,15 @@ void get_dev_urandom(void *out, int64_t nbytes) {
 }
 
 int randint(int n) {
-    drand48_data buffer;
+    nrand_xsubi_t buffer;
     if (!TLS_get_rng_initialized()) {
-        long int seed_buffer;
-        get_dev_urandom(&seed_buffer, sizeof(seed_buffer));
-        srand48_r(seed_buffer, &buffer);
+        CT_ASSERT(sizeof(buffer.xsubi) == 6);
+        get_dev_urandom(&buffer.xsubi, sizeof(buffer.xsubi));
         TLS_set_rng_initialized(true);
     } else {
         buffer = TLS_get_rng_data();
     }
-    long x;   // NOLINT(runtime/int)
-    lrand48_r(&buffer, &x);
+    long x = nrand48(buffer.xsubi);  // NOLINT(runtime/int)
     TLS_set_rng_data(buffer);
     return x % n;
 }
