@@ -199,19 +199,23 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, io
 {
     // Determine if it is a block device
 
-    struct stat64 file_stat;
-    memset(&file_stat, 0, sizeof(file_stat));  // make valgrind happy
-    int res = stat64(path, &file_stat);
-    guarantee_err(res == 0 || errno == ENOENT, "Could not stat file '%s'", path);
+    {
+        // We don't use stat64 because we don't need any of the off64_t offsets.  Observe that we
+        // only use file_stat.st_mode.
+        struct stat file_stat;
+        memset(&file_stat, 0, sizeof(file_stat));
+        int res = stat(path, &file_stat);
+        guarantee_err(res == 0 || errno == ENOENT, "Could not stat file '%s'", path);
 
-    if (res == -1 && errno == ENOENT) {
-        if (!(mode & mode_create)) {
-            file_exists = false;
-            return;
+        if (res == -1 && errno == ENOENT) {
+            if (!(mode & mode_create)) {
+                file_exists = false;
+                return;
+            }
+            is_block = false;
+        } else {
+            is_block = S_ISBLK(file_stat.st_mode);
         }
-        is_block = false;
-    } else {
-        is_block = S_ISBLK(file_stat.st_mode);
     }
 
     // Construct file flags
@@ -232,7 +236,9 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, io
     // O_NOATIME requires owner or root privileges. This is a bit of a hack; we assume that
     // if we are opening a regular file, we are the owner, but if we are opening a block device,
     // we are not.
+#if !__APPLE__
     if (!is_block) flags |= O_NOATIME;
+#endif  // !__APPLE__
 
     // Open the file
 
@@ -274,13 +280,13 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, io
 #if __APPLE__
         crash("No support for block devices on OS X");
 #else
-        res = ioctl(fd.get(), BLKGETSIZE64, &file_size);
+        int res = ioctl(fd.get(), BLKGETSIZE64, &file_size);
         guarantee_err(res != -1, "Could not determine block device size");
 #endif
     } else {
         int64_t size = lseek64(fd.get(), 0, SEEK_END);
         guarantee_err(size != -1, "Could not determine file size");
-        res = lseek64(fd.get(), 0, SEEK_SET);
+        int res = lseek64(fd.get(), 0, SEEK_SET);
         guarantee_err(res != -1, "Could not reset file position");
 
         file_size = size;
