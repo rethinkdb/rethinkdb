@@ -284,7 +284,6 @@ class Builtin
                         response.setStatusCode 1
                         response.addResponse JSON.stringify(result <= 0)
                     when 5 #gt
-                        debugger
                         result = Helpers.prototype.compare term1_value, term2_value
                         response.setStatusCode 1
                         response.addResponse JSON.stringify(result > 0)
