@@ -884,10 +884,9 @@ goog.exportProperty(rethinkdb.Expression.prototype, 'map',
 /**
  * Order the elements of the sequence by their values of the specified attributes.
  * @param {...string} var_args Some number of strings giving the fields to orderBy.
- *  Values are first orderd by the first field given, then by the second, etc. To
- *  select ascending or descending ordering specifically, pass a tuple giving [attr,
- *  flag] where a true flag means ascending order and a false flag is descending.
- *  ascending ordering is the default.
+ *  Values are first orderd by the first field given, then by the second, etc. By
+ *  default orderBy uses ascending order. To explicitly set the order, wrap the
+ *  attribute with r.{@link asc}('attr') or r.{@link desc}('attr').
  * @return {rethinkdb.Expression}
  */
 rethinkdb.Expression.prototype.orderBy = function(var_args) {
@@ -933,6 +932,26 @@ rethinkdb.Expression.prototype.orderBy = function(var_args) {
 }
 goog.exportProperty(rethinkdb.Expression.prototype, 'orderBy',
                     rethinkdb.Expression.prototype.orderBy);
+
+/**
+ * Specify ascending ordering for a given attribute passed to orderBy
+ * @param {string} attr The attribute to orderBy
+ * @returns {Array}
+ * @export
+ */
+rethinkdb.asc = function(attr) {
+    return [attr, true];
+};
+
+/**
+ * Specify descending ordering for a given attribute passed to orderBy
+ * @param {string} attr The attribute to orderBy
+ * @returns {Array}
+ * @export
+ */
+rethinkdb.desc = function(attr) {
+    return [attr, false];
+};
 
 /**
  * Remove duplicate values in this sequence.
