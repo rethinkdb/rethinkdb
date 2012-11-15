@@ -278,18 +278,30 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, io
     if (is_block) {
 // TODO(OSX) Figure out block device support questions.
 #if __APPLE__
+        // Maybe use stat to get the size of the block device.
         crash("No support for block devices on OS X");
 #else
         int res = ioctl(fd.get(), BLKGETSIZE64, &file_size);
         guarantee_err(res != -1, "Could not determine block device size");
 #endif
     } else {
+        // We use lseek to get the size.  We could have also used stat.
+#if __APPLE__
+        CT_ASSERT(sizeof(off_t) == sizeof(int64_t));
+        int64_t size = lseek(fd.get(), 0, SEEK_END);
+        guarantee_err(size != -1, "Could not determine file size");
+        int res = lseek(fd.get(), 0, SEEK_SET);
+        guarantee_err(res != -1, "Could not reset file position");
+
+        file_size = size;
+#else
         int64_t size = lseek64(fd.get(), 0, SEEK_END);
         guarantee_err(size != -1, "Could not determine file size");
         int res = lseek64(fd.get(), 0, SEEK_SET);
         guarantee_err(res != -1, "Could not reset file position");
 
         file_size = size;
+#endif
     }
 
     // TODO: We have a very minor correctness issue here, which is that
