@@ -1,1 +1,3 @@
-A second attempt at the python RethinkDB driver, now that we finalized everything. Eventually we'll delete the old python/ directory and rename this one (python2/) to python/.
+Python RethinkDB driver.
+
+Refer to docs for [driver installation instrucstion](http://www.rethinkdb.com/docs/guides/drivers/) and the [Python ReQL command reference](http://www.rethinkdb.com/api/#py)
