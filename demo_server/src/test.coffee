@@ -521,6 +521,7 @@ $(document).ready ->
             callback_name: 'is_doc_1'
         },
 
+
     ]
     tests = new Tests queries
     tests.test()
