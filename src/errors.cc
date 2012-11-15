@@ -74,15 +74,14 @@ void report_fatal_error(const char *file, int line, const char *msg, ...) {
     logERR("Exiting.");
 }
 
-void errno_string_into_buffer(int errsv, char buf[250]) {
+const char *errno_string_maybe_using_buffer(int errsv, char *buf, size_t buflen) {
 #if _GNU_SOURCE
-    char *res = strerror_r(errsv, buf, 250);
-    return std::string(res);
+    return strerror_r(errsv, buf, buflen);
 #else
     // The result is either 0 or ERANGE (if the buffer is too small) or EINVAL (if the error number
     // is invalid), but in either case a friendly nul-terminated buffer is written.
-    UNUSED int res = strerror_r(errsv, buf, 250);
-    return std::string(buffer);
+    UNUSED int res = strerror_r(errsv, buf, buflen);
+    return buf;
 #endif  // _GNU_SOURCE
 }
 

@@ -110,8 +110,10 @@
 void report_fatal_error(const char*, int, const char*, ...) __attribute__((format (printf, 3, 4)));
 void report_user_error(const char*, ...) __attribute__((format (printf, 1, 2)));
 
-// Copies a strerror string into buf.
-void errno_string_into_buffer(int errsv, char buf[250]);
+// Possibly using buf to store characters, returns a pointer to a strerror-style error string.  This
+// has the same contract as the GNU (char *)-returning strerror_r.  The return value is a pointer to
+// a nul-terminated string, either equal to buf or pointing at a statically allocated string.
+MUST_USE const char *errno_string_maybe_using_buffer(int errsv, char *buf, size_t buflen);
 
 #define stringify(x) #x
 
@@ -134,8 +136,8 @@ void errno_string_into_buffer(int errsv, char buf[250]);
                 crash_or_trap(format_assert_message("Guarantee", cond) msg, ##args); \
             } else {                                                            \
                 char buf[250];                                                  \
-                errno_string_into_buffer(err, buf);                             \
-                crash_or_trap(format_assert_message("Guarantee", cond) " (errno %d - %s) " msg, err, buf, ##args);  \
+                const char *errstr = errno_string_maybe_using_buffer(err, buf, sizeof(buf)); \
+                crash_or_trap(format_assert_message("Guarantee", cond) " (errno %d - %s) " msg, err, errstr, ##args);  \
             }                                                                   \
         }                                                                       \
     } while (0)
@@ -159,8 +161,8 @@ void errno_string_into_buffer(int errsv, char buf[250]);
                 crash_or_trap(format_assert_message("Assert", cond) msg);   \
             } else {                                                        \
                 char buf[250];                                              \
-                errno_string_into_buffer(err, buf);                         \
-                crash_or_trap(format_assert_message("Assert", cond) " (errno %d - %s) " msg, errno, buf, ##args);  \
+                const char *errstr = errno_string_maybe_using_buffer(err, buf, sizeof(buf)); \
+                crash_or_trap(format_assert_message("Assert", cond) " (errno %d - %s) " msg, errno, errstr, ##args);  \
             }                                                               \
         }                                                                   \
     } while (0)

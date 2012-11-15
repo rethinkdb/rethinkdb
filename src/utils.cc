@@ -599,9 +599,9 @@ std::string sanitize_for_logger(const std::string &s) {
 }
 
 std::string errno_string(int errsv) {
-    char buffer[250] = { 0 };
-    errno_string_into_buffer(errsv, buffer);
-    return std::string(buffer);
+    char buf[250];
+    const char *errstr = errno_string_maybe_using_buffer(errsv, buf, sizeof(buf));
+    return std::string(errstr);
 }
 
 // GCC and CLANG are smart enough to optimize out strlen(""), so this works.
