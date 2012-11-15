@@ -219,37 +219,53 @@ std::string to_string_for_json_key(const uuid_u *uuid) {
     return uuid_to_str(*uuid);
 }
 
-// ctx-less JSON adapter for uint64_t
-json_adapter_if_t::json_adapter_map_t get_json_subfields(uint64_t *) {
+// ctx-less JSON adapter for unsigned long long
+json_adapter_if_t::json_adapter_map_t get_json_subfields(unsigned long long *) {
     return json_adapter_if_t::json_adapter_map_t();
 }
 
-cJSON *render_as_json(uint64_t *target) {
+cJSON *render_as_json(unsigned long long *target) {
     // TODO: Should we not fail when we cannot convert to double (or when we go outside 53-bit range?)
     return cJSON_CreateNumber(*target);
 }
 
-void apply_json_to(cJSON *change, uint64_t *target) {
-    *target = get_int(change, 0, INT64_MAX);
+void apply_json_to(cJSON *change, unsigned long long *target) {
+    *target = get_int(change, 0, ULLONG_MAX);
 }
 
-void on_subfield_change(uint64_t *) { }
+void on_subfield_change(unsigned long long *) { }
 
-// ctx-less JSON adapter for int64_t.
-json_adapter_if_t::json_adapter_map_t get_json_subfields(int64_t *) {
+// ctx-less JSON adapter for long long.
+json_adapter_if_t::json_adapter_map_t get_json_subfields(long long *) {
     return json_adapter_if_t::json_adapter_map_t();
 }
 
-cJSON *render_as_json(int64_t *target) {
+cJSON *render_as_json(long long *target) {
     // TODO: Should we not fail when we cannot convert to double (or when we go outside 53-bit range?)
     return cJSON_CreateNumber(*target);
 }
 
-void apply_json_to(cJSON *change, int64_t *target) {
-    *target = get_int(change, INT64_MIN, INT64_MAX);
+void apply_json_to(cJSON *change, long long *target) {
+    *target = get_int(change, LLONG_MIN, LLONG_MAX);
 }
 
-void on_subfield_change(int64_t *) { }
+void on_subfield_change(long long *) { }
+
+// ctx-less JSON adapter for long.
+json_adapter_if_t::json_adapter_map_t get_json_subfields(long *) {
+    return json_adapter_if_t::json_adapter_map_t();
+}
+
+cJSON *render_as_json(long *target) {
+    // TODO: Should we not fail when we cannot convert to double (or when we go outside 53-bit range?)
+    return cJSON_CreateNumber(*target);
+}
+
+void apply_json_to(cJSON *change, long *target) {
+    *target = get_int(change, LONG_MIN, LONG_MAX);
+}
+
+void on_subfield_change(long *) { }
 
 
 // ctx-less JSON adapter for int  (TODO: Should we not be only using int32_t?  FFS.)
