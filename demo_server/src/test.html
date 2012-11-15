@@ -1,0 +1,61 @@
+<html>
+    <head>
+        <link rel="stylesheet" type="text/css" href="style.css" />
+        <script src="jquery-1.8.2.min.js"></script>
+        <script src="underscore-min.js"></script>
+
+        <script src="demo-server.js"></script>
+
+        <script src="rethinkdb.js"></script>
+        <script src="test.js"></script>
+
+        <script id="test-template" type="text/x-handlebars-template">
+            {{#if success}}
+            <li class="success">Success ( {{query}} )</li>
+            {{else}}
+            <li class="fail">Fail ( {{query}} )</li>
+            {{/fi}}
+        </script>
+
+
+    </head>
+    <body>
+        <div id="header" class="small">
+            <div class="container">
+                <div class="query">
+                    <div class="highlight">
+<pre><code class="javascript"><span class="nx">r</span><span class="p">.</span><span class="nx">db</span><span class="p">(</span><span class="s1">'Disney'</span><span class="p">).</span><span class="nx">table</span><span class="p">(</span><span class="s1">'StarWars'</span><span class="p">).</span><span class="nx">get</span><span class="p">(</span><span class="s1">'Luke'</span><span class="p">).</span><span class="nx">update</span><span class="p">({</span><span class="s1">'father'</span><span class="o">:</span> <span class="s1">'Vader'</span><span class="p">}).</span><span class="nx">run</span><span class="p">()</span></code></pre>
+                    </div>
+                </div>
+                <h1 class="logo"><a href="/">RethinkDB</a></h1>
+            </div>
+        </div>
+        <div class="navbar navbar-static-top" style="top: 0px; position: relative; ">
+            <div class="navbar-inner">
+                <div class="container">
+                    <ul class="nav">
+                        <li><a href="http://www.rethinkdb.com/">intro</a></li>
+                        <li><a href="http://www.rethinkdb.com/docs/faq">faq</a></li>
+                        <li><a href="http://www.rethinkdb.com/docs">docs</a></li>
+                        <li><a href="http://www.rethinkdb.com/api">api</a></li>
+                        <li><a href="http://www.rethinkdb.com/community">community</a></li>
+                        <li><a href="http://www.rethinkdb.com/blog">blog</a></li>
+                        <li><a href="http://www.rethinkdb.com/people">people</a></li>
+                        <li class="active"><a href="/test.html">test</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div id="content">
+        <div class="container">
+        <div class="section"><h1>Tests</h1>
+
+            <h2>Results</h2>
+
+            <ul id="results">
+            </ul>
+        </div>
+        </div>
+        </div>
+    </body>
+</html>         

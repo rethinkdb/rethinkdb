@@ -181,6 +181,8 @@ rethinkdb.Connection.prototype.recv_ = function(data) {
 
     try {
         serializer.deserializeTo(response, new Uint8Array(data.buffer, 4));
+        console.log('Driver: Response received from the server');
+        console.log(response);
     } catch(err) {
         this.error_(new rethinkdb.errors.ClientError("response deserialization failed"));
     }
