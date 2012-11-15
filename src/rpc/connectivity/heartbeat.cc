@@ -6,6 +6,7 @@
 // This class implements a heartbeat on top of intra-cluster connections
 heartbeat_manager_t::heartbeat_manager_t(message_service_t *_message_service) :
     message_service(_message_service),
+    timer_token(NULL),
     connection_watcher(this) {
     connectivity_service_t::peers_list_freeze_t freeze(message_service->get_connectivity_service());
     guarantee(message_service->get_connectivity_service()->get_peers_list().empty());
@@ -13,7 +14,11 @@ heartbeat_manager_t::heartbeat_manager_t(message_service_t *_message_service) :
 }
 
 heartbeat_manager_t::~heartbeat_manager_t() {
-    // Assert empty?
+    assert_thread();
+    if (timer_token != NULL) {
+        cancel_timer(timer_token);
+        timer_token = NULL;
+    }
 }
 
 // Start heartbeat on a new peer connection
@@ -22,7 +27,7 @@ void heartbeat_manager_t::on_connect(peer_id_t peer_id) {
     guarantee(connections.insert(std::make_pair(peer_id, 0)).second == true);
 
     if (timer_token == NULL) {
-        // First connection on this thread, set up a timer
+        // First connection, set up a timer
         rassert(connections.size() == 1);
         timer_token = add_timer(TIMER_INTERVAL_MS, &timer_callback, this);
     }
@@ -41,8 +46,9 @@ void heartbeat_manager_t::on_disconnect(peer_id_t peer_id) {
 }
 
 void heartbeat_manager_t::timer_callback(void *ctx) {
-    // TODO: make sure we don't kill a reconnection of the one we're trying to kill
-    //  not very likely, but could cause a momentary thrash
+    // It's possible we will kill a reconnection of the connection we're trying to kill.
+    //  It's not very likely, and it will clear up almost immediately, but it could cause
+    //  a momentary thrash.
     ASSERT_FINITE_CORO_WAITING;
     heartbeat_manager_t *self = reinterpret_cast<heartbeat_manager_t*>(ctx);
     self->assert_thread();
@@ -58,11 +64,14 @@ void heartbeat_manager_t::timer_callback(void *ctx) {
 }
 
 // This can be called on any thread, but we want to handle it on thread 0, so we don't have any
-//  race conditions on the connections map
+//  race conditions on the connections map.  We can't do it here since on_message mustn't block
 void heartbeat_manager_t::on_message(peer_id_t source_peer, UNUSED read_stream_t *stream) {
+    coro_t::spawn_later_ordered(boost::bind(&heartbeat_manager_t::on_message_coro, this, source_peer));
+}
+
+void heartbeat_manager_t::on_message_coro(peer_id_t source_peer) {
     on_thread_t rethreader(home_thread());
     std::map<peer_id_t, uint32_t>::iterator i = connections.find(source_peer);
     guarantee(i != connections.end());
     i->second = 0;
 }
-

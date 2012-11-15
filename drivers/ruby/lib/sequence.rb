@@ -113,12 +113,10 @@ module RethinkDB
     # example, to sort first by name and then by social security
     # number for the table <b>+people+</b>, you could do:
     #   people.order_by(:name, :ssn)
-    # In place of an attribute name, you may provide a tuple of an attribute
-    # name and a boolean specifying whether to sort in ascending order (which is
-    # the default).  For example:
-    #   people.order_by([:name, false], :ssn)
-    # will sort first by name in descending order, and then by ssn in ascending
-    # order.
+    # By default order_by sorts in ascending order. To explicitly specify the
+    # ordering wrap the attribute to be ordered by with r.asc or r.desc as in:
+    #   people.order_by(r.desc(:name), :ssn)
+    # which sorts first by name from Z-A and then by ssn from 0-9.
     def order_by(*orderings)
       orderings.map!{|x| x.class == Array ? x : [x, true]}
       self.class.new [:call, [:orderby, *orderings], [self]]

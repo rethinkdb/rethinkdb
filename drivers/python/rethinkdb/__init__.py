@@ -15,6 +15,7 @@ __all__ = [
     'connect', 'last_connection',
     'db_create', 'db_drop', 'db_list', 'db', 'table', 'error',
     'expr', 'r', 'union', 'js', 'let', 'letvar', 'branch',
+    'asc', 'desc',
     'ExecutionError', 'BadQueryError']
 
 from query import *
