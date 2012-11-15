@@ -488,9 +488,8 @@ class JSONExpression(ReadQuery):
     def order_by(self, *attributes):
         """Sorts an array of objects according to the given attributes.
 
-        To specify ascending or descending ordering, pass a tuple giving the
-        attribute and a flag specifying the ordering. Defaults to True for
-        ascending ordering.
+        By default, order_by uses ascending ordering. To specify the ordering
+        wrap the attribute with :func:`asc` or :func:`desc`.
 
         This is like :meth:`StreamExpression.order_by` but with arrays instead
         of streams.
@@ -906,9 +905,8 @@ class StreamExpression(ReadQuery):
     def order_by(self, *attributes):
         """Sort the stream according to the given attributes.
 
-        To specify ascending or descending ordering, pass a tuple giving the
-        attribute and a flag specifying the ordering. Defaults to True for
-        ascending ordering.
+        By default, order_by uses ascending ordering. To specify the ordering
+        wrap the attribute with :func:`asc` or :func:`r.desc`.
 
         TODO: What if an attribute is missing?
 
@@ -917,7 +915,7 @@ class StreamExpression(ReadQuery):
         :returns: :class:`StreamExpression` or :class:`MultiRowSelection` (same as input)
 
         >>> table('users').order_by('name')  # order users by name A-Z
-        >>> table('users').order_by('-level', 'name') # levels high-low, then names A-Z
+        >>> table('users').order_by(desc('level'), 'name') # levels high-low, then names A-Z
         """
         order = []
         for attr in attributes:
@@ -1156,6 +1154,12 @@ def average(attr):
         'reduction': lambda acc, val: [acc[0]+val[0], acc[1]+val[1]],
         'finalizer': lambda res: res[0] / res[1]
     }
+
+def asc(attr):
+    return (attr, True)
+
+def desc(attr):
+    return (attr, False)
 
 def expr(val):
     """Converts a python value to a ReQL :class:`JSONExpression`.
