@@ -253,7 +253,7 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, io
             "%s"    // for creation/open error
             "%s"    // for O_DIRECT message
             "%s",   // for O_NOATIME message
-            path, strerror(errno),
+            path, errno_string(errno).c_str(),
             is_block ?
                 "\n- the database device couldn't be opened for reading and writing" :
                 "\n- the database file couldn't be created or opened for reading and writing",

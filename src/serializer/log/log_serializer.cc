@@ -54,7 +54,7 @@ bool filepath_file_opener_t::open_semantic_checking_file(int *fd_out) {
     } while (semantic_fd == -1 && errno == EINTR);
 
     if (semantic_fd == INVALID_FD) {
-        fail_due_to_user_error("Inaccessible semantic checking file: \"%s\": %s", semantic_filepath.c_str(), strerror(errno));
+        fail_due_to_user_error("Inaccessible semantic checking file: \"%s\": %s", semantic_filepath.c_str(), errno_string(errno).c_str());
     } else {
         *fd_out = semantic_fd;
         return true;

@@ -110,6 +110,9 @@
 void report_fatal_error(const char*, int, const char*, ...) __attribute__((format (printf, 3, 4)));
 void report_user_error(const char*, ...) __attribute__((format (printf, 1, 2)));
 
+// Copies a strerror string into buf.
+void errno_string_into_buffer(int errsv, char buf[250]);
+
 #define stringify(x) #x
 
 #define format_assert_message(assert_type, cond) assert_type " failed: [" stringify(cond) "] "
@@ -130,7 +133,9 @@ void report_user_error(const char*, ...) __attribute__((format (printf, 1, 2)));
             if (err == 0) {                                                     \
                 crash_or_trap(format_assert_message("Guarantee", cond) msg, ##args); \
             } else {                                                            \
-                crash_or_trap(format_assert_message("Guarantee", cond) " (errno %d - %s) " msg, err, strerror(err), ##args);  \
+                char buf[250];                                                  \
+                errno_string_into_buffer(err, buf);                             \
+                crash_or_trap(format_assert_message("Guarantee", cond) " (errno %d - %s) " msg, err, buf, ##args);  \
             }                                                                   \
         }                                                                       \
     } while (0)
@@ -153,7 +158,9 @@ void report_user_error(const char*, ...) __attribute__((format (printf, 1, 2)));
             if (errno == 0) {                                               \
                 crash_or_trap(format_assert_message("Assert", cond) msg);   \
             } else {                                                        \
-                crash_or_trap(format_assert_message("Assert", cond) " (errno %d - %s) " msg, errno, strerror(errno), ##args);  \
+                char buf[250];                                              \
+                errno_string_into_buffer(err, buf);                         \
+                crash_or_trap(format_assert_message("Assert", cond) " (errno %d - %s) " msg, errno, buf, ##args);  \
             }                                                               \
         }                                                                   \
     } while (0)

@@ -601,15 +601,9 @@ std::string sanitize_for_logger(const std::string &s) {
 }
 
 std::string errno_string(int errsv) {
-    char buffer[500];
-#if _GNU_SOURCE
-    char *res = strerror_r(errsv, buffer, sizeof(buffer));
-#else
-    // The result is either 0 or ERANGE (if the buffer is too small) or EINVAL (if the error number
-    // is invalid), but in either case a friendly nul-terminated buffer is written.
-    UNUSED int res = strerror_r(errsv, buffer, sizeof(buffer));
-#endif  // _GNU_SOURCE
-    return std::string res;
+    char buffer[250] = { 0 };
+    errno_string_into_buffer(errsv, buffer);
+    return std::string(buffer);
 }
 
 // GCC and CLANG are smart enough to optimize out strlen(""), so this works.

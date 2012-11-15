@@ -26,7 +26,7 @@ void read_to_static_buffer_or_throw(const char *path, char *buf, size_t nbytes) 
     int errsv;
     if (!stream.init(path, &errsv)) {
         // TODO: Get error information from a blocking_read_file_stream_t.
-        throw std::runtime_error(strprintf("Could not open '%s': %s (errno = %d).", path, strerror(errsv), errsv));
+        throw std::runtime_error(strprintf("Could not open '%s': %s (errno = %d).", path, errno_string(errsv).c_str(), errsv));
     }
 
     int64_t readres = force_read(&stream, buf, nbytes - 1);

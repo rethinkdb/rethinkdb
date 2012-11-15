@@ -74,6 +74,18 @@ void report_fatal_error(const char *file, int line, const char *msg, ...) {
     logERR("Exiting.");
 }
 
+void errno_string_into_buffer(int errsv, char buf[250]) {
+#if _GNU_SOURCE
+    char *res = strerror_r(errsv, buf, 250);
+    return std::string(res);
+#else
+    // The result is either 0 or ERANGE (if the buffer is too small) or EINVAL (if the error number
+    // is invalid), but in either case a friendly nul-terminated buffer is written.
+    UNUSED int res = strerror_r(errsv, buf, 250);
+    return std::string(buffer);
+#endif  // _GNU_SOURCE
+}
+
 /* Handlers for various signals and for unexpected exceptions or calls to std::terminate() */
 
 NORETURN void generic_crash_handler(int signum) {

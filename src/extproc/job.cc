@@ -36,7 +36,7 @@ int job_t::accept_job(control_t *control, void *extra) {
         //  and the file descriptor is invalid.  We don't want to pollute the output.
         if (is_rdb_alive(control->get_rdb_pid())) {
             control->log("Couldn't read job function: %s",
-                          res == -1 ? strerror(errno) : "end-of-file received");
+                          res == -1 ? errno_string(errno).c_str() : "end-of-file received");
         }
         return -1;
     }

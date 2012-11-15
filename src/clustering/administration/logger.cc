@@ -168,7 +168,7 @@ log_message_t assemble_log_message(log_level_t level, const std::string &message
 
 static void throw_unless(bool condition, const std::string &where) {
     if (!condition) {
-        throw std::runtime_error("file IO error: " + where + " (errno = " + strerror(errno) + ")");
+        throw std::runtime_error("file IO error: " + where + " (errno = " + errno_string(errno).c_str() + ")");
     }
 }
 
@@ -309,13 +309,13 @@ bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_o
 
     ssize_t write_res = ::write(STDERR_FILENO, console_formatted.data(), console_formatted.length());
     if (write_res != static_cast<ssize_t>(console_formatted.length())) {
-        *error_out = std::string("cannot write to standard error: ") + strerror(errno);
+        *error_out = std::string("cannot write to standard error: ") + errno_string(errno).c_str();
         return false;
     }
 
     int res = fsync(STDERR_FILENO);
     if (res != 0 && !(errno == EROFS || errno == EINVAL)) {
-        *error_out = std::string("cannot flush stderr: ") + strerror(errno);
+        *error_out = std::string("cannot flush stderr: ") + errno_string(errno).c_str();
         return false;
     }
 
@@ -328,19 +328,19 @@ bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_o
 
     res = fcntl(fd.get(), F_SETLKW, &filelock);
     if (res != 0) {
-        *error_out = std::string("cannot lock log file: ") + strerror(errno);
+        *error_out = std::string("cannot lock log file: ") + errno_string(errno).c_str();
         return false;
     }
 
     write_res = ::write(fd.get(), formatted.data(), formatted.length());
     if (write_res != static_cast<ssize_t>(formatted.length())) {
-        *error_out = std::string("cannot write to log file: ") + strerror(errno);
+        *error_out = std::string("cannot write to log file: ") + errno_string(errno).c_str();
         return false;
     }
 
     res = fcntl(fd.get(), F_SETLK, &fileunlock);
     if (res != 0) {
-        *error_out = std::string("cannot unlock log file: ") + strerror(errno);
+        *error_out = std::string("cannot unlock log file: ") + errno_string(errno).c_str();
         return false;
     }
 

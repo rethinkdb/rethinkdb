@@ -42,7 +42,7 @@ public:
     public:
         explicit connect_failed_exc_t(int en) : error(en) { }
         const char *what() const throw () {
-            return strprintf("Could not make connection: %s", strerror(error)).c_str();
+            return strprintf("Could not make connection: %s", errno_string(error).c_str()).c_str();
         }
         ~connect_failed_exc_t() throw () { }
         int error;
