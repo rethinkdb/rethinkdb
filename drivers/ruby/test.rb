@@ -500,7 +500,9 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(rdb.order_by(:id).run.to_a, $data)
     assert_equal(rdb.order_by('id').run.to_a, $data)
     assert_equal(rdb.order_by(:id).run.to_a, $data)
+    assert_equal(rdb.order_by(r.asc(:id)).run.to_a, $data)
     assert_equal(rdb.order_by([:id, false]).run.to_a, $data.reverse)
+    assert_equal(rdb.order_by(r.desc(:id)).run.to_a, $data.reverse)
     query = rdb.map{|x| r({:id => x[:id],:num => x[:id].mod(2)})}.order_by(:num,[:id, false])
     want = $data.map{|o| o['id']}.sort_by{|n| (n%2)*$data.length - n}
     assert_equal(query.run.to_a.map{|o| o['id']}, want)
