@@ -266,7 +266,7 @@ private:
         }
     }
 
-    mailbox_manager_t *mailbox_manager;
+    mailbox_manager_t *const mailbox_manager;
     user_data_type user_data;
 
     intrusive_list_t<client_t> clients;

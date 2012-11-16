@@ -78,6 +78,8 @@ public:
         read_t(const read_t& r) : query(r.query), effective_time(r.effective_time) { }
         read_t(const query_t& q, exptime_t et) : query(q), effective_time(et) { }
 
+        bool use_snapshot() const { return false; }
+
         query_t query;
         exptime_t effective_time;
     };
@@ -113,7 +115,7 @@ public:
             repli_timestamp_t recency;
 
             delete_key_t() { }
-            delete_key_t(const store_key_t& key_, const repli_timestamp_t& recency_) : key(key_), recency(recency_) { }
+            delete_key_t(const store_key_t& _key, const repli_timestamp_t& _recency) : key(_key), recency(_recency) { }
         };
         struct delete_range_t {
             region_t range;
@@ -125,11 +127,11 @@ public:
             backfill_atom_t backfill_atom;
 
             key_value_pair_t() { }
-            explicit key_value_pair_t(const backfill_atom_t& backfill_atom_) : backfill_atom(backfill_atom_) { }
+            explicit key_value_pair_t(const backfill_atom_t& _backfill_atom) : backfill_atom(_backfill_atom) { }
         };
 
         backfill_chunk_t() { }
-        explicit backfill_chunk_t(boost::variant<delete_range_t, delete_key_t, key_value_pair_t> val_) : val(val_) { }
+        explicit backfill_chunk_t(boost::variant<delete_range_t, delete_key_t, key_value_pair_t> _val) : val(_val) { }
 
         region_t get_region() const THROWS_NOTHING;
         backfill_chunk_t shard(const region_t &r) const THROWS_NOTHING;
@@ -170,14 +172,16 @@ public:
                            read_response_t *response,
                            btree_slice_t *btree,
                            transaction_t *txn,
-                           superblock_t *superblock);
+                           superblock_t *superblock,
+                           signal_t *interruptor);
 
         void protocol_write(const write_t &write,
                             write_response_t *response,
                             transition_timestamp_t timestamp,
                             btree_slice_t *btree,
                             transaction_t *txn,
-                            superblock_t *superblock);
+                            superblock_t *superblock,
+                            signal_t *interruptor);
 
         void protocol_send_backfill(const region_map_t<memcached_protocol_t, state_timestamp_t> &start_point,
                                     chunk_fun_callback_t<memcached_protocol_t> *chunk_fun_cb,

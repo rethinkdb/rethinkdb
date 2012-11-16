@@ -100,14 +100,14 @@ void page_repl_random_t::make_space(unsigned int space_needed) {
         }
 
         if (!block_to_unload) {
-	    // The following log message blows the corostack because it has propensity to overlog.
-	    // Commenting it out for 1.2. TODO: we might want to address it later in a different
+            // The following log message blows the corostack because it has propensity to overlog.
+            // Commenting it out for 1.2. TODO: we might want to address it later in a different
             // way (i.e. spawn_maybe?)
-	    /*
+            /*
             if (array.size() > target + (target / 100) + 10)
                 logWRN("cache %p exceeding memory target. %d blocks in memory, %d dirty, target is %d.",
                        cache, array.size(), cache->writeback.num_dirty_blocks(), target);
-	    */
+            */
             break;
         }
 

@@ -184,6 +184,7 @@ mc_inner_buf_t::mc_inner_buf_t(mc_cache_t *_cache, block_id_t _block_id, file_ac
       subtree_recency(repli_timestamp_t::invalid),  // Gets initialized by load_inner_buf
       data(_cache->serializer->malloc()),
       version_id(_cache->get_min_snapshot_version(_cache->get_current_version_id())),
+      lock(),
       next_patch_counter(1),
       refcount(0),
       do_delete(false),
@@ -219,6 +220,7 @@ mc_inner_buf_t::mc_inner_buf_t(mc_cache_t *_cache, block_id_t _block_id, void *_
       data(_buf),
       version_id(_cache->get_min_snapshot_version(_cache->get_current_version_id())),
       data_token(token),
+      lock(),
       refcount(0),
       do_delete(false),
       cow_refcount(0),
@@ -288,6 +290,7 @@ mc_inner_buf_t::mc_inner_buf_t(mc_cache_t *_cache, block_id_t _block_id, version
       subtree_recency(_recency_timestamp),
       data(_cache->serializer->malloc()),
       version_id(_snapshot_version),
+      lock(),
       next_patch_counter(1),
       refcount(0),
       do_delete(false),
@@ -491,11 +494,14 @@ mc_buf_lock_t::mc_buf_lock_t() :
 
 
 /* Constructor to obtain a buffer lock within a transaction */
-mc_buf_lock_t::mc_buf_lock_t(mc_transaction_t *transaction, block_id_t block_id, access_t mode_, UNUSED buffer_cache_order_mode_t order_mode, lock_in_line_callback_t *call_when_in_line) THROWS_NOTHING :
+mc_buf_lock_t::mc_buf_lock_t(mc_transaction_t *transaction,
+                             block_id_t block_id, access_t _mode,
+                             UNUSED buffer_cache_order_mode_t order_mode,
+                             lock_in_line_callback_t *call_when_in_line) THROWS_NOTHING :
     acquired(false),
     snapshotted(transaction->snapshotted),
     non_locking_access(snapshotted),
-    mode(mode_),
+    mode(_mode),
     inner_buf(transaction->cache->find_buf(block_id)),
     data(NULL),
     subtree_recency(repli_timestamp_t::invalid),

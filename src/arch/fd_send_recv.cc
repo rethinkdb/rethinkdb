@@ -16,7 +16,7 @@
 int send_fds(int socket_fd, size_t num_fds, int *fds) {
     // Set-up for a call to sendmsg().
     struct msghdr msg;
-    memset(&msg, 0, sizeof msg);
+    memset(&msg, 0, sizeof(msg));
 
     // We send a single null byte along with the data. Sending a zero-length
     // message is dubious; receiving one is even more dubious.
@@ -53,7 +53,7 @@ int send_fds(int socket_fd, size_t num_fds, int *fds) {
 fd_recv_result_t recv_fds(int socket_fd, size_t num_fds, int *fds) {
     // Set-up for a call to recvmsg()
     struct msghdr msg;
-    memset(&msg, 0, sizeof msg);
+    memset(&msg, 0, sizeof(msg));
 
     // We expect to receive a single null byte.
     struct iovec iov;

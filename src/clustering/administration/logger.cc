@@ -282,8 +282,9 @@ void fallback_log_writer_t::install(const std::string &logfile_name) {
     guarantee(filename == "", "Attempted to install a fallback_log_writer_t that was already installed.");
     filename = logfile_name;
 
+    // It's ok if the file couldn't be opened -- we create a local
+    // issue for it later
     fd.reset(open(filename.c_str(), O_WRONLY|O_APPEND|O_CREAT, 0644));
-    guarantee(fd.get() != -1, "%s", (std::string("failed to open log file") + strerror(errno)).c_str());
 }
 
 bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_out) {

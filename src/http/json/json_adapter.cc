@@ -6,9 +6,9 @@
 #define __STDC_LIMIT_MACROS
 #endif
 
-#include <inttypes.h>
-
 #include "http/json/json_adapter.hpp"
+
+#include <inttypes.h>
 
 #include <limits>
 

@@ -1,5 +1,6 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 #!/usr/bin/python
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 
 # usage: ./smoke_test.py --mode OS_NAME --num-keys SOME_NUMBER_HERE
 
@@ -139,7 +140,7 @@ for path in res_paths:
 
     print "Starting RethinkDB..."
 
-    exec_command("rm -rf rethinkdb_cluster_data")
+    exec_command("rm -rf rethinkdb_data")
     exec_command("rm -f core.*")
     proc = exec_command("rethinkdb", bg = True)
 

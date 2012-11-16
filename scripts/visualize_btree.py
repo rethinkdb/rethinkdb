@@ -1,5 +1,6 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 #!/usr/bin/env python
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 from collections import namedtuple
 from parse_binary import *
 import sys, traceback

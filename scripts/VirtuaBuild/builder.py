@@ -1,5 +1,6 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 #!/usr/bin/python
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 from vcoptparse import *
 import vm_build
 import sys

@@ -41,14 +41,9 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
         namespace_repo_t<memcached_protocol_t> *_namespace_repo,
         namespace_repo_t<rdb_protocol_t> *_rdb_namespace_repo,
         admin_tracker_t *_admin_tracker,
-        local_issue_tracker_t *_local_issue_tracker,
         http_app_t *reql_app,
         uuid_t _us,
-        std::string path) :
-            bound_issue("PORT_CONFLICT",
-                        true,
-                        strprintf("could not bind to administrative http server port at %d", port)),
-            bound_subscription(&bound_issue_tracker_entry)
+        std::string path)
 {
     std::set<std::string> white_list;
     white_list.insert("/cluster.css");
@@ -56,9 +51,9 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     white_list.insert("/cluster.html");
     white_list.insert("/cluster-min.js");
     white_list.insert("/favicon.ico");
+    white_list.insert("/js/reql_docs.json");
     white_list.insert("/js/backbone.js");
     white_list.insert("/js/rethinkdb.js");
-    white_list.insert("/js/encoding.js");
     white_list.insert("/js/bootstrap/bootstrap-alert.js");
     white_list.insert("/js/bootstrap/bootstrap-modal.js");
     white_list.insert("/js/bootstrap/bootstrap-tab.js");
@@ -94,24 +89,98 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     white_list.insert("/js/codemirror/codemirror.js");
     white_list.insert("/js/codemirror/ambiance.css");
     white_list.insert("/js/codemirror/javascript.js");
-    white_list.insert("/images/ajax-loader.gif");
-    white_list.insert("/images/arrow_right.gif");
+    white_list.insert("/images/body_bg_tile.png");
+    white_list.insert("/images/icon-magnifying_glass.png");
+    white_list.insert("/images/status-panel_bg_tile.png");
+    white_list.insert("/images/status_panel-icon_1.png");
+    white_list.insert("/images/status_panel-icon_1-error.png");
+    white_list.insert("/images/status_panel-icon_2.png");
+    white_list.insert("/images/status_panel-icon_2-error.png");
+    white_list.insert("/images/status_panel-icon_3.png");
+    white_list.insert("/images/status_panel-icon_3-error.png");
+    white_list.insert("/images/status_panel-icon_4.png");
+    white_list.insert("/images/status_panel-icon_4-error.png");
+    white_list.insert("/images/resolve_issue-resolved_icon.png");
+    white_list.insert("/images/green-light.png");
+    white_list.insert("/images/red-light.png");
+    white_list.insert("/images/server-icon.png");
+    white_list.insert("/images/graph-icon.png");
+    white_list.insert("/images/green-light_glow.png");
+    white_list.insert("/images/red-light_glow.png");
+    white_list.insert("/images/pencil-icon_big.png");
+    white_list.insert("/images/clock-icon.png");
+    white_list.insert("/images/resolve_issue-danger_icon.png");
+    white_list.insert("/images/resolve_issue-message_icon.png");
+    white_list.insert("/images/resolve_issue-clock_icon.png");
+    white_list.insert("/images/resolve_issue-details_icon.png");
+    white_list.insert("/images/live-icon.png");
+    white_list.insert("/images/layers-icon.png");
+    white_list.insert("/images/grid-icon.png");
+    white_list.insert("/images/document-icon.png");
+    white_list.insert("/images/list-square-bullet.png");
+    white_list.insert("/images/list-vert-dash.png");
+    white_list.insert("/images/list-horiz-dash.png");
+    white_list.insert("/images/green-light_glow_small.png");
+    white_list.insert("/images/red-light_glow_small.png");
+    white_list.insert("/images/bars-icon_server-assignments.png");
+    white_list.insert("/images/globe-icon_white.png");
+    white_list.insert("/images/bars-icon.png");
     white_list.insert("/images/arrow_down.gif");
-    white_list.insert("/images/alert-icon_small.png");
-    white_list.insert("/images/critical-issue_small.png");
-    white_list.insert("/images/information-icon_small.png");
-    white_list.insert("/images/right-arrow_16x16.png");
-    white_list.insert("/images/right-arrow_12x12.png");
-    white_list.insert("/images/down-arrow_16x16.png");
-    white_list.insert("/images/down-arrow_12x12.png");
-    white_list.insert("/images/glyphicons-halflings.png");
-    white_list.insert("/images/glyphicons-halflings-white.png");
-    white_list.insert("/images/loading.gif");
-    white_list.insert("/images/walkthrough/1.jpg");
-    white_list.insert("/images/walkthrough/2.jpg");
-    white_list.insert("/images/walkthrough/3.jpg");
-    white_list.insert("/images/walkthrough/4.jpg");
-    white_list.insert("/images/walkthrough/5.jpg");
+    white_list.insert("/images/arrow_right.gif");
+    white_list.insert("/images/ajax-loader.gif");
+    white_list.insert("/fonts/copse-regular-webfont.eot");
+    white_list.insert("/fonts/copse-regular-webfont.svg");
+    white_list.insert("/fonts/copse-regular-webfont.ttf");
+    white_list.insert("/fonts/copse-regular-webfont.woff");
+    white_list.insert("/fonts/inconsolata-bold-webfont.eot");
+    white_list.insert("/fonts/inconsolata-bold-webfont.svg");
+    white_list.insert("/fonts/inconsolata-bold-webfont.ttf");
+    white_list.insert("/fonts/inconsolata-bold-webfont.woff");
+    white_list.insert("/fonts/inconsolata-regular-webfont.eot");
+    white_list.insert("/fonts/inconsolata-regular-webfont.svg");
+    white_list.insert("/fonts/inconsolata-regular-webfont.ttf");
+    white_list.insert("/fonts/inconsolata-regular-webfont.woff");
+    white_list.insert("/fonts/opensans-bolditalic-webfont.eot");
+    white_list.insert("/fonts/opensans-bolditalic-webfont.svg");
+    white_list.insert("/fonts/opensans-bolditalic-webfont.ttf");
+    white_list.insert("/fonts/opensans-bolditalic-webfont.woff");
+    white_list.insert("/fonts/opensans-bold-webfont.eot");
+    white_list.insert("/fonts/opensans-bold-webfont.svg");
+    white_list.insert("/fonts/opensans-bold-webfont.ttf");
+    white_list.insert("/fonts/opensans-bold-webfont.woff");
+    white_list.insert("/fonts/opensans-extrabolditalic-webfont.eot");
+    white_list.insert("/fonts/opensans-extrabolditalic-webfont.svg");
+    white_list.insert("/fonts/opensans-extrabolditalic-webfont.ttf");
+    white_list.insert("/fonts/opensans-extrabolditalic-webfont.woff");
+    white_list.insert("/fonts/opensans-extrabold-webfont.eot");
+    white_list.insert("/fonts/opensans-extrabold-webfont.svg");
+    white_list.insert("/fonts/opensans-extrabold-webfont.ttf");
+    white_list.insert("/fonts/opensans-extrabold-webfont.woff");
+    white_list.insert("/fonts/opensans-italic-webfont.eot");
+    white_list.insert("/fonts/opensans-italic-webfont.svg");
+    white_list.insert("/fonts/opensans-italic-webfont.ttf");
+    white_list.insert("/fonts/opensans-italic-webfont.woff");
+    white_list.insert("/fonts/opensans-lightitalic-webfont.eot");
+    white_list.insert("/fonts/opensans-lightitalic-webfont.svg");
+    white_list.insert("/fonts/opensans-lightitalic-webfont.ttf");
+    white_list.insert("/fonts/opensans-lightitalic-webfont.woff");
+    white_list.insert("/fonts/opensans-light-webfont.eot");
+    white_list.insert("/fonts/opensans-light-webfont.svg");
+    white_list.insert("/fonts/opensans-light-webfont.ttf");
+    white_list.insert("/fonts/opensans-light-webfont.woff");
+    white_list.insert("/fonts/opensans-regular-webfont.eot");
+    white_list.insert("/fonts/opensans-regular-webfont.svg");
+    white_list.insert("/fonts/opensans-regular-webfont.ttf");
+    white_list.insert("/fonts/opensans-regular-webfont.woff");
+    white_list.insert("/fonts/opensans-semibolditalic-webfont.eot");
+    white_list.insert("/fonts/opensans-semibolditalic-webfont.svg");
+    white_list.insert("/fonts/opensans-semibolditalic-webfont.ttf");
+    white_list.insert("/fonts/opensans-semibolditalic-webfont.woff");
+    white_list.insert("/fonts/opensans-semibold-webfont.eot");
+    white_list.insert("/fonts/opensans-semibold-webfont.svg");
+    white_list.insert("/fonts/opensans-semibold-webfont.ttf");
+    white_list.insert("/fonts/opensans-semibold-webfont.woff");
+    white_list.insert("/fonts/stylesheet.css");
     white_list.insert("/index.html");
     file_app.init(new file_http_app_t(white_list, path));
 
@@ -158,19 +227,6 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     root_routing_app.init(new routing_http_app_t(file_app.get(), root_routes));
 
     server.init(new http_server_t(port, root_routing_app.get()));
-    signal_t *is_bound = server->get_bound_signal();
-
-    // Only bother to create the issue if it hasn't already been able to bind to the port
-    if (!is_bound->is_pulsed()) {
-
-        // Creating the new entry will insert the issue into the issue tracker
-        bound_issue_tracker_entry.init(
-                new local_issue_tracker_t::entry_t(_local_issue_tracker, bound_issue));
-
-        // As soon as the tcp listener connects this reset will be triggered and the issue will
-        // be removed from the issue tracker
-        bound_subscription.reset(is_bound);
-    }
 }
 
 administrative_http_server_manager_t::~administrative_http_server_manager_t() {

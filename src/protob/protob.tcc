@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "protob/protob.hpp"
 
 #include <google/protobuf/stubs/common.h>
@@ -188,7 +189,7 @@ http_res_t protob_server_t<request_t, response_t, context_t>::handle(const http_
         bool parseSucceeded = request.ParseFromArray(data, req_size);
 
         response_t response;
-        switch(cb_mode) {
+        switch (cb_mode) {
         case INLINE: {
             boost::shared_ptr<typename http_conn_cache_t<context_t>::http_conn_t> conn =
                 http_conn_cache.find(conn_id);

@@ -1,5 +1,9 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
+<<<<<<< HEAD
 $LOAD_PATH.unshift('./rethinkdb')
+=======
+$LOAD_PATH.unshift('./lib')
+>>>>>>> 298a7da64ca14b9ba257c784ca03a0d8ae8efc9d
 load 'rethinkdb.rb'
 extend RethinkDB::Shortcuts
 port_offset = ENV['PORT_OFFSET'].to_i || 0 if not port_offset

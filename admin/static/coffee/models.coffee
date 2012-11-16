@@ -89,7 +89,8 @@ class Namespace extends Backbone.Model
                 @set('key_distr', distr_data)
                 @timeout = setTimeout @load_key_distr, 5000
             error: =>
-                @timeout = setTimeout @load_key_distr, 1000
+                if namespaces.get(@get('id'))?
+                    @timeout = setTimeout @load_key_distr, 1000
 
     clear_timeout: =>
         if @timeout?
@@ -114,8 +115,8 @@ class Namespace extends Backbone.Model
 
         for key in @get('key_distr_sorted')
             # TODO Might be unsafe when comparing string and integers. Need to be checked when the back end will have decided what to do.
-            if @compare_keys(key, start_key) >= 0
-                if @compare_keys(key, end_key) <= 0
+            if @compare_keys(key, start_key) >= 0 or start_key is ''
+                if @compare_keys(key, end_key) < 0 or end_key is null
                     if @get('key_distr')[key]?
                         count += @get('key_distr')[key]
 
@@ -184,6 +185,19 @@ class Namespace extends Backbone.Model
         return __s
 
 class Datacenter extends Backbone.Model
+    # Compute the number of machines not used by other datacenters for one namespace
+    compute_num_machines_not_used_by_other_datacenters: (namespace) =>
+        max_machines = machines.length
+        for datacenter_id of namespace.get('replica_affinities')
+            # The second condition is to make sure that the datacenter does exist (and was not deleted)
+            if datacenter_id isnt @get('id') and datacenters.get(datacenter_id)?
+                max_machines -= namespace.get('replica_affinities')[datacenter_id]
+        if namespace.get('primary_uuid') isnt @get('id')
+            max_machines -= 1
+
+        return max_machines
+
+
     get_machines: =>
         machines.filter (machine) => machine.get('datacenter_uuid') is @get('id')
     get_stats: =>
@@ -922,8 +936,10 @@ module 'DataUtils', ->
                 if role_name is 'role_primary'
                     machine_active_for_namespace = true
                     json.nshards += 1
+                    json.nreplicas += 1
                     if peer_accessible?
                         json.nashards += 1
+                        json.nareplicas += 1
                 if role_name is 'role_secondary'
                     machine_active_for_namespace = true
                     json.nreplicas += 1

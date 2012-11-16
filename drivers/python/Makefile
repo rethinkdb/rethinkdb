@@ -27,6 +27,16 @@ ifeq ($(VERBOSE),0)
 endif
 	$(QUIET) protoc $(PROTOCFLAGS) --python_out $(PYTHON_PBDIR) $(PROTOFILE)
 
+TMP_PKG_DIR=/tmp/py_pkg
+
+publish: $(PYTHON_PBDIR)/rdb_protocol/$(PYTHON_PBFILE)
+	mkdir -p $(TMP_PKG_DIR)
+	cp -r setup.py $(TMP_PKG_DIR)
+	cp -r rethinkdb $(TMP_PKG_DIR)
+	rm $(TMP_PKG_DIR)/rethinkdb/$(PYTHON_PBFILE)
+	cp $(PYTHON_PBDIR)/rdb_protocol/$(PYTHON_PBFILE) $(TMP_PKG_DIR)/rethinkdb
+	cd $(TMP_PKG_DIR); python setup.py sdist upload
+
 clean:
 ifeq ($(VERBOSE),0)
 	@echo "    RM $(PYTHON_PBDIR)/rdb_protocol/$(PYTHON_PBFILE)"

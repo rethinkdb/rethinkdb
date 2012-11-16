@@ -172,16 +172,16 @@ MUST_USE int send_write_message(write_stream_t *s, const write_message_t *msg);
         return ARCHIVE_SUCCESS;                                         \
     }
 
-ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(unsigned char);
-ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(signed char);
-ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(unsigned short);
-ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(signed short);
+ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(unsigned char);  // NOLINT(runtime/int)
+ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(signed char);  // NOLINT(runtime/int)
+ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(unsigned short);  // NOLINT(runtime/int)
+ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(signed short);  // NOLINT(runtime/int)
 ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(unsigned int);
 ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(signed int);
-ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(unsigned long);
-ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(signed long);
-ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(unsigned long long);
-ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(signed long long);
+ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(unsigned long);  // NOLINT(runtime/int)
+ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(signed long);  // NOLINT(runtime/int)
+ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(unsigned long long);  // NOLINT(runtime/int)
+ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(signed long long);  // NOLINT(runtime/int)
 ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(double);
 
 // Single-precision float is omitted on purpose, don't add it.  Go

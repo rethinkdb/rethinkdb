@@ -1,5 +1,6 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 #!/usr/bin/python
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 from random import shuffle
 import sys, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))

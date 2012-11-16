@@ -36,6 +36,13 @@ VANILLA_PACKAGE_NAME?=rethinkdb-cache
 SERVER_EXEC_NAME?=rethinkdb-cache
 endif
 
+STATIC?=0
+
+ifeq ($(STATIC),1)
+VANILLA_PACKAGE_NAME+=-static
+STATICFORCE?=1
+endif
+
 TRIAL_PACKAGE_NAME:=$(VANILLA_PACKAGE_NAME)-trial
 PACKAGE_NAME:=$(VANILLA_PACKAGE_NAME)
 SERVER_UNIT_TEST_NAME:=$(SERVER_EXEC_NAME)-unittest
@@ -85,7 +92,6 @@ UNIT_TESTS?=0
 AIOSUPPORT?=0
 BUILD_DRIVERS?=1
 LINT?=0
-STATICFORCE?=0
 
 # Set TRIAL to 1 to build a 21-day trial version. If you want a different number of days, set TIMEBOMB to the number of days instead.
 TRIAL?=0
@@ -108,6 +114,7 @@ ifeq ($(COMPILER), INTEL)
 BUILD_DIR:=$(BUILD_DIR)_intel
 endif
 endif
+DESTDIR?=/tmp/
 
 PACKAGES_DIR:=$(BUILD_ROOT_DIR)/packages
 RPM_PACKAGE_DIR:=$(PACKAGES_DIR)/rpm
@@ -122,25 +129,69 @@ CXX:=icc
 endif
 endif
 
-ifeq ($(COMPILER),CLANG)
-LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -lstdc++ -lm -lv8 -lcrypto
-else
-ifeq ($(COMPILER),INTEL)
-LDFLAGS:= -B/opt/intel/bin -pthread -lrt -lstdc++ -lv8 -lcrypto
-else
-# GCC
-LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -lv8 -lcrypto
-endif
-endif
-ifeq ($(STATICFORCE),1)
-LDFLAGS+= -static
+# We assemble path directives.
+LDPATHDS:=
+CXXPATHDS:=
+CPATHDS:=
+ifeq ($(V8CHAIN),1)
+LDPATHDS+= -L ../external/v8/out/native/obj.target/tools/gyp
+CXXPATHDS+= -isystem ../external/v8/include
+CPATHDS+= -isystem ../external/v8/include
 endif
 
-STATIC_LIBRARIES:=boost_serialization protobuf boost_program_options
+ifeq ($(COMPILER),CLANG)
+LDFLAGS:=-Wl,--no-as-needed 
+ifeq ($(STATICFORCE),1)
+LDFLAGS+= -static
+STATIC_LIBGCC=1
+endif
+LDFLAGS+=$(LDPATHDS) -pthread -lrt -lstdc++ -lm -lv8
+else
+ifeq ($(COMPILER),INTEL)
+LDFLAGS:= -B/opt/intel/bin 
+ifeq ($(STATICFORCE),1)
+LDFLAGS+= -static
+STATIC_LIBGCC=1
+endif
+LDFLAGS+=$(LDPATHDS) -pthread -lrt -lstdc++ -lv8 
+else
+# GCC
+LDFLAGS:=-Wl,--no-as-needed 
+ifeq ($(STATICFORCE),1)
+LDFLAGS+= -static
+STATIC_LIBGCC=1
+endif
+LDFLAGS+=$(LDPATHDS) -pthread -lrt -lv8
+endif
+endif
+
+ifeq ($(V8CHAIN),1)
+LDFLAGS+= -lv8_base -lv8_snapshot
+endif
+
+ifeq ($(LIBCRYPTO),1)
+LDFLAGS+=-lcrypto 
+endif
+
+STATIC_LIBRARIES:=
+
+STATIC_RECOMMENDS:=boost_serialization protobuf boost_program_options
+
+ifeq ($(NO_TCMALLOC),0)
+STATIC_RECOMMENDS+=tcmalloc_minimal
+endif
+
+RECOMMENDED_STATIC?=1
+
+ifeq ($(RECOMMENDED_STATIC),1)
+STATIC_LIBRARIES+=$(STATIC_RECOMMENDS)
+else
+LDFLAGS+=$(foreach TLIB, $(STATIC_RECOMMENDS), -l$(TLIB))
+endif
 
 CXXFLAGS?=
 
-CXXFLAGS+=-I$(SOURCE_DIR) -pthread
+CXXFLAGS+=-I$(SOURCE_DIR) $(CXXPATHDS) -pthread
 CXXFLAGS+="-DPRODUCT_NAME=\"$(PRODUCT_NAME)\""
 
 ifeq ($(SOLO),1)
@@ -330,10 +381,6 @@ endif
 PROTO_DIR:=$(BUILD_DIR)/proto
 CXXFLAGS += -I$(PROTO_DIR)
 
-ifeq ($(NO_TCMALLOC),0)
-STATIC_LIBRARIES+=tcmalloc_minimal
-endif
-
 # look for the static library in the same directory as the .so file
 STATIC_LIBRARY_PATHS:=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }'))
 
@@ -400,7 +447,7 @@ COFFEE_SOURCES:=$(patsubst %, $(WEB_SOURCE_DIR)/static/coffee/%,\
 			util.coffee \
 			loading.coffee \
 			body.coffee \
-			ui_components/modals.coffee ui_components/list.coffee \
+			ui_components/modals.coffee ui_components/list.coffee ui_components/progressbar.coffee \
 			namespaces/database.coffee \
 			namespaces/index.coffee namespaces/replicas.coffee namespaces/shards.coffee namespaces/server_assignments.coffee namespaces/namespace.coffee \
 			servers/index.coffee servers/machine.coffee servers/datacenter.coffee \
@@ -420,13 +467,23 @@ LESS_SOURCES:=$(shell find $(WEB_SOURCE_DIR)/static/less -name '*.less')
 LESS_MAIN:=$(WEB_SOURCE_DIR)/static/less/styles.less
 CLUSTER_HTML:=$(WEB_SOURCE_DIR)/templates/cluster.html
 JS_EXTERNAL_DIR:=$(WEB_SOURCE_DIR)/static/js
+FONTS_EXTERNAL_DIR:=$(WEB_SOURCE_DIR)/static/fonts
 IMAGES_EXTERNAL_DIR:=$(WEB_SOURCE_DIR)/static/images
 FAVICON:=$(WEB_SOURCE_DIR)/favicon.ico
 
 #### Version number handling
+FORCEVERSION?=0
+ifeq ($(FORCEVERSION),1)
+RETHINKDB_VERSION:=$(PVERSION)
+RETHINKDB_SHORT_VERSION:=$(shell echo $(RETHINKDB_VERSION) | sed 's/\([^.]\+\.[^.]\+\).*$$/\1/')
+# RETHINKDB_SHORT_VERSION:=$(shell ../scripts/gen-version.sh -s)
+PACKAGING_ALTERNATIVES_PRIORITY:=0
+else
 RETHINKDB_VERSION:=$(shell ../scripts/gen-version.sh)
-RETHINKDB_SHORT_VERSION:=$(shell ../scripts/gen-version.sh -s)
+RETHINKDB_SHORT_VERSION:=$(shell echo $(RETHINKDB_VERSION) | sed 's/\([^.]\+\.[^.]\+\).*$$/\1/')
+# RETHINKDB_SHORT_VERSION:=$(shell ../scripts/gen-version.sh -s)
 PACKAGING_ALTERNATIVES_PRIORITY:=$(shell expr $$(../scripts/gen-version.sh -r) / 100)
+endif
 
 # ifneq ($(TIMEBOMB),0)
 # RETHINKDB_VERSION:=$(RETHINKDB_VERSION)-trial
@@ -435,10 +492,38 @@ PACKAGING_ALTERNATIVES_PRIORITY:=$(shell expr $$(../scripts/gen-version.sh -r) /
 RETHINKDB_PACKAGING_VERSION?=$(RETHINKDB_VERSION)
 CXXFLAGS+=-DRETHINKDB_VERSION=\"$(RETHINKDB_VERSION)\"
 
+NAMEVERSIONED?=0
+ifeq ($(NAMEVERSIONED),1)
 SERVER_EXEC_NAME_VERSIONED:=$(SERVER_EXEC_NAME)-$(RETHINKDB_SHORT_VERSION)
+else
+# update-alternatives breaks if we ditch the distinguishing mark .
+SERVER_EXEC_NAME_VERSIONED:=$(SERVER_EXEC_NAME)
+endif
+
+SUPPORT_DIR:=../support
+AUTOCHAIN?=0
+ALLOW_INTERNAL_TOOLS?=1
+INSTALL_INTERNAL_TOOLS?=0
+TC_LESSC_INT_EXE:=$(SUPPORT_DIR)/toolchain/node_modules/less/bin/lessc
+TC_COFFEE_INT_EXE:=$(SUPPORT_DIR)/toolchain/node_modules/coffee-script/bin/coffee
+ifeq ($(ALLOW_INTERNAL_TOOLS),1)
+ifeq ($(shell which lessc || true),)
+TC_LESSC_EXE:=$(TC_LESSC_INT_EXE)	
+else
+TC_LESSC_EXE:=$(shell which lessc || true)
+endif
+ifeq ($(shell which coffee || true),)
+TC_COFFEE_EXE:=$(TC_COFFEE_INT_EXE)
+else
+TC_COFFEE_EXE:=$(shell which coffee || true)
+endif
+else
+TC_LESSC_EXE:=$(shell which lessc || true)
+TC_COFFEE_EXE:=$(shell which coffee || true)
+endif
 
 ##### Build targets
-.PHONY: all build-deb build-rpm callgrind callgrind clean cscope deb deb depclean drivers etags gdb install install-binaries install-deb install-docs install-manpages install-rpm install-tools prepare_deb_package_dirs prepare_rpm_package_dirs regdb rerun revalgrind rpm rpm rpm-suse10 run sembuild showdefines style tags unit valgrind web-assets coffeelint
+.PHONY: all build-deb build-rpm callgrind callgrind clean cscope deb deb depclean drivers etags gdb install install-binaries install-deb install-docs install-manpages install-rpm install-tools prepare_deb_package_dirs prepare_rpm_package_dirs regdb rerun revalgrind rpm rpm rpm-suse10 run sembuild showdefines style tags unit valgrind web-assets coffeelint build-deb-src-control build-deb-support
 
 # High level build targets
 
@@ -471,10 +556,16 @@ RETHINKDB_VERSION_RPM=$(subst -,_,$(RETHINKDB_PACKAGING_VERSION))
 DEB_PACKAGE_REVISION?=1
 RETHINKDB_VERSION_DEB=$(RETHINKDB_PACKAGING_VERSION)-$(DEB_PACKAGE_REVISION)
 
+ifeq ($(NAMEVERSIONED),1)
 VERSIONED_PACKAGE_NAME:=$(PACKAGE_NAME)-$(RETHINKDB_SHORT_VERSION)
 VERSIONED_TRIAL_PACKAGE_NAME:=$(TRIAL_PACKAGE_NAME)-$(RETHINKDB_SHORT_VERSION)
-
 VERSIONED_PRODUCT_SHARE_DIR:=/usr/share/$(VERSIONED_PACKAGE_NAME)
+else
+VERSIONED_PACKAGE_NAME:=$(PACKAGE_NAME)
+VERSIONED_TRIAL_PACKAGE_NAME:=$(TRIAL_PACKAGE_NAME)
+VERSIONED_PRODUCT_SHARE_DIR:=/usr/share/$(PACKAGE_NAME)
+endif
+
 
 prefix?=/usr
 bin_dir:=$(prefix)/bin
@@ -496,6 +587,13 @@ language_drivers_dir:=$(share_dir)/drivers
 
 ASSET_SCRIPTS:=$(ASSETS_DIR)/scripts/rdb_migrate
 INIT_SCRIPTS:=$(ASSETS_DIR)/init/rethinkdb
+
+UBRELEASE?=precise
+ifeq ($(shell echo $(UBRELEASE) | grep '^[q-zQ-Z]'),)
+NODEJS_NEW?=0
+else
+NODEJS_NEW?=1
+endif
 
 CXXFLAGS+=-DMIGRATION_SCRIPT_LOCATION=\"$(scripts_dir)/rdb_migrate\"
 
@@ -559,7 +657,7 @@ install-web:
 	$(QUIET) cp -pRP $(BUILD_DIR)/web/* $(DESTDIR)$(web_res_dir)/
 
 install-drivers:
-	
+
 $(libdir):
 	$(QUIET) install -m755 -d $(DESTDIR)$(lib_dir)
 
@@ -575,6 +673,46 @@ install-deb: install
 		gzip -c9 | \
 		install -m644 -T /dev/stdin $(DESTDIR)$(doc_dir)/changelog.Debian.gz
 
+DebianV8Version:=$(shell apt-cache show libv8-dev | grep '^Version:' | sed -e 's/^Version: \\([0-9]*\\(\\.[0-9]*\\)*\\).*$$/\\1/g' || true ; )
+
+build-deb-support: $(TC_LESSC_INT_EXE) $(TC_COFFEE_INT_EXE)
+
+build-deb-src-control:
+	$(QUIET) cd .. ; if [ -e debian ] ; then rm -rf debian ; fi ; cp -pRP debian.template debian ; env UBRELEASE=$(UBRELEASE) PACKAGE_NAME=$(PACKAGE_NAME) VERSIONED_PACKAGE_NAME=$(VERSIONED_PACKAGE_NAME) VANILLA_PACKAGE_NAME=$(VANILLA_PACKAGE_NAME) PACKAGE_VERSION=$(RETHINKDB_VERSION_DEB) ./scripts/gen-changelog.sh ;
+# Replace version/size fields in the deb control file
+	$(QUIET) disk_size=0;	\
+		m4																													\
+				-D "SOLO=$(SOLO)"																				\
+				-D "PACKAGE_NAME=$(PACKAGE_NAME)"												\
+				-D "VERSIONED_PACKAGE_NAME=$(VERSIONED_PACKAGE_NAME)"		\
+				-D "VANILLA_PACKAGE_NAME=$(VANILLA_PACKAGE_NAME)"				\
+				-D "TRIAL_PACKAGE_NAME=$(TRIAL_PACKAGE_NAME)"						\
+				-D "VERSIONED_TRIAL_PACKAGE_NAME=$(VERSIONED_TRIAL_PACKAGE_NAME)"						\
+				-D "PACKAGE_VERSION=$(RETHINKDB_VERSION_DEB)"						\
+				-D "LEGACY_LINUX=$(LEGACY_LINUX)"												\
+				-D "TRIAL=$(TRIAL)"																			\
+				-D "DISK_SIZE=$${disk_size}"														\
+				-D "SOURCEBUILD=1" \
+				-D "NODEJS_NEW=$(NODEJS_NEW)" \
+			../packaging/$(DEBIAN_PKG_DIR)/control > ../debian/control
+# Copy {pre,post}{inst,rm} scripts
+	$(QUIET) for script in preinst postinst prerm postrm; do		                  		\
+			m4 																																						\
+					-D "BIN_DIR=$(bin_dir)" 																									\
+					-D "MAN1_DIR=$(man1_dir)" 																								\
+					-D "BASH_COMPLETION_DIR=$(bash_completion_dir)" 													\
+					-D "INTERNAL_BASH_COMPLETION_DIR=$(internal_bash_completion_dir)" 				\
+					-D "SERVER_EXEC_NAME=$(SERVER_EXEC_NAME)" 																\
+					-D "SERVER_EXEC_NAME_VERSIONED=$(SERVER_EXEC_NAME_VERSIONED)" 						\
+					-D "UPDATE_ALTERNATIVES=$(NAMEVERSIONED)" 													\
+					-D "PRIORITY=$(PACKAGING_ALTERNATIVES_PRIORITY)" 													\
+				../packaging/$(DEBIAN_PKG_DIR)/$${script} > ../debian/$${script}; \
+			chmod 0755 ../debian/$${script};																		\
+		done
+
+
+# Copy the license file.
+	cat ../packaging/$(DEBIAN_PKG_DIR)/copyright > ../debian/copyright
 
 build-deb: all prepare_deb_package_dirs
 	@echo
@@ -601,6 +739,7 @@ build-deb: all prepare_deb_package_dirs
 					-D "INTERNAL_BASH_COMPLETION_DIR=$(internal_bash_completion_dir)" 				\
 					-D "SERVER_EXEC_NAME=$(SERVER_EXEC_NAME)" 																\
 					-D "SERVER_EXEC_NAME_VERSIONED=$(SERVER_EXEC_NAME_VERSIONED)" 						\
+					-D "UPDATE_ALTERNATIVES=$(NAMEVERSIONED)" 													\
 					-D "PRIORITY=$(PACKAGING_ALTERNATIVES_PRIORITY)" 													\
 				../packaging/$(DEBIAN_PKG_DIR)/$${script} > $(DEB_CONTROL_ROOT)/$${script}; \
 			chmod 0755 $(DEB_CONTROL_ROOT)/$${script};																		\
@@ -619,6 +758,8 @@ build-deb: all prepare_deb_package_dirs
 				-D "LEGACY_LINUX=$(LEGACY_LINUX)"												\
 				-D "TRIAL=$(TRIAL)"																			\
 				-D "DISK_SIZE=$${disk_size}"														\
+				-D "SOURCEBUILD=0" \
+				-D "NODEJS_NEW=$(NODEJS_NEW)" \
 			../packaging/$(DEBIAN_PKG_DIR)/control >$(DEB_CONTROL_ROOT)/control
 
 # Copy the license file.
@@ -628,7 +769,7 @@ build-deb: all prepare_deb_package_dirs
 	$(QUIET) fakeroot dpkg-deb -b $(DEB_PACKAGE_DIR) $(PACKAGES_DIR)
 
 deb: prepare_deb_package_dirs
-# We have disabled building of stripped debs for now.
+# We have disabled building of unstripped debs for now.
 # $(QUIET) $(MAKE) STRIP_ON_INSTALL=0 RETHINKDB_PACKAGING_VERSION=$(RETHINKDB_VERSION)-unstripped build-deb
 	$(QUIET) $(MAKE) STRIP_ON_INSTALL=1 RETHINKDB_PACKAGING_VERSION=$(RETHINKDB_VERSION) WEBRESDIR=$(web_res_dir) BUILD_DRIVERS=0 build-deb
 
@@ -712,6 +853,10 @@ rpm: clean
 # RPM for Suse 10
 rpm-suse10:
 	$(QUIET) $(MAKE) PACKAGE_FOR_SUSE_10=1 rpm
+
+build-deb-src-control:
+	$(QUIET) $(MAKE) PACKAGING=1 build-deb-src-control
+
 endif
 
 .PHONY: sense
@@ -765,9 +910,9 @@ oprof-report:
 
 drivers:
 ifeq ($(BUILD_DRIVERS), 1)
-	$(QUIET) cd ../drivers ; $(MAKE) $(MFLAGS) ;
+	$(QUIET) cd ../drivers ; $(MAKE) ;
 else
-	$(QUIET) cd ../drivers/javascript ; $(MAKE) $(MFLAGS) ;
+	$(QUIET) cd ../drivers/javascript ; $(MAKE) ;
 endif #BUILD_DRIVERS
 
 
@@ -781,7 +926,7 @@ rpc/mailbox/typed.hpp: ../scripts/generate_rpc_templates.py
 rpc/semilattice/joins/macros.hpp rpc/serialize_macros.hpp rpc/mailbox/typed.hpp:
 	$< > $@
 
-web-assets: $(WEB_ASSETS_BUILD_DIR)/cluster-min.js $(WEB_ASSETS_BUILD_DIR)/cluster.css $(WEB_ASSETS_BUILD_DIR)/index.html $(WEB_ASSETS_BUILD_DIR)/js $(WEB_ASSETS_BUILD_DIR)/images $(WEB_ASSETS_BUILD_DIR)/favicon.ico $(WEB_ASSETS_BUILD_DIR)/js/rethinkdb.js
+web-assets: $(WEB_ASSETS_BUILD_DIR)/cluster-min.js $(WEB_ASSETS_BUILD_DIR)/cluster.css $(WEB_ASSETS_BUILD_DIR)/index.html $(WEB_ASSETS_BUILD_DIR)/js $(WEB_ASSETS_BUILD_DIR)/fonts $(WEB_ASSETS_BUILD_DIR)/images $(WEB_ASSETS_BUILD_DIR)/favicon.ico $(WEB_ASSETS_BUILD_DIR)/js/rethinkdb.js
 
 $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee: $(COFFEE_SOURCES)
 	$(QUIET) mkdir -p $(WEB_ASSETS_OBJ_DIR)
@@ -795,14 +940,14 @@ $(WEB_ASSETS_BUILD_DIR)/cluster-min.js: $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat
 ifeq ($(VERBOSE),0)
 	@echo "    COFFEE $@"
 endif
-	$(QUIET) coffee -bp --stdio < $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee > $@ || ( echo "      Build failure." ; rm $@ ; false ; )
+	$(QUIET) $(TC_COFFEE_EXE) -bp --stdio < $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee > $@ || ( echo "      Build failure." ; rm $@ ; false ; )
 
 $(WEB_ASSETS_BUILD_DIR)/cluster.css: $(LESS_MAIN)
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
 ifeq ($(VERBOSE),0)
 	@echo "    LESSC $@"
 endif
-	$(QUIET) lessc $(LESS_MAIN) > $@ || ( echo "      Build failure." ; rm $@ ; false ; )
+	$(QUIET) $(TC_LESSC_EXE) $(LESS_MAIN) > $@ || ( echo "      Build failure." ; rm $@ ; false ; )
 
 $(WEB_ASSETS_BUILD_DIR)/index.html: $(CLUSTER_HTML) $(HANDLEBARS_SOURCES)
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
@@ -818,6 +963,13 @@ ifeq ($(VERBOSE),0)
 	@echo "    CP $(JS_EXTERNAL_DIR) -> $(WEB_ASSETS_BUILD_DIR)"
 endif
 	$(QUIET) cp -rP $(JS_EXTERNAL_DIR) $(WEB_ASSETS_BUILD_DIR)
+
+$(WEB_ASSETS_BUILD_DIR)/fonts:
+	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
+ifeq ($(VERBOSE),0)
+	@echo "    CP $(FONTS_EXTERNAL_DIR) -> $(WEB_ASSETS_BUILD_DIR)"
+endif
+	$(QUIET) cp -rP $(FONTS_EXTERNAL_DIR) $(WEB_ASSETS_BUILD_DIR)
 
 $(WEB_ASSETS_BUILD_DIR)/images:
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
@@ -972,7 +1124,7 @@ endif
 	$(QUIET) rm -rf $(BUILD_ROOT_DIR)
 
 clean-drivers:
-	$(QUIET) cd ../drivers ; $(MAKE) $(MFLAGS) clean ;
+	$(QUIET) cd ../drivers ; $(MAKE) clean ;
 
 # Directories
 $(BUILD_DIR):
@@ -1010,8 +1162,33 @@ endif
 # bug in GNU Make, possibly a bug in our Makefile.
 .SECONDARY: $(PROTO_HEADERS)
 
-NO_DEPS_TARGETS:=clean depclean tags etags analyze cscope style $(OPROF_TARGETS)
+NO_DEPS_TARGETS:=clean depclean tags etags analyze cscope style web-assets build-deb-src build-deb-src-control build-deb-support $(TC_LESSC_INT_EXE) $(TC_COFFEE_INT_EXE) $(SUPPORT_DIR) $(WEB_ASSETS_BUILD_DIR)/cluster-min.js $(WEB_ASSETS_BUILD_DIR)/cluster.css $(WEB_ASSETS_BUILD_DIR)/index.html $(WEB_ASSETS_BUILD_DIR)/js $(WEB_ASSETS_BUILD_DIR)/fonts $(WEB_ASSETS_BUILD_DIR)/images $(WEB_ASSETS_BUILD_DIR)/favicon.ico $(WEB_ASSETS_BUILD_DIR)/js/rethinkdb.js $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee $(COFFEE_SOURCES) $(PROTO_DIR)/dummy $(PROTO_SOURCES) $(PROTO_HEADERS) $(PROTO_CODE) $(PROTO_DIR)/dummy $(OPROF_TARGETS)
 # Include the dependencies into the makefile so that they take effect
 ifneq (,$(if $(MAKECMDGOALS),$(filter-out $(NO_DEPS_TARGETS),$(MAKECMDGOALS)),non-empty-placeholder))
 -include $(DEPS)
 endif
+
+# JavaScript tools from node.js
+
+# Note that this assumes that its locations match those earlier in the Makefile. If you change TC_LESSC_EXE, you probably ought to change these as well .
+
+$(TC_LESSC_INT_EXE): $(SUPPORT_DIR)
+ifeq ($(INSTALL_INTERNAL_TOOLS),1)
+# ifeq ($(shell npm list --global --parseable | grep '\/less$$'),)
+# We must do this either way now.
+	if [ -d $(SUPPORT_DIR) ] && [ ! -e $(SUPPORT_DIR)/toolchain ] ; then mkdir -p $(SUPPORT_DIR)/toolchain ; fi ;
+	cd $(SUPPORT_DIR)/toolchain ; npm install less ;
+# endif
+endif
+
+$(TC_COFFEE_INT_EXE): $(SUPPORT_DIR)
+ifeq ($(INSTALL_INTERNAL_TOOLS),1)
+# ifeq ($(shell npm list --global --parseable | grep '\/coffee-script$$'),)
+	if [ -d $(SUPPORT_DIR) ] && [ ! -e $(SUPPORT_DIR)/toolchain ] ; then mkdir -p $(SUPPORT_DIR)/toolchain ; fi ;
+	cd $(SUPPORT_DIR)/toolchain ; npm install coffee-script ;
+# endif
+endif
+
+$(SUPPORT_DIR):
+	mkdir -p $(SUPPORT_DIR) ;
+

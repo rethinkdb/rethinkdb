@@ -504,7 +504,7 @@ goog.proto2.WireFormatSerializer.prototype.decodeLengthDelimited =
  * @protected
  */
 goog.proto2.WireFormatSerializer.prototype.decodeFixed32 = function(field, data) {
-    var view = new DataView(data.buffer, this.deserializationIndex_, 4);
+    var view = new DataView(data.buffer, data.byteOffset+this.deserializationIndex_, 4);
     this.deserializationIndex_ += 4;
 
     if(!field) {
@@ -537,7 +537,7 @@ goog.proto2.WireFormatSerializer.prototype.decodeFixed32 = function(field, data)
  * @protected
  */
 goog.proto2.WireFormatSerializer.prototype.decodeFixed64 = function(field, data) {
-    var view = new DataView(data.buffer, this.deserializationIndex_, 8);
+    var view = new DataView(data.buffer, data.byteOffset+this.deserializationIndex_, 8);
     this.deserializationIndex_ += 8;
 
     if(!field) {

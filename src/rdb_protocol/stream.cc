@@ -41,8 +41,12 @@ boost::shared_ptr<scoped_cJSON_t> in_memory_stream_t::next() {
     }
 }
 
-transform_stream_t::transform_stream_t(boost::shared_ptr<json_stream_t> stream_, runtime_environment_t *env_, const rdb_protocol_details::transform_t &tr)
-    : stream(stream_), env(env_), transform(tr) { }
+transform_stream_t::transform_stream_t(boost::shared_ptr<json_stream_t> _stream,
+                                       runtime_environment_t *_env,
+                                       const rdb_protocol_details::transform_t &tr) :
+    stream(_stream),
+    env(_env),
+    transform(tr) { }
 
 boost::shared_ptr<scoped_cJSON_t> transform_stream_t::next() {
     while (data.empty()) {

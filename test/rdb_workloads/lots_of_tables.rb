@@ -1,5 +1,6 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 #!/usr/bin/env ruby
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 
 $:.unshift "../../drivers/ruby/rethinkdb/"
 

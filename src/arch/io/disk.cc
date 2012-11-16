@@ -176,26 +176,16 @@ void pool_io_backender_t::make_disk_manager(linux_event_queue_t *queue, const in
 
 void make_io_backender(io_backend_t backend, scoped_ptr_t<io_backender_t> *out) {
     if (backend == aio_native) {
-	#ifdef AIOSUPPORT
+        #ifdef AIOSUPPORT
         out->init(new native_io_backender_t);
-	#else
-	crash("This version has no native aio support. Consider using the pool back-end.\n");
-	#endif
+        #else
+        crash("This version has no native aio support. Consider using the pool back-end.\n");
+        #endif
     } else if (backend == aio_pool) {
         out->init(new pool_io_backender_t);
     } else {
         crash("impossible io_backend_t value: %d\n", backend);
     }
-}
-
-/* Disk account object */
-
-linux_file_account_t::linux_file_account_t(linux_file_t *par, int pri, int outstanding_requests_limit) :
-    parent(par),
-    account(parent->diskmgr->create_account(pri, outstanding_requests_limit)) { }
-
-linux_file_account_t::~linux_file_account_t() {
-    parent->diskmgr->destroy_account(account);
 }
 
 /* Disk file object */
@@ -290,7 +280,7 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, io
     // Construct a disk manager. (given that we have an event pool)
     if (linux_thread_pool_t::thread) {
         diskmgr = io_backender->get_diskmgr_ptr();
-        default_account.init(new linux_file_account_t(this, 1, UNLIMITED_OUTSTANDING_REQUESTS));
+        default_account.init(new file_account_t(this, 1, UNLIMITED_OUTSTANDING_REQUESTS));
     }
 }
 
@@ -329,15 +319,15 @@ void linux_file_t::set_size_at_least(size_t size) {
     }
 }
 
-void linux_file_t::read_async(size_t offset, size_t length, void *buf, linux_file_account_t *account, linux_iocallback_t *callback) {
+void linux_file_t::read_async(size_t offset, size_t length, void *buf, file_account_t *account, linux_iocallback_t *callback) {
     rassert(diskmgr, "No diskmgr has been constructed (are we running without an event queue?)");
-    verify(offset, length, buf);
+    verify_aligned_file_access(file_size, offset, length, buf);
     diskmgr->submit_read(fd.get(), buf, length, offset,
         account == DEFAULT_DISK_ACCOUNT ? default_account->get_account() : account->get_account(),
         callback);
 }
 
-void linux_file_t::write_async(size_t offset, size_t length, const void *buf, linux_file_account_t *account, linux_iocallback_t *callback) {
+void linux_file_t::write_async(size_t offset, size_t length, const void *buf, file_account_t *account, linux_iocallback_t *callback) {
     rassert(diskmgr, "No diskmgr has been constructed (are we running without an event queue?)");
 
 #ifdef DEBUG_DUMP_WRITES
@@ -347,14 +337,14 @@ void linux_file_t::write_async(size_t offset, size_t length, const void *buf, li
     debugf("---- WRITE END ----\n\n");
 #endif
 
-    verify(offset, length, buf);
+    verify_aligned_file_access(file_size, offset, length, buf);
     diskmgr->submit_write(fd.get(), buf, length, offset,
         account == DEFAULT_DISK_ACCOUNT ? default_account->get_account() : account->get_account(),
         callback);
 }
 
 void linux_file_t::read_blocking(size_t offset, size_t length, void *buf) {
-    verify(offset, length, buf);
+    verify_aligned_file_access(file_size, offset, length, buf);
  tryagain:
     ssize_t res = pread(fd.get(), buf, length, offset);
     if (res == -1 && errno == EINTR) {
@@ -365,7 +355,7 @@ void linux_file_t::read_blocking(size_t offset, size_t length, void *buf) {
 }
 
 void linux_file_t::write_blocking(size_t offset, size_t length, const void *buf) {
-    verify(offset, length, buf);
+    verify_aligned_file_access(file_size, offset, length, buf);
  tryagain:
     ssize_t res = pwrite(fd.get(), buf, length, offset);
     if (res == -1 && errno == EINTR) {
@@ -387,12 +377,10 @@ linux_file_t::~linux_file_t() {
     // scoped_fd_t's destructor takes care of close()ing the file
 }
 
-void linux_file_t::verify(DEBUG_VAR size_t offset, DEBUG_VAR size_t length, DEBUG_VAR const void *buf) {
+void verify_aligned_file_access(DEBUG_VAR size_t file_size, DEBUG_VAR size_t offset, DEBUG_VAR size_t length, DEBUG_VAR const void *buf) {
     rassert(buf);
     rassert(offset + length <= file_size);
     rassert(divides(DEVICE_BLOCK_SIZE, intptr_t(buf)));
     rassert(divides(DEVICE_BLOCK_SIZE, offset));
     rassert(divides(DEVICE_BLOCK_SIZE, length));
 }
-
-

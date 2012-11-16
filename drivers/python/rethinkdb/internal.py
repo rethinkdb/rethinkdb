@@ -1,7 +1,6 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 import query
 import query_language_pb2 as p
-import bpdb
 
 ###################
 # PRETTY PRINTING #
@@ -381,7 +380,7 @@ class ToArray(ExpressionInner):
     def _write_ast(self, parent, opts):
         self._write_call(parent, p.Builtin.STREAMTOARRAY, opts, self.stream)
     def pretty_print(self, printer):
-        return ("%s.to_array()" % printer.expr_wrapped(self.stream, ["arg:0"]), PRETTY_PRINT_EXPR_WRAPPED)
+        return ("%s.stream_to_array()" % printer.expr_wrapped(self.stream, ["arg:0"]), PRETTY_PRINT_EXPR_WRAPPED)
 
 class Builtin(ExpressionInner):
     # The subclass of `Builtin` is obligated to set the following attributes:
@@ -531,7 +530,7 @@ class Has(ExpressionInner):
         self._write_call(parent, p.Builtin.HASATTR, opts, self.parent)
         parent.call.builtin.attr = self.key
     def pretty_print(self, printer):
-        return ("%s.has_attr(%r)" % (printer.expr_wrapped(self.parent, ["arg:0"]), self.key), PRETTY_PRINT_EXPR_WRAPPED)
+        return ("%s.contains(%r)" % (printer.expr_wrapped(self.parent, ["arg:0"]), self.key), PRETTY_PRINT_EXPR_WRAPPED)
 
 class Length(ExpressionInner):
     def __init__(self, seq):
@@ -554,6 +553,32 @@ class Attr(ExpressionInner):
                 printer.simple_string(repr(self.key), ["attr"])),
             PRETTY_PRINT_EXPR_WRAPPED)
 
+class GetAttrs(ExpressionInner):
+    def __init__(self, parent, attrs):
+        self.parent = parent
+        self.attrs = attrs
+    def _write_ast(self, parent, opts):
+        self._write_call(parent, p.Builtin.PICKATTRS, opts, self.parent)
+        parent.call.builtin.attrs.extend(self.attrs)
+    def pretty_print(self, printer):
+        return ("%s.pick(%s)" % (
+                printer.expr_wrapped(self.parent, ["arg:0"]),
+                    printer.simple_string(', '.join(self.attrs), ["attrs"])),
+                PRETTY_PRINT_EXPR_WRAPPED)
+
+class UnGetAttrs(ExpressionInner):
+    def __init__(self, parent, attrs):
+        self.parent = parent
+        self.attrs = attrs
+    def _write_ast(self, parent, opts):
+        self._write_call(parent, p.Builtin.WITHOUT, opts, self.parent)
+        parent.call.builtin.attrs.extend(self.attrs)
+    def pretty_print(self, printer):
+        return ("%s.unpick(%s)" % (
+                printer.expr_wrapped(self.parent, ["arg:0"]),
+                    printer.simple_string(', '.join(self.attrs), ["attrs"])),
+                PRETTY_PRINT_EXPR_WRAPPED)
+
 class ImplicitAttr(ExpressionInner):
     def __init__(self, attr):
         self.attr = attr
@@ -575,7 +600,7 @@ class ToStream(ExpressionInner):
     def _write_ast(self, parent, opts):
         self._write_call(parent, p.Builtin.ARRAYTOSTREAM, opts, self.array)
     def pretty_print(self, printer):
-        return ("%s.to_stream()" % printer.expr_wrapped(self.array, ["arg:0"]), PRETTY_PRINT_EXPR_WRAPPED)
+        return ("%s.array_to_stream()" % printer.expr_wrapped(self.array, ["arg:0"]), PRETTY_PRINT_EXPR_WRAPPED)
 
 class Nth(ExpressionInner):
     def __init__(self, stream, index):
@@ -706,7 +731,7 @@ class If(ExpressionInner):
         self.false_branch._inner._write_ast(parent.if_.false_branch, opts)
 
     def pretty_print(self, printer):
-        return ("if_then_else(%s, %s, %s)" % (
+        return ("branch(%s, %s, %s)" % (
                 printer.expr_unwrapped(self.test, ["test"]),
                 printer.expr_unwrapped(self.true_branch, ["true"]),
                 printer.expr_unwrapped(self.false_branch, ["false"])),

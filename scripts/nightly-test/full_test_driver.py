@@ -1,5 +1,6 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 #!/usr/bin/env python
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 
 # Usage: ./full_test_driver.sh [--just-tests] [--git-branch <branch-name>] [--build-mode (two|all)] [--test-dir <directory location, to be appended to rethinkdb/>]
 # Environment variables: SLURM_CONF
@@ -121,7 +122,7 @@ with simple_linear_db.LinearDBWriter("result_log.txt") as result_log:
 
         print "Checking out RethinkDB..."
 
-        subprocess32.check_call(["git", "clone", "git@github.com:rethinkdb/rethinkdb.git", "--depth", "0", "rethinkdb"])
+        subprocess32.check_call(["git", "clone", "git@github.com:rethinkdb/rethinkdb-internal.git", "--depth", "0", "rethinkdb"])
         subprocess32.check_call(["git", "checkout", options.git_branch], cwd="rethinkdb")
 
         print "Done checking out RethinkDB."

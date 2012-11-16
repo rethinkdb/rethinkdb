@@ -1,5 +1,6 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 #!/bin/bash
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 #
 # Command line arguments:
 #   -r  Print number of revisions since v0.1 and exit

@@ -1,5 +1,6 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 #!/usr/bin/ruby
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 require 'pp'
 require 'socket'
 require 'optparse'

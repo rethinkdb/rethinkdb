@@ -1,5 +1,6 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 #!/usr/bin/env python
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 from itertools import product
 from time import sleep
 from threading import Lock

@@ -415,7 +415,6 @@ module 'ServerView', ->
             for response_uuid, blah of response
                 break
 
-            console.log $('#user-alert-space')
             $('#user-alert-space').append @alert_tmpl
                 name: @formdata.name
                 uuid: response_uuid

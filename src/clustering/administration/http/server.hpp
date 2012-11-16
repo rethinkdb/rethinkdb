@@ -40,7 +40,6 @@ public:
         namespace_repo_t<memcached_protocol_t> *_namespace_repo,
         namespace_repo_t<rdb_protocol_t> *_rdb_namespace_repo,
         admin_tracker_t *_admin_tracker,
-        local_issue_tracker_t *_local_issue_tracker,
         http_app_t *reql_app,
         uuid_t _us,
         std::string _path);
@@ -65,10 +64,6 @@ private:
     scoped_ptr_t<routing_http_app_t> ajax_routing_app;
     scoped_ptr_t<routing_http_app_t> root_routing_app;
     scoped_ptr_t<http_server_t> server;
-
-    local_issue_t bound_issue;
-    scoped_ptr_t<local_issue_tracker_t::entry_t> bound_issue_tracker_entry;
-    issue_subscription_t bound_subscription;
 
     DISABLE_COPYING(administrative_http_server_manager_t);  // kind of redundant with the scoped_ptrs but too bad.
 };

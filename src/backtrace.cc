@@ -7,7 +7,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/wait.h>
-#include <execinfo.h>
 
 #include <string>
 
@@ -195,14 +194,13 @@ static bool run_addr2line(boost::ptr_map<std::string, addr2line_t> *procs, const
 }
 
 std::string format_backtrace(bool use_addr2line) {
+    lazy_backtrace_t bt;
+    return use_addr2line ? bt.lines() : bt.addrs();
+}
+
+std::string print_frames(void **stack_frames, int size, bool use_addr2line) {
     boost::ptr_map<std::string, addr2line_t> procs;
-
-    // Get a backtrace
-    static const int max_frames = 100;
-    void *stack_frames[max_frames];
-    int size = backtrace(stack_frames, max_frames);
     char **symbols = backtrace_symbols(stack_frames, size);
-
     std::string output;
     if (symbols) {
         for (int i = 0; i < size; i ++) {
@@ -247,4 +245,22 @@ std::string format_backtrace(bool use_addr2line) {
 
         return output;
     }
+}
+
+lazy_backtrace_t::lazy_backtrace_t() : timestamp(time(0)), timestr(time2str(timestamp)) {
+    size = backtrace(stack_frames, max_frames);
+}
+
+std::string lazy_backtrace_t::addrs() {
+    if (cached_addrs == "") {
+        cached_addrs = timestr + "\n" + print_frames(stack_frames, size, false);
+    }
+    return cached_addrs;
+}
+
+std::string lazy_backtrace_t::lines() {
+    if (cached_lines == "") {
+        cached_lines = timestr + "\n" + print_frames(stack_frames, size, true);
+    }
+    return cached_lines;
 }

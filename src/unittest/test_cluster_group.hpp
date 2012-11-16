@@ -1,6 +1,11 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
+<<<<<<< HEAD
 #ifndef MOCK_TEST_CLUSTER_GROUP_HPP_
 #define MOCK_TEST_CLUSTER_GROUP_HPP_
+=======
+#ifndef UNITTEST_TEST_CLUSTER_GROUP_HPP_
+#define UNITTEST_TEST_CLUSTER_GROUP_HPP_
+>>>>>>> 298a7da64ca14b9ba257c784ca03a0d8ae8efc9d
 
 #include <map>
 #include <string>
@@ -83,4 +88,4 @@ public:
 
 }   /* namespace mock */
 
-#endif  // MOCK_TEST_CLUSTER_GROUP_HPP_
+#endif  // UNITTEST_TEST_CLUSTER_GROUP_HPP_

@@ -1,1 +1,4 @@
-RethinkDB key value store.
+
+See README.md. This file is here to the debian build process doesn't
+complain.
+

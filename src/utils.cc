@@ -22,6 +22,7 @@
 #include "arch/runtime/runtime.hpp"
 #include "config/args.hpp"
 #include "containers/archive/archive.hpp"
+#include "containers/archive/file_stream.hpp"
 #include "containers/printf_buffer.hpp"
 #include "logger.hpp"
 #include "thread_local.hpp"
@@ -42,16 +43,16 @@ void print_hd(const void *vbuf, size_t offset, size_t ulength) {
     const char *buf = reinterpret_cast<const char *>(vbuf);
     ssize_t length = ulength;
 
-    char bd_sample[16] = { (char)0xBD, (char)0xBD, (char)0xBD, (char)0xBD,
-                           (char)0xBD, (char)0xBD, (char)0xBD, (char)0xBD,
-                           (char)0xBD, (char)0xBD, (char)0xBD, (char)0xBD,
-                           (char)0xBD, (char)0xBD, (char)0xBD, (char)0xBD };
-    char zero_sample[16] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    uint8_t bd_sample[16] = { 0xBD, 0xBD, 0xBD, 0xBD,
+                              0xBD, 0xBD, 0xBD, 0xBD,
+                              0xBD, 0xBD, 0xBD, 0xBD,
+                              0xBD, 0xBD, 0xBD, 0xBD };
+    uint8_t zero_sample[16] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                              0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-    char ff_sample[16] = { (char)0xff, (char)0xff, (char)0xff, (char)0xff,
-                           (char)0xff, (char)0xff, (char)0xff, (char)0xff,
-                           (char)0xff, (char)0xff, (char)0xff, (char)0xff,
-                           (char)0xff, (char)0xff, (char)0xff, (char)0xff };
+    uint8_t ff_sample[16] = { 0xff, 0xff, 0xff, 0xff,
+                              0xff, 0xff, 0xff, 0xff,
+                              0xff, 0xff, 0xff, 0xff,
+                              0xff, 0xff, 0xff, 0xff };
 
     bool skipped_last = false;
     while (length > 0) {
@@ -328,10 +329,11 @@ TLS(drand48_data, rng_data)
 int randint(int n) {
     drand48_data buffer;
     if (!TLS_get_rng_initialized()) {
-        struct timespec ts;
-        int res = clock_gettime(CLOCK_REALTIME, &ts);
-        guarantee_err(res == 0, "clock_gettime(CLOCK_REALTIME) failed");
-        srand48_r(ts.tv_nsec, &buffer);
+        long int seed_buffer;
+        blocking_read_file_stream_t urandom;
+        guarantee(urandom.init("/dev/urandom"), "failed to open /dev/urandom to initialize thread rng");
+        while (urandom.read(&seed_buffer, sizeof(seed_buffer)) != sizeof(seed_buffer));
+        srand48_r(seed_buffer, &buffer);
         TLS_set_rng_initialized(true);
     } else {
         buffer = TLS_get_rng_data();
@@ -443,7 +445,7 @@ int64_t round_up_to_power_of_two(int64_t x) {
 ticks_t secs_to_ticks(double secs) {
     // The timespec struct used in clock_gettime has a tv_nsec field.
     // That's why we use a billion.
-    return secs * 1000000000L;
+    return static_cast<ticks_t>(secs * 1000000000L);
 }
 
 timespec clock_monotonic() {
@@ -541,7 +543,7 @@ std::string read_file(const char *path) {
     do {
         count = fread(buffer, 1, sizeof(buffer), fp);
         s.append(buffer, buffer + count);
-    } while(count == sizeof(buffer));
+    } while (count == sizeof(buffer));
 
     rassert(feof(fp));
 

@@ -24,7 +24,7 @@
 
 struct const_charslice {
     const char *beg, *end;
-    const_charslice(const char *beg_, const char *end_) : beg(beg_), end(end_) { }
+    const_charslice(const char *_beg, const char *_end) : beg(_beg), end(_end) { }
     const_charslice() : beg(NULL), end(NULL) { }
 };
 
@@ -308,6 +308,11 @@ private:
 };
 
 std::string sanitize_for_logger(const std::string &s);
+static inline std::string time2str(const time_t &t) {
+    char timebuf[26]; // I apologize for the magic constant.
+    //           ^^ See man 3 ctime_r
+    return ctime_r(&t, timebuf);
+}
 
 #define NULLPTR (static_cast<void *>(0))
 

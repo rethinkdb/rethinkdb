@@ -1,5 +1,6 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 #!/usr/bin/ruby
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 require 'pp'
 x = ARGV.map {|f|
   File.open(f, "r").readlines.map{|l| eval l.chomp}

@@ -38,8 +38,8 @@ public:
         assign(sz, buf);
     }
 
-    store_key_t(const store_key_t& key_) {
-        assign(key_.size(), key_.contents());
+    store_key_t(const store_key_t& _key) {
+        assign(_key.size(), _key.contents());
     }
 
     explicit store_key_t(const btree_key_t *key) {

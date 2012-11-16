@@ -1,5 +1,6 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 #!/usr/bin/env python
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 import subprocess, stat, os, re, time
 
 def format_args(d):

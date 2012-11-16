@@ -37,12 +37,12 @@ uint64_t pipe_event_t::read() {
     do {
         _temp = 0;
         res = ::read(pipefd[0], &_temp, sizeof(value));
-        if(res == -1 && (errno != EAGAIN || errno != EWOULDBLOCK)) {
+        if (res == -1 && (errno != EAGAIN || errno != EWOULDBLOCK)) {
             crash("Cannot read from pipe-based event");
         } else {
             value += _temp;
         }
-    } while(res != -1);
+    } while (res != -1);
 
     return value;
 }
@@ -57,7 +57,7 @@ void pipe_event_t::write(uint64_t value) {
     // don't matter to Jesus anyway because the other side of the pipe
     // will be awoken by all the other crap in it.
     int res = ::write(pipefd[1], &value, sizeof(value));
-    if(res != sizeof(value)) {
+    if (res != sizeof(value)) {
         logERR("Can't write to system event pipe");
     }
 }

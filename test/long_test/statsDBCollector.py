@@ -1,5 +1,6 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 #!/usr/bin/python
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 import sys, os, signal, math, time
 import _mysql
 from datetime import datetime

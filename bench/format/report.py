@@ -1,5 +1,6 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 #!/usr/bin/python
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 from format import *
 import sys
 def usage(prog_name):

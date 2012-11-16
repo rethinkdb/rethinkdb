@@ -269,8 +269,8 @@ bool linux_tcp_conn_t::is_read_open() {
     return !read_closed.is_pulsed();
 }
 
-linux_tcp_conn_t::write_handler_t::write_handler_t(linux_tcp_conn_t *parent_) :
-    parent(parent_)
+linux_tcp_conn_t::write_handler_t::write_handler_t(linux_tcp_conn_t *_parent) :
+    parent(_parent)
 { }
 
 void linux_tcp_conn_t::write_handler_t::coro_pool_callback(write_queue_op_t *operation, UNUSED signal_t *interruptor) {
@@ -545,7 +545,7 @@ void linux_tcp_conn_t::rethread(int new_thread) {
 
 int linux_tcp_conn_t::getsockname(ip_address_t *ip) {
     struct sockaddr_in addr;
-    socklen_t len = sizeof addr;
+    socklen_t len = sizeof(addr);
     int res = ::getsockname(sock.get(), reinterpret_cast<struct sockaddr*>(&addr), &len);
     if (!res) ip->set_addr(addr.sin_addr);
     return res;
@@ -553,7 +553,7 @@ int linux_tcp_conn_t::getsockname(ip_address_t *ip) {
 
 int linux_tcp_conn_t::getpeername(ip_address_t *ip) {
     struct sockaddr_in addr;
-    socklen_t len = sizeof addr;
+    socklen_t len = sizeof(addr);
     int res = ::getpeername(sock.get(), reinterpret_cast<struct sockaddr*>(&addr), &len);
     if (!res) ip->set_addr(addr.sin_addr);
     return res;
@@ -897,7 +897,9 @@ std::vector<std::string> get_ips() {
     guarantee_err(addr_res == 0, "getifaddrs failed, could not determine local ip addresses");
 
     for (ifaddrs *p = if_addrs; p != NULL; p = p->ifa_next) {
-        if (p->ifa_addr->sa_family == AF_INET) {
+        if (p->ifa_addr == NULL) {
+            continue;
+        } else if (p->ifa_addr->sa_family == AF_INET) {
             if (!(p->ifa_flags & IFF_LOOPBACK)) {
                 struct sockaddr_in *in_addr = reinterpret_cast<sockaddr_in *>(p->ifa_addr);
                 // I don't think the "+ 1" is necessary, we're being

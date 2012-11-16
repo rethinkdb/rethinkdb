@@ -13,6 +13,11 @@ typedef int fd_t;
 
 class linux_thread_message_t : public intrusive_list_node_t<linux_thread_message_t> {
 public:
+    linux_thread_message_t() 
+#ifndef NDEBUG
+        : reloop_count_(0) 
+#endif
+        { }
     virtual void on_thread_switch() = 0;
 protected:
     virtual ~linux_thread_message_t() {}

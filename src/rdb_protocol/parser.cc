@@ -34,9 +34,7 @@ http_res_t query_http_app_t::handle(const http_req_t &req) {
                 }
 
                 uuid_t namespace_uuid;
-                try {
-                    namespace_uuid = str_to_uuid(*it);
-                } catch (std::runtime_error) {
+                if (!str_to_uuid(*it, &namespace_uuid)) {
                     return http_res_t(HTTP_BAD_REQUEST, "text/plain", "Failed to parse namespace\n");
                 }
 
@@ -88,9 +86,7 @@ http_res_t query_http_app_t::handle(const http_req_t &req) {
                 }
 
                 uuid_t namespace_uuid;
-                try {
-                    namespace_uuid = str_to_uuid(*it);
-                } catch (std::runtime_error) {
+                if (!str_to_uuid(*it, &namespace_uuid)) {
                     return http_res_t(HTTP_BAD_REQUEST, "text/plain", "namespace uuid did not parse as uuid");
                 }
 
@@ -140,7 +136,7 @@ http_res_t query_http_app_t::handle(const http_req_t &req) {
             return http_res_t(HTTP_BAD_REQUEST);
         }
         crash("Unreachable\n");
-    } catch(cannot_perform_query_exc_t e) {
+    } catch (cannot_perform_query_exc_t e) {
         http_res_t res;
         res.set_body("text/plain", e.what());
         return http_res_t(HTTP_INTERNAL_SERVER_ERROR);

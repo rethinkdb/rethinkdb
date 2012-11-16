@@ -20,6 +20,7 @@ public:
     bool is_nil() const;
 
     static const size_t kStaticSize = 16;
+    static const size_t kStringSize = 2 * kStaticSize + 4;  // hexadecimal, 4 hyphens
     static size_t static_size() {
         CT_ASSERT(sizeof(uuid_t) == kStaticSize);
         return kStaticSize;
@@ -47,7 +48,9 @@ void debug_print(append_only_printf_buffer_t *buf, const uuid_t& id);
 
 std::string uuid_to_str(uuid_t id);
 
-uuid_t str_to_uuid(const std::string&);
+uuid_t str_to_uuid(const std::string &str);
+
+MUST_USE bool str_to_uuid(const std::string &str, uuid_t *out);
 
 bool is_uuid(const std::string& str);
 

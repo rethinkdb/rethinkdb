@@ -1,5 +1,6 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 #!/usr/bin/python
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 import sys, os, time, tempfile, subprocess
 rethinkdb_root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir))
 sys.path.append(os.path.join(rethinkdb_root, "test", "common"))
@@ -19,12 +20,13 @@ with driver.Metacluster() as metacluster:
             executable_path = driver.find_rethinkdb_executable("debug"))
         for i in xrange(num_nodes)]
     time.sleep(3)
-    print "Creating namespace..."
+    print "Creating table..."
     http = http_admin.ClusterAccess([("localhost", p.http_port) for p in processes])
+    db = http.add_database("test")
     dc = http.add_datacenter()
     for machine_id in http.machines:
         http.move_server_to_datacenter(machine_id, dc)
-    ns = http.add_namespace(protocol = "memcached", primary = dc)
+    ns = http.add_namespace(protocol = "rdb", primary = dc, name = "stress", database = db)
     time.sleep(3)
     host, port = driver.get_namespace_host(ns.port, processes)
     cluster.check()

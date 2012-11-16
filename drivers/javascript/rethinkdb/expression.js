@@ -883,13 +883,13 @@ goog.exportProperty(rethinkdb.Expression.prototype, 'map',
 
 /**
  * Order the elements of the sequence by their values of the specified attributes.
- * @param {...string} var_args Some number of strings giving the fields to orderby.
+ * @param {...string} var_args Some number of strings giving the fields to orderBy.
  *  Values are first orderd by the first field given, then by the second, etc. Prefix
  *  a field name with a '-' to request a decending order. Attributes without prefixes
  *  will be given in ascending order.
  * @return {rethinkdb.Expression}
  */
-rethinkdb.Expression.prototype.orderby = function(var_args) {
+rethinkdb.Expression.prototype.orderBy = function(var_args) {
     rethinkdb.util.argCheck_(arguments, 1);
     var orderings = Array.prototype.slice.call(arguments, 0);
     orderings.forEach(function(order) {rethinkdb.util.typeCheck_(order, 'string')});
@@ -899,14 +899,14 @@ rethinkdb.Expression.prototype.orderby = function(var_args) {
         function(bt) {
             var os = orderings.map(function(o) {return "'"+o+"'";});
             if (!bt) {
-                return self.formatQuery()+".orderby("+os.join(', ')+")";
+                return self.formatQuery()+".orderBy("+os.join(', ')+")";
             } else {
                 var a = bt.shift();
                 if (a === 'order_by') {
-                    return rethinkdb.util.spaceify_(self.formatQuery()+".orderby(")+rethinkdb.util.carrotify_(os.join(', '))+" ";
+                    return rethinkdb.util.spaceify_(self.formatQuery()+".orderBy(")+rethinkdb.util.carrotify_(os.join(', '))+" ";
                 } else {
                     goog.asserts.assert(bt[0] === 'arg:0');
-                    return self.formatQuery(bt)+rethinkdb.util.spaceify_(".orderby("+os.join(', ')+")");
+                    return self.formatQuery(bt)+rethinkdb.util.spaceify_(".orderBy("+os.join(', ')+")");
                 }
             }
         },
@@ -928,8 +928,8 @@ rethinkdb.Expression.prototype.orderby = function(var_args) {
             }
         });
 }
-goog.exportProperty(rethinkdb.Expression.prototype, 'orderby',
-                    rethinkdb.Expression.prototype.orderby);
+goog.exportProperty(rethinkdb.Expression.prototype, 'orderBy',
+                    rethinkdb.Expression.prototype.orderBy);
 
 /**
  * Remove duplicate values in this sequence.
@@ -1131,7 +1131,7 @@ rethinkdb.Expression.prototype.groupBy = function(var_args) {
     var finalizer = groupbyObject['finalizer'];
     if (finalizer) {
         gmr = gmr.map(function(group) {
-            return group.extend({'reduction': finalizer(group('reduction'))});
+            return group.merge({'reduction': finalizer(group('reduction'))});
         });
     }
 
@@ -1471,27 +1471,27 @@ rethinkdb.letVar = function(varString) {
  *  object when conflicts exist.
  * @return {rethinkdb.Expression}
  */
-rethinkdb.Expression.prototype.extend = function(other) {
+rethinkdb.Expression.prototype.merge = function(other) {
     other = rethinkdb.util.wrapIf_(other);
     var self = this;
     return rethinkdb.util.newExpr_(rethinkdb.BuiltinExpression, Builtin.BuiltinType.MAPMERGE, [this, other],
         function(bt) {
             if (!bt) {
-                return self.formatQuery()+".extend("+other.formatQuery()+")";
+                return self.formatQuery()+".merge("+other.formatQuery()+")";
             } else {
                 var a = bt.shift();
                 if (a === 'arg:0') {
-                    return self.formatQuery(bt)+rethinkdb.util.spaceify_(".extend("+other.formatQuery()+")");
+                    return self.formatQuery(bt)+rethinkdb.util.spaceify_(".merge("+other.formatQuery()+")");
                 } else if (a === 'arg:1') {
-                    return rethinkdb.util.spaceify_(self.formatQuery()+".extend(")+other.formatQuery(bt)+" ";
+                    return rethinkdb.util.spaceify_(self.formatQuery()+".merge(")+other.formatQuery(bt)+" ";
                 } else {
-                    return rethinkdb.util.carrotify_(self.formatQuery()+".extend("+other.formatQuery()+")");
+                    return rethinkdb.util.carrotify_(self.formatQuery()+".merge("+other.formatQuery()+")");
                 }
             }
         });
 };
-goog.exportProperty(rethinkdb.Expression.prototype, 'extend',
-                    rethinkdb.Expression.prototype.extend);
+goog.exportProperty(rethinkdb.Expression.prototype, 'merge',
+                    rethinkdb.Expression.prototype.merge);
 
 /**
  * Returns the concatenation of multiple sequences.
@@ -1594,7 +1594,7 @@ rethinkdb.IfExpression.prototype.compile = function(opt_buildOpts) {
 /** @override */
 rethinkdb.IfExpression.prototype.formatQuery = function(bt) {
     if (!bt) {
-        return "r.ifThenElse("+this.test_.formatQuery()+", "+this.trueBranch_.formatQuery()+
+        return "r.branch("+this.test_.formatQuery()+", "+this.trueBranch_.formatQuery()+
                ", "+this.falseBranch_.formatQuery()+")";
     } else {
         var spot = bt.shift();
@@ -1624,7 +1624,7 @@ rethinkdb.IfExpression.prototype.formatQuery = function(bt) {
  * @return {rethinkdb.Expression}
  * @export
  */
-rethinkdb.ifThenElse = function(test, trueBranch, falseBranch) {
+rethinkdb.branch = function(test, trueBranch, falseBranch) {
     rethinkdb.util.typeCheck_(trueBranch, rethinkdb.Query);
     rethinkdb.util.typeCheck_(falseBranch, rethinkdb.Query);
     test = rethinkdb.util.wrapIf_(test);
@@ -1780,7 +1780,7 @@ goog.exportProperty(rethinkdb.Expression.prototype, 'forEach',
 rethinkdb.Expression.prototype.innerJoin = function(other, predicate) {
     return this.concatMap(function(row) {
         return other.concatMap(function(row2) {
-            return rethinkdb.ifThenElse(predicate(row, row2),
+            return rethinkdb.branch(predicate(row, row2),
                 rethinkdb.expr([{left:row, right:row2}]),
                 rethinkdb.expr([])
             );
@@ -1796,12 +1796,12 @@ goog.exportProperty(rethinkdb.Expression.prototype, 'innerJoin',
 rethinkdb.Expression.prototype.outerJoin = function(other, predicate) {
     return this.concatMap(function(row) {
         return rethinkdb.let({'matches': other.concatMap(function(row2) {
-            return rethinkdb.ifThenElse(predicate(row, row2),
+            return rethinkdb.branch(predicate(row, row2),
                 rethinkdb.expr([{left: row, right: row2}]),
                 rethinkdb.expr([])
             );
         }).streamToArray()},
-            rethinkdb.ifThenElse(rethinkdb.letVar('matches').count()['gt'](0),
+            rethinkdb.branch(rethinkdb.letVar('matches').count()['gt'](0),
                 rethinkdb.letVar('matches'),
                 rethinkdb.expr([{left:row}])
             )
@@ -1817,7 +1817,7 @@ goog.exportProperty(rethinkdb.Expression.prototype, 'outerJoin',
 rethinkdb.Expression.prototype.equiJoin = function(leftAttr, other, opt_rightAttr) {
     return this.concatMap(function(row) {
         return rethinkdb.let({'right': other.get(row(leftAttr))},
-            rethinkdb.ifThenElse(rethinkdb.letVar('right')['ne'](rethinkdb.expr(null)),
+            rethinkdb.branch(rethinkdb.letVar('right')['ne'](rethinkdb.expr(null)),
                 rethinkdb.expr([{'left':row, 'right':rethinkdb.letVar('right')}]),
                 rethinkdb.expr([])
             )
@@ -1832,8 +1832,8 @@ goog.exportProperty(rethinkdb.Expression.prototype, 'equiJoin',
  */
 rethinkdb.Expression.prototype.zip = function() {
     return this.map(function(row) {
-        return rethinkdb.ifThenElse(row.contains('right'),
-            row('left').extend(row('right')),
+        return rethinkdb.branch(row.contains('right'),
+            row('left').merge(row('right')),
             row('left'));
     });
 };

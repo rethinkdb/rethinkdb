@@ -1,5 +1,6 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 #!/usr/bin/perl
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 #
 
 use strict;

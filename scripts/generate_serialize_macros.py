@@ -1,5 +1,6 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 #!/usr/bin/env python
+# Copyright 2010-2012 RethinkDB, all rights reserved.
 import sys
 
 """This script is used to generate the RDB_MAKE_SERIALIZABLE_*() and
