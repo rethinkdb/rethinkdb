@@ -45,8 +45,6 @@ private:
     timer_token_t *timer_token;
     std::map<peer_id_t, uint32_t> connections;
     connectivity_service_t::peers_list_subscription_t connection_watcher;
-
-    DISABLE_COPYING(heartbeat_manager_t);
 };
 
 #endif
