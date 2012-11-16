@@ -277,13 +277,13 @@ goog.exportProperty(rethinkdb.Database.prototype, 'tableDrop',
 /**
  * Construct a table reference for a table in this database
  * @param {string} tableName
- * @param {boolean=} opt_allowOutdated
+ * @param {boolean=} opt_useOutdated
  */
-rethinkdb.Database.prototype.table = function(tableName, opt_allowOutdated) {
+rethinkdb.Database.prototype.table = function(tableName, opt_useOutdated) {
     rethinkdb.util.argCheck_(arguments, 1);
     rethinkdb.util.typeCheck_(tableName, 'string');
-    rethinkdb.util.typeCheck_(opt_allowOutdated, 'boolean');
-    return new rethinkdb.Table(tableName, this.name_, opt_allowOutdated);
+    rethinkdb.util.typeCheck_(opt_useOutdated, 'boolean');
+    return new rethinkdb.Table(tableName, this.name_, opt_useOutdated);
 };
 goog.exportProperty(rethinkdb.Database.prototype, 'table',
                     rethinkdb.Database.prototype.table);
