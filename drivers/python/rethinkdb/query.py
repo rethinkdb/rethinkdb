@@ -717,7 +717,7 @@ class JSONExpression(ReadQuery):
                     expr([{'left':row, 'right':row2}]),
                     expr([])
                 )
-            )), branch(letvar('matches').length() > 0,
+            )), branch(letvar('matches').count() > 0,
                 letvar('matches'),
                 expr([{'left':row}])
             ))
@@ -746,7 +746,7 @@ class JSONExpression(ReadQuery):
 
         :returns: :class:`JSONExpression`
 
-        >>> expr([1, 2, 3]).length().run()
+        >>> expr([1, 2, 3]).count().run()
         3
         """
         return JSONExpression(internal.Length(self))
@@ -754,7 +754,7 @@ class JSONExpression(ReadQuery):
     def __len__(self):
         raise ValueError("To construct a `rethinkdb.JSONExpression` "
             "representing the length of a RethinkDB protocol term, call "
-            "`expr.length()`. (We couldn't overload `len(expr)` because it's "
+            "`expr.count()`. (We couldn't overload `len(expr)` because it's "
             "illegal to return anything other than an integer from `__len__()` "
             "in Python.)")
 
@@ -836,7 +836,7 @@ class StreamExpression(ReadQuery):
 
         >>> # Select all Californians whose age is equal to the number
         >>> of users in the database
-        >>> table('users').filter( { 'state': 'CA', 'age': table('users').length() })
+        >>> table('users').filter( { 'state': 'CA', 'age': table('users').count() })
 
         So far we've been grabbing attributes from the implicit scope. We can
         bind the value of each row to a variable and operate on that:
@@ -1096,7 +1096,7 @@ class StreamExpression(ReadQuery):
                     expr([{'left':row, 'right':row2}]),
                     expr([])
                 )
-            )), branch(letvar('matches').length() > 0,
+            )), branch(letvar('matches').count() > 0,
                 letvar('matches'),
                 expr({'left':row})
             ))
@@ -1123,14 +1123,14 @@ class StreamExpression(ReadQuery):
 
         :returns: :class:`JSONExpression`
 
-        >>> table("users").length()   # Total number of users in the system
+        >>> table("users").count()   # Total number of users in the system
         """
         return JSONExpression(internal.Length(self))
 
     def __len__(self):
         raise ValueError("To construct a `rethinkdb.JSONExpression` "
             "representing the length of a RethinkDB protocol stream, call "
-            "`expr.length()`. (We couldn't overload `len(expr)` because it's "
+            "`expr.count()`. (We couldn't overload `len(expr)` because it's "
             "illegal to return anything other than an integer from `__len__()` "
             "in Python.)")
 
