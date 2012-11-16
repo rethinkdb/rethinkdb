@@ -11,7 +11,7 @@ class WriteQuery
                 return mutate_query.mutate server
             when 4
                 insert_query = new WriteQueryInsert @data.getInsert()
-                return insert_query.insert servera
+                return insert_query.insert server
             #when 6 # For each
             when 7
                 point_update_query = new WriteQueryPointUpdate @data.getPointUpdate()
