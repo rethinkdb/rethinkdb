@@ -5,6 +5,13 @@
 #include <errno.h>
 #include <stdlib.h>
 
+// Provide a quick and clear error message to 32-bit users.  (Yes, we need both, because there is a
+// target for 32-bit pointers on x86-64.)
+#if !__LP64__ || !__x86_64__
+#error "RethinkDB only supports 64-bit x86-64 targets at this time."
+#endif
+
+
 #ifndef DISABLE_BREAKPOINTS
 #ifdef __linux__
 #if defined __i386 || defined __x86_64
