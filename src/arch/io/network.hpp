@@ -114,6 +114,13 @@ public:
     /* Returns false if the half of the pipe that goes from us to the peer has been closed. */
     bool is_write_open();
 
+    /* Call to enable/disable `SO_KEEPALIVE` for this socket. First version
+    enables and configures it; second version disables it. */
+    /* TODO: This API is insufficient because there's no way to use it on a
+    connection before `connect()` is called. */
+    void set_keepalive(int idle_seconds, int try_interval_seconds, int try_count);
+    void set_keepalive();
+
     /* Put a `perfmon_rate_monitor_t` here if you want to record stats on how fast data is being
     transmitted over the network. */
     perfmon_rate_monitor_t *write_perfmon;
@@ -337,7 +344,7 @@ the provided callback will be called in a new coroutine every time something con
 
 class linux_nonthrowing_tcp_listener_t : private linux_event_callback_t {
 public:
-    linux_nonthrowing_tcp_listener_t(int _port,
+    linux_nonthrowing_tcp_listener_t(int _port, int user_timeout,
         const boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> &callback);
 
     ~linux_nonthrowing_tcp_listener_t();
@@ -350,7 +357,7 @@ protected:
     friend class linux_tcp_listener_t;
     friend class linux_tcp_bound_socket_t;
 
-    void init_socket();
+    void init_socket(int user_timeout);
     MUST_USE bool bind_socket();
 
     /* accept_loop() runs in a separate coroutine. It repeatedly tries to accept
@@ -386,7 +393,7 @@ protected:
 /* Used by the old style tcp listener */
 class linux_tcp_bound_socket_t {
 public:
-    linux_tcp_bound_socket_t(int _port);
+    linux_tcp_bound_socket_t(int _port, int user_timeout);
     int get_port() const;
 private:
     friend class linux_tcp_listener_t;
@@ -399,7 +406,7 @@ class linux_tcp_listener_t {
 public:
     linux_tcp_listener_t(linux_tcp_bound_socket_t *bound_socket,
         const boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> &callback);
-    linux_tcp_listener_t(int port,
+    linux_tcp_listener_t(int port, int user_timeout,
         const boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> &callback);
 
     int get_port() const;
@@ -411,7 +418,7 @@ private:
 /* Like a linux tcp listener but repeatedly tries to bind to its port until successful */
 class linux_repeated_nonthrowing_tcp_listener_t {
 public:
-    linux_repeated_nonthrowing_tcp_listener_t(int port,
+    linux_repeated_nonthrowing_tcp_listener_t(int port, int user_timeout,
         const boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> &callback);
     void begin_repeated_listening_attempts();
 
