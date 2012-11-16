@@ -19,6 +19,7 @@ public:
     ~heartbeat_manager_t();
 
 private:
+    // TODO: make these configurable
     static const int64_t TIMER_INTERVAL_MS = 2000;
     static const uint32_t MAX_KEEPALIVES = 5;
 
@@ -33,7 +34,6 @@ private:
 
     // Handle a heartbeat from a peer connection
     void on_message(peer_id_t source_peer, read_stream_t *stream);
-    void on_message_coro(peer_id_t source_peer);
 
     class heartbeat_writer_t : public send_message_write_callback_t {
     public:
