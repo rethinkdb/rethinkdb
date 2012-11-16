@@ -220,7 +220,12 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, io
 
     // Construct file flags
 
+#if __MACH__
+    // O_LARGEFILE is not necessary and O_DIRECT is handled later with F_NOCACHE.
+    int flags = O_CREAT;
+#else
     int flags = O_CREAT | (is_really_direct ? O_DIRECT : 0) | O_LARGEFILE;
+#endif
 
     if ((mode & mode_write) && (mode & mode_read)) {
         flags |= O_RDWR;
@@ -236,7 +241,7 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, io
     // O_NOATIME requires owner or root privileges. This is a bit of a hack; we assume that
     // if we are opening a regular file, we are the owner, but if we are opening a block device,
     // we are not.
-#if !__APPLE__
+#if !__MACH__
     if (!is_block) flags |= O_NOATIME;
 #endif  // !__APPLE__
 
@@ -252,6 +257,7 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, io
     }
 
     if (fd.get() == INVALID_FD) {
+        // TODO(OSX) Fix this error message (or throw an exception ^_^)
         /* TODO: Throw an exception instead. */
         fail_due_to_user_error(
             "Inaccessible database file: \"%s\": %s"
@@ -269,6 +275,12 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, io
                     "\n- the database file is located on a filesystem that doesn't support O_DIRECT open flag (e.g. some encrypted or journaled file systems)"
                 ) : "",
             !is_block ? "\n- user which was used to start the database is not an owner of the file" : "");
+    } else {
+#if __MACH__
+        // TODO(OSX) Make this the user-friendly sort of message above?
+        int fcntl_res = fcntl(fd.get(), F_NOCACHE, 1);
+        guarantee(fcntl_res != -1, "fcntl(..., F_NOCACHE, 1) failed (this is the OS X substitute for O_DIRECT)");
+#endif
     }
 
     file_exists = true;
