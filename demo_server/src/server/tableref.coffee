@@ -208,6 +208,46 @@ class TableRef
 
             return response
 
+    update: (server, mapping) ->
+        db_name = @data.getDbName()
+        table_name = @data.getTableName()
+        mapping_value = JSON.parse mapping.evaluate(server).getResponse()
+
+        response_find_table = @find_table(server)
+        if response_find_table?
+            return response_find_table
+        else
+            response = new Response
+            result =
+                updated: 0
+                skipped: 0
+                errors: 0
+
+            primary_key = server[db_name][table_name]['options']['primary_key']
+
+            updated_at_least_one = false
+            for internal_key of server[db_name][table_name]['data']
+                if mapping_value[primary_key]? and mapping_value[primary_key] isnt server[db_name][table_name]['data'][internal_key][primary_key]
+                    #TODO backtrace
+                    if not result.first_error?
+                        result.first_error = 'update cannot change primary key '+primary_key+' (got objects '+JSON.stringify(server[db_name][table_name]['data'][internal_key], undefined, 4)+', '+JSON.stringify(mapping_value, undefined, 4)+')'
+                        #TODO backtrace
+                    result.errors++
+                else
+                    result.updated++
+                    for key, value of mapping_value
+                        server[db_name][table_name]['data'][internal_key][key] = value
+                        updated_at_least_one = true
+
+            if updated_at_least_one is true
+                response.setStatusCode 1
+            else
+                response.setStatusCode 103
+            response.addResponse JSON.stringify result
+
+            return response
+
+
 
     point_delete: (server, attr_name, attr_value) ->
         db_name = @data.getDbName()

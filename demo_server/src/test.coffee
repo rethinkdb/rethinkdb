@@ -1,3 +1,21 @@
+# That's not a perfect version of deep copy, but it's enough for the kind of object we have
+deep_copy = (obj) =>
+    if typeof obj is 'object'
+        if Object.prototype.toString.call(obj) is '[object Array]'
+            result = []
+            for element, i in obj
+                result.push deep_copy element
+            return result
+        else if obj is null
+            return null
+        else
+            result = {}
+            for key, value of obj
+                result[key] = deep_copy value
+            return result
+    else
+        return obj
+
 # TODO
 # Refactor the test functions
 
@@ -42,10 +60,12 @@ class Tests
                 demo_server.local_server = query.state
             console.log query.query
             cursor = eval(query.query)
-            @callback()[query.callback_name](query.query, cursor, query.expected_result)
+            @callback()[query.callback_name](query.query, cursor, query.expected_result, @)
 
+            ###
             @index++
             @test()
+            ###
 
     display: (success, query, results) ->
         if success is true
@@ -56,214 +76,277 @@ class Tests
                 </li>'
 
     callback: =>
-        is_true: (query, cursor) =>
+        is_true: (query, cursor, expected_result, that) =>
             @results = []
             cursor.next (data) =>
                 if data?
                     @results.push data
                     return true
                 @display (_.isEqual(@results, [true])), query, @results
+                that.index++
+                that.test()
                 return false
-        is_false: (query, cursor) =>
+        is_false: (query, cursor, expected_result, that) =>
             @results = []
             cursor.next (data) =>
                 if data?
                     @results.push data
                     return true
                 @display (_.isEqual(@results, [false])), query, @results
+                that.index++
+                that.test()
                 return false
-        is_int_132: (query, cursor) =>
+        is_int_132: (query, cursor, expected_result, that) =>
             @results = []
             cursor.next (data) =>
                 if data?
                     @results.push data
                     return true
                 @display (_.isEqual(@results, [132])), query, @results
+                that.index++
+                that.test()
                 return false
-        is_float_0_132: (query, cursor) =>
+        is_float_0_132: (query, cursor, expected_result, that) =>
             @results = []
             cursor.next (data) =>
                 if data?
                     @results.push data
                     return true
                 @display (_.isEqual(@results, [0.132])), query, @results
+                that.index++
+                that.test()
                 return false
-        is_array_132: (query, cursor) =>
+        is_array_132: (query, cursor, expected_result, that) =>
             @results = []
             cursor.next (data) =>
                 if data?
                     @results.push data
                     return true
                 @display (_.isEqual(@results, [1,3,2])), query, @results
+                that.index++
+                that.test()
                 return false
-        is_object: (query, cursor) =>
+        is_object: (query, cursor, expected_result, that) =>
             @results = []
             cursor.next (data) =>
                 if data?
                     @results.push data
                     return true
                 @display (_.isEqual(@results, [{"key_string": "i_am_a_string", "key_int": 132}])), query, @results
+                that.index++
+                that.test()
                 return false
-        is_string: (query, cursor) =>
+        is_string: (query, cursor, expected_result, that) =>
             @results = []
             cursor.next (data) =>
                 if data?
                     @results.push data
                     return true
                 @display (_.isEqual(@results, ['I am a string'])), query, @results
+                that.index++
+                that.test()
                 return false
-        db_test_exists: (query, cursor) =>
+        db_test_exists: (query, cursor, expected_result, that) =>
             @results = []
             cursor.next (data) =>
                 if data?
                     @results.push data
                     return true
                 @display demo_server.local_server.test?, query, @results
+                that.index++
+                that.test()
                 return false
-        db_other_test_exists: (query, cursor) =>
+        db_other_test_exists: (query, cursor, expected_result, that) =>
             @results = []
             cursor.next (data) =>
                 if data?
                     @results.push data
                     return true
                 @display demo_server.local_server.other_test?, query, @results
+                that.index++
+                that.test()
                 return false
-        db_test_doesnt_exist: (query, cursor) =>
+        db_test_doesnt_exist: (query, cursor, expected_result, that) =>
             @results = []
             cursor.next (data) =>
                 if data?
                     @results.push data
                     return true
                 @display (not demo_server.local_server.test?), query, @results
+                that.index++
+                that.test()
                 return false
-        empty_answer: (query, cursor) =>
+        empty_answer: (query, cursor, expected_result, that) =>
             @results = []
             cursor.next (data) =>
                 if data?
                     @results.push data
                     return true
                 @display (_.isEqual(@results, [])), query, @results
+                that.index++
+                that.test()
                 return false
-        two_strings_test_and_other_test: (query, cursor) =>
+        two_strings_test_and_other_test: (query, cursor, expected_result, that) =>
             @results = []
             cursor.next (data) =>
                 if data?
                     @results.push data
                     return true
                 @display (_.isEqual(@results, ['test', 'other_test'])), query, @results
+                that.index++
+                that.test()
                 return false
-        table_test_exists: (query, cursor) =>
+        table_test_exists: (query, cursor, expected_result, that) =>
             @results = []
             cursor.next (data) =>
                 if data?
                     @results.push data
                     return true
                 @display demo_server.local_server.test.test?, query, @results
+                that.index++
+                that.test()
                 return false
-        table_test_doesnt_exist: (query, cursor) =>
+        table_test_doesnt_exist: (query, cursor, expected_result, that) =>
             @results = []
             cursor.next (data) =>
                 if data?
                     @results.push data
                     return true
                 @display (not demo_server.local_server.test.test?), query, @results
+                that.index++
+                that.test()
                 return false
-        table_other_test_exists: (query, cursor) =>
+        table_other_test_exists: (query, cursor, expected_result, that) =>
             @results = []
             cursor.next (data) =>
                 if data?
                     @results.push data
                     return true
                 @display demo_server.local_server.test.other_test?, query, @results
+                that.index++
+                that.test()
                 return false
-        inserted_one: (query, cursor) =>
+        inserted_one: (query, cursor, expected_result, that) =>
             @results = []
             cursor.next (data) =>
                 if data?
                     @results.push data
                     return true
                 @display (@results[0].inserted is 1), query, @results
+                that.index++
+                that.test()
                 return false
-        inserted_three: (query, cursor) =>
+        inserted_three: (query, cursor, expected_result, that) =>
             @results = []
             cursor.next (data) =>
                 if data?
                     @results.push data
                     return true
                 @display (@results[0].inserted is 3), query, @results
+                that.index++
+                that.test()
                 return false
-        get_one_doc_key_is_int: (query, cursor) =>
+        get_one_doc_key_is_int: (query, cursor, expected_result, that) =>
             @results = []
             cursor.next (data) =>
                 if data?
                     @results.push data
                     return true
                 @display (_.isEqual(@results, [{"id":1, "key":"i_am_a_string"}])), query, @results
+                that.index++
+                that.test()
                 return false
-        get_one_doc_key_is_string: (query, cursor) =>
+        get_one_doc_key_is_string: (query, cursor, expected_result, that) =>
             @results = []
             cursor.next (data) =>
                 if data?
                     @results.push data
                     return true
                 @display (_.isEqual(@results, [{"id": "i_am_a_string", "key": 132}])), query, @results
+                that.index++
+                that.test()
                 return false
-        doc_key_int_deleted: (query, cursor) =>
+        doc_key_int_deleted: (query, cursor, expected_result, that) =>
             @results = []
             cursor.next (data) =>
                 if data?
                     @results.push data
                     return true
                 @display (not demo_server.local_server.test.test.data['N1']?), query, @results
+                that.index++
+                that.test()
                 return false
-        table_point_updated_age: (query, cursor) =>
+        table_point_updated_age: (query, cursor, expected_result, that) =>
             @results = []
             cursor.next (data) =>
                 if data?
                     @results.push data
                     return true
                 @display (demo_server.local_server.test.test.data["Si_am_a_string"]['age'] is 30 and demo_server.local_server.test.test.data["Si_am_a_string"]['key'] is 321), query, @results
+                that.index++
+                that.test()
                 return false
-        is_state_1: (query, cursor) =>
+        is_state_1: (query, cursor, expected_result, that) =>
             @results = []
             cursor.next (data) =>
                 if data?
                     @results.push data
                     return true
                 @display _.isEqual(demo_server.local_server, state[1]), query, @results
+                that.index++
+                that.test()
                 return false
-        is_doc_1: (query, cursor) =>
+        is_doc_1: (query, cursor, expected_result, that) =>
             @results = []
             cursor.next (data) =>
                 if data?
                     @results.push data
                     return true
                 @display (_.isEqual(@results, [{"id":1}])), query, @results
+                that.index++
+                that.test()
                 return false
-        expect_result: (query, cursor, expected_result) =>
+        expect_result: (query, cursor, expected_result, that) =>
             @results = []
             cursor.next (data) =>
                 if data?
                     @results.push data
                     return true
                 @display (_.isEqual(@results, expected_result)), query, @results
+                that.index++
+                that.test()
                 return false
-        two_has_been_replaced: (query, cursor) =>
+        expect_state: (query, cursor, expected_state, that) =>
+            @results = []
+            cursor.next (data) =>
+                if data?
+                    @results.push data
+                    return true
+                @display (_.isEqual(demo_server.local_server.test.test.data, expected_state)), query, demo_server.local_server.test.test.data
+                that.index++
+                that.test()
+                return false
+        two_has_been_replaced: (query, cursor, expected_result, that) =>
             @results = []
             cursor.next (data) =>
                 if data?
                     @results.push data
                     return true
                 @display (_.isEqual(demo_server.local_server.test.test.data['N2'], {id:2, key:"new_value", other_key:"new_other_value"})), query, @results
+                that.index++
+                that.test()
                 return false
-        table_empty: (query, cursor) =>
+        table_empty: (query, cursor, expected_result, that) =>
             @results = []
             cursor.next (data) =>
                 if data?
                     @results.push data
                     return true
                 @display (_.isEqual(demo_server.local_server.test.test.data, {})), query, @results
+                that.index++
+                that.test()
                 return false
+
 
 $(document).ready ->
     window.r = rethinkdb
@@ -553,47 +636,53 @@ $(document).ready ->
             callback_name: 'empty_answer'
         },
         {
-            state: state['1']
+            state: deep_copy state['1']
             query: 'r.db("test").table("test").filter(r.expr(true)).run()'
             callback_name: 'is_state_1'
         },
         {
-            state: state['1']
+            state: deep_copy state['1']
             query: 'r.db("test").table("test").filter(r("@").eq({id:1})).run()'
             callback_name: 'is_doc_1'
         },
         {
-            state: state['1']
+            state: deep_copy state['1']
             query: 'r.db("test").table("test").filter(r("@")("id").eq(1)).run()'
             callback_name: 'is_doc_1'
         },
         {
-            state: state['1']
+            state: deep_copy state['1']
             query: 'r.db("test").table("test").filter(r("id").eq(1)).run()'
             callback_name: 'is_doc_1'
         },
         {
-            state: state['1']
+            state: deep_copy state['1']
             query: 'r.db("test").table("test").between(2, 3).run()'
             callback_name: 'expect_result'
             expected_result: [{id:2}, {id:3}]
         },
         {
-            state: state['2']
+            state: deep_copy state['2']
             query: 'r.db("test").table("test").get(2).replace({id:2, key:"new_value", other_key:"new_other_value"}).run()'
             callback_name: 'two_has_been_replaced'
         },
+
         {
-            state: state['2']
+            state: deep_copy state['2']
+            query: 'r.db("test").table("test").del().run()'
+            callback_name: 'table_empty'
+        },
+        {
+            state: deep_copy state['2']
             query: 'r.db("test").table("test").replace({id:2, key:"new_value", other_key:"new_other_value"}).run()'
             callback_name: 'two_has_been_replaced'
         },
         {
-            state: state[2]
-            query: 'r.db("test").table("test").del().run()'
-            callback_name: 'table_empty'
+            state: deep_copy state['2']
+            query: 'r.db("test").table("test").update({key:0}).run()'
+            callback_name: 'expect_state'
+            expected_result: {"N1": {id:1, key:0}, "N2": {id:2, key:0}, "N3": {id:3, key:0}}
         },
-
     ]
     tests = new Tests queries
     tests.test()

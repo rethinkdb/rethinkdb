@@ -4,7 +4,9 @@ class WriteQuery
     write: (server) ->
         type = @data.getType()
         switch type
-            #when 1 # Update
+            when 1 # Update
+                update_query = new WriteQueryUpdate @data.getUpdate()
+                return update_query.update server
             when 2 # Delete
                 delete_query = new WriteQueryDelete @data.getDelete()
                 return delete_query.delete server
@@ -140,3 +142,11 @@ class WriteQueryPointUpdate
         mapping = new Mapping @data.getMapping()
         return table_ref.point_update server, attr_name, attr_value, mapping
 
+class WriteQueryUpdate
+    constructor: (data) ->
+        @data = data
+
+    update: (server) ->
+        term = new Term @data.getView()
+        mapping = new Mapping @data.getMapping()
+        return term.update server, mapping
