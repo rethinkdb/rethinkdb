@@ -256,6 +256,14 @@ class Tests
                     return true
                 @display (_.isEqual(demo_server.local_server.test.test.data['N2'], {id:2, key:"new_value", other_key:"new_other_value"})), query, @results
                 return false
+        table_empty: (query, cursor) =>
+            @results = []
+            cursor.next (data) =>
+                if data?
+                    @results.push data
+                    return true
+                @display (_.isEqual(demo_server.local_server.test.test.data, {})), query, @results
+                return false
 
 $(document).ready ->
     window.r = rethinkdb
@@ -579,6 +587,11 @@ $(document).ready ->
             state: state['2']
             query: 'r.db("test").table("test").replace({id:2, key:"new_value", other_key:"new_other_value"}).run()'
             callback_name: 'two_has_been_replaced'
+        },
+        {
+            state: state[2]
+            query: 'r.db("test").table("test").del().run()'
+            callback_name: 'table_empty'
         },
 
     ]

@@ -48,16 +48,50 @@ class TableRef
             response.setStatusCode 0 # SUCCESS_STREAM
             return response
 
+    delete: (server) =>
+        db_name = @data.getDbName()
+        table_name = @data.getTableName()
+
+        # Check format
+        if /[a-zA-Z0-9_]+/.test(db_name) is false or /[a-zA-Z0-9_]+/.test(table_name) is false
+            response = new Response
+            response.setStatusCode 102
+            response.setErrorMessage "Bad Query: Invalid name 'f-f'.  (Use A-Za-z0-9_ only.)."
+            return response
+        
+        # Make sure that the table exists
+        if not server[db_name]?
+            response = new Response
+            response.setStatusCode 103
+            response.setErrorMessage "Error: Error during operation `EVAL_DB #{db_name}`: No entry with that name"
+            return response
+        if not server[db_name][table_name]?
+            response = new Response
+            response.setStatusCode 103
+            response.setErrorMessage "Error: Error during operation `EVAL_TABLE #{db_name}`: No entry with that name"
+            return response
+ 
+        deleted = 0
+        for internal_key of server[db_name][table_name]['data']
+            delete server[db_name][table_name]['data'][internal_key]
+            deleted++
+        response = new Response
+        response.addResponse JSON.stringify
+            deleted: deleted
+        response.setStatusCode 1 # SUCCESS_STREAM
+        return response
+
+
     drop: (server) =>
         db_name = @data.getDbName()
         table_name = @data.getTableName()
 
-        if not db_name of server
+        if not server[db_name]?
             response = new Response
             response.setStatusCode 103
             response.setErrorMessage "Error: Error during operation `FIND_DATABASE #{db_name}`: No entry with that name"
             return response
-        else if not table_name of server[db_name]
+        else if not server[db_name][table_name]?
             response = new Response
             response.setStatusCode 103
             response.setErrorMessage "Error: Error during operation `FIND_TABLE #{table_name}`: No entry with that name"

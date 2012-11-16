@@ -5,7 +5,9 @@ class WriteQuery
         type = @data.getType()
         switch type
             #when 1 # Update
-            #when 2 # Delete
+            when 2 # Delete
+                delete_query = new WriteQueryDelete @data.getDelete()
+                return delete_query.delete server
             when 3 # Mutate
                 mutate_query = new WriteQueryMutate @data.getMutate()
                 return mutate_query.mutate server
@@ -22,6 +24,15 @@ class WriteQuery
             when 9
                 point_mutate_query = new WriteQueryPointMutate @data.getPointMutate()
                 return point_mutate_query.mutate server
+
+class WriteQueryDelete
+    constructor: (data) ->
+        @data = data
+
+    delete: (server) ->
+        term = new Term @data.getView()
+        return term.delete server
+
 
  
 class WriteQueryMutate
