@@ -412,7 +412,7 @@ void rdb_distribution_get(btree_slice_t *slice, int max_depth, const store_key_t
     if (key_splits.size() == 0) {
         keys_per_bucket = key_count_out;
     } else  {
-        keys_per_bucket = std::max(key_count_out / key_splits.size(), 1ul);
+        keys_per_bucket = std::max(key_count_out / key_splits.size(), static_cast<int64_t>(1));
     }
     response->key_counts[left_key] = keys_per_bucket;
 
