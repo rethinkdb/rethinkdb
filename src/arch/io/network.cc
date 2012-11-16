@@ -25,6 +25,9 @@
 #include "logger.hpp"
 #include "perfmon/perfmon.hpp"
 
+// TODO: THIS IS A REALLY BAD IDEA, BUT linux/tcp.h WON'T INCLUDE ON GCC 4.4.1+
+#define TCP_USER_TIMEOUT 18
+
 /* Network connection object */
 
 linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port, signal_t *interruptor, int local_port) THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t) :
@@ -610,7 +613,7 @@ void linux_tcp_conn_descriptor_t::make_overcomplicated(linux_tcp_conn_t **tcp_co
 /* Network listener object */
 
 linux_nonthrowing_tcp_listener_t::linux_nonthrowing_tcp_listener_t(
-        int _port,
+        int _port, int user_timeout,
         const boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> &cb) :
     port(_port),
     bound(false),
@@ -619,7 +622,7 @@ linux_nonthrowing_tcp_listener_t::linux_nonthrowing_tcp_listener_t(
     callback(cb),
     log_next_error(true)
 {
-    init_socket();
+    init_socket(user_timeout);
 }
 
 bool linux_nonthrowing_tcp_listener_t::begin_listening() {
@@ -651,7 +654,7 @@ int linux_nonthrowing_tcp_listener_t::get_port() const {
     return port;
 }
 
-void linux_nonthrowing_tcp_listener_t::init_socket() {
+void linux_nonthrowing_tcp_listener_t::init_socket(int user_timeout) {
     int sock_fd = sock.get();
     guarantee_err(sock_fd != INVALID_FD, "Couldn't create socket");
 
@@ -672,6 +675,11 @@ void linux_nonthrowing_tcp_listener_t::init_socket() {
      */
     res = setsockopt(sock_fd, IPPROTO_TCP, TCP_NODELAY, &sockoptval, sizeof(sockoptval));
     guarantee_err(res != -1, "Could not set TCP_NODELAY option");
+
+    if (user_timeout > 0) {
+        res = setsockopt(sock.get(), SOL_TCP, TCP_USER_TIMEOUT, &user_timeout, sizeof(user_timeout));
+        guarantee_err(res == 0, "setsockopt(TCP_USER_TiMEOUT) failed");
+    }
 }
 
 bool linux_nonthrowing_tcp_listener_t::bind_socket() {
@@ -782,8 +790,8 @@ void linux_nonthrowing_tcp_listener_t::on_event(int) {
 
 void noop_fun(UNUSED const scoped_ptr_t<linux_tcp_conn_descriptor_t>& arg) { }
 
-linux_tcp_bound_socket_t::linux_tcp_bound_socket_t(int _port) :
-        listener(new linux_nonthrowing_tcp_listener_t(_port, noop_fun))
+linux_tcp_bound_socket_t::linux_tcp_bound_socket_t(int _port, int user_timeout) :
+        listener(new linux_nonthrowing_tcp_listener_t(_port, user_timeout, noop_fun))
 {
     if (!listener->bind_socket()) {
         throw address_in_use_exc_t("localhost", listener->port);
@@ -794,9 +802,9 @@ int linux_tcp_bound_socket_t::get_port() const {
     return listener->get_port();
 }
 
-linux_tcp_listener_t::linux_tcp_listener_t(int port,
+linux_tcp_listener_t::linux_tcp_listener_t(int port, int user_timeout,
     const boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> &callback) :
-        listener(new linux_nonthrowing_tcp_listener_t(port, callback))
+        listener(new linux_nonthrowing_tcp_listener_t(port, user_timeout, callback))
 {
     if (!listener->begin_listening()) {
         throw address_in_use_exc_t("localhost", port);
@@ -818,9 +826,9 @@ int linux_tcp_listener_t::get_port() const {
     return listener->get_port();
 }
 
-linux_repeated_nonthrowing_tcp_listener_t::linux_repeated_nonthrowing_tcp_listener_t(int port,
+linux_repeated_nonthrowing_tcp_listener_t::linux_repeated_nonthrowing_tcp_listener_t(int port, int user_timeout,
     const boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> &callback) :
-        listener(port, callback)
+        listener(port, user_timeout, callback)
 { }
 
 int linux_repeated_nonthrowing_tcp_listener_t::get_port() const {

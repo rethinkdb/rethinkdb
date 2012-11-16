@@ -233,12 +233,12 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, io
     // Open the file
 
     {
-        int open_res;
+        int res;
         do {
-            open_res = open(path, flags, 0644);
-        } while (open_res == -1 && errno == EINTR);
+            res = open(path, flags, 0644);
+        } while (res == -1 && errno == EINTR);
 
-        fd.reset(open_res);
+        fd.reset(res);
     }
 
     if (fd.get() == INVALID_FD) {
