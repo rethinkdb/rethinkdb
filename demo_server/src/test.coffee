@@ -1,3 +1,6 @@
+# TODO
+# Refactor the test functions
+
 state =
     1:
         test:
@@ -9,6 +12,21 @@ state =
                         id: 2
                     "N3":
                         id: 3
+    2:
+        test:
+            test:
+                data:
+                    "N1":
+                        id: 1
+                        key: 1
+                    "N2":
+                        id: 2
+                        key: 2
+                    "N3":
+                        id: 3
+                        key: 3
+                options:
+                    'primary_key': 'id'
 
 class Tests
     results: []
@@ -24,7 +42,7 @@ class Tests
                 demo_server.local_server = query.state
             console.log query.query
             cursor = eval(query.query)
-            @callback()[query.callback_name](query.query, cursor)
+            @callback()[query.callback_name](query.query, cursor, query.expected_result)
 
             @index++
             @test()
@@ -221,6 +239,22 @@ class Tests
                     @results.push data
                     return true
                 @display (_.isEqual(@results, [{"id":1}])), query, @results
+                return false
+        expect_result: (query, cursor, expected_result) =>
+            @results = []
+            cursor.next (data) =>
+                if data?
+                    @results.push data
+                    return true
+                @display (_.isEqual(@results, expected_result)), query, @results
+                return false
+        two_has_been_replaced: (query, cursor) =>
+            @results = []
+            cursor.next (data) =>
+                if data?
+                    @results.push data
+                    return true
+                @display (_.isEqual(demo_server.local_server.test.test.data['N2'], {id:2, key:"new_value", other_key:"new_other_value"})), query, @results
                 return false
 
 $(document).ready ->
@@ -520,7 +554,32 @@ $(document).ready ->
             query: 'r.db("test").table("test").filter(r("@").eq({id:1})).run()'
             callback_name: 'is_doc_1'
         },
-
+        {
+            state: state['1']
+            query: 'r.db("test").table("test").filter(r("@")("id").eq(1)).run()'
+            callback_name: 'is_doc_1'
+        },
+        {
+            state: state['1']
+            query: 'r.db("test").table("test").filter(r("id").eq(1)).run()'
+            callback_name: 'is_doc_1'
+        },
+        {
+            state: state['1']
+            query: 'r.db("test").table("test").between(2, 3).run()'
+            callback_name: 'expect_result'
+            expected_result: [{id:2}, {id:3}]
+        },
+        {
+            state: state['2']
+            query: 'r.db("test").table("test").get(2).replace({id:2, key:"new_value", other_key:"new_other_value"}).run()'
+            callback_name: 'two_has_been_replaced'
+        },
+        {
+            state: state['2']
+            query: 'r.db("test").table("test").replace({id:2, key:"new_value", other_key:"new_other_value"}).run()'
+            callback_name: 'two_has_been_replaced'
+        },
 
     ]
     tests = new Tests queries

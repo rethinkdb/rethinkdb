@@ -36,6 +36,7 @@ class Helpers
                 return a is b
 
     compare: (a, b) =>
+        # Returns a-b, so a > b
         value =
             array: 1
             boolean: 2

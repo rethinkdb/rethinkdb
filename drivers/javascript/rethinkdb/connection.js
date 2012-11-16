@@ -147,6 +147,8 @@ rethinkdb.Connection.prototype.run = function(query, opt_callback) {
     rethinkdb.util.argCheck_(arguments, 1);
 
     var pb = query.buildQuery({defaultAllowOutdated:false});
+    console.log('Raw query');
+    console.log(pb);
 
     // Assign a token
     pb.setToken((this.nextToken_++).toString());

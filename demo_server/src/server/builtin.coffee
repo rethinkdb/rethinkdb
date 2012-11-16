@@ -19,7 +19,7 @@ class Builtin
 
             when 2 # Getattr
                 term = new Term args[0]
-                original_object = JSON.parse term.evaluate().getResponse()
+                original_object = JSON.parse term.evaluate(server, context).getResponse()
 
                 attr = @data.getAttr()
 
@@ -250,7 +250,10 @@ class Builtin
                 response.setStatusCode 1
                 response.addResponse JSON.stringify(term1_value and term2_value)
                 return response
-            #when 37 # Range
+            when 37 # Range
+                term = new Term args[0]
+                builtin_range = new BuiltinRange @data.getRange()
+                return builtin_range.evaluate server, term
             #when 38 # Implicit without
             when 39 # Without
                 new_term = new Term args[0]
@@ -275,6 +278,17 @@ class BuiltinFilter
         predicate = new Predicate @data.getPredicate()
         # Can we have more than one term? Let's suppose not for the time being
         return term.filter server, predicate
+
+
+class BuiltinRange
+    constructor: (data) ->
+        @data = data
+    evaluate: (server, term) ->
+        attr_name = @data.getAttrname()
+        lower_bound = new Term @data.getLowerbound()
+        upper_bound = new Term @data.getUpperbound()
+
+        return term.range server, attr_name, lower_bound, upper_bound
 
 
 

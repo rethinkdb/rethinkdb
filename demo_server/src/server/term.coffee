@@ -107,6 +107,55 @@ class Term
             #when 14 # JAVASCRIPT
             #when 15 # IMPLICIT_VAR
 
+    mutate: (server, mapping) ->
+        type = @data.getType()
+        switch type
+            #when 0 # JSON_NULL
+            #when 1 # VAR
+            #when 2 # LET
+            #when 3 # CALL
+            #when 4 # IF
+            #when 5 # ERROR
+            #when 6 # NUMBER
+            #when 7 # STRING
+            # when '8' # JSON
+            #when 9 # BOOL
+            #when 10 # ARRAY
+            #when 11 # OBJECT
+            #when 12 # GETBYKEY
+            when 13 # TABLE
+                term_table = new TermTable @data.getTable()
+                return term_table.mutate server, mapping
+            #when 14 # JAVASCRIPT
+            #when 15 # IMPLICIT_VAR
+
+
+
+
+    range: (server, attr_name, lower_bound, upper_bound) ->
+        type = @data.getType()
+        switch type
+            #when 0 # JSON_NULL
+            #when 1 # VAR
+            #when 2 # LET
+            #when 3 # CALL
+            #when 4 # IF
+            #when 5 # ERROR
+            #when 6 # NUMBER
+            #when 7 # STRING
+            # when '8' # JSON
+            #when 9 # BOOL
+            #when 10 # ARRAY
+            #when 11 # OBJECT
+            #when 12 # GETBYKEY
+            when 13 # TABLE
+                term_table = new TermTable @data.getTable()
+                return term_table.range server, attr_name, lower_bound, upper_bound
+            #when 14 # JAVASCRIPT
+            #when 15 # IMPLICIT_VAR
+
+
+
 class TermCall
     constructor: (data) ->
         @data = data
@@ -141,3 +190,10 @@ class TermTable
         table_ref = new TableRef @data.getTableRef()
         return table_ref.filter server, predicate
 
+    mutate: (server, mapping) ->
+        table_ref = new TableRef @data.getTableRef()
+        return table_ref.mutate server, mapping
+
+    range: (server, attr_name, lower_bound, upper_bound) ->
+        table_ref = new TableRef @data.getTableRef()
+        return table_ref.range server, attr_name, lower_bound, upper_bound

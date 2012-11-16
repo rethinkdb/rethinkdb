@@ -4,15 +4,36 @@ class WriteQuery
     write: (server) ->
         type = @data.getType()
         switch type
+            #when 1 # Update
+            #when 2 # Delete
+            when 3 # Mutate
+                mutate_query = new WriteQueryMutate @data.getMutate()
+                return mutate_query.mutate server
             when 4
                 insert_query = new WriteQueryInsert @data.getInsert()
-                return insert_query.insert server
+                return insert_query.insert servera
+            #when 6 # For each
             when 7
                 point_update_query = new WriteQueryPointUpdate @data.getPointUpdate()
                 return point_update_query.update server
             when 8
                 point_delete_query = new WriteQueryPointDelete @data.getPointDelete()
                 return point_delete_query.delete server
+            when 9
+                point_mutate_query = new WriteQueryPointMutate @data.getPointMutate()
+                return point_mutate_query.mutate server
+
+ 
+class WriteQueryMutate
+    constructor: (data) ->
+        @data = data
+
+    mutate: (server) ->
+        term = new Term @data.getView()
+
+        mapping = new Mapping @data.getMapping()
+
+        return term.mutate server, mapping
 
 class WriteQueryInsert
     constructor: (data) ->
@@ -69,7 +90,6 @@ class WriteQueryInsert
 
 
 
-
 class WriteQueryPointDelete
     constructor: (data) ->
         @data = data
@@ -83,6 +103,20 @@ class WriteQueryPointDelete
         return table_ref.point_delete server, attr_name, attr_value
 
 
+class WriteQueryPointMutate
+    constructor: (data) ->
+        @data = data
+
+    mutate: (server) ->
+        table_ref = new TableRef @data.getTableRef()
+        attr_name = @data.getAttrname()
+        term = new Term @data.getKey()
+        attr_value = JSON.parse term.evaluate().getResponse()
+
+        mapping = new Mapping @data.getMapping()
+
+        return table_ref.point_mutate server, attr_name, attr_value, mapping
+
 class WriteQueryPointUpdate
     constructor: (data) ->
         @data = data
@@ -93,6 +127,5 @@ class WriteQueryPointUpdate
         term = new Term @data.getKey()
         attr_value = JSON.parse term.evaluate().getResponse()
         mapping = new Mapping @data.getMapping()
-        mapping_value = JSON.parse mapping.evaluate().getResponse()
-        return table_ref.point_update server, attr_name, attr_value, mapping_value
+        return table_ref.point_update server, attr_name, attr_value, mapping
 

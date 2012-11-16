@@ -3,4 +3,4 @@ class Mapping
         @data = data
     evaluate: (server) ->
         term = new Term @data.getBody()
-        return term.evaluate()
+        return term.evaluate server
