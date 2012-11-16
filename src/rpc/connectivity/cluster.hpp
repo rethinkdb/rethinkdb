@@ -271,8 +271,6 @@ public:
     connected to the peer. */
     peer_address_t get_peer_address(peer_id_t) THROWS_NOTHING;
 
-    void kill_connection(peer_id_t remote_peer) THROWS_NOTHING;
-
 private:
     friend class run_t;
 
