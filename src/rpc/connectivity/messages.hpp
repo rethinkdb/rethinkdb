@@ -54,7 +54,6 @@ public:
 class message_service_t  {
 public:
     virtual void send_message(peer_id_t dest_peer, send_message_write_callback_t *callback) = 0;
-    virtual void kill_connection(peer_id_t remote_peer) = 0;
     virtual connectivity_service_t *get_connectivity_service() = 0;
 protected:
     virtual ~message_service_t() { }

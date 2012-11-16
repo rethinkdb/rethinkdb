@@ -54,7 +54,6 @@ public:
         ~client_t();
         connectivity_service_t *get_connectivity_service();
         void send_message(peer_id_t, send_message_write_callback_t *callback);
-        void kill_connection(peer_id_t);
     private:
         friend class message_multiplexer_t;
         message_multiplexer_t *const parent;
