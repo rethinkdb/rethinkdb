@@ -177,13 +177,28 @@ class Term
             #when 14 # JAVASCRIPT
             #when 15 # IMPLICIT_VAR
             
-    update: (server, mapping) ->
+    update: (args) ->
+        server = args.server
+        mapping = args.mapping
+        context = args.context
+        predicate = args.predicate
+        builtin = args.builtin
+        builtin_args = args.builtin_args
+
+
         type = @data.getType()
         switch type
             #when 0 # JSON_NULL
             #when 1 # VAR
             #when 2 # LET
-            #when 3 # CALL
+            when 3 # CALL
+                term_call = new TermCall @data.getCall()
+                return term_call.update
+                    server: server
+                    mapping: mapping
+                    context: context
+                    builtin: builtin
+                    builtin_args: builtin_args
             #when 4 # IF
             #when 5 # ERROR
             #when 6 # NUMBER
@@ -195,7 +210,13 @@ class Term
             #when 12 # GETBYKEY
             when 13 # TABLE
                 term_table = new TermTable @data.getTable()
-                return term_table.update server, mapping
+                return term_table.update
+                    server: server
+                    mapping: mapping
+                    predicate: predicate
+                    builtin: builtin
+                    builtin_args: builtin_args
+                    context: context
             #when 14 # JAVASCRIPT
             #when 15 # IMPLICIT_VAR
 
@@ -208,6 +229,19 @@ class TermCall
         builtin = new Builtin @data.getBuiltin()
         args = @data.argsArray() # is the table (or something close to that)
         return builtin.evaluate server, args, context
+
+    update: (args) ->
+        server = args.server
+        mapping = args.mapping
+        context = args.context
+
+        builtin = new Builtin @data.getBuiltin()
+        builtin_args = @data.argsArray() # is the table (or something close to that)
+        return builtin.update
+            server: server
+            mapping: mapping
+            builtin_args: builtin_args
+            context: context
 
 
 class TermGetByKey
@@ -246,6 +280,14 @@ class TermTable
         table_ref = new TableRef @data.getTableRef()
         return table_ref.range server, attr_name, lower_bound, upper_bound
 
-    update: (server, mapping) ->
+    update: (args) ->
+        server = args.server
+        mapping = args.mapping
+        predicate = args.predicate
+        context = args.context
         table_ref = new TableRef @data.getTableRef()
-        return table_ref.update server, mapping
+        return table_ref.update
+            server: server
+            mapping: mapping
+            predicate: predicate
+            context: context
