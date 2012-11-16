@@ -883,7 +883,7 @@ module 'DataExplorerView', ->
         connect: (data) =>
             server =
                 host: window.location.hostname
-                port: parseInt window.location.port
+                port: if window.location.port is '' then 80 else parseInt window.location.port
 
             that = @
             if data? and data.reconnecting is true
