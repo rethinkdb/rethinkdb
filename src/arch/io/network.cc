@@ -492,16 +492,19 @@ void linux_tcp_conn_t::set_keepalive(int idle_seconds, int try_interval_seconds,
     int keepalive = 1;
     res = setsockopt(sock.get(), SOL_SOCKET, SO_KEEPALIVE, &keepalive, sizeof(keepalive));
     guarantee_err(res == 0, "setsockopt(SO_KEEPALIVE) failed");
-    res = setsockopt(sock.get(), SOL_TCP, TCP_KEEPIDLE, &idle_seconds, sizeof(idle_seconds));
+    // TODO(OSX) Make sure this stuff is gone and we've properly implemented heartbeats.
+#if !__MACH__
+    res = setsockopt(sock.get(), IPPROTO_TCP, TCP_KEEPIDLE, &idle_seconds, sizeof(idle_seconds));
     guarantee_err(res == 0, "setsockopt(TCP_KEEPIDLE) failed");
-    res = setsockopt(sock.get(), SOL_TCP, TCP_KEEPINTVL, &try_interval_seconds, sizeof(try_interval_seconds));
+    res = setsockopt(sock.get(), IPPROTO_TCP, TCP_KEEPINTVL, &try_interval_seconds, sizeof(try_interval_seconds));
     guarantee_err(res == 0, "setsockopt(TCP_KEEPINTVL) failed");
-    res = setsockopt(sock.get(), SOL_TCP, TCP_KEEPCNT, &try_count, sizeof(try_count));
+    res = setsockopt(sock.get(), IPPROTO_TCP, TCP_KEEPCNT, &try_count, sizeof(try_count));
     guarantee_err(res == 0, "setsockopt(TCP_KEEPCNT) failed");
+#endif  // !__MACH__
     // Also set an option to make sure the connection fails in a reasonable amount of time
     // even if there is traffic on it
     int user_timeout = (idle_seconds + (try_interval_seconds * try_count)) * 1000;
-    res = setsockopt(sock.get(), SOL_TCP, TCP_USER_TIMEOUT, &user_timeout, sizeof(user_timeout));
+    res = setsockopt(sock.get(), IPPROTO_TCP, TCP_USER_TIMEOUT, &user_timeout, sizeof(user_timeout));
     guarantee_err(res == 0, "setsockopt(TCP_USER_TiMEOUT) failed");
 }
 
@@ -701,8 +704,8 @@ void linux_nonthrowing_tcp_listener_t::init_socket(int user_timeout) {
     guarantee_err(res != -1, "Could not set TCP_NODELAY option");
 
     if (user_timeout > 0) {
-        res = setsockopt(sock.get(), SOL_TCP, TCP_USER_TIMEOUT, &user_timeout, sizeof(user_timeout));
-        guarantee_err(res == 0, "setsockopt(TCP_USER_TiMEOUT) failed");
+        res = setsockopt(sock.get(), IPPROTO_TCP, TCP_USER_TIMEOUT, &user_timeout, sizeof(user_timeout));
+        guarantee_err(res == 0, "setsockopt(TCP_USER_TIMEOUT) failed");
     }
 }
 
