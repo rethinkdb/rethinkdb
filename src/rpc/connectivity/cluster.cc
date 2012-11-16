@@ -292,6 +292,11 @@ void connectivity_cluster_t::run_t::handle(
     cluster_conn_closing_subscription_t conn_closer_1(conn);
     conn_closer_1.reset(drainer_lock.get_drain_signal());
 
+    /* Send a heartbeat after three seconds of inactivity; if heartbeat is not
+    acked, try again every three seconds and declare connection dead after twelve
+    seconds total. */
+    conn->get_underlying_conn()->set_keepalive(3, 3, 3);
+
     // Each side sends a header followed by its own ID and address, then receives and checks the
     // other side's.
     const int64_t header_size = sizeof(CLUSTER_PROTO_HEADER) - 1;
