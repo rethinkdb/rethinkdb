@@ -131,13 +131,14 @@ MUST_USE const char *errno_string_maybe_using_buffer(int errsv, char *buf, size_
     } while (0)
 
 #define guarantee_xerr(cond, err, msg, args...) do {                            \
+        int guarantee_xerr_errsv = (err);                                       \
         if (!(cond)) {                                                          \
-            if (err == 0) {                                                     \
+            if (guarantee_xerr_errsv == 0) {                                    \
                 crash_or_trap(format_assert_message("Guarantee", cond) msg, ##args); \
             } else {                                                            \
-                char buf[250];                                                  \
-                const char *errstr = errno_string_maybe_using_buffer(err, buf, sizeof(buf)); \
-                crash_or_trap(format_assert_message("Guarantee", cond) " (errno %d - %s) " msg, err, errstr, ##args);  \
+                char guarantee_xerr_buf[250];                                      \
+                const char *errstr = errno_string_maybe_using_buffer(guarantee_xerr_errsv, guarantee_xerr_buf, sizeof(guarantee_xerr_buf)); \
+                crash_or_trap(format_assert_message("Guarantee", cond) " (errno %d - %s) " msg, guarantee_xerr_errsv, errstr, ##args); \
             }                                                                   \
         }                                                                       \
     } while (0)
@@ -156,13 +157,14 @@ MUST_USE const char *errno_string_maybe_using_buffer(int errsv, char *buf, size_
         }                                                                 \
     } while (0)
 #define rassert_err(cond, msg, args...) do {                                \
+        int rassert_err_errsv = errno;                                      \
         if (!(cond)) {                                                      \
-            if (errno == 0) {                                               \
+            if (rassert_err_errsv == 0) {                                   \
                 crash_or_trap(format_assert_message("Assert", cond) msg);   \
             } else {                                                        \
-                char buf[250];                                              \
-                const char *errstr = errno_string_maybe_using_buffer(err, buf, sizeof(buf)); \
-                crash_or_trap(format_assert_message("Assert", cond) " (errno %d - %s) " msg, errno, errstr, ##args);  \
+                char rassert_err_buf[250];                                  \
+                const char *errstr = errno_string_maybe_using_buffer(rassert_err_errsv, rassert_err_buf, sizeof(rassert_err_buf)); \
+                crash_or_trap(format_assert_message("Assert", cond) " (errno %d - %s) " msg, rassert_err_errsv, errstr, ##args);  \
             }                                                               \
         }                                                                   \
     } while (0)

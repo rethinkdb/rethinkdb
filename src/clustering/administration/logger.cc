@@ -187,6 +187,8 @@ public:
             fd.reset(res);
         }
 
+        // We use fstat, not fstat64, because fstat64 is deprecated on OS X.  Hence the assertion
+        // about off_t's size.
         CT_ASSERT(sizeof(off_t) == sizeof(int64_t));
         struct stat stat;
         int res = fstat(fd.get(), &stat);
