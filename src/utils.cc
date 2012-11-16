@@ -13,6 +13,10 @@
 #include <string.h>
 #include <sys/time.h>
 
+#if __MACH__
+#include <mach/mach_time.h>
+#endif
+
 #ifdef VALGRIND
 #include <valgrind/memcheck.h>
 #endif
@@ -448,18 +452,54 @@ ticks_t secs_to_ticks(double secs) {
     return static_cast<ticks_t>(secs * 1000000000L);
 }
 
+#if __MACH__
+struct mach_time_info_t {
+    mach_time_info_t() {
+        mach_timebase_info(&info);
+    }
+
+    // Contains numer and denom for converting mach_absolute_time() return value to nanoseconds.
+    mach_timebase_info_data_t info;
+
+private:
+    DISABLE_COPYING(mach_time_info_t);
+};
+
+const mach_time_info_t mach_time_info;
+#endif  // __MACH__
+
 timespec clock_monotonic() {
+#if __MACH__
+    const uint64_t t = mach_absolute_time();
+    uint64_t nanosecs = t * mach_time_info.info.numer / mach_time_info.info.denom;
+    timespec ret;
+    ret.tv_sec = nanosecs / BILLION;
+    ret.tv_nsec = nanosecs % BILLION;
+    return ret;
+#else
     timespec ret;
     int res = clock_gettime(CLOCK_MONOTONIC, &ret);
     guarantee_err(res == 0, "clock_gettime(CLOCK_MONOTIC, ...) failed");
     return ret;
+#endif
 }
 
 timespec clock_realtime() {
+#if __MACH__
+    struct timeval tv;
+    int res = gettimeofday(&tv, NULL);
+    guarantee_err(res == 0, "gettimeofday failed");
+
+    timespec ret;
+    ret.tv_sec = tv.tv_sec;
+    ret.tv_nsec = THOUSAND * tv.tv_usec;
+    return ret;
+#else
     timespec ret;
     int res = clock_gettime(CLOCK_REALTIME, &ret);
     guarantee_err(res == 0, "clock_gettime(CLOCK_REALTIME) failed");
     return ret;
+#endif
 }
 
 
@@ -472,13 +512,6 @@ ticks_t get_ticks() {
 time_t get_secs() {
     timespec tv = clock_realtime();
     return tv.tv_sec;
-}
-
-int64_t get_ticks_res() {
-    timespec tv;
-    int res = clock_getres(CLOCK_MONOTONIC, &tv);
-    guarantee_err(res == 0, "clock_getres(CLOCK_MONOTONIC, ...) failed");
-    return int64_t(secs_to_ticks(tv.tv_sec)) + tv.tv_nsec;
 }
 
 double ticks_to_secs(ticks_t ticks) {
