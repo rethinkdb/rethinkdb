@@ -187,8 +187,9 @@ public:
             fd.reset(res);
         }
 
-        struct stat64 stat;
-        int res = fstat64(fd.get(), &stat);
+        CT_ASSERT(sizeof(off_t) == sizeof(int64_t));
+        struct stat stat;
+        int res = fstat(fd.get(), &stat);
         throw_unless(res == 0, "could not determine size of log file");
         if (stat.st_size == 0) {
             remaining_in_current_chunk = current_chunk_start = 0;
