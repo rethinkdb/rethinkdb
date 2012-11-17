@@ -271,6 +271,22 @@ class Builtin
                 return response
 
 
+    delete: (args) ->
+        server = args.server
+        mapping = args.mapping
+        builtin_args = args.builtin_args
+        context = args.context
+        type = @data.getType()
+        switch type
+            when 20 # Filter
+                term = new Term builtin_args[0] # TODO Is it safe?
+                builtin_filter = new BuiltinFilter @data.getFilter()
+                return builtin_filter.delete
+                    server: server
+                    mapping: mapping
+                    term: term
+                    context: context
+
     update: (args) ->
         server = args.server
         mapping = args.mapping
@@ -287,6 +303,22 @@ class Builtin
                     term: term
                     context: context
 
+    mutate: (args) ->
+        server = args.server
+        mapping = args.mapping
+        builtin_args = args.builtin_args
+        context = args.context
+        type = @data.getType()
+        switch type
+            when 20 # Filter
+                term = new Term builtin_args[0] # TODO Is it safe?
+                builtin_filter = new BuiltinFilter @data.getFilter()
+                return builtin_filter.mutate
+                    server: server
+                    mapping: mapping
+                    term: term
+                    context: context
+
 class BuiltinFilter
     constructor: (data) ->
         @data = data
@@ -294,6 +326,36 @@ class BuiltinFilter
         predicate = new Predicate @data.getPredicate()
         # Can we have more than one term? Let's suppose not for the time being
         return term.filter server, predicate
+
+    delete: (args) ->
+        server = args.server
+        mapping = args.mapping
+        term = args.term
+        context = args.context
+        predicate = new Predicate @data.getPredicate()
+
+        # Can we have more than one term? Let's suppose not for the time being
+        return term.delete
+            server: server
+            mapping: mapping
+            predicate: predicate
+            context: context
+
+    mutate: (args) ->
+        server = args.server
+        mapping = args.mapping
+        term = args.term
+        context = args.context
+        predicate = new Predicate @data.getPredicate()
+
+        # Can we have more than one term? Let's suppose not for the time being
+        return term.mutate
+            server: server
+            mapping: mapping
+            predicate: predicate
+            context: context
+
+
     update: (args) ->
         server = args.server
         mapping = args.mapping

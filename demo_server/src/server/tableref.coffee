@@ -48,7 +48,12 @@ class TableRef
             response.setStatusCode 0 # SUCCESS_STREAM
             return response
 
-    delete: (server) =>
+    delete: (args) =>
+        server = args.server
+        predicate = args.predicate
+        context = args.context
+
+
         db_name = @data.getDbName()
         table_name = @data.getTableName()
 
@@ -72,9 +77,10 @@ class TableRef
             return response
  
         deleted = 0
-        for internal_key of server[db_name][table_name]['data']
-            delete server[db_name][table_name]['data'][internal_key]
-            deleted++
+        for internal_key, document of server[db_name][table_name]['data']
+            if not predicate? or JSON.parse(predicate.evaluate(server, document).getResponse()) is true
+                delete server[db_name][table_name]['data'][internal_key]
+                deleted++
         response = new Response
         response.addResponse JSON.stringify
             deleted: deleted
@@ -168,10 +174,14 @@ class TableRef
             return response
         return null
 
-    mutate: (server, mapping) ->
+    mutate: (args) ->
+        server = args.server
+        mapping = args.mapping
+        predicate = args.predicate
+        context = args.context
+
         db_name = @data.getDbName()
         table_name = @data.getTableName()
-
         mapping_value = JSON.parse mapping.evaluate().getResponse()
 
         response_find_table = @find_table(server)
@@ -188,17 +198,18 @@ class TableRef
             primary_key = server[db_name][table_name]['options']['primary_key']
 
             updated_at_least_one = false
-            for internal_key of server[db_name][table_name]['data']
-                if mapping_value[primary_key] isnt server[db_name][table_name]['data'][internal_key][primary_key]
-                    #TODO backtrace
-                    if not result.first_error?
-                        result.first_error = 'mutate cannot change primary key '+primary_key+' (got objects '+JSON.stringify(server[db_name][table_name]['data'][internal_key], undefined, 4)+', '+JSON.stringify(mapping_value, undefined, 4)+')'
+            for internal_key, document of server[db_name][table_name]['data']
+                if not predicate? or JSON.parse(predicate.evaluate(server, document).getResponse()) is true
+                    if mapping_value[primary_key] isnt server[db_name][table_name]['data'][internal_key][primary_key]
                         #TODO backtrace
-                    result.errors++
-                else
-                    server[db_name][table_name]['data'][internal_key] = mapping_value
-                    result.modified++
-                    updated_at_least_one = true
+                        if not result.first_error?
+                            result.first_error = 'mutate cannot change primary key '+primary_key+' (got objects '+JSON.stringify(server[db_name][table_name]['data'][internal_key], undefined, 4)+', '+JSON.stringify(mapping_value, undefined, 4)+')'
+                            #TODO backtrace
+                        result.errors++
+                    else
+                        server[db_name][table_name]['data'][internal_key] = mapping_value
+                        result.modified++
+                        updated_at_least_one = true
 
             if updated_at_least_one is true
                 response.setStatusCode 1

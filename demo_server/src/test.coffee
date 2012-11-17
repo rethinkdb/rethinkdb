@@ -336,6 +336,16 @@ class Tests
                 that.index++
                 that.test()
                 return false
+        two_has_been_replaced_and_filter: (query, cursor, expected_result, that) =>
+            @results = []
+            cursor.next (data) =>
+                if data?
+                    @results.push data
+                    return true
+                @display (_.isEqual(demo_server.local_server.test.test.data['N2'], {id:2, key:"new_value", other_key:"new_other_value"}) and @results[0].modified is 1 and @results[0].errors is 1), query, @results
+                that.index++
+                that.test()
+                return false
         table_empty: (query, cursor, expected_result, that) =>
             @results = []
             cursor.next (data) =>
@@ -358,7 +368,6 @@ $(document).ready ->
 
     # Order matters!
     queries = [
-
         {
             query: 'r.expr(true).run()'
             callback_name: 'is_true'
@@ -689,6 +698,17 @@ $(document).ready ->
             query: 'r.db("test").table("test").filter(r("id").eq(1)).update({key:0}).run()'
             callback_name: 'expect_state'
             expected_result: {"N1": {id:1, key:0}, "N2": {id:2, key:2}, "N3": {id:3, key:3}}
+        },
+        {
+            state: deep_copy state['2']
+            query: 'r.db("test").table("test").filter(r("id").ge(2)).replace({id:2, key:"new_value", other_key:"new_other_value"}).run()'
+            callback_name: 'two_has_been_replaced_and_filter'
+        },
+        {
+            state: deep_copy state['2']
+            query: 'r.db("test").table("test").filter(r("id").ge(2)).del().run()'
+            callback_name: 'expect_state'
+            expected_result: { "N1": {id:1, key:1} }
         },
     ]
     tests = new Tests queries

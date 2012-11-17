@@ -33,7 +33,8 @@ class WriteQueryDelete
 
     delete: (server) ->
         term = new Term @data.getView()
-        return term.delete server
+        return term.delete
+            server: server
 
 
  
@@ -43,10 +44,10 @@ class WriteQueryMutate
 
     mutate: (server) ->
         term = new Term @data.getView()
-
         mapping = new Mapping @data.getMapping()
-
-        return term.mutate server, mapping
+        return term.mutate
+            server: server
+            mapping: mapping
 
 class WriteQueryInsert
     constructor: (data) ->

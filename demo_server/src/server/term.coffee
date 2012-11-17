@@ -2,14 +2,27 @@ class Term
     constructor: (data) ->
         @data = data
 
+    delete : (args) ->
+        server = args.server
+        mapping = args.mapping
+        context = args.context
+        predicate = args.predicate
+        builtin = args.builtin
+        builtin_args = args.builtin_args
 
-    delete: (server) ->
         type = @data.getType()
         switch type
             #when 0 # JSON_NULL
             #when 1 # VAR
             #when 2 # LET
-            #when 3 # CALL
+            when 3 # CALL
+                term_call = new TermCall @data.getCall()
+                return term_call.delete
+                    server: server
+                    mapping: mapping
+                    context: context
+                    builtin: builtin
+                    builtin_args: builtin_args
             #when 4 # IF
             #when 5 # ERROR
             #when 6 # NUMBER
@@ -21,9 +34,16 @@ class Term
             #when 12 # GETBYKEY
             when 13 # TABLE
                 term_table = new TermTable @data.getTable()
-                return term_table.delete server
+                return term_table.delete
+                    server: server
+                    mapping: mapping
+                    predicate: predicate
+                    builtin: builtin
+                    builtin_args: builtin_args
+                    context: context
             #when 14 # JAVASCRIPT
             #when 15 # IMPLICIT_VAR
+
 
     evaluate: (server, context) ->
         type = @data.getType()
@@ -130,13 +150,27 @@ class Term
             #when 14 # JAVASCRIPT
             #when 15 # IMPLICIT_VAR
 
-    mutate: (server, mapping) ->
+    mutate: (args) ->
+        server = args.server
+        mapping = args.mapping
+        context = args.context
+        predicate = args.predicate
+        builtin = args.builtin
+        builtin_args = args.builtin_args
+
         type = @data.getType()
         switch type
             #when 0 # JSON_NULL
             #when 1 # VAR
             #when 2 # LET
-            #when 3 # CALL
+            when 3 # CALL
+                term_call = new TermCall @data.getCall()
+                return term_call.mutate
+                    server: server
+                    mapping: mapping
+                    context: context
+                    builtin: builtin
+                    builtin_args: builtin_args
             #when 4 # IF
             #when 5 # ERROR
             #when 6 # NUMBER
@@ -148,7 +182,13 @@ class Term
             #when 12 # GETBYKEY
             when 13 # TABLE
                 term_table = new TermTable @data.getTable()
-                return term_table.mutate server, mapping
+                return term_table.mutate
+                    server: server
+                    mapping: mapping
+                    predicate: predicate
+                    builtin: builtin
+                    builtin_args: builtin_args
+                    context: context
             #when 14 # JAVASCRIPT
             #when 15 # IMPLICIT_VAR
 
@@ -230,6 +270,32 @@ class TermCall
         args = @data.argsArray() # is the table (or something close to that)
         return builtin.evaluate server, args, context
 
+    delete: (args) ->
+        server = args.server
+        mapping = args.mapping
+        context = args.context
+
+        builtin = new Builtin @data.getBuiltin()
+        builtin_args = @data.argsArray() # is the table (or something close to that)
+        return builtin.delete
+            server: server
+            mapping: mapping
+            builtin_args: builtin_args
+            context: context
+
+    mutate: (args) ->
+        server = args.server
+        mapping = args.mapping
+        context = args.context
+
+        builtin = new Builtin @data.getBuiltin()
+        builtin_args = @data.argsArray() # is the table (or something close to that)
+        return builtin.mutate
+            server: server
+            mapping: mapping
+            builtin_args: builtin_args
+            context: context
+
     update: (args) ->
         server = args.server
         mapping = args.mapping
@@ -242,7 +308,6 @@ class TermCall
             mapping: mapping
             builtin_args: builtin_args
             context: context
-
 
 class TermGetByKey
     constructor: (data) ->
@@ -268,13 +333,31 @@ class TermTable
         table_ref = new TableRef @data.getTableRef()
         return table_ref.filter server, predicate
 
-    mutate: (server, mapping) ->
-        table_ref = new TableRef @data.getTableRef()
-        return table_ref.mutate server, mapping
+    mutate: (args) ->
+        server = args.server
+        mapping = args.mapping
+        predicate = args.predicate
+        context = args.context
 
-    delete: (server) ->
         table_ref = new TableRef @data.getTableRef()
-        return table_ref.delete server
+        return table_ref.mutate
+            server: server
+            mapping: mapping
+            predicate: predicate
+            context: context
+
+    delete: (args) ->
+        server = args.server
+        mapping = args.mapping
+        predicate = args.predicate
+        context = args.context
+
+        table_ref = new TableRef @data.getTableRef()
+        return table_ref.delete
+            server: server
+            mapping: mapping
+            predicate: predicate
+            context: context
 
     range: (server, attr_name, lower_bound, upper_bound) ->
         table_ref = new TableRef @data.getTableRef()
@@ -285,6 +368,7 @@ class TermTable
         mapping = args.mapping
         predicate = args.predicate
         context = args.context
+
         table_ref = new TableRef @data.getTableRef()
         return table_ref.update
             server: server
