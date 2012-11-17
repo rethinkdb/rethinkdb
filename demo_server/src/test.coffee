@@ -358,6 +358,7 @@ $(document).ready ->
 
     # Order matters!
     queries = [
+
         {
             query: 'r.expr(true).run()'
             callback_name: 'is_true'
@@ -682,6 +683,12 @@ $(document).ready ->
             query: 'r.db("test").table("test").update({key:0}).run()'
             callback_name: 'expect_state'
             expected_result: {"N1": {id:1, key:0}, "N2": {id:2, key:0}, "N3": {id:3, key:0}}
+        },
+        {
+            state: deep_copy state['2']
+            query: 'r.db("test").table("test").filter(r("id").eq(1)).update({key:0}).run()'
+            callback_name: 'expect_state'
+            expected_result: {"N1": {id:1, key:0}, "N2": {id:2, key:2}, "N3": {id:3, key:3}}
         },
     ]
     tests = new Tests queries

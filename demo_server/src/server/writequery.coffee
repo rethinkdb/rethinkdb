@@ -149,4 +149,6 @@ class WriteQueryUpdate
     update: (server) ->
         term = new Term @data.getView()
         mapping = new Mapping @data.getMapping()
-        return term.update server, mapping
+        return term.update
+            server: server
+            mapping: mapping
