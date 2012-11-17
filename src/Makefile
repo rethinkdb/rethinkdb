@@ -1402,7 +1402,7 @@ $(NODE_DIR): $(NODE_SRC_DIR)
 	$(QUIET) cd ../support && cp -pRP src/node build/ ;
 
 $(TC_NODE_INT_EXE) $(TC_NPM_INT_EXE): $(NODE_DIR)
-	cd $(NODE_DIR) && ./configure --prefix=../../usr && make && make install ;
+	cd $(NODE_DIR) && ./configure --prefix=$(SUPPORT_DIR_ABS)/usr && make && make install ;
 
 $(PROTOC_SRC_DIR):
 	$(QUIET) if [ ! -e $(SUPPORT_DIR)/src ] ; then mkdir -p $(SUPPORT_DIR)/src ; fi ;
@@ -1419,5 +1419,5 @@ $(PROTOC_DIR): $(PROTOC_SRC_DIR)
 	$(QUIET) cd ../support && cp -pRP src/protobuf build/ ;
 
 $(TC_PROTOC_INT_EXE): $(PROTOC_DIR)
-	cd $(PROTOC_DIR) && ./configure --prefix=../../usr && make && make install ;
+	cd $(PROTOC_DIR) && ./configure --prefix=$(SUPPORT_DIR_ABS)/usr && make && make install ;
 
