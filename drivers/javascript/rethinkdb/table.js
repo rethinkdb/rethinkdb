@@ -8,15 +8,15 @@ goog.require('rethinkdb.Expression');
  * @class A table in a database
  * @param {string} tableName
  * @param {string} dbName
- * @param {boolean=} opt_allowOutdated
+ * @param {boolean=} opt_useOutdated
  * @constructor
  * @extends {rethinkdb.Expression}
  */
-rethinkdb.Table = function(tableName, dbName, opt_allowOutdated) {
+rethinkdb.Table = function(tableName, dbName, opt_useOutdated) {
     this.name_ = tableName;
     this.db_ = dbName;
-    this.allowOutdated_ = (typeof opt_allowOutdated === 'boolean') ?
-        opt_allowOutdated : null;
+    this.useOutdated_ = (typeof opt_useOutdated === 'boolean') ?
+        opt_useOutdated : null;
 };
 goog.inherits(rethinkdb.Table, rethinkdb.Expression);
 
@@ -33,17 +33,17 @@ rethinkdb.Table.prototype.compile = function(opt_buildOpts) {
     tableRef.setDbName(this.db_ || rethinkdb.last_connection_.getDefaultDb());
     tableRef.setTableName(this.name_);
 
-    var allowOutdated;
-    if (this.allowOutdated_ !== null) {
-        allowOutdated = this.allowOutdated_;
+    var useOutdated;
+    if (this.useOutdated_ !== null) {
+        useOutdated = this.useOutdated_;
     } else {
-        if (opt_buildOpts && (opt_buildOpts.defaultAllowOutdated !== undefined)) {
-            allowOutdated = opt_buildOpts.defaultAllowOutdated;
+        if (opt_buildOpts && (opt_buildOpts.defaultUseOutdated !== undefined)) {
+            useOutdated = opt_buildOpts.defaultUseOutdated;
         } else {
-            allowOutdated = false;
+            useOutdated = false;
         }
     }
-    tableRef.setUseOutdated(allowOutdated);
+    tableRef.setUseOutdated(useOutdated);
 
     table.setTableRef(tableRef);
 
