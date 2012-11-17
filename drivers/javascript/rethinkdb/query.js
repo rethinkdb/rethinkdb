@@ -100,8 +100,8 @@ rethinkdb.Query.prototype.run = function(opt_callbackOrOptions) {
     }
 
     return conn.run(this, {
-        callback: callback,
-        useOutdated: useOutdated
+        'callback': callback,
+        'useOutdated': useOutdated
     });
 };
 goog.exportProperty(rethinkdb.Query.prototype, 'run',
