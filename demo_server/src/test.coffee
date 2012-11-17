@@ -363,7 +363,7 @@ $(document).ready ->
 
     window.demo_server = new DemoServer
 
-    r.demo_connect(window.demo_server)
+    r.demoConnect(window.demo_server)
 
 
     # Order matters!

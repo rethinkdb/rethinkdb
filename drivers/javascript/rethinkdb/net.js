@@ -25,17 +25,12 @@ rethinkdb.connect = function(host_or_list, onConnect, onFailure) {
     } else {
         return new rethinkdb.HttpConnection(host_or_list, onConnect, onFailure);
     }
-}
+};
 
-
-/**
- * This function connect to a javascript server living in the browser
- * @param {JavaScriptServer} local_server The server where we will simulate queries
- * @export
- */
-rethinkdb.demo_connect = function(demo_server) {
-    return new rethinkdb.DemoConnection(demo_server);
-}
+/** @export */
+rethinkdb.demoConnect = function(demoSever) {
+    return new rethinkdb.DemoConnection(demoSever);
+};
 
 /**
  * Reference to the last created connection.
