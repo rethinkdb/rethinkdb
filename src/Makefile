@@ -173,7 +173,8 @@ endif
 
 BUILD_PORTABLE?=0
 
-V8_DIR:=../support/v8
+V8_SRC_DIR:=../support/src/v8
+V8_DIR:=../support/build/v8
 V8_LIB:=$(V8_DIR)/libv8.a
 
 ifeq ($(BUILD_PORTABLE),1)
@@ -559,23 +560,20 @@ else
 SERVER_EXEC_NAME_VERSIONED:=$(SERVER_EXEC_NAME)
 endif
 
+# We have support for chain-building tools needed at compile-time. We handle V8 elsewhere for now.
+
 SUPPORT_DIR:=../support
 AUTOCHAIN?=0
 ALLOW_INTERNAL_TOOLS?=1
 FORCE_INTERNAL_TOOLS?=0
-INSTALL_INTERNAL_TOOLS?=0
+FETCH_INTERNAL_TOOLS?=0
 TC_PROTOC_INT_EXE:=$(SUPPORT_DIR)/toolchain/usr/bin/protoc
-TC_NODE_EXE:=$(SUPPORT_DIR)/toolchain/usr/bin/node
-TC_NPM_EXE:=$(SUPPORT_DIR)/toolchain/usr/bin/npm
+TC_NODE_INT_EXE:=$(SUPPORT_DIR)/toolchain/usr/bin/node
+TC_NPM_INT_EXE:=$(SUPPORT_DIR)/toolchain/usr/bin/npm
 TC_LESSC_INT_EXE:=$(SUPPORT_DIR)/toolchain/node_modules/less/bin/lessc
 TC_COFFEE_INT_EXE:=$(SUPPORT_DIR)/toolchain/node_modules/coffee-script/bin/coffee
 
-CHAIN_NODE?=0
-ifeq ($(CHAIN_NODE),0)
-NODE_EXE_SPEC?=
-else
-NODE_EXE_SPEC?=$(SUPPORT_DIR)/usr/bin/node
-endif
+INT_CHAIN_NODE:=0
 
 ifeq ($(FORCE_INTERNAL_TOOLS),1)
 TC_PROTOC_EXE:=$(TC_PROTOC_INT_EXE)
@@ -593,6 +591,7 @@ TC_PROTOC_EXE:=$(shell which protoc || true)
 endif
 ifeq ($(shell which npm || true),)
 # If npm is not present, node.js is likely too old.
+INT_CHAIN_NODE:=1
 TC_NODE_EXE:=$(TC_NODE_INT_EXE)
 TC_NPM_EXE:=$(TC_NPM_INT_EXE)	
 else
@@ -617,6 +616,13 @@ TC_NODE_EXE:=$(shell which node || true)
 TC_NPM_EXE:=$(shell which npm || true)
 endif # ALLOW_INTERNAL_TOOLS
 endif # FORCE_INTERNAL_TOOLS
+
+ifeq ($(INT_CHAIN_NODE),0)
+NODE_EXE_SPEC:=
+else
+NODE_EXE_SPEC:=$(TC_NODE_EXE)
+NODE_EXE_SPEC+=
+endif
 
 ##### Build targets
 .PHONY: all build-deb build-rpm callgrind callgrind clean cscope deb deb depclean drivers etags gdb install install-binaries install-deb install-docs install-manpages install-rpm install-tools prepare_deb_package_dirs prepare_rpm_package_dirs regdb rerun revalgrind rpm rpm rpm-suse10 run sembuild showdefines style tags unit valgrind web-assets coffeelint build-deb-src-control build-deb-support
@@ -1098,14 +1104,14 @@ $(WEB_ASSETS_BUILD_DIR)/cluster-min.js: $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat
 ifeq ($(VERBOSE),0)
 	@echo "    COFFEE $@"
 endif
-	$(QUIET) $(TC_COFFEE_EXE) -bp --stdio < $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee > $@ || ( echo "      Build failure." ; rm $@ ; false ; )
+	$(QUIET) $(NODE_EXE_SPEC)$(TC_COFFEE_EXE) -bp --stdio < $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee > $@ || ( echo "      Build failure." ; rm $@ ; false ; )
 
 $(WEB_ASSETS_BUILD_DIR)/cluster.css: $(LESS_MAIN)
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
 ifeq ($(VERBOSE),0)
 	@echo "    LESSC $@"
 endif
-	$(QUIET) $(TC_LESSC_EXE) $(LESS_MAIN) > $@ || ( echo "      Build failure." ; rm $@ ; false ; )
+	$(QUIET) $(NODE_EXE_SPEC)$(TC_LESSC_EXE) $(LESS_MAIN) > $@ || ( echo "      Build failure." ; rm $@ ; false ; )
 
 $(WEB_ASSETS_BUILD_DIR)/index.html: $(CLUSTER_HTML) $(HANDLEBARS_SOURCES)
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
@@ -1145,12 +1151,13 @@ endif
 
 # Special recipe for the proto buffer generated code
 # Need to use a dummy file to avoid calling protoc once for each input file.
-$(PROTO_DIR)/dummy: $(PROTO_SOURCES)
+$(PROTO_DIR)/dummy: $(PROTO_SOURCES) $(TC_PROTOC_EXE)
 	$(QUIET) mkdir -p $(PROTO_DIR)
 ifeq ($(VERBOSE),0)
 	@echo "    PROTOC[CPP] $^"
 endif
-	$(QUIET) protoc $(PROTOCFLAGS) --cpp_out $(PROTO_DIR) $^
+	$(QUIET) $(TC_PROTOC_EXE) $(PROTOCFLAGS) --cpp_out $(PROTO_DIR) $(PROTO_SOURCES)
+# The preceding line used $^ instead of $(PROTO_SOURCES) before.
 	$(QUIET) touch $@
 
 $(PROTO_HEADERS) $(PROTO_CODE): $(PROTO_DIR)/dummy
@@ -1320,7 +1327,7 @@ endif
 # bug in GNU Make, possibly a bug in our Makefile.
 .SECONDARY: $(PROTO_HEADERS)
 
-NO_DEPS_TARGETS:=clean depclean tags etags analyze cscope style web-assets build-deb-src build-deb-src-control build-deb-support $(TC_LESSC_INT_EXE) $(TC_COFFEE_INT_EXE) $(SUPPORT_DIR) $(WEB_ASSETS_BUILD_DIR)/cluster-min.js $(WEB_ASSETS_BUILD_DIR)/cluster.css $(WEB_ASSETS_BUILD_DIR)/index.html $(WEB_ASSETS_BUILD_DIR)/js $(WEB_ASSETS_BUILD_DIR)/fonts $(WEB_ASSETS_BUILD_DIR)/images $(WEB_ASSETS_BUILD_DIR)/favicon.ico $(WEB_ASSETS_BUILD_DIR)/js/rethinkdb.js $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee $(COFFEE_SOURCES) $(PROTO_DIR)/dummy $(PROTO_SOURCES) $(PROTO_HEADERS) $(PROTO_CODE) $(PROTO_DIR)/dummy $(OPROF_TARGETS)
+NO_DEPS_TARGETS:=clean depclean tags etags analyze cscope style web-assets build-deb-src-control build-deb-support $(WEB_ASSETS_BUILD_DIR)/cluster-min.js $(WEB_ASSETS_BUILD_DIR)/cluster.css $(WEB_ASSETS_BUILD_DIR)/index.html $(WEB_ASSETS_BUILD_DIR)/js $(WEB_ASSETS_BUILD_DIR)/fonts $(WEB_ASSETS_BUILD_DIR)/images $(WEB_ASSETS_BUILD_DIR)/favicon.ico $(WEB_ASSETS_BUILD_DIR)/js/rethinkdb.js $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee $(COFFEE_SOURCES) $(PROTO_DIR)/dummy $(PROTO_SOURCES) $(PROTO_HEADERS) $(PROTO_CODE) $(PROTO_DIR)/dummy $(OPROF_TARGETS) $(TC_LESSC_INT_EXE) $(TC_COFFEE_INT_EXE) $(SUPPORT_DIR) $(V8_SRC_DIR) $(V8_DIR) $(V8_LIB) $(NODE_SRC_DIR) $(NODE_DIR) $(TC_NODE_INT_EXE) $(TC_NPM_INT_EXE) $(PROTOC_SRC_DIR) $(PROTOC_DIR) $(TC_PROTOC_INT_EXE)
 # Include the dependencies into the makefile so that they take effect
 ifneq (,$(if $(MAKECMDGOALS),$(filter-out $(NO_DEPS_TARGETS),$(MAKECMDGOALS)),non-empty-placeholder))
 -include $(DEPS)
@@ -1330,30 +1337,80 @@ endif
 
 # Note that this assumes that its locations match those earlier in the Makefile. If you change TC_LESSC_EXE, you probably ought to change these as well .
 
-$(TC_LESSC_INT_EXE): $(SUPPORT_DIR)
-ifeq ($(INSTALL_INTERNAL_TOOLS),1)
+$(TC_LESSC_INT_EXE): $(SUPPORT_DIR) $(TC_NPM_EXE)
+ifeq ($(FETCH_INTERNAL_TOOLS),1)
 # ifeq ($(shell npm list --global --parseable | grep '\/less$$'),)
 # We must do this either way now.
-	if [ -d $(SUPPORT_DIR) ] && [ ! -e $(SUPPORT_DIR)/toolchain ] ; then mkdir -p $(SUPPORT_DIR)/toolchain ; fi ;
-	cd $(SUPPORT_DIR)/toolchain ; npm install less ;
+	$(QUIET) if [ -d $(SUPPORT_DIR) ] && [ ! -e $(SUPPORT_DIR)/toolchain ] ; then mkdir -p $(SUPPORT_DIR)/toolchain ; fi ;
+	@echo "    NPM-I coffee-script"
+	$(QUIET) cd $(SUPPORT_DIR)/toolchain ; npm install less ;
 # endif
 endif
 
-$(TC_COFFEE_INT_EXE): $(SUPPORT_DIR)
-ifeq ($(INSTALL_INTERNAL_TOOLS),1)
+$(TC_COFFEE_INT_EXE): $(SUPPORT_DIR) $(TC_NPM_EXE)
+ifeq ($(FETCH_INTERNAL_TOOLS),1)
 # ifeq ($(shell npm list --global --parseable | grep '\/coffee-script$$'),)
-	if [ -d $(SUPPORT_DIR) ] && [ ! -e $(SUPPORT_DIR)/toolchain ] ; then mkdir -p $(SUPPORT_DIR)/toolchain ; fi ;
-	cd $(SUPPORT_DIR)/toolchain ; npm install coffee-script ;
+	$(QUIET) if [ -d $(SUPPORT_DIR) ] && [ ! -e $(SUPPORT_DIR)/toolchain ] ; then mkdir -p $(SUPPORT_DIR)/toolchain ; fi ;
+	@echo "    NPM-I coffee-script"
+	$(QUIET) cd $(SUPPORT_DIR)/toolchain ; npm install coffee-script ;
 # endif
+else
+	@echo "    ERROR: Internal coffee-script is necessary but not present, and FETCH_INTERNAL_TOOLS != 1." ;
+	false ;
 endif
 
 $(SUPPORT_DIR):
-	mkdir -p $(SUPPORT_DIR) ;
+# We need to stop using this. The time-stamp causes other things to rebuild.
+	$(QUIET) mkdir -p $(SUPPORT_DIR) ;
 
-$(V8_DIR): $(SUPPORT_DIR)
-	cd ../support && svn checkout http://v8.googlecode.com/svn/trunk/ v8 && cd v8 && make dependencies ;
+$(V8_SRC_DIR):
+	$(QUIET) if [ ! -e $(SUPPORT_DIR)/src ] ; then mkdir -p $(SUPPORT_DIR)/src ; fi ;
+ifeq ($(FETCH_INTERNAL_TOOLS),1)
+	@echo "    SVN-CO V8"
+	$(QUIET) cd ../support/src && svn checkout http://v8.googlecode.com/svn/trunk/ v8 && cd v8 && make dependencies ;
+else
+	@echo "    ERROR: Internal V8 is necessary but not not present, and FETCH_INTERNAL_TOOLS != 1." ;
+	false ;
+endif
+
+$(V8_DIR): $(V8_SRC_DIR)
+	$(QUIET) if [ ! -e $(SUPPORT_DIR)/build ] ; then mkdir -p $(SUPPORT_DIR)/build ; fi ;
+	$(QUIET) cd ../support && cp -pRP src/v8 build/ ;
 
 $(V8_LIB): $(V8_DIR)
-	cd ../support/v8 && make native && find ./ -iname "*.o" | xargs ar cqs libv8.a ;
+	$(QUIET) cd $(V8_DIR) && make native && find ./ -iname "*.o" | xargs ar cqs libv8.a ;
 
+$(NODE_SRC_DIR):
+	$(QUIET) if [ ! -e $(SUPPORT_DIR)/src ] ; then mkdir -p $(SUPPORT_DIR)/src ; fi ;
+ifeq ($(FETCH_INTERNAL_TOOLS),1)
+	@echo "    WGET NODE"
+	$(QUIET) cd ../support/src && wget http://nodejs.org/dist/v0.8.11/node-v0.8.11.tar.gz && tar -xzf node-v0.8.11.tar.gz && rm -rf protobuf && mv node-v0.8.11 node && rm node-v0.8.11.tar.gz ;
+else
+	@echo "    ERROR: Internal node.js is necessary but not not present, and FETCH_INTERNAL_TOOLS != 1." ;
+	false ;
+endif
+
+$(NODE_DIR): $(NODE_SRC_DIR)
+	$(QUIET) if [ ! -e $(SUPPORT_DIR)/build ] ; then mkdir -p $(SUPPORT_DIR)/build ; fi ;
+	$(QUIET) cd ../support && cp -pRP src/node build/ ;
+
+$(TC_NODE_INT_EXE) $(TC_NPM_INT_EXE): $(NODE_DIR)
+	cd $(NODE_DIR) && ./configure --prefix=$(SUPPORT_DIR)/usr && make && make install ;
+
+$(PROTOC_SRC_DIR):
+	$(QUIET) if [ ! -e $(SUPPORT_DIR)/src ] ; then mkdir -p $(SUPPORT_DIR)/src ; fi ;
+ifeq ($(FETCH_INTERNAL_TOOLS),1)
+	@echo "    WGET PROTOC"
+	$(QUIET) cd ../support/src && wget http://protobuf.googlecode.com/files/protobuf-2.4.1.tar.bz2 && tar -xjf protobuf-2.4.1.tar.bz2 && rm -rf protobuf && mv protobuf-2.4.1 protobuf && rm protobuf-2.4.1.tar.bz2 ;
+else
+	@echo "    ERROR: Internal protoc is necessary but not not present, and FETCH_INTERNAL_TOOLS != 1." ;
+	false ;
+endif
+
+$(PROTOC_DIR): $(PROTOC_SRC_DIR)
+	$(QUIET) if [ ! -e $(SUPPORT_DIR)/build ] ; then mkdir -p $(SUPPORT_DIR)/build ; fi ;
+	$(QUIET) cd ../support && cp -pRP src/protobuf build/ ;
+
+$(TC_PROTOC_INT_EXE): $(PROTOC_DIR)
+	cd $(PROTOC_DIR) && ./configure --prefix=$(SUPPORT_DIR)/usr && make && make install ;
 
