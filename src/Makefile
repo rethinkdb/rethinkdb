@@ -563,7 +563,7 @@ endif
 # We have support for chain-building tools needed at compile-time. We handle V8 elsewhere for now.
 
 SUPPORT_DIR:=../support
-SUPPORT_DIR_ABS:=$(shell cd "$(SUPPORT_DIR)" ; pwd ;)
+SUPPORT_DIR_ABS:=$(shell pwd ;)/$(SUPPORT_DIR)
 AUTOCHAIN?=0
 ALLOW_INTERNAL_TOOLS?=1
 FORCE_INTERNAL_TOOLS?=0
@@ -1346,7 +1346,7 @@ $(TC_LESSC_INT_EXE): $(SUPPORT_DIR) $(TC_NPM_EXE)
 ifeq ($(FETCH_INTERNAL_TOOLS),1)
 # ifeq ($(shell npm list --global --parseable | grep '\/less$$'),)
 # We must do this either way now.
-	$(QUIET) if [ ! -e $(SUPPORT_DIR)/src ] ; then mkdir -p $(SUPPORT_DIR)/src ; fi ;
+	$(QUIET) if [ ! -e $(SUPPORT_DIR) ] ; then mkdir -p $(SUPPORT_DIR) ; fi ;
 	$(QUIET) if [ -d $(SUPPORT_DIR) ] && [ ! -e $(SUPPORT_DIR)/toolchain ] ; then mkdir -p $(SUPPORT_DIR)/toolchain ; fi ;
 	@echo "    NPM-I coffee-script"
 	$(QUIET) cd $(SUPPORT_DIR)/toolchain ; $(TC_NPM_EXE) install less ;
@@ -1356,7 +1356,7 @@ endif
 $(TC_COFFEE_INT_EXE): $(SUPPORT_DIR) $(TC_NPM_EXE)
 ifeq ($(FETCH_INTERNAL_TOOLS),1)
 # ifeq ($(shell npm list --global --parseable | grep '\/coffee-script$$'),)
-	$(QUIET) if [ ! -e $(SUPPORT_DIR)/src ] ; then mkdir -p $(SUPPORT_DIR)/src ; fi ;
+	$(QUIET) if [ ! -e $(SUPPORT_DIR) ] ; then mkdir -p $(SUPPORT_DIR) ; fi ;
 	$(QUIET) if [ -d $(SUPPORT_DIR) ] && [ ! -e $(SUPPORT_DIR)/toolchain ] ; then mkdir -p $(SUPPORT_DIR)/toolchain ; fi ;
 	@echo "    NPM-I coffee-script"
 	$(QUIET) cd $(SUPPORT_DIR)/toolchain ; $(TC_NPM_EXE) install coffee-script ;
