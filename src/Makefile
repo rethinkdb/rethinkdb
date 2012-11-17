@@ -563,6 +563,7 @@ endif
 # We have support for chain-building tools needed at compile-time. We handle V8 elsewhere for now.
 
 SUPPORT_DIR:=../support
+SUPPORT_DIR_ABS:=$(shell cd "$(SUPPORT_DIR)" ; pwd ;)
 AUTOCHAIN?=0
 ALLOW_INTERNAL_TOOLS?=1
 FORCE_INTERNAL_TOOLS?=0
@@ -573,11 +574,11 @@ NODE_DIR:=$(TC_BUILD_DIR)/node
 NODE_SRC_DIR:=$(TC_SRC_DIR)/node
 PROTOC_DIR:=$(TC_BUILD_DIR)/protobuf
 PROTOC_SRC_DIR:=$(TC_SRC_DIR)/protobuf
-TC_PROTOC_INT_EXE:=$(SUPPORT_DIR)/usr/bin/protoc
-TC_NODE_INT_EXE:=$(SUPPORT_DIR)/usr/bin/node
-TC_NPM_INT_EXE:=$(SUPPORT_DIR)/usr/bin/npm
-TC_LESSC_INT_EXE:=$(SUPPORT_DIR)/toolchain/node_modules/less/bin/lessc
-TC_COFFEE_INT_EXE:=$(SUPPORT_DIR)/toolchain/node_modules/coffee-script/bin/coffee
+TC_PROTOC_INT_EXE:=$(SUPPORT_DIR_ABS)/usr/bin/protoc
+TC_NODE_INT_EXE:=$(SUPPORT_DIR_ABS)/usr/bin/node
+TC_NPM_INT_EXE:=$(SUPPORT_DIR_ABS)/usr/bin/npm
+TC_LESSC_INT_EXE:=$(SUPPORT_DIR_ABS)/toolchain/node_modules/less/bin/lessc
+TC_COFFEE_INT_EXE:=$(SUPPORT_DIR_ABS)/toolchain/node_modules/coffee-script/bin/coffee
 
 INT_CHAIN_NODE:=0
 
