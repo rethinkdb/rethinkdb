@@ -562,10 +562,43 @@ endif
 SUPPORT_DIR:=../support
 AUTOCHAIN?=0
 ALLOW_INTERNAL_TOOLS?=1
+FORCE_INTERNAL_TOOLS?=0
 INSTALL_INTERNAL_TOOLS?=0
+TC_PROTOC_INT_EXE:=$(SUPPORT_DIR)/toolchain/usr/bin/protoc
+TC_NODE_EXE:=$(SUPPORT_DIR)/toolchain/usr/bin/node
+TC_NPM_EXE:=$(SUPPORT_DIR)/toolchain/usr/bin/npm
 TC_LESSC_INT_EXE:=$(SUPPORT_DIR)/toolchain/node_modules/less/bin/lessc
 TC_COFFEE_INT_EXE:=$(SUPPORT_DIR)/toolchain/node_modules/coffee-script/bin/coffee
+
+CHAIN_NODE?=0
+ifeq ($(CHAIN_NODE),0)
+NODE_EXE_SPEC?=
+else
+NODE_EXE_SPEC?=$(SUPPORT_DIR)/usr/bin/node
+endif
+
+ifeq ($(FORCE_INTERNAL_TOOLS),1)
+TC_PROTOC_EXE:=$(TC_PROTOC_INT_EXE)
+TC_NODE_EXE:=$(TC_NODE_INT_EXE)
+TC_NPM_EXE:=$(TC_NPM_INT_EXE)
+TC_LESSC_EXE:=$(TC_LESSC_INT_EXE)
+TC_COFFEE_EXE:=$(TC_COFFEE_INT_EXE)
+else
 ifeq ($(ALLOW_INTERNAL_TOOLS),1)
+ifeq ($(shell which protoc || true),)
+# If npm is not present, node.js is likely too old.
+TC_PROTOC_EXE:=$(TC_PROTOC_INT_EXE)
+else
+TC_PROTOC_EXE:=$(shell which protoc || true)
+endif
+ifeq ($(shell which npm || true),)
+# If npm is not present, node.js is likely too old.
+TC_NODE_EXE:=$(TC_NODE_INT_EXE)
+TC_NPM_EXE:=$(TC_NPM_INT_EXE)	
+else
+TC_NODE_EXE:=$(shell which node || true)
+TC_NPM_EXE:=$(shell which npm || true)
+endif
 ifeq ($(shell which lessc || true),)
 TC_LESSC_EXE:=$(TC_LESSC_INT_EXE)	
 else
@@ -576,10 +609,14 @@ TC_COFFEE_EXE:=$(TC_COFFEE_INT_EXE)
 else
 TC_COFFEE_EXE:=$(shell which coffee || true)
 endif
-else
+else # ALLOW_INTERNAL_TOOLS
+TC_PROTOC_EXE:=$(shell which protoc || true)
 TC_LESSC_EXE:=$(shell which lessc || true)
 TC_COFFEE_EXE:=$(shell which coffee || true)
-endif
+TC_NODE_EXE:=$(shell which node || true)
+TC_NPM_EXE:=$(shell which npm || true)
+endif # ALLOW_INTERNAL_TOOLS
+endif # FORCE_INTERNAL_TOOLS
 
 ##### Build targets
 .PHONY: all build-deb build-rpm callgrind callgrind clean cscope deb deb depclean drivers etags gdb install install-binaries install-deb install-docs install-manpages install-rpm install-tools prepare_deb_package_dirs prepare_rpm_package_dirs regdb rerun revalgrind rpm rpm rpm-suse10 run sembuild showdefines style tags unit valgrind web-assets coffeelint build-deb-src-control build-deb-support
