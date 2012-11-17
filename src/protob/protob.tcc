@@ -105,10 +105,16 @@ void protob_server_t<request_t, response_t, context_t>::handle_conn(const scoped
                     if (force_response) {
                         send(forced_response, conn.get(), &ct_keepalive);
                     } else {
-                        linux_event_watcher_t *ew = conn->get_event_watcher();
-                        linux_event_watcher_t::watch_t conn_interrupted(ew, poll_event_rdhup);
-                        wait_any_t interruptor(&conn_interrupted, shutdown_signal());
-                        ctx.interruptor = &interruptor;
+                        // TODO(OSX) Add some new way to detect that a connection gets interrupted.
+                        // This code was commented out because OS X doesn't support rdhup.  It
+                        // should be fixed by the time the OS X changes are in code review.  We want
+                        // a way to detect client disconnection.  There are ways to do this.
+
+                        // linux_event_watcher_t *ew = conn->get_event_watcher();
+                        // linux_event_watcher_t::watch_t conn_interrupted(ew, poll_event_rdhup);
+                        // wait_any_t interruptor(&conn_interrupted, shutdown_signal());
+                        // ctx.interruptor = &interruptor;
+                        ctx.interruptor = shutdown_signal();
                         send(f(&request, &ctx), conn.get(), &ct_keepalive);
                     }
                     break;

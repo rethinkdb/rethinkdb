@@ -26,21 +26,19 @@ int user_to_poll(int mode) {
     int out_mode = 0;
     if (mode & poll_event_in) out_mode |= POLLIN;
     if (mode & poll_event_out) out_mode |= POLLOUT;
-    if (mode & poll_event_rdhup) out_mode |= POLLRDHUP;
 
     return out_mode;
 }
 
 int poll_to_user(int mode) {
 
-    rassert((mode & (POLLIN | POLLOUT | POLLERR | POLLHUP | POLLRDHUP)) == mode);
+    rassert((mode & (POLLIN | POLLOUT | POLLERR | POLLHUP)) == mode);
 
     int out_mode = 0;
     if (mode & POLLIN) out_mode |= poll_event_in;
     if (mode & POLLOUT) out_mode |= poll_event_out;
     if (mode & POLLERR) out_mode |= poll_event_err;
     if (mode & POLLHUP) out_mode |= poll_event_hup;
-    if (mode & POLLRDHUP) out_mode |= poll_event_rdhup;
 
     return out_mode;
 }
