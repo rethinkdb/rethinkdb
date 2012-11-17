@@ -137,12 +137,16 @@ CPATHDS:=
 STATICFORCE?=0
 
 ifeq ($(COMPILER),CLANG)
-LDFLAGS:=-Wl,--no-as-needed 
+# TODO(OSX) What do we need --no-as-needed for?  Isn't it the default?
+# Figure out whether to uncomment this.  Make sure we get tcmalloc in
+# Linux.  It is Ubuntu that enabled --as-needed by default.
+# LDFLAGS:=-Wl,--no-as-needed
+LDFLAGS:=
 ifeq ($(STATICFORCE),1)
 LDFLAGS+= -static
 STATIC_LIBGCC=1
 endif
-LDFLAGS+=$(LDPATHDS) -pthread -lrt -lstdc++ -lm
+LDFLAGS+=$(LDPATHDS) -pthread -lstdc++ -lm
 ifeq ($(STATICFORCE),1)
 LDFLAGS+= -Wl,-Bdynamic
 endif
@@ -153,22 +157,29 @@ ifeq ($(STATICFORCE),1)
 LDFLAGS+= -static
 STATIC_LIBGCC=1
 endif
-LDFLAGS+=$(LDPATHDS) -pthread -lrt -lstdc++
+LDFLAGS+=$(LDPATHDS) -pthread -lstdc++
 ifeq ($(STATICFORCE),1)
 LDFLAGS+= -Wl,-Bdynamic
 endif
 else
 # GCC
-LDFLAGS:=-Wl,--no-as-needed 
+# TODO(OSX) See comment about --no-as-needed above.
+# LDFLAGS:=-Wl,--no-as-needed
+LDFLAGS:=
 ifeq ($(STATICFORCE),1)
 LDFLAGS+= -static
 STATIC_LIBGCC=1
 endif
-LDFLAGS+=$(LDPATHDS) -pthread -lrt
+LDFLAGS+=$(LDPATHDS) -pthread
 ifeq ($(STATICFORCE),1)
 LDFLAGS+= -Wl,-Bdynamic
 endif
 endif
+endif
+
+# TODO(OSX) Check this change for -lrt on linux.
+ifeq ($(AIOSUPPORT),1)
+LDFLAGS+=-lrt
 endif
 
 V8_CHAIN?=0
