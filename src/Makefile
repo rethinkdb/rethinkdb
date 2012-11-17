@@ -442,7 +442,7 @@ endif
 # look for the static library in the same directory as the .so file
 # STATIC_LIBRARY_PATHS+=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }'))
 # TODO(OSX)
-STATIC_LIBRARY_PATHS:=
+STATIC_LIBRARY_PATHS:=/usr/local/lib/libboost_program_options-mt.a /usr/local/lib/libprotobuf.a
 
 ifeq ($(GPERF),1)
 STATIC_LIBRARY_PATHS+= # path to patched libtcmalloc_and_profiler.a
