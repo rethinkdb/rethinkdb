@@ -17,7 +17,7 @@ define(`V8_DEPENDS_EXTRA',`ifelse(STATIC_V8,0,`, libv8-dev',`')')dnl
 define(`PROTOC_DEPENDS_EXTRA',`ifelse(TC_BUNDLED,0,`, protobuf-compiler, protobuf-c-compiler, libprotobuf-dev, libprotobuf-c0-dev, libprotoc-dev',`')')dnl
 define(`NODE_DEPENDS_EXTRA',`ifelse(TC_BUNDLED,0,`, npm',`')')dnl
 define(`RUBY_DEPENDS_EXTRA',`ifelse(BUILD_DRIVERS,0,`, ruby, rubygems',`')')dnl
-BASE_DEPENDS`'NODEJS_DEPENDS_EXTRA`'V8_DEPENDS_EXTRA`'PROTOC_DEPENDS_EXTRA`'NODE_DEPENDS_EXTRA1`'RUBY_DEPENDS_EXTRA
+BASE_DEPENDS`'NODEJS_DEPENDS_EXTRA`'V8_DEPENDS_EXTRA`'PROTOC_DEPENDS_EXTRA`'NODE_DEPENDS_EXTRA`'RUBY_DEPENDS_EXTRA
 Homepage: http://www.rethinkdb.com
 ifelse(SOURCEBUILD, 1, `
 ',`')dnl
