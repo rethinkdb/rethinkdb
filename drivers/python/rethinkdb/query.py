@@ -79,6 +79,40 @@ import query_language_pb2 as p
 import net
 import types
 
+class RDBShortcut(object):
+    """Get the value of a variable or attribute.
+
+    Filter and map bind the current element to the implicit variable.
+    To access the implicit variable (i.e. 'current' row), use the
+    following:
+
+    >>> r['@']
+
+
+    To access an attribute of the implicit variable, pass the attribute name.
+
+    >>> r['name']
+    >>> r['@']['name']
+
+
+    See information on scoping rules for more details.
+
+    >>> table('users').filter(r['age'] == 30) # access attribute age from the implicit row variable
+    >>> table('users').filter(r['address']['city') == 'Mountain View') # access subattribute city
+                                                                       # of attribute address from
+                                                                       # the implicit row variable
+    >>> table('users').filter(lambda row: row['age') == 30)) # access attribute age from the
+                                                             # variable 'row'
+    """
+    def __getitem__(self, key):
+        if key == "@":
+            expr = JSONExpression(internal.ImplicitVar())
+        else:
+            expr = JSONExpression(internal.ImplicitAttr(key))
+        return expr
+
+r = RDBShortcut()
+
 class BaseQuery(object):
     """A base class for all ReQL queries. Queries can be run by calling the
     :meth:`rethinkdb.net.Connection.run()` method or by calling :meth:`run()` on
@@ -94,7 +128,7 @@ class BaseQuery(object):
     def _finalize_query(self, root, opts):
         raise NotImplementedError()
 
-    def run(self, conn=None, debug=False, allow_outdated=None):
+    def run(self, conn=None, debug=False, use_outdated=None):
         """Evaluate the expression on the server using the connection
         specified by `conn`. If `conn` is empty, uses the last created
         connection (located in :data:`rethinkdb.net.last_connection()`).
@@ -116,7 +150,7 @@ class BaseQuery(object):
             if net.last_connection() is None:
                 raise StandardError("Call rethinkdb.net.connect() to connect to a server before calling run()")
             conn = net.last_connection()
-        return conn.run(self, debug=debug, allow_outdated=allow_outdated)
+        return conn.run(self, debug=debug, use_outdated=use_outdated)
 
 class ReadQuery(BaseQuery):
     """Base class for expressions"""
@@ -1579,7 +1613,7 @@ class Table(MultiRowSelection):
     manipulation operations (such as inserting, selecting, and
     updating data) can be chained off of this object."""
 
-    def __init__(self, table_name, db_expr=None, allow_outdated=None):
+    def __init__(self, table_name, db_expr=None, use_outdated=None):
         """Use :func:`rethinkdb.query.table` as a shortcut to create
         this object.
 
@@ -1593,7 +1627,7 @@ class Table(MultiRowSelection):
         ReadQuery.__init__(self, internal.Table(self))
         self.table_name = table_name
         self.db_expr = db_expr
-        self.allow_outdated = allow_outdated #either True, False, or None (default to run option)
+        self.use_outdated = use_outdated #either True, False, or None (default to run option)
 
     def __repr__(self):
         if self.db_expr is not None:
@@ -1635,17 +1669,17 @@ class Table(MultiRowSelection):
         else:
             parent.db_name = net.last_connection().db_name
 
-        if self.allow_outdated is None:
-            if not 'allow_outdated' in opts or opts['allow_outdated'] is None or opts['allow_outdated'] is False:
+        if self.use_outdated is None:
+            if not 'use_outdated' in opts or opts['use_outdated'] is None or opts['use_outdated'] is False:
                 parent.use_outdated = False
             else:
                 parent.use_outdated = True
         else:
-            parent.use_outdated = self.allow_outdated
+            parent.use_outdated = self.use_outdated
 
         parent.table_name = self.table_name
 
-def table(table_ref, allow_outdated=None):
+def table(table_ref, use_outdated=None):
     """Get a reference to a table within a RethinkDB cluster.
 
     :param table_ref: Either a name of the table, or a name of the
@@ -1657,7 +1691,7 @@ def table(table_ref, allow_outdated=None):
 
     >>> q = table('table_name')         #
     """
-    return Table(table_ref, allow_outdated=allow_outdated)
+    return Table(table_ref, use_outdated=use_outdated)
 
 def union(seq1, *seqs):
     """Concatentate the given sequences.
