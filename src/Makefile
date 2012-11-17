@@ -851,6 +851,8 @@ build-deb-src-control:
 				-D "PACKAGE_VERSION=$(RETHINKDB_VERSION_DEB)" \
 				-D "LEGACY_LINUX=$(LEGACY_LINUX)" \
 				-D "STATIC_V8=$(STATIC_V8)" \
+				-D "TC_BUNDLED=$(BUILD_PORTABLE)" \
+				-D "BUILD_DRIVERS=$(BUILD_DRIVERS)" \
 				-D "TRIAL=$(TRIAL)" \
 				-D "DISK_SIZE=$${disk_size}" \
 				-D "SOURCEBUILD=1" \
@@ -879,33 +881,28 @@ build-deb: all prepare_deb_package_dirs
 	@echo
 	@echo "$(ANSI_BOLD_ON)Building DEB package for RethinkDB version $(RETHINKDB_PACKAGING_VERSION)$(ANSI_BOLD_OFF)"
 	@echo
-
 # Copy files to their correct places
 	$(QUIET) $(MAKE) DESTDIR=$(DEB_PACKAGE_DIR) install-deb
-
 # Produce md5sum file in control directory
 	$(QUIET) find $(DEB_PACKAGE_DIR) -path $(DEB_CONTROL_ROOT) -prune -o -path $(DEB_PACKAGE_DIR)/etc -prune -o -type f -printf "%P\\0" | \
 		(cd $(DEB_PACKAGE_DIR) && xargs -0 md5sum) \
 		> $(DEB_CONTROL_ROOT)/md5sums
-
 # List configuration files in conffiles
 	$(QUIET) find $(DEB_PACKAGE_DIR) -type f -printf "/%P\n" | (grep '^/etc/' | grep -v '^/etc/init\.d' || true) > $(DEB_CONTROL_ROOT)/conffiles
-
 # Copy {pre,post}{inst,rm} scripts
 	$(QUIET) for script in preinst postinst prerm postrm; do		                  		\
-			m4 																																						\
-					-D "BIN_DIR=$(bin_dir)" 																									\
-					-D "MAN1_DIR=$(man1_dir)" 																								\
-					-D "BASH_COMPLETION_DIR=$(bash_completion_dir)" 													\
-					-D "INTERNAL_BASH_COMPLETION_DIR=$(internal_bash_completion_dir)" 				\
-					-D "SERVER_EXEC_NAME=$(SERVER_EXEC_NAME)" 																\
-					-D "SERVER_EXEC_NAME_VERSIONED=$(SERVER_EXEC_NAME_VERSIONED)" 						\
-					-D "UPDATE_ALTERNATIVES=$(NAMEVERSIONED)" 													\
-					-D "PRIORITY=$(PACKAGING_ALTERNATIVES_PRIORITY)" 													\
+			m4 \
+					-D "BIN_DIR=$(bin_dir)" \
+					-D "MAN1_DIR=$(man1_dir)" \
+					-D "BASH_COMPLETION_DIR=$(bash_completion_dir)" \
+					-D "INTERNAL_BASH_COMPLETION_DIR=$(internal_bash_completion_dir)" \
+					-D "SERVER_EXEC_NAME=$(SERVER_EXEC_NAME)" \
+					-D "SERVER_EXEC_NAME_VERSIONED=$(SERVER_EXEC_NAME_VERSIONED)" \
+					-D "UPDATE_ALTERNATIVES=$(NAMEVERSIONED)" \
+					-D "PRIORITY=$(PACKAGING_ALTERNATIVES_PRIORITY)" \
 				../packaging/$(DEBIAN_PKG_DIR)/$${script} > $(DEB_CONTROL_ROOT)/$${script}; \
 			chmod 0755 $(DEB_CONTROL_ROOT)/$${script};																		\
 		done
-
 # Replace version/size fields in the deb control file
 	$(QUIET) disk_size=$$(du -s -k $(DEB_PACKAGE_DIR) | cut -f1);	\
 		m4																													\
@@ -920,15 +917,15 @@ build-deb: all prepare_deb_package_dirs
 				-D "DEBIAN_V8_VERSION=$(DEBIAN_V8_VERSION)" \
 				-D "LEGACY_LINUX=$(LEGACY_LINUX)"												\
 				-D "STATIC_V8=$(STATIC_V8)" \
+				-D "TC_BUNDLED=$(BUILD_PORTABLE)" \
+				-D "BUILD_DRIVERS=$(BUILD_DRIVERS)" \
 				-D "TRIAL=$(TRIAL)"																			\
 				-D "DISK_SIZE=$${disk_size}"														\
 				-D "SOURCEBUILD=0" \
 				-D "NODEJS_NEW=$(NODEJS_NEW)" \
 			../packaging/$(DEBIAN_PKG_DIR)/control >$(DEB_CONTROL_ROOT)/control
-
 # Copy the license file.
 	cat ../packaging/$(DEBIAN_PKG_DIR)/copyright > $(DEB_CONTROL_ROOT)/copyright
-
 # Finally, produce a debian package
 	$(QUIET) fakeroot dpkg-deb -b $(DEB_PACKAGE_DIR) $(PACKAGES_DIR)
 
@@ -936,7 +933,6 @@ deb: prepare_deb_package_dirs
 # We have disabled building of unstripped debs for now.
 # $(QUIET) $(MAKE) STRIP_ON_INSTALL=0 RETHINKDB_PACKAGING_VERSION=$(RETHINKDB_VERSION)-unstripped build-deb
 	$(QUIET) $(MAKE) STRIP_ON_INSTALL=1 RETHINKDB_PACKAGING_VERSION=$(RETHINKDB_VERSION) WEBRESDIR=$(web_res_dir) BUILD_DRIVERS=0 build-deb
-
 # Print a nice message with the location of the created package
 	@echo
 	@echo "$(ANSI_BOLD_ON)Your DEB packages are here (with lintian output following each package):$(ANSI_BOLD_OFF)"
@@ -958,7 +954,6 @@ build-rpm: all prepare_rpm_package_dirs
 	@echo
 	@echo "$(ANSI_BOLD_ON)Building RPM package for RethinkDB version $(RETHINKDB_PACKAGING_VERSION)$(ANSI_BOLD_OFF)"
 	@echo
-
 # Replace version/topdir fields in the spec file
 	$(QUIET) m4																															\
 				-D "SOLO=$(SOLO)"																									\
@@ -982,10 +977,8 @@ build-rpm: all prepare_rpm_package_dirs
 				-D "SCRIPTS_DIR=$(scripts_dir)"																		\
 				-D "PRIORITY=$(PACKAGING_ALTERNATIVES_PRIORITY)" 									\
 			$(RPM_SPEC_INPUT) >$(RPM_SPEC_FILE)
-
 # Copy files to their correct places
 	$(QUIET) $(MAKE) DESTDIR=$(RPM_BUILD_ROOT) install-rpm
-
 # Produce RPM package
 # FIXME: write rpmbuild output out to stderr if there's an error
 	$(QUIET) rpmbuild -bb --target=x86_64 --buildroot `readlink -f $(RPM_BUILD_ROOT)` $(RPM_SPEC_FILE) > $(RPM_PACKAGE_DIR)/rpmbuild.stdout
@@ -994,7 +987,6 @@ build-rpm: all prepare_rpm_package_dirs
 rpm: all prepare_rpm_package_dirs
 	$(QUIET) $(MAKE) STRIP_ON_INSTALL=0 RETHINKDB_VERSION=$(RETHINKDB_VERSION)-unstripped build-rpm
 	$(QUIET) $(MAKE) STRIP_ON_INSTALL=1 RETHINKDB_VERSION=$(RETHINKDB_VERSION) build-rpm
-
 # Print a nice message with the location of the created package
 	@echo
 	@echo "$(ANSI_BOLD_ON)Your RPM packages are here:$(ANSI_BOLD_OFF)"
