@@ -238,11 +238,14 @@ admin_cluster_link_t::admin_cluster_link_t(const peer_address_set_t &joins, int 
     log_writer(&local_issue_tracker), // TODO: come up with something else for this file
     connectivity_cluster(),
     message_multiplexer(&connectivity_cluster),
+    heartbeat_manager_client(&message_multiplexer, 'H'),
+    heartbeat_manager(&heartbeat_manager_client),
+    heartbeat_manager_client_run(&heartbeat_manager_client, &heartbeat_manager),
     mailbox_manager_client(&message_multiplexer, 'M'),
     mailbox_manager(&mailbox_manager_client),
+    mailbox_manager_client_run(&mailbox_manager_client, &mailbox_manager),
     stat_manager(&mailbox_manager),
     log_server(&mailbox_manager, &log_writer),
-    mailbox_manager_client_run(&mailbox_manager_client, &mailbox_manager),
     semilattice_manager_client(&message_multiplexer, 'S'),
     semilattice_manager_cluster(new semilattice_manager_t<cluster_semilattice_metadata_t>(&semilattice_manager_client, cluster_semilattice_metadata_t())),
     semilattice_manager_client_run(&semilattice_manager_client, semilattice_manager_cluster.get()),
@@ -260,7 +263,7 @@ admin_cluster_link_t::admin_cluster_link_t(const peer_address_set_t &joins, int 
     directory_write_manager(new directory_write_manager_t<cluster_directory_metadata_t>(&directory_manager_client, our_directory_metadata.get_watchable())),
     directory_manager_client_run(&directory_manager_client, directory_read_manager.get()),
     message_multiplexer_run(&message_multiplexer),
-    connectivity_cluster_run(&connectivity_cluster, 0, &message_multiplexer_run, client_port),
+    connectivity_cluster_run(&connectivity_cluster, 0, &message_multiplexer_run, client_port, &heartbeat_manager),
     admin_tracker(semilattice_metadata, directory_read_manager->get_root_view()),
     initial_joiner(&connectivity_cluster, &connectivity_cluster_run, joins, 5000)
 {

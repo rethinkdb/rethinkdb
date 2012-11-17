@@ -19,8 +19,6 @@
 #define CLUSTER_PROTO_HEADER "RethinkDB " RETHINKDB_VERSION " cluster\n"
 const char *const cluster_proto_header = CLUSTER_PROTO_HEADER;
 
-const int connectivity_cluster_t::run_t::default_user_timeout(12000);
-
 void debug_print(append_only_printf_buffer_t *buf, const peer_address_t &address) {
     buf->appendf("peer_address{ips=[");
     const std::set<ip_address_t> *ips = address.all_ips();
@@ -36,12 +34,14 @@ void debug_print(append_only_printf_buffer_t *buf, const peer_address_t &address
 connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
         int port,
         message_handler_t *mh,
-        int client_port) THROWS_ONLY(address_in_use_exc_t) :
+        int client_port,
+        heartbeat_manager_t *_heartbeat_manager) THROWS_ONLY(address_in_use_exc_t) :
     parent(p),
     message_handler(mh),
+    heartbeat_manager(_heartbeat_manager),
 
     /* Create the socket to use when listening for connections from peers */
-    cluster_listener_socket(new tcp_bound_socket_t(port, default_user_timeout)),
+    cluster_listener_socket(new tcp_bound_socket_t(port)),
     cluster_listener_port(cluster_listener_socket->get_port()),
 
     /* The local port to use when connecting to the cluster port of peers */
@@ -97,10 +97,16 @@ connectivity_cluster_t::run_t::connection_entry_t::connection_entry_t(run_t *p, 
     pm_bytes_sent_membership(&pm_collection, &pm_bytes_sent, "bytes_sent"),
     parent(p), peer(id),
     entries(new one_per_thread_t<entry_installation_t>(this)) {
-
+    if (peer != parent->parent->me) {
+        parent->heartbeat_manager->begin_peer_heartbeat(peer);
+    }
 }
 
 connectivity_cluster_t::run_t::connection_entry_t::~connection_entry_t() THROWS_NOTHING {
+    if (peer != parent->parent->me) {
+        parent->heartbeat_manager->end_peer_heartbeat(peer);
+    }
+
     // Delete entries early just so we can make the assertion below.
     entries.reset();
 
@@ -154,7 +160,7 @@ void connectivity_cluster_t::run_t::on_new_connection(const scoped_ptr_t<tcp_con
     // conn gets owned by the tcp_conn_stream_t.
     tcp_conn_t *conn;
     nconn->make_overcomplicated(&conn);
-    tcp_conn_stream_t conn_stream(conn);
+    keepalive_tcp_conn_stream_t conn_stream(conn);
 
     handle(&conn_stream, boost::none, boost::none, lock, NULL);
 }
@@ -182,7 +188,7 @@ void connectivity_cluster_t::run_t::connect_to_peer(const peer_address_t *addr, 
     // Don't bother if there's already a connection
     if (!*successful_join) {
         try {
-            tcp_conn_stream_t conn(*selected_addr, addr->port, drainer_lock.get_drain_signal(), cluster_client_port);
+            keepalive_tcp_conn_stream_t conn(*selected_addr, addr->port, drainer_lock.get_drain_signal(), cluster_client_port);
             if (!*successful_join) {
                 handle(&conn, expected_id, boost::optional<peer_address_t>(*addr), drainer_lock, successful_join);
             }
@@ -242,6 +248,29 @@ private:
     DISABLE_COPYING(cluster_conn_closing_subscription_t);
 };
 
+class heartbeat_keepalive_t : public keepalive_tcp_conn_stream_t::keepalive_callback_t {
+public:
+    heartbeat_keepalive_t(keepalive_tcp_conn_stream_t *_conn, heartbeat_manager_t *_heartbeat, peer_id_t _peer) :
+        conn(_conn),
+        heartbeat(_heartbeat),
+        peer(_peer)
+    {
+        conn->set_keepalive_callback(this);
+    }
+
+    ~heartbeat_keepalive_t() {
+        conn->set_keepalive_callback(NULL);
+    }
+
+    void keepalive() {
+        heartbeat->message_from_peer(peer);
+    }
+
+private:
+    keepalive_tcp_conn_stream_t * const conn;
+    heartbeat_manager_t * const heartbeat;
+    const peer_id_t peer;
+};
 
 // Error-handling helper for connectivity_cluster_t::run_t::handle(). Returns true if handle()
 // should return.
@@ -272,7 +301,7 @@ static bool deserialize_and_check(tcp_conn_stream_t *c, T *p, const char *peer) 
 void connectivity_cluster_t::run_t::handle(
         /* `conn` should remain valid until `handle()` returns.
          * `handle()` does not take ownership of `conn`. */
-        tcp_conn_stream_t *conn,
+        keepalive_tcp_conn_stream_t *conn,
         boost::optional<peer_id_t> expected_id,
         boost::optional<peer_address_t> expected_address,
         auto_drainer_t::lock_t drainer_lock,
@@ -291,11 +320,6 @@ void connectivity_cluster_t::run_t::handle(
     // or write gets interrupted.
     cluster_conn_closing_subscription_t conn_closer_1(conn);
     conn_closer_1.reset(drainer_lock.get_drain_signal());
-
-    /* Send a heartbeat after three seconds of inactivity; if heartbeat is not
-    acked, try again every three seconds and declare connection dead after twelve
-    seconds total. */
-    conn->get_underlying_conn()->set_keepalive(3, 3, 3);
 
     // Each side sends a header followed by its own ID and address, then receives and checks the
     // other side's.
@@ -531,6 +555,7 @@ void connectivity_cluster_t::run_t::handle(
         constructor registers it in the `connectivity_cluster_t`'s connection
         map and notifies any connect listeners. */
         connection_entry_t conn_structure(this, other_id, conn, other_address);
+        heartbeat_keepalive_t keepalive(conn, heartbeat_manager, other_id);
 
         /* Main message-handling loop: read messages off the connection until
         it's closed, which may be due to network events, or the other end
@@ -693,6 +718,25 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
                     conn_structure->conn->shutdown_read();
                 }
             }
+        }
+    }
+}
+
+void connectivity_cluster_t::kill_connection(peer_id_t peer) THROWS_NOTHING {
+    std::map<peer_id_t, std::pair<run_t::connection_entry_t *, auto_drainer_t::lock_t> > *connection_map =
+        &thread_info.get()->connection_map;
+    std::map<peer_id_t, std::pair<run_t::connection_entry_t *, auto_drainer_t::lock_t> >::iterator it =
+        connection_map->find(peer);
+
+    if (it != connection_map->end()) {
+        tcp_conn_stream_t *conn = it->second.first->conn;
+        guarantee(get_thread_id() == conn->home_thread());
+
+        if (conn->is_read_open()) {
+            conn->shutdown_read();
+        }
+        if (conn->is_write_open()) {
+            conn->shutdown_write();
         }
     }
 }

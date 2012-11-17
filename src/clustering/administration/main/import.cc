@@ -22,6 +22,7 @@
 #include "http/json.hpp"
 #include "rdb_protocol/query_language.hpp"
 #include "rpc/connectivity/multiplexer.hpp"
+#include "rpc/connectivity/heartbeat.hpp"
 #include "rpc/directory/read_manager.hpp"
 #include "rpc/directory/write_manager.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
@@ -59,6 +60,11 @@ bool run_json_import(extproc::spawner_t::info_t *spawner_info, peer_address_set_
 
     connectivity_cluster_t connectivity_cluster;
     message_multiplexer_t message_multiplexer(&connectivity_cluster);
+
+    message_multiplexer_t::client_t heartbeat_manager_client(&message_multiplexer, 'H');
+    heartbeat_manager_t heartbeat_manager(&heartbeat_manager_client);
+    message_multiplexer_t::client_t::run_t heartbeat_manager_client_run(&heartbeat_manager_client, &heartbeat_manager);
+
     message_multiplexer_t::client_t mailbox_manager_client(&message_multiplexer, 'M');
     mailbox_manager_t mailbox_manager(&mailbox_manager_client);
     message_multiplexer_t::client_t::run_t mailbox_manager_client_run(&mailbox_manager_client, &mailbox_manager);
@@ -95,7 +101,11 @@ bool run_json_import(extproc::spawner_t::info_t *spawner_info, peer_address_set_
         metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()));
 
     message_multiplexer_t::run_t message_multiplexer_run(&message_multiplexer);
-    connectivity_cluster_t::run_t connectivity_cluster_run(&connectivity_cluster, ports_port, &message_multiplexer_run, ports_client_port);
+    connectivity_cluster_t::run_t connectivity_cluster_run(&connectivity_cluster,
+                                                           ports_port,
+                                                           &message_multiplexer_run,
+                                                           ports_client_port,
+                                                           &heartbeat_manager);
 
     if (0 == ports_port) {
         ports_port = connectivity_cluster_run.get_port();
