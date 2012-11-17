@@ -453,25 +453,18 @@ ticks_t secs_to_ticks(double secs) {
 }
 
 #if __MACH__
-struct mach_time_info_t {
-    mach_time_info_t() {
-        mach_timebase_info(&info);
-    }
-
-    // Contains numer and denom for converting mach_absolute_time() return value to nanoseconds.
-    mach_timebase_info_data_t info;
-
-private:
-    DISABLE_COPYING(mach_time_info_t);
-};
-
-const mach_time_info_t mach_time_info;
+mach_timebase_info_data_t mach_time_info;
 #endif  // __MACH__
 
 timespec clock_monotonic() {
 #if __MACH__
+    if (mach_time_info.denom == 0) {
+        // TODO(OSX) This is kind of a hack considering multithreading.
+        mach_timebase_info(&mach_time_info);
+        guarantee(mach_time_info.denom != 0);
+    }
     const uint64_t t = mach_absolute_time();
-    uint64_t nanosecs = t * mach_time_info.info.numer / mach_time_info.info.denom;
+    uint64_t nanosecs = t * mach_time_info.numer / mach_time_info.denom;
     timespec ret;
     ret.tv_sec = nanosecs / BILLION;
     ret.tv_nsec = nanosecs % BILLION;
