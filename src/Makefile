@@ -567,9 +567,15 @@ AUTOCHAIN?=0
 ALLOW_INTERNAL_TOOLS?=1
 FORCE_INTERNAL_TOOLS?=0
 FETCH_INTERNAL_TOOLS?=0
-TC_PROTOC_INT_EXE:=$(SUPPORT_DIR)/toolchain/usr/bin/protoc
-TC_NODE_INT_EXE:=$(SUPPORT_DIR)/toolchain/usr/bin/node
-TC_NPM_INT_EXE:=$(SUPPORT_DIR)/toolchain/usr/bin/npm
+TC_BUILD_DIR:=$(SUPPORT_DIR)/build
+TC_SRC_DIR:=$(SUPPORT_DIR)/src
+NODE_DIR:=$(TC_BUILD_DIR)/node
+NODE_SRC_DIR:=$(TC_SRC_DIR)/node
+PROTOC_DIR:=$(TC_BUILD_DIR)/protobuf
+PROTOC_SRC_DIR:=$(TC_SRC_DIR)/protobuf
+TC_PROTOC_INT_EXE:=$(SUPPORT_DIR)/usr/bin/protoc
+TC_NODE_INT_EXE:=$(SUPPORT_DIR)/usr/bin/node
+TC_NPM_INT_EXE:=$(SUPPORT_DIR)/usr/bin/npm
 TC_LESSC_INT_EXE:=$(SUPPORT_DIR)/toolchain/node_modules/less/bin/lessc
 TC_COFFEE_INT_EXE:=$(SUPPORT_DIR)/toolchain/node_modules/coffee-script/bin/coffee
 
@@ -1339,18 +1345,20 @@ $(TC_LESSC_INT_EXE): $(SUPPORT_DIR) $(TC_NPM_EXE)
 ifeq ($(FETCH_INTERNAL_TOOLS),1)
 # ifeq ($(shell npm list --global --parseable | grep '\/less$$'),)
 # We must do this either way now.
+	$(QUIET) if [ ! -e $(SUPPORT_DIR)/src ] ; then mkdir -p $(SUPPORT_DIR)/src ; fi ;
 	$(QUIET) if [ -d $(SUPPORT_DIR) ] && [ ! -e $(SUPPORT_DIR)/toolchain ] ; then mkdir -p $(SUPPORT_DIR)/toolchain ; fi ;
 	@echo "    NPM-I coffee-script"
-	$(QUIET) cd $(SUPPORT_DIR)/toolchain ; npm install less ;
+	$(QUIET) cd $(SUPPORT_DIR)/toolchain ; $(TC_NPM_EXE) install less ;
 # endif
 endif
 
 $(TC_COFFEE_INT_EXE): $(SUPPORT_DIR) $(TC_NPM_EXE)
 ifeq ($(FETCH_INTERNAL_TOOLS),1)
 # ifeq ($(shell npm list --global --parseable | grep '\/coffee-script$$'),)
+	$(QUIET) if [ ! -e $(SUPPORT_DIR)/src ] ; then mkdir -p $(SUPPORT_DIR)/src ; fi ;
 	$(QUIET) if [ -d $(SUPPORT_DIR) ] && [ ! -e $(SUPPORT_DIR)/toolchain ] ; then mkdir -p $(SUPPORT_DIR)/toolchain ; fi ;
 	@echo "    NPM-I coffee-script"
-	$(QUIET) cd $(SUPPORT_DIR)/toolchain ; npm install coffee-script ;
+	$(QUIET) cd $(SUPPORT_DIR)/toolchain ; $(TC_NPM_EXE) install coffee-script ;
 # endif
 else
 	@echo "    ERROR: Internal coffee-script is necessary but not present, and FETCH_INTERNAL_TOOLS != 1." ;
@@ -1362,8 +1370,8 @@ $(SUPPORT_DIR):
 	$(QUIET) mkdir -p $(SUPPORT_DIR) ;
 
 $(V8_SRC_DIR):
-	$(QUIET) if [ ! -e $(SUPPORT_DIR)/src ] ; then mkdir -p $(SUPPORT_DIR)/src ; fi ;
 ifeq ($(FETCH_INTERNAL_TOOLS),1)
+	$(QUIET) if [ ! -e $(SUPPORT_DIR)/src ] ; then mkdir -p $(SUPPORT_DIR)/src ; fi ;
 	@echo "    SVN-CO V8"
 	$(QUIET) cd ../support/src && svn checkout http://v8.googlecode.com/svn/trunk/ v8 && cd v8 && make dependencies ;
 else
