@@ -369,6 +369,12 @@ $(document).ready ->
     # Order matters!
     queries = [
         {
+            state: deep_copy state['1']
+            query: 'r.db("test").table("test").filter(r("id").le(2)).between(2, 3).run()'
+            callback_name: 'expect_result'
+            expected_result: [{id:2}]
+        },
+        {
             query: 'r.expr(true).run()'
             callback_name: 'is_true'
         },
