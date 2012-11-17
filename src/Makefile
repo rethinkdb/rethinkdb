@@ -624,6 +624,12 @@ NODE_EXE_SPEC:=$(TC_NODE_EXE)
 NODE_EXE_SPEC+=
 endif
 
+ifeq ($(V8_CHAIN),1)
+V8_DEP:=$(V8_DIR)
+else
+V8_DEP:=
+endif
+
 ##### Build targets
 .PHONY: all build-deb build-rpm callgrind callgrind clean cscope deb deb depclean drivers etags gdb install install-binaries install-deb install-docs install-manpages install-rpm install-tools prepare_deb_package_dirs prepare_rpm_package_dirs regdb rerun revalgrind rpm rpm rpm-suse10 run sembuild showdefines style tags unit valgrind web-assets coffeelint build-deb-src-control build-deb-support
 
@@ -1298,7 +1304,7 @@ ifeq ($(VERBOSE),0)
 endif
 	$(QUIET) $(CXX) $(CXXFLAGS) -c -o $@ $<
 
-$(OBJ_DIR)/%.o: $(SOURCE_DIR)/%.cc $(MAKEFILE_DEPENDENCY)
+$(OBJ_DIR)/%.o: $(SOURCE_DIR)/%.cc $(MAKEFILE_DEPENDENCY) $(V8_DEP)
 	$(QUIET) mkdir -p $(dir $@)
 ifeq ($(VERBOSE),0)
 	@echo "    CC $< -o $@"
