@@ -830,7 +830,7 @@ install-deb: install
 DEBIAN_V8_VERSION:=$(shell apt-cache show libv8-dev | grep '^Version:' | sed -e 's/^Version: \\([0-9]*\\(\\.[0-9]*\\)*\\).*$$/\\1/g' || true ; )
 
 ifeq ($(BUILD_PORTABLE),1)
-build-deb-support: $(TC_LESSC_INT_EXE) $(TC_COFFEE_INT_EXE) $(V8_DIR)
+build-deb-support: $(TC_LESSC_INT_EXE) $(TC_COFFEE_INT_EXE) $(V8_SRC_DIR) $(NODE_SRC_DIR) $(PROTOC_SRC_DIR)
 else
 build-deb-support: $(TC_LESSC_INT_EXE) $(TC_COFFEE_INT_EXE)
 endif
