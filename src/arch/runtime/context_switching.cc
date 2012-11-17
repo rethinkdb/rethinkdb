@@ -168,7 +168,12 @@ asm(
     /* `current_pointer_out` is in `%rdi`. `dest_pointer` is in `%rsi`. */
 
 ".text\n"
+// TODO(OSX) Figure out the right way to detect when to do _lightweight_swapcontext.
+#if __MACH__
+"_lightweight_swapcontext:\n"
+#else
 "lightweight_swapcontext:\n"
+#endif
 
     /* Save preserved registers (the return address is already on the stack). */
     "pushq %r12\n"
