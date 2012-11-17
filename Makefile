@@ -19,7 +19,7 @@ build-deb-src-control:
 build-deb-src: build-deb-src-control
 #	$(shell scripts/gen-version.sh > VERSION)
 	cd src ; $(MAKE) DEBUG=$(DEBUG) ALLOW_INTERNAL_TOOLS=1 FETCH_INTERNAL_TOOLS=1 PACKAGING=1 build-deb-support ;
-	rm -rf support/build support/usr ;
+	rm -rf build support/build support/usr ;
 	yes | debuild -S -sa ;
 
 deb:
