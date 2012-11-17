@@ -59,5 +59,5 @@ test: $(JS_BUILD_DIR)/demo-server.js $(JS_BUILD_DIR)/rethinkdb.js test.html
 	cp $(JS_BUILD_DIR)/demo-server.js $(DEMO_SERVER_DIR)
 
 clean:
-	rm -rf $(DEMO_SERVER_DIR)
+	rm -rf $(DEMO_SERVER_DIR)*
 	rm -rf $(TEMP_DIR)
