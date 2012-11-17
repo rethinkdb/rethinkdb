@@ -1161,9 +1161,9 @@ $(PROTO_DIR)/dummy: $(PROTO_SOURCES) $(TC_PROTOC_EXE)
 ifeq ($(VERBOSE),0)
 	@echo "    PROTOC[CPP] $^"
 endif
-	$(QUIET) $(TC_PROTOC_EXE) $(PROTOCFLAGS) --cpp_out $(PROTO_DIR) $(PROTO_SOURCES)
+	$(QUIET) $(TC_PROTOC_EXE) $(PROTOCFLAGS) --cpp_out $(PROTO_DIR) $(PROTO_SOURCES) && touch $@
 # The preceding line used $^ instead of $(PROTO_SOURCES) before.
-	$(QUIET) touch $@
+# The touch command was on a separate line, but that caused problems since make ignored the failure of that line and touched the file anyway.
 
 $(PROTO_HEADERS) $(PROTO_CODE): $(PROTO_DIR)/dummy
 

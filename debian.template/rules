@@ -8,6 +8,7 @@ PVERSION?=$(shell cat debian/control | grep '^Version: ' | head -n 1 | awk '{ pr
 
 ifneq ($(shell echo "$(package)" | grep '[A-Za-z0-9]-portable'),)
 BUILD_PORTABLE?=1
+FORCE_INTERNAL_TOOLS?=1
 else
 BUILD_PORTABLE?=0
 endif
