@@ -1416,7 +1416,7 @@ $(V8_DIR): $(V8_SRC_DIR)
 	$(QUIET) cd ../support && cp -pRP src/v8 build/ ;
 
 $(V8_LIB): $(V8_DIR)
-	$(QUIET) cd $(V8_DIR) && make prefix=$(SUPPORT_DIR_ABS)/usr DESTDIR=/ native && find ./ -iname "*.o" | xargs ar cqs libv8.a ;
+	$(QUIET) cd $(V8_DIR) && make prefix=$(SUPPORT_DIR_ABS)/usr DESTDIR=/ native && find ./ -iname "*.o" | grep -v '\/preparser_lib\/' | xargs ar cqs libv8.a ;
 
 $(NODE_SRC_DIR):
 	$(QUIET) if [ ! -e $(SUPPORT_DIR)/src ] ; then mkdir -p $(SUPPORT_DIR)/src ; fi ;
