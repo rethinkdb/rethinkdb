@@ -231,6 +231,7 @@ TC_LESSC_INT_EXE:=$(SUPPORT_DIR_ABS)/toolchain/node_modules/less/bin/lessc
 TC_COFFEE_INT_EXE:=$(SUPPORT_DIR_ABS)/toolchain/node_modules/coffee-script/bin/coffee
 
 INT_CHAIN_NODE:=0
+INT_CHAIN_PROTOC:=0
 
 ifeq ($(FORCE_INTERNAL_TOOLS),1)
 TC_PROTOC_EXE:=$(TC_PROTOC_INT_EXE)
@@ -238,7 +239,9 @@ TC_PROTOC_EXE:=$(TC_PROTOC_INT_EXE)
 TC_PROTOC_RUN:=env LD_LIBRARY_PATH=$(TC_PROTOC_INT_LIB_DIR):$(LD_LIBRARY_PATH) PATH=$(TC_PROTOC_INT_BIN_DIR):$(PATH) $(TC_PROTOC_EXE)
 CXXPATHDS+= -isystem $(TC_PROTOC_INT_INC_DIR)
 CPATHDS+= -isystem $(TC_PROTOC_INT_INC_DIR)
-LDFLAGS+= -L $(TC_PROTOC_INT_LIB_DIR)
+# LDFLAGS+= -L $(TC_PROTOC_INT_LIB_DIR)
+# We do static linking explicitly now since things get messy otherwise.
+INT_CHAIN_PROTOC:=1
 INT_CHAIN_NODE:=1
 TC_NODE_EXE:=$(TC_NODE_INT_EXE)
 TC_NPM_EXE:=$(TC_NPM_INT_EXE)
@@ -252,7 +255,9 @@ TC_PROTOC_EXE:=$(TC_PROTOC_INT_EXE)
 TC_PROTOC_RUN:=env LD_LIBRARY_PATH=$(TC_PROTOC_INT_LIB_DIR):$(LD_LIBRARY_PATH) PATH=$(TC_PROTOC_INT_BIN_DIR):$(PATH) $(TC_PROTOC_EXE)
 CXXPATHDS+= -isystem $(TC_PROTOC_INT_INC_DIR)
 CPATHDS+= -isystem $(TC_PROTOC_INT_INC_DIR)
-LDFLAGS+= -L $(TC_PROTOC_INT_LIB_DIR)
+# LDFLAGS+= -L $(TC_PROTOC_INT_LIB_DIR)
+# We do static linking explicitly now since things get messy otherwise.
+INT_CHAIN_PROTOC:=1
 else
 TC_PROTOC_EXE:=$(shell which protoc || true)
 TC_PROTOC_RUN:=
@@ -298,7 +303,6 @@ else
 V8_DEP:=
 endif
 
-
 ifeq ($(LIBCRYPTO),1)
 LDFLAGS+=-lcrypto 
 endif
@@ -306,9 +310,17 @@ endif
 LIB_SEARCH_PATHS?=
 LDFLAGS+=$(foreach TLIB, $(LIB_SEARCH_PATHS), -L $(TLIB))
 
+STATIC_LIBRARY_PATHS:=
+
 STATIC_LIBRARIES:=
 
-STATIC_RECOMMENDS_INDIFFERENT:=boost_serialization protobuf boost_program_options
+STATIC_RECOMMENDS_INDIFFERENT:=boost_serialization boost_program_options
+
+ifeq ($(INT_CHAIN_PROTOC),1)
+STATIC_LIBRARY_PATHS+=$(TC_PROTOC_INT_LIB_DIR)/libprotobuf.a
+else
+STATIC_RECOMMENDS_INDIFFERENT+=protobuf
+endif
 
 STATIC_RECOMMENDS_IMPORTANT:=
 
@@ -329,6 +341,21 @@ ifeq ($(HIGHLY_RECOMMENDED_STATIC),1)
 STATIC_LIBRARIES+=$(STATIC_RECOMMENDS_IMPORTANT)
 else
 LDFLAGS+=$(foreach TLIB, $(STATIC_RECOMMENDS_IMPORTANT), -l$(TLIB))
+endif
+
+ifeq ($(STATIC_V8),2)
+ifeq ($(V8_CHAIN),0)
+STATIC_LIBRARIES+=libv8
+else
+STATIC_LIBRARY_PATHS+=$(V8_LIB)
+endif
+endif
+
+# look for the static library in the same directory as the .so file
+STATIC_LIBRARY_PATHS+=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }'))
+
+ifeq ($(GPERF),1)
+STATIC_LIBRARY_PATHS+= # path to patched libtcmalloc_and_profiler.a
 endif
 
 CXXFLAGS?=
@@ -523,22 +550,7 @@ endif
 PROTO_DIR:=$(BUILD_DIR)/proto
 CXXFLAGS += -I$(PROTO_DIR)
 
-STATIC_LIBRARY_PATHS:=
-
-ifeq ($(STATIC_V8),2)
-ifeq ($(V8_CHAIN),0)
-STATIC_LIBRARIES+=libv8
-else
-STATIC_LIBRARY_PATHS+=$(V8_LIB)
-endif
-endif
-
-# look for the static library in the same directory as the .so file
-STATIC_LIBRARY_PATHS+=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }'))
-
-ifeq ($(GPERF),1)
-STATIC_LIBRARY_PATHS+= # path to patched libtcmalloc_and_profiler.a
-endif
+# This was the former home of the STATIC_LIBRARY_PATHS stuff.
 
 #  /usr/lib/x86_64-linux-gnu/libQtCore.so.4
 
