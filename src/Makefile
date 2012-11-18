@@ -182,6 +182,7 @@ V8_CHAIN?=1
 STATIC_V8?=2
 else
 V8_CHAIN?=0
+PROTOC_CHAIN?=1
 STATIC_V8?=$(STATICFORCE)
 endif
 
@@ -205,6 +206,95 @@ ifeq ($(STATIC_V8),1)
 LDFLAGS+=-static -lv8 -dynamic
 endif
 endif
+
+# We have support for chain-building tools needed at compile-time. We handle V8 elsewhere for now.
+
+SUPPORT_DIR:=../support
+SUPPORT_DIR_ABS:=$(shell pwd ;)/$(SUPPORT_DIR)
+AUTOCHAIN?=0
+ALLOW_INTERNAL_TOOLS?=1
+FORCE_INTERNAL_TOOLS?=0
+FETCH_INTERNAL_TOOLS?=0
+TC_BUILD_DIR:=$(SUPPORT_DIR_ABS)/build
+TC_SRC_DIR:=$(SUPPORT_DIR_ABS)/src
+NODE_DIR:=$(TC_BUILD_DIR)/node
+NODE_SRC_DIR:=$(TC_SRC_DIR)/node
+PROTOC_DIR:=$(TC_BUILD_DIR)/protobuf
+PROTOC_SRC_DIR:=$(TC_SRC_DIR)/protobuf
+TC_PROTOC_INT_EXE:=$(SUPPORT_DIR_ABS)/usr/bin/protoc
+TC_PROTOC_INT_BIN_DIR:=$(SUPPORT_DIR_ABS)/usr/bin
+TC_PROTOC_INT_LIB_DIR:=$(SUPPORT_DIR_ABS)/usr/lib
+TC_PROTOC_INT_INC_DIR:=$(SUPPORT_DIR_ABS)/usr/include
+TC_NODE_INT_EXE:=$(SUPPORT_DIR_ABS)/usr/bin/node
+TC_NPM_INT_EXE:=$(SUPPORT_DIR_ABS)/usr/bin/npm
+TC_LESSC_INT_EXE:=$(SUPPORT_DIR_ABS)/toolchain/node_modules/less/bin/lessc
+TC_COFFEE_INT_EXE:=$(SUPPORT_DIR_ABS)/toolchain/node_modules/coffee-script/bin/coffee
+
+INT_CHAIN_NODE:=0
+
+ifeq ($(FORCE_INTERNAL_TOOLS),1)
+TC_PROTOC_EXE:=$(TC_PROTOC_INT_EXE)
+# This is how we run TC_PROTOC_EXE.
+TC_PROTOC_RUN:=env LD_LIBRARY_PATH=$(TC_PROTOC_INT_LIB_DIR):$(LD_LIBRARY_PATH) PATH=$(TC_PROTOC_INT_BIN_DIR):$(PATH) $(TC_PROTOC_EXE)
+CXXPATHDS+= -isystem $(TC_PROTOC_INT_INC_DIR)
+CPATHDS+= -isystem $(TC_PROTOC_INT_INC_DIR)
+TC_NODE_EXE:=$(TC_NODE_INT_EXE)
+TC_NPM_EXE:=$(TC_NPM_INT_EXE)
+TC_LESSC_EXE:=$(TC_LESSC_INT_EXE)
+TC_COFFEE_EXE:=$(TC_COFFEE_INT_EXE)
+else
+ifeq ($(ALLOW_INTERNAL_TOOLS),1)
+ifeq ($(shell which protoc || true),)
+# If npm is not present, node.js is likely too old.
+TC_PROTOC_EXE:=$(TC_PROTOC_INT_EXE)
+TC_PROTOC_RUN:=env LD_LIBRARY_PATH=$(TC_PROTOC_INT_LIB_DIR):$(LD_LIBRARY_PATH) PATH=$(TC_PROTOC_INT_BIN_DIR):$(PATH) $(TC_PROTOC_EXE)
+CXXPATHDS+= -isystem $(TC_PROTOC_INT_INC_DIR)
+CPATHDS+= -isystem $(TC_PROTOC_INT_INC_DIR)
+else
+TC_PROTOC_EXE:=$(shell which protoc || true)
+TC_PROTOC_RUN:=
+endif
+ifeq ($(shell which npm || true),)
+# If npm is not present, node.js is likely too old.
+INT_CHAIN_NODE:=1
+TC_NODE_EXE:=$(TC_NODE_INT_EXE)
+TC_NPM_EXE:=$(TC_NPM_INT_EXE)	
+else
+TC_NODE_EXE:=$(shell which node || true)
+TC_NPM_EXE:=$(shell which npm || true)
+endif
+ifeq ($(shell which lessc || true),)
+TC_LESSC_EXE:=$(TC_LESSC_INT_EXE)	
+else
+TC_LESSC_EXE:=$(shell which lessc || true)
+endif
+ifeq ($(shell which coffee || true),)
+TC_COFFEE_EXE:=$(TC_COFFEE_INT_EXE)
+else
+TC_COFFEE_EXE:=$(shell which coffee || true)
+endif
+else # ALLOW_INTERNAL_TOOLS
+TC_PROTOC_EXE:=$(shell which protoc || true)
+TC_LESSC_EXE:=$(shell which lessc || true)
+TC_COFFEE_EXE:=$(shell which coffee || true)
+TC_NODE_EXE:=$(shell which node || true)
+TC_NPM_EXE:=$(shell which npm || true)
+endif # ALLOW_INTERNAL_TOOLS
+endif # FORCE_INTERNAL_TOOLS
+
+ifeq ($(INT_CHAIN_NODE),0)
+NODE_EXE_SPEC:=
+else
+NODE_EXE_SPEC:=$(TC_NODE_EXE)
+NODE_EXE_SPEC+=
+endif
+
+ifeq ($(V8_CHAIN),1)
+V8_DEP:=$(V8_DIR)
+else
+V8_DEP:=
+endif
+
 
 ifeq ($(LIBCRYPTO),1)
 LDFLAGS+=-lcrypto 
@@ -558,89 +648,6 @@ SERVER_EXEC_NAME_VERSIONED:=$(SERVER_EXEC_NAME)-$(RETHINKDB_SHORT_VERSION)
 else
 # update-alternatives breaks if we ditch the distinguishing mark .
 SERVER_EXEC_NAME_VERSIONED:=$(SERVER_EXEC_NAME)
-endif
-
-# We have support for chain-building tools needed at compile-time. We handle V8 elsewhere for now.
-
-SUPPORT_DIR:=../support
-SUPPORT_DIR_ABS:=$(shell pwd ;)/$(SUPPORT_DIR)
-AUTOCHAIN?=0
-ALLOW_INTERNAL_TOOLS?=1
-FORCE_INTERNAL_TOOLS?=0
-FETCH_INTERNAL_TOOLS?=0
-TC_BUILD_DIR:=$(SUPPORT_DIR_ABS)/build
-TC_SRC_DIR:=$(SUPPORT_DIR_ABS)/src
-NODE_DIR:=$(TC_BUILD_DIR)/node
-NODE_SRC_DIR:=$(TC_SRC_DIR)/node
-PROTOC_DIR:=$(TC_BUILD_DIR)/protobuf
-PROTOC_SRC_DIR:=$(TC_SRC_DIR)/protobuf
-TC_PROTOC_INT_EXE:=$(SUPPORT_DIR_ABS)/usr/bin/protoc
-TC_PROTOC_INT_BIN_DIR:=$(SUPPORT_DIR_ABS)/usr/bin
-TC_PROTOC_INT_LIB_DIR:=$(SUPPORT_DIR_ABS)/usr/lib
-TC_NODE_INT_EXE:=$(SUPPORT_DIR_ABS)/usr/bin/node
-TC_NPM_INT_EXE:=$(SUPPORT_DIR_ABS)/usr/bin/npm
-TC_LESSC_INT_EXE:=$(SUPPORT_DIR_ABS)/toolchain/node_modules/less/bin/lessc
-TC_COFFEE_INT_EXE:=$(SUPPORT_DIR_ABS)/toolchain/node_modules/coffee-script/bin/coffee
-
-INT_CHAIN_NODE:=0
-
-ifeq ($(FORCE_INTERNAL_TOOLS),1)
-TC_PROTOC_EXE:=$(TC_PROTOC_INT_EXE)
-# This is how we run TC_PROTOC_EXE.
-TC_PROTOC_RUN:=env LD_LIBRARY_PATH=$(TC_PROTOC_INT_LIB_DIR):$(LD_LIBRARY_PATH) PATH=$(TC_PROTOC_INT_BIN_DIR):$(PATH) $(TC_PROTOC_EXE)
-TC_NODE_EXE:=$(TC_NODE_INT_EXE)
-TC_NPM_EXE:=$(TC_NPM_INT_EXE)
-TC_LESSC_EXE:=$(TC_LESSC_INT_EXE)
-TC_COFFEE_EXE:=$(TC_COFFEE_INT_EXE)
-else
-ifeq ($(ALLOW_INTERNAL_TOOLS),1)
-ifeq ($(shell which protoc || true),)
-# If npm is not present, node.js is likely too old.
-TC_PROTOC_EXE:=$(TC_PROTOC_INT_EXE)
-TC_PROTOC_RUN:=env LD_LIBRARY_PATH=$(TC_PROTOC_INT_LIB_DIR):$(LD_LIBRARY_PATH) PATH=$(TC_PROTOC_INT_BIN_DIR):$(PATH) $(TC_PROTOC_EXE)
-else
-TC_PROTOC_EXE:=$(shell which protoc || true)
-TC_PROTOC_RUN:=
-endif
-ifeq ($(shell which npm || true),)
-# If npm is not present, node.js is likely too old.
-INT_CHAIN_NODE:=1
-TC_NODE_EXE:=$(TC_NODE_INT_EXE)
-TC_NPM_EXE:=$(TC_NPM_INT_EXE)	
-else
-TC_NODE_EXE:=$(shell which node || true)
-TC_NPM_EXE:=$(shell which npm || true)
-endif
-ifeq ($(shell which lessc || true),)
-TC_LESSC_EXE:=$(TC_LESSC_INT_EXE)	
-else
-TC_LESSC_EXE:=$(shell which lessc || true)
-endif
-ifeq ($(shell which coffee || true),)
-TC_COFFEE_EXE:=$(TC_COFFEE_INT_EXE)
-else
-TC_COFFEE_EXE:=$(shell which coffee || true)
-endif
-else # ALLOW_INTERNAL_TOOLS
-TC_PROTOC_EXE:=$(shell which protoc || true)
-TC_LESSC_EXE:=$(shell which lessc || true)
-TC_COFFEE_EXE:=$(shell which coffee || true)
-TC_NODE_EXE:=$(shell which node || true)
-TC_NPM_EXE:=$(shell which npm || true)
-endif # ALLOW_INTERNAL_TOOLS
-endif # FORCE_INTERNAL_TOOLS
-
-ifeq ($(INT_CHAIN_NODE),0)
-NODE_EXE_SPEC:=
-else
-NODE_EXE_SPEC:=$(TC_NODE_EXE)
-NODE_EXE_SPEC+=
-endif
-
-ifeq ($(V8_CHAIN),1)
-V8_DEP:=$(V8_DIR)
-else
-V8_DEP:=
 endif
 
 ##### Build targets
