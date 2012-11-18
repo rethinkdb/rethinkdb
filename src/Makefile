@@ -575,6 +575,8 @@ NODE_SRC_DIR:=$(TC_SRC_DIR)/node
 PROTOC_DIR:=$(TC_BUILD_DIR)/protobuf
 PROTOC_SRC_DIR:=$(TC_SRC_DIR)/protobuf
 TC_PROTOC_INT_EXE:=$(SUPPORT_DIR_ABS)/usr/bin/protoc
+TC_PROTOC_INT_BIN_DIR:=$(SUPPORT_DIR_ABS)/usr/bin
+TC_PROTOC_INT_LIB_DIR:=$(SUPPORT_DIR_ABS)/usr/lib
 TC_NODE_INT_EXE:=$(SUPPORT_DIR_ABS)/usr/bin/node
 TC_NPM_INT_EXE:=$(SUPPORT_DIR_ABS)/usr/bin/npm
 TC_LESSC_INT_EXE:=$(SUPPORT_DIR_ABS)/toolchain/node_modules/less/bin/lessc
@@ -584,6 +586,8 @@ INT_CHAIN_NODE:=0
 
 ifeq ($(FORCE_INTERNAL_TOOLS),1)
 TC_PROTOC_EXE:=$(TC_PROTOC_INT_EXE)
+# This is how we run TC_PROTOC_EXE.
+TC_PROTOC_RUN:=env LD_LIBRARY_PATH=$(TC_PROTOC_INT_LIB_DIR):$(LD_LIBRARY_PATH) PATH=$(TC_PROTOC_INT_BIN_DIR):$(PATH) $(TC_PROTOC_EXE)
 TC_NODE_EXE:=$(TC_NODE_INT_EXE)
 TC_NPM_EXE:=$(TC_NPM_INT_EXE)
 TC_LESSC_EXE:=$(TC_LESSC_INT_EXE)
@@ -593,8 +597,10 @@ ifeq ($(ALLOW_INTERNAL_TOOLS),1)
 ifeq ($(shell which protoc || true),)
 # If npm is not present, node.js is likely too old.
 TC_PROTOC_EXE:=$(TC_PROTOC_INT_EXE)
+TC_PROTOC_RUN:=env LD_LIBRARY_PATH=$(TC_PROTOC_INT_LIB_DIR):$(LD_LIBRARY_PATH) PATH=$(TC_PROTOC_INT_BIN_DIR):$(PATH) $(TC_PROTOC_EXE)
 else
 TC_PROTOC_EXE:=$(shell which protoc || true)
+TC_PROTOC_RUN:=
 endif
 ifeq ($(shell which npm || true),)
 # If npm is not present, node.js is likely too old.
@@ -1161,7 +1167,7 @@ $(PROTO_DIR)/dummy: $(PROTO_SOURCES) $(TC_PROTOC_EXE)
 ifeq ($(VERBOSE),0)
 	@echo "    PROTOC[CPP] $^"
 endif
-	$(QUIET) $(TC_PROTOC_EXE) $(PROTOCFLAGS) --cpp_out $(PROTO_DIR) $(PROTO_SOURCES) && touch $@
+	$(QUIET) $(TC_PROTOC_RUN) $(PROTOCFLAGS) --cpp_out $(PROTO_DIR) $(PROTO_SOURCES) && touch $@
 # The preceding line used $^ instead of $(PROTO_SOURCES) before.
 # The touch command was on a separate line, but that caused problems since make ignored the failure of that line and touched the file anyway.
 
