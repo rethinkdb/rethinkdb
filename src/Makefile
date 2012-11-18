@@ -1385,7 +1385,7 @@ $(V8_DIR): $(V8_SRC_DIR)
 	$(QUIET) cd ../support && cp -pRP src/v8 build/ ;
 
 $(V8_LIB): $(V8_DIR)
-	$(QUIET) cd $(V8_DIR) && make native && find ./ -iname "*.o" | xargs ar cqs libv8.a ;
+	$(QUIET) cd $(V8_DIR) && make prefix=$(SUPPORT_DIR_ABS)/usr DESTDIR=/ native && find ./ -iname "*.o" | xargs ar cqs libv8.a ;
 
 $(NODE_SRC_DIR):
 	$(QUIET) if [ ! -e $(SUPPORT_DIR)/src ] ; then mkdir -p $(SUPPORT_DIR)/src ; fi ;
@@ -1402,7 +1402,8 @@ $(NODE_DIR): $(NODE_SRC_DIR)
 	$(QUIET) cd ../support && cp -pRP src/node build/ ;
 
 $(TC_NODE_INT_EXE) $(TC_NPM_INT_EXE): $(NODE_DIR)
-	cd $(NODE_DIR) && ./configure --prefix=$(SUPPORT_DIR_ABS)/usr && make && make install ;
+# NOTE: MAKEFLAGS pass through to chained makes, so it is necessary to over-ride those flags that one wishes not to pass through. Scrubbing all flags and environment variables is not a solution since we want to pass through things like LD_LIBRARY_PATH and PATH and such.
+	cd $(NODE_DIR) && ./configure --prefix=$(SUPPORT_DIR_ABS)/usr && $(MAKE) prefix=$(SUPPORT_DIR_ABS)/usr DESTDIR=/ && $(MAKE) install prefix=$(SUPPORT_DIR_ABS)/usr DESTDIR=/ ;
 
 $(PROTOC_SRC_DIR):
 	$(QUIET) if [ ! -e $(SUPPORT_DIR)/src ] ; then mkdir -p $(SUPPORT_DIR)/src ; fi ;
@@ -1419,5 +1420,6 @@ $(PROTOC_DIR): $(PROTOC_SRC_DIR)
 	$(QUIET) cd ../support && cp -pRP src/protobuf build/ ;
 
 $(TC_PROTOC_INT_EXE): $(PROTOC_DIR)
-	cd $(PROTOC_DIR) && ./configure --prefix=$(SUPPORT_DIR_ABS)/usr && make && make install ;
+# NOTE: MAKEFLAGS pass through to chained makes, so it is necessary to over-ride those flags that one wishes not to pass through. Scrubbing all flags and environment variables is not a solution since we want to pass through things like LD_LIBRARY_PATH and PATH and such.
+	cd $(PROTOC_DIR) && ./configure --prefix=$(SUPPORT_DIR_ABS)/usr && $(MAKE) prefix=$(SUPPORT_DIR_ABS)/usr DESTDIR=/ && $(MAKE) install prefix=$(SUPPORT_DIR_ABS)/usr DESTDIR=/ ;
 
