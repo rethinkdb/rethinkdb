@@ -1404,8 +1404,11 @@ ifeq ($(FETCH_INTERNAL_TOOLS),1)
 	@echo "    SVN-CO V8"
 	$(QUIET) cd ../support/src && svn checkout http://v8.googlecode.com/svn/trunk/ v8 && cd v8 && make dependencies ;
 else
-	@echo "    ERROR: Internal V8 is necessary but not not present, and FETCH_INTERNAL_TOOLS != 1." ;
-	false ;
+	if [ ! -e $(V8_SRC_DIR) ] ;
+	then
+		@echo "    ERROR: Internal V8 is necessary but not not present, and FETCH_INTERNAL_TOOLS != 1." ;
+		false ;
+	fi ;
 endif
 
 $(V8_DIR): $(V8_SRC_DIR)
@@ -1421,8 +1424,11 @@ ifeq ($(FETCH_INTERNAL_TOOLS),1)
 	@echo "    WGET NODE"
 	$(QUIET) cd ../support/src && wget http://nodejs.org/dist/v0.8.11/node-v0.8.11.tar.gz && tar -xzf node-v0.8.11.tar.gz && rm -rf protobuf && mv node-v0.8.11 node && rm node-v0.8.11.tar.gz ;
 else
-	@echo "    ERROR: Internal node.js is necessary but not not present, and FETCH_INTERNAL_TOOLS != 1." ;
-	false ;
+	if [ ! -e $(NODE_SRC_DIR) ] ;
+	then
+		@echo "    ERROR: Internal node.js is necessary but not not present, and FETCH_INTERNAL_TOOLS != 1." ;
+		false ;
+	fi ;
 endif
 
 $(NODE_DIR): $(NODE_SRC_DIR)
@@ -1439,8 +1445,11 @@ ifeq ($(FETCH_INTERNAL_TOOLS),1)
 	@echo "    WGET PROTOC"
 	$(QUIET) cd ../support/src && wget http://protobuf.googlecode.com/files/protobuf-2.4.1.tar.bz2 && tar -xjf protobuf-2.4.1.tar.bz2 && rm -rf protobuf && mv protobuf-2.4.1 protobuf && rm protobuf-2.4.1.tar.bz2 ;
 else
-	@echo "    ERROR: Internal protoc is necessary but not not present, and FETCH_INTERNAL_TOOLS != 1." ;
-	false ;
+	if [ ! -e $(PROTOC_SRC_DIR) ] ;
+	then
+		@echo "    ERROR: Internal protoc is necessary but not not present, and FETCH_INTERNAL_TOOLS != 1." ;
+		false ;
+	fi ;
 endif
 
 $(PROTOC_DIR): $(PROTOC_SRC_DIR)
