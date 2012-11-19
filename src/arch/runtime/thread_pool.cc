@@ -12,7 +12,7 @@
 #include "errors.hpp"
 #include "logger.hpp"
 
-const int SEGV_STACK_SIZE = 8126;
+const int SEGV_STACK_SIZE = SIGSTKSZ;
 
 __thread linux_thread_pool_t *linux_thread_pool_t::thread_pool;
 __thread int linux_thread_pool_t::thread_id;
