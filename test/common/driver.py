@@ -214,7 +214,9 @@ class _Process(object):
             self.args = command_prefix + [executable_path] + options
             for peer in cluster.processes:
                 if peer is not self:
-                    self.args.append("--join=" + socket.gethostname() + ":" + str(peer.cluster_port))
+                    # TODO(OSX) Why did we ever use socket.gethostname() and not localhost?
+                    # self.args.append("--join=" + socket.gethostname() + ":" + str(peer.cluster_port))
+                    self.args.append("--join=" + "localhost" + ":" + str(peer.cluster_port))
 
             self.log_path = log_path
             if self.log_path is None:

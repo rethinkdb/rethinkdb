@@ -25,8 +25,11 @@
 #include "logger.hpp"
 #include "perfmon/perfmon.hpp"
 
+// TODO(OSX) This will be gone when we merge the new heartbeat changes.
+#if !__MACH__
 // TODO: THIS IS A REALLY BAD IDEA, BUT linux/tcp.h WON'T INCLUDE ON GCC 4.4.1+
 #define TCP_USER_TIMEOUT 18
+#endif  // !__MACH__
 
 /* Network connection object */
 
@@ -487,7 +490,14 @@ bool linux_tcp_conn_t::is_write_open() {
     return !write_closed.is_pulsed();
 }
 
-void linux_tcp_conn_t::set_keepalive(int idle_seconds, int try_interval_seconds, int try_count) {
+// TODO(OSX) Surely we should get rid of this.
+#if __MACH__
+#define NOMACHVAR UNUSED
+#else
+#define NOMACHVAR
+#endif
+
+void linux_tcp_conn_t::set_keepalive(NOMACHVAR int idle_seconds, NOMACHVAR int try_interval_seconds, NOMACHVAR int try_count) {
     int res;
     int keepalive = 1;
     res = setsockopt(sock.get(), SOL_SOCKET, SO_KEEPALIVE, &keepalive, sizeof(keepalive));
@@ -500,12 +510,12 @@ void linux_tcp_conn_t::set_keepalive(int idle_seconds, int try_interval_seconds,
     guarantee_err(res == 0, "setsockopt(TCP_KEEPINTVL) failed");
     res = setsockopt(sock.get(), IPPROTO_TCP, TCP_KEEPCNT, &try_count, sizeof(try_count));
     guarantee_err(res == 0, "setsockopt(TCP_KEEPCNT) failed");
-#endif  // !__MACH__
     // Also set an option to make sure the connection fails in a reasonable amount of time
     // even if there is traffic on it
     int user_timeout = (idle_seconds + (try_interval_seconds * try_count)) * 1000;
     res = setsockopt(sock.get(), IPPROTO_TCP, TCP_USER_TIMEOUT, &user_timeout, sizeof(user_timeout));
     guarantee_err(res == 0, "setsockopt(TCP_USER_TiMEOUT) failed");
+#endif  // !__MACH__
 }
 
 void linux_tcp_conn_t::set_keepalive() {
@@ -681,7 +691,7 @@ int linux_nonthrowing_tcp_listener_t::get_port() const {
     return port;
 }
 
-void linux_nonthrowing_tcp_listener_t::init_socket(int user_timeout) {
+void linux_nonthrowing_tcp_listener_t::init_socket(NOMACHVAR int user_timeout) {
     int sock_fd = sock.get();
     guarantee_err(sock_fd != INVALID_FD, "Couldn't create socket");
 
@@ -703,10 +713,13 @@ void linux_nonthrowing_tcp_listener_t::init_socket(int user_timeout) {
     res = setsockopt(sock_fd, IPPROTO_TCP, TCP_NODELAY, &sockoptval, sizeof(sockoptval));
     guarantee_err(res != -1, "Could not set TCP_NODELAY option");
 
+    // TODO(OSX) This will be gone when we merge the new heartbeat changes.
+#if !__MACH__
     if (user_timeout > 0) {
         res = setsockopt(sock.get(), IPPROTO_TCP, TCP_USER_TIMEOUT, &user_timeout, sizeof(user_timeout));
         guarantee_err(res == 0, "setsockopt(TCP_USER_TIMEOUT) failed");
     }
+#endif  // !__MACH__
 }
 
 bool linux_nonthrowing_tcp_listener_t::bind_socket() {
