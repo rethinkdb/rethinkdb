@@ -5,9 +5,11 @@
 #include "errors.hpp"
 #include "arch/runtime/event_queue.hpp"
 
+void timer_itimer_forward_alrm();
+
 struct timer_provider_callback_t;
 
-class timer_itimer_provider_t : public linux_event_callback_t {
+class timer_itimer_provider_t : public intrusive_list_node_t<timer_itimer_provider_t> {
 public:
     timer_itimer_provider_t(linux_event_queue_t *queue,
                             timer_provider_callback_t *callback,
@@ -15,7 +17,8 @@ public:
     ~timer_itimer_provider_t();
 
 private:
-    void on_event(int events);
+    friend void timer_itimer_forward_alrm();
+    void on_alrm();
 
     linux_event_queue_t *queue_;
     timer_provider_callback_t *callback_;

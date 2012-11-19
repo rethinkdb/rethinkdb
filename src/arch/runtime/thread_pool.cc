@@ -211,6 +211,13 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
 
         res = sigaction(SIGINT, &sa, NULL);
         guarantee_err(res == 0, "Could not install INT handler");
+
+        // TODO(OSX) inspect this
+#if __MACH__
+        sa.sa_handler = &linux_thread_pool_t::alrm_handler;
+        res = sigaction(SIGALRM, &sa, NULL);
+        guarantee_err(res == 0, "Could not install ALRM handler");
+#endif
     }
 
     // Wait for order to shut down
@@ -238,6 +245,12 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
 
         res = sigaction(SIGINT, &sa, NULL);
         guarantee_err(res == 0, "Could not remove INT handler");
+
+        // TODO(OSX) inspect this
+#if __MACH__
+        res = sigaction(SIGALRM, &sa, NULL);
+        guarantee_err(res == 0, "Could not remove ALRM handler");
+#endif
     }
     linux_thread_pool_t::thread_pool = NULL;
 
@@ -282,6 +295,27 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
     }
 #endif
 }
+
+// TODO(OSX) We do this here.
+#if __MACH__
+class alrm_message_t : public linux_thread_message_t {
+    virtual void on_thread_switch() {
+        timer_itimer_forward_alrm();
+        delete this;
+    }
+};
+
+void linux_thread_pool_t::alrm_handler(int) {
+    rassert(linux_thread_pool_t::thread_id == -1, "The interrupt handler was called on the wrong thread.");
+
+    linux_thread_pool_t *self = linux_thread_pool_t::thread_pool;
+
+    for (int i = 0; i < self->n_threads; ++i) {
+        self->threads[i]->message_hub.insert_external_message(new alrm_message_t);
+    }
+}
+
+#endif  // __MACH__
 
 // Note: Maybe we should use a signalfd instead of a signal handler, and then
 // there would be no issues with potential race conditions because the signal

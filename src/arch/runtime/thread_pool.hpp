@@ -66,6 +66,10 @@ private:
 
     static void *start_thread(void*);
 
+    // TODO(OSX) inspect this
+#if __MACH__
+    static void alrm_handler(int);
+#endif
     static void interrupt_handler(int);
     static void sigsegv_handler(int, siginfo_t *, void *) NORETURN;
     spinlock_t interrupt_message_lock;
