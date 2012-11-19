@@ -5,21 +5,47 @@
 #include <stdio.h>
 #include "utils.hpp"
 
+#if __MACH__
+#include <mach/mach_time.h>
+#endif
+
+#define THOUSAND 1000LL
+#define MILLION (THOUSAND * THOUSAND)
+#define BILLION (THOUSAND * MILLION)
+
 /* Timing related functions */
 typedef unsigned long long ticks_t;
 ticks_t secs_to_ticks(float secs) {
     return (unsigned long long)secs * 1000000000L;
 }
 
-ticks_t get_ticks() {
-    timespec tv;
-    clock_gettime(CLOCK_MONOTONIC, &tv);
-    return secs_to_ticks(tv.tv_sec) + tv.tv_nsec;
+// TODO(OSX) copy/pasted from src/utils.cc.
+#if __MACH__
+mach_timebase_info_data_t mach_time_info;
+#endif  // __MACH__
+
+timespec clock_monotonic() {
+#if __MACH__
+    if (mach_time_info.denom == 0) {
+        // TODO(OSX) This is kind of a hack considering multithreading.
+        mach_timebase_info(&mach_time_info);
+    }
+    const uint64_t t = mach_absolute_time();
+    uint64_t nanosecs = t * mach_time_info.numer / mach_time_info.denom;
+    timespec ret;
+    ret.tv_sec = nanosecs / BILLION;
+    ret.tv_nsec = nanosecs % BILLION;
+    return ret;
+#else
+    timespec ret;
+    int res = clock_gettime(CLOCK_MONOTONIC, &ret);
+    guarantee_err(res == 0, "clock_gettime(CLOCK_MONOTIC, ...) failed");
+    return ret;
+#endif
 }
 
-long get_ticks_res() {
-    timespec tv;
-    clock_getres(CLOCK_MONOTONIC, &tv);
+ticks_t get_ticks() {
+    timespec tv = clock_monotonic();
     return secs_to_ticks(tv.tv_sec) + tv.tv_nsec;
 }
 

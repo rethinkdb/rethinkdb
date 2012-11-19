@@ -29,7 +29,6 @@ size_t seeded_xrandom(rnd_gen_t rnd, size_t min, size_t max, unsigned long seed)
 typedef unsigned long long ticks_t;
 ticks_t secs_to_ticks(float secs);
 ticks_t get_ticks();
-long get_ticks_res();
 float ticks_to_secs(ticks_t ticks);
 float ticks_to_ms(ticks_t ticks);
 float ticks_to_us(ticks_t ticks);
@@ -37,16 +36,78 @@ float ticks_to_us(ticks_t ticks);
 void sleep_ticks(ticks_t ticks);
 
 /* Spinlock wrapper class */
-struct spinlock_t {
-    spinlock_t() { pthread_spin_init(&l, PTHREAD_PROCESS_PRIVATE); }
-    ~spinlock_t() { pthread_spin_destroy(&l); }
-    void lock() { pthread_spin_lock(&l); }
-    void unlock() { pthread_spin_unlock(&l); }
+// TODO(OSX) Copy/pasted from src/arch/spinlock.hpp  (then lock/unlock made public).
+#if __APPLE__
+#define PTHREAD_HAS_SPINLOCK 0
+#else
+#define PTHREAD_HAS_SPINLOCK 1
+#endif
+
+// TODO: we should use regular mutexes on single core CPU
+// instead of spinlocks
+
+class spinlock_t {
+public:
+    friend class spinlock_acq_t;
+
+    spinlock_t() {
+#if PTHREAD_HAS_SPINLOCK
+        pthread_spin_init(&l, PTHREAD_PROCESS_PRIVATE);
+#else
+        pthread_mutex_init(&l, NULL);
+#endif
+    }
+    ~spinlock_t() {
+#if PTHREAD_HAS_SPINLOCK
+        pthread_spin_destroy(&l);
+#else
+        pthread_mutex_destroy(&l);
+#endif
+    }
+
+    void lock() {
+#if PTHREAD_HAS_SPINLOCK
+        pthread_spin_lock(&l);
+#else
+        pthread_mutex_lock(&l);
+#endif
+    }
+    void unlock() {
+#if PTHREAD_HAS_SPINLOCK
+        pthread_spin_unlock(&l);
+#else
+        pthread_mutex_unlock(&l);
+#endif
+    }
+
 private:
+#if PTHREAD_HAS_SPINLOCK
     pthread_spinlock_t l;
-    spinlock_t(const spinlock_t &);
-    spinlock_t &operator=(const spinlock_t &);
+#else
+    pthread_mutex_t l;
+#endif
+
+    // TODO(OSX) add disable_copying.
+    spinlock_t(const spinlock_t&);
+    void operator=(const spinlock_t&);
 };
+
+class spinlock_acq_t {
+public:
+    explicit spinlock_acq_t(spinlock_t *the_lock) : the_lock_(the_lock) {
+        the_lock_->lock();
+    }
+    ~spinlock_acq_t() {
+        the_lock_->unlock();
+    }
+
+private:
+    spinlock_t *the_lock_;
+
+    spinlock_acq_t(const spinlock_acq_t&);
+    void operator=(const spinlock_acq_t&);
+};
+
 
 /* Return the number of digits in the number */
 int count_decimal_digits(int);

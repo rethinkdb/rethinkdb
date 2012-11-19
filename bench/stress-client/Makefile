@@ -51,11 +51,12 @@ protocols/query_language.pb.cc: proto_files
 %.o: %.c $(HEADERS) Makefile
 	$(CC) $(CFLAGS) -c $< -o $@
 
+# TODO(OSX) We just wantonly removed -lrt here, but what about clock_gettime?
 $(EXEC_NAME): proto_files $(OBJ) main.o $(HEADERS) Makefile
-	$(CXX) $(CXXFLAGS) -o $(EXEC_NAME) $(OBJ) main.o -lm -lrt $(TLIB) $(LIBS)
+	$(CXX) $(CXXFLAGS) -o $(EXEC_NAME) $(OBJ) main.o -lm $(TLIB) $(LIBS)
 
 $(SO_NAME): $(OBJ) python_interface.o $(HEADERS) python_interface.h Makefile
-	$(CXX) $(CXXFLAGS) -shared -o $(SO_NAME) $(OBJ) python_interface.o -lm -lrt $(TLIB) $(LIBS)
+	$(CXX) $(CXXFLAGS) -shared -o $(SO_NAME) $(OBJ) python_interface.o -lm $(TLIB) $(LIBS)
 
 tags: Makefile
 	ctags -R -f $(TAGS) --langmap="c++:.cc.tcc.hpp"
