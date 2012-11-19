@@ -275,6 +275,12 @@ mc_inner_buf_t *mc_inner_buf_t::allocate(mc_cache_t *cache, version_id_t snapsho
         inner_buf->snap_refcount = 0;
         inner_buf->block_sequence_id = NULL_BLOCK_SEQUENCE_ID;
         inner_buf->data_token.reset();
+        
+        // Also reset the writeback_buf
+        inner_buf->writeback_buf().set_last_patch_materialized(0);
+        inner_buf->writeback_buf().set_needs_flush(false);
+        inner_buf->writeback_buf().set_dirty(false);
+        inner_buf->writeback_buf().set_recency_dirty(false);
 
         return inner_buf;
     }
