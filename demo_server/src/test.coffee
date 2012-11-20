@@ -723,7 +723,12 @@ $(document).ready ->
             callback_name: 'expect_result'
             expected_result: {"N1": {id:1, key:0}, "N2": {id:2, key:2}, "N3": {id:3, key:3}}
         },
-
+        {
+            state: deep_copy state['2']
+            query: 'r.db("test").table("test").filter(function(doc) { return doc.eq({id:2, key:2}) }).run()'
+            callback_name: 'expect_result'
+            expected_result: [{id:2, key:2}]
+        },
     ]
     tests = new Tests queries
     tests.test()
