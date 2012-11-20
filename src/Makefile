@@ -1111,9 +1111,9 @@ oprof-report:
 
 drivers:
 ifeq ($(BUILD_DRIVERS), 1)
-	$(QUIET) cd ../drivers ; $(MAKE) ;
+	$(QUIET) cd ../drivers ; $(MAKE) PROTOC="$(TC_PROTOC_RUN)" ;
 else
-	$(QUIET) cd ../drivers/javascript ; $(MAKE) ;
+	$(QUIET) cd ../drivers/javascript ; $(MAKE) PROTOC="$(TC_PROTOC_RUN)" ;
 endif #BUILD_DRIVERS
 
 
