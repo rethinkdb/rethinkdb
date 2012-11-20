@@ -149,9 +149,8 @@ class RDBTest(unittest.TestCase):
         self.error_exec(~expr(3), "bool")
 
     def test_let(self):
-        self.expect(let(("x", 3), letvar("x")), 3)
-        self.expect(let(("x", 3), ("x", 4), letvar("x")), 4)
-        self.expect(let(("x", 3), ("y", 4), letvar("x")), 3)
+        self.expect(let({"x": 3}, letvar("x")), 3)
+        self.expect(let({"x": 3, "y": 4}, letvar("x")), 3)
 
         self.error_query(letvar("x"), "not in scope")
 
@@ -497,8 +496,8 @@ class RDBTest(unittest.TestCase):
         names = "slava joe rntz rmmh tim".split()
         docs = [{'id': i, 'name': name} for i,name in enumerate(names)]
 
-        self.expect(let(('x', 2), js('x')), 2)
-        self.expect(let(('x', 2), ('y', 3), js('x + y')), 5)
+        self.expect(let({'x': 2}, js('x')), 2)
+        self.expect(let({'x': 2, 'y': 3}, js('x + y')), 5)
 
         self.do_insert(docs)
         self.expect(self.table.order_by("id").map(lambda x: x), docs) # sanity check
@@ -524,6 +523,38 @@ class RDBTest(unittest.TestCase):
         self.expect(self.table.order_by("id"), docs)
 
         self.expect(self.table.update(None), {'updated': 0, 'skipped': 10, 'errors': 0})
+
+    def test_joins(self):
+        docs1 = [{'id': n} for n in range(100)]
+        docs2 = [{'id': n+10} for n in range(100)]
+
+        try:
+            self.db.table_create('jtbl1').run()
+            self.db.table_create('jtbl2').run()
+        except:
+            pass
+
+        tbl1 = self.db.table('jtbl1')
+        tbl2 = self.db.table('jtbl2')
+
+        tbl1.insert(docs1).run()
+        tbl2.insert(docs2).run()
+
+        iJoin = tbl1.inner_join(tbl2, lambda l, r: l['id'] == r['id'])
+        oJoin = tbl1.outer_join(tbl2, lambda l, r: l['id'] == r['id'])
+
+        self.expect(iJoin.count(), 90)
+        self.expect(iJoin.filter(lambda x: x.contains('right')).count(), 90)
+        self.expect(iJoin.filter(lambda x: x.contains('left')).count(), 90)
+
+        self.expect(oJoin.count(), 100)
+        self.expect(oJoin.filter(lambda x: x.contains('left')).count(), 100)
+        self.expect(oJoin.filter(lambda x: x.contains('right')).count(), 90)
+
+        self.expect(tbl1.eq_join('id', tbl2).count(), 90)
+
+        self.db.table_drop('jtbl1').run()
+        self.db.table_drop('jtbl2').run()
 
     def test_det(self):
         if 'test' not in db_list().run():

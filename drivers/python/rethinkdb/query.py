@@ -746,20 +746,20 @@ class JSONExpression(ReadQuery):
 
     def outer_join(self, other, predicate):
         return self.concat_map(
-            lambda row: let(('matches', other.concat_map(
-                lambda row2: branch(predicate(row, row2),
-                    expr([{'left':row, 'right':row2}]),
+            lambda left: let({'matches': other.concat_map(
+                lambda right: branch(predicate(left, right),
+                    expr([{'left':left, 'right':right}]),
                     expr([])
                 )
-            )), branch(letvar('matches').count() > 0,
+            ).stream_to_array()}, branch(letvar('matches').count() > 0,
                 letvar('matches'),
-                expr([{'left':row}])
+                expr([{'left':left}])
             ))
         )
 
     def eq_join(self, left_attr, other, opt_right_attr=None):
         return self.concat_map(
-            lambda row: let(('right', other.get(row[left_attr])),
+            lambda row: let({'right': other.get(row[left_attr])},
                 branch(letvar('right') != None,
                     expr([{'left':row, 'right':letvar('right')}]),
                     expr([])
@@ -1125,20 +1125,20 @@ class StreamExpression(ReadQuery):
 
     def outer_join(self, other, predicate):
         return self.concat_map(
-            lambda row: let(('matches', other.concat_map(
-                lambda row2: branch(predicate(row, row2),
-                    expr([{'left':row, 'right':row2}]),
+            lambda left: let({'matches': other.concat_map(
+                lambda right: branch(predicate(left, right),
+                    expr([{'left':left, 'right':right}]),
                     expr([])
                 )
-            )), branch(letvar('matches').count() > 0,
+            ).stream_to_array()}, branch(letvar('matches').count() > 0,
                 letvar('matches'),
-                expr({'left':row})
+                expr([{'left':left}])
             ))
         )
 
     def eq_join(self, left_attr, other, opt_right_attr=None):
         return self.concat_map(
-            lambda row: let(('right', other.get(row[left_attr])),
+            lambda row: let({'right': other.get(row[left_attr])},
                 branch(letvar('right') != None,
                     expr([{'left':row, 'right':letvar('right')}]),
                     expr([])
@@ -1271,9 +1271,7 @@ def js(expr=None, body=None):
     else:
         return JSONExpression(internal.Javascript(u'return (%s);' % expr))
 
-def let(*bindings):
-    body = bindings[-1]
-    bindings = bindings[:-1]
+def let(bindings, body):
     if len(bindings) == 0:
         raise ValueError("need at least one binding")
     if isinstance(body, MultiRowSelection):
@@ -1285,6 +1283,7 @@ def let(*bindings):
     else:
         body = expr(body)
         t = JSONExpression
+    
     return t(internal.Let(body, bindings))
 
 class FunctionExpr(object):

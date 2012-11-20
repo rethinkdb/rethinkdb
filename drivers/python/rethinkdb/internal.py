@@ -823,8 +823,8 @@ class Let(ExpressionInner):
     def __init__(self, expr, bindings):
         self.expr = expr
         self.bindings = []
-        for var, val in bindings:
-            self.bindings.append((var, query.expr(val)))
+        for key in bindings:
+            self.bindings.append((key, query.expr(bindings[key])))
 
     def _write_ast(self, parent, opts):
         parent.type = p.Term.LET
