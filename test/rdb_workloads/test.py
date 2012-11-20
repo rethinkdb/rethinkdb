@@ -65,9 +65,9 @@ class RDBTest(unittest.TestCase):
     def clear_table(self):
         self.conn.run(self.table.delete())
 
-    def do_insert(self, docs):
-        self.expect(self.table.insert(docs), {'errors': 0,
-                                              'inserted': 1 if isinstance(docs, dict) else len(docs)})
+    def do_insert(self, docs, upsert=False):
+        self.expect(self.table.insert(docs, upsert), {'errors': 0,
+                                                      'inserted': 1 if isinstance(docs, dict) else len(docs)})
 
     def test_arith(self):
         expect = self.expect
@@ -354,10 +354,44 @@ class RDBTest(unittest.TestCase):
     def test_unicode(self):
         self.clear_table()
 
-        doc = {"id": 100, "text": u"グルメ"}
+        doc0 = {u"id": 100, u"text": u"グルメ"}
+        doc1 = {"id": 100, u"text": u"グルメ"}
 
-        self.do_insert(doc)
-        self.expect(self.table.get(100), doc)
+        doc2 = {u"id": 100, u"text": u"abc"}
+        doc3 = {"id": 100, u"text": u"abc"}
+        doc4 = {u"id": 100, "text": u"abc"}
+        doc5 = {"id": 100, "text": u"abc"}
+
+        self.do_insert(doc0, True)
+        self.expect(self.table.get(100), doc0)
+        self.expect(self.table.get(100), doc1)
+        self.do_insert(doc1, True)
+        self.expect(self.table.get(100), doc0)
+        self.expect(self.table.get(100), doc1)
+
+        self.do_insert(doc2, True)
+        self.expect(self.table.get(100), doc2)
+        self.expect(self.table.get(100), doc3)
+        self.expect(self.table.get(100), doc4)
+        self.expect(self.table.get(100), doc5)
+
+        self.do_insert(doc3, True)
+        self.expect(self.table.get(100), doc2)
+        self.expect(self.table.get(100), doc3)
+        self.expect(self.table.get(100), doc4)
+        self.expect(self.table.get(100), doc5)
+
+        self.do_insert(doc4, True)
+        self.expect(self.table.get(100), doc2)
+        self.expect(self.table.get(100), doc3)
+        self.expect(self.table.get(100), doc4)
+        self.expect(self.table.get(100), doc5)
+
+        self.do_insert(doc5, True)
+        self.expect(self.table.get(100), doc2)
+        self.expect(self.table.get(100), doc3)
+        self.expect(self.table.get(100), doc4)
+        self.expect(self.table.get(100), doc5)
 
     def test_view(self):
         self.clear_table()
