@@ -312,6 +312,8 @@ ifeq ($(LIBCRYPTO),1)
 LDFLAGS+=-lcrypto 
 endif
 
+PROTOC_BASE:=$(shell dirname $(TC_PROTOC_EXE))/..
+
 LIB_SEARCH_PATHS?=
 LDFLAGS+=$(foreach TLIB, $(LIB_SEARCH_PATHS), -L $(TLIB))
 
@@ -1115,9 +1117,9 @@ oprof-report:
 
 drivers:
 ifeq ($(BUILD_DRIVERS), 1)
-	$(QUIET) cd ../drivers ; $(MAKE) PROTOC="$(TC_PROTOC_RUN)" TC_PROTOC_CFLAGS="$(TC_PROTOC_CFLAGS)" ;
+	$(QUIET) cd ../drivers ; $(MAKE) PROTOC_BASE="$(PROTOC_BASE)" TC_PROTOC_CFLAGS="$(TC_PROTOC_CFLAGS)" ;
 else
-	$(QUIET) cd ../drivers/javascript ; $(MAKE) PROTOC="$(TC_PROTOC_RUN)" TC_PROTOC_CFLAGS="$(TC_PROTOC_CFLAGS)" ;
+	$(QUIET) cd ../drivers/javascript ; $(MAKE) PROTOC_BASE="$(PROTOC_BASE)" TC_PROTOC_CFLAGS="$(TC_PROTOC_CFLAGS)" ;
 endif #BUILD_DRIVERS
 
 

@@ -115,8 +115,8 @@ endif
 protodeps: $(PROTOC_JS_HOME_DIR)/protoc-gen-js
 
 $(PROTOC_JS_HOME_DIR)/protoc-gen-js:
-	$(QUIET) cd ../../external/protobuf-plugin-closure ; $(MAKE) SPREFIX="$(SUPPORT_INST_DIR_ABS)" ;
+	$(QUIET) cd ../../external/protobuf-plugin-closure ; $(MAKE) SPREFIX="$(PROTOC_BASE)" ;
 
 protodeps-clean:
-	$(QUIET) cd ../../external/protobuf-plugin-closure ; $(MAKE) SPREFIX="$(SUPPORT_INST_DIR_ABS)" clean ;
+	$(QUIET) cd ../../external/protobuf-plugin-closure ; $(MAKE) SPREFIX="$(PROTOC_BASE)" clean ;
 
