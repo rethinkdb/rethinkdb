@@ -260,7 +260,7 @@ CPATHDS+= -isystem $(TC_PROTOC_INT_INC_DIR)
 INT_CHAIN_PROTOC:=1
 else
 TC_PROTOC_EXE:=$(shell which protoc || true)
-TC_PROTOC_RUN:=
+TC_PROTOC_RUN:=$(TC_PROTOC_EXE)
 endif
 ifeq ($(shell which npm || true),)
 # If npm is not present, node.js is likely too old.
@@ -283,6 +283,7 @@ TC_COFFEE_EXE:=$(shell which coffee || true)
 endif
 else # ALLOW_INTERNAL_TOOLS
 TC_PROTOC_EXE:=$(shell which protoc || true)
+TC_PROTOC_RUN:=$(TC_PROTOC_EXE)
 TC_LESSC_EXE:=$(shell which lessc || true)
 TC_COFFEE_EXE:=$(shell which coffee || true)
 TC_NODE_EXE:=$(shell which node || true)
