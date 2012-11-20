@@ -1,6 +1,7 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 import query
 import query_language_pb2 as p
+import types
 
 ###################
 # PRETTY PRINTING #
@@ -72,7 +73,7 @@ class MetaQueryInner(object):
 
 class DBCreate(MetaQueryInner):
     def __init__(self, db_name):
-        assert isinstance(db_name, str)
+        assert isinstance(db_name, types.StringTypes)
         self.db_name = db_name
     def _write_meta_query(self, parent, opts):
         parent.type = p.MetaQuery.CREATE_DB
@@ -82,7 +83,7 @@ class DBCreate(MetaQueryInner):
 
 class DBDrop(MetaQueryInner):
     def __init__(self, db_name):
-        assert isinstance(db_name, str)
+        assert isinstance(db_name, types.StringTypes)
         self.db_name = db_name
     def _write_meta_query(self, parent, opts):
         parent.type = p.MetaQuery.DROP_DB
@@ -98,10 +99,10 @@ class DBList(MetaQueryInner):
 
 class TableCreate(MetaQueryInner):
     def __init__(self, table_name, db_expr, primary_key, primary_datacenter, cache_size):
-        assert isinstance(table_name, str)
+        assert isinstance(table_name, types.StringTypes)
         assert isinstance(db_expr, query.Database)
-        assert (not primary_key) or isinstance(primary_key, str)
-        assert (not primary_datacenter) or isinstance(primary_datacenter, str)
+        assert (not primary_key) or isinstance(primary_key, types.StringTypes)
+        assert (not primary_datacenter) or isinstance(primary_datacenter, types.StringTypes)
         assert (not cache_size) or isinstance(cache_size, int)
         self.table_name = table_name
         self.db_expr = db_expr
@@ -127,7 +128,7 @@ class TableCreate(MetaQueryInner):
 
 class TableDrop(MetaQueryInner):
     def __init__(self, table_name, db_expr):
-        assert isinstance(table_name, str)
+        assert isinstance(table_name, types.StringTypes)
         assert isinstance(db_expr, query.Database)
         self.table_name = table_name
         self.db_expr = db_expr
@@ -343,7 +344,7 @@ class LiteralArray(ExpressionInner):
 class LiteralObject(ExpressionInner):
     def __init__(self, value):
         for k, v in value.iteritems():
-            assert isinstance(k, str)
+            assert isinstance(k, types.StringTypes)
         self.value = dict((k, query.expr(v)) for k, v in value.iteritems())
     def _write_ast(self, parent, opts):
         parent.type = p.Term.OBJECT
