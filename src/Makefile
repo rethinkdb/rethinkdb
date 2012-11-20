@@ -230,6 +230,7 @@ TC_NPM_INT_EXE:=$(SUPPORT_DIR_ABS)/usr/bin/npm
 TC_LESSC_INT_EXE:=$(SUPPORT_DIR_ABS)/toolchain/node_modules/less/bin/lessc
 TC_COFFEE_INT_EXE:=$(SUPPORT_DIR_ABS)/toolchain/node_modules/coffee-script/bin/coffee
 
+TC_PROTOC_CFLAGS:=
 INT_CHAIN_NODE:=0
 INT_CHAIN_PROTOC:=0
 
@@ -237,8 +238,9 @@ ifeq ($(FORCE_INTERNAL_TOOLS),1)
 TC_PROTOC_EXE:=$(TC_PROTOC_INT_EXE)
 # This is how we run TC_PROTOC_EXE.
 TC_PROTOC_RUN:=env LD_LIBRARY_PATH=$(TC_PROTOC_INT_LIB_DIR):$(LD_LIBRARY_PATH) PATH=$(TC_PROTOC_INT_BIN_DIR):$(PATH) $(TC_PROTOC_EXE)
-CXXPATHDS+= -isystem $(TC_PROTOC_INT_INC_DIR)
-CPATHDS+= -isystem $(TC_PROTOC_INT_INC_DIR)
+TC_PROTOC_CFLAGS:= -isystem $(TC_PROTOC_INT_INC_DIR)
+CXXPATHDS+=$(TC_PROTOC_CFLAGS)
+CPATHDS+=$(TC_PROTOC_CFLAGS)
 # LDFLAGS+= -L $(TC_PROTOC_INT_LIB_DIR)
 # We do static linking explicitly now since things get messy otherwise.
 INT_CHAIN_PROTOC:=1
@@ -253,8 +255,9 @@ ifeq ($(shell which protoc || true),)
 # If npm is not present, node.js is likely too old.
 TC_PROTOC_EXE:=$(TC_PROTOC_INT_EXE)
 TC_PROTOC_RUN:=env LD_LIBRARY_PATH=$(TC_PROTOC_INT_LIB_DIR):$(LD_LIBRARY_PATH) PATH=$(TC_PROTOC_INT_BIN_DIR):$(PATH) $(TC_PROTOC_EXE)
-CXXPATHDS+= -isystem $(TC_PROTOC_INT_INC_DIR)
-CPATHDS+= -isystem $(TC_PROTOC_INT_INC_DIR)
+TC_PROTOC_CFLAGS:= -isystem $(TC_PROTOC_INT_INC_DIR)
+CXXPATHDS+=$(TC_PROTOC_CFLAGS)
+CPATHDS+=$(TC_PROTOC_CFLAGS)
 # LDFLAGS+= -L $(TC_PROTOC_INT_LIB_DIR)
 # We do static linking explicitly now since things get messy otherwise.
 INT_CHAIN_PROTOC:=1
