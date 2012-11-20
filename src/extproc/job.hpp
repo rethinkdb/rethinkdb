@@ -17,17 +17,21 @@ class job_t {
 
     // Passed in to a job on the worker process side.
     class control_t : public unix_socket_stream_t {
-      private:
-        friend class spawner_t;
-        control_t(pid_t pid, scoped_fd_t *fd);
-
       public:
         void vlog(const char *fmt, va_list ap);
         void log(const char *fmt, ...)
             __attribute__((format (printf, 2, 3)));
 
+        pid_t get_rdb_pid() const;
+
       private:
-        pid_t pid_;
+        friend class spawner_t;
+        control_t(pid_t _pid, pid_t _rdb_pid, scoped_fd_t *fd);
+
+        const pid_t pid;
+        const pid_t rdb_pid;
+
+        DISABLE_COPYING(control_t);
     };
 
     // Sends us over a stream. The recipient must be a fork()ed child (or

@@ -488,8 +488,8 @@ class JSONExpression(ReadQuery):
     def order_by(self, *attributes):
         """Sorts an array of objects according to the given attributes.
 
-        Items are sorted in ascending order unless the attribute name starts
-        with '-', which sorts the attribute in descending order.
+        By default, order_by uses ascending ordering. To specify the ordering
+        wrap the attribute with :func:`asc` or :func:`desc`.
 
         This is like :meth:`StreamExpression.order_by` but with arrays instead
         of streams.
@@ -502,10 +502,10 @@ class JSONExpression(ReadQuery):
         """
         order = []
         for attr in attributes:
-            if attr.startswith('-'):
-                order.append((attr[1:], False))
-            else:
+            if isinstance(attr, str):
                 order.append((attr, True))
+            else:
+                order.append(attr)
         return JSONExpression(internal.OrderBy(self, order))
 
     def map(self, mapping):
@@ -905,8 +905,8 @@ class StreamExpression(ReadQuery):
     def order_by(self, *attributes):
         """Sort the stream according to the given attributes.
 
-        Items are sorted in ascending order unless the attribute name starts
-        with '-', which sorts the attribute in descending order.
+        By default, order_by uses ascending ordering. To specify the ordering
+        wrap the attribute with :func:`asc` or :func:`r.desc`.
 
         TODO: What if an attribute is missing?
 
@@ -915,14 +915,14 @@ class StreamExpression(ReadQuery):
         :returns: :class:`StreamExpression` or :class:`MultiRowSelection` (same as input)
 
         >>> table('users').order_by('name')  # order users by name A-Z
-        >>> table('users').order_by('-level', 'name') # levels high-low, then names A-Z
+        >>> table('users').order_by(desc('level'), 'name') # levels high-low, then names A-Z
         """
         order = []
         for attr in attributes:
-            if attr.startswith('-'):
-                order.append((attr[1:], False))
-            else:
+            if isinstance(attr, str):
                 order.append((attr, True))
+            else:
+                order.append(attr)
         return self._make_selector(internal.OrderBy(self, order))
 
     def union(self, *others):
@@ -1155,6 +1155,12 @@ def average(attr):
         'finalizer': lambda res: res[0] / res[1]
     }
 
+def asc(attr):
+    return (attr, True)
+
+def desc(attr):
+    return (attr, False)
+
 def expr(val):
     """Converts a python value to a ReQL :class:`JSONExpression`.
 
@@ -1218,40 +1224,6 @@ def branch(test, true_branch, false_branch):
         false_branch = expr(false_branch)
         t = JSONExpression
     return t(internal.If(test, true_branch, false_branch))
-
-class AttrVarAccess(object):
-    """Get the value of a variable or attribute.
-
-    Filter and map bind the current element to the implicit variable.
-    To access the implicit variable (i.e. 'current' row), use the
-    following:
-
-    >>> r['@']
-
-
-    To access an attribute of the implicit variable, pass the attribute name.
-
-    >>> r['name']
-    >>> r['@']['name']
-
-
-    See information on scoping rules for more details.
-
-    >>> table('users').filter(r['age'] == 30) # access attribute age from the implicit row variable
-    >>> table('users').filter(r['address']['city') == 'Mountain View') # access subattribute city
-                                                                       # of attribute address from
-                                                                       # the implicit row variable
-    >>> table('users').filter(lambda row: row['age') == 30)) # access attribute age from the
-                                                             # variable 'row'
-    """
-    def __getitem__(self, key):
-        if key == "@":
-            expr = JSONExpression(internal.ImplicitVar())
-        else:
-            expr = JSONExpression(internal.ImplicitAttr(key))
-        return expr
-
-r = AttrVarAccess()
 
 def letvar(name):
     "Evaluates a variable in the context of let"

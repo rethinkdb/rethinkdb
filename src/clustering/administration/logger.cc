@@ -175,9 +175,18 @@ static void throw_unless(bool condition, const std::string &where) {
 class file_reverse_reader_t {
 public:
     explicit file_reverse_reader_t(const std::string &filename) :
-            fd(open(filename.c_str(), O_RDONLY)),
-            current_chunk(chunk_size) {
-        throw_unless(fd.get() != -1, strprintf("could not open '%s' for reading.", filename.c_str()));
+        fd(-1),
+        current_chunk(chunk_size) {
+
+        {
+            int res;
+            do {
+                res = open(filename.c_str(), O_RDONLY);
+            } while (res == -1 && errno == EINTR);
+            throw_unless(res != -1, strprintf("could not open '%s' for reading.", filename.c_str()));
+            fd.reset(res);
+        }
+
         struct stat64 stat;
         int res = fstat64(fd.get(), &stat);
         throw_unless(res == 0, "could not determine size of log file");
@@ -284,7 +293,12 @@ void fallback_log_writer_t::install(const std::string &logfile_name) {
 
     // It's ok if the file couldn't be opened -- we create a local
     // issue for it later
-    fd.reset(open(filename.c_str(), O_WRONLY|O_APPEND|O_CREAT, 0644));
+    int res;
+    do {
+        res = open(filename.c_str(), O_WRONLY|O_APPEND|O_CREAT, 0644);
+    } while (res == -1 && errno == EINTR);
+
+    fd.reset(res);
 }
 
 bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_out) {

@@ -168,6 +168,49 @@ function testGet() {
 function testOrderby() {
     tab.orderBy('num').nth(2).run(objeq({id:7,num:13}));
     tab.orderBy('num').nth(2).pick('num').run(objeq({num:13}));
+
+    tab.orderBy(['num', true]).nth(2).run(objeq({id:7,num:13}));
+    tab.orderBy(['num', true]).nth(2).pick('num').run(objeq({num:13}));
+
+    tab.orderBy(['num', false]).nth(2).run(objeq({id:2,num:18}));
+    tab.orderBy(['num', false]).nth(2).pick('num').run(objeq({num:18}));
+
+    tab.orderBy(r.asc('num')).nth(2).run(objeq({id:7,num:13}));
+    tab.orderBy(r.asc('num')).nth(2).pick('num').run(objeq({num:13}));
+
+    tab.orderBy(r.desc('num')).nth(2).run(objeq({id:2,num:18}));
+    tab.orderBy(r.desc('num')).nth(2).pick('num').run(objeq({num:18}));
+
+    var cur1 = tab.orderBy(r.asc('num')).run();
+    var cur2 = tab.orderBy('num').run();
+
+    function objEqual(one, two) {
+        for (var key in one) {
+            if (one.hasOwnProperty(key)) {
+                if (two.hasOwnProperty(key)) {
+                    var propOne = one[key];
+                    var propTwo = two[key];
+                    if (typeof propOne === 'object') {
+                        objEqual(propOne, propTwo);
+                    } else {
+                        assertEquals(propOne, propTwo);
+                    }
+                } else {
+                    fail('result missing property '+key);
+                }
+            }
+        }
+    }
+
+    wait();
+    cur1.collect(function(one) {
+        cur2.collect(function(two) {
+            for(var i = 0; i < one.length; i++) {
+                objEqual(one[i],two[i]);
+            }
+            done();
+        });
+    });
 }
 
 function testPluck() {

@@ -35,7 +35,7 @@ rethinkdb.Table.prototype.compile = function(opt_buildOpts) {
 
     var allowOutdated;
     if (this.allowOutdated_ !== null) {
-        allowOutdated = this.allowOutdated;
+        allowOutdated = this.allowOutdated_;
     } else {
         if (opt_buildOpts && (opt_buildOpts.defaultAllowOutdated !== undefined)) {
             allowOutdated = opt_buildOpts.defaultAllowOutdated;

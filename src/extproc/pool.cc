@@ -138,8 +138,7 @@ class job_acceptor_t :
         while (-1 != accept_job(control, NULL)) {}
 
         // The "correct" way for us to die is to be killed by the engine
-        // process. So if we reach this, something is wrong.
-        control->log("Failed to accept job, quitting.");
+        // process. So if we reach this, something is wrong, but it's already been printed out
         exit(EXIT_FAILURE);
     }
 
@@ -184,7 +183,7 @@ void pool_t::end_worker(workers_t *list, worker_t *worker) {
     rassert(worker && worker->pool_ == this);
 
     list->remove(worker);
-    guarantee_err(0 ==  kill(worker->pid_, SIGKILL), "could not kill worker");
+    guarantee_err(0 == kill(worker->pid_, SIGKILL), "could not kill worker");
     delete worker;
 }
 
