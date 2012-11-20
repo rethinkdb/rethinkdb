@@ -256,10 +256,10 @@ mc_inner_buf_t *mc_inner_buf_t::allocate(mc_cache_t *cache, version_id_t snapsho
         return new mc_inner_buf_t(cache, block_id, snapshot_version, recency_timestamp);
     } else {
         // Block with block_id was logically deleted, but its inner_buf survived.
-        // That can happen when there are active snapshots of that block.
-        // We cannot just re-create a new mc_inner_buf_t for this block id in that case,
+        // This can happen when there are active snapshots of that block.
+        // We cannot just re-create a new mc_inner_buf_t for the block id in that case,
         // as that would cause a conflict in the page map.
-        // Instead, we keep the snapshots around and reset the remaining state of buffer
+        // Instead, we keep the snapshots around and reset the remaining state of
         // the buffer to make it behave just like a freshly constructed one.
         
         rassert(inner_buf->do_delete);
@@ -272,9 +272,10 @@ mc_inner_buf_t *mc_inner_buf_t::allocate(mc_cache_t *cache, version_id_t snapsho
     }
 }
 
-// This routine is used in the constructor for constructing new bufs, and also directly from the allocate()
-// method. The latter uses it to reset an existing mc_inner_buf_t to its initial state, without requiring
-// to create a new mc_inner_buf_t object. See the comment in allocate() for why this is required.
+// This routine is used in the constructor for constructing new bufs, and also called directly from the
+// allocate() method. The latter uses it to reset an existing mc_inner_buf_t to its initial state, without
+// requiring the creation of a new mc_inner_buf_t object.
+// See the comment in allocate() for why this is necessary.
 void mc_inner_buf_t::initialize_to_new(version_id_t _snapshot_version, repli_timestamp_t _recency_timestamp) {
     rassert(!data.has());
     
