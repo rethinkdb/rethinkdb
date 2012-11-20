@@ -6,32 +6,41 @@ class WriteQuery
         switch type
             when 1 # Update
                 update_query = new WriteQueryUpdate @data.getUpdate()
-                return update_query.update server
+                return update_query.update
+                    server: server
             when 2 # Delete
                 delete_query = new WriteQueryDelete @data.getDelete()
-                return delete_query.delete server
+                return delete_query.delete
+                    server: server
             when 3 # Mutate
                 mutate_query = new WriteQueryMutate @data.getMutate()
-                return mutate_query.mutate server
+                return mutate_query.mutate
+                    server: server
             when 4
                 insert_query = new WriteQueryInsert @data.getInsert()
-                return insert_query.insert server
+                return insert_query.insert
+                    server: server
             #when 6 # For each
             when 7
                 point_update_query = new WriteQueryPointUpdate @data.getPointUpdate()
-                return point_update_query.update server
+                return point_update_query.update
+                    server: server
             when 8
                 point_delete_query = new WriteQueryPointDelete @data.getPointDelete()
-                return point_delete_query.delete server
+                return point_delete_query.delete
+                    server: server
             when 9
                 point_mutate_query = new WriteQueryPointMutate @data.getPointMutate()
-                return point_mutate_query.mutate server
+                return point_mutate_query.mutate
+                    server: server
 
 class WriteQueryDelete
     constructor: (data) ->
         @data = data
 
-    delete: (server) ->
+    delete: (args) ->
+        server = args.server
+
         term = new Term @data.getView()
         return term.delete
             server: server
@@ -42,7 +51,9 @@ class WriteQueryMutate
     constructor: (data) ->
         @data = data
 
-    mutate: (server) ->
+    mutate: (args) ->
+        server = args.server
+
         term = new Term @data.getView()
         mapping = new Mapping @data.getMapping()
         return term.mutate
@@ -53,7 +64,9 @@ class WriteQueryInsert
     constructor: (data) ->
         @data = data
 
-    insert: (server) ->
+    insert: (args) ->
+        server = args.server
+
         table_ref = new TableRef @data.getTableRef()
         data_to_insert = @data.termsArray()
         response_data =
@@ -62,7 +75,9 @@ class WriteQueryInsert
         generated_keys = []
         for term_to_insert_raw in data_to_insert # For all documents we want to insert
             term_to_insert = new Term term_to_insert_raw
-            json_object = JSON.parse term_to_insert.evaluate(server).getResponse()
+            evaluation = term_to_insert.evaluate
+                server: server
+            json_object = JSON.parse evaluation.getResponse()
             if table_ref.get_primary_key(server) of json_object
                 key = json_object[table_ref.get_primary_key(server)]
                 if typeof key is 'number'
@@ -108,46 +123,71 @@ class WriteQueryPointDelete
     constructor: (data) ->
         @data = data
 
-    delete: (server) ->
+    delete: (args) ->
+        server = args.server
+
         table_ref = new TableRef @data.getTableRef()
         attr_name = @data.getAttrname()
         term = new Term @data.getKey()
-        attr_value = JSON.parse term.evaluate().getResponse()
+        evaluation = term.evaluate
+            server: server
+        attr_value = JSON.parse evaluation.getResponse()
 
-        return table_ref.point_delete server, attr_name, attr_value
+        return table_ref.point_delete
+            server: server
+            attr_name: attr_name
+            attr_value: attr_value
 
 
 class WriteQueryPointMutate
     constructor: (data) ->
         @data = data
 
-    mutate: (server) ->
+    mutate: (args) ->
+        server = args.server
+
         table_ref = new TableRef @data.getTableRef()
         attr_name = @data.getAttrname()
         term = new Term @data.getKey()
-        attr_value = JSON.parse term.evaluate().getResponse()
+        evaluation = term.evaluate
+            server: server
+        attr_value = JSON.parse evaluation.getResponse()
 
         mapping = new Mapping @data.getMapping()
 
-        return table_ref.point_mutate server, attr_name, attr_value, mapping
+        return table_ref.point_mutate
+            server: server
+            attr_name: attr_name
+            attr_value: attr_value
+            mapping: mapping
 
 class WriteQueryPointUpdate
     constructor: (data) ->
         @data = data
 
-    update: (server) ->
+    update: (args) ->
+        server = args.server
+
         table_ref = new TableRef @data.getTableRef()
         attr_name = @data.getAttrname()
         term = new Term @data.getKey()
-        attr_value = JSON.parse term.evaluate().getResponse()
+        evaluation = term.evaluate
+            server: server
+        attr_value = JSON.parse evaluation.getResponse()
         mapping = new Mapping @data.getMapping()
-        return table_ref.point_update server, attr_name, attr_value, mapping
+        return table_ref.point_update
+            server: server
+            attr_name: attr_name
+            attr_value: attr_value
+            mapping: mapping
 
 class WriteQueryUpdate
     constructor: (data) ->
         @data = data
 
-    update: (server) ->
+    update: (args) ->
+        server = args.server
+
         term = new Term @data.getView()
         mapping = new Mapping @data.getMapping()
         return term.update

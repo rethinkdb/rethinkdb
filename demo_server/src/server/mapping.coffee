@@ -1,6 +1,11 @@
 class Mapping
     constructor: (data) ->
         @data = data
-    evaluate: (server) ->
+    evaluate: (args) ->
+        server = args.server
+        context = args.context
+
         term = new Term @data.getBody()
-        return term.evaluate server
+        return term.evaluate
+            server: server
+            context: context

@@ -78,7 +78,7 @@ class TableRef
  
         deleted = 0
         for internal_key, document of server[db_name][table_name]['data']
-            if not predicate? or JSON.parse(predicate.evaluate(server, document).getResponse()) is true
+            if not predicate? or JSON.parse(predicate.evaluate({server: server, context: document}).getResponse()) is true
                 delete server[db_name][table_name]['data'][internal_key]
                 deleted++
         response = new Response
@@ -108,7 +108,9 @@ class TableRef
             response.setStatusCode 0 # SUCCESS_STREAM
             return response
 
-    evaluate: (server) ->
+    evaluate: (args) ->
+        server = args.server
+
         db_name = @data.getDbName()
         table_name = @data.getTableName()
 
@@ -138,11 +140,16 @@ class TableRef
         response.setStatusCode 3
         return response
 
-    get_term: (server, term) ->
+    get_term: (args) ->
+        server = args.server
+        term = args.term
+
         db_name = @data.getDbName()
         table_name = @data.getTableName()
-
-        key = JSON.parse term.evaluate().getResponse()
+        
+        evaluation = term.evaluate
+            server: server
+        key = JSON.parse evaluation.getResponse()
         if typeof key is 'number'
             internal_key = 'N'+key
         else if typeof key is 'string'
@@ -182,7 +189,11 @@ class TableRef
 
         db_name = @data.getDbName()
         table_name = @data.getTableName()
-        mapping_value = JSON.parse mapping.evaluate().getResponse()
+
+        evaluation = mapping.evaluate
+            server: server
+            context: context
+        mapping_value = JSON.parse evaluation.getResponse()
 
         response_find_table = @find_table(server)
         if response_find_table?
@@ -199,7 +210,7 @@ class TableRef
 
             updated_at_least_one = false
             for internal_key, document of server[db_name][table_name]['data']
-                if not predicate? or JSON.parse(predicate.evaluate(server, document).getResponse()) is true
+                if not predicate? or JSON.parse(predicate.evaluate({server: server, context: document}).getResponse()) is true
                     if mapping_value[primary_key] isnt server[db_name][table_name]['data'][internal_key][primary_key]
                         #TODO backtrace
                         if not result.first_error?
@@ -225,9 +236,14 @@ class TableRef
         predicate = args.predicate
         context = args.context
 
+
         db_name = @data.getDbName()
         table_name = @data.getTableName()
-        mapping_value = JSON.parse mapping.evaluate(server).getResponse()
+
+        evaluation = mapping.evaluate
+            server: server
+            context: context
+        mapping_value = JSON.parse evaluation.getResponse()
 
         response_find_table = @find_table(server)
         if response_find_table?
@@ -243,7 +259,7 @@ class TableRef
 
             updated_at_least_one = false
             for internal_key, document of server[db_name][table_name]['data']
-                if not predicate? or JSON.parse(predicate.evaluate(server, document).getResponse()) is true
+                if not predicate? or JSON.parse(predicate.evaluate({server: server, context: document}).getResponse()) is true
                     if mapping_value[primary_key]? and mapping_value[primary_key] isnt server[db_name][table_name]['data'][internal_key][primary_key]
                         #TODO backtrace
                         if not result.first_error?
@@ -266,7 +282,12 @@ class TableRef
 
 
 
-    point_delete: (server, attr_name, attr_value) ->
+    point_delete: (args) ->
+        server = args.server
+        attr_name = args.attr_name
+        attr_value = args.attr_value
+        context = args.context
+
         db_name = @data.getDbName()
         table_name = @data.getTableName()
 
@@ -290,11 +311,20 @@ class TableRef
                 response.setStatusCode 1
             return response
 
-    point_mutate: (server, attr_name, attr_value, mapping) ->
+    point_mutate: (args) ->
+        server = args.server
+        attr_name = args.attr_name
+        attr_value = args.attr_value
+        mapping = args.mapping
+        context = args.context
+
         db_name = @data.getDbName()
         table_name = @data.getTableName()
 
-        mapping_value = JSON.parse mapping.evaluate().getResponse()
+        evaluation = mapping.evaluate
+            server: server
+            context: context
+        mapping_value = JSON.parse evaluation.getResponse()
 
         response_find_table = @find_table(server)
         if response_find_table?
@@ -330,11 +360,18 @@ class TableRef
 
 
 
-    point_update: (server, attr_name, attr_value, mapping) ->
+    point_update: (args) ->
+        server = args.server
+        attr_name = args.attr_name
+        attr_value = args.attr_value
+        mapping = args.mapping
+
         db_name = @data.getDbName()
         table_name = @data.getTableName()
 
-        mapping_value = JSON.parse mapping.evaluate().getResponse()
+        evaluation = mapping.evaluate
+            server: server
+        mapping_value = JSON.parse evaluation.getResponse()
 
         response_find_table = @find_table(server)
         if response_find_table?
@@ -361,7 +398,15 @@ class TableRef
                 response.setStatusCode 1
             return response
 
-    filter: (server, predicate) ->
+    filter: (args) ->
+        server = args.server
+        predicate = args.predicate
+        attr_name = args.attr_name
+        lower_bound = args.lower_bound
+        upper_bound = args.upper_bound
+
+        #TODO ING Keep refactoring for args (filter now)
+
         db_name = @data.getDbName()
         table_name = @data.getTableName()
 
@@ -389,16 +434,23 @@ class TableRef
         results = []
         for id, document of server[db_name][table_name]['data']
             #TODO Type of document is not the good one...
-            if JSON.parse(predicate.evaluate(server, document).getResponse()) is true
+            if (not predicate?) or JSON.parse(predicate.evaluate({server: server, context: document}).getResponse()) is true
                 response.addResponse JSON.stringify document
         response.setStatusCode 3
         return response
 
-    range: (server, attr_name, lower_bound, upper_bound) ->
+    range: (args) ->
+        server = args.server
+        attr_name = args.attr_name
+        lower_bound = args.lower_bound
+        upper_bound = args.upper_bound
+        predicate = args.predicate
+        context = args.context
+
         db_name = @data.getDbName()
         table_name = @data.getTableName()
-        lower_bound = JSON.parse lower_bound.evaluate().getResponse()
-        upper_bound = JSON.parse upper_bound.evaluate().getResponse()
+        lower_bound = JSON.parse lower_bound.evaluate({server: server, context: context}).getResponse()
+        upper_bound = JSON.parse upper_bound.evaluate({server: server, context: context}).getResponse()
 
         # Check format
         if /[a-zA-Z0-9_]+/.test(db_name) is false or /[a-zA-Z0-9_]+/.test(table_name) is false
@@ -427,11 +479,9 @@ class TableRef
                 response.addResponse JSON.strinfigy 'Object '+JSON.strinfigy(document, undefined, 4)+' has no attribute '+attr_name
                 #TODO backtrace
             else
-                console.log '~~'
-                console.log lower_bound
-                console.log upper_bound
                 if Helpers.prototype.compare(document[attr_name], lower_bound) >= 0 and Helpers.prototype.compare(document[attr_name], upper_bound) <= 0
-                    results.push document
+                    if (not predicate?) or JSON.parse(predicate.evaluate({server: server, context: document}).getResponse()) is true
+                        results.push document
         response.addResponse JSON.stringify results
         response.setStatusCode 1
         return response

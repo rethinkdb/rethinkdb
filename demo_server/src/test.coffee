@@ -368,12 +368,7 @@ $(document).ready ->
 
     # Order matters!
     queries = [
-        {
-            state: deep_copy state['1']
-            query: 'r.db("test").table("test").filter(r("id").le(2)).between(2, 3).run()'
-            callback_name: 'expect_result'
-            expected_result: [{id:2}]
-        },
+
         {
             query: 'r.expr(true).run()'
             callback_name: 'is_true'
@@ -701,12 +696,6 @@ $(document).ready ->
         },
         {
             state: deep_copy state['2']
-            query: 'r.db("test").table("test").filter(r("id").eq(1)).update({key:0}).run()'
-            callback_name: 'expect_state'
-            expected_result: {"N1": {id:1, key:0}, "N2": {id:2, key:2}, "N3": {id:3, key:3}}
-        },
-        {
-            state: deep_copy state['2']
             query: 'r.db("test").table("test").filter(r("id").ge(2)).replace({id:2, key:"new_value", other_key:"new_other_value"}).run()'
             callback_name: 'two_has_been_replaced_and_filter'
         },
@@ -716,6 +705,25 @@ $(document).ready ->
             callback_name: 'expect_state'
             expected_result: { "N1": {id:1, key:1} }
         },
+        {
+            state: deep_copy state['1']
+            query: 'r.db("test").table("test").filter(r("id").le(2)).between(2, 3).run()'
+            callback_name: 'expect_result'
+            expected_result: [{id:2}]
+        },
+        {
+            state: deep_copy state['2']
+            query: 'r.db("test").table("test").filter(r("id").eq(1)).update({key:0}).run()'
+            callback_name: 'expect_state'
+            expected_result: {"N1": {id:1, key:0}, "N2": {id:2, key:2}, "N3": {id:3, key:3}}
+        },
+        {
+            state: deep_copy state['2']
+            query: 'r.db("test").table("test").filter(function(doc) { return r.branch(doc("id").gt(2), r.expr(true), r.expr(false)) }).run()'
+            callback_name: 'expect_result'
+            expected_result: {"N1": {id:1, key:0}, "N2": {id:2, key:2}, "N3": {id:3, key:3}}
+        },
+
     ]
     tests = new Tests queries
     tests.test()

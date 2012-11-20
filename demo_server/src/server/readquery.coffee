@@ -4,4 +4,5 @@ class ReadQuery
 
     evaluate: (server) =>
         term = new Term @data.getTerm()
-        return term.evaluate server
+        return term.evaluate
+            server: server

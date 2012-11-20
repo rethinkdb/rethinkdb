@@ -2,24 +2,33 @@ class Builtin
     constructor: (data) ->
         @data = data
 
-    evaluate: (server, args, context) ->
+    evaluate: (args) ->
+        server = args.server
+        builtin_args = args.builtin_args
+        context = args.context
+        var_args = args.var_args
+
         type = @data.getType()
         switch type
             when 1 # Not
                 response = new Response
-                if args[0].getType() isnt 9
+                if builtin_args[0].getType() isnt 9
                     response.setStatusCode 103
                     response.setErrorMessage 'Not can only be called on a boolean'
                     #TODO Backtrace
                     return response
                 
                 response.setStatusCode 1
-                response.addResponse not args[0].getValuebool()
+                response.addResponse not builtin_args[0].getValuebool()
                 return response
 
             when 2 # Getattr
-                term = new Term args[0]
-                original_object = JSON.parse term.evaluate(server, context).getResponse()
+                term = new Term builtin_args[0]
+                evaluation = term.evaluate
+                    server: server
+                    context: context
+                    var_args: var_args
+                original_object = JSON.parse evaluation.getResponse()
 
                 attr = @data.getAttr()
 
@@ -38,8 +47,12 @@ class Builtin
                 return response
             #when 3 # Implicit getattr
             when 4 # hasattr
-                term = new Term args[0]
-                original_object = JSON.parse term.evaluate().getResponse()
+                term = new Term builtin_args[0]
+                evaluation = term.evaluate
+                    server: server
+                    context: context
+                    var_args: var_args
+                original_object = JSON.parse evaluation.getResponse()
 
                 attr = @data.getAttr()
 
@@ -57,8 +70,12 @@ class Builtin
                 return response
             #when 5 # implicit hasattr
             when 6 # pickattrs
-                new_term = new Term args[0]
-                original_object = JSON.parse new_term.evaluate().getResponse()
+                new_term = new Term builtin_args[0]
+                evaluation = new_term.evaluate
+                    server: server
+                    context: context
+                    var_args: var_args
+                original_object = JSON.parse evaluation.getResponse()
                 attrs = @data.attrsArray()
                 new_object = {}
                 for attr in attrs
@@ -71,11 +88,20 @@ class Builtin
             #when 7 # implicit pickattrs
             when 8 # map merge
                 #TODO Handle errors?
-                result_term = new Term args[0]
-                result_object = JSON.parse result_term.evaluate().getResponse()
+                result_term = new Term builtin_args[0]
+                evaluation = result_term.evaluate
+                    server: server
+                    context: context
+                    var_args: var_args
+                result_object = JSON.parse evaluation.getResponse()
 
-                extra_term = new Term args[1]
-                extra_object = JSON.parse extra_term.evaluate().getResponse()
+                extra_term = new Term builtin_args[1]
+                
+                evaluation = extra_term.evaluate
+                    server: server
+                    context: context
+                    var_args: var_args
+                extra_object = JSON.parse evaluation.getResponse()
                
                 for key, value of extra_object
                     result_object[key] = value
@@ -86,11 +112,19 @@ class Builtin
                 return response
             when 9 # array append
                 #TODO Handle errors?
-                result_term = new Term args[0]
-                result_array = JSON.parse result_term.evaluate().getResponse()
+                result_term = new Term builtin_args[0]
+                evaluation = result_term.evaluate
+                    server: server
+                    context: context
+                    var_args: var_args
+                result_array = JSON.parse evaluation.getResponse()
 
-                new_term = new Term args[1]
-                new_term_value = JSON.parse new_term.evaluate().getResponse()
+                new_term = new Term builtin_args[1]
+                evaluation = new_term.evaluate
+                    server: server
+                    context: context
+                    var_args: var_args
+                new_term_value = JSON.parse evaluation.getResponse()
                 
                 result_array.push new_term_value
 
@@ -101,61 +135,69 @@ class Builtin
             #when 11 # slice
             when 14 # Add
                 response = new Response
-                if (args[0].getType() isnt 6 and args[0].getType() isnt 10) or (args[1].getType() isnt 6 and args[1].getType() isnt 10) or (args[0].getType() isnt args[1].getType())
+                if (builtin_args[0].getType() isnt 6 and builtin_args[0].getType() isnt 10) or (builtin_args[1].getType() isnt 6 and builtin_args[1].getType() isnt 10) or (builtin_args[0].getType() isnt builtin_args[1].getType())
                     response.setStatusCode 103
                     response.setErrorMessage 'Can only ADD numbers with number and arrays with arrays'
                     #TODO Backtrace
                     return response
 
-                if args[0].getType() is 6
-                    result = args[0].getNumber() + args[1].getNumber()
-                else if args[0].getType() is 10
+                if builtin_args[0].getType() is 6
+                    result = builtin_args[0].getNumber() + builtin_args[1].getNumber()
+                else if builtin_args[0].getType() is 10
                     result = []
-                    for term_raw in args[0].arrayArray()
+                    for term_raw in builtin_args[0].arrayArray()
                         term = new Term term_raw
-                        result.push JSON.parse term.evaluate(server).getResponse()
-                    for term_raw in args[1].arrayArray()
+                        evaluation = term.evaluate
+                            server: server
+                            context: context
+                            var_args: var_args
+                        result.push JSON.parse evaluation.getResponse()
+                    for term_raw in builtin_args[1].arrayArray()
                         term = new Term term_raw
-                        result.push JSON.parse term.evaluate(server).getResponse()
+                        evaluation = term.evaluate
+                            server: server
+                            context: context
+                            var_args: var_args
+                        result.push JSON.parse evaluation.getResponse()
                 response.setStatusCode 1
                 response.addResponse JSON.stringify result
                 return response
 
             when 15 # Substract
                 response = new Response
-                if args[0].getType() isnt 6 or args[1].getType() isnt 6
+                if builtin_args[0].getType() isnt 6 or builtin_args[1].getType() isnt 6
                     response.setStatusCode 103
                     response.setErrorMessage 'All operands to SUBSTRACT must be numbers'
                     #TODO Backtrace
                     return response
 
-                result = args[0].getNumber() - args[1].getNumber()
+                result = builtin_args[0].getNumber() - builtin_args[1].getNumber()
                 response.setStatusCode 1
                 response.addResponse JSON.stringify result
                 return response
 
             when 16 # Multiply
                 response = new Response
-                if args[0].getType() isnt 6 or args[1].getType() isnt 6
+                if builtin_args[0].getType() isnt 6 or builtin_args[1].getType() isnt 6
                     response.setStatusCode 103
                     response.setErrorMessage 'All operands to MULTIPLY must be numbers'
                     #TODO Backtrace
                     return response
 
-                result = args[0].getNumber() * args[1].getNumber()
+                result = builtin_args[0].getNumber() * builtin_args[1].getNumber()
                 response.setStatusCode 1
                 response.addResponse JSON.stringify result
                 return response
 
             when 17 # Divide
                 response = new Response
-                if args[0].getType() isnt 6 or args[1].getType() isnt 6
+                if builtin_args[0].getType() isnt 6 or builtin_args[1].getType() isnt 6
                     response.setStatusCode 103
                     response.setErrorMessage 'All operands to DIVIDE  must be numbers'
                     #TODO Backtrace
                     return response
 
-                result = args[0].getNumber() / args[1].getNumber()
+                result = builtin_args[0].getNumber() / builtin_args[1].getNumber()
                 result = parseFloat result.toFixed 6
                 response.setStatusCode 1
                 response.addResponse JSON.stringify result
@@ -163,21 +205,29 @@ class Builtin
 
             when 18 # Modulo
                 response = new Response
-                if args[0].getType() isnt 6 or args[1].getType() isnt 6
+                if builtin_args[0].getType() isnt 6 or builtin_args[1].getType() isnt 6
                     response.setStatusCode 103
                     response.setErrorMessage 'All operands to DIVIDE  must be numbers'
                     #TODO Backtrace
                     return response
 
-                result = args[0].getNumber()%args[1].getNumber()
+                result = builtin_args[0].getNumber()%builtin_args[1].getNumber()
                 response.setStatusCode 1
                 response.addResponse JSON.stringify result
                 return response
             when 19 # Compare
-                term1 = new Term args[0]
-                term1_value = JSON.parse term1.evaluate(server, context).getResponse()
-                term2 = new Term args[1]
-                term2_value = JSON.parse term2.evaluate(server, context).getResponse()
+                term1 = new Term builtin_args[0]
+                evaluation = term1.evaluate
+                    server: server
+                    context: context
+                    var_args: var_args
+                term1_value = JSON.parse evaluation.getResponse()
+                term2 = new Term builtin_args[1]
+                evaluation = term2.evaluate
+                    server: server
+                    context: context
+                    var_args: var_args
+                term2_value = JSON.parse evaluation.getResponse()
 
 
                 response = new Response()
@@ -212,12 +262,15 @@ class Builtin
             when 20 # Filter
                 ###
                 terms = []
-                for term_data in args
+                for term_data in builtin_args
                     terms.push new Term term_data
                 ###
-                term = new Term args[0]
+                term = new Term builtin_args[0]
                 builtin_filter = new BuiltinFilter @data.getFilter()
-                return builtin_filter.evaluate server, term
+                return builtin_filter.evaluate
+                    server: server
+                    term: term
+                    var_args: var_args
             #when 21 # Map
             #when 22 # Concatmap
             #when 23 # Orderby
@@ -230,10 +283,18 @@ class Builtin
             #when 31 # Reduce
             #when 32 # Group mapreduce
             when 35 # Any
-                term1 = new Term args[0]
-                term1_value = JSON.parse term1.evaluate(server).getResponse()
-                term2 = new Term args[1]
-                term2_value = JSON.parse term2.evaluate(server).getResponse()
+                term1 = new Term builtin_args[0]
+                evaluation = term1.evaluate
+                    server: server
+                    context: context
+                    var_args: var_args
+                term1_value = JSON.parse evaluation.getResponse()
+                term2 = new Term builtin_args[1]
+                evaluation = term2.evaluate
+                    server: server
+                    context: context
+                    var_args: var_args
+                term2_value = JSON.parse evaluation.getResponse()
 
                 response = new Response()
                 response.setStatusCode 1
@@ -241,23 +302,39 @@ class Builtin
                 return response
 
             when 36 # All
-                term1 = new Term args[0]
-                term1_value = JSON.parse term1.evaluate(server).getResponse()
-                term2 = new Term args[1]
-                term2_value = JSON.parse term2.evaluate(server).getResponse()
+                term1 = new Term builtin_args[0]
+                evaluation = term1.evaluate
+                    server: server
+                    context: context
+                    var_args: var_args
+                term1_value = JSON.parse evaluation.getResponse()
+                term2 = new Term builtin_args[1]
+                evaluation = term2.evaluate
+                    server: server
+                    context: context
+                    var_args: var_args
+                term2_value = JSON.parse evaluation.getResponse()
 
                 response = new Response()
                 response.setStatusCode 1
                 response.addResponse JSON.stringify(term1_value and term2_value)
                 return response
             when 37 # Range
-                term = new Term args[0]
+                term = new Term builtin_args[0]
                 builtin_range = new BuiltinRange @data.getRange()
-                return builtin_range.evaluate server, term
+                return builtin_range.evaluate
+                    server: server
+                    term: term
+                    var_args: var_args
             #when 38 # Implicit without
             when 39 # Without
-                new_term = new Term args[0]
-                original_object = JSON.parse new_term.evaluate().getResponse()
+                new_term = new Term builtin_args[0]
+                
+                evaluation = new_term.evaluate
+                    server: server
+                    context: context
+                    var_args: var_args
+                original_object = JSON.parse evaluation.getResponse()
                 new_object = {}
                 for key, value of original_object
                     new_object[key] = value
@@ -269,7 +346,27 @@ class Builtin
                 response.setStatusCode 1
                 response.addResponse JSON.stringify new_object
                 return response
+    range: (args) ->
+        #TODO Hum, I lost the context somewhere on my way here.
+        server = args.server
+        builtin_args = args.builtin_args
+        attr_name = args.attr_name
+        lower_bound = args.lower_bound
+        upper_bound = args.upper_bound
+        context = args.context
 
+        type = @data.getType()
+        switch type
+            when 20 # Filter
+                term = new Term builtin_args[0] # TODO Is it safe?
+                builtin_filter = new BuiltinFilter @data.getFilter()
+                return builtin_filter.range
+                    server: server
+                    attr_name: attr_name
+                    lower_bound: lower_bound
+                    upper_bound: upper_bound
+                    term: term
+                    context: context
 
     delete: (args) ->
         server = args.server
@@ -283,7 +380,6 @@ class Builtin
                 builtin_filter = new BuiltinFilter @data.getFilter()
                 return builtin_filter.delete
                     server: server
-                    mapping: mapping
                     term: term
                     context: context
 
@@ -322,14 +418,27 @@ class Builtin
 class BuiltinFilter
     constructor: (data) ->
         @data = data
-    evaluate: (server, term) ->
+
+    evaluate: (args) ->
+        server = args.server
+        term = args.term
+        attr_name = args.attr_name
+        lower_bound = args.lower_bound
+        upper_bound = args.upper_bound
+        context = args.context
+
         predicate = new Predicate @data.getPredicate()
         # Can we have more than one term? Let's suppose not for the time being
-        return term.filter server, predicate
+        return term.filter
+            server: server
+            predicate: predicate
+            attr_name: attr_name
+            lower_bound: lower_bound
+            upper_bound: upper_bound
+            context: context
 
     delete: (args) ->
         server = args.server
-        mapping = args.mapping
         term = args.term
         context = args.context
         predicate = new Predicate @data.getPredicate()
@@ -337,8 +446,26 @@ class BuiltinFilter
         # Can we have more than one term? Let's suppose not for the time being
         return term.delete
             server: server
-            mapping: mapping
             predicate: predicate
+            context: context
+
+    range: (args) ->
+        #TODO Hum, I lost the context somewhere on my way here.
+        server = args.server
+        term = args.term
+        attr_name = args.attr_name
+        lower_bound = args.lower_bound
+        upper_bound = args.upper_bound
+        context = args.context
+
+        predicate = new Predicate @data.getPredicate()
+        return term.range
+            server: server
+            predicate: predicate
+            attr_name: attr_name
+            lower_bound: lower_bound
+            upper_bound: upper_bound
+            term: term
             context: context
 
     mutate: (args) ->
@@ -373,12 +500,20 @@ class BuiltinFilter
 class BuiltinRange
     constructor: (data) ->
         @data = data
-    evaluate: (server, term) ->
+
+    evaluate: (args) ->
+        server = args.server
+        term = args.term
+
         attr_name = @data.getAttrname()
         lower_bound = new Term @data.getLowerbound()
         upper_bound = new Term @data.getUpperbound()
 
-        return term.range server, attr_name, lower_bound, upper_bound
+        return term.range
+            server: server
+            attr_name: attr_name
+            lower_bound: lower_bound
+            upper_bound: upper_bound
 
 
 
