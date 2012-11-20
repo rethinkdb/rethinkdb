@@ -1114,9 +1114,9 @@ oprof-report:
 
 drivers:
 ifeq ($(BUILD_DRIVERS), 1)
-	$(QUIET) cd ../drivers ; $(MAKE) PROTOC="$(TC_PROTOC_RUN)" ;
+	$(QUIET) cd ../drivers ; $(MAKE) PROTOC="$(TC_PROTOC_RUN)" TC_PROTOC_CFLAGS=$(TC_PROTOC_CFLAGS) ;
 else
-	$(QUIET) cd ../drivers/javascript ; $(MAKE) PROTOC="$(TC_PROTOC_RUN)" ;
+	$(QUIET) cd ../drivers/javascript ; $(MAKE) PROTOC="$(TC_PROTOC_RUN)" TC_PROTOC_CFLAGS=$(TC_PROTOC_CFLAGS) ;
 endif #BUILD_DRIVERS
 
 
