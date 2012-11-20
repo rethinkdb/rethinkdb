@@ -11,7 +11,8 @@ endif
 SPREFIX?=/usr
 INCLUDE=$(SPREFIX)/include/
 LIB=$(SPREFIX)/lib/
-PROTOC?=protoc
+BIN=$(SPREFIX)/bin
+PROTOC?=$(SPREFIX)/bin/protoc
 TC_PROTOC_CFLAGS?=
 
 all: js/javascript_package.pb.cc js/int64_encoding.pb.cc protoc-gen-js protoc-gen-ccjs
