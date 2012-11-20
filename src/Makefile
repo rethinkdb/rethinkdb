@@ -308,6 +308,9 @@ ifeq ($(LIBCRYPTO),1)
 LDFLAGS+=-lcrypto 
 endif
 
+CXXFLAGS+=$(CXXPATHDS)
+CFLAGS+=$(CPATHDS)
+
 LIB_SEARCH_PATHS?=
 LDFLAGS+=$(foreach TLIB, $(LIB_SEARCH_PATHS), -L $(TLIB))
 
@@ -361,7 +364,7 @@ endif
 
 CXXFLAGS?=
 
-CXXFLAGS+=-I$(SOURCE_DIR) $(CXXPATHDS) -pthread
+CXXFLAGS+=-I$(SOURCE_DIR) -pthread
 CXXFLAGS+="-DPRODUCT_NAME=\"$(PRODUCT_NAME)\""
 
 ifeq ($(SOLO),1)
