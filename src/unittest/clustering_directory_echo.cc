@@ -17,6 +17,9 @@ public:
     directory_echo_cluster_t(const metadata_t &initial, int port) :
         connectivity_cluster(),
         message_multiplexer(&connectivity_cluster),
+        heartbeat_manager_client(&message_multiplexer, 'H'),
+        heartbeat_manager(&heartbeat_manager_client),
+        heartbeat_manager_client_run(&heartbeat_manager_client, &heartbeat_manager),
         mailbox_manager_client(&message_multiplexer, 'M'),
         mailbox_manager(&mailbox_manager_client),
         mailbox_manager_client_run(&mailbox_manager_client, &mailbox_manager),
@@ -26,11 +29,14 @@ public:
         directory_write_manager(&directory_manager_client, echo_writer.get_watchable()),
         directory_manager_client_run(&directory_manager_client, &directory_read_manager),
         message_multiplexer_run(&message_multiplexer),
-        connectivity_cluster_run(&connectivity_cluster, port, &message_multiplexer_run),
+        connectivity_cluster_run(&connectivity_cluster, port, &message_multiplexer_run, 0, &heartbeat_manager),
         echo_mirror(&mailbox_manager, directory_read_manager.get_root_view())
         { }
     connectivity_cluster_t connectivity_cluster;
     message_multiplexer_t message_multiplexer;
+    message_multiplexer_t::client_t heartbeat_manager_client;
+    heartbeat_manager_t heartbeat_manager;
+    message_multiplexer_t::client_t::run_t heartbeat_manager_client_run;
     message_multiplexer_t::client_t mailbox_manager_client;
     mailbox_manager_t mailbox_manager;
     message_multiplexer_t::client_t::run_t mailbox_manager_client_run;

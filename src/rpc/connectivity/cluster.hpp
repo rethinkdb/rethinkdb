@@ -16,6 +16,7 @@
 #include "perfmon/perfmon.hpp"
 #include "rpc/connectivity/connectivity.hpp"
 #include "rpc/connectivity/messages.hpp"
+#include "rpc/connectivity/heartbeat.hpp"
 #include "containers/uuid.hpp"
 
 namespace boost {
@@ -99,7 +100,8 @@ public:
         run_t(connectivity_cluster_t *parent,
             int port,
             message_handler_t *message_handler,
-            int client_port = 0) THROWS_ONLY(address_in_use_exc_t);
+            int client_port,
+            heartbeat_manager_t *_heartbeat_manager) THROWS_ONLY(address_in_use_exc_t);
 
         ~run_t();
 
@@ -202,7 +204,7 @@ public:
         connect-notification, receiving messages from the peer until it
         disconnects or we are shut down, and sending out the
         disconnect-notification. */
-        void handle(tcp_conn_stream_t *c,
+        void handle(keepalive_tcp_conn_stream_t *c,
             boost::optional<peer_id_t> expected_id,
             boost::optional<peer_address_t> expected_address,
             auto_drainer_t::lock_t,
@@ -211,6 +213,8 @@ public:
         connectivity_cluster_t *parent;
 
         message_handler_t *message_handler;
+
+        heartbeat_manager_t *heartbeat_manager;
 
         /* `attempt_table` is a table of all the host:port pairs we're currently
         trying to connect to or have connected to. If we are told to connect to
@@ -248,8 +252,6 @@ public:
         /* This must be destroyed before `drainer` is. */
         scoped_ptr_t<tcp_listener_t> listener;
 
-        static const int default_user_timeout;
-
         /* A place to put our stats */
     };
 
@@ -264,6 +266,7 @@ public:
     /* `message_service_t` public methods: */
     connectivity_service_t *get_connectivity_service() THROWS_NOTHING;
     void send_message(peer_id_t, send_message_write_callback_t *callback) THROWS_NOTHING;
+    void kill_connection(peer_id_t) THROWS_NOTHING;
 
     /* Other public methods: */
 

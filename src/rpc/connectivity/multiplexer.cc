@@ -90,6 +90,10 @@ void message_multiplexer_t::client_t::send_message(peer_id_t dest, send_message_
     parent->message_service->send_message(dest, &writer);
 }
 
+void message_multiplexer_t::client_t::kill_connection(peer_id_t peer) {
+    parent->message_service->kill_connection(peer);
+}
+
 message_multiplexer_t::message_multiplexer_t(message_service_t *super_ms) :
     message_service(super_ms), run(NULL)
 {
@@ -104,4 +108,3 @@ message_multiplexer_t::~message_multiplexer_t() {
         guarantee(clients[i] == NULL);
     }
 }
-

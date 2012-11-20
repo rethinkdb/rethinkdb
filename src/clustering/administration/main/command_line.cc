@@ -193,6 +193,13 @@ void run_rethinkdb_import(extproc::spawner_t::info_t *spawner_info, std::vector<
     } catch (const host_lookup_exc_t &ex) {
         logERR("%s\n", ex.what());
         *result_out = false;
+    } catch (const interrupted_exc_t &ex) {
+        // This is only ok if we were interrupted by SIGINT, anything else should have been caught elsewhere
+        if (sigint_cond.is_pulsed()) {
+            logERR("Interrupted\n");
+        } else {
+            throw;
+        }
     }
 }
 
