@@ -97,13 +97,13 @@ connectivity_cluster_t::run_t::connection_entry_t::connection_entry_t(run_t *p, 
     pm_bytes_sent_membership(&pm_collection, &pm_bytes_sent, "bytes_sent"),
     parent(p), peer(id),
     entries(new one_per_thread_t<entry_installation_t>(this)) {
-    if (peer != parent->parent->me) {
+    if (peer != parent->parent->me && parent->heartbeat_manager != NULL) {
         parent->heartbeat_manager->begin_peer_heartbeat(peer);
     }
 }
 
 connectivity_cluster_t::run_t::connection_entry_t::~connection_entry_t() THROWS_NOTHING {
-    if (peer != parent->parent->me) {
+    if (peer != parent->parent->me && parent->heartbeat_manager != NULL) {
         parent->heartbeat_manager->end_peer_heartbeat(peer);
     }
 
@@ -263,7 +263,9 @@ public:
     }
 
     void keepalive() {
-        heartbeat->message_from_peer(peer);
+        if (heartbeat != NULL) {
+            heartbeat->message_from_peer(peer);
+        }
     }
 
 private:
