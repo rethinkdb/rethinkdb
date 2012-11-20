@@ -52,6 +52,7 @@ $(JS_BUILD_DIR)/rethinkdb.js: $(JS_BUILD_DIR)/rethinkdb/query_language.pb.js $(P
 ifeq ($(VERBOSE),0)
 	@echo "    CAT > $(JS_BUILD_DIR)/rethinkdb.js"
 endif
+	$(QUIET) mkdir -p $(JS_BUILD_DIR) ;
 	$(QUIET) rm -rf $(JS_BUILD_DIR)/rethinkdb.js
 	$(QUIET) rm -rf $(JS_BUILD_DIR)/rethinkdb.map.js
 	$(QUIET) cp -pRP rethinkdb/*.js $(JS_BUILD_DIR)/rethinkdb/ ;
