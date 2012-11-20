@@ -32,6 +32,7 @@ class administrative_http_server_manager_t {
 
 public:
     administrative_http_server_manager_t(
+        const std::set<ip_address_t> &local_addresses,
         int port,
         mailbox_manager_t *mbox_manager,
         metadata_change_handler_t<cluster_semilattice_metadata_t> *_metadata_change_handler,

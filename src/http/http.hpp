@@ -5,6 +5,7 @@
 #include <string>
 #include <stdexcept>
 #include <vector>
+#include <set>
 
 #include "errors.hpp"
 #include <boost/tokenizer.hpp>
@@ -12,6 +13,7 @@
 #include <boost/optional.hpp>
 
 #include "arch/types.hpp"
+#include "arch/address.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "containers/scoped.hpp"
 #include "parsing/util.hpp"
@@ -163,7 +165,7 @@ public:
  * msg that's a meaningful response */
 class http_server_t {
 public:
-    http_server_t(int port, http_app_t *application);
+    http_server_t(const std::set<ip_address_t> &local_addresses, int port, http_app_t *application);
     ~http_server_t();
     int get_port() const;
 private:

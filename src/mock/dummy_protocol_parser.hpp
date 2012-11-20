@@ -23,10 +23,14 @@ private:
 
 class dummy_protocol_parser_t {
 public:
-    dummy_protocol_parser_t(int port, namespace_repo_t<dummy_protocol_t> *ns_repo, const namespace_id_t &ns_id, perfmon_collection_t *) :
+    dummy_protocol_parser_t(const std::set<ip_address_t> &local_addresses,
+                            int port,
+                            namespace_repo_t<dummy_protocol_t> *ns_repo,
+                            const namespace_id_t &ns_id,
+                            perfmon_collection_t *) :
         ns_access(ns_repo, ns_id, &interruptor),
         query_app(ns_access.get_namespace_if()),
-        server(port, &query_app)
+        server(local_addresses, port, &query_app)
     {
         always_bound.pulse();
     }

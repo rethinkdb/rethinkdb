@@ -18,7 +18,8 @@ void serve_memcache(tcp_conn_t *conn, namespace_interface_t<memcached_protocol_t
 connections until the destructor is called. */
 
 struct memcache_listener_t : public home_thread_mixin_debug_only_t {
-    memcache_listener_t(int _port,
+    memcache_listener_t(const std::set<ip_address_t> &local_addresses,
+                        int _port,
                         namespace_repo_t<memcached_protocol_t> *_ns_repo,
                         const namespace_id_t& _ns_id,
                         perfmon_collection_t *_parent);

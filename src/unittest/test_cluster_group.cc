@@ -161,7 +161,12 @@ reactor_test_cluster_t<protocol_t>::reactor_test_cluster_t(int port) :
     directory_manager_client_run(&directory_manager_client, &directory_read_manager),
 
     message_multiplexer_run(&message_multiplexer),
-    connectivity_cluster_run(&connectivity_cluster, port, &message_multiplexer_run, 0, &heartbeat_manager) { }
+    connectivity_cluster_run(&connectivity_cluster,
+                             get_unittest_addresses(),
+                             port,
+                             &message_multiplexer_run,
+                             0,
+                             &heartbeat_manager) { }
 
 template <class protocol_t>
 reactor_test_cluster_t<protocol_t>::~reactor_test_cluster_t() { }

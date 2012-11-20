@@ -33,6 +33,10 @@ void let_stuff_happen() {
 #endif
 }
 
+std::set<ip_address_t> get_unittest_addresses() {
+    return ip_address_t::get_local_addresses(std::set<ip_address_t>(), false);
+}
+
 int randport() {
     return 10000 + randint(20000);
 }

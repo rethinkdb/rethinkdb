@@ -228,7 +228,12 @@ class simple_mailbox_cluster_t {
 public:
     simple_mailbox_cluster_t() :
         mailbox_manager(&connectivity_cluster),
-        connectivity_cluster_run(&connectivity_cluster, randport(), &mailbox_manager, 0, NULL)
+        connectivity_cluster_run(&connectivity_cluster,
+                                 get_unittest_addresses(),
+                                 randport(),
+                                 &mailbox_manager,
+                                 0,
+                                 NULL)
         { }
     connectivity_service_t *get_connectivity_service() {
         return &connectivity_cluster;

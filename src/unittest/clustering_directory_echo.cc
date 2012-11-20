@@ -29,7 +29,12 @@ public:
         directory_write_manager(&directory_manager_client, echo_writer.get_watchable()),
         directory_manager_client_run(&directory_manager_client, &directory_read_manager),
         message_multiplexer_run(&message_multiplexer),
-        connectivity_cluster_run(&connectivity_cluster, port, &message_multiplexer_run, 0, &heartbeat_manager),
+        connectivity_cluster_run(&connectivity_cluster,
+                                 mock::get_unittest_addresses(),
+                                 port,
+                                 &message_multiplexer_run,
+                                 0,
+                                 &heartbeat_manager),
         echo_mirror(&mailbox_manager, directory_read_manager.get_root_view())
         { }
     connectivity_cluster_t connectivity_cluster;
