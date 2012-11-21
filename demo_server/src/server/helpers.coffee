@@ -35,6 +35,13 @@ class Helpers
             else
                 return a is b
 
+    
+
+    sort: (array_to_sort, order_by_keys, order_by_asc) =>
+        #TODO
+        return true
+
+
     compare: (a, b) =>
         # Returns a-b, so a > b
         value =

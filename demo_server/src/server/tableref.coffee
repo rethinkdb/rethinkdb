@@ -108,8 +108,9 @@ class TableRef
             response.setStatusCode 0 # SUCCESS_STREAM
             return response
 
-    evaluate: (args) ->
+    concat: (args) ->
         server = args.server
+        mapping = args.mapping
 
         db_name = @data.getDbName()
         table_name = @data.getTableName()
@@ -135,8 +136,71 @@ class TableRef
         
         # All green, we can get the data
         response = new Response
+        result = []
         for id, document of server[db_name][table_name]['data']
-            response.addResponse JSON.stringify document
+            if mapping?
+                evaluation = mapping.evaluate
+                    server: server
+                    context: document
+                #TODO check for error! (if not table + if evaluation is contains an error)
+                result = result.concat JSON.parse evaluation.getResponse()
+            else
+                #Not sure that can happen... A document is an object, not an array.
+                result = result.concat document
+        response.addResponse JSON.stringify result
+        response.setStatusCode 3
+        return response
+
+    evaluate: (args) ->
+        server = args.server
+        mapping = args.mapping
+        order_by_keys = args.order_by_keys
+        order_by_asc = args.order_by_asc
+
+        db_name = @data.getDbName()
+        table_name = @data.getTableName()
+
+        # Check format
+        if /[a-zA-Z0-9_]+/.test(db_name) is false or /[a-zA-Z0-9_]+/.test(table_name) is false
+            response = new Response
+            response.setStatusCode 102
+            response.setErrorMessage "Bad Query: Invalid name 'f-f'.  (Use A-Za-z0-9_ only.)."
+            return response
+        
+        # Make sure that the table exists
+        if not server[db_name]?
+            response = new Response
+            response.setStatusCode 103
+            response.setErrorMessage "Error: Error during operation `EVAL_DB #{db_name}`: No entry with that name"
+            return response
+        if not server[db_name][table_name]?
+            response = new Response
+            response.setStatusCode 103
+            response.setErrorMessage "Error: Error during operation `EVAL_TABLE #{db_name}`: No entry with that name"
+            return response
+        
+        # All green, we can get the data
+        response = new Response
+        results = []
+        for id, document of server[db_name][table_name]['data']
+            if mapping?
+                evaluation = mapping.evaluate
+                    server: server
+                    context: document
+                #TODO check for error! (everywhere)
+                results.push evaluation.getResponse()
+                #response.addResponse evaluation.getResponse()
+            else
+                results.push document
+                #response.addResponse JSON.stringify document
+
+        if order_by_keys?
+            success = Helpers.prototype.sort results, order_by_keys, order_by_asc
+            if success is false
+                return false
+                #TODO
+        for result in results
+            response.addResponse result
         response.setStatusCode 3
         return response
 

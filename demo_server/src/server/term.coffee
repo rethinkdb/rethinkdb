@@ -8,6 +8,7 @@ class Term
         predicate = args.predicate
         builtin = args.builtin
         builtin_args = args.builtin_args
+        mapping = args.mapping
         var_args = args.var_args
 
         type = @data.getType()
@@ -19,9 +20,9 @@ class Term
                 term_call = new TermCall @data.getCall()
                 return term_call.delete
                     server: server
-                    context: context
                     builtin: builtin
                     builtin_args: builtin_args
+                    context: context
             #when 4 # IF
             #when 5 # ERROR
             #when 6 # NUMBER
@@ -46,7 +47,10 @@ class Term
     evaluate: (args) ->
         server = args.server
         context = args.context
+        mapping = args.mapping
         var_args = args.var_args
+        order_by_keys = args.order_by_keys
+        order_by_asc = args.order_by_asc
 
         type = @data.getType()
         switch type
@@ -66,12 +70,17 @@ class Term
                 return term_call.evaluate
                     server: server
                     context: context
+                    mapping: mapping
                     var_args: var_args
+                    order_by_keys: order_by_keys
+                    order_by_asc: order_by_asc
+
             when 4 # IF
                 term_if = new TermIf @data.getIf()
                 return term_if.evaluate
                     server: server
                     context: context
+                    mapping: mapping
                     var_args: var_args
             #when 5 # ERROR
             when 6 # NUMBER
@@ -104,6 +113,7 @@ class Term
                     evaluation = new_term.evaluate
                         server: server
                         context: context
+                        mapping: mapping
                         var_args: var_args
                     result.push JSON.parse evaluation.getResponse()
                 response.addResponse JSON.stringify result
@@ -117,6 +127,7 @@ class Term
                     evaluation = new_var_term_tuple.evaluate
                         server: server
                         context: context
+                        mapping: mapping
                         var_args: var_args
                     result[new_var_term_tuple.get_key()] = JSON.parse(evaluation.getResponse())
                 response.addResponse JSON.stringify result
@@ -126,6 +137,7 @@ class Term
                 return term_get_by_key.evaluate
                     server: server
                     context: context
+                    mapping: mapping
                     var_args: var_args
 
             when 13 # TABLE
@@ -133,7 +145,10 @@ class Term
                 return term_table.evaluate
                     server: server
                     context: context
+                    mapping: mapping
                     var_args: var_args
+                    order_by_keys: order_by_keys
+                    order_by_asc: order_by_asc
 
             when 14 # JAVASCRIPT
                 response = new Response
@@ -153,7 +168,9 @@ class Term
         lower_bound = args.lower_bound
         upper_bound = args.upper_bound
         context = args.context
-        var_args = args.var_args
+        mapping = args.mapping
+        var_args = args.var_argsa
+        context = args.context
 
         type = @data.getType()
         switch type
@@ -177,11 +194,13 @@ class Term
                     evaluation = predicate.evaluate
                         server: server
                         new_term: new_term
+                        mapping: mapping
                         var_args: var_args
                     if JSON.parse(evaluation.getResponse()) is true
                         term_evaluation = new_term.evaluate
                             server: server
                             context: context
+                            mapping: mapping
                             var_args: var_args
                         result.push JSON.parse term_evaluation.getResponse()
                 response.addResponse JSON.stringify result
@@ -196,6 +215,7 @@ class Term
                     attr_name: attr_name
                     lower_bound: lower_bound
                     upper_bound: upper_bound
+                    mapping: mapping
                     var_args: var_args
             #when 14 # JAVASCRIPT
             #when 15 # IMPLICIT_VAR
@@ -344,7 +364,53 @@ class Term
             #when 14 # JAVASCRIPT
             #when 15 # IMPLICIT_VAR
 
+    concat: (args) ->
+        server = args.server
+        mapping = args.mapping
+        context = args.context
+        predicate = args.predicate
+        builtin = args.builtin
+        builtin_args = args.builtin_args
+        var_args = args.var_args
 
+
+        type = @data.getType()
+        switch type
+            #when 0 # JSON_NULL
+            #when 1 # VAR
+            #when 2 # LET
+            when 3 # CALL
+                term_call = new TermCall @data.getCall()
+                return term_call.concat
+                    server: server
+                    mapping: mapping
+                    context: context
+                    builtin: builtin
+                    builtin_args: builtin_args
+                    predicate: predicate
+                    var_args: var_args
+
+            #when 4 # IF
+            #when 5 # ERROR
+            #when 6 # NUMBER
+            #when 7 # STRING
+            # when '8' # JSON
+            #when 9 # BOOL
+            #when 10 # ARRAY
+            #when 11 # OBJECT
+            #when 12 # GETBYKEY
+            when 13 # TABLE
+                term_table = new TermTable @data.getTable()
+                return term_table.concat
+                    server: server
+                    mapping: mapping
+                    builtin: builtin
+                    builtin_args: builtin_args
+                    context: context
+                    predicate: predicate
+                    var_args: var_args
+            #when 14 # JAVASCRIPT
+            #when 15 # IMPLICIT_VAR
 class TermCall
     constructor: (data) ->
         @data = data
@@ -353,6 +419,8 @@ class TermCall
         server = args.server
         context = args.context
         var_args = args.var_args
+        order_by_keys = args.order_by_keys
+        order_by_asc = args.order_by_asc
 
         builtin = new Builtin @data.getBuiltin()
         builtin_args = @data.argsArray() # is the table (or something close to that)
@@ -361,6 +429,8 @@ class TermCall
             builtin_args: builtin_args
             context: context
             var_args: var_args
+            order_by_keys: order_by_keys
+            order_by_asc: order_by_asc
 
     range: (args) ->
         server = args.server
@@ -369,6 +439,8 @@ class TermCall
         upper_bound = args.upper_bound
         context = args.context
         var_args = args.var_args
+        order_by_keys = args.order_by_keys
+        order_by_asc = args.order_by_asc
 
         builtin = new Builtin @data.getBuiltin()
         builtin_args = @data.argsArray() # is the table (or something close to that)
@@ -380,6 +452,8 @@ class TermCall
             builtin_args: builtin_args
             context: context
             var_args: var_args
+            order_by_keys: order_by_keys
+            order_by_asc: order_by_asc
 
     delete: (args) ->
         server = args.server
@@ -410,7 +484,8 @@ class TermCall
             builtin_args: builtin_args
             context: context
             var_args: var_args
-
+            # need orderby?
+            
     update: (args) ->
         server = args.server
         mapping = args.mapping
@@ -478,20 +553,37 @@ class TermTable
 
     evaluate: (args) ->
         server = args.server
+        mapping = args.mapping
+        order_by_keys = args.order_by_keys
+        order_by_asc = args.order_by_asc
 
         table_ref = new TableRef @data.getTableRef()
         return table_ref.evaluate
             server: server
+            mapping: mapping
+            order_by_keys: order_by_keys
+            order_by_asc: order_by_asc
+
+    concat: (args) ->
+        server = args.server
+        mapping = args.mapping
+
+        table_ref = new TableRef @data.getTableRef()
+        return table_ref.concat
+            server: server
+            mapping: mapping
 
     filter: (args) ->
         server = args.server
         predicate = args.predicate
+        mapping = args.mapping
         context = args.context
 
         table_ref = new TableRef @data.getTableRef()
         return table_ref.filter
             server: server
             predicate: predicate
+            mapping: mapping
             context: context
 
     mutate: (args) ->
@@ -510,12 +602,14 @@ class TermTable
     delete: (args) ->
         server = args.server
         predicate = args.predicate
+        mapping = args.mapping
         context = args.context
 
         table_ref = new TableRef @data.getTableRef()
         return table_ref.delete
             server: server
             predicate: predicate
+            mapping: mapping
             context: context
 
     range: (args) ->
@@ -524,6 +618,7 @@ class TermTable
         lower_bound = args.lower_bound
         upper_bound = args.upper_bound
         predicate = args.predicate
+        mapping = args.mapping
         context = args.context
 
         table_ref = new TableRef @data.getTableRef()
@@ -533,6 +628,7 @@ class TermTable
             lower_bound: lower_bound
             upper_bound: upper_bound
             predicate: predicate
+            mapping: mapping
             context: context
 
     update: (args) ->

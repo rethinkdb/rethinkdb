@@ -6,7 +6,11 @@ class Builtin
         server = args.server
         builtin_args = args.builtin_args
         context = args.context
+        mapping = args.mapping
         var_args = args.var_args
+        order_by_keys = args.order_by_keys
+        order_by_asc = args.order_by_asc
+
 
         type = @data.getType()
         switch type
@@ -27,6 +31,7 @@ class Builtin
                 evaluation = term.evaluate
                     server: server
                     context: context
+                    mapping: mapping
                     var_args: var_args
                 original_object = JSON.parse evaluation.getResponse()
 
@@ -51,6 +56,7 @@ class Builtin
                 evaluation = term.evaluate
                     server: server
                     context: context
+                    mapping: mapping
                     var_args: var_args
                 original_object = JSON.parse evaluation.getResponse()
 
@@ -74,7 +80,10 @@ class Builtin
                 evaluation = new_term.evaluate
                     server: server
                     context: context
+                    mapping: mapping
                     var_args: var_args
+                    order_by_keys: order_by_keys
+                    order_by_asc: order_by_asc
                 original_object = JSON.parse evaluation.getResponse()
                 attrs = @data.attrsArray()
                 new_object = {}
@@ -92,7 +101,10 @@ class Builtin
                 evaluation = result_term.evaluate
                     server: server
                     context: context
+                    mapping: mapping
                     var_args: var_args
+                    order_by_keys: order_by_keys
+                    order_by_asc: order_by_asc
                 result_object = JSON.parse evaluation.getResponse()
 
                 extra_term = new Term builtin_args[1]
@@ -100,7 +112,10 @@ class Builtin
                 evaluation = extra_term.evaluate
                     server: server
                     context: context
+                    mapping: mapping
                     var_args: var_args
+                    order_by_keys: order_by_keys
+                    order_by_asc: order_by_asc
                 extra_object = JSON.parse evaluation.getResponse()
                
                 for key, value of extra_object
@@ -116,14 +131,22 @@ class Builtin
                 evaluation = result_term.evaluate
                     server: server
                     context: context
+                    mapping: mapping
                     var_args: var_args
+                    order_by_keys: order_by_keys
+                    order_by_asc: order_by_asc
+
                 result_array = JSON.parse evaluation.getResponse()
 
                 new_term = new Term builtin_args[1]
                 evaluation = new_term.evaluate
                     server: server
                     context: context
+                    mapping: mapping
                     var_args: var_args
+                    order_by_keys: order_by_keys
+                    order_by_asc: order_by_asc
+
                 new_term_value = JSON.parse evaluation.getResponse()
                 
                 result_array.push new_term_value
@@ -135,30 +158,33 @@ class Builtin
             #when 11 # slice
             when 14 # Add
                 response = new Response
-                if (builtin_args[0].getType() isnt 6 and builtin_args[0].getType() isnt 10) or (builtin_args[1].getType() isnt 6 and builtin_args[1].getType() isnt 10) or (builtin_args[0].getType() isnt builtin_args[1].getType())
+                term1 = new Term builtin_args[0]
+                term2 = new Term builtin_args[1]
+
+                evaluation1 = term1.evaluate
+                    server: server
+                    context: context
+                    mapping: mapping
+                    var_args: var_args
+                evaluation2 = term2.evaluate
+                    server: server
+                    context: context
+                    mapping: mapping
+                    var_args: var_args
+
+                response1 = JSON.parse evaluation1.getResponse()
+                response2 = JSON.parse evaluation2.getResponse()
+                
+                if (typeof response1 isnt typeof response2) and (typeof response1 isnt 'number' and Object.prototype.toString.call(response1) isnt '[object Array]') and (typeof response2 isnt 'number' and Object.prototype.toString.call(response2) isnt '[object Array]')
                     response.setStatusCode 103
                     response.setErrorMessage 'Can only ADD numbers with number and arrays with arrays'
                     #TODO Backtrace
                     return response
 
-                if builtin_args[0].getType() is 6
-                    result = builtin_args[0].getNumber() + builtin_args[1].getNumber()
-                else if builtin_args[0].getType() is 10
-                    result = []
-                    for term_raw in builtin_args[0].arrayArray()
-                        term = new Term term_raw
-                        evaluation = term.evaluate
-                            server: server
-                            context: context
-                            var_args: var_args
-                        result.push JSON.parse evaluation.getResponse()
-                    for term_raw in builtin_args[1].arrayArray()
-                        term = new Term term_raw
-                        evaluation = term.evaluate
-                            server: server
-                            context: context
-                            var_args: var_args
-                        result.push JSON.parse evaluation.getResponse()
+                if typeof response1 is 'number'
+                    result = response1+response2
+                else # We have two arrays
+                    result = response1.concat response2
                 response.setStatusCode 1
                 response.addResponse JSON.stringify result
                 return response
@@ -220,12 +246,14 @@ class Builtin
                 evaluation = term1.evaluate
                     server: server
                     context: context
+                    mapping: mapping
                     var_args: var_args
                 term1_value = JSON.parse evaluation.getResponse()
                 term2 = new Term builtin_args[1]
                 evaluation = term2.evaluate
                     server: server
                     context: context
+                    mapping: mapping
                     var_args: var_args
                 term2_value = JSON.parse evaluation.getResponse()
 
@@ -270,10 +298,42 @@ class Builtin
                 return builtin_filter.evaluate
                     server: server
                     term: term
+                    mapping: mapping
                     var_args: var_args
-            #when 21 # Map
-            #when 22 # Concatmap
-            #when 23 # Orderby
+                    order_by_keys: order_by_keys
+                    order_by_asc: order_by_asc
+
+            when 21 # Map
+                term = new Term builtin_args[0]
+                builtin_map = new BuiltinMap @data.getMap()
+                return builtin_map.evaluate
+                    server: server
+                    term: term
+                    mapping: mapping
+                    var_args: var_args
+                    order_by_keys: order_by_keys
+                    order_by_asc: order_by_asc
+
+            when 22 # Concatmap
+                term = new Term builtin_args[0]
+                builtin_concat_map = new BuiltinConcatMap @data.getConcatMap()
+                return builtin_concat_map.evaluate
+                    server: server
+                    term: term
+                    mapping: mapping
+                    var_args: var_args
+                    order_by_keys: order_by_keys
+                    order_by_asc: order_by_asc
+
+            when 23 # Orderby
+                term = new Term builtin_args[0]
+                builtin_order_by = new BuiltinOrderBy @data.getOrderBy()
+                return builtin_order_by.evaluate
+                    server: server
+                    term: term
+                    mapping: mapping
+                    var_args: var_args
+
             #when 24 # Distinct
             #when 26 # Length
             #when 27 # Union
@@ -287,12 +347,14 @@ class Builtin
                 evaluation = term1.evaluate
                     server: server
                     context: context
+                    mapping: mapping
                     var_args: var_args
                 term1_value = JSON.parse evaluation.getResponse()
                 term2 = new Term builtin_args[1]
                 evaluation = term2.evaluate
                     server: server
                     context: context
+                    mapping: mapping
                     var_args: var_args
                 term2_value = JSON.parse evaluation.getResponse()
 
@@ -306,12 +368,14 @@ class Builtin
                 evaluation = term1.evaluate
                     server: server
                     context: context
+                    mapping: mapping
                     var_args: var_args
                 term1_value = JSON.parse evaluation.getResponse()
                 term2 = new Term builtin_args[1]
                 evaluation = term2.evaluate
                     server: server
                     context: context
+                    mapping: mapping
                     var_args: var_args
                 term2_value = JSON.parse evaluation.getResponse()
 
@@ -325,7 +389,10 @@ class Builtin
                 return builtin_range.evaluate
                     server: server
                     term: term
+                    mapping: mapping
                     var_args: var_args
+                    order_by_keys: order_by_keys
+                    order_by_asc: order_by_asc
             #when 38 # Implicit without
             when 39 # Without
                 new_term = new Term builtin_args[0]
@@ -333,7 +400,10 @@ class Builtin
                 evaluation = new_term.evaluate
                     server: server
                     context: context
+                    mapping: mapping
                     var_args: var_args
+                    order_by_keys: order_by_keys
+                    order_by_asc: order_by_asc
                 original_object = JSON.parse evaluation.getResponse()
                 new_object = {}
                 for key, value of original_object
@@ -354,6 +424,9 @@ class Builtin
         lower_bound = args.lower_bound
         upper_bound = args.upper_bound
         context = args.context
+        order_by_keys = args.order_by_keys
+        order_by_asc = args.order_by_asc
+
 
         type = @data.getType()
         switch type
@@ -367,6 +440,8 @@ class Builtin
                     upper_bound: upper_bound
                     term: term
                     context: context
+                    order_by_keys: order_by_keys
+                    order_by_asc: order_by_asc
 
     delete: (args) ->
         server = args.server
@@ -497,6 +572,54 @@ class BuiltinFilter
             predicate: predicate
             context: context
 
+
+class BuiltinMap
+    constructor: (data) ->
+        @data = data
+
+    evaluate: (args) ->
+        server = args.server
+        term = args.term
+        var_args = args.var_args
+
+        mapping = new Mapping @data.getMapping()
+        return term.evaluate
+            server: server
+            mapping: mapping
+            var_args: var_args
+
+class BuiltinConcatMap
+    constructor: (data) ->
+        @data = data
+
+    evaluate: (args) ->
+        server = args.server
+        term = args.term
+        var_args = args.var_args
+
+        mapping = new Mapping @data.getMapping()
+        return term.concat
+            server: server
+            mapping: mapping
+            var_args: var_args
+
+class BuiltinOrderBy
+    constructor: (data) ->
+        @data = data
+
+    evaluate: (args) ->
+        server = args.server
+        term = args.term
+        var_args = args.var_args
+
+        return term.evaluate
+            server: server
+            var_args: var_args
+            order_by_keys: @data.getAttr()
+            order_by_asc: @data.getAscending()
+
+
+
 class BuiltinRange
     constructor: (data) ->
         @data = data
@@ -504,6 +627,7 @@ class BuiltinRange
     evaluate: (args) ->
         server = args.server
         term = args.term
+        var_args = args.var_args
 
         attr_name = @data.getAttrname()
         lower_bound = new Term @data.getLowerbound()
@@ -514,6 +638,6 @@ class BuiltinRange
             attr_name: attr_name
             lower_bound: lower_bound
             upper_bound: upper_bound
-
+            var_args: var_args
 
 
