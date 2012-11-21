@@ -7,8 +7,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#include <iostream>
-#include <fstream>
+#include <fstream>  // NOLINT(readability/streams). Needed for use with program_options.  Sorry.
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
@@ -33,7 +32,7 @@
 
 namespace po = boost::program_options;
 
-bool numwrite(const char *path, int number) {
+MUST_USE bool numwrite(const char *path, int number) {
     // Try to figure out what this function does.
     FILE *fp1 = fopen(path, "w");
     if (fp1 == NULL) {
