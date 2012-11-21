@@ -140,7 +140,7 @@ function testPickAttrs() {
 
 function testUnpick() {
     tobj.unpick('a').run(objeq({b:2,c:3}));
-    tobj.unpick(['a','b']).run(objeq({c:3}));
+    tobj.unpick('a','b').run(objeq({c:3}));
 }
 
 function testR() {
