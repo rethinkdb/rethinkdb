@@ -103,12 +103,14 @@ struct reservoir_sample_t {
         } else {
             assert(n >= goal && s.n >= goal);
             for (int i = 0; i < goal; i++) {
-                if (xrandom(0, n + s.n - 1) < s.n) {
+                if (static_cast<int>(xrandom(0, n + s.n - 1)) < s.n) {
                     samples[i] = s.samples[i];
                 }
             }
             n += s.n;
         }
+
+        return *this;
     }
 
     /* Returns the actual number of things in the reservoir */

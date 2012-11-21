@@ -16,8 +16,8 @@ struct client_t {
     client_t(int _pipeline_limit = 0, int _ignore_protocol_errors = 0) :
         total_freq(0),
         pipeline_limit(_pipeline_limit),
-        keep_running(false),
         ignore_protocol_errors(_ignore_protocol_errors),
+        keep_running(false),
         print_further_protocol_errors(true)
         { }
 
@@ -75,8 +75,9 @@ private:
 
     bool print_further_protocol_errors;
 
-    static void* run_client(void* data) {
+    static void *run_client(void* data) {
         static_cast<client_t*>(data)->run();
+        return NULL;
     }
 
     void run() {
@@ -89,7 +90,7 @@ private:
             /* Select which operation to perform */
             int op_counter = xrandom(0, total_freq - 1);
             op_t *op_to_do = NULL;
-            for (int i = 0; i < ops.size(); i++) {
+            for (size_t i = 0; i < ops.size(); i++) {
                 if (op_counter < freqs[i]) {
                     op_to_do = ops[i]->generate();
                     break;
@@ -107,7 +108,7 @@ private:
                 op_to_do->start();
                 outstanding_ops.push(op_to_do);
 
-                while (outstanding_ops.size() > pipeline_limit) {
+                while (static_cast<ssize_t>(outstanding_ops.size()) > pipeline_limit) {
                     outstanding_ops.front()->end();
                     outstanding_ops.pop();
                 }
