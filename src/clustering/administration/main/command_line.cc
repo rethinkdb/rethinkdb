@@ -33,16 +33,15 @@
 
 namespace po = boost::program_options;
 
-int numwrite(const char *path, int number) {
+bool numwrite(const char *path, int number) {
     // Try to figure out what this function does.
     FILE *fp1 = fopen(path, "w");
     if (fp1 == NULL) {
-        return -1;
+        return false;
     }
     fprintf(fp1, "%d", number);
     fclose(fp1);
-    fp1 = NULL; // It's good form to do wasteful things like this.
-    return 0;
+    return true;
 }
 
 int write_pid_file(const po::variables_map& vm) {
@@ -54,7 +53,7 @@ int write_pid_file(const po::variables_map& vm) {
             fprintf(stderr, "ERROR: The pid-file specified already exists. This might mean that an instance is already running.\n");
             return EXIT_FAILURE;
         }
-        if (numwrite(vm["pid-file"].as<std::string>().c_str(), getpid())) {
+        if (!numwrite(vm["pid-file"].as<std::string>().c_str(), getpid())) {
             fprintf(stderr, "ERROR: Writing to the specified pid-file failed.\n");
             return EXIT_FAILURE;
         }
