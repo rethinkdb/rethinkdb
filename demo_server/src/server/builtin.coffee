@@ -10,6 +10,8 @@ class Builtin
         var_args = args.var_args
         order_by_keys = args.order_by_keys
         order_by_asc = args.order_by_asc
+        skip_value = args.skip_value
+        limit_value = args.limit_value
 
 
         type = @data.getType()
@@ -33,6 +35,8 @@ class Builtin
                     context: context
                     mapping: mapping
                     var_args: var_args
+                    skip_value: skip_value
+                    limit_value: limit_value
                 original_object = JSON.parse evaluation.getResponse()
 
                 attr = @data.getAttr()
@@ -58,6 +62,8 @@ class Builtin
                     context: context
                     mapping: mapping
                     var_args: var_args
+                    skip_value: skip_value
+                    limit_value: limit_value
                 original_object = JSON.parse evaluation.getResponse()
 
                 attr = @data.getAttr()
@@ -105,6 +111,8 @@ class Builtin
                     var_args: var_args
                     order_by_keys: order_by_keys
                     order_by_asc: order_by_asc
+                    skip_value: skip_value
+                    limit_value: limit_value
                 result_object = JSON.parse evaluation.getResponse()
 
                 extra_term = new Term builtin_args[1]
@@ -116,6 +124,8 @@ class Builtin
                     var_args: var_args
                     order_by_keys: order_by_keys
                     order_by_asc: order_by_asc
+                    skip_value: skip_value
+                    limit_value: limit_value
                 extra_object = JSON.parse evaluation.getResponse()
                
                 for key, value of extra_object
@@ -135,6 +145,8 @@ class Builtin
                     var_args: var_args
                     order_by_keys: order_by_keys
                     order_by_asc: order_by_asc
+                    skip_value: skip_value
+                    limit_value: limit_value
 
                 result_array = JSON.parse evaluation.getResponse()
 
@@ -146,6 +158,8 @@ class Builtin
                     var_args: var_args
                     order_by_keys: order_by_keys
                     order_by_asc: order_by_asc
+                    skip_value: skip_value
+                    limit_value: limit_value
 
                 new_term_value = JSON.parse evaluation.getResponse()
                 
@@ -155,7 +169,48 @@ class Builtin
                 response.setStatusCode 1
                 response.addResponse JSON.stringify result_array
                 return response
-            #when 11 # slice
+            when 11 # slice
+                term = new Term builtin_args[0]
+                new_skip_value = new Term builtin_args[1]
+                new_limit_value = new Term builtin_args[2]
+
+                if new_skip_value?
+                    new_skip_value = JSON.parse new_skip_value.evaluate(args).getResponse()
+                if new_limit_value?
+                    new_limit_value = JSON.parse new_limit_value.evaluate(args).getResponse()
+                if new_limit_value is null
+                    new_limit_value = Infinity
+
+                # I'm not sure that merging the new skip/limit with the old ones is always safe.
+
+
+                evaluation = term.evaluate
+                    server: server
+                    context: context
+                    mapping: mapping
+                    var_args: var_args
+                    order_by_keys: order_by_keys
+                    order_by_asc: order_by_asc
+                    skip_value: new_skip_value
+                    limit_value: new_limit_value
+
+                response = new Response
+                response.setStatusCode 3
+                results = evaluation.responseArray()
+
+                skipped = 0
+                added = 0
+                for result in results
+                    if added >= new_limit_value
+                        break
+                    if skipped < new_skip_value
+                        skipped++
+                        continue
+
+                    response.addResponse result
+                    added++
+                return response
+
             when 14 # Add
                 response = new Response
                 term1 = new Term builtin_args[0]
@@ -166,11 +221,19 @@ class Builtin
                     context: context
                     mapping: mapping
                     var_args: var_args
+                    order_by_keys: order_by_keys
+                    order_by_asc: order_by_asc
+                    skip_value: skip_value
+                    limit_value: limit_value
                 evaluation2 = term2.evaluate
                     server: server
                     context: context
                     mapping: mapping
                     var_args: var_args
+                    order_by_keys: order_by_keys
+                    order_by_asc: order_by_asc
+                    skip_value: skip_value
+                    limit_value: limit_value
 
                 response1 = JSON.parse evaluation1.getResponse()
                 response2 = JSON.parse evaluation2.getResponse()
@@ -248,6 +311,8 @@ class Builtin
                     context: context
                     mapping: mapping
                     var_args: var_args
+                    skip_value: skip_value
+                    limit_value: limit_value
                 term1_value = JSON.parse evaluation.getResponse()
                 term2 = new Term builtin_args[1]
                 evaluation = term2.evaluate
@@ -255,6 +320,8 @@ class Builtin
                     context: context
                     mapping: mapping
                     var_args: var_args
+                    skip_value: skip_value
+                    limit_value: limit_value
                 term2_value = JSON.parse evaluation.getResponse()
 
 
@@ -302,6 +369,8 @@ class Builtin
                     var_args: var_args
                     order_by_keys: order_by_keys
                     order_by_asc: order_by_asc
+                    skip_value: skip_value
+                    limit_value: limit_value
 
             when 21 # Map
                 term = new Term builtin_args[0]
@@ -313,6 +382,8 @@ class Builtin
                     var_args: var_args
                     order_by_keys: order_by_keys
                     order_by_asc: order_by_asc
+                    skip_value: skip_value
+                    limit_value: limit_value
 
             when 22 # Concatmap
                 term = new Term builtin_args[0]
@@ -324,16 +395,51 @@ class Builtin
                     var_args: var_args
                     order_by_keys: order_by_keys
                     order_by_asc: order_by_asc
+                    skip_value: skip_value
+                    limit_value: limit_value
 
             when 23 # Orderby
                 term = new Term builtin_args[0]
-                builtin_order_by = new BuiltinOrderBy @data.getOrderBy()
-                return builtin_order_by.evaluate
+                order_by_args = @data.orderByArray()
+
+                order_by_keys = []
+                order_by_asc = []
+                #order_by is a Builtin.OrderBy object (cf. proto)
+                for order_by in @data.orderByArray()
+                    order_by_keys.push order_by.getAttr()
+                    order_by_asc.push order_by.getAscending()
+
+                evaluation = term.evaluate
                     server: server
                     term: term
                     mapping: mapping
                     var_args: var_args
+                    skip_value: skip_value
+                    limit_value: limit_value
+                results = evaluation.responseArray()
+                debugger
+                array_to_sort = []
+                for result in results
 
+                    array_to_sort.push JSON.parse result
+
+                try
+                    Helpers.prototype.sort array_to_sort, order_by_keys, order_by_asc
+                catch error
+                    debugger
+                    response.setStatusCode 103
+                    response.setErrorMessage error
+                    return response
+
+                results = []
+                for result in array_to_sort
+                    results.push result
+
+                response = new Response
+                for result in results
+                    response.addResponse JSON.stringify result
+                response.setStatusCode 3
+                return response
             #when 24 # Distinct
             #when 26 # Length
             #when 27 # Union
@@ -349,6 +455,8 @@ class Builtin
                     context: context
                     mapping: mapping
                     var_args: var_args
+                    skip_value: skip_value
+                    limit_value: limit_value
                 term1_value = JSON.parse evaluation.getResponse()
                 term2 = new Term builtin_args[1]
                 evaluation = term2.evaluate
@@ -356,6 +464,8 @@ class Builtin
                     context: context
                     mapping: mapping
                     var_args: var_args
+                    skip_value: skip_value
+                    limit_value: limit_value
                 term2_value = JSON.parse evaluation.getResponse()
 
                 response = new Response()
@@ -370,6 +480,8 @@ class Builtin
                     context: context
                     mapping: mapping
                     var_args: var_args
+                    skip_value: skip_value
+                    limit_value: limit_value
                 term1_value = JSON.parse evaluation.getResponse()
                 term2 = new Term builtin_args[1]
                 evaluation = term2.evaluate
@@ -377,6 +489,8 @@ class Builtin
                     context: context
                     mapping: mapping
                     var_args: var_args
+                    skip_value: skip_value
+                    limit_value: limit_value
                 term2_value = JSON.parse evaluation.getResponse()
 
                 response = new Response()
@@ -393,6 +507,8 @@ class Builtin
                     var_args: var_args
                     order_by_keys: order_by_keys
                     order_by_asc: order_by_asc
+                    skip_value: skip_value
+                    limit_value: limit_value
             #when 38 # Implicit without
             when 39 # Without
                 new_term = new Term builtin_args[0]
@@ -404,6 +520,8 @@ class Builtin
                     var_args: var_args
                     order_by_keys: order_by_keys
                     order_by_asc: order_by_asc
+                    skip_value: skip_value
+                    limit_value: limit_value
                 original_object = JSON.parse evaluation.getResponse()
                 new_object = {}
                 for key, value of original_object
@@ -426,6 +544,8 @@ class Builtin
         context = args.context
         order_by_keys = args.order_by_keys
         order_by_asc = args.order_by_asc
+        skip_value = args.skip_value
+        limit_value = args.limit_value
 
 
         type = @data.getType()
@@ -442,6 +562,8 @@ class Builtin
                     context: context
                     order_by_keys: order_by_keys
                     order_by_asc: order_by_asc
+                    skip_value: skip_value
+                    limit_value: limit_value
 
     delete: (args) ->
         server = args.server
@@ -501,6 +623,9 @@ class BuiltinFilter
         lower_bound = args.lower_bound
         upper_bound = args.upper_bound
         context = args.context
+        skip_value = skip_value
+        limit_value = limit_value
+
 
         predicate = new Predicate @data.getPredicate()
         # Can we have more than one term? Let's suppose not for the time being
@@ -511,6 +636,8 @@ class BuiltinFilter
             lower_bound: lower_bound
             upper_bound: upper_bound
             context: context
+            skip_value: skip_value
+            limit_value: limit_value
 
     delete: (args) ->
         server = args.server
@@ -532,6 +659,8 @@ class BuiltinFilter
         lower_bound = args.lower_bound
         upper_bound = args.upper_bound
         context = args.context
+        skip_value = args.skip_value
+        limit_value = args.limit_value
 
         predicate = new Predicate @data.getPredicate()
         return term.range
@@ -542,6 +671,8 @@ class BuiltinFilter
             upper_bound: upper_bound
             term: term
             context: context
+            skip_value: skip_value
+            limit_value: limit_value
 
     mutate: (args) ->
         server = args.server
@@ -581,12 +712,16 @@ class BuiltinMap
         server = args.server
         term = args.term
         var_args = args.var_args
+        skip_value = args.skip_value
+        limit_value = args.limit_value
 
         mapping = new Mapping @data.getMapping()
         return term.evaluate
             server: server
             mapping: mapping
             var_args: var_args
+            skip_value: skip_value
+            limit_value: limit_value
 
 class BuiltinConcatMap
     constructor: (data) ->
@@ -596,12 +731,16 @@ class BuiltinConcatMap
         server = args.server
         term = args.term
         var_args = args.var_args
+        skip_value = args.skip_value
+        limit_value = args.limit_value
 
         mapping = new Mapping @data.getMapping()
         return term.concat
             server: server
             mapping: mapping
             var_args: var_args
+            skip_value: skip_value
+            limit_value: limit_value
 
 class BuiltinOrderBy
     constructor: (data) ->
@@ -611,12 +750,17 @@ class BuiltinOrderBy
         server = args.server
         term = args.term
         var_args = args.var_args
+        skip_value = args.skip_value
+        limit_value = args.limit_value
+
 
         return term.evaluate
             server: server
             var_args: var_args
             order_by_keys: @data.getAttr()
             order_by_asc: @data.getAscending()
+            skip_value: skip_value
+            limit_value: limit_value
 
 
 
@@ -628,6 +772,8 @@ class BuiltinRange
         server = args.server
         term = args.term
         var_args = args.var_args
+        skip_value = args.skip_value
+        limit_value = args.limit_value
 
         attr_name = @data.getAttrname()
         lower_bound = new Term @data.getLowerbound()
@@ -639,5 +785,7 @@ class BuiltinRange
             lower_bound: lower_bound
             upper_bound: upper_bound
             var_args: var_args
+            skip_value: skip_value
+            limit_value: limit_value
 
 
