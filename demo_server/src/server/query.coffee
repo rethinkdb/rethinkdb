@@ -1,3 +1,7 @@
+#BC: I don't this this class is necessary. All this does is wrap the
+#    logic of distinguishing the query type
+
+###
 class Query
     constructor: (data) ->
         @data = data
@@ -17,3 +21,4 @@ class Query
             when 5 # Meta query
                 meta_query = new MetaQuery @data.getMetaQuery()
                 return meta_query.evaluate server
+###
