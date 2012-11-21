@@ -11,6 +11,14 @@
 #error "RethinkDB only supports 64-bit x86-64 targets at this time."
 #endif
 
+#ifdef LEGACY_LINUX
+#define RDB_USE_TIMER_SIGNAL_PROVIDER
+#endif
+
+#ifndef RDB_USE_TIMER_SIGNAL_PROVIDER
+#define RDB_USE_TIMERFD_PROVIDER
+#endif
+
 
 #ifndef DISABLE_BREAKPOINTS
 #ifdef __linux__

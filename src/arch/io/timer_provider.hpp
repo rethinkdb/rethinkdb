@@ -6,13 +6,19 @@
 // interface) depending on which system we're on. Some older kernels
 // don't support fdtimers, so we have to resort to signals.
 
-#ifdef LEGACY_LINUX
+#include "errors.hpp"  // For RDB_USE_TIMER_SIGNAL_PROVIDER
+
+#ifdef RDB_USE_TIMER_SIGNAL_PROVIDER
 #include "arch/io/timer/timer_signal_provider.hpp"
 typedef timer_signal_provider_t timer_provider_t;
 #else
+#ifdef RDB_USE_TIMERFD_PROVIDER
 #include "arch/io/timer/timerfd_provider.hpp"
 typedef timerfd_provider_t timer_provider_t;
-#endif
+#else
+#error "No timer provider define specified."
+#endif  // RDB_USE_TIMERFD_PROVIDER
+#endif  // RDB_USE_TIMER_SIGNAL_PROVIDER
 
 /* Timer provider callback */
 struct timer_provider_callback_t {

@@ -2,6 +2,9 @@
 #ifndef ARCH_IO_TIMER_TIMER_SIGNAL_PROVIDER_HPP_
 #define ARCH_IO_TIMER_TIMER_SIGNAL_PROVIDER_HPP_
 
+#include "errors.hpp"  // for RDB_USE_TIMER_SIGNAL_PROVIDER
+#ifdef RDB_USE_TIMER_SIGNAL_PROVIDER
+
 #include "arch/runtime/event_queue.hpp"
 
 struct timer_provider_callback_t;
@@ -25,5 +28,5 @@ private:
     sigevent evp;    // notify event
 };
 
-#endif // ARCH_IO_TIMER_TIMER_SIGNAL_PROVIDER_HPP_
-
+#endif  // RDB_USE_TIMER_SIGNAL_PROVIDER
+#endif  // ARCH_IO_TIMER_TIMER_SIGNAL_PROVIDER_HPP_

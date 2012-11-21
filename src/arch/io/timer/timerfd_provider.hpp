@@ -2,6 +2,9 @@
 #ifndef ARCH_IO_TIMER_TIMERFD_PROVIDER_HPP_
 #define ARCH_IO_TIMER_TIMERFD_PROVIDER_HPP_
 
+#include "errors.hpp"  // for RDB_USE_TIMERFD_PROVIDER
+#ifdef RDB_USE_TIMERFD_PROVIDER
+
 #include "arch/runtime/event_queue.hpp"
 
 struct timer_provider_callback_t;
@@ -21,6 +24,8 @@ private:
     timer_provider_callback_t *callback;
     fd_t timer_fd;
 };
+
+#endif  // RDB_USE_TIMERFD_PROVIDER
 
 #endif // ARCH_IO_TIMER_TIMERFD_PROVIDER_HPP_
 
