@@ -1124,7 +1124,7 @@ endif #BUILD_DRIVERS
 
 
 $(WEB_ASSETS_BUILD_DIR)/js/rethinkdb.js: drivers
-	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR) ;
+	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)/js ;
 	$(QUIET) cp -pRP ../build/drivers/javascript/rethinkdb.js $(WEB_ASSETS_BUILD_DIR)/js/rethinkdb.js ;
 
 rpc/semilattice/joins/macros.hpp: ../scripts/generate_join_macros.py
