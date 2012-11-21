@@ -1123,8 +1123,7 @@ else
 endif #BUILD_DRIVERS
 
 
-$(WEB_ASSETS_BUILD_DIR)/js/rethinkdb.js: drivers
-	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)/js ;
+$(WEB_ASSETS_BUILD_DIR)/js/rethinkdb.js: drivers $(WEB_ASSETS_BUILD_DIR)/js
 	$(QUIET) cp -pRP ../build/drivers/javascript/rethinkdb.js $(WEB_ASSETS_BUILD_DIR)/js/rethinkdb.js ;
 
 rpc/semilattice/joins/macros.hpp: ../scripts/generate_join_macros.py
@@ -1381,7 +1380,7 @@ endif
 
 # Note that this assumes that its locations match those earlier in the Makefile. If you change TC_LESSC_EXE, you probably ought to change these as well .
 
-$(TC_LESSC_INT_EXE): $(SUPPORT_DIR) $(TC_NPM_EXE)
+$(TC_LESSC_INT_EXE): $(TC_NPM_EXE)
 ifeq ($(FETCH_INTERNAL_TOOLS),1)
 # ifeq ($(shell npm list --global --parseable | grep '\/less$$'),)
 # We must do this either way now.
@@ -1392,7 +1391,7 @@ ifeq ($(FETCH_INTERNAL_TOOLS),1)
 # endif
 endif
 
-$(TC_COFFEE_INT_EXE): $(SUPPORT_DIR) $(TC_NPM_EXE)
+$(TC_COFFEE_INT_EXE): $(TC_NPM_EXE)
 ifeq ($(FETCH_INTERNAL_TOOLS),1)
 # ifeq ($(shell npm list --global --parseable | grep '\/coffee-script$$'),)
 	$(QUIET) if [ ! -e $(SUPPORT_DIR) ] ; then mkdir -p $(SUPPORT_DIR) ; fi ;
