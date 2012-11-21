@@ -212,6 +212,10 @@ endif
 SUPPORT_DIR:=../support
 SUPPORT_DIR_ABS:=$(shell pwd ;)/$(SUPPORT_DIR)
 SUPPORT_INST_DIR_ABS:=$(SUPPORT_DIR_ABS)/usr
+EXTERNAL_DIR:=../external
+EXTERNAL_DIR_ABS:=$(shell pwd ;)/$(EXTERNAL_DIR)
+COLONIZE_SCRIPT:=$(EXTERNAL_DIR)/colonist/colonize.sh
+COLONIZE_SCRIPT_ABS:=$(EXTERNAL_DIR_ABS)/colonist/colonize.sh
 AUTOCHAIN?=0
 ALLOW_INTERNAL_TOOLS?=1
 FORCE_INTERNAL_TOOLS?=0
@@ -222,6 +226,11 @@ NODE_DIR:=$(TC_BUILD_DIR)/node
 NODE_SRC_DIR:=$(TC_SRC_DIR)/node
 PROTOC_DIR:=$(TC_BUILD_DIR)/protobuf
 PROTOC_SRC_DIR:=$(TC_SRC_DIR)/protobuf
+GPERFTOOLS_DIR:=$(TC_BUILD_DIR)/gperftools
+GPERFTOOLS_SRC_DIR:=$(TC_SRC_DIR)/gperftools
+LIBUNWIND_DIR:=$(TC_BUILD_DIR)/libunwind
+LIBUNWIND_SRC_DIR:=$(TC_SRC_DIR)/libunwind
+TCMALLOC_MINIMAL_INT_LIB:=$(SUPPORT_INST_DIR_ABS)/lib/libtcmalloc_minimal.a
 TC_PROTOC_INT_EXE:=$(SUPPORT_INST_DIR_ABS)/bin/protoc
 TC_PROTOC_INT_BIN_DIR:=$(SUPPORT_INST_DIR_ABS)/bin
 TC_PROTOC_INT_LIB_DIR:=$(SUPPORT_INST_DIR_ABS)/lib
@@ -234,6 +243,7 @@ TC_COFFEE_INT_EXE:=$(SUPPORT_DIR_ABS)/toolchain/node_modules/coffee-script/bin/c
 TC_PROTOC_CFLAGS:=
 INT_CHAIN_NODE:=0
 INT_CHAIN_PROTOC:=0
+TCMALLOC_CHAIN_IF_NECESSARY:=0
 
 ifeq ($(FORCE_INTERNAL_TOOLS),1)
 TC_PROTOC_EXE:=$(TC_PROTOC_INT_EXE)
@@ -250,10 +260,10 @@ TC_NODE_EXE:=$(TC_NODE_INT_EXE)
 TC_NPM_EXE:=$(TC_NPM_INT_EXE)
 TC_LESSC_EXE:=$(TC_LESSC_INT_EXE)
 TC_COFFEE_EXE:=$(TC_COFFEE_INT_EXE)
+TCMALLOC_CHAIN_IF_NECESSARY:=1
 else
 ifeq ($(ALLOW_INTERNAL_TOOLS),1)
 ifeq ($(shell which protoc || true),)
-# If npm is not present, node.js is likely too old.
 TC_PROTOC_EXE:=$(TC_PROTOC_INT_EXE)
 TC_PROTOC_RUN:=env LD_LIBRARY_PATH=$(TC_PROTOC_INT_LIB_DIR):$(LD_LIBRARY_PATH) PATH=$(TC_PROTOC_INT_BIN_DIR):$(PATH) $(TC_PROTOC_EXE)
 TC_PROTOC_CFLAGS:= -isystem $(TC_PROTOC_INT_INC_DIR)
@@ -284,6 +294,9 @@ ifeq ($(shell which coffee || true),)
 TC_COFFEE_EXE:=$(TC_COFFEE_INT_EXE)
 else
 TC_COFFEE_EXE:=$(shell which coffee || true)
+endif
+ifeq ($(shell /sbin/ldconfig -p | awk '/libtcmalloc_minimal.so /'),)
+TCMALLOC_CHAIN_IF_NECESSARY:=1
 endif
 else # ALLOW_INTERNAL_TOOLS
 TC_PROTOC_EXE:=$(shell which protoc || true)
@@ -332,7 +345,13 @@ endif
 STATIC_RECOMMENDS_IMPORTANT:=
 
 ifeq ($(NO_TCMALLOC),0)
+ifeq ($(TCMALLOC_CHAIN_IF_NECESSARY),0)
+# If we need TCMALLOC and we are not already obligated to chain-building the static library, we put it in the recommended list.
 STATIC_RECOMMENDS_IMPORTANT+=tcmalloc_minimal
+else
+OBJ_SUPPS+=$(TCMALLOC_MINIMAL_INT_LIB)
+STATIC_LIBRARY_PATHS+=$(TCMALLOC_MINIMAL_INT_LIB)
+endif
 endif
 
 RECOMMENDED_STATIC?=1
@@ -359,6 +378,7 @@ endif
 endif
 
 # look for the static library in the same directory as the .so file
+# On older platforms, certain libraries such as tcmalloc_minimal may not be available unversioned (tcmalloc_minimal.so). If we are on such a platform, we settle for something versioned.
 STATIC_LIBRARY_PATHS+=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }'))
 
 ifeq ($(GPERF),1)
@@ -881,7 +901,7 @@ install-deb: install
 DEBIAN_V8_VERSION:=$(shell apt-cache show libv8-dev | grep '^Version:' | sed -e 's/^Version: \\([0-9]*\\(\\.[0-9]*\\)*\\).*$$/\\1/g' || true ; )
 
 ifeq ($(BUILD_PORTABLE),1)
-build-deb-support: $(TC_LESSC_INT_EXE) $(TC_COFFEE_INT_EXE) $(V8_SRC_DIR) $(NODE_SRC_DIR) $(PROTOC_SRC_DIR)
+build-deb-support: $(TC_LESSC_INT_EXE) $(TC_COFFEE_INT_EXE) $(V8_SRC_DIR) $(NODE_SRC_DIR) $(PROTOC_SRC_DIR) $(GPERFTOOLS_SRC_DIR) $(LIBUNWIND_SRC_DIR)
 else
 build-deb-support: $(TC_LESSC_INT_EXE) $(TC_COFFEE_INT_EXE)
 endif
@@ -1229,7 +1249,7 @@ endif
 # default cases. So we have to remove the -Wswitch-default argument for them.
 $(OBJ_DIR)/unittest/%.o: CXXFLAGS:=$(filter-out -Wswitch-default,$(CXXFLAGS))
 
-$(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME): $(OBJS) $(BUILD_DIR)
+$(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME): $(OBJS) $(BUILD_DIR) $(OBJ_SUPPS)
 ifeq ($(VERBOSE),0)
 	@echo "    LD $@"
 endif
@@ -1370,7 +1390,7 @@ endif
 # bug in GNU Make, possibly a bug in our Makefile.
 .SECONDARY: $(PROTO_HEADERS)
 
-NO_DEPS_TARGETS:=clean depclean tags etags analyze cscope style web-assets build-deb-src-control build-deb-support $(WEB_ASSETS_BUILD_DIR)/cluster-min.js $(WEB_ASSETS_BUILD_DIR)/cluster.css $(WEB_ASSETS_BUILD_DIR)/index.html $(WEB_ASSETS_BUILD_DIR)/js $(WEB_ASSETS_BUILD_DIR)/fonts $(WEB_ASSETS_BUILD_DIR)/images $(WEB_ASSETS_BUILD_DIR)/favicon.ico $(WEB_ASSETS_BUILD_DIR)/js/rethinkdb.js $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee $(COFFEE_SOURCES) $(PROTO_DIR)/dummy $(PROTO_SOURCES) $(PROTO_HEADERS) $(PROTO_CODE) $(PROTO_DIR)/dummy $(OPROF_TARGETS) $(TC_LESSC_INT_EXE) $(TC_COFFEE_INT_EXE) $(SUPPORT_DIR) $(V8_SRC_DIR) $(V8_DIR) $(V8_LIB) $(NODE_SRC_DIR) $(NODE_DIR) $(TC_NODE_INT_EXE) $(TC_NPM_INT_EXE) $(PROTOC_SRC_DIR) $(PROTOC_DIR) $(TC_PROTOC_INT_EXE)
+NO_DEPS_TARGETS:=clean depclean tags etags analyze cscope style web-assets build-deb-src-control build-deb-support $(WEB_ASSETS_BUILD_DIR)/cluster-min.js $(WEB_ASSETS_BUILD_DIR)/cluster.css $(WEB_ASSETS_BUILD_DIR)/index.html $(WEB_ASSETS_BUILD_DIR)/js $(WEB_ASSETS_BUILD_DIR)/fonts $(WEB_ASSETS_BUILD_DIR)/images $(WEB_ASSETS_BUILD_DIR)/favicon.ico $(WEB_ASSETS_BUILD_DIR)/js/rethinkdb.js $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee $(COFFEE_SOURCES) $(PROTO_DIR)/dummy $(PROTO_SOURCES) $(PROTO_HEADERS) $(PROTO_CODE) $(PROTO_DIR)/dummy $(OPROF_TARGETS) $(TC_LESSC_INT_EXE) $(TC_COFFEE_INT_EXE) $(SUPPORT_DIR) $(V8_SRC_DIR) $(V8_DIR) $(V8_LIB) $(NODE_SRC_DIR) $(NODE_DIR) $(TC_NODE_INT_EXE) $(TC_NPM_INT_EXE) $(PROTOC_SRC_DIR) $(PROTOC_DIR) $(TC_PROTOC_INT_EXE) $(GPERFTOOLS_SRC_DIR) $(GPERFTOOLS_DIR) $(LIBUNWIND_SRC_DIR) $(LIBUNWIND_DIR) $(TCMALLOC_MINIMAL_INT_LIB)
 # Include the dependencies into the makefile so that they take effect
 ifneq (,$(if $(MAKECMDGOALS),$(filter-out $(NO_DEPS_TARGETS),$(MAKECMDGOALS)),non-empty-placeholder))
 -include $(DEPS)
@@ -1458,4 +1478,33 @@ $(PROTOC_DIR): $(PROTOC_SRC_DIR)
 $(TC_PROTOC_INT_EXE): $(PROTOC_DIR)
 # NOTE: MAKEFLAGS pass through to chained makes, so it is necessary to over-ride those flags that one wishes not to pass through. Scrubbing all flags and environment variables is not a solution since we want to pass through things like LD_LIBRARY_PATH and PATH and such.
 	cd $(PROTOC_DIR) && ./configure --prefix=$(SUPPORT_DIR_ABS)/usr && $(MAKE) prefix=$(SUPPORT_DIR_ABS)/usr DESTDIR=/ && $(MAKE) install prefix=$(SUPPORT_DIR_ABS)/usr DESTDIR=/ ;
+
+$(GPERFTOOLS_SRC_DIR):
+	$(QUIET) if [ ! -e $(SUPPORT_DIR)/src ] ; then mkdir -p $(SUPPORT_DIR)/src ; fi ;
+ifeq ($(FETCH_INTERNAL_TOOLS),1)
+	@echo "    WGET GPERFTOOLS"
+	$(QUIET) cd ../support/src && wget http://gperftools.googlecode.com/files/gperftools-2.0.tar.gz && tar -xzf gperftools-2.0.tar.gz && rm -rf gperftools ; mv gperftools-2.0 gperftools && rm gperftools-2.0.tar.gz ;
+else
+	@ if [ ! -e $(GPERFTOOLS_SRC_DIR) ] ; then echo "    ERROR: Internal gperftools is necessary but not not present, and FETCH_INTERNAL_TOOLS != 1." ; false ; fi ;
+endif
+
+$(GPERFTOOLS_DIR): $(GPERFTOOLS_SRC_DIR)
+	$(QUIET) if [ ! -e $(SUPPORT_DIR)/build ] ; then mkdir -p $(SUPPORT_DIR)/build ; fi ;
+	$(QUIET) cd ../support && cp -pRP src/gperftools build/ ;
+
+$(LIBUNWIND_SRC_DIR):
+	$(QUIET) if [ ! -e $(SUPPORT_DIR)/src ] ; then mkdir -p $(SUPPORT_DIR)/src ; fi ;
+ifeq ($(FETCH_INTERNAL_TOOLS),1)
+	@echo "    WGET LIBUNWIND"
+	$(QUIET) cd ../support/src && wget http://download.savannah.gnu.org/releases/libunwind/libunwind-1.1.tar.gz && tar -xzf libunwind-1.1.tar.gz && rm -rf libunwind ; mv libunwind-1.1 libunwind && rm libunwind-1.1.tar.gz ;
+else
+	@ if [ ! -e $(LIBUNWIND_SRC_DIR) ] ; then echo "    ERROR: Internal libunwind is necessary but not not present, and FETCH_INTERNAL_TOOLS != 1." ; false ; fi ;
+endif
+
+$(LIBUNWIND_DIR): $(LIBUNWIND_SRC_DIR)
+	$(QUIET) if [ ! -e $(SUPPORT_DIR)/build ] ; then mkdir -p $(SUPPORT_DIR)/build ; fi ;
+	$(QUIET) cd ../support && cp -pRP src/libunwind build/ ;
+
+$(TCMALLOC_MINIMAL_INT_LIB): $(LIBUNWIND_DIR) $(GPERFTOOLS_DIR)
+	$(QUIET) cd ../support/src && rm native_list.txt semistaged_list.txt staged_list.txt boost_list.txt post_boost_list.txt && touch native_list.txt semistaged_list.txt staged_list.txt boost_list.txt post_boost_list.txt && echo libunwind >> semistaged_list.txt && echo gperftools >> semistaged_list.txt && cp -pRP $(COLONIZE_SCRIPT_ABS) ./ && bash ./colonize.sh ;
 
