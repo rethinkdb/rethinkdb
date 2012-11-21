@@ -446,7 +446,7 @@ goog.proto2.WireFormatSerializer.prototype.decodeVarIntTypes =
         value = this.zigZagDecode(longint).toString();
         break;
     case goog.proto2.FieldDescriptor.FieldType.BOOL:
-        value = (value === 0 ? false : true);
+        value = (intVal === 0 ? false : true);
         break;
     default:
         this.badMessageFormat_("Unexpected field type");
