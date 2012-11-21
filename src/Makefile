@@ -359,7 +359,12 @@ endif
 endif
 
 # look for the static library in the same directory as the .so file
+# On older platforms, certain libraries such as tcmalloc_minimal may not be available unversioned (tcmalloc_minimal.so). If we are on such a platform, we settle for something versioned.
+ifeq ($(shell /sbin/ldconfig -p | awk '/libtcmalloc_minimal.so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }'),)
+STATIC_LIBRARY_PATHS+=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '{ printf "%s %s\n" , $$1 , $$NF }' | grep '^lib$(lib).so\(\.[0-9]*\)* ' | sort -V | head -n 1 | awk '{ printf "%s" , $$NF }' | sed -e 's/\(\.so\)\(\(.[0-9]*\)*\)/\.a\2/g'))
+else
 STATIC_LIBRARY_PATHS+=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }'))
+endif
 
 ifeq ($(GPERF),1)
 STATIC_LIBRARY_PATHS+= # path to patched libtcmalloc_and_profiler.a
