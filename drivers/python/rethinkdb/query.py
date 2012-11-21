@@ -224,7 +224,7 @@ class JSONExpression(ReadQuery):
             if index.step is not None:
                 raise ValueError("slice stepping is unsupported")
             return JSONExpression(internal.Slice(self, index.start, index.stop))
-        elif isinstance(index, str):
+        elif isinstance(index, types.StringTypes):
             return JSONExpression(internal.Attr(self, index))
         else:
             return JSONExpression(internal.Nth(self, index))
@@ -536,7 +536,7 @@ class JSONExpression(ReadQuery):
         """
         order = []
         for attr in attributes:
-            if isinstance(attr, str):
+            if isinstance(attr, types.StringTypes):
                 order.append((attr, True))
             else:
                 order.append(attr)
@@ -953,7 +953,7 @@ class StreamExpression(ReadQuery):
         """
         order = []
         for attr in attributes:
-            if isinstance(attr, str):
+            if isinstance(attr, types.StringTypes):
                 order.append((attr, True))
             else:
                 order.append(attr)
@@ -1218,7 +1218,7 @@ def expr(val):
         return JSONExpression(internal.LiteralBool(val))
     elif isinstance(val, (int, float)):
         return JSONExpression(internal.LiteralNumber(val))
-    elif isinstance(val, (str, unicode)):
+    elif isinstance(val, types.StringTypes):
         return JSONExpression(internal.LiteralString(val))
     elif isinstance(val, list):
         return JSONExpression(internal.LiteralArray(val))
