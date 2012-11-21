@@ -14,6 +14,7 @@
 
 
 #include "config/args.hpp"
+#include "utils.hpp"
 #include "arch/runtime/event_queue.hpp"
 #include "arch/runtime/thread_pool.hpp"
 #include "perfmon/perfmon.hpp"
