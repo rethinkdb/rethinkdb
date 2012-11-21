@@ -79,16 +79,16 @@ struct op_ratios_t {
 public:
     op_ratios_t()
         : deletes(1), updates(4),
-          inserts(8), reads(64),
+          inserts(8), reads(64), range_reads(0),
           appends(0), prepends(0),
-          verifies(0), range_reads(0)
+          verifies(0)
         {}
 
     op_ratios_t(int d, int u, int i, int r, int a, int p, int v, int rr)
         : deletes(d), updates(u),
-          inserts(i), reads(r),
+          inserts(i), reads(r), range_reads(rr),
           appends(a), prepends(p),
-          verifies(v), range_reads(rr)
+          verifies(v)
         {}
 
     enum load_op_t {
@@ -176,7 +176,7 @@ public:
         printf("Duration..........");
         duration.print();
         printf("\n");
-        for (int i = 0; i < servers.size(); i++) {
+        for (size_t i = 0; i < servers.size(); i++) {
             printf("Server............");
             servers[i].print();
             printf("\n");
@@ -465,7 +465,7 @@ void parse(config_t *config, int argc, char *argv[]) {
 
     //validation:
     bool only_sockmemcached = true;
-    for(int i = 0; i < config->servers.size(); i++) {
+    for (size_t i = 0; i < config->servers.size(); i++) {
         if(config->servers[i].protocol != protocol_sockmemcached) {
             only_sockmemcached = false;
             break;

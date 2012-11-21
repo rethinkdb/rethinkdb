@@ -14,9 +14,9 @@ using namespace std;
 struct client_t {
 
     client_t(int _pipeline_limit = 0, int _ignore_protocol_errors = 0) :
-        keep_running(false),
         total_freq(0),
         pipeline_limit(_pipeline_limit),
+        keep_running(false),
         ignore_protocol_errors(_ignore_protocol_errors),
         print_further_protocol_errors(true)
         { }

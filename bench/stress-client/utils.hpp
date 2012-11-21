@@ -6,6 +6,8 @@
 #include <pthread.h>
 #include <algorithm>
 
+#define UNUSED __attribute__((unused))
+
 /* Returns random number between [min, max] using various distributions */
 enum rnd_distr_t {
     rnd_uniform_t,
