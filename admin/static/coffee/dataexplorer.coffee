@@ -12,6 +12,8 @@ module 'DataExplorerView', ->
         databases_suggestions_template: Handlebars.compile $('#dataexplorer-databases_suggestions-template').html()
         namespaces_suggestions_template: Handlebars.compile $('#dataexplorer-namespaces_suggestions-template').html()
 
+        saved_query: '' # Last value @codemirror.getValue()
+
         events:
             'click .CodeMirror': 'handle_keypress'
             'mousedown .suggestion_name_li': 'select_suggestion' # Keep mousedown to compete with blur on .input_query
@@ -351,6 +353,7 @@ module 'DataExplorerView', ->
 
         # Make suggestions when the user is writing
         handle_keypress: (editor, event) =>
+            DataExplorerView.Container.prototype.saved_query = @codemirror.getValue()
             saved_cursor = @codemirror.getCursor()
             if event?.which?
                 # If the user hit tab, we switch the highlighted suggestion
@@ -1000,6 +1003,7 @@ module 'DataExplorerView', ->
                 matchBrackets: true
 
             @codemirror.setSize '100%', 'auto'
+            @codemirror.setValue @saved_query
 
         handle_gutter_click: (editor, line) =>
             start =
