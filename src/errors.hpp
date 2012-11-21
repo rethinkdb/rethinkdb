@@ -11,9 +11,6 @@
 #error "RethinkDB only supports 64-bit x86-64 targets at this time."
 #endif
 
-// RSI: temporary line for testing timer signal provider.
-#define RDB_USE_TIMER_SIGNAL_PROVIDER
-
 #ifdef LEGACY_LINUX
 #define RDB_USE_TIMER_SIGNAL_PROVIDER
 #endif
