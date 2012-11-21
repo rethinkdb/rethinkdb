@@ -372,6 +372,9 @@ class Builtin
                     skip_value: skip_value
                     limit_value: limit_value
 
+
+
+
             when 21 # Map
                 term = new Term builtin_args[0]
                 builtin_map = new BuiltinMap @data.getMap()
@@ -417,7 +420,6 @@ class Builtin
                     skip_value: skip_value
                     limit_value: limit_value
                 results = evaluation.responseArray()
-                debugger
                 array_to_sort = []
                 for result in results
 
@@ -426,7 +428,6 @@ class Builtin
                 try
                     Helpers.prototype.sort array_to_sort, order_by_keys, order_by_asc
                 catch error
-                    debugger
                     response.setStatusCode 103
                     response.setErrorMessage error
                     return response
