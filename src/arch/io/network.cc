@@ -25,9 +25,6 @@
 #include "logger.hpp"
 #include "perfmon/perfmon.hpp"
 
-// TODO: THIS IS A REALLY BAD IDEA, BUT linux/tcp.h WON'T INCLUDE ON GCC 4.4.1+
-#define TCP_USER_TIMEOUT 18
-
 /* Network connection object */
 
 linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port, signal_t *interruptor, int local_port) THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t) :
@@ -487,30 +484,6 @@ bool linux_tcp_conn_t::is_write_open() {
     return !write_closed.is_pulsed();
 }
 
-void linux_tcp_conn_t::set_keepalive(int idle_seconds, int try_interval_seconds, int try_count) {
-    int res;
-    int keepalive = 1;
-    res = setsockopt(sock.get(), SOL_SOCKET, SO_KEEPALIVE, &keepalive, sizeof(keepalive));
-    guarantee_err(res == 0, "setsockopt(SO_KEEPALIVE) failed");
-    res = setsockopt(sock.get(), SOL_TCP, TCP_KEEPIDLE, &idle_seconds, sizeof(idle_seconds));
-    guarantee_err(res == 0, "setsockopt(TCP_KEEPIDLE) failed");
-    res = setsockopt(sock.get(), SOL_TCP, TCP_KEEPINTVL, &try_interval_seconds, sizeof(try_interval_seconds));
-    guarantee_err(res == 0, "setsockopt(TCP_KEEPINTVL) failed");
-    res = setsockopt(sock.get(), SOL_TCP, TCP_KEEPCNT, &try_count, sizeof(try_count));
-    guarantee_err(res == 0, "setsockopt(TCP_KEEPCNT) failed");
-    // Also set an option to make sure the connection fails in a reasonable amount of time
-    // even if there is traffic on it
-    int user_timeout = (idle_seconds + (try_interval_seconds * try_count)) * 1000;
-    res = setsockopt(sock.get(), SOL_TCP, TCP_USER_TIMEOUT, &user_timeout, sizeof(user_timeout));
-    guarantee_err(res == 0, "setsockopt(TCP_USER_TiMEOUT) failed");
-}
-
-void linux_tcp_conn_t::set_keepalive() {
-    int keepalive = 0;
-    int res = setsockopt(sock.get(), SOL_SOCKET, SO_KEEPALIVE, &keepalive, sizeof(keepalive));
-    guarantee_err(res == 0, "setsockopt(SO_KEEPALIVE) failed");
-}
-
 linux_tcp_conn_t::~linux_tcp_conn_t() THROWS_NOTHING {
     assert_thread();
 
@@ -637,30 +610,39 @@ void linux_tcp_conn_descriptor_t::make_overcomplicated(linux_tcp_conn_t **tcp_co
 /* Network listener object */
 
 linux_nonthrowing_tcp_listener_t::linux_nonthrowing_tcp_listener_t(
-        int _port, int user_timeout,
+        const std::set<ip_address_t> &bind_addresses, int _port,
         const boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> &cb) :
+    callback(cb),
+    local_addresses(bind_addresses),
     port(_port),
     bound(false),
-    sock(socket(AF_INET, SOCK_STREAM, 0)),
-    event_watcher(sock.get(), this),
-    callback(cb),
+    socks(std::max<size_t>(bind_addresses.size(), 1)), // Without a bind address, we still want a socket
+    last_used_socket_index(0),
+    event_watchers(socks.size()),
     log_next_error(true)
 {
-    init_socket(user_timeout);
+    // If no addresses were supplied, default to 'any'
+    if (local_addresses.empty()) {
+        sockaddr_in sin;
+        sin.sin_addr.s_addr = INADDR_ANY;
+        local_addresses.insert(ip_address_t(&sin));
+    }
 }
 
 bool linux_nonthrowing_tcp_listener_t::begin_listening() {
-    if (!bound && !bind_socket()) {
+    if (!bound && !bind_sockets()) {
         logERR("Could not bind to port %d", port);
         return false;
     }
 
     // Start listening to connections
-    int res = listen(sock.get(), 5);
-    guarantee_err(res == 0, "Couldn't listen to the socket");
+    for (ssize_t i = 0; i < socks.size(); ++i) {
+        int res = listen(socks[i].get(), 5);
+        guarantee_err(res == 0, "Couldn't listen to the socket");
 
-    res = fcntl(sock.get(), F_SETFL, O_NONBLOCK);
-    guarantee_err(res == 0, "Could not make socket non-blocking");
+        res = fcntl(socks[i].get(), F_SETFL, O_NONBLOCK);
+        guarantee_err(res == 0, "Could not make socket non-blocking");
+    }
 
     // Start the accept loop
     accept_loop_drainer.init(new auto_drainer_t);
@@ -678,70 +660,136 @@ int linux_nonthrowing_tcp_listener_t::get_port() const {
     return port;
 }
 
-void linux_nonthrowing_tcp_listener_t::init_socket(int user_timeout) {
-    int sock_fd = sock.get();
-    guarantee_err(sock_fd != INVALID_FD, "Couldn't create socket");
+void linux_nonthrowing_tcp_listener_t::init_sockets() {
+    for (ssize_t i = 0; i < socks.size(); ++i) {
+        if (event_watchers[i].has()) {
+            event_watchers[i].reset();
+        }
 
-    int sockoptval = 1;
-    int res = setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, &sockoptval, sizeof(sockoptval));
-    guarantee_err(res != -1, "Could not set REUSEADDR option");
+        socks[i].reset(socket(AF_INET, SOCK_STREAM, 0));
+        event_watchers[i].init(new linux_event_watcher_t(socks[i].get(), this));
 
-    /* XXX Making our socket NODELAY prevents the problem where responses to
-     * pipelined requests are delayed, since the TCP Nagle algorithm will
-     * notice when we send multiple small packets and try to coalesce them. But
-     * if we are only sending a few of these small packets quickly, like during
-     * pipeline request responses, then Nagle delays for around 40 ms before
-     * sending out those coalesced packets if they don't reach the max window
-     * size. So for latency's sake we want to disable Nagle.
-     *
-     * This might decrease our throughput, so perhaps we should add a
-     * runtime option for it.
-     */
-    res = setsockopt(sock_fd, IPPROTO_TCP, TCP_NODELAY, &sockoptval, sizeof(sockoptval));
-    guarantee_err(res != -1, "Could not set TCP_NODELAY option");
+        int sock_fd = socks[i].get();
+        guarantee_err(sock_fd != INVALID_FD, "Couldn't create socket");
 
-    if (user_timeout > 0) {
-        res = setsockopt(sock.get(), SOL_TCP, TCP_USER_TIMEOUT, &user_timeout, sizeof(user_timeout));
-        guarantee_err(res == 0, "setsockopt(TCP_USER_TiMEOUT) failed");
+        int sockoptval = 1;
+        int res = setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, &sockoptval, sizeof(sockoptval));
+        guarantee_err(res != -1, "Could not set REUSEADDR option");
+
+        /* XXX Making our socket NODELAY prevents the problem where responses to
+         * pipelined requests are delayed, since the TCP Nagle algorithm will
+         * notice when we send multiple small packets and try to coalesce them. But
+         * if we are only sending a few of these small packets quickly, like during
+         * pipeline request responses, then Nagle delays for around 40 ms before
+         * sending out those coalesced packets if they don't reach the max window
+         * size. So for latency's sake we want to disable Nagle.
+         *
+         * This might decrease our throughput, so perhaps we should add a
+         * runtime option for it.
+         */
+        res = setsockopt(sock_fd, IPPROTO_TCP, TCP_NODELAY, &sockoptval, sizeof(sockoptval));
+        guarantee_err(res != -1, "Could not set TCP_NODELAY option");
     }
 }
 
-bool linux_nonthrowing_tcp_listener_t::bind_socket() {
+bool linux_nonthrowing_tcp_listener_t::bind_sockets() {
+    if (port ==  0) {
+        // It may take multiple attempts to get all the sockets onto the same port
+        int port_out = 0;
+        for (uint32_t bind_attempts = 0; bind_attempts < MAX_BIND_ATTEMPTS && !bound; ++bind_attempts) {
+            bound = bind_sockets_internal(&port_out);
+        }
+
+        if (bound) {
+            port = port_out;
+        }
+    } else {
+        bound = bind_sockets_internal(&port);
+    }
+
+    return bound;
+}
+
+bool linux_nonthrowing_tcp_listener_t::bind_sockets_internal(int *port_out) {
+    init_sockets();
+    bool result = true;
+
     sockaddr_in serv_addr;
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(port);
-    serv_addr.sin_addr.s_addr = INADDR_ANY;
-    int res = bind(sock.get(), reinterpret_cast<sockaddr *>(&serv_addr), sizeof(serv_addr));
-    if (res != 0) {
-        if (errno == EADDRINUSE || errno == EACCES) {
-            bound = false;
-            return bound;
-        } else {
-            crash("Could not bind socket at localhost:%i - %s\n", port, strerror(errno));
+
+    rassert(local_addresses.size() == static_cast<size_t>(socks.size()));
+    ssize_t i = 0;
+    for (std::set<ip_address_t>::iterator addr = local_addresses.begin();
+         addr != local_addresses.end(); ++i, ++addr) {
+        serv_addr.sin_addr = addr->get_addr();
+
+        int res = bind(socks[i].get(), reinterpret_cast<sockaddr *>(&serv_addr), sizeof(serv_addr));
+
+        if (res != 0) {
+            if (errno == EADDRINUSE || errno == EACCES) {
+                result = false;
+                break;
+            } else {
+                crash("Could not bind socket at localhost:%i - %s\n", port, strerror(errno));
+            }
+        }
+
+        // If we were told to let the kernel assign the port, figure out what was assigned
+        if (*port_out == 0) {
+            rassert(i == 0); // This should only happen on the first loop
+            struct sockaddr_in sa;
+            socklen_t sa_len(sizeof(sa));
+            int res = getsockname(socks[i].get(), (struct sockaddr*)&sa, &sa_len);
+            guarantee_err(res != -1, "Could not determine socket local port number");
+            *port_out = ntohs(sa.sin_port);
+
+            // Apply to the structure we're binding with, so all sockets have the same local port
+            serv_addr.sin_port = sa.sin_port;
         }
     }
 
-    // If we were told to let the kernel assign the port, figure out what was assigned
-    if (port == 0) {
-        struct sockaddr_in sa;
-        socklen_t sa_len(sizeof(sa));
-        int res2 = getsockname(sock.get(), (struct sockaddr*)&sa, &sa_len);
-        guarantee_err(res2 != -1, "Could not determine socket local port number");
-        port = ntohs(sa.sin_port);
+    return result;
+}
+
+fd_t linux_nonthrowing_tcp_listener_t::wait_for_any_socket(const auto_drainer_t::lock_t &lock) {
+    scoped_array_t<scoped_ptr_t<linux_event_watcher_t::watch_t> > watches(event_watchers.size());
+    wait_any_t waiter(lock.get_drain_signal());
+
+    for (ssize_t i = 0; i < event_watchers.size(); ++i) {
+        watches[i].init(new linux_event_watcher_t::watch_t(event_watchers[i].get(), poll_event_in));
+        waiter.add(watches[i].get());
     }
 
-    bound = true;
-    return bound;
+    waiter.wait_lazily_unordered();
+
+    if (lock.get_drain_signal()->is_pulsed()) {
+        return -1;
+    }
+
+    for (ssize_t i = 0; i < watches.size(); ++i) {
+        // This rather convoluted expression is to make sure we don't starve out higher-indexed interfaces
+        //  because connections are coming in too fast on the lower interfaces, unlikely but valid
+        ssize_t index = (last_used_socket_index + i + 1) % watches.size();
+        if (watches[index]->is_pulsed()) {
+            last_used_socket_index = index;
+            return socks[index].get();
+        }
+    }
+
+    // This should never happen, but it shouldn't be much of a problem
+    return -1;
 }
 
 void linux_nonthrowing_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) {
     static const int initial_backoff_delay_ms = 10;   // Milliseconds
     static const int max_backoff_delay_ms = 160;
     int backoff_delay_ms = initial_backoff_delay_ms;
+    fd_t active_fd = socks[0].get();
 
-    while (!lock.get_drain_signal()->is_pulsed()) {
-        fd_t new_sock = accept(sock.get(), NULL, NULL);
+    while(!lock.get_drain_signal()->is_pulsed()) {
+        fd_t new_sock = accept(active_fd, NULL, NULL);
 
         if (new_sock != INVALID_FD) {
             coro_t::spawn_now_dangerously(boost::bind(&linux_nonthrowing_tcp_listener_t::handle, this, new_sock));
@@ -755,11 +803,7 @@ void linux_nonthrowing_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) 
             log_next_error = true;
 
         } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
-            /* Wait for a notification from the event loop, or for a command to shut down,
-            before continuing */
-            linux_event_watcher_t::watch_t watch(&event_watcher, poll_event_in);
-            wait_any_t waiter(&watch, lock.get_drain_signal());
-            waiter.wait_lazily_unordered();
+            active_fd = wait_for_any_socket(lock);
 
         } else if (errno == EINTR) {
             /* Harmless error; just try again. */
@@ -795,8 +839,10 @@ linux_nonthrowing_tcp_listener_t::~linux_nonthrowing_tcp_listener_t() {
 
 
     if (bound) {
-        int res = shutdown(sock.get(), SHUT_RDWR);
-        guarantee_err(res == 0, "Could not shutdown main socket");
+        for (ssize_t i = 0; i < socks.size(); ++i) {
+            int res = shutdown(socks[i].get(), SHUT_RDWR);
+            guarantee_err(res == 0, "Could not shutdown main socket");
+        }
     }
 
     // scoped_fd_t destructor will close() the socket
@@ -814,11 +860,11 @@ void linux_nonthrowing_tcp_listener_t::on_event(int) {
 
 void noop_fun(UNUSED const scoped_ptr_t<linux_tcp_conn_descriptor_t>& arg) { }
 
-linux_tcp_bound_socket_t::linux_tcp_bound_socket_t(int _port, int user_timeout) :
-        listener(new linux_nonthrowing_tcp_listener_t(_port, user_timeout, noop_fun))
+linux_tcp_bound_socket_t::linux_tcp_bound_socket_t(const std::set<ip_address_t> &bind_addresses, int port) :
+    listener(new linux_nonthrowing_tcp_listener_t(bind_addresses, port, noop_fun))
 {
-    if (!listener->bind_socket()) {
-        throw address_in_use_exc_t("localhost", listener->port);
+    if (!listener->bind_sockets()) {
+        throw address_in_use_exc_t("localhost", listener->get_port());
     }
 }
 
@@ -826,12 +872,12 @@ int linux_tcp_bound_socket_t::get_port() const {
     return listener->get_port();
 }
 
-linux_tcp_listener_t::linux_tcp_listener_t(int port, int user_timeout,
+linux_tcp_listener_t::linux_tcp_listener_t(const std::set<ip_address_t> &bind_addresses, int port,
     const boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> &callback) :
-        listener(new linux_nonthrowing_tcp_listener_t(port, user_timeout, callback))
+        listener(new linux_nonthrowing_tcp_listener_t(bind_addresses, port, callback))
 {
     if (!listener->begin_listening()) {
-        throw address_in_use_exc_t("localhost", port);
+        throw address_in_use_exc_t("localhost", listener->get_port());
     }
 }
 
@@ -842,7 +888,7 @@ linux_tcp_listener_t::linux_tcp_listener_t(
 {
     listener->callback = callback;
     if (!listener->begin_listening()) {
-        throw address_in_use_exc_t("localhost", listener->port);
+        throw address_in_use_exc_t("localhost", listener->get_port());
     }
 }
 
@@ -850,9 +896,11 @@ int linux_tcp_listener_t::get_port() const {
     return listener->get_port();
 }
 
-linux_repeated_nonthrowing_tcp_listener_t::linux_repeated_nonthrowing_tcp_listener_t(int port, int user_timeout,
+linux_repeated_nonthrowing_tcp_listener_t::linux_repeated_nonthrowing_tcp_listener_t(
+    const std::set<ip_address_t> &bind_addresses,
+    int port,
     const boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> &callback) :
-        listener(port, user_timeout, callback)
+        listener(bind_addresses, port, callback)
 { }
 
 int linux_repeated_nonthrowing_tcp_listener_t::get_port() const {

@@ -47,8 +47,12 @@ bool filepath_file_opener_t::open_serializer_file_existing(scoped_ptr_t<file_t> 
 #ifdef SEMANTIC_SERIALIZER_CHECK
 bool filepath_file_opener_t::open_semantic_checking_file(int *fd_out) {
     std::string semantic_filepath = filepath_ + "_semantic";
-    int semantic_fd = open(semantic_filepath.c_str(),
+    int semantic_fd;
+    do {
+        semantic_fd = open(semantic_filepath.c_str(),
                            O_RDWR | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO);
+    } while (semantic_fd == -1 && errno == EINTR);
+
     if (semantic_fd == INVALID_FD) {
         fail_due_to_user_error("Inaccessible semantic checking file: \"%s\": %s", semantic_filepath.c_str(), strerror(errno));
     } else {

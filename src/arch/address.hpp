@@ -37,7 +37,7 @@ public:
 class ip_address_t {
 public:
     static std::set<ip_address_t> from_hostname(const std::string &host);
-    static std::set<ip_address_t> us();
+    static std::set<ip_address_t> get_local_addresses(const std::set<ip_address_t> &filter, bool get_all);
 
     ip_address_t() { } //for deserialization
 
@@ -63,6 +63,8 @@ public:
 
     /* Returns IP address in `a.b.c.d` form. */
     std::string as_dotted_decimal() const;
+
+    bool is_loopback() const;
 
     struct in_addr get_addr() const {
         struct in_addr addr;

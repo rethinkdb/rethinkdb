@@ -114,13 +114,6 @@ public:
     /* Returns false if the half of the pipe that goes from us to the peer has been closed. */
     bool is_write_open();
 
-    /* Call to enable/disable `SO_KEEPALIVE` for this socket. First version
-    enables and configures it; second version disables it. */
-    /* TODO: This API is insufficient because there's no way to use it on a
-    connection before `connect()` is called. */
-    void set_keepalive(int idle_seconds, int try_interval_seconds, int try_count);
-    void set_keepalive();
-
     /* Put a `perfmon_rate_monitor_t` here if you want to record stats on how fast data is being
     transmitted over the network. */
     perfmon_rate_monitor_t *write_perfmon;
@@ -344,7 +337,7 @@ the provided callback will be called in a new coroutine every time something con
 
 class linux_nonthrowing_tcp_listener_t : private linux_event_callback_t {
 public:
-    linux_nonthrowing_tcp_listener_t(int _port, int user_timeout,
+    linux_nonthrowing_tcp_listener_t(const std::set<ip_address_t> &bind_addresses, int _port,
         const boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> &callback);
 
     ~linux_nonthrowing_tcp_listener_t();
@@ -357,13 +350,21 @@ protected:
     friend class linux_tcp_listener_t;
     friend class linux_tcp_bound_socket_t;
 
-    void init_socket(int user_timeout);
-    MUST_USE bool bind_socket();
+    MUST_USE bool bind_sockets();
+
+    // The callback to call when we get a connection
+    boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> callback;
+
+private:
+    static const uint32_t MAX_BIND_ATTEMPTS = 20;
+    void init_sockets();
+    bool bind_sockets_internal(int *port_out);
 
     /* accept_loop() runs in a separate coroutine. It repeatedly tries to accept
     new connections; when accept() blocks, then it waits for events from the
     event loop. */
-    void accept_loop(auto_drainer_t::lock_t);
+    void accept_loop(auto_drainer_t::lock_t lock);
+    fd_t wait_for_any_socket(const auto_drainer_t::lock_t &lock);
     scoped_ptr_t<auto_drainer_t> accept_loop_drainer;
 
     void handle(fd_t sock);
@@ -371,6 +372,8 @@ protected:
     /* event_watcher sends any error conditions to here */
     void on_event(int events);
 
+    // The selected local addresses to listen on, 'any' if empty
+    std::set<ip_address_t> local_addresses;
 
     // The port we're asked to bind to
     int port;
@@ -378,14 +381,14 @@ protected:
     // Inidicates successful binding to a port
     bool bound;
 
-    // The socket to listen for connections on
-    scoped_fd_t sock;
+    // The sockets to listen for connections on
+    scoped_array_t<scoped_fd_t> socks;
 
-    // Sentry representing our registration with event loop
-    linux_event_watcher_t event_watcher;
+    // The last socket to get a connection, used for round-robining
+    size_t last_used_socket_index;
 
-    // The callback to call when we get a connection
-    boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> callback;
+    // Sentries representing our registrations with the event loop, one per socket
+    scoped_array_t<scoped_ptr_t<linux_event_watcher_t> > event_watchers;
 
     bool log_next_error;
 };
@@ -393,7 +396,7 @@ protected:
 /* Used by the old style tcp listener */
 class linux_tcp_bound_socket_t {
 public:
-    linux_tcp_bound_socket_t(int _port, int user_timeout);
+    linux_tcp_bound_socket_t(const std::set<ip_address_t> &bind_addresses, int _port);
     int get_port() const;
 private:
     friend class linux_tcp_listener_t;
@@ -406,7 +409,7 @@ class linux_tcp_listener_t {
 public:
     linux_tcp_listener_t(linux_tcp_bound_socket_t *bound_socket,
         const boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> &callback);
-    linux_tcp_listener_t(int port, int user_timeout,
+    linux_tcp_listener_t(const std::set<ip_address_t> &bind_addresses, int port,
         const boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> &callback);
 
     int get_port() const;
@@ -418,7 +421,7 @@ private:
 /* Like a linux tcp listener but repeatedly tries to bind to its port until successful */
 class linux_repeated_nonthrowing_tcp_listener_t {
 public:
-    linux_repeated_nonthrowing_tcp_listener_t(int port, int user_timeout,
+    linux_repeated_nonthrowing_tcp_listener_t(const std::set<ip_address_t> &bind_addresses, int port,
         const boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> &callback);
     void begin_repeated_listening_attempts();
 

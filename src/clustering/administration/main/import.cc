@@ -22,6 +22,7 @@
 #include "http/json.hpp"
 #include "rdb_protocol/query_language.hpp"
 #include "rpc/connectivity/multiplexer.hpp"
+#include "rpc/connectivity/heartbeat.hpp"
 #include "rpc/directory/read_manager.hpp"
 #include "rpc/directory/write_manager.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
@@ -46,8 +47,24 @@ bool get_other_peer(const std::set<peer_id_t> &peers_list, const peer_id_t &me, 
     return false;
 }
 
+bool find_server_peer_in_directory(const std::map<peer_id_t, cluster_directory_metadata_t> &directory) {
+    for (std::map<peer_id_t, cluster_directory_metadata_t>::const_iterator it = directory.begin(); it != directory.end(); ++it) {
+        if (it->second.peer_type == SERVER_PEER) {
+            return true;
+        }
+    }
 
-bool run_json_import(extproc::spawner_t::info_t *spawner_info, peer_address_set_t joins, int ports_port, int ports_client_port, json_import_target_t target, json_importer_t *importer, signal_t *stop_cond) {
+    return false;
+}
+
+bool run_json_import(extproc::spawner_t::info_t *spawner_info,
+                     peer_address_set_t joins,
+                     const std::set<ip_address_t> &local_addresses,
+                     int ports_port,
+                     int ports_client_port,
+                     json_import_target_t target,
+                     json_importer_t *importer,
+                     signal_t *stop_cond) {
 
     guarantee(spawner_info);
     extproc::pool_group_t extproc_pool_group(spawner_info, extproc::pool_group_t::DEFAULTS);
@@ -59,6 +76,11 @@ bool run_json_import(extproc::spawner_t::info_t *spawner_info, peer_address_set_
 
     connectivity_cluster_t connectivity_cluster;
     message_multiplexer_t message_multiplexer(&connectivity_cluster);
+
+    message_multiplexer_t::client_t heartbeat_manager_client(&message_multiplexer, 'H');
+    heartbeat_manager_t heartbeat_manager(&heartbeat_manager_client);
+    message_multiplexer_t::client_t::run_t heartbeat_manager_client_run(&heartbeat_manager_client, &heartbeat_manager);
+
     message_multiplexer_t::client_t mailbox_manager_client(&message_multiplexer, 'M');
     mailbox_manager_t mailbox_manager(&mailbox_manager_client);
     message_multiplexer_t::client_t::run_t mailbox_manager_client_run(&mailbox_manager_client, &mailbox_manager);
@@ -95,7 +117,12 @@ bool run_json_import(extproc::spawner_t::info_t *spawner_info, peer_address_set_
         metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()));
 
     message_multiplexer_t::run_t message_multiplexer_run(&message_multiplexer);
-    connectivity_cluster_t::run_t connectivity_cluster_run(&connectivity_cluster, ports_port, &message_multiplexer_run, ports_client_port);
+    connectivity_cluster_t::run_t connectivity_cluster_run(&connectivity_cluster,
+                                                           local_addresses,
+                                                           ports_port,
+                                                           &message_multiplexer_run,
+                                                           ports_client_port,
+                                                           &heartbeat_manager);
 
     if (0 == ports_port) {
         ports_port = connectivity_cluster_run.get_port();
@@ -143,8 +170,28 @@ bool run_json_import(extproc::spawner_t::info_t *spawner_info, peer_address_set_
         return false;
     }
 
-    // Wait for semilattice data.
-    semilattice_manager_cluster.get_root_view()->sync_from(other_peer, stop_cond);
+    // Construct a timeout object in case things go horribly wrong when we try to sync from peers
+    signal_timer_t timeout(10000);
+    wait_any_t sync_interruptor(stop_cond, &timeout);
+
+    try {
+        // Wait for semilattice data.
+        semilattice_manager_cluster.get_root_view()->sync_from(other_peer, &sync_interruptor);
+
+        // Make sure we have a server peer in our directory before continuing
+        directory_read_manager.get_root_view()->run_until_satisfied(boost::bind(&find_server_peer_in_directory, _1), &sync_interruptor);
+
+    } catch (const sync_failed_exc_t &ex) {
+        logERR("Failed to sync with the cluster\n");
+        return false;
+    } catch (const interrupted_exc_t &ex) {
+        if (timeout.is_pulsed()) {
+            logERR("Timed out while trying to sync with the cluster\n");
+            return false;
+        } else {
+            throw;
+        }
+    }
 
     perfmon_collection_repo_t perfmon_repo(&get_global_perfmon_collection());
 
@@ -261,17 +308,17 @@ datacenter_id_t get_datacenter(const cluster_semilattice_metadata_t &metadata,
 }
 
 
-bool get_change_request_info(const std::map<peer_id_t, cluster_directory_metadata_t> &directory,
+peer_id_t get_change_request_info(const std::map<peer_id_t, cluster_directory_metadata_t> &directory,
                              metadata_change_handler_t<cluster_semilattice_metadata_t>::request_mailbox_t::address_t *sync_mailbox,
                              machine_id_t *sync_machine_id) {
     for (std::map<peer_id_t, cluster_directory_metadata_t>::const_iterator i = directory.begin(); i != directory.end(); ++i) {
         if (i->second.peer_type == SERVER_PEER) {
             *sync_machine_id = i->second.machine_id;
             *sync_mailbox = i->second.semilattice_change_mailbox;
-            return true;
+            return i->second.peer_id;
         }
     }
-    return false;
+    return peer_id_t();
 }
 
 namespace_id_t get_or_create_metadata(namespace_repo_t<rdb_protocol_t> *ns_repo,
@@ -287,8 +334,9 @@ namespace_id_t get_or_create_metadata(namespace_repo_t<rdb_protocol_t> *ns_repo,
         // Choose a peer to do any metadata changes through
         metadata_change_handler_t<cluster_semilattice_metadata_t>::request_mailbox_t::address_t sync_mailbox;
         machine_id_t sync_machine_id;
-        
-        if (!get_change_request_info(directory->get(), &sync_mailbox, &sync_machine_id)) {
+        peer_id_t sync_peer_id = get_change_request_info(directory->get(), &sync_mailbox, &sync_machine_id);
+
+        if (sync_peer_id.is_nil()) {
             printf("No reachable server found in the cluster\n");
             return nil_uuid();
         }
@@ -334,6 +382,9 @@ namespace_id_t get_or_create_metadata(namespace_repo_t<rdb_protocol_t> *ns_repo,
                 continue;
             }
         }
+
+        // Update our semilattice metadata from the peer we made the change through
+        semilattice_metadata->sync_from(sync_peer_id, interruptor);
 
         printf("Waiting for table readiness...\n");
         wait_for_rdb_table_readiness(ns_repo, ns_id, interruptor, semilattice_metadata);

@@ -105,7 +105,7 @@ or Hash)."
     # Test a predicate and execute one of two branches (just like
     # Ruby's <b>+if+</b>).  For example, if we have a table
     # <b>+table+</b>:
-    #   table.update{|row| r.if(row[:score] < 10, {:score => 10}, {})}
+    #   table.update{|row| r.branch(row[:score] < 10, {:score => 10}, {})}
     # will change every row with score below 10 in <b>+table+</b> to have score 10.
     def self.branch(test, t_branch, f_branch)
       tb = S.r(t_branch)
@@ -421,6 +421,16 @@ or Hash)."
     def self.sum(*args); Data_Collectors.sum(*args); end
     # A shortcut for Data_Collectors::avg
     def self.avg(*args); Data_Collectors.avg(*args); end
+
+    # Specify ascending ordering for a given attribute passed to order_by.
+    def self.asc(attr)
+        return [attr, true] 
+    end
+
+    # Specify descending ordering for a given attribute passed to order_by.
+    def self.desc(attr)
+        return [attr, false]
+    end
 
     def self.boolprop(op, l, r) # :nodoc:
       badop = l.boolop? ? l : r

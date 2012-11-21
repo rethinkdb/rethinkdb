@@ -3,7 +3,9 @@
 #define HTTP_HTTP_HPP_
 
 #include <string>
+#include <stdexcept>
 #include <vector>
+#include <set>
 
 #include "errors.hpp"
 #include <boost/tokenizer.hpp>
@@ -11,6 +13,7 @@
 #include <boost/optional.hpp>
 
 #include "arch/types.hpp"
+#include "arch/address.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "containers/scoped.hpp"
 #include "parsing/util.hpp"
@@ -47,8 +50,8 @@ struct http_req_t {
         explicit resource_t(const std::string &_val);
         resource_t(const char* _val, size_t size);
 
-        void assign(const std::string &_val);
-        void assign(const char* _val, size_t size);
+        MUST_USE bool assign(const std::string &_val);
+        MUST_USE bool assign(const char* _val, size_t size);
         iterator begin() const;
         iterator end() const;
         std::string as_string(const iterator &from) const;
@@ -162,7 +165,7 @@ public:
  * msg that's a meaningful response */
 class http_server_t {
 public:
-    http_server_t(int port, http_app_t *application);
+    http_server_t(const std::set<ip_address_t> &local_addresses, int port, http_app_t *application);
     ~http_server_t();
     int get_port() const;
 private:

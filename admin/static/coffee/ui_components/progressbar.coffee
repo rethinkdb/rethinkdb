@@ -15,6 +15,7 @@ module 'UIComponents', ->
                 @template = template
             else
                 template = Handlebars.compile $('#progressbar-template').html()
+            @timeout = null
 
         # The render function takes a number of arguments:
         #   - current_value: current value of the operation or status being monitored
@@ -25,13 +26,29 @@ module 'UIComponents', ->
         #       * got_response: flag indicating that the goals have been set
         #         and we're ready to start processing
         render: (current_value, max_value, additional_info) =>
+            if current_value isnt max_value and @timeout?
+                # We are in a finished state, but current_value != max_value,
+                # so the server sent us an update and we start processing again
+                clearTimeout @timeout
+                @timeout = null
+                @stage = 'processing'
+
             # State machine
             if @stage is 'none' and additional_info.new_value?
                 @stage = 'starting'
+                if @timeout? # If there is a timeout, we have to clear it, we are not done yet
+                    clearTimeout @timeout
+                    @timeout = null
             if @stage is 'starting' and additional_info.got_response?
                 @stage = 'processing'
+                if @timeout? # If there is a timeout, we have to clear it, we are not done yet
+                    clearTimeout @timeout
+                    @timeout = null
             if @stage is 'processing' and current_value is max_value
                 @stage = 'finished'
+                if @timeout? # If there is a timeout, we have to clear it, we are not done yet
+                    clearTimeout @timeout
+                    @timeout = null
 
             data = _.extend additional_info,
                 current_value: current_value
@@ -59,11 +76,12 @@ module 'UIComponents', ->
                     finished: true
                     percent_complete: 100
 
-
-                setTimeout =>
-                    @stage = 'none'
-                    @render current_value, max_value, {}
-                , 2000
+                if not @timeout? # If there is already a timeout, no need to add another one
+                    @timeout = setTimeout =>
+                        @stage = 'none'
+                        @render current_value, max_value, {}
+                        @timeout = null
+                    , 2000
             
             @.$el.html @template data
 
@@ -71,5 +89,8 @@ module 'UIComponents', ->
        
         skip_to_processing: =>
             @stage = 'processing'
+            if @timeout? # If there is a timeout, we have to clear it, we are not done yet
+                clearTimeout @timeout
+                @timeout = null
         set_none_state: =>
             @stage = 'none'

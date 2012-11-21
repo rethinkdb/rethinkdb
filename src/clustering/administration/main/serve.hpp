@@ -8,12 +8,33 @@
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/persist.hpp"
 #include "extproc/spawner.hpp"
+#include "arch/address.hpp"
 
-struct service_ports_t {
-    service_ports_t(int _port, int _client_port, int _http_port, int _reql_port, int _port_offset)
-        : port(_port), client_port(_client_port), http_port(_http_port), reql_port(_reql_port), port_offset(_port_offset)
+struct service_address_ports_t {
+    service_address_ports_t() :
+        port(0),
+        client_port(0),
+        http_port(0),
+        reql_port(0),
+        port_offset(0) { }
+
+    service_address_ports_t(const std::set<ip_address_t> &_local_addresses,
+                            int _port,
+                            int _client_port,
+                            int _http_port,
+                            int _reql_port,
+                            int _port_offset) :
+        local_addresses(_local_addresses),
+        port(_port),
+        client_port(_client_port),
+        http_port(_http_port),
+        reql_port(_reql_port),
+        port_offset(_port_offset)
         { }
 
+    std::string get_addresses_string() const;
+
+    std::set<ip_address_t> local_addresses;
     int port;
     int client_port;
     int http_port;
@@ -24,8 +45,23 @@ struct service_ports_t {
 /* This has been factored out from `command_line.hpp` because it takes a very
 long time to compile. */
 
-bool serve(extproc::spawner_t::info_t *spawner_info, io_backender_t *io_backender, const std::string &filepath, metadata_persistence::persistent_file_t *persistent_file, const peer_address_set_t &joins, service_ports_t ports, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond);
+bool serve(extproc::spawner_t::info_t *spawner_info,
+           io_backender_t *io_backender,
+           const std::string &filepath,
+           metadata_persistence::persistent_file_t *persistent_file,
+           const peer_address_set_t &joins,
+           service_address_ports_t ports,
+           machine_id_t machine_id,
+           const cluster_semilattice_metadata_t &semilattice_metadata,
+           std::string web_assets,
+           signal_t *stop_cond);
 
-bool serve_proxy(extproc::spawner_t::info_t *spawner_info, const peer_address_set_t &joins, service_ports_t ports, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond);
+bool serve_proxy(extproc::spawner_t::info_t *spawner_info,
+                 const peer_address_set_t &joins,
+                 service_address_ports_t ports,
+                 machine_id_t machine_id,
+                 const cluster_semilattice_metadata_t &semilattice_metadata,
+                 std::string web_assets,
+                 signal_t *stop_cond);
 
 #endif /* CLUSTERING_ADMINISTRATION_MAIN_SERVE_HPP_ */

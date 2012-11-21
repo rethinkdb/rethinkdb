@@ -14,8 +14,13 @@
 // The linux_tcp_listener_t constructor can throw this exception
 class address_in_use_exc_t : public std::exception {
 public:
-    address_in_use_exc_t(const char* hostname, int port) throw () :
-        info(strprintf("The address at %s:%d is reserved or already in use", hostname, port)) { }
+    address_in_use_exc_t(const char* hostname, int port) throw () {
+        if (port == 0) {
+            info = strprintf("Could not establish sockets on all selected local addresses using the same port");
+        } else {
+            info = strprintf("The address at %s:%d is reserved or already in use", hostname, port);
+        }
+    }
     ~address_in_use_exc_t() throw () { }
 
     const char *what() const throw () {

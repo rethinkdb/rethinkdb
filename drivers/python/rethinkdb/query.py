@@ -79,6 +79,40 @@ import query_language_pb2 as p
 import net
 import types
 
+class RDBShortcut(object):
+    """Get the value of a variable or attribute.
+
+    Filter and map bind the current element to the implicit variable.
+    To access the implicit variable (i.e. 'current' row), use the
+    following:
+
+    >>> r['@']
+
+
+    To access an attribute of the implicit variable, pass the attribute name.
+
+    >>> r['name']
+    >>> r['@']['name']
+
+
+    See information on scoping rules for more details.
+
+    >>> table('users').filter(r['age'] == 30) # access attribute age from the implicit row variable
+    >>> table('users').filter(r['address']['city') == 'Mountain View') # access subattribute city
+                                                                       # of attribute address from
+                                                                       # the implicit row variable
+    >>> table('users').filter(lambda row: row['age') == 30)) # access attribute age from the
+                                                             # variable 'row'
+    """
+    def __getitem__(self, key):
+        if key == "@":
+            expr = JSONExpression(internal.ImplicitVar())
+        else:
+            expr = JSONExpression(internal.ImplicitAttr(key))
+        return expr
+
+r = RDBShortcut()
+
 class BaseQuery(object):
     """A base class for all ReQL queries. Queries can be run by calling the
     :meth:`rethinkdb.net.Connection.run()` method or by calling :meth:`run()` on
@@ -94,7 +128,7 @@ class BaseQuery(object):
     def _finalize_query(self, root, opts):
         raise NotImplementedError()
 
-    def run(self, conn=None, debug=False, allow_outdated=None):
+    def run(self, conn=None, debug=False, use_outdated=None):
         """Evaluate the expression on the server using the connection
         specified by `conn`. If `conn` is empty, uses the last created
         connection (located in :data:`rethinkdb.net.last_connection()`).
@@ -116,7 +150,7 @@ class BaseQuery(object):
             if net.last_connection() is None:
                 raise StandardError("Call rethinkdb.net.connect() to connect to a server before calling run()")
             conn = net.last_connection()
-        return conn.run(self, debug=debug, allow_outdated=allow_outdated)
+        return conn.run(self, debug=debug, use_outdated=use_outdated)
 
 class ReadQuery(BaseQuery):
     """Base class for expressions"""
@@ -190,7 +224,7 @@ class JSONExpression(ReadQuery):
             if index.step is not None:
                 raise ValueError("slice stepping is unsupported")
             return JSONExpression(internal.Slice(self, index.start, index.stop))
-        elif isinstance(index, str):
+        elif isinstance(index, types.StringTypes):
             return JSONExpression(internal.Attr(self, index))
         else:
             return JSONExpression(internal.Nth(self, index))
@@ -488,8 +522,8 @@ class JSONExpression(ReadQuery):
     def order_by(self, *attributes):
         """Sorts an array of objects according to the given attributes.
 
-        Items are sorted in ascending order unless the attribute name starts
-        with '-', which sorts the attribute in descending order.
+        By default, order_by uses ascending ordering. To specify the ordering
+        wrap the attribute with :func:`asc` or :func:`desc`.
 
         This is like :meth:`StreamExpression.order_by` but with arrays instead
         of streams.
@@ -502,10 +536,10 @@ class JSONExpression(ReadQuery):
         """
         order = []
         for attr in attributes:
-            if attr.startswith('-'):
-                order.append((attr[1:], False))
-            else:
+            if isinstance(attr, types.StringTypes):
                 order.append((attr, True))
+            else:
+                order.append(attr)
         return JSONExpression(internal.OrderBy(self, order))
 
     def map(self, mapping):
@@ -712,20 +746,20 @@ class JSONExpression(ReadQuery):
 
     def outer_join(self, other, predicate):
         return self.concat_map(
-            lambda row: let(('matches', other.concat_map(
-                lambda row2: branch(predicate(row, row2),
-                    expr([{'left':row, 'right':row2}]),
+            lambda left: let({'matches': other.concat_map(
+                lambda right: branch(predicate(left, right),
+                    expr([{'left':left, 'right':right}]),
                     expr([])
                 )
-            )), branch(letvar('matches').length() > 0,
+            ).stream_to_array()}, branch(letvar('matches').count() > 0,
                 letvar('matches'),
-                expr([{'left':row}])
+                expr([{'left':left}])
             ))
         )
 
     def eq_join(self, left_attr, other, opt_right_attr=None):
         return self.concat_map(
-            lambda row: let(('right', other.get(row[left_attr])),
+            lambda row: let({'right': other.get(row[left_attr])},
                 branch(letvar('right') != None,
                     expr([{'left':row, 'right':letvar('right')}]),
                     expr([])
@@ -746,7 +780,7 @@ class JSONExpression(ReadQuery):
 
         :returns: :class:`JSONExpression`
 
-        >>> expr([1, 2, 3]).length().run()
+        >>> expr([1, 2, 3]).count().run()
         3
         """
         return JSONExpression(internal.Length(self))
@@ -754,7 +788,7 @@ class JSONExpression(ReadQuery):
     def __len__(self):
         raise ValueError("To construct a `rethinkdb.JSONExpression` "
             "representing the length of a RethinkDB protocol term, call "
-            "`expr.length()`. (We couldn't overload `len(expr)` because it's "
+            "`expr.count()`. (We couldn't overload `len(expr)` because it's "
             "illegal to return anything other than an integer from `__len__()` "
             "in Python.)")
 
@@ -836,7 +870,7 @@ class StreamExpression(ReadQuery):
 
         >>> # Select all Californians whose age is equal to the number
         >>> of users in the database
-        >>> table('users').filter( { 'state': 'CA', 'age': table('users').length() })
+        >>> table('users').filter( { 'state': 'CA', 'age': table('users').count() })
 
         So far we've been grabbing attributes from the implicit scope. We can
         bind the value of each row to a variable and operate on that:
@@ -905,8 +939,8 @@ class StreamExpression(ReadQuery):
     def order_by(self, *attributes):
         """Sort the stream according to the given attributes.
 
-        Items are sorted in ascending order unless the attribute name starts
-        with '-', which sorts the attribute in descending order.
+        By default, order_by uses ascending ordering. To specify the ordering
+        wrap the attribute with :func:`asc` or :func:`r.desc`.
 
         TODO: What if an attribute is missing?
 
@@ -915,14 +949,14 @@ class StreamExpression(ReadQuery):
         :returns: :class:`StreamExpression` or :class:`MultiRowSelection` (same as input)
 
         >>> table('users').order_by('name')  # order users by name A-Z
-        >>> table('users').order_by('-level', 'name') # levels high-low, then names A-Z
+        >>> table('users').order_by(desc('level'), 'name') # levels high-low, then names A-Z
         """
         order = []
         for attr in attributes:
-            if attr.startswith('-'):
-                order.append((attr[1:], False))
-            else:
+            if isinstance(attr, types.StringTypes):
                 order.append((attr, True))
+            else:
+                order.append(attr)
         return self._make_selector(internal.OrderBy(self, order))
 
     def union(self, *others):
@@ -1091,20 +1125,20 @@ class StreamExpression(ReadQuery):
 
     def outer_join(self, other, predicate):
         return self.concat_map(
-            lambda row: let(('matches', other.concat_map(
-                lambda row2: branch(predicate(row, row2),
-                    expr([{'left':row, 'right':row2}]),
+            lambda left: let({'matches': other.concat_map(
+                lambda right: branch(predicate(left, right),
+                    expr([{'left':left, 'right':right}]),
                     expr([])
                 )
-            )), branch(letvar('matches').length() > 0,
+            ).stream_to_array()}, branch(letvar('matches').count() > 0,
                 letvar('matches'),
-                expr({'left':row})
+                expr([{'left':left}])
             ))
         )
 
     def eq_join(self, left_attr, other, opt_right_attr=None):
         return self.concat_map(
-            lambda row: let(('right', other.get(row[left_attr])),
+            lambda row: let({'right': other.get(row[left_attr])},
                 branch(letvar('right') != None,
                     expr([{'left':row, 'right':letvar('right')}]),
                     expr([])
@@ -1123,14 +1157,14 @@ class StreamExpression(ReadQuery):
 
         :returns: :class:`JSONExpression`
 
-        >>> table("users").length()   # Total number of users in the system
+        >>> table("users").count()   # Total number of users in the system
         """
         return JSONExpression(internal.Length(self))
 
     def __len__(self):
         raise ValueError("To construct a `rethinkdb.JSONExpression` "
             "representing the length of a RethinkDB protocol stream, call "
-            "`expr.length()`. (We couldn't overload `len(expr)` because it's "
+            "`expr.count()`. (We couldn't overload `len(expr)` because it's "
             "illegal to return anything other than an integer from `__len__()` "
             "in Python.)")
 
@@ -1155,6 +1189,12 @@ def average(attr):
         'finalizer': lambda res: res[0] / res[1]
     }
 
+def asc(attr):
+    return (attr, True)
+
+def desc(attr):
+    return (attr, False)
+
 def expr(val):
     """Converts a python value to a ReQL :class:`JSONExpression`.
 
@@ -1178,7 +1218,7 @@ def expr(val):
         return JSONExpression(internal.LiteralBool(val))
     elif isinstance(val, (int, float)):
         return JSONExpression(internal.LiteralNumber(val))
-    elif isinstance(val, (str, unicode)):
+    elif isinstance(val, types.StringTypes):
         return JSONExpression(internal.LiteralString(val))
     elif isinstance(val, list):
         return JSONExpression(internal.LiteralArray(val))
@@ -1219,40 +1259,6 @@ def branch(test, true_branch, false_branch):
         t = JSONExpression
     return t(internal.If(test, true_branch, false_branch))
 
-class AttrVarAccess(object):
-    """Get the value of a variable or attribute.
-
-    Filter and map bind the current element to the implicit variable.
-    To access the implicit variable (i.e. 'current' row), use the
-    following:
-
-    >>> r['@']
-
-
-    To access an attribute of the implicit variable, pass the attribute name.
-
-    >>> r['name']
-    >>> r['@']['name']
-
-
-    See information on scoping rules for more details.
-
-    >>> table('users').filter(r['age'] == 30) # access attribute age from the implicit row variable
-    >>> table('users').filter(r['address']['city') == 'Mountain View') # access subattribute city
-                                                                       # of attribute address from
-                                                                       # the implicit row variable
-    >>> table('users').filter(lambda row: row['age') == 30)) # access attribute age from the
-                                                             # variable 'row'
-    """
-    def __getitem__(self, key):
-        if key == "@":
-            expr = JSONExpression(internal.ImplicitVar())
-        else:
-            expr = JSONExpression(internal.ImplicitAttr(key))
-        return expr
-
-r = AttrVarAccess()
-
 def letvar(name):
     "Evaluates a variable in the context of let"
     return JSONExpression(internal.Var(name))
@@ -1265,9 +1271,7 @@ def js(expr=None, body=None):
     else:
         return JSONExpression(internal.Javascript(u'return (%s);' % expr))
 
-def let(*bindings):
-    body = bindings[-1]
-    bindings = bindings[:-1]
+def let(bindings, body):
     if len(bindings) == 0:
         raise ValueError("need at least one binding")
     if isinstance(body, MultiRowSelection):
@@ -1279,6 +1283,7 @@ def let(*bindings):
     else:
         body = expr(body)
         t = JSONExpression
+    
     return t(internal.Let(body, bindings))
 
 class FunctionExpr(object):
@@ -1607,7 +1612,7 @@ class Table(MultiRowSelection):
     manipulation operations (such as inserting, selecting, and
     updating data) can be chained off of this object."""
 
-    def __init__(self, table_name, db_expr=None, allow_outdated=None):
+    def __init__(self, table_name, db_expr=None, use_outdated=None):
         """Use :func:`rethinkdb.query.table` as a shortcut to create
         this object.
 
@@ -1621,7 +1626,7 @@ class Table(MultiRowSelection):
         ReadQuery.__init__(self, internal.Table(self))
         self.table_name = table_name
         self.db_expr = db_expr
-        self.allow_outdated = allow_outdated #either True, False, or None (default to run option)
+        self.use_outdated = use_outdated #either True, False, or None (default to run option)
 
     def __repr__(self):
         if self.db_expr is not None:
@@ -1663,17 +1668,17 @@ class Table(MultiRowSelection):
         else:
             parent.db_name = net.last_connection().db_name
 
-        if self.allow_outdated is None:
-            if not 'allow_outdated' in opts or opts['allow_outdated'] is None or opts['allow_outdated'] is False:
+        if self.use_outdated is None:
+            if not 'use_outdated' in opts or opts['use_outdated'] is None or opts['use_outdated'] is False:
                 parent.use_outdated = False
             else:
                 parent.use_outdated = True
         else:
-            parent.use_outdated = self.allow_outdated
+            parent.use_outdated = self.use_outdated
 
         parent.table_name = self.table_name
 
-def table(table_ref, allow_outdated=None):
+def table(table_ref, use_outdated=None):
     """Get a reference to a table within a RethinkDB cluster.
 
     :param table_ref: Either a name of the table, or a name of the
@@ -1685,7 +1690,7 @@ def table(table_ref, allow_outdated=None):
 
     >>> q = table('table_name')         #
     """
-    return Table(table_ref, allow_outdated=allow_outdated)
+    return Table(table_ref, use_outdated=use_outdated)
 
 def union(seq1, *seqs):
     """Concatentate the given sequences.

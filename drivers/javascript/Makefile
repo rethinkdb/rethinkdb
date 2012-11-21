@@ -43,9 +43,7 @@ all: lib
 
 
 # Compile the rethinkdb library
-lib: $(JS_BUILD_DIR)/rethinkdb.js
-# The pb file
-pb: $(JS_BUILD_DIR)/rethinkdb/query_language.pb.js
+lib: $(wildcard rethinkdb/*) $(JS_BUILD_DIR)/rethinkdb.js
 
 # SILENCER_1=2> /dev/null || ( echo "      Build failure." ; false ; )
 SILENCER_1=

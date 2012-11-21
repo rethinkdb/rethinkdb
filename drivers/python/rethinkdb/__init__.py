@@ -15,9 +15,15 @@ __all__ = [
     'connect', 'last_connection',
     'db_create', 'db_drop', 'db_list', 'db', 'table', 'error',
     'expr', 'r', 'union', 'js', 'let', 'letvar', 'branch',
+    'asc', 'desc',
     'ExecutionError', 'BadQueryError']
 
 from query import *
 from net import connect, last_connection, ExecutionError, BadQueryError
+
+import sys
+
+for fun in dir(sys.modules[__name__]):
+    setattr(r, fun, getattr(sys.modules[__name__], fun))
 
 # Package initialization

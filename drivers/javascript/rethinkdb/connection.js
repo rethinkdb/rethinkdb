@@ -141,24 +141,35 @@ rethinkdb.Connection.prototype.sendProtoBuf_ = function(pbObj) {
  * Evaluates the given ReQL expression on the server and invokes
  * callback with the result.
  * @param {rethinkdb.Query} query The query to run.
- * @param {function(...)=} opt_callback If supplied, shortcut for calling collect on the cursor.
+ * @param {?=} opt_callbackOrOptions If supplied, shortcut for calling next on the
+ *  cursor or an options argument specifying callback and/or useOutdated.
  */
-rethinkdb.Connection.prototype.run = function(query, opt_callback) {
+rethinkdb.Connection.prototype.run = function(query, opt_callbackOrOptions) {
     rethinkdb.util.argCheck_(arguments, 1);
+    rethinkdb.util.typeCheck_(query, rethinkdb.Query);
 
-    var pb = query.buildQuery({defaultAllowOutdated:false});
-    console.log('Raw query');
-    console.log(pb);
+    var callback;
+    var useOutdated;
+    if (typeof opt_callbackOrOptions === 'function') {
+        callback = opt_callbackOrOptions;
+    } else {
+        callback = opt_callbackOrOptions['callback'];
+        useOutdated = opt_callbackOrOptions['useOutdated'];
+    }
+
+    var pb = query.buildQuery({defaultUseOutdated:useOutdated});
 
     // Assign a token
     pb.setToken((this.nextToken_++).toString());
+    console.log('Raw query');
+    console.log(pb);
 
     var cursor = new rethinkdb.Cursor(this, query, pb.getToken());
     this.outstandingQueries_[pb.getToken()] = cursor;
 
     this.sendProtoBuf_(pb);
-    if (opt_callback) {
-        cursor.next(opt_callback);
+    if (callback) {
+        cursor.next(callback);
     }
 
     return cursor;

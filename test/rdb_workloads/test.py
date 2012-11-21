@@ -65,9 +65,9 @@ class RDBTest(unittest.TestCase):
     def clear_table(self):
         self.conn.run(self.table.delete())
 
-    def do_insert(self, docs):
-        self.expect(self.table.insert(docs), {'errors': 0,
-                                              'inserted': 1 if isinstance(docs, dict) else len(docs)})
+    def do_insert(self, docs, upsert=False):
+        self.expect(self.table.insert(docs, upsert), {'errors': 0,
+                                                      'inserted': 1 if isinstance(docs, dict) else len(docs)})
 
     def test_arith(self):
         expect = self.expect
@@ -149,9 +149,8 @@ class RDBTest(unittest.TestCase):
         self.error_exec(~expr(3), "bool")
 
     def test_let(self):
-        self.expect(let(("x", 3), letvar("x")), 3)
-        self.expect(let(("x", 3), ("x", 4), letvar("x")), 4)
-        self.expect(let(("x", 3), ("y", 4), letvar("x")), 3)
+        self.expect(let({"x": 3}, letvar("x")), 3)
+        self.expect(let({"x": 3, "y": 4}, letvar("x")), 3)
 
         self.error_query(letvar("x"), "not in scope")
 
@@ -312,13 +311,18 @@ class RDBTest(unittest.TestCase):
         from operator import itemgetter as get
 
         expect(order(docs, "a"), sorted(docs, key=get('a')))
-        expect(order(docs, "-a"), sorted(docs, key=get('a'), reverse=True))
+        expect(order(docs, ("a", False)), sorted(docs, key=get('a'), reverse=True))
 
         self.clear_table()
         self.do_insert(docs)
 
         expect(self.table.order_by("a"), sorted(docs, key=get('a')))
-        expect(self.table.order_by("-a"), sorted(docs, key=get('a'), reverse=True))
+        expect(self.table.order_by(("a", True)), sorted(docs, key=get('a')))
+        expect(self.table.order_by(("a", False)), sorted(docs, key=get('a'), reverse=True))
+        expect(self.table.order_by(asc("a")), sorted(docs, key=get('a')))
+        expect(self.table.order_by(desc("a")), sorted(docs, key=get('a'), reverse=True))
+
+        expect(self.table.order_by(asc("a")).stream_to_array(), self.table.order_by("a").stream_to_array().run())
 
         expect(self.table.filter({'b': 0}).order_by("a"),
                sorted(doc for doc in docs if doc['b'] == 0))
@@ -350,10 +354,44 @@ class RDBTest(unittest.TestCase):
     def test_unicode(self):
         self.clear_table()
 
-        doc = {"id": 100, "text": u"グルメ"}
+        doc0 = {u"id": 100, u"text": u"グルメ"}
+        doc1 = {"id": 100, u"text": u"グルメ"}
 
-        self.do_insert(doc)
-        self.expect(self.table.get(100), doc)
+        doc2 = {u"id": 100, u"text": u"abc"}
+        doc3 = {"id": 100, u"text": u"abc"}
+        doc4 = {u"id": 100, "text": u"abc"}
+        doc5 = {"id": 100, "text": u"abc"}
+
+        self.do_insert(doc0, True)
+        self.expect(self.table.get(100), doc0)
+        self.expect(self.table.get(100), doc1)
+        self.do_insert(doc1, True)
+        self.expect(self.table.get(100), doc0)
+        self.expect(self.table.get(100), doc1)
+
+        self.do_insert(doc2, True)
+        self.expect(self.table.get(100), doc2)
+        self.expect(self.table.get(100), doc3)
+        self.expect(self.table.get(100), doc4)
+        self.expect(self.table.get(100), doc5)
+
+        self.do_insert(doc3, True)
+        self.expect(self.table.get(100), doc2)
+        self.expect(self.table.get(100), doc3)
+        self.expect(self.table.get(100), doc4)
+        self.expect(self.table.get(100), doc5)
+
+        self.do_insert(doc4, True)
+        self.expect(self.table.get(100), doc2)
+        self.expect(self.table.get(100), doc3)
+        self.expect(self.table.get(100), doc4)
+        self.expect(self.table.get(100), doc5)
+
+        self.do_insert(doc5, True)
+        self.expect(self.table.get(100), doc2)
+        self.expect(self.table.get(100), doc3)
+        self.expect(self.table.get(100), doc4)
+        self.expect(self.table.get(100), doc5)
 
     def test_view(self):
         self.clear_table()
@@ -492,8 +530,8 @@ class RDBTest(unittest.TestCase):
         names = "slava joe rntz rmmh tim".split()
         docs = [{'id': i, 'name': name} for i,name in enumerate(names)]
 
-        self.expect(let(('x', 2), js('x')), 2)
-        self.expect(let(('x', 2), ('y', 3), js('x + y')), 5)
+        self.expect(let({'x': 2}, js('x')), 2)
+        self.expect(let({'x': 2, 'y': 3}, js('x + y')), 5)
 
         self.do_insert(docs)
         self.expect(self.table.order_by("id").map(lambda x: x), docs) # sanity check
@@ -519,6 +557,38 @@ class RDBTest(unittest.TestCase):
         self.expect(self.table.order_by("id"), docs)
 
         self.expect(self.table.update(None), {'updated': 0, 'skipped': 10, 'errors': 0})
+
+    def test_joins(self):
+        docs1 = [{'id': n} for n in range(100)]
+        docs2 = [{'id': n+10} for n in range(100)]
+
+        try:
+            self.db.table_create('jtbl1').run()
+            self.db.table_create('jtbl2').run()
+        except:
+            pass
+
+        tbl1 = self.db.table('jtbl1')
+        tbl2 = self.db.table('jtbl2')
+
+        tbl1.insert(docs1).run()
+        tbl2.insert(docs2).run()
+
+        iJoin = tbl1.inner_join(tbl2, lambda l, r: l['id'] == r['id'])
+        oJoin = tbl1.outer_join(tbl2, lambda l, r: l['id'] == r['id'])
+
+        self.expect(iJoin.count(), 90)
+        self.expect(iJoin.filter(lambda x: x.contains('right')).count(), 90)
+        self.expect(iJoin.filter(lambda x: x.contains('left')).count(), 90)
+
+        self.expect(oJoin.count(), 100)
+        self.expect(oJoin.filter(lambda x: x.contains('left')).count(), 100)
+        self.expect(oJoin.filter(lambda x: x.contains('right')).count(), 90)
+
+        self.expect(tbl1.eq_join('id', tbl2).count(), 90)
+
+        self.db.table_drop('jtbl1').run()
+        self.db.table_drop('jtbl2').run()
 
     def test_det(self):
         if 'test' not in db_list().run():

@@ -19,7 +19,7 @@
 
 class query_server_t {
 public:
-    query_server_t(int port, rdb_protocol_t::context_t *_ctx);
+    query_server_t(const std::set<ip_address_t> &local_addresses, int port, rdb_protocol_t::context_t *_ctx);
 
     http_app_t *get_http_app();
 

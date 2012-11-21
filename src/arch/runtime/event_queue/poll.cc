@@ -21,7 +21,7 @@
 
 int user_to_poll(int mode) {
 
-    rassert((mode & (poll_event_in | poll_event_out)) == mode);
+    rassert((mode & (poll_event_in | poll_event_out | poll_event_rdhup)) == mode);
 
     int out_mode = 0;
     if (mode & poll_event_in) out_mode |= POLLIN;
