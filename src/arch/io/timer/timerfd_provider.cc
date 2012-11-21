@@ -1,9 +1,7 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
-#include "errors.hpp"  // for RDB_USE_TIMERFD_PROVIDER
+#include "arch/io/timer_provider.hpp"  // for RDB_USE_TIMERFD_PROVIDER
 
 #ifdef RDB_USE_TIMERFD_PROVIDER
-
-#include "arch/io/timer/timerfd_provider.hpp"
 
 #include <sys/timerfd.h>
 #include <fcntl.h>

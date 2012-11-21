@@ -6,7 +6,13 @@
 // interface) depending on which system we're on. Some older kernels
 // don't support fdtimers, so we have to resort to signals.
 
-#include "errors.hpp"  // For RDB_USE_TIMER_SIGNAL_PROVIDER
+#ifdef LEGACY_LINUX
+#define RDB_USE_TIMER_SIGNAL_PROVIDER
+#endif
+
+#ifndef RDB_USE_TIMER_SIGNAL_PROVIDER
+#define RDB_USE_TIMERFD_PROVIDER
+#endif
 
 #ifdef RDB_USE_TIMER_SIGNAL_PROVIDER
 #include "arch/io/timer/timer_signal_provider.hpp"

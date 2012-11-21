@@ -17,6 +17,7 @@
 #include "utils.hpp"
 #include "arch/runtime/event_queue.hpp"
 #include "arch/runtime/thread_pool.hpp"
+#include "arch/io/timer_provider.hpp"  // For RDB_USE_TIMER_SIGNAL_PROVIDER
 #include "perfmon/perfmon.hpp"
 
 int user_to_poll(int mode) {

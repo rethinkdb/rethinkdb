@@ -1,5 +1,5 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
-#include "errors.hpp"
+#include "arch/io/timer_provider.hpp"  // for RDB_USE_TIMER_SIGNAL_PROVIDER
 
 #ifdef RDB_USE_TIMER_SIGNAL_PROVIDER
 
@@ -65,5 +65,4 @@ void timer_signal_provider_t::on_event(int events) {
     // callback api.
     callback->on_timer(events + 1);
 }
-
 #endif  // RDB_USE_TIMER_SIGNAL_PROVIDER
