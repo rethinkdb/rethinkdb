@@ -52,12 +52,12 @@ poll_event_queue_t::poll_event_queue_t(linux_queue_parent_t *_parent)
 void poll_event_queue_t::run() {
     int res;
 
-#ifdef LEGACY_LINUX
+#ifdef RDB_USE_TIMER_SIGNAL_PROVIDER
     // Create a restricted sigmask for ppoll:
     // In the upcoming loop, we want to continue blocking signals
     // (especially SIGINT and SIGTERM, which the main thread
     // has interrupt handlers for). However, LEGACY_LINUX
-    // builds use timerfd_provider, which requires
+    // builds use timer_signal_provider, which requires
     // this thread to be able to catch the TIMER_NOTIFY_SIGNAL.
     // sigmask_restricted is configured to allow this
     // one signal through while blocking the other signals
@@ -70,12 +70,12 @@ void poll_event_queue_t::run() {
 
     res = sigfillset(&sigmask_full);
     guarantee_err(res == 0, "Could not create a full signal mask");
-#endif
+#endif  // RDB_USE_TIMER_SIGNAL_PROVIDER
 
     // Now, start the loop
     while (!parent->should_shut_down()) {
         // Grab the events from the kernel!
-#ifdef LEGACY_LINUX
+#ifdef RDB_USE_TIMER_SIGNAL_PROVIDER
         res = ppoll(&watched_fds[0], watched_fds.size(), NULL, &sigmask_restricted);
 #else
         res = poll(&watched_fds[0], watched_fds.size(), 0);
