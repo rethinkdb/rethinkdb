@@ -720,7 +720,7 @@ $(document).ready ->
             state: deep_copy state['2']
             query: 'r.db("test").table("test").filter(function(doc) { return r.branch(doc("id").gt(2), r.expr(true), r.expr(false)) }).run()'
             callback_name: 'expect_result'
-            expected_result: {"N1": {id:1, key:0}, "N2": {id:2, key:2}, "N3": {id:3, key:3}}
+            expected_result: [{id:3, key:3}]
         },
         {
             state: deep_copy state['2']
