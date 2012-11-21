@@ -45,6 +45,29 @@ int numwrite(const char *path, int number) {
     return 0;
 }
 
+int write_pid_file(const po::variables_map& vm) {
+    if (vm.count("pid-file") && vm["pid-file"].as<std::string>().length()) {
+        // Be very careful about modifying this. It is important that the code that removes the
+        // pid-file only run if the checks here pass. Right now, this is guaranteed by the return on
+        // failure here.
+        if (!access(vm["pid-file"].as<std::string>().c_str(), F_OK)) {
+            fprintf(stderr, "ERROR: The pid-file specified already exists. This might mean that an instance is already running.\n");
+            return EXIT_FAILURE;
+        }
+        if (numwrite(vm["pid-file"].as<std::string>().c_str(), getpid())) {
+            fprintf(stderr, "ERROR: Writing to the specified pid-file failed.\n");
+            return EXIT_FAILURE;
+        }
+    }
+    return EXIT_SUCCESS;
+}
+
+void remove_pid_file(const po::variables_map& vm) {
+    if (vm.count("pid-file") && vm["pid-file"].as<std::string>().length()) {
+        remove(vm["pid-file"].as<std::string>().c_str());
+    }
+}
+
 class host_and_port_t {
 public:
     host_and_port_t(const std::string& h, int p) : host(h), port(p) { }
@@ -807,19 +830,8 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-
-    if (vm.count("pid-file") && vm["pid-file"].as<std::string>().length()) {
-        // Be very careful about modifying this. It is important that the code that removes the
-        // pid-file only run if the checks here pass. Right now, this is guaranteed by the return on
-        // failure here.
-        if (!access(vm["pid-file"].as<std::string>().c_str(), F_OK)) {
-            fprintf(stderr, "ERROR: The pid-file specified already exists. This might mean that an instance is already running.\n");
-            return EXIT_FAILURE;
-        }
-        if (numwrite(vm["pid-file"].as<std::string>().c_str(), getpid())) {
-            fprintf(stderr, "ERROR: Writing to the specified pid-file failed.\n");
-            return EXIT_FAILURE;
-        }
+    if (write_pid_file(vm) != EXIT_SUCCESS) {
+        return EXIT_FAILURE;
     }
 
     if (!check_existence(filepath)) {
@@ -836,9 +848,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
                                    &result, web_path),
                        num_workers);
 
-    if (vm.count("pid-file") && vm["pid-file"].as<std::string>().length()) {
-        remove(vm["pid-file"].as<std::string>().c_str());
-    }
+    remove_pid_file(vm);
 
     return result ? EXIT_SUCCESS : EXIT_FAILURE;
 }
@@ -921,18 +931,8 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
 
     const int num_workers = get_cpu_count();
 
-    if (vm.count("pid-file") && vm["pid-file"].as<std::string>().length()) {
-        // Be very careful about modifying this. It is important that the code that removes the
-        // pid-file only run if the checks here pass. Right now, this is guaranteed by the return on
-        // failure here.
-        if (!access(vm["pid-file"].as<std::string>().c_str(), F_OK)) {
-            fprintf(stderr, "ERROR: The pid-file specified already exists. This might mean that an instance is already running.\n");
-            return EXIT_FAILURE;
-        }
-        if (numwrite(vm["pid-file"].as<std::string>().c_str(), getpid())) {
-            fprintf(stderr, "ERROR: Writing to the specified pid-file failed.\n");
-            return EXIT_FAILURE;
-        }
+    if (write_pid_file(vm) != EXIT_SUCCESS) {
+        return EXIT_FAILURE;
     }
 
     bool result;
@@ -943,9 +943,7 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
                                    &result, web_path),
                        num_workers);
 
-    if (vm.count("pid-file") && vm["pid-file"].as<std::string>().length()) {
-        remove(vm["pid-file"].as<std::string>().c_str());
-    }
+    remove_pid_file(vm);
 
     return result ? EXIT_SUCCESS : EXIT_FAILURE;
 }
@@ -1115,19 +1113,8 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    // RSI Is this just copied and pasted?
-    if (vm.count("pid-file") && vm["pid-file"].as<std::string>().length()) {
-        // Be very careful about modifying this. It is important that the code that removes the
-        // pid-file only run if the checks here pass. Right now, this is guaranteed by the return on
-        // failure here.
-        if (!access(vm["pid-file"].as<std::string>().c_str(), F_OK)) {
-            fprintf(stderr, "ERROR: The pid-file specified already exists. This might mean that an instance is already running.\n");
-            return EXIT_FAILURE;
-        }
-        if (numwrite(vm["pid-file"].as<std::string>().c_str(), getpid())) {
-            fprintf(stderr, "ERROR: Writing to the specified pid-file failed.\n");
-            return EXIT_FAILURE;
-        }
+    if (write_pid_file(vm) != EXIT_SUCCESS) {
+        return EXIT_FAILURE;
     }
 
     bool new_directory = false;
@@ -1156,9 +1143,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
                                    new_directory),
                        num_workers);
 
-    if (vm.count("pid-file") && vm["pid-file"].as<std::string>().length()) {
-        remove(vm["pid-file"].as<std::string>().c_str());
-    }
+    remove_pid_file(vm);
 
     return result ? EXIT_SUCCESS : EXIT_FAILURE;
 }
