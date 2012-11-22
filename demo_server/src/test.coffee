@@ -56,8 +56,6 @@ class Tests
     test: =>
         query = @queries[@index]
         if query?
-            if query.state?
-                demo_server.local_server = query.state
             console.log query.query
             cursor = eval(query.query)
             @callback()[query.callback_name](query.query, cursor, query.expected_result, @)
@@ -152,7 +150,7 @@ class Tests
                 if data?
                     @results.push data
                     return true
-                @display demo_server.local_server.test?, query, @results
+                @display demo_server.dbs.test?, query, @results
                 that.index++
                 that.test()
                 return false
@@ -162,7 +160,7 @@ class Tests
                 if data?
                     @results.push data
                     return true
-                @display demo_server.local_server.other_test?, query, @results
+                @display demo_server.dbs.other_test?, query, @results
                 that.index++
                 that.test()
                 return false
@@ -172,7 +170,7 @@ class Tests
                 if data?
                     @results.push data
                     return true
-                @display (not demo_server.local_server.test?), query, @results
+                @display (not demo_server.dbs.test?), query, @results
                 that.index++
                 that.test()
                 return false
@@ -202,7 +200,7 @@ class Tests
                 if data?
                     @results.push data
                     return true
-                @display demo_server.local_server.test.test?, query, @results
+                @display demo_server.dbs.test.tables.test?, query, @results
                 that.index++
                 that.test()
                 return false
@@ -212,7 +210,7 @@ class Tests
                 if data?
                     @results.push data
                     return true
-                @display (not demo_server.local_server.test.test?), query, @results
+                @display (not demo_server.dbs?.test.tables.test?), query, @results
                 that.index++
                 that.test()
                 return false
@@ -222,7 +220,7 @@ class Tests
                 if data?
                     @results.push data
                     return true
-                @display demo_server.local_server.test.other_test?, query, @results
+                @display demo_server.dbs?.test.tables.other_test?, query, @results
                 that.index++
                 that.test()
                 return false
@@ -272,7 +270,7 @@ class Tests
                 if data?
                     @results.push data
                     return true
-                @display (not demo_server.local_server.test.test.data['N1']?), query, @results
+                @display (not demo_server.dbs?.test.tables.test['N1']?), query, @results
                 that.index++
                 that.test()
                 return false
@@ -282,7 +280,7 @@ class Tests
                 if data?
                     @results.push data
                     return true
-                @display (demo_server.local_server.test.test.data["Si_am_a_string"]['age'] is 30 and demo_server.local_server.test.test.data["Si_am_a_string"]['key'] is 321), query, @results
+                @display (demo_server.dbs?.test.getTable('test').get("i_am_a_string")['age'] is 30 and demo_server.dbs.getTable('test').get("i_am_a_string")['key'] is 321), query, @results
                 that.index++
                 that.test()
                 return false
@@ -292,7 +290,7 @@ class Tests
                 if data?
                     @results.push data
                     return true
-                @display _.isEqual(demo_server.local_server, state[1]), query, @results
+                @display _.isEqual(demo_server.dbs, state[1]), query, @results
                 that.index++
                 that.test()
                 return false
@@ -322,7 +320,7 @@ class Tests
                 if data?
                     @results.push data
                     return true
-                @display (_.isEqual(demo_server.local_server.test.test.data, expected_state)), query, demo_server.local_server.test.test.data
+                @display (_.isEqual(demo_server.dbs?.test.tables.test, expected_state)), query, demo_server.dbs?.test.tables.test
                 that.index++
                 that.test()
                 return false
@@ -332,7 +330,7 @@ class Tests
                 if data?
                     @results.push data
                     return true
-                @display (_.isEqual(demo_server.local_server.test.test.data['N2'], {id:2, key:"new_value", other_key:"new_other_value"})), query, @results
+                @display (_.isEqual(demo_server.dbs?.test.tables.test['N2'], {id:2, key:"new_value", other_key:"new_other_value"})), query, @results
                 that.index++
                 that.test()
                 return false
@@ -342,7 +340,7 @@ class Tests
                 if data?
                     @results.push data
                     return true
-                @display (_.isEqual(demo_server.local_server.test.test.data['N2'], {id:2, key:"new_value", other_key:"new_other_value"}) and @results[0].modified is 1 and @results[0].errors is 1), query, @results
+                @display (_.isEqual(demo_server.dbs?.test.tables.test['N2'], {id:2, key:"new_value", other_key:"new_other_value"}) and @results[0].modified is 1 and @results[0].errors is 1), query, @results
                 that.index++
                 that.test()
                 return false
@@ -352,7 +350,7 @@ class Tests
                 if data?
                     @results.push data
                     return true
-                @display (_.isEqual(demo_server.local_server.test.test.data, {})), query, @results
+                @display (_.isEqual(demo_server.dbs?.test.tables.test, {})), query, @results
                 that.index++
                 that.test()
                 return false
