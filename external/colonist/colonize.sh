@@ -89,7 +89,7 @@ do
 			echo "  Make ."
 			(
 				cd "$file" ;
-				make PREFIX="$BUILDPREFIX" "${PATHDECLSL[@]}" 2> ../"$file".m.err > ../"$file".m.log && make install PREFIX="$BUILDPREFIX" "${PATHDECLSL[@]}" 2> ../"$file".s.err > ../"$file".s.log || echo "  Error ." ; # One can never be too sure , although adding the -e option might be too extreme a surety .
+				make PREFIX="$BUILDPREFIX" DESTDIR=/ "${PATHDECLSL[@]}" 2> ../"$file".m.err > ../"$file".m.log && make install PREFIX="$BUILDPREFIX" DESTDIR=/ "${PATHDECLSL[@]}" 2> ../"$file".s.err > ../"$file".s.log || echo "  Error ." ; # One can never be too sure , although adding the -e option might be too extreme a surety .
 				cd .. ;
 			)
 		elif [ -e "$file"/unix/Makefile ] ;
@@ -97,7 +97,7 @@ do
 			echo "  Make ."
 			(
 				cd "$file"/unix ;
-				make PREFIX="$BUILDPREFIX" "${PATHDECLSL[@]}" 2> ../../"$file".m.err > ../../"$file".m.log && make install PREFIX="$BUILDPREFIX" "${PATHDECLSL[@]}" 2> ../"$file".s.err > ../"$file".s.log || echo "  Error ." ; # One can never be too sure , although adding the -e option might be too extreme a surety .
+				make PREFIX="$BUILDPREFIX" DESTDIR=/ "${PATHDECLSL[@]}" 2> ../../"$file".m.err > ../../"$file".m.log && make install PREFIX="$BUILDPREFIX" DESTDIR=/ "${PATHDECLSL[@]}" 2> ../"$file".s.err > ../"$file".s.log || echo "  Error ." ; # One can never be too sure , although adding the -e option might be too extreme a surety .
 				cd ../.. ;
 			)
 		fi ;
@@ -173,7 +173,7 @@ do
 			echo "  Make ."
 			(
 				cd "$file" ;
-				make PREFIX="$BUILDPREFIX" "${SPECPATHDECLSL[@]}" 2> ../"$file".m.err > ../"$file".m.log && make install PREFIX="$BUILDPREFIX" "${SPECPATHDECLSL[@]}" 2> ../"$file".s.err > ../"$file".s.log || echo "  Error ." ; # One can never be too sure , although adding the -e option might be too extreme a surety .
+				make PREFIX="$BUILDPREFIX" "${SPECPATHDECLSL[@]}" DESTDIR=/ 2> ../"$file".m.err > ../"$file".m.log && make install PREFIX="$BUILDPREFIX" DESTDIR=/ "${SPECPATHDECLSL[@]}" 2> ../"$file".s.err > ../"$file".s.log || echo "  Error ." ; # One can never be too sure , although adding the -e option might be too extreme a surety .
 				cd .. ;
 			)
 		elif [ -e "$file"/unix/Makefile ] ;
@@ -181,7 +181,7 @@ do
 			echo "  Make ."
 			(
 				cd "$file"/unix ;
-				make PREFIX="$BUILDPREFIX" 2> ../../"$file".m.err > ../../"$file".m.log && make install PREFIX="$BUILDPREFIX" "${SPECPATHDECLSL[@]}" 2> ../"$file".s.err > ../"$file".s.log || echo "  Error ." ; # One can never be too sure , although adding the -e option might be too extreme a surety .
+				make PREFIX="$BUILDPREFIX" DESTDIR=/ 2> ../../"$file".m.err > ../../"$file".m.log && make install PREFIX="$BUILDPREFIX" DESTDIR=/ "${SPECPATHDECLSL[@]}" 2> ../"$file".s.err > ../"$file".s.log || echo "  Error ." ; # One can never be too sure , although adding the -e option might be too extreme a surety .
 				cd ../.. ;
 			)
 		elif [ -e "$file"/Rakefile ] ;
@@ -189,7 +189,7 @@ do
 			echo "  Rake ."
 			(
 				cd "$file" ;
-				rake PREFIX="$BUILDPREFIX" "${SPECPATHDECLSL[@]}" 2> ../"$file".m.err > ../"$file".m.log && rake install PREFIX="$BUILDPREFIX" "${SPECPATHDECLSL[@]}" 2> ../"$file".s.err > ../"$file".s.log || echo "  Error ." ;
+				rake PREFIX="$BUILDPREFIX" DESTDIR=/ "${SPECPATHDECLSL[@]}" 2> ../"$file".m.err > ../"$file".m.log && rake install PREFIX="$BUILDPREFIX" DESTDIR=/ "${SPECPATHDECLSL[@]}" 2> ../"$file".s.err > ../"$file".s.log || echo "  Error ." ;
 				cd .. ;
 			)
 		fi ;
@@ -267,7 +267,7 @@ do
 			echo "  Make ."
 			(
 				cd "$file" ;
-				make PREFIX="$BUILDPREFIX" CC="$BUILDPREFIX"/bin/gcc CXX="$BUILDPREFIX"/bin/g++  "${SPECPATHDECLSL[@]}" 2> ../"$file".m.err > ../"$file".m.log && make install PREFIX="$BUILDPREFIX" "${SPECPATHDECLSL[@]}" 2> ../"$file".s.err > ../"$file".s.log || echo "  Error ." ; # One can never be too sure , although adding the -e option might be too extreme a surety .
+				make PREFIX="$BUILDPREFIX" DESTDIR=/ CC="$BUILDPREFIX"/bin/gcc CXX="$BUILDPREFIX"/bin/g++  "${SPECPATHDECLSL[@]}" 2> ../"$file".m.err > ../"$file".m.log && make install PREFIX="$BUILDPREFIX" DESTDIR=/ "${SPECPATHDECLSL[@]}" 2> ../"$file".s.err > ../"$file".s.log || echo "  Error ." ; # One can never be too sure , although adding the -e option might be too extreme a surety .
 				cd .. ;
 			)
 		elif [ -e "$file"/unix/Makefile ] ;
@@ -275,7 +275,7 @@ do
 			echo "  Make ."
 			(
 				cd "$file"/unix ;
-				make PREFIX="$BUILDPREFIX" CC="$BUILDPREFIX"/bin/gcc CXX="$BUILDPREFIX"/bin/g++ "${SPECPATHDECLSL[@]}" 2> ../../"$file".m.err > ../../"$file".m.log && make install PREFIX="$BUILDPREFIX" "${SPECPATHDECLSL[@]}" 2> ../"$file".s.err > ../"$file".s.log || echo "  Error ." ; # One can never be too sure , although adding the -e option might be too extreme a surety .
+				make PREFIX="$BUILDPREFIX" DESTDIR=/ CC="$BUILDPREFIX"/bin/gcc CXX="$BUILDPREFIX"/bin/g++ "${SPECPATHDECLSL[@]}" 2> ../../"$file".m.err > ../../"$file".m.log && make install PREFIX="$BUILDPREFIX" DESTDIR=/ "${SPECPATHDECLSL[@]}" 2> ../"$file".s.err > ../"$file".s.log || echo "  Error ." ; # One can never be too sure , although adding the -e option might be too extreme a surety .
 				cd ../.. ;
 			)
 		elif [ -e "$file"/Rakefile ] ;
@@ -283,7 +283,7 @@ do
 			echo "  Rake ."
 			(
 				cd "$file" ;
-				rake PREFIX="$BUILDPREFIX" "${SPECPATHDECLSL[@]}" 2> ../"$file".m.err > ../"$file".m.log && rake install PREFIX="$BUILDPREFIX" "${SPECPATHDECLSL[@]}" 2> ../"$file".s.err > ../"$file".s.log || echo "  Error ." ;
+				rake PREFIX="$BUILDPREFIX" DESTDIR=/ "${SPECPATHDECLSL[@]}" 2> ../"$file".m.err > ../"$file".m.log && rake install PREFIX="$BUILDPREFIX" DESTDIR=/ "${SPECPATHDECLSL[@]}" 2> ../"$file".s.err > ../"$file".s.log || echo "  Error ." ;
 				cd .. ;
 			)
 		fi ;
@@ -297,7 +297,7 @@ do
 	echo "$file" ;
 	(
 		cd "$file" ;
-		export PREFIX="$BUILDPREFIX" ; export LD_LIBRARY_PATH="$BUILDPREFIX"/lib ; export LIBRARY_PATH="$BUILDPREFIX"/lib ; export C_INCLUDE_PATH="$BUILDPREFIX"/include ; export CPLUS_INCLUDE_PATH="$BUILDPREFIX"/include ; export PATH="$PATH":"$BUILDPREFIX"/bin ; ./bootstrap.sh --with-libraries=all --with-python=../build/bin/python --prefix=../build && ./b2 --build-dir=../build ;
+		export PREFIX="$BUILDPREFIX" ; export DESTDIR=/ ; export LD_LIBRARY_PATH="$BUILDPREFIX"/lib ; export LIBRARY_PATH="$BUILDPREFIX"/lib ; export C_INCLUDE_PATH="$BUILDPREFIX"/include ; export CPLUS_INCLUDE_PATH="$BUILDPREFIX"/include ; export PATH="$PATH":"$BUILDPREFIX"/bin ; ./bootstrap.sh --with-libraries=all --with-python=../build/bin/python --prefix=../build && ./b2 --build-dir=../build ;
 		cd .. ;
 	) 2> "$file".b.err > "$file".b.log
 	
@@ -372,7 +372,7 @@ do
 			echo "  Make ."
 			(
 				cd "$file" ;
-				make PREFIX="$BUILDPREFIX" CC="$BUILDPREFIX"/bin/gcc CXX="$BUILDPREFIX"/bin/g++  "${SPECPATHDECLSL[@]}" 2> ../"$file".m.err > ../"$file".m.log && make install PREFIX="$BUILDPREFIX" "${SPECPATHDECLSL[@]}" 2> ../"$file".s.err > ../"$file".s.log || echo "  Error ." ; # One can never be too sure , although adding the -e option might be too extreme a surety .
+				make PREFIX="$BUILDPREFIX" DESTDIR=/ CC="$BUILDPREFIX"/bin/gcc CXX="$BUILDPREFIX"/bin/g++  "${SPECPATHDECLSL[@]}" 2> ../"$file".m.err > ../"$file".m.log && make install PREFIX="$BUILDPREFIX" DESTDIR=/ "${SPECPATHDECLSL[@]}" 2> ../"$file".s.err > ../"$file".s.log || echo "  Error ." ; # One can never be too sure , although adding the -e option might be too extreme a surety .
 				cd .. ;
 			)
 		elif [ -e "$file"/unix/Makefile ] ;
@@ -380,7 +380,7 @@ do
 			echo "  Make ."
 			(
 				cd "$file"/unix ;
-				make PREFIX="$BUILDPREFIX" CC="$BUILDPREFIX"/bin/gcc CXX="$BUILDPREFIX"/bin/g++ "${SPECPATHDECLSL[@]}" 2> ../../"$file".m.err > ../../"$file".m.log && make install PREFIX="$BUILDPREFIX" "${SPECPATHDECLSL[@]}" 2> ../"$file".s.err > ../"$file".s.log || echo "  Error ." ; # One can never be too sure , although adding the -e option might be too extreme a surety .
+				make PREFIX="$BUILDPREFIX" DESTDIR=/ CC="$BUILDPREFIX"/bin/gcc CXX="$BUILDPREFIX"/bin/g++ "${SPECPATHDECLSL[@]}" 2> ../../"$file".m.err > ../../"$file".m.log && make install PREFIX="$BUILDPREFIX" DESTDIR=/ "${SPECPATHDECLSL[@]}" 2> ../"$file".s.err > ../"$file".s.log || echo "  Error ." ; # One can never be too sure , although adding the -e option might be too extreme a surety .
 				cd ../.. ;
 			)
 		elif [ -e "$file"/Rakefile ] ;
@@ -388,7 +388,7 @@ do
 			echo "  Rake ."
 			(
 				cd "$file" ;
-				rake PREFIX="$BUILDPREFIX" "${SPECPATHDECLSL[@]}" 2> ../"$file".m.err > ../"$file".m.log && rake install PREFIX="$BUILDPREFIX" "${SPECPATHDECLSL[@]}" 2> ../"$file".s.err > ../"$file".s.log || echo "  Error ." ;
+				rake PREFIX="$BUILDPREFIX" DESTDIR=/ "${SPECPATHDECLSL[@]}" 2> ../"$file".m.err > ../"$file".m.log && rake install PREFIX="$BUILDPREFIX" DESTDIR=/ "${SPECPATHDECLSL[@]}" 2> ../"$file".s.err > ../"$file".s.log || echo "  Error ." ;
 				cd .. ;
 			)
 		fi ;
