@@ -1456,7 +1456,7 @@ endif
 
 $(NODE_DIR): $(NODE_SRC_DIR)
 	$(QUIET) if [ ! -e $(SUPPORT_DIR)/build ] ; then mkdir -p $(SUPPORT_DIR)/build ; fi ;
-	$(QUIET) cd ../support && rm -rf build/v8 && cp -pRP src/node build/ ;
+	$(QUIET) cd ../support && rm -rf build/node && cp -pRP src/node build/ ;
 
 $(TC_NODE_INT_EXE) $(TC_NPM_INT_EXE): $(NODE_DIR)
 # NOTE: MAKEFLAGS pass through to chained makes, so it is necessary to over-ride those flags that one wishes not to pass through. Scrubbing all flags and environment variables is not a solution since we want to pass through things like LD_LIBRARY_PATH and PATH and such.
