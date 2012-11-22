@@ -1456,7 +1456,7 @@ endif
 
 $(NODE_DIR): $(NODE_SRC_DIR)
 	$(QUIET) if [ ! -e $(SUPPORT_DIR)/build ] ; then mkdir -p $(SUPPORT_DIR)/build ; fi ;
-	$(QUIET) cd ../support && cp -pRP src/node build/ ;
+	$(QUIET) cd ../support && rm -rf build/v8 && cp -pRP src/node build/ ;
 
 $(TC_NODE_INT_EXE) $(TC_NPM_INT_EXE): $(NODE_DIR)
 # NOTE: MAKEFLAGS pass through to chained makes, so it is necessary to over-ride those flags that one wishes not to pass through. Scrubbing all flags and environment variables is not a solution since we want to pass through things like LD_LIBRARY_PATH and PATH and such.
@@ -1473,7 +1473,7 @@ endif
 
 $(PROTOC_DIR): $(PROTOC_SRC_DIR)
 	$(QUIET) if [ ! -e $(SUPPORT_DIR)/build ] ; then mkdir -p $(SUPPORT_DIR)/build ; fi ;
-	$(QUIET) cd ../support && cp -pRP src/protobuf build/ ;
+	$(QUIET) cd ../support && rm -rf build/protobuf && cp -pRP src/protobuf build/ ;
 
 $(TC_PROTOC_INT_EXE): $(PROTOC_DIR)
 # NOTE: MAKEFLAGS pass through to chained makes, so it is necessary to over-ride those flags that one wishes not to pass through. Scrubbing all flags and environment variables is not a solution since we want to pass through things like LD_LIBRARY_PATH and PATH and such.
@@ -1483,7 +1483,7 @@ $(GPERFTOOLS_SRC_DIR):
 	$(QUIET) if [ ! -e $(SUPPORT_DIR)/src ] ; then mkdir -p $(SUPPORT_DIR)/src ; fi ;
 ifeq ($(FETCH_INTERNAL_TOOLS),1)
 	@echo "    WGET GPERFTOOLS"
-	$(QUIET) cd ../support/src && wget http://gperftools.googlecode.com/files/gperftools-2.0.tar.gz && tar -xzf gperftools-2.0.tar.gz && rm -rf gperftools ; mv gperftools-2.0 gperftools && rm gperftools-2.0.tar.gz ;
+	$(QUIET) cd ../support/src && wget http://gperftools.googlecode.com/files/gperftools-2.0.tar.gz && tar -xzf gperftools-2.0.tar.gz && rm -rf gperftools && mv gperftools-2.0 gperftools && rm gperftools-2.0.tar.gz ;
 else
 	@ if [ ! -e $(GPERFTOOLS_SRC_DIR) ] ; then echo "    ERROR: Internal gperftools is necessary but not not present, and FETCH_INTERNAL_TOOLS != 1." ; false ; fi ;
 endif
@@ -1496,7 +1496,7 @@ $(LIBUNWIND_SRC_DIR):
 	$(QUIET) if [ ! -e $(SUPPORT_DIR)/src ] ; then mkdir -p $(SUPPORT_DIR)/src ; fi ;
 ifeq ($(FETCH_INTERNAL_TOOLS),1)
 	@echo "    WGET LIBUNWIND"
-	$(QUIET) cd ../support/src && wget http://download.savannah.gnu.org/releases/libunwind/libunwind-1.1.tar.gz && tar -xzf libunwind-1.1.tar.gz && rm -rf libunwind ; mv libunwind-1.1 libunwind && rm libunwind-1.1.tar.gz ;
+	$(QUIET) cd ../support/src && wget http://download.savannah.gnu.org/releases/libunwind/libunwind-1.1.tar.gz && tar -xzf libunwind-1.1.tar.gz && rm -rf libunwind && mv libunwind-1.1 libunwind && rm libunwind-1.1.tar.gz ;
 else
 	@ if [ ! -e $(LIBUNWIND_SRC_DIR) ] ; then echo "    ERROR: Internal libunwind is necessary but not not present, and FETCH_INTERNAL_TOOLS != 1." ; false ; fi ;
 endif
