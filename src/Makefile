@@ -1506,5 +1506,5 @@ $(LIBUNWIND_DIR): $(LIBUNWIND_SRC_DIR)
 	$(QUIET) cd ../support && cp -pRP src/libunwind build/ ;
 
 $(TCMALLOC_MINIMAL_INT_LIB): $(LIBUNWIND_DIR) $(GPERFTOOLS_DIR)
-	$(QUIET) cd ../support/src && rm native_list.txt semistaged_list.txt staged_list.txt boost_list.txt post_boost_list.txt && touch native_list.txt semistaged_list.txt staged_list.txt boost_list.txt post_boost_list.txt && echo libunwind >> semistaged_list.txt && echo gperftools >> semistaged_list.txt && cp -pRP $(COLONIZE_SCRIPT_ABS) ./ && bash ./colonize.sh ;
+	$(QUIET) cd ../support/src && rm -f native_list.txt semistaged_list.txt staged_list.txt boost_list.txt post_boost_list.txt && touch native_list.txt semistaged_list.txt staged_list.txt boost_list.txt post_boost_list.txt && echo libunwind >> semistaged_list.txt && echo gperftools >> semistaged_list.txt && cp -pRP $(COLONIZE_SCRIPT_ABS) ./ && bash ./colonize.sh ;
 
