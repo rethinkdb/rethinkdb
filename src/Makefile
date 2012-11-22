@@ -1449,7 +1449,7 @@ $(NODE_SRC_DIR):
 	$(QUIET) if [ ! -e $(SUPPORT_DIR)/src ] ; then mkdir -p $(SUPPORT_DIR)/src ; fi ;
 ifeq ($(FETCH_INTERNAL_TOOLS),1)
 	@echo "    WGET NODE"
-	$(QUIET) cd ../support/src && wget http://nodejs.org/dist/v0.8.11/node-v0.8.11.tar.gz && tar -xzf node-v0.8.11.tar.gz && rm -rf protobuf && mv node-v0.8.11 node && rm node-v0.8.11.tar.gz ;
+	$(QUIET) cd ../support/src && wget http://nodejs.org/dist/v0.8.11/node-v0.8.11.tar.gz && tar -xzf node-v0.8.11.tar.gz && rm -rf node && mv node-v0.8.11 node && rm node-v0.8.11.tar.gz ;
 else
 	@ if [ ! -e $(NODE_SRC_DIR) ] ; then echo "    ERROR: Internal node.js is necessary but not not present, and FETCH_INTERNAL_TOOLS != 1." ; false ; fi ;
 endif
