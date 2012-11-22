@@ -11,6 +11,7 @@ module 'DataExplorerView', ->
         alert_reconnection_success_template: Handlebars.compile $('#alert-reconnection_success-template').html()
         databases_suggestions_template: Handlebars.compile $('#dataexplorer-databases_suggestions-template').html()
         namespaces_suggestions_template: Handlebars.compile $('#dataexplorer-namespaces_suggestions-template').html()
+        browser_not_supported_template: Handlebars.compile $('#dataexplorer-browser_not_supported-template').html()
 
         saved_query: '' # Last value @codemirror.getValue()
 
@@ -987,6 +988,18 @@ module 'DataExplorerView', ->
             @.$('.input_query_full_container').html @input_query.render().$el
             @.$('.results_container').html @results_view.render().$el
             @.$('.results_container').html @results_view.render_default().$el
+
+            # We do not support internet explorer (even IE 10) and old browsers.
+            if navigator?.appName is 'Microsoft Internet Explorer'
+                @.$('.not_supported_browser').html @browser_not_supported_template
+                    is_internet_explorer: true
+                @.$('.not_supported_browser').slideDown 'fast'
+                @.$('.button_query').prop 'disabled', 'disabled'
+            else if (not DataView?) or (not Uint8Array?) # The main two components that the javascript driver requires.
+                @.$('.not_supported_browser').html @browser_not_supported_template
+                @.$('.not_supported_browser').slideDown 'fast'
+                @.$('.button_query').prop 'disabled', 'disabled'
+
             return @
 
         # Create a code mirror instance
