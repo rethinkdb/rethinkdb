@@ -122,10 +122,10 @@ DEB_PACKAGE_DIR:=$(PACKAGES_DIR)/deb
 
 
 ifeq ($(COMPILER),CLANG)
-CXX:=clang
+RT_CXX:=clang
 else
 ifeq ($(COMPILER),INTEL)
-CXX:=icc
+RT_CXX:=icc
 endif
 endif
 
@@ -137,36 +137,36 @@ CPATHDS:=
 STATICFORCE?=0
 
 ifeq ($(COMPILER),CLANG)
-LDFLAGS:=-Wl,--no-as-needed 
+RT_LDFLAGS:=-Wl,--no-as-needed 
 ifeq ($(STATICFORCE),1)
-LDFLAGS+= -static
+RT_LDFLAGS+= -static
 STATIC_LIBGCC=1
 endif
-LDFLAGS+=$(LDPATHDS) -pthread -lrt -lstdc++ -lm
+RT_LDFLAGS+=$(LDPATHDS) -pthread -lrt -lstdc++ -lm
 ifeq ($(STATICFORCE),1)
-LDFLAGS+= -Wl,-Bdynamic
+RT_LDFLAGS+= -Wl,-Bdynamic
 endif
 else
 ifeq ($(COMPILER),INTEL)
-LDFLAGS:= -B/opt/intel/bin 
+RT_LDFLAGS:= -B/opt/intel/bin 
 ifeq ($(STATICFORCE),1)
-LDFLAGS+= -static
+RT_LDFLAGS+= -static
 STATIC_LIBGCC=1
 endif
-LDFLAGS+=$(LDPATHDS) -pthread -lrt -lstdc++
+RT_LDFLAGS+=$(LDPATHDS) -pthread -lrt -lstdc++
 ifeq ($(STATICFORCE),1)
-LDFLAGS+= -Wl,-Bdynamic
+RT_LDFLAGS+= -Wl,-Bdynamic
 endif
 else
 # GCC
-LDFLAGS:=-Wl,--no-as-needed 
+RT_LDFLAGS:=-Wl,--no-as-needed 
 ifeq ($(STATICFORCE),1)
-LDFLAGS+= -static
+RT_LDFLAGS+= -static
 STATIC_LIBGCC=1
 endif
-LDFLAGS+=$(LDPATHDS) -pthread -lrt
+RT_LDFLAGS+=$(LDPATHDS) -pthread -lrt
 ifeq ($(STATICFORCE),1)
-LDFLAGS+= -Wl,-Bdynamic
+RT_LDFLAGS+= -Wl,-Bdynamic
 endif
 endif
 endif
@@ -190,7 +190,7 @@ OBJ_SUPPS:=
 
 ifneq ($(V8_CHAIN),0)
 ifeq ($(V8_CHAIN),2)
-LDFLAGS+= -L $(V8_DIR)
+RT_LDFLAGS+= -L $(V8_DIR)
 endif
 CXXPATHDS+= -isystem $(V8_DIR)/include
 CPATHDS+= -isystem $(V8_DIR)/include
@@ -200,10 +200,10 @@ endif
 endif
 
 ifeq ($(STATIC_V8),0)
-LDFLAGS+=-lv8
+RT_LDFLAGS+=-lv8
 else
 ifeq ($(STATIC_V8),1)
-LDFLAGS+=-static -lv8 -dynamic
+RT_LDFLAGS+=-static -lv8 -dynamic
 endif
 endif
 
@@ -252,7 +252,7 @@ TC_PROTOC_RUN:=env LD_LIBRARY_PATH=$(TC_PROTOC_INT_LIB_DIR):$(LD_LIBRARY_PATH) P
 TC_PROTOC_CFLAGS:= -isystem $(TC_PROTOC_INT_INC_DIR)
 CXXPATHDS+=$(TC_PROTOC_CFLAGS)
 CPATHDS+=$(TC_PROTOC_CFLAGS)
-# LDFLAGS+= -L $(TC_PROTOC_INT_LIB_DIR)
+# RT_LDFLAGS+= -L $(TC_PROTOC_INT_LIB_DIR)
 # We do static linking explicitly now since things get messy otherwise.
 INT_CHAIN_PROTOC:=1
 INT_CHAIN_NODE:=1
@@ -269,7 +269,7 @@ TC_PROTOC_RUN:=env LD_LIBRARY_PATH=$(TC_PROTOC_INT_LIB_DIR):$(LD_LIBRARY_PATH) P
 TC_PROTOC_CFLAGS:= -isystem $(TC_PROTOC_INT_INC_DIR)
 CXXPATHDS+=$(TC_PROTOC_CFLAGS)
 CPATHDS+=$(TC_PROTOC_CFLAGS)
-# LDFLAGS+= -L $(TC_PROTOC_INT_LIB_DIR)
+# RT_LDFLAGS+= -L $(TC_PROTOC_INT_LIB_DIR)
 # We do static linking explicitly now since things get messy otherwise.
 INT_CHAIN_PROTOC:=1
 else
@@ -322,13 +322,13 @@ V8_DEP:=
 endif
 
 ifeq ($(LIBCRYPTO),1)
-LDFLAGS+=-lcrypto 
+RT_LDFLAGS+=-lcrypto 
 endif
 
 PROTOC_BASE:=$(shell dirname $(TC_PROTOC_EXE))/..
 
 LIB_SEARCH_PATHS?=
-LDFLAGS+=$(foreach TLIB, $(LIB_SEARCH_PATHS), -L $(TLIB))
+RT_LDFLAGS+=$(foreach TLIB, $(LIB_SEARCH_PATHS), -L $(TLIB))
 
 STATIC_LIBRARY_PATHS:=
 
@@ -360,13 +360,13 @@ HIGHLY_RECOMMENDED_STATIC?=1
 ifeq ($(RECOMMENDED_STATIC),1)
 STATIC_LIBRARIES+=$(STATIC_RECOMMENDS_INDIFFERENT)
 else
-LDFLAGS+=$(foreach TLIB, $(STATIC_RECOMMENDS_INDIFFERENT), -l$(TLIB))
+RT_LDFLAGS+=$(foreach TLIB, $(STATIC_RECOMMENDS_INDIFFERENT), -l$(TLIB))
 endif
 
 ifeq ($(HIGHLY_RECOMMENDED_STATIC),1)
 STATIC_LIBRARIES+=$(STATIC_RECOMMENDS_IMPORTANT)
 else
-LDFLAGS+=$(foreach TLIB, $(STATIC_RECOMMENDS_IMPORTANT), -l$(TLIB))
+RT_LDFLAGS+=$(foreach TLIB, $(STATIC_RECOMMENDS_IMPORTANT), -l$(TLIB))
 endif
 
 ifeq ($(STATIC_V8),2)
@@ -385,46 +385,46 @@ ifeq ($(GPERF),1)
 STATIC_LIBRARY_PATHS+= # path to patched libtcmalloc_and_profiler.a
 endif
 
-CXXFLAGS?=
+RT_CXXFLAGS?=
 
-CXXFLAGS+=-I$(SOURCE_DIR) -pthread
-CXXFLAGS+="-DPRODUCT_NAME=\"$(PRODUCT_NAME)\""
+RT_CXXFLAGS+=-I$(SOURCE_DIR) -pthread
+RT_CXXFLAGS+="-DPRODUCT_NAME=\"$(PRODUCT_NAME)\""
 
-CXXFLAGS+=$(CXXPATHDS)
-CFLAGS+=$(CPATHDS)
+RT_CXXFLAGS+=$(CXXPATHDS)
+RT_CFLAGS+=$(CPATHDS)
 
 ifeq ($(SOLO),1)
-CXXFLAGS+=-DRETHINKDB_SOLO_PRODUCT
+RT_CXXFLAGS+=-DRETHINKDB_SOLO_PRODUCT
 else
-CXXFLAGS+=-DRETHINKDB_CACHE_PRODUCT
+RT_CXXFLAGS+=-DRETHINKDB_CACHE_PRODUCT
 endif
 
-CXXFLAGS+=-Wall -Wextra -Werror -Wnon-virtual-dtor
+RT_CXXFLAGS+=-Wall -Wextra -Werror -Wnon-virtual-dtor
 
 ifeq ($(COMPILER), INTEL)
-CXXFLAGS+=-std=gnu++98 -w1 -ftls-model=local-dynamic
+RT_CXXFLAGS+=-std=gnu++98 -w1 -ftls-model=local-dynamic
 else
 ifeq ($(COMPILER), CLANG)
-CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default -Wno-unneeded-internal-declaration -Wused-but-marked-unused -Wunused-macros -Wundef -Wvla -Wshadow -Wconditional-uninitialized -Wmissing-noreturn
+RT_CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default -Wno-unneeded-internal-declaration -Wused-but-marked-unused -Wunused-macros -Wundef -Wvla -Wshadow -Wconditional-uninitialized -Wmissing-noreturn
 else
 ifeq ($(LEGACY_GCC), 1)
-CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default
+RT_CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default
 else
-CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default -Wno-array-bounds
+RT_CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default -Wno-array-bounds
 endif
 endif
 endif
 
 ifeq ($(AGRESSIVE_BUF_UNLOADING),1)
-CXXFLAGS+=-DAGRESSIVE_BUF_UNLOADING=1
+RT_CXXFLAGS+=-DAGRESSIVE_BUF_UNLOADING=1
 endif
 
 ifneq ($(PREFIX),)
-CXXFLAGS+=-DCPREFIX='"$(PREFIX)"'
+RT_CXXFLAGS+=-DCPREFIX='"$(PREFIX)"'
 endif
 
 ifneq ($(WEBRESDIR),)
-CXXFLAGS+=-DWEBRESDIR='"$(WEBRESDIR)"'
+RT_CXXFLAGS+=-DWEBRESDIR='"$(WEBRESDIR)"'
 endif
 
 ifeq ($(COMPILER),INTEL)
@@ -440,27 +440,27 @@ NO_OMIT_FRAME_POINTER?=0
 # Configure debug vs. release
 ifeq ($(DEBUG),1)
 SYMBOLS:=1
-CXXFLAGS+=-O0
+RT_CXXFLAGS+=-O0
 
 ifeq ($(KEEP_INLINE),1)
-CXXFLAGS+=-fkeep-inline-functions
+RT_CXXFLAGS+=-fkeep-inline-functions
 endif
 
 else
 # use -fno-strict-aliasing to not break things
 # march=native used to break the serializer
-CXXFLAGS+=-O3 -DNDEBUG -fno-strict-aliasing # -match=native
+RT_CXXFLAGS+=-O3 -DNDEBUG -fno-strict-aliasing # -match=native
 # TODO: remove this once memcached is added back in the release (disables memcached from showing up in the admin CLI help or tab-completion)
-CXXFLAGS+=-DNO_MEMCACHE
+RT_CXXFLAGS+=-DNO_MEMCACHE
 ifeq ($(NO_OMIT_FRAME_POINTER),1)
-CXXFLAGS+=-fno-omit-frame-pointer
+RT_CXXFLAGS+=-fno-omit-frame-pointer
 else
-CXXFLAGS+=-fomit-frame-pointer
+RT_CXXFLAGS+=-fomit-frame-pointer
 endif
 endif
 
 ifeq ($(DISABLE_BREAKPOINTS),1)
-CXXFLAGS+=-DDISABLE_BREAKPOINTS
+RT_CXXFLAGS+=-DDISABLE_BREAKPOINTS
 endif
 
 ifneq ($(TRIAL),0)
@@ -471,7 +471,7 @@ endif
 
 ifneq ($(TIMEBOMB),0)
 TRIAL:=1
-CXXFLAGS+=-DTIMEBOMB_DAYS=$(TIMEBOMB)
+RT_CXXFLAGS+=-DTIMEBOMB_DAYS=$(TIMEBOMB)
 endif
 
 ifneq ($(TRIAL),0)
@@ -481,7 +481,7 @@ SERVER_EXEC_NAME:=$(SERVER_EXEC_NAME)-trial
 endif
 
 ifeq (${STATIC_LIBGCC},1)
-LDFLAGS+=-static-libgcc -static-libstdc++
+RT_LDFLAGS+=-static-libgcc -static-libstdc++
 endif
 
 ifeq ($(OPROFILE),1)
@@ -494,91 +494,91 @@ endif
 
 ifeq ($(SYMBOLS),1)
 # -rdynamic is necessary so that backtrace_symbols() works properly
-LDFLAGS+=-rdynamic
-CXXFLAGS+=-g
+RT_LDFLAGS+=-rdynamic
+RT_CXXFLAGS+=-g
 endif
 
 ifeq ($(SEMANTIC_SERIALIZER_CHECK),1)
-CXXFLAGS+=-DSEMANTIC_SERIALIZER_CHECK
+RT_CXXFLAGS+=-DSEMANTIC_SERIALIZER_CHECK
 BUILD_DIR:=$(BUILD_DIR)-scs
 endif
 
 ifeq ($(MOCK_CACHE_CHECK),1)
-CXXFLAGS+=-DMOCK_CACHE_CHECK
+RT_CXXFLAGS+=-DMOCK_CACHE_CHECK
 BUILD_DIR:=$(BUILD_DIR)-mockcache
 endif
 
 ifeq ($(BTREE_DEBUG),1)
-CXXFLAGS+=-DBTREE_DEBUG
+RT_CXXFLAGS+=-DBTREE_DEBUG
 endif
 
 ifeq ($(JSON_SHORTCUTS),1)
-CXXFLAGS+=-DJSON_SHORTCUTS
+RT_CXXFLAGS+=-DJSON_SHORTCUTS
 endif
 
 ifeq ($(MALLOC_PROF),1)
-CXXFLAGS+=-DMALLOC_PROF
+RT_CXXFLAGS+=-DMALLOC_PROF
 endif
 
 ifeq ($(SERIALIZER_DEBUG),1)
-CXXFLAGS:=$(CXXFLAGS) -DSERIALIZER_MARKERS
+RT_CXXFLAGS:=$(RT_CXXFLAGS) -DSERIALIZER_MARKERS
 endif
 
 ifneq ($(MEMCACHED_STRICT), 0)
-CXXFLAGS+=-DMEMCACHED_STRICT
+RT_CXXFLAGS+=-DMEMCACHED_STRICT
 endif
 
 ifeq ($(LEGACY_LINUX),1)
 #CXX=g++44
-CXXFLAGS+=-DLEGACY_LINUX -DNO_EPOLL -Wno-format
+RT_CXXFLAGS+=-DLEGACY_LINUX -DNO_EPOLL -Wno-format
 BUILD_DIR:=$(BUILD_DIR)-legacy
 endif
 
 ifeq ($(LEGACY_GCC),1)
-CXXFLAGS+=-Wno-switch-default -Wno-switch-enum
+RT_CXXFLAGS+=-Wno-switch-default -Wno-switch-enum
 BUILD_DIR:=$(BUILD_DIR)-legacy-gcc
 endif
 
 ifeq ($(NO_EVENTFD),1)
-CXXFLAGS+=-DNO_EVENTFD
+RT_CXXFLAGS+=-DNO_EVENTFD
 BUILD_DIR:=$(BUILD_DIR)-no_eventfd
 endif
 
 ifeq ($(NO_EPOLL),1)
-CXXFLAGS+=-DNO_EPOLL
+RT_CXXFLAGS+=-DNO_EPOLL
 BUILD_DIR:=$(BUILD_DIR)-noepoll
 endif
 
 ifeq ($(MCHECK_PEDANTIC),1)
-CXXFLAGS+=-DMCHECK_PEDANTIC
+RT_CXXFLAGS+=-DMCHECK_PEDANTIC
 MCHECK:=1
 endif
 
 ifeq ($(MCHECK),1)
 NO_TCMALLOC:=1
-CXXFLAGS+=-DMCHECK
-LDFLAGS+=-lmcheck
+RT_CXXFLAGS+=-DMCHECK
+RT_LDFLAGS+=-lmcheck
 endif
 
 ifeq ($(VALGRIND),1)
-CXXFLAGS+=-DVALGRIND
+RT_CXXFLAGS+=-DVALGRIND
 BUILD_DIR:=$(BUILD_DIR)-valgrind
 NO_TCMALLOC:=1
 endif
 
 ifeq ($(AIOSUPPORT),1)
 BUILD_DIR:=$(BUILD_DIR)-aiosupport
-CXXFLAGS+=-DAIOSUPPORT
-LDFLAGS+=-laio
+RT_CXXFLAGS+=-DAIOSUPPORT
+RT_LDFLAGS+=-laio
 endif
 
 ifeq ($(LEGACY_PROC_STAT),1)
-CXXFLAGS+=-DLEGACY_PROC_STAT
+RT_CXXFLAGS+=-DLEGACY_PROC_STAT
 BUILD_DIR:=$(BUILD_DIR)-legacy-proc-stat
 endif
 
 PROTO_DIR:=$(BUILD_DIR)/proto
-CXXFLAGS += -I$(PROTO_DIR)
+RT_CXXFLAGS += -I$(PROTO_DIR)
 
 # This was the former home of the STATIC_LIBRARY_PATHS stuff.
 
@@ -596,8 +596,8 @@ endif
 endif
 
 ifeq ($(UNIT_TESTS),1)
-LDFLAGS+=-L/usr/local/lib -lgtest
-CXXFLAGS+=-DUNIT_TESTS
+RT_LDFLAGS+=-L/usr/local/lib -lgtest
+RT_CXXFLAGS+=-DUNIT_TESTS
 endif
 
 UNIT_TEST_FILTER?=*
@@ -685,7 +685,7 @@ endif
 # RETHINKDB_SHORT_VERSION:=$(RETHINKDB_SHORT_VERSION)-trial
 # endif
 RETHINKDB_PACKAGING_VERSION?=$(RETHINKDB_VERSION)
-CXXFLAGS+=-DRETHINKDB_VERSION=\"$(RETHINKDB_VERSION)\"
+RT_CXXFLAGS+=-DRETHINKDB_VERSION=\"$(RETHINKDB_VERSION)\"
 
 NAMEVERSIONED?=0
 ifeq ($(NAMEVERSIONED),1)
@@ -820,7 +820,7 @@ endif
 
 
 
-CXXFLAGS+=-DMIGRATION_SCRIPT_LOCATION=\"$(scripts_dir)/rdb_migrate\"
+RT_CXXFLAGS+=-DMIGRATION_SCRIPT_LOCATION=\"$(scripts_dir)/rdb_migrate\"
 
 FULL_SERVER_EXEC_NAME=$(bin_dir)/$(SERVER_EXEC_NAME)
 FULL_SERVER_EXEC_NAME_VERSIONED=$(bin_dir)/$(SERVER_EXEC_NAME_VERSIONED)
@@ -1230,12 +1230,12 @@ ifeq ($(VERBOSE),0)
 	@echo "    LD $@"
 endif
 ifeq ($(IGNORE_SOME_ICC_LD_WARNINGS),0)
-	$(QUIET) $(CXX) $(LDFLAGS) $(SERVER_EXEC_OBJS) $(STATIC_LIBRARY_PATHS) -o $(BUILD_DIR)/$(SERVER_EXEC_NAME)
+	$(QUIET) $(RT_CXX) $(RT_LDFLAGS) $(SERVER_EXEC_OBJS) $(STATIC_LIBRARY_PATHS) -o $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 else
 # The following line runs CXX in linking mode (supplying only the object files and libraries) and then
 # pass the output through a filter which filters out bogus (?) icc-related problems.
 # FIXME: figure out why we get these problems
-	$(QUIET) ($(CXX) $(LDFLAGS) $(SERVER_EXEC_OBJS) $(STATIC_LIBRARY_PATHS) -o $(BUILD_DIR)/$(SERVER_EXEC_NAME) 2>&1 >&3 | (grep -v "warning: relocation refers to discarded section" || true) >&2) 3>&1
+	$(QUIET) ($(RT_CXX) $(RT_LDFLAGS) $(SERVER_EXEC_OBJS) $(STATIC_LIBRARY_PATHS) -o $(BUILD_DIR)/$(SERVER_EXEC_NAME) 2>&1 >&3 | (grep -v "warning: relocation refers to discarded section" || true) >&2) 3>&1
 endif
 ifeq ($(NO_TCMALLOC),0)
 	@objdump -T $(BUILD_DIR)/$(SERVER_EXEC_NAME) | c++filt | grep -q 'tcmalloc::\|google_malloc' || \
@@ -1247,20 +1247,20 @@ endif
 
 # The unittests use gtest, which uses macros that expand into switch statements which don't contain
 # default cases. So we have to remove the -Wswitch-default argument for them.
-$(OBJ_DIR)/unittest/%.o: CXXFLAGS:=$(filter-out -Wswitch-default,$(CXXFLAGS))
+$(OBJ_DIR)/unittest/%.o: RT_CXXFLAGS:=$(filter-out -Wswitch-default,$(RT_CXXFLAGS))
 
 $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME): $(OBJS) $(BUILD_DIR) $(OBJ_SUPPS)
 ifeq ($(VERBOSE),0)
 	@echo "    LD $@"
 endif
 ifeq ($(IGNORE_SOME_ICC_LD_WARNINGS),0)
-	$(QUIET) $(CXX) $(LDFLAGS) $(SERVER_UNIT_TEST_OBJS) $(STATIC_LIBRARY_PATHS) -o $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME)
+	$(QUIET) $(RT_CXX) $(RT_LDFLAGS) $(SERVER_UNIT_TEST_OBJS) $(STATIC_LIBRARY_PATHS) -o $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME)
 else
 # Note: that is the copy of the problem description that we have above in server linking section.
 # The following line runs CXX in linking mode (supplying only the object files and libraries) and then
 # pass the output through a filter which filters out bogus (?) icc-related problems.
 # FIXME: figure out why we get these problems
-	$(QUIET) ($(CXX) $(LDFLAGS) $(SERVER_UNIT_TEST_OBJS) $(STATIC_LIBRARY_PATHS) -o $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME) 2>&1 >&3 | (grep -v "warning: relocation refers to discarded section" || true) >&2) 3>&1
+	$(QUIET) ($(RT_CXX) $(RT_LDFLAGS) $(SERVER_UNIT_TEST_OBJS) $(STATIC_LIBRARY_PATHS) -o $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME) 2>&1 >&3 | (grep -v "warning: relocation refers to discarded section" || true) >&2) 3>&1
 endif
 
 $(BUILD_DIR)/$(START_DB_NAME):
@@ -1326,7 +1326,7 @@ cscope:
 	$(QUIET) cscope -bR -f $(CSCOPE_XREF)
 
 analyze: $(SOURCES)
-	$(QUIET) clang --analyze $(CXXFLAGS) $(SOURCES)
+	$(QUIET) clang --analyze $(RT_CXXFLAGS) $(SOURCES)
 
 coffeelint:
 	-coffeelint -f ../scripts/coffeelint.json -r ../admin/
@@ -1335,7 +1335,7 @@ style: coffeelint
 	$(QUIET) ../scripts/check_style.sh
 
 showdefines:
-	$(QUIET) $(CXX) $(CXXFLAGS) -m32 -E -dM - < /dev/null
+	$(QUIET) $(RT_CXX) $(RT_CXXFLAGS) -m32 -E -dM - < /dev/null
 
 depclean:
 ifeq ($(VERBOSE),0)
@@ -1367,14 +1367,14 @@ $(OBJ_DIR)/%.pb.o:  $(PROTO_DIR)/%.pb.cc $(MAKEFILE_DEPENDENCY) $(PROTO_HEADERS)
 ifeq ($(VERBOSE),0)
 	@echo "    CC $< -o $@"
 endif
-	$(QUIET) $(CXX) $(CXXFLAGS) -c -o $@ $<
+	$(QUIET) $(RT_CXX) $(RT_CXXFLAGS) -c -o $@ $<
 
 $(OBJ_DIR)/%.o: $(SOURCE_DIR)/%.cc $(MAKEFILE_DEPENDENCY) $(V8_DEP)
 	$(QUIET) mkdir -p $(dir $@)
 ifeq ($(VERBOSE),0)
 	@echo "    CC $< -o $@"
 endif
-	$(QUIET) $(CXX) $(CXXFLAGS) -c -o $@ $<
+	$(QUIET) $(RT_CXX) $(RT_CXXFLAGS) -c -o $@ $<
 
 # Dependencies
 $(DEP_DIR)/%.d: $(SOURCE_DIR)/%.cc $(PROTO_HEADERS)
@@ -1382,7 +1382,7 @@ ifeq ($(VERBOSE),0)
 	@echo "    DEP $@"
 endif
 	$(QUIET) mkdir -p $(dir $@)
-	$(QUIET) $(CXX) $(CXXFLAGS) -M -MQ $(OBJ_DIR)/$*.o -MQ $@ $< > $@ || ( echo "      Build failure." ; rm $@ ; false ; )
+	$(QUIET) $(RT_CXX) $(RT_CXXFLAGS) -M -MQ $(OBJ_DIR)/$*.o -MQ $@ $< > $@ || ( echo "      Build failure." ; rm $@ ; false ; )
 
 # Without this, the proto headers get generated to build the .d files, then are removed as
 # intermediate files; then the .d files are read in, and some depend on the proto headers, so they
@@ -1460,7 +1460,7 @@ $(NODE_DIR): $(NODE_SRC_DIR)
 
 $(TC_NODE_INT_EXE) $(TC_NPM_INT_EXE): $(NODE_DIR)
 # NOTE: MAKEFLAGS pass through to chained makes, so it is necessary to over-ride those flags that one wishes not to pass through. Scrubbing all flags and environment variables is not a solution since we want to pass through things like LD_LIBRARY_PATH and PATH and such.
-	cd $(NODE_DIR) && ./configure --prefix=$(SUPPORT_DIR_ABS)/usr && $(MAKE) prefix=$(SUPPORT_DIR_ABS)/usr DESTDIR=/ && $(MAKE) install prefix=$(SUPPORT_DIR_ABS)/usr DESTDIR=/ ;
+	( unset prefix && unset PREFIX && unset DESTDIR && cd $(NODE_DIR) && ./configure --prefix=$(SUPPORT_DIR_ABS)/usr && $(MAKE) prefix=$(SUPPORT_DIR_ABS)/usr DESTDIR=/ && $(MAKE) install prefix=$(SUPPORT_DIR_ABS)/usr DESTDIR=/ ; )
 
 $(PROTOC_SRC_DIR):
 	$(QUIET) if [ ! -e $(SUPPORT_DIR)/src ] ; then mkdir -p $(SUPPORT_DIR)/src ; fi ;
