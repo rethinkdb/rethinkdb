@@ -1440,7 +1440,7 @@ endif
 
 $(V8_DIR): $(V8_SRC_DIR)
 	$(QUIET) if [ ! -e $(SUPPORT_DIR)/build ] ; then mkdir -p $(SUPPORT_DIR)/build ; fi ;
-	$(QUIET) cd ../support && cp -pRP src/v8 build/ ;
+	$(QUIET) cd ../support && rm -rf build/v8 && cp -pRP src/v8 build/ ;
 
 $(V8_LIB): $(V8_DIR)
 	$(QUIET) cd $(V8_DIR) && make prefix=$(SUPPORT_DIR_ABS)/usr DESTDIR=/ native && find ./ -iname "*.o" | grep -v '\/preparser_lib\/' | xargs ar cqs libv8.a ;
@@ -1490,7 +1490,7 @@ endif
 
 $(GPERFTOOLS_DIR): $(GPERFTOOLS_SRC_DIR)
 	$(QUIET) if [ ! -e $(SUPPORT_DIR)/build ] ; then mkdir -p $(SUPPORT_DIR)/build ; fi ;
-	$(QUIET) cd ../support && cp -pRP src/gperftools build/ ;
+	$(QUIET) cd ../support && rm -rf build/gperftools && cp -pRP src/gperftools build/ ;
 
 $(LIBUNWIND_SRC_DIR):
 	$(QUIET) if [ ! -e $(SUPPORT_DIR)/src ] ; then mkdir -p $(SUPPORT_DIR)/src ; fi ;
@@ -1503,7 +1503,7 @@ endif
 
 $(LIBUNWIND_DIR): $(LIBUNWIND_SRC_DIR)
 	$(QUIET) if [ ! -e $(SUPPORT_DIR)/build ] ; then mkdir -p $(SUPPORT_DIR)/build ; fi ;
-	$(QUIET) cd ../support && cp -pRP src/libunwind build/ ;
+	$(QUIET) cd ../support && rm -rf build/libunwind && cp -pRP src/libunwind build/ ;
 
 $(TCMALLOC_MINIMAL_INT_LIB): $(LIBUNWIND_DIR) $(GPERFTOOLS_DIR)
 	$(QUIET) cd ../support/src && rm -f native_list.txt semistaged_list.txt staged_list.txt boost_list.txt post_boost_list.txt && touch native_list.txt semistaged_list.txt staged_list.txt boost_list.txt post_boost_list.txt && echo libunwind >> semistaged_list.txt && echo gperftools >> semistaged_list.txt && cp -pRP $(COLONIZE_SCRIPT_ABS) ./ && bash ./colonize.sh ;
