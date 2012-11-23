@@ -165,25 +165,27 @@ void context_switch(context_ref_t *current_context_out, context_ref_t *dest_cont
 }
 
 asm(
+#if defined(__i386__) || defined(__x86_64__)
+// We keep the i386 and x86_64 stuff interleaved in order to enforce commonality.
 ".text\n"
 "lightweight_swapcontext:\n"
 
-#ifdef __i386__
+#if defined(__i386__)
     "pop %edi\n"
     "pop %esi\n"
     /* `current_pointer_out` is in `%edi`. `dest_pointer` is in `%esi`. */
-#else
+#elif defined(__x86_64__)
     /* `current_pointer_out` is in `%rdi`. `dest_pointer` is in `%rsi`. */
 #endif
 
     /* Save preserved registers (the return address is already on the stack). */
-#ifdef __i386__
+#if defined(__i386__)
     "push %esp\n"
     "push %esi\n"
     "push %edi\n"
     "push %ebx\n"
     "push %ebp\n"
-#else
+#elif defined(__x86_64__)
     "pushq %r12\n"
     "pushq %r13\n"
     "pushq %r14\n"
@@ -193,26 +195,26 @@ asm(
 #endif
 
     /* Save old stack pointer. */
-#ifdef __i386__
+#if defined(__i386__)
     "mov %esp, (%edi)\n"
-#else
+#elif defined(__x86_64__)
     "movq %rsp, (%rdi)\n"
 #endif
 
     /* Load the new stack pointer and the preserved registers. */
-#ifdef __i386__
+#if defined(__i386__)
     "mov %esi, %esp\n"
-#else
+#elif defined(__x86_64__)
     "movq %rsi, %rsp\n"
 #endif
 
-#ifdef __i386__
+#if defined(__i386__)
     "pop %ebp\n"
     "pop %ebx\n"
     "pop %edi\n"
     "pop %esi\n"
     "pop %esp\n"
-#else
+#elif defined(__x86_64__)
     "popq %rbp\n"
     "popq %rbx\n"
     "popq %r15\n"
@@ -226,5 +228,8 @@ asm(
     instruction pointer is saved on the stack from the previous call (or
     initialized with `artificial_stack_t()`). */
     "ret\n"
+#else
+#error Unsupported architecture.
+#endif
 );
 

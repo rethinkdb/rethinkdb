@@ -12,13 +12,15 @@
 uint64_t get_clock_cycles() {
     uint64_t ret;
     uint32_t low;
-#ifdef __i386__
+#if defined(__i386__)
 // The following line is mostly copied from http://www.mcs.anl.gov/~kazutomo/rdtsc.html .
     __asm__ __volatile__(".byte 0x0f, 0x31" : "=A" (ret));
-#else
+#elif defined(__x86_64__)
     __asm__ __volatile__("rdtsc" : "=a" (low), "=d" (ret));
     ret <<= 32;
     ret |= low;
+#else
+#error Unsupported architecture.
 #endif
     return ret;
 }
