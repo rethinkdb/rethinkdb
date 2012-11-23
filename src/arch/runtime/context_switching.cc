@@ -165,31 +165,61 @@ void context_switch(context_ref_t *current_context_out, context_ref_t *dest_cont
 }
 
 asm(
-    /* `current_pointer_out` is in `%rdi`. `dest_pointer` is in `%rsi`. */
-
 ".text\n"
 "lightweight_swapcontext:\n"
 
+#ifdef __i386__
+    "pop %edi\n"
+    "pop %esi\n"
+    /* `current_pointer_out` is in `%edi`. `dest_pointer` is in `%esi`. */
+#else
+    /* `current_pointer_out` is in `%rdi`. `dest_pointer` is in `%rsi`. */
+#endif
+
     /* Save preserved registers (the return address is already on the stack). */
+#ifdef __i386__
+    "push %esp\n"
+    "push %esi\n"
+    "push %edi\n"
+    "push %ebx\n"
+    "push %ebp\n"
+#else
     "pushq %r12\n"
     "pushq %r13\n"
     "pushq %r14\n"
     "pushq %r15\n"
     "pushq %rbx\n"
     "pushq %rbp\n"
+#endif
 
     /* Save old stack pointer. */
+#ifdef __i386__
+    "mov %esp, (%edi)\n"
+#else
     "movq %rsp, (%rdi)\n"
+#endif
 
     /* Load the new stack pointer and the preserved registers. */
+#ifdef __i386__
+    "mov %esi, %esp\n"
+#else
     "movq %rsi, %rsp\n"
+#endif
 
+#ifdef __i386__
+    "pop %ebp\n"
+    "pop %ebx\n"
+    "pop %edi\n"
+    "pop %esi\n"
+    "pop %esp\n"
+#else
     "popq %rbp\n"
     "popq %rbx\n"
     "popq %r15\n"
     "popq %r14\n"
     "popq %r13\n"
     "popq %r12\n"
+#endif
 
     /* The following ret should return to the address set with
     `artificial_stack_t()` or with the previous `lightweight_swapcontext`. The
@@ -197,3 +227,4 @@ asm(
     initialized with `artificial_stack_t()`). */
     "ret\n"
 );
+
