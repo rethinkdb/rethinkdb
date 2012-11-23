@@ -1,4 +1,6 @@
 #!/bin/bash
+# Copyright 2011-2012 Frank Trampe, used with permission.
+# Re-use of this code is permissible under the licensing terms of this source package.
 echo "The results of this compilation are location-dependent. By default, this picks ../usr (referenced from the working directory) as the target prefix."
 echo "You can adjust the prefix in the script."
 # The two previous echoed statements are incorporated as comments by reference .
