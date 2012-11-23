@@ -12,9 +12,14 @@
 uint64_t get_clock_cycles() {
     uint64_t ret;
     uint32_t low;
+#ifdef __i386__
+// The following line is mostly copied from http://www.mcs.anl.gov/~kazutomo/rdtsc.html .
+    __asm__ __volatile__(".byte 0x0f, 0x31" : "=A" (ret));
+#else
     __asm__ __volatile__("rdtsc" : "=a" (low), "=d" (ret));
     ret <<= 32;
     ret |= low;
+#endif
     return ret;
 }
 
