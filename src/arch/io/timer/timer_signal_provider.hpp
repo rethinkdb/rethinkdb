@@ -2,7 +2,9 @@
 #ifndef ARCH_IO_TIMER_TIMER_SIGNAL_PROVIDER_HPP_
 #define ARCH_IO_TIMER_TIMER_SIGNAL_PROVIDER_HPP_
 
-#if !__APPLE__
+#if !RDB_USE_TIMER_SIGNAL_PROVIDER
+#error "RDB_USE_TIMER_SIGNAL_PROVIDER needs to be defined to a true value for this file to be included."
+#endif
 
 #include "arch/runtime/event_queue.hpp"
 
@@ -31,7 +33,4 @@ private:
     DISABLE_COPYING(timer_signal_provider_t);
 };
 
-#endif  // !__APPLE__
-
-#endif // ARCH_IO_TIMER_TIMER_SIGNAL_PROVIDER_HPP_
-
+#endif  // ARCH_IO_TIMER_TIMER_SIGNAL_PROVIDER_HPP_

@@ -97,6 +97,10 @@ public:
     connectivity_cluster_t connectivity_cluster;
     message_multiplexer_t message_multiplexer;
 
+    message_multiplexer_t::client_t heartbeat_manager_client;
+    heartbeat_manager_t heartbeat_manager;
+    message_multiplexer_t::client_t::run_t heartbeat_manager_client_run;
+
     message_multiplexer_t::client_t mailbox_manager_client;
     mailbox_manager_t mailbox_manager;
     message_multiplexer_t::client_t::run_t mailbox_manager_client_run;
@@ -142,6 +146,10 @@ reactor_test_cluster_t<protocol_t>::reactor_test_cluster_t(int port) :
     connectivity_cluster(),
     message_multiplexer(&connectivity_cluster),
 
+    heartbeat_manager_client(&message_multiplexer, 'H'),
+    heartbeat_manager(&heartbeat_manager_client),
+    heartbeat_manager_client_run(&heartbeat_manager_client, &heartbeat_manager),
+
     mailbox_manager_client(&message_multiplexer, 'M'),
     mailbox_manager(&mailbox_manager_client),
     mailbox_manager_client_run(&mailbox_manager_client, &mailbox_manager),
@@ -153,7 +161,12 @@ reactor_test_cluster_t<protocol_t>::reactor_test_cluster_t(int port) :
     directory_manager_client_run(&directory_manager_client, &directory_read_manager),
 
     message_multiplexer_run(&message_multiplexer),
-    connectivity_cluster_run(&connectivity_cluster, port, &message_multiplexer_run) { }
+    connectivity_cluster_run(&connectivity_cluster,
+                             get_unittest_addresses(),
+                             port,
+                             &message_multiplexer_run,
+                             0,
+                             &heartbeat_manager) { }
 
 template <class protocol_t>
 reactor_test_cluster_t<protocol_t>::~reactor_test_cluster_t() { }

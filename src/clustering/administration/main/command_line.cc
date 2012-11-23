@@ -85,7 +85,60 @@ std::string get_web_path(const po::variables_map& vm, char *argv[]) {
     return render_as_path(result);
 }
 
-service_ports_t get_service_ports(const po::variables_map& vm) {
+class address_lookup_exc_t : public std::exception {
+public:
+    explicit address_lookup_exc_t(const std::string& data) : info(data) { }
+    ~address_lookup_exc_t() throw () { }
+    const char *what() const throw () { return info.c_str(); }
+private:
+    std::string info;
+};
+
+std::set<ip_address_t> get_local_addresses(const po::variables_map& vm) {
+    std::vector<std::string> vector_filter;
+    if (vm.count("bind") > 0) {
+        vector_filter = vm["bind"].as<std::vector<std::string> >();
+    }
+    std::set<ip_address_t> set_filter;
+    bool all = false;
+
+    // Scan through specified bind options
+    for (size_t i = 0; i < vector_filter.size(); ++i) {
+        if (vector_filter[i] == "all") {
+            all = true;
+        } else {
+            // Verify that all specified addresses are valid ip addresses
+            struct in_addr addr;
+            if (inet_pton(AF_INET, vector_filter[i].c_str(), &addr) == 1) {
+                set_filter.insert(ip_address_t(addr));
+            } else {
+                throw address_lookup_exc_t(strprintf("bind ip address '%s' could not be parsed", vector_filter[i].c_str()));
+            }
+        }
+    }
+
+    std::set<ip_address_t> result = ip_address_t::get_local_addresses(set_filter, all);
+
+    // Make sure that all specified addresses were found
+    for (std::set<ip_address_t>::iterator i = set_filter.begin(); i != set_filter.end(); ++i) {
+        if (result.find(*i) == result.end()) {
+            throw address_lookup_exc_t(strprintf("could not find bind ip address '%s'", i->as_dotted_decimal().c_str()));
+        }
+    }
+
+    if (result.empty()) {
+        throw address_lookup_exc_t("no local addresses found to bind to");
+    }
+
+    // If we will use all local addresses, return an empty set, which is how tcp_listener_t does it
+    if (all) {
+        return std::set<ip_address_t>();
+    }
+
+    return result;
+}
+
+service_address_ports_t get_service_address_ports(const po::variables_map& vm) {
     // serve
     int cluster_port = vm["cluster-port"].as<int>();
     int http_port = vm["http-port"].as<int>();
@@ -110,7 +163,8 @@ service_ports_t get_service_ports(const po::variables_map& vm) {
         reql_port += port_offset;
     }
 
-    return service_ports_t(cluster_port, cluster_client_port, http_port, reql_port, port_offset);
+    return service_address_ports_t(get_local_addresses(vm),
+                                   cluster_port, cluster_client_port, http_port, reql_port, port_offset);
 }
 
 void run_rethinkdb_create(const std::string &filepath, const name_string_t &machine_name, const io_backend_t io_backend, bool *result_out) {
@@ -175,7 +229,14 @@ void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins, int client_p
     }
 }
 
-void run_rethinkdb_import(extproc::spawner_t::info_t *spawner_info, std::vector<host_and_port_t> joins, int client_port, json_import_target_t target, std::string separators, std::string input_filepath, bool *result_out) {
+void run_rethinkdb_import(extproc::spawner_t::info_t *spawner_info,
+                          std::vector<host_and_port_t> joins,
+                          const std::set<ip_address_t> &local_addresses,
+                          int client_port,
+                          json_import_target_t target,
+                          std::string separators,
+                          std::string input_filepath,
+                          bool *result_out) {
     os_signal_cond_t sigint_cond;
     guarantee(!joins.empty());
 
@@ -183,14 +244,34 @@ void run_rethinkdb_import(extproc::spawner_t::info_t *spawner_info, std::vector<
 
     // TODO: Make the peer port be configurable?
     try {
-        *result_out = run_json_import(spawner_info, look_up_peers_addresses(joins), 0, client_port, target, &importer, &sigint_cond);
+        *result_out = run_json_import(spawner_info,
+                                      look_up_peers_addresses(joins),
+                                      local_addresses,
+                                      0,
+                                      client_port,
+                                      target,
+                                      &importer,
+                                      &sigint_cond);
     } catch (const host_lookup_exc_t &ex) {
         logERR("%s\n", ex.what());
         *result_out = false;
+    } catch (const interrupted_exc_t &ex) {
+        // This is only ok if we were interrupted by SIGINT, anything else should have been caught elsewhere
+        if (sigint_cond.is_pulsed()) {
+            logERR("Interrupted\n");
+        } else {
+            throw;
+        }
     }
 }
 
-void run_rethinkdb_serve(extproc::spawner_t::info_t *spawner_info, const std::string &filepath, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets) {
+void run_rethinkdb_serve(extproc::spawner_t::info_t *spawner_info,
+                         const std::string &filepath,
+                         const std::vector<host_and_port_t> &joins,
+                         service_address_ports_t address_ports,
+                         const io_backend_t io_backend,
+                         bool *result_out,
+                         std::string web_assets) {
     os_signal_cond_t sigint_cond;
 
     if (!check_existence(filepath)) {
@@ -212,7 +293,7 @@ void run_rethinkdb_serve(extproc::spawner_t::info_t *spawner_info, const std::st
                             io_backender.get(),
                             filepath, &store,
                             look_up_peers_addresses(joins),
-                            ports,
+                            address_ports,
                             store.read_machine_id(),
                             store.read_metadata(),
                             web_assets,
@@ -226,7 +307,15 @@ void run_rethinkdb_serve(extproc::spawner_t::info_t *spawner_info, const std::st
     }
 }
 
-void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std::string &filepath, const name_string_t &machine_name, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets, bool new_directory) {
+void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info,
+                             const std::string &filepath,
+                             const name_string_t &machine_name,
+                             const std::vector<host_and_port_t> &joins,
+                             service_address_ports_t address_ports,
+                             const io_backend_t io_backend,
+                             bool *result_out,
+                             std::string web_assets,
+                             bool new_directory) {
     logINF("Running %s...\n", RETHINKDB_VERSION_STR);
     os_signal_cond_t sigint_cond;
 
@@ -245,7 +334,7 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
                                 io_backender.get(),
                                 filepath, &store,
                                 look_up_peers_addresses(joins),
-                                ports,
+                                address_ports,
                                 store.read_machine_id(), store.read_metadata(),
                                 web_assets,
                                 &sigint_cond);
@@ -297,7 +386,7 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
                                 io_backender.get(),
                                 filepath, &store,
                                 look_up_peers_addresses(joins),
-                                ports,
+                                address_ports,
                                 our_machine_id, semilattice_metadata,
                                 web_assets,
                                 &sigint_cond);
@@ -311,14 +400,18 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
     }
 }
 
-void run_rethinkdb_proxy(extproc::spawner_t::info_t *spawner_info, const std::vector<host_and_port_t> &joins, service_ports_t ports, bool *result_out, std::string web_assets) {
+void run_rethinkdb_proxy(extproc::spawner_t::info_t *spawner_info,
+                         const std::vector<host_and_port_t> &joins,
+                         service_address_ports_t address_ports,
+                         bool *result_out,
+                         std::string web_assets) {
     os_signal_cond_t sigint_cond;
     guarantee(!joins.empty());
 
     try {
         *result_out = serve_proxy(spawner_info,
                                   look_up_peers_addresses(joins),
-                                  ports,
+                                  address_ports,
                                   generate_uuid(), cluster_semilattice_metadata_t(),
                                   web_assets,
                                   &sigint_cond);
@@ -400,6 +493,7 @@ po::options_description get_web_options_visible() {
 po::options_description get_network_options() {
     po::options_description desc("Network options");
     desc.add_options()
+        ("bind", po::value<std::vector<std::string> >()->composing(), "add the address of a local interface to listen on when accepting connections, may be 'all' or an IP address, loopback addresses are enabled by default")
         ("cluster-port", po::value<int>()->default_value(port_defaults::peer_port), "port for receiving connections from other nodes")
         DEBUG_ONLY(("client-port", po::value<int>()->default_value(port_defaults::client_port), "port to use when connecting to other nodes (for development)"))
         ("driver-port", po::value<int>()->default_value(port_defaults::reql_port), "port for rethinkdb protocol for client drivers")
@@ -678,7 +772,14 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
         joins = vm["join"].as<std::vector<host_and_port_t> >();
     }
 
-    service_ports_t ports = get_service_ports(vm);
+    service_address_ports_t address_ports;
+    try {
+        address_ports = get_service_address_ports(vm);
+    } catch (address_lookup_exc_t& ex) {
+        fprintf(stderr, "ERROR: %s\n", ex.what());
+        return EXIT_FAILURE;
+    }
+
     std::string web_path = get_web_path(vm, argv);
 
     io_backend_t io_backend;
@@ -718,7 +819,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
 
     bool result;
     run_in_thread_pool(boost::bind(&run_rethinkdb_serve, &spawner_info, filepath, joins,
-                                   ports,
+                                   address_ports,
                                    io_backend,
                                    &result, web_path),
                        num_workers);
@@ -793,7 +894,14 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
 
     std::vector<host_and_port_t> joins = vm["join"].as<std::vector<host_and_port_t> >();
 
-    service_ports_t ports = get_service_ports(vm);
+    service_address_ports_t address_ports;
+    try {
+        address_ports = get_service_address_ports(vm);
+    } catch (address_lookup_exc_t& ex) {
+        fprintf(stderr, "ERROR: %s\n", ex.what());
+        return EXIT_FAILURE;
+    }
+
     std::string web_path = get_web_path(vm, argv);
 
     extproc::spawner_t::info_t spawner_info;
@@ -814,8 +922,10 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
     }
 
     bool result;
-    run_in_thread_pool(boost::bind(&run_rethinkdb_proxy, &spawner_info, joins,
-                                   ports,
+    run_in_thread_pool(boost::bind(&run_rethinkdb_proxy,
+                                   &spawner_info,
+                                   joins,
+                                   address_ports,
                                    &result, web_path),
                        num_workers);
 
@@ -859,6 +969,15 @@ int main_rethinkdb_import(int argc, char *argv[]) {
         }
         std::vector<host_and_port_t> joins;
         joins = vm["join"].as<std::vector<host_and_port_t> >();
+
+        std::set<ip_address_t> local_addresses;
+        try {
+            local_addresses = get_local_addresses(vm);
+        } catch (address_lookup_exc_t& ex) {
+            fprintf(stderr, "ERROR: %s\n", ex.what());
+            return EXIT_FAILURE;
+        }
+
 #ifndef NDEBUG
         int client_port = vm["client-port"].as<int>();
 #else
@@ -917,8 +1036,15 @@ int main_rethinkdb_import(int argc, char *argv[]) {
 
         const int num_workers = get_cpu_count();
         bool result;
-        run_in_thread_pool(boost::bind(&run_rethinkdb_import, &spawner_info, joins, client_port,
-                                       target, separators, input_filepath, &result),
+        run_in_thread_pool(boost::bind(&run_rethinkdb_import,
+                                       &spawner_info,
+                                       joins,
+                                       local_addresses,
+                                       client_port,
+                                       target,
+                                       separators,
+                                       input_filepath,
+                                       &result),
                            num_workers);
 
         return result ? EXIT_SUCCESS : EXIT_FAILURE;
@@ -950,7 +1076,14 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         joins = vm["join"].as<std::vector<host_and_port_t> >();
     }
 
-    service_ports_t ports = get_service_ports(vm);
+    service_address_ports_t address_ports;
+    try {
+        address_ports = get_service_address_ports(vm);
+    } catch (address_lookup_exc_t& ex) {
+        fprintf(stderr, "ERROR: %s\n", ex.what());
+        return EXIT_FAILURE;
+    }
+
     std::string web_path = get_web_path(vm, argv);
 
     io_backend_t io_backend;
@@ -995,10 +1128,16 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
     install_fallback_log_writer(logfilepath);
 
     bool result;
-    run_in_thread_pool(boost::bind(&run_rethinkdb_porcelain, &spawner_info, filepath, machine_name, joins,
-                                   ports,
+    run_in_thread_pool(boost::bind(&run_rethinkdb_porcelain,
+                                   &spawner_info,
+                                   filepath,
+                                   machine_name,
+                                   joins,
+                                   address_ports,
                                    io_backend,
-                                   &result, web_path, new_directory),
+                                   &result,
+                                   web_path,
+                                   new_directory),
                        num_workers);
 
     if ( vm.count("pid-file") && vm["pid-file"].as<std::string>().length() ) {

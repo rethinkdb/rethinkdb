@@ -211,7 +211,7 @@ class _Process(object):
                 other_cluster._block_process(self)
 
         try:
-            self.args = command_prefix + [executable_path] + options
+            self.args = command_prefix + [executable_path] + options + ["--bind", "all"]
             for peer in cluster.processes:
                 if peer is not self:
                     # TODO(OSX) Why did we ever use socket.gethostname() and not localhost?

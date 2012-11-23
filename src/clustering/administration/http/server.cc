@@ -33,6 +33,7 @@ std::map<peer_id_t, machine_id_t> get_machine_id(const std::map<peer_id_t, clust
 }
 
 administrative_http_server_manager_t::administrative_http_server_manager_t(
+        const std::set<ip_address_t> &local_addresses,
         int port,
         mailbox_manager_t *mbox_manager,
         metadata_change_handler_t<cluster_semilattice_metadata_t> *_metadata_change_handler,
@@ -226,7 +227,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     root_routes["ajax"] = ajax_routing_app.get();
     root_routing_app.init(new routing_http_app_t(file_app.get(), root_routes));
 
-    server.init(new http_server_t(port, root_routing_app.get()));
+    server.init(new http_server_t(local_addresses, port, root_routing_app.get()));
 }
 
 administrative_http_server_manager_t::~administrative_http_server_manager_t() {

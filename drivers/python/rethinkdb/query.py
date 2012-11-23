@@ -224,7 +224,7 @@ class JSONExpression(ReadQuery):
             if index.step is not None:
                 raise ValueError("slice stepping is unsupported")
             return JSONExpression(internal.Slice(self, index.start, index.stop))
-        elif isinstance(index, str):
+        elif isinstance(index, types.StringTypes):
             return JSONExpression(internal.Attr(self, index))
         else:
             return JSONExpression(internal.Nth(self, index))
@@ -536,7 +536,7 @@ class JSONExpression(ReadQuery):
         """
         order = []
         for attr in attributes:
-            if isinstance(attr, str):
+            if isinstance(attr, types.StringTypes):
                 order.append((attr, True))
             else:
                 order.append(attr)
@@ -746,20 +746,20 @@ class JSONExpression(ReadQuery):
 
     def outer_join(self, other, predicate):
         return self.concat_map(
-            lambda row: let(('matches', other.concat_map(
-                lambda row2: branch(predicate(row, row2),
-                    expr([{'left':row, 'right':row2}]),
+            lambda left: let({'matches': other.concat_map(
+                lambda right: branch(predicate(left, right),
+                    expr([{'left':left, 'right':right}]),
                     expr([])
                 )
-            )), branch(letvar('matches').length() > 0,
+            ).stream_to_array()}, branch(letvar('matches').count() > 0,
                 letvar('matches'),
-                expr([{'left':row}])
+                expr([{'left':left}])
             ))
         )
 
     def eq_join(self, left_attr, other, opt_right_attr=None):
         return self.concat_map(
-            lambda row: let(('right', other.get(row[left_attr])),
+            lambda row: let({'right': other.get(row[left_attr])},
                 branch(letvar('right') != None,
                     expr([{'left':row, 'right':letvar('right')}]),
                     expr([])
@@ -780,7 +780,7 @@ class JSONExpression(ReadQuery):
 
         :returns: :class:`JSONExpression`
 
-        >>> expr([1, 2, 3]).length().run()
+        >>> expr([1, 2, 3]).count().run()
         3
         """
         return JSONExpression(internal.Length(self))
@@ -788,7 +788,7 @@ class JSONExpression(ReadQuery):
     def __len__(self):
         raise ValueError("To construct a `rethinkdb.JSONExpression` "
             "representing the length of a RethinkDB protocol term, call "
-            "`expr.length()`. (We couldn't overload `len(expr)` because it's "
+            "`expr.count()`. (We couldn't overload `len(expr)` because it's "
             "illegal to return anything other than an integer from `__len__()` "
             "in Python.)")
 
@@ -870,7 +870,7 @@ class StreamExpression(ReadQuery):
 
         >>> # Select all Californians whose age is equal to the number
         >>> of users in the database
-        >>> table('users').filter( { 'state': 'CA', 'age': table('users').length() })
+        >>> table('users').filter( { 'state': 'CA', 'age': table('users').count() })
 
         So far we've been grabbing attributes from the implicit scope. We can
         bind the value of each row to a variable and operate on that:
@@ -953,7 +953,7 @@ class StreamExpression(ReadQuery):
         """
         order = []
         for attr in attributes:
-            if isinstance(attr, str):
+            if isinstance(attr, types.StringTypes):
                 order.append((attr, True))
             else:
                 order.append(attr)
@@ -1125,20 +1125,20 @@ class StreamExpression(ReadQuery):
 
     def outer_join(self, other, predicate):
         return self.concat_map(
-            lambda row: let(('matches', other.concat_map(
-                lambda row2: branch(predicate(row, row2),
-                    expr([{'left':row, 'right':row2}]),
+            lambda left: let({'matches': other.concat_map(
+                lambda right: branch(predicate(left, right),
+                    expr([{'left':left, 'right':right}]),
                     expr([])
                 )
-            )), branch(letvar('matches').length() > 0,
+            ).stream_to_array()}, branch(letvar('matches').count() > 0,
                 letvar('matches'),
-                expr({'left':row})
+                expr([{'left':left}])
             ))
         )
 
     def eq_join(self, left_attr, other, opt_right_attr=None):
         return self.concat_map(
-            lambda row: let(('right', other.get(row[left_attr])),
+            lambda row: let({'right': other.get(row[left_attr])},
                 branch(letvar('right') != None,
                     expr([{'left':row, 'right':letvar('right')}]),
                     expr([])
@@ -1157,14 +1157,14 @@ class StreamExpression(ReadQuery):
 
         :returns: :class:`JSONExpression`
 
-        >>> table("users").length()   # Total number of users in the system
+        >>> table("users").count()   # Total number of users in the system
         """
         return JSONExpression(internal.Length(self))
 
     def __len__(self):
         raise ValueError("To construct a `rethinkdb.JSONExpression` "
             "representing the length of a RethinkDB protocol stream, call "
-            "`expr.length()`. (We couldn't overload `len(expr)` because it's "
+            "`expr.count()`. (We couldn't overload `len(expr)` because it's "
             "illegal to return anything other than an integer from `__len__()` "
             "in Python.)")
 
@@ -1218,7 +1218,7 @@ def expr(val):
         return JSONExpression(internal.LiteralBool(val))
     elif isinstance(val, (int, float)):
         return JSONExpression(internal.LiteralNumber(val))
-    elif isinstance(val, (str, unicode)):
+    elif isinstance(val, types.StringTypes):
         return JSONExpression(internal.LiteralString(val))
     elif isinstance(val, list):
         return JSONExpression(internal.LiteralArray(val))
@@ -1271,9 +1271,7 @@ def js(expr=None, body=None):
     else:
         return JSONExpression(internal.Javascript(u'return (%s);' % expr))
 
-def let(*bindings):
-    body = bindings[-1]
-    bindings = bindings[:-1]
+def let(bindings, body):
     if len(bindings) == 0:
         raise ValueError("need at least one binding")
     if isinstance(body, MultiRowSelection):
@@ -1285,6 +1283,7 @@ def let(*bindings):
     else:
         body = expr(body)
         t = JSONExpression
+    
     return t(internal.Let(body, bindings))
 
 class FunctionExpr(object):

@@ -9,8 +9,10 @@
 #include "rdb_protocol/stream_cache.hpp"
 #include "rpc/semilattice/view/field.hpp"
 
-query_server_t::query_server_t(int port, rdb_protocol_t::context_t *_ctx) :
-    server(port, boost::bind(&query_server_t::handle, this, _1, _2),
+query_server_t::query_server_t(const std::set<ip_address_t> &local_addresses,
+                               int port,
+                               rdb_protocol_t::context_t *_ctx) :
+    server(local_addresses, port, boost::bind(&query_server_t::handle, this, _1, _2),
            &on_unparsable_query, INLINE),
     ctx(_ctx), parser_id(generate_uuid()), thread_counters(0)
 { }

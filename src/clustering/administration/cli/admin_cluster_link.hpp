@@ -368,11 +368,14 @@ private:
     thread_pool_log_writer_t log_writer;
     connectivity_cluster_t connectivity_cluster;
     message_multiplexer_t message_multiplexer;
+    message_multiplexer_t::client_t heartbeat_manager_client;
+    heartbeat_manager_t heartbeat_manager;
+    message_multiplexer_t::client_t::run_t heartbeat_manager_client_run;
     message_multiplexer_t::client_t mailbox_manager_client;
     mailbox_manager_t mailbox_manager;
+    message_multiplexer_t::client_t::run_t mailbox_manager_client_run;
     stat_manager_t stat_manager;
     log_server_t log_server;
-    message_multiplexer_t::client_t::run_t mailbox_manager_client_run;
     message_multiplexer_t::client_t semilattice_manager_client;
     const scoped_ptr_t<semilattice_manager_t<cluster_semilattice_metadata_t> > semilattice_manager_cluster;
     message_multiplexer_t::client_t::run_t semilattice_manager_client_run;

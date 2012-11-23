@@ -89,7 +89,11 @@ template <class request_t, class response_t, class context_t>
 class protob_server_t : public http_app_t {
 public:
     // TODO: Function pointers?  Really?
-    protob_server_t(int port, boost::function<response_t(request_t *, context_t *)> _f, response_t (*_on_unparsable_query)(request_t *, std::string), protob_server_callback_mode_t _cb_mode = CORO_ORDERED);
+    protob_server_t(const std::set<ip_address_t> &local_addresses,
+                    int port,
+                    boost::function<response_t(request_t *, context_t *)> _f,
+                    response_t (*_on_unparsable_query)(request_t *, std::string),
+                    protob_server_callback_mode_t _cb_mode = CORO_ORDERED);
     ~protob_server_t();
     static const int32_t magic_number;
 

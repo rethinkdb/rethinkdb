@@ -7,6 +7,7 @@
 
 #include "containers/scoped.hpp"
 #include "rpc/serialize_macros.hpp"
+#include "arch/address.hpp"
 
 namespace mock {
 
@@ -23,6 +24,8 @@ private:
 };
 
 void let_stuff_happen();
+
+std::set<ip_address_t> get_unittest_addresses();
 
 int randport();
 

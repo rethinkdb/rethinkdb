@@ -1,5 +1,7 @@
-#include "arch/io/timer/timer_itimer_provider.hpp"
-#include "arch/io/timer_provider.hpp"
+#include "arch/io/timer_provider.hpp"  // For RDB_USE_TIMER_ITIMER_PROVIDER
+
+#if RDB_USE_TIMER_ITIMER_PROVIDER
+
 
 #include <sys/time.h>
 #include <string.h>
@@ -81,3 +83,6 @@ void timer_itimer_provider_t::on_alrm() {
     // and passed events + 1.
     callback_->on_timer(1);
 }
+
+
+#endif  // RDB_USE_TIMER_ITIMER_PROVIDER
