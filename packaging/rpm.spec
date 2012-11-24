@@ -11,7 +11,7 @@ dnl   VANILLA_PACKAGE_NAME - package name without modifiers (e.g. rethinkdb, eve
 dnl   TRIAL_PACKAGE_NAME - name of the trial package (e.g. rethinkdb-trial, even when TRIAL=0)
 dnl   PACKAGE_VERSION - version string, dashes are fine
 dnl   PACKAGE_FOR_SUSE_10 - 0 or 1 (specifies which library versions we can use)
-dnl   LEGACY_LINUX - 0 or 1 (specifies which library versions we can use)
+dnl   LEGACY_PACKAGE - 0 or 1 (specifies which library versions we can use)
 dnl   TRIAL - 0 or 1
 dnl
 %define _topdir RPM_PACKAGE_DIR
@@ -47,7 +47,7 @@ Group:     Productivity/Databases/Servers
 Provides:  %{vanilla_packagename}, memcached
 Requires:  ifelse(PACKAGE_FOR_SUSE_10, 1,
   `glibc >= 2.4-31, libaio >= 0.3.104, update-alternatives',
-  LEGACY_LINUX, 1,
+  LEGACY_PACKAGE, 1,
   `glibc >= 2.5, libaio >= 0.3.106, chkconfig >= 1.3.30.2',
   `glibc >= 2.10.1, libaio >= 0.3.106, chkconfig >= 1.3.30.2')
 Conflicts: ifelse(TRIAL, 0, `%{versioned_trial_packagename} <= %{version}')

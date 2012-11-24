@@ -173,11 +173,16 @@ endif
 endif
 
 BUILD_PORTABLE?=0
+LEGACY_LINUX?=0
 
 ifeq ($(BUILD_PORTABLE),1)
-LEGACY_LINUX?=1
+LEGACY_PACKAGE?=1
 else
-LEGACY_LINUX?=0
+ifeq ($(LEGACY_LINUX),1)
+LEGACY_PACKAGE?=1
+else
+LEGACY_PACKAGE?=0
+endif
 endif
 
 V8_SRC_DIR:=../support/src/v8
@@ -927,7 +932,7 @@ build-deb-src-control:
 				-D "VERSIONED_QUALIFIED_PACKAGE_NAME=$(VERSIONED_QUALIFIED_PACKAGE_NAME)" \
 				-D "DEBIAN_V8_VERSION=$(DEBIAN_V8_VERSION)" \
 				-D "PACKAGE_VERSION=$(RETHINKDB_VERSION_DEB)" \
-				-D "LEGACY_LINUX=$(LEGACY_LINUX)" \
+				-D "LEGACY_PACKAGE=$(LEGACY_PACKAGE)" \
 				-D "STATIC_V8=$(STATIC_V8)" \
 				-D "TC_BUNDLED=$(BUILD_PORTABLE)" \
 				-D "BUILD_DRIVERS=$(BUILD_DRIVERS)" \
@@ -993,7 +998,7 @@ build-deb: all prepare_deb_package_dirs
 				-D "PACKAGE_VERSION=$(RETHINKDB_VERSION_DEB)"						\
 				-D "VERSIONED_QUALIFIED_PACKAGE_NAME=$(VERSIONED_QUALIFIED_PACKAGE_NAME)" \
 				-D "DEBIAN_V8_VERSION=$(DEBIAN_V8_VERSION)" \
-				-D "LEGACY_LINUX=$(LEGACY_LINUX)"												\
+				-D "LEGACY_PACKAGE=$(LEGACY_PACKAGE)"												\
 				-D "STATIC_V8=$(STATIC_V8)" \
 				-D "TC_BUNDLED=$(BUILD_PORTABLE)" \
 				-D "BUILD_DRIVERS=$(BUILD_DRIVERS)" \
@@ -1044,7 +1049,7 @@ build-rpm: all prepare_rpm_package_dirs
 				-D "TRIAL_PACKAGE_NAME=$(TRIAL_PACKAGE_NAME)"											\
 				-D "VERSIONED_TRIAL_PACKAGE_NAME=$(VERSIONED_TRIAL_PACKAGE_NAME)"	\
 				-D "PACKAGE_VERSION=$(RETHINKDB_VERSION_DEB)"											\
-				-D "LEGACY_LINUX=$(LEGACY_LINUX)"																	\
+				-D "PACKAGE=$(PACKAGE)"																	\
 				-D "PACKAGE_FOR_SUSE_10=$(PACKAGE_FOR_SUSE_10)"								    \
 				-D "TRIAL=$(TRIAL)"																						    \
 				-D "BIN_DIR=$(bin_dir)"																						\
