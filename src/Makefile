@@ -1378,7 +1378,7 @@ endif
 	$(QUIET) $(RT_CXX) $(RT_CXXFLAGS) -c -o $@ $<
 
 # Dependencies
-$(DEP_DIR)/%.d: $(SOURCE_DIR)/%.cc $(PROTO_HEADERS)
+$(DEP_DIR)/%.d: $(SOURCE_DIR)/%.cc $(PROTO_HEADERS) $(V8_DIR)
 ifeq ($(VERBOSE),0)
 	@echo "    DEP $@"
 endif
