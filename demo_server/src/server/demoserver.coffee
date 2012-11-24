@@ -2,6 +2,8 @@ goog.provide('rethinkdb.server.DemoServer')
 
 goog.require('rethinkdb.server.Errors')
 goog.require('rethinkdb.server.RDBDatabase')
+goog.require('rethinkdb.server.RDBJson')
+goog.require('rethinkdb.server.RDBLetScope')
 goog.require('goog.proto2.WireFormatSerializer')
 goog.require('Query')
 
@@ -24,6 +26,9 @@ class DemoServer
 
         # Map of databases
         @dbs = {}
+
+        # Scope chain for let and lambdas
+        @curScope = new RDBLetScope null, {}
 
         # Add default database test
         @createDatabase 'test'
@@ -104,7 +109,6 @@ class DemoServer
         return finalPb
 
     evaluateQuery: (query) ->
-        #BC: switch statements usually have the 'case' line up with the switch.
         #BC: it is much better to pull the cases from the enum than to evaluate
         #    the enum values your self. This mapping is fragile and can break
         #    if the arbitray enum values change.
@@ -151,7 +155,7 @@ class DemoServer
     evaluateReadQuery: (readQuery) ->
         # The only part of a read query that concerns us is the single Term
         term = readQuery.getTerm()
-        @evaluateTerm term
+        (@evaluateTerm term).asJSON()
 
     evaluateWriteQuery: (writeQuery) ->
         switch writeQuery.getType()
@@ -166,7 +170,12 @@ class DemoServer
             when WriteQuery.WriteQueryType.FOREACH
                 throw new RuntimeError "Not Implemented"
             when WriteQuery.WriteQueryType.POINTUPDATE
-                throw new RuntimeError "Not Implemented"
+                pointUpdate = writeQuery.getPointUpdate()
+                table = @getTable pointUpdate.getTableRef()
+                record = table.get (@evaluateTerm pointUpdate.getKey()).asJSON()
+                mapping = @evaluateMapping pointUpdate.getMapping()
+                table.insert (record.merge mapping record), true
+                return {updated:1, skipped:0, errors: 0}
             when WriteQuery.WriteQueryType.POINTDELETE
                 throw new RuntimeError "Not Implemented"
             when WriteQuery.WriteQueryType.POINTMUTATE
@@ -180,34 +189,46 @@ class DemoServer
             inserted += table.insert (@evaluateTerm term), upsert
         return {inserted: inserted}
 
+    evaluateMapping: (mapping) ->
+        arg = mapping.getArg()
+        body = mapping.getBody()
+        (val) =>
+            binds = {"__IMPLICIT_VAR__": arguments[0]}
+            binds[arg] = val
+            @evaluateWith binds, body
+
     evaluateTerm: (term) ->
         switch term.getType()
             when Term.TermType.JSON_NULL
-                null
+                new RDBPrimitive null
             when Term.TermType.VAR
-                null #TODO: ...
+                @curScope.lookup term.getVar()
             when Term.TermType.LET
-                null #TODO: ...
+                letM = term.getLet()
+                binds = {}
+                for bind in letM.bindsArray()
+                    binds[bind.getVar()] = @evaluateTerm bind.getTerm()
+                @evaluateWith binds letM.getExpr()
             when Term.TermType.CALL
                 @evaluateCall term.getCall()
             when Term.TermType.IF
-                null #TODO: ...
+                throw new RuntimeError "Not implemented"
             when Term.TermType.ERROR
                 throw new RuntimeError term.getError()
 
             # Primitive values are really easy since they're all JS types anyway
             when Term.TermType.NUMBER
-                term.getNumber()
+                new RDBPrimitive term.getNumber()
             when Term.TermType.STRING
-                term.getValuestring()
+                new RDBPrimitive term.getValuestring()
             when Term.TermType.JSON
                 JSON.parse term.getJsonstring()
             when Term.TermType.BOOL
-                term.getValuebool()
+                new RDBPrimitive term.getValuebool()
             when Term.TermType.ARRAY
-                (@evaluateTerm term for term in term.arrayArray())
+                new RDBArray (@evaluateTerm term for term in term.arrayArray())
             when Term.TermType.OBJECT
-                obj = {}
+                obj = new RDBObject
                 for tuple in term.objectArray()
                     obj[tuple.getVar()] = @evaluateTerm tuple.getTerm()
                 return obj
@@ -220,15 +241,21 @@ class DemoServer
 
                 pkVal = @evaluateTerm gbk.getKey()
 
-                table.get(pkVal)
+                table.get(pkVal.asJSON())
 
             when Term.TermType.TABLE
-                @getTable(term.getTable().getTableRef()).asArray()
+                @getTable(term.getTable().getTableRef())
             when Term.TermType.JAVASCRIPT
-                null #TODO: ... eval anyone? or probably function constructor
+                throw new RuntimeError "Not Implemented"
             when Term.TermType.IMPLICIT_VAR
-                null #TODO: ...
+                @curScope.lookup "__IMPLICIT_VAR__"
             else throw new RuntimeError "Unknown term type"
+
+    evaluateWith: (binds, term) ->
+        @curScope = new RDBLetScope @curScope, binds
+        result = @evaluateTerm term
+        @curScop = @curScope.parent
+        return result
 
     getTable: (tableRef) ->
         dbName = tableRef.getDbName()
@@ -243,45 +270,52 @@ class DemoServer
 
         switch builtin.getType()
             when Builtin.BuiltinType.NOT
-                not args[0]
+                new RDBPrimitive args[0].not()
             when Builtin.BuiltinType.GETATTR
-                throw new RuntimeError "Not implemented"
+                args[0][builtin.getAttr()]
             when Builtin.BuiltinType.IMPLICIT_GETATTR
                 throw new RuntimeError "Not implemented"
             when Builtin.BuiltinType.HASATTR
-                throw new RuntimeError "Not implemented"
+                new RDBPrimitive args[0][builtin.getAttr()]?
             when Builtin.BuiltinType.IMPLICIT_HASATTR
                 throw new RuntimeError "Not implemented"
             when Builtin.BuiltinType.PICKATTRS
-                throw new RuntimeError "Not implemented"
+                args[0].pick builtin.attrsArray()
             when Builtin.BuiltinType.IMPLICIT_PICKATTRS
                 throw new RuntimeError "Not implemented"
             when Builtin.BuiltinType.MAPMERGE
-                throw new RuntimeError "Not implemented"
+                args[0].merge args[1]
             when Builtin.BuiltinType.ARRAYAPPEND
-                throw new RuntimeError "Not implemented"
+                args[0].append args[1]
             when Builtin.BuiltinType.SLICE
                 throw new RuntimeError "Not implemented"
             when Builtin.BuiltinType.ADD
-                args.reduce (a,b)->a+b
+                new RDBPrimitive args.reduce (a,b)->a.add b
             when Builtin.BuiltinType.SUBTRACT
-                args.reduce (a,b)->a-b
+                new RDBPrimitive args.reduce (a,b)->a.sub b
             when Builtin.BuiltinType.MULTIPLY
-                args.reduce (a,b)->a*b
+                new RDBPrimitive args.reduce (a,b)->a.mul b
             when Builtin.BuiltinType.DIVIDE
-                args.reduce (a,b)->a/b
+                new RDBPrimitive args.reduce (a,b)->a.div b
             when Builtin.BuiltinType.MODULO
-                args.reduce (a,b)->a%b
+                new RDBPrimitive args.reduce (a,b)->a.mod b
             when Builtin.BuiltinType.COMPARE
                 @evaluateComarison builtin.getComparison(), args
             when Builtin.BuiltinType.FILTER
-                throw new RuntimeError "Not implemented"
+                predicate = @evaluateMapping builtin.getFilter().getPredicate()
+                args[0].filter predicate
             when Builtin.BuiltinType.MAP
-                throw new RuntimeError "Not implemented"
+                mapping = @evaluateMapping builtin.getMap().getMapping()
+                args[0].map mapping
             when Builtin.BuiltinType.CONCATMAP
-                throw new RuntimeError "Not implemented"
+                mapping = @evaluateMapping builtin.getConcatMap().getMapping()
+                args[0].concatMap mapping
             when Builtin.BuiltinType.ORDERBY
-                throw new RuntimeError "Not implemented"
+                orderby = builtin.getOrderBy()
+                result = args[0].orderBy orderby.getAttr()
+                unless orderby.getAscendingOrDefault()
+                    new RDBArray result.asArray().reverse()
+                return result
             when Builtin.BuiltinType.DISTINCT
                 throw new RuntimeError "Not implemented"
             when Builtin.BuiltinType.LENGTH
@@ -299,35 +333,29 @@ class DemoServer
             when Builtin.BuiltinType.GROUPEDMAPREDUCE
                 throw new RuntimeError "Not implemented"
             when Builtin.BuiltinType.ANY
-                args.reduce (a,b)->a||b
+                new RDBPrimitive args.reduce (a,b) -> a.asJSON() || b.asJSON()
             when Builtin.BuiltinType.ALL
-                args.reduce (a,b)->a&&b
+                new RDBPrimitive args.reduce (a,b) -> a.asJSON() && b.asJSON()
             when Builtin.BuiltinType.RANGE
-                throw new RuntimeError "Not implemented"
+                range = builtin.getRange()
+                console.log args[0]
+                args[0].between range.getAttrname(), range.getLowerbound(), range.getUpperbound()
             when Builtin.BuiltinType.IMPLICIT_WITHOUT
                 throw new RuntimeError "Not implemented"
             when Builtin.BuiltinType.WITHOUT
-                throw new RuntimeError "Not implemented"
-
-    objEq = (one, two) ->
-        unless typeof one is 'object'
-            one is two
-        else
-            (objEq one[k], two[k] for own k of one).reduce (a,b) -> a&&b
+                args[0].unpick builtin.attrsArray()
 
     evaluateComarison: (comparison, args) ->
         op = switch comparison
-            when Builtin.Comparison.EQ then objEq
-            when Builtin.Comparison.NE then (a,b) -> not objEq(a,b)
-            when Builtin.Comparison.LT then (a,b) -> a < b
-            when Builtin.Comparison.LE then (a,b) -> a <= b
-            when Builtin.Comparison.GT then (a,b) -> a > b
-            when Builtin.Comparison.GE then (a,b) -> a >= b
+            when Builtin.Comparison.EQ then (a,b) -> a.eq b
+            when Builtin.Comparison.NE then (a,b) -> a.ne b
+            when Builtin.Comparison.LT then (a,b) -> a.lt b
+            when Builtin.Comparison.LE then (a,b) -> a.le b
+            when Builtin.Comparison.GT then (a,b) -> a.gt b
+            when Builtin.Comparison.GE then (a,b) -> a.ge b
         opReduc = (last, rest) ->
             if !rest.length then return true
             next = rest[0]
             unless op last, next then return false
             opReduc next, rest[1..]
-        opReduc args[0], args[1..]
-
-    evaluateArithmatic: (op, args) -> args.reduce op
+        new RDBPrimitive opReduc args[0], args[1..]
