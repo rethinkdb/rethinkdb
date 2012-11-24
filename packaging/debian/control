@@ -27,7 +27,7 @@ Version: PACKAGE_VERSION
 Architecture: i386 amd64
 Pre-Depends: adduser (>= 3.40)
 Depends: ifelse(LEGACY_LINUX, 1,
-  `libc6 (>= 2.5), libstdc++6 (>= 4.6), libgcc1',
+  `libc6 (>= 2.5), libstdc++6 (>= 4.5), libgcc1',
   `libc6 (>= 2.10.1), libstdc++6 (>= 4.6), libgcc1')`'dnl
 ifelse(STATIC_V8, 0, `, libv8-dev (>= 3.1)', `')
 Breaks: PACKAGE_NAME (<< PACKAGE_VERSION)

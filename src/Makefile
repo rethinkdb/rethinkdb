@@ -174,6 +174,12 @@ endif
 
 BUILD_PORTABLE?=0
 
+ifeq ($(BUILD_PORTABLE),1)
+LEGACY_LINUX?=1
+else
+LEGACY_LINUX?=0
+endif
+
 V8_SRC_DIR:=../support/src/v8
 V8_DIR:=../support/build/v8
 V8_LIB:=$(V8_DIR)/libv8.a
