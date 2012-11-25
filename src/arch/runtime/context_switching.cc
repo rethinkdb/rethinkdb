@@ -193,7 +193,7 @@ asm(
 
     /* Save old stack pointer. */
 #if defined(__i386__)
-    "mov 16(%esp), %ecx\n"
+    "mov 20(%esp), %ecx\n"
     "mov %esp, (%ecx)\n"
 #elif defined(__x86_64__)
     "movq %rsp, (%rdi)\n"
@@ -201,7 +201,7 @@ asm(
 
     /* Load the new stack pointer and the preserved registers. */
 #if defined(__i386__)
-    "mov 20(%esp), %esi\n"
+    "mov 24(%esp), %esi\n"
     "mov %esi, %esp\n"
 #elif defined(__x86_64__)
     "movq %rsi, %rsp\n"
