@@ -178,7 +178,6 @@ asm(
 
     /* Save preserved registers (the return address is already on the stack). */
 #if defined(__i386__)
-//     "push %esp\n"
     "push %esi\n"
     "push %edi\n"
     "push %ebx\n"
@@ -194,15 +193,15 @@ asm(
 
     /* Save old stack pointer. */
 #if defined(__i386__)
-    "mov 4(%esp), %edi\n"
-    "mov %esp, (%edi)\n"
+    "mov 16(%esp), %ecx\n"
+    "mov %esp, (%ecx)\n"
 #elif defined(__x86_64__)
     "movq %rsp, (%rdi)\n"
 #endif
 
     /* Load the new stack pointer and the preserved registers. */
 #if defined(__i386__)
-    "mov 8(%esp), %esi\n"
+    "mov 20(%esp), %esi\n"
     "mov %esi, %esp\n"
 #elif defined(__x86_64__)
     "movq %rsi, %rsp\n"
@@ -213,7 +212,6 @@ asm(
     "pop %ebx\n"
     "pop %edi\n"
     "pop %esi\n"
-//     "pop %esp\n"
 #elif defined(__x86_64__)
     "popq %rbp\n"
     "popq %rbx\n"
