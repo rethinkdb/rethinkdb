@@ -48,15 +48,15 @@ artificial_stack_t::artificial_stack_t(void (*initial_fun)(void), size_t _stack_
 
     /* Set up the stack... */
 
-    uint64_t *sp; /* A pointer into the stack. */
+    uintptr_t *sp; /* A pointer into the stack. */
 
     /* Start at the beginning. */
-    sp = reinterpret_cast<uint64_t *>(uintptr_t(stack) + stack_size);
+    sp = reinterpret_cast<uintptr_t *>(uintptr_t(stack) + stack_size);
 
     /* Align stack. The x86-64 ABI requires the stack pointer to always be
     16-byte-aligned at function calls. That is, "(%rsp - 8) is always a multiple
     of 16 when control is transferred to the function entry point". */
-    sp = reinterpret_cast<uint64_t *>(uintptr_t(sp) & static_cast<uintptr_t>(-16L));
+    sp = reinterpret_cast<uintptr_t *>(uintptr_t(sp) & static_cast<uintptr_t>(-16L));
 
     // Currently sp is 16-byte aligned.
 
@@ -71,16 +71,22 @@ artificial_stack_t::artificial_stack_t(void (*initial_fun)(void), size_t _stack_
 
     sp--;
 
-    // Subtracted 2*sizeof(int64_t), so sp is still 16-byte aligned.
+    // Subtracted 2*sizeof(uintptr_t), so sp is still double-word-size (16-byte for amd64) aligned.
 
-    *sp = reinterpret_cast<uint64_t>(initial_fun);
+    *sp = reinterpret_cast<uintptr_t>(initial_fun);
 
+#if defined(__i386__)
+    sp -= 4;
+#elif defined(__x86_64__)
     /* These registers (r12, r13, r14, r15, rbx, rbp) are going to be popped off
     the stack by swapcontext; they're callee-saved, so whatever happens to be in
     them will be ignored. */
     sp -= 6;
+#else
+    #error Unsupported architecture.
+#endif
 
-    // Subtracted 6*sizeof(int64_t), so sp is still 16-byte aligned.
+    // Subtracted (multiple of 2)*sizeof(uintptr_t), so sp is still double-word-size (16-byte for amd64) aligned.
 
     /* Set up stack pointer. */
     context.pointer = sp;

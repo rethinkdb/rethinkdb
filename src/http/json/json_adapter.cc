@@ -285,7 +285,6 @@ void apply_json_to(cJSON *change, int64_t *target) {
 
 void on_subfield_change(int64_t *) { }
 
-#if defined(RT_JSON_ADAPTER_PLAIN_INTS)
 // ctx-less JSON adapter for int  (TODO: Should we not be only using int32_t?  FFS.)
 json_adapter_if_t::json_adapter_map_t get_json_subfields(int *) {
     return json_adapter_if_t::json_adapter_map_t();
@@ -301,6 +300,7 @@ void apply_json_to(cJSON *change, int *target) {
 
 void on_subfield_change(int *) { }
 
+#if defined(RT_JSON_ADAPTER_PLAIN_INTS)
 // ctx-less JSON adapter for int  (TODO: Should we not be only using int32_t?  FFS.)
 json_adapter_if_t::json_adapter_map_t get_json_subfields(long int *) {
     return json_adapter_if_t::json_adapter_map_t();

@@ -438,13 +438,13 @@ void apply_json_to(cJSON *, int32_t *);
 void on_subfield_change(int32_t *);
 #endif // 0
 
-#if defined(RT_JSON_ADAPTER_PLAIN_INTS)
 // ctx-less JSON adapter for int
 json_adapter_if_t::json_adapter_map_t get_json_subfields(int *);
 cJSON *render_as_json(int *);
 void apply_json_to(cJSON *, int *);
 void on_subfield_change(int *);
 
+#if defined(RT_JSON_ADAPTER_PLAIN_INTS)
 // ctx-less JSON adapter for long int
 json_adapter_if_t::json_adapter_map_t get_json_subfields(long int *);
 cJSON *render_as_json(long int *);
