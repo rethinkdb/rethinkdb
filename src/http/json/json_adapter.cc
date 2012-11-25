@@ -219,7 +219,7 @@ std::string to_string_for_json_key(const uuid_t *uuid) {
     return uuid_to_str(*uuid);
 }
 
-#if 1
+#if 0
 // ctx-less JSON adapter for uint32_t
 json_adapter_if_t::json_adapter_map_t get_json_subfields(uint32_t *) {
     return json_adapter_if_t::json_adapter_map_t();
@@ -300,5 +300,22 @@ void apply_json_to(cJSON *change, int *target) {
 }
 
 void on_subfield_change(int *) { }
-#endif // 0
+#endif
+
+#if 1
+// ctx-less JSON adapter for int  (TODO: Should we not be only using int32_t?  FFS.)
+json_adapter_if_t::json_adapter_map_t get_json_subfields(long int *) {
+    return json_adapter_if_t::json_adapter_map_t();
+}
+
+cJSON *render_as_json(long int *target) {
+    return cJSON_CreateNumber(*target);
+}
+
+void apply_json_to(cJSON *change, long int *target) {
+    *target = get_int(change, INT_MIN, INT_MAX);
+}
+
+void on_subfield_change(long int *) { }
+#endif // 1
 
