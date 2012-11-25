@@ -2,6 +2,9 @@
 #include <string>
 #include <vector>
 
+// The LOCAL_MAX macro is pasted from the std::max specification.
+#define LOCAL_MAX( A , B ) ( A > B ) ? A : B ;
+
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 #include <boost/variant.hpp>
@@ -412,7 +415,8 @@ void rdb_distribution_get(btree_slice_t *slice, int max_depth, const store_key_t
     if (key_splits.size() == 0) {
         keys_per_bucket = key_count_out;
     } else  {
-        keys_per_bucket = std::max(key_count_out / key_splits.size(), 1ul);
+        // Frank changed the max function from std::max to LOCAL_MAX and then to RT_MAX (from utils.hpp) since std::max on i386 seems not to be able to figure stuff out.
+        keys_per_bucket = RT_MAX(key_count_out / key_splits.size(), 1ul);
     }
     response->key_counts[left_key] = keys_per_bucket;
 

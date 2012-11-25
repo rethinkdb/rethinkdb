@@ -11,11 +11,11 @@
 
 uint64_t get_clock_cycles() {
     uint64_t ret;
-    uint32_t low;
 #if defined(__i386__)
 // The following line is mostly copied from http://www.mcs.anl.gov/~kazutomo/rdtsc.html .
     __asm__ __volatile__(".byte 0x0f, 0x31" : "=A" (ret));
 #elif defined(__x86_64__)
+    uint32_t low;
     __asm__ __volatile__("rdtsc" : "=a" (low), "=d" (ret));
     ret <<= 32;
     ret |= low;
@@ -94,7 +94,7 @@ void pet_watchdog() {
             watchdog_start_time = new_value;
             uint64_t difference = new_value - old_value;
             if (difference > MAX_WATCHDOG_DELTA) {
-                debugf("task triggered watchdog, elapsed cycles: %lu, running coroutine: %s\n", difference,
+                debugf("task triggered watchdog, elapsed cycles: %llu, running coroutine: %s\n", difference,
                        (coro_t::self() == NULL) ? "n/a" : coro_t::self()->get_coroutine_type().c_str());
             }
         }

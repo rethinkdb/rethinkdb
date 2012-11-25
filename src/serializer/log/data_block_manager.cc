@@ -740,7 +740,7 @@ off64_t data_block_manager_t::gimme_a_new_offset(bool token_referenced) {
     /* Deactivate the extent if necessary */
 
     if (blocks_in_active_extent[next_active_extent] == static_config->blocks_per_extent()) {
-        rassert(active_extents[next_active_extent]->g_array.count() < static_config->blocks_per_extent(), "g_array.count() == %zu, blocks_per_extent=%lu", active_extents[next_active_extent]->g_array.count(), static_config->blocks_per_extent());
+        rassert(active_extents[next_active_extent]->g_array.count() < static_config->blocks_per_extent(), "g_array.count() == %zu, blocks_per_extent=%llu", active_extents[next_active_extent]->g_array.count(), static_config->blocks_per_extent());
         active_extents[next_active_extent]->state = gc_entry::state_young;
         young_extent_queue.push_back(active_extents[next_active_extent]);
         mark_unyoung_entries();
@@ -842,7 +842,7 @@ void gc_entry::destroy() {
 #ifndef NDEBUG
 void gc_entry::print() {
     debugf("gc_entry:\n");
-    debugf("extent_ref offset: %ld\n", extent_ref.offset());
+    debugf("extent_ref offset: %lld\n", extent_ref.offset());
     for (unsigned int i = 0; i < g_array.size(); i++)
         debugf("%.8x:\t%d\n", (unsigned int) (extent_ref.offset() + (i * DEVICE_BLOCK_SIZE)), g_array.test(i));
     debugf("\n");

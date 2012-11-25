@@ -18,7 +18,7 @@ void patch_memory_storage_t::load_block_patch_list(block_id_t block_id, const st
     patch_counter_t previous_patch_counter = 0;
     for (std::list<buf_patch_t*>::const_iterator p = patches.begin(); p != patches.end(); ++p) {
         rassert(previous_block_sequence <= (*p)->get_block_sequence_id(),
-                "Non-sequential patch list: Block sequence id %lu follows %lu",
+                "Non-sequential patch list: Block sequence id %llu follows %llu",
                 (*p)->get_block_sequence_id(), previous_block_sequence);
         if (previous_block_sequence == 0 || (*p)->get_block_sequence_id() != previous_block_sequence) {
             previous_patch_counter = 0;
@@ -146,7 +146,7 @@ void patch_memory_storage_t::block_patch_list_t::verify_patches_list(block_seque
     for (std::vector<buf_patch_t*>::const_iterator p = patches_.begin(), e = patches_.end(); p != e; ++p) {
         rassert((*p)->get_block_sequence_id() >= block_sequence_id || (*p)->get_block_sequence_id() == 0);
         rassert(previous_block_sequence <= (*p)->get_block_sequence_id(),
-                "Non-sequential patch list: Block sequence id %lu follows %lu",
+                "Non-sequential patch list: Block sequence id %llu follows %llu",
                 (*p)->get_block_sequence_id(), previous_block_sequence);
         if (previous_block_sequence == 0 || (*p)->get_block_sequence_id() != previous_block_sequence) {
             previous_patch_counter = 0;

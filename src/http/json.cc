@@ -47,7 +47,7 @@ std::string cJSON_print_lexicographic(const cJSON *json) {
         packed.d = json->valuedouble;
 
         // Mangle the value so that lexicographic ordering matches double ordering
-        if (packed.u & (1UL << 63)) {
+        if (packed.u & (1ULL << 63)) {
             // If we have a negative double, flip all the bits.  Flipping the
             // highest bit causes the negative doubles to sort below the
             // positive doubles (which will also have their highest bit
@@ -58,10 +58,10 @@ std::string cJSON_print_lexicographic(const cJSON *json) {
             // If we have a non-negative double, flip the highest bit so that it
             // sorts higher than all the negative doubles (which had their
             // highest bit flipped as well).
-            packed.u ^= (1UL << 63);
+            packed.u ^= (1ULL << 63);
         }
 
-        acc += strprintf("%.*lx", static_cast<int>(sizeof(double)*2), packed.u);
+        acc += strprintf("%.*llx", static_cast<int>(sizeof(double)*2), packed.u);
         acc += strprintf("#%.20g", json->valuedouble);
     } else {
         guarantee(json->type == cJSON_String);

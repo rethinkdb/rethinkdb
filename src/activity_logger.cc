@@ -7,7 +7,7 @@ log_event_t::log_event_t(const std::string &_msg, bool log_bt)
 }
 std::string log_event_t::print(bool print_bt) {
     std::string bt_str = print_bt && bt.has() ? bt->addrs() : "";
-    return strprintf("%ld\n -- %s\n%s", timestamp, msg.c_str(), bt_str.c_str());
+    return strprintf("%llu\n -- %s\n%s", timestamp, msg.c_str(), bt_str.c_str());
 }
 
 activity_logger_t::activity_logger_t(bool _log_bt) : log_bt_(_log_bt) {
