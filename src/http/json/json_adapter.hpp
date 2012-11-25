@@ -19,6 +19,10 @@
 #include "containers/uuid.hpp"
 #include "http/json.hpp"
 
+#if defined(__i386__)
+#define RT_JSON_ADAPTER_PLAIN_INT
+#endif
+
 /* A note about json adapter exceptions: When an operation throws an exception
  * there is no guarantee that the target object has been left in tact.
  * Generally this is okay because we first apply changes and then join them in
@@ -434,15 +438,15 @@ void apply_json_to(cJSON *, int32_t *);
 void on_subfield_change(int32_t *);
 #endif // 0
 
-#if 0
+#if 1
+#if defined(RT_JSON_ADAPTER_PLAIN_INT)
 // ctx-less JSON adapter for int
 json_adapter_if_t::json_adapter_map_t get_json_subfields(int *);
 cJSON *render_as_json(int *);
 void apply_json_to(cJSON *, int *);
 void on_subfield_change(int *);
-#endif // 0
+#endif
 
-#if 1
 // ctx-less JSON adapter for long int
 json_adapter_if_t::json_adapter_map_t get_json_subfields(long int *);
 cJSON *render_as_json(long int *);
