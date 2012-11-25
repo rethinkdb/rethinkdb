@@ -171,16 +171,14 @@ asm(
 "lightweight_swapcontext:\n"
 
 #if defined(__i386__)
-    "pop %edi\n"
-    "pop %esi\n"
-    /* `current_pointer_out` is in `%edi`. `dest_pointer` is in `%esi`. */
+    /* `current_pointer_out` is in `%ebp+`. `dest_pointer` is in `%esi`. */
 #elif defined(__x86_64__)
     /* `current_pointer_out` is in `%rdi`. `dest_pointer` is in `%rsi`. */
 #endif
 
     /* Save preserved registers (the return address is already on the stack). */
 #if defined(__i386__)
-    "push %esp\n"
+//     "push %esp\n"
     "push %esi\n"
     "push %edi\n"
     "push %ebx\n"
@@ -196,6 +194,7 @@ asm(
 
     /* Save old stack pointer. */
 #if defined(__i386__)
+    "mov 4(%esp), %edi\n"
     "mov %esp, (%edi)\n"
 #elif defined(__x86_64__)
     "movq %rsp, (%rdi)\n"
@@ -203,6 +202,7 @@ asm(
 
     /* Load the new stack pointer and the preserved registers. */
 #if defined(__i386__)
+    "mov 8(%esp), %esi\n"
     "mov %esi, %esp\n"
 #elif defined(__x86_64__)
     "movq %rsi, %rsp\n"
@@ -213,7 +213,7 @@ asm(
     "pop %ebx\n"
     "pop %edi\n"
     "pop %esi\n"
-    "pop %esp\n"
+//     "pop %esp\n"
 #elif defined(__x86_64__)
     "popq %rbp\n"
     "popq %rbx\n"
