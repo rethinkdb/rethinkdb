@@ -166,8 +166,14 @@ RT_LDFLAGS+= -static
 STATIC_LIBGCC=1
 endif
 RT_LDFLAGS+=$(LDPATHDS) -pthread -lrt
+ifeq ($(BUILD_PORTABLE),1)
+RT_LDFLAGS+=-lgcc
+endif
 ifeq ($(STATICFORCE),1)
 RT_LDFLAGS+= -Wl,-Bdynamic
+endif
+ifeq ($(BUILD_PORTABLE),1)
+RT_LDFLAGS+=-lgcc_s
 endif
 endif
 endif
