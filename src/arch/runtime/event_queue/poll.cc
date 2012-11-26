@@ -77,7 +77,8 @@ void poll_event_queue_t::run() {
 #ifdef RDB_USE_TIMER_SIGNAL_PROVIDER
         res = ppoll(&watched_fds[0], watched_fds.size(), NULL, &sigmask_restricted);
 #else
-        res = poll(&watched_fds[0], watched_fds.size(), -1);
+        // TODO(OSX) Replace 1 (milliseconds) with -1, and.. get the timer working?  Or something.
+        res = poll(&watched_fds[0], watched_fds.size(), 1);
 #endif
         // ppoll might return with EINTR in some cases (in particular
         // under GDB), we just need to retry.
