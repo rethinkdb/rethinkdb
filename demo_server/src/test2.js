@@ -274,7 +274,6 @@ function testBetween() {
 }
 
 function testGroupedMapReduce() {
-    debugger
     tab.groupedMapReduce(function(row) {
         return r.branch(row('id').lt(5),
             r.expr(0),

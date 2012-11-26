@@ -41,7 +41,6 @@ class RDBSequence extends RDBJson
         @asArray().reduce ((acc, v) -> reduction(acc, v)), base
 
     groupedMapReduce: (groupMapping, valueMapping, reduction) ->
-        debugger
         groups = {}
         @asArray().forEach (doc) ->
             groupID = (groupMapping doc).asJSON()
