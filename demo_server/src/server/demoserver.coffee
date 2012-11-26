@@ -343,15 +343,15 @@ class DemoServer
             when Builtin.BuiltinType.SLICE
                 args[0].slice(args[1].asJSON(), args[2]?.asJSON() || undefined)
             when Builtin.BuiltinType.ADD
-                new RDBPrimitive args.reduce (a,b)->a.add b
+                args.reduce ((a,b)-> new RDBPrimitive a.add b), new RDBPrimitive 0
             when Builtin.BuiltinType.SUBTRACT
-                new RDBPrimitive args.reduce (a,b)->a.sub b
+                new RDBPrimitive args.reduce ((a,b)->a.sub b)
             when Builtin.BuiltinType.MULTIPLY
-                new RDBPrimitive args.reduce (a,b)->a.mul b
+                args.reduce ((a,b)-> new RDBPrimitive a.mul b), new RDBPrimitive 1
             when Builtin.BuiltinType.DIVIDE
-                new RDBPrimitive args.reduce (a,b)->a.div b
+                new RDBPrimitive args.reduce ((a,b)->a.div b)
             when Builtin.BuiltinType.MODULO
-                new RDBPrimitive args.reduce (a,b)->a.mod b
+                new RDBPrimitive args.reduce ((a,b)->a.mod b)
             when Builtin.BuiltinType.COMPARE
                 @evaluateComarison builtin.getComparison(), args
             when Builtin.BuiltinType.FILTER
@@ -388,9 +388,11 @@ class DemoServer
             when Builtin.BuiltinType.GROUPEDMAPREDUCE
                 throw new RuntimeError "Not implemented"
             when Builtin.BuiltinType.ANY
-                new RDBPrimitive args.reduce (a,b) -> a.asJSON() || b.asJSON()
+                args.reduce ((a,b) -> new RDBPrimitive (a.asJSON() || b.asJSON())),
+                                      new RDBPrimitive false
             when Builtin.BuiltinType.ALL
-                new RDBPrimitive args.reduce (a,b) -> a.asJSON() && b.asJSON()
+                args.reduce ((a,b) -> new RDBPrimitive (a.asJSON() && b.asJSON())),
+                                      new RDBPrimitive true
             when Builtin.BuiltinType.RANGE
                 range = builtin.getRange()
                 args[0].between range.getAttrname(),
