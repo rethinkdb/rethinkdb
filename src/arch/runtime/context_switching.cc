@@ -48,7 +48,7 @@ artificial_stack_t::artificial_stack_t(void (*initial_fun)(void), size_t _stack_
 
     /* Set up the stack... */
 
-    uintptr_t *sp; /* A pointer into the stack. */
+    uintptr_t *sp; /* A pointer into the stack. Note that uintptr_t is ideal since it points to something of the same size as the native word or pointer. */
 
     /* Start at the beginning. */
     sp = reinterpret_cast<uintptr_t *>(uintptr_t(stack) + stack_size);
@@ -76,6 +76,7 @@ artificial_stack_t::artificial_stack_t(void (*initial_fun)(void), size_t _stack_
     *sp = reinterpret_cast<uintptr_t>(initial_fun);
 
 #if defined(__i386__)
+    /* For i386, we are obligated (by the A.B.I. specification) to preserve esi, edi, ebx, ebp, and esp. We do not push esp onto the stack, though, since we will have needed to retrieve it anyway in order to get to the point on the stack from which we would pop. */
     sp -= 4;
 #elif defined(__x86_64__)
     /* These registers (r12, r13, r14, r15, rbx, rbp) are going to be popped off
@@ -86,7 +87,7 @@ artificial_stack_t::artificial_stack_t(void (*initial_fun)(void), size_t _stack_
     #error Unsupported architecture.
 #endif
 
-    // Subtracted (multiple of 2)*sizeof(uintptr_t), so sp is still double-word-size (16-byte for amd64) aligned.
+    // Subtracted (multiple of 2)*sizeof(uintptr_t), so sp is still double-word-size (16-byte for amd64, 8-byte for i386) aligned.
 
     /* Set up stack pointer. */
     context.pointer = sp;
@@ -184,6 +185,7 @@ asm(
 
     /* Save preserved registers (the return address is already on the stack). */
 #if defined(__i386__)
+    /* For i386, we are obligated (by the A.B.I. specification) to preserve esi, edi, ebx, ebp, and esp. We do not push esp onto the stack, though, since we will have needed to retrieve it anyway in order to get to the point on the stack from which we would pop. */
     "push %esi\n"
     "push %edi\n"
     "push %ebx\n"
@@ -199,17 +201,23 @@ asm(
 
     /* Save old stack pointer. */
 #if defined(__i386__)
+    /* i386 passes arguments on the stack. We add ((number of things pushed)+1)*(sizeof(void*)) to esp in order to get the first argument. */
     "mov 20(%esp), %ecx\n"
+    /* We then copy the stack pointer into the space indicated by the first argument. */
     "mov %esp, (%ecx)\n"
 #elif defined(__x86_64__)
+    /* On amd64, the first argument comes from rdi. */
     "movq %rsp, (%rdi)\n"
 #endif
 
     /* Load the new stack pointer and the preserved registers. */
 #if defined(__i386__)
+    /* i386 passes arguments on the stack. We add ((number of things pushed)+1)*(sizeof(void*)) to esp in order to get the first argument. */
     "mov 24(%esp), %esi\n"
+    /* We then copy the second argument to be the new stack pointer. */
     "mov %esi, %esp\n"
 #elif defined(__x86_64__)
+    /* On amd64, the second argument comes from rsi. */
     "movq %rsi, %rsp\n"
 #endif
 
