@@ -40,6 +40,23 @@ class RDBSequence extends RDBJson
     reduce: (base, reduction) ->
         @asArray().reduce ((acc, v) -> reduction(acc, v)), base
 
+    groupedMapReduce: (groupMapping, valueMapping, reduction) ->
+        debugger
+        groups = {}
+        @asArray().forEach (doc) ->
+            groupID = (groupMapping doc).asJSON()
+            unless groups[groupID]?
+                groups[groupID] = []
+                groups[groupID]._actualGroupID = groupID
+            groups[groupID].push doc
+
+        new RDBArray (for own groupID,group of groups
+            res = new RDBObject
+            res['group'] = new RDBPrimitive group._actualGroupID
+            res['reduction'] = (group.map valueMapping).reduce reduction
+            res
+        )
+
     concatMap: (mapping) ->
         new RDBArray Array::concat.apply [], @asArray().map((v) -> mapping(v).asArray())
 

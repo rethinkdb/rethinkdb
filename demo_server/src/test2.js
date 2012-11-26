@@ -266,7 +266,6 @@ function testJS() {
 }
 
 function testBetween() {
-    debugger
     tab.between(2,3).count().run(aeq(2));
     tab.between(2,3).orderBy('id').nth(0).run(objeq({
         id:2,
@@ -275,6 +274,7 @@ function testBetween() {
 }
 
 function testGroupedMapReduce() {
+    debugger
     tab.groupedMapReduce(function(row) {
         return r.branch(row('id').lt(5),
             r.expr(0),

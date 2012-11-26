@@ -386,7 +386,12 @@ class DemoServer
                 reduction = @evaluateReduction builtin.getReduce()
                 args[0].reduce base, reduction
             when Builtin.BuiltinType.GROUPEDMAPREDUCE
-                throw new RuntimeError "Not implemented"
+                groupedMapReduce = builtin.getGroupedMapReduce()
+                groupMapping = @evaluateMapping   groupedMapReduce.getGroupMapping()
+                valueMapping = @evaluateMapping   groupedMapReduce.getValueMapping()
+                reduction    = @evaluateReduction groupedMapReduce.getReduction()
+
+                args[0].groupedMapReduce(groupMapping, valueMapping, reduction)
             when Builtin.BuiltinType.ANY
                 args.reduce ((a,b) -> new RDBPrimitive (a.asJSON() || b.asJSON())),
                                       new RDBPrimitive false
