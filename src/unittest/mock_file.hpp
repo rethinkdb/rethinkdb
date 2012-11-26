@@ -2,10 +2,12 @@
 #ifndef UNITTEST_MOCK_FILE_HPP_
 #define UNITTEST_MOCK_FILE_HPP_
 
-#include "arch/types.hpp"
-#include "serializer/types.hpp"
+#include <string>
+#include <vector>
 
+#include "arch/types.hpp"
 #include "errors.hpp"
+#include "serializer/types.hpp"
 
 namespace unittest {
 

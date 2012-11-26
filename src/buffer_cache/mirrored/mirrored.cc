@@ -256,28 +256,43 @@ mc_inner_buf_t *mc_inner_buf_t::allocate(mc_cache_t *cache, version_id_t snapsho
         return new mc_inner_buf_t(cache, block_id, snapshot_version, recency_timestamp);
     } else {
         // Block with block_id was logically deleted, but its inner_buf survived.
-        // That can happen when there are active snapshots that holding older versions
-        // of the block. It's safe to update the top version of the block though.
+        // This can happen when there are active snapshots of that block.
+        // We cannot just re-create a new mc_inner_buf_t for the block id in that case,
+        // as that would cause a conflict in the page map.
+        // Instead, we keep the snapshots around and reset the remaining state of
+        // the buffer to make it behave just like a freshly constructed one.
+        
         rassert(inner_buf->do_delete);
         rassert(!inner_buf->data.has());
 
-        inner_buf->subtree_recency = recency_timestamp;
-        inner_buf->data.init_malloc(cache->serializer);
-#if !defined(NDEBUG) || defined(VALGRIND)
-        // The memory allocator already filled this with 0xBD, but it's nice to be able to distinguish
-        // between problems with uninitialized memory and problems with uninitialized blocks
-        memset(inner_buf->data.get(), 0xCD, cache->serializer->get_block_size().value());
-#endif
-        inner_buf->version_id = snapshot_version;
-        inner_buf->do_delete = false;
-        inner_buf->next_patch_counter = 1;
-        inner_buf->cow_refcount = 0;
-        inner_buf->snap_refcount = 0;
-        inner_buf->block_sequence_id = NULL_BLOCK_SEQUENCE_ID;
-        inner_buf->data_token.reset();
+        inner_buf->initialize_to_new(snapshot_version, recency_timestamp);
+        inner_buf->writeback_buf().reset();
 
         return inner_buf;
     }
+}
+
+// This routine is used in the constructor for constructing new bufs, and also called directly from the
+// allocate() method. The latter uses it to reset an existing mc_inner_buf_t to its initial state, without
+// requiring the creation of a new mc_inner_buf_t object.
+// See the comment in allocate() for why this is necessary.
+void mc_inner_buf_t::initialize_to_new(version_id_t _snapshot_version, repli_timestamp_t _recency_timestamp) {
+    rassert(!data.has());
+    
+    subtree_recency = _recency_timestamp;
+    data.init_malloc(cache->serializer);
+#if !defined(NDEBUG) || defined(VALGRIND)
+        // The memory allocator already filled this with 0xBD, but it's nice to be able to distinguish
+        // between problems with uninitialized memory and problems with uninitialized blocks
+        memset(data.get(), 0xCD, cache->serializer->get_block_size().value());
+#endif
+    version_id = _snapshot_version;
+    do_delete = false;
+    next_patch_counter = 1;
+    cow_refcount = 0;
+    snap_refcount = 0;
+    block_sequence_id = NULL_BLOCK_SEQUENCE_ID;
+    data_token.reset();
 }
 
 // This form of the buf constructor is used when a completely new block is being created.
@@ -288,25 +303,13 @@ mc_inner_buf_t::mc_inner_buf_t(mc_cache_t *_cache, block_id_t _block_id, version
     : evictable_t(_cache),
       writeback_t::local_buf_t(),
       block_id(_block_id),
-      subtree_recency(_recency_timestamp),
-      data(_cache->serializer->malloc()),
-      version_id(_snapshot_version),
       lock(),
-      next_patch_counter(1),
-      refcount(0),
-      do_delete(false),
-      cow_refcount(0),
-      snap_refcount(0),
-      block_sequence_id(NULL_BLOCK_SEQUENCE_ID) {
+      refcount(0) {
 
-    rassert(version_id != faux_version_id);
+    rassert(_snapshot_version != faux_version_id);
     _cache->assert_thread();
 
-#if !defined(NDEBUG) || defined(VALGRIND)
-    // The memory allocator already filled this with 0xBD, but it's nice to be able to distinguish
-    // between problems with uninitialized memory and problems with uninitialized blocks
-    memset(data.get(), 0xCD, _cache->serializer->get_block_size().value());
-#endif
+    initialize_to_new(_snapshot_version, _recency_timestamp);
 
     array_map_t::constructing_inner_buf(this);
 

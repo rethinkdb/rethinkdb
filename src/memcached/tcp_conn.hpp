@@ -2,6 +2,8 @@
 #ifndef MEMCACHED_TCP_CONN_HPP_
 #define MEMCACHED_TCP_CONN_HPP_
 
+#include <set>
+
 #include "arch/types.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "containers/scoped.hpp"

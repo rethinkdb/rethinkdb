@@ -3,6 +3,7 @@
 
 #include <google/protobuf/stubs/common.h>
 
+#include <set>
 #include <string>
 
 #include "errors.hpp"

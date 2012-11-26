@@ -54,6 +54,17 @@ writeback_t::~writeback_t() {
     }
 }
 
+writeback_t::local_buf_t::local_buf_t() {
+    reset();
+}
+
+void writeback_t::local_buf_t::reset() {
+    last_patch_materialized_ = 0;
+    needs_flush_ = false;
+    dirty = false;
+    recency_dirty = false;
+}
+
 
 bool writeback_t::sync(sync_callback_t *callback) {
     cache->assert_thread();

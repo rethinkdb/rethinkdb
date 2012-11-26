@@ -48,7 +48,7 @@ public:
 
     class keepalive_callback_t {
     public:
-        virtual ~keepalive_callback_t() { };
+        virtual ~keepalive_callback_t() { }
         virtual void keepalive() = 0;
     };
 

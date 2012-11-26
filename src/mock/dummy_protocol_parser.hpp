@@ -2,6 +2,8 @@
 #ifndef MOCK_DUMMY_PROTOCOL_PARSER_HPP_
 #define MOCK_DUMMY_PROTOCOL_PARSER_HPP_
 
+#include <set>
+
 #include "clustering/administration/namespace_interface_repository.hpp"
 #include "clustering/administration/namespace_metadata.hpp"
 #include "http/http.hpp"

@@ -61,8 +61,15 @@ public:
 
     class local_buf_t : public intrusive_list_node_t<local_buf_t> {
     public:
-        local_buf_t()
-            : last_patch_materialized_(0), needs_flush_(false), dirty(false), recency_dirty(false) {}
+        local_buf_t();
+        
+        /* reset() resets the local_buf_t to its factory settings.
+        This is usually called once by the constructor.
+        However, due to a peculiarity of how snapshots interact with the deletion of blocks
+        and the writeback process (as of 11/20/2012), new blocks can sometimes be assigned a block id
+        for which a local_buf_t still exists. In that case, the local_buf_t has to be reset ot its initial
+        configuration. This process is currently triggered by mc_inner_buf_t::allocate(). */ 
+        void reset();
 
         void set_dirty(bool _dirty = true);
         bool get_dirty() const { return dirty; }
