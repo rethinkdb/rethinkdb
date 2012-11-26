@@ -51,7 +51,7 @@ $(JS_BUILD_DIR)/demo-server.js: $(JS_BUILD_DIR)/rethinkdb/query_language.pb.js $
 		--output_file=$(JS_BUILD_DIR)/demo-server.js
 
 test: $(JS_BUILD_DIR)/demo-server.js $(JS_BUILD_DIR)/rethinkdb.js test.html test.coffee
-	mkdir -p $(TEST_DIR)
+	mkdir -p $(TEST_DIR)/rethinkdb
 	coffee -p test.coffee > $(TEST_DIR)/test.js
 	cp test.html $(TEST_DIR)
 	cp style.css $(TEST_DIR)
@@ -60,6 +60,9 @@ test: $(JS_BUILD_DIR)/demo-server.js $(JS_BUILD_DIR)/rethinkdb.js test.html test
 	cp underscore-min.js $(TEST_DIR)
 	cp jquery-1.8.2.min.js $(TEST_DIR)
 	cp $(JS_BUILD_DIR)/demo-server.js $(TEST_DIR)
+	cp test-driver.js $(TEST_DIR)
+	cp test2.html $(TEST_DIR)/test2.html
+	cp test2.js $(TEST_DIR)/test2.js
 
 clean:
 	rm -rf $(BUILD_DIR)

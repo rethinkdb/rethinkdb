@@ -247,7 +247,7 @@ class DemoServer
                 binds = {}
                 for bind in letM.bindsArray()
                     binds[bind.getVar()] = @evaluateTerm bind.getTerm()
-                @evaluateWith binds letM.getExpr()
+                @evaluateWith binds, letM.getExpr()
             when Term.TermType.CALL
                 @evaluateCall term.getCall()
             when Term.TermType.IF
@@ -331,7 +331,7 @@ class DemoServer
             when Builtin.BuiltinType.ARRAYAPPEND
                 args[0].append args[1]
             when Builtin.BuiltinType.SLICE
-                args[0].asArray().slice (@evaluateTerm args[1]), ((@evaluateTerm args[2]) || undefined)
+                args[0].slice(args[1].asJSON(), args[2]?.asJSON() || undefined)
             when Builtin.BuiltinType.ADD
                 new RDBPrimitive args.reduce (a,b)->a.add b
             when Builtin.BuiltinType.SUBTRACT
@@ -360,17 +360,17 @@ class DemoServer
                     new RDBArray result.asArray().reverse()
                 return result
             when Builtin.BuiltinType.DISTINCT
-                arg[0].distinct()
+                args[0].distinct()
             when Builtin.BuiltinType.LENGTH
-                new RDBPrimitive arg[0].asArray().length
+                args[0].count()
             when Builtin.BuiltinType.UNION
-                new RDBArray (arg[0].asArray().concat arg[1].asArray())
+                args[0].union(args[1])
             when Builtin.BuiltinType.NTH
-                (arg[0].asArray()[(@evaluateTerm arg[1]).asJSON])
+                (args[0].asArray()[args[1].asJSON()])
             when Builtin.BuiltinType.STREAMTOARRAY
-                arg[0] # This is a meaningless function for us
+                args[0] # This is a meaningless function for us
             when Builtin.BuiltinType.ARRAYTOSTREAM
-                arg[0] # This is a meaningless function for us
+                args[0] # This is a meaningless function for us
             when Builtin.BuiltinType.REDUCE
                 throw new RuntimeError "Not implemented"
             when Builtin.BuiltinType.GROUPEDMAPREDUCE

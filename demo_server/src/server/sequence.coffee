@@ -16,16 +16,23 @@ class RDBSequence extends RDBJson
     asArray: ->
         throw new Error "Abstract method"
 
+    count: -> new RDBPrimitive @asArray().length
+
+    union: (other) -> new RDBArray @asArray().concat other.asArray()
+
+    slice: (left, right) ->
+        new RDBArray @asArray().slice left, right
+
     orderBy: (k) ->
         new RDBArray @asArray().sort (a,b) -> a[k].lt(b[k])
 
     distinct: ->
-        sorted = @asArray.sort (a,b) -> a < b
+        sorted = @asArray().sort (a,b) -> a < b
         distinctd = [sorted[0]]
         for v in sorted[1..]
-            unless (v.eq distinctd[distinctd.length-1]).asJSON()
+            unless (v.eq distinctd[distinctd.length-1])
                 distinctd.push v
-        return distinctd
+        return new RDBArray distinctd
 
     map: (mapping) ->
         new RDBArray @asArray().map (v) -> mapping(v)
