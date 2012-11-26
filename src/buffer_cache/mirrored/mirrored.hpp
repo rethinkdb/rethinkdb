@@ -75,6 +75,7 @@ class mc_inner_buf_t : public evictable_t,
     // Create an entirely new buf
     static mc_inner_buf_t *allocate(mc_cache_t *cache, version_id_t snapshot_version, repli_timestamp_t recency_timestamp);
     mc_inner_buf_t(mc_cache_t *cache, block_id_t block_id, version_id_t snapshot_version, repli_timestamp_t recency_timestamp);
+    
     ~mc_inner_buf_t();
 
     // Loads data from the serializer.
@@ -96,6 +97,10 @@ class mc_inner_buf_t : public evictable_t,
 private:
     // Helper function for inner_buf construction from an existing block
     void replay_patches();
+    
+    // Initializes an mc_inner_buf_t for use with a new block.
+    // This is used by allocate() and the new buf constructor mc_inner_buf_t(cache, block_id, snapshot_version, recency_timestamp)
+    void initialize_to_new(version_id_t snapshot_version, repli_timestamp_t recency_timestamp);
 
     // Our block's block id.
     block_id_t block_id;
