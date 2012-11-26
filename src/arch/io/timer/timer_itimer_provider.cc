@@ -48,7 +48,7 @@ timer_itimer_provider_t::timer_itimer_provider_t(linux_event_queue_t *queue,
     // TODO(OSX) Actually support timing things.
     // struct itimerval value;
     // value.it_interval.tv_sec = secs;
-    // value.it_interval.tv_usec = nsecs;
+    // value.it_interval.tv_usec = nsecs / 1000;
     // value.it_value = value.it_interval;
 
     // struct itimerval old_value;

@@ -5,6 +5,7 @@
 #include <signal.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/time.h>
 
 #include "arch/barrier.hpp"
 #include "arch/runtime/event_queue.hpp"
@@ -105,7 +106,7 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         action.sa_sigaction = &linux_thread_pool_t::sigsegv_handler;
         r = sigaction(SIGSEGV, &action, NULL);
         guarantee_err(r == 0, "Could not install SEGV handler");
-#endif
+#endif  // VALGRIND
 
         // First thread should initialize generic_blocker_pool before the start barrier
         if (tdata->initial_message) {
@@ -159,8 +160,6 @@ void linux_thread_pool_t::enable_coroutine_summary() {
 #endif
 
 void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_message) {
-    int res;
-
     do_shutdown = false;
 
     // Start child threads
@@ -174,7 +173,7 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
         // The initial message gets sent to thread zero.
         tdata->initial_message = (i == 0) ? initial_message : NULL;
 
-        res = pthread_create(&pthreads[i], NULL, &start_thread, tdata);
+        int res = pthread_create(&pthreads[i], NULL, &start_thread, tdata);
         guarantee(res == 0, "Could not create thread");
 
         if (do_set_affinity) {
@@ -200,13 +199,17 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
     // be a good thing to do before distributing the RethinkDB IO layer, but it's
     // not really important.
 
+#if __MACH__
+    const int ITIMER_USEC = 5;
+#endif
+
     linux_thread_pool_t::thread_pool = this;   // So signal handlers can find us
     {
         struct sigaction sa;
         memset(&sa, 0, sizeof(struct sigaction));
         sa.sa_handler = &linux_thread_pool_t::interrupt_handler;
 
-        res = sigaction(SIGTERM, &sa, NULL);
+        int res = sigaction(SIGTERM, &sa, NULL);
         guarantee_err(res == 0, "Could not install TERM handler");
 
         res = sigaction(SIGINT, &sa, NULL);
@@ -217,12 +220,23 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
         sa.sa_handler = &linux_thread_pool_t::alrm_handler;
         res = sigaction(SIGALRM, &sa, NULL);
         guarantee_err(res == 0, "Could not install ALRM handler");
+
+        // TODO(OSX) Here we hard-code the number of seconds.
+        struct itimerval value;
+        value.it_interval.tv_sec = 0;
+        value.it_interval.tv_usec = ITIMER_USEC;
+        value.it_value = value.it_interval;
+        struct itimerval old_value;
+        res = setitimer(ITIMER_REAL, &value, &old_value);
+        guarantee_err(res == 0, "setitimer call failed");
+        guarantee(old_value.it_value.tv_sec == 0 && old_value.it_value.tv_usec == 0);
+        guarantee(old_value.it_interval.tv_sec == 0 && old_value.it_interval.tv_usec == 0);
 #endif
     }
 
     // Wait for order to shut down
 
-    res = pthread_mutex_lock(&shutdown_cond_mutex);
+    int res = pthread_mutex_lock(&shutdown_cond_mutex);
     guarantee(res == 0, "Could not lock shutdown cond mutex");
 
     while (!do_shutdown) {   // while loop guards against spurious wakeups
@@ -248,6 +262,15 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
 
         // TODO(OSX) inspect this
 #if __MACH__
+        struct itimerval value;
+        value.it_interval.tv_sec = 0;
+        value.it_interval.tv_usec = 0;
+        value.it_value = value.it_interval;
+        struct itimerval old_value;
+        res = setitimer(ITIMER_REAL, &value, &old_value);
+        guarantee_err(res == 0, "setitimer call failed");
+        guarantee(old_value.it_interval.tv_sec == 0 && old_value.it_interval.tv_usec == ITIMER_USEC);
+
         res = sigaction(SIGALRM, &sa, NULL);
         guarantee_err(res == 0, "Could not remove ALRM handler");
 #endif
