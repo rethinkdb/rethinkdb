@@ -109,9 +109,9 @@ void poll_event_queue_t::run() {
         // let the signal handlers get called, and then block them
         // right back. What a sensible fucking system.
         res = pthread_sigmask(SIG_SETMASK, &sigmask_restricted, NULL);
-        guarantee_err(res == 0, "Could not unblock signals");
+        guarantee_xerr(res == 0, res, "Could not unblock signals");
         res = pthread_sigmask(SIG_SETMASK, &sigmask_full, NULL);
-        guarantee_err(res == 0, "Could not block signals");
+        guarantee_xerr(res == 0, res, "Could not block signals");
 #endif
 
         parent->pump();
