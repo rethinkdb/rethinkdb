@@ -34,10 +34,10 @@ linux_thread_pool_t::linux_thread_pool_t(int worker_threads, bool _do_set_affini
     int res;
 
     res = pthread_cond_init(&shutdown_cond, NULL);
-    guarantee(res == 0, "Could not create shutdown cond");
+    guarantee_xerr(res == 0, res, "Could not create shutdown cond");
 
     res = pthread_mutex_init(&shutdown_cond_mutex, NULL);
-    guarantee(res == 0, "Could not create shutdown cond mutex");
+    guarantee_xerr(res == 0, res, "Could not create shutdown cond mutex");
 }
 
 linux_thread_message_t *linux_thread_pool_t::set_interrupt_message(linux_thread_message_t *m) {
@@ -71,7 +71,7 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         guarantee_err(res == 0, "Could not remove SIGSEGV from sigmask");
 
         res = pthread_sigmask(SIG_SETMASK, &sigmask, NULL);
-        guarantee_err(res == 0, "Could not block signal");
+        guarantee_xerr(res == 0, res, "Could not block signal");
     }
 
     thread_data_t *tdata = reinterpret_cast<thread_data_t *>(arg);
@@ -174,7 +174,7 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
         tdata->initial_message = (i == 0) ? initial_message : NULL;
 
         int res = pthread_create(&pthreads[i], NULL, &start_thread, tdata);
-        guarantee(res == 0, "Could not create thread");
+        guarantee_xerr(res == 0, res, "Could not create thread");
 
         if (do_set_affinity) {
             // TODO(OSX) More cleanly get rid of the thread affinity option in OS X, or support it in OS X.
@@ -184,8 +184,9 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
             cpu_set_t mask;
             CPU_ZERO(&mask);
             CPU_SET(i % ncpus, &mask);
+            // TODO(OSX) check linux man page about return value and error code
             res = pthread_setaffinity_np(pthreads[i], sizeof(cpu_set_t), &mask);
-            guarantee(res == 0, "Could not set thread affinity");
+            guarantee_xerr(res == 0, res, "Could not set thread affinity");
 #endif
         }
     }
@@ -237,15 +238,15 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
     // Wait for order to shut down
 
     int res = pthread_mutex_lock(&shutdown_cond_mutex);
-    guarantee(res == 0, "Could not lock shutdown cond mutex");
+    guarantee_xerr(res == 0, res, "Could not lock shutdown cond mutex");
 
     while (!do_shutdown) {   // while loop guards against spurious wakeups
         res = pthread_cond_wait(&shutdown_cond, &shutdown_cond_mutex);
-        guarantee(res == 0, "Could not wait for shutdown cond");
+        guarantee_xerr(res == 0, res, "Could not wait for shutdown cond");
     }
 
     res = pthread_mutex_unlock(&shutdown_cond_mutex);
-    guarantee(res == 0, "Could not unlock shutdown cond mutex");
+    guarantee_xerr(res == 0, res, "Could not unlock shutdown cond mutex");
 
     // Remove interrupt handlers
 
@@ -296,7 +297,7 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
         // Wait for child thread to actually exit
 
         res = pthread_join(pthreads[i], NULL);
-        guarantee(res == 0, "Could not join thread");
+        guarantee_xerr(res == 0, res, "Could not join thread");
     }
 
 #ifndef NDEBUG
@@ -382,25 +383,25 @@ void linux_thread_pool_t::shutdown_thread_pool() {
     // shut down.
 
     res = pthread_mutex_lock(&shutdown_cond_mutex);
-    guarantee(res == 0, "Could not lock shutdown cond mutex");
+    guarantee_xerr(res == 0, res, "Could not lock shutdown cond mutex");
 
     do_shutdown = true;
 
     res = pthread_cond_signal(&shutdown_cond);
-    guarantee(res == 0, "Could not signal shutdown cond");
+    guarantee_xerr(res == 0, res, "Could not signal shutdown cond");
 
     res = pthread_mutex_unlock(&shutdown_cond_mutex);
-    guarantee(res == 0, "Could not unlock shutdown cond mutex");
+    guarantee_xerr(res == 0, res, "Could not unlock shutdown cond mutex");
 }
 
 linux_thread_pool_t::~linux_thread_pool_t() {
     int res;
 
     res = pthread_cond_destroy(&shutdown_cond);
-    guarantee(res == 0, "Could not destroy shutdown cond");
+    guarantee_xerr(res == 0, res, "Could not destroy shutdown cond");
 
     res = pthread_mutex_destroy(&shutdown_cond_mutex);
-    guarantee(res == 0, "Could not destroy shutdown cond mutex");
+    guarantee_xerr(res == 0, res, "Could not destroy shutdown cond mutex");
 }
 
 linux_thread_t::linux_thread_t(linux_thread_pool_t *parent_pool, int thread_id)
@@ -413,7 +414,8 @@ linux_thread_t::linux_thread_t(linux_thread_pool_t *parent_pool, int thread_id)
 #endif
 {
     // Initialize the mutex which synchronizes access to the do_shutdown variable
-    pthread_mutex_init(&do_shutdown_mutex, NULL);
+    int res = pthread_mutex_init(&do_shutdown_mutex, NULL);
+    guarantee_xerr(res == 0, res, "could not initialize do_shutdown_mutex");
 
     // Watch an eventfd for shutdown notifications
     queue.watch_resource(shutdown_notify_event.get_notify_fd(), poll_event_in, this);
@@ -428,7 +430,8 @@ linux_thread_t::~linux_thread_t() {
     coro_runtime.get_coroutine_counts(coroutine_counts_at_shutdown);
 #endif
 
-    guarantee(pthread_mutex_destroy(&do_shutdown_mutex) == 0);
+    int res = pthread_mutex_destroy(&do_shutdown_mutex);
+    guarantee_xerr(res == 0, res, "could not destroy do_shutdown_mutex");
 }
 
 void linux_thread_t::pump() {
@@ -445,9 +448,11 @@ void linux_thread_t::on_event(int events) {
 }
 
 bool linux_thread_t::should_shut_down() {
-    pthread_mutex_lock(&do_shutdown_mutex);
+    int res = pthread_mutex_lock(&do_shutdown_mutex);
+    guarantee_xerr(res == 0, res, "could not lock do_shutdown_mutex");
     bool result = do_shutdown;
-    pthread_mutex_unlock(&do_shutdown_mutex);
+    res = pthread_mutex_unlock(&do_shutdown_mutex);
+    guarantee_xerr(res == 0, res, "could not unlock do_shutdown_mutex");
     return result;
 }
 
@@ -456,11 +461,13 @@ void linux_thread_t::initiate_shut_down(std::map<std::string, size_t> *coroutine
 #else
 void linux_thread_t::initiate_shut_down() {
 #endif
-    pthread_mutex_lock(&do_shutdown_mutex);
+    int res = pthread_mutex_lock(&do_shutdown_mutex);
+    guarantee_xerr(res == 0, res, "could not lock do_shutdown_mutex");
 #ifndef NDEBUG
     coroutine_counts_at_shutdown = coroutine_counts;
 #endif
     do_shutdown = true;
     shutdown_notify_event.write(1);
-    pthread_mutex_unlock(&do_shutdown_mutex);
+    res = pthread_mutex_unlock(&do_shutdown_mutex);
+    guarantee_xerr(res == 0, res, "could not unlock do_shutdown_mutex");
 }
