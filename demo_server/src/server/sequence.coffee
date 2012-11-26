@@ -17,7 +17,15 @@ class RDBSequence extends RDBJson
         throw new Error "Abstract method"
 
     orderBy: (k) ->
-        new RDBArray @asArray().sort (a,b) -> a[k] < b[k]
+        new RDBArray @asArray().sort (a,b) -> a[k].lt(b[k])
+
+    distinct: ->
+        sorted = @asArray.sort (a,b) -> a < b
+        distinctd = [sorted[0]]
+        for v in sorted[1..]
+            unless (v.eq distinctd[distinctd.length-1]).asJSON()
+                distinctd.push v
+        return distinctd
 
     map: (mapping) ->
         new RDBArray @asArray().map (v) -> mapping(v)
@@ -25,10 +33,18 @@ class RDBSequence extends RDBJson
     concatMap: (mapping) ->
         new RDBArray Array::concat.apply [], @asArray().map((v) -> mapping(v).asArray())
 
-    filter: (predicate) ->
-        new RDBArray @asArray().filter (v) -> predicate(v).asJSON()
+    filter: (predicate) -> new RDBArray @asArray().filter (v) -> predicate(v).asJSON()
 
-    between: -> throw new RuntimeError "Not implemented"
+    between: (attr, lowerBound, upperBound) ->
+        result = []
+        for v,i in @orderBy(attr)
+            if lowerBound.le(v) and upperBound.ge(v)
+                result.push(v)
+        return new RDBArray result
+
+    update: (mapping) -> @asArray().map (v) -> v.update mapping
+    replace: (mapping) -> @asArray().map (v) -> v.replace mapping
+    del: -> @asArray().map (v) -> v.del
 
 class RDBArray extends RDBSequence
     constructor: (arr) -> @data = arr

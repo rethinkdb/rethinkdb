@@ -55,6 +55,7 @@ test: $(JS_BUILD_DIR)/demo-server.js $(JS_BUILD_DIR)/rethinkdb.js test.html test
 	coffee -p test.coffee > $(TEST_DIR)/test.js
 	cp test.html $(TEST_DIR)
 	cp style.css $(TEST_DIR)
+	cp sha1.js $(TEST_DIR)
 	cp $(JS_BUILD_DIR)/rethinkdb.js $(TEST_DIR)
 	cp underscore-min.js $(TEST_DIR)
 	cp jquery-1.8.2.min.js $(TEST_DIR)

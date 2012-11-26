@@ -9,6 +9,8 @@ goog.require('Query')
 
 # Local JavaScript server
 class DemoServer
+    implicitVarId = '__IMPLICIT_VAR__'
+
     constructor: ->
         #BC: The way you construct an empty object and then pass it into
         #    wrapper classes for each protobuf class is very weird.
@@ -43,7 +45,7 @@ class DemoServer
 
     #BC: The server should log, yes, but abstracting log allows us to
     #    turn it off, redirect it from the console, add timestamps, etc.
-    log: (msg) -> console.log msg
+    log: (msg) -> #console.log msg
 
     print_all: ->
         console.log @local_server
@@ -160,11 +162,17 @@ class DemoServer
     evaluateWriteQuery: (writeQuery) ->
         switch writeQuery.getType()
             when WriteQuery.WriteQueryType.UPDATE
-                throw new RuntimeError "Not Implemented"
+                update = writeQuery.getUpdate()
+                mapping = @evaluateMapping update.getMapping()
+                view = update.getView()
+                (@evaluateTerm view).update(mapping)
             when WriteQuery.WriteQueryType.DELETE
-                throw new RuntimeError "Not Implemented"
+                (@evaluateTerm writeQuery.getDelete().getView()).del()
             when WriteQuery.WriteQueryType.MUTATE
-                throw new RuntimeError "Not Implemented"
+                mutate = writeQuery.getMutate()
+                mapping = @evaluateMapping mutate.getMapping()
+                view = mutate.getView()
+                (@evaluateTerm view).replace(mapping)
             when WriteQuery.WriteQueryType.INSERT
                 @evaluateInsert writeQuery.getInsert()
             when WriteQuery.WriteQueryType.FOREACH
@@ -174,26 +182,57 @@ class DemoServer
                 table = @getTable pointUpdate.getTableRef()
                 record = table.get (@evaluateTerm pointUpdate.getKey()).asJSON()
                 mapping = @evaluateMapping pointUpdate.getMapping()
-                table.insert (record.merge mapping record), true
+                record.update mapping
                 return {updated:1, skipped:0, errors: 0}
             when WriteQuery.WriteQueryType.POINTDELETE
-                throw new RuntimeError "Not Implemented"
+                pointDelete = writeQuery.getPointDelete()
+                table = @getTable pointDelete.getTableRef()
+                record = table.get (@evaluateTerm pointDelete.getKey()).asJSON()
+                record.del()
+                return {deleted: 1, skipped:0, errors:0}
             when WriteQuery.WriteQueryType.POINTMUTATE
-                throw new RuntimeError "Not Implemented"
+                pointMutate = writeQuery.getPointMutate()
+                table = @getTable pointMutate.getTableRef()
+                record = table.get (@evaluateTerm pointMutate.getKey()).asJSON()
+
+                if record.isNull() then throw new RuntimeError "Key not found"
+
+                mapping = @evaluateMapping pointMutate.getMapping()
+                record.replace mapping
+                return {modified:1, inserted:0, deleted:0, errors: 0}
 
     evaluateInsert: (insert) ->
         table = @getTable insert.getTableRef()
         upsert = insert.getOverwrite()
+
         inserted = 0
+        errors = 0
+        generated_keys = []
+        first_error = null
+
         for term in insert.termsArray()
-            inserted += table.insert (@evaluateTerm term), upsert
-        return {inserted: inserted}
+            {error, generatedKey} = table.insert (@evaluateTerm term), upsert
+            if generatedKey? then generated_keys.push generatedKey
+            if error?
+                errors += 1
+                unless first_error then first_error = error
+            else
+                inserted += 1
+
+        result = {inserted: inserted, errors: errors}
+        unless generated_keys.length is 0
+            result['generated_keys'] = generated_keys
+        if first_error?
+            result['first_error'] = first_error
+
+        return result
 
     evaluateMapping: (mapping) ->
         arg = mapping.getArg()
         body = mapping.getBody()
         (val) =>
-            binds = {"__IMPLICIT_VAR__": arguments[0]}
+            binds = {}
+            binds[implicitVarId] = arguments[0]
             binds[arg] = val
             @evaluateWith binds, body
 
@@ -212,7 +251,11 @@ class DemoServer
             when Term.TermType.CALL
                 @evaluateCall term.getCall()
             when Term.TermType.IF
-                throw new RuntimeError "Not implemented"
+                ifM = term.getIf()
+                if (@evaluateTerm ifM.getTest()).asJSON()
+                    @evaluateTerm ifM.getTrueBranch()
+                else
+                    @evaluateTerm ifM.getFalseBranch()
             when Term.TermType.ERROR
                 throw new RuntimeError term.getError()
 
@@ -241,14 +284,14 @@ class DemoServer
 
                 pkVal = @evaluateTerm gbk.getKey()
 
-                table.get(pkVal.asJSON())
+                return table.get(pkVal.asJSON())
 
             when Term.TermType.TABLE
                 @getTable(term.getTable().getTableRef())
             when Term.TermType.JAVASCRIPT
                 throw new RuntimeError "Not Implemented"
             when Term.TermType.IMPLICIT_VAR
-                @curScope.lookup "__IMPLICIT_VAR__"
+                @curScope.lookup implicitVarId
             else throw new RuntimeError "Unknown term type"
 
     evaluateWith: (binds, term) ->
@@ -274,21 +317,21 @@ class DemoServer
             when Builtin.BuiltinType.GETATTR
                 args[0][builtin.getAttr()]
             when Builtin.BuiltinType.IMPLICIT_GETATTR
-                throw new RuntimeError "Not implemented"
+                (@curScope.lookup implicitVarId)[builtin.getAttr()]
             when Builtin.BuiltinType.HASATTR
                 new RDBPrimitive args[0][builtin.getAttr()]?
             when Builtin.BuiltinType.IMPLICIT_HASATTR
-                throw new RuntimeError "Not implemented"
+                (@curScope.lookup implicitVarId)[builtin.getAttr()]?
             when Builtin.BuiltinType.PICKATTRS
                 args[0].pick builtin.attrsArray()
             when Builtin.BuiltinType.IMPLICIT_PICKATTRS
-                throw new RuntimeError "Not implemented"
+                (@curScope.lookup implicitVarId).pick builtin.attrsArray()
             when Builtin.BuiltinType.MAPMERGE
                 args[0].merge args[1]
             when Builtin.BuiltinType.ARRAYAPPEND
                 args[0].append args[1]
             when Builtin.BuiltinType.SLICE
-                throw new RuntimeError "Not implemented"
+                args[0].asArray().slice (@evaluateTerm args[1]), ((@evaluateTerm args[2]) || undefined)
             when Builtin.BuiltinType.ADD
                 new RDBPrimitive args.reduce (a,b)->a.add b
             when Builtin.BuiltinType.SUBTRACT
@@ -317,17 +360,17 @@ class DemoServer
                     new RDBArray result.asArray().reverse()
                 return result
             when Builtin.BuiltinType.DISTINCT
-                throw new RuntimeError "Not implemented"
+                arg[0].distinct()
             when Builtin.BuiltinType.LENGTH
-                throw new RuntimeError "Not implemented"
+                new RDBPrimitive arg[0].asArray().length
             when Builtin.BuiltinType.UNION
-                throw new RuntimeError "Not implemented"
+                new RDBArray (arg[0].asArray().concat arg[1].asArray())
             when Builtin.BuiltinType.NTH
-                throw new RuntimeError "Not implemented"
+                (arg[0].asArray()[(@evaluateTerm arg[1]).asJSON])
             when Builtin.BuiltinType.STREAMTOARRAY
-                throw new RuntimeError "Not implemented"
+                arg[0] # This is a meaningless function for us
             when Builtin.BuiltinType.ARRAYTOSTREAM
-                throw new RuntimeError "Not implemented"
+                arg[0] # This is a meaningless function for us
             when Builtin.BuiltinType.REDUCE
                 throw new RuntimeError "Not implemented"
             when Builtin.BuiltinType.GROUPEDMAPREDUCE
@@ -338,8 +381,9 @@ class DemoServer
                 new RDBPrimitive args.reduce (a,b) -> a.asJSON() && b.asJSON()
             when Builtin.BuiltinType.RANGE
                 range = builtin.getRange()
-                console.log args[0]
-                args[0].between range.getAttrname(), range.getLowerbound(), range.getUpperbound()
+                args[0].between range.getAttrname(),
+                                (@evaluateTerm range.getLowerbound()),
+                                (@evaluateTerm range.getUpperbound())
             when Builtin.BuiltinType.IMPLICIT_WITHOUT
                 throw new RuntimeError "Not implemented"
             when Builtin.BuiltinType.WITHOUT

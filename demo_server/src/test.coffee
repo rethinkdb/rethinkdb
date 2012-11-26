@@ -280,7 +280,8 @@ class Tests
                 if data?
                     @results.push data
                     return true
-                @display (demo_server.dbs?.test.getTable('test').get("i_am_a_string")['age'] is 30 and demo_server.dbs.getTable('test').get("i_am_a_string")['key'] is 321), query, @results
+                record = demo_server.dbs?.test.getTable('test').get("i_am_a_string").asJSON()
+                @display (record['age'] is 30 and record['key'] is 321), query, @results
                 that.index++
                 that.test()
                 return false
@@ -770,7 +771,7 @@ $(document).ready ->
         },
         {
             state: deep_copy state['1']
-            query: 'r.db("test").table("test").orderBy("-id").run()'
+            query: 'r.db("test").table("test").orderBy(r.desc("id")).run()'
             callback_name: 'expect_result'
             expected_result: [{id: 3}, {id: 2}, {id:1}]
         },

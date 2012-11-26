@@ -3,6 +3,8 @@ goog.provide('rethinkdb.server.RDBJson')
 class RDBJson
     abstract = new Error "Abstract method"
 
+    isNull: -> (@ instanceof RDBPrimitive and @asJSON() is null)
+
     asJSON: -> throw abstract
     copy: -> throw abstract
 
@@ -21,7 +23,27 @@ class RDBJson
     div: (other) -> throw abstract
     mod: (other) -> throw abstract
 
-class RDBPrimitive
+# Kind of a psudo class, it only supports one static method that mixes in selection functionality
+class RDBSelection
+    makeSelection: (obj, table) ->
+        proto =
+            update: (mapping) ->
+                neu = @.merge mapping @
+                table.insert neu, true
+
+            replace: (mapping) ->
+                neu = mapping @
+                table.insert neu, true
+
+            del: ->
+                table.del @[table.primaryKey]
+
+        proto.__proto__ = obj.__proto__
+        obj.__proto__ = proto
+
+        return obj
+
+class RDBPrimitive extends RDBJson
     constructor: (val) -> @data = val
     asJSON: -> @data
     copy: -> new RDBPrimitive @data
