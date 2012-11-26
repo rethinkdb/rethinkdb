@@ -23,17 +23,20 @@ public:
 
     spinlock_t() {
 #if PTHREAD_HAS_SPINLOCK
-        pthread_spin_init(&l, PTHREAD_PROCESS_PRIVATE);
+        // TODO(OSX) check that pthread_spin_* functions used in this file return error codes.
+        int res = pthread_spin_init(&l, PTHREAD_PROCESS_PRIVATE);
 #else
-        pthread_mutex_init(&l, NULL);
+        int res = pthread_mutex_init(&l, NULL);
 #endif
+        guarantee_xerr(res == 0, res, "could not initialize spinlock");
     }
     ~spinlock_t() {
 #if PTHREAD_HAS_SPINLOCK
-        pthread_spin_destroy(&l);
+        int res = pthread_spin_destroy(&l);
 #else
-        pthread_mutex_destroy(&l);
+        int res = pthread_mutex_destroy(&l);
 #endif
+        guarantee_xerr(res == 0, res, "could not destroy spinlock");
     }
 
 private:
@@ -43,7 +46,7 @@ private:
 #else
         int res = pthread_mutex_lock(&l);
 #endif
-        guarantee_err(res == 0, "could not lock spin lock");
+        guarantee_xerr(res == 0, res, "could not lock spin lock");
     }
     void unlock() {
 #if PTHREAD_HAS_SPINLOCK
@@ -51,7 +54,7 @@ private:
 #else
         int res = pthread_mutex_unlock(&l);
 #endif
-        guarantee_err(res == 0, "could not unlock spin lock");
+        guarantee_xerr(res == 0, res, "could not unlock spin lock");
     }
 
 #if PTHREAD_HAS_SPINLOCK
