@@ -227,6 +227,16 @@ class DemoServer
 
         return result
 
+    evaluateReduction: (reduction) ->
+        arg1 = reduction.getVar1()
+        arg2 = reduction.getVar2()
+        body = reduction.getBody()
+        (val1, val2) =>
+            binds = {}
+            binds[arg1] = val1
+            binds[arg2] = val2
+            @evaluateWith binds, body
+
     evaluateMapping: (mapping) ->
         arg = mapping.getArg()
         body = mapping.getBody()
@@ -372,7 +382,9 @@ class DemoServer
             when Builtin.BuiltinType.ARRAYTOSTREAM
                 args[0] # This is a meaningless function for us
             when Builtin.BuiltinType.REDUCE
-                throw new RuntimeError "Not implemented"
+                base = @evaluateTerm builtin.getReduce().getBase()
+                reduction = @evaluateReduction builtin.getReduce()
+                args[0].reduce base, reduction
             when Builtin.BuiltinType.GROUPEDMAPREDUCE
                 throw new RuntimeError "Not implemented"
             when Builtin.BuiltinType.ANY

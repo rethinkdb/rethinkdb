@@ -37,6 +37,9 @@ class RDBSequence extends RDBJson
     map: (mapping) ->
         new RDBArray @asArray().map (v) -> mapping(v)
 
+    reduce: (base, reduction) ->
+        @asArray().reduce ((acc, v) -> reduction(acc, v)), base
+
     concatMap: (mapping) ->
         new RDBArray Array::concat.apply [], @asArray().map((v) -> mapping(v).asArray())
 
