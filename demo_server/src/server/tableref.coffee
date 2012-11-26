@@ -157,6 +157,7 @@ class TableRef
         order_by_keys = args.order_by_keys
         order_by_asc = args.order_by_asc
 
+
         db_name = @data.getDbName()
         table_name = @data.getTableName()
 
@@ -182,7 +183,17 @@ class TableRef
         # All green, we can get the data
         response = new Response
         results = []
+        skipped = 0
+        added = 0
+
         for id, document of server[db_name][table_name]['data']
+            if skip_value? and skipped < skip_value
+                skipped++
+                continue
+
+            if limit_value? and added >= limit_value
+                break
+
             if mapping?
                 evaluation = mapping.evaluate
                     server: server
@@ -191,14 +202,27 @@ class TableRef
                 results.push evaluation.getResponse()
                 #response.addResponse evaluation.getResponse()
             else
-                results.push document
+                document = _.extend {}, document
+                results.push JSON.stringify document
                 #response.addResponse JSON.stringify document
+            
+            added++
 
         if order_by_keys?
-            success = Helpers.prototype.sort results, order_by_keys, order_by_asc
-            if success is false
-                return false
-                #TODO
+            array_to_sort = []
+            for result in results
+                array_to_sort.push JSON.parse result
+
+            try
+                Helpers.prototype.sort array_to_sort, order_by_keys, order_by_asc
+                results = []
+                for result in array_to_sort
+                    results.push result
+            catch error
+                response.setStatusCode 103
+                response.setErrorMessage error
+                return response
+        
         for result in results
             response.addResponse result
         response.setStatusCode 3

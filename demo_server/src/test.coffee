@@ -45,6 +45,25 @@ state =
                         key: 3
                 options:
                     'primary_key': 'id'
+    3:
+        test:
+            test:
+                data:
+                    "N2":
+                        id: 2
+                        key: 3
+                    "N5":
+                        id: 5
+                        key: 3
+                    "N4":
+                        id: 4
+                        key: 1
+                    "N1":
+                        id: 1
+                        key: 1
+                    "N3":
+                        id: 3
+                        key: 2
 
 class Tests
     results: []
@@ -763,17 +782,42 @@ $(document).ready ->
             callback_name: 'expect_result'
             expected_result: [[1, 2, 3]]
         },
+
         {
             state: deep_copy state['1']
-            query: 'r.db("test").table("test").orderBy("id").run()'
+            query: 'r.db("test").table("test").skip(2).run()'
             callback_name: 'expect_result'
-            expected_result: [{id:1}, {id:2}, {id:3}]
+            expected_result: [{id: 3}]
         },
         {
             state: deep_copy state['1']
-            query: 'r.db("test").table("test").orderBy(r.desc("id")).run()'
+            query: 'r.db("test").table("test").limit(2).run()'
             callback_name: 'expect_result'
-            expected_result: [{id: 3}, {id: 2}, {id:1}]
+            expected_result: [{id: 1}, {id:2}]
+        },
+        {
+            state: deep_copy state['1']
+            query: 'r.db("test").table("test").skip(1).limit(1).run()'
+            callback_name: 'expect_result'
+            expected_result: [{id:2}]
+        },
+        {
+            state: deep_copy state['1']
+            query: 'r.db("test").table("test").limit(1).skip(1).run()'
+            callback_name: 'expect_result'
+            expected_result: []
+        },
+        {
+            state: deep_copy state['3']
+            query: 'r.db("test").table("test").orderBy("key", "id").run()'
+            callback_name: 'expect_result'
+            expected_result: [{id:1,key:1},{id:4,key:1},{id:3,key:2},{id:2,key:3},{id:5,key:3}]
+        },
+        {
+            state: deep_copy state['3']
+            query: 'r.db("test").table("test").orderBy(r.desc("key"), r.asc("id")).run()'
+            callback_name: 'expect_result'
+            expected_result: [{id:2,key:3},{id:5,key:3},{id:3,key:2},{id:1,key:1},{id:4,key:1}]
         },
     ]
     tests = new Tests queries

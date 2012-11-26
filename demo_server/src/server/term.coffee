@@ -10,6 +10,8 @@ class Term
         builtin_args = args.builtin_args
         mapping = args.mapping
         var_args = args.var_args
+        skip_value = skip_value
+        limit_value = limit_value
 
         type = @data.getType()
         switch type
@@ -23,6 +25,8 @@ class Term
                     builtin: builtin
                     builtin_args: builtin_args
                     context: context
+                    skip_value: skip_value
+                    limit_value: limit_value
             #when 4 # IF
             #when 5 # ERROR
             #when 6 # NUMBER
@@ -40,6 +44,8 @@ class Term
                     builtin: builtin
                     builtin_args: builtin_args
                     context: context
+                    skip_value: skip_value
+                    limit_value: limit_value
             #when 14 # JAVASCRIPT
             #when 15 # IMPLICIT_VAR
 
@@ -51,6 +57,8 @@ class Term
         var_args = args.var_args
         order_by_keys = args.order_by_keys
         order_by_asc = args.order_by_asc
+        skip_value = args.skip_value
+        limit_value = args.limit_value
 
         type = @data.getType()
         switch type
@@ -74,6 +82,8 @@ class Term
                     var_args: var_args
                     order_by_keys: order_by_keys
                     order_by_asc: order_by_asc
+                    skip_value: skip_value
+                    limit_value: limit_value
 
             when 4 # IF
                 term_if = new TermIf @data.getIf()
@@ -93,12 +103,11 @@ class Term
                 response.setStatusCode 1
                 response.addResponse JSON.stringify @data.getValuestring()
                 return response
-            # Not yet used
-            # when '8' # JSON
-            #    response = new Response
-            #    response.setStatusCode 1
-            #    response.addResponse JSON.stringify @data.getJsonstring()
-            #    return response
+            when 8 # JSON
+                response = new Response
+                response.setStatusCode 1
+                response.addResponse @data.getJsonstring()
+                return response
             when 9 # BOOL
                 response = new Response
                 response.setStatusCode 1
@@ -115,6 +124,8 @@ class Term
                         context: context
                         mapping: mapping
                         var_args: var_args
+                        skip_value: skip_value
+                        limit_value: limit_value
                     result.push JSON.parse evaluation.getResponse()
                 response.addResponse JSON.stringify result
                 return response
@@ -129,6 +140,8 @@ class Term
                         context: context
                         mapping: mapping
                         var_args: var_args
+                        skip_value: skip_value
+                        limit_value: limit_value
                     result[new_var_term_tuple.get_key()] = JSON.parse(evaluation.getResponse())
                 response.addResponse JSON.stringify result
                 return response
@@ -149,6 +162,8 @@ class Term
                     var_args: var_args
                     order_by_keys: order_by_keys
                     order_by_asc: order_by_asc
+                    skip_value: skip_value
+                    limit_value: limit_value
 
             when 14 # JAVASCRIPT
                 response = new Response
@@ -171,6 +186,8 @@ class Term
         mapping = args.mapping
         var_args = args.var_argsa
         context = args.context
+        skip_value = args.skip_value
+        limit_value = args.limit_value
 
         type = @data.getType()
         switch type
@@ -196,12 +213,16 @@ class Term
                         new_term: new_term
                         mapping: mapping
                         var_args: var_args
+                        skip_value: skip_value
+                        limit_value: limit_value
                     if JSON.parse(evaluation.getResponse()) is true
                         term_evaluation = new_term.evaluate
                             server: server
                             context: context
                             mapping: mapping
                             var_args: var_args
+                            skip_value: skip_value
+                            limit_value: limit_value
                         result.push JSON.parse term_evaluation.getResponse()
                 response.addResponse JSON.stringify result
                 return response
@@ -217,6 +238,8 @@ class Term
                     upper_bound: upper_bound
                     mapping: mapping
                     var_args: var_args
+                    skip_value: skip_value
+                    limit_value: limit_value
             #when 14 # JAVASCRIPT
             #when 15 # IMPLICIT_VAR
 
@@ -228,6 +251,8 @@ class Term
         builtin = args.builtin
         builtin_args = args.builtin_args
         var_args = args.var_args
+        skip_value = args.skip_value
+        limit_value = args.limit_value
 
         type = @data.getType()
         switch type
@@ -243,6 +268,8 @@ class Term
                     builtin: builtin
                     builtin_args: builtin_args
                     var_args: var_args
+                    skip_value: skip_value
+                    limit_value: limit_value
             #when 4 # IF
             #when 5 # ERROR
             #when 6 # NUMBER
@@ -262,6 +289,8 @@ class Term
                     builtin_args: builtin_args
                     context: context
                     var_args: var_args
+                    skip_value: skip_value
+                    limit_value: limit_value
             #when 14 # JAVASCRIPT
             #when 15 # IMPLICIT_VAR
 
@@ -276,6 +305,8 @@ class Term
         predicate = args.predicate
         context = args.context
         var_args = args.var_args
+        skip_value = args.skip_value
+        limit_value = args.limit_value
 
         type = @data.getType()
         switch type
@@ -292,6 +323,8 @@ class Term
                     predicate: predicate
                     context: context
                     var_args: var_args
+                    skip_value: skip_value
+                    limit_value: limit_value
 
             #when 4 # IF
             #when 5 # ERROR
@@ -312,6 +345,8 @@ class Term
                     predicate: predicate
                     context: context
                     var_args: var_args
+                    skip_value: skip_value
+                    limit_value: limit_value
             
             #when 14 # JAVASCRIPT
             #when 15 # IMPLICIT_VAR
@@ -324,6 +359,8 @@ class Term
         builtin = args.builtin
         builtin_args = args.builtin_args
         var_args = args.var_args
+        skip_value = args.skip_value
+        limit_value = args.limit_value
 
 
         type = @data.getType()
@@ -341,6 +378,8 @@ class Term
                     builtin_args: builtin_args
                     predicate: predicate
                     var_args: var_args
+                    skip_value: skip_value
+                    limit_value: limit_value
 
             #when 4 # IF
             #when 5 # ERROR
@@ -361,6 +400,8 @@ class Term
                     context: context
                     predicate: predicate
                     var_args: var_args
+                    skip_value: skip_value
+                    limit_value: limit_value
             #when 14 # JAVASCRIPT
             #when 15 # IMPLICIT_VAR
 
@@ -372,6 +413,8 @@ class Term
         builtin = args.builtin
         builtin_args = args.builtin_args
         var_args = args.var_args
+        skip_value = args.skip_value
+        limit_value = args.limit_value
 
 
         type = @data.getType()
@@ -389,6 +432,8 @@ class Term
                     builtin_args: builtin_args
                     predicate: predicate
                     var_args: var_args
+                    skip_value: skip_value
+                    limit_value: limit_value
 
             #when 4 # IF
             #when 5 # ERROR
@@ -409,6 +454,8 @@ class Term
                     context: context
                     predicate: predicate
                     var_args: var_args
+                    skip_value: skip_value
+                    limit_value: limit_value
             #when 14 # JAVASCRIPT
             #when 15 # IMPLICIT_VAR
 class TermCall
@@ -421,6 +468,8 @@ class TermCall
         var_args = args.var_args
         order_by_keys = args.order_by_keys
         order_by_asc = args.order_by_asc
+        skip_value = args.skip_value
+        limit_value = args.limit_value
 
         builtin = new Builtin @data.getBuiltin()
         builtin_args = @data.argsArray() # is the table (or something close to that)
@@ -431,6 +480,8 @@ class TermCall
             var_args: var_args
             order_by_keys: order_by_keys
             order_by_asc: order_by_asc
+            skip_value: skip_value
+            limit_value: limit_value
 
     range: (args) ->
         server = args.server
@@ -441,6 +492,8 @@ class TermCall
         var_args = args.var_args
         order_by_keys = args.order_by_keys
         order_by_asc = args.order_by_asc
+        skip_value = args.skip_value
+        limit_value = args.limit_value
 
         builtin = new Builtin @data.getBuiltin()
         builtin_args = @data.argsArray() # is the table (or something close to that)
@@ -454,12 +507,16 @@ class TermCall
             var_args: var_args
             order_by_keys: order_by_keys
             order_by_asc: order_by_asc
+            skip_value: skip_value
+            limit_value: limit_value
 
     delete: (args) ->
         server = args.server
         mapping = args.mapping
         context = args.context
         var_args = args.var_args
+        skip_value = args.skip_value
+        limit_value = args.limit_value
 
         builtin = new Builtin @data.getBuiltin()
         builtin_args = @data.argsArray() # is the table (or something close to that)
@@ -469,12 +526,16 @@ class TermCall
             builtin_args: builtin_args
             context: context
             var_args: var_args
+            skip_value: skip_value
+            limit_value: limit_value
 
     mutate: (args) ->
         server = args.server
         mapping = args.mapping
         context = args.context
         var_args = args.var_args
+        skip_value = args.skip_value
+        limit_value = args.limit_value
 
         builtin = new Builtin @data.getBuiltin()
         builtin_args = @data.argsArray() # is the table (or something close to that)
@@ -484,6 +545,8 @@ class TermCall
             builtin_args: builtin_args
             context: context
             var_args: var_args
+            skip_value: skip_value
+            limit_value: limit_value
             # need orderby?
             
     update: (args) ->
@@ -491,6 +554,8 @@ class TermCall
         mapping = args.mapping
         context = args.context
         var_args = args.var_args
+        skip_value = args.skip_value
+        limit_value = args.limit_value
 
         builtin = new Builtin @data.getBuiltin()
         builtin_args = @data.argsArray() # is the table (or something close to that)
@@ -500,6 +565,8 @@ class TermCall
             builtin_args: builtin_args
             context: context
             var_args: var_args
+            skip_value: skip_value
+            limit_value: limit_value
 
 class TermIf
     constructor: (data) ->
@@ -509,6 +576,8 @@ class TermIf
         server = args.server
         context = args.context
         var_args = args.var_args
+        skip_value = args.skip_value
+        limit_value = args.limit_value
 
         condition = new Term @data.getTest()
         true_branch = new Term @data.getTrueBranch()
@@ -537,6 +606,8 @@ class TermGetByKey
     evaluate: (args) ->
         server = args.server
         context = args.context
+        skip_value = args.skip_value
+        limit_value = args.limit_value
 
         table_ref = new TableRef @data.getTableRef()
         # We don't need the primary key
@@ -556,6 +627,8 @@ class TermTable
         mapping = args.mapping
         order_by_keys = args.order_by_keys
         order_by_asc = args.order_by_asc
+        skip_value = args.skip_value
+        limit_value = args.limit_value
 
         table_ref = new TableRef @data.getTableRef()
         return table_ref.evaluate
@@ -563,21 +636,29 @@ class TermTable
             mapping: mapping
             order_by_keys: order_by_keys
             order_by_asc: order_by_asc
+            skip_value: skip_value
+            limit_value: limit_value
 
     concat: (args) ->
         server = args.server
         mapping = args.mapping
+        skip_value = args.skip_value
+        limit_value = args.limit_value
 
         table_ref = new TableRef @data.getTableRef()
         return table_ref.concat
             server: server
             mapping: mapping
+            skip_value: skip_value
+            limit_value: limit_value
 
     filter: (args) ->
         server = args.server
         predicate = args.predicate
         mapping = args.mapping
         context = args.context
+        skip_value = args.skip_value
+        limit_value = args.limit_value
 
         table_ref = new TableRef @data.getTableRef()
         return table_ref.filter
@@ -585,12 +666,16 @@ class TermTable
             predicate: predicate
             mapping: mapping
             context: context
+            skip_value: skip_value
+            limit_value: limit_value
 
     mutate: (args) ->
         server = args.server
         mapping = args.mapping
         predicate = args.predicate
         context = args.context
+        skip_value = args.skip_value
+        limit_value = args.limit_value
 
         table_ref = new TableRef @data.getTableRef()
         return table_ref.mutate
@@ -598,12 +683,16 @@ class TermTable
             mapping: mapping
             predicate: predicate
             context: context
+            skip_value: skip_value
+            limit_value: limit_value
 
     delete: (args) ->
         server = args.server
         predicate = args.predicate
         mapping = args.mapping
         context = args.context
+        skip_value = args.skip_value
+        limit_value = args.limit_value
 
         table_ref = new TableRef @data.getTableRef()
         return table_ref.delete
@@ -611,6 +700,8 @@ class TermTable
             predicate: predicate
             mapping: mapping
             context: context
+            skip_value: skip_value
+            limit_value: limit_value
 
     range: (args) ->
         server = args.server
@@ -620,6 +711,8 @@ class TermTable
         predicate = args.predicate
         mapping = args.mapping
         context = args.context
+        skip_value = args.skip_value
+        limit_value = args.limit_value
 
         table_ref = new TableRef @data.getTableRef()
         return table_ref.range
@@ -630,12 +723,16 @@ class TermTable
             predicate: predicate
             mapping: mapping
             context: context
+            skip_value: skip_value
+            limit_value: limit_value
 
     update: (args) ->
         server = args.server
         mapping = args.mapping
         predicate = args.predicate
         context = args.context
+        skip_value = args.skip_value
+        limit_value = args.limit_value
 
         table_ref = new TableRef @data.getTableRef()
         return table_ref.update
@@ -643,3 +740,5 @@ class TermTable
             mapping: mapping
             predicate: predicate
             context: context
+            skip_value: skip_value
+            limit_value: limit_value

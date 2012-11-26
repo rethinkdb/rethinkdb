@@ -38,7 +38,23 @@ class Helpers
     
 
     sort: (array_to_sort, order_by_keys, order_by_asc) =>
-        #TODO
+        # TODO: Is the sort stable? If I'm not mistaken, Firefox's sort is not stable.
+        that = @
+        sort_function = (a, b) =>
+            for key, i in order_by_keys
+                if not a[key]?
+                    throw 'ORDERBY encountered a row missing attr '+key+': '+JSON.stringify(a)
+                if not b[key]?
+                    throw 'ORDERBY encountered a row missing attr '+key+': '+JSON.stringify(a)
+
+                result = that.compare a[key], b[key]
+                if result isnt 0
+                    if order_by_asc[i] is true
+                        return result
+                    else
+                        return -1 * result
+
+        array_to_sort.sort sort_function
         return true
 
 
