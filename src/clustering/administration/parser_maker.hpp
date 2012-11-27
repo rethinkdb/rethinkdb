@@ -13,6 +13,7 @@ class parser_maker_t {
 public:
     parser_maker_t(mailbox_manager_t *,
                    boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > >,
+                   const std::set<ip_address_t> &_local_addresses,
                    int port_offset,
                    namespace_repo_t<protocol_t> *repo,
                    local_issue_tracker_t *_local_issue_tracker,
@@ -31,6 +32,7 @@ private:
 
     mailbox_manager_t *mailbox_manager;
     boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > > namespaces_semilattice_metadata;
+    const std::set<ip_address_t> local_addresses;
     int port_offset;
     namespace_repo_t<protocol_t> *repo;
 

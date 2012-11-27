@@ -123,16 +123,22 @@ struct generic_job_t :
 template <class Callable>
 void linux_thread_pool_t::run_in_blocker_pool(const Callable &fn)
 {
-    generic_job_t<Callable> job;
-    job.fn = &fn;
-    job.suspended = coro_t::self();
+    if (thread_pool != NULL) {
+        generic_job_t<Callable> job;
+        job.fn = &fn;
+        job.suspended = coro_t::self();
 
-    rassert(thread_pool->generic_blocker_pool != NULL,
-            "thread_pool_t::run_in_blocker_pool called while generic_thread_pool uninitialized");
-    thread_pool->generic_blocker_pool->do_job(&job);
+        rassert(thread_pool->generic_blocker_pool != NULL,
+                "thread_pool_t::run_in_blocker_pool called while generic_thread_pool uninitialized");
+        thread_pool->generic_blocker_pool->do_job(&job);
 
-    // Give up execution, to be resumed when the done callback is made
-    coro_t::wait();
+        // Give up execution, to be resumed when the done callback is made
+        coro_t::wait();
+    } else {
+        // Thread pool has not been created, just block the current thread, since we won't be
+        //  screwing up any coroutines
+        fn();
+    }
 }
 
 class linux_thread_t :

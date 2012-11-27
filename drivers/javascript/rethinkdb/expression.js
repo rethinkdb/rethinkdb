@@ -1265,13 +1265,11 @@ goog.exportProperty(rethinkdb.Expression.prototype, 'getAttr',
 
 /**
  * Returns a new object containing only the requested attributes from this.
+ * @param {...string} var_args The fields to include in the result
  * @return {rethinkdb.Expression}
  */
-rethinkdb.Expression.prototype.pick = function() {
+rethinkdb.Expression.prototype.pick = function(var_args) {
     var attrs = Array.prototype.slice.call(arguments, 0);
-    if (!goog.isArray(attrs)) {
-        attrs = [attrs];
-    }
     attrs.forEach(function(attr){rethinkdb.util.typeCheck_(attr, 'string');});
     var self = this;
     return rethinkdb.util.newExpr_(rethinkdb.BuiltinExpression, Builtin.BuiltinType.PICKATTRS, [this],
@@ -1298,13 +1296,11 @@ goog.exportProperty(rethinkdb.Expression.prototype, 'pick',
 /**
  * Inverse of pickattrs. Returns an object consisting of all the attributes in this not
  * given by attrs.
- * @param {string|Array.<string>} attrs The attributes NOT to include in the result.
+ * @param {...string} var_args The attributes NOT to include in the result.
  * @return {rethinkdb.Expression}
  */
-rethinkdb.Expression.prototype.unpick = function(attrs) {
-    if (!goog.isArray(attrs)) {
-        attrs = [attrs];
-    }
+rethinkdb.Expression.prototype.unpick = function(var_args) {
+    var attrs = Array.prototype.slice.call(arguments, 0);
     attrs.forEach(function(attr){rethinkdb.util.typeCheck_(attr, 'string')});
     var self = this;
     return rethinkdb.util.newExpr_(rethinkdb.BuiltinExpression, Builtin.BuiltinType.WITHOUT, [this],

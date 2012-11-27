@@ -70,34 +70,51 @@ std::set<ip_address_t> ip_address_t::from_hostname(const std::string &host) {
     return ips;
 }
 
-std::set<ip_address_t> ip_address_t::us() {
-    std::set<ip_address_t> ips;
+bool check_address_filter(ip_address_t addr, const std::set<ip_address_t> &filter) {
+    // The filter is a whitelist, loopback addresses are always whitelisted
+    return filter.find(addr) != filter.end() || addr.is_loopback();
+}
+
+std::set<ip_address_t> ip_address_t::get_local_addresses(const std::set<ip_address_t> &filter, bool get_all) {
+    std::set<ip_address_t> all_ips;
+    std::set<ip_address_t> filtered_ips;
 
     try {
-        ips = from_hostname(str_gethostname());
+        all_ips = from_hostname(str_gethostname());
     } catch (const host_lookup_exc_t &ex) {
         // Continue on, this probably means there's no DNS entry for this host
     }
 
     struct ifaddrs *addrs;
     int res = getifaddrs(&addrs);
-    guarantee_err(res == 0, "getifaddrs() failed");
+    guarantee_err(res == 0, "getifaddrs() failed, could not determine local network interfaces");
 
     for (struct ifaddrs *current_addr = addrs; current_addr != NULL; current_addr = current_addr->ifa_next) {
         struct sockaddr *addr_data = current_addr->ifa_addr;
         if (addr_data == NULL) {
             continue;
         } else if (addr_data->sa_family == AF_INET) {
-            ips.insert(ip_address_t(addr_data));
+            all_ips.insert(ip_address_t(addr_data));
+        }
+    }
+    freeifaddrs(addrs);
+
+    // Remove any addresses that don't fit the filter
+    for (std::set<ip_address_t>::const_iterator it = all_ips.begin(); it != all_ips.end(); ++it) {
+        if (get_all || check_address_filter(*it, filter)) {
+            filtered_ips.insert(*it);
         }
     }
 
-    freeifaddrs(addrs);
-    return ips;
+    return filtered_ips;
 }
 
 std::string ip_address_t::as_dotted_decimal() const {
     return addr_as_dotted_decimal(get_addr());
+}
+
+bool ip_address_t::is_loopback() const {
+    return (ntohl(s_addr) >> 24) == 127;
 }
 
 void debug_print(append_only_printf_buffer_t *buf, const ip_address_t &addr) {

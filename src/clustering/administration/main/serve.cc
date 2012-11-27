@@ -38,6 +38,24 @@
 #include "rpc/semilattice/semilattice_manager.hpp"
 #include "rpc/semilattice/view/field.hpp"
 
+std::string service_address_ports_t::get_addresses_string() const {
+    std::set<ip_address_t> actual_addresses = local_addresses;
+    bool first = true;
+    std::string result;
+
+    // If the set is empty, it means we're listening on all addresses.  Get the actual list for printing
+    if (actual_addresses.empty()) {
+        actual_addresses = ip_address_t::get_local_addresses(std::set<ip_address_t>(), true);
+    }
+
+    for (std::set<ip_address_t>::const_iterator i = actual_addresses.begin(); i != actual_addresses.end(); ++i) {
+        result += (first ? "" : ", " ) + i->as_dotted_decimal();
+        first = false;
+    }
+
+    return result;
+}
+
 bool do_serve(
     extproc::spawner_t::info_t *spawner_info,
     io_backender_t *io_backender,
@@ -45,7 +63,7 @@ bool do_serve(
     // NB. filepath & persistent_file are used iff i_am_a_server is true.
     const std::string &filepath, metadata_persistence::persistent_file_t *persistent_file,
     const peer_address_set_t &joins,
-    service_ports_t ports,
+    service_address_ports_t address_ports,
     machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata,
     std::string web_assets, signal_t *stop_cond) {
     try {
@@ -105,11 +123,19 @@ bool do_serve(
             metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()));
 
         message_multiplexer_t::run_t message_multiplexer_run(&message_multiplexer);
-        connectivity_cluster_t::run_t connectivity_cluster_run(&connectivity_cluster, ports.port, &message_multiplexer_run, ports.client_port);
+        connectivity_cluster_t::run_t connectivity_cluster_run(&connectivity_cluster,
+                                                               address_ports.local_addresses,
+                                                               address_ports.port,
+                                                               &message_multiplexer_run,
+                                                               address_ports.client_port,
+                                                               &heartbeat_manager);
+
+        const std::string addresses_string = address_ports.get_addresses_string();
+        logINF("Listening on addresses (add more using '--bind'): %s.\n", addresses_string.c_str());
 
         // If (0 == port), then we asked the OS to give us a port number.
-        if (ports.port != 0) {
-            guarantee(ports.port == connectivity_cluster_run.get_port());
+        if (address_ports.port != 0) {
+            guarantee(address_ports.port == connectivity_cluster_run.get_port());
         }
         logINF("Listening for intracluster connections on port %d.\n", connectivity_cluster_run.get_port());
 
@@ -254,7 +280,8 @@ bool do_serve(
                 parser_maker_t<mock::dummy_protocol_t, mock::dummy_protocol_parser_t> dummy_parser_maker(
                     &mailbox_manager,
                     metadata_field(&cluster_semilattice_metadata_t::dummy_namespaces, semilattice_manager_cluster.get_root_view()),
-                    ports.port_offset,
+                    address_ports.local_addresses,
+                    address_ports.port_offset,
                     &dummy_namespace_repo,
                     &local_issue_tracker,
                     &perfmon_repo);
@@ -262,14 +289,15 @@ bool do_serve(
                 parser_maker_t<memcached_protocol_t, memcache_listener_t> memcached_parser_maker(
                     &mailbox_manager,
                     metadata_field(&cluster_semilattice_metadata_t::memcached_namespaces, semilattice_manager_cluster.get_root_view()),
-                    ports.port_offset,
+                    address_ports.local_addresses,
+                    address_ports.port_offset,
                     &memcached_namespace_repo,
                     &local_issue_tracker,
                     &perfmon_repo);
 
                 rdb_protocol::query_http_app_t rdb_parser(semilattice_manager_cluster.get_root_view(), &rdb_namespace_repo);
 
-                query_server_t rdb_pb_server(ports.reql_port, &rdb_ctx);
+                query_server_t rdb_pb_server(address_ports.local_addresses, address_ports.reql_port, &rdb_ctx);
                 logINF("Listening for client driver connections on port %d.\n", rdb_pb_server.get_port());
 
                 scoped_ptr_t<metadata_persistence::semilattice_watching_persister_t> persister(!i_am_a_server ? NULL :
@@ -278,10 +306,11 @@ bool do_serve(
 
                 {
                     // TODO: Pardon me what, but is this how we fail here?
-                    guarantee(ports.http_port < 65536);
+                    guarantee(address_ports.http_port < 65536);
 
                     administrative_http_server_manager_t administrative_http_interface(
-                        ports.http_port,
+                        address_ports.local_addresses,
+                        address_ports.http_port,
                         &mailbox_manager,
                         &metadata_change_handler,
                         semilattice_manager_cluster.get_root_view(),
@@ -321,12 +350,47 @@ bool do_serve(
     }
 }
 
-bool serve(extproc::spawner_t::info_t *spawner_info, io_backender_t *io_backender, const std::string &filepath, metadata_persistence::persistent_file_t *persistent_file, const peer_address_set_t &joins, service_ports_t ports, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
-    return do_serve(spawner_info, io_backender, true, filepath, persistent_file, joins, ports, machine_id, semilattice_metadata, web_assets, stop_cond);
+bool serve(extproc::spawner_t::info_t *spawner_info,
+           io_backender_t *io_backender,
+           const std::string &filepath,
+           metadata_persistence::persistent_file_t *persistent_file,
+           const peer_address_set_t &joins,
+           service_address_ports_t address_ports,
+           machine_id_t machine_id,
+           const cluster_semilattice_metadata_t &semilattice_metadata,
+           std::string web_assets,
+           signal_t *stop_cond) {
+    return do_serve(spawner_info,
+                    io_backender,
+                    true,
+                    filepath,
+                    persistent_file,
+                    joins,
+                    address_ports,
+                    machine_id,
+                    semilattice_metadata,
+                    web_assets,
+                    stop_cond);
 }
 
-bool serve_proxy(extproc::spawner_t::info_t *spawner_info, const peer_address_set_t &joins, service_ports_t ports, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
+bool serve_proxy(extproc::spawner_t::info_t *spawner_info,
+                 const peer_address_set_t &joins,
+                 service_address_ports_t address_ports,
+                 machine_id_t machine_id,
+                 const cluster_semilattice_metadata_t &semilattice_metadata,
+                 std::string web_assets,
+                 signal_t *stop_cond) {
     // TODO: filepath doesn't _seem_ ignored.
     // filepath and persistent_file are ignored for proxies, so we use the empty string & NULL respectively.
-    return do_serve(spawner_info, NULL, false, "", NULL, joins, ports, machine_id, semilattice_metadata, web_assets, stop_cond);
+    return do_serve(spawner_info,
+                    NULL,
+                    false,
+                    "",
+                    NULL,
+                    joins,
+                    address_ports,
+                    machine_id,
+                    semilattice_metadata,
+                    web_assets,
+                    stop_cond);
 }

@@ -2,6 +2,10 @@
 #ifndef ARCH_IO_TIMER_TIMERFD_PROVIDER_HPP_
 #define ARCH_IO_TIMER_TIMERFD_PROVIDER_HPP_
 
+#ifndef RDB_USE_TIMERFD_PROVIDER
+#error "RDB_USE_TIMERFD_PROVIDER needs to be defined for this file to be included."
+#endif
+
 #include "arch/runtime/event_queue.hpp"
 
 struct timer_provider_callback_t;

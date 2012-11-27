@@ -327,7 +327,7 @@ class Connection():
             raise ValueError("Got unexpected status code from server: %d" % response.status_code)
 
 
-    def run(self, expr, debug=False, allow_outdated=None):
+    def run(self, expr, debug=False, use_outdated=None):
         """Evaluate the expression or list of expressions `expr` on
         the server using this connection. If `expr` is a list,
         evaluates them on the server in order - this can be used to
@@ -364,7 +364,7 @@ class Connection():
         protobuf.token = self._get_token()
 
         # Compilation options
-        opts = {'allow_outdated': allow_outdated}
+        opts = {'use_outdated': use_outdated}
 
         expr._finalize_query(protobuf, opts)
         ret, code = self._run(protobuf, expr, debug)

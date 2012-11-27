@@ -3,6 +3,7 @@
 #define RPC_CONNECTIVITY_MULTIPLEXER_HPP_
 
 #include "rpc/connectivity/messages.hpp"
+#include "rpc/connectivity/heartbeat.hpp"
 
 /* `message_multiplexer_t` is used when you want multiple components to share a
 `message_service_t`. Here's an example of how one might use it:
@@ -67,6 +68,7 @@ private:
     friend class run_t;
     friend class client_t;
     friend class client_t::run_t;
+
     message_service_t *const message_service;
     client_t *clients[max_tag];
     run_t *run;

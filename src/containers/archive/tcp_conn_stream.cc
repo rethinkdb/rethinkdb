@@ -63,11 +63,37 @@ bool tcp_conn_stream_t::is_write_open() {
     return conn_->is_write_open();
 }
 
+
+keepalive_tcp_conn_stream_t::keepalive_tcp_conn_stream_t(const ip_address_t &host, int port, signal_t *interruptor, int local_port) :
+    tcp_conn_stream_t(host, port, interruptor, local_port),
+    keepalive_callback(NULL) { }
+
+keepalive_tcp_conn_stream_t::keepalive_tcp_conn_stream_t(tcp_conn_t *conn) :
+    tcp_conn_stream_t(conn),
+    keepalive_callback(NULL) { }
+
+keepalive_tcp_conn_stream_t::~keepalive_tcp_conn_stream_t() {
+    // Do nothing
+}
+
+void keepalive_tcp_conn_stream_t::set_keepalive_callback(keepalive_callback_t *_keepalive_callback) {
+    keepalive_callback = _keepalive_callback;
+}
+
+int64_t keepalive_tcp_conn_stream_t::read(void *p, int64_t n) {
+    int64_t result = tcp_conn_stream_t::read(p, n);
+
+    if (result > 0 && keepalive_callback != NULL) {
+        keepalive_callback->keepalive();
+    }
+
+    return result;
+}
+
 rethread_tcp_conn_stream_t::rethread_tcp_conn_stream_t(tcp_conn_stream_t *conn, int thread) : conn_(conn), old_thread_(conn->home_thread()), new_thread_(thread) {
     conn->rethread(thread);
     rassert(conn->home_thread() == thread);
 }
-
 
 rethread_tcp_conn_stream_t::~rethread_tcp_conn_stream_t() {
     rassert(conn_->home_thread() == new_thread_);

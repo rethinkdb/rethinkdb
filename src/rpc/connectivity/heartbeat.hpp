@@ -2,51 +2,48 @@
 #ifndef RPC_CONNECTIVITY_HEARTBEAT_HPP_
 #define RPC_CONNECTIVITY_HEARTBEAT_HPP_
 
-#include <map>
-
-#include "rpc/connectivity/connectivity.hpp"
+#include "utils.hpp"
+#include "arch/io/arch.hpp"
 #include "rpc/connectivity/messages.hpp"
+#include "rpc/connectivity/connectivity.hpp"
 #include "concurrency/one_per_thread.hpp"
-#include "arch/timer.hpp"
 
-// This class implements a heartbeat on top of intra-cluster connections
-class heartbeat_manager_t :
-    private peers_list_callback_t,
-    public message_handler_t,
-    public home_thread_mixin_t {
+
+class heartbeat_manager_t : public message_handler_t {
 public:
     explicit heartbeat_manager_t(message_service_t *_message_service);
     ~heartbeat_manager_t();
 
+    void begin_peer_heartbeat(const peer_id_t &peer_id);
+    void end_peer_heartbeat(const peer_id_t &peer_id);
+
+    void message_from_peer(const peer_id_t &source_peer);
+
 private:
-    static const int64_t TIMER_INTERVAL_MS = 2000;
-    static const uint32_t MAX_KEEPALIVES = 5;
+    static const int64_t HEARTBEAT_INTERVAL_MS = 2000;
+    static const uint32_t HEARTBEAT_TIMEOUT_INTERVALS = 5;
 
-    // Start heartbeat on a new peer connection
-    void on_connect(peer_id_t peer_id);
-
-    // Peer connection has gone down, stop heartbeat for it
-    void on_disconnect(peer_id_t peer_id);
-
-    // Send the heartbeat to all peer connections on this thread
     static void timer_callback(void *ctx);
 
-    // Handle a heartbeat from a peer connection
-    void on_message(peer_id_t source_peer, read_stream_t *stream);
-    void on_message_coro(peer_id_t source_peer);
+    // This is a stub, we do everything in message_from_peer instead
+    void on_message(UNUSED peer_id_t source_peer, UNUSED read_stream_t *stream) { }
 
     class heartbeat_writer_t : public send_message_write_callback_t {
     public:
-        void write(UNUSED write_stream_t *stream) { }
+        void write(UNUSED write_stream_t *stream) { };
     };
 
-    message_service_t *message_service;
-    heartbeat_writer_t writer;
-    timer_token_t *timer_token;
-    std::map<peer_id_t, uint32_t> connections;
-    connectivity_service_t::peers_list_subscription_t connection_watcher;
+    struct per_thread_data_t {
+        per_thread_data_t();
+        ~per_thread_data_t();
 
-    DISABLE_COPYING(heartbeat_manager_t);
+        timer_token_t *timer_token;
+        std::map<peer_id_t, uint32_t> connections;
+    };
+
+    heartbeat_writer_t writer;
+    message_service_t *message_service;
+    one_per_thread_t<per_thread_data_t> thread_data;
 };
 
-#endif
+#endif /* RPC_CONNECTIVITY_HEARTBEAT_HPP_ */

@@ -38,6 +38,29 @@ private:
     DISABLE_COPYING(tcp_conn_stream_t);
 };
 
+class keepalive_tcp_conn_stream_t : public tcp_conn_stream_t {
+public:
+    keepalive_tcp_conn_stream_t(const ip_address_t &host, int port, signal_t *interruptor, int local_port = 0);
+
+    // Takes ownership.
+    explicit keepalive_tcp_conn_stream_t(tcp_conn_t *conn);
+    virtual ~keepalive_tcp_conn_stream_t();
+
+    class keepalive_callback_t {
+    public:
+        virtual ~keepalive_callback_t() { };
+        virtual void keepalive() = 0;
+    };
+
+    void set_keepalive_callback(keepalive_callback_t *_keepalive_callback);
+
+    virtual MUST_USE int64_t read(void *p, int64_t n);
+
+private:
+    keepalive_callback_t *keepalive_callback;
+};
+
+
 class rethread_tcp_conn_stream_t {
 public:
     rethread_tcp_conn_stream_t(tcp_conn_stream_t *conn, int thread);

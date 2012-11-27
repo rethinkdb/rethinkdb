@@ -19,7 +19,6 @@
 #include "clustering/administration/suggester.hpp"
 #include "rpc/connectivity/cluster.hpp"
 #include "rpc/connectivity/multiplexer.hpp"
-#include "rpc/connectivity/heartbeat.hpp"
 
 template <class metadata_t> class directory_read_manager_t;
 template <class metadata_t> class directory_write_manager_t;

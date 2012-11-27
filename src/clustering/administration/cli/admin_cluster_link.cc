@@ -263,7 +263,7 @@ admin_cluster_link_t::admin_cluster_link_t(const peer_address_set_t &joins, int 
     directory_write_manager(new directory_write_manager_t<cluster_directory_metadata_t>(&directory_manager_client, our_directory_metadata.get_watchable())),
     directory_manager_client_run(&directory_manager_client, directory_read_manager.get()),
     message_multiplexer_run(&message_multiplexer),
-    connectivity_cluster_run(&connectivity_cluster, 0, &message_multiplexer_run, client_port),
+    connectivity_cluster_run(&connectivity_cluster, ip_address_t::get_local_addresses(std::set<ip_address_t>(), false), 0, &message_multiplexer_run, client_port, &heartbeat_manager),
     admin_tracker(semilattice_metadata, directory_read_manager->get_root_view()),
     initial_joiner(&connectivity_cluster, &connectivity_cluster_run, joins, 5000)
 {

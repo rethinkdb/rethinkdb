@@ -16,6 +16,7 @@
 #include "perfmon/perfmon.hpp"
 #include "rpc/connectivity/connectivity.hpp"
 #include "rpc/connectivity/messages.hpp"
+#include "rpc/connectivity/heartbeat.hpp"
 #include "containers/uuid.hpp"
 
 namespace boost {
@@ -56,18 +57,33 @@ private:
     std::set<ip_address_t> ips;
     RDB_MAKE_ME_SERIALIZABLE_2(ips, port);
 };
+
 class peer_address_set_t {
 public:
     size_t erase(const peer_address_t &addr) {
-        size_t erased = 0;
-        for (iterator it = vec.begin(); it != vec.end(); ++it) {
-            if (*it == addr) {
-                vec.erase(it);
-                ++erased;
-                guarantee(find(addr) == vec.end());
-                break;
+        // We need to make sure we remove the *right* address from the set
+        // Example:
+        //  Set contains [127.0.1.1] and [192.168.0.15]
+        //  erase is called with [127.0.0.1, 127.0.1.1, 192.168.0.15]
+        // In this case, only 192.168.0.15 should be removed, because the loopback
+        //  address is obviously talking about a different peer
+        // So, first we create a peer_address_t without any loopback addresses
+        //  then, if there are no matches for that, use the original
+        const std::set<ip_address_t> *ips = addr.all_ips();
+        std::set<ip_address_t> ips_no_loopback;
+        for (std::set<ip_address_t>::const_iterator i = ips->begin(); i != ips->end(); ++i) {
+            if (!i->is_loopback()) {
+                ips_no_loopback.insert(*i);
             }
         }
+
+        peer_address_t addr_no_loopback(ips_no_loopback, addr.port);
+        size_t erased = erase_internal(addr_no_loopback);
+
+        if (erased == 0) {
+            erased = erase_internal(addr);
+        }
+
         return erased;
     }
     typedef std::vector<peer_address_t>::iterator iterator;
@@ -83,6 +99,17 @@ public:
     }
     bool empty() const { return vec.empty(); }
 private:
+    size_t erase_internal(const peer_address_t &addr) {
+        size_t erased = 0;
+        for (iterator it = vec.begin(); it != vec.end(); ++it) {
+            if (*it == addr) {
+                vec.erase(it);
+                ++erased;
+                break;
+            }
+        }
+        return erased;
+    }
     std::vector<peer_address_t> vec;
 };
 
@@ -97,9 +124,11 @@ public:
     class run_t {
     public:
         run_t(connectivity_cluster_t *parent,
-            int port,
-            message_handler_t *message_handler,
-            int client_port = 0) THROWS_ONLY(address_in_use_exc_t);
+              const std::set<ip_address_t> &local_addresses,
+              int port,
+              message_handler_t *message_handler,
+              int client_port,
+              heartbeat_manager_t *_heartbeat_manager) THROWS_ONLY(address_in_use_exc_t);
 
         ~run_t();
 
@@ -202,7 +231,7 @@ public:
         connect-notification, receiving messages from the peer until it
         disconnects or we are shut down, and sending out the
         disconnect-notification. */
-        void handle(tcp_conn_stream_t *c,
+        void handle(keepalive_tcp_conn_stream_t *c,
             boost::optional<peer_id_t> expected_id,
             boost::optional<peer_address_t> expected_address,
             auto_drainer_t::lock_t,
@@ -211,6 +240,8 @@ public:
         connectivity_cluster_t *parent;
 
         message_handler_t *message_handler;
+
+        heartbeat_manager_t *heartbeat_manager;
 
         /* `attempt_table` is a table of all the host:port pairs we're currently
         trying to connect to or have connected to. If we are told to connect to
@@ -262,14 +293,13 @@ public:
     /* `message_service_t` public methods: */
     connectivity_service_t *get_connectivity_service() THROWS_NOTHING;
     void send_message(peer_id_t, send_message_write_callback_t *callback) THROWS_NOTHING;
+    void kill_connection(peer_id_t) THROWS_NOTHING;
 
     /* Other public methods: */
 
     /* Returns the address of the given peer. Fatal error if we are not
     connected to the peer. */
     peer_address_t get_peer_address(peer_id_t) THROWS_NOTHING;
-
-    void kill_connection(peer_id_t remote_peer) THROWS_NOTHING;
 
 private:
     friend class run_t;
