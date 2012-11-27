@@ -2,9 +2,6 @@
 #include <string>
 #include <vector>
 
-// The LOCAL_MAX macro is pasted from the std::max specification.
-#define LOCAL_MAX( A , B ) ( A > B ) ? A : B ;
-
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 #include <boost/variant.hpp>

@@ -230,7 +230,7 @@ int64_t socket_stream_t::write_interruptible(const void *buf, int64_t size, sign
                     logERR("Could not write to socket: %s", strerror(errno));
                 }
             } else {
-                logERR("Didn't expect write() to return %Zd.", res);
+                logERR("Didn't expect write() to return %zd.", res);
             }
 
             shutdown_write();

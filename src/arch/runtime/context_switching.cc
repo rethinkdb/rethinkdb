@@ -174,6 +174,14 @@ void context_switch(context_ref_t *current_context_out, context_ref_t *dest_cont
 asm(
 #if defined(__i386__) || defined(__x86_64__)
 // We keep the i386 and x86_64 stuff interleaved in order to enforce commonality.
+#if defined(__x86_64__)
+#if defined(__LP64__) || defined(__LLP64__)
+// Pointers are of the right size
+#else
+// Having non-native-sized pointers makes things very messy.
+#error "Non-native pointer size."
+#endif
+#endif // defined(__x86_64__)
 ".text\n"
 "lightweight_swapcontext:\n"
 
@@ -241,7 +249,7 @@ asm(
     initialized with `artificial_stack_t()`). */
     "ret\n"
 #else
-#error Unsupported architecture.
+#error "Unsupported architecture."
 #endif
 );
 

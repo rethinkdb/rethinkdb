@@ -180,7 +180,7 @@ extent_manager_t::extent_manager_t(file_t *file, const log_serializer_on_disk_st
         while (end != (off64_t)floor_aligned(file->get_size(), extent_size)) {
             off64_t start = end;
             // Frank changed this from std::min to RT_MIN (from utils.hpp) since std::min fails to match on i386.
-            end = RT_MIN((off64_t)(start + zone_size), (off64_t)floor_aligned(file->get_size(), extent_size));
+            end = std::min<off64_t>((start + zone_size), floor_aligned(file->get_size(), extent_size));
             zones.push_back(new extent_zone_t(start, end, extent_size));
         }
     } else {

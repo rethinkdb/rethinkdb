@@ -1,4 +1,5 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
+#define __STDC_FORMAT_MACROS
 #include "http/json.hpp"
 
 #include <stdlib.h>
@@ -61,7 +62,7 @@ std::string cJSON_print_lexicographic(const cJSON *json) {
             packed.u ^= (1ULL << 63);
         }
 
-        acc += strprintf("%.*lld", static_cast<int>(sizeof(double)*2), (long long int)packed.u);
+        acc += strprintf("%.*" PRIu64 "", static_cast<int>(sizeof(double)*2), packed.u);
         acc += strprintf("#%.20g", json->valuedouble);
     } else {
         guarantee(json->type == cJSON_String);

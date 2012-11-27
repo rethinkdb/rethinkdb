@@ -1,4 +1,5 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
+#define __STDC_FORMAT_MACROS
 #include "serializer/log/data_block_manager.hpp"
 
 #include "utils.hpp"
@@ -844,9 +845,9 @@ void gc_entry::destroy() {
 void gc_entry::print() {
     debugf("gc_entry:\n");
     // This cannot use the z format modifier because off64_t is not a size_t on 32-bit systems.
-    debugf("extent_ref offset: %lld\n", (long long int)extent_ref.offset());
+    debugf("extent_ref offset: %" PRIi64 "\n", extent_ref.offset());
     for (unsigned int i = 0; i < g_array.size(); i++)
-        debugf("%.8x:\t%d\n", (unsigned int) (extent_ref.offset() + (i * DEVICE_BLOCK_SIZE)), g_array.test(i));
+        debugf("%.8llx:\t%d\n", (unsigned long long int)(extent_ref.offset() + (i * DEVICE_BLOCK_SIZE)), g_array.test(i));
     debugf("\n");
     debugf("\n");
 }

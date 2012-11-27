@@ -1,4 +1,5 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
+#define __STDC_FORMAT_MACROS
 #include "activity_logger.hpp"
 
 log_event_t::log_event_t(const std::string &_msg, bool log_bt)
@@ -7,7 +8,7 @@ log_event_t::log_event_t(const std::string &_msg, bool log_bt)
 }
 std::string log_event_t::print(bool print_bt) {
     std::string bt_str = print_bt && bt.has() ? bt->addrs() : "";
-    return strprintf("%llu\n -- %s\n%s", (long long unsigned int)timestamp, msg.c_str(), bt_str.c_str());
+    return strprintf("%" PRIu64 "\n -- %s\n%s", timestamp, msg.c_str(), bt_str.c_str());
 }
 
 activity_logger_t::activity_logger_t(bool _log_bt) : log_bt_(_log_bt) {

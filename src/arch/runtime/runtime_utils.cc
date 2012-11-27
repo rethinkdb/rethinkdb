@@ -1,4 +1,5 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
+#define __STDC_FORMAT_MACROS
 #include "arch/runtime/runtime_utils.hpp"
 
 #include <unistd.h>
@@ -11,16 +12,19 @@
 
 uint64_t get_clock_cycles() {
     uint64_t ret;
+    // We get the clock value.
 #if defined(__i386__)
-// The following line is mostly copied from http://www.mcs.anl.gov/~kazutomo/rdtsc.html .
+    // The following line is mostly copied from http://www.mcs.anl.gov/~kazutomo/rdtsc.html .
+    // It seems to fetch a 64-bit value from the specified address.
     __asm__ __volatile__(".byte 0x0f, 0x31" : "=A" (ret));
 #elif defined(__x86_64__)
+    // For some reason, the x86-64 code gets two 32-bit values and must merge them.
     uint32_t low;
     __asm__ __volatile__("rdtsc" : "=a" (low), "=d" (ret));
     ret <<= 32;
     ret |= low;
 #else
-#error Unsupported architecture.
+#error "Unsupported architecture."
 #endif
     return ret;
 }
@@ -94,7 +98,7 @@ void pet_watchdog() {
             watchdog_start_time = new_value;
             uint64_t difference = new_value - old_value;
             if (difference > MAX_WATCHDOG_DELTA) {
-                debugf("task triggered watchdog, elapsed cycles: %llu, running coroutine: %s\n", (long long unsigned int)difference,
+                debugf("task triggered watchdog, elapsed cycles: %" PRIu64 ", running coroutine: %s\n", difference,
                        (coro_t::self() == NULL) ? "n/a" : coro_t::self()->get_coroutine_type().c_str());
             }
         }

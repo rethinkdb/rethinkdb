@@ -60,6 +60,8 @@ def generate_async_message_template(nargs):
         print "        void read(UNUSED read_stream_t *stream) {"
     else:
         print "        void read(read_stream_t *stream) {"
+    print "#pragma GCC diagnostic push"
+    print "#pragma GCC diagnostic ignored \"-Wuninitialized\""
     for i in xrange(nargs):
         print "            arg%d_t arg%d;" % (i, i)
 
@@ -71,6 +73,7 @@ def generate_async_message_template(nargs):
     print "            } else {"
     print "                parent->fun(" + csep("arg#") + ");"
     print "            }"
+    print "#pragma GCC diagnostic pop"
     print "        }"
     print
     if nargs == 0:

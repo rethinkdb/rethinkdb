@@ -77,7 +77,7 @@ public:
 
 private:
     const element_t &const_get(size_t i) const {
-        rassert(i < size, "i is %Zu, size is %Zu", i, size);
+        rassert(i < size, "i is %zu, size is %zu", i, size);
 
         segment_t *segment = segments[i / ELEMENTS_PER_SEGMENT];
         rassert(segment);

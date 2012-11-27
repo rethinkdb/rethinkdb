@@ -491,20 +491,20 @@ void validate(boost::any& value_out, const std::vector<std::string>& words,
     const std::string& word = po::validators::get_single_string(words);
     size_t colon_loc = word.find_first_of(':');
     if (colon_loc == std::string::npos) {
-        #if BOOST_VERSION >= 104200
+#if BOOST_VERSION >= 104200
         throw po::validation_error(po::validation_error::invalid_option_value, word);
-        #else
+#else
         throw po::validation_error("Invalid option value:" + word);
-        #endif
+#endif
     } else {
         std::string host = word.substr(0, colon_loc);
         int port = atoi(word.substr(colon_loc + 1).c_str());
         if (host.size() == 0 || port == 0) {
-            #if BOOST_VERSION >= 104200
+#if BOOST_VERSION >= 104200
             throw po::validation_error(po::validation_error::invalid_option_value, word);
-            #else
+#else
             throw po::validation_error("Invalid option value:" + word);
-            #endif
+#endif
         }
         value_out = host_and_port_t(host, port);
     }

@@ -333,8 +333,8 @@ bool check_static_config(nondirect_file_t *file, file_knowledge_t *knog, static_
     printf("static_header serializer version: %.*s\n", static_cast<int>(sizeof(SERIALIZER_VERSION_STRING)), buf->version);
     printf("              DEVICE_BLOCK_SIZE: %llu\n", DEVICE_BLOCK_SIZE);
     printf("static_header block_size: %u\n", block_size.ser_value());
-    printf("static_header extent_size: %llu\n", (unsigned long long int)extent_size);
-    printf("              file_size: %llu\n", (unsigned long long int)file_size);
+    printf("static_header extent_size: %" PRIu64 "\n", extent_size);
+    printf("              file_size: %" PRIu64 "\n", file_size);
 
     if (0 != strcmp(buf->software_name, SOFTWARE_NAME_STRING)) {
         *err = bad_software_name;
@@ -382,9 +382,7 @@ std::string extract_static_config_flags(nondirect_file_t *file, UNUSED file_know
     block_size_t block_size = static_cfg->block_size();
     uint64_t extent_size = static_cfg->extent_size();
 
-
-
-    return strprintf(" --block-size %u --extent-size %llu", block_size.ser_value(), (unsigned long long int)extent_size);
+    return strprintf(" --block-size %u --extent-size %" PRIu64 "", block_size.ser_value(), extent_size);
 }
 
 struct metablock_errors {
