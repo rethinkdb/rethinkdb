@@ -71,7 +71,7 @@ Sorry, the data explorer does not support your browser. Please upgrade it.
 </script>
 
 <script id="alert-reconnection_success-template" type="text/x-handlebars-template">
-    <div class="alert" data-alert="alert">
+    <div class="alert displayed_alert" data-alert="alert">
         <a class="close" href="#">&times;</a>
         <p>Successfully reconnected.</p>
     </div>
@@ -170,6 +170,9 @@ Did you forget to append .run() at the end of your query?{{/if}}</pre>
         </div>
 
         <h1 class="title">Results</h1>
+        {{#if query}}
+            <p class="query_executed">For query: {{query}}</p>
+        {{/if}}
         <p class="metadata"></p>
         
 
@@ -209,6 +212,10 @@ Did you forget to append .run() at the end of your query?{{/if}}</pre>
     <p>No result were returned for this query</p>
 </script>
 
+
+<script id="dataexplorer-cursor_timed_out-template" type="text/x-handlebars-template">
+    No more data available (cursor timed out)
+</script>
 
 <!-- Keep </script> without space/new line before so the comma stick to the value of the object-->
 <script id="dataexplorer_result_json_tree_container-template" type="text/x-handlebars-template">

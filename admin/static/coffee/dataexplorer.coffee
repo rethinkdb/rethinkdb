@@ -13,7 +13,13 @@ module 'DataExplorerView', ->
         namespaces_suggestions_template: Handlebars.compile $('#dataexplorer-namespaces_suggestions-template').html()
         browser_not_supported_template: Handlebars.compile $('#dataexplorer-browser_not_supported-template').html()
 
-        saved_query: '' # Last value @codemirror.getValue()
+        # That's all the thing we want to store so we can display the view as it was (when the user left the data explorer)
+        saved_query: null # Last value @codemirror.getValue()
+        last_query: null # Last executed query
+        last_results: null # Last results
+        last_cursor: null # Last cursor
+        last_metadat: null # Last metadata
+        cursor_timed_out: false # Whether the cursor timed out or not (ie. we reconnected)
 
         events:
             'click .CodeMirror': 'handle_keypress'
@@ -354,6 +360,7 @@ module 'DataExplorerView', ->
 
         # Make suggestions when the user is writing
         handle_keypress: (editor, event) =>
+            # Save the last query (even incomplete)
             DataExplorerView.Container.prototype.saved_query = @codemirror.getValue()
             saved_cursor = @codemirror.getCursor()
             if event?.which?
@@ -690,15 +697,23 @@ module 'DataExplorerView', ->
             else
                 # Else we are going to display what we have
                 @.$('.loading_query_img').css 'display', 'none'
-                @results_view.render_result @query, @current_results
+
+                # Save the last executed query and the last displayed results
+                DataExplorerView.Container.prototype.last_query = @query
+                DataExplorerView.Container.prototype.last_results = @current_results
+                @results_view.render_result null, @current_results # The first parameter null is the query because we don't want to display it.
+                #TODO Refactor render_results since it's not really friendly as it is
 
                 execution_time = new Date() - @start_time
-                @results_view.render_metadata
+                metadata =
                     limit_value: @current_results.length
                     skip_value: @skip_value
                     execution_time: execution_time
                     query: @query
                     has_more_data: (true if data?) # if data is undefined, it means that there is no more data
+                DataExplorerView.Container.prototype.last_metadata = metadata # Let's save the metadata too.
+
+                @results_view.render_metadata metadata
 
                 if data? #there is nore data
                     @skip_value += @current_results.length
@@ -710,7 +725,9 @@ module 'DataExplorerView', ->
         show_more_results: (event) =>
             try
                 event.preventDefault()
-                @cursor.next(@callback_query)
+                @current_results = []
+                @start_time = new Date()
+                @last_cursor.next(@callback_query)
                 $(window).scrollTop(@.$('.results_container').offset().top)
             catch err
                 @.$('.loading_query_img').css 'display', 'none'
@@ -741,15 +758,22 @@ module 'DataExplorerView', ->
                 else
                     # Else we are going to display what we have
                     @.$('.loading_query_img').css 'display', 'none'
-                    @results_view.render_result @query, @current_results
+
+                    # Save the last executed query and the last displayed results
+                    DataExplorerView.Container.prototype.last_query = @query
+                    DataExplorerView.Container.prototype.last_results = @current_results
+                    @results_view.render_result null, @current_results # The first parameter is null ( = query, so we don't display it)
 
                     execution_time = new Date() - @start_time
-                    @results_view.render_metadata
+                    metadata =
                         limit_value: @current_results.length
                         skip_value: @skip_value
                         execution_time: execution_time
                         query: @query
                         has_more_data: (true if data?) # if data is undefined, it means that there is no more data
+                    DataExplorerView.Container.prototype.last_metadata = metadata # Saving the metadata
+
+                    @results_view.render_metadata metadata
 
                     if data? #there is nore data
                         @skip_value += @current_results.length
@@ -766,6 +790,7 @@ module 'DataExplorerView', ->
                     @skip_value = 0
 
                     @cursor = eval(@queries[@current_query_index])
+                    DataExplorerView.Container.prototype.last_cursor = @cursor # Saving the cursor so the user can call more results later
                     @cursor.next(@callback_multiple_queries)
                 catch err
                     @.$('.loading_query_img').css 'display', 'none'
@@ -785,9 +810,13 @@ module 'DataExplorerView', ->
         # - We don't execute q1_3
         # - User retrieve results for q2
         execute_query: =>
+            # The user just executed a query, so we reset cursor_timed_out to false
+            DataExplorerView.Container.prototype.cursor_timed_out = false
+
             # Postpone the reconnection
-            clearTimeout @timeout
-            @timeout = setTimeout @connect, 5*60*1000
+            if window.timeout_driver_connect?
+                clearTimeout timeout_driver_connect
+            window.timeout_driver_connect = setTimeout driver_connect, 5*60*1000
             @query = @codemirror.getValue()
 
             # Replace new lines with \n so the query is not splitted.
@@ -821,7 +850,10 @@ module 'DataExplorerView', ->
 
                 if @cursor?.close? # So if a old query was running, we won't listen to it.
                     @cursor.close()
+
                 @cursor = eval(@queries[@current_query_index])
+                # Save the last cursor to fetch more results later
+                DataExplorerView.Container.prototype.last_cursor = @cursor
                 @cursor.next(@callback_multiple_queries)
 
             catch err
@@ -883,53 +915,40 @@ module 'DataExplorerView', ->
             @codemirror.setValue ''
             @codemirror.focus()
 
-        # Connect to the server
-        connect: (data) =>
-            server =
-                host: window.location.hostname
-                port: if window.location.port is '' then 80 else parseInt window.location.port
-
-            that = @
-            if data? and data.reconnecting is true
-                if @options? and @options.local_connect? is true
-                    console.log 'local'
-                else
-                    r.connect server, @success_on_connect, @error_on_connect
-            else
-                if @options? and @options.local_connect? is true
-                    console.log 'local'
-                else
-                    r.connect server, undefined, @error_on_connect
-
-            if @timeout?
-                clearTimeout @timeout
-            @timeout = setTimeout @connect, 5*60*1000
+        # Called if the driver could connect
         success_on_connect: =>
-            @.$('#user-alert-space').hide()
-            @.$('#user-alert-space').html @alert_reconnection_success_template()
-            @.$('#user-alert-space').slideDown 'fast'
+            @results_view.check_if_cursor_timed_out()
+            window.driver_connected = true
+            # If the user hit reconnect or if the driver failed to connect before, we display a successful message
+            # Note: driver_connected_old is null only if the user hit reconnect
+            if window.driver_connected_old is null or window.driver_connected_old is false
+                @.$('#user-alert-space').hide()
+                @.$('#user-alert-space').html @alert_reconnection_success_template()
+                @.$('#user-alert-space').slideDown 'fast'
 
+        # Called if the driver could not connect
         error_on_connect: =>
-            @.$('#user-alert-space').hide()
-            @.$('#user-alert-space').html @alert_connection_fail_template({})
-            @.$('#user-alert-space').slideDown 'fast'
+            @results_view.check_if_cursor_timed_out()
+            window.driver_connected = false
+            # We fail to connect, so we display a message except if the message is already displayed
+            #  - in case driver_connected_old is true
+            #  - it's the first time we connect (driver_connected_old is undefined/null
+            if (not window.driver_connected_old?) or window.driver_connected_old is true
+                @.$('#user-alert-space').hide()
+                @.$('#user-alert-space').html @alert_connection_fail_template({})
+                @.$('#user-alert-space').slideDown 'fast'
 
 
         # Reconnect, function triggered if the user click on reconnect
         reconnect: (event) =>
             event.preventDefault()
-            @connect
-                reconnecting: true
+            window.driver_connected = null
+            clearTimeout window.timeout_driver_connect
+            window.driver_connect()
 
         initialize: (options) =>
             if options?
                 @options = options
-
-            @timeout = setTimeout @connect, 5*60*1000
-            window.r = rethinkdb
-            window.R = r.R
-
-            @connect()
 
             @limit = 40
 
@@ -1000,6 +1019,14 @@ module 'DataExplorerView', ->
                 @.$('.not_supported_browser').slideDown 'fast'
                 @.$('.button_query').prop 'disabled', 'disabled'
 
+            if @last_query? and @last_results? and @last_metadata?
+                @results_view.render_result @last_query, @last_results
+                @results_view.render_metadata @last_metadata
+
+            # If driver not conneced
+            if window.driver_connected is false
+                @error_on_connect()
+
             return @
 
         # Create a code mirror instance
@@ -1016,7 +1043,8 @@ module 'DataExplorerView', ->
                 matchBrackets: true
 
             @codemirror.setSize '100%', 'auto'
-            @codemirror.setValue @saved_query
+            if @saved_query?
+                @codemirror.setValue @saved_query
 
         handle_gutter_click: (editor, line) =>
             start =
@@ -1055,13 +1083,7 @@ module 'DataExplorerView', ->
             $(window).off 'resize', @display_full
             @input_query.destroy()
             @results_view.destroy()
-            try
-                window.conn.close()
-            catch err
-                #console.log 'Could not destroy connection'
-            if @cursor?.close?
-                @cursor.close()
-            clearTimeout @timeout
+            # We do not destroy the cursor, because the user might come back and use it.
     
     class @InputQuery extends Backbone.View
         className: 'query_control'
@@ -1096,6 +1118,7 @@ module 'DataExplorerView', ->
             'td_value': Handlebars.compile $('#dataexplorer_result_json_table_td_value-template').html()
             'td_value_content': Handlebars.compile $('#dataexplorer_result_json_table_td_value_content-template').html()
             'data_inline': Handlebars.compile $('#dataexplorer_result_json_table_data_inline-template').html()
+        cursor_timed_out_template: Handlebars.compile $('#dataexplorer-cursor_timed_out-template').html()
 
         events:
             # Global events
@@ -1484,12 +1507,20 @@ module 'DataExplorerView', ->
 
             @.$('.metadata').html @metadata_template data
 
+            # TODO Since we removed pagination and iter, this thing should be moved in render_results or another method.
             #render pagination
             if has_more_data? and has_more_data is true
+                @check_if_cursor_timed_out()
                 @.$('.more_results').show()
             else
                 @.$('.more_results').hide()
-                
+            
+        # Check if the cursor timed out. If yes, make sure that the user cannot fetch more results
+        check_if_cursor_timed_out: =>
+            if DataExplorerView.Container.prototype.cursor_timed_out is true
+                @.$('.more_results_paragraph').html @cursor_timed_out_template()
+
+
         render: =>
             @delegateEvents()
             return @

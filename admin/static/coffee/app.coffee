@@ -213,6 +213,44 @@ collect_stat_data = ->
             stats_param.fail = true
             stats_param.timeout = setTimeout collect_stat_data, 1000
 
+# Method called if the driver just connected
+driver_connect_success = ->
+    window.driver_connected_old = window.driver_connected
+    window.driver_connected = true
+    # If the view is DataExplorerView.Container and if we were disconencted before, we'll say that we did reconnect
+    if Backbone.history.fragment is 'dataexplorer'
+        window.router.current_view?.success_on_connect()
+
+# Method called if the driver fail to connect
+driver_connect_fail = ->
+    window.driver_connected_old = window.driver_connected
+    window.driver_connected = false
+    # If the view is DataExplorerView.Container and if we were connected before, we'll display an error
+    if Backbone.history.fragment is 'dataexplorer'
+        window.router.current_view?.error_on_connect()
+
+# Define the server to which the javascript is going to connect to
+# Tweaking the value of server.host or server.port can trigger errors for testing
+window.server =
+    host: window.location.hostname
+    port: if window.location.port is '' then 80 else parseInt window.location.port
+
+# Connect the driver every five minutes (the connection times out every 5-10 minutes)
+driver_connect = ->
+    DataExplorerView.Container.prototype.cursor_timed_out = true
+    if window.conn?
+        if window.driver_connected is true # We try to close the connection if we were connected
+            try
+                window.conn.close()
+            #catch
+            #   console.log 'Could not destroy connection'
+            #   Can it fail?
+    window.conn = r.connect window.server, driver_connect_success, driver_connect_fail
+
+    if window.timeout_driver_connect?
+        clearTimeout window.timeout_driver_connect
+    window.timeout_driver_connect = setTimeout driver_connect, 5*60*1000
+
 $ ->
     render_loading()
     bind_dev_tools()
@@ -271,3 +309,8 @@ $ ->
 
     # Collect reql docs
     collect_reql_doc()
+
+    # Set interval for javscript driver
+    window.r = rethinkdb
+    window.R = r.R
+    driver_connect()
