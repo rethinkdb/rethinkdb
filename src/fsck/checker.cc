@@ -89,7 +89,8 @@ struct file_knowledge_t {
     learned_t<mc_config_block_t> mc_config_block;
 
     explicit file_knowledge_t(const std::string _filename) : filename(_filename) {
-        guarantee_err(!pthread_rwlock_init(&block_info_lock_, NULL), "pthread_rwlock_init failed");
+        int res = pthread_rwlock_init(&block_info_lock_, NULL);
+        guarantee_xerr(res == 0, res, "pthread_rwlock_init failed");
     }
 
     friend class read_locker_t;
@@ -108,13 +109,15 @@ private:
 class read_locker_t {
 public:
     explicit read_locker_t(file_knowledge_t *knog) : knog_(knog) {
-        guarantee_err(!pthread_rwlock_rdlock(&knog->block_info_lock_), "pthread_rwlock_rdlock failed");
+        int res = pthread_rwlock_rdlock(&knog->block_info_lock_);
+        guarantee_xerr(res == 0, res, "pthread_rwlock_rdlock failed");
     }
     const segmented_vector_t<block_knowledge_t, MAX_BLOCK_ID>& block_info() const {
         return knog_->block_info_;
     }
     ~read_locker_t() {
-        guarantee_err(!pthread_rwlock_unlock(&knog_->block_info_lock_), "pthread_rwlock_unlock failed");
+        int res = pthread_rwlock_unlock(&knog_->block_info_lock_);
+        guarantee_xerr(res == 0, res, "pthread_rwlock_unlock failed");
     }
 private:
     file_knowledge_t *knog_;
@@ -123,13 +126,15 @@ private:
 class write_locker_t {
 public:
     explicit write_locker_t(file_knowledge_t *knog) : knog_(knog) {
-        guarantee_err(!pthread_rwlock_wrlock(&knog->block_info_lock_), "pthread_rwlock_wrlock failed");
+        int res = pthread_rwlock_wrlock(&knog->block_info_lock_);
+        guarantee_xerr(res == 0, res, "pthread_rwlock_wrlock failed");
     }
     segmented_vector_t<block_knowledge_t, MAX_BLOCK_ID>& block_info() {
         return knog_->block_info_;
     }
     ~write_locker_t() {
-        guarantee_err(!pthread_rwlock_unlock(&knog_->block_info_lock_), "pthread_rwlock_unlock failed");
+        int res = pthread_rwlock_unlock(&knog_->block_info_lock_);
+        guarantee_xerr(res == 0, res, "pthread_rwlock_unlock failed");
     }
 private:
     file_knowledge_t *knog_;
@@ -1217,7 +1222,7 @@ void launch_check_slice(std::vector<pthread_t> *threads, scoped_ptr_t<slicecx_t>
     param->cx.init(cx->release());
     param->errs = errs;
     int res = pthread_create(&threads->back(), NULL, do_check_slice, param);
-    guarantee_err(res == 0, "pthread_create not working");
+    guarantee_xerr(res == 0, res, "pthread_create not working");
 }
 
 void launch_check_after_config_block(nondirect_file_t *file, std::vector<pthread_t> *threads, file_knowledge_t *knog, all_slices_errors_t *errs, const config_t *cfg) {
@@ -1551,7 +1556,8 @@ bool check_files(const config_t *cfg) {
 
     // Wait for all threads to finish.
     for (unsigned i = 0; i < threads.size(); ++i) {
-        guarantee_err(!pthread_join(threads[i], NULL), "pthread_join failing");
+        int res = pthread_join(threads[i], NULL);
+        guarantee_xerr(res == 0, res, "pthread_join failing");
     }
 
     return report_post_config_block_errors(slices_errs);
