@@ -86,8 +86,6 @@ class mailbox_t< void() > {
     class read_impl_t : public mailbox_read_callback_t {
     public:
         explicit read_impl_t(mailbox_t< void() > *_parent) : parent(_parent) { }
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wuninitialized"
         void read(UNUSED read_stream_t *stream) {
             if (parent->callback_mode == mailbox_callback_mode_coroutine) {
                 coro_t::spawn_sometime(boost::bind(parent->fun));
@@ -95,7 +93,6 @@ class mailbox_t< void() > {
                 parent->fun();
             }
         }
-#pragma GCC diagnostic pop
 
         void read(UNUSED mailbox_write_callback_t *_writer) {
             if (parent->callback_mode == mailbox_callback_mode_coroutine) {
@@ -160,8 +157,6 @@ class mailbox_t< void(arg0_t) > {
     class read_impl_t : public mailbox_read_callback_t {
     public:
         explicit read_impl_t(mailbox_t< void(arg0_t) > *_parent) : parent(_parent) { }
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wuninitialized"
         void read(read_stream_t *stream) {
             arg0_t arg0;
             int res = deserialize(stream, &arg0);
@@ -172,7 +167,6 @@ class mailbox_t< void(arg0_t) > {
                 parent->fun(arg0);
             }
         }
-#pragma GCC diagnostic pop
 
         void read(mailbox_write_callback_t *_writer) {
             write_impl_t *writer = static_cast<write_impl_t*>(_writer);
@@ -241,8 +235,6 @@ class mailbox_t< void(arg0_t, arg1_t) > {
     class read_impl_t : public mailbox_read_callback_t {
     public:
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t) > *_parent) : parent(_parent) { }
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wuninitialized"
         void read(read_stream_t *stream) {
             arg0_t arg0;
             arg1_t arg1;
@@ -256,7 +248,6 @@ class mailbox_t< void(arg0_t, arg1_t) > {
                 parent->fun(arg0, arg1);
             }
         }
-#pragma GCC diagnostic pop
 
         void read(mailbox_write_callback_t *_writer) {
             write_impl_t *writer = static_cast<write_impl_t*>(_writer);
@@ -327,8 +318,6 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t) > {
     class read_impl_t : public mailbox_read_callback_t {
     public:
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t) > *_parent) : parent(_parent) { }
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wuninitialized"
         void read(read_stream_t *stream) {
             arg0_t arg0;
             arg1_t arg1;
@@ -345,7 +334,6 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t) > {
                 parent->fun(arg0, arg1, arg2);
             }
         }
-#pragma GCC diagnostic pop
 
         void read(mailbox_write_callback_t *_writer) {
             write_impl_t *writer = static_cast<write_impl_t*>(_writer);
@@ -418,8 +406,6 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > {
     class read_impl_t : public mailbox_read_callback_t {
     public:
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > *_parent) : parent(_parent) { }
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wuninitialized"
         void read(read_stream_t *stream) {
             arg0_t arg0;
             arg1_t arg1;
@@ -439,7 +425,6 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > {
                 parent->fun(arg0, arg1, arg2, arg3);
             }
         }
-#pragma GCC diagnostic pop
 
         void read(mailbox_write_callback_t *_writer) {
             write_impl_t *writer = static_cast<write_impl_t*>(_writer);
@@ -514,8 +499,6 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > {
     class read_impl_t : public mailbox_read_callback_t {
     public:
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > *_parent) : parent(_parent) { }
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wuninitialized"
         void read(read_stream_t *stream) {
             arg0_t arg0;
             arg1_t arg1;
@@ -538,7 +521,6 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > {
                 parent->fun(arg0, arg1, arg2, arg3, arg4);
             }
         }
-#pragma GCC diagnostic pop
 
         void read(mailbox_write_callback_t *_writer) {
             write_impl_t *writer = static_cast<write_impl_t*>(_writer);
@@ -615,8 +597,6 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > {
     class read_impl_t : public mailbox_read_callback_t {
     public:
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > *_parent) : parent(_parent) { }
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wuninitialized"
         void read(read_stream_t *stream) {
             arg0_t arg0;
             arg1_t arg1;
@@ -642,7 +622,6 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > {
                 parent->fun(arg0, arg1, arg2, arg3, arg4, arg5);
             }
         }
-#pragma GCC diagnostic pop
 
         void read(mailbox_write_callback_t *_writer) {
             write_impl_t *writer = static_cast<write_impl_t*>(_writer);
@@ -721,8 +700,6 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > 
     class read_impl_t : public mailbox_read_callback_t {
     public:
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > *_parent) : parent(_parent) { }
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wuninitialized"
         void read(read_stream_t *stream) {
             arg0_t arg0;
             arg1_t arg1;
@@ -751,7 +728,6 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > 
                 parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
             }
         }
-#pragma GCC diagnostic pop
 
         void read(mailbox_write_callback_t *_writer) {
             write_impl_t *writer = static_cast<write_impl_t*>(_writer);
@@ -832,8 +808,6 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
     class read_impl_t : public mailbox_read_callback_t {
     public:
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > *_parent) : parent(_parent) { }
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wuninitialized"
         void read(read_stream_t *stream) {
             arg0_t arg0;
             arg1_t arg1;
@@ -865,7 +839,6 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
                 parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
             }
         }
-#pragma GCC diagnostic pop
 
         void read(mailbox_write_callback_t *_writer) {
             write_impl_t *writer = static_cast<write_impl_t*>(_writer);
@@ -948,8 +921,6 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
     class read_impl_t : public mailbox_read_callback_t {
     public:
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > *_parent) : parent(_parent) { }
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wuninitialized"
         void read(read_stream_t *stream) {
             arg0_t arg0;
             arg1_t arg1;
@@ -984,7 +955,6 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
                 parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
             }
         }
-#pragma GCC diagnostic pop
 
         void read(mailbox_write_callback_t *_writer) {
             write_impl_t *writer = static_cast<write_impl_t*>(_writer);
@@ -1069,8 +1039,6 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
     class read_impl_t : public mailbox_read_callback_t {
     public:
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > *_parent) : parent(_parent) { }
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wuninitialized"
         void read(read_stream_t *stream) {
             arg0_t arg0;
             arg1_t arg1;
@@ -1108,7 +1076,6 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
                 parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
             }
         }
-#pragma GCC diagnostic pop
 
         void read(mailbox_write_callback_t *_writer) {
             write_impl_t *writer = static_cast<write_impl_t*>(_writer);
@@ -1195,8 +1162,6 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
     class read_impl_t : public mailbox_read_callback_t {
     public:
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > *_parent) : parent(_parent) { }
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wuninitialized"
         void read(read_stream_t *stream) {
             arg0_t arg0;
             arg1_t arg1;
@@ -1237,7 +1202,6 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
                 parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10);
             }
         }
-#pragma GCC diagnostic pop
 
         void read(mailbox_write_callback_t *_writer) {
             write_impl_t *writer = static_cast<write_impl_t*>(_writer);
@@ -1326,8 +1290,6 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
     class read_impl_t : public mailbox_read_callback_t {
     public:
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > *_parent) : parent(_parent) { }
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wuninitialized"
         void read(read_stream_t *stream) {
             arg0_t arg0;
             arg1_t arg1;
@@ -1371,7 +1333,6 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
                 parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11);
             }
         }
-#pragma GCC diagnostic pop
 
         void read(mailbox_write_callback_t *_writer) {
             write_impl_t *writer = static_cast<write_impl_t*>(_writer);
@@ -1462,8 +1423,6 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
     class read_impl_t : public mailbox_read_callback_t {
     public:
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > *_parent) : parent(_parent) { }
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wuninitialized"
         void read(read_stream_t *stream) {
             arg0_t arg0;
             arg1_t arg1;
@@ -1510,7 +1469,6 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
                 parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12);
             }
         }
-#pragma GCC diagnostic pop
 
         void read(mailbox_write_callback_t *_writer) {
             write_impl_t *writer = static_cast<write_impl_t*>(_writer);
@@ -1603,8 +1561,6 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
     class read_impl_t : public mailbox_read_callback_t {
     public:
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > *_parent) : parent(_parent) { }
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wuninitialized"
         void read(read_stream_t *stream) {
             arg0_t arg0;
             arg1_t arg1;
@@ -1654,7 +1610,6 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
                 parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13);
             }
         }
-#pragma GCC diagnostic pop
 
         void read(mailbox_write_callback_t *_writer) {
             write_impl_t *writer = static_cast<write_impl_t*>(_writer);

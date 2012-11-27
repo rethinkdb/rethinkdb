@@ -56,8 +56,6 @@ def generate_async_message_template(nargs):
     print "    class read_impl_t : public mailbox_read_callback_t {"
     print "    public:"
     print "        explicit read_impl_t(mailbox_t< void(" + csep("arg#_t") + ") > *_parent) : parent(_parent) { }"
-    print "#pragma GCC diagnostic push"
-    print "#pragma GCC diagnostic ignored \"-Wuninitialized\""
     if nargs == 0:
         print "        void read(UNUSED read_stream_t *stream) {"
     else:
@@ -74,7 +72,6 @@ def generate_async_message_template(nargs):
     print "                parent->fun(" + csep("arg#") + ");"
     print "            }"
     print "        }"
-    print "#pragma GCC diagnostic pop"
     print
     if nargs == 0:
         print "        void read(UNUSED mailbox_write_callback_t *_writer) {"
