@@ -467,7 +467,10 @@ endif
 else
 # use -fno-strict-aliasing to not break things
 # march=native used to break the serializer
-RT_CXXFLAGS+=-O3 -DNDEBUG -fno-strict-aliasing # -match=native
+RT_CXXFLAGS+=-O3 -DNDEBUG -fno-strict-aliasing # -march=native
+ifeq ($(FORCE_NATIVE),1)
+RT_CXXFLAGS+=-march=native
+endif
 # TODO: remove this once memcached is added back in the release (disables memcached from showing up in the admin CLI help or tab-completion)
 RT_CXXFLAGS+=-DNO_MEMCACHE
 ifeq ($(NO_OMIT_FRAME_POINTER),1)
