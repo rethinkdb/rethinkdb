@@ -52,16 +52,16 @@ struct seed_key_generator_t {
             int suffix_length = count_decimal_digits(shard_count);
             char buf[100];
             snprintf(buf, sizeof(buf), "%.*d", suffix_length, shard_id);
-            if (strlen(buf) != suffix_length) {
+            if (strlen(buf) != static_cast<size_t>(suffix_length)) {
                 fprintf(stderr, "Apparently I don't understand how the '%%d' format specifier "
                     "works.\n");
                 exit(-1);
             }
             suffix = buf;
-            id_salt = shard_id + uint64_t(shard_id) << 32;
+            id_salt = shard_id + (uint64_t(shard_id) << 32);
         }
 
-        if (suffix.length() + prefix.length() >= key_sizes.min) {
+        if (static_cast<ssize_t>(suffix.length() + prefix.length()) >= key_sizes.min) {
             fprintf(stderr, "Lower bound for key length is %d, but suffix and prefix together "
                 "are %d bytes, leaving nothing for body of key.\n",
                 (int)key_sizes.min, (int)(suffix.length() + prefix.length()));

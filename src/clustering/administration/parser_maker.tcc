@@ -4,6 +4,7 @@
 
 #include "clustering/administration/parser_maker.hpp"
 
+#include <set>
 #include <string>
 
 template<class protocol_t, class parser_t>

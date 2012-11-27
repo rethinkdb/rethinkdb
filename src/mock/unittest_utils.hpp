@@ -2,6 +2,8 @@
 #ifndef MOCK_UNITTEST_UTILS_HPP_
 #define MOCK_UNITTEST_UTILS_HPP_
 
+#include <set>
+
 #include "errors.hpp"
 #include <boost/function.hpp>
 

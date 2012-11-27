@@ -31,7 +31,7 @@ struct existence_watcher_t : public value_watcher_t {
     void on_key_change(seed_t key, const payload_t *value) {
         on_key_create_destroy(key, value != NULL);
     }
-    void on_key_append_prepend(seed_t key, bool append, const payload_t &value) {
+    void on_key_append_prepend(UNUSED seed_t key, UNUSED bool append, UNUSED const payload_t &value) {
         // Ignore; the append/prepend operation did not create or delete a key.
     }
 };

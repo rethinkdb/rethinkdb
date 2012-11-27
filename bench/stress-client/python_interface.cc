@@ -59,7 +59,7 @@ void op_generator_poll(op_generator_t *opg, int *queries_out, float *worstlatenc
                 take_this_sample = true;
             } else if (samples_we_have > samples_we_need) {
                 /* Roll a die to determine whether or not to take this sample */
-                take_this_sample = xrandom(0, samples_we_have-1) < samples_we_need;
+                take_this_sample = static_cast<int>(xrandom(0, samples_we_have - 1)) < samples_we_need;
             }
             if (take_this_sample) {
                 samples_out[--samples_we_need] = ticks_to_secs(stats->latency_samples.samples[--samples_we_have]);
@@ -182,7 +182,15 @@ seed_chooser_t *fuzzy_model_make_random_chooser(fuzzy_model_t *fm, const char *d
     return new fuzzy_model_t::random_chooser_t(fm, distr_with_name(distr_name), mu);
 }
 
-void py_initialize_mysql_table(const char *server_str, int max_key, int max_value) {
+#ifdef USE_MYSQL
+#define MYSQL_ONLY_VAR
+#else
+#define MYSQL_ONLY_VAR UNUSED
+#endif
+
+void py_initialize_mysql_table(MYSQL_ONLY_VAR const char *server_str,
+                               MYSQL_ONLY_VAR int max_key,
+                               MYSQL_ONLY_VAR int max_value) {
 #ifdef USE_MYSQL
     initialize_mysql_table(server_str, max_key, max_value);
 #else

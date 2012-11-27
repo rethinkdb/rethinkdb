@@ -336,7 +336,7 @@ void get_dev_urandom(void *out, int64_t nbytes) {
 int randint(int n) {
     drand48_data buffer;
     if (!TLS_get_rng_initialized()) {
-        long int seed_buffer;
+        long seed_buffer;  // NOLINT(runtime/int).  'long' is in the API for drand48 functions.
         get_dev_urandom(&seed_buffer, sizeof(seed_buffer));
         srand48_r(seed_buffer, &buffer);
         TLS_set_rng_initialized(true);
