@@ -1,7 +1,7 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
-#ifndef LEGACY_LINUX // So the build system doesn't try to compile this file otherwise.
+#include "arch/io/timer_provider.hpp"  // for RDB_USE_TIMERFD_PROVIDER
 
-#include "arch/io/timer/timerfd_provider.hpp"
+#ifdef RDB_USE_TIMERFD_PROVIDER
 
 #include <sys/timerfd.h>
 #include <fcntl.h>
@@ -59,4 +59,4 @@ void timerfd_provider_t::on_event(int events) {
     }
 }
 
-#endif
+#endif  // RDB_USE_TIMERFD_PROVIDER
