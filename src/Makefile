@@ -20,7 +20,7 @@ else
 MAKEFILE_DEPENDENCY:=Makefile
 endif
 
-GCC_ARCH=$(shell uname -h | grep '^[A-Za-z0-9_]*$$' | head -n 1)
+GCC_ARCH=$(shell uname -m | grep '^[A-Za-z0-9_]*$$' | head -n 1)
 GCC_ARCH_REDUCED=$(shell echo "$(GCC_ARCH)" | sed -e 's/^i[56]86$$/i486/g')
 
 # Set SOLO to 0 to build RethinkDB Cache (otherwise, RethinkDB Solo is built)
