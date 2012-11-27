@@ -20,6 +20,9 @@ else
 MAKEFILE_DEPENDENCY:=Makefile
 endif
 
+GCC_ARCH=$(shell uname -h | grep '^[A-Za-z0-9_]*$$' | head -n 1)
+GCC_ARCH_REDUCED=$(shell echo "$(GCC_ARCH)" | sed -e 's/^i[56]86$$/i486/g')
+
 # Set SOLO to 0 to build RethinkDB Cache (otherwise, RethinkDB Solo is built)
 SOLO?=1
 ifeq ($(SOLO),1)
@@ -455,6 +458,20 @@ STRIP_ON_INSTALL?=1
 
 NO_OMIT_FRAME_POINTER?=0
 
+RT_FORCE_NATIVE?=0
+RT_COPY_NATIVE?=0
+RT_REDUCE_NATIVE?=0
+
+ifeq ($(RT_FORCE_NATIVE),1)
+RT_CXXFLAGS+=-march=native
+endif
+ifeq ($(RT_COPY_NATIVE),1)
+RT_CXXFLAGS+=-march="$(GCC_ARCH)"
+endif
+ifeq ($(RT_REDUCE_NATIVE),1)
+RT_CXXFLAGS+=-march="$(GCC_ARCH_REDUCED)"
+endif
+
 # Configure debug vs. release
 ifeq ($(DEBUG),1)
 SYMBOLS:=1
@@ -468,9 +485,6 @@ else
 # use -fno-strict-aliasing to not break things
 # march=native used to break the serializer
 RT_CXXFLAGS+=-O3 -DNDEBUG -fno-strict-aliasing # -march=native
-ifeq ($(FORCE_NATIVE),1)
-RT_CXXFLAGS+=-march=native
-endif
 # TODO: remove this once memcached is added back in the release (disables memcached from showing up in the admin CLI help or tab-completion)
 RT_CXXFLAGS+=-DNO_MEMCACHE
 ifeq ($(NO_OMIT_FRAME_POINTER),1)

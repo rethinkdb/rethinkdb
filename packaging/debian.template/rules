@@ -1,5 +1,6 @@
 #!/usr/bin/make -f
 # Copyright 2013 hello-debhelper project (used according to license) with modifications by RethinkDB
+# Note that much of the explicit option passing is unnecessary due to MAKEFLAGS. The intent is to track the variables of importance and to provide the opportunity to isolate via env -i in the future.
 
 package?=$(shell cat debian/control | grep '^Source:' | awk '{ printf "%s" , $$2 }')
 DEBUG?=0
@@ -9,8 +10,10 @@ PVERSION?=$(shell cat debian/control | grep '^Version: ' | head -n 1 | awk '{ pr
 ifneq ($(shell echo "$(package)" | grep '[A-Za-z0-9]-portable'),)
 BUILD_PORTABLE?=1
 FORCE_INTERNAL_TOOLS?=1
+RT_REDUCE_NATIVE?=1
 else
 BUILD_PORTABLE?=0
+RT_REDUCE_NATIVE?=0
 endif
 
 clean:
@@ -21,10 +24,10 @@ clean:
 install: build
 	dh_clean
 	dh_installdirs
-	$(MAKE) DEBUG=$(DEBUG) AUTOCHAIN=$(AUTOCHAIN) prefix=/usr DESTDIR=$(CURDIR)/debian/$(package) FORCEVERSION=1 PVERSION=$(PVERSION) BUILD_DRIVERS=0 BUILD_PORTABLE=$(BUILD_PORTABLE) FORCE_INTERNAL_TOOLS=$(FORCE_INTERNAL_TOOLS) install
+	$(MAKE) DEBUG=$(DEBUG) AUTOCHAIN=$(AUTOCHAIN) prefix=/usr DESTDIR=$(CURDIR)/debian/$(package) FORCEVERSION=1 PVERSION=$(PVERSION) BUILD_DRIVERS=0 BUILD_PORTABLE=$(BUILD_PORTABLE) FORCE_INTERNAL_TOOLS=$(FORCE_INTERNAL_TOOLS) RT_REDUCE_NATIVE=$(RT_REDUCE_NATIVE) install
 
 build:
-	$(MAKE) DEBUG=$(DEBUG) AUTOCHAIN=$(AUTOCHAIN) prefix=/usr DESTDIR=$(CURDIR)/debian/$(package) FORCEVERSION=1 PVERSION=$(PVERSION) BUILD_PORTABLE=$(BUILD_PORTABLE) BUILD_DRIVERS=0 FORCE_INTERNAL_TOOLS=$(FORCE_INTERNAL_TOOLS)
+	$(MAKE) DEBUG=$(DEBUG) AUTOCHAIN=$(AUTOCHAIN) prefix=/usr DESTDIR=$(CURDIR)/debian/$(package) FORCEVERSION=1 PVERSION=$(PVERSION) BUILD_PORTABLE=$(BUILD_PORTABLE) BUILD_DRIVERS=0 FORCE_INTERNAL_TOOLS=$(FORCE_INTERNAL_TOOLS) RT_REDUCE_NATIVE=1 RT_REDUCE_NATIVE=$(RT_REDUCE_NATIVE)
 	touch build
 
 binary-indep: install
