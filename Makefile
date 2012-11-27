@@ -1,12 +1,15 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 
 DEBUG?=0
+RT_FORCE_NATIVE?=0
+RT_COPY_NATIVE?=0
+RT_REDUCE_NATIVE?=0
 
 all:
-	cd src ; $(MAKE) STRIP_ON_INSTALL=0 DEBUG=$(DEBUG) PACKAGING=1 WEBRESDIR=/usr/share/rethinkdb/web ;
+	cd src ; $(MAKE) STRIP_ON_INSTALL=0 DEBUG=$(DEBUG) PACKAGING=1 RT_FORCE_NATIVE=$(RT_FORCE_NATIVE) WEBRESDIR=/usr/share/rethinkdb/web ;
 
 install: all
-	cd src ; $(MAKE) STRIP_ON_INSTALL=0 DEBUG=$(DEBUG) PACKAGING=1 install ;
+	cd src ; $(MAKE) STRIP_ON_INSTALL=0 DEBUG=$(DEBUG) PACKAGING=1 RT_FORCE_NATIVE=$(RT_FORCE_NATIVE) WEBRESDIR=/usr/share/rethinkdb/web install ;
 
 clean:
 	rm -rf build
