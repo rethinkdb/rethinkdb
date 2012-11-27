@@ -213,6 +213,12 @@ collect_stat_data = ->
             stats_param.fail = true
             stats_param.timeout = setTimeout collect_stat_data, 1000
 
+
+# driver_connected: State of the driver
+# - true => connected
+# - false => error
+# - null => not connected ( left the data explorer or never came )
+
 # Method called if the driver just connected
 driver_connect_success = ->
     window.driver_connected_old = window.driver_connected
@@ -237,19 +243,29 @@ window.server =
 
 # Connect the driver every five minutes (the connection times out every 5-10 minutes)
 driver_connect = ->
+    # Whether we are going to reconnect or not, the cursor might have timed out.
     DataExplorerView.Container.prototype.cursor_timed_out = true
+
+    # We try to close the connection if we were connected
     if window.conn?
-        if window.driver_connected is true # We try to close the connection if we were connected
+        if window.driver_connected is true
             try
                 window.conn.close()
             #catch
             #   console.log 'Could not destroy connection'
             #   Can it fail?
-    window.conn = r.connect window.server, driver_connect_success, driver_connect_fail
 
-    if window.timeout_driver_connect?
-        clearTimeout window.timeout_driver_connect
-    window.timeout_driver_connect = setTimeout driver_connect, 5*60*1000
+    # We are going to reconnect only if we still need it (viewing the data exlorer)
+    if Backbone.history.fragment is 'dataexplorer'
+        window.conn = r.connect window.server, driver_connect_success, driver_connect_fail
+
+        if window.timeout_driver_connect?
+            clearTimeout window.timeout_driver_connect
+        window.timeout_driver_connect = setTimeout driver_connect, 5*60*1000
+    else
+        window.driver_connected_old = window.driver_connected
+        window.driver_connected = null
+
 
 $ ->
     render_loading()
@@ -310,7 +326,6 @@ $ ->
     # Collect reql docs
     collect_reql_doc()
 
-    # Set interval for javscript driver
+    # Set namespace for the javascript driver
     window.r = rethinkdb
     window.R = r.R
-    driver_connect()

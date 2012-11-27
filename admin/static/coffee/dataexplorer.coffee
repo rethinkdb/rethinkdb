@@ -918,31 +918,28 @@ module 'DataExplorerView', ->
         # Called if the driver could connect
         success_on_connect: =>
             @results_view.check_if_cursor_timed_out()
-            window.driver_connected = true
-            # If the user hit reconnect or if the driver failed to connect before, we display a successful message
-            # Note: driver_connected_old is null only if the user hit reconnect
-            if window.driver_connected_old is null or window.driver_connected_old is false
+            # If the we were disconnected because of an error, we say that we did reconnect
+            if window.driver_connected_old is false
                 @.$('#user-alert-space').hide()
                 @.$('#user-alert-space').html @alert_reconnection_success_template()
                 @.$('#user-alert-space').slideDown 'fast'
+            @reconnecting = false
 
         # Called if the driver could not connect
         error_on_connect: =>
             @results_view.check_if_cursor_timed_out()
-            window.driver_connected = false
-            # We fail to connect, so we display a message except if the message is already displayed
-            #  - in case driver_connected_old is true
-            #  - it's the first time we connect (driver_connected_old is undefined/null
-            if (not window.driver_connected_old?) or window.driver_connected_old is true
+            # We fail to connect, so we display a message except if we were already disconnected and we are not trying to manually reconnect
+            # So if the user fails to reconnect after a failure, the alert will still flash
+            if window.driver_connected_old isnt false or @reconnecting is true
                 @.$('#user-alert-space').hide()
                 @.$('#user-alert-space').html @alert_connection_fail_template({})
                 @.$('#user-alert-space').slideDown 'fast'
-
+            @reconnecting = false
 
         # Reconnect, function triggered if the user click on reconnect
         reconnect: (event) =>
+            @reconnecting = true
             event.preventDefault()
-            window.driver_connected = null
             clearTimeout window.timeout_driver_connect
             window.driver_connect()
 
@@ -1001,6 +998,10 @@ module 'DataExplorerView', ->
             @render()
 
             $(window).on 'resize', @set_char_per_line
+
+            # Connect the driver
+            if window.driver_connected isnt true
+                window.driver_connect()
 
         render: =>
             @.$el.html @template
