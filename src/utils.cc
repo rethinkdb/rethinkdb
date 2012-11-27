@@ -320,6 +320,7 @@ int rng_t::randint(int n) {
     long x;  // NOLINT(runtime/int)
     lrand48_r(&buffer_, &x);
 
+    guarantee(n != 0, "Can't produce a rand int < 0"); //Better than a floating point exception
     return x % n;
 }
 
