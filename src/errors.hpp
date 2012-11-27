@@ -7,8 +7,9 @@
 
 // Provide a quick and clear error message to 32-bit users.  (Yes, we need both, because there is a
 // target for 32-bit pointers on x86-64.)
+// This is not necessary anymore.
 #if !__LP64__ || !__x86_64__
-#error "RethinkDB only supports 64-bit x86-64 targets at this time."
+// #error "RethinkDB only supports 64-bit x86-64 targets at this time."
 #endif
 
 
