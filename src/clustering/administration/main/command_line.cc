@@ -494,7 +494,7 @@ void validate(boost::any& value_out, const std::vector<std::string>& words,
 #if BOOST_VERSION >= 104200
         throw po::validation_error(po::validation_error::invalid_option_value, word);
 #else
-        throw po::validation_error("Invalid option value:" + word);
+        throw po::validation_error("Invalid option value: " + word);
 #endif
     } else {
         std::string host = word.substr(0, colon_loc);
@@ -503,7 +503,7 @@ void validate(boost::any& value_out, const std::vector<std::string>& words,
 #if BOOST_VERSION >= 104200
             throw po::validation_error(po::validation_error::invalid_option_value, word);
 #else
-            throw po::validation_error("Invalid option value:" + word);
+            throw po::validation_error("Invalid option value: " + word);
 #endif
         }
         value_out = host_and_port_t(host, port);
