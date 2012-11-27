@@ -97,9 +97,6 @@ namespace unittest {
                 expected = 0;
             }
 
-            if (expected != sign(compare_and_delete(render_as_json(&left), render_as_json(&right)))) {
-                BREAKPOINT;
-            }
             ASSERT_SAME_SIGN(expected, compare_and_delete(render_as_json(&left), render_as_json(&right)));
         }
 
@@ -132,10 +129,6 @@ namespace unittest {
                 //if expected == 0 that means there the same type which would
                 //lead to it comparing some garbage values so we ignore these
                 if (expected != 0) {
-                    if (expected != sign(json_cmp(left, right))) {
-                        BREAKPOINT;
-                    }
-
                     ASSERT_SAME_SIGN(expected, compare_and_delete(left, right));
                 }
             }

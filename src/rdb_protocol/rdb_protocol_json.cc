@@ -44,6 +44,13 @@ rank_wrapper wrapper;
 int cmp(int t1, int t2) { return wrapper.rank[t1] - wrapper.rank[t2]; }
 }
 
+class char_star_cmp_functor {
+public:
+    bool operator()(const char *x, const char *y) {
+        return strcmp(x, y) < 0;
+    }
+};
+
 class compare_functor {
 public:
     bool operator()(const std::pair<std::string, cJSON *> &l, const std::pair<std::string, cJSON *> &r) {
@@ -108,18 +115,18 @@ int json_cmp(cJSON *l, cJSON *r) {
             break;
         case cJSON_Object:
             {
-                std::map<std::string, cJSON *> lvalues, rvalues;
+                std::map<char *, cJSON *, char_star_cmp_functor> lvalues, rvalues;
                 json_iterator_t l_json_it(l);
 
                 while (cJSON *cur = l_json_it.next()) {
                     //guarantee makes sure there are no duplicates
-                    guarantee(lvalues.insert(std::make_pair(std::string(cur->string), cur)).second);
+                    guarantee(lvalues.insert(std::make_pair(cur->string, cur)).second);
                 }
 
                 json_iterator_t r_json_it(r);
                 while (cJSON *cur = r_json_it.next()) {
                     //guarantee makes sure there are no duplicates
-                    guarantee(rvalues.insert(std::make_pair(std::string(cur->string), cur)).second);
+                    guarantee(rvalues.insert(std::make_pair(cur->string, cur)).second);
                 }
 
                 if (lexicographical_compare(lvalues.begin(), lvalues.end(), rvalues.begin(), rvalues.end(), compare_functor())) {
