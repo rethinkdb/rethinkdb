@@ -84,7 +84,7 @@ artificial_stack_t::artificial_stack_t(void (*initial_fun)(void), size_t _stack_
     them will be ignored. */
     sp -= 6;
 #else
-    #error Unsupported architecture.
+    #error "Unsupported architecture."
 #endif
 
     // Subtracted (multiple of 2)*sizeof(uintptr_t), so sp is still double-word-size (16-byte for amd64, 8-byte for i386) aligned.
