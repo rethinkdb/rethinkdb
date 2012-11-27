@@ -3,7 +3,6 @@ goog.provide('rethinkdb.server.DemoServer')
 goog.require('rethinkdb.server.Errors')
 goog.require('rethinkdb.server.RDBDatabase')
 goog.require('rethinkdb.server.RDBJson')
-goog.require('rethinkdb.server.RDBLetScope')
 goog.require('goog.proto2.WireFormatSerializer')
 goog.require('Query')
 
@@ -315,7 +314,7 @@ class DemoServer
         tableName = tableRef.getTableName()
         db = @dbs[dbName]
         if db? then db.getTable(tableName)
-        else null
+        else new RDBPrimitive null
 
     evaluateCall: (call) ->
         builtin = call.getBuiltin()
@@ -422,3 +421,16 @@ class DemoServer
             unless op last, next then return false
             opReduc next, rest[1..]
         new RDBPrimitive opReduc args[0], args[1..]
+
+class RDBLetScope
+    constructor: (parent, binds) ->
+        @parent = parent
+        @binds = binds
+
+    lookup: (varName) ->
+        if @binds[varName]?
+            @binds[varName]
+        else if @parent?
+            @parent.lookup varName
+        else
+            null
