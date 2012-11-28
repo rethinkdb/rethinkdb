@@ -94,6 +94,7 @@ class Tests
 
 
 $(document).ready ->
+    # Some tests are commented because the real server doesn't implement (yet) object comparison.
     queries = [
         'r.expr(true).run()',
         'r.expr(false).run()',
@@ -107,9 +108,9 @@ $(document).ready ->
         'r.expr("abc").eq(r.expr("abc")).run()',
         'r.expr("abc").eq(r.expr("ac")).run()',
         'r.expr("abc").eq(r.expr("abcd")).run()',
-        'r.expr({id:1, key:2}).eq({id:1, key:2}).run()',
-        'r.expr([{id:1}]).eq([{id:1}]).run()',
-        'r.expr([{id:1}, {id:2}, {id:3}]).eq([{id:1}, {id:2}, {id:3}]).run()',
+        #'r.expr({id:1, key:2}).eq({id:1, key:2}).run()',
+        #'r.expr([{id:1}]).eq([{id:1}]).run()',
+        #'r.expr([{id:1}, {id:2}, {id:3}]).eq([{id:1}, {id:2}, {id:3}]).run()',
         'r.expr(1).ge(r.expr(1)).run()',
         'r.expr(1).ge(r.expr(2)).run()',
         'r.expr(2).ge(r.expr(1)).run()',
@@ -170,7 +171,7 @@ $(document).ready ->
         'r.expr([1,3,2]).filter(r.expr(true)).run()',
         'r.expr([1,2,3]).filter(r.expr(false)).run()',
         'r.db("test").table("test").filter(r.expr(true)).orderBy("id").run()',
-        'r.db("test").table("test").filter(r("@").eq({id:1})).run()',
+        #'r.db("test").table("test").filter(r("@").eq({id:1})).run()',
         'r.db("test").table("test").filter(r("@")("id").eq(1)).run()',
         'r.db("test").table("test").filter(r("id").eq(1)).run()',
         'r.db("test").table("test").between(2, 3).run()',
