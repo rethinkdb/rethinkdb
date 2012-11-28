@@ -19,51 +19,11 @@ deep_copy = (obj) =>
 # TODO
 # Refactor the test functions
 
-state =
-    1:
-        test:
-            test:
-                data:
-                    "N1":
-                        id: 1
-                    "N2":
-                        id: 2
-                    "N3":
-                        id: 3
-    2:
-        test:
-            test:
-                data:
-                    "N1":
-                        id: 1
-                        key: 1
-                    "N2":
-                        id: 2
-                        key: 2
-                    "N3":
-                        id: 3
-                        key: 3
-                options:
-                    'primary_key': 'id'
-    3:
-        test:
-            test:
-                data:
-                    "N2":
-                        id: 2
-                        key: 3
-                    "N5":
-                        id: 5
-                        key: 3
-                    "N4":
-                        id: 4
-                        key: 1
-                    "N1":
-                        id: 1
-                        key: 1
-                    "N3":
-                        id: 3
-                        key: 2
+collection = [
+    [{id:1}, {id:2}, {id:3}],
+    [{id:1, key: 4}, {id:2, key: 5}, {id:3, key: 6}],
+    [{id:2, key: 3}, {id:5, key: 3}, {id:4, key: 1}, {id:1, key:1}, {id:3, key: 2}]
+]
 
 class Tests
     results: []
@@ -76,13 +36,15 @@ class Tests
         query = @queries[@index]
         if query?
             console.log query.query
+            if query.collection?
+                r.dbDrop('test').run()
+                r.dbCreate('test').run()
+                r.db('test').tableCreate('test').run()
+                for element in query.collection
+                    r.db('test').table('test').insert(element).run()
+                
             cursor = eval(query.query)
             @callback()[query.callback_name](query.query, cursor, query.expected_result, @)
-
-            ###
-            @index++
-            @test()
-            ###
 
     display: (success, query, results) ->
         if success is true
@@ -304,16 +266,6 @@ class Tests
                 that.index++
                 that.test()
                 return false
-        is_state_1: (query, cursor, expected_result, that) =>
-            @results = []
-            cursor.next (data) =>
-                if data?
-                    @results.push data
-                    return true
-                @display _.isEqual(demo_server.dbs, state[1]), query, @results
-                that.index++
-                that.test()
-                return false
         is_doc_1: (query, cursor, expected_result, that) =>
             @results = []
             cursor.next (data) =>
@@ -331,16 +283,6 @@ class Tests
                     @results.push data
                     return true
                 @display (_.isEqual(@results, expected_result)), query, @results
-                that.index++
-                that.test()
-                return false
-        expect_state: (query, cursor, expected_state, that) =>
-            @results = []
-            cursor.next (data) =>
-                if data?
-                    @results.push data
-                    return true
-                @display (_.isEqual(demo_server.dbs?.test.tables.test, expected_state)), query, demo_server.dbs?.test.tables.test
                 that.index++
                 that.test()
                 return false
@@ -664,157 +606,160 @@ $(document).ready ->
             callback_name: 'empty_answer'
         },
         {
-            state: deep_copy state['1']
+            collection: collection[0]
             query: 'r.db("test").table("test").filter(r.expr(true)).run()'
-            callback_name: 'is_state_1'
+            callback_name: 'expect_result'
+            expected_result: collection[0]
         },
         {
-            state: deep_copy state['1']
+            collection: collection[0]
             query: 'r.db("test").table("test").filter(r("@").eq({id:1})).run()'
             callback_name: 'is_doc_1'
-        },
+        }
         {
-            state: deep_copy state['1']
+            collection: collection[0]
             query: 'r.db("test").table("test").filter(r("@")("id").eq(1)).run()'
             callback_name: 'is_doc_1'
         },
         {
-            state: deep_copy state['1']
+            collection: collection[0]
             query: 'r.db("test").table("test").filter(r("id").eq(1)).run()'
             callback_name: 'is_doc_1'
         },
         {
-            state: deep_copy state['1']
+            collection: collection[0]
             query: 'r.db("test").table("test").between(2, 3).run()'
             callback_name: 'expect_result'
             expected_result: [{id:2}, {id:3}]
         },
         {
-            state: deep_copy state['2']
-            query: 'r.db("test").table("test").get(2).replace({id:2, key:"new_value", other_key:"new_other_value"}).run()'
-            callback_name: 'two_has_been_replaced'
-        },
-
-        {
-            state: deep_copy state['2']
-            query: 'r.db("test").table("test").del().run()'
-            callback_name: 'table_empty'
+            collection: deep_copy collection[0]
+            query: 'r.db("test").table("test").get(2).replace({id:2, key:"new_value", other_key:"new_other_value"}).run(); r.db("test").table("test").get(2).run()'
+            callback_name: 'expect_result'
+            expected_result: [ {id:2, key:"new_value", other_key:"new_other_value"} ]
         },
         {
-            state: deep_copy state['2']
-            query: 'r.db("test").table("test").replace({id:2, key:"new_value", other_key:"new_other_value"}).run()'
-            callback_name: 'two_has_been_replaced'
+            collection: deep_copy collection[0]
+            query: 'r.db("test").table("test").del().run(); r.db("test").table("test").run()'
+            callback_name: 'expect_result'
+            expected_result: []
         },
         {
-            state: deep_copy state['2']
-            query: 'r.db("test").table("test").update({key:0}).run()'
-            callback_name: 'expect_state'
-            expected_result: {"N1": {id:1, key:0}, "N2": {id:2, key:0}, "N3": {id:3, key:0}}
+            collection: deep_copy collection[0]
+            query: 'r.db("test").table("test").replace({id:2, key:"new_value", other_key:"new_other_value"}).run(); r.db("test").table("test").orderBy("id").run()'
+            callback_name: 'expect_result'
+            expected_result: [ {id:1}, {id:2, key:"new_value", other_key:"new_other_value"}, {id:3} ]
         },
         {
-            state: deep_copy state['2']
-            query: 'r.db("test").table("test").filter(r("id").ge(2)).replace({id:2, key:"new_value", other_key:"new_other_value"}).run()'
-            callback_name: 'two_has_been_replaced_and_filter'
+            collection: deep_copy collection[1]
+            query: 'r.db("test").table("test").update({key:0}).run(); r.db("test").table("test").run()'
+            callback_name: 'expect_result'
+            expected_result: [ {id:1, key:0}, {id:2, key:0}, {id:3, key:0} ]
         },
         {
-            state: deep_copy state['2']
-            query: 'r.db("test").table("test").filter(r("id").ge(2)).del().run()'
-            callback_name: 'expect_state'
-            expected_result: { "N1": {id:1, key:1} }
+            collection: deep_copy collection[0]
+            query: 'r.db("test").table("test").filter(r("id").ge(2)).replace({id:2, key:"new_value", other_key:"new_other_value"}).run(); r.db("test").table("test").orderBy("id").run()'
+            callback_name: 'expect_result'
+            expected_result: [ {id:1}, {id:2, key:"new_value", other_key:"new_other_value"}, {id:3} ]
         },
         {
-            state: deep_copy state['1']
+            collection: deep_copy collection[0]
+            query: 'r.db("test").table("test").filter(r("id").ge(2)).del().run(); r.db("test").table("test").run()'
+            callback_name: 'expect_result'
+            expected_result: [ {id: 1} ]
+        },
+        {
+            collection: deep_copy collection[0]
             query: 'r.db("test").table("test").filter(r("id").le(2)).between(2, 3).run()'
             callback_name: 'expect_result'
             expected_result: [{id:2}]
         },
         {
-            state: deep_copy state['2']
-            query: 'r.db("test").table("test").filter(r("id").eq(1)).update({key:0}).run()'
-            callback_name: 'expect_state'
-            expected_result: {"N1": {id:1, key:0}, "N2": {id:2, key:2}, "N3": {id:3, key:3}}
+            collection: deep_copy collection[1]
+            query: 'r.db("test").table("test").filter(r("id").eq(1)).update({key:0}).run(); r.db("test").table("test").run()'
+            callback_name: 'expect_result'
+            expected_result: [ {id:1, key:0}, {id:2, key:5}, {id:3, key:6} ]
         },
         {
-            state: deep_copy state['2']
+            collection: deep_copy collection[0]
             query: 'r.db("test").table("test").filter(function(doc) { return r.branch(doc("id").gt(2), r.expr(true), r.expr(false)) }).run()'
             callback_name: 'expect_result'
-            expected_result: [{id:3, key:3}]
+            expected_result: [{id:3}]
         },
         {
-            state: deep_copy state['2']
-            query: 'r.db("test").table("test").filter(function(doc) { return doc.eq({id:2, key:2}) }).run()'
+            collection: deep_copy collection[1]
+            query: 'r.db("test").table("test").filter(function(doc) { return doc.eq({id:2, key:5}) }).run()'
             callback_name: 'expect_result'
-            expected_result: [{id:2, key:2}]
+            expected_result: [{id:2, key:5}]
         },
-       {
-            state: deep_copy state['2']
+        {
+            collection: deep_copy collection[0]
             query: 'r.db("test").table("test").map(r("id")).run()'
             callback_name: 'expect_result'
             expected_result: [1, 2, 3]
         },
         {
-            state: deep_copy state['2']
+            collection: deep_copy collection[0]
             query: 'r.db("test").table("test").map("id").run()'
             callback_name: 'expect_result'
             expected_result: ['id', 'id', 'id']
         },
         {
-            state: deep_copy state['2']
+            collection: deep_copy collection[0]
             query: 'r.db("test").table("test").map(function(doc) { return doc("id")}).run()'
             callback_name: 'expect_result'
             expected_result: [1, 2, 3]
         },
         {
-            state: deep_copy state['2']
+            collection: deep_copy collection[0]
             query: 'r.db("test").table("test").map(function(doc) { return doc("id").add(10)}).run()'
             callback_name: 'expect_result'
             expected_result: [11, 12, 13]
         },
         {
-            state: deep_copy state['2']
+            collection: deep_copy collection[0]
             query: 'r.db("test").table("test").concatMap(function(doc) { return r.expr([1]) }).run()'
             callback_name: 'expect_result'
-            expected_result: [[1, 1, 1]]
+            expected_result: [1, 1, 1]
         },
         {
-            state: deep_copy state['2']
+            collection: deep_copy collection[0]
             query: 'r.db("test").table("test").concatMap(function(doc) { return r.expr([r.expr(r("id"))]) }).run()'
             callback_name: 'expect_result'
-            expected_result: [[1, 2, 3]]
+            expected_result: [1, 2, 3]
         },
-
         {
-            state: deep_copy state['1']
+            collection: deep_copy collection[0]
             query: 'r.db("test").table("test").skip(2).run()'
             callback_name: 'expect_result'
             expected_result: [{id: 3}]
         },
         {
-            state: deep_copy state['1']
+            collection: deep_copy collection[0]
             query: 'r.db("test").table("test").limit(2).run()'
             callback_name: 'expect_result'
             expected_result: [{id: 1}, {id:2}]
         },
         {
-            state: deep_copy state['1']
+            collection: deep_copy collection[0]
             query: 'r.db("test").table("test").skip(1).limit(1).run()'
             callback_name: 'expect_result'
             expected_result: [{id:2}]
         },
         {
-            state: deep_copy state['1']
+            collection: deep_copy collection[0]
             query: 'r.db("test").table("test").limit(1).skip(1).run()'
             callback_name: 'expect_result'
             expected_result: []
         },
         {
-            state: deep_copy state['3']
+            collection: deep_copy collection[2]
             query: 'r.db("test").table("test").orderBy("key", "id").run()'
             callback_name: 'expect_result'
             expected_result: [{id:1,key:1},{id:4,key:1},{id:3,key:2},{id:2,key:3},{id:5,key:3}]
         },
         {
-            state: deep_copy state['3']
+            collection: deep_copy collection[2]
             query: 'r.db("test").table("test").orderBy(r.desc("key"), r.asc("id")).run()'
             callback_name: 'expect_result'
             expected_result: [{id:2,key:3},{id:5,key:3},{id:3,key:2},{id:1,key:1},{id:4,key:1}]
