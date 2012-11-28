@@ -21,10 +21,6 @@
 #include "errors.hpp"
 #include "config/args.hpp"
 
-// These macros are pasted from the std::max specification and then guarded.
-#define RT_MAX( A , B ) ( ( A ) > ( B ) ) ? ( A ) : ( B ) ;
-#define RT_MIN( A , B ) ( ( A ) < ( B ) ) ? ( A ) : ( B ) ;
-
 struct const_charslice {
     const char *beg, *end;
     const_charslice(const char *_beg, const char *_end) : beg(_beg), end(_end) { }

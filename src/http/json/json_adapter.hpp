@@ -424,20 +424,6 @@ void with_ctx_reset_json(T *target, const ctx_t &ctx) {
  * prominent types, these could in theory be relocated to a different file if
  * need be */
 
-#if 0
-// ctx-less JSON adapter for uint32_t
-json_adapter_if_t::json_adapter_map_t get_json_subfields(uint32_t *);
-cJSON *render_as_json(uint32_t *);
-void apply_json_to(cJSON *, uint32_t *);
-void on_subfield_change(uint32_t *);
-
-// ctx-less JSON adapter for int32_t
-json_adapter_if_t::json_adapter_map_t get_json_subfields(int32_t *);
-cJSON *render_as_json(int32_t *);
-void apply_json_to(cJSON *, int32_t *);
-void on_subfield_change(int32_t *);
-#endif // 0
-
 // ctx-less JSON adapter for int
 json_adapter_if_t::json_adapter_map_t get_json_subfields(int *);
 cJSON *render_as_json(int *);
