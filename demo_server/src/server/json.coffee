@@ -38,7 +38,8 @@ class RDBSelection
                 {modified: 1}
 
             del: ->
-                table.del @[table.primaryKey]
+                debugger
+                table.del @[table.primaryKey].asJSON()
                 {deleted: 1}
 
         proto.__proto__ = obj.__proto__
