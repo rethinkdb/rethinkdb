@@ -21,7 +21,7 @@ void patch_memory_storage_t::load_block_patch_list(block_id_t block_id, const st
     for (std::list<buf_patch_t*>::const_iterator p = patches.begin(); p != patches.end(); ++p) {
         rassert(previous_block_sequence <= (*p)->get_block_sequence_id(),
                 "Non-sequential patch list: Block sequence id %" PRIu64 " follows %" PRIu64 "",
-                ((*p)->get_block_sequence_id()), (previous_block_sequence));
+                (*p)->get_block_sequence_id(), previous_block_sequence);
         if (previous_block_sequence == 0 || (*p)->get_block_sequence_id() != previous_block_sequence) {
             previous_patch_counter = 0;
         }
@@ -149,7 +149,7 @@ void patch_memory_storage_t::block_patch_list_t::verify_patches_list(block_seque
         rassert((*p)->get_block_sequence_id() >= block_sequence_id || (*p)->get_block_sequence_id() == 0);
         rassert(previous_block_sequence <= (*p)->get_block_sequence_id(),
                 "Non-sequential patch list: Block sequence id %" PRIu64 " follows %" PRIu64 "",
-                ((*p)->get_block_sequence_id()), (previous_block_sequence));
+                (*p)->get_block_sequence_id(), previous_block_sequence);
         if (previous_block_sequence == 0 || (*p)->get_block_sequence_id() != previous_block_sequence) {
             previous_patch_counter = 0;
         }

@@ -193,7 +193,7 @@ asm(
 
     /* Save preserved registers (the return address is already on the stack). */
 #if defined(__i386__)
-    /* For i386, we are obligated (by the A.B.I. specification) to preserve esi, edi, ebx, ebp, and esp. We do not push esp onto the stack, though, since we will have needed to retrieve it anyway in order to get to the point on the stack from which we would pop. */
+    /* For i386, we must preserve esi, edi, ebx, ebp, and esp. */
     "push %esi\n"
     "push %edi\n"
     "push %ebx\n"

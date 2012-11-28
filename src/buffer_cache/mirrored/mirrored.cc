@@ -1161,7 +1161,7 @@ mc_transaction_t::~mc_transaction_t() {
 
     cache->stats->pm_transactions_active.end(&start_time);
 
-    rassert(num_buf_locks_acquired == 0, "num_buf_locks_acquired = %" PRIu64 "", (num_buf_locks_acquired));
+    rassert(num_buf_locks_acquired == 0, "num_buf_locks_acquired = %" PRIu64 "", num_buf_locks_acquired);
     guarantee(num_buf_locks_acquired == 0);
 
     block_pm_duration commit_timer(&cache->stats->pm_transactions_committing);
