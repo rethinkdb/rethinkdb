@@ -11,11 +11,11 @@ class RDBDatabase
     createTable: (name, {primaryKey}) ->
         primaryKey ?= 'id'
         @tables[name] = new RDBTable primaryKey
-        return null
+        return []
 
     dropTable: (name) ->
         delete @tables[name]
-        return null
+        return []
 
     getTable: (name) ->
         @tables[name] || null

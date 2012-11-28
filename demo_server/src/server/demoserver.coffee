@@ -36,11 +36,11 @@ class DemoServer
 
     createDatabase: (name) ->
         @dbs[name] = new RDBDatabase
-        return null
+        return []
 
     dropDatabase: (name) ->
         delete @dbs[name]
-        return null
+        return []
 
     #BC: The server should log, yes, but abstracting log allows us to
     #    turn it off, redirect it from the console, add timestamps, etc.
@@ -187,8 +187,11 @@ class DemoServer
                 pointDelete = writeQuery.getPointDelete()
                 table = @getTable pointDelete.getTableRef()
                 record = table.get (@evaluateTerm pointDelete.getKey()).asJSON()
-                record.del()
-                return {deleted: 1, skipped:0, errors:0}
+                if record?
+                    record.del()
+                    return {deleted: 1}
+                else
+                    return {deleted: 0}
             when WriteQuery.WriteQueryType.POINTMUTATE
                 pointMutate = writeQuery.getPointMutate()
                 table = @getTable pointMutate.getTableRef()
