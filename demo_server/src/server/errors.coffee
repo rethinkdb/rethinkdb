@@ -1,6 +1,8 @@
 goog.provide('rethinkdb.server.Errors')
 
-class RuntimeError extends Error
+class RDBError extends Error
+
+class RuntimeError extends RDBError
     constructor: (msg) ->
         @name = "Runtime error"
         @message = "Runtime error: #{msg}"
