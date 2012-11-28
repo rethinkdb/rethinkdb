@@ -68,9 +68,24 @@ class RDBSequence extends RDBJson
                 result.push(v)
         return new RDBArray result
 
-    update: (mapping) -> @asArray().map (v) -> v.update mapping
-    replace: (mapping) -> @asArray().map (v) -> v.replace mapping
-    del: -> @asArray().map (v) -> v.del
+    objSum = (arr, base) ->
+        arr.forEach (val) ->
+            for own k,v of base
+                if val[k]?
+                    base[k] += val[k]
+        base
+
+    update: (mapping) ->
+        results = @asArray().map (v) -> v.update mapping
+        objSum results, {updated: 0, errors: 0, skipped: 0}
+
+    replace: (mapping) ->
+        results = @asArray().map (v) -> v.replace mapping
+        objSum results, {deleted:0, errors:0, inserted:0, modified:0}
+
+    del: ->
+        results = @asArray().map (v) -> v.del()
+        objSum results, {deleted:0}
 
 class RDBArray extends RDBSequence
     constructor: (arr) -> @data = arr

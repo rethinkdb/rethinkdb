@@ -11,7 +11,7 @@ class RDBJson
     not: -> throw abstract
 
     eq: (other) -> throw abstract
-    ne: (other) -> throw abstract
+    ne: (other) -> not @eq other
     lt: (other) -> throw abstract
     le: (other) -> throw abstract
     gt: (other) -> throw abstract
@@ -30,13 +30,16 @@ class RDBSelection
             update: (mapping) ->
                 neu = @.merge mapping @
                 table.insert neu, true
+                {updated: 1}
 
             replace: (mapping) ->
                 neu = mapping @
                 table.insert neu, true
+                {modified: 1}
 
             del: ->
                 table.del @[table.primaryKey]
+                {deleted: 1}
 
         proto.__proto__ = obj.__proto__
         obj.__proto__ = proto
@@ -51,7 +54,6 @@ class RDBPrimitive extends RDBJson
     not: -> not @data
 
     eq: (other) -> @data is other.asJSON()
-    ne: (other) -> not @eq other
     lt: (other) -> @data <  other.asJSON()
     le: (other) -> @data <= other.asJSON()
     gt: (other) -> @data >  other.asJSON()
