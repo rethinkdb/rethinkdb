@@ -139,9 +139,9 @@ public:
             /* Find the smallest live seed in the class, and the seed in the class
             immediately past the largest live seed. */
             seed_t min_in_class = parent->min_seed;
-            while (min_in_class % num_classes != seed_class) min_in_class++;
+            while (static_cast<int>(min_in_class % num_classes) != seed_class) min_in_class++;
             seed_t max_in_class = parent->max_seed;
-            while (max_in_class % num_classes != seed_class) max_in_class++;
+            while (static_cast<int>(max_in_class % num_classes) != seed_class) max_in_class++;
 
             int class_size = (max_in_class - min_in_class) / num_classes;
             nseeds = std::min(nseeds, class_size);

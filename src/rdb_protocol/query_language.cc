@@ -2226,7 +2226,7 @@ boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term::Call *c, runtime_envir
                     boost::shared_ptr<scoped_cJSON_t> rhs = eval_term_as_json(c->mutable_args(i), env, scopes, backtrace.with(strprintf("arg:%d", i)));
 
                     int res = lhs->type() == cJSON_NULL && rhs->type() == cJSON_NULL ? 0:
-                        cJSON_cmp(lhs->get(), rhs->get(), backtrace.with(strprintf("arg:%d", i)));
+                        json_cmp(lhs->get(), rhs->get());
 
                     switch (c->builtin().comparison()) {
                     case Builtin_Comparison_EQ:
@@ -2484,7 +2484,7 @@ public:
                 throw runtime_exc_t(str, backtrace);
             }
 
-            int cmp = cJSON_cmp(a, b, backtrace);
+            int cmp = json_cmp(a, b);
             if (cmp) {
                 return (cmp > 0) ^ cur.ascending();
             }
@@ -2682,7 +2682,7 @@ boost::shared_ptr<json_stream_t> eval_call_as_stream(Term::Call *c, runtime_envi
                 }
 
                 if (lowerbound && upperbound) {
-                    if (cJSON_cmp(lowerbound->get(), upperbound->get(), backtrace) > 0) {
+                    if (json_cmp(lowerbound->get(), upperbound->get()) > 0) {
                         throw runtime_exc_t(strprintf("Lower bound of RANGE must be <= upper bound (%s vs. %s).",
                                                       lowerbound->Print().c_str(), upperbound->Print().c_str()),
                                             backtrace.with("lowerbound"));

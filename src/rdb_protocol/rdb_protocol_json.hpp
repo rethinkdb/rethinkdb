@@ -16,7 +16,7 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, boost::shared_ptr<scoped
 
 namespace query_language {
 
-int cJSON_cmp(cJSON *l, cJSON *r, const backtrace_t &backtrace);
+int json_cmp(cJSON *l, cJSON *r);
 
 class shared_scoped_less_t {
 public:
@@ -24,7 +24,7 @@ public:
     explicit shared_scoped_less_t(const backtrace_t &bt) : backtrace(bt) { }
     bool operator()(const boost::shared_ptr<scoped_cJSON_t> &a,
                       const boost::shared_ptr<scoped_cJSON_t> &b) {
-        return cJSON_cmp(a->get(), b->get(), backtrace) < 0;
+        return json_cmp(a->get(), b->get()) < 0;
     }
 private:
     backtrace_t backtrace;

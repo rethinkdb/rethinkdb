@@ -316,6 +316,7 @@ rng_t::rng_t(DEBUG_VAR int seed) {
 }
 
 int rng_t::randint(int n) {
+    guarantee(n > 0, "non-positive argument for randint's [0,n) interval");
     long x = nrand48(xsubi);  // NOLINT(runtime/int)
     return x % n;
 }

@@ -54,7 +54,7 @@ struct sqlite_protocol_t : public protocol_t {
         }
     }
 
-    virtual void range_read(char* lkey, size_t lkey_size, char* rkey, size_t rkey_size, int count_limit, payload_t *values = NULL) {
+    virtual void range_read(UNUSED char* lkey, UNUSED size_t lkey_size, UNUSED char* rkey, UNUSED size_t rkey_size, UNUSED int count_limit, UNUSED payload_t *values = NULL) {
         fprintf(stderr, "Range reads not currently supported with SQLite!\n");
         exit(-1);
     }
@@ -141,7 +141,7 @@ private:
         return (const char *) sqlite3_column_text(compiled_stmt, n);
     }
 
-    const int column_int(int n) {
+    int column_int(int n) {
         return (const int) sqlite3_column_int(compiled_stmt, n);
     }
 

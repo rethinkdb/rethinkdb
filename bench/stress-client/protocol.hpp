@@ -39,12 +39,12 @@ public:
     }
 
     /* remove as many reads as have been returned from the pipeline */
-    virtual bool dequeue_read_maybe(payload_t *keys, int count, payload_t *values = NULL) { 
+    virtual bool dequeue_read_maybe(UNUSED payload_t *keys, UNUSED int count, UNUSED payload_t *values = NULL) { 
         return true;
     }
 
     /* Wait until all of the pipelined reads have been returned */
-    virtual void dequeue_read(payload_t *keys, int count, payload_t *values = NULL) { }
+    virtual void dequeue_read(UNUSED payload_t *keys, UNUSED int count, UNUSED payload_t *values = NULL) { }
 
     virtual void range_read(char* lkey, size_t lkey_size, char* rkey, size_t rkey_size, int count_limit, payload_t *values = NULL) = 0;
 
@@ -99,7 +99,7 @@ struct server_t {
         char str[500];
         strncpy(str, const_str, sizeof(str));
         char *_host = NULL;
-        if (_host = strchr(str, ',')) {
+        if ((_host = strchr(str, ','))) {
             *_host = '\0';
             _host++;
             protocol = parse_protocol(str);

@@ -222,7 +222,7 @@ struct rethinkdb_protocol_t : protocol_t {
         if (values) {
             int last = response.response(0).find_last_of("}");
             for (int i = count - 1; i >= 0; i--) {
-                assert(last >= 0 && last < response.response(0).length());
+                assert(last >= 0 && static_cast<size_t>(last) < response.response(0).length());
                 std::string result = get_value(response.response(0), last);
                 if (std::string(values[i].first, values[i].second) != result) {
                     fprintf(stderr, "Read failed: wanted %s but got %s for key %s.\n", values[i].first, result.c_str(), keys[i].first);
@@ -232,7 +232,7 @@ struct rethinkdb_protocol_t : protocol_t {
         }
     }
 
-    virtual void enqueue_read(payload_t *keys, int count, payload_t *values = NULL) {
+    virtual void enqueue_read(payload_t *keys, int count, UNUSED payload_t *values = NULL) {
         assert(!exist_outstanding_pipeline_reads());
 
         generate_batched_read_query(&base_batched_read_query, keys, count);
@@ -263,7 +263,7 @@ struct rethinkdb_protocol_t : protocol_t {
             if (values) {
                 int last = response.response(0).find_last_of("}");
                 for (int i = count - 1; i >= 0; i--) {
-                    assert(last >= 0 && last < response.response(0).length());
+                    assert(last >= 0 && static_cast<size_t>(last) < response.response(0).length());
                     std::string result = get_value(response.response(0), last);
                     if (std::string(values[i].first, values[i].second) != result) {
                         fprintf(stderr, "Read failed: wanted %s but got %s for key %s.\n", values[i].first, result.c_str(), keys[i].first);
@@ -293,7 +293,7 @@ struct rethinkdb_protocol_t : protocol_t {
         if (values) {
             int last = response.response(0).find_last_of("}");
             for (int i = count - 1; i >= 0; i--) {
-                assert(last >= 0 && last < response.response(0).length());
+                assert(last >= 0 && static_cast<size_t>(last) < response.response(0).length());
                 std::string result = get_value(response.response(0), last);
                 if (std::string(values[i].first, values[i].second) != result) {
                     fprintf(stderr, "Read failed: wanted %s but got %s for key %s.\n", values[i].first, result.c_str(), keys[i].first);
@@ -350,14 +350,14 @@ struct rethinkdb_protocol_t : protocol_t {
         }
     }
 
-    virtual void append(const char *key, size_t key_size,
-                        const char *value, size_t value_size) {
+    virtual void append(UNUSED const char *key, UNUSED size_t key_size,
+                        UNUSED const char *value, UNUSED size_t value_size) {
         fprintf(stderr, "APPEND NOT YET IMPLEMENTED. EXITING.\n");
         exit(-1);
     }
 
-    virtual void prepend(const char *key, size_t key_size,
-                          const char *value, size_t value_size) {
+    virtual void prepend(UNUSED const char *key, UNUSED size_t key_size,
+                         UNUSED const char *value, UNUSED size_t value_size) {
         fprintf(stderr, "PREPEND NOT YET IMPLEMENTED. EXITING.\n");
         exit(-1);
     }
@@ -647,6 +647,7 @@ private:
     bool get_response_maybe(Response *maybe_response) {
         if (socket_ready()) {
             get_response(maybe_response);
+            return true;
         } else {
             return false;
         }
@@ -667,8 +668,8 @@ private:
         }
         int last_quote = (int) json_string.find_last_of('"', last);
         int second_to_last_quote = (int) json_string.find_last_of('"', last_quote - 1);
-        assert(last_quote >= 0 && last_quote < json_string.length());
-        assert(second_to_last_quote >= 0 && second_to_last_quote < json_string.length());
+        assert(last_quote >= 0 && static_cast<size_t>(last_quote) < json_string.length());
+        assert(second_to_last_quote >= 0 && static_cast<size_t>(second_to_last_quote) < json_string.length());
         return json_string.substr(second_to_last_quote + 1, last_quote - second_to_last_quote - 1);
     }
 
