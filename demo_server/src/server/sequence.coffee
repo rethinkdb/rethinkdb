@@ -81,6 +81,13 @@ class RDBSequence extends RDBJson
                     base[k] += val[k]
         base
 
+    forEach: (mapping) ->
+        results = @asArray().map (v) -> mapping(v)
+        base = {inserted: 0, updated: 0}
+        results.map (res) ->
+            base = objSum res, base
+        base
+
     update: (mapping) ->
         results = @asArray().map (v) -> v.update mapping
         objSum results, {updated: 0, errors: 0, skipped: 0}
