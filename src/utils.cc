@@ -582,6 +582,7 @@ std::string read_file(const char *path) {
 static const char * unix_path_separator = "/";
 
 path_t parse_as_path(const std::string &path) {
+    // TODO(OSX) This assumes that path is non-empty, check code calling this function.
     path_t res;
     res.is_absolute = (path[0] == unix_path_separator[0]);
 

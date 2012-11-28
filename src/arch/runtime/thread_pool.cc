@@ -163,7 +163,7 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
     do_shutdown = false;
 
     // Start child threads
-    thread_barrier_t barrier(n_threads);
+    thread_barrier_t barrier(n_threads + 1);
 
     for (int i = 0; i < n_threads; i++) {
         thread_data_t *tdata = new thread_data_t();
@@ -195,6 +195,10 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
     linux_thread_pool_t::thread_id = -1;
 
     // Set up interrupt handlers
+
+    // Wait for threads to start up so that our interrupt handlers can send messages to the threads.
+    // TODO(OSX) Fix the goddamn thread pool.
+    barrier.wait();
 
     // TODO: Should we save and restore previous interrupt handlers? This would
     // be a good thing to do before distributing the RethinkDB IO layer, but it's
@@ -292,6 +296,10 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
         threads[i]->initiate_shut_down();
 #endif
     }
+
+    // Wait for barrier, because it expects n_threads + 1 things to wait.  (Otherwise we'd have to
+    // have two barriers, which isn't such a problem, but meh.)
+    barrier.wait();
 
     for (int i = 0; i < n_threads; i++) {
         // Wait for child thread to actually exit
