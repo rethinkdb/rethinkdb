@@ -9,10 +9,27 @@
 #include "clustering/administration/persist.hpp"
 #include "extproc/spawner.hpp"
 
+#define MAX_PORT 65536
+
+inline void sanitize_port(int port, const char *name, int port_offset) {
+    if (port >= MAX_PORT) {
+        if (port_offset == 0) {
+            nice_crash("%s has a value (%d) above the maximum allowed port (%d).", name, port, MAX_PORT);
+        } else {
+            nice_crash("%s has a value (%d) above the maximum allowed port (%d). Note port_offset is set to %d which may cause this error.", name, port, MAX_PORT, port_offset);
+        }
+    }
+}
+
 struct service_ports_t {
     service_ports_t(int _port, int _client_port, int _http_port, int _reql_port, int _port_offset)
         : port(_port), client_port(_client_port), http_port(_http_port), reql_port(_reql_port), port_offset(_port_offset)
-        { }
+        {
+            sanitize_port(port, "port", port_offset);
+            sanitize_port(client_port, "client_port", port_offset);
+            sanitize_port(http_port, "http_port", port_offset);
+            sanitize_port(reql_port, "reql_port", port_offset);
+        }
 
     int port;
     int client_port;
