@@ -26,7 +26,6 @@ class RDBSequence extends RDBJson
     orderBy: (orderbys) ->
         new RDBArray @asArray().sort (a,b) ->
             for ob in orderbys
-                debugger
                 if ob.asc
                     if a[ob.attr].gt(b[ob.attr]) then return true
                 else
