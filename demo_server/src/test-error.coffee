@@ -41,51 +41,64 @@ class Tests
             catch err
                 @callback_demo err.toString()
                 return ''
-
+            
             cursor_demo.collect @callback_demo
         
     callback_demo:(data) =>
         @result_demo = data
+        @result_demo = @remove_backtraces(@result_demo)
+
 
         window.r = window.rethinkdb
         try
             cursor_server = eval(@queries[@index])
         catch err
+            debugger
             @callback_server err.toString()
             return ''
 
         cursor_server.collect @callback_server
 
     callback_server: (data) =>
-            result_server = data
+        @result_server = data
+        @result_server = @remove_backtraces(@result_server)
 
-            # We do not compare the generated keys since they are not the same.
-            found_error_in_generated_keys = false
-            if @result_demo[0]?.generated_keys? and result_server[0]?.generated_keys?
-                if @result_demo[0].generated_keys.length isnt result_server[0].generated_keys.length
-                    found_error_in_generated_keys = true
-                    @display
-                        query: @queries[@index]
-                        success: false
-                        result_server: result_server
-                        result_demo: @result_demo
-                else
-                    @result_demo[0].generated_keys = [ '...' ]
-                    result_server[0].generated_keys = [ '...' ]
+        # We do not compare the generated keys since they are not the same.
+        found_error_in_generated_keys = false
+        if @result_demo[0]?.generated_keys? and @result_server[0]?.generated_keys?
+            if @result_demo[0].generated_keys.length isnt @result_server[0].generated_keys.length
+                found_error_in_generated_keys = true
+                @display
+                    query: @queries[@index]
+                    success: false
+                    result_server: @result_server
+                    result_demo: @result_demo
+            else
+                @result_demo[0].generated_keys = [ '...' ]
+                @result_server[0].generated_keys = [ '...' ]
 
-            if found_error_in_generated_keys is false
-                if _.isEqual(@result_demo, result_server)
-                    @display
-                        query: @queries[@index]
-                        success: true
-                else
-                    @display
-                        query: @queries[@index]
-                        success: false
-                        result_server: result_server
-                        result_demo: @result_demo
-            @index++
-            @test()
+        if found_error_in_generated_keys is false
+            if _.isEqual(@result_demo, @result_server)
+                @display
+                    query: @queries[@index]
+                    success: true
+            else
+                @display
+                    query: @queries[@index]
+                    success: false
+                    result_server: @result_server
+                    result_demo: @result_demo
+        @index++
+        @test()
+
+    # We remove the backtraces from the response for the time being since we don't support them on the demo server.
+    remove_backtraces: (data) =>
+        for doc in data
+            if doc?.name? and doc.message? and doc.name is 'Runtime Error'
+                lines = doc.message.split('\n')
+                doc.message = lines[0]
+
+        return data
 
 
     display: (args) ->
@@ -107,6 +120,7 @@ class Tests
 $(document).ready ->
     # Some tests are commented because the real server doesn't implement (yet) object comparison.
     queries = [
+        'r.db("test").table("table_that_does_not_exist").run()',
         'r.expr(true).run()',
         'r.expr(false).run()',
         'r.expr(132).run()',
