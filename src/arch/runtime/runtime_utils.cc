@@ -11,16 +11,11 @@
 #ifndef NDEBUG
 
 uint64_t get_clock_cycles() {
-    uint64_t ret;
-    // We get the clock value.
-#if defined(__i386__)
-    // The following line is mostly copied from http://www.mcs.anl.gov/~kazutomo/rdtsc.html .
-    // It seems to fetch a 64-bit value from the specified address.
-    __asm__ __volatile__(".byte 0x0f, 0x31" : "=A" (ret));
-#elif defined(__x86_64__)
-    // For some reason, the x86-64 code gets two 32-bit values and must merge them.
-    uint32_t low;
-    __asm__ __volatile__("rdtsc" : "=a" (low), "=d" (ret));
+#if defined(__i386__) || defined(__amd64__)
+    uintptr_t high;
+    uintptr_t low;
+    __asm__ __volatile__("rdtsc" : "=a" (low), "=d" (high));
+    uint64_t ret = high;
     ret <<= 32;
     ret |= low;
 #else
