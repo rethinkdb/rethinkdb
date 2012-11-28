@@ -26,7 +26,6 @@ class RDBSequence extends RDBJson
     orderBy: (orderbys) ->
         new RDBArray @asArray().sort (a,b) ->
             for ob in orderbys
-                debugger
                 if ob.asc
                     if a[ob.attr].gt(b[ob.attr]) then return true
                 else
@@ -80,6 +79,13 @@ class RDBSequence extends RDBJson
             for own k,v of base
                 if val[k]?
                     base[k] += val[k]
+        base
+
+    forEach: (mapping) ->
+        results = @asArray().map (v) -> mapping(v)
+        base = {inserted: 0, updated: 0}
+        results.map (res) ->
+            base = objSum res, base
         base
 
     update: (mapping) ->

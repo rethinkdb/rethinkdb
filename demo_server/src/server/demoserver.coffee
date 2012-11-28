@@ -83,7 +83,7 @@ class DemoServer
             if result? then response.addResponse result
             response.setStatusCode Response.StatusCode.SUCCESS_JSON
         catch err
-            unless err instanceof RuntimeError then throw err
+            unless err instanceof RDBError then throw err
             response.setErrorMessage err.message
             #TODO: other kinds of errors
             response.setStatusCode Response.StatusCode.RUNTIME_ERROR
@@ -175,7 +175,9 @@ class DemoServer
             when WriteQuery.WriteQueryType.INSERT
                 @evaluateInsert writeQuery.getInsert()
             when WriteQuery.WriteQueryType.FOREACH
-                throw new RuntimeError "Not Implemented"
+                mapping = @evaluateForEach writeQuery.getForEach()
+                stream = @evaluateTerm writeQuery.getForEach().getStream()
+                stream.forEach mapping
             when WriteQuery.WriteQueryType.POINTUPDATE
                 pointUpdate = writeQuery.getPointUpdate()
                 table = @getTable pointUpdate.getTableRef()
@@ -244,6 +246,18 @@ class DemoServer
             binds[implicitVarId] = arguments[0]
             binds[arg] = val
             @evaluateWith binds, body
+
+    evaluateForEach: (foreach) ->
+        arg = foreach.getVar()
+        queriesArray = foreach.queriesArray()
+        (val) =>
+            binds = {}
+            binds[implicitVarId] = arguments[0]
+            binds[arg] = val
+            @curScope = new RDBLetScope @curScope, binds
+            results = (@evaluateWriteQuery wq for wq in queriesArray)
+            @curScop = @curScope.parent
+            results
 
     evaluateTerm: (term) ->
         switch term.getType()

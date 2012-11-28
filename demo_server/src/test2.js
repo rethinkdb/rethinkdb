@@ -643,6 +643,7 @@ function testForEach1() {
 }
 
 function testForEach2() {
+    debugger
     tab.forEach(function(a) {return tab.get(a('id')).update(r.expr({fe:true}))}).run(objeq({
         updated:3
     }));
@@ -731,5 +732,5 @@ runTests([
     testForEach1,
     testForEach2,
     testForEach3,
-    testClose,
+    //testClose,
 ]);
