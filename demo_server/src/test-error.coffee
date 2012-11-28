@@ -33,48 +33,59 @@ class Tests
         @queries = queries
 
     test: =>
-        query = @queries[@index]
-        that = @
-
-        if query?
+        if @queries[@index]?
             window.r = window.rethinkdb_demo
-            cursor_demo = eval(query)
 
-            cursor_demo.collect (data) ->
-                result_demo = data
+            try
+                cursor_demo = eval(@queries[@index])
+            catch err
+                @callback_demo err.toString()
+                return ''
 
-                window.r = window.rethinkdb
-                cursor_server = eval(query)
-                cursor_server.collect (data) ->
-                    result_server = data
+            cursor_demo.collect @callback_demo
+        
+    callback_demo:(data) =>
+        @result_demo = data
 
-                    # We do not compare the generated keys since they are not the same.
-                    found_error_in_generated_keys = false
-                    if result_demo[0]?.generated_keys? and result_server[0]?.generated_keys?
-                        if result_demo[0].generated_keys.length isnt result_server[0].generated_keys.length
-                            found_error_in_generated_keys = true
-                            that.display
-                                query: query
-                                success: false
-                                result_server: result_server
-                                result_demo: result_demo
-                        else
-                            result_demo[0].generated_keys = [ '...' ]
-                            result_server[0].generated_keys = [ '...' ]
+        window.r = window.rethinkdb
+        try
+            cursor_server = eval(@queries[@index])
+        catch err
+            @callback_server err.toString()
+            return ''
 
-                    if found_error_in_generated_keys is false
-                        if _.isEqual(result_demo, result_server)
-                            that.display
-                                query: query
-                                success: true
-                        else
-                            that.display
-                                query: query
-                                success: false
-                                result_server: result_server
-                                result_demo: result_demo
-                    that.index++
-                    that.test()
+        cursor_server.collect @callback_server
+
+    callback_server: (data) =>
+            result_server = data
+
+            # We do not compare the generated keys since they are not the same.
+            found_error_in_generated_keys = false
+            if @result_demo[0]?.generated_keys? and result_server[0]?.generated_keys?
+                if @result_demo[0].generated_keys.length isnt result_server[0].generated_keys.length
+                    found_error_in_generated_keys = true
+                    @display
+                        query: @queries[@index]
+                        success: false
+                        result_server: result_server
+                        result_demo: @result_demo
+                else
+                    @result_demo[0].generated_keys = [ '...' ]
+                    result_server[0].generated_keys = [ '...' ]
+
+            if found_error_in_generated_keys is false
+                if _.isEqual(@result_demo, result_server)
+                    @display
+                        query: @queries[@index]
+                        success: true
+                else
+                    @display
+                        query: @queries[@index]
+                        success: false
+                        result_server: result_server
+                        result_demo: @result_demo
+            @index++
+            @test()
 
 
     display: (args) ->
@@ -199,6 +210,7 @@ $(document).ready ->
         'r.db("test").table("test").limit(1).skip(1).run()',
         'r.db("test").table("test").orderBy("key", "id").run()',
         'r.db("test").table("test").orderBy(r.desc("key"), r.asc("id")).run()',
+        'r.expr(Infinity).run()',
     ]
 
     # Connect the two drivers
