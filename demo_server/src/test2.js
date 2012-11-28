@@ -323,14 +323,12 @@ function testConcatMap() {
 
 function testJoin1() {
     var s1 = [{id:0, name:'bob'}, {id:1, name:'tom'}, {id:2, name:'joe'}];
-    var s2 = r.expr([{id:0, title:'goof'}, {id:2, title:'lmoe'}]);
+    var s2 = [{id:0, title:'goof'}, {id:2, title:'lmoe'}];
 
     wait();
     r.db('test').tableCreate('joins1').run(function() {
         r.table('joins1').insert(s1).run(done);
     });
-
-    debugger
 
     wait();
     r.db('test').tableCreate('joins2').run(function() {
@@ -341,9 +339,6 @@ function testJoin1() {
 function testJoin2() {
     var s1 = r.table('joins1');
     var s2 = r.table('joins2');
-
-    s1.runp();
-    s1.append(r.expr({id:88})).runp();
 
     s1.innerJoin(s2, function(one, two) {
         return one('id').eq(two('id'));
@@ -718,17 +713,17 @@ runTests([
     testReplace2,
     testPointReplace1,
     testPointReplace2,
-    testSetupDetYNonAtom,
-    testDet,
-    testNonAtomic1,
-    testNonAtomic2,
-    testNonAtomic3,
-    testNonAtomic4,
-    testNonAtomic5,
-    testNonAtomic6,
-    testNonAtomic7,
-    testNonAtomic8,
-    testNonAtomic9,
+    //testSetupDetYNonAtom,
+    //testDet,
+    //testNonAtomic1,
+    //testNonAtomic2,
+    //testNonAtomic3,
+    //testNonAtomic4,
+    //testNonAtomic5,
+    //testNonAtomic6,
+    //testNonAtomic7,
+    //testNonAtomic8,
+    //testNonAtomic9,
     testPointDelete1,
     testPointDelete2,
     testDelete1,
