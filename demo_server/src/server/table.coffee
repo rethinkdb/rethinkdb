@@ -51,6 +51,6 @@ class RDBTable extends RDBSequence
 
     get: (pkVal) -> @records[pkVal] || new RDBPrimitive null
 
-    del: (pkVal) -> delete @records[pkVal]
+    deleteKey: (pkVal) -> delete @records[pkVal]
 
     asArray: -> (v for k,v of @records)

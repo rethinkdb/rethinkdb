@@ -363,11 +363,9 @@ class DemoServer
                 mapping = @evaluateMapping builtin.getConcatMap().getMapping()
                 args[0].concatMap mapping
             when Builtin.BuiltinType.ORDERBY
-                orderby = builtin.getOrderBy()
-                result = args[0].orderBy orderby.getAttr()
-                unless orderby.getAscendingOrDefault()
-                    new RDBArray result.asArray().reverse()
-                return result
+                orderbys = builtin.orderByArray()
+                args[0].orderBy orderbys.map (orderby) ->
+                    {attr: orderby.getAttr(), asc: orderby.getAscendingOrDefault()}
             when Builtin.BuiltinType.DISTINCT
                 args[0].distinct()
             when Builtin.BuiltinType.LENGTH

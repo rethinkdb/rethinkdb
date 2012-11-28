@@ -23,8 +23,15 @@ class RDBSequence extends RDBJson
     slice: (left, right) ->
         new RDBArray @asArray().slice left, right
 
-    orderBy: (k) ->
-        new RDBArray @asArray().sort (b,a) -> a[k].lt(b[k])
+    orderBy: (orderbys) ->
+        new RDBArray @asArray().sort (a,b) ->
+            for ob in orderbys
+                debugger
+                if ob.asc
+                    if a[ob.attr].gt(b[ob.attr]) then return true
+                else
+                    if a[ob.attr].lt(b[ob.attr]) then return true
+            return false
 
     distinct: ->
         sorted = @asArray().sort (a,b) -> a < b
@@ -63,7 +70,7 @@ class RDBSequence extends RDBJson
 
     between: (attr, lowerBound, upperBound) ->
         result = []
-        for v,i in @orderBy(attr).asArray()
+        for v,i in @orderBy({attr:attr, asc:true}).asArray()
             if lowerBound.le(v[attr]) and upperBound.ge(v[attr])
                 result.push(v)
         return new RDBArray result
