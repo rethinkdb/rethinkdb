@@ -635,9 +635,11 @@ bool linux_nonthrowing_tcp_listener_t::begin_listening() {
         return false;
     }
 
+    const int RDB_LISTEN_BACKLOG = 5;
+
     // Start listening to connections
     for (ssize_t i = 0; i < socks.size(); ++i) {
-        int res = listen(socks[i].get(), 5);
+        int res = listen(socks[i].get(), RDB_LISTEN_BACKLOG);
         guarantee_err(res == 0, "Couldn't listen to the socket");
 
         res = fcntl(socks[i].get(), F_SETFL, O_NONBLOCK);
@@ -693,7 +695,7 @@ void linux_nonthrowing_tcp_listener_t::init_sockets() {
 }
 
 bool linux_nonthrowing_tcp_listener_t::bind_sockets() {
-    if (port ==  0) {
+    if (port == 0) {
         // It may take multiple attempts to get all the sockets onto the same port
         int port_out = 0;
         for (uint32_t bind_attempts = 0; bind_attempts < MAX_BIND_ATTEMPTS && !bound; ++bind_attempts) {
@@ -836,14 +838,6 @@ void linux_nonthrowing_tcp_listener_t::handle(fd_t socket) {
 linux_nonthrowing_tcp_listener_t::~linux_nonthrowing_tcp_listener_t() {
     /* Interrupt the accept loop */
     accept_loop_drainer.reset();
-
-
-    if (bound) {
-        for (ssize_t i = 0; i < socks.size(); ++i) {
-            int res = shutdown(socks[i].get(), SHUT_RDWR);
-            guarantee_err(res == 0, "Could not shutdown main socket");
-        }
-    }
 
     // scoped_fd_t destructor will close() the socket
 }
