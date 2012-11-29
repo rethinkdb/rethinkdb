@@ -251,6 +251,23 @@ void apply_json_to(cJSON *change, long long *target) {
 
 void on_subfield_change(long long *) { }
 
+// ctx-less JSON adapter for unsigned long.
+json_adapter_if_t::json_adapter_map_t get_json_subfields(unsigned long *) {
+    return json_adapter_if_t::json_adapter_map_t();
+}
+
+cJSON *render_as_json(unsigned long *target) {
+    // TODO: Should we not fail when we cannot convert to double (or when we go outside 53-bit range?)
+    return cJSON_CreateNumber(*target);
+}
+
+void apply_json_to(cJSON *change, unsigned long *target) {
+    *target = get_int(change, 0, ULONG_MAX);
+}
+
+void on_subfield_change(unsigned long *) { }
+
+
 // ctx-less JSON adapter for long.
 json_adapter_if_t::json_adapter_map_t get_json_subfields(long *) {
     return json_adapter_if_t::json_adapter_map_t();

@@ -142,26 +142,31 @@ ifeq ($(COMPILER),CLANG)
 # Linux.  It is Ubuntu that enabled --as-needed by default.
 # LDFLAGS:=-Wl,--no-as-needed
 LDFLAGS:=
+
 ifeq ($(STATICFORCE),1)
 LDFLAGS+= -static
 STATIC_LIBGCC=1
 endif
-LDFLAGS+=$(LDPATHDS) -pthread -lstdc++ -lm
+
+LDFLAGS+=$(LDPATHDS) -pthread -lrt -lstdc++ -lm
+
 ifeq ($(STATICFORCE),1)
 LDFLAGS+= -Wl,-Bdynamic
 endif
-else
+
+else  # ifeq ($(COMPILER),CLANG)
+
 ifeq ($(COMPILER),INTEL)
-LDFLAGS:= -B/opt/intel/bin 
+LDFLAGS:= -B/opt/intel/bin
 ifeq ($(STATICFORCE),1)
 LDFLAGS+= -static
 STATIC_LIBGCC=1
 endif
-LDFLAGS+=$(LDPATHDS) -pthread -lstdc++
+LDFLAGS+=$(LDPATHDS) -pthread -lrt -lstdc++
 ifeq ($(STATICFORCE),1)
 LDFLAGS+= -Wl,-Bdynamic
 endif
-else
+else  # ifeq ($(COMPILER),INTEL)
 # GCC
 # TODO(OSX) See comment about --no-as-needed above.
 # LDFLAGS:=-Wl,--no-as-needed
@@ -170,17 +175,12 @@ ifeq ($(STATICFORCE),1)
 LDFLAGS+= -static
 STATIC_LIBGCC=1
 endif
-LDFLAGS+=$(LDPATHDS) -pthread
+LDFLAGS+=$(LDPATHDS) -pthread -lrt
 ifeq ($(STATICFORCE),1)
 LDFLAGS+= -Wl,-Bdynamic
 endif
-endif
-endif
-
-# TODO(OSX) Check this change for -lrt on linux.
-ifeq ($(AIOSUPPORT),1)
-LDFLAGS+=-lrt
-endif
+endif  # ifeq ($(COMPILER),INTEL)
+endif  # ifeq ($(COMPILER),CLANG)
 
 V8_CHAIN?=0
 STATIC_V8?=$(STATICFORCE)
@@ -440,9 +440,9 @@ endif
 endif
 
 # look for the static library in the same directory as the .so file
-# STATIC_LIBRARY_PATHS+=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }'))
+STATIC_LIBRARY_PATHS+=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }'))
 # TODO(OSX)
-STATIC_LIBRARY_PATHS:=/usr/local/lib/libboost_program_options-mt.a /usr/local/lib/libprotobuf.a
+# STATIC_LIBRARY_PATHS:=/usr/local/lib/libboost_program_options-mt.a /usr/local/lib/libprotobuf.a
 
 ifeq ($(GPERF),1)
 STATIC_LIBRARY_PATHS+= # path to patched libtcmalloc_and_profiler.a

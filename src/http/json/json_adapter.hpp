@@ -438,6 +438,12 @@ cJSON *render_as_json(long long *);
 void apply_json_to(cJSON *, long long *);
 void on_subfield_change(long long *);
 
+// ctx-less JSON adapter for unsigned long
+json_adapter_if_t::json_adapter_map_t get_json_subfields(unsigned long *);
+cJSON *render_as_json(unsigned long *);
+void apply_json_to(cJSON *, unsigned long *);
+void on_subfield_change(unsigned long *);
+
 // ctx-less JSON adapter for long
 json_adapter_if_t::json_adapter_map_t get_json_subfields(long *);
 cJSON *render_as_json(long *);
