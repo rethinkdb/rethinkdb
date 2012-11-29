@@ -12,6 +12,8 @@ ANSI_UL_OFF:=[0m
 
 ##### Configuring stuff
 
+OSX?=0
+
 IGNORE_MAKEFILE_CHANGES?=0
 
 ifeq ($(IGNORE_MAKEFILE_CHANGES),1)
@@ -136,51 +138,54 @@ CPATHDS:=
 
 STATICFORCE?=0
 
+LDFLAGS:=
+
 ifeq ($(COMPILER),CLANG)
 # TODO(OSX) What do we need --no-as-needed for?  Isn't it the default?
-# Figure out whether to uncomment this.  Make sure we get tcmalloc in
-# Linux.  It is Ubuntu that enabled --as-needed by default.
-# LDFLAGS:=-Wl,--no-as-needed
-LDFLAGS:=
+# Make sure we get tcmalloc in Linux and OS X.  It is Ubuntu that
+# enabled --as-needed by default.
+ifeq ($(OSX),0)
+LDFLAGS+=-Wl,--no-as-needed
+endif
 
 ifeq ($(STATICFORCE),1)
 LDFLAGS+= -static
-STATIC_LIBGCC=1
+STATICIBGCC=1
 endif
 
-LDFLAGS+=$(LDPATHDS) -pthread -lrt -lstdc++ -lm
-
-ifeq ($(STATICFORCE),1)
-LDFLAGS+= -Wl,-Bdynamic
-endif
+LDFLAGS+=$(LDPATHDS) -pthread -lstdc++ -lm
 
 else  # ifeq ($(COMPILER),CLANG)
 
 ifeq ($(COMPILER),INTEL)
-LDFLAGS:= -B/opt/intel/bin
+LDFLAGS+= -B/opt/intel/bin
 ifeq ($(STATICFORCE),1)
 LDFLAGS+= -static
 STATIC_LIBGCC=1
 endif
-LDFLAGS+=$(LDPATHDS) -pthread -lrt -lstdc++
-ifeq ($(STATICFORCE),1)
-LDFLAGS+= -Wl,-Bdynamic
-endif
+LDFLAGS+=$(LDPATHDS) -pthread -lstdc++
 else  # ifeq ($(COMPILER),INTEL)
 # GCC
-# TODO(OSX) See comment about --no-as-needed above.
-# LDFLAGS:=-Wl,--no-as-needed
-LDFLAGS:=
+ifeq ($(OSX),0)
+LDFLAGS+=-Wl,--no-as-needed
+endif
+
 ifeq ($(STATICFORCE),1)
 LDFLAGS+= -static
 STATIC_LIBGCC=1
 endif
-LDFLAGS+=$(LDPATHDS) -pthread -lrt
+
+LDFLAGS+=$(LDPATHDS) -pthread
+endif  # ifeq ($(COMPILER),INTEL)
+endif  # ifeq ($(COMPILER),CLANG)
+
+ifeq ($(OSX),0)
+LDFLAGS+=-lrt
+endif
+
 ifeq ($(STATICFORCE),1)
 LDFLAGS+= -Wl,-Bdynamic
 endif
-endif  # ifeq ($(COMPILER),INTEL)
-endif  # ifeq ($(COMPILER),CLANG)
 
 V8_CHAIN?=0
 STATIC_V8?=$(STATICFORCE)
@@ -254,15 +259,20 @@ CXXFLAGS+=-std=gnu++98 -w1 -ftls-model=local-dynamic
 else
 ifeq ($(COMPILER), CLANG)
 CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default -Wno-unneeded-internal-declaration -Wused-but-marked-unused -Wunused-macros -Wundef -Wvla -Wshadow -Wconditional-uninitialized -Wmissing-noreturn
-else
+else  # ($(COMPILER), CLANG)
 ifeq ($(LEGACY_GCC), 1)
 CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default
-else
+else  # ($(LEGACY_GCC), 1)
+CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default -Wno-array-bounds
+
 # TODO(OSX) Get rid of -Wno-format-nonliteral and figure out a local solution.
-CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default -Wno-array-bounds -Wno-format-nonliteral
+ifeq ($(OSX),1)
+CXXFLAGS+=-Wno-format-nonliteral
 endif
-endif
-endif
+
+endif  # ($(LEGACY_GCC), 1)
+endif  # ($(COMPILER), CLANG)
+endif  # ($(COMPILER), INTEL)
 
 ifeq ($(AGRESSIVE_BUF_UNLOADING),1)
 CXXFLAGS+=-DAGRESSIVE_BUF_UNLOADING=1
@@ -440,9 +450,13 @@ endif
 endif
 
 # look for the static library in the same directory as the .so file
+ifeq ($(OSX),1)
+# TODO(OSX) Make this not be hardcoded to homebrew paths.
+STATIC_LIBRARY_PATHS:=/usr/local/lib/libboost_program_options-mt.a /usr/local/lib/libprotobuf.a
+else
 STATIC_LIBRARY_PATHS+=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }'))
-# TODO(OSX)
-# STATIC_LIBRARY_PATHS:=/usr/local/lib/libboost_program_options-mt.a /usr/local/lib/libprotobuf.a
+endif
+
 
 ifeq ($(GPERF),1)
 STATIC_LIBRARY_PATHS+= # path to patched libtcmalloc_and_profiler.a
