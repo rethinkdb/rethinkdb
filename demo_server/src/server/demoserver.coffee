@@ -237,8 +237,12 @@ class DemoServer
                 table = @getTable pointUpdate.getTableRef()
                 record = table.get (@evaluateTerm pointUpdate.getKey()).asJSON()
                 mapping = @evaluateMapping pointUpdate.getMapping()
-                record.update mapping
-                return {updated:1, skipped:0, errors: 0}
+
+                if record.asJSON()?
+                    record.update mapping
+                    return {updated:1, skipped:0, errors: 0}
+                else
+                    return {updated: 0, skipped: 1, errors: 0}
             when WriteQuery.WriteQueryType.POINTDELETE
                 pointDelete = writeQuery.getPointDelete()
                 table = @getTable pointDelete.getTableRef()
@@ -253,11 +257,20 @@ class DemoServer
                 table = @getTable pointMutate.getTableRef()
                 record = table.get (@evaluateTerm pointMutate.getKey()).asJSON()
 
-                if record.isNull() then throw new RuntimeError "Key not found"
+                #if record.isNull() then throw new RuntimeError "Key not found"
 
                 mapping = @evaluateMapping pointMutate.getMapping()
-                record.replace mapping
-                return {modified:1, inserted:0, deleted:0, errors: 0}
+                if record.asJSON()?
+                    result = record.replace mapping
+                    if result.error?
+                        throw new RuntimeError result.error
+                    else
+                        return {modified:1, inserted:0, deleted:0, errors: 0}
+                else
+                    table.insert (mapping @), true # The value of upsert is not important since the document doesn't exist.
+                    return {modified:0, inserted:1, deleted:0, errors: 0}
+
+                    
 
     evaluateInsert: (insert) ->
         table = @getTable insert.getTableRef()

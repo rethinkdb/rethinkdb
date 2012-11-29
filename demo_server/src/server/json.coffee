@@ -42,7 +42,11 @@ class RDBSelection
                 {updated: 1}
 
             replace: (mapping) ->
-                neu = mapping @
+                update_doc = mapping @
+                if update_doc.asJSON()[table.primaryKey] isnt @asJSON()[table.primaryKey]
+                    return {errors: 1, error: "mutate cannot change primary key #{table.primaryKey} (got objects #{DemoServer.prototype.convertToJSON(@.asJSON())}, #{DemoServer.prototype.convertToJSON(update_doc.asJSON())})"}
+
+                neu = update_doc
                 table.insert neu, true
                 {modified: 1}
 

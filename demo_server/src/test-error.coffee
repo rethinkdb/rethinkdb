@@ -117,6 +117,9 @@ class Tests
         result_demo = args.result_demo
         if success is true
             $('#results').append '<li class="result success">'+query+'<span style="float: right">^_^</span>
+                <pre>'+JSON.stringify(result_demo, undefined, 2)+'</pre>
+                Real server response:
+                <pre>'+JSON.stringify(result_server, undefined, 2)+'</pre>
                 </li>'
         else
             $('#results').append '<li class="result fail">'+query+'<span style="float: right">&gt;_&lt;</span><br/>Demo server response:
@@ -129,6 +132,9 @@ class Tests
 $(document).ready ->
     # Some tests are commented because the real server doesn't implement (yet) object comparison.
     queries = [
+        'r.db("test").tableCreate("test").run()',
+        'r.db("test").table("test").between([1], 2).run()',
+        'r.db("test").table("test").between(1, {a: "a"}).run()',
         'r.expr(true).run()',
         'r.expr(false).run()',
         'r.expr(132).run()',
@@ -256,7 +262,15 @@ $(document).ready ->
         'r.db("test").table("test").insert({id: [1], key: {other_key: "value", more: [1, 2, {a: "a"}]}}).run() // PK is not string or number',
         'r.db("test").table("test").insert([{id: 1}, {id: 2}]).run()',
         'r.db("test").table("test").update({id: 1, key: {other_key: "value", more: [1, 2, {a: "a"}]}}).run() // Try to overwrite a PK',
-
+        'r.db("test").table("test").get("key_that_doesnt_exist").update({id:"key_that_doesnt_exist", key:"whatever"}).run()',
+        'r.db("test").table("test").replace({id:"key_that_doesnt_exist", key:"whatever"}).run()',
+        'r.db("test").table("test").insert({id:1}).run()',
+        'r.db("test").table("test").get(1).replace({id:1, key:"whatever"}).run()',
+        'r.db("test").table("test").get(1).replace({id:2, key:"whatever"}).run()',
+        'r.db("test").table("test").replace({id:3, key:"whatever"}).run()',
+        'r.db("test").table("test").get("key_that_doesnt_exist").replace({id:"key_that_doesnt_exist", key:"whatever"}).run()',
+        'r.db("test").table("test").get("random_key_that_doesnt_exist").del().run()',
+        'r.db("test").table("test").get([1]).run() // Key is not string or number',
     ]
 
     # Connect the two drivers

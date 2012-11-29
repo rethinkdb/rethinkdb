@@ -68,6 +68,11 @@ class RDBSequence extends RDBJson
     filter: (predicate) -> new RDBArray @asArray().filter (v) -> predicate(v).asJSON()
 
     between: (attr, lowerBound, upperBound) ->
+        if typeof lowerBound.asJSON() isnt 'string' and typeof lowerBound.asJSON() isnt 'number'
+            throw new RuntimeError "Lower bound of RANGE must be a string or a number, not #{DemoServer.prototype.convertToJSON(lowerBound.asJSON())}."
+        if typeof upperBound.asJSON() isnt 'string' and typeof upperBound.asJSON() isnt 'number'
+            throw new RuntimeError "Upper bound of RANGE must be a string or a number, not #{DemoServer.prototype.convertToJSON(upperBound.asJSON())}."
+
         result = []
         for v,i in @orderBy({attr:attr, asc:true}).asArray()
             if lowerBound.le(v[attr]) and upperBound.ge(v[attr])
