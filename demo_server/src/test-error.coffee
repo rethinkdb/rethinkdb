@@ -53,7 +53,6 @@ class Tests
         try
             cursor_server = eval(@queries[@index])
         catch err
-            debugger
             @callback_server err.toString()
             return ''
 
@@ -78,6 +77,12 @@ class Tests
                 @result_server[0].generated_keys = [ '...' ]
 
         if found_error_in_generated_keys is false
+            # We need to overwrite prototype or underscore will unmatch the objects if they are errors.
+            for result in @result_demo
+                result?.__proto__ = Object.prototype
+            for result in @result_server
+                result?.__proto__ = Object.prototype
+
             if _.isEqual(@result_demo, @result_server)
                 @display
                     query: @queries[@index]
@@ -120,7 +125,7 @@ class Tests
 $(document).ready ->
     # Some tests are commented because the real server doesn't implement (yet) object comparison.
     queries = [
-        'r.db("test").table("table_that_does_not_exist").run()',
+        'r.db("testsasdasaad").table("table_that_does_not_exist").run()',
         'r.expr(true).run()',
         'r.expr(false).run()',
         'r.expr(132).run()',
