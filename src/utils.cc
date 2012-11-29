@@ -44,9 +44,26 @@ void run_generic_global_startup_behavior() {
     rlimit file_limit;
     int res = getrlimit(RLIMIT_NOFILE, &file_limit);
     guarantee_err(res == 0, "getrlimit with RLIMIT_NOFILE failed");
-    // TODO(OSX) this rlimit stuff, make it use OPEN_MAX in OS X.
-    // debugf("rlim_cur = %lu, rlim_max = %lu\n", file_limit.rlim_cur, file_limit.rlim_max);
-    file_limit.rlim_cur = file_limit.rlim_max;  // std::min<rlim_t>(OPEN_MAX, file_limit.rlim_max);
+
+    // We need to set the file descriptor limit maximum to a higher value.  On OS X, rlim_max is
+    // RLIM_INFINITY and, with RLIMIT_NOFILE, it's illegal to set rlim_cur to RLIM_INFINITY.  On
+    // Linux, maybe the same thing is illegal, but rlim_max is set to a finite value (65K - 1)
+    // anyway.  OS X has OPEN_MAX defined to limit the highest possible file descriptor value, and
+    // that's what'll end up being the new rlim_cur value.  (The man page on OS X suggested it.)  I
+    // don't know if Linux has a similar thing, so I went with INT_MAX since every file descriptor
+    // is an int.  If Linux ever goes for rlim_max being RLIM_INFINITY, maybe INT_MAX will be too
+    // high and setrlimit will somehow fail.  We use std::min to ensure that we don't try to set
+    // rlim_cur to a value higher than rlim_max.  That way we get the highest limit possible
+    // (instead of failing to successfully set the limit).
+
+    // TODO(OSX) How to detect OS X in preprocessor?
+#if __APPLE__
+    rlim_t open_max = OPEN_MAX;
+#else
+    rlim_t open_max = INT_MAX;
+#endif
+
+    file_limit.rlim_cur = std::min<rlim_t>(open_max, file_limit.rlim_max);
     res = setrlimit(RLIMIT_NOFILE, &file_limit);
 
     if (res != 0) {
