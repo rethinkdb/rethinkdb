@@ -894,10 +894,12 @@ rethinkdb.Expression.prototype.orderBy = function(var_args) {
     var orderings = Array.prototype.map.call(arguments, function(order) {
         if (typeof order === 'string') {
             return [order, true];
-        } else {
+        } else if (goog.isArray(order)) {
             rethinkdb.util.typeCheck_(order[0], 'string');
             rethinkdb.util.typeCheck_(order[1], 'boolean');
             return order;
+        } else {
+            throw new TypeError("Attribute to order by must be a literal string or result of r.desc or r.asc.");
         }
     });
 
