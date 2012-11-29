@@ -764,6 +764,14 @@ class ClientTest < Test::Unit::TestCase
     assert_raise(RuntimeError){r(obj)[:c].run}
   end
 
+  def test_contains
+    obj = r({:a => 1, :b => 2})
+    assert_equal(obj.contains(:a).run, true)
+    assert_equal(obj.contains(:c).run, false)
+    assert_equal(obj.contains(:a, :b).run, true)
+    assert_equal(obj.contains(:a, :c).run, false)
+  end
+
   def test_stream_getitem #from python tests
     arr = (0...10).map{|x| x}
     [0..-1, 3..-1, 0...3, 4...6].each {|rng|
