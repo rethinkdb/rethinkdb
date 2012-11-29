@@ -53,12 +53,16 @@ module RethinkDB
       JSON_Expression.new [:call, [:getattr, attrname], [self]]
     end
 
-    # Check whether a JSON object has a particular attribute.  The
+    # Check whether a JSON object has all of the particular attributes.  The
     # following are equivalent:
-    #   r({:id => 1}).contains(:id)
+    #   r({:id => 1, :val => 2}).contains(:id, :val)
     #   r(true)
-    def contains(attrname)
-      JSON_Expression.new [:call, [:contains, attrname], [self]]
+    def contains(*attrnames)
+      if attrnames.length == 1
+        JSON_Expression.new [:call, [:contains, attrnames[0]], [self]]
+      else
+        self.contains(attrnames[0]) & self.contains(*attrnames[1..-1])
+      end
     end
 
     # Construct a JSON object that has a subset of the attributes of

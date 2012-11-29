@@ -118,6 +118,8 @@ var tobj = r.expr({a:1,b:2,c:3});
 function testContains() {
     tobj.contains('a').run(aeq(true));
     tobj.contains('d').run(aeq(false));
+    tobj.contains('a', 'b').run(aeq(true));
+    tobj.contains('a', 'd').run(aeq(false));
 }
 
 function testGetAttr() {
