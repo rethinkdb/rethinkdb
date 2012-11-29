@@ -1207,29 +1207,41 @@ rethinkdb.average = function(attr) {
 };
 
 /**
- * Returns true if this has the given attribute.
- * @param {string} attr Attribute to test.
+ * Returns true if this has all of the given attributes.
+ * @param {...string} var_args Attributes to test.
  * @return {rethinkdb.Expression}
  */
-rethinkdb.Expression.prototype.contains = function(attr) {
-    rethinkdb.util.typeCheck_(attr, 'string');
+rethinkdb.Expression.prototype.contains = function(var_args) {
+    rethinkdb.util.argCheck_(arguments, 1); // At least one attr to test
+    var attrs = Array.prototype.slice.call(arguments, 0);
+    attrs.forEach(function(attr) { rethinkdb.util.typeCheck_(attr, 'string');});
+
     var self = this;
-    return rethinkdb.util.newExpr_(rethinkdb.BuiltinExpression, Builtin.BuiltinType.HASATTR, [this],
-        function(bt) {
-            if (!bt) {
-                return self.formatQuery()+".contains("+attr+")";
-            } else {
-                var a = bt.shift();
-                if (a === 'arg:0') {
-                    return self.formatQuery(bt)+rethinkdb.util.spaceify_(".contains("+attr+")");
+    function singleContains(attr) {
+        return rethinkdb.util.newExpr_(rethinkdb.BuiltinExpression, Builtin.BuiltinType.HASATTR, [self],
+            function(bt) {
+                if (!bt) {
+                    return self.formatQuery()+".contains("+attr+")";
                 } else {
-                    return rethinkdb.util.spaceify_(self.formatQuery())+rethinkdb.util.carrotify_(".contains("+attr+")");
+                    var a = bt.shift();
+                    if (a === 'arg:0') {
+                        return self.formatQuery(bt)+rethinkdb.util.spaceify_(".contains("+attr+")");
+                    } else {
+                        return rethinkdb.util.spaceify_(self.formatQuery())+rethinkdb.util.carrotify_(".contains("+attr+")");
+                    }
                 }
-            }
-        },
-        function(builtin, opt_buildOpts) {
-            builtin.setAttr(attr);
-        });
+            },
+            function(builtin, opt_buildOpts) {
+                builtin.setAttr(attr);
+            });
+    }
+
+    var query = singleContains(attrs[0]);
+    for (var i = 1; i < attrs.length; ++i) {
+        query = query.and(singleContains(attrs[i]));
+    }
+
+    return query;
 };
 goog.exportProperty(rethinkdb.Expression.prototype, 'contains',
                     rethinkdb.Expression.prototype.contains);
