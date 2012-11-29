@@ -12,15 +12,17 @@
 
 #include "arch/arch.hpp"
 
+long get_sysconf_host_name_max() {
+    const long namelen = sysconf(_SC_HOST_NAME_MAX);  // NOLINT(runtime/int)
+    guarantee_err(namelen != -1, "sysconf failed");
+    guarantee(namelen > 0 && namelen >= _POSIX_HOST_NAME_MAX);
+    return namelen;
+}
+
 /* Get our hostname as an std::string. */
 std::string str_gethostname() {
-    // TODO(OSX) reconsider how to detect OS X
-    // TODO(OSX) see if sysconf works on linux.  On older Linuxes?
-#if __APPLE__
-    const int namelen = sysconf(_SC_HOST_NAME_MAX);
-#else
-    const int namelen = HOST_NAME_MAX;
-#endif
+    static const long namelen = get_sysconf_host_name_max();  // NOLINT(runtime/int)
+
     std::vector<char> bytes(namelen + 1);
     bytes[namelen] = '0';
 
