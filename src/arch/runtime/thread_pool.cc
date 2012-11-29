@@ -205,7 +205,7 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
     // not really important.
 
 #if __MACH__
-    const int ITIMER_USEC = 5;
+    const int ITIMER_USEC = 5000;
 #endif
 
     linux_thread_pool_t::thread_pool = this;   // So signal handlers can find us
