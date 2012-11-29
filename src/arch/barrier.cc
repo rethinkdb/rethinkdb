@@ -1,7 +1,6 @@
 #include "arch/barrier.hpp"
 
-#if __APPLE__
-// TODO(OSX) add unit tests for thread_barrier_t and run them on OS X.
+// TODO(OSX) add unit tests for thread_barrier_t (how?) and run them on OS X and Linux.
 thread_barrier_t::thread_barrier_t(int num_workers)
     : num_workers_(num_workers), num_waiters_(0) {
     guarantee(num_workers > 0);
@@ -35,26 +34,3 @@ void thread_barrier_t::wait() {
     res = pthread_mutex_unlock(&mutex_);
     guarantee_xerr(res == 0, res, "barrier could not unlock mutex");
 }
-
-
-#else
-// TODO(OSX) Just remove this pthread_barrier_t-using code?
-thread_barrier_t::thread_barrier_t(int num_workers) {
-    guarantee(num_workers > 0);
-    // TODO(OSX) Check pthread_barrier_init man page (on linux) to make sure it returns an error code.
-    int res = pthread_barrier_init(&barrier_, NULL, num_workers);
-    guarantee_xerr(res == 0, res, "could not create barrier");
-}
-
-thread_barrier_t::~thread_barrier_t() {
-    // TODO(OSX) Check pthread_barrier_destroy man page (on linux) to make sure it returns an error code.
-    int res = pthread_barrier_destroy(&barrier_);
-    guarantee_xerr(res == 0, res, "could not destroy barrier");
-}
-
-void thread_barrier_t::wait() {
-    // TODO(OSX) Check pthread_barrier_wait man page (on linux) to make sure it returns an error code.
-    int res = pthread_barrier_wait(&barrier_);
-    guarantee_xerr(res == 0 || res == PTHREAD_BARRIER_SERIAL_THREAD, res, "could not wait at barrier");
-}
-#endif  // __APPLE__

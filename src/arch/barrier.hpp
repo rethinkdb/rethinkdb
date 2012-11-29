@@ -14,15 +14,10 @@ public:
     void wait();
 
 private:
-    // TODO(OSX) find a better way to detect pthread_barrier_t feature.
-#if __APPLE__
     const int num_workers_;
     int num_waiters_;
     pthread_mutex_t mutex_;
     pthread_cond_t cond_;
-#else
-    pthread_barrier_t barrier_;
-#endif
 
     DISABLE_COPYING(thread_barrier_t);
 };
