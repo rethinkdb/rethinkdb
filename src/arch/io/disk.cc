@@ -3,10 +3,6 @@
 
 #include <fcntl.h>
 
-#if !__APPLE__
-#include <linux/fs.h>  // TODO(OSX)
-#endif
-
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
@@ -199,11 +195,20 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, io
 {
     // Construct file flags
 
-#if __MACH__
-    // O_LARGEFILE is not necessary and O_DIRECT is handled later with F_NOCACHE.
+    // Let's have a sanity check for our attempt to check whether O_DIRECT and O_NOATIME are
+    // available as preprocessor defines.
+#ifndef O_CREAT
+#error "O_CREAT and other open flags are apparently not defined in the preprocessor."
+#endif
+
     int flags = O_CREAT;
-#else
-    int flags = O_CREAT | (is_really_direct ? O_DIRECT : 0) | O_LARGEFILE;
+#ifdef O_DIRECT
+    flags |= (is_really_direct ? O_DIRECT : 0);
+#endif
+
+    // For now, we have a whitelist of kernels that don't support O_LARGEFILE.
+#if !__MACH__
+    flags |= O_LARGEFILE;
 #endif
 
     if ((mode & mode_write) && (mode & mode_read)) {
@@ -220,8 +225,7 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, io
     // O_NOATIME requires owner or root privileges. This is a bit of a hack; we assume that
     // if we are opening a regular file, we are the owner, but if we are opening a block device,
     // we are not.
-    // TODO(OSX) Do we use __MACH__?  __APPLE__?
-#if !__MACH__
+#ifdef O_NOATIME
     flags |= O_NOATIME;
 #endif  // !__MACH__
 
@@ -237,24 +241,29 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, io
     }
 
     if (fd.get() == INVALID_FD) {
-        // TODO(OSX) How shall we detect OS X below?
         /* TODO: Throw an exception instead. */
         fail_due_to_user_error(
             "Inaccessible database file: \"%s\": %s"
             "\nSome possible reasons:"
             "\n- the database file couldn't be created or opened for reading and writing"
-#if !__MACH__
-            "%s"    // for O_DIRECT message
+#ifdef O_DIRECT
+            "%s"
 #endif
-            "%s",   // for O_NOATIME message
+#ifdef O_NOATIME
+            "%s"
+#endif
+            ,
             path, errno_string(errno).c_str(),
-#if !__MACH__
+#ifdef O_DIRECT
             is_really_direct ? "\n- the database file is located on a filesystem that doesn't support O_DIRECT open flag (e.g. some encrypted or journaled file systems)" : "",
 #endif
+#ifdef O_NOATIME
             "\n- user which was used to start the database is not an owner of the file");
+#endif
     } else {
-        // TODO(OSX) Figure out to detect OS X.
-#if __MACH__
+        // When building, we must either support O_DIRECT or F_NOCACHE.  The former works on Linux,
+        // the latter works on OS X.
+#ifndef O_DIRECT
         if (is_really_direct) {
             int fcntl_res = fcntl(fd.get(), F_NOCACHE, 1);
             if (fcntl_res == -1) {
@@ -264,7 +273,7 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, io
                                        path, errno_string(errno).c_str());
             }
         }
-#endif
+#endif  // O_DIRECT.
     }
 
     file_exists = true;
