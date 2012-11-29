@@ -1845,8 +1845,11 @@ goog.exportProperty(rethinkdb.Expression.prototype, 'outerJoin',
  * Eq join
  */
 rethinkdb.Expression.prototype.eqJoin = function(leftAttr, other, opt_rightAttr) {
+    if(!opt_rightAttr)
+        opt_rightAttr = 'id'
+
     return this.concatMap(function(row) {
-        return rethinkdb.let({'right': other.get(row(leftAttr))},
+        return rethinkdb.let({'right': other.get(row(leftAttr), opt_rightAttr)},
             rethinkdb.branch(rethinkdb.letVar('right')['ne'](rethinkdb.expr(null)),
                 rethinkdb.expr([{'left':row, 'right':rethinkdb.letVar('right')}]),
                 rethinkdb.expr([])
