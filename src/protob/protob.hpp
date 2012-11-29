@@ -2,8 +2,9 @@
 #ifndef PROTOB_PROTOB_HPP_
 #define PROTOB_PROTOB_HPP_
 
-#include <string>
+#include <set>
 #include <map>
+#include <string>
 
 #include "errors.hpp"
 #include <boost/function.hpp>

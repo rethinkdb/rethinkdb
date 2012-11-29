@@ -2,11 +2,13 @@
 #ifndef RPC_CONNECTIVITY_HEARTBEAT_HPP_
 #define RPC_CONNECTIVITY_HEARTBEAT_HPP_
 
-#include "utils.hpp"
+#include <map>
+
 #include "arch/io/arch.hpp"
-#include "rpc/connectivity/messages.hpp"
-#include "rpc/connectivity/connectivity.hpp"
 #include "concurrency/one_per_thread.hpp"
+#include "rpc/connectivity/connectivity.hpp"
+#include "rpc/connectivity/messages.hpp"
+#include "utils.hpp"
 
 
 class heartbeat_manager_t : public message_handler_t {
@@ -30,7 +32,7 @@ private:
 
     class heartbeat_writer_t : public send_message_write_callback_t {
     public:
-        void write(UNUSED write_stream_t *stream) { };
+        void write(UNUSED write_stream_t *stream) { }
     };
 
     struct per_thread_data_t {
@@ -44,6 +46,8 @@ private:
     heartbeat_writer_t writer;
     message_service_t *message_service;
     one_per_thread_t<per_thread_data_t> thread_data;
+
+    DISABLE_COPYING(heartbeat_manager_t);
 };
 
 #endif /* RPC_CONNECTIVITY_HEARTBEAT_HPP_ */

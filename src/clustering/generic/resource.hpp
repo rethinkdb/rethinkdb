@@ -66,17 +66,24 @@ public:
     /* Returns the resource contact info if the resource is accessible. Throws
     `resource_lost_exc_t` if it's not. */
     business_card_t access() THROWS_ONLY(resource_lost_exc_t) {
-        boost::optional<boost::optional<business_card_t> > maybe_maybe_value = metadata_view->get();
-        if (!maybe_maybe_value) {
-            guarantee(failed_signal.is_pulsed());
+        /* This function was the site of #65. Previously it asserted
+         * maybe_maybe_value && maybe_maybe_value.get() -> !failed_signal.is_pulsed()
+         * which is incorrect because a peer can disconnect and reconnect which
+         * leaves the signal pulsed but the resource as not none.
+         * Now we do:
+         * !maybe_maybe_value || !maybe_maybe_value.get() -> failed_signal.is_pulsed()
+         * which is correct.
+         * And throw resource_lost_exc_t even if the resource has come back
+         * since this resource_access_t has a pulsed signal and thus can't be
+         * used. (A new one needs to be constructed.)
+         */
+        if (failed_signal.is_pulsed()) {
             throw resource_lost_exc_t();
+        } else {
+            boost::optional<boost::optional<business_card_t> > maybe_maybe_value = metadata_view->get();
+            guarantee(maybe_maybe_value && maybe_maybe_value.get(), "If either of these are None the signal should have been pulsed.");
+            return maybe_maybe_value.get().get();
         }
-        if (!maybe_maybe_value.get()) {
-            guarantee(failed_signal.is_pulsed());
-            throw resource_lost_exc_t();
-        }
-        guarantee(!failed_signal.is_pulsed());
-        return maybe_maybe_value.get().get();
     }
 
 private:
