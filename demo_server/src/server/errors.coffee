@@ -5,4 +5,4 @@ class RDBError extends Error
 class RuntimeError extends RDBError
     constructor: (msg) ->
         @name = "Runtime error"
-        @message = "Runtime error: #{msg}"
+        @message = msg

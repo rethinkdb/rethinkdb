@@ -330,8 +330,10 @@ class DemoServer
         dbName = tableRef.getDbName()
         tableName = tableRef.getTableName()
         db = @dbs[dbName]
-        if db? then db.getTable(tableName)
-        else new RDBPrimitive null
+        if db?
+            return db.getTable(tableName)
+        else
+            throw new RuntimeError "Error during operation `EVAL_DB #{dbName}`: No entry with that name."
 
     evaluateCall: (call) ->
         builtin = call.getBuiltin()
