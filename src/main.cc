@@ -15,13 +15,7 @@ void print_version_message() {
 
 
 int main(int argc, char *argv[]) {
-    install_generic_crash_handler();
-#ifndef NDEBUG
-    rlimit core_limit;
-    core_limit.rlim_cur = 100 * MEGABYTE;
-    core_limit.rlim_max = 200 * MEGABYTE;
-    setrlimit(RLIMIT_CORE, &core_limit);
-#endif
+    run_generic_global_startup_behavior();
 
     std::set<std::string> subcommands_that_look_like_flags;
     subcommands_that_look_like_flags.insert("--version");
