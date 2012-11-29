@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
+#include <sys/resource.h>
 
 #if __MACH__
 #include <mach/mach_time.h>
@@ -43,7 +44,9 @@ void run_generic_global_startup_behavior() {
     rlimit file_limit;
     int res = getrlimit(RLIMIT_NOFILE, &file_limit);
     guarantee_err(res == 0, "getrlimit with RLIMIT_NOFILE failed");
-    file_limit.rlim_cur = std::min<rlim_t>(OPEN_MAX, file_limit.rlim_max);
+    // TODO(OSX) this rlimit stuff, make it use OPEN_MAX in OS X.
+    // debugf("rlim_cur = %lu, rlim_max = %lu\n", file_limit.rlim_cur, file_limit.rlim_max);
+    file_limit.rlim_cur = file_limit.rlim_max;  // std::min<rlim_t>(OPEN_MAX, file_limit.rlim_max);
     res = setrlimit(RLIMIT_NOFILE, &file_limit);
 
     if (res != 0) {
