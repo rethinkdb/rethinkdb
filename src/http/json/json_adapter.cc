@@ -219,39 +219,7 @@ std::string to_string_for_json_key(const uuid_t *uuid) {
     return uuid_to_str(*uuid);
 }
 
-// ctx-less JSON adapter for uint64_t
-json_adapter_if_t::json_adapter_map_t get_json_subfields(uint64_t *) {
-    return json_adapter_if_t::json_adapter_map_t();
-}
-
-cJSON *render_as_json(uint64_t *target) {
-    // TODO: Should we not fail when we cannot convert to double (or when we go outside 53-bit range?)
-    return cJSON_CreateNumber(*target);
-}
-
-void apply_json_to(cJSON *change, uint64_t *target) {
-    *target = get_int(change, 0, INT64_MAX);
-}
-
-void on_subfield_change(uint64_t *) { }
-
-// ctx-less JSON adapter for int64_t.
-json_adapter_if_t::json_adapter_map_t get_json_subfields(int64_t *) {
-    return json_adapter_if_t::json_adapter_map_t();
-}
-
-cJSON *render_as_json(int64_t *target) {
-    // TODO: Should we not fail when we cannot convert to double (or when we go outside 53-bit range?)
-    return cJSON_CreateNumber(*target);
-}
-
-void apply_json_to(cJSON *change, int64_t *target) {
-    *target = get_int(change, INT64_MIN, INT64_MAX);
-}
-
-void on_subfield_change(int64_t *) { }
-
-// ctx-less JSON adapter for int  (TODO: Should we not be only using int32_t?  FFS.)
+// ctx-less JSON adapter for int
 json_adapter_if_t::json_adapter_map_t get_json_subfields(int *) {
     return json_adapter_if_t::json_adapter_map_t();
 }
@@ -266,8 +234,7 @@ void apply_json_to(cJSON *change, int *target) {
 
 void on_subfield_change(int *) { }
 
-#if defined(RT_JSON_ADAPTER_PLAIN_INTS)
-// ctx-less JSON adapter for int  (TODO: Should we not be only using int32_t?  FFS.)
+// ctx-less JSON adapter for long int
 json_adapter_if_t::json_adapter_map_t get_json_subfields(long int *) {
     return json_adapter_if_t::json_adapter_map_t();
 }
@@ -277,9 +244,68 @@ cJSON *render_as_json(long int *target) {
 }
 
 void apply_json_to(cJSON *change, long int *target) {
-    *target = get_int(change, INT_MIN, INT_MAX);
+    *target = get_int(change, LONG_MIN, LONG_MAX);
 }
 
 void on_subfield_change(long int *) { }
-#endif
+
+// ctx-less JSON adapter for long long int
+json_adapter_if_t::json_adapter_map_t get_json_subfields(long long int *) {
+    return json_adapter_if_t::json_adapter_map_t();
+}
+
+cJSON *render_as_json(long long int *target) {
+    return cJSON_CreateNumber(*target);
+}
+
+void apply_json_to(cJSON *change, long long int *target) {
+    *target = get_int(change, LLONG_MIN, LLONG_MAX);
+}
+
+void on_subfield_change(long long int *) { }
+
+// ctx-less JSON adapter for unsigned int
+json_adapter_if_t::json_adapter_map_t get_json_subfields(unsigned int *) {
+    return json_adapter_if_t::json_adapter_map_t();
+}
+
+cJSON *render_as_json(unsigned int *target) {
+    return cJSON_CreateNumber(*target);
+}
+
+void apply_json_to(cJSON *change, unsigned int *target) {
+    *target = get_int(change, INT_MIN, INT_MAX);
+}
+
+void on_subfield_change(unsigned int *) { }
+
+// ctx-less JSON adapter for unsigned long int
+json_adapter_if_t::json_adapter_map_t get_json_subfields(unsigned long int *) {
+    return json_adapter_if_t::json_adapter_map_t();
+}
+
+cJSON *render_as_json(unsigned long int *target) {
+    return cJSON_CreateNumber(*target);
+}
+
+void apply_json_to(cJSON *change, unsigned long int *target) {
+    *target = get_int(change, LONG_MIN, LONG_MAX);
+}
+
+void on_subfield_change(unsigned long int *) { }
+
+// ctx-less JSON adapter for unsigned long long int
+json_adapter_if_t::json_adapter_map_t get_json_subfields(unsigned long long int *) {
+    return json_adapter_if_t::json_adapter_map_t();
+}
+
+cJSON *render_as_json(unsigned long long int *target) {
+    return cJSON_CreateNumber(*target);
+}
+
+void apply_json_to(cJSON *change, unsigned long long int *target) {
+    *target = get_int(change, LLONG_MIN, LLONG_MAX);
+}
+
+void on_subfield_change(unsigned long long int *) { }
 

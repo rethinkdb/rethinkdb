@@ -19,10 +19,6 @@
 #include "containers/uuid.hpp"
 #include "http/json.hpp"
 
-#if defined(__i386__)
-#define RT_JSON_ADAPTER_PLAIN_INTS
-#endif
-
 /* A note about json adapter exceptions: When an operation throws an exception
  * there is no guarantee that the target object has been left in tact.
  * Generally this is okay because we first apply changes and then join them in
@@ -430,25 +426,35 @@ cJSON *render_as_json(int *);
 void apply_json_to(cJSON *, int *);
 void on_subfield_change(int *);
 
-#if defined(RT_JSON_ADAPTER_PLAIN_INTS)
 // ctx-less JSON adapter for long int
 json_adapter_if_t::json_adapter_map_t get_json_subfields(long int *);
 cJSON *render_as_json(long int *);
 void apply_json_to(cJSON *, long int *);
 void on_subfield_change(long int *);
-#endif // 1
 
-// ctx-less JSON adapter for uint64_t
-json_adapter_if_t::json_adapter_map_t get_json_subfields(uint64_t *);
-cJSON *render_as_json(uint64_t *);
-void apply_json_to(cJSON *, uint64_t *);
-void on_subfield_change(uint64_t *);
+// ctx-less JSON adapter for long int
+json_adapter_if_t::json_adapter_map_t get_json_subfields(long long int *);
+cJSON *render_as_json(long long int *);
+void apply_json_to(cJSON *, long long int *);
+void on_subfield_change(long long int *);
 
-// ctx-less JSON adapter for int64_t
-json_adapter_if_t::json_adapter_map_t get_json_subfields(int64_t *);
-cJSON *render_as_json(int64_t *);
-void apply_json_to(cJSON *, int64_t *);
-void on_subfield_change(int64_t *);
+// ctx-less JSON adapter for unsigned int
+json_adapter_if_t::json_adapter_map_t get_json_subfields(unsigned int *);
+cJSON *render_as_json(unsigned int *);
+void apply_json_to(cJSON *, unsigned int *);
+void on_subfield_change(unsigned int *);
+
+// ctx-less JSON adapter for unsigned long int
+json_adapter_if_t::json_adapter_map_t get_json_subfields(unsigned long int *);
+cJSON *render_as_json(unsigned long int *);
+void apply_json_to(cJSON *, unsigned long int *);
+void on_subfield_change(unsigned long int *);
+
+// ctx-less JSON adapter for unsigned long long int
+json_adapter_if_t::json_adapter_map_t get_json_subfields(unsigned long long int *);
+cJSON *render_as_json(unsigned long long int *);
+void apply_json_to(cJSON *, unsigned long long int *);
+void on_subfield_change(unsigned long long int *);
 
 // ctx-less JSON adapter for bool
 json_adapter_if_t::json_adapter_map_t get_json_subfields(bool *);
