@@ -12,16 +12,9 @@
 
 #include "arch/arch.hpp"
 
-long get_sysconf_host_name_max() {
-    const long namelen = sysconf(_SC_HOST_NAME_MAX);  // NOLINT(runtime/int)
-    guarantee_err(namelen != -1, "sysconf failed");
-    guarantee(namelen > 0 && namelen >= _POSIX_HOST_NAME_MAX);
-    return namelen;
-}
-
 /* Get our hostname as an std::string. */
 std::string str_gethostname() {
-    static const long namelen = get_sysconf_host_name_max();  // NOLINT(runtime/int)
+    const int namelen = _POSIX_HOST_NAME_MAX;
 
     std::vector<char> bytes(namelen + 1);
     bytes[namelen] = '0';
