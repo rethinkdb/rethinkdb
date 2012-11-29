@@ -197,27 +197,6 @@ void make_io_backender(io_backend_t backend, scoped_ptr_t<io_backender_t> *out) 
 linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, io_backender_t *io_backender)
     : fd(INVALID_FD), file_size(0)
 {
-    // Determine if it is a block device
-
-    {
-        // We don't use stat64 because we don't need any of the off64_t offsets.  Observe that we
-        // only use file_stat.st_mode.
-        struct stat file_stat;
-        memset(&file_stat, 0, sizeof(file_stat));
-        int res = stat(path, &file_stat);
-        guarantee_err(res == 0 || errno == ENOENT, "Could not stat file '%s'", path);
-
-        if (res == -1 && errno == ENOENT) {
-            if (!(mode & mode_create)) {
-                file_exists = false;
-                return;
-            }
-            is_block = false;
-        } else {
-            is_block = S_ISBLK(file_stat.st_mode);
-        }
-    }
-
     // Construct file flags
 
 #if __MACH__
@@ -241,9 +220,10 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, io
     // O_NOATIME requires owner or root privileges. This is a bit of a hack; we assume that
     // if we are opening a regular file, we are the owner, but if we are opening a block device,
     // we are not.
+    // TODO(OSX) Do we use __MACH__?  __APPLE__?
 #if !__MACH__
-    if (!is_block) flags |= O_NOATIME;
-#endif  // !__APPLE__
+    flags |= O_NOATIME;
+#endif  // !__MACH__
 
     // Open the file
 
@@ -257,29 +237,33 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, io
     }
 
     if (fd.get() == INVALID_FD) {
-        // TODO(OSX) Fix this error message (or throw an exception ^_^)
+        // TODO(OSX) How shall we detect OS X below?
         /* TODO: Throw an exception instead. */
         fail_due_to_user_error(
             "Inaccessible database file: \"%s\": %s"
             "\nSome possible reasons:"
-            "%s"    // for creation/open error
+            "\n- the database file couldn't be created or opened for reading and writing"
+#if !__MACH__
             "%s"    // for O_DIRECT message
+#endif
             "%s",   // for O_NOATIME message
             path, errno_string(errno).c_str(),
-            is_block ?
-                "\n- the database device couldn't be opened for reading and writing" :
-                "\n- the database file couldn't be created or opened for reading and writing",
-            is_really_direct ?
-                (is_block ?
-                    "\n- the database block device cannot be opened with O_DIRECT flag" :
-                    "\n- the database file is located on a filesystem that doesn't support O_DIRECT open flag (e.g. some encrypted or journaled file systems)"
-                ) : "",
-            !is_block ? "\n- user which was used to start the database is not an owner of the file" : "");
+#if !__MACH__
+            is_really_direct ? "\n- the database file is located on a filesystem that doesn't support O_DIRECT open flag (e.g. some encrypted or journaled file systems)" : "",
+#endif
+            "\n- user which was used to start the database is not an owner of the file");
     } else {
+        // TODO(OSX) Figure out to detect OS X.
 #if __MACH__
-        // TODO(OSX) Make this the user-friendly sort of message above?
-        int fcntl_res = fcntl(fd.get(), F_NOCACHE, 1);
-        guarantee(fcntl_res != -1, "fcntl(..., F_NOCACHE, 1) failed (this is the OS X substitute for O_DIRECT)");
+        if (is_really_direct) {
+            int fcntl_res = fcntl(fd.get(), F_NOCACHE, 1);
+            if (fcntl_res == -1) {
+                fail_due_to_user_error("Could not turn off filesystem caching for database file: \"%s\": %s"
+                                       "\n(Is the database file located on a filesystem that doesn't support F_NOCACHE "
+                                       "(e.g. some encrypted or journaled file systems)?)",
+                                       path, errno_string(errno).c_str());
+            }
+        }
 #endif
     }
 
@@ -287,34 +271,24 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, io
 
     // Determine the file size
 
-    if (is_block) {
-// TODO(OSX) Figure out block device support questions.
+    // We use lseek to get the size.  We could have also used stat.
+    // TODO(OSX) Figure out how to avoid this conditional compilation.
 #if __APPLE__
-        // Maybe use stat to get the size of the block device.
-        crash("No support for block devices on OS X");
-#else
-        int res = ioctl(fd.get(), BLKGETSIZE64, &file_size);
-        guarantee_err(res != -1, "Could not determine block device size");
-#endif
-    } else {
-        // We use lseek to get the size.  We could have also used stat.
-#if __APPLE__
-        CT_ASSERT(sizeof(off_t) == sizeof(int64_t));
-        int64_t size = lseek(fd.get(), 0, SEEK_END);
-        guarantee_err(size != -1, "Could not determine file size");
-        int res = lseek(fd.get(), 0, SEEK_SET);
-        guarantee_err(res != -1, "Could not reset file position");
+    CT_ASSERT(sizeof(off_t) == sizeof(int64_t));
+    int64_t size = lseek(fd.get(), 0, SEEK_END);
+    guarantee_err(size != -1, "Could not determine file size");
+    int res = lseek(fd.get(), 0, SEEK_SET);
+    guarantee_err(res != -1, "Could not reset file position");
 
-        file_size = size;
+    file_size = size;
 #else
-        int64_t size = lseek64(fd.get(), 0, SEEK_END);
-        guarantee_err(size != -1, "Could not determine file size");
-        int res = lseek64(fd.get(), 0, SEEK_SET);
-        guarantee_err(res != -1, "Could not reset file position");
+    int64_t size = lseek64(fd.get(), 0, SEEK_END);
+    guarantee_err(size != -1, "Could not determine file size");
+    int res = lseek64(fd.get(), 0, SEEK_SET);
+    guarantee_err(res != -1, "Could not reset file position");
 
-        file_size = size;
+    file_size = size;
 #endif
-    }
 
     // TODO: We have a very minor correctness issue here, which is that
     // we don't guarantee data durability for newly created database files.
@@ -336,7 +310,7 @@ bool linux_file_t::exists() {
 }
 
 bool linux_file_t::is_block_device() {
-    return is_block;
+    return false;
 }
 
 uint64_t linux_file_t::get_size() {
@@ -344,7 +318,6 @@ uint64_t linux_file_t::get_size() {
 }
 
 void linux_file_t::set_size(size_t size) {
-    rassert(!is_block);
     int res = ftruncate(fd.get(), size);
     guarantee_err(res == 0, "Could not ftruncate()");
     fsync(fd.get()); // Make sure that the metadata change gets persisted
@@ -354,15 +327,9 @@ void linux_file_t::set_size(size_t size) {
 }
 
 void linux_file_t::set_size_at_least(size_t size) {
-    if (is_block) {
-        rassert(file_size >= size);
-    } else {
-        /* Grow in large chunks at a time */
-        if (file_size < size) {
-            // TODO: we should make the growth rate of a db file
-            // configurable.
-            set_size(ceil_aligned(size, DEVICE_BLOCK_SIZE * 128));
-        }
+    /* Grow in large chunks at a time */
+    if (file_size < size) {
+        set_size(ceil_aligned(size, DEVICE_BLOCK_SIZE * 128));
     }
 }
 
