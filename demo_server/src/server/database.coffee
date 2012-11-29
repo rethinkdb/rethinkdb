@@ -18,6 +18,9 @@ class RDBDatabase
         return []
 
     getTable: (name) ->
-        @tables[name] || null
+        if @tables[name]?
+            return @tables[name]
+        else
+            throw new RuntimeError "Error during operation `EVAL_TABLE #{name}`: No entry with that name."
 
     getTableNames: -> (tblN for own tblN of @tables)

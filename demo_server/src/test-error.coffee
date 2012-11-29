@@ -125,7 +125,8 @@ class Tests
 $(document).ready ->
     # Some tests are commented because the real server doesn't implement (yet) object comparison.
     queries = [
-        'r.db("testsasdasaad").table("table_that_does_not_exist").run()',
+        'r.db("db_that_does_not_exist").table("table_that_does_not_exist").run()',
+        'r.db("test").table("table_that_does_not_exist").run()',
         'r.expr(true).run()',
         'r.expr(false).run()',
         'r.expr(132).run()',
