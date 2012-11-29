@@ -165,6 +165,9 @@ class RDBTest(unittest.TestCase):
         self.expect(expr({"foo": 3}).contains("foo"), True)
         self.expect(expr({"foo": 3}).contains("bar"), False)
 
+        self.expect(expr({"a": 3, "b": 4}).contains("a", "b"), True)
+        self.expect(expr({"a": 3, "b": 4}).contains("b", "c"), False)
+
         self.expect(expr({"foo": 3})["foo"], 3)
         self.error_exec(expr({"foo": 3})["bar"], "missing")
 
