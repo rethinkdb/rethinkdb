@@ -894,10 +894,12 @@ rethinkdb.Expression.prototype.orderBy = function(var_args) {
     var orderings = Array.prototype.map.call(arguments, function(order) {
         if (typeof order === 'string') {
             return [order, true];
-        } else {
+        } else if (goog.isArray(order)) {
             rethinkdb.util.typeCheck_(order[0], 'string');
             rethinkdb.util.typeCheck_(order[1], 'boolean');
             return order;
+        } else {
+            throw new TypeError("Attribute to order by must be a literal string or result of r.desc or r.asc.");
         }
     });
 
@@ -1845,8 +1847,11 @@ goog.exportProperty(rethinkdb.Expression.prototype, 'outerJoin',
  * Eq join
  */
 rethinkdb.Expression.prototype.eqJoin = function(leftAttr, other, opt_rightAttr) {
+    if(!opt_rightAttr)
+        opt_rightAttr = 'id'
+
     return this.concatMap(function(row) {
-        return rethinkdb.let({'right': other.get(row(leftAttr))},
+        return rethinkdb.let({'right': other.get(row(leftAttr), opt_rightAttr)},
             rethinkdb.branch(rethinkdb.letVar('right')['ne'](rethinkdb.expr(null)),
                 rethinkdb.expr([{'left':row, 'right':rethinkdb.letVar('right')}]),
                 rethinkdb.expr([])
