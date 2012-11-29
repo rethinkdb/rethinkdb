@@ -87,6 +87,8 @@ class Tests
                 @display
                     query: @queries[@index]
                     success: true
+                    result_server: @result_server
+                    result_demo: @result_demo
             else
                 @display
                     query: @queries[@index]
@@ -102,19 +104,21 @@ class Tests
             if doc?.name? and doc.message? and doc.name is 'Runtime Error'
                 lines = doc.message.split('\n')
                 doc.message = lines[0]
-
+            if doc?.first_error?
+                lines = doc.first_error.split('\nBacktrace')
+                doc.first_error = lines[0]
         return data
 
 
     display: (args) ->
         query = args.query
         success = args.success
+        result_server = args.result_server
+        result_demo = args.result_demo
         if success is true
-            $('#results').append '<li class="result success">'+query+'<span style="float: right">^_^</span></li>'
+            $('#results').append '<li class="result success">'+query+'<span style="float: right">^_^</span>
+                </li>'
         else
-            result_server = args.result_server
-            result_demo = args.result_demo
-
             $('#results').append '<li class="result fail">'+query+'<span style="float: right">&gt;_&lt;</span><br/>Demo server response:
                 <pre>'+JSON.stringify(result_demo, undefined, 2)+'</pre>
                 Real server response:
@@ -125,8 +129,6 @@ class Tests
 $(document).ready ->
     # Some tests are commented because the real server doesn't implement (yet) object comparison.
     queries = [
-        'r.db("db_that_does_not_exist").table("table_that_does_not_exist").run()',
-        'r.db("test").table("table_that_does_not_exist").run()',
         'r.expr(true).run()',
         'r.expr(false).run()',
         'r.expr(132).run()',
@@ -230,7 +232,31 @@ $(document).ready ->
         'r.db("test").table("test").limit(1).skip(1).run()',
         'r.db("test").table("test").orderBy("key", "id").run()',
         'r.db("test").table("test").orderBy(r.desc("key"), r.asc("id")).run()',
+        'r.db("db_that_does_not_exist").table("table_that_does_not_exist").run()',
+        'r.db("test").table("table_that_does_not_exist").run()',
         'r.expr(Infinity).run()',
+        'r.expr(-Infinity).run()',
+        'r.expr(NaN).run()',
+        'r.db("test").tableCreate("test").run() // Table already exists',
+        'r.db("test").tableCreate("test").run() // Table already exists',
+        'r.db("test").tableCreate("我不懂").run() // Bad name',
+        'r.dbCreate("test").run() // db alreay exists',
+        'r.dbCreate("while (true) { }").run() // Bad name',
+        'r.db("test").tableCreate("test").run() // Table already exists',
+        'r.dbDrop("database_that_doesnt_exist").run()'
+        'r.db("test").tableDrop("table_that_doesnt_exist").run()'
+        'r.db("test").table("test").get(1).del().run()',
+        'r.db("test").table("test").get(1).del().run() // Element does\'nt exist',
+        'r.db("test").table("test").insert({id:1}).run()',
+        'r.db("test").table("test").insert({id:1, tetefsdfdsst:{key: "value"}}).run()',
+        'r.db("test").table("test").insert({id: null}).run() // Key is not a number or not string',
+        'r.db("test").table("test").insert({id: null}).run() // Key is not a number or not string',
+        'r.db("test").table("test").update({attribute_that_doesnt_exist: r("attribute_that_doesnt_exist")}).run() // Update field that does not exist',
+        'r.db("test").table("test").update({attribute_that_doesnt_exist: r("attribute_that_doesnt_exist").add(1)}).run() // Update field that does not exist',
+        'r.db("test").table("test").insert({id: [1], key: {other_key: "value", more: [1, 2, {a: "a"}]}}).run() // PK is not string or number',
+        'r.db("test").table("test").insert([{id: 1}, {id: 2}]).run()',
+        'r.db("test").table("test").update({id: 1, key: {other_key: "value", more: [1, 2, {a: "a"}]}}).run() // Try to overwrite a PK',
+
     ]
 
     # Connect the two drivers
@@ -244,8 +270,9 @@ $(document).ready ->
         port: 23000
     rethinkdb.connect server, ->
         # Clean the database test
-        rethinkdb.dbList('test').run().collect (dbs) ->
+        rethinkdb.dbList().run().collect (dbs) ->
             for db in dbs
                 rethinkdb.dbDrop(db).run()
-        tests = new Tests queries
-        tests.test()
+            rethinkdb.dbCreate('test').run().collect ->
+                tests = new Tests queries
+                tests.test()

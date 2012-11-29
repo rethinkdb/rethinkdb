@@ -9,15 +9,23 @@ class RDBDatabase
         @tables = {}
 
     createTable: (name, {primaryKey}) ->
+        DemoServer.prototype.check_name name
+        if @tables[name]?
+            throw new RuntimeError "Error during operation `CREATE_TABLE #{name}`: Entry already exists."
+
         primaryKey ?= 'id'
         @tables[name] = new RDBTable primaryKey
         return []
 
-    dropTable: (name) ->
+    dropTable: (name, db_name) ->
+        DemoServer.prototype.check_name name
+        if not @tables[name]?
+            throw new RuntimeError "Error during operation `FIND_TABLE #{db_name}.#{name}`: No entry with that name."
         delete @tables[name]
         return []
 
     getTable: (name) ->
+        DemoServer.prototype.check_name name
         if @tables[name]?
             return @tables[name]
         else

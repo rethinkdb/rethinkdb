@@ -34,11 +34,62 @@ class DemoServer
         # Add default database test
         @createDatabase 'test'
 
+    # We could move these two functions in a new class (something like Helper)
+    check_name: (name) ->
+        if not /^[A-Za-z0-9_\-]+$/.test name
+            throw new BadQuery "Invalid name '#{name}'.  (Use A-Za-z0-9_ only.)."
+
+    convertToJSON: (doc, level) ->
+        if not level?
+            level = 0
+        result = ''
+        if typeof doc is 'object'
+            if doc is null
+                result += 'null'
+            else if Object.prototype.toString.call(doc) is '[object Array]'
+                result += '['
+                for element, i in doc
+                    result += @convertToJSON(element, level+1)
+                    if i isnt doc.length-1
+                        result += ', '
+                result += ']'
+            else
+                result = '{'
+                is_first = true
+                for own key, value of doc
+                    if is_first is true
+                        is_first = false
+                    else
+                        result += ','
+                    result += '\n'
+                    if level > 0
+                        for i in [0..level]
+                            result += '\t'
+                    else
+                        result += '\t'
+                    result += JSON.stringify(key)+':\t'+@convertToJSON(value, level+1)
+                result += '\n'
+                if level > 0
+                    for i in [0..level-1]
+                        result += '\t'
+                result += '}'
+        else
+            result += JSON.stringify doc
+
+        return result
+
+
     createDatabase: (name) ->
+        @check_name name
+        if @dbs[name]?
+            throw new RuntimeError "Error during operation `CREATE_DB #{name}`: Entry already exists."
         @dbs[name] = new RDBDatabase
         return []
 
     dropDatabase: (name) ->
+        @check_name name
+        if not @dbs[name]?
+            throw new RuntimeError "Error during operation `DROP_DB #{name}`: No entry with that name."
         delete @dbs[name]
         return []
 
@@ -86,7 +137,10 @@ class DemoServer
             unless err instanceof RDBError then throw err
             response.setErrorMessage err.message
             #TODO: other kinds of errors
-            response.setStatusCode Response.StatusCode.RUNTIME_ERROR
+            if err instanceof RuntimeError
+                response.setStatusCode Response.StatusCode.RUNTIME_ERROR
+            else if err instanceof BadQuery
+                response.setStatusCode Response.StatusCode.BAD_QUERY
             #TODO: backtraces
 
         @log 'Server: response'
@@ -148,7 +202,7 @@ class DemoServer
             when MetaQuery.MetaQueryType.DROP_TABLE
                 tableRef = metaQuery.getDropTable()
                 db = @dbs[tableRef.getDbName()]
-                db.dropTable tableRef.getTableName()
+                db.dropTable tableRef.getTableName(), tableRef.getDbName()
             when MetaQuery.MetaQueryType.LIST_TABLES
                 db = @dbs[metaQuery.getDbName()]
                 db.getTableNames()
@@ -189,7 +243,7 @@ class DemoServer
                 pointDelete = writeQuery.getPointDelete()
                 table = @getTable pointDelete.getTableRef()
                 record = table.get (@evaluateTerm pointDelete.getKey()).asJSON()
-                if record?
+                if record?.asJSON()?
                     record.del()
                     return {deleted: 1}
                 else
@@ -268,6 +322,7 @@ class DemoServer
                 new RDBPrimitive null
             when Term.TermType.VAR
                 @curScope.lookup term.getVar()
+
             when Term.TermType.LET
                 letM = term.getLet()
                 binds = {}
@@ -287,6 +342,12 @@ class DemoServer
 
             # Primitive values are really easy since they're all JS types anyway
             when Term.TermType.NUMBER
+                if term.getNumber() is Infinity
+                    throw new RuntimeError 'Illegal numeric value inf.'
+                else if term.getNumber() is -Infinity
+                    throw new RuntimeError 'Illegal numeric value -inf.'
+                else if term.getNumber() != term.getNumber()
+                    throw new RuntimeError 'Illegal numeric value nan.'
                 new RDBPrimitive term.getNumber()
             when Term.TermType.STRING
                 new RDBPrimitive term.getValuestring()
@@ -343,7 +404,11 @@ class DemoServer
             when Builtin.BuiltinType.NOT
                 new RDBPrimitive args[0].not()
             when Builtin.BuiltinType.GETATTR
-                args[0][builtin.getAttr()]
+                #TODO Throw missing attributes in other places too
+                if args[0][builtin.getAttr()]?
+                    return args[0][builtin.getAttr()]
+                else
+                    throw new MissingAttribute args[0].asJSON(), builtin.getAttr()
             when Builtin.BuiltinType.IMPLICIT_GETATTR
                 (@curScope.lookup implicitVarId)[builtin.getAttr()]
             when Builtin.BuiltinType.HASATTR

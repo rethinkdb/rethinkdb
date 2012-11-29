@@ -77,8 +77,12 @@ class RDBSequence extends RDBJson
     objSum = (arr, base) ->
         arr.forEach (val) ->
             for own k,v of base
+                if k is 'first_error'
+                    continue
                 if val[k]?
                     base[k] += val[k]
+            if (not base['first_error']?) and val['error']?
+                base['first_error'] = val['error']
         base
 
     forEach: (mapping) ->
