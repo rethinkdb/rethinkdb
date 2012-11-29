@@ -252,14 +252,14 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, io
 #ifdef O_NOATIME
             "%s"
 #endif
-            ,
-            path, errno_string(errno).c_str(),
+            , path, errno_string(errno).c_str()
 #ifdef O_DIRECT
-            is_really_direct ? "\n- the database file is located on a filesystem that doesn't support O_DIRECT open flag (e.g. some encrypted or journaled file systems)" : "",
+            , is_really_direct ? "\n- the database file is located on a filesystem that doesn't support O_DIRECT open flag (e.g. some encrypted or journaled file systems)" : ""
 #endif
 #ifdef O_NOATIME
-            "\n- user which was used to start the database is not an owner of the file");
+            , "\n- user which was used to start the database is not an owner of the file"
 #endif
+            );
     } else {
         // When building, we must either support O_DIRECT or F_NOCACHE.  The former works on Linux,
         // the latter works on OS X.
