@@ -7,8 +7,11 @@
 
 #include "errors.hpp"
 
-// TODO(OSX) Reconsider how to detect spinlock feature.
-#if __APPLE__
+// I don't know the "clean" way to detect the availability of the pthread
+// spinlock feature.  For now we just use __MACH__ to default to mutex (which
+// will just work) on Apple systems.  If it's ever useful, making our own
+// spinlock implementation could be an option.
+#if __MACH__
 #define PTHREAD_HAS_SPINLOCK 0
 #else
 #define PTHREAD_HAS_SPINLOCK 1
@@ -21,41 +24,12 @@ class spinlock_t {
 public:
     friend class spinlock_acq_t;
 
-    spinlock_t() {
-#if PTHREAD_HAS_SPINLOCK
-        // TODO(OSX) check that pthread_spin_* functions used in this file return error codes.
-        int res = pthread_spin_init(&l, PTHREAD_PROCESS_PRIVATE);
-#else
-        int res = pthread_mutex_init(&l, NULL);
-#endif
-        guarantee_xerr(res == 0, res, "could not initialize spinlock");
-    }
-    ~spinlock_t() {
-#if PTHREAD_HAS_SPINLOCK
-        int res = pthread_spin_destroy(&l);
-#else
-        int res = pthread_mutex_destroy(&l);
-#endif
-        guarantee_xerr(res == 0, res, "could not destroy spinlock");
-    }
+    spinlock_t();
+    ~spinlock_t();
 
 private:
-    void lock() {
-#if PTHREAD_HAS_SPINLOCK
-        int res = pthread_spin_lock(&l);
-#else
-        int res = pthread_mutex_lock(&l);
-#endif
-        guarantee_xerr(res == 0, res, "could not lock spin lock");
-    }
-    void unlock() {
-#if PTHREAD_HAS_SPINLOCK
-        int res = pthread_spin_unlock(&l);
-#else
-        int res = pthread_mutex_unlock(&l);
-#endif
-        guarantee_xerr(res == 0, res, "could not unlock spin lock");
-    }
+    void lock();
+    void unlock();
 
 #if PTHREAD_HAS_SPINLOCK
     pthread_spinlock_t l;
