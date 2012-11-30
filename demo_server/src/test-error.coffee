@@ -133,11 +133,6 @@ $(document).ready ->
     #TODO test groupedMapReduce
     # Some tests are commented because the real server doesn't implement (yet) object comparison.
     queries = [
-        'r.db("test").tableCreate("test").run()',
-        'r.db("test").table("test").insert([{id:1, key: 1}, {id:2, key: 1}, {id:3, key: 3}]).run()',
-        'r.db("test").table("test").groupBy("key", r.avg("key_that_doesnt_exist")).run()',
-    ]
-    other_queries = [
         'r.expr(true).run()',
         'r.expr(false).run()',
         'r.expr(132).run()',
@@ -343,9 +338,10 @@ $(document).ready ->
         'r.db("test").table("test").groupBy("key_that_doesnt_exist", r.sum("id")).run()',
         'r.db("test").table("test").groupBy("key", r.sum("id")).run()',
         'r.db("test").table("test").groupBy("key_that_doesnt_exist", r.count).run()',
-        'r.db("test").table("test").groupBy("id", r.count).run()',
+        'r.db("test").table("test").groupBy("id", r.count).orderBy("group").run()',
         'r.db("test").table("test").groupBy("key_that_doesnt_exist", r.sum("id")).run()',
         'r.db("test").table("test").groupBy("key", r.sum("key_that_doesnt_exist")).run()',
+        'r.db("test").table("test").groupBy("key", r.avg("key_that_doesnt_exist")).run()',
     ]
 
     # Connect the two drivers

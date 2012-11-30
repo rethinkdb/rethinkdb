@@ -61,19 +61,17 @@ class RDBSequence extends RDBJson
         return new RDBArray distinctd
 
     map: (mapping) ->
-        new RDBArray @asArray().map (v) -> mapping(v)
+        result = @asArray().map (v) -> mapping(v)
+        new RDBArray result
 
     reduce: (base, reduction) ->
-        @asArray().reduce ((acc, v) -> reduction(acc, v)), base
+        reduce_function = (acc, v) -> reduction(acc, v)
+        @asArray().reduce reduce_function, base
 
     groupedMapReduce: (groupMapping, valueMapping, reduction) ->
         groups = {}
         @asArray().forEach (doc) ->
-            try
-                groupID = (groupMapping doc).asJSON()
-            catch err
-                if err instanceof MissingAttribute
-                    throw new RuntimeError "Object:\n#{DemoServer.prototype.convertToJSON(err.object)}\n is missing attribute #{DemoServer.prototype.convertToJSON(err.attribute)}"
+            groupID = (groupMapping doc).asJSON()
             unless groups[groupID]?
                 groups[groupID] = []
                 groups[groupID]._actualGroupID = groupID

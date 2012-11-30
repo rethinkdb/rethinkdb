@@ -31,10 +31,7 @@ class RDBSelection
                 try
                     update_doc = mapping @
                 catch err
-                    if err instanceof MissingAttribute
-                        return {errors: 1, error: "Object:\n#{DemoServer.prototype.convertToJSON(err.object)}\nis missing attribute #{DemoServer.prototype.convertToJSON(err.attribute)}"}
-                    else # Can it happen?
-                        throw err
+                    return {errors: 1, error: err.message}
                 if update_doc[table.primaryKey]? and update_doc[table.primaryKey].asJSON() isnt @[table.primaryKey].asJSON()
                     return {errors: 1, error: "update cannot change primary key #{table.primaryKey} (got objects #{DemoServer.prototype.convertToJSON(@.asJSON())}, #{DemoServer.prototype.convertToJSON(update_doc.asJSON())})"}
                 neu = @.merge mapping @

@@ -311,11 +311,7 @@ class DemoServer
             binds = {}
             binds[arg1] = val1
             binds[arg2] = val2
-            try
-                @evaluateWith binds, body
-            catch err
-                if err instanceof MissingAttribute
-                    throw new RuntimeError "Object:\n#{DemoServer.prototype.convertToJSON(err.object)}\n is missing attribute #{DemoServer.prototype.convertToJSON(err.attribute)}"
+            @evaluateWith binds, body
 
     evaluateMapping: (mapping) ->
         arg = mapping.getArg()
@@ -324,11 +320,7 @@ class DemoServer
             binds = {}
             binds[implicitVarId] = arguments[0]
             binds[arg] = val
-            try
-                @evaluateWith binds, body
-            catch err
-                if err instanceof MissingAttribute
-                    throw new RuntimeError "Object:\n#{DemoServer.prototype.convertToJSON(err.object)}\n is missing attribute #{DemoServer.prototype.convertToJSON(err.attribute)}"
+            @evaluateWith binds, body
 
     evaluateForEach: (foreach) ->
         arg = foreach.getVar()
@@ -438,11 +430,10 @@ class DemoServer
             when Builtin.BuiltinType.NOT
                 new RDBPrimitive args[0].not()
             when Builtin.BuiltinType.GETATTR
-                #TODO Throw missing attributes in other places too
                 if args[0][builtin.getAttr()]?
                     return args[0][builtin.getAttr()]
                 else
-                    throw new MissingAttribute args[0].asJSON(), builtin.getAttr()
+                    throw new RuntimeError "Object:\n#{DemoServer.prototype.convertToJSON(args[0].asJSON())}\nis missing attribute #{DemoServer.prototype.convertToJSON(builtin.getAttr())}"
             when Builtin.BuiltinType.IMPLICIT_GETATTR
                 (@curScope.lookup implicitVarId)[builtin.getAttr()]
             when Builtin.BuiltinType.HASATTR
