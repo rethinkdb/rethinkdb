@@ -1,4 +1,4 @@
-do_test(
+generate_test(
     "$RETHINKDB/build/debug/rethinkdb-unittest",
     repeat = 1,
     inputs = ["build/debug/rethinkdb-unittest"]
