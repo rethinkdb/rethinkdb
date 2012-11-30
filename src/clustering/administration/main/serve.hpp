@@ -47,7 +47,7 @@ struct service_address_ports_t {
     {
             sanitize_port(port, "port", port_offset);
             sanitize_port(client_port, "client_port", port_offset);
-            if (http_admin_is_disabled) sanitize_port(http_port, "http_port", port_offset);
+            sanitize_port(http_port, "http_port", port_offset);
             sanitize_port(reql_port, "reql_port", port_offset);
     }
 
