@@ -58,7 +58,7 @@ class RDBTable extends RDBSequence
 
         return result
 
-    get: (pkVal) -> 
+    get: (pkVal) ->
         if typeof pkVal isnt 'string' and typeof pkVal isnt 'number'
             throw new RuntimeError "Primary key must be a number or a string, not #{DemoServer.prototype.convertToJSON(pkVal)}"
         @records[pkVal] || new RDBPrimitive null

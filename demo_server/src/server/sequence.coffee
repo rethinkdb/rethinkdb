@@ -18,7 +18,13 @@ class RDBSequence extends RDBJson
 
     count: -> new RDBPrimitive @asArray().length
 
-    union: (other) -> new RDBArray @asArray().concat other.asArray()
+    union: (other) ->
+        if (not @asArray?) or Object.prototype.toString.call(@asArray()) isnt '[object Array]'
+            throw new RuntimeError "Required type: array but found #{typeof @asArray()}."
+        if (not other.asArray?) or Object.prototype.toString.call(other.asArray()) isnt '[object Array]'
+            throw new RuntimeError "Required type: array but found #{typeof other.asArray()}."
+
+        new RDBArray @asArray().concat other.asArray()
 
     slice: (left, right) ->
         new RDBArray @asArray().slice left, right
@@ -27,13 +33,27 @@ class RDBSequence extends RDBJson
         new RDBArray @asArray().sort (a,b) ->
             for ob in orderbys
                 if ob.asc
+                    if not a[ob.attr]?
+                        throw new RuntimeError "ORDERBY encountered a row missing attr '#{ob.attr}': #{DemoServer.prototype.convertToJSON(a)}"
+                    if not b[ob.attr]?
+                        throw new RuntimeError "ORDERBY encountered a row missing attr '#{ob.attr}': #{DemoServer.prototype.convertToJSON(b)}"
                     if a[ob.attr].gt(b[ob.attr]) then return true
                 else
+                    if not a[ob.attr]?
+                        throw new RuntimeError "ORDERBY encountered a row missing attr '#{ob.attr}': #{DemoServer.prototype.convertToJSON(a)}"
+                    if not b[ob.attr]?
+                        throw new RuntimeError "ORDERBY encountered a row missing attr '#{ob.attr}': #{DemoServer.prototype.convertToJSON(b)}"
                     if a[ob.attr].lt(b[ob.attr]) then return true
             return false
 
     distinct: ->
-        sorted = @asArray().sort (a,b) -> a < b
+        sorted = @asArray().sort (a,b) ->
+            if a.asJSON() < b.asJSON()
+                return -1
+            else if a.asJSON() > b.asJSON()
+                return 1
+            else
+                return 0
         distinctd = [sorted[0]]
         for v in sorted[1..]
             unless (v.eq distinctd[distinctd.length-1])
@@ -49,7 +69,11 @@ class RDBSequence extends RDBJson
     groupedMapReduce: (groupMapping, valueMapping, reduction) ->
         groups = {}
         @asArray().forEach (doc) ->
-            groupID = (groupMapping doc).asJSON()
+            try
+                groupID = (groupMapping doc).asJSON()
+            catch err
+                if err instanceof MissingAttribute
+                    throw new RuntimeError "Object:\n#{DemoServer.prototype.convertToJSON(err.object)}\n is missing attribute #{DemoServer.prototype.convertToJSON(err.attribute)}"
             unless groups[groupID]?
                 groups[groupID] = []
                 groups[groupID]._actualGroupID = groupID
@@ -65,7 +89,11 @@ class RDBSequence extends RDBJson
     concatMap: (mapping) ->
         new RDBArray Array::concat.apply [], @asArray().map((v) -> mapping(v).asArray())
 
-    filter: (predicate) -> new RDBArray @asArray().filter (v) -> predicate(v).asJSON()
+    filter: (predicate) -> new RDBArray @asArray().filter (v) ->
+        predicate_value = predicate(v).asJSON()
+        if typeof predicate_value isnt 'boolean'
+            throw new RuntimeError "Predicate failed to evaluate to a bool"
+        return predicate_value
 
     between: (attr, lowerBound, upperBound) ->
         if typeof lowerBound.asJSON() isnt 'string' and typeof lowerBound.asJSON() isnt 'number'

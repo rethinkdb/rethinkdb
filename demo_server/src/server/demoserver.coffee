@@ -146,6 +146,11 @@ class DemoServer
         @log 'Server: response'
         @log response
 
+        # Setting an empty backtrace for the time being
+        backtrace = new Response.Backtrace
+        backtrace.addFrame(':')
+        response.setBacktrace(backtrace)
+
         # Serialize to protobuf format
         pbResponse = @serializer.serialize response
         length = pbResponse.byteLength
@@ -306,7 +311,11 @@ class DemoServer
             binds = {}
             binds[arg1] = val1
             binds[arg2] = val2
-            @evaluateWith binds, body
+            try
+                @evaluateWith binds, body
+            catch err
+                if err instanceof MissingAttribute
+                    throw new RuntimeError "Object:\n#{DemoServer.prototype.convertToJSON(err.object)}\n is missing attribute #{DemoServer.prototype.convertToJSON(err.attribute)}"
 
     evaluateMapping: (mapping) ->
         arg = mapping.getArg()
@@ -315,7 +324,11 @@ class DemoServer
             binds = {}
             binds[implicitVarId] = arguments[0]
             binds[arg] = val
-            @evaluateWith binds, body
+            try
+                @evaluateWith binds, body
+            catch err
+                if err instanceof MissingAttribute
+                    throw new RuntimeError "Object:\n#{DemoServer.prototype.convertToJSON(err.object)}\n is missing attribute #{DemoServer.prototype.convertToJSON(err.attribute)}"
 
     evaluateForEach: (foreach) ->
         arg = foreach.getVar()
@@ -346,6 +359,9 @@ class DemoServer
                 @evaluateCall term.getCall()
             when Term.TermType.IF
                 ifM = term.getIf()
+                evaluated_term = (@evaluateTerm ifM.getTest())
+                if (not evaluated_term?) or typeof evaluated_term.asJSON() isnt 'boolean'
+                    throw new RuntimeError "The IF test must evaluate to a boolean."
                 if (@evaluateTerm ifM.getTest()).asJSON()
                     @evaluateTerm ifM.getTrueBranch()
                 else
@@ -378,9 +394,14 @@ class DemoServer
 
             when Term.TermType.GETBYKEY
                 gbk = term.getGetByKey()
-
+                attr = gbk.getAttrname()
                 table = @getTable gbk.getTableRef()
-                unless table then throw new RuntimeError "No such table"
+                
+                #Do we need it?
+                #unless table then throw new RuntimeError "No such table"
+
+                if attr isnt table.primaryKey
+                    throw new RuntimeError "Attribute: #{attr} is not the primary key (#{table.primaryKey}) and thus cannot be selected upon."
 
                 pkVal = @evaluateTerm gbk.getKey()
 
@@ -437,6 +458,13 @@ class DemoServer
             when Builtin.BuiltinType.ARRAYAPPEND
                 args[0].append args[1]
             when Builtin.BuiltinType.SLICE
+                if args[1].asJSON() isnt null and (typeof args[1].asJSON() isnt 'number' or args[1].asJSON()<0)
+                    throw new RuntimeError "Slice start must be null or a nonnegative integer."
+                if args[2]? and (args[2].asJSON() isnt null and (typeof args[2].asJSON() isnt 'number' or args[2].asJSON()<0))
+                    throw new RuntimeError "Slice stop must be null or a nonnegative integer."
+                if args[2]? and typeof args[1].asJSON() is 'number' and typeof args[2].asJSON() is 'number' and args[1].asJSON() is args[1].asJSON() and args[2].asJSON() is args[2].asJSON() and args[1].asJSON() > args[2].asJSON()
+                    throw new RuntimeError "Slice stop cannot be before slice start"
+
                 args[0].slice(args[1].asJSON(), args[2]?.asJSON() || undefined)
             when Builtin.BuiltinType.ADD
                 args.reduce ((a,b)-> new RDBPrimitive a.add b), new RDBPrimitive 0
@@ -470,7 +498,11 @@ class DemoServer
             when Builtin.BuiltinType.UNION
                 args[0].union(args[1])
             when Builtin.BuiltinType.NTH
-                (args[0].asArray()[args[1].asJSON()])
+                if typeof args[1].asJSON() isnt 'number' or args[1].asJSON() isnt args[1].asJSON()
+                    throw new RuntimeError "The second argument must be an integer."
+                if args[1].asJSON()<0
+                    throw new RuntimeError "The second argument must be a nonnegative integer."
+                return args[0].asArray()[args[1].asJSON()]
             when Builtin.BuiltinType.STREAMTOARRAY
                 args[0] # This is a meaningless function for us
             when Builtin.BuiltinType.ARRAYTOSTREAM
