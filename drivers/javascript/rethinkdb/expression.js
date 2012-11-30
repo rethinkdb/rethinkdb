@@ -1194,7 +1194,7 @@ rethinkdb.sum = function(attr) {
  * Constructs a reduction for groupby that averages across the values of the given field.
  * @export
  */
-rethinkdb.average = function(attr) {
+rethinkdb.avg = function(attr) {
     rethinkdb.util.argCheck_(arguments, 1);
     rethinkdb.util.typeCheck_(attr, 'string');
     return {
