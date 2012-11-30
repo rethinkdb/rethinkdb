@@ -6,31 +6,51 @@
 #include <sys/time.h>
 #include <string.h>
 
-// TODO(OSX) We never free this list (just its elements).  Make it part of the thread pool.
-__thread intrusive_list_t<timer_itimer_provider_t> *itimer_callback_list = 0;
+struct timer_itimer_data_t {
+    // A list of providers whose on_alrm functions we should call.
+    intrusive_list_t<timer_itimer_provider_t> callbacks;
+
+    // Used to prevent force access to timer_itimer mechanisms to happen outside.
+    bool in_alrm_handler;
+
+    timer_itimer_data_t() : in_alrm_handler(false) { }
+};
+
+__thread timer_itimer_data_t *itimer_data = 0;
 
 void add_to_itimer_callback_list(timer_itimer_provider_t *provider) {
-    if (!itimer_callback_list) {
-        itimer_callback_list = new intrusive_list_t<timer_itimer_provider_t>;
+    if (!itimer_data) {
+        itimer_data = itimer_data = new timer_itimer_data_t;
     }
-    itimer_callback_list->push_back(provider);
+
+    guarantee(!itimer_data->in_alrm_handler);
+    itimer_data->callbacks.push_back(provider);
 }
 
 void remove_from_itimer_callback_list(timer_itimer_provider_t *provider) {
-    guarantee(itimer_callback_list);
-    itimer_callback_list->remove(provider);
+    guarantee(itimer_data != NULL);
+    guarantee(!itimer_data->in_alrm_handler);
+
+    itimer_data->callbacks.remove(provider);
+    if (itimer_data->callbacks.empty()) {
+        delete itimer_data;
+        itimer_data = NULL;
+    }
 }
 
 void timer_itimer_forward_alrm() {
-    if (itimer_callback_list) {
+    guarantee(!itimer_data->in_alrm_handler);
+    itimer_data->in_alrm_handler = true;
+    if (itimer_data) {
         timer_itimer_provider_t *next = NULL;
-        timer_itimer_provider_t *curr = itimer_callback_list->head();
+        timer_itimer_provider_t *curr = itimer_data->callbacks.head();
         while (curr != NULL) {
-            next = itimer_callback_list->next(curr);
+            next = itimer_data->callbacks.next(curr);
             curr->on_alrm();
             curr = next;
         }
     }
+    itimer_data->in_alrm_handler = false;
 }
 
 timer_itimer_provider_t::timer_itimer_provider_t(linux_event_queue_t *queue,
