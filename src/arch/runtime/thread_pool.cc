@@ -8,6 +8,7 @@
 #include <sys/time.h>
 
 #include "arch/barrier.hpp"
+#include "arch/io/timer_provider.hpp"
 #include "arch/runtime/event_queue.hpp"
 #include "arch/runtime/runtime.hpp"
 #include "errors.hpp"
@@ -196,14 +197,16 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
     // Set up interrupt handlers
 
     // Wait for threads to start up so that our interrupt handlers can send messages to the threads.
-    // TODO(OSX) Fix the goddamn thread pool.
+    // TODO: Fix the thread pool so that it isn't awful, fragile, and reliant on thread barriers.
     barrier.wait();
 
     // TODO: Should we save and restore previous interrupt handlers? This would
     // be a good thing to do before distributing the RethinkDB IO layer, but it's
     // not really important.
 
-#if __MACH__
+#ifndef RDB_TIMER_PROVIDER
+#error "RDB_TIMER_PROVIDER not defined."
+#elif RDB_TIMER_PROVIDER == RDB_TIMER_PROVIDER_ITIMER
     const int ITIMER_USEC = 5000;
 #endif
 
@@ -219,13 +222,13 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
         res = sigaction(SIGINT, &sa, NULL);
         guarantee_err(res == 0, "Could not install INT handler");
 
-        // TODO(OSX) inspect this
-#if __MACH__
+#ifndef RDB_TIMER_PROVIDER
+#error "RDB_TIMER_PROVIDER not defined."
+#elif RDB_TIMER_PROVIDER == RDB_TIMER_PROVIDER_ITIMER
         sa.sa_handler = &linux_thread_pool_t::alrm_handler;
         res = sigaction(SIGALRM, &sa, NULL);
         guarantee_err(res == 0, "Could not install ALRM handler");
 
-        // TODO(OSX) Here we hard-code the number of seconds.
         struct itimerval value;
         value.it_interval.tv_sec = 0;
         value.it_interval.tv_usec = ITIMER_USEC;
@@ -235,7 +238,7 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
         guarantee_err(res == 0, "setitimer call failed");
         guarantee(old_value.it_value.tv_sec == 0 && old_value.it_value.tv_usec == 0);
         guarantee(old_value.it_interval.tv_sec == 0 && old_value.it_interval.tv_usec == 0);
-#endif
+#endif  // RDB_TIMER_PROVIDER
     }
 
     // Wait for order to shut down
@@ -264,8 +267,9 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
         res = sigaction(SIGINT, &sa, NULL);
         guarantee_err(res == 0, "Could not remove INT handler");
 
-        // TODO(OSX) inspect this
-#if __MACH__
+#ifndef RDB_TIMER_PROVIDER
+#error "RDB_TIMER_PROVIDER not defined."
+#elif RDB_TIMER_PROVIDER == RDB_TIMER_PROVIDER_ITIMER
         struct itimerval value;
         value.it_interval.tv_sec = 0;
         value.it_interval.tv_usec = 0;
@@ -277,7 +281,7 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
 
         res = sigaction(SIGALRM, &sa, NULL);
         guarantee_err(res == 0, "Could not remove ALRM handler");
-#endif
+#endif  // RDB_TIMER_PROVIDER
     }
     linux_thread_pool_t::thread_pool = NULL;
 
@@ -324,11 +328,12 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
             logDBG("%ld coroutines ran with type %s", i->second, i->first.c_str());
         }
     }
-#endif
+#endif  // NDEBUG
 }
 
-// TODO(OSX) We do this here.
-#if __MACH__
+#ifndef RDB_TIMER_PROVIDER
+#error "RDB_TIMER_PROVIDER not defined."
+#elif RDB_TIMER_PROVIDER == RDB_TIMER_PROVIDER_ITIMER
 class alrm_message_t : public linux_thread_message_t {
     virtual void on_thread_switch() {
         timer_itimer_forward_alrm();
@@ -346,7 +351,7 @@ void linux_thread_pool_t::alrm_handler(int) {
     }
 }
 
-#endif  // __MACH__
+#endif  // RDB_TIMER_PROVIDER
 
 // Note: Maybe we should use a signalfd instead of a signal handler, and then
 // there would be no issues with potential race conditions because the signal

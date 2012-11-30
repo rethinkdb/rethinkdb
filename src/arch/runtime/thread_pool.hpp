@@ -13,6 +13,7 @@
 #include "arch/runtime/message_hub.hpp"
 #include "arch/runtime/coroutines.hpp"
 #include "arch/io/blocker_pool.hpp"
+#include "arch/io/timer_provider.hpp"
 #include "arch/timer.hpp"
 
 class linux_thread_t;
@@ -66,8 +67,9 @@ private:
 
     static void *start_thread(void*);
 
-    // TODO(OSX) inspect this
-#if __MACH__
+#ifndef RDB_TIMER_PROVIDER
+#error "RDB_TIMER_PROVIDER not defined."
+#elif RDB_TIMER_PROVIDER == RDB_TIMER_PROVIDER_ITIMER
     static void alrm_handler(int);
 #endif
     static void interrupt_handler(int);
