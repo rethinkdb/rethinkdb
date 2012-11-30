@@ -8,7 +8,8 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "arch/runtime/thread_pool.hpp"   /* for `run_in_blocker_pool()` */
+#include "arch/runtime/thread_pool.hpp"
+#include "arch/io/disk/filestat.hpp"
 #include "clustering/administration/persist.hpp"
 #include "concurrency/promise.hpp"
 #include "containers/scoped.hpp"
@@ -166,7 +167,7 @@ log_message_t assemble_log_message(log_level_t level, const std::string &message
     return log_message_t(timestamp, uptime, level, message);
 }
 
-static void throw_unless(bool condition, const std::string &where) {
+void throw_unless(bool condition, const std::string &where) {
     if (!condition) {
         throw std::runtime_error("file IO error: " + where + " (errno = " + errno_string(errno).c_str() + ")");
     }
@@ -189,21 +190,18 @@ public:
 
         // We use fstat, not fstat64, because fstat64 is deprecated on OS X.  Hence the assertion
         // about off_t's size.
-        CT_ASSERT(sizeof(off_t) == sizeof(int64_t));
-        struct stat stat;
-        int res = fstat(fd.get(), &stat);
-        throw_unless(res == 0, "could not determine size of log file");
-        if (stat.st_size == 0) {
+        int64_t fd_filesize = get_file_size(fd.get());
+        if (fd_filesize == 0) {
             remaining_in_current_chunk = current_chunk_start = 0;
         } else {
-            remaining_in_current_chunk = stat.st_size % chunk_size;
+            remaining_in_current_chunk = fd_filesize % chunk_size;
             if (remaining_in_current_chunk == 0) {
                 /* We landed right on a chunk boundary; set ourself to read the
                 previous whole chunk. */
                 remaining_in_current_chunk = chunk_size;
             }
-            current_chunk_start = stat.st_size - remaining_in_current_chunk;
-            res = pread(fd.get(), current_chunk.data(), remaining_in_current_chunk, current_chunk_start);
+            current_chunk_start = fd_filesize - remaining_in_current_chunk;
+            int res = pread(fd.get(), current_chunk.data(), remaining_in_current_chunk, current_chunk_start);
             throw_unless(res == remaining_in_current_chunk, "could not read from file");
         }
     }

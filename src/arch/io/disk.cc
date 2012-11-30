@@ -21,6 +21,7 @@
 #include "backtrace.hpp"
 #include "arch/runtime/runtime.hpp"
 #include "arch/io/disk/aio.hpp"
+#include "arch/io/disk/filestat.hpp"
 #include "arch/io/disk/pool.hpp"
 #include "arch/io/disk/conflict_resolving.hpp"
 #include "arch/io/disk/stats.hpp"
@@ -281,23 +282,7 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, io
     // Determine the file size
 
     // We use lseek to get the size.  We could have also used stat.
-    // TODO(OSX) Figure out how to avoid this conditional compilation.
-#if __APPLE__
-    CT_ASSERT(sizeof(off_t) == sizeof(int64_t));
-    int64_t size = lseek(fd.get(), 0, SEEK_END);
-    guarantee_err(size != -1, "Could not determine file size");
-    int res = lseek(fd.get(), 0, SEEK_SET);
-    guarantee_err(res != -1, "Could not reset file position");
-
-    file_size = size;
-#else
-    int64_t size = lseek64(fd.get(), 0, SEEK_END);
-    guarantee_err(size != -1, "Could not determine file size");
-    int res = lseek64(fd.get(), 0, SEEK_SET);
-    guarantee_err(res != -1, "Could not reset file position");
-
-    file_size = size;
-#endif
+    file_size = get_file_size(fd.get());
 
     // TODO: We have a very minor correctness issue here, which is that
     // we don't guarantee data durability for newly created database files.

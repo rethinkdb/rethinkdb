@@ -73,7 +73,7 @@ private:
     void on_ring();
 
     FILE *file;
-    int file_size;
+    int64_t file_size;
 
     progress_bar_t progress_bar;
 
