@@ -2,10 +2,6 @@
 #ifndef ARCH_IO_TIMER_TIMER_SIGNAL_PROVIDER_HPP_
 #define ARCH_IO_TIMER_TIMER_SIGNAL_PROVIDER_HPP_
 
-#if !RDB_USE_TIMER_SIGNAL_PROVIDER
-#error "RDB_USE_TIMER_SIGNAL_PROVIDER needs to be defined to a true value for this file to be included."
-#endif
-
 #include "arch/runtime/event_queue.hpp"
 
 // TODO(OSX) Implement proper posix feature-testing macros for timing and such.

@@ -1,6 +1,7 @@
-#include "arch/io/timer_provider.hpp"  // For RDB_USE_TIMER_ITIMER_PROVIDER
+// Copyright 2010-2012 RethinkDB, all rights reserved.
+#include "arch/io/timer_provider.hpp"
 
-#if RDB_USE_TIMER_ITIMER_PROVIDER
+#if RDB_TIMER_PROVIDER == RDB_TIMER_PROVIDER_ITIMER
 
 
 #include <sys/time.h>
@@ -69,4 +70,4 @@ void timer_itimer_provider_t::on_alrm() {
 }
 
 
-#endif  // RDB_USE_TIMER_ITIMER_PROVIDER
+#endif  // RDB_TIMER_PROVIDER == RDB_TIMER_PROVIDER_ITIMER

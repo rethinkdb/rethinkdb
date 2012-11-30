@@ -2,10 +2,6 @@
 #ifndef TIMER_ITIMER_PROVIDER_HPP_
 #define TIMER_ITIMER_PROVIDER_HPP_
 
-#if !RDB_USE_TIMER_ITIMER_PROVIDER
-#error "RDB_USE_TIMER_ITIMER_PROVIDER needs to be defined to a true value for this file to be included."
-#endif
-
 #include "errors.hpp"
 #include "arch/runtime/event_queue.hpp"
 
