@@ -286,7 +286,7 @@ tar --extract --gzip --touch --file=rethinkdb.tar.gz -- rethinkdb
 
     tests_as_list = [ ]
 
-    def do_test(command_line, repeat = 1, inputs = []):
+    def generate_test(command_line, repeat = 1, inputs = []):
         tests_as_list.append({
             "inputs": [os.path.join("rethinkdb", i) for i in inputs],
             "command_line": command_line,
