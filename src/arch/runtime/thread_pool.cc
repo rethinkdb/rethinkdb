@@ -177,14 +177,13 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
         guarantee_xerr(res == 0, res, "Could not create thread");
 
         if (do_set_affinity) {
-            // TODO(OSX) More cleanly get rid of the thread affinity option in OS X, or support it in OS X.
-#if !__APPLE__
+            // On Apple, the thread affinity API has awful documentation, so we don't even bother.
+#ifdef _GNU_SOURCE
             // Distribute threads evenly among CPUs
             int ncpus = get_cpu_count();
             cpu_set_t mask;
             CPU_ZERO(&mask);
             CPU_SET(i % ncpus, &mask);
-            // TODO(OSX) check linux man page about return value and error code
             res = pthread_setaffinity_np(pthreads[i], sizeof(cpu_set_t), &mask);
             guarantee_xerr(res == 0, res, "Could not set thread affinity");
 #endif
