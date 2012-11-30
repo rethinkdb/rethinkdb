@@ -135,8 +135,12 @@ bool artificial_stack_t::address_is_stack_overflow(void *addr) {
 }
 
 extern "C" {
-/* `lightweight_swapcontext` is defined in the `asm` block further down */
-extern void lightweight_swapcontext(void **current_pointer_out, void *dest_pointer);
+// `lightweight_swapcontext` is defined in assembly further down.  If we didn't add the
+// asm("_lightweight_swapcontext") here, we'd have to conditionally compile the symbol name in the
+// assembly directive to include the underscore on OS X and certain other platforms, or use the
+// -fleading-underscore which would be trickier and riskier.
+extern void lightweight_swapcontext(void **current_pointer_out, void *dest_pointer)
+    asm("_lightweight_swapcontext");
 }
 
 void context_switch(context_ref_t *current_context_out, context_ref_t *dest_context_in) {
@@ -168,12 +172,7 @@ asm(
     /* `current_pointer_out` is in `%rdi`. `dest_pointer` is in `%rsi`. */
 
 ".text\n"
-// TODO(OSX) Figure out the right way to detect when to do _lightweight_swapcontext.
-#if __MACH__
 "_lightweight_swapcontext:\n"
-#else
-"lightweight_swapcontext:\n"
-#endif
 
     /* Save preserved registers (the return address is already on the stack). */
     "pushq %r12\n"

@@ -4,8 +4,6 @@
 
 #include "arch/runtime/event_queue.hpp"
 
-// TODO(OSX) Implement proper posix feature-testing macros for timing and such.
-
 struct timer_provider_callback_t;
 
 #define TIMER_NOTIFY_SIGNAL    (SIGRTMIN + 3)
