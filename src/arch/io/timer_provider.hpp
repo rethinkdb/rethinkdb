@@ -23,8 +23,6 @@ typedef timer_signal_provider_t timer_provider_t;
 
 #elif RDB_USE_TIMER_ITIMER_PROVIDER
 
-// TODO(OSX) Any other ways to do timing?  Just get rid of timerfd?
-// TODO(OSX) timerfd is linux-specific, so timer_signal_provider_t should be in the else block.
 #include "arch/io/timer/timer_itimer_provider.hpp"
 typedef timer_itimer_provider_t timer_provider_t;
 
