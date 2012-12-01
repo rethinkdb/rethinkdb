@@ -8,7 +8,7 @@
 // We call this a pthread_barrier_t so as to differentiate from other barrier types.
 class thread_barrier_t {
 public:
-    thread_barrier_t(int num_workers);
+    explicit thread_barrier_t(int num_workers);
     ~thread_barrier_t();
 
     void wait();

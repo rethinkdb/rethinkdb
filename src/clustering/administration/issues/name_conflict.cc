@@ -74,7 +74,7 @@ private:
 
 class namespace_map_t {
 public:
-    namespace_map_t(const std::map<uuid_u, deletable_t<database_semilattice_metadata_t> > &_databases)
+    explicit namespace_map_t(const std::map<uuid_u, deletable_t<database_semilattice_metadata_t> > &_databases)
         : databases(_databases) { }
 
     template<class object_metadata_t>

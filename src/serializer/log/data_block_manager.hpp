@@ -307,7 +307,7 @@ private:
         data_block_manager_t::gc_read_callback_t gc_read_callback;
         data_block_manager_t::gc_disable_callback_t *gc_disable_callback;
 
-        explicit gc_state_t()
+        gc_state_t()
             : step_(gc_ready), should_be_stopped(0), refcount(0),
               gc_blocks(NULL),
               current_entry(NULL) { }
