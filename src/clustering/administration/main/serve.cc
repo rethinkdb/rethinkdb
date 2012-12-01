@@ -305,23 +305,28 @@ bool do_serve(
                         persistent_file, semilattice_manager_cluster.get_root_view()));
 
                 {
-                    // TODO: Pardon me what, but is this how we fail here?
-                    guarantee(address_ports.http_port < 65536);
-
-                    administrative_http_server_manager_t administrative_http_interface(
-                        address_ports.local_addresses,
-                        address_ports.http_port,
-                        &mailbox_manager,
-                        &metadata_change_handler,
-                        semilattice_manager_cluster.get_root_view(),
-                        directory_read_manager.get_root_view(),
-                        &memcached_namespace_repo,
-                        &rdb_namespace_repo,
-                        &admin_tracker,
-                        rdb_pb_server.get_http_app(),
-                        machine_id,
-                        web_assets);
-                    logINF("Listening for administrative HTTP connections on port %d.\n", administrative_http_interface.get_port());
+                    scoped_ptr_t<administrative_http_server_manager_t> admin_server_ptr;
+                    if (address_ports.http_admin_is_disabled) {
+                        logINF("Administrative HTTP connections are disabled.\n");
+                    } else {
+                        // TODO: Pardon me what, but is this how we fail here?
+                        guarantee(address_ports.http_port < 65536);
+                        admin_server_ptr.init(
+                            new administrative_http_server_manager_t(
+                                address_ports.local_addresses,
+                                address_ports.http_port,
+                                &mailbox_manager,
+                                &metadata_change_handler,
+                                semilattice_manager_cluster.get_root_view(),
+                                directory_read_manager.get_root_view(),
+                                &memcached_namespace_repo,
+                                &rdb_namespace_repo,
+                                &admin_tracker,
+                                rdb_pb_server.get_http_app(),
+                                machine_id,
+                                web_assets));
+                        logINF("Listening for administrative HTTP connections on port %d.\n", admin_server_ptr->get_port());
+                    }
 
                     logINF("Server ready\n");
 
