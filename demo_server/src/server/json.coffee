@@ -5,6 +5,11 @@ class RDBJson
 
     isNull: -> (@ instanceof RDBPrimitive and @asJSON() is null)
 
+    pick: (attr) -> throw new RuntimeError "Data: \n#{DemoServer.prototype.convertToJSON(@asJSON())}\nmust be an object"
+    unpick: (attr) -> throw new RuntimeError "Data: \n#{DemoServer.prototype.convertToJSON(@asJSON())}\nmust be an object"
+    merge: (attr) -> throw new RuntimeError "Data must be an object"
+    append: (attr) -> throw new RuntimeError "The first argument must be an array."
+
     asJSON: -> throw abstract
     copy: -> throw abstract
 
@@ -107,16 +112,31 @@ class RDBPrimitive extends RDBJson
     ge: (other) -> @data >= other.asJSON()
 
     add: (other) ->
-        if typeof @data isnt typeof other.asJSON()
-            throw new RuntimeError "Can only ADD numbers with numbers and arrays with arrays"
-        if typeof @data isnt 'number' and Object.prototype.toString.call(@data) isnt '[object Array]'
+        if typeof @asJSON() isnt 'number'
             throw new RuntimeError "Can only ADD numbers with numbers and arrays with arrays"
 
-        @data + other.asJSON()
-    sub: (other) -> @data - other.asJSON()
-    mul: (other) -> @data * other.asJSON()
-    div: (other) -> @data / other.asJSON()
-    mod: (other) -> @data % other.asJSON()
+        if typeof @asJSON() is 'number' and typeof other.asJSON() isnt 'number'
+            throw new RuntimeError "Cannot ADD numbers to non-numbers"
+
+        new RDBPrimitive @asJSON()+other.asJSON()
+    sub: (other) ->
+        if typeof @data isnt 'number' or typeof other.asJSON() isnt 'number'
+            throw new RuntimeError "All operands of SUBTRACT must be numbers."
+        new RDBPrimitive @data - other.asJSON()
+    mul: (other) ->
+        if typeof @data isnt 'number' or typeof other.asJSON() isnt 'number'
+            throw new RuntimeError "All operands of MULTIPLY must be numbers."
+        new RDBPrimitive @data * other.asJSON()
+    div: (other) ->
+        if typeof @data isnt 'number' or typeof other.asJSON() isnt 'number'
+            throw new RuntimeError "All operands of DIVIDE must be numbers."
+        new RDBPrimitive @data / other.asJSON()
+    mod: (other) ->
+        if typeof @data isnt 'number'
+            throw new RuntimeError "First operand of MOD must be a number."
+        if typeof other.asJSON() isnt 'number'
+            throw new RuntimeError "Second operand of MOD must be a number."
+        new RDBPrimitive @data % other.asJSON()
 
 
 class RDBObject extends RDBJson
@@ -138,6 +158,11 @@ class RDBObject extends RDBJson
 
     merge: (other) ->
         self = @copy()
+        if typeof other.asJSON() isnt 'object'
+            throw new RuntimeError "Data must be an object"
+        else if other.asJSON() is null or Object.prototype.toString.call(other.asJSON()) is '[object Array]'
+            throw new RuntimeError "Data must be an object"
+
         for own k,v of other
             self[k] = v
         return self

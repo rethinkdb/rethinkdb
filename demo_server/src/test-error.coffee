@@ -133,6 +133,12 @@ $(document).ready ->
     #TODO test groupedMapReduce
     # Some tests are commented because the real server doesn't implement (yet) object comparison.
     queries = [
+        'r.expr(true).and(r.expr(false)).run()'
+        'r.expr(true).and(r.expr(true)).run()'
+        'r.expr(false).and(r.expr(false)).run()'
+
+        'r.expr("string").and(r.expr(true)).run()'
+        'r.expr(true).and(r.expr("string")).run()'
         'r.expr(true).run()',
         'r.expr(false).run()',
         'r.expr(132).run()',
@@ -342,6 +348,59 @@ $(document).ready ->
         'r.db("test").table("test").groupBy("key_that_doesnt_exist", r.sum("id")).run()',
         'r.db("test").table("test").groupBy("key", r.sum("key_that_doesnt_exist")).run()',
         'r.db("test").table("test").groupBy("key", r.avg("key_that_doesnt_exist")).run()',
+        'r.expr({id:1, key: 2}).pick("id").run()',
+        'r.expr({id:1, key: 2}).pick("id", "key").run()',
+        'r.expr({id:1, key: 2}).pick("key_that_doesnt_exist").run()',
+        'r.expr({id:1, key: 2}).pick("id", "key_that_doesnt_exist").run()',
+        'r.expr(1).pick("id").run()',
+        'r.expr({id:1}).pick(1).run()',
+        'r.expr({id: 1, key: 2}).unpick("id").run()',
+        'r.expr({id: 1}).unpick("id").run()',
+        'r.expr({id: 1, key: 2}).unpick("key_that_doesnt_exist").run()',
+        'r.expr("a_string!!").unpick("id").run()',
+        'r.expr({id: 1, key: 2}).merge({id: 3, other_key: "test"}).run()',
+        'r.expr("string!!").merge({id: 3, other_key: "test"}).run()',
+        'r.expr({id: 1, key: 2}).merge("test").run()',
+        'r.expr(null).merge({id: 1}).run()',
+        'r.expr({id: 1, key: 2}).merge(null).run()',
+        'r.expr([1,2,3]).append(4).run()',
+        'r.expr([1,2,3]).append([4]).run()',
+        'r.expr([1,2,3]).append(4, 5).run()',
+        'r.expr(2).append(4).run()',
+        'r.expr([2]).append(null).run()',
+        'r.expr(null).append(2).run()',
+        'r.expr({id:1, key: 2})("id").run()',
+        'r.expr({id:1, key: 2})("key_that_doesnt_exist").run()',
+        'r.expr({id:1, key: 2})(1).run() // Non string key',
+        'r.expr("string!!")("1").run()',
+        'r.expr(null)("1").run()',
+        'r.expr({id:1}).contains("id").run()'
+        'r.expr({id:1}).contains("key_that_doesnt_exist").run()'
+        'r.expr({id:1}).contains(1).run()'
+        'r.expr("string!!").contains("id").run()'
+        'r.expr(null).contains("id").run()'
+        'r.expr([1]).add([2, 3]).run()',
+        'r.expr(1).add(2, 3).run()',
+        'r.expr(2).add(3).run()',
+        'r.expr(2).add("3").run()',
+        'r.expr("2").add(3).run()',
+        'r.expr(2).add(null).run()',
+        'r.expr(null).add(3).run()',
+        'r.expr(1).add([2]).run()',
+        'r.expr([1]).add(2).run()',
+        'r.expr(3).add(2).add(10).run()'
+        'r.expr(10).sub(3).run()'
+        'r.expr("string").sub(3).run()'
+        'r.expr(10).sub("string").run()'
+        'r.expr(10).nul(3).run()'
+        'r.expr("string").mul(3).run()'
+        'r.expr(10).mul("string").run()'
+        'r.expr(10).div(3).run()'
+        'r.expr("string").div(3).run()'
+        'r.expr(10).div("string").run()'
+        'r.expr(10).mod(3).run()'
+        'r.expr("string").mod(3).run()'
+        'r.expr(10).mod("string").run()'
     ]
 
     # Connect the two drivers

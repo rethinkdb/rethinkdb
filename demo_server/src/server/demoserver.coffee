@@ -430,6 +430,8 @@ class DemoServer
             when Builtin.BuiltinType.NOT
                 new RDBPrimitive args[0].not()
             when Builtin.BuiltinType.GETATTR
+                if typeof args[0].asJSON() isnt 'object' or args[0].asJSON() is null or Object.prototype.toString.call(args[0].asJSON()) is '[object Array]'
+                    throw new RuntimeError "Data: \n#{args[0].asJSON()}\nmust be an object"
                 if args[0][builtin.getAttr()]?
                     return args[0][builtin.getAttr()]
                 else
@@ -437,6 +439,8 @@ class DemoServer
             when Builtin.BuiltinType.IMPLICIT_GETATTR
                 (@curScope.lookup implicitVarId)[builtin.getAttr()]
             when Builtin.BuiltinType.HASATTR
+                if typeof args[0].asJSON() isnt 'object' or args[0].asJSON() is null or Object.prototype.toString.call(args[0].asJSON()) is '[object Array]'
+                    throw new RuntimeError "Data: \n#{args[0].asJSON()}\nmust be an object"
                 new RDBPrimitive args[0][builtin.getAttr()]?
             when Builtin.BuiltinType.IMPLICIT_HASATTR
                 (@curScope.lookup implicitVarId)[builtin.getAttr()]?
@@ -458,15 +462,15 @@ class DemoServer
 
                 args[0].slice(args[1].asJSON(), args[2]?.asJSON() || undefined)
             when Builtin.BuiltinType.ADD
-                args.reduce ((a,b)-> new RDBPrimitive a.add b), new RDBPrimitive 0
+                args[0].add args[1]
             when Builtin.BuiltinType.SUBTRACT
-                new RDBPrimitive args.reduce ((a,b)->a.sub b)
+                args[0].sub args[1]
             when Builtin.BuiltinType.MULTIPLY
-                args.reduce ((a,b)-> new RDBPrimitive a.mul b), new RDBPrimitive 1
+                args[0].mul args[1]
             when Builtin.BuiltinType.DIVIDE
-                new RDBPrimitive args.reduce ((a,b)->a.div b)
+                args[0].div args[1]
             when Builtin.BuiltinType.MODULO
-                new RDBPrimitive args.reduce ((a,b)->a.mod b)
+                args[0].mod args[1]
             when Builtin.BuiltinType.COMPARE
                 @evaluateComarison builtin.getComparison(), args
             when Builtin.BuiltinType.FILTER

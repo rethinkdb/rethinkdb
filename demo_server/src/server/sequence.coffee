@@ -47,6 +47,7 @@ class RDBSequence extends RDBJson
             return false
 
     distinct: ->
+        # Firefox's sort is unstable.
         sorted = @asArray().sort (a,b) ->
             if a.asJSON() < b.asJSON()
                 return -1
@@ -138,3 +139,11 @@ class RDBSequence extends RDBJson
 class RDBArray extends RDBSequence
     constructor: (arr) -> @data = arr
     asArray: -> @data
+
+    add: (other) ->
+        if (not other.asArray?) or Object.prototype.toString.call(other.asArray()) isnt '[object Array]'
+            throw new RuntimeError "Cannot ADD arrays to non-arrays"
+
+        for value in other.asArray()
+            @data.push value
+        @
