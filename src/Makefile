@@ -140,10 +140,9 @@ STATICFORCE?=0
 
 LDFLAGS:=
 
+# TODO(OSX) Make sure we get tcmalloc working in Linux and OS X.
+
 ifeq ($(COMPILER),CLANG)
-# TODO(OSX) What do we need --no-as-needed for?  Isn't it the default?
-# Make sure we get tcmalloc in Linux and OS X.  It is Ubuntu that
-# enabled --as-needed by default.
 ifeq ($(OSX),0)
 LDFLAGS+=-Wl,--no-as-needed
 endif
@@ -264,11 +263,6 @@ ifeq ($(LEGACY_GCC), 1)
 CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default
 else  # ($(LEGACY_GCC), 1)
 CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default -Wno-array-bounds
-
-# TODO(OSX) Get rid of -Wno-format-nonliteral and figure out a local solution.
-ifeq ($(OSX),1)
-CXXFLAGS+=-Wno-format-nonliteral
-endif
 
 endif  # ($(LEGACY_GCC), 1)
 endif  # ($(COMPILER), CLANG)

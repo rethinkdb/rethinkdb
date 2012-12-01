@@ -18,9 +18,8 @@ class job_t {
     // Passed in to a job on the worker process side.
     class control_t : public unix_socket_stream_t {
       public:
-        void vlog(const char *fmt, va_list ap);
-        void log(const char *fmt, ...)
-            __attribute__((format (printf, 2, 3)));
+        void vlog(const char *fmt, va_list ap) __attribute__((format (printf, 2, 0))) ;
+        void log(const char *fmt, ...) __attribute__((format (printf, 2, 3)));
 
         pid_t get_rdb_pid() const;
 

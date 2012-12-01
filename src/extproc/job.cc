@@ -79,8 +79,11 @@ pid_t job_t::control_t::get_rdb_pid() const {
 
 // TODO(rntz): some way to send log messages to the engine.
 void job_t::control_t::vlog(const char *fmt, va_list ap) {
-    std::string real_fmt = strprintf("[%d] worker: %s\n", pid, fmt);
-    vfprintf(stderr, real_fmt.c_str(), ap);
+    flockfile(stderr);
+    fprintf(stderr, "[%d] worker: ", pid);
+    vfprintf(stderr, fmt, ap);
+    fprintf(stderr, "\n");
+    funlockfile(stderr);
 }
 
 void job_t::control_t::log(const char *fmt, ...) {
