@@ -53,11 +53,12 @@ public:
 
 class compare_functor {
 public:
-    bool operator()(const std::pair<std::string, cJSON *> &l, const std::pair<std::string, cJSON *> &r) {
-        if (l.first != r.first) {
-            return l.first < r.first;
+    bool operator()(const std::pair<char *, cJSON *> &l, const std::pair<char *, cJSON *> &r) {
+        int key_compare = strcmp(l.first, r.first);
+        if (key_compare != 0) {
+            return key_compare < 0;
         } else {
-            return json_cmp(l.second, r.second);
+            return json_cmp(l.second, r.second) < 0;
         }
     }
 };
