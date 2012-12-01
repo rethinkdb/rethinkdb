@@ -163,6 +163,7 @@ service_address_ports_t get_service_address_ports(const po::variables_map& vm) {
     // serve
     int cluster_port = vm["cluster-port"].as<int>();
     int http_port = vm["http-port"].as<int>();
+    bool http_admin_is_disabled = vm.count("no-http-admin") > 0;
 #ifndef NDEBUG
     int cluster_client_port = vm["client-port"].as<int>();
 #else
@@ -184,8 +185,9 @@ service_address_ports_t get_service_address_ports(const po::variables_map& vm) {
         reql_port += port_offset;
     }
 
-    return service_address_ports_t(get_local_addresses(vm),
-                                   cluster_port, cluster_client_port, http_port, reql_port, port_offset);
+    return service_address_ports_t(
+        get_local_addresses(vm), cluster_port, cluster_client_port,
+        http_admin_is_disabled, http_port, reql_port, port_offset);
 }
 
 void run_rethinkdb_create(const std::string &filepath, const name_string_t &machine_name, const io_backend_t io_backend, bool *result_out) {
@@ -500,14 +502,16 @@ po::options_description get_web_options() {
     po::options_description desc("Web options");
     desc.add_options()
         ("web-static-directory", po::value<std::string>(), "specify directory from which to serve web resources")
-        ("http-port", po::value<int>()->default_value(port_defaults::http_port), "port for http admin console");
+        ("http-port", po::value<int>()->default_value(port_defaults::http_port), "port for http admin console")
+        ("no-http-admin", "disable http admin console");
     return desc;
 }
 
 po::options_description get_web_options_visible() {
     po::options_description desc("Web options");
     desc.add_options()
-        ("http-port", po::value<int>()->default_value(port_defaults::http_port), "port for http admin console");
+        ("http-port", po::value<int>()->default_value(port_defaults::http_port), "port for http admin console")
+        ("no-http-admin", "disable http admin console");
     return desc;
 }
 
