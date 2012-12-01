@@ -126,7 +126,7 @@ class Tests
                 <pre>'+JSON.stringify(result_server, undefined, 2)+'</pre>
                 </li>'
         else
-            $('#results').append '<li class="result fail">'+query+'<span style="float: right">&gt;_&lt;</span><br/>Demo server response:
+            $('#results').prepend '<li class="result fail">'+query+'<span style="float: right">&gt;_&lt;</span><br/>Demo server response:
                 <pre>'+JSON.stringify(result_demo, undefined, 2)+'</pre>
                 Real server response:
                 <pre>'+JSON.stringify(result_server, undefined, 2)+'</pre>
@@ -181,16 +181,16 @@ $(document).ready ->
         'r.expr({id: 1, key:"value", other_key: "other_value"}).merge({id: 2, key:"new_value", new_key: "other_new_value"}).run()',
         'r.dbCreate("test").run()',
         'r.dbDrop("test").run()',
-        'r.dbList().run() // Empty database',
+        'r.dbList().map({ foo: r("@")}).orderBy("foo").run() // Empty database',
         'r.dbCreate("test").run()',
         'r.dbCreate("other_test").run()',
-        'r.dbList().run() // Two tables, "test" and "other_test"',
+        'r.dbList().map({ foo: r("@")}).orderBy("foo").run() // Two tables, "test" and "other_test"',
         'r.db("test").tableCreate("test").run()',
         'r.db("test").tableDrop("test").run()',
-        'r.db("test").tableList().run() // No tables',
+        'r.db("test").tableList().map({ foo: r("@")}).orderBy("foo").run() // No tables',
         'r.db("test").tableCreate("test").run()',
         'r.db("test").tableCreate("other_test").run()',
-        'r.db("test").tableList().run() // Two tables, "test" and "other_test"',
+        'r.db("test").tableList().map({ foo: r("@")}).orderBy("foo").run() // Two tables, "test" and "other_test"',
         'r.db("test").table("test").run() // Empty table',
         'r.db("test").table("test").insert({}).run() // No id provided by the user',
         'r.db("test").table("test").del().run()',
