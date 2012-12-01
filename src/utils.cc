@@ -14,7 +14,7 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 
-#if __MACH__
+#ifdef __MACH__
 #include <mach/mach_time.h>
 #endif
 
@@ -56,12 +56,7 @@ void run_generic_global_startup_behavior() {
     // rlim_cur to a value higher than rlim_max.  That way we get the highest limit possible
     // (instead of failing to successfully set the limit).
 
-    // TODO(OSX) How to detect OS X in preprocessor?
-#if __APPLE__
-    rlim_t open_max = OPEN_MAX;
-#else
-    rlim_t open_max = INT_MAX;
-#endif
+    rlim_t open_max = _POSIX_OPEN_MAX;
 
     file_limit.rlim_cur = std::min<rlim_t>(open_max, file_limit.rlim_max);
     res = setrlimit(RLIMIT_NOFILE, &file_limit);
@@ -495,12 +490,12 @@ ticks_t secs_to_ticks(double secs) {
     return static_cast<ticks_t>(secs * 1000000000L);
 }
 
-#if __MACH__
+#ifdef __MACH__
 mach_timebase_info_data_t mach_time_info;
 #endif  // __MACH__
 
 timespec clock_monotonic() {
-#if __MACH__
+#ifdef __MACH__
     if (mach_time_info.denom == 0) {
         // TODO(OSX) This is kind of a hack considering multithreading.
         mach_timebase_info(&mach_time_info);
@@ -521,7 +516,7 @@ timespec clock_monotonic() {
 }
 
 timespec clock_realtime() {
-#if __MACH__
+#ifdef __MACH__
     struct timeval tv;
     int res = gettimeofday(&tv, NULL);
     guarantee_err(res == 0, "gettimeofday failed");

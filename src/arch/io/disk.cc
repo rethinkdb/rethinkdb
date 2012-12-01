@@ -208,7 +208,7 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, io
 #endif
 
     // For now, we have a whitelist of kernels that don't support O_LARGEFILE.
-#if !__MACH__
+#ifndef __MACH__
     flags |= O_LARGEFILE;
 #endif
 
@@ -228,7 +228,7 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, io
     // we are not.
 #ifdef O_NOATIME
     flags |= O_NOATIME;
-#endif  // !__MACH__
+#endif
 
     // Open the file
 

@@ -11,7 +11,7 @@
 // spinlock feature.  For now we just use __MACH__ to default to mutex (which
 // will just work) on Apple systems.  If it's ever useful, making our own
 // spinlock implementation could be an option.
-#if __MACH__
+#ifdef __MACH__
 #define PTHREAD_HAS_SPINLOCK 0
 #else
 #define PTHREAD_HAS_SPINLOCK 1
