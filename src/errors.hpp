@@ -187,8 +187,10 @@ namespace boost {
 void assertion_failed(char const * expr, char const * function, char const * file, long line);  // NOLINT(runtime/int)
 }
 
+#ifdef MCHECK
 void mcheck_init(void);
 void mcheck_all(void);
+#endif
 
 // put this in a private: section.
 #define DISABLE_COPYING(T)                      \

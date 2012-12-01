@@ -3,8 +3,8 @@
 
 #include <cxxabi.h>
 
-#if !__APPLE__
-#include <mcheck.h>  // TODO(OSX)
+#ifdef MCHECK
+#include <mcheck.h>
 #endif
 
 #include <signal.h>
@@ -157,7 +157,7 @@ void assertion_failed_msg(char const * expr, char const * msg, char const * func
 
 }
 
-#if !__APPLE__
+#ifdef MCHECK
 __attribute__((noreturn)) void mcheck_abortfunc(enum mcheck_status mstatus) {
     const char *err;
     switch (mstatus) {
@@ -188,18 +188,13 @@ void mcheck_init(void) {
     debugf("*** MCHECK_PEDANTIC INITIALIZING ***\n");
     mcheck_pedantic(mcheck_abortfunc);
 #else
-#ifdef MCHECK
     debugf("*** MCHECK INITIALIZING ***\n");
     mcheck(mcheck_abortfunc);
-#endif // MCHECK
-#endif // MCHECK_PEDANTIC
+#endif  // MCHECK_PEDANTIC
 }
 
 void mcheck_all(void) {
-#ifdef MCHECK
     debugf("*** MCHECK_CHECK_ALL ***\n");
     mcheck_check_all();
-#endif // MCHECK
 }
-
-#endif  // !__APPLE__
+#endif  // MCHECK
