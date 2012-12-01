@@ -85,15 +85,7 @@ class RDBPrimitive extends RDBJson
         # The two variables have the same type
         if typeof @data is 'number' or typeof @data is 'string' or typeof @data is 'boolean' or typeof @data is 'undefined'
             return @data is other_value
-        else if Object.prototype.toString.call(@data) is '[object Array]'
-            # The two variables are arrays
-            if @data.length isnt other_value.length
-                return false
-            else
-                for value, i in @data
-                    if @eq(@data[i], other_value[i]) is false
-                        return false
-            return true
+        # Cannot be an array
         else if @data is null
             return @data is other.asJSON()
         else if typeof @data is 'object'
@@ -101,15 +93,29 @@ class RDBPrimitive extends RDBJson
                 if other_value[key] is undefined
                     return false
             for own key, valie of other_value
-                if @eq(@data[key], other_value[key]) is false
+                if @data[key].eq(other_value[key]) is false
                     return false
             return true
 
         @data is other.asJSON()
-    lt: (other) -> @data <  other.asJSON()
-    le: (other) -> @data <= other.asJSON()
-    gt: (other) -> @data >  other.asJSON()
-    ge: (other) -> @data >= other.asJSON()
+    ge: (other) -> not @lt(other)
+    le: (other) -> not @gt(other)
+    gt: (other) ->
+        if DemoServer.prototype.convertTypeToNumber(@data) is DemoServer.prototype.convertTypeToNumber(other.asJSON())
+            # We cannot have an array here (since it would be in RDBArray)
+            return @data > other.asJSON()
+        else if DemoServer.prototype.convertTypeToNumber(@data) > DemoServer.prototype.convertTypeToNumber(other.asJSON())
+            return true
+        else if DemoServer.prototype.convertTypeToNumber(@data) < DemoServer.prototype.convertTypeToNumber(other.asJSON())
+            return false
+    lt: (other) ->
+        if DemoServer.prototype.convertTypeToNumber(@data) is DemoServer.prototype.convertTypeToNumber(other.asJSON())
+            # We cannot have an array here (since it would be in RDBArray)
+            return @data < other.asJSON()
+        else if DemoServer.prototype.convertTypeToNumber(@data) > DemoServer.prototype.convertTypeToNumber(other.asJSON())
+            return false
+        else if DemoServer.prototype.convertTypeToNumber(@data) < DemoServer.prototype.convertTypeToNumber(other.asJSON())
+            return true
 
     add: (other) ->
         if typeof @asJSON() isnt 'number'
@@ -153,8 +159,27 @@ class RDBObject extends RDBJson
             result[k] = v.copy()
         return result
 
+
     eq: (other) ->
+        # We should check for attributes of other and make sure it's in this too.
         ((other[k]? && v.eq other[k]) for own k,v of @).reduce (a,b) -> a&&b
+
+    le: (other) -> not @gt(other)
+    gt: (other) ->
+        if DemoServer.prototype.convertTypeToNumber(@) is DemoServer.prototype.convertTypeToNumber(other.asJSON())
+            throw new RuntimeError "You cannot compare two objects except for equality."
+        else if DemoServer.prototype.convertTypeToNumber(@) > DemoServer.prototype.convertTypeToNumber(other.asJSON())
+            return true
+        else if DemoServer.prototype.convertTypeToNumber(@) < DemoServer.prototype.convertTypeToNumber(other.asJSON())
+            return false
+    ge: (other) -> not @lt(other)
+    lt: (other) ->
+        if DemoServer.prototype.convertTypeToNumber(@) is DemoServer.prototype.convertTypeToNumber(other.asJSON())
+            throw new RuntimeError "You cannot compare two objects except for equality."
+        else if DemoServer.prototype.convertTypeToNumber(@) > DemoServer.prototype.convertTypeToNumber(other.asJSON())
+            return false
+        else if DemoServer.prototype.convertTypeToNumber(@) < DemoServer.prototype.convertTypeToNumber(other.asJSON())
+            return true
 
     merge: (other) ->
         self = @copy()

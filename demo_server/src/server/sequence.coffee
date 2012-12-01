@@ -119,7 +119,7 @@ class RDBSequence extends RDBJson
 
     forEach: (mapping) ->
         results = @asArray().map (v) -> mapping(v)
-        base = {inserted: 0, updated: 0}
+        base = {inserted: 0, errors: 0}
         results.map (res) ->
             base = objSum res, base
         base
@@ -147,3 +147,43 @@ class RDBArray extends RDBSequence
         for value in other.asArray()
             @data.push value
         @
+    eq: (other) ->
+        if (not other.asArray?) or  Object.prototype.toString.call(other.asArray()) isnt '[object Array]'
+            return false
+
+        other_value = other.asArray()
+        # The two variables are arrays
+        if @data.length isnt other_value.length
+            return false
+        else
+            for value, i in @data
+                if @data[i].eq(other_value[i]) is false
+                    return false
+        return true
+
+    le: (other) -> not @gt(other)
+    gt: (other) ->
+        if other instanceof RDBArray
+            for value, i in @data
+                if @data[i].eq(other.asArray()[i])
+                    continue
+                @data[i].gt(other.asArray()[i])
+            return false
+        # Else we have a RDBPrimitive
+        else if DemoServer.prototype.convertTypeToNumber(@data) > DemoServer.prototype.convertTypeToNumber(other.asJSON())
+            return true
+        else if DemoServer.prototype.convertTypeToNumber(@data) < DemoServer.prototype.convertTypeToNumber(other.asJSON())
+            return false
+    ge: (other) -> not @lt(other)
+    lt: (other) ->
+        if other instanceof RDBArray
+            for value, i in @data
+                if @data[i].eq(other.asArray()[i])
+                    continue
+                @data[i].lt(other.asArray()[i])
+            return false
+        # Else we have a RDBPrimitive
+        else if DemoServer.prototype.convertTypeToNumber(@data) > DemoServer.prototype.convertTypeToNumber(other.asJSON())
+            return false
+        else if DemoServer.prototype.convertTypeToNumber(@data) < DemoServer.prototype.convertTypeToNumber(other.asJSON())
+            return true

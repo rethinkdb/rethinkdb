@@ -78,6 +78,19 @@ class DemoServer
 
         return result
 
+    convertTypeToNumber: (data) ->
+        if Object.prototype.toString.call(data) is '[object Array]'
+            return 0
+        else if typeof data is 'boolean'
+            return 1
+        else if data is null
+            return 2
+        else if typeof data is 'number'
+            return 3
+        else if typeof data is 'object'
+            return 4
+        else if typeof data is 'string'
+            return 5
 
     createDatabase: (name) ->
         @check_name name
@@ -402,7 +415,16 @@ class DemoServer
             when Term.TermType.TABLE
                 @getTable(term.getTable().getTableRef())
             when Term.TermType.JAVASCRIPT
-                throw new RuntimeError "Not Implemented"
+                # That's not really safe, but if the user want to screw himself, he can.
+                result = eval term.getJavascript()
+                if result is null
+                    new RDBPrimitive result
+                else if Object.prototype.toString.call(result) is '[object Array]'
+                    new RDBArray result
+                else if typeof result is 'object'
+                    new RDBOject result
+                else
+                    new RDBPrimitive result
             when Term.TermType.IMPLICIT_VAR
                 @curScope.lookup implicitVarId
             else throw new RuntimeError "Unknown term type"
@@ -410,6 +432,7 @@ class DemoServer
     evaluateWith: (binds, term) ->
         @curScope = new RDBLetScope @curScope, binds
         result = @evaluateTerm term
+
         @curScop = @curScope.parent
         return result
 
@@ -428,6 +451,8 @@ class DemoServer
 
         switch builtin.getType()
             when Builtin.BuiltinType.NOT
+                if (not args[0]?.asJSON?) or typeof args[0].asJSON() isnt 'boolean'
+                    throw new RuntimeError "Not can only be called on a boolean"
                 new RDBPrimitive args[0].not()
             when Builtin.BuiltinType.GETATTR
                 if typeof args[0].asJSON() isnt 'object' or args[0].asJSON() is null or Object.prototype.toString.call(args[0].asJSON()) is '[object Array]'
@@ -514,11 +539,13 @@ class DemoServer
 
                 args[0].groupedMapReduce(groupMapping, valueMapping, reduction)
             when Builtin.BuiltinType.ANY
-                args.reduce ((a,b) -> new RDBPrimitive (a.asJSON() || b.asJSON())),
-                                      new RDBPrimitive false
+                if typeof args[0].asJSON() isnt 'boolean' or typeof args[1].asJSON() isnt 'boolean'
+                    throw new RuntimeError "All operands of ANY must be booleans."
+                new RDBPrimitive (args[0].asJSON() || args[1].asJSON())
             when Builtin.BuiltinType.ALL
-                args.reduce ((a,b) -> new RDBPrimitive (a.asJSON() && b.asJSON())),
-                                      new RDBPrimitive true
+                if typeof args[0].asJSON() isnt 'boolean' or typeof args[1].asJSON() isnt 'boolean'
+                    throw new RuntimeError "All operands of ALL must be booleans."
+                new RDBPrimitive (args[0].asJSON() && args[1].asJSON())
             when Builtin.BuiltinType.RANGE
                 range = builtin.getRange()
                 args[0].between range.getAttrname(),
@@ -555,4 +582,4 @@ class RDBLetScope
         else if @parent?
             @parent.lookup varName
         else
-            null
+            throw new BadQuery "symbol '#{varName}' is not in scope"
