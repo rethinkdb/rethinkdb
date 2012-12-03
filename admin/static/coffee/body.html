@@ -20,7 +20,12 @@
                 <li><a href="http://groups.google.com/group/rethinkdb">Google Groups</a></li>
                 <li><a href="irc://chat.freenode.net/#rethinkdb">#rethinkdb on freenode</a></li>
                 <li><a href="https://github.com/rethinkdb/rethinkdb/issues">Github project</a></li>
-                <li><a href="http://rethinkdb.com/community/">Community</a><span class="preload_fonts"> </span></li>{{!Used to preload the monospace font for the dataexplorer}}
+                {{!
+                        And we want to preload the monospace font for the dataexplorer.
+                        So when the user click on the textarea, suggestions are immediatly displayed.
+                        Using a prefetching/prerendering ling tag doesnt work, so we create an invisible span that use monospace to force the browser to load fonts.
+                }}
+                <li><a href="http://rethinkdb.com/community/">Community</a><span class="preload_fonts"> </span></li>
             </ul>
         </div>
     </div>

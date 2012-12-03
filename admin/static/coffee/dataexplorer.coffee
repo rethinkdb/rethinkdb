@@ -919,7 +919,7 @@ module 'DataExplorerView', ->
         success_on_connect: =>
             @results_view.check_if_cursor_timed_out()
             # If the we were disconnected because of an error, we say that we did reconnect
-            if window.driver_connected_old is false
+            if window.driver_connected_previous_state is false
                 @.$('#user-alert-space').hide()
                 @.$('#user-alert-space').html @alert_reconnection_success_template()
                 @.$('#user-alert-space').slideDown 'fast'
@@ -930,7 +930,7 @@ module 'DataExplorerView', ->
             @results_view.check_if_cursor_timed_out()
             # We fail to connect, so we display a message except if we were already disconnected and we are not trying to manually reconnect
             # So if the user fails to reconnect after a failure, the alert will still flash
-            if window.driver_connected_old isnt false or @reconnecting is true
+            if window.driver_connected_previous_state isnt false or @reconnecting is true
                 @.$('#user-alert-space').hide()
                 @.$('#user-alert-space').html @alert_connection_fail_template({})
                 @.$('#user-alert-space').slideDown 'fast'

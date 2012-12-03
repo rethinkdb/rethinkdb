@@ -221,7 +221,7 @@ collect_stat_data = ->
 
 # Method called if the driver just connected
 driver_connect_success = ->
-    window.driver_connected_old = window.driver_connected
+    window.driver_connected_previous_state = window.driver_connected
     window.driver_connected = true
     # If the view is DataExplorerView.Container and if we were disconencted before, we'll say that we did reconnect
     if Backbone.history.fragment is 'dataexplorer'
@@ -229,7 +229,7 @@ driver_connect_success = ->
 
 # Method called if the driver fail to connect
 driver_connect_fail = ->
-    window.driver_connected_old = window.driver_connected
+    window.driver_connected_previous_state = window.driver_connected
     window.driver_connected = false
     # If the view is DataExplorerView.Container and if we were connected before, we'll display an error
     if Backbone.history.fragment is 'dataexplorer'
@@ -255,7 +255,7 @@ driver_connect = ->
             #   console.log 'Could not destroy connection'
             #   Can it fail?
 
-    # We are going to reconnect only if we still need it (viewing the data exlorer)
+    # We are going to reconnect only if we still need to (that is to say the user is viewing the data explorer)
     if Backbone.history.fragment is 'dataexplorer'
         window.conn = r.connect window.server, driver_connect_success, driver_connect_fail
 
@@ -263,7 +263,10 @@ driver_connect = ->
             clearTimeout window.timeout_driver_connect
         window.timeout_driver_connect = setTimeout driver_connect, 5*60*1000
     else
-        window.driver_connected_old = window.driver_connected
+        # driver_connected_previous_state tracks the previous state of the driver.
+        # We need it to know for instance when we reconnect if we had an error before or if it's the first time we connect.
+        # In case there was an error, we display a message to say that we successfully reconnect
+        window.driver_connected_previous_state = window.driver_connected
         window.driver_connected = null
 
 
