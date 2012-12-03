@@ -46,6 +46,7 @@ class Tests
         
     callback_demo:(data) =>
         @result_demo = data
+        # TODO Remove when the backtraces are implemented
         @result_demo = @remove_backtraces(@result_demo)
 
 
@@ -60,6 +61,7 @@ class Tests
 
     callback_server: (data) =>
         @result_server = data
+        # TODO Remove when the backtraces are implemented
         @result_server = @remove_backtraces(@result_server)
 
         # We do not compare the generated keys since they are not the same.
