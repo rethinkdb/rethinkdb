@@ -56,7 +56,9 @@ void run_generic_global_startup_behavior() {
     // rlim_cur to a value higher than rlim_max.  That way we get the highest limit possible
     // (instead of failing to successfully set the limit).
 
-    rlim_t open_max = _POSIX_OPEN_MAX;
+    long open_max = sysconf(_SC_OPEN_MAX);  // NOLINT(runtime/int)
+    guarantee_err(open_max != -1, "sysconf(_SC_OPEN_MAX) returned error");
+    guarantee(open_max > 0);
 
     file_limit.rlim_cur = std::min<rlim_t>(open_max, file_limit.rlim_max);
     res = setrlimit(RLIMIT_NOFILE, &file_limit);
