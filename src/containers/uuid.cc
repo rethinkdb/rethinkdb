@@ -8,7 +8,6 @@
 #include <fcntl.h>
 
 #include "containers/printf_buffer.hpp"
-#include "thread_local.hpp"
 #include "utils.hpp"
 
 // We keep the sha1 functions in this .cc file to avoid encouraging others from using it.
