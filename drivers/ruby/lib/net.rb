@@ -218,7 +218,7 @@ module RethinkDB
 
     # Close the connection.
     def close
-      @listener.terminate! if @listener
+      @listener.terminate if @listener
       @listener = nil
       @socket.close
       @socket = nil
@@ -240,7 +240,7 @@ module RethinkDB
         end
       end
       @socket.send([@@magic_number].pack('L<'), 0)
-      @listener.terminate! if @listener
+      @listener.terminate if @listener
       @listener = Thread.new do
         loop do
           begin
@@ -251,7 +251,7 @@ module RethinkDB
               @listener = nil
               @waiters.each {|kv| kv[1].signal}
             end
-            Thread.current.terminate!
+            Thread.current.terminate
             abort("unreachable")
           end
           #TODO: Recovery
