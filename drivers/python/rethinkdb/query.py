@@ -1268,13 +1268,8 @@ def letvar(name):
     "Evaluates a variable in the context of let"
     return JSONExpression(internal.Var(name))
 
-def js(expr=None, body=None):
-    if (expr is not None) + (body is not None) != 1:
-        raise ValueError('exactly one of expr or body must be passed')
-    if body is not None:
-        return JSONExpression(internal.Javascript(body))
-    else:
-        return JSONExpression(internal.Javascript(u'return (%s);' % expr))
+def js(body):
+    return JSONExpression(internal.Javascript(body))
 
 def let(bindings, body):
     if len(bindings) == 0:

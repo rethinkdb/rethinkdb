@@ -207,11 +207,38 @@ struct compile_task_t : auto_task_t<compile_task_t> {
     std::string src_;
     RDB_MAKE_ME_SERIALIZABLE_2(args_, src_);
 
+    // Turn src_ into an escaped JavaScript string. Since I can't actually find a good library
+    // function for this (why?) I'm going to stop wasting time looking and do it myself.
+    static std::string escapeJS(std::string &src) {
+        int esc_char_cnt = 0;
+        for (size_t pos = 0; pos < src.length(); pos++) {
+            if (src[pos] == '"') esc_char_cnt++;
+        }
+
+        size_t new_buf_size = src.length() + esc_char_cnt + 2;
+        char new_buf[new_buf_size + 1];
+        new_buf[new_buf_size] = '\0';
+        new_buf[0] = '"';
+        new_buf[new_buf_size - 1] = '"';
+
+        size_t adjustment = 1;
+        for (size_t buf_pos = 1; buf_pos < new_buf_size - 1; buf_pos++) {
+            char cur = src[buf_pos - adjustment];
+            if (cur == '"') {
+                new_buf[buf_pos++] = '\\';
+                adjustment++;
+            }
+            new_buf[buf_pos] = cur;
+        }
+
+        return std::string(new_buf);
+    }
+
     void mkFuncSrc(scoped_array_t<char> *buf) {
         static const char
             *beg = "(function(",
-            *med = "){",
-            *end = "})";
+            *med = "){ return eval(",
+            *end = ")})";
         static const ssize_t
             begsz = strlen(beg),
             medsz = strlen(med),
@@ -219,7 +246,9 @@ struct compile_task_t : auto_task_t<compile_task_t> {
 
         size_t nargs = args_.size();
 
-        ssize_t size = begsz + medsz + endsz + src_.size();
+        std::string escaped_src = escapeJS(src_);
+
+        ssize_t size = begsz + medsz + endsz + escaped_src.size();
         for (size_t i = 0; i < nargs; ++i) {
             // + (i > 0) accounts for the preceding comma on extra arguments
             // beyond the first
@@ -244,8 +273,8 @@ struct compile_task_t : auto_task_t<compile_task_t> {
         memcpy(p, med, medsz);
         p += medsz;
 
-        memcpy(p, src_.data(), src_.size());
-        p += src_.size();
+        memcpy(p, escaped_src.data(), escaped_src.size());
+        p += escaped_src.size();
 
         memcpy(p, end, endsz);
         guarantee(p - buf->data() == size - endsz,

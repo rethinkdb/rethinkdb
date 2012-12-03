@@ -29,22 +29,18 @@ module RethinkDB
 
     # Construct a javascript expression, which may refer to variables in scope
     # (use <b>+to_s+</b> to get the name of a variable query, or simply splice
-    # it in).  Defaults to a javascript expression, but if the optional second
-    # argument is <b>+:func+</b>, then you may instead provide the body of a
-    # javascript function.  If you have a table <b>+table+</b>, the following
-    # are equivalent:
+    # it in). Behaves as if passed to the standard `eval` function in
+    # JavaScript. If you have a table <b>+table+</b>, the following are
+    # equivalent:
     #   table.map{|row| row[:id]}
     #   table.map{|row| r.js("#{row}.id")}
     #   table.map{r.js("this.id")} #implicit variable
-    #   table.map{r.js("return this.id;", :func)} #implicit variable
+    #   table.map{r.js("var a = this.id; a;")} #implicit variable
     # As are:
     #   r.let(:a => 1, :b => 2) { r.add(r.letvar('a'), r.letvar('b'), 1) }
     #   r.let(:a => 1, :b => 2) { r.js('a+b+1') }
-    def self.js(str, type=:expr);
-      if    type == :expr then JSON_Expression.new [:js, "return #{str}"]
-      elsif type == :func then JSON_Expression.new [:js, str]
-      else  raise TypeError, 'Type of javascript must be either :expr or :func.'
-      end
+    def self.js(str);
+      JSON_Expression.new [:js, str]
     end
 
     # Refer to the database named <b>+db_name+</b>.  Usually used as a
