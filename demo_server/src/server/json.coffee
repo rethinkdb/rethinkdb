@@ -167,7 +167,24 @@ class RDBObject extends RDBJson
     le: (other) -> not @gt(other)
     gt: (other) ->
         if DemoServer.prototype.convertTypeToNumber(@) is DemoServer.prototype.convertTypeToNumber(other.asJSON())
-            throw new RuntimeError "You cannot compare two objects except for equality."
+            keys_this = []
+            for own key of @
+                keys_this.push key
+            keys_this.sort()
+
+            keys_other = []
+            for own key of other
+                keys_other.push key
+            keys_other.sort()
+            for key, i in keys_this
+                if keys_this[i] is keys_other[i]
+                    if @[key].eq(other[key]) is true
+                        continue
+                    else
+                        return @[key].gt(other[key])
+                else
+                    return keys_this[i] > keys_other[i]
+            return false
         else if DemoServer.prototype.convertTypeToNumber(@) > DemoServer.prototype.convertTypeToNumber(other.asJSON())
             return true
         else if DemoServer.prototype.convertTypeToNumber(@) < DemoServer.prototype.convertTypeToNumber(other.asJSON())
@@ -175,7 +192,25 @@ class RDBObject extends RDBJson
     ge: (other) -> not @lt(other)
     lt: (other) ->
         if DemoServer.prototype.convertTypeToNumber(@) is DemoServer.prototype.convertTypeToNumber(other.asJSON())
-            throw new RuntimeError "You cannot compare two objects except for equality."
+            keys_this = []
+            for own key of @
+                keys_this.push key
+            keys_this.sort()
+
+            keys_other = []
+            for own key of other.asJSON()
+                keys_this.push key
+            keys_other.sort()
+
+            for key, i in keys_this
+                if keys_this[i] is keys_other[i]
+                    if keys_this[i].eq(keys_other[i]) is true
+                        continue
+                    else
+                        return @[key].lt(other.asJSON()[key])
+                else
+                    return keys_this[i] < keys_other[i]
+            return false
         else if DemoServer.prototype.convertTypeToNumber(@) > DemoServer.prototype.convertTypeToNumber(other.asJSON())
             return false
         else if DemoServer.prototype.convertTypeToNumber(@) < DemoServer.prototype.convertTypeToNumber(other.asJSON())

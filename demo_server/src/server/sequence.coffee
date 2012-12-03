@@ -167,7 +167,7 @@ class RDBArray extends RDBSequence
             for value, i in @data
                 if @data[i].eq(other.asArray()[i])
                     continue
-                @data[i].gt(other.asArray()[i])
+                return @data[i].gt(other.asArray()[i])
             return false
         # Else we have a RDBPrimitive
         else if DemoServer.prototype.convertTypeToNumber(@data) > DemoServer.prototype.convertTypeToNumber(other.asJSON())
@@ -180,7 +180,7 @@ class RDBArray extends RDBSequence
             for value, i in @data
                 if @data[i].eq(other.asArray()[i])
                     continue
-                @data[i].lt(other.asArray()[i])
+                return @data[i].lt(other.asArray()[i])
             return false
         # Else we have a RDBPrimitive
         else if DemoServer.prototype.convertTypeToNumber(@data) > DemoServer.prototype.convertTypeToNumber(other.asJSON())

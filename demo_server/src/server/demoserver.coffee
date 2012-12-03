@@ -539,9 +539,13 @@ class DemoServer
 
                 args[0].groupedMapReduce(groupMapping, valueMapping, reduction)
             when Builtin.BuiltinType.ANY
-                if typeof args[0].asJSON() isnt 'boolean' or typeof args[1].asJSON() isnt 'boolean'
+                if typeof args[0].asJSON() isnt 'boolean'
                     throw new RuntimeError "All operands of ANY must be booleans."
-                new RDBPrimitive (args[0].asJSON() || args[1].asJSON())
+                if args[0].asJSON() is true
+                    return new RDBPrimitive true
+                if typeof args[1].asJSON() isnt 'boolean'
+                    throw new RuntimeError "All operands of ANY must be booleans."
+                new RDBPrimitive (args[1].asJSON())
             when Builtin.BuiltinType.ALL
                 if typeof args[0].asJSON() isnt 'boolean' or typeof args[1].asJSON() isnt 'boolean'
                     throw new RuntimeError "All operands of ALL must be booleans."
