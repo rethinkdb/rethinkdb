@@ -493,13 +493,12 @@ ticks_t secs_to_ticks(double secs) {
 }
 
 #ifdef __MACH__
-mach_timebase_info_data_t mach_time_info;
+__thread mach_timebase_info_data_t mach_time_info;
 #endif  // __MACH__
 
 timespec clock_monotonic() {
 #ifdef __MACH__
     if (mach_time_info.denom == 0) {
-        // TODO(OSX) This is kind of a hack considering multithreading.
         mach_timebase_info(&mach_time_info);
         guarantee(mach_time_info.denom != 0);
     }
@@ -621,7 +620,6 @@ std::string read_file(const char *path) {
 static const char * unix_path_separator = "/";
 
 path_t parse_as_path(const std::string &path) {
-    // TODO(OSX) This assumes that path is non-empty, check code calling this function.
     path_t res;
     res.is_absolute = (path[0] == unix_path_separator[0]);
 
