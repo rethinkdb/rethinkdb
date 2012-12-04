@@ -207,39 +207,88 @@ struct compile_task_t : auto_task_t<compile_task_t> {
     std::string src_;
     RDB_MAKE_ME_SERIALIZABLE_2(args_, src_);
 
+    /**
+     * Fully generalized C string escaping function
+     * Works with utf-8 input strings though only chars 0-127 can be escaped.
+     * escp_chars is an array of chars (only values 0-127) to escape in str.
+     * Returns -1 on failure (out_buf_sz not big enough)
+     * To guarantee success pass an output buffer at least double the size of
+     * the input buffer (out_buf_sz == str_sz * 2)
+     */ 
+    static ssize_t escape_string(const char *str, size_t str_sz,
+                                 const char *escp_chrs, size_t n_escp_chrs,
+                                 char *out_buf, size_t out_buf_sz) {
+
+        // Used to test if first bit is set. If so, then this is a higher order utf-8 value.
+        static const char ASCI_MSK = (1 << 7);
+
+        size_t src_i = 0;
+        size_t dst_i = 0;
+
+        while (src_i < str_sz) {
+            char cur_byte = str[src_i];
+
+            // Test if the character lies in the ASCI range and is eligible to be escaped
+            if (!(ASCI_MSK & cur_byte)) {
+
+                // Is this one of our escape chars?
+                bool escape_me = false;
+                for (size_t i = 0; i < n_escp_chrs; i++) {
+                    if (escp_chrs[i] == cur_byte) {
+                        escape_me = true;
+                        break;
+                    }
+                }
+
+                if (escape_me) {
+
+                    if (!(dst_i < out_buf_sz)) {
+                        // We don't have space, error
+                        return -1;
+                    }
+
+                    // Place escaping char first
+                    out_buf[dst_i] = '\\';
+                    dst_i++;
+                }
+
+            }
+
+            // Finally, copy over the char
+            if (!(dst_i < out_buf_sz)) {
+                // We don't have space for this character, error
+                return -1;
+            }
+
+            out_buf[dst_i] = cur_byte;
+            dst_i++;
+            src_i++;
+        }
+
+        // "close off" the output string
+        out_buf[dst_i] = '\0';
+
+        // Return the actual size of the output string
+        return dst_i;
+    }
+
     // Turn src_ into an escaped JavaScript string. Since I can't actually find a good library
     // function for this (why?) I'm going to stop wasting time looking and do it myself.
-    static std::string escapeJS(std::string &src) {
-        int esc_char_cnt = 0;
-        for (size_t pos = 0; pos < src.length(); pos++) {
-            char cur = src[pos];
-            if (cur == '"' || cur == '\\') esc_char_cnt++;
-        }
+    static size_t escapeJS(std::string &src, char *out, size_t out_sz) {
+        static const char *js_escp_chars = "\\\"'\n\t"; // slash, double quote, single quote, newline, and tab
 
-        size_t new_buf_size = src.length() + esc_char_cnt + 2;
-        char new_buf[new_buf_size + 1];
-        new_buf[new_buf_size] = '\0';
-        new_buf[0] = '"';
-        new_buf[new_buf_size - 1] = '"';
-
-        size_t adjustment = 1;
-        for (size_t buf_pos = 1; buf_pos < new_buf_size - 1; buf_pos++) {
-            char cur = src[buf_pos - adjustment];
-            if (cur == '"' || cur == '\\') {
-                new_buf[buf_pos++] = '\\';
-                adjustment++;
-            }
-            new_buf[buf_pos] = cur;
-        }
-
-        return std::string(new_buf);
+        ssize_t sz = escape_string(src.c_str(), src.size(),
+                                   js_escp_chars, strlen(js_escp_chars), 
+                                   out, out_sz);
+        guarantee(sz != -1, "String escaping failed");
+        return sz;
     }
 
     void mkFuncSrc(scoped_array_t<char> *buf) {
         static const char
             *beg = "(function(",
-            *med = "){ return eval(",
-            *end = ")})";
+            *med = "){ return eval(\"",
+            *end = "\")})";
         static const ssize_t
             begsz = strlen(beg),
             medsz = strlen(med),
@@ -247,9 +296,11 @@ struct compile_task_t : auto_task_t<compile_task_t> {
 
         size_t nargs = args_.size();
 
-        std::string escaped_src = escapeJS(src_);
+        size_t escaped_sz = 2 * src_.size() + 1;
+        char *escaped_src = (char *)malloc(escaped_sz);
+        escaped_sz = escapeJS(src_, escaped_src, escaped_sz);
 
-        ssize_t size = begsz + medsz + endsz + escaped_src.size();
+        ssize_t size = begsz + medsz + endsz + escaped_sz;
         for (size_t i = 0; i < nargs; ++i) {
             // + (i > 0) accounts for the preceding comma on extra arguments
             // beyond the first
@@ -274,8 +325,10 @@ struct compile_task_t : auto_task_t<compile_task_t> {
         memcpy(p, med, medsz);
         p += medsz;
 
-        memcpy(p, escaped_src.data(), escaped_src.size());
-        p += escaped_src.size();
+        memcpy(p, escaped_src, escaped_sz);
+        free(escaped_src);
+
+        p += escaped_sz;
 
         memcpy(p, end, endsz);
         guarantee(p - buf->data() == size - endsz,
