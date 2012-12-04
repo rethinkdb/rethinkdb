@@ -212,7 +212,8 @@ struct compile_task_t : auto_task_t<compile_task_t> {
     static std::string escapeJS(std::string &src) {
         int esc_char_cnt = 0;
         for (size_t pos = 0; pos < src.length(); pos++) {
-            if (src[pos] == '"') esc_char_cnt++;
+            char cur = src[pos];
+            if (cur == '"' || cur == '\\') esc_char_cnt++;
         }
 
         size_t new_buf_size = src.length() + esc_char_cnt + 2;
@@ -224,7 +225,7 @@ struct compile_task_t : auto_task_t<compile_task_t> {
         size_t adjustment = 1;
         for (size_t buf_pos = 1; buf_pos < new_buf_size - 1; buf_pos++) {
             char cur = src[buf_pos - adjustment];
-            if (cur == '"') {
+            if (cur == '"' || cur == '\\') {
                 new_buf[buf_pos++] = '\\';
                 adjustment++;
             }
