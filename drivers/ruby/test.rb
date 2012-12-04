@@ -1109,6 +1109,14 @@ class ClientTest < Test::Unit::TestCase
 
     assert_equal(id_sort(rdb2.run.to_a), $data)
   end
+
+  def test_close_and_reconnect
+    assert_nothing_raised do
+      c.close
+    end
+
+    c.reconnect
+  end
 end
 
 load 'test_det.rb'
