@@ -118,7 +118,6 @@ class Tests
         result_server = args.result_server
         result_demo = args.result_demo
         if success is true
-            ###
             $('#results').append '<li class="result success">'+query+'<span style="float: right">^_^</span>
                 </li>'
             ###
@@ -127,6 +126,7 @@ class Tests
                 Real server response:
                 <pre>'+JSON.stringify(result_server, undefined, 2)+'</pre>
                 </li>'
+            ###
         else
             $('#results').prepend '<li class="result fail">'+query+'<span style="float: right">&gt;_&lt;</span><br/>Demo server response:
                 <pre>'+JSON.stringify(result_demo, undefined, 2)+'</pre>
@@ -181,6 +181,9 @@ $(document).ready ->
         'r.expr({id: 1, key:"value", other_key: "other_value"}).pick("id", "other_key").run()',
         'r.expr({id: 1, key:"value", other_key: "other_value"}).unpick("id", "other_key").run()',
         'r.expr({id: 1, key:"value", other_key: "other_value"}).merge({id: 2, key:"new_value", new_key: "other_new_value"}).run()',
+        'r.db("db_that_doesnt_exist").tableList().run()',
+        'r.db("db_that_doesnt_exist").tableCreate("food").run()',
+        'r.db("db_that_doesnt_exist").tableDrop("clothes").run()',
         'r.dbCreate("test").run()',
         'r.dbDrop("test").run()',
         'r.dbList().map({ foo: r("@")}).orderBy("foo").run() // Empty database',

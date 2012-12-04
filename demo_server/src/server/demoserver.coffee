@@ -212,7 +212,7 @@ class DemoServer
                 tableRef = createTable.getTableRef()
 
                 db = @dbs[tableRef.getDbName()]
-                unless db? then throw new RuntimeError "No such database"
+                unless db? then throw new RuntimeError "Error during operation `FIND_DATABASE #{tableRef.getDbName()}`: No entry with that name."
                 primaryKey = createTable.getPrimaryKey()
                 tableName = tableRef.getTableName()
 
@@ -220,9 +220,11 @@ class DemoServer
             when MetaQuery.MetaQueryType.DROP_TABLE
                 tableRef = metaQuery.getDropTable()
                 db = @dbs[tableRef.getDbName()]
+                unless db? then throw new RuntimeError "Error during operation `FIND_DATABASE #{tableRef.getDbName()}`: No entry with that name."
                 db.dropTable tableRef.getTableName(), tableRef.getDbName()
             when MetaQuery.MetaQueryType.LIST_TABLES
                 db = @dbs[metaQuery.getDbName()]
+                unless db? then throw new RuntimeError "Error during operation `FIND_DATABASE #{metaQuery.getDbName()}`: No entry with that name."
                 db.getTableNames()
 
     evaluateReadQuery: (readQuery) ->
