@@ -375,7 +375,7 @@ class Javascript(ExpressionInner):
         parent.javascript = self.body
 
     def pretty_print(self, printer):
-        return ("js(body=%r)" % self.body, PRETTY_PRINT_EXPR_WRAPPED)
+        return ("js(%r)" % self.body, PRETTY_PRINT_EXPR_WRAPPED)
 
 class ToArray(ExpressionInner):
     def __init__(self, stream):

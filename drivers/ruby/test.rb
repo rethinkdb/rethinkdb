@@ -594,14 +594,14 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(r.js('2+2').run, 4)
     assert_equal(r.js('"cows"').run, "cows")
     assert_equal(r.js('[1,2,3]').run, [1,2,3])
-    assert_equal(r.js('{}').run, {})
-    assert_equal(r.js('{a: "whee"}').run, {"a" => "whee"})
+    assert_equal(r.js('({})').run, {})
+    assert_equal(r.js('({a: "whee"})').run, {"a" => "whee"})
     assert_equal(r.js('this').run, {})
 
-    assert_equal(r.js('return 0;', :func).run, 0)
+    assert_equal(r.js('0;').run, 0)
     assert_raise(RuntimeError){r.js('undefined').run}
-    assert_raise(RuntimeError){r.js(body='return;').run}
-    assert_raise(RuntimeError){r.js(body='var x = {}; x.x = x; return x;').run}
+    assert_raise(RuntimeError){r.js(';').run}
+    assert_raise(RuntimeError){r.js('var x = {}; x.x = x; return x;').run}
   end
 
   def test_javascript_vars # JAVASCRIPT

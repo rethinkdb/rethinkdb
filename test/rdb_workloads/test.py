@@ -518,15 +518,15 @@ class RDBTest(unittest.TestCase):
         self.expect(js('2+2'), 4)
         self.expect(js('"cows"'), u"cows")
         self.expect(js('[1,2,3]'), [1,2,3])
-        self.expect(js('{}'), {})
-        self.expect(js('{a: "whee"}'), {u"a": u"whee"})
+        self.expect(js('({})'), {})
+        self.expect(js('({a: "whee"})'), {u"a": u"whee"})
         self.expect(js('this'), {})
 
-        self.expect(js(body='return 0;'), 0)
+        self.expect(js('0;'), 0)
 
         self.error_exec(js('undefined'), "undefined")
-        self.error_exec(js(body='return;'), "undefined")
-        self.error_exec(js(body='var x = {}; x.x = x; return x;'), "cyclic datastructure")
+        self.error_exec(js(';'), "undefined")
+        self.error_exec(js('var x = {}; x.x = x; x;'), "cyclic datastructure")
 
     def test_js_vars(self):
         self.clear_table()
