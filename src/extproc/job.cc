@@ -4,10 +4,10 @@
 
 namespace extproc {
 
-bool is_rdb_alive(pid_t rdb_pid) {
+bool is_spawner_alive(pid_t spawner_pid) {
     bool retval = false;
     try {
-        proc_pid_stat_t stats = proc_pid_stat_t::for_pid(rdb_pid);
+        proc_pid_stat_t stats = proc_pid_stat_t::for_pid(spawner_pid);
         switch (stats.state) {
             case 'R':
             case 'S':
@@ -34,7 +34,7 @@ int job_t::accept_job(control_t *control, void *extra) {
     if (res < (int64_t) sizeof(jobfunc)) {
         // Don't log anything if the parent isn't alive, it likely means there was an unclean shutdown,
         //  and the file descriptor is invalid.  We don't want to pollute the output.
-        if (is_rdb_alive(control->get_rdb_pid())) {
+        if (is_spawner_alive(control->get_spawner_pid())) {
             control->log("Couldn't read job function: %s",
                           res == -1 ? errno_string(errno).c_str() : "end-of-file received");
         }
@@ -67,14 +67,14 @@ int job_t::send_over(write_stream_t *stream) const {
 
 
 // ---------- job_t::control_t ----------
-job_t::control_t::control_t(pid_t _pid, pid_t _rdb_pid, scoped_fd_t *fd) :
+job_t::control_t::control_t(pid_t _pid, pid_t _spawner_pid, scoped_fd_t *fd) :
     unix_socket_stream_t(fd, new blocking_fd_watcher_t()),
     pid(_pid),
-    rdb_pid(_rdb_pid)
+    spawner_pid(_spawner_pid)
 { }
 
-pid_t job_t::control_t::get_rdb_pid() const {
-    return rdb_pid;
+pid_t job_t::control_t::get_spawner_pid() const {
+    return spawner_pid;
 }
 
 // TODO(rntz): some way to send log messages to the engine.

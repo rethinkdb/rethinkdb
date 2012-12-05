@@ -21,14 +21,14 @@ class job_t {
         void vlog(const char *fmt, va_list ap) __attribute__((format (printf, 2, 0))) ;
         void log(const char *fmt, ...) __attribute__((format (printf, 2, 3)));
 
-        pid_t get_rdb_pid() const;
+        pid_t get_spawner_pid() const;
 
       private:
         friend class spawner_t;
-        control_t(pid_t _pid, pid_t _rdb_pid, scoped_fd_t *fd);
+        control_t(pid_t pid, pid_t spawner_pid, scoped_fd_t *fd);
 
         const pid_t pid;
-        const pid_t rdb_pid;
+        const pid_t spawner_pid;
 
         DISABLE_COPYING(control_t);
     };

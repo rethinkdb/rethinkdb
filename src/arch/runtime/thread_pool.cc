@@ -215,8 +215,10 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
         struct sigaction sa;
         memset(&sa, 0, sizeof(struct sigaction));
         sa.sa_handler = &linux_thread_pool_t::interrupt_handler;
+        int res = sigfillset(&sa.sa_mask);
+        guarantee_err(res == 0, "sigfillset failed");
 
-        int res = sigaction(SIGTERM, &sa, NULL);
+        res = sigaction(SIGTERM, &sa, NULL);
         guarantee_err(res == 0, "Could not install TERM handler");
 
         res = sigaction(SIGINT, &sa, NULL);
