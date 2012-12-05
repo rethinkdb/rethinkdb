@@ -35,16 +35,16 @@ dnl
 %define priority PRIORITY
 
 BuildRoot: %{buildroot}
-Summary:   RethinkDB - the database for solid drives
+Summary:   RethinkDB - scalability and consistency together at last
 Name:      %{versioned_packagename}
 Version:   %{version}
 Release:   1
-License:   RethinkDB Beta Test License 0.1
+License:   Affero General Public License version 2 or 3
 Vendor:    Hexagram 49, Inc.
-Packager:  Package Maintainer <support@rethinkdb.com>
+Packager:  Package Maintainer <packaging@rethinkdb.com>
 URL:       http://rethinkdb.com/
 Group:     Productivity/Databases/Servers
-Provides:  %{vanilla_packagename}, memcached
+Provides:  %{vanilla_packagename}
 Requires:  ifelse(PACKAGE_FOR_SUSE_10, 1,
   `glibc >= 2.4-31, libaio >= 0.3.104, update-alternatives',
   LEGACY_PACKAGE, 1,
@@ -59,8 +59,10 @@ ifelse(SOLO,1,
 data.
 
 It conforms to the memcache text protocol, so any memcached client
-can have connectivity with it.',
-`FIXME: Put RethinkDB Cache description here')
+can have connectivity with it until that feature is removed.',
+`FIXME: Put RethinkDB Cache description here
+QUESTION: What is RethinkDB Cache? The world wonders.
+')
 
 %pre
 
