@@ -866,7 +866,7 @@ prepare_deb_package_dirs:
 
 prepare_rpm_package_dirs:
 	$(QUIET) mkdir -p $(RPM_PACKAGE_DIR)
-	$(QUIET) for d in BUILD RPMS/x86_64 SOURCES SPECS SRPMS; do mkdir -p $(RPM_PACKAGE_DIR)/$$d; done
+	$(QUIET) for d in BUILD RPMS/$(GCC_ARCH_REDUCED) SOURCES SPECS SRPMS; do mkdir -p $(RPM_PACKAGE_DIR)/$$d; done
 
 install-binaries: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 	$(QUIET) install -m755 -d $(DESTDIR)$(bin_dir)
@@ -1088,7 +1088,7 @@ build-rpm: all prepare_rpm_package_dirs
 	$(QUIET) $(MAKE) DESTDIR=$(RPM_BUILD_ROOT) install-rpm
 # Produce RPM package
 # FIXME: write rpmbuild output out to stderr if there's an error
-	$(QUIET) rpmbuild -bb --target=x86_64 --buildroot `readlink -f $(RPM_BUILD_ROOT)` $(RPM_SPEC_FILE) > $(RPM_PACKAGE_DIR)/rpmbuild.stdout
+	$(QUIET) rpmbuild -bb --target=$(GCC_ARCH_REDUCED) --buildroot `readlink -f $(RPM_BUILD_ROOT)` $(RPM_SPEC_FILE) > $(RPM_PACKAGE_DIR)/rpmbuild.stdout
 
 # RPM for redhat and centos
 rpm: all prepare_rpm_package_dirs
@@ -1097,7 +1097,7 @@ rpm: all prepare_rpm_package_dirs
 # Print a nice message with the location of the created package
 	@echo
 	@echo "$(ANSI_BOLD_ON)Your RPM packages are here:$(ANSI_BOLD_OFF)"
-	$(QUIET) for f in $(RPM_PACKAGE_DIR)/RPMS/x86_64/*.rpm; do	                \
+	$(QUIET) for f in $(RPM_PACKAGE_DIR)/RPMS/$(GCC_ARCH_REDUCED)/*.rpm; do	                \
 			rpm_name=`readlink -f $(PACKAGES_DIR)`/$$(basename $$f);	\
 			mv $$f $$rpm_name;						\
 			echo "  $(ANSI_UL_ON)$${rpm_name}$(ANSI_UL_OFF)";		\
