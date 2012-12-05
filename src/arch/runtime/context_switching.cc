@@ -186,7 +186,7 @@ asm(
 "lightweight_swapcontext:\n"
 
 #if defined(__i386__)
-    /* `current_pointer_out` is in `%ebp+`. `dest_pointer` is in `%esi`. */
+    /* `current_pointer_out` is in `4(%ebp)`. `dest_pointer` is in `8(%ebp)`. */
 #elif defined(__x86_64__)
     /* `current_pointer_out` is in `%rdi`. `dest_pointer` is in `%rsi`. */
 #endif

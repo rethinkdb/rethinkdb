@@ -11,7 +11,10 @@
 #ifndef NDEBUG
 
 uint64_t get_clock_cycles() {
-#if defined(__i386__) || defined(__amd64__)
+#if defined(__i386__) || defined(__x86_64__)
+    // uintptr_t matches the native register/word size on Linux on i386 and amd64.
+    // This assumption may not be true on certain other software/hardware combinations.
+    // (And of course rdtsc probably would not work.)
     uintptr_t high;
     uintptr_t low;
     __asm__ __volatile__("rdtsc" : "=a" (low), "=d" (high));
