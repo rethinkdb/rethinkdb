@@ -470,8 +470,8 @@ endif
 endif
 
 ifeq ($(UNIT_TESTS),1)
-LDFLAGS+=-L/usr/local/lib -lgtest
-CXXFLAGS+=-DUNIT_TESTS
+UNIT_STATIC_LIBRARIES+=gtest
+UNIT_STATIC_LIBRARY_PATHS+=$(foreach lib,$(UNIT_STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }'))
 endif
 
 UNIT_TEST_FILTER?=*
@@ -1127,13 +1127,13 @@ ifeq ($(VERBOSE),0)
 	@echo "    LD $@"
 endif
 ifeq ($(IGNORE_SOME_ICC_LD_WARNINGS),0)
-	$(QUIET) $(CXX) $(LDFLAGS) $(SERVER_UNIT_TEST_OBJS) $(STATIC_LIBRARY_PATHS) -o $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME)
+	$(QUIET) $(CXX) $(LDFLAGS) $(SERVER_UNIT_TEST_OBJS) $(STATIC_LIBRARY_PATHS) $(UNIT_STATIC_LIBRARY_PATHS) -o $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME)
 else
 # Note: that is the copy of the problem description that we have above in server linking section.
 # The following line runs CXX in linking mode (supplying only the object files and libraries) and then
 # pass the output through a filter which filters out bogus (?) icc-related problems.
 # FIXME: figure out why we get these problems
-	$(QUIET) ($(CXX) $(LDFLAGS) $(SERVER_UNIT_TEST_OBJS) $(STATIC_LIBRARY_PATHS) -o $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME) 2>&1 >&3 | (grep -v "warning: relocation refers to discarded section" || true) >&2) 3>&1
+	$(QUIET) ($(CXX) $(LDFLAGS) $(SERVER_UNIT_TEST_OBJS) $(STATIC_LIBRARY_PATHS) $(UNIT_STATIC_LIBRARY_PATHS) -o $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME) 2>&1 >&3 | (grep -v "warning: relocation refers to discarded section" || true) >&2) 3>&1
 endif
 
 $(BUILD_DIR)/$(START_DB_NAME):
