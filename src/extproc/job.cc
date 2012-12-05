@@ -1,29 +1,11 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "extproc/job.hpp"
-#include "clustering/administration/proc_stats.hpp"
 
 namespace extproc {
 
-bool is_spawner_alive(pid_t spawner_pid) {
-    bool retval = false;
-    try {
-        proc_pid_stat_t stats = proc_pid_stat_t::for_pid(spawner_pid);
-        switch (stats.state) {
-            case 'R':
-            case 'S':
-            case 'D':
-            case 'T':
-            case 'W':
-                retval = true;
-                break;
-            default:
-                break;
-        }
-    } catch (const std::runtime_error &ex) {
-        // Failed to check stats, assume the rdb process has died
-    }
-
-    return retval;
+bool is_parent_alive(pid_t parent_pid) {
+    pid_t ppid = getppid();
+    return parent_pid == ppid;
 }
 
 // ---------- job_t ----------
@@ -34,7 +16,7 @@ int job_t::accept_job(control_t *control, void *extra) {
     if (res < (int64_t) sizeof(jobfunc)) {
         // Don't log anything if the parent isn't alive, it likely means there was an unclean shutdown,
         //  and the file descriptor is invalid.  We don't want to pollute the output.
-        if (is_spawner_alive(control->get_spawner_pid())) {
+        if (is_parent_alive(control->get_spawner_pid())) {
             control->log("Couldn't read job function: %s",
                           res == -1 ? errno_string(errno).c_str() : "end-of-file received");
         }
