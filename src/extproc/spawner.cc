@@ -199,11 +199,7 @@ pid_t spawner_pid_for_sigalrm = 0;
 
 void check_ppid_for_death(int) {
     pid_t ppid = getppid();
-    std::string s = strprintf("sigalrm: rdb_pid=%d, ppid=%d\n", spawner_pid_for_sigalrm, ppid);
-    write(STDOUT_FILENO, s.data(), s.size());
-
     if (spawner_pid_for_sigalrm != 0 && spawner_pid_for_sigalrm != ppid) {
-        write(STDOUT_FILENO, "crap\n", 5);
         // We didn't fail, so should we exit with failure?  This status code doesn't really matter.
         _exit(EXIT_FAILURE);
     }
@@ -215,7 +211,6 @@ void exec_worker(pid_t spawner_pid, fd_t sockfd) {
     // Make sure we die when our parent dies.  (The parent, the spawner process, dies when the
     // rethinkdb process dies.)
     {
-        debugf("exec_worker, setting rdb_pid_for_sigalrm to %d\n", spawner_pid);
         spawner_pid_for_sigalrm = spawner_pid;
 
         struct sigaction sa;
