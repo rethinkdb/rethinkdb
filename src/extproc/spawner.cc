@@ -1,14 +1,17 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "extproc/spawner.hpp"
 
-#include <signal.h>             // sigaction
-// TODO(OSX) How are we going to detect parent death?
-// #include <sys/prctl.h>          // prctl
+#include <signal.h>
+
+#ifndef __MACH__
+#include <sys/prctl.h>
+#endif
+
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/un.h>
-#include <sys/wait.h>           // waitpid
-#include <unistd.h>             // setpgid
+#include <sys/wait.h>
+#include <unistd.h>
 
 #include "arch/fd_send_recv.hpp"
 #include "extproc/job.hpp"
@@ -187,10 +190,13 @@ void spawner_t::exec_spawner(pid_t rdb_pid, fd_t socket) {
 // Runs the worker process. Does not return.
 void spawner_t::exec_worker(pid_t rdb_pid, fd_t sockfd) {
     // Makes sure we get SIGTERMed when our parent (the spawner) dies.
-    // TODO(rntz): prctl is linux-specific.
     // TODO(OSX) How are we going to detect parent death?
-    // int res = prctl(PR_SET_PDEATHSIG, SIGTERM);
-    // guarantee_err(res == 0, "worker: could not set parent-death signal");
+#if __MACH__
+
+#else
+    int res = prctl(PR_SET_PDEATHSIG, SIGTERM);
+    guarantee_err(res == 0, "worker: could not set parent-death signal");
+#endif  // __MACH__
 
     // Receive one job and run it.
     scoped_fd_t fd(sockfd);
