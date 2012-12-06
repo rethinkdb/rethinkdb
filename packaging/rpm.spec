@@ -12,6 +12,7 @@ dnl   TRIAL_PACKAGE_NAME - name of the trial package (e.g. rethinkdb-trial, even
 dnl   PACKAGE_VERSION - version string, dashes are fine
 dnl   PACKAGE_FOR_SUSE_10 - 0 or 1 (specifies which library versions we can use)
 dnl   LEGACY_PACKAGE - 0 or 1 (specifies which library versions we can use)
+dnl   UPDATE_ALTERNATIVES - 0 or 1 (specifies whether we mess with alternatives)
 dnl   TRIAL - 0 or 1
 dnl
 %define _topdir RPM_PACKAGE_DIR
@@ -66,7 +67,7 @@ QUESTION: What is RethinkDB Cache? The world wonders.
 %pre
 
 %post
-# find update-alternatives
+ifelse(UPDATE_ALTERNATIVES, 1, `# find update-alternatives
 ALTERNATIVES=""
 for alt in update-alternatives alternatives; do
   for dir in /usr/sbin /sbin; do
@@ -94,10 +95,10 @@ else
 %{man1_dir}/%{server_exec_name}.1.gz %{man1_dir}/%{server_exec_name_versioned}.1.gz
 %{bash_completion_dir}/%{server_exec_name}.bash %{internal_bash_completion_dir}/%{server_exec_name_versioned}.bash
 END
-fi
+fi',`')`'dnl
 
 %preun
-# find update-alternatives
+ifelse(UPDATE_ALTERNATIVES, 1, `# find update-alternatives
 ALTERNATIVES=""
 for alt in update-alternatives alternatives; do
   for dir in /usr/sbin /sbin; do
@@ -122,7 +123,7 @@ else
 %{man1_dir}/%{server_exec_name}.1.gz %{man1_dir}/%{server_exec_name_versioned}.1.gz
 %{bash_completion_dir}/%{server_exec_name}.bash %{internal_bash_completion_dir}/%{server_exec_name_versioned}.bash
 END
-fi
+fi',`')`'dnl
 
 %postun
 
