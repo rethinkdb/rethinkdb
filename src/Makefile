@@ -914,7 +914,7 @@ install-data:
 
 install-web:
 	$(QUIET) install -m755 -d $(DESTDIR)$(web_res_dir)
-	# This might break some ownership or permissions stuff.
+# This might break some ownership or permissions stuff.
 	$(QUIET) cp -pRP $(BUILD_DIR)/web/* $(DESTDIR)$(web_res_dir)/
 
 install-drivers:
