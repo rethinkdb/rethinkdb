@@ -39,7 +39,8 @@ class RDBTable extends RDBSequence
             id_was_generated = false
 
         if typeof pkVal isnt 'string' and typeof pkVal isnt 'number'
-            result['error'] = "Cannot insert row #{DemoServer.prototype.convertToJSON(record.asJSON())} with primary key #{JSON.stringify(pkVal)} of non-string, non-number type."
+            result['error'] = "Cannot insert row #{Utils.stringify(record.asJSON())} "+
+                              "with primary key #{JSON.stringify(pkVal)} of non-string, non-number type."
         else if not upsert and @records[pkVal]? and id_was_generated is true
             result['error'] = "Generated key was a duplicate either you've won "+
                               "the uuid lottery or you've intentionnaly tried "+
@@ -49,7 +50,7 @@ class RDBTable extends RDBSequence
         else if not upsert and @records[pkVal]? and id_was_generated is false
             # That's a cheap hack to match the json of the server.
             # Let's not use colon in our value for now...
-            result['error'] = "Duplicate primary key id in #{DemoServer.prototype.convertToJSON(record.asJSON())}"
+            result['error'] = "Duplicate primary key id in #{Utils.stringify(record.asJSON())}"
         else
             @records[pkVal] = record
 
@@ -60,7 +61,7 @@ class RDBTable extends RDBSequence
 
     get: (pkVal) ->
         if typeof pkVal isnt 'string' and typeof pkVal isnt 'number'
-            throw new RuntimeError "Primary key must be a number or a string, not #{DemoServer.prototype.convertToJSON(pkVal)}"
+            throw new RuntimeError "Primary key must be a number or a string, not #{Utils.stringify(pkVal)}"
         @records[pkVal] || new RDBPrimitive null
 
     deleteKey: (pkVal) -> delete @records[pkVal]

@@ -1,6 +1,7 @@
 goog.provide('rethinkdb.server.RDBDatabase')
 
 goog.require('rethinkdb.server.RDBTable')
+goog.require('rethinkdb.server.Utils')
 
 # A RQL database
 class RDBDatabase
@@ -9,7 +10,7 @@ class RDBDatabase
         @tables = {}
 
     createTable: (name, {primaryKey}) ->
-        DemoServer.prototype.check_name name
+        Utils.checkName name
         if @tables[name]?
             throw new RuntimeError "Error during operation `CREATE_TABLE #{name}`: Entry already exists."
 
@@ -18,14 +19,15 @@ class RDBDatabase
         return []
 
     dropTable: (name, db_name) ->
-        DemoServer.prototype.check_name name
+        Utils.checkName name
         if not @tables[name]?
-            throw new RuntimeError "Error during operation `FIND_TABLE #{db_name}.#{name}`: No entry with that name."
+            throw new RuntimeError "Error during operation `FIND_TABLE #{db_name}.#{name}`: "+
+                                   "No entry with that name."
         delete @tables[name]
         return []
 
     getTable: (name) ->
-        DemoServer.prototype.check_name name
+        Utils.checkName name
         if @tables[name]?
             return @tables[name]
         else

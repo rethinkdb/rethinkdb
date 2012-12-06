@@ -749,8 +749,8 @@ $(document).ready ->
 
     # Then the real server
     server =
-        host: 'newton'
-        port: 23000
+        host: 'localhost'
+        port: 8080
     rethinkdb.connect server, ->
         # Clean the database test
         rethinkdb.dbList().run().collect (dbs) ->

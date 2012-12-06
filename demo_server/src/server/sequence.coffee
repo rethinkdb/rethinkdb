@@ -19,11 +19,10 @@ class RDBSequence extends RDBJson
     count: -> new RDBPrimitive @asArray().length
 
     union: (other) ->
-        if (not @asArray?) or Object.prototype.toString.call(@asArray()) isnt '[object Array]'
+        if @typeOf() isnt RDBJson.RDBTypes.ARRAY
             throw new RuntimeError "Required type: array but found #{typeof @asArray()}."
-        if (not other.asArray?) or Object.prototype.toString.call(other.asArray()) isnt '[object Array]'
+        if other.typeOf() isnt RDBJson.RDBTypes.ARRAY
             throw new RuntimeError "Required type: array but found #{typeof other.asArray()}."
-
         new RDBArray @asArray().concat other.asArray()
 
     slice: (left, right) ->
@@ -32,18 +31,12 @@ class RDBSequence extends RDBJson
     orderBy: (orderbys) ->
         new RDBArray @asArray().sort (a,b) ->
             for ob in orderbys
-                if ob.asc
-                    if not a[ob.attr]?
-                        throw new RuntimeError "ORDERBY encountered a row missing attr '#{ob.attr}': #{DemoServer.prototype.convertToJSON(a)}"
-                    if not b[ob.attr]?
-                        throw new RuntimeError "ORDERBY encountered a row missing attr '#{ob.attr}': #{DemoServer.prototype.convertToJSON(b)}"
-                    if a[ob.attr].gt(b[ob.attr]) then return true
-                else
-                    if not a[ob.attr]?
-                        throw new RuntimeError "ORDERBY encountered a row missing attr '#{ob.attr}': #{DemoServer.prototype.convertToJSON(a)}"
-                    if not b[ob.attr]?
-                        throw new RuntimeError "ORDERBY encountered a row missing attr '#{ob.attr}': #{DemoServer.prototype.convertToJSON(b)}"
-                    if a[ob.attr].lt(b[ob.attr]) then return true
+                if not (a[ob.attr]? or b[ob.attr]?)
+                    obj = (if a[ob.attr]? then b else a)
+                    throw new RuntimeError "ORDERBY encountered a row missing attr '#{ob.attr}': "+
+                                           "#{Utils.stringify(obj)}"
+                op = (if ob.asc then 'gt' else 'lt')
+                if a[ob.attr][op](b[ob.attr]) then return true
             return false
 
     distinct: ->
@@ -95,10 +88,12 @@ class RDBSequence extends RDBJson
         return predicate_value
 
     between: (attr, lowerBound, upperBound) ->
-        if typeof lowerBound.asJSON() isnt 'string' and typeof lowerBound.asJSON() isnt 'number'
-            throw new RuntimeError "Lower bound of RANGE must be a string or a number, not #{DemoServer.prototype.convertToJSON(lowerBound.asJSON())}."
-        if typeof upperBound.asJSON() isnt 'string' and typeof upperBound.asJSON() isnt 'number'
-            throw new RuntimeError "Upper bound of RANGE must be a string or a number, not #{DemoServer.prototype.convertToJSON(upperBound.asJSON())}."
+        if lowerBound.typeOf() isnt RDBJson.RDBTypes.STRING and lowerBound.typeOf() isnt RDBJson.RDBTypes.NUMBER
+            throw new RuntimeError "Lower bound of RANGE must be a string or a number, not "+
+                                   "#{Utils.stringify(lowerBound.asJSON())}."
+        if upperBound.typeOf() isnt RDBJson.RDBTypes.STRING and upperBound.typeOf() isnt RDBJson.RDBTypes.NUMBER
+            throw new RuntimeError "Upper bound of RANGE must be a string or a number, not "+
+                                   "#{Utils.stringify(upperBound.asJSON())}."
 
         result = []
         for v,i in @orderBy({attr:attr, asc:true}).asArray()
@@ -141,49 +136,36 @@ class RDBArray extends RDBSequence
     asArray: -> @data
 
     add: (other) ->
-        if (not other.asArray?) or Object.prototype.toString.call(other.asArray()) isnt '[object Array]'
+        if other.typeOf() isnt RDBJson.RDBTypes.ARRAY
             throw new RuntimeError "Cannot ADD arrays to non-arrays"
+        @union other
 
-        for value in other.asArray()
-            @data.push value
-        @
     eq: (other) ->
-        if (not other.asArray?) or  Object.prototype.toString.call(other.asArray()) isnt '[object Array]'
+        if other.typeOf() isnt RDBJson.RDBTypes.ARRAY or
+           @asArray().length isnt other.asArray().length
             return false
 
-        other_value = other.asArray()
-        # The two variables are arrays
-        if @data.length isnt other_value.length
-            return false
-        else
-            for value, i in @data
-                if @data[i].eq(other_value[i]) is false
-                    return false
+        for v,i in @asArray()
+            o = other.asArray()[i]
+            if v.ne(o) then return false
         return true
 
     le: (other) -> not @gt(other)
     gt: (other) ->
-        if other instanceof RDBArray
-            for value, i in @data
-                if @data[i].eq(other.asArray()[i])
-                    continue
-                return @data[i].gt(other.asArray()[i])
+        if other.typeOf() is RDBJson.RDBTypes.ARRAY
+            for v,i in @asArray()
+                o = other.asArray()[i]
+                if not v.eq(o)
+                    return v.gt(o)
             return false
-        # Else we have a RDBPrimitive
-        else if DemoServer.prototype.convertTypeToNumber(@data) > DemoServer.prototype.convertTypeToNumber(other.asJSON())
-            return true
-        else if DemoServer.prototype.convertTypeToNumber(@data) < DemoServer.prototype.convertTypeToNumber(other.asJSON())
-            return false
+        return @typeOf() > other.typeOf()
+
     ge: (other) -> not @lt(other)
     lt: (other) ->
-        if other instanceof RDBArray
-            for value, i in @data
-                if @data[i].eq(other.asArray()[i])
-                    continue
-                return @data[i].lt(other.asArray()[i])
+        if other.typeOf() is RDBJson.RDBTypes.ARRAY
+            for v,i in @asArray()
+                o = other.asArray()[i]
+                if v.eq(o)
+                    return v.lt(o)
             return false
-        # Else we have a RDBPrimitive
-        else if DemoServer.prototype.convertTypeToNumber(@data) > DemoServer.prototype.convertTypeToNumber(other.asJSON())
-            return false
-        else if DemoServer.prototype.convertTypeToNumber(@data) < DemoServer.prototype.convertTypeToNumber(other.asJSON())
-            return true
+        return @typeOf() < other.typeOf()

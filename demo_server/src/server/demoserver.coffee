@@ -3,6 +3,7 @@ goog.provide('rethinkdb.server.DemoServer')
 goog.require('rethinkdb.server.Errors')
 goog.require('rethinkdb.server.RDBDatabase')
 goog.require('rethinkdb.server.RDBJson')
+goog.require('rethinkdb.server.Utils')
 goog.require('goog.proto2.WireFormatSerializer')
 goog.require('Query')
 
@@ -11,19 +12,8 @@ class DemoServer
     implicitVarId = '__IMPLICIT_VAR__'
 
     constructor: ->
-        #BC: The way you construct an empty object and then pass it into
-        #    wrapper classes for each protobuf class is very weird.
-        #    I'm going to invert this inverted structure so that the server
-        #    executes each protobuf element and modifies its own state as it goes
-        #@local_server = {}
-
-        #BC: There is no reason to separate these into separate methods
         @descriptor = window.Query.getDescriptor()
         @serializer = new goog.proto2.WireFormatSerializer()
-
-        #BC: Here we set up the internal state of the server in a way that allows
-        #    people reading this constructor to understand how data in the server
-        #    is represented.
 
         # Map of databases
         @dbs = {}
@@ -34,80 +24,20 @@ class DemoServer
         # Add default database test
         @createDatabase 'test'
 
-    # We could move these two functions in a new class (something like Helper)
-    check_name: (name) ->
-        if not /^[A-Za-z0-9_\-]+$/.test name
-            throw new BadQuery "Invalid name '#{name}'.  (Use A-Za-z0-9_ only.)."
-
-    convertToJSON: (doc, level) ->
-        if not level?
-            level = 0
-        result = ''
-        if typeof doc is 'object'
-            if doc is null
-                result += 'null'
-            else if Object.prototype.toString.call(doc) is '[object Array]'
-                result += '['
-                for element, i in doc
-                    result += @convertToJSON(element, level+1)
-                    if i isnt doc.length-1
-                        result += ', '
-                result += ']'
-            else
-                result = '{'
-                is_first = true
-                for own key, value of doc
-                    if is_first is true
-                        is_first = false
-                    else
-                        result += ','
-                    result += '\n'
-                    if level > 0
-                        for i in [0..level]
-                            result += '\t'
-                    else
-                        result += '\t'
-                    result += JSON.stringify(key)+':\t'+@convertToJSON(value, level+1)
-                result += '\n'
-                if level > 0
-                    for i in [0..level-1]
-                        result += '\t'
-                result += '}'
-        else
-            result += JSON.stringify doc
-
-        return result
-
-    convertTypeToNumber: (data) ->
-        if Object.prototype.toString.call(data) is '[object Array]'
-            return 0
-        else if typeof data is 'boolean'
-            return 1
-        else if data is null
-            return 2
-        else if typeof data is 'number'
-            return 3
-        else if typeof data is 'object'
-            return 4
-        else if typeof data is 'string'
-            return 5
-
     createDatabase: (name) ->
-        @check_name name
+        Utils.checkName name
         if @dbs[name]?
             throw new RuntimeError "Error during operation `CREATE_DB #{name}`: Entry already exists."
         @dbs[name] = new RDBDatabase
         return []
 
     dropDatabase: (name) ->
-        @check_name name
+        Utils.checkName name
         if not @dbs[name]?
             throw new RuntimeError "Error during operation `DROP_DB #{name}`: No entry with that name."
         delete @dbs[name]
         return []
 
-    #BC: The server should log, yes, but abstracting log allows us to
-    #    turn it off, redirect it from the console, add timestamps, etc.
     log: (msg) -> #console.log msg
 
     print_all: ->
@@ -115,7 +45,6 @@ class DemoServer
 
     # Validate the length of the received buffer and return the stripped buffer
     validateBuffer: (buffer) ->
-        #BC: js/cs uses camelCase by convention
         uint8Array = new Uint8Array buffer
         dataView = new DataView buffer
         expectedLength = dataView.getInt32(0, true)
@@ -123,13 +52,11 @@ class DemoServer
         if pb.length is expectedLength
             return pb
         else
-            #BC: We need to agree on a way to do errors
             throw new RuntimeError "protocol buffer not of the correct length"
 
     deserializePB: (pbArray) ->
         @serializer.deserialize @descriptor, pbArray
 
-    #BC: class methods need not be bound (fat arrow)
     execute: (data) ->
         query = @deserializePB @validateBuffer data
         @log 'Server: deserialized query'
@@ -212,7 +139,9 @@ class DemoServer
                 tableRef = createTable.getTableRef()
 
                 db = @dbs[tableRef.getDbName()]
-                unless db? then throw new RuntimeError "Error during operation `FIND_DATABASE #{tableRef.getDbName()}`: No entry with that name."
+                unless db? then throw new RuntimeError "Error during operation "+
+                                                       "`FIND_DATABASE #{tableRef.getDbName()}`: "+
+                                                       "No entry with that name."
                 primaryKey = createTable.getPrimaryKey()
                 tableName = tableRef.getTableName()
 
@@ -220,11 +149,15 @@ class DemoServer
             when MetaQuery.MetaQueryType.DROP_TABLE
                 tableRef = metaQuery.getDropTable()
                 db = @dbs[tableRef.getDbName()]
-                unless db? then throw new RuntimeError "Error during operation `FIND_DATABASE #{tableRef.getDbName()}`: No entry with that name."
+                unless db? then throw new RuntimeError "Error during operation "+
+                                                       "`FIND_DATABASE #{tableRef.getDbName()}`: "+
+                                                       "No entry with that name."
                 db.dropTable tableRef.getTableName(), tableRef.getDbName()
             when MetaQuery.MetaQueryType.LIST_TABLES
                 db = @dbs[metaQuery.getDbName()]
-                unless db? then throw new RuntimeError "Error during operation `FIND_DATABASE #{metaQuery.getDbName()}`: No entry with that name."
+                unless db? then throw new RuntimeError "Error during operation "+
+                                                       "`FIND_DATABASE #{metaQuery.getDbName()}`: "+
+                                                       "No entry with that name."
                 db.getTableNames()
 
     evaluateReadQuery: (readQuery) ->
@@ -287,7 +220,8 @@ class DemoServer
                     else
                         return {modified:1, inserted:0, deleted:0, errors: 0}
                 else
-                    table.insert (mapping @), true # The value of upsert is not important since the document doesn't exist.
+                    table.insert (mapping @), true # The value of upsert is not important since
+                                                   # the document doesn't exist.
                     return {modified:0, inserted:1, deleted:0, errors: 0}
 
                     
@@ -408,7 +342,8 @@ class DemoServer
                 #unless table then throw new RuntimeError "No such table"
 
                 if attr isnt table.primaryKey
-                    throw new RuntimeError "Attribute: #{attr} is not the primary key (#{table.primaryKey}) and thus cannot be selected upon."
+                    throw new RuntimeError "Attribute: #{attr} is not the primary key "+
+                                           "(#{table.primaryKey}) and thus cannot be selected upon."
 
                 pkVal = @evaluateTerm gbk.getKey()
 
@@ -421,7 +356,7 @@ class DemoServer
                 result = eval term.getJavascript()
                 if result is null
                     new RDBPrimitive result
-                else if Object.prototype.toString.call(result) is '[object Array]'
+                else if goog.isArray results
                     new RDBArray result
                 else if typeof result is 'object'
                     new RDBOject result
@@ -453,20 +388,21 @@ class DemoServer
 
         switch builtin.getType()
             when Builtin.BuiltinType.NOT
-                if (not args[0]?.asJSON?) or typeof args[0].asJSON() isnt 'boolean'
+                if args[0].typeOf() isnt RDBJson.RDBTypes.BOOLEAN
                     throw new RuntimeError "Not can only be called on a boolean"
                 new RDBPrimitive args[0].not()
             when Builtin.BuiltinType.GETATTR
-                if typeof args[0].asJSON() isnt 'object' or args[0].asJSON() is null or Object.prototype.toString.call(args[0].asJSON()) is '[object Array]'
+                if args[0].typeOf() isnt RDBJson.RDBTypes.OBJECT
                     throw new RuntimeError "Data: \n#{args[0].asJSON()}\nmust be an object"
                 if args[0][builtin.getAttr()]?
                     return args[0][builtin.getAttr()]
                 else
-                    throw new RuntimeError "Object:\n#{DemoServer.prototype.convertToJSON(args[0].asJSON())}\nis missing attribute #{DemoServer.prototype.convertToJSON(builtin.getAttr())}"
+                    throw new RuntimeError "Object:\n#{Utils.stringify(args[0].asJSON())}\n"+
+                                           "is missing attribute #{Utils.stringify(builtin.getAttr())}"
             when Builtin.BuiltinType.IMPLICIT_GETATTR
                 (@curScope.lookup implicitVarId)[builtin.getAttr()]
             when Builtin.BuiltinType.HASATTR
-                if typeof args[0].asJSON() isnt 'object' or args[0].asJSON() is null or Object.prototype.toString.call(args[0].asJSON()) is '[object Array]'
+                if args[0].typeOf() isnt RDBJson.RDBTypes.OBJECT
                     throw new RuntimeError "Data: \n#{args[0].asJSON()}\nmust be an object"
                 new RDBPrimitive args[0][builtin.getAttr()]?
             when Builtin.BuiltinType.IMPLICIT_HASATTR
@@ -480,12 +416,24 @@ class DemoServer
             when Builtin.BuiltinType.ARRAYAPPEND
                 args[0].append args[1]
             when Builtin.BuiltinType.SLICE
-                if args[1].asJSON() isnt null and (typeof args[1].asJSON() isnt 'number' or args[1].asJSON()<0)
+                oneIsNum = args[1].typeOf() is RDBJson.RDBTypes.NUMBER
+                oneIsPositive = oneIsNum and args[1].asJSON() >= 0
+                oneIsNull = args[1].asJSON() is null
+                oneIsNumOrNull = oneIsPositive or oneIsNull
+
+                twoIs = args[2]?
+                twoIsNum = twoIs and args[2].typeOf() is RDBJson.RDBTypes.NUMBER
+                twoIsPositive = twoIsNum and args[2].asJSON() >= 0
+                twoIsNull = twoIs and args[2].asJSON() is null
+                twoIsNumOrNull = twoIsPositive or twoIsNull
+
+                if not oneIsNumOrNull
                     throw new RuntimeError "Slice start must be null or a nonnegative integer."
-                if args[2]? and (args[2].asJSON() isnt null and (typeof args[2].asJSON() isnt 'number' or args[2].asJSON()<0))
-                    throw new RuntimeError "Slice stop must be null or a nonnegative integer."
-                if args[2]? and typeof args[1].asJSON() is 'number' and typeof args[2].asJSON() is 'number' and args[1].asJSON() is args[1].asJSON() and args[2].asJSON() is args[2].asJSON() and args[1].asJSON() > args[2].asJSON()
-                    throw new RuntimeError "Slice stop cannot be before slice start"
+                if twoIs
+                    if not twoIsNumOrNull
+                        throw new RuntimeError "Slice stop must be null or a nonnegative integer."
+                    if oneIsNum and twoIsNum and (args[2].asJSON() < args[1].asJSON())
+                        throw new RuntimeError "Slice stop cannot be before slice start"
 
                 args[0].slice(args[1].asJSON(), args[2]?.asJSON() || undefined)
             when Builtin.BuiltinType.ADD
@@ -520,9 +468,9 @@ class DemoServer
             when Builtin.BuiltinType.UNION
                 args[0].union(args[1])
             when Builtin.BuiltinType.NTH
-                if typeof args[1].asJSON() isnt 'number' or args[1].asJSON() isnt args[1].asJSON()
+                if args[1].typeOf() isnt RDBJson.RDBTypes.NUMBER
                     throw new RuntimeError "The second argument must be an integer."
-                if args[1].asJSON()<0
+                if args[1].asJSON() < 0
                     throw new RuntimeError "The second argument must be a nonnegative integer."
                 return args[0].asArray()[args[1].asJSON()]
             when Builtin.BuiltinType.STREAMTOARRAY
@@ -541,17 +489,13 @@ class DemoServer
 
                 args[0].groupedMapReduce(groupMapping, valueMapping, reduction)
             when Builtin.BuiltinType.ANY
-                if typeof args[0].asJSON() isnt 'boolean'
+                if not args.every((arg) -> arg.typeOf() is RDBJson.RDBTypes.BOOLEAN)
                     throw new RuntimeError "All operands of ANY must be booleans."
-                if args[0].asJSON() is true
-                    return new RDBPrimitive true
-                if typeof args[1].asJSON() isnt 'boolean'
-                    throw new RuntimeError "All operands of ANY must be booleans."
-                new RDBPrimitive (args[1].asJSON())
+                new RDBPrimitive args.some (arg) -> arg.asJSON()
             when Builtin.BuiltinType.ALL
-                if typeof args[0].asJSON() isnt 'boolean' or typeof args[1].asJSON() isnt 'boolean'
+                if not args.every((arg) -> arg.typeOf() is RDBJson.RDBTypes.BOOLEAN)
                     throw new RuntimeError "All operands of ALL must be booleans."
-                new RDBPrimitive (args[0].asJSON() && args[1].asJSON())
+                new RDBPrimitive args.every (arg) -> arg.asJSON()
             when Builtin.BuiltinType.RANGE
                 range = builtin.getRange()
                 args[0].between range.getAttrname(),
