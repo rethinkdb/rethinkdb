@@ -27,12 +27,16 @@ dnl
 %define bin_dir BIN_DIR
 %define doc_dir DOC_DIR
 %define man1_dir MAN1_DIR
+%define share_dir SHARE_DIR
+%define web_res_dir WEB_RES_DIR
 %define full_server_exec_name %{bin_dir}/%{server_exec_name}
 %define full_server_exec_name_versioned %{bin_dir}/%{server_exec_name_versioned}
 %define bash_completion_dir BASH_COMPLETION_DIR
 %define internal_bash_completion_dir INTERNAL_BASH_COMPLETION_DIR
 %define scripts_dir SCRIPTS_DIR
 %define priority PRIORITY
+%define initjob /etc/init.d/rethinkdb
+%define confdir /etc/rethinkdb
 
 BuildRoot: %{buildroot}
 Summary:   RethinkDB - scalability and consistency together at last
@@ -144,4 +148,10 @@ fi',`')`'dnl
 
 %dir %attr(0755,root,root) %{doc_dir}
 %doc %attr(0444,root,root) %{doc_dir}/copyright
+
+%dir %attr(0755,root,root) %{share_dir}
+%dir %attr(0755,root,root) %{web_res_dir}
+
+%attr(0755,root,root) %{initjob}
+%dir %attr(0755,root,root) %{confdir}
 

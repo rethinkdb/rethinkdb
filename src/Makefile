@@ -1062,27 +1062,29 @@ build-rpm: all prepare_rpm_package_dirs
 	@echo "$(ANSI_BOLD_ON)Building RPM package for RethinkDB version $(RETHINKDB_PACKAGING_VERSION)$(ANSI_BOLD_OFF)"
 	@echo
 # Replace version/topdir fields in the spec file
-	$(QUIET) m4																															\
-				-D "SOLO=$(SOLO)"																									\
-				-D "RPM_PACKAGE_DIR=`readlink -f $(RPM_PACKAGE_DIR)`"							\
-				-D "SERVER_EXEC_NAME=$(SERVER_EXEC_NAME)"													\
-				-D "SERVER_EXEC_NAME_VERSIONED=$(SERVER_EXEC_NAME_VERSIONED)"			\
-				-D "PACKAGE_NAME=$(PACKAGE_NAME)"																	\
-				-D "VERSIONED_PACKAGE_NAME=$(VERSIONED_PACKAGE_NAME)"							\
-				-D "VANILLA_PACKAGE_NAME=$(VANILLA_PACKAGE_NAME)"									\
-				-D "TRIAL_PACKAGE_NAME=$(TRIAL_PACKAGE_NAME)"											\
-				-D "VERSIONED_TRIAL_PACKAGE_NAME=$(VERSIONED_TRIAL_PACKAGE_NAME)"	\
-				-D "PACKAGE_VERSION=$(RETHINKDB_VERSION_DEB)"											\
-				-D "PACKAGE=$(PACKAGE)"																	\
-				-D "PACKAGE_FOR_SUSE_10=$(PACKAGE_FOR_SUSE_10)"								    \
-				-D "TRIAL=$(TRIAL)"																						    \
-				-D "BIN_DIR=$(bin_dir)"																						\
-				-D "DOC_DIR=$(doc_dir)"																						\
-				-D "MAN1_DIR=$(man1_dir)"																					\
-				-D "BASH_COMPLETION_DIR=$(bash_completion_dir)" 									\
-				-D "INTERNAL_BASH_COMPLETION_DIR=$(internal_bash_completion_dir)"	\
-				-D "SCRIPTS_DIR=$(scripts_dir)"																		\
-				-D "PRIORITY=$(PACKAGING_ALTERNATIVES_PRIORITY)" 									\
+	$(QUIET) m4 \
+				-D "SOLO=$(SOLO)" \
+				-D "RPM_PACKAGE_DIR=`readlink -f $(RPM_PACKAGE_DIR)`" \
+				-D "SERVER_EXEC_NAME=$(SERVER_EXEC_NAME)" \
+				-D "SERVER_EXEC_NAME_VERSIONED=$(SERVER_EXEC_NAME_VERSIONED)" \
+				-D "PACKAGE_NAME=$(PACKAGE_NAME)" \
+				-D "VERSIONED_PACKAGE_NAME=$(VERSIONED_PACKAGE_NAME)" \
+				-D "VANILLA_PACKAGE_NAME=$(VANILLA_PACKAGE_NAME)" \
+				-D "TRIAL_PACKAGE_NAME=$(TRIAL_PACKAGE_NAME)" \
+				-D "VERSIONED_TRIAL_PACKAGE_NAME=$(VERSIONED_TRIAL_PACKAGE_NAME)" \
+				-D "PACKAGE_VERSION=$(RETHINKDB_VERSION_DEB)" \
+				-D "PACKAGE=$(PACKAGE)" \
+				-D "PACKAGE_FOR_SUSE_10=$(PACKAGE_FOR_SUSE_10)" \
+				-D "TRIAL=$(TRIAL)" \
+				-D "BIN_DIR=$(bin_dir)" \
+				-D "DOC_DIR=$(doc_dir)" \
+				-D "MAN1_DIR=$(man1_dir)" \
+				-D "SHARE_DIR=$(share_dir)" \
+				-D "WEB_RES_DIR=$(web_res_dir)" \
+				-D "BASH_COMPLETION_DIR=$(bash_completion_dir)" \
+				-D "INTERNAL_BASH_COMPLETION_DIR=$(internal_bash_completion_dir)" \
+				-D "SCRIPTS_DIR=$(scripts_dir)" \
+				-D "PRIORITY=$(PACKAGING_ALTERNATIVES_PRIORITY)" \
 			$(RPM_SPEC_INPUT) >$(RPM_SPEC_FILE)
 # Copy files to their correct places
 	$(QUIET) $(MAKE) DESTDIR=$(RPM_BUILD_ROOT) install-rpm
