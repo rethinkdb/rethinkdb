@@ -109,7 +109,7 @@ private:
         }
 
         int estimate_qps() {
-            ticks_t time_span = get_ticks() - time_of_last_qps_sample;
+            ticks_t time_span = std::min<ticks_t>(get_ticks() - time_of_last_qps_sample, 1);
             return running_qps_estimate / 2 +
                 requests_since_last_qps_sample * secs_to_ticks(1) / time_span;
         }
