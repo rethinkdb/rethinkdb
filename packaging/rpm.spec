@@ -114,7 +114,7 @@ for alt in update-alternatives alternatives; do
   done
 done
 
-# even if alternatives are installed it's still possible that we were installed without them, so we should be able to fallback onto the crude system
+# even if alternatives are installed it is still possible that we were installed without them, so we should be able to fallback onto the crude system
 if [ -n "$ALTERNATIVES"  -a -h %{full_server_exec_name} -a "$(readlink %{full_server_exec_name})" != "%{full_server_exec_name_versioned}" ]; then
   $ALTERNATIVES --remove %{server_exec_name} %{full_server_exec_name_versioned}
 else
@@ -150,8 +150,9 @@ fi',`')`'dnl
 %doc %attr(0444,root,root) %{doc_dir}/copyright
 
 %dir %attr(0755,root,root) %{share_dir}
-%dir %attr(0755,root,root) %{web_res_dir}
+%attr(0755,root,root) %{web_res_dir}
 
 %attr(0755,root,root) %{initjob}
 %dir %attr(0755,root,root) %{confdir}
+%config %attr(0644,root,root) %{confdir}/default.conf.sample
 
