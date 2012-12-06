@@ -355,7 +355,7 @@ void connectivity_cluster_t::run_t::handle(
             // If EOF or data does not match header, terminate connection.
             if (0 == r || memcmp(cluster_proto_header + i, data, r)) {
                 // Wrong header.
-                logWRN("received invalid clustering header from %s, closing connection", peername);
+                logWRN("received invalid clustering header from %s, closing connection. Is something connected to the wrong port?", peername);
                 return;
             }
         }
