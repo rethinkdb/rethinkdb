@@ -446,7 +446,7 @@ endif
 # look for the static library in the same directory as the .so file
 ifeq ($(OSX),1)
 # TODO(OSX) Make this not be hardcoded to homebrew paths.
-STATIC_LIBRARY_PATHS:=/usr/local/lib/libboost_program_options-mt.a /usr/local/lib/libprotobuf.a
+STATIC_LIBRARY_PATHS+=/usr/local/lib/libboost_program_options-mt.a /usr/local/lib/libprotobuf.a
 else
 STATIC_LIBRARY_PATHS+=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }'))
 endif
