@@ -19,6 +19,7 @@ dnl
 %define packagename PACKAGE_NAME
 %define vanilla_packagename PACKAGE_NAME
 %define versioned_packagename VERSIONED_PACKAGE_NAME
+%define versioned_qualified_packagename VERSIONED_QUALIFIED_PACKAGE_NAME
 %define server_exec_name SERVER_EXEC_NAME
 %define server_exec_name_versioned SERVER_EXEC_NAME_VERSIONED
 %define version patsubst(PACKAGE_VERSION, `-', `_')
@@ -40,7 +41,7 @@ dnl
 
 BuildRoot: %{buildroot}
 Summary:   RethinkDB - scalability and consistency together at last
-Name:      %{versioned_packagename}
+Name:      %{versioned_qualified_packagename}
 Version:   %{version}
 Release:   1
 License:   Affero General Public License version 2 or 3
@@ -48,13 +49,13 @@ Vendor:    Hexagram 49, Inc.
 Packager:  Package Maintainer <packaging@rethinkdb.com>
 URL:       http://rethinkdb.com/
 Group:     Productivity/Databases/Servers
-Provides:  %{vanilla_packagename}
+Provides:  %{packagename}
 Requires:  ifelse(PACKAGE_FOR_SUSE_10, 1,
   `glibc >= 2.4-31, libaio >= 0.3.104, update-alternatives',
   LEGACY_PACKAGE, 1,
   `glibc >= 2.5, libaio >= 0.3.106, chkconfig >= 1.3.30.2',
   `glibc >= 2.10.1, libaio >= 0.3.106, chkconfig >= 1.3.30.2')
-Conflicts: %{versioned_packagename} < %{version}
+Conflicts: %{versioned_qualified_packagename} < %{version}
 
 
 %description

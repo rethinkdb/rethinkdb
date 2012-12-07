@@ -964,6 +964,7 @@ build-deb-src-control:
 				-D "DISK_SIZE=$${disk_size}" \
 				-D "SOURCEBUILD=1" \
 				-D "NODEJS_NEW=$(NODEJS_NEW)" \
+				-D "CURRENT_ARCH=$(GCC_ARCH_REDUCED)" \
 			../packaging/$(DEBIAN_PKG_DIR)/control > ../debian/control
 # Copy {pre,post}{inst,rm} scripts
 	$(QUIET) for script in preinst postinst prerm postrm; do		                  		\
@@ -1030,6 +1031,7 @@ build-deb: all prepare_deb_package_dirs
 				-D "DISK_SIZE=$${disk_size}"														\
 				-D "SOURCEBUILD=0" \
 				-D "NODEJS_NEW=$(NODEJS_NEW)" \
+				-D "CURRENT_ARCH=$(GCC_ARCH_REDUCED)" \
 			../packaging/$(DEBIAN_PKG_DIR)/control >$(DEB_CONTROL_ROOT)/control
 # Copy the license file.
 	cat ../packaging/$(DEBIAN_PKG_DIR)/copyright > $(DEB_CONTROL_ROOT)/copyright
@@ -1069,6 +1071,7 @@ build-rpm: all prepare_rpm_package_dirs
 				-D "SERVER_EXEC_NAME_VERSIONED=$(SERVER_EXEC_NAME_VERSIONED)" \
 				-D "PACKAGE_NAME=$(PACKAGE_NAME)" \
 				-D "VERSIONED_PACKAGE_NAME=$(VERSIONED_PACKAGE_NAME)" \
+				-D "VERSIONED_QUALIFIED_PACKAGE_NAME=$(VERSIONED_QUALIFIED_PACKAGE_NAME)" \
 				-D "VANILLA_PACKAGE_NAME=$(VANILLA_PACKAGE_NAME)" \
 				-D "TRIAL_PACKAGE_NAME=$(TRIAL_PACKAGE_NAME)" \
 				-D "VERSIONED_TRIAL_PACKAGE_NAME=$(VERSIONED_TRIAL_PACKAGE_NAME)" \
