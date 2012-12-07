@@ -1,5 +1,6 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "unittest/gtest.hpp"
+#include <ctime>
 
 #include "utils.hpp"
 #include "arch/address.hpp"
@@ -58,7 +59,14 @@ TEST(UtilsTest, StrtofooStrict) {
 }
 
 TEST(UtilsTest, Time) {
-    struct timespec time = {1335301122, 1234};
+    // The way this test is written depends on the timezone we're in
+    time_t current_time;
+    struct tm timeinfo;
+    time(&current_time);
+    localtime_r(&current_time, &timeinfo);
+
+    // Subtract the timezone's offset to the timespec so it'll cancel out
+    struct timespec time = {1335272322 - timeinfo.tm_gmtoff, 1234};
     std::string formatted = format_time(time);
     EXPECT_EQ("2012-04-24T13:58:42.000001234", formatted);
     struct timespec parsed = parse_time(formatted);

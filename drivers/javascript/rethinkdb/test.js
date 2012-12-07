@@ -118,6 +118,8 @@ var tobj = r.expr({a:1,b:2,c:3});
 function testContains() {
     tobj.contains('a').run(aeq(true));
     tobj.contains('d').run(aeq(false));
+    tobj.contains('a', 'b').run(aeq(true));
+    tobj.contains('a', 'd').run(aeq(false));
 }
 
 function testGetAttr() {
@@ -301,7 +303,7 @@ function testGroupBy() {
         {g1: 2, g2: 3, num: 100}
     ]);
 
-    s.groupBy('g1', r.average('num')).run(objeq(
+    s.groupBy('g1', r.avg('num')).run(objeq(
         {group:1, reduction:5},
         {group:2, reduction:50}
     ));
@@ -313,7 +315,7 @@ function testGroupBy() {
         {group:1, reduction:15},
         {group:2, reduction:100}
     ));
-    s.groupBy('g1', 'g2', r.average('num')).run(objeq(
+    s.groupBy('g1', 'g2', r.avg('num')).run(objeq(
         {group:[1,1], reduction: 0},
         {group:[1,2], reduction: 7.5},
         {group:[2,3], reduction: 50}
@@ -325,8 +327,9 @@ function testConcatMap() {
 }
 
 function testJoin1() {
-    var s1 = r.expr([{id:0, name:'bob'}, {id:1, name:'tom'}, {id:2, name:'joe'}]);
-    var s2 = r.expr([{id:0, title:'goof'}, {id:2, title:'lmoe'}]);
+    var s1 = [{id:0, name:'bob'}, {id:1, name:'tom'}, {id:2, name:'joe'}];
+    var s2 = [{id:0, title:'goof'}, {id:2, title:'lmoe'}];
+    var s3 = [{it:0, title:'goof'}, {it:2, title:'lmoe'}];
 
     wait();
     r.db('test').tableCreate('joins1').run(function() {
@@ -337,11 +340,17 @@ function testJoin1() {
     r.db('test').tableCreate('joins2').run(function() {
         r.table('joins2').insert(s2).run(done);
     });
+
+    wait();
+    r.db('test').tableCreate({tableName:'joins3', primaryKey:'it'}).run(function() {
+        r.table('joins3').insert(s3).run(done);
+    });
 }
 
 function testJoin2() {
     var s1 = r.table('joins1');
     var s2 = r.table('joins2');
+    var s3 = r.table('joins3');
 
     s1.innerJoin(s2, function(one, two) {
         return one('id').eq(two('id'));
@@ -358,9 +367,14 @@ function testJoin2() {
         {id:2, name: 'joe', title: 'lmoe'}
     ));
 
-    s1.eqJoin('id', r.table('joins2')).zip().orderBy('id').run(objeq(
+    s1.eqJoin('id', s2).zip().orderBy('id').run(objeq(
         {id:0, name: 'bob', title: 'goof'},
         {id:2, name: 'joe', title: 'lmoe'}
+    ));
+
+    s1.eqJoin('id', s3, 'it').zip().orderBy('id').run(objeq(
+        {id:0, it:0, name: 'bob', title: 'goof'},
+        {id:2, it:2, name: 'joe', title: 'lmoe'}
     ));
 }
 

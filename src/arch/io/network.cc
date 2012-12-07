@@ -741,8 +741,8 @@ bool linux_nonthrowing_tcp_listener_t::bind_sockets_internal(int *port_out) {
             rassert(i == 0); // This should only happen on the first loop
             struct sockaddr_in sa;
             socklen_t sa_len(sizeof(sa));
-            int res = getsockname(socks[i].get(), (struct sockaddr*)&sa, &sa_len);
-            guarantee_err(res != -1, "Could not determine socket local port number");
+            int res2 = getsockname(socks[i].get(), (struct sockaddr*)&sa, &sa_len);
+            guarantee_err(res2 != -1, "Could not determine socket local port number");
             *port_out = ntohs(sa.sin_port);
 
             // Apply to the structure we're binding with, so all sockets have the same local port

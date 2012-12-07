@@ -31,7 +31,7 @@ class RDBTest(unittest.TestCase):
         cls.table_name = os.environ.get('TABLE_NAME', 'test')
         cls.table = cls.db.table(cls.table_name)
         try:
-            cls.db.table_create(cls.table_name)
+            cls.db.table_create(cls.table_name).run()
         except:
             pass
 
@@ -164,6 +164,9 @@ class RDBTest(unittest.TestCase):
     def test_attr(self):
         self.expect(expr({"foo": 3}).contains("foo"), True)
         self.expect(expr({"foo": 3}).contains("bar"), False)
+
+        self.expect(expr({"a": 3, "b": 4}).contains("a", "b"), True)
+        self.expect(expr({"a": 3, "b": 4}).contains("b", "c"), False)
 
         self.expect(expr({"foo": 3})["foo"], 3)
         self.error_exec(expr({"foo": 3})["bar"], "missing")

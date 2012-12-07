@@ -423,22 +423,27 @@ class JSONExpression(ReadQuery):
         """
         return JSONExpression(internal.Not(self))
 
-    def contains(self, name):
-        """Determines whether an object has a key called `name`.
-        Evaluates to `true` if the key is present, or `false` if not.
+    def contains(self, *attrs):
+        """Determines whether an object has all of the given keys.
+        Evaluates to `true` if all keys are present, or `false` if not.
 
         If `self` is not an object, fails when the query is run.
 
-        :param name: The key to check for
-        :type name: string
+        :param *attrs: The keys to check for
+        :type *attrs: string
         :returns: :class:`JSONExpression` evaluating to a boolean
 
         >>> expr({}).contains("foo").run()
         False
         >>> expr({"a": 1}).contains("a").run()
         True
+        >>> expr({"a": 1}).contains("a", "b").run()
+        False
         """
-        return JSONExpression(internal.Has(self, name))
+        query = JSONExpression(internal.Has(self, attrs[0]))
+        for attr in attrs[1:]:
+            query = query & JSONExpression(internal.Has(self, attr))
+        return query
 
     def merge(self, other):
         """Combines two objects by taking all the key-value pairs from both. If

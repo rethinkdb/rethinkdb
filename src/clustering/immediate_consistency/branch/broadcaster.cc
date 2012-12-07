@@ -213,9 +213,9 @@ public:
         background_write_workers(100, &background_write_queue, &background_write_caller),
         controller(c),
         upgrade_mailbox(controller->mailbox_manager,
-            boost::bind(&dispatchee_t::upgrade, this, _1, _2, auto_drainer_t::lock_t(&drainer))),
+            boost::bind(&dispatchee_t::upgrade, this, _1, _2, auto_drainer_t::lock_t(&drainer)), mailbox_callback_mode_inline),
         downgrade_mailbox(controller->mailbox_manager,
-            boost::bind(&dispatchee_t::downgrade, this, _1, auto_drainer_t::lock_t(&drainer)))
+            boost::bind(&dispatchee_t::downgrade, this, _1, auto_drainer_t::lock_t(&drainer)), mailbox_callback_mode_inline)
     {
         controller->assert_thread();
         controller->sanity_check();
