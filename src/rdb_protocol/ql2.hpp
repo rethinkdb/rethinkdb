@@ -88,19 +88,6 @@ private:
     std::map<const std::string, const datum_t *> r_object;
 };
 
-const char *name(datum_t::type_t type) {
-    switch(type) {
-    case datum_t::R_NULL:   return "NULL";
-    case datum_t::R_BOOL:   return "BOOL";
-    case datum_t::R_NUM:    return "NUM";
-    case datum_t::R_STR:    return "STR";
-    case datum_t::R_ARRAY:  return "ARRAY";
-    case datum_t::R_OBJECT: return "OBJECT";
-    default: unreachable();
-    }
-    unreachable();
-}
-
 class func_t;
 class val_t;
 class term_t;
@@ -157,21 +144,25 @@ private:
 
 class func_t {
 public:
-    func_t(const std::vector<int> &args, const Term *body_source, environment_t *env);
+    func_t(const std::vector<int> &args, const Term2 *body_source, environment_t *env);
     val_t *call(const std::vector<datum_t *> &args);
 private:
     std::vector<datum_t *> argptrs;
     scoped_ptr_t<term_t> body;
 };
 
-term_t *compile_term(const Term *source, environment_t *env);
+term_t *compile_term(const Term2 *source, environment_t *env);
 
 class term_t {
 public:
     term_t();
     virtual ~term_t();
 
-    val_t *eval(bool use_cached_val = true);
+    //val_t *eval(bool use_cached_val = true);
+    val_t *eval(bool use_cached_val = true) {
+        runtime_check(false, strprintf("UNIMPLEMENTED %d", use_cached_val));
+        return 0;
+    }
 private:
     val_t *cached_val;
     virtual val_t *eval_impl() = 0;
@@ -189,7 +180,7 @@ private:
 
 class op_term_t : public term_t {
 public:
-    op_term_t(const Term *opterm);
+    op_term_t(const Term2 *opterm);
     virtual ~op_term_t();
     virtual val_t *eval_impl();
 private:
@@ -203,7 +194,7 @@ private:
 
 class simple_op_term_t : public op_term_t {
 public:
-    simple_op_term_t(const Term *opterm);
+    simple_op_term_t(const Term2 *opterm);
     virtual ~simple_op_term_t();
     virtual val_t *call_impl(std::vector<val_t *> *args,
                              std::map<const std::string, val_t *> *optargs);

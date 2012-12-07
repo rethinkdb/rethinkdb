@@ -29,7 +29,7 @@ enum Version {
 // * A [CONTINUE] query with the same token as a [START] query that returned
 //   [SUCCESS_PARTIAL] in its [Response].
 // * A [STOP] query with the same token as a [START] query that you want to stop.
-message Query {
+message Query2 {
     enum QueryType {
         START    = 1; // Start a new query.
         CONTINUE = 2; // Continue a query that returned [SUCCESS_PARTIAL]
@@ -38,13 +38,13 @@ message Query {
     };
     required QueryType type = 1;
     // A [Term] is how we represent the operations we want a query to perform.
-    optional Term query = 2; // only present when [type] = [START]
+    optional Term2 query = 2; // only present when [type] = [START]
     required uint64 token = 3;
     optional bool noreply = 4 [default = false]; // CURRENTLY IGNORED, NO SERVER SUPPORT
 };
 
 // You get back a response with the same [token] as your query.
-message Response {
+message Response2 {
     enum ResponseType {
         // These response types indicate success.
         SUCCESS_ATOM     = 1; // Query returned a single RQL datatype.
@@ -139,7 +139,7 @@ message Datum {
 // Also, some Data are marked as [LIT], meaning that they must be provided
 // literally.  E.g. `LIT(STR)` means you must provide a literal string datum
 // rather than a term that evaluates to a string.
-message Term {
+message Term2 {
     enum TermType {
         // A RQL datum, stored in `datum` below.
         DATUM = 1;
@@ -409,10 +409,10 @@ message Term {
     // This is only used when type is DATUM.
     optional Datum datum = 2;
 
-    repeated Term args = 3; // Holds the positional arguments of the query.
+    repeated Term2 args = 3; // Holds the positional arguments of the query.
     message AssocPair {
         required string key = 1;
-        required Term val = 2;
+        required Term2 val = 2;
     };
     repeated AssocPair optargs = 4; // Holds the optional arguments of the query.
     // (Note that the order of the optional arguments doesn't matter; think of a

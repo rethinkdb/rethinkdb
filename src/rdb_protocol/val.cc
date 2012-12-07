@@ -3,7 +3,7 @@
 
 namespace ql {
 
-func_t::func_t(const std::vector<int> &args, const Term *body_source,
+func_t::func_t(const std::vector<int> &args, const Term2 *body_source,
                environment_t *env) {
     for (size_t i = 0; i < args.size(); ++i) {
         argptrs.push_back(0);
