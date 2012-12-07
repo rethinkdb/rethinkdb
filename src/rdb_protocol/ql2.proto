@@ -1,0 +1,469 @@
+////////////////////////////////////////////////////////////////////////////////
+//                            THE HIGH-LEVEL VIEW                             //
+////////////////////////////////////////////////////////////////////////////////
+
+// Process: First send the magic number for the version of the protobuf you're
+// targetting (in the [Version] enum).  This should **NOT** be sent as a
+// protobuf; just send the little-endian 32-bit integer over the wire raw.
+// Next, send [Query] protobufs and wait for [Response] protobufs with the same
+// token.  You can see an example exchange below in **EXAMPLE**.
+
+// A query consists of a [Term] to evaluate and a unique-per-connection
+// [token].
+
+// Tokens are used for two things:
+// * Keeping track of which responses correspond to which queries.
+// * Batched queries.  Some queries return lots of results, so we send back
+//   batches of <1000, and you need to send a [CONTINUE] query with the same
+//   token to get more results from the original query.
+////////////////////////////////////////////////////////////////////////////////
+
+// This enum contains the magic numbers for your version.  See **THE HIGH-LEVEL
+// VIEW** for what to do with it.
+enum Version {
+    V0_1 = 0x3f61ba36;
+};
+
+// You send one of:
+// * A [START] query with a [Term] to evaluate and a unique-per-connection token.
+// * A [CONTINUE] query with the same token as a [START] query that returned
+//   [SUCCESS_PARTIAL] in its [Response].
+// * A [STOP] query with the same token as a [START] query that you want to stop.
+message Query {
+    enum QueryType {
+        START    = 1; // Start a new query.
+        CONTINUE = 2; // Continue a query that returned [SUCCESS_PARTIAL]
+                      // (see [Response]).
+        STOP     = 3; // Stop a query partway through executing.
+    };
+    required QueryType type = 1;
+    // A [Term] is how we represent the operations we want a query to perform.
+    optional Term query = 2; // only present when [type] = [START]
+    required uint64 token = 3;
+    optional bool noreply = 4 [default = false]; // CURRENTLY IGNORED, NO SERVER SUPPORT
+};
+
+// You get back a response with the same [token] as your query.
+message Response {
+    enum ResponseType {
+        // These response types indicate success.
+        SUCCESS_ATOM     = 1; // Query returned a single RQL datatype.
+        SUCCESS_SEQUENCE = 2; // Query returned a sequence of RQL datatypes.
+        SUCCESS_PARTIAL  = 3; // Query returned a partial sequence of RQL
+                              // datatypes.  If you send a [CONTINUE] query with
+                              // the same token as this response, you will get
+                              // more of the sequence.  Keep sending [CONTINUE]
+                              // queries until you get back [SUCCESS_SEQUENCE].
+
+        // These response types indicate failure.
+        CLIENT_ERROR  = 16; // Means the client is buggy.  An example is if the
+                            // client sends a malformed protobuf, or tries to
+                            // send [CONTINUE] for an unknown token.
+        COMPILE_ERROR = 17; // Means the query failed during parsing or type
+                            // checking.  For example, if you pass too many
+                            // arguments to a function.
+        RUNTIME_ERROR = 18; // Means the query failed at runtime.  An example is
+                            // if you add together two values from a table, but
+                            // they turn out at runtime to be booleans rather
+                            // than numbers.
+    };
+    required ResponseType type = 1;
+    required uint64 token = 2; // Indicates what [Query] this response corresponds to.
+
+    // [response] contains 1 RQL datum if [type] is [SUCCESS_ATOM], or many RQL
+    // data if [type] is [SUCCESS_SEQUENCE] or [SUCCESS_PARTIAL].  It contains 1
+    // error message (of type [R_STR]) in all other cases.
+    repeated Datum response = 3;
+
+    // If [type] is [CLIENT_ERROR], [TYPE_ERROR], or [RUNTIME_ERROR], then a
+    // backtrace will be provided.  The backtrace says where in the query the
+    // error occured.  Ideally this information will be presented to the user as
+    // a pretty-printed version of their query with the erroneous section
+    // underlined.  A backtrace is a series of 0 or more [Frame]s, each of which
+    // specifies either the index of a positional argument or the name of an
+    // optional argument.  (Those words will make more sense if you look at the
+    // [Term] message below.)
+    message Frame { // A frame of the backtrace.
+        enum FrameType {
+            POS = 1; // Error occured in a positional argument.
+            OPT = 2; // Error occured in an optional argument.
+        };
+        required FrameType type = 1;
+        optional uint64 pos = 2; // The index of the positional argument.
+        optional string opt = 3; // The name of the optional argument.
+    };
+    repeated Frame backtrace = 4; // Contains n [Frame]s when you get back an error.
+};
+
+// A [Datum] is a chunk of data that can be serialized to disk or returned to
+// the user in a Response.  Currently we only support JSON types, but we may
+// support other types in the future (e.g., a date type or an integer type).
+message Datum {
+    enum DatumType {
+        R_NULL   = 1;
+        R_BOOL   = 2;
+        R_NUM    = 3; // a double
+        R_STR    = 4;
+        R_ARRAY  = 5;
+        R_OBJECT = 6;
+    };
+    required DatumType type = 1;
+    optional bool r_bool = 2;
+    optional double r_num = 3;
+    optional string r_str = 4;
+
+    repeated Datum r_array = 5;
+    message AssocPair {
+        required string key = 1;
+        required Datum val = 2;
+    };
+    repeated AssocPair r_object = 6;
+};
+
+// A [Term] is either a piece of data (see **Datum** above), or an operator and
+// its operands.  If you have a [Datum], it's stored in the member [datum].  If
+// you have an operator, its positional arguments are stored in [args] and its
+// optional arguments are stored in [optargs].
+//
+// A note about type signatures:
+// We use the following notation to denote types:
+//   arg1_type, arg2_type, argrest_type... -> result_type
+// So, for example, if we have a function `avg` that takes any number of
+// arguments and averages them, we might write:
+//   NUM... -> NUM
+// Or if we had a function that took one number modulo another:
+//   NUM, NUM -> NUM
+// Or a function that takes a table and a primary key of any RQL datatype, then
+// retrieves the entry with that primary key:
+//   Table, RQL -> OBJECT
+// Also, some Data are marked as [LIT], meaning that they must be provided
+// literally.  E.g. `LIT(STR)` means you must provide a literal string datum
+// rather than a term that evaluates to a string.
+message Term {
+    enum TermType {
+        // A RQL datum, stored in `datum` below.
+        DATUM = 1;
+
+        // Special: Evaluate the terms in [args] and make an array out of the
+        // resulting data.
+        MAKE_ARRAY = 2;
+        // Special: Evaluate the terms in [optargs] and make an object out of
+        // the resulting data.
+        MAKE_OBJ   = 3;
+
+        // * Compound types
+        // Takes an integer representing a variable and returns the value stored
+        // in that variable.  It's the responsibility of the client to translate
+        // from their local representation of a variable to a unique integer for
+        // that variable.  (We do it this way instead of letting clients provide
+        // variable names as strings to discourage variable-capturing client
+        // libraries, and because it's more efficient on the wire.)
+        // http://www.rethinkdb.com/api/#js:control_structures-letvar
+        VAR          = 10; // LIT(NUM) -> Datum
+        // Takes some javascript code and executes it.
+        // http://www.rethinkdb.com/api/#js:control_structures-js
+        JAVASCRIPT   = 11; // STR -> DATUM
+        // Takes a string and throws an error with that message.
+        // http://www.rethinkdb.com/api/#js:control_structures-error
+        ERROR        = 12; // STR -> <throws an error>
+        // Takes nothing and returns a reference to the implicit variable.
+        // http://www.rethinkdb.com/api/#js:writing_data-update (second example, the `r`)
+        IMPLICIT_VAR = 13; // -> Variable
+
+        // * Data Operators
+        // Returns a reference to a database.
+        // http://www.rethinkdb.com/api/#js:selecting_data-db
+        DB    = 14; // STR -> DB
+        // Returns a reference to a table.
+        // http://www.rethinkdb.com/api/#js:selecting_data-table
+        TABLE = 15; // STR, DB -> Table
+                         // Optargs: use_outdated (BOOL)
+        // Gets a single element from a table by its primary key.
+        // http://www.rethinkdb.com/api/#js:selecting_data-get
+        GET   = 16; // Table, STR -> DATUM
+                    // Optargs: attribute (LIT(STR))
+
+        // Simple DATUM Ops
+        // http://www.rethinkdb.com/api/#js:json_operators-eq
+        EQ  = 17; // DATUM... -> BOOL
+        // http://www.rethinkdb.com/api/#js:json_operators-ne
+        NE  = 18; // DATUM... -> BOOL
+        // http://www.rethinkdb.com/api/#js:json_operators-lt
+        LT  = 19; // DATUM... -> BOOL
+        // http://www.rethinkdb.com/api/#js:json_operators-le
+        LE  = 20; // DATUM... -> BOOL
+        // http://www.rethinkdb.com/api/#js:json_operators-gt
+        GT  = 21; // DATUM... -> BOOL
+        // http://www.rethinkdb.com/api/#js:json_operators-ge
+        GE  = 22; // DATUM... -> BOOL
+        // http://www.rethinkdb.com/api/#js:json_operators-not
+        NOT = 23; // BOOL -> BOOL
+        // ADD can either add two numbers or concatenate two arrays.
+        // http://www.rethinkdb.com/api/#js:json_operators-add
+        ADD = 24; // ARRAY... -> ARRAY
+                  // NUM... -> NUM
+        // http://www.rethinkdb.com/api/#js:json_operators-sub
+        SUB = 25; // NUM... -> NUM
+        // http://www.rethinkdb.com/api/#js:json_operators-mul
+        MUL = 26; // NUM... -> NUM
+        // http://www.rethinkdb.com/api/#js:json_operators-div
+        DIV = 27; // NUM... -> NUM
+        // http://www.rethinkdb.com/api/#js:json_operators-mod
+        MOD = 28; // NUM, NUM -> NUM
+
+        // DATUM Array Ops
+        // Append a single element to the end of an array (like `snoc`).
+        // http://www.rethinkdb.com/api/#js:document_manipulation-append
+        APPEND = 29; // ARRAY, DATUM -> ARRAY
+        // http://www.rethinkdb.com/api/#js:transformations-slice
+        SLICE  = 30; // Sequence -> Sequence
+                     // Optargs: left_extent (NUM), right_extent (NUM)
+
+        // Stream/Object Ops
+        // Get a particular attribute out of an object, or map that over a
+        // sequence.
+        // http://www.rethinkdb.com/api/#js:document_manipulation-getattr
+        GETATTR  = 31; // OBJECT, STR -> DATUM
+        // Check whether an object contains all of a set of attributes, or map
+        // that over a sequence.
+        // http://www.rethinkdb.com/api/#js:document_manipulation-contains
+        CONTAINS = 32; // OBJECT, STR... -> BOOL
+        // Get a subset of an object by selecting some attributes to preserve,
+        // or map that over a sequence.  (Both pick and pluck, polymorphic.)
+        // http://www.rethinkdb.com/api/#js:document_manipulation-pick
+        // http://www.rethinkdb.com/api/#js:transformations-pluck
+        PLUCK    = 33; // Sequence, STR... -> Sequence
+        // Get a subset of an object by selecting some attributes to discard, or
+        // map that over a sequence.  (Both unpick and without, polymorphic.)
+        // http://www.rethinkdb.com/api/#js:document_manipulation-unpick
+        // http://www.rethinkdb.com/api/#js:transformations-without
+        WITHOUT  = 34; // Sequence, STR... -> Sequence
+        // Merge two objects (right-preferential), or merge all objects in a
+        // sequence left-to-right.
+        // http://www.rethinkdb.com/api/#js:document_manipulation-merge
+        MERGE    = 35; // OBJECT, OBJECT -> OBJECT
+
+        // Sequence Ops
+        // Get all elements of a sequence between two values.
+        // http://www.rethinkdb.com/api/#js:selecting_data-between
+        BETWEEN   = 36; // Sequence -> Sequence
+                                 // Optargs: left_bound (DATUM), right_bound (DATUM)
+        // http://www.rethinkdb.com/api/#js:aggregation-reduce
+        REDUCE    = 37; // Sequence, DATUM, FUNC (arity 2) -> DATUM
+        // http://www.rethinkdb.com/api/#js:transformations-map
+        MAP       = 38; // Sequence, FUNC (arity 1) -> Sequence
+        // http://www.rethinkdb.com/api/#js:selecting_data-filter
+        FILTER    = 39; // Sequence, FUNC (arity 1) -> Sequence
+        // Map a function over a sequence and then concatenate the results together.
+        // http://www.rethinkdb.com/api/#js:transformations-concatMap
+        CONCATMAP = 40; // Sequence, FUNC (arity 1) -> Sequence
+        // Order a sequence based on one or more attributes.
+        // http://www.rethinkdb.com/api/#js:transformations-orderby
+        ORDERBY   = 41; // Sequence, ARRAY -> Sequence
+        // Get all distinct elements of a sequence (like `uniq`).
+        // http://www.rethinkdb.com/api/#js:aggregation-distinct
+        DISTINCT  = 42; // Sequence -> Sequence
+        // Count the number of elements in a sequence.
+        // http://www.rethinkdb.com/api/#js:aggregation-count
+        COUNT     = 43; // Sequence -> NUM
+        // Take the union of two sequences (preserves duplicate elements!).
+        // http://www.rethinkdb.com/api/#js:transformations-union
+        UNION     = 44; // Sequence... -> Sequence
+        // Get the Nth element of a sequence.
+        // http://www.rethinkdb.com/api/#js:transformations-nth
+        NTH       = 45; // Sequence, NUM -> DATUM
+        // Takes a sequence, and three functions:
+        // - A function to group the sequence by.
+        // - A function to map over the groups.
+        // - A reduction to apply to each of the groups.
+        // http://www.rethinkdb.com/api/#js:transformations-nth
+        GROUPED_MAP_REDUCE = 46; // Sequence, FUNC (arity 1), FUNC (arity 1),
+                                 // FUNC (arity 2) -> OBJECT
+        // Groups a sequence by one or more attributes, and then applies a reduction.
+        // http://www.rethinkdb.com/api/#js:aggregation-groupby
+        GROUPBY            = 47; // Sequence, ARRAY, FUNC (arity 2) -> OBJECT
+        // http://www.rethinkdb.com/api/#js:joins-inner
+        INNER_JOIN         = 48; // Sequence, Sequence, FUNC (arity 2) -> Sequence
+        // http://www.rethinkdb.com/api/#js:joins-outer
+        OUTER_JOIN         = 49; // Sequence, Sequence, FUNC (arity 2) -> Sequence
+        // An inner-join that does an equality comparison on two attributes.
+        // http://www.rethinkdb.com/api/#js:joins-eqJoin
+        EQ_JOIN            = 50; // Sequence, Sequence -> Sequence
+                                 // Optargs: left_attr (LIT(STR)), right_attr (LIT(STR))
+
+        // * Type Ops
+        // Coerces a datum to a named type (e.g. "bool").
+        // If you previously used `stream_to_array`, you should use this instead
+        // with the type "array".
+        COERCE = 51; // Anything, STR -> Anything
+        // Returns the named type of a datum (e.g. TYPEOF(true) = "bool")
+        TYPEOF = 52; // DATUM -> STR
+
+        // * Write Ops (the OBJECTs contain data about number of errors etc.)
+        // Updates all the rows in a selection.  Calls its FUNC with the row
+        // to be updated, and then merges the result of that call.
+        // http://www.rethinkdb.com/api/#js:writing_data-update
+        UPDATE   = 53; // Selection, FUNC (arity 1) -> OBJECT
+        // Deletes all the rows in a selection.
+        // http://www.rethinkdb.com/api/#js:writing_data-delete
+        DELETE   = 54; // Selection -> OBJECT
+        // Replaces all the rows in a selection.  Calls its FUNC with the row
+        // to be replaced, and then discards it and stores the result of that
+        // call.
+        // http://www.rethinkdb.com/api/#js:writing_data-replace
+        REPLACE  = 55; // Selection, FUNC (arity 1) -> OBJECT
+        // Inserts into a table.  If `upsert` is true, overwrites entries with
+        // the same primary key (otherwise errors).
+        // http://www.rethinkdb.com/api/#js:writing_data-insert
+        INSERT   = 56; // Table, Sequence -> OBJECT
+                       // Optargs: upsert (BOOL)
+
+        // * Administrative OPs
+        // Creates a database with a particular name.
+        // http://www.rethinkdb.com/api/#js:manipulating_databases-db_create
+        DB_CREATE    = 57; // STR -> OBJECT
+        // Drops a database with a particular name.
+        // http://www.rethinkdb.com/api/#js:manipulating_databases-db_drop
+        DB_DROP      = 58; // STR -> OBJECT
+        // Lists all the databases by name.  (Takes no arguments)
+        // http://www.rethinkdb.com/api/#js:manipulating_databases-db_list
+        DB_LIST      = 59; // -> ARRAY
+        // Creates a table with a particular name in a particular database.
+        // http://www.rethinkdb.com/api/#js:manipulating_tables-table_create
+        TABLE_CREATE = 60; // DB, STR -> OBJECT
+                           // Optargs: datacenter (STR), primary_key (STR),
+                           //          cache_size (NUM)
+        // Drops a table with a particular name from a particular database.
+        // http://www.rethinkdb.com/api/#js:manipulating_tables-table_drop
+        TABLE_DROP   = 61; // DB, STR -> OBJECT
+        // Lists all the tables in a particular database.
+        // http://www.rethinkdb.com/api/#js:manipulating_tables-table_list
+        TABLE_LIST   = 62; // DB -> ARRAY
+
+        // * Control Operators
+        // Calls a function on data
+        FUNCALL  = 64; // FUNC, DATUM... -> DATUM
+        // Executes its first argument, and returns its second argument if it
+        // got [true] or its third argument if it got [false] (like an `if`
+        // statement).
+        // http://www.rethinkdb.com/api/#js:control_structures-branch
+        BRANCH  = 65; // BOOL, Term, Term -> Term
+        // Returns true if any of its arguments returns true (short-circuits).
+        // (Like `or` in most languages.)
+        // http://www.rethinkdb.com/api/#js:json_operators-or
+        ANY     = 66; // BOOL... -> BOOL (short-circuits like [or])
+        // Returns true if all of its arguments return true (short-circuits).
+        // (Like `and` in most languages.)
+        // http://www.rethinkdb.com/api/#js:json_operators-and
+        ALL     = 67; // BOOL... -> BOOL (short-circuits like [and])
+        // Iterates over all the entries in a sequence, and executes 1 or more
+        // write ops.  Calls its FUNC with each entry in the sequence and
+        // executes the array of terms that FUNC returns.
+        // http://www.rethinkdb.com/api/#js:control_structures-foreach
+        FOREACH = 68; // Sequence, FUNC (arity 1) -> OBJECT
+                       //           ^^^^ should return an array of write terms
+
+////////////////////////////////////////////////////////////////////////////////
+////////// Special Terms
+////////////////////////////////////////////////////////////////////////////////
+
+        // An anonymous function.  Takes an array of numbers representing
+        // variables (see [VAR] above), and a [Term] to execute with those in
+        // scope.  Returns a function that may be passed an array of arguments,
+        // then executes the Term with those bound to the variable names.  The
+        // user will never construct this directly.  We use it internally for
+        // things like `map` which take a function.  The "arity" of a [FUNC] is
+        // the number of arguments it takes.
+        // For example, here's what `_X_.map{|x| x+2}` turns into:
+        // Term {
+        //   type = MAP;
+        //   args = [_X_,
+        //           Term {
+        //             type = FUNC;
+        //             args = [Term {
+        //                       type = DATUM;
+        //                       datum = Datum {
+        //                         type = R_ARRAY;
+        //                         r_array = [Datum { type = R_NUM; r_num = 1; }];
+        //                       };
+        //                     },
+        //                     Term {
+        //                       type = ADD;
+        //                       args = [Term {
+        //                                 type = VAR;
+        //                                 args = [Term {
+        //                                           type = DATUM;
+        //                                           datum = Datum { type = R_NUM; r_num = 1};
+        //                                         }];
+        //                               },
+        //                               Term {
+        //                                 type = DATUM;
+        //                                 datum = Datum { type = R_NUM; r_num = 2; };
+        //                               }];
+        //                     }];
+        //           }];
+        FUNC = 69; // ARRAY(LIT(NUM)), Term -> ARRAY -> Term
+    };
+    required TermType type = 1;
+
+    // This is only used when type is DATUM.
+    optional Datum datum = 2;
+
+    repeated Term args = 3; // Holds the positional arguments of the query.
+    message AssocPair {
+        required string key = 1;
+        required Term val = 2;
+    };
+    repeated AssocPair optargs = 4; // Holds the optional arguments of the query.
+    // (Note that the order of the optional arguments doesn't matter; think of a
+    // Hash.)
+
+    extensions 10000 to 20000;
+};
+
+////////////////////////////////////////////////////////////////////////////////
+//                                  EXAMPLE                                   //
+////////////////////////////////////////////////////////////////////////////////
+//   ```ruby
+//   r.table('tbl', {:use_outdated => true}).insert([{:id => 0}, {:id => 1}])
+//   ```
+// Would turn into:
+//   Term {
+//     type = INSERT;
+//     args = [Term {
+//               type = TABLE;
+//               args = [Term {
+//                         type = R_DATUM;
+//                         r_datum = Datum { type = R_STR; r_str = "tbl"; };
+//                       }];
+//               optargs = [["use_outdated",
+//                           Term {
+//                             type = R_DATUM;
+//                             r_datum = Datum { type = R_BOOL; r_bool = true; };
+//                           }]];
+//             },
+//             Term {
+//               type = R_ARRAY;
+//               args = [Term {
+//                         type = R_DATUM;
+//                         r_datum = Datum { type = R_OBJECT; r_object = [["id", 0]]; };
+//                       },
+//                       Term {
+//                         type = R_DATUM;
+//                         r_datum = Datum { type = R_OBJECT; r_object = [["id", 1]]; };
+//                       }];
+//             }]
+//   }
+// And the server would reply:
+//   Response {
+//     type = SUCCESS_ATOM;
+//     token = 1;
+//     response = [Datum { type = R_OBJECT; r_object = [["inserted", 2]]; }];
+//   }
+// Or, if there were an error:
+//   Response {
+//     type = RUNTIME_ERROR;
+//     token = 1;
+//     response = [Datum { type = R_STR; r_str = "The table `tbl` doesn't exist!"; }];
+//     backtrace = [Frame { type = POS; pos = 0; }, Frame { type = POS; pos = 0; }];
+//   }
