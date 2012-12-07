@@ -22,6 +22,7 @@ endif
 
 GCC_ARCH=$(shell uname -m | grep '^[A-Za-z0-9_]*$$' | head -n 1)
 GCC_ARCH_REDUCED=$(shell echo "$(GCC_ARCH)" | sed -e 's/^i[56]86$$/i486/g')
+DEB_ARCH=$(shell echo "$(GCC_ARCH_REDUCED)" | sed -e 's/^x86_64$/amd64/g')
 
 # Set SOLO to 0 to build RethinkDB Cache (otherwise, RethinkDB Solo is built)
 SOLO?=1
@@ -964,7 +965,7 @@ build-deb-src-control:
 				-D "DISK_SIZE=$${disk_size}" \
 				-D "SOURCEBUILD=1" \
 				-D "NODEJS_NEW=$(NODEJS_NEW)" \
-				-D "CURRENT_ARCH=$(GCC_ARCH_REDUCED)" \
+				-D "CURRENT_ARCH=$(DEB_ARCH)" \
 			../packaging/$(DEBIAN_PKG_DIR)/control > ../debian/control
 # Copy {pre,post}{inst,rm} scripts
 	$(QUIET) for script in preinst postinst prerm postrm; do		                  		\
@@ -1031,7 +1032,7 @@ build-deb: all prepare_deb_package_dirs
 				-D "DISK_SIZE=$${disk_size}"														\
 				-D "SOURCEBUILD=0" \
 				-D "NODEJS_NEW=$(NODEJS_NEW)" \
-				-D "CURRENT_ARCH=$(GCC_ARCH_REDUCED)" \
+				-D "CURRENT_ARCH=$(DEB_ARCH)" \
 			../packaging/$(DEBIAN_PKG_DIR)/control >$(DEB_CONTROL_ROOT)/control
 # Copy the license file.
 	cat ../packaging/$(DEBIAN_PKG_DIR)/copyright > $(DEB_CONTROL_ROOT)/copyright
