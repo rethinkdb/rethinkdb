@@ -22,7 +22,7 @@ endif
 
 GCC_ARCH=$(shell uname -m | grep '^[A-Za-z0-9_]*$$' | head -n 1)
 GCC_ARCH_REDUCED=$(shell echo "$(GCC_ARCH)" | sed -e 's/^i[56]86$$/i486/g')
-DEB_ARCH=$(shell echo "$(GCC_ARCH_REDUCED)" | sed -e 's/^x86_64$/amd64/g')
+DEB_ARCH=$(shell echo "$(GCC_ARCH_REDUCED)" | sed -e 's/^x86_64$$/amd64/g')
 
 # Set SOLO to 0 to build RethinkDB Cache (otherwise, RethinkDB Solo is built)
 SOLO?=1
