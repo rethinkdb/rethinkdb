@@ -24,7 +24,8 @@ class job_t {
         pid_t get_spawner_pid() const;
 
       private:
-        friend class spawner_t;
+        friend void exec_worker(pid_t spawner_pid, fd_t sockfd);
+
         control_t(pid_t pid, pid_t spawner_pid, scoped_fd_t *fd);
 
         const pid_t pid;

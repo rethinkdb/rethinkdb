@@ -190,7 +190,6 @@ void exec_spawner(fd_t socket) {
     }
 }
 
-#ifdef __MACH__
 // On OS X, we have to poll the ppid to detect when the parent process dies.  So we use SIGALRM and
 // setitimer to do that.  (We could also use kqueue to do this without polling, in a separate
 // thread.  We could also just make a separate thread and poll from it.)  We have to make this
@@ -204,7 +203,6 @@ void check_ppid_for_death(int) {
         _exit(EXIT_FAILURE);
     }
 }
-#endif  // __MACH__
 
 // Runs the worker process. Does not return.
 void exec_worker(pid_t spawner_pid, fd_t sockfd) {
