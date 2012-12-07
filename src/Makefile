@@ -1098,8 +1098,8 @@ build-rpm: all prepare_rpm_package_dirs
 
 # RPM for redhat and centos
 rpm: all prepare_rpm_package_dirs
-	$(QUIET) $(MAKE) STRIP_ON_INSTALL=0 RETHINKDB_VERSION=$(RETHINKDB_VERSION)-unstripped build-rpm
-	$(QUIET) $(MAKE) STRIP_ON_INSTALL=1 RETHINKDB_VERSION=$(RETHINKDB_VERSION) build-rpm
+	$(QUIET) $(MAKE) STRIP_ON_INSTALL=0 WEBRESDIR=$(web_res_dir) RETHINKDB_VERSION=$(RETHINKDB_VERSION)-unstripped build-rpm
+	$(QUIET) $(MAKE) STRIP_ON_INSTALL=1 WEBRESDIR=$(web_res_dir) RETHINKDB_VERSION=$(RETHINKDB_VERSION) build-rpm
 # Print a nice message with the location of the created package
 	@echo
 	@echo "$(ANSI_BOLD_ON)Your RPM packages are here:$(ANSI_BOLD_OFF)"
