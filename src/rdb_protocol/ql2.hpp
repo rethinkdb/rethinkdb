@@ -1,6 +1,6 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
-#ifndef RDB_PROTOCOL_QUERY_LANGUAGE_HPP_
-#define RDB_PROTOCOL_QUERY_LANGUAGE_HPP_
+#ifndef RDB_PROTOCOL_QL2_HPP_
+#define RDB_PROTOCOL_QL2_HPP_
 
 #include <stack>
 #include <string>
@@ -10,6 +10,10 @@
 #include "utils.hpp"
 #include "containers/uuid.hpp"
 #include "clustering/administration/namespace_interface_repository.hpp"
+
+#include "rdb_protocol/env.hpp"
+#include "rdb_protocol/stream_cache.hpp"
+#include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/ql2.pb.h"
 
 class json_stream_t; // TODO: include
@@ -18,8 +22,11 @@ namespace ql {
 
 struct backtrace_t {
     struct frame_t {
+    public:
         frame_t(int _pos) : type(POS), pos(_pos) { }
         frame_t(const std::string &_opt) : type(OPT), opt(_opt) { }
+        Response2_Frame toproto() const;
+    private:
         enum frame_type_t { POS = 0, OPT = 1 };
         frame_type_t type;
         int pos;
@@ -133,25 +140,16 @@ private:
     bool consumed;
 };
 
-class environment_t {
-public:
-    void push_var(int var, datum_t **val) { vars[var].push(val); }
-    void pop_var(int var) { vars[var].pop(); }
-    datum_t **get_var(int var) { return vars[var].top(); }
-private:
-    std::map<int, std::stack<datum_t **> > vars;
-};
-
 class func_t {
 public:
-    func_t(const std::vector<int> &args, const Term2 *body_source, environment_t *env);
+    func_t(const std::vector<int> &args, const Term2 *body_source, env_t *env);
     val_t *call(const std::vector<datum_t *> &args);
 private:
     std::vector<datum_t *> argptrs;
     scoped_ptr_t<term_t> body;
 };
 
-term_t *compile_term(const Term2 *source, environment_t *env);
+term_t *compile_term(const Term2 *source, env_t *env);
 
 class term_t {
 public:
@@ -203,6 +201,11 @@ private:
     virtual val_t *call_impl(std::vector<val_t *> *args) = 0;
 };
 
+// Fills in [res] with an error of type [type] and message [msg].
+void fill_error(Response2 *res, Response2_ResponseType type, std::string msg);
+
+void run(Query2 *q, env_t *env, Response2 *res, stream_cache_t *stream_cache);
+
 } // namespace ql
 
-#endif /* RDB_PROTOCOL_QUERY_LANGUAGE_HPP_ */
+#endif /* RDB_PROTOCOL_QL2_HPP_ */

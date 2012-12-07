@@ -87,3 +87,55 @@ Response query_server_t::handle(Query *q, context_t *query_context) {
 
     return res;
 }
+
+query2_server_t::query2_server_t(const std::set<ip_address_t> &local_addresses,
+                                 int port,
+                                 rdb_protocol_t::context_t *_ctx) :
+    server(local_addresses, port, boost::bind(&query2_server_t::handle, this, _1, _2),
+           &on_unparsable_query2, INLINE),
+    ctx(_ctx), parser_id(generate_uuid()), thread_counters(0)
+{ }
+
+http_app_t *query2_server_t::get_http_app() {
+    return &server;
+}
+
+int query2_server_t::get_port() const {
+    return server.get_port();
+}
+
+Response2 on_unparsable_query2(Query2 *q, std::string msg) {
+    Response2 res;
+    res.set_token( (q && q->has_token()) ? q->token() : -1);
+    ql::fill_error(&res, Response2::CLIENT_ERROR, msg);
+    return res;
+}
+
+Response2 query2_server_t::handle(Query2 *q, context_t *query2_context) {
+    stream_cache_t *stream_cache = &query2_context->stream_cache;
+    signal_t *interruptor = query2_context->interruptor;
+    guarantee(interruptor);
+    Response2 res;
+    res.set_token(q->token());
+
+    try {
+        boost::shared_ptr<js::runner_t> js_runner = boost::make_shared<js::runner_t>();
+        int thread = get_thread_id();
+        ql::env_t env(
+            ctx->pool_group, ctx->ns_repo,
+            ctx->cross_thread_namespace_watchables[thread]->get_watchable(),
+            ctx->cross_thread_database_watchables[thread]->get_watchable(),
+            ctx->semilattice_metadata, ctx->directory_read_manager,
+            js_runner, interruptor, ctx->machine_id);
+        //[ql::run] will set the status code
+        ql::run(q, &env, &res, stream_cache);
+    } catch (const interrupted_exc_t &e) {
+        ql::fill_error(&res, Response2::RUNTIME_ERROR,
+                       "Query2 interrupted.  Did you shut down the server?");
+    } catch (const std::exception &e) {
+        ql::fill_error(&res, Response2::RUNTIME_ERROR,
+                       strprintf("Unexpected exception: %s\n", e.what()));
+    }
+
+    return res;
+}
