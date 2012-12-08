@@ -1120,7 +1120,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
             new_directory = true;
             int mkdir_res = mkdir(filepath.c_str(), 0755);
             if (mkdir_res != 0) {
-                fprintf(stderr, "Could not create directory: %s\n", errno_to_string(errno).c_str());
+                fprintf(stderr, "Could not create directory: %s\n", errno_string(errno).c_str());
                 return EXIT_FAILURE;
             }
         }
