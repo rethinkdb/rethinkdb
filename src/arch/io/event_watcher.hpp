@@ -34,7 +34,11 @@ private:
     linux_event_callback_t *error_handler;
 
     watch_t **get_watch_slot(int event);
-    watch_t *in_watcher, *out_watcher;
+    watch_t *in_watcher;
+    watch_t *out_watcher;
+#ifdef __linux
+    watch_t *rdhup_watcher;
+#endif
 
     int old_mask;
     void remask();

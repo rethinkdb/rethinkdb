@@ -28,6 +28,12 @@ std::string format_poll_event(int event) {
         if (s != "") s += " ";
         s += "hup";
     }
+#ifdef __linux
+    if (event & poll_event_rdhup) {
+        if (s != "") s += " ";
+        s += "rdhup";
+    }
+#endif
     if (s == "") s = "(none)";
     return s;
 }

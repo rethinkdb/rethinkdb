@@ -20,24 +20,26 @@
 
 int user_to_epoll(int mode) {
 
-    rassert((mode & (poll_event_in | poll_event_out)) == mode);
+    rassert((mode & (poll_event_in | poll_event_out | poll_event_rdhup)) == mode);
 
     int out_mode = 0;
     if (mode & poll_event_in) out_mode |= EPOLLIN;
     if (mode & poll_event_out) out_mode |= EPOLLOUT;
+    if (mode & poll_event_rdhup) out_mode |= EPOLLRDHUP;
 
     return out_mode;
 }
 
 int epoll_to_user(int mode) {
 
-    rassert((mode & (EPOLLIN | EPOLLOUT | EPOLLERR | EPOLLHUP)) == (unsigned)mode);
+    rassert((mode & (EPOLLIN | EPOLLOUT | EPOLLERR | EPOLLHUP | EPOLLRDHUP)) == (unsigned)mode);
 
     int out_mode = 0;
     if (mode & EPOLLIN) out_mode |= poll_event_in;
     if (mode & EPOLLOUT) out_mode |= poll_event_out;
     if (mode & EPOLLERR) out_mode |= poll_event_err;
     if (mode & EPOLLHUP) out_mode |= poll_event_hup;
+    if (mode & EPOLLRDHUP) out_mode |= poll_event_rdhup;
 
     return out_mode;
 }
