@@ -60,10 +60,20 @@ def datum x
   return x if x.class == Datum
   case x.class.hash
   when Fixnum.hash then d.type = dt::R_NUM; d.r_num = x
+  when Float.hash then d.type = dt::R_NUM; d.r_num = x
+  when String.hash then d.type = dt::R_STR; d.r_str = x
+  when TrueClass.hash then d.type = dt::R_BOOL; d.r_bool = x
+  when FalseClass.hash then d.type = dt::R_BOOL; d.r_bool = x
+  when NilClass.hash then d.type = dt::R_NULL
+  when Array.hash then d.type = dt::R_ARRAY; d.r_array = x.map {|x| datum x}
+  when Hash.hash then d.type = dt::R_OBJECT; d.r_object = x.map { |k,v|
+      ap = Datum::AssocPair.new; ap.key = k; ap.val = datum v; ap }
   else raise RuntimeError, "Unimplemented."
   end
   return d
 end
+
+# Hash.hash
 
 def r(a='8d19cb41-ddb8-44ab-92f3-f48ca607ab7b')
   return RQL.new if a == '8d19cb41-ddb8-44ab-92f3-f48ca607ab7b'
@@ -75,5 +85,11 @@ def r(a='8d19cb41-ddb8-44ab-92f3-f48ca607ab7b')
   return RQL.new t
 end
 
-r.add(1, 2).run
-r(1).run
+PP.pp r(1).run
+PP.pp r(2.0).run
+PP.pp r("3").run
+PP.pp r(true).run
+PP.pp r(false).run
+PP.pp r(nil).run
+PP.pp r([1, 2.0, "3", true, false, nil]).run
+PP.pp r({"abc" => 2.0, "def" => nil}).run
