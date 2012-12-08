@@ -299,6 +299,8 @@ bool do_serve(
 
                 query_server_t rdb_pb_server(address_ports.local_addresses, address_ports.reql_port, &rdb_ctx);
                 logINF("Listening for client driver connections on port %d.\n", rdb_pb_server.get_port());
+                query2_server_t rdb_pb2_server(address_ports.local_addresses, address_ports.reql_port+1, &rdb_ctx);
+                logINF("Listening for client driver2 connections on port %d.\n", rdb_pb2_server.get_port());
 
                 scoped_ptr_t<metadata_persistence::semilattice_watching_persister_t> persister(!i_am_a_server ? NULL :
                     new metadata_persistence::semilattice_watching_persister_t(
