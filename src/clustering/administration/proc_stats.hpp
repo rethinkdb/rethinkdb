@@ -25,13 +25,9 @@ private:
     instantaneous_stats_collector_t instantaneous_stats_collector;
 
     perfmon_sampler_t
-        cpu_thread_user,
-        cpu_thread_system,
-        cpu_thread_combined,
         cpu_global_combined,
         net_global_received,
-        net_global_sent,
-        memory_faults;
+        net_global_sent;
 
     auto_drainer_t drainer;
 
