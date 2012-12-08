@@ -188,7 +188,6 @@ class Datacenter extends Backbone.Model
     get_stats: =>
         stats =
             dc_disk_space: 0
-        nmachines = 0
         for machine in machines.models
             if machine.get('datacenter_uuid') is @get('id')
                 stats.dc_disk_space += machine.get_used_disk_space()
@@ -236,6 +235,8 @@ class Machine extends Backbone.Model
         stats = @get('stats')
         if not stats?
             stats = {}
+        if not stats.proc?
+            stats.proc = {}
         return stats
 
     get_used_disk_space: =>
