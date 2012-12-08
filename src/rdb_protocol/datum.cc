@@ -125,4 +125,92 @@ bool datum_t::operator<= (const datum_t &rhs) const { return cmp(rhs) != 1;  }
 bool datum_t::operator>  (const datum_t &rhs) const { return cmp(rhs) == 1;  }
 bool datum_t::operator>= (const datum_t &rhs) const { return cmp(rhs) != -1; }
 
+datum_t::datum_t(const Datum *d) {
+    switch(d->type()) {
+    case Datum_DatumType_R_NULL: {
+        type = R_NULL;
+    }; break;
+    case Datum_DatumType_R_BOOL: {
+        type = R_BOOL;
+        r_bool = d->r_bool();
+    }; break;
+    case Datum_DatumType_R_NUM: {
+        type = R_NUM;
+        r_num = d->r_num();
+    }; break;
+    case Datum_DatumType_R_STR: {
+        type = R_STR;
+        r_str = d->r_str();
+    }; break;
+    case Datum_DatumType_R_ARRAY: {
+        type = R_ARRAY;
+        for (int i = 0; i < d->r_array_size(); ++i) {
+            datum_t *el = new datum_t(&d->r_array(i));
+            to_free.push_back(el);
+            r_array.push_back(el);
+        }
+    }; break;
+    case Datum_DatumType_R_OBJECT: {
+        type = R_OBJECT;
+        for (int i = 0; i < d->r_object_size(); ++i) {
+            const Datum_AssocPair *ap = &d->r_object(i);
+            const std::string &key = ap->key();
+            runtime_check(r_object.count(key) == 0,
+                          strprintf("Duplicate key %s in object.", key.c_str()));
+            datum_t *el = new datum_t(&ap->val());
+            to_free.push_back(el);
+            r_object[key] = el;
+        }
+    }; break;
+    default: unreachable();
+    }
+}
+
+void datum_t::write_to_protobuf(Datum *d) const {
+    switch(get_type()) {
+    case R_NULL: {
+        d->set_type(Datum_DatumType_R_NULL);
+    }; break;
+    case R_BOOL: {
+        d->set_type(Datum_DatumType_R_BOOL);
+        d->set_r_bool(r_bool);
+    }; break;
+    case R_NUM: {
+        d->set_type(Datum_DatumType_R_NUM);
+        d->set_r_num(r_num);
+    }; break;
+    case R_STR: {
+        d->set_type(Datum_DatumType_R_STR);
+        d->set_r_str(r_str);
+    }; break;
+    case R_ARRAY: {
+        d->set_type(Datum_DatumType_R_ARRAY);
+        for (size_t i = 0; i < r_array.size(); ++i) {
+            r_array[i]->write_to_protobuf(d->add_r_array());
+        }
+    }; break;
+    case R_OBJECT: {
+        d->set_type(Datum_DatumType_R_OBJECT);
+        for (std::map<const std::string, const datum_t *>::const_iterator
+                 it = r_object.begin(); it != r_object.end(); ++it) {
+            Datum_AssocPair *ap = d->add_r_object();
+            ap->set_key(it->first);
+            it->second->write_to_protobuf(ap->mutable_val());
+        }
+    }; break;
+    default: unreachable();
+    }
+}
+
+datum_term_t::datum_term_t(const Datum *datum)
+    : raw_val(new val_t(new datum_t(datum))) {
+    guarantee(raw_val.has());
+}
+datum_term_t::~datum_term_t() { }
+
+val_t *datum_term_t::eval_impl() {
+    return raw_val.get();
+}
+
+
 } //namespace ql

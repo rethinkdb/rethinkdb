@@ -8,6 +8,9 @@
 #include <map>
 
 #include "utils.hpp"
+
+#include <boost/ptr_container/ptr_vector.hpp>
+
 #include "containers/uuid.hpp"
 #include "clustering/administration/namespace_interface_repository.hpp"
 
@@ -16,7 +19,9 @@
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/ql2.pb.h"
 
-class json_stream_t; // TODO: include
+//TODO: fix up
+#include "stream.hpp"
+typedef query_language::json_stream_t json_stream_t;
 
 namespace ql {
 
@@ -45,8 +50,12 @@ private:
     const std::string msg;
 };
 
-void _runtime_check(bool test, const char *teststr, std::string msg);
-#define runtime_check(test, msg) _runtime_check(test, stringify(test), msg)
+void _runtime_check(const char *test, const char *file, int line,
+                    bool pred, std::string msg = "");
+#define runtime_check(pred, msg) \
+    _runtime_check(stringify(pred), __FILE__, __LINE__, pred, msg)
+// TODO: make this crash in debug mode
+#define sanity_check(test) runtime_check(test, "SANITY_CHECK")
 
 class datum_t {
 public:
@@ -56,6 +65,8 @@ public:
     datum_t(const std::string &_str);
     datum_t(const std::vector<const datum_t *> &_array);
     datum_t(const std::map<const std::string, const datum_t *> &_object);
+    datum_t(const Datum *d);
+    void write_to_protobuf(Datum *out) const;
 
     enum type_t {
         R_NULL   = 1,
@@ -91,8 +102,12 @@ private:
     bool r_bool;
     double r_num;
     std::string r_str;
+
     std::vector<const datum_t *> r_array;
     std::map<const std::string, const datum_t *> r_object;
+    // Sometimes the `datum_t` owns its members, like when it's a literal
+    // `datum_t` provided by the user.
+    boost::ptr_vector<datum_t> to_free;
 };
 
 class func_t;
@@ -117,10 +132,14 @@ public:
             FUNC             = 7  // func
         };
         type_t(raw_type_t _raw_type);
-        bool is_convertible(type_t rhs);
+        bool is_convertible(type_t rhs) const;
     private:
+        const char *name() const;
         raw_type_t raw_type;
     };
+    type_t get_type() const;
+
+    val_t(const datum_t *datum);
 
     uuid_t as_db();
     table_t *as_table();
@@ -149,18 +168,14 @@ private:
     scoped_ptr_t<term_t> body;
 };
 
-term_t *compile_term(const Term2 *source, env_t *env);
+term_t *compile_term(const Term2 *t, env_t *env);
 
 class term_t {
 public:
     term_t();
     virtual ~term_t();
 
-    //val_t *eval(bool use_cached_val = true);
-    val_t *eval(bool use_cached_val = true) {
-        runtime_check(false, strprintf("UNIMPLEMENTED %d", use_cached_val));
-        return 0;
-    }
+    val_t *eval(bool use_cached_val = true);
 private:
     val_t *cached_val;
     virtual val_t *eval_impl() = 0;

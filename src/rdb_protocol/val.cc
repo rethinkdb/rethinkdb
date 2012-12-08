@@ -45,8 +45,34 @@ bool raw_type_is_convertible(val_t::type_t::raw_type_t _t1,
     }
     unreachable();
 }
-bool val_t::type_t::is_convertible(type_t rhs) {
+bool val_t::type_t::is_convertible(type_t rhs) const {
     return raw_type_is_convertible(raw_type, rhs.raw_type);
+}
+
+const char *val_t::type_t::name() const {
+    switch(raw_type) {
+    case DB: return "DATABASE";
+    case TABLE: return "TABLE";
+    case SELECTION: return "SELECTION";
+    case SEQUENCE: return "SEQUENCE";
+    case SINGLE_SELECTION: return "SINGLE_SELECTION";
+    case DATUM: return "DATUM";
+    case FUNC: return "FUNCTION";
+    default: unreachable();
+    }
+    unreachable();
+}
+
+val_t::val_t(const datum_t *_datum) : type(type_t::DATUM), datum(_datum) {
+    guarantee(_datum);
+}
+
+val_t::type_t val_t::get_type() const { return type; }
+
+const datum_t *val_t::as_datum() {
+    runtime_check(type.raw_type == type_t::DATUM,
+                  strprintf("Type error: cannot convert %s to DATUM.", type.name()));
+    return datum.get();
 }
 
 } //namespace ql

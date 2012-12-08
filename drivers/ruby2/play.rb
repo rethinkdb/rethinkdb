@@ -12,6 +12,9 @@ def check pred
   raise RuntimeError, "CHECK FAILED" if not pred
 end
 
+$socket = TCPSocket.open('localhost', 60616)
+$socket.send([0xaf61ba35].pack('L<'), 0)
+
 class RQL
   attr_accessor :is_r
   def initialize(term=nil)
@@ -31,14 +34,17 @@ class RQL
   end
 
   @@token_cnt = 0
-  @@socket = TCPSocket.open('localhost', 60616)
-  @@magic_number = 0xaf61ba35
-  def run
+  @@socket = $socket
+
+  def to_query
     q = Query2.new
     q.type = Query2::QueryType::START
     q.query = self.to_term
     q.token = @@token_cnt + 1
-    @@socket.send([@@magic_number].pack('L<'), 0)
+    return q
+  end
+  def run
+    q = to_query
     payload = q.serialize_to_string
     packet = [payload.length].pack('L<') + payload
     @@socket.send(packet, 0)
@@ -70,3 +76,4 @@ def r(a='8d19cb41-ddb8-44ab-92f3-f48ca607ab7b')
 end
 
 r.add(1, 2).run
+r(1).run

@@ -1,10 +1,12 @@
 #include "rdb_protocol/ql2.hpp"
 
 namespace ql {
-void _runtime_check(bool test, const char *teststr, std::string msg) {
-    if (test) return;
+void _runtime_check(const char *test, const char *file, int line,
+                    bool pred, std::string msg) {
+    if (pred) return;
 #ifndef NDEBUG
-    msg = msg + "\nFailed assertion: " + teststr;
+    msg = strprintf("%s\nFailed assertion: %s\nAt: %s:%d",
+                    msg.c_str(), test, file, line);
 #endif
     throw exc_t(msg);
 }

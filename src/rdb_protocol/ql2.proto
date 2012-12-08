@@ -42,7 +42,7 @@ message Query2 {
     required QueryType type = 1;
     // A [Term] is how we represent the operations we want a query to perform.
     optional Term2 query = 2; // only present when [type] = [START]
-    required uint64 token = 3;
+    required int64 token = 3;
     optional bool noreply = 4 [default = false]; // CURRENTLY IGNORED, NO SERVER SUPPORT
 };
 
@@ -71,7 +71,7 @@ message Response2 {
                             // than numbers.
     };
     required ResponseType type = 1;
-    required uint64 token = 2; // Indicates what [Query] this response corresponds to.
+    required int64 token = 2; // Indicates what [Query] this response corresponds to.
 
     // [response] contains 1 RQL datum if [type] is [SUCCESS_ATOM], or many RQL
     // data if [type] is [SUCCESS_SEQUENCE] or [SUCCESS_PARTIAL].  It contains 1
