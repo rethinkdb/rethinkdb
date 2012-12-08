@@ -20,16 +20,7 @@ private:
         ticks_t start_time;
     };
 
-    void collect_periodically(auto_drainer_t::lock_t);
-
     instantaneous_stats_collector_t instantaneous_stats_collector;
-
-    perfmon_sampler_t
-        cpu_global_combined,
-        net_global_received,
-        net_global_sent;
-
-    auto_drainer_t drainer;
 
     perfmon_multi_membership_t stats_membership;
 };

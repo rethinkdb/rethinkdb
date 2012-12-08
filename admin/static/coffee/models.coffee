@@ -156,15 +156,7 @@ class Namespace extends Backbone.Model
         __s =
             keys_read: 0
             keys_set: 0
-            global_cpu_util:
-                avg: 0
-            global_mem_total: 0
-            global_mem_used: 0
             global_disk_space: 0
-            global_net_recv_persec:
-                avg: 0
-            global_net_sent_persec:
-                avg: 0
         _s = this.get_stats()
         if _s?
             __s.keys_read += _s.keys_read
@@ -174,14 +166,7 @@ class Namespace extends Backbone.Model
         for machine in machines.models
             if machine.get('stats')? and @get('id') of machine.get('stats') and machine.is_reachable
                 num_machines_in_namespace++
-                mstats = machine.get_stats().proc
-                __s.global_cpu_util.avg += if mstats.global_cpu_util? then parseFloat(mstats.global_cpu_util.avg) else 0
-                __s.global_mem_total += parseInt(mstats.global_mem_total)
-                __s.global_mem_used += parseInt(mstats.global_mem_used)
                 __s.global_disk_space += machine.get_used_disk_space()
-                __s.global_net_recv_persec.avg += if mstats.global_net_recv_persec? then parseFloat(mstats.global_net_recv_persec.avg) else 0
-                __s.global_net_sent_persec.avg += if mstats.global_net_sent_persec? then parseFloat(mstats.global_net_sent_persec.avg) else 0
-        __s.global_cpu_util.avg /= num_machines_in_namespace
         return __s
 
 class Datacenter extends Backbone.Model
@@ -202,22 +187,11 @@ class Datacenter extends Backbone.Model
         machines.filter (machine) => machine.get('datacenter_uuid') is @get('id')
     get_stats: =>
         stats =
-            global_cpu_util:
-                avg: 0
-            global_mem_total: 0
-            global_mem_used: 0
             dc_disk_space: 0
         nmachines = 0
         for machine in machines.models
             if machine.get('datacenter_uuid') is @get('id')
-                mstats = machine.get_stats().proc
-                if mstats?.global_cpu_util?
-                    nmachines += 1
-                    stats.global_cpu_util.avg += parseFloat(mstats.global_cpu_util.avg)
-                    stats.global_mem_total += parseFloat(mstats.global_mem_total)
-                    stats.global_mem_used += parseFloat(mstats.global_mem_used)
-                    stats.dc_disk_space += machine.get_used_disk_space()
-        stats.global_cpu_util.avg /= nmachines
+                stats.dc_disk_space += machine.get_used_disk_space()
         return stats
 
     get_stats_for_performance: =>
@@ -225,15 +199,7 @@ class Datacenter extends Backbone.Model
         __s =
             keys_read: 0
             keys_set: 0
-            global_cpu_util:
-                avg: 0
-            global_mem_total: 0
-            global_mem_used: 0
             global_disk_space: 0
-            global_net_recv_persec:
-                avg: 0
-            global_net_sent_persec:
-                avg: 0
         for namespace in namespaces.models
             if not namespace.get('blueprint')? or not namespace.get('blueprint').peers_roles?
                 continue
@@ -261,14 +227,7 @@ class Datacenter extends Backbone.Model
         for machine in machines.models
             if machine.get('datacenter_uuid') is @get('id') and machine.is_reachable
                 num_machines_in_datacenter++
-                mstats = machine.get_stats().proc
-                __s.global_cpu_util.avg += if mstats.global_cpu_util? then parseFloat(mstats.global_cpu_util.avg) else 0
-                __s.global_mem_total += parseInt(mstats.global_mem_total)
-                __s.global_mem_used += parseInt(mstats.global_mem_used)
                 __s.global_disk_space += machine.get_used_disk_space()
-                __s.global_net_recv_persec.avg += if mstats.global_net_recv_persec? then parseFloat(mstats.global_net_recv_persec.avg) else 0
-                __s.global_net_sent_persec.avg += if mstats.global_net_sent_persec? then parseFloat(mstats.global_net_sent_persec.avg) else 0
-        __s.global_cpu_util.avg /= num_machines_in_datacenter
         return __s
 
 
@@ -277,8 +236,6 @@ class Machine extends Backbone.Model
         stats = @get('stats')
         if not stats?
             stats = {}
-        if not stats.proc?
-            stats.proc = {}
         return stats
 
     get_used_disk_space: =>
@@ -293,19 +250,10 @@ class Machine extends Backbone.Model
 
     get_stats_for_performance: =>
         stats_full = @get_stats()
-        mstats = stats_full.proc
         __s =
             keys_read: 0
             keys_set: 0
-            global_cpu_util:
-                avg: if mstats.global_cpu_util? then parseFloat(mstats.global_cpu_util.avg) else 0
-            global_mem_total: parseInt(mstats.global_mem_total)
-            global_mem_used: parseInt(mstats.global_mem_used)
             global_disk_space: parseInt(@get_used_disk_space())
-            global_net_recv_persec:
-                avg: if mstats.global_net_recv_persec? then parseFloat(mstats.global_net_recv_persec.avg) else 0
-            global_net_sent_persec:
-                avg: if mstats.global_net_sent_persec? then parseFloat(mstats.global_net_sent_persec.avg) else 0
 
         for namespace in namespaces.models
             _s = namespace.get_stats()
@@ -416,15 +364,7 @@ class ComputedCluster extends Backbone.Model
         __s =
             keys_read: 0
             keys_set: 0
-            global_cpu_util:
-                avg: 0
-            global_mem_total: 0
-            global_mem_used: 0
             global_disk_space: 0
-            global_net_recv_persec:
-                avg: 0
-            global_net_sent_persec:
-                avg: 0
         for namespace in namespaces.models
             _s = namespace.get_stats()
             if not _s?
@@ -433,15 +373,7 @@ class ComputedCluster extends Backbone.Model
             __s.keys_set += _s.keys_set
         # CPU, mem, disk
         for m in machines.models
-            mstats = m.get_stats().proc
-            if mstats? and mstats.global_cpu_util? #if global_cpu_util is present, the other attributes should too.
-                __s.global_cpu_util.avg += parseFloat(mstats.global_cpu_util.avg)
-                __s.global_mem_total += parseInt(mstats.global_mem_total)
-                __s.global_mem_used += parseInt(mstats.global_mem_used)
-                __s.global_disk_space += m.get_used_disk_space()
-                __s.global_net_recv_persec.avg += parseFloat(mstats.global_net_recv_persec.avg)
-                __s.global_net_sent_persec.avg += parseFloat(mstats.global_net_sent_persec.avg)
-        __s.global_cpu_util.avg /= machines.models.length
+            __s.global_disk_space += m.get_used_disk_space()
 
         return __s
 
