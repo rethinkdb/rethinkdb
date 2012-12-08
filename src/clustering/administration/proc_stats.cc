@@ -38,6 +38,30 @@ void read_to_static_buffer_or_throw(const char *path, char *buf, size_t nbytes) 
 }
 
 /* Class to represent and parse the contents of /proc/[pid]/stat */
+struct proc_pid_stat_t {
+    int pid;
+    char name[500];
+    char state;
+    int ppid, pgrp, session, tty_nr, tpgid;
+    unsigned int flags;
+    uint64_t minflt, cminflt, majflt, cmajflt, utime, stime;
+    int64_t cutime, cstime, priority, nice, num_threads, itrealvalue;
+    uint64_t starttime;
+    uint64_t vsize;
+    int64_t rss;
+    uint64_t rsslim, startcode, endcode, startstack, kstkesp, kstkeip, signal, blocked,
+        sigignore, sigcatch, wchan, nswap, cnswap;
+    int exit_signal, processor;
+    unsigned int rt_priority, policy;
+    uint64_t delayacct_blkio_ticks;
+    uint64_t guest_time;
+    int64_t cguest_time;
+
+    static proc_pid_stat_t for_pid(pid_t pid);
+    static proc_pid_stat_t for_pid_and_tid(pid_t pid, pid_t tid);
+private:
+    void read_from_file(const char * path);
+};
 
 proc_pid_stat_t proc_pid_stat_t::for_pid(pid_t pid) {
     printf_buffer_t<100> path("/proc/%d/stat", pid);
