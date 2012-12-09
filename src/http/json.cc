@@ -62,7 +62,7 @@ std::string cJSON_print_lexicographic(const cJSON *json) {
             packed.u ^= (1ULL << 63);
         }
 
-        acc += strprintf("%.*" PRIi64 "", static_cast<int>(sizeof(double)*2), packed.u);
+        acc += strprintf("%.*" PRIx64 "", static_cast<int>(sizeof(double)*2), packed.u);
         acc += strprintf("#%.20g", json->valuedouble);
     } else {
         guarantee(json->type == cJSON_String);
