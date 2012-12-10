@@ -496,14 +496,14 @@ void validate(boost::any& value_out, const std::vector<std::string>& words,
     size_t colon_loc = word.find_first_of(':');
     if (colon_loc == std::string::npos) {
 	boost_program_options_validation_error_wrap(
-        po::validation_error::invalid_option_value, "Invalid option value", word
+        invalid_option_value, word
         );
     } else {
         std::string host = word.substr(0, colon_loc);
         int port = atoi(word.substr(colon_loc + 1).c_str());
         if (host.size() == 0 || port == 0) {
             boost_program_options_validation_error_wrap(
-            po::validation_error::invalid_option_value, "Invalid option value", word
+            invalid_option_value, word
             );
         }
         value_out = host_and_port_t(host, port);
