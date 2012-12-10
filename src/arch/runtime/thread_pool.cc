@@ -204,12 +204,6 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
     // be a good thing to do before distributing the RethinkDB IO layer, but it's
     // not really important.
 
-#ifndef RDB_TIMER_PROVIDER
-#error "RDB_TIMER_PROVIDER not defined."
-#elif RDB_TIMER_PROVIDER == RDB_TIMER_PROVIDER_ITIMER
-    const int ITIMER_USEC = 5000;
-#endif
-
     linux_thread_pool_t::thread_pool = this;   // So signal handlers can find us
     {
         struct sigaction sa;
@@ -223,24 +217,6 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
 
         res = sigaction(SIGINT, &sa, NULL);
         guarantee_err(res == 0, "Could not install INT handler");
-
-#ifndef RDB_TIMER_PROVIDER
-#error "RDB_TIMER_PROVIDER not defined."
-#elif RDB_TIMER_PROVIDER == RDB_TIMER_PROVIDER_ITIMER
-        sa.sa_handler = &linux_thread_pool_t::alrm_handler;
-        res = sigaction(SIGALRM, &sa, NULL);
-        guarantee_err(res == 0, "Could not install ALRM handler");
-
-        struct itimerval value;
-        value.it_interval.tv_sec = 0;
-        value.it_interval.tv_usec = ITIMER_USEC;
-        value.it_value = value.it_interval;
-        struct itimerval old_value;
-        res = setitimer(ITIMER_REAL, &value, &old_value);
-        guarantee_err(res == 0, "setitimer call failed");
-        guarantee(old_value.it_value.tv_sec == 0 && old_value.it_value.tv_usec == 0);
-        guarantee(old_value.it_interval.tv_sec == 0 && old_value.it_interval.tv_usec == 0);
-#endif  // RDB_TIMER_PROVIDER
     }
 
     // Wait for order to shut down
@@ -268,22 +244,6 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
 
         res = sigaction(SIGINT, &sa, NULL);
         guarantee_err(res == 0, "Could not remove INT handler");
-
-#ifndef RDB_TIMER_PROVIDER
-#error "RDB_TIMER_PROVIDER not defined."
-#elif RDB_TIMER_PROVIDER == RDB_TIMER_PROVIDER_ITIMER
-        struct itimerval value;
-        value.it_interval.tv_sec = 0;
-        value.it_interval.tv_usec = 0;
-        value.it_value = value.it_interval;
-        struct itimerval old_value;
-        res = setitimer(ITIMER_REAL, &value, &old_value);
-        guarantee_err(res == 0, "setitimer call failed");
-        guarantee(old_value.it_interval.tv_sec == 0 && old_value.it_interval.tv_usec == ITIMER_USEC);
-
-        res = sigaction(SIGALRM, &sa, NULL);
-        guarantee_err(res == 0, "Could not remove ALRM handler");
-#endif  // RDB_TIMER_PROVIDER
     }
     linux_thread_pool_t::thread_pool = NULL;
 
@@ -332,28 +292,6 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
     }
 #endif  // NDEBUG
 }
-
-#ifndef RDB_TIMER_PROVIDER
-#error "RDB_TIMER_PROVIDER not defined."
-#elif RDB_TIMER_PROVIDER == RDB_TIMER_PROVIDER_ITIMER
-class alrm_message_t : public linux_thread_message_t {
-    virtual void on_thread_switch() {
-        timer_itimer_forward_alrm();
-        delete this;
-    }
-};
-
-void linux_thread_pool_t::alrm_handler(int) {
-    rassert(linux_thread_pool_t::thread_id == -1, "The interrupt handler was called on the wrong thread.");
-
-    linux_thread_pool_t *self = linux_thread_pool_t::thread_pool;
-
-    for (int i = 0; i < self->n_threads; ++i) {
-        self->threads[i]->message_hub.insert_external_message(new alrm_message_t);
-    }
-}
-
-#endif  // RDB_TIMER_PROVIDER
 
 // Note: Maybe we should use a signalfd instead of a signal handler, and then
 // there would be no issues with potential race conditions because the signal

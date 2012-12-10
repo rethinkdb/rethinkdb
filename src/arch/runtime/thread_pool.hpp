@@ -66,12 +66,6 @@ private:
 #endif
 
     static void *start_thread(void*);
-
-#ifndef RDB_TIMER_PROVIDER
-#error "RDB_TIMER_PROVIDER not defined."
-#elif RDB_TIMER_PROVIDER == RDB_TIMER_PROVIDER_ITIMER
-    static void alrm_handler(int);
-#endif
     static void interrupt_handler(int);
     static void sigsegv_handler(int, siginfo_t *, void *) NORETURN;
     spinlock_t interrupt_message_lock;
