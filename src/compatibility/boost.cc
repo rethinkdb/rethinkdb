@@ -45,7 +45,7 @@ std::string boost_program_options_validation_error_type_to_string(
             break;
         case invalid_bool_value:
             return STR_invalid_bool_value;
-            break ;
+            break;
         case invalid_option_value:
             return STR_invalid_option_value;
             break;
@@ -69,7 +69,7 @@ void boost_program_options_validation_error_wrap(
         error_item);
 #else
     throw boost::program_options::validation_error(
-        boost_program_options_validation_error_type_to_string( error_type ) +
+        boost_program_options_validation_error_type_to_string(error_type) +
         ": " +
         error_item);
 #endif
