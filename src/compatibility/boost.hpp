@@ -39,7 +39,7 @@ std::string boost_program_options_validation_error_type_to_string(
 
 void boost_program_options_validation_error_wrap(
     enum boost_program_options_validation_error_type error_type ,
-    std::string error_desc , std::string error_item
+    std::string error_item
 ) ;
 
 #endif
