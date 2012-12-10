@@ -66,11 +66,11 @@ void boost_program_options_validation_error_wrap(
 #if BOOST_VERSION >= 104200
     throw boost::program_options::validation_error(
         boost_program_options_validation_error_type_to_kind(error_type),
-        error_item );
+        error_item);
 #else
     throw boost::program_options::validation_error(
-        boost_program_options_validation_error_type_to_string( error_type )+
-        ": "+
+        boost_program_options_validation_error_type_to_string( error_type ) +
+        ": " +
         error_item);
 #endif
 }
