@@ -8,9 +8,14 @@ else
 	QUIET:=@
 endif
 
+ifeq ($(OSX),1)
+SPREFIX?=/usr/local
+else
 SPREFIX?=/usr
-INCLUDE=$(SPREFIX)/include/
-LIB=$(SPREFIX)/lib/
+endif
+
+INCLUDE=$(SPREFIX)/include
+LIB=$(SPREFIX)/lib
 PROTOC=protoc
 
 all: js/javascript_package.pb.cc js/int64_encoding.pb.cc protoc-gen-js protoc-gen-ccjs
@@ -48,10 +53,10 @@ endif
     ./js/protoc_gen_js.cc \
     ./js/javascript_package.pb.cc \
     ./js/int64_encoding.pb.cc \
-    -l:$(LIB)libprotobuf.a \
-    -l:$(LIB)libprotoc.a \
+    $(LIB)/libprotobuf.a \
+    $(LIB)/libprotoc.a \
     -o ./protoc-gen-js \
-    -lpthread
+    -pthread
 
 protoc-gen-ccjs: js/javascript_package.pb.cc js/int64_encoding.pb.cc
 ifeq ($(VERBOSE),0)
@@ -62,10 +67,10 @@ endif
     ./ccjs/code_generator.cc \
     ./ccjs/protoc_gen_ccjs.cc \
     ./js/int64_encoding.pb.cc \
-    -l:$(LIB)libprotobuf.a \
-    -l:$(LIB)libprotoc.a \
+    $(LIB)/libprotobuf.a \
+    $(LIB)/libprotoc.a \
     -o ./protoc-gen-ccjs \
-    -lpthread
+    -pthread
 
 clean:
 ifeq ($(VERBOSE),0)

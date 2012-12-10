@@ -99,6 +99,12 @@ LINT?=0
 TRIAL?=0
 TIMEBOMB?=0
 
+ifeq ($(OSX),0)
+LDPTHREADFLAG:=-pthread
+else
+LDPTHREADFLAG:=
+endif
+
 # Choose our directories
 # This makefile is meant to be run from the 'src' directory.
 SOURCE_DIR:=.
@@ -140,8 +146,6 @@ STATICFORCE?=0
 
 LDFLAGS:=
 
-# TODO(OSX) Make sure we get tcmalloc working in Linux and OS X.
-
 ifeq ($(COMPILER),CLANG)
 ifeq ($(OSX),0)
 LDFLAGS+=-Wl,--no-as-needed
@@ -152,7 +156,7 @@ LDFLAGS+= -static
 STATICIBGCC=1
 endif
 
-LDFLAGS+=$(LDPATHDS) -pthread -lstdc++ -lm
+LDFLAGS+=$(LDPATHDS) $(LDPTHREADFLAG) -lstdc++ -lm
 
 else  # ifeq ($(COMPILER),CLANG)
 
@@ -162,7 +166,7 @@ ifeq ($(STATICFORCE),1)
 LDFLAGS+= -static
 STATIC_LIBGCC=1
 endif
-LDFLAGS+=$(LDPATHDS) -pthread -lstdc++
+LDFLAGS+=$(LDPATHDS) $(LDPTHREADFLAG) -lstdc++
 else  # ifeq ($(COMPILER),INTEL)
 # GCC
 ifeq ($(OSX),0)
@@ -174,7 +178,7 @@ LDFLAGS+= -static
 STATIC_LIBGCC=1
 endif
 
-LDFLAGS+=$(LDPATHDS) -pthread
+LDFLAGS+=$(LDPATHDS) $(LDPTHREADFLAG)
 endif  # ifeq ($(COMPILER),INTEL)
 endif  # ifeq ($(COMPILER),CLANG)
 
@@ -199,7 +203,14 @@ ifeq ($(STATIC_V8),0)
 LDFLAGS+=-lv8
 else
 ifeq ($(STATIC_V8),1)
+ifeq ($(OSX),1)
+# TODO(OSX) Support static linking v8?  Or meh, make everybody build using homebrew?
+LDFLAGS+=-lv8
+else
+# TODO(OSX) How the heck does -dynamic work?  According to the gcc man
+# page (on Linux), that's just passed through to the linker on Darwin.
 LDFLAGS+=-static -lv8 -dynamic
+endif
 endif
 endif
 
@@ -347,9 +358,11 @@ endif
 
 ifeq ($(SYMBOLS),1)
 # -rdynamic is necessary so that backtrace_symbols() works properly
+ifeq ($(OSX),0)
 LDFLAGS+=-rdynamic
-CXXFLAGS+=-g
 endif
+CXXFLAGS+=-g
+endif  # ($(SYMBOLS),1)
 
 ifeq ($(SEMANTIC_SERIALIZER_CHECK),1)
 CXXFLAGS+=-DSEMANTIC_SERIALIZER_CHECK
