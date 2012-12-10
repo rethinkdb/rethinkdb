@@ -9,7 +9,7 @@ boost::program_options::validation_error::kind_t boost_program_options_validatio
     switch(input) {
         case multiple_values_not_allowed:
              return boost::program_options::validation_error::multiple_values_not_allowed;
-             break ;
+             break;
         case at_least_one_value_required:
              return boost::program_options::validation_error::at_least_one_value_required;
              break;
@@ -66,7 +66,7 @@ void boost_program_options_validation_error_wrap(
 #if BOOST_VERSION >= 104200
     throw boost::program_options::validation_error(
         boost_program_options_validation_error_type_to_kind(error_type),
-        error_item ) ;
+        error_item );
 #else
     throw boost::program_options::validation_error(
         boost_program_options_validation_error_type_to_string( error_type )+
