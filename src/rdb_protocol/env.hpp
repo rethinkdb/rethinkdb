@@ -7,13 +7,26 @@
 #include "clustering/administration/database_metadata.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "concurrency/one_per_thread.hpp"
+#include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/js.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/stream.hpp"
+#include "rdb_protocol/val.hpp"
 
 namespace ql {
-class datum_t;
 class env_t {
+public:
+    val_t *new_val() { return add_and_ret(new datum_t()); }
+    template<class T>
+    val_t *new_val(T t) { return add_and_ret(new datum_t(t)); }
+private:
+    val_t *add_and_ret(datum_t *d) {
+        val_t *v = new val_t(d);
+        vals.push_back(v);
+        return v;
+    }
+    boost::ptr_vector<val_t> vals;
+
 public:
     void push_var(int var, datum_t **val) { vars[var].push(val); }
     void pop_var(int var) { vars[var].pop(); }
@@ -88,4 +101,4 @@ private:
 
 } //namespace query_language
 
-#endif  // RDB_PROTOCOL_ENV_HPP_
+#endif // RDB_PROTOCOL_ENV_HPP_

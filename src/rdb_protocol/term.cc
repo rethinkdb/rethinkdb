@@ -3,7 +3,7 @@
 
 namespace ql {
 
-term_t *compile_term(const Term2 *t, env_t *env) {
+term_t *compile_term(env_t *env, const Term2 *t) {
     switch(t->type()) {
     case Term2_TermType_DATUM: {
         return new datum_term_t(&t->datum());
@@ -69,17 +69,17 @@ term_t *compile_term(const Term2 *t, env_t *env) {
     case Term2_TermType_ALL:
     case Term2_TermType_FOREACH:
     case Term2_TermType_FUNC:
-    default:
-        runtime_check(false, strprintf("UNIMPLEMENTED %p", env));
+    default: break;
     }
+    runtime_check(false, strprintf("UNIMPLEMENTED %p", env));
     unreachable();
 }
 
 void run(Query2 *q, env_t *env, Response2 *res, stream_cache_t *stream_cache) {
     switch(q->type()) {
     case Query2_QueryType_START: {
-        scoped_ptr_t<term_t> root_term(compile_term(&q->query(), env));
-        val_t *val = root_term->eval();
+        scoped_ptr_t<term_t> root_term(compile_term(env, &q->query()));
+        val_t *val = root_term->eval(env);
         if (val->get_type().is_convertible(val_t::type_t::DATUM)) {
             const datum_t *d = val->as_datum();
             res->set_type(Response2_ResponseType_SUCCESS_ATOM);
@@ -100,8 +100,8 @@ void run(Query2 *q, env_t *env, Response2 *res, stream_cache_t *stream_cache) {
 
 term_t::term_t() : cached_val(0) { }
 term_t::~term_t() { }
-val_t *term_t::eval(bool use_cached_val) {
-    if (!cached_val || !use_cached_val) cached_val = eval_impl();
+val_t *term_t::eval(env_t *env, bool use_cached_val) {
+    if (!cached_val || !use_cached_val) cached_val = eval_impl(env);
     return cached_val;
 }
 

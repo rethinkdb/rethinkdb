@@ -3,21 +3,21 @@
 
 namespace ql {
 
-func_t::func_t(const std::vector<int> &args, const Term2 *body_source, env_t *env) {
+func_t::func_t(env_t *env, const std::vector<int> &args, const Term2 *body_source) {
     for (size_t i = 0; i < args.size(); ++i) {
         argptrs.push_back(0);
         env->push_var(args[i], &argptrs[i]);
     }
-    body.init(compile_term(body_source, env));
+    body.init(compile_term(env, body_source));
     for (size_t i = 0; i < args.size(); ++i) env->pop_var(args[i]);
 }
 
-val_t *func_t::call(const std::vector<datum_t *> &args) {
+val_t *func_t::call(env_t *env, const std::vector<datum_t *> &args) {
     runtime_check(args.size() == argptrs.size(),
                   strprintf("Passed %lu arguments to function of arity %lu.",
                             args.size(), argptrs.size()));
     for (size_t i = 0; i < args.size(); ++i) argptrs[i] = args[i];
-    return body->eval(false);
+    return body->eval(env, false);
     //                ^^^^^ don't use cached value
 }
 

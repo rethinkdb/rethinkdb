@@ -10,18 +10,17 @@
 #include "utils.hpp"
 
 #include <boost/ptr_container/ptr_vector.hpp>
+#include <boost/ptr_container/ptr_map.hpp>
 
 #include "containers/uuid.hpp"
 #include "clustering/administration/namespace_interface_repository.hpp"
 
+#include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/env.hpp"
-#include "rdb_protocol/stream_cache.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/ql2.pb.h"
-
-//TODO: fix up
-#include "stream.hpp"
-typedef query_language::json_stream_t json_stream_t;
+#include "rdb_protocol/stream_cache.hpp"
+#include "rdb_protocol/val.hpp"
 
 namespace ql {
 
@@ -54,131 +53,33 @@ void _runtime_check(const char *test, const char *file, int line,
                     bool pred, std::string msg = "");
 #define runtime_check(pred, msg) \
     _runtime_check(stringify(pred), __FILE__, __LINE__, pred, msg)
+// TODO: do something smarter?
+#define runtime_fail(msg) runtime_check(false, msg)
 // TODO: make this crash in debug mode
 #define sanity_check(test) runtime_check(test, "SANITY_CHECK")
 
-class datum_t {
-public:
-    datum_t(); // R_NULL
-    datum_t(bool _bool);
-    datum_t(double _num);
-    datum_t(const std::string &_str);
-    datum_t(const std::vector<const datum_t *> &_array);
-    datum_t(const std::map<const std::string, const datum_t *> &_object);
-    datum_t(const Datum *d);
-    void write_to_protobuf(Datum *out) const;
-
-    enum type_t {
-        R_NULL   = 1,
-        R_BOOL   = 2,
-        R_NUM    = 3,
-        R_STR    = 4,
-        R_ARRAY  = 5,
-        R_OBJECT = 6
-    };
-    type_t get_type() const;
-    void check_type(type_t desired) const;
-
-    bool as_bool() const;
-    double as_num() const;
-    const std::string &as_str() const;
-    const std::vector<const datum_t *> &as_array() const;
-    const std::map<const std::string, const datum_t *> &as_object() const;
-
-    int cmp(const datum_t &rhs) const;
-    bool operator==(const datum_t &rhs) const;
-    bool operator!=(const datum_t &rhs) const;
-    bool operator<(const datum_t &rhs) const;
-    bool operator<=(const datum_t &rhs) const;
-    bool operator>(const datum_t &rhs) const;
-    bool operator>=(const datum_t &rhs) const;
-
-    void add(datum_t *val);
-    // Returns whether or not `key` was already present in object.
-    MUST_USE bool add(const std::string &key, datum_t *val, bool clobber = false);
-private:
-    // Listing everything is more debugging-friendly than a boost::variant,
-    type_t type;
-    bool r_bool;
-    double r_num;
-    std::string r_str;
-
-    std::vector<const datum_t *> r_array;
-    std::map<const std::string, const datum_t *> r_object;
-    // Sometimes the `datum_t` owns its members, like when it's a literal
-    // `datum_t` provided by the user.
-    boost::ptr_vector<datum_t> to_free;
-};
-
-class func_t;
-class val_t;
 class term_t;
-
-// namespace_repo_t<rdb_protocol_t>::access_t *
-class table_t;
-
-class val_t {
-public:
-    class type_t {
-        friend class val_t;
-    public:
-        enum raw_type_t {
-            DB               = 1, // db
-            TABLE            = 2, // table
-            SELECTION        = 3, // table, sequence
-            SEQUENCE         = 4, // sequence
-            SINGLE_SELECTION = 5, // table, datum (object)
-            DATUM            = 6, // datum
-            FUNC             = 7  // func
-        };
-        type_t(raw_type_t _raw_type);
-        bool is_convertible(type_t rhs) const;
-    private:
-        const char *name() const;
-        raw_type_t raw_type;
-    };
-    type_t get_type() const;
-
-    val_t(const datum_t *datum);
-
-    uuid_t as_db();
-    table_t *as_table();
-    std::pair<table_t *, json_stream_t *> as_selection();
-    json_stream_t *as_seq();
-    std::pair<table_t *, const datum_t *> as_single_selection();
-    const datum_t *as_datum();
-    func_t *as_func();
-private:
-    type_t type;
-    uuid_t db;
-    table_t *table;
-    scoped_ptr_t<json_stream_t> sequence;
-    scoped_ptr_t<const datum_t> datum;
-    scoped_ptr_t<func_t> func;
-
-    bool consumed;
-};
-
 class func_t {
 public:
-    func_t(const std::vector<int> &args, const Term2 *body_source, env_t *env);
-    val_t *call(const std::vector<datum_t *> &args);
+    func_t(env_t *env, const std::vector<int> &args, const Term2 *body_source);
+    val_t *call(env_t *env, const std::vector<datum_t *> &args);
 private:
     std::vector<datum_t *> argptrs;
     scoped_ptr_t<term_t> body;
 };
 
-term_t *compile_term(const Term2 *t, env_t *env);
+term_t *compile_term(env_t *env, const Term2 *t);
 
 class term_t {
 public:
     term_t();
     virtual ~term_t();
 
-    val_t *eval(bool use_cached_val = true);
+    virtual const char *name() const = 0;
+    val_t *eval(env_t *env, bool use_cached_val = true);
 private:
+    virtual val_t *eval_impl(env_t *env) = 0;
     val_t *cached_val;
-    virtual val_t *eval_impl() = 0;
 };
 
 class datum_term_t : public term_t {
@@ -186,34 +87,46 @@ public:
     datum_term_t(const Datum *datum);
     virtual ~datum_term_t();
 
-    virtual val_t *eval_impl();
+    virtual val_t *eval_impl(env_t *env);
+    virtual const char *name() const;
 private:
     scoped_ptr_t<val_t> raw_val;
 };
 
 class op_term_t : public term_t {
 public:
-    op_term_t(const Term2 *opterm);
+    op_term_t(env_t *env, const Term2 *term);
     virtual ~op_term_t();
-    virtual val_t *eval_impl();
+    virtual val_t *eval_impl(env_t *env);
 private:
-    val_t *call(std::vector<val_t *> *args,
-                std::map<const std::string, val_t *> *optargs);
-    virtual val_t *call_impl(std::vector<val_t *> *args,
-                             std::map<const std::string, val_t *> *optargs) = 0;
-    std::vector<term_t *> args;
-    std::map<const std::string, term_t *> optargs;
+    virtual val_t *call_impl(env_t *env, boost::ptr_vector<term_t> *args,
+                             boost::ptr_map<const std::string, term_t> *optargs) = 0;
+    boost::ptr_vector<term_t> args;
+    boost::ptr_map<const std::string, term_t> optargs;
+    //std::vector<term_t *> args;
+    //std::map<const std::string, term_t *> optargs;
 };
 
 class simple_op_term_t : public op_term_t {
 public:
-    simple_op_term_t(const Term2 *opterm);
+    simple_op_term_t(env_t *env, const Term2 *term);
     virtual ~simple_op_term_t();
-    virtual val_t *call_impl(std::vector<val_t *> *args,
-                             std::map<const std::string, val_t *> *optargs);
+    virtual val_t *call_impl(env_t *env, boost::ptr_vector<term_t> *args,
+                             boost::ptr_map<const std::string, term_t> *optargs) = 0;
 private:
-    val_t *call(std::vector<val_t *> *args);
-    virtual val_t *call_impl(std::vector<val_t *> *args) = 0;
+    virtual val_t *simple_call_impl(env_t *env, std::vector<val_t *> *args) = 0;
+};
+
+class predicate_term_t : public simple_op_term_t {
+public:
+    predicate_term_t(env_t *env, const Term2 *term);
+    virtual ~predicate_term_t();
+    virtual val_t *simple_call_impl(env_t *env, std::vector<val_t *> *args);
+    virtual const char *name() const;
+private:
+    const char *namestr;
+    bool invert;
+    bool (datum_t::*pred)(const datum_t &rhs) const;
 };
 
 // Fills in [res] with an error of type [type] and message [msg].

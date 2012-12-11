@@ -1,0 +1,67 @@
+#ifndef RDB_PROTOCOL_DATUM_HPP_
+#define RDB_PROTOCOL_DATUM_HPP_
+#include <string>
+#include <vector>
+#include <map>
+
+#include "utils.hpp"
+#include <boost/ptr_container/ptr_vector.hpp>
+
+class Datum;
+
+namespace ql {
+class datum_t {
+public:
+    datum_t(); // R_NULL
+    datum_t(bool _bool);
+    datum_t(double _num);
+    datum_t(const std::string &_str);
+    datum_t(const std::vector<const datum_t *> &_array);
+    datum_t(const std::map<const std::string, const datum_t *> &_object);
+    datum_t(const Datum *d);
+    void write_to_protobuf(Datum *out) const;
+
+    enum type_t {
+        R_NULL   = 1,
+        R_BOOL   = 2,
+        R_NUM    = 3,
+        R_STR    = 4,
+        R_ARRAY  = 5,
+        R_OBJECT = 6
+    };
+    datum_t(type_t _type);
+    type_t get_type() const;
+    void check_type(type_t desired) const;
+
+    bool as_bool() const;
+    double as_num() const;
+    const std::string &as_str() const;
+    const std::vector<const datum_t *> &as_array() const;
+    const std::map<const std::string, const datum_t *> &as_object() const;
+
+    int cmp(const datum_t &rhs) const;
+    bool operator==(const datum_t &rhs) const;
+    bool operator!=(const datum_t &rhs) const;
+    bool operator<(const datum_t &rhs) const;
+    bool operator<=(const datum_t &rhs) const;
+    bool operator>(const datum_t &rhs) const;
+    bool operator>=(const datum_t &rhs) const;
+
+    void add(datum_t *val);
+    // Returns whether or not `key` was already present in object.
+    MUST_USE bool add(const std::string &key, datum_t *val, bool clobber = false);
+private:
+    // Listing everything is more debugging-friendly than a boost::variant,
+    type_t type;
+    bool r_bool;
+    double r_num;
+    std::string r_str;
+
+    std::vector<const datum_t *> r_array;
+    std::map<const std::string, const datum_t *> r_object;
+    // Sometimes the `datum_t` owns its members, like when it's a literal
+    // `datum_t` provided by the user.
+    boost::ptr_vector<datum_t> to_free;
+};
+} //namespace ql
+#endif // RDB_PROTOCOL_DATUM_HPP_

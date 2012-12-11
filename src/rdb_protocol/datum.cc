@@ -1,6 +1,7 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "math.h"
 
+#include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/ql2.hpp"
 
 namespace ql {
@@ -16,6 +17,9 @@ datum_t::datum_t(const std::vector<const datum_t *> &_array)
     : type(R_ARRAY), r_array(_array) { }
 datum_t::datum_t(const std::map<const std::string, const datum_t *> &_object)
     : type(R_OBJECT), r_object(_object) { }
+datum_t::datum_t(datum_t::type_t _type) : type(_type) {
+    sanity_check(type == R_ARRAY || type == R_OBJECT);
+}
 
 datum_t::type_t datum_t::get_type() const { return type; }
 const char *datum_type_name(datum_t::type_t type) {
@@ -208,9 +212,11 @@ datum_term_t::datum_term_t(const Datum *datum)
 }
 datum_term_t::~datum_term_t() { }
 
-val_t *datum_term_t::eval_impl() {
+val_t *datum_term_t::eval_impl(UNUSED env_t *env) {
     return raw_val.get();
 }
+
+const char *datum_term_t::name() const { return "datum"; }
 
 
 } //namespace ql
