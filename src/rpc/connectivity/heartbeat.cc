@@ -1,4 +1,8 @@
 #include "rpc/connectivity/heartbeat.hpp"
+
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
 #include "logger.hpp"
 
 heartbeat_manager_t::heartbeat_manager_t(message_service_t *_message_service) :

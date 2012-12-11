@@ -11,6 +11,7 @@
 #include <boost/lexical_cast.hpp>
 
 #include "arch/arch.hpp"
+#include "arch/io/network.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "db_thread_info.hpp"
 

@@ -3,7 +3,6 @@
 #define ARCH_IO_ARCH_HPP_
 
 #include "arch/io/disk.hpp"
-#include "arch/io/network.hpp"
 #include "arch/runtime/thread_pool.hpp"
 
 /* Timer functions create (non-)periodic timers, callbacks for which are
