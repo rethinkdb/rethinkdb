@@ -48,15 +48,15 @@ artificial_stack_t::artificial_stack_t(void (*initial_fun)(void), size_t _stack_
 
     /* Set up the stack... */
 
-    uint64_t *sp; /* A pointer into the stack. */
+    uintptr_t *sp; /* A pointer into the stack. Note that uintptr_t is ideal since it points to something of the same size as the native word or pointer. */
 
     /* Start at the beginning. */
-    sp = reinterpret_cast<uint64_t *>(uintptr_t(stack) + stack_size);
+    sp = reinterpret_cast<uintptr_t *>(uintptr_t(stack) + stack_size);
 
     /* Align stack. The x86-64 ABI requires the stack pointer to always be
     16-byte-aligned at function calls. That is, "(%rsp - 8) is always a multiple
     of 16 when control is transferred to the function entry point". */
-    sp = reinterpret_cast<uint64_t *>(uintptr_t(sp) & static_cast<uintptr_t>(-16L));
+    sp = reinterpret_cast<uintptr_t *>(uintptr_t(sp) & static_cast<uintptr_t>(-16L));
 
     // Currently sp is 16-byte aligned.
 
@@ -71,16 +71,23 @@ artificial_stack_t::artificial_stack_t(void (*initial_fun)(void), size_t _stack_
 
     sp--;
 
-    // Subtracted 2*sizeof(int64_t), so sp is still 16-byte aligned.
+    // Subtracted 2*sizeof(uintptr_t), so sp is still double-word-size (16-byte for amd64) aligned.
 
-    *sp = reinterpret_cast<uint64_t>(initial_fun);
+    *sp = reinterpret_cast<uintptr_t>(initial_fun);
 
+#if defined(__i386__)
+    /* For i386, we are obligated (by the A.B.I. specification) to preserve esi, edi, ebx, ebp, and esp. We do not push esp onto the stack, though, since we will have needed to retrieve it anyway in order to get to the point on the stack from which we would pop. */
+    sp -= 4;
+#elif defined(__x86_64__)
     /* These registers (r12, r13, r14, r15, rbx, rbp) are going to be popped off
     the stack by swapcontext; they're callee-saved, so whatever happens to be in
     them will be ignored. */
     sp -= 6;
+#else
+#error "Unsupported architecture."
+#endif
 
-    // Subtracted 6*sizeof(int64_t), so sp is still 16-byte aligned.
+    // Subtracted (multiple of 2)*sizeof(uintptr_t), so sp is still double-word-size (16-byte for amd64, 8-byte for i386) aligned.
 
     /* Set up stack pointer. */
     context.pointer = sp;
@@ -169,35 +176,84 @@ void context_switch(context_ref_t *current_context_out, context_ref_t *dest_cont
 }
 
 asm(
-    /* `current_pointer_out` is in `%rdi`. `dest_pointer` is in `%rsi`. */
-
+#if defined(__i386__) || defined(__x86_64__)
+// We keep the i386 and x86_64 stuff interleaved in order to enforce commonality.
+#if defined(__x86_64__)
+#if defined(__LP64__) || defined(__LLP64__)
+// Pointers are of the right size
+#else
+// Having non-native-sized pointers makes things very messy.
+#error "Non-native pointer size."
+#endif
+#endif // defined(__x86_64__)
 ".text\n"
 "_lightweight_swapcontext:\n"
 
+#if defined(__i386__)
+    /* `current_pointer_out` is in `4(%ebp)`. `dest_pointer` is in `8(%ebp)`. */
+#elif defined(__x86_64__)
+    /* `current_pointer_out` is in `%rdi`. `dest_pointer` is in `%rsi`. */
+#endif
+
     /* Save preserved registers (the return address is already on the stack). */
+#if defined(__i386__)
+    /* For i386, we must preserve esi, edi, ebx, ebp, and esp. */
+    "push %esi\n"
+    "push %edi\n"
+    "push %ebx\n"
+    "push %ebp\n"
+#elif defined(__x86_64__)
     "pushq %r12\n"
     "pushq %r13\n"
     "pushq %r14\n"
     "pushq %r15\n"
     "pushq %rbx\n"
     "pushq %rbp\n"
+#endif
 
     /* Save old stack pointer. */
+#if defined(__i386__)
+    /* i386 passes arguments on the stack. We add ((number of things pushed)+1)*(sizeof(void*)) to esp in order to get the first argument. */
+    "mov 20(%esp), %ecx\n"
+    /* We then copy the stack pointer into the space indicated by the first argument. */
+    "mov %esp, (%ecx)\n"
+#elif defined(__x86_64__)
+    /* On amd64, the first argument comes from rdi. */
     "movq %rsp, (%rdi)\n"
+#endif
 
     /* Load the new stack pointer and the preserved registers. */
+#if defined(__i386__)
+    /* i386 passes arguments on the stack. We add ((number of things pushed)+1)*(sizeof(void*)) to esp in order to get the first argument. */
+    "mov 24(%esp), %esi\n"
+    /* We then copy the second argument to be the new stack pointer. */
+    "mov %esi, %esp\n"
+#elif defined(__x86_64__)
+    /* On amd64, the second argument comes from rsi. */
     "movq %rsi, %rsp\n"
+#endif
 
+#if defined(__i386__)
+    "pop %ebp\n"
+    "pop %ebx\n"
+    "pop %edi\n"
+    "pop %esi\n"
+#elif defined(__x86_64__)
     "popq %rbp\n"
     "popq %rbx\n"
     "popq %r15\n"
     "popq %r14\n"
     "popq %r13\n"
     "popq %r12\n"
+#endif
 
     /* The following ret should return to the address set with
     `artificial_stack_t()` or with the previous `lightweight_swapcontext`. The
     instruction pointer is saved on the stack from the previous call (or
     initialized with `artificial_stack_t()`). */
     "ret\n"
+#else
+#error "Unsupported architecture."
+#endif
 );
+

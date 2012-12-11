@@ -407,9 +407,9 @@ bool begins_with_minus(const char *string) {
 }
 
 int64_t strtoi64_strict(const char *string, const char **end, int base) {
-    CT_ASSERT(sizeof(long) == sizeof(int64_t));  // NOLINT(runtime/int)
-    long result = strtol(string, const_cast<char **>(end), base);  // NOLINT(runtime/int)
-    if ((result == LONG_MAX || result == LONG_MIN) && errno == ERANGE) {
+    CT_ASSERT(sizeof(long long) == sizeof(int64_t));  // NOLINT(runtime/int)
+    long long result = strtoll(string, const_cast<char **>(end), base);  // NOLINT(runtime/int)
+    if ((result == LLONG_MAX || result == LLONG_MIN) && errno == ERANGE) {
         *end = string;
         return 0;
     }
@@ -421,9 +421,9 @@ uint64_t strtou64_strict(const char *string, const char **end, int base) {
         *end = string;
         return 0;
     }
-    CT_ASSERT(sizeof(unsigned long) == sizeof(uint64_t));  // NOLINT(runtime/int)
-    unsigned long result = strtoul(string, const_cast<char **>(end), base);  // NOLINT(runtime/int)
-    if (result == ULONG_MAX && errno == ERANGE) {
+    CT_ASSERT(sizeof(unsigned long long) == sizeof(uint64_t));  // NOLINT(runtime/int)
+    unsigned long long result = strtoull(string, const_cast<char **>(end), base);  // NOLINT(runtime/int)
+    if (result == ULLONG_MAX && errno == ERANGE) {
         *end = string;
         return 0;
     }

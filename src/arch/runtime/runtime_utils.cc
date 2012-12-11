@@ -1,4 +1,5 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
+#define __STDC_FORMAT_MACROS
 #include "arch/runtime/runtime_utils.hpp"
 
 #include <unistd.h>
@@ -10,11 +11,19 @@
 #ifndef NDEBUG
 
 uint64_t get_clock_cycles() {
-    uint64_t ret;
-    uint32_t low;
-    __asm__ __volatile__("rdtsc" : "=a" (low), "=d" (ret));
+#if defined(__i386__) || defined(__x86_64__)
+    // uintptr_t matches the native register/word size on Linux on i386 and amd64.
+    // This assumption may not be true on certain other software/hardware combinations.
+    // (And of course rdtsc probably would not work.)
+    uintptr_t high;
+    uintptr_t low;
+    __asm__ __volatile__("rdtsc" : "=a" (low), "=d" (high));
+    uint64_t ret = high;
     ret <<= 32;
     ret |= low;
+#else
+#error "Unsupported architecture."
+#endif
     return ret;
 }
 

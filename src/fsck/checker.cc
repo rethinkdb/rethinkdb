@@ -387,8 +387,6 @@ std::string extract_static_config_flags(nondirect_file_t *file, UNUSED file_know
     block_size_t block_size = static_cfg->block_size();
     uint64_t extent_size = static_cfg->extent_size();
 
-
-
     return strprintf(" --block-size %u --extent-size %" PRIu64, block_size.ser_value(), extent_size);
 }
 
