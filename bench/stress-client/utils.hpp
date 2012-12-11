@@ -7,6 +7,11 @@
 #include <algorithm>
 
 #define UNUSED __attribute__((unused))
+#define DISABLE_COPYING(name) name(const name&);        \
+    void operator=(const name&)
+
+// For global startup, initializes the clock_monotonic function (which is relevant on OS X).
+void initialize_clock_monotonic();
 
 /* Returns random number between [min, max] using various distributions */
 enum rnd_distr_t {
@@ -38,8 +43,7 @@ float ticks_to_us(ticks_t ticks);
 void sleep_ticks(ticks_t ticks);
 
 /* Spinlock wrapper class */
-// TODO(OSX) Copy/pasted from src/arch/spinlock.hpp  (then lock/unlock made public).
-#if __APPLE__
+#if __MACH__
 #define PTHREAD_HAS_SPINLOCK 0
 #else
 #define PTHREAD_HAS_SPINLOCK 1
@@ -89,9 +93,7 @@ private:
     pthread_mutex_t l;
 #endif
 
-    // TODO(OSX) add disable_copying.
-    spinlock_t(const spinlock_t&);
-    void operator=(const spinlock_t&);
+    DISABLE_COPYING(spinlock_t);
 };
 
 class spinlock_acq_t {
@@ -106,8 +108,7 @@ public:
 private:
     spinlock_t *the_lock_;
 
-    spinlock_acq_t(const spinlock_acq_t&);
-    void operator=(const spinlock_acq_t&);
+    DISABLE_COPYING(spinlock_acq_t);
 };
 
 
