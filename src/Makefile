@@ -169,7 +169,7 @@ RT_LDFLAGS+= -static
 STATICIBGCC=1
 endif
 
-LDFLAGS+=$(LDPATHDS) $(LDPTHREADFLAG) -lstdc++ -lm
+RT_LDFLAGS+=$(LDPATHDS) $(LDPTHREADFLAG) -lstdc++ -lm
 
 else  # ifeq ($(COMPILER),CLANG)
 
