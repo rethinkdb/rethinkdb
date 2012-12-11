@@ -12,7 +12,12 @@ ANSI_UL_OFF:=[0m
 
 ##### Configuring stuff
 
+UNAME:=$(shell uname)
+ifeq ($(UNAME),Darwin)
+OSX?=1
+else
 OSX?=0
+endif
 
 IGNORE_MAKEFILE_CHANGES?=0
 
@@ -86,7 +91,11 @@ JSON_SHORTCUTS?=0
 DEBUG?=1
 VALGRIND?=0
 MCHECK?=0
+ifeq ($(OSX),1)
+NO_TCMALLOC?=1
+else
 NO_TCMALLOC?=0
+endif
 SEMANTIC_SERIALIZER_CHECK?=0
 MOCK_CACHE_CHECK?=0
 VERBOSE?=0
@@ -407,7 +416,7 @@ endif
 
 ifeq ($(NO_EVENTFD),1)
 CXXFLAGS+=-DNO_EVENTFD
-BUILD_DIR:=$(BUILD_DIR)-no_eventfd
+BUILD_DIR:=$(BUILD_DIR)-noeventfd
 endif
 
 ifeq ($(NO_EPOLL),1)

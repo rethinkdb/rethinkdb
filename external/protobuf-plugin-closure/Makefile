@@ -8,7 +8,10 @@ else
 	QUIET:=@
 endif
 
-ifeq ($(OSX),1)
+UNAME:=$(shell uname)
+
+# TODO(OSX) How to decide this?
+ifeq ($(UNAME),Darwin)
 SPREFIX?=/usr/local
 else
 SPREFIX?=/usr

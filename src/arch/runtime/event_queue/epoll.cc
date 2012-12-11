@@ -1,4 +1,5 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
+#ifdef __linux
 #ifndef NO_EPOLL // To make the build system happy.
 
 #include "arch/runtime/event_queue/epoll.hpp"
@@ -183,4 +184,5 @@ void epoll_event_queue_t::forget_resource(fd_t resource, linux_event_callback_t 
     DEBUG_ONLY_CODE(events_requested.erase(events_requested.find(cb)));
 }
 
-#endif
+#endif  // NO_EPOLL
+#endif  // __linux
