@@ -47,7 +47,7 @@ class Tests
     callback_demo:(data) =>
         @result_demo = data
         # TODO Remove when the backtraces are implemented
-        @result_demo = @remove_backtraces(@result_demo)
+        #@result_demo = @remove_backtraces(@result_demo)
 
 
         window.r = window.rethinkdb
@@ -62,7 +62,7 @@ class Tests
     callback_server: (data) =>
         @result_server = data
         # TODO Remove when the backtraces are implemented
-        @result_server = @remove_backtraces(@result_server)
+        #@result_server = @remove_backtraces(@result_server)
 
         # We do not compare the generated keys since they are not the same.
         found_error_in_generated_keys = false
@@ -111,12 +111,17 @@ class Tests
                 doc.first_error = lines[0]
         return data
 
+    newlines = (key, value) ->
+        if key is 'message'
+            value.replace(/\n/g, '\n')
+        else
+            value
 
     display: (args) ->
         query = args.query
         success = args.success
-        result_server = args.result_server
-        result_demo = args.result_demo
+        result_server = JSON.stringify(args.result_server, newlines, 2)
+        result_demo = JSON.stringify(args.result_demo, newlines, 2)
         if success is true
             $('#results').append '<li class="result success">'+query+'<span style="float: right">^_^</span>
                 </li>'
@@ -128,10 +133,10 @@ class Tests
                 </li>'
             ###
         else
-            $('#results').prepend '<li class="result fail">'+query+'<span style="float: right">&gt;_&lt;</span><br/>Demo server response:
-                <pre>'+JSON.stringify(result_demo, undefined, 2)+'</pre>
+            $('#err-results').append '<li class="result fail">'+query+'<span style="float: right">&gt;_&lt;</span><br/>Demo server response:
+                <pre>'+result_demo+'</pre>
                 Real server response:
-                <pre>'+JSON.stringify(result_server, undefined, 2)+'</pre>
+                <pre>'+result_server+'</pre>
                 </li>'
 
 

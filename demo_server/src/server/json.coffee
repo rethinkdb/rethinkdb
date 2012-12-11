@@ -39,7 +39,7 @@ class RDBJson
     not: -> throw abstract
 
     eq: (other) -> throw abstract
-    ne: (other) -> not @eq other
+    ne: (other) -> new RDBPrimitive (not (@eq other).asJSON())
     lt: (other) -> throw abstract
     le: (other) -> throw abstract
     gt: (other) -> throw abstract
@@ -56,28 +56,32 @@ class RDBSelection
     makeSelection: (obj, table) ->
         proto =
             update: (mapping) ->
-                try
-                    update_doc = mapping @
-                catch err
-                    return {errors: 1, error: err.message}
-                if update_doc[table.primaryKey]? and
-                        (update_doc[table.primaryKey].asJSON() isnt @[table.primaryKey].asJSON())
-                    return { errors: 1, error: "update cannot change primary key #{table.primaryKey} "+
-                                               "(got objects #{Utils.stringify(@.asJSON())}, "+
-                                               "#{Utils.stringify(update_doc.asJSON())})" }
-                neu = @.merge mapping @
+                updated = mapping @
+                neu = @.merge updated
+                unless neu[table.primaryKey].eq(@[table.primaryKey]).asJSON()
+                    throw new RuntimeError "update cannot change primary key #{table.primaryKey} "+
+                                           "(got objects #{Utils.stringify(@.asJSON())}, "+
+                                           "#{Utils.stringify(updated.asJSON())})"
                 table.insert neu, true
-                {updated: 1}
+                return true
 
             replace: (mapping) ->
-                update_doc = mapping @
-                if update_doc.asJSON()[table.primaryKey] isnt @asJSON()[table.primaryKey]
-                    return { errors: 1, error: "mutate cannot change primary key #{table.primaryKey} "+
-                                               "(got objects #{Utils.stringify(@.asJSON())}, "+
-                                               "#{Utils.stringify(update_doc.asJSON())})" }
-                neu = update_doc
-                table.insert neu, true
-                {modified: 1}
+                replacement = mapping @
+                if replacement.isNull()
+                    @del()
+                    return "deleted"
+
+                if @isNull()
+                    table.insert replacement
+                    return "inserted"
+
+                if replacement[table.primaryKey].eq(@[table.primaryKey]).asJSON()
+                    table.insert replacement, true
+                    return "modified"
+                    
+                throw new RuntimeError "mutate cannot change primary key #{table.primaryKey} "+
+                                       "(got objects #{Utils.stringify(@.asJSON())}, "+
+                                       "#{Utils.stringify(replacement.asJSON())})"
 
             del: ->
                 table.deleteKey @[table.primaryKey].asJSON()
@@ -93,35 +97,30 @@ class RDBPrimitive extends RDBJson
     asJSON: -> @data
     copy: -> new RDBPrimitive @data
 
-    union: -> throw new RuntimeError "Required type: array but found #{typeof @asJSON()}."
+    union: (other) -> throw new RuntimeError "Required type: array but found #{typeof @asJSON()}."
     count: -> throw new RuntimeError "LENGTH argument must be an array."
     distinct: -> throw new RuntimeError "Required type: array but found #{typeof @asJSON()}."
 
-    not: -> not @data
+    not: -> new RDBPrimitive not @asJSON()
 
-    eq: (other) -> @typeOf() is other.typeOf() and @asJSON() is other.asJSON()
+    eq: (other) -> new RDBPrimitive (@typeOf() is other.typeOf() and @asJSON() is other.asJSON())
 
-    ge: (other) -> not @lt(other)
-    le: (other) -> not @gt(other)
+    ge: (other) -> new RDBPrimitive (not @lt(other).asJSON())
+    le: (other) -> new RDBPrimitive (not @gt(other).asJSON())
 
     gt: (other) ->
         if @typeOf() is other.typeOf()
-            @data > other.asJSON()
+            new RDBPrimitive @data > other.asJSON()
         else
-            @typeOf() > other.typeOf()
+            new RDBPrimitive @typeOf() > other.typeOf()
 
     lt: (other) ->
         if @typeOf() is other.typeOf()
-            @data < other.asJSON()
+            new RDBPrimitive @data < other.asJSON()
         else
-            @typeOf() < other.typeOf()
+            new RDBPrimitive @typeOf() < other.typeOf()
 
-    add: (other) ->
-        if @typeOf() isnt RDBJson.RDBTypes.NUMBER
-            throw new RuntimeError "Can only ADD numbers with numbers and arrays with arrays"
-        if other.typeOf() isnt RDBJson.RDBTypes.NUMBER
-            throw new RuntimeError "Cannot ADD numbers to non-numbers"
-        new RDBPrimitive @asJSON()+other.asJSON()
+    add: (other) -> new RDBPrimitive @asJSON()+other.asJSON()
 
     sub: (other) ->
         if @typeOf() isnt RDBJson.RDBTypes.NUMBER or other.typeOf() isnt RDBJson.RDBTypes.NUMBER
@@ -165,35 +164,35 @@ class RDBObject extends RDBJson
 
     eq: (other) ->
         # We should check for attributes of other and make sure it's in this too.
-        ((other[k]? && v.eq other[k]) for own k,v of @).reduce (a,b) -> a&&b
+        new RDBPrimitive (((other[k]? && (v.eq other[k]).asJSON()) for own k,v of @).reduce (a,b) -> a&&b)
 
-    le: (other) -> not @gt(other)
+    le: (other) -> new RDBPrimitive (not @gt(other).asJSON())
     gt: (other) ->
         if @typeOf() is other.typeOf()
             otherKeys = other.keys()
             for k,i in @keys()
                 if k is otherKeys[i]
-                    if not @[k].eq(other[k])
+                    if not @[k].eq(other[k]).asJSON()
                         return @[k].gt(other[k])
                 else
-                    return k > otherKeys[i]
-            return false
+                    return new RDBPrimitive k > otherKeys[i]
+            return new RDBPrimitive false
         else
-            return @typeOf() > other.typeOf()
+            return new RDBPrimitive @typeOf() > other.typeOf()
 
-    ge: (other) -> not @lt(other)
+    ge: (other) -> new RDBPrimitive (not @lt(other).asJSON())
     lt: (other) ->
         if @typeOf() is other.typeOf()
             otherKeys = other.keys()
             for k,i in @keys()
                 if k is otherKeys[i]
-                    if not @[k].eq(other[k])
+                    if not @[k].eq(other[k]).asJSON()
                         return @[k].lt(other[k])
                 else
-                    return k < otherKeys[i]
-            return false
+                    return new RDBPrimitive k < otherKeys[i]
+            return new RDBPrimitive false
         else
-            return @typeOf() < other.typeOf()
+            return new RDBPrimitive @typeOf() < other.typeOf()
 
     merge: (other) ->
         self = @copy()
@@ -203,13 +202,14 @@ class RDBObject extends RDBJson
             self[k] = v
         return self
 
-    pick: (attrs) ->
+    pick: (attrs, demoServer) ->
         self = @copy()
         result = new RDBObject
-        for k in attrs
-            if self[k] is undefined
-                throw new RuntimeError "Attempting to pick missing attribute #{k} from data:\n"+
-                                       "#{Utils.stringify(self)}"
+        for k,i in attrs
+            demoServer.frame "attrs:#{i}", =>
+                if self[k] is undefined
+                    throw new RuntimeError "Attempting to pick missing attribute #{k} from data:\n"+
+                                           "#{Utils.stringify(@asJSON())}"
             result[k] = self[k]
         return result
 

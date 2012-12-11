@@ -8,7 +8,7 @@ class RDBSequence extends RDBJson
     eq: (other) ->
         self = @asArray()
         other = other.asArray()
-        (v.eq other[i] for v,i in self).reduce (a,b)->a&&b
+        new RDBPrimitive (v.eq other[i] for v,i in self).reduce (a,b)->a&&b
 
     append: (val) ->
         new RDBArray @asArray().concat [val]
@@ -19,10 +19,6 @@ class RDBSequence extends RDBJson
     count: -> new RDBPrimitive @asArray().length
 
     union: (other) ->
-        if @typeOf() isnt RDBJson.RDBTypes.ARRAY
-            throw new RuntimeError "Required type: array but found #{typeof @asArray()}."
-        if other.typeOf() isnt RDBJson.RDBTypes.ARRAY
-            throw new RuntimeError "Required type: array but found #{typeof other.asArray()}."
         new RDBArray @asArray().concat other.asArray()
 
     slice: (left, right) ->
@@ -34,25 +30,16 @@ class RDBSequence extends RDBJson
                 if not (a[ob.attr]? or b[ob.attr]?)
                     obj = (if a[ob.attr]? then b else a)
                     throw new RuntimeError "ORDERBY encountered a row missing attr '#{ob.attr}': "+
-                                           "#{Utils.stringify(obj)}"
+                                           "#{Utils.stringify(obj.asJSON())}"
                 op = (if ob.asc then 'gt' else 'lt')
-                if a[ob.attr][op](b[ob.attr]) then return true
+                if a[ob.attr][op](b[ob.attr]).asJSON() then return true
             return false
 
     distinct: ->
-        # Firefox's sort is unstable.
-        sorted = @asArray().sort (a,b) ->
-            if a.asJSON() < b.asJSON()
-                return -1
-            else if a.asJSON() > b.asJSON()
-                return 1
-            else
-                return 0
-        distinctd = [sorted[0]]
-        for v in sorted[1..]
-            unless (v.eq distinctd[distinctd.length-1])
-                distinctd.push v
-        return new RDBArray distinctd
+        neu = []
+        for v in @asArray()
+            unless v in neu then neu.push v
+        new RDBArray neu
 
     map: (mapping) ->
         result = @asArray().map (v) -> mapping(v)
@@ -88,16 +75,9 @@ class RDBSequence extends RDBJson
         return predicate_value
 
     between: (attr, lowerBound, upperBound) ->
-        if lowerBound.typeOf() isnt RDBJson.RDBTypes.STRING and lowerBound.typeOf() isnt RDBJson.RDBTypes.NUMBER
-            throw new RuntimeError "Lower bound of RANGE must be a string or a number, not "+
-                                   "#{Utils.stringify(lowerBound.asJSON())}."
-        if upperBound.typeOf() isnt RDBJson.RDBTypes.STRING and upperBound.typeOf() isnt RDBJson.RDBTypes.NUMBER
-            throw new RuntimeError "Upper bound of RANGE must be a string or a number, not "+
-                                   "#{Utils.stringify(upperBound.asJSON())}."
-
         result = []
         for v,i in @orderBy({attr:attr, asc:true}).asArray()
-            if lowerBound.le(v[attr]) and upperBound.ge(v[attr])
+            if lowerBound.le(v[attr]).asJSON() and upperBound.ge(v[attr]).asJSON()
                 result.push(v)
         return new RDBArray result
 
@@ -114,18 +94,46 @@ class RDBSequence extends RDBJson
 
     forEach: (mapping) ->
         results = @asArray().map (v) -> mapping(v)
-        base = {inserted: 0, errors: 0}
+        base = {inserted: 0, errors: 0, updated: 0}
         results.map (res) ->
             base = objSum res, base
         base
 
-    update: (mapping) ->
-        results = @asArray().map (v) -> v.update mapping
-        objSum results, {updated: 0, errors: 0, skipped: 0}
+    update: (mapping, demoServer) ->
+        updated = 0
+        skipped = 0
+        errors = 0
+        first_error = null
+        @asArray().forEach (v) ->
+            try
+                v.update mapping
+                updated++
+            catch err
+                unless first_error then first_error = demoServer.appendBacktrace err.message
+                errors++
+        result = {updated: updated, errors: errors, skipped: skipped}
+        if first_error then result.first_error = first_error
+        return result
 
-    replace: (mapping) ->
-        results = @asArray().map (v) -> v.replace mapping
-        objSum results, {deleted:0, errors:0, inserted:0, modified:0}
+    replace: (mapping, demoServer) ->
+        modified = 0
+        inserted = 0
+        deleted = 0
+        errors = 0
+        first_error = null
+        @asArray().forEach (v) ->
+            try
+                switch v.replace mapping
+                    when "modified" then modified++
+                    when "deleted"  then deleted++
+                    when "inserted" then inserted++
+            catch err
+                unless first_error then first_error = demoServer.appendBacktrace err.message
+                errors++
+
+        result = {deleted: deleted, errors: errors, inserted: inserted, modified: modified}
+        if first_error then result.first_error = first_error
+        return result
 
     del: ->
         results = @asArray().map (v) -> v.del()
@@ -135,37 +143,34 @@ class RDBArray extends RDBSequence
     constructor: (arr) -> @data = arr
     asArray: -> @data
 
-    add: (other) ->
-        if other.typeOf() isnt RDBJson.RDBTypes.ARRAY
-            throw new RuntimeError "Cannot ADD arrays to non-arrays"
-        @union other
+    add: (other) -> @union other
 
     eq: (other) ->
         if other.typeOf() isnt RDBJson.RDBTypes.ARRAY or
            @asArray().length isnt other.asArray().length
-            return false
+            return new RDBPrimitive false
 
         for v,i in @asArray()
             o = other.asArray()[i]
-            if v.ne(o) then return false
-        return true
+            if v.ne(o).asJSON() then return new RDBPrimitive false
+        return new RDBPrimitive true
 
-    le: (other) -> not @gt(other)
+    le: (other) -> new RDBPrimitive (not @gt(other).asJSON())
     gt: (other) ->
         if other.typeOf() is RDBJson.RDBTypes.ARRAY
             for v,i in @asArray()
                 o = other.asArray()[i]
                 if not v.eq(o)
                     return v.gt(o)
-            return false
-        return @typeOf() > other.typeOf()
+            return new RDBPrimitive false
+        return new RDBPrimitive @typeOf() > other.typeOf()
 
-    ge: (other) -> not @lt(other)
+    ge: (other) -> new RDBPrimitive (not @lt(other).asJSON())
     lt: (other) ->
         if other.typeOf() is RDBJson.RDBTypes.ARRAY
             for v,i in @asArray()
                 o = other.asArray()[i]
                 if v.eq(o)
                     return v.lt(o)
-            return false
-        return @typeOf() < other.typeOf()
+            return new RDBPrimitive false
+        return new RDBPrimitive @typeOf() < other.typeOf()

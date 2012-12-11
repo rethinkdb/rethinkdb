@@ -208,8 +208,12 @@ rethinkdb.Connection.prototype.recv_ = function(data) {
         cursor.concatResults(error, true);
         break;
     case Response.StatusCode.RUNTIME_ERROR:
+        var bt = response.getBacktrace();
+        if (bt) { bt = bt.frameArray() } else { bt = [] }
+        bt = JSON.stringify(bt)
         var error =
             new rethinkdb.errors.RuntimeError(rethinkdb.util.formatServerError_(response, cursor.query_));
+        error['bt'] = bt;
         cursor.concatResults(error, true);
         break;
     case Response.StatusCode.BAD_QUERY:
