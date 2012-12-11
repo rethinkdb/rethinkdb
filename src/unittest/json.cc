@@ -22,6 +22,95 @@ int compare_and_delete(cJSON *l, cJSON *r) {
 }
 
 namespace unittest {
+    TEST(JSON, ArrayInsertDelete) {
+        cJSON *array = cJSON_CreateArray();
+
+        //Insert several objects in to the array
+        for (int i = 0; i < 1000; ++i) {
+            cJSON_AddItemToArray(array, cJSON_CreateNumber(i));
+            //This line is basically there to segfault if we have corrupted structure.
+            free(cJSON_PrintUnformatted(array));
+        }
+
+        //Remove objects from the array at random
+        for (int i = 0; i < 1000; ++i) {
+            ASSERT_EQ(cJSON_GetArraySize(array), 1000 - i);
+            cJSON_DeleteItemFromArray(array, randint(1000 - i));
+            //This line is basically there to segfault if we have corrupted structure.
+            free(cJSON_PrintUnformatted(array));
+        }
+
+        int count = 0;
+        for (int i = 0; i < 100; ++i) {
+            int change = randint(1000);
+
+            if (change < count) {
+                for (int j = 0; j < change; ++j) {
+                    cJSON_DeleteItemFromArray(array, randint(count));
+                    count--;
+                    ASSERT_EQ(cJSON_GetArraySize(array), count);
+                    //This line is basically there to segfault if we have corrupted structure.
+                    free(cJSON_PrintUnformatted(array));
+                }
+            } else {
+                for (int j = 0; j < change; ++j) {
+                    cJSON_AddItemToArray(array, cJSON_CreateNumber(j));
+                    count++;
+                    ASSERT_EQ(cJSON_GetArraySize(array), count);
+                    //This line is basically there to segfault if we have corrupted structure.
+                    free(cJSON_PrintUnformatted(array));
+                }
+            }
+        }
+
+        cJSON_Delete(array);
+    }
+
+    TEST(JSON, ArrayParseThenInsert) {
+        /* Make sure that parsed arrays are ready to be appended to. */
+        cJSON *array = cJSON_Parse("[1,2,3]");
+        ASSERT_EQ(cJSON_GetArraySize(array), 3);
+
+        cJSON_AddItemToArray(array, cJSON_CreateNumber(4));
+
+        ASSERT_EQ(cJSON_GetArraySize(array), 4);
+        cJSON_Delete(array);
+    }
+
+    TEST(JSON, ObjectInsertDelete) {
+        cJSON *obj = cJSON_CreateObject();
+        std::set<std::string> keys;
+
+        for (int i = 0; i < 10000; ++i) {
+            ASSERT_EQ(cJSON_GetArraySize(obj), i);
+            std::string key;
+            for (;;) {
+                key = rand_string(40);
+                if (keys.insert(key).second) {
+                    break;
+                }
+            }
+
+            cJSON_AddItemToObject(obj, key.c_str(), cJSON_CreateNumber(i));
+
+            //This line is basically there to segfault if we have corrupted structure.
+            free(cJSON_PrintUnformatted(obj));
+        }
+
+        int count = 9999;
+        for (std::set<std::string>::iterator it = keys.begin(); it != keys.end(); ++it) {
+            ASSERT_EQ(cJSON_GetArraySize(obj), count);
+            cJSON_DeleteItemFromObject(obj, (*it).c_str());
+            count--;
+
+            //This line is basically there to segfault if we have corrupted structure.
+            free(cJSON_PrintUnformatted(obj));
+        }
+
+
+        cJSON_Delete(obj);
+    }
+
     TEST(JSON, Compare) {
         //bools
         ASSERT_SAME_SIGN(-1, compare_and_delete(cJSON_CreateBool(false), cJSON_CreateBool(true)));

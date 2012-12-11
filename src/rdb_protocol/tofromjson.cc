@@ -14,17 +14,6 @@
 
 namespace js {
 
-// Returns new "last" pointer.
-static cJSON *append_cJSON(cJSON *root, cJSON *last, cJSON *append) {
-    if (last) {
-        last->next = append;
-        append->prev = last;
-    } else {
-        root->child = append;
-    }
-    return append;
-}
-
 // Returns NULL & sets `*errmsg` on failure.
 //
 // TODO(rntz): Is there a better way of detecting cyclic data structures than
@@ -75,7 +64,6 @@ static cJSON *mkJSON(const v8::Handle<v8::Value> value, int recursion_limit, std
                 return NULL;
             }
 
-            cJSON *last = NULL;
             uint32_t len = arrayh->Length();
             for (uint32_t i = 0; i < len; ++i) {
                 v8::Handle<v8::Value> elth = arrayh->Get(i);
@@ -85,7 +73,7 @@ static cJSON *mkJSON(const v8::Handle<v8::Value> value, int recursion_limit, std
                 if (NULL == eltj) return NULL;
 
                 // Append it to the array.
-                last = append_cJSON(arrayj.get(), last, eltj);
+                cJSON_AddItemToArray(arrayj.get(), eltj);
             }
 
             return arrayj.release();
@@ -113,7 +101,6 @@ static cJSON *mkJSON(const v8::Handle<v8::Value> value, int recursion_limit, std
                 return NULL;
             }
 
-            cJSON *last = NULL;
             uint32_t len = props->Length();
             for (uint32_t i = 0; i < len; ++i) {
                 v8::Handle<v8::String> keyh = props->Get(i)->ToString();
@@ -134,7 +121,7 @@ static cJSON *mkJSON(const v8::Handle<v8::Value> value, int recursion_limit, std
                 keyh->WriteUtf8(str, length);
 
                 // Append to object.
-                last = append_cJSON(objj.get(), last, valuej.release());
+                cJSON_AddItemToArray(objj.get(), valuej.release());
             }
 
             return objj.release();
@@ -196,9 +183,9 @@ v8::Handle<v8::Value> fromJSON(const cJSON &json) {
           v8::Handle<v8::Array> array = v8::Array::New();
 
           uint32_t index = 0;
-          for (cJSON *child = json.child; child; child = child->next, ++index) {
+          for (cJSON *head = json.head; head; head = head->next, ++index) {
               v8::HandleScope scope;
-              v8::Handle<v8::Value> val = fromJSON(*child);
+              v8::Handle<v8::Value> val = fromJSON(*head);
               guarantee(!val.IsEmpty());
               array->Set(index, val);
               // FIXME: try_catch code
@@ -210,10 +197,10 @@ v8::Handle<v8::Value> fromJSON(const cJSON &json) {
       case cJSON_Object: {
           v8::Handle<v8::Object> obj = v8::Object::New();
 
-          for (cJSON *child = json.child; child; child = child->next) {
+          for (cJSON *head = json.head; head; head = head->next) {
               v8::HandleScope scope;
-              v8::Handle<v8::Value> key = v8::String::New(child->string);
-              v8::Handle<v8::Value> val = fromJSON(*child);
+              v8::Handle<v8::Value> key = v8::String::New(head->string);
+              v8::Handle<v8::Value> val = fromJSON(*head);
               guarantee(!key.IsEmpty() && !val.IsEmpty());
 
               obj->Set(key, val); // FIXME: try_catch code
