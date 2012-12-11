@@ -17,6 +17,7 @@ namespace ql {
 class env_t {
 public:
     val_t *new_val() { return add_and_ret(new datum_t()); }
+    val_t *new_val(datum_t *d) { return add_and_ret(d); }
     template<class T>
     val_t *new_val(T t) { return add_and_ret(new datum_t(t)); }
 private:

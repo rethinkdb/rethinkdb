@@ -34,6 +34,16 @@ const char *datum_type_name(datum_t::type_t type) {
     }
     unreachable();
 }
+
+const char *datum_t::get_type_name() const {
+    return datum_type_name(get_type());
+}
+std::string datum_t::print() const {
+    //TODO: Fix
+    return "UNIMPLEMENTED";
+}
+
+
 void datum_t::check_type(type_t desired) const {
     runtime_check(get_type() == desired,
                   strprintf("Wrong type: expected %s but got %s.",

@@ -31,6 +31,8 @@ public:
     };
     explicit datum_t(type_t _type);
     type_t get_type() const;
+    const char *get_type_name() const;
+    std::string print() const ;
     void check_type(type_t desired) const;
 
     bool as_bool() const;
@@ -52,6 +54,7 @@ public:
     MUST_USE bool add(const std::string &key, datum_t *val, bool clobber = false);
 private:
     // Listing everything is more debugging-friendly than a boost::variant,
+    // but less efficient.  TODO: fix later.
     type_t type;
     bool r_bool;
     double r_num;
@@ -61,6 +64,7 @@ private:
     std::map<const std::string, const datum_t *> r_object;
     // Sometimes the `datum_t` owns its members, like when it's a literal
     // `datum_t` provided by the user.
+    // TODO: change to environment ownership
     boost::ptr_vector<datum_t> to_free;
 };
 } //namespace ql

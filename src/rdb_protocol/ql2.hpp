@@ -54,7 +54,7 @@ void _runtime_check(const char *test, const char *file, int line,
 #define runtime_check(pred, msg) \
     _runtime_check(stringify(pred), __FILE__, __LINE__, pred, msg)
 // TODO: do something smarter?
-#define runtime_fail(msg) runtime_check(false, msg)
+#define runtime_fail(args...) runtime_check(false, strprintf(args))
 // TODO: make this crash in debug mode
 #define sanity_check(test) runtime_check(test, "SANITY_CHECK")
 
@@ -127,6 +127,17 @@ private:
     const char *namestr;
     bool invert;
     bool (datum_t::*pred)(const datum_t &rhs) const;
+};
+
+class arith_term_t : public simple_op_term_t {
+public:
+    arith_term_t(env_t *env, const Term2 *term);
+    virtual ~arith_term_t();
+    virtual val_t *simple_call_impl(env_t *env, std::vector<val_t *> *args);
+    virtual const char *name() const;
+private:
+    const char *namestr;
+    datum_t (*op)(const datum_t &lhs, const datum_t &rhs);
 };
 
 // Fills in [res] with an error of type [type] and message [msg].
