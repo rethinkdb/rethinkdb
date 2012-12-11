@@ -17,8 +17,6 @@
 #include "btree/btree_store.hpp"
 #include "btree/keys.hpp"
 #include "buffer_cache/types.hpp"
-#include "clustering/administration/namespace_interface_repository.hpp"
-#include "clustering/administration/namespace_metadata.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/stl_types.hpp"
@@ -33,9 +31,14 @@
 #include "rdb_protocol/rdb_protocol_json.hpp"
 #include "rdb_protocol/serializable_environment.hpp"
 
-template <class> class cross_thread_watchable_variable_t;
 class cluster_directory_metadata_t;
-template <class metadata> class directory_read_manager_t;
+template <class> class cow_ptr_t;
+template <class> class cross_thread_watchable_variable_t;
+class databases_semilattice_metadata_t;
+template <class> class directory_read_manager_t;
+template <class> class namespace_repo_t;
+template <class> class namespaces_semilattice_metadata_t;
+template <class> class semilattice_readwrite_view_t;
 
 using query_language::scopes_t;
 using query_language::backtrace_t;
@@ -148,7 +151,7 @@ struct rdb_protocol_t {
                   namespace_repo_t<rdb_protocol_t> *_ns_repo,
                   boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _semilattice_metadata,
                   directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
-                  machine_id_t _machine_id);
+                  uuid_t _machine_id);
         ~context_t();
 
         extproc::pool_group_t *pool_group;
@@ -162,7 +165,7 @@ struct rdb_protocol_t {
         directory_read_manager_t<cluster_directory_metadata_t> *directory_read_manager;
         cond_t interruptor; //TODO figure out where we're going to want to interrupt this from and put this there instead
         scoped_array_t<scoped_ptr_t<cross_thread_signal_t> > signals;
-        machine_id_t machine_id;
+        uuid_t machine_id;
     };
 
     struct point_read_response_t {
