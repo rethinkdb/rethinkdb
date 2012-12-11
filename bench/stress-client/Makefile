@@ -1,5 +1,6 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 .PHONY: build
+UNAME := $(shell uname)
 LIBS = -lpthread -ldl -lprotobuf
 # Do not include main.cc or python_interface.cc in SRC
 SRC = utils.cc random.cc protocol.cc protocols/sqlite3.c protocols/query_language.pb.cc
@@ -11,20 +12,24 @@ LIBGSL ?= 0
 TAGS=.tags
 
 ifeq ($(MYSQL),1)
-    INCLUDE += -I /usr/local/mysql/include
-    LIBS += -lmysqlclient -L /usr/local/mysql/lib/mysql 
-    DEFINES += -DUSE_MYSQL
+INCLUDE += -I /usr/local/mysql/include
+LIBS += -lmysqlclient -L /usr/local/mysql/lib/mysql 
+DEFINES += -DUSE_MYSQL
 endif
 
 ifeq ($(LIBMEMCACHED),1)
-    INCLUDE += -I../../lib/libmemcached
-    LIBS += -lmemcached -L /usr/local/lib
-    DEFINES += -DUSE_LIBMEMCACHED
+INCLUDE += -I../../lib/libmemcached
+LIBS += -lmemcached -L /usr/local/lib
+DEFINES += -DUSE_LIBMEMCACHED
 endif
 
 ifeq ($(LIBGSL),1)
-    LIBS += -lgsl -lgslcblas
-    DEFINES += -DUSE_LIBGSL
+LIBS += -lgsl -lgslcblas
+DEFINES += -DUSE_LIBGSL
+endif
+
+ifneq ($(UNAME),Darwin)
+LIBS += -lrt
 endif
 
 EXEC_NAME = stress

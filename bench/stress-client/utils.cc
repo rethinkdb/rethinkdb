@@ -39,7 +39,10 @@ timespec clock_monotonic() {
 #else
     timespec ret;
     int res = clock_gettime(CLOCK_MONOTONIC, &ret);
-    guarantee_err(res == 0, "clock_gettime(CLOCK_MONOTIC, ...) failed");
+    if (res != 0) {
+        fprintf(stderr, "clock_gettime(CLOCK_MONOTIC, ...) failed");
+        exit(EXIT_FAILURE);
+    }
     return ret;
 #endif
 }
