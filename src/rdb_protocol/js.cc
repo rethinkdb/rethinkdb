@@ -212,35 +212,43 @@ struct compile_task_t : auto_task_t<compile_task_t> {
      * Works with utf-8 input strings though only chars 0-127 can be escaped.
      * escp_chars is an array of chars (only values 0-127) to escape in str.
      * Returns -1 on failure (out_buf_sz not big enough)
-     * To guarantee success pass an output buffer at least double the size of
-     * the input buffer (out_buf_sz == str_sz * 2)
      */ 
     static ssize_t escape_string(const char *str, size_t str_sz,
-                                 const char *escp_chrs, size_t n_escp_chrs,
+                                 const char *escp_chrs, const char *rplcnts, size_t n_escp_chrs,
                                  char *out_buf, size_t out_buf_sz) {
-
-        // Used to test if first bit is set. If so, then this is a higher order utf-8 value.
-        static const char ASCI_MSK = (1 << 7);
-
         size_t src_i = 0;
         size_t dst_i = 0;
 
         while (src_i < str_sz) {
-            char cur_byte = str[src_i];
+            unsigned char cur_byte = str[src_i];
 
-            // Test if the character lies in the ASCI range and is eligible to be escaped
-            if (!(ASCI_MSK & cur_byte)) {
+            // ASCII control character to be escaped with a hex string
+            if (cur_byte < 32) {
+                
+                const char *xdigits = "0123456789abcdef";
+
+                if (!(dst_i + 3 < out_buf_sz)) {
+                    // We don't have space, error
+                    return -1;
+                }
+
+                out_buf[dst_i++] = '\\';
+                out_buf[dst_i++] = 'x';
+                out_buf[dst_i++] = xdigits[cur_byte / 16];
+                out_buf[dst_i++] = xdigits[cur_byte % 16];
+
+            } else if (cur_byte < 128) { // We may need to escape this char
 
                 // Is this one of our escape chars?
-                bool escape_me = false;
+                int escape_me = -1;
                 for (size_t i = 0; i < n_escp_chrs; i++) {
                     if (escp_chrs[i] == cur_byte) {
-                        escape_me = true;
+                        escape_me = i;
                         break;
                     }
                 }
 
-                if (escape_me) {
+                if (escape_me >= 0) {
 
                     if (!(dst_i < out_buf_sz)) {
                         // We don't have space, error
@@ -250,9 +258,11 @@ struct compile_task_t : auto_task_t<compile_task_t> {
                     // Place escaping char first
                     out_buf[dst_i] = '\\';
                     dst_i++;
-                }
 
-            }
+                    // So that the replacement will be the one copied over
+                    cur_byte = rplcnts[escape_me];
+                }
+            } // else cur_byte > 127 and this is a higher order unicode character
 
             // Finally, copy over the char
             if (!(dst_i < out_buf_sz)) {
@@ -275,10 +285,12 @@ struct compile_task_t : auto_task_t<compile_task_t> {
     // Turn src_ into an escaped JavaScript string. Since I can't actually find a good library
     // function for this (why?) I'm going to stop wasting time looking and do it myself.
     static size_t escapeJS(std::string &src, char *out, size_t out_sz) {
-        static const char *js_escp_chars = "\\\"'\n\t"; // slash, double quote, single quote, newline, and tab
+        static const char *js_escp_chrs = "\\\"'\n\t"; // slash, double quote, single quote, newline, and tab
+        static const char *js_rplcmnts  = "\\\"'nt";   // slash, double quote, single quote, n, and t
+        guarantee(strlen(js_escp_chrs) == strlen(js_rplcmnts));
 
         ssize_t sz = escape_string(src.c_str(), src.size(),
-                                   js_escp_chars, strlen(js_escp_chars), 
+                                   js_escp_chrs, js_rplcmnts, strlen(js_escp_chrs), 
                                    out, out_sz);
         guarantee(sz != -1, "String escaping failed");
         return sz;
@@ -296,6 +308,7 @@ struct compile_task_t : auto_task_t<compile_task_t> {
 
         size_t nargs = args_.size();
 
+        // *2 Still not b
         size_t escaped_sz = 2 * src_.size() + 1;
         char *escaped_src = (char *)malloc(escaped_sz);
         escaped_sz = escapeJS(src_, escaped_src, escaped_sz);
