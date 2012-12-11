@@ -386,7 +386,7 @@ ifeq ($(LIBCRYPTO),1)
 RT_LDFLAGS+=-lcrypto 
 endif
 
-PROTOC_BASE:=$(shell dirname $(TC_PROTOC_EXE))/..
+PROTOC_BASE:=$(shell dirname $(shell dirname $(TC_PROTOC_EXE)))
 
 LIB_SEARCH_PATHS?=
 RT_LDFLAGS+=$(foreach TLIB, $(LIB_SEARCH_PATHS), -L $(TLIB))

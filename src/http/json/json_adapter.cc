@@ -284,21 +284,6 @@ void apply_json_to(cJSON *change, long *target) {
 
 void on_subfield_change(long *) { }
 
-// ctx-less JSON adapter for long long int
-json_adapter_if_t::json_adapter_map_t get_json_subfields(long long int *) {
-    return json_adapter_if_t::json_adapter_map_t();
-}
-
-cJSON *render_as_json(long long int *target) {
-    return cJSON_CreateNumber(*target);
-}
-
-void apply_json_to(cJSON *change, long long int *target) {
-    *target = get_int(change, LLONG_MIN, LLONG_MAX);
-}
-
-void on_subfield_change(long long int *) { }
-
 // ctx-less JSON adapter for unsigned int
 json_adapter_if_t::json_adapter_map_t get_json_subfields(unsigned int *) {
     return json_adapter_if_t::json_adapter_map_t();
@@ -314,33 +299,19 @@ void apply_json_to(cJSON *change, unsigned int *target) {
 
 void on_subfield_change(unsigned int *) { }
 
-// ctx-less JSON adapter for unsigned long int
-json_adapter_if_t::json_adapter_map_t get_json_subfields(unsigned long int *) {
+// ctx-less JSON adapter for int
+json_adapter_if_t::json_adapter_map_t get_json_subfields(int *) {
     return json_adapter_if_t::json_adapter_map_t();
 }
 
-cJSON *render_as_json(unsigned long int *target) {
+cJSON *render_as_json(int *target) {
+    // TODO: Should we not fail when we cannot convert to double (or when we go outside 53-bit range?)
     return cJSON_CreateNumber(*target);
 }
 
-void apply_json_to(cJSON *change, unsigned long int *target) {
-    *target = get_int(change, LONG_MIN, LONG_MAX);
+void apply_json_to(cJSON *change, int *target) {
+    *target = get_int(change, INT_MIN, INT_MAX);
 }
 
-void on_subfield_change(unsigned long int *) { }
-
-// ctx-less JSON adapter for unsigned long long int
-json_adapter_if_t::json_adapter_map_t get_json_subfields(unsigned long long int *) {
-    return json_adapter_if_t::json_adapter_map_t();
-}
-
-cJSON *render_as_json(unsigned long long int *target) {
-    return cJSON_CreateNumber(*target);
-}
-
-void apply_json_to(cJSON *change, unsigned long long int *target) {
-    *target = get_int(change, LLONG_MIN, LLONG_MAX);
-}
-
-void on_subfield_change(unsigned long long int *) { }
+void on_subfield_change(int *) { }
 

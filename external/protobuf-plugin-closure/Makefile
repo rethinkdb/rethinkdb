@@ -58,8 +58,8 @@ endif
 	./js/protoc_gen_js.cc \
 	./js/javascript_package.pb.cc \
 	./js/int64_encoding.pb.cc \
-	-l:$(LIB)/libprotobuf.a \
-	-l:$(LIB)/libprotoc.a \
+	$(LIB)/libprotobuf.a \
+	$(LIB)/libprotoc.a \
 	-o ./protoc-gen-js \
 	-lpthread
 
@@ -73,8 +73,8 @@ endif
 	./ccjs/code_generator.cc \
 	./ccjs/protoc_gen_ccjs.cc \
 	./js/int64_encoding.pb.cc \
-	-l:$(LIB)/libprotobuf.a \
-	-l:$(LIB)/libprotoc.a \
+	$(LIB)/libprotobuf.a \
+	$(LIB)/libprotoc.a \
 	-o ./protoc-gen-ccjs \
 	-lpthread
 
