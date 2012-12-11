@@ -17,12 +17,14 @@ term_t *compile_term(env_t *env, const Term2 *t) {
     case Term2_TermType_DB:
     case Term2_TermType_TABLE:
     case Term2_TermType_GET:
+        break;
     case Term2_TermType_EQ:
     case Term2_TermType_NE:
     case Term2_TermType_LT:
     case Term2_TermType_LE:
     case Term2_TermType_GT:
     case Term2_TermType_GE:
+        return new predicate_term_t(env, t);
     case Term2_TermType_NOT:
     case Term2_TermType_ADD:
     case Term2_TermType_SUB:

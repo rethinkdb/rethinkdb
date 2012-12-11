@@ -13,12 +13,12 @@ namespace ql {
 class datum_t {
 public:
     datum_t(); // R_NULL
-    datum_t(bool _bool);
-    datum_t(double _num);
-    datum_t(const std::string &_str);
-    datum_t(const std::vector<const datum_t *> &_array);
-    datum_t(const std::map<const std::string, const datum_t *> &_object);
-    datum_t(const Datum *d);
+    explicit datum_t(bool _bool);
+    explicit datum_t(double _num);
+    explicit datum_t(const std::string &_str);
+    explicit datum_t(const std::vector<const datum_t *> &_array);
+    explicit datum_t(const std::map<const std::string, const datum_t *> &_object);
+    explicit datum_t(const Datum *d);
     void write_to_protobuf(Datum *out) const;
 
     enum type_t {
@@ -29,7 +29,7 @@ public:
         R_ARRAY  = 5,
         R_OBJECT = 6
     };
-    datum_t(type_t _type);
+    explicit datum_t(type_t _type);
     type_t get_type() const;
     void check_type(type_t desired) const;
 

@@ -112,7 +112,7 @@ public:
     simple_op_term_t(env_t *env, const Term2 *term);
     virtual ~simple_op_term_t();
     virtual val_t *call_impl(env_t *env, boost::ptr_vector<term_t> *args,
-                             boost::ptr_map<const std::string, term_t> *optargs) = 0;
+                             boost::ptr_map<const std::string, term_t> *optargs);
 private:
     virtual val_t *simple_call_impl(env_t *env, std::vector<val_t *> *args) = 0;
 };

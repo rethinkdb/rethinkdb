@@ -85,11 +85,13 @@ def r(a='8d19cb41-ddb8-44ab-92f3-f48ca607ab7b')
   return RQL.new t
 end
 
-PP.pp r(1).run
-PP.pp r(2.0).run
-PP.pp r("3").run
-PP.pp r(true).run
-PP.pp r(false).run
-PP.pp r(nil).run
-PP.pp r([1, 2.0, "3", true, false, nil]).run
-PP.pp r({"abc" => 2.0, "def" => nil}).run
+# PP.pp r(1).run
+# PP.pp r(2.0).run
+# PP.pp r("3").run
+# PP.pp r(true).run
+# PP.pp r(false).run
+# PP.pp r(nil).run
+# PP.pp r([1, 2.0, "3", true, false, nil]).run
+# PP.pp r({"abc" => 2.0, "def" => nil}).run
+
+[r.eq(1,1).run, r.eq(1,2).run]

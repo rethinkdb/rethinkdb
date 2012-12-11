@@ -32,7 +32,7 @@ public:
     };
     type_t get_type() const;
 
-    val_t(const datum_t *datum);
+    explicit val_t(const datum_t *datum);
 
     uuid_t as_db();
     table_t *as_table();
