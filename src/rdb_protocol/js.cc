@@ -208,36 +208,26 @@ struct compile_task_t : auto_task_t<compile_task_t> {
     RDB_MAKE_ME_SERIALIZABLE_2(args_, src_);
 
     /**
-     * Fully generalized C string escaping function
      * Works with utf-8 input strings though only chars 0-127 can be escaped.
      * escp_chars is an array of chars (only values 0-127) to escape in str.
-     * Returns -1 on failure (out_buf_sz not big enough)
      */ 
-    static ssize_t escape_string(const char *str, size_t str_sz,
-                                 const char *escp_chrs, const char *rplcnts, size_t n_escp_chrs,
-                                 char *out_buf, size_t out_buf_sz) {
-        size_t src_i = 0;
-        size_t dst_i = 0;
-
-        while (src_i < str_sz) {
-            unsigned char cur_byte = str[src_i];
+    static void escape_string(const std::string &src,
+                              const char *escp_chrs, const char *replacements, size_t n_escp_chrs,
+                              std::string &out) {
+        for (size_t src_i = 0; src_i < src.length(); ++src_i) {
+            unsigned char cur_byte = src[src_i];
 
             // ASCII control character to be escaped with a hex string
             if (cur_byte < 32) {
-                
                 const char *xdigits = "0123456789abcdef";
-
-                if (!(dst_i + 3 < out_buf_sz)) {
-                    // We don't have space, error
-                    return -1;
-                }
-
-                out_buf[dst_i++] = '\\';
-                out_buf[dst_i++] = 'x';
-                out_buf[dst_i++] = xdigits[cur_byte / 16];
-                out_buf[dst_i++] = xdigits[cur_byte % 16];
-
-            } else if (cur_byte < 128) { // We may need to escape this char
+                out.push_back('\\');
+                out.push_back('x');
+                out.push_back(xdigits[cur_byte / 16]);
+                out.push_back(xdigits[cur_byte % 16]);
+                continue;
+            }
+            
+            if (cur_byte < 128) { // We may need to escape this char
 
                 // Is this one of our escape chars?
                 int escape_me = -1;
@@ -250,50 +240,30 @@ struct compile_task_t : auto_task_t<compile_task_t> {
 
                 if (escape_me >= 0) {
 
-                    if (!(dst_i < out_buf_sz)) {
-                        // We don't have space, error
-                        return -1;
-                    }
-
                     // Place escaping char first
-                    out_buf[dst_i] = '\\';
-                    dst_i++;
+                    out.push_back('\\');
 
                     // So that the replacement will be the one copied over
-                    cur_byte = rplcnts[escape_me];
+                    cur_byte = replacements[escape_me];
                 }
             } // else cur_byte > 127 and this is a higher order unicode character
 
             // Finally, copy over the char
-            if (!(dst_i < out_buf_sz)) {
-                // We don't have space for this character, error
-                return -1;
-            }
-
-            out_buf[dst_i] = cur_byte;
-            dst_i++;
-            src_i++;
+            out.push_back(cur_byte);
         }
-
-        // "close off" the output string
-        out_buf[dst_i] = '\0';
-
-        // Return the actual size of the output string
-        return dst_i;
     }
 
     // Turn src_ into an escaped JavaScript string. Since I can't actually find a good library
     // function for this (why?) I'm going to stop wasting time looking and do it myself.
-    static size_t escapeJS(std::string &src, char *out, size_t out_sz) {
+    static std::string escapeJS(const std::string &src) {
         static const char *js_escp_chrs = "\\\"'\n\t"; // slash, double quote, single quote, newline, and tab
-        static const char *js_rplcmnts  = "\\\"'nt";   // slash, double quote, single quote, n, and t
-        guarantee(strlen(js_escp_chrs) == strlen(js_rplcmnts));
+        static const char *js_replacements  = "\\\"'nt";   // slash, double quote, single quote, n, and t
+        guarantee(strlen(js_escp_chrs) == strlen(js_replacements));
 
-        ssize_t sz = escape_string(src.c_str(), src.size(),
-                                   js_escp_chrs, js_rplcmnts, strlen(js_escp_chrs), 
-                                   out, out_sz);
-        guarantee(sz != -1, "String escaping failed");
-        return sz;
+        std::string out;
+        out.reserve(src.length() * 2);
+        escape_string(src, js_escp_chrs, js_replacements, strlen(js_escp_chrs), out);
+        return out;
     }
 
     void mkFuncSrc(scoped_array_t<char> *buf) {
@@ -308,12 +278,9 @@ struct compile_task_t : auto_task_t<compile_task_t> {
 
         size_t nargs = args_.size();
 
-        // *2 Still not b
-        size_t escaped_sz = 2 * src_.size() + 1;
-        char *escaped_src = (char *)malloc(escaped_sz);
-        escaped_sz = escapeJS(src_, escaped_src, escaped_sz);
+        std::string escaped = escapeJS(src_);
 
-        ssize_t size = begsz + medsz + endsz + escaped_sz;
+        ssize_t size = begsz + medsz + endsz + escaped.length();
         for (size_t i = 0; i < nargs; ++i) {
             // + (i > 0) accounts for the preceding comma on extra arguments
             // beyond the first
@@ -338,10 +305,9 @@ struct compile_task_t : auto_task_t<compile_task_t> {
         memcpy(p, med, medsz);
         p += medsz;
 
-        memcpy(p, escaped_src, escaped_sz);
-        free(escaped_src);
+        memcpy(p, escaped.data(), escaped.length());
 
-        p += escaped_sz;
+        p += escaped.length();
 
         memcpy(p, end, endsz);
         guarantee(p - buf->data() == size - endsz,
