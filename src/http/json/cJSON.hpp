@@ -43,7 +43,7 @@ extern "C"
 /* The cJSON structure: */
 struct cJSON {
         struct cJSON *next,*prev;        /* next/prev allow you to walk array/object chains. Alternatively, use GetArraySize/GetArrayItem/GetObjectItem */
-        struct cJSON *child;                /* An array or object item will have a child pointer pointing to a chain of the items in the array/object. */
+        struct cJSON *head, *tail;       /* An array or object item will have a head and tail pointer pointing to a chain of the items in the array/object. */
 
         int type;                                        /* The type of the item, as above. */
 

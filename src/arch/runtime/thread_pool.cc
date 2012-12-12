@@ -283,7 +283,7 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
 
         for (std::map<std::string, size_t>::iterator i = total_coroutine_counts.begin();
              i != total_coroutine_counts.end(); ++i) {
-            logDBG("%ld coroutines ran with type %s", i->second, i->first.c_str());
+            logDBG("%zu coroutines ran with type %s", i->second, i->first.c_str());
         }
     }
 #endif

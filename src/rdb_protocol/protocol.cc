@@ -331,7 +331,7 @@ public:
                     *res_atom = eval_term_as_json(&body, &env, scopes_copy, rg.terminal->backtrace.with("body"));
                 }
             } else if (boost::get<rdb_protocol_details::Length>(&rg.terminal->variant)) {
-                rg_response.result = atom_t();
+                rg_response.result = length_t();
                 length_t *res_length = boost::get<length_t>(&rg_response.result);
                 res_length->length = 0;
 

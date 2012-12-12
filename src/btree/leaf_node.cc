@@ -520,7 +520,16 @@ bool is_full(value_sizer_t<void> *sizer, const leaf_node_t *node, const btree_ke
 
     // Upon an insertion, we preserve `MANDATORY_TIMESTAMPS - 1`
     // timestamps and add our own (accounted for below)
-    int size = mandatory_cost(sizer, node, MANDATORY_TIMESTAMPS - 1);
+    //
+    // Notice this is the site of some bullshit XXX, the line below used to
+    // consider that we would need to preserve MANDATORY_TIMESTAMPS - 1
+    // timestamps. However this is incorrect because the key that we're
+    // inserting may overwrite one of the timestamped keys. This means that a
+    // key which mandatory cost had assumed was safe to garbage collect won't
+    // be which allows us to get into a situation where is_full returns false
+    // but when we call prepare_space_for_new_entry we fail with an insertion
+    // because it doesn't actually fit.
+    int size = mandatory_cost(sizer, node, MANDATORY_TIMESTAMPS);
 
     // Add the space we'll need for the new key/value pair we would
     // insert.  We conservatively assume the key is not already
