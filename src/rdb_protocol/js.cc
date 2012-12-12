@@ -213,17 +213,17 @@ struct compile_task_t : auto_task_t<compile_task_t> {
      */ 
     static void escape_string(const std::string &src,
                               const char *escp_chrs, const char *replacements, size_t n_escp_chrs,
-                              std::string &out) {
+                              std::string *out) {
         for (size_t src_i = 0; src_i < src.length(); ++src_i) {
             unsigned char cur_byte = src[src_i];
 
             // ASCII control character to be escaped with a hex string
             if (cur_byte < 32) {
                 const char *xdigits = "0123456789abcdef";
-                out.push_back('\\');
-                out.push_back('x');
-                out.push_back(xdigits[cur_byte / 16]);
-                out.push_back(xdigits[cur_byte % 16]);
+                out->push_back('\\');
+                out->push_back('x');
+                out->push_back(xdigits[cur_byte / 16]);
+                out->push_back(xdigits[cur_byte % 16]);
                 continue;
             }
             
@@ -241,7 +241,7 @@ struct compile_task_t : auto_task_t<compile_task_t> {
                 if (escape_me >= 0) {
 
                     // Place escaping char first
-                    out.push_back('\\');
+                    out->push_back('\\');
 
                     // So that the replacement will be the one copied over
                     cur_byte = replacements[escape_me];
@@ -249,7 +249,7 @@ struct compile_task_t : auto_task_t<compile_task_t> {
             } // else cur_byte > 127 and this is a higher order unicode character
 
             // Finally, copy over the char
-            out.push_back(cur_byte);
+            out->push_back(cur_byte);
         }
     }
 
@@ -262,7 +262,7 @@ struct compile_task_t : auto_task_t<compile_task_t> {
 
         std::string out;
         out.reserve(src.length() * 2);
-        escape_string(src, js_escp_chrs, js_replacements, strlen(js_escp_chrs), out);
+        escape_string(src, js_escp_chrs, js_replacements, strlen(js_escp_chrs), &out);
         return out;
     }
 
