@@ -50,7 +50,6 @@ timer_handler_t::~timer_handler_t() {
 
 void timer_handler_t::on_timer(int nexpirations) {
     timer_ticks_since_server_startup += nexpirations;
-    // TODO: This is a completely awful, inaccurate, unreliable way to get the time.
     int64_t time_in_ms = timer_ticks_since_server_startup * TIMER_TICKS_IN_MS;
 
     timer_token_t *p = timers.head();

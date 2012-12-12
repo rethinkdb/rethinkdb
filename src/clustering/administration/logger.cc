@@ -188,8 +188,6 @@ public:
             fd.reset(res);
         }
 
-        // We use fstat, not fstat64, because fstat64 is deprecated on OS X.  Hence the assertion
-        // about off_t's size.
         int64_t fd_filesize = get_file_size(fd.get());
         if (fd_filesize == 0) {
             remaining_in_current_chunk = current_chunk_start = 0;
