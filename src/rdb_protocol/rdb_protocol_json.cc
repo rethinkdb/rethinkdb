@@ -1,5 +1,6 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include <string.h>
+#include <algorithm>
 
 #include "rdb_protocol/exceptions.hpp"
 #include "rdb_protocol/rdb_protocol_json.hpp"
@@ -43,9 +44,26 @@ rank_wrapper wrapper;
 int cmp(int t1, int t2) { return wrapper.rank[t1] - wrapper.rank[t2]; }
 }
 
-// TODO: Rename this function!  It is not part of the cJSON library,
-// so it should not be part of the cJSON namepace.
-int cJSON_cmp(cJSON *l, cJSON *r, const backtrace_t &backtrace) {
+class char_star_cmp_functor {
+public:
+    bool operator()(const char *x, const char *y) {
+        return strcmp(x, y) < 0;
+    }
+};
+
+class compare_functor {
+public:
+    bool operator()(const std::pair<char *, cJSON *> &l, const std::pair<char *, cJSON *> &r) {
+        int key_compare = strcmp(l.first, r.first);
+        if (key_compare != 0) {
+            return key_compare < 0;
+        } else {
+            return json_cmp(l.second, r.second) < 0;
+        }
+    }
+};
+
+int json_cmp(cJSON *l, cJSON *r) {
     if (l->type != r->type) {
         return cJSON_type_ordering::cmp(l->type, r->type);
     }
@@ -87,8 +105,8 @@ int cJSON_cmp(cJSON *l, cJSON *r, const backtrace_t &backtrace) {
                     if (i >= rsize) {
                         return 1;  // e.g. cmp([0, 1], [0])
                     }
-                    int cmp = cJSON_cmp(cJSON_GetArrayItem(l, i), cJSON_GetArrayItem(r, i), backtrace);
-                    if (cmp) {
+                    int cmp = json_cmp(cJSON_GetArrayItem(l, i), cJSON_GetArrayItem(r, i));
+                    if (cmp != 0) {
                         return cmp;
                     }
                 }
@@ -97,7 +115,34 @@ int cJSON_cmp(cJSON *l, cJSON *r, const backtrace_t &backtrace) {
             }
             break;
         case cJSON_Object:
-            throw runtime_exc_t("Can't compare objects.", backtrace);
+            {
+                std::map<char *, cJSON *, char_star_cmp_functor> lvalues, rvalues;
+                json_iterator_t l_json_it(l);
+
+                while (cJSON *cur = l_json_it.next()) {
+                    //If this guarantee trips we would have segfaulted on insertion
+                    guarantee(cur->string != NULL, "cJSON object is in a map but has no key set... something has gone wrong with cJSON.");
+                    //guarantee makes sure there are no duplicates
+                    guarantee(lvalues.insert(std::make_pair(cur->string, cur)).second);
+                }
+
+                json_iterator_t r_json_it(r);
+                while (cJSON *cur = r_json_it.next()) {
+                    //If this guarantee trips we would have segfaulted on insertion
+                    guarantee(cur->string != NULL, "cJSON object is in a map but has no key set... something has gone wrong with cJSON.");
+                    //guarantee makes sure there are no duplicates
+                    guarantee(rvalues.insert(std::make_pair(cur->string, cur)).second);
+                }
+
+                if (lexicographical_compare(lvalues.begin(), lvalues.end(), rvalues.begin(), rvalues.end(), compare_functor())) {
+                    return -1;
+                } else if (lexicographical_compare(rvalues.begin(), rvalues.end(), lvalues.begin(), lvalues.end(), compare_functor())) {
+                    return 1;
+                } else {
+                    return 0;
+                }
+            }
+
             break;
         default:
             unreachable();

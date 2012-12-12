@@ -2,6 +2,7 @@
 #ifndef CLUSTERING_ADMINISTRATION_PARSER_MAKER_HPP_
 #define CLUSTERING_ADMINISTRATION_PARSER_MAKER_HPP_
 
+#include <set>
 #include <string>
 
 #include "errors.hpp"

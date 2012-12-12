@@ -894,10 +894,12 @@ rethinkdb.Expression.prototype.orderBy = function(var_args) {
     var orderings = Array.prototype.map.call(arguments, function(order) {
         if (typeof order === 'string') {
             return [order, true];
-        } else {
+        } else if (goog.isArray(order)) {
             rethinkdb.util.typeCheck_(order[0], 'string');
             rethinkdb.util.typeCheck_(order[1], 'boolean');
             return order;
+        } else {
+            throw new TypeError("Attribute to order by must be a literal string or result of r.desc or r.asc.");
         }
     });
 
@@ -1192,7 +1194,7 @@ rethinkdb.sum = function(attr) {
  * Constructs a reduction for groupby that averages across the values of the given field.
  * @export
  */
-rethinkdb.average = function(attr) {
+rethinkdb.avg = function(attr) {
     rethinkdb.util.argCheck_(arguments, 1);
     rethinkdb.util.typeCheck_(attr, 'string');
     return {
@@ -1207,29 +1209,41 @@ rethinkdb.average = function(attr) {
 };
 
 /**
- * Returns true if this has the given attribute.
- * @param {string} attr Attribute to test.
+ * Returns true if this has all of the given attributes.
+ * @param {...string} var_args Attributes to test.
  * @return {rethinkdb.Expression}
  */
-rethinkdb.Expression.prototype.contains = function(attr) {
-    rethinkdb.util.typeCheck_(attr, 'string');
+rethinkdb.Expression.prototype.contains = function(var_args) {
+    rethinkdb.util.argCheck_(arguments, 1); // At least one attr to test
+    var attrs = Array.prototype.slice.call(arguments, 0);
+    attrs.forEach(function(attr) { rethinkdb.util.typeCheck_(attr, 'string');});
+
     var self = this;
-    return rethinkdb.util.newExpr_(rethinkdb.BuiltinExpression, Builtin.BuiltinType.HASATTR, [this],
-        function(bt) {
-            if (!bt) {
-                return self.formatQuery()+".contains("+attr+")";
-            } else {
-                var a = bt.shift();
-                if (a === 'arg:0') {
-                    return self.formatQuery(bt)+rethinkdb.util.spaceify_(".contains("+attr+")");
+    function singleContains(attr) {
+        return rethinkdb.util.newExpr_(rethinkdb.BuiltinExpression, Builtin.BuiltinType.HASATTR, [self],
+            function(bt) {
+                if (!bt) {
+                    return self.formatQuery()+".contains("+attr+")";
                 } else {
-                    return rethinkdb.util.spaceify_(self.formatQuery())+rethinkdb.util.carrotify_(".contains("+attr+")");
+                    var a = bt.shift();
+                    if (a === 'arg:0') {
+                        return self.formatQuery(bt)+rethinkdb.util.spaceify_(".contains("+attr+")");
+                    } else {
+                        return rethinkdb.util.spaceify_(self.formatQuery())+rethinkdb.util.carrotify_(".contains("+attr+")");
+                    }
                 }
-            }
-        },
-        function(builtin, opt_buildOpts) {
-            builtin.setAttr(attr);
-        });
+            },
+            function(builtin, opt_buildOpts) {
+                builtin.setAttr(attr);
+            });
+    }
+
+    var query = singleContains(attrs[0]);
+    for (var i = 1; i < attrs.length; ++i) {
+        query = query.and(singleContains(attrs[i]));
+    }
+
+    return query;
 };
 goog.exportProperty(rethinkdb.Expression.prototype, 'contains',
                     rethinkdb.Expression.prototype.contains);
@@ -1833,8 +1847,11 @@ goog.exportProperty(rethinkdb.Expression.prototype, 'outerJoin',
  * Eq join
  */
 rethinkdb.Expression.prototype.eqJoin = function(leftAttr, other, opt_rightAttr) {
+    if(!opt_rightAttr)
+        opt_rightAttr = 'id'
+
     return this.concatMap(function(row) {
-        return rethinkdb.let({'right': other.get(row(leftAttr))},
+        return rethinkdb.let({'right': other.get(row(leftAttr), opt_rightAttr)},
             rethinkdb.branch(rethinkdb.letVar('right')['ne'](rethinkdb.expr(null)),
                 rethinkdb.expr([{'left':row, 'right':rethinkdb.letVar('right')}]),
                 rethinkdb.expr([])

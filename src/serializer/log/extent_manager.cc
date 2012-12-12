@@ -177,9 +177,9 @@ extent_manager_t::extent_manager_t(file_t *file, const log_serializer_on_disk_st
         which is determined by a configuration parameter. */
         size_t zone_size = ceil_aligned(dynamic_config->file_zone_size, extent_size);
         off64_t end = 0;
-        while (end != floor_aligned((off64_t)file->get_size(), extent_size)) {
+        while (end != static_cast<off64_t>(floor_aligned(file->get_size(), extent_size))) {
             off64_t start = end;
-            end = std::min(start + zone_size, floor_aligned(file->get_size(), extent_size));
+            end = std::min<off64_t>((start + zone_size), floor_aligned(file->get_size(), extent_size));
             zones.push_back(new extent_zone_t(start, end, extent_size));
         }
     } else {

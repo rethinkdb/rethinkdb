@@ -2,8 +2,12 @@
 #include "clustering/administration/main/command_line.hpp"
 
 #include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+
+#include <fstream>  // NOLINT(readability/streams). Needed for use with program_options.  Sorry.
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
@@ -26,23 +30,40 @@
 #include "mock/dummy_protocol.hpp"
 #include "utils.hpp"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <iostream>
-#include <fstream>
-
 namespace po = boost::program_options;
 
-int numwrite( const char * path , int number ) {
-    // Try to figure out what this function does .
-    FILE * fp1 = fopen( path , "w" ) ;
-    if ( fp1 == NULL ) {
-        return -1 ;
+MUST_USE bool numwrite(const char *path, int number) {
+    // Try to figure out what this function does.
+    FILE *fp1 = fopen(path, "w");
+    if (fp1 == NULL) {
+        return false;
     }
-    fprintf( fp1 , "%d" , number ) ;
-    fclose( fp1 ) ;
-    fp1 = NULL ; // It's good form to do wasteful things like this .
-    return 0 ;
+    fprintf(fp1, "%d", number);
+    fclose(fp1);
+    return true;
+}
+
+int write_pid_file(const po::variables_map& vm) {
+    if (vm.count("pid-file") && vm["pid-file"].as<std::string>().length()) {
+        // Be very careful about modifying this. It is important that the code that removes the
+        // pid-file only run if the checks here pass. Right now, this is guaranteed by the return on
+        // failure here.
+        if (!access(vm["pid-file"].as<std::string>().c_str(), F_OK)) {
+            fprintf(stderr, "ERROR: The pid-file specified already exists. This might mean that an instance is already running.\n");
+            return EXIT_FAILURE;
+        }
+        if (!numwrite(vm["pid-file"].as<std::string>().c_str(), getpid())) {
+            fprintf(stderr, "ERROR: Writing to the specified pid-file failed.\n");
+            return EXIT_FAILURE;
+        }
+    }
+    return EXIT_SUCCESS;
+}
+
+void remove_pid_file(const po::variables_map& vm) {
+    if (vm.count("pid-file") && vm["pid-file"].as<std::string>().length()) {
+        remove(vm["pid-file"].as<std::string>().c_str());
+    }
 }
 
 class host_and_port_t {
@@ -83,7 +104,7 @@ std::string get_web_path(const po::variables_map& vm, char *argv[]) {
         #ifdef WEBRESDIR
         std::string chkdir(WEBRESDIR);
         if ((access(render_as_path(result).c_str(), F_OK)) && (!access(chkdir.c_str(), F_OK))) {
-            result = parse_as_path(chkdir) ;
+            result = parse_as_path(chkdir);
         }
         #endif
     }
@@ -148,6 +169,7 @@ service_address_ports_t get_service_address_ports(const po::variables_map& vm) {
     // serve
     int cluster_port = vm["cluster-port"].as<int>();
     int http_port = vm["http-port"].as<int>();
+    bool http_admin_is_disabled = vm.count("no-http-admin") > 0;
 #ifndef NDEBUG
     int cluster_client_port = vm["client-port"].as<int>();
 #else
@@ -169,8 +191,9 @@ service_address_ports_t get_service_address_ports(const po::variables_map& vm) {
         reql_port += port_offset;
     }
 
-    return service_address_ports_t(get_local_addresses(vm),
-                                   cluster_port, cluster_client_port, http_port, reql_port, port_offset);
+    return service_address_ports_t(
+        get_local_addresses(vm), cluster_port, cluster_client_port,
+        http_admin_is_disabled, http_port, reql_port, port_offset);
 }
 
 void run_rethinkdb_create(const std::string &filepath, const name_string_t &machine_name, const io_backend_t io_backend, bool *result_out) {
@@ -469,30 +492,36 @@ void validate(boost::any& value_out, const std::vector<std::string>& words,
     po::validators::check_first_occurrence(value_out);
     const std::string& word = po::validators::get_single_string(words);
     size_t colon_loc = word.find_first_of(':');
-    if (colon_loc == std::string::npos) {
-        throw po::validation_error(po::validation_error::invalid_option_value, word);
-    } else {
+    if (colon_loc != std::string::npos) {
         std::string host = word.substr(0, colon_loc);
         int port = atoi(word.substr(colon_loc + 1).c_str());
-        if (host.size() == 0 || port == 0) {
-            throw po::validation_error(po::validation_error::invalid_option_value, word);
+        if (host.size() != 0 && port != 0) {
+            value_out = host_and_port_t(host, port);
+            return;
         }
-        value_out = host_and_port_t(host, port);
     }
+
+#if BOOST_VERSION >= 104200
+    throw po::validation_error(po::validation_error::invalid_option_value, word);
+#else
+    throw po::validation_error("Invalid option value: " + word);
+#endif
 }
 
 po::options_description get_web_options() {
     po::options_description desc("Web options");
     desc.add_options()
         ("web-static-directory", po::value<std::string>(), "specify directory from which to serve web resources")
-        ("http-port", po::value<int>()->default_value(port_defaults::http_port), "port for http admin console");
+        ("http-port", po::value<int>()->default_value(port_defaults::http_port), "port for http admin console")
+        ("no-http-admin", "disable http admin console");
     return desc;
 }
 
 po::options_description get_web_options_visible() {
     po::options_description desc("Web options");
     desc.add_options()
-        ("http-port", po::value<int>()->default_value(port_defaults::http_port), "port for http admin console");
+        ("http-port", po::value<int>()->default_value(port_defaults::http_port), "port for http admin console")
+        ("no-http-admin", "disable http admin console");
     return desc;
 }
 
@@ -665,46 +694,50 @@ MUST_USE bool parse_commands_flat(int argc, char *argv[], po::variables_map *vm,
 }
 
 MUST_USE bool parse_commands(int argc, char *argv[], po::variables_map *vm, const po::options_description& options) {
-    if ( parse_commands_flat(argc, argv, vm, options) ) {
+    if (parse_commands_flat(argc, argv, vm, options)) {
         po::notify(*vm);
     } else {
-        return false ;
+        return false;
     }
     return true;
 }
 
 MUST_USE bool parse_config_file_flat(const std::string & conf_file_name, po::variables_map *vm, const po::options_description& options) {
-    
-    if ( ( conf_file_name.length() == 0 ) || access( conf_file_name.c_str() , R_OK ) ) return false ;
-    std::ifstream conf_file ( conf_file_name.c_str() , std::ifstream::in ) ;
-    if ( conf_file.fail() ) return false ;
+
+    if ((conf_file_name.length() == 0) || access(conf_file_name.c_str(), R_OK)) {
+        return false;
+    }
+    std::ifstream conf_file(conf_file_name.c_str(), std::ifstream::in);
+    if (conf_file.fail()) {
+        return false;
+    }
     try {
         po::store(po::parse_config_file(conf_file, options, true), *vm);
     } catch (const po::multiple_occurrences& ex) {
         logERR("flag specified too many times\n");
-        conf_file.close() ;
+        conf_file.close();
         return false;
     } catch (const po::unknown_option& ex) {
         logERR("%s\n", ex.what());
-        conf_file.close() ;
+        conf_file.close();
         return false;
     } catch (const po::validation_error& ex) {
         logERR("%s\n", ex.what());
-        conf_file.close() ;
+        conf_file.close();
         return false;
     }
     return true;
 }
 
 MUST_USE bool parse_commands_deep(int argc, char *argv[], po::variables_map *vm, const po::options_description& options) {
-    po::options_description opt2 = config_file_attach_wrapper(options) ;
+    po::options_description opt2 = config_file_attach_wrapper(options);
     try {
         po::store(po::parse_command_line(argc, argv, opt2), *vm);
-        if ( (*vm).count("config-file") && (*vm)["config-file"].as<std::string>().length() ) {
-            if ( ! parse_config_file_flat( (*vm)["config-file"].as<std::string>() , vm , options ) ) {
-                return false ;
+        if (vm->count("config-file") && (*vm)["config-file"].as<std::string>().length()) {
+            if (!parse_config_file_flat((*vm)["config-file"].as<std::string>(), vm, options)) {
+                return false;
             }
-        }           
+        }
         po::notify(*vm);
     } catch (const po::multiple_occurrences& ex) {
         logERR("flag specified too many times\n");
@@ -781,7 +814,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
     service_address_ports_t address_ports;
     try {
         address_ports = get_service_address_ports(vm);
-    } catch (address_lookup_exc_t& ex) {
+    } catch (const address_lookup_exc_t& ex) {
         fprintf(stderr, "ERROR: %s\n", ex.what());
         return EXIT_FAILURE;
     }
@@ -803,17 +836,8 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-
-    if ( vm.count("pid-file") && vm["pid-file"].as<std::string>().length() ) {
-        // Be very careful about modifying this . It is important that the code that removes the pid-file only run if the checks here pass . Right now , this is guaranteed by the return on failure here .
-        if ( ! access( vm["pid-file"].as<std::string>().c_str() , F_OK ) ) {
-            fprintf( stderr , "ERROR: The pid-file specified already exists. This might mean that an instance is already running.\n" ) ;
-            return EXIT_FAILURE ;
-        }
-        if ( numwrite( vm["pid-file"].as<std::string>().c_str() , getpid() ) ) {
-            fprintf( stderr , "ERROR: Writing to the specified pid-file failed.\n" ) ;
-            return EXIT_FAILURE ;
-        }
+    if (write_pid_file(vm) != EXIT_SUCCESS) {
+        return EXIT_FAILURE;
     }
 
     if (!check_existence(filepath)) {
@@ -830,9 +854,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
                                    &result, web_path),
                        num_workers);
 
-    if ( vm.count("pid-file") && vm["pid-file"].as<std::string>().length() ) {
-        remove( vm["pid-file"].as<std::string>().c_str() ) ;
-    }
+    remove_pid_file(vm);
 
     return result ? EXIT_SUCCESS : EXIT_FAILURE;
 }
@@ -903,7 +925,7 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
     service_address_ports_t address_ports;
     try {
         address_ports = get_service_address_ports(vm);
-    } catch (address_lookup_exc_t& ex) {
+    } catch (const address_lookup_exc_t& ex) {
         fprintf(stderr, "ERROR: %s\n", ex.what());
         return EXIT_FAILURE;
     }
@@ -915,16 +937,8 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
 
     const int num_workers = get_cpu_count();
 
-    if ( vm.count("pid-file") && vm["pid-file"].as<std::string>().length() ) {
-        // Be very careful about modifying this . It is important that the code that removes the pid-file only run if the checks here pass . Right now , this is guaranteed by the return on failure here .
-        if ( ! access( vm["pid-file"].as<std::string>().c_str() , F_OK ) ) {
-            fprintf( stderr , "ERROR: The pid-file specified already exists. This might mean that an instance is already running.\n" ) ;
-            return EXIT_FAILURE ;
-        }
-        if ( numwrite( vm["pid-file"].as<std::string>().c_str() , getpid() ) ) {
-            fprintf( stderr , "ERROR: Writing to the specified pid-file failed.\n" ) ;
-            return EXIT_FAILURE ;
-        }
+    if (write_pid_file(vm) != EXIT_SUCCESS) {
+        return EXIT_FAILURE;
     }
 
     bool result;
@@ -935,9 +949,7 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
                                    &result, web_path),
                        num_workers);
 
-    if ( vm.count("pid-file") && vm["pid-file"].as<std::string>().length() ) {
-        remove( vm["pid-file"].as<std::string>().c_str() ) ;
-    }
+    remove_pid_file(vm);
 
     return result ? EXIT_SUCCESS : EXIT_FAILURE;
 }
@@ -979,7 +991,7 @@ int main_rethinkdb_import(int argc, char *argv[]) {
         std::set<ip_address_t> local_addresses;
         try {
             local_addresses = get_local_addresses(vm);
-        } catch (address_lookup_exc_t& ex) {
+        } catch (const address_lookup_exc_t& ex) {
             fprintf(stderr, "ERROR: %s\n", ex.what());
             return EXIT_FAILURE;
         }
@@ -1063,94 +1075,88 @@ int main_rethinkdb_import(int argc, char *argv[]) {
 
 
 int main_rethinkdb_porcelain(int argc, char *argv[]) {
-    po::variables_map vm;
-    if (!parse_commands_deep(argc, argv, &vm, get_rethinkdb_porcelain_options())) {
-        return EXIT_FAILURE;
-    }
-
-    std::string filepath = vm["directory"].as<std::string>();
-    std::string logfilepath = get_logfilepath(filepath);
-
-    std::string machine_name_str = vm["machine-name"].as<std::string>();
-    name_string_t machine_name;
-    if (!machine_name.assign_value(machine_name_str)) {
-        fprintf(stderr, "ERROR: machine-name invalid.  (%s)\n", name_string_t::valid_char_msg);
-        return EXIT_FAILURE;
-    }
-    std::vector<host_and_port_t> joins;
-    if (vm.count("join") > 0) {
-        joins = vm["join"].as<std::vector<host_and_port_t> >();
-    }
-
-    service_address_ports_t address_ports;
     try {
-        address_ports = get_service_address_ports(vm);
-    } catch (address_lookup_exc_t& ex) {
-        fprintf(stderr, "ERROR: %s\n", ex.what());
-        return EXIT_FAILURE;
-    }
-
-    std::string web_path = get_web_path(vm, argv);
-
-    io_backend_t io_backend;
-    if (!pull_io_backend_option(vm, &io_backend)) {
-        fprintf(stderr, "ERROR: selected io-backend is invalid or unsupported.\n");
-        return EXIT_FAILURE;
-    }
-
-    extproc::spawner_t::info_t spawner_info;
-    extproc::spawner_t::create(&spawner_info);
-
-    const int num_workers = vm["cores"].as<int>();
-    if (num_workers <= 0 || num_workers > MAX_THREADS) {
-        fprintf(stderr, "ERROR: number specified for cores to utilize must be between 1 and %d\n", MAX_THREADS);
-        return EXIT_FAILURE;
-    }
-
-
-    if ( vm.count("pid-file") && vm["pid-file"].as<std::string>().length() ) {
-        // Be very careful about modifying this . It is important that the code that removes the pid-file only run if the checks here pass . Right now , this is guaranteed by the return on failure here .
-        if ( ! access( vm["pid-file"].as<std::string>().c_str() , F_OK ) ) {
-            fprintf( stderr , "ERROR: The pid-file specified already exists. This might mean that an instance is already running.\n" ) ;
-            return EXIT_FAILURE ;
-        }
-        if ( numwrite( vm["pid-file"].as<std::string>().c_str() , getpid() ) ) {
-            fprintf( stderr , "ERROR: Writing to the specified pid-file failed.\n" ) ;
-            return EXIT_FAILURE ;
-        }
-    }
-
-    bool new_directory = false;
-    // Attempt to create the directory early so that the log file can use it.
-    if (!check_existence(filepath)) {
-        new_directory = true;
-        int mkdir_res = mkdir(filepath.c_str(), 0755);
-        if (mkdir_res != 0) {
-            fprintf(stderr, "Could not create directory: %s\n", errno_to_string(errno).c_str());
+        po::variables_map vm;
+        if (!parse_commands_deep(argc, argv, &vm, get_rethinkdb_porcelain_options())) {
             return EXIT_FAILURE;
         }
+
+        std::string filepath = vm["directory"].as<std::string>();
+        std::string logfilepath = get_logfilepath(filepath);
+
+        std::string machine_name_str = vm["machine-name"].as<std::string>();
+        name_string_t machine_name;
+        if (!machine_name.assign_value(machine_name_str)) {
+            fprintf(stderr, "ERROR: machine-name invalid.  (%s)\n", name_string_t::valid_char_msg);
+            return EXIT_FAILURE;
+        }
+        std::vector<host_and_port_t> joins;
+        if (vm.count("join") > 0) {
+            joins = vm["join"].as<std::vector<host_and_port_t> >();
+        }
+
+        service_address_ports_t address_ports;
+        try {
+            address_ports = get_service_address_ports(vm);
+        } catch (const address_lookup_exc_t& ex) {
+            fprintf(stderr, "ERROR: %s\n", ex.what());
+            return EXIT_FAILURE;
+        }
+
+        std::string web_path = get_web_path(vm, argv);
+
+        io_backend_t io_backend;
+        if (!pull_io_backend_option(vm, &io_backend)) {
+            fprintf(stderr, "ERROR: selected io-backend is invalid or unsupported.\n");
+            return EXIT_FAILURE;
+        }
+
+        extproc::spawner_t::info_t spawner_info;
+        extproc::spawner_t::create(&spawner_info);
+
+        const int num_workers = vm["cores"].as<int>();
+        if (num_workers <= 0 || num_workers > MAX_THREADS) {
+            fprintf(stderr, "ERROR: number specified for cores to utilize must be between 1 and %d\n", MAX_THREADS);
+            return EXIT_FAILURE;
+        }
+
+        if (write_pid_file(vm) != EXIT_SUCCESS) {
+            return EXIT_FAILURE;
+        }
+
+        bool new_directory = false;
+        // Attempt to create the directory early so that the log file can use it.
+        if (!check_existence(filepath)) {
+            new_directory = true;
+            int mkdir_res = mkdir(filepath.c_str(), 0755);
+            if (mkdir_res != 0) {
+                fprintf(stderr, "Could not create directory: %s\n", errno_to_string(errno).c_str());
+                return EXIT_FAILURE;
+            }
+        }
+
+        install_fallback_log_writer(logfilepath);
+
+        bool result;
+        run_in_thread_pool(boost::bind(&run_rethinkdb_porcelain,
+                                       &spawner_info,
+                                       filepath,
+                                       machine_name,
+                                       joins,
+                                       address_ports,
+                                       io_backend,
+                                       &result,
+                                       web_path,
+                                       new_directory),
+                           num_workers);
+
+        remove_pid_file(vm);
+
+        return result ? EXIT_SUCCESS : EXIT_FAILURE;
+    } catch (const boost::program_options::error &e) {
+        fprintf(stderr, "%s\n", e.what());
+        return EXIT_FAILURE;
     }
-
-    install_fallback_log_writer(logfilepath);
-
-    bool result;
-    run_in_thread_pool(boost::bind(&run_rethinkdb_porcelain,
-                                   &spawner_info,
-                                   filepath,
-                                   machine_name,
-                                   joins,
-                                   address_ports,
-                                   io_backend,
-                                   &result,
-                                   web_path,
-                                   new_directory),
-                       num_workers);
-
-    if ( vm.count("pid-file") && vm["pid-file"].as<std::string>().length() ) {
-        remove( vm["pid-file"].as<std::string>().c_str() ) ;
-    }
-
-    return result ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 void help_rethinkdb_create() {

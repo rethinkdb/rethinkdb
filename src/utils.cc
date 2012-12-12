@@ -320,6 +320,7 @@ int rng_t::randint(int n) {
     long x;  // NOLINT(runtime/int)
     lrand48_r(&buffer_, &x);
 
+    guarantee(n > 0, "Can't produce a rand int < 0"); //Better than a floating point exception
     return x % n;
 }
 
@@ -336,7 +337,7 @@ void get_dev_urandom(void *out, int64_t nbytes) {
 int randint(int n) {
     drand48_data buffer;
     if (!TLS_get_rng_initialized()) {
-        long int seed_buffer;
+        long seed_buffer;  // NOLINT(runtime/int).  'long' is in the API for drand48 functions.
         get_dev_urandom(&seed_buffer, sizeof(seed_buffer));
         srand48_r(seed_buffer, &buffer);
         TLS_set_rng_initialized(true);
@@ -370,9 +371,9 @@ bool begins_with_minus(const char *string) {
 }
 
 int64_t strtoi64_strict(const char *string, const char **end, int base) {
-    CT_ASSERT(sizeof(long) == sizeof(int64_t));  // NOLINT(runtime/int)
-    long result = strtol(string, const_cast<char **>(end), base);  // NOLINT(runtime/int)
-    if ((result == LONG_MAX || result == LONG_MIN) && errno == ERANGE) {
+    CT_ASSERT(sizeof(long long) == sizeof(int64_t));  // NOLINT(runtime/int)
+    long long result = strtoll(string, const_cast<char **>(end), base);  // NOLINT(runtime/int)
+    if ((result == LLONG_MAX || result == LLONG_MIN) && errno == ERANGE) {
         *end = string;
         return 0;
     }
@@ -384,9 +385,9 @@ uint64_t strtou64_strict(const char *string, const char **end, int base) {
         *end = string;
         return 0;
     }
-    CT_ASSERT(sizeof(unsigned long) == sizeof(uint64_t));  // NOLINT(runtime/int)
-    unsigned long result = strtoul(string, const_cast<char **>(end), base);  // NOLINT(runtime/int)
-    if (result == ULONG_MAX && errno == ERANGE) {
+    CT_ASSERT(sizeof(unsigned long long) == sizeof(uint64_t));  // NOLINT(runtime/int)
+    unsigned long long result = strtoull(string, const_cast<char **>(end), base);  // NOLINT(runtime/int)
+    if (result == ULLONG_MAX && errno == ERANGE) {
         *end = string;
         return 0;
     }

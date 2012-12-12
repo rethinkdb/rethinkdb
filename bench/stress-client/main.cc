@@ -278,7 +278,7 @@ int main(int argc, char *argv[])
             fflush(qps_fd);
         }
         if (latencies_fd) {
-            for (int i = 0; i < round_stats.latency_samples.size(); i++) {
+            for (size_t i = 0; i < round_stats.latency_samples.size(); i++) {
                 fprintf(latencies_fd, "%d\t\t%.2f\n",
                     total_time,
                     ticks_to_us(round_stats.latency_samples.samples[i]));

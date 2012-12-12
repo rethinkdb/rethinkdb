@@ -3,6 +3,7 @@
 #define CLUSTERING_ADMINISTRATION_HTTP_SERVER_HPP_
 
 #include <map>
+#include <set>
 #include <string>
 
 #include "clustering/administration/admin_tracker.hpp"

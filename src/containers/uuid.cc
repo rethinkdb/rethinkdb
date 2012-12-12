@@ -1,17 +1,15 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 
-#include <unistd.h>
 #include "containers/uuid.hpp"
 
+#include <unistd.h>
 #include <sys/stat.h>
 #include <string.h>
 #include <fcntl.h>
 
-#include "errors.hpp"
 #include "containers/printf_buffer.hpp"
-
-#include "utils.hpp"
 #include "thread_local.hpp"
+#include "utils.hpp"
 
 // We keep the sha1 functions in this .cc file to avoid encouraging others from using it.
 namespace sha1 {

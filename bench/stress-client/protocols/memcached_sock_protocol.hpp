@@ -61,18 +61,18 @@ public:
         //clean up the buffer
     }
 
-    void read_from_socket(const int socketfd) { }
-    
+    void read_from_socket(UNUSED const int socketfd) { }
+
     bool successful;
     std::string failure_message;
-    
+
 protected:
     int socketfd;
 
     // Helper methods for parsing server responses
     const char* read_line(size_t& result_length) {
         bool gotR = false;
-        
+
         size_t scanned_up_to_position = 0;
         while (true) {
             while (scanned_up_to_position < buffer.bytes_in_buffer) {
@@ -84,7 +84,7 @@ protected:
                     const char* result = char_buffer + buffer.first_buffer_byte;
                     buffer.first_buffer_byte += scanned_up_to_position + 1;
                     buffer.bytes_in_buffer -= scanned_up_to_position + 1;
-                    
+
                     if (buffer.first_buffer_byte > 4096) {
                         // Wrap around and reset buffer
                         memmove(char_buffer, char_buffer + buffer.first_buffer_byte, buffer.bytes_in_buffer);
@@ -161,42 +161,42 @@ protected:
         result_length = 0;
         return NULL;
     }
-    
+
     const char* read_n_bytes(const size_t n) {
         buffer.buffer.resize(std::max(buffer.first_buffer_byte + n, buffer.buffer.size()), '\0');
         char* char_buffer = &buffer.buffer[0];
         if (buffer.bytes_in_buffer < n) {
             // MSG_WAITALL makes recv wait until it actually receives the full n bytes
             const ssize_t bytes_read = recv(socketfd, char_buffer + buffer.first_buffer_byte + buffer.bytes_in_buffer, n - buffer.bytes_in_buffer, MSG_WAITALL);
-            if (bytes_read < n - buffer.bytes_in_buffer) {
+            if (bytes_read < static_cast<ssize_t>(n - buffer.bytes_in_buffer)) {
                 perror("Unable to read from socket");
                 exit(-1);
             }
             buffer.bytes_in_buffer += bytes_read;
         }
-        
+
         const char* result = char_buffer + buffer.first_buffer_byte;
         buffer.first_buffer_byte += n;
         buffer.bytes_in_buffer -= n;
-        
+
         return result;
     }
-    
+
     bool does_match_at_position(const char* check_in, const char* check_for, const size_t check_in_length, const size_t at_position = 0) const {
         return strlen(check_for) + at_position <= check_in_length && strncmp(check_in + at_position, check_for, strlen(check_for)) == 0;
     }
-    
+
     int string_to_int(const std::string& string) const {
         char* end;
         const char* c_string = string.c_str();
         long int result = strtol(c_string, &end, 10);
-        
-        if (*end != '\0' || result == LONG_MAX && errno == ERANGE)
+
+        if (*end != '\0' || (result == LONG_MAX && errno == ERANGE))
             throw protocol_error_t("Illegal integer literal: " + string);
-            
+
         return static_cast<int>(result);
     }
-    
+
     void check_for_error_condition(const char* response_line, const size_t line_length) const {
         if (does_match_at_position(response_line, "ERROR", line_length))
             throw non_existent_command_error_t();
@@ -211,7 +211,7 @@ protected:
                 throw server_error_t(error_message);
         }
     }
-    
+
 protected:
     tcp_buffer_t &buffer;
 };
@@ -222,11 +222,11 @@ public:
 
     void read_from_socket(const int socketfd) {
         this->socketfd = socketfd;
-        
+
         size_t line_length = 0;
         const char* line = read_line(line_length);
         check_for_error_condition(line, line_length);
-        
+
         successful = line_length == 7 && strncmp("DELETED", line, line_length) == 0;
         if (!successful)
             failure_message = std::string(line, line_length);
@@ -239,11 +239,11 @@ public:
 
     void read_from_socket(const int socketfd) {
         this->socketfd = socketfd;
-        
+
         size_t line_length = 0;
         const char* line = read_line(line_length);
         check_for_error_condition(line, line_length);
-        
+
         successful = line_length == 6 && strncmp("STORED", line, line_length) == 0;
         if (!successful)
             failure_message = std::string(line, line_length);
@@ -259,18 +259,18 @@ public:
 
     virtual void read_from_socket(const int socketfd) {
         this->socketfd = socketfd;
-        
+
         values.clear();
         flags.clear();
         unsigned int number_of_failed_gets = 0;
-        
+
         for (unsigned int values_left = number_of_keys; values_left > 0; --values_left) {
             size_t line_length = 0;
             const char* line = read_line(line_length);
             check_for_error_condition(line, line_length); // We might still get ERROR...
-            
+
             const std::string value_response(line, line_length);
-            
+
             if (value_response == "END") {
                 number_of_failed_gets = number_of_keys - values.size();
                 break;
@@ -286,48 +286,48 @@ public:
                 throw protocol_error_t("Illegal response to get request: " + value_response);
             }
         }
-        
+
         if (number_of_failed_gets == 0) {
             size_t line_length = 0;
             const char* end_line = read_line(line_length);
             if (line_length != 3 || strncmp(end_line, "END", line_length) != 0)
                 throw protocol_error_t("Did not get END at end of retrieval response.");
         }
-        
+
         successful = number_of_failed_gets == 0;
         char number_of_failed_gets_c_str[32];
         sprintf(number_of_failed_gets_c_str, "%d", number_of_failed_gets);
         failure_message = successful ? "" : "Failed to read a total of " + std::string(number_of_failed_gets_c_str) + " values.";
     }
-    
+
     bool mock_parse;
     std::map<std::string, std::string> values;
     std::map<std::string, int> flags;
-    
+
 protected:
     void parse_value_response(const std::string& value_response) {
         size_t parse_position = 6;
-                
+
         const size_t key_end_position = value_response.find(' ', parse_position);
         if (key_end_position == value_response.npos)
             throw protocol_error_t("Unable to retrieve key from get response.");
         const std::string key = value_response.substr(parse_position, key_end_position - parse_position);
         parse_position += key_end_position - parse_position + 1;
-        
+
         const size_t flags_end_position = value_response.find(' ', parse_position);
         if (flags_end_position == value_response.npos)
             throw protocol_error_t("Unable to retrieve flags from get response.");
         const std::string flags_string = value_response.substr(parse_position, flags_end_position - parse_position);
         parse_position += flags_end_position - parse_position + 1;
-        
+
         const std::string size_string = value_response.substr(parse_position);
-        
+
         const int flags = string_to_int(flags_string);
         const int size = string_to_int(size_string);
-        
+
         const char* value = read_n_bytes(static_cast<size_t>(size));
         const std::string value_str(value, static_cast<size_t>(size));
-        
+
         size_t line_length = 0;
         read_line(line_length);
         if (line_length > 0)
@@ -336,7 +336,7 @@ protected:
         values.insert(std::pair<std::string, std::string>(key, value_str));
         this->flags.insert(std::pair<std::string, int>(key, flags));
     }
-    
+
     void parse_value_response_mock(const std::string& value_response) {
         size_t parse_position = 6;
 
@@ -344,17 +344,17 @@ protected:
         if (key_end_position == value_response.npos)
             throw protocol_error_t("Unable to retrieve key from get response.");
         parse_position += key_end_position - parse_position + 1;
-        
+
         const size_t flags_end_position = value_response.find(' ', parse_position);
         if (flags_end_position == value_response.npos)
             throw protocol_error_t("Unable to retrieve flags from get response.");
         parse_position += flags_end_position - parse_position + 1;
-        
+
         const std::string size_string = value_response.substr(parse_position);
         const int size = string_to_int(size_string);
-        
-        const char* value = read_n_bytes(static_cast<size_t>(size));
-        
+
+        UNUSED const char* value = read_n_bytes(static_cast<size_t>(size));
+
         size_t line_length = 0;
         read_line(line_length);
         if (line_length > 0)
@@ -365,13 +365,12 @@ protected:
 };
 
 struct memcached_sock_protocol_t : public protocol_t {
-    memcached_sock_protocol_t(const char *conn_str) 
-        : sockfd(-1), outstanding_reads(0)
+    memcached_sock_protocol_t(const char *conn_str)
+        : outstanding_reads(0), sockfd(-1)
     {
         // init the socket
         sockfd = socket(AF_INET, SOCK_STREAM, 0);
         if (sockfd < 0) {
-            int err = errno;
             fprintf(stderr, "Could not create socket\n");
             exit(-1);
         }
@@ -421,7 +420,6 @@ struct memcached_sock_protocol_t : public protocol_t {
         // assert(!exist_outstanding_pipeline_reads());
         if (sockfd != -1) {
             int res = close(sockfd);
-            int err = errno;
             if (res != 0) {
                 fprintf(stderr, "Could not close socket\n");
                 exit(-1);
@@ -553,7 +551,7 @@ struct memcached_sock_protocol_t : public protocol_t {
     int outstanding_reads;
 
     /* add a read to the pipeline */
-    void enqueue_read(payload_t *keys, int count, payload_t *values = NULL) {
+    void enqueue_read(payload_t *keys, int count, UNUSED payload_t *values = NULL) {
         // Setup the text command
         send_buffer_at_least(count * MAX_MC_KEY_SIZE + 1024);
         char *buf = send_buffer.data();
@@ -710,7 +708,6 @@ private:
         do {
             res = write(sockfd, send_buffer.data() + count, total - count);
             if (res < 0) {
-                int err = errno;
                 fprintf(stderr, "Could not send command (%d)\n", errno);
                 exit(-1);
             }

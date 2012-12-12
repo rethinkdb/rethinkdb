@@ -28,11 +28,16 @@ struct payload_t {
         memcpy(first, p.first, buffer_size);
     }
     payload_t &operator=(const payload_t &p) {
-        delete[] first;
-        first = new char[p.buffer_size];
+        char *new_first = new char[p.buffer_size];
+        memcpy(new_first, p.first, p.buffer_size);
+
+        char *old_first = first;
+        first = new_first;
+        delete[] old_first;
+
         second = p.second;
         buffer_size = p.buffer_size;
-        memcpy(first, p.first, buffer_size);
+        return *this;
     }
     ~payload_t() {
         delete[] first;

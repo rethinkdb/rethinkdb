@@ -3,6 +3,7 @@
 #define CLUSTERING_ADMINISTRATION_HTTP_SEMILATTICE_APP_HPP_
 
 #include <map>
+#include <string>
 
 #include "clustering/administration/metadata.hpp"
 #include "http/json.hpp"

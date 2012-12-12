@@ -1135,12 +1135,12 @@ void execute_query(Query *q, runtime_environment_t *env, Response *res, const sc
     } break; //status set in [execute_write_query]
     case Query::CONTINUE: {
         if (!stream_cache->serve(q->token(), res, env->interruptor)) {
-            throw runtime_exc_t(strprintf("Could not serve key %lld from stream cache.", (long long int)q->token()), backtrace);
+            throw runtime_exc_t(strprintf("Could not serve key %" PRIi64 " from stream cache.", q->token()), backtrace);
         }
     } break; //status set in [serve]
     case Query::STOP: {
         if (!stream_cache->contains(q->token())) {
-            throw broken_client_exc_t(strprintf("No key %lld in stream cache.", (long long int)q->token()));
+            throw broken_client_exc_t(strprintf("No key %" PRIi64 " in stream cache.", q->token()));
         } else {
             res->set_status_code(Response::SUCCESS_EMPTY);
             stream_cache->erase(q->token());
@@ -1169,7 +1169,7 @@ void execute_read_query(ReadQuery *r, runtime_environment_t *env, Response *res,
         boost::shared_ptr<json_stream_t> stream = eval_term_as_stream(r->mutable_term(), env, scopes, backtrace);
         int64_t key = res->token();
         if (stream_cache->contains(key)) {
-            throw runtime_exc_t(strprintf("Token %lld already in stream cache, use CONTINUE.", (long long int)key), backtrace);
+            throw runtime_exc_t(strprintf("Token %" PRIi64 " already in stream cache, use CONTINUE.", key), backtrace);
         } else {
             stream_cache->insert(r, key, stream);
         }
@@ -2155,7 +2155,7 @@ boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term::Call *c, runtime_envir
                 double result = 0.0;
 
                 if (c->args_size() > 0) {
-                    boost::shared_ptr<scoped_cJSON_t> arg = eval_term_as_json_and_check(c->mutable_args(0), env, scopes, backtrace.with("arg:0"), cJSON_Number, "All operands to SUBTRACT must be numbers.");
+                    boost::shared_ptr<scoped_cJSON_t> arg = eval_term_as_json_and_check(c->mutable_args(0), env, scopes, backtrace.with("arg:0"), cJSON_Number, "All operands of SUBTRACT must be numbers.");
                     if (c->args_size() == 1) {
                         result = -arg->get()->valuedouble;  // (- x) is negate
                     } else {
@@ -2163,7 +2163,7 @@ boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term::Call *c, runtime_envir
                     }
 
                     for (int i = 1; i < c->args_size(); ++i) {
-                        boost::shared_ptr<scoped_cJSON_t> arg2 = eval_term_as_json_and_check(c->mutable_args(i), env, scopes, backtrace.with(strprintf("arg:%d", i)), cJSON_Number, "All operands to SUBTRACT must be numbers.");
+                        boost::shared_ptr<scoped_cJSON_t> arg2 = eval_term_as_json_and_check(c->mutable_args(i), env, scopes, backtrace.with(strprintf("arg:%d", i)), cJSON_Number, "All operands of SUBTRACT must be numbers.");
                         result -= arg2->get()->valuedouble;
                     }
                 }
@@ -2190,7 +2190,7 @@ boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term::Call *c, runtime_envir
                 double result = 0.0;
 
                 if (c->args_size() > 0) {
-                    boost::shared_ptr<scoped_cJSON_t> arg = eval_term_as_json_and_check(c->mutable_args(0), env, scopes, backtrace.with("arg:0"), cJSON_Number, "All operands to DIVIDE must be numbers.");
+                    boost::shared_ptr<scoped_cJSON_t> arg = eval_term_as_json_and_check(c->mutable_args(0), env, scopes, backtrace.with("arg:0"), cJSON_Number, "All operands of DIVIDE must be numbers.");
                     if (c->args_size() == 1) {
                         result = 1.0 / arg->get()->valuedouble;  // (/ x) is reciprocal
                     } else {
@@ -2198,7 +2198,7 @@ boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term::Call *c, runtime_envir
                     }
 
                     for (int i = 1; i < c->args_size(); ++i) {
-                        boost::shared_ptr<scoped_cJSON_t> arg2 = eval_term_as_json_and_check(c->mutable_args(i), env, scopes, backtrace.with(strprintf("arg:%d", i)), cJSON_Number, "All operands to DIVIDE must be numbers.");
+                        boost::shared_ptr<scoped_cJSON_t> arg2 = eval_term_as_json_and_check(c->mutable_args(i), env, scopes, backtrace.with(strprintf("arg:%d", i)), cJSON_Number, "All operands of DIVIDE must be numbers.");
                         result /= arg2->get()->valuedouble;
                     }
                 }
@@ -2226,7 +2226,7 @@ boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term::Call *c, runtime_envir
                     boost::shared_ptr<scoped_cJSON_t> rhs = eval_term_as_json(c->mutable_args(i), env, scopes, backtrace.with(strprintf("arg:%d", i)));
 
                     int res = lhs->type() == cJSON_NULL && rhs->type() == cJSON_NULL ? 0:
-                        cJSON_cmp(lhs->get(), rhs->get(), backtrace.with(strprintf("arg:%d", i)));
+                        json_cmp(lhs->get(), rhs->get());
 
                     switch (c->builtin().comparison()) {
                     case Builtin_Comparison_EQ:
@@ -2291,9 +2291,10 @@ boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term::Call *c, runtime_envir
                     length = array->GetArraySize();
                 } else {
                     boost::shared_ptr<json_stream_t> stream = eval_term_as_stream(c->mutable_args(0), env, scopes, backtrace.with("arg:0"));
-                    while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
-                        ++length;
-                    }
+                    result_t res = stream->apply_terminal(rdb_protocol_details::Length(), env, scopes, backtrace);
+                    rdb_protocol_t::rget_read_response_t::length_t *l = boost::get<rdb_protocol_t::rget_read_response_t::length_t>(&res);
+                    guarantee(l, "Applying the terminal returned an unexpected result.");
+                    length = l->length;
                 }
 
                 return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(safe_cJSON_CreateNumber(length, backtrace)));
@@ -2395,7 +2396,7 @@ boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term::Call *c, runtime_envir
                 for (int i = 0; i < c->args_size(); ++i) {
                     boost::shared_ptr<scoped_cJSON_t> arg = eval_term_as_json(c->mutable_args(i), env, scopes, backtrace.with(strprintf("arg:%d", i)));
                     if (arg->type() != cJSON_False && arg->type() != cJSON_True) {
-                        throw runtime_exc_t("All operands to ALL must be booleans.", backtrace.with(strprintf("arg:%d", i)));
+                        throw runtime_exc_t("All operands of ALL must be booleans.", backtrace.with(strprintf("arg:%d", i)));
                     }
                     if (arg->type() != cJSON_True) {
                         result = false;
@@ -2414,7 +2415,7 @@ boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term::Call *c, runtime_envir
                 for (int i = 0; i < c->args_size(); ++i) {
                     boost::shared_ptr<scoped_cJSON_t> arg = eval_term_as_json(c->mutable_args(i), env, scopes, backtrace.with(strprintf("arg:%d", i)));
                     if (arg->type() != cJSON_False && arg->type() != cJSON_True) {
-                        throw runtime_exc_t("All operands to ANY must be booleans.", backtrace.with(strprintf("arg:%d", i)));
+                        throw runtime_exc_t("All operands of ANY must be booleans.", backtrace.with(strprintf("arg:%d", i)));
                     }
                     if (arg->type() == cJSON_True) {
                         result = true;
@@ -2484,7 +2485,7 @@ public:
                 throw runtime_exc_t(str, backtrace);
             }
 
-            int cmp = cJSON_cmp(a, b, backtrace);
+            int cmp = json_cmp(a, b);
             if (cmp) {
                 return (cmp > 0) ^ cur.ascending();
             }
@@ -2676,13 +2677,13 @@ boost::shared_ptr<json_stream_t> eval_call_as_stream(Term::Call *c, runtime_envi
                 if (r->has_upperbound()) {
                     upperbound = eval_term_as_json(r->mutable_upperbound(), env, scopes, backtrace.with("upperbound"));
                     if (upperbound->type() != cJSON_Number && upperbound->type() != cJSON_String) {
-                        throw runtime_exc_t(strprintf("Lower bound of RANGE must be a string or a number, not %s.",
+                        throw runtime_exc_t(strprintf("Upper bound of RANGE must be a string or a number, not %s.",
                                                       upperbound->Print().c_str()), backtrace.with("upperbound"));
                     }
                 }
 
                 if (lowerbound && upperbound) {
-                    if (cJSON_cmp(lowerbound->get(), upperbound->get(), backtrace) > 0) {
+                    if (json_cmp(lowerbound->get(), upperbound->get()) > 0) {
                         throw runtime_exc_t(strprintf("Lower bound of RANGE must be <= upper bound (%s vs. %s).",
                                                       lowerbound->Print().c_str(), upperbound->Print().c_str()),
                                             backtrace.with("lowerbound"));
