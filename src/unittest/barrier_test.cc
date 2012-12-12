@@ -1,11 +1,12 @@
 #include "unittest/gtest.hpp"
 
 #include "arch/barrier.hpp"
+#include "containers/scoped.hpp"
 
 namespace unittest {
 
 struct barrier_and_values_t {
-    barrier_t barrier;
+    thread_barrier_t barrier;
 
     // Get them in opposite cache lines for good measure.
     static const int values_size = 512;
@@ -14,7 +15,7 @@ struct barrier_and_values_t {
     static const int low_index = 0;
     static const int high_index = 256;
 
-    barrier_and_values_t() {
+    barrier_and_values_t() : barrier(2) {
         memset(values, 0, values_size);
     }
 };
