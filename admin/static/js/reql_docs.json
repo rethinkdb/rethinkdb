@@ -76,7 +76,7 @@
               "examples": [
                 {
                   "description": "Setup your top level namespace",
-                  "code": "import rethinkdb as r"
+                  "code": "from rethinkdb import r"
                 }
               ]
             }
@@ -245,32 +245,41 @@
               "body": "query[, callback]",
               "examples" : [
                 {
-                  "description": "Passing a callback invokes next on the resulting cursor with the callback",
-                  "code": "conn.run(r.table('marvel'), function(hero) {\n ...\n})"
-                },
-                {
+                  "description": "Call run on the connection with a query to execute the query. Run will return a cursor from which results may be retrieved.",
+                  "code": "var cursor = conn.run(r.table('marvel'));"
+                }, {
+                  "description": "You can pass a callback function to run which is invoked for each row. If the callback returns true, it gets called again for the next row. If the callback returns false, it will not be invoked again.",
+                  "code": "conn.run(r.table('marvel'), function(hero) {\n  ...\n  return true; // callback gets called again; return false to stop being invoked\n})"
+                }, {
                   "description": "Calling run on the query itself will run it on the last opened connection, a handy shortcut used in the rest of these docs",
                   "code": "r.table('marvel').run(function(hero) {\n ...\n})"
+                }, {
+                  "description": "If you are OK with potentially out of date data from all the tables involved in this query and want potentially faster reads, pass a flag allowing out of date data in an options object. The callback and the connection to run this query on can also be passed in the options object. Settings for individual tables will supercede this global setting for all tables in the query.",
+                  "code": "r.table('marvel').run({useOutdated: true, callback: function(hero) {...}})"
                 }
               ]
             },
             "py": {
               "name": "run",
-              "body": "query",
+              "body": "query[, use_outdated=False]",
               "examples" : [
                 {
-                  "description": "Use the cursor to lazily iterate over the results",
-                  "code": "cursor = conn.run(r.table('marvel'))"
+                  "description": "Use the cursor to lazily iterate over the results. 'cursor' is an iterable object",
+                  "code": "for doc in conn.run(r.table('marvel')):\n    print doc"
                 },
                 {
                   "description": "Calling run on the query itself will run it on the last opened connection, a handy shortcut used in the rest of these docs",
                   "code": "cursor = r.table('marvel').run()"
+                }, 
+                {
+                  "description": "If you are OK with potentially out of date data from all the tables involved in this query and want potentially faster reads, pass a flag allowing out of date data. Settings for individual tables will supercede this global setting for all tables in the query.",
+                  "code": "r.table('marvel').run(use_outdated=True)"
                 }
               ]
             },
             "rb": {
               "name": "run",
-              "body": "query",
+              "body": "query[, opts]",
               "examples" : [
                 {
                   "description": "Use the cursor (enumerable) to iterate over the results and print them.",
@@ -279,9 +288,78 @@
                 {
                    "description": "The same as the first example, but uses the most recently opened connection.",
                    "code": "r.table('marvel').run.each{|x| p x}"
+                }, {
+                  "description": "If you are OK with potentially out of date data from all the tables involved in this query and want potentially faster reads, pass a flag in an options object allowing out of date data. Settings for individual tables will supercede this global setting for all tables in the query.",
+                  "code": "r.table('marvel').run({:use_outdated => true})"
                 }
               ]
             }
+          }
+        },
+        {
+          "tag": "runp",
+          "description": "A run shortcut useful for debugging.",
+          "parent": "query",
+          "returns": null,
+          "langs": {
+            "js": {
+              "name": "runp",
+              "body": "",
+              "examples" : [
+                {
+                  "description": "runp is equivalent to calling collect on the resulting cursor with console.log as the callback.",
+                  "code": "r.table('marvel').runp();\n// Is equivalent to:\nvar cur = r.table('marvel').run();\ncur.collect(function(res) {\n console.log(res);\n});"
+                }
+              ]
+            },
+            "py": {},
+            "rb": {}
+          }
+        },
+        {
+          "tag": "next",
+          "description": "Lazily iterate over the result set one at a time.",
+          "parent": "cursor",
+          "returns": null,
+          "langs": {
+            "js": {
+              "name": "next",
+              "body": "callback",
+              "examples" : [
+                {
+                  "description": "Iterate over the results with next. Return true to continue the iteration.",
+                  "code": "var cur = r.table('marvel').run();\ncur.next(function(row) {\n return processRow(row);\n});"
+                }, {
+                  "description": "If you only expect one result just use next to process it.",
+                  "code": "var cur = r.expr(1).add(1).run();\ncur.next(function(res) {\n processResult(res);\n});"
+                }, {
+                  "description": "Results will be lazily loaded for large result sets so the next iteration may have to way for asynch I/O.",
+                  "code": "var cur = r.table('bigTable').run();\ncur.next(function(row) {\n return processRow(row);\n});"
+                }
+              ]
+            },
+            "py": {},
+            "rb": {}
+          }
+        },
+        {
+          "tag": "collect",
+          "description": "Retreive all results and pass them as an array to the given callback.",
+          "parent": "cursor",
+          "returns": null,
+          "langs": {
+            "js": {
+              "name": "collect",
+              "body": "callback",
+              "examples" : [
+                {
+                  "description": "For small result sets it may be more convienient to processes them at once as an array.",
+                  "code": "var cur = r.table('smallTable').run();\ncur.collect(function(results) {\n for(var i in results) {\n  processRow(results[i]);\n }\n});"
+                }
+              ]
+            },
+            "py": {},
+            "rb": {}
           }
         }
       ]
@@ -424,8 +502,12 @@
               "body": "tableNameOrOptions",
               "examples": [
                 {
-                  "description": "Create a table named 'marvel'.",
+                  "description": "Create a table named 'marvel' with the primary key set to field 'id'. If a new document doesn't contain the field 'id', the database will autogenerate a value for it.",
                   "code": "r.db('test').tableCreate('marvel').run()"
+                },
+                {
+                  "description": "Create a table named 'marvel' using the field 'name' as primary key:",
+                  "code": "r.db('test').tableCreate({tableName: 'marvel', primaryKey: 'name'}).run()"
                 }
               ]
             },
@@ -434,8 +516,12 @@
               "body": "table_name[, primary_key=None, primary_datacenter=None, cache_size=None]",
               "examples": [
                 {
-                  "description": "Create a table named 'marvel'",
+                  "description": "Create a table named 'marvel' with the primary key set to field 'id'. If a new document doesn't contain the field 'id', the database will autogenerate a value for it.",
                   "code": "r.db('test').table_create('marvel').run()"
+                },
+                {
+                  "description": "Create a table named 'marvel' using the field 'name' as primary key:",
+                  "code": "r.db('test').table_create('marvel', primary_key='name').run()"
                 }
               ]
             },
@@ -444,9 +530,13 @@
               "body": "table_name[, options]",
               "examples": [
                 {
-                  "description": "Create a table named 'marvel'",
+                  "description": "Create a table named 'marvel' with the primary key set to field 'id'. If a new document doesn't contain the field 'id', the database will autogenerate a value for it.",
                   "code": "r.db('test').table_create('marvel').run"
-                }
+                },
+                {
+                  "description": "Create a table named 'marvel' using the field 'name' as primary key:",
+                  "code": "r.db('test').table_create('marvel', :primary_key => 'name').run"
+                }                
               ]
             }
           }
@@ -536,7 +626,10 @@
       "commands": [
         {
           "tag": "insert",
-          "description": "Insert JSON documents into a table. Accepts a single JSON document or an array of documents.",
+          "description": "Insert JSON documents into a table. Accepts a single JSON document or an array of documents. \
+          <br /><br /> Insert returns an object that contains at least 2 fields: <code>inserted</code> - the number of documents that were succesfully inserted; \
+          <code>errors</code> - the number of errors encountered while inserting. \
+          It can also contain a field <code>generated_keys</code> providing a list of generated primary key values",
           "parent": "table",
           "returns": "query",
           "langs": {
@@ -547,10 +640,12 @@
                 {
                   "description": "Insert a row into a table named 'marvel'.",
                   "code": "r.table('marvel').insert({ superhero: 'Iron Man', superpower: 'Arc Reactor' }).run()"
-                }, {
+                }, 
+                {
                   "description": "Insert multiple rows into a table named 'marvel'.",
                   "code": "r.table('marvel').insert([{ superhero: 'Wolverine', superpower: 'Adamantium' }, { superhero: 'Spiderman', superpower: 'spidy sense' }]).run()"
-                }, {
+                }, 
+                {
                   "description": "Insert a row into a table named 'marvel'. Overwriting if the document already exists.",
                   "code": "r.table('marvel').insert({ superhero: 'Iron Man', superpower: 'Arc Reactor' }, true).run()"
                 }
@@ -563,10 +658,12 @@
                 {
                   "description": "Insert a row into a table named 'marvel'.",
                   "code": "r.table('marvel').insert({ 'superhero': 'Iron Man', 'superpower': 'Arc Reactor' }).run()"
-                }, {
+                }, 
+                {
                   "description": "Insert multiple rows into a table named 'marvel'.",
                   "code": "r.table('marvel').insert([{ 'superhero': 'Wolverine', 'superpower': 'Adamantium' }, { 'superhero': 'Spiderman', 'superpower': 'spidy sense' }]).run()"
-                }, {
+                }, 
+                {
                   "description": "Insert a row into a table named 'marvel'. Overwriting if the document already exists.",
                   "code": "r.table('marvel').insert({ 'superhero': 'Iron Man', 'superpower': 'Arc Reactor' }, true).run()"
                 }
@@ -579,10 +676,12 @@
                 {
                   "description": "Insert a row into a table named 'marvel'.",
                   "code": "r.table('marvel').insert({:superhero => 'Iron Man', :superpower => 'Arc Reactor'}).run"
-                }, {
+                }, 
+                {
                   "description": "Insert multiple rows into a table named 'marvel'.",
                   "code": "r.table('marvel').insert([{:superhero => 'Wolverine', :superpower => 'Adamantium'}, {:superhero => 'Spiderman', :superpower => 'spidy sense'}]).run"
-                }, {
+                }, 
+                {
                   "description": "Insert a row into a table named 'marvel'. Overwriting if the document already exists.",
                   "code": "r.table('marvel').insert({:superhero => 'Iron Man', :superpower => 'Arc Reactor' }, :upsert).run()"
                 }
@@ -776,7 +875,7 @@
           "langs": {
             "js": {
               "name": "table",
-              "body": "name",
+              "body": "name[, opt_useOutdated]",
               "examples": [
                 {
                   "description": "Return all documents in the table 'marvel' of the default database.",
@@ -784,12 +883,15 @@
                 }, {
                   "description": "Return all documents in the table 'marvel' of the database 'heroes'.",
                   "code": "r.db('heroes').table('marvel').run()"
+                }, {
+                  "description": "If you are OK with potentially out of date data from this table and want potentially faster reads, pass a flag allowing out of date data.",
+                  "code": "r.db('heroes').table('marvel', true).run()" 
                 }
               ]
             },
             "py": {
               "name": "table",
-              "body": "name",
+              "body": "name[, use_outdated=False]",
               "examples": [
                 {
                   "description": "Return all documents in the table 'marvel' of the default database.",
@@ -797,12 +899,15 @@
                 }, {
                   "description": "Return all documents in the table 'marvel' of the database 'heroes'.",
                   "code": "r.db('heroes').table('marvel').run()"
+                }, {
+                  "description": "If you are OK with potentially out of date data from this table and want potentially faster reads, pass a flag allowing out of date data.",
+                  "code": "r.db('heroes').table('marvel', True).run()" 
                 }
               ]
             },
             "rb": {
               "name": "table",
-              "body": "name",
+              "body": "name[, opts]",
               "examples": [
                 {
                   "description": "Return all documents in the table 'marvel' of the default database.",
@@ -810,33 +915,12 @@
                 }, {
                   "description": "Return all documents in the table 'marvel' of the database 'heroes'.",
                   "code": "r.db('heroes').table('marvel').run"
+                }, {
+                  "description": "If you are OK with potentially out of date data from this table and want potentially faster reads, pass an options object specifying that out of date reads are OK.",
+                  "code": "r.db('heroes').table('marvel', {:use_outdated => true}).run" 
                 }
               ]
             }
-          }
-        },
-        {
-          "tag" : "r",
-          "description": "Select an attribute",
-          "parent": null,
-          "returns": "r",
-          "langs": {
-            "js": {
-              "name": "r",
-              "body": "key_attribute",
-              "examples": [
-                {
-                  "description": "Get all users whose age is greater than 5",
-                  "code": "r.table('users').filter(r('age').gt(5)).run()"
-                },
-                {
-                  "description": "It can also be used to access currently visited row via a special symbol '@'",
-                  "code": "r.table('users').filter(r('@')('age').gt(5)).run()"
-                }
-              ]
-            },
-            "rb": false,
-            "py": false
           }
         },
         {
@@ -944,6 +1028,14 @@
               "body": "predicate",
               "examples": [
                 {
+                  "description": "Get all active users aged 30",
+                  "code": "r.table('users').filter({'active': true, 'age': 30})"
+                },
+                {
+                  "description": "Select all documents where the 'magazines' field is greater than 5",
+                  "code": "r.table('marvel').filter(r('magazines').gt(5)).run()"
+                },              
+                {
                   "description": "Select all documents where the 'abilities' field contains a key called 'super-strength'",
                   "code": "r.table('marvel').filter(function(hero) {\n return hero('abilities').contains('super-strength')\n}).run()"
                 }
@@ -953,6 +1045,14 @@
               "name": "filter",
               "body": "predicate",
               "examples": [
+                {
+                  "description": "Get all active users aged 30",
+                  "code": "r.table('users').filter({'active': True, 'age': 30})"
+                },              
+                {
+                  "description": "Select all documents where the 'magazines' field is greater than 5",
+                  "code": "r.table('users').filter(r['magazines'] > 5).run()"
+                },              
                 {
                   "description": "Select all documents where the 'abilities' field contains a key called 'super-strength'",
                   "code": "r.table('marvel').filter(lambda hero: hero['abilities'].contains('super-strength')).run()"
@@ -964,6 +1064,10 @@
               "body": "predicate",
               "dont_need_parenthesis": true,
               "examples": [
+                {
+                  "description": "Get all active users aged 30",
+                  "code": "r.table('users').filter('active' => true, 'age' => 30)"
+                },              
                 {
                   "description": "Select all documents where the 'abilities' field contains a key called 'super-strength'",
                   "code": "r.table('marvel').filter {|hero|\n hero[:abilities].contains('super-strength')\n}.run"
@@ -990,8 +1094,8 @@
               "body": "other, predicate",
               "examples": [
                 {
-                  "description": "Construct a sequence of documents containing all pairwise collaborations between a marvel hero and a DC hero",
-                  "code": "r.table('marvel').innerJoin(r.table('dc'), function(marvelHero, DCHero) {\n return marvelHero('collaborators').contains(DCHero('name'))\n}).run()"
+                  "description": "Construct a sequence of documents containing all cross-universe matchups where a marvel hero would lose.",
+                  "code": "r.table('marvel').innerJoin(r.table('dc'), function(marvelHero, DCHero) {\n return marvelHero('strength').lt(DCHero('strength'))\n}).run()"
                 }
               ]
             },
@@ -1000,8 +1104,8 @@
               "body": "other, predicate",
               "examples": [
                 {
-                  "description": "Construct a sequence of documents containing all pairwise collaborations between a marvel hero and a DC hero",
-                  "code": "r.table('marvel').inner_join(r.table('dc'), lambda marvelHero, DCHero: marvelHero['collaborators'].contains(DCHero['name'])).run()"
+                  "description": "Construct a sequence of documents containing all cross-universe matchups where a marvel hero would lose.",
+                  "code": "r.table('marvel').inner_join(r.table('dc'), lambda marvelHero, DCHero: marvelHero['strength'] < DCHero['strength']).run()"
                 }
               ]
             },
@@ -1010,8 +1114,8 @@
               "body": "other, predicate",
               "examples": [
                 {
-                  "description": "Construct a sequence of documents containing all pairwise collaborations between a marvel hero and a DC hero",
-                  "code": "r.table('marvel').inner_join(r.table('dc')) {|marvel_hero, DC_hero|\n marvel_hero[:collaborators].contains(DC_hero[:name])\n}.run"
+                  "description": "Construct a sequence of documents containing all cross-universe matchups where a marvel hero would lose.",
+                  "code": "r.table('marvel').inner_join(r.table('dc')) {|marvel_hero, DC_hero|\n marvel_hero[:strength] < DC_hero[:strength]\n}.run"
                 }
               ]
             }
@@ -1019,7 +1123,7 @@
         },
         {
           "tag": "outer",
-          "description": "Returns the outer product of this sequence and other",
+          "description": "Computes a left outer join by retaining each row in the joined table even if no match was found in the right table.",
           "parent": "sequence",
           "returns": "sequence",
           "langs" : {
@@ -1028,8 +1132,8 @@
               "body": "other, predicate",
               "examples": [
                 {
-                  "description": "Construct a sequence of documents containing all pairwise collaborations between a marvel hero and a DC hero and marvel heroes who have never collaborated with a DC hero",
-                  "code": "r.table('marvel').outerJoin(r.table('dc'), function(marvelHero, DCHero) {\n return marvelHero('collaborators').contains(DCHero('name'))\n}).run()"
+                  "description": "Construct a sequence of documents containing all cross-universe matchups where a marvel hero would lose, but keep marvel heroes who would never lose a matchup in the sequence.",
+                  "code": "r.table('marvel').outerJoin(r.table('dc'), function(marvelHero, DCHero) {\n return marvelHero('strength').lt(DCHero('strength'))\n}).run()"
                 }
               ]
             },
@@ -1038,8 +1142,8 @@
               "body": "other, predicate",
               "examples": [
                 {
-                  "description": "Construct a sequence of documents containing all pairwise collaborations between a marvel hero and a DC hero and marvel heroes who have never collaborated with a DC hero",
-                  "code": "r.table('marvel').outer_join(r.table('dc'), lambda marvelHero, DCHero: marvelHero['collaborators'].contains(DCHero['name'])).run()"
+                  "description": "Construct a sequence of documents containing all cross-universe matchups where a marvel hero would lose, but keep marvel heroes who would never lose a matchup in the sequence.",
+                  "code": "r.table('marvel').outer_join(r.table('dc'), lambda marvelHero, DCHero: marvelHero['strength'] < DCHero['strength']).run()"
                 }
               ]
             },
@@ -1048,8 +1152,8 @@
               "body": "other, predicate",
               "examples": [
                 {
-                  "description": "Construct a sequence of documents containing all pairwise collaborations between a marvel hero and a DC hero and marvel heroes who have never collaborated with a DC hero",
-                  "code": "r.table('marvel').outer_join(r.table('dc')) {|marvel_hero, DC_hero|\n marvel_hero[:collaborators].contains(DC_hero[:name])\n}.run"
+                  "description": "Construct a sequence of documents containing all cross-universe matchups where a marvel hero would lose, but keep marvel heroes who would never lose a matchup in the sequence.",
+                  "code": "r.table('marvel').outer_join(r.table('dc')) {|marvel_hero, DC_hero|\n marvel_hero[:strength] < DC_hero[:strength]\n}.run"
                 }
               ]
             }
@@ -1248,6 +1352,9 @@
                 {
                   "description": "Order our heroes by a series of performance metrics",
                   "code": "r.table('marvel').orderBy('enemiesVanquished', 'damselsSaved').run()"
+                }, {
+                  "description": "Order by defaults to ascending ordering. To explicitly specify the ordering, wrap the attribute with either r.asc or r.desc. Let's lead with our best vanquishers by specify descending ordering.",
+                  "code": "r.table('marvel').orderBy(r.desc('enemiesVanquished'), r.asc('damselsSaved')).run()"
                 }
               ]
             },
@@ -1257,7 +1364,10 @@
               "examples" : [
                 {
                   "description": "Order our heroes by a series of performance metrics",
-                  "code": "r.table('marvel').order_by('enemiesVanquished', 'damselsSaved').run()"
+                  "code": "r.table('marvel').order_by('enemies_vanquished', 'damsels_saved').run()"
+                }, {
+                  "description": "Order by defaults to ascending ordering. To explicitly specify the ordering, wrap the attribute with either r.asc or r.desc. Let's lead with our best vanquishers by specify descending ordering.",
+                  "code": "r.table('marvel').order_by(r.desc('enemies_vanquished'), r.asc('damsels_saved')).run()"
                 }
               ]
             },
@@ -1268,6 +1378,9 @@
                 {
                   "description": "Order our heroes by a series of performance metrics",
                   "code": "r.table('marvel').order_by(:enemies_vanquished, :damsels_saved).run"
+                }, {
+                  "description": "Order by defaults to ascending ordering. To explicitly specify the ordering, wrap the attribute with either r.asc or r.desc. Let's lead with our best vanquishers by specify descending ordering.",
+                  "code": "r.table('marvel').order_by(r.desc(:enemies_vanquished), r.asc(:damsels_saved)).run()"
                 }
               ]
             }
@@ -1879,6 +1992,53 @@
       "description": "These commands manipulate JSON objects and documents",
       "commands": [
         {
+          "tag" : "r",
+          "description": "Select an attribute",
+          "parent": null,
+          "returns": "json",
+          "langs": {
+            "js": {
+              "name": "r",
+              "body": "key_attribute",
+              "examples": [
+                {
+                  "description": "Get all users whose age is greater than 5",
+                  "code": "r.table('users').filter(r('age').gt(5)).run()"
+                },
+                {
+                  "description": "Accessing the attribute 'child' of an embedded document:",
+                  "code": "r.table('users').filter(r('embbeded_doc')('child') > 5).run()"
+                },
+                {
+                  "description": "It can also be used to access currently visited document via a special symbol '@'",
+                  "code": "r.table('users').filter(r('@')('age').gt(5)).run()"
+                }
+              ]
+            },
+            "rb": false,
+            "py": {
+              "name": "r",
+              "body": "key_attribute",
+              "dont_need_parenthesis": true,
+              "use_bracket": true,
+              "examples": [
+                {
+                  "description": "Access the attribute age:",
+                  "code": "r.table('users').filter(r['age'] > 5).run()"
+                },
+                {
+                  "description": "Accessing the attribute 'child' of an embedded document:",
+                  "code": "r.table('users').filter(r['embbeded_doc']['child'] > 5).run()"
+                },
+                {
+                  "description": "It can also be used to access currently visited document via a special symbol '@'",
+                  "code": "r.table('users').filter(r['@']['age'] > 5).run()"
+                }
+              ]
+            }
+          }
+        },
+        {
           "tag": "pick",
           "description": "Pick out the given attributes from the object and construct a new object with just those properties",
           "parent": "json",
@@ -2119,8 +2279,8 @@
     },
     {
       "tag": "operators",
-      "name": "JSON Operators",
-      "description": "These commands provide basic operators for manipulating JSON values",
+      "name": "Math and logic",
+      "description": "These commands provide basic mathematical and logical operators",
       "commands": [
         {
           "tag": "add",
