@@ -89,10 +89,8 @@ linux_aio_getevents_noeventfd_t::linux_aio_getevents_noeventfd_t(linux_diskmgr_a
 
 linux_aio_getevents_noeventfd_t::~linux_aio_getevents_noeventfd_t()
 {
-    struct sigaction sa;
-    memset(&sa, 0, sizeof(sa));
-    sa.sa_sigaction = &shutdown_signal_handler;
-    sa.sa_flags = SA_SIGINFO;
+    struct sigaction sa = make_sa_sigaction(SA_SIGINFO, &shutdown_signal_handler);
+
     int res = sigaction(IO_SHUTDOWN_NOTIFY_SIGNAL, &sa, NULL);
     guarantee_err(res == 0, "Could not install shutdown signal handler in the IO thread");
 

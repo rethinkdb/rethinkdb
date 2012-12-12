@@ -98,15 +98,16 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         guarantee_err(segv_stack.ss_sp != 0, "malloc failed");
         segv_stack.ss_flags = 0;
         segv_stack.ss_size = SEGV_STACK_SIZE;
-        int r = sigaltstack(&segv_stack, NULL);
-        guarantee_err(r == 0, "sigaltstack failed");
+        int res = sigaltstack(&segv_stack, NULL);
+        guarantee_err(res == 0, "sigaltstack failed");
 
-        struct sigaction action;
-        bzero(&action, sizeof(action));
-        action.sa_flags = SA_SIGINFO | SA_ONSTACK;
-        action.sa_sigaction = &linux_thread_pool_t::sigsegv_handler;
-        r = sigaction(SIGSEGV, &action, NULL);
-        guarantee_err(r == 0, "Could not install SEGV handler");
+        {
+            struct sigaction sa = make_sa_sigaction(SA_SIGINFO | SA_ONSTACK, &linux_thread_pool_t::sigsegv_handler);
+
+            res = sigaction(SIGSEGV, &sa, NULL);
+            guarantee_err(res == 0, "Could not install SEGV handler");
+        }
+
 #endif  // VALGRIND
 
         // First thread should initialize generic_blocker_pool before the start barrier
@@ -206,13 +207,9 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
 
     linux_thread_pool_t::thread_pool = this;   // So signal handlers can find us
     {
-        struct sigaction sa;
-        memset(&sa, 0, sizeof(struct sigaction));
-        sa.sa_handler = &linux_thread_pool_t::interrupt_handler;
-        int res = sigfillset(&sa.sa_mask);
-        guarantee_err(res == 0, "sigfillset failed");
+        struct sigaction sa = make_sa_handler(0, &linux_thread_pool_t::interrupt_handler);
 
-        res = sigaction(SIGTERM, &sa, NULL);
+        int res = sigaction(SIGTERM, &sa, NULL);
         guarantee_err(res == 0, "Could not install TERM handler");
 
         res = sigaction(SIGINT, &sa, NULL);
@@ -235,9 +232,7 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
     // Remove interrupt handlers
 
     {
-        struct sigaction sa;
-        memset(&sa, 0, sizeof(struct sigaction));
-        sa.sa_handler = SIG_IGN;
+        struct sigaction sa = make_sa_handler(0, SIG_IGN);
 
         res = sigaction(SIGTERM, &sa, NULL);
         guarantee_err(res == 0, "Could not remove TERM handler");

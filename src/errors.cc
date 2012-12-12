@@ -95,8 +95,6 @@ NORETURN void generic_crash_handler(int signum) {
     }
 }
 
-void ignore_crash_handler(UNUSED int signum) { }
-
 NORETURN void terminate_handler() {
     std::type_info *t = abi::__cxa_current_exception_type();
     if (t) {
@@ -122,19 +120,17 @@ NORETURN void terminate_handler() {
 
 void install_generic_crash_handler() {
 
-    struct sigaction action;
-    int res;
-
 #ifndef VALGRIND
-    bzero(&action, sizeof(action));
-    action.sa_handler = generic_crash_handler;
-    res = sigaction(SIGSEGV, &action, NULL);
-    guarantee_err(res == 0, "Could not install SEGV handler");
+    {
+        struct sigaction sa = make_sa_handler(0, generic_crash_handler);
+
+        int res = sigaction(SIGSEGV, &sa, NULL);
+        guarantee_err(res == 0, "Could not install SEGV handler");
+    }
 #endif
 
-    bzero(&action, sizeof(action));
-    action.sa_handler = ignore_crash_handler;
-    res = sigaction(SIGPIPE, &action, NULL);
+    struct sigaction sa = make_sa_handler(0, SIG_IGN);
+    int res = sigaction(SIGPIPE, &sa, NULL);
     guarantee_err(res == 0, "Could not install PIPE handler");
 
     std::set_terminate(&terminate_handler);

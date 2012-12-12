@@ -55,20 +55,16 @@ spawner_t::spawner_t(info_t *info)
               "spawner process already died!");
 
     // Establish SIGCHLD handler for spawner.
-    struct sigaction act;
-    memset(&act, 0, sizeof(act));
-    act.sa_handler = sigchld_handler;
-    guarantee_err(0 == sigemptyset(&act.sa_mask), "could not empty signal mask");
-    guarantee_err(0 == sigaction(SIGCHLD, &act, NULL), "could not set SIGCHLD handler");
+    struct sigaction sa = make_sa_handler(0, sigchld_handler);
+    int res = sigaction(SIGCHLD, &sa, NULL);
+    guarantee_err(res == 0, "could not set SIGCHLD handler");
 }
 
 spawner_t::~spawner_t() {
     // De-establish SIGCHLD handler.
-    struct sigaction act;
-    memset(&act, 0, sizeof(act));
-    act.sa_handler = SIG_DFL;
-    guarantee_err(0 == sigemptyset(&act.sa_mask), "could not empty signal mask");
-    guarantee_err(0 == sigaction(SIGCHLD, &act, NULL), "could not unset SIGCHLD handler");
+    struct sigaction sa = make_sa_handler(0, SIG_DFL);
+    int res = sigaction(SIGCHLD, &sa, NULL);
+    guarantee_err(res == 0, "could not unset SIGCHLD handler");
 
     guarantee(spawner_pid > 0);
     spawner_pid = -1;
@@ -139,12 +135,9 @@ void exec_spawner(fd_t socket) {
     {
         // NB. According to `man 2 sigaction` on linux, POSIX.1-2001 says that
         // this will prevent zombies, but may not be "fully portable".
-        struct sigaction act;
-        memset(&act, 0, sizeof(act));
-        act.sa_handler = SIG_IGN;
-
-        guarantee_err(0 == sigaction(SIGCHLD, &act, NULL),
-                      "spawner: Could not ignore SIGCHLD");
+        struct sigaction sa = make_sa_handler(0, SIG_IGN);
+        int res = sigaction(SIGCHLD, &sa, NULL);
+        guarantee_err(res == 0, "spawner: Could not ignore SIGCHLD");
     }
 
     pid_t spawner_pid = getpid();
@@ -211,12 +204,8 @@ void exec_worker(pid_t spawner_pid, fd_t sockfd) {
     {
         spawner_pid_for_sigalrm = spawner_pid;
 
-        struct sigaction sa;
-        memset(&sa, 0, sizeof(struct sigaction));
-        sa.sa_handler = check_ppid_for_death;
-        int res = sigfillset(&sa.sa_mask);
-        guarantee_err(res == 0, "worker: sigfillset failed");
-        res = sigaction(SIGALRM, &sa, NULL);
+        struct sigaction sa = make_sa_handler(0, check_ppid_for_death);
+        int res = sigaction(SIGALRM, &sa, NULL);
         guarantee_err(res == 0, "worker: could not set action for ALRM signal");
 
         struct itimerval timerval;

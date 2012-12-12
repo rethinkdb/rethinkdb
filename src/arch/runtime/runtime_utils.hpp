@@ -2,6 +2,7 @@
 #ifndef ARCH_RUNTIME_RUNTIME_UTILS_HPP_
 #define ARCH_RUNTIME_RUNTIME_UTILS_HPP_
 
+#include <signal.h>
 #include <stdint.h>
 
 #include <string>
@@ -139,6 +140,9 @@ struct assert_finite_coro_waiting_t {
 #define ASSERT_FINITE_CORO_WAITING do { } while (0)
 
 #endif  // NDEBUG
+
+struct sigaction make_sa_handler(int sa_flags, void (*sa_handler_func)(int));
+struct sigaction make_sa_sigaction(int sa_flags, void (*sa_sigaction_func)(int, siginfo_t *, void *));
 
 
 #endif // ARCH_RUNTIME_RUNTIME_UTILS_HPP_

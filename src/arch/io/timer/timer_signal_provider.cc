@@ -30,15 +30,8 @@ void timer_signal_provider_signal_handler(UNUSED int signum, siginfo_t *siginfo,
 timer_signal_provider_t::timer_signal_provider_t(UNUSED linux_event_queue_t *queue,
                                                  timer_provider_callback_t *callback,
                                                  time_t secs, int32_t nsecs) {
-    struct sigaction sa;
-    memset(&sa, 0, sizeof(sa));
-    sa.sa_flags = SA_SIGINFO;
-    sa.sa_sigaction = &timer_signal_provider_signal_handler;
+    struct sigaction sa = make_sa_sigaction(SA_SIGINFO, &timer_signal_provider_signal_handler);
 
-    int res = sigfillset(&sa.sa_mask);
-    guarantee_err(res == 0, "sigfillset failed");
-
-    // TODO(OSX) What the hell?  Do we not initialize sa.sa_mask?
     // Register the signal.
     res = sigaction(TIMER_NOTIFY_SIGNAL, &sa, NULL);
     guarantee_err(res == 0, "timer signal provider could not register the signal handler");
