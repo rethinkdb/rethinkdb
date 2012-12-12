@@ -97,7 +97,7 @@ namespace unittest {
             free(cJSON_PrintUnformatted(obj));
         }
 
-        int count = 9999;
+        int count = 10000;
         for (std::set<std::string>::iterator it = keys.begin(); it != keys.end(); ++it) {
             ASSERT_EQ(cJSON_GetArraySize(obj), count);
             cJSON_DeleteItemFromObject(obj, (*it).c_str());

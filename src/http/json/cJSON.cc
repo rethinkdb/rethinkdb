@@ -303,28 +303,28 @@ static char *print_value(cJSON *item,int depth,int fmt)
 /* Build an array from input text. */
 static const char *parse_array(cJSON *item,const char *value)
 {
-        cJSON *head;
+        cJSON *node;
         if (*value!='[')        {ep=value;return 0;}        /* not an array! */
 
         item->type=cJSON_Array;
         value=skip(value+1);
         if (*value==']') return value+1;        /* empty array. */
 
-        item->head=head=cJSON_New_Item();
+        item->head=node=cJSON_New_Item();
         if (!item->head) return 0;                 /* memory fail */
-        value=skip(parse_value(head,skip(value)));        /* skip any spacing, get the value. */
+        value=skip(parse_value(node,skip(value)));        /* skip any spacing, get the value. */
         if (!value) return 0;
 
         while (*value==',')
         {
                 cJSON *new_item;
                 if (!(new_item=cJSON_New_Item())) return 0;         /* memory fail */
-                head->next=new_item;new_item->prev=head;head=new_item;
-                value=skip(parse_value(head,skip(value+1)));
+                node->next=new_item;new_item->prev=node;node=new_item;
+                value=skip(parse_value(node,skip(value+1)));
                 if (!value) return 0;        /* memory fail */
         }
 
-        item->tail = head;
+        item->tail = node;
 
         if (*value==']') return value+1;        /* end of array */
         ep=value;return 0;        /* malformed. */
@@ -335,26 +335,26 @@ static char *print_array(cJSON *item,int depth,int fmt)
 {
         char **entries;
         char *out=0,*ptr,*ret;int len=5;
-        cJSON *head=item->head;
+        cJSON *node=item->head;
         int numentries=0,i=0,fail=0;
 
         /* How many entries in the array? */
-        while (head) {
+        while (node) {
             numentries++;
-            head=head->next;
+            node=node->next;
         }
         /* Allocate an array to hold the values for each */
         entries=(char**)cJSON_malloc(numentries*sizeof(char*));
         if (!entries) return 0;
         memset(entries,0,numentries*sizeof(char*));
         /* Retrieve all the results: */
-        head=item->head;
-        while (head && !fail)
+        node=item->head;
+        while (node && !fail)
         {
-                ret=print_value(head,depth+1,fmt);
+                ret=print_value(node,depth+1,fmt);
                 entries[i++]=ret;
                 if (ret) len+=strlen(ret)+2+(fmt?1:0); else fail=1;
-                head=head->next;
+                node=node->next;
         }
 
         /* If we didn't fail, try to malloc the output string */
@@ -387,36 +387,62 @@ static char *print_array(cJSON *item,int depth,int fmt)
 /* Build an object from the text. */
 static const char *parse_object(cJSON *item,const char *value)
 {
-        cJSON *head;
-        if (*value!='{')        {ep=value;return 0;}        /* not an object! */
+        cJSON *node;
+        if (*value!='{') {
+            /* not an object! */
+            ep=value;return 0;
+        }
 
         item->type=cJSON_Object;
         value=skip(value+1);
-        if (*value=='}') return value+1;        /* empty array. */
+        if (*value=='}') {
+            /* empty array. */
+            return value+1;
+        }
 
-        item->head=head=cJSON_New_Item();
-        if (!item->head) return 0;
-        value=skip(parse_string(head,skip(value)));
-        if (!value) return 0;
-        head->string=head->valuestring;head->valuestring=0;
-        if (*value!=':') {ep=value;return 0;}        /* fail! */
-        value=skip(parse_value(head,skip(value+1)));        /* skip any spacing, get the value. */
-        if (!value) return 0;
+        item->head=node=cJSON_New_Item();
+        if (!item->head) {
+            return 0;
+        }
+
+        value=skip(parse_string(node,skip(value)));
+        if (!value) {
+            return 0;
+        }
+
+        node->string=node->valuestring;node->valuestring=0;
+
+        if (*value!=':') {
+            /* fail! */
+            ep=value;
+            return 0;
+        }
+
+        value=skip(parse_value(node,skip(value+1)));        /* skip any spacing, get the value. */
+
+        if (!value) {
+            return 0;
+        }
 
         while (*value==',')
         {
                 cJSON *new_item;
-                if (!(new_item=cJSON_New_Item()))        return 0; /* memory fail */
-                head->next=new_item;new_item->prev=head;head=new_item;
-                value=skip(parse_string(head,skip(value+1)));
+                if (!(new_item=cJSON_New_Item())) {
+                    return 0; /* memory fail */
+                }
+
+                node->next=new_item;
+                new_item->prev=node;
+                node=new_item;
+                value=skip(parse_string(node,skip(value+1)));
                 if (!value) return 0;
-                head->string=head->valuestring;head->valuestring=0;
+                node->string=node->valuestring;node->valuestring=0;
                 if (*value!=':') {ep=value;return 0;}        /* fail! */
-                value=skip(parse_value(head,skip(value+1)));        /* skip any spacing, get the value. */
+                value=skip(parse_value(node,skip(value+1)));        /* skip any spacing, get the value. */
                 if (!value) return 0;
         }
 
-        item->tail = head;
+        item->tail = node;
 
         if (*value=='}') return value+1;        /* end of array */
         ep=value;return 0;        /* malformed. */
@@ -427,10 +453,13 @@ static char *print_object(cJSON *item,int depth,int fmt)
 {
         char **entries=0,**names=0;
         char *out=0,*ptr,*ret,*str;int len=7,i=0,j;
-        cJSON *head=item->head;
+        cJSON *node=item->head;
         int numentries=0,fail=0;
         /* Count the number of entries. */
-        while (head) numentries++,head=head->next;
+        while (node) {
+            numentries++;
+            node=node->next;
+        }
         /* Allocate space for the names and the objects */
         entries=(char**)cJSON_malloc(numentries*sizeof(char*));
         if (!entries) return 0;
@@ -440,13 +469,13 @@ static char *print_object(cJSON *item,int depth,int fmt)
         memset(names,0,sizeof(char*)*numentries);
 
         /* Collect all the results into our arrays: */
-        head=item->head;depth++;if (fmt) len+=depth;
-        while (head)
+        node=item->head;depth++;if (fmt) len+=depth;
+        while (node)
         {
-                names[i]=str=print_string_ptr(head->string);
-                entries[i++]=ret=print_value(head,depth,fmt);
+                names[i]=str=print_string_ptr(node->string);
+                entries[i++]=ret=print_value(node,depth,fmt);
                 if (str && ret) len+=strlen(ret)+strlen(str)+2+(fmt?2+depth:0); else fail=1;
-                head=head->next;
+                node=node->next;
         }
 
         /* Try to allocate the output string */
@@ -513,7 +542,7 @@ cJSON *cJSON_DetachItemFromArray(cJSON *array,int which) {
     while (c && which>0) {
         c=c->next,which--;
     }
-    if (!c) { 
+    if (!c) {
         return 0;
     }
 
@@ -524,7 +553,7 @@ cJSON *cJSON_DetachItemFromArray(cJSON *array,int which) {
     if (c->next) {
         c->next->prev=c->prev;
     }
-    
+
     if (c==array->head) {
         array->head=c->next;
     }
@@ -534,7 +563,7 @@ cJSON *cJSON_DetachItemFromArray(cJSON *array,int which) {
     }
 
     c->prev=c->next=0;
-    
+
     return c;
 }
 
@@ -550,14 +579,14 @@ void   cJSON_ReplaceItemInArray(cJSON *array,int which,cJSON *newitem) {
     while (c && which>0) {
         c=c->next,which--;
     }
-        
+
     if (!c) {
         return;
     }
 
     newitem->next=c->next;
     newitem->prev=c->prev;
-    
+
     if (c==array->tail) {
         array->tail=newitem;
     } else {
@@ -565,10 +594,10 @@ void   cJSON_ReplaceItemInArray(cJSON *array,int which,cJSON *newitem) {
     }
 
     if (c==array->head) {
-        array->head=newitem; 
+        array->head=newitem;
     } else {
         newitem->prev->next=newitem;
-    } 
+    }
 
     c->next=c->prev=0;
     cJSON_Delete(c);
