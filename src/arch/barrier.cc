@@ -1,6 +1,5 @@
 #include "arch/barrier.hpp"
 
-// TODO(OSX) add unit tests for thread_barrier_t (how?) and run them on OS X and Linux.
 thread_barrier_t::thread_barrier_t(int num_workers)
     : num_workers_(num_workers), num_waiters_(0) {
     guarantee(num_workers > 0);
