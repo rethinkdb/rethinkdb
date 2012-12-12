@@ -2,7 +2,6 @@
 #include "math.h"
 
 #include "rdb_protocol/datum.hpp"
-#include "rdb_protocol/ql2.hpp"
 
 namespace ql {
 
@@ -215,18 +214,4 @@ void datum_t::write_to_protobuf(Datum *d) const {
     default: unreachable();
     }
 }
-
-datum_term_t::datum_term_t(env_t *env, const Datum *datum)
-    : term_t(env), raw_val(new val_t(new datum_t(datum), this)) {
-    guarantee(raw_val.has());
-}
-datum_term_t::~datum_term_t() { }
-
-val_t *datum_term_t::eval_impl() {
-    return raw_val.get();
-}
-
-const char *datum_term_t::name() const { return "datum"; }
-
-
 } //namespace ql

@@ -1,4 +1,4 @@
-#include "rdb_protocol/ql2.hpp"
+#include "rdb_protocol/err.hpp"
 
 namespace ql {
 void _runtime_check(const char *test, const char *file, int line,

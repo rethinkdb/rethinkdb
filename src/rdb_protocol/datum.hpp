@@ -7,6 +7,8 @@
 #include "utils.hpp"
 #include <boost/ptr_container/ptr_vector.hpp>
 
+#include "rdb_protocol/err.hpp"
+
 class Datum;
 
 namespace ql {

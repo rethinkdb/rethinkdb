@@ -3,6 +3,7 @@
 #define RDB_PROTOCOL_ENV_HPP_
 
 #include <map>
+#include <stack>
 
 #include "clustering/administration/database_metadata.hpp"
 #include "clustering/administration/metadata.hpp"
@@ -14,6 +15,7 @@
 #include "rdb_protocol/val.hpp"
 
 namespace ql {
+class term_t;
 class env_t {
 public:
     val_t *add_and_ret(datum_t *d, term_t *parent) {

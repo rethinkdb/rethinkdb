@@ -2,14 +2,25 @@
 #define RDB_PROTOCOL_VAL_HPP_
 
 #include "rdb_protocol/datum.hpp"
+#include "rdb_protocol/ql2.pb.h"
 #include "rdb_protocol/stream.hpp" // TOOD: fix up
 
 namespace ql {
 typedef query_language::json_stream_t json_stream_t;
 // namespace_repo_t<rdb_protocol_t>::access_t *
 class table_t;
-class func_t;
+
+class env_t;
+class val_t;
 class term_t;
+class func_t {
+public:
+    func_t(env_t *env, const std::vector<int> &args, const Term2 *body_source);
+    val_t *call(const std::vector<datum_t *> &args);
+private:
+    std::vector<datum_t *> argptrs;
+    scoped_ptr_t<term_t> body;
+};
 
 class val_t {
 public:

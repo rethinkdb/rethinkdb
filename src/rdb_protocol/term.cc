@@ -1,5 +1,9 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
-#include "rdb_protocol/ql2.hpp"
+#include "rdb_protocol/term.hpp"
+
+#include "rdb_protocol/terms/arith.hpp"
+#include "rdb_protocol/terms/pred.hpp"
+#include "rdb_protocol/terms/datum_terms.hpp"
 
 namespace ql {
 
