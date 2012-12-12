@@ -92,7 +92,7 @@ message Response2 {
             OPT = 2; // Error occured in an optional argument.
         };
         required FrameType type = 1;
-        optional uint64 pos = 2; // The index of the positional argument.
+        optional int64 pos = 2; // The index of the positional argument.
         optional string opt = 3; // The name of the optional argument.
     };
     repeated Frame backtrace = 4; // Contains n [Frame]s when you get back an error.

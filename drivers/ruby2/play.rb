@@ -95,4 +95,10 @@ end
 # PP.pp r({"abc" => 2.0, "def" => nil}).run
 
 [r.eq(1,1).run, r.eq(1,2).run]
-r.add(1).run
+r.add(1, 2, 3, -1, 0.2).run
+r.sub(1, 2, 3).run
+r.mul(2, 3, 2, 0.5).run
+r.div(1, 2, 3).run
+r.div(1, 6).run
+r.div(0.2).run
+r.div(1, 0).run

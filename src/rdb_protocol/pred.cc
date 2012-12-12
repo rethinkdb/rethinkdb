@@ -38,17 +38,17 @@ predicate_term_t::predicate_term_t(env_t *env, const Term2 *term)
 
 predicate_term_t::~predicate_term_t() { }
 
-val_t *predicate_term_t::simple_call_impl(env_t *env, std::vector<val_t *> *args) {
+val_t *predicate_term_t::simple_call_impl(std::vector<val_t *> *args) {
     const datum_t *lhs, *rhs;
     runtime_check(args->size() >= 2,
                   strprintf("Predicate %s requires at least 2 arguments.", name()));
     lhs = (*args)[0]->as_datum();
     for (size_t i = 1; i < args->size(); ++i) {
         rhs = (*args)[i]->as_datum();
-        if (!(lhs->*pred)(*rhs)) return env->new_val(bool(false ^ invert));
+        if (!(lhs->*pred)(*rhs)) return new_val(bool(false ^ invert));
         lhs = rhs;
     }
-    return env->new_val(bool(true ^ invert));
+    return new_val(bool(true ^ invert));
 }
 
 const char *predicate_term_t::name() const { return namestr; }

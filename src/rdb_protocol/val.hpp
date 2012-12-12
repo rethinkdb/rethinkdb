@@ -9,6 +9,7 @@ typedef query_language::json_stream_t json_stream_t;
 // namespace_repo_t<rdb_protocol_t>::access_t *
 class table_t;
 class func_t;
+class term_t;
 
 class val_t {
 public:
@@ -32,7 +33,7 @@ public:
     };
     type_t get_type() const;
 
-    explicit val_t(const datum_t *datum);
+    explicit val_t(const datum_t *datum, const term_t *_parent);
 
     uuid_t as_db();
     table_t *as_table();
@@ -50,6 +51,8 @@ private:
     scoped_ptr_t<func_t> func;
 
     bool consumed;
+
+    const term_t *parent;
 };
 } //namespace ql
 #endif // RDB_PROTOCOL_VAL_HPP_

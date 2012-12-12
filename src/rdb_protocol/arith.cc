@@ -48,7 +48,7 @@ arith_term_t::arith_term_t(env_t *env, const Term2 *term)
 
 arith_term_t::~arith_term_t() { }
 
-val_t *arith_term_t::simple_call_impl(env_t *env, std::vector<val_t *> *args) {
+val_t *arith_term_t::simple_call_impl(std::vector<val_t *> *args) {
     runtime_check(args->size() >= 1,
                   strprintf("%s requires at least one argument.", name()));
     scoped_ptr_t<datum_t> acc(new datum_t());
@@ -56,7 +56,7 @@ val_t *arith_term_t::simple_call_impl(env_t *env, std::vector<val_t *> *args) {
     for (size_t i = 1; i < args->size(); ++i) {
         *acc.get() = (*op)(*acc.get(), *(*args)[i]->as_datum());
     }
-    return env->new_val(acc.release());
+    return new_val(acc.release());
 }
 
 const char *arith_term_t::name() const { return namestr; }

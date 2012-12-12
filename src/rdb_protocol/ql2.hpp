@@ -31,8 +31,8 @@ struct backtrace_t {
         frame_t(const std::string &_opt) : type(OPT), opt(_opt) { }
         Response2_Frame toproto() const;
     private:
-        enum frame_type_t { POS = 0, OPT = 1 };
-        frame_type_t type;
+        enum type_t { POS = 0, OPT = 1 };
+        type_t type;
         int pos;
         std::string opt;
     };
@@ -62,7 +62,7 @@ class term_t;
 class func_t {
 public:
     func_t(env_t *env, const std::vector<int> &args, const Term2 *body_source);
-    val_t *call(env_t *env, const std::vector<datum_t *> &args);
+    val_t *call(const std::vector<datum_t *> &args);
 private:
     std::vector<datum_t *> argptrs;
     scoped_ptr_t<term_t> body;
@@ -72,22 +72,34 @@ term_t *compile_term(env_t *env, const Term2 *t);
 
 class term_t {
 public:
-    term_t();
+    term_t(env_t *_env);
     virtual ~term_t();
 
     virtual const char *name() const = 0;
-    val_t *eval(env_t *env, bool use_cached_val = true);
+    val_t *eval(bool use_cached_val = true);
+
+    val_t *new_val(datum_t *d);
+    val_t *new_val() { return new_val(new datum_t()); }
+    template<class T>
+    val_t *new_val(T t) { return new_val(new datum_t(t)); }
+    template<class T>
+    void set_bt(T t) { frame.init(new backtrace_t::frame_t(t)); }
+    bool has_bt() { return frame.has(); }
+    backtrace_t::frame_t get_bt() { return *frame.get(); }
 private:
-    virtual val_t *eval_impl(env_t *env) = 0;
+    virtual val_t *eval_impl() = 0;
     val_t *cached_val;
+    env_t *env;
+
+    scoped_ptr_t<backtrace_t::frame_t> frame;
 };
 
 class datum_term_t : public term_t {
 public:
-    datum_term_t(const Datum *datum);
+    datum_term_t(env_t *env, const Datum *datum);
     virtual ~datum_term_t();
 
-    virtual val_t *eval_impl(env_t *env);
+    virtual val_t *eval_impl();
     virtual const char *name() const;
 private:
     scoped_ptr_t<val_t> raw_val;
@@ -97,10 +109,10 @@ class op_term_t : public term_t {
 public:
     op_term_t(env_t *env, const Term2 *term);
     virtual ~op_term_t();
-    virtual val_t *eval_impl(env_t *env);
+    size_t num_args() const;
+    term_t *get_arg(size_t i);
+    void check_no_optargs() const;
 private:
-    virtual val_t *call_impl(env_t *env, boost::ptr_vector<term_t> *args,
-                             boost::ptr_map<const std::string, term_t> *optargs) = 0;
     boost::ptr_vector<term_t> args;
     boost::ptr_map<const std::string, term_t> optargs;
     //std::vector<term_t *> args;
@@ -111,17 +123,16 @@ class simple_op_term_t : public op_term_t {
 public:
     simple_op_term_t(env_t *env, const Term2 *term);
     virtual ~simple_op_term_t();
-    virtual val_t *call_impl(env_t *env, boost::ptr_vector<term_t> *args,
-                             boost::ptr_map<const std::string, term_t> *optargs);
+    virtual val_t *eval_impl();
 private:
-    virtual val_t *simple_call_impl(env_t *env, std::vector<val_t *> *args) = 0;
+    virtual val_t *simple_call_impl(std::vector<val_t *> *args) = 0;
 };
 
 class predicate_term_t : public simple_op_term_t {
 public:
     predicate_term_t(env_t *env, const Term2 *term);
     virtual ~predicate_term_t();
-    virtual val_t *simple_call_impl(env_t *env, std::vector<val_t *> *args);
+    virtual val_t *simple_call_impl(std::vector<val_t *> *args);
     virtual const char *name() const;
 private:
     const char *namestr;
@@ -133,7 +144,7 @@ class arith_term_t : public simple_op_term_t {
 public:
     arith_term_t(env_t *env, const Term2 *term);
     virtual ~arith_term_t();
-    virtual val_t *simple_call_impl(env_t *env, std::vector<val_t *> *args);
+    virtual val_t *simple_call_impl(std::vector<val_t *> *args);
     virtual const char *name() const;
 private:
     const char *namestr;
@@ -141,7 +152,8 @@ private:
 };
 
 // Fills in [res] with an error of type [type] and message [msg].
-void fill_error(Response2 *res, Response2_ResponseType type, std::string msg);
+void fill_error(Response2 *res, Response2_ResponseType type, std::string msg,
+                const backtrace_t &bt=backtrace_t());
 
 void run(Query2 *q, env_t *env, Response2 *res, stream_cache_t *stream_cache);
 

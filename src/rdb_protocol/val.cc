@@ -12,12 +12,12 @@ func_t::func_t(env_t *env, const std::vector<int> &args, const Term2 *body_sourc
     for (size_t i = 0; i < args.size(); ++i) env->pop_var(args[i]);
 }
 
-val_t *func_t::call(env_t *env, const std::vector<datum_t *> &args) {
+val_t *func_t::call(const std::vector<datum_t *> &args) {
     runtime_check(args.size() == argptrs.size(),
                   strprintf("Passed %lu arguments to function of arity %lu.",
                             args.size(), argptrs.size()));
     for (size_t i = 0; i < args.size(); ++i) argptrs[i] = args[i];
-    return body->eval(env, false);
+    return body->eval(false);
     //                ^^^^^ don't use cached value
 }
 
@@ -63,7 +63,8 @@ const char *val_t::type_t::name() const {
     unreachable();
 }
 
-val_t::val_t(const datum_t *_datum) : type(type_t::DATUM), datum(_datum) {
+val_t::val_t(const datum_t *_datum, const term_t *_parent)
+    : type(type_t::DATUM), datum(_datum), parent(_parent) {
     guarantee(_datum);
 }
 

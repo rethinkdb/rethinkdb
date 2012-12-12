@@ -18,7 +18,7 @@ datum_t::datum_t(const std::vector<const datum_t *> &_array)
 datum_t::datum_t(const std::map<const std::string, const datum_t *> &_object)
     : type(R_OBJECT), r_object(_object) { }
 datum_t::datum_t(datum_t::type_t _type) : type(_type) {
-    sanity_check(type == R_ARRAY || type == R_OBJECT);
+    sanity_check(type == R_ARRAY || type == R_OBJECT || type == R_NULL);
 }
 
 datum_t::type_t datum_t::get_type() const { return type; }
@@ -216,13 +216,13 @@ void datum_t::write_to_protobuf(Datum *d) const {
     }
 }
 
-datum_term_t::datum_term_t(const Datum *datum)
-    : raw_val(new val_t(new datum_t(datum))) {
+datum_term_t::datum_term_t(env_t *env, const Datum *datum)
+    : term_t(env), raw_val(new val_t(new datum_t(datum), this)) {
     guarantee(raw_val.has());
 }
 datum_term_t::~datum_term_t() { }
 
-val_t *datum_term_t::eval_impl(UNUSED env_t *env) {
+val_t *datum_term_t::eval_impl() {
     return raw_val.get();
 }
 

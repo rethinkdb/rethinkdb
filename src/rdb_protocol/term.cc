@@ -6,7 +6,7 @@ namespace ql {
 term_t *compile_term(env_t *env, const Term2 *t) {
     switch(t->type()) {
     case Term2_TermType_DATUM: {
-        return new datum_term_t(&t->datum());
+        return new datum_term_t(env, &t->datum());
     }; break;
     case Term2_TermType_MAKE_ARRAY:
     case Term2_TermType_MAKE_OBJ:
@@ -80,31 +80,62 @@ term_t *compile_term(env_t *env, const Term2 *t) {
 void run(Query2 *q, env_t *env, Response2 *res, stream_cache_t *stream_cache) {
     switch(q->type()) {
     case Query2_QueryType_START: {
-        scoped_ptr_t<term_t> root_term(compile_term(env, &q->query()));
-        val_t *val = root_term->eval(env);
-        if (val->get_type().is_convertible(val_t::type_t::DATUM)) {
-            const datum_t *d = val->as_datum();
-            res->set_type(Response2_ResponseType_SUCCESS_ATOM);
-            d->write_to_protobuf(res->add_response());
-        } else {
-            runtime_check(false, "UNIMPLEMENTED");
+        scoped_ptr_t<term_t> root_term;
+        try {
+            root_term.init(compile_term(env, &q->query()));
+        } catch (const exc_t &e) {
+            fill_error(res, Response2::COMPILE_ERROR, e.what(), e.backtrace);
+            return;
+        }
+
+        try {
+            val_t *val = root_term->eval(env);
+            if (val->get_type().is_convertible(val_t::type_t::DATUM)) {
+                const datum_t *d = val->as_datum();
+                res->set_type(Response2_ResponseType_SUCCESS_ATOM);
+                d->write_to_protobuf(res->add_response());
+            } else {
+                runtime_check(false, "UNIMPLEMENTED");
+            }
+        } catch (const exc_t &e) {
+            fill_error(res, Response2::RUNTIME_ERROR, e.what(), e.backtrace);
+            return;
         }
     }; break;
     case Query2_QueryType_CONTINUE: {
-        runtime_check(false, strprintf("UNIMPLEMENTED %p", stream_cache));
+        try {
+            runtime_check(false, strprintf("UNIMPLEMENTED %p", stream_cache));
+        } catch (const exc_t &e) {
+            fill_error(res, Response2::CLIENT_ERROR, e.what(), e.backtrace);
+            return;
+        }
     }; break;
     case Query2_QueryType_STOP: {
-        runtime_check(false, "UNIMPLEMENTED");
+        try {
+            runtime_check(false, "UNIMPLEMENTED");
+        } catch (const exc_t &e) {
+            fill_error(res, Response2::CLIENT_ERROR, e.what(), e.backtrace);
+            return;
+        }
     }; break;
     default: unreachable();
     }
 }
 
-term_t::term_t() : cached_val(0) { }
+term_t::term_t(env_t *_env) : cached_val(0), env(_env) { guarantee(env); }
 term_t::~term_t() { }
-val_t *term_t::eval(env_t *env, bool use_cached_val) {
-    if (!cached_val || !use_cached_val) cached_val = eval_impl(env);
+val_t *term_t::eval(bool use_cached_val) {
+    try {
+        if (!cached_val || !use_cached_val) cached_val = eval_impl();
+    } catch (exc_t &e) {
+        if (has_bt()) e.backtrace.frames.push_front(get_bt());
+        throw;
+    }
     return cached_val;
+}
+
+val_t *term_t::new_val(datum_t *d) {
+    return env->add_and_ret(d, this);
 }
 
 

@@ -16,16 +16,12 @@
 namespace ql {
 class env_t {
 public:
-    val_t *new_val() { return add_and_ret(new datum_t()); }
-    val_t *new_val(datum_t *d) { return add_and_ret(d); }
-    template<class T>
-    val_t *new_val(T t) { return add_and_ret(new datum_t(t)); }
-private:
-    val_t *add_and_ret(datum_t *d) {
-        val_t *v = new val_t(d);
+    val_t *add_and_ret(datum_t *d, term_t *parent) {
+        val_t *v = new val_t(d, parent);
         vals.push_back(v);
         return v;
     }
+private:
     boost::ptr_vector<val_t> vals;
 
 public:
