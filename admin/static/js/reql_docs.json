@@ -626,10 +626,7 @@
       "commands": [
         {
           "tag": "insert",
-          "description": "Insert JSON documents into a table. Accepts a single JSON document or an array of documents. \
-          <br /><br /> Insert returns an object that contains at least 2 fields: <code>inserted</code> - the number of documents that were succesfully inserted; \
-          <code>errors</code> - the number of errors encountered while inserting. \
-          It can also contain a field <code>generated_keys</code> providing a list of generated primary key values",
+          "description": "Insert JSON documents into a table. Accepts a single JSON document or an array of documents. <br /><br /> Insert returns an object that contains at least 2 fields: <code>inserted</code> - the number of documents that were succesfully inserted; <code>errors</code> - the number of errors encountered while inserting. It can also contain a field <code>generated_keys</code> providing a list of generated primary key values",
           "parent": "table",
           "returns": "query",
           "langs": {
