@@ -44,6 +44,15 @@ timer_kqueue_provider_t::~timer_kqueue_provider_t() {
     guarantee_err(res == 0, "Could not close the kqueue timer.");
 }
 
+void debug_print(append_only_printf_buffer_t *buf, const struct kevent64_s& event) {
+    buf->appendf("kevent64_s{ident=%" PRIu64 ", filter=%" PRIi16 ", flags=%" PRIu16
+                 ", fflags=%" PRIu32 ", data=%" PRIi64 ", udata=%" PRIu64
+                 ", ext[0]=%" PRIu64 ", ext[1]=%" PRIu64,
+                 event.ident, event.filter, event.flags,
+                 event.fflags, event.data, event.udata,
+                 event.ext[0], event.ext[1]);
+}
+
 void timer_kqueue_provider_t::on_event(int eventmask) {
     if (eventmask != poll_event_in) {
         logERR("Unexpected event mask: %d", eventmask);
@@ -56,28 +65,37 @@ void timer_kqueue_provider_t::on_event(int eventmask) {
     struct timespec timeout;
     timeout.tv_sec = 0;
     timeout.tv_nsec = 0;
-    int res;
-    do {
-        res = kevent64(kq_fd_, NULL, 0, events, num_events, 0, &timeout);
-    } while (res == -1 && errno == EINTR);
 
-    guarantee_err(res != -1, "kevent64 failed when reading timer");
+    // kevent64 can return more than one EVFILT_TIMER event at a time, even though we only
+    // registered for it once and we can get an overrun count.  We get multiple results for the same
+    // event, separately.  So we have this loop that makes sure we siphon all the possible events
+    // off the kqueue file descriptor.  The only time I've seen it return more than one event was
+    // when sleeping the computer, and another time when leaving the computer idle for a while.
+    int64_t expiration_count = 0;
 
-    // There _should_ be one result (because we got notified by the thread pool's event queue) and
-    // there definitely should not be more than one result (because we only registered for one
-    // event), but there _could_ be zero results if we got an unexpected event mask, which we only
-    // handle by logging at hte top of this function.
-    guarantee(res <= 1);
+    bool got_short_res = false;
+    while (!got_short_res) {
+        int res;
+        do {
+            res = kevent64(kq_fd_, NULL, 0, events, num_events, 0, &timeout);
+        } while (res == -1 && errno == EINTR);
 
-    for (int i = 0; i < res; ++i) {
-        const struct kevent64_s event = events[i];
-        guarantee(event.filter == EVFILT_TIMER);
-        guarantee_xerr(!(event.flags & EV_ERROR), event.data, "The kqueue-based timer returned an error.\n");
+        guarantee_err(res != -1, "kevent64 failed when reading timer");
 
-        guarantee(event.ident == 99);
-        int64_t expiration_count = events[i].data;
-        callback_->on_timer(expiration_count);
+        got_short_res = res < num_events;
+
+        for (int i = 0; i < res; ++i) {
+            const struct kevent64_s event = events[i];
+            guarantee(event.filter == EVFILT_TIMER);
+            guarantee_xerr(!(event.flags & EV_ERROR), event.data, "The kqueue-based timer returned an error.\n");
+
+            guarantee(event.ident == 99);
+            int64_t this_result_expiration_count = events[i].data;
+            expiration_count += this_result_expiration_count;
+        }
     }
+
+    callback_->on_timer(expiration_count);
 }
 
 #endif  // RDB_TIMER_PROVIDER == RDB_TIMER_PROVIDER_KQUEUE
