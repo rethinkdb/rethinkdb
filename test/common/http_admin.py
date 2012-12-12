@@ -474,7 +474,7 @@ class ClusterAccess(object):
     def get_log(self, machine_id, max_length = 100):
         log = self.do_query("GET", "/ajax/log/%s?max_length=%d" % (machine_id, max_length))[machine_id]
         if isinstance(log, basestring):
-            raise BadServerResponse(log)
+            raise BadServerResponse(200, log)
         assert isinstance(log, list)
         return log
 
