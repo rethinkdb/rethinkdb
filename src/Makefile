@@ -166,7 +166,7 @@ RT_LDFLAGS+=-Wl,--no-as-needed
 endif
 ifeq ($(STATICFORCE),1)
 RT_LDFLAGS+= -static
-STATICIBGCC=1
+STATIC_LIBGCC=1
 endif
 
 RT_LDFLAGS+=$(LDPATHDS) $(LDPTHREADFLAG) -lstdc++ -lm
