@@ -31,7 +31,7 @@ class RDBTest(unittest.TestCase):
         cls.table_name = os.environ.get('TABLE_NAME', 'test')
         cls.table = cls.db.table(cls.table_name)
         try:
-            cls.db.table_create(cls.table_name)
+            cls.db.table_create(cls.table_name).run()
         except:
             pass
 

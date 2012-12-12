@@ -2291,9 +2291,10 @@ boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term::Call *c, runtime_envir
                     length = array->GetArraySize();
                 } else {
                     boost::shared_ptr<json_stream_t> stream = eval_term_as_stream(c->mutable_args(0), env, scopes, backtrace.with("arg:0"));
-                    while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
-                        ++length;
-                    }
+                    result_t res = stream->apply_terminal(rdb_protocol_details::Length(), env, scopes, backtrace);
+                    rdb_protocol_t::rget_read_response_t::length_t *l = boost::get<rdb_protocol_t::rget_read_response_t::length_t>(&res);
+                    guarantee(l, "Applying the terminal returned an unexpected result.");
+                    length = l->length;
                 }
 
                 return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(safe_cJSON_CreateNumber(length, backtrace)));

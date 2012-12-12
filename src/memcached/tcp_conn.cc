@@ -138,6 +138,10 @@ void memcache_listener_t::handle(auto_drainer_t::lock_t keepalive, const scoped_
 
     /* `serve_memcache()` will continuously serve memcache queries on the given conn
     until the connection is closed. */
-    namespace_repo_t<memcached_protocol_t>::access_t ns_access(ns_repo, ns_id, &signal_transfer);
-    serve_memcache(conn.get(), ns_access.get_namespace_if(), &stats, &signal_transfer);
+    try {
+        namespace_repo_t<memcached_protocol_t>::access_t ns_access(ns_repo, ns_id, &signal_transfer);
+        serve_memcache(conn.get(), ns_access.get_namespace_if(), &stats, &signal_transfer);
+    } catch (const interrupted_exc_t &ex) {
+        // Interrupted, nothing to do but return
+    }
 }
