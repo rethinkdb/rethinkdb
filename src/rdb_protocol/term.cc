@@ -26,8 +26,7 @@ term_t *compile_term(env_t *env, const Term2 *t) {
     case Term2_TermType_LE: // fallthrough
     case Term2_TermType_GT: // fallthrough
     case Term2_TermType_GE: return new predicate_term_t(env, t);
-    case Term2_TermType_NOT:
-        break;
+    case Term2_TermType_NOT: return new not_term_t(env, t);
     case Term2_TermType_ADD: // fallthrough
     case Term2_TermType_SUB: // fallthrough
     case Term2_TermType_MUL: // fallthrough
