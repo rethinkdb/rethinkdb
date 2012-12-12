@@ -118,7 +118,7 @@ void scoped_cJSON_t::reset(cJSON *v) {
 }
 
 json_iterator_t::json_iterator_t(cJSON *target) {
-    node = target->child;
+    node = target->head;
 }
 
 cJSON *json_iterator_t::next() {
@@ -255,7 +255,7 @@ write_message_t &operator<<(write_message_t &msg, const cJSON &cjson) {
     case cJSON_Object: {
         msg << cJSON_GetArraySize(&cjson);
 
-        cJSON *hd = cjson.child;
+        cJSON *hd = cjson.head;
         while (hd) {
             if (cjson.type == cJSON_Object) {
                 guarantee(hd->string);
