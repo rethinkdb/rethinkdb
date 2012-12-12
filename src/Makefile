@@ -438,7 +438,6 @@ STATIC_LIBRARY_PATHS+=$(V8_LIB)
 endif
 endif
 
-# look for the static library in the same directory as the .so file
 ifeq ($(OSX),1)
 # /usr/local/lib is where Homebrew will put these libraries.  Will
 # they be named differently if you don't use Homebrew?  (No -mt on
