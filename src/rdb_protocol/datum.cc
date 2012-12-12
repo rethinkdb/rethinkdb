@@ -8,8 +8,7 @@ namespace ql {
 datum_t::datum_t() : type(R_NULL) { }
 datum_t::datum_t(bool _bool) : type(R_BOOL), r_bool(_bool) { }
 datum_t::datum_t(double _num) : type(R_NUM), r_num(_num) {
-    runtime_check(isfinite(r_num),
-                  strprintf("Non-finite number: %lf", r_num));
+    rcheck(isfinite(r_num), strprintf("Non-finite number: %lf", r_num));
 }
 datum_t::datum_t(const std::string &_str) : type(R_STR), r_str(_str) { }
 datum_t::datum_t(const std::vector<const datum_t *> &_array)
@@ -44,9 +43,9 @@ std::string datum_t::print() const {
 
 
 void datum_t::check_type(type_t desired) const {
-    runtime_check(get_type() == desired,
-                  strprintf("Wrong type: expected %s but got %s.",
-                            datum_type_name(desired), datum_type_name(get_type())));
+    rcheck(get_type() == desired,
+           strprintf("Wrong type: expected %s but got %s.",
+                     datum_type_name(desired), datum_type_name(get_type())));
 }
 
 bool datum_t::as_bool() const {
@@ -168,8 +167,8 @@ datum_t::datum_t(const Datum *d) {
         for (int i = 0; i < d->r_object_size(); ++i) {
             const Datum_AssocPair *ap = &d->r_object(i);
             const std::string &key = ap->key();
-            runtime_check(r_object.count(key) == 0,
-                          strprintf("Duplicate key %s in object.", key.c_str()));
+            rcheck(r_object.count(key) == 0,
+                   strprintf("Duplicate key %s in object.", key.c_str()));
             datum_t *el = new datum_t(&ap->val());
             to_free.push_back(el);
             r_object[key] = el;

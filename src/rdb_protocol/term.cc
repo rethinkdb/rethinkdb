@@ -74,7 +74,7 @@ term_t *compile_term(env_t *env, const Term2 *t) {
     case Term2_TermType_FUNC:
     default: break;
     }
-    runtime_check(false, strprintf("UNIMPLEMENTED %p", env));
+    rfail("UNIMPLEMENTED %p", env);
     unreachable();
 }
 
@@ -96,7 +96,7 @@ void run(Query2 *q, env_t *env, Response2 *res, stream_cache_t *stream_cache) {
                 res->set_type(Response2_ResponseType_SUCCESS_ATOM);
                 d->write_to_protobuf(res->add_response());
             } else {
-                runtime_check(false, "UNIMPLEMENTED");
+                rfail("UNIMPLEMENTED");
             }
         } catch (const exc_t &e) {
             fill_error(res, Response2::RUNTIME_ERROR, e.what(), e.backtrace);
@@ -105,7 +105,7 @@ void run(Query2 *q, env_t *env, Response2 *res, stream_cache_t *stream_cache) {
     }; break;
     case Query2_QueryType_CONTINUE: {
         try {
-            runtime_check(false, strprintf("UNIMPLEMENTED %p", stream_cache));
+            rfail("UNIMPLEMENTED %p", stream_cache);
         } catch (const exc_t &e) {
             fill_error(res, Response2::CLIENT_ERROR, e.what(), e.backtrace);
             return;
@@ -113,7 +113,7 @@ void run(Query2 *q, env_t *env, Response2 *res, stream_cache_t *stream_cache) {
     }; break;
     case Query2_QueryType_STOP: {
         try {
-            runtime_check(false, "UNIMPLEMENTED");
+            rfail("UNIMPLEMENTED");
         } catch (const exc_t &e) {
             fill_error(res, Response2::CLIENT_ERROR, e.what(), e.backtrace);
             return;

@@ -34,8 +34,7 @@ private:
         for (boost::ptr_map<const std::string, term_t>::iterator
                  it = optargs.begin(); it != optargs.end(); ++it) {
             bool dup = acc->add(it->first, it->second->eval()->as_datum());
-            runtime_check(!dup, strprintf("Duplicate key in object: %s.",
-                                          it->first.c_str()));
+            rcheck(!dup, strprintf("Duplicate key in object: %s.", it->first.c_str()));
         }
         return new_val(acc.release());
     }

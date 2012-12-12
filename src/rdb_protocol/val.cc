@@ -13,9 +13,9 @@ func_t::func_t(env_t *env, const std::vector<int> &args, const Term2 *body_sourc
 }
 
 val_t *func_t::call(const std::vector<datum_t *> &args) {
-    runtime_check(args.size() == argptrs.size(),
-                  strprintf("Passed %lu arguments to function of arity %lu.",
-                            args.size(), argptrs.size()));
+    rcheck(args.size() == argptrs.size(),
+           strprintf("Passed %lu arguments to function of arity %lu.",
+                     args.size(), argptrs.size()));
     for (size_t i = 0; i < args.size(); ++i) argptrs[i] = args[i];
     return body->eval(false);
     //                ^^^^^ don't use cached value
@@ -71,8 +71,8 @@ val_t::val_t(const datum_t *_datum, const term_t *_parent)
 val_t::type_t val_t::get_type() const { return type; }
 
 const datum_t *val_t::as_datum() {
-    runtime_check(type.raw_type == type_t::DATUM,
-                  strprintf("Type error: cannot convert %s to DATUM.", type.name()));
+    rcheck(type.raw_type == type_t::DATUM,
+           strprintf("Type error: cannot convert %s to DATUM.", type.name()));
     return datum.get();
 }
 

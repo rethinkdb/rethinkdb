@@ -40,8 +40,8 @@ public:
 private:
     virtual val_t *simple_call_impl(std::vector<val_t *> *args) {
         const datum_t *lhs, *rhs;
-        runtime_check(args->size() >= 2,
-                      strprintf("Predicate %s requires at least 2 arguments.", name()));
+        rcheck(args->size() >= 2,
+               strprintf("Predicate %s requires at least 2 arguments.", name()));
         lhs = (*args)[0]->as_datum();
         for (size_t i = 1; i < args->size(); ++i) {
             rhs = (*args)[i]->as_datum();
@@ -61,8 +61,8 @@ public:
     not_term_t(env_t *env, const Term2 *term) : simple_op_term_t(env, term) { }
 private:
     virtual val_t *simple_call_impl(std::vector<val_t *> *args) {
-        runtime_check(args->size() == 1,
-                      strprintf("NOT takes only one argument (got %lu)", args->size()));
+        rcheck(args->size() == 1,
+               strprintf("NOT takes only one argument (got %lu)", args->size()));
         return new_val(!(*args)[0]->as_datum()->as_bool());
     }
     RDB_NAME("not")
