@@ -56,7 +56,6 @@ protocols/query_language.pb.cc: proto_files
 %.o: %.c $(HEADERS) Makefile
 	$(CC) $(CFLAGS) -c $< -o $@
 
-# TODO(OSX) We just wantonly removed -lrt here, but what about clock_gettime?
 $(EXEC_NAME): proto_files $(OBJ) main.o $(HEADERS) Makefile
 	$(CXX) $(CXXFLAGS) -o $(EXEC_NAME) $(OBJ) main.o -lm $(TLIB) $(LIBS)
 
