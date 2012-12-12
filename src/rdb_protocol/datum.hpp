@@ -51,9 +51,9 @@ public:
     bool operator>(const datum_t &rhs) const;
     bool operator>=(const datum_t &rhs) const;
 
-    void add(datum_t *val);
+    void add(const datum_t *val);
     // Returns whether or not `key` was already present in object.
-    MUST_USE bool add(const std::string &key, datum_t *val, bool clobber = false);
+    MUST_USE bool add(const std::string &key, const datum_t *val, bool clobber = false);
 private:
     // Listing everything is more debugging-friendly than a boost::variant,
     // but less efficient.  TODO: fix later.

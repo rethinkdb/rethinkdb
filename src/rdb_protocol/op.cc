@@ -10,7 +10,9 @@ op_term_t::op_term_t(env_t *env, const Term2 *term) : term_t(env) {
     for (int i = 0; i < term->optargs_size(); ++i) {
         const Term2_AssocPair *ap = &term->optargs(i);
         runtime_check(optargs.count(ap->key()) == 0,
-                      strprintf("Duplicate optional argument: %s",
+                      strprintf("Duplicate %s: %s",
+                                (term->type() == Term2_TermType_MAKE_OBJ ?
+                                 "object key" : "optional argument"),
                                 ap->key().c_str()));
         term_t *t = compile_term(env, &ap->val());
         t->set_bt(ap->key());

@@ -9,11 +9,9 @@ namespace ql {
 
 term_t *compile_term(env_t *env, const Term2 *t) {
     switch(t->type()) {
-    case Term2_TermType_DATUM: {
-        return new datum_term_t(env, &t->datum());
-    }; break;
-    case Term2_TermType_MAKE_ARRAY:
-    case Term2_TermType_MAKE_OBJ:
+    case Term2_TermType_DATUM: return new datum_term_t(env, &t->datum());
+    case Term2_TermType_MAKE_ARRAY: return new make_array_term_t(env, t);
+    case Term2_TermType_MAKE_OBJ: return new make_obj_term_t(env, t);
     case Term2_TermType_VAR:
     case Term2_TermType_JAVASCRIPT:
     case Term2_TermType_ERROR:

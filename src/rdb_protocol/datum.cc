@@ -70,12 +70,12 @@ const std::map<const std::string, const datum_t *> &datum_t::as_object() const {
     return r_object;
 }
 
-void datum_t::add(datum_t *val) {
+void datum_t::add(const datum_t *val) {
     check_type(R_ARRAY);
     r_array.push_back(val);
 }
 
-MUST_USE bool datum_t::add(const std::string &key, datum_t *val, bool clobber) {
+MUST_USE bool datum_t::add(const std::string &key, const datum_t *val, bool clobber) {
     check_type(R_OBJECT);
     bool key_in_obj = r_object.count(key) > 0;
     if (!key_in_obj || clobber) r_object[key] = val;

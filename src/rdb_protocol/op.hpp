@@ -12,6 +12,7 @@ public:
     term_t *get_arg(size_t i);
     void check_no_optargs() const;
 private:
+    friend class make_obj_term_t; // need special access to optargs
     boost::ptr_vector<term_t> args;
     boost::ptr_map<const std::string, term_t> optargs;
     //std::vector<term_t *> args;
@@ -26,6 +27,8 @@ public:
 private:
     virtual val_t *simple_call_impl(std::vector<val_t *> *args) = 0;
 };
+
+#define RDB_NAME(str) virtual const char *name() const { return str; }
 
 }
 #endif // RDB_PROTOCOL_OP_HPP

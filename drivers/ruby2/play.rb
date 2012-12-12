@@ -52,6 +52,14 @@ class RQL
     r = @@socket.read(rlen)
     return Response2.new.parse_from_string(r)
   end
+
+  def opt(key, val)
+    ap = Term2::AssocPair.new
+    ap.key = key
+    ap.val = r(val).to_term
+    self.to_term.optargs << ap
+    return self
+  end
 end
 
 def datum x
@@ -94,11 +102,12 @@ end
 # PP.pp r([1, 2.0, "3", true, false, nil]).run
 # PP.pp r({"abc" => 2.0, "def" => nil}).run
 
-[r.eq(1,1).run, r.eq(1,2).run]
-r.add(1, 2, 3, -1, 0.2).run
-r.sub(1, 2, 3).run
-r.mul(2, 3, 2, 0.5).run
-r.div(1, 2, 3).run
-r.div(1, 6).run
-r.div(0.2).run
-r.div(1, 0).run
+# [r.eq(1,1).run, r.eq(1,2).run]
+# r.add(1, 2, 3, -1, 0.2).run
+# r.sub(1, 2, 3).run
+# r.mul(2, 3, 2, 0.5).run
+# r.div(1, 2, 3).run
+# r.div(1, 6).run
+# r.div(0.2).run
+# r.div(1, 0).run
+r.make_obj().opt("a", 1).opt("a", 2).run
