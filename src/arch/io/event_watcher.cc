@@ -71,11 +71,11 @@ void linux_event_watcher_t::on_event(int event) {
 
     if (event & error_mask) {
 #ifdef __linux
-        // TODO(OSX): Should we not call on_event(event & error_mask) in any case?
-        if ((event & poll_event_rdhup) && rdhup_watcher) {
-            if (!rdhup_watcher->is_pulsed()) rdhup_watcher->pulse();
-        } else {
+        if (event & ~poll_event_rdhup) {
             error_handler->on_event(event & error_mask);
+        } else {
+            rassert(event & poll_event_rdhup);
+            if (!rdhup_watcher->is_pulsed()) rdhup_watcher->pulse();
         }
 #else
         error_handler->on_event(event & error_mask);
