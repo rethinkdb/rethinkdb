@@ -339,7 +339,10 @@ static char *print_array(cJSON *item,int depth,int fmt)
         int numentries=0,i=0,fail=0;
 
         /* How many entries in the array? */
-        while (head) numentries++,head=head->next;
+        while (head) {
+            numentries++;
+            head=head->next;
+        }
         /* Allocate an array to hold the values for each */
         entries=(char**)cJSON_malloc(numentries*sizeof(char*));
         if (!entries) return 0;
@@ -491,9 +494,7 @@ static cJSON *create_reference(cJSON *item) {cJSON *ref=cJSON_New_Item();if (!re
 //TODO all of these functions take time linear in the number of elements in the
 //array. This needs to be fixed.
 void   cJSON_AddItemToArray(cJSON *array, cJSON *item) {
-    cJSON *c=array->head;
-    if (!item) return; 
-    if (!c) {
+    if (!array->tail) {
         array->head=item;
         array->tail = item;
     } else {
@@ -597,8 +598,8 @@ cJSON *cJSON_CreateFalse()                                                {cJSON
 cJSON *cJSON_CreateBool(int b)                                        {cJSON *item=cJSON_New_Item();if(item)item->type=b?cJSON_True:cJSON_False;return item;}
 cJSON *cJSON_CreateNumber(double num)                        {cJSON *item=cJSON_New_Item();if(item){item->type=cJSON_Number;item->valuedouble=num;item->valueint=(int)num;}return item;}
 cJSON *cJSON_CreateString(const char *string)        {cJSON *item=cJSON_New_Item();if(item){item->type=cJSON_String;item->valuestring=cJSON_strdup(string);}return item;}
-cJSON *cJSON_CreateArray()                                                {cJSON *item=cJSON_New_Item();if(item)item->type=cJSON_Array;item->head=NULL;item->tail=NULL;return item;}
-cJSON *cJSON_CreateObject()                                                {cJSON *item=cJSON_New_Item();if(item)item->type=cJSON_Object;item->head=NULL;item->tail=NULL;return item;}
+cJSON *cJSON_CreateArray()                                                {cJSON *item=cJSON_New_Item();if(item)item->type=cJSON_Array;return item;}
+cJSON *cJSON_CreateObject()                                                {cJSON *item=cJSON_New_Item();if(item)item->type=cJSON_Object;return item;}
 
 /* Create Arrays: */
 cJSON *cJSON_CreateIntArray(int *numbers,int count) {
