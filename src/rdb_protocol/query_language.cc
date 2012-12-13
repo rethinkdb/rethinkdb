@@ -2155,7 +2155,7 @@ boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term::Call *c, runtime_envir
                 double result = 0.0;
 
                 if (c->args_size() > 0) {
-                    boost::shared_ptr<scoped_cJSON_t> arg = eval_term_as_json_and_check(c->mutable_args(0), env, scopes, backtrace.with("arg:0"), cJSON_Number, "All operands to SUBTRACT must be numbers.");
+                    boost::shared_ptr<scoped_cJSON_t> arg = eval_term_as_json_and_check(c->mutable_args(0), env, scopes, backtrace.with("arg:0"), cJSON_Number, "All operands of SUBTRACT must be numbers.");
                     if (c->args_size() == 1) {
                         result = -arg->get()->valuedouble;  // (- x) is negate
                     } else {
@@ -2163,7 +2163,7 @@ boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term::Call *c, runtime_envir
                     }
 
                     for (int i = 1; i < c->args_size(); ++i) {
-                        boost::shared_ptr<scoped_cJSON_t> arg2 = eval_term_as_json_and_check(c->mutable_args(i), env, scopes, backtrace.with(strprintf("arg:%d", i)), cJSON_Number, "All operands to SUBTRACT must be numbers.");
+                        boost::shared_ptr<scoped_cJSON_t> arg2 = eval_term_as_json_and_check(c->mutable_args(i), env, scopes, backtrace.with(strprintf("arg:%d", i)), cJSON_Number, "All operands of SUBTRACT must be numbers.");
                         result -= arg2->get()->valuedouble;
                     }
                 }
@@ -2190,7 +2190,7 @@ boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term::Call *c, runtime_envir
                 double result = 0.0;
 
                 if (c->args_size() > 0) {
-                    boost::shared_ptr<scoped_cJSON_t> arg = eval_term_as_json_and_check(c->mutable_args(0), env, scopes, backtrace.with("arg:0"), cJSON_Number, "All operands to DIVIDE must be numbers.");
+                    boost::shared_ptr<scoped_cJSON_t> arg = eval_term_as_json_and_check(c->mutable_args(0), env, scopes, backtrace.with("arg:0"), cJSON_Number, "All operands of DIVIDE must be numbers.");
                     if (c->args_size() == 1) {
                         result = 1.0 / arg->get()->valuedouble;  // (/ x) is reciprocal
                     } else {
@@ -2198,7 +2198,7 @@ boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term::Call *c, runtime_envir
                     }
 
                     for (int i = 1; i < c->args_size(); ++i) {
-                        boost::shared_ptr<scoped_cJSON_t> arg2 = eval_term_as_json_and_check(c->mutable_args(i), env, scopes, backtrace.with(strprintf("arg:%d", i)), cJSON_Number, "All operands to DIVIDE must be numbers.");
+                        boost::shared_ptr<scoped_cJSON_t> arg2 = eval_term_as_json_and_check(c->mutable_args(i), env, scopes, backtrace.with(strprintf("arg:%d", i)), cJSON_Number, "All operands of DIVIDE must be numbers.");
                         result /= arg2->get()->valuedouble;
                     }
                 }
@@ -2291,9 +2291,10 @@ boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term::Call *c, runtime_envir
                     length = array->GetArraySize();
                 } else {
                     boost::shared_ptr<json_stream_t> stream = eval_term_as_stream(c->mutable_args(0), env, scopes, backtrace.with("arg:0"));
-                    while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
-                        ++length;
-                    }
+                    result_t res = stream->apply_terminal(rdb_protocol_details::Length(), env, scopes, backtrace);
+                    rdb_protocol_t::rget_read_response_t::length_t *l = boost::get<rdb_protocol_t::rget_read_response_t::length_t>(&res);
+                    guarantee(l, "Applying the terminal returned an unexpected result.");
+                    length = l->length;
                 }
 
                 return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(safe_cJSON_CreateNumber(length, backtrace)));
@@ -2395,7 +2396,7 @@ boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term::Call *c, runtime_envir
                 for (int i = 0; i < c->args_size(); ++i) {
                     boost::shared_ptr<scoped_cJSON_t> arg = eval_term_as_json(c->mutable_args(i), env, scopes, backtrace.with(strprintf("arg:%d", i)));
                     if (arg->type() != cJSON_False && arg->type() != cJSON_True) {
-                        throw runtime_exc_t("All operands to ALL must be booleans.", backtrace.with(strprintf("arg:%d", i)));
+                        throw runtime_exc_t("All operands of ALL must be booleans.", backtrace.with(strprintf("arg:%d", i)));
                     }
                     if (arg->type() != cJSON_True) {
                         result = false;
@@ -2414,7 +2415,7 @@ boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term::Call *c, runtime_envir
                 for (int i = 0; i < c->args_size(); ++i) {
                     boost::shared_ptr<scoped_cJSON_t> arg = eval_term_as_json(c->mutable_args(i), env, scopes, backtrace.with(strprintf("arg:%d", i)));
                     if (arg->type() != cJSON_False && arg->type() != cJSON_True) {
-                        throw runtime_exc_t("All operands to ANY must be booleans.", backtrace.with(strprintf("arg:%d", i)));
+                        throw runtime_exc_t("All operands of ANY must be booleans.", backtrace.with(strprintf("arg:%d", i)));
                     }
                     if (arg->type() == cJSON_True) {
                         result = true;

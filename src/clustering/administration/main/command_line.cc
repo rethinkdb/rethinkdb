@@ -492,16 +492,20 @@ void validate(boost::any& value_out, const std::vector<std::string>& words,
     po::validators::check_first_occurrence(value_out);
     const std::string& word = po::validators::get_single_string(words);
     size_t colon_loc = word.find_first_of(':');
-    if (colon_loc == std::string::npos) {
-        throw po::validation_error(po::validation_error::invalid_option_value, word);
-    } else {
+    if (colon_loc != std::string::npos) {
         std::string host = word.substr(0, colon_loc);
         int port = atoi(word.substr(colon_loc + 1).c_str());
-        if (host.size() == 0 || port == 0) {
-            throw po::validation_error(po::validation_error::invalid_option_value, word);
+        if (host.size() != 0 && port != 0) {
+            value_out = host_and_port_t(host, port);
+            return;
         }
-        value_out = host_and_port_t(host, port);
     }
+
+#if BOOST_VERSION >= 104200
+    throw po::validation_error(po::validation_error::invalid_option_value, word);
+#else
+    throw po::validation_error("Invalid option value: " + word);
+#endif
 }
 
 po::options_description get_web_options() {
@@ -1071,83 +1075,88 @@ int main_rethinkdb_import(int argc, char *argv[]) {
 
 
 int main_rethinkdb_porcelain(int argc, char *argv[]) {
-    po::variables_map vm;
-    if (!parse_commands_deep(argc, argv, &vm, get_rethinkdb_porcelain_options())) {
-        return EXIT_FAILURE;
-    }
-
-    std::string filepath = vm["directory"].as<std::string>();
-    std::string logfilepath = get_logfilepath(filepath);
-
-    std::string machine_name_str = vm["machine-name"].as<std::string>();
-    name_string_t machine_name;
-    if (!machine_name.assign_value(machine_name_str)) {
-        fprintf(stderr, "ERROR: machine-name invalid.  (%s)\n", name_string_t::valid_char_msg);
-        return EXIT_FAILURE;
-    }
-    std::vector<host_and_port_t> joins;
-    if (vm.count("join") > 0) {
-        joins = vm["join"].as<std::vector<host_and_port_t> >();
-    }
-
-    service_address_ports_t address_ports;
     try {
-        address_ports = get_service_address_ports(vm);
-    } catch (const address_lookup_exc_t& ex) {
-        fprintf(stderr, "ERROR: %s\n", ex.what());
-        return EXIT_FAILURE;
-    }
-
-    std::string web_path = get_web_path(vm, argv);
-
-    io_backend_t io_backend;
-    if (!pull_io_backend_option(vm, &io_backend)) {
-        fprintf(stderr, "ERROR: selected io-backend is invalid or unsupported.\n");
-        return EXIT_FAILURE;
-    }
-
-    extproc::spawner_t::info_t spawner_info;
-    extproc::spawner_t::create(&spawner_info);
-
-    const int num_workers = vm["cores"].as<int>();
-    if (num_workers <= 0 || num_workers > MAX_THREADS) {
-        fprintf(stderr, "ERROR: number specified for cores to utilize must be between 1 and %d\n", MAX_THREADS);
-        return EXIT_FAILURE;
-    }
-
-    if (write_pid_file(vm) != EXIT_SUCCESS) {
-        return EXIT_FAILURE;
-    }
-
-    bool new_directory = false;
-    // Attempt to create the directory early so that the log file can use it.
-    if (!check_existence(filepath)) {
-        new_directory = true;
-        int mkdir_res = mkdir(filepath.c_str(), 0755);
-        if (mkdir_res != 0) {
-            fprintf(stderr, "Could not create directory: %s\n", errno_to_string(errno).c_str());
+        po::variables_map vm;
+        if (!parse_commands_deep(argc, argv, &vm, get_rethinkdb_porcelain_options())) {
             return EXIT_FAILURE;
         }
+
+        std::string filepath = vm["directory"].as<std::string>();
+        std::string logfilepath = get_logfilepath(filepath);
+
+        std::string machine_name_str = vm["machine-name"].as<std::string>();
+        name_string_t machine_name;
+        if (!machine_name.assign_value(machine_name_str)) {
+            fprintf(stderr, "ERROR: machine-name invalid.  (%s)\n", name_string_t::valid_char_msg);
+            return EXIT_FAILURE;
+        }
+        std::vector<host_and_port_t> joins;
+        if (vm.count("join") > 0) {
+            joins = vm["join"].as<std::vector<host_and_port_t> >();
+        }
+
+        service_address_ports_t address_ports;
+        try {
+            address_ports = get_service_address_ports(vm);
+        } catch (const address_lookup_exc_t& ex) {
+            fprintf(stderr, "ERROR: %s\n", ex.what());
+            return EXIT_FAILURE;
+        }
+
+        std::string web_path = get_web_path(vm, argv);
+
+        io_backend_t io_backend;
+        if (!pull_io_backend_option(vm, &io_backend)) {
+            fprintf(stderr, "ERROR: selected io-backend is invalid or unsupported.\n");
+            return EXIT_FAILURE;
+        }
+
+        extproc::spawner_t::info_t spawner_info;
+        extproc::spawner_t::create(&spawner_info);
+
+        const int num_workers = vm["cores"].as<int>();
+        if (num_workers <= 0 || num_workers > MAX_THREADS) {
+            fprintf(stderr, "ERROR: number specified for cores to utilize must be between 1 and %d\n", MAX_THREADS);
+            return EXIT_FAILURE;
+        }
+
+        if (write_pid_file(vm) != EXIT_SUCCESS) {
+            return EXIT_FAILURE;
+        }
+
+        bool new_directory = false;
+        // Attempt to create the directory early so that the log file can use it.
+        if (!check_existence(filepath)) {
+            new_directory = true;
+            int mkdir_res = mkdir(filepath.c_str(), 0755);
+            if (mkdir_res != 0) {
+                fprintf(stderr, "Could not create directory: %s\n", errno_to_string(errno).c_str());
+                return EXIT_FAILURE;
+            }
+        }
+
+        install_fallback_log_writer(logfilepath);
+
+        bool result;
+        run_in_thread_pool(boost::bind(&run_rethinkdb_porcelain,
+                                       &spawner_info,
+                                       filepath,
+                                       machine_name,
+                                       joins,
+                                       address_ports,
+                                       io_backend,
+                                       &result,
+                                       web_path,
+                                       new_directory),
+                           num_workers);
+
+        remove_pid_file(vm);
+
+        return result ? EXIT_SUCCESS : EXIT_FAILURE;
+    } catch (const boost::program_options::error &e) {
+        fprintf(stderr, "%s\n", e.what());
+        return EXIT_FAILURE;
     }
-
-    install_fallback_log_writer(logfilepath);
-
-    bool result;
-    run_in_thread_pool(boost::bind(&run_rethinkdb_porcelain,
-                                   &spawner_info,
-                                   filepath,
-                                   machine_name,
-                                   joins,
-                                   address_ports,
-                                   io_backend,
-                                   &result,
-                                   web_path,
-                                   new_directory),
-                       num_workers);
-
-    remove_pid_file(vm);
-
-    return result ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 void help_rethinkdb_create() {

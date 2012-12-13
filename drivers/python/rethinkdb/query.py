@@ -1221,7 +1221,7 @@ def expr(val):
         return JSONExpression(internal.LiteralNull())
     elif isinstance(val, bool):
         return JSONExpression(internal.LiteralBool(val))
-    elif isinstance(val, (int, float)):
+    elif isinstance(val, (int, float, long)):
         return JSONExpression(internal.LiteralNumber(val))
     elif isinstance(val, types.StringTypes):
         return JSONExpression(internal.LiteralString(val))

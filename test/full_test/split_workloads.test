@@ -34,13 +34,13 @@ n_phase_scenarios = [
 
 for scenario in two_phase_scenarios:
     for before, after in two_phase_workloads:
-        do_test(
+        generate_test(
             scenario % {"before": before, "after": after},
             repeat = 3,
             inputs = ["build/debug/rethinkdb", "test/scenarios", "test/common", "test/memcached_workloads", "bench/stress-client/stress"]
             )
     for before, between, after in n_phase_workloads:
-        do_test(
+        generate_test(
             scenario % {"before": before, "after": after},
             repeat = 3,
             inputs = ["build/debug/rethinkdb", "test/scenarios", "test/common", "test/memcached_workloads", "bench/stress-client/stress"]
@@ -48,7 +48,7 @@ for scenario in two_phase_scenarios:
 
 for scenario in n_phase_scenarios:
     for before, between, after in n_phase_workloads:
-        do_test(
+        generate_test(
             scenario % {"before": before, "between": between, "after": after},
             repeat = 3,
             inputs = ["build/debug/rethinkdb", "test/scenarios", "test/common", "test/memcached_workloads", "bench/stress-client/stress"]

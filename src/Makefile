@@ -20,6 +20,10 @@ else
 MAKEFILE_DEPENDENCY:=Makefile
 endif
 
+GCC_ARCH=$(shell uname -m | grep '^[A-Za-z0-9_]*$$' | head -n 1)
+GCC_ARCH_REDUCED=$(shell echo "$(GCC_ARCH)" | sed -e 's/^i[56]86$$/i486/g')
+DEB_ARCH=$(shell echo "$(GCC_ARCH_REDUCED)" | sed -e 's/^x86_64$$/amd64/g')
+
 # Set SOLO to 0 to build RethinkDB Cache (otherwise, RethinkDB Solo is built)
 SOLO?=1
 ifeq ($(SOLO),1)
@@ -120,12 +124,13 @@ PACKAGES_DIR:=$(BUILD_ROOT_DIR)/packages
 RPM_PACKAGE_DIR:=$(PACKAGES_DIR)/rpm
 DEB_PACKAGE_DIR:=$(PACKAGES_DIR)/deb
 
+RT_CXX?=g++
 
 ifeq ($(COMPILER),CLANG)
-CXX:=clang
+RT_CXX:=clang
 else
 ifeq ($(COMPILER),INTEL)
-CXX:=icc
+RT_CXX:=icc
 endif
 endif
 
@@ -137,77 +142,238 @@ CPATHDS:=
 STATICFORCE?=0
 
 ifeq ($(COMPILER),CLANG)
-LDFLAGS:=-Wl,--no-as-needed 
+RT_LDFLAGS:=-Wl,--no-as-needed 
 ifeq ($(STATICFORCE),1)
-LDFLAGS+= -static
+RT_LDFLAGS+= -static
 STATIC_LIBGCC=1
 endif
-LDFLAGS+=$(LDPATHDS) -pthread -lrt -lstdc++ -lm
+RT_LDFLAGS+=$(LDPATHDS) -pthread -lrt -lstdc++ -lm
 ifeq ($(STATICFORCE),1)
-LDFLAGS+= -Wl,-Bdynamic
+RT_LDFLAGS+= -Wl,-Bdynamic
 endif
 else
 ifeq ($(COMPILER),INTEL)
-LDFLAGS:= -B/opt/intel/bin 
+RT_LDFLAGS:= -B/opt/intel/bin 
 ifeq ($(STATICFORCE),1)
-LDFLAGS+= -static
+RT_LDFLAGS+= -static
 STATIC_LIBGCC=1
 endif
-LDFLAGS+=$(LDPATHDS) -pthread -lrt -lstdc++
+RT_LDFLAGS+=$(LDPATHDS) -pthread -lrt -lstdc++
 ifeq ($(STATICFORCE),1)
-LDFLAGS+= -Wl,-Bdynamic
+RT_LDFLAGS+= -Wl,-Bdynamic
 endif
 else
 # GCC
-LDFLAGS:=-Wl,--no-as-needed 
+RT_LDFLAGS:=-Wl,--no-as-needed 
 ifeq ($(STATICFORCE),1)
-LDFLAGS+= -static
+RT_LDFLAGS+= -static
 STATIC_LIBGCC=1
 endif
-LDFLAGS+=$(LDPATHDS) -pthread -lrt
+RT_LDFLAGS+=$(LDPATHDS) -pthread -lrt
+ifeq ($(BUILD_PORTABLE),1)
+RT_LDFLAGS+=-lgcc
+endif
 ifeq ($(STATICFORCE),1)
-LDFLAGS+= -Wl,-Bdynamic
+RT_LDFLAGS+= -Wl,-Bdynamic
+endif
+ifeq ($(BUILD_PORTABLE),1)
+RT_LDFLAGS+=-lgcc_s
 endif
 endif
 endif
 
+BUILD_PORTABLE?=0
+LEGACY_LINUX?=0
+
+ifeq ($(BUILD_PORTABLE),1)
+LEGACY_PACKAGE?=1
+else
+ifeq ($(LEGACY_LINUX),1)
+LEGACY_PACKAGE?=1
+else
+LEGACY_PACKAGE?=0
+endif
+endif
+
+V8_SRC_DIR:=../support/src/v8
+V8_DIR:=../support/build/v8
+V8_LIB:=$(V8_DIR)/libv8.a
+
+ifeq ($(BUILD_PORTABLE),1)
+V8_CHAIN?=1
+STATIC_V8?=2
+else
 V8_CHAIN?=0
+PROTOC_CHAIN?=1
 STATIC_V8?=$(STATICFORCE)
+endif
 
-ifeq ($(V8_CHAIN),1)
-LDFLAGS+= -L ../external/v8
-CXXPATHDS+= -isystem ../external/v8/include
-CPATHDS+= -isystem ../external/v8/include
+OBJ_SUPPS:=
+
+ifneq ($(V8_CHAIN),0)
+ifeq ($(V8_CHAIN),2)
+RT_LDFLAGS+= -L $(V8_DIR)
+endif
+CXXPATHDS+= -isystem $(V8_DIR)/include
+CPATHDS+= -isystem $(V8_DIR)/include
+ifeq ($(STATIC_V8),2)
+OBJ_SUPPS+=$(V8_LIB)
+endif
 endif
 
 ifeq ($(STATIC_V8),0)
-LDFLAGS+=-lv8
+RT_LDFLAGS+=-lv8
 else
 ifeq ($(STATIC_V8),1)
-LDFLAGS+=-static -lv8 -dynamic
+RT_LDFLAGS+=-static -lv8 -dynamic
 endif
 endif
 
-ifeq ($(V8_CHAIN),2)
-# This is only in foreign static mode.
-LDFLAGS+= -lv8_base -lv8_snapshot
+# We have support for chain-building tools needed at compile-time. We handle V8 elsewhere for now.
+
+SUPPORT_DIR:=../support
+SUPPORT_DIR_ABS:=$(shell pwd ;)/$(SUPPORT_DIR)
+SUPPORT_INST_DIR_ABS:=$(SUPPORT_DIR_ABS)/usr
+EXTERNAL_DIR:=../external
+EXTERNAL_DIR_ABS:=$(shell pwd ;)/$(EXTERNAL_DIR)
+COLONIZE_SCRIPT:=$(EXTERNAL_DIR)/colonist/colonize.sh
+COLONIZE_SCRIPT_ABS:=$(EXTERNAL_DIR_ABS)/colonist/colonize.sh
+AUTOCHAIN?=0
+ALLOW_INTERNAL_TOOLS?=1
+FORCE_INTERNAL_TOOLS?=0
+FETCH_INTERNAL_TOOLS?=0
+TC_BUILD_DIR:=$(SUPPORT_DIR_ABS)/build
+TC_SRC_DIR:=$(SUPPORT_DIR_ABS)/src
+NODE_DIR:=$(TC_BUILD_DIR)/node
+NODE_SRC_DIR:=$(TC_SRC_DIR)/node
+PROTOC_DIR:=$(TC_BUILD_DIR)/protobuf
+PROTOC_SRC_DIR:=$(TC_SRC_DIR)/protobuf
+GPERFTOOLS_DIR:=$(TC_BUILD_DIR)/gperftools
+GPERFTOOLS_SRC_DIR:=$(TC_SRC_DIR)/gperftools
+LIBUNWIND_DIR:=$(TC_BUILD_DIR)/libunwind
+LIBUNWIND_SRC_DIR:=$(TC_SRC_DIR)/libunwind
+TCMALLOC_MINIMAL_INT_LIB:=$(SUPPORT_INST_DIR_ABS)/lib/libtcmalloc_minimal.a
+TC_PROTOC_INT_EXE:=$(SUPPORT_INST_DIR_ABS)/bin/protoc
+TC_PROTOC_INT_BIN_DIR:=$(SUPPORT_INST_DIR_ABS)/bin
+TC_PROTOC_INT_LIB_DIR:=$(SUPPORT_INST_DIR_ABS)/lib
+TC_PROTOC_INT_INC_DIR:=$(SUPPORT_INST_DIR_ABS)/include
+TC_NODE_INT_EXE:=$(SUPPORT_DIR_ABS)/usr/bin/node
+TC_NPM_INT_EXE:=$(SUPPORT_DIR_ABS)/usr/bin/npm
+TC_LESSC_INT_EXE:=$(SUPPORT_DIR_ABS)/toolchain/node_modules/less/bin/lessc
+TC_COFFEE_INT_EXE:=$(SUPPORT_DIR_ABS)/toolchain/node_modules/coffee-script/bin/coffee
+
+TC_PROTOC_CFLAGS:=
+INT_CHAIN_NODE:=0
+INT_CHAIN_PROTOC:=0
+TCMALLOC_CHAIN_IF_NECESSARY:=0
+
+ifeq ($(FORCE_INTERNAL_TOOLS),1)
+TC_PROTOC_EXE:=$(TC_PROTOC_INT_EXE)
+# This is how we run TC_PROTOC_EXE.
+TC_PROTOC_RUN:=env LD_LIBRARY_PATH=$(TC_PROTOC_INT_LIB_DIR):$(LD_LIBRARY_PATH) PATH=$(TC_PROTOC_INT_BIN_DIR):$(PATH) $(TC_PROTOC_EXE)
+TC_PROTOC_CFLAGS:= -isystem $(TC_PROTOC_INT_INC_DIR)
+CXXPATHDS+=$(TC_PROTOC_CFLAGS)
+CPATHDS+=$(TC_PROTOC_CFLAGS)
+# RT_LDFLAGS+= -L $(TC_PROTOC_INT_LIB_DIR)
+# We do static linking explicitly now since things get messy otherwise.
+INT_CHAIN_PROTOC:=1
+INT_CHAIN_NODE:=1
+TC_NODE_EXE:=$(TC_NODE_INT_EXE)
+TC_NPM_EXE:=$(TC_NPM_INT_EXE)
+TC_LESSC_EXE:=$(TC_LESSC_INT_EXE)
+TC_COFFEE_EXE:=$(TC_COFFEE_INT_EXE)
+TCMALLOC_CHAIN_IF_NECESSARY:=1
+else
+ifeq ($(ALLOW_INTERNAL_TOOLS),1)
+ifeq ($(shell which protoc || true),)
+TC_PROTOC_EXE:=$(TC_PROTOC_INT_EXE)
+TC_PROTOC_RUN:=env LD_LIBRARY_PATH=$(TC_PROTOC_INT_LIB_DIR):$(LD_LIBRARY_PATH) PATH=$(TC_PROTOC_INT_BIN_DIR):$(PATH) $(TC_PROTOC_EXE)
+TC_PROTOC_CFLAGS:= -isystem $(TC_PROTOC_INT_INC_DIR)
+CXXPATHDS+=$(TC_PROTOC_CFLAGS)
+CPATHDS+=$(TC_PROTOC_CFLAGS)
+# RT_LDFLAGS+= -L $(TC_PROTOC_INT_LIB_DIR)
+# We do static linking explicitly now since things get messy otherwise.
+INT_CHAIN_PROTOC:=1
+else
+TC_PROTOC_EXE:=$(shell which protoc || true)
+TC_PROTOC_RUN:=$(TC_PROTOC_EXE)
+endif
+ifeq ($(shell which npm || true),)
+# If npm is not present, node.js is likely too old.
+INT_CHAIN_NODE:=1
+TC_NODE_EXE:=$(TC_NODE_INT_EXE)
+TC_NPM_EXE:=$(TC_NPM_INT_EXE)	
+else
+TC_NODE_EXE:=$(shell which node || true)
+TC_NPM_EXE:=$(shell which npm || true)
+endif
+ifeq ($(shell which lessc || true),)
+TC_LESSC_EXE:=$(TC_LESSC_INT_EXE)	
+else
+TC_LESSC_EXE:=$(shell which lessc || true)
+endif
+ifeq ($(shell which coffee || true),)
+TC_COFFEE_EXE:=$(TC_COFFEE_INT_EXE)
+else
+TC_COFFEE_EXE:=$(shell which coffee || true)
+endif
+ifeq ($(shell /sbin/ldconfig -p | awk '/libtcmalloc_minimal.so /'),)
+TCMALLOC_CHAIN_IF_NECESSARY:=1
+endif
+else # ALLOW_INTERNAL_TOOLS
+TC_PROTOC_EXE:=$(shell which protoc || true)
+TC_PROTOC_RUN:=$(TC_PROTOC_EXE)
+TC_LESSC_EXE:=$(shell which lessc || true)
+TC_COFFEE_EXE:=$(shell which coffee || true)
+TC_NODE_EXE:=$(shell which node || true)
+TC_NPM_EXE:=$(shell which npm || true)
+endif # ALLOW_INTERNAL_TOOLS
+endif # FORCE_INTERNAL_TOOLS
+
+ifeq ($(INT_CHAIN_NODE),0)
+NODE_EXE_SPEC:=
+else
+NODE_EXE_SPEC:=$(TC_NODE_EXE)
+NODE_EXE_SPEC+=
+endif
+
+ifeq ($(V8_CHAIN),1)
+V8_DEP:=$(V8_DIR)
+else
+V8_DEP:=
 endif
 
 ifeq ($(LIBCRYPTO),1)
-LDFLAGS+=-lcrypto 
+RT_LDFLAGS+=-lcrypto 
 endif
 
+PROTOC_BASE:=$(shell dirname $(TC_PROTOC_EXE))/..
+
 LIB_SEARCH_PATHS?=
-LDFLAGS+=$(foreach TLIB, $(LIB_SEARCH_PATHS), -L $(TLIB))
+RT_LDFLAGS+=$(foreach TLIB, $(LIB_SEARCH_PATHS), -L $(TLIB))
+
+STATIC_LIBRARY_PATHS:=
 
 STATIC_LIBRARIES:=
 
-STATIC_RECOMMENDS_INDIFFERENT:=boost_serialization protobuf boost_program_options
+STATIC_RECOMMENDS_INDIFFERENT:=boost_serialization boost_program_options
+
+ifeq ($(INT_CHAIN_PROTOC),1)
+STATIC_LIBRARY_PATHS+=$(TC_PROTOC_INT_LIB_DIR)/libprotobuf.a
+else
+STATIC_RECOMMENDS_INDIFFERENT+=protobuf
+endif
 
 STATIC_RECOMMENDS_IMPORTANT:=
 
 ifeq ($(NO_TCMALLOC),0)
+ifeq ($(TCMALLOC_CHAIN_IF_NECESSARY),0)
+# If we need TCMALLOC and we are not already obligated to chain-building the static library, we put it in the recommended list.
 STATIC_RECOMMENDS_IMPORTANT+=tcmalloc_minimal
+else
+OBJ_SUPPS+=$(TCMALLOC_MINIMAL_INT_LIB)
+STATIC_LIBRARY_PATHS+=$(TCMALLOC_MINIMAL_INT_LIB)
+endif
 endif
 
 RECOMMENDED_STATIC?=1
@@ -216,52 +382,71 @@ HIGHLY_RECOMMENDED_STATIC?=1
 ifeq ($(RECOMMENDED_STATIC),1)
 STATIC_LIBRARIES+=$(STATIC_RECOMMENDS_INDIFFERENT)
 else
-LDFLAGS+=$(foreach TLIB, $(STATIC_RECOMMENDS_INDIFFERENT), -l$(TLIB))
+RT_LDFLAGS+=$(foreach TLIB, $(STATIC_RECOMMENDS_INDIFFERENT), -l$(TLIB))
 endif
 
 ifeq ($(HIGHLY_RECOMMENDED_STATIC),1)
 STATIC_LIBRARIES+=$(STATIC_RECOMMENDS_IMPORTANT)
 else
-LDFLAGS+=$(foreach TLIB, $(STATIC_RECOMMENDS_IMPORTANT), -l$(TLIB))
+RT_LDFLAGS+=$(foreach TLIB, $(STATIC_RECOMMENDS_IMPORTANT), -l$(TLIB))
 endif
 
-CXXFLAGS?=
+ifeq ($(STATIC_V8),2)
+ifeq ($(V8_CHAIN),0)
+STATIC_LIBRARIES+=libv8
+else
+STATIC_LIBRARY_PATHS+=$(V8_LIB)
+endif
+endif
 
-CXXFLAGS+=-I$(SOURCE_DIR) $(CXXPATHDS) -pthread
-CXXFLAGS+="-DPRODUCT_NAME=\"$(PRODUCT_NAME)\""
+# look for the static library in the same directory as the .so file
+# On older platforms, certain libraries such as tcmalloc_minimal may not be available unversioned (tcmalloc_minimal.so). If we are on such a platform, we settle for something versioned.
+STATIC_LIBRARY_PATHS+=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }'))
+
+ifeq ($(GPERF),1)
+STATIC_LIBRARY_PATHS+= # path to patched libtcmalloc_and_profiler.a
+endif
+
+RT_CXXFLAGS?=
+
+RT_CXXFLAGS+=-I$(SOURCE_DIR) -pthread
+RT_CXXFLAGS+="-DPRODUCT_NAME=\"$(PRODUCT_NAME)\""
+
+RT_CXXFLAGS+=$(CXXPATHDS)
+RT_CFLAGS+=$(CPATHDS)
 
 ifeq ($(SOLO),1)
-CXXFLAGS+=-DRETHINKDB_SOLO_PRODUCT
+RT_CXXFLAGS+=-DRETHINKDB_SOLO_PRODUCT
 else
-CXXFLAGS+=-DRETHINKDB_CACHE_PRODUCT
+RT_CXXFLAGS+=-DRETHINKDB_CACHE_PRODUCT
 endif
 
-CXXFLAGS+=-Wall -Wextra -Werror -Wnon-virtual-dtor
+RT_CXXFLAGS+=-Wall -Wextra -Werror -Wnon-virtual-dtor
 
 ifeq ($(COMPILER), INTEL)
-CXXFLAGS+=-std=gnu++98 -w1 -ftls-model=local-dynamic
+RT_CXXFLAGS+=-std=gnu++98 -w1 -ftls-model=local-dynamic
 else
 ifeq ($(COMPILER), CLANG)
-CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default -Wno-unneeded-internal-declaration -Wused-but-marked-unused -Wunused-macros -Wundef -Wvla -Wshadow -Wconditional-uninitialized -Wmissing-noreturn
+RT_CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default -Wno-unneeded-internal-declaration -Wused-but-marked-unused -Wunused-macros -Wundef -Wvla -Wshadow -Wconditional-uninitialized -Wmissing-noreturn
 else
 ifeq ($(LEGACY_GCC), 1)
-CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default
+RT_CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default
 else
-CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default -Wno-array-bounds
+RT_CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default -Wno-array-bounds
 endif
 endif
 endif
 
 ifeq ($(AGRESSIVE_BUF_UNLOADING),1)
-CXXFLAGS+=-DAGRESSIVE_BUF_UNLOADING=1
+RT_CXXFLAGS+=-DAGRESSIVE_BUF_UNLOADING=1
 endif
 
 ifneq ($(PREFIX),)
-CXXFLAGS+=-DCPREFIX='"$(PREFIX)"'
+RT_CXXFLAGS+=-DCPREFIX='"$(PREFIX)"'
 endif
 
 ifneq ($(WEBRESDIR),)
-CXXFLAGS+=-DWEBRESDIR='"$(WEBRESDIR)"'
+RT_CXXFLAGS+=-DWEBRESDIR='"$(WEBRESDIR)"'
 endif
 
 ifeq ($(COMPILER),INTEL)
@@ -274,30 +459,44 @@ STRIP_ON_INSTALL?=1
 
 NO_OMIT_FRAME_POINTER?=0
 
+RT_FORCE_NATIVE?=0
+RT_COPY_NATIVE?=0
+RT_REDUCE_NATIVE?=0
+
+ifeq ($(RT_FORCE_NATIVE),1)
+RT_CXXFLAGS+=-march=native
+endif
+ifeq ($(RT_COPY_NATIVE),1)
+RT_CXXFLAGS+=-march="$(GCC_ARCH)"
+endif
+ifeq ($(RT_REDUCE_NATIVE),1)
+RT_CXXFLAGS+=-march="$(GCC_ARCH_REDUCED)"
+endif
+
 # Configure debug vs. release
 ifeq ($(DEBUG),1)
 SYMBOLS:=1
-CXXFLAGS+=-O0
+RT_CXXFLAGS+=-O0
 
 ifeq ($(KEEP_INLINE),1)
-CXXFLAGS+=-fkeep-inline-functions
+RT_CXXFLAGS+=-fkeep-inline-functions
 endif
 
 else
 # use -fno-strict-aliasing to not break things
 # march=native used to break the serializer
-CXXFLAGS+=-O3 -DNDEBUG -fno-strict-aliasing # -match=native
+RT_CXXFLAGS+=-O3 -DNDEBUG -fno-strict-aliasing # -march=native
 # TODO: remove this once memcached is added back in the release (disables memcached from showing up in the admin CLI help or tab-completion)
-CXXFLAGS+=-DNO_MEMCACHE
+RT_CXXFLAGS+=-DNO_MEMCACHE
 ifeq ($(NO_OMIT_FRAME_POINTER),1)
-CXXFLAGS+=-fno-omit-frame-pointer
+RT_CXXFLAGS+=-fno-omit-frame-pointer
 else
-CXXFLAGS+=-fomit-frame-pointer
+RT_CXXFLAGS+=-fomit-frame-pointer
 endif
 endif
 
 ifeq ($(DISABLE_BREAKPOINTS),1)
-CXXFLAGS+=-DDISABLE_BREAKPOINTS
+RT_CXXFLAGS+=-DDISABLE_BREAKPOINTS
 endif
 
 ifneq ($(TRIAL),0)
@@ -308,7 +507,7 @@ endif
 
 ifneq ($(TIMEBOMB),0)
 TRIAL:=1
-CXXFLAGS+=-DTIMEBOMB_DAYS=$(TIMEBOMB)
+RT_CXXFLAGS+=-DTIMEBOMB_DAYS=$(TIMEBOMB)
 endif
 
 ifneq ($(TRIAL),0)
@@ -318,7 +517,7 @@ SERVER_EXEC_NAME:=$(SERVER_EXEC_NAME)-trial
 endif
 
 ifeq (${STATIC_LIBGCC},1)
-LDFLAGS+=-static-libgcc -static-libstdc++
+RT_LDFLAGS+=-static-libgcc -static-libstdc++
 endif
 
 ifeq ($(OPROFILE),1)
@@ -331,108 +530,93 @@ endif
 
 ifeq ($(SYMBOLS),1)
 # -rdynamic is necessary so that backtrace_symbols() works properly
-LDFLAGS+=-rdynamic
-CXXFLAGS+=-g
+RT_LDFLAGS+=-rdynamic
+RT_CXXFLAGS+=-g
 endif
 
 ifeq ($(SEMANTIC_SERIALIZER_CHECK),1)
-CXXFLAGS+=-DSEMANTIC_SERIALIZER_CHECK
+RT_CXXFLAGS+=-DSEMANTIC_SERIALIZER_CHECK
 BUILD_DIR:=$(BUILD_DIR)-scs
 endif
 
 ifeq ($(MOCK_CACHE_CHECK),1)
-CXXFLAGS+=-DMOCK_CACHE_CHECK
+RT_CXXFLAGS+=-DMOCK_CACHE_CHECK
 BUILD_DIR:=$(BUILD_DIR)-mockcache
 endif
 
 ifeq ($(BTREE_DEBUG),1)
-CXXFLAGS+=-DBTREE_DEBUG
+RT_CXXFLAGS+=-DBTREE_DEBUG
 endif
 
 ifeq ($(JSON_SHORTCUTS),1)
-CXXFLAGS+=-DJSON_SHORTCUTS
+RT_CXXFLAGS+=-DJSON_SHORTCUTS
 endif
 
 ifeq ($(MALLOC_PROF),1)
-CXXFLAGS+=-DMALLOC_PROF
+RT_CXXFLAGS+=-DMALLOC_PROF
 endif
 
 ifeq ($(SERIALIZER_DEBUG),1)
-CXXFLAGS:=$(CXXFLAGS) -DSERIALIZER_MARKERS
+RT_CXXFLAGS:=$(RT_CXXFLAGS) -DSERIALIZER_MARKERS
 endif
 
 ifneq ($(MEMCACHED_STRICT), 0)
-CXXFLAGS+=-DMEMCACHED_STRICT
+RT_CXXFLAGS+=-DMEMCACHED_STRICT
 endif
 
 ifeq ($(LEGACY_LINUX),1)
 #CXX=g++44
-CXXFLAGS+=-DLEGACY_LINUX -DNO_EPOLL -Wno-format
+RT_CXXFLAGS+=-DLEGACY_LINUX -DNO_EPOLL -Wno-format
 BUILD_DIR:=$(BUILD_DIR)-legacy
 endif
 
 ifeq ($(LEGACY_GCC),1)
-CXXFLAGS+=-Wno-switch-default -Wno-switch-enum
+RT_CXXFLAGS+=-Wno-switch-default -Wno-switch-enum
 BUILD_DIR:=$(BUILD_DIR)-legacy-gcc
 endif
 
 ifeq ($(NO_EVENTFD),1)
-CXXFLAGS+=-DNO_EVENTFD
+RT_CXXFLAGS+=-DNO_EVENTFD
 BUILD_DIR:=$(BUILD_DIR)-no_eventfd
 endif
 
 ifeq ($(NO_EPOLL),1)
-CXXFLAGS+=-DNO_EPOLL
+RT_CXXFLAGS+=-DNO_EPOLL
 BUILD_DIR:=$(BUILD_DIR)-noepoll
 endif
 
 ifeq ($(MCHECK_PEDANTIC),1)
-CXXFLAGS+=-DMCHECK_PEDANTIC
+RT_CXXFLAGS+=-DMCHECK_PEDANTIC
 MCHECK:=1
 endif
 
 ifeq ($(MCHECK),1)
 NO_TCMALLOC:=1
-CXXFLAGS+=-DMCHECK
-LDFLAGS+=-lmcheck
+RT_CXXFLAGS+=-DMCHECK
+RT_LDFLAGS+=-lmcheck
 endif
 
 ifeq ($(VALGRIND),1)
-CXXFLAGS+=-DVALGRIND
+RT_CXXFLAGS+=-DVALGRIND
 BUILD_DIR:=$(BUILD_DIR)-valgrind
 NO_TCMALLOC:=1
 endif
 
 ifeq ($(AIOSUPPORT),1)
 BUILD_DIR:=$(BUILD_DIR)-aiosupport
-CXXFLAGS+=-DAIOSUPPORT
-LDFLAGS+=-laio
+RT_CXXFLAGS+=-DAIOSUPPORT
+RT_LDFLAGS+=-laio
 endif
 
 ifeq ($(LEGACY_PROC_STAT),1)
-CXXFLAGS+=-DLEGACY_PROC_STAT
+RT_CXXFLAGS+=-DLEGACY_PROC_STAT
 BUILD_DIR:=$(BUILD_DIR)-legacy-proc-stat
 endif
 
 PROTO_DIR:=$(BUILD_DIR)/proto
-CXXFLAGS += -I$(PROTO_DIR)
+RT_CXXFLAGS += -I$(PROTO_DIR)
 
-STATIC_LIBRARY_PATHS:=
-
-ifeq ($(STATIC_V8),2)
-ifeq ($(V8_CHAIN),1)
-STATIC_LIBRARY_PATHS+=../external/v8/libv8.a
-else
-STATIC_LIBRARIES+=libv8
-endif
-endif
-
-# look for the static library in the same directory as the .so file
-STATIC_LIBRARY_PATHS+=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }'))
-
-ifeq ($(GPERF),1)
-STATIC_LIBRARY_PATHS+= # path to patched libtcmalloc_and_profiler.a
-endif
+# This was the former home of the STATIC_LIBRARY_PATHS stuff.
 
 #  /usr/lib/x86_64-linux-gnu/libQtCore.so.4
 
@@ -448,8 +632,8 @@ endif
 endif
 
 ifeq ($(UNIT_TESTS),1)
-LDFLAGS+=-L/usr/local/lib -lgtest
-CXXFLAGS+=-DUNIT_TESTS
+UNIT_STATIC_LIBRARIES+=gtest
+UNIT_STATIC_LIBRARY_PATHS+=$(foreach lib,$(UNIT_STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }'))
 endif
 
 UNIT_TEST_FILTER?=*
@@ -537,7 +721,7 @@ endif
 # RETHINKDB_SHORT_VERSION:=$(RETHINKDB_SHORT_VERSION)-trial
 # endif
 RETHINKDB_PACKAGING_VERSION?=$(RETHINKDB_VERSION)
-CXXFLAGS+=-DRETHINKDB_VERSION=\"$(RETHINKDB_VERSION)\"
+RT_CXXFLAGS+=-DRETHINKDB_VERSION=\"$(RETHINKDB_VERSION)\"
 
 NAMEVERSIONED?=0
 ifeq ($(NAMEVERSIONED),1)
@@ -545,28 +729,6 @@ SERVER_EXEC_NAME_VERSIONED:=$(SERVER_EXEC_NAME)-$(RETHINKDB_SHORT_VERSION)
 else
 # update-alternatives breaks if we ditch the distinguishing mark .
 SERVER_EXEC_NAME_VERSIONED:=$(SERVER_EXEC_NAME)
-endif
-
-SUPPORT_DIR:=../support
-AUTOCHAIN?=0
-ALLOW_INTERNAL_TOOLS?=1
-INSTALL_INTERNAL_TOOLS?=0
-TC_LESSC_INT_EXE:=$(SUPPORT_DIR)/toolchain/node_modules/less/bin/lessc
-TC_COFFEE_INT_EXE:=$(SUPPORT_DIR)/toolchain/node_modules/coffee-script/bin/coffee
-ifeq ($(ALLOW_INTERNAL_TOOLS),1)
-ifeq ($(shell which lessc || true),)
-TC_LESSC_EXE:=$(TC_LESSC_INT_EXE)	
-else
-TC_LESSC_EXE:=$(shell which lessc || true)
-endif
-ifeq ($(shell which coffee || true),)
-TC_COFFEE_EXE:=$(TC_COFFEE_INT_EXE)
-else
-TC_COFFEE_EXE:=$(shell which coffee || true)
-endif
-else
-TC_LESSC_EXE:=$(shell which lessc || true)
-TC_COFFEE_EXE:=$(shell which coffee || true)
 endif
 
 ##### Build targets
@@ -603,14 +765,34 @@ RETHINKDB_VERSION_RPM=$(subst -,_,$(RETHINKDB_PACKAGING_VERSION))
 DEB_PACKAGE_REVISION?=$(shell env UBUNTU_RELEASE="$(UBUNTU_RELEASE)" DEB_RELEASE="$(DEB_RELEASE)" DEB_RELEASE_NUM="$(DEB_RELEASE_NUM)" PACKAGE_VERSION="" ../scripts/gen-trailer.sh)
 RETHINKDB_VERSION_DEB=$(RETHINKDB_PACKAGING_VERSION)$(DEB_PACKAGE_REVISION)
 
+# We need a space for the subst rule later.
+wspace:=
+wspace+=
+
+PACKAGE_NAME_QUALIFIER:=
+
+ifeq ($(BUILD_PORTABLE),1)
+PACKAGE_NAME_QUALIFIER+=-portable
+endif
+
+ifeq ($(TRIAL),1)
+PACKAGE_NAME_QUALIFIER+=-trial
+endif
+
+PACKAGE_NAME_QUALIFIER:=$(subst $(wspace),,$(PACKAGE_NAME_QUALIFIER))
+
 ifeq ($(NAMEVERSIONED),1)
+VERSIONED_QUALIFIED_PACKAGE_NAME:=$(PACKAGE_NAME)$(PACKAGE_NAME_QUALIFIER)-$(RETHINKDB_SHORT_VERSION)
 VERSIONED_PACKAGE_NAME:=$(PACKAGE_NAME)-$(RETHINKDB_SHORT_VERSION)
-VERSIONED_TRIAL_PACKAGE_NAME:=$(TRIAL_PACKAGE_NAME)-$(RETHINKDB_SHORT_VERSION)
+# VERSIONED_TRIAL_PACKAGE_NAME:=$(TRIAL_PACKAGE_NAME)-$(RETHINKDB_SHORT_VERSION)
+# Remove this line if nothing breaks.
 VERSIONED_PRODUCT_SHARE_DIR:=/usr/share/$(VERSIONED_PACKAGE_NAME)
 else
+VERSIONED_QUALIFIED_PACKAGE_NAME:=$(PACKAGE_NAME)$(PACKAGE_NAME_QUALIFIER)
 VERSIONED_PACKAGE_NAME:=$(PACKAGE_NAME)
-VERSIONED_TRIAL_PACKAGE_NAME:=$(TRIAL_PACKAGE_NAME)
-VERSIONED_PRODUCT_SHARE_DIR:=/usr/share/$(PACKAGE_NAME)
+# VERSIONED_TRIAL_PACKAGE_NAME:=$(TRIAL_PACKAGE_NAME)
+# Remove this line if nothing breaks.
+VERSIONED_PRODUCT_SHARE_DIR:=/usr/share/$(VERSIONED_PACKAGE_NAME)
 endif
 
 
@@ -674,7 +856,7 @@ endif
 
 
 
-CXXFLAGS+=-DMIGRATION_SCRIPT_LOCATION=\"$(scripts_dir)/rdb_migrate\"
+RT_CXXFLAGS+=-DMIGRATION_SCRIPT_LOCATION=\"$(scripts_dir)/rdb_migrate\"
 
 FULL_SERVER_EXEC_NAME=$(bin_dir)/$(SERVER_EXEC_NAME)
 FULL_SERVER_EXEC_NAME_VERSIONED=$(bin_dir)/$(SERVER_EXEC_NAME_VERSIONED)
@@ -685,7 +867,7 @@ prepare_deb_package_dirs:
 
 prepare_rpm_package_dirs:
 	$(QUIET) mkdir -p $(RPM_PACKAGE_DIR)
-	$(QUIET) for d in BUILD RPMS/x86_64 SOURCES SPECS SRPMS; do mkdir -p $(RPM_PACKAGE_DIR)/$$d; done
+	$(QUIET) for d in BUILD RPMS/$(GCC_ARCH_REDUCED) SOURCES SPECS SRPMS; do mkdir -p $(RPM_PACKAGE_DIR)/$$d; done
 
 install-binaries: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 	$(QUIET) install -m755 -d $(DESTDIR)$(bin_dir)
@@ -719,7 +901,8 @@ install-tools: $(ASSETS_DIR)/scripts/rethinkdb.bash $(ASSET_SCRIPTS)
 
 install-config:
 	$(QUIET) install -m755 -d $(DESTDIR)$(conf_dir) ;
-	$(QUIET) install -m644 $(ASSETS_DIR)/config/main.conf $(DESTDIR)$(conf_dir)/main.conf ;
+# We are not using main.conf right now, so that is commented out.
+#	$(QUIET) install -m644 $(ASSETS_DIR)/config/main.conf $(DESTDIR)$(conf_dir)/main.conf ;
 	$(QUIET) install -m755 -d $(DESTDIR)$(conf_instance_dir) ;
 	$(QUIET) install -m644 $(ASSETS_DIR)/config/default.conf.sample $(DESTDIR)$(conf_dir)/default.conf.sample ;
 
@@ -732,7 +915,7 @@ install-data:
 
 install-web:
 	$(QUIET) install -m755 -d $(DESTDIR)$(web_res_dir)
-	# This might break some ownership or permissions stuff.
+# This might break some ownership or permissions stuff.
 	$(QUIET) cp -pRP $(BUILD_DIR)/web/* $(DESTDIR)$(web_res_dir)/
 
 install-drivers:
@@ -752,12 +935,16 @@ install-deb: install
 		gzip -c9 | \
 		install -m644 -T /dev/stdin $(DESTDIR)$(doc_dir)/changelog.Debian.gz
 
-DebianV8Version:=$(shell apt-cache show libv8-dev | grep '^Version:' | sed -e 's/^Version: \\([0-9]*\\(\\.[0-9]*\\)*\\).*$$/\\1/g' || true ; )
+DEBIAN_V8_VERSION:=$(shell apt-cache show libv8-dev | grep '^Version:' | sed -e 's/^Version: \\([0-9]*\\(\\.[0-9]*\\)*\\).*$$/\\1/g' || true ; )
 
+ifeq ($(BUILD_PORTABLE),1)
+build-deb-support: $(TC_LESSC_INT_EXE) $(TC_COFFEE_INT_EXE) $(V8_SRC_DIR) $(NODE_SRC_DIR) $(PROTOC_SRC_DIR) $(GPERFTOOLS_SRC_DIR) $(LIBUNWIND_SRC_DIR)
+else
 build-deb-support: $(TC_LESSC_INT_EXE) $(TC_COFFEE_INT_EXE)
+endif
 
 build-deb-src-control:
-	$(QUIET) cd .. ; if [ -e debian ] ; then rm -rf debian ; fi ; cp -pRP debian.template debian ; env UBUNTU_RELEASE=$(UBUNTU_RELEASE) DEB_RELEASE=$(DEB_RELEASE) DEB_RELEASE_NUM=$(DEB_RELEASE_NUM) PACKAGE_NAME=$(PACKAGE_NAME) VERSIONED_PACKAGE_NAME=$(VERSIONED_PACKAGE_NAME) VANILLA_PACKAGE_NAME=$(VANILLA_PACKAGE_NAME) PACKAGE_VERSION_EXTENDED=$(RETHINKDB_VERSION_DEB) PACKAGE_VERSION=$(RETHINKDB_PACKAGING_VERSION) ./scripts/gen-changelog.sh ;
+	$(QUIET) cd .. ; if [ -e debian ] ; then rm -rf debian ; fi ; cp -pRP packaging/debian.template debian ; env UBUNTU_RELEASE=$(UBUNTU_RELEASE) DEB_RELEASE=$(DEB_RELEASE) DEB_RELEASE_NUM=$(DEB_RELEASE_NUM) PACKAGE_NAME=$(PACKAGE_NAME) VERSIONED_PACKAGE_NAME=$(VERSIONED_PACKAGE_NAME) VERSIONED_QUALIFIED_PACKAGE_NAME=$(VERSIONED_QUALIFIED_PACKAGE_NAME) VANILLA_PACKAGE_NAME=$(VANILLA_PACKAGE_NAME) PACKAGE_VERSION_EXTENDED=$(RETHINKDB_VERSION_DEB) PACKAGE_VERSION=$(RETHINKDB_PACKAGING_VERSION) ./scripts/gen-changelog.sh ;
 # Replace version/size fields in the deb control file
 	$(QUIET) disk_size=0;	\
 		m4																													\
@@ -767,24 +954,30 @@ build-deb-src-control:
 				-D "VANILLA_PACKAGE_NAME=$(VANILLA_PACKAGE_NAME)"				\
 				-D "TRIAL_PACKAGE_NAME=$(TRIAL_PACKAGE_NAME)"						\
 				-D "VERSIONED_TRIAL_PACKAGE_NAME=$(VERSIONED_TRIAL_PACKAGE_NAME)"						\
-				-D "PACKAGE_VERSION=$(RETHINKDB_VERSION_DEB)"						\
-				-D "LEGACY_LINUX=$(LEGACY_LINUX)"												\
-				-D "TRIAL=$(TRIAL)"																			\
-				-D "DISK_SIZE=$${disk_size}"														\
+				-D "VERSIONED_QUALIFIED_PACKAGE_NAME=$(VERSIONED_QUALIFIED_PACKAGE_NAME)" \
+				-D "DEBIAN_V8_VERSION=$(DEBIAN_V8_VERSION)" \
+				-D "PACKAGE_VERSION=$(RETHINKDB_VERSION_DEB)" \
+				-D "LEGACY_PACKAGE=$(LEGACY_PACKAGE)" \
+				-D "STATIC_V8=$(STATIC_V8)" \
+				-D "TC_BUNDLED=$(BUILD_PORTABLE)" \
+				-D "BUILD_DRIVERS=$(BUILD_DRIVERS)" \
+				-D "TRIAL=$(TRIAL)" \
+				-D "DISK_SIZE=$${disk_size}" \
 				-D "SOURCEBUILD=1" \
 				-D "NODEJS_NEW=$(NODEJS_NEW)" \
+				-D "CURRENT_ARCH=$(DEB_ARCH)" \
 			../packaging/$(DEBIAN_PKG_DIR)/control > ../debian/control
 # Copy {pre,post}{inst,rm} scripts
 	$(QUIET) for script in preinst postinst prerm postrm; do		                  		\
-			m4 																																						\
-					-D "BIN_DIR=$(bin_dir)" 																									\
-					-D "MAN1_DIR=$(man1_dir)" 																								\
-					-D "BASH_COMPLETION_DIR=$(bash_completion_dir)" 													\
-					-D "INTERNAL_BASH_COMPLETION_DIR=$(internal_bash_completion_dir)" 				\
-					-D "SERVER_EXEC_NAME=$(SERVER_EXEC_NAME)" 																\
-					-D "SERVER_EXEC_NAME_VERSIONED=$(SERVER_EXEC_NAME_VERSIONED)" 						\
-					-D "UPDATE_ALTERNATIVES=$(NAMEVERSIONED)" 													\
-					-D "PRIORITY=$(PACKAGING_ALTERNATIVES_PRIORITY)" 													\
+			m4 \
+					-D "BIN_DIR=$(bin_dir)" \
+					-D "MAN1_DIR=$(man1_dir)" \
+					-D "BASH_COMPLETION_DIR=$(bash_completion_dir)" \
+					-D "INTERNAL_BASH_COMPLETION_DIR=$(internal_bash_completion_dir)" \
+					-D "SERVER_EXEC_NAME=$(SERVER_EXEC_NAME)" \
+					-D "SERVER_EXEC_NAME_VERSIONED=$(SERVER_EXEC_NAME_VERSIONED)" \
+					-D "UPDATE_ALTERNATIVES=$(NAMEVERSIONED)" \
+					-D "PRIORITY=$(PACKAGING_ALTERNATIVES_PRIORITY)" \
 				../packaging/$(DEBIAN_PKG_DIR)/$${script} > ../debian/$${script}; \
 			chmod 0755 ../debian/$${script};																		\
 		done
@@ -797,33 +990,28 @@ build-deb: all prepare_deb_package_dirs
 	@echo
 	@echo "$(ANSI_BOLD_ON)Building DEB package for RethinkDB version $(RETHINKDB_PACKAGING_VERSION)$(ANSI_BOLD_OFF)"
 	@echo
-
 # Copy files to their correct places
 	$(QUIET) $(MAKE) DESTDIR=$(DEB_PACKAGE_DIR) install-deb
-
 # Produce md5sum file in control directory
 	$(QUIET) find $(DEB_PACKAGE_DIR) -path $(DEB_CONTROL_ROOT) -prune -o -path $(DEB_PACKAGE_DIR)/etc -prune -o -type f -printf "%P\\0" | \
 		(cd $(DEB_PACKAGE_DIR) && xargs -0 md5sum) \
 		> $(DEB_CONTROL_ROOT)/md5sums
-
 # List configuration files in conffiles
 	$(QUIET) find $(DEB_PACKAGE_DIR) -type f -printf "/%P\n" | (grep '^/etc/' | grep -v '^/etc/init\.d' || true) > $(DEB_CONTROL_ROOT)/conffiles
-
 # Copy {pre,post}{inst,rm} scripts
 	$(QUIET) for script in preinst postinst prerm postrm; do		                  		\
-			m4 																																						\
-					-D "BIN_DIR=$(bin_dir)" 																									\
-					-D "MAN1_DIR=$(man1_dir)" 																								\
-					-D "BASH_COMPLETION_DIR=$(bash_completion_dir)" 													\
-					-D "INTERNAL_BASH_COMPLETION_DIR=$(internal_bash_completion_dir)" 				\
-					-D "SERVER_EXEC_NAME=$(SERVER_EXEC_NAME)" 																\
-					-D "SERVER_EXEC_NAME_VERSIONED=$(SERVER_EXEC_NAME_VERSIONED)" 						\
-					-D "UPDATE_ALTERNATIVES=$(NAMEVERSIONED)" 													\
-					-D "PRIORITY=$(PACKAGING_ALTERNATIVES_PRIORITY)" 													\
+			m4 \
+					-D "BIN_DIR=$(bin_dir)" \
+					-D "MAN1_DIR=$(man1_dir)" \
+					-D "BASH_COMPLETION_DIR=$(bash_completion_dir)" \
+					-D "INTERNAL_BASH_COMPLETION_DIR=$(internal_bash_completion_dir)" \
+					-D "SERVER_EXEC_NAME=$(SERVER_EXEC_NAME)" \
+					-D "SERVER_EXEC_NAME_VERSIONED=$(SERVER_EXEC_NAME_VERSIONED)" \
+					-D "UPDATE_ALTERNATIVES=$(NAMEVERSIONED)" \
+					-D "PRIORITY=$(PACKAGING_ALTERNATIVES_PRIORITY)" \
 				../packaging/$(DEBIAN_PKG_DIR)/$${script} > $(DEB_CONTROL_ROOT)/$${script}; \
 			chmod 0755 $(DEB_CONTROL_ROOT)/$${script};																		\
 		done
-
 # Replace version/size fields in the deb control file
 	$(QUIET) disk_size=$$(du -s -k $(DEB_PACKAGE_DIR) | cut -f1);	\
 		m4																													\
@@ -834,16 +1022,20 @@ build-deb: all prepare_deb_package_dirs
 				-D "TRIAL_PACKAGE_NAME=$(TRIAL_PACKAGE_NAME)"						\
 				-D "VERSIONED_TRIAL_PACKAGE_NAME=$(VERSIONED_TRIAL_PACKAGE_NAME)"						\
 				-D "PACKAGE_VERSION=$(RETHINKDB_VERSION_DEB)"						\
-				-D "LEGACY_LINUX=$(LEGACY_LINUX)"												\
+				-D "VERSIONED_QUALIFIED_PACKAGE_NAME=$(VERSIONED_QUALIFIED_PACKAGE_NAME)" \
+				-D "DEBIAN_V8_VERSION=$(DEBIAN_V8_VERSION)" \
+				-D "LEGACY_PACKAGE=$(LEGACY_PACKAGE)"												\
+				-D "STATIC_V8=$(STATIC_V8)" \
+				-D "TC_BUNDLED=$(BUILD_PORTABLE)" \
+				-D "BUILD_DRIVERS=$(BUILD_DRIVERS)" \
 				-D "TRIAL=$(TRIAL)"																			\
 				-D "DISK_SIZE=$${disk_size}"														\
 				-D "SOURCEBUILD=0" \
 				-D "NODEJS_NEW=$(NODEJS_NEW)" \
+				-D "CURRENT_ARCH=$(DEB_ARCH)" \
 			../packaging/$(DEBIAN_PKG_DIR)/control >$(DEB_CONTROL_ROOT)/control
-
 # Copy the license file.
 	cat ../packaging/$(DEBIAN_PKG_DIR)/copyright > $(DEB_CONTROL_ROOT)/copyright
-
 # Finally, produce a debian package
 	$(QUIET) fakeroot dpkg-deb -b $(DEB_PACKAGE_DIR) $(PACKAGES_DIR)
 
@@ -851,7 +1043,6 @@ deb: prepare_deb_package_dirs
 # We have disabled building of unstripped debs for now.
 # $(QUIET) $(MAKE) STRIP_ON_INSTALL=0 RETHINKDB_PACKAGING_VERSION=$(RETHINKDB_VERSION)-unstripped build-deb
 	$(QUIET) $(MAKE) STRIP_ON_INSTALL=1 RETHINKDB_PACKAGING_VERSION=$(RETHINKDB_VERSION) WEBRESDIR=$(web_res_dir) BUILD_DRIVERS=0 build-deb
-
 # Print a nice message with the location of the created package
 	@echo
 	@echo "$(ANSI_BOLD_ON)Your DEB packages are here (with lintian output following each package):$(ANSI_BOLD_OFF)"
@@ -873,47 +1064,46 @@ build-rpm: all prepare_rpm_package_dirs
 	@echo
 	@echo "$(ANSI_BOLD_ON)Building RPM package for RethinkDB version $(RETHINKDB_PACKAGING_VERSION)$(ANSI_BOLD_OFF)"
 	@echo
-
 # Replace version/topdir fields in the spec file
-	$(QUIET) m4																															\
-				-D "SOLO=$(SOLO)"																									\
-				-D "RPM_PACKAGE_DIR=`readlink -f $(RPM_PACKAGE_DIR)`"							\
-				-D "SERVER_EXEC_NAME=$(SERVER_EXEC_NAME)"													\
-				-D "SERVER_EXEC_NAME_VERSIONED=$(SERVER_EXEC_NAME_VERSIONED)"			\
-				-D "PACKAGE_NAME=$(PACKAGE_NAME)"																	\
-				-D "VERSIONED_PACKAGE_NAME=$(VERSIONED_PACKAGE_NAME)"							\
-				-D "VANILLA_PACKAGE_NAME=$(VANILLA_PACKAGE_NAME)"									\
-				-D "TRIAL_PACKAGE_NAME=$(TRIAL_PACKAGE_NAME)"											\
-				-D "VERSIONED_TRIAL_PACKAGE_NAME=$(VERSIONED_TRIAL_PACKAGE_NAME)"	\
-				-D "PACKAGE_VERSION=$(RETHINKDB_VERSION_DEB)"											\
-				-D "LEGACY_LINUX=$(LEGACY_LINUX)"																	\
-				-D "PACKAGE_FOR_SUSE_10=$(PACKAGE_FOR_SUSE_10)"								    \
-				-D "TRIAL=$(TRIAL)"																						    \
-				-D "BIN_DIR=$(bin_dir)"																						\
-				-D "DOC_DIR=$(doc_dir)"																						\
-				-D "MAN1_DIR=$(man1_dir)"																					\
-				-D "BASH_COMPLETION_DIR=$(bash_completion_dir)" 									\
-				-D "INTERNAL_BASH_COMPLETION_DIR=$(internal_bash_completion_dir)"	\
-				-D "SCRIPTS_DIR=$(scripts_dir)"																		\
-				-D "PRIORITY=$(PACKAGING_ALTERNATIVES_PRIORITY)" 									\
+	$(QUIET) m4 \
+				-D "SOLO=$(SOLO)" \
+				-D "RPM_PACKAGE_DIR=`readlink -f $(RPM_PACKAGE_DIR)`" \
+				-D "SERVER_EXEC_NAME=$(SERVER_EXEC_NAME)" \
+				-D "SERVER_EXEC_NAME_VERSIONED=$(SERVER_EXEC_NAME_VERSIONED)" \
+				-D "PACKAGE_NAME=$(PACKAGE_NAME)" \
+				-D "VERSIONED_PACKAGE_NAME=$(VERSIONED_PACKAGE_NAME)" \
+				-D "VERSIONED_QUALIFIED_PACKAGE_NAME=$(VERSIONED_QUALIFIED_PACKAGE_NAME)" \
+				-D "VANILLA_PACKAGE_NAME=$(VANILLA_PACKAGE_NAME)" \
+				-D "TRIAL_PACKAGE_NAME=$(TRIAL_PACKAGE_NAME)" \
+				-D "VERSIONED_TRIAL_PACKAGE_NAME=$(VERSIONED_TRIAL_PACKAGE_NAME)" \
+				-D "PACKAGE_VERSION=$(RETHINKDB_VERSION_DEB)" \
+				-D "PACKAGE=$(PACKAGE)" \
+				-D "PACKAGE_FOR_SUSE_10=$(PACKAGE_FOR_SUSE_10)" \
+				-D "TRIAL=$(TRIAL)" \
+				-D "BIN_DIR=$(bin_dir)" \
+				-D "DOC_DIR=$(doc_dir)" \
+				-D "MAN1_DIR=$(man1_dir)" \
+				-D "SHARE_DIR=$(share_dir)" \
+				-D "WEB_RES_DIR=$(web_res_dir)" \
+				-D "BASH_COMPLETION_DIR=$(bash_completion_dir)" \
+				-D "INTERNAL_BASH_COMPLETION_DIR=$(internal_bash_completion_dir)" \
+				-D "SCRIPTS_DIR=$(scripts_dir)" \
+				-D "PRIORITY=$(PACKAGING_ALTERNATIVES_PRIORITY)" \
 			$(RPM_SPEC_INPUT) >$(RPM_SPEC_FILE)
-
 # Copy files to their correct places
 	$(QUIET) $(MAKE) DESTDIR=$(RPM_BUILD_ROOT) install-rpm
-
 # Produce RPM package
 # FIXME: write rpmbuild output out to stderr if there's an error
-	$(QUIET) rpmbuild -bb --target=x86_64 --buildroot `readlink -f $(RPM_BUILD_ROOT)` $(RPM_SPEC_FILE) > $(RPM_PACKAGE_DIR)/rpmbuild.stdout
+	$(QUIET) rpmbuild -bb --target=$(GCC_ARCH_REDUCED) --buildroot `readlink -f $(RPM_BUILD_ROOT)` $(RPM_SPEC_FILE) > $(RPM_PACKAGE_DIR)/rpmbuild.stdout
 
 # RPM for redhat and centos
 rpm: all prepare_rpm_package_dirs
-	$(QUIET) $(MAKE) STRIP_ON_INSTALL=0 RETHINKDB_VERSION=$(RETHINKDB_VERSION)-unstripped build-rpm
-	$(QUIET) $(MAKE) STRIP_ON_INSTALL=1 RETHINKDB_VERSION=$(RETHINKDB_VERSION) build-rpm
-
+	$(QUIET) $(MAKE) STRIP_ON_INSTALL=0 WEBRESDIR=$(web_res_dir) RETHINKDB_VERSION=$(RETHINKDB_VERSION)-unstripped build-rpm
+	$(QUIET) $(MAKE) STRIP_ON_INSTALL=1 WEBRESDIR=$(web_res_dir) RETHINKDB_VERSION=$(RETHINKDB_VERSION) build-rpm
 # Print a nice message with the location of the created package
 	@echo
 	@echo "$(ANSI_BOLD_ON)Your RPM packages are here:$(ANSI_BOLD_OFF)"
-	$(QUIET) for f in $(RPM_PACKAGE_DIR)/RPMS/x86_64/*.rpm; do	                \
+	$(QUIET) for f in $(RPM_PACKAGE_DIR)/RPMS/$(GCC_ARCH_REDUCED)/*.rpm; do	                \
 			rpm_name=`readlink -f $(PACKAGES_DIR)`/$$(basename $$f);	\
 			mv $$f $$rpm_name;						\
 			echo "  $(ANSI_UL_ON)$${rpm_name}$(ANSI_UL_OFF)";		\
@@ -989,13 +1179,13 @@ oprof-report:
 
 drivers:
 ifeq ($(BUILD_DRIVERS), 1)
-	$(QUIET) cd ../drivers ; $(MAKE) ;
+	$(QUIET) cd ../drivers ; $(MAKE) PROTOC_BASE="$(PROTOC_BASE)" TC_PROTOC_CFLAGS="$(TC_PROTOC_CFLAGS)" ;
 else
-	$(QUIET) cd ../drivers/javascript ; $(MAKE) ;
+	$(QUIET) cd ../drivers/javascript ; $(MAKE) PROTOC_BASE="$(PROTOC_BASE)" TC_PROTOC_CFLAGS="$(TC_PROTOC_CFLAGS)" ;
 endif #BUILD_DRIVERS
 
 
-$(WEB_ASSETS_BUILD_DIR)/js/rethinkdb.js: drivers
+$(WEB_ASSETS_BUILD_DIR)/js/rethinkdb.js: drivers $(WEB_ASSETS_BUILD_DIR)/js
 	$(QUIET) cp -pRP ../build/drivers/javascript/rethinkdb.js $(WEB_ASSETS_BUILD_DIR)/js/rethinkdb.js ;
 
 rpc/semilattice/joins/macros.hpp: ../scripts/generate_join_macros.py
@@ -1014,19 +1204,19 @@ ifeq ($(VERBOSE),0)
 endif
 	$(QUIET) cat $+ > $@ || ( echo "      Build failure." ; rm $@ ; false ; )
 
-$(WEB_ASSETS_BUILD_DIR)/cluster-min.js: $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee
+$(WEB_ASSETS_BUILD_DIR)/cluster-min.js: $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee $(TC_COFFEE_EXE) $(TC_NODE_EXE)
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
 ifeq ($(VERBOSE),0)
 	@echo "    COFFEE $@"
 endif
-	$(QUIET) $(TC_COFFEE_EXE) -bp --stdio < $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee > $@ || ( echo "      Build failure." ; rm $@ ; false ; )
+	$(QUIET) $(NODE_EXE_SPEC)$(TC_COFFEE_EXE) -bp --stdio < $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee > $@ || ( echo "      Build failure." ; rm $@ ; false ; )
 
-$(WEB_ASSETS_BUILD_DIR)/cluster.css: $(LESS_MAIN)
+$(WEB_ASSETS_BUILD_DIR)/cluster.css: $(LESS_MAIN) $(TC_LESSC_EXE) $(TC_NODE_EXE)
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
 ifeq ($(VERBOSE),0)
 	@echo "    LESSC $@"
 endif
-	$(QUIET) $(TC_LESSC_EXE) $(LESS_MAIN) > $@ || ( echo "      Build failure." ; rm $@ ; false ; )
+	$(QUIET) $(NODE_EXE_SPEC)$(TC_LESSC_EXE) $(LESS_MAIN) > $@ || ( echo "      Build failure." ; rm $@ ; false ; )
 
 $(WEB_ASSETS_BUILD_DIR)/index.html: $(CLUSTER_HTML) $(HANDLEBARS_SOURCES)
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
@@ -1066,27 +1256,28 @@ endif
 
 # Special recipe for the proto buffer generated code
 # Need to use a dummy file to avoid calling protoc once for each input file.
-$(PROTO_DIR)/dummy: $(PROTO_SOURCES)
+$(PROTO_DIR)/dummy: $(PROTO_SOURCES) $(TC_PROTOC_EXE)
 	$(QUIET) mkdir -p $(PROTO_DIR)
 ifeq ($(VERBOSE),0)
 	@echo "    PROTOC[CPP] $^"
 endif
-	$(QUIET) protoc $(PROTOCFLAGS) --cpp_out $(PROTO_DIR) $^
-	$(QUIET) touch $@
+	$(QUIET) $(TC_PROTOC_RUN) $(PROTOCFLAGS) --cpp_out $(PROTO_DIR) $(PROTO_SOURCES) && touch $@
+# The preceding line used $^ instead of $(PROTO_SOURCES) before.
+# The touch command was on a separate line, but that caused problems since make ignored the failure of that line and touched the file anyway.
 
 $(PROTO_HEADERS) $(PROTO_CODE): $(PROTO_DIR)/dummy
 
-$(BUILD_DIR)/$(SERVER_EXEC_NAME): $(OBJS) $(BUILD_DIR)
+$(BUILD_DIR)/$(SERVER_EXEC_NAME): $(OBJS) $(BUILD_DIR) $(OBJ_SUPPS)
 ifeq ($(VERBOSE),0)
 	@echo "    LD $@"
 endif
 ifeq ($(IGNORE_SOME_ICC_LD_WARNINGS),0)
-	$(QUIET) $(CXX) $(LDFLAGS) $(SERVER_EXEC_OBJS) $(STATIC_LIBRARY_PATHS) -o $(BUILD_DIR)/$(SERVER_EXEC_NAME)
+	$(QUIET) $(RT_CXX) $(RT_LDFLAGS) $(SERVER_EXEC_OBJS) $(STATIC_LIBRARY_PATHS) -o $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 else
 # The following line runs CXX in linking mode (supplying only the object files and libraries) and then
 # pass the output through a filter which filters out bogus (?) icc-related problems.
 # FIXME: figure out why we get these problems
-	$(QUIET) ($(CXX) $(LDFLAGS) $(SERVER_EXEC_OBJS) $(STATIC_LIBRARY_PATHS) -o $(BUILD_DIR)/$(SERVER_EXEC_NAME) 2>&1 >&3 | (grep -v "warning: relocation refers to discarded section" || true) >&2) 3>&1
+	$(QUIET) ($(RT_CXX) $(RT_LDFLAGS) $(SERVER_EXEC_OBJS) $(STATIC_LIBRARY_PATHS) -o $(BUILD_DIR)/$(SERVER_EXEC_NAME) 2>&1 >&3 | (grep -v "warning: relocation refers to discarded section" || true) >&2) 3>&1
 endif
 ifeq ($(NO_TCMALLOC),0)
 	@objdump -T $(BUILD_DIR)/$(SERVER_EXEC_NAME) | c++filt | grep -q 'tcmalloc::\|google_malloc' || \
@@ -1098,20 +1289,20 @@ endif
 
 # The unittests use gtest, which uses macros that expand into switch statements which don't contain
 # default cases. So we have to remove the -Wswitch-default argument for them.
-$(OBJ_DIR)/unittest/%.o: CXXFLAGS:=$(filter-out -Wswitch-default,$(CXXFLAGS))
+$(OBJ_DIR)/unittest/%.o: RT_CXXFLAGS:=$(filter-out -Wswitch-default,$(RT_CXXFLAGS))
 
-$(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME): $(OBJS) $(BUILD_DIR)
+$(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME): $(OBJS) $(BUILD_DIR) $(OBJ_SUPPS)
 ifeq ($(VERBOSE),0)
 	@echo "    LD $@"
 endif
 ifeq ($(IGNORE_SOME_ICC_LD_WARNINGS),0)
-	$(QUIET) $(CXX) $(LDFLAGS) $(SERVER_UNIT_TEST_OBJS) $(STATIC_LIBRARY_PATHS) -o $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME)
+	$(QUIET) $(RT_CXX) $(RT_LDFLAGS) $(SERVER_UNIT_TEST_OBJS) $(STATIC_LIBRARY_PATHS) $(UNIT_STATIC_LIBRARY_PATHS) -o $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME)
 else
 # Note: that is the copy of the problem description that we have above in server linking section.
 # The following line runs CXX in linking mode (supplying only the object files and libraries) and then
 # pass the output through a filter which filters out bogus (?) icc-related problems.
 # FIXME: figure out why we get these problems
-	$(QUIET) ($(CXX) $(LDFLAGS) $(SERVER_UNIT_TEST_OBJS) $(STATIC_LIBRARY_PATHS) -o $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME) 2>&1 >&3 | (grep -v "warning: relocation refers to discarded section" || true) >&2) 3>&1
+	$(QUIET) ($(RT_CXX) $(RT_LDFLAGS) $(SERVER_UNIT_TEST_OBJS) $(STATIC_LIBRARY_PATHS) $(UNIT_STATIC_LIBRARY_PATHS) -o $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME) 2>&1 >&3 | (grep -v "warning: relocation refers to discarded section" || true) >&2) 3>&1
 endif
 
 $(BUILD_DIR)/$(START_DB_NAME):
@@ -1177,7 +1368,7 @@ cscope:
 	$(QUIET) cscope -bR -f $(CSCOPE_XREF)
 
 analyze: $(SOURCES)
-	$(QUIET) clang --analyze $(CXXFLAGS) $(SOURCES)
+	$(QUIET) clang --analyze $(RT_CXXFLAGS) $(SOURCES)
 
 coffeelint:
 	-coffeelint -f ../scripts/coffeelint.json -r ../admin/
@@ -1186,7 +1377,7 @@ style: coffeelint
 	$(QUIET) ../scripts/check_style.sh
 
 showdefines:
-	$(QUIET) $(CXX) $(CXXFLAGS) -m32 -E -dM - < /dev/null
+	$(QUIET) $(RT_CXX) $(RT_CXXFLAGS) -m32 -E -dM - < /dev/null
 
 depclean:
 ifeq ($(VERBOSE),0)
@@ -1218,22 +1409,22 @@ $(OBJ_DIR)/%.pb.o:  $(PROTO_DIR)/%.pb.cc $(MAKEFILE_DEPENDENCY) $(PROTO_HEADERS)
 ifeq ($(VERBOSE),0)
 	@echo "    CC $< -o $@"
 endif
-	$(QUIET) $(CXX) $(CXXFLAGS) -c -o $@ $<
+	$(QUIET) $(RT_CXX) $(RT_CXXFLAGS) -c -o $@ $<
 
-$(OBJ_DIR)/%.o: $(SOURCE_DIR)/%.cc $(MAKEFILE_DEPENDENCY)
+$(OBJ_DIR)/%.o: $(SOURCE_DIR)/%.cc $(MAKEFILE_DEPENDENCY) $(V8_DEP)
 	$(QUIET) mkdir -p $(dir $@)
 ifeq ($(VERBOSE),0)
 	@echo "    CC $< -o $@"
 endif
-	$(QUIET) $(CXX) $(CXXFLAGS) -c -o $@ $<
+	$(QUIET) $(RT_CXX) $(RT_CXXFLAGS) -c -o $@ $<
 
 # Dependencies
-$(DEP_DIR)/%.d: $(SOURCE_DIR)/%.cc $(PROTO_HEADERS)
+$(DEP_DIR)/%.d: $(SOURCE_DIR)/%.cc $(PROTO_HEADERS) $(V8_DEP)
 ifeq ($(VERBOSE),0)
 	@echo "    DEP $@"
 endif
 	$(QUIET) mkdir -p $(dir $@)
-	$(QUIET) $(CXX) $(CXXFLAGS) -M -MQ $(OBJ_DIR)/$*.o -MQ $@ $< > $@ || ( echo "      Build failure." ; rm $@ ; false ; )
+	$(QUIET) $(RT_CXX) $(RT_CXXFLAGS) -M -MQ $(OBJ_DIR)/$*.o -MQ $@ $< > $@ || ( echo "      Build failure." ; rm $@ ; false ; )
 
 # Without this, the proto headers get generated to build the .d files, then are removed as
 # intermediate files; then the .d files are read in, and some depend on the proto headers, so they
@@ -1241,7 +1432,7 @@ endif
 # bug in GNU Make, possibly a bug in our Makefile.
 .SECONDARY: $(PROTO_HEADERS)
 
-NO_DEPS_TARGETS:=clean depclean tags etags analyze cscope style web-assets build-deb-src build-deb-src-control build-deb-support $(TC_LESSC_INT_EXE) $(TC_COFFEE_INT_EXE) $(SUPPORT_DIR) $(WEB_ASSETS_BUILD_DIR)/cluster-min.js $(WEB_ASSETS_BUILD_DIR)/cluster.css $(WEB_ASSETS_BUILD_DIR)/index.html $(WEB_ASSETS_BUILD_DIR)/js $(WEB_ASSETS_BUILD_DIR)/fonts $(WEB_ASSETS_BUILD_DIR)/images $(WEB_ASSETS_BUILD_DIR)/favicon.ico $(WEB_ASSETS_BUILD_DIR)/js/rethinkdb.js $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee $(COFFEE_SOURCES) $(PROTO_DIR)/dummy $(PROTO_SOURCES) $(PROTO_HEADERS) $(PROTO_CODE) $(PROTO_DIR)/dummy $(OPROF_TARGETS)
+NO_DEPS_TARGETS:=clean depclean tags etags analyze cscope style web-assets build-deb-src-control build-deb-support $(WEB_ASSETS_BUILD_DIR)/cluster-min.js $(WEB_ASSETS_BUILD_DIR)/cluster.css $(WEB_ASSETS_BUILD_DIR)/index.html $(WEB_ASSETS_BUILD_DIR)/js $(WEB_ASSETS_BUILD_DIR)/fonts $(WEB_ASSETS_BUILD_DIR)/images $(WEB_ASSETS_BUILD_DIR)/favicon.ico $(WEB_ASSETS_BUILD_DIR)/js/rethinkdb.js $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee $(COFFEE_SOURCES) $(PROTO_DIR)/dummy $(PROTO_SOURCES) $(PROTO_HEADERS) $(PROTO_CODE) $(PROTO_DIR)/dummy $(OPROF_TARGETS) $(TC_LESSC_INT_EXE) $(TC_COFFEE_INT_EXE) $(SUPPORT_DIR) $(V8_SRC_DIR) $(V8_DIR) $(V8_LIB) $(NODE_SRC_DIR) $(NODE_DIR) $(TC_NODE_INT_EXE) $(TC_NPM_INT_EXE) $(PROTOC_SRC_DIR) $(PROTOC_DIR) $(TC_PROTOC_INT_EXE) $(GPERFTOOLS_SRC_DIR) $(GPERFTOOLS_DIR) $(LIBUNWIND_SRC_DIR) $(LIBUNWIND_DIR) $(TCMALLOC_MINIMAL_INT_LIB)
 # Include the dependencies into the makefile so that they take effect
 ifneq (,$(if $(MAKECMDGOALS),$(filter-out $(NO_DEPS_TARGETS),$(MAKECMDGOALS)),non-empty-placeholder))
 -include $(DEPS)
@@ -1251,23 +1442,113 @@ endif
 
 # Note that this assumes that its locations match those earlier in the Makefile. If you change TC_LESSC_EXE, you probably ought to change these as well .
 
-$(TC_LESSC_INT_EXE): $(SUPPORT_DIR)
-ifeq ($(INSTALL_INTERNAL_TOOLS),1)
+$(TC_LESSC_INT_EXE): $(TC_NPM_EXE)
+ifeq ($(FETCH_INTERNAL_TOOLS),1)
 # ifeq ($(shell npm list --global --parseable | grep '\/less$$'),)
 # We must do this either way now.
-	if [ -d $(SUPPORT_DIR) ] && [ ! -e $(SUPPORT_DIR)/toolchain ] ; then mkdir -p $(SUPPORT_DIR)/toolchain ; fi ;
-	cd $(SUPPORT_DIR)/toolchain ; npm install less ;
+	$(QUIET) if [ ! -e $(SUPPORT_DIR) ] ; then mkdir -p $(SUPPORT_DIR) ; fi ;
+	$(QUIET) if [ -d $(SUPPORT_DIR) ] && [ ! -e $(SUPPORT_DIR)/toolchain ] ; then mkdir -p $(SUPPORT_DIR)/toolchain ; fi ;
+	@echo "    NPM-I coffee-script"
+	$(QUIET) cd $(SUPPORT_DIR)/toolchain ; $(TC_NPM_EXE) install less ;
 # endif
+else
+	@ if [ ! -e $(TC_LESSC_INT_EXE) ] ; then echo "    ERROR: Internal lessc is necessary but not present, and FETCH_INTERNAL_TOOLS != 1." ; false ; fi ;
 endif
 
-$(TC_COFFEE_INT_EXE): $(SUPPORT_DIR)
-ifeq ($(INSTALL_INTERNAL_TOOLS),1)
+$(TC_COFFEE_INT_EXE): $(TC_NPM_EXE)
+ifeq ($(FETCH_INTERNAL_TOOLS),1)
 # ifeq ($(shell npm list --global --parseable | grep '\/coffee-script$$'),)
-	if [ -d $(SUPPORT_DIR) ] && [ ! -e $(SUPPORT_DIR)/toolchain ] ; then mkdir -p $(SUPPORT_DIR)/toolchain ; fi ;
-	cd $(SUPPORT_DIR)/toolchain ; npm install coffee-script ;
+	$(QUIET) if [ ! -e $(SUPPORT_DIR) ] ; then mkdir -p $(SUPPORT_DIR) ; fi ;
+	$(QUIET) if [ -d $(SUPPORT_DIR) ] && [ ! -e $(SUPPORT_DIR)/toolchain ] ; then mkdir -p $(SUPPORT_DIR)/toolchain ; fi ;
+	@echo "    NPM-I coffee-script"
+	$(QUIET) cd $(SUPPORT_DIR)/toolchain ; $(TC_NPM_EXE) install coffee-script ;
 # endif
+else
+	@ if [ ! -e $(TC_COFFEE_INT_EXE) ] ; then echo "    ERROR: Internal coffee-script is necessary but not present, and FETCH_INTERNAL_TOOLS != 1." ; false ; fi ;
 endif
 
 $(SUPPORT_DIR):
-	mkdir -p $(SUPPORT_DIR) ;
+# We need to stop using this. The time-stamp causes other things to rebuild.
+	$(QUIET) mkdir -p $(SUPPORT_DIR) ;
+
+$(V8_SRC_DIR):
+ifeq ($(FETCH_INTERNAL_TOOLS),1)
+	$(QUIET) if [ ! -e $(SUPPORT_DIR)/src ] ; then mkdir -p $(SUPPORT_DIR)/src ; fi ;
+	@echo "    SVN-CO V8"
+	$(QUIET) cd ../support/src && svn checkout http://v8.googlecode.com/svn/trunk/ v8 && cd v8 && make dependencies ;
+else
+	@ if [ ! -e $(V8_SRC_DIR) ] ; then echo "    ERROR: Internal V8 is necessary but not not present, and FETCH_INTERNAL_TOOLS != 1." ; false ; fi ;
+endif
+
+$(V8_DIR): $(V8_SRC_DIR)
+	$(QUIET) if [ ! -e $(SUPPORT_DIR)/build ] ; then mkdir -p $(SUPPORT_DIR)/build ; fi ;
+	$(QUIET) cd ../support && rm -rf build/v8 && cp -pRP src/v8 build/ ;
+
+$(V8_LIB): $(V8_DIR)
+	$(QUIET) cd $(V8_DIR) && make prefix=$(SUPPORT_DIR_ABS)/usr DESTDIR=/ native && find ./ -iname "*.o" | grep -v '\/preparser_lib\/' | xargs ar cqs libv8.a ;
+
+$(NODE_SRC_DIR):
+	$(QUIET) if [ ! -e $(SUPPORT_DIR)/src ] ; then mkdir -p $(SUPPORT_DIR)/src ; fi ;
+ifeq ($(FETCH_INTERNAL_TOOLS),1)
+	@echo "    WGET NODE"
+	$(QUIET) cd ../support/src && wget http://nodejs.org/dist/v0.8.11/node-v0.8.11.tar.gz && tar -xzf node-v0.8.11.tar.gz && rm -rf node && mv node-v0.8.11 node && rm node-v0.8.11.tar.gz ;
+else
+	@ if [ ! -e $(NODE_SRC_DIR) ] ; then echo "    ERROR: Internal node.js is necessary but not not present, and FETCH_INTERNAL_TOOLS != 1." ; false ; fi ;
+endif
+
+$(NODE_DIR): $(NODE_SRC_DIR)
+	$(QUIET) if [ ! -e $(SUPPORT_DIR)/build ] ; then mkdir -p $(SUPPORT_DIR)/build ; fi ;
+	$(QUIET) cd ../support && rm -rf build/node && cp -pRP src/node build/ ;
+
+$(TC_NPM_INT_EXE): $(TC_NODE_INT_EXE)
+
+$(TC_NODE_INT_EXE): $(NODE_DIR)
+# NOTE: MAKEFLAGS pass through to chained makes, so it is necessary to over-ride those flags that one wishes not to pass through. Scrubbing all flags and environment variables is not a solution since we want to pass through things like LD_LIBRARY_PATH and PATH and such.
+	( unset prefix && unset PREFIX && unset DESTDIR && unset MAKEFLAGS && unset MFLAGS && cd $(NODE_DIR) && ./configure --prefix=$(SUPPORT_DIR_ABS)/usr && $(MAKE) prefix=$(SUPPORT_DIR_ABS)/usr DESTDIR=/ && $(MAKE) install prefix=$(SUPPORT_DIR_ABS)/usr DESTDIR=/ ; )
+
+$(PROTOC_SRC_DIR):
+	$(QUIET) if [ ! -e $(SUPPORT_DIR)/src ] ; then mkdir -p $(SUPPORT_DIR)/src ; fi ;
+ifeq ($(FETCH_INTERNAL_TOOLS),1)
+	@echo "    WGET PROTOC"
+	$(QUIET) cd ../support/src && wget http://protobuf.googlecode.com/files/protobuf-2.4.1.tar.bz2 && tar -xjf protobuf-2.4.1.tar.bz2 && rm -rf protobuf && mv protobuf-2.4.1 protobuf && rm protobuf-2.4.1.tar.bz2 ;
+else
+	@ if [ ! -e $(PROTOC_SRC_DIR) ] ; then echo "    ERROR: Internal protoc is necessary but not not present, and FETCH_INTERNAL_TOOLS != 1." ; false ; fi ;
+endif
+
+$(PROTOC_DIR): $(PROTOC_SRC_DIR)
+	$(QUIET) if [ ! -e $(SUPPORT_DIR)/build ] ; then mkdir -p $(SUPPORT_DIR)/build ; fi ;
+	$(QUIET) cd ../support && rm -rf build/protobuf && cp -pRP src/protobuf build/ ;
+
+$(TC_PROTOC_INT_EXE): $(PROTOC_DIR)
+# NOTE: MAKEFLAGS pass through to chained makes, so it is necessary to over-ride those flags that one wishes not to pass through. Scrubbing all flags and environment variables is not a solution since we want to pass through things like LD_LIBRARY_PATH and PATH and such.
+	cd $(PROTOC_DIR) && ./configure --prefix=$(SUPPORT_DIR_ABS)/usr && $(MAKE) PREFIX=$(SUPPORT_DIR_ABS)/usr prefix=$(SUPPORT_DIR_ABS)/usr DESTDIR=/ && $(MAKE) install PREFIX=$(SUPPORT_DIR_ABS)/usr prefix=$(SUPPORT_DIR_ABS)/usr DESTDIR=/ ;
+
+$(GPERFTOOLS_SRC_DIR):
+	$(QUIET) if [ ! -e $(SUPPORT_DIR)/src ] ; then mkdir -p $(SUPPORT_DIR)/src ; fi ;
+ifeq ($(FETCH_INTERNAL_TOOLS),1)
+	@echo "    WGET GPERFTOOLS"
+	$(QUIET) cd ../support/src && wget http://gperftools.googlecode.com/files/gperftools-2.0.tar.gz && tar -xzf gperftools-2.0.tar.gz && rm -rf gperftools && mv gperftools-2.0 gperftools && rm gperftools-2.0.tar.gz ;
+else
+	@ if [ ! -e $(GPERFTOOLS_SRC_DIR) ] ; then echo "    ERROR: Internal gperftools is necessary but not not present, and FETCH_INTERNAL_TOOLS != 1." ; false ; fi ;
+endif
+
+$(GPERFTOOLS_DIR): $(GPERFTOOLS_SRC_DIR)
+	$(QUIET) if [ ! -e $(SUPPORT_DIR)/build ] ; then mkdir -p $(SUPPORT_DIR)/build ; fi ;
+	$(QUIET) cd ../support && rm -rf build/gperftools && cp -pRP src/gperftools build/ ;
+
+$(LIBUNWIND_SRC_DIR):
+	$(QUIET) if [ ! -e $(SUPPORT_DIR)/src ] ; then mkdir -p $(SUPPORT_DIR)/src ; fi ;
+ifeq ($(FETCH_INTERNAL_TOOLS),1)
+	@echo "    WGET LIBUNWIND"
+	$(QUIET) cd ../support/src && wget http://download.savannah.gnu.org/releases/libunwind/libunwind-1.1.tar.gz && tar -xzf libunwind-1.1.tar.gz && rm -rf libunwind && mv libunwind-1.1 libunwind && rm libunwind-1.1.tar.gz ;
+else
+	@ if [ ! -e $(LIBUNWIND_SRC_DIR) ] ; then echo "    ERROR: Internal libunwind is necessary but not not present, and FETCH_INTERNAL_TOOLS != 1." ; false ; fi ;
+endif
+
+$(LIBUNWIND_DIR): $(LIBUNWIND_SRC_DIR)
+	$(QUIET) if [ ! -e $(SUPPORT_DIR)/build ] ; then mkdir -p $(SUPPORT_DIR)/build ; fi ;
+	$(QUIET) cd ../support && rm -rf build/libunwind && cp -pRP src/libunwind build/ ;
+
+$(TCMALLOC_MINIMAL_INT_LIB): $(LIBUNWIND_DIR) $(GPERFTOOLS_DIR)
+	$(QUIET) cd ../support/build && rm -f native_list.txt semistaged_list.txt staged_list.txt boost_list.txt post_boost_list.txt && touch native_list.txt semistaged_list.txt staged_list.txt boost_list.txt post_boost_list.txt && echo libunwind >> semistaged_list.txt && echo gperftools >> semistaged_list.txt && cp -pRP $(COLONIZE_SCRIPT_ABS) ./ && ( unset PREFIX && unset prefix && unset MAKEFLAGS && unset MFLAGS && unset DESTDIR && bash ./colonize.sh ; )
 

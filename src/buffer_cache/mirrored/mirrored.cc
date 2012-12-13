@@ -1,4 +1,5 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
+#define __STDC_FORMAT_MACROS
 #include "buffer_cache/mirrored/mirrored.hpp"
 
 #include "errors.hpp"
@@ -435,7 +436,7 @@ void *mc_inner_buf_t::acquire_snapshot_data(version_id_t version_to_access, file
             return snap->acquire_data(io_account);
         }
     }
-    unreachable("No acceptable snapshotted version found for version %lu", version_to_access);
+    unreachable("No acceptable snapshotted version found for version %" PRIu64 "", version_to_access);
 }
 
 // TODO (sam): Look at who's passing this void pointer.
@@ -1160,7 +1161,7 @@ mc_transaction_t::~mc_transaction_t() {
 
     cache->stats->pm_transactions_active.end(&start_time);
 
-    rassert(num_buf_locks_acquired == 0, "num_buf_locks_acquired = %ld", num_buf_locks_acquired);
+    rassert(num_buf_locks_acquired == 0, "num_buf_locks_acquired = %" PRIu64 "", num_buf_locks_acquired);
     guarantee(num_buf_locks_acquired == 0);
 
     block_pm_duration commit_timer(&cache->stats->pm_transactions_committing);

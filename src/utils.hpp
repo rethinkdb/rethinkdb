@@ -21,7 +21,6 @@
 #include "errors.hpp"
 #include "config/args.hpp"
 
-
 struct const_charslice {
     const char *beg, *end;
     const_charslice(const char *_beg, const char *_end) : beg(_beg), end(_end) { }

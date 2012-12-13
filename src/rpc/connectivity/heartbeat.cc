@@ -1,4 +1,5 @@
 #include "rpc/connectivity/heartbeat.hpp"
+#include "logger.hpp"
 
 heartbeat_manager_t::heartbeat_manager_t(message_service_t *_message_service) :
     message_service(_message_service) {
@@ -47,6 +48,8 @@ void heartbeat_manager_t::timer_callback(void *ctx) {
     for (std::map<peer_id_t, uint32_t>::iterator it = data->connections.begin();
          it != data->connections.end(); ++it) {
         if (it->second >= HEARTBEAT_TIMEOUT_INTERVALS) {
+            const std::string peer_str(uuid_to_str(it->first.get_uuid()).c_str());
+            logERR("Heartbeat timeout, killing connection to peer: %s.", peer_str.c_str());
             coro_t::spawn_later_ordered(boost::bind(&message_service_t::kill_connection, self->message_service, it->first));
         } else {
             coro_t::spawn_later_ordered(boost::bind(&message_service_t::send_message, self->message_service, it->first, &self->writer));

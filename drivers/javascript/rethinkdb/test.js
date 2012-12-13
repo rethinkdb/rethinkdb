@@ -303,7 +303,7 @@ function testGroupBy() {
         {g1: 2, g2: 3, num: 100}
     ]);
 
-    s.groupBy('g1', r.average('num')).run(objeq(
+    s.groupBy('g1', r.avg('num')).run(objeq(
         {group:1, reduction:5},
         {group:2, reduction:50}
     ));
@@ -315,7 +315,7 @@ function testGroupBy() {
         {group:1, reduction:15},
         {group:2, reduction:100}
     ));
-    s.groupBy('g1', 'g2', r.average('num')).run(objeq(
+    s.groupBy('g1', 'g2', r.avg('num')).run(objeq(
         {group:[1,1], reduction: 0},
         {group:[1,2], reduction: 7.5},
         {group:[2,3], reduction: 50}

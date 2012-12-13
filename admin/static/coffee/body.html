@@ -20,7 +20,12 @@
                 <li><a href="http://groups.google.com/group/rethinkdb">Google Groups</a></li>
                 <li><a href="irc://chat.freenode.net/#rethinkdb">#rethinkdb on freenode</a></li>
                 <li><a href="https://github.com/rethinkdb/rethinkdb/issues">Github project</a></li>
-                <li><a href="http://rethinkdb.com/community/">Community</a></li>
+                {{!
+                        We use an invisible span with no content to preload the monospace font for the data explorer:
+                        This ensures that data explorer suggestions won't be delayed while loading the font.
+                        This is an ugly hack, but using a prefetching / prerendering link tag doesn't resolve this adequately.
+                }}
+                <li><a href="http://rethinkdb.com/community/">Community</a><span class="preload_fonts"> </span></li>
             </ul>
         </div>
     </div>
