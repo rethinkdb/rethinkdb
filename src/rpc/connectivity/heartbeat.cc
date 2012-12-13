@@ -50,9 +50,9 @@ void heartbeat_manager_t::timer_callback(void *ctx) {
         if (it->second >= HEARTBEAT_TIMEOUT_INTERVALS) {
             const std::string peer_str(uuid_to_str(it->first.get_uuid()).c_str());
             logERR("Heartbeat timeout, killing connection to peer: %s.", peer_str.c_str());
-            coro_t::spawn_later_ordered(boost::bind(&message_service_t::kill_connection, self->message_service, it->first));
+            coro_t::spawn_later_ordered(boost::bind(&heartbeat_manager_t::kill_connection_wrapper, self, it->first, auto_drainer_t::lock_t(&data->drainer)));
         } else {
-            coro_t::spawn_later_ordered(boost::bind(&message_service_t::send_message, self->message_service, it->first, &self->writer));
+            coro_t::spawn_later_ordered(boost::bind(&heartbeat_manager_t::send_message_wrapper, self, it->first, auto_drainer_t::lock_t(&data->drainer)));
         }
         ++it->second;
     }
@@ -67,3 +67,10 @@ void heartbeat_manager_t::message_from_peer(const peer_id_t &source_peer) {
     }
 }
 
+void heartbeat_manager_t::kill_connection_wrapper(const peer_id_t peer, UNUSED auto_drainer_t::lock_t keepalive) {
+    message_service->kill_connection(peer);
+}
+
+void heartbeat_manager_t::send_message_wrapper(const peer_id_t peer, UNUSED auto_drainer_t::lock_t keepalive) {
+    message_service->send_message(peer, &writer);
+}
