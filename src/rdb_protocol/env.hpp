@@ -18,8 +18,9 @@ namespace ql {
 class term_t;
 class env_t {
 public:
-    val_t *add_and_ret(datum_t *d, term_t *parent) {
-        val_t *v = new val_t(d, parent);
+    template<class T>
+    val_t *add_and_ret(T t, term_t *parent) {
+        val_t *v = new val_t(t, parent);
         vals.push_back(v);
         return v;
     }

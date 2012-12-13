@@ -87,6 +87,9 @@ public:
                           signal_t *_interruptor, key_range_t _range, 
                           int _batch_size, const backtrace_t &_table_scan_backtrace,
                           bool _use_outdated);
+    batched_rget_stream_t(const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access, 
+                          signal_t *_interruptor, key_range_t _range, 
+                          int _batch_size, bool _use_outdated);
 
     boost::shared_ptr<scoped_cJSON_t> next();
 
@@ -111,7 +114,7 @@ private:
     bool finished, started;
     bool use_outdated;
 
-    backtrace_t table_scan_backtrace;
+    boost::optional<backtrace_t> table_scan_backtrace;
 };
 
 class union_stream_t : public json_stream_t {

@@ -8,12 +8,14 @@
 #include <boost/ptr_container/ptr_map.hpp>
 
 #include "containers/scoped.hpp"
+#include "containers/uuid.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/ql2.pb.h"
 
 namespace ql {
 class env_t;
 class val_t;
+class table_t;
 class term_t {
 public:
     term_t(env_t *_env);
@@ -23,6 +25,9 @@ public:
     val_t *eval(bool use_cached_val = true);
 
     val_t *new_val(datum_t *d);
+    val_t *new_val(uuid_t db);
+    val_t *new_val(table_t *t);
+
     val_t *new_val() { return new_val(new datum_t()); }
     template<class T>
     val_t *new_val(T t) { return new_val(new datum_t(t)); }
@@ -33,6 +38,10 @@ public:
 private:
     virtual val_t *eval_impl() = 0;
     val_t *cached_val;
+
+    // These two need access to `env`
+    friend class db_term_t;
+    friend class table_term_t;
     env_t *env;
 
     scoped_ptr_t<backtrace_t::frame_t> frame;

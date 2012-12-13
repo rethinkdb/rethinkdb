@@ -179,7 +179,7 @@ message Term2 {
         DB    = 14; // STR -> DB
         // Returns a reference to a table.
         // http://www.rethinkdb.com/api/#js:selecting_data-table
-        TABLE = 15; // STR, DB -> Table
+        TABLE = 15; // DB, STR -> Table
                          // Optargs: use_outdated (BOOL)
         // Gets a single element from a table by its primary key.
         // http://www.rethinkdb.com/api/#js:selecting_data-get

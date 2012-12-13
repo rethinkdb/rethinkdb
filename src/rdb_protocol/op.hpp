@@ -9,14 +9,15 @@ public:
     op_term_t(env_t *env, const Term2 *term);
     virtual ~op_term_t();
     size_t num_args() const;
-    term_t *get_arg(size_t i);
+    term_t *arg(size_t i);
+
     void check_no_optargs() const;
+    void check_only_optargs(int n_keys, const char **keys) const;
+    term_t *optarg(const std::string &key, term_t *def/*ault*/);
 private:
     friend class make_obj_term_t; // need special access to optargs
     boost::ptr_vector<term_t> args;
     boost::ptr_map<const std::string, term_t> optargs;
-    //std::vector<term_t *> args;
-    //std::map<const std::string, term_t *> optargs;
 };
 
 class simple_op_term_t : public op_term_t {

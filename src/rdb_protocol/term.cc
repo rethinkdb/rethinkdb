@@ -4,6 +4,7 @@
 #include "rdb_protocol/terms/arith.hpp"
 #include "rdb_protocol/terms/pred.hpp"
 #include "rdb_protocol/terms/datum_terms.hpp"
+#include "rdb_protocol/terms/db_table.hpp"
 
 namespace ql {
 
@@ -16,8 +17,9 @@ term_t *compile_term(env_t *env, const Term2 *t) {
     case Term2_TermType_JAVASCRIPT:
     case Term2_TermType_ERROR:
     case Term2_TermType_IMPLICIT_VAR:
-    case Term2_TermType_DB:
-    case Term2_TermType_TABLE:
+        break;
+    case Term2_TermType_DB: return new db_term_t(env, t);
+    case Term2_TermType_TABLE: return new table_term_t(env, t);
     case Term2_TermType_GET:
         break;
     case Term2_TermType_EQ: // fallthrough
@@ -135,9 +137,10 @@ val_t *term_t::eval(bool use_cached_val) {
     return cached_val;
 }
 
-val_t *term_t::new_val(datum_t *d) {
-    return env->add_and_ret(d, this);
-}
+val_t *term_t::new_val(datum_t *d) { return env->add_and_ret(d, this); }
+val_t *term_t::new_val(uuid_t db) { return env->add_and_ret(db, this); }
+val_t *term_t::new_val(table_t *t) { return env->add_and_ret(t, this); }
+
 
 
 } //namespace ql

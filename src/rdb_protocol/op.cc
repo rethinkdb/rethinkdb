@@ -22,7 +22,7 @@ op_term_t::op_term_t(env_t *env, const Term2 *term) : term_t(env) {
 op_term_t::~op_term_t() { }
 
 size_t op_term_t::num_args() const { return args.size(); }
-term_t *op_term_t::get_arg(size_t i) {
+term_t *op_term_t::arg(size_t i) {
     rcheck(0 <= i && i < num_args(), strprintf("Index out of range: %lu", i));
     return &args[i];
 }
@@ -32,6 +32,21 @@ void op_term_t::check_no_optargs() const {
            strprintf("Operator %s takes no optional arguments, got %lu.",
                      name(), optargs.size()));
 }
+void op_term_t::check_only_optargs(int n_keys, const char **keys) const {
+    for (boost::ptr_map<const std::string, term_t>::const_iterator
+             it = optargs.begin(); it != optargs.end(); ++it) {
+        for (int i = 0; i < n_keys; ++i) if (it->first == keys[i]) goto valid_optarg;
+        rfail("Unexpected optional argument: %s", it->first.c_str());
+    valid_optarg:;
+    }
+}
+
+term_t *op_term_t::optarg(const std::string &key, term_t *def/*ault*/) {
+    boost::ptr_map<const std::string, term_t>::iterator
+        it = optargs.find(key);
+    if (it == optargs.end()) return def;
+    return it->second;
+}
 
 simple_op_term_t::simple_op_term_t(env_t *env, const Term2 *term)
     : op_term_t(env, term) { }
@@ -39,7 +54,7 @@ simple_op_term_t::~simple_op_term_t() { }
 val_t *simple_op_term_t::eval_impl() {
     check_no_optargs();
     std::vector<val_t *> new_args;
-    for (size_t i = 0; i < num_args(); ++i) new_args.push_back(get_arg(i)->eval());
+    for (size_t i = 0; i < num_args(); ++i) new_args.push_back(arg(i)->eval());
     return simple_call_impl(&new_args);
 }
 } //namespace ql

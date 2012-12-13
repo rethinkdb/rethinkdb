@@ -1,4 +1,5 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
+#include "rdb_protocol/ql2.hpp"
 #include "rdb_protocol/stream.hpp"
 #include "rdb_protocol/environment.hpp"
 #include "rdb_protocol/transform_visitors.hpp"
@@ -98,6 +99,15 @@ batched_rget_stream_t::batched_rget_stream_t(const namespace_repo_t<rdb_protocol
       table_scan_backtrace(_table_scan_backtrace)
 { }
 
+batched_rget_stream_t::batched_rget_stream_t(const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
+                      signal_t *_interruptor, key_range_t _range,
+                      int _batch_size, bool _use_outdated)
+    : ns_access(_ns_access), interruptor(_interruptor),
+      range(_range), batch_size(_batch_size), index(0),
+      finished(false), started(false), use_outdated(_use_outdated),
+      table_scan_backtrace()
+{ }
+
 boost::shared_ptr<scoped_cJSON_t> batched_rget_stream_t::next() {
     started = true;
     if (data.empty()) {
@@ -145,7 +155,11 @@ result_t batched_rget_stream_t::apply_terminal(const rdb_protocol_details::termi
 
         return p_res->result;
     } catch (cannot_perform_query_exc_t e) {
-        throw runtime_exc_t("cannot perform read: " + std::string(e.what()), table_scan_backtrace);
+        if (table_scan_backtrace) {
+            throw runtime_exc_t("cannot perform read: " + std::string(e.what()), *table_scan_backtrace);
+        } else {
+            throw ql::exc_t("cannot perform read: " + std::string(e.what()));
+        }
     }
 }
 
@@ -184,7 +198,11 @@ void batched_rget_stream_t::read_more() {
             finished = true;
         }
     } catch (cannot_perform_query_exc_t e) {
-        throw runtime_exc_t("cannot perform read: " + std::string(e.what()), table_scan_backtrace);
+        if (table_scan_backtrace) {
+            throw runtime_exc_t("cannot perform read: " + std::string(e.what()), *table_scan_backtrace);
+        } else {
+            throw ql::exc_t("cannot perform read: " + std::string(e.what()));
+        }
     }
 }
 
