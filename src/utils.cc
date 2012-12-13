@@ -34,12 +34,6 @@
 
 void run_generic_global_startup_behavior() {
     install_generic_crash_handler();
-#ifndef NDEBUG
-    rlimit core_limit;
-    core_limit.rlim_cur = 100 * MEGABYTE;
-    core_limit.rlim_max = 200 * MEGABYTE;
-    setrlimit(RLIMIT_CORE, &core_limit);
-#endif
 
     rlimit file_limit;
     int res = getrlimit(RLIMIT_NOFILE, &file_limit);
