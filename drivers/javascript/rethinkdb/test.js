@@ -536,15 +536,15 @@ var rerr = rethinkdb.errors.RuntimeError;
 function testNonAtomic1() {
 
     // Update modify
-    tbl.update(function(row) {return r.expr({x: r.js('return 1')})}).run(attreq('errors', 10));
-    tbl.update(function(row) {return r.expr({x:r.js('return 1')})}, true).run(attreq('updated', 10));
+    tbl.update(function(row) {return r.expr({x: r.js('1')})}).run(attreq('errors', 10));
+    tbl.update(function(row) {return r.expr({x:r.js('1')})}, true).run(attreq('updated', 10));
 }
 
 function testNonAtomic2() {
     tbl.map(function(row) {return row('x')}).reduce(0, function(a,b) {return a.add(b)}).run(aeq(10));
 
-    tbl.get(0).update(function(row) {return r.expr({x: r.js('return 1')})}).run(atype(rerr));
-    tbl.get(0).update(function(row) {return r.expr({x: r.js('return 2')})}, true).run(
+    tbl.get(0).update(function(row) {return r.expr({x: r.js('1')})}).run(atype(rerr));
+    tbl.get(0).update(function(row) {return r.expr({x: r.js('2')})}, true).run(
         attreq('updated', 1));
 }
 
@@ -552,8 +552,8 @@ function testNonAtomic3() {
     tbl.map(function(a){return a('x')}).reduce(0, function(a,b){return a.add(b);}).run(aeq(11));
 
     // Update error
-    tbl.update(function(row){return r.expr({x:r.js('return x')})}).run(attreq('errors', 10));
-    tbl.update(function(row){return r.expr({x:r.js('return x')})}, true).run(attreq('errors', 10));
+    tbl.update(function(row){return r.expr({x:r.js('x')})}).run(attreq('errors', 10));
+    tbl.update(function(row){return r.expr({x:r.js('x')})}, true).run(attreq('errors', 10));
     tbl.map(function(a){return a('x')}).reduce(0, function(a,b){return a.add(b);}).run(aeq(11));
     tbl.get(0).update(function(row){return r.expr({x:r.js('x')})}).run(atype(rerr));
     tbl.get(0).update(function(row){return r.expr({x:r.js('x')})}, true).run(atype(rerr));
@@ -563,33 +563,33 @@ function testNonAtomic4() {
     tbl.map(function(a){return a('x')}).reduce(0, function(a,b){return a.add(b);}).run(aeq(11));
 
     // Update skipped
-    tbl.update(function(row){return r.branch(r.js('return true'),
+    tbl.update(function(row){return r.branch(r.js('true'),
                                         r.expr(null),
                                         r.expr({x:0.1}))}).run(attreq('errors',10));
-    tbl.update(function(row){return r.branch(r.js('return true'),
+    tbl.update(function(row){return r.branch(r.js('true'),
                                         r.expr(null),
                                         r.expr({x:0.1}))}, true).run(attreq('skipped',10));
 }
 
 function testNonAtomic5() {
     tbl.map(function(a){return a('x')}).reduce(0, function(a,b){return a.add(b);}).run(aeq(11));
-    tbl.get(0).update(function(row){return r.branch(r.js('return true'),
+    tbl.get(0).update(function(row){return r.branch(r.js('true'),
                                             r.expr(null),
                                             r.expr({x:0.1}))}).run(atype(rerr));
-    tbl.get(0).update(function(row){return r.branch(r.js('return true'),
+    tbl.get(0).update(function(row){return r.branch(r.js('true'),
                                             r.expr(null),
                                             r.expr({x:0.1}))}, true).run(attreq('skipped', 1));
     tbl.map(function(a){return a('x')}).reduce(0, function(a,b){return a.add(b);}).run(aeq(11));
 
     // Replace modify
-    tbl.get(0).replace(function(row){return r.branch(r.js('return true'), row, r.expr(null))}).run(
+    tbl.get(0).replace(function(row){return r.branch(r.js('true'), row, r.expr(null))}).run(
         atype(rerr));
-    tbl.get(0).replace(function(row){return r.branch(r.js('return true'), row, r.expr(null))},
+    tbl.get(0).replace(function(row){return r.branch(r.js('true'), row, r.expr(null))},
         true).run(attreq('modified', 1));
     tbl.map(function(a){return a('x')}).reduce(0, function(a,b){return a.add(b);}).run(aeq(11));
-    tbl.replace(r.fn('rowA', r.branch(r.js('return rowA.id == 1'), r.letVar('rowA').merge({x:2}),
+    tbl.replace(r.fn('rowA', r.branch(r.js('rowA.id == 1'), r.letVar('rowA').merge({x:2}),
         r.letVar('rowA')))).run(attreq('errors', 10));
-    tbl.replace(r.fn('rowA', r.branch(r.js('return rowA.id == 1'), r.letVar('rowA').merge({x:2}),
+    tbl.replace(r.fn('rowA', r.branch(r.js('rowA.id == 1'), r.letVar('rowA').merge({x:2}),
         r.letVar('rowA'))), true).run(attreq('modified', 10));
 }
 
@@ -597,24 +597,24 @@ function testNonAtomic6() {
     tbl.map(function(a){return a('x')}).reduce(0, function(a,b){return a.add(b);}).run(aeq(12));
 
     // Replace error
-    tbl.get(0).replace(function(row){return r.branch(r.js('return x'), row, r.expr(null))}).run(
+    tbl.get(0).replace(function(row){return r.branch(r.js('x'), row, r.expr(null))}).run(
         atype(rerr));
-    tbl.get(0).replace(function(row){return r.branch(r.js('return x'), row, r.expr(null))},
+    tbl.get(0).replace(function(row){return r.branch(r.js('x'), row, r.expr(null))},
         true).run(atype(rerr));
     tbl.map(function(a){return a('x')}).reduce(0, function(a,b){return a.add(b);}).run(aeq(12));
 
     // Replace delete
-    tbl.get(0).replace(function(row){return r.branch(r.js('return true'), r.expr(null), row)}).run(
+    tbl.get(0).replace(function(row){return r.branch(r.js('true'), r.expr(null), row)}).run(
         atype(rerr));
-    tbl.get(0).replace(function(row){return r.branch(r.js('return true'), r.expr(null), row)},
+    tbl.get(0).replace(function(row){return r.branch(r.js('true'), r.expr(null), row)},
         true).run(attreq('deleted', 1));
 }
 
 function testNonAtomic7() {
     tbl.map(function(a){return a('x')}).reduce(0, function(a,b){return a.add(b);}).run(aeq(10));
-    tbl.replace(r.fn('rowA', r.branch(r.js('return rowA.id < 3'), r.expr(null),
+    tbl.replace(r.fn('rowA', r.branch(r.js('rowA.id < 3'), r.expr(null),
         r.letVar('rowA')))).run(attreq('errors', 9));
-    tbl.replace(r.fn('rowA', r.branch(r.js('return rowA.id < 3'), r.expr(null),
+    tbl.replace(r.fn('rowA', r.branch(r.js('rowA.id < 3'), r.expr(null),
         r.letVar('rowA'))), true).run(attreq('deleted', 2));
 }
 
