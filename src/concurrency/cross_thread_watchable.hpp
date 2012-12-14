@@ -53,7 +53,7 @@ private:
             return &parent->rwi_lock_assertion;
         }
         void rethread(int thread) {
-            home_thread_mixin_t::real_home_thread = thread;
+            this->real_home_thread = thread;
         }
         cross_thread_watchable_variable_t<value_t> *parent;
     };

@@ -4,7 +4,7 @@
 
 #include "errors.hpp"
 
-#ifdef __ICC
+#if defined(__ICC) || (defined(__MACH__) && !defined(__clang__))
 #define TLS_USE_PTHREAD 1
 #endif
 
