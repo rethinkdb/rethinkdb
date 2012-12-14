@@ -495,9 +495,9 @@ function testSetupDetYNonAtom() {
 }
 
 function testDet() {
-    tbl.update(function(row) {return r.expr({count: r.js('return 0')})}).run(
+    tbl.update(function(row) {return {count: r.js('0')}}).run(
         objeq({errors:10, updated:0, skipped:0}));
-    tbl.update(function(row) {return r.expr({count: 0})}).run(
+    tbl.update(function(row) {return {count: 0}}).run(
         objeq({errors:0, updated:10, skipped:0}));
 
     wait();
@@ -536,15 +536,15 @@ var rerr = rethinkdb.errors.RuntimeError;
 function testNonAtomic1() {
 
     // Update modify
-    tbl.update(function(row) {return r.expr({x: r.js('1')})}).run(attreq('errors', 10));
-    tbl.update(function(row) {return r.expr({x:r.js('1')})}, true).run(attreq('updated', 10));
+    tbl.update(function(row) {return {x: r.js('1')}}).run(attreq('errors', 10));
+    tbl.update(function(row) {return {x: r.js('1')}}, true).run(attreq('updated', 10));
 }
 
 function testNonAtomic2() {
     tbl.map(function(row) {return row('x')}).reduce(0, function(a,b) {return a.add(b)}).run(aeq(10));
 
-    tbl.get(0).update(function(row) {return r.expr({x: r.js('1')})}).run(atype(rerr));
-    tbl.get(0).update(function(row) {return r.expr({x: r.js('2')})}, true).run(
+    tbl.get(0).update(function(row) {return {x: r.js('1')}}).run(atype(rerr));
+    tbl.get(0).update(function(row) {return {x: r.js('2')}}, true).run(
         attreq('updated', 1));
 }
 
@@ -552,11 +552,11 @@ function testNonAtomic3() {
     tbl.map(function(a){return a('x')}).reduce(0, function(a,b){return a.add(b);}).run(aeq(11));
 
     // Update error
-    tbl.update(function(row){return r.expr({x:r.js('x')})}).run(attreq('errors', 10));
-    tbl.update(function(row){return r.expr({x:r.js('x')})}, true).run(attreq('errors', 10));
+    tbl.update(function(row){return {x:r.js('x')}}).run(attreq('errors', 10));
+    tbl.update(function(row){return {x:r.js('x')}}, true).run(attreq('errors', 10));
     tbl.map(function(a){return a('x')}).reduce(0, function(a,b){return a.add(b);}).run(aeq(11));
-    tbl.get(0).update(function(row){return r.expr({x:r.js('x')})}).run(atype(rerr));
-    tbl.get(0).update(function(row){return r.expr({x:r.js('x')})}, true).run(atype(rerr));
+    tbl.get(0).update(function(row){return {x:r.js('x')}}).run(atype(rerr));
+    tbl.get(0).update(function(row){return {x:r.js('x')}}, true).run(atype(rerr));
 }
 
 function testNonAtomic4() {

@@ -398,7 +398,7 @@ rethinkdb.fn = function(var_args) {
         }));
 
         if (!(body instanceof rethinkdb.Query)) {
-            throw new rethinkdb.errors.ClientError("ReQL function must return ReQL expression");
+            body = rethinkdb.expr(body);
         }
 
     } else {
