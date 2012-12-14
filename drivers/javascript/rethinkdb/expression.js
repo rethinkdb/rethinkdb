@@ -1413,7 +1413,7 @@ rethinkdb.ImplicitVarExpression.prototype.compile = function(opt_buildOpts) {
 /** @override */
 rethinkdb.ImplicitVarExpression.prototype.formatQuery = function(bt) {
     if (!bt) {
-        return "r.R('@')";
+        return "r.row";
     } else {
         return "^^^^^^^^";
     }

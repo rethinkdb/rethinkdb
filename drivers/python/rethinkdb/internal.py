@@ -595,7 +595,7 @@ class ImplicitVar(ExpressionInner):
     def _write_ast(self, parent, opts):
         parent.type = p.Term.IMPLICIT_VAR
     def pretty_print(self, printer):
-        return ("r['@']", PRETTY_PRINT_EXPR_WRAPPED)
+        return ("r.row", PRETTY_PRINT_EXPR_WRAPPED)
 
 class ToStream(ExpressionInner):
     def __init__(self, array):
