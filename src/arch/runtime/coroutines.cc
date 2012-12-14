@@ -117,18 +117,24 @@ void coro_runtime_t::get_coroutine_counts(std::map<std::string, size_t> *dest) {
 /* coro_t */
 
 #ifndef NDEBUG
-static __thread int64_t coro_selfname_counter = 0;
+TLS_with_init(int64_t, coro_selfname_counter, 0);
 #endif
 
 coro_t::coro_t() :
     stack(&coro_t::run, coro_stack_size),
-    current_thread_(linux_thread_pool_t::thread_id),
+    current_thread_(get_thread_id()),
     notified_(false),
     waiting_(false)
 #ifndef NDEBUG
-    , selfname_number(get_thread_id() + MAX_THREADS * ++coro_selfname_counter)
+    , selfname_number(-1)
 #endif
 {
+#ifndef NDEBUG
+    int64_t selfname_counter = 1 + TLS_get_coro_selfname_counter();
+    TLS_set_coro_selfname_counter(selfname_counter);
+    selfname_number = get_thread_id() + MAX_THREADS * selfname_counter;
+#endif
+
     ++pm_allocated_coroutines;
 
 #ifndef NDEBUG
@@ -259,7 +265,7 @@ void coro_t::yield() {  /* class method */
 void coro_t::notify_now_deprecated() {
     rassert(waiting_);
     rassert(!notified_);
-    rassert(current_thread_ == linux_thread_pool_t::thread_id);
+    rassert(current_thread_ == get_thread_id());
 
     coro_globals_t *cglobals = TLS_get_cglobals();
 #ifndef NDEBUG
@@ -304,7 +310,7 @@ void coro_t::notify_sometime() {
 
     rassert(!notified_);
     notified_ = true;
-    linux_thread_pool_t::thread->message_hub.store_message_sometime(current_thread_, this);
+    linux_thread_pool_t::get_thread()->message_hub.store_message_sometime(current_thread_, this);
 }
 
 void coro_t::notify_later_ordered() {
@@ -313,13 +319,13 @@ void coro_t::notify_later_ordered() {
 
     /* `current_thread` is the thread that the coroutine lives on, which may or may not be the
     same as `get_thread_id()`.  (In a call to move_to_thread, it won't be.) */
-    linux_thread_pool_t::thread->message_hub.store_message(current_thread_, this);
+    linux_thread_pool_t::get_thread()->message_hub.store_message(current_thread_, this);
 }
 
 void coro_t::move_to_thread(int thread) {
     assert_good_thread_id(thread);
     rassert(coro_t::self(), "coro_t::move_to_thread() called when not in a coroutine.");
-    if (thread == linux_thread_pool_t::thread_id) {
+    if (thread == get_thread_id()) {
         // If we're trying to switch to the thread we're currently on, do nothing.
         return;
     }
