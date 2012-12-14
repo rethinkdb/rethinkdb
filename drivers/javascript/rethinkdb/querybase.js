@@ -6,13 +6,13 @@
  */
 
 /**
- * A shortcut function for referencing ReQL variables and attributes.
+ * A shortcut function for wrapping JavaScript values as RQL expressions
  * @name rethinkdb
  * @namespace namespace for all rethinkdb functions and classes
  * @suppress {checkTypes}
  */
 goog.global.rethinkdb = function(jsobj) {
-    return rethinkdb.R(jsobj);
+    return rethinkdb.expr(jsobj);
 };
 
 goog.provide('rethinkdbmdl');
