@@ -4,6 +4,7 @@
 #include <stdexcept>
 
 #include "containers/scoped.hpp"
+#include "thread_local.hpp"
 #include "unittest/gtest.hpp"
 
 namespace unittest {
@@ -85,7 +86,7 @@ TEST(ContextSwitchingTest, SwitchBetweenContexts) {
         context_switch(TLS_get_original_context(), TLS_get_artificial_stack_1_context());
     }
     EXPECT_EQ(TLS_get_test_int(), 101);
-    TLS_get_original_context(NULL);
+    TLS_set_original_context(NULL);
 }
 
 __attribute__((noreturn)) static void throw_an_exception() {

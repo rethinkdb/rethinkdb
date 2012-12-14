@@ -484,13 +484,13 @@ ticks_t secs_to_ticks(double secs) {
     return static_cast<ticks_t>(secs * 1000000000L);
 }
 
+#ifdef __MACH__
 mach_timebase_info_data_t zeroed_timebase_info_data() {
     mach_timebase_info_data_t ret;
     memset(&ret, 0, sizeof(ret));
     return ret;
 }
 
-#ifdef __MACH__
 TLS_with_init(mach_timebase_info_data_t, mach_time_info, zeroed_timebase_info_data());
 #endif  // __MACH__
 

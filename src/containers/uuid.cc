@@ -43,10 +43,6 @@ bool operator<(const uuid_u& x, const uuid_u& y) {
 
 struct uuid_buf_t {
     uint8_t buf[uuid_u::kStaticSize];
-
-    uuid_buf_t() {
-        memset(buf, 0, uuid_u::kStaticSize);
-    }
 };
 
 TLS_with_init(bool, next_uuid_initialized, false);
