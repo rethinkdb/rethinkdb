@@ -24,6 +24,7 @@ TLS_with_init(linux_thread_t *, thread, NULL);
 linux_thread_pool_t *linux_thread_pool_t::get_thread_pool() { return TLS_get_thread_pool(); }
 int get_thread_id() { return TLS_get_thread_id(); }
 linux_thread_t *linux_thread_pool_t::get_thread() { return TLS_get_thread(); }
+void linux_thread_pool_t::unittest_set_thread_id(int fake_id) { TLS_set_thread_id(fake_id); }
 
 
 

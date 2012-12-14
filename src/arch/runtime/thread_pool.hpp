@@ -96,6 +96,8 @@ public:
     // The event queue for the thread we are currently in (same as &thread_pool()->threads[thread_id])
     static linux_thread_t *get_thread();
 
+    static void unittest_set_thread_id(int fake_id);
+
 private:
     DISABLE_COPYING(linux_thread_pool_t);
 };
