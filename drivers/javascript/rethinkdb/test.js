@@ -129,7 +129,7 @@ function testGetAttr() {
 
     r.let({a:tobj},
         r.branch(r.letVar('a').contains('b'),
-            r.letVar('a.b'),
+            r.letVar('a')('b'),
             r.error("No attribute b")
         )
     ).run(aeq(2));
@@ -146,7 +146,7 @@ function testUnpick() {
 }
 
 function testR() {
-    r.let({a:r({b:1})}, r.letVar('a.b')).run(aeq(1));
+    r.let({a:r({b:1})}, r.letVar('a')('b')).run(aeq(1));
 }
 
 var tab = r.table('test');
