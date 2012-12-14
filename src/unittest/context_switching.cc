@@ -24,69 +24,68 @@ TEST(ContextSwitchingTest, CreateArtificialStack) {
 /* Thread-local variables for use in test functions, because we cannot pass a
 `void*` to the test functions... */
 
-static __thread context_ref_t
-    *original_context = NULL,
-    *artificial_stack_1_context = NULL,
-    *artificial_stack_2_context = NULL;
-static __thread int test_int;
+TLS_with_init(context_ref_t *, original_context, NULL);
+TLS_with_init(context_ref_t *, artificial_stack_1_context, NULL);
+TLS_with_init(context_ref_t *, artificial_stack_2_context, NULL);
+TLS_with_init(int, test_int, 0);
 
 static void switch_context_test(void) {
-    test_int++;
-    context_switch(artificial_stack_1_context, original_context);
-    test_int += 2;
-    context_switch(artificial_stack_1_context, original_context);
-    test_int += 3;
-    context_switch(artificial_stack_1_context, original_context);
+    TLS_set_test_int(1 + TLS_get_test_int());
+    context_switch(TLS_get_artificial_stack_1_context(), TLS_get_original_context());
+    TLS_set_test_int(2 + TLS_get_test_int());
+    context_switch(TLS_get_artificial_stack_1_context(), TLS_get_original_context());
+    TLS_set_test_int(3 + TLS_get_test_int());
+    context_switch(TLS_get_artificial_stack_1_context(), TLS_get_original_context());
     /* This will never get run */
-    test_int += 10000;
+    TLS_set_test_int(10000 + TLS_get_test_int());
 }
 
 TEST(ContextSwitchingTest, SwitchToContextRepeatedly) {
     scoped_ptr_t<context_ref_t> orig_context_local(new context_ref_t);
-    original_context = orig_context_local.get();
+    TLS_set_original_context(orig_context_local.get());
 
-    test_int = 5;
+    TLS_set_test_int(5);
     {
         artificial_stack_t a(&switch_context_test, 1024*1024);
-        artificial_stack_1_context = &a.context;
+        TLS_set_artificial_stack_1_context(&a.context);
 
         /* `context_switch` will cause `switch_context_test` to be run, which
         will increment `test_int` and then switch back from `src_context` to
         `dest_context`. */
-        context_switch(original_context, artificial_stack_1_context);
-        context_switch(original_context, artificial_stack_1_context);
-        context_switch(original_context, artificial_stack_1_context);
+        context_switch(TLS_get_original_context(), TLS_get_artificial_stack_1_context());
+        context_switch(TLS_get_original_context(), TLS_get_artificial_stack_1_context());
+        context_switch(TLS_get_original_context(), TLS_get_artificial_stack_1_context());
 
         EXPECT_FALSE(a.context.is_nil());
     }
-    EXPECT_EQ(test_int, 11);
-    original_context = NULL;
+    EXPECT_EQ(TLS_get_test_int(), 11);
+    TLS_set_original_context(NULL);
 }
 
 static void first_switch(void) {
-    test_int++;
-    context_switch(artificial_stack_1_context, artificial_stack_2_context);
+    TLS_set_test_int(1 + TLS_get_test_int());
+    context_switch(TLS_get_artificial_stack_1_context(), TLS_get_artificial_stack_2_context());
 }
 
 static void second_switch(void) {
-    test_int++;
-    context_switch(artificial_stack_2_context, original_context);
+    TLS_set_test_int(1 + TLS_get_test_int());
+    context_switch(TLS_get_artificial_stack_2_context(), TLS_get_original_context());
 }
 
 TEST(ContextSwitchingTest, SwitchBetweenContexts) {
     scoped_ptr_t<context_ref_t> orig_context_local(new context_ref_t);
-    original_context = orig_context_local.get();
-    test_int = 99;
+    TLS_set_original_context(orig_context_local.get());
+    TLS_set_test_int(99);
     {
         artificial_stack_t a1(&first_switch, 1024*1024);
         artificial_stack_t a2(&second_switch, 1024*1024);
-        artificial_stack_1_context = &a1.context;
-        artificial_stack_2_context = &a2.context;
+        TLS_set_artificial_stack_1_context(&a1.context);
+        TLS_set_artificial_stack_2_context(&a2.context);
 
-        context_switch(original_context, artificial_stack_1_context);
+        context_switch(TLS_get_original_context(), TLS_get_artificial_stack_1_context());
     }
-    EXPECT_EQ(test_int, 101);
-    original_context = NULL;
+    EXPECT_EQ(TLS_get_test_int(), 101);
+    TLS_get_original_context(NULL);
 }
 
 __attribute__((noreturn)) static void throw_an_exception() {
