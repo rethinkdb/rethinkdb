@@ -79,39 +79,11 @@ import query_language_pb2 as p
 import net
 import types
 
-class RDBShortcut(object):
-    """Get the value of a variable or attribute.
-
-    Filter and map bind the current element to the implicit variable.
-    To access the implicit variable (i.e. 'current' row), use the
-    following:
-
-    >>> r['@']
-
-
-    To access an attribute of the implicit variable, pass the attribute name.
-
-    >>> r['name']
-    >>> r['@']['name']
-
-
-    See information on scoping rules for more details.
-
-    >>> table('users').filter(r['age'] == 30) # access attribute age from the implicit row variable
-    >>> table('users').filter(r['address']['city') == 'Mountain View') # access subattribute city
-                                                                       # of attribute address from
-                                                                       # the implicit row variable
-    >>> table('users').filter(lambda row: row['age') == 30)) # access attribute age from the
-                                                             # variable 'row'
+def r(exr):
+    """Wrap a python object with a RQL expression
+       This is a shortcut for `expr`.
     """
-    def __getitem__(self, key):
-        if key == "@":
-            expr = JSONExpression(internal.ImplicitVar())
-        else:
-            expr = JSONExpression(internal.ImplicitAttr(key))
-        return expr
-
-r = RDBShortcut()
+    return expr(exr)
 
 class BaseQuery(object):
     """A base class for all ReQL queries. Queries can be run by calling the
@@ -486,7 +458,7 @@ class JSONExpression(ReadQuery):
         [3, 4, 5]
         """
         if isinstance(predicate, dict):
-            predicate = JSONExpression(internal.All(*[r[k] == v for k, v in predicate.iteritems()]))
+            predicate = JSONExpression(internal.All(*[row[k] == v for k, v in predicate.iteritems()]))
         if not isinstance(predicate, FunctionExpr):
             predicate = FunctionExpr(predicate)
 
@@ -891,7 +863,7 @@ class StreamExpression(ReadQuery):
         :returns: :class:`StreamExpression` or :class:`MultiRowSelection` (same as input)
         """
         if isinstance(predicate, dict):
-            predicate = JSONExpression(internal.All(*[r[k] == v for k, v in predicate.iteritems()]))
+            predicate = JSONExpression(internal.All(*[row[k] == v for k, v in predicate.iteritems()]))
         if not isinstance(predicate, FunctionExpr):
             predicate = FunctionExpr(predicate)
 
@@ -1714,3 +1686,7 @@ def error(msg=''):
 # this happens at the end since it's a circular import
 import internal
 
+"""Access the currently bound row in any method that takes a lambda such as
+   `map` and `filter`.
+"""
+row = JSONExpression(internal.ImplicitVar())

@@ -343,7 +343,7 @@ class RDBTest(unittest.TestCase):
         for doc in docs:
             self.expect(self.table.get(doc['id']), doc)
 
-        self.expect(self.table.order_by("id").map(r["a"]).distinct(), [3, 9])
+        self.expect(self.table.order_by("id").map(row["a"]).distinct(), [3, 9])
 
         self.expect(self.table.filter({"a": 3}), [docs[0]])
 
@@ -424,23 +424,23 @@ class RDBTest(unittest.TestCase):
         def filt(exp, fn):
             self.expect(self.table.filter(exp).order_by("id"), filter(fn, docs))
 
-        filt(r['a'] == 5, lambda r: r['a'] == 5)
-        filt(r['a'] != 5, lambda r: r['a'] != 5)
-        filt(r['a'] < 5, lambda r: r['a'] < 5)
-        filt(r['a'] <= 5, lambda r: r['a'] <= 5)
-        filt(r['a'] > 5, lambda r: r['a'] > 5)
-        filt(r['a'] >= 5, lambda r: r['a'] >= 5)
+        filt(row['a'] == 5, lambda r: r['a'] == 5)
+        filt(row['a'] != 5, lambda r: r['a'] != 5)
+        filt(row['a'] < 5, lambda r: r['a'] < 5)
+        filt(row['a'] <= 5, lambda r: r['a'] <= 5)
+        filt(row['a'] > 5, lambda r: r['a'] > 5)
+        filt(row['a'] >= 5, lambda r: r['a'] >= 5)
 
-        filt(5 == r['a'], lambda r: 5 == r['a'])
-        filt(5 != r['a'], lambda r: 5 != r['a'])
-        filt(5 < r['a'], lambda r: 5 < r['a'])
-        filt(5 <= r['a'], lambda r: 5 <= r['a'])
-        filt(5 > r['a'], lambda r: 5 > r['a'])
-        filt(5 >= r['a'], lambda r: 5 >= r['a'])
+        filt(5 == row['a'], lambda r: 5 == r['a'])
+        filt(5 != row['a'], lambda r: 5 != r['a'])
+        filt(5 < row['a'], lambda r: 5 < r['a'])
+        filt(5 <= row['a'], lambda r: 5 <= r['a'])
+        filt(5 > row['a'], lambda r: 5 > r['a'])
+        filt(5 >= row['a'], lambda r: 5 >= r['a'])
 
-        filt(r['a'] == r['b'], lambda r: r['a'] == r['b'])
-        filt(r['a'] == r['b'] + 1, lambda r: r['a'] == r['b'] + 1)
-        filt(r['a'] == r['b'] + 1, lambda r: r['a'] == r['b'] + 1)
+        filt(row['a'] == row['b'], lambda r: r['a'] == r['b'])
+        filt(row['a'] == row['b'] + 1, lambda r: r['a'] == r['b'] + 1)
+        filt(row['a'] == row['b'] + 1, lambda r: r['a'] == r['b'] + 1)
 
         expect = self.expect
 
