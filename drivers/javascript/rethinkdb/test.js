@@ -28,43 +28,43 @@ function testConnect() {
 }
 
 function testBasic() {
-    r.expr(1).run(aeq(1));
-    r.expr(true).run(aeq(true));
-    r.expr('bob').run(aeq('bob'));
+    r(1).run(aeq(1));
+    r(true).run(aeq(true));
+    r('bob').run(aeq('bob'));
 }
 
 function testArith() {
-    r.expr(1).add(2).run(aeq(3));
-    r.expr(1).sub(2).run(aeq(-1));
-    r.expr(5).mul(8).run(aeq(40));
-    r.expr(8).div(2).run(aeq(4));
-    r.expr(7).mod(2).run(aeq(1));
+    r(1).add(2).run(aeq(3));
+    r(1).sub(2).run(aeq(-1));
+    r(5).mul(8).run(aeq(40));
+    r(8).div(2).run(aeq(4));
+    r(7).mod(2).run(aeq(1));
 
-    r.expr(12).div(3).add(2).mul(3).run(aeq(18));
+    r(12).div(3).add(2).mul(3).run(aeq(18));
 }
 
 function testCompare() {
-    r.expr(1).eq(1).run(aeq(true));
-    r.expr(1).eq(2).run(aeq(false));
-    r.expr(1).lt(2).run(aeq(true));
-    r.expr(8).lt(-4).run(aeq(false));
-    r.expr(8).le(8).run(aeq(true));
-    r.expr(8).gt(7).run(aeq(true));
-    r.expr(8).gt(8).run(aeq(false));
-    r.expr(8).ge(8).run(aeq(true));
+    r(1).eq(1).run(aeq(true));
+    r(1).eq(2).run(aeq(false));
+    r(1).lt(2).run(aeq(true));
+    r(8).lt(-4).run(aeq(false));
+    r(8).le(8).run(aeq(true));
+    r(8).gt(7).run(aeq(true));
+    r(8).gt(8).run(aeq(false));
+    r(8).ge(8).run(aeq(true));
 }
 
 function testBool() {
-    r.expr(true).not().run(aeq(false));
-    r.expr(true).and(true).run(aeq(true));
-    r.expr(true).and(false).run(aeq(false));
-    r.expr(true).or(false).run(aeq(true));
+    r(true).not().run(aeq(false));
+    r(true).and(true).run(aeq(true));
+    r(true).and(false).run(aeq(false));
+    r(true).or(false).run(aeq(true));
 
     // Test DeMorgan's rule!
-    r.expr(true).and(false).eq(r.expr(true).not().or(r.expr(false).not()).not()).run(aeq(true));
+    r(true).and(false).eq(r(true).not().or(r(false).not()).not()).run(aeq(true));
 }
 
-var arr = r.expr([1,2,3,4,5,6]);
+var arr = r([1,2,3,4,5,6]);
 function testSlices() {
     arr.nth(0).run(aeq(1));
     arr.count().run(aeq(6));
@@ -80,24 +80,24 @@ function testAppend() {
 }
 
 function testMerge() {
-    r.expr({a:1}).merge({b:2}).run(objeq({a:1,b:2}));
+    r({a:1}).merge({b:2}).run(objeq({a:1,b:2}));
 }
 
 function testIf() {
-    r.branch(r.expr(true), r.expr(1), r.expr(2)).run(aeq(1));
-    r.branch(r.expr(false), r.expr(1), r.expr(2)).run(aeq(2));
-    r.branch(r.expr(2).mul(8).ge(r.expr(30).div(2)),
-        r.expr(8).div(2),
-        r.expr(9).div(3)).run(aeq(4));
+    r.branch(r(true), r(1), r(2)).run(aeq(1));
+    r.branch(r(false), r(1), r(2)).run(aeq(2));
+    r.branch(r(2).mul(8).ge(r(30).div(2)),
+        r(8).div(2),
+        r(9).div(3)).run(aeq(4));
 }
 
 function testLet() {
-    r.let({a:r.expr(1)}, r.letVar('a')).run(aeq(1));
-    r.let({a:r.expr(1), b:r.expr(2)}, r.letVar('a').add(r.letVar('b'))).run(aeq(3));
+    r.let({a:r(1)}, r.letVar('a')).run(aeq(1));
+    r.let({a:r(1), b:r(2)}, r.letVar('a').add(r.letVar('b'))).run(aeq(3));
 }
 
 function testDistinct() {
-    var cursor = r.expr([1,1,2,3,3,3,3]).distinct().run(objeq(1,2,3));
+    var cursor = r([1,1,2,3,3,3,3]).distinct().run(objeq(1,2,3));
 }
 
 function testMap() {
@@ -114,7 +114,7 @@ function testFilter() {
     }).count().run(objeq(2));
 }
 
-var tobj = r.expr({a:1,b:2,c:3});
+var tobj = r({a:1,b:2,c:3});
 function testContains() {
     tobj.contains('a').run(aeq(true));
     tobj.contains('d').run(aeq(false));
@@ -146,7 +146,7 @@ function testUnpick() {
 }
 
 function testR() {
-    r.let({a:r.expr({b:1})}, r.letVar('a.b')).run(aeq(1));
+    r.let({a:r({b:1})}, r.letVar('a.b')).run(aeq(1));
 }
 
 var tab = r.table('test');
@@ -224,7 +224,7 @@ function testWithout() {
 }
 
 function testUnion() {
-    r.expr([1,2,3]).union([4,5,6]).run(objeq(1,2,3,4,5,6));
+    r([1,2,3]).union([4,5,6]).run(objeq(1,2,3,4,5,6));
     tab.union(tab).count().eq(tab.count().mul(2)).run(aeq(true));
 }
 
@@ -235,20 +235,20 @@ function testTabFilter() {
 
     tab.filter(function(row) {return row('num').gt(16)}).count().run(aeq(4));
 
-    tab.filter(r('num').gt(16)).count().run(aeq(4));
+    tab.filter(r.row('num').gt(16)).count().run(aeq(4));
 
     tab.filter({num:16}).nth(0).run(objeq({id:4,num:16}));
 
-    tab.filter({num:r.expr(20).sub(r('id'))}).count().run(aeq(10));
+    tab.filter({num:r(20).sub(r.row('id'))}).count().run(aeq(10));
 }
 
 function testTabMap() {
-    tab.orderBy('num').map(r('num')).nth(2).run(aeq(13));
+    tab.orderBy('num').map(r.row('num')).nth(2).run(aeq(13));
 }
 
 function testTabReduce() {
-    tab.map(r('num')).reduce(r.expr(0), function(a,b) {return b.add(a)}).run(aeq(155));
-    tab.map(r('num')).reduce(r.expr(0), function(a,b) {return b.add(a)}).run(aeq(155));
+    tab.map(r.row('num')).reduce(r(0), function(a,b) {return b.add(a)}).run(aeq(155));
+    tab.map(r.row('num')).reduce(r(0), function(a,b) {return b.add(a)}).run(aeq(155));
 }
 
 function testJS() {
@@ -282,8 +282,8 @@ function testBetween() {
 function testGroupedMapReduce() {
     tab.groupedMapReduce(function(row) {
         return r.branch(row('id').lt(5),
-            r.expr(0),
-            r.expr(1))
+            r(0),
+            r(1))
     }, function(row) {
         return row('num');
     }, 0, function(acc, num) {
@@ -295,7 +295,7 @@ function testGroupedMapReduce() {
 }
 
 function testGroupBy() {
-    var s = r.expr([
+    var s = r([
         {g1: 1, g2: 1, num: 0},
         {g1: 1, g2: 2, num: 5},
         {g1: 1, g2: 2, num: 10},
@@ -323,7 +323,7 @@ function testGroupBy() {
 }
 
 function testConcatMap() {
-    tab.concatMap(r.expr([1,2])).count().run(aeq(20));
+    tab.concatMap(r([1,2])).count().run(aeq(20));
 }
 
 function testJoin1() {
@@ -522,7 +522,7 @@ function testDet() {
     });
 
     wait();
-    tbl.update({count: r.expr(docs).map(function(x) {
+    tbl.update({count: r(docs).map(function(x) {
         return x('id')
     }).reduce(0, function(a,b) {
         return a.add(b);
@@ -564,27 +564,27 @@ function testNonAtomic4() {
 
     // Update skipped
     tbl.update(function(row){return r.branch(r.js('true'),
-                                        r.expr(null),
-                                        r.expr({x:0.1}))}).run(attreq('errors',10));
+                                        r(null),
+                                        r({x:0.1}))}).run(attreq('errors',10));
     tbl.update(function(row){return r.branch(r.js('true'),
-                                        r.expr(null),
-                                        r.expr({x:0.1}))}, true).run(attreq('skipped',10));
+                                        r(null),
+                                        r({x:0.1}))}, true).run(attreq('skipped',10));
 }
 
 function testNonAtomic5() {
     tbl.map(function(a){return a('x')}).reduce(0, function(a,b){return a.add(b);}).run(aeq(11));
     tbl.get(0).update(function(row){return r.branch(r.js('true'),
-                                            r.expr(null),
-                                            r.expr({x:0.1}))}).run(atype(rerr));
+                                            r(null),
+                                            r({x:0.1}))}).run(atype(rerr));
     tbl.get(0).update(function(row){return r.branch(r.js('true'),
-                                            r.expr(null),
-                                            r.expr({x:0.1}))}, true).run(attreq('skipped', 1));
+                                            r(null),
+                                            r({x:0.1}))}, true).run(attreq('skipped', 1));
     tbl.map(function(a){return a('x')}).reduce(0, function(a,b){return a.add(b);}).run(aeq(11));
 
     // Replace modify
-    tbl.get(0).replace(function(row){return r.branch(r.js('true'), row, r.expr(null))}).run(
+    tbl.get(0).replace(function(row){return r.branch(r.js('true'), row, r(null))}).run(
         atype(rerr));
-    tbl.get(0).replace(function(row){return r.branch(r.js('true'), row, r.expr(null))},
+    tbl.get(0).replace(function(row){return r.branch(r.js('true'), row, r(null))},
         true).run(attreq('modified', 1));
     tbl.map(function(a){return a('x')}).reduce(0, function(a,b){return a.add(b);}).run(aeq(11));
     tbl.replace(r.fn('rowA', r.branch(r.js('rowA.id == 1'), r.letVar('rowA').merge({x:2}),
@@ -597,24 +597,24 @@ function testNonAtomic6() {
     tbl.map(function(a){return a('x')}).reduce(0, function(a,b){return a.add(b);}).run(aeq(12));
 
     // Replace error
-    tbl.get(0).replace(function(row){return r.branch(r.js('x'), row, r.expr(null))}).run(
+    tbl.get(0).replace(function(row){return r.branch(r.js('x'), row, r(null))}).run(
         atype(rerr));
-    tbl.get(0).replace(function(row){return r.branch(r.js('x'), row, r.expr(null))},
+    tbl.get(0).replace(function(row){return r.branch(r.js('x'), row, r(null))},
         true).run(atype(rerr));
     tbl.map(function(a){return a('x')}).reduce(0, function(a,b){return a.add(b);}).run(aeq(12));
 
     // Replace delete
-    tbl.get(0).replace(function(row){return r.branch(r.js('true'), r.expr(null), row)}).run(
+    tbl.get(0).replace(function(row){return r.branch(r.js('true'), r(null), row)}).run(
         atype(rerr));
-    tbl.get(0).replace(function(row){return r.branch(r.js('true'), r.expr(null), row)},
+    tbl.get(0).replace(function(row){return r.branch(r.js('true'), r(null), row)},
         true).run(attreq('deleted', 1));
 }
 
 function testNonAtomic7() {
     tbl.map(function(a){return a('x')}).reduce(0, function(a,b){return a.add(b);}).run(aeq(10));
-    tbl.replace(r.fn('rowA', r.branch(r.js('rowA.id < 3'), r.expr(null),
+    tbl.replace(r.fn('rowA', r.branch(r.js('rowA.id < 3'), r(null),
         r.letVar('rowA')))).run(attreq('errors', 9));
-    tbl.replace(r.fn('rowA', r.branch(r.js('rowA.id < 3'), r.expr(null),
+    tbl.replace(r.fn('rowA', r.branch(r.js('rowA.id < 3'), r(null),
         r.letVar('rowA'))), true).run(attreq('deleted', 2));
 }
 
@@ -654,13 +654,13 @@ function testDelete2() {
 }
 
 function testForEach1() {
-    r.expr([1,2,3]).forEach(function(a) {return tab.insert({id:a, fe:true})}).run(objeq({
+    r([1,2,3]).forEach(function(a) {return tab.insert({id:a, fe:true})}).run(objeq({
         inserted:3
     }));
 }
 
 function testForEach2() {
-    tab.forEach(function(a) {return tab.get(a('id')).update(r.expr({fe:true}))}).run(objeq({
+    tab.forEach(function(a) {return tab.get(a('id')).update(r({fe:true}))}).run(objeq({
         updated:3
     }));
 }

@@ -1420,6 +1420,12 @@ rethinkdb.ImplicitVarExpression.prototype.formatQuery = function(bt) {
 };
 
 /**
+ * A Reference to the implicit variable
+ * @export
+ */
+rethinkdb.row = rethinkdb.util.newExpr_(rethinkdb.ImplicitVarExpression);
+
+/**
  * @param {rethinkdb.Expression} leftExpr
  * @param {string} attrName
  * @constructor
