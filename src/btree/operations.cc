@@ -7,6 +7,8 @@
 
 #include "btree/slice.hpp"
 #include "buffer_cache/blob.hpp"
+#include "containers/archive/vector_stream.hpp"
+#include "stl_utils.hpp"
 
 real_superblock_t::real_superblock_t(buf_lock_t *sb_buf) {
     sb_buf_.swap(*sb_buf);
@@ -295,6 +297,89 @@ void clear_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock) {
 void insert_root(block_id_t root_id, superblock_t* sb) {
     sb->set_root_block_id(root_id);
     sb->release(); //XXX it's a little bit weird that we release this from here.
+}
+
+void get_secondary_indexes_internal(transaction_t *txn, buf_lock_t *superblock, std::map<uuid_t, secondary_index_t> *sindexes_out) {
+    const btree_superblock_t *data = static_cast<const btree_superblock_t *>(superblock->get_data_read());
+
+    blob_t sindex_blob(const_cast<char *>(data->sindex_blob), btree_superblock_t::SINDEX_BLOB_MAXREFLEN);
+
+    buffer_group_t group;
+    blob_acq_t acq;
+    sindex_blob.expose_all(txn, rwi_read, &group, &acq);
+
+    int64_t group_size = group.get_size();
+    std::vector<char> sindex(group_size);
+
+    buffer_group_t group_cpy;
+    group_cpy.add_buffer(group_size, sindex.data());
+
+    buffer_group_copy_data(&group_cpy, const_view(&group));
+
+    vector_read_stream_t read_stream(&sindex);
+    int res = deserialize(&read_stream, sindexes_out);
+    guarantee_err(res == 0, "corrupted secondary index.");
+}
+
+void set_secondary_indexes_internal(transaction_t *txn, buf_lock_t *superblock, const std::map<uuid_t, secondary_index_t> &sindexes) {
+    btree_superblock_t *data = static_cast<btree_superblock_t *>(superblock->get_data_major_write());
+
+    blob_t sindex_blob(data->sindex_blob, btree_superblock_t::SINDEX_BLOB_MAXREFLEN);
+    sindex_blob.clear(txn);
+
+    write_message_t wm;
+    wm << sindexes;
+
+    vector_stream_t stream;
+    int res = send_write_message(&stream, &wm);
+    guarantee(res == 0);
+
+    sindex_blob.append_region(txn, stream.vector().size());
+    std::string sered_data(stream.vector().begin(), stream.vector().end());
+    sindex_blob.write_from_string(sered_data, txn, 0);
+}
+
+bool get_secondary_index(transaction_t *txn, buf_lock_t *superblock, uuid_t uuid, secondary_index_t *sindex_out) {
+    std::map<uuid_t, secondary_index_t> sindex_map;
+
+    get_secondary_indexes_internal(txn, superblock, &sindex_map);
+
+    if (std_contains(sindex_map, uuid)) {
+        *sindex_out = sindex_map[uuid];
+        return true;
+    } else {
+        return false;
+    }
+}
+
+void get_secondary_indexes(transaction_t *txn, buf_lock_t *superblock, std::map<uuid_t, secondary_index_t> *sindexes_out) {
+    get_secondary_indexes_internal(txn, superblock, sindexes_out);
+}
+
+bool add_secondary_index(transaction_t *txn, buf_lock_t *superblock, uuid_t uuid, const secondary_index_t &sindex) {
+    std::map<uuid_t, secondary_index_t> sindex_map;
+    get_secondary_indexes_internal(txn, superblock, &sindex_map);
+
+    if (std_contains(sindex_map, uuid)) {
+        return false;
+    } else {
+        sindex_map[uuid] = sindex;
+        set_secondary_indexes_internal(txn, superblock, sindex_map);
+        return true;
+    }
+}
+
+bool delete_secondary_index(transaction_t *txn, buf_lock_t *superblock, uuid_t uuid) {
+    std::map<uuid_t, secondary_index_t> sindex_map;
+    get_secondary_indexes_internal(txn, superblock, &sindex_map);
+
+    if (!std_contains(sindex_map, uuid)) {
+        return false;
+    } else {
+        sindex_map.erase(uuid);
+        set_secondary_indexes_internal(txn, superblock, sindex_map);
+        return true;
+    }
 }
 
 void ensure_stat_block(transaction_t *txn, superblock_t *sb, eviction_priority_t stat_block_eviction_priority) {

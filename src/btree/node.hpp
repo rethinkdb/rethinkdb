@@ -49,6 +49,10 @@ struct btree_superblock_t {
 
     char metainfo_blob[METAINFO_BLOB_MAXREFLEN];
 
+    static const int SINDEX_BLOB_MAXREFLEN = 1500;
+
+    char sindex_blob[SINDEX_BLOB_MAXREFLEN];
+
     static const block_magic_t expected_magic;
 };
 

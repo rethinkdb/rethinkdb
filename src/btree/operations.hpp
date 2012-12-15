@@ -6,12 +6,13 @@
 #include <utility>
 #include <vector>
 
-#include "utils.hpp"
-#include "containers/scoped.hpp"
-#include "btree/node.hpp"
 #include "btree/leaf_node.hpp"
+#include "btree/node.hpp"
 #include "buffer_cache/buffer_cache.hpp"
+#include "containers/archive/stl_types.hpp"
+#include "containers/scoped.hpp"
 #include "repli_timestamp.hpp"
+#include "utils.hpp"
 
 class btree_slice_t;
 
@@ -239,6 +240,7 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer, transaction_t *txn,
                                 buf_lock_t *buf, buf_lock_t *last_buf, superblock_t *sb,
                                 const btree_key_t *key);
 
+// Metainfo functions
 bool get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key, std::vector<char> *value_out);
 void get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, std::vector< std::pair<std::vector<char>, std::vector<char> > > *kv_pairs_out);
 
@@ -246,6 +248,34 @@ void set_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const s
 
 void delete_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key);
 void clear_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock);
+
+#define OPAQUE_SINDEX_DEFINITION_SIZE 300
+
+struct secondary_index_t {
+    secondary_index_t()
+        : superblock(NULL_BLOCK_ID), headblock(NULL_BLOCK_ID), tailblock(NULL_BLOCK_ID)
+    { }
+
+    /* A reference to the superblock. */
+    block_id_t superblock;
+
+    /* A reference to the disk backed queue blocks. */
+    block_id_t headblock, tailblock;
+
+    /* An opaque blob that describes the index */
+    std::vector<unsigned char> opaque_definition;
+
+    RDB_MAKE_ME_SERIALIZABLE_4(superblock, headblock, tailblock, opaque_definition);
+};
+
+//Secondary Index functions
+bool get_secondary_index(transaction_t *txn, buf_lock_t *superblock, uuid_t uuid, secondary_index_t *sindex_out);
+
+void get_secondary_indexes(transaction_t *txn, buf_lock_t *superblock, std::map<uuid_t, secondary_index_t> *sindexes_out);
+
+bool add_secondary_index(transaction_t *txn, buf_lock_t *superblock, uuid_t uuid, const secondary_index_t &sindex);
+
+bool delete_secondary_index(transaction_t *txn, buf_lock_t *superblock, uuid_t uuid);
 
 /* Set sb to have root id as its root block and release sb */
 void insert_root(block_id_t root_id, superblock_t* sb);
