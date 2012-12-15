@@ -67,7 +67,7 @@ module 'DataExplorerView', ->
                     tag = command['langs']['js']['name']
                     if tag is '()'
                         continue
-                    if tag is 'r' and command['langs']['js']['dont_need_parenthesis'] is true
+                    if command['langs']['js']['dont_need_parenthesis'] is true
                         full_tag = tag # Here full_tag is just the name of the tag
                         @descriptions[tag] =
                             name: tag
@@ -485,7 +485,6 @@ module 'DataExplorerView', ->
             # Hack because last_function returns 'r' if the query is 'r'. and r isn't a function
             if last_function is query and last_function is 'r'
                 last_function = ''
-
             if @map_state[last_function]? and @suggestions[@map_state[last_function]]?
                 if not @suggestions[@map_state[last_function]]? or @suggestions[@map_state[last_function]].length is 0 or just_description is true
                     @hide_suggestion()
