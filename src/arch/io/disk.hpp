@@ -46,7 +46,9 @@ public:
     linux_disk_manager_t *get_diskmgr_ptr() {return diskmgr.get();}
 
 protected:
-    io_backender_t() : queue(&linux_thread_pool_t::get_thread()->queue), batch_factor(DEFAULT_IO_BATCH_FACTOR) { }
+    io_backender_t() : queue(&linux_thread_pool_t::thread->queue), batch_factor(DEFAULT_IO_BATCH_FACTOR) {
+        //        printf("tst\n");
+    }
     linux_event_queue_t *queue;
     int batch_factor;
     perfmon_collection_t stats;

@@ -16,8 +16,8 @@
 #include "arch/runtime/runtime.hpp"
 #include "config/args.hpp"
 #include "do_on_thread.hpp"
+
 #include "perfmon/perfmon.hpp"
-#include "thread_local.hpp"
 #include "utils.hpp"
 
 static perfmon_counter_t pm_active_coroutines, pm_allocated_coroutines;
@@ -92,24 +92,22 @@ struct coro_globals_t {
 
 };
 
-TLS_with_init(coro_globals_t *, cglobals, NULL);
+static __thread coro_globals_t *cglobals = NULL;
 
 coro_runtime_t::coro_runtime_t() {
-    rassert(!TLS_get_cglobals(), "coro runtime initialized twice on this thread");
-    TLS_set_cglobals(new coro_globals_t);
+    rassert(!cglobals, "coro runtime initialized twice on this thread");
+    cglobals = new coro_globals_t;
 }
 
 coro_runtime_t::~coro_runtime_t() {
-    coro_globals_t *cglobals = TLS_get_cglobals();
     rassert(cglobals);
     delete cglobals;
-    TLS_set_cglobals(NULL);
+    cglobals = NULL;
 }
 
 #ifndef NDEBUG
 void coro_runtime_t::get_coroutine_counts(std::map<std::string, size_t> *dest) {
     dest->clear();
-    coro_globals_t *cglobals = TLS_get_cglobals();
     dest->insert(cglobals->total_coroutine_counts.begin(), cglobals->total_coroutine_counts.end());
 }
 #endif
@@ -117,28 +115,21 @@ void coro_runtime_t::get_coroutine_counts(std::map<std::string, size_t> *dest) {
 /* coro_t */
 
 #ifndef NDEBUG
-TLS_with_init(int64_t, coro_selfname_counter, 0);
+static __thread int64_t coro_selfname_counter = 0;
 #endif
 
 coro_t::coro_t() :
     stack(&coro_t::run, coro_stack_size),
-    current_thread_(get_thread_id()),
+    current_thread_(linux_thread_pool_t::thread_id),
     notified_(false),
     waiting_(false)
 #ifndef NDEBUG
-    , selfname_number(-1)
+    , selfname_number(get_thread_id() + MAX_THREADS * ++coro_selfname_counter)
 #endif
 {
-#ifndef NDEBUG
-    int64_t selfname_counter = 1 + TLS_get_coro_selfname_counter();
-    TLS_set_coro_selfname_counter(selfname_counter);
-    selfname_number = get_thread_id() + MAX_THREADS * selfname_counter;
-#endif
-
     ++pm_allocated_coroutines;
 
 #ifndef NDEBUG
-    coro_globals_t *cglobals = TLS_get_cglobals();
     cglobals->coro_count++;
     rassert(cglobals->coro_count < MAX_COROS_PER_THREAD, "Too many "
             "coroutines allocated on this thread. This is problem due to a "
@@ -147,7 +138,6 @@ coro_t::coro_t() :
 }
 
 void coro_t::return_coro_to_free_list(coro_t *coro) {
-    coro_globals_t *cglobals = TLS_get_cglobals();
     cglobals->free_coros.push_back(coro);
 }
 
@@ -156,14 +146,12 @@ coro_t::~coro_t() {
     rassert(get_thread_id() == home_thread());
 
 #ifndef NDEBUG
-    coro_globals_t *cglobals = TLS_get_cglobals();
     cglobals->coro_count--;
 #endif
     --pm_allocated_coroutines;
 }
 
 void coro_t::run() {
-    coro_globals_t *cglobals = TLS_get_cglobals();
     coro_t *coro = cglobals->current_coro;
 
 #ifndef NDEBUG
@@ -222,13 +210,11 @@ void coro_t::parse_coroutine_type(const char *coroutine_function)
 #endif
 
 coro_t *coro_t::self() {   /* class method */
-    coro_globals_t *cglobals = TLS_get_cglobals();
     return cglobals->current_coro;
 }
 
 void coro_t::wait() {   /* class method */
     rassert(self(), "Not in a coroutine context");
-    coro_globals_t *cglobals = TLS_get_cglobals();
     rassert(cglobals->assert_finite_coro_waiting_counter == 0,
         "This code path is not supposed to use coro_t::wait().\nConstraint imposed at: %s:%d",
         cglobals->finite_waiting_call_sites.top().first.c_str(), cglobals->finite_waiting_call_sites.top().second);
@@ -265,9 +251,8 @@ void coro_t::yield() {  /* class method */
 void coro_t::notify_now_deprecated() {
     rassert(waiting_);
     rassert(!notified_);
-    rassert(current_thread_ == get_thread_id());
+    rassert(current_thread_ == linux_thread_pool_t::thread_id);
 
-    coro_globals_t *cglobals = TLS_get_cglobals();
 #ifndef NDEBUG
     rassert(cglobals->assert_no_coro_waiting_counter == 0,
         "This code path is not supposed to use notify_now_deprecated() or spawn_now_dangerously().");
@@ -310,7 +295,7 @@ void coro_t::notify_sometime() {
 
     rassert(!notified_);
     notified_ = true;
-    linux_thread_pool_t::get_thread()->message_hub.store_message_sometime(current_thread_, this);
+    linux_thread_pool_t::thread->message_hub.store_message_sometime(current_thread_, this);
 }
 
 void coro_t::notify_later_ordered() {
@@ -319,13 +304,13 @@ void coro_t::notify_later_ordered() {
 
     /* `current_thread` is the thread that the coroutine lives on, which may or may not be the
     same as `get_thread_id()`.  (In a call to move_to_thread, it won't be.) */
-    linux_thread_pool_t::get_thread()->message_hub.store_message(current_thread_, this);
+    linux_thread_pool_t::thread->message_hub.store_message(current_thread_, this);
 }
 
 void coro_t::move_to_thread(int thread) {
     assert_good_thread_id(thread);
     rassert(coro_t::self(), "coro_t::move_to_thread() called when not in a coroutine.");
-    if (thread == get_thread_id()) {
+    if (thread == linux_thread_pool_t::thread_id) {
         // If we're trying to switch to the thread we're currently on, do nothing.
         return;
     }
@@ -356,12 +341,10 @@ stack. Could also in theory be used by a function to check if it's about to over
 the stack. */
 
 bool is_coroutine_stack_overflow(void *addr) {
-    coro_globals_t *cglobals = TLS_get_cglobals();
     return cglobals->current_coro && cglobals->current_coro->stack.address_is_stack_overflow(addr);
 }
 
 bool coroutines_have_been_initialized() {
-    coro_globals_t *cglobals = TLS_get_cglobals();
     return cglobals != NULL;
 }
 
@@ -369,7 +352,6 @@ coro_t * coro_t::get_coro() {
     rassert(coroutines_have_been_initialized());
     coro_t *coro;
 
-    coro_globals_t *cglobals = TLS_get_cglobals();
     if (cglobals->free_coros.size() == 0) {
         coro = new coro_t();
     } else {
@@ -392,22 +374,18 @@ coro_t * coro_t::get_coro() {
 /* These are used in the implementation of `ASSERT_NO_CORO_WAITING` and
 `ASSERT_FINITE_CORO_WAITING` */
 assert_no_coro_waiting_t::assert_no_coro_waiting_t(const std::string& filename, int line_no) {
-    coro_globals_t *cglobals = TLS_get_cglobals();
     cglobals->no_waiting_call_sites.push(std::make_pair(filename, line_no));
     cglobals->assert_no_coro_waiting_counter++;
 }
 assert_no_coro_waiting_t::~assert_no_coro_waiting_t() {
-    coro_globals_t *cglobals = TLS_get_cglobals();
     cglobals->no_waiting_call_sites.pop();
     cglobals->assert_no_coro_waiting_counter--;
 }
 assert_finite_coro_waiting_t::assert_finite_coro_waiting_t(const std::string& filename, int line_no) {
-    coro_globals_t *cglobals = TLS_get_cglobals();
     cglobals->finite_waiting_call_sites.push(std::make_pair(filename, line_no));
     cglobals->assert_finite_coro_waiting_counter++;
 }
 assert_finite_coro_waiting_t::~assert_finite_coro_waiting_t() {
-    coro_globals_t *cglobals = TLS_get_cglobals();
     cglobals->finite_waiting_call_sites.pop();
     cglobals->assert_finite_coro_waiting_counter--;
 }
