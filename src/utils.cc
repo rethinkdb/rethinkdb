@@ -485,22 +485,14 @@ ticks_t secs_to_ticks(double secs) {
 }
 
 #ifdef __MACH__
-mach_timebase_info_data_t zeroed_timebase_info_data() {
-    mach_timebase_info_data_t ret;
-    memset(&ret, 0, sizeof(ret));
-    return ret;
-}
-
-TLS_with_init(mach_timebase_info_data_t, mach_time_info, zeroed_timebase_info_data());
+__thread mach_timebase_info_data_t mach_time_info;
 #endif  // __MACH__
 
 timespec clock_monotonic() {
 #ifdef __MACH__
-    mach_timebase_info_data_t mach_time_info = TLS_get_mach_time_info();
     if (mach_time_info.denom == 0) {
         mach_timebase_info(&mach_time_info);
         guarantee(mach_time_info.denom != 0);
-        TLS_set_mach_time_info(mach_time_info);
     }
     const uint64_t t = mach_absolute_time();
     uint64_t nanosecs = t * mach_time_info.numer / mach_time_info.denom;

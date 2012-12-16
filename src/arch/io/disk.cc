@@ -274,7 +274,7 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, io
                                        path, errno_string(errno).c_str());
             }
         }
-#endif  // O_DIRECT
+#endif  // O_DIRECT.
     }
 
     file_exists = true;
@@ -293,7 +293,7 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, io
     // until the file system flushes the metadata to disk.
 
     // Construct a disk manager. (given that we have an event pool)
-    if (linux_thread_pool_t::get_thread()) {
+    if (linux_thread_pool_t::thread) {
         diskmgr = io_backender->get_diskmgr_ptr();
         default_account.init(new file_account_t(this, 1, UNLIMITED_OUTSTANDING_REQUESTS));
     }
