@@ -3,12 +3,14 @@
 
 #include <string.h>
 
-__thread int thread_is_blocker_pool_thread = 0;
+#include "thread_local.hpp"
+
+TLS_with_init(int, thread_is_blocker_pool_thread, 0);
 
 // IO thread function
 void* blocker_pool_t::event_loop(void *arg) {
 
-    thread_is_blocker_pool_thread = 1;
+    TLS_set_thread_is_blocker_pool_thread(1);
 
     blocker_pool_t *parent = reinterpret_cast<blocker_pool_t*>(arg);
 
@@ -130,5 +132,5 @@ void blocker_pool_t::on_event(DEBUG_VAR int event) {
 
 
 bool i_am_in_blocker_pool_thread() {
-    return thread_is_blocker_pool_thread == 1;
+    return TLS_get_thread_is_blocker_pool_thread() == 1;
 }

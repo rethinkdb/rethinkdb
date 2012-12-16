@@ -11,11 +11,11 @@ linux_event_watcher_t::linux_event_watcher_t(fd_t f, linux_event_callback_t *eh)
     old_mask(0)
 {
     /* At first, only register for error events */
-    linux_thread_pool_t::thread->queue.watch_resource(fd, 0, this);
+    linux_thread_pool_t::get_thread()->queue.watch_resource(fd, 0, this);
 }
 
 linux_event_watcher_t::~linux_event_watcher_t() {
-    linux_thread_pool_t::thread->queue.forget_resource(fd, this);
+    linux_thread_pool_t::get_thread()->queue.forget_resource(fd, this);
 }
 
 linux_event_watcher_t::watch_t::watch_t(linux_event_watcher_t *p, int e) :
@@ -56,7 +56,7 @@ void linux_event_watcher_t::remask() {
     if (rdhup_watcher) new_mask |= poll_event_rdhup;
 #endif
     if (new_mask != old_mask) {
-        linux_thread_pool_t::thread->queue.adjust_resource(fd, new_mask, this);
+        linux_thread_pool_t::get_thread()->queue.adjust_resource(fd, new_mask, this);
     }
     old_mask = new_mask;
 }

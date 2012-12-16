@@ -4,7 +4,12 @@
 
 #include "errors.hpp"
 
-#ifdef __ICC
+#if defined(__ICC) || (defined(__MACH__) && !defined(__clang__))
+#define TLS_USE_PTHREAD 1
+#endif
+
+
+#ifdef TLS_USE_PTHREAD
 #define TLS_with_init(type, name, initial)                              \
     static pthread_key_t TLS_ ## name ## _key;                          \
     static pthread_once_t TLS_ ## name ## _key_once;                    \
@@ -26,7 +31,7 @@
                                                                         \
         if (pthread_getspecific(TLS_ ## name ## _key) == NULL) {        \
             type *ptr = new type;                                       \
-            *ptr = initial;                                             \
+            *ptr = (initial);                                           \
             res = pthread_setspecific(TLS_ ## name ## _key, ptr);       \
             guarantee_xerr(res == 0, res,                               \
                            "pthread_setspecific failed");               \
@@ -43,10 +48,10 @@
             *static_cast<type *>(pthread_getspecific(TLS_ ## name ## _key)) = val; \
     }
 
-#else  //  __ICC
+#else  // TLS_USE_PTHREAD
 
 #define TLS_with_init(type, name, initial)              \
-    static __thread type TLS_ ## name = initial;        \
+    static __thread type TLS_ ## name = (initial);      \
                                                         \
     type TLS_get_ ## name () {                          \
         return TLS_ ## name;                            \
@@ -56,9 +61,9 @@
         TLS_ ## name = val;                             \
     }                                                   \
 
-#endif  //  __ICC
+#endif  // TLS_USE_PTHREAD
 
-#ifdef __ICC
+#ifdef TLS_USE_PTHREAD
 #define TLS(type, name)                                                 \
     static pthread_key_t TLS_ ## name ## _key;                          \
     static pthread_once_t TLS_ ## name ## _key_once;                    \
@@ -107,6 +112,6 @@
         TLS_ ## name = val;                     \
     }                                           \
 
-#endif  // __ICC
+#endif  // TLS_USE_PTHREAD
 
 #endif /* THREAD_LOCAL_HPP_ */
