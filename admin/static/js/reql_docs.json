@@ -9,7 +9,8 @@
     "sequence": {
       "parent": "query",
       "children": [
-        "selection"
+        "selection",
+        "json"
       ]
     },
     "selection": {
@@ -25,7 +26,7 @@
       "parent": null
     },
     "json": {
-      "parent": "query",
+      "parent": "sequence",
       "children": [
         "bool",
         "number"
@@ -701,7 +702,7 @@
                   "code": "r.table('marvel').get('superman').update({ age: 30 }).run()"
                 }, {
                   "description": "Increment every superhero's age. If age doesn't exist, throws an error",
-                  "code": "r.table('marvel').update({ age: r('age').add(1) }).run()"
+                  "code": "r.table('marvel').update({ age: r.row('age').add(1) }).run()"
                 }
               ]
             },
@@ -1030,7 +1031,7 @@
                 },
                 {
                   "description": "Select all documents where the 'magazines' field is greater than 5",
-                  "code": "r.table('marvel').filter(r('magazines').gt(5)).run()"
+                  "code": "r.table('marvel').filter(r.row('magazines').gt(5)).run()"
                 },              
                 {
                   "description": "Select all documents where the 'abilities' field contains a key called 'super-strength'",
@@ -1048,7 +1049,7 @@
                 },              
                 {
                   "description": "Select all documents where the 'magazines' field is greater than 5",
-                  "code": "r.table('users').filter(r['magazines'] > 5).run()"
+                  "code": "r.table('users').filter(r.row['magazines'] > 5).run()"
                 },              
                 {
                   "description": "Select all documents where the 'abilities' field contains a key called 'super-strength'",
@@ -1989,47 +1990,47 @@
       "description": "These commands manipulate JSON objects and documents",
       "commands": [
         {
-          "tag" : "r",
-          "description": "Select an attribute",
-          "parent": null,
+          "tag" : "row",
+          "description": "Returns the currently visited document",
+          "parent": "r",
           "returns": "json",
           "langs": {
             "js": {
-              "name": "r",
-              "body": "key_attribute",
+              "name": "row",
+              "body": "",
+              "dont_need_parenthesis": true,
               "examples": [
                 {
                   "description": "Get all users whose age is greater than 5",
-                  "code": "r.table('users').filter(r('age').gt(5)).run()"
+                  "code": "r.table('users').filter(r.row('age').gt(5)).run()"
                 },
                 {
                   "description": "Accessing the attribute 'child' of an embedded document:",
-                  "code": "r.table('users').filter(r('embbeded_doc')('child') > 5).run()"
+                  "code": "r.table('users').filter(r.row('embbeded_doc')('child') > 5).run()"
                 },
                 {
-                  "description": "It can also be used to access currently visited document via a special symbol '@'",
-                  "code": "r.table('users').filter(r('@')('age').gt(5)).run()"
+                  "description": "Add 1 to every element of an array",
+                  "code": "r.expr([1, 2, 3]).map(r.row.add(1)).run()"
                 }
               ]
             },
             "rb": false,
             "py": {
-              "name": "r",
-              "body": "key_attribute",
+              "name": "row",
+              "body": "",
               "dont_need_parenthesis": true,
-              "use_bracket": true,
               "examples": [
                 {
-                  "description": "Access the attribute age:",
-                  "code": "r.table('users').filter(r['age'] > 5).run()"
+                  "description": "Get all users whose age is greater than 5",
+                  "code": "r.table('users').filter(r.row['age'] > 5).run()"
                 },
                 {
                   "description": "Accessing the attribute 'child' of an embedded document:",
-                  "code": "r.table('users').filter(r['embbeded_doc']['child'] > 5).run()"
+                  "code": "r.table('users').filter(r.row['embbeded_doc']['child'] > 5).run()"
                 },
                 {
-                  "description": "It can also be used to access currently visited document via a special symbol '@'",
-                  "code": "r.table('users').filter(r['@']['age'] > 5).run()"
+                  "description": "Add 1 to every element of an array",
+                  "code": "r.expr([1, 2, 3]).map(r.row + 1).run()"
                 }
               ]
             }
