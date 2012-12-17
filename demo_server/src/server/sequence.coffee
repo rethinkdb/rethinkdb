@@ -141,6 +141,22 @@ class RDBSequence extends RDBJson
 
 class RDBArray extends RDBSequence
     constructor: (arr) -> @data = arr
+    buildFromJS: (jsArray) ->
+        @data = []
+        for value, index in jsArray
+            if value is null
+                @data.push new RDBPrimitive null
+            else if typeof value is 'string' or typeof value is 'number' or typeof value is 'boolean'
+                @data.push new RDBPrimitive value
+            else if goog.isArray(value)
+                arrayValue = new RDBArray
+                arrayValue.buildFromJS value
+                @data.push arrayValue
+            else if typeof value is 'object'
+                objectValue = new RDBObject
+                objectValue.buildFromJS value
+                @data.push objectValue
+
     asArray: -> @data
 
     add: (other) -> @union other

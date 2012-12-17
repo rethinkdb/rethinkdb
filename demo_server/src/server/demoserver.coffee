@@ -11,7 +11,13 @@ goog.require('Query')
 class DemoServer
     implicitVarId = '__IMPLICIT_VAR__'
 
-    constructor: ->
+    # Options
+    # persistent: boolean (whether we save the database in localStorage or not)
+    constructor: (options)->
+        @options = {}
+        if options?
+            @options = options
+
         @descriptor = window.Query.getDescriptor()
         @serializer = new goog.proto2.WireFormatSerializer()
 
@@ -21,11 +27,29 @@ class DemoServer
         # Scope chain for let and lambdas
         @curScope = new RDBLetScope null, {}
 
-        # Add default database test
-        @createDatabase 'test'
+        # Load from localStorage if needed
+        # Structure:
+        # { db1: {tb1: {primaryKey: "id", records: [] }, tb2: ...} }
+        if @options.persistent is true and Storage? and localStorage.databases?
+            localstorage_databases = JSON.parse localStorage.databases
+            for dbName, dbData of localstorage_databases
+                @createDatabase dbName
+                if dbData?
+                    for tableName, tableContent of dbData
+                        @dbs[dbName].createTable tableName, {primaryKey: tableContent.primaryKey}
+                        if tableContent.records?
+                            for document in tableContent.records
+                                rdbDocument = new RDBObject
+                                rdbDocument.buildFromJS document
+                                @dbs[dbName].tables[tableName].insert rdbDocument
+        else
+            # Add default database test
+            @createDatabase 'test'
 
         # Used to keep track of the backtrace for the currently executing query
         @bt = []
+
+
 
     # Evaluate op with the given backtrace frame
     frame: (fname, op) ->
@@ -118,6 +142,18 @@ class DemoServer
 
         @log 'Server: serialized response'
         @log finalPb
+
+        # Save things in localStorage.
+        # We cannot just stringify @dbs because we will be missing all prototypes
+        if @options.persistent is true and Storage?
+            exportedData =  {}
+            for dbName, dbContent of @dbs
+                exportedData[dbName] = {}
+                for tableName, tableContent of dbContent.tables
+                    exportedData[dbName][tableName] =
+                        primaryKey: tableContent.primaryKey
+                        records: tableContent.asJSON()
+            localStorage.databases = JSON.stringify exportedData
         return finalPb
 
     evaluateQuery: (query) ->

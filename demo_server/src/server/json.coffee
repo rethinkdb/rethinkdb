@@ -146,6 +146,21 @@ class RDBPrimitive extends RDBJson
 
 
 class RDBObject extends RDBJson
+    buildFromJS: (jsObject) ->
+        for key, value of jsObject
+            if value is null
+                @[key] = new RDBPrimitive null
+            else if typeof value is 'string' or typeof value is 'number' or typeof value is 'boolean'
+                @[key] = new RDBPrimitive value
+            else if goog.isArray(value)
+                arrayValue = new RDBArray
+                arrayValue.buildFromJS value
+                @[key] = arrayValue
+            else if typeof value is 'object'
+                objectValue = new RDBObject
+                objectValue.buildFromJS value
+                @[key] = objectValue
+                
     asJSON: ->
         obj = {}
         for own k,v of @
