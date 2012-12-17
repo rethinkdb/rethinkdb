@@ -151,7 +151,7 @@ struct rdb_protocol_t {
                   namespace_repo_t<rdb_protocol_t> *_ns_repo,
                   boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _semilattice_metadata,
                   directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
-                  uuid_t _machine_id);
+                  uuid_u _machine_id);
         ~context_t();
 
         extproc::pool_group_t *pool_group;
@@ -165,7 +165,7 @@ struct rdb_protocol_t {
         directory_read_manager_t<cluster_directory_metadata_t> *directory_read_manager;
         cond_t interruptor; //TODO figure out where we're going to want to interrupt this from and put this there instead
         scoped_array_t<scoped_ptr_t<cross_thread_signal_t> > signals;
-        uuid_t machine_id;
+        uuid_u machine_id;
     };
 
     struct point_read_response_t {

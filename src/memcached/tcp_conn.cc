@@ -99,7 +99,7 @@ void serve_memcache(tcp_conn_t *conn, namespace_interface_t<memcached_protocol_t
 memcache_listener_t::memcache_listener_t(const std::set<ip_address_t> &local_addresses,
                                          int _port,
                                          namespace_repo_t<memcached_protocol_t> *_ns_repo,
-                                         uuid_t _namespace_id,
+                                         uuid_u _namespace_id,
                                          perfmon_collection_t *_parent)
     : port(_port),
       namespace_id(_namespace_id),

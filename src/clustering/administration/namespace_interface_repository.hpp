@@ -32,7 +32,7 @@ public:
     class access_t {
     public:
         access_t();
-        access_t(namespace_repo_t *parent, uuid_t namespace_id, signal_t *interruptor);
+        access_t(namespace_repo_t *parent, uuid_u namespace_id, signal_t *interruptor);
         access_t(const access_t& access);
         access_t &operator=(const access_t &access);
 
@@ -56,7 +56,7 @@ public:
 private:
     void create_and_destroy_namespace_interface(
             namespace_cache_t *cache,
-            uuid_t namespace_id,
+            uuid_u namespace_id,
             auto_drainer_t::lock_t keepalive)
             THROWS_NOTHING;
 
