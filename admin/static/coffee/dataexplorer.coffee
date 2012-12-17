@@ -691,7 +691,8 @@ module 'DataExplorerView', ->
                 return false
             
             # if it's a valid result and we have not reach the maximum of results displayed
-            if data? and  @current_results.length < @limit
+            # A valid result can be null, so we don't use the coffescript's existential operator
+            if data isnt undefined and  @current_results.length < @limit
                 @current_results.push data
                 return true
             else
@@ -715,7 +716,7 @@ module 'DataExplorerView', ->
 
                 @results_view.render_metadata metadata
 
-                if data? #there is nore data
+                if data isnt undefined #there is nore data
                     @skip_value += @current_results.length
                     @current_results = []
                     @current_results.push data
@@ -752,7 +753,7 @@ module 'DataExplorerView', ->
                     return false
                 
                 # if it's a valid result and we have not reach the maximum of results displayed
-                if data? and  @current_results.length < @limit
+                if data isnt undefined and  @current_results.length < @limit
                     @current_results.push data
                     return true
                 else
@@ -775,7 +776,7 @@ module 'DataExplorerView', ->
 
                     @results_view.render_metadata metadata
 
-                    if data? #there is nore data
+                    if data isnt undefined #there is nore data
                         @skip_value += @current_results.length
                         @current_results = []
                         @current_results.push data
