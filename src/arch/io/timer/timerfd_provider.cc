@@ -1,7 +1,7 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
-#include "arch/io/timer_provider.hpp"  // for RDB_USE_TIMERFD_PROVIDER
+#include "arch/io/timer_provider.hpp"
 
-#ifdef RDB_USE_TIMERFD_PROVIDER
+#if RDB_TIMER_PROVIDER == RDB_TIMER_PROVIDER_TIMERFD
 
 #include <sys/timerfd.h>
 #include <fcntl.h>
@@ -59,4 +59,4 @@ void timerfd_provider_t::on_event(int events) {
     }
 }
 
-#endif  // RDB_USE_TIMERFD_PROVIDER
+#endif  // RDB_TIMER_PROVIDER == RDB_TIMER_PROVIDER_TIMERFD

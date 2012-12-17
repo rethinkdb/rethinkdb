@@ -22,7 +22,7 @@ std::string format_poll_event(int event);
 extern perfmon_duration_sampler_t pm_eventloop;
 
 /* Pick the queue now*/
-#ifdef NO_EPOLL
+#if !defined(__linux) || defined(NO_EPOLL)
 
 // Use poll instead of epoll
 #include "arch/runtime/event_queue/poll.hpp"

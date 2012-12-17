@@ -1,5 +1,6 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "progress/progress.hpp"
+#include "arch/io/disk/filestat.hpp"
 
 #include <sys/stat.h>
 
@@ -77,11 +78,7 @@ void counter_progress_bar_t::operator++() {
 }
 
 file_progress_bar_t::file_progress_bar_t(const std::string& activity, FILE *_file, int redraw_interval_ms)
-    : file(_file), progress_bar(activity), timer(redraw_interval_ms, this) {
-    struct stat file_stats;
-    fstat(fileno(file), &file_stats);
-    file_size = file_stats.st_size;
-}
+    : file(_file), file_size(get_file_size(fileno(_file))), progress_bar(activity), timer(redraw_interval_ms, this) { }
 
 void file_progress_bar_t::draw() {
     progress_bar.draw_bar(static_cast<double>(ftell(file)) / static_cast<double>(file_size), -1);

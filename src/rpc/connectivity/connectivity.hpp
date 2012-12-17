@@ -10,7 +10,7 @@
 #include "containers/uuid.hpp"
 #include "rpc/serialize_macros.hpp"
 
-/* `peer_id_t` is a wrapper around a `uuid_t`. Each newly
+/* `peer_id_t` is a wrapper around a `uuid_u`. Each newly
 created cluster node picks a UUID to be its peer-ID. */
 class peer_id_t {
 public:
@@ -28,9 +28,9 @@ public:
         : uuid(nil_uuid())
     { }
 
-    explicit peer_id_t(uuid_t u) : uuid(u) { }
+    explicit peer_id_t(uuid_u u) : uuid(u) { }
 
-    uuid_t get_uuid() const {
+    uuid_u get_uuid() const {
         return uuid;
     }
 
@@ -41,7 +41,7 @@ public:
 private:
     friend class connectivity_cluster_t;
 
-    uuid_t uuid;
+    uuid_u uuid;
 
     RDB_MAKE_ME_SERIALIZABLE_1(uuid);
 };
@@ -88,7 +88,7 @@ public:
         void assert_is_holding(connectivity_service_t *);
     private:
         rwi_lock_assertion_t::read_acq_t acq;
-    };
+    } UNUSED;
 
     /* `peers_list_subscription_t` will call the given functions when a peer
     connects or disconnects. */
@@ -118,7 +118,7 @@ public:
     could be reconstructed by watching connection and disconnection events, but
     it would be hard to reconstruct it consistently across multiple threads. The
     connectivity layer can do it trivially. */
-    virtual uuid_t get_connection_session_id(peer_id_t) = 0;
+    virtual uuid_u get_connection_session_id(peer_id_t) = 0;
 
 protected:
     virtual ~connectivity_service_t() { }

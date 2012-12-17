@@ -870,7 +870,7 @@ static void meta_check(metadata_search_status_t status, metadata_search_status_t
 }
 
 template<class T, class U>
-uuid_t meta_get_uuid(T searcher, const U& predicate,
+uuid_u meta_get_uuid(T searcher, const U& predicate,
                      const std::string &operation, const backtrace_t &backtrace) {
     metadata_search_status_t status;
     typename T::iterator entry = searcher.find_uniq(predicate, &status);
@@ -954,7 +954,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
             db_metadata = db_searcher.find_uniq(db_name, &status);
         meta_check(status, METADATA_SUCCESS, "DROP_DB " + db_name.str(), bt);
         guarantee(!db_metadata->second.is_deleted());
-        uuid_t db_id = db_metadata->first;
+        uuid_u db_id = db_metadata->first;
 
         // Delete all tables in database.
         namespace_predicate_t pred(&db_id);
@@ -1001,9 +1001,9 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         std::string primary_key = m->create_table().primary_key();
         int64_t cache_size = m->create_table().cache_size();
 
-        uuid_t db_id = meta_get_uuid(db_searcher, db_name, "FIND_DATABASE " + db_name.str(), bt.with("table_ref").with("db_name"));
+        uuid_u db_id = meta_get_uuid(db_searcher, db_name, "FIND_DATABASE " + db_name.str(), bt.with("table_ref").with("db_name"));
 
-        uuid_t dc_id = nil_uuid();
+        uuid_u dc_id = nil_uuid();
         if (m->create_table().has_datacenter()) {
             dc_id = meta_get_uuid(dc_searcher, dc_name, "FIND_DATACENTER " + dc_name.str(), bt.with("datacenter"));
         }
@@ -1015,7 +1015,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         meta_check(status, METADATA_ERR_NONE, "CREATE_TABLE " + table_name.str(), bt);
 
         /* Create namespace, insert into metadata, then join into real metadata. */
-        uuid_t namespace_id = generate_uuid();
+        uuid_u namespace_id = generate_uuid();
         // The port here is a legacy from memcached days when each table was accessed through a different port.
         namespace_semilattice_metadata_t<rdb_protocol_t> ns =
             new_namespace<rdb_protocol_t>(env->this_machine, db_id, dc_id, table_name,
@@ -1052,7 +1052,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         assign_table_name(table_name_str, bt.with("table_name"), &table_name);
 
         // Get namespace metadata.
-        uuid_t db_id = meta_get_uuid(db_searcher, db_name, "FIND_DATABASE " + db_name.str(), bt.with("db_name"));
+        uuid_u db_id = meta_get_uuid(db_searcher, db_name, "FIND_DATABASE " + db_name.str(), bt.with("db_name"));
         namespace_predicate_t search_predicate(&table_name, &db_id);
         metadata_search_status_t status;
         metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >::iterator
@@ -1075,7 +1075,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
     case MetaQuery::LIST_TABLES: {
         name_string_t db_name;
         assign_db_name(m->db_name(), bt.with("db_name"), &db_name);
-        uuid_t db_id = meta_get_uuid(db_searcher, db_name, "FIND_DATABASE " + db_name.str(), bt.with("db_name"));
+        uuid_u db_id = meta_get_uuid(db_searcher, db_name, "FIND_DATABASE " + db_name.str(), bt.with("db_name"));
         namespace_predicate_t pred(&db_id);
         for (metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >
                  ::iterator it = ns_searcher.find_next(ns_searcher.begin(), pred);
@@ -1109,7 +1109,7 @@ std::string get_primary_key(TableRef *t, runtime_environment_t *env,
     metadata_searcher_t<database_semilattice_metadata_t>
         db_searcher(&db_metadata.databases);
 
-    uuid_t db_id = meta_get_uuid(db_searcher, db_name, "FIND_DB " + db_name.str(), bt);
+    uuid_u db_id = meta_get_uuid(db_searcher, db_name, "FIND_DB " + db_name.str(), bt);
     namespace_predicate_t pred(&table_name, &db_id);
     metadata_search_status_t status;
     metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >::iterator
@@ -2291,9 +2291,10 @@ boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term::Call *c, runtime_envir
                     length = array->GetArraySize();
                 } else {
                     boost::shared_ptr<json_stream_t> stream = eval_term_as_stream(c->mutable_args(0), env, scopes, backtrace.with("arg:0"));
-                    while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
-                        ++length;
-                    }
+                    result_t res = stream->apply_terminal(rdb_protocol_details::Length(), env, scopes, backtrace);
+                    rdb_protocol_t::rget_read_response_t::length_t *l = boost::get<rdb_protocol_t::rget_read_response_t::length_t>(&res);
+                    guarantee(l, "Applying the terminal returned an unexpected result.");
+                    length = l->length;
                 }
 
                 return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(safe_cJSON_CreateNumber(length, backtrace)));
@@ -2726,9 +2727,9 @@ namespace_repo_t<rdb_protocol_t>::access_t eval_table_ref(TableRef *t, runtime_e
     metadata_searcher_t<database_semilattice_metadata_t>
         db_searcher(&databases_metadata.databases);
 
-    uuid_t db_id = meta_get_uuid(db_searcher, db_name, "EVAL_DB " + db_name.str(), bt);
+    uuid_u db_id = meta_get_uuid(db_searcher, db_name, "EVAL_DB " + db_name.str(), bt);
     namespace_predicate_t pred(&table_name, &db_id);
-    uuid_t id = meta_get_uuid(ns_searcher, pred, "EVAL_TABLE " + table_name.str(), bt);
+    uuid_u id = meta_get_uuid(ns_searcher, pred, "EVAL_TABLE " + table_name.str(), bt);
 
     return namespace_repo_t<rdb_protocol_t>::access_t(env->ns_repo, id, env->interruptor);
 }

@@ -22,7 +22,7 @@ public:
 
     lba_disk_extent_t(extent_manager_t *_em, file_t *file, file_account_t *io_account);
 
-    lba_disk_extent_t(extent_manager_t *_em, file_t *file, off64_t _offset, int _count);
+    lba_disk_extent_t(extent_manager_t *_em, file_t *file, int64_t _offset, int _count);
 
     bool full() {
         return data->amount_filled == em->extent_size;

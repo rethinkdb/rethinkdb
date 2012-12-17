@@ -1,19 +1,25 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "extproc/spawner.hpp"
 
-#include <signal.h>             // sigaction
-#include <sys/prctl.h>          // prctl
+#include <signal.h>
+
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <sys/types.h>
 #include <sys/un.h>
-#include <sys/wait.h>           // waitpid
-#include <unistd.h>             // setpgid
+#include <sys/wait.h>
+#include <unistd.h>
 
 #include "arch/fd_send_recv.hpp"
 #include "extproc/job.hpp"
 #include "utils.hpp"
 
 namespace extproc {
+
+void exec_spawner(fd_t socket) NORETURN;
+void exec_worker(pid_t spawner_pid, fd_t socket) NORETURN;
+
+
 
 // Checks that we only create one spawner. This is an ugly restriction, but it
 // means we can put the SIGCHLD-handling logic in here, so that it is properly
@@ -49,20 +55,16 @@ spawner_t::spawner_t(info_t *info)
               "spawner process already died!");
 
     // Establish SIGCHLD handler for spawner.
-    struct sigaction act;
-    memset(&act, 0, sizeof(act));
-    act.sa_handler = sigchld_handler;
-    guarantee_err(0 == sigemptyset(&act.sa_mask), "could not empty signal mask");
-    guarantee_err(0 == sigaction(SIGCHLD, &act, NULL), "could not set SIGCHLD handler");
+    struct sigaction sa = make_sa_handler(0, sigchld_handler);
+    int res = sigaction(SIGCHLD, &sa, NULL);
+    guarantee_err(res == 0, "could not set SIGCHLD handler");
 }
 
 spawner_t::~spawner_t() {
     // De-establish SIGCHLD handler.
-    struct sigaction act;
-    memset(&act, 0, sizeof(act));
-    act.sa_handler = SIG_DFL;
-    guarantee_err(0 == sigemptyset(&act.sa_mask), "could not empty signal mask");
-    guarantee_err(0 == sigaction(SIGCHLD, &act, NULL), "could not unset SIGCHLD handler");
+    struct sigaction sa = make_sa_handler(0, SIG_DFL);
+    int res = sigaction(SIGCHLD, &sa, NULL);
+    guarantee_err(res == 0, "could not unset SIGCHLD handler");
 
     guarantee(spawner_pid > 0);
     spawner_pid = -1;
@@ -73,14 +75,13 @@ void spawner_t::create(info_t *info) {
     guarantee_err(0 == socketpair(AF_UNIX, SOCK_STREAM, 0, fds),
                   "could not create socketpair for spawner");
 
-    pid_t rdb_pid = getpid();
     pid_t pid = fork();
     guarantee_err(-1 != pid, "could not fork spawner process");
 
     if (0 == pid) {
         // We're the child; run the spawner.
         guarantee_err(0 == close(fds[0]), "could not close fd");
-        exec_spawner(rdb_pid, fds[1]);
+        exec_spawner(fds[1]);
         unreachable();
     }
 
@@ -118,7 +119,7 @@ pid_t spawner_t::spawn_process(scoped_fd_t *socket) {
 
 // ---------- Spawner & worker processes ----------
 // Runs the spawner process. Does not return.
-void spawner_t::exec_spawner(pid_t rdb_pid, fd_t socket) {
+void exec_spawner(fd_t socket) {
     // We set our PGID to our own PID (rather than inheriting our parent's PGID)
     // so that a signal (eg. SIGINT) sent to the parent's PGID (by eg. hitting
     // Ctrl-C at a terminal) will not propagate to us or our children.
@@ -134,13 +135,12 @@ void spawner_t::exec_spawner(pid_t rdb_pid, fd_t socket) {
     {
         // NB. According to `man 2 sigaction` on linux, POSIX.1-2001 says that
         // this will prevent zombies, but may not be "fully portable".
-        struct sigaction act;
-        memset(&act, 0, sizeof(act));
-        act.sa_handler = SIG_IGN;
-
-        guarantee_err(0 == sigaction(SIGCHLD, &act, NULL),
-                      "spawner: Could not ignore SIGCHLD");
+        struct sigaction sa = make_sa_handler(0, SIG_IGN);
+        int res = sigaction(SIGCHLD, &sa, NULL);
+        guarantee_err(res == 0, "spawner: Could not ignore SIGCHLD");
     }
+
+    pid_t spawner_pid = getpid();
 
     for (;;) {
         // Get an fd from our parent.
@@ -161,7 +161,7 @@ void spawner_t::exec_spawner(pid_t rdb_pid, fd_t socket) {
         if (0 == pid) {
             // We're the child/worker.
             guarantee_err(0 == close(socket), "worker: could not close fd");
-            exec_worker(rdb_pid, fd);
+            exec_worker(spawner_pid, fd);
             unreachable();
         }
 
@@ -183,16 +183,45 @@ void spawner_t::exec_spawner(pid_t rdb_pid, fd_t socket) {
     }
 }
 
+// On OS X, we have to poll the ppid to detect when the parent process dies.  So we use SIGALRM and
+// setitimer to do that.  (We could also use kqueue to do this without polling, in a separate
+// thread.  We could also just make a separate thread and poll from it.)  We have to make this
+// global variable because setitimer doesn't let you pass the value through a siginfo_t parameter.
+pid_t spawner_pid_for_sigalrm = 0;
+
+void check_ppid_for_death(int) {
+    pid_t ppid = getppid();
+    if (spawner_pid_for_sigalrm != 0 && spawner_pid_for_sigalrm != ppid) {
+        // We didn't fail, so should we exit with failure?  This status code doesn't really matter.
+        _exit(EXIT_FAILURE);
+    }
+}
+
 // Runs the worker process. Does not return.
-void spawner_t::exec_worker(pid_t rdb_pid, fd_t sockfd) {
-    // Makes sure we get SIGTERMed when our parent (the spawner) dies.
-    // TODO(rntz): prctl is linux-specific.
-    guarantee_err(0 == prctl(PR_SET_PDEATHSIG, SIGTERM),
-                  "worker: could not set parent-death signal");
+void exec_worker(pid_t spawner_pid, fd_t sockfd) {
+    // Make sure we die when our parent dies.  (The parent, the spawner process, dies when the
+    // rethinkdb process dies.)
+    {
+        spawner_pid_for_sigalrm = spawner_pid;
+
+        struct sigaction sa = make_sa_handler(0, check_ppid_for_death);
+        int res = sigaction(SIGALRM, &sa, NULL);
+        guarantee_err(res == 0, "worker: could not set action for ALRM signal");
+
+        struct itimerval timerval;
+        timerval.it_interval.tv_sec = 0;
+        timerval.it_interval.tv_usec = 500 * THOUSAND;
+        timerval.it_value = timerval.it_interval;
+        struct itimerval old_timerval;
+        res = setitimer(ITIMER_REAL, &timerval, &old_timerval);
+        guarantee_err(res == 0, "worker: setitimer failed");
+        guarantee(old_timerval.it_value.tv_sec == 0 && old_timerval.it_value.tv_usec == 0,
+                  "worker: setitimer saw that we already had an itimer!");
+    }
 
     // Receive one job and run it.
     scoped_fd_t fd(sockfd);
-    job_t::control_t control(getpid(), rdb_pid, &fd);
+    job_t::control_t control(getpid(), spawner_pid, &fd);
     exit(job_t::accept_job(&control, NULL));
 }
 

@@ -17,7 +17,9 @@ int64_t round_up_to_power_of_two(int64_t x);
 // printf buffer don't need to be templatized or know its size.
 class append_only_printf_buffer_t {
 public:
+    __attribute__((format (printf, 2, 3)))
     virtual void appendf(const char *format, ...) = 0;
+    __attribute__((format (printf, 2, 0)))
     virtual void vappendf(const char *format, va_list ap) = 0;
 protected:
     append_only_printf_buffer_t() { }
@@ -33,14 +35,14 @@ class printf_buffer_t : public append_only_printf_buffer_t {
 public:
     printf_buffer_t();
     explicit printf_buffer_t(const char *format, ...) __attribute__((format (printf, 2, 3)));
-    printf_buffer_t(va_list ap, const char *format);
+    printf_buffer_t(va_list ap, const char *format) __attribute__((format (printf, 3, 0)));
     ~printf_buffer_t();
 
     // append and vappend become slow if the total size grows to N or
     // greater.  We still have std::vector-style amortized constant
     // time growth, though.
-    void appendf(const char *format, ...);
-    void vappendf(const char *format, va_list ap);
+    void appendf(const char *format, ...) __attribute__((format (printf, 2, 3)));
+    void vappendf(const char *format, va_list ap) __attribute__((format (printf, 2, 0)));
 
     char *data() const {
         return ptr_;
@@ -110,6 +112,7 @@ void printf_buffer_t<N>::appendf(const char *format, ...) {
     va_end(ap);
 }
 
+__attribute__((format (printf, 5, 0)))
 inline void alloc_copy_and_format(const char *buf, int64_t length, int append_size, int64_t alloc_limit, const char *fmt, va_list ap, char **buf_out) {
     char *new_ptr = new char[alloc_limit];
     memcpy(new_ptr, buf, length);

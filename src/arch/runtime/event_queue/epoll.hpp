@@ -13,7 +13,7 @@
 #include "config/args.hpp"
 
 // Event queue structure
-struct epoll_event_queue_t : public event_queue_base_t {
+struct epoll_event_queue_t {
 public:
     explicit epoll_event_queue_t(linux_queue_parent_t *parent);
     void run();

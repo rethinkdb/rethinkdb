@@ -89,7 +89,8 @@ struct file_knowledge_t {
     learned_t<mc_config_block_t> mc_config_block;
 
     explicit file_knowledge_t(const std::string _filename) : filename(_filename) {
-        guarantee_err(!pthread_rwlock_init(&block_info_lock_, NULL), "pthread_rwlock_init failed");
+        int res = pthread_rwlock_init(&block_info_lock_, NULL);
+        guarantee_xerr(res == 0, res, "pthread_rwlock_init failed");
     }
 
     friend class read_locker_t;
@@ -108,13 +109,15 @@ private:
 class read_locker_t {
 public:
     explicit read_locker_t(file_knowledge_t *knog) : knog_(knog) {
-        guarantee_err(!pthread_rwlock_rdlock(&knog->block_info_lock_), "pthread_rwlock_rdlock failed");
+        int res = pthread_rwlock_rdlock(&knog->block_info_lock_);
+        guarantee_xerr(res == 0, res, "pthread_rwlock_rdlock failed");
     }
     const segmented_vector_t<block_knowledge_t, MAX_BLOCK_ID>& block_info() const {
         return knog_->block_info_;
     }
     ~read_locker_t() {
-        guarantee_err(!pthread_rwlock_unlock(&knog_->block_info_lock_), "pthread_rwlock_unlock failed");
+        int res = pthread_rwlock_unlock(&knog_->block_info_lock_);
+        guarantee_xerr(res == 0, res, "pthread_rwlock_unlock failed");
     }
 private:
     file_knowledge_t *knog_;
@@ -123,13 +126,15 @@ private:
 class write_locker_t {
 public:
     explicit write_locker_t(file_knowledge_t *knog) : knog_(knog) {
-        guarantee_err(!pthread_rwlock_wrlock(&knog->block_info_lock_), "pthread_rwlock_wrlock failed");
+        int res = pthread_rwlock_wrlock(&knog->block_info_lock_);
+        guarantee_xerr(res == 0, res, "pthread_rwlock_wrlock failed");
     }
     segmented_vector_t<block_knowledge_t, MAX_BLOCK_ID>& block_info() {
         return knog_->block_info_;
     }
     ~write_locker_t() {
-        guarantee_err(!pthread_rwlock_unlock(&knog_->block_info_lock_), "pthread_rwlock_unlock failed");
+        int res = pthread_rwlock_unlock(&knog_->block_info_lock_);
+        guarantee_xerr(res == 0, res, "pthread_rwlock_unlock failed");
     }
 private:
     file_knowledge_t *knog_;
@@ -333,8 +338,8 @@ bool check_static_config(nondirect_file_t *file, file_knowledge_t *knog, static_
     printf("static_header serializer version: %.*s\n", static_cast<int>(sizeof(SERIALIZER_VERSION_STRING)), buf->version);
     printf("              DEVICE_BLOCK_SIZE: %llu\n", DEVICE_BLOCK_SIZE);
     printf("static_header block_size: %u\n", block_size.ser_value());
-    printf("static_header extent_size: %lu\n", extent_size);
-    printf("              file_size: %lu\n", file_size);
+    printf("static_header extent_size: %" PRIu64 "\n", extent_size);
+    printf("              file_size: %" PRIu64 "\n", file_size);
 
     if (0 != strcmp(buf->software_name, SOFTWARE_NAME_STRING)) {
         *err = bad_software_name;
@@ -382,9 +387,7 @@ std::string extract_static_config_flags(nondirect_file_t *file, UNUSED file_know
     block_size_t block_size = static_cfg->block_size();
     uint64_t extent_size = static_cfg->extent_size();
 
-
-
-    return strprintf(" --block-size %u --extent-size %lu", block_size.ser_value(), extent_size);
+    return strprintf(" --block-size %u --extent-size %" PRIu64, block_size.ser_value(), extent_size);
 }
 
 struct metablock_errors {
@@ -409,7 +412,7 @@ bool check_metablock(nondirect_file_t *file, file_knowledge_t *knog, metablock_e
     errs->no_valid_metablocks = false;
     errs->implausible_block_failure = false;
 
-    std::vector<off64_t> metablock_offsets = initial_metablock_offsets(knog->static_config->extent_size());
+    std::vector<int64_t> metablock_offsets = initial_metablock_offsets(knog->static_config->extent_size());
 
     errs->total_count = metablock_offsets.size();
 
@@ -425,7 +428,7 @@ bool check_metablock(nondirect_file_t *file, file_knowledge_t *knog, metablock_e
 
 
     for (int i = 0, n = metablock_offsets.size(); i < n; ++i) {
-        off64_t off = metablock_offsets[i];
+        int64_t off = metablock_offsets[i];
 
         block_t b;
         if (!b.init(DEVICE_BLOCK_SIZE, file, off)) {
@@ -493,11 +496,11 @@ bool check_metablock(nondirect_file_t *file, file_knowledge_t *knog, metablock_e
     return true;
 }
 
-bool is_valid_offset(file_knowledge_t *knog, off64_t offset, off64_t alignment) {
+bool is_valid_offset(file_knowledge_t *knog, int64_t offset, int64_t alignment) {
     return offset >= 0 && offset % alignment == 0 && (uint64_t)offset < *knog->filesize;
 }
 
-bool is_valid_extent(file_knowledge_t *knog, off64_t offset) {
+bool is_valid_extent(file_knowledge_t *knog, int64_t offset) {
     return is_valid_offset(knog, offset, knog->static_config->extent_size());
 }
 
@@ -505,7 +508,7 @@ bool is_valid_btree_offset(file_knowledge_t *knog, flagged_off64_t offset) {
     return !offset.has_value() || is_valid_offset(knog, offset.get_value(), knog->static_config->block_size().ser_value());
 }
 
-bool is_valid_device_block(file_knowledge_t *knog, off64_t offset) {
+bool is_valid_device_block(file_knowledge_t *knog, int64_t offset) {
     return is_valid_offset(knog, offset, DEVICE_BLOCK_SIZE);
 }
 
@@ -526,7 +529,7 @@ struct lba_extent_errors {
     }
 };
 
-bool check_lba_extent(nondirect_file_t *file, file_knowledge_t *knog, unsigned int shard_number, off64_t extent_offset, int entries_count, lba_extent_errors *errs) {
+bool check_lba_extent(nondirect_file_t *file, file_knowledge_t *knog, unsigned int shard_number, int64_t extent_offset, int entries_count, lba_extent_errors *errs) {
     if (!is_valid_extent(knog, extent_offset)) {
         errs->code = lba_extent_errors::bad_extent_offset;
         return false;
@@ -1217,7 +1220,7 @@ void launch_check_slice(std::vector<pthread_t> *threads, scoped_ptr_t<slicecx_t>
     param->cx.init(cx->release());
     param->errs = errs;
     int res = pthread_create(&threads->back(), NULL, do_check_slice, param);
-    guarantee_err(res == 0, "pthread_create not working");
+    guarantee_xerr(res == 0, res, "pthread_create not working");
 }
 
 void launch_check_after_config_block(nondirect_file_t *file, std::vector<pthread_t> *threads, file_knowledge_t *knog, all_slices_errors_t *errs, const config_t *cfg) {
@@ -1551,7 +1554,8 @@ bool check_files(const config_t *cfg) {
 
     // Wait for all threads to finish.
     for (unsigned i = 0; i < threads.size(); ++i) {
-        guarantee_err(!pthread_join(threads[i], NULL), "pthread_join failing");
+        int res = pthread_join(threads[i], NULL);
+        guarantee_xerr(res == 0, res, "pthread_join failing");
     }
 
     return report_post_config_block_errors(slices_errs);

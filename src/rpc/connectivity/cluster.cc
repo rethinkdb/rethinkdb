@@ -355,7 +355,7 @@ void connectivity_cluster_t::run_t::handle(
             // If EOF or data does not match header, terminate connection.
             if (0 == r || memcmp(cluster_proto_header + i, data, r)) {
                 // Wrong header.
-                logWRN("received invalid clustering header from %s, closing connection", peername);
+                logWRN("Received invalid clustering header from %s, closing connection -- something might be connecting to the wrong port.", peername);
                 return;
             }
         }
@@ -625,7 +625,7 @@ std::set<peer_id_t> connectivity_cluster_t::get_peers_list() THROWS_NOTHING {
     return peers;
 }
 
-uuid_t connectivity_cluster_t::get_connection_session_id(peer_id_t peer) THROWS_NOTHING {
+uuid_u connectivity_cluster_t::get_connection_session_id(peer_id_t peer) THROWS_NOTHING {
     std::map<peer_id_t, std::pair<run_t::connection_entry_t *, auto_drainer_t::lock_t> > *connection_map =
         &thread_info.get()->connection_map;
     std::map<peer_id_t, std::pair<run_t::connection_entry_t *, auto_drainer_t::lock_t> >::iterator it =

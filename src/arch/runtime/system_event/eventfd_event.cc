@@ -1,4 +1,5 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
+#ifdef __linux
 #ifndef NO_EVENTFD
 #include "arch/runtime/system_event/eventfd_event.hpp"
 
@@ -34,5 +35,5 @@ void eventfd_event_t::write(uint64_t value) {
     guarantee_err(res == 0, "Could not write to eventfd");
 }
 
-#endif // NO_EVENTFD
-
+#endif  // NO_EVENTFD
+#endif  // __linux

@@ -53,6 +53,10 @@ html, body {
     margin-top: -95px;
     height: 60px;
     clear: both;
+    /* Used to preload the monospace fonts for the data explorer */
+    .preload_fonts{
+        font-family: @monospace;
+    }
 }
 /* Opera fix */
 body:before {
@@ -331,7 +335,7 @@ TODO: retire this
         list-style-type: none;
         li {
             display: inline-block;
-            margin-right: 65px;
+            margin-right: 64px;
             a { color: #a3a3a3; }
         }
     }
@@ -426,7 +430,7 @@ TODO: retire this
                 text-shadow: @text_shadow;
                 margin-top: 15px;
                 padding: 6px 12px 6px 40px;
-                width: 150px;
+                width: 145px;
                 line-height: normal;
 
                 // csshat
@@ -1075,7 +1079,6 @@ TODO: retire this
                 padding: 0px;
                 margin: 0px 0px 9px 0px;
                 border: 1px solid #d7d7d7;
-                color: #23a5df;
                 .border-radius(4px);
                 .box-shadow(~"inset 0 -6px 6px -6px #ddd");
 
@@ -1085,9 +1088,9 @@ TODO: retire this
                     padding: 0px 5px;
                     width: 132px;
                     height: 18px;
+                    color: #23a5df;
                     cursor: pointer;
                     text-overflow: ellipsis;
-
                 }
                 .suggestion_name_li_hl{ color: #005388; }
             }
@@ -1197,6 +1200,7 @@ TODO: retire this
         .error{ font-family: @sans; }
         .error_details{
             font-family: @monospace;
+            word-break: break-word;
             padding: 7px 10px;
             border: 1px solid #CCC;
             border-radius: 3px;
@@ -1225,6 +1229,7 @@ TODO: retire this
             display: none;
             .more_results_paragraph{
                 margin-right: 100px;
+                text-align: right;
                 font-family: @sans;
             }
         }

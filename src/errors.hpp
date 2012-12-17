@@ -3,14 +3,8 @@
 #define ERRORS_HPP_
 
 #include <errno.h>
+#include <signal.h>
 #include <stdlib.h>
-
-// Provide a quick and clear error message to 32-bit users.  (Yes, we need both, because there is a
-// target for 32-bit pointers on x86-64.)
-#if !__LP64__ || !__x86_64__
-#error "RethinkDB only supports 64-bit x86-64 targets at this time."
-#endif
-
 
 #ifndef DISABLE_BREAKPOINTS
 #ifdef __linux__
@@ -116,6 +110,11 @@
 void report_fatal_error(const char*, int, const char*, ...) __attribute__((format (printf, 3, 4)));
 void report_user_error(const char*, ...) __attribute__((format (printf, 1, 2)));
 
+// Possibly using buf to store characters, returns a pointer to a strerror-style error string.  This
+// has the same contract as the GNU (char *)-returning strerror_r.  The return value is a pointer to
+// a nul-terminated string, either equal to buf or pointing at a statically allocated string.
+MUST_USE const char *errno_string_maybe_using_buffer(int errsv, char *buf, size_t buflen);
+
 #define stringify(x) #x
 
 #define format_assert_message(assert_type, cond) assert_type " failed: [" stringify(cond) "] "
@@ -132,11 +131,14 @@ void report_user_error(const char*, ...) __attribute__((format (printf, 1, 2)));
     } while (0)
 
 #define guarantee_xerr(cond, err, msg, args...) do {                            \
+        int guarantee_xerr_errsv = (err);                                       \
         if (!(cond)) {                                                          \
-            if (err == 0) {                                                     \
+            if (guarantee_xerr_errsv == 0) {                                    \
                 crash_or_trap(format_assert_message("Guarantee", cond) msg, ##args); \
             } else {                                                            \
-                crash_or_trap(format_assert_message("Guarantee", cond) " (errno %d - %s) " msg, err, strerror(err), ##args);  \
+                char guarantee_xerr_buf[250];                                      \
+                const char *errstr = errno_string_maybe_using_buffer(guarantee_xerr_errsv, guarantee_xerr_buf, sizeof(guarantee_xerr_buf)); \
+                crash_or_trap(format_assert_message("Guarantee", cond) " (errno %d - %s) " msg, guarantee_xerr_errsv, errstr, ##args); \
             }                                                                   \
         }                                                                       \
     } while (0)
@@ -155,11 +157,14 @@ void report_user_error(const char*, ...) __attribute__((format (printf, 1, 2)));
         }                                                                 \
     } while (0)
 #define rassert_err(cond, msg, args...) do {                                \
+        int rassert_err_errsv = errno;                                      \
         if (!(cond)) {                                                      \
-            if (errno == 0) {                                               \
+            if (rassert_err_errsv == 0) {                                   \
                 crash_or_trap(format_assert_message("Assert", cond) msg);   \
             } else {                                                        \
-                crash_or_trap(format_assert_message("Assert", cond) " (errno %d - %s) " msg, errno, strerror(errno), ##args);  \
+                char rassert_err_buf[250];                                  \
+                const char *errstr = errno_string_maybe_using_buffer(rassert_err_errsv, rassert_err_buf, sizeof(rassert_err_buf)); \
+                crash_or_trap(format_assert_message("Assert", cond) " (errno %d - %s) " msg, rassert_err_errsv, errstr, ##args);  \
             }                                                               \
         }                                                                   \
     } while (0)
@@ -175,8 +180,10 @@ namespace boost {
 void assertion_failed(char const * expr, char const * function, char const * file, long line);  // NOLINT(runtime/int)
 }
 
+#ifdef MCHECK
 void mcheck_init(void);
 void mcheck_all(void);
+#endif
 
 // put this in a private: section.
 #define DISABLE_COPYING(T)                      \

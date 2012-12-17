@@ -41,6 +41,9 @@ int main(int argc, char *argv[])
     // Initialize randomness
     srand(time(NULL));
 
+    // Initialize data used by clock_monotonic.
+    initialize_clock_monotonic();
+
     // Parse the arguments
     config_t config;
     parse(&config, argc, argv);

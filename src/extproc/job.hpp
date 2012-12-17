@@ -18,18 +18,18 @@ class job_t {
     // Passed in to a job on the worker process side.
     class control_t : public unix_socket_stream_t {
       public:
-        void vlog(const char *fmt, va_list ap);
-        void log(const char *fmt, ...)
-            __attribute__((format (printf, 2, 3)));
+        void vlog(const char *fmt, va_list ap) __attribute__((format (printf, 2, 0))) ;
+        void log(const char *fmt, ...) __attribute__((format (printf, 2, 3)));
 
-        pid_t get_rdb_pid() const;
+        pid_t get_spawner_pid() const;
 
       private:
-        friend class spawner_t;
-        control_t(pid_t _pid, pid_t _rdb_pid, scoped_fd_t *fd);
+        friend void exec_worker(pid_t spawner_pid, fd_t sockfd);
+
+        control_t(pid_t pid, pid_t spawner_pid, scoped_fd_t *fd);
 
         const pid_t pid;
-        const pid_t rdb_pid;
+        const pid_t spawner_pid;
 
         DISABLE_COPYING(control_t);
     };
