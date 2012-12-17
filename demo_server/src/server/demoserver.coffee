@@ -352,7 +352,7 @@ class DemoServer
                 ifM = term.getIf()
                 testRes = @frame "test", =>
                     res = (@evaluateTerm ifM.getTest())
-                    unless res.typeOf() is RDBJson.RDBTypes.BOOLEAN
+                    if (not res?) or res.typeOf() isnt RDBJson.RDBTypes.BOOLEAN
                         throw new RuntimeError "The IF test must evaluate to a boolean."
                     res
                 if testRes.asJSON()

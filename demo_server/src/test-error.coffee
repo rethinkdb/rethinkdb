@@ -133,7 +133,7 @@ class Tests
                 </li>'
             ###
         else
-            $('#err-results').append '<li class="result fail">'+query+'<span style="float: right">&gt;_&lt;</span><br/>Demo server response:
+            $('#results').append '<li class="result fail">'+query+'<span style="float: right">&gt;_&lt;</span><br/>Demo server response:
                 <pre>'+result_demo+'</pre>
                 Real server response:
                 <pre>'+result_server+'</pre>
@@ -144,6 +144,16 @@ $(document).ready ->
     #TODO test groupedMapReduce
     # Some tests are commented because the real server doesn't implement (yet) object comparison.
     queries = [
+        'r.db("test").tableCreate("test").run()',
+        'r.db("test").tableCreate("test_join").run()',
+        'r.db("test").table("test").insert([{id:1, key: 1}, {id:2, key: 2}, {id:3, key: 3}]).run()',
+        'r.db("test").table("test_join").insert([{id:1, join_key: 2}, {id:2, join_key: 2}, {id:3, join_key: 3}]).run()',
+        'r.db("test").table("test").innerJoin(r.db("test").table("test_join"), function(test, join_test) { true} ).zip().run() // Not boolean for the join',
+        'r.db("test").table("test").innerJoin(r.db("test").table("test_join"), function(test, join_test) {return "whatever"} ).zip().run() // Not boolean for the join',
+        'r.db("test").table("test").outerJoin(r.db("test").table("test_join"), function(test, join_test) { true} ).zip().run() // Not boolean for the join',
+        'r.db("test").table("test").outerJoin(r.db("test").table("test_join"), function(test, join_test) {return "whatever"} ).zip().run() // Not boolean for the join'
+    ]
+    other_queries = [
         'r.expr(true).run()',
         'r.expr(false).run()',
         'r.expr(132).run()',
@@ -754,8 +764,8 @@ $(document).ready ->
 
     # Then the real server
     server =
-        host: 'localhost'
-        port: 8080
+        host: 'newton'
+        port: 23000
     rethinkdb.connect server, ->
         # Clean the database test
         rethinkdb.dbList().run().collect (dbs) ->
