@@ -949,8 +949,6 @@ install-tools: $(ASSETS_DIR)/scripts/rethinkdb.bash $(ASSET_SCRIPTS)
 
 install-config:
 	$(QUIET) install -m755 -d $(DESTDIR)$(conf_dir) ;
-# We are not using main.conf right now, so that is commented out.
-#	$(QUIET) install -m644 $(ASSETS_DIR)/config/main.conf $(DESTDIR)$(conf_dir)/main.conf ;
 	$(QUIET) install -m755 -d $(DESTDIR)$(conf_instance_dir) ;
 	$(QUIET) install -m644 $(ASSETS_DIR)/config/default.conf.sample $(DESTDIR)$(conf_dir)/default.conf.sample ;
 
