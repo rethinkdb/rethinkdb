@@ -164,9 +164,15 @@ ifeq ($(COMPILER),CLANG)
 ifeq ($(OSX),0)
 RT_LDFLAGS+=-Wl,--no-as-needed
 endif
+
 ifeq ($(STATICFORCE),1)
+# TODO(OSX)
+ifeq ($(OSX),0)
 RT_LDFLAGS+= -static
+endif
+ifeq ($(OSX),0)
 STATIC_LIBGCC=1
+endif
 endif
 
 RT_LDFLAGS+=$(LDPATHDS) $(LDPTHREADFLAG) -lstdc++ -lm
@@ -175,10 +181,17 @@ else  # ifeq ($(COMPILER),CLANG)
 
 ifeq ($(COMPILER),INTEL)
 RT_LDFLAGS+= -B/opt/intel/bin
+
 ifeq ($(STATICFORCE),1)
+# TODO(OSX)
+ifeq ($(OSX),0)
 RT_LDFLAGS+= -static
+endif
+ifeq ($(OSX),0)
 STATIC_LIBGCC=1
 endif
+endif
+
 RT_LDFLAGS+=$(LDPATHDS) $(LDPTHREADFLAG) -lstdc++
 else  # ifeq ($(COMPILER),INTEL)
 # GCC
@@ -187,8 +200,13 @@ RT_LDFLAGS+=-Wl,--no-as-needed
 endif
 
 ifeq ($(STATICFORCE),1)
+# TODO(OSX)
+ifeq ($(OSX),0)
 RT_LDFLAGS+= -static
+endif
+ifeq ($(OSX),0)
 STATIC_LIBGCC=1
+endif
 endif
 
 RT_LDFLAGS+=$(LDPATHDS) $(LDPTHREADFLAG)
@@ -200,15 +218,22 @@ RT_LDFLAGS+=-lrt
 endif
 
 ifeq ($(BUILD_PORTABLE),1)
+ifeq ($(OSX),0)
 RT_LDFLAGS+=-lgcc
+endif
 endif
 
 ifeq ($(STATICFORCE),1)
+# TODO(OSX)
+ifeq ($(OSX),0)
 RT_LDFLAGS+= -Wl,-Bdynamic
+endif
 endif
 
 ifeq ($(BUILD_PORTABLE),1)
+ifeq ($(OSX),0)
 RT_LDFLAGS+=-lgcc_s
+endif
 endif
 
 BUILD_PORTABLE?=0
@@ -255,14 +280,19 @@ RT_LDFLAGS+=-lv8
 else
 ifeq ($(STATIC_V8),1)
 
-ifeq ($(OSX),1)
+# TODO(OSX) Remove commented code
+# ifeq ($(OSX),1)
 # TODO(OSX) Support static linking v8?  Or meh, make everybody build using homebrew?
-RT_LDFLAGS+=-lv8
-else
+# RT_LDFLAGS+=-lv8
+# else
 # TODO(OSX) How the heck does -dynamic work?  According to the gcc man
 # page (on Linux), that's just passed through to the linker on Darwin.
+ifeq ($(OSX),1)
+RT_LDFLAGS+=-lv8
+else
 RT_LDFLAGS+=-static -lv8 -dynamic
 endif
+# endif
 endif
 endif
 
@@ -442,7 +472,9 @@ ifeq ($(OSX),1)
 # /usr/local/lib is where Homebrew will put these libraries.  Will
 # they be named differently if you don't use Homebrew?  (No -mt on
 # program options?)
-RT_LDFLAGS+=-L/usr/local/lib -lboost_program_options-mt -lprotobuf
+# TODO(OSX)
+RT_LDFLAGS+=/usr/local/lib/libboost_program_options-mt.a /usr/local/lib/libprotobuf.a
+#RT_LDFLAGS+=-L/usr/local/lib -lboost_program_options-mt -lprotobuf
 else
 
 # look for the static library in the same directory as the .so file
