@@ -38,7 +38,14 @@ class RDBSequence extends RDBJson
     distinct: ->
         neu = []
         for v in @asArray()
-            unless v in neu then neu.push v
+            # The operator in doesn't work for objects
+            foundCopy = false
+            for w in neu
+                if v.eq(w).asJSON() is true
+                    foundCopy = true
+                    break
+            if foundCopy is false
+                neu.push v
         new RDBArray neu
 
     map: (mapping) ->
