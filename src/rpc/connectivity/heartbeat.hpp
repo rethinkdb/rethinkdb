@@ -5,6 +5,7 @@
 #include <map>
 
 #include "arch/io/arch.hpp"
+#include "concurrency/auto_drainer.hpp"
 #include "concurrency/one_per_thread.hpp"
 #include "rpc/connectivity/connectivity.hpp"
 #include "rpc/connectivity/messages.hpp"
@@ -29,6 +30,8 @@ private:
 
     // This is a stub, we do everything in message_from_peer instead
     void on_message(UNUSED peer_id_t source_peer, UNUSED read_stream_t *stream) { }
+    void send_message_wrapper(const peer_id_t source_peer, UNUSED auto_drainer_t::lock_t keepalive);
+    void kill_connection_wrapper(const peer_id_t source_peer, UNUSED auto_drainer_t::lock_t keepalive);
 
     class heartbeat_writer_t : public send_message_write_callback_t {
     public:
@@ -41,6 +44,7 @@ private:
 
         timer_token_t *timer_token;
         std::map<peer_id_t, uint32_t> connections;
+        auto_drainer_t drainer;
     };
 
     heartbeat_writer_t writer;

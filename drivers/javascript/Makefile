@@ -15,6 +15,7 @@ CLOSURE_LIB=$(EXTERNAL)google-closure-library/
 CLOSURE_BUILDER=$(CLOSURE_LIB)closure/bin/build/closurebuilder.py
 CLOSURE_COMPILER=$(EXTERNAL)google-closure-compiler/compiler.jar
 
+PROTOC_BASE?=/usr
 PROTOC?=$(PROTOC_BASE)/bin/protoc
 PROTOC_JS_HOME_DIR=$(EXTERNAL)protobuf-plugin-closure/
 PROTOC_JS_PLUGIN=$(PROTOC_JS_HOME_DIR)protoc-gen-js

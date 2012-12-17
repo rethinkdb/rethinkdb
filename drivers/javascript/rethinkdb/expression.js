@@ -398,7 +398,7 @@ rethinkdb.fn = function(var_args) {
         }));
 
         if (!(body instanceof rethinkdb.Query)) {
-            throw new rethinkdb.errors.ClientError("ReQL function must return ReQL expression");
+            body = rethinkdb.expr(body);
         }
 
     } else {
@@ -786,7 +786,7 @@ rethinkdb.Expression.prototype.filter = function(selector) {
         var ands = [];
         for (var key in selector) {
             if (selector.hasOwnProperty(key)) {
-                ands.push(rethinkdb.R(key)['eq'](rethinkdb.expr(selector[key])));
+                ands.push(rethinkdb.row(key)['eq'](rethinkdb.expr(selector[key])));
             }
         }
         predicateFunction = rethinkdb.util.newExpr_(rethinkdb.FunctionExpression,[''],
@@ -962,7 +962,7 @@ rethinkdb.desc = function(attr) {
  */
 rethinkdb.Expression.prototype.distinct = function(opt_attr) {
     rethinkdb.util.typeCheck_(opt_attr, 'string');
-    var leftExpr = opt_attr ? this.map(rethinkdb.R(opt_attr)) : this;
+    var leftExpr = opt_attr ? this.map(rethinkdb.row(opt_attr)) : this;
     return rethinkdb.util.newExpr_(rethinkdb.BuiltinExpression, Builtin.BuiltinType.DISTINCT, [leftExpr],
         function(bt) {
             if (!bt) {
@@ -1413,11 +1413,17 @@ rethinkdb.ImplicitVarExpression.prototype.compile = function(opt_buildOpts) {
 /** @override */
 rethinkdb.ImplicitVarExpression.prototype.formatQuery = function(bt) {
     if (!bt) {
-        return "r.R('@')";
+        return "r.row";
     } else {
         return "^^^^^^^^";
     }
 };
+
+/**
+ * A Reference to the implicit variable
+ * @export
+ */
+rethinkdb.row = rethinkdb.util.newExpr_(rethinkdb.ImplicitVarExpression);
 
 /**
  * @param {rethinkdb.Expression} leftExpr
@@ -1446,37 +1452,6 @@ rethinkdb.AttrExpression = function(leftExpr, attrName) {
 goog.inherits(rethinkdb.AttrExpression, rethinkdb.BuiltinExpression);
 
 /**
- * Reference the value of a bound variable or a field of a bound variable.
- * @param {string} varString The variable or field to reference. The special name @ references
- *  the implicit variable. If prefixed with a '$', references a free variable with that name.
- *  Otherwise references a field of the implicit variable. In any case, subfields can be
- *  referenced with dot notation.
- * @return {rethinkdb.Expression}
- * @export
- */
-rethinkdb.R = function(varString) {
-    rethinkdb.util.typeCheck_(varString, 'string');
-    var attrChain = varString.split('.');
-
-    var curName = attrChain.shift();
-
-    // @attrName should be treated like @.attrName
-    if (curName[0] === '@' && curName.length > 1) {
-        attrChain.unshift(curName.slice(1));
-    } else if (curName[0] !== '@') {
-        attrChain.unshift(curName);
-    }
-
-    var curExpr = rethinkdb.util.newExpr_(rethinkdb.ImplicitVarExpression);
-
-    while (curName = attrChain.shift()) {
-        curExpr = rethinkdb.util.newExpr_(rethinkdb.AttrExpression, curExpr, curName);
-    }
-
-    return curExpr;
-};
-
-/**
  * Reference a variable bound by an enclosing let statement
  * @param {string} varString The variable to reference. subfields can be
  *  referenced with dot notation.
@@ -1485,15 +1460,7 @@ rethinkdb.R = function(varString) {
  */
 rethinkdb.letVar = function(varString) {
     rethinkdb.util.typeCheck_(varString, 'string');
-    var attrChain = varString.split('.');
-
-    var curName = attrChain.shift();
-    var curExpr = rethinkdb.util.newExpr_(rethinkdb.VarExpression, curName);
-    while (curName = attrChain.shift()) {
-        curExpr = rethinkdb.util.newExpr_(rethinkdb.AttrExpression, curExpr, curName);
-    }
-
-    return curExpr;
+    return rethinkdb.util.newExpr_(rethinkdb.VarExpression, varString);
 };
 
 /**
