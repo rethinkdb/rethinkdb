@@ -17,31 +17,45 @@
 #include "utils.hpp"
 #include "arch/runtime/event_queue.hpp"
 #include "arch/runtime/thread_pool.hpp"
-#include "arch/io/timer_provider.hpp"  // For RDB_USE_TIMER_SIGNAL_PROVIDER
+#include "arch/io/timer_provider.hpp"
 #include "perfmon/perfmon.hpp"
 
 int user_to_poll(int mode) {
 
-    rassert((mode & (poll_event_in | poll_event_out | poll_event_rdhup)) == mode);
+    DEBUG_VAR int allowed_mode_mask = poll_event_in | poll_event_out;
+#ifdef __linux
+    allowed_mode_mask |= poll_event_rdhup;
+#endif
+
+    rassert((mode & allowed_mode_mask) == mode);
 
     int out_mode = 0;
     if (mode & poll_event_in) out_mode |= POLLIN;
     if (mode & poll_event_out) out_mode |= POLLOUT;
+#ifdef __linux
     if (mode & poll_event_rdhup) out_mode |= POLLRDHUP;
+#endif
 
     return out_mode;
 }
 
 int poll_to_user(int mode) {
 
-    rassert((mode & (POLLIN | POLLOUT | POLLERR | POLLHUP | POLLRDHUP)) == mode);
+    DEBUG_VAR int allowed_mode_mask = POLLIN | POLLOUT | POLLERR | POLLHUP;
+#ifdef __linux
+    allowed_mode_mask |= POLLRDHUP;
+#endif
+
+    rassert((mode & allowed_mode_mask) == mode);
 
     int out_mode = 0;
     if (mode & POLLIN) out_mode |= poll_event_in;
     if (mode & POLLOUT) out_mode |= poll_event_out;
     if (mode & POLLERR) out_mode |= poll_event_err;
     if (mode & POLLHUP) out_mode |= poll_event_hup;
+#ifdef __linux
     if (mode & POLLRDHUP) out_mode |= poll_event_rdhup;
+#endif
 
     return out_mode;
 }
@@ -53,7 +67,9 @@ poll_event_queue_t::poll_event_queue_t(linux_queue_parent_t *_parent)
 void poll_event_queue_t::run() {
     int res;
 
-#ifdef RDB_USE_TIMER_SIGNAL_PROVIDER
+#ifndef RDB_TIMER_PROVIDER
+#error "RDB_TIMER_PROVIDER not defined."
+#elif RDB_TIMER_PROVIDER == RDB_TIMER_PROVIDER_SIGNAL
     // Create a restricted sigmask for ppoll:
     // In the upcoming loop, we want to continue blocking signals
     // (especially SIGINT and SIGTERM, which the main thread
@@ -71,12 +87,14 @@ void poll_event_queue_t::run() {
 
     res = sigfillset(&sigmask_full);
     guarantee_err(res == 0, "Could not create a full signal mask");
-#endif  // RDB_USE_TIMER_SIGNAL_PROVIDER
+#endif  // RDB_TIMER_PROVIDER
 
     // Now, start the loop
     while (!parent->should_shut_down()) {
         // Grab the events from the kernel!
-#ifdef RDB_USE_TIMER_SIGNAL_PROVIDER
+#ifndef RDB_TIMER_PROVIDER
+#error "RDB_TIMER_PROVIDER not defined."
+#elif RDB_TIMER_PROVIDER == RDB_TIMER_PROVIDER_SIGNAL
         res = ppoll(&watched_fds[0], watched_fds.size(), NULL, &sigmask_restricted);
 #else
         res = poll(&watched_fds[0], watched_fds.size(), -1);
@@ -104,16 +122,18 @@ void poll_event_queue_t::run() {
                 break;
         }
 
-#ifdef LEGACY_LINUX
+#ifndef RDB_TIMER_PROVIDER
+#error "RDB_TIMER_PROVIDER not defined."
+#elif RDB_TIMER_PROVIDER == RDB_TIMER_PROVIDER_SIGNAL
         // If ppoll is busy with file descriptors, the piece of shit
         // kernel starves out signals, so we need to unblock them to
         // let the signal handlers get called, and then block them
         // right back. What a sensible fucking system.
         res = pthread_sigmask(SIG_SETMASK, &sigmask_restricted, NULL);
-        guarantee_err(res == 0, "Could not unblock signals");
+        guarantee_xerr(res == 0, res, "Could not unblock signals");
         res = pthread_sigmask(SIG_SETMASK, &sigmask_full, NULL);
-        guarantee_err(res == 0, "Could not block signals");
-#endif
+        guarantee_xerr(res == 0, res, "Could not block signals");
+#endif  // RDB_TIMER_PROVIDER
 
         parent->pump();
     }

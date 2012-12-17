@@ -223,7 +223,7 @@ private:
     // This uuid exists solely as a temporary used to be passed to
     // uuid_to_str for perfmon_collection initialization and the
     // backfill queue file name
-    const uuid_t uuid_;
+    const uuid_u uuid_;
 
     perfmon_collection_t perfmon_collection_;
     perfmon_membership_t perfmon_collection_membership_;

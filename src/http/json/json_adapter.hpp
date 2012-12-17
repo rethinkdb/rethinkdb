@@ -426,35 +426,29 @@ cJSON *render_as_json(int *);
 void apply_json_to(cJSON *, int *);
 void on_subfield_change(int *);
 
-// ctx-less JSON adapter for long int
-json_adapter_if_t::json_adapter_map_t get_json_subfields(long int *);
-cJSON *render_as_json(long int *);
-void apply_json_to(cJSON *, long int *);
-void on_subfield_change(long int *);
+// ctx-less JSON adapter for unsigned long long
+json_adapter_if_t::json_adapter_map_t get_json_subfields(unsigned long long *);
+cJSON *render_as_json(unsigned long long *);
+void apply_json_to(cJSON *, unsigned long long *);
+void on_subfield_change(unsigned long long *);
 
-// ctx-less JSON adapter for long int
-json_adapter_if_t::json_adapter_map_t get_json_subfields(long long int *);
-cJSON *render_as_json(long long int *);
-void apply_json_to(cJSON *, long long int *);
-void on_subfield_change(long long int *);
+// ctx-less JSON adapter for long long
+json_adapter_if_t::json_adapter_map_t get_json_subfields(long long *);
+cJSON *render_as_json(long long *);
+void apply_json_to(cJSON *, long long *);
+void on_subfield_change(long long *);
 
-// ctx-less JSON adapter for unsigned int
-json_adapter_if_t::json_adapter_map_t get_json_subfields(unsigned int *);
-cJSON *render_as_json(unsigned int *);
-void apply_json_to(cJSON *, unsigned int *);
-void on_subfield_change(unsigned int *);
+// ctx-less JSON adapter for unsigned long
+json_adapter_if_t::json_adapter_map_t get_json_subfields(unsigned long *);
+cJSON *render_as_json(unsigned long *);
+void apply_json_to(cJSON *, unsigned long *);
+void on_subfield_change(unsigned long *);
 
-// ctx-less JSON adapter for unsigned long int
-json_adapter_if_t::json_adapter_map_t get_json_subfields(unsigned long int *);
-cJSON *render_as_json(unsigned long int *);
-void apply_json_to(cJSON *, unsigned long int *);
-void on_subfield_change(unsigned long int *);
-
-// ctx-less JSON adapter for unsigned long long int
-json_adapter_if_t::json_adapter_map_t get_json_subfields(unsigned long long int *);
-cJSON *render_as_json(unsigned long long int *);
-void apply_json_to(cJSON *, unsigned long long int *);
-void on_subfield_change(unsigned long long int *);
+// ctx-less JSON adapter for long
+json_adapter_if_t::json_adapter_map_t get_json_subfields(long *);
+cJSON *render_as_json(long *);
+void apply_json_to(cJSON *, long *);
+void on_subfield_change(long *);
 
 // ctx-less JSON adapter for bool
 json_adapter_if_t::json_adapter_map_t get_json_subfields(bool *);
@@ -462,12 +456,12 @@ cJSON *render_as_json(bool *);
 void apply_json_to(cJSON *, bool *);
 void on_subfield_change(bool *);
 
-// ctx-less JSON adapter for uuid_t
-json_adapter_if_t::json_adapter_map_t get_json_subfields(uuid_t *);
-cJSON *render_as_json(const uuid_t *);
-void apply_json_to(cJSON *, uuid_t *);
-void on_subfield_change(uuid_t *);
-std::string to_string_for_json_key(const uuid_t *);
+// ctx-less JSON adapter for uuid_u
+json_adapter_if_t::json_adapter_map_t get_json_subfields(uuid_u *);
+cJSON *render_as_json(const uuid_u *);
+void apply_json_to(cJSON *, uuid_u *);
+void on_subfield_change(uuid_u *);
+std::string to_string_for_json_key(const uuid_u *);
 
 
 namespace boost {

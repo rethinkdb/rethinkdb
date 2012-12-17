@@ -744,10 +744,10 @@ void debug_print(append_only_printf_buffer_t *buf, const write_t& write) {
     generic_debug_print_visitor_t v(buf);
     boost::apply_visitor(v, write.mutation);
     if (write.proposed_cas) {
-        buf->appendf(", cas=%lu", write.proposed_cas);
+        buf->appendf(", cas=%" PRIu64, write.proposed_cas);
     }
     if (write.effective_time) {
-        buf->appendf(", efftime=%lu", write.effective_time);
+        buf->appendf(", efftime=%" PRIu32, write.effective_time);
     }
 
     buf->appendf("}");
@@ -773,7 +773,7 @@ void debug_print(append_only_printf_buffer_t *buf, const delete_mutation_t& mut)
 }
 
 void debug_print(append_only_printf_buffer_t *buf, const incr_decr_mutation_t& mut) {
-    buf->appendf("incr_decr{%s, %lu, ", mut.kind == incr_decr_INCR ? "INCR" : mut.kind == incr_decr_DECR ? "DECR" : "???", mut.amount);
+    buf->appendf("incr_decr{%s, %" PRIu64 ", ", mut.kind == incr_decr_INCR ? "INCR" : mut.kind == incr_decr_DECR ? "DECR" : "???", mut.amount);
     debug_print(buf, mut.key);
     buf->appendf("}");
 }

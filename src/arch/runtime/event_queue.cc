@@ -28,34 +28,12 @@ std::string format_poll_event(int event) {
         if (s != "") s += " ";
         s += "hup";
     }
+#ifdef __linux
     if (event & poll_event_rdhup) {
         if (s != "") s += " ";
         s += "rdhup";
     }
+#endif
     if (s == "") s = "(none)";
     return s;
 }
-
-void event_queue_base_t::signal_handler(UNUSED int signum, siginfo_t *siginfo, UNUSED void *uctx) {
-    linux_event_callback_t *callback = reinterpret_cast<linux_event_callback_t *>(siginfo->si_value.sival_ptr);
-    callback->on_event(siginfo->si_overrun);
-}
-
-void event_queue_base_t::watch_signal(const sigevent *evp, UNUSED linux_event_callback_t *cb) {
-    // All events are automagically blocked by thread pool, this is a
-    // typical use case for epoll_pwait/ppoll.
-
-    // Establish a handler on the signal that calls the right callback
-    struct sigaction sa;
-    memset(&sa, 0, sizeof(sa));
-    sa.sa_sigaction = &event_queue_base_t::signal_handler;
-    sa.sa_flags = SA_SIGINFO;
-
-    int res = sigaction(evp->sigev_signo, &sa, NULL);
-    guarantee_err(res == 0, "Could not install signal handler in event queue");
-}
-
-void event_queue_base_t::forget_signal(UNUSED const sigevent *evp, UNUSED linux_event_callback_t *cb) {
-    // We don't support forgetting signals for now
-}
-

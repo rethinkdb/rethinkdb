@@ -57,7 +57,7 @@ public:
     file_t *file;
 
     extent_t *superblock_extent;   // Can be NULL
-    off64_t superblock_offset;
+    int64_t superblock_offset;
     intrusive_list_t<lba_disk_extent_t> extents_in_superblock;
     lba_disk_extent_t *last_extent;
 

@@ -13,7 +13,7 @@
 semilattice_http_app_t::semilattice_http_app_t(
         metadata_change_handler_t<cluster_semilattice_metadata_t> *_metadata_change_handler,
         const clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > &_directory_metadata,
-        uuid_t _us)
+        uuid_u _us)
     : metadata_change_handler(_metadata_change_handler), directory_metadata(_directory_metadata), us(_us) { }
 
 void semilattice_http_app_t::get_root(scoped_cJSON_t *json_out) {

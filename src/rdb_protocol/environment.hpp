@@ -27,7 +27,7 @@ public:
         directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
         boost::shared_ptr<js::runner_t> _js_runner,
         signal_t *_interruptor,
-        uuid_t _this_machine)
+        uuid_u _this_machine)
         : pool(_pool_group->get()),
           ns_repo(_ns_repo),
           namespaces_semilattice_metadata(_namespaces_semilattice_metadata),
@@ -51,7 +51,7 @@ public:
             _semilattice_metadata,
         boost::shared_ptr<js::runner_t> _js_runner,
         signal_t *_interruptor,
-        uuid_t _this_machine)
+        uuid_u _this_machine)
         : pool(_pool_group->get()),
           ns_repo(_ns_repo),
           namespaces_semilattice_metadata(_namespaces_semilattice_metadata),
@@ -97,7 +97,7 @@ public:
     boost::shared_ptr<js::runner_t> get_js_runner();
 
     signal_t *interruptor;
-    uuid_t this_machine;
+    uuid_u this_machine;
 
 private:
     DISABLE_COPYING(runtime_environment_t);

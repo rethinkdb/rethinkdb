@@ -141,7 +141,7 @@ enum metadata_search_status_t {
 template<class T>
 class metadata_searcher_t {
 public:
-    typedef std::map<uuid_t, deletable_t<T> > metamap_t;
+    typedef std::map<uuid_u, deletable_t<T> > metamap_t;
     typedef typename metamap_t::iterator iterator;
     iterator begin() {return map->begin();}
     iterator end() {return map->end();}
@@ -208,12 +208,12 @@ public:
         return true;
     }
     explicit namespace_predicate_t(const name_string_t *_name): name(_name), db_id(NULL) { }
-    explicit namespace_predicate_t(const uuid_t *_db_id): name(NULL), db_id(_db_id) { }
-    namespace_predicate_t(const name_string_t *_name, const uuid_t *_db_id):
+    explicit namespace_predicate_t(const uuid_u *_db_id): name(NULL), db_id(_db_id) { }
+    namespace_predicate_t(const name_string_t *_name, const uuid_u *_db_id):
         name(_name), db_id(_db_id) { }
 private:
     const name_string_t *name;
-    const uuid_t *db_id;
+    const uuid_u *db_id;
 
     DISABLE_COPYING(namespace_predicate_t);
 };

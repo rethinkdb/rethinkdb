@@ -12,7 +12,7 @@ class extent_t {
 
 public:
     extent_t(extent_manager_t *em, file_t *file);   // Creates new extent
-    extent_t(extent_manager_t *em, file_t *file, off64_t loc, size_t size);   // Recreates extent at given offset (used during startup)
+    extent_t(extent_manager_t *em, file_t *file, int64_t loc, size_t size);   // Recreates extent at given offset (used during startup)
 
     void destroy(extent_transaction_t *txn);   // Releases extent and destroys structure in memory
     void shutdown();   // Only destroys structure in memory

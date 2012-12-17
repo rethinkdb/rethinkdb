@@ -18,7 +18,6 @@ itask="$1"
 
 rtdbbin=/usr/bin/rethinkdb ;
 rtdbconfigdir=/etc/rethinkdb ;
-rtdbconfigglob="$rtdbconfigdir"/main.conf ;
 
 if [ "$itask" = "" ] ;
 then

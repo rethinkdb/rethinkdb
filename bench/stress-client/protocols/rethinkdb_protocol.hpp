@@ -2,9 +2,13 @@
 #ifndef __STRESS_CLIENT_PROTOCOLS_RETHINKDB_PROTOCOL_HPP__
 #define __STRESS_CLIENT_PROTOCOLS_RETHINKDB_PROTOCOL_HPP__
 
+#ifndef __STDC_FORMAT_MACROS
+#define __STDC_FORMAT_MACROS
+#endif
+
 #include <assert.h>
-#include <time.h>
 #include <errno.h>
+#include <inttypes.h>
 #include <map>
 #include <netdb.h>
 #include <queue>
@@ -12,6 +16,7 @@
 #include <stdlib.h>
 #include <string>
 #include <sys/socket.h>
+#include <time.h>
 
 #include "query_language.pb.h"
 
@@ -139,7 +144,7 @@ struct rethinkdb_protocol_t : protocol_t {
         get_response(&response);
 
         if (response.token() != base_point_delete_query.token()) {
-            fprintf(stderr, "Delete response token %ld did not match query token %ld.\n", response.token(), base_point_delete_query.token());
+            fprintf(stderr, "Delete response token %" PRIi64 " did not match query token %" PRIi64 ".\n", response.token(), base_point_delete_query.token());
             throw protocol_error_t("Delete response token mismatch.");
         }
 
@@ -162,7 +167,7 @@ struct rethinkdb_protocol_t : protocol_t {
         get_response(&response);
 
         if (response.token() != base_point_update_query.token()) {
-            fprintf(stderr, "Insert response token %ld did not match query token %ld.\n", response.token(), base_point_update_query.token());
+            fprintf(stderr, "Insert response token %" PRIi64 " did not match query token %" PRIi64 ".\n", response.token(), base_point_update_query.token());
             throw protocol_error_t("Update response token mismatch.");
         }
 
@@ -185,7 +190,7 @@ struct rethinkdb_protocol_t : protocol_t {
         get_response(&response);
 
         if (response.token() != base_insert_query.token()) {
-            fprintf(stderr, "Insert response token %ld did not match query token %ld.\n", response.token(), base_insert_query.token());
+            fprintf(stderr, "Insert response token %" PRIi64 " did not match query token %" PRIi64 ".\n", response.token(), base_insert_query.token());
             throw protocol_error_t("Insert response token mismatch.");
         }
 
@@ -205,7 +210,7 @@ struct rethinkdb_protocol_t : protocol_t {
         get_response(&response);
 
         if (response.token() != base_batched_read_query.token()) {
-            fprintf(stderr, "Read response token %ld did not match query token %ld.\n", response.token(), base_batched_read_query.token());
+            fprintf(stderr, "Read response token %" PRIi64 " did not match query token %" PRIi64 ".\n", response.token(), base_batched_read_query.token());
             throw protocol_error_t("Read response token mismatch.");
         }
 
@@ -246,7 +251,7 @@ struct rethinkdb_protocol_t : protocol_t {
             done = false;
         } else {
             if (response.token() != queued_read) {
-                fprintf(stderr, "Read response token %ld did not match query token %ld.\n", response.token(), queued_read);
+                fprintf(stderr, "Read response token %" PRIi64 " did not match query token %" PRIi64 ".\n", response.token(), queued_read);
                 throw protocol_error_t("Read response token mismatch.");
             }
 
@@ -276,7 +281,7 @@ struct rethinkdb_protocol_t : protocol_t {
         get_response(&response);
 
         if (response.token() != queued_read) {
-            fprintf(stderr, "Read response token %ld did not match query token %ld.\n", response.token(), queued_read);
+            fprintf(stderr, "Read response token %" PRIi64 " did not match query token %" PRIi64 ".\n", response.token(), queued_read);
             throw protocol_error_t("Read response token mismatch.");
         }
 
@@ -311,7 +316,7 @@ struct rethinkdb_protocol_t : protocol_t {
         // get response
         get_response(&response);
         if (response.token() != base_range_read_query.token()) {
-            fprintf(stderr, "Range read response token %ld did not match query token %ld.\n", response.token(), base_range_read_query.token());
+            fprintf(stderr, "Range read response token %" PRIi64 " did not match query token %" PRIi64 ".\n", response.token(), base_range_read_query.token());
             throw protocol_error_t("Range read response token mismatch.");
         }
 
@@ -322,7 +327,7 @@ struct rethinkdb_protocol_t : protocol_t {
             get_response(&stop_response);
 
             if (stop_response.token() != base_stop_query.token()) {
-                fprintf(stderr, "Stop response token %ld did not match query token %ld.\n", stop_response.token(), base_stop_query.token());
+                fprintf(stderr, "Stop response token %" PRIi64 " did not match query token %" PRIi64 ".\n", stop_response.token(), base_stop_query.token());
                 throw protocol_error_t("Stop response token mismatch.");
             }
 

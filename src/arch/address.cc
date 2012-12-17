@@ -15,10 +15,14 @@
 
 /* Get our hostname as an std::string. */
 std::string str_gethostname() {
-    char name[HOST_NAME_MAX+1];
-    int res = gethostname(name, sizeof(name));
-    guarantee(res == 0, "gethostname() failed: %s\n", strerror(errno));
-    return std::string(name);
+    const int namelen = _POSIX_HOST_NAME_MAX;
+
+    std::vector<char> bytes(namelen + 1);
+    bytes[namelen] = '0';
+
+    int res = gethostname(bytes.data(), namelen);
+    guarantee_err(res == 0, "gethostname() failed");
+    return std::string(bytes.data());
 }
 
 void do_getaddrinfo(const char *node,

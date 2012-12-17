@@ -3,7 +3,7 @@
 #include "unittest/gtest.hpp"
 
 int main(int argc, char **argv) {
-    install_generic_crash_handler();
+    run_generic_global_startup_behavior();
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }
