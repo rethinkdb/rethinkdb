@@ -330,5 +330,5 @@ $ ->
     collect_reql_doc()
 
     # Set namespace for the javascript driver
-    window.r = rethinkdb
-    window.R = r.R
+    if rethinkdb?
+        window.r = rethinkdb
