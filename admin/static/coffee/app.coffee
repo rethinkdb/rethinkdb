@@ -292,12 +292,11 @@ $ ->
         name: 'Universe'
 
     # Override the default Backbone.sync behavior to allow reading diff
-    legacy_sync = Backbone.sync
     Backbone.sync = (method, model, success, error) ->
         if method is 'read'
             collect_server_data()
         else
-            legacy_sync method, model, success, error
+            Backbone.sync method, model, success, error
 
     # Collect the first time
     collect_server_data_once(true, collections_ready)
