@@ -15,6 +15,7 @@
 #include "containers/archive/vector_stream.hpp"
 #include "protob/protob.hpp"
 #include "rdb_protocol/btree.hpp"
+#include "rdb_protocol/env.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/query_language.hpp"
 #include "rpc/semilattice/view/field.hpp"
@@ -72,6 +73,10 @@ RDB_IMPL_PROTOB_SERIALIZABLE(Builtin_GroupedMapReduce);
 RDB_IMPL_PROTOB_SERIALIZABLE(Mapping);
 RDB_IMPL_PROTOB_SERIALIZABLE(Reduction);
 RDB_IMPL_PROTOB_SERIALIZABLE(WriteQuery_ForEach);
+
+RDB_IMPL_PROTOB_SERIALIZABLE(Term2);
+RDB_IMPL_PROTOB_SERIALIZABLE(Datum);
+
 
 rdb_protocol_t::context_t::context_t()
     : pool_group(NULL), ns_repo(NULL),
@@ -527,7 +532,7 @@ struct read_visitor_t : public boost::static_visitor<void> {
     void operator()(const rget_read_t &rget) {
         response->response = rget_read_response_t();
         rget_read_response_t &res = boost::get<rget_read_response_t>(response->response);
-        rdb_rget_slice(btree, rget.region.inner, txn, superblock, &env, rget.transform, rget.terminal, &res);
+        rdb_rget_slice(btree, rget.region.inner, txn, superblock, &env, &ql_env, rget.transform, rget.terminal, &res);
     }
 
     void operator()(const distribution_read_t &dg) {
@@ -570,7 +575,16 @@ struct read_visitor_t : public boost::static_visitor<void> {
             ctx->semilattice_metadata,
             boost::make_shared<js::runner_t>(),
             &interruptor,
-            ctx->machine_id)
+            ctx->machine_id),
+        ql_env(ctx->pool_group,
+               ctx->ns_repo,
+               ctx->cross_thread_namespace_watchables[get_thread_id()].get()->get_watchable(),
+               ctx->cross_thread_database_watchables[get_thread_id()].get()->get_watchable(),
+               ctx->semilattice_metadata,
+               NULL,
+               boost::make_shared<js::runner_t>(),
+               &interruptor,
+               ctx->machine_id)
     { }
 
 private:
@@ -580,6 +594,7 @@ private:
     superblock_t *superblock;
     wait_any_t interruptor;
     query_language::runtime_environment_t env;
+    ql::env_t ql_env;
 };
 
 }   /* anonymous namespace */

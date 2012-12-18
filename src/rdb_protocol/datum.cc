@@ -1,6 +1,7 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "math.h"
 
+#include "rdb_protocol/err.hpp"
 #include "rdb_protocol/datum.hpp"
 
 namespace ql {
@@ -16,8 +17,51 @@ datum_t::datum_t(const std::vector<const datum_t *> &_array)
 datum_t::datum_t(const std::map<const std::string, const datum_t *> &_object)
     : type(R_OBJECT), r_object(_object) { }
 datum_t::datum_t(datum_t::type_t _type) : type(_type) {
-    sanity_check(type == R_ARRAY || type == R_OBJECT || type == R_NULL);
+    r_sanity_check(type == R_ARRAY || type == R_OBJECT || type == R_NULL);
 }
+
+void datum_t::init_json(cJSON *json) {
+    switch(json->type) {
+    case cJSON_False: {
+        type = R_BOOL; r_bool = false;
+    }; break;
+    case cJSON_True: {
+        type = R_BOOL; r_bool = true;
+    }; break;
+    case cJSON_NULL: {
+        type = R_NULL;
+    }; break;
+    case cJSON_Number: {
+        type = R_NUM; r_num = json->valuedouble;
+    }; break;
+    case cJSON_String: {
+        type = R_STR; r_str = json->valuestring;
+    }; break;
+    case cJSON_Array: {
+        type = R_ARRAY;
+        for (int i = 0; i < cJSON_GetArraySize(json); ++i) {
+            cJSON *el = cJSON_GetArrayItem(json, i);
+            datum_t *d = new datum_t(el);
+            to_free.push_back(d);
+            add(d);
+        }
+    }; break;
+    case cJSON_Object: {
+        type = R_OBJECT;
+        for (int i = 0; i < cJSON_GetArraySize(json); ++i) {
+            cJSON *el = cJSON_GetArrayItem(json, i);
+            datum_t *d = new datum_t(el);
+            to_free.push_back(d);
+            bool b = add(el->string, d);
+            rcheck(!b, strprintf("Duplicate key: %s", el->string));
+        }
+    }; break;
+    default: unreachable();
+    }
+}
+
+datum_t::datum_t(cJSON *json) { init_json(json); }
+datum_t::datum_t(boost::shared_ptr<scoped_cJSON_t> json) { init_json(json->get()); }
 
 datum_t::type_t datum_t::get_type() const { return type; }
 const char *datum_type_name(datum_t::type_t type) {
@@ -67,6 +111,35 @@ const std::vector<const datum_t *> &datum_t::as_array() const {
 const std::map<const std::string, const datum_t *> &datum_t::as_object() const {
     check_type(R_OBJECT);
     return r_object;
+}
+
+cJSON *datum_t::as_raw_json() const {
+    switch(get_type()) {
+    case R_NULL: return cJSON_CreateNull();
+    case R_BOOL: return cJSON_CreateBool(as_bool());
+    case R_NUM: return cJSON_CreateNumber(as_num());
+    case R_STR: return cJSON_CreateString(as_str().c_str());
+    case R_ARRAY: {
+        scoped_cJSON_t arr(cJSON_CreateArray());
+        for (size_t i = 0; i < as_array().size(); ++i) {
+            arr.AddItemToArray(as_array()[i]->as_raw_json());
+        }
+        return arr.release();
+    }; break;
+    case R_OBJECT: {
+        scoped_cJSON_t obj(cJSON_CreateObject());
+        for (std::map<const std::string, const datum_t *>::const_iterator
+                 it = as_object().begin(); it != as_object().end(); ++it) {
+            obj.AddItemToObject(it->first.c_str(), it->second->as_raw_json());
+        }
+        return obj.release();
+    }; break;
+    default: unreachable();
+    }
+    unreachable();
+}
+boost::shared_ptr<scoped_cJSON_t> datum_t::as_json() const {
+    return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(as_raw_json()));
 }
 
 void datum_t::add(const datum_t *val) {

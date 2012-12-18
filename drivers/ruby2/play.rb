@@ -40,7 +40,7 @@ class RQL
     q = Query2.new
     q.type = Query2::QueryType::START
     q.query = self.to_term
-    q.token = @@token_cnt + 1
+    q.token = @@token_cnt += 1
     return q
   end
   def run
@@ -110,4 +110,5 @@ end
 # r.div(1, 6).run
 # r.div(0.2).run
 # r.div(1, 0).run
-r.make_obj().opt("a", 1).opt("a", 2).run
+r.db('test').table('test2').run
+r.db('test').table('test').run

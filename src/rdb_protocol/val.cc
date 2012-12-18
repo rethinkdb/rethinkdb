@@ -7,24 +7,32 @@
 namespace ql {
 static const char *valid_char_msg = name_string_t::valid_char_msg;
 
-datum_stream_t::datum_stream_t(env_t *env, bool use_outdated,
+datum_stream_t::datum_stream_t(env_t *_env, bool use_outdated,
                                namespace_repo_t<rdb_protocol_t>::access_t *ns_access)
-    : json_stream(new query_language::batched_rget_stream_t(
-                      *ns_access, env->interruptor, key_range_t::universe(),
+    : env(_env),
+      json_stream(new query_language::batched_rget_stream_t(
+                      *ns_access, _env->interruptor, key_range_t::universe(),
                       100, use_outdated))
 { }
 
+datum_stream_t::datum_stream_t(datum_stream_t *src, func_t *f)
+    : env(src->env), json_stream(src->json_stream) {
+    query_language::scopes_t _s;
+    query_language::backtrace_t _b;
+    rdb_protocol_details::transform_variant_t trans(wire_func_t(env, f));
+    json_stream = json_stream->add_transformation(trans, 0, env, _s, _b);
+}
+
 const datum_t *datum_stream_t::next() {
-    if (last.has()) {
-        register_data(last.release());
-    }
+    if (last.has()) register_data(last.release());
     boost::shared_ptr<scoped_cJSON_t> json = json_stream->next();
-    if (json.get()) last.init(new datum_t(json));
+    if (!json.get()) return 0;
+    last.init(new datum_t(json));
     return last.get();
 }
 
 void datum_stream_t::free_last_datum() {
-    sanity_check(last.has());
+    r_sanity_check(last.has());
     delete last.release();
 }
 
@@ -74,24 +82,6 @@ table_t::table_t(env_t *_env, uuid_t db_id, const std::string &name, bool _use_o
 
 datum_stream_t *table_t::as_datum_stream() {
     return new datum_stream_t(env, use_outdated, access.get());
-}
-
-func_t::func_t(env_t *env, const std::vector<int> &args, const Term2 *body_source) {
-    for (size_t i = 0; i < args.size(); ++i) {
-        argptrs.push_back(0);
-        env->push_var(args[i], &argptrs[i]);
-    }
-    body.init(compile_term(env, body_source));
-    for (size_t i = 0; i < args.size(); ++i) env->pop_var(args[i]);
-}
-
-val_t *func_t::call(const std::vector<datum_t *> &args) {
-    rcheck(args.size() == argptrs.size(),
-           strprintf("Passed %lu arguments to function of arity %lu.",
-                     args.size(), argptrs.size()));
-    for (size_t i = 0; i < args.size(); ++i) argptrs[i] = args[i];
-    return body->eval(false);
-    //                ^^^^^ don't use cached value
 }
 
 val_t::type_t::type_t(val_t::type_t::raw_type_t _raw_type) : raw_type(_raw_type) { }
@@ -147,6 +137,9 @@ val_t::val_t(table_t *_table, const term_t *_parent)
 val_t::val_t(uuid_t _db, const term_t *_parent)
     : type(type_t::DB), db(_db), parent(_parent) {
 }
+val_t::val_t(func_t *_func, const term_t *_parent)
+    : type(type_t::FUNC), func(_func), parent(_parent) {
+}
 
 uuid_t get_db_uuid(env_t *env, const std::string &dbs) {
     name_string_t db_name;
@@ -182,6 +175,12 @@ datum_stream_t *val_t::as_seq() {
         rfail("Type error: cannot convert %s to SEQUENCE.", type.name());
     }
     return sequence.get();
+}
+
+func_t *val_t::as_func() {
+    rcheck(type.raw_type == type_t::FUNC,
+           strprintf("Type error: cannot convert %s to FUNC.", type.name()));
+    return func.get();
 }
 
 uuid_t val_t::as_db() {

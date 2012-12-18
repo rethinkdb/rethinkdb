@@ -33,6 +33,8 @@
 #include "rdb_protocol/rdb_protocol_json.hpp"
 #include "rdb_protocol/serializable_environment.hpp"
 
+#include "rdb_protocol/func.hpp"
+
 template <class> class cross_thread_watchable_variable_t;
 class cluster_directory_metadata_t;
 template <class metadata> class directory_read_manager_t;
@@ -74,6 +76,9 @@ RDB_DECLARE_SERIALIZABLE(Mapping);
 RDB_DECLARE_SERIALIZABLE(Reduction);
 RDB_DECLARE_SERIALIZABLE(WriteQuery_ForEach);
 
+RDB_DECLARE_SERIALIZABLE(Term2);
+RDB_DECLARE_SERIALIZABLE(Datum);
+
 namespace rdb_protocol_details {
 
 struct backfill_atom_t {
@@ -93,7 +98,7 @@ struct backfill_atom_t {
     RDB_MAKE_ME_SERIALIZABLE_3(key, value, recency);
 };
 
-typedef boost::variant<Builtin_Filter, Mapping, Builtin_ConcatMap, Builtin_Range>  transform_variant_t;
+typedef boost::variant<Builtin_Filter, Mapping, Builtin_ConcatMap, Builtin_Range, ql::wire_func_t>  transform_variant_t;
 
 struct transform_atom_t {
     transform_atom_t() { }

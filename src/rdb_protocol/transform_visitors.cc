@@ -5,8 +5,9 @@
 
 namespace query_language {
 
-transform_visitor_t::transform_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json, json_list_t *_out, query_language::runtime_environment_t *_env, const scopes_t &_scopes, const backtrace_t &_backtrace)
-    : json(_json), out(_out), env(_env), scopes(_scopes), backtrace(_backtrace)
+transform_visitor_t::transform_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json, json_list_t *_out, query_language::runtime_environment_t *_env, ql::env_t *_ql_env, const scopes_t &_scopes, const backtrace_t &_backtrace)
+    : json(_json), out(_out), env(_env), ql_env(_ql_env),
+      scopes(_scopes), backtrace(_backtrace)
 { }
 
 void transform_visitor_t::operator()(const Builtin_Filter &filter) const {
@@ -60,6 +61,15 @@ void transform_visitor_t::operator()(Builtin_Range range) const {
     if (val && key_range.contains_key(store_key_t(cJSON_print_std_string(val)))) {
         out->push_back(json);
     }
+}
+
+void transform_visitor_t::operator()(ql::wire_func_t &func) const {
+    ql::func_t *f = func.compile(ql_env);
+    ql::datum_t arg(json);
+    std::vector<ql::datum_t *> args;
+    args.push_back(&arg);
+    ql::val_t *v = f->call(args);
+    out->push_back(v->as_datum()->as_json());
 }
 
 terminal_initializer_visitor_t::terminal_initializer_visitor_t(rget_read_response_t::result_t *_out,

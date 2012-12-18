@@ -6,8 +6,9 @@
 
 #include "utils.hpp"
 #include <boost/ptr_container/ptr_vector.hpp>
+#include <boost/shared_ptr.hpp>
 
-#include "rdb_protocol/err.hpp"
+#include "http/json.hpp"
 
 class Datum;
 
@@ -21,6 +22,8 @@ public:
     explicit datum_t(const std::vector<const datum_t *> &_array);
     explicit datum_t(const std::map<const std::string, const datum_t *> &_object);
     explicit datum_t(const Datum *d);
+    explicit datum_t(cJSON *json);
+    explicit datum_t(boost::shared_ptr<scoped_cJSON_t> json);
     void write_to_protobuf(Datum *out) const;
 
     enum type_t {
@@ -42,6 +45,8 @@ public:
     const std::string &as_str() const;
     const std::vector<const datum_t *> &as_array() const;
     const std::map<const std::string, const datum_t *> &as_object() const;
+    cJSON *as_raw_json() const;
+    boost::shared_ptr<scoped_cJSON_t> as_json() const;
 
     int cmp(const datum_t &rhs) const;
     bool operator==(const datum_t &rhs) const;
@@ -55,6 +60,8 @@ public:
     // Returns whether or not `key` was already present in object.
     MUST_USE bool add(const std::string &key, const datum_t *val, bool clobber = false);
 private:
+    void init_json(cJSON *json);
+
     // Listing everything is more debugging-friendly than a boost::variant,
     // but less efficient.  TODO: fix later.
     type_t type;

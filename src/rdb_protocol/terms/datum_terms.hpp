@@ -13,13 +13,14 @@ private:
     scoped_ptr_t<val_t> raw_val;
 };
 
-class make_array_term_t : public simple_op_term_t {
+class make_array_term_t : public op_term_t {
 public:
-    make_array_term_t(env_t *env, const Term2 *term) : simple_op_term_t(env, term) { }
+    make_array_term_t(env_t *env, const Term2 *term)
+        : op_term_t(env, term, argspec_t(0, -1)) { }
 private:
-    virtual val_t *simple_call_impl(std::vector<val_t *> *args) {
+    virtual val_t *eval_impl() {
         scoped_ptr_t<datum_t> acc(new datum_t(datum_t::R_ARRAY));
-        for (size_t i = 0; i < args->size(); ++i) acc->add((*args)[i]->as_datum());
+        for (size_t i = 0; i < num_args(); ++i) acc->add(arg(i)->as_datum());
         return new_val(acc.release());
     }
     RDB_NAME("make_array")
@@ -27,13 +28,14 @@ private:
 
 class make_obj_term_t : public op_term_t {
 public:
-    make_obj_term_t(env_t *env, const Term2 *term) : op_term_t(env, term) { }
+    make_obj_term_t(env_t *env, const Term2 *term)
+        : op_term_t(env, term, argspec_t(0), optargspec_t::make_object()) { }
 private:
     virtual val_t *eval_impl() {
         scoped_ptr_t<datum_t> acc(new datum_t(datum_t::R_OBJECT));
         for (boost::ptr_map<const std::string, term_t>::iterator
                  it = optargs.begin(); it != optargs.end(); ++it) {
-            bool dup = acc->add(it->first, it->second->eval()->as_datum());
+            bool dup = acc->add(it->first, it->second->eval(use_cached_val)->as_datum());
             rcheck(!dup, strprintf("Duplicate key in object: %s.", it->first.c_str()));
         }
         return new_val(acc.release());

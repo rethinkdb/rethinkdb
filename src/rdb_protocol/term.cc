@@ -2,9 +2,10 @@
 #include "rdb_protocol/term.hpp"
 
 #include "rdb_protocol/terms/arith.hpp"
-#include "rdb_protocol/terms/pred.hpp"
 #include "rdb_protocol/terms/datum_terms.hpp"
 #include "rdb_protocol/terms/db_table.hpp"
+#include "rdb_protocol/terms/map.hpp"
+#include "rdb_protocol/terms/pred.hpp"
 
 namespace ql {
 
@@ -22,16 +23,16 @@ term_t *compile_term(env_t *env, const Term2 *t) {
     case Term2_TermType_TABLE: return new table_term_t(env, t);
     case Term2_TermType_GET:
         break;
-    case Term2_TermType_EQ: // fallthrough
-    case Term2_TermType_NE: // fallthrough
-    case Term2_TermType_LT: // fallthrough
-    case Term2_TermType_LE: // fallthrough
-    case Term2_TermType_GT: // fallthrough
+    case Term2_TermType_EQ: // fallthru
+    case Term2_TermType_NE: // fallthru
+    case Term2_TermType_LT: // fallthru
+    case Term2_TermType_LE: // fallthru
+    case Term2_TermType_GT: // fallthru
     case Term2_TermType_GE: return new predicate_term_t(env, t);
     case Term2_TermType_NOT: return new not_term_t(env, t);
-    case Term2_TermType_ADD: // fallthrough
-    case Term2_TermType_SUB: // fallthrough
-    case Term2_TermType_MUL: // fallthrough
+    case Term2_TermType_ADD: // fallthru
+    case Term2_TermType_SUB: // fallthru
+    case Term2_TermType_MUL: // fallthru
     case Term2_TermType_DIV: return new arith_term_t(env, t);
     case Term2_TermType_MOD:
     case Term2_TermType_APPEND:
@@ -43,7 +44,9 @@ term_t *compile_term(env_t *env, const Term2 *t) {
     case Term2_TermType_MERGE:
     case Term2_TermType_BETWEEN:
     case Term2_TermType_REDUCE:
+        break;
     case Term2_TermType_MAP:
+        return new map_term_t(env, t);
     case Term2_TermType_FILTER:
     case Term2_TermType_CONCATMAP:
     case Term2_TermType_ORDERBY:
@@ -73,8 +76,9 @@ term_t *compile_term(env_t *env, const Term2 *t) {
     case Term2_TermType_ANY:
     case Term2_TermType_ALL:
     case Term2_TermType_FOREACH:
-    case Term2_TermType_FUNC:
-    default: break;
+        break;
+    case Term2_TermType_FUNC: return new func_term_t(env, t);
+    default: unreachable();
     }
     rfail("UNIMPLEMENTED %p", env);
     unreachable();
@@ -94,11 +98,15 @@ void run(Query2 *q, env_t *env, Response2 *res, stream_cache_t *stream_cache) {
         try {
             val_t *val = root_term->eval(env);
             if (val->get_type().is_convertible(val_t::type_t::DATUM)) {
-                const datum_t *d = val->as_datum();
                 res->set_type(Response2_ResponseType_SUCCESS_ATOM);
+                const datum_t *d = val->as_datum();
                 d->write_to_protobuf(res->add_response());
-            } else {
-                rfail("UNIMPLEMENTED");
+            } else if (val->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
+                // TODO: SUCCESS_PARTIAL
+                res->set_type(Response2_ResponseType_SUCCESS_SEQUENCE);
+                datum_stream_t *ds = val->as_seq();
+                const datum_t *d;
+                while ((d = ds->next())) d->write_to_protobuf(res->add_response());
             }
         } catch (const exc_t &e) {
             fill_error(res, Response2::RUNTIME_ERROR, e.what(), e.backtrace);
@@ -125,9 +133,12 @@ void run(Query2 *q, env_t *env, Response2 *res, stream_cache_t *stream_cache) {
     }
 }
 
-term_t::term_t(env_t *_env) : cached_val(0), env(_env) { guarantee(env); }
+term_t::term_t(env_t *_env) : use_cached_val(false), cached_val(0), env(_env) {
+    guarantee(env);
+}
 term_t::~term_t() { }
-val_t *term_t::eval(bool use_cached_val) {
+val_t *term_t::eval(bool _use_cached_val) {
+    use_cached_val = _use_cached_val;
     try {
         if (!cached_val || !use_cached_val) cached_val = eval_impl();
     } catch (exc_t &e) {
@@ -140,6 +151,7 @@ val_t *term_t::eval(bool use_cached_val) {
 val_t *term_t::new_val(datum_t *d) { return env->add_and_ret(d, this); }
 val_t *term_t::new_val(uuid_t db) { return env->add_and_ret(db, this); }
 val_t *term_t::new_val(table_t *t) { return env->add_and_ret(t, this); }
+val_t *term_t::new_val(func_t *f) { return env->add_and_ret(f, this); }
 
 
 

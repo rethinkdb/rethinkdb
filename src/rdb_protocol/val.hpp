@@ -2,6 +2,7 @@
 #define RDB_PROTOCOL_VAL_HPP_
 
 #include "rdb_protocol/datum.hpp"
+#include "rdb_protocol/func.hpp"
 #include "rdb_protocol/ql2.pb.h"
 #include "rdb_protocol/stream.hpp" // TOOD: fix up
 
@@ -13,11 +14,13 @@ class term_t;
 
 class datum_stream_t {
 public:
-    explicit datum_stream_t(env_t *env, bool use_outdated,
-                            namespace_repo_t<rdb_protocol_t>::access_t *ns_access);
+    datum_stream_t(env_t *env, bool use_outdated,
+                   namespace_repo_t<rdb_protocol_t>::access_t *ns_access);
+    datum_stream_t(datum_stream_t *src, func_t *f);
     const datum_t *next();
     void free_last_datum();
 private:
+    env_t *env;
     boost::shared_ptr<query_language::json_stream_t> json_stream;
     scoped_ptr_t<const datum_t> last;
     // We have to do a const_cast here to make bosot happy
@@ -34,15 +37,6 @@ private:
     bool use_outdated;
     std::string pk;
     scoped_ptr_t<namespace_repo_t<rdb_protocol_t>::access_t> access;
-};
-
-class func_t {
-public:
-    func_t(env_t *env, const std::vector<int> &args, const Term2 *body_source);
-    val_t *call(const std::vector<datum_t *> &args);
-private:
-    std::vector<datum_t *> argptrs;
-    scoped_ptr_t<term_t> body;
 };
 
 class val_t {
@@ -70,6 +64,7 @@ public:
     val_t(const datum_t *_datum, const term_t *_parent);
     val_t(table_t *_table, const term_t *_parent);
     val_t(uuid_t _db, const term_t *_parent);
+    val_t(func_t *_func, const term_t *_parent);
 
     uuid_t as_db();
     table_t *as_table();

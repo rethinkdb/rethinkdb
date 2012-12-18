@@ -1,35 +1,68 @@
+#ifndef RDB_PROTOCOL_OP_HPP_
+#define RDB_PROTOCOL_OP_HPP_
 #include "rdb_protocol/term.hpp"
 #include "rdb_protocol/val.hpp"
-#ifndef RDB_PROTOCOL_OP_HPP
-#define RDB_PROTOCOL_OP_HPP
+#include "rdb_protocol/err.hpp"
 namespace ql {
+
+struct argspec_t {
+    argspec_t(int n) : min(n), max(n) { }
+    argspec_t(int _min, int _max) : min(_min), max(_max) { }
+    const char *print() {
+        if (min == max) {
+            _print = strprintf("%d argument(s)", min);
+        } else if (max == -1) {
+            _print = strprintf("at least %d arguments", min);
+        } else {
+            _print = strprintf("between %d and %d arguments", min, max);
+        }
+        return _print.c_str();
+    }
+    bool contains(int n) const { return min <= n && (max < 0 || n <= max); }
+    int min, max; // max may be -1 for unbounded
+    std::string _print;
+};
+
+struct optargspec_t {
+    static optargspec_t make_object() { return optargspec_t(-1, 0); }
+    optargspec_t(int n, const char *const *c) : num_legal_args(n), legal_args(c) { }
+    bool contains(const std::string &key) const {
+        r_sanity_check(!is_make_object());
+        for (int i = 0; i < num_legal_args; ++i) if (key == legal_args[i]) return true;
+        return false;
+    }
+    bool is_make_object() const { return num_legal_args < 0; }
+    int num_legal_args;
+    const char *const *legal_args;
+};
+#define LEGAL_OPTARGS(arr) optargspec_t(sizeof(arr)/sizeof(*arr), arr)
 
 class op_term_t : public term_t {
 public:
-    op_term_t(env_t *env, const Term2 *term);
+    op_term_t(env_t *env, const Term2 *term,
+              argspec_t argspec, optargspec_t optargspec = optargspec_t(0, 0));
     virtual ~op_term_t();
+protected:
     size_t num_args() const;
-    term_t *arg(size_t i);
-
-    void check_no_optargs() const;
-    void check_only_optargs(int n_keys, const char **keys) const;
-    term_t *optarg(const std::string &key, term_t *def/*ault*/);
+    val_t *arg(size_t i);
+    val_t *optarg(const std::string &key, val_t *def/*ault*/);
 private:
-    friend class make_obj_term_t; // need special access to optargs
     boost::ptr_vector<term_t> args;
+
+    friend class make_obj_term_t; // need special access to optargs
     boost::ptr_map<const std::string, term_t> optargs;
 };
 
-class simple_op_term_t : public op_term_t {
-public:
-    simple_op_term_t(env_t *env, const Term2 *term);
-    virtual ~simple_op_term_t();
-    virtual val_t *eval_impl();
-private:
-    virtual val_t *simple_call_impl(std::vector<val_t *> *args) = 0;
-};
+// class simple_op_term_t : public op_term_t {
+// public:
+//     simple_op_term_t(env_t *env, const Term2 *term);
+//     virtual ~simple_op_term_t();
+// private:
+//     virtual val_t *eval_impl();
+//     virtual val_t *simple_call_impl(std::vector<val_t *> *args) = 0;
+// };
 
 #define RDB_NAME(str) virtual const char *name() const { return str; }
 
 }
-#endif // RDB_PROTOCOL_OP_HPP
+#endif // RDB_PROTOCOL_OP_HPP_

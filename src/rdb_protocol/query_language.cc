@@ -61,7 +61,7 @@ void wait_for_rdb_table_readiness(namespace_repo_t<rdb_protocol_t> *ns_repo,
 namespace query_language {
 
 cJSON *safe_cJSON_CreateNumber(double d, const backtrace_t &backtrace) {
-    if (!isfinite(d)) throw runtime_exc_t(strprintf("Illegal numeric value %e.", d), backtrace);
+    if (!std::isfinite(d)) throw runtime_exc_t(strprintf("Illegal numeric value %e.", d), backtrace);
     return cJSON_CreateNumber(d);
 }
 #define cJSON_CreateNumber(...) CT_ASSERT(!"Use safe_cJSON_CreateNumber")
@@ -2561,19 +2561,19 @@ boost::shared_ptr<json_stream_t> eval_call_as_stream(Term::Call *c, runtime_envi
         case Builtin::FILTER:
             {
                 boost::shared_ptr<json_stream_t> stream = eval_term_as_stream(c->mutable_args(0), env, scopes, backtrace.with("arg:0"));
-                return stream->add_transformation(c->builtin().filter(), env, scopes, backtrace.with("predicate"));
+                return stream->add_transformation(c->builtin().filter(), env, 0, scopes, backtrace.with("predicate"));
             }
             break;
         case Builtin::MAP:
             {
                 boost::shared_ptr<json_stream_t> stream = eval_term_as_stream(c->mutable_args(0), env, scopes, backtrace.with("arg:0"));
-                return stream->add_transformation(c->builtin().map().mapping(), env, scopes, backtrace.with("mapping"));
+                return stream->add_transformation(c->builtin().map().mapping(), env, 0, scopes, backtrace.with("mapping"));
             }
             break;
         case Builtin::CONCATMAP:
             {
                 boost::shared_ptr<json_stream_t> stream = eval_term_as_stream(c->mutable_args(0), env, scopes, backtrace.with("arg:0"));
-                return stream->add_transformation(c->builtin().concat_map(), env, scopes, backtrace.with("mapping"));
+                return stream->add_transformation(c->builtin().concat_map(), env, 0, scopes, backtrace.with("mapping"));
             }
             break;
         case Builtin::ORDERBY: {
@@ -2772,7 +2772,7 @@ view_t eval_call_as_view(Term::Call *c, runtime_environment_t *env, const scopes
             {
                 view_t view = eval_term_as_view(c->mutable_args(0), env, scopes, backtrace.with("arg:0"));
                 boost::shared_ptr<json_stream_t> new_stream =
-                    view.stream->add_transformation(c->builtin().filter(), env, scopes, backtrace.with("predicate"));
+                    view.stream->add_transformation(c->builtin().filter(), env, 0, scopes, backtrace.with("predicate"));
                 return view_t(view.access, view.primary_key, new_stream);
             }
             break;

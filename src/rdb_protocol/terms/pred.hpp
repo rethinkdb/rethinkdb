@@ -2,10 +2,10 @@
 
 namespace ql {
 
-class predicate_term_t : public simple_op_term_t {
+class predicate_term_t : public op_term_t {
 public:
     predicate_term_t(env_t *env, const Term2 *term)
-        : simple_op_term_t(env, term), namestr(0), invert(false), pred(0) {
+        : op_term_t(env, term, argspec_t(2, -1)), namestr(0), invert(false), pred(0) {
         int predtype = term->type();
         switch(predtype) {
         case Term2_TermType_EQ: {
@@ -38,33 +38,27 @@ public:
         guarantee(namestr && pred);
     }
 private:
-    virtual val_t *simple_call_impl(std::vector<val_t *> *args) {
+    virtual val_t *eval_impl() {
         const datum_t *lhs, *rhs;
-        rcheck(args->size() >= 2,
-               strprintf("Predicate %s requires at least 2 arguments.", name()));
-        lhs = (*args)[0]->as_datum();
-        for (size_t i = 1; i < args->size(); ++i) {
-            rhs = (*args)[i]->as_datum();
+        lhs = arg(0)->as_datum();
+        for (size_t i = 1; i < num_args(); ++i) {
+            rhs = arg(i)->as_datum();
             if (!(lhs->*pred)(*rhs)) return new_val(bool(false ^ invert));
             lhs = rhs;
         }
         return new_val(bool(true ^ invert));
     }
-    RDB_NAME(namestr)
     const char *namestr;
+    RDB_NAME(namestr)
     bool invert;
     bool (datum_t::*pred)(const datum_t &rhs) const;
 };
 
-class not_term_t : public simple_op_term_t {
+class not_term_t : public op_term_t {
 public:
-    not_term_t(env_t *env, const Term2 *term) : simple_op_term_t(env, term) { }
+    not_term_t(env_t *env, const Term2 *term) : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual val_t *simple_call_impl(std::vector<val_t *> *args) {
-        rcheck(args->size() == 1,
-               strprintf("NOT takes only one argument (got %lu)", args->size()));
-        return new_val(!(*args)[0]->as_datum()->as_bool());
-    }
+    virtual val_t *eval_impl() { return new_val(!arg(0)->as_datum()->as_bool()); }
     RDB_NAME("not")
 };
 

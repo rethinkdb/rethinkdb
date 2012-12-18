@@ -1,4 +1,5 @@
 #include "rdb_protocol/op.hpp"
+#include "rdb_protocol/err.hpp"
 
 namespace ql {
 
@@ -33,10 +34,10 @@ static datum_t div(const datum_t &lhs, const datum_t &rhs) {
     return datum_t(lhs.as_num() / rhs.as_num());
 }
 
-class arith_term_t : public simple_op_term_t {
+class arith_term_t : public op_term_t {
 public:
     arith_term_t(env_t *env, const Term2 *term)
-        : simple_op_term_t(env, term), namestr(0),  op(0) {
+        : op_term_t(env, term, argspec_t(1, -1)), namestr(0), op(0) {
         int arithtype = term->type();
         switch(arithtype) {
         case Term2_TermType_ADD: namestr = "ADD"; op = &add; break;
@@ -47,13 +48,11 @@ public:
         }
         guarantee(namestr && op);
     }
-    virtual val_t *simple_call_impl(std::vector<val_t *> *args) {
-        rcheck(args->size() >= 1,
-               strprintf("%s requires at least one argument.", name()));
+    virtual val_t *eval_impl() {
         scoped_ptr_t<datum_t> acc(new datum_t());
-        *acc.get() = *(*args)[0]->as_datum();
-        for (size_t i = 1; i < args->size(); ++i) {
-            *acc.get() = (*op)(*acc.get(), *(*args)[i]->as_datum());
+        *acc.get() = *arg(0)->as_datum();
+        for (size_t i = 1; i < num_args(); ++i) {
+            *acc.get() = (*op)(*acc.get(), *arg(i)->as_datum());
         }
         return new_val(acc.release());
     }

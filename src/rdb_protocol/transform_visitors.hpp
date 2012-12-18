@@ -9,6 +9,7 @@
 #include <boost/variant.hpp>
 
 #include "http/json.hpp"
+#include "rdb_protocol/env.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/query_language.pb.h"
 
@@ -23,7 +24,7 @@ typedef std::list<boost::shared_ptr<scoped_cJSON_t> > json_list_t;
 /* A visitor for applying a transformation to a bit of json. */
 class transform_visitor_t : public boost::static_visitor<void> {
 public:
-    transform_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json, json_list_t *_out, query_language::runtime_environment_t *_env, const scopes_t &_scopes, const backtrace_t &_backtrace);
+    transform_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json, json_list_t *_out, query_language::runtime_environment_t *_env, ql::env_t *_ql_env, const scopes_t &_scopes, const backtrace_t &_backtrace);
 
     void operator()(const Builtin_Filter &filter) const;
 
@@ -33,10 +34,15 @@ public:
 
     void operator()(Builtin_Range range) const;
 
+    // This is a non-const reference because it caches the compiled function for
+    // performance.
+    void operator()(ql::wire_func_t &func) const;
+
 private:
     boost::shared_ptr<scoped_cJSON_t> json;
     json_list_t *out;
     query_language::runtime_environment_t *env;
+    ql::env_t *ql_env;
     scopes_t scopes;
     backtrace_t backtrace;
 };

@@ -6,10 +6,10 @@
 
 namespace query_language {
 
-boost::shared_ptr<json_stream_t> json_stream_t::add_transformation(const rdb_protocol_details::transform_variant_t &t, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace) {
+boost::shared_ptr<json_stream_t> json_stream_t::add_transformation(const rdb_protocol_details::transform_variant_t &t, runtime_environment_t *env, ql::env_t *ql_env, const scopes_t &scopes, const backtrace_t &backtrace) {
     rdb_protocol_details::transform_t transform;
     transform.push_back(rdb_protocol_details::transform_atom_t(t, scopes, backtrace));
-    return boost::make_shared<transform_stream_t>(shared_from_this(), env, transform);
+    return boost::make_shared<transform_stream_t>(shared_from_this(), env, ql_env, transform);
 }
 
 result_t json_stream_t::apply_terminal(const rdb_protocol_details::terminal_variant_t &t, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace) {
@@ -43,10 +43,11 @@ boost::shared_ptr<scoped_cJSON_t> in_memory_stream_t::next() {
 }
 
 transform_stream_t::transform_stream_t(boost::shared_ptr<json_stream_t> _stream,
-                                       runtime_environment_t *_env,
+                                       runtime_environment_t *_env, ql::env_t *_ql_env,
                                        const rdb_protocol_details::transform_t &tr) :
     stream(_stream),
     env(_env),
+    ql_env(_ql_env),
     transform(tr) { }
 
 boost::shared_ptr<scoped_cJSON_t> transform_stream_t::next() {
@@ -68,7 +69,7 @@ boost::shared_ptr<scoped_cJSON_t> transform_stream_t::next() {
             for (json_list_t::iterator jt  = accumulator.begin();
                                        jt != accumulator.end();
                                        ++jt) {
-                boost::apply_visitor(transform_visitor_t(*jt, &tmp, env, it->scopes, it->backtrace), it->variant);
+                boost::apply_visitor(transform_visitor_t(*jt, &tmp, env, ql_env, it->scopes, it->backtrace), it->variant);
             }
 
             /* Equivalent to `accumulator = tmp`, but without the extra copying */
@@ -84,7 +85,7 @@ boost::shared_ptr<scoped_cJSON_t> transform_stream_t::next() {
     return res;
 }
 
-boost::shared_ptr<json_stream_t> transform_stream_t::add_transformation(const rdb_protocol_details::transform_variant_t &t, UNUSED runtime_environment_t *env2, const scopes_t &scopes, const backtrace_t &backtrace) {
+boost::shared_ptr<json_stream_t> transform_stream_t::add_transformation(const rdb_protocol_details::transform_variant_t &t, UNUSED runtime_environment_t *env2, UNUSED ql::env_t *ql_env2, const scopes_t &scopes, const backtrace_t &backtrace) {
     transform.push_back(rdb_protocol_details::transform_atom_t(t, scopes, backtrace));
     return shared_from_this();
 }
@@ -126,7 +127,7 @@ boost::shared_ptr<scoped_cJSON_t> batched_rget_stream_t::next() {
     return ret;
 }
 
-boost::shared_ptr<json_stream_t> batched_rget_stream_t::add_transformation(const rdb_protocol_details::transform_variant_t &t, UNUSED runtime_environment_t *env2, const scopes_t &scopes, const backtrace_t &per_op_backtrace) {
+boost::shared_ptr<json_stream_t> batched_rget_stream_t::add_transformation(const rdb_protocol_details::transform_variant_t &t, UNUSED runtime_environment_t *env2, UNUSED ql::env_t *ql_env2, const scopes_t &scopes, const backtrace_t &per_op_backtrace) {
     guarantee(!started);
     transform.push_back(rdb_protocol_details::transform_atom_t(t, scopes, per_op_backtrace));
     return shared_from_this();
@@ -221,11 +222,11 @@ boost::shared_ptr<scoped_cJSON_t> union_stream_t::next() {
     return boost::shared_ptr<scoped_cJSON_t>();
 }
 
-boost::shared_ptr<json_stream_t> union_stream_t::add_transformation(const rdb_protocol_details::transform_variant_t &t, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace) {
+boost::shared_ptr<json_stream_t> union_stream_t::add_transformation(const rdb_protocol_details::transform_variant_t &t, runtime_environment_t *env, ql::env_t *ql_env, const scopes_t &scopes, const backtrace_t &backtrace) {
     for (stream_list_t::iterator it  = streams.begin();
                                  it != streams.end();
                                  ++it) {
-        *it = (*it)->add_transformation(t, env, scopes, backtrace);
+        *it = (*it)->add_transformation(t, env, ql_env, scopes, backtrace);
     }
     return shared_from_this();
 }

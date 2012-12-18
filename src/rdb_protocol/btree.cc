@@ -303,13 +303,16 @@ size_t estimate_rget_response_size(const boost::shared_ptr<scoped_cJSON_t> &/*js
 
 class rdb_rget_depth_first_traversal_callback_t : public depth_first_traversal_callback_t {
 public:
-    rdb_rget_depth_first_traversal_callback_t(transaction_t *txn, query_language::runtime_environment_t *_env,
-                                              const rdb_protocol_details::transform_t &_transform,
-                                              boost::optional<rdb_protocol_details::terminal_t> _terminal,
-                                              const key_range_t &range,
-                                              rget_read_response_t *_response)
+    rdb_rget_depth_first_traversal_callback_t(
+        transaction_t *txn,
+        query_language::runtime_environment_t *_env,
+        ql::env_t *_ql_env,
+        const rdb_protocol_details::transform_t &_transform,
+        boost::optional<rdb_protocol_details::terminal_t> _terminal,
+        const key_range_t &range,
+        rget_read_response_t *_response)
         : bad_init(false), transaction(txn), response(_response), cumulative_size(0),
-          env(_env), transform(_transform), terminal(_terminal)
+          env(_env), ql_env(_ql_env), transform(_transform), terminal(_terminal)
     {
         try {
             response->last_considered_key = range.left;
@@ -347,7 +350,7 @@ public:
                 for (json_list_t::iterator jt  = data.begin();
                                            jt != data.end();
                                            ++jt) {
-                    boost::apply_visitor(query_language::transform_visitor_t(*jt, &tmp, env, it->scopes, it->backtrace), it->variant);
+                    boost::apply_visitor(query_language::transform_visitor_t(*jt, &tmp, env, ql_env, it->scopes, it->backtrace), it->variant);
                 }
                 data.clear();
                 data.splice(data.begin(), tmp);
@@ -384,15 +387,19 @@ public:
     rget_read_response_t *response;
     size_t cumulative_size;
     query_language::runtime_environment_t *env;
+    ql::env_t *ql_env;
     rdb_protocol_details::transform_t transform;
     boost::optional<rdb_protocol_details::terminal_t> terminal;
 };
 
 void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
                     transaction_t *txn, superblock_t *superblock,
-                    query_language::runtime_environment_t *env, const rdb_protocol_details::transform_t &transform,
-                    boost::optional<rdb_protocol_details::terminal_t> terminal, rget_read_response_t *response) {
-    rdb_rget_depth_first_traversal_callback_t callback(txn, env, transform, terminal, range, response);
+                    query_language::runtime_environment_t *env,
+                    ql::env_t *ql_env,
+                    const rdb_protocol_details::transform_t &transform,
+                    boost::optional<rdb_protocol_details::terminal_t> terminal,
+                    rget_read_response_t *response) {
+    rdb_rget_depth_first_traversal_callback_t callback(txn, env, ql_env, transform, terminal, range, response);
     btree_depth_first_traversal(slice, txn, superblock, range, &callback);
 
     if (callback.cumulative_size >= rget_max_chunk_size) {

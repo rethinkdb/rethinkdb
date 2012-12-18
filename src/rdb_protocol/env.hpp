@@ -9,6 +9,7 @@
 #include "clustering/administration/metadata.hpp"
 #include "concurrency/one_per_thread.hpp"
 #include "rdb_protocol/datum.hpp"
+#include "rdb_protocol/err.hpp"
 #include "rdb_protocol/js.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/stream.hpp"
@@ -28,11 +29,31 @@ private:
     boost::ptr_vector<val_t> vals;
 
 public:
-    void push_var(int var, datum_t **val) { vars[var].push(val); }
-    void pop_var(int var) { vars[var].pop(); }
-    datum_t **get_var(int var) { return vars[var].top(); }
+    func_t *new_func(const Term2 *source) {
+        func_t *f = new func_t(this, source);
+        funcs.push_back(f);
+        return f;
+    }
 private:
-    std::map<int, std::stack<datum_t **> > vars;
+    boost::ptr_vector<func_t> funcs;
+
+public:
+    void push_var(int var, const datum_t **val) { vars[var].push(val); }
+    void pop_var(int var) { vars[var].pop(); }
+    const datum_t **get_var(int var) { return vars[var].top(); }
+    void dump_scope(std::map<int, Datum> *out) {
+        for (std::map<int, std::stack<const datum_t **> >::iterator
+                 it = vars.begin(); it != vars.end(); ++it) {
+            if (it->second.size() == 0) continue;
+            r_sanity_check(it->second.top());
+            rcheck(*it->second.top(),
+                   strprintf("Variable %d was never bound!  (Probably a client error.)",
+                             it->first));
+            (*it->second.top())->write_to_protobuf(&(*out)[it->first]);
+        }
+    }
+private:
+    std::map<int, std::stack<const datum_t **> > vars;
 
 public:
     env_t(
