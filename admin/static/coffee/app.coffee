@@ -303,22 +303,6 @@ $ ->
         else
             legacy_sync method, model, success, error
 
-
-    # This object is for global events whose relevant data may not be available yet. Example include:
-    #   - the router is unavailable when first initializing
-    #   - machines, namespaces, and datacenters collections are unavailable when first initializing
-    window.app_events =
-        triggered_events: {}
-    _.extend(app_events, Backbone.Events)
-    # Count the number of times any particular event has been called
-    app_events.on 'all', (event) ->
-        triggered = app_events.triggered_events
-
-        if not triggered[event]?
-            triggered[event] = 1
-        else
-            triggered[event]+=1
-
     # Collect the first time
     collect_server_data_once(true, collections_ready)
 
