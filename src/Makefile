@@ -511,7 +511,7 @@ else  # ($(COMPILER), CLANG)
 ifeq ($(LEGACY_GCC), 1)
 RT_CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default
 else  # ($(LEGACY_GCC), 1)
-RT_CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default
+RT_CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default -Wno-array-bounds 
 
 endif  # ($(LEGACY_GCC), 1)
 endif  # ($(COMPILER), CLANG)
