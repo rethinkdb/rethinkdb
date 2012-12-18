@@ -291,10 +291,6 @@ $ ->
         id: '00000000-0000-0000-0000-000000000000'
         name: 'Universe'
 
-    # Load the data bootstrapped from the HTML template
-    # reset_collections()
-    reset_token()
-
     # Override the default Backbone.sync behavior to allow reading diff
     legacy_sync = Backbone.sync
     Backbone.sync = (method, model, success, error) ->
