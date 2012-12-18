@@ -11,7 +11,7 @@ module 'DataExplorerView', ->
         alert_reconnection_success_template: Handlebars.compile $('#alert-reconnection_success-template').html()
         databases_suggestions_template: Handlebars.compile $('#dataexplorer-databases_suggestions-template').html()
         namespaces_suggestions_template: Handlebars.compile $('#dataexplorer-namespaces_suggestions-template').html()
-        browser_not_supported_template: Handlebars.compile $('#dataexplorer-browser_not_supported-template').html()
+        reason_dataexplorer_broken_template: Handlebars.compile $('#dataexplorer-reason_broken-template').html()
 
         # That's all the thing we want to store so we can display the view as it was (when the user left the data explorer)
         saved_query: null # Last value @codemirror.getValue()
@@ -1001,7 +1001,7 @@ module 'DataExplorerView', ->
             $(window).on 'resize', @set_char_per_line
 
             # Connect the driver
-            if window.driver_connected isnt true
+            if window.driver_connected isnt true and window.r?
                 window.driver_connect()
 
         render: =>
@@ -1012,14 +1012,20 @@ module 'DataExplorerView', ->
 
             # We do not support internet explorer (even IE 10) and old browsers.
             if navigator?.appName is 'Microsoft Internet Explorer'
-                @.$('.not_supported_browser').html @browser_not_supported_template
+                @.$('.reason_dataexplorer_broken').html @reason_dataexplorer_broken_template
                     is_internet_explorer: true
-                @.$('.not_supported_browser').slideDown 'fast'
+                @.$('.reason_dataexplorer_broken').slideDown 'fast'
                 @.$('.button_query').prop 'disabled', 'disabled'
             else if (not DataView?) or (not Uint8Array?) # The main two components that the javascript driver requires.
-                @.$('.not_supported_browser').html @browser_not_supported_template
-                @.$('.not_supported_browser').slideDown 'fast'
+                @.$('.reason_dataexplorer_broken').html @reason_dataexplorer_broken_template
+                @.$('.reason_dataexplorer_broken').slideDown 'fast'
                 @.$('.button_query').prop 'disabled', 'disabled'
+            else if not window.r? # In case the javascript driver is not found (if build from source for example)
+                @.$('.reason_dataexplorer_broken').html @reason_dataexplorer_broken_template
+                    no_driver: true
+                @.$('.reason_dataexplorer_broken').slideDown 'fast'
+                @.$('.button_query').prop 'disabled', 'disabled'
+
 
             if @last_query? and @last_results? and @last_metadata?
                 @results_view.render_result @last_query, @last_results
