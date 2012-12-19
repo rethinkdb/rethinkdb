@@ -1,4 +1,5 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
+#include <unistd.h>
 #include "extproc/job.hpp"
 
 namespace extproc {
