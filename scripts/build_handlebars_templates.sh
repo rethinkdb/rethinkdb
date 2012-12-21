@@ -1,19 +1,26 @@
 #!/bin/bash
-mkdir -p ../build/debug/webtemp/
-mkdir -p ../build/debug/webtemp/raw_split
-mkdir -p ../build/debug/webtemp/handlebars
+
+WEB_TEMP_DIR=$2/webtemp
+WEB_SPLIT_DIR=$WEB_TEMP_DIR/raw_split
+WEB_HANDLEBARS_DIR=$WEB_TEMP_DIR/handlebars
+
+
+mkdir -p $WEB_TEMP_DIR
+mkdir -p $WEB_SPLIT_DIR
+mkdir -p $WEB_HANDLEBARS_DIR
+
 # Takes about 2 seconds to split files
-for file in $(find ../admin/static/handlebars -name '*.html');
+for file in $(find $1 -name '*.html');
     do
-    sed 's/<script/\n&/g;s/^\n\(<script\)/\1/' $file | csplit -zf ../build/debug/webtemp/raw_split/template - '/^<script/' {*} &> /dev/null
-    for splitted_file in $(find ../build/debug/webtemp/raw_split/ -name 'template*');
+    sed 's/<script/\n&/g;s/^\n\(<script\)/\1/' $file | csplit -zf $WEB_SPLIT_DIR/template - '/^<script/' {*} &> /dev/null
+    for splitted_file in $(find $WEB_SPLIT_DIR/ -name 'template*');
         do
-        mv "$splitted_file" ../build/debug/webtemp/handlebars/`head -1 "$splitted_file" | cut -d '"' -f 2`.handlebars;
+        mv "$splitted_file" $WEB_HANDLEBARS_DIR/`head -1 "$splitted_file" | cut -d '"' -f 2`.handlebars;
     done # Rename the file with a proper name
 done
 # Takes about one second to minify the templates
-for file in ../build/debug/webtemp/handlebars/*.handlebars; do
 
+for file in $WEB_HANDLEBARS_DIR/*.handlebars; do
     sed -i 's/<\/script>//;s/<script.*>//;' $file; # Remove </script> and <script id="...">
     sed -i -e :a -e N -e 's/\n/ /' -e ta $file; # Concat lines
     sed -i 's/^ *//;s/ *$//;s/ \{1,\}/ /g;/^$/d' $file; # Concat spaces and remove empty lines
@@ -29,5 +36,6 @@ for file in ../build/debug/webtemp/handlebars/*.handlebars; do
     #sed -i '/^$/d' $file; # Remove empty lines
 done
 # -m minify, -f is the output, it takes about 2 seconds
-handlebars -m ../build/debug/webtemp/handlebars -f ../build/debug/web/js/template.js
-rm -R ../build/debug/webtemp/
+
+handlebars -m $WEB_HANDLEBARS_DIR -f $3/template.js
+rm -R $WEB_TEMP_DIR
