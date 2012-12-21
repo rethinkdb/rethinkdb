@@ -12,6 +12,7 @@ class RuntimeError extends RDBError
     constructor: (msg) ->
         @name = "Runtime error"
         @message = msg
+		@backtrace = []
 
 class BadQuery extends RDBError
     constructor: (msg) ->

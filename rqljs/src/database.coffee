@@ -32,4 +32,4 @@ class RDBDatabase
         else
             throw new RuntimeError "Error during operation `EVAL_TABLE #{name}`: No entry with that name."
 
-    getTableNames: -> (tblN for own tblN of @tables)
+    listTables: -> (tblN for own tblN of @tables)

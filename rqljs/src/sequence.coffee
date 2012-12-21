@@ -1,8 +1,8 @@
 goog.provide('rethinkdb.RDBSequence')
 
-goog.require('rethinkdb.RDBJson')
+goog.require('rethinkdb.RDBType')
 
-class RDBSequence extends RDBJson
+class RDBSequence extends RDBType
     asJSON: -> (v.asJSON() for v in @asArray())
     copy: -> new RDBArray (val.copy() for val in @asArray())
     eq: (other) ->
@@ -10,30 +10,18 @@ class RDBSequence extends RDBJson
         other = other.asArray()
         new RDBPrimitive (v.eq other[i] for v,i in self).reduce (a,b)->a&&b
 
-    append: (val) ->
-        new RDBArray @asArray().concat [val]
-
-    asArray: ->
-        throw new Error "Abstract method"
-
+    append: (val) -> new RDBArray @asArray().concat [val]
+    asArray: -> throw new ServerError "Abstract method"
     count: -> new RDBPrimitive @asArray().length
-
-    union: (other) ->
-        new RDBArray @asArray().concat other.asArray()
-
-    slice: (left, right) ->
-        new RDBArray @asArray().slice left, right
+    union: (other) -> new RDBArray @asArray().concat other.asArray()
+    slice: (left, right) -> new RDBArray @asArray().slice left, right
 
     orderBy: (orderbys) ->
         new RDBArray @asArray().sort (a,b) ->
             for ob in orderbys
-                if not (a[ob.attr]? or b[ob.attr]?)
-                    obj = (if a[ob.attr]? then b else a)
-                    throw new RuntimeError "ORDERBY encountered a row missing attr '#{ob.attr}': "+
-                                           "#{Utils.stringify(obj.asJSON())}"
                 op = (if ob.asc then 'gt' else 'lt')
-                if a[ob.attr][op](b[ob.attr]).asJSON() then return true
-            return false
+                if a[ob.attr][op](b[ob.attr]).asJSON() then return new RDBPrimitive true
+            return new RDBPrimitive false
 
     distinct: ->
         neu = []
@@ -48,13 +36,8 @@ class RDBSequence extends RDBJson
                 neu.push v
         new RDBArray neu
 
-    map: (mapping) ->
-        result = @asArray().map (v) -> mapping(v)
-        new RDBArray result
-
-    reduce: (base, reduction) ->
-        reduce_function = (acc, v) -> reduction(acc, v)
-        @asArray().reduce reduce_function, base
+    map: (mapping) -> new RDBArray @asArray().map mapping
+    reduce: (reduction, base) -> new RDBArray @asArray().reduce reduction, base
 
     groupedMapReduce: (groupMapping, valueMapping, reduction) ->
         groups = {}
@@ -73,13 +56,9 @@ class RDBSequence extends RDBJson
         )
 
     concatMap: (mapping) ->
-        new RDBArray Array::concat.apply [], @asArray().map((v) -> mapping(v).asArray())
+        new RDBArray Array::concat.apply [], @map(mapping).asArray()
 
-    filter: (predicate) -> new RDBArray @asArray().filter (v) ->
-        predicate_value = predicate(v).asJSON()
-        if typeof predicate_value isnt 'boolean'
-            throw new RuntimeError "Predicate failed to evaluate to a bool"
-        return predicate_value
+    filter: (predicate) -> new RDBArray @asArray().filter (v) -> predicate(v).asJSON()
 
     between: (attr, lowerBound, upperBound) ->
         result = []
@@ -148,52 +127,15 @@ class RDBSequence extends RDBJson
 
 class RDBArray extends RDBSequence
     constructor: (arr) -> @data = arr
-    buildFromJS: (jsArray) ->
-        @data = []
-        for value, index in jsArray
-            if value is null
-                @data.push new RDBPrimitive null
-            else if typeof value is 'string' or typeof value is 'number' or typeof value is 'boolean'
-                @data.push new RDBPrimitive value
-            else if goog.isArray(value)
-                arrayValue = new RDBArray
-                arrayValue.buildFromJS value
-                @data.push arrayValue
-            else if typeof value is 'object'
-                objectValue = new RDBObject
-                objectValue.buildFromJS value
-                @data.push objectValue
-
     asArray: -> @data
 
     add: (other) -> @union other
 
     eq: (other) ->
-        if other.typeOf() isnt RDBJson.RDBTypes.ARRAY or
-           @asArray().length isnt other.asArray().length
-            return new RDBPrimitive false
+        unless @count().eq(other.count()).asJSON() then return new RDBPrimitive false
+        (return new RDBPrimitive false for v,i in @asArray() when v isnt other.asArray()[i])
 
-        for v,i in @asArray()
-            o = other.asArray()[i]
-            if v.ne(o).asJSON() then return new RDBPrimitive false
-        return new RDBPrimitive true
-
-    le: (other) -> new RDBPrimitive (not @gt(other).asJSON())
-    gt: (other) ->
-        if other.typeOf() is RDBJson.RDBTypes.ARRAY
-            for v,i in @asArray()
-                o = other.asArray()[i]
-                if not v.eq(o)
-                    return v.gt(o)
-            return new RDBPrimitive false
-        return new RDBPrimitive @typeOf() > other.typeOf()
-
-    ge: (other) -> new RDBPrimitive (not @lt(other).asJSON())
     lt: (other) ->
-        if other.typeOf() is RDBJson.RDBTypes.ARRAY
-            for v,i in @asArray()
-                o = other.asArray()[i]
-                if v.eq(o)
-                    return v.lt(o)
-            return new RDBPrimitive false
-        return new RDBPrimitive @typeOf() < other.typeOf()
+        for v,i in @asArray()
+            if v.lt(other.asArray()[i]).asJSON() then return new RDBPrimitive false
+        return other.count().ge(@count)

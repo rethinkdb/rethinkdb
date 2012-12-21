@@ -27,3 +27,5 @@ class RDBUniverse
 	getDatabase: (dbName) ->
 		if @dbs[dbName]? then return @dbs[dbName]
 		else return null
+	
+	listDatabases: -> (dbN for own dbN of @dbs)

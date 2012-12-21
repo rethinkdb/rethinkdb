@@ -267,7 +267,7 @@ class Connection():
         for c in self.cursors:
             c.invalidate()
         self.socket = socket.create_connection((self.host, self.port))
-        self.socket.sendall(struct.pack("<L", 0xaf61ba35))
+        self.socket.sendall(struct.pack("<L", 0x3f61ba36)) #0xaf61ba35
         global _last_connection
         _last_connection = self
 
