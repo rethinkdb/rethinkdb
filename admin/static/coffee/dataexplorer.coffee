@@ -1071,13 +1071,13 @@ module 'DataExplorerView', ->
         display_normal: =>
             $('#cluster').addClass 'container'
             $('#cluster').removeClass 'cluster_with_margin'
-            @.$('.json_table_container').css 'width', '888px'
+            #@.$('.json_table_container').css 'width', '888px'
             @.$('.wrapper_scrollbar_top').css 'width', '888px'
 
         display_full: =>
             $('#cluster').removeClass 'container'
             $('#cluster').addClass 'cluster_with_margin'
-            @.$('.json_table_container').css 'width', ($(window).width()-92)+'px'
+            #@.$('.json_table_container').css 'width', ($(window).width()-92)+'px'
             @.$('.wrapper_scrollbar_top').css 'width', ($(window).width()-92)+'px'
 
         destroy: =>
@@ -1365,6 +1365,7 @@ module 'DataExplorerView', ->
  
             @.$(event.target).parent().css 'max-width', 'none'
             @.$(event.target).remove() #TODO Fix this trick
+            @set_scrollbar_top()
 
 
         # Expand the table with new columns (with the attributes of the expanded object)
@@ -1441,7 +1442,8 @@ module 'DataExplorerView', ->
                             
                         return true
 
-                $('.'+classcolumn) .remove();
+                $('.'+classcolumn) .remove()
+            @set_scrollbar_top()
 
         # Helper for expanding a table when showing an object (creating new columns)
         join_table: (data) =>
@@ -1481,6 +1483,7 @@ module 'DataExplorerView', ->
         handle_mouseup: (event) =>
             @mouse_down = false
             @.$('.json_table').toggleClass('resizing', false)
+            @set_scrollbar_top()
 
         render_result: (query, result) =>
             if query?
@@ -1503,7 +1506,6 @@ module 'DataExplorerView', ->
                     @$('.table_view_container').show()
                     @.$('.link_to_table_view').addClass 'active'
                     @.$('.link_to_table_view').parent().addClass 'active'
-                    @set_scrollbar_top()
                 when 'raw'
                     @.$('.raw_view_textarea').html JSON.stringify @result
                     @$('.results').hide()
@@ -1511,21 +1513,33 @@ module 'DataExplorerView', ->
                     @expand_raw_textarea()
                     @.$('.link_to_raw_view').addClass 'active'
                     @.$('.link_to_raw_view').parent().addClass 'active'
+
+            @set_scrollbar_top()
  
-        set_scrollbar_top: (width_value) =>
+        set_scrollbar_top: =>
+            if @view is 'table'
+                content_name = '.json_table'
+                content_container = '.json_table_container'
+            else if @view is 'tree'
+                content_name = '.json_tree'
+                content_container = '.tree_view'
+            else if @view is 'raw'
+                @$('.wrapper_scrollbar_top').hide()
+                return
+
             # Set top scrollbar
-            width_value = $('.json_table').width()
-            if width_value < @$('.json_table_container').width()
+            width_value = $(content_name).width()
+            if width_value < @$(content_container).width()
                 # If there is no need for scrollbar, we hide the one on the top
-                @$('.json_table_scrollbar_wrapper_top').hide()
+                @$('.wrapper_scrollbar_top').hide()
             else
                 # Else we set the fake_content to the same width as the table that contains data and links the two scrollbars
-                @$('.json_table_scrollbar_fake_content').width width_value
-                $(".json_table_scrollbar_top").scroll ->
-                    $(".json_table_container").scrollLeft($(".json_table_scrollbar_top").scrollLeft());
-                $(".json_table_container").scroll ->
-                    $(".json_table_scrollbar_top").scrollLeft($(".json_table_container").scrollLeft());
-
+                @$('.wrapper_scrollbar_top').show()
+                @$('.scrollbar_fake_content').width width_value
+                $(".wrapper_scrollbar_top").scroll ->
+                    $(content_container).scrollLeft($(".wrapper_scrollbar_top").scrollLeft())
+                $(content_container).scroll ->
+                    $(".wrapper_scrollbar_top").scrollLeft($(content_container).scrollLeft())
 
         # Render the metadata of an the results
         render_metadata: (data) =>
@@ -1577,6 +1591,7 @@ module 'DataExplorerView', ->
             @.$(event.target).nextAll('.jt_points').toggleClass('jt_points_collapsed')
             @.$(event.target).nextAll('.jt_b').toggleClass('jt_b_collapsed')
             @.$(event.target).toggleClass('jt_arrow_hidden')
+            @set_scrollbar_top()
 
         handle_keypress: (event) =>
             if event.which is 13 and !event.shiftKey

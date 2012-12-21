@@ -1254,8 +1254,17 @@ TODO: retire this
     .active{
         display: block;
     }
+
+    .wrapper_scrollbar_top{
+        overflow-x: scroll;
+        overflow-y: hidden;
+        width: 888px;
+        .scrollbar_fake_content{
+            height: 20px;
+        }
+    }
     .results{
-        width: 100%;
+        width: 888px;
         margin: 15px 0px 0px 0px;
         padding: 0px;
         overflow: auto;
@@ -1321,16 +1330,6 @@ TODO: retire this
             }   
         }
 
-
-
-        .wrapper_scrollbar_top{
-            overflow-x: scroll;
-            overflow-y: hidden;
-            width: 888px;
-            .json_table_scrollbar_fake_content{
-                height: 20px;
-            }
-        }
         .json_table_container{
             overflow: auto;
             width: 888px;
