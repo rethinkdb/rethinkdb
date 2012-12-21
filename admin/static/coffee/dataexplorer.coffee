@@ -30,17 +30,8 @@ module 'DataExplorerView', ->
             'click .execute_query': 'execute_query'
             'click .change_size': 'toggle_size'
             'click #reconnect': 'reconnect'
-
             'click .more_results': 'show_more_results'
-
-            'click .link_to_tree_view': 'save_tab'
-            'click .link_to_table_view': 'save_tab'
-            'click .link_to_raw_view': 'save_tab'
             'click .close': 'close_alert'
-
-        save_tab: (event) =>
-            @results_view.set_view @.$(event.target).data('view')
-
 
         displaying_full_view: false # Boolean for the full view (true if full view)
 
@@ -1065,9 +1056,9 @@ module 'DataExplorerView', ->
 
         # Switch between full view and normal view
         toggle_size: =>
-            if @displaying_full_view
+            if @displaying_full_view is true
                 @display_normal()
-                $(window).on 'resize', @display_full
+                $(window).off 'resize', @display_full
                 @displaying_full_view = false
                 @set_char_per_line()
             else
@@ -1075,16 +1066,19 @@ module 'DataExplorerView', ->
                 $(window).on 'resize', @display_full
                 @displaying_full_view = true
                 @set_char_per_line()
+            @results_view.set_scrollbar_top()
 
         display_normal: =>
             $('#cluster').addClass 'container'
             $('#cluster').removeClass 'cluster_with_margin'
             @.$('.json_table_container').css 'width', '888px'
+            @.$('.wrapper_scrollbar_top').css 'width', '888px'
 
         display_full: =>
             $('#cluster').removeClass 'container'
             $('#cluster').addClass 'cluster_with_margin'
-            @.$('.json_table_container').css 'width', ($(window).width()-52)+'px'
+            @.$('.json_table_container').css 'width', ($(window).width()-92)+'px'
+            @.$('.wrapper_scrollbar_top').css 'width', ($(window).width()-92)+'px'
 
         destroy: =>
             @display_normal()
@@ -1129,8 +1123,6 @@ module 'DataExplorerView', ->
         cursor_timed_out_template: Handlebars.templates['dataexplorer-cursor_timed_out-template']
 
         events:
-            # Global events
-            'click .link_to_raw_view': 'expand_raw_textarea'
             # For Tree view
             'click .jt_arrow': 'toggle_collapse'
             # For Table view
@@ -1138,12 +1130,16 @@ module 'DataExplorerView', ->
             'click .jta_arrow_v': 'expand_tree_in_table'
             'click .jta_arrow_h': 'expand_table_in_table'
 
+            'click .link_to_tree_view': 'show_tree'
+            'click .link_to_table_view': 'show_table'
+            'click .link_to_raw_view': 'show_raw'
+
         current_result: []
 
         initialize: (limit) =>
             @set_limit limit
             @set_skip 0
-            @set_view 'tree'
+            @view ='tree'
             $(window).mousemove @handle_mousemove
             $(window).mouseup @handle_mouseup
 
@@ -1151,8 +1147,19 @@ module 'DataExplorerView', ->
             @limit = limit
         set_skip: (skip) =>
             @skip = skip
-        set_view: (view) =>
-            @view = view
+
+        show_tree: (event) =>
+            event.preventDefault()
+            @view = 'tree'
+            @render_result()
+        show_table: (event) =>
+            event.preventDefault()
+            @view = 'table'
+            @render_result()
+        show_raw: (event) =>
+            event.preventDefault()
+            @view = 'raw'
+            @render_result()
 
         render_error: (query, err) =>
             @.$el.html @error_template
@@ -1476,21 +1483,50 @@ module 'DataExplorerView', ->
             @.$('.json_table').toggleClass('resizing', false)
 
         render_result: (query, result) =>
+            if query?
+                @query = query
+            if result?
+                @result = result
             @.$el.html @template
-                query: query
-            @.$('.tree_view').html @json_to_tree result
-            @.$('.table_view').html @json_to_table result
-            @.$('.raw_view_textarea').html JSON.stringify result
-            @expand_raw_textarea()
+                query: @query
 
             switch @view
                 when 'tree'
-                    @.$('.link_to_tree_view').tab 'show'
+                    @.$('.tree_view').html @json_to_tree @result
+                    @$('.results').hide()
+                    @$('.tree_view_container').show()
+                    @.$('.link_to_tree_view').addClass 'active'
+                    @.$('.link_to_tree_view').parent().addClass 'active'
                 when 'table'
-                    @.$('.link_to_table_view').tab 'show'
+                    @.$('.table_view').html @json_to_table @result
+                    @$('.results').hide()
+                    @$('.table_view_container').show()
+                    @.$('.link_to_table_view').addClass 'active'
+                    @.$('.link_to_table_view').parent().addClass 'active'
+                    @set_scrollbar_top()
                 when 'raw'
-                    @.$('.link_to_raw_view').tab 'show'
+                    @.$('.raw_view_textarea').html JSON.stringify @result
+                    @$('.results').hide()
+                    @$('.raw_view_container').show()
+                    @expand_raw_textarea()
+                    @.$('.link_to_raw_view').addClass 'active'
+                    @.$('.link_to_raw_view').parent().addClass 'active'
  
+        set_scrollbar_top: (width_value) =>
+            # Set top scrollbar
+            width_value = $('.json_table').width()
+            if width_value < @$('.json_table_container').width()
+                # If there is no need for scrollbar, we hide the one on the top
+                @$('.json_table_scrollbar_wrapper_top').hide()
+            else
+                # Else we set the fake_content to the same width as the table that contains data and links the two scrollbars
+                @$('.json_table_scrollbar_fake_content').width width_value
+                $(".json_table_scrollbar_top").scroll ->
+                    $(".json_table_container").scrollLeft($(".json_table_scrollbar_top").scrollLeft());
+                $(".json_table_container").scroll ->
+                    $(".json_table_scrollbar_top").scrollLeft($(".json_table_container").scrollLeft());
+
+
         # Render the metadata of an the results
         render_metadata: (data) =>
             limit_value = data.limit_value

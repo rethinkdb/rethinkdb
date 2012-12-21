@@ -181,19 +181,19 @@ Did you forget to append .run() at the end of your query?{{/if}}</pre>
         
 
         <ul class="nav nav-tabs change_view_container"">
-            <li><a href="#raw_view" data-toggle="tab" class="link_to_raw_view" data-view="raw">Raw view</a></li>
-            <li><a href="#table_view" data-toggle="tab" class="link_to_table_view" data-view="table">Table view</a></li>
-            <li class="active"><a href="#tree_view" data-toggle="tab" class="link_to_tree_view active" data-view="tree">Tree view</a></li>
+            <li><a href="#raw_view" class="link_to_raw_view">Raw view</a></li>
+            <li><a href="#table_view" class="link_to_table_view">Table view</a></li>
+            <li><a href="#tree_view" class="link_to_tree_view active">Tree view</a></li>
         </ul>
     </div>
     <div class="tab-content">  
-        <div class="tab-pane results active" id="tree_view">
+        <div class="results active tree_view_container">
             <div class="results_wrap tree_view"></div>
         </div>
-        <div class="tab-pane results" id="table_view">
+        <div class="results table_view_container">
             <div class="results_wrap table_view"></div>
         </div>
-        <div class="tab-pane results" id="raw_view">
+        <div class="results raw_view_container">
             <div class="raw_view_container raw_view">
                 <textarea class="raw_view_textarea"></textarea>
             </div>
@@ -276,6 +276,7 @@ Did you forget to append .run() at the end of your query?{{/if}}</pre>
 </script>
 
 <script id="dataexplorer_result_json_table_container-template" type="text/x-handlebars-template">
+    <div class="json_table_scrollbar_top wrapper_scrollbar_top"><div class="json_table_scrollbar_fake_content"></div></div>
     <div class="json_table_container">
         <table class="json_table">
             {{print_safe table_attr}}
