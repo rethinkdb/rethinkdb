@@ -562,7 +562,7 @@ ifeq ($(KEEP_INLINE),1)
 RT_CXXFLAGS+=-fkeep-inline-functions
 endif
 
-else
+else  # ifeq ($(DEBUG),1)
 # use -fno-strict-aliasing to not break things
 # march=native used to break the serializer
 RT_CXXFLAGS+=-O3 -DNDEBUG -fno-strict-aliasing # -march=native
@@ -570,10 +570,8 @@ RT_CXXFLAGS+=-O3 -DNDEBUG -fno-strict-aliasing # -march=native
 RT_CXXFLAGS+=-DNO_MEMCACHE
 ifeq ($(NO_OMIT_FRAME_POINTER),1)
 RT_CXXFLAGS+=-fno-omit-frame-pointer
-else
-RT_CXXFLAGS+=-fomit-frame-pointer
 endif
-endif
+endif  # ifeq ($(DEBUG),1)
 
 ifeq ($(DISABLE_BREAKPOINTS),1)
 RT_CXXFLAGS+=-DDISABLE_BREAKPOINTS
