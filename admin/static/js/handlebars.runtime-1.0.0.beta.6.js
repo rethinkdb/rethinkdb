@@ -1,11 +1,7 @@
 // lib/handlebars/base.js
+var Handlebars = {};
 
-/*jshint eqnull:true*/
-this.Handlebars = {};
-
-(function(Handlebars) {
-
-Handlebars.VERSION = "1.0.rc.1";
+Handlebars.VERSION = "1.0.beta.6";
 
 Handlebars.helpers  = {};
 Handlebars.partials = {};
@@ -44,36 +40,25 @@ Handlebars.registerHelper('blockHelperMissing', function(context, options) {
     return inverse(this);
   } else if(type === "[object Array]") {
     if(context.length > 0) {
-      return Handlebars.helpers.each(context, options);
+      for(var i=0, j=context.length; i<j; i++) {
+        ret = ret + fn(context[i]);
+      }
     } else {
-      return inverse(this);
+      ret = inverse(this);
     }
+    return ret;
   } else {
     return fn(context);
   }
 });
 
-Handlebars.K = function() {};
-
-Handlebars.createFrame = Object.create || function(object) {
-  Handlebars.K.prototype = object;
-  var obj = new Handlebars.K();
-  Handlebars.K.prototype = null;
-  return obj;
-};
-
 Handlebars.registerHelper('each', function(context, options) {
   var fn = options.fn, inverse = options.inverse;
-  var ret = "", data;
-
-  if (options.data) {
-    data = Handlebars.createFrame(options.data);
-  }
+  var ret = "";
 
   if(context && context.length > 0) {
     for(var i=0, j=context.length; i<j; i++) {
-      if (data) { data.index = i; }
-      ret = ret + fn(context[i], { data: data });
+      ret = ret + fn(context[i]);
     }
   } else {
     ret = inverse(this);
@@ -107,8 +92,6 @@ Handlebars.registerHelper('with', function(context, options) {
 Handlebars.registerHelper('log', function(context) {
   Handlebars.log(context);
 });
-
-}(this.Handlebars));
 ;
 // lib/handlebars/utils.js
 Handlebars.Exception = function(message) {
@@ -120,7 +103,7 @@ Handlebars.Exception = function(message) {
 
   this.message = tmp.message;
 };
-Handlebars.Exception.prototype = new Error();
+Handlebars.Exception.prototype = new Error;
 
 // Build out our basic SafeString type
 Handlebars.SafeString = function(string) {
@@ -132,7 +115,6 @@ Handlebars.SafeString.prototype.toString = function() {
 
 (function() {
   var escape = {
-    "&": "&amp;",
     "<": "&lt;",
     ">": "&gt;",
     '"': "&quot;",
@@ -140,7 +122,7 @@ Handlebars.SafeString.prototype.toString = function() {
     "`": "&#x60;"
   };
 
-  var badChars = /[&<>"'`]/g;
+  var badChars = /&(?!\w+;)|[<>"'`]/g;
   var possible = /[&<>"'`]/;
 
   var escapeChar = function(chr) {
@@ -222,7 +204,7 @@ Handlebars.VM = {
   },
   noop: function() { return ""; },
   invokePartial: function(partial, name, context, helpers, partials, data) {
-    var options = { helpers: helpers, partials: partials, data: data };
+    options = { helpers: helpers, partials: partials, data: data };
 
     if(partial === undefined) {
       throw new Handlebars.Exception("The partial " + name + " could not be found");
@@ -231,7 +213,7 @@ Handlebars.VM = {
     } else if (!Handlebars.compile) {
       throw new Handlebars.Exception("The partial " + name + " could not be compiled when running in runtime-only mode");
     } else {
-      partials[name] = Handlebars.compile(partial, {data: data !== undefined});
+      partials[name] = Handlebars.compile(partial);
       return partials[name](context, options);
     }
   }
