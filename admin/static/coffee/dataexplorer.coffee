@@ -1071,13 +1071,11 @@ module 'DataExplorerView', ->
         display_normal: =>
             $('#cluster').addClass 'container'
             $('#cluster').removeClass 'cluster_with_margin'
-            #@.$('.json_table_container').css 'width', '888px'
             @.$('.wrapper_scrollbar_top').css 'width', '888px'
 
         display_full: =>
             $('#cluster').removeClass 'container'
             $('#cluster').addClass 'cluster_with_margin'
-            #@.$('.json_table_container').css 'width', ($(window).width()-92)+'px'
             @.$('.wrapper_scrollbar_top').css 'width', ($(window).width()-92)+'px'
 
         destroy: =>
