@@ -24,7 +24,7 @@ module 'Vis', ->
 
     class @OpsPlotLegend extends Backbone.View
         className: 'ops-plot-legend'
-        template: Handlebars.compile $('#ops_plot_legend-template').html()
+        template: Handlebars.templates['ops_plot_legend-template']
 
         initialize: (_read_metric, _write_metric, _context) =>
             log_initial '(initializing) ops plot legend'
@@ -49,8 +49,8 @@ module 'Vis', ->
 
     class @OpsPlot extends Backbone.View
         className: 'ops-plot'
-        template: Handlebars.compile $('#ops_plot-template').html()
-        barebones_template: Handlebars.compile $('#ops_plot-template').html()
+        template: Handlebars.templates['ops_plot-template']
+        barebones_template: Handlebars.templates['ops_plot-template']
 
         # default options for the plot template
         type: 'cluster'

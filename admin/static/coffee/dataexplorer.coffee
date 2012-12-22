@@ -3,15 +3,15 @@
 module 'DataExplorerView', ->
     class @Container extends Backbone.View
         id: 'dataexplorer'
-        template: Handlebars.compile $('#dataexplorer_view-template').html()
-        description_template: Handlebars.compile $('#dataexplorer-description-template').html()
-        template_suggestion_name: Handlebars.compile $('#dataexplorer_suggestion_name_li-template').html()
-        description_with_example_template: Handlebars.compile $('#dataexplorer-description_with_example-template').html()
-        alert_connection_fail_template: Handlebars.compile $('#alert-connection_fail-template').html()
-        alert_reconnection_success_template: Handlebars.compile $('#alert-reconnection_success-template').html()
-        databases_suggestions_template: Handlebars.compile $('#dataexplorer-databases_suggestions-template').html()
-        namespaces_suggestions_template: Handlebars.compile $('#dataexplorer-namespaces_suggestions-template').html()
-        reason_dataexplorer_broken_template: Handlebars.compile $('#dataexplorer-reason_broken-template').html()
+        template: Handlebars.templates['dataexplorer_view-template']
+        description_template: Handlebars.templates['dataexplorer-description-template']
+        template_suggestion_name: Handlebars.templates['dataexplorer_suggestion_name_li-template']
+        description_with_example_template: Handlebars.templates['dataexplorer-description_with_example-template']
+        alert_connection_fail_template: Handlebars.templates['alert-connection_fail-template']
+        alert_reconnection_success_template: Handlebars.templates['alert-reconnection_success-template']
+        databases_suggestions_template: Handlebars.templates['dataexplorer-databases_suggestions-template']
+        namespaces_suggestions_template: Handlebars.templates['dataexplorer-namespaces_suggestions-template']
+        reason_dataexplorer_broken_template: Handlebars.templates['dataexplorer-reason_broken-template']
 
         # That's all the thing we want to store so we can display the view as it was (when the user left the data explorer)
         saved_query: null # Last value @codemirror.getValue()
@@ -1095,7 +1095,7 @@ module 'DataExplorerView', ->
     
     class @InputQuery extends Backbone.View
         className: 'query_control'
-        template: Handlebars.compile $('#dataexplorer_input_query-template').html()
+        template: Handlebars.templates['dataexplorer_input_query-template']
  
         render: =>
             @.$el.html @template()
@@ -1103,30 +1103,30 @@ module 'DataExplorerView', ->
 
     class @ResultView extends Backbone.View
         className: 'result_view'
-        template: Handlebars.compile $('#dataexplorer_result_container-template').html()
-        default_template: Handlebars.compile $('#dataexplorer_default_result_container-template').html()
-        metadata_template: Handlebars.compile $('#dataexplorer-metadata-template').html()
-        option_template: Handlebars.compile $('#dataexplorer-option_page-template').html()
-        error_template: Handlebars.compile $('#dataexplorer-error-template').html()
-        template_no_result: Handlebars.compile $('#dataexplorer_result_empty-template').html()
+        template: Handlebars.templates['dataexplorer_result_container-template']
+        default_template: Handlebars.templates['dataexplorer_default_result_container-template']
+        metadata_template: Handlebars.templates['dataexplorer-metadata-template']
+        option_template: Handlebars.templates['dataexplorer-option_page-template']
+        error_template: Handlebars.templates['dataexplorer-error-template']
+        template_no_result: Handlebars.templates['dataexplorer_result_empty-template']
         template_json_tree:
-            'container' : Handlebars.compile $('#dataexplorer_result_json_tree_container-template').html()
-            'span': Handlebars.compile $('#dataexplorer_result_json_tree_span-template').html()
-            'span_with_quotes': Handlebars.compile $('#dataexplorer_result_json_tree_span_with_quotes-template').html()
-            'url': Handlebars.compile $('#dataexplorer_result_json_tree_url-template').html()
-            'email': Handlebars.compile $('#dataexplorer_result_json_tree_email-template').html()
-            'object': Handlebars.compile $('#dataexplorer_result_json_tree_object-template').html()
-            'array': Handlebars.compile $('#dataexplorer_result_json_tree_array-template').html()
+            'container' : Handlebars.templates['dataexplorer_result_json_tree_container-template']
+            'span': Handlebars.templates['dataexplorer_result_json_tree_span-template']
+            'span_with_quotes': Handlebars.templates['dataexplorer_result_json_tree_span_with_quotes-template']
+            'url': Handlebars.templates['dataexplorer_result_json_tree_url-template']
+            'email': Handlebars.templates['dataexplorer_result_json_tree_email-template']
+            'object': Handlebars.templates['dataexplorer_result_json_tree_object-template']
+            'array': Handlebars.templates['dataexplorer_result_json_tree_array-template']
 
         template_json_table:
-            'container' : Handlebars.compile $('#dataexplorer_result_json_table_container-template').html()
-            'tr_attr': Handlebars.compile $('#dataexplorer_result_json_table_tr_attr-template').html()
-            'td_attr': Handlebars.compile $('#dataexplorer_result_json_table_td_attr-template').html()
-            'tr_value': Handlebars.compile $('#dataexplorer_result_json_table_tr_value-template').html()
-            'td_value': Handlebars.compile $('#dataexplorer_result_json_table_td_value-template').html()
-            'td_value_content': Handlebars.compile $('#dataexplorer_result_json_table_td_value_content-template').html()
-            'data_inline': Handlebars.compile $('#dataexplorer_result_json_table_data_inline-template').html()
-        cursor_timed_out_template: Handlebars.compile $('#dataexplorer-cursor_timed_out-template').html()
+            'container' : Handlebars.templates['dataexplorer_result_json_table_container-template']
+            'tr_attr': Handlebars.templates['dataexplorer_result_json_table_tr_attr-template']
+            'td_attr': Handlebars.templates['dataexplorer_result_json_table_td_attr-template']
+            'tr_value': Handlebars.templates['dataexplorer_result_json_table_tr_value-template']
+            'td_value': Handlebars.templates['dataexplorer_result_json_table_td_value-template']
+            'td_value_content': Handlebars.templates['dataexplorer_result_json_table_td_value_content-template']
+            'data_inline': Handlebars.templates['dataexplorer_result_json_table_data_inline-template']
+        cursor_timed_out_template: Handlebars.templates['dataexplorer-cursor_timed_out-template']
 
         events:
             # Global events
