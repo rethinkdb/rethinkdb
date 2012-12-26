@@ -120,7 +120,7 @@ rethinkdb.HttpConnection = function(host, onConnect, onFailure) {
 
     var self = this;
 
-    var url = 'http://'+this.host_+':'+this.port_+'/ajax/reql/';
+    var url = this.protocol_+'://'+this.host_+':'+this.port_+'/ajax/reql/';
 
     var xhr = new XMLHttpRequest();
     xhr.open("GET", url + 'open-new-connection', true);
