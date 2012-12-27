@@ -339,6 +339,15 @@ void set_secondary_indexes_internal(transaction_t *txn, buf_lock_t *superblock, 
     sindex_blob.write_from_string(sered_data, txn, 0);
 }
 
+void initialize_secondary_indexes(transaction_t *txn, buf_lock_t *superblock) {
+    btree_superblock_t *data = static_cast<btree_superblock_t *>(superblock->get_data_major_write());
+    memset(data->sindex_blob, 0, btree_superblock_t::SINDEX_BLOB_MAXREFLEN);
+
+    blob_t sindex_blob(data->sindex_blob, btree_superblock_t::SINDEX_BLOB_MAXREFLEN);
+
+    set_secondary_indexes_internal(txn, superblock, std::map<uuid_t, secondary_index_t>());
+}
+
 bool get_secondary_index(transaction_t *txn, buf_lock_t *superblock, uuid_t uuid, secondary_index_t *sindex_out) {
     std::map<uuid_t, secondary_index_t> sindex_map;
 

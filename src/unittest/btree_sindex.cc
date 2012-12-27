@@ -38,6 +38,16 @@ void run_sindex_insert_test() {
 
     std::map<uuid_t, secondary_index_t> mirror;
 
+    {
+        order_token_t otok = order_source.check_in("sindex unittest");
+        scoped_ptr_t<transaction_t> txn;
+        scoped_ptr_t<real_superblock_t> superblock;
+        get_btree_superblock_and_txn(&btree, rwi_write, 1, repli_timestamp_t::invalid, otok, &superblock, &txn);
+        buf_lock_t *sb_buf = superblock->get();
+
+        initialize_secondary_indexes(txn.get(), sb_buf);
+    }
+
     for (int i = 0; i < 1000; ++i) {
         uuid_t uuid = generate_uuid();
 
@@ -51,7 +61,7 @@ void run_sindex_insert_test() {
 
         mirror[uuid] = s;
 
-        order_token_t otok = order_source.check_in("metainfo unittest");
+        order_token_t otok = order_source.check_in("sindex unittest");
         scoped_ptr_t<transaction_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
         get_btree_superblock_and_txn(&btree, rwi_write, 1, repli_timestamp_t::invalid, otok, &superblock, &txn);
