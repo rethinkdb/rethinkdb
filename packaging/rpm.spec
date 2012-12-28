@@ -36,8 +36,7 @@ dnl
 %define internal_bash_completion_dir INTERNAL_BASH_COMPLETION_DIR
 %define scripts_dir SCRIPTS_DIR
 %define priority PRIORITY
-%define initjob /etc/init.d/rethinkdb
-%define confdir /etc/rethinkdb
+%define upstart_script /etc/init/rethinkdb.conf
 
 BuildRoot: %{buildroot}
 Summary:   RethinkDB - scalability and consistency together at last
@@ -153,7 +152,4 @@ fi',`')`'dnl
 %dir %attr(0755,root,root) %{share_dir}
 %attr(0755,root,root) %{web_res_dir}
 
-%attr(0755,root,root) %{initjob}
-%dir %attr(0755,root,root) %{confdir}
-%config %attr(0644,root,root) %{confdir}/default.conf.sample
-
+%attr(0644,root,root) %{upstart_script}
