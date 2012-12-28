@@ -883,17 +883,14 @@ share_dir:=$(prefix)/share/$(VERSIONED_PACKAGE_NAME)
 bash_completion_dir:=/etc/bash_completion.d
 internal_bash_completion_dir:=$(share_dir)$(bash_completion_dir)
 scripts_dir:=$(share_dir)/scripts
-init_dir:=/etc/init.d
+init_dir:=/etc/init
 conf_dir:=/etc/rethinkdb
-conf_instance_dir:=$(conf_dir)/instances.d
 lib_dir:=$(prefix)/lib/rethinkdb
 web_res_dir:=$(share_dir)/web
-pidfile_dir:=/var/run/rethinkdb
-data_dir:=/var/lib/rethinkdb
 language_drivers_dir:=$(share_dir)/drivers
 
 ASSET_SCRIPTS:=$(ASSETS_DIR)/scripts/rdb_migrate
-INIT_SCRIPTS:=$(ASSETS_DIR)/init/rethinkdb
+INIT_SCRIPTS:=$(ASSETS_DIR)/init/rethinkdb.conf
 
 UBUNTU_RELEASE?=
 
@@ -975,19 +972,11 @@ install-tools: $(ASSETS_DIR)/scripts/rethinkdb.bash $(ASSET_SCRIPTS)
 	$(QUIET) install -m755 -d $(DESTDIR)$(scripts_dir)
 	$(QUIET) for s in $(ASSET_SCRIPTS); do install -m755 "$$s" $(DESTDIR)$(scripts_dir)/$$(basename $$s); done
 	$(QUIET) install -m755 -d $(DESTDIR)$(init_dir) ;
-	$(QUIET) for s in $(INIT_SCRIPTS); do install -m755 "$$s" $(DESTDIR)$(init_dir)/$$(basename $$s); done ;
+	$(QUIET) for s in $(INIT_SCRIPTS); do install -m644 "$$s" $(DESTDIR)$(init_dir)/$$(basename $$s); done ;
 
 install-config:
 	$(QUIET) install -m755 -d $(DESTDIR)$(conf_dir) ;
-	$(QUIET) install -m755 -d $(DESTDIR)$(conf_instance_dir) ;
-	$(QUIET) install -m644 $(ASSETS_DIR)/config/default.conf.sample $(DESTDIR)$(conf_dir)/default.conf.sample ;
-
-install-data:
-	$(QUIET) install -m755 -d $(DESTDIR)$(data_dir)
-	$(QUIET) install -m755 -d $(DESTDIR)$(data_dir)/instances.d
-# We disabled the /var/run creation and added the functionality to the init script because Lintian observed that /var/run can get purged .
-#	$(QUIET) install -m755 -d $(DESTDIR)$(pidfile_dir)
-#	$(QUIET) install -m755 -d $(DESTDIR)$(pidfile_dir)/instances.d
+	# Let's get a config that the server can read by itself
 
 install-web:
 	$(QUIET) install -m755 -d $(DESTDIR)$(web_res_dir)
@@ -1003,7 +992,7 @@ install-docs:
 	$(QUIET) install -m755 -d $(DESTDIR)$(doc_dir)
 	$(QUIET) install -m644 -T $(ASSETS_DIR)/docs/LICENSE $(DESTDIR)$(doc_dir)/copyright
 
-install: install-binaries install-manpages install-docs install-tools install-web install-data install-config
+install: install-binaries install-manpages install-docs install-tools install-web
 install-rpm: install
 install-deb: install
 	$(QUIET) install -m755 -d $(DESTDIR)$(doc_dir)
@@ -1073,7 +1062,7 @@ build-deb: all prepare_deb_package_dirs
 		(cd $(DEB_PACKAGE_DIR) && xargs -0 md5sum) \
 		> $(DEB_CONTROL_ROOT)/md5sums
 # List configuration files in conffiles
-	$(QUIET) find $(DEB_PACKAGE_DIR) -type f -printf "/%P\n" | (grep '^/etc/' | grep -v '^/etc/init\.d' || true) > $(DEB_CONTROL_ROOT)/conffiles
+	$(QUIET) find $(DEB_PACKAGE_DIR) -type f -printf "/%P\n" | (grep '^/etc/' | grep -v '^/etc/init' || true) > $(DEB_CONTROL_ROOT)/conffiles
 # Copy {pre,post}{inst,rm} scripts
 	$(QUIET) for script in preinst postinst prerm postrm; do		                  		\
 			m4 \
