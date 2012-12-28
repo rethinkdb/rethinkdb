@@ -425,7 +425,7 @@ STATIC_LIBRARY_PATHS:=
 
 STATIC_LIBRARIES:=
 
-STATIC_RECOMMENDS_INDIFFERENT:=boost_serialization boost_program_options
+STATIC_RECOMMENDS_INDIFFERENT:=boost_serialization boost_program_options boost_filesystem boost_system
 
 ifeq ($(INT_CHAIN_PROTOC),1)
 STATIC_LIBRARY_PATHS+=$(TC_PROTOC_INT_LIB_DIR)/libprotobuf.a
@@ -473,6 +473,7 @@ ifeq ($(OSX),1)
 # they be named differently if you don't use Homebrew?  (No -mt on
 # program options?)
 # TODO(OSX)
+# FIXME are boost_filesystem boost_system needed as well?
 RT_LDFLAGS+=/usr/local/lib/libboost_program_options-mt.a /usr/local/lib/libprotobuf.a
 #RT_LDFLAGS+=-L/usr/local/lib -lboost_program_options-mt -lprotobuf
 else

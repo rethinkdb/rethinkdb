@@ -12,6 +12,7 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 #include <boost/program_options.hpp>
+#include <boost/filesystem.hpp>
 
 #include "arch/arch.hpp"
 #include "arch/os_signal.hpp"
@@ -768,21 +769,19 @@ int main_rethinkdb_create(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    const int num_workers = get_cpu_count();
-
-    // TODO: Why do we call check_existence when we just try calling mkdir anyway?  This is stupid.
-    if (check_existence(filepath)) {
-        fprintf(stderr, "The path '%s' already exists.  Delete it and try again.\n", filepath.c_str());
-        return EXIT_FAILURE;
-    }
-
-    int res = mkdir(filepath.c_str(), 0755);
-    if (res != 0) {
-        fprintf(stderr, "Could not create directory: %s\n", errno_string(errno).c_str());
+    boost::system::error_code ec;
+    bool new_directory = boost::filesystem::create_directories(filepath, ec);
+    if (!new_directory) {
+        if (ec)
+            fprintf(stderr, "Could not create directory: %s\n", ec.message().c_str());
+        else
+            fprintf(stderr, "The path '%s' already exists.  Delete it and try again.\n", filepath.c_str());
         return EXIT_FAILURE;
     }
 
     install_fallback_log_writer(logfilepath);
+
+    const int num_workers = get_cpu_count();
 
     bool result;
     run_in_thread_pool(boost::bind(&run_rethinkdb_create, filepath, machine_name, io_backend, &result),
@@ -1118,13 +1117,12 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
-        bool new_directory = false;
         // Attempt to create the directory early so that the log file can use it.
-        if (!check_existence(filepath)) {
-            new_directory = true;
-            int mkdir_res = mkdir(filepath.c_str(), 0755);
-            if (mkdir_res != 0) {
-                fprintf(stderr, "Could not create directory: %s\n", errno_string(errno).c_str());
+        boost::system::error_code ec;
+        bool new_directory = boost::filesystem::create_directories(filepath, ec);
+        if (!new_directory) {
+            if (ec) {
+                fprintf(stderr, "Could not create directory: %s\n", ec.message().c_str());
                 return EXIT_FAILURE;
             }
         }
