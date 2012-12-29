@@ -48,13 +48,11 @@ void run_sindex_insert_test() {
         initialize_secondary_indexes(txn.get(), sb_buf);
     }
 
-    for (int i = 0; i < 1000; ++i) {
+    for (int i = 0; i < 100; ++i) {
         uuid_t uuid = generate_uuid();
 
         secondary_index_t s;
         s.superblock = randint(1000);
-        s.headblock = randint(1000);
-        s.tailblock = randint(1000);
 
         std::string opaque_blob = rand_string(1000);
         s.opaque_definition.assign(opaque_blob.begin(), opaque_blob.end());
@@ -69,10 +67,23 @@ void run_sindex_insert_test() {
 
         add_secondary_index(txn.get(), sb_buf, uuid, s);
     }
+
+    {
+        order_token_t otok = order_source.check_in("sindex unittest");
+        scoped_ptr_t<transaction_t> txn;
+        scoped_ptr_t<real_superblock_t> superblock;
+        get_btree_superblock_and_txn(&btree, rwi_write, 1, repli_timestamp_t::invalid, otok, &superblock, &txn);
+        buf_lock_t *sb_buf = superblock->get();
+
+        std::map<uuid_t, secondary_index_t> sindexes;
+        get_secondary_indexes(txn.get(), sb_buf, &sindexes);
+
+        ASSERT_TRUE(sindexes == mirror);
+    }
 }
 
 TEST(BTreeSindex, Insert) {
     mock::run_in_thread_pool(&run_sindex_insert_test);
 }
 
-} // namespace unittest 
+} // namespace unittest

@@ -253,19 +253,22 @@ void clear_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock);
 
 struct secondary_index_t {
     secondary_index_t()
-        : superblock(NULL_BLOCK_ID), headblock(NULL_BLOCK_ID), tailblock(NULL_BLOCK_ID)
+        : superblock(NULL_BLOCK_ID)
     { }
 
     /* A reference to the superblock. */
     block_id_t superblock;
 
-    /* A reference to the disk backed queue blocks. */
-    block_id_t headblock, tailblock;
-
     /* An opaque blob that describes the index */
     std::vector<unsigned char> opaque_definition;
 
-    RDB_MAKE_ME_SERIALIZABLE_4(superblock, headblock, tailblock, opaque_definition);
+    /* Used in unit tests. */
+    bool operator==(const secondary_index_t & other) const {
+        return superblock == other.superblock &&
+               opaque_definition == other.opaque_definition;
+    }
+
+    RDB_MAKE_ME_SERIALIZABLE_2(superblock, opaque_definition);
 };
 
 //Secondary Index functions
