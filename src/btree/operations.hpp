@@ -9,6 +9,7 @@
 #include "btree/leaf_node.hpp"
 #include "btree/node.hpp"
 #include "buffer_cache/buffer_cache.hpp"
+#include "concurrency/fifo_enforcer.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "containers/scoped.hpp"
 #include "repli_timestamp.hpp"
@@ -107,10 +108,19 @@ private:
 
 class btree_stats_t;
 
+struct secondary_index_t;
+
+template <class Value>
+class key_modification_callback_t;
+
 template <class Value>
 class keyvalue_location_t {
 public:
     keyvalue_location_t() : there_originally_was_value(false), stat_block(NULL_BLOCK_ID), stats(NULL) { }
+
+    // If the key/value pair was found, a pointer to a copy of the
+    // value, otherwise NULL.
+    scoped_malloc_t<Value> value;
 
     superblock_t *superblock;
 
@@ -121,9 +131,9 @@ public:
     buf_lock_t buf;
 
     bool there_originally_was_value;
-    // If the key/value pair was found, a pointer to a copy of the
-    // value, otherwise NULL.
-    scoped_malloc_t<Value> value;
+
+    //A copy of the original value.
+    scoped_malloc_t<Value> original_value;
 
     void swap(keyvalue_location_t& other) {
         std::swap(superblock, other.superblock);
@@ -249,15 +259,24 @@ void set_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const s
 void delete_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key);
 void clear_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock);
 
-#define OPAQUE_SINDEX_DEFINITION_SIZE 300
-
 struct secondary_index_t {
     secondary_index_t()
         : superblock(NULL_BLOCK_ID)
     { }
 
     /* A reference to the superblock. */
+    /* TODO (efficiency) this could be a virtual superblock rather than a
+     * seperate block. */
     block_id_t superblock;
+
+    /* An opaque_definition_t is a serializable description of the secondary
+     * index. Values which are stored in the B-Tree (template parameters to
+     * `find_keyvalue_location_for_[read,write]`) must support the following
+     * method:
+     * store_key_t index(const opaque_definition_t &);
+     * Which returns the value of the secondary index.
+     */
+    typedef std::vector<unsigned char> opaque_definition_t;
 
     /* An opaque blob that describes the index */
     std::vector<unsigned char> opaque_definition;

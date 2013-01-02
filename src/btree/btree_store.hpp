@@ -4,10 +4,11 @@
 
 #include <string>
 
-#include "protocol_api.hpp"
+#include "btree/operations.hpp"
 #include "buffer_cache/mirrored/config.hpp"  // TODO: Move to buffer_cache/config.hpp or something.
 #include "buffer_cache/types.hpp"
 #include "perfmon/perfmon.hpp"
+#include "protocol_api.hpp"
 
 class btree_slice_t;
 class io_backender_t;
@@ -87,6 +88,28 @@ public:
             object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
+
+protected:
+    void add_secondary_index(
+            uuid_t id,
+            const secondary_index_t::opaque_definition_t &definition,
+            transaction_t *txn,
+            buf_lock_t *superblock,
+            signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t);
+
+    void drop_secondary_index(
+            uuid_t id,
+            const secondary_index_t::opaque_definition_t &definition,
+            transition_timestamp_t timestamp,
+            order_token_t order_token,
+            object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
+            signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t);
+
+    btree_store_t<protocol_t> *get_secondary_index(
+            uuid_t id)
+        THROWS_NOTHING;
 
 protected:
     // Functions to be implemented by derived (protocol-specific) store_t classes

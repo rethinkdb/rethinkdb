@@ -45,7 +45,7 @@ class btree_slice_t :
 {
 public:
     // Blocks
-    static void create(cache_t *cache);
+    static void create(cache_t *cache, block_id_t super_block_id = SUPERBLOCK_ID);
 
     // Blocks
     btree_slice_t(cache_t *cache, perfmon_collection_t *parent);

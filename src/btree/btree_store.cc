@@ -180,6 +180,45 @@ void btree_store_t<protocol_t>::reset_data(
 }
 
 template <class protocol_t>
+void btree_store_t<protocol_t>::add_secondary_index(
+        uuid_t id,
+        const secondary_index_t::opaque_definition_t &definition,
+        transaction_t *txn,
+        buf_lock_t *superblock,
+        signal_t *)
+        THROWS_ONLY(interrupted_exc_t) {
+    assert_thread();
+
+    secondary_index_t sindex;
+    {
+        buf_lock_t sindex_superblock(txn);
+        sindex.superblock = sindex_superblock.get_block_id();
+        /* The buf lock is destroyed here which is important becase it allows
+         * us to reacquire later when we make a btree_store. */
+    }
+
+    sindex.opaque_definition = definition;
+
+    bool didnt_already_exist = ::add_secondary_index(txn, superblock, id, sindex);
+    guarantee(didnt_already_exist, "Added a secondary index with an existing id.");
+}
+
+template <class protocol_t>
+void drop_secondary_index(
+        uuid_t id,
+        const secondary_index_t::opaque_definition_t &definition,
+        transition_timestamp_t timestamp,
+        order_token_t order_token,
+        object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
+        signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t);
+
+template <class protocol_t>
+btree_store_t<protocol_t> *get_secondary_index(
+        uuid_t id)
+    THROWS_NOTHING;
+
+template <class protocol_t>
 void btree_store_t<protocol_t>::check_and_update_metainfo(
         DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
         const metainfo_t &new_metainfo,
