@@ -26,6 +26,10 @@ private:
     // We have to do a const_cast here to make bosot happy
     void register_data(const datum_t *d) { data.push_back(const_cast<datum_t *>(d)); }
     boost::ptr_vector<datum_t> data;
+
+    rdb_protocol_details::transform_variant_t trans;
+    query_language::scopes_t _s;
+    query_language::backtrace_t _b;
 };
 
 class table_t {
@@ -62,6 +66,7 @@ public:
     type_t get_type() const;
 
     val_t(const datum_t *_datum, const term_t *_parent);
+    val_t(datum_stream_t *_sequence, const term_t *_parent);
     val_t(table_t *_table, const term_t *_parent);
     val_t(uuid_t _db, const term_t *_parent);
     val_t(func_t *_func, const term_t *_parent);

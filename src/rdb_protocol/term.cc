@@ -149,6 +149,7 @@ val_t *term_t::eval(bool _use_cached_val) {
 }
 
 val_t *term_t::new_val(datum_t *d) { return env->add_and_ret(d, this); }
+val_t *term_t::new_val(datum_stream_t *s) { return env->add_and_ret(s, this); }
 val_t *term_t::new_val(uuid_t db) { return env->add_and_ret(db, this); }
 val_t *term_t::new_val(table_t *t) { return env->add_and_ret(t, this); }
 val_t *term_t::new_val(func_t *f) { return env->add_and_ret(f, this); }

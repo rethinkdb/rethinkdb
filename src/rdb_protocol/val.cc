@@ -16,11 +16,9 @@ datum_stream_t::datum_stream_t(env_t *_env, bool use_outdated,
 { }
 
 datum_stream_t::datum_stream_t(datum_stream_t *src, func_t *f)
-    : env(src->env), json_stream(src->json_stream) {
-    query_language::scopes_t _s;
-    query_language::backtrace_t _b;
-    rdb_protocol_details::transform_variant_t trans(wire_func_t(env, f));
-    json_stream = json_stream->add_transformation(trans, 0, env, _s, _b);
+    : env(src->env), trans(wire_func_t(env, f)) {
+    json_stream = src->json_stream;
+    //json_stream = src->json_stream->add_transformation(trans, 0, env, _s, _b);
 }
 
 const datum_t *datum_stream_t::next() {
@@ -130,6 +128,10 @@ val_t::val_t(const datum_t *_datum, const term_t *_parent)
     : type(type_t::DATUM), datum(_datum), parent(_parent) {
     guarantee(_datum);
 }
+val_t::val_t(datum_stream_t *_sequence, const term_t *_parent)
+    : type(type_t::SEQUENCE), sequence(_sequence), parent(_parent) {
+    guarantee(_sequence);
+}
 val_t::val_t(table_t *_table, const term_t *_parent)
     : type(type_t::TABLE), table(_table), parent(_parent) {
     guarantee(_table);
@@ -139,6 +141,7 @@ val_t::val_t(uuid_t _db, const term_t *_parent)
 }
 val_t::val_t(func_t *_func, const term_t *_parent)
     : type(type_t::FUNC), func(_func), parent(_parent) {
+    guarantee(_func);
 }
 
 uuid_t get_db_uuid(env_t *env, const std::string &dbs) {

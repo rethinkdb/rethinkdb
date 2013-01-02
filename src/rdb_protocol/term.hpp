@@ -16,6 +16,7 @@
 
 namespace ql {
 class env_t;
+class datum_stream_t;
 class func_t;
 class val_t;
 class table_t;
@@ -28,6 +29,7 @@ public:
     val_t *eval(bool _use_cached_val);
 
     val_t *new_val(datum_t *d);
+    val_t *new_val(datum_stream_t *s);
     val_t *new_val(uuid_t db);
     val_t *new_val(table_t *t);
     val_t *new_val(func_t *f);
