@@ -99,13 +99,8 @@ public:
 
     bool coop_lock_and_check();
 
-    void *create_account(int priority, int outstanding_requests_limit) {
-        return diskmgr->create_account(priority, outstanding_requests_limit);
-    }
-
-    void destroy_account(void *account) {
-        diskmgr->destroy_account(account);
-    }
+    void *create_account(int priority, int outstanding_requests_limit);
+    void destroy_account(void *account);
 
     ~linux_file_t();
 

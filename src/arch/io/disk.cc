@@ -386,6 +386,16 @@ bool linux_file_t::coop_lock_and_check() {
     return true;
 }
 
+void *linux_file_t::create_account(int priority, int outstanding_requests_limit) {
+    return diskmgr->create_account(priority, outstanding_requests_limit);
+}
+
+void linux_file_t::destroy_account(void *account) {
+    diskmgr->destroy_account(account);
+}
+
+
+
 linux_file_t::~linux_file_t() {
     // scoped_fd_t's destructor takes care of close()ing the file
 }
