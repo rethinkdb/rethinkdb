@@ -27,6 +27,7 @@
 #include "arch/io/disk/stats.hpp"
 #include "arch/io/disk/accounting.hpp"
 #include "do_on_thread.hpp"
+#include "logger.hpp"
 
 // #define DEBUG_DUMP_WRITES 1
 
@@ -203,9 +204,6 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, io
 #endif
 
     int flags = O_CREAT;
-#ifdef O_DIRECT
-    flags |= (is_really_direct ? O_DIRECT : 0);
-#endif
 
     // For now, we have a whitelist of kernels that don't support O_LARGEFILE.
 #ifndef __MACH__
@@ -264,17 +262,26 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, io
     } else {
         // When building, we must either support O_DIRECT or F_NOCACHE.  The former works on Linux,
         // the latter works on OS X.
-#ifndef O_DIRECT
         if (is_really_direct) {
+#ifdef O_DIRECT
+            int fcntl_res = fcntl(fd.get(), F_SETFL, static_cast<long>(flags | O_DIRECT));
+#else
             int fcntl_res = fcntl(fd.get(), F_NOCACHE, 1);
+#endif  // O_DIRECT.
+
             if (fcntl_res == -1) {
-                fail_due_to_user_error("Could not turn off filesystem caching for database file: \"%s\": %s"
-                                       "\n(Is the database file located on a filesystem that doesn't support F_NOCACHE "
-                                       "(e.g. some encrypted or journaled file systems)?)",
-                                       path, errno_string(errno).c_str());
+                logWRN("Could not turn off filesystem caching for database file: \"%s\": %s"
+                       "\n(Is the database file located on a filesystem that doesn't support "
+#ifdef O_DIRECT
+                       "O_DIRECT"
+#else
+                       "F_NOCACHE"
+#endif  // O_DIRECT
+                       " (e.g. some encrypted or journaled file systems)?) "
+                       "This is UNSAFE and should not be used in production.",
+                       path, errno_string(errno).c_str());
             }
         }
-#endif  // O_DIRECT.
     }
 
     file_exists = true;
