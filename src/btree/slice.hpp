@@ -45,10 +45,10 @@ class btree_slice_t :
 {
 public:
     // Blocks
-    static void create(cache_t *cache, block_id_t super_block_id = SUPERBLOCK_ID);
+    static void create(cache_t *cache, block_id_t superblock_id = SUPERBLOCK_ID);
 
     // Blocks
-    btree_slice_t(cache_t *cache, perfmon_collection_t *parent);
+    btree_slice_t(cache_t *cache, perfmon_collection_t *parent, block_id_t superblock_id = SUPERBLOCK_ID);
 
     // Blocks
     ~btree_slice_t();
@@ -60,8 +60,11 @@ public:
 
     btree_stats_t stats;
 
+    block_id_t get_superblock_id();
 private:
     cache_t *cache_;
+
+    block_id_t superblock_id_;
 
     // Cache account to be used when backfilling.
     scoped_ptr_t<cache_account_t> backfill_account;

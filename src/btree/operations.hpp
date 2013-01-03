@@ -104,6 +104,9 @@ public:
 
 private:
     block_id_t root_block_id_;
+
+public:
+    RDB_MAKE_ME_SERIALIZABLE_1(root_block_id_);
 };
 
 class btree_stats_t;
@@ -264,9 +267,7 @@ struct secondary_index_t {
         : superblock(NULL_BLOCK_ID)
     { }
 
-    /* A reference to the superblock. */
-    /* TODO (efficiency) this could be a virtual superblock rather than a
-     * seperate block. */
+    /* A virtual superblock. */
     block_id_t superblock;
 
     /* An opaque_definition_t is a serializable description of the secondary
@@ -301,6 +302,8 @@ void get_secondary_indexes(transaction_t *txn, buf_lock_t *superblock, std::map<
 
 bool add_secondary_index(transaction_t *txn, buf_lock_t *superblock, uuid_t uuid, const secondary_index_t &sindex);
 
+//XXX note this just drops the entry. It doesn't cleanup the btree that it
+//points to. drop_secondary_index. Does both and should be used publicly.
 bool delete_secondary_index(transaction_t *txn, buf_lock_t *superblock, uuid_t uuid);
 
 /* Set sb to have root id as its root block and release sb */

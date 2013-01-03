@@ -4,6 +4,9 @@
 
 #include <string>
 
+#include <boost/ptr_container/ptr_map.hpp>
+
+#include "btree/erase_range.hpp"
 #include "btree/operations.hpp"
 #include "buffer_cache/mirrored/config.hpp"  // TODO: Move to buffer_cache/config.hpp or something.
 #include "buffer_cache/types.hpp"
@@ -100,16 +103,31 @@ protected:
 
     void drop_secondary_index(
             uuid_t id,
-            const secondary_index_t::opaque_definition_t &definition,
-            transition_timestamp_t timestamp,
-            order_token_t order_token,
-            object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
+            transaction_t *txn,
+            buf_lock_t *superblock,
+            value_sizer_t<void> *sizer,
+            value_deleter_t *deleter,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
-    btree_store_t<protocol_t> *get_secondary_index(
-            uuid_t id)
-        THROWS_NOTHING;
+    void acquire_sindex_superblock_for_read(
+            uuid_t id,
+            object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
+            transaction_t *txn,
+            scoped_ptr_t<real_superblock_t> *sindex_sb,
+            buf_lock_t *superblock,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
+
+    void acquire_sindex_superblock_for_write(
+            uuid_t id,
+            int expected_change_count,
+            object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
+            transaction_t *txn,
+            scoped_ptr_t<real_superblock_t> *sb_out,
+            buf_lock_t *superblock,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
 
 protected:
     // Functions to be implemented by derived (protocol-specific) store_t classes
@@ -202,6 +220,8 @@ private:
     scoped_ptr_t<cache_t> cache;
     scoped_ptr_t<btree_slice_t> btree;
     perfmon_membership_t perfmon_collection_membership;
+
+    boost::ptr_map<uuid_t, btree_slice_t> secondary_index_slices;
 
     DISABLE_COPYING(btree_store_t);
 };

@@ -129,3 +129,14 @@ void btree_erase_range_generic(value_sizer_t<void> *sizer, btree_slice_t *slice,
     cond_t non_interruptor;
     btree_parallel_traversal(txn, superblock, slice, &helper, &non_interruptor);
 }
+
+void erase_all(value_sizer_t<void> *sizer, btree_slice_t *slice,
+               value_deleter_t *deleter, transaction_t *txn,
+               superblock_t *superblock) {
+    struct always_true_tester_t : public key_tester_t {
+        bool key_should_be_erased(const btree_key_t *) { return true; }
+    } always_true_tester;
+
+    btree_erase_range_generic(sizer, slice, &always_true_tester,
+                              deleter, NULL, NULL, txn, superblock);
+}

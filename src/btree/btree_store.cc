@@ -201,22 +201,69 @@ void btree_store_t<protocol_t>::add_secondary_index(
 
     bool didnt_already_exist = ::add_secondary_index(txn, superblock, id, sindex);
     guarantee(didnt_already_exist, "Added a secondary index with an existing id.");
+
+    btree_slice_t::create(txn->get_cache(), sindex.superblock);
+
+    secondary_index_slices.insert(id, new btree_slice_t(cache.get(), &perfmon_collection));
 }
 
 template <class protocol_t>
-void drop_secondary_index(
+void btree_store_t<protocol_t>::drop_secondary_index(
         uuid_t id,
-        const secondary_index_t::opaque_definition_t &definition,
-        transition_timestamp_t timestamp,
-        order_token_t order_token,
-        object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
-        signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t);
+        transaction_t *txn,
+        buf_lock_t *superblock,
+        value_sizer_t<void> *sizer,
+        value_deleter_t *deleter,
+        signal_t *)
+        THROWS_ONLY(interrupted_exc_t) {
+    assert_thread();
+
+    /* Remove reference in the super block */
+    secondary_index_t sindex;
+    ::get_secondary_index(txn, superblock, id, &sindex);
+    bool found_value_to_delete = delete_secondary_index(txn, superblock, id);
+    guarantee(found_value_to_delete, "Tried to delete a value that didn't exist.");
+
+    /* Make sure we have a record of the slice. */
+    guarantee(std_contains(secondary_index_slices, id));
+    btree_slice_t *sindex_slice = &(secondary_index_slices.at(id));
+
+    buf_lock_t sindex_superblock_lock(txn, sindex.superblock, rwi_write);
+    real_superblock_t sindex_superblock(&sindex_superblock_lock);
+
+    erase_all(sizer, sindex_slice,
+              deleter, txn, &sindex_superblock);
+    sindex_superblock.get()->mark_deleted();
+}
 
 template <class protocol_t>
-btree_store_t<protocol_t> *get_secondary_index(
-        uuid_t id)
-    THROWS_NOTHING;
+void btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
+        uuid_t id,
+        object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
+        transaction_t *txn,
+        scoped_ptr_t<real_superblock_t> *sindex_sb,
+        buf_lock_t *superblock,
+        signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t) {
+    assert_thread();
+
+    btree_slice_t *sindex_slice = &(secondary_index_slices.at(id));
+    sindex_slice->assert_thread();
+
+    /* Wait for our turn. */
+    wait_interruptible(token->get(), interruptor);
+
+    order_token_t order_token = order_source.check_in("btree_store_t<" + protocol_t::protocol_name +
+                                    "::acquire_sindex_superblock_for_read").with_read_mode();
+    order_token = sindex_slice->pre_begin_txn_checkpoint_.check_through(order_token);
+
+    /* Figure out what the superblock for this index is. */
+    secondary_index_t sindex;
+    ::get_secondary_index(txn, superblock, id, &sindex);
+
+    buf_lock_t superblock_lock(txn, sindex.superblock, rwi_read);
+    sindex_sb->init(new real_superblock_t(&superblock_lock));
+}
 
 template <class protocol_t>
 void btree_store_t<protocol_t>::check_and_update_metainfo(

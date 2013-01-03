@@ -1,19 +1,20 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
-#include "errors.hpp"
-#include "btree/slice.hpp"
 #include "btree/node.hpp"
+#include "btree/operations.hpp"
+#include "btree/slice.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 #include "concurrency/cond_var.hpp"
+#include "errors.hpp"
 
 // Run backfilling at a reduced priority
 #define BACKFILL_CACHE_PRIORITY 10
 
-void btree_slice_t::create(cache_t *cache, block_id_t super_block_id) {
+void btree_slice_t::create(cache_t *cache, block_id_t superblock_id) {
 
     /* Initialize the btree superblock and the delete queue */
     transaction_t txn(cache, rwi_write, 1, repli_timestamp_t::distant_past, order_token_t::ignore);
 
-    buf_lock_t superblock(&txn, super_block_id, rwi_write);
+    buf_lock_t superblock(&txn, superblock_id, rwi_write);
 
     // Initialize replication time barrier to 0 so that if we are a slave, we will begin by pulling
     // ALL updates from master.
@@ -27,11 +28,14 @@ void btree_slice_t::create(cache_t *cache, block_id_t super_block_id) {
     sb->magic = btree_superblock_t::expected_magic;
     sb->root_block = NULL_BLOCK_ID;
     sb->stat_block = NULL_BLOCK_ID;
+
+    initialize_secondary_indexes(&txn, &superblock);
 }
 
-btree_slice_t::btree_slice_t(cache_t *c, perfmon_collection_t *parent)
+btree_slice_t::btree_slice_t(cache_t *c, perfmon_collection_t *parent, block_id_t _superblock_id)
     : stats(parent),
       cache_(c),
+      superblock_id_(_superblock_id),
       root_eviction_priority(INITIAL_ROOT_EVICTION_PRIORITY) {
     cache()->create_cache_account(BACKFILL_CACHE_PRIORITY, &backfill_account);
 
