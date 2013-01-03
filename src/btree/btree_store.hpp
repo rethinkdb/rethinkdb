@@ -114,17 +114,16 @@ protected:
             uuid_t id,
             object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
             transaction_t *txn,
-            scoped_ptr_t<real_superblock_t> *sindex_sb,
+            scoped_ptr_t<real_superblock_t> *sindex_sb_out,
             buf_lock_t *superblock,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
 
     void acquire_sindex_superblock_for_write(
             uuid_t id,
-            int expected_change_count,
             object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
             transaction_t *txn,
-            scoped_ptr_t<real_superblock_t> *sb_out,
+            scoped_ptr_t<real_superblock_t> *sindex_sb_out,
             buf_lock_t *superblock,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);

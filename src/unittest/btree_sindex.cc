@@ -2,13 +2,15 @@
 #include "unittest/gtest.hpp"
 
 #include "arch/io/disk.hpp"
+#include "btree/btree_store.hpp"
 #include "btree/operations.hpp"
 #include "mock/unittest_utils.hpp"
 #include "serializer/config.hpp"
+#include "rdb_protocol/protocol.hpp"
 
 namespace unittest {
 
-void run_sindex_insert_test() {
+void run_sindex_low_level_operations_test() {
     mock::temp_file_t temp_file("/tmp/rdb_unittest.XXXXXX");
 
     scoped_ptr_t<io_backender_t> io_backender;
@@ -82,8 +84,33 @@ void run_sindex_insert_test() {
     }
 }
 
-TEST(BTreeSindex, Insert) {
-    mock::run_in_thread_pool(&run_sindex_insert_test);
+TEST(BTreeSindex, LowLevelOps) {
+    mock::run_in_thread_pool(&run_sindex_low_level_operations_test);
+}
+
+void run_sindex_btree_store_api_test() {
+    mock::temp_file_t temp_file("/tmp/rdb_unittest.XXXXXX");
+
+    scoped_ptr_t<io_backender_t> io_backender;
+    make_io_backender(aio_default, &io_backender);
+
+    filepath_file_opener_t file_opener(temp_file.name(), io_backender.get());
+    standard_serializer_t::create(
+        &file_opener,
+        standard_serializer_t::static_config_t());
+
+    standard_serializer_t serializer(
+        standard_serializer_t::dynamic_config_t(),
+        &file_opener,
+        &get_global_perfmon_collection());
+
+    rdb_protocol_t::store_t store(
+            &serializer,
+            "unit_test_store",
+            GIGABYTE,
+            true,
+            &get_global_perfmon_collection(),
+            NULL);
 }
 
 } // namespace unittest

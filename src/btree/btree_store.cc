@@ -241,7 +241,7 @@ void btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
         uuid_t id,
         object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
         transaction_t *txn,
-        scoped_ptr_t<real_superblock_t> *sindex_sb,
+        scoped_ptr_t<real_superblock_t> *sindex_sb_out,
         buf_lock_t *superblock,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
@@ -262,7 +262,36 @@ void btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
     ::get_secondary_index(txn, superblock, id, &sindex);
 
     buf_lock_t superblock_lock(txn, sindex.superblock, rwi_read);
-    sindex_sb->init(new real_superblock_t(&superblock_lock));
+    sindex_sb_out->init(new real_superblock_t(&superblock_lock));
+}
+
+template <class protocol_t>
+void btree_store_t<protocol_t>::acquire_sindex_superblock_for_write(
+        uuid_t id,
+        object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
+        transaction_t *txn,
+        scoped_ptr_t<real_superblock_t> *sindex_sb_out,
+        buf_lock_t *superblock,
+        signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t) {
+    assert_thread();
+
+    btree_slice_t *sindex_slice = &(secondary_index_slices.at(id));
+    sindex_slice->assert_thread();
+
+    /* Wait for our turn. */
+    wait_interruptible(token->get(), interruptor);
+
+    order_token_t order_token = order_source.check_in("btree_store_t<" + protocol_t::protocol_name +
+                                    "::acquire_sindex_superblock_for_read").with_read_mode();
+    order_token = sindex_slice->pre_begin_txn_checkpoint_.check_through(order_token);
+
+    /* Figure out what the superblock for this index is. */
+    secondary_index_t sindex;
+    ::get_secondary_index(txn, superblock, id, &sindex);
+
+    buf_lock_t superblock_lock(txn, sindex.superblock, rwi_write);
+    sindex_sb_out->init(new real_superblock_t(&superblock_lock));
 }
 
 template <class protocol_t>
