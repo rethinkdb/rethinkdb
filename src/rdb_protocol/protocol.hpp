@@ -17,7 +17,6 @@
 #include "btree/btree_store.hpp"
 #include "btree/keys.hpp"
 #include "buffer_cache/types.hpp"
-// #include "containers/archive/boost_types.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "extproc/pool.hpp"
 #include "http/json.hpp"
