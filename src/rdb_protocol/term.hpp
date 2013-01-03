@@ -7,6 +7,7 @@
 #include <boost/ptr_container/ptr_vector.hpp>
 #include <boost/ptr_container/ptr_map.hpp>
 
+#include "containers/ptr_bag.hpp"
 #include "containers/scoped.hpp"
 #include "containers/uuid.hpp"
 #include "rdb_protocol/err.hpp"
@@ -20,7 +21,7 @@ class datum_stream_t;
 class func_t;
 class val_t;
 class table_t;
-class term_t {
+class term_t : public ptr_baggable_t {
 public:
     term_t(env_t *_env);
     virtual ~term_t();
@@ -43,14 +44,10 @@ public:
     backtrace_t::frame_t get_bt() { return *frame.get(); }
 protected:
     bool use_cached_val;
+    env_t *env;
 private:
     virtual val_t *eval_impl() = 0;
     val_t *cached_val;
-
-    // These two need access to `env`
-    friend class db_term_t;
-    friend class table_term_t;
-    env_t *env;
 
     scoped_ptr_t<backtrace_t::frame_t> frame;
 };

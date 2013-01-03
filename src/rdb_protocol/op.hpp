@@ -1,8 +1,9 @@
 #ifndef RDB_PROTOCOL_OP_HPP_
 #define RDB_PROTOCOL_OP_HPP_
+#include "rdb_protocol/env.hpp"
+#include "rdb_protocol/err.hpp"
 #include "rdb_protocol/term.hpp"
 #include "rdb_protocol/val.hpp"
-#include "rdb_protocol/err.hpp"
 namespace ql {
 
 struct argspec_t {

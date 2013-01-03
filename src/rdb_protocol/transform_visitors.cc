@@ -63,15 +63,13 @@ void transform_visitor_t::operator()(Builtin_Range range) const {
     }
 }
 
-void transform_visitor_t::operator()(UNUSED ql::wire_func_t &func) const {
-    /*
+void transform_visitor_t::operator()(ql::wire_func_t &func) const {
     ql::func_t *f = func.compile(ql_env);
-    ql::datum_t arg(json);
+    ql::datum_t arg(json, ql_env->get_bag());
     std::vector<ql::datum_t *> args;
     args.push_back(&arg);
     ql::val_t *v = f->call(args);
     out->push_back(v->as_datum()->as_json());
-    */
 }
 
 terminal_initializer_visitor_t::terminal_initializer_visitor_t(rget_read_response_t::result_t *_out,

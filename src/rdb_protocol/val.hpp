@@ -12,7 +12,7 @@ class val_t;
 class term_t;
 // namespace_repo_t<rdb_protocol_t>::access_t *
 
-class datum_stream_t {
+class datum_stream_t : public ptr_baggable_t {
 public:
     datum_stream_t(env_t *env, bool use_outdated,
                    namespace_repo_t<rdb_protocol_t>::access_t *ns_access);
@@ -22,17 +22,14 @@ public:
 private:
     env_t *env;
     boost::shared_ptr<query_language::json_stream_t> json_stream;
-    scoped_ptr_t<const datum_t> last;
-    // We have to do a const_cast here to make bosot happy
-    void register_data(const datum_t *d) { data.push_back(const_cast<datum_t *>(d)); }
-    boost::ptr_vector<datum_t> data;
+    scoped_ptr_t<ptr_bag_t> last_bag;
 
     rdb_protocol_details::transform_variant_t trans;
     query_language::scopes_t _s;
     query_language::backtrace_t _b;
 };
 
-class table_t {
+class table_t : public ptr_baggable_t {
 public:
     table_t(env_t *_env, uuid_t db_id, const std::string &name, bool use_outdated);
     datum_stream_t *as_datum_stream();
@@ -43,7 +40,7 @@ private:
     scoped_ptr_t<namespace_repo_t<rdb_protocol_t>::access_t> access;
 };
 
-class val_t {
+class val_t : public ptr_baggable_t {
 public:
     class type_t {
         friend class val_t;
@@ -65,11 +62,11 @@ public:
     };
     type_t get_type() const;
 
-    val_t(const datum_t *_datum, const term_t *_parent);
-    val_t(datum_stream_t *_sequence, const term_t *_parent);
-    val_t(table_t *_table, const term_t *_parent);
-    val_t(uuid_t _db, const term_t *_parent);
-    val_t(func_t *_func, const term_t *_parent);
+    val_t(const datum_t *_datum, const term_t *_parent, env_t *_env);
+    val_t(datum_stream_t *_sequence, const term_t *_parent, env_t *_env);
+    val_t(table_t *_table, const term_t *_parent, env_t *_env);
+    val_t(uuid_t _db, const term_t *_parent, env_t *_env);
+    val_t(func_t *_func, const term_t *_parent, env_t *_env);
 
     uuid_t as_db();
     table_t *as_table();
@@ -79,16 +76,17 @@ public:
     const datum_t *as_datum();
     func_t *as_func();
 private:
+    const term_t *parent;
+    env_t *env;
+
     type_t type;
     uuid_t db;
-    scoped_ptr_t<table_t> table;
-    scoped_ptr_t<datum_stream_t> sequence;
-    scoped_ptr_t<const datum_t> datum;
-    scoped_ptr_t<func_t> func;
+    table_t *table;
+    datum_stream_t *sequence;
+    const datum_t *datum;
+    func_t *func;
 
     bool consumed;
-
-    const term_t *parent;
 };
 
 uuid_t get_db_uuid(env_t *env, const std::string &dbs);

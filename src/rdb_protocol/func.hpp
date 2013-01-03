@@ -5,6 +5,7 @@
 
 #include "utils.hpp"
 
+#include "containers/ptr_bag.hpp"
 #include "containers/scoped.hpp"
 #include "rdb_protocol/term.hpp"
 #include "rpc/serialize_macros.hpp"
@@ -13,13 +14,13 @@
 namespace ql {
 
 //TODO: make datum_t pointers const
-class func_t {
+class func_t : public ptr_baggable_t {
 public:
     func_t(env_t *env, const Term2 *_source);
     val_t *call(const std::vector<datum_t *> &args);
 private:
     std::vector<const datum_t *> argptrs;
-    scoped_ptr_t<term_t> body;
+    term_t *body;
 
     friend class wire_func_t;
     const Term2 *source;

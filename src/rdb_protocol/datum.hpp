@@ -5,15 +5,16 @@
 #include <map>
 
 #include "utils.hpp"
-#include <boost/ptr_container/ptr_vector.hpp>
 #include <boost/shared_ptr.hpp>
 
+#include <containers/ptr_bag.hpp>
 #include "http/json.hpp"
 
 class Datum;
 
 namespace ql {
-class datum_t {
+class env_t;
+class datum_t : public ptr_baggable_t {
 public:
     datum_t(); // R_NULL
     explicit datum_t(bool _bool);
@@ -21,9 +22,13 @@ public:
     explicit datum_t(const std::string &_str);
     explicit datum_t(const std::vector<const datum_t *> &_array);
     explicit datum_t(const std::map<const std::string, const datum_t *> &_object);
+
     explicit datum_t(const Datum *d);
+    explicit datum_t(const Datum *d, ptr_bag_t *alloc);
     explicit datum_t(cJSON *json);
+    explicit datum_t(cJSON *json, ptr_bag_t *alloc);
     explicit datum_t(boost::shared_ptr<scoped_cJSON_t> json);
+    explicit datum_t(boost::shared_ptr<scoped_cJSON_t> json, ptr_bag_t *alloc);
     void write_to_protobuf(Datum *out) const;
 
     enum type_t {
@@ -60,7 +65,7 @@ public:
     // Returns whether or not `key` was already present in object.
     MUST_USE bool add(const std::string &key, const datum_t *val, bool clobber = false);
 private:
-    void init_json(cJSON *json);
+    void init_json(cJSON *json, ptr_bag_t *alloc);
 
     // Listing everything is more debugging-friendly than a boost::variant,
     // but less efficient.  TODO: fix later.
@@ -71,10 +76,6 @@ private:
 
     std::vector<const datum_t *> r_array;
     std::map<const std::string, const datum_t *> r_object;
-    // Sometimes the `datum_t` owns its members, like when it's a literal
-    // `datum_t` provided by the user.
-    // TODO: change to environment ownership
-    boost::ptr_vector<datum_t> to_free;
 };
 } //namespace ql
 #endif // RDB_PROTOCOL_DATUM_HPP_

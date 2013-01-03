@@ -4,7 +4,7 @@
 
 namespace ql {
 
-func_t::func_t(env_t *env, const Term2 *_source) : source(_source) {
+func_t::func_t(env_t *env, const Term2 *_source) : body(0), source(_source) {
     const Term2 *t = _source;
     r_sanity_check(t->type() == Term2_TermType_FUNC);
     rcheck(t->optargs_size() == 0, "FUNC takes no optional arguments.");
@@ -44,7 +44,7 @@ func_t::func_t(env_t *env, const Term2 *_source) : source(_source) {
     }
 
     const Term2 *body_source = &t->args(1);
-    body.init(compile_term(env, body_source));
+    body = env->new_term(body_source);
 
     for (size_t i = 0; i < args.size(); ++i) env->pop_var(args[i]);
 }

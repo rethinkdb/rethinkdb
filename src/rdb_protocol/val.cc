@@ -17,21 +17,20 @@ datum_stream_t::datum_stream_t(env_t *_env, bool use_outdated,
 
 datum_stream_t::datum_stream_t(datum_stream_t *src, func_t *f)
     : env(src->env), trans(wire_func_t(env, f)) {
-    json_stream = src->json_stream;
-    //json_stream = src->json_stream->add_transformation(trans, 0, env, _s, _b);
+    json_stream = src->json_stream->add_transformation(trans, 0, env, _s, _b);
 }
 
 const datum_t *datum_stream_t::next() {
-    if (last.has()) register_data(last.release());
+    if (last_bag.has()) env->add_ptr(last_bag.release());
     boost::shared_ptr<scoped_cJSON_t> json = json_stream->next();
     if (!json.get()) return 0;
-    last.init(new datum_t(json));
-    return last.get();
+    last_bag.init(new ptr_bag_t());
+    return last_bag->add(new datum_t(json, last_bag.get()));
 }
 
 void datum_stream_t::free_last_datum() {
-    r_sanity_check(last.has());
-    delete last.release();
+    r_sanity_check(last_bag.has());
+    delete last_bag.release();
 }
 
 
@@ -124,23 +123,49 @@ const char *val_t::type_t::name() const {
     unreachable();
 }
 
-val_t::val_t(const datum_t *_datum, const term_t *_parent)
-    : type(type_t::DATUM), datum(_datum), parent(_parent) {
+val_t::val_t(const datum_t *_datum, const term_t *_parent, env_t *_env)
+    : parent(_parent), env(_env),
+      type(type_t::DATUM),
+      table(0),
+      sequence(0),
+      datum(env->add_ptr(_datum)),
+      func(0) {
     guarantee(_datum);
 }
-val_t::val_t(datum_stream_t *_sequence, const term_t *_parent)
-    : type(type_t::SEQUENCE), sequence(_sequence), parent(_parent) {
+val_t::val_t(datum_stream_t *_sequence, const term_t *_parent, env_t *_env)
+    : parent(_parent), env(_env),
+      type(type_t::SEQUENCE),
+      table(0),
+      sequence(env->add_ptr(_sequence)),
+      datum(0),
+      func(0) {
     guarantee(_sequence);
 }
-val_t::val_t(table_t *_table, const term_t *_parent)
-    : type(type_t::TABLE), table(_table), parent(_parent) {
+val_t::val_t(table_t *_table, const term_t *_parent, env_t *_env)
+    : parent(_parent), env(_env),
+      type(type_t::TABLE),
+      table(env->add_ptr(_table)),
+      sequence(0),
+      datum(0),
+      func(0) {
     guarantee(_table);
 }
-val_t::val_t(uuid_t _db, const term_t *_parent)
-    : type(type_t::DB), db(_db), parent(_parent) {
+val_t::val_t(uuid_t _db, const term_t *_parent, env_t *_env)
+    : parent(_parent), env(_env),
+      type(type_t::DB),
+      db(_db),
+      table(0),
+      sequence(0),
+      datum(0),
+      func(0) {
 }
-val_t::val_t(func_t *_func, const term_t *_parent)
-    : type(type_t::FUNC), func(_func), parent(_parent) {
+val_t::val_t(func_t *_func, const term_t *_parent, env_t *_env)
+    : parent(_parent), env(_env),
+      type(type_t::FUNC),
+      table(0),
+      sequence(0),
+      datum(0),
+      func(env->add_ptr(_func)) {
     guarantee(_func);
 }
 
@@ -160,30 +185,30 @@ val_t::type_t val_t::get_type() const { return type; }
 const datum_t *val_t::as_datum() {
     rcheck(type.raw_type == type_t::DATUM,
            strprintf("Type error: cannot convert %s to DATUM.", type.name()));
-    return datum.get();
+    return datum;
 }
 
 table_t *val_t::as_table() {
     rcheck(type.raw_type == type_t::TABLE,
            strprintf("Type error: cannot convert %s to TABLE.", type.name()));
-    return table.get();
+    return table;
 }
 
 datum_stream_t *val_t::as_seq() {
     if (type.raw_type == type_t::SEQUENCE || type.raw_type == type_t::SELECTION) {
         // passthru
     } else if (type.raw_type == type_t::TABLE) {
-        if (!sequence.has()) sequence.init(table.get()->as_datum_stream());
+        if (!sequence) sequence = env->add_ptr(table->as_datum_stream());
     } else {
         rfail("Type error: cannot convert %s to SEQUENCE.", type.name());
     }
-    return sequence.get();
+    return sequence;
 }
 
 func_t *val_t::as_func() {
     rcheck(type.raw_type == type_t::FUNC,
            strprintf("Type error: cannot convert %s to FUNC.", type.name()));
-    return func.get();
+    return func;
 }
 
 uuid_t val_t::as_db() {

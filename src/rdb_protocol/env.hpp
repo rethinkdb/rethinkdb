@@ -8,6 +8,7 @@
 #include "clustering/administration/database_metadata.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "concurrency/one_per_thread.hpp"
+#include "containers/ptr_bag.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/err.hpp"
 #include "rdb_protocol/js.hpp"
@@ -20,22 +21,24 @@ class term_t;
 class env_t {
 public:
     template<class T>
-    val_t *add_and_ret(T t, term_t *parent) {
-        val_t *v = new val_t(t, parent);
-        vals.push_back(v);
-        return v;
+    T *add_ptr(T *p) { return ptrs.add(p); }
+    func_t *new_func(const Term2 *term) {
+        return add_ptr(new func_t(this, term));
     }
-private:
-    boost::ptr_vector<val_t> vals;
+    template<class T>
+    val_t *new_val(T *ptr, term_t *parent) {
+        return add_ptr(new val_t(add_ptr(ptr), parent, this));
+    }
+    val_t *new_val(uuid_t db, term_t *parent) {
+        return add_ptr(new val_t(db, parent, this));
+    }
+    term_t *new_term(const Term2 *source) {
+        return add_ptr(compile_term(this, source));
+    }
 
-public:
-    func_t *new_func(const Term2 *source) {
-        func_t *f = new func_t(this, source);
-        funcs.push_back(f);
-        return f;
-    }
+    ptr_bag_t *get_bag() { return &ptrs; }
 private:
-    boost::ptr_vector<func_t> funcs;
+    ptr_bag_t ptrs;
 
 public:
     void push_var(int var, const datum_t **val) { vars[var].push(val); }

@@ -49,12 +49,12 @@ public:
         guarantee(namestr && op);
     }
     virtual val_t *eval_impl() {
-        scoped_ptr_t<datum_t> acc(new datum_t());
-        *acc.get() = *arg(0)->as_datum();
+        datum_t *acc = env->add_ptr(new datum_t());
+        *acc = *arg(0)->as_datum();
         for (size_t i = 1; i < num_args(); ++i) {
-            *acc.get() = (*op)(*acc.get(), *arg(i)->as_datum());
+            *acc = (*op)(*acc, *arg(i)->as_datum());
         }
-        return new_val(acc.release());
+        return new_val(acc);
     }
     virtual const char *name() const { return namestr; }
 private:

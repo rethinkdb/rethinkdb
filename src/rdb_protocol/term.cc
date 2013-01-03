@@ -87,9 +87,9 @@ term_t *compile_term(env_t *env, const Term2 *t) {
 void run(Query2 *q, env_t *env, Response2 *res, stream_cache_t *stream_cache) {
     switch(q->type()) {
     case Query2_QueryType_START: {
-        scoped_ptr_t<term_t> root_term;
+        term_t *root_term = 0;
         try {
-            root_term.init(compile_term(env, &q->query()));
+            root_term = env->new_term(&q->query());
         } catch (const exc_t &e) {
             fill_error(res, Response2::COMPILE_ERROR, e.what(), e.backtrace);
             return;
@@ -133,7 +133,7 @@ void run(Query2 *q, env_t *env, Response2 *res, stream_cache_t *stream_cache) {
     }
 }
 
-term_t::term_t(env_t *_env) : use_cached_val(false), cached_val(0), env(_env) {
+term_t::term_t(env_t *_env) : use_cached_val(false), env(_env), cached_val(0) {
     guarantee(env);
 }
 term_t::~term_t() { }
@@ -148,12 +148,16 @@ val_t *term_t::eval(bool _use_cached_val) {
     return cached_val;
 }
 
-val_t *term_t::new_val(datum_t *d) { return env->add_and_ret(d, this); }
-val_t *term_t::new_val(datum_stream_t *s) { return env->add_and_ret(s, this); }
-val_t *term_t::new_val(uuid_t db) { return env->add_and_ret(db, this); }
-val_t *term_t::new_val(table_t *t) { return env->add_and_ret(t, this); }
-val_t *term_t::new_val(func_t *f) { return env->add_and_ret(f, this); }
+val_t *term_t::new_val(datum_t *d) { return env->new_val(d, this); }
+val_t *term_t::new_val(datum_stream_t *s) { return env->new_val(s, this); }
+val_t *term_t::new_val(uuid_t db) { return env->new_val(db, this); }
+val_t *term_t::new_val(table_t *t) { return env->new_val(t, this); }
+val_t *term_t::new_val(func_t *f) { return env->new_val(f, this); }
 
-
+// val_t *term_t::new_val(datum_t *d) { return env->new_val(d, this); }
+// val_t *term_t::new_val(datum_stream_t *s) { return env->new_val(s, this); }
+// val_t *term_t::new_val(uuid_t db) { return env->add_and_ret(db, this); }
+// val_t *term_t::new_val(table_t *t) { return env->add_and_ret(t, this); }
+// val_t *term_t::new_val(func_t *f) { return env->add_and_ret(f, this); }
 
 } //namespace ql

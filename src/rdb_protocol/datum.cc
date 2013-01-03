@@ -1,6 +1,7 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "math.h"
 
+#include "rdb_protocol/env.hpp"
 #include "rdb_protocol/err.hpp"
 #include "rdb_protocol/datum.hpp"
 
@@ -9,7 +10,7 @@ namespace ql {
 datum_t::datum_t() : type(R_NULL) { }
 datum_t::datum_t(bool _bool) : type(R_BOOL), r_bool(_bool) { }
 datum_t::datum_t(double _num) : type(R_NUM), r_num(_num) {
-    rcheck(isfinite(r_num), strprintf("Non-finite number: %lf", r_num));
+    rcheck(std::isfinite(r_num), strprintf("Non-finite number: %lf", r_num));
 }
 datum_t::datum_t(const std::string &_str) : type(R_STR), r_str(_str) { }
 datum_t::datum_t(const std::vector<const datum_t *> &_array)
@@ -20,7 +21,7 @@ datum_t::datum_t(datum_t::type_t _type) : type(_type) {
     r_sanity_check(type == R_ARRAY || type == R_OBJECT || type == R_NULL);
 }
 
-void datum_t::init_json(cJSON *json) {
+void datum_t::init_json(cJSON *json, ptr_bag_t *alloc) {
     switch(json->type) {
     case cJSON_False: {
         type = R_BOOL; r_bool = false;
@@ -40,19 +41,14 @@ void datum_t::init_json(cJSON *json) {
     case cJSON_Array: {
         type = R_ARRAY;
         for (int i = 0; i < cJSON_GetArraySize(json); ++i) {
-            cJSON *el = cJSON_GetArrayItem(json, i);
-            datum_t *d = new datum_t(el);
-            to_free.push_back(d);
-            add(d);
+            add(alloc->add(new datum_t(cJSON_GetArrayItem(json, i), alloc)));
         }
     }; break;
     case cJSON_Object: {
         type = R_OBJECT;
         for (int i = 0; i < cJSON_GetArraySize(json); ++i) {
             cJSON *el = cJSON_GetArrayItem(json, i);
-            datum_t *d = new datum_t(el);
-            to_free.push_back(d);
-            bool b = add(el->string, d);
+            bool b = add(el->string, alloc->add(new datum_t(el, alloc)));
             rcheck(!b, strprintf("Duplicate key: %s", el->string));
         }
     }; break;
@@ -60,8 +56,10 @@ void datum_t::init_json(cJSON *json) {
     }
 }
 
-datum_t::datum_t(cJSON *json) { init_json(json); }
-datum_t::datum_t(boost::shared_ptr<scoped_cJSON_t> json) { init_json(json->get()); }
+datum_t::datum_t(cJSON *json, ptr_bag_t *alloc) { init_json(json, alloc); }
+datum_t::datum_t(boost::shared_ptr<scoped_cJSON_t> json, ptr_bag_t *alloc) {
+    init_json(json->get(), alloc);
+}
 
 datum_t::type_t datum_t::get_type() const { return type; }
 const char *datum_type_name(datum_t::type_t type) {
@@ -210,7 +208,7 @@ bool datum_t::operator<= (const datum_t &rhs) const { return cmp(rhs) != 1;  }
 bool datum_t::operator>  (const datum_t &rhs) const { return cmp(rhs) == 1;  }
 bool datum_t::operator>= (const datum_t &rhs) const { return cmp(rhs) != -1; }
 
-datum_t::datum_t(const Datum *d) {
+datum_t::datum_t(const Datum *d, ptr_bag_t *alloc) {
     switch(d->type()) {
     case Datum_DatumType_R_NULL: {
         type = R_NULL;
@@ -230,9 +228,7 @@ datum_t::datum_t(const Datum *d) {
     case Datum_DatumType_R_ARRAY: {
         type = R_ARRAY;
         for (int i = 0; i < d->r_array_size(); ++i) {
-            datum_t *el = new datum_t(&d->r_array(i));
-            to_free.push_back(el);
-            r_array.push_back(el);
+            r_array.push_back(alloc->add(new datum_t(&d->r_array(i), alloc)));
         }
     }; break;
     case Datum_DatumType_R_OBJECT: {
@@ -242,9 +238,7 @@ datum_t::datum_t(const Datum *d) {
             const std::string &key = ap->key();
             rcheck(r_object.count(key) == 0,
                    strprintf("Duplicate key %s in object.", key.c_str()));
-            datum_t *el = new datum_t(&ap->val());
-            to_free.push_back(el);
-            r_object[key] = el;
+            r_object[key] = alloc->add(new datum_t(&ap->val(), alloc));
         }
     }; break;
     default: unreachable();
