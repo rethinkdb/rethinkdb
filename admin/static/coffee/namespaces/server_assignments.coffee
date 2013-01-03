@@ -1,8 +1,8 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 module 'NamespaceView', ->
     class @ServerAssignments extends Backbone.View
-        template: Handlebars.compile $('#namespace_view-server_assignments-template').html()
-        popup_template: Handlebars.compile $('#popup_content-template').html()
+        template: Handlebars.templates['namespace_view-server_assignments-template']
+        popup_template: Handlebars.templates['popup_content-template']
 
         events: ->
             'click .show_primary_link': 'show_primary'

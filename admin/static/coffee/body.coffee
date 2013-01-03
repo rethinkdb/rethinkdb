@@ -1,6 +1,6 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 render_body = ->
-    template = Handlebars.compile $('#body-structure-template').html()
+    template = Handlebars.templates['body-structure-template']
     $('body').html(template())
     # Set up common DOM behavior
     $('.modal').modal
@@ -14,8 +14,8 @@ render_body = ->
 class IsDisconnected extends Backbone.View
     el: 'body'
     className: 'is_disconnected_view'
-    template: Handlebars.compile $('#is_disconnected-template').html()
-    message: Handlebars.compile $('#is_disconnected_message-template').html()
+    template: Handlebars.templates['is_disconnected-template']
+    message: Handlebars.templates['is_disconnected_message-template']
     initialize: =>
         log_initial '(initializing) sidebar view:'
         @render()

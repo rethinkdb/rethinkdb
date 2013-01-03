@@ -3,15 +3,15 @@
 module 'DataExplorerView', ->
     class @Container extends Backbone.View
         id: 'dataexplorer'
-        template: Handlebars.compile $('#dataexplorer_view-template').html()
-        description_template: Handlebars.compile $('#dataexplorer-description-template').html()
-        template_suggestion_name: Handlebars.compile $('#dataexplorer_suggestion_name_li-template').html()
-        description_with_example_template: Handlebars.compile $('#dataexplorer-description_with_example-template').html()
-        alert_connection_fail_template: Handlebars.compile $('#alert-connection_fail-template').html()
-        alert_reconnection_success_template: Handlebars.compile $('#alert-reconnection_success-template').html()
-        databases_suggestions_template: Handlebars.compile $('#dataexplorer-databases_suggestions-template').html()
-        namespaces_suggestions_template: Handlebars.compile $('#dataexplorer-namespaces_suggestions-template').html()
-        browser_not_supported_template: Handlebars.compile $('#dataexplorer-browser_not_supported-template').html()
+        template: Handlebars.templates['dataexplorer_view-template']
+        description_template: Handlebars.templates['dataexplorer-description-template']
+        template_suggestion_name: Handlebars.templates['dataexplorer_suggestion_name_li-template']
+        description_with_example_template: Handlebars.templates['dataexplorer-description_with_example-template']
+        alert_connection_fail_template: Handlebars.templates['alert-connection_fail-template']
+        alert_reconnection_success_template: Handlebars.templates['alert-reconnection_success-template']
+        databases_suggestions_template: Handlebars.templates['dataexplorer-databases_suggestions-template']
+        namespaces_suggestions_template: Handlebars.templates['dataexplorer-namespaces_suggestions-template']
+        reason_dataexplorer_broken_template: Handlebars.templates['dataexplorer-reason_broken-template']
 
         # That's all the thing we want to store so we can display the view as it was (when the user left the data explorer)
         saved_query: null # Last value @codemirror.getValue()
@@ -691,7 +691,8 @@ module 'DataExplorerView', ->
                 return false
             
             # if it's a valid result and we have not reach the maximum of results displayed
-            if data? and  @current_results.length < @limit
+            # A valid result can be null, so we don't use the coffescript's existential operator
+            if data isnt undefined and  @current_results.length < @limit
                 @current_results.push data
                 return true
             else
@@ -715,7 +716,7 @@ module 'DataExplorerView', ->
 
                 @results_view.render_metadata metadata
 
-                if data? #there is nore data
+                if data isnt undefined #there is nore data
                     @skip_value += @current_results.length
                     @current_results = []
                     @current_results.push data
@@ -752,7 +753,7 @@ module 'DataExplorerView', ->
                     return false
                 
                 # if it's a valid result and we have not reach the maximum of results displayed
-                if data? and  @current_results.length < @limit
+                if data isnt undefined and  @current_results.length < @limit
                     @current_results.push data
                     return true
                 else
@@ -775,7 +776,7 @@ module 'DataExplorerView', ->
 
                     @results_view.render_metadata metadata
 
-                    if data? #there is nore data
+                    if data isnt undefined #there is nore data
                         @skip_value += @current_results.length
                         @current_results = []
                         @current_results.push data
@@ -1000,7 +1001,7 @@ module 'DataExplorerView', ->
             $(window).on 'resize', @set_char_per_line
 
             # Connect the driver
-            if window.driver_connected isnt true
+            if window.driver_connected isnt true and window.r?
                 window.driver_connect()
 
         render: =>
@@ -1011,14 +1012,20 @@ module 'DataExplorerView', ->
 
             # We do not support internet explorer (even IE 10) and old browsers.
             if navigator?.appName is 'Microsoft Internet Explorer'
-                @.$('.not_supported_browser').html @browser_not_supported_template
+                @.$('.reason_dataexplorer_broken').html @reason_dataexplorer_broken_template
                     is_internet_explorer: true
-                @.$('.not_supported_browser').slideDown 'fast'
+                @.$('.reason_dataexplorer_broken').slideDown 'fast'
                 @.$('.button_query').prop 'disabled', 'disabled'
             else if (not DataView?) or (not Uint8Array?) # The main two components that the javascript driver requires.
-                @.$('.not_supported_browser').html @browser_not_supported_template
-                @.$('.not_supported_browser').slideDown 'fast'
+                @.$('.reason_dataexplorer_broken').html @reason_dataexplorer_broken_template
+                @.$('.reason_dataexplorer_broken').slideDown 'fast'
                 @.$('.button_query').prop 'disabled', 'disabled'
+            else if not window.r? # In case the javascript driver is not found (if build from source for example)
+                @.$('.reason_dataexplorer_broken').html @reason_dataexplorer_broken_template
+                    no_driver: true
+                @.$('.reason_dataexplorer_broken').slideDown 'fast'
+                @.$('.button_query').prop 'disabled', 'disabled'
+
 
             if @last_query? and @last_results? and @last_metadata?
                 @results_view.render_result @last_query, @last_results
@@ -1088,7 +1095,7 @@ module 'DataExplorerView', ->
     
     class @InputQuery extends Backbone.View
         className: 'query_control'
-        template: Handlebars.compile $('#dataexplorer_input_query-template').html()
+        template: Handlebars.templates['dataexplorer_input_query-template']
  
         render: =>
             @.$el.html @template()
@@ -1096,30 +1103,30 @@ module 'DataExplorerView', ->
 
     class @ResultView extends Backbone.View
         className: 'result_view'
-        template: Handlebars.compile $('#dataexplorer_result_container-template').html()
-        default_template: Handlebars.compile $('#dataexplorer_default_result_container-template').html()
-        metadata_template: Handlebars.compile $('#dataexplorer-metadata-template').html()
-        option_template: Handlebars.compile $('#dataexplorer-option_page-template').html()
-        error_template: Handlebars.compile $('#dataexplorer-error-template').html()
-        template_no_result: Handlebars.compile $('#dataexplorer_result_empty-template').html()
+        template: Handlebars.templates['dataexplorer_result_container-template']
+        default_template: Handlebars.templates['dataexplorer_default_result_container-template']
+        metadata_template: Handlebars.templates['dataexplorer-metadata-template']
+        option_template: Handlebars.templates['dataexplorer-option_page-template']
+        error_template: Handlebars.templates['dataexplorer-error-template']
+        template_no_result: Handlebars.templates['dataexplorer_result_empty-template']
         template_json_tree:
-            'container' : Handlebars.compile $('#dataexplorer_result_json_tree_container-template').html()
-            'span': Handlebars.compile $('#dataexplorer_result_json_tree_span-template').html()
-            'span_with_quotes': Handlebars.compile $('#dataexplorer_result_json_tree_span_with_quotes-template').html()
-            'url': Handlebars.compile $('#dataexplorer_result_json_tree_url-template').html()
-            'email': Handlebars.compile $('#dataexplorer_result_json_tree_email-template').html()
-            'object': Handlebars.compile $('#dataexplorer_result_json_tree_object-template').html()
-            'array': Handlebars.compile $('#dataexplorer_result_json_tree_array-template').html()
+            'container' : Handlebars.templates['dataexplorer_result_json_tree_container-template']
+            'span': Handlebars.templates['dataexplorer_result_json_tree_span-template']
+            'span_with_quotes': Handlebars.templates['dataexplorer_result_json_tree_span_with_quotes-template']
+            'url': Handlebars.templates['dataexplorer_result_json_tree_url-template']
+            'email': Handlebars.templates['dataexplorer_result_json_tree_email-template']
+            'object': Handlebars.templates['dataexplorer_result_json_tree_object-template']
+            'array': Handlebars.templates['dataexplorer_result_json_tree_array-template']
 
         template_json_table:
-            'container' : Handlebars.compile $('#dataexplorer_result_json_table_container-template').html()
-            'tr_attr': Handlebars.compile $('#dataexplorer_result_json_table_tr_attr-template').html()
-            'td_attr': Handlebars.compile $('#dataexplorer_result_json_table_td_attr-template').html()
-            'tr_value': Handlebars.compile $('#dataexplorer_result_json_table_tr_value-template').html()
-            'td_value': Handlebars.compile $('#dataexplorer_result_json_table_td_value-template').html()
-            'td_value_content': Handlebars.compile $('#dataexplorer_result_json_table_td_value_content-template').html()
-            'data_inline': Handlebars.compile $('#dataexplorer_result_json_table_data_inline-template').html()
-        cursor_timed_out_template: Handlebars.compile $('#dataexplorer-cursor_timed_out-template').html()
+            'container' : Handlebars.templates['dataexplorer_result_json_table_container-template']
+            'tr_attr': Handlebars.templates['dataexplorer_result_json_table_tr_attr-template']
+            'td_attr': Handlebars.templates['dataexplorer_result_json_table_td_attr-template']
+            'tr_value': Handlebars.templates['dataexplorer_result_json_table_tr_value-template']
+            'td_value': Handlebars.templates['dataexplorer_result_json_table_td_value-template']
+            'td_value_content': Handlebars.templates['dataexplorer_result_json_table_td_value_content-template']
+            'data_inline': Handlebars.templates['dataexplorer_result_json_table_data_inline-template']
+        cursor_timed_out_template: Handlebars.templates['dataexplorer-cursor_timed_out-template']
 
         events:
             # Global events

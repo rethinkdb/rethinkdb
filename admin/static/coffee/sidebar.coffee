@@ -4,8 +4,8 @@ module 'Sidebar', ->
     # Sidebar.Container
     class @Container extends Backbone.View
         className: 'sidebar-container'
-        template: Handlebars.compile $('#sidebar-container-template').html()
-        template_dataexplorer: Handlebars.compile $('#sidebar-dataexplorer_container-template').html()
+        template: Handlebars.templates['sidebar-container-template']
+        template_dataexplorer: Handlebars.templates['sidebar-dataexplorer_container-template']
 
         events: ->
             'click .show-issues': 'toggle_showing_issues'
@@ -80,7 +80,7 @@ module 'Sidebar', ->
     # Sidebar.ClientConnectionStatus
     class @ClientConnectionStatus extends Backbone.View
         className: 'client-connection-status'
-        template: Handlebars.compile $('#sidebar-client_connection_status-template').html()
+        template: Handlebars.templates['sidebar-client_connection_status-template']
 
         initialize: =>
             connection_status.on 'all', @render
@@ -105,7 +105,7 @@ module 'Sidebar', ->
 
     # Sidebar.ServersConnected
     class @ServersConnected extends Backbone.View
-        template: Handlebars.compile $('#sidebar-servers_connected-template').html()
+        template: Handlebars.templates['sidebar-servers_connected-template']
 
         initialize: =>
             # Rerender every time some relevant info changes
@@ -137,7 +137,7 @@ module 'Sidebar', ->
 
     # Sidebar.DatacentersConnected
     class @DatacentersConnected extends Backbone.View
-        template: Handlebars.compile $('#sidebar-datacenters_connected-template').html()
+        template: Handlebars.templates['sidebar-datacenters_connected-template']
 
         initialize: =>
             # Rerender every time some relevant info changes
@@ -183,7 +183,7 @@ module 'Sidebar', ->
     # Issue count panel at the top
     class @Issues extends Backbone.View
         className: 'issues'
-        template: Handlebars.compile $('#sidebar-issues-template').html()
+        template: Handlebars.templates['sidebar-issues-template']
 
         initialize: =>
             issues.on 'all', @render
@@ -202,7 +202,7 @@ module 'Sidebar', ->
 
     # Sidebar.IssuesBanner
     class @IssuesBanner extends Backbone.View
-        template: Handlebars.compile $('#sidebar-issues_banner-template').html()
+        template: Handlebars.templates['sidebar-issues_banner-template']
         resolve_issues_route: '#resolve_issues'
 
         initialize: =>

@@ -511,7 +511,7 @@ else  # ($(COMPILER), CLANG)
 ifeq ($(LEGACY_GCC), 1)
 RT_CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default
 else  # ($(LEGACY_GCC), 1)
-RT_CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default
+RT_CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default -Wno-array-bounds 
 
 endif  # ($(LEGACY_GCC), 1)
 endif  # ($(COMPILER), CLANG)
@@ -562,7 +562,7 @@ ifeq ($(KEEP_INLINE),1)
 RT_CXXFLAGS+=-fkeep-inline-functions
 endif
 
-else
+else  # ifeq ($(DEBUG),1)
 # use -fno-strict-aliasing to not break things
 # march=native used to break the serializer
 RT_CXXFLAGS+=-O3 -DNDEBUG -fno-strict-aliasing # -march=native
@@ -570,10 +570,8 @@ RT_CXXFLAGS+=-O3 -DNDEBUG -fno-strict-aliasing # -march=native
 RT_CXXFLAGS+=-DNO_MEMCACHE
 ifeq ($(NO_OMIT_FRAME_POINTER),1)
 RT_CXXFLAGS+=-fno-omit-frame-pointer
-else
-RT_CXXFLAGS+=-fomit-frame-pointer
 endif
-endif
+endif  # ifeq ($(DEBUG),1)
 
 ifeq ($(DISABLE_BREAKPOINTS),1)
 RT_CXXFLAGS+=-DDISABLE_BREAKPOINTS
@@ -1273,7 +1271,10 @@ rpc/mailbox/typed.hpp: ../scripts/generate_rpc_templates.py
 rpc/semilattice/joins/macros.hpp rpc/serialize_macros.hpp rpc/mailbox/typed.hpp:
 	$< > $@
 
-web-assets: $(WEB_ASSETS_BUILD_DIR)/cluster-min.js $(WEB_ASSETS_BUILD_DIR)/cluster.css $(WEB_ASSETS_BUILD_DIR)/index.html $(WEB_ASSETS_BUILD_DIR)/js $(WEB_ASSETS_BUILD_DIR)/fonts $(WEB_ASSETS_BUILD_DIR)/images $(WEB_ASSETS_BUILD_DIR)/favicon.ico $(WEB_ASSETS_BUILD_DIR)/js/rethinkdb.js
+web-assets: $(WEB_ASSETS_BUILD_DIR)/cluster-min.js $(WEB_ASSETS_BUILD_DIR)/cluster.css $(WEB_ASSETS_BUILD_DIR)/index.html $(WEB_ASSETS_BUILD_DIR)/js $(WEB_ASSETS_BUILD_DIR)/fonts $(WEB_ASSETS_BUILD_DIR)/images $(WEB_ASSETS_BUILD_DIR)/favicon.ico $(WEB_ASSETS_BUILD_DIR)/js/rethinkdb.js $(WEB_ASSETS_BUILD_DIR)/js/template.js 
+
+$(WEB_ASSETS_BUILD_DIR)/js/template.js: $(WEB_SOURCE_DIR)/static/handlebars
+	$(QUIET) ../scripts/build_handlebars_templates.sh $(WEB_SOURCE_DIR)/static/handlebars $(BUILD_DIR) $(WEB_ASSETS_BUILD_DIR)/js
 
 $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee: $(COFFEE_SOURCES)
 	$(QUIET) mkdir -p $(WEB_ASSETS_OBJ_DIR)
@@ -1298,11 +1299,7 @@ endif
 
 $(WEB_ASSETS_BUILD_DIR)/index.html: $(CLUSTER_HTML) $(HANDLEBARS_SOURCES)
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
-ifeq ($(VERBOSE),0)
-	@echo "    STRIP GEN $@"
-	@echo "    INJECT HANDLEBARS $@"
-endif
-	$(QUIET) sed 's:="gen/:=":g' $(CLUSTER_HTML) | python -c 'import sys; sys.stdout.write(sys.stdin.read().replace("<!--{{INJECT_HANDLEBARS_TEMPLATES}}-->", reduce(lambda acc, fname: acc + open(fname).read(), sys.argv[1:], "")))' $(HANDLEBARS_SOURCES) > $@ || ( echo "      Build failure." ; rm $@ ; false ; )
+	cp $(CLUSTER_HTML) $@
 
 $(WEB_ASSETS_BUILD_DIR)/js:
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
