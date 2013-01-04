@@ -43,13 +43,13 @@ linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port, signal_t 
         // Set the socket to reusable so we don't block out other sockets from this port
         int reuse = 1;
         if (setsockopt(sock.get(), SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) != 0)
-            logWRN("Failed to set socket reuse to true: %s", strerror(errno));
+            logWRN("Failed to set socket reuse to true: %s", errno_string(errno).c_str());
         addr.sin_family = AF_INET;
         addr.sin_port = htons(local_port);
         addr.sin_addr.s_addr = INADDR_ANY;
         bzero(addr.sin_zero, sizeof(addr.sin_zero));
         if (bind(sock.get(), reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr)) != 0)
-            logWRN("Failed to bind to local port %d: %s", local_port, strerror(errno));
+            logWRN("Failed to bind to local port %d: %s", local_port, errno_string(errno).c_str());
     }
 
     addr.sin_family = AF_INET;
@@ -166,7 +166,7 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) THROWS_ONLY(tc
         } else if (res == -1) {
             /* Unknown error. This is not expected, but it will probably happen sometime so we
             shouldn't crash. */
-            logERR("Could not read from socket: %s", strerror(errno));
+            logERR("Could not read from socket: %s", errno_string(errno).c_str());
             on_shutdown_read();
             throw tcp_conn_read_closed_exc_t();
 
@@ -250,7 +250,7 @@ void linux_tcp_conn_t::shutdown_read() {
     assert_thread();
     int res = ::shutdown(sock.get(), SHUT_RD);
     if (res != 0 && errno != ENOTCONN) {
-        logERR("Could not shutdown socket for reading: %s", strerror(errno));
+        logERR("Could not shutdown socket for reading: %s", errno_string(errno).c_str());
     }
     on_shutdown_read();
 }
@@ -347,7 +347,7 @@ void linux_tcp_conn_t::perform_write(const void *buf, size_t size) {
         } else if (res == -1) {
             /* In theory this should never happen, but it probably will. So we write a log message
                and then shut down normally. */
-            logERR("Could not write to socket: %s", strerror(errno));
+            logERR("Could not write to socket: %s", errno_string(errno).c_str());
             on_shutdown_write();
             break;
 
@@ -463,7 +463,7 @@ void linux_tcp_conn_t::shutdown_write() {
 
     int res = ::shutdown(sock.get(), SHUT_WR);
     if (res != 0 && errno != ENOTCONN) {
-        logERR("Could not shutdown socket for writing: %s", strerror(errno));
+        logERR("Could not shutdown socket for writing: %s", errno_string(errno).c_str());
     }
 
     on_shutdown_write();
@@ -576,7 +576,11 @@ void linux_tcp_conn_t::on_event(int events) {
 
     } else {
         /* We don't know why we got this, so log it and then shut down the socket */
-        logERR("Unexpected epoll err/hup/rdhup. events=%s, reading=%s, writing=%s",
+        logERR("Unexpected epoll err/hup"
+#ifdef __linux
+               "/rdhup"
+#endif
+               ". events=%s, reading=%s, writing=%s",
             format_poll_event(events).c_str(),
             reading ? "yes" : "no",
             writing ? "yes" : "no");
@@ -635,9 +639,11 @@ bool linux_nonthrowing_tcp_listener_t::begin_listening() {
         return false;
     }
 
+    const int RDB_LISTEN_BACKLOG = 5;
+
     // Start listening to connections
     for (ssize_t i = 0; i < socks.size(); ++i) {
-        int res = listen(socks[i].get(), 5);
+        int res = listen(socks[i].get(), RDB_LISTEN_BACKLOG);
         guarantee_err(res == 0, "Couldn't listen to the socket");
 
         res = fcntl(socks[i].get(), F_SETFL, O_NONBLOCK);
@@ -693,7 +699,7 @@ void linux_nonthrowing_tcp_listener_t::init_sockets() {
 }
 
 bool linux_nonthrowing_tcp_listener_t::bind_sockets() {
-    if (port ==  0) {
+    if (port == 0) {
         // It may take multiple attempts to get all the sockets onto the same port
         int port_out = 0;
         for (uint32_t bind_attempts = 0; bind_attempts < MAX_BIND_ATTEMPTS && !bound; ++bind_attempts) {
@@ -732,7 +738,7 @@ bool linux_nonthrowing_tcp_listener_t::bind_sockets_internal(int *port_out) {
                 result = false;
                 break;
             } else {
-                crash("Could not bind socket at localhost:%i - %s\n", port, strerror(errno));
+                crash("Could not bind socket at localhost:%i - %s\n", port, errno_string(errno).c_str());
             }
         }
 
@@ -812,7 +818,7 @@ void linux_nonthrowing_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) 
             /* Unexpected error. Log it unless it's a repeat error. */
             if (log_next_error) {
                 logERR("accept() failed: %s.",
-                    strerror(errno));
+                    errno_string(errno).c_str());
                 log_next_error = false;
             }
 
@@ -836,14 +842,6 @@ void linux_nonthrowing_tcp_listener_t::handle(fd_t socket) {
 linux_nonthrowing_tcp_listener_t::~linux_nonthrowing_tcp_listener_t() {
     /* Interrupt the accept loop */
     accept_loop_drainer.reset();
-
-
-    if (bound) {
-        for (ssize_t i = 0; i < socks.size(); ++i) {
-            int res = shutdown(socks[i].get(), SHUT_RDWR);
-            guarantee_err(res == 0, "Could not shutdown main socket");
-        }
-    }
 
     // scoped_fd_t destructor will close() the socket
 }

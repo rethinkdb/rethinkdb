@@ -14,7 +14,7 @@ namespace unittest {
 
 TEST(UuidTest, UuidToStr) {
     std::string s = "f47ac10b-58cc-4372-a567-0e02b2c3d479";
-    uuid_t x = str_to_uuid(s);
+    uuid_u x = str_to_uuid(s);
     std::string t = uuid_to_str(x);
 
     ASSERT_EQ(s, t);
@@ -25,7 +25,7 @@ TEST(UuidTest, StrToUuid) {
     // Both upper case and lowercase should be converted the same.
     std::string s_lower = "f47ac10b-58cc-4372-a567-0e02b2c3d479";
     std::string s_upper = "f47ac10b-58CC-4372-a567-0E02B2C3D479";
-    uuid_t x = nil_uuid();
+    uuid_u x = nil_uuid();
     bool success = str_to_uuid(s_lower, &x);
     ASSERT_TRUE(success);
     std::string t = uuid_to_str(x);
@@ -41,7 +41,7 @@ TEST(UuidTest, StrToUuid) {
 
     // This one is too long.
     std::string u = "f47ac10b-58cc-4372-a567-0e02b2c3d479c";
-    uuid_t y;
+    uuid_u y;
     bool failure = str_to_uuid(u, &y);
     ASSERT_FALSE(failure);
 

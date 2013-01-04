@@ -2,7 +2,7 @@
 # Datacenter view
 module 'DatacenterView', ->
     class @NotFound extends Backbone.View
-        template: Handlebars.compile $('#element_view-not_found-template').html()
+        template: Handlebars.templates['element_view-not_found-template']
         initialize: (id) ->
             @id = id
         render: =>
@@ -16,7 +16,7 @@ module 'DatacenterView', ->
     # Container
     class @Container extends Backbone.View
         className: 'datacenter-view'
-        template: Handlebars.compile $('#datacenter_view-container-template').html()
+        template: Handlebars.templates['datacenter_view-container-template']
         events: ->
             'click .tab-link': 'change_route'
             'click .close': 'close_alert'
@@ -118,7 +118,7 @@ module 'DatacenterView', ->
     # DatacenterView.Title
     class @Title extends Backbone.View
         className: 'datacenter-info-view'
-        template: Handlebars.compile $('#datacenter_view_title-template').html()
+        template: Handlebars.templates['datacenter_view_title-template']
         initialize: ->
             @name = @model.get('name')
             @model.on 'change:name', @update
@@ -139,7 +139,7 @@ module 'DatacenterView', ->
     class @Profile extends Backbone.View
         className: 'datacenter-info-view'
 
-        template: Handlebars.compile $('#datacenter_view_profile-template').html()
+        template: Handlebars.templates['datacenter_view_profile-template']
         initialize: =>
 
             @model.on 'all', @render
@@ -229,9 +229,6 @@ module 'DatacenterView', ->
                 nreplicas: total_replicas
             stats = @model.get_stats()
             json = _.extend json,
-                global_cpu_util: Math.floor(stats.global_cpu_util_avg * 100)
-                global_mem_total: human_readable_units(stats.global_mem_total * 1024, units_space)
-                global_mem_used: human_readable_units(stats.global_mem_used * 1024, units_space)
                 dc_disk_space: human_readable_units(stats.dc_disk_space, units_space)
 
             @.$el.html @template(json)
@@ -244,7 +241,7 @@ module 'DatacenterView', ->
             directory.off 'all', @render
 
     class @MachineList extends Backbone.View
-        template: Handlebars.compile $('#datacenter_view-machine_list-template').html()
+        template: Handlebars.templates['datacenter_view-machine_list-template']
 
         initialize: =>
             machines.on 'change:name', @render
@@ -345,9 +342,6 @@ module 'DatacenterView', ->
                     namespaces: _namespaces
             stats = @model.get_stats()
             json = _.extend json,
-                global_cpu_util: Math.floor(stats.global_cpu_util_avg * 100)
-                global_mem_total: human_readable_units(stats.global_mem_total * 1024, units_space)
-                global_mem_used: human_readable_units(stats.global_mem_used * 1024, units_space)
                 dc_disk_space: human_readable_units(stats.dc_disk_space, units_space)
 
             @.$el.html @template(json)

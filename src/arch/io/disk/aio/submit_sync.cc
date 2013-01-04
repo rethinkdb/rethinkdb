@@ -55,7 +55,7 @@ void linux_aio_submit_sync_t::pump() {
         if (actual_size == -EAGAIN) {
             break;
         } else if (actual_size < 0) {
-            crash("io_submit() failed: (%d) %s\n", -actual_size, strerror(-actual_size));
+            crash("io_submit() failed: (%d) %s\n", -actual_size, errno_string(-actual_size).c_str());
         } else {
             request_batch.erase(request_batch.begin(), request_batch.begin() + actual_size);
             n_pending += actual_size;

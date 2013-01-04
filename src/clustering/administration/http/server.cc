@@ -43,7 +43,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
         namespace_repo_t<rdb_protocol_t> *_rdb_namespace_repo,
         admin_tracker_t *_admin_tracker,
         http_app_t *reql_app,
-        uuid_t _us,
+        uuid_u _us,
         std::string path)
 {
     std::set<std::string> white_list;
@@ -55,6 +55,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     white_list.insert("/js/reql_docs.json");
     white_list.insert("/js/backbone.js");
     white_list.insert("/js/rethinkdb.js");
+    white_list.insert("/js/template.js");
     white_list.insert("/js/bootstrap/bootstrap-alert.js");
     white_list.insert("/js/bootstrap/bootstrap-modal.js");
     white_list.insert("/js/bootstrap/bootstrap-tab.js");
@@ -71,7 +72,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     white_list.insert("/js/jquery.cookie.js");
     white_list.insert("/js/flot/jquery.flot.js");
     white_list.insert("/js/flot/jquery.flot.resize.js");
-    white_list.insert("/js/handlebars-1.0.0.beta.6.js");
+    white_list.insert("/js/handlebars.runtime-1.0.0.beta.6.js");
     white_list.insert("/js/jquery-1.7.2.min.js");
     white_list.insert("/js/jquery.color.js");
     white_list.insert("/js/jquery.dataTables.min.js");

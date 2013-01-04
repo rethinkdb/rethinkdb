@@ -5,8 +5,8 @@ module 'UIComponents', ->
     # Abstract list container
     class @AbstractList extends Backbone.View
         # Use a generic template by default for a list
-        template: Handlebars.compile $('#abstract_list-template').html()
-        empty_list_template: Handlebars.compile $('#empty_list-template').html()
+        template: Handlebars.templates['abstract_list-template']
+        empty_list_template: Handlebars.templates['empty_list-template']
         # Abstract lists take several arguments:
         #   collection: Backbone collection that backs the list
         #   element_view_class: Backbone view that each element in the list will be rendered with

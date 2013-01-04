@@ -18,7 +18,7 @@ public:
     name_conflict_issue_t(
             const std::string &_type,
             const std::string &_contested_name,
-            const std::set<uuid_t> &_contestants);
+            const std::set<uuid_u> &_contestants);
 
     std::string get_description() const;
 
@@ -30,7 +30,7 @@ public:
     // TODO: Why is every name conflict issue one of these things with "type"?
     std::string type;
     std::string contested_name;
-    std::set<uuid_t> contestants;
+    std::set<uuid_u> contestants;
 
 private:
     DISABLE_COPYING(name_conflict_issue_t);

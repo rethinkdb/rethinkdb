@@ -18,7 +18,6 @@ itask="$1"
 
 rtdbbin=/usr/bin/rethinkdb ;
 rtdbconfigdir=/etc/rethinkdb ;
-rtdbconfigglob="$rtdbconfigdir"/main.conf ;
 
 if [ "$itask" = "" ] ;
 then
@@ -51,6 +50,10 @@ else
 			rtdbpidfile="`cat "$rtdbconffile" | grep '^[ \t]*pid-file[ \t]*\=' | head -n 1 | sed -e 's/^\([ \ta-zA-Z0-9]\|[-]\)*\=[ \t]*//g'`" ;
 			if [ "$itask" = "stop" ] || [ "$itask" = "restart" ] || [ "$itask" = "reload" ] || [ "$itask" = "force-reload" ] ;
 			then
+				if [ ! -e "$rtdbpidfile" ] ;
+				then
+					echo "rethinkdb:""$rtdbconffile"": No pid file." ;
+				fi ;
 				start-stop-daemon --stop --pidfile "$rtdbpidfile" --signal INT "$useropt" "$runuser" "$groupopt" "$rungroup" ;
 			fi ;
 			if [ "$itask" = "start" ] || [ "$itask" = "restart" ] || [ "$itask" = "reload" ] || [ "$itask" = "force-reload" ] ;
@@ -58,6 +61,10 @@ else
 				if [ -e /var/run ] && [ "`echo "$rtdbpidfile" | grep '^/var/run'`" != "" ] ;
 				then
 					mkdir -p "`dirname "$rtdbpidfile"`" ;
+				fi ;
+				if [ -e "$rtdbpidfile" ] ;
+				then
+					echo "rethinkdb:""$rtdbconffile"": pid file exists." ;
 				fi ;
 				start-stop-daemon --start --pidfile "$rtdbpidfile" "$useropt" "$runuser" "$groupopt" "$rungroup" --startas "$rtdbbin" --background -- --config-file="$rtdbconffile" ;
 			fi ;
@@ -76,5 +83,7 @@ else
 				fi ;
 			fi ;
 		done ;
+	else ;
+		echo "rethinkdb: 0 instances in ""$rtdbconfigdir""/instances.d" ;
 	fi ;
 fi ;

@@ -14,7 +14,7 @@ module 'UIComponents', ->
             if template?
                 @template = template
             else
-                template = Handlebars.compile $('#progressbar-template').html()
+                template = Handlebars.templates['progressbar-template']
             @timeout = null
 
         # The render function takes a number of arguments:

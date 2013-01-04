@@ -65,7 +65,7 @@ public:
 
     /* This constructor is for reconstructing extents that the LBA tells us contained
        data blocks. */
-    gc_entry(data_block_manager_t *parent, off64_t offset);
+    gc_entry(data_block_manager_t *parent, int64_t offset);
 
     void destroy();
     ~gc_entry();
@@ -77,7 +77,7 @@ public:
 private:
     // Only to be used by the destructor, used to look up the gc entry in the parent's entries
     // array.
-    off64_t offset;
+    int64_t offset;
 
     DISABLE_COPYING(gc_entry);
 };
@@ -90,9 +90,9 @@ private:
     struct gc_write_t {
         block_id_t block_id;
         const void *buf;
-        off64_t old_offset;
-        off64_t new_offset;
-        gc_write_t(block_id_t i, const void *b, off64_t _old_offset)
+        int64_t old_offset;
+        int64_t new_offset;
+        gc_write_t(block_id_t i, const void *b, int64_t _old_offset)
             : block_id(i), buf(b), old_offset(_old_offset), new_offset(0) { }
     };
 
@@ -112,7 +112,7 @@ public:
     ~data_block_manager_t();
 
     struct metablock_mixin_t {
-        off64_t active_extents[MAX_ACTIVE_DATA_EXTENTS];
+        int64_t active_extents[MAX_ACTIVE_DATA_EXTENTS];
         uint64_t blocks_in_active_extent[MAX_ACTIVE_DATA_EXTENTS];
     };
 
@@ -122,16 +122,16 @@ public:
     static void prepare_initial_metablock(metablock_mixin_t *mb);
     void start_existing(file_t *dbfile, metablock_mixin_t *last_metablock);
 
-    void read(off64_t off_in, void *buf_out, file_account_t *io_account, iocallback_t *cb);
+    void read(int64_t off_in, void *buf_out, file_account_t *io_account, iocallback_t *cb);
 
     /* Returns the offset to which the block will be written */
-    off64_t write(const void *buf_in, block_id_t block_id, bool assign_new_block_sequence_id,
+    int64_t write(const void *buf_in, block_id_t block_id, bool assign_new_block_sequence_id,
                   file_account_t *io_account, iocallback_t *cb,
                   bool token_referenced);
 
     /* exposed gc api */
     /* mark a buffer as garbage */
-    void mark_garbage(off64_t offset, extent_transaction_t *txn);  // Takes a real off64_t.
+    void mark_garbage(int64_t offset, extent_transaction_t *txn);  // Takes a real int64_t.
 
     bool is_extent_in_use(unsigned int extent_id) {
         return entries.get(extent_id) != NULL;
@@ -139,14 +139,14 @@ public:
 
     /* r{start,stop}_reconstruct functions for safety */
     void start_reconstruct();
-    void mark_live(off64_t);  // Takes a real off64_t.
+    void mark_live(int64_t);  // Takes a real int64_t.
     void end_reconstruct();
 
     /* We must make sure that blocks which have tokens pointing to them don't
     get garbage collected. This interface allows log_serializer to tell us about
     tokens */
-    void mark_token_live(off64_t);
-    void mark_token_garbage(off64_t);
+    void mark_token_live(int64_t);
+    void mark_token_garbage(int64_t);
 
     /* garbage collect the extents which meet the gc_criterion */
     void start_gc();
@@ -187,7 +187,7 @@ private:
 
     file_account_t *choose_gc_io_account();
 
-    off64_t gimme_a_new_offset(bool token_referenced);
+    int64_t gimme_a_new_offset(bool token_referenced);
 
     /* Checks whether the extent is empty and if it is, notifies the extent manager and cleans up */
     void check_and_handle_empty_extent(unsigned int extent_id);
@@ -203,7 +203,7 @@ private:
     // to be not young.
     void remove_last_unyoung_entry();
 
-    bool should_perform_read_ahead(off64_t offset);
+    bool should_perform_read_ahead(int64_t offset);
 
     /* internal garbage collection structures */
     struct gc_read_callback_t : public iocallback_t {
@@ -307,7 +307,7 @@ private:
         data_block_manager_t::gc_read_callback_t gc_read_callback;
         data_block_manager_t::gc_disable_callback_t *gc_disable_callback;
 
-        explicit gc_state_t()
+        gc_state_t()
             : step_(gc_ready), should_be_stopped(0), refcount(0),
               gc_blocks(NULL),
               current_entry(NULL) { }

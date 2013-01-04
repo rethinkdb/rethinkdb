@@ -8,9 +8,16 @@ else
 	QUIET:=@
 endif
 
+UNAME:=$(shell uname)
+
+ifeq ($(UNAME),Darwin)
+SPREFIX?=/usr/local
+else
 SPREFIX?=/usr
-INCLUDE=$(SPREFIX)/include/
-LIB=$(SPREFIX)/lib/
+endif
+
+INCLUDE=$(SPREFIX)/include
+LIB=$(SPREFIX)/lib
 BIN=$(SPREFIX)/bin
 PROTOC?=$(SPREFIX)/bin/protoc
 TC_PROTOC_CFLAGS?=
@@ -51,8 +58,8 @@ endif
 	./js/protoc_gen_js.cc \
 	./js/javascript_package.pb.cc \
 	./js/int64_encoding.pb.cc \
-	-l:$(LIB)libprotobuf.a \
-	-l:$(LIB)libprotoc.a \
+	$(LIB)/libprotobuf.a \
+	$(LIB)/libprotoc.a \
 	-o ./protoc-gen-js \
 	-lpthread
 
@@ -66,8 +73,8 @@ endif
 	./ccjs/code_generator.cc \
 	./ccjs/protoc_gen_ccjs.cc \
 	./js/int64_encoding.pb.cc \
-	-l:$(LIB)libprotobuf.a \
-	-l:$(LIB)libprotoc.a \
+	$(LIB)/libprotobuf.a \
+	$(LIB)/libprotoc.a \
 	-o ./protoc-gen-ccjs \
 	-lpthread
 

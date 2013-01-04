@@ -111,7 +111,6 @@ public:
 
 private:
     scoped_fd_t fd;
-    bool is_block;
     bool file_exists;
     uint64_t file_size;
 

@@ -3,9 +3,9 @@ module 'ServerView', ->
     class @DatacenterList extends UIComponents.AbstractList
         # Use a datacenter-specific template for the datacenter list
         className: 'datacenters_list-container'
-        template: Handlebars.compile $('#server_list-template').html()
-        cannot_change_datacenter_alert_template: Handlebars.compile $('#cannot_change_datacenter-alert-template').html()
-        alert_message_template: Handlebars.compile $('#alert_message-template').html()
+        template: Handlebars.templates['server_list-template']
+        cannot_change_datacenter_alert_template: Handlebars.templates['cannot_change_datacenter-alert-template']
+        alert_message_template: Handlebars.templates['alert_message-template']
 
         # Extend the generic list events
         events:
@@ -94,8 +94,8 @@ module 'ServerView', ->
 
     # Datacenter list element
     class @DatacenterListElement extends UIComponents.CollapsibleListElement
-        template: Handlebars.compile $('#datacenter_list_element-template').html()
-        summary_template: Handlebars.compile $('#datacenter_list_element-summary-template').html()
+        template: Handlebars.templates['datacenter_list_element-template']
+        summary_template: Handlebars.templates['datacenter_list_element-summary-template']
 
         className: 'element-container'
 
@@ -184,8 +184,8 @@ module 'ServerView', ->
     class @MachineList extends Backbone.View
         # Use a machine-specific template for the machine list
         tagName: 'div'
-        template: Handlebars.compile $('#machine_list-template').html()
-        empty_template: Handlebars.compile $('#empty_list-template').html()
+        template: Handlebars.templates['machine_list-template']
+        empty_template: Handlebars.templates['empty_list-template']
 
         initialize: (datacenter_uuid) ->
             @datacenter_uuid = datacenter_uuid
@@ -262,9 +262,9 @@ module 'ServerView', ->
 
     # Machine list element
     class @MachineListElement extends UIComponents.CheckboxListElement
-        template: Handlebars.compile $('#machine_list_element-template').html()
-        status_template: Handlebars.compile $('#machine_list_element-status-template').html()
-        quick_info_template: Handlebars.compile $('#machine_list_element-quick_info-template').html()
+        template: Handlebars.templates['machine_list_element-template']
+        status_template: Handlebars.templates['machine_list_element-status-template']
+        quick_info_template: Handlebars.templates['machine_list_element-quick_info-template']
         tagName: 'div'
 
         initialize: =>
@@ -324,7 +324,7 @@ module 'ServerView', ->
 
     # Equivalent of a DatacenterListElement, but for machines that haven't been assigned to a datacenter yet.
     class @UnassignedMachinesListElement extends UIComponents.CollapsibleListElement
-        template: Handlebars.compile $('#unassigned_machines_list_element-template').html()
+        template: Handlebars.templates['unassigned_machines_list_element-template']
 
         className: 'unassigned-machines element-container'
 
@@ -355,9 +355,9 @@ module 'ServerView', ->
             @machine_list.off 'need_render', @render
 
     class @AddDatacenterModal extends UIComponents.AbstractModal
-        template: Handlebars.compile $('#add_datacenter-modal-template').html()
-        alert_tmpl: Handlebars.compile $('#added_datacenter-alert-template').html()
-        error_template: Handlebars.compile $('#error_input-template').html()
+        template: Handlebars.templates['add_datacenter-modal-template']
+        alert_tmpl: Handlebars.templates['added_datacenter-alert-template']
+        error_template: Handlebars.templates['error_input-template']
 
         class: 'add-datacenter'
 
@@ -420,9 +420,9 @@ module 'ServerView', ->
                 uuid: response_uuid
 
     class @RemoveDatacenterModal extends UIComponents.AbstractModal
-        template: Handlebars.compile $('#remove_datacenter-modal-template').html()
-        alert_tmpl: Handlebars.compile $('#removed_datacenter-alert-template').html()
-        template_remove_error: Handlebars.compile $('#fail_delete_datacenter-template').html()
+        template: Handlebars.templates['remove_datacenter-modal-template']
+        alert_tmpl: Handlebars.templates['removed_datacenter-alert-template']
+        template_remove_error: Handlebars.templates['fail_delete_datacenter-template']
         class: 'remove-datacenter'
 
         initialize: ->
@@ -546,9 +546,9 @@ module 'ServerView', ->
                     name: @datacenter.get('name')
 
     class @SetDatacenterModal extends UIComponents.AbstractModal
-        template: Handlebars.compile $('#set_datacenter-modal-template').html()
-        cannot_change_datacenter_alert_template: Handlebars.compile $('#cannot_change_datacenter-alert_content-template').html()
-        alert_tmpl: Handlebars.compile $('#set_datacenter-alert-template').html()
+        template: Handlebars.templates['set_datacenter-modal-template']
+        cannot_change_datacenter_alert_template: Handlebars.templates['cannot_change_datacenter-alert_content-template']
+        alert_tmpl: Handlebars.templates['set_datacenter-alert-template']
         class: 'set-datacenter-modal'
 
         initialize: ->

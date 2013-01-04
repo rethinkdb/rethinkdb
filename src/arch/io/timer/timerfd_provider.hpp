@@ -2,10 +2,6 @@
 #ifndef ARCH_IO_TIMER_TIMERFD_PROVIDER_HPP_
 #define ARCH_IO_TIMER_TIMERFD_PROVIDER_HPP_
 
-#ifndef RDB_USE_TIMERFD_PROVIDER
-#error "RDB_USE_TIMERFD_PROVIDER needs to be defined for this file to be included."
-#endif
-
 #include "arch/runtime/event_queue.hpp"
 
 struct timer_provider_callback_t;
@@ -18,12 +14,14 @@ public:
                        time_t secs, int32_t nsecs);
     ~timerfd_provider_t();
 
+private:
     void on_event(int events);
 
-private:
     linux_event_queue_t *queue;
     timer_provider_callback_t *callback;
     fd_t timer_fd;
+
+    DISABLE_COPYING(timerfd_provider_t);
 };
 
 #endif // ARCH_IO_TIMER_TIMERFD_PROVIDER_HPP_

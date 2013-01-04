@@ -15,7 +15,7 @@ namespace extproc {
 class spawner_t :
     public home_thread_mixin_t
 {
-  public:
+public:
     class info_t {
         friend class spawner_t;
         pid_t pid;
@@ -44,16 +44,16 @@ class spawner_t :
     // Returns -1 on error.
     pid_t spawn_process(scoped_fd_t *socket);
 
-  private:
-    static void exec_spawner(pid_t rdb_pid, fd_t socket) NORETURN;
-    static void exec_worker(pid_t rdb_pid, fd_t socket) NORETURN;
+private:
+    friend void exec_worker(pid_t spawner_pid, fd_t sockfd);
 
-  private:
     pid_t pid_;
     mutex_t mutex_;             // linearizes access to socket_
     unix_socket_stream_t socket_;
+
+    DISABLE_COPYING(spawner_t);
 };
 
-} // namespace extproc
+}  // namespace extproc
 
 #endif // EXTPROC_SPAWNER_HPP_

@@ -21,6 +21,9 @@
 #include "errors.hpp"
 #include "config/args.hpp"
 
+void run_generic_global_startup_behavior();
+
+
 struct const_charslice {
     const char *beg, *end;
     const_charslice(const char *_beg, const char *_end) : beg(_beg), end(_end) { }
@@ -89,7 +92,6 @@ typedef uint64_t ticks_t;
 ticks_t secs_to_ticks(double secs);
 ticks_t get_ticks();
 time_t get_secs();
-int64_t get_ticks_res();
 double ticks_to_secs(ticks_t ticks);
 
 
@@ -147,9 +149,7 @@ public:
     int randint(int n);
     explicit rng_t(int seed = -1);
 private:
-#ifndef __MACH__
-    struct drand48_data buffer_;
-#endif
+    unsigned short xsubi[3];
     DISABLE_COPYING(rng_t);
 };
 
@@ -315,6 +315,8 @@ static inline std::string time2str(const time_t &t) {
     //           ^^ See man 3 ctime_r
     return ctime_r(&t, timebuf);
 }
+
+std::string errno_string(int errsv);
 
 #define STR(x) #x
 #define MSTR(x) STR(x) // Stringify a macro

@@ -16,7 +16,7 @@
 #include "rpc/serialize_macros.hpp"
 
 
-typedef uuid_t database_id_t;
+typedef uuid_u database_id_t;
 
 class database_semilattice_metadata_t {
 public:

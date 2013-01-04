@@ -38,7 +38,7 @@ static const char MB_MARKER_MAGIC[8] = {'m', 'e', 't', 'a', 'b', 'l', 'c', 'k'};
 static const char MB_MARKER_CRC[4] = {'c', 'r', 'c', ':'};
 static const char MB_MARKER_VERSION[8] = {'v', 'e', 'r', 's', 'i', 'o', 'n', ':'};
 
-std::vector<off64_t> initial_metablock_offsets(off64_t extent_size);
+std::vector<int64_t> initial_metablock_offsets(int64_t extent_size);
 
 
 
@@ -80,7 +80,7 @@ public:
     ~metablock_manager_t();
 
     /* Clear metablock slots and write an initial metablock to the database file */
-    static void create(file_t *dbfile, off64_t extent_size, metablock_t *initial);
+    static void create(file_t *dbfile, int64_t extent_size, metablock_t *initial);
 
     /* Tries to load existing metablocks */
     void co_start_existing(file_t *dbfile, bool *mb_found, metablock_t *mb_out);
@@ -118,7 +118,7 @@ private:
         void operator++();
 
         // return the offset we should be writing to
-        off64_t offset();
+        int64_t offset();
 
         // save the state to be loaded later (used to save the last known uncorrupted metablock)
         void push();
@@ -150,7 +150,7 @@ private:
 
     extent_manager_t *const extent_manager;
 
-    const std::vector<off64_t> metablock_offsets;
+    const std::vector<int64_t> metablock_offsets;
 
     enum state_t {
         state_unstarted,

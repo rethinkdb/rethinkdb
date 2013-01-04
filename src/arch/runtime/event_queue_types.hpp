@@ -12,16 +12,6 @@ struct linux_event_callback_t {
     virtual ~linux_event_callback_t() {}
 };
 
-// Common event queue functionality
-struct event_queue_base_t {
-public:
-    void watch_signal(const sigevent *evp, linux_event_callback_t *cb);
-    void forget_signal(const sigevent *evp, linux_event_callback_t *cb);
-
-private:
-    static void signal_handler(int signum, siginfo_t *siginfo, void *uctx);
-};
-
 struct linux_queue_parent_t {
     virtual void pump() = 0;
     virtual bool should_shut_down() = 0;

@@ -4,12 +4,14 @@
 
 #include <pthread.h>
 #include <strings.h>
-#include "arch/runtime/system_event.hpp"
-#include "containers/intrusive_list.hpp"
-#include "utils.hpp"
-#include "config/args.hpp"
+
 #include "arch/runtime/event_queue.hpp"
 #include "arch/runtime/runtime_utils.hpp"
+#include "arch/runtime/system_event.hpp"
+#include "arch/spinlock.hpp"
+#include "config/args.hpp"
+#include "containers/intrusive_list.hpp"
+#include "utils.hpp"
 
 class linux_thread_pool_t;
 
@@ -70,7 +72,7 @@ private:
     } queues_[MAX_THREADS];
 
     msg_list_t incoming_messages_;
-    pthread_spinlock_t incoming_messages_lock_;
+    spinlock_t incoming_messages_lock_;
 
     /* We keep one notify_t for each other message hub that we interact with. When it has
     messages for us, it signals the appropriate notify_t from our set of notify_ts. We get

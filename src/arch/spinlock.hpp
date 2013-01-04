@@ -7,30 +7,37 @@
 
 #include "errors.hpp"
 
+// I don't know the "clean" way to detect the availability of the pthread
+// spinlock feature.  For now we just use __MACH__ to default to mutex (which
+// will just work) on Apple systems.  If it's ever useful, making our own
+// spinlock implementation could be an option.
+#ifdef __MACH__
+#define PTHREAD_HAS_SPINLOCK 0
+#else
+#define PTHREAD_HAS_SPINLOCK 1
+#endif
+
+// TODO: we should use regular mutexes on single core CPU
+// instead of spinlocks
+
 class spinlock_t {
 public:
     friend class spinlock_acq_t;
 
-    spinlock_t() {
-        pthread_spin_init(&l, PTHREAD_PROCESS_PRIVATE);
-    }
-    ~spinlock_t() {
-        pthread_spin_destroy(&l);
-    }
+    spinlock_t();
+    ~spinlock_t();
 
 private:
-    void lock() {
-        int res = pthread_spin_lock(&l);
-        guarantee_err(res == 0, "could not lock spin lock");
-    }
-    void unlock() {
-        int res = pthread_spin_unlock(&l);
-        guarantee_err(res == 0, "could not unlock spin lock");
-    }
+    void lock();
+    void unlock();
 
+#if PTHREAD_HAS_SPINLOCK
     pthread_spinlock_t l;
-    spinlock_t(const spinlock_t&);
-    void operator=(const spinlock_t&);
+#else
+    pthread_mutex_t l;
+#endif
+
+    DISABLE_COPYING(spinlock_t);
 };
 
 class spinlock_acq_t {
@@ -44,8 +51,8 @@ public:
 
 private:
     spinlock_t *the_lock_;
-    spinlock_acq_t(const spinlock_acq_t&);
-    void operator=(const spinlock_acq_t&);
+
+    DISABLE_COPYING(spinlock_acq_t);
 };
 
 #endif /* ARCH_SPINLOCK_HPP_ */

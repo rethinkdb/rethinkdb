@@ -63,7 +63,7 @@ class ls_block_token_pointee_t {
 
     friend void adjust_ref(ls_block_token_pointee_t *p, int adjustment);
 
-    ls_block_token_pointee_t(log_serializer_t *serializer, off64_t initial_offset);
+    ls_block_token_pointee_t(log_serializer_t *serializer, int64_t initial_offset);
 
     log_serializer_t *serializer_;
     int64_t ref_count_;
