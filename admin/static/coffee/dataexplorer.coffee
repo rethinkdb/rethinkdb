@@ -67,7 +67,7 @@ module 'DataExplorerView', ->
                     tag = command['langs']['js']['name']
                     if tag is '()'
                         continue
-                    if tag is 'r' and command['langs']['js']['dont_need_parenthesis'] is true
+                    if command['langs']['js']['dont_need_parenthesis'] is true
                         full_tag = tag # Here full_tag is just the name of the tag
                         @descriptions[tag] =
                             name: tag
