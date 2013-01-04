@@ -210,13 +210,6 @@ class ClientTest < Test::Unit::TestCase
 
   # from python tests
   def test_stream_fancy
-    def limit(a, c)
-      r(a).to_stream.limit(c).to_array.run
-    end
-    def skip(a, c)
-      r(a).to_stream.skip(c).to_array.run
-    end
-
     assert_equal([], limit([], 0))
     assert_equal([], limit([1, 2], 0))
     assert_equal([1], limit([1, 2], 1))
@@ -228,9 +221,6 @@ class ClientTest < Test::Unit::TestCase
     assert_equal([1, 2], skip([1, 2], 0))
     assert_equal([2], skip([1, 2], 1))
 
-    def distinct(a)
-      r(a).distinct.run
-    end
     assert_equal([], distinct([]))
     assert_equal([1, 2, 3], distinct(([1, 2, 3] * 10)))
     assert_equal([1, 2, 3], distinct([1, 2, 3, 2]))
@@ -238,9 +228,6 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test_ordering
-    def order(query, *args)
-      query.order_by(*args).run.to_a
-    end
     docs = (0..9).map { |n| { "id" => ((100 + n)), "a" => (n), "b" => ((n % 3)) } }
     assert_equal(docs.sort_by { |x| x["a"] }, order(r(docs).to_stream, "a"))
     assert_equal(docs.sort_by { |x| x["a"] }.reverse, order(r(docs).to_stream, ["a", false]))
@@ -703,9 +690,6 @@ class ClientTest < Test::Unit::TestCase
     tbl.delete.run
     docs = (0...10).map { |n| { "id" => ((100 + n)), "a" => (n), "b" => ((n % 3)) } }
     assert_equal({ "inserted" => (docs.length), "errors" => 0 }, tbl.insert(docs, :upsert).run)
-    def filt(expr, fn)
-      assert_equal(docs.select { |x| fn(x) }, tbl.filter(exp).order_by(:id).run.to_a)
-    end
 
     # TODO: still an error?
     # assert_raise(ArgumentError){r[:a] == 5}

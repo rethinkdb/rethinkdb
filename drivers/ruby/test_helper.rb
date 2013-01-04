@@ -47,4 +47,24 @@ module RethinkDB::TestHelper
       { 'id' => i, 'num' => i, 'name' => i.to_s }
     end
   end
+
+  def limit(a, c)
+    r(a).to_stream.limit(c).to_array.run
+  end
+
+  def skip(a, c)
+    r(a).to_stream.skip(c).to_array.run
+  end
+
+  def distinct(a)
+    r(a).distinct.run
+  end
+
+  def order(query, *args)
+    query.order_by(*args).run.to_a
+  end
+
+  def filt(expr, fn)
+    assert_equal(docs.select { |x| fn(x) }, tbl.filter(exp).order_by(:id).run.to_a)
+  end
 end
