@@ -25,19 +25,15 @@ std::string filepath_file_opener_t::file_name() const {
 }
 
 bool filepath_file_opener_t::open_serializer_file(int extra_flag, scoped_ptr_t<file_t> *file_out) {
-    scoped_ptr_t<direct_file_t> file(new direct_file_t(filepath_.c_str(),
-                                                       direct_file_t::mode_read | direct_file_t::mode_write | extra_flag,
-                                                       backender_));
-    if (!file->exists()) {
-        return false;
-    } else {
-        file_out->init(file.release());
-        return true;
-    }
+    file_open_result_t open_res = open_direct_file(filepath_.c_str(),
+                                                   linux_file_t::mode_read | linux_file_t::mode_write | extra_flag,
+                                                   backender_,
+                                                   file_out);
+    return open_res == FILE_OPEN_SUCCESS;
 }
 
 bool filepath_file_opener_t::open_serializer_file_create(scoped_ptr_t<file_t> *file_out) {
-    return open_serializer_file(direct_file_t::mode_create, file_out);
+    return open_serializer_file(linux_file_t::mode_create, file_out);
 }
 
 bool filepath_file_opener_t::open_serializer_file_existing(scoped_ptr_t<file_t> *file_out) {
@@ -339,8 +335,10 @@ log_serializer_t::~log_serializer_t() {
 }
 
 void ls_check_existing(const char *filename, io_backender_t *backender, log_serializer_t::check_callback_t *cb) {
-    direct_file_t df(filename, direct_file_t::mode_read, backender);
-    cb->on_serializer_check(static_header_check(&df));
+    scoped_ptr_t<file_t> file;
+    file_open_result_t open_res = open_direct_file(filename, linux_file_t::mode_read, backender, &file);
+    guarantee(open_res == FILE_OPEN_SUCCESS);
+    cb->on_serializer_check(static_header_check(file.get()));
 }
 
 void log_serializer_t::check_existing(const char *filename, io_backender_t *io_backender, check_callback_t *cb) {

@@ -75,6 +75,8 @@ public:
 
 void make_io_backender(io_backend_t backend, scoped_ptr_t<io_backender_t> *out);
 
+enum file_open_result_t { FILE_OPEN_SUCCESS, FILE_OPEN_BUFFERED, FILE_OPEN_FAILURE };
+
 class linux_file_t : public file_t {
 public:
     enum mode_t {
@@ -83,9 +85,6 @@ public:
         mode_create = 1 << 2
     };
 
-    linux_file_t(const char *path, int mode, bool is_really_direct, io_backender_t *io_backender);
-
-    bool exists();
     bool is_block_device();
     uint64_t get_size();
     void set_size(size_t size);
@@ -105,8 +104,10 @@ public:
     ~linux_file_t();
 
 private:
+    linux_file_t(const char *path, int mode, bool is_really_direct, io_backender_t *io_backender);
+    friend file_open_result_t open_direct_file(const char *path, int mode, io_backender_t *backender, scoped_ptr_t<file_t> *out);
+
     scoped_fd_t fd;
-    bool file_exists;
     uint64_t file_size;
 
     /* In a scoped pointer because it's polymorphic */
@@ -118,26 +119,7 @@ private:
     DISABLE_COPYING(linux_file_t);
 };
 
-/* The "direct" in linux_direct_file_t refers to the fact that the
-file is opened in O_DIRECT mode, and there are restrictions on the
-alignment of the chunks being written and read to and from the file. */
-class linux_direct_file_t : public linux_file_t {
-public:
-    linux_direct_file_t(const char *path, int mode, io_backender_t *io_backender) :
-        linux_file_t(path, mode, true, io_backender) { }
-
-private:
-    DISABLE_COPYING(linux_direct_file_t);
-};
-
-class linux_nondirect_file_t : public linux_file_t {
-public:
-    linux_nondirect_file_t(const char *path, int mode, io_backender_t *io_backender) :
-        linux_file_t(path, mode, false, io_backender) { }
-
-private:
-    DISABLE_COPYING(linux_nondirect_file_t);
-};
+file_open_result_t open_direct_file(const char *path, int mode, io_backender_t *backender, scoped_ptr_t<file_t> *out);
 
 // Runs some assertios to make sure that we're aligned to DEVICE_BLOCK_SIZE, not overrunning the
 // file size, and that buf is not null.

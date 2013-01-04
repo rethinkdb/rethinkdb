@@ -284,8 +284,6 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, io
         }
     }
 
-    file_exists = true;
-
     // Determine the file size
 
     // We use lseek to get the size.  We could have also used stat.
@@ -304,10 +302,6 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, io
         diskmgr = io_backender->get_diskmgr_ptr();
         default_account.init(new file_account_t(this, 1, UNLIMITED_OUTSTANDING_REQUESTS));
     }
-}
-
-bool linux_file_t::exists() {
-    return file_exists;
 }
 
 bool linux_file_t::is_block_device() {
@@ -406,4 +400,9 @@ void verify_aligned_file_access(DEBUG_VAR size_t file_size, DEBUG_VAR size_t off
     rassert(divides(DEVICE_BLOCK_SIZE, intptr_t(buf)));
     rassert(divides(DEVICE_BLOCK_SIZE, offset));
     rassert(divides(DEVICE_BLOCK_SIZE, length));
+}
+
+file_open_result_t open_direct_file(const char *path, int mode, io_backender_t *backender, scoped_ptr_t<file_t> *out) {
+    out->init(new linux_file_t(path, mode, false, backender));
+    return FILE_OPEN_SUCCESS;
 }
