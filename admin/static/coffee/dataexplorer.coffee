@@ -30,17 +30,8 @@ module 'DataExplorerView', ->
             'click .execute_query': 'execute_query'
             'click .change_size': 'toggle_size'
             'click #reconnect': 'reconnect'
-
             'click .more_results': 'show_more_results'
-
-            'click .link_to_tree_view': 'save_tab'
-            'click .link_to_table_view': 'save_tab'
-            'click .link_to_raw_view': 'save_tab'
             'click .close': 'close_alert'
-
-        save_tab: (event) =>
-            @results_view.set_view @.$(event.target).data('view')
-
 
         displaying_full_view: false # Boolean for the full view (true if full view)
 
@@ -204,7 +195,7 @@ module 'DataExplorerView', ->
             @show_or_hide_arrow()
 
         # Hide the description
-        hide_suggestion_description: ->
+        hide_suggestion_description: =>
             @.$('.suggestion_description').html ''
             @.$('.suggestion_description').css 'display', 'none'
             @show_or_hide_arrow()
@@ -724,6 +715,8 @@ module 'DataExplorerView', ->
 
         # Function triggered when the user click on 'more results'
         show_more_results: (event) =>
+            if @last_results isnt null
+                @results_view.start_record += @last_results.length
             try
                 event.preventDefault()
                 @current_results = []
@@ -811,6 +804,7 @@ module 'DataExplorerView', ->
         # - We don't execute q1_3
         # - User retrieve results for q2
         execute_query: =>
+            @results_view.start_record = 1
             # The user just executed a query, so we reset cursor_timed_out to false
             DataExplorerView.Container.prototype.cursor_timed_out = false
 
@@ -1065,9 +1059,9 @@ module 'DataExplorerView', ->
 
         # Switch between full view and normal view
         toggle_size: =>
-            if @displaying_full_view
+            if @displaying_full_view is true
                 @display_normal()
-                $(window).on 'resize', @display_full
+                $(window).off 'resize', @display_full
                 @displaying_full_view = false
                 @set_char_per_line()
             else
@@ -1075,16 +1069,17 @@ module 'DataExplorerView', ->
                 $(window).on 'resize', @display_full
                 @displaying_full_view = true
                 @set_char_per_line()
+            @results_view.set_scrollbar()
 
         display_normal: =>
             $('#cluster').addClass 'container'
             $('#cluster').removeClass 'cluster_with_margin'
-            @.$('.json_table_container').css 'width', '888px'
+            @.$('.wrapper_scrollbar').css 'width', '888px'
 
         display_full: =>
             $('#cluster').removeClass 'container'
             $('#cluster').addClass 'cluster_with_margin'
-            @.$('.json_table_container').css 'width', ($(window).width()-52)+'px'
+            @.$('.wrapper_scrollbar').css 'width', ($(window).width()-92)+'px'
 
         destroy: =>
             @display_normal()
@@ -1129,8 +1124,6 @@ module 'DataExplorerView', ->
         cursor_timed_out_template: Handlebars.templates['dataexplorer-cursor_timed_out-template']
 
         events:
-            # Global events
-            'click .link_to_raw_view': 'expand_raw_textarea'
             # For Tree view
             'click .jt_arrow': 'toggle_collapse'
             # For Table view
@@ -1138,12 +1131,16 @@ module 'DataExplorerView', ->
             'click .jta_arrow_v': 'expand_tree_in_table'
             'click .jta_arrow_h': 'expand_table_in_table'
 
+            'click .link_to_tree_view': 'show_tree'
+            'click .link_to_table_view': 'show_table'
+            'click .link_to_raw_view': 'show_raw'
+
         current_result: []
 
         initialize: (limit) =>
             @set_limit limit
             @set_skip 0
-            @set_view 'tree'
+            @view ='tree'
             $(window).mousemove @handle_mousemove
             $(window).mouseup @handle_mouseup
 
@@ -1151,8 +1148,19 @@ module 'DataExplorerView', ->
             @limit = limit
         set_skip: (skip) =>
             @skip = skip
-        set_view: (view) =>
-            @view = view
+
+        show_tree: (event) =>
+            event.preventDefault()
+            @view = 'tree'
+            @render_result()
+        show_table: (event) =>
+            event.preventDefault()
+            @view = 'table'
+            @render_result()
+        show_raw: (event) =>
+            event.preventDefault()
+            @view = 'raw'
+            @render_result()
 
         render_error: (query, err) =>
             @.$el.html @error_template
@@ -1272,19 +1280,19 @@ module 'DataExplorerView', ->
                 table_attr: @json_to_table_get_attr keys_sorted
                 table_data: @json_to_table_get_values result, keys_sorted
 
-        json_to_table_get_attr: (keys_sorted) ->
+        json_to_table_get_attr: (keys_sorted) =>
             attr = []
             for element, col in keys_sorted
                 attr.push
                     key: element[0]
                     col: col
  
-            return @template_json_table.tr_attr 
+            return @template_json_table.tr_attr
                 attr: attr
 
-        json_to_table_get_values: (result, keys_stored) ->
+        json_to_table_get_values: (result, keys_stored) =>
             document_list = []
-            for element in result
+            for element, i in result
                 new_document = {}
                 new_document.cells = []
                 for key_container, col in keys_stored
@@ -1295,7 +1303,7 @@ module 'DataExplorerView', ->
                         value = element[key]
 
                     new_document.cells.push @json_to_table_get_td_value value, col
-
+                new_document.record = @start_record + i
                 document_list.push new_document
             return @template_json_table.tr_value
                 document: document_list
@@ -1304,7 +1312,7 @@ module 'DataExplorerView', ->
             data = @compute_data_for_type(value, col)
 
             return @template_json_table.td_value
-                class_td: 'col-'+col
+                col: col
                 cell_content: @template_json_table.td_value_content data
             
         compute_data_for_type: (value,  col) =>
@@ -1358,10 +1366,11 @@ module 'DataExplorerView', ->
  
             @.$(event.target).parent().css 'max-width', 'none'
             @.$(event.target).remove() #TODO Fix this trick
+            @set_scrollbar()
 
 
         # Expand the table with new columns (with the attributes of the expanded object)
-        expand_table_in_table: (event) ->
+        expand_table_in_table: (event) =>
             dom_element = @.$(event.target).parent()
             parent = dom_element.parent()
             classname = dom_element.parent().attr('class').split(' ')[0] #TODO Use a regex
@@ -1434,7 +1443,8 @@ module 'DataExplorerView', ->
                             
                         return true
 
-                $('.'+classcolumn) .remove();
+                $('.'+classcolumn) .remove()
+            @set_scrollbar()
 
         # Helper for expanding a table when showing an object (creating new columns)
         join_table: (data) =>
@@ -1451,7 +1461,7 @@ module 'DataExplorerView', ->
 
         #TODO change cursor
         mouse_down: false
-        handle_mousedown: (event) ->
+        handle_mousedown: (event) =>
             if event.target.nodeName is 'TD' and event.which is 1
                 @event_target = event.target
                 @col_resizing = event.target.dataset.col
@@ -1474,25 +1484,96 @@ module 'DataExplorerView', ->
         handle_mouseup: (event) =>
             @mouse_down = false
             @.$('.json_table').toggleClass('resizing', false)
+            @set_scrollbar()
 
         render_result: (query, result) =>
+            if query?
+                @query = query
+            if result?
+                @result = result
             @.$el.html @template
-                query: query
-            @.$('.tree_view').html @json_to_tree result
-            @.$('.table_view').html @json_to_table result
-            @.$('.raw_view_textarea').html JSON.stringify result
-            @expand_raw_textarea()
+                query: @query
 
             switch @view
                 when 'tree'
-                    @.$('.link_to_tree_view').tab 'show'
+                    @.$('.tree_view').html @json_to_tree @result
+                    @$('.results').hide()
+                    @$('.tree_view_container').show()
+                    @.$('.link_to_tree_view').addClass 'active'
+                    @.$('.link_to_tree_view').parent().addClass 'active'
                 when 'table'
-                    @.$('.link_to_table_view').tab 'show'
+                    @.$('.table_view').html @json_to_table @result
+                    @$('.results').hide()
+                    @$('.table_view_container').show()
+                    @.$('.link_to_table_view').addClass 'active'
+                    @.$('.link_to_table_view').parent().addClass 'active'
                 when 'raw'
-                    @.$('.link_to_raw_view').tab 'show'
+                    @.$('.raw_view_textarea').html JSON.stringify @result
+                    @$('.results').hide()
+                    @$('.raw_view_container').show()
+                    @expand_raw_textarea()
+                    @.$('.link_to_raw_view').addClass 'active'
+                    @.$('.link_to_raw_view').parent().addClass 'active'
+
+            @set_scrollbar()
+            if (not query?) and (not result?)
+                @render_metadata()
  
+        set_scrollbar: =>
+            if @view is 'table'
+                content_name = '.json_table'
+                content_container = '.json_table_container'
+            else if @view is 'tree'
+                content_name = '.json_tree'
+                content_container = '.tree_view'
+            else if @view is 'raw'
+                @$('.wrapper_scrollbar').hide()
+                # There is no scrolbar with the raw view
+                return
+
+            # Set the floating scrollbar
+            width_value = @$(content_name).width()
+            if width_value < @$(content_container).width()
+                # If there is no need for scrollbar, we hide the one on the top
+                @$('.wrapper_scrollbar').hide()
+                $(window).unbind 'scroll'
+            else
+                # Else we set the fake_content to the same width as the table that contains data and links the two scrollbars
+                @$('.wrapper_scrollbar').show()
+                @$('.scrollbar_fake_content').width width_value
+                $(".wrapper_scrollbar").scroll ->
+                    $(content_container).scrollLeft($(".wrapper_scrollbar").scrollLeft())
+                $(content_container).scroll ->
+                    $(".wrapper_scrollbar").scrollLeft($(content_container).scrollLeft())
+
+                # The scrollbar is floating (we just show one and not two). By default its position is fixed with botton: 0px;
+                that = @
+                $(window).scroll ->
+                    if not $(content_container).offset()?
+                        return ''
+                    # Sometimes we don't have to display the scrollbar (when the results are not shown because the query is too big)
+                    if $(window).scrollTop()+$(window).height() < $(content_container).offset().top+20 # bottom of the window < beginning of $('.json_table_container') // 20 pixels is the approximate height of the scrollbar (so we don't show JUST the scrollbar)
+                        that.$('.wrapper_scrollbar').hide()
+                    # We show the scrollbar and stick it to the bottom of the window because there is more content below
+                    else if $(window).scrollTop()+$(window).height() < $(content_container).offset().top+$(content_container).height() # bottom of the window < end of $('.json_table_container')
+                        that/$('.wrapper_scrollbar').show()
+                        that.$('.wrapper_scrollbar').css 'margin-bottom', '0px'
+                    # And sometimes we have to place it higher (when the user is at the bottom of the page)
+                    else
+                        # We can not use the original scrollbar and hide .wrapper_scrollbar (because we cannot scroll a hidden bloc)
+                        that.$('.wrapper_scrollbar').show()
+                        margin_bottom = $(window).scrollTop()+$(window).height()-($(content_container).offset().top+$(content_container).height())
+                        that.$('.wrapper_scrollbar').css 'margin-bottom', margin_bottom+'px'
+
+
+
         # Render the metadata of an the results
         render_metadata: (data) =>
+            if data?
+                @metadata = data
+            else # If we have called render_metadata() without arguments, it's because we just switched view
+                data = @metadata
+
             limit_value = data.limit_value
             skip_value = data.skip_value
             execution_time = data.execution_time
@@ -1541,6 +1622,7 @@ module 'DataExplorerView', ->
             @.$(event.target).nextAll('.jt_points').toggleClass('jt_points_collapsed')
             @.$(event.target).nextAll('.jt_b').toggleClass('jt_b_collapsed')
             @.$(event.target).toggleClass('jt_arrow_hidden')
+            @set_scrollbar()
 
         handle_keypress: (event) =>
             if event.which is 13 and !event.shiftKey
