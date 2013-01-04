@@ -3,11 +3,10 @@
 
 #include <exception>
 
-#include "errors.hpp"
 #include "utils.hpp"
 #include <boost/bind.hpp>
 
-#include "arch/arch.hpp"
+#include "arch/io/network.hpp"
 #include "logger.hpp"
 
 static const char *resource_parts_sep_char = "/";

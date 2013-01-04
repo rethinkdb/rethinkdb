@@ -5,6 +5,7 @@
 #include <map>
 
 #include "arch/io/arch.hpp"
+#include "concurrency/auto_drainer.hpp"
 #include "concurrency/one_per_thread.hpp"
 #include "rpc/connectivity/connectivity.hpp"
 #include "rpc/connectivity/messages.hpp"

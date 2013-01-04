@@ -2,12 +2,15 @@
 #ifndef ARCH_IO_DISK_ACCOUNTING_HPP_
 #define ARCH_IO_DISK_ACCOUNTING_HPP_
 
+#include "errors.hpp"
 #include <boost/function.hpp>
+
 #include "containers/intrusive_list.hpp"
 #include "containers/scoped.hpp"
-#include "concurrency/queue/accounting.hpp"
 #include "concurrency/auto_drainer.hpp"
+#include "concurrency/queue/accounting.hpp"
 #include "concurrency/queue/unlimited_fifo.hpp"
+#include "concurrency/semaphore.hpp"
 #include "arch/io/disk.hpp"
 
 /* `casting_passive_producer_t` is useful when you have a
