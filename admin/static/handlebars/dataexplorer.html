@@ -287,6 +287,9 @@ Did you forget to append .run() at the end of your query?{{/if}}</pre>
 
 <script id="dataexplorer_result_json_table_tr_attr-template" type="text/xs-handlebars-template">
     <tr class="jta_tr">
+        <td class="td_attr col-record" data-col="record">
+            <div class="jta_attr">#</div>
+        </td>
         {{#each attr}}
         <td class="td_attr col-{{col}}" data-col={{col}}>
             <div class="jta_attr">{{key}}</div>
@@ -298,6 +301,7 @@ Did you forget to append .run() at the end of your query?{{/if}}</pre>
 <script id="dataexplorer_result_json_table_tr_value-template" type="text/xs-handlebars-template">
     {{#each document}}
     <tr class="jta_tr">
+        <td class="col-record" data-col="record"><div class="jta_value col-record">{{record}}</div></td>
         {{#each cells}}
             {{print_safe this}}
         {{/each}}
@@ -312,27 +316,27 @@ Did you forget to append .run() at the end of your query?{{/if}}</pre>
 </script>
 
 <script id="dataexplorer_result_json_table_td_value-template" type="text/xs-handlebars-template">
-    <td class="{{class_td}}">
+    <td class="col-{{col}}"  data-col={{col}}>
         {{print_safe cell_content}}
     </td>
 </script>
 
 <script id="dataexplorer_result_json_table_td_value_content-template" type="text/xs-handlebars-template">
-        {{#if data_to_expand}}
-        <div class="{{class_value}} jta_value {{classname}}">       
-            <span data-json_data="{{data_to_expand}}" class="jta_object">
-                <span class="jta_arrow jta_arrow_v"></span>
-                <span class="jta_arrow jta_arrow_h"></span>
-                <strong>{{print_safe value}}</strong>
-            </span>
-        </div>
-        {{else}}
-        <div class="jta_value {{class_value}} {{classname}}">
-            <span>
-                {{value}}
-            </span>
-        </div>
-        {{/if}}
+    {{#if data_to_expand}}
+    <div class="{{class_value}} jta_value {{classname}}">       
+        <span data-json_data="{{data_to_expand}}" class="jta_object">
+            <span class="jta_arrow jta_arrow_v"></span>
+            <span class="jta_arrow jta_arrow_h"></span>
+            <strong>{{print_safe value}}</strong>
+        </span>
+    </div>
+    {{else}}
+    <div class="jta_value {{class_value}} {{classname}}">
+        <span>
+            {{value}}
+        </span>
+    </div>
+    {{/if}}
 </script>
 
 <!-- Ugly indentation to avoid extra spaces before comma -->

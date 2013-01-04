@@ -195,7 +195,7 @@ module 'DataExplorerView', ->
             @show_or_hide_arrow()
 
         # Hide the description
-        hide_suggestion_description: ->
+        hide_suggestion_description: =>
             @.$('.suggestion_description').html ''
             @.$('.suggestion_description').css 'display', 'none'
             @show_or_hide_arrow()
@@ -715,6 +715,8 @@ module 'DataExplorerView', ->
 
         # Function triggered when the user click on 'more results'
         show_more_results: (event) =>
+            if @last_results isnt null
+                @results_view.start_record += @last_results.length
             try
                 event.preventDefault()
                 @current_results = []
@@ -802,6 +804,7 @@ module 'DataExplorerView', ->
         # - We don't execute q1_3
         # - User retrieve results for q2
         execute_query: =>
+            @results_view.start_record = 1
             # The user just executed a query, so we reset cursor_timed_out to false
             DataExplorerView.Container.prototype.cursor_timed_out = false
 
@@ -1277,19 +1280,19 @@ module 'DataExplorerView', ->
                 table_attr: @json_to_table_get_attr keys_sorted
                 table_data: @json_to_table_get_values result, keys_sorted
 
-        json_to_table_get_attr: (keys_sorted) ->
+        json_to_table_get_attr: (keys_sorted) =>
             attr = []
             for element, col in keys_sorted
                 attr.push
                     key: element[0]
                     col: col
  
-            return @template_json_table.tr_attr 
+            return @template_json_table.tr_attr
                 attr: attr
 
-        json_to_table_get_values: (result, keys_stored) ->
+        json_to_table_get_values: (result, keys_stored) =>
             document_list = []
-            for element in result
+            for element, i in result
                 new_document = {}
                 new_document.cells = []
                 for key_container, col in keys_stored
@@ -1300,7 +1303,7 @@ module 'DataExplorerView', ->
                         value = element[key]
 
                     new_document.cells.push @json_to_table_get_td_value value, col
-
+                new_document.record = @start_record + i
                 document_list.push new_document
             return @template_json_table.tr_value
                 document: document_list
@@ -1309,7 +1312,7 @@ module 'DataExplorerView', ->
             data = @compute_data_for_type(value, col)
 
             return @template_json_table.td_value
-                class_td: 'col-'+col
+                col: col
                 cell_content: @template_json_table.td_value_content data
             
         compute_data_for_type: (value,  col) =>
@@ -1367,7 +1370,7 @@ module 'DataExplorerView', ->
 
 
         # Expand the table with new columns (with the attributes of the expanded object)
-        expand_table_in_table: (event) ->
+        expand_table_in_table: (event) =>
             dom_element = @.$(event.target).parent()
             parent = dom_element.parent()
             classname = dom_element.parent().attr('class').split(' ')[0] #TODO Use a regex
@@ -1458,7 +1461,7 @@ module 'DataExplorerView', ->
 
         #TODO change cursor
         mouse_down: false
-        handle_mousedown: (event) ->
+        handle_mousedown: (event) =>
             if event.target.nodeName is 'TD' and event.which is 1
                 @event_target = event.target
                 @col_resizing = event.target.dataset.col
@@ -1513,6 +1516,8 @@ module 'DataExplorerView', ->
                     @.$('.link_to_raw_view').parent().addClass 'active'
 
             @set_scrollbar()
+            if (not query?) and (not result?)
+                @render_metadata()
  
         set_scrollbar: =>
             if @view is 'table'
@@ -1564,6 +1569,11 @@ module 'DataExplorerView', ->
 
         # Render the metadata of an the results
         render_metadata: (data) =>
+            if data?
+                @metadata = data
+            else # If we have called render_metadata() without arguments, it's because we just switched view
+                data = @metadata
+
             limit_value = data.limit_value
             skip_value = data.skip_value
             execution_time = data.execution_time
