@@ -259,6 +259,11 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t 
     response->result = (exists ? DELETED : MISSING);
 }
 
+void rdb_value_deleter_t::delete_value(transaction_t *_txn, void *_value) {
+        blob_t blob(static_cast<rdb_value_t *>(_value)->value_ref(), blob::btree_maxreflen);
+        blob.clear(_txn);
+}
+
 void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
                        bool left_key_supplied, const store_key_t& left_key_exclusive,
                        bool right_key_supplied, const store_key_t& right_key_inclusive,
@@ -267,12 +272,7 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
     value_sizer_t<rdb_value_t> rdb_sizer(slice->cache()->get_block_size());
     value_sizer_t<void> *sizer = &rdb_sizer;
 
-    struct : public value_deleter_t {
-        void delete_value(transaction_t *_txn, void *_value) {
-            blob_t blob(static_cast<rdb_value_t *>(_value)->value_ref(), blob::btree_maxreflen);
-            blob.clear(_txn);
-        }
-    } deleter;
+    rdb_value_deleter_t deleter;
 
     btree_erase_range_generic(sizer, slice, tester, &deleter,
         left_key_supplied ? left_key_exclusive.btree_key() : NULL,

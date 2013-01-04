@@ -13,6 +13,12 @@
 #include "perfmon/perfmon.hpp"
 #include "protocol_api.hpp"
 
+namespace unittest {
+// A forward decleration of this is needed so that it can be friended and the
+// unit test can access the private API of btree_store_t.
+void run_sindex_btree_store_api_test();
+} //namespace unittest
+
 class btree_slice_t;
 class io_backender_t;
 class superblock_t;
@@ -93,6 +99,8 @@ public:
         THROWS_ONLY(interrupted_exc_t);
 
 protected:
+    //So the unittest can directly test methods.
+    friend void unittest::run_sindex_btree_store_api_test();
     void add_secondary_index(
             uuid_t id,
             const secondary_index_t::opaque_definition_t &definition,

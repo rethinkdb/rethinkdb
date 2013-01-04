@@ -9,12 +9,13 @@
 // Run backfilling at a reduced priority
 #define BACKFILL_CACHE_PRIORITY 10
 
-void btree_slice_t::create(cache_t *cache, block_id_t superblock_id) {
-
-    /* Initialize the btree superblock and the delete queue */
+void btree_slice_t::create(cache_t *cache) {
     transaction_t txn(cache, rwi_write, 1, repli_timestamp_t::distant_past, order_token_t::ignore);
+    create(cache, SUPERBLOCK_ID, &txn);
+}
 
-    buf_lock_t superblock(&txn, superblock_id, rwi_write);
+void btree_slice_t::create(cache_t *cache, block_id_t superblock_id, transaction_t *txn) {
+    buf_lock_t superblock(txn, superblock_id, rwi_write);
 
     // Initialize replication time barrier to 0 so that if we are a slave, we will begin by pulling
     // ALL updates from master.
@@ -29,7 +30,7 @@ void btree_slice_t::create(cache_t *cache, block_id_t superblock_id) {
     sb->root_block = NULL_BLOCK_ID;
     sb->stat_block = NULL_BLOCK_ID;
 
-    initialize_secondary_indexes(&txn, &superblock);
+    initialize_secondary_indexes(txn, &superblock);
 }
 
 btree_slice_t::btree_slice_t(cache_t *c, perfmon_collection_t *parent, block_id_t _superblock_id)

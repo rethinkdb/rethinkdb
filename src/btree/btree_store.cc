@@ -202,7 +202,7 @@ void btree_store_t<protocol_t>::add_secondary_index(
     bool didnt_already_exist = ::add_secondary_index(txn, superblock, id, sindex);
     guarantee(didnt_already_exist, "Added a secondary index with an existing id.");
 
-    btree_slice_t::create(txn->get_cache(), sindex.superblock);
+    btree_slice_t::create(txn->get_cache(), sindex.superblock, txn);
 
     secondary_index_slices.insert(id, new btree_slice_t(cache.get(), &perfmon_collection));
 }
@@ -228,12 +228,20 @@ void btree_store_t<protocol_t>::drop_secondary_index(
     guarantee(std_contains(secondary_index_slices, id));
     btree_slice_t *sindex_slice = &(secondary_index_slices.at(id));
 
-    buf_lock_t sindex_superblock_lock(txn, sindex.superblock, rwi_write);
-    real_superblock_t sindex_superblock(&sindex_superblock_lock);
+    {
+        buf_lock_t sindex_superblock_lock(txn, sindex.superblock, rwi_write);
+        real_superblock_t sindex_superblock(&sindex_superblock_lock);
 
-    erase_all(sizer, sindex_slice,
-              deleter, txn, &sindex_superblock);
-    sindex_superblock.get()->mark_deleted();
+        erase_all(sizer, sindex_slice,
+                  deleter, txn, &sindex_superblock);
+    }
+
+    secondary_index_slices.erase(id);
+
+    {
+        buf_lock_t sindex_superblock_lock(txn, sindex.superblock, rwi_write);
+        sindex_superblock_lock.mark_deleted();
+    }
 }
 
 template <class protocol_t>

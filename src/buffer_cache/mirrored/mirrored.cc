@@ -901,6 +901,7 @@ void mc_buf_lock_t::mark_deleted() {
     rassert(!inner_buf->safe_to_unload());
     // TODO (sam): f'd up
     rassert(inner_buf->data.equals(data));
+    guarantee(acquired, "Deleting a block after it was already released isn't allowed.");
 
     bool we_snapshotted = inner_buf->snapshot_if_needed(inner_buf->version_id, false);
     if (!we_snapshotted && data) {

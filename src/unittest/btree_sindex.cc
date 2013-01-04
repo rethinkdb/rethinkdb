@@ -4,9 +4,11 @@
 #include "arch/io/disk.hpp"
 #include "btree/btree_store.hpp"
 #include "btree/operations.hpp"
+#include "buffer_cache/blob.hpp"
 #include "mock/unittest_utils.hpp"
-#include "serializer/config.hpp"
+#include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/protocol.hpp"
+#include "serializer/config.hpp"
 
 namespace unittest {
 
@@ -111,6 +113,53 @@ void run_sindex_btree_store_api_test() {
             true,
             &get_global_perfmon_collection(),
             NULL);
+
+    cond_t dummy_interuptor;
+    uuid_t id = generate_uuid();
+    {
+        object_buffer_t<fifo_enforcer_sink_t::exit_write_t> token;
+        store.new_write_token(&token);
+
+        scoped_ptr_t<transaction_t> txn;
+        scoped_ptr_t<real_superblock_t> super_block;
+
+        store.acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid,
+                                           1, &token, &txn, &super_block, &dummy_interuptor);
+
+        store.add_secondary_index(
+                id,
+                std::vector<unsigned char>(),
+                txn.get(),
+                super_block->get(),
+                &dummy_interuptor);
+    }
+
+    {
+        object_buffer_t<fifo_enforcer_sink_t::exit_write_t> token;
+        store.new_write_token(&token);
+
+        scoped_ptr_t<transaction_t> txn;
+        scoped_ptr_t<real_superblock_t> super_block;
+
+        store.acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid,
+                                           1, &token, &txn, &super_block, &dummy_interuptor);
+
+        value_sizer_t<rdb_value_t> sizer(store.cache->get_block_size());
+
+        rdb_value_deleter_t deleter;
+
+        store.drop_secondary_index(
+                id,
+                txn.get(),
+                super_block->get(),
+                &sizer,
+                &deleter,
+                &dummy_interuptor);
+    }
+}
+
+TEST(BTreeSindex, BtreeStoreAPI) {
+    mock::run_in_thread_pool(&run_sindex_btree_store_api_test);
 }
 
 } // namespace unittest

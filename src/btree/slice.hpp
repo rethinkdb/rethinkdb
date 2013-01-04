@@ -45,7 +45,13 @@ class btree_slice_t :
 {
 public:
     // Blocks
-    static void create(cache_t *cache, block_id_t superblock_id = SUPERBLOCK_ID);
+    // Creates a btree_slice_t on a clean cache using SUPERBLOCK_ID as the superblock
+    static void create(cache_t *cache);
+
+    // Blocks
+    // Creates a btree_slice_t on a cache with data in it putting the
+    // superblock at the specified location
+    static void create(cache_t *cache, block_id_t superblock_id, transaction_t *txn);
 
     // Blocks
     btree_slice_t(cache_t *cache, perfmon_collection_t *parent, block_id_t superblock_id = SUPERBLOCK_ID);
