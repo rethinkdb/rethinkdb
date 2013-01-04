@@ -192,114 +192,12 @@ void make_io_backender(io_backend_t backend, scoped_ptr_t<io_backender_t> *out) 
 
 /* Disk file object */
 
-linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, io_backender_t *io_backender)
-    : fd(INVALID_FD), file_size(0)
-{
-    // Construct file flags
-
-    // Let's have a sanity check for our attempt to check whether O_DIRECT and O_NOATIME are
-    // available as preprocessor defines.
-#ifndef O_CREAT
-#error "O_CREAT and other open flags are apparently not defined in the preprocessor."
-#endif
-
-    int flags = O_CREAT;
-
-    // For now, we have a whitelist of kernels that don't support O_LARGEFILE.
-#ifndef __MACH__
-    flags |= O_LARGEFILE;
-#endif
-
-    if ((mode & mode_write) && (mode & mode_read)) {
-        flags |= O_RDWR;
-    } else if (mode & mode_write) {
-        flags |= O_WRONLY;
-    } else if (mode & mode_read) {
-        flags |= O_RDONLY;
-    } else {
-        crash("Bad file access mode.");
-    }
-
-
-    // O_NOATIME requires owner or root privileges. This is a bit of a hack; we assume that
-    // if we are opening a regular file, we are the owner, but if we are opening a block device,
-    // we are not.
-#ifdef O_NOATIME
-    flags |= O_NOATIME;
-#endif
-
-    // Open the file
-
-    {
-        int res_open;
-        do {
-            res_open = open(path, flags, 0644);
-        } while (res_open == -1 && errno == EINTR);
-
-        fd.reset(res_open);
-    }
-
-    if (fd.get() == INVALID_FD) {
-        /* TODO: Throw an exception instead. */
-        fail_due_to_user_error(
-            "Inaccessible database file: \"%s\": %s"
-            "\nSome possible reasons:"
-            "\n- the database file couldn't be created or opened for reading and writing"
-#ifdef O_DIRECT
-            "%s"
-#endif
-#ifdef O_NOATIME
-            "%s"
-#endif
-            , path, errno_string(errno).c_str()
-#ifdef O_DIRECT
-            , is_really_direct ? "\n- the database file is located on a filesystem that doesn't support O_DIRECT open flag (e.g. some encrypted or journaled file systems)" : ""
-#endif
-#ifdef O_NOATIME
-            , "\n- user which was used to start the database is not an owner of the file"
-#endif
-            );
-    } else {
-        // When building, we must either support O_DIRECT or F_NOCACHE.  The former works on Linux,
-        // the latter works on OS X.
-        if (is_really_direct) {
-#ifdef O_DIRECT
-            int fcntl_res = fcntl(fd.get(), F_SETFL, static_cast<long>(flags | O_DIRECT));
-#else
-            int fcntl_res = fcntl(fd.get(), F_NOCACHE, 1);
-#endif  // O_DIRECT.
-
-            if (fcntl_res == -1) {
-                logWRN("Could not turn off filesystem caching for database file: \"%s\": %s"
-                       "\n(Is the database file located on a filesystem that doesn't support "
-#ifdef O_DIRECT
-                       "O_DIRECT"
-#else
-                       "F_NOCACHE"
-#endif  // O_DIRECT
-                       " (e.g. some encrypted or journaled file systems)?) "
-                       "This is UNSAFE and should not be used in production.",
-                       path, errno_string(errno).c_str());
-            }
-        }
-    }
-
-    // Determine the file size
-
-    // We use lseek to get the size.  We could have also used stat.
-    file_size = get_file_size(fd.get());
-
-    // TODO: We have a very minor correctness issue here, which is that
-    // we don't guarantee data durability for newly created database files.
-    // In theory, we would have to fsync() not only the file itself, but
-    // also the directory containing it. Otherwise the file might not
-    // survive a crash of the system. However, the window for data to get lost
-    // this way is just a few seconds after the creation of a new database,
-    // until the file system flushes the metadata to disk.
-
-    // Construct a disk manager. (given that we have an event pool)
+linux_file_t::linux_file_t(scoped_fd_t *_fd, uint64_t _file_size, linux_disk_manager_t *_diskmgr)
+    : fd(_fd->release()), file_size(_file_size), diskmgr(_diskmgr) {
+    // TODO: Why do we care whether we're in a thread pool?  (Maybe it's that you can't create a
+    // file_account_t outside of the thread pool?  But they're associated with the diskmgr,
+    // aren't they?)
     if (linux_thread_pool_t::thread) {
-        diskmgr = io_backender->get_diskmgr_ptr();
         default_account.init(new file_account_t(this, 1, UNLIMITED_OUTSTANDING_REQUESTS));
     }
 }
@@ -403,6 +301,87 @@ void verify_aligned_file_access(DEBUG_VAR size_t file_size, DEBUG_VAR size_t off
 }
 
 file_open_result_t open_direct_file(const char *path, int mode, io_backender_t *backender, scoped_ptr_t<file_t> *out) {
-    out->init(new linux_file_t(path, mode, false, backender));
-    return FILE_OPEN_SUCCESS;
+    // Construct file flags
+
+    // Let's have a sanity check for our attempt to check whether O_DIRECT and O_NOATIME are
+    // available as preprocessor defines.
+#ifndef O_CREAT
+#error "O_CREAT and other open flags are apparently not defined in the preprocessor."
+#endif
+
+    int flags = O_CREAT;
+
+    // For now, we have a whitelist of kernels that don't support O_LARGEFILE.
+#ifndef __MACH__
+    flags |= O_LARGEFILE;
+#endif
+
+    if ((mode & linux_file_t::mode_write) && (mode & linux_file_t::mode_read)) {
+        flags |= O_RDWR;
+    } else if (mode & linux_file_t::mode_write) {
+        flags |= O_WRONLY;
+    } else if (mode & linux_file_t::mode_read) {
+        flags |= O_RDONLY;
+    } else {
+        crash("Bad file access mode.");
+    }
+
+
+#ifdef O_NOATIME
+    flags |= O_NOATIME;
+#endif
+
+    // Open the file.
+
+    scoped_fd_t fd;
+    {
+        int res_open;
+        do {
+            res_open = open(path, flags, 0644);
+        } while (res_open == -1 && errno == EINTR);
+
+        fd.reset(res_open);
+    }
+
+    file_open_result_t open_res;
+
+    if (fd.get() == INVALID_FD) {
+        /* TODO: Throw an exception instead. */
+        fail_due_to_user_error(
+            "Inaccessible database file: \"%s\": %s"
+            "\nSome possible reasons:"
+            "\n- the database file couldn't be created or opened for reading and writing"
+#ifdef O_NOATIME
+            "%s"
+#endif
+            , path, errno_string(errno).c_str()
+#ifdef O_NOATIME
+            , "\n- user which was used to start the database is not an owner of the file"
+#endif
+            );
+    } else {
+        // When building, we must either support O_DIRECT or F_NOCACHE.  The former works on Linux,
+        // the latter works on OS X.
+#ifdef O_DIRECT
+        int fcntl_res = fcntl(fd.get(), F_SETFL, static_cast<long>(flags | O_DIRECT));
+#else
+        int fcntl_res = fcntl(fd.get(), F_NOCACHE, 1);
+#endif  // O_DIRECT.
+
+        open_res = (fcntl_res == -1 ? FILE_OPEN_BUFFERED : FILE_OPEN_SUCCESS);
+    }
+
+    uint64_t file_size = get_file_size(fd.get());
+
+    // TODO: We have a very minor correctness issue here, which is that
+    // we don't guarantee data durability for newly created database files.
+    // In theory, we would have to fsync() not only the file itself, but
+    // also the directory containing it. Otherwise the file might not
+    // survive a crash of the system. However, the window for data to get lost
+    // this way is just a few seconds after the creation of a new database,
+    // until the file system flushes the metadata to disk.
+
+    out->init(new linux_file_t(&fd, file_size, backender->get_diskmgr_ptr()));
+
+    return open_res;
 }

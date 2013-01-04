@@ -29,7 +29,14 @@ bool filepath_file_opener_t::open_serializer_file(int extra_flag, scoped_ptr_t<f
                                                    linux_file_t::mode_read | linux_file_t::mode_write | extra_flag,
                                                    backender_,
                                                    file_out);
-    return open_res == FILE_OPEN_SUCCESS;
+    if (open_res == FILE_OPEN_BUFFERED) {
+        logWRN("Could not turn off filesystem caching for database file: \"%s\" "
+               "(Is the file located on a filesystem that doesn't support direct I/O "
+               "(e.g. some encrypted or journaled file systems)?) "
+               "This is UNSAFE and should not be used in production.",
+               filepath_.c_str());
+    }
+    return open_res != FILE_OPEN_FAILURE;
 }
 
 bool filepath_file_opener_t::open_serializer_file_create(scoped_ptr_t<file_t> *file_out) {
@@ -56,11 +63,11 @@ bool filepath_file_opener_t::open_semantic_checking_file(int *fd_out) {
         return true;
     }
 }
-#endif
+#endif  // SEMANTIC_SERIALIZER_CHECK
 
 
 
-log_serializer_stats_t::log_serializer_stats_t(perfmon_collection_t *parent) 
+log_serializer_stats_t::log_serializer_stats_t(perfmon_collection_t *parent)
     : serializer_collection(),
       pm_serializer_block_reads(secs_to_ticks(1)),
       pm_serializer_index_reads(),

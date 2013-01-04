@@ -104,16 +104,14 @@ public:
     ~linux_file_t();
 
 private:
-    linux_file_t(const char *path, int mode, bool is_really_direct, io_backender_t *io_backender);
+    linux_file_t(scoped_fd_t *fd, uint64_t file_size, linux_disk_manager_t *diskmgr);
     friend file_open_result_t open_direct_file(const char *path, int mode, io_backender_t *backender, scoped_ptr_t<file_t> *out);
 
     scoped_fd_t fd;
     uint64_t file_size;
 
-    /* In a scoped pointer because it's polymorphic */
     linux_disk_manager_t *diskmgr;
 
-    /* In a scoped_ptr so we can initialize it after "diskmgr" */
     scoped_ptr_t<file_account_t> default_account;
 
     DISABLE_COPYING(linux_file_t);
