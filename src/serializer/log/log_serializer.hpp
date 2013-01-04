@@ -99,13 +99,6 @@ public:
     /* Blocks. */
     virtual ~log_serializer_t();
 
-    /* TODO Make this block too instead of using a callback */
-    struct check_callback_t {
-        virtual void on_serializer_check(bool is_existing) = 0;
-        virtual ~check_callback_t() {}
-    };
-    static void check_existing(const char *filename, io_backender_t *backender, check_callback_t *cb);
-
 public:
     /* Implementation of the serializer_t API */
     void *malloc();

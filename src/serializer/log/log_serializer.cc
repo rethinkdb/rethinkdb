@@ -334,17 +334,6 @@ log_serializer_t::~log_serializer_t() {
     rassert(active_write_count == 0);
 }
 
-void ls_check_existing(const char *filename, io_backender_t *backender, log_serializer_t::check_callback_t *cb) {
-    scoped_ptr_t<file_t> file;
-    file_open_result_t open_res = open_direct_file(filename, linux_file_t::mode_read, backender, &file);
-    guarantee(open_res == FILE_OPEN_SUCCESS);
-    cb->on_serializer_check(static_header_check(file.get()));
-}
-
-void log_serializer_t::check_existing(const char *filename, io_backender_t *io_backender, check_callback_t *cb) {
-    coro_t::spawn(boost::bind(ls_check_existing, filename, io_backender, cb));
-}
-
 void *log_serializer_t::malloc() {
     // TODO: we shouldn't use malloc_aligned here, we should use our
     // custom allocation system instead (and use corresponding
