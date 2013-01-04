@@ -1144,6 +1144,9 @@ module 'DataExplorerView', ->
             $(window).mousemove @handle_mousemove
             $(window).mouseup @handle_mouseup
 
+            @last_keys = [] # Arrays of the last keys displayed
+            @last_columns_size = {} # Size of the columns displayed. Undefined if a column has the default size
+
         set_limit: (limit) =>
             @limit = limit
         set_skip: (skip) =>
@@ -1275,6 +1278,8 @@ module 'DataExplorerView', ->
                         return 1
                     else return 0
             )
+
+            @last_keys = _.union(['record'], keys_sorted.map( (key) -> return key[0] ))
 
             return @template_json_table.container
                 table_attr: @json_to_table_get_attr keys_sorted
@@ -1473,13 +1478,14 @@ module 'DataExplorerView', ->
         #TODO Handle when last column is resized or when table expands too much
         handle_mousemove: (event) =>
             if @mouse_down
-                # +30 for padding
-                # Fix bug with Firefox (-30) or fix chrome bug...
-                $('.col-'+@col_resizing).css 'max-width', @start_width-@start_x+event.pageX
-                $('.value-'+@col_resizing).css 'max-width', @start_width-@start_x+event.pageX-20
+                @resize_column @col_resizing, @start_width-@start_x+event.pageX # Resize
+                @last_columns_size[@col_resizing] = @start_width-@start_x+event.pageX # Save the personalized size
 
-                $('.col-'+@col_resizing).css 'width' ,@start_width-@start_x+event.pageX
-                $('.value-'+@col_resizing).css 'width', @start_width-@start_x+event.pageX-20
+        resize_column: (col, size) =>
+            $('.col-'+col).css 'max-width', size
+            $('.value-'+col).css 'max-width', size-20
+            $('.col-'+col).css 'width', size
+            $('.value-'+col).css 'width', size-20
 
         handle_mouseup: (event) =>
             @mouse_down = false
@@ -1502,11 +1508,32 @@ module 'DataExplorerView', ->
                     @.$('.link_to_tree_view').addClass 'active'
                     @.$('.link_to_tree_view').parent().addClass 'active'
                 when 'table'
+                    previous_keys = @last_keys # Save previous keys. @last_keys will be updated in @json_to_table
                     @.$('.table_view').html @json_to_table @result
                     @$('.results').hide()
                     @$('.table_view_container').show()
                     @.$('.link_to_table_view').addClass 'active'
                     @.$('.link_to_table_view').parent().addClass 'active'
+
+                    # Check if the keys are the same
+                    if @last_keys.length isnt previous_keys.length
+                        same_keys = false
+                    else
+                        same_keys = true
+                        for keys, index in @last_keys
+                            if @last_keys[index] isnt previous_keys[index]
+                                same_keys = false
+
+                    # If the keys are the same, we are going to resize the columns as they were before
+                    if same_keys is true
+                        for col, value of @last_columns_size
+                            @resize_column col, value
+                    else
+                        # Reinitialize @last_columns_size
+                        @last_columns_size = [null] # The first one is for the document's number
+                        for keys in @last_keys
+                            @last_columns_size.push null
+                        @last_column_size = {}
                 when 'raw'
                     @.$('.raw_view_textarea').html JSON.stringify @result
                     @$('.results').hide()
