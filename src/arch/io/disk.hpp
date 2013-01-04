@@ -75,7 +75,17 @@ public:
 
 void make_io_backender(io_backend_t backend, scoped_ptr_t<io_backender_t> *out);
 
-enum file_open_result_t { FILE_OPEN_SUCCESS, FILE_OPEN_BUFFERED, FILE_OPEN_FAILURE };
+// A file_open_result_t is either FILE_OPEN_DIRECT, FILE_OPEN_BUFFERED, or an errno value.
+struct file_open_result_t {
+    enum outcome_t { DIRECT, BUFFERED, ERROR };
+    outcome_t outcome;
+    int errsv;
+
+    file_open_result_t(outcome_t _outcome, int _errsv) : outcome(_outcome), errsv(_errsv) {
+        guarantee(outcome == ERROR || errsv == 0);
+    }
+    file_open_result_t() : outcome(ERROR), errsv(0) { }
+};
 
 class linux_file_t : public file_t {
 public:
@@ -118,6 +128,8 @@ private:
 };
 
 file_open_result_t open_direct_file(const char *path, int mode, io_backender_t *backender, scoped_ptr_t<file_t> *out);
+
+void crash_due_to_inaccessible_database_file(const char *path, file_open_result_t open_res) NORETURN;
 
 // Runs some assertios to make sure that we're aligned to DEVICE_BLOCK_SIZE, not overrunning the
 // file size, and that buf is not null.

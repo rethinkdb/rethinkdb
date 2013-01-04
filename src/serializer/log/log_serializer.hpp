@@ -57,8 +57,8 @@ public:
 private:
     MUST_USE bool open_serializer_file(int extra_flag, scoped_ptr_t<file_t> *file_out);
 
-    std::string filepath_;
-    io_backender_t *backender_;
+    const std::string filepath_;
+    io_backender_t *const backender_;
 
     DISABLE_COPYING(filepath_file_opener_t);
 };

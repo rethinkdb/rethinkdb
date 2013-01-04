@@ -29,14 +29,18 @@ bool filepath_file_opener_t::open_serializer_file(int extra_flag, scoped_ptr_t<f
                                                    linux_file_t::mode_read | linux_file_t::mode_write | extra_flag,
                                                    backender_,
                                                    file_out);
-    if (open_res == FILE_OPEN_BUFFERED) {
+    if (open_res.outcome == file_open_result_t::ERROR) {
+        crash_due_to_inaccessible_database_file(filepath_.c_str(), open_res);
+    }
+
+    if (open_res.outcome == file_open_result_t::BUFFERED) {
         logWRN("Could not turn off filesystem caching for database file: \"%s\" "
                "(Is the file located on a filesystem that doesn't support direct I/O "
                "(e.g. some encrypted or journaled file systems)?) "
                "This is UNSAFE and should not be used in production.",
                filepath_.c_str());
     }
-    return open_res != FILE_OPEN_FAILURE;
+    return open_res.outcome != file_open_result_t::ERROR;
 }
 
 bool filepath_file_opener_t::open_serializer_file_create(scoped_ptr_t<file_t> *file_out) {

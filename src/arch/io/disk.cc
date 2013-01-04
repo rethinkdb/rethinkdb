@@ -343,33 +343,19 @@ file_open_result_t open_direct_file(const char *path, int mode, io_backender_t *
         fd.reset(res_open);
     }
 
-    file_open_result_t open_res;
-
     if (fd.get() == INVALID_FD) {
-        /* TODO: Throw an exception instead. */
-        fail_due_to_user_error(
-            "Inaccessible database file: \"%s\": %s"
-            "\nSome possible reasons:"
-            "\n- the database file couldn't be created or opened for reading and writing"
-#ifdef O_NOATIME
-            "%s"
-#endif
-            , path, errno_string(errno).c_str()
-#ifdef O_NOATIME
-            , "\n- user which was used to start the database is not an owner of the file"
-#endif
-            );
-    } else {
-        // When building, we must either support O_DIRECT or F_NOCACHE.  The former works on Linux,
-        // the latter works on OS X.
+        return file_open_result_t(file_open_result_t::ERROR, errno);
+    }
+
+    // When building, we must either support O_DIRECT or F_NOCACHE.  The former works on Linux,
+    // the latter works on OS X.
 #ifdef O_DIRECT
-        int fcntl_res = fcntl(fd.get(), F_SETFL, static_cast<long>(flags | O_DIRECT));
+    int fcntl_res = fcntl(fd.get(), F_SETFL, static_cast<long>(flags | O_DIRECT));
 #else
-        int fcntl_res = fcntl(fd.get(), F_NOCACHE, 1);
+    int fcntl_res = fcntl(fd.get(), F_NOCACHE, 1);
 #endif  // O_DIRECT.
 
-        open_res = (fcntl_res == -1 ? FILE_OPEN_BUFFERED : FILE_OPEN_SUCCESS);
-    }
+    file_open_result_t open_res = (fcntl_res == -1 ? file_open_result_t(file_open_result_t::BUFFERED, 0) : file_open_result_t(file_open_result_t::DIRECT, 0));
 
     uint64_t file_size = get_file_size(fd.get());
 
@@ -384,4 +370,16 @@ file_open_result_t open_direct_file(const char *path, int mode, io_backender_t *
     out->init(new linux_file_t(&fd, file_size, backender->get_diskmgr_ptr()));
 
     return open_res;
+}
+
+void crash_due_to_inaccessible_database_file(const char *path, file_open_result_t open_res) {
+    guarantee(open_res.outcome == file_open_result_t::ERROR);
+    fail_due_to_user_error(
+        "Inaccessible database file: \"%s\": %s"
+        "\nSome possible reasons:"
+        "\n- the database file couldn't be created or opened for reading and writing"
+#ifdef O_NOATIME
+        "\n- the user which was used to start the database is not an owner of the file"
+#endif
+        , path, errno_string(open_res.errsv).c_str());
 }
