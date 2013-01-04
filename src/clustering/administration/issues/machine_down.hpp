@@ -16,26 +16,9 @@ class machine_down_issue_t : public global_issue_t {
 public:
     explicit machine_down_issue_t(const machine_id_t &mid) : machine_id(mid) { }
 
-    std::string get_description() const {
-        return "Machine " + uuid_to_str(machine_id) + " is inaccessible.";
-    }
-
-    cJSON *get_json_description() {
-        issue_json_t json;
-        json.critical = true;
-        json.description = "Machine " + uuid_to_str(machine_id) + " is inaccessible.";
-        json.type = "MACHINE_DOWN";
-        json.time = get_secs();
-
-        cJSON *res = render_as_json(&json);
-        cJSON_AddItemToObject(res, "victim", render_as_json(&machine_id));
-
-        return res;
-    }
-
-    machine_down_issue_t *clone() const {
-        return new machine_down_issue_t(machine_id);
-    }
+    std::string get_description() const;
+    cJSON *get_json_description();
+    machine_down_issue_t *clone() const;
 
     machine_id_t machine_id;
 
@@ -47,26 +30,11 @@ class machine_ghost_issue_t : public global_issue_t {
 public:
     explicit machine_ghost_issue_t(const machine_id_t &mid) : machine_id(mid) { }
 
-    std::string get_description() const {
-        return "Machine " + uuid_to_str(machine_id) + " was declared dead, but it's connected to the cluster.";
-    }
+    std::string get_description() const;
 
-    cJSON *get_json_description() {
-        issue_json_t json;
-        json.critical = false;
-        json.description = get_description();
-        json.type = "MACHINE_GHOST";
-        json.time = get_secs();
+    cJSON *get_json_description();
 
-        cJSON *res = render_as_json(&json);
-        cJSON_AddItemToObject(res, "ghost", render_as_json(&machine_id));
-
-        return res;
-    }
-
-    machine_ghost_issue_t *clone() const {
-        return new machine_ghost_issue_t(machine_id);
-    }
+    machine_ghost_issue_t *clone() const;
 
     machine_id_t machine_id;
 

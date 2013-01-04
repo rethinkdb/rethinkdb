@@ -12,15 +12,11 @@
 #include "utils.hpp"
 #include <boost/shared_ptr.hpp>
 #include <boost/variant.hpp>
+#include <boost/optional.hpp>
 
-#include "backfill_progress.hpp"
 #include "btree/btree_store.hpp"
 #include "btree/keys.hpp"
 #include "buffer_cache/types.hpp"
-#include "clustering/administration/namespace_interface_repository.hpp"
-#include "clustering/administration/namespace_metadata.hpp"
-#include "concurrency/cross_thread_signal.hpp"
-#include "containers/archive/boost_types.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "extproc/pool.hpp"
 #include "http/json.hpp"
@@ -33,9 +29,16 @@
 #include "rdb_protocol/rdb_protocol_json.hpp"
 #include "rdb_protocol/serializable_environment.hpp"
 
-template <class> class cross_thread_watchable_variable_t;
 class cluster_directory_metadata_t;
-template <class metadata> class directory_read_manager_t;
+template <class> class cow_ptr_t;
+template <class> class cross_thread_watchable_variable_t;
+class cross_thread_signal_t;
+class databases_semilattice_metadata_t;
+template <class> class directory_read_manager_t;
+template <class> class namespace_repo_t;
+template <class> class namespaces_semilattice_metadata_t;
+template <class> class semilattice_readwrite_view_t;
+class traversal_progress_combiner_t;
 
 using query_language::scopes_t;
 using query_language::backtrace_t;
@@ -89,9 +92,9 @@ struct backfill_atom_t {
         value(_value),
         recency(_recency)
     { }
-
-    RDB_MAKE_ME_SERIALIZABLE_3(key, value, recency);
 };
+
+RDB_DECLARE_SERIALIZABLE(backfill_atom_t);
 
 typedef boost::variant<Builtin_Filter, Mapping, Builtin_ConcatMap, Builtin_Range>  transform_variant_t;
 
@@ -103,9 +106,9 @@ struct transform_atom_t {
     transform_variant_t variant;
     scopes_t scopes;
     backtrace_t backtrace;
-
-    RDB_MAKE_ME_SERIALIZABLE_3(variant, scopes, backtrace);
 };
+
+RDB_DECLARE_SERIALIZABLE(transform_atom_t);
 
 typedef std::list<transform_atom_t> transform_t;
 
@@ -113,9 +116,9 @@ typedef std::list<transform_atom_t> transform_t;
  * with it but to make things work with the variant we create a nice empty
  * class. */
 
-struct Length {
-    RDB_MAKE_ME_SERIALIZABLE_0();
-};
+struct Length { };
+
+RDB_DECLARE_SERIALIZABLE(Length);
 
 typedef boost::variant<Builtin_GroupedMapReduce, Reduction, Length, WriteQuery_ForEach> terminal_variant_t;
 
@@ -127,9 +130,9 @@ struct terminal_t {
     terminal_variant_t variant;
     scopes_t scopes;
     backtrace_t backtrace;
-
-    RDB_MAKE_ME_SERIALIZABLE_3(variant, scopes, backtrace);
 };
+
+RDB_DECLARE_SERIALIZABLE(terminal_t);
 
 } // namespace rdb_protocol_details
 
@@ -148,7 +151,7 @@ struct rdb_protocol_t {
                   namespace_repo_t<rdb_protocol_t> *_ns_repo,
                   boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _semilattice_metadata,
                   directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
-                  machine_id_t _machine_id);
+                  uuid_u _machine_id);
         ~context_t();
 
         extproc::pool_group_t *pool_group;
@@ -162,7 +165,7 @@ struct rdb_protocol_t {
         directory_read_manager_t<cluster_directory_metadata_t> *directory_read_manager;
         cond_t interruptor; //TODO figure out where we're going to want to interrupt this from and put this there instead
         scoped_array_t<scoped_ptr_t<cross_thread_signal_t> > signals;
-        machine_id_t machine_id;
+        uuid_u machine_id;
     };
 
     struct point_read_response_t {
@@ -172,7 +175,7 @@ struct rdb_protocol_t {
             : data(_data)
         { }
 
-        RDB_MAKE_ME_SERIALIZABLE_1(data);
+        RDB_DECLARE_ME_SERIALIZABLE;
     };
 
     struct rget_read_response_t {
@@ -182,12 +185,12 @@ struct rdb_protocol_t {
 
         struct length_t {
             int length;
-            RDB_MAKE_ME_SERIALIZABLE_1(length);
+            RDB_DECLARE_ME_SERIALIZABLE;
         };
 
         struct inserted_t {
             int inserted;
-            RDB_MAKE_ME_SERIALIZABLE_1(inserted);
+            RDB_DECLARE_ME_SERIALIZABLE;
         };
 
 
@@ -205,7 +208,7 @@ struct rdb_protocol_t {
               last_considered_key(_last_considered_key)
         { }
 
-        RDB_MAKE_ME_SERIALIZABLE_5(result, errors, key_range, truncated, last_considered_key);
+        RDB_DECLARE_ME_SERIALIZABLE;
     };
 
     struct distribution_read_response_t {
@@ -218,7 +221,7 @@ struct rdb_protocol_t {
         region_t region;
         std::map<store_key_t, int64_t> key_counts;
 
-        RDB_MAKE_ME_SERIALIZABLE_2(region, key_counts);
+        RDB_DECLARE_ME_SERIALIZABLE;
     };
 
     struct read_response_t {
@@ -231,7 +234,7 @@ struct rdb_protocol_t {
         read_response_t(const read_response_t& r) : response(r.response) { }
         explicit read_response_t(const _response_t &r) : response(r) { }
 
-        RDB_MAKE_ME_SERIALIZABLE_1(response);
+        RDB_DECLARE_ME_SERIALIZABLE;
     };
 
     class point_read_t {
@@ -241,7 +244,7 @@ struct rdb_protocol_t {
 
         store_key_t key;
 
-        RDB_MAKE_ME_SERIALIZABLE_1(key);
+        RDB_DECLARE_ME_SERIALIZABLE;
     };
 
     class rget_read_t {
@@ -272,7 +275,7 @@ struct rdb_protocol_t {
         rdb_protocol_details::transform_t transform;
         boost::optional<rdb_protocol_details::terminal_t> terminal;
 
-        RDB_MAKE_ME_SERIALIZABLE_3(region, transform, terminal);
+        RDB_DECLARE_ME_SERIALIZABLE;
     };
 
     class distribution_read_t {
@@ -288,7 +291,7 @@ struct rdb_protocol_t {
         size_t result_limit;
         region_t region;
 
-        RDB_MAKE_ME_SERIALIZABLE_3(max_depth, result_limit, region);
+        RDB_DECLARE_ME_SERIALIZABLE;
     };
 
 
@@ -309,7 +312,7 @@ struct rdb_protocol_t {
         // Only use snapshotting if we're doing a range get.
         bool use_snapshot() const { return boost::get<rget_read_t>(&read); }
 
-        RDB_MAKE_ME_SERIALIZABLE_1(read);
+        RDB_DECLARE_ME_SERIALIZABLE;
     };
 
     struct point_write_response_t {
@@ -320,7 +323,7 @@ struct rdb_protocol_t {
             : result(_result)
         { }
 
-        RDB_MAKE_ME_SERIALIZABLE_1(result);
+        RDB_DECLARE_ME_SERIALIZABLE;
     };
 
     struct point_delete_response_t {
@@ -331,7 +334,7 @@ struct rdb_protocol_t {
             : result(_result)
         { }
 
-        RDB_MAKE_ME_SERIALIZABLE_1(result);
+        RDB_DECLARE_ME_SERIALIZABLE;
     };
 
     struct point_modify_response_t {
@@ -343,7 +346,8 @@ struct rdb_protocol_t {
         }
         explicit point_modify_response_t(const query_language::runtime_exc_t &_exc)
             : result(point_modify_ns::ERROR), exc(_exc) { }
-        RDB_MAKE_ME_SERIALIZABLE_2(result, exc);
+
+        RDB_DECLARE_ME_SERIALIZABLE;
     };
 
     struct write_response_t {
@@ -355,7 +359,7 @@ struct rdb_protocol_t {
         explicit write_response_t(const point_modify_response_t& m) : response(m) { }
         explicit write_response_t(const point_delete_response_t& d) : response(d) { }
 
-        RDB_MAKE_ME_SERIALIZABLE_1(response);
+        RDB_DECLARE_ME_SERIALIZABLE;
     };
 
     class point_modify_t {
@@ -371,7 +375,8 @@ struct rdb_protocol_t {
         query_language::scopes_t scopes;
         backtrace_t backtrace;
         Mapping mapping;
-        RDB_MAKE_ME_SERIALIZABLE_6(primary_key, key, op, scopes, backtrace, mapping);
+
+        RDB_DECLARE_ME_SERIALIZABLE;
     };
 
     class point_write_t {
@@ -384,7 +389,7 @@ struct rdb_protocol_t {
         boost::shared_ptr<scoped_cJSON_t> data;
         bool overwrite;
 
-        RDB_MAKE_ME_SERIALIZABLE_3(key, data, overwrite);
+        RDB_DECLARE_ME_SERIALIZABLE;
     };
 
     class point_delete_t {
@@ -395,7 +400,7 @@ struct rdb_protocol_t {
 
         store_key_t key;
 
-        RDB_MAKE_ME_SERIALIZABLE_1(key);
+        RDB_DECLARE_ME_SERIALIZABLE;
     };
 
     struct write_t {
@@ -411,7 +416,7 @@ struct rdb_protocol_t {
         explicit write_t(const point_delete_t &d) : write(d) { }
         explicit write_t(const point_modify_t &m) : write(m) { }
 
-        RDB_MAKE_ME_SERIALIZABLE_1(write);
+        RDB_DECLARE_ME_SERIALIZABLE;
     };
 
     struct backfill_chunk_t {
@@ -422,7 +427,8 @@ struct rdb_protocol_t {
             delete_key_t() { }
             delete_key_t(const store_key_t& _key, const repli_timestamp_t& _recency) : key(_key), recency(_recency) { }
 
-            RDB_MAKE_ME_SERIALIZABLE_1(key);
+            // TODO: Wtf?  recency is not being serialized.
+            RDB_DECLARE_ME_SERIALIZABLE;
         };
         struct delete_range_t {
             region_t range;
@@ -430,7 +436,7 @@ struct rdb_protocol_t {
             delete_range_t() { }
             explicit delete_range_t(const region_t& _range) : range(_range) { }
 
-            RDB_MAKE_ME_SERIALIZABLE_1(range);
+            RDB_DECLARE_ME_SERIALIZABLE;
         };
         struct key_value_pair_t {
             rdb_protocol_details::backfill_atom_t backfill_atom;
@@ -438,7 +444,7 @@ struct rdb_protocol_t {
             key_value_pair_t() { }
             explicit key_value_pair_t(const rdb_protocol_details::backfill_atom_t& _backfill_atom) : backfill_atom(_backfill_atom) { }
 
-            RDB_MAKE_ME_SERIALIZABLE_1(backfill_atom);
+            RDB_DECLARE_ME_SERIALIZABLE;
         };
 
         backfill_chunk_t() { }
@@ -462,7 +468,7 @@ struct rdb_protocol_t {
         /* This is for `btree_store_t`; it's not part of the ICL protocol API. */
         repli_timestamp_t get_btree_repli_timestamp() const THROWS_NOTHING;
 
-        RDB_MAKE_ME_SERIALIZABLE_1(val);
+        RDB_DECLARE_ME_SERIALIZABLE;
     };
 
     typedef traversal_progress_combiner_t backfill_progress_t;

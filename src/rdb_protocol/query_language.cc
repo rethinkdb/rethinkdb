@@ -9,6 +9,7 @@
 
 #include "clustering/administration/main/ports.hpp"
 #include "clustering/administration/suggester.hpp"
+#include "concurrency/cross_thread_signal.hpp"
 #include "http/json.hpp"
 #include "rdb_protocol/internal_extensions.pb.h"
 #include "rdb_protocol/js.hpp"

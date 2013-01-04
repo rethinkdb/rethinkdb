@@ -6,6 +6,7 @@
 #include <boost/ptr_container/ptr_map.hpp>
 
 #include "arch/timing.hpp"
+#include "clustering/administration/namespace_metadata.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
 
