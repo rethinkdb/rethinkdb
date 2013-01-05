@@ -911,9 +911,9 @@ module 'DataUtils', ->
         # If num>1000B, then we just print the number of billions
         if num is 0
             return '0'
-        else if num < 5
+        else if num <= 5
             return '5'
-        else if num < 10
+        else if num <= 10
             return '10'
         else
             # Approximation to 2 significant digit
