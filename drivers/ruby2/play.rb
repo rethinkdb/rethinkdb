@@ -155,5 +155,9 @@ rae(r.div(0.2), 0.2)
 assert_raise{r.div(1, 0).run}
 assert_raise{r.db('test').table('test2').run}
 
+tst = r.db('test').table('test')
+rae(tst.map(r.func([1], r.var(1))), tst.run)
+rae(tst.map(r.func([1], 2)), tst.run.map{|x| 2})
+
 print "test.test: #{r.db('test').table('test').run.inspect}\n"
 print "Ran #{$tests} tests!\n"
