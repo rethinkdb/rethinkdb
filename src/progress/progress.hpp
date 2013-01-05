@@ -30,9 +30,6 @@ private:
     // The activity this progress bar represents
     std::string activity;
 
-    // The redraw time interval.
-    int redraw_interval_ms;
-
     // The time when we started.
     ticks_t start_time;
 

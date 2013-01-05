@@ -41,7 +41,7 @@ MUST_USE int64_t serializer_file_read_stream_t::read(void *p, int64_t n) {
     const int64_t block_offset = real_position % block_size.value();
 
     const int64_t s = std::min(real_position + n, real_size);
-    const int64_t end_block_offset = s < block_size.value() * (block_number + 1) ? s % block_size.value() : block_size.value();
+    const int64_t end_block_offset = (s < block_size.value() * (block_number + 1)) ? s % block_size.value() : block_size.value();
     const int64_t num_copied = end_block_offset - block_offset;
     rassert(num_copied > 0);
 

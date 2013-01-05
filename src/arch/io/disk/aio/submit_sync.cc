@@ -47,7 +47,7 @@ void linux_aio_submit_sync_t::pump() {
             request_batch.push_back(source->pop());
         }
 
-        if (request_batch.size() == 0)
+        if (request_batch.empty())
             break;
 
         int actual_size = io_submit(context->id, request_batch.size(), request_batch.data());

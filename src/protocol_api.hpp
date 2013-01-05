@@ -92,7 +92,7 @@ public:
 public:
     typename protocol_t::region_t get_domain() const THROWS_NOTHING {
         std::vector<typename protocol_t::region_t> regions;
-        for (const_iterator it = begin(); it != end(); it++) {
+        for (const_iterator it = begin(); it != end(); ++it) {
             regions.push_back(it->first);
         }
         typename protocol_t::region_t join;
@@ -133,17 +133,17 @@ public:
         rassert(region_is_superset(get_domain(), new_values.get_domain()), "Update cannot expand the domain of a region_map.");
         std::vector<typename protocol_t::region_t> overlay_regions;
         for (const_iterator i = new_values.begin(); i != new_values.end(); ++i) {
-            overlay_regions.push_back((*i).first);
+            overlay_regions.push_back(i->first);
         }
 
         internal_vec_t updated_pairs;
         for (const_iterator i = begin(); i != end(); ++i) {
-            typename protocol_t::region_t old = (*i).first;
+            typename protocol_t::region_t old = i->first;
             std::vector<typename protocol_t::region_t> old_subregions = region_subtract_many(old, overlay_regions);
 
             // Insert the unchanged parts of the old region into updated_pairs with the old value
             for (typename std::vector<typename protocol_t::region_t>::const_iterator j = old_subregions.begin(); j != old_subregions.end(); ++j) {
-                updated_pairs.push_back(internal_pair_t(*j, (*i).second));
+                updated_pairs.push_back(internal_pair_t(*j, i->second));
             }
         }
         std::copy(new_values.begin(), new_values.end(), std::back_inserter(updated_pairs));
@@ -185,7 +185,7 @@ bool operator==(const region_map_t<P, V> &left, const region_map_t<P, V> &right)
     }
 
     for (typename region_map_t<P, V>::const_iterator i = left.begin(); i != left.end(); ++i) {
-        region_map_t<P, V> r = right.mask((*i).first);
+        region_map_t<P, V> r = right.mask(i->first);
         for (typename region_map_t<P, V>::const_iterator j = r.begin(); j != r.end(); ++j) {
             if (j->second != i->second) {
                 return false;

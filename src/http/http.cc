@@ -96,7 +96,7 @@ http_req_t::http_req_t(const http_req_t &from, const resource_t::iterator& resou
 
 boost::optional<std::string> http_req_t::find_query_param(const std::string& key) const {
     //TODO this is inefficient we should actually load it all into a map
-    for (std::vector<query_parameter_t>::const_iterator it = query_params.begin(); it != query_params.end(); it++) {
+    for (std::vector<query_parameter_t>::const_iterator it = query_params.begin(); it != query_params.end(); ++it) {
         if (it->key == key)
             return boost::optional<std::string>(it->val);
     }
@@ -105,7 +105,7 @@ boost::optional<std::string> http_req_t::find_query_param(const std::string& key
 
 boost::optional<std::string> http_req_t::find_header_line(const std::string& key) const {
     //TODO this is inefficient we should actually load it all into a map
-    for (std::vector<header_line_t>::const_iterator it = header_lines.begin(); it != header_lines.end(); it++) {
+    for (std::vector<header_line_t>::const_iterator it = header_lines.begin(); it != header_lines.end(); ++it) {
         if (it->key == key)
             return boost::optional<std::string>(it->val);
     }
@@ -114,7 +114,7 @@ boost::optional<std::string> http_req_t::find_header_line(const std::string& key
 
 bool http_req_t::has_header_line(const std::string& key) const {
     //TODO this is inefficient we should actually load it all into a map
-    for (std::vector<header_line_t>::const_iterator it = header_lines.begin(); it != header_lines.end(); it++) {
+    for (std::vector<header_line_t>::const_iterator it = header_lines.begin(); it != header_lines.end(); ++it) {
         if (it->key == key) {
             return true;
         }
@@ -127,7 +127,7 @@ std::string http_req_t::get_sanitized_body() const {
 }
 
 int content_length(http_req_t msg) {
-    for (std::vector<header_line_t>::iterator it = msg.header_lines.begin(); it != msg.header_lines.end(); it++) {
+    for (std::vector<header_line_t>::iterator it = msg.header_lines.begin(); it != msg.header_lines.end(); ++it) {
         if (it->key == std::string("Content-Length"))
             return atoi(it->val.c_str());
     }
@@ -160,7 +160,7 @@ void http_res_t::add_header_line(const std::string& key, const std::string& val)
 }
 
 void http_res_t::set_body(const std::string& content_type, const std::string& content) {
-    for (std::vector<header_line_t>::iterator it = header_lines.begin(); it != header_lines.end(); it++) {
+    for (std::vector<header_line_t>::iterator it = header_lines.begin(); it != header_lines.end(); ++it) {
         guarantee(it->key != "Content-Type");
         guarantee(it->key != "Content-Length");
     }
@@ -301,7 +301,7 @@ std::string human_readable_status(int code) {
 
 void write_http_msg(tcp_conn_t *conn, const http_res_t &res, signal_t *closer) THROWS_ONLY(tcp_conn_write_closed_exc_t) {
     conn->writef(closer, "HTTP/%s %d %s\r\n", res.version.c_str(), res.code, human_readable_status(res.code).c_str());
-    for (std::vector<header_line_t>::const_iterator it = res.header_lines.begin(); it != res.header_lines.end(); it++) {
+    for (std::vector<header_line_t>::const_iterator it = res.header_lines.begin(); it != res.header_lines.end(); ++it) {
         conn->writef(closer, "%s: %s\r\n", it->key.c_str(), it->val.c_str());
     }
     conn->writef(closer, "\r\n");
@@ -501,7 +501,7 @@ std::string percent_escaped_string(const std::string &s) {
     std::string res;
     for (std::string::const_iterator it =  s.begin();
                                      it != s.end();
-                                     it++) {
+                                     ++it) {
         if (is_safe(*it)) {
             res.push_back(*it);
         } else {
@@ -520,10 +520,10 @@ bool percent_unescape_string(const std::string &s, std::string *out) {
     std::string res;
     for (std::string::const_iterator it  = s.begin();
                                      it != s.end();
-                                     it++) {
+                                     ++it) {
         if (*it == '%') {
             //read an escaped character
-            it++;
+            ++it;
             if (it == s.end()) {
                 return false;
             }
@@ -532,7 +532,7 @@ bool percent_unescape_string(const std::string &s, std::string *out) {
                 return false;
             }
 
-            it++;
+            ++it;
             if (it == s.end()) {
                 return false;
             }
