@@ -1565,6 +1565,7 @@ module 'DataExplorerView', ->
                         that.$('.wrapper_scrollbar').css 'margin-bottom', margin_bottom+'px'
 
                 that = @
+                position_scrollbar()
                 $(window).scroll ->
                     position_scrollbar()
                 $(window).resize ->
