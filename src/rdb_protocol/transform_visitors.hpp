@@ -36,7 +36,7 @@ public:
 
     // This is a non-const reference because it caches the compiled function for
     // performance.
-    void operator()(ql::wire_func_t &func) const;
+    void operator()(ql::map_wire_func_t &func) const;
 
 private:
     boost::shared_ptr<scoped_cJSON_t> json;

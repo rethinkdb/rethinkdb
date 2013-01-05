@@ -63,12 +63,19 @@ void transform_visitor_t::operator()(Builtin_Range range) const {
     }
 }
 
-void transform_visitor_t::operator()(ql::wire_func_t &func) const {
+void transform_visitor_t::operator()(ql::map_wire_func_t &func) const {
+    debugf("setting up checkpoint...\n");
+    ql::env_checkpointer_t(ql_env, &ql::env_t::discard_checkpoint);
+
+    debugf("compiling...\n");
     ql::func_t *f = func.compile(ql_env);
-    ql::datum_t arg(json, ql_env->get_bag());
+    debugf("parsing json...\n");
+    ql::datum_t *arg = ql_env->add_ptr(new ql::datum_t(json, ql_env));
     std::vector<ql::datum_t *> args;
-    args.push_back(&arg);
+    args.push_back(arg);
+    debugf("evaluating...\n");
     ql::val_t *v = f->call(args);
+    debugf("re-encoding...\n");
     out->push_back(v->as_datum()->as_json());
 }
 

@@ -110,5 +110,5 @@ end
 # r.div(1, 6).run
 # r.div(0.2).run
 # r.div(1, 0).run
-r.db('test').table('test2').run
-r.db('test').table('test').run
+# r.db('test').table('test2').run
+# r.db('test').table('test').run

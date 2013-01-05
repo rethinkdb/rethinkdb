@@ -34,12 +34,19 @@ public:
     wire_func_t();
     wire_func_t(env_t *env, func_t *_func);
     func_t *compile(env_t *env);
-private:
-    func_t *func;
+protected:
+    std::map<env_t *, func_t *> cached_funcs;
 
     Term2 source;
     std::map<int, Datum> scope;
 public:
+    //RDB_MAKE_ME_SERIALIZABLE_2(source, scope);
+};
+
+class map_wire_func_t : public wire_func_t {
+public:
+    map_wire_func_t() : wire_func_t() { }
+    map_wire_func_t(env_t *env, func_t *func) : wire_func_t(env, func) { }
     RDB_MAKE_ME_SERIALIZABLE_2(source, scope);
 };
 

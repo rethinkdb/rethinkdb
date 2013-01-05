@@ -40,33 +40,40 @@ func_t::func_t(env_t *env, const Term2 *_source) : body(0), source(_source) {
     guarantee(argptrs.size() == 0);
     for (size_t i = 0; i < args.size(); ++i) {
         argptrs.push_back(0);
+        //debugf("pushing %d -> %p\n", args[i], &argptrs[i]);
         env->push_var(args[i], &argptrs[i]);
     }
 
     const Term2 *body_source = &t->args(1);
     body = env->new_term(body_source);
 
-    for (size_t i = 0; i < args.size(); ++i) env->pop_var(args[i]);
+    for (size_t i = 0; i < args.size(); ++i) {
+        //debugf("popping %d\n", args[i]);
+        env->pop_var(args[i]);
+    }
 }
 
 val_t *func_t::call(const std::vector<datum_t *> &args) {
     rcheck(args.size() == argptrs.size(),
            strprintf("Passed %lu arguments to function of arity %lu.",
                      args.size(), argptrs.size()));
-    for (size_t i = 0; i < args.size(); ++i) argptrs[i] = args[i];
+    for (size_t i = 0; i < args.size(); ++i) {
+        //debugf("Setting %p to %p\n", &argptrs[i], args[i]);
+        argptrs[i] = args[i];
+    }
     return body->eval(false);
     //                ^^^^^ don't use cached value
 }
 
-wire_func_t::wire_func_t() : func(0) { }
-wire_func_t::wire_func_t(env_t *env, func_t *_func) : func(_func) {
+wire_func_t::wire_func_t() { }
+wire_func_t::wire_func_t(env_t *env, func_t *func) {
+    cached_funcs[env] = func;
     source = *func->source;
     env->dump_scope(&scope);
 }
 func_t *wire_func_t::compile(env_t *env) {
-    if (!func) func = env->new_func(&source);
-    r_sanity_check(func);
-    return func;
+    if (cached_funcs.count(env) > 0) return cached_funcs[env];
+    return (cached_funcs[env] = env->new_func(&source));
 }
 
 func_term_t::func_term_t(env_t *env, const Term2 *term)

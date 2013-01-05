@@ -6,6 +6,7 @@
 #include "rdb_protocol/terms/db_table.hpp"
 #include "rdb_protocol/terms/map.hpp"
 #include "rdb_protocol/terms/pred.hpp"
+#include "rdb_protocol/terms/var.hpp"
 
 namespace ql {
 
@@ -14,7 +15,7 @@ term_t *compile_term(env_t *env, const Term2 *t) {
     case Term2_TermType_DATUM: return new datum_term_t(env, &t->datum());
     case Term2_TermType_MAKE_ARRAY: return new make_array_term_t(env, t);
     case Term2_TermType_MAKE_OBJ: return new make_obj_term_t(env, t);
-    case Term2_TermType_VAR:
+    case Term2_TermType_VAR: return new var_term_t(env, t);
     case Term2_TermType_JAVASCRIPT:
     case Term2_TermType_ERROR:
     case Term2_TermType_IMPLICIT_VAR:
@@ -149,6 +150,7 @@ val_t *term_t::eval(bool _use_cached_val) {
 }
 
 val_t *term_t::new_val(datum_t *d) { return env->new_val(d, this); }
+val_t *term_t::new_val(const datum_t *d) { return env->new_val(d, this); }
 val_t *term_t::new_val(datum_stream_t *s) { return env->new_val(s, this); }
 val_t *term_t::new_val(uuid_t db) { return env->new_val(db, this); }
 val_t *term_t::new_val(table_t *t) { return env->new_val(t, this); }

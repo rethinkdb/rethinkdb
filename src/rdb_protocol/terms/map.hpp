@@ -10,7 +10,8 @@ private:
     virtual val_t *eval_impl() {
         datum_stream_t *seq = arg(0)->as_seq();
         func_t *f = arg(1)->as_func();
-        return new_val(new datum_stream_t(seq, f));
+        return new_val(seq->map(f));
+        //return new_val(new datum_stream_t(seq, f));
     }
     RDB_NAME("map");
 };

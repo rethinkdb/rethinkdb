@@ -180,6 +180,7 @@ void batched_rget_stream_t::read_more() {
 
         /* Re throw an exception if we got one. */
         if (runtime_exc_t *e = boost::get<runtime_exc_t>(&p_res->result)) {
+            //BREAKPOINT;
             throw *e;
         }
 

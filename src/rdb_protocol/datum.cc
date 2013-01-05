@@ -21,7 +21,7 @@ datum_t::datum_t(datum_t::type_t _type) : type(_type) {
     r_sanity_check(type == R_ARRAY || type == R_OBJECT || type == R_NULL);
 }
 
-void datum_t::init_json(cJSON *json, ptr_bag_t *alloc) {
+void datum_t::init_json(cJSON *json, env_t *env) {
     switch(json->type) {
     case cJSON_False: {
         type = R_BOOL; r_bool = false;
@@ -41,14 +41,14 @@ void datum_t::init_json(cJSON *json, ptr_bag_t *alloc) {
     case cJSON_Array: {
         type = R_ARRAY;
         for (int i = 0; i < cJSON_GetArraySize(json); ++i) {
-            add(alloc->add(new datum_t(cJSON_GetArrayItem(json, i), alloc)));
+            add(env->add_ptr(new datum_t(cJSON_GetArrayItem(json, i), env)));
         }
     }; break;
     case cJSON_Object: {
         type = R_OBJECT;
         for (int i = 0; i < cJSON_GetArraySize(json); ++i) {
             cJSON *el = cJSON_GetArrayItem(json, i);
-            bool b = add(el->string, alloc->add(new datum_t(el, alloc)));
+            bool b = add(el->string, env->add_ptr(new datum_t(el, env)));
             rcheck(!b, strprintf("Duplicate key: %s", el->string));
         }
     }; break;
@@ -56,9 +56,9 @@ void datum_t::init_json(cJSON *json, ptr_bag_t *alloc) {
     }
 }
 
-datum_t::datum_t(cJSON *json, ptr_bag_t *alloc) { init_json(json, alloc); }
-datum_t::datum_t(boost::shared_ptr<scoped_cJSON_t> json, ptr_bag_t *alloc) {
-    init_json(json->get(), alloc);
+datum_t::datum_t(cJSON *json, env_t *env) { init_json(json, env); }
+datum_t::datum_t(boost::shared_ptr<scoped_cJSON_t> json, env_t *env) {
+    init_json(json->get(), env);
 }
 
 datum_t::type_t datum_t::get_type() const { return type; }
@@ -97,6 +97,12 @@ bool datum_t::as_bool() const {
 double datum_t::as_num() const {
     check_type(R_NUM);
     return r_num;
+}
+int datum_t::as_int() const {
+    double d = as_num();
+    int i = d;
+    rcheck(static_cast<double>(i) == d, strprintf("Number not an integer: %lf", d));
+    return i;
 }
 const std::string &datum_t::as_str() const {
     check_type(R_STR);
@@ -208,7 +214,7 @@ bool datum_t::operator<= (const datum_t &rhs) const { return cmp(rhs) != 1;  }
 bool datum_t::operator>  (const datum_t &rhs) const { return cmp(rhs) == 1;  }
 bool datum_t::operator>= (const datum_t &rhs) const { return cmp(rhs) != -1; }
 
-datum_t::datum_t(const Datum *d, ptr_bag_t *alloc) {
+datum_t::datum_t(const Datum *d, env_t *env) {
     switch(d->type()) {
     case Datum_DatumType_R_NULL: {
         type = R_NULL;
@@ -228,7 +234,7 @@ datum_t::datum_t(const Datum *d, ptr_bag_t *alloc) {
     case Datum_DatumType_R_ARRAY: {
         type = R_ARRAY;
         for (int i = 0; i < d->r_array_size(); ++i) {
-            r_array.push_back(alloc->add(new datum_t(&d->r_array(i), alloc)));
+            r_array.push_back(env->add_ptr(new datum_t(&d->r_array(i), env)));
         }
     }; break;
     case Datum_DatumType_R_OBJECT: {
@@ -238,7 +244,7 @@ datum_t::datum_t(const Datum *d, ptr_bag_t *alloc) {
             const std::string &key = ap->key();
             rcheck(r_object.count(key) == 0,
                    strprintf("Duplicate key %s in object.", key.c_str()));
-            r_object[key] = alloc->add(new datum_t(&ap->val(), alloc));
+            r_object[key] = env->add_ptr(new datum_t(&ap->val(), env));
         }
     }; break;
     default: unreachable();

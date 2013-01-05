@@ -16,13 +16,14 @@ class datum_stream_t : public ptr_baggable_t {
 public:
     datum_stream_t(env_t *env, bool use_outdated,
                    namespace_repo_t<rdb_protocol_t>::access_t *ns_access);
-    datum_stream_t(datum_stream_t *src, func_t *f);
+    //datum_stream_t(datum_stream_t *src, func_t *f);
+    virtual ~datum_stream_t();
+    datum_stream_t *map(func_t *f);
     const datum_t *next();
-    void free_last_datum();
 private:
+    datum_stream_t(datum_stream_t *src);
     env_t *env;
     boost::shared_ptr<query_language::json_stream_t> json_stream;
-    scoped_ptr_t<ptr_bag_t> last_bag;
 
     rdb_protocol_details::transform_variant_t trans;
     query_language::scopes_t _s;

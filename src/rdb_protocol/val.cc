@@ -14,25 +14,23 @@ datum_stream_t::datum_stream_t(env_t *_env, bool use_outdated,
                       *ns_access, _env->interruptor, key_range_t::universe(),
                       100, use_outdated))
 { }
+datum_stream_t::datum_stream_t(datum_stream_t *src) {
+    *this = *src;
+}
+datum_stream_t::~datum_stream_t() { }
 
-datum_stream_t::datum_stream_t(datum_stream_t *src, func_t *f)
-    : env(src->env), trans(wire_func_t(env, f)) {
-    json_stream = src->json_stream->add_transformation(trans, 0, env, _s, _b);
+datum_stream_t *datum_stream_t::map(func_t *f) {
+    datum_stream_t *out = env->add_ptr(new datum_stream_t(this));
+    out->trans = rdb_protocol_details::transform_variant_t(map_wire_func_t(env, f));
+    out->json_stream = json_stream->add_transformation(out->trans, 0, env, _s, _b);
+    return out;
 }
 
 const datum_t *datum_stream_t::next() {
-    if (last_bag.has()) env->add_ptr(last_bag.release());
     boost::shared_ptr<scoped_cJSON_t> json = json_stream->next();
     if (!json.get()) return 0;
-    last_bag.init(new ptr_bag_t());
-    return last_bag->add(new datum_t(json, last_bag.get()));
+    return env->add_ptr(new datum_t(json, env));
 }
-
-void datum_stream_t::free_last_datum() {
-    r_sanity_check(last_bag.has());
-    delete last_bag.release();
-}
-
 
 static void meta_check(metadata_search_status_t status, metadata_search_status_t want,
                        const std::string &operation) {

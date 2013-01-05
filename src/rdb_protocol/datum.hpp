@@ -24,11 +24,11 @@ public:
     explicit datum_t(const std::map<const std::string, const datum_t *> &_object);
 
     explicit datum_t(const Datum *d);
-    explicit datum_t(const Datum *d, ptr_bag_t *alloc);
+    explicit datum_t(const Datum *d, env_t *env);
     explicit datum_t(cJSON *json);
-    explicit datum_t(cJSON *json, ptr_bag_t *alloc);
+    explicit datum_t(cJSON *json, env_t *env);
     explicit datum_t(boost::shared_ptr<scoped_cJSON_t> json);
-    explicit datum_t(boost::shared_ptr<scoped_cJSON_t> json, ptr_bag_t *alloc);
+    explicit datum_t(boost::shared_ptr<scoped_cJSON_t> json, env_t *env);
     void write_to_protobuf(Datum *out) const;
 
     enum type_t {
@@ -47,6 +47,7 @@ public:
 
     bool as_bool() const;
     double as_num() const;
+    int as_int() const;
     const std::string &as_str() const;
     const std::vector<const datum_t *> &as_array() const;
     const std::map<const std::string, const datum_t *> &as_object() const;
@@ -65,7 +66,7 @@ public:
     // Returns whether or not `key` was already present in object.
     MUST_USE bool add(const std::string &key, const datum_t *val, bool clobber = false);
 private:
-    void init_json(cJSON *json, ptr_bag_t *alloc);
+    void init_json(cJSON *json, env_t *env);
 
     // Listing everything is more debugging-friendly than a boost::variant,
     // but less efficient.  TODO: fix later.

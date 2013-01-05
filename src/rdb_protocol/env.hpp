@@ -18,10 +18,18 @@
 
 namespace ql {
 class term_t;
+
 class env_t {
 public:
     template<class T>
-    T *add_ptr(T *p) { return ptrs.add(p); }
+    T *add_ptr(T *p) {
+        r_sanity_check(bags.size() > 0);
+        for (size_t i = 0; i < bags.size(); ++i) {
+            if (bags[i]->has(p)) return p;
+        }
+        bags[bags.size()-1]->add(p);
+        return p;
+    }
     func_t *new_func(const Term2 *term) {
         return add_ptr(new func_t(this, term));
     }
@@ -36,12 +44,40 @@ public:
         return add_ptr(compile_term(this, source));
     }
 
-    ptr_bag_t *get_bag() { return &ptrs; }
+    size_t num_checkpoints() {
+        return bags.size()-1;
+    }
+    void checkpoint() {
+        bags.push_back(new ptr_bag_t());
+    }
+    void merge_checkpoint() {
+        r_sanity_check(bags.size() >= 2);
+        bags[bags.size()-2]->add(bags[bags.size()-1]);
+        bags.pop_back();
+    }
+    void discard_checkpoint() {
+        r_sanity_check(bags.size() >= 2);
+        delete bags[bags.size()-1];
+        bags.pop_back();
+    }
+    ~env_t() {
+        for (size_t i = 0; i < bags.size(); ++i) {
+            delete bags[i];
+        }
+    }
 private:
-    ptr_bag_t ptrs;
+    ptr_bag_t *get_bag() {
+        r_sanity_check(bags.size() > 0);
+        return bags[bags.size()-1];
+    }
+    std::vector<ptr_bag_t *> bags;
 
 public:
     void push_var(int var, const datum_t **val) { vars[var].push(val); }
+    const datum_t **top_var(int var) {
+        rcheck(!vars[var].empty(), strprintf("Unrecognized variabled %d", var));
+        return vars[var].top();
+    }
     void pop_var(int var) { vars[var].pop(); }
     const datum_t **get_var(int var) { return vars[var].top(); }
     void dump_scope(std::map<int, Datum> *out) {
@@ -82,6 +118,7 @@ public:
           interruptor(_interruptor),
           this_machine(_this_machine) {
         guarantee(js_runner);
+        bags.push_back(new ptr_bag_t());
     }
 
     extproc::pool_t *pool;      // for running external JS jobs
@@ -121,6 +158,19 @@ public:
 
 private:
     DISABLE_COPYING(env_t);
+};
+
+class env_checkpointer_t {
+public:
+    env_checkpointer_t(env_t *_env, void (env_t::*_f)()) : env(_env) , f(_f) {
+        env->checkpoint();
+    }
+    ~env_checkpointer_t() {
+        (env->*f)();
+    }
+private:
+    env_t *env;
+    void (env_t::*f)();
 };
 
 } //namespace query_language

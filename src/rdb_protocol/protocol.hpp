@@ -98,7 +98,7 @@ struct backfill_atom_t {
     RDB_MAKE_ME_SERIALIZABLE_3(key, value, recency);
 };
 
-typedef boost::variant<Builtin_Filter, Mapping, Builtin_ConcatMap, Builtin_Range, ql::wire_func_t>  transform_variant_t;
+typedef boost::variant<Builtin_Filter, Mapping, Builtin_ConcatMap, Builtin_Range, ql::map_wire_func_t>  transform_variant_t;
 
 struct transform_atom_t {
     transform_atom_t() { }
