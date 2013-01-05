@@ -15,6 +15,31 @@ end
 $socket = TCPSocket.open('localhost', 60616)
 $socket.send([0xaf61ba35].pack('L<'), 0)
 
+def nativize_datum d
+  dt = Datum::DatumType
+  case d.type
+  when dt::R_NUM then d.r_num
+  when dt::R_STR then d.r_str
+  when dt::R_BOOL then d.r_bool
+  when dt::R_NULL then nil
+  when dt::R_ARRAY then d.r_array.map{|d2| nativize_datum d2}
+  when dt::R_OBJECT then Hash[d.r_object.map{|x| [x.key, nativize_datum(x.val)]}]
+  else raise RuntimeError, "Unimplemented."
+  end
+end
+
+def nativize_response r
+  rt = Response2::ResponseType
+  case r.type
+  when rt::SUCCESS_ATOM then nativize_datum(r.response[0])
+  when rt::SUCCESS_SEQUENCE then r.response.map{|d| nativize_datum(d)}
+  when rt::RUNTIME_ERROR then
+    raise RuntimeError, "#{r.response[0].r_str}
+Backtrace: #{r.backtrace.map{|x| x.pos || x.opt}.inspect}"
+  else r
+  end
+end
+
 class RQL
   attr_accessor :is_r
   def initialize(term=nil)
@@ -50,7 +75,7 @@ class RQL
     @@socket.send(packet, 0)
     rlen = @@socket.read(4).unpack('L<')[0]
     r = @@socket.read(rlen)
-    return Response2.new.parse_from_string(r)
+    return nativize_response(Response2.new.parse_from_string(r))
   end
 
   def opt(key, val)
@@ -93,22 +118,42 @@ def r(a='8d19cb41-ddb8-44ab-92f3-f48ca607ab7b')
   return RQL.new t
 end
 
-# PP.pp r(1).run
-# PP.pp r(2.0).run
-# PP.pp r("3").run
-# PP.pp r(true).run
-# PP.pp r(false).run
-# PP.pp r(nil).run
-# PP.pp r([1, 2.0, "3", true, false, nil]).run
-# PP.pp r({"abc" => 2.0, "def" => nil}).run
+$tests = 0
+def assert_equal(a, b)
+  raise RuntimeError, "#{a.inspect} != #{b.inspect}" if a != b
+  $tests += 1
+end
 
-# [r.eq(1,1).run, r.eq(1,2).run]
-# r.add(1, 2, 3, -1, 0.2).run
-# r.sub(1, 2, 3).run
-# r.mul(2, 3, 2, 0.5).run
-# r.div(1, 2, 3).run
-# r.div(1, 6).run
-# r.div(0.2).run
-# r.div(1, 0).run
-# r.db('test').table('test2').run
-# r.db('test').table('test').run
+def assert_raise
+  begin
+    res = yield
+  rescue Exception => e
+  end
+  raise RuntimeError, "Got #{res.inspect} instead of throw." if res
+end
+
+def rae(a, b)
+  assert_equal(a.run, b)
+end
+
+rae(r(1), 1)
+rae(r(2.0), 2.0)
+rae(r("3"), "3")
+rae(r(true), true)
+rae(r(false), false)
+rae(r(nil), nil)
+rae(r([1, 2.0, "3", true, false, nil]), [1, 2.0, "3", true, false, nil])
+rae(r({"abc" => 2.0, "def" => nil}), {"abc" => 2.0, "def" => nil})
+rae(r.eq(1, 1), true)
+rae(r.eq(1, 2), false)
+rae(r.add(1, 2, 3, -1, 0.2), 5.2)
+rae(r.sub(1, 2, 3), -4.0)
+rae(r.mul(2, 3, 2, 0.5), 6.0)
+rae(r.div(1, 2, 3), 1.0/6.0)
+rae(r.div(1, 6), r.div(1, 2, 3).run)
+rae(r.div(0.2), 0.2)
+assert_raise{r.div(1, 0).run}
+assert_raise{r.db('test').table('test2').run}
+
+print "test.test: #{r.db('test').table('test').run.inspect}\n"
+print "Ran #{$tests} tests!\n"
