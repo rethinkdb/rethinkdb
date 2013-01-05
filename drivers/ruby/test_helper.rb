@@ -13,23 +13,12 @@ module RethinkDB::TestHelper
       RethinkDB::RQL.db('test').table_create('tbl').run
     end
 
-    unless r.db('test').table_list.run.include? 'tbl_with_data'
-      RethinkDB::RQL.db('test').table_create('tbl_with_data').run
-    end
-
     tbl.delete.run
     tbl.insert(data).run
-
-    data_table.delete.run
-    data_table.insert(data).run
   end
 
   def tbl
     r.db('test').table('tbl')
-  end
-
-  def data_table
-    r.db('test').table('tbl_with_data')
   end
 
   def c

@@ -642,8 +642,8 @@ class ClientTest < Test::Unit::TestCase
 
   # PICKATTRS, # UNION, # LENGTH
   def test_pickattrs
-    q1 = r.union(data_table.map { |r| r.pick(:id, :name) }, data_table.map { |row| row.pick(:id, :num) })
-    q2 = r.union(data_table.map { |r| r.pick(:id, :name) }, data_table.map { |row| row.pick(:id, :num) })
+    q1 = r.union(tbl.map { |r| r.pick(:id, :name) }, tbl.map { |row| row.pick(:id, :num) })
+    q2 = r.union(tbl.map { |r| r.pick(:id, :name) }, tbl.map { |row| row.pick(:id, :num) })
     q1v = q1.run.to_a.sort_by { |x| ((x["name"].to_s + ",") + x["id"].to_s) }
     assert_equal(q2.run.to_a.sort_by { |x| ((x["name"].to_s + ",") + x["id"].to_s) }, q1v)
 
