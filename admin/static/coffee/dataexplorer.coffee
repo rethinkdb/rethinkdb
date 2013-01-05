@@ -1607,8 +1607,7 @@ module 'DataExplorerView', ->
                     $(".wrapper_scrollbar").scrollLeft($(content_container).scrollLeft())
 
                 # The scrollbar is floating (we just show one and not two). By default its position is fixed with botton: 0px;
-                that = @
-                $(window).scroll ->
+                position_scrollbar = ->
                     if not $(content_container).offset()?
                         return ''
                     # Sometimes we don't have to display the scrollbar (when the results are not shown because the query is too big)
@@ -1624,6 +1623,12 @@ module 'DataExplorerView', ->
                         that.$('.wrapper_scrollbar').show()
                         margin_bottom = $(window).scrollTop()+$(window).height()-($(content_container).offset().top+$(content_container).height())
                         that.$('.wrapper_scrollbar').css 'margin-bottom', margin_bottom+'px'
+
+                that = @
+                $(window).scroll ->
+                    position_scrollbar()
+                $(window).resize ->
+                    position_scrollbar()
 
 
 
