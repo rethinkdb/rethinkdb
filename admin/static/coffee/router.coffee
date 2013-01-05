@@ -110,6 +110,7 @@ class BackboneCluster extends Backbone.Router
         @current_view = new DataExplorerView.Container
         @$container.html @current_view.render().el
         @current_view.call_codemirror()
+        @current_view.results_view.set_scrollbar() # In case we check the data explorer, leave and come back
 
     #TODO Clean the next 3 methods. We don't need tab anymore
     database: (id, tab) ->

@@ -716,7 +716,7 @@ module 'DataExplorerView', ->
         # Function triggered when the user click on 'more results'
         show_more_results: (event) =>
             if @last_results isnt null
-                @results_view.start_record += @last_results.length
+                @results_view.update_start_record @last_results.length
             try
                 event.preventDefault()
                 @current_results = []
@@ -804,7 +804,7 @@ module 'DataExplorerView', ->
         # - We don't execute q1_3
         # - User retrieve results for q2
         execute_query: =>
-            @results_view.start_record = 1
+            @results_view.set_start_record 1
             # The user just executed a query, so we reset cursor_timed_out to false
             DataExplorerView.Container.prototype.cursor_timed_out = false
 
@@ -1140,7 +1140,10 @@ module 'DataExplorerView', ->
         initialize: (limit) =>
             @set_limit limit
             @set_skip 0
-            @view ='tree'
+            if not DataExplorerView.ResultView.prototype.view?
+                DataExplorerView.ResultView.prototype.view = 'tree'
+            @view = DataExplorerView.ResultView.prototype.view
+
             $(window).mousemove @handle_mousemove
             $(window).mouseup @handle_mouseup
 
@@ -1155,15 +1158,25 @@ module 'DataExplorerView', ->
         show_tree: (event) =>
             event.preventDefault()
             @view = 'tree'
+            DataExplorerView.ResultView.prototype.view = 'tree'
             @render_result()
         show_table: (event) =>
             event.preventDefault()
             @view = 'table'
+            DataExplorerView.ResultView.prototype.view = 'table'
             @render_result()
         show_raw: (event) =>
             event.preventDefault()
             @view = 'raw'
+            DataExplorerView.ResultView.prototype.view = 'raw'
             @render_result()
+
+        set_start_record: (start) =>
+            @start_record = start
+            DataExplorerView.ResultView.prototype.start_record = @start_record
+        update_start_record: (to_add) =>
+            @start_record += to_add
+            DataExplorerView.ResultView.prototype.start_record = @start_record
 
         render_error: (query, err) =>
             @.$el.html @error_template
@@ -1296,6 +1309,8 @@ module 'DataExplorerView', ->
                 attr: attr
 
         json_to_table_get_values: (result, keys_stored) =>
+            if not @start_record?
+                @start_record = DataExplorerView.ResultView.prototype.start_record
             document_list = []
             for element, i in result
                 new_document = {}
