@@ -37,7 +37,7 @@ bool filepath_file_opener_t::open_serializer_file(int extra_flag, scoped_ptr_t<f
         logWRN("Could not turn off filesystem caching for database file: \"%s\" "
                "(Is the file located on a filesystem that doesn't support direct I/O "
                "(e.g. some encrypted or journaled file systems)?) "
-               "This is UNSAFE and should not be used in production.",
+               "This can cause performance problems.",
                filepath_.c_str());
     }
     return open_res.outcome != file_open_result_t::ERROR;
