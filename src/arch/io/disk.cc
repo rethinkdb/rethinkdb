@@ -311,9 +311,11 @@ file_open_result_t open_direct_file(const char *path, int mode, io_backender_t *
 
     int flags = O_CREAT;
 
-    // For now, we have a whitelist of kernels that don't support O_LARGEFILE.
+    // For now, we have a whitelist of kernels that don't support O_LARGEFILE (or O_DSYNC, for
+    // that matter).
 #ifndef __MACH__
     flags |= O_LARGEFILE;
+    flags |= O_DSYNC;
 #endif
 
     if ((mode & linux_file_t::mode_write) && (mode & linux_file_t::mode_read)) {
