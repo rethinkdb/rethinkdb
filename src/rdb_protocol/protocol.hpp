@@ -196,7 +196,7 @@ struct rdb_protocol_t {
         };
 
 
-        typedef boost::variant<stream_t, groups_t, atom_t, length_t, inserted_t, runtime_exc_t> result_t;
+        typedef boost::variant<stream_t, groups_t, atom_t, length_t, inserted_t, runtime_exc_t, ql::exc_t> result_t;
 
         key_range_t key_range;
         result_t result;
@@ -342,6 +342,7 @@ struct rdb_protocol_t {
     struct point_modify_response_t {
         point_modify_ns::result_t result;
         query_language::runtime_exc_t exc;
+        ql::exc_t ql_exc;
         point_modify_response_t() { }
         explicit point_modify_response_t(point_modify_ns::result_t _result) : result(_result) {
             guarantee(result != point_modify_ns::ERROR);

@@ -112,6 +112,10 @@ const std::vector<const datum_t *> &datum_t::as_array() const {
     check_type(R_ARRAY);
     return r_array;
 }
+const datum_t *datum_t::el(size_t index) const {
+    return index < as_array().size() ? as_array()[index] : 0;
+}
+
 const std::map<const std::string, const datum_t *> &datum_t::as_object() const {
     check_type(R_OBJECT);
     return r_object;
@@ -145,6 +149,19 @@ cJSON *datum_t::as_raw_json() const {
 boost::shared_ptr<scoped_cJSON_t> datum_t::as_json() const {
     return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(as_raw_json()));
 }
+
+datum_stream_t *datum_t::as_datum_stream(env_t *env) const {
+    switch(get_type()) {
+    case R_NULL: //fallthru
+    case R_BOOL: //fallthru
+    case R_NUM: rfail("Cannot convert %s to sequence", datum_type_name(get_type()));
+    case R_STR: rfail("Unimplemented.");
+    case R_ARRAY: return env->add_ptr(new array_datum_stream_t(env, this));
+    case R_OBJECT: rfail("Unimplemented.");
+    default: unreachable();
+    }
+    unreachable();
+};
 
 void datum_t::add(const datum_t *val) {
     check_type(R_ARRAY);

@@ -70,8 +70,8 @@ void transform_visitor_t::operator()(ql::map_wire_func_t &func) const {
     //debugf("compiling...\n");
     ql::func_t *f = func.compile(ql_env);
     //debugf("parsing json...\n");
-    ql::datum_t *arg = ql_env->add_ptr(new ql::datum_t(json, ql_env));
-    std::vector<ql::datum_t *> args;
+    const ql::datum_t *arg = ql_env->add_ptr(new ql::datum_t(json, ql_env));
+    std::vector<const ql::datum_t *> args;
     args.push_back(arg);
     //debugf("evaluating...\n");
     ql::val_t *v = f->call(args);

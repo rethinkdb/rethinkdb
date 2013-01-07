@@ -195,6 +195,9 @@ void rdb_modify(const std::string &primary_key, const store_key_t &key, point_mo
     } catch (const query_language::runtime_exc_t &e) {
         response->result = point_modify_ns::ERROR;
         response->exc = e;
+    } catch (const ql::exc_t &e2) {
+        response->result = point_modify_ns::ERROR;
+        response->ql_exc = e2;
     }
 }
 
@@ -324,6 +327,10 @@ public:
             /* Evaluation threw so we're not going to be accepting any more requests. */
             response->result = e;
             bad_init = true;
+        } catch (const ql::exc_t &e2) {
+            /* Evaluation threw so we're not going to be accepting any more requests. */
+            response->result = e2;
+            bad_init = true;
         }
     }
 
@@ -380,7 +387,12 @@ public:
             /* Evaluation threw so we're not going to be accepting any more requests. */
             response->result = e;
             return false;
+        } catch (const ql::exc_t &e2) {
+            /* Evaluation threw so we're not going to be accepting any more requests. */
+            response->result = e2;
+            return false;
         }
+
     }
     bool bad_init;
     transaction_t *transaction;

@@ -14,20 +14,45 @@ class term_t;
 
 class datum_stream_t : public ptr_baggable_t {
 public:
-    datum_stream_t(env_t *env, bool use_outdated,
-                   namespace_repo_t<rdb_protocol_t>::access_t *ns_access);
-    //datum_stream_t(datum_stream_t *src, func_t *f);
-    virtual ~datum_stream_t();
-    datum_stream_t *map(func_t *f);
-    const datum_t *next();
-private:
-    datum_stream_t(datum_stream_t *src);
+    datum_stream_t(env_t *_env);
+    virtual ~datum_stream_t() { }
+    virtual const datum_t *next() = 0;
+    virtual datum_stream_t *map(func_t *f);
+protected:
     env_t *env;
+};
+
+class lazy_datum_stream_t : public datum_stream_t {
+public:
+    lazy_datum_stream_t(env_t *env, bool use_outdated,
+                        namespace_repo_t<rdb_protocol_t>::access_t *ns_access);
+    virtual datum_stream_t *map(func_t *f);
+    virtual const datum_t *next();
+private:
+    lazy_datum_stream_t(lazy_datum_stream_t *src);
     boost::shared_ptr<query_language::json_stream_t> json_stream;
 
     rdb_protocol_details::transform_variant_t trans;
     query_language::scopes_t _s;
     query_language::backtrace_t _b;
+};
+
+class array_datum_stream_t : public datum_stream_t {
+public:
+    array_datum_stream_t(env_t *env, const datum_t *_arr);
+    virtual const datum_t *next();
+private:
+    size_t index;
+    const datum_t *arr;
+};
+
+class map_datum_stream_t : public datum_stream_t {
+public:
+    map_datum_stream_t(env_t *env, func_t *_f, datum_stream_t *_src);
+    virtual const datum_t *next();
+private:
+    func_t *f;
+    datum_stream_t *src;
 };
 
 class table_t : public ptr_baggable_t {

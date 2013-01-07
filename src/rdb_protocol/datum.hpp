@@ -14,6 +14,7 @@ class Datum;
 
 namespace ql {
 class env_t;
+class datum_stream_t;
 class datum_t : public ptr_baggable_t {
 public:
     datum_t(); // R_NULL
@@ -50,9 +51,11 @@ public:
     int as_int() const;
     const std::string &as_str() const;
     const std::vector<const datum_t *> &as_array() const;
+    const datum_t *el(size_t index) const;
     const std::map<const std::string, const datum_t *> &as_object() const;
     cJSON *as_raw_json() const;
     boost::shared_ptr<scoped_cJSON_t> as_json() const;
+    datum_stream_t *as_datum_stream(env_t *env) const;
 
     int cmp(const datum_t &rhs) const;
     bool operator==(const datum_t &rhs) const;

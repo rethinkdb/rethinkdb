@@ -259,6 +259,8 @@ public:
 
                 if (const runtime_exc_t *e = boost::get<runtime_exc_t>(&(_rr->result))) {
                     throw *e;
+                } else if (const ql::exc_t *e2 = boost::get<ql::exc_t>(&(_rr->result))) {
+                    throw *e2;
                 }
             }
 
@@ -363,6 +365,8 @@ public:
                 unreachable();
             }
         } catch (const runtime_exc_t &e) {
+            rg_response.result = e;
+        } catch (const ql::exc_t &e) {
             rg_response.result = e;
         }
     }

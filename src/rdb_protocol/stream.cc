@@ -182,6 +182,8 @@ void batched_rget_stream_t::read_more() {
         if (runtime_exc_t *e = boost::get<runtime_exc_t>(&p_res->result)) {
             //BREAKPOINT;
             throw *e;
+        } else if (ql::exc_t *e2 = boost::get<ql::exc_t>(&p_res->result)) {
+            throw *e2;
         }
 
         // todo: just do a straight copy?

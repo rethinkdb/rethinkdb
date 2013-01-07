@@ -53,11 +53,12 @@ func_t::func_t(env_t *env, const Term2 *_source) : body(0), source(_source) {
     }
 }
 
-val_t *func_t::call(const std::vector<datum_t *> &args) {
+val_t *func_t::call(const std::vector<const datum_t *> &args) {
     rcheck(args.size() == argptrs.size(),
            strprintf("Passed %lu arguments to function of arity %lu.",
                      args.size(), argptrs.size()));
     for (size_t i = 0; i < args.size(); ++i) {
+        r_sanity_check(args[i]);
         //debugf("Setting %p to %p\n", &argptrs[i], args[i]);
         argptrs[i] = args[i];
     }

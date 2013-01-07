@@ -7,29 +7,52 @@
 namespace ql {
 static const char *valid_char_msg = name_string_t::valid_char_msg;
 
-datum_stream_t::datum_stream_t(env_t *_env, bool use_outdated,
+datum_stream_t::datum_stream_t(env_t *_env) : env(_env) { guarantee(env); }
+datum_stream_t *datum_stream_t::map(func_t *f) {
+    return env->add_ptr(new map_datum_stream_t(env, f, this));
+}
+
+lazy_datum_stream_t::lazy_datum_stream_t(env_t *env, bool use_outdated,
                                namespace_repo_t<rdb_protocol_t>::access_t *ns_access)
-    : env(_env),
+    : datum_stream_t(env),
       json_stream(new query_language::batched_rget_stream_t(
-                      *ns_access, _env->interruptor, key_range_t::universe(),
+                      *ns_access, env->interruptor, key_range_t::universe(),
                       100, use_outdated))
 { }
-datum_stream_t::datum_stream_t(datum_stream_t *src) {
+lazy_datum_stream_t::lazy_datum_stream_t(lazy_datum_stream_t *src)
+    :datum_stream_t(src->env) {
     *this = *src;
 }
-datum_stream_t::~datum_stream_t() { }
 
-datum_stream_t *datum_stream_t::map(func_t *f) {
-    datum_stream_t *out = env->add_ptr(new datum_stream_t(this));
+datum_stream_t *lazy_datum_stream_t::map(func_t *f) {
+    lazy_datum_stream_t *out = env->add_ptr(new lazy_datum_stream_t(this));
     out->trans = rdb_protocol_details::transform_variant_t(map_wire_func_t(env, f));
     out->json_stream = json_stream->add_transformation(out->trans, 0, env, _s, _b);
     return out;
 }
 
-const datum_t *datum_stream_t::next() {
+const datum_t *lazy_datum_stream_t::next() {
     boost::shared_ptr<scoped_cJSON_t> json = json_stream->next();
     if (!json.get()) return 0;
     return env->add_ptr(new datum_t(json, env));
+}
+
+array_datum_stream_t::array_datum_stream_t(env_t *env, const datum_t *_arr) :
+    datum_stream_t(env), index(0), arr(_arr) { }
+
+const datum_t *array_datum_stream_t::next() {
+    return arr->el(index++);
+}
+
+map_datum_stream_t::map_datum_stream_t(env_t *env, func_t *_f, datum_stream_t *_src)
+    : datum_stream_t(env), f(_f), src(_src) { guarantee(f && src); }
+
+const datum_t *map_datum_stream_t::next() {
+    const datum_t *arg = src->next();
+    if (!arg) return 0;
+    std::vector<const datum_t *> args;
+    args.push_back(arg);
+    return f->call(args)->as_datum();
 }
 
 static void meta_check(metadata_search_status_t status, metadata_search_status_t want,
@@ -76,7 +99,7 @@ table_t::table_t(env_t *_env, uuid_t db_id, const std::string &name, bool _use_o
 }
 
 datum_stream_t *table_t::as_datum_stream() {
-    return new datum_stream_t(env, use_outdated, access.get());
+    return env->add_ptr(new lazy_datum_stream_t(env, use_outdated, access.get()));
 }
 
 val_t::type_t::type_t(val_t::type_t::raw_type_t _raw_type) : raw_type(_raw_type) { }
@@ -196,7 +219,9 @@ datum_stream_t *val_t::as_seq() {
     if (type.raw_type == type_t::SEQUENCE || type.raw_type == type_t::SELECTION) {
         // passthru
     } else if (type.raw_type == type_t::TABLE) {
-        if (!sequence) sequence = env->add_ptr(table->as_datum_stream());
+        if (!sequence) sequence = table->as_datum_stream();
+    } else if (type.raw_type == type_t::DATUM) {
+        if (!sequence) sequence = datum->as_datum_stream(env);
     } else {
         rfail("Type error: cannot convert %s to SEQUENCE.", type.name());
     }

@@ -17,7 +17,7 @@ namespace ql {
 class func_t : public ptr_baggable_t {
 public:
     func_t(env_t *env, const Term2 *_source);
-    val_t *call(const std::vector<datum_t *> &args);
+    val_t *call(const std::vector<const datum_t *> &args);
 private:
     std::vector<const datum_t *> argptrs;
     term_t *body;
