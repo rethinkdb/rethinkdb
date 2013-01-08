@@ -42,6 +42,18 @@ void real_superblock_t::set_stat_block_id(const block_id_t new_stat_block) {
     sb_buf_.set_data(const_cast<block_id_t *>(&(static_cast<const btree_superblock_t *>(sb_buf_.get_data_read())->stat_block)), &new_stat_block, sizeof(new_stat_block));
 }
 
+block_id_t real_superblock_t::get_sindex_block_id() const {
+    rassert(sb_buf_.is_acquired());
+    return reinterpret_cast<const btree_superblock_t *>(sb_buf_.get_data_read())->sindex_block;
+}
+
+void real_superblock_t::set_sindex_block_id(const block_id_t new_sindex_block) {
+    rassert(sb_buf_.is_acquired());
+    // We have to const_cast, because set_data unfortunately takes void* pointers, but get_data_read()
+    // gives us const data. No way around this (except for making set_data take a const void * again, as it used to be).
+    sb_buf_.set_data(const_cast<block_id_t *>(&(static_cast<const btree_superblock_t *>(sb_buf_.get_data_read())->sindex_block)), &new_sindex_block, sizeof(new_sindex_block));
+}
+
 void real_superblock_t::set_eviction_priority(eviction_priority_t eviction_priority) {
     rassert(sb_buf_.is_acquired());
     sb_buf_.set_eviction_priority(eviction_priority);
@@ -299,10 +311,10 @@ void insert_root(block_id_t root_id, superblock_t* sb) {
     sb->release(); //XXX it's a little bit weird that we release this from here.
 }
 
-void get_secondary_indexes_internal(transaction_t *txn, buf_lock_t *superblock, std::map<uuid_t, secondary_index_t> *sindexes_out) {
-    const btree_superblock_t *data = static_cast<const btree_superblock_t *>(superblock->get_data_read());
+void get_secondary_indexes_internal(transaction_t *txn, buf_lock_t *sindex_block, std::map<uuid_t, secondary_index_t> *sindexes_out) {
+    const btree_sindex_block_t *data = static_cast<const btree_sindex_block_t *>(sindex_block->get_data_read());
 
-    blob_t sindex_blob(const_cast<char *>(data->sindex_blob), btree_superblock_t::SINDEX_BLOB_MAXREFLEN);
+    blob_t sindex_blob(const_cast<char *>(data->sindex_blob), btree_sindex_block_t::SINDEX_BLOB_MAXREFLEN);
 
     buffer_group_t group;
     blob_acq_t acq;
@@ -321,10 +333,10 @@ void get_secondary_indexes_internal(transaction_t *txn, buf_lock_t *superblock, 
     guarantee_err(res == 0, "corrupted secondary index.");
 }
 
-void set_secondary_indexes_internal(transaction_t *txn, buf_lock_t *superblock, const std::map<uuid_t, secondary_index_t> &sindexes) {
-    btree_superblock_t *data = static_cast<btree_superblock_t *>(superblock->get_data_major_write());
+void set_secondary_indexes_internal(transaction_t *txn, buf_lock_t *sindex_block, const std::map<uuid_t, secondary_index_t> &sindexes) {
+    btree_sindex_block_t *data = static_cast<btree_sindex_block_t *>(sindex_block->get_data_major_write());
 
-    blob_t sindex_blob(data->sindex_blob, btree_superblock_t::SINDEX_BLOB_MAXREFLEN);
+    blob_t sindex_blob(data->sindex_blob, btree_sindex_block_t::SINDEX_BLOB_MAXREFLEN);
     sindex_blob.clear(txn);
 
     write_message_t wm;
@@ -339,19 +351,19 @@ void set_secondary_indexes_internal(transaction_t *txn, buf_lock_t *superblock, 
     sindex_blob.write_from_string(sered_data, txn, 0);
 }
 
-void initialize_secondary_indexes(transaction_t *txn, buf_lock_t *superblock) {
-    btree_superblock_t *data = static_cast<btree_superblock_t *>(superblock->get_data_major_write());
-    memset(data->sindex_blob, 0, btree_superblock_t::SINDEX_BLOB_MAXREFLEN);
+void initialize_secondary_indexes(transaction_t *txn, buf_lock_t *sindex_block) {
+    btree_sindex_block_t *data = static_cast<btree_sindex_block_t *>(sindex_block->get_data_major_write());
+    memset(data->sindex_blob, 0, btree_sindex_block_t::SINDEX_BLOB_MAXREFLEN);
 
-    blob_t sindex_blob(data->sindex_blob, btree_superblock_t::SINDEX_BLOB_MAXREFLEN);
+    blob_t sindex_blob(data->sindex_blob, btree_sindex_block_t::SINDEX_BLOB_MAXREFLEN);
 
-    set_secondary_indexes_internal(txn, superblock, std::map<uuid_t, secondary_index_t>());
+    set_secondary_indexes_internal(txn, sindex_block, std::map<uuid_t, secondary_index_t>());
 }
 
-bool get_secondary_index(transaction_t *txn, buf_lock_t *superblock, uuid_t uuid, secondary_index_t *sindex_out) {
+bool get_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, uuid_t uuid, secondary_index_t *sindex_out) {
     std::map<uuid_t, secondary_index_t> sindex_map;
 
-    get_secondary_indexes_internal(txn, superblock, &sindex_map);
+    get_secondary_indexes_internal(txn, sindex_block, &sindex_map);
 
     if (std_contains(sindex_map, uuid)) {
         *sindex_out = sindex_map[uuid];
@@ -361,32 +373,32 @@ bool get_secondary_index(transaction_t *txn, buf_lock_t *superblock, uuid_t uuid
     }
 }
 
-void get_secondary_indexes(transaction_t *txn, buf_lock_t *superblock, std::map<uuid_t, secondary_index_t> *sindexes_out) {
-    get_secondary_indexes_internal(txn, superblock, sindexes_out);
+void get_secondary_indexes(transaction_t *txn, buf_lock_t *sindex_block, std::map<uuid_t, secondary_index_t> *sindexes_out) {
+    get_secondary_indexes_internal(txn, sindex_block, sindexes_out);
 }
 
-bool add_secondary_index(transaction_t *txn, buf_lock_t *superblock, uuid_t uuid, const secondary_index_t &sindex) {
+bool add_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, uuid_t uuid, const secondary_index_t &sindex) {
     std::map<uuid_t, secondary_index_t> sindex_map;
-    get_secondary_indexes_internal(txn, superblock, &sindex_map);
+    get_secondary_indexes_internal(txn, sindex_block, &sindex_map);
 
     if (std_contains(sindex_map, uuid)) {
         return false;
     } else {
         sindex_map[uuid] = sindex;
-        set_secondary_indexes_internal(txn, superblock, sindex_map);
+        set_secondary_indexes_internal(txn, sindex_block, sindex_map);
         return true;
     }
 }
 
-bool delete_secondary_index(transaction_t *txn, buf_lock_t *superblock, uuid_t uuid) {
+bool delete_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, uuid_t uuid) {
     std::map<uuid_t, secondary_index_t> sindex_map;
-    get_secondary_indexes_internal(txn, superblock, &sindex_map);
+    get_secondary_indexes_internal(txn, sindex_block, &sindex_map);
 
     if (!std_contains(sindex_map, uuid)) {
         return false;
     } else {
         sindex_map.erase(uuid);
-        set_secondary_indexes_internal(txn, superblock, sindex_map);
+        set_secondary_indexes_internal(txn, sindex_block, sindex_map);
         return true;
     }
 }

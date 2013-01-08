@@ -30,7 +30,9 @@ void btree_slice_t::create(cache_t *cache, block_id_t superblock_id, transaction
     sb->root_block = NULL_BLOCK_ID;
     sb->stat_block = NULL_BLOCK_ID;
 
-    initialize_secondary_indexes(txn, &superblock);
+    buf_lock_t sindex_block(txn);
+    initialize_secondary_indexes(txn, &sindex_block);
+    sb->sindex_block = sindex_block.get_block_id();
 }
 
 btree_slice_t::btree_slice_t(cache_t *c, perfmon_collection_t *parent, block_id_t _superblock_id)

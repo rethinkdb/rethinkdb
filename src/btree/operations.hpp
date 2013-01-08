@@ -33,6 +33,9 @@ public:
     virtual block_id_t get_stat_block_id() const = 0;
     virtual void set_stat_block_id(block_id_t new_stat_block) = 0;
 
+    virtual block_id_t get_sindex_block_id() const = 0;
+    virtual void set_sindex_block_id(block_id_t new_block_id) = 0;
+
     virtual void set_eviction_priority(eviction_priority_t eviction_priority) = 0;
     virtual eviction_priority_t get_eviction_priority() = 0;
 
@@ -54,6 +57,9 @@ public:
 
     block_id_t get_stat_block_id() const;
     void set_stat_block_id(block_id_t new_stat_block);
+
+    block_id_t get_sindex_block_id() const;
+    void set_sindex_block_id(block_id_t new_block_id);
 
     void set_eviction_priority(eviction_priority_t eviction_priority);
     eviction_priority_t get_eviction_priority();
@@ -93,6 +99,14 @@ public:
         crash("Not implemented\n");
     }
 
+    block_id_t get_sindex_block_id() const {
+        crash("Not implemented\n");
+    }
+
+    void set_sindex_block_id(block_id_t) {
+        crash("Not implemented\n");
+    }
+
     void set_eviction_priority(UNUSED eviction_priority_t eviction_priority) {
         // TODO Actually support the setting and getting of eviction priority in a virtual superblock.
     }
@@ -104,9 +118,6 @@ public:
 
 private:
     block_id_t root_block_id_;
-
-public:
-    RDB_MAKE_ME_SERIALIZABLE_1(root_block_id_);
 };
 
 class btree_stats_t;
@@ -296,11 +307,11 @@ struct secondary_index_t {
 //Note if this function is called after secondary indexes have been added it will
 void initialize_secondary_indexes(transaction_t *txn, buf_lock_t *superblock);
 
-bool get_secondary_index(transaction_t *txn, buf_lock_t *superblock, uuid_t uuid, secondary_index_t *sindex_out);
+bool get_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, uuid_t uuid, secondary_index_t *sindex_out);
 
-void get_secondary_indexes(transaction_t *txn, buf_lock_t *superblock, std::map<uuid_t, secondary_index_t> *sindexes_out);
+void get_secondary_indexes(transaction_t *txn, buf_lock_t *sindex_block, std::map<uuid_t, secondary_index_t> *sindexes_out);
 
-bool add_secondary_index(transaction_t *txn, buf_lock_t *superblock, uuid_t uuid, const secondary_index_t &sindex);
+bool add_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, uuid_t uuid, const secondary_index_t &sindex);
 
 //XXX note this just drops the entry. It doesn't cleanup the btree that it
 //points to. drop_secondary_index. Does both and should be used publicly.

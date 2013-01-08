@@ -47,9 +47,10 @@ void run_sindex_low_level_operations_test() {
         scoped_ptr_t<transaction_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
         get_btree_superblock_and_txn(&btree, rwi_write, 1, repli_timestamp_t::invalid, otok, &superblock, &txn);
-        buf_lock_t *sb_buf = superblock->get();
 
-        initialize_secondary_indexes(txn.get(), sb_buf);
+        buf_lock_t sindex_block(txn.get(), superblock->get_sindex_block_id(), rwi_write);
+
+        initialize_secondary_indexes(txn.get(), &sindex_block);
     }
 
     for (int i = 0; i < 100; ++i) {
@@ -67,9 +68,9 @@ void run_sindex_low_level_operations_test() {
         scoped_ptr_t<transaction_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
         get_btree_superblock_and_txn(&btree, rwi_write, 1, repli_timestamp_t::invalid, otok, &superblock, &txn);
-        buf_lock_t *sb_buf = superblock->get();
+        buf_lock_t sindex_block(txn.get(), superblock->get_sindex_block_id(), rwi_write);
 
-        add_secondary_index(txn.get(), sb_buf, uuid, s);
+        add_secondary_index(txn.get(), &sindex_block, uuid, s);
     }
 
     {
@@ -77,10 +78,10 @@ void run_sindex_low_level_operations_test() {
         scoped_ptr_t<transaction_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
         get_btree_superblock_and_txn(&btree, rwi_write, 1, repli_timestamp_t::invalid, otok, &superblock, &txn);
-        buf_lock_t *sb_buf = superblock->get();
+        buf_lock_t sindex_block(txn.get(), superblock->get_sindex_block_id(), rwi_write);
 
         std::map<uuid_t, secondary_index_t> sindexes;
-        get_secondary_indexes(txn.get(), sb_buf, &sindexes);
+        get_secondary_indexes(txn.get(), &sindex_block, &sindexes);
 
         ASSERT_TRUE(sindexes == mirror);
     }
@@ -117,40 +118,40 @@ void run_sindex_btree_store_api_test() {
     cond_t dummy_interuptor;
     uuid_t id = generate_uuid();
     {
-        object_buffer_t<fifo_enforcer_sink_t::exit_write_t> token;
-        store.new_write_token(&token);
+        write_token_pair_t token_pair;
+        store.new_write_token_pair(&token_pair);
 
         scoped_ptr_t<transaction_t> txn;
         scoped_ptr_t<real_superblock_t> super_block;
 
         store.acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid,
-                                           1, &token, &txn, &super_block, &dummy_interuptor);
+                                           1, &token_pair.main_write_token, &txn, &super_block, &dummy_interuptor);
 
-        store.add_secondary_index(
+        store.add_sindex(
+                &token_pair,
                 id,
                 std::vector<unsigned char>(),
                 txn.get(),
-                super_block->get(),
+                super_block.get(),
                 &dummy_interuptor);
     }
 
     {
         //Insert a piece of data in to the btree.
-        object_buffer_t<fifo_enforcer_sink_t::exit_write_t> token;
-        store.new_write_token(&token);
-
-        object_buffer_t<fifo_enforcer_sink_t::exit_write_t> sindex_token;
-        store.new_sindex_write_token(&sindex_token);
+        write_token_pair_t token_pair;
+        store.new_write_token_pair(&token_pair);
 
         scoped_ptr_t<transaction_t> txn;
         scoped_ptr_t<real_superblock_t> super_block;
 
         store.acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid,
-                                           1, &token, &txn, &super_block, &dummy_interuptor);
+                                           1, &token_pair.main_write_token, &txn, 
+                                           &super_block, &dummy_interuptor);
 
         scoped_ptr_t<real_superblock_t> sindex_super_block;
 
-        store.acquire_sindex_superblock_for_write(id, &sindex_token, txn.get(), &sindex_super_block, super_block->get(), &dummy_interuptor);
+        store.acquire_sindex_superblock_for_write(id, super_block->get_sindex_block_id(), &token_pair, 
+                                                  txn.get(), &sindex_super_block, &dummy_interuptor);
 
         store_key_t key("foo");
         boost::shared_ptr<scoped_cJSON_t> data(new scoped_cJSON_t(cJSON_CreateNumber(1)));
@@ -163,20 +164,13 @@ void run_sindex_btree_store_api_test() {
 
     {
         //Read that data
-        object_buffer_t<fifo_enforcer_sink_t::exit_read_t> token;
-        store.new_read_token(&token);
-
-        object_buffer_t<fifo_enforcer_sink_t::exit_read_t> sindex_token;
-        store.new_sindex_read_token(&sindex_token);
+        read_token_pair_t token_pair;
+        store.new_read_token_pair(&token_pair);
 
         scoped_ptr_t<transaction_t> txn;
-        scoped_ptr_t<real_superblock_t> super_block;
-
-        store.acquire_superblock_for_read(rwi_read, &token, &txn, &super_block, &dummy_interuptor, false);
-
         scoped_ptr_t<real_superblock_t> sindex_super_block;
 
-        store.acquire_sindex_superblock_for_read(id, &sindex_token, txn.get(), &sindex_super_block, super_block->get(), &dummy_interuptor);
+        store.acquire_sindex_superblock_for_read(id, &token_pair, &txn, &sindex_super_block, &dummy_interuptor);
 
         point_read_response_t response;
 
@@ -187,23 +181,25 @@ void run_sindex_btree_store_api_test() {
     }
 
     {
-        object_buffer_t<fifo_enforcer_sink_t::exit_write_t> token;
-        store.new_write_token(&token);
+        /* Drop the sindex */
+        write_token_pair_t token_pair;
+        store.new_write_token_pair(&token_pair);
 
         scoped_ptr_t<transaction_t> txn;
         scoped_ptr_t<real_superblock_t> super_block;
 
         store.acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid,
-                                           1, &token, &txn, &super_block, &dummy_interuptor);
+                                           1, &token_pair.main_write_token, &txn, &super_block, &dummy_interuptor);
 
         value_sizer_t<rdb_value_t> sizer(store.cache->get_block_size());
 
         rdb_value_deleter_t deleter;
 
-        store.drop_secondary_index(
+        store.drop_sindex(
+                &token_pair,
                 id,
                 txn.get(),
-                super_block->get(),
+                super_block.get(),
                 &sizer,
                 &deleter,
                 &dummy_interuptor);

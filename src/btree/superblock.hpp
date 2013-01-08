@@ -34,6 +34,14 @@ public:
         sub_superblock->set_stat_block_id(new_stat_block);
     }
 
+    block_id_t get_sindex_block_id() const {
+        return sub_superblock->get_stat_block_id();
+    }
+
+    void set_sindex_block_id(block_id_t new_stat_block) {
+        sub_superblock->set_stat_block_id(new_stat_block);
+    }
+
     void set_eviction_priority(eviction_priority_t eviction_priority) {
         sub_superblock->set_eviction_priority(eviction_priority);
     }

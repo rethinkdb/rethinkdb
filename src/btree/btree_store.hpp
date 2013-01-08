@@ -19,6 +19,14 @@ namespace unittest {
 void run_sindex_btree_store_api_test();
 } //namespace unittest
 
+struct read_token_pair_t {
+    object_buffer_t<fifo_enforcer_sink_t::exit_read_t> main_read_token, sindex_read_token;
+};
+
+struct write_token_pair_t {
+    object_buffer_t<fifo_enforcer_sink_t::exit_write_t> main_write_token, sindex_write_token;
+};
+
 class btree_slice_t;
 class io_backender_t;
 class superblock_t;
@@ -41,8 +49,10 @@ public:
     void new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out);
     void new_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token_out);
 
-    void new_sindex_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out);
-    void new_sindex_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token_out);
+    /* These functions get tokens for both the main B-Tree and the secondary
+     * structures. */
+    void new_read_token_pair(read_token_pair_t *token_pair_out);
+    void new_write_token_pair(write_token_pair_t *token_pair_out);
 
     typedef region_map_t<protocol_t, binary_blob_t> metainfo_t;
 
@@ -101,41 +111,81 @@ public:
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
+private:
+
+void acquire_sindex_block_for_read(
+        read_token_pair_t *token_pair,
+        transaction_t *txn,
+        scoped_ptr_t<buf_lock_t> *sindex_block_out,
+        const superblock_t *super_block,
+        signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t);
+
+/* Why are there two versions of acquire_superblock_for_write? The prior first
+ * is to be used if you want to make a change to the sindexes right after
+ * acquiring the superblock. This happens if you're creating a new sindex for
+ * example. That later is for when you want to make a change having already
+ * descended the tree. They are only superficial different mostly for
+ * convenience. If you were to extract the sindex_block_id from the
+ * superblock_t in the first method and pass it to the second you would get the
+ * same results, there mostly for convenience. The same thing doesn't exist for
+ * acquire_sindex_block_for_read because I can't actually think of a case where
+ * people should be travering the primary B-Tree and then traversing the
+ * secondaries so I can't think of a use case for it. */
+void acquire_sindex_block_for_write(
+        write_token_pair_t *token_pair,
+        transaction_t *txn,
+        scoped_ptr_t<buf_lock_t> *sindex_block_out,
+        const superblock_t *super_block,
+        signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t);
+
+void acquire_sindex_block_for_write(
+        write_token_pair_t *token_pair,
+        transaction_t *txn,
+        scoped_ptr_t<buf_lock_t> *sindex_block_out,
+        block_id_t sindex_block_id,
+        signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t);
+
 protected:
     //So the unittest can directly test methods.
     friend void unittest::run_sindex_btree_store_api_test();
-    void add_secondary_index(
-            uuid_t id,
-            const secondary_index_t::opaque_definition_t &definition,
-            transaction_t *txn,
-            buf_lock_t *superblock,
-            signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t);
 
-    void drop_secondary_index(
-            uuid_t id,
-            transaction_t *txn,
-            buf_lock_t *superblock,
-            value_sizer_t<void> *sizer,
-            value_deleter_t *deleter,
-            signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t);
+
+    void add_sindex(
+        write_token_pair_t *token_pair,
+        uuid_t id,
+        const secondary_index_t::opaque_definition_t &definition,
+        transaction_t *txn,
+        superblock_t *super_block,
+        signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t);
+
+    void drop_sindex(
+        write_token_pair_t *token_pair,
+        uuid_t id,
+        transaction_t *txn,
+        superblock_t *super_block,
+        value_sizer_t<void> *sizer,
+        value_deleter_t *deleter,
+        signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t);
 
     void acquire_sindex_superblock_for_read(
             uuid_t id,
-            object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
-            transaction_t *txn,
+            read_token_pair_t *token_pair,
+            scoped_ptr_t<transaction_t> *txn_out,
             scoped_ptr_t<real_superblock_t> *sindex_sb_out,
-            buf_lock_t *superblock,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
 
     void acquire_sindex_superblock_for_write(
             uuid_t id,
-            object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
+            block_id_t sindex_block_id,
+            write_token_pair_t *token_pair,
             transaction_t *txn,
             scoped_ptr_t<real_superblock_t> *sindex_sb_out,
-            buf_lock_t *superblock,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
 
