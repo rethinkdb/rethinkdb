@@ -20,8 +20,7 @@ term_t *compile_term(env_t *env, const Term2 *t) {
     case Term2_TermType_JAVASCRIPT:
         throw ql::exc_t("JAVASCRIPT UNIMPLEMENTED (Bill's job.)");
     case Term2_TermType_ERROR: return new error_term_t(env, t);
-    case Term2_TermType_IMPLICIT_VAR:
-        break;
+    case Term2_TermType_IMPLICIT_VAR: return new implicit_var_term_t(env, t);
     case Term2_TermType_DB: return new db_term_t(env, t);
     case Term2_TermType_TABLE: return new table_term_t(env, t);
     case Term2_TermType_GET:

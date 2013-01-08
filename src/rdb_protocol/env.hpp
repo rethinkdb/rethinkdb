@@ -21,24 +21,6 @@ class term_t;
 
 class env_t {
 public:
-    class implicit_binder_t {
-    public:
-        implicit_binder_t(env_t *_env, const char *_name) :
-            env(_env), orig_depth(env->implicit_depth), name(_name) {
-            env->implicit_depth += 1;
-        }
-        void check_implicit_consumed() {
-            rcheck(env->implicit_depth == orig_depth,
-                   strprintf("Expected a function inside %s.", name));
-        }
-    private:
-        env_t *env;
-        int orig_depth;
-        const char *name;
-    };
-    bool consume_implicit_bound() {
-        return implicit_depth ? implicit_depth-- : 0;
-    }
     void push_implicit(const datum_t **val) {
         implicit_var.push(val);
     }

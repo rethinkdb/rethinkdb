@@ -17,4 +17,19 @@ private:
     RDB_NAME("var");
 };
 
+class implicit_var_term_t : public op_term_t {
+public:
+    implicit_var_term_t(env_t *env, const Term2 *term) :
+        op_term_t(env, term, argspec_t(0)) {
+        datum_val = env->top_implicit();
+    }
+private:
+    const datum_t **datum_val;
+    virtual val_t *eval_impl() {
+        return new_val(*datum_val);
+    }
+    RDB_NAME("var");
+};
+
+
 } //namespace ql

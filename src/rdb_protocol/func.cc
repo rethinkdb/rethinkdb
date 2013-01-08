@@ -38,15 +38,11 @@ func_t::func_t(env_t *env, const Term2 *_source) : body(0), source(_source) {
     }
 
     guarantee(argptrs.size() == 0);
-    bool implicit_bound = env->consume_implicit_bound();
-    if (implicit_bound) {
-        r_sanity_check(args.size() == 1);
-        env->push_implicit(&argptrs[0]);
-    }
     for (size_t i = 0; i < args.size(); ++i) {
         argptrs.push_back(0);
         //debugf("pushing %d -> %p\n", args[i], &argptrs[i]);
         env->push_var(args[i], &argptrs[i]);
+        if (args.size() == 1) env->push_implicit(&argptrs[i]);
     }
 
     const Term2 *body_source = &t->args(1);
@@ -55,9 +51,7 @@ func_t::func_t(env_t *env, const Term2 *_source) : body(0), source(_source) {
     for (size_t i = 0; i < args.size(); ++i) {
         //debugf("popping %d\n", args[i]);
         env->pop_var(args[i]);
-    }
-    if (implicit_bound) {
-        env->pop_implicit();
+        if (args.size() == 1) env->pop_implicit();
     }
 }
 

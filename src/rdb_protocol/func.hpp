@@ -24,6 +24,7 @@ private:
 
     friend class wire_func_t;
     const Term2 *source;
+    bool implicit_bound;
 };
 
 
