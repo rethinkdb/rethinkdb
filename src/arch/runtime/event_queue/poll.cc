@@ -22,7 +22,7 @@
 
 int user_to_poll(int mode) {
 
-    DEBUG_VAR int allowed_mode_mask = poll_event_in | poll_event_out;
+    int allowed_mode_mask = poll_event_in | poll_event_out;
 #ifdef __linux
     allowed_mode_mask |= poll_event_rdhup;
 #endif
@@ -41,7 +41,7 @@ int user_to_poll(int mode) {
 
 int poll_to_user(int mode) {
 
-    DEBUG_VAR int allowed_mode_mask = POLLIN | POLLOUT | POLLERR | POLLHUP;
+    int allowed_mode_mask = POLLIN | POLLOUT | POLLERR | POLLHUP;
 #ifdef __linux
     allowed_mode_mask |= POLLRDHUP;
 #endif
