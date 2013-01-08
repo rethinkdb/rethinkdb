@@ -7,7 +7,6 @@
 #include "arch/runtime/context_switching.hpp"
 #include "arch/runtime/coroutines.hpp"
 #include "logger.hpp"
-#include "thread_local.hpp"
 
 #ifndef NDEBUG
 
@@ -29,7 +28,7 @@ uint64_t get_clock_cycles() {
 }
 
 bool watchdog_check_enabled = false;
-TLS_with_init(uint64_t, watchdog_start_time, 0);
+__thread uint64_t watchdog_start_time = 0;
 const uint64_t MAX_WATCHDOG_DELTA = 100000000;
 #endif  // NDEBUG
 
@@ -75,28 +74,26 @@ void enable_watchdog() {
 
 void start_watchdog() {
     if (watchdog_check_enabled) {
-        TLS_set_watchdog_start_time(get_clock_cycles());
+        watchdog_start_time = get_clock_cycles();
 
-        uint64_t watchdog_start_time = TLS_get_watchdog_start_time();
         if (watchdog_start_time == 0) {
-            TLS_set_watchdog_start_time(1);
+            ++watchdog_start_time;
         }
     }
 }
 
 void disarm_watchdog() {
-    TLS_set_watchdog_start_time(0);
+    watchdog_start_time = 0;
 }
 
 void pet_watchdog() {
     if (watchdog_check_enabled) {
-        uint64_t watchdog_start_time = TLS_get_watchdog_start_time();
         if (watchdog_start_time == 0) {
             start_watchdog();
         } else {
             uint64_t old_value = watchdog_start_time;
             uint64_t new_value = get_clock_cycles();
-            TLS_set_watchdog_start_time(new_value);
+            watchdog_start_time = new_value;
             uint64_t difference = new_value - old_value;
             if (difference > MAX_WATCHDOG_DELTA) {
                 debugf("task triggered watchdog, elapsed cycles: %" PRIu64 ", running coroutine: %s\n", difference,

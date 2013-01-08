@@ -13,20 +13,12 @@
 #include "arch/runtime/runtime.hpp"
 #include "errors.hpp"
 #include "logger.hpp"
-#include "thread_local.hpp"
 
 const int SEGV_STACK_SIZE = SIGSTKSZ;
 
-TLS_with_init(linux_thread_pool_t *, thread_pool, NULL);
-TLS_with_init(int, thread_id, 0);
-TLS_with_init(linux_thread_t *, thread, NULL);
-
-linux_thread_pool_t *linux_thread_pool_t::get_thread_pool() { return TLS_get_thread_pool(); }
-int get_thread_id() { return TLS_get_thread_id(); }
-linux_thread_t *linux_thread_pool_t::get_thread() { return TLS_get_thread(); }
-void linux_thread_pool_t::unittest_set_thread_id(int fake_id) { TLS_set_thread_id(fake_id); }
-
-
+__thread linux_thread_pool_t *linux_thread_pool_t::thread_pool;
+__thread int linux_thread_pool_t::thread_id;
+__thread linux_thread_t *linux_thread_pool_t::thread;
 
 linux_thread_pool_t::linux_thread_pool_t(int worker_threads, bool _do_set_affinity) :
 #ifndef NDEBUG
@@ -52,10 +44,10 @@ linux_thread_pool_t::linux_thread_pool_t(int worker_threads, bool _do_set_affini
 linux_thread_message_t *linux_thread_pool_t::set_interrupt_message(linux_thread_message_t *m) {
     linux_thread_message_t *o;
     {
-        spinlock_acq_t acq(&get_thread_pool()->interrupt_message_lock);
+        spinlock_acq_t acq(&thread_pool->interrupt_message_lock);
 
-        o = get_thread_pool()->interrupt_message;
-        get_thread_pool()->interrupt_message = m;
+        o = thread_pool->interrupt_message;
+        thread_pool->interrupt_message = m;
     }
 
     return o;
@@ -86,15 +78,15 @@ void *linux_thread_pool_t::start_thread(void *arg) {
     thread_data_t *tdata = reinterpret_cast<thread_data_t *>(arg);
 
     // Set thread-local variables
-    TLS_set_thread_pool(tdata->thread_pool);
-    TLS_set_thread_id(tdata->current_thread);
+    linux_thread_pool_t::thread_pool = tdata->thread_pool;
+    linux_thread_pool_t::thread_id = tdata->current_thread;
 
     // Use a separate block so that it's very clear how long the thread lives for
     // It's not really necessary, but I like it.
     {
         linux_thread_t local_thread(tdata->thread_pool, tdata->current_thread);
         tdata->thread_pool->threads[tdata->current_thread] = &local_thread;
-        TLS_set_thread(&local_thread);
+        linux_thread_pool_t::thread = &local_thread;
         blocker_pool_t *generic_blocker_pool = NULL; // Will only be instantiated by one thread
 
         /* Install a handler for segmentation faults that just prints a backtrace. If we're
@@ -156,7 +148,7 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         }
 
         tdata->thread_pool->threads[tdata->current_thread] = NULL;
-        TLS_set_thread(NULL);
+        linux_thread_pool_t::thread = NULL;
     }
 
     delete tdata;
@@ -201,7 +193,7 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
     }
 
     // Mark the main thread (for use in assertions etc.)
-    TLS_set_thread_id(-1);
+    linux_thread_pool_t::thread_id = -1;
 
     // Set up interrupt handlers
 
@@ -213,7 +205,7 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
     // be a good thing to do before distributing the RethinkDB IO layer, but it's
     // not really important.
 
-    TLS_set_thread_pool(this);
+    linux_thread_pool_t::thread_pool = this;   // So signal handlers can find us
     {
         struct sigaction sa = make_sa_handler(0, &linux_thread_pool_t::interrupt_handler);
 
@@ -248,7 +240,7 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
         res = sigaction(SIGINT, &sa, NULL);
         guarantee_err(res == 0, "Could not remove INT handler");
     }
-    TLS_set_thread_pool(NULL);
+    linux_thread_pool_t::thread_pool = NULL;
 
 #ifndef NDEBUG
     // Save each thread's coroutine counters before shutting down
@@ -303,9 +295,9 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
 void linux_thread_pool_t::interrupt_handler(int) {
     /* The interrupt handler should run on the main thread, the same thread that
     run() was called on. */
-    rassert(get_thread_id() == -1, "The interrupt handler was called on the wrong thread.");
+    rassert(linux_thread_pool_t::thread_id == -1, "The interrupt handler was called on the wrong thread.");
 
-    linux_thread_pool_t *self = linux_thread_pool_t::get_thread_pool();
+    linux_thread_pool_t *self = linux_thread_pool_t::thread_pool;
 
     /* Set the interrupt message to NULL at the same time as we get it so that
     we don't send the same message twice. This is necessary because it's illegal

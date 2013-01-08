@@ -188,7 +188,7 @@ void connectivity_cluster_t::run_t::connect_to_peer(const peer_address_t *addr, 
     // Indexing through a std::set is rather awkward
     const std::set<ip_address_t> *all_ips = addr->all_ips();
     std::set<ip_address_t>::const_iterator selected_addr;
-    for (selected_addr = all_ips->begin(); selected_addr != all_ips->end() && index > 0; ++selected_addr, --index) { }
+    for (selected_addr = all_ips->begin(); selected_addr != all_ips->end() && index > 0; ++selected_addr, --index);
     guarantee(index == 0);
 
     // Don't bother if there's already a connection
