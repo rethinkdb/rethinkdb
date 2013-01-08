@@ -1506,7 +1506,9 @@ module 'DataExplorerView', ->
             @mouse_down = false
             @.$('.json_table').toggleClass('resizing', false)
             @set_scrollbar()
-        default_size_column: 310
+
+        default_size_column: 310 # max-width value of a cell of a table (as defined in the css file)
+
         render_result: (query, result) =>
             if query?
                 @query = query
