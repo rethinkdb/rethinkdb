@@ -14,6 +14,7 @@
 #include <boost/ptr_container/ptr_vector.hpp>
 
 #include "arch/timing.hpp"
+#include "clustering/generic/resource.hpp"
 #include "clustering/reactor/metadata.hpp"
 #include "containers/clone_ptr.hpp"
 #include "containers/cow_ptr.hpp"

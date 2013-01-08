@@ -331,7 +331,7 @@ debugf_in_dtor_t::~debugf_in_dtor_t() {
     debugf("%s", message.c_str());
 }
 
-rng_t::rng_t(DEBUG_VAR int seed) {
+rng_t::rng_t(int seed) {
 #ifndef NDEBUG
     if (seed == -1) {
         struct timeval tv;
