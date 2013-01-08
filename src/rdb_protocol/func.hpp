@@ -32,8 +32,10 @@ RDB_MAKE_PROTOB_SERIALIZABLE(Datum);
 class wire_func_t {
 public:
     wire_func_t();
+    virtual ~wire_func_t() { }
     wire_func_t(env_t *env, func_t *_func);
     func_t *compile(env_t *env);
+    virtual backtrace_t::frame_t bt() = 0;
 protected:
     std::map<env_t *, func_t *> cached_funcs;
 
@@ -47,6 +49,7 @@ class map_wire_func_t : public wire_func_t {
 public:
     map_wire_func_t() : wire_func_t() { }
     map_wire_func_t(env_t *env, func_t *func) : wire_func_t(env, func) { }
+    virtual backtrace_t::frame_t bt() { return 1; }
     RDB_MAKE_ME_SERIALIZABLE_2(source, scope);
 };
 

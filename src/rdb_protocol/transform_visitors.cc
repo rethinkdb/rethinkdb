@@ -64,19 +64,24 @@ void transform_visitor_t::operator()(Builtin_Range range) const {
 }
 
 void transform_visitor_t::operator()(ql::map_wire_func_t &func) const {
-    //debugf("setting up checkpoint...\n");
-    ql::env_checkpointer_t(ql_env, &ql::env_t::discard_checkpoint);
+    try {
+        //debugf("setting up checkpoint...\n");
+        ql::env_checkpointer_t(ql_env, &ql::env_t::discard_checkpoint);
 
-    //debugf("compiling...\n");
-    ql::func_t *f = func.compile(ql_env);
-    //debugf("parsing json...\n");
-    const ql::datum_t *arg = ql_env->add_ptr(new ql::datum_t(json, ql_env));
-    std::vector<const ql::datum_t *> args;
-    args.push_back(arg);
-    //debugf("evaluating...\n");
-    ql::val_t *v = f->call(args);
-    //debugf("re-encoding...\n");
-    out->push_back(v->as_datum()->as_json());
+        //debugf("compiling...\n");
+        ql::func_t *f = func.compile(ql_env);
+        //debugf("parsing json...\n");
+        const ql::datum_t *arg = ql_env->add_ptr(new ql::datum_t(json, ql_env));
+        std::vector<const ql::datum_t *> args;
+        args.push_back(arg);
+        //debugf("evaluating...\n");
+        ql::val_t *v = f->call(args);
+        //debugf("re-encoding...\n");
+        out->push_back(v->as_datum()->as_json());
+    } catch (ql::exc_t &e) {
+        e.backtrace.frames.push_front(func.bt());
+        throw;
+    }
 }
 
 terminal_initializer_visitor_t::terminal_initializer_visitor_t(rget_read_response_t::result_t *_out,
