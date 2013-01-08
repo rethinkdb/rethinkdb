@@ -6,9 +6,9 @@
 #include "errors.hpp"
 
 struct disk_stat_t {
-    uint64_t disk_space_free;
-    uint64_t disk_space_used;
-    uint64_t disk_space_total;
+    int64_t disk_space_free;
+    int64_t disk_space_used;
+    int64_t disk_space_total;
 
     explicit disk_stat_t(const std::string &filepath) {
         int res;
@@ -55,9 +55,9 @@ perfmon_result_t *sys_stats_collector_t::instantaneous_stats_collector_t::end_st
     perfmon_result_t::alloc_map_result(&result);
 
     disk_stat_t disk_stat = disk_stat_t(filepath);
-    result->insert("global_disk_space_free", new perfmon_result_t(strprintf("%" PRIu64, disk_stat.disk_space_free)));
-    result->insert("global_disk_space_used", new perfmon_result_t(strprintf("%" PRIu64, disk_stat.disk_space_used)));
-    result->insert("global_disk_space_total", new perfmon_result_t(strprintf("%" PRIu64, disk_stat.disk_space_total)));
+    result->insert("global_disk_space_free", new perfmon_result_t(strprintf("%" PRIi64, disk_stat.disk_space_free)));
+    result->insert("global_disk_space_used", new perfmon_result_t(strprintf("%" PRIi64, disk_stat.disk_space_used)));
+    result->insert("global_disk_space_total", new perfmon_result_t(strprintf("%" PRIi64, disk_stat.disk_space_total)));
 
     return result;
 }

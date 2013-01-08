@@ -223,12 +223,12 @@ inline json_adapter_if_t::json_adapter_map_t get_json_subfields(peer_id_t *) {
 }
 
 inline cJSON *render_as_json(peer_id_t *target) {
-    uuid_t uuid = target->get_uuid();
+    uuid_u uuid = target->get_uuid();
     return render_as_json(&uuid);
 }
 
 inline void apply_json_to(cJSON *change, peer_id_t *target) {
-    uuid_t uuid;
+    uuid_u uuid;
     apply_json_to(change, &uuid);
     *target = peer_id_t(uuid);
 }

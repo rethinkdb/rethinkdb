@@ -142,8 +142,12 @@ bool artificial_stack_t::address_is_stack_overflow(void *addr) {
 }
 
 extern "C" {
-/* `lightweight_swapcontext` is defined in the `asm` block further down */
-extern void lightweight_swapcontext(void **current_pointer_out, void *dest_pointer);
+// `lightweight_swapcontext` is defined in assembly further down.  If we didn't add the
+// asm("_lightweight_swapcontext") here, we'd have to conditionally compile the symbol name in the
+// assembly directive to include the underscore on OS X and certain other platforms, or use the
+// -fleading-underscore which would be trickier and riskier.
+extern void lightweight_swapcontext(void **current_pointer_out, void *dest_pointer)
+    asm("_lightweight_swapcontext");
 }
 
 void context_switch(context_ref_t *current_context_out, context_ref_t *dest_context_in) {
@@ -183,7 +187,7 @@ asm(
 #endif
 #endif // defined(__x86_64__)
 ".text\n"
-"lightweight_swapcontext:\n"
+"_lightweight_swapcontext:\n"
 
 #if defined(__i386__)
     /* `current_pointer_out` is in `4(%ebp)`. `dest_pointer` is in `8(%ebp)`. */

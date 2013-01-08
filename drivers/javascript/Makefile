@@ -9,14 +9,14 @@ else
 QUIET:=@
 endif
 
-RETHINKDB_HOME=../../
-EXTERNAL=$(RETHINKDB_HOME)external/
-CLOSURE_LIB=$(EXTERNAL)google-closure-library/
+RETHINKDB_HOME=../..
+EXTERNAL=$(RETHINKDB_HOME)/external
+CLOSURE_LIB=$(EXTERNAL)/google-closure-library/
 CLOSURE_BUILDER=$(CLOSURE_LIB)closure/bin/build/closurebuilder.py
-CLOSURE_COMPILER=$(EXTERNAL)google-closure-compiler/compiler.jar
+CLOSURE_COMPILER=$(EXTERNAL)/google-closure-compiler/compiler.jar
 
 PROTOC?=$(PROTOC_BASE)/bin/protoc
-PROTOC_JS_HOME_DIR=$(EXTERNAL)protobuf-plugin-closure/
+PROTOC_JS_HOME_DIR=$(EXTERNAL)/protobuf-plugin-closure/
 PROTOC_JS_PLUGIN=$(PROTOC_JS_HOME_DIR)protoc-gen-js
 PROTOC_JS_IMPORT_DIR=$(PROTOC_JS_HOME_DIR)js/
 PROTOC_JS=$(PROTOC) --plugin=$(PROTOC_JS_PLUGIN) -I $(PROTOC_JS_IMPORT_DIR)
@@ -115,8 +115,8 @@ endif
 protodeps: $(PROTOC_JS_HOME_DIR)/protoc-gen-js
 
 $(PROTOC_JS_HOME_DIR)/protoc-gen-js:
-	$(QUIET) cd ../../external/protobuf-plugin-closure ; $(MAKE) SPREFIX="$(PROTOC_BASE)" ;
+	$(QUIET) cd $(EXTERNAL)/protobuf-plugin-closure ; $(MAKE) SPREFIX="$(PROTOC_BASE)" ;
 
 protodeps-clean:
-	$(QUIET) cd ../../external/protobuf-plugin-closure ; $(MAKE) SPREFIX="$(PROTOC_BASE)" clean ;
+	$(QUIET) cd $(EXTERNAL)/protobuf-plugin-closure ; $(MAKE) SPREFIX="$(PROTOC_BASE)" clean ;
 

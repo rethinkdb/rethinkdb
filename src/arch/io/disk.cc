@@ -2,7 +2,7 @@
 #include "arch/io/disk.hpp"
 
 #include <fcntl.h>
-#include <linux/fs.h>
+
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
@@ -21,6 +21,7 @@
 #include "backtrace.hpp"
 #include "arch/runtime/runtime.hpp"
 #include "arch/io/disk/aio.hpp"
+#include "arch/io/disk/filestat.hpp"
 #include "arch/io/disk/pool.hpp"
 #include "arch/io/disk/conflict_resolving.hpp"
 #include "arch/io/disk/stats.hpp"
@@ -193,26 +194,23 @@ void make_io_backender(io_backend_t backend, scoped_ptr_t<io_backender_t> *out) 
 linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, io_backender_t *io_backender)
     : fd(INVALID_FD), file_size(0)
 {
-    // Determine if it is a block device
-
-    struct stat64 file_stat;
-    memset(&file_stat, 0, sizeof(file_stat));  // make valgrind happy
-    int res = stat64(path, &file_stat);
-    guarantee_err(res == 0 || errno == ENOENT, "Could not stat file '%s'", path);
-
-    if (res == -1 && errno == ENOENT) {
-        if (!(mode & mode_create)) {
-            file_exists = false;
-            return;
-        }
-        is_block = false;
-    } else {
-        is_block = S_ISBLK(file_stat.st_mode);
-    }
-
     // Construct file flags
 
-    int flags = O_CREAT | (is_really_direct ? O_DIRECT : 0) | O_LARGEFILE;
+    // Let's have a sanity check for our attempt to check whether O_DIRECT and O_NOATIME are
+    // available as preprocessor defines.
+#ifndef O_CREAT
+#error "O_CREAT and other open flags are apparently not defined in the preprocessor."
+#endif
+
+    int flags = O_CREAT;
+#ifdef O_DIRECT
+    flags |= (is_really_direct ? O_DIRECT : 0);
+#endif
+
+    // For now, we have a whitelist of kernels that don't support O_LARGEFILE.
+#ifndef __MACH__
+    flags |= O_LARGEFILE;
+#endif
 
     if ((mode & mode_write) && (mode & mode_read)) {
         flags |= O_RDWR;
@@ -228,7 +226,9 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, io
     // O_NOATIME requires owner or root privileges. This is a bit of a hack; we assume that
     // if we are opening a regular file, we are the owner, but if we are opening a block device,
     // we are not.
-    if (!is_block) flags |= O_NOATIME;
+#ifdef O_NOATIME
+    flags |= O_NOATIME;
+#endif
 
     // Open the file
 
@@ -246,36 +246,43 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, io
         fail_due_to_user_error(
             "Inaccessible database file: \"%s\": %s"
             "\nSome possible reasons:"
-            "%s"    // for creation/open error
-            "%s"    // for O_DIRECT message
-            "%s",   // for O_NOATIME message
-            path, strerror(errno),
-            is_block ?
-                "\n- the database device couldn't be opened for reading and writing" :
-                "\n- the database file couldn't be created or opened for reading and writing",
-            is_really_direct ?
-                (is_block ?
-                    "\n- the database block device cannot be opened with O_DIRECT flag" :
-                    "\n- the database file is located on a filesystem that doesn't support O_DIRECT open flag (e.g. some encrypted or journaled file systems)"
-                ) : "",
-            !is_block ? "\n- user which was used to start the database is not an owner of the file" : "");
+            "\n- the database file couldn't be created or opened for reading and writing"
+#ifdef O_DIRECT
+            "%s"
+#endif
+#ifdef O_NOATIME
+            "%s"
+#endif
+            , path, errno_string(errno).c_str()
+#ifdef O_DIRECT
+            , is_really_direct ? "\n- the database file is located on a filesystem that doesn't support O_DIRECT open flag (e.g. some encrypted or journaled file systems)" : ""
+#endif
+#ifdef O_NOATIME
+            , "\n- user which was used to start the database is not an owner of the file"
+#endif
+            );
+    } else {
+        // When building, we must either support O_DIRECT or F_NOCACHE.  The former works on Linux,
+        // the latter works on OS X.
+#ifndef O_DIRECT
+        if (is_really_direct) {
+            int fcntl_res = fcntl(fd.get(), F_NOCACHE, 1);
+            if (fcntl_res == -1) {
+                fail_due_to_user_error("Could not turn off filesystem caching for database file: \"%s\": %s"
+                                       "\n(Is the database file located on a filesystem that doesn't support F_NOCACHE "
+                                       "(e.g. some encrypted or journaled file systems)?)",
+                                       path, errno_string(errno).c_str());
+            }
+        }
+#endif  // O_DIRECT
     }
 
     file_exists = true;
 
     // Determine the file size
 
-    if (is_block) {
-        res = ioctl(fd.get(), BLKGETSIZE64, &file_size);
-        guarantee_err(res != -1, "Could not determine block device size");
-    } else {
-        off64_t size = lseek64(fd.get(), 0, SEEK_END);
-        guarantee_err(size != -1, "Could not determine file size");
-        res = lseek64(fd.get(), 0, SEEK_SET);
-        guarantee_err(res != -1, "Could not reset file position");
-
-        file_size = size;
-    }
+    // We use lseek to get the size.  We could have also used stat.
+    file_size = get_file_size(fd.get());
 
     // TODO: We have a very minor correctness issue here, which is that
     // we don't guarantee data durability for newly created database files.
@@ -286,7 +293,7 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, io
     // until the file system flushes the metadata to disk.
 
     // Construct a disk manager. (given that we have an event pool)
-    if (linux_thread_pool_t::thread) {
+    if (linux_thread_pool_t::get_thread()) {
         diskmgr = io_backender->get_diskmgr_ptr();
         default_account.init(new file_account_t(this, 1, UNLIMITED_OUTSTANDING_REQUESTS));
     }
@@ -297,7 +304,7 @@ bool linux_file_t::exists() {
 }
 
 bool linux_file_t::is_block_device() {
-    return is_block;
+    return false;
 }
 
 uint64_t linux_file_t::get_size() {
@@ -305,7 +312,6 @@ uint64_t linux_file_t::get_size() {
 }
 
 void linux_file_t::set_size(size_t size) {
-    rassert(!is_block);
     int res = ftruncate(fd.get(), size);
     guarantee_err(res == 0, "Could not ftruncate()");
     fsync(fd.get()); // Make sure that the metadata change gets persisted
@@ -315,15 +321,9 @@ void linux_file_t::set_size(size_t size) {
 }
 
 void linux_file_t::set_size_at_least(size_t size) {
-    if (is_block) {
-        rassert(file_size >= size);
-    } else {
-        /* Grow in large chunks at a time */
-        if (file_size < size) {
-            // TODO: we should make the growth rate of a db file
-            // configurable.
-            set_size(ceil_aligned(size, DEVICE_BLOCK_SIZE * 128));
-        }
+    /* Grow in large chunks at a time */
+    if (file_size < size) {
+        set_size(ceil_aligned(size, DEVICE_BLOCK_SIZE * 128));
     }
 }
 

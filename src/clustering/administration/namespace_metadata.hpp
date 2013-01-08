@@ -31,7 +31,7 @@
 #include "rpc/semilattice/joins/vclock.hpp"
 #include "rpc/serialize_macros.hpp"
 
-typedef uuid_t namespace_id_t;
+typedef uuid_u namespace_id_t;
 
 
 /* This is the metadata for a single namespace of a specific protocol. */
@@ -89,7 +89,7 @@ void debug_print(append_only_printf_buffer_t *buf, const namespace_semilattice_m
 
 template<class protocol_t>
 namespace_semilattice_metadata_t<protocol_t> new_namespace(
-    uuid_t machine, uuid_t database, uuid_t datacenter,
+    uuid_u machine, uuid_u database, uuid_u datacenter,
     const name_string_t &name, const std::string &key, int port,
     int64_t cache_size) {
 
@@ -100,7 +100,7 @@ namespace_semilattice_metadata_t<protocol_t> new_namespace(
     ns.primary_key        = make_vclock(key, machine);
     ns.port               = make_vclock(port, machine);
 
-    std::map<uuid_t, int> ack_expectations;
+    std::map<uuid_u, int> ack_expectations;
     ack_expectations[datacenter] = 1;
     ns.ack_expectations = make_vclock(ack_expectations, machine);
 
@@ -109,11 +109,11 @@ namespace_semilattice_metadata_t<protocol_t> new_namespace(
     guarantee(add_region_success);
     ns.shards = make_vclock(shards, machine);
 
-    region_map_t<protocol_t, uuid_t> primary_pinnings(
+    region_map_t<protocol_t, uuid_u> primary_pinnings(
         protocol_t::region_t::universe(), nil_uuid());
     ns.primary_pinnings = make_vclock(primary_pinnings, machine);
 
-    region_map_t<protocol_t, std::set<uuid_t> > secondary_pinnings(
+    region_map_t<protocol_t, std::set<uuid_u> > secondary_pinnings(
         protocol_t::region_t::universe(), std::set<machine_id_t>());
     ns.secondary_pinnings = make_vclock(secondary_pinnings, machine);
 

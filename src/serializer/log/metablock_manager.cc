@@ -14,15 +14,15 @@
 
 #include "serializer/log/log_serializer.hpp"
 
-std::vector<off64_t> initial_metablock_offsets(off64_t extent_size) {
-    std::vector<off64_t> offsets;
+std::vector<int64_t> initial_metablock_offsets(int64_t extent_size) {
+    std::vector<int64_t> offsets;
 
-    const off64_t metablocks_per_extent = std::min<off64_t>(extent_size / DEVICE_BLOCK_SIZE, MB_BLOCKS_PER_EXTENT);
+    const int64_t metablocks_per_extent = std::min<int64_t>(extent_size / DEVICE_BLOCK_SIZE, MB_BLOCKS_PER_EXTENT);
 
     // The very first DEVICE_BLOCK_SIZE of the file is used for the
     // static header, so we start j at 1.
-    for (off64_t j = 1; j < metablocks_per_extent; ++j) {
-        off64_t offset = j * DEVICE_BLOCK_SIZE;
+    for (int64_t j = 1; j < metablocks_per_extent; ++j) {
+        int64_t offset = j * DEVICE_BLOCK_SIZE;
 
         offsets.push_back(offset);
     }
@@ -48,7 +48,7 @@ void metablock_manager_t<metablock_t>::metablock_manager_t::head_t::operator++()
 }
 
 template<class metablock_t>
-off64_t metablock_manager_t<metablock_t>::metablock_manager_t::head_t::offset() {
+int64_t metablock_manager_t<metablock_t>::metablock_manager_t::head_t::offset() {
 
     return mgr->metablock_offsets[mb_slot];
 }
@@ -91,9 +91,9 @@ metablock_manager_t<metablock_t>::~metablock_manager_t() {
 }
 
 template<class metablock_t>
-void metablock_manager_t<metablock_t>::create(file_t *dbfile, off64_t extent_size, metablock_t *initial) {
+void metablock_manager_t<metablock_t>::create(file_t *dbfile, int64_t extent_size, metablock_t *initial) {
 
-    std::vector<off64_t> metablock_offsets = initial_metablock_offsets(extent_size);
+    std::vector<int64_t> metablock_offsets = initial_metablock_offsets(extent_size);
 
     dbfile->set_size_at_least(metablock_offsets[metablock_offsets.size() - 1] + DEVICE_BLOCK_SIZE);
 

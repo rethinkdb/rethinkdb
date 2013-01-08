@@ -12,6 +12,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
+#include <sys/resource.h>
+
+#ifdef __MACH__
+#include <mach/mach_time.h>
+#endif
 
 #ifdef VALGRIND
 #include <valgrind/memcheck.h>
@@ -26,6 +31,36 @@
 #include "containers/printf_buffer.hpp"
 #include "logger.hpp"
 #include "thread_local.hpp"
+
+void run_generic_global_startup_behavior() {
+    install_generic_crash_handler();
+
+    rlimit file_limit;
+    int res = getrlimit(RLIMIT_NOFILE, &file_limit);
+    guarantee_err(res == 0, "getrlimit with RLIMIT_NOFILE failed");
+
+    // We need to set the file descriptor limit maximum to a higher value.  On OS X, rlim_max is
+    // RLIM_INFINITY and, with RLIMIT_NOFILE, it's illegal to set rlim_cur to RLIM_INFINITY.  On
+    // Linux, maybe the same thing is illegal, but rlim_max is set to a finite value (65K - 1)
+    // anyway.  OS X has OPEN_MAX defined to limit the highest possible file descriptor value, and
+    // that's what'll end up being the new rlim_cur value.  (The man page on OS X suggested it.)  I
+    // don't know if Linux has a similar thing, or other platforms, so we just go with rlim_max, and
+    // if we ever see a warning, we'll fix it.  Users can always deal with the problem on their end
+    // for a while using ulimit or whatever.)
+
+#ifdef __MACH__
+    file_limit.rlim_cur = std::min<rlim_t>(OPEN_MAX, file_limit.rlim_max);
+#else
+    file_limit.rlim_cur = file_limit.rlim_max;
+#endif
+    res = setrlimit(RLIMIT_NOFILE, &file_limit);
+
+    if (res != 0) {
+        logWRN("The call to set the open file descriptor limit failed (errno = %d - %s)\n",
+            errno, errno_string(errno).c_str());
+    }
+
+}
 
 // fast-ish non-null terminated string comparison
 int sized_strcmp(const uint8_t *str1, int len1, const uint8_t *str2, int len2) {
@@ -241,10 +276,7 @@ void debug_print_quoted_string(append_only_printf_buffer_t *buf, const uint8_t *
 #ifndef NDEBUG
 // Adds the time/thread id prefix to buf.
 void debugf_prefix_buf(printf_buffer_t<1000> *buf) {
-    struct timespec t;
-
-    int res = clock_gettime(CLOCK_REALTIME, &t);
-    guarantee_err(res == 0, "clock_gettime(CLOCK_REALTIME) failed");
+    struct timespec t = clock_realtime();
 
     format_time(t, buf);
 
@@ -300,32 +332,32 @@ debugf_in_dtor_t::~debugf_in_dtor_t() {
 }
 
 rng_t::rng_t(DEBUG_VAR int seed) {
-    memset(&buffer_, 0, sizeof(buffer_));
 #ifndef NDEBUG
     if (seed == -1) {
         struct timeval tv;
         gettimeofday(&tv, NULL);
         seed = tv.tv_usec;
     }
-    srand48_r(seed, &buffer_);
 #else
-    srand48_r(314159, &buffer_);
+    seed = 314159;
 #endif
+    xsubi[2] = seed / (1 << 16);
+    xsubi[1] = seed % (1 << 16);
+    xsubi[0] = 0x330E;
 }
 
 int rng_t::randint(int n) {
-    // We return int, and use it in the moduloizer, so the long here
-    // (which is necessary for the lrand48_r API) is okay.
-
-    long x;  // NOLINT(runtime/int)
-    lrand48_r(&buffer_, &x);
-
-    guarantee(n > 0, "Can't produce a rand int < 0"); //Better than a floating point exception
+    guarantee(n > 0, "non-positive argument for randint's [0,n) interval");
+    long x = nrand48(xsubi);  // NOLINT(runtime/int)
     return x % n;
 }
 
+struct nrand_xsubi_t {
+    unsigned short xsubi[3];
+};
+
 TLS_with_init(bool, rng_initialized, false)
-TLS(drand48_data, rng_data)
+TLS(nrand_xsubi_t, rng_data)
 
 void get_dev_urandom(void *out, int64_t nbytes) {
     blocking_read_file_stream_t urandom;
@@ -335,17 +367,15 @@ void get_dev_urandom(void *out, int64_t nbytes) {
 }
 
 int randint(int n) {
-    drand48_data buffer;
+    nrand_xsubi_t buffer;
     if (!TLS_get_rng_initialized()) {
-        long seed_buffer;  // NOLINT(runtime/int).  'long' is in the API for drand48 functions.
-        get_dev_urandom(&seed_buffer, sizeof(seed_buffer));
-        srand48_r(seed_buffer, &buffer);
+        CT_ASSERT(sizeof(buffer.xsubi) == 6);
+        get_dev_urandom(&buffer.xsubi, sizeof(buffer.xsubi));
         TLS_set_rng_initialized(true);
     } else {
         buffer = TLS_get_rng_data();
     }
-    long x;   // NOLINT(runtime/int)
-    lrand48_r(&buffer, &x);
+    long x = nrand48(buffer.xsubi);  // NOLINT(runtime/int)
     TLS_set_rng_data(buffer);
     return x % n;
 }
@@ -454,18 +484,54 @@ ticks_t secs_to_ticks(double secs) {
     return static_cast<ticks_t>(secs * 1000000000L);
 }
 
+#ifdef __MACH__
+mach_timebase_info_data_t zeroed_timebase_info_data() {
+    mach_timebase_info_data_t ret;
+    memset(&ret, 0, sizeof(ret));
+    return ret;
+}
+
+TLS_with_init(mach_timebase_info_data_t, mach_time_info, zeroed_timebase_info_data());
+#endif  // __MACH__
+
 timespec clock_monotonic() {
+#ifdef __MACH__
+    mach_timebase_info_data_t mach_time_info = TLS_get_mach_time_info();
+    if (mach_time_info.denom == 0) {
+        mach_timebase_info(&mach_time_info);
+        guarantee(mach_time_info.denom != 0);
+        TLS_set_mach_time_info(mach_time_info);
+    }
+    const uint64_t t = mach_absolute_time();
+    uint64_t nanosecs = t * mach_time_info.numer / mach_time_info.denom;
+    timespec ret;
+    ret.tv_sec = nanosecs / BILLION;
+    ret.tv_nsec = nanosecs % BILLION;
+    return ret;
+#else
     timespec ret;
     int res = clock_gettime(CLOCK_MONOTONIC, &ret);
     guarantee_err(res == 0, "clock_gettime(CLOCK_MONOTIC, ...) failed");
     return ret;
+#endif
 }
 
 timespec clock_realtime() {
+#ifdef __MACH__
+    struct timeval tv;
+    int res = gettimeofday(&tv, NULL);
+    guarantee_err(res == 0, "gettimeofday failed");
+
+    timespec ret;
+    ret.tv_sec = tv.tv_sec;
+    ret.tv_nsec = THOUSAND * tv.tv_usec;
+    return ret;
+#else
     timespec ret;
     int res = clock_gettime(CLOCK_REALTIME, &ret);
     guarantee_err(res == 0, "clock_gettime(CLOCK_REALTIME) failed");
     return ret;
+#endif
 }
 
 
@@ -478,13 +544,6 @@ ticks_t get_ticks() {
 time_t get_secs() {
     timespec tv = clock_realtime();
     return tv.tv_sec;
-}
-
-int64_t get_ticks_res() {
-    timespec tv;
-    int res = clock_getres(CLOCK_MONOTONIC, &tv);
-    guarantee_err(res == 0, "clock_getres(CLOCK_MONOTONIC, ...) failed");
-    return int64_t(secs_to_ticks(tv.tv_sec)) + tv.tv_nsec;
 }
 
 double ticks_to_secs(ticks_t ticks) {
@@ -600,6 +659,13 @@ std::string sanitize_for_logger(const std::string &s) {
     }
     return sanitized;
 }
+
+std::string errno_string(int errsv) {
+    char buf[250];
+    const char *errstr = errno_string_maybe_using_buffer(errsv, buf, sizeof(buf));
+    return std::string(errstr);
+}
+
 
 // GCC and CLANG are smart enough to optimize out strlen(""), so this works.
 // This is the simplist thing I could find that gave warning in all of these

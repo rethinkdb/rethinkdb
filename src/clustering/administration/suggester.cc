@@ -143,7 +143,7 @@ void fill_in_blueprints_for_protocol(
 
 void fill_in_blueprints(cluster_semilattice_metadata_t *cluster_metadata,
                         const std::map<peer_id_t, cluster_directory_metadata_t> &directory,
-                        const uuid_t &us,
+                        const uuid_u &us,
                         bool prioritize_distribution) {
     std::map<machine_id_t, datacenter_id_t> machine_assignments;
 

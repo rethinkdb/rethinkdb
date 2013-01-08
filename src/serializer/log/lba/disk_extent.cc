@@ -19,7 +19,7 @@ lba_disk_extent_t::lba_disk_extent_t(extent_manager_t *_em, file_t *file, file_a
     data->append(&header, sizeof(header), io_account);
 }
 
-lba_disk_extent_t::lba_disk_extent_t(extent_manager_t *_em, file_t *file, off64_t _offset, int _count)
+lba_disk_extent_t::lba_disk_extent_t(extent_manager_t *_em, file_t *file, int64_t _offset, int _count)
     : em(_em), data(new extent_t(em, file, _offset, offsetof(lba_extent_t, entries[0]) + sizeof(lba_entry_t) * _count)), count(_count) {
     em->assert_thread();
     // debugf("Constructing lba_disk_extent_t choosing offset %ld\n", offset);

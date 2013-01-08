@@ -94,7 +94,7 @@ public:
 
 private:
 
-    static std::string truncate_uuid(const uuid_t& uuid);
+    static std::string truncate_uuid(const uuid_u& uuid);
 
     static const size_t minimum_uuid_substring = 4;
     static const size_t uuid_output_length = 8;
@@ -138,14 +138,14 @@ private:
                                         map_type &ns_map);
 
     template <class obj_map>
-    void do_admin_set_name_internal(const uuid_t& uuid,
+    void do_admin_set_name_internal(const uuid_u& uuid,
                                     const std::string& new_name,
                                     obj_map *metadata);
 
     void do_admin_remove_internal(const std::string& obj_type, const std::vector<std::string>& ids);
 
     template <class T>
-    void do_admin_remove_internal_internal(const uuid_t& key, std::map<uuid_t, T> *obj_map);
+    void do_admin_remove_internal_internal(const uuid_u& key, std::map<uuid_u, T> *obj_map);
 
     template <class protocol_t>
     void remove_machine_pinnings(const machine_id_t& machine,
@@ -165,11 +165,11 @@ private:
                                      obj_map *metadata);
 
     template <class obj_map>
-    void do_admin_set_datacenter_namespace(const uuid_t &obj_uuid,
+    void do_admin_set_datacenter_namespace(const uuid_u &obj_uuid,
                                            const datacenter_id_t &dc,
                                            obj_map *metadata);
 
-    void do_admin_set_datacenter_machine(const uuid_t obj_uuid,
+    void do_admin_set_datacenter_machine(const uuid_u obj_uuid,
                                          const datacenter_id_t dc,
                                          machines_semilattice_metadata_t::machine_map_t *metadata,
                                          cluster_semilattice_metadata_t *cluster_metadata);
@@ -400,12 +400,12 @@ private:
     peer_id_t sync_peer_id;
 
     struct metadata_info_t {
-        uuid_t uuid;
+        uuid_u uuid;
         std::string name;
         std::vector<std::string> path;
     };
 
-    // TODO: Why not make the keys be uuid_t?
+    // TODO: Why not make the keys be uuid_u?
     std::map<std::string, metadata_info_t*> uuid_map;
     // TODO: Why not make the keys be std::string?
     std::multimap<std::string, metadata_info_t*> name_map;

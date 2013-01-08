@@ -7,6 +7,10 @@
 #define GIGABYTE (MEGABYTE * 1024LL)
 #define TERABYTE (GIGABYTE * 1024LL)
 
+#define THOUSAND 1000LL
+#define MILLION (THOUSAND * THOUSAND)
+#define BILLION (THOUSAND * MILLION)
+
 /*!
  * Version strings
  */

@@ -12,6 +12,13 @@ ANSI_UL_OFF:=[0m
 
 ##### Configuring stuff
 
+UNAME:=$(shell uname)
+ifeq ($(UNAME),Darwin)
+OSX?=1
+else
+OSX?=0
+endif
+
 IGNORE_MAKEFILE_CHANGES?=0
 
 ifeq ($(IGNORE_MAKEFILE_CHANGES),1)
@@ -88,7 +95,11 @@ JSON_SHORTCUTS?=0
 DEBUG?=1
 VALGRIND?=0
 MCHECK?=0
+ifeq ($(OSX),1)
+NO_TCMALLOC?=1
+else
 NO_TCMALLOC?=0
+endif
 SEMANTIC_SERIALIZER_CHECK?=0
 MOCK_CACHE_CHECK?=0
 VERBOSE?=0
@@ -100,6 +111,12 @@ LINT?=0
 # Set TRIAL to 1 to build a 21-day trial version. If you want a different number of days, set TIMEBOMB to the number of days instead.
 TRIAL?=0
 TIMEBOMB?=0
+
+ifeq ($(OSX),0)
+LDPTHREADFLAG:=-pthread
+else
+LDPTHREADFLAG:=
+endif
 
 # Choose our directories
 # This makefile is meant to be run from the 'src' directory.
@@ -124,7 +141,7 @@ PACKAGES_DIR:=$(BUILD_ROOT_DIR)/packages
 RPM_PACKAGE_DIR:=$(PACKAGES_DIR)/rpm
 DEB_PACKAGE_DIR:=$(PACKAGES_DIR)/deb
 
-RT_CXX?=g++
+RT_CXX?=$(CXX)
 
 ifeq ($(COMPILER),CLANG)
 RT_CXX:=clang
@@ -141,45 +158,57 @@ CPATHDS:=
 
 STATICFORCE?=0
 
+RT_LDFLAGS:=
+
 ifeq ($(COMPILER),CLANG)
-RT_LDFLAGS:=-Wl,--no-as-needed 
+ifeq ($(OSX),0)
+RT_LDFLAGS+=-Wl,--no-as-needed
+endif
 ifeq ($(STATICFORCE),1)
 RT_LDFLAGS+= -static
 STATIC_LIBGCC=1
 endif
-RT_LDFLAGS+=$(LDPATHDS) -pthread -lrt -lstdc++ -lm
-ifeq ($(STATICFORCE),1)
-RT_LDFLAGS+= -Wl,-Bdynamic
-endif
-else
+
+RT_LDFLAGS+=$(LDPATHDS) $(LDPTHREADFLAG) -lstdc++ -lm
+
+else  # ifeq ($(COMPILER),CLANG)
+
 ifeq ($(COMPILER),INTEL)
-RT_LDFLAGS:= -B/opt/intel/bin 
+RT_LDFLAGS+= -B/opt/intel/bin
 ifeq ($(STATICFORCE),1)
 RT_LDFLAGS+= -static
 STATIC_LIBGCC=1
 endif
-RT_LDFLAGS+=$(LDPATHDS) -pthread -lrt -lstdc++
-ifeq ($(STATICFORCE),1)
-RT_LDFLAGS+= -Wl,-Bdynamic
-endif
-else
+RT_LDFLAGS+=$(LDPATHDS) $(LDPTHREADFLAG) -lstdc++
+else  # ifeq ($(COMPILER),INTEL)
 # GCC
-RT_LDFLAGS:=-Wl,--no-as-needed 
+ifeq ($(OSX),0)
+RT_LDFLAGS+=-Wl,--no-as-needed
+endif
+
 ifeq ($(STATICFORCE),1)
 RT_LDFLAGS+= -static
 STATIC_LIBGCC=1
 endif
-RT_LDFLAGS+=$(LDPATHDS) -pthread -lrt
+
+RT_LDFLAGS+=$(LDPATHDS) $(LDPTHREADFLAG)
+endif  # ifeq ($(COMPILER),INTEL)
+endif  # ifeq ($(COMPILER),CLANG)
+
+ifeq ($(OSX),0)
+RT_LDFLAGS+=-lrt
+endif
+
 ifeq ($(BUILD_PORTABLE),1)
 RT_LDFLAGS+=-lgcc
 endif
+
 ifeq ($(STATICFORCE),1)
 RT_LDFLAGS+= -Wl,-Bdynamic
 endif
+
 ifeq ($(BUILD_PORTABLE),1)
 RT_LDFLAGS+=-lgcc_s
-endif
-endif
 endif
 
 BUILD_PORTABLE?=0
@@ -225,7 +254,15 @@ ifeq ($(STATIC_V8),0)
 RT_LDFLAGS+=-lv8
 else
 ifeq ($(STATIC_V8),1)
+
+ifeq ($(OSX),1)
+# TODO(OSX) Support static linking v8?  Or meh, make everybody build using homebrew?
+RT_LDFLAGS+=-lv8
+else
+# TODO(OSX) How the heck does -dynamic work?  According to the gcc man
+# page (on Linux), that's just passed through to the linker on Darwin.
 RT_LDFLAGS+=-static -lv8 -dynamic
+endif
 endif
 endif
 
@@ -317,8 +354,10 @@ TC_COFFEE_EXE:=$(TC_COFFEE_INT_EXE)
 else
 TC_COFFEE_EXE:=$(shell which coffee || true)
 endif
+ifeq ($(OSX),0)
 ifeq ($(shell /sbin/ldconfig -p | awk '/libtcmalloc_minimal.so /'),)
 TCMALLOC_CHAIN_IF_NECESSARY:=1
+endif
 endif
 else # ALLOW_INTERNAL_TOOLS
 TC_PROTOC_EXE:=$(shell which protoc || true)
@@ -347,7 +386,7 @@ ifeq ($(LIBCRYPTO),1)
 RT_LDFLAGS+=-lcrypto 
 endif
 
-PROTOC_BASE:=$(shell dirname $(TC_PROTOC_EXE))/..
+PROTOC_BASE:=$(shell dirname $(shell dirname $(TC_PROTOC_EXE)))
 
 LIB_SEARCH_PATHS?=
 RT_LDFLAGS+=$(foreach TLIB, $(LIB_SEARCH_PATHS), -L $(TLIB))
@@ -399,9 +438,17 @@ STATIC_LIBRARY_PATHS+=$(V8_LIB)
 endif
 endif
 
+ifeq ($(OSX),1)
+# /usr/local/lib is where Homebrew will put these libraries.  Will
+# they be named differently if you don't use Homebrew?  (No -mt on
+# program options?)
+RT_LDFLAGS+=-L/usr/local/lib -lboost_program_options-mt -lprotobuf
+else
+
 # look for the static library in the same directory as the .so file
 # On older platforms, certain libraries such as tcmalloc_minimal may not be available unversioned (tcmalloc_minimal.so). If we are on such a platform, we settle for something versioned.
 STATIC_LIBRARY_PATHS+=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }'))
+endif
 
 ifeq ($(GPERF),1)
 STATIC_LIBRARY_PATHS+= # path to patched libtcmalloc_and_profiler.a
@@ -428,14 +475,15 @@ RT_CXXFLAGS+=-std=gnu++98 -w1 -ftls-model=local-dynamic
 else
 ifeq ($(COMPILER), CLANG)
 RT_CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default -Wno-unneeded-internal-declaration -Wused-but-marked-unused -Wunused-macros -Wundef -Wvla -Wshadow -Wconditional-uninitialized -Wmissing-noreturn
-else
+else  # ($(COMPILER), CLANG)
 ifeq ($(LEGACY_GCC), 1)
 RT_CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default
-else
-RT_CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default -Wno-array-bounds
-endif
-endif
-endif
+else  # ($(LEGACY_GCC), 1)
+RT_CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default
+
+endif  # ($(LEGACY_GCC), 1)
+endif  # ($(COMPILER), CLANG)
+endif  # ($(COMPILER), INTEL)
 
 ifeq ($(AGRESSIVE_BUF_UNLOADING),1)
 RT_CXXFLAGS+=-DAGRESSIVE_BUF_UNLOADING=1
@@ -530,9 +578,11 @@ endif
 
 ifeq ($(SYMBOLS),1)
 # -rdynamic is necessary so that backtrace_symbols() works properly
+ifeq ($(OSX),0)
 RT_LDFLAGS+=-rdynamic
-RT_CXXFLAGS+=-g
 endif
+RT_CXXFLAGS+=-g
+endif  # ($(SYMBOLS),1)
 
 ifeq ($(SEMANTIC_SERIALIZER_CHECK),1)
 RT_CXXFLAGS+=-DSEMANTIC_SERIALIZER_CHECK
@@ -577,7 +627,7 @@ endif
 
 ifeq ($(NO_EVENTFD),1)
 RT_CXXFLAGS+=-DNO_EVENTFD
-BUILD_DIR:=$(BUILD_DIR)-no_eventfd
+BUILD_DIR:=$(BUILD_DIR)-noeventfd
 endif
 
 ifeq ($(NO_EPOLL),1)
@@ -615,8 +665,6 @@ endif
 
 PROTO_DIR:=$(BUILD_DIR)/proto
 RT_CXXFLAGS += -I$(PROTO_DIR)
-
-# This was the former home of the STATIC_LIBRARY_PATHS stuff.
 
 #  /usr/lib/x86_64-linux-gnu/libQtCore.so.4
 
@@ -1231,21 +1279,21 @@ $(WEB_ASSETS_BUILD_DIR)/js:
 ifeq ($(VERBOSE),0)
 	@echo "    CP $(JS_EXTERNAL_DIR) -> $(WEB_ASSETS_BUILD_DIR)"
 endif
-	$(QUIET) cp -rP $(JS_EXTERNAL_DIR) $(WEB_ASSETS_BUILD_DIR)
+	$(QUIET) cp -RP $(JS_EXTERNAL_DIR) $(WEB_ASSETS_BUILD_DIR)
 
 $(WEB_ASSETS_BUILD_DIR)/fonts:
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
 ifeq ($(VERBOSE),0)
 	@echo "    CP $(FONTS_EXTERNAL_DIR) -> $(WEB_ASSETS_BUILD_DIR)"
 endif
-	$(QUIET) cp -rP $(FONTS_EXTERNAL_DIR) $(WEB_ASSETS_BUILD_DIR)
+	$(QUIET) cp -RP $(FONTS_EXTERNAL_DIR) $(WEB_ASSETS_BUILD_DIR)
 
 $(WEB_ASSETS_BUILD_DIR)/images:
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
 ifeq ($(VERBOSE),0)
 	@echo "    CP $(IMAGES_EXTERNAL_DIR) -> $(WEB_ASSETS_BUILD_DIR)"
 endif
-	$(QUIET) cp -rP $(IMAGES_EXTERNAL_DIR) $(WEB_ASSETS_BUILD_DIR)
+	$(QUIET) cp -RP $(IMAGES_EXTERNAL_DIR) $(WEB_ASSETS_BUILD_DIR)
 
 $(WEB_ASSETS_BUILD_DIR)/favicon.ico: $(FAVICON)
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
@@ -1390,7 +1438,7 @@ ifeq ($(VERBOSE),0)
 	@echo "    RM *~"
 	@echo "    RM -r $(BUILD_ROOT_DIR)"
 endif
-	$(QUIET) find -name '*~' -exec rm {} \;
+	$(QUIET) find . -name '*~' -exec rm {} \;
 	$(QUIET) rm -rf $(BUILD_ROOT_DIR)
 
 clean-drivers:

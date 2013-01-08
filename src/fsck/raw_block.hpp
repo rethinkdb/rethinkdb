@@ -22,8 +22,8 @@ public:
 protected:
     raw_block_t();
     ~raw_block_t();
-    bool init(int64_t size, nondirect_file_t *file, off64_t offset) __attribute__ ((warn_unused_result));
-    bool init(block_size_t size, nondirect_file_t *file, off64_t offset, block_id_t ser_block_id);
+    bool init(int64_t size, nondirect_file_t *file, int64_t offset) __attribute__ ((warn_unused_result));
+    bool init(block_size_t size, nondirect_file_t *file, int64_t offset, block_id_t ser_block_id);
 
     ls_buf_data_t *realbuf;
 private:

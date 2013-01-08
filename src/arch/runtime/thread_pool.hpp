@@ -13,6 +13,7 @@
 #include "arch/runtime/message_hub.hpp"
 #include "arch/runtime/coroutines.hpp"
 #include "arch/io/blocker_pool.hpp"
+#include "arch/io/timer_provider.hpp"
 #include "arch/timer.hpp"
 
 class linux_thread_t;
@@ -65,10 +66,9 @@ private:
 #endif
 
     static void *start_thread(void*);
-
     static void interrupt_handler(int);
     static void sigsegv_handler(int, siginfo_t *, void *) NORETURN;
-    pthread_spinlock_t interrupt_message_lock;
+    spinlock_t interrupt_message_lock;
     linux_thread_message_t *interrupt_message;
 
     // Used to signal the main thread for shutdown
@@ -90,12 +90,13 @@ public:
 
     int n_threads;
     bool do_set_affinity;
-    // The thread_pool that started the thread we are currently in
-    static __thread linux_thread_pool_t *thread_pool;
-    // The ID of the thread we are currently in
-    static __thread int thread_id;
-    // The event queue for the thread we are currently in (same as &thread_pool->threads[thread_id])
-    static __thread linux_thread_t *thread;
+
+    // The thread pool that started the thread we are currently in.
+    static linux_thread_pool_t *get_thread_pool();
+    // The event queue for the thread we are currently in (same as &thread_pool()->threads[thread_id])
+    static linux_thread_t *get_thread();
+
+    static void unittest_set_thread_id(int fake_id);
 
 private:
     DISABLE_COPYING(linux_thread_pool_t);
@@ -123,14 +124,14 @@ struct generic_job_t :
 template <class Callable>
 void linux_thread_pool_t::run_in_blocker_pool(const Callable &fn)
 {
-    if (thread_pool != NULL) {
+    if (get_thread_pool() != NULL) {
         generic_job_t<Callable> job;
         job.fn = &fn;
         job.suspended = coro_t::self();
 
-        rassert(thread_pool->generic_blocker_pool != NULL,
+        rassert(get_thread_pool()->generic_blocker_pool != NULL,
                 "thread_pool_t::run_in_blocker_pool called while generic_thread_pool uninitialized");
-        thread_pool->generic_blocker_pool->do_job(&job);
+        get_thread_pool()->generic_blocker_pool->do_job(&job);
 
         // Give up execution, to be resumed when the done callback is made
         coro_t::wait();

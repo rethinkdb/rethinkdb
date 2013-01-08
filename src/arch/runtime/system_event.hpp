@@ -2,7 +2,7 @@
 #ifndef ARCH_RUNTIME_SYSTEM_EVENT_HPP_
 #define ARCH_RUNTIME_SYSTEM_EVENT_HPP_
 
-#ifdef NO_EVENTFD
+#if defined(NO_EVENTFD) || !defined(__linux)
 #include "arch/runtime/system_event/pipe_event.hpp"
 typedef pipe_event_t system_event_t;
 #else

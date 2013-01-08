@@ -20,7 +20,7 @@ lba_disk_structure_t::lba_disk_structure_t(extent_manager_t *_em, file_t *_file,
         superblock_offset = metablock->lba_superblock_offset;
         startup_superblock_count = metablock->lba_superblock_entries_count;
 
-        off64_t superblock_extent_offset = superblock_offset - (superblock_offset % em->extent_size);
+        int64_t superblock_extent_offset = superblock_offset - (superblock_offset % em->extent_size);
         size_t superblock_size = ceil_aligned(
             offsetof(lba_superblock_t, entries[0]) + sizeof(lba_superblock_entry_t) * startup_superblock_count,
             DEVICE_BLOCK_SIZE);

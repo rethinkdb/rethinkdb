@@ -188,7 +188,7 @@ void connectivity_cluster_t::run_t::connect_to_peer(const peer_address_t *addr, 
     // Indexing through a std::set is rather awkward
     const std::set<ip_address_t> *all_ips = addr->all_ips();
     std::set<ip_address_t>::const_iterator selected_addr;
-    for (selected_addr = all_ips->begin(); selected_addr != all_ips->end() && index > 0; ++selected_addr, --index);
+    for (selected_addr = all_ips->begin(); selected_addr != all_ips->end() && index > 0; ++selected_addr, --index) { }
     guarantee(index == 0);
 
     // Don't bother if there's already a connection
@@ -625,7 +625,7 @@ std::set<peer_id_t> connectivity_cluster_t::get_peers_list() THROWS_NOTHING {
     return peers;
 }
 
-uuid_t connectivity_cluster_t::get_connection_session_id(peer_id_t peer) THROWS_NOTHING {
+uuid_u connectivity_cluster_t::get_connection_session_id(peer_id_t peer) THROWS_NOTHING {
     std::map<peer_id_t, std::pair<run_t::connection_entry_t *, auto_drainer_t::lock_t> > *connection_map =
         &thread_info.get()->connection_map;
     std::map<peer_id_t, std::pair<run_t::connection_entry_t *, auto_drainer_t::lock_t> >::iterator it =

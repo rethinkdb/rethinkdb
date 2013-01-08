@@ -7,10 +7,10 @@
 namespace unittest {
 
 TEST(DiskFormatTest, FlaggedOff64T) {
-    off64_t offs[] = { 0, 1, 4095, 4096, 4097, 234234 * 4096, 12345678901234567LL };
+    int64_t offs[] = { 0, 1, 4095, 4096, 4097, 234234 * 4096, 12345678901234567LL };
 
     for (size_t i = 0; i < sizeof(offs) / sizeof(*offs); ++i) {
-        off64_t off = offs[i];
+        int64_t off = offs[i];
         flagged_off64_t real = flagged_off64_t::unused();
         real = flagged_off64_t::make(off);
         flagged_off64_t deleteblock = flagged_off64_t::unused();

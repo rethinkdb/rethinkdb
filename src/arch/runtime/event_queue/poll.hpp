@@ -11,7 +11,7 @@
 #include "arch/runtime/runtime_utils.hpp"
 
 // Event queue structure
-struct poll_event_queue_t : public event_queue_base_t {
+struct poll_event_queue_t {
 public:
     typedef std::vector<pollfd> pollfd_vector_t;
     typedef std::map<fd_t, linux_event_callback_t*> callback_map_t;

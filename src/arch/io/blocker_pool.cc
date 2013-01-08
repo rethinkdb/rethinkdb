@@ -3,12 +3,14 @@
 
 #include <string.h>
 
-__thread int thread_is_blocker_pool_thread = 0;
+#include "thread_local.hpp"
+
+TLS_with_init(int, thread_is_blocker_pool_thread, 0);
 
 // IO thread function
 void* blocker_pool_t::event_loop(void *arg) {
 
-    thread_is_blocker_pool_thread = 1;
+    TLS_set_thread_is_blocker_pool_thread(1);
 
     blocker_pool_t *parent = reinterpret_cast<blocker_pool_t*>(arg);
 
@@ -20,7 +22,7 @@ void* blocker_pool_t::event_loop(void *arg) {
         guarantee_err(res == 0, "Could not get a full sigmask");
 
         res = pthread_sigmask(SIG_SETMASK, &sigmask, NULL);
-        guarantee_err(res == 0, "Could not block signal");
+        guarantee_xerr(res == 0, res, "Could not block signal");
     }
 
     while (true) {
@@ -72,7 +74,7 @@ blocker_pool_t::blocker_pool_t(int nthreads, linux_event_queue_t *_queue)
     for (size_t i = 0; i < threads.size(); ++i) {
         int res = pthread_create(&threads[i], NULL,
             &blocker_pool_t::event_loop, reinterpret_cast<void*>(this));
-        guarantee(res == 0, "Could not create blocker-pool thread.");
+        guarantee_xerr(res == 0, res, "Could not create blocker-pool thread.");
     }
 
     // Register with event queue so we get the completion events
@@ -99,7 +101,7 @@ blocker_pool_t::~blocker_pool_t() {
     /* Wait for stuff to actually shut down */
     for (size_t i = 0; i < threads.size(); ++i) {
         int res = pthread_join(threads[i], NULL);
-        guarantee(res == 0, "Could not join blocker-pool thread.");
+        guarantee_xerr(res == 0, res, "Could not join blocker-pool thread.");
     }
 }
 
@@ -130,5 +132,5 @@ void blocker_pool_t::on_event(DEBUG_VAR int event) {
 
 
 bool i_am_in_blocker_pool_thread() {
-    return thread_is_blocker_pool_thread == 1;
+    return TLS_get_thread_is_blocker_pool_thread() == 1;
 }

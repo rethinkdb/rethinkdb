@@ -81,12 +81,6 @@ std::string get_logfilepath(const std::string& file_path) {
     return file_path + "/log_file";
 }
 
-std::string errno_to_string(int err) {
-    char buffer[200];
-    char *res = strerror_r(err, buffer, sizeof(buffer));
-    return std::string(res);
-}
-
 bool check_existence(const std::string& file_path) {
     return 0 == access(file_path.c_str(), F_OK);
 }
@@ -784,7 +778,7 @@ int main_rethinkdb_create(int argc, char *argv[]) {
 
     int res = mkdir(filepath.c_str(), 0755);
     if (res != 0) {
-        fprintf(stderr, "Could not create directory: %s\n", errno_to_string(errno).c_str());
+        fprintf(stderr, "Could not create directory: %s\n", errno_string(errno).c_str());
         return EXIT_FAILURE;
     }
 
@@ -1130,7 +1124,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
             new_directory = true;
             int mkdir_res = mkdir(filepath.c_str(), 0755);
             if (mkdir_res != 0) {
-                fprintf(stderr, "Could not create directory: %s\n", errno_to_string(errno).c_str());
+                fprintf(stderr, "Could not create directory: %s\n", errno_string(errno).c_str());
                 return EXIT_FAILURE;
             }
         }

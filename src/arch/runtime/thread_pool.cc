@@ -5,17 +5,28 @@
 #include <signal.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/time.h>
 
+#include "arch/barrier.hpp"
+#include "arch/io/timer_provider.hpp"
 #include "arch/runtime/event_queue.hpp"
 #include "arch/runtime/runtime.hpp"
 #include "errors.hpp"
 #include "logger.hpp"
+#include "thread_local.hpp"
 
-const int SEGV_STACK_SIZE = 8126;
+const int SEGV_STACK_SIZE = SIGSTKSZ;
 
-__thread linux_thread_pool_t *linux_thread_pool_t::thread_pool;
-__thread int linux_thread_pool_t::thread_id;
-__thread linux_thread_t *linux_thread_pool_t::thread;
+TLS_with_init(linux_thread_pool_t *, thread_pool, NULL);
+TLS_with_init(int, thread_id, 0);
+TLS_with_init(linux_thread_t *, thread, NULL);
+
+linux_thread_pool_t *linux_thread_pool_t::get_thread_pool() { return TLS_get_thread_pool(); }
+int get_thread_id() { return TLS_get_thread_id(); }
+linux_thread_t *linux_thread_pool_t::get_thread() { return TLS_get_thread(); }
+void linux_thread_pool_t::unittest_set_thread_id(int fake_id) { TLS_set_thread_id(fake_id); }
+
+
 
 linux_thread_pool_t::linux_thread_pool_t(int worker_threads, bool _do_set_affinity) :
 #ifndef NDEBUG
@@ -32,32 +43,26 @@ linux_thread_pool_t::linux_thread_pool_t(int worker_threads, bool _do_set_affini
     int res;
 
     res = pthread_cond_init(&shutdown_cond, NULL);
-    guarantee(res == 0, "Could not create shutdown cond");
+    guarantee_xerr(res == 0, res, "Could not create shutdown cond");
 
     res = pthread_mutex_init(&shutdown_cond_mutex, NULL);
-    guarantee(res == 0, "Could not create shutdown cond mutex");
-
-    res = pthread_spin_init(&interrupt_message_lock, PTHREAD_PROCESS_PRIVATE);
-    guarantee(res == 0, "Could not create interrupt spin lock");
+    guarantee_xerr(res == 0, res, "Could not create shutdown cond mutex");
 }
 
 linux_thread_message_t *linux_thread_pool_t::set_interrupt_message(linux_thread_message_t *m) {
-    int res;
+    linux_thread_message_t *o;
+    {
+        spinlock_acq_t acq(&get_thread_pool()->interrupt_message_lock);
 
-    res = pthread_spin_lock(&thread_pool->interrupt_message_lock);
-    guarantee(res == 0, "Could not acquire interrupt message lock");
-
-    linux_thread_message_t *o = thread_pool->interrupt_message;
-    thread_pool->interrupt_message = m;
-
-    res = pthread_spin_unlock(&thread_pool->interrupt_message_lock);
-    guarantee(res == 0, "Could not release interrupt message lock");
+        o = get_thread_pool()->interrupt_message;
+        get_thread_pool()->interrupt_message = m;
+    }
 
     return o;
 }
 
 struct thread_data_t {
-    pthread_barrier_t *barrier;
+    thread_barrier_t *barrier;
     linux_thread_pool_t *thread_pool;
     int current_thread;
     linux_thread_message_t *initial_message;
@@ -75,21 +80,21 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         guarantee_err(res == 0, "Could not remove SIGSEGV from sigmask");
 
         res = pthread_sigmask(SIG_SETMASK, &sigmask, NULL);
-        guarantee_err(res == 0, "Could not block signal");
+        guarantee_xerr(res == 0, res, "Could not block signal");
     }
 
     thread_data_t *tdata = reinterpret_cast<thread_data_t *>(arg);
 
     // Set thread-local variables
-    linux_thread_pool_t::thread_pool = tdata->thread_pool;
-    linux_thread_pool_t::thread_id = tdata->current_thread;
+    TLS_set_thread_pool(tdata->thread_pool);
+    TLS_set_thread_id(tdata->current_thread);
 
     // Use a separate block so that it's very clear how long the thread lives for
     // It's not really necessary, but I like it.
     {
         linux_thread_t local_thread(tdata->thread_pool, tdata->current_thread);
         tdata->thread_pool->threads[tdata->current_thread] = &local_thread;
-        linux_thread_pool_t::thread = &local_thread;
+        TLS_set_thread(&local_thread);
         blocker_pool_t *generic_blocker_pool = NULL; // Will only be instantiated by one thread
 
         /* Install a handler for segmentation faults that just prints a backtrace. If we're
@@ -101,16 +106,17 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         guarantee_err(segv_stack.ss_sp != 0, "malloc failed");
         segv_stack.ss_flags = 0;
         segv_stack.ss_size = SEGV_STACK_SIZE;
-        int r = sigaltstack(&segv_stack, NULL);
-        guarantee_err(r == 0, "sigaltstack failed");
+        int res = sigaltstack(&segv_stack, NULL);
+        guarantee_err(res == 0, "sigaltstack failed");
 
-        struct sigaction action;
-        bzero(&action, sizeof(action));
-        action.sa_flags = SA_SIGINFO | SA_STACK;
-        action.sa_sigaction = &linux_thread_pool_t::sigsegv_handler;
-        r = sigaction(SIGSEGV, &action, NULL);
-        guarantee_err(r == 0, "Could not install SEGV handler");
-#endif
+        {
+            struct sigaction sa = make_sa_sigaction(SA_SIGINFO | SA_ONSTACK, &linux_thread_pool_t::sigsegv_handler);
+
+            res = sigaction(SIGSEGV, &sa, NULL);
+            guarantee_err(res == 0, "Could not install SEGV handler");
+        }
+
+#endif  // VALGRIND
 
         // First thread should initialize generic_blocker_pool before the start barrier
         if (tdata->initial_message) {
@@ -123,8 +129,7 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         // If one thread is allowed to run before another one has finished
         // starting up, then it might try to access an uninitialized part of the
         // unstarted one.
-        int res = pthread_barrier_wait(tdata->barrier);
-        guarantee(res == 0 || res == PTHREAD_BARRIER_SERIAL_THREAD, "Could not wait at start barrier");
+        tdata->barrier->wait();
         rassert(tdata->thread_pool->generic_blocker_pool != NULL,
                 "Thread passed start barrier while generic_blocker_pool uninitialized");
 
@@ -138,8 +143,7 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         // If one thread is allowed to delete itself before another one has
         // broken out of its loop, it might delete something that the other thread
         // needed to access.
-        res = pthread_barrier_wait(tdata->barrier);
-        guarantee(res == 0 || res == PTHREAD_BARRIER_SERIAL_THREAD, "Could not wait at stop barrier");
+        tdata->barrier->wait();
 
 #ifndef VALGRIND
         free(segv_stack.ss_sp);
@@ -152,7 +156,7 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         }
 
         tdata->thread_pool->threads[tdata->current_thread] = NULL;
-        linux_thread_pool_t::thread = NULL;
+        TLS_set_thread(NULL);
     }
 
     delete tdata;
@@ -166,14 +170,10 @@ void linux_thread_pool_t::enable_coroutine_summary() {
 #endif
 
 void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_message) {
-    int res;
-
     do_shutdown = false;
 
     // Start child threads
-    pthread_barrier_t barrier;
-    res = pthread_barrier_init(&barrier, NULL, n_threads);
-    guarantee(res == 0, "Could not create barrier");
+    thread_barrier_t barrier(n_threads + 1);
 
     for (int i = 0; i < n_threads; i++) {
         thread_data_t *tdata = new thread_data_t();
@@ -183,36 +183,41 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
         // The initial message gets sent to thread zero.
         tdata->initial_message = (i == 0) ? initial_message : NULL;
 
-        res = pthread_create(&pthreads[i], NULL, &start_thread, tdata);
-        guarantee(res == 0, "Could not create thread");
+        int res = pthread_create(&pthreads[i], NULL, &start_thread, tdata);
+        guarantee_xerr(res == 0, res, "Could not create thread");
 
         if (do_set_affinity) {
+            // On Apple, the thread affinity API has awful documentation, so we don't even bother.
+#ifdef _GNU_SOURCE
             // Distribute threads evenly among CPUs
             int ncpus = get_cpu_count();
             cpu_set_t mask;
             CPU_ZERO(&mask);
             CPU_SET(i % ncpus, &mask);
             res = pthread_setaffinity_np(pthreads[i], sizeof(cpu_set_t), &mask);
-            guarantee(res == 0, "Could not set thread affinity");
+            guarantee_xerr(res == 0, res, "Could not set thread affinity");
+#endif
         }
     }
 
     // Mark the main thread (for use in assertions etc.)
-    linux_thread_pool_t::thread_id = -1;
+    TLS_set_thread_id(-1);
 
     // Set up interrupt handlers
+
+    // Wait for threads to start up so that our interrupt handlers can send messages to the threads.
+    // TODO: Fix the thread pool so that it isn't awful, fragile, and reliant on thread barriers.
+    barrier.wait();
 
     // TODO: Should we save and restore previous interrupt handlers? This would
     // be a good thing to do before distributing the RethinkDB IO layer, but it's
     // not really important.
 
-    linux_thread_pool_t::thread_pool = this;   // So signal handlers can find us
+    TLS_set_thread_pool(this);
     {
-        struct sigaction sa;
-        memset(&sa, 0, sizeof(struct sigaction));
-        sa.sa_handler = &linux_thread_pool_t::interrupt_handler;
+        struct sigaction sa = make_sa_handler(0, &linux_thread_pool_t::interrupt_handler);
 
-        res = sigaction(SIGTERM, &sa, NULL);
+        int res = sigaction(SIGTERM, &sa, NULL);
         guarantee_err(res == 0, "Could not install TERM handler");
 
         res = sigaction(SIGINT, &sa, NULL);
@@ -221,23 +226,21 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
 
     // Wait for order to shut down
 
-    res = pthread_mutex_lock(&shutdown_cond_mutex);
-    guarantee(res == 0, "Could not lock shutdown cond mutex");
+    int res = pthread_mutex_lock(&shutdown_cond_mutex);
+    guarantee_xerr(res == 0, res, "Could not lock shutdown cond mutex");
 
     while (!do_shutdown) {   // while loop guards against spurious wakeups
         res = pthread_cond_wait(&shutdown_cond, &shutdown_cond_mutex);
-        guarantee(res == 0, "Could not wait for shutdown cond");
+        guarantee_xerr(res == 0, res, "Could not wait for shutdown cond");
     }
 
     res = pthread_mutex_unlock(&shutdown_cond_mutex);
-    guarantee(res == 0, "Could not unlock shutdown cond mutex");
+    guarantee_xerr(res == 0, res, "Could not unlock shutdown cond mutex");
 
     // Remove interrupt handlers
 
     {
-        struct sigaction sa;
-        memset(&sa, 0, sizeof(struct sigaction));
-        sa.sa_handler = SIG_IGN;
+        struct sigaction sa = make_sa_handler(0, SIG_IGN);
 
         res = sigaction(SIGTERM, &sa, NULL);
         guarantee_err(res == 0, "Could not remove TERM handler");
@@ -245,7 +248,7 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
         res = sigaction(SIGINT, &sa, NULL);
         guarantee_err(res == 0, "Could not remove INT handler");
     }
-    linux_thread_pool_t::thread_pool = NULL;
+    TLS_set_thread_pool(NULL);
 
 #ifndef NDEBUG
     // Save each thread's coroutine counters before shutting down
@@ -262,11 +265,15 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
 #endif
     }
 
+    // Wait for barrier, because it expects n_threads + 1 things to wait.  (Otherwise we'd have to
+    // have two barriers, which isn't such a problem, but meh.)
+    barrier.wait();
+
     for (int i = 0; i < n_threads; i++) {
         // Wait for child thread to actually exit
 
         res = pthread_join(pthreads[i], NULL);
-        guarantee(res == 0, "Could not join thread");
+        guarantee_xerr(res == 0, res, "Could not join thread");
     }
 
 #ifndef NDEBUG
@@ -286,10 +293,7 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
             logDBG("%zu coroutines ran with type %s", i->second, i->first.c_str());
         }
     }
-#endif
-
-    res = pthread_barrier_destroy(&barrier);
-    guarantee(res == 0, "Could not destroy barrier");
+#endif  // NDEBUG
 }
 
 // Note: Maybe we should use a signalfd instead of a signal handler, and then
@@ -299,9 +303,9 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
 void linux_thread_pool_t::interrupt_handler(int) {
     /* The interrupt handler should run on the main thread, the same thread that
     run() was called on. */
-    rassert(linux_thread_pool_t::thread_id == -1, "The interrupt handler was called on the wrong thread.");
+    rassert(get_thread_id() == -1, "The interrupt handler was called on the wrong thread.");
 
-    linux_thread_pool_t *self = linux_thread_pool_t::thread_pool;
+    linux_thread_pool_t *self = linux_thread_pool_t::get_thread_pool();
 
     /* Set the interrupt message to NULL at the same time as we get it so that
     we don't send the same message twice. This is necessary because it's illegal
@@ -334,28 +338,25 @@ void linux_thread_pool_t::shutdown_thread_pool() {
     // shut down.
 
     res = pthread_mutex_lock(&shutdown_cond_mutex);
-    guarantee(res == 0, "Could not lock shutdown cond mutex");
+    guarantee_xerr(res == 0, res, "Could not lock shutdown cond mutex");
 
     do_shutdown = true;
 
     res = pthread_cond_signal(&shutdown_cond);
-    guarantee(res == 0, "Could not signal shutdown cond");
+    guarantee_xerr(res == 0, res, "Could not signal shutdown cond");
 
     res = pthread_mutex_unlock(&shutdown_cond_mutex);
-    guarantee(res == 0, "Could not unlock shutdown cond mutex");
+    guarantee_xerr(res == 0, res, "Could not unlock shutdown cond mutex");
 }
 
 linux_thread_pool_t::~linux_thread_pool_t() {
     int res;
 
     res = pthread_cond_destroy(&shutdown_cond);
-    guarantee(res == 0, "Could not destroy shutdown cond");
+    guarantee_xerr(res == 0, res, "Could not destroy shutdown cond");
 
     res = pthread_mutex_destroy(&shutdown_cond_mutex);
-    guarantee(res == 0, "Could not destroy shutdown cond mutex");
-
-    res = pthread_spin_destroy(&interrupt_message_lock);
-    guarantee(res == 0, "Could not destroy interrupt spin lock");
+    guarantee_xerr(res == 0, res, "Could not destroy shutdown cond mutex");
 }
 
 linux_thread_t::linux_thread_t(linux_thread_pool_t *parent_pool, int thread_id)
@@ -368,7 +369,8 @@ linux_thread_t::linux_thread_t(linux_thread_pool_t *parent_pool, int thread_id)
 #endif
 {
     // Initialize the mutex which synchronizes access to the do_shutdown variable
-    pthread_mutex_init(&do_shutdown_mutex, NULL);
+    int res = pthread_mutex_init(&do_shutdown_mutex, NULL);
+    guarantee_xerr(res == 0, res, "could not initialize do_shutdown_mutex");
 
     // Watch an eventfd for shutdown notifications
     queue.watch_resource(shutdown_notify_event.get_notify_fd(), poll_event_in, this);
@@ -383,7 +385,8 @@ linux_thread_t::~linux_thread_t() {
     coro_runtime.get_coroutine_counts(coroutine_counts_at_shutdown);
 #endif
 
-    guarantee(pthread_mutex_destroy(&do_shutdown_mutex) == 0);
+    int res = pthread_mutex_destroy(&do_shutdown_mutex);
+    guarantee_xerr(res == 0, res, "could not destroy do_shutdown_mutex");
 }
 
 void linux_thread_t::pump() {
@@ -400,9 +403,11 @@ void linux_thread_t::on_event(int events) {
 }
 
 bool linux_thread_t::should_shut_down() {
-    pthread_mutex_lock(&do_shutdown_mutex);
+    int res = pthread_mutex_lock(&do_shutdown_mutex);
+    guarantee_xerr(res == 0, res, "could not lock do_shutdown_mutex");
     bool result = do_shutdown;
-    pthread_mutex_unlock(&do_shutdown_mutex);
+    res = pthread_mutex_unlock(&do_shutdown_mutex);
+    guarantee_xerr(res == 0, res, "could not unlock do_shutdown_mutex");
     return result;
 }
 
@@ -411,11 +416,13 @@ void linux_thread_t::initiate_shut_down(std::map<std::string, size_t> *coroutine
 #else
 void linux_thread_t::initiate_shut_down() {
 #endif
-    pthread_mutex_lock(&do_shutdown_mutex);
+    int res = pthread_mutex_lock(&do_shutdown_mutex);
+    guarantee_xerr(res == 0, res, "could not lock do_shutdown_mutex");
 #ifndef NDEBUG
     coroutine_counts_at_shutdown = coroutine_counts;
 #endif
     do_shutdown = true;
     shutdown_notify_event.write(1);
-    pthread_mutex_unlock(&do_shutdown_mutex);
+    res = pthread_mutex_unlock(&do_shutdown_mutex);
+    guarantee_xerr(res == 0, res, "could not unlock do_shutdown_mutex");
 }
