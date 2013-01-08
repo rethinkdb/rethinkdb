@@ -1,6 +1,8 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "arch/io/disk/pool.hpp"
 
+#include <fcntl.h>
+
 #include "arch/io/disk.hpp"
 #include "config/args.hpp"
 
@@ -40,7 +42,7 @@ void pool_diskmgr_t::action_t::run() {
         if (res >= 0) {
             int fcntl_res;
             do {
-                fcntl_res = fcntl(fd, F_FULLSYNC);
+                fcntl_res = fcntl(fd, F_FULLFSYNC);
             } while (fcntl_res == -1 && errno == EINTR);
 
             io_result = fcntl_res == -1 ? -errno : res;
