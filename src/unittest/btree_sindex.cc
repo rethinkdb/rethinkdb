@@ -135,6 +135,58 @@ void run_sindex_btree_store_api_test() {
     }
 
     {
+        //Insert a piece of data in to the btree.
+        object_buffer_t<fifo_enforcer_sink_t::exit_write_t> token;
+        store.new_write_token(&token);
+
+        object_buffer_t<fifo_enforcer_sink_t::exit_write_t> sindex_token;
+        store.new_sindex_write_token(&sindex_token);
+
+        scoped_ptr_t<transaction_t> txn;
+        scoped_ptr_t<real_superblock_t> super_block;
+
+        store.acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid,
+                                           1, &token, &txn, &super_block, &dummy_interuptor);
+
+        scoped_ptr_t<real_superblock_t> sindex_super_block;
+
+        store.acquire_sindex_superblock_for_write(id, &sindex_token, txn.get(), &sindex_super_block, super_block->get(), &dummy_interuptor);
+
+        store_key_t key("foo");
+        boost::shared_ptr<scoped_cJSON_t> data(new scoped_cJSON_t(cJSON_CreateNumber(1)));
+
+        rdb_protocol_t::point_write_response_t response;
+
+        rdb_set(key, data, true, store.get_sindex_slice(id), repli_timestamp_t::invalid,
+                txn.get(), sindex_super_block.get(), &response);
+    }
+
+    {
+        //Read that data
+        object_buffer_t<fifo_enforcer_sink_t::exit_read_t> token;
+        store.new_read_token(&token);
+
+        object_buffer_t<fifo_enforcer_sink_t::exit_read_t> sindex_token;
+        store.new_sindex_read_token(&sindex_token);
+
+        scoped_ptr_t<transaction_t> txn;
+        scoped_ptr_t<real_superblock_t> super_block;
+
+        store.acquire_superblock_for_read(rwi_read, &token, &txn, &super_block, &dummy_interuptor, false);
+
+        scoped_ptr_t<real_superblock_t> sindex_super_block;
+
+        store.acquire_sindex_superblock_for_read(id, &sindex_token, txn.get(), &sindex_super_block, super_block->get(), &dummy_interuptor);
+
+        point_read_response_t response;
+
+        rdb_get(store_key_t("foo"), store.get_sindex_slice(id), txn.get(), sindex_super_block.get(), &response);
+
+        boost::shared_ptr<scoped_cJSON_t> data(new scoped_cJSON_t(cJSON_CreateNumber(1)));
+        ASSERT_EQ(query_language::json_cmp(response.data->get(), data->get()), 0);
+    }
+
+    {
         object_buffer_t<fifo_enforcer_sink_t::exit_write_t> token;
         store.new_write_token(&token);
 

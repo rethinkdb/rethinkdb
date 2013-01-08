@@ -41,6 +41,9 @@ public:
     void new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out);
     void new_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token_out);
 
+    void new_sindex_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out);
+    void new_sindex_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token_out);
+
     typedef region_map_t<protocol_t, binary_blob_t> metainfo_t;
 
     void do_get_metainfo(
@@ -136,6 +139,10 @@ protected:
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
 
+    btree_slice_t *get_sindex_slice(uuid_t id) {
+        return &(secondary_index_slices.at(id));
+    }
+
 protected:
     // Functions to be implemented by derived (protocol-specific) store_t classes
     virtual void protocol_read(const typename protocol_t::read_t &read,
@@ -220,8 +227,8 @@ private:
     mirrored_cache_config_t cache_dynamic_config;
     order_source_t order_source;
 
-    fifo_enforcer_source_t token_source;
-    fifo_enforcer_sink_t token_sink;
+    fifo_enforcer_source_t main_token_source, sindex_token_source;
+    fifo_enforcer_sink_t main_token_sink, sindex_token_sink;
 
     perfmon_collection_t perfmon_collection;
     scoped_ptr_t<cache_t> cache;

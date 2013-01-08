@@ -478,16 +478,33 @@ void btree_store_t<protocol_t>::acquire_superblock_for_write(
 template <class protocol_t>
 void btree_store_t<protocol_t>::new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out) {
     assert_thread();
-    fifo_enforcer_read_token_t token = token_source.enter_read();
-    token_out->create(&token_sink, token);
+    fifo_enforcer_read_token_t token = main_token_source.enter_read();
+    token_out->create(&main_token_sink, token);
 }
 
 template <class protocol_t>
 void btree_store_t<protocol_t>::new_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token_out) {
     assert_thread();
-    fifo_enforcer_write_token_t token = token_source.enter_write();
-    token_out->create(&token_sink, token);
+    fifo_enforcer_write_token_t token = main_token_source.enter_write();
+    token_out->create(&main_token_sink, token);
 }
+
+template <class protocol_t>
+void btree_store_t<protocol_t>::new_sindex_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out) {
+    assert_thread();
+    fifo_enforcer_read_token_t token = sindex_token_source.enter_read();
+    token_out->create(&sindex_token_sink, token);
+}
+
+template <class protocol_t>
+void btree_store_t<protocol_t>::new_sindex_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token_out) {
+    assert_thread();
+    fifo_enforcer_write_token_t token = sindex_token_source.enter_write();
+    token_out->create(&sindex_token_sink, token);
+}
+
+template <class protocol_t>
+void new_sindex_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token_out);
 
 #include "memcached/protocol.hpp"
 template class btree_store_t<memcached_protocol_t>;
