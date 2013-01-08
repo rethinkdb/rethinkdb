@@ -1555,7 +1555,7 @@ endif
 
 $(TC_HANDLEBARS_INT_EXE): $(TC_NPM_EXE)
 ifeq ($(FETCH_INTERNAL_TOOLS),1)
-# ifeq ($(shell npm list --global --parseable | grep '\/coffee-script$$'),)
+# ifeq ($(shell npm list --global --parseable | grep '\/handlebars$$'),)
 	$(QUIET) if [ ! -e $(SUPPORT_DIR) ] ; then mkdir -p $(SUPPORT_DIR) ; fi ;
 	$(QUIET) if [ -d $(SUPPORT_DIR) ] && [ ! -e $(SUPPORT_DIR)/toolchain ] ; then mkdir -p $(SUPPORT_DIR)/toolchain ; fi ;
 	@echo "    NPM-I handlebars"
