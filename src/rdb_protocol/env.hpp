@@ -21,6 +21,42 @@ class term_t;
 
 class env_t {
 public:
+    class implicit_binder_t {
+    public:
+        implicit_binder_t(env_t *_env, const char *_name) :
+            env(_env), orig_depth(env->implicit_depth), name(_name) {
+            env->implicit_depth += 1;
+        }
+        void check_implicit_consumed() {
+            rcheck(env->implicit_depth == orig_depth,
+                   strprintf("Expected a function inside %s.", name));
+        }
+    private:
+        env_t *env;
+        int orig_depth;
+        const char *name;
+    };
+    bool consume_implicit_bound() {
+        return implicit_depth ? implicit_depth-- : 0;
+    }
+    void push_implicit(const datum_t **val) {
+        implicit_var.push(val);
+    }
+    const datum_t **top_implicit() {
+        rcheck(!implicit_var.empty(), "No implicit variable in scope.");
+        rcheck(implicit_var.size() == 1,
+               "Cannot use implicit variable in nested queries; name your variables.");
+        return implicit_var.top();
+    }
+    void pop_implicit() {
+        implicit_var.pop();
+    }
+private:
+    friend class implicit_binder_t;
+    int implicit_depth;
+    std::stack<const datum_t **> implicit_var;
+
+public:
     template<class T>
     T *add_ptr(T *p) {
         r_sanity_check(bags.size() > 0);
@@ -73,7 +109,9 @@ private:
     std::vector<ptr_bag_t *> bags;
 
 public:
-    void push_var(int var, const datum_t **val) { vars[var].push(val); }
+    void push_var(int var, const datum_t **val) {
+        vars[var].push(val);
+    }
     const datum_t **top_var(int var) {
         rcheck(!vars[var].empty(), strprintf("Unrecognized variabled %d", var));
         return vars[var].top();
@@ -108,7 +146,8 @@ public:
         boost::shared_ptr<js::runner_t> _js_runner,
         signal_t *_interruptor,
         uuid_t _this_machine)
-        : pool(_pool_group->get()),
+        : implicit_depth(0),
+          pool(_pool_group->get()),
           ns_repo(_ns_repo),
           namespaces_semilattice_metadata(_namespaces_semilattice_metadata),
           databases_semilattice_metadata(_databases_semilattice_metadata),

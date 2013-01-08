@@ -49,7 +49,7 @@ private:
         return new_val(bool(true ^ invert));
     }
     const char *namestr;
-    RDB_NAME(namestr)
+    virtual const char *name() const { return namestr; }
     bool invert;
     bool (datum_t::*pred)(const datum_t &rhs) const;
 };

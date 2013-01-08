@@ -63,7 +63,9 @@ private:
 //     virtual val_t *simple_call_impl(std::vector<val_t *> *args) = 0;
 // };
 
-#define RDB_NAME(str) virtual const char *name() const { return str; }
+#define RDB_NAME(str) \
+    static const char *_name() { return str; } \
+    virtual const char *name() const { return str; }
 
 }
 #endif // RDB_PROTOCOL_OP_HPP_

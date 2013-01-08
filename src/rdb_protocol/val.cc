@@ -48,11 +48,16 @@ map_datum_stream_t::map_datum_stream_t(env_t *env, func_t *_f, datum_stream_t *_
     : datum_stream_t(env), f(_f), src(_src) { guarantee(f && src); }
 
 const datum_t *map_datum_stream_t::next() {
-    const datum_t *arg = src->next();
-    if (!arg) return 0;
-    std::vector<const datum_t *> args;
-    args.push_back(arg);
-    return f->call(args)->as_datum();
+    try {
+        const datum_t *arg = src->next();
+        if (!arg) return 0;
+        std::vector<const datum_t *> args;
+        args.push_back(arg);
+        return f->call(args)->as_datum();
+    } catch (exc_t &e) {
+        e.backtrace.frames.push_front(map_bt_frame);
+        throw;
+    }
 }
 
 static void meta_check(metadata_search_status_t status, metadata_search_status_t want,

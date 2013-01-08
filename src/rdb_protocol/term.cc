@@ -4,6 +4,7 @@
 #include "rdb_protocol/terms/arith.hpp"
 #include "rdb_protocol/terms/datum_terms.hpp"
 #include "rdb_protocol/terms/db_table.hpp"
+#include "rdb_protocol/terms/error.hpp"
 #include "rdb_protocol/terms/map.hpp"
 #include "rdb_protocol/terms/pred.hpp"
 #include "rdb_protocol/terms/var.hpp"
@@ -17,7 +18,8 @@ term_t *compile_term(env_t *env, const Term2 *t) {
     case Term2_TermType_MAKE_OBJ: return new make_obj_term_t(env, t);
     case Term2_TermType_VAR: return new var_term_t(env, t);
     case Term2_TermType_JAVASCRIPT:
-    case Term2_TermType_ERROR:
+        throw ql::exc_t("JAVASCRIPT UNIMPLEMENTED (Bill's job.)");
+    case Term2_TermType_ERROR: return new error_term_t(env, t);
     case Term2_TermType_IMPLICIT_VAR:
         break;
     case Term2_TermType_DB: return new db_term_t(env, t);

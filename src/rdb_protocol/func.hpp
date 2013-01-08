@@ -45,11 +45,12 @@ public:
     //RDB_MAKE_ME_SERIALIZABLE_2(source, scope);
 };
 
+static const int map_bt_frame = 1;
 class map_wire_func_t : public wire_func_t {
 public:
     map_wire_func_t() : wire_func_t() { }
     map_wire_func_t(env_t *env, func_t *func) : wire_func_t(env, func) { }
-    virtual backtrace_t::frame_t bt() { return 1; }
+    virtual backtrace_t::frame_t bt() { return map_bt_frame; }
     RDB_MAKE_ME_SERIALIZABLE_2(source, scope);
 };
 
