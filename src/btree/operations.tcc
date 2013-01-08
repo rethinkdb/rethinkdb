@@ -72,9 +72,7 @@ void find_keyvalue_location_for_write(transaction_t *txn, superblock_t *superblo
 
         if (key_found) {
             keyvalue_location_out->there_originally_was_value = true;
-            scoped_malloc_t<Value> cpy(reinterpret_cast<const char *>(tmp.get()), reinterpret_cast<const char *>(tmp.get()) + sizer.size(tmp.get()));
             keyvalue_location_out->value.swap(tmp);
-            keyvalue_location_out->original_value.swap(cpy);
         }
     }
 

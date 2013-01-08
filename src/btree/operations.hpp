@@ -132,10 +132,6 @@ class keyvalue_location_t {
 public:
     keyvalue_location_t() : there_originally_was_value(false), stat_block(NULL_BLOCK_ID), stats(NULL) { }
 
-    // If the key/value pair was found, a pointer to a copy of the
-    // value, otherwise NULL.
-    scoped_malloc_t<Value> value;
-
     superblock_t *superblock;
 
     // The parent buf of buf, if buf is not the root node.  This is hacky.
@@ -145,9 +141,9 @@ public:
     buf_lock_t buf;
 
     bool there_originally_was_value;
-
-    //A copy of the original value.
-    scoped_malloc_t<Value> original_value;
+    // If the key/value pair was found, a pointer to a copy of the
+    // value, otherwise NULL.
+    scoped_malloc_t<Value> value;
 
     void swap(keyvalue_location_t& other) {
         std::swap(superblock, other.superblock);
