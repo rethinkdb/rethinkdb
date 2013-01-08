@@ -30,6 +30,11 @@ the class scope. */
     write_message_t &operator<<(write_message_t &, const type_t &); \
     archive_result_t deserialize(read_stream_t *s, type_t *thing)
 
+#define RDB_DECLARE_ME_SERIALIZABLE \
+    void rdb_serialize(write_message_t &msg /* NOLINT */) const; \
+    friend class archive_deserializer_t; \
+    archive_result_t rdb_deserialize(read_stream_t *s)
+
 #define RDB_EXPAND_SERIALIZABLE_0(function_attr, type_t) \
     function_attr write_message_t &operator<<(UNUSED write_message_t &msg /* NOLINT */, UNUSED const type_t &thing) { \
     return msg; \
@@ -52,6 +57,13 @@ the class scope. */
         return res; \
     }
 
+#define RDB_IMPL_ME_SERIALIZABLE_0(typ) \
+    void typ::rdb_serialize(UNUSED write_message_t &msg /* NOLINT */) const { \
+    } \
+    archive_result_t typ::rdb_deserialize(UNUSED read_stream_t *s) { \
+        archive_result_t res = ARCHIVE_SUCCESS; \
+        return res; \
+    }
 
 #define RDB_EXPAND_SERIALIZABLE_1(function_attr, type_t, field1) \
     function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
@@ -81,6 +93,16 @@ the class scope. */
         return res; \
     }
 
+#define RDB_IMPL_ME_SERIALIZABLE_1(typ, field1) \
+    void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        msg << field1; \
+    } \
+    archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
+        archive_result_t res = ARCHIVE_SUCCESS; \
+        res = deserialize(s, &field1); \
+        if (res) { return res; } \
+        return res; \
+    }
 
 #define RDB_EXPAND_SERIALIZABLE_2(function_attr, type_t, field1, field2) \
     function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
@@ -116,6 +138,19 @@ the class scope. */
         return res; \
     }
 
+#define RDB_IMPL_ME_SERIALIZABLE_2(typ, field1, field2) \
+    void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        msg << field1; \
+        msg << field2; \
+    } \
+    archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
+        archive_result_t res = ARCHIVE_SUCCESS; \
+        res = deserialize(s, &field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &field2); \
+        if (res) { return res; } \
+        return res; \
+    }
 
 #define RDB_EXPAND_SERIALIZABLE_3(function_attr, type_t, field1, field2, field3) \
     function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
@@ -157,6 +192,22 @@ the class scope. */
         return res; \
     }
 
+#define RDB_IMPL_ME_SERIALIZABLE_3(typ, field1, field2, field3) \
+    void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        msg << field1; \
+        msg << field2; \
+        msg << field3; \
+    } \
+    archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
+        archive_result_t res = ARCHIVE_SUCCESS; \
+        res = deserialize(s, &field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &field3); \
+        if (res) { return res; } \
+        return res; \
+    }
 
 #define RDB_EXPAND_SERIALIZABLE_4(function_attr, type_t, field1, field2, field3, field4) \
     function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
@@ -204,6 +255,25 @@ the class scope. */
         return res; \
     }
 
+#define RDB_IMPL_ME_SERIALIZABLE_4(typ, field1, field2, field3, field4) \
+    void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        msg << field1; \
+        msg << field2; \
+        msg << field3; \
+        msg << field4; \
+    } \
+    archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
+        archive_result_t res = ARCHIVE_SUCCESS; \
+        res = deserialize(s, &field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &field3); \
+        if (res) { return res; } \
+        res = deserialize(s, &field4); \
+        if (res) { return res; } \
+        return res; \
+    }
 
 #define RDB_EXPAND_SERIALIZABLE_5(function_attr, type_t, field1, field2, field3, field4, field5) \
     function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
@@ -257,6 +327,28 @@ the class scope. */
         return res; \
     }
 
+#define RDB_IMPL_ME_SERIALIZABLE_5(typ, field1, field2, field3, field4, field5) \
+    void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        msg << field1; \
+        msg << field2; \
+        msg << field3; \
+        msg << field4; \
+        msg << field5; \
+    } \
+    archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
+        archive_result_t res = ARCHIVE_SUCCESS; \
+        res = deserialize(s, &field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &field3); \
+        if (res) { return res; } \
+        res = deserialize(s, &field4); \
+        if (res) { return res; } \
+        res = deserialize(s, &field5); \
+        if (res) { return res; } \
+        return res; \
+    }
 
 #define RDB_EXPAND_SERIALIZABLE_6(function_attr, type_t, field1, field2, field3, field4, field5, field6) \
     function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
@@ -316,6 +408,31 @@ the class scope. */
         return res; \
     }
 
+#define RDB_IMPL_ME_SERIALIZABLE_6(typ, field1, field2, field3, field4, field5, field6) \
+    void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        msg << field1; \
+        msg << field2; \
+        msg << field3; \
+        msg << field4; \
+        msg << field5; \
+        msg << field6; \
+    } \
+    archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
+        archive_result_t res = ARCHIVE_SUCCESS; \
+        res = deserialize(s, &field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &field3); \
+        if (res) { return res; } \
+        res = deserialize(s, &field4); \
+        if (res) { return res; } \
+        res = deserialize(s, &field5); \
+        if (res) { return res; } \
+        res = deserialize(s, &field6); \
+        if (res) { return res; } \
+        return res; \
+    }
 
 #define RDB_EXPAND_SERIALIZABLE_7(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7) \
     function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
@@ -381,6 +498,34 @@ the class scope. */
         return res; \
     }
 
+#define RDB_IMPL_ME_SERIALIZABLE_7(typ, field1, field2, field3, field4, field5, field6, field7) \
+    void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        msg << field1; \
+        msg << field2; \
+        msg << field3; \
+        msg << field4; \
+        msg << field5; \
+        msg << field6; \
+        msg << field7; \
+    } \
+    archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
+        archive_result_t res = ARCHIVE_SUCCESS; \
+        res = deserialize(s, &field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &field3); \
+        if (res) { return res; } \
+        res = deserialize(s, &field4); \
+        if (res) { return res; } \
+        res = deserialize(s, &field5); \
+        if (res) { return res; } \
+        res = deserialize(s, &field6); \
+        if (res) { return res; } \
+        res = deserialize(s, &field7); \
+        if (res) { return res; } \
+        return res; \
+    }
 
 #define RDB_EXPAND_SERIALIZABLE_8(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7, field8) \
     function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
@@ -452,6 +597,37 @@ the class scope. */
         return res; \
     }
 
+#define RDB_IMPL_ME_SERIALIZABLE_8(typ, field1, field2, field3, field4, field5, field6, field7, field8) \
+    void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        msg << field1; \
+        msg << field2; \
+        msg << field3; \
+        msg << field4; \
+        msg << field5; \
+        msg << field6; \
+        msg << field7; \
+        msg << field8; \
+    } \
+    archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
+        archive_result_t res = ARCHIVE_SUCCESS; \
+        res = deserialize(s, &field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &field3); \
+        if (res) { return res; } \
+        res = deserialize(s, &field4); \
+        if (res) { return res; } \
+        res = deserialize(s, &field5); \
+        if (res) { return res; } \
+        res = deserialize(s, &field6); \
+        if (res) { return res; } \
+        res = deserialize(s, &field7); \
+        if (res) { return res; } \
+        res = deserialize(s, &field8); \
+        if (res) { return res; } \
+        return res; \
+    }
 
 #define RDB_EXPAND_SERIALIZABLE_9(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9) \
     function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
@@ -529,6 +705,40 @@ the class scope. */
         return res; \
     }
 
+#define RDB_IMPL_ME_SERIALIZABLE_9(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9) \
+    void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        msg << field1; \
+        msg << field2; \
+        msg << field3; \
+        msg << field4; \
+        msg << field5; \
+        msg << field6; \
+        msg << field7; \
+        msg << field8; \
+        msg << field9; \
+    } \
+    archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
+        archive_result_t res = ARCHIVE_SUCCESS; \
+        res = deserialize(s, &field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &field3); \
+        if (res) { return res; } \
+        res = deserialize(s, &field4); \
+        if (res) { return res; } \
+        res = deserialize(s, &field5); \
+        if (res) { return res; } \
+        res = deserialize(s, &field6); \
+        if (res) { return res; } \
+        res = deserialize(s, &field7); \
+        if (res) { return res; } \
+        res = deserialize(s, &field8); \
+        if (res) { return res; } \
+        res = deserialize(s, &field9); \
+        if (res) { return res; } \
+        return res; \
+    }
 
 #define RDB_EXPAND_SERIALIZABLE_10(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10) \
     function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
@@ -612,6 +822,43 @@ the class scope. */
         return res; \
     }
 
+#define RDB_IMPL_ME_SERIALIZABLE_10(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10) \
+    void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        msg << field1; \
+        msg << field2; \
+        msg << field3; \
+        msg << field4; \
+        msg << field5; \
+        msg << field6; \
+        msg << field7; \
+        msg << field8; \
+        msg << field9; \
+        msg << field10; \
+    } \
+    archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
+        archive_result_t res = ARCHIVE_SUCCESS; \
+        res = deserialize(s, &field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &field3); \
+        if (res) { return res; } \
+        res = deserialize(s, &field4); \
+        if (res) { return res; } \
+        res = deserialize(s, &field5); \
+        if (res) { return res; } \
+        res = deserialize(s, &field6); \
+        if (res) { return res; } \
+        res = deserialize(s, &field7); \
+        if (res) { return res; } \
+        res = deserialize(s, &field8); \
+        if (res) { return res; } \
+        res = deserialize(s, &field9); \
+        if (res) { return res; } \
+        res = deserialize(s, &field10); \
+        if (res) { return res; } \
+        return res; \
+    }
 
 #define RDB_EXPAND_SERIALIZABLE_11(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11) \
     function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
@@ -701,6 +948,46 @@ the class scope. */
         return res; \
     }
 
+#define RDB_IMPL_ME_SERIALIZABLE_11(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11) \
+    void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        msg << field1; \
+        msg << field2; \
+        msg << field3; \
+        msg << field4; \
+        msg << field5; \
+        msg << field6; \
+        msg << field7; \
+        msg << field8; \
+        msg << field9; \
+        msg << field10; \
+        msg << field11; \
+    } \
+    archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
+        archive_result_t res = ARCHIVE_SUCCESS; \
+        res = deserialize(s, &field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &field3); \
+        if (res) { return res; } \
+        res = deserialize(s, &field4); \
+        if (res) { return res; } \
+        res = deserialize(s, &field5); \
+        if (res) { return res; } \
+        res = deserialize(s, &field6); \
+        if (res) { return res; } \
+        res = deserialize(s, &field7); \
+        if (res) { return res; } \
+        res = deserialize(s, &field8); \
+        if (res) { return res; } \
+        res = deserialize(s, &field9); \
+        if (res) { return res; } \
+        res = deserialize(s, &field10); \
+        if (res) { return res; } \
+        res = deserialize(s, &field11); \
+        if (res) { return res; } \
+        return res; \
+    }
 
 #define RDB_EXPAND_SERIALIZABLE_12(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12) \
     function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
@@ -796,6 +1083,49 @@ the class scope. */
         return res; \
     }
 
+#define RDB_IMPL_ME_SERIALIZABLE_12(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12) \
+    void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        msg << field1; \
+        msg << field2; \
+        msg << field3; \
+        msg << field4; \
+        msg << field5; \
+        msg << field6; \
+        msg << field7; \
+        msg << field8; \
+        msg << field9; \
+        msg << field10; \
+        msg << field11; \
+        msg << field12; \
+    } \
+    archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
+        archive_result_t res = ARCHIVE_SUCCESS; \
+        res = deserialize(s, &field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &field3); \
+        if (res) { return res; } \
+        res = deserialize(s, &field4); \
+        if (res) { return res; } \
+        res = deserialize(s, &field5); \
+        if (res) { return res; } \
+        res = deserialize(s, &field6); \
+        if (res) { return res; } \
+        res = deserialize(s, &field7); \
+        if (res) { return res; } \
+        res = deserialize(s, &field8); \
+        if (res) { return res; } \
+        res = deserialize(s, &field9); \
+        if (res) { return res; } \
+        res = deserialize(s, &field10); \
+        if (res) { return res; } \
+        res = deserialize(s, &field11); \
+        if (res) { return res; } \
+        res = deserialize(s, &field12); \
+        if (res) { return res; } \
+        return res; \
+    }
 
 #define RDB_EXPAND_SERIALIZABLE_13(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13) \
     function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
@@ -897,6 +1227,52 @@ the class scope. */
         return res; \
     }
 
+#define RDB_IMPL_ME_SERIALIZABLE_13(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13) \
+    void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        msg << field1; \
+        msg << field2; \
+        msg << field3; \
+        msg << field4; \
+        msg << field5; \
+        msg << field6; \
+        msg << field7; \
+        msg << field8; \
+        msg << field9; \
+        msg << field10; \
+        msg << field11; \
+        msg << field12; \
+        msg << field13; \
+    } \
+    archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
+        archive_result_t res = ARCHIVE_SUCCESS; \
+        res = deserialize(s, &field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &field3); \
+        if (res) { return res; } \
+        res = deserialize(s, &field4); \
+        if (res) { return res; } \
+        res = deserialize(s, &field5); \
+        if (res) { return res; } \
+        res = deserialize(s, &field6); \
+        if (res) { return res; } \
+        res = deserialize(s, &field7); \
+        if (res) { return res; } \
+        res = deserialize(s, &field8); \
+        if (res) { return res; } \
+        res = deserialize(s, &field9); \
+        if (res) { return res; } \
+        res = deserialize(s, &field10); \
+        if (res) { return res; } \
+        res = deserialize(s, &field11); \
+        if (res) { return res; } \
+        res = deserialize(s, &field12); \
+        if (res) { return res; } \
+        res = deserialize(s, &field13); \
+        if (res) { return res; } \
+        return res; \
+    }
 
 #define RDB_EXPAND_SERIALIZABLE_14(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14) \
     function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
@@ -1004,6 +1380,55 @@ the class scope. */
         return res; \
     }
 
+#define RDB_IMPL_ME_SERIALIZABLE_14(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14) \
+    void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        msg << field1; \
+        msg << field2; \
+        msg << field3; \
+        msg << field4; \
+        msg << field5; \
+        msg << field6; \
+        msg << field7; \
+        msg << field8; \
+        msg << field9; \
+        msg << field10; \
+        msg << field11; \
+        msg << field12; \
+        msg << field13; \
+        msg << field14; \
+    } \
+    archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
+        archive_result_t res = ARCHIVE_SUCCESS; \
+        res = deserialize(s, &field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &field3); \
+        if (res) { return res; } \
+        res = deserialize(s, &field4); \
+        if (res) { return res; } \
+        res = deserialize(s, &field5); \
+        if (res) { return res; } \
+        res = deserialize(s, &field6); \
+        if (res) { return res; } \
+        res = deserialize(s, &field7); \
+        if (res) { return res; } \
+        res = deserialize(s, &field8); \
+        if (res) { return res; } \
+        res = deserialize(s, &field9); \
+        if (res) { return res; } \
+        res = deserialize(s, &field10); \
+        if (res) { return res; } \
+        res = deserialize(s, &field11); \
+        if (res) { return res; } \
+        res = deserialize(s, &field12); \
+        if (res) { return res; } \
+        res = deserialize(s, &field13); \
+        if (res) { return res; } \
+        res = deserialize(s, &field14); \
+        if (res) { return res; } \
+        return res; \
+    }
 
 #define RDB_EXPAND_SERIALIZABLE_15(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15) \
     function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
@@ -1117,6 +1542,58 @@ the class scope. */
         return res; \
     }
 
+#define RDB_IMPL_ME_SERIALIZABLE_15(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15) \
+    void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        msg << field1; \
+        msg << field2; \
+        msg << field3; \
+        msg << field4; \
+        msg << field5; \
+        msg << field6; \
+        msg << field7; \
+        msg << field8; \
+        msg << field9; \
+        msg << field10; \
+        msg << field11; \
+        msg << field12; \
+        msg << field13; \
+        msg << field14; \
+        msg << field15; \
+    } \
+    archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
+        archive_result_t res = ARCHIVE_SUCCESS; \
+        res = deserialize(s, &field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &field3); \
+        if (res) { return res; } \
+        res = deserialize(s, &field4); \
+        if (res) { return res; } \
+        res = deserialize(s, &field5); \
+        if (res) { return res; } \
+        res = deserialize(s, &field6); \
+        if (res) { return res; } \
+        res = deserialize(s, &field7); \
+        if (res) { return res; } \
+        res = deserialize(s, &field8); \
+        if (res) { return res; } \
+        res = deserialize(s, &field9); \
+        if (res) { return res; } \
+        res = deserialize(s, &field10); \
+        if (res) { return res; } \
+        res = deserialize(s, &field11); \
+        if (res) { return res; } \
+        res = deserialize(s, &field12); \
+        if (res) { return res; } \
+        res = deserialize(s, &field13); \
+        if (res) { return res; } \
+        res = deserialize(s, &field14); \
+        if (res) { return res; } \
+        res = deserialize(s, &field15); \
+        if (res) { return res; } \
+        return res; \
+    }
 
 #define RDB_EXPAND_SERIALIZABLE_16(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16) \
     function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
@@ -1236,6 +1713,61 @@ the class scope. */
         return res; \
     }
 
+#define RDB_IMPL_ME_SERIALIZABLE_16(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16) \
+    void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        msg << field1; \
+        msg << field2; \
+        msg << field3; \
+        msg << field4; \
+        msg << field5; \
+        msg << field6; \
+        msg << field7; \
+        msg << field8; \
+        msg << field9; \
+        msg << field10; \
+        msg << field11; \
+        msg << field12; \
+        msg << field13; \
+        msg << field14; \
+        msg << field15; \
+        msg << field16; \
+    } \
+    archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
+        archive_result_t res = ARCHIVE_SUCCESS; \
+        res = deserialize(s, &field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &field3); \
+        if (res) { return res; } \
+        res = deserialize(s, &field4); \
+        if (res) { return res; } \
+        res = deserialize(s, &field5); \
+        if (res) { return res; } \
+        res = deserialize(s, &field6); \
+        if (res) { return res; } \
+        res = deserialize(s, &field7); \
+        if (res) { return res; } \
+        res = deserialize(s, &field8); \
+        if (res) { return res; } \
+        res = deserialize(s, &field9); \
+        if (res) { return res; } \
+        res = deserialize(s, &field10); \
+        if (res) { return res; } \
+        res = deserialize(s, &field11); \
+        if (res) { return res; } \
+        res = deserialize(s, &field12); \
+        if (res) { return res; } \
+        res = deserialize(s, &field13); \
+        if (res) { return res; } \
+        res = deserialize(s, &field14); \
+        if (res) { return res; } \
+        res = deserialize(s, &field15); \
+        if (res) { return res; } \
+        res = deserialize(s, &field16); \
+        if (res) { return res; } \
+        return res; \
+    }
 
 #define RDB_EXPAND_SERIALIZABLE_17(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17) \
     function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
@@ -1361,6 +1893,64 @@ the class scope. */
         return res; \
     }
 
+#define RDB_IMPL_ME_SERIALIZABLE_17(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17) \
+    void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        msg << field1; \
+        msg << field2; \
+        msg << field3; \
+        msg << field4; \
+        msg << field5; \
+        msg << field6; \
+        msg << field7; \
+        msg << field8; \
+        msg << field9; \
+        msg << field10; \
+        msg << field11; \
+        msg << field12; \
+        msg << field13; \
+        msg << field14; \
+        msg << field15; \
+        msg << field16; \
+        msg << field17; \
+    } \
+    archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
+        archive_result_t res = ARCHIVE_SUCCESS; \
+        res = deserialize(s, &field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &field3); \
+        if (res) { return res; } \
+        res = deserialize(s, &field4); \
+        if (res) { return res; } \
+        res = deserialize(s, &field5); \
+        if (res) { return res; } \
+        res = deserialize(s, &field6); \
+        if (res) { return res; } \
+        res = deserialize(s, &field7); \
+        if (res) { return res; } \
+        res = deserialize(s, &field8); \
+        if (res) { return res; } \
+        res = deserialize(s, &field9); \
+        if (res) { return res; } \
+        res = deserialize(s, &field10); \
+        if (res) { return res; } \
+        res = deserialize(s, &field11); \
+        if (res) { return res; } \
+        res = deserialize(s, &field12); \
+        if (res) { return res; } \
+        res = deserialize(s, &field13); \
+        if (res) { return res; } \
+        res = deserialize(s, &field14); \
+        if (res) { return res; } \
+        res = deserialize(s, &field15); \
+        if (res) { return res; } \
+        res = deserialize(s, &field16); \
+        if (res) { return res; } \
+        res = deserialize(s, &field17); \
+        if (res) { return res; } \
+        return res; \
+    }
 
 #define RDB_EXPAND_SERIALIZABLE_18(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18) \
     function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
@@ -1492,6 +2082,67 @@ the class scope. */
         return res; \
     }
 
+#define RDB_IMPL_ME_SERIALIZABLE_18(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18) \
+    void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        msg << field1; \
+        msg << field2; \
+        msg << field3; \
+        msg << field4; \
+        msg << field5; \
+        msg << field6; \
+        msg << field7; \
+        msg << field8; \
+        msg << field9; \
+        msg << field10; \
+        msg << field11; \
+        msg << field12; \
+        msg << field13; \
+        msg << field14; \
+        msg << field15; \
+        msg << field16; \
+        msg << field17; \
+        msg << field18; \
+    } \
+    archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
+        archive_result_t res = ARCHIVE_SUCCESS; \
+        res = deserialize(s, &field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &field3); \
+        if (res) { return res; } \
+        res = deserialize(s, &field4); \
+        if (res) { return res; } \
+        res = deserialize(s, &field5); \
+        if (res) { return res; } \
+        res = deserialize(s, &field6); \
+        if (res) { return res; } \
+        res = deserialize(s, &field7); \
+        if (res) { return res; } \
+        res = deserialize(s, &field8); \
+        if (res) { return res; } \
+        res = deserialize(s, &field9); \
+        if (res) { return res; } \
+        res = deserialize(s, &field10); \
+        if (res) { return res; } \
+        res = deserialize(s, &field11); \
+        if (res) { return res; } \
+        res = deserialize(s, &field12); \
+        if (res) { return res; } \
+        res = deserialize(s, &field13); \
+        if (res) { return res; } \
+        res = deserialize(s, &field14); \
+        if (res) { return res; } \
+        res = deserialize(s, &field15); \
+        if (res) { return res; } \
+        res = deserialize(s, &field16); \
+        if (res) { return res; } \
+        res = deserialize(s, &field17); \
+        if (res) { return res; } \
+        res = deserialize(s, &field18); \
+        if (res) { return res; } \
+        return res; \
+    }
 
 #define RDB_EXPAND_SERIALIZABLE_19(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19) \
     function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
@@ -1629,5 +2280,69 @@ the class scope. */
         return res; \
     }
 
+#define RDB_IMPL_ME_SERIALIZABLE_19(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19) \
+    void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        msg << field1; \
+        msg << field2; \
+        msg << field3; \
+        msg << field4; \
+        msg << field5; \
+        msg << field6; \
+        msg << field7; \
+        msg << field8; \
+        msg << field9; \
+        msg << field10; \
+        msg << field11; \
+        msg << field12; \
+        msg << field13; \
+        msg << field14; \
+        msg << field15; \
+        msg << field16; \
+        msg << field17; \
+        msg << field18; \
+        msg << field19; \
+    } \
+    archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
+        archive_result_t res = ARCHIVE_SUCCESS; \
+        res = deserialize(s, &field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &field3); \
+        if (res) { return res; } \
+        res = deserialize(s, &field4); \
+        if (res) { return res; } \
+        res = deserialize(s, &field5); \
+        if (res) { return res; } \
+        res = deserialize(s, &field6); \
+        if (res) { return res; } \
+        res = deserialize(s, &field7); \
+        if (res) { return res; } \
+        res = deserialize(s, &field8); \
+        if (res) { return res; } \
+        res = deserialize(s, &field9); \
+        if (res) { return res; } \
+        res = deserialize(s, &field10); \
+        if (res) { return res; } \
+        res = deserialize(s, &field11); \
+        if (res) { return res; } \
+        res = deserialize(s, &field12); \
+        if (res) { return res; } \
+        res = deserialize(s, &field13); \
+        if (res) { return res; } \
+        res = deserialize(s, &field14); \
+        if (res) { return res; } \
+        res = deserialize(s, &field15); \
+        if (res) { return res; } \
+        res = deserialize(s, &field16); \
+        if (res) { return res; } \
+        res = deserialize(s, &field17); \
+        if (res) { return res; } \
+        res = deserialize(s, &field18); \
+        if (res) { return res; } \
+        res = deserialize(s, &field19); \
+        if (res) { return res; } \
+        return res; \
+    }
 
 #endif // RPC_SERIALIZE_MACROS_HPP_
