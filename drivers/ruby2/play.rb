@@ -36,6 +36,9 @@ def nativize_response r
   when rt::RUNTIME_ERROR then
     raise RuntimeError, "#{r.response[0].r_str}
 Backtrace: #{r.backtrace.map{|x| x.pos || x.opt}.inspect}"
+  when rt::COMPILE_ERROR then # TODO: remove?
+    raise RuntimeError, "#{r.response[0].r_str}
+Backtrace: #{r.backtrace.map{|x| x.pos || x.opt}.inspect}"
   else r
   end
 end
@@ -129,7 +132,7 @@ def assert_raise
     res = yield
   rescue Exception => e
   end
-  raise RuntimeError, "Got #{res.inspect} instead of throw." if res
+  raise RuntimeError, "Got #{res.inspect} instead of raise." if res
 end
 
 def rae(a, b)
@@ -158,6 +161,8 @@ assert_raise{r.db('test').table('test2').run}
 tst = r.db('test').table('test')
 rae(tst.map(r.func([1], r.var(1))), tst.run)
 rae(tst.map(r.func([1], 2)), tst.run.map{|x| 2})
+rae(r([1,2,3]).map(r.func([1], r.mul(r.var(1), r.var(1), 2))), [2.0, 8.0, 18.0])
+assert_raise{r([1,2,3]).map(r.func([1], r.mul(r.var(1), r.var(2), 2))).run}
 
 print "test.test: #{r.db('test').table('test').run.inspect}\n"
 print "Ran #{$tests} tests!\n"

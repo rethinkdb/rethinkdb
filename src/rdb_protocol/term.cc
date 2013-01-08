@@ -106,8 +106,12 @@ void run(Query2 *q, env_t *env, Response2 *res, stream_cache_t *stream_cache) {
                 // TODO: SUCCESS_PARTIAL
                 res->set_type(Response2_ResponseType_SUCCESS_SEQUENCE);
                 datum_stream_t *ds = val->as_seq();
-                const datum_t *d;
-                while ((d = ds->next())) d->write_to_protobuf(res->add_response());
+                for (;;) {
+                    ql::env_checkpointer_t(env, &ql::env_t::discard_checkpoint);
+                    const datum_t *d = ds->next();
+                    if (!d) break;
+                    d->write_to_protobuf(res->add_response());
+                }
             }
         } catch (const exc_t &e) {
             fill_error(res, Response2::RUNTIME_ERROR, e.what(), e.backtrace);
