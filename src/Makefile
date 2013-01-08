@@ -328,7 +328,7 @@ TC_NODE_INT_EXE:=$(SUPPORT_DIR_ABS)/usr/bin/node
 TC_NPM_INT_EXE:=$(SUPPORT_DIR_ABS)/usr/bin/npm
 TC_LESSC_INT_EXE:=$(SUPPORT_DIR_ABS)/toolchain/node_modules/less/bin/lessc
 TC_COFFEE_INT_EXE:=$(SUPPORT_DIR_ABS)/toolchain/node_modules/coffee-script/bin/coffee
-TC_HANDLEBARS_INT_EXE:=$(SUPPORT_DIR_ABS)/toolchain/node_modules/coffee-script/bin/handlebars
+TC_HANDLEBARS_INT_EXE:=$(SUPPORT_DIR_ABS)/toolchain/node_modules/handlebars/bin/handlebars
 
 TC_PROTOC_CFLAGS:=
 INT_CHAIN_NODE:=0
