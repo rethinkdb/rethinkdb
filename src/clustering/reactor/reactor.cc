@@ -53,6 +53,11 @@ reactor_t<protocol_t>::reactor_t(
 }
 
 template <class protocol_t>
+clone_ptr_t<watchable_t<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > > reactor_t<protocol_t>::get_reactor_directory() {
+    return directory_echo_writer.get_watchable();
+}
+
+template <class protocol_t>
 reactor_t<protocol_t>::directory_entry_t::directory_entry_t(reactor_t<protocol_t> *_parent, typename protocol_t::region_t _region)
     : parent(_parent), region(_region), reactor_activity_id(nil_uuid())
 { }
@@ -80,6 +85,20 @@ directory_echo_version_t reactor_t<protocol_t>::directory_entry_t::update_withou
         cow_ptr_change.get()->activities[reactor_activity_id].activity = activity;
     }
     return our_value_change.commit();
+}
+
+template <class protocol_t>
+reactor_activity_id_t reactor_t<protocol_t>::directory_entry_t::get_reactor_activity_id() const {
+    return reactor_activity_id;
+}
+
+template <class protocol_t>
+reactor_t<protocol_t>::current_role_t::current_role_t(blueprint_role_t r, const blueprint_t<protocol_t> &b)
+    : role(r), blueprint(b) { }
+
+template <class protocol_t>
+peer_id_t reactor_t<protocol_t>::get_me() THROWS_NOTHING {
+    return mailbox_manager->get_connectivity_service()->get_me();
 }
 
 template <class protocol_t>
@@ -230,6 +249,10 @@ void reactor_t<protocol_t>::run_role(
     }
 }
 
+template <class protocol_t>
+reactor_t<protocol_t>::backfill_candidate_t::backfill_location_t::backfill_location_t(const backfiller_bcard_view_t &b, peer_id_t p, reactor_activity_id_t i)
+    : backfiller(b), peer_id(p), activity_id(i) { }
+
 template<class protocol_t>
 boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > reactor_t<protocol_t>::extract_broadcaster_from_reactor_business_card_primary(const boost::optional<boost::optional<typename reactor_business_card_t<protocol_t>::primary_t> > &bcard) {
     if (!bcard) {
@@ -275,6 +298,9 @@ void reactor_t<protocol_t>::wait_for_directory_acks(directory_echo_version_t ver
         }
     }
 }
+
+
+
 
 
 

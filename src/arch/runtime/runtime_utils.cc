@@ -103,6 +103,8 @@ void pet_watchdog() {
     }
 }
 
+#endif  // NDEBUG
+
 struct sigaction make_basic_sigaction() {
     struct sigaction sa;
     memset(&sa, 0, sizeof(sa));
@@ -110,7 +112,6 @@ struct sigaction make_basic_sigaction() {
     guarantee_err(res == 0, "sigfillset failed");
     return sa;
 }
-
 
 struct sigaction make_sa_handler(int sa_flags, void (*sa_handler_func)(int)) {
     guarantee(!(sa_flags & SA_SIGINFO));
@@ -129,4 +130,3 @@ struct sigaction make_sa_sigaction(int sa_flags, void (*sa_sigaction_func)(int, 
 }
 
 
-#endif  // NDEBUG
