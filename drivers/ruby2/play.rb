@@ -167,5 +167,9 @@ assert_raise{r([1,2,3]).map(r.func([1], 2)).map(2).run}
 rae(r([1,2,3]).map(r.func([1], r.var(1).mul(2))).map(r.func([1], r.var(1).add(1))),
     [3.0, 5.0, 7.0])
 
+rae(r([1,2,3]).map(r.func([1], r.implicit_var.mul(r.var(1)))), [1.0, 4.0, 9.0])
+assert_raise{r([1,2,3]).map(r.func([1], r([2,4]).map(r.func([2], r.implicit_var.mul(r.var(1)))))).run}
+assert_raise{r.implicit_var.run}
+
 print "test.test: #{r.db('test').table('test').run.inspect}\n"
 print "Ran #{$tests} tests!\n"
