@@ -232,7 +232,7 @@ void btree_store_t<protocol_t>::acquire_sindex_block_for_write(
 template <class protocol_t>
 void btree_store_t<protocol_t>::add_sindex(
         write_token_pair_t *token_pair,
-        uuid_t id,
+        uuid_u id,
         const secondary_index_t::opaque_definition_t &definition,
         transaction_t *txn,
         superblock_t *super_block,
@@ -264,7 +264,7 @@ void btree_store_t<protocol_t>::add_sindex(
 template <class protocol_t>
 void btree_store_t<protocol_t>::drop_sindex(
         write_token_pair_t *token_pair,
-        uuid_t id,
+        uuid_u id,
         transaction_t *txn,
         superblock_t *super_block,
         value_sizer_t<void> *sizer,
@@ -305,7 +305,7 @@ void btree_store_t<protocol_t>::drop_sindex(
 
 template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
-        uuid_t id,
+        uuid_u id,
         read_token_pair_t *token_pair,
         scoped_ptr_t<transaction_t> *txn_out,
         scoped_ptr_t<real_superblock_t> *sindex_sb_out,
@@ -339,7 +339,7 @@ void btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
 
 template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_sindex_superblock_for_write(
-        uuid_t id,
+        uuid_u id,
         block_id_t sindex_block_id,
         write_token_pair_t *token_pair,
         transaction_t *txn,

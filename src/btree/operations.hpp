@@ -307,15 +307,15 @@ struct secondary_index_t {
 //Note if this function is called after secondary indexes have been added it will
 void initialize_secondary_indexes(transaction_t *txn, buf_lock_t *superblock);
 
-bool get_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, uuid_t uuid, secondary_index_t *sindex_out);
+bool get_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, uuid_u uuid, secondary_index_t *sindex_out);
 
-void get_secondary_indexes(transaction_t *txn, buf_lock_t *sindex_block, std::map<uuid_t, secondary_index_t> *sindexes_out);
+void get_secondary_indexes(transaction_t *txn, buf_lock_t *sindex_block, std::map<uuid_u, secondary_index_t> *sindexes_out);
 
-bool add_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, uuid_t uuid, const secondary_index_t &sindex);
+bool add_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, uuid_u uuid, const secondary_index_t &sindex);
 
 //XXX note this just drops the entry. It doesn't cleanup the btree that it
 //points to. drop_secondary_index. Does both and should be used publicly.
-bool delete_secondary_index(transaction_t *txn, buf_lock_t *superblock, uuid_t uuid);
+bool delete_secondary_index(transaction_t *txn, buf_lock_t *superblock, uuid_u uuid);
 
 /* Set sb to have root id as its root block and release sb */
 void insert_root(block_id_t root_id, superblock_t* sb);

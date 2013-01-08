@@ -155,7 +155,7 @@ protected:
 
     void add_sindex(
         write_token_pair_t *token_pair,
-        uuid_t id,
+        uuid_u id,
         const secondary_index_t::opaque_definition_t &definition,
         transaction_t *txn,
         superblock_t *super_block,
@@ -164,7 +164,7 @@ protected:
 
     void drop_sindex(
         write_token_pair_t *token_pair,
-        uuid_t id,
+        uuid_u id,
         transaction_t *txn,
         superblock_t *super_block,
         value_sizer_t<void> *sizer,
@@ -173,7 +173,7 @@ protected:
     THROWS_ONLY(interrupted_exc_t);
 
     void acquire_sindex_superblock_for_read(
-            uuid_t id,
+            uuid_u id,
             read_token_pair_t *token_pair,
             scoped_ptr_t<transaction_t> *txn_out,
             scoped_ptr_t<real_superblock_t> *sindex_sb_out,
@@ -181,7 +181,7 @@ protected:
             THROWS_ONLY(interrupted_exc_t);
 
     void acquire_sindex_superblock_for_write(
-            uuid_t id,
+            uuid_u id,
             block_id_t sindex_block_id,
             write_token_pair_t *token_pair,
             transaction_t *txn,
@@ -189,7 +189,7 @@ protected:
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
 
-    btree_slice_t *get_sindex_slice(uuid_t id) {
+    btree_slice_t *get_sindex_slice(uuid_u id) {
         return &(secondary_index_slices.at(id));
     }
 
@@ -285,7 +285,7 @@ private:
     scoped_ptr_t<btree_slice_t> btree;
     perfmon_membership_t perfmon_collection_membership;
 
-    boost::ptr_map<uuid_t, btree_slice_t> secondary_index_slices;
+    boost::ptr_map<uuid_u, btree_slice_t> secondary_index_slices;
 
     DISABLE_COPYING(btree_store_t);
 };
