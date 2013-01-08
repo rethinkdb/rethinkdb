@@ -1549,7 +1549,6 @@ module 'DataExplorerView', ->
 
                     # Let's try to expand as much as we can
                     extra_size_table = @$('.json_table_container').width()-@$('.json_table').width()
-                    console.log 'extra_size_table: '+extra_size_table
                     if extra_size_table > 0 # The table doesn't take the full width
                         expandable_columns = []
                         for index in [0..@last_keys.length-2] # We skip the column record
@@ -1559,14 +1558,11 @@ module 'DataExplorerView', ->
                                 if real_size<$bloc.width()
                                     real_size = $bloc.width()
                             )
-                            console.log 'real_size:'+real_size
                             if real_size? and real_size is real_size and real_size > @default_size_column
                                 expandable_columns.push
                                     col: index
                                     size: real_size+20 # 20 for padding
                         while expandable_columns.length > 0
-                            console.log JSON.stringify expandable_columns
-                            console.log 'extra_size_table: '+extra_size_table
                             expandable_columns.sort (a, b) ->
                                 return a.size-b.size
                             if expandable_columns[0].size-@$('.col-'+expandable_columns[0].col).width() < extra_size_table/expandable_columns.length
