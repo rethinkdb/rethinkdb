@@ -72,6 +72,7 @@ def generate_impl_me_serializable_macro(nfields):
 
 if __name__ == "__main__":
 
+    print "// Copyright 2010-2012 RethinkDB, all rights reserved."
     print "#ifndef RPC_SERIALIZE_MACROS_HPP_"
     print "#define RPC_SERIALIZE_MACROS_HPP_"
     print
