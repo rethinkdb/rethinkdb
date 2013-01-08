@@ -37,7 +37,7 @@ the class scope. */
     archive_result_t rdb_deserialize(read_stream_t *s)
 
 #define RDB_EXPAND_SERIALIZABLE_0(function_attr, type_t) \
-    function_attr write_message_t &operator<<(UNUSED write_message_t &msg /* NOLINT */, UNUSED const type_t &thing) { \
+    function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, UNUSED const type_t &thing) { \
     return msg; \
     } \
     function_attr archive_result_t deserialize(UNUSED read_stream_t *s, UNUSED type_t *thing) { \
