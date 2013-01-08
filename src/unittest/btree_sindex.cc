@@ -40,7 +40,7 @@ void run_sindex_low_level_operations_test() {
 
     order_source_t order_source;
 
-    std::map<uuid_t, secondary_index_t> mirror;
+    std::map<uuid_u, secondary_index_t> mirror;
 
     {
         order_token_t otok = order_source.check_in("sindex unittest");
@@ -54,7 +54,7 @@ void run_sindex_low_level_operations_test() {
     }
 
     for (int i = 0; i < 100; ++i) {
-        uuid_t uuid = generate_uuid();
+        uuid_u uuid = generate_uuid();
 
         secondary_index_t s;
         s.superblock = randint(1000);
@@ -80,7 +80,7 @@ void run_sindex_low_level_operations_test() {
         get_btree_superblock_and_txn(&btree, rwi_write, 1, repli_timestamp_t::invalid, otok, &superblock, &txn);
         buf_lock_t sindex_block(txn.get(), superblock->get_sindex_block_id(), rwi_write);
 
-        std::map<uuid_t, secondary_index_t> sindexes;
+        std::map<uuid_u, secondary_index_t> sindexes;
         get_secondary_indexes(txn.get(), &sindex_block, &sindexes);
 
         ASSERT_TRUE(sindexes == mirror);
@@ -116,71 +116,79 @@ void run_sindex_btree_store_api_test() {
             NULL);
 
     cond_t dummy_interuptor;
-    uuid_t id = generate_uuid();
-    {
-        write_token_pair_t token_pair;
-        store.new_write_token_pair(&token_pair);
 
-        scoped_ptr_t<transaction_t> txn;
-        scoped_ptr_t<real_superblock_t> super_block;
+    std::set<uuid_u> created_sindexs;
 
-        store.acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid,
-                                           1, &token_pair.main_write_token, &txn, &super_block, &dummy_interuptor);
+    for (int i = 0; i < 50; ++i) {
+        uuid_u id = generate_uuid();
+        created_sindexs.insert(id);
+        {
+            write_token_pair_t token_pair;
+            store.new_write_token_pair(&token_pair);
 
-        store.add_sindex(
-                &token_pair,
-                id,
-                std::vector<unsigned char>(),
-                txn.get(),
-                super_block.get(),
-                &dummy_interuptor);
+            scoped_ptr_t<transaction_t> txn;
+            scoped_ptr_t<real_superblock_t> super_block;
+
+            store.acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid,
+                                               1, &token_pair.main_write_token, &txn, &super_block, &dummy_interuptor);
+
+            store.add_sindex(
+                    &token_pair,
+                    id,
+                    std::vector<unsigned char>(),
+                    txn.get(),
+                    super_block.get(),
+                    &dummy_interuptor);
+        }
+
+        {
+            //Insert a piece of data in to the btree.
+            write_token_pair_t token_pair;
+            store.new_write_token_pair(&token_pair);
+
+            scoped_ptr_t<transaction_t> txn;
+            scoped_ptr_t<real_superblock_t> super_block;
+
+            store.acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid,
+                                               1, &token_pair.main_write_token, &txn,
+                                               &super_block, &dummy_interuptor);
+
+            scoped_ptr_t<real_superblock_t> sindex_super_block;
+
+            store.acquire_sindex_superblock_for_write(id, super_block->get_sindex_block_id(), &token_pair,
+                                                      txn.get(), &sindex_super_block, &dummy_interuptor);
+
+            store_key_t key("foo");
+            boost::shared_ptr<scoped_cJSON_t> data(new scoped_cJSON_t(cJSON_CreateNumber(1)));
+
+            rdb_protocol_t::point_write_response_t response;
+
+            rdb_set(key, data, true, store.get_sindex_slice(id), repli_timestamp_t::invalid,
+                    txn.get(), sindex_super_block.get(), &response);
+        }
+
+        {
+            //Read that data
+            read_token_pair_t token_pair;
+            store.new_read_token_pair(&token_pair);
+
+            scoped_ptr_t<transaction_t> txn;
+            scoped_ptr_t<real_superblock_t> sindex_super_block;
+
+            store.acquire_sindex_superblock_for_read(id, &token_pair, &txn, &sindex_super_block, &dummy_interuptor);
+
+            point_read_response_t response;
+
+            rdb_get(store_key_t("foo"), store.get_sindex_slice(id), txn.get(), sindex_super_block.get(), &response);
+
+            boost::shared_ptr<scoped_cJSON_t> data(new scoped_cJSON_t(cJSON_CreateNumber(1)));
+            ASSERT_EQ(query_language::json_cmp(response.data->get(), data->get()), 0);
+        }
     }
 
-    {
-        //Insert a piece of data in to the btree.
-        write_token_pair_t token_pair;
-        store.new_write_token_pair(&token_pair);
-
-        scoped_ptr_t<transaction_t> txn;
-        scoped_ptr_t<real_superblock_t> super_block;
-
-        store.acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid,
-                                           1, &token_pair.main_write_token, &txn, 
-                                           &super_block, &dummy_interuptor);
-
-        scoped_ptr_t<real_superblock_t> sindex_super_block;
-
-        store.acquire_sindex_superblock_for_write(id, super_block->get_sindex_block_id(), &token_pair, 
-                                                  txn.get(), &sindex_super_block, &dummy_interuptor);
-
-        store_key_t key("foo");
-        boost::shared_ptr<scoped_cJSON_t> data(new scoped_cJSON_t(cJSON_CreateNumber(1)));
-
-        rdb_protocol_t::point_write_response_t response;
-
-        rdb_set(key, data, true, store.get_sindex_slice(id), repli_timestamp_t::invalid,
-                txn.get(), sindex_super_block.get(), &response);
-    }
-
-    {
-        //Read that data
-        read_token_pair_t token_pair;
-        store.new_read_token_pair(&token_pair);
-
-        scoped_ptr_t<transaction_t> txn;
-        scoped_ptr_t<real_superblock_t> sindex_super_block;
-
-        store.acquire_sindex_superblock_for_read(id, &token_pair, &txn, &sindex_super_block, &dummy_interuptor);
-
-        point_read_response_t response;
-
-        rdb_get(store_key_t("foo"), store.get_sindex_slice(id), txn.get(), sindex_super_block.get(), &response);
-
-        boost::shared_ptr<scoped_cJSON_t> data(new scoped_cJSON_t(cJSON_CreateNumber(1)));
-        ASSERT_EQ(query_language::json_cmp(response.data->get(), data->get()), 0);
-    }
-
-    {
+    for (std::set<uuid_u>::iterator it  = created_sindexs.begin();
+                                    it != created_sindexs.end();
+                                    ++it) {
         /* Drop the sindex */
         write_token_pair_t token_pair;
         store.new_write_token_pair(&token_pair);
@@ -197,7 +205,7 @@ void run_sindex_btree_store_api_test() {
 
         store.drop_sindex(
                 &token_pair,
-                id,
+                *it,
                 txn.get(),
                 super_block.get(),
                 &sizer,
