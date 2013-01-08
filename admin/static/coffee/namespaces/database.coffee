@@ -3,7 +3,7 @@
 module 'DatabaseView', ->
     # Class in case the database is not found (propably a deleted database). Links to this view can be found in old logs.
     class @NotFound extends Backbone.View
-        template: Handlebars.compile $('#element_view-not_found-template').html()
+        template: Handlebars.templates['element_view-not_found-template']
         initialize: (id) =>
             @id = id
 
@@ -18,8 +18,8 @@ module 'DatabaseView', ->
     # Container for the entire database view
     class @Container extends Backbone.View
         className: 'database-view'
-        template: Handlebars.compile $('#database_view-container-template').html()
-        alert_tmpl: Handlebars.compile $('#modify_shards-alert-template').html()
+        template: Handlebars.templates['database_view-container-template']
+        alert_tmpl: Handlebars.templates['modify_shards-alert-template']
 
         events: ->
             'click .close': 'close_alert'
@@ -101,7 +101,7 @@ module 'DatabaseView', ->
     # DatabaseView.Title
     class @Title extends Backbone.View
         className: 'database-info-view'
-        template: Handlebars.compile $('#database_view_title-template').html()
+        template: Handlebars.templates['database_view_title-template']
 
         # Bind listeners
         initialize: =>
@@ -127,7 +127,7 @@ module 'DatabaseView', ->
     # Profile view
     class @Profile extends Backbone.View
         className: 'database-profile'
-        template: Handlebars.compile $('#database_view-profile-template').html()
+        template: Handlebars.templates['database_view-profile-template']
         
         # Bind listeners and initialize the data of this view
         initialize: =>
@@ -178,7 +178,7 @@ module 'DatabaseView', ->
 
     # The modal to remove a database, it extends UIComponents.AbstractModal
     class @RemoveDatabaseModal extends UIComponents.AbstractModal
-        template: Handlebars.compile $('#remove_database-modal-template').html()
+        template: Handlebars.templates['remove_database-modal-template']
         class: 'remove_database-dialog'
 
         initialize: ->
@@ -243,7 +243,7 @@ module 'DatabaseView', ->
 
     # List of all the namespaces in the database
     class @NamespaceList extends Backbone.View
-        template: Handlebars.compile $('#database_view-namespace_list-template').html()
+        template: Handlebars.templates['database_view-namespace_list-template']
 
         # Bind some listeners
         initialize: =>

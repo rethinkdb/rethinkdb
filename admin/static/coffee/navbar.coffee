@@ -5,7 +5,7 @@
 class NavBarView extends Backbone.View
     id: 'navbar'
     className: 'container'
-    template: Handlebars.compile $('#navbar_view-template').html()
+    template: Handlebars.templates['navbar_view-template']
 
     initialize: =>
         @first_render = true

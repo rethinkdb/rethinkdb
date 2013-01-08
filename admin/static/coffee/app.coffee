@@ -291,33 +291,12 @@ $ ->
         id: '00000000-0000-0000-0000-000000000000'
         name: 'Universe'
 
-    # Load the data bootstrapped from the HTML template
-    # reset_collections()
-    reset_token()
-
     # Override the default Backbone.sync behavior to allow reading diff
-    legacy_sync = Backbone.sync
     Backbone.sync = (method, model, success, error) ->
         if method is 'read'
             collect_server_data()
         else
-            legacy_sync method, model, success, error
-
-
-    # This object is for global events whose relevant data may not be available yet. Example include:
-    #   - the router is unavailable when first initializing
-    #   - machines, namespaces, and datacenters collections are unavailable when first initializing
-    window.app_events =
-        triggered_events: {}
-    _.extend(app_events, Backbone.Events)
-    # Count the number of times any particular event has been called
-    app_events.on 'all', (event) ->
-        triggered = app_events.triggered_events
-
-        if not triggered[event]?
-            triggered[event] = 1
-        else
-            triggered[event]+=1
+            Backbone.sync method, model, success, error
 
     # Collect the first time
     collect_server_data_once(true, collections_ready)

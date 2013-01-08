@@ -5,8 +5,8 @@
 module 'UIComponents', ->
     # Modal that allows for form submission
     class @AbstractModal extends Backbone.View
-        template_outer: Handlebars.compile $('#abstract-modal-outer-template').html()
-        error_template: Handlebars.compile $('#error_input-template').html()
+        template_outer: Handlebars.templates['abstract-modal-outer-template']
+        error_template: Handlebars.templates['error_input-template']
 
         events:
             'click .cancel': 'cancel_modal'
@@ -111,7 +111,7 @@ module 'UIComponents', ->
 
     # This is for doing user confirmation easily
     class @ConfirmationDialogModal extends @AbstractModal
-        template: Handlebars.compile $('#confirmation_dialog-template').html()
+        template: Handlebars.templates['confirmation_dialog-template']
         class: 'confirmation-modal'
 
         initialize: ->
@@ -154,9 +154,9 @@ module 'UIComponents', ->
     #   - options:
     #     * hide_alert: hide the alert shown in the user space on success
     class @RenameItemModal extends @AbstractModal
-        template: Handlebars.compile $('#rename_item-modal-template').html()
-        alert_tmpl: Handlebars.compile $('#renamed_item-alert-template').html()
-        error_template: Handlebars.compile $('#error_input-template').html()
+        template: Handlebars.templates['rename_item-modal-template']
+        alert_tmpl: Handlebars.templates['renamed_item-alert-template']
+        error_template: Handlebars.templates['error_input-template']
         class: 'rename-item-modal'
 
         initialize: (uuid, type, on_success, options) ->

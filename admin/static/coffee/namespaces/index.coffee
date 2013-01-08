@@ -6,9 +6,9 @@ module 'NamespaceView', ->
     # Show a list of databases
     class @DatabaseList extends UIComponents.AbstractList
         # Use a namespace-specific template for the namespace list
-        template: Handlebars.compile $('#database_list-template').html()
+        template: Handlebars.templates['database_list-template']
         className: 'databases_list-container'
-        alert_message_template: Handlebars.compile $('#alert_message-template').html()
+        alert_message_template: Handlebars.templates['alert_message-template']
 
         events:
             'click .add-database': 'add_database'
@@ -109,8 +109,8 @@ module 'NamespaceView', ->
             @remove_namespace_dialog.destroy()
 
     class @DatabaseListElement extends UIComponents.CollapsibleListElement
-        template: Handlebars.compile $('#database_list_element-template').html()
-        summary_template: Handlebars.compile $('#database_list_element-summary-template').html()
+        template: Handlebars.templates['database_list_element-template']
+        summary_template: Handlebars.templates['database_list_element-summary-template']
 
         className: 'element-container'
 
@@ -173,7 +173,7 @@ module 'NamespaceView', ->
     class @NamespaceList extends UIComponents.AbstractList
         # Use a namespace-specific template for the namespace list
         tagName: 'div'
-        template: Handlebars.compile $('#namespace_list-template').html()
+        template: Handlebars.templates['namespace_list-template']
 
         initialize:  (database_id) =>
             log_initial '(initializing) namespace list view'
@@ -214,7 +214,7 @@ module 'NamespaceView', ->
 
     # Namespace list element
     class @NamespaceListElement extends UIComponents.CheckboxListElement
-        template: Handlebars.compile $('#namespace_list_element-template').html()
+        template: Handlebars.templates['namespace_list_element-template']
         tagName: 'div'
 
         hide_popover: ->
@@ -236,9 +236,9 @@ module 'NamespaceView', ->
             super
 
     class @AddDatabaseModal extends UIComponents.AbstractModal
-        template: Handlebars.compile $('#add_database-modal-template').html()
-        alert_tmpl: Handlebars.compile $('#added_database-alert-template').html()
-        error_template: Handlebars.compile $('#error_input-template').html()
+        template: Handlebars.templates['add_database-modal-template']
+        alert_tmpl: Handlebars.templates['added_database-alert-template']
+        error_template: Handlebars.templates['error_input-template']
 
         class: 'add-database'
 
@@ -299,10 +299,10 @@ module 'NamespaceView', ->
 
     # A modal for adding namespaces
     class @AddNamespaceModal extends UIComponents.AbstractModal
-        template: Handlebars.compile $('#add_namespace-modal-template').html()
-        alert_tmpl: Handlebars.compile $('#added_namespace-alert-template').html()
-        need_database_alert_template: Handlebars.compile $('#need_database-alert-template').html()
-        error_template: Handlebars.compile $('#error_input-template').html()
+        template: Handlebars.templates['add_namespace-modal-template']
+        alert_tmpl: Handlebars.templates['added_namespace-alert-template']
+        need_database_alert_template: Handlebars.templates['need_database-alert-template']
+        error_template: Handlebars.templates['error_input-template']
         class: 'add-namespace'
 
         initialize: =>
@@ -458,8 +458,8 @@ module 'NamespaceView', ->
 
     # A modal for removing namespaces
     class @RemoveNamespaceModal extends UIComponents.AbstractModal
-        template: Handlebars.compile $('#remove_namespace-modal-template').html()
-        alert_tmpl: Handlebars.compile $('#removed_namespace-alert-template').html()
+        template: Handlebars.templates['remove_namespace-modal-template']
+        alert_tmpl: Handlebars.templates['removed_namespace-alert-template']
         class: 'remove-namespace-dialog'
 
         initialize: ->

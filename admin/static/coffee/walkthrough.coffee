@@ -1,7 +1,7 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 class Walkthrough extends Backbone.View
-    template: Handlebars.compile $('#walkthrough_popup-template').html()
-    modal_template: Handlebars.compile $('#walkthrough_modal-template').html()
+    template: Handlebars.templates['walkthrough_popup-template']
+    modal_template: Handlebars.templates['walkthrough_modal-template']
 
     events: ->
         'click .show-walkthrough a': 'show_walkthrough'

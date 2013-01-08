@@ -5,15 +5,15 @@ module 'NamespaceView', ->
     MAX_SHARD_COUNT = 32
 
     class @Sharding extends Backbone.View
-        template: Handlebars.compile $('#shards_container-template').html()
-        view_template: Handlebars.compile $('#view_shards-template').html()
-        edit_template: Handlebars.compile $('#edit_shards-template').html()
-        data_repartition_template: Handlebars.compile $('#data_repartition-template').html()
-        feedback_template: Handlebars.compile $('#edit_shards-feedback-template').html()
-        error_ajax_template: Handlebars.compile $('#edit_shards-ajax_error-template').html()
-        alert_shard_template: Handlebars.compile $('#alert_shard-template').html()
-        reasons_cannot_shard_template: Handlebars.compile $('#shards-reason_cannot_shard-template').html()
-        shard_status_template: Handlebars.compile $('#shard_status-template').html()
+        template: Handlebars.templates['shards_container-template']
+        view_template: Handlebars.templates['view_shards-template']
+        edit_template: Handlebars.templates['edit_shards-template']
+        data_repartition_template: Handlebars.templates['data_repartition-template']
+        feedback_template: Handlebars.templates['edit_shards-feedback-template']
+        error_ajax_template: Handlebars.templates['edit_shards-ajax_error-template']
+        alert_shard_template: Handlebars.templates['alert_shard-template']
+        reasons_cannot_shard_template: Handlebars.templates['shards-reason_cannot_shard-template']
+        shard_status_template: Handlebars.templates['shard_status-template']
 
         className: 'shards_container'
 
@@ -535,8 +535,8 @@ module 'NamespaceView', ->
     # Modify replica counts and ack counts in each datacenter
     class @ChangeShardsModal extends UIComponents.AbstractModal
         ###
-        template: Handlebars.compile $('#change_shards-modal-template').html()
-        change_shards_success_alert_template: Handlebars.compile $('#change_shards-success-alert-template').html()
+        template: Handlebars.templates['change_shards-modal-template']
+        change_shards_success_alert_template: Handlebars.templates['change_shards-success-alert-template']
         ###
         class: 'change_shards'
 

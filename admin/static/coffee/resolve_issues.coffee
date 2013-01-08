@@ -6,7 +6,7 @@ module 'ResolveIssuesView', ->
         id: 'resolve-issues'
         className: 'section'
 
-        template: Handlebars.compile $('#resolve_issues-container-template').html()
+        template: Handlebars.templates['resolve_issues-container-template']
 
         initialize: ->
             @issue_list = new ResolveIssuesView.IssueList()
@@ -17,15 +17,15 @@ module 'ResolveIssuesView', ->
             return @
 
     class @IssueList extends UIComponents.AbstractList
-        template: Handlebars.compile $('#resolve_issues-issue_list-template').html()
+        template: Handlebars.templates['resolve_issues-issue_list-template']
 
         initialize: ->
             super issues, ResolveIssuesView.Issue, '.issues'
 
     class @DeclareMachineDeadModal extends UIComponents.AbstractModal
-        template: Handlebars.compile $('#declare_machine_dead-modal-template').html()
-        alert_tmpl: Handlebars.compile $('#resolve_issues-resolved-template').html()
-        template_issue_error: Handlebars.compile $('#fail_solve_issue-template').html()
+        template: Handlebars.templates['declare_machine_dead-modal-template']
+        alert_tmpl: Handlebars.templates['resolve_issues-resolved-template']
+        template_issue_error: Handlebars.templates['fail_solve_issue-template']
 
         class: 'declare-machine-dead'
 
@@ -94,7 +94,7 @@ module 'ResolveIssuesView', ->
             machines.remove(@machine_to_kill.id)
 
     class @ResolveNameConflictModal extends Backbone.View
-        alert_tmpl_: Handlebars.compile $('#resolve_issues-resolved-template').html()
+        alert_tmpl_: Handlebars.templates['resolve_issues-resolved-template']
 
         render: (uuid, type) =>
             @type = type
@@ -119,8 +119,8 @@ module 'ResolveIssuesView', ->
 
 
     class @ResolveVClockModal extends UIComponents.AbstractModal
-        template: Handlebars.compile $('#resolve_vclock-modal-template').html()
-        alert_tmpl: Handlebars.compile $('#resolve_issues-resolved-template').html()
+        template: Handlebars.templates['resolve_vclock-modal-template']
+        alert_tmpl: Handlebars.templates['resolve_issues-resolved-template']
         class: 'resolve-vclock-modal'
 
         initialize: ->
@@ -161,8 +161,8 @@ module 'ResolveIssuesView', ->
 
 
     class @ResolveUnsatisfiableGoal extends UIComponents.AbstractModal
-        template: Handlebars.compile $('#resolve_unsatisfiable_goals_modal-template').html()
-        alert_tmpl: Handlebars.compile $('#resolve_issues-resolved-template').html()
+        template: Handlebars.templates['resolve_unsatisfiable_goals_modal-template']
+        alert_tmpl: Handlebars.templates['resolve_issues-resolved-template']
         class: 'resolve-vclock-modal'
 
         initialize: (namespace, datacenters_with_issues, can_be_solved)->
@@ -227,15 +227,15 @@ module 'ResolveIssuesView', ->
     class @Issue extends Backbone.View
         className: 'issue-container'
         templates:
-            'MACHINE_DOWN': Handlebars.compile $('#resolve_issues-machine_down-template').html()
-            'NAME_CONFLICT_ISSUE': Handlebars.compile $('#resolve_issues-name_conflict-template').html()
-            'LOGFILE_WRITE_ERROR': Handlebars.compile $('#resolve_issues-logfile_write-template').html()
-            'VCLOCK_CONFLICT': Handlebars.compile $('#resolve_issues-vclock_conflict-template').html()
-            'UNSATISFIABLE_GOALS': Handlebars.compile $('#resolve_issues-unsatisfiable_goals-template').html()
-            'MACHINE_GHOST': Handlebars.compile $('#resolve_issues-machine_ghost-template').html()
-            'PORT_CONFLICT': Handlebars.compile $('#resolve_issues-port_conflict-template').html()
+            'MACHINE_DOWN': Handlebars.templates['resolve_issues-machine_down-template']
+            'NAME_CONFLICT_ISSUE': Handlebars.templates['resolve_issues-name_conflict-template']
+            'LOGFILE_WRITE_ERROR': Handlebars.templates['resolve_issues-logfile_write-template']
+            'VCLOCK_CONFLICT': Handlebars.templates['resolve_issues-vclock_conflict-template']
+            'UNSATISFIABLE_GOALS': Handlebars.templates['resolve_issues-unsatisfiable_goals-template']
+            'MACHINE_GHOST': Handlebars.templates['resolve_issues-machine_ghost-template']
+            'PORT_CONFLICT': Handlebars.templates['resolve_issues-port_conflict-template']
 
-        unknown_issue_template: Handlebars.compile $('#resolve_issues-unknown-template').html()
+        unknown_issue_template: Handlebars.templates['resolve_issues-unknown-template']
 
 
         render_machine_down: (_template) =>

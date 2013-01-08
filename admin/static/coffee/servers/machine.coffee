@@ -2,8 +2,8 @@
 # Machine view
 module 'MachineView', ->
     class @NotFound extends Backbone.View
-        template: Handlebars.compile $('#element_view-not_found-template').html()
-        ghost_template: Handlebars.compile $('#machine_view-ghost-template').html()
+        template: Handlebars.templates['element_view-not_found-template']
+        ghost_template: Handlebars.templates['machine_view-ghost-template']
         initialize: (id) =>
             @id = id
         render: =>
@@ -30,7 +30,7 @@ module 'MachineView', ->
     # Container
     class @Container extends Backbone.View
         className: 'machine-view'
-        template: Handlebars.compile $('#machine_view-container-template').html()
+        template: Handlebars.templates['machine_view-container-template']
 
         events: ->
             'click .close': 'close_alert'
@@ -139,7 +139,7 @@ module 'MachineView', ->
     # MachineView.Title
     class @Title extends Backbone.View
         className: 'machine-info-view'
-        template: Handlebars.compile $('#machine_view_title-template').html()
+        template: Handlebars.templates['machine_view_title-template']
         initialize: ->
             @name = @model.get('name')
             @model.on 'change:name', @update
@@ -160,7 +160,7 @@ module 'MachineView', ->
     # MachineView.Profile
     class @Profile extends Backbone.View
         className: 'machine-info-view'
-        template: Handlebars.compile $('#machine_view_profile-template').html()
+        template: Handlebars.templates['machine_view_profile-template']
         initialize: =>
             directory.on 'all', @render
             @model.on 'all', @render # We listen to all because we listen to stats for the uptime and that we are looking for a nested property
@@ -198,8 +198,8 @@ module 'MachineView', ->
             @model.off 'all', @render
 
     class @UnassignModal extends UIComponents.AbstractModal
-        template: Handlebars.compile $('#unassign-modal-template').html()
-        alert_tmpl: Handlebars.compile $('#unassign-alert-template').html()
+        template: Handlebars.templates['unassign-modal-template']
+        alert_tmpl: Handlebars.templates['unassign-alert-template']
         class: 'unassign-dialog'
 
         initialize: ->
@@ -242,7 +242,7 @@ module 'MachineView', ->
             clear_modals()
 
     class @Data extends Backbone.View
-        template: Handlebars.compile $('#machine_view_data-template').html()
+        template: Handlebars.templates['machine_view_data-template']
 
         initialize: =>
             @namespaces_with_listeners = {}

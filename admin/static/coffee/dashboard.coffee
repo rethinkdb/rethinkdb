@@ -4,7 +4,7 @@
 module 'DashboardView', ->
     # Cluster.Container
     class @Container extends Backbone.View
-        template: Handlebars.compile $('#dashboard_view-template').html()
+        template: Handlebars.templates['dashboard_view-template']
         id: 'dashboard_container'
 
         events:
@@ -53,9 +53,9 @@ module 'DashboardView', ->
     class @ClusterStatusAvailability extends Backbone.View
         className: 'cluster-status-availability '
 
-        template: Handlebars.compile $('#cluster_status-container-template').html()
-        status_template: Handlebars.compile $('#cluster_status-availability_status-template').html()
-        popup_template: Handlebars.compile $('#cluster_status-availability-popup-template').html()
+        template: Handlebars.templates['cluster_status-container-template']
+        status_template: Handlebars.templates['cluster_status-availability_status-template']
+        popup_template: Handlebars.templates['cluster_status-availability-popup-template']
 
         events:
             'click .show_details': 'show_details'
@@ -204,9 +204,9 @@ module 'DashboardView', ->
     class @ClusterStatusRedundancy extends Backbone.View
         className: 'cluster-status-redundancy'
 
-        template: Handlebars.compile $('#cluster_status-container-template').html()
-        status_template: Handlebars.compile $('#cluster_status-redundancy_status-template').html()
-        popup_template: Handlebars.compile $('#cluster_status-redundancy-popup-template').html()
+        template: Handlebars.templates['cluster_status-container-template']
+        status_template: Handlebars.templates['cluster_status-redundancy_status-template']
+        popup_template: Handlebars.templates['cluster_status-redundancy-popup-template']
 
         events:
             'click .show_details': 'show_details'
@@ -390,9 +390,9 @@ module 'DashboardView', ->
     class @ClusterStatusReachability extends Backbone.View
         className: 'cluster-status-redundancy'
 
-        template: Handlebars.compile $('#cluster_status-container-template').html()
-        status_template: Handlebars.compile $('#cluster_status-reachability_status-template').html()
-        popup_template: Handlebars.compile $('#cluster_status-reachability-popup-template').html()
+        template: Handlebars.templates['cluster_status-container-template']
+        status_template: Handlebars.templates['cluster_status-reachability_status-template']
+        popup_template: Handlebars.templates['cluster_status-reachability-popup-template']
 
         events:
             'click .show_details': 'show_details'
@@ -491,9 +491,9 @@ module 'DashboardView', ->
     class @ClusterStatusConsistency extends Backbone.View
         className: 'cluster-status-consistency'
 
-        template: Handlebars.compile $('#cluster_status-container-template').html()
-        status_template: Handlebars.compile $('#cluster_status-consistency_status-template').html()
-        popup_template: Handlebars.compile $('#cluster_status-consistency-popup-template').html()
+        template: Handlebars.templates['cluster_status-container-template']
+        status_template: Handlebars.templates['cluster_status-consistency_status-template']
+        popup_template: Handlebars.templates['cluster_status-consistency-popup-template']
 
         events:
             'click .show_details': 'show_details'
