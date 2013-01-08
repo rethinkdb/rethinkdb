@@ -315,8 +315,13 @@ file_open_result_t open_direct_file(const char *path, int mode, io_backender_t *
     // that matter).
 #ifndef __MACH__
     flags |= O_LARGEFILE;
-    flags |= O_DSYNC;
 #endif
+
+#ifndef FILE_SYNC_TECHNIQUE
+#error "FILE_SYNC_TECHNIQUE is not defined"
+#elif FILE_SYNC_TECHNIQUE == FILE_SYNC_TECHNIQUE_DSYNC
+    flags |= O_DSYNC;
+#endif  // FILE_SYNC_TECHNIQUE
 
     if ((mode & linux_file_t::mode_write) && (mode & linux_file_t::mode_read)) {
         flags |= O_RDWR;

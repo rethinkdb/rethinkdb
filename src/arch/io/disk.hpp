@@ -12,6 +12,15 @@
 
 #include "perfmon/core.hpp"
 
+#define FILE_SYNC_TECHNIQUE_DSYNC 1
+#define FILE_SYNC_TECHNIQUE_FULLFSYNC 2
+
+#ifdef __MACH__
+#define FILE_SYNC_TECHNIQUE FILE_SYNC_TECHNIQUE_FULLFSYNC
+#else
+#define FILE_SYNC_TECHNIQUE FILE_SYNC_TECHNIQUE_DSYNC
+#endif
+
 class linux_iocallback_t;
 struct linux_disk_manager_t;
 
