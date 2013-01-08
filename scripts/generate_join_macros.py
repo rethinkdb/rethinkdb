@@ -38,6 +38,7 @@ def generate_make_equality_comparable_macro(nfields):
 
 if __name__ == "__main__":
 
+    print "// Copyright 2010-2012 RethinkDB, all rights reserved."
     print "#ifndef RPC_SEMILATTICE_JOINS_MACROS_HPP_"
     print "#define RPC_SEMILATTICE_JOINS_MACROS_HPP_"
     print
