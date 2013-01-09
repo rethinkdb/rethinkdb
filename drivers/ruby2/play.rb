@@ -176,6 +176,7 @@ rae(tbl.get(1), {"id"=>1.0})
 rae(tbl.get(-1), nil)
 
 rae(r(5).mod(3), 2)
+assert_raise{r(5.2).mod(3).run}
 assert_raise{r(5).mod(0).run}
 
 print "test.test: #{r.db('test').table('test').run.inspect}\n"

@@ -11,10 +11,10 @@ namespace ql {
 datum_t::datum_t() : type(R_NULL) { }
 datum_t::datum_t(bool _bool) : type(R_BOOL), r_bool(_bool) { }
 datum_t::datum_t(double _num) : type(R_NUM), r_num(_num) {
-    rcheck(std::isfinite(r_num), strprintf("Non-finite number: %lf", r_num));
+    rcheck(std::isfinite(r_num), strprintf("Non-finite number: %.20g", r_num));
 }
 datum_t::datum_t(int _num) : type(R_NUM), r_num(_num) {
-    rcheck(std::isfinite(r_num), strprintf("Non-finite number: %lf", r_num));
+    rcheck(std::isfinite(r_num), strprintf("Non-finite number: %.20g", r_num));
 }
 datum_t::datum_t(const std::string &_str) : type(R_STR), r_str(_str) { }
 datum_t::datum_t(const std::vector<const datum_t *> &_array)
@@ -145,7 +145,7 @@ double datum_t::as_num() const {
 int datum_t::as_int() const {
     double d = as_num();
     int i = d;
-    rcheck(static_cast<double>(i) == d, strprintf("Number not an integer: %lf", d));
+    rcheck(static_cast<double>(i) == d, strprintf("Number not an integer: %.20g", d));
     return i;
 }
 const std::string &datum_t::as_str() const {
