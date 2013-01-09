@@ -219,8 +219,7 @@ message Term2 {
         // http://www.rethinkdb.com/api/#js:document_manipulation-append
         APPEND = 29; // ARRAY, DATUM -> ARRAY
         // http://www.rethinkdb.com/api/#js:transformations-slice
-        SLICE  = 30; // Sequence -> Sequence
-                     // Optargs: left_extent (NUM), right_extent (NUM)
+        SLICE  = 30; // Sequence, NUM, NUM -> Sequence
 
         // Stream/Object Ops
         // Get a particular attribute out of an object, or map that over a

@@ -15,31 +15,31 @@ namespace ql {
 
 term_t *compile_term(env_t *env, const Term2 *t) {
     switch(t->type()) {
-    case Term2_TermType_DATUM: return new datum_term_t(env, &t->datum());
-    case Term2_TermType_MAKE_ARRAY: return new make_array_term_t(env, t);
-    case Term2_TermType_MAKE_OBJ: return new make_obj_term_t(env, t);
-    case Term2_TermType_VAR: return new var_term_t(env, t);
+    case Term2_TermType_DATUM:        return new datum_term_t(env, &t->datum());
+    case Term2_TermType_MAKE_ARRAY:   return new make_array_term_t(env, t);
+    case Term2_TermType_MAKE_OBJ:     return new make_obj_term_t(env, t);
+    case Term2_TermType_VAR:          return new var_term_t(env, t);
     case Term2_TermType_JAVASCRIPT:
         throw exc_t("JAVASCRIPT UNIMPLEMENTED (Bill's job.)");
-    case Term2_TermType_ERROR: return new error_term_t(env, t);
+    case Term2_TermType_ERROR:        return new error_term_t(env, t);
     case Term2_TermType_IMPLICIT_VAR: return new implicit_var_term_t(env, t);
-    case Term2_TermType_DB: return new db_term_t(env, t);
-    case Term2_TermType_TABLE: return new table_term_t(env, t);
-    case Term2_TermType_GET: return new get_term_t(env, t);
-    case Term2_TermType_EQ: // fallthru
-    case Term2_TermType_NE: // fallthru
-    case Term2_TermType_LT: // fallthru
-    case Term2_TermType_LE: // fallthru
-    case Term2_TermType_GT: // fallthru
-    case Term2_TermType_GE: return new predicate_term_t(env, t);
-    case Term2_TermType_NOT: return new not_term_t(env, t);
+    case Term2_TermType_DB:           return new db_term_t(env, t);
+    case Term2_TermType_TABLE:        return new table_term_t(env, t);
+    case Term2_TermType_GET:          return new get_term_t(env, t);
+    case Term2_TermType_EQ:  // fallthru
+    case Term2_TermType_NE:  // fallthru
+    case Term2_TermType_LT:  // fallthru
+    case Term2_TermType_LE:  // fallthru
+    case Term2_TermType_GT:  // fallthru
+    case Term2_TermType_GE:           return new predicate_term_t(env, t);
+    case Term2_TermType_NOT:          return new not_term_t(env, t);
     case Term2_TermType_ADD: // fallthru
     case Term2_TermType_SUB: // fallthru
     case Term2_TermType_MUL: // fallthru
-    case Term2_TermType_DIV: return new arith_term_t(env, t);
-    case Term2_TermType_MOD: return new mod_term_t(env, t);
-    case Term2_TermType_APPEND: return new append_term_t(env, t);
-    case Term2_TermType_SLICE:
+    case Term2_TermType_DIV:          return new arith_term_t(env, t);
+    case Term2_TermType_MOD:          return new mod_term_t(env, t);
+    case Term2_TermType_APPEND:       return new append_term_t(env, t);
+    case Term2_TermType_SLICE:        return new slice_term_t(env, t);
     case Term2_TermType_GETATTR:
     case Term2_TermType_CONTAINS:
     case Term2_TermType_PLUCK:

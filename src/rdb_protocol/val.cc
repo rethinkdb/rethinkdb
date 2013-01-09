@@ -37,6 +37,19 @@ const datum_t *lazy_datum_stream_t::next() {
     return env->add_ptr(new datum_t(json, env));
 }
 
+slice_datum_stream_t::slice_datum_stream_t(
+    env_t *_env, size_t _l, size_t _r, datum_stream_t *_src)
+    : datum_stream_t(_env), env(_env), ind(0), l(_l), r(_r), src(_src) { }
+
+const datum_t *slice_datum_stream_t::next() {
+    if (ind > r) return 0;
+    while (ind++ <= l) {
+        env_checkpointer_t(env, &env_t::discard_checkpoint);
+        src->next();
+    }
+    return src->next();
+}
+
 array_datum_stream_t::array_datum_stream_t(env_t *env, const datum_t *_arr) :
     datum_stream_t(env), index(0), arr(_arr) { }
 

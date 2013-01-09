@@ -55,6 +55,16 @@ private:
     datum_stream_t *src;
 };
 
+class slice_datum_stream_t : public datum_stream_t {
+public:
+    slice_datum_stream_t(env_t *_env, size_t _l, size_t _r, datum_stream_t *_src);
+    virtual const datum_t *next();
+private:
+    env_t *env;
+    size_t ind, l, r;
+    datum_stream_t *src;
+};
+
 class table_t : public ptr_baggable_t {
 public:
     table_t(env_t *_env, uuid_t db_id, const std::string &name, bool use_outdated);
