@@ -159,8 +159,19 @@ const std::vector<const datum_t *> &datum_t::as_array() const {
 size_t datum_t::size() const {
     return as_array().size();
 }
-const datum_t *datum_t::el(size_t index) const {
-    return index < as_array().size() ? as_array()[index] : 0;
+
+const datum_t *datum_t::el(size_t index, bool throw_if_missing) const {
+    if (index < as_array().size()) return as_array()[index];
+    if (throw_if_missing) rfail("Index out of bounds: %lu", index);
+    return 0;
+}
+
+const datum_t *datum_t::el(const std::string &key, bool throw_if_missing) const {
+    std::map<const std::string, const datum_t *>::const_iterator
+        it = as_object().find(key);
+    if (it != as_object().end()) return it->second;
+    if (throw_if_missing) rfail("No key %s in object %s.", key.c_str(), print().c_str());
+    return 0;
 }
 
 const std::map<const std::string, const datum_t *> &datum_t::as_object() const {

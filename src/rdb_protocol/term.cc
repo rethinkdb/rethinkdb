@@ -8,6 +8,7 @@
 #include "rdb_protocol/terms/db_table.hpp"
 #include "rdb_protocol/terms/error.hpp"
 #include "rdb_protocol/terms/map.hpp"
+#include "rdb_protocol/terms/obj.hpp"
 #include "rdb_protocol/terms/pred.hpp"
 #include "rdb_protocol/terms/var.hpp"
 
@@ -40,8 +41,8 @@ term_t *compile_term(env_t *env, const Term2 *t) {
     case Term2_TermType_MOD:          return new mod_term_t(env, t);
     case Term2_TermType_APPEND:       return new append_term_t(env, t);
     case Term2_TermType_SLICE:        return new slice_term_t(env, t);
-    case Term2_TermType_GETATTR:
-    case Term2_TermType_CONTAINS:
+    case Term2_TermType_GETATTR:      return new getattr_term_t(env, t);
+    case Term2_TermType_CONTAINS:     return new contains_term_t(env, t);
     case Term2_TermType_PLUCK:
     case Term2_TermType_WITHOUT:
     case Term2_TermType_MERGE:

@@ -83,7 +83,7 @@ class RQL
 
   def opt(key, val)
     ap = Term2::AssocPair.new
-    ap.key = key
+    ap.key = key.to_s
     ap.val = r(val).to_term
     self.to_term.optargs << ap
     return self
@@ -98,12 +98,13 @@ def datum x
   when Fixnum.hash then d.type = dt::R_NUM; d.r_num = x
   when Float.hash then d.type = dt::R_NUM; d.r_num = x
   when String.hash then d.type = dt::R_STR; d.r_str = x
+  when Symbol.hash then d.type = dt::R_STR; d.r_str = x.to_s
   when TrueClass.hash then d.type = dt::R_BOOL; d.r_bool = x
   when FalseClass.hash then d.type = dt::R_BOOL; d.r_bool = x
   when NilClass.hash then d.type = dt::R_NULL
   when Array.hash then d.type = dt::R_ARRAY; d.r_array = x.map {|x| datum x}
   when Hash.hash then d.type = dt::R_OBJECT; d.r_object = x.map { |k,v|
-      ap = Datum::AssocPair.new; ap.key = k; ap.val = datum v; ap }
+      ap = Datum::AssocPair.new; ap.key = k.to_s; ap.val = datum v; ap }
   else raise RuntimeError, "Unimplemented."
   end
   return d
@@ -196,6 +197,13 @@ rae(tbl.slice(0,0), [{"id"=>0.0}])
 rae(tbl.slice(0,1), [{"id"=>0.0}, {"id"=>1.0}])
 rae(tbl.slice(0,-1), [{"id"=>0.0}, {"id"=>1.0}])
 rae(tbl.slice(10,-1), [])
+
+rae(r({'a' => 1, 'b' => 2}).getattr('a'), 1)
+rae(r({'a' => 1, 'b' => 2}).getattr('b'), 2)
+assert_raise{r({'a' => 1, 'b' => 2}).getattr('c').run}
+rae(r({:a => 1, :b => 2}).contains(:a), true)
+rae(r({:a => 1, :b => 2}).contains(:b), true)
+rae(r({:a => 1, :b => 2}).contains(:c), false)
 
 print "test.test: #{r.db('test').table('test').run.inspect}\n"
 print "Ran #{$tests} tests!\n"

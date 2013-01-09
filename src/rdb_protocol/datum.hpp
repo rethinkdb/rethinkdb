@@ -54,7 +54,8 @@ public:
     const std::string &as_str() const;
     const std::vector<const datum_t *> &as_array() const;
     size_t size() const;
-    const datum_t *el(size_t index) const;
+    const datum_t *el(size_t index, bool throw_if_missing = true) const;
+    const datum_t *el(const std::string &key, bool throw_if_missing = true) const;
     const std::map<const std::string, const datum_t *> &as_object() const;
     cJSON *as_raw_json() const;
     boost::shared_ptr<scoped_cJSON_t> as_json() const;
