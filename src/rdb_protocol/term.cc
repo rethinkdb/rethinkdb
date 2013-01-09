@@ -3,6 +3,7 @@
 #include "rdb_protocol/term.hpp"
 
 #include "rdb_protocol/terms/arith.hpp"
+#include "rdb_protocol/terms/arr.hpp"
 #include "rdb_protocol/terms/datum_terms.hpp"
 #include "rdb_protocol/terms/db_table.hpp"
 #include "rdb_protocol/terms/error.hpp"
@@ -37,7 +38,7 @@ term_t *compile_term(env_t *env, const Term2 *t) {
     case Term2_TermType_MUL: // fallthru
     case Term2_TermType_DIV: return new arith_term_t(env, t);
     case Term2_TermType_MOD: return new mod_term_t(env, t);
-    case Term2_TermType_APPEND:
+    case Term2_TermType_APPEND: return new append_term_t(env, t);
     case Term2_TermType_SLICE:
     case Term2_TermType_GETATTR:
     case Term2_TermType_CONTAINS:

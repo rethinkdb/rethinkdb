@@ -156,6 +156,9 @@ const std::vector<const datum_t *> &datum_t::as_array() const {
     check_type(R_ARRAY);
     return r_array;
 }
+size_t datum_t::size() const {
+    return as_array().size();
+}
 const datum_t *datum_t::el(size_t index) const {
     return index < as_array().size() ? as_array()[index] : 0;
 }
@@ -209,11 +212,13 @@ datum_stream_t *datum_t::as_datum_stream(env_t *env) const {
 
 void datum_t::add(const datum_t *val) {
     check_type(R_ARRAY);
+    r_sanity_check(val);
     r_array.push_back(val);
 }
 
 MUST_USE bool datum_t::add(const std::string &key, const datum_t *val, bool clobber) {
     check_type(R_OBJECT);
+    r_sanity_check(val);
     bool key_in_obj = r_object.count(key) > 0;
     if (!key_in_obj || clobber) r_object[key] = val;
     return key_in_obj;

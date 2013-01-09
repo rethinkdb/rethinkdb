@@ -179,5 +179,8 @@ rae(r(5).mod(3), 2)
 assert_raise{r(5.2).mod(3).run}
 assert_raise{r(5).mod(0).run}
 
+rae(r([1,2,3]).append(4).append(5), [1.0, 2.0, 3.0, 4.0, 5.0])
+assert_raise{r(1).append(2).run}
+
 print "test.test: #{r.db('test').table('test').run.inspect}\n"
 print "Ran #{$tests} tests!\n"
