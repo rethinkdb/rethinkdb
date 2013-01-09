@@ -237,5 +237,14 @@ rae(tbl.without(:dfjklsdf), tbl.run)
 
 rae(r({:a => 1, :b => 2}).merge({:b => 3, :c => 4}), {"c"=>4.0, "b"=>3.0, "a"=>1.0})
 
+rae(r([1,2,3,4,5]).filter(r.func([1], r.var(1).eq(2))), [2.0])
+rae(r([1,2,3,4,5]).filter(r.func([1], r.var(1).lt(4))), [1.0, 2.0, 3.0])
+
+rae(tbl.filter(r.func([1], r.var(1).getattr(:id).eq(0))), [{"id"=>0.0}])
+rae(tbl.filter(r.func([1], r.var(1).getattr(:id).eq(1))), [{"id"=>1.0}])
+rae(tbl.filter(r.func([1], r.var(1).getattr(:id).lt(2))), [{"id"=>0.0}, {"id"=>1.0}])
+
+
+
 print "test.test: #{r.db('test').table('test').run.inspect}\n"
 print "Ran #{$tests} tests!\n"

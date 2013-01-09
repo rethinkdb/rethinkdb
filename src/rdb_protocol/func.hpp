@@ -55,6 +55,15 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_2(source, scope);
 };
 
+static const int filter_bt_frame = 1;
+class filter_wire_func_t : public wire_func_t {
+public:
+    filter_wire_func_t() : wire_func_t() { }
+    filter_wire_func_t(env_t *env, func_t *func) : wire_func_t(env, func) { }
+    virtual backtrace_t::frame_t bt() { return filter_bt_frame; }
+    RDB_MAKE_ME_SERIALIZABLE_2(source, scope);
+};
+
 class func_term_t : public term_t {
 public:
     func_term_t(env_t *env, const Term2 *term);

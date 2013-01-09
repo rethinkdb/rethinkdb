@@ -200,9 +200,8 @@ public:
     env_checkpointer_t(env_t *_env, void (env_t::*_f)()) : env(_env) , f(_f) {
         env->checkpoint();
     }
-    ~env_checkpointer_t() {
-        (env->*f)();
-    }
+    ~env_checkpointer_t() { (env->*f)(); }
+    void reset(void (env_t::*_f)()) { f = _f; }
 private:
     env_t *env;
     void (env_t::*f)();

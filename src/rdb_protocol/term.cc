@@ -7,10 +7,10 @@
 #include "rdb_protocol/terms/datum_terms.hpp"
 #include "rdb_protocol/terms/db_table.hpp"
 #include "rdb_protocol/terms/error.hpp"
-#include "rdb_protocol/terms/map.hpp"
 #include "rdb_protocol/terms/obj.hpp"
 #include "rdb_protocol/terms/obj_or_seq.hpp"
 #include "rdb_protocol/terms/pred.hpp"
+#include "rdb_protocol/terms/seq.hpp"
 #include "rdb_protocol/terms/var.hpp"
 
 namespace ql {
@@ -50,9 +50,8 @@ term_t *compile_term(env_t *env, const Term2 *t) {
     case Term2_TermType_BETWEEN:
     case Term2_TermType_REDUCE:
         break;
-    case Term2_TermType_MAP:
-        return new map_term_t(env, t);
-    case Term2_TermType_FILTER:
+    case Term2_TermType_MAP:          return new map_term_t(env, t);
+    case Term2_TermType_FILTER:       return new filter_term_t(env, t);
     case Term2_TermType_CONCATMAP:
     case Term2_TermType_ORDERBY:
     case Term2_TermType_DISTINCT:
