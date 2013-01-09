@@ -129,7 +129,7 @@ def generate_async_message_template(nargs):
     print
 
 if __name__ == "__main__":
-    print "// Copyright 2010-2012 RethinkDB, all rights reserved."
+
     print "#ifndef RPC_MAILBOX_TYPED_HPP_"
     print "#define RPC_MAILBOX_TYPED_HPP_"
     print

@@ -3,10 +3,7 @@
 WEB_TEMP_DIR=$2/webtemp
 WEB_SPLIT_DIR=$WEB_TEMP_DIR/raw_split
 WEB_HANDLEBARS_DIR=$WEB_TEMP_DIR/handlebars
-if [ "$TC_HANDLEBARS_EXE" = "" ] ;
-then
-	export TC_HANDLEBARS_EXE="handlebars" ;
-fi ;
+
 
 mkdir -p $WEB_TEMP_DIR
 mkdir -p $WEB_SPLIT_DIR
@@ -40,6 +37,5 @@ for file in $WEB_HANDLEBARS_DIR/*.handlebars; do
 done
 # -m minify, -f is the output, it takes about 2 seconds
 
-"$TC_HANDLEBARS_EXE" -m $WEB_HANDLEBARS_DIR -f $3/template.js
+handlebars -m $WEB_HANDLEBARS_DIR -f $3/template.js
 rm -R $WEB_TEMP_DIR
-
