@@ -21,6 +21,15 @@ class term_t;
 
 class env_t {
 public:
+    int gensym() {
+        r_sanity_check(next_gensym_val > -100000);
+        return next_gensym_val--;
+    }
+
+private:
+    int next_gensym_val;
+
+public:
     void push_implicit(const datum_t **val) {
         implicit_var.push(val);
     }
@@ -132,7 +141,8 @@ public:
         boost::shared_ptr<js::runner_t> _js_runner,
         signal_t *_interruptor,
         uuid_t _this_machine)
-        : implicit_depth(0),
+        : next_gensym_val(-2),
+          implicit_depth(0),
           pool(_pool_group->get()),
           ns_repo(_ns_repo),
           namespaces_semilattice_metadata(_namespaces_semilattice_metadata),

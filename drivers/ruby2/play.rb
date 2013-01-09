@@ -205,5 +205,20 @@ rae(r({:a => 1, :b => 2}).contains(:a), true)
 rae(r({:a => 1, :b => 2}).contains(:b), true)
 rae(r({:a => 1, :b => 2}).contains(:c), false)
 
+rae(r({:a => 1, :b => 2, :c => 3}).pluck(:a), {'a' => 1})
+rae(r({:a => 1, :b => 2, :c => 3}).pluck(:a, :b), {'a' => 1, 'b' => 2})
+rae(r({:a => 1, :b => 2, :c => 3}).pluck(:a, :b, :d), {'a' => 1, 'b' => 2})
+rae(r([{:a => 1, :b => 2, :c => 3}]).pluck(:a), [{'a' => 1}])
+rae(r([{:a => 1, :b => 2, :c => 3}]).pluck(:a, :b), [{'a' => 1, 'b' => 2}])
+rae(r([{:a => 1, :b => 2, :c => 3}]).pluck(:a, :b, :d), [{'a' => 1, 'b' => 2}])
+rae(r([{:a => 1, :b => 2, :c => 3}, {:d => 4}]).pluck(:a),
+    [{'a' => 1}, {}])
+rae(r([{:a => 1, :b => 2, :c => 3}, {:d => 4}]).pluck(:a, :b),
+    [{'a' => 1, 'b' => 2}, {}])
+rae(r([{:a => 1, :b => 2, :c => 3}, {:d => 4}]).pluck(:a, :b, :d),
+    [{'a' => 1, 'b' => 2}, {'d' => 4}])
+rae(tbl.pluck(:id), tbl.run)
+rae(tbl.pluck(:dfjklsdf), [{}, {}])
+
 print "test.test: #{r.db('test').table('test').run.inspect}\n"
 print "Ran #{$tests} tests!\n"
