@@ -158,7 +158,7 @@ rae(r.div(0.2), 0.2)
 assert_raise{r.div(1, 0).run}
 assert_raise{r.db('test').table('test2').run}
 
-tst = r.db('test').table('test')
+tbl = tst = r.db('test').table('test')
 rae(tst.map(r.func([1], r.var(1))), tst.run)
 rae(tst.map(r.func([1], 2)), tst.run.map{|x| 2})
 rae(r([1,2,3]).map(r.func([1], r.mul(r.var(1), r.var(1), 2))), [2.0, 8.0, 18.0])
@@ -170,6 +170,13 @@ rae(r([1,2,3]).map(r.func([1], r.var(1).mul(2))).map(r.func([1], r.var(1).add(1)
 rae(r([1,2,3]).map(r.func([1], r.implicit_var.mul(r.var(1)))), [1.0, 4.0, 9.0])
 assert_raise{r([1,2,3]).map(r.func([1], r([2,4]).map(r.func([2], r.implicit_var.mul(r.var(1)))))).run}
 assert_raise{r.implicit_var.run}
+
+rae(tbl.get(0), {"id"=>0.0})
+rae(tbl.get(1), {"id"=>1.0})
+rae(tbl.get(-1), nil)
+
+rae(r(5).mod(3), 2)
+assert_raise{r(5).mod(0).run}
 
 print "test.test: #{r.db('test').table('test').run.inspect}\n"
 print "Ran #{$tests} tests!\n"

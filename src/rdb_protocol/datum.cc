@@ -13,6 +13,9 @@ datum_t::datum_t(bool _bool) : type(R_BOOL), r_bool(_bool) { }
 datum_t::datum_t(double _num) : type(R_NUM), r_num(_num) {
     rcheck(std::isfinite(r_num), strprintf("Non-finite number: %lf", r_num));
 }
+datum_t::datum_t(int _num) : type(R_NUM), r_num(_num) {
+    rcheck(std::isfinite(r_num), strprintf("Non-finite number: %lf", r_num));
+}
 datum_t::datum_t(const std::string &_str) : type(R_STR), r_str(_str) { }
 datum_t::datum_t(const std::vector<const datum_t *> &_array)
     : type(R_ARRAY), r_array(_array) { }

@@ -62,4 +62,17 @@ private:
     datum_t (*op)(const datum_t &lhs, const datum_t &rhs);
 };
 
+class mod_term_t : public op_term_t {
+public:
+    mod_term_t(env_t *env, const Term2 *term) : op_term_t(env, term, argspec_t(2)) { }
+private:
+    virtual val_t *eval_impl() {
+        int i0 = arg(0)->as_datum()->as_int();
+        int i1 = arg(1)->as_datum()->as_int();
+        rcheck(i1, "Cannot take a number modulo 0.");
+        return new_val(i0 % i1);
+    }
+    RDB_NAME("mod")
+};
+
 } //namespace ql

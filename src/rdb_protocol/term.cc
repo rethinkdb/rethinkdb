@@ -36,7 +36,7 @@ term_t *compile_term(env_t *env, const Term2 *t) {
     case Term2_TermType_SUB: // fallthru
     case Term2_TermType_MUL: // fallthru
     case Term2_TermType_DIV: return new arith_term_t(env, t);
-    case Term2_TermType_MOD:
+    case Term2_TermType_MOD: return new mod_term_t(env, t);
     case Term2_TermType_APPEND:
     case Term2_TermType_SLICE:
     case Term2_TermType_GETATTR:

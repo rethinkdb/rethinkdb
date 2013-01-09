@@ -20,6 +20,7 @@ public:
     datum_t(); // R_NULL
     explicit datum_t(bool _bool);
     explicit datum_t(double _num);
+    explicit datum_t(int _num);
     explicit datum_t(const std::string &_str);
     explicit datum_t(const std::vector<const datum_t *> &_array);
     explicit datum_t(const std::map<const std::string, const datum_t *> &_object);
