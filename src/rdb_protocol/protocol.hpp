@@ -350,8 +350,22 @@ struct rdb_protocol_t {
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 
+    //TODO we're reusing the enums from row writes and reads to avoid name
+    //shadowing. Nothing really wrong with this but maybe they could have a
+    //more generic name.
+    struct sindex_create_response_t {
+        point_write_result_t result;
+        RDB_DECLARE_ME_SERIALIZABLE;
+    };
+
+    struct sindex_delete_response_t {
+        point_delete_result_t result;
+        RDB_DECLARE_ME_SERIALIZABLE;
+    };
+
     struct write_response_t {
-        boost::variant<point_write_response_t, point_modify_response_t, point_delete_response_t> response;
+        boost::variant<point_write_response_t, point_modify_response_t, point_delete_response_t,
+                       sindex_create_response_t, sindex_delete_response_t> response;
 
         write_response_t() { }
         write_response_t(const write_response_t& w) : response(w.response) { }
@@ -403,8 +417,34 @@ struct rdb_protocol_t {
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 
+    class sindex_create_t {
+    public:
+        sindex_create_t() { }
+        sindex_create_t(uuid_u _id, const Mapping &_mapping)
+            : id(_id), mapping(_mapping), 
+              region_to_index(region_t::universe()) { }
+
+        uuid_u id;
+        Mapping mapping;
+        region_t region_to_index;
+
+        RDB_DECLARE_ME_SERIALIZABLE;
+    };
+
+    class sindex_delete_t {
+    public:
+        sindex_delete_t() { }
+        explicit sindex_delete_t(uuid_u _id)
+            : id(_id), region_to_unindex(region_t::universe()) { }
+
+        uuid_u id;
+        region_t region_to_unindex;
+
+        RDB_DECLARE_ME_SERIALIZABLE;
+    };
+
     struct write_t {
-        boost::variant<point_write_t, point_delete_t, point_modify_t> write;
+        boost::variant<point_write_t, point_delete_t, point_modify_t, sindex_create_t, sindex_delete_t> write;
 
         region_t get_region() const THROWS_NOTHING;
         write_t shard(const region_t &region) const THROWS_NOTHING;
@@ -415,6 +455,8 @@ struct rdb_protocol_t {
         explicit write_t(const point_write_t &w) : write(w) { }
         explicit write_t(const point_delete_t &d) : write(d) { }
         explicit write_t(const point_modify_t &m) : write(m) { }
+        explicit write_t(const sindex_create_t &c) : write(c) { }
+        explicit write_t(const sindex_delete_t &c) : write(c) { }
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };
@@ -489,6 +531,7 @@ struct rdb_protocol_t {
                            btree_slice_t *btree,
                            transaction_t *txn,
                            superblock_t *superblock,
+                           read_token_pair_t *token_pair,
                            signal_t *interruptor);
 
         void protocol_write(const write_t &write,
@@ -497,6 +540,7 @@ struct rdb_protocol_t {
                             btree_slice_t *btree,
                             transaction_t *txn,
                             superblock_t *superblock,
+                            write_token_pair_t *token_pair,
                             signal_t *interruptor);
 
         void protocol_send_backfill(const region_map_t<rdb_protocol_t, state_timestamp_t> &start_point,

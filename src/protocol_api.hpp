@@ -304,6 +304,15 @@ private:
     DISABLE_COPYING(send_backfill_callback_t);
 };
 
+struct read_token_pair_t {
+    object_buffer_t<fifo_enforcer_sink_t::exit_read_t> main_read_token, sindex_read_token;
+};
+
+struct write_token_pair_t {
+    object_buffer_t<fifo_enforcer_sink_t::exit_write_t> main_write_token, sindex_write_token;
+};
+
+
 template <class protocol_t>
 class store_view_t : public home_thread_mixin_t {
 public:
@@ -319,6 +328,9 @@ public:
 
     virtual void new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out) = 0;
     virtual void new_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token_out) = 0;
+
+    virtual void new_read_token_pair(read_token_pair_t *token_pair_out) = 0;
+    virtual void new_write_token_pair(write_token_pair_t *token_pair_out) = 0;
 
     /* Gets the metainfo.
     [Postcondition] return_value.get_domain() == view->get_region()
@@ -346,9 +358,10 @@ public:
             const typename protocol_t::read_t &read,
             typename protocol_t::read_response_t *response,
             order_token_t order_token,
-            object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
+            read_token_pair_t *token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
+
 
     /* Performs a write.
     [Precondition] region_is_superset(view->get_region(), expected_metainfo.get_domain())
@@ -362,7 +375,7 @@ public:
             typename protocol_t::write_response_t *response,
             transition_timestamp_t timestamp,
             order_token_t order_token,
-            object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
+            write_token_pair_t *token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
 
@@ -472,6 +485,16 @@ public:
         store_view->new_write_token(token_out);
     }
 
+    void new_read_token_pair(read_token_pair_t *token_pair_out) {
+        home_thread_mixin_t::assert_thread();
+        store_view->new_read_token_pair(token_pair_out);
+    }
+
+    void new_write_token_pair(write_token_pair_t *token_pair_out) {
+        home_thread_mixin_t::assert_thread();
+        store_view->new_write_token_pair(token_pair_out);
+    }
+
     void do_get_metainfo(order_token_t order_token,
                          object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
                          signal_t *interruptor,
@@ -496,13 +519,13 @@ public:
             const typename protocol_t::read_t &read,
             typename protocol_t::read_response_t *response,
             order_token_t order_token,
-            object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
+            read_token_pair_t *token_pair,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
         rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
 
-        store_view->read(DEBUG_ONLY(metainfo_checker, ) read, response, order_token, token, interruptor);
+        store_view->read(DEBUG_ONLY(metainfo_checker, ) read, response, order_token, token_pair, interruptor);
     }
 
     void write(
@@ -512,14 +535,14 @@ public:
             typename protocol_t::write_response_t *response,
             transition_timestamp_t timestamp,
             order_token_t order_token,
-            object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
+            write_token_pair_t *token_pair,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
         rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
         rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
 
-        store_view->write(DEBUG_ONLY(metainfo_checker, ) new_metainfo, write, response, timestamp, order_token, token, interruptor);
+        store_view->write(DEBUG_ONLY(metainfo_checker, ) new_metainfo, write, response, timestamp, order_token, token_pair, interruptor);
     }
 
     // TODO: Make this take protocol_t::progress_t again (or maybe a

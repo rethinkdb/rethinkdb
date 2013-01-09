@@ -173,6 +173,7 @@ public:
                            btree_slice_t *btree,
                            transaction_t *txn,
                            superblock_t *superblock,
+                           read_token_pair_t *token,
                            signal_t *interruptor);
 
         void protocol_write(const write_t &write,
@@ -181,6 +182,7 @@ public:
                             btree_slice_t *btree,
                             transaction_t *txn,
                             superblock_t *superblock,
+                            write_token_pair_t *token,
                             signal_t *interruptor);
 
         void protocol_send_backfill(const region_map_t<memcached_protocol_t, state_timestamp_t> &start_point,

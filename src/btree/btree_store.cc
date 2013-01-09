@@ -68,14 +68,14 @@ void btree_store_t<protocol_t>::read(
         const typename protocol_t::read_t &read,
         typename protocol_t::read_response_t *response,
         UNUSED order_token_t order_token,  // TODO
-        object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
+        read_token_pair_t *token_pair,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
     scoped_ptr_t<transaction_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
 
-    acquire_superblock_for_read(rwi_read, token, &txn, &superblock, interruptor,
+    acquire_superblock_for_read(rwi_read, &token_pair->main_read_token, &txn, &superblock, interruptor,
                                 read.use_snapshot());
 
     check_metainfo(DEBUG_ONLY(metainfo_checker, ) txn.get(), superblock.get());
@@ -84,7 +84,7 @@ void btree_store_t<protocol_t>::read(
     scoped_ptr_t<superblock_t> superblock2;
     superblock2.init(superblock.release());
 
-    protocol_read(read, response, btree.get(), txn.get(), superblock2.get(), interruptor);
+    protocol_read(read, response, btree.get(), txn.get(), superblock2.get(), token_pair, interruptor);
 }
 
 template <class protocol_t>
@@ -95,7 +95,7 @@ void btree_store_t<protocol_t>::write(
         typename protocol_t::write_response_t *response,
         transition_timestamp_t timestamp,
         UNUSED order_token_t order_token,  // TODO
-        object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
+        write_token_pair_t *token_pair,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
@@ -103,10 +103,10 @@ void btree_store_t<protocol_t>::write(
     scoped_ptr_t<transaction_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
     const int expected_change_count = 2; // FIXME: this is incorrect, but will do for now
-    acquire_superblock_for_write(rwi_write, timestamp.to_repli_timestamp(), expected_change_count, token, &txn, &superblock, interruptor);
+    acquire_superblock_for_write(rwi_write, timestamp.to_repli_timestamp(), expected_change_count, &token_pair->main_write_token, &txn, &superblock, interruptor);
 
     check_and_update_metainfo(DEBUG_ONLY(metainfo_checker, ) new_metainfo, txn.get(), superblock.get());
-    protocol_write(write, response, timestamp, btree.get(), txn.get(), superblock.get(), interruptor);
+    protocol_write(write, response, timestamp, btree.get(), txn.get(), superblock.get(), token_pair, interruptor);
 }
 
 // TODO: Figure out wtf does the backfill filtering, figure out wtf constricts delete range operations to hit only a certain hash-interval, figure out what filters keys.

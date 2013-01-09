@@ -54,6 +54,12 @@ typedef rdb_protocol_t::point_modify_response_t point_modify_response_t;
 typedef rdb_protocol_t::point_delete_t point_delete_t;
 typedef rdb_protocol_t::point_delete_response_t point_delete_response_t;
 
+typedef rdb_protocol_t::sindex_create_t sindex_create_t;
+typedef rdb_protocol_t::sindex_create_response_t sindex_create_response_t;
+
+typedef rdb_protocol_t::sindex_delete_t sindex_delete_t;
+typedef rdb_protocol_t::sindex_delete_response_t sindex_delete_response_t;
+
 typedef rdb_protocol_t::backfill_chunk_t backfill_chunk_t;
 
 typedef rdb_protocol_t::backfill_progress_t backfill_progress_t;
@@ -468,6 +474,14 @@ struct w_get_region_visitor : public boost::static_visitor<region_t> {
     region_t operator()(const point_delete_t &pd) const {
         return rdb_protocol_t::monokey_region(pd.key);
     }
+
+    region_t operator()(const sindex_create_t &c) const {
+        return c.region_to_index;
+    }
+
+    region_t operator()(const sindex_delete_t &d) const {
+        return d.region_to_unindex;
+    }
 };
 
 }   /* anonymous namespace */
@@ -496,6 +510,18 @@ struct w_shard_visitor : public boost::static_visitor<write_t> {
     write_t operator()(const point_delete_t &pd) const {
         rassert(rdb_protocol_t::monokey_region(pd.key) == region);
         return write_t(pd);
+    }
+
+    write_t operator()(const sindex_create_t &c) const {
+        sindex_create_t cpy(c);
+        cpy.region_to_index = region;
+        return write_t(cpy);
+    }
+
+    write_t operator()(const sindex_delete_t &d) const {
+        sindex_delete_t cpy(d);
+        cpy.region_to_unindex = region;
+        return write_t(cpy);
     }
     const region_t &region;
 };
@@ -600,6 +626,7 @@ void store_t::protocol_read(const read_t &read,
                             btree_slice_t *btree,
                             transaction_t *txn,
                             superblock_t *superblock,
+                            UNUSED read_token_pair_t *token_pair,
                             signal_t *interruptor) {
     read_visitor_t v(btree, txn, superblock, ctx, response, interruptor);
     boost::apply_visitor(v, read.read);
@@ -625,6 +652,12 @@ struct write_visitor_t : public boost::static_visitor<void> {
         response->response = point_delete_response_t();
         point_delete_response_t &res = boost::get<point_delete_response_t>(response->response);
         rdb_delete(d.key, btree, timestamp, txn, superblock, &res);
+    }
+
+    void operator()(UNUSED const sindex_create_t &c) {
+    }
+
+    void operator()(UNUSED const sindex_delete_t &d) {
     }
 
     write_visitor_t(btree_slice_t *_btree,
@@ -668,6 +701,7 @@ void store_t::protocol_write(const write_t &write,
                              btree_slice_t *btree,
                              transaction_t *txn,
                              superblock_t *superblock,
+                             write_token_pair_t *,
                              signal_t *interruptor) {
     write_visitor_t v(btree, txn, superblock, timestamp.to_repli_timestamp(), ctx, response, interruptor);
     boost::apply_visitor(v, write.write);
@@ -916,6 +950,8 @@ RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_write_response_t, result);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_delete_response_t, result);
 RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::point_modify_response_t, result, exc);
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sindex_create_response_t, result);
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sindex_delete_response_t, result);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::write_response_t, response);
 
@@ -924,6 +960,9 @@ RDB_IMPL_ME_SERIALIZABLE_6(rdb_protocol_t::point_modify_t, primary_key, key, op,
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::point_write_t, key, data, overwrite);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_delete_t, key);
+
+RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::sindex_create_t, id, mapping);
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sindex_delete_t, id);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::write_t, write);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::delete_key_t, key);

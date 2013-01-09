@@ -505,7 +505,11 @@ void store_t::protocol_read(const read_t &read,
                             btree_slice_t *btree,
                             transaction_t *txn,
                             superblock_t *superblock,
+                            read_token_pair_t *token_pair,
                             UNUSED signal_t *interruptor) {
+    /* Memcached doesn't have any secondary structures so right now we just
+     * immediately destroy the token so that no one has to wait. */
+    token_pair->sindex_read_token.reset();
     read_visitor_t v(btree, txn, superblock, read.effective_time);
     *response = boost::apply_visitor(v, read.query);
 }
@@ -566,7 +570,12 @@ void store_t::protocol_write(const write_t &write,
                              btree_slice_t *btree,
                              transaction_t *txn,
                              superblock_t *superblock,
+                             write_token_pair_t *token_pair,
                              UNUSED signal_t *interruptor) {
+    /* Memcached doesn't have any secondary structures so right now we just
+     * immediately destroy the token so that no one has to wait. */
+    token_pair->sindex_write_token.reset();
+
     // TODO: should this be calling to_repli_timestamp on a transition_timestamp_t?  Does this not use the timestamp-before, when we'd want the timestamp-after?
     write_visitor_t v(btree, txn, superblock, write.proposed_cas, write.effective_time, timestamp.to_repli_timestamp());
     *response = boost::apply_visitor(v, write.mutation);

@@ -2,8 +2,9 @@
 #include "mock/dummy_protocol.hpp"
 
 // TODO: Move version_range_t out of clustering/immediate_consistency/branch/metadata.hpp.
-#include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "arch/timing.hpp"
+#include "btree/btree_store.hpp"
+#include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "concurrency/rwi_lock.hpp"
 #include "concurrency/signal.hpp"
 #include "concurrency/wait_any.hpp"
@@ -242,13 +243,31 @@ dummy_protocol_t::store_t::~store_t() {
 }
 
 void dummy_protocol_t::store_t::new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out) THROWS_NOTHING {
-    fifo_enforcer_read_token_t token = token_source.enter_read();
-    token_out->create(&token_sink, token);
+    assert_thread();
+    fifo_enforcer_read_token_t token = main_token_source.enter_read();
+    token_out->create(&main_token_sink, token);
 }
 
 void dummy_protocol_t::store_t::new_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token_out) THROWS_NOTHING {
-    fifo_enforcer_write_token_t token = token_source.enter_write();
-    token_out->create(&token_sink, token);
+    assert_thread();
+    fifo_enforcer_write_token_t token = main_token_source.enter_write();
+    token_out->create(&main_token_sink, token);
+}
+
+void dummy_protocol_t::store_t::new_read_token_pair(read_token_pair_t *token_pair_out) THROWS_NOTHING {
+    assert_thread();
+    fifo_enforcer_read_token_t main_token = main_token_source.enter_read(),
+                                secondary_token = secondary_token_source.enter_read();
+    token_pair_out->main_read_token.create(&main_token_sink, main_token);
+    token_pair_out->sindex_read_token.create(&secondary_token_sink, secondary_token);
+}
+
+void dummy_protocol_t::store_t::new_write_token_pair(write_token_pair_t *token_pair_out) THROWS_NOTHING {
+    assert_thread();
+    fifo_enforcer_write_token_t main_token = main_token_source.enter_write(),
+                                secondary_token = secondary_token_source.enter_write();
+    token_pair_out->main_write_token.create(&main_token_sink, main_token);
+    token_pair_out->sindex_write_token.create(&secondary_token_sink, secondary_token);
 }
 
 void dummy_protocol_t::store_t::do_get_metainfo(order_token_t order_token,
@@ -291,15 +310,16 @@ void dummy_protocol_t::store_t::read(DEBUG_ONLY(const metainfo_checker_t<dummy_p
                                      const dummy_protocol_t::read_t &read,
                                      dummy_protocol_t::read_response_t *response,
                                      order_token_t order_token,
-                                     object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
+                                     read_token_pair_t *token_pair,
                                      signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
     rassert(region_is_superset(get_region(), read.get_region()));
 
     {
-        object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer(token);
+        object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer(&token_pair->main_read_token);
+        object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer2(&token_pair->sindex_read_token);
 
-        wait_interruptible(token->get(), interruptor);
+        wait_interruptible(token_pair->main_read_token.get(), interruptor);
         order_sink.check_out(order_token);
 
         // We allow upper_metainfo domain to be smaller than the metainfo domain
@@ -360,7 +380,7 @@ void dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_checker_t<dummy_
                                       dummy_protocol_t::write_response_t *response,
                                       transition_timestamp_t timestamp,
                                       order_token_t order_token,
-                                      object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
+                                      write_token_pair_t *token_pair,
                                       signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
 
     rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
@@ -368,9 +388,10 @@ void dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_checker_t<dummy_
     rassert(region_is_superset(get_region(), write.get_region()));
 
     {
-        object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(token);
+        object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(&token_pair->main_write_token);
+        object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer2(&token_pair->sindex_write_token);
 
-        wait_interruptible(token->get(), interruptor);
+        wait_interruptible(token_pair->main_write_token.get(), interruptor);
 
         order_sink.check_out(order_token);
 

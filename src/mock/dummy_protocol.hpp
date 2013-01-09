@@ -115,6 +115,9 @@ public:
         void new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out) THROWS_NOTHING;
         void new_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token_out) THROWS_NOTHING;
 
+        void new_read_token_pair(read_token_pair_t *token_pair_out) THROWS_NOTHING;
+        void new_write_token_pair(write_token_pair_t *token_pair_out) THROWS_NOTHING;
+
         void do_get_metainfo(order_token_t order_token,
                              object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
                              signal_t *interruptor,
@@ -129,7 +132,7 @@ public:
                   const dummy_protocol_t::read_t &read,
                   dummy_protocol_t::read_response_t *response,
                   order_token_t order_token,
-                  object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
+                  read_token_pair_t *token_pair,
                   signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
         void write(DEBUG_ONLY(const metainfo_checker_t<dummy_protocol_t>& metainfo_checker, )
@@ -138,7 +141,7 @@ public:
                    dummy_protocol_t::write_response_t *response,
                    transition_timestamp_t timestamp,
                    order_token_t order_token,
-                   object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
+                   write_token_pair_t *token_pair,
                    signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
         bool send_backfill(const region_map_t<dummy_protocol_t, state_timestamp_t> &start_point,
@@ -166,8 +169,8 @@ public:
 
         serializer_t *serializer;
 
-        fifo_enforcer_source_t token_source;
-        fifo_enforcer_sink_t token_sink;
+        fifo_enforcer_source_t main_token_source, secondary_token_source;
+        fifo_enforcer_sink_t main_token_sink, secondary_token_sink;
         order_sink_t order_sink;
 
         rng_t rng;

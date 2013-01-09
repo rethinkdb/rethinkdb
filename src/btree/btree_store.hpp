@@ -19,14 +19,6 @@ namespace unittest {
 void run_sindex_btree_store_api_test();
 } //namespace unittest
 
-struct read_token_pair_t {
-    object_buffer_t<fifo_enforcer_sink_t::exit_read_t> main_read_token, sindex_read_token;
-};
-
-struct write_token_pair_t {
-    object_buffer_t<fifo_enforcer_sink_t::exit_write_t> main_write_token, sindex_write_token;
-};
-
 class btree_slice_t;
 class io_backender_t;
 class superblock_t;
@@ -75,7 +67,7 @@ public:
             const typename protocol_t::read_t &read,
             typename protocol_t::read_response_t *response,
             order_token_t order_token,
-            object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
+            read_token_pair_t *token_pair,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -86,7 +78,7 @@ public:
             typename protocol_t::write_response_t *response,
             transition_timestamp_t timestamp,
             order_token_t order_token,
-            object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
+            write_token_pair_t *token_pair,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -200,6 +192,7 @@ protected:
                                btree_slice_t *btree,
                                transaction_t *txn,
                                superblock_t *superblock,
+                               read_token_pair_t *token_pair,
                                signal_t *interruptor) = 0;
 
     virtual void protocol_write(const typename protocol_t::write_t &write,
@@ -208,6 +201,7 @@ protected:
                                 btree_slice_t *btree,
                                 transaction_t *txn,
                                 superblock_t *superblock,
+                                write_token_pair_t *token_pair,
                                 signal_t *interruptor) = 0;
 
     virtual void protocol_send_backfill(const region_map_t<protocol_t, state_timestamp_t> &start_point,
