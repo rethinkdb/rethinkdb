@@ -4,6 +4,7 @@
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/err.hpp"
 #include "rdb_protocol/datum.hpp"
+#include "rdb_protocol/proto_utils.hpp"
 
 namespace ql {
 
@@ -78,11 +79,51 @@ const char *datum_type_name(datum_t::type_t type) {
 const char *datum_t::get_type_name() const {
     return datum_type_name(get_type());
 }
+
 std::string datum_t::print() const {
     //TODO: Fix
     return "UNIMPLEMENTED";
 }
-
+std::string datum_t::print_primary() const {
+    std::string s;
+    if (type == R_NUM) {
+        s += "N";
+        union {
+            double d;
+            int64_t u;
+        } packed;
+        guarantee(sizeof(packed.d) == sizeof(packed.u));
+        packed.d = as_num();
+        // Mangle the value so that lexicographic ordering matches double ordering
+        if (packed.u & (1ULL << 63)) {
+            // If we have a negative double, flip all the bits.  Flipping the
+            // highest bit causes the negative doubles to sort below the
+            // positive doubles (which will also have their highest bit
+            // flipped), and flipping all the other bits causes more negative
+            // doubles to sort below less negative doubles.
+            packed.u = ~packed.u;
+        } else {
+            // If we have a non-negative double, flip the highest bit so that it
+            // sorts higher than all the negative doubles (which had their
+            // highest bit flipped as well).
+            packed.u ^= (1ULL << 63);
+        }
+        // The formatting here is sensitive.  Talk to mlucy before changing it.
+        s += strprintf("%.*" PRIx64 "", static_cast<int>(sizeof(double)*2), packed.u);
+        s += strprintf("#%.20g", as_num());
+    } else if (type == R_STR) {
+        s += "S";
+        s += as_str();
+    } else {
+        rfail("Primary keys must be either a number or a string (got %s of type %s).",
+              print().c_str(), datum_type_name(type));
+    }
+    if (s.size() > MAX_KEY_SIZE) {
+        rfail("Primary key too long (max %d characters): %s",
+              MAX_KEY_SIZE-1, print().c_str());
+    }
+    return s;
+}
 
 void datum_t::check_type(type_t desired) const {
     rcheck(get_type() == desired,

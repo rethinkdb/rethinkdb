@@ -1,4 +1,5 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
+#include "rdb_protocol/env.hpp"
 #include "rdb_protocol/term.hpp"
 
 #include "rdb_protocol/terms/arith.hpp"
@@ -18,13 +19,12 @@ term_t *compile_term(env_t *env, const Term2 *t) {
     case Term2_TermType_MAKE_OBJ: return new make_obj_term_t(env, t);
     case Term2_TermType_VAR: return new var_term_t(env, t);
     case Term2_TermType_JAVASCRIPT:
-        throw ql::exc_t("JAVASCRIPT UNIMPLEMENTED (Bill's job.)");
+        throw exc_t("JAVASCRIPT UNIMPLEMENTED (Bill's job.)");
     case Term2_TermType_ERROR: return new error_term_t(env, t);
     case Term2_TermType_IMPLICIT_VAR: return new implicit_var_term_t(env, t);
     case Term2_TermType_DB: return new db_term_t(env, t);
     case Term2_TermType_TABLE: return new table_term_t(env, t);
-    case Term2_TermType_GET:
-        break;
+    case Term2_TermType_GET: return new get_term_t(env, t);
     case Term2_TermType_EQ: // fallthru
     case Term2_TermType_NE: // fallthru
     case Term2_TermType_LT: // fallthru
@@ -108,7 +108,7 @@ void run(Query2 *q, env_t *env, Response2 *res, stream_cache_t *stream_cache) {
                 res->set_type(Response2_ResponseType_SUCCESS_SEQUENCE);
                 datum_stream_t *ds = val->as_seq();
                 for (;;) {
-                    ql::env_checkpointer_t(env, &ql::env_t::discard_checkpoint);
+                    env_checkpointer_t(env, &env_t::discard_checkpoint);
                     const datum_t *d = ds->next();
                     if (!d) break;
                     d->write_to_protobuf(res->add_response());
@@ -154,8 +154,19 @@ val_t *term_t::eval(bool _use_cached_val) {
     return cached_val;
 }
 
-val_t *term_t::new_val(datum_t *d) { return env->new_val(d, this); }
-val_t *term_t::new_val(const datum_t *d) { return env->new_val(d, this); }
+val_t *term_t::new_val(datum_t *d) {
+    return new_val(const_cast<const datum_t *>(d));
+}
+val_t *term_t::new_val(const datum_t *d) {
+    return env->new_val(d, this);
+}
+val_t *term_t::new_val(datum_t *d, table_t *t) {
+    return new_val(const_cast<const datum_t *>(d), t);
+}
+val_t *term_t::new_val(const datum_t *d, table_t *t) {
+    return env->new_val(d, t, this);
+}
+
 val_t *term_t::new_val(datum_stream_t *s) { return env->new_val(s, this); }
 val_t *term_t::new_val(uuid_t db) { return env->new_val(db, this); }
 val_t *term_t::new_val(table_t *t) { return env->new_val(t, this); }

@@ -55,6 +55,10 @@ public:
     val_t *new_val(T *ptr, term_t *parent) {
         return add_ptr(new val_t(add_ptr(ptr), parent, this));
     }
+    template<class T, class U>
+    val_t *new_val(T *ptr, U *ptr2, term_t *parent) {
+        return add_ptr(new val_t(add_ptr(ptr), add_ptr(ptr2), parent, this));
+    }
     val_t *new_val(uuid_t db, term_t *parent) {
         return add_ptr(new val_t(db, parent, this));
     }
@@ -194,6 +198,6 @@ private:
     void (env_t::*f)();
 };
 
-} //namespace query_language
+} // ql
 
 #endif // RDB_PROTOCOL_ENV_HPP_

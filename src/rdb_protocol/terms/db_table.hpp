@@ -11,7 +11,6 @@ private:
     RDB_NAME("DB")
 };
 
-
 static const char *const table_optargs[] = {"use_outdated"};
 class table_term_t : public op_term_t {
 public:
@@ -28,4 +27,16 @@ private:
     RDB_NAME("table")
 };
 
-}
+class get_term_t : public op_term_t {
+public:
+    get_term_t(env_t *env, const Term2 *term) : op_term_t(env, term, argspec_t(2)) { }
+private:
+    virtual val_t *eval_impl() {
+        table_t *table = arg(0)->as_table();
+        const datum_t *pkey = arg(1)->as_datum();
+        const datum_t *row = table->get_row(pkey);
+        return new_val(row, table);
+    }
+    RDB_NAME("get")
+};
+} // ql

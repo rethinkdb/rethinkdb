@@ -59,10 +59,12 @@ class table_t : public ptr_baggable_t {
 public:
     table_t(env_t *_env, uuid_t db_id, const std::string &name, bool use_outdated);
     datum_stream_t *as_datum_stream();
+    const std::string &get_pkey();
+    const datum_t *get_row(const datum_t *pval);
 private:
     env_t *env;
     bool use_outdated;
-    std::string pk;
+    std::string pkey;
     scoped_ptr_t<namespace_repo_t<rdb_protocol_t>::access_t> access;
 };
 
@@ -89,18 +91,19 @@ public:
     type_t get_type() const;
 
     val_t(const datum_t *_datum, const term_t *_parent, env_t *_env);
+    val_t(const datum_t *_datum, table_t *_table, const term_t *_parent, env_t *_env);
     val_t(datum_stream_t *_sequence, const term_t *_parent, env_t *_env);
     val_t(table_t *_table, const term_t *_parent, env_t *_env);
     val_t(uuid_t _db, const term_t *_parent, env_t *_env);
     val_t(func_t *_func, const term_t *_parent, env_t *_env);
 
-    uuid_t as_db();
-    table_t *as_table();
+    uuid_t as_db(); // X
+    table_t *as_table(); // X
     std::pair<table_t *, datum_stream_t *> as_selection();
-    datum_stream_t *as_seq();
-    std::pair<table_t *, const datum_t *> as_single_selection();
-    const datum_t *as_datum();
-    func_t *as_func();
+    datum_stream_t *as_seq(); // X
+    std::pair<table_t *, const datum_t *> as_single_selection(); // X
+    const datum_t *as_datum(); // X
+    func_t *as_func(); // X
 private:
     const term_t *parent;
     env_t *env;

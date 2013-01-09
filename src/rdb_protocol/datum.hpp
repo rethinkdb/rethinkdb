@@ -43,7 +43,8 @@ public:
     explicit datum_t(type_t _type);
     type_t get_type() const;
     const char *get_type_name() const;
-    std::string print() const ;
+    std::string print() const;
+    std::string print_primary() const;
     void check_type(type_t desired) const;
 
     bool as_bool() const;
@@ -81,5 +82,5 @@ private:
     std::vector<const datum_t *> r_array;
     std::map<const std::string, const datum_t *> r_object;
 };
-} //namespace ql
+} // namespace ql
 #endif // RDB_PROTOCOL_DATUM_HPP_
