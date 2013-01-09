@@ -235,5 +235,7 @@ rae(r([{:a => 1, :b => 2, :c => 3}, {:d => 4}]).without(:a, :b, :d),
 rae(tbl.without(:id), [{}, {}])
 rae(tbl.without(:dfjklsdf), tbl.run)
 
+rae(r({:a => 1, :b => 2}).merge({:b => 3, :c => 4}), {"c"=>4.0, "b"=>3.0, "a"=>1.0})
+
 print "test.test: #{r.db('test').table('test').run.inspect}\n"
 print "Ran #{$tests} tests!\n"

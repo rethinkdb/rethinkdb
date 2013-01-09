@@ -239,6 +239,16 @@ MUST_USE bool datum_t::del(const std::string &key) {
     return r_object.erase(key);
 }
 
+const datum_t *datum_t::merge(const datum_t *rhs) const {
+    scoped_ptr_t<datum_t> d(new datum_t(as_object()));
+    const std::map<const std::string, const datum_t *> &rhs_obj = rhs->as_object();
+    for (std::map<const std::string, const datum_t *>::const_iterator
+             it = rhs_obj.begin(); it != rhs_obj.end(); ++it) {
+        UNUSED bool b = d->add(it->first, it->second, true/*clobber*/);
+    }
+    return d.release();
+}
+
 template<class T>
 int derived_cmp(T a, T b) {
     if (a == b) return 0;

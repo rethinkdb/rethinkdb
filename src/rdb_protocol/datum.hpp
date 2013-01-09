@@ -52,11 +52,20 @@ public:
     double as_num() const;
     int as_int() const;
     const std::string &as_str() const;
+
     const std::vector<const datum_t *> &as_array() const;
+    void add(const datum_t *val);
     size_t size() const;
     const datum_t *el(size_t index, bool throw_if_missing = true) const;
-    const datum_t *el(const std::string &key, bool throw_if_missing = true) const;
+
     const std::map<const std::string, const datum_t *> &as_object() const;
+    // Returns true if `key` was already in object.
+    MUST_USE bool add(const std::string &key, const datum_t *val, bool clobber = false);
+    // Returns true if key was in object.
+    MUST_USE bool del(const std::string &key);
+    const datum_t *el(const std::string &key, bool throw_if_missing = true) const;
+    const datum_t *merge(const datum_t *rhs) const;
+
     cJSON *as_raw_json() const;
     boost::shared_ptr<scoped_cJSON_t> as_json() const;
     datum_stream_t *as_datum_stream(env_t *env) const;
@@ -69,11 +78,6 @@ public:
     bool operator>(const datum_t &rhs) const;
     bool operator>=(const datum_t &rhs) const;
 
-    void add(const datum_t *val);
-    // Returns true if `key` was already in object.
-    MUST_USE bool add(const std::string &key, const datum_t *val, bool clobber = false);
-    // Returns true if key was in object.
-    MUST_USE bool del(const std::string &key);
 private:
     void init_json(cJSON *json, env_t *env);
 
