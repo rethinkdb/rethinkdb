@@ -235,6 +235,10 @@ MUST_USE bool datum_t::add(const std::string &key, const datum_t *val, bool clob
     return key_in_obj;
 }
 
+MUST_USE bool datum_t::del(const std::string &key) {
+    return r_object.erase(key);
+}
+
 template<class T>
 int derived_cmp(T a, T b) {
     if (a == b) return 0;

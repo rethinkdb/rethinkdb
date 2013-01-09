@@ -45,7 +45,7 @@ term_t *compile_term(env_t *env, const Term2 *t) {
     case Term2_TermType_GETATTR:      return new getattr_term_t(env, t);
     case Term2_TermType_CONTAINS:     return new contains_term_t(env, t);
     case Term2_TermType_PLUCK:        return new pluck_term_t(env, t);
-    case Term2_TermType_WITHOUT:
+    case Term2_TermType_WITHOUT:      return new without_term_t(env, t);
     case Term2_TermType_MERGE:
     case Term2_TermType_BETWEEN:
     case Term2_TermType_REDUCE:

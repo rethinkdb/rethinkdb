@@ -220,5 +220,20 @@ rae(r([{:a => 1, :b => 2, :c => 3}, {:d => 4}]).pluck(:a, :b, :d),
 rae(tbl.pluck(:id), tbl.run)
 rae(tbl.pluck(:dfjklsdf), [{}, {}])
 
+rae(r({:a => 1, :b => 2, :c => 3}).without(:a), {"c"=>3.0, "b"=>2.0})
+rae(r({:a => 1, :b => 2, :c => 3}).without(:a, :b), {"c"=>3.0})
+rae(r({:a => 1, :b => 2, :c => 3}).without(:a, :b, :d), {"c"=>3.0})
+rae(r([{:a => 1, :b => 2, :c => 3}]).without(:a), [{"c"=>3.0, "b"=>2.0}])
+rae(r([{:a => 1, :b => 2, :c => 3}]).without(:a, :b), [{"c"=>3.0}])
+rae(r([{:a => 1, :b => 2, :c => 3}]).without(:a, :b, :d), [{"c"=>3.0}])
+rae(r([{:a => 1, :b => 2, :c => 3}, {:d => 4}]).without(:a),
+    [{"c"=>3.0, "b"=>2.0}, {"d"=>4.0}])
+rae(r([{:a => 1, :b => 2, :c => 3}, {:d => 4}]).without(:a, :b),
+    [{"c"=>3.0}, {"d"=>4.0}])
+rae(r([{:a => 1, :b => 2, :c => 3}, {:d => 4}]).without(:a, :b, :d),
+    [{"c"=>3.0}, {}])
+rae(tbl.without(:id), [{}, {}])
+rae(tbl.without(:dfjklsdf), tbl.run)
+
 print "test.test: #{r.db('test').table('test').run.inspect}\n"
 print "Ran #{$tests} tests!\n"

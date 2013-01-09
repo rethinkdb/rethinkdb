@@ -70,8 +70,10 @@ public:
     bool operator>=(const datum_t &rhs) const;
 
     void add(const datum_t *val);
-    // Returns whether or not `key` was already present in object.
+    // Returns true if `key` was already in object.
     MUST_USE bool add(const std::string &key, const datum_t *val, bool clobber = false);
+    // Returns true if key was in object.
+    MUST_USE bool del(const std::string &key);
 private:
     void init_json(cJSON *json, env_t *env);
 
