@@ -48,7 +48,7 @@ private:
             datum_stream_t *seq = v->as_seq();
             rcheck(fake_l >= 0, "Cannot use a negative left index on a stream.");
             rcheck(fake_r >= -1, "Cannot use a right index < -1 on a stream");
-            return new_val(new slice_datum_stream_t(env, fake_l, fake_r, seq));
+            return new_val(seq->slice(fake_l, fake_r));
         }
         rfail("Cannot slice non-sequences.");
         unreachable();

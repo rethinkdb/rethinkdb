@@ -18,6 +18,7 @@ public:
     virtual ~datum_stream_t() { }
     virtual const datum_t *next() = 0;
     virtual datum_stream_t *map(func_t *f);
+    virtual datum_stream_t *slice(size_t l, size_t r);
 protected:
     env_t *env;
 };

@@ -192,5 +192,10 @@ rae(r([1,2,3]).slice(0,-2), [1.0, 2.0])
 rae(r([1,2,3]).slice(0,-3), [1.0])
 assert_raise{r([1,2,3]).slice(0,-4).run}
 
+rae(tbl.slice(0,0), [{"id"=>0.0}])
+rae(tbl.slice(0,1), [{"id"=>0.0}, {"id"=>1.0}])
+rae(tbl.slice(0,-1), [{"id"=>0.0}, {"id"=>1.0}])
+rae(tbl.slice(10,-1), [])
+
 print "test.test: #{r.db('test').table('test').run.inspect}\n"
 print "Ran #{$tests} tests!\n"

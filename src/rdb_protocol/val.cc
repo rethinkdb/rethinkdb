@@ -12,6 +12,10 @@ datum_stream_t *datum_stream_t::map(func_t *f) {
     return env->add_ptr(new map_datum_stream_t(env, f, this));
 }
 
+datum_stream_t *datum_stream_t::slice(size_t l, size_t r) {
+    return env->add_ptr(new slice_datum_stream_t(env, l, r, this));
+}
+
 lazy_datum_stream_t::lazy_datum_stream_t(env_t *env, bool use_outdated,
                                namespace_repo_t<rdb_protocol_t>::access_t *ns_access)
     : datum_stream_t(env),
@@ -43,7 +47,7 @@ slice_datum_stream_t::slice_datum_stream_t(
 
 const datum_t *slice_datum_stream_t::next() {
     if (ind > r) return 0;
-    while (ind++ <= l) {
+    while (ind++ < l) {
         env_checkpointer_t(env, &env_t::discard_checkpoint);
         src->next();
     }
