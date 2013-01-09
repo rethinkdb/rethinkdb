@@ -389,7 +389,7 @@ endif
 ifeq ($(shell which handlebars || true),)
 TC_HANDLEBARS_EXE:=$(TC_HANDLEBARS_INT_EXE)
 else
-TC_HANDLEBARS_EXE:=$(shell which which handlebars || true)
+TC_HANDLEBARS_EXE:=$(shell which handlebars || true)
 endif
 ifeq ($(OSX),0)
 ifeq ($(shell /sbin/ldconfig -p | awk '/libtcmalloc_minimal.so /'),)
