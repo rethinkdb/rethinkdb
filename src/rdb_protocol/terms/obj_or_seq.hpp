@@ -1,5 +1,6 @@
 #include "rdb_protocol/op.hpp"
 #include "rdb_protocol/err.hpp"
+#include "rdb_protocol/pb_utils.hpp"
 
 namespace ql {
 
@@ -7,28 +8,10 @@ class obj_or_seq_op_term_t : public op_term_t {
 public:
     obj_or_seq_op_term_t(env_t *env, const Term2 *term, argspec_t argspec)
         : op_term_t(env, term, argspec) {
-        map_func.set_type(Term2_TermType_FUNC);
-
         int varnum = env->gensym();
-
-        Term2 *arg1 = map_func.add_args();
-        arg1->set_type(Term2_TermType_DATUM);
-        Datum *vars = arg1->mutable_datum();
-        vars->set_type(Datum_DatumType_R_ARRAY);
-        Datum *var1 = vars->add_r_array();
-        var1->set_type(Datum_DatumType_R_NUM);
-        var1->set_r_num(varnum);
-
-        Term2 *arg2 = map_func.add_args();
-        *arg2 = *term;
-        Term2 *arg2_1 = arg2->mutable_args(0);
-        *arg2_1 = Term2();
-        arg2_1->set_type(Term2_TermType_VAR);
-        Term2 *arg2_1_1 = arg2_1->add_args();
-        arg2_1_1->set_type(Term2_TermType_DATUM);
-        Datum *var1_ref = arg2_1_1->mutable_datum();
-        var1_ref->set_type(Datum_DatumType_R_NUM);
-        var1_ref->set_r_num(varnum);
+        Term2 *body = pb::set_func(&map_func, varnum);
+        *body = *term;
+        pb::set_var(pb::reset(body->mutable_args(0)), varnum);
     }
 private:
     virtual val_t *obj_eval() = 0;
