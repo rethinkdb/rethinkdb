@@ -254,7 +254,8 @@ private:
     DISABLE_COPYING(cluster_conn_closing_subscription_t);
 };
 
-class heartbeat_keepalive_t : public keepalive_tcp_conn_stream_t::keepalive_callback_t {
+class heartbeat_keepalive_t : public keepalive_tcp_conn_stream_t::keepalive_callback_t,
+                              public heartbeat_manager_t::heartbeat_keepalive_tracker_t {
 public:
     heartbeat_keepalive_t(keepalive_tcp_conn_stream_t *_conn, heartbeat_manager_t *_heartbeat, peer_id_t _peer) :
         conn(_conn),
@@ -262,22 +263,42 @@ public:
         peer(_peer)
     {
         conn->set_keepalive_callback(this);
+        heartbeat->set_keepalive_tracker(peer, this);
     }
 
     ~heartbeat_keepalive_t() {
         conn->set_keepalive_callback(NULL);
+        heartbeat->set_keepalive_tracker(peer, NULL);
     }
 
-    void keepalive() {
-        if (heartbeat != NULL) {
-            heartbeat->message_from_peer(peer);
-        }
+    void keepalive_read() {
+        read_done = true;
+    }
+
+    void keepalive_write() {
+        write_done = true;
+    }
+
+    bool check_and_reset_reads() {
+        bool result = read_done;
+        read_done = false;
+        return result;
+    }
+
+    bool check_and_reset_writes() {
+        bool result = write_done;
+        write_done = false;
+        return result;
     }
 
 private:
     keepalive_tcp_conn_stream_t * const conn;
     heartbeat_manager_t * const heartbeat;
     const peer_id_t peer;
+    bool read_done;
+    bool write_done;
+
+    DISABLE_COPYING(heartbeat_keepalive_t);
 };
 
 // Error-handling helper for connectivity_cluster_t::run_t::handle(). Returns true if handle()
