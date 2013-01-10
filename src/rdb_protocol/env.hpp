@@ -92,9 +92,8 @@ public:
         bags.pop_back();
     }
     ~env_t() {
-        for (size_t i = 0; i < bags.size(); ++i) {
-            delete bags[i];
-        }
+        guarantee(bags.size() == 1);
+        delete bags[0];
     }
 private:
     ptr_bag_t *get_bag() {
