@@ -42,12 +42,12 @@ public:
         any other publisher. */
         void reset(publisher_t *pub = NULL) {
             if (publisher) {
-                mutex_assertion_t::acq_t acq(&publisher->mutex);
+                DEBUG_VAR mutex_assertion_t::acq_t acq(&publisher->mutex);
                 publisher->subscriptions.remove(this);
             }
             publisher = pub;
             if (publisher) {
-                mutex_assertion_t::acq_t acq(&publisher->mutex);
+                DEBUG_VAR mutex_assertion_t::acq_t acq(&publisher->mutex);
                 publisher->subscriptions.push_back(this);
             }
         }
@@ -107,7 +107,7 @@ public:
 
     template<class callable_t>
     void publish(const callable_t &callable) {
-        mutex_assertion_t::acq_t acq(&publisher.mutex);
+        DEBUG_VAR mutex_assertion_t::acq_t acq(&publisher.mutex);
         for (typename publisher_t<subscriber_t>::subscription_t *sub = publisher.subscriptions.head();
              sub;
              sub = publisher.subscriptions.next(sub)) {

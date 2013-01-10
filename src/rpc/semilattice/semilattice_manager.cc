@@ -66,7 +66,7 @@ void semilattice_manager_t<metadata_t>::root_view_t::join(const metadata_t &adde
     /* Distribute changes to all peers we can currently see. If we can't
     currently see a peer, that's OK; it will hear about the metadata change when
     it reconnects, via the `semilattice_manager_t`'s `on_connect()` handler. */
-    connectivity_service_t::peers_list_freeze_t freeze(parent->message_service->get_connectivity_service());
+    DEBUG_VAR connectivity_service_t::peers_list_freeze_t freeze(parent->message_service->get_connectivity_service());
     std::set<peer_id_t> peers = parent->message_service->get_connectivity_service()->get_peers_list();
     for (std::set<peer_id_t>::iterator it = peers.begin(); it != peers.end(); it++) {
         if (*it != parent->message_service->get_connectivity_service()->get_me()) {
@@ -333,7 +333,7 @@ template<class metadata_t>
 void semilattice_manager_t<metadata_t>::deliver_metadata_on_home_thread(peer_id_t sender, metadata_t md, metadata_version_t mv, auto_drainer_t::lock_t) {
     on_thread_t thread_switcher(home_thread());
     join_metadata_locally(md);
-    mutex_assertion_t::acq_t acq(&peer_version_mutex);
+    DEBUG_VAR mutex_assertion_t::acq_t acq(&peer_version_mutex);
     std::pair<typename std::map<peer_id_t, metadata_version_t>::iterator, bool> inserted =
         last_versions_seen.insert(std::make_pair(sender, mv));
     if (!inserted.second) {
@@ -403,7 +403,7 @@ void semilattice_manager_t<metadata_t>::call_function_with_no_args(const boost::
 template<class metadata_t>
 void semilattice_manager_t<metadata_t>::join_metadata_locally(metadata_t added_metadata) {
     assert_thread();
-    rwi_lock_assertion_t::write_acq_t acq(&metadata_mutex);
+    DEBUG_VAR rwi_lock_assertion_t::write_acq_t acq(&metadata_mutex);
     semilattice_join(&metadata, added_metadata);
     metadata_publisher.publish(&semilattice_manager_t<metadata_t>::call_function_with_no_args);
 }

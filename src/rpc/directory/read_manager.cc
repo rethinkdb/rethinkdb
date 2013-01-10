@@ -110,7 +110,7 @@ void directory_read_manager_t<metadata_t>::on_disconnect(peer_id_t peer) THROWS_
 
     /* Notify that the peer has disconnected */
     if (got_initialization) {
-        mutex_assertion_t::acq_t acq(&variable_lock);
+        DEBUG_VAR mutex_assertion_t::acq_t acq(&variable_lock);
         std::map<peer_id_t, metadata_t> map = variable.get_watchable()->get();
         size_t num_erased = map.erase(peer);
         guarantee(num_erased == 1);
@@ -140,7 +140,7 @@ void directory_read_manager_t<metadata_t>::propagate_initialization(peer_id_t pe
 
     /* Notify that the peer has connected */
     {
-        mutex_assertion_t::acq_t acq(&variable_lock);
+        DEBUG_VAR mutex_assertion_t::acq_t acq(&variable_lock);
         std::map<peer_id_t, metadata_t> map = variable.get_watchable()->get();
 
         std::pair<typename std::map<peer_id_t, metadata_t>::iterator, bool> res
@@ -196,7 +196,7 @@ void directory_read_manager_t<metadata_t>::propagate_update(peer_id_t peer, uuid
         wait_interruptible(&fifo_exit, session_keepalive.get_drain_signal());
 
         {
-            mutex_assertion_t::acq_t acq(&variable_lock);
+            DEBUG_VAR mutex_assertion_t::acq_t acq(&variable_lock);
             std::map<peer_id_t, metadata_t> map = variable.get_watchable()->get();
 
             typename std::map<peer_id_t, metadata_t>::iterator var_it = map.find(peer);
