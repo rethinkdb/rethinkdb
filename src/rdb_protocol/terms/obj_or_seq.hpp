@@ -20,8 +20,7 @@ private:
             if (arg(0)->as_datum()->get_type() == datum_t::R_OBJECT) return obj_eval();
         }
         if (arg(0)->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
-            datum_stream_t *ds = arg(0)->as_seq();
-            return new_val(ds->map(env->new_func(&map_func)));
+            return new_val(arg(0)->as_seq()->map(env->new_func(&map_func)));
         }
         rfail("Cannot perform %s on a non-object non-sequence.", name());
         unreachable();

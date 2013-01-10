@@ -1,5 +1,6 @@
 #include "rdb_protocol/op.hpp"
 #include "rdb_protocol/err.hpp"
+#include "rdb_protocol/pb_utils.hpp"
 
 namespace ql {
 
@@ -21,6 +22,56 @@ private:
         return new_val(arg(0)->as_seq()->filter(arg(1)->as_func()));
     }
     RDB_NAME("filter")
+};
+
+static const char *const between_optargs[] = {"left_bound", "right_bound"};
+class between_term_t : public op_term_t {
+public:
+    between_term_t(env_t *env, const Term2 *term)
+        : op_term_t(env, term, argspec_t(1), LEGAL_OPTARGS(between_optargs)) { }
+private:
+
+    static void set_cmp(Term2 *out, int varnum, const std::string &pk,
+                        Term2::TermType cmp_fn, const datum_t *cmp_to) {
+        std::vector<Term2 *> cmp_args;
+        pb::set(out, cmp_fn, &cmp_args, 2); {
+            std::vector<Term2 *> ga_args;
+            pb::set(cmp_args[0], Term2_TermType_GETATTR, &ga_args, 2); {
+                pb::set_var(ga_args[0], varnum);
+                scoped_ptr_t<datum_t> pkd(new datum_t(pk));
+                pkd->write_to_protobuf(pb::set_datum(ga_args[1]));
+            }
+            cmp_to->write_to_protobuf(pb::set_datum(cmp_args[1]));
+        }
+    }
+
+    virtual val_t *eval_impl() {
+        std::pair<table_t *, datum_stream_t *> sel = arg(0)->as_selection();
+        val_t *lb = optarg("left_bound", 0);
+        val_t *rb = optarg("right_bound", 0);
+        if (!lb && !rb) return arg(0);
+
+        table_t *tbl = sel.first;
+        const std::string &pk = tbl->get_pkey();
+        datum_stream_t *seq = sel.second;
+
+        if (!filter_func.has()) {
+            filter_func.init(new Term2());
+            int varnum = env->gensym();
+            Term2 *body = pb::set_func(filter_func.get(), varnum);
+            std::vector<Term2 *> args;
+            pb::set(body, Term2_TermType_ALL, &args, !!lb + !!rb);
+            if (lb) set_cmp(args[0], varnum, pk, Term2_TermType_GE, lb->as_datum());
+            if (rb) set_cmp(args[!!lb], varnum, pk, Term2_TermType_LE, rb->as_datum());
+        }
+
+        guarantee(filter_func.has());
+        //debugf("%s\n", filter_func->DebugString().c_str());
+        return new_val(seq->filter(env->new_func(filter_func.get())));
+    }
+    RDB_NAME("between")
+
+    scoped_ptr_t<Term2> filter_func;
 };
 
 } //namespace ql

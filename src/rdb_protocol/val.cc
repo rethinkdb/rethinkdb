@@ -216,6 +216,12 @@ datum_stream_t *val_t::as_seq() {
     return sequence;
 }
 
+std::pair<table_t *, datum_stream_t *> val_t::as_selection() {
+    rcheck(type.raw_type == type_t::TABLE || type.raw_type == type_t::SELECTION,
+           strprintf("Type error: cannot convert %s to SELECTION.", type.name()));
+    return std::make_pair(table, as_seq());
+}
+
 std::pair<table_t *, const datum_t *> val_t::as_single_selection() {
     rcheck(type.raw_type == type_t::SINGLE_SELECTION,
            strprintf("Type error: cannot convert %s to SINGLE_SELECTION.", type.name()));

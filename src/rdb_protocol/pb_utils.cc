@@ -30,5 +30,10 @@ void set_var(Term2 *v, int varnum) {
     vn->set_r_num(varnum);
 }
 
+void set(Term2 *out, Term2_TermType type, std::vector<Term2 *> *args_out, int num_args) {
+    out->set_type(type);
+    for (int i = 0; i < num_args; ++i) args_out->push_back(out->add_args());
+}
+
 } //namespace pb
 } //namespace ql

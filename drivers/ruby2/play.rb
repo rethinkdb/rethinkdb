@@ -244,6 +244,16 @@ rae(tbl.filter(r.func([1], r.var(1).getattr(:id).eq(0))), [{"id"=>0.0}])
 rae(tbl.filter(r.func([1], r.var(1).getattr(:id).eq(1))), [{"id"=>1.0}])
 rae(tbl.filter(r.func([1], r.var(1).getattr(:id).lt(2))), [{"id"=>0.0}, {"id"=>1.0}])
 
+rae(r.all(1, false, 3), false)
+rae(r.all(1, 2, 3), 3)
+
+rae(tbl.between.opt(:left_bound, 0), tbl.run)
+rae(tbl.between.opt(:left_bound, -1).opt(:right_bound, 1), tbl.run)
+rae(tbl.between.opt(:left_bound, 0).opt(:right_bound, 1), tbl.run)
+rae(tbl.between.opt(:left_bound, 0).opt(:right_bound, 2), tbl.run)
+rae(tbl.between.opt(:right_bound, 1), tbl.run)
+rae(tbl.between.opt(:left_bound, 0).opt(:right_bound, 0), [{"id"=>0.0}])
+rae(tbl.between.opt(:right_bound, 0), [{"id"=>0.0}])
 
 
 print "test.test: #{r.db('test').table('test').run.inspect}\n"

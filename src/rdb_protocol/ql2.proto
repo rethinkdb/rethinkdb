@@ -249,7 +249,7 @@ message Term2 {
         // Get all elements of a sequence between two values.
         // http://www.rethinkdb.com/api/#js:selecting_data-between
         BETWEEN   = 36; // Sequence -> Sequence
-                                 // Optargs: left_bound (DATUM), right_bound (DATUM)
+                        // Optargs: left_bound (DATUM), right_bound (DATUM)
         // http://www.rethinkdb.com/api/#js:aggregation-reduce
         REDUCE    = 37; // Sequence, DATUM, FUNC (arity 2) -> DATUM
         // http://www.rethinkdb.com/api/#js:transformations-map

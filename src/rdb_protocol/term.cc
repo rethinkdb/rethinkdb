@@ -4,6 +4,7 @@
 
 #include "rdb_protocol/terms/arith.hpp"
 #include "rdb_protocol/terms/arr.hpp"
+#include "rdb_protocol/terms/control.hpp"
 #include "rdb_protocol/terms/datum_terms.hpp"
 #include "rdb_protocol/terms/db_table.hpp"
 #include "rdb_protocol/terms/error.hpp"
@@ -28,16 +29,16 @@ term_t *compile_term(env_t *env, const Term2 *t) {
     case Term2_TermType_DB:           return new db_term_t(env, t);
     case Term2_TermType_TABLE:        return new table_term_t(env, t);
     case Term2_TermType_GET:          return new get_term_t(env, t);
-    case Term2_TermType_EQ:  // fallthru
-    case Term2_TermType_NE:  // fallthru
-    case Term2_TermType_LT:  // fallthru
-    case Term2_TermType_LE:  // fallthru
-    case Term2_TermType_GT:  // fallthru
+    case Term2_TermType_EQ:           // fallthru
+    case Term2_TermType_NE:           // fallthru
+    case Term2_TermType_LT:           // fallthru
+    case Term2_TermType_LE:           // fallthru
+    case Term2_TermType_GT:           // fallthru
     case Term2_TermType_GE:           return new predicate_term_t(env, t);
     case Term2_TermType_NOT:          return new not_term_t(env, t);
-    case Term2_TermType_ADD: // fallthru
-    case Term2_TermType_SUB: // fallthru
-    case Term2_TermType_MUL: // fallthru
+    case Term2_TermType_ADD:          // fallthru
+    case Term2_TermType_SUB:          // fallthru
+    case Term2_TermType_MUL:          // fallthru
     case Term2_TermType_DIV:          return new arith_term_t(env, t);
     case Term2_TermType_MOD:          return new mod_term_t(env, t);
     case Term2_TermType_APPEND:       return new append_term_t(env, t);
@@ -47,7 +48,7 @@ term_t *compile_term(env_t *env, const Term2 *t) {
     case Term2_TermType_PLUCK:        return new pluck_term_t(env, t);
     case Term2_TermType_WITHOUT:      return new without_term_t(env, t);
     case Term2_TermType_MERGE:        return new merge_term_t(env, t);
-    case Term2_TermType_BETWEEN:
+    case Term2_TermType_BETWEEN:      return new between_term_t(env, t);
     case Term2_TermType_REDUCE:
         break;
     case Term2_TermType_MAP:          return new map_term_t(env, t);
@@ -78,7 +79,8 @@ term_t *compile_term(env_t *env, const Term2 *t) {
     case Term2_TermType_FUNCALL:
     case Term2_TermType_BRANCH:
     case Term2_TermType_ANY:
-    case Term2_TermType_ALL:
+        break;
+    case Term2_TermType_ALL: return new all_term_t(env, t);
     case Term2_TermType_FOREACH:
         break;
     case Term2_TermType_FUNC: return new func_term_t(env, t);
