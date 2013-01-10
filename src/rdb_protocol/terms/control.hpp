@@ -41,4 +41,19 @@ private:
     }
     RDB_NAME("any")
 };
+
+class branch_term_t : public op_term_t {
+public:
+    branch_term_t(env_t *env, const Term2 *term) : op_term_t(env, term, argspec_t(3)) { }
+private:
+    virtual val_t *eval_impl() {
+        bool b; {
+            env_checkpointer_t(env, &env_t::discard_checkpoint);
+            b = arg(0)->as_datum()->as_bool();
+        }
+        return b ? arg(1) : arg(2);
+    }
+    RDB_NAME("branch")
+};
+
 } // namespace ql

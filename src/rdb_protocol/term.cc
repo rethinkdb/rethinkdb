@@ -78,7 +78,7 @@ term_t *compile_term(env_t *env, const Term2 *t) {
     case Term2_TermType_TABLE_LIST:
     case Term2_TermType_FUNCALL:
         break;
-    case Term2_TermType_BRANCH:
+    case Term2_TermType_BRANCH: return new branch_term_t(env, t);
     case Term2_TermType_ANY: return new any_term_t(env, t);
     case Term2_TermType_ALL: return new all_term_t(env, t);
     case Term2_TermType_FOREACH:

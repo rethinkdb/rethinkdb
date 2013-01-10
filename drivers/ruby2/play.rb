@@ -260,5 +260,9 @@ rae(r.any(nil, 2, 3), 2.0)
 rae(r.any(nil, false, 3), 3.0)
 rae(r.any(nil, false, nil), false)
 
+rae(r.branch(true, 1, 2), 1.0)
+rae(r.branch(false, 1, 2), 2.0)
+rae(r.branch(1, 1, 2), 1.0)
+
 print "test.test: #{r.db('test').table('test').run.inspect}\n"
 print "Ran #{$tests} tests!\n"
