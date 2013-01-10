@@ -255,6 +255,10 @@ rae(tbl.between.opt(:right_bound, 1), tbl.run)
 rae(tbl.between.opt(:left_bound, 0).opt(:right_bound, 0), [{"id"=>0.0}])
 rae(tbl.between.opt(:right_bound, 0), [{"id"=>0.0}])
 
+rae(r.any(1, 2, 3), 1.0)
+rae(r.any(nil, 2, 3), 2.0)
+rae(r.any(nil, false, 3), 3.0)
+rae(r.any(nil, false, nil), false)
 
 print "test.test: #{r.db('test').table('test').run.inspect}\n"
 print "Ran #{$tests} tests!\n"
