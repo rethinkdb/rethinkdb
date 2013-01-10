@@ -78,9 +78,12 @@ public:
     size_t num_checkpoints() {
         return bags.size()-1;
     }
+private:
+    friend class env_checkpointer_t;
     void checkpoint() {
         bags.push_back(new ptr_bag_t());
     }
+public:
     void merge_checkpoint() {
         r_sanity_check(bags.size() >= 2);
         bags[bags.size()-2]->add(bags[bags.size()-1]);
