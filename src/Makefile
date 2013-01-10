@@ -1284,8 +1284,8 @@ rpc/semilattice/joins/macros.hpp rpc/serialize_macros.hpp rpc/mailbox/typed.hpp:
 
 web-assets: $(WEB_ASSETS)
 
-$(WEB_ASSETS_BUILD_DIR)/js/template.js: $(WEB_SOURCE_DIR)/static/handlebars $(TC_HANDLEBARS_EXE)
-	$(QUIET) env TC_HANDLEBARS_EXE=$(TC_HANDLEBARS_EXE) ../scripts/build_handlebars_templates.sh $(WEB_SOURCE_DIR)/static/handlebars $(BUILD_DIR) $(WEB_ASSETS_BUILD_DIR)/js
+$(WEB_ASSETS_BUILD_DIR)/js/template.js: $(WEB_SOURCE_DIR)/static/handlebars $(TC_HANDLEBARS_EXE) ../scripts/build_handlebars_templates.py
+	$(QUIET) env TC_HANDLEBARS_EXE=$(TC_HANDLEBARS_EXE) ../scripts/build_handlebars_templates.py $(WEB_SOURCE_DIR)/static/handlebars $(BUILD_DIR) $(WEB_ASSETS_BUILD_DIR)/js
 
 $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee: $(COFFEE_SOURCES)
 	$(QUIET) mkdir -p $(WEB_ASSETS_OBJ_DIR)
