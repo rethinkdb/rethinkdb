@@ -221,9 +221,9 @@ void run_sindex_btree_store_api_test() {
         store.drop_sindex(
                 &token_pair,
                 *it,
+                rdb_protocol_t::region_t::universe(),
                 txn.get(),
                 super_block.get(),
-                rdb_protocol_t::region_t::universe(),
                 &sizer,
                 &deleter,
                 &dummy_interuptor);

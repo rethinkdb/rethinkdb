@@ -146,8 +146,7 @@ void acquire_sindex_block_for_write(
 
     void set_metainfo(secondary_index_t *sindex, const sindex_metainfo_t &metainfo);
 
-protected:
-    //So the unittest can directly test methods.
+public: // <--- so this is some bullshit right here
     friend void unittest::run_sindex_btree_store_api_test();
 
     void add_sindex(
@@ -172,9 +171,9 @@ protected:
     void drop_sindex(
         write_token_pair_t *token_pair,
         uuid_u id,
+        const typename protocol_t::region_t &unindexed_region,
         transaction_t *txn,
         superblock_t *super_block,
-        const typename protocol_t::region_t &unindexed_region,
         value_sizer_t<void> *sizer,
         value_deleter_t *deleter,
         signal_t *interruptor)

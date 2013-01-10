@@ -526,6 +526,7 @@ struct rdb_protocol_t {
         ~store_t();
 
     private:
+        friend struct read_visitor_t;
         void protocol_read(const read_t &read,
                            read_response_t *response,
                            btree_slice_t *btree,
@@ -534,6 +535,7 @@ struct rdb_protocol_t {
                            read_token_pair_t *token_pair,
                            signal_t *interruptor);
 
+        friend struct write_visitor_t;
         void protocol_write(const write_t &write,
                             write_response_t *response,
                             transition_timestamp_t timestamp,

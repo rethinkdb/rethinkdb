@@ -654,13 +654,41 @@ struct write_visitor_t : public boost::static_visitor<void> {
         rdb_delete(d.key, btree, timestamp, txn, superblock, &res);
     }
 
-    void operator()(const sindex_create_t &) {
+    void operator()(const sindex_create_t &c) {
+        write_message_t wm;
+        wm << c.mapping;
+
+        vector_stream_t stream;
+        int res = send_write_message(&stream, &wm);
+        guarantee(res == 0);
+
+        store->add_sindex(
+                token_pair,
+                c.id,
+                stream.vector(),
+                c.region_to_index,
+                txn,
+                superblock,
+                &interruptor);
     }
 
-    void operator()(const sindex_delete_t &) {
+    void operator()(const sindex_delete_t &d) {
+        value_sizer_t<rdb_value_t> sizer(txn->cache->get_block_size());
+        rdb_value_deleter_t deleter;
+
+        store->drop_sindex(
+                token_pair,
+                d.id,
+                d.region_to_unindex,
+                txn,
+                superblock,
+                &sizer,
+                &deleter,
+                &interruptor);
     }
 
     write_visitor_t(btree_slice_t *_btree,
+                    btree_store_t<rdb_protocol_t> *_store,
                     transaction_t *_txn,
                     superblock_t *_superblock,
                     write_token_pair_t *_token_pair,
@@ -669,6 +697,7 @@ struct write_visitor_t : public boost::static_visitor<void> {
                     write_response_t *_response,
                     signal_t *_interruptor) :
         btree(_btree),
+        store(_store),
         txn(_txn),
         response(_response),
         superblock(_superblock),
@@ -687,6 +716,7 @@ struct write_visitor_t : public boost::static_visitor<void> {
 
 private:
     btree_slice_t *btree;
+    btree_store_t<rdb_protocol_t> *store;
     transaction_t *txn;
     write_response_t *response;
     superblock_t *superblock;
@@ -706,7 +736,7 @@ void store_t::protocol_write(const write_t &write,
                              superblock_t *superblock,
                              write_token_pair_t *token_pair,
                              signal_t *interruptor) {
-    write_visitor_t v(btree, txn, superblock, token_pair,
+    write_visitor_t v(btree, this, txn, superblock, token_pair,
             timestamp.to_repli_timestamp(), ctx, response, interruptor);
     boost::apply_visitor(v, write.write);
 }

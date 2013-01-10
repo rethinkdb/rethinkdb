@@ -346,9 +346,9 @@ template <class protocol_t>
 void btree_store_t<protocol_t>::drop_sindex(
         write_token_pair_t *token_pair,
         uuid_u id,
+        const typename protocol_t::region_t &unindexed_region,
         transaction_t *txn,
         superblock_t *super_block,
-        const typename protocol_t::region_t &unindexed_region,
         value_sizer_t<void> *sizer,
         value_deleter_t *deleter,
         signal_t *interruptor)
