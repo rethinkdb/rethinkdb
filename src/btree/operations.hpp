@@ -269,6 +269,17 @@ void set_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const s
 void delete_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key);
 void clear_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock);
 
+namespace sindex_details {
+enum sindex_state_t {
+    UNCREATED,
+    INCOMPLETE,
+    CREATED,
+    DELETED
+};
+} //namespace sindex_details
+
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(sindex_details::sindex_state_t, int8_t, sindex_details::UNCREATED, sindex_details::DELETED);
+
 struct secondary_index_t {
     secondary_index_t()
         : superblock(NULL_BLOCK_ID)
@@ -284,10 +295,14 @@ struct secondary_index_t {
      * store_key_t index(const opaque_definition_t &);
      * Which returns the value of the secondary index.
      */
-    typedef std::vector<unsigned char> opaque_definition_t;
+    typedef std::vector<char> opaque_definition_t;
 
     /* An opaque blob that describes the index */
-    std::vector<unsigned char> opaque_definition;
+    opaque_definition_t opaque_definition;
+
+    /* Another opaque blob that describes which parts of the index are up to
+     * data. (Much like metainfo does for the main B-Tree) */
+    std::vector<char> metainfo;
 
     /* Used in unit tests. */
     bool operator==(const secondary_index_t & other) const {
@@ -295,7 +310,7 @@ struct secondary_index_t {
                opaque_definition == other.opaque_definition;
     }
 
-    RDB_MAKE_ME_SERIALIZABLE_2(superblock, opaque_definition);
+    RDB_MAKE_ME_SERIALIZABLE_3(superblock, opaque_definition, metainfo);
 };
 
 //Secondary Index functions
@@ -307,11 +322,12 @@ bool get_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, uuid_u uu
 
 void get_secondary_indexes(transaction_t *txn, buf_lock_t *sindex_block, std::map<uuid_u, secondary_index_t> *sindexes_out);
 
-bool add_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, uuid_u uuid, const secondary_index_t &sindex);
+/* Overwrites existing values with the same id. */
+void set_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, uuid_u uuid, const secondary_index_t &sindex);
 
 //XXX note this just drops the entry. It doesn't cleanup the btree that it
 //points to. drop_secondary_index. Does both and should be used publicly.
-bool delete_secondary_index(transaction_t *txn, buf_lock_t *superblock, uuid_u uuid);
+bool delete_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, uuid_u uuid);
 
 /* Set sb to have root id as its root block and release sb */
 void insert_root(block_id_t root_id, superblock_t* sb);

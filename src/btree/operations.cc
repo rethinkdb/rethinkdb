@@ -377,17 +377,13 @@ void get_secondary_indexes(transaction_t *txn, buf_lock_t *sindex_block, std::ma
     get_secondary_indexes_internal(txn, sindex_block, sindexes_out);
 }
 
-bool add_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, uuid_u uuid, const secondary_index_t &sindex) {
+void set_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, uuid_u uuid, const secondary_index_t &sindex) {
     std::map<uuid_u, secondary_index_t> sindex_map;
     get_secondary_indexes_internal(txn, sindex_block, &sindex_map);
 
-    if (std_contains(sindex_map, uuid)) {
-        return false;
-    } else {
-        sindex_map[uuid] = sindex;
-        set_secondary_indexes_internal(txn, sindex_block, sindex_map);
-        return true;
-    }
+    /* We insert even if it already exists overwriting the old value. */
+    sindex_map[uuid] = sindex;
+    set_secondary_indexes_internal(txn, sindex_block, sindex_map);
 }
 
 bool delete_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, uuid_u uuid) {

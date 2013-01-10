@@ -140,15 +140,30 @@ void acquire_sindex_block_for_write(
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
 
+    typedef region_map_t<protocol_t, sindex_details::sindex_state_t> sindex_metainfo_t;
+
+    void get_metainfo(const secondary_index_t &sindex, sindex_metainfo_t *metainfo);
+
+    void set_metainfo(secondary_index_t *sindex, const sindex_metainfo_t &metainfo);
+
 protected:
     //So the unittest can directly test methods.
     friend void unittest::run_sindex_btree_store_api_test();
-
 
     void add_sindex(
         write_token_pair_t *token_pair,
         uuid_u id,
         const secondary_index_t::opaque_definition_t &definition,
+        const typename protocol_t::region_t &region_to_index,
+        transaction_t *txn,
+        superblock_t *super_block,
+        signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t);
+
+    void mark_index_up_to_date(
+        write_token_pair_t *token_pair,
+        uuid_u id,
+        const typename protocol_t::region_t &up_to_date_region,
         transaction_t *txn,
         superblock_t *super_block,
         signal_t *interruptor)
@@ -159,6 +174,7 @@ protected:
         uuid_u id,
         transaction_t *txn,
         superblock_t *super_block,
+        const typename protocol_t::region_t &unindexed_region,
         value_sizer_t<void> *sizer,
         value_deleter_t *deleter,
         signal_t *interruptor)

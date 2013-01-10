@@ -73,6 +73,10 @@ private:
 public:
     typedef typename internal_vec_t::const_iterator const_iterator;
     typedef typename internal_vec_t::iterator iterator;
+    
+    /* I got the ypedefs like a std::map. */
+    typedef typename protocol_t::region_t key_type;
+    typedef value_t mapped_type;
 
     region_map_t() THROWS_NOTHING {
         regions_and_values.push_back(internal_pair_t(protocol_t::region_t::universe(), value_t()));

@@ -654,15 +654,16 @@ struct write_visitor_t : public boost::static_visitor<void> {
         rdb_delete(d.key, btree, timestamp, txn, superblock, &res);
     }
 
-    void operator()(UNUSED const sindex_create_t &c) {
+    void operator()(const sindex_create_t &) {
     }
 
-    void operator()(UNUSED const sindex_delete_t &d) {
+    void operator()(const sindex_delete_t &) {
     }
 
     write_visitor_t(btree_slice_t *_btree,
                     transaction_t *_txn,
                     superblock_t *_superblock,
+                    write_token_pair_t *_token_pair,
                     repli_timestamp_t _timestamp,
                     rdb_protocol_t::context_t *ctx,
                     write_response_t *_response,
@@ -671,6 +672,7 @@ struct write_visitor_t : public boost::static_visitor<void> {
         txn(_txn),
         response(_response),
         superblock(_superblock),
+        token_pair(_token_pair),
         timestamp(_timestamp),
         interruptor(_interruptor, ctx->signals[get_thread_id()].get()),
         env(ctx->pool_group,
@@ -688,6 +690,7 @@ private:
     transaction_t *txn;
     write_response_t *response;
     superblock_t *superblock;
+    write_token_pair_t *token_pair;
     repli_timestamp_t timestamp;
     wait_any_t interruptor;
     query_language::runtime_environment_t env;
@@ -701,9 +704,10 @@ void store_t::protocol_write(const write_t &write,
                              btree_slice_t *btree,
                              transaction_t *txn,
                              superblock_t *superblock,
-                             write_token_pair_t *,
+                             write_token_pair_t *token_pair,
                              signal_t *interruptor) {
-    write_visitor_t v(btree, txn, superblock, timestamp.to_repli_timestamp(), ctx, response, interruptor);
+    write_visitor_t v(btree, txn, superblock, token_pair,
+            timestamp.to_repli_timestamp(), ctx, response, interruptor);
     boost::apply_visitor(v, write.write);
 }
 

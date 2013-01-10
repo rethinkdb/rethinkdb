@@ -230,35 +230,114 @@ void btree_store_t<protocol_t>::acquire_sindex_block_for_write(
 }
 
 template <class protocol_t>
+void btree_store_t<protocol_t>::get_metainfo(const secondary_index_t &sindex, sindex_metainfo_t *metainfo) {
+    vector_read_stream_t read_stream(&sindex.metainfo);
+    int res = deserialize(&read_stream, metainfo);
+    guarantee_err(res == 0, "Corrupted metainfo.");
+}
+
+template <class protocol_t>
+void btree_store_t<protocol_t>::set_metainfo(secondary_index_t *sindex, const sindex_metainfo_t &metainfo) {
+    write_message_t wm;
+    wm << metainfo;
+
+    vector_stream_t stream;
+    int res = send_write_message(&stream, &wm);
+    guarantee(res == 0);
+
+    sindex->metainfo = stream.vector();
+}
+
+template <class region_map_t>
+bool has_homogenous_value(const region_map_t &metainfo, typename region_map_t::mapped_type state) {
+    for (typename region_map_t::const_iterator it  = metainfo.begin(); 
+                                               it != metainfo.end();
+                                               ++it) {
+        if (it->second != state) {
+            return false;
+        }
+    }
+    return true;
+}
+
+template <class protocol_t>
 void btree_store_t<protocol_t>::add_sindex(
         write_token_pair_t *token_pair,
         uuid_u id,
         const secondary_index_t::opaque_definition_t &definition,
+        const typename protocol_t::region_t &region_to_index,
         transaction_t *txn,
         superblock_t *super_block,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
 
-    secondary_index_t sindex;
-    {
-        buf_lock_t sindex_superblock(txn);
-        sindex.superblock = sindex_superblock.get_block_id();
-        /* The buf lock is destroyed here which is important becase it allows
-         * us to reacquire later when we make a btree_store. */
-    }
-
-    sindex.opaque_definition = definition;
-
+    /* Get the sindex block which we will need to modify. */
     scoped_ptr_t<buf_lock_t> sindex_block;
     acquire_sindex_block_for_write(token_pair, txn, &sindex_block, super_block, interruptor);
 
-    bool didnt_already_exist = ::add_secondary_index(txn, sindex_block.get(), id, sindex);
-    guarantee(didnt_already_exist, "Added a secondary index with an existing id.");
+    secondary_index_t sindex;
+    bool found = ::get_secondary_index(txn, sindex_block.get(), id, &sindex);
 
-    btree_slice_t::create(txn->get_cache(), sindex.superblock, txn);
+    /* A state map for the secondary index. Declared here because we need to
+     * deserialize in to it if the index already exists. */
+    sindex_metainfo_t metainfo(protocol_t::region_t::universe(), sindex_details::UNCREATED);
 
-    secondary_index_slices.insert(id, new btree_slice_t(cache.get(), &perfmon_collection));
+    if (!found) {
+        {
+            buf_lock_t sindex_superblock(txn);
+            sindex.superblock = sindex_superblock.get_block_id();
+            /* The buf lock is destroyed here which is important becase it allows
+             * us to reacquire later when we make a btree_store. */
+        }
+
+        sindex.opaque_definition = definition;
+
+        btree_slice_t::create(txn->get_cache(), sindex.superblock, txn);
+        secondary_index_slices.insert(id, new btree_slice_t(cache.get(), &perfmon_collection));
+    } else {
+        get_metainfo(sindex, &metainfo);
+    }
+
+    /* First a sanity check this region hasn't already been created. */
+    guarantee_err(has_homogenous_value(metainfo.mask(region_to_index), sindex_details::UNCREATED),
+                  "Trying to create the same index for the same region twice.");
+
+    metainfo.set(region_to_index, sindex_details::INCOMPLETE);
+    set_metainfo(&sindex, metainfo);
+
+    ::set_secondary_index(txn, sindex_block.get(), id, sindex);
+}
+
+template <class protocol_t>
+void btree_store_t<protocol_t>::mark_index_up_to_date(
+    write_token_pair_t *token_pair,
+    uuid_u id,
+    const typename protocol_t::region_t &up_to_date_region,
+    transaction_t *txn,
+    superblock_t *super_block,
+    signal_t *interruptor)
+THROWS_ONLY(interrupted_exc_t) {
+    /* Get the sindex block which we will need to modify. */
+    scoped_ptr_t<buf_lock_t> sindex_block;
+    acquire_sindex_block_for_write(token_pair, txn, &sindex_block, super_block, interruptor);
+
+    secondary_index_t sindex;
+    bool found = ::get_secondary_index(txn, sindex_block.get(), id, &sindex);
+    guarantee_err(found, "Trying to mark an index up to date that doesn't exist.");
+
+    /* A state map for the secondary index. Declared here because we need to
+     * deserialize in to it if the index already exists. */
+    sindex_metainfo_t metainfo(protocol_t::region_t::universe(), sindex_details::UNCREATED);
+    get_metainfo(sindex, &metainfo);
+
+    guarantee_err(has_homogenous_value(metainfo.mask(up_to_date_region), sindex_details::INCOMPLETE),
+                  "Trying to create the same index for the same region twice.");
+
+    metainfo.set(up_to_date_region, sindex_details::CREATED);
+    set_metainfo(&sindex, metainfo);
+
+    ::set_secondary_index(txn, sindex_block.get(), id, sindex);
 }
 
 template <class protocol_t>
@@ -267,6 +346,7 @@ void btree_store_t<protocol_t>::drop_sindex(
         uuid_u id,
         transaction_t *txn,
         superblock_t *super_block,
+        const typename protocol_t::region_t &unindexed_region,
         value_sizer_t<void> *sizer,
         value_deleter_t *deleter,
         signal_t *interruptor)
@@ -279,27 +359,42 @@ void btree_store_t<protocol_t>::drop_sindex(
 
     /* Remove reference in the super block */
     secondary_index_t sindex;
-    ::get_secondary_index(txn, sindex_block.get(), id, &sindex);
-    bool found_value_to_delete = delete_secondary_index(txn, sindex_block.get(), id);
-    guarantee(found_value_to_delete, "Tried to delete a value that didn't exist.");
+    bool found = ::get_secondary_index(txn, sindex_block.get(), id, &sindex);
+    guarantee(found, "Tried to delete a value that didn't exist.");
 
-    /* Make sure we have a record of the slice. */
-    guarantee(std_contains(secondary_index_slices, id));
-    btree_slice_t *sindex_slice = &(secondary_index_slices.at(id));
+    sindex_metainfo_t metainfo;
+    get_metainfo(sindex, &metainfo);
 
-    {
-        buf_lock_t sindex_superblock_lock(txn, sindex.superblock, rwi_write);
-        real_superblock_t sindex_superblock(&sindex_superblock_lock);
+    guarantee_err(has_homogenous_value(metainfo.mask(unindexed_region), sindex_details::CREATED) ||
+                  has_homogenous_value(metainfo.mask(unindexed_region), sindex_details::INCOMPLETE),
+                  "Trying to delete a part of the index which was either never created or already deleted.");
 
-        erase_all(sizer, sindex_slice,
-                  deleter, txn, &sindex_superblock);
-    }
+    metainfo.set(unindexed_region, sindex_details::DELETED);
+    
+    if (has_homogenous_value(metainfo, sindex_details::DELETED)) {
+        delete_secondary_index(txn, sindex_block.get(), id);
+        sindex_block->release(); //So others may proceed
+        /* We've gotten deletes for every shard, this means it's time to
+         * actually cleanup the structures. */
 
-    secondary_index_slices.erase(id);
+        /* Make sure we have a record of the slice. */
+        guarantee(std_contains(secondary_index_slices, id));
+        btree_slice_t *sindex_slice = &(secondary_index_slices.at(id));
 
-    {
-        buf_lock_t sindex_superblock_lock(txn, sindex.superblock, rwi_write);
-        sindex_superblock_lock.mark_deleted();
+        {
+            buf_lock_t sindex_superblock_lock(txn, sindex.superblock, rwi_write);
+            real_superblock_t sindex_superblock(&sindex_superblock_lock);
+
+            erase_all(sizer, sindex_slice,
+                      deleter, txn, &sindex_superblock);
+        }
+
+        secondary_index_slices.erase(id);
+
+        {
+            buf_lock_t sindex_superblock_lock(txn, sindex.superblock, rwi_write);
+            sindex_superblock_lock.mark_deleted();
+        }
     }
 }
 
