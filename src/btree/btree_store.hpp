@@ -182,6 +182,7 @@ protected:
 
     void acquire_sindex_superblock_for_read(
             uuid_u id,
+            const typename protocol_t::region_t &region_to_read,
             read_token_pair_t *token_pair,
             scoped_ptr_t<transaction_t> *txn_out,
             scoped_ptr_t<real_superblock_t> *sindex_sb_out,
@@ -190,6 +191,7 @@ protected:
 
     void acquire_sindex_superblock_for_write(
             uuid_u id,
+            const typename protocol_t::region_t &region_to_write,
             block_id_t sindex_block_id,
             write_token_pair_t *token_pair,
             transaction_t *txn,

@@ -303,7 +303,9 @@ void btree_store_t<protocol_t>::add_sindex(
     guarantee_err(has_homogenous_value(metainfo.mask(region_to_index), sindex_details::UNCREATED),
                   "Trying to create the same index for the same region twice.");
 
-    metainfo.set(region_to_index, sindex_details::INCOMPLETE);
+    /* TODO when we have th code the recompute the index for existing data this
+     * should be set to incomplete. */
+    metainfo.set(region_to_index, sindex_details::CREATED);
     set_metainfo(&sindex, metainfo);
 
     ::set_secondary_index(txn, sindex_block.get(), id, sindex);
@@ -401,6 +403,7 @@ void btree_store_t<protocol_t>::drop_sindex(
 template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
         uuid_u id,
+        const typename protocol_t::region_t &region_to_read,
         read_token_pair_t *token_pair,
         scoped_ptr_t<transaction_t> *txn_out,
         scoped_ptr_t<real_superblock_t> *sindex_sb_out,
@@ -415,7 +418,7 @@ void btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
     scoped_ptr_t<real_superblock_t> main_sb;
     acquire_superblock_for_read(rwi_read, &(token_pair->main_read_token), txn_out, &main_sb, interruptor, false);
 
-    /* Wait for our turn to acquire the sindex block. */
+    /* Acquire the sindex block. */
     scoped_ptr_t<buf_lock_t> sindex_block;
     acquire_sindex_block_for_read(token_pair, txn_out->get(), &sindex_block, main_sb.get(), interruptor);
 
@@ -428,6 +431,17 @@ void btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
     secondary_index_t sindex;
     ::get_secondary_index(txn_out->get(), sindex_block.get(), id, &sindex);
 
+    /* Sanity check to make sure this part of the index is readable. */
+    /* TODO there's a question of whether or not this should throw an
+     * exception, I'd prefer to be able to guarantee this doesn't happen but
+     * we'll see. */
+    sindex_metainfo_t metainfo;
+    get_metainfo(sindex, &metainfo);
+    guarantee(has_homogenous_value(metainfo.mask(region_to_read), sindex_details::CREATED),
+              "Trying to read from an UNCREATED index, this means either the " \
+              "index wasn't create, was created but isn't up to date or was " \
+              "already deleted.");
+
     buf_lock_t superblock_lock(txn_out->get(), sindex.superblock, rwi_read);
     sindex_sb_out->init(new real_superblock_t(&superblock_lock));
 }
@@ -435,6 +449,7 @@ void btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
 template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_sindex_superblock_for_write(
         uuid_u id,
+        const typename protocol_t::region_t &region_to_write,
         block_id_t sindex_block_id,
         write_token_pair_t *token_pair,
         transaction_t *txn,
@@ -458,6 +473,17 @@ void btree_store_t<protocol_t>::acquire_sindex_superblock_for_write(
     /* Figure out what the superblock for this index is. */
     secondary_index_t sindex;
     ::get_secondary_index(txn, sindex_block.get(), id, &sindex);
+
+    /* Sanity check to make sure this part of the index is writeable. */
+    /* TODO there's a question of whether or not this should throw an
+     * exception, I'd prefer to be able to guarantee this doesn't happen but
+     * we'll see. */
+    sindex_metainfo_t metainfo;
+    get_metainfo(sindex, &metainfo);
+    guarantee(has_homogenous_value(metainfo.mask(region_to_write), sindex_details::CREATED),
+              "Trying to write to an UNCREATED index, this means either the " \
+              "index wasn't create, was created but isn't up to date or was " \
+              "already deleted.");
 
     buf_lock_t superblock_lock(txn, sindex.superblock, rwi_write);
     sindex_sb_out->init(new real_superblock_t(&superblock_lock));

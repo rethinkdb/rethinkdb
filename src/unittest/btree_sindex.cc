@@ -70,7 +70,7 @@ void run_sindex_low_level_operations_test() {
         get_btree_superblock_and_txn(&btree, rwi_write, 1, repli_timestamp_t::invalid, otok, &superblock, &txn);
         buf_lock_t sindex_block(txn.get(), superblock->get_sindex_block_id(), rwi_write);
 
-        add_secondary_index(txn.get(), &sindex_block, uuid, s);
+        set_secondary_index(txn.get(), &sindex_block, uuid, s);
     }
 
     {
@@ -135,7 +135,8 @@ void run_sindex_btree_store_api_test() {
             store.add_sindex(
                     &token_pair,
                     id,
-                    std::vector<unsigned char>(),
+                    std::vector<char>(),
+                    rdb_protocol_t::region_t::universe(),
                     txn.get(),
                     super_block.get(),
                     &dummy_interuptor);
@@ -149,22 +150,28 @@ void run_sindex_btree_store_api_test() {
             scoped_ptr_t<transaction_t> txn;
             scoped_ptr_t<real_superblock_t> super_block;
 
-            store.acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid,
-                                               1, &token_pair.main_write_token, &txn,
-                                               &super_block, &dummy_interuptor);
+            store.acquire_superblock_for_write(rwi_write,
+                    repli_timestamp_t::invalid, 1,
+                    &token_pair.main_write_token, &txn, &super_block,
+                    &dummy_interuptor);
 
             scoped_ptr_t<real_superblock_t> sindex_super_block;
 
-            store.acquire_sindex_superblock_for_write(id, super_block->get_sindex_block_id(), &token_pair,
-                                                      txn.get(), &sindex_super_block, &dummy_interuptor);
-
             store_key_t key("foo");
-            boost::shared_ptr<scoped_cJSON_t> data(new scoped_cJSON_t(cJSON_CreateNumber(1)));
+
+            store.acquire_sindex_superblock_for_write(id,
+                    rdb_protocol_t::monokey_region(key),
+                    super_block->get_sindex_block_id(), &token_pair, txn.get(),
+                    &sindex_super_block, &dummy_interuptor);
+
+            boost::shared_ptr<scoped_cJSON_t> data(new
+                    scoped_cJSON_t(cJSON_CreateNumber(1)));
 
             rdb_protocol_t::point_write_response_t response;
 
-            rdb_set(key, data, true, store.get_sindex_slice(id), repli_timestamp_t::invalid,
-                    txn.get(), sindex_super_block.get(), &response);
+            rdb_set(key, data, true, store.get_sindex_slice(id),
+                    repli_timestamp_t::invalid, txn.get(),
+                    sindex_super_block.get(), &response);
         }
 
         {
@@ -175,14 +182,22 @@ void run_sindex_btree_store_api_test() {
             scoped_ptr_t<transaction_t> txn;
             scoped_ptr_t<real_superblock_t> sindex_super_block;
 
-            store.acquire_sindex_superblock_for_read(id, &token_pair, &txn, &sindex_super_block, &dummy_interuptor);
+            store_key_t key("foo");
+
+            store.acquire_sindex_superblock_for_read(id,
+                    rdb_protocol_t::monokey_region(key), &token_pair, &txn,
+                    &sindex_super_block, &dummy_interuptor);
 
             point_read_response_t response;
 
-            rdb_get(store_key_t("foo"), store.get_sindex_slice(id), txn.get(), sindex_super_block.get(), &response);
+            rdb_get(key, store.get_sindex_slice(id), txn.get(),
+                    sindex_super_block.get(), &response);
 
-            boost::shared_ptr<scoped_cJSON_t> data(new scoped_cJSON_t(cJSON_CreateNumber(1)));
-            ASSERT_EQ(query_language::json_cmp(response.data->get(), data->get()), 0);
+            boost::shared_ptr<scoped_cJSON_t> data(new
+                    scoped_cJSON_t(cJSON_CreateNumber(1)));
+
+            ASSERT_EQ(query_language::json_cmp(response.data->get(),
+                        data->get()), 0);
         }
     }
 
@@ -208,6 +223,7 @@ void run_sindex_btree_store_api_test() {
                 *it,
                 txn.get(),
                 super_block.get(),
+                rdb_protocol_t::region_t::universe(),
                 &sizer,
                 &deleter,
                 &dummy_interuptor);

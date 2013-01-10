@@ -29,22 +29,22 @@ public:
               DEBUG_VAR state_timestamp_t expected_timestamp,
               order_token_t order_token,
               signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
-        store->new_read_token(&read_token);
+        read_token_pair_t token_pair;
+        store->new_read_token_pair(&token_pair);
 
 #ifndef NDEBUG
         mock::equality_metainfo_checker_callback_t<protocol_t> metainfo_checker_callback((binary_blob_t(expected_timestamp)));
         metainfo_checker_t<protocol_t> metainfo_checker(&metainfo_checker_callback, store->get_region());
 #endif
 
-        return store->read(DEBUG_ONLY(metainfo_checker, ) read, response, order_token, &read_token, interruptor);
+        return store->read(DEBUG_ONLY(metainfo_checker, ) read, response, order_token, &token_pair, interruptor);
     }
 
     void read_outdated(const typename protocol_t::read_t &read,
                        typename protocol_t::read_response_t *response,
                        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
-        store->new_read_token(&read_token);
+        read_token_pair_t token_pair;
+        store->new_read_token_pair(&token_pair);
 
 #ifndef NDEBUG
         trivial_metainfo_checker_callback_t<protocol_t> metainfo_checker_callback;
@@ -53,7 +53,7 @@ public:
 
         return store->read(DEBUG_ONLY(metainfo_checker, ) read, response,
                            bs_outdated_read_source.check_in("dummy_performer_t::read_outdated").with_read_mode(),
-                           &read_token,
+                           &token_pair,
                            interruptor);
     }
 
@@ -68,13 +68,13 @@ public:
         metainfo_checker_t<protocol_t> metainfo_checker(&metainfo_checker_callback, store->get_region());
 #endif
 
-        object_buffer_t<fifo_enforcer_sink_t::exit_write_t> write_token;
-        store->new_write_token(&write_token);
+        write_token_pair_t token_pair;
+        store->new_write_token_pair(&token_pair);
 
         return store->write(
             DEBUG_ONLY(metainfo_checker, )
             region_map_t<protocol_t, binary_blob_t>(store->get_region(), binary_blob_t(transition_timestamp.timestamp_after())),
-            write, response, transition_timestamp, order_token, &write_token, &non_interruptor);
+            write, response, transition_timestamp, order_token, &token_pair, &non_interruptor);
     }
 
     order_source_t bs_outdated_read_source;
