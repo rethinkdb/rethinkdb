@@ -634,24 +634,47 @@ void store_t::protocol_read(const read_t &read,
 
 namespace {
 
+typedef btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindex_access_vector_t;
+
 // TODO: get rid of this extra response_t copy on the stack
 struct write_visitor_t : public boost::static_visitor<void> {
     void operator()(const point_write_t &w) {
         response->response = point_write_response_t();
         point_write_response_t &res = boost::get<point_write_response_t>(response->response);
-        rdb_set(w.key, w.data, w.overwrite, btree, timestamp, txn, superblock, &res);
+
+        rdb_modification_report_t mod_report;
+        rdb_set(w.key, w.data, w.overwrite, btree, timestamp, txn, superblock, &res, &mod_report);
+
+        sindex_access_vector_t sindexes;
+        store->acquire_all_sindex_superblocks_for_write(rdb_protocol_t::monokey_region(w.key),
+                superblock->get_sindex_block_id(), token_pair, txn, &sindexes, &interruptor);
+        rdb_update_sindexes(sindexes, w.key, &mod_report, txn);
     }
 
     void operator()(const point_modify_t &m) {
         response->response = point_modify_response_t();
         point_modify_response_t &res = boost::get<point_modify_response_t>(response->response);
-        rdb_modify(m.primary_key, m.key, m.op, &env, m.scopes, m.backtrace, m.mapping, btree, timestamp, txn, superblock, &res);
+
+        rdb_modification_report_t mod_report;
+        rdb_modify(m.primary_key, m.key, m.op, &env, m.scopes, m.backtrace, m.mapping, btree, timestamp, txn, superblock, &res, &mod_report);
+
+        sindex_access_vector_t sindexes;
+        store->acquire_all_sindex_superblocks_for_write(rdb_protocol_t::monokey_region(m.key),
+                superblock->get_sindex_block_id(), token_pair, txn, &sindexes, &interruptor);
+        rdb_update_sindexes(sindexes, m.key, &mod_report, txn);
     }
 
     void operator()(const point_delete_t &d) {
         response->response = point_delete_response_t();
         point_delete_response_t &res = boost::get<point_delete_response_t>(response->response);
-        rdb_delete(d.key, btree, timestamp, txn, superblock, &res);
+
+        rdb_modification_report_t mod_report;
+        rdb_delete(d.key, btree, timestamp, txn, superblock, &res, &mod_report);
+
+        sindex_access_vector_t sindexes;
+        store->acquire_all_sindex_superblocks_for_write(rdb_protocol_t::monokey_region(d.key),
+                superblock->get_sindex_block_id(), token_pair, txn, &sindexes, &interruptor);
+        rdb_update_sindexes(sindexes, d.key, &mod_report, txn);
     }
 
     void operator()(const sindex_create_t &c) {
@@ -865,7 +888,10 @@ struct receive_backfill_visitor_t : public boost::static_visitor<void> {
 
     void operator()(const backfill_chunk_t::delete_key_t& delete_key) const {
         point_delete_response_t response;
-        rdb_delete(delete_key.key, btree, delete_key.recency, txn, superblock, &response);
+
+        rdb_modification_report_t mod_report;
+        rdb_delete(delete_key.key, btree, delete_key.recency, txn, superblock, &response, &mod_report);
+        //TODO this doesn't update the secondary indexes and it needs to.
     }
 
     void operator()(const backfill_chunk_t::delete_range_t& delete_range) const {
@@ -876,9 +902,12 @@ struct receive_backfill_visitor_t : public boost::static_visitor<void> {
     void operator()(const backfill_chunk_t::key_value_pair_t& kv) const {
         const rdb_backfill_atom_t& bf_atom = kv.backfill_atom;
         point_write_response_t response;
+        rdb_modification_report_t mod_report;
         rdb_set(bf_atom.key, bf_atom.value, true,
                 btree, bf_atom.recency,
-                txn, superblock, &response);
+                txn, superblock, &response,
+                &mod_report);
+        //TODO this doesn't update the secondary index and it needs to.
     }
 
 private:

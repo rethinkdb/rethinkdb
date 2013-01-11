@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "backfill_progress.hpp"
+#include "btree/btree_store.hpp"
 #include "rdb_protocol/protocol.hpp"
 
 class key_tester_t;
@@ -76,17 +77,21 @@ private:
     DISABLE_COPYING(value_sizer_t<rdb_value_t>);
 };
 
+struct rdb_modification_report_t;
+
 void rdb_get(const store_key_t &key, btree_slice_t *slice, transaction_t *txn, superblock_t *superblock, point_read_response_t *response);
 
 void rdb_modify(const std::string &primary_key, const store_key_t &key, const point_modify_ns::op_t op,
                 query_language::runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace,
                 const Mapping &mapping,
                 btree_slice_t *slice, repli_timestamp_t timestamp,
-                transaction_t *txn, superblock_t *superblock, point_modify_response_t *response);
+                transaction_t *txn, superblock_t *superblock, point_modify_response_t *response,
+                rdb_modification_report_t *mod_report);
 
 void rdb_set(const store_key_t &key, boost::shared_ptr<scoped_cJSON_t> data, bool overwrite,
              btree_slice_t *slice, repli_timestamp_t timestamp,
-             transaction_t *txn, superblock_t *superblock, point_write_response_t *response);
+             transaction_t *txn, superblock_t *superblock, point_write_response_t *response,
+             rdb_modification_report_t *mod_report);
 
 
 class rdb_backfill_callback_t {
@@ -106,7 +111,10 @@ void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range,
         THROWS_ONLY(interrupted_exc_t);
 
 
-void rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t timestamp, transaction_t *txn, superblock_t *superblock, point_delete_response_t *response);
+void rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t
+        timestamp, transaction_t *txn, superblock_t *superblock,
+        point_delete_response_t *response, 
+        rdb_modification_report_t *mod_report);
 
 class rdb_value_deleter_t : public value_deleter_t {
     void delete_value(transaction_t *_txn, void *_value);
@@ -131,5 +139,17 @@ void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
 
 void rdb_distribution_get(btree_slice_t *slice, int max_depth, const store_key_t &left_key,
                           transaction_t *txn, superblock_t *superblock, distribution_read_response_t *response);
+
+/* Secondary Indexes */
+
+struct rdb_modification_report_t {
+    boost::shared_ptr<scoped_cJSON_t> deleted;
+    boost::shared_ptr<scoped_cJSON_t> added;
+};
+
+void rdb_update_sindexes(const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
+        const store_key_t &primary_key,
+        rdb_modification_report_t *modification,
+        transaction_t *txn);
 
 #endif /* RDB_PROTOCOL_BTREE_HPP_ */

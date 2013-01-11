@@ -1,12 +1,13 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "btree/operations.hpp"
 
+#include "btree/buf_patches.hpp"
 #include "btree/internal_node.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/node.hpp"
 #include "btree/slice.hpp"
-#include "btree/buf_patches.hpp"
 #include "buffer_cache/buffer_cache.hpp"
+#include "concurrency/promise.hpp"
 
 // TODO: consider B#/B* trees to improve space efficiency
 
@@ -20,7 +21,7 @@
 // relevant.
 
 template <class Value>
-void find_keyvalue_location_for_write(transaction_t *txn, superblock_t *superblock, const btree_key_t *key, keyvalue_location_t<Value> *keyvalue_location_out, eviction_priority_t *root_eviction_priority, btree_stats_t *stats) {
+void find_keyvalue_location_for_write(transaction_t *txn, superblock_t *superblock, const btree_key_t *key, keyvalue_location_t<Value> *keyvalue_location_out, eviction_priority_t *root_eviction_priority, btree_stats_t *stats, promise_t<superblock_t *> *pass_back_superblock = NULL) {
     value_sizer_t<Value> sizer(txn->get_cache()->get_block_size());
 
     keyvalue_location_out->superblock = superblock;
@@ -47,8 +48,13 @@ void find_keyvalue_location_for_write(transaction_t *txn, superblock_t *superblo
         // its direct children, we might still want to replace the root, so
         // we can't release the superblock yet.
         if (last_buf.is_acquired() && keyvalue_location_out->superblock) {
-            keyvalue_location_out->superblock->release();
-            keyvalue_location_out->superblock = NULL;
+            if (pass_back_superblock) {
+                pass_back_superblock->pulse(superblock);
+                keyvalue_location_out->superblock = NULL;
+            } else {
+                keyvalue_location_out->superblock->release();
+                keyvalue_location_out->superblock = NULL;
+            }
         }
 
         // Release the old previous node (unless we're at the root), and set

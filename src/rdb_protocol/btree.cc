@@ -17,6 +17,7 @@
 #include "containers/scoped.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/environment.hpp"
+#include "rdb_protocol/proto_utils.hpp"
 #include "rdb_protocol/query_language.hpp"
 #include "rdb_protocol/transform_visitors.hpp"
 
@@ -152,11 +153,21 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location, const store_
     //                                                                  ^^^^^ That means the key isn't expired.
 }
 
+store_key_t secondary_key(const store_key_t &primary, boost::shared_ptr<scoped_cJSON_t> data, const Mapping &mapping, const backtrace_t &b) {
+    query_language::runtime_environment_t *env = NULL; //TODO this is just a hack to get us going
+    query_language::scopes_t scopes;
+    boost::shared_ptr<scoped_cJSON_t> index = eval_mapping(mapping,
+            env, scopes, b, data);
+
+    return store_key_t(cJSON_print_primary(index->get(), b) + key_to_unescaped_str(primary));
+}
+
 void rdb_modify(const std::string &primary_key, const store_key_t &key, point_modify_ns::op_t op,
                 query_language::runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace,
                 const Mapping &mapping,
                 btree_slice_t *slice, repli_timestamp_t timestamp,
-                transaction_t *txn, superblock_t *superblock, point_modify_response_t *response) {
+                transaction_t *txn, superblock_t *superblock, point_modify_response_t *response,
+                rdb_modification_report_t *mod_report) {
     try {
         keyvalue_location_t<rdb_value_t> kv_location;
         find_keyvalue_location_for_write(txn, superblock, key.btree_key(), &kv_location,
@@ -166,12 +177,15 @@ void rdb_modify(const std::string &primary_key, const store_key_t &key, point_mo
             lhs.reset(new scoped_cJSON_t(cJSON_CreateNull()));
         } else {
             lhs = get_data(kv_location.value.get(), txn);
+            mod_report->deleted = lhs;
             guarantee(lhs->GetObjectItem(primary_key.c_str()));
         }
         boost::shared_ptr<scoped_cJSON_t> new_row;
         std::string new_key;
         point_modify_ns::result_t res = query_language::calculate_modify(
             lhs, primary_key, op, mapping, env, scopes, backtrace, &new_row, &new_key);
+
+        mod_report->added = new_row;
         switch (res) {
         case point_modify_ns::INSERTED:
             if (new_key != key_to_unescaped_str(key)) {
@@ -200,11 +214,20 @@ void rdb_modify(const std::string &primary_key, const store_key_t &key, point_mo
 
 void rdb_set(const store_key_t &key, boost::shared_ptr<scoped_cJSON_t> data, bool overwrite,
              btree_slice_t *slice, repli_timestamp_t timestamp,
-             transaction_t *txn, superblock_t *superblock, point_write_response_t *response) {
+             transaction_t *txn, superblock_t *superblock, point_write_response_t *response,
+             rdb_modification_report_t *mod_report) {
     //block_size_t block_size = slice->cache()->get_block_size();
     keyvalue_location_t<rdb_value_t> kv_location;
     find_keyvalue_location_for_write(txn, superblock, key.btree_key(), &kv_location, &slice->root_eviction_priority, &slice->stats);
     bool had_value = kv_location.value.has();
+
+    /* update the modification report */
+    if (kv_location.value.has()) {
+        mod_report->deleted = get_data(kv_location.value.get(), txn);
+    }
+
+    mod_report->added = data;
+
     if (overwrite || !had_value) {
         kv_location_set(&kv_location, key, data, slice, timestamp, txn);
     }
@@ -251,10 +274,17 @@ void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range,
 }
 
 void rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t timestamp,
-                transaction_t *txn, superblock_t *superblock, point_delete_response_t *response) {
+                transaction_t *txn, superblock_t *superblock, point_delete_response_t *response,
+                rdb_modification_report_t *mod_report) {
     keyvalue_location_t<rdb_value_t> kv_location;
     find_keyvalue_location_for_write(txn, superblock, key.btree_key(), &kv_location, &slice->root_eviction_priority, &slice->stats);
     bool exists = kv_location.value.has();
+
+    /* Update the modification report. */
+    if (exists) {
+        mod_report->deleted = get_data(kv_location.value.get(), txn);
+    }
+
     if (exists) kv_location_delete(&kv_location, key, slice, timestamp, txn);
     response->result = (exists ? DELETED : MISSING);
 }
@@ -423,3 +453,61 @@ void rdb_distribution_get(btree_slice_t *slice, int max_depth, const store_key_t
     }
 }
 
+typedef btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindex_access_vector_t;
+
+void rdb_update_sindexes(const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes, 
+        const store_key_t &primary_key, 
+        rdb_modification_report_t *modification,
+        transaction_t *txn) {
+
+    for (sindex_access_vector_t::const_iterator it  = sindexes.begin();
+                                                it != sindexes.end();
+                                                ++it) {
+        Mapping mapping;
+        vector_read_stream_t read_stream(&it->sindex.opaque_definition);
+        int success = deserialize(&read_stream, &mapping);
+        guarantee(success, "Corrupted sindex description.");
+
+        query_language::runtime_environment_t *local_env;
+        query_language::scopes_t scopes;
+        query_language::backtrace_t backtrace;
+
+        superblock_t *super_block = it->super_block.get();
+        if (modification->deleted) {
+            boost::shared_ptr<scoped_cJSON_t> index = eval_mapping(mapping,
+                    local_env, scopes, backtrace, modification->deleted);
+
+            store_key_t sindex_key(cJSON_print_primary(index->get(), backtrace) + key_to_unescaped_str(primary_key));
+
+            keyvalue_location_t<rdb_value_t> kv_location;
+
+            promise_t<superblock_t *> return_super_block;
+
+            find_keyvalue_location_for_write(txn, super_block,
+                    sindex_key.btree_key(), &kv_location,
+                    &it->btree->root_eviction_priority, &it->btree->stats,
+                    &return_super_block);
+
+            kv_location_delete(&kv_location, sindex_key,
+                        it->btree, repli_timestamp_t::invalid, txn);
+
+            super_block = return_super_block.wait();
+        }
+
+        if (modification->added) {
+            boost::shared_ptr<scoped_cJSON_t> index = eval_mapping(mapping,
+                    local_env, scopes, backtrace, modification->added);
+
+            store_key_t sindex_key(cJSON_print_primary(index->get(), backtrace) + key_to_unescaped_str(primary_key));
+
+            keyvalue_location_t<rdb_value_t> kv_location;
+
+            find_keyvalue_location_for_write(txn, super_block,
+                    sindex_key.btree_key(), &kv_location,
+                    &it->btree->root_eviction_priority, &it->btree->stats);
+
+            kv_location_set(&kv_location, sindex_key,
+                     modification->added, it->btree, repli_timestamp_t::invalid, txn);
+        }
+    }
+}

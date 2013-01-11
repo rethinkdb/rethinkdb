@@ -107,9 +107,9 @@ void run_get_set_test(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t
     }
 }
 
-//TEST(RDBProtocol, GetSet) {
-//    run_in_thread_pool_with_namespace_interface(&run_get_set_test);
-//}
+TEST(RDBProtocol, GetSet) {
+    run_in_thread_pool_with_namespace_interface(&run_get_set_test);
+}
 
 }   /* namespace unittest */
 

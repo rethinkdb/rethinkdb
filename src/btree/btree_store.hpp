@@ -5,6 +5,7 @@
 #include <string>
 
 #include <boost/ptr_container/ptr_map.hpp>
+#include <boost/ptr_container/ptr_vector.hpp>
 
 #include "btree/erase_range.hpp"
 #include "btree/operations.hpp"
@@ -195,6 +196,29 @@ public: // <--- so this is some bullshit right here
             write_token_pair_t *token_pair,
             transaction_t *txn,
             scoped_ptr_t<real_superblock_t> *sindex_sb_out,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
+
+    struct sindex_access_t {
+        sindex_access_t(btree_slice_t *_btree, secondary_index_t _sindex,
+                real_superblock_t *_super_block)
+            : btree(_btree), sindex(_sindex),
+              super_block(_super_block)
+        { }
+
+        btree_slice_t *btree;
+        secondary_index_t sindex;
+        scoped_ptr_t<real_superblock_t> super_block;
+    };
+
+    typedef boost::ptr_vector<sindex_access_t> sindex_access_vector_t;
+
+    void acquire_all_sindex_superblocks_for_write(
+            const typename protocol_t::region_t &region_to_write,
+            block_id_t sindex_block_id,
+            write_token_pair_t *token_pair,
+            transaction_t *txn,
+            sindex_access_vector_t *sindex_sbs_out,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
 

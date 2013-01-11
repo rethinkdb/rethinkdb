@@ -423,9 +423,10 @@ void btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
     acquire_sindex_block_for_read(token_pair, txn_out->get(), &sindex_block, main_sb.get(), interruptor);
 
     /* Check in with the order source. */
-    order_token_t order_token = order_source.check_in("btree_store_t<" + protocol_t::protocol_name +
-                                    "::acquire_sindex_superblock_for_read").with_read_mode();
-    order_token = sindex_slice->pre_begin_txn_checkpoint_.check_through(order_token);
+    //order_token_t order_token = order_source.check_in("btree_store_t<" + protocol_t::protocol_name +
+    //                                "::acquire_sindex_superblock_for_read").with_read_mode();
+    //order_token = sindex_slice->pre_begin_txn_checkpoint_.check_through(order_token);
+    /* TODO this order token should probably be passed back up and used. */
 
     /* Figure out what the superblock for this index is. */
     secondary_index_t sindex;
@@ -461,14 +462,15 @@ void btree_store_t<protocol_t>::acquire_sindex_superblock_for_write(
     btree_slice_t *sindex_slice = &(secondary_index_slices.at(id));
     sindex_slice->assert_thread();
 
-    /* Wait for our turn. */
+    /* Get the sindex block. */
     scoped_ptr_t<buf_lock_t> sindex_block;
     acquire_sindex_block_for_write(token_pair, txn, &sindex_block, sindex_block_id, interruptor);
 
     /* Check in with the order source. */
-    order_token_t order_token = order_source.check_in("btree_store_t<" + protocol_t::protocol_name +
-                                    "::acquire_sindex_superblock_for_read").with_read_mode();
-    order_token = sindex_slice->pre_begin_txn_checkpoint_.check_through(order_token);
+    //order_token_t order_token = order_source.check_in("btree_store_t<" + protocol_t::protocol_name +
+    //                                "::acquire_sindex_superblock_for_write").with_write_mode();
+    //order_token = sindex_slice->pre_begin_txn_checkpoint_.check_through(order_token);
+    /* TODO this order token should probably be passed back up and used. */
 
     /* Figure out what the superblock for this index is. */
     secondary_index_t sindex;
@@ -487,6 +489,51 @@ void btree_store_t<protocol_t>::acquire_sindex_superblock_for_write(
 
     buf_lock_t superblock_lock(txn, sindex.superblock, rwi_write);
     sindex_sb_out->init(new real_superblock_t(&superblock_lock));
+}
+
+template <class protocol_t>
+void btree_store_t<protocol_t>::acquire_all_sindex_superblocks_for_write(
+            const typename protocol_t::region_t &region_to_write,
+            block_id_t sindex_block_id,
+            write_token_pair_t *token_pair,
+            transaction_t *txn,
+            sindex_access_vector_t *sindex_sbs_out,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t) {
+    assert_thread();
+
+    /* Get the sindex block. */
+    scoped_ptr_t<buf_lock_t> sindex_block;
+    acquire_sindex_block_for_write(token_pair, txn, &sindex_block, sindex_block_id, interruptor);
+
+    std::map<uuid_u, secondary_index_t> sindexes;
+    ::get_secondary_indexes(txn, sindex_block.get(), &sindexes);
+
+    for (std::map<uuid_u, secondary_index_t>::iterator it  = sindexes.begin();
+                                                       it != sindexes.end();
+                                                       ++it) {
+        /* Getting the slice and asserting we're on the right thread. */
+        btree_slice_t *sindex_slice = &(secondary_index_slices.at(it->first));
+        sindex_slice->assert_thread();
+        /* Check in with the order source. */
+        //order_token_t order_token = order_source.check_in("btree_store_t<" + protocol_t::protocol_name +
+        //                                "::acquire_all_sindex_superblocks_for_write").with_write_mode();
+        //order_token = sindex_slice->pre_begin_txn_checkpoint_.check_through(order_token);
+        /* TODO this order token should probably be passed back up and used. */
+
+        sindex_metainfo_t metainfo;
+        get_metainfo(it->second, &metainfo);
+        guarantee(has_homogenous_value(metainfo.mask(region_to_write), sindex_details::CREATED),
+                  "Trying to write to an UNCREATED index, this means either the " \
+                  "index wasn't create, was created but isn't up to date or was " \
+                  "already deleted.");
+
+        buf_lock_t superblock_lock(txn, it->second.superblock, rwi_write);
+
+        sindex_sbs_out->push_back(new
+                sindex_access_t(get_sindex_slice(it->first), it->second, new
+                    real_superblock_t(&superblock_lock)));
+    }
 }
 
 template <class protocol_t>
