@@ -14,8 +14,8 @@ void assert_equal(const key_range_t& expected, const key_range_t& value) {
 }
 
 void assert_empty(const hash_region_t<key_range_t>& r) {
-    ASSERT_EQ(0, r.beg);
-    ASSERT_EQ(0, r.end);
+    ASSERT_EQ(0u, r.beg);
+    ASSERT_EQ(0u, r.end);
     assert_equal(key_range_t::empty(), r.inner);
 }
 
@@ -32,8 +32,8 @@ TEST(HashRegionTest, RegionJoinHashwise) {
     region_join_result_t res = region_join(vec, &r);
 
     ASSERT_EQ(REGION_JOIN_OK, res);
-    ASSERT_EQ(0, r.beg);
-    ASSERT_EQ(30, r.end);
+    ASSERT_EQ(0u, r.beg);
+    ASSERT_EQ(30u, r.end);
     assert_equal(kr, r.inner);
 }
 
@@ -49,8 +49,6 @@ TEST(HashRegionTest, RegionJoinEmpty) {
 }
 
 TEST(HashRegionTest, RegionJoinEmpties) {
-
-    key_range_t kr(key_range_t::closed, store_key_t("Alpha"), key_range_t::open, store_key_t("Beta"));
 
     std::vector<hash_region_t<key_range_t> > vec;
     vec.push_back(hash_region_t<key_range_t>());
@@ -83,8 +81,8 @@ TEST(HashRegionTest, RegionJoin2D) {
     region_join_result_t res = region_join(vec, &r);
 
     ASSERT_EQ(REGION_JOIN_OK, res);
-    ASSERT_EQ(1, r.beg);
-    ASSERT_EQ(10, r.end);
+    ASSERT_EQ(1u, r.beg);
+    ASSERT_EQ(10u, r.end);
     assert_equal(kr3, r.inner);
 }
 
@@ -109,7 +107,7 @@ TEST(HashRegionTest, SpecialNonSquareRegionJoin) {
     region_join_result_t res = region_join(vec, &r);
 
     ASSERT_EQ(REGION_JOIN_OK, res);
-    ASSERT_EQ(0, r.beg);
+    ASSERT_EQ(0u, r.beg);
     ASSERT_EQ(whole, r.end);
     assert_equal(key_range_t::universe(), r.inner);
 }
