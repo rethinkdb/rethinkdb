@@ -65,6 +65,36 @@ datum_stream_t *lazy_datum_stream_t::filter(func_t *f) {
     out->json_stream = json_stream->add_transformation(out->trans, 0, env, _s, _b);
     return out;
 }
+const datum_t *lazy_datum_stream_t::reduce(val_t *base_val, func_t *f) {
+    terminal = rdb_protocol_details::terminal_variant_t(reduce_wire_func_t(env, f));
+    rdb_protocol_t::rget_read_response_t::result_t res =
+        json_stream->apply_terminal(terminal, 0, env, _s, _b);
+
+    std::vector<boost::shared_ptr<scoped_cJSON_t> > *vec
+        = boost::get<rdb_protocol_t::rget_read_response_t::vec_t>(&res);
+    r_sanity_check(vec);
+    const datum_t *out;
+    if (base_val) {
+        out = base_val->as_datum();
+    } else {
+        rcheck(vec->size() > 0, "Cannot reduce over an empty stream with no base.");
+        out = env->add_ptr(new datum_t((*vec)[0], env));
+    }
+
+    try {
+        for (size_t i = !base_val; i < vec->size(); ++i) {
+            std::vector<const datum_t *> args;
+            args.push_back(out);
+            args.push_back(env->add_ptr(new datum_t((*vec)[i], env)));
+            out = f->call(args)->as_datum();
+        }
+    } catch (exc_t &e) {
+        e.backtrace.frames.push_front(reduce_bt_frame);
+        throw;
+    }
+
+    return out;
+}
 const datum_t *lazy_datum_stream_t::next() {
     boost::shared_ptr<scoped_cJSON_t> json = json_stream->next();
     if (!json.get()) return 0;

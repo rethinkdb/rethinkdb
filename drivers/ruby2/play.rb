@@ -272,5 +272,16 @@ rae(r([1,2,3,4,5]).reduce(r.func([1, 2], r.var(2))).opt(:base, 10), 5)
 rae(r([1,2,3,4,5]).reduce(r.func([1, 2], r.add(r.var(1), r.var(2)))), 15)
 rae(r([1,2,3,4,5]).reduce(r.func([1, 2], r.add(r.var(1), r.var(2)))).opt(:base, 1), 16)
 
+#tbl.map(r.func([1], r.var(1).getattr(:id))).reduce(r.func([1, 2], r.var(1).add(r.var(2)))).run
+
+tblids = tbl.map(r.func([1], r.var(1).getattr(:id)))
+addfn = r.func([1, 2], r.var(1).add(r.var(2)))
+rae(tblids.reduce(addfn), 1)
+rae(tblids.map(r.func([1], r.add(r.var(1), 2))).reduce(addfn), 5)
+rae(tblids.map(r.func([1], r.add(r.var(1), 2))).reduce(r.func([1, 2], 3)), 3)
+assert_raise{tblids.map(r.func([1], r.add(r.var(1), 2))).reduce(r.func([1], 3)).run}
+rae(tblids.reduce(addfn).opt(:base, 0), 1)
+rae(tblids.reduce(addfn).opt(:base, 2), 3)
+
 print "test.test: #{r.db('test').table('test').run.inspect}\n"
 print "Ran #{$tests} tests!\n"

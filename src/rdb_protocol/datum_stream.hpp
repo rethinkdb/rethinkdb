@@ -23,12 +23,14 @@ public:
                         namespace_repo_t<rdb_protocol_t>::access_t *ns_access);
     virtual datum_stream_t *filter(func_t *f);
     virtual datum_stream_t *map(func_t *f);
+    virtual const datum_t *reduce(val_t *base_val, func_t *f);
     virtual const datum_t *next();
 private:
     lazy_datum_stream_t(lazy_datum_stream_t *src);
     boost::shared_ptr<query_language::json_stream_t> json_stream;
 
     rdb_protocol_details::transform_variant_t trans;
+    rdb_protocol_details::terminal_variant_t terminal;
     query_language::scopes_t _s;
     query_language::backtrace_t _b;
 };

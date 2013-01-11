@@ -321,7 +321,10 @@ public:
             response->last_considered_key = range.left;
 
             if (terminal) {
-                boost::apply_visitor(query_language::terminal_initializer_visitor_t(&response->result, env, terminal->scopes, terminal->backtrace), terminal->variant);
+                boost::apply_visitor(query_language::terminal_initializer_visitor_t(
+                                         &response->result, env, ql_env,
+                                         terminal->scopes, terminal->backtrace),
+                                     terminal->variant);
             }
         } catch (const query_language::runtime_exc_t &e) {
             /* Evaluation threw so we're not going to be accepting any more requests. */
@@ -379,7 +382,10 @@ public:
                 for (json_list_t::iterator jt  = data.begin();
                                            jt != data.end();
                                            ++jt) {
-                    boost::apply_visitor(query_language::terminal_visitor_t(*jt, env, terminal->scopes, terminal->backtrace, &response->result), terminal->variant);
+                    boost::apply_visitor(query_language::terminal_visitor_t(
+                                             *jt, env, ql_env, terminal->scopes,
+                                             terminal->backtrace, &response->result),
+                                         terminal->variant);
                 }
                 return true;
             }

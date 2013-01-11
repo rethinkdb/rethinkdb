@@ -12,11 +12,21 @@ boost::shared_ptr<json_stream_t> json_stream_t::add_transformation(const rdb_pro
     return boost::make_shared<transform_stream_t>(shared_from_this(), env, ql_env, transform);
 }
 
-result_t json_stream_t::apply_terminal(const rdb_protocol_details::terminal_variant_t &t, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace) {
+result_t json_stream_t::apply_terminal(
+    const rdb_protocol_details::terminal_variant_t &_t,
+    runtime_environment_t *env,
+    ql::env_t *ql_env,
+    const scopes_t &scopes,
+    const backtrace_t &backtrace) {
+    rdb_protocol_details::terminal_variant_t t = _t;
     result_t res;
-    boost::apply_visitor(terminal_initializer_visitor_t(&res, env, scopes, backtrace), t);
+    boost::apply_visitor(terminal_initializer_visitor_t(&res, env, ql_env, scopes, backtrace), t);
     boost::shared_ptr<scoped_cJSON_t> json;
-    while ((json = next())) boost::apply_visitor(terminal_visitor_t(json, env, scopes, backtrace, &res), t);
+    while ((json = next())) {
+        boost::apply_visitor(terminal_visitor_t(json, env, ql_env,
+                                                scopes, backtrace, &res),
+                             t);
+    }
     return res;
 }
 
@@ -133,7 +143,12 @@ boost::shared_ptr<json_stream_t> batched_rget_stream_t::add_transformation(const
     return shared_from_this();
 }
 
-result_t batched_rget_stream_t::apply_terminal(const rdb_protocol_details::terminal_variant_t &t, UNUSED runtime_environment_t *env2, const scopes_t &scopes, const backtrace_t &per_op_backtrace) {
+result_t batched_rget_stream_t::apply_terminal(
+    const rdb_protocol_details::terminal_variant_t &t,
+    UNUSED runtime_environment_t *env2,
+    UNUSED ql::env_t *ql_env,
+    const scopes_t &scopes,
+    const backtrace_t &per_op_backtrace) {
     rdb_protocol_t::region_t region(range);
     rdb_protocol_t::rget_read_t rget_read(region);
     rget_read.transform = transform;
@@ -152,6 +167,8 @@ result_t batched_rget_stream_t::apply_terminal(const rdb_protocol_details::termi
         /* Re throw an exception if we got one. */
         if (runtime_exc_t *e = boost::get<runtime_exc_t>(&p_res->result)) {
             throw *e;
+        } else if (ql::exc_t *e2 = boost::get<ql::exc_t>(&p_res->result)) {
+            throw *e2;
         }
 
         return p_res->result;

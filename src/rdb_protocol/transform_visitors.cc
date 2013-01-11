@@ -92,21 +92,26 @@ void transform_visitor_t::operator()(ql::filter_wire_func_t &func) const {
     }
 }
 
-terminal_initializer_visitor_t::terminal_initializer_visitor_t(rget_read_response_t::result_t *_out,
-                                                               query_language::runtime_environment_t *_env,
-                                                               const scopes_t &_scopes,
-                                                               const backtrace_t &_backtrace)
-    : out(_out), env(_env), scopes(_scopes), backtrace(_backtrace)
+terminal_initializer_visitor_t::terminal_initializer_visitor_t(
+    rget_read_response_t::result_t *_out,
+    query_language::runtime_environment_t *_env,
+    ql::env_t *_ql_env,
+    const scopes_t &_scopes,
+    const backtrace_t &_backtrace)
+    : out(_out), env(_env), ql_env(_ql_env), scopes(_scopes), backtrace(_backtrace)
 { }
 
-void terminal_initializer_visitor_t::operator()(const Builtin_GroupedMapReduce &) const { *out = rget_read_response_t::groups_t(); }
+void terminal_initializer_visitor_t::operator()(const Builtin_GroupedMapReduce &) const {
+    *out = rget_read_response_t::groups_t();
+}
 
 void terminal_initializer_visitor_t::operator()(const Reduction &r) const {
     Term base = r.base();
     *out = eval_term_as_json(&base, env, scopes, backtrace.with("base"));
 }
 
-void terminal_initializer_visitor_t::operator()(const rdb_protocol_details::Length &) const {
+void terminal_initializer_visitor_t::operator()(
+    const rdb_protocol_details::Length &) const {
     rget_read_response_t::length_t l;
     l.length = 0;
     *out = l;
@@ -120,10 +125,12 @@ void terminal_initializer_visitor_t::operator()(const WriteQuery_ForEach &) cons
 
 terminal_visitor_t::terminal_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json,
                    query_language::runtime_environment_t *_env,
+                   ql::env_t *_ql_env,
                    const scopes_t &_scopes,
                    const backtrace_t &_backtrace,
                    rget_read_response_t::result_t *_out)
-    : json(_json), env(_env), scopes(_scopes), backtrace(_backtrace), out(_out)
+    : json(_json), env(_env), ql_env(_ql_env),
+      scopes(_scopes), backtrace(_backtrace), out(_out)
 { }
 
 void terminal_visitor_t::operator()(const Builtin_GroupedMapReduce &gmr) const {
@@ -187,6 +194,33 @@ void terminal_visitor_t::operator()(const WriteQuery_ForEach &w) const {
         WriteQuery q = w.queries(i);
         Response r; //TODO we need to actually return this somewhere I suppose.
         execute_write_query(&q, env, &r, scopes_copy, backtrace.with(strprintf("query:%d", i)));
+    }
+}
+
+void terminal_initializer_visitor_t::operator()(
+    UNUSED const ql::reduce_wire_func_t &f) const {
+    *out = rget_read_response_t::empty_t();
+}
+
+void terminal_visitor_t::operator()(ql::reduce_wire_func_t &func) const {
+    try {
+        rget_read_response_t::atom_t *res_atom =
+            boost::get<rget_read_response_t::atom_t>(out);
+        if (res_atom) {
+            // TODO (!!!) make this not be horrendously inefficient.
+            // (requires ripping out JSON stuff)
+            ql::env_checkpointer_t(ql_env, &ql::env_t::discard_checkpoint);
+            std::vector<const ql::datum_t *> args;
+            args.push_back(ql_env->add_ptr(new ql::datum_t(*res_atom, ql_env)));
+            args.push_back(ql_env->add_ptr(new ql::datum_t(json, ql_env)));
+            *res_atom = func.compile(ql_env)->call(args)->as_datum()->as_json();
+        } else {
+            guarantee(boost::get<rget_read_response_t::empty_t>(out));
+            *out = json;
+        }
+    } catch (ql::exc_t &e) {
+        e.backtrace.frames.push_front(func.bt());
+        throw;
     }
 }
 

@@ -98,7 +98,12 @@ struct backfill_atom_t {
     RDB_MAKE_ME_SERIALIZABLE_3(key, value, recency);
 };
 
-typedef boost::variant<Builtin_Filter, Mapping, Builtin_ConcatMap, Builtin_Range, ql::map_wire_func_t, ql::filter_wire_func_t>  transform_variant_t;
+typedef boost::variant<Builtin_Filter,
+                       Mapping,
+                       Builtin_ConcatMap,
+                       Builtin_Range,
+                       ql::map_wire_func_t,
+                       ql::filter_wire_func_t> transform_variant_t;
 
 struct transform_atom_t {
     transform_atom_t() { }
@@ -122,7 +127,11 @@ struct Length {
     RDB_MAKE_ME_SERIALIZABLE_0();
 };
 
-typedef boost::variant<Builtin_GroupedMapReduce, Reduction, Length, WriteQuery_ForEach> terminal_variant_t;
+typedef boost::variant<Builtin_GroupedMapReduce,
+                       Reduction,
+                       Length,
+                       WriteQuery_ForEach,
+                       ql::reduce_wire_func_t> terminal_variant_t;
 
 struct terminal_t {
     terminal_t() { }
@@ -196,7 +205,9 @@ struct rdb_protocol_t {
         };
 
 
-        typedef boost::variant<stream_t, groups_t, atom_t, length_t, inserted_t, runtime_exc_t, ql::exc_t> result_t;
+        typedef std::vector<boost::shared_ptr<scoped_cJSON_t> > vec_t;
+        class empty_t { RDB_MAKE_ME_SERIALIZABLE_0() };
+        typedef boost::variant<stream_t, groups_t, atom_t, length_t, inserted_t, runtime_exc_t, ql::exc_t, empty_t, vec_t> result_t;
 
         key_range_t key_range;
         result_t result;

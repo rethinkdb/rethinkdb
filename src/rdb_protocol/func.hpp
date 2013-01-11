@@ -46,42 +46,20 @@ public:
     //RDB_MAKE_ME_SERIALIZABLE_2(source, scope);
 };
 
-static const int map_bt_frame = 1;
-class map_wire_func_t : public wire_func_t {
-public:
-    map_wire_func_t() : wire_func_t() { }
-    map_wire_func_t(env_t *env, func_t *func) : wire_func_t(env, func) { }
-    virtual backtrace_t::frame_t bt() { return map_bt_frame; }
-    RDB_MAKE_ME_SERIALIZABLE_2(source, scope);
-};
+#define SIMPLE_FUNC_IMPL(name, frame_num)                                     \
+static const int name##_bt_frame = frame_num;                                 \
+class name##_wire_func_t : public wire_func_t {                               \
+public:                                                                       \
+    name##_wire_func_t() : wire_func_t() { }                                  \
+    name##_wire_func_t(env_t *env, func_t *func) : wire_func_t(env, func) { } \
+    virtual backtrace_t::frame_t bt() { return name##_bt_frame; }             \
+    RDB_MAKE_ME_SERIALIZABLE_2(source, scope);                                \
+};                                                                            \
 
-static const int filter_bt_frame = 1;
-class filter_wire_func_t : public wire_func_t {
-public:
-    filter_wire_func_t() : wire_func_t() { }
-    filter_wire_func_t(env_t *env, func_t *func) : wire_func_t(env, func) { }
-    virtual backtrace_t::frame_t bt() { return filter_bt_frame; }
-    RDB_MAKE_ME_SERIALIZABLE_2(source, scope);
-};
-
-static const int reduce_bt_frame = 1;
-#ifndef NDEBUG
-static const int reduce_gc_rounds = 1000;
-#else
-static const int reduce_gc_rounds = 1;
-#endif // NDEBUG
-class reduce_wire_func_t : public wire_func_t {
-public:
-    reduce_wire_func_t() : wire_func_t() { }
-    reduce_wire_func_t(env_t *env, datum_t *base, func_t *func) :
-        wire_func_t(env, func) {
-        base->write_to_protobuf(&base_pb);
-    }
-    virtual backtrace_t::frame_t bt() { return reduce_bt_frame; }
-private:
-    Datum base_pb;
-    RDB_MAKE_ME_SERIALIZABLE_3(source, scope, base_pb);
-};
+SIMPLE_FUNC_IMPL(map, 1);
+SIMPLE_FUNC_IMPL(filter, 1);
+static const int reduce_gc_rounds = 100 DEBUG_ONLY(* 0 + 1);
+SIMPLE_FUNC_IMPL(reduce, 1);
 
 class func_term_t : public term_t {
 public:
