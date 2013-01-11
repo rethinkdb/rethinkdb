@@ -60,7 +60,8 @@ TEST(UtilsTest, StrtofooStrict) {
 
 TEST(UtilsTest, Time) {
     // Change the timezone for the duration of this test
-    char *oldtz = getenv("TZ");
+    char *hastz = getenv("TZ");
+    std::string oldtz(hastz ? hastz : "");
     setenv("TZ", "America/Los_Angeles", 1);
     tzset();
 
@@ -71,7 +72,11 @@ TEST(UtilsTest, Time) {
     EXPECT_EQ(time.tv_sec, parsed.tv_sec);
     EXPECT_EQ(time.tv_nsec, parsed.tv_nsec);
 
-    setenv("TZ", oldtz, 1);
+    if (hastz) {
+      setenv("TZ", oldtz.c_str(), 1);
+    } else {
+      unsetenv("TZ");
+    }
     tzset();
 }
 
