@@ -13,6 +13,30 @@ datum_stream_t *datum_stream_t::map(func_t *f) {
 datum_stream_t *datum_stream_t::filter(func_t *f) {
     return env->add_ptr(new filter_datum_stream_t(env, f, this));
 }
+const datum_t *datum_stream_t::reduce(val_t *base_val, func_t *f) {
+    const datum_t *base = base_val ? base_val->as_datum() : next();
+    rcheck(base, "Cannot reduce over an empty stream with no base.");
+    try {
+        const datum_t *rhs = base;
+        while (rhs) {
+            env_checkpointer_t chk(env, &env_t::merge_checkpoint);
+            for (int i = 0; i < reduce_gc_rounds; ++i) {
+                if (!(rhs = next())) break;
+                guarantee(base != rhs);
+
+                std::vector<const datum_t *> args;
+                args.push_back(base);
+                args.push_back(rhs);
+                base = f->call(args)->as_datum();
+            }
+            chk.gc(base);
+        }
+        return base;
+    } catch (exc_t &e) {
+        e.backtrace.frames.push_front(reduce_bt_frame);
+        throw;
+    }
+}
 datum_stream_t *datum_stream_t::slice(size_t l, size_t r) {
     return env->add_ptr(new slice_datum_stream_t(env, l, r, this));
 }
@@ -58,7 +82,9 @@ const datum_t *array_datum_stream_t::next() {
 
 // MAP_DATUM_STREAM_T
 map_datum_stream_t::map_datum_stream_t(env_t *env, func_t *_f, datum_stream_t *_src)
-    : datum_stream_t(env), f(_f), src(_src) { guarantee(f && src); }
+    : datum_stream_t(env), f(_f), src(_src) {
+    guarantee(f && src);
+}
 const datum_t *map_datum_stream_t::next() {
     try {
         const datum_t *arg = src->next();
@@ -75,7 +101,9 @@ const datum_t *map_datum_stream_t::next() {
 // FILTER_DATUM_STREAM_T
 filter_datum_stream_t::filter_datum_stream_t(
     env_t *env, func_t *_f, datum_stream_t *_src)
-    : datum_stream_t(env), f(_f), src(_src) { guarantee(f && src); }
+    : datum_stream_t(env), f(_f), src(_src) {
+    guarantee(f && src);
+}
 const datum_t *filter_datum_stream_t::next() {
     try {
         const datum_t *arg = 0;

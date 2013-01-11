@@ -481,6 +481,9 @@ RT_CXXFLAGS+=-O0
 ifeq ($(KEEP_INLINE),1)
 RT_CXXFLAGS+=-fkeep-inline-functions
 endif
+ifeq ($(NO_INLINE),1)
+RT_CXXFLAGS+=-fno-inline
+endif
 
 else
 # use -fno-strict-aliasing to not break things

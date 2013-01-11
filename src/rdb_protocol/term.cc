@@ -49,8 +49,7 @@ term_t *compile_term(env_t *env, const Term2 *t) {
     case Term2_TermType_WITHOUT:      return new without_term_t(env, t);
     case Term2_TermType_MERGE:        return new merge_term_t(env, t);
     case Term2_TermType_BETWEEN:      return new between_term_t(env, t);
-    case Term2_TermType_REDUCE:
-        break;
+    case Term2_TermType_REDUCE:       return new reduce_term_t(env, t);
     case Term2_TermType_MAP:          return new map_term_t(env, t);
     case Term2_TermType_FILTER:       return new filter_term_t(env, t);
     case Term2_TermType_CONCATMAP:
@@ -76,8 +75,7 @@ term_t *compile_term(env_t *env, const Term2 *t) {
     case Term2_TermType_TABLE_CREATE:
     case Term2_TermType_TABLE_DROP:
     case Term2_TermType_TABLE_LIST:
-    case Term2_TermType_FUNCALL:
-        break;
+    case Term2_TermType_FUNCALL: break;
     case Term2_TermType_BRANCH: return new branch_term_t(env, t);
     case Term2_TermType_ANY: return new any_term_t(env, t);
     case Term2_TermType_ALL: return new all_term_t(env, t);

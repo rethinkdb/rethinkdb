@@ -264,5 +264,13 @@ rae(r.branch(true, 1, 2), 1.0)
 rae(r.branch(false, 1, 2), 2.0)
 rae(r.branch(1, 1, 2), 1.0)
 
+rae(r([1,2,3,4,5]).reduce(r.func([1, 2], 1)), 1)
+rae(r([1,2,3,4,5]).reduce(r.func([1, 2], r.var(1))), 1)
+rae(r([1,2,3,4,5]).reduce(r.func([1, 2], r.var(2))), 5)
+rae(r([1,2,3,4,5]).reduce(r.func([1, 2], r.var(1))).opt(:base, 10), 10)
+rae(r([1,2,3,4,5]).reduce(r.func([1, 2], r.var(2))).opt(:base, 10), 5)
+rae(r([1,2,3,4,5]).reduce(r.func([1, 2], r.add(r.var(1), r.var(2)))), 15)
+rae(r([1,2,3,4,5]).reduce(r.func([1, 2], r.add(r.var(1), r.var(2)))).opt(:base, 1), 16)
+
 print "test.test: #{r.db('test').table('test').run.inspect}\n"
 print "Ran #{$tests} tests!\n"

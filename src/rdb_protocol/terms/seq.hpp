@@ -24,6 +24,18 @@ private:
     RDB_NAME("filter")
 };
 
+static const char *const reduce_optargs[] = {"base"};
+class reduce_term_t : public op_term_t {
+public:
+    reduce_term_t(env_t *env, const Term2 *term) :
+        op_term_t(env, term, argspec_t(2), LEGAL_OPTARGS(reduce_optargs)) { }
+private:
+    virtual val_t *eval_impl() {
+        return new_val(arg(0)->as_seq()->reduce(optarg("base", 0), arg(1)->as_func()));
+    }
+    RDB_NAME("reduce")
+};
+
 static const char *const between_optargs[] = {"left_bound", "right_bound"};
 class between_term_t : public op_term_t {
 public:

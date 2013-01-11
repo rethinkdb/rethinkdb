@@ -51,9 +51,7 @@ public:
     template<class T>
     T *add_ptr(T *p) {
         r_sanity_check(bags.size() > 0);
-        for (size_t i = 0; i < bags.size(); ++i) {
-            if (bags[i]->has(p)) return p;
-        }
+        if (some_bag_has(p)) return p;
         bags[bags.size()-1]->add(p);
         return p;
     }
@@ -79,9 +77,43 @@ public:
         return bags.size()-1;
     }
 private:
+    bool some_bag_has(const ptr_baggable_t *p) {
+        for (size_t i = 0; i < bags.size(); ++i) if (bags[i]->has(p)) return true;
+        return false;
+    }
+
     friend class env_checkpointer_t;
     void checkpoint() {
         bags.push_back(new ptr_bag_t());
+    }
+
+    ptr_bag_t *old_bag;
+    ptr_bag_t *new_bag;
+    static bool gc_callback_trampoline(const datum_t *el, env_t *env) {
+        return env->gc_callback(el);
+    }
+    bool gc_callback(const datum_t *el) {
+        if (old_bag->has(el)) {
+            old_bag->yield_to(new_bag, el, true /*dup_ok*/);
+            return true;
+        }
+        r_sanity_check(some_bag_has(el));
+        return false;
+    }
+    void gc(const datum_t *root) {
+        old_bag = get_bag();
+        scoped_ptr_t<ptr_bag_t> _new_bag(new ptr_bag_t);
+        new_bag = _new_bag.get();
+        // debugf("GC {\n");
+        // debugf("  old_bag: %s\n", old_bag->print_debug().c_str());
+        // debugf("  new_bag: %s\n", new_bag->print_debug().c_str());
+        root->iter(gc_callback_trampoline, this);
+        // debugf(" --- \n");
+        // debugf("  old_bag: %s\n", old_bag->print_debug().c_str());
+        // debugf("  new_bag: %s\n", new_bag->print_debug().c_str());
+        // debugf("}\n");
+        get_bag() = _new_bag.release();
+        delete old_bag;
     }
 public:
     void merge_checkpoint() {
@@ -99,7 +131,7 @@ public:
         delete bags[0];
     }
 private:
-    ptr_bag_t *get_bag() {
+    ptr_bag_t *&get_bag() {
         r_sanity_check(bags.size() > 0);
         return bags[bags.size()-1];
     }
@@ -107,13 +139,18 @@ private:
 
 public:
     void push_var(int var, const datum_t **val) {
+        //debugf("VAR push %d -> %p\n", var, val);
         vars[var].push(val);
     }
     const datum_t **top_var(int var) {
         rcheck(!vars[var].empty(), strprintf("Unrecognized variabled %d", var));
+        //debugf("VAR top %d -> %p\n", var, vars[var].top());
         return vars[var].top();
     }
-    void pop_var(int var) { vars[var].pop(); }
+    void pop_var(int var) {
+        //debugf("VAR pop %d (%p)\n", var, vars[var].top());
+        vars[var].pop();
+    }
     const datum_t **get_var(int var) { return vars[var].top(); }
     void dump_scope(std::map<int, Datum> *out) {
         for (std::map<int, std::stack<const datum_t **> >::iterator
@@ -204,6 +241,7 @@ public:
     }
     ~env_checkpointer_t() { (env->*f)(); }
     void reset(void (env_t::*_f)()) { f = _f; }
+    void gc(const datum_t *root) { env->gc(root); }
 private:
     env_t *env;
     void (env_t::*f)();

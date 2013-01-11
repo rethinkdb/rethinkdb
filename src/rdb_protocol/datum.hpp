@@ -78,6 +78,7 @@ public:
     bool operator>(const datum_t &rhs) const;
     bool operator>=(const datum_t &rhs) const;
 
+    void iter(bool (*callback)(const datum_t *, env_t *), env_t *env) const;
 private:
     void init_json(cJSON *json, env_t *env);
 

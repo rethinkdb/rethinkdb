@@ -58,6 +58,22 @@ public:
     bool has(const ptr_baggable_t *ptr) {
         return ptrs.count(const_cast<ptr_baggable_t *>(ptr)) > 0;
     }
+
+    void yield_to(ptr_bag_t *new_bag, const ptr_baggable_t *ptr, bool dup_ok = false) {
+        size_t num_erased = ptrs.erase(const_cast<ptr_baggable_t *>(ptr));
+        guarantee(num_erased == 1);
+        if (dup_ok && new_bag->has(ptr)) return;
+        new_bag->add(ptr);
+    }
+
+    std::string print_debug() const {
+        std::string acc = strprintf("%lu [", ptrs.size());
+        for (std::set<ptr_baggable_t *>::const_iterator
+                 it = ptrs.begin(); it != ptrs.end(); ++it) {
+            acc += (it == ptrs.begin() ? "" : ", ") + strprintf("%p", *it);
+        }
+        return acc + "]";
+    }
 private:
     void real_add(ptr_baggable_t *ptr) {
         pblog("adding %p to %p", ptr, this);

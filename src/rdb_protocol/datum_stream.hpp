@@ -10,6 +10,7 @@ public:
     virtual ~datum_stream_t() { }
     virtual datum_stream_t *map(func_t *f);
     virtual datum_stream_t *filter(func_t *f);
+    virtual const datum_t *reduce(val_t *base_val, func_t *f);
     virtual datum_stream_t *slice(size_t l, size_t r);
     virtual const datum_t *next() = 0;
 protected:

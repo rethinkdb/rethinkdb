@@ -64,6 +64,25 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_2(source, scope);
 };
 
+static const int reduce_bt_frame = 1;
+#ifndef NDEBUG
+static const int reduce_gc_rounds = 1000;
+#else
+static const int reduce_gc_rounds = 1;
+#endif // NDEBUG
+class reduce_wire_func_t : public wire_func_t {
+public:
+    reduce_wire_func_t() : wire_func_t() { }
+    reduce_wire_func_t(env_t *env, datum_t *base, func_t *func) :
+        wire_func_t(env, func) {
+        base->write_to_protobuf(&base_pb);
+    }
+    virtual backtrace_t::frame_t bt() { return reduce_bt_frame; }
+private:
+    Datum base_pb;
+    RDB_MAKE_ME_SERIALIZABLE_3(source, scope, base_pb);
+};
+
 class func_term_t : public term_t {
 public:
     func_term_t(env_t *env, const Term2 *term);
