@@ -57,7 +57,7 @@ func_t::func_t(env_t *env, const Term2 *_source) : body(0), source(_source) {
     }
 }
 
-val_t *func_t::call(const std::vector<const datum_t *> &args) {
+val_t *func_t::_call(const std::vector<const datum_t *> &args) {
     rcheck(args.size() == argptrs.size(),
            strprintf("Passed %lu arguments to function of arity %lu.",
                      args.size(), argptrs.size()));
@@ -68,6 +68,19 @@ val_t *func_t::call(const std::vector<const datum_t *> &args) {
     }
     return body->eval(false);
     //                ^^^^^ don't use cached value
+}
+
+val_t *func_t::call(const datum_t *arg) {
+    std::vector<const datum_t *> args;
+    args.push_back(arg);
+    return _call(args);
+}
+
+val_t *func_t::call(const datum_t *arg1, const datum_t *arg2) {
+    std::vector<const datum_t *> args;
+    args.push_back(arg1);
+    args.push_back(arg2);
+    return _call(args);
 }
 
 wire_func_t::wire_func_t() { }

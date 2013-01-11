@@ -17,7 +17,9 @@ namespace ql {
 class func_t : public ptr_baggable_t {
 public:
     func_t(env_t *env, const Term2 *_source);
-    val_t *call(const std::vector<const datum_t *> &args);
+    val_t *_call(const std::vector<const datum_t *> &args);
+    val_t *call(const datum_t *arg);
+    val_t *call(const datum_t *arg1, const datum_t *arg2);
 private:
     std::vector<const datum_t *> argptrs;
     term_t *body;
@@ -60,6 +62,7 @@ SIMPLE_FUNC_IMPL(map, 1);
 SIMPLE_FUNC_IMPL(filter, 1);
 static const int reduce_gc_rounds = 100 DEBUG_ONLY(* 0 + 1);
 SIMPLE_FUNC_IMPL(reduce, 1);
+SIMPLE_FUNC_IMPL(concatmap, 1);
 
 class func_term_t : public term_t {
 public:

@@ -8,8 +8,9 @@ class datum_stream_t : public ptr_baggable_t {
 public:
     datum_stream_t(env_t *_env);
     virtual ~datum_stream_t() { }
-    virtual datum_stream_t *map(func_t *f);
     virtual datum_stream_t *filter(func_t *f);
+    virtual datum_stream_t *map(func_t *f);
+    virtual datum_stream_t *concatmap(func_t *f);
     virtual const datum_t *reduce(val_t *base_val, func_t *f);
     virtual datum_stream_t *slice(size_t l, size_t r);
     virtual const datum_t *next() = 0;
@@ -23,6 +24,7 @@ public:
                         namespace_repo_t<rdb_protocol_t>::access_t *ns_access);
     virtual datum_stream_t *filter(func_t *f);
     virtual datum_stream_t *map(func_t *f);
+    virtual datum_stream_t *concatmap(func_t *f);
     virtual const datum_t *reduce(val_t *base_val, func_t *f);
     virtual const datum_t *next();
 private:
@@ -46,7 +48,8 @@ private:
 
 class map_datum_stream_t : public datum_stream_t {
 public:
-    map_datum_stream_t(env_t *env, func_t *_f, datum_stream_t *_src);
+    map_datum_stream_t(env_t *env, func_t *_f, datum_stream_t *_src)
+        : datum_stream_t(env), f(_f), src(_src) { guarantee(f && src); }
     virtual const datum_t *next();
 private:
     func_t *f;
@@ -55,11 +58,27 @@ private:
 
 class filter_datum_stream_t : public datum_stream_t {
 public:
-    filter_datum_stream_t(env_t *env, func_t *_f, datum_stream_t *_src);
+    filter_datum_stream_t(env_t *env, func_t *_f, datum_stream_t *_src)
+        : datum_stream_t(env), f(_f), src(_src) { guarantee(f && src); }
     virtual const datum_t *next();
 private:
     func_t *f;
     datum_stream_t *src;
+};
+
+class concatmap_datum_stream_t : public datum_stream_t {
+public:
+    concatmap_datum_stream_t(env_t *env, func_t *_f, datum_stream_t *_src)
+        : datum_stream_t(env), f(_f), src(_src), index(0), arr(0) {
+        guarantee(f && src);
+    }
+    virtual const datum_t *next();
+private:
+    func_t *f;
+    datum_stream_t *src;
+
+    size_t index;
+    const datum_t *arr;
 };
 
 class slice_datum_stream_t : public datum_stream_t {

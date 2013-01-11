@@ -103,7 +103,8 @@ typedef boost::variant<Builtin_Filter,
                        Builtin_ConcatMap,
                        Builtin_Range,
                        ql::map_wire_func_t,
-                       ql::filter_wire_func_t> transform_variant_t;
+                       ql::filter_wire_func_t,
+                       ql::concatmap_wire_func_t> transform_variant_t;
 
 struct transform_atom_t {
     transform_atom_t() { }

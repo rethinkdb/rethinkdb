@@ -10,6 +10,9 @@ datum_stream_t::datum_stream_t(env_t *_env) : env(_env) { guarantee(env); }
 datum_stream_t *datum_stream_t::map(func_t *f) {
     return env->add_ptr(new map_datum_stream_t(env, f, this));
 }
+datum_stream_t *datum_stream_t::concatmap(func_t *f) {
+    return env->add_ptr(new concatmap_datum_stream_t(env, f, this));
+}
 datum_stream_t *datum_stream_t::filter(func_t *f) {
     return env->add_ptr(new filter_datum_stream_t(env, f, this));
 }
@@ -23,11 +26,7 @@ const datum_t *datum_stream_t::reduce(val_t *base_val, func_t *f) {
             for (int i = 0; i < reduce_gc_rounds; ++i) {
                 if (!(rhs = next())) break;
                 guarantee(base != rhs);
-
-                std::vector<const datum_t *> args;
-                args.push_back(base);
-                args.push_back(rhs);
-                base = f->call(args)->as_datum();
+                base = f->call(base, rhs)->as_datum();
             }
             chk.gc(base);
         }
@@ -53,18 +52,20 @@ lazy_datum_stream_t::lazy_datum_stream_t(lazy_datum_stream_t *src)
     :datum_stream_t(src->env) {
     *this = *src;
 }
-datum_stream_t *lazy_datum_stream_t::map(func_t *f) {
-    lazy_datum_stream_t *out = env->add_ptr(new lazy_datum_stream_t(this));
-    out->trans = rdb_protocol_details::transform_variant_t(map_wire_func_t(env, f));
-    out->json_stream = json_stream->add_transformation(out->trans, 0, env, _s, _b);
-    return out;
+
+#define SIMPLE_LAZY_TRANSFORMATION(name)                                                \
+datum_stream_t *lazy_datum_stream_t::name(func_t *f) {                                  \
+    lazy_datum_stream_t *out = env->add_ptr(new lazy_datum_stream_t(this));             \
+    out->trans = rdb_protocol_details::transform_variant_t(name##_wire_func_t(env, f)); \
+    out->json_stream = json_stream->add_transformation(out->trans, 0, env, _s, _b);     \
+    return out;                                                                         \
 }
-datum_stream_t *lazy_datum_stream_t::filter(func_t *f) {
-    lazy_datum_stream_t *out = env->add_ptr(new lazy_datum_stream_t(this));
-    out->trans = rdb_protocol_details::transform_variant_t(filter_wire_func_t(env, f));
-    out->json_stream = json_stream->add_transformation(out->trans, 0, env, _s, _b);
-    return out;
-}
+
+SIMPLE_LAZY_TRANSFORMATION(map);
+SIMPLE_LAZY_TRANSFORMATION(concatmap);
+SIMPLE_LAZY_TRANSFORMATION(filter);
+#undef SIMPLE_LAZY_TRANSFORMATION
+
 const datum_t *lazy_datum_stream_t::reduce(val_t *base_val, func_t *f) {
     terminal = rdb_protocol_details::terminal_variant_t(reduce_wire_func_t(env, f));
     rdb_protocol_t::rget_read_response_t::result_t res =
@@ -83,10 +84,8 @@ const datum_t *lazy_datum_stream_t::reduce(val_t *base_val, func_t *f) {
 
     try {
         for (size_t i = !base_val; i < vec->size(); ++i) {
-            std::vector<const datum_t *> args;
-            args.push_back(out);
-            args.push_back(env->add_ptr(new datum_t((*vec)[i], env)));
-            out = f->call(args)->as_datum();
+            const datum_t *rhs = env->add_ptr(new datum_t((*vec)[i], env));
+            out = f->call(out, rhs)->as_datum();
         }
     } catch (exc_t &e) {
         e.backtrace.frames.push_front(reduce_bt_frame);
@@ -111,39 +110,42 @@ const datum_t *array_datum_stream_t::next() {
 }
 
 // MAP_DATUM_STREAM_T
-map_datum_stream_t::map_datum_stream_t(env_t *env, func_t *_f, datum_stream_t *_src)
-    : datum_stream_t(env), f(_f), src(_src) {
-    guarantee(f && src);
-}
 const datum_t *map_datum_stream_t::next() {
     try {
         const datum_t *arg = src->next();
         if (!arg) return 0;
-        std::vector<const datum_t *> args;
-        args.push_back(arg);
-        return f->call(args)->as_datum();
+        return f->call(arg)->as_datum();
     } catch (exc_t &e) {
         e.backtrace.frames.push_front(map_bt_frame);
         throw;
     }
 }
 
-// FILTER_DATUM_STREAM_T
-filter_datum_stream_t::filter_datum_stream_t(
-    env_t *env, func_t *_f, datum_stream_t *_src)
-    : datum_stream_t(env), f(_f), src(_src) {
-    guarantee(f && src);
+// CONCATMAP_DATUM_STREAM_T
+const datum_t *concatmap_datum_stream_t::next() {
+    try {
+        while (!arr || index >= arr->size()) {
+            const datum_t *arg = src->next();
+            if (!arg) return 0;
+            arr = f->call(arg)->as_datum();
+            index = 0;
+        }
+        return arr->el(index++);
+    } catch (exc_t &e) {
+        e.backtrace.frames.push_front(concatmap_bt_frame);
+        throw;
+    }
 }
+
+// FILTER_DATUM_STREAM_T
 const datum_t *filter_datum_stream_t::next() {
     try {
         const datum_t *arg = 0;
         for (;;) {
             env_checkpointer_t outer_checkpoint(env, &env_t::discard_checkpoint);
             if (!(arg = src->next())) return 0;
-            std::vector<const datum_t *> args;
-            args.push_back(arg);
             env_checkpointer_t inner_checkpoint(env, &env_t::discard_checkpoint);
-            if (f->call(args)->as_datum()->as_bool()) {
+            if (f->call(arg)->as_datum()->as_bool()) {
                 outer_checkpoint.reset(&env_t::merge_checkpoint);
                 break;
             }

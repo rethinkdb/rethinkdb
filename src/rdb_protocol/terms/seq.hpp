@@ -14,6 +14,17 @@ private:
     RDB_NAME("map");
 };
 
+class concatmap_term_t : public op_term_t {
+public:
+    concatmap_term_t(env_t *env, const Term2 *term)
+        : op_term_t(env, term, argspec_t(2)) { }
+private:
+    virtual val_t *eval_impl() {
+        return new_val(arg(0)->as_seq()->concatmap(arg(1)->as_func()));
+    }
+    RDB_NAME("concatmap")
+};
+
 class filter_term_t : public op_term_t {
 public:
     filter_term_t(env_t *env, const Term2 *term) : op_term_t(env, term, argspec_t(2)) { }

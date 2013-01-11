@@ -66,12 +66,20 @@ void transform_visitor_t::operator()(Builtin_Range range) const {
 void transform_visitor_t::operator()(ql::map_wire_func_t &func) const {
     try {
         ql::env_checkpointer_t(ql_env, &ql::env_t::discard_checkpoint);
-        ql::func_t *f = func.compile(ql_env);
         const ql::datum_t *arg = ql_env->add_ptr(new ql::datum_t(json, ql_env));
-        std::vector<const ql::datum_t *> args;
-        args.push_back(arg);
-        ql::val_t *v = f->call(args);
-        out->push_back(v->as_datum()->as_json());
+        out->push_back(func.compile(ql_env)->call(arg)->as_datum()->as_json());
+    } catch (ql::exc_t &e) {
+        e.backtrace.frames.push_front(func.bt());
+        throw;
+    }
+}
+
+void transform_visitor_t::operator()(ql::concatmap_wire_func_t &func) const {
+    try {
+        ql::env_checkpointer_t(ql_env, &ql::env_t::discard_checkpoint);
+        const ql::datum_t *arg = ql_env->add_ptr(new ql::datum_t(json, ql_env));
+        const ql::datum_t *d = func.compile(ql_env)->call(arg)->as_datum();
+        for (size_t i = 0; i < d->size(); ++i) out->push_back(d->el(i)->as_json());
     } catch (ql::exc_t &e) {
         e.backtrace.frames.push_front(func.bt());
         throw;
@@ -83,9 +91,7 @@ void transform_visitor_t::operator()(ql::filter_wire_func_t &func) const {
         ql::env_checkpointer_t(ql_env, &ql::env_t::discard_checkpoint);
         ql::func_t *f = func.compile(ql_env);
         const ql::datum_t *arg = ql_env->add_ptr(new ql::datum_t(json, ql_env));
-        std::vector<const ql::datum_t *> args;
-        args.push_back(arg);
-        if (f->call(args)->as_datum()->as_bool()) out->push_back(arg->as_json());
+        if (f->call(arg)->as_datum()->as_bool()) out->push_back(arg->as_json());
     } catch (ql::exc_t &e) {
         e.backtrace.frames.push_front(func.bt());
         throw;
@@ -210,10 +216,9 @@ void terminal_visitor_t::operator()(ql::reduce_wire_func_t &func) const {
             // TODO (!!!) make this not be horrendously inefficient.
             // (requires ripping out JSON stuff)
             ql::env_checkpointer_t(ql_env, &ql::env_t::discard_checkpoint);
-            std::vector<const ql::datum_t *> args;
-            args.push_back(ql_env->add_ptr(new ql::datum_t(*res_atom, ql_env)));
-            args.push_back(ql_env->add_ptr(new ql::datum_t(json, ql_env)));
-            *res_atom = func.compile(ql_env)->call(args)->as_datum()->as_json();
+            const ql::datum_t *l = ql_env->add_ptr(new ql::datum_t(*res_atom, ql_env));
+            const ql::datum_t *r = ql_env->add_ptr(new ql::datum_t(json, ql_env));
+            *res_atom = func.compile(ql_env)->call(l, r)->as_datum()->as_json();
         } else {
             guarantee(boost::get<rget_read_response_t::empty_t>(out));
             *out = json;

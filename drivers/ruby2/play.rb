@@ -283,5 +283,11 @@ assert_raise{tblids.map(r.func([1], r.add(r.var(1), 2))).reduce(r.func([1], 3)).
 rae(tblids.reduce(addfn).opt(:base, 0), 1)
 rae(tblids.reduce(addfn).opt(:base, 2), 3)
 
+rae(r([1,2,3,4,5]).concatmap(r.func([1], r.make_array(r.var(1), r.var(1)))),
+    [1.0, 1.0, 2.0, 2.0, 3.0, 3.0, 4.0, 4.0, 5.0, 5.0])
+
+rae(tbl.concatmap(r.func([1], r.make_array(r.var(1), r.var(1)))).run,
+    [{"id"=>0.0}, {"id"=>0.0}, {"id"=>1.0}, {"id"=>1.0}])
+
 print "test.test: #{r.db('test').table('test').run.inspect}\n"
 print "Ran #{$tests} tests!\n"
