@@ -3,6 +3,8 @@
 #include <stdint.h>
 #include <math.h>
 
+#include <cmath>  // for std::isnan -- read the comment below.
+
 #include "perfmon/perfmon.hpp"
 #include "unittest/gtest.hpp"
 
