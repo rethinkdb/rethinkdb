@@ -293,5 +293,8 @@ rae(lst.orderby([:a]),
     [{"a"=>0.0, "id"=>2.0}, {"a"=>1.0, "id"=>0.0}, {"a"=>1.0, "id"=>1.0}])
 rae(lst.orderby([:a, '-id']),
     [{"a"=>0.0, "id"=>2.0}, {"a"=>1.0, "id"=>1.0}, {"a"=>1.0, "id"=>0.0}])
+
+rae(r([1, 2, 3, 1, 2, 4, 1, 4, 5]).distinct, [1.0, 2.0, 3.0, 4.0, 5.0])
+
 print "test.test: #{r.db('test').table('test').run.inspect}\n"
 print "Ran #{$tests} tests!\n"
