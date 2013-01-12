@@ -839,6 +839,7 @@ unit:
 	$(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME) --gtest_filter=$(UNIT_TEST_FILTER)
 
 $(UNIT_STATIC_LIBRARY_PATH):
+	@echo "    GTEST"
 	$(QUIET) cd $(EXTERNAL_DIR)/gtest-1.6.0/make && make gtest.a
 
 # Packaging
