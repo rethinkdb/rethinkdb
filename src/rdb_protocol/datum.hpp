@@ -18,7 +18,8 @@ class datum_stream_t;
 class datum_t : public ptr_baggable_t {
 public:
     datum_t(); // R_NULL
-    explicit datum_t(bool _bool);
+    explicit datum_t(bool _bool); // undefined, catches implicit conversion errors
+    datum_t(bool _bool, bool __bool);
     explicit datum_t(double _num);
     explicit datum_t(int _num);
     explicit datum_t(const std::string &_str);

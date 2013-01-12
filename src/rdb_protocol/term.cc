@@ -12,6 +12,7 @@
 #include "rdb_protocol/terms/obj_or_seq.hpp"
 #include "rdb_protocol/terms/pred.hpp"
 #include "rdb_protocol/terms/seq.hpp"
+#include "rdb_protocol/terms/sort.hpp"
 #include "rdb_protocol/terms/var.hpp"
 
 namespace ql {
@@ -53,7 +54,7 @@ term_t *compile_term(env_t *env, const Term2 *t) {
     case Term2_TermType_MAP:          return new map_term_t(env, t);
     case Term2_TermType_FILTER:       return new filter_term_t(env, t);
     case Term2_TermType_CONCATMAP:    return new concatmap_term_t(env, t);
-    case Term2_TermType_ORDERBY:
+    case Term2_TermType_ORDERBY:      return new orderby_term_t(env, t);
     case Term2_TermType_DISTINCT:
     case Term2_TermType_COUNT:
     case Term2_TermType_UNION:

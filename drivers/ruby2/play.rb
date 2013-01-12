@@ -272,8 +272,6 @@ rae(r([1,2,3,4,5]).reduce(r.func([1, 2], r.var(2))).opt(:base, 10), 5)
 rae(r([1,2,3,4,5]).reduce(r.func([1, 2], r.add(r.var(1), r.var(2)))), 15)
 rae(r([1,2,3,4,5]).reduce(r.func([1, 2], r.add(r.var(1), r.var(2)))).opt(:base, 1), 16)
 
-#tbl.map(r.func([1], r.var(1).getattr(:id))).reduce(r.func([1, 2], r.var(1).add(r.var(2)))).run
-
 tblids = tbl.map(r.func([1], r.var(1).getattr(:id)))
 addfn = r.func([1, 2], r.var(1).add(r.var(2)))
 rae(tblids.reduce(addfn), 1)
@@ -286,8 +284,14 @@ rae(tblids.reduce(addfn).opt(:base, 2), 3)
 rae(r([1,2,3,4,5]).concatmap(r.func([1], r.make_array(r.var(1), r.var(1)))),
     [1.0, 1.0, 2.0, 2.0, 3.0, 3.0, 4.0, 4.0, 5.0, 5.0])
 
-rae(tbl.concatmap(r.func([1], r.make_array(r.var(1), r.var(1)))).run,
+rae(tbl.concatmap(r.func([1], r.make_array(r.var(1), r.var(1)))),
     [{"id"=>0.0}, {"id"=>0.0}, {"id"=>1.0}, {"id"=>1.0}])
 
+lst = r([{:id => 0, :a => 1}, {:id => 1, :a => 1}, {:id => 2, :a => 0}])
+rae(lst.orderby([:id]), lst.run)
+rae(lst.orderby([:a]),
+    [{"a"=>0.0, "id"=>2.0}, {"a"=>1.0, "id"=>0.0}, {"a"=>1.0, "id"=>1.0}])
+rae(lst.orderby([:a, '-id']),
+    [{"a"=>0.0, "id"=>2.0}, {"a"=>1.0, "id"=>1.0}, {"a"=>1.0, "id"=>0.0}])
 print "test.test: #{r.db('test').table('test').run.inspect}\n"
 print "Ran #{$tests} tests!\n"

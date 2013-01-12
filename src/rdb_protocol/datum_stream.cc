@@ -5,6 +5,8 @@
 
 namespace ql {
 
+void datum_stream_t::void_add_ptr(ptr_baggable_t *p) { env->add_ptr(p); }
+
 // DATUM_STREAM_T
 datum_stream_t::datum_stream_t(env_t *_env) : env(_env) { guarantee(env); }
 datum_stream_t *datum_stream_t::map(func_t *f) {

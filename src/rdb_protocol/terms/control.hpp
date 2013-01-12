@@ -36,7 +36,7 @@ private:
                 return v;
             }
         }
-        return new_val(new datum_t(false));
+        return new_val(new datum_t(false, false));
         unreachable();
     }
     RDB_NAME("any")

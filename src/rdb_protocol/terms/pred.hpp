@@ -43,10 +43,10 @@ private:
         lhs = arg(0)->as_datum();
         for (size_t i = 1; i < num_args(); ++i) {
             rhs = arg(i)->as_datum();
-            if (!(lhs->*pred)(*rhs)) return new_val(bool(false ^ invert));
+            if (!(lhs->*pred)(*rhs)) return new_val_bool(bool(false ^ invert));
             lhs = rhs;
         }
-        return new_val(bool(true ^ invert));
+        return new_val_bool(bool(true ^ invert));
     }
     const char *namestr;
     virtual const char *name() const { return namestr; }
@@ -58,7 +58,7 @@ class not_term_t : public op_term_t {
 public:
     not_term_t(env_t *env, const Term2 *term) : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual val_t *eval_impl() { return new_val(!arg(0)->as_datum()->as_bool()); }
+    virtual val_t *eval_impl() { return new_val_bool(!arg(0)->as_datum()->as_bool()); }
     RDB_NAME("not")
 };
 

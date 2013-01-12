@@ -9,7 +9,9 @@
 namespace ql {
 
 datum_t::datum_t() : type(R_NULL) { }
-datum_t::datum_t(bool _bool) : type(R_BOOL), r_bool(_bool) { }
+datum_t::datum_t(bool _bool, bool __bool) : type(R_BOOL), r_bool(_bool) {
+    r_sanity_check(_bool == __bool);
+}
 datum_t::datum_t(double _num) : type(R_NUM), r_num(_num) {
     rcheck(std::isfinite(r_num), strprintf("Non-finite number: %.20g", r_num));
 }
@@ -84,9 +86,9 @@ const char *datum_t::get_type_name() const {
 }
 
 std::string datum_t::print() const {
-    //TODO: Fix
-    return "UNIMPLEMENTED";
+    return as_json()->Print();
 }
+
 std::string datum_t::print_primary() const {
     std::string s;
     if (type == R_NUM) {

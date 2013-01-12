@@ -14,7 +14,9 @@ public:
     virtual const datum_t *reduce(val_t *base_val, func_t *f);
     virtual datum_stream_t *slice(size_t l, size_t r);
     virtual const datum_t *next() = 0;
+
 protected:
+    void void_add_ptr(ptr_baggable_t *p);
     env_t *env;
 };
 
@@ -90,6 +92,35 @@ private:
     size_t ind, l, r;
     datum_stream_t *src;
 };
+
+static const size_t sort_el_limit = 1000000;
+template<class T>
+class sort_datum_stream_t : public datum_stream_t {
+public:
+    sort_datum_stream_t(env_t *env, const T &_lt_cmp, datum_stream_t *_src)
+        : datum_stream_t(env), lt_cmp(_lt_cmp), src(_src), data_index(-1) {
+        guarantee(src);
+    }
+    virtual const datum_t *next() {
+        if (data_index == -1) {
+            data_index = 0;
+            while (const datum_t *d = src->next()) data.push_back(d);
+            rcheck(data.size() <= sort_el_limit,
+                   strprintf("Can only sort at most %lu elements.", sort_el_limit));
+            std::sort(data.begin(), data.end(), lt_cmp);
+        }
+        if (data_index >= static_cast<int>(data.size())) return 0;
+        //                ^^^^^^^^^^^^^^^^ this is safe because of rcheck above
+        return data[data_index++];
+    }
+private:
+    T lt_cmp;
+    datum_stream_t *src;
+
+    int data_index;
+    std::vector<const datum_t *> data;
+};
+
 } // namespace ql
 
 #endif // RDB_PROTOCOL_DATUM_STREAM_HPP_
