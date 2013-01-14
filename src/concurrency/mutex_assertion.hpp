@@ -176,7 +176,7 @@ struct mutex_assertion_t {
         void assert_is_holding(mutex_assertion_t *) { }
     private:
         DISABLE_COPYING(acq_t);
-    } UNUSED;
+    } INSTANCES_UNUSED;
     explicit mutex_assertion_t(int) { }
     mutex_assertion_t() { }
     void rethread(int) { }
@@ -195,7 +195,7 @@ struct rwi_lock_assertion_t {
         void assert_is_holding(rwi_lock_assertion_t *) { }
     private:
         DISABLE_COPYING(read_acq_t);
-    } UNUSED;
+    } INSTANCES_UNUSED;
     struct write_acq_t {
         write_acq_t() { }
         explicit write_acq_t(rwi_lock_assertion_t *) { }
@@ -203,7 +203,7 @@ struct rwi_lock_assertion_t {
         void assert_is_holding(rwi_lock_assertion_t *) { }
     private:
         DISABLE_COPYING(write_acq_t);
-    } UNUSED;
+    } INSTANCES_UNUSED;
     explicit rwi_lock_assertion_t(int) { }
     rwi_lock_assertion_t() { }
     void rethread(int) { }
@@ -221,7 +221,7 @@ struct semaphore_assertion_t {
         ~acq_t() { }
     private:
         DISABLE_COPYING(acq_t);
-    } UNUSED;
+    } INSTANCES_UNUSED;
     explicit semaphore_assertion_t(int) { }
 private:
     int capacity;

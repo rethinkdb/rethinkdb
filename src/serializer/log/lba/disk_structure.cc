@@ -238,7 +238,7 @@ struct reader_t
         have a vector with an extent_reader_t object for each extent we need to read, but none
         of them have been started yet. */
 
-        if (readers.size() == 0) {
+        if (readers.empty()) {
             done();
         } else {
             next_reader = 0;

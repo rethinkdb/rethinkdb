@@ -32,7 +32,7 @@ void array_free_list_t::reserve_block_id(block_id_t id) {
         next_new_block_id = id + 1;
         num_blocks_in_use++;
     } else {
-        for (std::deque<block_id_t>::iterator it = free_ids.begin(); it != free_ids.end(); it++) {
+        for (std::deque<block_id_t>::iterator it = free_ids.begin(); it != free_ids.end(); ++it) {
             if (*it == id) {
                 free_ids.erase(it);
                 num_blocks_in_use++;

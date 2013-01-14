@@ -131,7 +131,7 @@ void directory_read_manager_t<metadata_t>::propagate_initialization(peer_id_t pe
         /* The peer disconnected since we got the message; ignore. */
         return;
     }
-    session_t *session = (*it).second;
+    session_t *session = it->second;
     if (session->session_id != session_id) {
         /* The peer disconnected and then reconnected since we got the message;
         ignore. */
@@ -171,7 +171,7 @@ void directory_read_manager_t<metadata_t>::propagate_update(peer_id_t peer, uuid
         /* The peer disconnected since we got the message; ignore. */
         return;
     }
-    session_t *session = (*it).second;
+    session_t *session = it->second;
     if (session->session_id != session_id) {
         /* The peer disconnected and then reconnected since we got the message;
         ignore. */

@@ -620,7 +620,7 @@ std::set<peer_id_t> connectivity_cluster_t::get_peers_list() THROWS_NOTHING {
     std::set<peer_id_t> peers;
     for (std::map<peer_id_t, std::pair<run_t::connection_entry_t *, auto_drainer_t::lock_t> >::const_iterator it = connection_map->begin();
             it != connection_map->end(); it++) {
-        peers.insert((*it).first);
+        peers.insert(it->first);
     }
     return peers;
 }
@@ -694,8 +694,8 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
             is not always possible). So just return. */
             return;
         }
-        conn_structure = (*it).second.first;
-        conn_structure_lock = (*it).second.second;
+        conn_structure = it->second.first;
+        conn_structure_lock = it->second.second;
     }
 
     if (conn_structure->conn == NULL) {
