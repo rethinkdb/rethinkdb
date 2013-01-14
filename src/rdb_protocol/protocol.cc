@@ -647,7 +647,7 @@ struct write_visitor_t : public boost::static_visitor<void> {
 
         sindex_access_vector_t sindexes;
         store->acquire_all_sindex_superblocks_for_write(rdb_protocol_t::monokey_region(w.key),
-                superblock->get_sindex_block_id(), token_pair, txn, &sindexes, &interruptor);
+                sindex_block_id, token_pair, txn, &sindexes, &interruptor);
         rdb_update_sindexes(sindexes, w.key, &mod_report, txn);
     }
 
@@ -660,7 +660,7 @@ struct write_visitor_t : public boost::static_visitor<void> {
 
         sindex_access_vector_t sindexes;
         store->acquire_all_sindex_superblocks_for_write(rdb_protocol_t::monokey_region(m.key),
-                superblock->get_sindex_block_id(), token_pair, txn, &sindexes, &interruptor);
+                sindex_block_id, token_pair, txn, &sindexes, &interruptor);
         rdb_update_sindexes(sindexes, m.key, &mod_report, txn);
     }
 
@@ -673,7 +673,7 @@ struct write_visitor_t : public boost::static_visitor<void> {
 
         sindex_access_vector_t sindexes;
         store->acquire_all_sindex_superblocks_for_write(rdb_protocol_t::monokey_region(d.key),
-                superblock->get_sindex_block_id(), token_pair, txn, &sindexes, &interruptor);
+                sindex_block_id, token_pair, txn, &sindexes, &interruptor);
         rdb_update_sindexes(sindexes, d.key, &mod_report, txn);
     }
 
@@ -734,7 +734,8 @@ struct write_visitor_t : public boost::static_visitor<void> {
             ctx->semilattice_metadata,
             boost::make_shared<js::runner_t>(),
             &interruptor,
-            ctx->machine_id)
+            ctx->machine_id),
+        sindex_block_id(superblock->get_sindex_block_id())
     { }
 
 private:
@@ -747,6 +748,7 @@ private:
     repli_timestamp_t timestamp;
     wait_any_t interruptor;
     query_language::runtime_environment_t env;
+    block_id_t sindex_block_id;
 };
 
 }   /* anonymous namespace */

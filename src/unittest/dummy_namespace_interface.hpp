@@ -134,8 +134,9 @@ public:
         typename protocol_t::region_t region;
     };
 
-    explicit dummy_sharder_t(std::vector<shard_t> _shards)
-        : shards(_shards) { }
+    explicit dummy_sharder_t(std::vector<shard_t> _shards,
+                             typename protocol_t::context_t *_ctx)
+        : shards(_shards), ctx(_ctx) { }
 
     void read(const typename protocol_t::read_t &read, typename protocol_t::read_response_t *response, order_token_t tok, signal_t *interruptor) {
         if (interruptor->is_pulsed()) throw interrupted_exc_t();
@@ -150,8 +151,7 @@ public:
                 if (interruptor->is_pulsed()) throw interrupted_exc_t();
             }
         }
-        typename protocol_t::context_t ctx;
-        read.unshard(responses.data(), responses.size(), response, &ctx);
+        read.unshard(responses.data(), responses.size(), response, ctx);
     }
 
     void read_outdated(const typename protocol_t::read_t &read, typename protocol_t::read_response_t *response, signal_t *interruptor) {
@@ -167,8 +167,7 @@ public:
                 if (interruptor->is_pulsed()) throw interrupted_exc_t();
             }
         }
-        typename protocol_t::context_t ctx;
-        read.unshard(responses.data(), responses.size(), response, &ctx);
+        read.unshard(responses.data(), responses.size(), response, ctx);
     }
 
     void write(const typename protocol_t::write_t &write, typename protocol_t::write_response_t *response, order_token_t tok, signal_t *interruptor) {
@@ -185,12 +184,12 @@ public:
                 if (interruptor->is_pulsed()) throw interrupted_exc_t();
             }
         }
-        typename protocol_t::context_t ctx;
-        write.unshard(responses.data(), responses.size(), response, &ctx);
+        write.unshard(responses.data(), responses.size(), response, ctx);
     }
 
 private:
     std::vector<shard_t> shards;
+    typename protocol_t::context_t *ctx;
 };
 
 template<class protocol_t>
@@ -198,7 +197,11 @@ class dummy_namespace_interface_t :
     public namespace_interface_t<protocol_t>
 {
 public:
-    dummy_namespace_interface_t(std::vector<typename protocol_t::region_t> shards, store_view_t<protocol_t> **stores, order_source_t *order_source) {
+    dummy_namespace_interface_t(std::vector<typename protocol_t::region_t>
+            shards, store_view_t<protocol_t> **stores, order_source_t
+            *order_source, typename protocol_t::context_t *_ctx) 
+        : ctx(_ctx)
+    {
         /* Make sure shards are non-overlapping and stuff */
         {
             typename protocol_t::region_t join;
@@ -248,7 +251,7 @@ public:
             shards_of_this_db.push_back(typename dummy_sharder_t<protocol_t>::shard_t(timestamper, performer, shards[i]));
         }
 
-        sharder.init(new dummy_sharder_t<protocol_t>(shards_of_this_db));
+        sharder.init(new dummy_sharder_t<protocol_t>(shards_of_this_db, ctx));
     }
 
     void read(const typename protocol_t::read_t &read, typename protocol_t::read_response_t *response, order_token_t tok, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t) {
@@ -267,6 +270,7 @@ private:
     boost::ptr_vector<dummy_performer_t<protocol_t> > performers;
     boost::ptr_vector<dummy_timestamper_t<protocol_t> > timestampers;
     scoped_ptr_t<dummy_sharder_t<protocol_t> > sharder;
+    typename protocol_t::context_t *ctx;
 };
 
 }   /* namespace unittest */
