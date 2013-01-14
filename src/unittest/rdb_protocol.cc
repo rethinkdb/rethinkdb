@@ -3,13 +3,16 @@
 #include <boost/make_shared.hpp>
 
 #include "buffer_cache/buffer_cache.hpp"
+#include "clustering/administration/metadata.hpp"
 #include "containers/iterators.hpp"
 #include "memcached/protocol.hpp"
 #include "rdb_protocol/protocol.hpp"
+#include "rpc/semilattice/semilattice_manager.hpp"
 #include "serializer/config.hpp"
 #include "serializer/translator.hpp"
-#include "unittest/gtest.hpp"
 #include "unittest/dummy_namespace_interface.hpp"
+#include "unittest/gtest.hpp"
+#include "rpc/directory/read_manager.hpp"
 
 namespace unittest {
 namespace {
@@ -42,7 +45,25 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb
     }
 
     boost::ptr_vector<rdb_protocol_t::store_t> underlying_stores;
-    rdb_protocol_t::context_t ctx;
+
+    /* Create some structures for the rdb_protocol_t::context_t, warning some
+     * boilerplate is about to follow, avert your eyes if you have a weak
+     * stomach for such things. */
+    extproc::spawner_t::info_t spawner_info;
+    extproc::spawner_t::create(&spawner_info);
+    extproc::pool_group_t pool_group(&spawner_info, extproc::pool_group_t::DEFAULTS);
+
+    int port = mock::randport();
+    connectivity_cluster_t c;
+    semilattice_manager_t<cluster_semilattice_metadata_t> slm(&c, cluster_semilattice_metadata_t());
+    connectivity_cluster_t::run_t cr(&c, mock::get_unittest_addresses(), port, &slm, 0, NULL);
+
+    int port2 = mock::randport();
+    connectivity_cluster_t c2;
+    directory_read_manager_t<cluster_directory_metadata_t> read_manager(&c2);
+    connectivity_cluster_t::run_t cr2(&c2, mock::get_unittest_addresses(), port2, &read_manager, 0, NULL);
+
+    rdb_protocol_t::context_t ctx(&pool_group, NULL, slm.get_root_view(), &read_manager, generate_uuid());
 
     for (size_t i = 0; i < shards.size(); ++i) {
         underlying_stores.push_back(new rdb_protocol_t::store_t(serializers[i].get(), temp_files[i].name(), GIGABYTE, true, &get_global_perfmon_collection(), &ctx));
