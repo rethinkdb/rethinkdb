@@ -1022,8 +1022,6 @@ install-deb: install
 		gzip -c9 | \
 		install -m644 -T /dev/stdin $(DESTDIR)$(doc_dir)/changelog.Debian.gz
 
-DEBIAN_V8_VERSION:=$(shell apt-cache show libv8-dev | grep '^Version:' | sed -e 's/^Version: \\([0-9]*\\(\\.[0-9]*\\)*\\).*$$/\\1/g' || true ; )
-
 ifeq ($(BUILD_PORTABLE),1)
 build-deb-support: $(TC_LESSC_INT_EXE) $(TC_COFFEE_INT_EXE) $(TC_HANDLEBARS_INT_EXE) $(V8_SRC_DIR) $(NODE_SRC_DIR) $(PROTOC_SRC_DIR) $(GPERFTOOLS_SRC_DIR) $(LIBUNWIND_SRC_DIR)
 else
@@ -1042,7 +1040,6 @@ build-deb-src-control:
 				-D "TRIAL_PACKAGE_NAME=$(TRIAL_PACKAGE_NAME)"						\
 				-D "VERSIONED_TRIAL_PACKAGE_NAME=$(VERSIONED_TRIAL_PACKAGE_NAME)"						\
 				-D "VERSIONED_QUALIFIED_PACKAGE_NAME=$(VERSIONED_QUALIFIED_PACKAGE_NAME)" \
-				-D "DEBIAN_V8_VERSION=$(DEBIAN_V8_VERSION)" \
 				-D "PACKAGE_VERSION=$(RETHINKDB_VERSION_DEB)" \
 				-D "LEGACY_PACKAGE=$(LEGACY_PACKAGE)" \
 				-D "STATIC_V8=$(STATIC_V8)" \
@@ -1110,7 +1107,6 @@ build-deb: all prepare_deb_package_dirs
 				-D "VERSIONED_TRIAL_PACKAGE_NAME=$(VERSIONED_TRIAL_PACKAGE_NAME)"						\
 				-D "PACKAGE_VERSION=$(RETHINKDB_VERSION_DEB)"						\
 				-D "VERSIONED_QUALIFIED_PACKAGE_NAME=$(VERSIONED_QUALIFIED_PACKAGE_NAME)" \
-				-D "DEBIAN_V8_VERSION=$(DEBIAN_V8_VERSION)" \
 				-D "LEGACY_PACKAGE=$(LEGACY_PACKAGE)"												\
 				-D "STATIC_V8=$(STATIC_V8)" \
 				-D "TC_BUNDLED=$(BUILD_PORTABLE)" \
