@@ -6,13 +6,14 @@
 #include "clustering/administration/metadata.hpp"
 #include "containers/iterators.hpp"
 #include "memcached/protocol.hpp"
+#include "rdb_protocol/proto_utils.hpp"
 #include "rdb_protocol/protocol.hpp"
+#include "rpc/directory/read_manager.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
 #include "serializer/config.hpp"
 #include "serializer/translator.hpp"
 #include "unittest/dummy_namespace_interface.hpp"
 #include "unittest/gtest.hpp"
-#include "rpc/directory/read_manager.hpp"
 
 namespace unittest {
 namespace {
@@ -136,6 +137,16 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
     uuid_u id = generate_uuid();
     {
         Mapping m;
+        *m.mutable_arg() = "row";
+        m.mutable_body()->set_type(Term::CALL);
+        *m.mutable_body()->mutable_call() = Term::Call();
+        m.mutable_body()->mutable_call()->mutable_builtin()->set_type(Builtin::GETATTR);
+        *m.mutable_body()->mutable_call()->mutable_builtin()->mutable_attr() = "sid";
+
+        Term *arg = m.mutable_body()->mutable_call()->add_args();
+        arg->set_type(Term::VAR);
+        *arg->mutable_var() = "row";
+
         rdb_protocol_t::write_t write(rdb_protocol_t::sindex_create_t(id, m));
         rdb_protocol_t::write_response_t response;
 
@@ -143,6 +154,23 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
         nsi->write(write, &response, osource->check_in("unittest::run_create_drop_sindex_test(rdb_protocol_t.cc-A"), &interruptor);
 
         if (!boost::get<rdb_protocol_t::sindex_create_response_t>(&response.response)) {
+            ADD_FAILURE() << "got wrong type of result back";
+        }
+    }
+
+    boost::shared_ptr<scoped_cJSON_t> data(new scoped_cJSON_t(cJSON_Parse("{\"id\" : 0, \"sid\" : 1}")));
+    EXPECT_TRUE(data->get());
+    {
+        query_language::backtrace_t b;
+        rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(store_key_t(cJSON_print_primary(cJSON_GetObjectItem(data->get(), "id"), b)), data));
+        rdb_protocol_t::write_response_t response;
+
+        cond_t interruptor;
+        nsi->write(write, &response, osource->check_in("unittest::run_create_drop_sindex_test(rdb_protocol_t.cc-A"), &interruptor);
+
+        if (rdb_protocol_t::point_write_response_t *maybe_point_write_response_t = boost::get<rdb_protocol_t::point_write_response_t>(&response.response)) {
+            EXPECT_EQ(maybe_point_write_response_t->result, STORED);
+        } else {
             ADD_FAILURE() << "got wrong type of result back";
         }
     }

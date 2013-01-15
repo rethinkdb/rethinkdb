@@ -419,7 +419,7 @@ struct rdb_protocol_t {
     public:
         sindex_create_t() { }
         sindex_create_t(uuid_u _id, const Mapping &_mapping)
-            : id(_id), mapping(_mapping), 
+            : id(_id), mapping(_mapping),
               region_to_index(region_t::universe()) { }
 
         uuid_u id;

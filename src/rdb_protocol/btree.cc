@@ -466,7 +466,7 @@ void rdb_update_sindexes(const btree_store_t<rdb_protocol_t>::sindex_access_vect
         Mapping mapping;
         vector_read_stream_t read_stream(&it->sindex.opaque_definition);
         int success = deserialize(&read_stream, &mapping);
-        guarantee(success, "Corrupted sindex description.");
+        guarantee(success == ARCHIVE_SUCCESS, "Corrupted sindex description.");
 
         query_language::runtime_environment_t *local_env;
         query_language::scopes_t scopes;
@@ -490,7 +490,7 @@ void rdb_update_sindexes(const btree_store_t<rdb_protocol_t>::sindex_access_vect
 
             kv_location_delete(&kv_location, sindex_key,
                         it->btree, repli_timestamp_t::invalid, txn);
-
+            
             super_block = return_super_block.wait();
         }
 
