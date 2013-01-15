@@ -302,7 +302,7 @@ public:
     value_sizer_t<short_value_t> sizer_;
     scoped_malloc_t<leaf_node_t> node_;
 
-    int tstamp_counter_;
+    uint64_t tstamp_counter_;
 
     std::map<store_key_t, std::string> kv_;
 
