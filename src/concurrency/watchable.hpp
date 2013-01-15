@@ -163,7 +163,7 @@ public:
     }
 
     void set_value(const value_t &_value) {
-        rwi_lock_assertion_t::write_acq_t acquisition(&rwi_lock_assertion);
+        DEBUG_VAR rwi_lock_assertion_t::write_acq_t acquisition(&rwi_lock_assertion);
         value = _value;
         publisher_controller.publish(&call_function);
     }

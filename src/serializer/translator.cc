@@ -120,7 +120,7 @@ void create_proxies(const std::vector<standard_serializer_t *>& underlying,
 }
 
 serializer_multiplexer_t::serializer_multiplexer_t(const std::vector<standard_serializer_t *>& underlying) {
-    rassert(underlying.size() > 0);
+    rassert(!underlying.empty());
     for (int i = 0; i < static_cast<int>(underlying.size()); ++i) {
         rassert(underlying[i]);
     }

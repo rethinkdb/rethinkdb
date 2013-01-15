@@ -83,11 +83,6 @@
 #endif
 
 #define UNUSED __attribute__((unused))
-#ifndef __clang__
-#define INSTANCES_UNUSED __attribute__((unused))
-#else
-#define INSTANCES_UNUSED
-#endif
 
 #define MUST_USE __attribute__((warn_unused_result))
 
@@ -194,7 +189,7 @@ void mcheck_all(void);
 // put this in a private: section.
 #define DISABLE_COPYING(T)                      \
     T(const T&);                                \
-    void operator=(const T&)
+    T& operator=(const T&)
 
 
 /* Put these after functions to indicate what they throw. In release mode, they

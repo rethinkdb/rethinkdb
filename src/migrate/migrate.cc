@@ -180,11 +180,11 @@ int run_migrate(int argc, char **argv) {
     command_line.push_back("-r");
     command_line.push_back(cfg.exec_name);
 
-    for (std::vector<std::string>::iterator it = cfg.input_filenames.begin(); it != cfg.input_filenames.end(); it++) {
+    for (std::vector<std::string>::iterator it = cfg.input_filenames.begin(); it != cfg.input_filenames.end(); ++it) {
         command_line.push_back("-i");
         command_line.push_back(escape_spaces(*it));
     }
-    for (std::vector<std::string>::iterator it = cfg.output_filenames.begin(); it != cfg.output_filenames.end(); it++) {
+    for (std::vector<std::string>::iterator it = cfg.output_filenames.begin(); it != cfg.output_filenames.end(); ++it) {
         command_line.push_back("-o");
         command_line.push_back(escape_spaces(*it));
     }

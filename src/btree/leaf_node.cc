@@ -739,7 +739,6 @@ void move_elements(value_sizer_t<void> *sizer, leaf_node_t *fro, int beg, int en
     }
 
     int fro_live_size_adjustment = 0;
-    int fro_copyage = 0;
 
     for (;;) {
         rassert(tow_offset <= tow->tstamp_cutpoint);
@@ -777,7 +776,6 @@ void move_elements(value_sizer_t<void> *sizer, leaf_node_t *fro, int beg, int en
             // the newer values to tow later.
             fro->pair_offsets[beg + tow->pair_offsets[fro_index]] = wri_offset;
 
-            fro_copyage += sz;
             wri_offset += sz;
             fro_index++;
 
@@ -817,7 +815,6 @@ void move_elements(value_sizer_t<void> *sizer, leaf_node_t *fro, int beg, int en
 
             fro->pair_offsets[beg + tow->pair_offsets[fro_index]] = wri_offset;
             wri_offset += sz;
-            fro_copyage += sz;
             livesize += sz + sizeof(uint16_t);
         } else {
             rassert(entry_is_deletion(ent));

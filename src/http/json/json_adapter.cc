@@ -66,7 +66,6 @@ json_array_iterator_t get_array_it(cJSON *json) {
     if (json->type == cJSON_Array) {
         return json_array_iterator_t(json);
     } else {
-        //BREAKPOINT;
         throw schema_mismatch_exc_t(strprintf("Expected array instead got: %s\n", cJSON_print_std_string(json).c_str()).c_str());
     }
 }
@@ -83,10 +82,10 @@ json_object_iterator_t get_object_it(cJSON *json) {
 //implementation for json_adapter_if_t
 json_adapter_if_t::json_adapter_map_t json_adapter_if_t::get_subfields() {
     json_adapter_map_t res = get_subfields_impl();
-    for (json_adapter_map_t::iterator it = res.begin(); it != res.end(); it++) {
+    for (json_adapter_map_t::iterator it = res.begin(); it != res.end(); ++it) {
         it->second->superfields.insert(it->second->superfields.end(),
-                                      superfields.begin(),
-                                      superfields.end());
+                                       superfields.begin(),
+                                       superfields.end());
 
         it->second->superfields.push_back(get_change_callback());
     }
@@ -100,7 +99,7 @@ cJSON *json_adapter_if_t::render() {
 void json_adapter_if_t::apply(cJSON *change) {
     try {
         apply_impl(change);
-    } catch (std::runtime_error e) {
+    } catch (const std::runtime_error &e) {
         std::string s = cJSON_print_std_string(change);
         throw schema_mismatch_exc_t(strprintf("Failed to apply change: %s", s.c_str()));
     }

@@ -59,9 +59,10 @@ cJSON *render_as_json(key_range_t *target) {
 
 void apply_json_to(cJSON *change, key_range_t *target) {
     // TODO: Can we so casually call get_string on a cJSON object?  What if it's not a string?
-    scoped_cJSON_t js(cJSON_Parse(get_string(change).c_str()));
+    const std::string change_str = get_string(change);
+    scoped_cJSON_t js(cJSON_Parse(change_str.c_str()));
     if (js.get() == NULL) {
-        throw schema_mismatch_exc_t(strprintf("Failed to parse %s as a key_range_t.", get_string(change).c_str()));
+        throw schema_mismatch_exc_t(strprintf("Failed to parse %s as a key_range_t.", change_str.c_str()));
     }
 
     /* TODO: If something other than an array is passed here, then it will crash
@@ -70,16 +71,16 @@ void apply_json_to(cJSON *change, key_range_t *target) {
 
     cJSON *first = it.next();
     if (first == NULL) {
-        throw schema_mismatch_exc_t(strprintf("Failed to parse %s as a key_range_t.", get_string(change).c_str()));
+        throw schema_mismatch_exc_t(strprintf("Failed to parse %s as a key_range_t.", change_str.c_str()));
     }
 
     cJSON *second = it.next();
     if (second == NULL) {
-        throw schema_mismatch_exc_t(strprintf("Failed to parse %s as a key_range_t.", get_string(change).c_str()));
+        throw schema_mismatch_exc_t(strprintf("Failed to parse %s as a key_range_t.", change_str.c_str()));
     }
 
     if (it.next() != NULL) {
-        throw schema_mismatch_exc_t(strprintf("Failed to parse %s as a key_range_t.", get_string(change).c_str()));
+        throw schema_mismatch_exc_t(strprintf("Failed to parse %s as a key_range_t.", change_str.c_str()));
     }
 
     store_key_t left;
@@ -92,7 +93,7 @@ void apply_json_to(cJSON *change, key_range_t *target) {
         apply_json_to(second, &right);
 
         if (left > right) {
-            throw schema_mismatch_exc_t(strprintf("Failed to parse %s as a key_range_t -- bounds are out of order", get_string(change).c_str()));
+            throw schema_mismatch_exc_t(strprintf("Failed to parse %s as a key_range_t -- bounds are out of order", change_str.c_str()));
         }
 
         *target = key_range_t(key_range_t::closed, left,

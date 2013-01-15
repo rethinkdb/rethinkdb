@@ -211,7 +211,7 @@ void run_get_peers_list_test() {
     /* Make sure `get_peers_list()` is initially sane */
     std::set<peer_id_t> list_1 = c1.get_peers_list();
     EXPECT_TRUE(list_1.find(c1.get_me()) != list_1.end());
-    EXPECT_EQ(list_1.size(), 1);
+    EXPECT_EQ(1u, list_1.size());
 
     {
         connectivity_cluster_t c2;
@@ -232,7 +232,7 @@ void run_get_peers_list_test() {
 
     /* Make sure `get_peers_list()` notices that a peer has disconnected */
     std::set<peer_id_t> list_3 = c1.get_peers_list();
-    EXPECT_EQ(list_3.size(), 1);
+    EXPECT_EQ(1u, list_3.size());
 }
 TEST(RPCConnectivityTest, GetPeersList) {
     mock::run_in_thread_pool(&run_get_peers_list_test);
@@ -383,7 +383,7 @@ void run_stop_mid_join_test() {
 
     coro_t::yield();
 
-    EXPECT_NE(num_members, nodes[1]->get_peers_list().size()) << "This test is "
+    EXPECT_NE(static_cast<size_t>(num_members), nodes[1]->get_peers_list().size()) << "This test is "
         "supposed to test what happens when a cluster is interrupted as it "
         "starts up, but the cluster finished starting up before we could "
         "interrupt it.";
@@ -428,7 +428,8 @@ void run_blob_join_test() {
     bool pass = false;
     while (!pass) {
         mock::let_stuff_happen();
-        ASSERT_LT(++total_waits, 50); // cluster blobs took to long to coalesce internally
+        ++total_waits;
+        ASSERT_LT(total_waits, 50u);  // cluster blobs took to long to coalesce internally
 
         pass = true;
         for (size_t i = 0; i < blob_size * 2; i++) {
@@ -442,7 +443,8 @@ void run_blob_join_test() {
     pass = false;
     while (!pass) {
         mock::let_stuff_happen();
-        ASSERT_LT(++total_waits, 50); // cluster blobs took to long to coalesce with each other
+        ++total_waits;
+        ASSERT_LT(total_waits, 50u); // cluster blobs took to long to coalesce with each other
 
         pass = true;
         for (size_t i = 0; i < blob_size * 2; i++) {
