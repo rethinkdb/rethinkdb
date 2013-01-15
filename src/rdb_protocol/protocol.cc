@@ -601,7 +601,20 @@ struct read_visitor_t : public boost::static_visitor<void> {
     void operator()(const rget_read_t &rget) {
         response->response = rget_read_response_t();
         rget_read_response_t &res = boost::get<rget_read_response_t>(response->response);
-        rdb_rget_slice(btree, rget.region.inner, txn, superblock, &env, rget.transform, rget.terminal, &res);
+
+        if (!rget.sindex) {
+            //Normal rget
+            rdb_rget_slice(btree, rget.region.inner, txn, superblock, &env, rget.transform, rget.terminal, &res);
+        } else {
+            scoped_ptr_t<real_superblock_t> sindex_sb;
+            store->acquire_sindex_superblock_for_read(*rget.sindex,
+                    rget.region, superblock->get_sindex_block_id(), token_pair,
+                    txn, &sindex_sb, &interruptor);
+
+            rdb_rget_slice(store->get_sindex_slice(*rget.sindex), rget.region.inner,
+                           txn, sindex_sb.get(), &env, rget.transform,
+                           rget.terminal, &res);
+        }
     }
 
     void operator()(const distribution_read_t &dg) {
@@ -627,15 +640,19 @@ struct read_visitor_t : public boost::static_visitor<void> {
     }
 
     read_visitor_t(btree_slice_t *_btree,
+                   btree_store_t<rdb_protocol_t> *_store,
                    transaction_t *_txn,
                    superblock_t *_superblock,
+                   read_token_pair_t *_token_pair,
                    rdb_protocol_t::context_t *ctx,
                    read_response_t *_response,
                    signal_t *_interruptor) :
         response(_response),
         btree(_btree),
+        store(_store),
         txn(_txn),
         superblock(_superblock),
+        token_pair(_token_pair),
         interruptor(_interruptor, ctx->signals[get_thread_id()].get()),
         env(ctx->pool_group,
             ctx->ns_repo,
@@ -650,8 +667,10 @@ struct read_visitor_t : public boost::static_visitor<void> {
 private:
     read_response_t *response;
     btree_slice_t *btree;
+    btree_store_t<rdb_protocol_t> *store;
     transaction_t *txn;
     superblock_t *superblock;
+    read_token_pair_t *token_pair;
     wait_any_t interruptor;
     query_language::runtime_environment_t env;
 };
@@ -663,9 +682,9 @@ void store_t::protocol_read(const read_t &read,
                             btree_slice_t *btree,
                             transaction_t *txn,
                             superblock_t *superblock,
-                            UNUSED read_token_pair_t *token_pair,
+                            read_token_pair_t *token_pair,
                             signal_t *interruptor) {
-    read_visitor_t v(btree, txn, superblock, ctx, response, interruptor);
+    read_visitor_t v(btree, this, txn, superblock, token_pair, ctx, response, interruptor);
     boost::apply_visitor(v, read.read);
 }
 
@@ -1047,7 +1066,7 @@ RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::distribution_read_response_t, region,
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::read_response_t, response);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_read_t, key);
-RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::rget_read_t, region, transform, terminal);
+RDB_IMPL_ME_SERIALIZABLE_4(rdb_protocol_t::rget_read_t, region, sindex, transform, terminal);
 
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::distribution_read_t, max_depth, result_limit, region);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::read_t, read);

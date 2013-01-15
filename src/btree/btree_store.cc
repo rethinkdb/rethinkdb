@@ -184,7 +184,7 @@ void btree_store_t<protocol_t>::acquire_sindex_block_for_read(
         read_token_pair_t *token_pair,
         transaction_t *txn,
         scoped_ptr_t<buf_lock_t> *sindex_block_out,
-        const superblock_t *super_block,
+        block_id_t sindex_block_id,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t) {
     /* First wait for our turn. */
@@ -195,7 +195,7 @@ void btree_store_t<protocol_t>::acquire_sindex_block_for_read(
     object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer(&token_pair->sindex_read_token);
 
     /* Finally acquire the block. */
-    sindex_block_out->init(new buf_lock_t(txn, super_block->get_sindex_block_id(), rwi_read));
+    sindex_block_out->init(new buf_lock_t(txn, sindex_block_id, rwi_read));
 }
 
 template <class protocol_t>
@@ -404,8 +404,9 @@ template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
         uuid_u id,
         const typename protocol_t::region_t &region_to_read,
+        block_id_t sindex_block_id,
         read_token_pair_t *token_pair,
-        scoped_ptr_t<transaction_t> *txn_out,
+        transaction_t *txn,
         scoped_ptr_t<real_superblock_t> *sindex_sb_out,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
@@ -414,13 +415,9 @@ void btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
     btree_slice_t *sindex_slice = &(secondary_index_slices.at(id));
     sindex_slice->assert_thread();
 
-    /* Acquire the main superblock. */
-    scoped_ptr_t<real_superblock_t> main_sb;
-    acquire_superblock_for_read(rwi_read, &(token_pair->main_read_token), txn_out, &main_sb, interruptor, false);
-
     /* Acquire the sindex block. */
     scoped_ptr_t<buf_lock_t> sindex_block;
-    acquire_sindex_block_for_read(token_pair, txn_out->get(), &sindex_block, main_sb.get(), interruptor);
+    acquire_sindex_block_for_read(token_pair, txn, &sindex_block, sindex_block_id, interruptor);
 
     /* Check in with the order source. */
     //order_token_t order_token = order_source.check_in("btree_store_t<" + protocol_t::protocol_name +
@@ -430,7 +427,7 @@ void btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
 
     /* Figure out what the superblock for this index is. */
     secondary_index_t sindex;
-    ::get_secondary_index(txn_out->get(), sindex_block.get(), id, &sindex);
+    ::get_secondary_index(txn, sindex_block.get(), id, &sindex);
 
     /* Sanity check to make sure this part of the index is readable. */
     /* TODO there's a question of whether or not this should throw an
@@ -443,7 +440,7 @@ void btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
               "index wasn't create, was created but isn't up to date or was " \
               "already deleted.");
 
-    buf_lock_t superblock_lock(txn_out->get(), sindex.superblock, rwi_read);
+    buf_lock_t superblock_lock(txn, sindex.superblock, rwi_read);
     sindex_sb_out->init(new real_superblock_t(&superblock_lock));
 }
 

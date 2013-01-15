@@ -182,13 +182,19 @@ void run_sindex_btree_store_api_test() {
             store.new_read_token_pair(&token_pair);
 
             scoped_ptr_t<transaction_t> txn;
+            scoped_ptr_t<real_superblock_t> main_sb;
             scoped_ptr_t<real_superblock_t> sindex_super_block;
+
+            store.acquire_superblock_for_read(rwi_read,
+                    &token_pair.main_read_token, &txn, &main_sb,
+                    &dummy_interuptor, true);
 
             store_key_t key("foo");
 
             store.acquire_sindex_superblock_for_read(id,
-                    rdb_protocol_t::monokey_region(key), &token_pair, &txn,
-                    &sindex_super_block, &dummy_interuptor);
+                    rdb_protocol_t::monokey_region(key),
+                    main_sb->get_sindex_block_id(), &token_pair,
+                    txn.get(), &sindex_super_block, &dummy_interuptor);
 
             point_read_response_t response;
 

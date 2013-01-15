@@ -110,7 +110,7 @@ void acquire_sindex_block_for_read(
         read_token_pair_t *token_pair,
         transaction_t *txn,
         scoped_ptr_t<buf_lock_t> *sindex_block_out,
-        const superblock_t *super_block,
+        block_id_t sindex_block_id,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
 
@@ -183,8 +183,9 @@ public: // <--- so this is some bullshit right here
     void acquire_sindex_superblock_for_read(
             uuid_u id,
             const typename protocol_t::region_t &region_to_read,
+            block_id_t sindex_block_id,
             read_token_pair_t *token_pair,
-            scoped_ptr_t<transaction_t> *txn_out,
+            transaction_t *txn_out,
             scoped_ptr_t<real_superblock_t> *sindex_sb_out,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
