@@ -20,7 +20,7 @@ datum_stream_t *datum_stream_t::filter(func_t *f) {
 const datum_t *datum_stream_t::count() {
     int i = 0;
     for (;;) {
-        env_checkpointer_t(env, &env_t::discard_checkpoint);
+        env_checkpointer_t ect(env, &env_t::discard_checkpoint);
         if (!next()) break;
         ++i;
     }
@@ -33,13 +33,13 @@ const datum_t *datum_stream_t::reduce(val_t *base_val, func_t *f) {
     try {
         const datum_t *rhs = base;
         while (rhs) {
-            env_checkpointer_t chk(env, &env_t::merge_checkpoint);
+            env_checkpointer_t ect(env, &env_t::merge_checkpoint);
             for (int i = 0; i < reduce_gc_rounds; ++i) {
                 if (!(rhs = next())) break;
                 guarantee(base != rhs);
                 base = f->call(base, rhs)->as_datum();
             }
-            chk.gc(base);
+            ect.gc(base);
         }
         return base;
     } catch (exc_t &e) {
@@ -98,7 +98,7 @@ void lazy_datum_stream_t::run_terminal(T t) {
 
 const datum_t *lazy_datum_stream_t::count() {
     datum_t *d = env->add_ptr(new datum_t(0));
-    env_checkpointer_t(env, &env_t::discard_checkpoint);
+    env_checkpointer_t ect(env, &env_t::discard_checkpoint);
     run_terminal(count_wire_func_t());
     for (size_t i = 0; i < shard_data.size(); ++i) {
         *d = datum_t(d->as_int() + shard_data[i]->as_int());
@@ -197,7 +197,7 @@ slice_datum_stream_t::slice_datum_stream_t(
 const datum_t *slice_datum_stream_t::next() {
     if (ind > r) return 0;
     while (ind++ < l) {
-        env_checkpointer_t(env, &env_t::discard_checkpoint);
+        env_checkpointer_t ect(env, &env_t::discard_checkpoint);
         src->next();
     }
     return src->next();

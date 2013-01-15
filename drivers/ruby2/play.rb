@@ -302,5 +302,12 @@ rae(r([1,2,3]).count, 3)
 rae(r.union(tbl.union(tbl).union([1,2,3]).union(tbl).union([]), tbl, tbl),
     [{"id"=>0.0}, {"id"=>1.0}, {"id"=>0.0}, {"id"=>1.0}, 1.0, 2.0, 3.0, {"id"=>0.0}, {"id"=>1.0}, {"id"=>0.0}, {"id"=>1.0}, {"id"=>0.0}, {"id"=>1.0}])
 
+rae(r([1]).union([2]).union([3, 4], [5]).slice(-3, -1), [3, 4, 5])
+rae(r([1]).union([2]).union([3, 4], [5]).slice(-3, -1).nth(1), 4)
+rae(tbl.nth(0), {'id' => 0})
+rae(tbl.nth(1), {'id' => 1})
+assert_raise{tbl.nth(2).run}
+assert_raise{tbl.nth(-1).run}
+
 print "test.test: #{r.db('test').table('test').run.inspect}\n"
 print "Ran #{$tests} tests!\n"

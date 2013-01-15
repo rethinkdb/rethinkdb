@@ -48,7 +48,7 @@ public:
 private:
     virtual val_t *eval_impl() {
         bool b; {
-            env_checkpointer_t(env, &env_t::discard_checkpoint);
+            env_checkpointer_t ect(env, &env_t::discard_checkpoint);
             b = arg(0)->as_datum()->as_bool();
         }
         return b ? arg(1) : arg(2);

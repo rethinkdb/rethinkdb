@@ -148,6 +148,11 @@ val_t::val_t(datum_stream_t *_sequence, const term_t *_parent, env_t *_env)
       datum(0),
       func(0) {
     guarantee(sequence);
+    // Some streams are really arrays in disguise.
+    if ((datum = sequence->as_arr())) {
+        sequence = 0;
+        type = type_t::DATUM;
+    }
 }
 val_t::val_t(table_t *_table, const term_t *_parent, env_t *_env)
     : parent(_parent), env(_env),
@@ -192,10 +197,10 @@ val_t::type_t val_t::get_type() const { return type; }
 
 const datum_t *val_t::as_datum() {
     if (type.raw_type != type_t::DATUM && type.raw_type != type_t::SINGLE_SELECTION) {
-        if (type.raw_type == type_t::SEQUENCE) {
-            const datum_t *d = as_seq()->as_arr();
-            if (d) return d;
-        }
+        // if (type.raw_type == type_t::SEQUENCE) {
+        //     const datum_t *d = as_seq()->as_arr();
+        //     if (d) return d;
+        // }
         rfail("Type error: cannot convert %s to DATUM.", type.name());
     }
     return datum;
