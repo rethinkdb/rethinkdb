@@ -54,7 +54,9 @@ try:
         # We use the first line of the file to create the filename for
         # non-script-tag-led matches?  You could ask Michel why we do
         # that.
-        searchres = re.search('id="([^"]+)"', part)
+        if re.search('<script ((?!id=)[^>])*>', part):
+            raise RuntimeError("Found script tag without id.")
+        searchres = re.search('<script [^>]*id="([^"]+)"', part)
         name = searchres.group(1) if searchres else part.split('\n', 1)[0]
         part1 = re.sub('</script>|<script[^>]*>', '', part)
         part2 = re.sub('\s+', ' ', part1)
