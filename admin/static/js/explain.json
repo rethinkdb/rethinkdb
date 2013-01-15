@@ -1,0 +1,200 @@
+{
+    "query": "r.table('post_table').map(...).reduce(...).run()",
+    "explanation": "Execute the query",
+    "machine_id": "1",
+    "size_message_received": 2000,
+    "size_message_sent": 8000,
+    "execution_duration": 800,
+    "sub_tasks_are_parallel": false,
+    "sub_tasks": [
+        {
+            "query": "Map stuff",
+            "explanation": "Execute the query",
+            "machine_id": "1",
+            "size_message_received": 2000,
+            "size_message_sent": 2000,
+            "execution_duration": 200,
+            "sub_tasks_are_parallel": true,
+            "sub_tasks": [
+                {
+                    "query": "map on shard 1",
+                    "explanation": "Reduce things",
+                    "machine_id": "1",
+                    "size_message_received": 5000,
+                    "size_message_sent": 1000,
+                    "execution_duration": 130,
+                    "sub_tasks_are_parallel": true,
+                    "sub_tasks": [
+                        {
+                            "query": "map on shard 1",
+                            "explanation": "Reduce things, part 1",
+                            "machine_id": "1",
+                            "size_message_received": 1000,
+                            "size_message_sent": 1000,
+                            "execution_duration": 100,
+                            "execution_duration": 100,
+                            "sub_tasks_are_parallel": false,
+                            "sub_tasks": [
+                                {
+                                    "query": "map on shard 1",
+                                    "explanation": "Reduce things, part 1",
+                                    "machine_id": "2",
+                                    "size_message_received": 1000,
+                                    "size_message_sent": 1000,
+                                    "execution_duration": 30
+                                },
+                                {
+                                    "query": "map on shard 2",
+                                    "explanation": "Reduce things, part 1",
+                                    "machine_id": "2",
+                                    "size_message_received": 1000,
+                                    "size_message_sent": 1000,
+                                    "execution_duration": 30
+                                },                            {
+                                    "query": "map on shard 3",
+                                    "explanation": "Reduce things, part 1",
+                                    "machine_id": "2",
+                                    "size_message_received": 1000,
+                                    "size_message_sent": 1000,
+                                    "execution_duration": 30
+                                }
+                            ],
+                            "sub_tasks_stats": {
+                                "average": 5,
+                                "count": 3,
+                                "longest": 7,
+                                "fastest": 3
+                            }
+                        },
+                        {
+                            "query": "map on shard 2",
+                            "explanation": "Reduce things, part 1",
+                            "machine_id": "2",
+                            "size_message_received": 1000,
+                            "size_message_sent": 1000,
+                            "execution_duration": 120
+                        },                            {
+                            "query": "map on shard 3",
+                            "explanation": "Reduce things, part 1",
+                            "machine_id": "3",
+                            "size_message_received": 1000,
+                            "size_message_sent": 1000,
+                            "execution_duration": 80
+                        }
+                    ],
+                    "sub_tasks_stats": {
+                        "average": 5,
+                        "count": 19,
+                        "longest": 7,
+                        "fastest": 3
+                    }
+                },
+                {
+                    "query": "map on shard 2",
+                    "explanation": "Map things",
+                    "machine_id": "2",
+                    "size_message_received": 1000,
+                    "size_message_sent": 2000,
+                    "execution_duration": 100,
+                    "sub_tasks_are_parallel": false,
+                    "sub_tasks": [
+                        {
+                            "query": "map on shard 1",
+                            "explanation": "Reduce things, part 1",
+                            "machine_id": "2",
+                            "size_message_received": 1000,
+                            "size_message_sent": 1000,
+                            "execution_duration": 30
+                        },
+                        {
+                            "query": "map on shard 2",
+                            "explanation": "Reduce things, part 1",
+                            "machine_id": "2",
+                            "size_message_received": 1000,
+                            "size_message_sent": 1000,
+                            "execution_duration": 30
+                        },                            {
+                            "query": "map on shard 3",
+                            "explanation": "Reduce things, part 1",
+                            "machine_id": "2",
+                            "size_message_received": 1000,
+                            "size_message_sent": 1000,
+                            "execution_duration": 30
+                        }
+                    ],
+                    "sub_tasks_stats": {
+                        "average": 5,
+                        "count": 19,
+                        "longest": 7,
+                        "fastest": 3
+                    }
+                },
+                {
+                    "query": "map on shard 3",
+                    "explanation": "Reduce things",
+                    "machine_id": "3",
+                    "size_message_received": 2000,
+                    "size_message_sent": 5000,
+                    "execution_duration": 130
+                },
+                {
+                    "query": "map on shard 3",
+                    "explanation": "Reduce things",
+                    "machine_id": "4",
+                    "size_message_received": 1000,
+                    "size_message_sent": 500,
+                    "execution_duration": 160
+                }
+            ]
+        },
+        {
+            "query": "Reduce",
+            "explanation": "Map things",
+            "machine_id": "1",
+            "size_message_received": 3000,
+            "size_message_sent": 3000,
+            "execution_duration": 100
+        },
+        {
+            "query": "Map stuff",
+            "explanation": "Execute the query",
+            "machine_id": "1",
+            "size_message_received": 2000,
+            "size_message_sent": 2000,
+            "execution_duration": 200,
+            "sub_tasks_are_parallel": true,
+            "sub_tasks": [
+                {
+                    "query": "map on shard 2",
+                    "explanation": "Map things",
+                    "machine_id": "2",
+                    "size_message_received": 1000,
+                    "size_message_sent": 2000,
+                    "execution_duration": 100
+                },
+                {
+                    "query": "map on shard 3",
+                    "explanation": "Reduce things",
+                    "machine_id": "3",
+                    "size_message_received": 2000,
+                    "size_message_sent": 1000,
+                    "execution_duration": 160
+                }
+            ]
+        },
+        {
+            "query": "Order by",
+            "explanation": "Reduce things",
+            "machine_id": "1",
+            "size_message_received": 3000,
+            "size_message_sent": 3000,
+            "execution_duration": 100
+        }
+    ],
+    "sub_tasks_stats": {
+        "average": 250,
+        "count": 4,
+        "longest": 300,
+        "fastest": 3200
+    }
+}

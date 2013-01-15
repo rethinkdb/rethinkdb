@@ -2505,3 +2505,57 @@ TODO: retire this
     width: 190px;
     z-index: 1000;
 }
+
+/*
+    ----------------------------
+    Explain
+    ----------------------------
+*/
+#explain{
+    .list_machine_positions{
+        width: 688px;
+        padding: 0px;
+        margin: 0px;
+        .machine_position{
+            display: block;
+            float: left;
+            list-style: none;
+            margin: 0px;
+            padding: 10px 0px;
+            text-align: center;
+            text-overflow:ellipsis;
+            border-right: 1px solid #ccc;
+            &:last-child{
+                border-right: none;
+            }
+        }
+    }
+    .query{
+        clear: both;
+        width: 688px;
+        padding: 20px 0px 0px 0px;
+        text-align: center;
+        font-family: @monospace;
+    }
+    .svg_container{
+        .legend{
+            clear: both;
+            width: 200px;
+            position: relative;
+            .legend_entry{
+                position: absolute;
+                left: 668px;
+                width: 200px;
+                .legend_entry_text{
+                    display: table-cell;
+                    vertical-align: middle;
+                    text-align: left;
+                }
+            }
+        }
+        .expandable_task{
+            cursor: pointer;
+        }
+    }
+}
+

@@ -28,6 +28,7 @@ module 'DataExplorerView', ->
             'mouseout .suggestion_name_li' : 'mouseout_suggestion'
             'click .clear_query': 'clear_query'
             'click .execute_query': 'execute_query'
+            'click .explain_query': 'explain_query'
             'click .change_size': 'toggle_size'
             'click #reconnect': 'reconnect'
 
@@ -37,6 +38,11 @@ module 'DataExplorerView', ->
             'click .link_to_table_view': 'save_tab'
             'click .link_to_raw_view': 'save_tab'
             'click .close': 'close_alert'
+
+        explain_query: =>
+            explain = new Explain.Container
+            @$('.results_container').html explain.render().$el
+            explain.get_data @codemirror.getValue()
 
         save_tab: (event) =>
             @results_view.set_view @.$(event.target).data('view')

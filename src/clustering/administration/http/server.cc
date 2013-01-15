@@ -56,6 +56,12 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     white_list.insert("/js/backbone.js");
     white_list.insert("/js/rethinkdb.js");
     white_list.insert("/js/template.js");
+    // TODO remove when not testing
+    white_list.insert("/js/explain.json");
+    white_list.insert("/js/explain1.json");
+    white_list.insert("/js/explain2.json");
+    white_list.insert("/js/explain3.json");
+    white_list.insert("/js/explain4.json");
     white_list.insert("/js/bootstrap/bootstrap-alert.js");
     white_list.insert("/js/bootstrap/bootstrap-modal.js");
     white_list.insert("/js/bootstrap/bootstrap-tab.js");

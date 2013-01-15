@@ -1,0 +1,66 @@
+{
+    "query": "r.table('users').map(r.row('num_toys')).reduce( function(acc, val) { return acc.add(val)}).run()",
+    "explanation": "Execute the query on the 3 shards of the table users",
+    "machine_id": "1",
+    "size_message_received": 2000,
+    "size_message_sent": 8000,
+    "execution_duration": 1000,
+    "sub_tasks_are_parallel": false,
+    "sub_tasks": [
+        {
+            "query": "r.table('users').map(r.row('num_toys'))",
+            "explanation": "Map the documents from table users",
+            "machine_id": "1",
+            "size_message_received": 2000,
+            "size_message_sent": 3000,
+            "execution_duration": 300,
+            "sub_tasks_are_parallel": true,
+            "sub_tasks": [
+                {
+                    "query": "r.table('users').map(r.row('num_toys'))",
+                    "explanation": "Map the results on shard [-oo, XX]",
+                    "machine_id": "1",
+                    "size_message_received": 1000,
+                    "size_message_sent": 1000,
+                    "execution_duration": 200
+                },
+                {
+                    "query": "r.table('users').map(r.row('num_toys'))",
+                    "explanation": "Map the results on shard [XX, YY]",
+                    "machine_id": "2",
+                    "size_message_received": 1000,
+                    "size_message_sent": 1000,
+                    "execution_duration": 200
+                },
+                {
+                    "query": "r.table('users').map(r.row('num_toys'))",
+                    "explanation": "Map the results on shard [YY, +oo]",
+                    "machine_id": "3",
+                    "size_message_received": 1000,
+                    "size_message_sent": 1000,
+                    "execution_duration": 200
+                }
+            ],
+            "sub_tasks_stats": {
+                "average": 5,
+                "count": 3,
+                "longest": 7,
+                "fastest": 3
+            }
+        },
+        {
+            "query": ".reduce( function(acc, val) { return acc.add(val) } )",
+            "explanation": "Reduce all the results",
+            "machine_id": "1",
+            "size_message_received": 2000,
+            "size_message_sent": 3000,
+            "execution_duration": 600
+        }
+    ],
+    "sub_tasks_stats": {
+        "average": 5,
+        "count": 2,
+        "longest": 7,
+        "fastest": 3
+    }
+}

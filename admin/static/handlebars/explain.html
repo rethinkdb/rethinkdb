@@ -1,0 +1,30 @@
+<script id="explain_view-template" type="text/x-handlebars-template">
+    <h1 class="title">Explain</h1>
+    <div class="machine_positions">
+        <ul class="list_machine_positions"></ul>
+    </div>
+    <div class="query"></div>
+    <div class="svg_container">
+        <div class="legend"></div>
+        <svg class="explain_svg" width="688" height="1000"></svg>
+    </div>
+</script>
+
+
+<script id="explain-machine_position-template" type="text/x-handlebars-template">
+    {{#if valid_link}}
+    <li class="machine_position"><a href="#machines/{{id}}">{{name}}</a></li>
+    {{else}}
+    <li class="machine_position">Machine {{name}}</li>
+    {{/if}}
+</script>
+
+
+<script id="explain-legend-template" type="text/x-handlebars-template">
+    <div class="legend_entry" style="top: {{top}}px;">
+        <div class="legend_entry_text" style="height: {{height}}px;">
+            Query: {{query}}<br/>
+        Explanation: {{explanation}}
+        </div>
+    </div>
+</script>
