@@ -57,8 +57,8 @@ typedef rdb_protocol_t::point_delete_response_t point_delete_response_t;
 typedef rdb_protocol_t::sindex_create_t sindex_create_t;
 typedef rdb_protocol_t::sindex_create_response_t sindex_create_response_t;
 
-typedef rdb_protocol_t::sindex_delete_t sindex_delete_t;
-typedef rdb_protocol_t::sindex_delete_response_t sindex_delete_response_t;
+typedef rdb_protocol_t::sindex_drop_t sindex_drop_t;
+typedef rdb_protocol_t::sindex_drop_response_t sindex_drop_response_t;
 
 typedef rdb_protocol_t::backfill_chunk_t backfill_chunk_t;
 
@@ -479,7 +479,7 @@ struct w_get_region_visitor : public boost::static_visitor<region_t> {
         return c.region_to_index;
     }
 
-    region_t operator()(const sindex_delete_t &d) const {
+    region_t operator()(const sindex_drop_t &d) const {
         return d.region_to_unindex;
     }
 };
@@ -518,8 +518,8 @@ struct w_shard_visitor : public boost::static_visitor<write_t> {
         return write_t(cpy);
     }
 
-    write_t operator()(const sindex_delete_t &d) const {
-        sindex_delete_t cpy(d);
+    write_t operator()(const sindex_drop_t &d) const {
+        sindex_drop_t cpy(d);
         cpy.region_to_unindex = region;
         return write_t(cpy);
     }
@@ -559,7 +559,7 @@ struct w_unshard_visitor : public boost::static_visitor<void> {
         *response_out = responses[0];
     }
 
-    void operator()(const sindex_delete_t &) const {
+    void operator()(const sindex_drop_t &) const {
         *response_out = responses[0];
     }
 
@@ -734,8 +734,8 @@ struct write_visitor_t : public boost::static_visitor<void> {
                 &interruptor);
     }
 
-    void operator()(const sindex_delete_t &d) {
-        response->response = sindex_delete_response_t();
+    void operator()(const sindex_drop_t &d) {
+        response->response = sindex_drop_response_t();
         value_sizer_t<rdb_value_t> sizer(txn->cache->get_block_size());
         rdb_value_deleter_t deleter;
 
@@ -1056,7 +1056,7 @@ RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_write_response_t, result);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_delete_response_t, result);
 RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::point_modify_response_t, result, exc);
 RDB_IMPL_ME_SERIALIZABLE_0(rdb_protocol_t::sindex_create_response_t);
-RDB_IMPL_ME_SERIALIZABLE_0(rdb_protocol_t::sindex_delete_response_t);
+RDB_IMPL_ME_SERIALIZABLE_0(rdb_protocol_t::sindex_drop_response_t);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::write_response_t, response);
 
@@ -1067,7 +1067,7 @@ RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::point_write_t, key, data, overwrite);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_delete_t, key);
 
 RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::sindex_create_t, id, mapping);
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sindex_delete_t, id);
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sindex_drop_t, id);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::write_t, write);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::delete_key_t, key);

@@ -357,13 +357,13 @@ struct rdb_protocol_t {
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 
-    struct sindex_delete_response_t {
+    struct sindex_drop_response_t {
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 
     struct write_response_t {
         boost::variant<point_write_response_t, point_modify_response_t, point_delete_response_t,
-                       sindex_create_response_t, sindex_delete_response_t> response;
+                       sindex_create_response_t, sindex_drop_response_t> response;
 
         write_response_t() { }
         write_response_t(const write_response_t& w) : response(w.response) { }
@@ -429,10 +429,10 @@ struct rdb_protocol_t {
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 
-    class sindex_delete_t {
+    class sindex_drop_t {
     public:
-        sindex_delete_t() { }
-        explicit sindex_delete_t(uuid_u _id)
+        sindex_drop_t() { }
+        explicit sindex_drop_t(uuid_u _id)
             : id(_id), region_to_unindex(region_t::universe()) { }
 
         uuid_u id;
@@ -442,7 +442,7 @@ struct rdb_protocol_t {
     };
 
     struct write_t {
-        boost::variant<point_write_t, point_delete_t, point_modify_t, sindex_create_t, sindex_delete_t> write;
+        boost::variant<point_write_t, point_delete_t, point_modify_t, sindex_create_t, sindex_drop_t> write;
 
         region_t get_region() const THROWS_NOTHING;
         write_t shard(const region_t &region) const THROWS_NOTHING;
@@ -454,7 +454,7 @@ struct rdb_protocol_t {
         explicit write_t(const point_delete_t &d) : write(d) { }
         explicit write_t(const point_modify_t &m) : write(m) { }
         explicit write_t(const sindex_create_t &c) : write(c) { }
-        explicit write_t(const sindex_delete_t &c) : write(c) { }
+        explicit write_t(const sindex_drop_t &c) : write(c) { }
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };

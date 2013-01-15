@@ -148,14 +148,14 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
     }
 
     {
-        rdb_protocol_t::sindex_delete_t d(id);
+        rdb_protocol_t::sindex_drop_t d(id);
         rdb_protocol_t::write_t write(d);
         rdb_protocol_t::write_response_t response;
 
         cond_t interruptor;
         nsi->write(write, &response, osource->check_in("unittest::run_create_drop_sindex_test(rdb_protocol_t.cc-A"), &interruptor);
 
-        if (!boost::get<rdb_protocol_t::sindex_delete_response_t>(&response.response)) {
+        if (!boost::get<rdb_protocol_t::sindex_drop_response_t>(&response.response)) {
             ADD_FAILURE() << "got wrong type of result back";
         }
     }
