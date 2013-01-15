@@ -532,9 +532,46 @@ write_t write_t::shard(const region_t &region) const THROWS_NOTHING {
     return boost::apply_visitor(w_shard_visitor(region), write);
 }
 
-void write_t::unshard(const write_response_t *responses, size_t count, write_response_t *response, UNUSED context_t *ctx) const THROWS_NOTHING {
-    guarantee(count == 1);
-    *response = responses[0];
+struct w_unshard_visitor : public boost::static_visitor<void> {
+    w_unshard_visitor(const write_response_t *_responses, size_t _count,
+                      write_response_t *_response_out,
+                      context_t *_ctx)
+        : responses(_responses), count(_count), 
+          response_out(_response_out), ctx(_ctx)
+    { }
+
+    void operator()(const point_write_t &) const {
+        guarantee(count == 1);
+        *response_out = responses[0];
+    }
+
+    void operator()(const point_delete_t &) const {
+        guarantee(count == 1);
+        *response_out = responses[0];
+    }
+
+    void operator()(const point_modify_t &) const {
+        guarantee(count == 1);
+        *response_out = responses[0];
+    }
+
+    void operator()(const sindex_create_t &) const {
+        *response_out = responses[0];
+    }
+
+    void operator()(const sindex_delete_t &) const {
+        *response_out = responses[0];
+    }
+
+private:
+    const write_response_t *responses; 
+    size_t count;
+    write_response_t *response_out;
+    context_t *ctx;
+};
+
+void write_t::unshard(const write_response_t *responses, size_t count, write_response_t *response, context_t *ctx) const THROWS_NOTHING {
+    boost::apply_visitor(w_unshard_visitor(responses, count, response, ctx), write);
 }
 
 store_t::store_t(serializer_t *serializer,
@@ -678,6 +715,8 @@ struct write_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const sindex_create_t &c) {
+        response->response = sindex_create_response_t();
+
         write_message_t wm;
         wm << c.mapping;
 
@@ -696,6 +735,7 @@ struct write_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const sindex_delete_t &d) {
+        response->response = sindex_delete_response_t();
         value_sizer_t<rdb_value_t> sizer(txn->cache->get_block_size());
         rdb_value_deleter_t deleter;
 
@@ -1015,8 +1055,8 @@ RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_write_response_t, result);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_delete_response_t, result);
 RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::point_modify_response_t, result, exc);
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sindex_create_response_t, result);
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sindex_delete_response_t, result);
+RDB_IMPL_ME_SERIALIZABLE_0(rdb_protocol_t::sindex_create_response_t);
+RDB_IMPL_ME_SERIALIZABLE_0(rdb_protocol_t::sindex_delete_response_t);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::write_response_t, response);
 

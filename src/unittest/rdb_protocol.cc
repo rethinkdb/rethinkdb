@@ -132,5 +132,38 @@ TEST(RDBProtocol, GetSet) {
     run_in_thread_pool_with_namespace_interface(&run_get_set_test);
 }
 
+void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t *osource) {
+    uuid_u id = generate_uuid();
+    {
+        Mapping m;
+        rdb_protocol_t::write_t write(rdb_protocol_t::sindex_create_t(id, m));
+        rdb_protocol_t::write_response_t response;
+
+        cond_t interruptor;
+        nsi->write(write, &response, osource->check_in("unittest::run_create_drop_sindex_test(rdb_protocol_t.cc-A"), &interruptor);
+
+        if (!boost::get<rdb_protocol_t::sindex_create_response_t>(&response.response)) {
+            ADD_FAILURE() << "got wrong type of result back";
+        }
+    }
+
+    {
+        rdb_protocol_t::sindex_delete_t d(id);
+        rdb_protocol_t::write_t write(d);
+        rdb_protocol_t::write_response_t response;
+
+        cond_t interruptor;
+        nsi->write(write, &response, osource->check_in("unittest::run_create_drop_sindex_test(rdb_protocol_t.cc-A"), &interruptor);
+
+        if (!boost::get<rdb_protocol_t::sindex_delete_response_t>(&response.response)) {
+            ADD_FAILURE() << "got wrong type of result back";
+        }
+    }
+}
+
+TEST(RDBProtocol, SindexCreateDrop) {
+    run_in_thread_pool_with_namespace_interface(&run_create_drop_sindex_test);
+}
+
 }   /* namespace unittest */
 
