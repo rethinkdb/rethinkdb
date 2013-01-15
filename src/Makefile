@@ -1310,7 +1310,10 @@ endif
 
 $(WEB_ASSETS_BUILD_DIR)/index.html: $(CLUSTER_HTML) $(HANDLEBARS_SOURCES)
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
-	cp $(CLUSTER_HTML) $@
+	$(QUIET) cp $(CLUSTER_HTML) $@
+ifeq ($(VERBOSE),0)
+	@echo "    CP $(CLUSTER_HTML) -> $@"
+endif
 
 $(WEB_ASSETS_BUILD_DIR)/js:
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
