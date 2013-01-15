@@ -41,6 +41,8 @@ public:
 
     val_t *new_val() { return new_val(new datum_t()); }
     template<class T>
+    val_t *new_val(T *t) { return new_val(static_cast<datum_stream_t *>(t)); }
+    template<class T>
     val_t *new_val(T t) { return new_val(new datum_t(t)); }
     template<class T>
     void set_bt(T t) { frame.init(new backtrace_t::frame_t(t)); }

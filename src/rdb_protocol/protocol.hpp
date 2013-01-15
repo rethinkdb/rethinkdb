@@ -132,6 +132,7 @@ typedef boost::variant<Builtin_GroupedMapReduce,
                        Reduction,
                        Length,
                        WriteQuery_ForEach,
+                       ql::count_wire_func_t,
                        ql::reduce_wire_func_t> terminal_variant_t;
 
 struct terminal_t {

@@ -56,8 +56,8 @@ term_t *compile_term(env_t *env, const Term2 *t) {
     case Term2_TermType_CONCATMAP:    return new concatmap_term_t(env, t);
     case Term2_TermType_ORDERBY:      return new orderby_term_t(env, t);
     case Term2_TermType_DISTINCT:     return new distinct_term_t(env, t);
-    case Term2_TermType_COUNT:
-    case Term2_TermType_UNION:
+    case Term2_TermType_COUNT:        return new count_term_t(env, t);
+    case Term2_TermType_UNION:        return new union_term_t(env, t);
     case Term2_TermType_NTH:
     case Term2_TermType_GROUPED_MAP_REDUCE:
     case Term2_TermType_GROUPBY:

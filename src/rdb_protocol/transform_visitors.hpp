@@ -70,7 +70,7 @@ public:
 
     void operator()(const WriteQuery_ForEach &) const;
 
-    // This is a non-const reference because it caches the compiled function
+    void operator()(const ql::count_wire_func_t &) const;
     void operator()(const ql::reduce_wire_func_t &) const;
 private:
     rget_read_response_t::result_t *out;
@@ -98,6 +98,7 @@ public:
 
     void operator()(const WriteQuery_ForEach &w) const;
 
+    void operator()(const ql::count_wire_func_t &) const;
     // This is a non-const reference because it caches the compiled function
     void operator()(ql::reduce_wire_func_t &) const;
 private:

@@ -5,8 +5,6 @@
 
 namespace ql {
 
-void datum_stream_t::void_add_ptr(ptr_baggable_t *p) { env->add_ptr(p); }
-
 // DATUM_STREAM_T
 datum_stream_t::datum_stream_t(env_t *_env) : env(_env) { guarantee(env); }
 datum_stream_t *datum_stream_t::map(func_t *f) {
@@ -18,6 +16,17 @@ datum_stream_t *datum_stream_t::concatmap(func_t *f) {
 datum_stream_t *datum_stream_t::filter(func_t *f) {
     return env->add_ptr(new filter_datum_stream_t(env, f, this));
 }
+
+const datum_t *datum_stream_t::count() {
+    int i = 0;
+    for (;;) {
+        env_checkpointer_t(env, &env_t::discard_checkpoint);
+        if (!next()) break;
+        ++i;
+    }
+    return env->add_ptr(new datum_t(i));
+}
+
 const datum_t *datum_stream_t::reduce(val_t *base_val, func_t *f) {
     const datum_t *base = base_val ? base_val->as_datum() : next();
     rcheck(base, "Cannot reduce over an empty stream with no base.");
@@ -40,6 +49,12 @@ const datum_t *datum_stream_t::reduce(val_t *base_val, func_t *f) {
 }
 datum_stream_t *datum_stream_t::slice(size_t l, size_t r) {
     return env->add_ptr(new slice_datum_stream_t(env, l, r, this));
+}
+
+const datum_t *datum_stream_t::as_arr() {
+    datum_t *arr = env->add_ptr(new datum_t(datum_t::R_ARRAY));
+    while (const datum_t *d = next()) arr->add(d);
+    return arr;
 }
 
 // LAZY_DATUM_STREAM_T
@@ -68,34 +83,50 @@ SIMPLE_LAZY_TRANSFORMATION(concatmap);
 SIMPLE_LAZY_TRANSFORMATION(filter);
 #undef SIMPLE_LAZY_TRANSFORMATION
 
-const datum_t *lazy_datum_stream_t::reduce(val_t *base_val, func_t *f) {
-    terminal = rdb_protocol_details::terminal_variant_t(reduce_wire_func_t(env, f));
+template<class T>
+void lazy_datum_stream_t::run_terminal(T t) {
+    terminal = rdb_protocol_details::terminal_variant_t(t);
     rdb_protocol_t::rget_read_response_t::result_t res =
         json_stream->apply_terminal(terminal, 0, env, _s, _b);
-
-    std::vector<boost::shared_ptr<scoped_cJSON_t> > *vec
-        = boost::get<rdb_protocol_t::rget_read_response_t::vec_t>(&res);
+    std::vector<boost::shared_ptr<scoped_cJSON_t> > *vec =
+        boost::get<rdb_protocol_t::rget_read_response_t::vec_t>(&res);
     r_sanity_check(vec);
-    const datum_t *out;
-    if (base_val) {
-        out = base_val->as_datum();
-    } else {
-        rcheck(vec->size() > 0, "Cannot reduce over an empty stream with no base.");
-        out = env->add_ptr(new datum_t((*vec)[0], env));
+    for (size_t i = 0; i < vec->size(); ++i) {
+        shard_data.push_back(env->add_ptr(new datum_t((*vec)[i], env)));
     }
+}
 
+const datum_t *lazy_datum_stream_t::count() {
+    datum_t *d = env->add_ptr(new datum_t(0));
+    env_checkpointer_t(env, &env_t::discard_checkpoint);
+    run_terminal(count_wire_func_t());
+    for (size_t i = 0; i < shard_data.size(); ++i) {
+        *d = datum_t(d->as_int() + shard_data[i]->as_int());
+    }
+    return d;
+}
+
+const datum_t *lazy_datum_stream_t::reduce(val_t *base_val, func_t *f) {
     try {
-        for (size_t i = !base_val; i < vec->size(); ++i) {
-            const datum_t *rhs = env->add_ptr(new datum_t((*vec)[i], env));
-            out = f->call(out, rhs)->as_datum();
+        run_terminal(reduce_wire_func_t(env, f));
+        const datum_t *out;
+        if (base_val) {
+            out = base_val->as_datum();
+        } else {
+            rcheck(shard_data.size() > 0,
+                   "Cannot reduce over an empty stream with no base.");
+            out = shard_data[0];
         }
+        for (size_t i = !base_val; i < shard_data.size(); ++i) {
+            out = f->call(out, shard_data[i])->as_datum();
+        }
+        return out;
     } catch (exc_t &e) {
         e.backtrace.frames.push_front(reduce_bt_frame);
         throw;
     }
-
-    return out;
 }
+
 const datum_t *lazy_datum_stream_t::next() {
     boost::shared_ptr<scoped_cJSON_t> json = json_stream->next();
     if (!json.get()) return 0;
@@ -171,5 +202,13 @@ const datum_t *slice_datum_stream_t::next() {
     }
     return src->next();
 }
+
+// UNION_DATUM_STREAM_T
+const datum_t *union_datum_stream_t::next() {
+    for (; streams_index < streams.size(); ++streams_index) {
+        if (const datum_t *d = streams[streams_index]->next()) return d;
+    }
+    return 0;
+};
 
 } // namespace ql

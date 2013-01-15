@@ -63,6 +63,8 @@ SIMPLE_FUNC_IMPL(filter, 1);
 static const int reduce_gc_rounds = 100 DEBUG_ONLY(* 0 + 1);
 SIMPLE_FUNC_IMPL(reduce, 1);
 SIMPLE_FUNC_IMPL(concatmap, 1);
+// Faux functions
+class count_wire_func_t { RDB_MAKE_ME_SERIALIZABLE_0() };
 
 class func_term_t : public term_t {
 public:

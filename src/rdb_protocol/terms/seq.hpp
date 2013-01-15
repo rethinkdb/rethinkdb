@@ -4,6 +4,16 @@
 
 namespace ql {
 
+class count_term_t : public op_term_t {
+public:
+    count_term_t(env_t *env, const Term2 *term) : op_term_t(env, term, argspec_t(1)) { }
+private:
+    virtual val_t *eval_impl() {
+        return new_val(arg(0)->as_seq()->count());
+    }
+    RDB_NAME("count")
+};
+
 class map_term_t : public op_term_t {
 public:
     map_term_t(env_t *env, const Term2 *term) : op_term_t(env, term, argspec_t(2)) { }
@@ -95,6 +105,18 @@ private:
     RDB_NAME("between")
 
     scoped_ptr_t<Term2> filter_func;
+};
+
+class union_term_t : public op_term_t {
+public:
+    union_term_t(env_t *env, const Term2 *term) : op_term_t(env, term, argspec_t(0, -1)) { }
+private:
+    virtual val_t *eval_impl() {
+        std::vector<datum_stream_t *> streams;
+        for (size_t i = 0; i < num_args(); ++i) streams.push_back(arg(i)->as_seq());
+        return new_val(new union_datum_stream_t(env, streams));
+    }
+    RDB_NAME("union")
 };
 
 } //namespace ql

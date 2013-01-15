@@ -11,12 +11,14 @@ public:
     virtual datum_stream_t *filter(func_t *f);
     virtual datum_stream_t *map(func_t *f);
     virtual datum_stream_t *concatmap(func_t *f);
-    virtual const datum_t *reduce(val_t *base_val, func_t *f);
     virtual datum_stream_t *slice(size_t l, size_t r);
-    virtual const datum_t *next() = 0;
 
+    virtual const datum_t *count();
+    virtual const datum_t *reduce(val_t *base_val, func_t *f);
+
+        virtual const datum_t *next() = 0;
+    virtual const datum_t *as_arr();
 protected:
-    void void_add_ptr(ptr_baggable_t *p);
     env_t *env;
 };
 
@@ -27,8 +29,11 @@ public:
     virtual datum_stream_t *filter(func_t *f);
     virtual datum_stream_t *map(func_t *f);
     virtual datum_stream_t *concatmap(func_t *f);
+
+    virtual const datum_t *count();
     virtual const datum_t *reduce(val_t *base_val, func_t *f);
     virtual const datum_t *next();
+    virtual const datum_t *as_arr() { return 0; } // cannot be converted implicitly
 private:
     lazy_datum_stream_t(lazy_datum_stream_t *src);
     boost::shared_ptr<query_language::json_stream_t> json_stream;
@@ -37,6 +42,10 @@ private:
     rdb_protocol_details::terminal_variant_t terminal;
     query_language::scopes_t _s;
     query_language::backtrace_t _b;
+
+    template<class T>
+    void run_terminal(T t);
+    std::vector<const datum_t *> shard_data;
 };
 
 class array_datum_stream_t : public datum_stream_t {
@@ -119,6 +128,16 @@ private:
 
     int data_index;
     std::vector<const datum_t *> data;
+};
+
+class union_datum_stream_t : public datum_stream_t {
+public:
+    union_datum_stream_t(env_t *env, const std::vector<datum_stream_t *> &_streams)
+        : datum_stream_t(env), streams(_streams), streams_index(0) { }
+    virtual const datum_t *next();
+private:
+    std::vector<datum_stream_t *> streams;
+    size_t streams_index;
 };
 
 } // namespace ql

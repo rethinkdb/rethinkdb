@@ -203,6 +203,23 @@ void terminal_visitor_t::operator()(const WriteQuery_ForEach &w) const {
     }
 }
 
+
+void terminal_initializer_visitor_t::operator()(
+    UNUSED const ql::count_wire_func_t &f) const {
+    *out = rget_read_response_t::atom_t(ql::datum_t(0).as_json());
+}
+
+void terminal_visitor_t::operator()(UNUSED const ql::count_wire_func_t &func) const {
+    // TODO (!!!) make this not be horrendously inefficient.
+    // (requires ripping out JSON stuff)
+    ql::env_checkpointer_t(ql_env, &ql::env_t::discard_checkpoint);
+    rget_read_response_t::atom_t *res_atom =
+        boost::get<rget_read_response_t::atom_t>(out);
+    guarantee(res_atom);
+    const ql::datum_t *l = ql_env->add_ptr(new ql::datum_t(*res_atom, ql_env));
+    *res_atom = ql::datum_t(l->as_int() + 1).as_json();
+}
+
 void terminal_initializer_visitor_t::operator()(
     UNUSED const ql::reduce_wire_func_t &f) const {
     *out = rget_read_response_t::empty_t();

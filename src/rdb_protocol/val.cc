@@ -192,6 +192,10 @@ val_t::type_t val_t::get_type() const { return type; }
 
 const datum_t *val_t::as_datum() {
     if (type.raw_type != type_t::DATUM && type.raw_type != type_t::SINGLE_SELECTION) {
+        if (type.raw_type == type_t::SEQUENCE) {
+            const datum_t *d = as_seq()->as_arr();
+            if (d) return d;
+        }
         rfail("Type error: cannot convert %s to DATUM.", type.name());
     }
     return datum;

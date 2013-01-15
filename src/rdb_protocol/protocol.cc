@@ -337,8 +337,8 @@ public:
                     Term body = r->body();
                     *res_atom = eval_term_as_json(&body, &env, scopes_copy, rg.terminal->backtrace.with("body"));
                 }
-            } else if (UNUSED const ql::reduce_wire_func_t *f =
-                       boost::get<ql::reduce_wire_func_t>(&rg.terminal->variant)) {
+            } else if (boost::get<ql::reduce_wire_func_t>(&rg.terminal->variant)
+                       || boost::get<ql::count_wire_func_t>(&rg.terminal->variant)) {
                 typedef rget_read_response_t::vec_t vec_t;
                 vec_t *out_vec = boost::get<vec_t>(&(rg_response.result = vec_t()));
                 for (size_t i = 0; i < count; ++i) {
@@ -351,29 +351,6 @@ public:
                                       &(_rr->result)));
                     }
                 }
-                /*
-                atom_t *res_atom = boost::get<atom_t>(&(rg_response.result = atom_t()));
-                for (size_t i = 0; i < count; ++i) {
-                    const rget_read_response_t *_rr =
-                        boost::get<rget_read_response_t>(&responses[i].response);
-                    guarantee(_rr);
-                    const atom_t *atom = boost::get<atom_t>(&(_rr->result));
-                    if (!atom) {
-                        guarantee(boost::get<rget_read_response_t::empty_t>(
-                                      &(_rr->result)));
-                    } else {
-                        if (!*res_atom) {
-                            *res_atom = *atom;
-                        } else {
-                            std::vector<const ql::datum_t *> args;
-                            args.push_back(ql_env->add_ptr(new ql::datum_t(*res_atom)));
-                            args.push_back(ql_env->add_ptr(new ql::datum_t(*atom)));
-                            *res_atom = f->compile(ql_env)->call(args)->to_json();
-                        }
-                    }
-                }
-                if (!*res_atom) rg_response.result = rget_read_response_t::empty_t();
-                */
             } else if (boost::get<rdb_protocol_details::Length>(&rg.terminal->variant)) {
                 rg_response.result = length_t();
                 length_t *res_length = boost::get<length_t>(&rg_response.result);
