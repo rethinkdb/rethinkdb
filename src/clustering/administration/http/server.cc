@@ -50,7 +50,8 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     white_list.insert("/cluster.css");
     white_list.insert("/index.html");
     white_list.insert("/js/backbone-min.js");
-    white_list.insert("/js/backbone.js");
+    white_list.insert("/js/bootstrap");
+    white_list.insert("/js/bootstrap/bootstrap-typeahead.js.fork.backup");
     white_list.insert("/js/bootstrap/bootstrap-alert.js");
     white_list.insert("/js/bootstrap/bootstrap-button.js");
     white_list.insert("/js/bootstrap/bootstrap-carousel.js");
@@ -63,19 +64,21 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     white_list.insert("/js/bootstrap/bootstrap-tooltip.js");
     white_list.insert("/js/bootstrap/bootstrap-transition.js");
     white_list.insert("/js/bootstrap/bootstrap-typeahead.js");
-    white_list.insert("/js/bootstrap/bootstrap-typeahead.js.fork.backup");
+    white_list.insert("/js/chosen");
     white_list.insert("/js/chosen/chosen-sprite.png");
     white_list.insert("/js/chosen/chosen.css");
     white_list.insert("/js/chosen/chosen.jquery.min.js");
+    white_list.insert("/js/codemirror");
     white_list.insert("/js/codemirror/ambiance.css");
     white_list.insert("/js/codemirror/codemirror.css");
     white_list.insert("/js/codemirror/codemirror.js");
     white_list.insert("/js/codemirror/javascript.js");
+    white_list.insert("/js/jquery.color.js");
+    white_list.insert("/js/backbone.js");
     white_list.insert("/js/cubism.v1.js");
     white_list.insert("/js/d3.v2.min.js");
     white_list.insert("/js/date-en-US.js");
     white_list.insert("/js/jquery-1.7.2.min.js");
-    white_list.insert("/js/jquery.color.js");
     white_list.insert("/js/jquery.cookie.js");
     white_list.insert("/js/jquery.dataTables.min.js");
     white_list.insert("/js/jquery.form.js");
@@ -85,10 +88,11 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     white_list.insert("/js/jquery.validate.min.js");
     white_list.insert("/js/less-1.1.4.min.js");
     white_list.insert("/js/rdb_cubism.v1.js");
+    white_list.insert("/js/reql_docs.json");
     white_list.insert("/js/underscore-min.js");
     white_list.insert("/js/xdate.js");
-    white_list.insert("/js/reql_docs.json");
-    white_list.insert("/js/handlebars-1.0.0.beta.6.js");
+    white_list.insert("/js/handlebars.runtime-1.0.0.beta.6.js");
+    white_list.insert("/js/template.js");
     white_list.insert("/js/rethinkdb.js");
     white_list.insert("/fonts/copse-regular-webfont.eot");
     white_list.insert("/fonts/copse-regular-webfont.svg");
@@ -200,7 +204,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     white_list.insert("/images/yellow-light_glow.png");
     white_list.insert("/favicon.ico");
     white_list.insert("/cluster-min.js");
-      
+
     file_app.init(new file_http_app_t(white_list, path));
 
     semilattice_app.init(new semilattice_http_app_t(_metadata_change_handler, _directory_metadata, _us));
