@@ -2,7 +2,6 @@
 #include "buffer_cache/mock.hpp"
 
 #include "arch/arch.hpp"
-#include "arch/random_delay.hpp"
 #include "serializer/serializer.hpp"
 
 /* Internal buf object */
@@ -132,7 +131,7 @@ mock_buf_lock_t::mock_buf_lock_t(mock_transaction_t *txn, block_id_t block_id, a
         internal_buf->subtree_recency = txn->recency_timestamp;
     }
 
-    nap(5);   // TODO: We should nap for a random time like `maybe_random_delay()` does
+    nap(5);  // TODO: Maybe we should nap for a random time.
 }
 
 mock_buf_lock_t::~mock_buf_lock_t() {

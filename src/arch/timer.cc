@@ -12,6 +12,8 @@ class timer_token_t : public intrusive_list_node_t<timer_token_t> {
     friend class timer_handler_t;
 
 private:
+    timer_token_t() { }
+
     bool once;   // If 'false', the timer is repeating
     int64_t interval_ms;   // If a repeating timer, this is the time between 'rings'
     int64_t next_time_in_ms;   // This is the time (in ms since the server started) of the next 'ring'
@@ -21,8 +23,9 @@ private:
     // controlled fashion.
     bool deleted;
 
-    void (*callback)(void *ctx);
-    void *context;
+    timer_callback_t *callback;
+
+    DISABLE_COPYING(timer_token_t);
 };
 
 /* Timer implementation */
@@ -67,7 +70,7 @@ void timer_handler_t::on_timer(int nexpirations) {
             // should be a flag on the timer that determines whether to call the timer's callback
             // more than once or not.
 
-            timer->callback(timer->context);
+            timer->callback->on_timer();
 
             if (timer->once) {
                 cancel_timer(timer);
@@ -83,7 +86,7 @@ void timer_handler_t::on_timer(int nexpirations) {
     }
 }
 
-timer_token_t *timer_handler_t::add_timer_internal(int64_t ms, void (*callback)(void *ctx), void *ctx, bool once) {
+timer_token_t *timer_handler_t::add_timer_internal(int64_t ms, timer_callback_t *callback, bool once) {
     rassert(ms >= 0);
 
     timer_token_t *t = new timer_token_t();
@@ -92,7 +95,6 @@ timer_token_t *timer_handler_t::add_timer_internal(int64_t ms, void (*callback)(
     t->interval_ms = ms;
     t->deleted = false;
     t->callback = callback;
-    t->context = ctx;
 
     timers.push_front(t);
 

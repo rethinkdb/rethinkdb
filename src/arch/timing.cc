@@ -26,17 +26,16 @@ void nap(int64_t ms, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
 
 signal_timer_t::signal_timer_t(int64_t ms) {
     rassert(ms >= 0);
-    timer = fire_timer_once(ms, &signal_timer_t::on_timer_ring, this);
+    timer = fire_timer_once(ms, this);
 }
 
 signal_timer_t::~signal_timer_t() {
     if (timer) cancel_timer(timer);
 }
 
-void signal_timer_t::on_timer_ring(void *v_timer) {
-    signal_timer_t *self = reinterpret_cast<signal_timer_t*>(v_timer);
-    self->timer = NULL;
-    self->pulse();
+void signal_timer_t::on_timer() {
+    timer = NULL;
+    pulse();
 }
 
 // repeating_timer_t
@@ -44,7 +43,7 @@ void signal_timer_t::on_timer_ring(void *v_timer) {
 repeating_timer_t::repeating_timer_t(int64_t frequency_ms, repeating_timer_callback_t *_ringee) :
     ringee(_ringee) {
     rassert(frequency_ms > 0);
-    timer = add_timer(frequency_ms, &repeating_timer_t::on_timer_ring, this);
+    timer = add_timer(frequency_ms, this);
 }
 
 repeating_timer_t::~repeating_timer_t() {
@@ -59,8 +58,8 @@ void call_ringer(repeating_timer_callback_t *ringee) {
     ringee->on_ring();
 }
 
-void repeating_timer_t::on_timer_ring(void *v_timer) {
+void repeating_timer_t::on_timer() {
     // Spawn _now_, otherwise the reating_timer_t lifetime might end
     // before ring gets used.
-    coro_t::spawn_now_dangerously(boost::bind(call_ringer, reinterpret_cast<repeating_timer_t *>(v_timer)->ringee));
+    coro_t::spawn_now_dangerously(boost::bind(call_ringer, ringee));
 }

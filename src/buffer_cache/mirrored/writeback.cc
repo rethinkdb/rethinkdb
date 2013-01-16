@@ -149,7 +149,7 @@ void writeback_t::on_transaction_commit(transaction_t *txn) {
         if (!flush_timer && !flush_time_randomizer.is_never_flush() && !flush_time_randomizer.is_zero()) {
             /* Start the flush timer so that the modified data doesn't sit in memory for too long
             without being written to disk and the patches_size_ratio gets updated */
-            flush_timer = fire_timer_once(flush_time_randomizer.next_time_interval(), flush_timer_callback, this);
+            flush_timer = fire_timer_once(flush_time_randomizer.next_time_interval(), this);
         }
     }
 }
@@ -212,8 +212,10 @@ bool writeback_t::can_read_ahead_block_be_accepted(block_id_t block_id) {
     return reject_read_ahead_blocks.find(block_id) == reject_read_ahead_blocks.end();
 }
 
-void writeback_t::flush_timer_callback(void *ctx) {
-    writeback_t *self = static_cast<writeback_t *>(ctx);
+void writeback_t::on_timer() {
+    // The flush timer callback.
+
+    writeback_t *self = this;
     self->flush_timer = NULL;
 
     self->cache->assert_thread();

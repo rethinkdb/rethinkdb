@@ -12,7 +12,7 @@
 #include "utils.hpp"
 
 
-class heartbeat_manager_t : public message_handler_t {
+class heartbeat_manager_t : public message_handler_t, private timer_callback_t {
 public:
     explicit heartbeat_manager_t(message_service_t *_message_service);
     ~heartbeat_manager_t();
@@ -36,7 +36,7 @@ private:
     static const int64_t HEARTBEAT_INTERVAL_MS = 2000;
     static const uint32_t HEARTBEAT_TIMEOUT_INTERVALS = 5;
 
-    static void timer_callback(void *ctx);
+    void on_timer();
 
     // This is a stub, we do everything in message_from_peer instead
     void on_message(UNUSED peer_id_t source_peer, UNUSED read_stream_t *stream) { }
