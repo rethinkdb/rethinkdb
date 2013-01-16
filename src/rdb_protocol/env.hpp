@@ -82,7 +82,8 @@ private:
         return false;
     }
 
-    friend class env_checkpointer_t;
+    friend class env_checkpoint_t;
+    friend class env_gc_checkpoint_t;
     void checkpoint() {
         bags.push_back(new ptr_bag_t());
     }
@@ -234,17 +235,59 @@ private:
     DISABLE_COPYING(env_t);
 };
 
-class env_checkpointer_t {
+class env_checkpoint_t {
 public:
-    env_checkpointer_t(env_t *_env, void (env_t::*_f)()) : env(_env) , f(_f) {
+    env_checkpoint_t(env_t *_env, void (env_t::*_f)()) : env(_env) , f(_f) {
         env->checkpoint();
     }
-    ~env_checkpointer_t() { (env->*f)(); }
+    ~env_checkpoint_t() { (env->*f)(); }
     void reset(void (env_t::*_f)()) { f = _f; }
     void gc(const datum_t *root) { env->gc(root); }
 private:
     env_t *env;
     void (env_t::*f)();
+};
+
+
+// We GC more frequently (~ every 16 data) in debug mode to help with testing.
+static int default_gen1_cutoff = (8 * 1024 * 1024)
+    DEBUG_ONLY(* 0 + (sizeof(datum_t) * ptr_bag_t::size_est_mul * 16));
+class env_gc_checkpoint_t {
+public:
+    env_gc_checkpoint_t(env_t *_env, size_t _gen1 = 0, size_t _gen2 = 0)
+        : finalized(false), env(_env), gen1(_gen1), gen2(_gen2) {
+        r_sanity_check(env);
+        if (!gen1) gen1 = default_gen1_cutoff;
+        if (!gen2) gen2 = 8 * gen1;
+        env->checkpoint();
+        env->checkpoint();
+    }
+    ~env_gc_checkpoint_t() { guarantee(finalized); }
+    const datum_t *maybe_gc(const datum_t *root) {
+        if (env->get_bag()->size_est() > gen1) {
+            env->gc(root);
+            env->merge_checkpoint();
+            if (env->get_bag()->size_est() > gen2) {
+                env->gc(root);
+                if (env->get_bag()->size_est() > gen2) gen2 *= 4;
+            }
+            env->checkpoint();
+        }
+        return root;
+    }
+    const datum_t *finalize(const datum_t *root) {
+        finalized = true;
+        if (root) env->gc(root);
+        env->merge_checkpoint();
+        if (root) env->gc(root);
+        env->merge_checkpoint();
+        return root;
+    }
+private:
+    bool finalized;
+    env_t *env;
+    size_t gen1;
+    size_t gen2;
 };
 
 } // ql

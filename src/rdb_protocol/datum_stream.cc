@@ -20,7 +20,7 @@ datum_stream_t *datum_stream_t::filter(func_t *f) {
 const datum_t *datum_stream_t::count() {
     int i = 0;
     for (;;) {
-        env_checkpointer_t ect(env, &env_t::discard_checkpoint);
+        env_checkpoint_t ect(env, &env_t::discard_checkpoint);
         if (!next()) break;
         ++i;
     }
@@ -31,17 +31,14 @@ const datum_t *datum_stream_t::reduce(val_t *base_val, func_t *f) {
     const datum_t *base = base_val ? base_val->as_datum() : next();
     rcheck(base, "Cannot reduce over an empty stream with no base.");
     try {
+        env_gc_checkpoint_t egct(env);
         const datum_t *rhs = base;
         while (rhs) {
-            env_checkpointer_t ect(env, &env_t::merge_checkpoint);
-            for (int i = 0; i < reduce_gc_rounds; ++i) {
-                if (!(rhs = next())) break;
-                guarantee(base != rhs);
-                base = f->call(base, rhs)->as_datum();
-            }
-            ect.gc(base);
+            if (!(rhs = next())) break;
+            guarantee(base != rhs);
+            base = egct.maybe_gc(f->call(base, rhs)->as_datum());
         }
-        return base;
+        return egct.finalize(base);
     } catch (exc_t &e) {
         e.backtrace.frames.push_front(reduce_bt_frame);
         throw;
@@ -88,17 +85,16 @@ void lazy_datum_stream_t::run_terminal(T t) {
     terminal = rdb_protocol_details::terminal_variant_t(t);
     rdb_protocol_t::rget_read_response_t::result_t res =
         json_stream->apply_terminal(terminal, 0, env, _s, _b);
-    std::vector<boost::shared_ptr<scoped_cJSON_t> > *vec =
-        boost::get<rdb_protocol_t::rget_read_response_t::vec_t>(&res);
-    r_sanity_check(vec);
-    for (size_t i = 0; i < vec->size(); ++i) {
-        shard_data.push_back(env->add_ptr(new datum_t((*vec)[i], env)));
+    std::vector<wire_datum_t> *data = boost::get<std::vector<wire_datum_t> >(&res);
+    r_sanity_check(data);
+    for (size_t i = 0; i < data->size(); ++i) {
+        shard_data.push_back((*data)[i].compile(env));
     }
 }
 
 const datum_t *lazy_datum_stream_t::count() {
     datum_t *d = env->add_ptr(new datum_t(0));
-    env_checkpointer_t ect(env, &env_t::discard_checkpoint);
+    env_checkpoint_t ect(env, &env_t::discard_checkpoint);
     run_terminal(count_wire_func_t());
     for (size_t i = 0; i < shard_data.size(); ++i) {
         *d = datum_t(d->as_int() + shard_data[i]->as_int());
@@ -175,9 +171,9 @@ const datum_t *filter_datum_stream_t::next() {
     try {
         const datum_t *arg = 0;
         for (;;) {
-            env_checkpointer_t outer_checkpoint(env, &env_t::discard_checkpoint);
+            env_checkpoint_t outer_checkpoint(env, &env_t::discard_checkpoint);
             if (!(arg = src->next())) return 0;
-            env_checkpointer_t inner_checkpoint(env, &env_t::discard_checkpoint);
+            env_checkpoint_t inner_checkpoint(env, &env_t::discard_checkpoint);
             if (f->call(arg)->as_datum()->as_bool()) {
                 outer_checkpoint.reset(&env_t::merge_checkpoint);
                 break;
@@ -197,7 +193,7 @@ slice_datum_stream_t::slice_datum_stream_t(
 const datum_t *slice_datum_stream_t::next() {
     if (ind > r) return 0;
     while (ind++ < l) {
-        env_checkpointer_t ect(env, &env_t::discard_checkpoint);
+        env_checkpoint_t ect(env, &env_t::discard_checkpoint);
         src->next();
     }
     return src->next();

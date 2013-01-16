@@ -401,4 +401,31 @@ void datum_t::iter(bool (*callback)(const datum_t *, env_t *), env_t *env) const
     }
 }
 
+const datum_t *wire_datum_t::get() {
+    r_sanity_check(state == COMPILED);
+    return ptr;
+}
+const datum_t *wire_datum_t::reset(const datum_t *ptr2) {
+    r_sanity_check(state == COMPILED);
+    const datum_t *tmp = ptr;
+    ptr = ptr2;
+    return tmp;
+}
+
+void wire_datum_t::finalize() {
+    if (state == JUST_READ) return;
+    r_sanity_check(state == COMPILED);
+    ptr->write_to_protobuf(&ptr_pb);
+    ptr = 0;
+    state = READY_TO_WRITE;
+}
+
+const datum_t *wire_datum_t::compile(env_t *env) {
+    if (state == COMPILED) return ptr;
+    r_sanity_check(state != INVALID);
+    ptr = env->add_ptr(new datum_t(&ptr_pb, env));
+    ptr_pb = Datum();
+    return ptr;
+}
+
 } //namespace ql

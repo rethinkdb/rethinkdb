@@ -129,7 +129,7 @@ private:
         rcheck(n >= 0, strprintf("Index out of bounds: %d", n));
 
         for (int i = 0; i < n; ++i) {
-            env_checkpointer_t ect(env, &env_t::discard_checkpoint);
+            env_checkpoint_t ect(env, &env_t::discard_checkpoint);
             const datum_t *d = s->next();
             rcheck(d, strprintf("Index out of bounds: %d", n));
         }

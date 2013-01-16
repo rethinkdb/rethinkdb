@@ -18,11 +18,10 @@ void _runtime_check(const char *test, const char *file, int line,
     _runtime_check(stringify(pred), __FILE__, __LINE__, pred, msg)
 // TODO: do something smarter?
 #define rfail(args...) rcheck(false, strprintf(args))
-// TODO: make this crash in debug mode
 #ifndef NDEBUG
-#define r_sanity_check(test) rcheck(test, "SANITY CHECK FAILED (server is buggy)")
-#else
 #define r_sanity_check(test) guarantee(test)
+#else
+#define r_sanity_check(test) rcheck(test, "SANITY CHECK FAILED (server is buggy)")
 #endif // NDEBUG
 
 struct backtrace_t {

@@ -111,7 +111,7 @@ void run(Query2 *q, env_t *env, Response2 *res, stream_cache_t *stream_cache) {
                 res->set_type(Response2_ResponseType_SUCCESS_SEQUENCE);
                 datum_stream_t *ds = val->as_seq();
                 for (;;) {
-                    env_checkpointer_t(env, &env_t::discard_checkpoint);
+                    env_checkpoint_t(env, &env_t::discard_checkpoint);
                     const datum_t *d = ds->next();
                     if (!d) break;
                     d->write_to_protobuf(res->add_response());

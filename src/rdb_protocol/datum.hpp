@@ -7,6 +7,7 @@
 #include "utils.hpp"
 #include <boost/shared_ptr.hpp>
 
+#include "containers/archive/archive.hpp"
 #include <containers/ptr_bag.hpp>
 #include "http/json.hpp"
 
@@ -26,7 +27,7 @@ public:
     explicit datum_t(const std::vector<const datum_t *> &_array);
     explicit datum_t(const std::map<const std::string, const datum_t *> &_object);
 
-    explicit datum_t(const Datum *d);
+    explicit datum_t(const Datum *d); // Undefined, need to pass `env` below.
     explicit datum_t(const Datum *d, env_t *env);
     explicit datum_t(cJSON *json);
     explicit datum_t(cJSON *json, env_t *env);
@@ -93,5 +94,42 @@ private:
     std::vector<const datum_t *> r_array;
     std::map<const std::string, const datum_t *> r_object;
 };
+
+RDB_DECLARE_SERIALIZABLE(Datum);
+class wire_datum_t {
+public:
+    wire_datum_t() : ptr(0), state(INVALID) { }
+    wire_datum_t(const datum_t *_ptr) : ptr(_ptr), state(COMPILED) { }
+    const datum_t *get();
+    const datum_t *reset(const datum_t *ptr2);
+    const datum_t *compile(env_t *env);
+
+    void finalize();
+private:
+    const datum_t *ptr;
+    Datum ptr_pb;
+
+    friend class write_message_t;
+    void rdb_serialize(write_message_t &msg /* NOLINT */) const {
+        r_sanity_check(state == READY_TO_WRITE);
+        msg << ptr_pb;
+    }
+    friend class archive_deserializer_t;
+    archive_result_t rdb_deserialize(read_stream_t *s) {
+        ptr_pb = Datum();
+        archive_result_t res = deserialize(s, &ptr_pb);
+        if (res) return res;
+        state = JUST_READ;
+        return ARCHIVE_SUCCESS;
+    }
+
+    enum {
+        INVALID,
+        JUST_READ,
+        COMPILED,
+        READY_TO_WRITE
+    } state;
+};
+
 } // namespace ql
 #endif // RDB_PROTOCOL_DATUM_HPP_

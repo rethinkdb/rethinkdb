@@ -339,13 +339,16 @@ public:
                 }
             } else if (boost::get<ql::reduce_wire_func_t>(&rg.terminal->variant)
                        || boost::get<ql::count_wire_func_t>(&rg.terminal->variant)) {
-                typedef rget_read_response_t::vec_t vec_t;
-                vec_t *out_vec = boost::get<vec_t>(&(rg_response.result = vec_t()));
+                typedef std::vector<ql::wire_datum_t> wire_data_t;
+                wire_data_t *out_vec = boost::get<wire_data_t>(
+                    &(rg_response.result = wire_data_t()));
                 for (size_t i = 0; i < count; ++i) {
                     const rget_read_response_t *_rr =
                         boost::get<rget_read_response_t>(&responses[i].response);
-                    if (const atom_t *a = boost::get<atom_t>(&(_rr->result))) {
-                        out_vec->push_back(*a);
+                    guarantee(_rr);
+                    if (const ql::wire_datum_t *d =
+                        boost::get<ql::wire_datum_t>(&(_rr->result))) {
+                        out_vec->push_back(*d);
                     } else {
                         guarantee(boost::get<rget_read_response_t::empty_t>(
                                       &(_rr->result)));

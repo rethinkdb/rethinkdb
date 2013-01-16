@@ -425,6 +425,11 @@ void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
     } else {
         response->truncated = false;
     }
+
+    //TODO: change this whole file so that this isn't necessary.
+    if (ql::wire_datum_t *d = boost::get<ql::wire_datum_t>(&response->result)) {
+        d->finalize();
+    }
 }
 
 void rdb_distribution_get(btree_slice_t *slice, int max_depth, const store_key_t &left_key,
