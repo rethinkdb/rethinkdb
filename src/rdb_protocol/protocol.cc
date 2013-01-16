@@ -134,6 +134,12 @@ region_t rdb_protocol_t::monokey_region(const store_key_t &k) {
     return region_t(h, h + 1, key_range_t(key_range_t::closed, k, key_range_t::closed, k));
 }
 
+region_t rdb_protocol_t::sindex_key_region(const store_key_t &k) {
+    store_key_t start(key_to_unescaped_str(k) + "\0"),
+                end(key_to_unescaped_str(k) + std::string(1, '\0' + 1));
+    return region_t(key_range_t(key_range_t::closed, start, key_range_t::open, end));
+}
+
 namespace {
 
 /* read_t::get_region implementation */

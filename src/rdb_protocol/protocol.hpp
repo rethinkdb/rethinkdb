@@ -145,6 +145,10 @@ struct rdb_protocol_t {
     // Construct a region containing only the specified key
     static region_t monokey_region(const store_key_t &k);
 
+    // Constructs a region which will query an sindex for matches to a specific
+    // key
+    static region_t sindex_key_region(const store_key_t &k);
+
     struct context_t {
         context_t();
         context_t(extproc::pool_group_t *_pool_group,
@@ -255,7 +259,7 @@ struct rdb_protocol_t {
 
         rget_read_t(const store_key_t &key,
                     uuid_u _sindex)
-            : region(rdb_protocol_t::monokey_region(key)), sindex(_sindex) { }
+            : region(rdb_protocol_t::sindex_key_region(key)), sindex(_sindex) { }
 
         rget_read_t(const region_t &_region,
                     const rdb_protocol_details::transform_t &_transform)

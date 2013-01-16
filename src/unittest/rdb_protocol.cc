@@ -107,7 +107,7 @@ void run_get_set_test(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t
         nsi->write(write, &response, osource->check_in("unittest::run_get_set_test(rdb_protocol.cc-A)"), &interruptor);
 
         if (rdb_protocol_t::point_write_response_t *maybe_point_write_response_t = boost::get<rdb_protocol_t::point_write_response_t>(&response.response)) {
-            EXPECT_EQ(maybe_point_write_response_t->result, STORED);
+            ASSERT_EQ(maybe_point_write_response_t->result, STORED);
         } else {
             ADD_FAILURE() << "got wrong type of result back";
         }
@@ -121,8 +121,8 @@ void run_get_set_test(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t
         nsi->read(read, &response, osource->check_in("unittest::run_get_set_test(rdb_protocol.cc-B)"), &interruptor);
 
         if (rdb_protocol_t::point_read_response_t *maybe_point_read_response = boost::get<rdb_protocol_t::point_read_response_t>(&response.response)) {
-            EXPECT_TRUE(maybe_point_read_response->data->get() != NULL);
-            EXPECT_TRUE(cJSON_Equal(data->get(), maybe_point_read_response->data->get()));
+            ASSERT_TRUE(maybe_point_read_response->data->get() != NULL);
+            ASSERT_TRUE(cJSON_Equal(data->get(), maybe_point_read_response->data->get()));
         } else {
             ADD_FAILURE() << "got wrong result back";
         }
@@ -159,7 +159,7 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
     }
 
     boost::shared_ptr<scoped_cJSON_t> data(new scoped_cJSON_t(cJSON_Parse("{\"id\" : 0, \"sid\" : 1}")));
-    EXPECT_TRUE(data->get());
+    ASSERT_TRUE(data->get());
     {
         query_language::backtrace_t b;
         rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(store_key_t(cJSON_print_primary(cJSON_GetObjectItem(data->get(), "id"), b)), data));
@@ -168,8 +168,26 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
         cond_t interruptor;
         nsi->write(write, &response, osource->check_in("unittest::run_create_drop_sindex_test(rdb_protocol_t.cc-A"), &interruptor);
 
-        if (rdb_protocol_t::point_write_response_t *maybe_point_write_response_t = boost::get<rdb_protocol_t::point_write_response_t>(&response.response)) {
-            EXPECT_EQ(maybe_point_write_response_t->result, STORED);
+        if (rdb_protocol_t::point_write_response_t *maybe_point_write_response = boost::get<rdb_protocol_t::point_write_response_t>(&response.response)) {
+            ASSERT_EQ(maybe_point_write_response->result, STORED);
+        } else {
+            ADD_FAILURE() << "got wrong type of result back";
+        }
+    }
+
+    {
+        query_language::backtrace_t b;
+        rdb_protocol_t::read_t read(rdb_protocol_t::rget_read_t(store_key_t(cJSON_print_primary(scoped_cJSON_t(cJSON_CreateNumber(1)).get(), b)), id));
+        rdb_protocol_t::read_response_t response;
+
+        cond_t interruptor;
+        nsi->read(read, &response, osource->check_in("unittest::run_create_drop_sindex_test(rdb_protocol_t.cc-A"), &interruptor);
+
+        if (rdb_protocol_t::rget_read_response_t *rget_resp = boost::get<rdb_protocol_t::rget_read_response_t>(&response.response)) {
+            rdb_protocol_t::rget_read_response_t::stream_t *stream = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&rget_resp->result);
+            ASSERT_TRUE(stream != NULL);
+            ASSERT_TRUE(stream->size() == 1);
+            ASSERT_TRUE(query_language::json_cmp(stream->at(0).second->get(), data->get()) == 0);
         } else {
             ADD_FAILURE() << "got wrong type of result back";
         }

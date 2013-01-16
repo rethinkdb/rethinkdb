@@ -477,7 +477,7 @@ void rdb_update_sindexes(const btree_store_t<rdb_protocol_t>::sindex_access_vect
             boost::shared_ptr<scoped_cJSON_t> index = eval_mapping(mapping,
                     local_env, scopes, backtrace, modification->deleted);
 
-            store_key_t sindex_key(cJSON_print_primary(index->get(), backtrace) + key_to_unescaped_str(primary_key));
+            store_key_t sindex_key(cJSON_print_secondary(index->get(), primary_key, backtrace));
 
             keyvalue_location_t<rdb_value_t> kv_location;
 
@@ -498,7 +498,7 @@ void rdb_update_sindexes(const btree_store_t<rdb_protocol_t>::sindex_access_vect
             boost::shared_ptr<scoped_cJSON_t> index = eval_mapping(mapping,
                     local_env, scopes, backtrace, modification->added);
 
-            store_key_t sindex_key(cJSON_print_primary(index->get(), backtrace) + key_to_unescaped_str(primary_key));
+            store_key_t sindex_key(cJSON_print_secondary(index->get(), primary_key, backtrace));
 
             keyvalue_location_t<rdb_value_t> kv_location;
 
