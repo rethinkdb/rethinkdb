@@ -473,24 +473,27 @@ void rdb_update_sindexes(const btree_store_t<rdb_protocol_t>::sindex_access_vect
         query_language::backtrace_t backtrace;
 
         superblock_t *super_block = it->super_block.get();
+
+
         if (modification->deleted) {
-            boost::shared_ptr<scoped_cJSON_t> index = eval_mapping(mapping,
-                    local_env, scopes, backtrace, modification->deleted);
-
-            store_key_t sindex_key(cJSON_print_secondary(index->get(), primary_key, backtrace));
-
-            keyvalue_location_t<rdb_value_t> kv_location;
-
             promise_t<superblock_t *> return_super_block;
+            {
+                boost::shared_ptr<scoped_cJSON_t> index = eval_mapping(mapping,
+                        local_env, scopes, backtrace, modification->deleted);
 
-            find_keyvalue_location_for_write(txn, super_block,
-                    sindex_key.btree_key(), &kv_location,
-                    &it->btree->root_eviction_priority, &it->btree->stats,
-                    &return_super_block);
+                store_key_t sindex_key(cJSON_print_secondary(index->get(), primary_key, backtrace));
 
-            kv_location_delete(&kv_location, sindex_key,
-                        it->btree, repli_timestamp_t::invalid, txn);
-            
+                keyvalue_location_t<rdb_value_t> kv_location;
+
+                find_keyvalue_location_for_write(txn, super_block,
+                        sindex_key.btree_key(), &kv_location,
+                        &it->btree->root_eviction_priority, &it->btree->stats,
+                        &return_super_block);
+
+                kv_location_delete(&kv_location, sindex_key,
+                            it->btree, repli_timestamp_t::distant_past, txn);
+                //The keyvalue location gets destroyed here.
+            }
             super_block = return_super_block.wait();
         }
 
@@ -507,7 +510,7 @@ void rdb_update_sindexes(const btree_store_t<rdb_protocol_t>::sindex_access_vect
                     &it->btree->root_eviction_priority, &it->btree->stats);
 
             kv_location_set(&kv_location, sindex_key,
-                     modification->added, it->btree, repli_timestamp_t::invalid, txn);
+                     modification->added, it->btree, repli_timestamp_t::distant_past, txn);
         }
     }
 }

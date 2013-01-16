@@ -10,6 +10,7 @@
 #include "btree/node.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 #include "concurrency/fifo_enforcer.hpp"
+#include "concurrency/promise.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "containers/scoped.hpp"
 #include "repli_timestamp.hpp"
@@ -132,7 +133,15 @@ class keyvalue_location_t {
 public:
     keyvalue_location_t() : there_originally_was_value(false), stat_block(NULL_BLOCK_ID), stats(NULL) { }
 
+    ~keyvalue_location_t() {
+        if (pass_back_superblock && superblock) {
+            pass_back_superblock->pulse(superblock);
+        }
+    }
+
     superblock_t *superblock;
+
+    promise_t<superblock_t *> *pass_back_superblock;
 
     // The parent buf of buf, if buf is not the root node.  This is hacky.
     buf_lock_t last_buf;

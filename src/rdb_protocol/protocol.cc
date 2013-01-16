@@ -617,7 +617,8 @@ struct read_visitor_t : public boost::static_visitor<void> {
                     rget.region, superblock->get_sindex_block_id(), token_pair,
                     txn, &sindex_sb, &interruptor);
 
-            rdb_rget_slice(store->get_sindex_slice(*rget.sindex), rget.region.inner,
+            guarantee(rget.sindex_region, "If an rget has a sindex uuid specified it should also have a sindex_region.");
+            rdb_rget_slice(store->get_sindex_slice(*rget.sindex), rget.sindex_region->inner,
                            txn, sindex_sb.get(), &env, rget.transform,
                            rget.terminal, &res);
         }

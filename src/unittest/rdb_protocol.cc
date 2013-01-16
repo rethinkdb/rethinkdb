@@ -136,6 +136,7 @@ TEST(RDBProtocol, GetSet) {
 void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t *osource) {
     uuid_u id = generate_uuid();
     {
+        /* Create a secondary index. */
         Mapping m;
         *m.mutable_arg() = "row";
         m.mutable_body()->set_type(Term::CALL);
@@ -161,6 +162,9 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
     boost::shared_ptr<scoped_cJSON_t> data(new scoped_cJSON_t(cJSON_Parse("{\"id\" : 0, \"sid\" : 1}")));
     ASSERT_TRUE(data->get());
     {
+        debugf("insert\n");
+        /* Insert a piece of data (it will be indexed using the secondary
+         * index). */
         query_language::backtrace_t b;
         rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(store_key_t(cJSON_print_primary(cJSON_GetObjectItem(data->get(), "id"), b)), data));
         rdb_protocol_t::write_response_t response;
@@ -176,6 +180,8 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
     }
 
     {
+        debugf("read\n");
+        /* Access the data using the secondary index. */
         query_language::backtrace_t b;
         rdb_protocol_t::read_t read(rdb_protocol_t::rget_read_t(store_key_t(cJSON_print_primary(scoped_cJSON_t(cJSON_CreateNumber(1)).get(), b)), id));
         rdb_protocol_t::read_response_t response;
@@ -188,6 +194,23 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
             ASSERT_TRUE(stream != NULL);
             ASSERT_TRUE(stream->size() == 1);
             ASSERT_TRUE(query_language::json_cmp(stream->at(0).second->get(), data->get()) == 0);
+        } else {
+            ADD_FAILURE() << "got wrong type of result back";
+        }
+    }
+
+    {
+        debugf("delete\n");
+        /* Delete the data. */
+        query_language::backtrace_t b;
+        rdb_protocol_t::write_t write(rdb_protocol_t::point_delete_t(store_key_t(cJSON_print_primary(cJSON_GetObjectItem(data->get(), "id"), b))));
+        rdb_protocol_t::write_response_t response;
+
+        cond_t interruptor;
+        nsi->write(write, &response, osource->check_in("unittest::run_create_drop_sindex_test(rdb_protocol_t.cc-A"), &interruptor);
+
+        if (rdb_protocol_t::point_delete_response_t *maybe_point_delete_response = boost::get<rdb_protocol_t::point_delete_response_t>(&response.response)) {
+            ASSERT_EQ(maybe_point_delete_response->result, DELETED);
         } else {
             ADD_FAILURE() << "got wrong type of result back";
         }

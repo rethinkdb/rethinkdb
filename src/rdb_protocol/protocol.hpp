@@ -259,7 +259,8 @@ struct rdb_protocol_t {
 
         rget_read_t(const store_key_t &key,
                     uuid_u _sindex)
-            : region(rdb_protocol_t::sindex_key_region(key)), sindex(_sindex) { }
+            : region(region_t::universe()), sindex(_sindex),
+              sindex_region(rdb_protocol_t::sindex_key_region(key)) { }
 
         rget_read_t(const region_t &_region,
                     const rdb_protocol_details::transform_t &_transform)
@@ -280,6 +281,7 @@ struct rdb_protocol_t {
 
         region_t region;
         boost::optional<uuid_u> sindex;
+        boost::optional<region_t> sindex_region;
 
         rdb_protocol_details::transform_t transform;
         boost::optional<rdb_protocol_details::terminal_t> terminal;

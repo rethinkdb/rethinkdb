@@ -20,11 +20,18 @@
 // TODO: change rwi_write to rwi_intent followed by rwi_upgrade where
 // relevant.
 
+/* Passing in a pass_back_superblock parameter will cause this function to
+ * return the superblock after it's no longer needed (rather than releasing
+ * it). Notice the superblock is not guaranteed to be returned until the
+ * keyvalue_location_t that's passed in (keyvalue_location_out) is destroyed.
+ * This is because it may need to use the superblock for some of its methods.
+ * */
 template <class Value>
 void find_keyvalue_location_for_write(transaction_t *txn, superblock_t *superblock, const btree_key_t *key, keyvalue_location_t<Value> *keyvalue_location_out, eviction_priority_t *root_eviction_priority, btree_stats_t *stats, promise_t<superblock_t *> *pass_back_superblock = NULL) {
     value_sizer_t<Value> sizer(txn->get_cache()->get_block_size());
 
     keyvalue_location_out->superblock = superblock;
+    keyvalue_location_out->pass_back_superblock = pass_back_superblock;
 
     ensure_stat_block(txn, superblock, incr_priority(ZERO_EVICTION_PRIORITY));
     keyvalue_location_out->stat_block = keyvalue_location_out->superblock->get_stat_block_id();
