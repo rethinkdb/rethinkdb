@@ -7,6 +7,10 @@ module 'Explain', ->
 
         events:
             'click .expandable_task': 'render_sub_graph'
+            'click .go_up': 'go_up'
+
+        initialize: =>
+            @parents = []
 
         render: =>
             @$el.html @template()
@@ -25,11 +29,22 @@ module 'Explain', ->
                 error: -> console.log 'Could not retrieve data for explain'
 
         render_sub_graph: (event) =>
+            @parents.push @current_task
             data = $(event.target).data('task')
             @render_graph(data)
+                        
+        go_up: (event) =>
+            event.preventDefault()
+            task = @parents.pop()
+            @render_graph task
 
         render_graph: (current_task) =>
-            console.log current_task
+            # Check if the user can go up
+            if @parents.length > 0
+                @$('.go_up').show()
+            else
+                @$('.go_up').hide()
+            @current_task = current_task
 
             # Clean some stuff
             @$('.explain_svg').empty() # Clean svg
@@ -88,9 +103,11 @@ module 'Explain', ->
                 height_available: @svg_height-2*@svg_padding
                 is_root: true
 
+            #TODO bind to proper things
             @.$('rect').tooltip
                 trigger: 'hover'
-
+            @.$('circle').tooltip
+                trigger: 'hover'
 
         svg_height: 1200
         svg_padding: 50
@@ -107,6 +124,14 @@ module 'Explain', ->
         task_border_width: 1
         more_height: 70
         more_bloc_height: 50
+        bifurcation_circle_radius: 4
+        proportion_height_inner_bloc: 3/5
+        inner_task_border_width: 1
+        inner_task_color: '#eaeaea'
+        inner_task_border_color: '#bbb'
+        padding_inner_task_top: 10
+        padding_inner_task_side: 5
+        proportion_width_inner_bloc: 2/5
 
         get_drawable_machines: (task, num_simultaneous_task_drawn) =>
             if task['sub_tasks']?
@@ -212,6 +237,7 @@ module 'Explain', ->
             step = args.step
             parent_position = args.parent_position
             height_available = args.height_available
+            that = @
 
             @svg.selectAll('rect-'+level+'-'+step)
                 .data([task])
@@ -248,11 +274,42 @@ module 'Explain', ->
                         return ''
                 )
 
-            if task['sub_tasks']? and task['sub_tasks_are_parallel'] is true
-                # draw nice little things
-                console.log 'TODO 1'
-            else if task['sub_tasks']? and task['sub_tasks_are_parallel'] is false and task['sub_tasks_stats'].count>task['sub_tasks'].length
-                console.log 'TODO 2'
+            # Let's make sure that the user understand he can extend
+            # TODO Fix tooltip
+            if task['sub_tasks']?
+                if task['sub_tasks_are_parallel'] is true
+                    sub_width_inner = (@sub_width*@proportion_bloc-2*@padding_inner_task_side)/3
+
+                    task_element = @svg.selectAll('rect-level-'+level)
+                        .data([0, 1, 2])
+                        .enter()
+                        .append('rect')
+                        .attr('x', (d, i) -> return parent_position.x+that.padding_inner_task_side-
+                            (that.sub_width*that.proportion_bloc)/2+sub_width_inner*i+
+                            sub_width_inner*(1-that.proportion_width_inner_bloc)/2)
+                        .attr('y', parent_position.y+@padding_inner_task_top)
+                        .attr('width', sub_width_inner*that.proportion_width_inner_bloc)
+                        .attr('height', height_available-2*@padding_inner_task_top)
+                        .attr('stroke-width', @inner_task_border_width)
+                        .attr('stroke', @inner_task_border_color)
+                        .style('fill', @task_color)
+                else
+                    sub_height = height_available/task['sub_tasks_stats']['count']
+                    if sub_height < 16
+                        sub_height = 16
+                        #TODO Make sure that this value is not too big
+
+                    task_element = @svg.selectAll('rect-level-'+level)
+                        .data([0, 1, 2])
+                        .enter()
+                        .append('rect')
+                        .attr('x', parent_position.x-(@sub_width*@proportion_bloc)*3/8)
+                        .attr('y', (d, i) -> return parent_position.y+sub_height*(i+1))
+                        .attr('width', @sub_width*@proportion_bloc*6/8)
+                        .attr('height', sub_height*@proportion_height_inner_bloc)
+                        .attr('stroke-width', @inner_task_border_width)
+                        .attr('stroke', @inner_task_border_color)
+                        .style('fill', @task_color)
 
         draw_tasks_in_series: (args) =>
             task = args.task
@@ -265,6 +322,8 @@ module 'Explain', ->
             height_available = args.height_available
             is_root = args.is_root
             that = @
+
+            circles = []
 
             if task['sub_tasks']? and task['sub_tasks_are_parallel'] is false and task['sub_tasks_stats']['count']>task['sub_tasks'].length
                 height_available -= @more_height
@@ -321,7 +380,54 @@ module 'Explain', ->
                     y1: parent_position.y+height_available+@more_bloc_height
                     y2: parent_position.y+height_available+@more_height
 
+            # Draw line first and then task (order matters - circles have to overlap lines)
             for sub_task, i in sub_tasks
+                current_position_y = current_position_y+scale_execution sub_task['execution_duration']
+                new_position_y = current_position_y+scale_traffic sub_task['size_message_sent']
+                lines.push
+                    x1: parent_position.x
+                    x2: parent_position.x
+                    y1: current_position_y
+                    y2: new_position_y
+
+                current_position_y = new_position_y
+
+            @svg.selectAll('.background_line-series-'+level)
+                .data(lines)
+                .enter()
+                .append('rect')
+                .attr('x', (d) -> return d.x1-that.border_size)
+                .attr('y', (d) -> return d.y1+that.stroke_width)
+                .attr('width', @stroke_width+@border_size*2)
+                .attr('height', (d) -> return d.y2-d.y1-2*that.stroke_width)
+                .style('fill', @background_color)
+
+            @svg.selectAll('.line-series-'+level)
+                .data(lines)
+                .enter()
+                .append('line')
+                .attr('x1', (d) -> return d.x1)
+                .attr('x2', (d) -> return d.x2)
+                .attr('y1', (d) -> return d.y1)
+                .attr('y2', (d) -> return d.y2)
+                .style('stroke', '#000')
+                .style('stroke-width', @stroke_width)
+
+            current_position_y = parent_position.y+scale_traffic sub_tasks[0]['size_message_received']
+            for sub_task, i in sub_tasks
+                if i is 0
+                    circles.push
+                        cx: parent_position.x
+                        cy: current_position_y-scale_traffic sub_task['size_message_received'] # Because message_received == message_sent
+                        title: 'Executing '+sub_task['query']
+                else
+                    circles.push
+                        cx: parent_position.x
+                        cy: current_position_y-scale_traffic sub_task['size_message_received']/2
+                        title: 'Finished executing '+sub_tasks[i-1]['query']+'<br/>Executing '+sub_task['query']
+
+
+
                 @$('.legend').append @legend_template
                     query: sub_task.query
                     explanation: sub_task.explanation
@@ -347,26 +453,34 @@ module 'Explain', ->
                     y2: new_position_y
 
                 current_position_y = new_position_y
-            @svg.selectAll('.background_line-series-'+level)
-                .data(lines)
-                .enter()
-                .append('rect')
-                .attr('x', (d) -> return d.x1-that.border_size)
-                .attr('y', (d) -> return d.y1+that.stroke_width)
-                .attr('width', @stroke_width+@border_size*2)
-                .attr('height', (d) -> return d.y2-d.y1-2*that.stroke_width)
-                .style('fill', @background_color)
 
-            @svg.selectAll('.line-series-'+level)
-                .data(lines)
+                if i is sub_tasks.length-1 and is_root is true
+                    cy = new_position_y
+                    if task['sub_tasks']? and task['sub_tasks_are_parallel'] is false and task['sub_tasks_stats'].count>task['sub_tasks'].length
+                        cy += @more_height
+                    circles.push
+                        cx: parent_position.x
+                        cy: cy
+                        title: 'Query executed'
+
+
+            @svg.selectAll('circle-level')
+                .data(circles)
                 .enter()
-                .append('line')
-                .attr('x1', (d) -> return d.x1)
-                .attr('x2', (d) -> return d.x2)
-                .attr('y1', (d) -> return d.y1)
-                .attr('y2', (d) -> return d.y2)
-                .style('stroke', '#000')
-                .style('stroke-width', @stroke_width)
+                .append('circle')
+                .attr('cx', (circle, i) ->
+                    return circle['cx']
+                )
+                .attr('cy', (circle, i) ->
+                    return circle['cy']
+                )
+                .attr('r', @bifurcation_circle_radius)
+                .attr('fill', @task_border_color)
+                .attr('title', (d) -> return d.title)
+                .attr('stroke-width', 0)
+
+
+
 
         draw_tasks_in_parallel: (args) =>
             task = args.task
@@ -378,7 +492,6 @@ module 'Explain', ->
             is_root = args.is_root
             #TODO Keep parent's neighbors in memory
             that = @
-            console.log 'is root: '+is_root
 
 
             if is_root is true
@@ -471,7 +584,6 @@ module 'Explain', ->
                 .style('stroke', '#000')
                 .style('stroke-width', @stroke_width)
 
-            # Get last_point
 
             # Draw the __ __  at the bottom
             @svg.selectAll('line-in-'+level)
@@ -551,12 +663,51 @@ module 'Explain', ->
                         scale_execution(sub_task['execution_duration'])+
                         scale_traffic(sub_task['size_message_sent'])
                 )
-                .style('stroke', '#000')
-                .style('stroke-width', @stroke_width)
+                .attr('stroke', '#000')
+                .attr('stroke-width', @stroke_width)
 
 
+            # Draw some circles
+            circles = []
+            circles.push
+                cx: parent_position.x
+                cy: parent_position.y
+                title: 'Query parsed, sending sub queries'
+
+            for sub_task, i in sub_tasks
+                circles.push
+                    cx: @drawable_machines_map_position[task['machine_id']]
+                    cy: parent_position.y+
+                        scale_traffic(sub_task['size_message_received'])+
+                        scale_execution(sub_task['execution_duration'])+
+                        scale_traffic(sub_task['size_message_sent'])
+                    title: 'Machine '+sub_task['machine_id']+' finished sending back data'
+
+            if is_root is true
+                circles.push
+                    cx: @drawable_machines_map_position[task['machine_id']]
+                    cy: parent_position.y-@height_before_bifurcation
+                    title: 'Executing query'+task['query']
+                circles.push
+                    cx: @drawable_machines_map_position[task['machine_id']]
+                    cy: parent_position.y+height_available+@height_before_bifurcation
+                    title: 'Done executing query'
 
 
+            @svg.selectAll('circle-level')
+                .data(circles)
+                .enter()
+                .append('circle')
+                .attr('cx', (circle, i) ->
+                    return circle['cx']
+                )
+                .attr('cy', (circle, i) ->
+                    return circle['cy']
+                )
+                .attr('r', @bifurcation_circle_radius)
+                .attr('fill', @task_border_color)
+                .attr('title', (d) -> return d.title)
+                .attr('stroke-width', 0)
 
             # Draw the rectangles
             for sub_task, i in sub_tasks

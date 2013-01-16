@@ -1,5 +1,5 @@
 {
-    "query": "r.table('post_table').map(...).reduce(...).run()",
+    "query": "r.table('users').map(...).reduce(...).map(...).orderBy(...).run()",
     "explanation": "Execute the query",
     "machine_id": "1",
     "size_message_received": 2000,
@@ -8,8 +8,8 @@
     "sub_tasks_are_parallel": false,
     "sub_tasks": [
         {
-            "query": "Map stuff",
-            "explanation": "Execute the query",
+            "query": ".map(...)",
+            "explanation": "Map table users",
             "machine_id": "1",
             "size_message_received": 2000,
             "size_message_sent": 2000,
@@ -17,8 +17,8 @@
             "sub_tasks_are_parallel": true,
             "sub_tasks": [
                 {
-                    "query": "map on shard 1",
-                    "explanation": "Reduce things",
+                    "query": ".map(...)",
+                    "explanation": "Map table users on shard [-oo, DD]",
                     "machine_id": "1",
                     "size_message_received": 5000,
                     "size_message_sent": 1000,
@@ -38,7 +38,7 @@
                                 {
                                     "query": "map on shard 1",
                                     "explanation": "Reduce things, part 1",
-                                    "machine_id": "2",
+                                    "machine_id": "1",
                                     "size_message_received": 1000,
                                     "size_message_sent": 1000,
                                     "execution_duration": 30
@@ -46,14 +46,14 @@
                                 {
                                     "query": "map on shard 2",
                                     "explanation": "Reduce things, part 1",
-                                    "machine_id": "2",
+                                    "machine_id": "1",
                                     "size_message_received": 1000,
                                     "size_message_sent": 1000,
                                     "execution_duration": 30
                                 },                            {
                                     "query": "map on shard 3",
                                     "explanation": "Reduce things, part 1",
-                                    "machine_id": "2",
+                                    "machine_id": "1",
                                     "size_message_received": 1000,
                                     "size_message_sent": 1000,
                                     "execution_duration": 30
@@ -90,8 +90,8 @@
                     }
                 },
                 {
-                    "query": "map on shard 2",
-                    "explanation": "Map things",
+                    "query": ".map(...)",
+                    "explanation": "Map table users on shard [DD, MM]",
                     "machine_id": "2",
                     "size_message_received": 1000,
                     "size_message_sent": 2000,
@@ -130,16 +130,16 @@
                     }
                 },
                 {
-                    "query": "map on shard 3",
-                    "explanation": "Reduce things",
+                    "query": ".map(...)",
+                    "explanation": "Map table users on shard [MM, XX]",
                     "machine_id": "3",
                     "size_message_received": 2000,
                     "size_message_sent": 5000,
                     "execution_duration": 130
                 },
                 {
-                    "query": "map on shard 3",
-                    "explanation": "Reduce things",
+                    "query": ".map(...)",
+                    "explanation": "Map table users on shard [XX, +oo]",
                     "machine_id": "4",
                     "size_message_received": 1000,
                     "size_message_sent": 500,
@@ -148,16 +148,16 @@
             ]
         },
         {
-            "query": "Reduce",
-            "explanation": "Map things",
+            "query": ".reduce(...)",
+            "explanation": "Reduce the results",
             "machine_id": "1",
             "size_message_received": 3000,
             "size_message_sent": 3000,
             "execution_duration": 100
         },
         {
-            "query": "Map stuff",
-            "explanation": "Execute the query",
+            "query": ".map(...)",
+            "explanation": "Map some other things",
             "machine_id": "1",
             "size_message_received": 2000,
             "size_message_sent": 2000,
@@ -183,8 +183,16 @@
             ]
         },
         {
+            "query": ".orderBy(...)",
+            "explanation": "Order things",
+            "machine_id": "1",
+            "size_message_received": 3000,
+            "size_message_sent": 3000,
+            "execution_duration": 100
+        },
+        {
             "query": "Order by",
-            "explanation": "Reduce things",
+            "explanation": "Order things with a second attribute",
             "machine_id": "1",
             "size_message_received": 3000,
             "size_message_sent": 3000,

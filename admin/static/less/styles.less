@@ -2512,32 +2512,41 @@ TODO: retire this
     ----------------------------
 */
 #explain{
-    .list_machine_positions{
-        width: 688px;
-        padding: 0px;
-        margin: 0px;
-        .machine_position{
-            display: block;
-            float: left;
-            list-style: none;
+    .machine_positions{
+        overflow: auto;
+        padding-top: 10px;
+        border-top: 1px solid #eee;
+        .list_machine_positions{
+            width: 688px;
+            padding: 0px;
             margin: 0px;
-            padding: 10px 0px;
-            text-align: center;
-            text-overflow:ellipsis;
-            border-right: 1px solid #ccc;
-            &:last-child{
-                border-right: none;
+            .machine_position{
+                display: block;
+                float: left;
+                list-style: none;
+                margin: 0px;
+                padding: 10px 0px;
+                text-align: center;
+                text-overflow:ellipsis;
+                border-right: 1px solid #ccc;
+                &:last-child{
+                    border-right: none;
+                }
             }
         }
     }
     .query{
-        clear: both;
         width: 688px;
         padding: 20px 0px 0px 0px;
-        text-align: center;
         font-family: @monospace;
+        word-break: break-word;
+        padding: 7px 10px;
+        border: 1px solid #CCC;
+        border-radius: 3px;
+        background: #EEE;
     }
     .svg_container{
+        clear: both;
         .legend{
             clear: both;
             width: 200px;
