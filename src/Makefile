@@ -525,6 +525,17 @@ endif  # ($(LEGACY_GCC), 1)
 endif  # ($(COMPILER), CLANG)
 endif  # ($(COMPILER), INTEL)
 
+COVERAGE?=0
+
+ifeq ($(COVERAGE), 1)
+  ifeq ($(COMPILER), GCC)
+    RT_CXXFLAGS+=--coverage
+    RT_LDFLAGS+=--coverage
+  else
+    $(error COVERAGE=1 not yet supported for $(COMPILER))
+  endif
+endif # ($(COVERAGE), 1)
+
 ifeq ($(AGRESSIVE_BUF_UNLOADING),1)
 RT_CXXFLAGS+=-DAGRESSIVE_BUF_UNLOADING=1
 endif
@@ -839,6 +850,14 @@ unit:
 $(UNIT_STATIC_LIBRARY_PATH):
 	@echo "    GTEST"
 	$(QUIET) cd $(EXTERNAL_DIR)/gtest-1.6.0/make && $(MAKE) gtest.a
+
+coverage:
+	$(MAKE) UNIT_TESTS=1 COVERAGE=1 DEBUG=1
+	$(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME) --gtest_filter=$(UNIT_TEST_FILTER)
+	lcov --directory $(OBJ_DIR) --base-directory "`pwd`" --capture --output-file $(BUILD_DIR)/coverage.full.info
+	lcov --remove $(BUILD_DIR)/coverage.full.info /usr/\* -o $(BUILD_DIR)/coverage.info
+	genhtml --demangle-cpp --no-branch-coverage --no-prefix -o $(BUILD_DIR)/coverage $(BUILD_DIR)/coverage.info 
+	echo "Wrote unit tests coverage report to $(BUILD_DIR)/coverage"
 
 # Packaging
 ifeq ($(PACKAGING),1)
