@@ -179,4 +179,6 @@ std::string percent_escaped_string(const std::string &s);
 
 bool percent_unescape_string(const std::string &s, std::string *out);
 
+std::string http_format_date(const time_t date);
+
 #endif /* HTTP_HTTP_HPP_ */

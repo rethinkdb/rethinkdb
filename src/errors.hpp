@@ -83,11 +83,6 @@
 #endif
 
 #define UNUSED __attribute__((unused))
-#ifndef __clang__
-#define INSTANCES_UNUSED __attribute__((unused))
-#else
-#define INSTANCES_UNUSED
-#endif
 
 #define MUST_USE __attribute__((warn_unused_result))
 

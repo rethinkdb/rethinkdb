@@ -7,7 +7,6 @@
 #include "concurrency/rwi_lock.hpp"
 #include "concurrency/signal.hpp"
 #include "concurrency/wait_any.hpp"
-#include "containers/archive/file_stream.hpp"
 #include "containers/printf_buffer.hpp"
 #include "mock/serializer_filestream.hpp"
 

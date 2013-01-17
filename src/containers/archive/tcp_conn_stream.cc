@@ -84,10 +84,18 @@ int64_t keepalive_tcp_conn_stream_t::read(void *p, int64_t n) {
     int64_t result = tcp_conn_stream_t::read(p, n);
 
     if (result > 0 && keepalive_callback != NULL) {
-        keepalive_callback->keepalive();
+        keepalive_callback->keepalive_read();
     }
 
     return result;
+}
+
+int64_t keepalive_tcp_conn_stream_t::write(const void *p, int64_t n) {
+    if (keepalive_callback != NULL) {
+        keepalive_callback->keepalive_write();
+    }
+
+    return tcp_conn_stream_t::write(p, n);
 }
 
 rethread_tcp_conn_stream_t::rethread_tcp_conn_stream_t(tcp_conn_stream_t *conn, int thread) : conn_(conn), old_thread_(conn->home_thread()), new_thread_(thread) {

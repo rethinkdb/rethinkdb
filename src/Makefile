@@ -103,7 +103,7 @@ endif
 SEMANTIC_SERIALIZER_CHECK?=0
 MOCK_CACHE_CHECK?=0
 VERBOSE?=0
-UNIT_TESTS?=0
+UNIT_TESTS?=$(DEBUG)
 AIOSUPPORT?=0
 BUILD_DRIVERS?=1
 LINT?=0
@@ -718,8 +718,8 @@ endif
 endif
 
 ifeq ($(UNIT_TESTS),1)
-UNIT_STATIC_LIBRARIES+=gtest
-UNIT_STATIC_LIBRARY_PATHS+=$(foreach lib,$(UNIT_STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }'))
+UNIT_STATIC_LIBRARY_PATH+=../external/gtest-1.6.0/make/gtest.a
+RT_CXXFLAGS+=-I../external/gtest-1.6.0/include
 endif
 
 UNIT_TEST_FILTER?=*
@@ -780,7 +780,6 @@ COFFEE_SOURCES:=$(patsubst %, $(WEB_SOURCE_DIR)/static/coffee/%,\
 			walkthrough.coffee \
 			router.coffee \
 			app.coffee)
-HANDLEBARS_SOURCES:=$(shell find $(WEB_SOURCE_DIR)/static/coffee -name '*.html')
 LESS_SOURCES:=$(shell find $(WEB_SOURCE_DIR)/static/less -name '*.less')
 LESS_MAIN:=$(WEB_SOURCE_DIR)/static/less/styles.less
 CLUSTER_HTML:=$(WEB_SOURCE_DIR)/templates/cluster.html
@@ -837,6 +836,10 @@ endif
 unit:
 	$(MAKE) UNIT_TESTS=1
 	$(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME) --gtest_filter=$(UNIT_TEST_FILTER)
+
+$(UNIT_STATIC_LIBRARY_PATH):
+	@echo "    GTEST"
+	$(QUIET) cd $(EXTERNAL_DIR)/gtest-1.6.0/make && $(MAKE) gtest.a
 
 # Packaging
 ifeq ($(PACKAGING),1)
@@ -1022,8 +1025,6 @@ install-deb: install
 		gzip -c9 | \
 		install -m644 -T /dev/stdin $(DESTDIR)$(doc_dir)/changelog.Debian.gz
 
-DEBIAN_V8_VERSION:=$(shell apt-cache show libv8-dev | grep '^Version:' | sed -e 's/^Version: \\([0-9]*\\(\\.[0-9]*\\)*\\).*$$/\\1/g' || true ; )
-
 ifeq ($(BUILD_PORTABLE),1)
 build-deb-support: $(TC_LESSC_INT_EXE) $(TC_COFFEE_INT_EXE) $(TC_HANDLEBARS_INT_EXE) $(V8_SRC_DIR) $(NODE_SRC_DIR) $(PROTOC_SRC_DIR) $(GPERFTOOLS_SRC_DIR) $(LIBUNWIND_SRC_DIR)
 else
@@ -1042,7 +1043,6 @@ build-deb-src-control:
 				-D "TRIAL_PACKAGE_NAME=$(TRIAL_PACKAGE_NAME)"						\
 				-D "VERSIONED_TRIAL_PACKAGE_NAME=$(VERSIONED_TRIAL_PACKAGE_NAME)"						\
 				-D "VERSIONED_QUALIFIED_PACKAGE_NAME=$(VERSIONED_QUALIFIED_PACKAGE_NAME)" \
-				-D "DEBIAN_V8_VERSION=$(DEBIAN_V8_VERSION)" \
 				-D "PACKAGE_VERSION=$(RETHINKDB_VERSION_DEB)" \
 				-D "LEGACY_PACKAGE=$(LEGACY_PACKAGE)" \
 				-D "STATIC_V8=$(STATIC_V8)" \
@@ -1110,7 +1110,6 @@ build-deb: all prepare_deb_package_dirs
 				-D "VERSIONED_TRIAL_PACKAGE_NAME=$(VERSIONED_TRIAL_PACKAGE_NAME)"						\
 				-D "PACKAGE_VERSION=$(RETHINKDB_VERSION_DEB)"						\
 				-D "VERSIONED_QUALIFIED_PACKAGE_NAME=$(VERSIONED_QUALIFIED_PACKAGE_NAME)" \
-				-D "DEBIAN_V8_VERSION=$(DEBIAN_V8_VERSION)" \
 				-D "LEGACY_PACKAGE=$(LEGACY_PACKAGE)"												\
 				-D "STATIC_V8=$(STATIC_V8)" \
 				-D "TC_BUNDLED=$(BUILD_PORTABLE)" \
@@ -1284,8 +1283,8 @@ rpc/semilattice/joins/macros.hpp rpc/serialize_macros.hpp rpc/mailbox/typed.hpp:
 
 web-assets: $(WEB_ASSETS)
 
-$(WEB_ASSETS_BUILD_DIR)/js/template.js: $(WEB_SOURCE_DIR)/static/handlebars $(TC_HANDLEBARS_EXE)
-	$(QUIET) env TC_HANDLEBARS_EXE=$(TC_HANDLEBARS_EXE) ../scripts/build_handlebars_templates.sh $(WEB_SOURCE_DIR)/static/handlebars $(BUILD_DIR) $(WEB_ASSETS_BUILD_DIR)/js
+$(WEB_ASSETS_BUILD_DIR)/js/template.js: $(WEB_SOURCE_DIR)/static/handlebars $(TC_HANDLEBARS_EXE) ../scripts/build_handlebars_templates.py
+	$(QUIET) env TC_HANDLEBARS_EXE=$(TC_HANDLEBARS_EXE) ../scripts/build_handlebars_templates.py $(WEB_SOURCE_DIR)/static/handlebars $(BUILD_DIR) $(WEB_ASSETS_BUILD_DIR)/js
 
 $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee: $(COFFEE_SOURCES)
 	$(QUIET) mkdir -p $(WEB_ASSETS_OBJ_DIR)
@@ -1308,9 +1307,12 @@ ifeq ($(VERBOSE),0)
 endif
 	$(QUIET) $(NODE_EXE_SPEC)$(TC_LESSC_EXE) $(LESS_MAIN) > $@ || ( echo "      Build failure." ; rm $@ ; false ; )
 
-$(WEB_ASSETS_BUILD_DIR)/index.html: $(CLUSTER_HTML) $(HANDLEBARS_SOURCES)
+$(WEB_ASSETS_BUILD_DIR)/index.html: $(CLUSTER_HTML)
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
-	cp $(CLUSTER_HTML) $@
+ifeq ($(VERBOSE),0)
+	@echo "    SED $(CLUSTER_HTML) -> $@"
+endif
+	$(QUIET) sed "s/{RETHINKDB_VERSION}/$(RETHINKDB_VERSION)/" $(CLUSTER_HTML) > $@
 
 $(WEB_ASSETS_BUILD_DIR)/js:
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
@@ -1377,18 +1379,18 @@ endif
 # default cases. So we have to remove the -Wswitch-default argument for them.
 $(OBJ_DIR)/unittest/%.o: RT_CXXFLAGS:=$(filter-out -Wswitch-default,$(RT_CXXFLAGS))
 
-$(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME): $(OBJS) $(BUILD_DIR) $(OBJ_SUPPS)
+$(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME): $(OBJS) $(BUILD_DIR) $(OBJ_SUPPS) $(UNIT_STATIC_LIBRARY_PATH)
 ifeq ($(VERBOSE),0)
 	@echo "    LD $@"
 endif
 ifeq ($(IGNORE_SOME_ICC_LD_WARNINGS),0)
-	$(QUIET) $(RT_CXX) $(RT_LDFLAGS) $(SERVER_UNIT_TEST_OBJS) $(STATIC_LIBRARY_PATHS) $(UNIT_STATIC_LIBRARY_PATHS) -o $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME)
+	$(QUIET) $(RT_CXX) $(RT_LDFLAGS) $(SERVER_UNIT_TEST_OBJS) $(STATIC_LIBRARY_PATHS) $(UNIT_STATIC_LIBRARY_PATH) -o $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME)
 else
 # Note: that is the copy of the problem description that we have above in server linking section.
 # The following line runs CXX in linking mode (supplying only the object files and libraries) and then
 # pass the output through a filter which filters out bogus (?) icc-related problems.
 # FIXME: figure out why we get these problems
-	$(QUIET) ($(RT_CXX) $(RT_LDFLAGS) $(SERVER_UNIT_TEST_OBJS) $(STATIC_LIBRARY_PATHS) $(UNIT_STATIC_LIBRARY_PATHS) -o $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME) 2>&1 >&3 | (grep -v "warning: relocation refers to discarded section" || true) >&2) 3>&1
+	$(QUIET) ($(RT_CXX) $(RT_LDFLAGS) $(SERVER_UNIT_TEST_OBJS) $(STATIC_LIBRARY_PATHS) $(UNIT_STATIC_LIBRARY_PATH) -o $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME) 2>&1 >&3 | (grep -v "warning: relocation refers to discarded section" || true) >&2) 3>&1
 endif
 
 $(BUILD_DIR)/$(START_DB_NAME):
