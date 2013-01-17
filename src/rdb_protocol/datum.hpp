@@ -16,6 +16,7 @@ class Datum;
 namespace ql {
 class env_t;
 class datum_stream_t;
+
 class datum_t : public ptr_baggable_t {
 public:
     datum_t(); // R_NULL
@@ -75,6 +76,7 @@ public:
     int cmp(const datum_t &rhs) const;
     bool operator==(const datum_t &rhs) const;
     bool operator!=(const datum_t &rhs) const;
+
     bool operator<(const datum_t &rhs) const;
     bool operator<=(const datum_t &rhs) const;
     bool operator>(const datum_t &rhs) const;
@@ -100,7 +102,7 @@ class wire_datum_t {
 public:
     wire_datum_t() : ptr(0), state(INVALID) { }
     wire_datum_t(const datum_t *_ptr) : ptr(_ptr), state(COMPILED) { }
-    const datum_t *get();
+    const datum_t *get() const;
     const datum_t *reset(const datum_t *ptr2);
     const datum_t *compile(env_t *env);
 
@@ -116,19 +118,50 @@ private:
     }
     friend class archive_deserializer_t;
     archive_result_t rdb_deserialize(read_stream_t *s) {
-        ptr_pb = Datum();
         archive_result_t res = deserialize(s, &ptr_pb);
         if (res) return res;
         state = JUST_READ;
         return ARCHIVE_SUCCESS;
     }
 
-    enum {
-        INVALID,
-        JUST_READ,
-        COMPILED,
-        READY_TO_WRITE
-    } state;
+    enum { INVALID, JUST_READ, COMPILED, READY_TO_WRITE } state;
+};
+
+class wire_datum_map_t {
+public:
+    wire_datum_map_t() : map(lt), state(COMPILED) { }
+    bool has(const datum_t *key);
+    const datum_t *get(const datum_t *key);
+    void set(const datum_t *key, const datum_t *val);
+
+    void compile(env_t *env);
+    void finalize();
+
+    const datum_t *to_arr(env_t *env) const;
+private:
+    static bool lt(const datum_t *a, const datum_t *b) {
+        return *a < *b;
+    }
+    typedef std::map<const datum_t *, const datum_t *,
+                     bool (*)(const datum_t *, const datum_t *)
+                     > map_t;
+    map_t map;
+    std::vector<std::pair<Datum, Datum> > map_pb;
+
+    friend class write_message_t;
+    void rdb_serialize(write_message_t &msg /* NOLINT */) const {
+        r_sanity_check(state == READY_TO_WRITE);
+        msg << map_pb;
+    }
+    friend class archive_deserializer_t;
+    archive_result_t rdb_deserialize(read_stream_t *s) {
+        archive_result_t res = deserialize(s, &map_pb);
+        if (res) return res;
+        state = JUST_READ;
+        return ARCHIVE_SUCCESS;
+    }
+
+    enum { JUST_READ, COMPILED, READY_TO_WRITE } state;
 };
 
 } // namespace ql

@@ -132,6 +132,7 @@ typedef boost::variant<Builtin_GroupedMapReduce,
                        Reduction,
                        Length,
                        WriteQuery_ForEach,
+                       ql::gmr_wire_func_t,
                        ql::count_wire_func_t,
                        ql::reduce_wire_func_t> terminal_variant_t;
 
@@ -209,17 +210,23 @@ struct rdb_protocol_t {
 
         typedef std::vector<boost::shared_ptr<scoped_cJSON_t> > vec_t;
         class empty_t { RDB_MAKE_ME_SERIALIZABLE_0() };
-        typedef boost::variant<stream_t,
-                               groups_t,
-                               atom_t,
-                               length_t,
-                               inserted_t,
-                               runtime_exc_t,
-                               ql::exc_t,
-                               ql::wire_datum_t,
-                               std::vector<ql::wire_datum_t>,
-                               empty_t,
-                               vec_t> result_t;
+        typedef boost::variant<
+
+            stream_t,
+            groups_t,
+            atom_t,
+            length_t,
+            inserted_t,
+            runtime_exc_t,
+            ql::exc_t,
+            ql::wire_datum_t,
+            std::vector<ql::wire_datum_t>,
+            ql::wire_datum_map_t, // a map from datum_t * -> datum_t *
+            std::vector<ql::wire_datum_map_t>,
+            empty_t,
+            vec_t
+
+            > result_t;
 
         key_range_t key_range;
         result_t result;

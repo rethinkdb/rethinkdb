@@ -354,6 +354,19 @@ public:
                                       &(_rr->result)));
                     }
                 }
+            } else if (boost::get<ql::gmr_wire_func_t>(&rg.terminal->variant)) {
+                typedef std::vector<ql::wire_datum_map_t> wire_datum_maps_t;
+                wire_datum_maps_t *out_vec = boost::get<wire_datum_maps_t>(
+                    &(rg_response.result = wire_datum_maps_t()));
+                for (size_t i = 0; i < count; ++i) {
+                    const rget_read_response_t *_rr =
+                        boost::get<rget_read_response_t>(&responses[i].response);
+                    guarantee(_rr);
+                    const ql::wire_datum_map_t *dm =
+                        boost::get<ql::wire_datum_map_t>(&(_rr->result));
+                    r_sanity_check(dm);
+                    out_vec->push_back(*dm);
+                }
             } else if (boost::get<rdb_protocol_details::Length>(&rg.terminal->variant)) {
                 rg_response.result = length_t();
                 length_t *res_length = boost::get<length_t>(&rg_response.result);

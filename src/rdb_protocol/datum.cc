@@ -401,7 +401,7 @@ void datum_t::iter(bool (*callback)(const datum_t *, env_t *), env_t *env) const
     }
 }
 
-const datum_t *wire_datum_t::get() {
+const datum_t *wire_datum_t::get() const {
     r_sanity_check(state == COMPILED);
     return ptr;
 }
@@ -412,6 +412,13 @@ const datum_t *wire_datum_t::reset(const datum_t *ptr2) {
     return tmp;
 }
 
+const datum_t *wire_datum_t::compile(env_t *env) {
+    if (state == COMPILED) return ptr;
+    r_sanity_check(state != INVALID);
+    ptr = env->add_ptr(new datum_t(&ptr_pb, env));
+    ptr_pb = Datum();
+    return ptr;
+}
 void wire_datum_t::finalize() {
     if (state == JUST_READ) return;
     r_sanity_check(state == COMPILED);
@@ -420,12 +427,55 @@ void wire_datum_t::finalize() {
     state = READY_TO_WRITE;
 }
 
-const datum_t *wire_datum_t::compile(env_t *env) {
-    if (state == COMPILED) return ptr;
-    r_sanity_check(state != INVALID);
-    ptr = env->add_ptr(new datum_t(&ptr_pb, env));
-    ptr_pb = Datum();
-    return ptr;
+bool wire_datum_map_t::has(const datum_t *key) {
+    r_sanity_check(state == COMPILED);
+    return map.count(key) > 0;
+}
+
+const datum_t *wire_datum_map_t::get(const datum_t *key) {
+    r_sanity_check(state == COMPILED);
+    r_sanity_check(has(key));
+    return map[key];
+}
+
+void wire_datum_map_t::set(const datum_t *key, const datum_t *val) {
+    r_sanity_check(state == COMPILED);
+    map[key] = val;
+}
+
+void wire_datum_map_t::compile(env_t *env) {
+    if (state == COMPILED) return;
+    r_sanity_check(state == JUST_READ);
+    while (!map_pb.empty()) {
+        map[env->add_ptr(new datum_t(&map_pb.back().first, env))] =
+            env->add_ptr(new datum_t(&map_pb.back().second, env));
+        map_pb.pop_back();
+    }
+    state = COMPILED;
+}
+void wire_datum_map_t::finalize() {
+    if (state == JUST_READ) return;
+    r_sanity_check(state == COMPILED);
+    while (!map.empty()) {
+        map_pb.push_back(std::make_pair(Datum(), Datum()));
+        map.begin()->first->write_to_protobuf(&map_pb.back().first);
+        map.begin()->second->write_to_protobuf(&map_pb.back().second);
+        map.erase(map.begin());
+    }
+    state = READY_TO_WRITE;
+}
+
+const datum_t *wire_datum_map_t::to_arr(env_t *env) const {
+    r_sanity_check(state == COMPILED);
+    datum_t *arr = env->add_ptr(new datum_t(datum_t::R_ARRAY));
+    for (map_t::const_iterator it = map.begin(); it != map.end(); ++it) {
+        datum_t *obj = env->add_ptr(new datum_t(datum_t::R_OBJECT));
+        bool b1 = obj->add("group", it->first);
+        bool b2 = obj->add("reduction", it->second);
+        r_sanity_check(!b1 && !b2);
+        arr->add(obj);
+    }
+    return arr;
 }
 
 } //namespace ql

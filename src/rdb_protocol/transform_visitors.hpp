@@ -70,6 +70,7 @@ public:
 
     void operator()(const WriteQuery_ForEach &) const;
 
+    void operator()(const ql::gmr_wire_func_t &) const;
     void operator()(const ql::count_wire_func_t &) const;
     void operator()(const ql::reduce_wire_func_t &) const;
 private:
@@ -100,6 +101,7 @@ public:
 
     void operator()(const ql::count_wire_func_t &) const;
     // This is a non-const reference because it caches the compiled function
+    void operator()(ql::gmr_wire_func_t &) const;
     void operator()(ql::reduce_wire_func_t &) const;
 private:
     boost::shared_ptr<scoped_cJSON_t> json;

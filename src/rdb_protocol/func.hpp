@@ -65,6 +65,25 @@ SIMPLE_FUNC_IMPL(concatmap, 1);
 // Faux functions
 class count_wire_func_t { RDB_MAKE_ME_SERIALIZABLE_0() };
 
+// Grouped Map Reduce
+static const int gmr_group_bt_frame = 1;
+static const int gmr_map_bt_frame = 2;
+static const int gmr_reduce_bt_frame = 3;
+class gmr_wire_func_t {
+public:
+    gmr_wire_func_t() { }
+    gmr_wire_func_t(env_t *env, func_t *_group, func_t *_map, func_t *_reduce)
+        : group(env, _group), map(env, _map), reduce(env, _reduce) { }
+    func_t *compile_group(env_t *env) { return group.compile(env); }
+    func_t *compile_map(env_t *env) { return map.compile(env); }
+    func_t *compile_reduce(env_t *env) { return reduce.compile(env); }
+private:
+    map_wire_func_t group;
+    map_wire_func_t map;
+    reduce_wire_func_t reduce;
+    RDB_MAKE_ME_SERIALIZABLE_3(group, map, reduce);
+};
+
 class func_term_t : public term_t {
 public:
     func_term_t(env_t *env, const Term2 *term);

@@ -203,6 +203,25 @@ void terminal_visitor_t::operator()(const WriteQuery_ForEach &w) const {
     }
 }
 
+void terminal_initializer_visitor_t::operator()(
+    UNUSED const ql::gmr_wire_func_t &f) const {
+    *out = ql::wire_datum_map_t();
+}
+void terminal_visitor_t::operator()(ql::gmr_wire_func_t &func) const {
+    ql::wire_datum_map_t *obj = boost::get<ql::wire_datum_map_t>(out);
+    guarantee(obj);
+
+    const ql::datum_t *el = ql_env->add_ptr(new ql::datum_t(json, ql_env));
+    const ql::datum_t *el_group = func.compile_map(ql_env)->call(el)->as_datum();
+    const ql::datum_t *el_map = func.compile_map(ql_env)->call(el)->as_datum();
+
+    if (!obj->has(el_group)) {
+        obj->set(el_group, el_map);
+    } else {
+        const ql::datum_t *lhs = obj->get(el_group);
+        obj->set(el_group, func.compile_reduce(ql_env)->call(lhs, el_map)->as_datum());
+    }
+}
 
 void terminal_initializer_visitor_t::operator()(
     UNUSED const ql::count_wire_func_t &f) const {
