@@ -1629,18 +1629,20 @@ module 'DataExplorerView', ->
                 $(content_container).scroll ->
                     $(".wrapper_scrollbar").scrollLeft($(content_container).scrollLeft())
 
-                    # Sometimes we don't have to display the scrollbar (when the results are not shown because the query is too big)
-                    if $(window).scrollTop()+$(window).height() < $(content_container).offset().top+20 # bottom of the window < beginning of $('.json_table_container') // 20 pixels is the approximate height of the scrollbar (so we don't show JUST the scrollbar)
-                        that.$('.wrapper_scrollbar').hide()
-                    # We show the scrollbar and stick it to the bottom of the window because there is more content below
-                    else if $(window).scrollTop()+$(window).height() < $(content_container).offset().top+$(content_container).height() # bottom of the window < end of $('.json_table_container')
-                        that.$('.wrapper_scrollbar').show()
-                        that.$('.wrapper_scrollbar').css 'overflow', 'auto'
-                        that.$('.wrapper_scrollbar').css 'margin-bottom', '0px'
-                    # And sometimes we "hide" it
-                    else
-                        # We can not hide .wrapper_scrollbar because it would break the binding between wrapper_scrollbar and content_container
-                        that.$('.wrapper_scrollbar').css 'overflow', 'hidden'
+                position_scrollbar = ->
+                    if $(content_container).offset()?
+                        # Sometimes we don't have to display the scrollbar (when the results are not shown because the query is too big)
+                        if $(window).scrollTop()+$(window).height() < $(content_container).offset().top+20 # bottom of the window < beginning of $('.json_table_container') // 20 pixels is the approximate height of the scrollbar (so we don't show JUST the scrollbar)
+                            that.$('.wrapper_scrollbar').hide()
+                        # We show the scrollbar and stick it to the bottom of the window because there is more content below
+                        else if $(window).scrollTop()+$(window).height() < $(content_container).offset().top+$(content_container).height() # bottom of the window < end of $('.json_table_container')
+                            that.$('.wrapper_scrollbar').show()
+                            that.$('.wrapper_scrollbar').css 'overflow', 'auto'
+                            that.$('.wrapper_scrollbar').css 'margin-bottom', '0px'
+                        # And sometimes we "hide" it
+                        else
+                            # We can not hide .wrapper_scrollbar because it would break the binding between wrapper_scrollbar and content_container
+                            that.$('.wrapper_scrollbar').css 'overflow', 'hidden'
 
                 that = @
                 position_scrollbar()
@@ -1730,3 +1732,5 @@ module 'DataExplorerView', ->
         destroy: =>
             $(document).unbind 'mousemove', @handle_mousemove
             $(document).unbind 'mouseup', @handle_mouseup
+            $(window).unbind 'scroll'
+            $(window).unbind 'resize'
