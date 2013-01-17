@@ -127,7 +127,7 @@ void *linux_thread_pool_t::start_thread(void *arg) {
 
         // Prime the pump by calling the initial thread message that was passed to thread_pool::run()
         if (tdata->initial_message) {
-            local_thread.message_hub.store_message(tdata->current_thread, tdata->initial_message);
+            local_thread.message_hub.insert_external_message(tdata->initial_message);
         }
 
         local_thread.queue.run();
