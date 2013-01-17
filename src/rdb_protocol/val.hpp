@@ -43,6 +43,7 @@ public:
         type_t(raw_type_t _raw_type);
         bool is_convertible(type_t rhs) const;
     private:
+        friend class coerce_term_t;
         const char *name() const;
         raw_type_t raw_type;
     };

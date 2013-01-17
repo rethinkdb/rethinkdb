@@ -9,6 +9,8 @@ namespace pb {
 Datum *set_datum(Term2 *d);
 Term2 *set_func(Term2 *f, int varnum);
 void set_var(Term2 *v, int varnum);
+void set_int(Term2 *i, int num);
+void set_str(Term2 *t, const std::string &s);
 
 void set(Term2 *out, Term2_TermType type, std::vector<Term2 *> *args_out, int num_args);
 
@@ -36,6 +38,12 @@ void set(Term2 *out, Term2_TermType type, std::vector<Term2 *> *args_out, int nu
         arg = __arg3; ARG3;                     \
     }
 
+#define OPT1(PB, STR1, ARG1) {                          \
+        arg->set_type(Term2_TermType_##PB);             \
+        Term2_AssocPair *__ap1 = arg->add_optargs();    \
+        __ap1->set_key(STR1);                           \
+        arg = __ap1->mutable_val(); ARG1;               \
+    }
 #define OPT2(PB, STR1, ARG1, STR2, ARG2) {              \
         arg->set_type(Term2_TermType_##PB);             \
         Term2_AssocPair *__ap1 = arg->add_optargs();    \

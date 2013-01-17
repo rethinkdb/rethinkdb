@@ -349,6 +349,24 @@ rae(tbl.inner_join(tbl, r.func([1, 2], r.var(2).getattr(:id).eq(0))),
 rae(tbl.inner_join(tbl, r.func([1, 2], r.var(1).getattr(:id).eq(r.var(2).getattr(:id)))),
     [{"left"=>{"id"=>0.0}, "right"=>{"id"=>0.0}},
      {"left"=>{"id"=>1.0}, "right"=>{"id"=>1.0}}])
+rae(tbl.inner_join(tbl, r.func([1, 2], false)), [])
+
+rae(tbl.outer_join(tbl, r.func([1, 2], true)),
+    [{"left"=>{"id"=>0.0}, "right"=>{"id"=>0.0}},
+     {"left"=>{"id"=>0.0}, "right"=>{"id"=>1.0}},
+     {"left"=>{"id"=>1.0}, "right"=>{"id"=>0.0}},
+     {"left"=>{"id"=>1.0}, "right"=>{"id"=>1.0}}])
+rae(tbl.outer_join(tbl, r.func([1, 2], r.var(2).getattr(:id).eq(0))),
+    [{"left"=>{"id"=>0.0}, "right"=>{"id"=>0.0}},
+     {"left"=>{"id"=>1.0}, "right"=>{"id"=>0.0}}])
+rae(tbl.outer_join(tbl, r.func([1, 2], r.var(1).getattr(:id).eq(r.var(2).getattr(:id)))),
+    [{"left"=>{"id"=>0.0}, "right"=>{"id"=>0.0}},
+     {"left"=>{"id"=>1.0}, "right"=>{"id"=>1.0}}])
+rae(tbl.outer_join(tbl, r.func([1, 2], false)),
+    [{"left"=>{"id"=>0.0}}, {"left"=>{"id"=>1.0}}])
+rae(tbl.outer_join(tbl, r.func([1, 2], r.var(1).getattr(:id).eq(r.var(2).getattr(:id),
+                                                                0))),
+    [{"left"=>{"id"=>0.0}, "right"=>{"id"=>0.0}}, {"left"=>{"id"=>1.0}}])
 
 ####
 
@@ -357,15 +375,3 @@ print "Ran #{$tests} tests!\n"
 
 ####
 
-
-# r.inner_join(l, r, f)
-# n = gensym
-# m = gensym
-
-# r.transform { |l, r, f|
-#   l.concat_map { |n|
-#     r.concat_map { |m|
-#       r.branch(r.funcall(f, n, m), [{:left => n, :right => m}], [])
-#     }
-#   }
-# }

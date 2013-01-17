@@ -14,6 +14,7 @@
 #include "rdb_protocol/terms/pred.hpp"
 #include "rdb_protocol/terms/seq.hpp"
 #include "rdb_protocol/terms/sort.hpp"
+#include "rdb_protocol/terms/type_manip.hpp"
 #include "rdb_protocol/terms/var.hpp"
 
 namespace ql {
@@ -64,9 +65,10 @@ term_t *compile_term(env_t *env, const Term2 *t) {
     case Term2_TermType_GROUPBY:
         throw exc_t("UNIMPLEMENTED (need to talk to Bill)");
     case Term2_TermType_INNER_JOIN:         return new inner_join_term_t(env, t);
-    case Term2_TermType_OUTER_JOIN:
+    case Term2_TermType_OUTER_JOIN:         return new outer_join_term_t(env, t);
     case Term2_TermType_EQ_JOIN:
-    case Term2_TermType_COERCE:
+        break;
+    case Term2_TermType_COERCE:             return new coerce_term_t(env, t);
     case Term2_TermType_TYPEOF:
     case Term2_TermType_UPDATE:
     case Term2_TermType_DELETE:
