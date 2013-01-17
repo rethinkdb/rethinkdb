@@ -280,8 +280,6 @@ module 'Explain', ->
             is_root = args.is_root
             that = @
 
-            circles = []
-
             if task['sub_tasks']? and task['sub_tasks_are_parallel'] is false and task['sub_tasks_stats']['count']>task['sub_tasks'].length
                 height_available -= @more_height
                 more =
@@ -372,19 +370,6 @@ module 'Explain', ->
 
             current_position_y = parent_position.y+scale_traffic sub_tasks[0]['size_message_received']
             for sub_task, i in sub_tasks
-                if i is 0
-                    circles.push
-                        cx: parent_position.x
-                        cy: current_position_y-scale_traffic sub_task['size_message_received'] # Because message_received == message_sent
-                        title: 'Executing '+sub_task['query']
-                else
-                    circles.push
-                        cx: parent_position.x
-                        cy: current_position_y-scale_traffic sub_task['size_message_received']/2
-                        title: 'Finished executing '+sub_tasks[i-1]['query']+'<br/>Executing '+sub_task['query']
-
-
-
                 @$('.legend').append @legend_template
                     query: sub_task.query
                     explanation: sub_task.explanation
@@ -410,34 +395,6 @@ module 'Explain', ->
                     y2: new_position_y
 
                 current_position_y = new_position_y
-
-                if i is sub_tasks.length-1 and is_root is true
-                    cy = new_position_y
-                    if task['sub_tasks']? and task['sub_tasks_are_parallel'] is false and task['sub_tasks_stats'].count>task['sub_tasks'].length
-                        cy += @more_height
-                    circles.push
-                        cx: parent_position.x
-                        cy: cy
-                        title: 'Query executed'
-
-
-            @svg.selectAll('circle-level')
-                .data(circles)
-                .enter()
-                .append('circle')
-                .attr('cx', (circle, i) ->
-                    return circle['cx']
-                )
-                .attr('cy', (circle, i) ->
-                    return circle['cy']
-                )
-                .attr('r', @bifurcation_circle_radius)
-                .attr('fill', @task_border_color)
-                .attr('title', (d) -> return d.title)
-                .attr('stroke-width', 0)
-
-
-
 
         draw_tasks_in_parallel: (args) =>
             task = args.task
@@ -622,49 +579,6 @@ module 'Explain', ->
                 )
                 .attr('stroke', '#000')
                 .attr('stroke-width', @stroke_width)
-
-
-            # Draw some circles
-            circles = []
-            circles.push
-                cx: parent_position.x
-                cy: parent_position.y
-                title: 'Query parsed, sending sub queries'
-
-            for sub_task, i in sub_tasks
-                circles.push
-                    cx: @drawable_machines_map_position[task['machine_id']]
-                    cy: parent_position.y+
-                        scale_traffic(sub_task['size_message_received'])+
-                        scale_execution(sub_task['execution_duration'])+
-                        scale_traffic(sub_task['size_message_sent'])
-                    title: 'Machine '+sub_task['machine_id']+' finished sending back data'
-
-            if is_root is true
-                circles.push
-                    cx: @drawable_machines_map_position[task['machine_id']]
-                    cy: parent_position.y-@height_before_bifurcation
-                    title: 'Executing query'+task['query']
-                circles.push
-                    cx: @drawable_machines_map_position[task['machine_id']]
-                    cy: parent_position.y+height_available+@height_before_bifurcation
-                    title: 'Done executing query'
-
-
-            @svg.selectAll('circle-level')
-                .data(circles)
-                .enter()
-                .append('circle')
-                .attr('cx', (circle, i) ->
-                    return circle['cx']
-                )
-                .attr('cy', (circle, i) ->
-                    return circle['cy']
-                )
-                .attr('r', @bifurcation_circle_radius)
-                .attr('fill', @task_border_color)
-                .attr('title', (d) -> return d.title)
-                .attr('stroke-width', 0)
 
             # Draw the rectangles
             for sub_task, i in sub_tasks
