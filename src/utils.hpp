@@ -318,6 +318,8 @@ static inline std::string time2str(const time_t &t) {
 
 std::string errno_string(int errsv);
 
+int get_num_db_threads();
+
 #define STR(x) #x
 #define MSTR(x) STR(x) // Stringify a macro
 #if defined __clang__
