@@ -247,7 +247,7 @@
               "examples" : [
                 {
                   "description": "Call run on the connection with a query to execute the query. Run will return a cursor from which results may be retrieved.",
-                  "code": "var cursor = conn.run(r.table('marvel'));"
+                  "code": "var cursor = conn.run(r.table('marvel'), {});"
                 }, {
                   "description": "You can pass a callback function to run which is invoked for each row. If the callback returns true, it gets called again for the next row. If the callback returns false, it will not be invoked again.",
                   "code": "conn.run(r.table('marvel'), function(hero) {\n  ...\n  return true; // callback gets called again; return false to stop being invoked\n})"
