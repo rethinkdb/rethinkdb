@@ -35,12 +35,12 @@ timerfd_provider_t::~timerfd_provider_t() {
     guarantee_err(res == 0 || errno == EINTR, "Could not close the timer.");
 }
 
-void timerfd_provider_t::schedule_oneshot(const uint64_t next_time_in_nanos, timer_provider_interactor_t *const cb) {
+void timerfd_provider_t::schedule_oneshot(const int64_t next_time_in_nanos, timer_provider_interactor_t *const cb) {
     // We could pass TFD_TIMER_ABSTIME to timerfd_settime (thus avoiding the std::max logic below),
     // but that would mean this code depends on the fact that get_ticks() is implemented in terms of
     // CLOCK_MONOTONIC.
 
-    const int64_t time_difference = static_cast<int64_t>(next_time_in_nanos) - static_cast<int64_t>(get_ticks());
+    const int64_t time_difference = next_time_in_nanos - static_cast<int64_t>(get_ticks());
     const int64_t wait_nanos = std::max<int64_t>(1, time_difference);
 
     struct itimerspec spec;
@@ -49,8 +49,7 @@ void timerfd_provider_t::schedule_oneshot(const uint64_t next_time_in_nanos, tim
     spec.it_value.tv_sec = wait_nanos / BILLION;
     spec.it_value.tv_nsec = wait_nanos % BILLION;
 
-
-    int res = timerfd_settime(timer_fd, 0, &spec, NULL);
+    const int res = timerfd_settime(timer_fd, 0, &spec, NULL);
     guarantee_err(res == 0, "Could not arm the timer.");
 
     callback = cb;
@@ -63,7 +62,7 @@ void timerfd_provider_t::unschedule_oneshot() {
     spec.it_value.tv_sec = 0;
     spec.it_value.tv_nsec = 0;
 
-    int res = timerfd_settime(timer_fd, 0, &spec, NULL);
+    const int res = timerfd_settime(timer_fd, 0, &spec, NULL);
     guarantee_err(res == 0, "Could not disarm the timer.");
 
     callback = NULL;
@@ -78,9 +77,12 @@ void timerfd_provider_t::on_event(int events) {
     const int res = eventfd_read(timer_fd, &nexpirations);
     guarantee_err(res == 0 || errno == EAGAIN, "Could not read timer_fd value");
     if (res == 0 && nexpirations > 0) {
-        timer_provider_interactor_t *local_cb = callback;
-        callback = NULL;
-        local_cb->on_oneshot();
+        // The callback could be unscheduled but after the timerfd rang, maybe.  So we check here.
+        if (callback != NULL) {
+            timer_provider_interactor_t *local_cb = callback;
+            callback = NULL;
+            local_cb->on_oneshot();
+        }
     }
 }
 

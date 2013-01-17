@@ -20,16 +20,18 @@
 #define sigev_notify_thread_id _sigev_un._tid
 
 void timer_signal_provider_signal_handler(UNUSED int signum, siginfo_t *siginfo, UNUSED void *uctx) {
-    timer_provider_callback_t *callback = static_cast<timer_provider_callback_t *>(siginfo->si_value.sival_ptr);
+    timer_signal_provider_t *provider = static_cast<timer_signal_provider_t *>(siginfo->si_value.sival_ptr);
 
-    // The number of timer ticks that have happened is 1 plus the timer signal's overrun count.
-    callback->on_timer(1 + siginfo->si_overrun);
+    timer_provider_interactor_t *local_cb = provider->callback;
+    if (local_cb != NULL) {
+        provider->callback = NULL;
+        local_cb->on_oneshot();
+    }
 }
 
 /* Kernel timer provider based on signals */
-timer_signal_provider_t::timer_signal_provider_t(UNUSED linux_event_queue_t *queue,
-                                                 timer_provider_callback_t *callback,
-                                                 time_t secs, int32_t nsecs) {
+timer_signal_provider_t::timer_signal_provider_t(UNUSED linux_event_queue_t *queue)
+    : callback(NULL) {
     struct sigaction sa = make_sa_sigaction(SA_SIGINFO, &timer_signal_provider_signal_handler);
 
     // Register the signal.
@@ -42,23 +44,16 @@ timer_signal_provider_t::timer_signal_provider_t(UNUSED linux_event_queue_t *que
     evp.sigev_signo = TIMER_NOTIFY_SIGNAL;
     evp.sigev_notify = SIGEV_THREAD_ID;
     evp.sigev_notify_thread_id = _gettid();
-    evp.sigev_value.sival_ptr = callback;
+    evp.sigev_value.sival_ptr = this;
 
     // Create the timer
     res = timer_create(CLOCK_MONOTONIC, &evp, &timerid);
     guarantee_err(res == 0, "Could not create timer");
-
-    // Start the timer
-    itimerspec timer_spec;
-    bzero(&timer_spec, sizeof(timer_spec));
-    timer_spec.it_value.tv_sec = timer_spec.it_interval.tv_sec = secs;
-    timer_spec.it_value.tv_nsec = timer_spec.it_interval.tv_nsec = nsecs;
-
-    res = timer_settime(timerid, 0, &timer_spec, NULL);
-    guarantee_err(res == 0, "Could not arm the timer");
 }
 
 timer_signal_provider_t::~timer_signal_provider_t() {
+    guarantee(callback == NULL);
+
     int res = timer_delete(timerid);
     guarantee_err(res == 0, "timer_delete failed");
 
@@ -68,6 +63,36 @@ timer_signal_provider_t::~timer_signal_provider_t() {
 
     res = sigaction(TIMER_NOTIFY_SIGNAL, &sa, NULL);
     guarantee_err(res == 0, "timer signal provider could not unregister the signal handler");
+}
+
+void timer_signal_provider_t::schedule_oneshot(int64_t next_time_in_nanos, timer_provider_interactor_t *cb) {
+    // We could ostensibly use TIMER_ABSTIME in the timer_settime call instead of specifying a
+    // relative timer, but that would make our code fragilely depend on get_ticks() using
+    // CLOCK_MONOTONIC.
+
+    const int64_t ticks = get_ticks();
+    const int64_t time_diff = next_time_in_nanos - ticks;
+    const int64_t wait_time = std::max<int64_t>(1, time_diff);
+
+    itimerspec spec;
+    spec.it_value.tv_sec = wait_time / BILLION;
+    spec.it_value.tv_nsec = wait_time % BILLION;
+    spec.it_interval.tv_sec = 0;
+    spec.it_interval.tv_nsec = 0;
+
+    const int res = timer_settime(timerid, 0, &spec, NULL);
+    guarantee_err(res == 0, "Could not arm the timer");
+}
+
+void timer_signal_provider_t::unschedule_oneshot() {
+    struct itimerspec spec;
+    spec.it_interval.tv_sec = 0;
+    spec.it_interval.tv_nsec = 0;
+    spec.it_value.tv_sec = 0;
+    spec.it_value.tv_nsec = 0;
+
+    const int res = timer_settime(timerid, 0, &spec, NULL);
+    guarantee_err(res == 0, "Could not disarm the timer.");
 }
 
 #endif  // RDB_TIMER_PROVIDER == RDB_TIMER_PROVIDER_SIGNAL

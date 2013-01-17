@@ -9,7 +9,7 @@ cJSON *render_as_json(log_message_t *message) {
     std::string timestamp_buffer = strprintf("%ld.%09ld", message->timestamp.tv_sec, message->timestamp.tv_nsec);
     scoped_cJSON_t json(cJSON_CreateObject());
     json.AddItemToObject("timestamp", cJSON_CreateString(timestamp_buffer.c_str()));
-    json.AddItemToObject("uptime", cJSON_CreateNumber(message->uptime.tv_sec + message->uptime.tv_nsec / 1000000000.0));
+    json.AddItemToObject("uptime", cJSON_CreateNumber(message->uptime.tv_sec + message->uptime.tv_nsec / static_cast<double>(BILLION)));
     json.AddItemToObject("level", cJSON_CreateString(format_log_level(message->level).c_str()));
     json.AddItemToObject("message", cJSON_CreateString(message->message.c_str()));
     return json.release();
@@ -82,7 +82,7 @@ http_res_t log_http_app_t::handle(const http_req_t &req) {
     }
 
     int max_length = 100;
-    struct timespec min_timestamp = {0, 0}, max_timestamp = {time(NULL) + 1000, 0};
+    struct timespec min_timestamp = {0, 0}, max_timestamp = {time(NULL) + THOUSAND, 0};
     if (boost::optional<std::string> max_length_string = req.find_query_param("max_length")) {
         char dummy;
         int res = sscanf(max_length_string.get().c_str(), "%d%c", &max_length, &dummy);

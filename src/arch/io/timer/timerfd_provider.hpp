@@ -11,7 +11,7 @@ public:
     timerfd_provider_t(linux_event_queue_t *_queue);
     ~timerfd_provider_t();
 
-    void schedule_oneshot(uint64_t next_time_in_nanos, timer_provider_interactor_t *cb);
+    void schedule_oneshot(int64_t next_time_in_nanos, timer_provider_interactor_t *cb);
     void unschedule_oneshot();
 
 private:

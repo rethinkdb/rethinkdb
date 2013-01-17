@@ -220,7 +220,7 @@ microtime_t current_microtime() {
     struct timeval t;
     DEBUG_VAR int res = gettimeofday(&t, NULL);
     rassert(0 == res);
-    return uint64_t(t.tv_sec) * (1000 * 1000) + t.tv_usec;
+    return uint64_t(t.tv_sec) * MILLION + t.tv_usec;
 }
 
 void *malloc_aligned(size_t size, size_t alignment) {
@@ -479,7 +479,7 @@ int64_t round_up_to_power_of_two(int64_t x) {
 }
 
 ticks_t secs_to_ticks(time_t secs) {
-    return static_cast<ticks_t>(secs) * 1000000000;
+    return static_cast<ticks_t>(secs) * BILLION;
 }
 
 #ifdef __MACH__
@@ -536,7 +536,7 @@ time_t get_secs() {
 }
 
 double ticks_to_secs(ticks_t ticks) {
-    return ticks / 1000000000.0;
+    return ticks / static_cast<double>(BILLION);
 }
 
 
