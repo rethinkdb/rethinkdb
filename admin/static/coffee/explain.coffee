@@ -114,24 +114,23 @@ module 'Explain', ->
         min_height_line: 20
         min_traffic_height: 20
         max_traffic_height: 40
-        height_before_bifurcation: 20
+        height_line: 20
         border_size: 4
         stroke_width: 2
         proportion_bloc: 2/5
         background_color: '#fff'
-        task_color: '#eee'
+        task_color:
+            #traffic_received: '#002395'
+            traffic_received: '#eee'
+            execution: '#fff'
+            #traffic_sent: '#ed2939'
+            traffic_sent: '#eee'
         task_border_color: '#000'
         task_border_width: 1
         more_height: 70
         more_bloc_height: 50
         bifurcation_circle_radius: 4
         proportion_height_inner_bloc: 3/5
-        inner_task_border_width: 1
-        inner_task_color: '#eaeaea'
-        inner_task_border_color: '#bbb'
-        padding_inner_task_top: 10
-        padding_inner_task_side: 5
-        proportion_width_inner_bloc: 2/5
 
         get_drawable_machines: (task, num_simultaneous_task_drawn) =>
             if task['sub_tasks']?
@@ -150,8 +149,6 @@ module 'Explain', ->
                 @drawable_machines_map_position[task['machine_id']] = true
                 
 
-
-
         draw_component: (args) =>
             task = args.task
             level = args.level
@@ -159,10 +156,14 @@ module 'Explain', ->
             parent_position = args.parent_position
             parent_width = args.parent_width
             num_simultaneous_task_drawn = args.num_simultaneous_task_drawn
+            scale_traffic = args.scale_traffic
             scale_execution = args.scale_execution
             height_available = args.height_available
             execution_duration = args.execution_duration
             is_root = if args.is_root? then args.is_root else false
+            draw_traffic_in = if args.draw_traffic_in? then args.draw_traffic_in else false
+            draw_traffic_out = if args.draw_traffic_out? then args.draw_traffic_out else false
+            full_scale = if args.full_scale? then args.full_scale else false
 
             sub_tasks = task.sub_tasks
             if not sub_tasks?
@@ -175,6 +176,11 @@ module 'Explain', ->
                     parent_position: parent_position
                     height_available: height_available
                     is_root: is_root
+                    scale_execution: scale_execution
+                    scale_traffic: scale_traffic
+                    draw_traffic_in: draw_traffic_in
+                    draw_traffic_out: draw_traffic_out
+                    full_scale: full_scale
             else
                 if task['sub_tasks_are_parallel'] is true
                     num_simultaneous_task_drawn++
@@ -195,6 +201,12 @@ module 'Explain', ->
                             parent_position: parent_position
                             height_available: height_available
                             is_root: is_root
+                            scale_execution: scale_execution
+                            scale_traffic: scale_traffic
+                            draw_traffic_in: draw_traffic_in
+                            draw_traffic_out: draw_traffic_out
+                            full_scale: full_scale
+
                 else # In series task
                     if task['sub_tasks_stats']?['count']? and task['sub_tasks_stats']['count'] > sub_tasks.length and is_root is false
                         @draw_single_task
@@ -204,6 +216,11 @@ module 'Explain', ->
                             parent_position: parent_position
                             height_available: height_available
                             is_root: is_root
+                            scale_execution: scale_execution
+                            scale_traffic: scale_traffic
+                            draw_traffic_in: draw_traffic_in
+                            draw_traffic_out: draw_traffic_out
+                            full_scale: full_scale
                     else
                         @draw_tasks_in_series
                             task: task
@@ -215,6 +232,9 @@ module 'Explain', ->
                             scale_execution: scale_execution
                             height_available: height_available
                             is_root: is_root
+                            draw_traffic_in: draw_traffic_in
+                            draw_traffic_out: draw_traffic_out
+
 
 
         compute_duration_all_tasks_in_series: (tasks) =>
@@ -237,29 +257,74 @@ module 'Explain', ->
             step = args.step
             parent_position = args.parent_position
             height_available = args.height_available
+            scale_traffic = args.scale_traffic
+            scale_execution = args.scale_execution
+            draw_traffic_in = args.draw_traffic_in
+            draw_traffic_out = args.draw_traffic_out
+            full_scale = args.full_scale
+            console.log 'Drawing single task'
+            console.log draw_traffic_in
+            console.log draw_traffic_out
+
             that = @
 
-            @svg.selectAll('rect-'+level+'-'+step)
-                .data([task])
-                .enter()
-                .append('rect')
-                .attr('x', parent_position.x-@sub_width*@proportion_bloc/2-@border_size)
-                .attr('y', parent_position.y)
-                .attr('width', @sub_width*@proportion_bloc+@border_size*2)
-                .attr('height', height_available)
-                .style('fill', @background_color)
-                .
+            if not scale_execution?
+                return ''
+
+        
+            if full_scale is true
+                position_x = @sub_width*(1-@proportion_bloc)/2
+                width = @svg_width-2*position_x
+            else
+                position_x = parent_position.x-@sub_width*@proportion_bloc/2
+                width = @sub_width*@proportion_bloc
+
+            current_position_y = args.parent_position.y
+
+            if draw_traffic_in is true
+                task_element = @svg.selectAll('rect-level-'+level)
+                    .data([task])
+                    .enter()
+                    .append('rect')
+                    .attr('x', position_x)
+                    .attr('y', parent_position.y)
+                    .attr('width', width)
+                    .attr('height', (d, i) ->
+                        return scale_traffic task['size_message_received']
+                    )
+                    .attr('stroke-width', @task_border_width)
+                    .attr('stroke', @task_border_color)
+                    .style('fill', @task_color['traffic_received'])
+                    .attr('title', 'Receiving data: '+task['size_message_received']+'B')
+                    .attr('class', (d) ->
+                        if d.sub_tasks?
+                            return 'expandable_task'
+                        else
+                            return 'task'
+                    )
+                    .attr('data-task', (d) ->
+                        if d.sub_tasks?
+                            return JSON.stringify d
+                        else
+                            return ''
+                    )
+                current_position_y += scale_traffic task['size_message_received']
+
             task_element = @svg.selectAll('rect-level-'+level)
                 .data([task])
                 .enter()
                 .append('rect')
-                .attr('x', parent_position.x-@sub_width*@proportion_bloc/2)
-                .attr('y', parent_position.y)
-                .attr('width', @sub_width*@proportion_bloc)
-                .attr('height', height_available)
+                .attr('x', position_x)
+                .attr('y', (d, i) ->
+                    return current_position_y
+                )
+                .attr('width', width)
+                .attr('height', (d, i) ->
+                    return scale_execution task['execution_duration']
+                )
                 .attr('stroke-width', @task_border_width)
                 .attr('stroke', @task_border_color)
-                .style('fill', @task_color)
+                .style('fill', @task_color['execution'])
                 .attr('title', 'Machine: '+task['machine_id']+'<br/>'+task['query'])
                 .attr('class', (d) ->
                     if d.sub_tasks?
@@ -273,43 +338,36 @@ module 'Explain', ->
                     else
                         return ''
                 )
+            current_position_y += scale_execution task['execution_duration']
 
-            # Let's make sure that the user understand he can extend
-            # TODO Fix tooltip
-            if task['sub_tasks']?
-                if task['sub_tasks_are_parallel'] is true
-                    sub_width_inner = (@sub_width*@proportion_bloc-2*@padding_inner_task_side)/3
 
-                    task_element = @svg.selectAll('rect-level-'+level)
-                        .data([0, 1, 2])
-                        .enter()
-                        .append('rect')
-                        .attr('x', (d, i) -> return parent_position.x+that.padding_inner_task_side-
-                            (that.sub_width*that.proportion_bloc)/2+sub_width_inner*i+
-                            sub_width_inner*(1-that.proportion_width_inner_bloc)/2)
-                        .attr('y', parent_position.y+@padding_inner_task_top)
-                        .attr('width', sub_width_inner*that.proportion_width_inner_bloc)
-                        .attr('height', height_available-2*@padding_inner_task_top)
-                        .attr('stroke-width', @inner_task_border_width)
-                        .attr('stroke', @inner_task_border_color)
-                        .style('fill', @task_color)
-                else
-                    sub_height = height_available/task['sub_tasks_stats']['count']
-                    if sub_height < 16
-                        sub_height = 16
-                        #TODO Make sure that this value is not too big
-
-                    task_element = @svg.selectAll('rect-level-'+level)
-                        .data([0, 1, 2])
-                        .enter()
-                        .append('rect')
-                        .attr('x', parent_position.x-(@sub_width*@proportion_bloc)*3/8)
-                        .attr('y', (d, i) -> return parent_position.y+sub_height*(i+1))
-                        .attr('width', @sub_width*@proportion_bloc*6/8)
-                        .attr('height', sub_height*@proportion_height_inner_bloc)
-                        .attr('stroke-width', @inner_task_border_width)
-                        .attr('stroke', @inner_task_border_color)
-                        .style('fill', @task_color)
+            if draw_traffic_out is true
+                task_element = @svg.selectAll('rect-level-'+level)
+                    .data([task])
+                    .enter()
+                    .append('rect')
+                    .attr('x', position_x)
+                    .attr('y', current_position_y)
+                    .attr('width', width)
+                    .attr('height', (d, i) ->
+                        return scale_traffic(task['size_message_sent'])
+                    )
+                    .attr('stroke-width', @task_border_width)
+                    .attr('stroke', @task_border_color)
+                    .style('fill', @task_color['traffic_sent'])
+                    .attr('title', 'Receiving data: '+task['size_message_sent']+'B')
+                    .attr('class', (d) ->
+                        if d.sub_tasks?
+                            return 'expandable_task'
+                        else
+                            return 'task'
+                    )
+                    .attr('data-task', (d) ->
+                        if d.sub_tasks?
+                            return JSON.stringify d
+                        else
+                            return ''
+                    )
 
         draw_tasks_in_series: (args) =>
             task = args.task
@@ -323,8 +381,10 @@ module 'Explain', ->
             is_root = args.is_root
             that = @
 
-            circles = []
-
+            
+            # In case there are too many subtasks, we just draw the first ones
+            # TODO check that it works
+            ###
             if task['sub_tasks']? and task['sub_tasks_are_parallel'] is false and task['sub_tasks_stats']['count']>task['sub_tasks'].length
                 height_available -= @more_height
                 more =
@@ -350,7 +410,7 @@ module 'Explain', ->
                     explanation:  task['sub_tasks_stats']['count']+' more tasks.'
                     height: @more_bloc_height
                     top: parent_position.y+height_available
-
+            ###
             tasks_duration = @compute_duration_all_tasks_in_series sub_tasks
             traffic_duration = task['execution_duration']-tasks_duration
 
@@ -364,75 +424,32 @@ module 'Explain', ->
             total_traffic = @compute_sum_data_transfered_in_series sub_tasks
             scale_traffic = d3.scale.linear().domain([0, total_traffic]).range([0, traffic_height])
 
-
-            lines = []
-            current_position_y = parent_position.y+scale_traffic sub_tasks[0]['size_message_received']
-            lines.push
-                x1: parent_position.x
-                x2: parent_position.x
-                y1: parent_position.y
-                y2: current_position_y
-
+            # In case there are too many subtasks
+            ###
             if task['sub_tasks']? and task['sub_tasks_are_parallel'] is false and task['sub_tasks_stats'].count>task['sub_tasks'].length
                 lines.push
                     x1: parent_position.x
                     x2: parent_position.x
                     y1: parent_position.y+height_available+@more_bloc_height
                     y2: parent_position.y+height_available+@more_height
+            ###
 
-            # Draw line first and then task (order matters - circles have to overlap lines)
+            current_position_y = args.parent_position.y
             for sub_task, i in sub_tasks
-                current_position_y = current_position_y+scale_execution sub_task['execution_duration']
-                new_position_y = current_position_y+scale_traffic sub_task['size_message_sent']
-                lines.push
-                    x1: parent_position.x
-                    x2: parent_position.x
-                    y1: current_position_y
-                    y2: new_position_y
-
-                current_position_y = new_position_y
-
-            @svg.selectAll('.background_line-series-'+level)
-                .data(lines)
-                .enter()
-                .append('rect')
-                .attr('x', (d) -> return d.x1-that.border_size)
-                .attr('y', (d) -> return d.y1+that.stroke_width)
-                .attr('width', @stroke_width+@border_size*2)
-                .attr('height', (d) -> return d.y2-d.y1-2*that.stroke_width)
-                .style('fill', @background_color)
-
-            @svg.selectAll('.line-series-'+level)
-                .data(lines)
-                .enter()
-                .append('line')
-                .attr('x1', (d) -> return d.x1)
-                .attr('x2', (d) -> return d.x2)
-                .attr('y1', (d) -> return d.y1)
-                .attr('y2', (d) -> return d.y2)
-                .style('stroke', '#000')
-                .style('stroke-width', @stroke_width)
-
-            current_position_y = parent_position.y+scale_traffic sub_tasks[0]['size_message_received']
-            for sub_task, i in sub_tasks
+                height_task = scale_execution(sub_task['execution_duration'])
+                draw_traffic_in = false
+                draw_traffic_out = false
                 if i is 0
-                    circles.push
-                        cx: parent_position.x
-                        cy: current_position_y-scale_traffic sub_task['size_message_received'] # Because message_received == message_sent
-                        title: 'Executing '+sub_task['query']
-                else
-                    circles.push
-                        cx: parent_position.x
-                        cy: current_position_y-scale_traffic sub_task['size_message_received']/2
-                        title: 'Finished executing '+sub_tasks[i-1]['query']+'<br/>Executing '+sub_task['query']
+                    height_task += scale_traffic(sub_task['size_message_received'])
+                    draw_traffic_in = true
+                else if sub_tasks[i]['sub_tasks']? and sub_tasks[i]['sub_tasks_are_parallel'] is true
+                    height_task += scale_traffic(sub_task['size_message_received'])
+                    draw_traffic_in = true
 
-
-
-                @$('.legend').append @legend_template
-                    query: sub_task.query
-                    explanation: sub_task.explanation
-                    height: scale_execution sub_task['execution_duration']
-                    top: current_position_y
+                if not sub_tasks[i+1]? or not sub_tasks[i+1]['sub_tasks']? or sub_tasks[i+1]['sub_tasks_are_parallel'] is false
+                    height_task += scale_traffic(sub_task['size_message_sent'])
+                    draw_traffic_out = true
+                    
                 @draw_component
                     task: sub_task
                     level: level
@@ -441,45 +458,22 @@ module 'Explain', ->
                         x: parent_position.x
                         y: current_position_y
                     num_simultaneous_task_drawn: num_simultaneous_task_drawn
-                    height_available: scale_execution sub_task['execution_duration']
+                    height_available:height_task
                     execution_duration: sub_task['execution_duration']
+                    scale_execution: scale_execution
+                    scale_traffic: scale_traffic
+                    draw_traffic_in: draw_traffic_in
+                    draw_traffic_out: draw_traffic_out
+                    full_scale: level is 0 and not sub_task['sub_tasks']?
 
-                current_position_y = current_position_y+scale_execution sub_task['execution_duration']
-                new_position_y = current_position_y+scale_traffic sub_task['size_message_sent']
-                lines.push
-                    x1: parent_position.x
-                    x2: parent_position.x
-                    y1: current_position_y
-                    y2: new_position_y
+                @$('.legend').append @legend_template
+                    query: sub_task.query
+                    explanation: sub_task.explanation
+                    height: height_task
+                    top: current_position_y
 
-                current_position_y = new_position_y
-
-                if i is sub_tasks.length-1 and is_root is true
-                    cy = new_position_y
-                    if task['sub_tasks']? and task['sub_tasks_are_parallel'] is false and task['sub_tasks_stats'].count>task['sub_tasks'].length
-                        cy += @more_height
-                    circles.push
-                        cx: parent_position.x
-                        cy: cy
-                        title: 'Query executed'
-
-
-            @svg.selectAll('circle-level')
-                .data(circles)
-                .enter()
-                .append('circle')
-                .attr('cx', (circle, i) ->
-                    return circle['cx']
-                )
-                .attr('cy', (circle, i) ->
-                    return circle['cy']
-                )
-                .attr('r', @bifurcation_circle_radius)
-                .attr('fill', @task_border_color)
-                .attr('title', (d) -> return d.title)
-                .attr('stroke-width', 0)
-
-
+                console.log current_position_y
+                current_position_y = current_position_y+height_task
 
 
         draw_tasks_in_parallel: (args) =>
@@ -493,32 +487,6 @@ module 'Explain', ->
             #TODO Keep parent's neighbors in memory
             that = @
 
-
-            if is_root is true
-                height_available -= 2*@height_before_bifurcation
-                parent_position.y += @height_before_bifurcation
-                lines = []
-                lines.push
-                    x1: parent_position.x
-                    x2: parent_position.x
-                    y1: parent_position.y-@height_before_bifurcation
-                    y2: parent_position.y
-                lines.push
-                    x1: parent_position.x
-                    x2: parent_position.x
-                    y1: parent_position.y+height_available
-                    y2: parent_position.y+height_available+@height_before_bifurcation
-                @svg.selectAll('line-in-constant-'+level)
-                    .data(lines)
-                    .enter()
-                    .append('line')
-                    .attr('x1', (d) -> return d.x1)
-                    .attr('x2', (d) -> return d.x2)
-                    .attr('y1', (d) -> return d.y1)
-                    .attr('y2', (d) -> return d.y2)
-                    .style('stroke', '#000')
-                    .style('stroke-width', @stroke_width)
-
             # We suppose that every branches has the same scale for traffic
             # Let's compute the largest one that will allow our data to fit in height_available
             min_ratio = (d3.min sub_tasks, (d, i) -> return (task['execution_duration']-d['execution_duration'])/(d['size_message_sent']+d['size_message_received']))/task['execution_duration']*height_available
@@ -528,187 +496,6 @@ module 'Explain', ->
             scale_execution = (task_duration) ->
                 return Math.round task_duration*height_available/task['execution_duration']
 
-            # Let's draw the first constant immutable lines
-            immutable_lines = []
-            immutable_lines.push
-                x1: Math.min(that.drawable_machines_map_position[task.machine_id], d3.min( sub_tasks, (d, i) -> return that.drawable_machines_map_position[d.machine_id]))
-                x2: Math.max(that.drawable_machines_map_position[task.machine_id], d3.max(sub_tasks, (d, i) -> return that.drawable_machines_map_position[d.machine_id]))
-                y1: parent_position.y
-                y2: parent_position.y
-
-            # Is the main server doing something? If not, let's draw a big line
-            main_machine_working = false
-            for sub_task in sub_tasks
-                if sub_task['machine_id'] is task['machine_id']
-                    main_machine_working = true
-            if main_machine_working is false
-                # Let's push a line in immutable_lines
-                immutable_lines.push
-                    x1: parent_position.x
-                    x2: parent_position.x
-                    y1: parent_position.y
-                    y2: parent_position.y+height_available
-
-
-            # Draw the ___ ___ at the top
-            @svg.selectAll('line-in-constant-'+level)
-                .data(immutable_lines)
-                .enter()
-                .append('line')
-                .attr('x1', (d) -> return d.x1)
-                .attr('x2', (d) -> return d.x2)
-                .attr('y1', (d) -> return d.y1)
-                .attr('y2', (d) -> return d.y2)
-                .style('stroke', '#000')
-                .style('stroke-width', @stroke_width)
-
-            #           ___ ___
-            # Draw the |   |   |
-            @svg.selectAll('line-in-'+level)
-                .data(sub_tasks)
-                .enter()
-                .append('line')
-                .attr('x1', (sub_task, i) ->
-                    return that.drawable_machines_map_position[sub_task.machine_id]
-                )
-                .attr('x2', (sub_task, i) ->
-                    return that.drawable_machines_map_position[sub_task.machine_id]
-                )
-                .attr('y1', (sub_task, i) ->
-                    return parent_position.y
-                )
-                .attr('y2', (sub_task, i) ->
-                    return parent_position.y+
-                        scale_traffic(sub_task['size_message_received'])
-                )
-                .style('stroke', '#000')
-                .style('stroke-width', @stroke_width)
-
-
-            # Draw the __ __  at the bottom
-            @svg.selectAll('line-in-'+level)
-                .data(sub_tasks)
-                .enter()
-                .append('line')
-                .attr('x1', (sub_task, i) ->
-                    return that.drawable_machines_map_position[sub_task['machine_id']]
-                )
-                .attr('x2', (sub_task, i) ->
-                    return that.drawable_machines_map_position[task['machine_id']]
-                )
-                .attr('y1', (sub_task, i) ->
-                    return parent_position.y+
-                        scale_traffic(sub_task['size_message_received'])+
-                        scale_execution(sub_task['execution_duration'])+
-                        scale_traffic(sub_task['size_message_sent'])
-                )
-                .attr('y2', (sub_task, i) ->
-                    return parent_position.y+
-                        scale_traffic(sub_task['size_message_received'])+
-                        scale_execution(sub_task['execution_duration'])+
-                        scale_traffic(sub_task['size_message_sent'])
-                )
-                .style('stroke', '#000')
-                .style('stroke-width', @stroke_width)
-
-            # Draw the |   |   | at the bottom
-            @svg.selectAll('line-rect-n-'+level)
-                .data(sub_tasks)
-                .enter()
-                .append('rect')
-                .attr('x', (sub_task, i) ->
-                    if sub_task['machine_id'] is task['machine_id']
-                        return 0
-                    return that.drawable_machines_map_position[sub_task['machine_id']]-that.border_size-that.stroke_width/2
-                )
-                .attr('width', (sub_task, i) ->
-                    if sub_task['machine_id'] is task['machine_id']
-                        return 0
-                    return that.border_size*2+that.stroke_width
-                )
-                .attr('y', (sub_task, i) ->
-                    if sub_task['machine_id'] is task['machine_id']
-                        return 0
-                    return parent_position.y+
-                        scale_traffic(sub_task['size_message_received'])+
-                        scale_execution(sub_task['execution_duration'])
-                )
-                .attr('height', (sub_task, i) ->
-                    if sub_task['machine_id'] is task['machine_id']
-                        return 0
-                    return scale_traffic(sub_task['size_message_sent'])-that.stroke_width/2-1 # -1 so we have some margin...
-                )
-                .style('fill', @background_color)
-
-            @svg.selectAll('line-in-'+level)
-                .data(sub_tasks)
-                .enter()
-                .append('line')
-                .attr('x1', (sub_task, i) ->
-                    return that.drawable_machines_map_position[sub_task.machine_id]
-                )
-                .attr('x2', (sub_task, i) ->
-                    return that.drawable_machines_map_position[sub_task.machine_id]
-                )
-                .attr('y1', (sub_task, i) ->
-                    return parent_position.y+
-                        scale_traffic(sub_task['size_message_received'])+
-                        scale_execution(sub_task['execution_duration'])
-                )
-                .attr('y2', (sub_task, i) ->
-                    if sub_task['machine_id'] is task['machine_id']
-                        return parent_position.y+height_available
-                    return parent_position.y+
-                        scale_traffic(sub_task['size_message_received'])+
-                        scale_execution(sub_task['execution_duration'])+
-                        scale_traffic(sub_task['size_message_sent'])
-                )
-                .attr('stroke', '#000')
-                .attr('stroke-width', @stroke_width)
-
-
-            # Draw some circles
-            circles = []
-            circles.push
-                cx: parent_position.x
-                cy: parent_position.y
-                title: 'Query parsed, sending sub queries'
-
-            for sub_task, i in sub_tasks
-                circles.push
-                    cx: @drawable_machines_map_position[task['machine_id']]
-                    cy: parent_position.y+
-                        scale_traffic(sub_task['size_message_received'])+
-                        scale_execution(sub_task['execution_duration'])+
-                        scale_traffic(sub_task['size_message_sent'])
-                    title: 'Machine '+sub_task['machine_id']+' finished sending back data'
-
-            if is_root is true
-                circles.push
-                    cx: @drawable_machines_map_position[task['machine_id']]
-                    cy: parent_position.y-@height_before_bifurcation
-                    title: 'Executing query'+task['query']
-                circles.push
-                    cx: @drawable_machines_map_position[task['machine_id']]
-                    cy: parent_position.y+height_available+@height_before_bifurcation
-                    title: 'Done executing query'
-
-
-            @svg.selectAll('circle-level')
-                .data(circles)
-                .enter()
-                .append('circle')
-                .attr('cx', (circle, i) ->
-                    return circle['cx']
-                )
-                .attr('cy', (circle, i) ->
-                    return circle['cy']
-                )
-                .attr('r', @bifurcation_circle_radius)
-                .attr('fill', @task_border_color)
-                .attr('title', (d) -> return d.title)
-                .attr('stroke-width', 0)
-
             # Draw the rectangles
             for sub_task, i in sub_tasks
                 @draw_component
@@ -717,8 +504,10 @@ module 'Explain', ->
                     step: i
                     parent_position:
                         x: @drawable_machines_map_position[sub_task.machine_id]
-                        y: parent_position.y+
-                            scale_traffic(sub_task['size_message_received'])
+                        y: parent_position.y
                     num_simultaneous_task_drawn: num_simultaneous_task_drawn
-                    height_available: scale_execution(sub_task['execution_duration'])
-
+                    height_available: scale_traffic(sub_task['size_message_received'])+scale_execution(sub_task['execution_duration'])+scale_traffic(sub_task['size_message_sent'])
+                    scale_traffic: scale_traffic
+                    scale_execution: scale_execution
+                    draw_traffic_in: true
+                    draw_traffic_out: true

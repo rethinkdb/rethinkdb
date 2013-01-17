@@ -4,9 +4,17 @@
     "machine_id": "1",
     "size_message_received": 2000,
     "size_message_sent": 8000,
-    "execution_duration": 800,
+    "execution_duration": 900,
     "sub_tasks_are_parallel": false,
     "sub_tasks": [
+        {
+            "query": "Order by",
+            "explanation": "Order things with a second attribute",
+            "machine_id": "1",
+            "size_message_received": 1000,
+            "size_message_sent": 3000,
+            "execution_duration": 40
+        },
         {
             "query": ".map(...)",
             "explanation": "Map table users",
@@ -201,7 +209,7 @@
     ],
     "sub_tasks_stats": {
         "average": 250,
-        "count": 4,
+        "count": 5,
         "longest": 300,
         "fastest": 3200
     }
