@@ -22,7 +22,7 @@ public:
                    void (*rewrite)(env_t *, const Term2 *, Term2 *))
         : term_t(env), in(term) {
         rewrite(env, in, &out);
-        debugf("%s\n--->\n%s\n", in->DebugString().c_str(), out.DebugString().c_str());
+        //debugf("%s\n--->\n%s\n", in->DebugString().c_str(), out.DebugString().c_str());
         real.init(compile_term(env, &out));
     }
 private:
