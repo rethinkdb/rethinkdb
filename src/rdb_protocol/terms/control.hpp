@@ -56,4 +56,19 @@ private:
     RDB_NAME("branch")
 };
 
+
+class funcall_term_t : public op_term_t {
+public:
+    funcall_term_t(env_t *env, const Term2 *term)
+        : op_term_t(env, term, argspec_t(1,-1)) { }
+private:
+    virtual val_t *eval_impl() {
+        func_t *f = arg(0)->as_func();
+        std::vector<const datum_t *> args;
+        for (size_t i = 1; i < num_args(); ++i) args.push_back(arg(i)->as_datum());
+        return f->_call(args);
+    }
+    RDB_NAME("funcall")
+};
+
 } // namespace ql

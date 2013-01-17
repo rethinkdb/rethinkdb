@@ -332,6 +332,11 @@ rae(tbl.grouped_map_reduce(r.func([1], 1),
                            r.func([3, 4], r.var(3).add(r.var(4)))),
     [{"group"=>1.0, "reduction"=>21.0}])
 
+rae(r.funcall(r.func([1, 2, 3], r.var(1).mul(r.var(2)).add(r.var(3))), 10, 20, 30), 230)
+assert_raise {
+  r.funcall(r.func([1, 2, 3], r.var(1).mul(r.var(2)).add(r.var(3))), 10, 20).run
+}
+
 ####
 
 print "test.test: #{r.db('test').table('test').run.inspect}\n"
@@ -339,3 +344,15 @@ print "Ran #{$tests} tests!\n"
 
 ####
 
+
+# r.inner_join(l, r, f)
+# n = gensym
+# m = gensym
+
+# r.transform { |l, r, f|
+#   l.concat_map { |n|
+#     r.concat_map { |m|
+#       r.branch(r.funcall(f, n, m), [{:left => n, :right => m}], [])
+#     }
+#   }
+# }

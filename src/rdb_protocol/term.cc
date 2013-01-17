@@ -19,48 +19,49 @@ namespace ql {
 
 term_t *compile_term(env_t *env, const Term2 *t) {
     switch(t->type()) {
-    case Term2_TermType_DATUM:        return new datum_term_t(env, &t->datum());
-    case Term2_TermType_MAKE_ARRAY:   return new make_array_term_t(env, t);
-    case Term2_TermType_MAKE_OBJ:     return new make_obj_term_t(env, t);
-    case Term2_TermType_VAR:          return new var_term_t(env, t);
+    case Term2_TermType_DATUM:              return new datum_term_t(env, &t->datum());
+    case Term2_TermType_MAKE_ARRAY:         return new make_array_term_t(env, t);
+    case Term2_TermType_MAKE_OBJ:           return new make_obj_term_t(env, t);
+    case Term2_TermType_VAR:                return new var_term_t(env, t);
     case Term2_TermType_JAVASCRIPT:
         throw exc_t("JAVASCRIPT UNIMPLEMENTED (Bill's job.)");
-    case Term2_TermType_ERROR:        return new error_term_t(env, t);
-    case Term2_TermType_IMPLICIT_VAR: return new implicit_var_term_t(env, t);
-    case Term2_TermType_DB:           return new db_term_t(env, t);
-    case Term2_TermType_TABLE:        return new table_term_t(env, t);
-    case Term2_TermType_GET:          return new get_term_t(env, t);
-    case Term2_TermType_EQ:           // fallthru
-    case Term2_TermType_NE:           // fallthru
-    case Term2_TermType_LT:           // fallthru
-    case Term2_TermType_LE:           // fallthru
-    case Term2_TermType_GT:           // fallthru
-    case Term2_TermType_GE:           return new predicate_term_t(env, t);
-    case Term2_TermType_NOT:          return new not_term_t(env, t);
-    case Term2_TermType_ADD:          // fallthru
-    case Term2_TermType_SUB:          // fallthru
-    case Term2_TermType_MUL:          // fallthru
-    case Term2_TermType_DIV:          return new arith_term_t(env, t);
-    case Term2_TermType_MOD:          return new mod_term_t(env, t);
-    case Term2_TermType_APPEND:       return new append_term_t(env, t);
-    case Term2_TermType_SLICE:        return new slice_term_t(env, t);
-    case Term2_TermType_GETATTR:      return new getattr_term_t(env, t);
-    case Term2_TermType_CONTAINS:     return new contains_term_t(env, t);
-    case Term2_TermType_PLUCK:        return new pluck_term_t(env, t);
-    case Term2_TermType_WITHOUT:      return new without_term_t(env, t);
-    case Term2_TermType_MERGE:        return new merge_term_t(env, t);
-    case Term2_TermType_BETWEEN:      return new between_term_t(env, t);
-    case Term2_TermType_REDUCE:       return new reduce_term_t(env, t);
-    case Term2_TermType_MAP:          return new map_term_t(env, t);
-    case Term2_TermType_FILTER:       return new filter_term_t(env, t);
-    case Term2_TermType_CONCATMAP:    return new concatmap_term_t(env, t);
-    case Term2_TermType_ORDERBY:      return new orderby_term_t(env, t);
-    case Term2_TermType_DISTINCT:     return new distinct_term_t(env, t);
-    case Term2_TermType_COUNT:        return new count_term_t(env, t);
-    case Term2_TermType_UNION:        return new union_term_t(env, t);
-    case Term2_TermType_NTH:          return new nth_term_t(env, t);
+    case Term2_TermType_ERROR:              return new error_term_t(env, t);
+    case Term2_TermType_IMPLICIT_VAR:       return new implicit_var_term_t(env, t);
+    case Term2_TermType_DB:                 return new db_term_t(env, t);
+    case Term2_TermType_TABLE:              return new table_term_t(env, t);
+    case Term2_TermType_GET:                return new get_term_t(env, t);
+    case Term2_TermType_EQ:                 // fallthru
+    case Term2_TermType_NE:                 // fallthru
+    case Term2_TermType_LT:                 // fallthru
+    case Term2_TermType_LE:                 // fallthru
+    case Term2_TermType_GT:                 // fallthru
+    case Term2_TermType_GE:                 return new predicate_term_t(env, t);
+    case Term2_TermType_NOT:                return new not_term_t(env, t);
+    case Term2_TermType_ADD:                // fallthru
+    case Term2_TermType_SUB:                // fallthru
+    case Term2_TermType_MUL:                // fallthru
+    case Term2_TermType_DIV:                return new arith_term_t(env, t);
+    case Term2_TermType_MOD:                return new mod_term_t(env, t);
+    case Term2_TermType_APPEND:             return new append_term_t(env, t);
+    case Term2_TermType_SLICE:              return new slice_term_t(env, t);
+    case Term2_TermType_GETATTR:            return new getattr_term_t(env, t);
+    case Term2_TermType_CONTAINS:           return new contains_term_t(env, t);
+    case Term2_TermType_PLUCK:              return new pluck_term_t(env, t);
+    case Term2_TermType_WITHOUT:            return new without_term_t(env, t);
+    case Term2_TermType_MERGE:              return new merge_term_t(env, t);
+    case Term2_TermType_BETWEEN:            return new between_term_t(env, t);
+    case Term2_TermType_REDUCE:             return new reduce_term_t(env, t);
+    case Term2_TermType_MAP:                return new map_term_t(env, t);
+    case Term2_TermType_FILTER:             return new filter_term_t(env, t);
+    case Term2_TermType_CONCATMAP:          return new concatmap_term_t(env, t);
+    case Term2_TermType_ORDERBY:            return new orderby_term_t(env, t);
+    case Term2_TermType_DISTINCT:           return new distinct_term_t(env, t);
+    case Term2_TermType_COUNT:              return new count_term_t(env, t);
+    case Term2_TermType_UNION:              return new union_term_t(env, t);
+    case Term2_TermType_NTH:                return new nth_term_t(env, t);
     case Term2_TermType_GROUPED_MAP_REDUCE: return new gmr_term_t(env, t);
     case Term2_TermType_GROUPBY:
+        throw exc_t("UNIMPLEMENTED (need to talk to Bill)");
     case Term2_TermType_INNER_JOIN:
     case Term2_TermType_OUTER_JOIN:
     case Term2_TermType_EQ_JOIN:
@@ -76,13 +77,13 @@ term_t *compile_term(env_t *env, const Term2 *t) {
     case Term2_TermType_TABLE_CREATE:
     case Term2_TermType_TABLE_DROP:
     case Term2_TermType_TABLE_LIST:
-    case Term2_TermType_FUNCALL: break;
-    case Term2_TermType_BRANCH: return new branch_term_t(env, t);
-    case Term2_TermType_ANY: return new any_term_t(env, t);
-    case Term2_TermType_ALL: return new all_term_t(env, t);
+    case Term2_TermType_FUNCALL:            return new funcall_term_t(env, t);
+    case Term2_TermType_BRANCH:             return new branch_term_t(env, t);
+    case Term2_TermType_ANY:                return new any_term_t(env, t);
+    case Term2_TermType_ALL:                return new all_term_t(env, t);
     case Term2_TermType_FOREACH:
         break;
-    case Term2_TermType_FUNC: return new func_term_t(env, t);
+    case Term2_TermType_FUNC:               return new func_term_t(env, t);
     default: unreachable();
     }
     rfail("UNIMPLEMENTED %p", env);
