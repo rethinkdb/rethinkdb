@@ -82,16 +82,14 @@ private:
 class concatmap_datum_stream_t : public datum_stream_t {
 public:
     concatmap_datum_stream_t(env_t *env, func_t *_f, datum_stream_t *_src)
-        : datum_stream_t(env), f(_f), src(_src), index(0), arr(0) {
+        : datum_stream_t(env), f(_f), src(_src), subsrc(0) {
         guarantee(f && src);
     }
     virtual const datum_t *next();
 private:
     func_t *f;
     datum_stream_t *src;
-
-    size_t index;
-    const datum_t *arr;
+    datum_stream_t *subsrc;
 };
 
 class slice_datum_stream_t : public datum_stream_t {

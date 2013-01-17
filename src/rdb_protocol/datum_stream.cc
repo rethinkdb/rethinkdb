@@ -197,13 +197,15 @@ const datum_t *map_datum_stream_t::next() {
 // CONCATMAP_DATUM_STREAM_T
 const datum_t *concatmap_datum_stream_t::next() {
     try {
-        while (!arr || index >= arr->size()) {
-            const datum_t *arg = src->next();
-            if (!arg) return 0;
-            arr = f->call(arg)->as_datum();
-            index = 0;
+        for (;;) {
+            if (!subsrc) {
+                const datum_t *arg = src->next();
+                if (!arg) return 0;
+                subsrc = f->call(arg)->as_seq();
+            }
+            if (const datum_t *retval = subsrc->next()) return retval;
+            subsrc = 0;
         }
-        return arr->el(index++);
     } catch (exc_t &e) {
         e.backtrace.frames.push_front(concatmap_bt_frame);
         throw;

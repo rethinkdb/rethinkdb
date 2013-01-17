@@ -140,32 +140,55 @@ private:
 
 public:
     void push_var(int var, const datum_t **val) {
-        //debugf("VAR push %d -> %p\n", var, val);
+        // debugf("%p VAR push %d -> %p\n", this, var, val);
         vars[var].push(val);
     }
     const datum_t **top_var(int var) {
-        rcheck(!vars[var].empty(), strprintf("Unrecognized variabled %d", var));
-        //debugf("VAR top %d -> %p\n", var, vars[var].top());
+        // if (vars[var].empty()) debugf("%p VAR top %d -> FAILED\n", this, var);
+        rcheck(!vars[var].empty(),
+               strprintf("Unrecognized variabled %d", var));
+        // debugf("%p VAR top %d -> %p\n", this, var, vars[var].top());
         return vars[var].top();
     }
     void pop_var(int var) {
-        //debugf("VAR pop %d (%p)\n", var, vars[var].top());
+        // debugf("%p VAR pop %d (%p)\n", this, var, vars[var].top());
         vars[var].pop();
     }
     const datum_t **get_var(int var) { return vars[var].top(); }
-    void dump_scope(std::map<int, Datum> *out) {
+    void dump_scope(std::map<int, const datum_t **> *out) {
         for (std::map<int, std::stack<const datum_t **> >::iterator
                  it = vars.begin(); it != vars.end(); ++it) {
             if (it->second.size() == 0) continue;
             r_sanity_check(it->second.top());
-            rcheck(*it->second.top(),
-                   strprintf("Variable %d was never bound!  (Probably a client error.)",
-                             it->first));
-            (*it->second.top())->write_to_protobuf(&(*out)[it->first]);
+            (*out)[it->first] = it->second.top();
         }
+    }
+    void push_scope(std::map<int, Datum> *in) {
+        scope_stack.push(std::vector<std::pair<int, const datum_t *> >());
+
+        for (std::map<int, Datum>::iterator it = in->begin(); it != in->end(); ++it) {
+            const datum_t *d = add_ptr(new datum_t(&it->second, this));
+            scope_stack.top().push_back(std::make_pair(it->first, d));
+        }
+
+        for (size_t i = 0; i < scope_stack.top().size(); ++i) {
+            // debugf("%p -> %p\n",
+            //        &scope_stack.top()[i].second,
+            //        scope_stack.top()[i].second);
+            push_var(scope_stack.top()[i].first, &scope_stack.top()[i].second);
+        }
+    }
+    void pop_scope() {
+        r_sanity_check(scope_stack.size() > 0);
+        for (size_t i = 0; i < scope_stack.top().size(); ++i) {
+            pop_var(scope_stack.top()[i].first);
+        }
+        // DO NOT pop the vector off the scope stack.  You might invalidate a
+        // pointer too early.
     }
 private:
     std::map<int, std::stack<const datum_t **> > vars;
+    std::stack<std::vector<std::pair<int, const datum_t *> > > scope_stack;
 
 public:
     env_t(

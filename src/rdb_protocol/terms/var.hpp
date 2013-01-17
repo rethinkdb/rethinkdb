@@ -12,6 +12,7 @@ public:
 private:
     const datum_t **datum_val;
     virtual val_t *eval_impl() {
+        // debugf("VARTERM %p -> %p\n", datum_val, *datum_val);
         return new_val(*datum_val);
     }
     RDB_NAME("var");

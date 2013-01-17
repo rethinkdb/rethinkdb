@@ -111,6 +111,7 @@ private:
     const datum_t *ptr;
     Datum ptr_pb;
 
+public:
     friend class write_message_t;
     void rdb_serialize(write_message_t &msg /* NOLINT */) const {
         r_sanity_check(state == READY_TO_WRITE);
@@ -124,6 +125,7 @@ private:
         return ARCHIVE_SUCCESS;
     }
 
+private:
     enum { INVALID, JUST_READ, COMPILED, READY_TO_WRITE } state;
 };
 
@@ -138,7 +140,7 @@ public:
     void finalize();
 
     const datum_t *to_arr(env_t *env) const;
-    private:
+private:
     static bool lt(const datum_t *a, const datum_t *b) {
         return *a < *b;
     }
@@ -148,6 +150,7 @@ public:
     map_t map;
     std::vector<std::pair<Datum, Datum> > map_pb;
 
+public:
     friend class write_message_t;
     void rdb_serialize(write_message_t &msg /* NOLINT */) const {
         r_sanity_check(state == READY_TO_WRITE);
@@ -161,6 +164,7 @@ public:
         return ARCHIVE_SUCCESS;
     }
 
+private:
     enum { JUST_READ, COMPILED, READY_TO_WRITE } state;
 };
 

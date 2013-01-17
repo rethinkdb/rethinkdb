@@ -55,6 +55,8 @@ func_t::func_t(env_t *env, const Term2 *_source) : body(0), source(_source) {
         env->pop_var(args[i]);
         if (args.size() == 1) env->pop_implicit();
     }
+
+    env->dump_scope(&scope);
 }
 
 val_t *func_t::_call(const std::vector<const datum_t *> &args) {
@@ -83,15 +85,27 @@ val_t *func_t::call(const datum_t *arg1, const datum_t *arg2) {
     return _call(args);
 }
 
+void func_t::dump_scope(std::map<int, Datum> *out) const {
+    for (std::map<int, const datum_t **>::const_iterator
+             it = scope.begin(); it != scope.end(); ++it) {
+        if (!*it->second) continue;
+        (*it->second)->write_to_protobuf(&(*out)[it->first]);
+    }
+}
+
 wire_func_t::wire_func_t() { }
 wire_func_t::wire_func_t(env_t *env, func_t *func) {
     cached_funcs[env] = func;
     source = *func->source;
-    env->dump_scope(&scope);
+    func->dump_scope(&scope);
 }
 func_t *wire_func_t::compile(env_t *env) {
-    if (cached_funcs.count(env) > 0) return cached_funcs[env];
-    return (cached_funcs[env] = env->new_func(&source));
+    if (cached_funcs.count(env) == 0) {
+        env->push_scope(&scope);
+        cached_funcs[env] = env->new_func(&source);
+        env->pop_scope();
+    }
+    return cached_funcs[env];
 }
 
 func_term_t::func_term_t(env_t *env, const Term2 *term)

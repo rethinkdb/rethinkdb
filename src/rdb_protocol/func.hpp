@@ -20,6 +20,8 @@ public:
     val_t *_call(const std::vector<const datum_t *> &args);
     val_t *call(const datum_t *arg);
     val_t *call(const datum_t *arg1, const datum_t *arg2);
+
+    void dump_scope(std::map<int, Datum> *out) const;
 private:
     std::vector<const datum_t *> argptrs;
     term_t *body;
@@ -27,6 +29,9 @@ private:
     friend class wire_func_t;
     const Term2 *source;
     bool implicit_bound;
+
+    // TODO: make this smarter
+    std::map<int, const datum_t **> scope;
 };
 
 
@@ -63,7 +68,7 @@ SIMPLE_FUNC_IMPL(filter, 1);
 SIMPLE_FUNC_IMPL(reduce, 1);
 SIMPLE_FUNC_IMPL(concatmap, 1);
 // Faux functions
-class count_wire_func_t { RDB_MAKE_ME_SERIALIZABLE_0() };
+struct count_wire_func_t { RDB_MAKE_ME_SERIALIZABLE_0() };
 
 // Grouped Map Reduce
 static const int gmr_group_bt_frame = 1;
@@ -81,6 +86,7 @@ private:
     map_wire_func_t group;
     map_wire_func_t map;
     reduce_wire_func_t reduce;
+public:
     RDB_MAKE_ME_SERIALIZABLE_3(group, map, reduce);
 };
 

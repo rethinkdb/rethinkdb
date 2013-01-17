@@ -3,7 +3,7 @@
 
 #include <set>
 
-//#define PTR_BAG_LOG 1
+// #define PTR_BAG_LOG 1
 #include "utils.hpp"
 
 // Classes that can be put into a pointer bag should inherit from this.

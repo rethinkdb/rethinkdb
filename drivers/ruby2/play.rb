@@ -140,6 +140,8 @@ def rae(a, b)
   assert_equal(a.run, b)
 end
 
+tbl = tst = r.db('test').table('test')
+
 rae(r(1), 1)
 rae(r(2.0), 2.0)
 rae(r("3"), "3")
@@ -159,7 +161,6 @@ rae(r.div(0.2), 0.2)
 assert_raise{r.div(1, 0).run}
 assert_raise{r.db('test').table('test2').run}
 
-tbl = tst = r.db('test').table('test')
 rae(tst.map(r.func([1], r.var(1))), tst.run)
 rae(tst.map(r.func([1], 2)), tst.run.map{|x| 2})
 rae(r([1,2,3]).map(r.func([1], r.mul(r.var(1), r.var(1), 2))), [2.0, 8.0, 18.0])

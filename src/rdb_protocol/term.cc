@@ -8,6 +8,7 @@
 #include "rdb_protocol/terms/datum_terms.hpp"
 #include "rdb_protocol/terms/db_table.hpp"
 #include "rdb_protocol/terms/error.hpp"
+#include "rdb_protocol/terms/gmr.hpp"
 #include "rdb_protocol/terms/obj.hpp"
 #include "rdb_protocol/terms/obj_or_seq.hpp"
 #include "rdb_protocol/terms/pred.hpp"
@@ -62,7 +63,7 @@ term_t *compile_term(env_t *env, const Term2 *t) {
     case Term2_TermType_GROUPED_MAP_REDUCE: return new gmr_term_t(env, t);
     case Term2_TermType_GROUPBY:
         throw exc_t("UNIMPLEMENTED (need to talk to Bill)");
-    case Term2_TermType_INNER_JOIN:
+    case Term2_TermType_INNER_JOIN:         return new inner_join_term_t(env, t);
     case Term2_TermType_OUTER_JOIN:
     case Term2_TermType_EQ_JOIN:
     case Term2_TermType_COERCE:

@@ -78,8 +78,8 @@ void transform_visitor_t::operator()(ql::concatmap_wire_func_t &func) const {
     try {
         ql::env_checkpoint_t(ql_env, &ql::env_t::discard_checkpoint);
         const ql::datum_t *arg = ql_env->add_ptr(new ql::datum_t(json, ql_env));
-        const ql::datum_t *d = func.compile(ql_env)->call(arg)->as_datum();
-        for (size_t i = 0; i < d->size(); ++i) out->push_back(d->el(i)->as_json());
+        ql::datum_stream_t *ds = func.compile(ql_env)->call(arg)->as_seq();
+        while (const ql::datum_t *d = ds->next()) out->push_back(d->as_json());
     } catch (ql::exc_t &e) {
         e.backtrace.frames.push_front(func.bt());
         throw;
