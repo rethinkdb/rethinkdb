@@ -333,7 +333,7 @@ file_open_result_t open_direct_file(const char *path, int mode, io_backender_t *
         crash("Bad file access mode.");
     }
 
-
+    // Makes writes not update the access time of the file where available.  That's more efficient.
 #ifdef O_NOATIME
     flags |= O_NOATIME;
 #endif
