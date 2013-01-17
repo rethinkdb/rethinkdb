@@ -369,8 +369,9 @@ void datum_t::write_to_protobuf(Datum *d) const {
     }; break;
     case R_OBJECT: {
         d->set_type(Datum_DatumType_R_OBJECT);
-        for (std::map<const std::string, const datum_t *>::const_iterator
-                 it = r_object.begin(); it != r_object.end(); ++it) {
+        // We use rbegin and rend so that things print the way we expect.
+        for (std::map<const std::string, const datum_t *>::const_reverse_iterator
+                 it = r_object.rbegin(); it != r_object.rend(); ++it) {
             Datum_AssocPair *ap = d->add_r_object();
             ap->set_key(it->first);
             it->second->write_to_protobuf(ap->mutable_val());
@@ -445,7 +446,6 @@ void wire_datum_map_t::set(const datum_t *key, const datum_t *val) {
 
 void wire_datum_map_t::compile(env_t *env) {
     if (state == COMPILED) return;
-    r_sanity_check(state == JUST_READ);
     while (!map_pb.empty()) {
         map[env->add_ptr(new datum_t(&map_pb.back().first, env))] =
             env->add_ptr(new datum_t(&map_pb.back().second, env));

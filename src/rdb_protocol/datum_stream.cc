@@ -154,9 +154,9 @@ const datum_t *lazy_datum_stream_t::gmr(func_t *g, func_t *m, func_t *r) {
         wire_datum_map_t *rhs = &((*dms)[i]);
         rhs->compile(env);
         const datum_t *rhs_arr = rhs->to_arr(env);
-        for (size_t f = 0; i < rhs_arr->size(); ++f) {
-            const datum_t *key = rhs_arr->el(f)->el(0);
-            const datum_t *val = rhs_arr->el(f)->el(1);
+        for (size_t f = 0; f < rhs_arr->size(); ++f) {
+            const datum_t *key = rhs_arr->el(f)->el("group");
+            const datum_t *val = rhs_arr->el(f)->el("reduction");
             if (!map.has(key)) {
                 map.set(key, val);
             } else {

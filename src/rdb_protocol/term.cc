@@ -59,7 +59,7 @@ term_t *compile_term(env_t *env, const Term2 *t) {
     case Term2_TermType_COUNT:        return new count_term_t(env, t);
     case Term2_TermType_UNION:        return new union_term_t(env, t);
     case Term2_TermType_NTH:          return new nth_term_t(env, t);
-    case Term2_TermType_GROUPED_MAP_REDUCE:
+    case Term2_TermType_GROUPED_MAP_REDUCE: return new gmr_term_t(env, t);
     case Term2_TermType_GROUPBY:
     case Term2_TermType_INNER_JOIN:
     case Term2_TermType_OUTER_JOIN:
@@ -146,14 +146,36 @@ term_t::term_t(env_t *_env) : use_cached_val(false), env(_env), cached_val(0) {
     guarantee(env);
 }
 term_t::~term_t() { }
+
+//#define INSTRUMENT 1
+#ifdef INSTRUMENT
+__thread int depth = 0;
+#endif //INSTRUMENT
+
 val_t *term_t::eval(bool _use_cached_val) {
+#ifdef INSTRUMENT
+    std::string s = "";
+    for (int i = 0; i < depth; ++i) s += " ";
+    debugf("%sEVALUATING %s:\n", s.c_str(), name());
+    ++depth;
+#endif // INSTRUMENT
+
     use_cached_val = _use_cached_val;
     try {
         if (!cached_val || !use_cached_val) cached_val = eval_impl();
     } catch (exc_t &e) {
+#ifdef INSTRUMENT
+        --depth;
+        debugf("%s%s THREW\n", s.c_str(), name());
+#endif // INSTRUMENT
         if (has_bt()) e.backtrace.frames.push_front(get_bt());
         throw;
     }
+
+#ifdef INSTRUMENT
+    --depth;
+    debugf("%s%s returned %s\n", s.c_str(), name(), cached_val->print().c_str());
+#endif // INSTRUMENT
     return cached_val;
 }
 

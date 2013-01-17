@@ -309,5 +309,33 @@ rae(tbl.nth(1), {'id' => 1})
 assert_raise{tbl.nth(2).run}
 assert_raise{tbl.nth(-1).run}
 
+$gmr_data = r([{:a => 1, :b => 2, :c => 3},
+               {:a => 2, :b => 1, :c => 40},
+               {:a => 2, :b => 2, :c => 500},
+               {:a => 3, :b => 1, :c => 6000}]);
+
+rae($gmr_data.grouped_map_reduce(r.func([1], r.var(1).getattr(:a)),
+                                 r.func([2], r.var(2).getattr(:c)),
+                                 r.func([3, 4], r.var(3).add(r.var(4)))),
+    [{"group"=>1.0, "reduction"=>3.0},
+     {"group"=>2.0, "reduction"=>540.0},
+     {"group"=>3.0, "reduction"=>6000.0}])
+
+
+rae(tbl.grouped_map_reduce(r.func([1], r.var(1).getattr(:id)),
+                           r.func([2], r.var(2).getattr(:id).add(10)),
+                           r.func([3, 4], r.var(3).add(r.var(4)))),
+    [{"group"=>0.0, "reduction"=>10.0}, {"group"=>1.0, "reduction"=>11.0}])
+
+rae(tbl.grouped_map_reduce(r.func([1], 1),
+                           r.func([2], r.var(2).getattr(:id).add(10)),
+                           r.func([3, 4], r.var(3).add(r.var(4)))),
+    [{"group"=>1.0, "reduction"=>21.0}])
+
+####
+
 print "test.test: #{r.db('test').table('test').run.inspect}\n"
 print "Ran #{$tests} tests!\n"
+
+####
+

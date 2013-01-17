@@ -66,7 +66,7 @@ private:
                                              arg(2)->as_func(),
                                              arg(3)->as_func()));
     }
-    RDB_NAME("gmr")
+    RDB_NAME("grouped_map_reduce")
 };
 
 static const char *const between_optargs[] = {"left_bound", "right_bound"};

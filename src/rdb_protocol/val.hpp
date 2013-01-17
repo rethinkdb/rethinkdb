@@ -62,6 +62,14 @@ public:
     std::pair<table_t *, const datum_t *> as_single_selection(); // X
     const datum_t *as_datum(); // X
     func_t *as_func(); // X
+
+    std::string print() {
+        if (get_type().is_convertible(type_t::DATUM)) {
+            return as_datum()->print();
+        } else {
+            return strprintf("OPAQUE VAL %s", get_type().name());
+        }
+    }
 private:
     const term_t *parent;
     env_t *env;

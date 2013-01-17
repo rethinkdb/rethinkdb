@@ -429,6 +429,9 @@ void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
     //TODO: change this whole file so that this isn't necessary.
     if (ql::wire_datum_t *d = boost::get<ql::wire_datum_t>(&response->result)) {
         d->finalize();
+    } else if (ql::wire_datum_map_t *dm =
+               boost::get<ql::wire_datum_map_t>(&response->result)) {
+        dm->finalize();
     }
 }
 

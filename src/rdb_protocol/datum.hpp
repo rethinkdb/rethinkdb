@@ -138,7 +138,7 @@ public:
     void finalize();
 
     const datum_t *to_arr(env_t *env) const;
-private:
+    private:
     static bool lt(const datum_t *a, const datum_t *b) {
         return *a < *b;
     }

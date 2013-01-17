@@ -262,7 +262,13 @@ public:
         env->checkpoint();
         env->checkpoint();
     }
-    ~env_gc_checkpoint_t() { guarantee(finalized); }
+    ~env_gc_checkpoint_t() {
+        // We might not be finalized if e.g. an exception was thrown.
+        if (!finalized) {
+            env->merge_checkpoint();
+            env->merge_checkpoint();
+        }
+    }
     const datum_t *maybe_gc(const datum_t *root) {
         if (env->get_bag()->size_est() > gen1) {
             env->gc(root);
