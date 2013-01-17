@@ -24,9 +24,13 @@ void nap(int64_t ms, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
 
 // signal_timer_t
 
-signal_timer_t::signal_timer_t(int64_t ms) {
-    rassert(ms >= 0);
-    timer = fire_timer_once(ms, this);
+signal_timer_t::signal_timer_t(int64_t ms) : timer(NULL) {
+    if (ms == 0) {
+        pulse();
+    } else {
+        guarantee(ms > 0);
+        timer = fire_timer_once(ms, this);
+    }
 }
 
 signal_timer_t::~signal_timer_t() {
