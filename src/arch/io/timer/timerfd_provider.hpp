@@ -4,22 +4,22 @@
 
 #include "arch/runtime/event_queue.hpp"
 
-struct timer_provider_callback_t;
+struct timer_provider_interactor_t;
 
-/* Kernel timer provider based on timerfd  */
 struct timerfd_provider_t : public linux_event_callback_t {
 public:
-    timerfd_provider_t(linux_event_queue_t *_queue,
-                       timer_provider_callback_t *_callback,
-                       time_t secs, int32_t nsecs);
+    timerfd_provider_t(linux_event_queue_t *_queue);
     ~timerfd_provider_t();
+
+    void schedule_oneshot(uint64_t next_time_in_nanos, timer_provider_interactor_t *cb);
+    void unschedule_oneshot();
 
 private:
     void on_event(int events);
 
     linux_event_queue_t *queue;
-    timer_provider_callback_t *callback;
     fd_t timer_fd;
+    timer_provider_interactor_t *callback;
 
     DISABLE_COPYING(timerfd_provider_t);
 };

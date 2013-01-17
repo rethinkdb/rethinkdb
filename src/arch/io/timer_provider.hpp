@@ -37,10 +37,9 @@ typedef timerfd_provider_t timer_provider_t;
 #error "No timer provider define specified."
 #endif  // RDB_TIMER_PROVIDER == ...
 
-/* Timer provider callback */
-struct timer_provider_callback_t {
-    virtual ~timer_provider_callback_t() {}
-    virtual void on_timer(int nexpirations) = 0;
+struct timer_provider_interactor_t {
+    virtual ~timer_provider_interactor_t() { }
+    virtual void on_oneshot() = 0;
 };
 
 #endif // ARCH_IO_TIMER_PROVIDER_HPP_

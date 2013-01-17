@@ -525,7 +525,6 @@ timespec clock_realtime() {
 }
 
 
-
 ticks_t get_ticks() {
     timespec tv = clock_monotonic();
     return secs_to_ticks(tv.tv_sec) + tv.tv_nsec;
