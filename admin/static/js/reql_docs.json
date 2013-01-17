@@ -1876,6 +1876,7 @@
             "js": {
               "name": "count",
               "body": "",
+              "dont_need_parenthesis": true,
               "examples" : [
                 {
                   "description": "Just how many heroes do we have at each strength level?",

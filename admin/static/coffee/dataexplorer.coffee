@@ -57,6 +57,44 @@ module 'DataExplorerView', ->
         # Suggestions[state] = function for this state
         suggestions: {}
     
+        set_doc_description: (command, tag, suggestions) =>
+            if command['langs']['js']['dont_need_parenthesis'] is true
+                full_tag = tag # Here full_tag is just the name of the tag
+                @descriptions[tag] =
+                    name: tag
+                    description: @description_with_example_template
+                        description: command['description']
+                        examples: command['langs']['js']['examples']
+            else
+                if tag is 'run' # run is a special case, we don't want use to pass a callback, so we change a little the body
+                    full_tag = tag+'(' # full tag is the name plus a parenthesis (we will match the parenthesis too)
+                    @descriptions[full_tag] =
+                        name: tag
+                        args: '( )'
+                        description: @description_with_example_template
+                            description: command['description']
+                            examples: command['langs']['js']['examples']
+                else
+                    full_tag = tag+'(' # full tag is the name plus a parenthesis (we will match the parenthesis too)
+                    @descriptions[full_tag] =
+                        name: tag
+                        args: '( '+command['langs']['js']['body']+' )'
+                        description: @description_with_example_template
+                            description: command['description']
+                            examples: command['langs']['js']['examples']
+
+            parent = command['parent']
+            if tag is 'run'
+                parent = 'query'
+
+            if parent is null
+                parent = ''
+            if not suggestions[parent]?
+                suggestions[parent] = []
+            suggestions[parent].push full_tag #+something
+
+            @map_state[full_tag] = command['returns'] # We use full_tag because we need to differentiate between r. and r(
+
         # Method called on the content of reql_docs.json
         # Load the suggestions in @suggestions, @map_state, @descriptions
         set_docs: (data) =>
@@ -67,42 +105,13 @@ module 'DataExplorerView', ->
                     tag = command['langs']['js']['name']
                     if tag is '()'
                         continue
-                    if tag is 'r' and command['langs']['js']['dont_need_parenthesis'] is true
-                        full_tag = tag # Here full_tag is just the name of the tag
-                        @descriptions[tag] =
-                            name: tag
-                            description: @description_with_example_template
-                                description: command['description']
-                                examples: command['langs']['js']['examples']
-                    else
-                        if tag is 'run'
-                            full_tag = tag+'(' # full tag is the name plus a parenthesis (we will match the parenthesis too)
-                            @descriptions[full_tag] =
-                                name: tag
-                                args: '( )'
-                                description: @description_with_example_template
-                                    description: command['description']
-                                    examples: command['langs']['js']['examples']
-                        else
-                            full_tag = tag+'(' # full tag is the name plus a parenthesis (we will match the parenthesis too)
-                            @descriptions[full_tag] =
-                                name: tag
-                                args: '( '+command['langs']['js']['body']+' )'
-                                description: @description_with_example_template
-                                    description: command['description']
-                                    examples: command['langs']['js']['examples']
-
-                    parent = command['parent']
-                    if tag is 'run'
-                        parent = 'query'
-
-                    if parent is null
-                        parent = ''
-                    if not suggestions[parent]?
-                        suggestions[parent] = []
-                    suggestions[parent].push full_tag #+something
-
-                    @map_state[full_tag] = command['returns'] # We use full_tag because we need to differentiate between r. and r(
+                    if tag is 'row' # We want r.row and r.row(
+                        new_command = DataUtils.deep_copy command
+                        new_command['langs']['js']['dont_need_parenthesis'] = false
+                        new_command['langs']['js']['body'] = 'attr'
+                        new_command['description'] = 'Return the attribute of the currently visited document'
+                        @set_doc_description new_command, tag, suggestions
+                    @set_doc_description command, tag, suggestions
 
             # Deep copy of suggestions
             for group of suggestions
