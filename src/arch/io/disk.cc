@@ -311,8 +311,8 @@ file_open_result_t open_direct_file(const char *path, int mode, io_backender_t *
 
     int flags = O_CREAT;
 
-    // For now, we have a whitelist of kernels that don't support O_LARGEFILE (or O_DSYNC, for
-    // that matter).
+    // For now, we have a whitelist of kernels that don't support O_LARGEFILE (or O_DSYNC, for that
+    // matter).  Linux is the only known kernel that has (or may need) the O_LARGEFILE flag.
 #ifndef __MACH__
     flags |= O_LARGEFILE;
 #endif
