@@ -29,7 +29,6 @@ rethinkdb.Connection = function(host, opt_errorHandler) {
     this.host_ = host['host'] || this.DEFAULT_HOST;
     this.port_ = host['port'] || this.DEFAULT_PORT;
     this.db_   = host['db']   || this.DEFAULT_DB;
-    this.protocol_   = host['protocol']   || this.DEFAULT_PROTOCOL;
 
 
     rethinkdb.util.typeCheck_(this.host_, 'string');
@@ -64,12 +63,6 @@ rethinkdb.Connection.prototype.DEFAULT_PORT = 28015;
  */
 rethinkdb.Connection.prototype.DEFAULT_DB = 'test';
 
-/**
- * The default protocol to use for new connections that don't specify a protocol
- * @constant
- * @type {string}
- */
-rethinkdb.Connection.prototype.DEFAULT_PROTOCOL = 'http';
 
 
 /**

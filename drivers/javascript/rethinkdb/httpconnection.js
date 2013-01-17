@@ -117,6 +117,7 @@ rethinkdb.HttpConnection = function(host, onConnect, onFailure) {
 
     goog.base(this, host, onFailure);
     this.url_ = '';
+    this.protocol_   = host['protocol']   || this.DEFAULT_PROTOCOL;
 
     var self = this;
 
@@ -146,6 +147,13 @@ goog.inherits(rethinkdb.HttpConnection, rethinkdb.Connection);
  * @type {number}
  */
 rethinkdb.HttpConnection.prototype.DEFAULT_PORT = 8080;
+
+/**
+ * The default protocol to use for new connections that don't specify a protocol
+ * @constant
+ * @type {string}
+ */
+rethinkdb.HttpConnection.prototype.DEFAULT_PROTOCOL = 'http';
 
 /**
  * Send data over the underlying HTTP connection.
