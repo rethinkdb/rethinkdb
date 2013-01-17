@@ -68,6 +68,8 @@ boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term::Call *c, runtime_envir
 
 boost::shared_ptr<json_stream_t> eval_call_as_stream(Term::Call *c, runtime_environment_t *, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t);
 
+boost::shared_ptr<json_stream_t> eval_sindex_get_by_key_as_stream(Term::GetByKey *get_by_key, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace);
+
 namespace_repo_t<rdb_protocol_t>::access_t eval_table_ref(TableRef *t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t);
 
 class view_t {

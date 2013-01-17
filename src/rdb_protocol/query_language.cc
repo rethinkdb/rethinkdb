@@ -274,7 +274,13 @@ term_info_t get_term_type(Term *t, type_checking_environment_t *env, const backt
         check_protobuf(t->has_get_by_key());
         check_table_ref(t->get_by_key().table_ref(), backtrace.with("table_ref"));
         check_term_type(t->mutable_get_by_key()->mutable_key(), TERM_TYPE_JSON, env, NULL, backtrace.with("key"));
-        ret.reset(term_info_t(TERM_TYPE_JSON, false));
+        if (t->mutable_get_by_key()->has_index()) {
+            //sindex get by key returns a stream
+            ret.reset(term_info_t(TERM_TYPE_STREAM, false));
+        } else {
+            //primary get by key returns json
+            ret.reset(term_info_t(TERM_TYPE_JSON, false));
+        }
     } break;
     case Term::TABLE: {
         check_protobuf(t->has_table());
@@ -759,6 +765,16 @@ void check_write_query_type(WriteQuery *w, type_checking_environment_t *env, boo
         implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic));
         check_mapping_type(w->mutable_point_mutate()->mutable_mapping(), TERM_TYPE_JSON, env, is_det_out, backtrace.with("point_map"));
     } break;
+    case WriteQuery::SINDEXCREATE: {
+        check_protobuf(w->has_sindex_create());
+        check_table_ref(w->sindex_create().table_ref(), backtrace.with("table_ref"));
+        implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic));
+        check_mapping_type(w->mutable_point_mutate()->mutable_mapping(), TERM_TYPE_JSON, env, is_det_out, backtrace.with("sindex_map"));
+    } break;
+    case WriteQuery::SINDEXDROP: {
+        check_table_ref(w->sindex_drop().table_ref(), backtrace.with("table_ref"));
+        check_protobuf(w->has_sindex_drop());
+    }
     default:
         unreachable("unhandled WriteQuery");
     }
@@ -1642,6 +1658,39 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
         res->add_response(strprintf("{\"modified\": %d, \"inserted\": %d, \"deleted\": %d, \"errors\": %d}",
                                     mres == point_modify_ns::MODIFIED, mres == point_modify_ns::INSERTED, mres == point_modify_ns::DELETED, 0));
     } break;
+    case WriteQuery::SINDEXCREATE: {
+        namespace_repo_t<rdb_protocol_t>::access_t ns_access =
+            eval_table_ref(w->mutable_sindex_create()->mutable_table_ref(), env, backtrace);
+
+        uuid_u id = generate_uuid();
+        rdb_protocol_t::write_t write(rdb_protocol_t::sindex_create_t(id, w->sindex_create().mapping()));
+        rdb_protocol_t::write_response_t response;
+
+        /* Actually send out the write. */
+        ns_access.get_namespace_if()->write(write, &response, order_token_t::ignore, env->interruptor);
+
+        std::string uuid = uuid_to_str(id);
+        res->add_response(strprintf("{\"created\" : \"%s\"}", uuid.c_str()));
+    }
+    case WriteQuery::SINDEXDROP: {
+        namespace_repo_t<rdb_protocol_t>::access_t ns_access =
+            eval_table_ref(w->mutable_sindex_create()->mutable_table_ref(), env, backtrace);
+
+        uuid_u id;
+        if (!str_to_uuid(w->sindex_drop().id(), &id)) {
+            res->set_status_code(Response::RUNTIME_ERROR);
+            res->set_error_message("Failed to parse id.");
+        }
+
+        rdb_protocol_t::sindex_drop_t d(id);
+        rdb_protocol_t::write_t write(d);
+        rdb_protocol_t::write_response_t response;
+
+        ns_access.get_namespace_if()->write(write, &response, order_token_t::ignore, env->interruptor);
+
+        std::string uuid = uuid_to_str(id);
+        res->add_response(strprintf("{\"dropped\" : \"%s\"}", uuid.c_str()));
+    }
     default:
         unreachable();
     }
@@ -1776,6 +1825,7 @@ boost::shared_ptr<scoped_cJSON_t> eval_term_as_json(Term *t, runtime_environment
         break;
     case Term::GETBYKEY:
         {
+            guarantee(!t->mutable_get_by_key()->has_index(), "Secondary index reads should be evaluated as streams.");
             std::string pk = get_primary_key(t->mutable_get_by_key()->mutable_table_ref(), env, backtrace);
 
             if (t->get_by_key().attrname() != pk) {
@@ -1906,13 +1956,22 @@ boost::shared_ptr<json_stream_t> eval_term_as_stream(Term *t, runtime_environmen
     case Term::BOOL:
     case Term::JSON_NULL:
     case Term::OBJECT:
-    case Term::GETBYKEY:
     case Term::JAVASCRIPT:
     case Term::ARRAY: {
         boost::shared_ptr<scoped_cJSON_t> arr = eval_term_as_json(t, env, scopes, backtrace);
         require_type(arr->get(), cJSON_Array, backtrace);
         json_array_iterator_t it(arr->get());
         return boost::shared_ptr<json_stream_t>(new in_memory_stream_t(it));
+    } break;
+    case Term::GETBYKEY: {
+        if (!t->get_by_key().has_index()) {
+            return eval_sindex_get_by_key_as_stream(t->mutable_get_by_key(), env, scopes, backtrace);
+        } else {
+            boost::shared_ptr<scoped_cJSON_t> arr = eval_term_as_json(t, env, scopes, backtrace);
+            require_type(arr->get(), cJSON_Array, backtrace);
+            json_array_iterator_t it(arr->get());
+            return boost::shared_ptr<json_stream_t>(new in_memory_stream_t(it));
+        }
     } break;
     default:
         unreachable();
@@ -2709,6 +2768,22 @@ boost::shared_ptr<json_stream_t> eval_call_as_stream(Term::Call *c, runtime_envi
     }
     crash("unreachable");
 
+}
+
+boost::shared_ptr<json_stream_t> eval_sindex_get_by_key_as_stream(Term::GetByKey *get_by_key, 
+                                    runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace) {
+    namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval_table_ref(get_by_key->mutable_table_ref(), env, backtrace);
+    uuid_u sindex_id;
+    //TODO
+    guarantee(str_to_uuid(get_by_key->index(), &sindex_id), "This should actually return an error to the user.");
+
+    /* Get the key we're dealing with. */
+    boost::shared_ptr<scoped_cJSON_t> key_json = eval_term_as_json(get_by_key->mutable_key(), env, scopes, backtrace.with("key"));
+    store_key_t key = store_key_t(cJSON_print_primary(key_json->get(), backtrace));
+
+    return boost::shared_ptr<json_stream_t>(new batched_rget_stream_t(ns_access, env->interruptor, 
+                                                    rdb_protocol_t::sindex_key_range(key), sindex_id, 
+                                                    100, backtrace, get_by_key->table_ref().use_outdated()));
 }
 
 namespace_repo_t<rdb_protocol_t>::access_t eval_table_ref(TableRef *t, runtime_environment_t *env, const backtrace_t &bt)

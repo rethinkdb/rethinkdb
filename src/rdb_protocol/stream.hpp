@@ -83,8 +83,15 @@ private:
 
 class batched_rget_stream_t : public json_stream_t {
 public:
+    /* Primary key rget. */
     batched_rget_stream_t(const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access, 
                           signal_t *_interruptor, key_range_t _range, 
+                          int _batch_size, const backtrace_t &_table_scan_backtrace,
+                          bool _use_outdated);
+
+    /* Sindex rget. */
+    batched_rget_stream_t(const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access, 
+                          signal_t *_interruptor, key_range_t _range, uuid_u _sindex_id,
                           int _batch_size, const backtrace_t &_table_scan_backtrace,
                           bool _use_outdated);
 
@@ -98,12 +105,14 @@ public:
     };
 
 private:
+    rdb_protocol_t::rget_read_t get_rget();
     void read_more();
 
     rdb_protocol_details::transform_t transform;
     namespace_repo_t<rdb_protocol_t>::access_t ns_access;
     signal_t *interruptor;
     key_range_t range;
+    boost::optional<uuid_u> sindex_id;
     int batch_size;
 
     json_list_t data;

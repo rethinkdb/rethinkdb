@@ -147,7 +147,7 @@ struct rdb_protocol_t {
 
     // Constructs a region which will query an sindex for matches to a specific
     // key
-    static region_t sindex_key_region(const store_key_t &k);
+    static key_range_t sindex_key_range(const store_key_t &k);
 
     struct context_t {
         context_t();
@@ -260,7 +260,18 @@ struct rdb_protocol_t {
         rget_read_t(const store_key_t &key,
                     uuid_u _sindex)
             : region(region_t::universe()), sindex(_sindex),
-              sindex_region(rdb_protocol_t::sindex_key_region(key)) { }
+              sindex_region(rdb_protocol_t::sindex_key_range(key)) { }
+
+        rget_read_t(const region_t &_sindex_region,
+                    uuid_u _sindex)
+            : region(region_t::universe()), sindex(_sindex),
+              sindex_region(_sindex_region) { }
+
+        rget_read_t(const region_t &_sindex_region,
+                    uuid_u _sindex,
+                    const rdb_protocol_details::transform_t &_transform)
+            : region(region_t::universe()), sindex(_sindex), 
+              sindex_region(_sindex_region), transform(_transform) { }
 
         rget_read_t(const region_t &_region,
                     const rdb_protocol_details::transform_t &_transform)

@@ -72,6 +72,7 @@ message Term {
         required TableRef table_ref = 1;
         required string attrname = 2;
         required Term key = 3;
+        optional string index = 4;
     };
 
     optional GetByKey get_by_key = 14;
@@ -223,6 +224,8 @@ message WriteQuery {
         POINTUPDATE = 7;
         POINTDELETE = 8;
         POINTMUTATE = 9;
+        SINDEXCREATE = 10;
+        SINDEXDROP = 11;
     };
 
     required WriteQueryType type = 1;
@@ -289,6 +292,20 @@ message WriteQuery {
     };
 
     optional PointMutate point_mutate = 10;
+
+    message SindexCreate {
+        required TableRef table_ref = 1;
+        required Mapping mapping = 2;
+    };
+
+    optional SindexCreate sindex_create = 12;
+
+    message SindexDrop {
+        required TableRef table_ref = 1;
+        required string id = 2;
+    };
+
+    optional SindexDrop sindex_drop = 13;
 };
 
 message MetaQuery {
