@@ -247,7 +247,7 @@
               "examples" : [
                 {
                   "description": "Call run on the connection with a query to execute the query. Run will return a cursor from which results may be retrieved.",
-                  "code": "var cursor = conn.run(r.table('marvel'));"
+                  "code": "var cursor = conn.run(r.table('marvel'), {});"
                 }, {
                   "description": "You can pass a callback function to run which is invoked for each row. If the callback returns true, it gets called again for the next row. If the callback returns false, it will not be invoked again.",
                   "code": "conn.run(r.table('marvel'), function(hero) {\n  ...\n  return true; // callback gets called again; return false to stop being invoked\n})"
@@ -1083,37 +1083,37 @@
       "commands": [
         {
           "tag": "inner",
-          "description": "Returns the inner product of this sequence and other filtered by the predicate",
+          "description": "Returns the inner product of two sequences (e.g. a table, a filter result) filtered by the predicate. The query compares each row of the left sequence with each row of the right sequence to find all pairs of rows which satisfy the predicate. When the predicate is satisfied, each matched pair of rows of both sequences are combined into a result row",
           "parent": "sequence",
           "returns": "sequence",
           "langs" : {
             "js": {
               "name": "innerJoin",
-              "body": "other, predicate",
+              "body": "othersequence, predicate",
               "examples": [
                 {
                   "description": "Construct a sequence of documents containing all cross-universe matchups where a marvel hero would lose.",
-                  "code": "r.table('marvel').innerJoin(r.table('dc'), function(marvelHero, DCHero) {\n return marvelHero('strength').lt(DCHero('strength'))\n}).run()"
+                  "code": "r.table('marvel').innerJoin(r.table('dc'), function(marvelRow, dcRow) {\n return marvelRow('strength').lt(dcRow('strength'))\n}).run()"
                 }
               ]
             },
             "py": {
               "name": "inner_join",
-              "body": "other, predicate",
+              "body": "othersequence, predicate",
               "examples": [
                 {
                   "description": "Construct a sequence of documents containing all cross-universe matchups where a marvel hero would lose.",
-                  "code": "r.table('marvel').inner_join(r.table('dc'), lambda marvelHero, DCHero: marvelHero['strength'] < DCHero['strength']).run()"
+                  "code": "r.table('marvel').inner_join(r.table('dc'), lambda marvelRow, dcRow: marvelRow['strength'] < dcRow['strength']).run()"
                 }
               ]
             },
             "rb": {
               "name": "inner_join",
-              "body": "other, predicate",
+              "body": "othersequence, predicate",
               "examples": [
                 {
                   "description": "Construct a sequence of documents containing all cross-universe matchups where a marvel hero would lose.",
-                  "code": "r.table('marvel').inner_join(r.table('dc')) {|marvel_hero, DC_hero|\n marvel_hero[:strength] < DC_hero[:strength]\n}.run"
+                  "code": "r.table('marvel').inner_join(r.table('dc')) {|marvel_row, dc_row|\n marvel_row[:strength] < dc_row[:strength]\n}.run"
                 }
               ]
             }
@@ -1121,37 +1121,37 @@
         },
         {
           "tag": "outer",
-          "description": "Computes a left outer join by retaining each row in the joined table even if no match was found in the right table.",
+          "description": "Computes a left outer join by retaining each row in the left table even if no match was found in the right table.",
           "parent": "sequence",
           "returns": "sequence",
           "langs" : {
             "js": {
               "name": "outerJoin",
-              "body": "other, predicate",
+              "body": "othersequence, predicate",
               "examples": [
                 {
                   "description": "Construct a sequence of documents containing all cross-universe matchups where a marvel hero would lose, but keep marvel heroes who would never lose a matchup in the sequence.",
-                  "code": "r.table('marvel').outerJoin(r.table('dc'), function(marvelHero, DCHero) {\n return marvelHero('strength').lt(DCHero('strength'))\n}).run()"
+                  "code": "r.table('marvel').outerJoin(r.table('dc'), function(marvelRow, dcRow) {\n return marvelRow('strength').lt(dcRow('strength'))\n}).run()"
                 }
               ]
             },
             "py": {
               "name": "outer_join",
-              "body": "other, predicate",
+              "body": "othersequence, predicate",
               "examples": [
                 {
                   "description": "Construct a sequence of documents containing all cross-universe matchups where a marvel hero would lose, but keep marvel heroes who would never lose a matchup in the sequence.",
-                  "code": "r.table('marvel').outer_join(r.table('dc'), lambda marvelHero, DCHero: marvelHero['strength'] < DCHero['strength']).run()"
+                  "code": "r.table('marvel').outer_join(r.table('dc'), lambda marvelRow, dcRow: marvelRow['strength'] < dcRow['strength']).run()"
                 }
               ]
             },
             "rb": {
               "name": "outer_join",
-              "body": "other, predicate",
+              "body": "othersequence, predicate",
               "examples": [
                 {
                   "description": "Construct a sequence of documents containing all cross-universe matchups where a marvel hero would lose, but keep marvel heroes who would never lose a matchup in the sequence.",
-                  "code": "r.table('marvel').outer_join(r.table('dc')) {|marvel_hero, DC_hero|\n marvel_hero[:strength] < DC_hero[:strength]\n}.run"
+                  "code": "r.table('marvel').outer_join(r.table('dc')) {|marvel_row, dc_row|\n marvel_row[:strength] < dc_row[:strength]\n}.run"
                 }
               ]
             }
