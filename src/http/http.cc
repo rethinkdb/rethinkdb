@@ -554,3 +554,23 @@ bool percent_unescape_string(const std::string &s, std::string *out) {
     *out = res;
     return true;
 }
+
+std::string http_format_date(const time_t date) {
+    struct tm t;
+    struct tm *res1 = gmtime_r(&date, &t);
+    guarantee_err(res1 == &t, "gmtime_r() failed.");
+    
+    static const char *weekday[] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
+    static const char *month[] =  { "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+
+    return strprintf(
+        "%s, %02d %s %04d %02d:%02d:%02d GMT",
+        weekday[t.tm_wday],
+        t.tm_mday,
+        month[t.tm_mon],
+        t.tm_year + 1900,
+        t.tm_hour,
+        t.tm_min,
+        t.tm_sec);
+}

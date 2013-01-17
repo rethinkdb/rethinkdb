@@ -8,7 +8,7 @@
 #include "containers/archive/archive.hpp"
 
 // This is a completely worthless type with BLOCKING I/O used only in
-// the dummy protocol and for seeding randint()
+// http/file_app, json_import and for seeding randint()
 class blocking_read_file_stream_t : public read_stream_t {
 public:
     blocking_read_file_stream_t();
