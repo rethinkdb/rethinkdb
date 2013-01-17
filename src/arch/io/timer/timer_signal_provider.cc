@@ -14,6 +14,7 @@
 #include "arch/runtime/event_queue.hpp"
 #include "arch/io/io_utils.hpp"
 #include "arch/io/timer_provider.hpp"
+#include "utils.hpp"
 
 // This *should* be a member of sigevent exposed by glibc, who the
 // heck knows why it isn't...
@@ -79,6 +80,8 @@ void timer_signal_provider_t::schedule_oneshot(int64_t next_time_in_nanos, timer
     spec.it_value.tv_nsec = wait_time % BILLION;
     spec.it_interval.tv_sec = 0;
     spec.it_interval.tv_nsec = 0;
+
+    callback = cb;
 
     const int res = timer_settime(timerid, 0, &spec, NULL);
     guarantee_err(res == 0, "Could not arm the timer");
