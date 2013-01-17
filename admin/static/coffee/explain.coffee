@@ -125,13 +125,6 @@ module 'Explain', ->
         more_height: 70
         more_bloc_height: 50
         bifurcation_circle_radius: 4
-        proportion_height_inner_bloc: 3/5
-        inner_task_border_width: 1
-        inner_task_color: '#eaeaea'
-        inner_task_border_color: '#bbb'
-        padding_inner_task_top: 10
-        padding_inner_task_side: 5
-        proportion_width_inner_bloc: 2/5
 
         get_drawable_machines: (task, num_simultaneous_task_drawn) =>
             if task['sub_tasks']?
@@ -274,42 +267,6 @@ module 'Explain', ->
                         return ''
                 )
 
-            # Let's make sure that the user understand he can extend
-            # TODO Fix tooltip
-            if task['sub_tasks']?
-                if task['sub_tasks_are_parallel'] is true
-                    sub_width_inner = (@sub_width*@proportion_bloc-2*@padding_inner_task_side)/3
-
-                    task_element = @svg.selectAll('rect-level-'+level)
-                        .data([0, 1, 2])
-                        .enter()
-                        .append('rect')
-                        .attr('x', (d, i) -> return parent_position.x+that.padding_inner_task_side-
-                            (that.sub_width*that.proportion_bloc)/2+sub_width_inner*i+
-                            sub_width_inner*(1-that.proportion_width_inner_bloc)/2)
-                        .attr('y', parent_position.y+@padding_inner_task_top)
-                        .attr('width', sub_width_inner*that.proportion_width_inner_bloc)
-                        .attr('height', height_available-2*@padding_inner_task_top)
-                        .attr('stroke-width', @inner_task_border_width)
-                        .attr('stroke', @inner_task_border_color)
-                        .style('fill', @task_color)
-                else
-                    sub_height = height_available/task['sub_tasks_stats']['count']
-                    if sub_height < 16
-                        sub_height = 16
-                        #TODO Make sure that this value is not too big
-
-                    task_element = @svg.selectAll('rect-level-'+level)
-                        .data([0, 1, 2])
-                        .enter()
-                        .append('rect')
-                        .attr('x', parent_position.x-(@sub_width*@proportion_bloc)*3/8)
-                        .attr('y', (d, i) -> return parent_position.y+sub_height*(i+1))
-                        .attr('width', @sub_width*@proportion_bloc*6/8)
-                        .attr('height', sub_height*@proportion_height_inner_bloc)
-                        .attr('stroke-width', @inner_task_border_width)
-                        .attr('stroke', @inner_task_border_color)
-                        .style('fill', @task_color)
 
         draw_tasks_in_series: (args) =>
             task = args.task
