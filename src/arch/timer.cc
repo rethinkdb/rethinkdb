@@ -65,8 +65,6 @@ timer_token_t *timer_handler_t::add_timer_internal(const int64_t ms, timer_callb
 }
 
 void timer_handler_t::cancel_timer(timer_token_t *token) {
-    rassert(token->interval_nanos != 0, "This is not necessarily a bug, tell Sam if you see this.");
-
     token_queue.remove(token);
 
     if (token_queue.empty()) {
