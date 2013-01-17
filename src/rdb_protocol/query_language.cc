@@ -77,6 +77,7 @@ boost::shared_ptr<scoped_cJSON_t> shared_scoped_json(cJSON *json) {
 //TODO: this should really return more informat
 void check_protobuf(bool cond) {
     if (!cond) {
+        BREAKPOINT;
         throw broken_client_exc_t("bad protocol buffer; client is buggy");
     }
 }
@@ -769,7 +770,7 @@ void check_write_query_type(WriteQuery *w, type_checking_environment_t *env, boo
         check_protobuf(w->has_sindex_create());
         check_table_ref(w->sindex_create().table_ref(), backtrace.with("table_ref"));
         implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic));
-        check_mapping_type(w->mutable_point_mutate()->mutable_mapping(), TERM_TYPE_JSON, env, is_det_out, backtrace.with("sindex_map"));
+        check_mapping_type(w->mutable_sindex_create()->mutable_mapping(), TERM_TYPE_JSON, env, is_det_out, backtrace.with("sindex_map"));
     } break;
     case WriteQuery::SINDEXDROP: {
         check_table_ref(w->sindex_drop().table_ref(), backtrace.with("table_ref"));
@@ -1671,7 +1672,7 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
 
         std::string uuid = uuid_to_str(id);
         res->add_response(strprintf("{\"created\" : \"%s\"}", uuid.c_str()));
-    }
+    } break;
     case WriteQuery::SINDEXDROP: {
         namespace_repo_t<rdb_protocol_t>::access_t ns_access =
             eval_table_ref(w->mutable_sindex_create()->mutable_table_ref(), env, backtrace);
@@ -1690,7 +1691,7 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
 
         std::string uuid = uuid_to_str(id);
         res->add_response(strprintf("{\"dropped\" : \"%s\"}", uuid.c_str()));
-    }
+    } break;
     default:
         unreachable();
     }

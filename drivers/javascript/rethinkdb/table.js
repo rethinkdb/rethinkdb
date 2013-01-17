@@ -212,6 +212,57 @@ goog.exportProperty(rethinkdb.Table.prototype, 'insert',
                     rethinkdb.Table.prototype.insert);
 
 /**
+ * @param {rethinkdb.Table} table
+ * @param {rethinkdb.FunctionExpression} mapping
+ * @constructor
+ * @extends {rethinkdb.Query}
+ * @ignore
+ */
+rethinkdb.SindexCreateQuery = function(table, mapping) {
+    this.table_ = table;
+    this.mapping_ = mapping;
+};
+goog.inherits(rethinkdb.SindexCreateQuery, rethinkdb.Query);
+
+/** @override */
+rethinkdb.SindexCreateQuery.prototype.buildQuery = function(opt_buildOpts) {
+    var tableTerm = this.table_.compile(opt_buildOpts);
+    var tableRef = tableTerm.getTable().getTableRefOrDefault();
+
+    var mapping = new Mapping();
+    mapping.setArg(this.mapping_.args[0]);
+    mapping.setBody(this.mapping_.body.compile(opt_buildOpts));
+
+    var sindexCreate = new WriteQuery.SindexCreate();
+    sindexCreate.setTableRef(tableRef);
+    sindexCreate.setMapping(mapping);
+
+    var writeQuery = new WriteQuery();
+    writeQuery.setType(WriteQuery.WriteQueryType.SINDEXCREATE);
+    writeQuery.setSindexCreate(sindexCreate);
+
+    var query = new Query();
+    query.setType(Query.QueryType.WRITE);
+    query.setWriteQuery(writeQuery);
+
+    return query;
+};
+
+/** @override */
+rethinkdb.SindexCreateQuery.prototype.formatQuery = function(bt) {
+    return "";
+};
+
+/**
+ * Create a secondary index for this table
+ */
+rethinkdb.Table.prototype.index = function(mapping) {
+    rethinkdb.util.argCheck_(arguments, 1);
+    mapping = rethinkdb.util.functionWrap_(mapping);
+    return new rethinkdb.SindexCreateQuery(this, mapping);
+};
+
+/**
  * @param {rethinkdb.Expression} view
  * @constructor
  * @extends {rethinkdb.Query}
