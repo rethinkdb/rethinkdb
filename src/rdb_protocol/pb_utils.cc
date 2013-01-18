@@ -30,8 +30,13 @@ void set_var(Term2 *v, int varnum) {
     vn->set_r_num(varnum);
 }
 
-void set_int(Term2 *i, int num) {
-    Datum *d = set_datum(i);
+void set_null(Term2 *t) {
+    Datum *d = set_datum(t);
+    d->set_type(D(R_NULL));
+}
+
+void set_int(Term2 *t, int num) {
+    Datum *d = set_datum(t);
     d->set_type(D(R_NUM));
     d->set_r_num(num);
 }

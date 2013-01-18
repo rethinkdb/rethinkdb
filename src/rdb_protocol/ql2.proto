@@ -290,8 +290,7 @@ message Term2 {
         OUTER_JOIN         = 49; // Sequence, Sequence, FUNC (arity 2) -> Sequence
         // An inner-join that does an equality comparison on two attributes.
         // http://www.rethinkdb.com/api/#js:joins-eqJoin
-        EQ_JOIN            = 50; // Sequence, Sequence -> Sequence
-                                 // Optargs: left_attr (LIT(STR)), right_attr (LIT(STR))
+        EQ_JOIN            = 50; // Sequence, LIT(STR), Sequence -> Sequence
 
         // * Type Ops
         // Coerces a datum to a named type (e.g. "bool").

@@ -368,6 +368,10 @@ rae(tbl.outer_join(tbl, r.func([1, 2], r.var(1).getattr(:id).eq(r.var(2).getattr
                                                                 0))),
     [{"left"=>{"id"=>0.0}, "right"=>{"id"=>0.0}}, {"left"=>{"id"=>1.0}}])
 
+rae(tbl.eq_join(:id, tbl),
+    [{"left"=>{"id"=>0.0}, "right"=>{"id"=>0.0}},
+     {"left"=>{"id"=>1.0}, "right"=>{"id"=>1.0}}])
+
 ####
 
 print "test.test: #{r.db('test').table('test').run.inspect}\n"

@@ -9,7 +9,9 @@ namespace pb {
 Datum *set_datum(Term2 *d);
 Term2 *set_func(Term2 *f, int varnum);
 void set_var(Term2 *v, int varnum);
-void set_int(Term2 *i, int num);
+
+void set_null(Term2 *t);
+void set_int(Term2 *t, int num);
 void set_str(Term2 *t, const std::string &s);
 
 void set(Term2 *out, Term2_TermType type, std::vector<Term2 *> *args_out, int num_args);

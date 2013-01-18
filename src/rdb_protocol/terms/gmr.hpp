@@ -120,4 +120,41 @@ public:
     RDB_NAME("outer_join")
 };
 
+class eq_join_term_t : public rewrite_term_t {
+public:
+    eq_join_term_t(env_t *env, const Term2 *term) :
+        rewrite_term_t(env, term, rewrite) { }
+    static void rewrite(env_t *env, const Term2 *in, Term2 *out) {
+        rcheck(in->args_size() == 3, "eq_join requires 2 arguments.");
+        const Term2 *l = &in->args(0);
+        const Term2 *lattr = &in->args(1);
+        const Term2 *r = &in->args(2);
+        int row = env->gensym();
+        int v = env->gensym();
+
+        Term2 *arg = out;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"
+        // `l`.concat_map { |row|
+        N2(CONCATMAP, *arg = *l, arg = pb::set_func(arg, row);
+           // r.funcall(lambda { |v|
+           N2(FUNCALL, arg = pb::set_func(arg, v);
+              // r.branch(
+              N3(BRANCH,
+                 // r.ne(v, nil),
+            N2(NE, pb::set_var(arg, v), pb::set_null(arg)),
+                 // [{:left => row, :right => v}],
+                 N1(MAKE_ARRAY,
+                    OPT2(MAKE_OBJ,
+                         "left", pb::set_var(arg, row),
+                         "right", pb::set_var(arg, v))),
+                 // []),
+                 N0(MAKE_ARRAY)),
+              // `r`.get(l[`lattr]))}
+              N2(GET, *arg = *r, N2(GETATTR, pb::set_var(arg, row), *arg = *lattr))));
+#pragma GCC diagnostic pop
+    }
+    RDB_NAME("inner_join")
+};
+
 } // namespace ql

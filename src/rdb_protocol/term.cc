@@ -66,8 +66,7 @@ term_t *compile_term(env_t *env, const Term2 *t) {
         throw exc_t("UNIMPLEMENTED (need to talk to Bill)");
     case Term2_TermType_INNER_JOIN:         return new inner_join_term_t(env, t);
     case Term2_TermType_OUTER_JOIN:         return new outer_join_term_t(env, t);
-    case Term2_TermType_EQ_JOIN:
-        break;
+    case Term2_TermType_EQ_JOIN:            return new eq_join_term_t(env, t);
     case Term2_TermType_COERCE:             return new coerce_term_t(env, t);
     case Term2_TermType_TYPEOF:
     case Term2_TermType_UPDATE:
