@@ -1,9 +1,9 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "arch/io/disk/pool.hpp"
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
+#include <fcntl.h>
 
+#include "arch/io/disk.hpp"
 #include "config/args.hpp"
 
 #define BLOCKER_POOL_QUEUE_DEPTH (MAX_CONCURRENT_IO_REQUESTS * 2)
@@ -35,6 +35,21 @@ void pool_diskmgr_t::action_t::run() {
             res = pwrite(fd, buf, count, offset);
         } while (res == -1 && errno == EINTR);
         io_result = res >= 0 ? res : -errno;
+
+        // On OS X, we have to manually fsync to complete the write.  (We use F_FULLFSYNC because
+        // fsync lies.)  On Linux we just open the descriptor with the O_DSYNC flag.
+#ifndef FILE_SYNC_TECHNIQUE
+#error "FILE_SYNC_TECHNIQUE is not defined"
+#elif FILE_SYNC_TECHNIQUE == FILE_SYNC_TECHNIQUE_FULLFSYNC
+        if (res >= 0) {
+            int fcntl_res;
+            do {
+                fcntl_res = fcntl(fd, F_FULLFSYNC);
+            } while (fcntl_res == -1 && errno == EINTR);
+
+            io_result = fcntl_res == -1 ? -errno : res;
+        }
+#endif  // FILE_SYNC_TECHNIQUE
     }
 }
 

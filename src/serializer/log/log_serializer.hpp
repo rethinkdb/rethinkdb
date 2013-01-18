@@ -57,8 +57,8 @@ public:
 private:
     MUST_USE bool open_serializer_file(int extra_flag, scoped_ptr_t<file_t> *file_out);
 
-    std::string filepath_;
-    io_backender_t *backender_;
+    const std::string filepath_;
+    io_backender_t *const backender_;
 
     DISABLE_COPYING(filepath_file_opener_t);
 };
@@ -98,13 +98,6 @@ public:
 
     /* Blocks. */
     virtual ~log_serializer_t();
-
-    /* TODO Make this block too instead of using a callback */
-    struct check_callback_t {
-        virtual void on_serializer_check(bool is_existing) = 0;
-        virtual ~check_callback_t() {}
-    };
-    static void check_existing(const char *filename, io_backender_t *backender, check_callback_t *cb);
 
 public:
     /* Implementation of the serializer_t API */

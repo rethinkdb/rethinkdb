@@ -53,9 +53,6 @@ public:
     semantic_checking_serializer_t(dynamic_config_t config, serializer_file_opener_t *file_opener, perfmon_collection_t *perfmon_collection);
     ~semantic_checking_serializer_t();
 
-    typedef typename inner_serializer_t::check_callback_t check_callback_t;
-    static void check_existing(const char *db_path, io_backender_t *backender, check_callback_t *cb);
-
     void *malloc();
     void *clone(void *data);
     void free(void *ptr);
