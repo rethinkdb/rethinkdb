@@ -8,7 +8,6 @@
 #include "btree/slice.hpp"
 #include "buffer_cache/blob.hpp"
 #include "containers/archive/vector_stream.hpp"
-#include "stl_utils.hpp"
 
 real_superblock_t::real_superblock_t(buf_lock_t *sb_buf) {
     sb_buf_.swap(*sb_buf);
@@ -365,8 +364,9 @@ bool get_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, uuid_u uu
 
     get_secondary_indexes_internal(txn, sindex_block, &sindex_map);
 
-    if (std_contains(sindex_map, uuid)) {
-        *sindex_out = sindex_map[uuid];
+    std::map<uuid_u, secondary_index_t>::const_iterator it = sindex_map.find(uuid);
+    if (it != sindex_map.end()) {
+        *sindex_out = it->second;
         return true;
     } else {
         return false;
@@ -390,12 +390,12 @@ bool delete_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, uuid_u
     std::map<uuid_u, secondary_index_t> sindex_map;
     get_secondary_indexes_internal(txn, sindex_block, &sindex_map);
 
-    if (!std_contains(sindex_map, uuid)) {
-        return false;
-    } else {
-        sindex_map.erase(uuid);
+    std::map<uuid_u, secondary_index_t>::const_iterator it = sindex_map.find(uuid);
+    if (sindex_map.erase(uuid) == 1) {
         set_secondary_indexes_internal(txn, sindex_block, sindex_map);
         return true;
+    } else {
+        return false;
     }
 }
 
