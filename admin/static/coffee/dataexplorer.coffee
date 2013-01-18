@@ -94,7 +94,7 @@ module 'DataExplorerView', ->
             for group in data['sections']
                 for command in group['commands']
                     tag = command['langs']['js']['name']
-                    if tag is '()'
+                    if tag is '()' or tag is 'runp'
                         continue
                     if tag is 'row' # We want r.row and r.row(
                         new_command = DataUtils.deep_copy command
