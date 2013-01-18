@@ -327,7 +327,9 @@ struct secondary_index_t {
 
 //Secondary Index functions
 
-//Note if this function is called after secondary indexes have been added it will
+/* Note if this function is called after secondary indexes have been added it
+ * will leak blocks (and also make those secondary indexes unusable.) There's
+ * no reason to ever do this. */
 void initialize_secondary_indexes(transaction_t *txn, buf_lock_t *superblock);
 
 bool get_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, uuid_u uuid, secondary_index_t *sindex_out);

@@ -308,6 +308,14 @@ private:
     DISABLE_COPYING(send_backfill_callback_t);
 };
 
+/* [read,write]_token_pair_t provide an exit_[read,write]_t for both the main
+ * btree and the secondary btrees both require seperate synchronization because
+ * you frequently need to update the secondary btrees based on something that
+ * was done in the primary and our locking structure doesn't give us an easy
+ * way to make sure that entities acquire the secondary block in the same order
+ * they acquire the primary. This could in theory be acquired as 2 sepeare
+ * objects but this would be twice as much typing and runs the risk that people
+ * pass one exit read in to a function that accesses the other. */
 struct read_token_pair_t {
     object_buffer_t<fifo_enforcer_sink_t::exit_read_t> main_read_token, sindex_read_token;
 };
