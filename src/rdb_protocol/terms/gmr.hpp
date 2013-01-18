@@ -142,7 +142,7 @@ public:
               // r.branch(
               N3(BRANCH,
                  // r.ne(v, nil),
-            N2(NE, pb::set_var(arg, v), pb::set_null(arg)),
+                 N2(NE, pb::set_var(arg, v), pb::set_null(arg)),
                  // [{:left => row, :right => v}],
                  N1(MAKE_ARRAY,
                     OPT2(MAKE_OBJ,
