@@ -250,6 +250,19 @@ const datum_t *datum_t::merge(const datum_t *rhs) const {
     }
     return d.release();
 }
+const datum_t *datum_t::merge(env_t *env, const datum_t *rhs, merge_res_f f) const {
+    datum_t *d = env->add_ptr(new datum_t(as_object()));
+    const std::map<const std::string, const datum_t *> &rhs_obj = rhs->as_object();
+    for (std::map<const std::string, const datum_t *>::const_iterator
+             it = rhs_obj.begin(); it != rhs_obj.end(); ++it) {
+        if (const datum_t *l = el(it->first, false /*nothrow*/)) {
+            UNUSED bool b = d->add(it->first, f(env, it->first, l, it->second));
+        } else {
+            UNUSED bool b = d->add(it->first, it->second);
+        }
+    }
+    return d;
+}
 
 template<class T>
 int derived_cmp(T a, T b) {

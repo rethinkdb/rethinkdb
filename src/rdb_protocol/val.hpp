@@ -19,6 +19,9 @@ public:
     datum_stream_t *as_datum_stream();
     const std::string &get_pkey();
     const datum_t *get_row(const datum_t *pval);
+
+    const datum_t *replace(const datum_t *orig, func_t *f);
+    const datum_t *replace(const datum_t *orig, const datum_t *d, bool upsert);
 private:
     env_t *env;
     bool use_outdated;

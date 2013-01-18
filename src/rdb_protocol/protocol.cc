@@ -22,6 +22,10 @@
 #include "rpc/semilattice/watchable.hpp"
 #include "serializer/config.hpp"
 
+
+// TODO: this is absurd, and messes up my ETAGS jumping.  We should just alias
+// the module to something shorter and type out the shorter name everywhere, or
+// else use a `using` declaration.
 typedef rdb_protocol_details::backfill_atom_t rdb_backfill_atom_t;
 
 typedef rdb_protocol_t::context_t context_t;
@@ -49,6 +53,9 @@ typedef rdb_protocol_t::point_write_response_t point_write_response_t;
 
 typedef rdb_protocol_t::point_modify_t point_modify_t;
 typedef rdb_protocol_t::point_modify_response_t point_modify_response_t;
+
+typedef rdb_protocol_t::point_replace_t point_replace_t;
+typedef rdb_protocol_t::point_replace_response_t point_replace_response_t;
 
 typedef rdb_protocol_t::point_delete_t point_delete_t;
 typedef rdb_protocol_t::point_delete_response_t point_delete_response_t;
@@ -496,6 +503,10 @@ struct w_get_region_visitor : public boost::static_visitor<region_t> {
     region_t operator()(const point_delete_t &pd) const {
         return rdb_protocol_t::monokey_region(pd.key);
     }
+
+    region_t operator()(const point_replace_t &pr) const {
+        return rdb_protocol_t::monokey_region(pr.key);
+    }
 };
 
 }   /* anonymous namespace */
@@ -524,6 +535,11 @@ struct w_shard_visitor : public boost::static_visitor<write_t> {
     write_t operator()(const point_delete_t &pd) const {
         rassert(rdb_protocol_t::monokey_region(pd.key) == region);
         return write_t(pd);
+    }
+
+    write_t operator()(const point_replace_t &pr) const {
+        rassert(rdb_protocol_t::monokey_region(pr.key) == region);
+        return write_t(pr);
     }
     const region_t &region;
 };
@@ -647,6 +663,16 @@ namespace {
 
 // TODO: get rid of this extra response_t copy on the stack
 struct write_visitor_t : public boost::static_visitor<void> {
+    void operator()(const point_replace_t &r) {
+        response->response = point_modify_response_t();
+        point_replace_response_t *res =
+            boost::get<point_replace_response_t>(&response->response);
+        // TODO: modify surrounding code so we can dump this const_cast.
+        ql::map_wire_func_t *f = const_cast<ql::map_wire_func_t *>(&r.f);
+        rdb_replace(r.primary_key, r.key, f, &ql_env,
+                    res, btree, timestamp, txn, superblock);
+    }
+
     void operator()(const point_write_t &w) {
         response->response = point_write_response_t();
         point_write_response_t &res = boost::get<point_write_response_t>(response->response);
@@ -685,7 +711,18 @@ struct write_visitor_t : public boost::static_visitor<void> {
             ctx->semilattice_metadata,
             boost::make_shared<js::runner_t>(),
             &interruptor,
-            ctx->machine_id)
+            ctx->machine_id),
+        ql_env(ctx->pool_group,
+               ctx->ns_repo,
+               ctx->cross_thread_namespace_watchables[
+                   get_thread_id()].get()->get_watchable(),
+               ctx->cross_thread_database_watchables[
+                   get_thread_id()].get()->get_watchable(),
+               ctx->semilattice_metadata,
+               0,
+               boost::make_shared<js::runner_t>(),
+               &interruptor,
+               ctx->machine_id)
     { }
 
 private:
@@ -696,6 +733,7 @@ private:
     repli_timestamp_t timestamp;
     wait_any_t interruptor;
     query_language::runtime_environment_t env;
+    ql::env_t ql_env;
 };
 
 }   /* anonymous namespace */

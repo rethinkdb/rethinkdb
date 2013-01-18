@@ -152,6 +152,69 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location, const store_
     //                                                                  ^^^^^ That means the key isn't expired.
 }
 
+void rdb_replace(const std::string &primary_key,
+                 const store_key_t &key,
+                 ql::map_wire_func_t *f,
+                 ql::env_t *ql_env,
+                 Datum *response,
+                 btree_slice_t *slice,
+                 repli_timestamp_t timestamp,
+                 transaction_t *txn,
+                 superblock_t *superblock) {
+    ql::datum_t *resp = ql_env->add_ptr(new ql::datum_t(ql::datum_t::R_OBJECT));
+    try {
+        keyvalue_location_t<rdb_value_t> kv_location;
+        find_keyvalue_location_for_write(
+            txn, superblock, key.btree_key(), &kv_location,
+            &slice->root_eviction_priority, &slice->stats);
+
+        bool started_empty, ended_empty;
+        const ql::datum_t *lhs;
+        if (!kv_location.value.has()) {
+            started_empty = true;
+            lhs = ql_env->add_ptr(new ql::datum_t(ql::datum_t::R_NULL));
+        } else {
+            started_empty = false;
+            boost::shared_ptr<scoped_cJSON_t> lhs_json =
+                get_data(kv_location.value.get(), txn);
+            guarantee(lhs_json->GetObjectItem(primary_key.c_str()));
+            lhs = ql_env->add_ptr(new ql::datum_t(lhs_json, ql_env));
+        }
+        guarantee(lhs);
+
+        const ql::datum_t *new_val = f->compile(ql_env)->call(lhs)->as_datum();
+        ended_empty = (new_val->get_type() == ql::datum_t::R_NULL);
+
+        const ql::datum_t *count = ql_env->add_ptr(new ql::datum_t(1));
+        if (started_empty) {
+            if (ended_empty) {
+                bool b = resp->add("skipped", count);
+                guarantee(!b);
+            } else {
+                bool b = resp->add("inserted", count);
+                guarantee(!b);
+                kv_location_set(&kv_location, key, new_val->as_json(),
+                                slice, timestamp, txn);
+            }
+        } else {
+            if (ended_empty) {
+                bool b = resp->add("deleted", count);
+                guarantee(!b);
+                kv_location_delete(&kv_location, key, slice, timestamp, txn);
+            } else {
+                bool b = resp->add("replaced", count);
+                guarantee(!b);
+                kv_location_set(&kv_location, key, new_val->as_json(),
+                                slice, timestamp, txn);
+            }
+        }
+    } catch (const ql::exc_t &e) {
+        bool b = resp->add("first_error", ql_env->add_ptr(new ql::datum_t(e.what())));
+        guarantee(!b);
+    }
+    resp->write_to_protobuf(response);
+}
+
 void rdb_modify(const std::string &primary_key, const store_key_t &key, point_modify_ns::op_t op,
                 query_language::runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace,
                 const Mapping &mapping,

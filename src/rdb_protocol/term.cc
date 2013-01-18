@@ -12,10 +12,12 @@
 #include "rdb_protocol/terms/obj.hpp"
 #include "rdb_protocol/terms/obj_or_seq.hpp"
 #include "rdb_protocol/terms/pred.hpp"
+#include "rdb_protocol/terms/rewrites.hpp"
 #include "rdb_protocol/terms/seq.hpp"
 #include "rdb_protocol/terms/sort.hpp"
 #include "rdb_protocol/terms/type_manip.hpp"
 #include "rdb_protocol/terms/var.hpp"
+#include "rdb_protocol/terms/writes.hpp"
 
 namespace ql {
 
@@ -72,13 +74,15 @@ term_t *compile_term(env_t *env, const Term2 *t) {
     case Term2_TermType_UPDATE:
     case Term2_TermType_DELETE:
     case Term2_TermType_REPLACE:
-    case Term2_TermType_INSERT:
+        break;
+    case Term2_TermType_INSERT:             return new insert_term_t(env, t);
     case Term2_TermType_DB_CREATE:
     case Term2_TermType_DB_DROP:
     case Term2_TermType_DB_LIST:
     case Term2_TermType_TABLE_CREATE:
     case Term2_TermType_TABLE_DROP:
     case Term2_TermType_TABLE_LIST:
+        break;
     case Term2_TermType_FUNCALL:            return new funcall_term_t(env, t);
     case Term2_TermType_BRANCH:             return new branch_term_t(env, t);
     case Term2_TermType_ANY:                return new any_term_t(env, t);

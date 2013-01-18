@@ -68,6 +68,9 @@ public:
     MUST_USE bool del(const std::string &key);
     const datum_t *el(const std::string &key, bool throw_if_missing = true) const;
     const datum_t *merge(const datum_t *rhs) const;
+    typedef const datum_t *(*merge_res_f)(env_t *env, const std::string &key,
+                                          const datum_t *l, const datum_t *r);
+    const datum_t *merge(env_t *env, const datum_t *rhs, merge_res_f f) const;
 
     cJSON *as_raw_json() const;
     boost::shared_ptr<scoped_cJSON_t> as_json() const;

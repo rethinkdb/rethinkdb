@@ -194,8 +194,11 @@ public:
     env_t(
         extproc::pool_group_t *_pool_group,
         namespace_repo_t<rdb_protocol_t> *_ns_repo,
-        clone_ptr_t<watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > >
+
+        clone_ptr_t<watchable_t<cow_ptr_t<
+        namespaces_semilattice_metadata_t<rdb_protocol_t> > > >
              _namespaces_semilattice_metadata,
+
         clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >
              _databases_semilattice_metadata,
         boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
