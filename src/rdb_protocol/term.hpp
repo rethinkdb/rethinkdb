@@ -29,11 +29,15 @@ public:
     virtual const char *name() const = 0;
     val_t *eval(bool _use_cached_val);
 
+    // TODO: this templating/shadowing logic is terrible (I hate implicit
+    // conversions) and doesn't save that much typing.  Rip it out.
+
     val_t *new_val(datum_t *d); // shadow vvv
     val_t *new_val(const datum_t *d);
     val_t *new_val(datum_t *d, table_t *t); // shadow vvv
     val_t *new_val(const datum_t *d, table_t *t);
     val_t *new_val(datum_stream_t *s);
+    val_t *new_val(table_t *t, datum_stream_t *s);
     val_t *new_val(uuid_t db);
     val_t *new_val(table_t *t);
     val_t *new_val(func_t *f);

@@ -372,6 +372,25 @@ rae(tbl.eq_join(:id, tbl),
     [{"left"=>{"id"=>0.0}, "right"=>{"id"=>0.0}},
      {"left"=>{"id"=>1.0}, "right"=>{"id"=>1.0}}])
 
+rae(r.typeof(nil), "NULL")
+rae(r.typeof(true), "BOOL")
+rae(r.typeof(1), "NUMBER")
+rae(r.typeof("a"), "STRING")
+rae(r.typeof([]), "ARRAY")
+rae(r.typeof({}), "OBJECT")
+
+rae(r.typeof(r.db("test")), "DB")
+rae(r.typeof(tbl), "TABLE")
+
+rae(r.typeof(tbl.filter(r.func([1], true))), "SELECTION")
+rae(r.typeof(tbl.between), "SELECTION")
+rae(r.typeof(tbl.slice(0, 1)), "SELECTION")
+
+rae(r.typeof(tbl.filter(r.func([1], true))), "SELECTION")
+rae(r.typeof(tbl.map(r.func([1], true))), "SEQUENCE")
+rae(r.typeof(tbl.get(0)), "SINGLE_SELECTION")
+rae(r.typeof(r.func([1], true)), "FUNCTION")
+
 ####
 
 print "test.test: #{r.db('test').table('test').run.inspect}\n"

@@ -40,7 +40,12 @@ public:
     filter_term_t(env_t *env, const Term2 *term) : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual val_t *eval_impl() {
-        return new_val(arg(0)->as_seq()->filter(arg(1)->as_func()));
+        if (arg(0)->get_type().is_convertible(val_t::type_t::SELECTION)) {
+            std::pair<table_t *, datum_stream_t *> tds = arg(0)->as_selection();
+            return new_val(tds.first, tds.second->filter(arg(1)->as_func()));
+        } else {
+            return new_val(arg(0)->as_seq()->filter(arg(1)->as_func()));
+        }
     }
     RDB_NAME("filter")
 };
@@ -82,7 +87,7 @@ private:
         std::pair<table_t *, datum_stream_t *> sel = arg(0)->as_selection();
         val_t *lb = optarg("left_bound", 0);
         val_t *rb = optarg("right_bound", 0);
-        if (!lb && !rb) return arg(0);
+        if (!lb && !rb) return new_val(sel.first, sel.second);
 
         table_t *tbl = sel.first;
         const std::string &pk = tbl->get_pkey();

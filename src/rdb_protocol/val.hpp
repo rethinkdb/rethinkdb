@@ -44,6 +44,7 @@ public:
         bool is_convertible(type_t rhs) const;
     private:
         friend class coerce_term_t;
+        friend class typeof_term_t;
         const char *name() const;
         raw_type_t raw_type;
     };
@@ -53,6 +54,8 @@ public:
     val_t(const datum_t *_datum, table_t *_table, const term_t *_parent, env_t *_env);
     val_t(datum_stream_t *_sequence, const term_t *_parent, env_t *_env);
     val_t(table_t *_table, const term_t *_parent, env_t *_env);
+    val_t(table_t *_table, datum_stream_t *_sequence,
+          const term_t *_parent, env_t *_env);
     val_t(uuid_t _db, const term_t *_parent, env_t *_env);
     val_t(func_t *_func, const term_t *_parent, env_t *_env);
 

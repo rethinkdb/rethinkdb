@@ -154,6 +154,19 @@ val_t::val_t(datum_stream_t *_sequence, const term_t *_parent, env_t *_env)
         type = type_t::DATUM;
     }
 }
+
+val_t::val_t(table_t *_table, datum_stream_t *_sequence,
+             const term_t *_parent, env_t *_env)
+    : parent(_parent), env(_env),
+      type(type_t::SELECTION),
+      table(env->add_ptr(_table)),
+      sequence(env->add_ptr(_sequence)),
+      datum(0),
+      func(0) {
+    guarantee(table);
+    guarantee(sequence);
+}
+
 val_t::val_t(table_t *_table, const term_t *_parent, env_t *_env)
     : parent(_parent), env(_env),
       type(type_t::TABLE),

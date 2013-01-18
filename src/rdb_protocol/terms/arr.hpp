@@ -45,10 +45,15 @@ private:
             for (size_t i = real_l; i <= real_r; ++i) out->add(arr->el(i));
             return new_val(out.release());
         } else if (v->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
+            table_t *t = 0;
+            if (v->get_type().is_convertible(val_t::type_t::SELECTION)) {
+                t = v->as_selection().first;
+            }
             datum_stream_t *seq = v->as_seq();
             rcheck(fake_l >= 0, "Cannot use a negative left index on a stream.");
             rcheck(fake_r >= -1, "Cannot use a right index < -1 on a stream");
-            return new_val(seq->slice(fake_l, fake_r));
+            datum_stream_t *new_ds = seq->slice(fake_l, fake_r);
+            return t ? new_val(t, new_ds) : new_val(new_ds);
         }
         rfail("Cannot slice non-sequences.");
         unreachable();

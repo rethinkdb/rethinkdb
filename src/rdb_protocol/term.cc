@@ -68,7 +68,7 @@ term_t *compile_term(env_t *env, const Term2 *t) {
     case Term2_TermType_OUTER_JOIN:         return new outer_join_term_t(env, t);
     case Term2_TermType_EQ_JOIN:            return new eq_join_term_t(env, t);
     case Term2_TermType_COERCE:             return new coerce_term_t(env, t);
-    case Term2_TermType_TYPEOF:
+    case Term2_TermType_TYPEOF:             return new typeof_term_t(env, t);
     case Term2_TermType_UPDATE:
     case Term2_TermType_DELETE:
     case Term2_TermType_REPLACE:
@@ -196,6 +196,9 @@ val_t *term_t::new_val(const datum_t *d, table_t *t) {
 }
 
 val_t *term_t::new_val(datum_stream_t *s) { return env->new_val(s, this); }
+val_t *term_t::new_val(table_t *d, datum_stream_t *s) {
+    return env->new_val(d, s, this);
+}
 val_t *term_t::new_val(uuid_t db) { return env->new_val(db, this); }
 val_t *term_t::new_val(table_t *t) { return env->new_val(t, this); }
 val_t *term_t::new_val(func_t *f) { return env->new_val(f, this); }

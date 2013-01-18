@@ -32,27 +32,34 @@ public:
         map["SEQUENCE"] = SEQUENCE_TYPE;
         map["SINGLE_SELECTION"] = SINGLE_SELECTION_TYPE;
         map["DATUM"] = DATUM_TYPE;
-        map["FUNC"] = FUNC_TYPE;
+        map["FUNCTION"] = FUNC_TYPE;
         // TODO: CT_ASSERT this?
         r_sanity_check(val_t::type_t::FUNC < MAX_TYPE);
 
         map["NULL"] = R_NULL_TYPE;
         map["BOOL"] = R_BOOL_TYPE;
-        map["NUM"] = R_NUM_TYPE;
-        map["STR"] = R_STR_TYPE;
+        map["NUMBER"] = R_NUM_TYPE;
         map["STRING"] = R_STR_TYPE;
-        map["ARR"] = R_ARRAY_TYPE;
         map["ARRAY"] = R_ARRAY_TYPE;
-        map["OBJ"] = R_OBJECT_TYPE;
         map["OBJECT"] = R_OBJECT_TYPE;
         r_sanity_check(datum_t::R_OBJECT < MAX_TYPE);
+
+        for (std::map<std::string, int>::iterator
+                 it = map.begin(); it != map.end(); ++it) {
+            rmap[it->second] = it->first;
+        }
     }
     int get_type(const std::string &s) {
-        if (map.count(s) == 0) return -1;
+        rcheck(map.count(s) == 1, strprintf("Unknown Type: %s", s.c_str()));
         return map[s];
+    }
+    std::string get_name(int type) {
+        r_sanity_check(rmap.count(type) == 1);
+        return rmap[type];
     }
 private:
     std::map<std::string, int> map;
+    std::map<int, std::string> rmap;
 
     // These functions are here so that if you add a new type you have to update
     // this file.
@@ -87,9 +94,10 @@ private:
 static coerce_map_t _coerce_map;
 static int get_type(std::string s) {
     std::transform(s.begin(), s.end(), s.begin(), ::toupper);
-    int i = _coerce_map.get_type(s);
-    rcheck(i != -1, strprintf("Unknown Type: %s", s.c_str()));
-    return i;
+    return _coerce_map.get_type(s);
+}
+static std::string get_name(int type) {
+    return _coerce_map.get_name(type);
 }
 
 
@@ -124,6 +132,18 @@ private:
         unreachable();
     }
     RDB_NAME("coerce")
+};
+
+class typeof_term_t : public op_term_t {
+public:
+    typeof_term_t(env_t *env, const Term2 *term) : op_term_t(env, term, argspec_t(1)) { }
+private:
+    virtual val_t *eval_impl() {
+        int t = arg(0)->get_type().raw_type * MAX_TYPE;
+        if (t == DATUM_TYPE) t += arg(0)->as_datum()->get_type();
+        return new_val(get_name(t));
+    }
+    RDB_NAME("typeof")
 };
 
 } // namespace ql
