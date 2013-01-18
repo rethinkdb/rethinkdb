@@ -11,37 +11,50 @@
 #include "logger.hpp"
 #include "utils.hpp"
 
-timer_kqueue_provider_t::timer_kqueue_provider_t(linux_event_queue_t *queue,
-                                                 timer_provider_callback_t *callback,
-                                                 time_t secs, int32_t nsecs)
-    : queue_(queue), callback_(callback), kq_fd_(-1) {
-
-    // We can't make the kqueue a non-blocking file descriptor -- we do non-blocking kevent64 calls.
-    int fd = kqueue();
-    guarantee_err(fd != -1, "kqueue() call failed");
-
-    uint64_t nsecs64 = static_cast<uint64_t>(secs) * BILLION + nsecs;
-
-    struct kevent64_s event;
-    EV_SET64(&event, 99, EVFILT_TIMER, EV_ADD, NOTE_NSECONDS, nsecs64, 0, 0, 0);
-
-    // Setting the timeout to zero makes this a non-blocking call.
-    struct timespec timeout;
-    timeout.tv_sec = 0;
-    timeout.tv_nsec = 0;
-    int res = kevent64(fd, &event, 1, NULL, 0, 0, &timeout);
-    guarantee_err(res != -1, "kevent64 failed when making timer");
-
+timer_kqueue_provider_t::timer_kqueue_provider_t(linux_event_queue_t *queue)
+    : queue_(queue), kq_fd_(-1), callback_(NULL) {
+    const int fd = kqueue();
+    guarantee_err(fd != -1, "kqueue() call falied");
     kq_fd_ = fd;
-
     queue_->watch_resource(kq_fd_, poll_event_in, this);
 }
 
 timer_kqueue_provider_t::~timer_kqueue_provider_t() {
     queue_->forget_resource(kq_fd_, this);
 
-    int res = close(kq_fd_);
+    guarantee(callback_ == NULL);
+    const int res = close(kq_fd_);
     guarantee_err(res == 0, "Could not close the kqueue timer.");
+}
+
+void timer_kqueue_provider_t::schedule_oneshot(const int64_t next_time_in_nanos, timer_provider_interactor_t *const cb) {
+    const int64_t time_difference = next_time_in_nanos - static_cast<int64_t>(get_ticks());
+    const int64_t wait_nanos = std::max<int64_t>(1, time_difference);
+
+    struct kevent64_s event;
+    EV_SET64(&event, 99, EVFILT_TIMER, EV_ADD | EV_ONESHOT, NOTE_NSECONDS, wait_nanos, 0, 0, 0);
+
+    // Setting the timeout to zero makes this a non-blocking call.
+    struct timespec timeout;
+    timeout.tv_sec = 0;
+    timeout.tv_nsec = 0;
+    const int res = kevent64(kq_fd_, &event, 1, NULL, 0, 0, &timeout);
+    guarantee_err(res != -1, "kevent64 failed when making timer");
+
+    callback_ = cb;
+}
+
+void timer_kqueue_provider_t::unschedule_oneshot() {
+    struct kevent64_s event;
+    EV_SET64(&event, 99, EVFILT_TIMER, EV_DELETE, 0, 0, 0, 0, 0);
+
+    struct timespec timeout;
+    timeout.tv_sec = 0;
+    timeout.tv_nsec = 0;
+    const int res = kevent64(kq_fd_, &event, 1, NULL, 0, 0, &timeout);
+    guarantee_err(res != -1, "kevent64 failed when deleting timer");
+
+    callback_ = NULL;
 }
 
 void debug_print(append_only_printf_buffer_t *buf, const struct kevent64_s& event) {
@@ -95,7 +108,12 @@ void timer_kqueue_provider_t::on_event(int eventmask) {
         }
     }
 
-    callback_->on_timer(expiration_count);
+    if (expiration_count > 0 && callback_ != NULL) {
+        // Make the callback be NULL before we call it, so that a new callback can be set.
+        timer_provider_interactor_t *local_cb = callback_;
+        callback_ = NULL;
+        local_cb->on_oneshot();
+    }
 }
 
 #endif  // RDB_TIMER_PROVIDER == RDB_TIMER_PROVIDER_KQUEUE

@@ -79,6 +79,7 @@ void timerfd_provider_t::on_event(int events) {
     if (res == 0 && nexpirations > 0) {
         // The callback could be unscheduled but after the timerfd rang, maybe.  So we check here.
         if (callback != NULL) {
+            // Make the callback be NULL before we call it, so that a new callback can be set.
             timer_provider_interactor_t *local_cb = callback;
             callback = NULL;
             local_cb->on_oneshot();
