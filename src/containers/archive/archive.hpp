@@ -151,6 +151,8 @@ MUST_USE int send_write_message(write_stream_t *s, const write_message_t *msg);
         return ARCHIVE_SUCCESS;                                         \
     }
 
+// TODO: Replace *x = 0 lines below with versions that make the data seem uninitialized to valgrind.
+
 // Designed for <stdint.h>'s u?int[0-9]+_t types, which are just sent
 // raw over the wire.
 #define ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(typ)                         \
@@ -163,9 +165,11 @@ MUST_USE int send_write_message(write_stream_t *s, const write_message_t *msg);
         } u;                                                            \
         int64_t res = force_read(s, u.buf, sizeof(typ));                \
         if (res == -1) {                                                \
+            *x = 0;                                                     \
             return ARCHIVE_SOCK_ERROR;                                  \
         }                                                               \
         if (res < int64_t(sizeof(typ))) {                               \
+            *x = 0;                                                     \
             return ARCHIVE_SOCK_EOF;                                    \
         }                                                               \
         *x = u.v;                                                       \
