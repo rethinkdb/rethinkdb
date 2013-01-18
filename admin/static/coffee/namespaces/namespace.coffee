@@ -173,6 +173,8 @@ module 'NamespaceView', ->
                 data.total_keys = 0
                 for key of @model.get('key_distr')
                     data.total_keys += parseInt @model.get('key_distr')[key]
+            if data.total_keys_available is true and data.total_keys? and data.total_keys is data.total_keys # Check for NaN, just in case
+                data.total_keys = DataUtils.approximate_count data.total_keys
 
             data.stats_up_to_date = true
             for machine in machines.models
