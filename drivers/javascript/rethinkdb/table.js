@@ -73,10 +73,11 @@ rethinkdb.Table.prototype.formatQuery = function(bt) {
  * @extends {rethinkdb.Expression}
  * @ignore
  */
-rethinkdb.GetExpression = function(table, key, opt_primaryKey) {
+rethinkdb.GetExpression = function(table, key, opt_Index) {
     this.table_ = table;
     this.key_ = key;
-    this.primaryKey_ = opt_primaryKey || 'id';
+    this.primaryKey_ = 'id';
+    this.index_= opt_Index || null;
 };
 goog.inherits(rethinkdb.GetExpression, rethinkdb.Expression);
 
@@ -89,6 +90,7 @@ rethinkdb.GetExpression.prototype.compile = function(opt_buildOpts) {
     get.setTableRef(tableRef);
     get.setAttrname(this.primaryKey_);
     get.setKey(this.key_.compile(opt_buildOpts));
+    get.setIndex(this.index_);
 
     var term = new Term();
     term.setType(Term.TermType.GETBYKEY);

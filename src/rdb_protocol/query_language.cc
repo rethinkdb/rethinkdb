@@ -1965,7 +1965,7 @@ boost::shared_ptr<json_stream_t> eval_term_as_stream(Term *t, runtime_environmen
         return boost::shared_ptr<json_stream_t>(new in_memory_stream_t(it));
     } break;
     case Term::GETBYKEY: {
-        if (!t->get_by_key().has_index()) {
+        if (t->get_by_key().has_index()) {
             return eval_sindex_get_by_key_as_stream(t->mutable_get_by_key(), env, scopes, backtrace);
         } else {
             boost::shared_ptr<scoped_cJSON_t> arr = eval_term_as_json(t, env, scopes, backtrace);
