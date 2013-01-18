@@ -29,6 +29,7 @@
 #include "extproc/spawner.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "utils.hpp"
+#include "help.hpp"
 
 namespace po = boost::program_options;
 
@@ -1157,30 +1158,34 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
 }
 
 void help_rethinkdb_create() {
-    printf("'rethinkdb create' is used to prepare a directory to act "
-           "as the storage location for a RethinkDB cluster node.\n");
     std::stringstream sstream;
     sstream << get_rethinkdb_create_options_visible();
-    printf("%s\n", sstream.str().c_str());
+    scoped_ptr_t<help_pager_t> help(new help_pager_t());
+    help->pagef("'rethinkdb create' is used to prepare a directory to act"
+                " as the storage location for a RethinkDB cluster node.\n");
+    help->pagef("%s\n", sstream.str().c_str());
 }
 
 void help_rethinkdb_serve() {
-    printf("'rethinkdb serve' is the actual process for a RethinkDB cluster node.\n");
     std::stringstream sstream;
     sstream << get_rethinkdb_serve_options_visible();
-    printf("%s\n", sstream.str().c_str());
+    scoped_ptr_t<help_pager_t> help(new help_pager_t());
+    help->pagef("'rethinkdb serve' is the actual process for a RethinkDB cluster node.\n");
+    help->pagef("%s\n", sstream.str().c_str());
 }
 
 void help_rethinkdb_proxy() {
-    printf("'rethinkdb proxy' serves as a proxy to an existing RethinkDB cluster.\n");
     std::stringstream sstream;
     sstream << get_rethinkdb_proxy_options_visible();
-    printf("%s\n", sstream.str().c_str());
+    scoped_ptr_t<help_pager_t> help(new help_pager_t());
+    help->pagef("'rethinkdb proxy' serves as a proxy to an existing RethinkDB cluster.\n");
+    help->pagef("%s\n", sstream.str().c_str());
 }
 
 void help_rethinkdb_import() {
-    printf("'rethinkdb import' imports content from a CSV file.\n");
-    std::stringstream s;
-    s << get_rethinkdb_import_options();
-    printf("%s\n", s.str().c_str());
+    std::stringstream sstream;
+    sstream << get_rethinkdb_import_options();
+    scoped_ptr_t<help_pager_t> help(new help_pager_t());
+    help->pagef("'rethinkdb import' imports content from a CSV file.\n");
+    help->pagef("%s\n", sstream.str().c_str());
 }
