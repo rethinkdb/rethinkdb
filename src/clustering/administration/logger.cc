@@ -15,6 +15,9 @@
 #include "containers/scoped.hpp"
 #include "thread_local.hpp"
 
+RDB_IMPL_SERIALIZABLE_2(struct timespec, tv_sec, tv_nsec);
+
+
 std::string format_log_level(log_level_t l) {
     switch (l) {
         case log_level_debug: return "debug";
