@@ -36,7 +36,7 @@ void run_sindex_low_level_operations_test() {
 
     btree_slice_t::create(&cache);
 
-    btree_slice_t btree(&cache, &get_global_perfmon_collection());
+    btree_slice_t btree(&cache, &get_global_perfmon_collection(), "unittest");
 
     order_source_t order_source;
 

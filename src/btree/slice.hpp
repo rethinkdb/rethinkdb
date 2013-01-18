@@ -14,9 +14,9 @@ class key_tester_t;
 
 class btree_stats_t {
 public:
-    explicit btree_stats_t(perfmon_collection_t *parent)
+    explicit btree_stats_t(perfmon_collection_t *parent, const std::string &identifier)
         : btree_collection(),
-          btree_collection_membership(parent, &btree_collection, "btree"),
+          btree_collection_membership(parent, &btree_collection, "btree-" + identifier),
           pm_keys_read(secs_to_ticks(1)),
           pm_keys_set(secs_to_ticks(1)),
           pm_keys_expired(secs_to_ticks(1)),
@@ -54,7 +54,7 @@ public:
     static void create(cache_t *cache, block_id_t superblock_id, transaction_t *txn);
 
     // Blocks
-    btree_slice_t(cache_t *cache, perfmon_collection_t *parent, block_id_t superblock_id = SUPERBLOCK_ID);
+    btree_slice_t(cache_t *cache, perfmon_collection_t *parent, const std::string &identifier, block_id_t superblock_id = SUPERBLOCK_ID);
 
     // Blocks
     ~btree_slice_t();

@@ -32,7 +32,7 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
         btree_slice_t::create(cache.get());
     }
 
-    btree.init(new btree_slice_t(cache.get(), &perfmon_collection));
+    btree.init(new btree_slice_t(cache.get(), &perfmon_collection, "primary"));
 
     if (create) {
         // Initialize metainfo to an empty `binary_blob_t` because its domain is
@@ -294,7 +294,7 @@ void btree_store_t<protocol_t>::add_sindex(
         sindex.opaque_definition = definition;
 
         btree_slice_t::create(txn->get_cache(), sindex.superblock, txn);
-        secondary_index_slices.insert(id, new btree_slice_t(cache.get(), &perfmon_collection));
+        secondary_index_slices.insert(id, new btree_slice_t(cache.get(), &perfmon_collection, uuid_to_str(id)));
     } else {
         get_metainfo(sindex, &metainfo);
     }

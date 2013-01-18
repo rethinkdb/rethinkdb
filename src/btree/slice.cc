@@ -35,8 +35,8 @@ void btree_slice_t::create(cache_t *cache, block_id_t superblock_id, transaction
     sb->sindex_block = sindex_block.get_block_id();
 }
 
-btree_slice_t::btree_slice_t(cache_t *c, perfmon_collection_t *parent, block_id_t _superblock_id)
-    : stats(parent),
+btree_slice_t::btree_slice_t(cache_t *c, perfmon_collection_t *parent, const std::string &identifier, block_id_t _superblock_id)
+    : stats(parent, identifier),
       cache_(c),
       superblock_id_(_superblock_id),
       root_eviction_priority(INITIAL_ROOT_EVICTION_PRIORITY) {

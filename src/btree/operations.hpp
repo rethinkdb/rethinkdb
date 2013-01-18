@@ -131,7 +131,10 @@ class key_modification_callback_t;
 template <class Value>
 class keyvalue_location_t {
 public:
-    keyvalue_location_t() : there_originally_was_value(false), stat_block(NULL_BLOCK_ID), stats(NULL) { }
+    keyvalue_location_t()
+        : superblock(NULL), pass_back_superblock(NULL),
+          there_originally_was_value(false), stat_block(NULL_BLOCK_ID),
+          stats(NULL) { }
 
     ~keyvalue_location_t() {
         if (pass_back_superblock && superblock) {
