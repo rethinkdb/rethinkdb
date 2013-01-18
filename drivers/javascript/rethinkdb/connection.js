@@ -30,6 +30,7 @@ rethinkdb.Connection = function(host, opt_errorHandler) {
     this.port_ = host['port'] || this.DEFAULT_PORT;
     this.db_   = host['db']   || this.DEFAULT_DB;
 
+
     rethinkdb.util.typeCheck_(this.host_, 'string');
     rethinkdb.util.typeCheck_(this.port_, 'number');
     rethinkdb.util.typeCheck_(this.db_,   'string');
@@ -61,6 +62,8 @@ rethinkdb.Connection.prototype.DEFAULT_PORT = 28015;
  * @type {string}
  */
 rethinkdb.Connection.prototype.DEFAULT_DB = 'test';
+
+
 
 /**
  * Closes this connection and reopens a new connection to the same host
