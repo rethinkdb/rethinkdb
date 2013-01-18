@@ -81,13 +81,15 @@ void timer_signal_provider_t::schedule_oneshot(int64_t next_time_in_nanos, timer
     spec.it_interval.tv_sec = 0;
     spec.it_interval.tv_nsec = 0;
 
-    callback = cb;
-
     const int res = timer_settime(timerid, 0, &spec, NULL);
     guarantee_err(res == 0, "Could not arm the timer");
+
+    callback = cb;
 }
 
 void timer_signal_provider_t::unschedule_oneshot() {
+    callback = NULL;
+
     struct itimerspec spec;
     spec.it_interval.tv_sec = 0;
     spec.it_interval.tv_nsec = 0;
