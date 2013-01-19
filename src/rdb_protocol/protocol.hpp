@@ -419,8 +419,9 @@ struct rdb_protocol_t {
     class point_replace_t {
     public:
         point_replace_t() { }
-        point_replace_t(const store_key_t &_key, const ql::map_wire_func_t &_f)
-            : key(_key), f(_f) { }
+        point_replace_t(const std::string &_primary_key, const store_key_t &_key,
+                        const ql::map_wire_func_t &_f)
+            : primary_key(_primary_key), key(_key), f(_f) { }
 
         std::string primary_key;
         store_key_t key;

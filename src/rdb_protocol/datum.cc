@@ -8,9 +8,8 @@
 
 namespace ql {
 
-datum_t::datum_t() : type(R_NULL) { }
-datum_t::datum_t(bool _bool, bool __bool) : type(R_BOOL), r_bool(_bool) {
-    r_sanity_check(_bool == __bool);
+datum_t::datum_t(type_t _type, bool _bool) : type(_type), r_bool(_bool) {
+    r_sanity_check(_type == R_BOOL);
 }
 datum_t::datum_t(double _num) : type(R_NUM), r_num(_num) {
     rcheck(std::isfinite(r_num), strprintf("Non-finite number: %.20g", r_num));
@@ -256,9 +255,11 @@ const datum_t *datum_t::merge(env_t *env, const datum_t *rhs, merge_res_f f) con
     for (std::map<const std::string, const datum_t *>::const_iterator
              it = rhs_obj.begin(); it != rhs_obj.end(); ++it) {
         if (const datum_t *l = el(it->first, false /*nothrow*/)) {
-            UNUSED bool b = d->add(it->first, f(env, it->first, l, it->second));
+            bool b = d->add(it->first, f(env, it->first, l, it->second), true);
+            r_sanity_check(b);
         } else {
-            UNUSED bool b = d->add(it->first, it->second);
+            bool b = d->add(it->first, it->second);
+            r_sanity_check(!b);
         }
     }
     return d;

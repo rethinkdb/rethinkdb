@@ -95,10 +95,15 @@ void func_t::dump_scope(std::map<int, Datum> *out) const {
 
 wire_func_t::wire_func_t() { }
 wire_func_t::wire_func_t(env_t *env, func_t *func) {
-    cached_funcs[env] = func;
+    if (env) cached_funcs[env] = func;
     source = *func->source;
     func->dump_scope(&scope);
 }
+wire_func_t::wire_func_t(const Term2 &_source, std::map<int, Datum> *_scope)
+    : source(_source) {
+    if (_scope) scope = *_scope;
+}
+
 func_t *wire_func_t::compile(env_t *env) {
     if (cached_funcs.count(env) == 0) {
         env->push_scope(&scope);

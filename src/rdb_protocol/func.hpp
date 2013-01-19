@@ -42,6 +42,7 @@ public:
     wire_func_t();
     virtual ~wire_func_t() { }
     wire_func_t(env_t *env, func_t *_func);
+    wire_func_t(const Term2 &_source, std::map<int, Datum> *_scope);
     func_t *compile(env_t *env);
     virtual backtrace_t::frame_t bt() = 0;
 protected:
@@ -59,6 +60,8 @@ class name##_wire_func_t : public wire_func_t {                               \
 public:                                                                       \
     name##_wire_func_t() : wire_func_t() { }                                  \
     name##_wire_func_t(env_t *env, func_t *func) : wire_func_t(env, func) { } \
+    name##_wire_func_t(const Term2 &_source, std::map<int, Datum> *_scope)    \
+        : wire_func_t(_source, _scope) { }                                    \
     virtual backtrace_t::frame_t bt() { return name##_bt_frame; }             \
     RDB_MAKE_ME_SERIALIZABLE_2(source, scope);                                \
 };                                                                            \

@@ -161,6 +161,7 @@ void rdb_replace(const std::string &primary_key,
                  repli_timestamp_t timestamp,
                  transaction_t *txn,
                  superblock_t *superblock) {
+    const ql::datum_t *num_1 = ql_env->add_ptr(new ql::datum_t(1));
     ql::datum_t *resp = ql_env->add_ptr(new ql::datum_t(ql::datum_t::R_OBJECT));
     try {
         keyvalue_location_t<rdb_value_t> kv_location;
@@ -185,31 +186,32 @@ void rdb_replace(const std::string &primary_key,
         const ql::datum_t *new_val = f->compile(ql_env)->call(lhs)->as_datum();
         ended_empty = (new_val->get_type() == ql::datum_t::R_NULL);
 
-        const ql::datum_t *count = ql_env->add_ptr(new ql::datum_t(1));
         if (started_empty) {
             if (ended_empty) {
-                bool b = resp->add("skipped", count);
+                bool b = resp->add("skipped", num_1);
                 guarantee(!b);
             } else {
-                bool b = resp->add("inserted", count);
+                bool b = resp->add("inserted", num_1);
                 guarantee(!b);
                 kv_location_set(&kv_location, key, new_val->as_json(),
                                 slice, timestamp, txn);
             }
         } else {
             if (ended_empty) {
-                bool b = resp->add("deleted", count);
+                bool b = resp->add("deleted", num_1);
                 guarantee(!b);
                 kv_location_delete(&kv_location, key, slice, timestamp, txn);
             } else {
-                bool b = resp->add("replaced", count);
+                bool b = resp->add("replaced", num_1);
                 guarantee(!b);
                 kv_location_set(&kv_location, key, new_val->as_json(),
                                 slice, timestamp, txn);
             }
         }
     } catch (const ql::exc_t &e) {
-        bool b = resp->add("first_error", ql_env->add_ptr(new ql::datum_t(e.what())));
+        std::string msg = e.what();
+        bool b = resp->add("errors", num_1)
+            ||   resp->add("first_error", ql_env->add_ptr(new ql::datum_t(msg)));
         guarantee(!b);
     }
     resp->write_to_protobuf(response);

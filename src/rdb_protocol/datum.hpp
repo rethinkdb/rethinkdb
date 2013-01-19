@@ -19,9 +19,18 @@ class datum_stream_t;
 
 class datum_t : public ptr_baggable_t {
 public:
-    datum_t(); // R_NULL
+    enum type_t {
+        R_NULL   = 1,
+        R_BOOL   = 2,
+        R_NUM    = 3,
+        R_STR    = 4,
+        R_ARRAY  = 5,
+        R_OBJECT = 6
+    };
+    explicit datum_t(type_t _type);
+
     explicit datum_t(bool _bool); // undefined, catches implicit conversion errors
-    datum_t(bool _bool, bool __bool);
+    datum_t(type_t _type, bool _bool); // Need to explicitly ask to construct a bool.
     explicit datum_t(double _num);
     explicit datum_t(int _num);
     explicit datum_t(const std::string &_str);
@@ -36,15 +45,6 @@ public:
     explicit datum_t(boost::shared_ptr<scoped_cJSON_t> json, env_t *env);
     void write_to_protobuf(Datum *out) const;
 
-    enum type_t {
-        R_NULL   = 1,
-        R_BOOL   = 2,
-        R_NUM    = 3,
-        R_STR    = 4,
-        R_ARRAY  = 5,
-        R_OBJECT = 6
-    };
-    explicit datum_t(type_t _type);
     type_t get_type() const;
     const char *get_type_name() const;
     std::string print() const;

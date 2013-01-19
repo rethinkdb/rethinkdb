@@ -41,9 +41,8 @@ public:
     val_t *new_val(uuid_t db);
     val_t *new_val(table_t *t);
     val_t *new_val(func_t *f);
-    val_t *new_val_bool(bool b) { return new_val(new datum_t(b, b)); }
+    val_t *new_val_bool(bool b) { return new_val(new datum_t(datum_t::R_BOOL, b)); }
 
-    val_t *new_val() { return new_val(new datum_t()); }
     template<class T>
     val_t *new_val(T *t) { return new_val(static_cast<datum_stream_t *>(t)); }
     template<class T>

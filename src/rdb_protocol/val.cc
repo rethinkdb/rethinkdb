@@ -1,8 +1,9 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "clustering/administration/metadata.hpp"
-#include "rdb_protocol/val.hpp"
 #include "rdb_protocol/env.hpp"
+#include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/term.hpp"
+#include "rdb_protocol/val.hpp"
 
 namespace ql {
 static const char *valid_char_msg = name_string_t::valid_char_msg;
@@ -56,6 +57,42 @@ table_t::table_t(env_t *_env, uuid_t db_id, const std::string &name, bool _use_o
     guarantee(!ns_metadata_it->second.is_deleted());
     r_sanity_check(!ns_metadata_it->second.get().primary_key.in_conflict());
     pkey =  ns_metadata_it->second.get().primary_key.get();
+}
+
+const datum_t *table_t::replace(const datum_t *orig, const map_wire_func_t &mwf) {
+    const std::string &pk = get_pkey();
+    store_key_t store_key(orig->el(pk)->print_primary());
+    rdb_protocol_t::write_t write(rdb_protocol_t::point_replace_t(pk, store_key, mwf));
+
+    rdb_protocol_t::write_response_t response;
+    access->get_namespace_if()->write(
+        write, &response, order_token_t::ignore, env->interruptor);
+    Datum *d = boost::get<Datum>(&response.response);
+    return env->add_ptr(new datum_t(d, env));
+}
+
+
+const datum_t *table_t::replace(const datum_t *orig, func_t *f) {
+    return replace(orig, map_wire_func_t(env, f));
+}
+
+const datum_t *table_t::replace(const datum_t *orig, const datum_t *d, bool upsert) {
+    Term2 t;
+    int x = env->gensym();
+    Term2 *arg = pb::set_func(&t, x);
+    if (upsert) {
+        d->write_to_protobuf(pb::set_datum(arg));
+    } else {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"
+        N3(BRANCH,
+           N2(EQ, pb::set_var(arg, x), pb::set_null(arg)),
+           d->write_to_protobuf(pb::set_datum(arg)),
+           N1(ERROR, pb::set_str(arg, "Duplicate primary key.")))
+#pragma GCC diagnostic pop
+    }
+
+    return replace(orig, map_wire_func_t(t, 0));
 }
 
 const std::string &table_t::get_pkey() { return pkey; }

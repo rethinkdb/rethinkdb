@@ -20,6 +20,7 @@ public:
     const std::string &get_pkey();
     const datum_t *get_row(const datum_t *pval);
 
+    const datum_t *replace(const datum_t *orig, const map_wire_func_t &mwf);
     const datum_t *replace(const datum_t *orig, func_t *f);
     const datum_t *replace(const datum_t *orig, const datum_t *d, bool upsert);
 private:

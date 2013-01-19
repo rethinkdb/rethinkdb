@@ -49,7 +49,7 @@ public:
         guarantee(namestr && op);
     }
     virtual val_t *eval_impl() {
-        datum_t *acc = env->add_ptr(new datum_t());
+        datum_t *acc = env->add_ptr(new datum_t(datum_t::R_NULL));
         *acc = *arg(0)->as_datum();
         for (size_t i = 1; i < num_args(); ++i) {
             *acc = (*op)(*acc, *arg(i)->as_datum());

@@ -664,7 +664,7 @@ namespace {
 // TODO: get rid of this extra response_t copy on the stack
 struct write_visitor_t : public boost::static_visitor<void> {
     void operator()(const point_replace_t &r) {
-        response->response = point_modify_response_t();
+        response->response = point_replace_response_t();
         point_replace_response_t *res =
             boost::get<point_replace_response_t>(&response->response);
         // TODO: modify surrounding code so we can dump this const_cast.

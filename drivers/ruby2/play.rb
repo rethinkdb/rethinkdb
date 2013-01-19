@@ -391,6 +391,19 @@ rae(r.typeof(tbl.map(r.func([1], true))), "SEQUENCE")
 rae(r.typeof(tbl.get(0)), "SINGLE_SELECTION")
 rae(r.typeof(r.func([1], true)), "FUNCTION")
 
+tx = r.db('test').table('x')
+tx.delete.run
+rae(tx.insert([{:id => 1}, {:id => 2}, {:id => 3}]), {"inserted"=>3.0})
+rae(tx.insert([{:id => 1}, {:id => 2}, {:id => 3}]),
+    {"errors"=>3.0, "first_error"=>"Duplicate primary key."})
+rae(tx.insert([{:id => 1}, {:id => 2}, {:id => 3}]).opt(:upsert, true),
+    {"replaced" => 3})
+rae(tx.insert({:id => 4}), {"inserted" => 1})
+rae(tx.insert(tx.map(r.func([1], r.make_obj.opt(:id, r.var(1).getattr(:id).add(10))))),
+    {"inserted" => 4})
+rae(tx.get(1).delete, {"deleted" => 1})
+rae(tx.filter(r.func([1], r.var(1).getattr(:id).lt(10))).delete, {"deleted" => 3})
+
 ####
 
 print "test.test: #{r.db('test').table('test').run.inspect}\n"
