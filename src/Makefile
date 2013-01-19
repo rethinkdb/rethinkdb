@@ -777,7 +777,6 @@ COFFEE_SOURCES:=$(patsubst %, $(WEB_SOURCE_DIR)/static/coffee/%,\
 			vis.coffee \
 			models.coffee \
 			navbar.coffee \
-			walkthrough.coffee \
 			router.coffee \
 			app.coffee)
 LESS_SOURCES:=$(shell find $(WEB_SOURCE_DIR)/static/less -name '*.less')
