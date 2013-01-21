@@ -442,6 +442,7 @@ assert_raise { tbl.get(0).replace(r.func([1], tbl.get(0))).run }
 rae(tbl.get(0).replace(r.func([1], tbl.get(0))).opt(:non_atomic_ok, true),
     {"replaced"=>1.0})
 
+assert_equal(tbl.insert([{:a => 0}, {:a => 0}]).run['generated_keys'].length, 2)
 ####
 
 print "test.test: #{r.db('test').table('test').run.inspect}\n"
