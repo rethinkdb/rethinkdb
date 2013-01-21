@@ -105,7 +105,7 @@ void run(Query2 *q, env_t *env, Response2 *res, stream_cache_t *stream_cache) {
         }
 
         try {
-            val_t *val = root_term->eval(env);
+            val_t *val = root_term->eval(false);
             if (val->get_type().is_convertible(val_t::type_t::DATUM)) {
                 res->set_type(Response2_ResponseType_SUCCESS_ATOM);
                 const datum_t *d = val->as_datum();

@@ -55,15 +55,6 @@ private:
     boost::ptr_map<const std::string, term_t> optargs;
 };
 
-// class simple_op_term_t : public op_term_t {
-// public:
-//     simple_op_term_t(env_t *env, const Term2 *term);
-//     virtual ~simple_op_term_t();
-// private:
-//     virtual val_t *eval_impl();
-//     virtual val_t *simple_call_impl(std::vector<val_t *> *args) = 0;
-// };
-
 #define RDB_NAME(str) \
     static const char *_name() { return str; } \
     virtual const char *name() const { return str; }

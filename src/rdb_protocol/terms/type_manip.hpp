@@ -100,35 +100,99 @@ static std::string get_name(int type) {
     return _coerce_map.get_name(type);
 }
 
+static val_t::type_t::raw_type_t supertype(int type) {
+    return static_cast<val_t::type_t::raw_type_t>(type / MAX_TYPE);
+}
+static datum_t::type_t subtype(int type) {
+    return static_cast<datum_t::type_t>(type - supertype(type));
+}
+static int merge_types(int supertype, int subtype) {
+    return supertype * MAX_TYPE + subtype;
+}
 
-#define TPAIR(TYPE1, TYPE2) (((TYPE1)*MAX_TYPE*MAX_TYPE)+(TYPE2))
 class coerce_term_t : public op_term_t {
 public:
     coerce_term_t(env_t *env, const Term2 *term) : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual val_t *eval_impl() {
         val_t *val = arg(0);
-        int start_type = val->get_type().raw_type * MAX_TYPE;
-        if (start_type == DATUM_TYPE) start_type += val->as_datum()->get_type();
+        val_t::type_t opaque_start_type = val->get_type();
+        int start_supertype = opaque_start_type.raw_type;
+        int start_subtype = 0;
+        if (opaque_start_type.is_convertible(val_t::type_t::DATUM)) {
+            start_subtype = val->as_datum()->get_type();
+        }
+        int start_type = merge_types(start_supertype, start_subtype);
+
         std::string end_type_name = arg(1)->as_datum()->as_str();
         int end_type = get_type(end_type_name);
 
-        switch(TPAIR(start_type, end_type)) {
-        case TPAIR(TABLE_TYPE, DATUM_TYPE): // fallthru
-        case TPAIR(SEQUENCE_TYPE, DATUM_TYPE): // fallthru
-        case TPAIR(TABLE_TYPE, R_ARRAY_TYPE): // fallthru
-        case TPAIR(SEQUENCE_TYPE, R_ARRAY_TYPE): {
-            scoped_ptr_t<datum_t> d(new datum_t(datum_t::R_ARRAY));
-            datum_stream_t *ds = arg(0)->as_seq();
-            while (const datum_t *el = ds->next()) d->add(el);
-            return new_val(d.release());
-        }; break;
-        default: {
-            rfail("Cannot COERCE %s to %s.",
-                  val->get_type().name(),
-                  end_type_name.c_str());
-        }; break;
+        // Identity
+        if (!subtype(end_type)
+            && opaque_start_type.is_convertible(supertype(end_type))) {
+            return val;
         }
+
+        // DATUM -> *
+        if (opaque_start_type.is_convertible(val_t::type_t::DATUM)) {
+            const datum_t *d = val->as_datum();
+            // DATUM -> DATUM
+            if (supertype(end_type) == val_t::type_t::DATUM) {
+                // DATUM -> STR
+                if (end_type == R_STR_TYPE) {
+                    return new_val(new datum_t(d->print()));
+                }
+
+                // OBJECT -> ARRAY
+                if (start_type == R_OBJECT_TYPE && end_type == R_ARRAY_TYPE) {
+                    datum_t *arr = env->add_ptr(new datum_t(datum_t::R_ARRAY));
+                    const std::map<const std::string, const datum_t *> &obj =
+                        d->as_object();
+                    for (std::map<const std::string, const datum_t *>::const_iterator
+                             it = obj.begin(); it != obj.end(); ++it) {
+                        datum_t *pair = env->add_ptr(new datum_t(datum_t::R_ARRAY));
+                        pair->add(env->add_ptr(new datum_t(it->first)));
+                        pair->add(it->second);
+                        arr->add(pair);
+                    }
+                    return new_val(arr);
+                }
+
+            }
+            // TODO: Object to sequence?
+        }
+
+        if (opaque_start_type.is_convertible(val_t::type_t::SEQUENCE)) {
+            datum_stream_t *ds = val->as_seq();
+            // SEQUENCE -> ARRAY
+            if (end_type == R_ARRAY_TYPE || end_type == DATUM_TYPE) {
+                datum_t *arr = env->add_ptr(new datum_t(datum_t::R_ARRAY));
+                while (const datum_t *el = ds->next()) arr->add(el);
+                return new_val(arr);
+            }
+
+            // SEQUENCE -> OBJECT
+            if (end_type == R_OBJECT_TYPE) {
+                if (start_type == R_ARRAY_TYPE && end_type == R_OBJECT_TYPE) {
+                    datum_t *obj = env->add_ptr(new datum_t(datum_t::R_OBJECT));
+                    while (const datum_t *pair = ds->next()) {
+                        std::string key = pair->el(0)->as_str();
+                        const datum_t *keyval = pair->el(1);
+                        bool b = obj->add(key, keyval);
+                        rcheck(!b, strprintf("Duplicate key %s in coerced object. "
+                                             " (got %s and %s as values)",
+                                             key.c_str(),
+                                             obj->el(key)->print().c_str(),
+                                             keyval->print().c_str()));
+                    }
+                    return new_val(obj);
+                }
+            }
+
+        }
+
+        rfail("Cannot COERCE %s to %s.",
+              get_name(start_type).c_str(), get_name(end_type).c_str());
         unreachable();
     }
     RDB_NAME("coerce")
