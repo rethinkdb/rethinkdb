@@ -61,6 +61,17 @@ table_t::table_t(env_t *_env, uuid_t db_id, const std::string &name, bool _use_o
 
 const datum_t *table_t::replace(const datum_t *orig, const map_wire_func_t &mwf) {
     const std::string &pk = get_pkey();
+    if (orig->get_type() == datum_t::R_NULL) {
+        map_wire_func_t mwf2 = mwf;
+        orig = mwf2.compile(env)->call(orig)->as_datum();
+        if (orig->get_type() == datum_t::R_NULL) {
+            datum_t *resp = env->add_ptr(new datum_t(datum_t::R_OBJECT));
+            const datum_t *num_1 = env->add_ptr(new ql::datum_t(1));
+            bool b = resp->add("skipped", num_1);
+            r_sanity_check(!b);
+            return resp;
+        }
+    }
     store_key_t store_key(orig->el(pk)->print_primary());
     rdb_protocol_t::write_t write(rdb_protocol_t::point_replace_t(pk, store_key, mwf));
 

@@ -112,8 +112,9 @@ class eq_join_term_t : public rewrite_term_t {
 public:
     eq_join_term_t(env_t *env, const Term2 *term) :
         rewrite_term_t(env, term, rewrite) { }
+private:
     static void rewrite(env_t *env, const Term2 *in, Term2 *out) {
-        rcheck(in->args_size() == 3, "eq_join requires 2 arguments.");
+        rcheck(in->args_size() == 3, "eq_join requires 3 arguments.");
         const Term2 *l = &in->args(0);
         const Term2 *lattr = &in->args(1);
         const Term2 *r = &in->args(2);
@@ -143,6 +144,46 @@ public:
 #pragma GCC diagnostic pop
     }
     RDB_NAME("inner_join")
+};
+
+class delete_term_t : public rewrite_term_t {
+public:
+    delete_term_t(env_t *env, const Term2 *term) : rewrite_term_t(env, term, rewrite) { }
+private:
+    static void rewrite(env_t *env, const Term2 *in, Term2 *out) {
+        rcheck(in->args_size() == 1, "delete requires ` arguments");
+        int x = env->gensym();
+
+        Term2 *arg = out;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"
+        N2(REPLACE, *arg = in->args(0), pb::set_null(pb::set_func(arg, x)));
+#pragma GCC diagnostic pop
+     }
+     RDB_NAME("delete")
+};
+
+class update_term_t : public rewrite_term_t {
+public:
+    update_term_t(env_t *env, const Term2 *term) : rewrite_term_t(env, term, rewrite) { }
+private:
+    static void rewrite(env_t *env, const Term2 *in, Term2 *out) {
+        rcheck(in->args_size() == 2, "update requires ` arguments");
+        int x = env->gensym();
+
+        Term2 *arg = out;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"
+        N2(REPLACE, *arg = in->args(0), arg = pb::set_func(arg, x);
+           N3(BRANCH,
+              N2(EQ, pb::set_var(arg, x), pb::set_null(arg)),
+              pb::set_null(arg),
+              N2(MERGE,
+                 pb::set_var(arg, x),
+                 N2(FUNCALL, *arg = in->args(1), pb::set_var(arg, x)))));
+#pragma GCC diagnostic pop
+    }
+    RDB_NAME("update")
 };
 
 } // namespace ql

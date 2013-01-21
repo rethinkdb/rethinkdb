@@ -63,13 +63,13 @@ public:
     val_t(uuid_t _db, const term_t *_parent, env_t *_env);
     val_t(func_t *_func, const term_t *_parent, env_t *_env);
 
-    uuid_t as_db(); // X
-    table_t *as_table(); // X
+    uuid_t as_db();
+    table_t *as_table();
     std::pair<table_t *, datum_stream_t *> as_selection();
-    datum_stream_t *as_seq(); // X
-    std::pair<table_t *, const datum_t *> as_single_selection(); // X
-    const datum_t *as_datum(); // X
-    func_t *as_func(); // X
+    datum_stream_t *as_seq();
+    std::pair<table_t *, const datum_t *> as_single_selection();
+    const datum_t *as_datum();
+    func_t *as_func();
 
     std::string print() {
         if (get_type().is_convertible(type_t::DATUM)) {

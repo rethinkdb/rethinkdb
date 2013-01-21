@@ -391,7 +391,7 @@ rae(r.typeof(tbl.map(r.func([1], true))), "SEQUENCE")
 rae(r.typeof(tbl.get(0)), "SINGLE_SELECTION")
 rae(r.typeof(r.func([1], true)), "FUNCTION")
 
-tx = r.db('test').table('x')
+tx = r.db('test').table('x2')
 tx.delete.run
 rae(tx.insert([{:id => 1}, {:id => 2}, {:id => 3}]), {"inserted"=>3.0})
 rae(tx.insert([{:id => 1}, {:id => 2}, {:id => 3}]),
@@ -403,6 +403,21 @@ rae(tx.insert(tx.map(r.func([1], r.make_obj.opt(:id, r.var(1).getattr(:id).add(1
     {"inserted" => 4})
 rae(tx.get(1).delete, {"deleted" => 1})
 rae(tx.filter(r.func([1], r.var(1).getattr(:id).lt(10))).delete, {"deleted" => 3})
+
+assert_equal(tx.update(r.func([1], r.make_obj.opt(:id, r.var(1).getattr(:id).mul(2)))).run['errors'], 4)
+rae(tx.update(r.func([1], r.make_obj.opt(:id2, r.var(1).getattr(:id).mul(2)))),
+    {"replaced"=>4.0})
+rae(tx.orderby([:id]),
+    [{"id2"=>22.0, "id"=>11.0}, {"id2"=>24.0, "id"=>12.0}, {"id2"=>26.0, "id"=>13.0}, {"id2"=>28.0, "id"=>14.0}])
+rae(tx.get(11).update(r.func([1], r.make_obj.opt(:a, 1))), {"replaced"=>1.0})
+rae(tx.get(11), {"id2"=>22.0, "a"=>1.0, "id"=>11.0})
+rae(tx.get(110).update(r.func([1], r.make_obj.opt(:a, 1))), {"skipped"=>1.0})
+
+rae(tx.replace(r.func([1], r.make_obj.opt(:id, r.var(1).getattr(:id)))),
+    {"replaced"=>4.0})
+rae(tx.orderby([:id]), [{"id"=>11.0}, {"id"=>12.0}, {"id"=>13.0}, {"id"=>14.0}])
+rae(tx.get(11).replace(r.func([1], {:id => 11})), {"replaced"=>1.0})
+assert_equal(tx.get(11).replace(r.func([1], {:id => 12})).run['errors'], 1)
 
 ####
 

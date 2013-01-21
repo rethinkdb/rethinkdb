@@ -130,6 +130,9 @@ std::string datum_t::print_primary() const {
 }
 
 void datum_t::check_type(type_t desired) const {
+    if (get_type() != desired) {
+        debugf("%s != %s\n", datum_type_name(get_type()), datum_type_name(desired));
+    }
     rcheck(get_type() == desired,
            strprintf("Wrong type: expected %s but got %s.",
                      datum_type_name(desired), datum_type_name(get_type())));

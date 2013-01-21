@@ -170,48 +170,56 @@ void rdb_replace(const std::string &primary_key,
             &slice->root_eviction_priority, &slice->stats);
 
         bool started_empty, ended_empty;
-        const ql::datum_t *lhs;
+        const ql::datum_t *old_val;
         if (!kv_location.value.has()) {
             started_empty = true;
-            lhs = ql_env->add_ptr(new ql::datum_t(ql::datum_t::R_NULL));
+            old_val = ql_env->add_ptr(new ql::datum_t(ql::datum_t::R_NULL));
         } else {
             started_empty = false;
-            boost::shared_ptr<scoped_cJSON_t> lhs_json =
+            boost::shared_ptr<scoped_cJSON_t> old_val_json =
                 get_data(kv_location.value.get(), txn);
-            guarantee(lhs_json->GetObjectItem(primary_key.c_str()));
-            lhs = ql_env->add_ptr(new ql::datum_t(lhs_json, ql_env));
+            guarantee(old_val_json->GetObjectItem(primary_key.c_str()));
+            old_val = ql_env->add_ptr(new ql::datum_t(old_val_json, ql_env));
         }
-        guarantee(lhs);
+        guarantee(old_val);
 
-        const ql::datum_t *new_val = f->compile(ql_env)->call(lhs)->as_datum();
+        const ql::datum_t *new_val = f->compile(ql_env)->call(old_val)->as_datum();
         ended_empty = (new_val->get_type() == ql::datum_t::R_NULL);
 
+        bool conflict = true;
         if (started_empty) {
             if (ended_empty) {
-                bool b = resp->add("skipped", num_1);
-                guarantee(!b);
+                conflict = resp->add("skipped", num_1);
             } else {
-                bool b = resp->add("inserted", num_1);
-                guarantee(!b);
+                conflict = resp->add("inserted", num_1);
                 kv_location_set(&kv_location, key, new_val->as_json(),
                                 slice, timestamp, txn);
             }
         } else {
             if (ended_empty) {
-                bool b = resp->add("deleted", num_1);
-                guarantee(!b);
+                conflict = resp->add("deleted", num_1);
                 kv_location_delete(&kv_location, key, slice, timestamp, txn);
             } else {
-                bool b = resp->add("replaced", num_1);
-                guarantee(!b);
-                kv_location_set(&kv_location, key, new_val->as_json(),
-                                slice, timestamp, txn);
+                if (*old_val->el(primary_key) == *new_val->el(primary_key)) {
+                    conflict = resp->add("replaced", num_1);
+                    kv_location_set(&kv_location, key, new_val->as_json(),
+                                    slice, timestamp, txn);
+                } else {
+                    std::string msg = strprintf(
+                        "Primary key (%s) cannot be changed (%s -> %s)",
+                        primary_key.c_str(),
+                        old_val->print().c_str(), new_val->print().c_str());
+                    const ql::datum_t *msg_d = ql_env->add_ptr(new ql::datum_t(msg));
+                    conflict = resp->add("errors", num_1)
+                            || resp->add("first_error", msg_d);
+                }
             }
         }
+        guarantee(!conflict); // message never added twice
     } catch (const ql::exc_t &e) {
         std::string msg = e.what();
         bool b = resp->add("errors", num_1)
-            ||   resp->add("first_error", ql_env->add_ptr(new ql::datum_t(msg)));
+              || resp->add("first_error", ql_env->add_ptr(new ql::datum_t(msg)));
         guarantee(!b);
     }
     resp->write_to_protobuf(response);

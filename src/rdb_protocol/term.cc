@@ -71,11 +71,9 @@ term_t *compile_term(env_t *env, const Term2 *t) {
     case Term2_TermType_EQ_JOIN:            return new eq_join_term_t(env, t);
     case Term2_TermType_COERCE:             return new coerce_term_t(env, t);
     case Term2_TermType_TYPEOF:             return new typeof_term_t(env, t);
-    case Term2_TermType_UPDATE:
-        break;
+    case Term2_TermType_UPDATE:             return new update_term_t(env, t);
     case Term2_TermType_DELETE:             return new delete_term_t(env, t);
-    case Term2_TermType_REPLACE:
-        break;
+    case Term2_TermType_REPLACE:            return new replace_term_t(env, t);
     case Term2_TermType_INSERT:             return new insert_term_t(env, t);
     case Term2_TermType_DB_CREATE:
     case Term2_TermType_DB_DROP:
