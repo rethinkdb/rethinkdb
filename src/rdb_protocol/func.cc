@@ -92,6 +92,9 @@ void func_t::dump_scope(std::map<int, Datum> *out) const {
         (*it->second)->write_to_protobuf(&(*out)[it->first]);
     }
 }
+bool func_t::is_deterministic() {
+    return body->is_deterministic();
+}
 
 wire_func_t::wire_func_t() { }
 wire_func_t::wire_func_t(env_t *env, func_t *func) {
@@ -116,5 +119,8 @@ func_t *wire_func_t::compile(env_t *env) {
 func_term_t::func_term_t(env_t *env, const Term2 *term)
         : term_t(env), func(env->new_func(term)) { }
 val_t *func_term_t::eval_impl() { return new_val(func); }
+bool func_term_t::is_deterministic() {
+    return func->is_deterministic();
+}
 
 } // namespace ql

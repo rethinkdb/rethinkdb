@@ -8,6 +8,7 @@ public:
         guarantee(raw_val);
     }
 private:
+    virtual bool is_deterministic() { return true; }
     virtual val_t *eval_impl() { return raw_val; }
     RDB_NAME("datum")
     val_t *raw_val;

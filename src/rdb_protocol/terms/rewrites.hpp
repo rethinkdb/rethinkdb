@@ -10,10 +10,14 @@ public:
                    void (*rewrite)(env_t *, const Term2 *, Term2 *))
         : term_t(env), in(term) {
         rewrite(env, in, &out);
+        for (int i = 0; i < in->optargs_size(); ++i) {
+            *out.add_optargs() = in->optargs(i);
+        }
         //debugf("%s\n--->\n%s\n", in->DebugString().c_str(), out.DebugString().c_str());
         real.init(compile_term(env, &out));
     }
 private:
+    virtual bool is_deterministic() { return real->is_deterministic(); }
     virtual val_t *eval_impl() { return real->eval(use_cached_val); }
     const Term2 *in;
     Term2 out;

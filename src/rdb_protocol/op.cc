@@ -43,16 +43,11 @@ val_t *op_term_t::optarg(const std::string &key, val_t *def/*ault*/) {
     return it->second->eval(use_cached_val);
 }
 
-// simple_op_term_t::simple_op_term_t(env_t *env, const Term2 *term)
-//     : op_term_t(env, term) { }
-// simple_op_term_t::~simple_op_term_t() { }
-// val_t *simple_op_term_t::eval_impl() {
-//     check_no_optargs();
-//     std::vector<val_t *> new_args;
-//     for (size_t i = 0; i < num_args(); ++i) {
-//         new_args.push_back(arg(i)->eval(use_cached_val));
-//     }
-//     return simple_call_impl(&new_args);
-// }
+bool op_term_t::is_deterministic() {
+    for (size_t i = 0; i < num_args(); ++i) {
+        if (!args[i].is_deterministic()) return false;
+    }
+    return true;
+}
 
 } //namespace ql

@@ -43,22 +43,27 @@ private:
     RDB_NAME("insert")
 };
 
+static const char *const replace_optargs[] = {"non_atomic_ok"};
 class replace_term_t : public op_term_t {
 public:
-    replace_term_t(env_t *env, const Term2 *term) : op_term_t(env, term, argspec_t(2)) { }
+    replace_term_t(env_t *env, const Term2 *term)
+        : op_term_t(env, term, argspec_t(2), LEGAL_OPTARGS(replace_optargs)) { }
 private:
     virtual val_t *eval_impl() {
+        bool nondet_ok = false;
+        if (val_t *v = optarg("non_atomic_ok", 0)) nondet_ok = v->as_datum()->as_bool();
+
         func_t *f = arg(1)->as_func();
         if (arg(0)->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
             std::pair<table_t *, const datum_t *> tblrow = arg(0)->as_single_selection();
-            return new_val(tblrow.first->replace(tblrow.second, f));
+            return new_val(tblrow.first->replace(tblrow.second, f, nondet_ok));
         }
         std::pair<table_t *, datum_stream_t *> tblrows = arg(0)->as_selection();
         table_t *tbl = tblrows.first;
         datum_stream_t *ds = tblrows.second;
         const datum_t *stats = env->add_ptr(new datum_t(datum_t::R_OBJECT));
         while (const datum_t *d = ds->next()) {
-            stats = stats->merge(env, tbl->replace(d, f), stats_merge);
+            stats = stats->merge(env, tbl->replace(d, f, nondet_ok), stats_merge);
         }
         return new_val(stats);
     }

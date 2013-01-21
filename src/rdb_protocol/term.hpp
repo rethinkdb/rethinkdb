@@ -51,6 +51,8 @@ public:
     void set_bt(T t) { frame.init(new backtrace_t::frame_t(t)); }
     bool has_bt() { return frame.has(); }
     backtrace_t::frame_t get_bt() { return *frame.get(); }
+
+    virtual bool is_deterministic() = 0;
 protected:
     bool use_cached_val;
     env_t *env;

@@ -58,8 +58,14 @@ const datum_t *table_t::replace(const datum_t *orig, const map_wire_func_t &mwf)
 }
 
 
-const datum_t *table_t::replace(const datum_t *orig, func_t *f) {
-    return replace(orig, map_wire_func_t(env, f));
+const datum_t *table_t::replace(const datum_t *orig, func_t *f, bool nondet_ok) {
+    if (f->is_deterministic()) {
+        return replace(orig, map_wire_func_t(env, f));
+    } else {
+        rcheck(nondet_ok, "Could not prove function deterministic.  "
+               "Maybe you want to use the non_atomic_ok flag?");
+        return replace(orig, f->call(orig)->as_datum(), true);
+    }
 }
 
 const datum_t *table_t::replace(const datum_t *orig, const datum_t *d, bool upsert) {

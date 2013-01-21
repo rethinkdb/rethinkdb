@@ -87,6 +87,7 @@ class db_term_t : public meta_op_t {
 public:
     db_term_t(env_t *env, const Term2 *term) : meta_op_t(env, term, argspec_t(1)) { }
 private:
+    virtual bool is_deterministic() { return false; }
     virtual val_t *eval_impl() {
         name_string_t db_name = get_name(arg(0));
         return new_val(meta_get_uuid(db_searcher.get(), db_name,
@@ -278,6 +279,7 @@ public:
     db_list_term_t(env_t *env, const Term2 *term) :
         meta_op_t(env, term, argspec_t(0)) { }
 private:
+    virtual bool is_deterministic() { return false; }
     virtual val_t *eval_impl() {
         datum_t *arr = env->add_ptr(new datum_t(datum_t::R_ARRAY));
         for (metadata_searcher_t<database_semilattice_metadata_t>::iterator

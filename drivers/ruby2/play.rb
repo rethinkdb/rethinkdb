@@ -438,6 +438,10 @@ rae(r.db_drop('abc'), {"dropped"=>1.0})
 rae(r.db_list, ["test"])
 assert_raise{r.db_drop('abc').run}
 
+assert_raise { tbl.get(0).replace(r.func([1], tbl.get(0))).run }
+rae(tbl.get(0).replace(r.func([1], tbl.get(0))).opt(:non_atomic_ok, true),
+    {"replaced"=>1.0})
+
 ####
 
 print "test.test: #{r.db('test').table('test').run.inspect}\n"

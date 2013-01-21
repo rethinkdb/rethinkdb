@@ -305,6 +305,7 @@ message Term2 {
         // to be updated, and then merges the result of that call.
         // http://www.rethinkdb.com/api/#js:writing_data-update
         UPDATE   = 53; // Selection, FUNC (arity 1) -> OBJECT
+                       // Optargs: non_atomic_ok (BOOL)
         // Deletes all the rows in a selection.
         // http://www.rethinkdb.com/api/#js:writing_data-delete
         DELETE   = 54; // Selection -> OBJECT
@@ -313,6 +314,7 @@ message Term2 {
         // call.
         // http://www.rethinkdb.com/api/#js:writing_data-replace
         REPLACE  = 55; // Selection, FUNC (arity 1) -> OBJECT
+                       // Optargs: non_atomic_ok (BOOL)
         // Inserts into a table.  If `upsert` is true, overwrites entries with
         // the same primary key (otherwise errors).
         // http://www.rethinkdb.com/api/#js:writing_data-insert

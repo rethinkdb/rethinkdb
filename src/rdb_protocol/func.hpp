@@ -13,7 +13,6 @@
 
 namespace ql {
 
-//TODO: make datum_t pointers const
 class func_t : public ptr_baggable_t {
 public:
     func_t(env_t *env, const Term2 *_source);
@@ -22,6 +21,7 @@ public:
     val_t *call(const datum_t *arg1, const datum_t *arg2);
 
     void dump_scope(std::map<int, Datum> *out) const;
+    bool is_deterministic();
 private:
     std::vector<const datum_t *> argptrs;
     term_t *body;
@@ -97,6 +97,7 @@ class func_term_t : public term_t {
 public:
     func_term_t(env_t *env, const Term2 *term);
 private:
+    virtual bool is_deterministic();
     virtual val_t *eval_impl();
     virtual const char *name() const { return "func"; }
     func_t *func;
