@@ -40,9 +40,9 @@ module 'DataExplorerView', ->
             'click .close': 'close_alert'
 
         explain_query: =>
-            explain = new Explain.Container
-            @$('.results_container').html explain.render().$el
-            explain.get_data @codemirror.getValue()
+            @explain = new Explain.Container
+            @$('.results_container').html @explain.render().$el
+            @explain.get_data @codemirror.getValue()
 
         save_tab: (event) =>
             @results_view.set_view @.$(event.target).data('view')
@@ -1098,7 +1098,8 @@ module 'DataExplorerView', ->
             @input_query.destroy()
             @results_view.destroy()
             # We do not destroy the cursor, because the user might come back and use it.
-    
+            @explain.destroy()
+
     class @InputQuery extends Backbone.View
         className: 'query_control'
         template: Handlebars.templates['dataexplorer_input_query-template']

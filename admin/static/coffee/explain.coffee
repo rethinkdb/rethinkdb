@@ -49,7 +49,8 @@ module 'Explain', ->
             # Clean some stuff
             @$('.explain_svg').empty() # Clean svg
             $(' .tooltip').remove() # Clean tooltip
-            @$('.list_machine_positions').empty()
+            # We don't sort machines anymore
+            #@$('.list_machine_positions').empty()
             @$('.legend').empty()
             @$('.query').empty()
             
@@ -120,11 +121,11 @@ module 'Explain', ->
         proportion_bloc: 2/5
         background_color: '#fff'
         task_color: '#eee'
-        task_border_color: '#000'
+        task_border_color: '#ccc'
         task_border_width: 1
         more_height: 70
         more_bloc_height: 50
-        bifurcation_circle_radius: 4
+        dot_radius: 4
 
         get_drawable_machines: (task, num_simultaneous_task_drawn) =>
             if task['sub_tasks']?
@@ -230,7 +231,10 @@ module 'Explain', ->
             step = args.step
             parent_position = args.parent_position
             height_available = args.height_available
+            is_root = args.is_root
             that = @
+
+            #TODO if is_root is true, draw circles
 
             @svg.selectAll('rect-'+level+'-'+step)
                 .data([task])
@@ -280,6 +284,8 @@ module 'Explain', ->
             is_root = args.is_root
             that = @
 
+            ###
+            #TODO this thing is probably broken
             if task['sub_tasks']? and task['sub_tasks_are_parallel'] is false and task['sub_tasks_stats']['count']>task['sub_tasks'].length
                 height_available -= @more_height
                 more =
@@ -305,6 +311,7 @@ module 'Explain', ->
                     explanation:  task['sub_tasks_stats']['count']+' more tasks.'
                     height: @more_bloc_height
                     top: parent_position.y+height_available
+            ###
 
             tasks_duration = @compute_duration_all_tasks_in_series sub_tasks
             traffic_duration = task['execution_duration']-tasks_duration
@@ -328,12 +335,15 @@ module 'Explain', ->
                 y1: parent_position.y
                 y2: current_position_y
 
+            ###
+            #TODO this thing is probably broken
             if task['sub_tasks']? and task['sub_tasks_are_parallel'] is false and task['sub_tasks_stats'].count>task['sub_tasks'].length
                 lines.push
                     x1: parent_position.x
                     x2: parent_position.x
                     y1: parent_position.y+height_available+@more_bloc_height
                     y2: parent_position.y+height_available+@more_height
+            ###
 
             # Draw line first and then task (order matters - circles have to overlap lines)
             for sub_task, i in sub_tasks
@@ -396,6 +406,27 @@ module 'Explain', ->
 
                 current_position_y = new_position_y
 
+            if is_root is true
+                circles = []
+                circles.push
+                    cx: @drawable_machines_map_position[task.machine_id]
+                    cy: parent_position.y
+                    title: 'Client received query'
+                circles.push
+                    cx: @drawable_machines_map_position[task.machine_id]
+                    cy: parent_position.y+height_available
+                    title: 'Client sent back results'
+
+                @svg.selectAll('.client')
+                    .data(circles)
+                    .enter()
+                    .append('circle')
+                    .attr('cx', (d) -> return d.cx)
+                    .attr('cy', (d) -> return d.cy)
+                    .attr('r', @dot_radius)
+                    .style('fill', @task_color_border)
+                    .attr('title', (d) -> return d.title)
+
         draw_tasks_in_parallel: (args) =>
             task = args.task
             sub_tasks = args.sub_tasks
@@ -407,6 +438,7 @@ module 'Explain', ->
             #TODO Keep parent's neighbors in memory
             that = @
 
+            # TODO if is_root is true, draw circles
 
             if is_root is true
                 height_available -= 2*@height_before_bifurcation
@@ -593,3 +625,7 @@ module 'Explain', ->
                     num_simultaneous_task_drawn: num_simultaneous_task_drawn
                     height_available: scale_execution(sub_task['execution_duration'])
 
+
+        destroy: =>
+            #TODO Implement
+            console.log 'TODO'
