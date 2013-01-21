@@ -121,6 +121,7 @@ Response2 query2_server_t::handle(Query2 *q, context_t *query2_context) {
     try {
         boost::shared_ptr<js::runner_t> js_runner = boost::make_shared<js::runner_t>();
         int thread = get_thread_id();
+        guarantee(ctx->directory_read_manager);
         ql::env_t env(
             ctx->pool_group, ctx->ns_repo,
             ctx->cross_thread_namespace_watchables[thread]->get_watchable(),

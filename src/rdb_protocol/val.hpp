@@ -92,7 +92,5 @@ private:
     bool consumed;
 };
 
-uuid_t get_db_uuid(env_t *env, const std::string &dbs);
-
 } //namespace ql
 #endif // RDB_PROTOCOL_VAL_HPP_

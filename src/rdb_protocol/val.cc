@@ -1,36 +1,11 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
-#include "clustering/administration/metadata.hpp"
 #include "rdb_protocol/env.hpp"
+#include "rdb_protocol/meta_utils.hpp"
 #include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/term.hpp"
 #include "rdb_protocol/val.hpp"
 
 namespace ql {
-static const char *valid_char_msg = name_string_t::valid_char_msg;
-static void meta_check(metadata_search_status_t status, metadata_search_status_t want,
-                       const std::string &operation) {
-    if (status != want) {
-        const char *msg;
-        switch (status) {
-        case METADATA_SUCCESS: msg = "Entry already exists."; break;
-        case METADATA_ERR_NONE: msg = "No entry with that name."; break;
-        case METADATA_ERR_MULTIPLE: msg = "Multiple entries with that name."; break;
-        case METADATA_CONFLICT: msg = "Entry with that name is in conflict."; break;
-        default:
-            unreachable();
-        }
-        throw ql::exc_t(strprintf("Error during operation `%s`: %s",
-                                  operation.c_str(), msg));
-    }
-}
-
-template<class T, class U>
-static uuid_t meta_get_uuid(T searcher, const U &predicate, std::string operation) {
-    metadata_search_status_t status;
-    typename T::iterator entry = searcher.find_uniq(predicate, &status);
-    meta_check(status, METADATA_SUCCESS, operation);
-    return entry->first;
-}
 
 table_t::table_t(env_t *_env, uuid_t db_id, const std::string &name, bool _use_outdated)
     : env(_env), use_outdated(_use_outdated) {
@@ -45,7 +20,7 @@ table_t::table_t(env_t *_env, uuid_t db_id, const std::string &name, bool _use_o
         ns_searcher(&namespaces_metadata_change.get()->namespaces);
     //TODO: fold into iteration below
     namespace_predicate_t pred(&table_name, &db_id);
-    uuid_t id = meta_get_uuid(ns_searcher, pred, "FIND_TABLE " + table_name.str());
+    uuid_t id = meta_get_uuid(&ns_searcher, pred, "FIND_TABLE " + table_name.str());
 
     access.init(new namespace_repo_t<rdb_protocol_t>::access_t(
                     env->ns_repo, id, env->interruptor));
@@ -243,26 +218,11 @@ val_t::val_t(func_t *_func, const term_t *_parent, env_t *_env)
     guarantee(func);
 }
 
-uuid_t get_db_uuid(env_t *env, const std::string &dbs) {
-    name_string_t db_name;
-    bool b = db_name.assign_value(dbs);
-    rcheck(b, strprintf("db name %s invalid (%s)", dbs.c_str(), valid_char_msg));
-    databases_semilattice_metadata_t
-        databases_metadata = env->databases_semilattice_metadata->get();
-    metadata_searcher_t<database_semilattice_metadata_t>
-        db_searcher(&databases_metadata.databases);
-    return meta_get_uuid(db_searcher, db_name, "EVAL_DB " + db_name.str());
-}
-
 val_t::type_t val_t::get_type() const { return type; }
 
 const datum_t *val_t::as_datum() {
     if (type.raw_type != type_t::DATUM && type.raw_type != type_t::SINGLE_SELECTION) {
-        // if (type.raw_type == type_t::SEQUENCE) {
-        //     const datum_t *d = as_seq()->as_arr();
-        //     if (d) return d;
-        // }
-        rfail("Type error: cannot convert %s to DATUM.", type.name());
+         rfail("Type error: cannot convert %s to DATUM.", type.name());
     }
     return datum;
 }

@@ -19,7 +19,7 @@
 namespace ql {
 class term_t;
 
-class env_t {
+class env_t : private home_thread_mixin_t {
 public:
     int gensym() {
         r_sanity_check(next_gensym_val > -100000);
@@ -50,6 +50,7 @@ private:
 public:
     template<class T>
     T *add_ptr(T *p) {
+        assert_thread();
         r_sanity_check(bags.size() > 0);
         if (some_bag_has(p)) return p;
         bags[bags.size()-1]->add(p);

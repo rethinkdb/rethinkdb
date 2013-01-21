@@ -1,14 +1,118 @@
+#include "clustering/administration/suggester.hpp"
+#include "rdb_protocol/meta_utils.hpp"
 #include "rdb_protocol/op.hpp"
+#include "rpc/directory/read_manager.hpp"
+
 namespace ql {
-class db_term_t : public op_term_t {
+
+name_string_t get_name(val_t *val) {
+    std::string raw_name = val->as_datum()->as_str();
+    name_string_t name;
+    bool b = name.assign_value(raw_name);
+    rcheck(b, strprintf("name %s invalid (%s)", raw_name.c_str(), valid_char_msg));
+    return name;
+}
+
+class meta_op_t : public op_term_t {
 public:
-    db_term_t(env_t *env, const Term2 *term) : op_term_t(env, term, argspec_t(1)) { }
+    meta_op_t(env_t *env, const Term2 *term, argspec_t argspec)
+        : op_term_t(env, term, argspec),
+          original_thread(get_thread_id()),
+          metadata_home_thread(env->semilattice_metadata->home_thread()) {
+        on_thread_t rethreader(metadata_home_thread);
+        metadata = env->semilattice_metadata->get();
+
+        cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t
+            ns_change(&metadata.rdb_namespaces);
+        ns_searcher.init(
+            new metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >(
+                &ns_change.get()->namespaces));
+        db_searcher.init(
+            new metadata_searcher_t<database_semilattice_metadata_t>(
+                &metadata.databases.databases));
+        dc_searcher.init(
+            new metadata_searcher_t<datacenter_semilattice_metadata_t>(
+                &metadata.datacenters.datacenters));
+    }
+protected:
+    int original_thread, metadata_home_thread;
+
+    cluster_semilattice_metadata_t metadata;
+
+    scoped_ptr_t<metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> > >
+        ns_searcher;
+    scoped_ptr_t<metadata_searcher_t<database_semilattice_metadata_t> > db_searcher;
+    scoped_ptr_t<metadata_searcher_t<datacenter_semilattice_metadata_t> > dc_searcher;
+};
+
+class meta_write_op_t : public meta_op_t {
+public:
+    meta_write_op_t(env_t *env, const Term2 *term, argspec_t argspec)
+        : meta_op_t(env, term, argspec) {
+        on_thread_t rethreader(metadata_home_thread);
+        rcheck(env->directory_read_manager,
+               "Cannot nest meta operations inside queries.");
+        guarantee(env->directory_read_manager->home_thread() == metadata_home_thread);
+        directory_metadata = env->directory_read_manager->get_root_view();
+    }
+private:
+    virtual std::string write_eval_impl() = 0;
+    virtual val_t *eval_impl() {
+        std::string op; {
+            on_thread_t rethreader(metadata_home_thread);
+            op = write_eval_impl();
+        }
+        datum_t *res = env->add_ptr(new datum_t(datum_t::R_OBJECT));
+        const datum_t *num_1 = env->add_ptr(new datum_t(1));
+        UNUSED bool b = res->add(op, num_1);
+        return new_val(res);
+
+    }
+protected:
+    clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > >
+        directory_metadata;
+};
+
+class db_term_t : public meta_op_t {
+public:
+    db_term_t(env_t *env, const Term2 *term) : meta_op_t(env, term, argspec_t(1)) { }
 private:
     virtual val_t *eval_impl() {
-        std::string name = arg(0)->as_datum()->as_str();
-        return new_val(get_db_uuid(env, name));
+        name_string_t db_name = get_name(arg(0));
+        return new_val(meta_get_uuid(db_searcher.get(), db_name,
+                                     "FIND_DB " + db_name.str()));
     }
-    RDB_NAME("DB")
+    RDB_NAME("db")
+};
+
+class db_create_term_t : public meta_write_op_t {
+public:
+    db_create_term_t(env_t *env, const Term2 *term) :
+        meta_write_op_t(env, term, argspec_t(1)) { }
+private:
+    virtual std::string write_eval_impl() {
+        name_string_t db_name = get_name(arg(0));
+        metadata_search_status_t status;
+
+        // Ensure database doesn't already exist.
+        db_searcher->find_uniq(db_name, &status);
+        meta_check(status, METADATA_ERR_NONE, "DB_CREATE " + db_name.str());
+
+        // Create database, insert into metadata, then join into real metadata.
+        database_semilattice_metadata_t db;
+        db.name = vclock_t<name_string_t>(db_name, env->this_machine);
+        metadata.databases.databases.insert(std::make_pair(generate_uuid(), db));
+        try {
+            fill_in_blueprints(&metadata, directory_metadata->get(),
+                               env->this_machine, false);
+        } catch (const missing_machine_exc_t &e) {
+            throw exc_t(e.what());
+        }
+        env->semilattice_metadata->join(metadata);
+
+        return "created";
+    }
+    RDB_NAME("db_create")
 };
 
 static const char *const table_optargs[] = {"use_outdated"};

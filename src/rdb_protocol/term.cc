@@ -75,7 +75,7 @@ term_t *compile_term(env_t *env, const Term2 *t) {
     case Term2_TermType_DELETE:             return new delete_term_t(env, t);
     case Term2_TermType_REPLACE:            return new replace_term_t(env, t);
     case Term2_TermType_INSERT:             return new insert_term_t(env, t);
-    case Term2_TermType_DB_CREATE:
+    case Term2_TermType_DB_CREATE:          return new db_create_term_t(env, t);
     case Term2_TermType_DB_DROP:
     case Term2_TermType_DB_LIST:
     case Term2_TermType_TABLE_CREATE:
