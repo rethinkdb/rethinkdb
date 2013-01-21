@@ -173,6 +173,9 @@ rae(r([1,2,3]).map(r.func([1], r.implicit_var.mul(r.var(1)))), [1.0, 4.0, 9.0])
 assert_raise{r([1,2,3]).map(r.func([1], r([2,4]).map(r.func([2], r.implicit_var.mul(r.var(1)))))).run}
 assert_raise{r.implicit_var.run}
 
+tbl.delete.run
+rae(tbl.insert([{:id => 0}, {:id => 1}]), {'inserted' => 2})
+
 rae(tbl.get(0), {"id"=>0.0})
 rae(tbl.get(1), {"id"=>1.0})
 rae(tbl.get(-1), nil)

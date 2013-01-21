@@ -452,6 +452,8 @@ public:
 
                 return cumulative_size < rget_max_chunk_size;
             } else {
+                ql::env_gc_checkpoint_t egct(ql_env);
+                int i = 0;
                 for (json_list_t::iterator jt  = data.begin();
                                            jt != data.end();
                                            ++jt) {
@@ -459,6 +461,16 @@ public:
                                              *jt, env, ql_env, terminal->scopes,
                                              terminal->backtrace, &response->result),
                                          terminal->variant);
+                    if (ql::wire_datum_t *wd
+                        = boost::get<ql::wire_datum_t>(&terminal->variant)) {
+                        egct.maybe_gc(wd->get());
+                    } else if (ql::wire_datum_map_t *wdm
+                        = boost::get<ql::wire_datum_map_t>(&terminal->variant)) {
+                        // TODO: this is a hack because GCing a `wire_datum_map_t` is
+                        // expensive.  Need a better way to do this.
+                        if (!(++i%10000)) egct.maybe_gc(wdm->to_arr(ql_env));
+                    }
+
                 }
                 return true;
             }
