@@ -67,26 +67,22 @@ private:
 
 // DELETE and UPDATE are in rewrites.hpp
 
-// class delete_term_t : public op_term_t {
-// public:
-//     delete_term_t(env_t *env, const Term2 *term) : op_term_t(env, term, argspec_t(1)) { }
-// private:
-//     virtual val_t *eval_impl() {
-//         const datum_t *nulld = env->add_ptr(new datum_t(datum_t::R_NULL));
-//         if (arg(0)->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
-//             std::pair<table_t *, const datum_t *> tblrow = arg(0)->as_single_selection();
-//             return new_val(tblrow.first->replace(tblrow.second, nulld, true));
-//         }
-//         std::pair<table_t *, datum_stream_t *> tblrows = arg(0)->as_selection();
-//         table_t *tbl = tblrows.first;
-//         datum_stream_t *ds = tblrows.second;
-//         const datum_t *stats = env->add_ptr(new datum_t(datum_t::R_OBJECT));
-//         while (const datum_t *d = ds->next()) {
-//             stats = stats->merge(env, tbl->replace(d, nulld, true), stats_merge);
-//         }
-//         return new_val(stats);
-//     }
-//     RDB_NAME("delete")
-// };
+class foreach_term_t : public op_term_t {
+public:
+    foreach_term_t(env_t *env, const Term2 *term) : op_term_t(env, term, argspec_t(2)) { }
+private:
+    virtual val_t *eval_impl() {
+        datum_stream_t *ds = arg(0)->as_seq();
+        const datum_t *stats = env->add_ptr(new datum_t(datum_t::R_OBJECT));
+        while (const datum_t *d = ds->next()) {
+            const datum_t *arr = arg(1)->as_func()->call(d)->as_datum();
+            for (size_t i = 0; i < arr->size(); ++i) {
+                stats = stats->merge(env, arr->el(i), stats_merge);
+            }
+        }
+        return new_val(stats);
+    }
+    RDB_NAME("foreach")
+};
 
 } // namespace ql

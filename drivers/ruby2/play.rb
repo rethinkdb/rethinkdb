@@ -419,6 +419,10 @@ rae(tx.orderby([:id]), [{"id"=>11.0}, {"id"=>12.0}, {"id"=>13.0}, {"id"=>14.0}])
 rae(tx.get(11).replace(r.func([1], {:id => 11})), {"replaced"=>1.0})
 assert_equal(tx.get(11).replace(r.func([1], {:id => 12})).run['errors'], 1)
 
+rae(r([1, 2, 3]).foreach(r.func([1], r.make_array(tx.insert(r.make_obj.opt(:id, r.var(1))), tx.insert(r.make_obj.opt(:id, r.var(1).mul(100)))))), {"inserted"=>6.0})
+
+rae(tx.orderby([:id]), [{"id"=>1.0}, {"id"=>2.0}, {"id"=>3.0}, {"id"=>11.0}, {"id"=>12.0}, {"id"=>13.0}, {"id"=>14.0}, {"id"=>100.0}, {"id"=>200.0}, {"id"=>300.0}])
+
 ####
 
 print "test.test: #{r.db('test').table('test').run.inspect}\n"
