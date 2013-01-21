@@ -76,8 +76,8 @@ term_t *compile_term(env_t *env, const Term2 *t) {
     case Term2_TermType_REPLACE:            return new replace_term_t(env, t);
     case Term2_TermType_INSERT:             return new insert_term_t(env, t);
     case Term2_TermType_DB_CREATE:          return new db_create_term_t(env, t);
-    case Term2_TermType_DB_DROP:
-    case Term2_TermType_DB_LIST:
+    case Term2_TermType_DB_DROP:            return new db_drop_term_t(env, t);
+    case Term2_TermType_DB_LIST:            return new db_list_term_t(env, t);
     case Term2_TermType_TABLE_CREATE:
     case Term2_TermType_TABLE_DROP:
     case Term2_TermType_TABLE_LIST:
@@ -87,7 +87,6 @@ term_t *compile_term(env_t *env, const Term2 *t) {
     case Term2_TermType_ANY:                return new any_term_t(env, t);
     case Term2_TermType_ALL:                return new all_term_t(env, t);
     case Term2_TermType_FOREACH:            return new foreach_term_t(env, t);
-        break;
     case Term2_TermType_FUNC:               return new func_term_t(env, t);
     default: unreachable();
     }

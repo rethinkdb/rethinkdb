@@ -115,6 +115,70 @@ private:
     RDB_NAME("db_create")
 };
 
+class db_drop_term_t : public meta_write_op_t {
+public:
+    db_drop_term_t(env_t *env, const Term2 *term) :
+        meta_write_op_t(env, term, argspec_t(1)) { }
+private:
+    virtual std::string write_eval_impl() {
+        name_string_t db_name = get_name(arg(0));
+        metadata_search_status_t status;
+
+        // Get database metadata.
+        metadata_searcher_t<database_semilattice_metadata_t>::iterator
+            db_metadata = db_searcher->find_uniq(db_name, &status);
+        meta_check(status, METADATA_SUCCESS, "DB_DROP " + db_name.str());
+        guarantee(!db_metadata->second.is_deleted());
+        uuid_t db_id = db_metadata->first;
+
+        // Delete all tables in database.
+        namespace_predicate_t pred(&db_id);
+        for (metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >
+                 ::iterator it = ns_searcher->find_next(ns_searcher->begin(), pred);
+             it != ns_searcher->end(); it = ns_searcher->find_next(++it, pred)) {
+            guarantee(!it->second.is_deleted());
+            it->second.mark_deleted();
+        }
+
+        // Delete database
+        db_metadata->second.mark_deleted();
+
+        // Join
+        try {
+            fill_in_blueprints(&metadata, directory_metadata->get(),
+                               env->this_machine, false);
+        } catch (const missing_machine_exc_t &e) {
+            throw exc_t(e.what());
+        }
+        env->semilattice_metadata->join(metadata);
+
+        return "dropped";
+    }
+    RDB_NAME("db_drop")
+};
+
+
+class db_list_term_t : public meta_op_t {
+public:
+    db_list_term_t(env_t *env, const Term2 *term) :
+        meta_op_t(env, term, argspec_t(0)) { }
+private:
+    virtual val_t *eval_impl() {
+        datum_t *arr = env->add_ptr(new datum_t(datum_t::R_ARRAY));
+        for (metadata_searcher_t<database_semilattice_metadata_t>::iterator
+                 it = db_searcher->find_next(db_searcher->begin());
+             it != db_searcher->end(); it = db_searcher->find_next(++it)) {
+            guarantee(!it->second.is_deleted());
+            if (it->second.get().name.in_conflict()) continue;
+            std::string s = it->second.get().name.get().c_str();
+            arr->add(env->add_ptr(new datum_t(s)));
+        }
+        return new_val(arr);
+    }
+    RDB_NAME("db_list")
+};
+
+
 static const char *const table_optargs[] = {"use_outdated"};
 class table_term_t : public op_term_t {
 public:

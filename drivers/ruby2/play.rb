@@ -423,6 +423,13 @@ rae(r([1, 2, 3]).foreach(r.func([1], r.make_array(tx.insert(r.make_obj.opt(:id, 
 
 rae(tx.orderby([:id]), [{"id"=>1.0}, {"id"=>2.0}, {"id"=>3.0}, {"id"=>11.0}, {"id"=>12.0}, {"id"=>13.0}, {"id"=>14.0}, {"id"=>100.0}, {"id"=>200.0}, {"id"=>300.0}])
 
+rae(r.db_create('abc'), {"created"=>1.0})
+rae(r.db_list, ["abc", "test"])
+assert_raise{r.db_create('abc').run}
+rae(r.db_drop('abc'), {"dropped"=>1.0})
+rae(r.db_list, ["test"])
+assert_raise{r.db_drop('abc').run}
+
 ####
 
 print "test.test: #{r.db('test').table('test').run.inspect}\n"
