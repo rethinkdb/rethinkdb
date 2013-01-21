@@ -78,10 +78,9 @@ term_t *compile_term(env_t *env, const Term2 *t) {
     case Term2_TermType_DB_CREATE:          return new db_create_term_t(env, t);
     case Term2_TermType_DB_DROP:            return new db_drop_term_t(env, t);
     case Term2_TermType_DB_LIST:            return new db_list_term_t(env, t);
-    case Term2_TermType_TABLE_CREATE:
-    case Term2_TermType_TABLE_DROP:
-    case Term2_TermType_TABLE_LIST:
-        break;
+    case Term2_TermType_TABLE_CREATE:       return new table_create_term_t(env, t);
+    case Term2_TermType_TABLE_DROP:         return new table_drop_term_t(env, t);
+    case Term2_TermType_TABLE_LIST:         return new table_list_term_t(env, t);
     case Term2_TermType_FUNCALL:            return new funcall_term_t(env, t);
     case Term2_TermType_BRANCH:             return new branch_term_t(env, t);
     case Term2_TermType_ANY:                return new any_term_t(env, t);

@@ -1,3 +1,4 @@
+#include "clustering/administration/main/ports.hpp"
 #include "clustering/administration/suggester.hpp"
 #include "rdb_protocol/meta_utils.hpp"
 #include "rdb_protocol/op.hpp"
@@ -6,6 +7,7 @@
 namespace ql {
 
 name_string_t get_name(val_t *val) {
+    r_sanity_check(val);
     std::string raw_name = val->as_datum()->as_str();
     name_string_t name;
     bool b = name.assign_value(raw_name);
@@ -18,7 +20,13 @@ public:
     meta_op_t(env_t *env, const Term2 *term, argspec_t argspec)
         : op_term_t(env, term, argspec),
           original_thread(get_thread_id()),
-          metadata_home_thread(env->semilattice_metadata->home_thread()) {
+          metadata_home_thread(env->semilattice_metadata->home_thread()) { init(); }
+    meta_op_t(env_t *env, const Term2 *term, argspec_t argspec, optargspec_t optargspec)
+        : op_term_t(env, term, argspec, optargspec),
+          original_thread(get_thread_id()),
+          metadata_home_thread(env->semilattice_metadata->home_thread()) { init(); }
+private:
+    void init() {
         on_thread_t rethreader(metadata_home_thread);
         metadata = env->semilattice_metadata->get();
 
@@ -48,20 +56,22 @@ protected:
 class meta_write_op_t : public meta_op_t {
 public:
     meta_write_op_t(env_t *env, const Term2 *term, argspec_t argspec)
-        : meta_op_t(env, term, argspec) {
+        : meta_op_t(env, term, argspec) { init(); }
+    meta_write_op_t(env_t *env, const Term2 *term,
+                    argspec_t argspec, optargspec_t optargspec)
+        : meta_op_t(env, term, argspec, optargspec) { init(); }
+private:
+    void init() {
         on_thread_t rethreader(metadata_home_thread);
         rcheck(env->directory_read_manager,
                "Cannot nest meta operations inside queries.");
         guarantee(env->directory_read_manager->home_thread() == metadata_home_thread);
         directory_metadata = env->directory_read_manager->get_root_view();
     }
-private:
+
     virtual std::string write_eval_impl() = 0;
     virtual val_t *eval_impl() {
-        std::string op; {
-            on_thread_t rethreader(metadata_home_thread);
-            op = write_eval_impl();
-        }
+        std::string op = write_eval_impl();
         datum_t *res = env->add_ptr(new datum_t(datum_t::R_OBJECT));
         const datum_t *num_1 = env->add_ptr(new datum_t(1));
         UNUSED bool b = res->add(op, num_1);
@@ -92,8 +102,10 @@ public:
 private:
     virtual std::string write_eval_impl() {
         name_string_t db_name = get_name(arg(0));
-        metadata_search_status_t status;
 
+        on_thread_t write_rethreader(metadata_home_thread);
+
+        metadata_search_status_t status;
         // Ensure database doesn't already exist.
         db_searcher->find_uniq(db_name, &status);
         meta_check(status, METADATA_ERR_NONE, "DB_CREATE " + db_name.str());
@@ -115,6 +127,74 @@ private:
     RDB_NAME("db_create")
 };
 
+static const char *const table_create_optargs[] =
+    {"datacenter", "primary_key", "cache_size"};
+class table_create_term_t : public meta_write_op_t {
+public:
+    table_create_term_t(env_t *env, const Term2 *term) :
+        meta_write_op_t(env, term, argspec_t(2), LEGAL_OPTARGS(table_create_optargs)) { }
+private:
+    virtual std::string write_eval_impl() {
+        uuid_t dc_id = nil_uuid();
+        if (val_t *v = optarg("datacenter", 0)) {
+            dc_id = meta_get_uuid(dc_searcher.get(), get_name(v),
+                                  "FIND_DATACENTER " + v->as_datum()->as_str());
+        }
+
+        std::string primary_key = "id";
+        if (val_t *v = optarg("primary_key", 0)) primary_key = v->as_datum()->as_str();
+
+        int cache_size = 1073741824;
+        if (val_t *v = optarg("cache_size", 0)) cache_size = v->as_datum()->as_int();
+
+        uuid_t db_id = arg(0)->as_db();
+
+        name_string_t tbl_name = get_name(arg(1));
+        // Ensure table doesn't already exist.
+        metadata_search_status_t status;
+        namespace_predicate_t pred(&tbl_name, &db_id);
+        ns_searcher->find_uniq(pred, &status);
+        meta_check(status, METADATA_ERR_NONE, "CREATE_TABLE " + tbl_name.str());
+
+        on_thread_t write_rethreader(metadata_home_thread);
+
+        // Create namespace (DB + table pair) and insert into metadata.
+        uuid_t namespace_id = generate_uuid();
+        // The port here is a legacy from the day when memcached ran on a different port.
+        namespace_semilattice_metadata_t<rdb_protocol_t> ns =
+            new_namespace<rdb_protocol_t>(env->this_machine, db_id, dc_id, tbl_name,
+                                          primary_key, port_defaults::reql_port,
+                                          cache_size);
+        {
+            cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t
+                change(&metadata.rdb_namespaces);
+            change.get()->namespaces.insert(std::make_pair(namespace_id, ns));
+        }
+        try {
+            fill_in_blueprints(&metadata, directory_metadata->get(),
+                               env->this_machine, false);
+        } catch (const missing_machine_exc_t &e) {
+            throw exc_t(e.what());
+        }
+        env->semilattice_metadata->join(metadata);
+
+        // UGLY HACK BELOW (see wait_for_rdb_table_readiness)
+
+        // This *needs* to be performed on the client's thread so that we know
+        // subsequent writes will succeed.
+        on_thread_t wait_rethreader(original_thread);
+        try {
+            wait_for_rdb_table_readiness(env->ns_repo, namespace_id,
+                                         env->interruptor, env->semilattice_metadata);
+        } catch (interrupted_exc_t e) {
+            throw exc_t("Query interrupted, probably by user.");
+        }
+
+        return "created";
+    }
+    RDB_NAME("table_create")
+};
+
 class db_drop_term_t : public meta_write_op_t {
 public:
     db_drop_term_t(env_t *env, const Term2 *term) :
@@ -122,8 +202,10 @@ public:
 private:
     virtual std::string write_eval_impl() {
         name_string_t db_name = get_name(arg(0));
-        metadata_search_status_t status;
 
+        on_thread_t write_rethreader(metadata_home_thread);
+
+        metadata_search_status_t status;
         // Get database metadata.
         metadata_searcher_t<database_semilattice_metadata_t>::iterator
             db_metadata = db_searcher->find_uniq(db_name, &status);
@@ -157,6 +239,39 @@ private:
     RDB_NAME("db_drop")
 };
 
+class table_drop_term_t : public meta_write_op_t {
+public:
+    table_drop_term_t(env_t *env, const Term2 *term) :
+        meta_write_op_t(env, term, argspec_t(2)) { }
+private:
+    virtual std::string write_eval_impl() {
+        uuid_t db_id = arg(0)->as_db();
+        name_string_t tbl_name = get_name(arg(1));
+
+        on_thread_t write_rethreader(metadata_home_thread);
+
+        // Get table metadata.
+        metadata_search_status_t status;
+        namespace_predicate_t pred(&tbl_name, &db_id);
+        metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >::iterator
+            ns_metadata = ns_searcher->find_uniq(pred, &status);
+        meta_check(status, METADATA_SUCCESS, "FIND_TABLE " + tbl_name.str());
+        guarantee(!ns_metadata->second.is_deleted());
+
+        // Delete table and join.
+        ns_metadata->second.mark_deleted();
+        try {
+            fill_in_blueprints(&metadata, directory_metadata->get(),
+                               env->this_machine, false);
+        } catch (const missing_machine_exc_t &e) {
+            throw exc_t(e.what());
+        }
+        env->semilattice_metadata->join(metadata);
+
+        return "dropped";
+    }
+    RDB_NAME("table_drop")
+};
 
 class db_list_term_t : public meta_op_t {
 public:
@@ -178,6 +293,27 @@ private:
     RDB_NAME("db_list")
 };
 
+class table_list_term_t : public meta_op_t {
+public:
+    table_list_term_t(env_t *env, const Term2 *term) :
+        meta_op_t(env, term, argspec_t(1)) { }
+private:
+    virtual val_t *eval_impl() {
+        datum_t *arr = env->add_ptr(new datum_t(datum_t::R_ARRAY));
+        uuid_t db_id = arg(0)->as_db();
+        namespace_predicate_t pred(&db_id);
+        for (metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >
+                 ::iterator it = ns_searcher->find_next(ns_searcher->begin(), pred);
+             it != ns_searcher->end(); it = ns_searcher->find_next(++it, pred)) {
+            guarantee(!it->second.is_deleted());
+            if (it->second.get().name.in_conflict()) continue;
+            std::string s = it->second.get().name.get().c_str();
+            arr->add(env->add_ptr(new datum_t(s)));
+        }
+        return new_val(arr);
+    }
+    RDB_NAME("table_list")
+};
 
 static const char *const table_optargs[] = {"use_outdated"};
 class table_term_t : public op_term_t {
