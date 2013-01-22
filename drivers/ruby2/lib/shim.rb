@@ -1,22 +1,44 @@
 module RethinkDB
-  class RQL
-    attr_accessor :body
-    def to_pb; @body; end
-    def initialize(body = nil)
-      @body = body
+  module Shim
+    def datum_to_native d
+      dt = Datum::DatumType
+      case d.type
+      when dt::R_NUM then d.r_num
+      when dt::R_STR then d.r_str
+      when dt::R_BOOL then d.r_bool
+      when dt::R_NULL then nil
+      when dt::R_ARRAY then d.r_array.map{|d2| datum_to_native d2}
+      when dt::R_OBJECT then Hash[d.r_object.map{|x| [x.key, datum_to_native(x.val)]}]
+      else raise RuntimeError, "Unimplemented."
+      end
     end
 
-    def to_datum_term x
+    def response_to_native r
+      rt = Response2::ResponseType
+      case r.type
+      when rt::SUCCESS_ATOM then nativize_datum(r.response[0])
+      when rt::SUCCESS_SEQUENCE then r.response.map{|d| nativize_datum(d)}
+      when rt::RUNTIME_ERROR then
+        raise RuntimeError, "#{r.response[0].r_str}
+Backtrace: #{r.backtrace.map{|x| x.pos || x.opt}.inspect}"
+      when rt::COMPILE_ERROR then # TODO: remove?
+        raise RuntimeError, "#{r.response[0].r_str}
+Backtrace: #{r.backtrace.map{|x| x.pos || x.opt}.inspect}"
+      else r
+      end
+    end
+
+    def self.native_to_datum_term x
       dt = Datum::DatumType
       d = Datum.new
       case x.class.hash
-      when Fixnum.hash then d.type = dt::R_NUM; d.r_num = x
-      when Float.hash then d.type = dt::R_NUM; d.r_num = x
-      when String.hash then d.type = dt::R_STR; d.r_str = x
-      when Symbol.hash then d.type = dt::R_STR; d.r_str = x.to_s
-      when TrueClass.hash then d.type = dt::R_BOOL; d.r_bool = x
+      when Fixnum.hash     then d.type = dt::R_NUM;  d.r_num = x
+      when Float.hash      then d.type = dt::R_NUM;  d.r_num = x
+      when String.hash     then d.type = dt::R_STR;  d.r_str = x
+      when Symbol.hash     then d.type = dt::R_STR;  d.r_str = x.to_s
+      when TrueClass.hash  then d.type = dt::R_BOOL; d.r_bool = x
       when FalseClass.hash then d.type = dt::R_BOOL; d.r_bool = x
-      when NilClass.hash then d.type = dt::R_NULL
+      when NilClass.hash   then d.type = dt::R_NULL
       else raise RuntimeError, "UNREACHABLE"
       end
       t = Term2.new
@@ -24,12 +46,17 @@ module RethinkDB
       t.datum = d
       return t
     end
+  end
+
+  class RQL
+    def to_pb; @body; end
+
     def expr(x)
       unbound_if @body
-      return x if x.class == Term2
+      return x if x.class == RQL
       datum_types = [Fixnum, Float, String, Symbol, TrueClass, FalseClass, NilClass]
       if datum_types.map{|y| y.hash}.include? x.class.hash
-        return RQL.new(to_datum_term(x))
+        return RQL.new(Shim.native_to_datum_term(x))
       end
 
       t = Term2.new
@@ -46,5 +73,6 @@ module RethinkDB
 
       return RQL.new(t)
     end
+
   end
 end

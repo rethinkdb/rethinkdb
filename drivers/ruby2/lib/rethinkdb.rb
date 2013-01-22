@@ -7,28 +7,30 @@ require 'pp'
 load 'exc.rb'
 load 'net.rb'
 load 'shim.rb'
+load 'func.rb'
 
 module RethinkDB
-  def self.r_int(*args)
-    args == [] ? RQL.new : r.expr(*args)
-  end
-  def r(*args); RethinkDB.r_int(*args); end
-
   module Shortcuts
-    def r(*args); RethinkDB.r_int(*args); end
+    def r(*args)
+      args == [] ? RQL.new : RQL.new.expr(*args)
+    end
   end
 
   module Utils
-    def get_mname
-      caller[0]=~/`(.*?)'/
+    def get_mname(i = 0)
+      caller[i]=~/`(.*?)'/
       $1
     end
-    def unbound_if x
-      raise NoMethodError, "undefined method `#{get_mname}'" if x
+    def unbound_if (x, name = nil)
+      name = get_mname(1) if not name
+      raise NoMethodError, "undefined method `#{name}'" if x
     end
   end
 
   class RQL
     include Utils
+    def initialize(body = nil)
+      @body = body
+    end
   end
 end

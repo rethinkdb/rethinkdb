@@ -14,33 +14,6 @@ end
 
 $c = RethinkDB::Connection.new('localhost', 60616)
 
-def nativize_datum d
-  dt = Datum::DatumType
-  case d.type
-  when dt::R_NUM then d.r_num
-  when dt::R_STR then d.r_str
-  when dt::R_BOOL then d.r_bool
-  when dt::R_NULL then nil
-  when dt::R_ARRAY then d.r_array.map{|d2| nativize_datum d2}
-  when dt::R_OBJECT then Hash[d.r_object.map{|x| [x.key, nativize_datum(x.val)]}]
-  else raise RuntimeError, "Unimplemented."
-  end
-end
-
-def nativize_response r
-  rt = Response2::ResponseType
-  case r.type
-  when rt::SUCCESS_ATOM then nativize_datum(r.response[0])
-  when rt::SUCCESS_SEQUENCE then r.response.map{|d| nativize_datum(d)}
-  when rt::RUNTIME_ERROR then
-    raise RuntimeError, "#{r.response[0].r_str}
-Backtrace: #{r.backtrace.map{|x| x.pos || x.opt}.inspect}"
-  when rt::COMPILE_ERROR then # TODO: remove?
-    raise RuntimeError, "#{r.response[0].r_str}
-Backtrace: #{r.backtrace.map{|x| x.pos || x.opt}.inspect}"
-  else r
-  end
-end
 
 class RQL
   attr_accessor :is_r
