@@ -12,6 +12,15 @@
 
 #include "perfmon/core.hpp"
 
+#define FILE_SYNC_TECHNIQUE_DSYNC 1
+#define FILE_SYNC_TECHNIQUE_FULLFSYNC 2
+
+#ifdef __MACH__
+#define FILE_SYNC_TECHNIQUE FILE_SYNC_TECHNIQUE_FULLFSYNC
+#else
+#define FILE_SYNC_TECHNIQUE FILE_SYNC_TECHNIQUE_DSYNC
+#endif
+
 class linux_iocallback_t;
 struct linux_disk_manager_t;
 
@@ -75,6 +84,18 @@ public:
 
 void make_io_backender(io_backend_t backend, scoped_ptr_t<io_backender_t> *out);
 
+// A file_open_result_t is either FILE_OPEN_DIRECT, FILE_OPEN_BUFFERED, or an errno value.
+struct file_open_result_t {
+    enum outcome_t { DIRECT, BUFFERED, ERROR };
+    outcome_t outcome;
+    int errsv;
+
+    file_open_result_t(outcome_t _outcome, int _errsv) : outcome(_outcome), errsv(_errsv) {
+        guarantee(outcome == ERROR || errsv == 0);
+    }
+    file_open_result_t() : outcome(ERROR), errsv(0) { }
+};
+
 class linux_file_t : public file_t {
 public:
     enum mode_t {
@@ -83,9 +104,6 @@ public:
         mode_create = 1 << 2
     };
 
-    linux_file_t(const char *path, int mode, bool is_really_direct, io_backender_t *io_backender);
-
-    bool exists();
     bool is_block_device();
     uint64_t get_size();
     void set_size(size_t size);
@@ -99,51 +117,28 @@ public:
 
     bool coop_lock_and_check();
 
-    void *create_account(int priority, int outstanding_requests_limit) {
-        return diskmgr->create_account(priority, outstanding_requests_limit);
-    }
-
-    void destroy_account(void *account) {
-        diskmgr->destroy_account(account);
-    }
+    void *create_account(int priority, int outstanding_requests_limit);
+    void destroy_account(void *account);
 
     ~linux_file_t();
 
 private:
+    linux_file_t(scoped_fd_t *fd, uint64_t file_size, linux_disk_manager_t *diskmgr);
+    friend file_open_result_t open_direct_file(const char *path, int mode, io_backender_t *backender, scoped_ptr_t<file_t> *out);
+
     scoped_fd_t fd;
-    bool is_block;
-    bool file_exists;
     uint64_t file_size;
 
-    /* In a scoped pointer because it's polymorphic */
     linux_disk_manager_t *diskmgr;
 
-    /* In a scoped_ptr so we can initialize it after "diskmgr" */
     scoped_ptr_t<file_account_t> default_account;
 
     DISABLE_COPYING(linux_file_t);
 };
 
-/* The "direct" in linux_direct_file_t refers to the fact that the
-file is opened in O_DIRECT mode, and there are restrictions on the
-alignment of the chunks being written and read to and from the file. */
-class linux_direct_file_t : public linux_file_t {
-public:
-    linux_direct_file_t(const char *path, int mode, io_backender_t *io_backender) :
-        linux_file_t(path, mode, true, io_backender) { }
+file_open_result_t open_direct_file(const char *path, int mode, io_backender_t *backender, scoped_ptr_t<file_t> *out);
 
-private:
-    DISABLE_COPYING(linux_direct_file_t);
-};
-
-class linux_nondirect_file_t : public linux_file_t {
-public:
-    linux_nondirect_file_t(const char *path, int mode, io_backender_t *io_backender) :
-        linux_file_t(path, mode, false, io_backender) { }
-
-private:
-    DISABLE_COPYING(linux_nondirect_file_t);
-};
+void crash_due_to_inaccessible_database_file(const char *path, file_open_result_t open_res) NORETURN;
 
 // Runs some assertios to make sure that we're aligned to DEVICE_BLOCK_SIZE, not overrunning the
 // file size, and that buf is not null.

@@ -43,7 +43,7 @@ void fill_in_blueprints_for_protocol(
 
 void fill_in_blueprints(cluster_semilattice_metadata_t *cluster_metadata,
                         const std::map<peer_id_t, cluster_directory_metadata_t> &directory,
-                        const uuid_t &us,
+                        const uuid_u &us,
                         bool prioritize_disribution);
 
 #endif /* CLUSTERING_ADMINISTRATION_SUGGESTER_HPP_ */

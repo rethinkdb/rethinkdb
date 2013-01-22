@@ -110,7 +110,7 @@ void directory_read_manager_t<metadata_t>::on_disconnect(peer_id_t peer) THROWS_
 
     /* Notify that the peer has disconnected */
     if (got_initialization) {
-        mutex_assertion_t::acq_t acq(&variable_lock);
+        DEBUG_VAR mutex_assertion_t::acq_t acq(&variable_lock);
         std::map<peer_id_t, metadata_t> map = variable.get_watchable()->get();
         size_t num_erased = map.erase(peer);
         guarantee(num_erased == 1);
@@ -119,7 +119,7 @@ void directory_read_manager_t<metadata_t>::on_disconnect(peer_id_t peer) THROWS_
 }
 
 template<class metadata_t>
-void directory_read_manager_t<metadata_t>::propagate_initialization(peer_id_t peer, uuid_t session_id, metadata_t initial_value, fifo_enforcer_state_t metadata_fifo_state, auto_drainer_t::lock_t per_thread_keepalive) THROWS_NOTHING {
+void directory_read_manager_t<metadata_t>::propagate_initialization(peer_id_t peer, uuid_u session_id, metadata_t initial_value, fifo_enforcer_state_t metadata_fifo_state, auto_drainer_t::lock_t per_thread_keepalive) THROWS_NOTHING {
     per_thread_keepalive.assert_is_holding(per_thread_drainers.get());
     on_thread_t thread_switcher(home_thread());
 
@@ -131,7 +131,7 @@ void directory_read_manager_t<metadata_t>::propagate_initialization(peer_id_t pe
         /* The peer disconnected since we got the message; ignore. */
         return;
     }
-    session_t *session = (*it).second;
+    session_t *session = it->second;
     if (session->session_id != session_id) {
         /* The peer disconnected and then reconnected since we got the message;
         ignore. */
@@ -140,7 +140,7 @@ void directory_read_manager_t<metadata_t>::propagate_initialization(peer_id_t pe
 
     /* Notify that the peer has connected */
     {
-        mutex_assertion_t::acq_t acq(&variable_lock);
+        DEBUG_VAR mutex_assertion_t::acq_t acq(&variable_lock);
         std::map<peer_id_t, metadata_t> map = variable.get_watchable()->get();
 
         std::pair<typename std::map<peer_id_t, metadata_t>::iterator, bool> res
@@ -160,7 +160,7 @@ void directory_read_manager_t<metadata_t>::propagate_initialization(peer_id_t pe
 }
 
 template<class metadata_t>
-void directory_read_manager_t<metadata_t>::propagate_update(peer_id_t peer, uuid_t session_id, metadata_t new_value, fifo_enforcer_write_token_t metadata_fifo_token, auto_drainer_t::lock_t per_thread_keepalive) THROWS_NOTHING {
+void directory_read_manager_t<metadata_t>::propagate_update(peer_id_t peer, uuid_u session_id, metadata_t new_value, fifo_enforcer_write_token_t metadata_fifo_token, auto_drainer_t::lock_t per_thread_keepalive) THROWS_NOTHING {
     per_thread_keepalive.assert_is_holding(per_thread_drainers.get());
     on_thread_t thread_switcher(home_thread());
 
@@ -171,7 +171,7 @@ void directory_read_manager_t<metadata_t>::propagate_update(peer_id_t peer, uuid
         /* The peer disconnected since we got the message; ignore. */
         return;
     }
-    session_t *session = (*it).second;
+    session_t *session = it->second;
     if (session->session_id != session_id) {
         /* The peer disconnected and then reconnected since we got the message;
         ignore. */
@@ -196,7 +196,7 @@ void directory_read_manager_t<metadata_t>::propagate_update(peer_id_t peer, uuid
         wait_interruptible(&fifo_exit, session_keepalive.get_drain_signal());
 
         {
-            mutex_assertion_t::acq_t acq(&variable_lock);
+            DEBUG_VAR mutex_assertion_t::acq_t acq(&variable_lock);
             std::map<peer_id_t, metadata_t> map = variable.get_watchable()->get();
 
             typename std::map<peer_id_t, metadata_t>::iterator var_it = map.find(peer);

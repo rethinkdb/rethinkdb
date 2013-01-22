@@ -8,11 +8,14 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "arch/runtime/thread_pool.hpp"   /* for `run_in_blocker_pool()` */
+#include "arch/runtime/thread_pool.hpp"
+#include "arch/io/disk/filestat.hpp"
 #include "clustering/administration/persist.hpp"
 #include "concurrency/promise.hpp"
 #include "containers/scoped.hpp"
 #include "thread_local.hpp"
+
+RDB_IMPL_SERIALIZABLE_2(struct timespec, tv_sec, tv_nsec);
 
 std::string format_log_level(log_level_t l) {
     switch (l) {
@@ -166,9 +169,9 @@ log_message_t assemble_log_message(log_level_t level, const std::string &message
     return log_message_t(timestamp, uptime, level, message);
 }
 
-static void throw_unless(bool condition, const std::string &where) {
+void throw_unless(bool condition, const std::string &where) {
     if (!condition) {
-        throw std::runtime_error("file IO error: " + where + " (errno = " + strerror(errno) + ")");
+        throw std::runtime_error("file IO error: " + where + " (errno = " + errno_string(errno).c_str() + ")");
     }
 }
 
@@ -187,20 +190,18 @@ public:
             fd.reset(res);
         }
 
-        struct stat64 stat;
-        int res = fstat64(fd.get(), &stat);
-        throw_unless(res == 0, "could not determine size of log file");
-        if (stat.st_size == 0) {
+        int64_t fd_filesize = get_file_size(fd.get());
+        if (fd_filesize == 0) {
             remaining_in_current_chunk = current_chunk_start = 0;
         } else {
-            remaining_in_current_chunk = stat.st_size % chunk_size;
+            remaining_in_current_chunk = fd_filesize % chunk_size;
             if (remaining_in_current_chunk == 0) {
                 /* We landed right on a chunk boundary; set ourself to read the
                 previous whole chunk. */
                 remaining_in_current_chunk = chunk_size;
             }
-            current_chunk_start = stat.st_size - remaining_in_current_chunk;
-            res = pread(fd.get(), current_chunk.data(), remaining_in_current_chunk, current_chunk_start);
+            current_chunk_start = fd_filesize - remaining_in_current_chunk;
+            int res = pread(fd.get(), current_chunk.data(), remaining_in_current_chunk, current_chunk_start);
             throw_unless(res == remaining_in_current_chunk, "could not read from file");
         }
     }
@@ -240,7 +241,7 @@ private:
     scoped_fd_t fd;
     scoped_array_t<char> current_chunk;
     int remaining_in_current_chunk;
-    off64_t current_chunk_start;
+    int64_t current_chunk_start;
 
     DISABLE_COPYING(file_reverse_reader_t);
 };
@@ -309,38 +310,38 @@ bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_o
 
     ssize_t write_res = ::write(STDERR_FILENO, console_formatted.data(), console_formatted.length());
     if (write_res != static_cast<ssize_t>(console_formatted.length())) {
-        *error_out = std::string("cannot write to standard error: ") + strerror(errno);
+        error_out->assign("cannot write to standard error: " + errno_string(errno));
         return false;
     }
 
     int res = fsync(STDERR_FILENO);
     if (res != 0 && !(errno == EROFS || errno == EINVAL)) {
-        *error_out = std::string("cannot flush stderr: ") + strerror(errno);
+        error_out->assign("cannot flush stderr: " + errno_string(errno));
         return false;
     }
 
     funlockfile(stderr);
 
     if (fd.get() == -1) {
-        *error_out = std::string("cannot open or find log file");
+        error_out->assign("cannot open or find log file");
         return false;
     }
 
     res = fcntl(fd.get(), F_SETLKW, &filelock);
     if (res != 0) {
-        *error_out = std::string("cannot lock log file: ") + strerror(errno);
+        error_out->assign("cannot lock log file: " + errno_string(errno));
         return false;
     }
 
     write_res = ::write(fd.get(), formatted.data(), formatted.length());
     if (write_res != static_cast<ssize_t>(formatted.length())) {
-        *error_out = std::string("cannot write to log file: ") + strerror(errno);
+        error_out->assign("cannot write to log file: " + errno_string(errno));
         return false;
     }
 
     res = fcntl(fd.get(), F_SETLK, &fileunlock);
     if (res != 0) {
-        *error_out = std::string("cannot unlock log file: ") + strerror(errno);
+        error_out->assign("cannot unlock log file: " + errno_string(errno));
         return false;
     }
 

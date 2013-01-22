@@ -7,7 +7,7 @@
 
 namespace ql {
 
-table_t::table_t(env_t *_env, uuid_t db_id, const std::string &name, bool _use_outdated)
+table_t::table_t(env_t *_env, uuid_u db_id, const std::string &name, bool _use_outdated)
     : env(_env), use_outdated(_use_outdated) {
     name_string_t table_name;
     bool b = table_name.assign_value(name);
@@ -20,7 +20,7 @@ table_t::table_t(env_t *_env, uuid_t db_id, const std::string &name, bool _use_o
         ns_searcher(&namespaces_metadata_change.get()->namespaces);
     //TODO: fold into iteration below
     namespace_predicate_t pred(&table_name, &db_id);
-    uuid_t id = meta_get_uuid(&ns_searcher, pred, "FIND_TABLE " + table_name.str());
+    uuid_u id = meta_get_uuid(&ns_searcher, pred, "FIND_TABLE " + table_name.str());
 
     access.init(new namespace_repo_t<rdb_protocol_t>::access_t(
                     env->ns_repo, id, env->interruptor));
@@ -205,7 +205,7 @@ val_t::val_t(table_t *_table, const term_t *_parent, env_t *_env)
       func(0) {
     guarantee(table);
 }
-val_t::val_t(uuid_t _db, const term_t *_parent, env_t *_env)
+val_t::val_t(uuid_u _db, const term_t *_parent, env_t *_env)
     : parent(_parent), env(_env),
       type(type_t::DB),
       db(_db),
@@ -270,7 +270,7 @@ func_t *val_t::as_func() {
     return func;
 }
 
-uuid_t val_t::as_db() {
+uuid_u val_t::as_db() {
     rcheck(type.raw_type == type_t::DB,
            strprintf("Type error: cannot convert %s to DB.", type.name()));
     return db;

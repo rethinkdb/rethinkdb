@@ -436,7 +436,7 @@ void *mc_inner_buf_t::acquire_snapshot_data(version_id_t version_to_access, file
             return snap->acquire_data(io_account);
         }
     }
-    unreachable("No acceptable snapshotted version found for version %" PRIu64 "", version_to_access);
+    unreachable("No acceptable snapshotted version found for version %" PRIu64, version_to_access);
 }
 
 // TODO (sam): Look at who's passing this void pointer.
@@ -1161,7 +1161,7 @@ mc_transaction_t::~mc_transaction_t() {
 
     cache->stats->pm_transactions_active.end(&start_time);
 
-    rassert(num_buf_locks_acquired == 0, "num_buf_locks_acquired = %" PRIu64 "", num_buf_locks_acquired);
+    rassert(num_buf_locks_acquired == 0, "num_buf_locks_acquired = %" PRIi64, num_buf_locks_acquired);
     guarantee(num_buf_locks_acquired == 0);
 
     block_pm_duration commit_timer(&cache->stats->pm_transactions_committing);
@@ -1171,7 +1171,7 @@ mc_transaction_t::~mc_transaction_t() {
         for (std::vector<std::pair<mc_inner_buf_t*, mc_inner_buf_t::buf_snapshot_t*> >::iterator it = owned_buf_snapshots.begin();
              it != owned_buf_snapshots.end();
              ++it) {
-            (*it).first->release_snapshot((*it).second);
+            it->first->release_snapshot(it->second);
         }
     }
 
@@ -1425,7 +1425,7 @@ void mc_cache_t::register_snapshot(mc_transaction_t *txn) {
 
 void mc_cache_t::unregister_snapshot(mc_transaction_t *txn) {
     std::map<mc_inner_buf_t::version_id_t, mc_transaction_t *>::iterator it = active_snapshots.find(txn->snapshot_version);
-    if (it != active_snapshots.end() && (*it).second == txn) {
+    if (it != active_snapshots.end() && it->second == txn) {
         active_snapshots.erase(it);
     } else {
         unreachable("Tried to unregister a snapshot which doesn't exist");
@@ -1452,7 +1452,7 @@ size_t mc_cache_t::register_buf_snapshot(mc_inner_buf_t *inner_buf, mc_inner_buf
              itend = active_snapshots.lower_bound(new_version);
          it != itend;
          it++) {
-        (*it).second->register_buf_snapshot(inner_buf, snap);
+        it->second->register_buf_snapshot(inner_buf, snap);
         num_snapshots_affected++;
     }
     return num_snapshots_affected;

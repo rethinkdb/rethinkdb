@@ -4,7 +4,9 @@
 
 #ifndef LEGACY_LINUX
 
+#if defined(__linux) && !defined(NO_EVENTFD)
 #include <sys/eventfd.h>
+#endif
 
 #else
 

@@ -13,6 +13,7 @@
 #include "arch/runtime/message_hub.hpp"
 #include "arch/runtime/coroutines.hpp"
 #include "arch/io/blocker_pool.hpp"
+#include "arch/io/timer_provider.hpp"
 #include "arch/timer.hpp"
 
 class linux_thread_t;
@@ -65,10 +66,9 @@ private:
 #endif
 
     static void *start_thread(void*);
-
     static void interrupt_handler(int);
     static void sigsegv_handler(int, siginfo_t *, void *) NORETURN;
-    pthread_spinlock_t interrupt_message_lock;
+    spinlock_t interrupt_message_lock;
     linux_thread_message_t *interrupt_message;
 
     // Used to signal the main thread for shutdown

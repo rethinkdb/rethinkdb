@@ -69,7 +69,7 @@ extent_t::extent_t(extent_manager_t *_em, file_t *_file)
     ++em->stats->pm_serializer_lba_extents;
 }
 
-extent_t::extent_t(extent_manager_t *_em, file_t *_file, off64_t loc, size_t size)
+extent_t::extent_t(extent_manager_t *_em, file_t *_file, int64_t loc, size_t size)
     : amount_filled(size), em(_em), file(_file), last_block(NULL), current_block(NULL)
 {
     em->reserve_extent(loc, &extent_ref);
@@ -84,7 +84,7 @@ void extent_t::destroy(extent_transaction_t *txn) {
 }
 
 void extent_t::shutdown() {
-    UNUSED off64_t extent = extent_ref.release();
+    UNUSED int64_t extent = extent_ref.release();
     delete this;
 }
 

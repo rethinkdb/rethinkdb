@@ -26,7 +26,7 @@ static void meta_check(metadata_search_status_t status, metadata_search_status_t
 }
 
 template<class T, class U>
-static uuid_t meta_get_uuid(T *searcher, const U &predicate, std::string operation) {
+static uuid_u meta_get_uuid(T *searcher, const U &predicate, std::string operation) {
     metadata_search_status_t status;
     typename T::iterator entry = searcher->find_uniq(predicate, &status);
     meta_check(status, METADATA_SUCCESS, operation);

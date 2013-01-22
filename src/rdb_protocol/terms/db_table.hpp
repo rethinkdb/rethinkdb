@@ -136,7 +136,7 @@ public:
         meta_write_op_t(env, term, argspec_t(2), LEGAL_OPTARGS(table_create_optargs)) { }
 private:
     virtual std::string write_eval_impl() {
-        uuid_t dc_id = nil_uuid();
+        uuid_u dc_id = nil_uuid();
         if (val_t *v = optarg("datacenter", 0)) {
             dc_id = meta_get_uuid(dc_searcher.get(), get_name(v),
                                   "FIND_DATACENTER " + v->as_datum()->as_str());
@@ -148,7 +148,7 @@ private:
         int cache_size = 1073741824;
         if (val_t *v = optarg("cache_size", 0)) cache_size = v->as_datum()->as_int();
 
-        uuid_t db_id = arg(0)->as_db();
+        uuid_u db_id = arg(0)->as_db();
 
         name_string_t tbl_name = get_name(arg(1));
         // Ensure table doesn't already exist.
@@ -160,7 +160,7 @@ private:
         on_thread_t write_rethreader(metadata_home_thread);
 
         // Create namespace (DB + table pair) and insert into metadata.
-        uuid_t namespace_id = generate_uuid();
+        uuid_u namespace_id = generate_uuid();
         // The port here is a legacy from the day when memcached ran on a different port.
         namespace_semilattice_metadata_t<rdb_protocol_t> ns =
             new_namespace<rdb_protocol_t>(env->this_machine, db_id, dc_id, tbl_name,
@@ -212,7 +212,7 @@ private:
             db_metadata = db_searcher->find_uniq(db_name, &status);
         meta_check(status, METADATA_SUCCESS, "DB_DROP " + db_name.str());
         guarantee(!db_metadata->second.is_deleted());
-        uuid_t db_id = db_metadata->first;
+        uuid_u db_id = db_metadata->first;
 
         // Delete all tables in database.
         namespace_predicate_t pred(&db_id);
@@ -246,7 +246,7 @@ public:
         meta_write_op_t(env, term, argspec_t(2)) { }
 private:
     virtual std::string write_eval_impl() {
-        uuid_t db_id = arg(0)->as_db();
+        uuid_u db_id = arg(0)->as_db();
         name_string_t tbl_name = get_name(arg(1));
 
         on_thread_t write_rethreader(metadata_home_thread);
@@ -302,7 +302,7 @@ public:
 private:
     virtual val_t *eval_impl() {
         datum_t *arr = env->add_ptr(new datum_t(datum_t::R_ARRAY));
-        uuid_t db_id = arg(0)->as_db();
+        uuid_u db_id = arg(0)->as_db();
         namespace_predicate_t pred(&db_id);
         for (metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >
                  ::iterator it = ns_searcher->find_next(ns_searcher->begin(), pred);
@@ -326,7 +326,7 @@ private:
     virtual val_t *eval_impl() {
         val_t *t = optarg("use_outdated", 0);
         bool use_outdated = t ? t->as_datum()->as_bool() : false;
-        uuid_t db = arg(0)->as_db();
+        uuid_u db = arg(0)->as_db();
         std::string name = arg(1)->as_datum()->as_str();
         return new_val(new table_t(env, db, name, use_outdated));
     }

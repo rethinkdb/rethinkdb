@@ -38,17 +38,18 @@ public:
     const std::set<ip_address_t> *all_ips() const { return &ips; }
     int port;
 
-    /* Two addresses are considered equal if *any* of their IPs match. */
+    // Two addresses are considered equal if all of their IPs match
     bool operator==(const peer_address_t &a) const {
         if (port != a.port) return false;
         std::set<ip_address_t>::const_iterator it, ita;
         for (it = ips.begin(); it != ips.end(); ++it) {
             for (ita = a.all_ips()->begin(); ita != a.all_ips()->end(); ++ita) {
-                if (*it == *ita) return true;
+                if (*it != *ita) return false;
             }
         }
-        return false;
+        return true;
     }
+
     bool operator!=(const peer_address_t &a) const {
         return !(*this == a);
     }
@@ -61,29 +62,14 @@ private:
 class peer_address_set_t {
 public:
     size_t erase(const peer_address_t &addr) {
-        // We need to make sure we remove the *right* address from the set
-        // Example:
-        //  Set contains [127.0.1.1] and [192.168.0.15]
-        //  erase is called with [127.0.0.1, 127.0.1.1, 192.168.0.15]
-        // In this case, only 192.168.0.15 should be removed, because the loopback
-        //  address is obviously talking about a different peer
-        // So, first we create a peer_address_t without any loopback addresses
-        //  then, if there are no matches for that, use the original
-        const std::set<ip_address_t> *ips = addr.all_ips();
-        std::set<ip_address_t> ips_no_loopback;
-        for (std::set<ip_address_t>::const_iterator i = ips->begin(); i != ips->end(); ++i) {
-            if (!i->is_loopback()) {
-                ips_no_loopback.insert(*i);
+        size_t erased = 0;
+        for (iterator it = vec.begin(); it != vec.end(); ++it) {
+            if (*it == addr) {
+                vec.erase(it);
+                ++erased;
+                break;
             }
         }
-
-        peer_address_t addr_no_loopback(ips_no_loopback, addr.port);
-        size_t erased = erase_internal(addr_no_loopback);
-
-        if (erased == 0) {
-            erased = erase_internal(addr);
-        }
-
         return erased;
     }
     typedef std::vector<peer_address_t>::iterator iterator;
@@ -99,17 +85,6 @@ public:
     }
     bool empty() const { return vec.empty(); }
 private:
-    size_t erase_internal(const peer_address_t &addr) {
-        size_t erased = 0;
-        for (iterator it = vec.begin(); it != vec.end(); ++it) {
-            if (*it == addr) {
-                vec.erase(it);
-                ++erased;
-                break;
-            }
-        }
-        return erased;
-    }
     std::vector<peer_address_t> vec;
 };
 
@@ -159,7 +134,7 @@ public:
             /* Unused for our connection to ourself */
             mutex_t send_mutex;
 
-            uuid_t session_id;
+            uuid_u session_id;
 
             perfmon_collection_t pm_collection;
             perfmon_sampler_t pm_bytes_sent;
@@ -288,7 +263,7 @@ public:
     /* `connectivity_service_t` public methods: */
     peer_id_t get_me() THROWS_NOTHING;
     std::set<peer_id_t> get_peers_list() THROWS_NOTHING;
-    uuid_t get_connection_session_id(peer_id_t) THROWS_NOTHING;
+    uuid_u get_connection_session_id(peer_id_t) THROWS_NOTHING;
 
     /* `message_service_t` public methods: */
     connectivity_service_t *get_connectivity_service() THROWS_NOTHING;

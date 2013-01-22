@@ -129,7 +129,7 @@ def generate_async_message_template(nargs):
     print
 
 if __name__ == "__main__":
-
+    print "// Copyright 2010-2012 RethinkDB, all rights reserved."
     print "#ifndef RPC_MAILBOX_TYPED_HPP_"
     print "#define RPC_MAILBOX_TYPED_HPP_"
     print
@@ -146,8 +146,6 @@ if __name__ == "__main__":
     print "#include \"rpc/serialize_macros.hpp\""
     print "#include \"rpc/mailbox/mailbox.hpp\""
     print
-    print "#pragma GCC diagnostic ignored \"-Wuninitialized\""
-
     print "/* If you pass `mailbox_callback_mode_coroutine` to the `mailbox_t` "
     print "constructor, it will spawn the callback in a new coroutine. If you "
     print "`mailbox_callback_mode_inline`, it will call the callback inline "

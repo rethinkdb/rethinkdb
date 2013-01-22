@@ -27,7 +27,7 @@ timestamp will be a number that the `broadcaster_t` increments every time a
 write operation passes through it. (Warning: The timestamp is usually not zero
 for a new `broadcaster_t`.) */
 
-typedef uuid_t branch_id_t;
+typedef uuid_u branch_id_t;
 
 class version_t {
 public:
@@ -192,7 +192,9 @@ public:
     /* Convenience function that finds all records related to the given version
     map and copies them into `out` */
     void export_branch_history(const region_map_t<protocol_t, version_range_t> &region_map, branch_history_t<protocol_t> *out) THROWS_NOTHING {
-        for (typename region_map_t<protocol_t, version_range_t>::const_iterator it = region_map.begin(); it != region_map.end(); it++) {
+        for (typename region_map_t<protocol_t, version_range_t>::const_iterator it = region_map.begin();
+                                                                                it != region_map.end();
+                                                                                ++it) {
             if (!it->second.latest.branch.is_nil()) {
                 export_branch_history(it->second.latest.branch, out);
             }

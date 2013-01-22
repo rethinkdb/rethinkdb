@@ -9,7 +9,7 @@ namespace unittest {
 TEST(PrintfBufferTest, Buffering) {
     std::string str = "abcdefgh";
     printf_buffer_t<10> buf;
-    buf.appendf(str.c_str());
+    buf.appendf("%s", str.c_str());
 
     ASSERT_EQ(str, std::string(buf.c_str()));
     ASSERT_EQ(buf.c_str(), buf.data_);

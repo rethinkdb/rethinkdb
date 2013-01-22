@@ -17,7 +17,7 @@
 #include "serializer/log/config.hpp"
 #include "containers/segmented_vector.hpp"
 
-#define NULL_OFFSET off64_t(-1)
+#define NULL_OFFSET int64_t(-1)
 
 class extent_zone_t;
 
@@ -30,25 +30,25 @@ public:
     extent_reference_t() : extent_offset_(-1) { }
     ~extent_reference_t() { guarantee(extent_offset_ == -1); }
 
-    void init(off64_t offset) {
+    void init(int64_t offset) {
         guarantee(extent_offset_ == -1);
         extent_offset_ = offset;
     }
 
-    off64_t offset() {
+    int64_t offset() {
         guarantee(extent_offset_ != -1);
         return extent_offset_;
     }
 
-    MUST_USE off64_t release() {
+    MUST_USE int64_t release() {
         guarantee(extent_offset_ != -1);
-        off64_t ret = extent_offset_;
+        int64_t ret = extent_offset_;
         extent_offset_ = -1;
         return ret;
     }
 
 private:
-    off64_t extent_offset_;
+    int64_t extent_offset_;
     DISABLE_COPYING(extent_reference_t);
 };
 
@@ -64,13 +64,13 @@ public:
         extent_offsets_.push_back(ref->release());
     }
 
-    void reset(std::deque<off64_t> *extents_out) {
+    void reset(std::deque<int64_t> *extents_out) {
         guarantee(extents_out->empty());
         extents_out->swap(extent_offsets_);
     }
 
 private:
-    std::deque<off64_t> extent_offsets_;
+    std::deque<int64_t> extent_offsets_;
     DISABLE_COPYING(extent_reference_set_t);
 };
 
@@ -94,7 +94,7 @@ public:
         guarantee(state_ == begun);
         state_ = ended;
     }
-    void reset(std::deque<off64_t> *extents_out) {
+    void reset(std::deque<int64_t> *extents_out) {
         guarantee(state_ == ended);
         extent_ref_set_.reset(extents_out);
         state_ = committed;
@@ -119,7 +119,7 @@ public:
     /* When we load a database, we use reserve_extent() to inform the extent manager
     which extents were already in use */
 
-    void reserve_extent(off64_t extent, extent_reference_t *extent_ref_out);
+    void reserve_extent(int64_t extent, extent_reference_t *extent_ref_out);
 
     static void prepare_initial_metablock(metablock_mixin_t *mb);
     void start_existing(metablock_mixin_t *last_metablock);
@@ -151,7 +151,7 @@ public:
     const uint64_t extent_size;   /* Same as static_config->extent_size */
 
 private:
-    extent_zone_t *zone_for_offset(off64_t offset);
+    extent_zone_t *zone_for_offset(int64_t offset);
     void release_extent_preliminaries();
 
     const log_serializer_on_disk_static_config_t *const static_config;

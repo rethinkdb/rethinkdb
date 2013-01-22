@@ -4,7 +4,6 @@
 
 #include <map>
 
-#include "clustering/administration/namespace_metadata.hpp"
 #include "clustering/reactor/namespace_interface.hpp"
 
 /* `namespace_repo_t` is responsible for constructing and caching
@@ -15,6 +14,7 @@ it must perform a handshake with every `master_t`, which means several network
 round-trips. */
 
 template <class> class watchable_t;
+template <class> class namespaces_directory_metadata_t;
 
 
 template <class protocol_t>
@@ -32,7 +32,7 @@ public:
     class access_t {
     public:
         access_t();
-        access_t(namespace_repo_t *parent, namespace_id_t namespace_id, signal_t *interruptor);
+        access_t(namespace_repo_t *parent, uuid_u namespace_id, signal_t *interruptor);
         access_t(const access_t& access);
         access_t &operator=(const access_t &access);
 
@@ -56,7 +56,7 @@ public:
 private:
     void create_and_destroy_namespace_interface(
             namespace_cache_t *cache,
-            namespace_id_t namespace_id,
+            uuid_u namespace_id,
             auto_drainer_t::lock_t keepalive)
             THROWS_NOTHING;
 

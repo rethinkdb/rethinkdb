@@ -11,14 +11,13 @@
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
 # Short-Description: This starts a set of rethinkdb server instances.
-# Description:       This looks in /etc/rethinkdb/instancds.d for rethinkdb config files and launches, stops, or examines each instance described there.
+# Description:       This looks in /etc/rethinkdb/instances.d for rethinkdb config files and launches, stops, or examines each instance described there.
 ### END INIT INFO
 
 itask="$1"
 
 rtdbbin=/usr/bin/rethinkdb ;
 rtdbconfigdir=/etc/rethinkdb ;
-rtdbconfigglob="$rtdbconfigdir"/main.conf ;
 
 if [ "$itask" = "" ] ;
 then
@@ -51,7 +50,12 @@ else
 			rtdbpidfile="`cat "$rtdbconffile" | grep '^[ \t]*pid-file[ \t]*\=' | head -n 1 | sed -e 's/^\([ \ta-zA-Z0-9]\|[-]\)*\=[ \t]*//g'`" ;
 			if [ "$itask" = "stop" ] || [ "$itask" = "restart" ] || [ "$itask" = "reload" ] || [ "$itask" = "force-reload" ] ;
 			then
-				start-stop-daemon --stop --pidfile "$rtdbpidfile" --signal INT "$useropt" "$runuser" "$groupopt" "$rungroup" ;
+				if [ ! -e "$rtdbpidfile" ] ;
+				then
+					echo "rethinkdb:""$rtdbconffile"": The instance is not running (there is no pid file)" ;
+				else
+					start-stop-daemon --stop --pidfile "$rtdbpidfile" --signal INT "$useropt" "$runuser" "$groupopt" "$rungroup" ;
+				fi ;
 			fi ;
 			if [ "$itask" = "start" ] || [ "$itask" = "restart" ] || [ "$itask" = "reload" ] || [ "$itask" = "force-reload" ] ;
 			then
@@ -59,7 +63,13 @@ else
 				then
 					mkdir -p "`dirname "$rtdbpidfile"`" ;
 				fi ;
-				start-stop-daemon --start --pidfile "$rtdbpidfile" "$useropt" "$runuser" "$groupopt" "$rungroup" --startas "$rtdbbin" --background -- --config-file="$rtdbconffile" ;
+				if [ -e "$rtdbpidfile" ] ;
+				then
+					echo "rethinkdb:""$rtdbconffile"": The instance has already started" ;
+					echo "rethinkdb: To force the instance to start, delete \`$rtdbpidfile'" ;
+				else
+					start-stop-daemon --start --pidfile "$rtdbpidfile" "$useropt" "$runuser" "$groupopt" "$rungroup" --startas "$rtdbbin" --background -- --config-file="$rtdbconffile" ;
+				fi ;
 			fi ;
 			if [ "$itask" = "status" ] ;
 			then
@@ -76,5 +86,8 @@ else
 				fi ;
 			fi ;
 		done ;
+	else
+		echo "rethinkdb: 0 instances in ""$rtdbconfigdir""/instances.d"
+		echo "rethinkdb: See http://www.rethinkdb.com/docs/guides/startup/ for more information" ;
 	fi ;
 fi ;

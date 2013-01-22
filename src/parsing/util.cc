@@ -77,7 +77,7 @@ void LineParser::pop(signal_t *closer) {
 }
 
 char LineParser::current(signal_t *closer) {
-    while (static_cast<off64_t>(bytes_read) >= (end_position - start_position)) {
+    while (static_cast<int64_t>(bytes_read) >= (end_position - start_position)) {
         conn->read_more_buffered(closer);
         peek();
     }

@@ -9,7 +9,7 @@
 #include "rpc/mailbox/typed.hpp"
 #include "utils.hpp"
 
-typedef int directory_echo_version_t;
+typedef int32_t directory_echo_version_t;
 
 template<class internal_t>
 class directory_echo_wrapper_t {

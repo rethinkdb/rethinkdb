@@ -89,7 +89,7 @@ void admin_cluster_link_t::admin_stats_to_table(const std::string& machine,
                 std::string postfix(i->first);
                 // Try to convert any uuids to a name, if that fails, ignore
                 try {
-                    uuid_t temp = str_to_uuid(postfix);
+                    uuid_u temp = str_to_uuid(postfix);
                     postfix = get_info_from_id(uuid_to_str(temp))->name;
                 } catch (...) {
                     postfix = peer_id_to_machine_name(postfix);
@@ -112,7 +112,7 @@ std::string admin_value_to_string(int value) {
     return strprintf("%i", value);
 }
 
-std::string admin_value_to_string(const uuid_t& uuid) {
+std::string admin_value_to_string(const uuid_u& uuid) {
     return uuid_to_str(uuid);
 }
 
@@ -124,10 +124,10 @@ std::string admin_value_to_string(const name_string_t& name) {
     return admin_value_to_string(name.str());
 }
 
-std::string admin_value_to_string(const std::map<uuid_t, int>& value) {
+std::string admin_value_to_string(const std::map<uuid_u, int>& value) {
     std::string result;
     size_t count = 0;
-    for (std::map<uuid_t, int>::const_iterator i = value.begin(); i != value.end(); ++i) {
+    for (std::map<uuid_u, int>::const_iterator i = value.begin(); i != value.end(); ++i) {
         ++count;
         result += strprintf("%s: %i%s", uuid_to_str(i->first).c_str(), i->second, count == value.size() ? "" : ", ");
     }
@@ -146,10 +146,10 @@ std::string admin_value_to_string(const nonoverlapping_regions_t<protocol_t>& va
 }
 
 template <class protocol_t>
-std::string admin_value_to_string(const region_map_t<protocol_t, uuid_t>& value) {
+std::string admin_value_to_string(const region_map_t<protocol_t, uuid_u>& value) {
     std::string result;
     bool first = true;
-    for (typename region_map_t<protocol_t, uuid_t>::const_iterator i = value.begin(); i != value.end(); ++i) {
+    for (typename region_map_t<protocol_t, uuid_u>::const_iterator i = value.begin(); i != value.end(); ++i) {
         result += strprintf("%s%s: %s", first ? "" : ", ", admin_value_to_string(i->first).c_str(), uuid_to_str(i->second).c_str());
         first = false;
     }
@@ -157,10 +157,10 @@ std::string admin_value_to_string(const region_map_t<protocol_t, uuid_t>& value)
 }
 
 template <class protocol_t>
-std::string admin_value_to_string(const region_map_t<protocol_t, std::set<uuid_t> >& value) {
+std::string admin_value_to_string(const region_map_t<protocol_t, std::set<uuid_u> >& value) {
     std::string result;
     bool first = true;
-    for (typename region_map_t<protocol_t, std::set<uuid_t> >::const_iterator i = value.begin(); i != value.end(); ++i) {
+    for (typename region_map_t<protocol_t, std::set<uuid_u> >::const_iterator i = value.begin(); i != value.end(); ++i) {
         //TODO: print more detail
         result += strprintf("%s%s: %zu machine%s", first ? "" : ", ", admin_value_to_string(i->first).c_str(), i->second.size(), i->second.size() == 1 ? "" : "s");
         first = false;
@@ -205,7 +205,7 @@ void admin_print_table(const std::vector<std::vector<std::string> >& table) {
 }
 
 // Truncate a uuid for easier user-interface
-std::string admin_cluster_link_t::truncate_uuid(const uuid_t& uuid) {
+std::string admin_cluster_link_t::truncate_uuid(const uuid_u& uuid) {
     if (uuid.is_nil()) {
         return std::string("none");
     } else {
@@ -1030,7 +1030,7 @@ void admin_cluster_link_t::do_admin_list(const admin_command_parser_t::command_d
         list_all(long_format, cluster_metadata);
     } else {
         metadata_info_t *info = get_info_from_id(obj_str);
-        uuid_t obj_id = info->uuid;
+        uuid_u obj_id = info->uuid;
         if (info->path[0] == "datacenters") {
             datacenters_semilattice_metadata_t::datacenter_map_t::iterator i = cluster_metadata.datacenters.datacenters.find(obj_id);
             if (i == cluster_metadata.datacenters.datacenters.end() || i->second.is_deleted()) {
@@ -1268,7 +1268,7 @@ void admin_cluster_link_t::do_admin_list_stats(const admin_command_parser_t::com
                         // Try to convert the uuid to a (unique) name
                         std::string id = j->first;
                         try {
-                            uuid_t temp = str_to_uuid(id);
+                            uuid_u temp = str_to_uuid(id);
                             id = get_info_from_id(uuid_to_str(temp))->name;
                         } catch (...) {
                         }
@@ -2163,7 +2163,7 @@ void admin_cluster_link_t::do_admin_set_database(const admin_command_parser_t::c
 }
 
 template <class obj_map>
-void admin_cluster_link_t::do_admin_set_datacenter_namespace(const uuid_t &obj_uuid,
+void admin_cluster_link_t::do_admin_set_datacenter_namespace(const uuid_u &obj_uuid,
                                                              const datacenter_id_t &dc,
                                                              obj_map *metadata) {
     typename obj_map::iterator i = metadata->find(obj_uuid);
@@ -2179,7 +2179,7 @@ void admin_cluster_link_t::do_admin_set_datacenter_namespace(const uuid_t &obj_u
     i->second.get_mutable()->primary_datacenter.upgrade_version(change_request_id);
 }
 
-void admin_cluster_link_t::do_admin_set_datacenter_machine(const uuid_t obj_uuid,
+void admin_cluster_link_t::do_admin_set_datacenter_machine(const uuid_u obj_uuid,
                                                            const datacenter_id_t dc,
                                                            machines_semilattice_metadata_t::machine_map_t *metadata,
                                                            cluster_semilattice_metadata_t *cluster_metadata) {
@@ -2311,7 +2311,7 @@ void do_assign_string_to_name(name_string_t &assignee, const std::string& s) THR
 
 
 template <class map_type>
-void admin_cluster_link_t::do_admin_set_name_internal(const uuid_t& id, const std::string& name, map_type *obj_map) {
+void admin_cluster_link_t::do_admin_set_name_internal(const uuid_u& id, const std::string& name, map_type *obj_map) {
     typename map_type::iterator i = obj_map->find(id);
     if (i != obj_map->end() && !i->second.is_deleted() && !i->second.get().name.in_conflict()) {
         do_assign_string_to_name(i->second.get_mutable()->name.get_mutable(), name);
@@ -2327,7 +2327,7 @@ void admin_cluster_link_t::do_admin_set_acks(const admin_command_parser_t::comma
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
     metadata_info_t *ns_info(get_info_from_id(guarantee_param_0(data.params, "table")));
     datacenter_id_t dc_id = nil_uuid();
-    std::string acks_str = guarantee_param_0(data.params, "num-acks").c_str();
+    std::string acks_str = guarantee_param_0(data.params, "num-acks");
     uint64_t acks_num;
 
     // Make sure num-acks is a number
@@ -2427,7 +2427,7 @@ void admin_cluster_link_t::do_admin_set_replicas(const admin_command_parser_t::c
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
     metadata_info_t *ns_info = get_info_from_id(guarantee_param_0(data.params, "table"));
     datacenter_id_t dc_id = nil_uuid();
-    std::string replicas_str = guarantee_param_0(data.params, "num-replicas").c_str();
+    std::string replicas_str = guarantee_param_0(data.params, "num-replicas");
     uint64_t num_replicas;
 
     // Make sure num-replicas is a number
@@ -2602,8 +2602,8 @@ void admin_cluster_link_t::do_admin_remove_internal(const std::string& obj_type,
 }
 
 template <class T>
-void admin_cluster_link_t::do_admin_remove_internal_internal(const uuid_t& key, std::map<uuid_t, T> *obj_map) {
-    typename std::map<uuid_t, T>::iterator i = obj_map->find(key);
+void admin_cluster_link_t::do_admin_remove_internal_internal(const uuid_u& key, std::map<uuid_u, T> *obj_map) {
+    typename std::map<uuid_u, T>::iterator i = obj_map->find(key);
 
     if (i == obj_map->end() || i->second.is_deleted()) {
         throw admin_cluster_exc_t("object not found");

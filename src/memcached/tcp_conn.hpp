@@ -23,7 +23,7 @@ struct memcache_listener_t : public home_thread_mixin_debug_only_t {
     memcache_listener_t(const std::set<ip_address_t> &local_addresses,
                         int _port,
                         namespace_repo_t<memcached_protocol_t> *_ns_repo,
-                        const namespace_id_t& _ns_id,
+                        uuid_u _namespace_id,
                         perfmon_collection_t *_parent);
     ~memcache_listener_t();
 
@@ -32,7 +32,7 @@ struct memcache_listener_t : public home_thread_mixin_debug_only_t {
     int port;
 
 private:
-    namespace_id_t ns_id;
+    const uuid_u namespace_id;
     namespace_repo_t<memcached_protocol_t> *ns_repo;
 
     int next_thread;

@@ -33,7 +33,7 @@ private:
     Response handle(Query *q, context_t *query_context);
     protob_server_t<Query, Response, context_t> server;
     rdb_protocol_t::context_t *ctx;
-    uuid_t parser_id;
+    uuid_u parser_id;
     one_per_thread_t<int> thread_counters;
 
     DISABLE_COPYING(query_server_t);
@@ -56,7 +56,7 @@ private:
     Response2 handle(Query2 *q, context_t *query2_context);
     protob_server_t<Query2, Response2, context_t> server;
     rdb_protocol_t::context_t *ctx;
-    uuid_t parser_id;
+    uuid_u parser_id;
     one_per_thread_t<int> thread_counters;
 
     DISABLE_COPYING(query2_server_t);

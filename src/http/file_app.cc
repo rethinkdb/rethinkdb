@@ -1,4 +1,7 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
+
+#include <time.h>
+
 #include <set>
 #include <string>
 
@@ -10,6 +13,7 @@
 #include "http/file_app.hpp"
 #include "logger.hpp"
 #include "stl_utils.hpp"
+#include "utils.hpp"
 
 file_http_app_t::file_http_app_t(std::set<std::string> _whitelist, std::string _asset_dir)
     : whitelist(_whitelist), asset_dir(_asset_dir)
@@ -22,14 +26,11 @@ http_res_t file_http_app_t::handle(const http_req_t &req) {
     }
 
     std::string resource(req.resource.as_string());
-#ifndef NDEBUG
     if (resource != "/" && resource != "" && !std_contains(whitelist, resource)) {
         logINF("Someone asked for the nonwhitelisted file %s, if this should be accessible add it to the whitelist.", resource.c_str());
         return http_res_t(HTTP_FORBIDDEN);
     }
-#endif
 
-    http_res_t res;
     std::string filename;
 
     if (resource == "/" || resource == "") {
@@ -37,6 +38,11 @@ http_res_t file_http_app_t::handle(const http_req_t &req) {
     } else {
         filename = resource;
     }
+
+    http_res_t res;
+
+    time_t expires = get_secs() + 31536000; // One year from now
+    res.add_header_line("Expires", http_format_date(expires));
 
     thread_pool_t::run_in_blocker_pool(boost::bind(&file_http_app_t::handle_blocking, this, filename, &res));
 

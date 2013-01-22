@@ -4,8 +4,8 @@ module 'LogView', ->
     # LogView.Container
     class @Container extends Backbone.View
         className: 'log-view'
-        template: Handlebars.compile $('#log-container-template').html()
-        header_template: Handlebars.compile $('#log-header-template').html()
+        template: Handlebars.templates['log-container-template']
+        header_template: Handlebars.templates['log-header-template']
         type: 'general'
         max_log_entries: 20
         interval_update_log: 10000
@@ -195,32 +195,32 @@ module 'LogView', ->
         className: 'log-entry'
         classNameSmall: 'log-entry'
         tagName: 'li'
-        template: Handlebars.compile $('#log-entry-template').html()
-        template_small: Handlebars.compile $('#log-entry-small_template').html()
+        template: Handlebars.templates['log-entry-template']
+        template_small: Handlebars.templates['log-entry-small_template']
 
-        log_single_value_template: Handlebars.compile $('#log-single_value-template').html()
-        log_machines_values_template: Handlebars.compile $('#log-machines_values-template').html()
-        log_datacenters_values_template: Handlebars.compile $('#log-datacenters_values-template').html()
-        log_shards_values_template: Handlebars.compile $('#log-shards_values-template').html()
-        log_shards_list_values_template: Handlebars.compile $('#log-shards_list_values-template').html()
-        log_shard_names_values_template: Handlebars.compile $('#log-shard_names_values-template').html()
-        log_new_namespace_template: Handlebars.compile $('#log-new_namespace-template').html()
-        log_new_datacenter_template: Handlebars.compile $('#log-new_datacenter-template').html()
-        log_new_database_template: Handlebars.compile $('#log-new_database-template').html()
-        log_delete_something_template: Handlebars.compile $('#log-delete_something-template').html()
-        log_namespace_new_name_template: Handlebars.compile $('#log-namespace-new_name-template').html()
-        log_server_new_name_template: Handlebars.compile $('#log-server-new_name-template').html()
-        log_server_set_datacenter_template: Handlebars.compile $('#log-server-set_datacenter-template').html()
-        log_datacenter_new_name_template: Handlebars.compile $('#log-datacenter-new_name-template').html()
-        log_database_new_name_template: Handlebars.compile $('#log-database-new_name-template').html()
+        log_single_value_template: Handlebars.templates['log-single_value-template']
+        log_machines_values_template: Handlebars.templates['log-machines_values-template']
+        log_datacenters_values_template: Handlebars.templates['log-datacenters_values-template']
+        log_shards_values_template: Handlebars.templates['log-shards_values-template']
+        log_shards_list_values_template: Handlebars.templates['log-shards_list_values-template']
+        log_shard_names_values_template: Handlebars.templates['log-shard_names_values-template']
+        log_new_namespace_template: Handlebars.templates['log-new_namespace-template']
+        log_new_datacenter_template: Handlebars.templates['log-new_datacenter-template']
+        log_new_database_template: Handlebars.templates['log-new_database-template']
+        log_delete_something_template: Handlebars.templates['log-delete_something-template']
+        log_namespace_new_name_template: Handlebars.templates['log-namespace-new_name-template']
+        log_server_new_name_template: Handlebars.templates['log-server-new_name-template']
+        log_server_set_datacenter_template: Handlebars.templates['log-server-set_datacenter-template']
+        log_datacenter_new_name_template: Handlebars.templates['log-datacenter-new_name-template']
+        log_database_new_name_template: Handlebars.templates['log-database-new_name-template']
 
-        log_new_something_small_template: Handlebars.compile $('#log-new_something-small_template').html()
-        log_new_datacenter_small_template: Handlebars.compile $('#log-new_datacenter-small_template').html()
-        log_new_database_small_template: Handlebars.compile $('#log-new_database-small_template').html()
-        log_namespace_value_small_template: Handlebars.compile $('#log-namespace_value-small_template').html()
-        log_machine_value_small_template: Handlebars.compile $('#log-machine_value-small_template').html()
-        log_datacenter_value_small_template: Handlebars.compile $('#log-datacenter_value-small_template').html()
-        log_database_value_small_template: Handlebars.compile $('#log-database_value-small_template').html()
+        log_new_something_small_template: Handlebars.templates['log-new_something-small_template']
+        log_new_datacenter_small_template: Handlebars.templates['log-new_datacenter-small_template']
+        log_new_database_small_template: Handlebars.templates['log-new_database-small_template']
+        log_namespace_value_small_template: Handlebars.templates['log-namespace_value-small_template']
+        log_machine_value_small_template: Handlebars.templates['log-machine_value-small_template']
+        log_datacenter_value_small_template: Handlebars.templates['log-datacenter_value-small_template']
+        log_database_value_small_template: Handlebars.templates['log-database_value-small_template']
 
         events:
             'click .more-details-link': 'display_details'

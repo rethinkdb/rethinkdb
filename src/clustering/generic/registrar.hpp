@@ -103,7 +103,7 @@ private:
         typename std::map<registration_id_t, cond_t *>::iterator it =
             registrations.find(rid);
         if (it != registrations.end()) {
-            cond_t *deleter = (*it).second;
+            cond_t *deleter = it->second;
             guarantee(!deleter->is_pulsed());
             deleter->pulse();
         } else {

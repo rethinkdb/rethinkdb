@@ -13,14 +13,16 @@
 #include "utils.hpp"
 
 template <class> class boost_function_callback_t;
-template <class T> class branch_history_manager_t;
-template <class T> class broadcaster_t;
+template <class> class branch_history_manager_t;
+template <class> class broadcaster_t;
+template <class> class clone_ptr_t;
 template <class> class coro_pool_t;
-template <class T> class intro_receiver_t;
-template <class T> class registrant_t;
-template <class T> class replier_t;
-template <class T> class semilattice_read_view_t;
-template <class T> class semilattice_readwrite_view_t;
+template <class> class intro_receiver_t;
+template <class> class registrant_t;
+template <class> class replier_t;
+template <class> class semilattice_read_view_t;
+template <class> class semilattice_readwrite_view_t;
+template <class> class watchable_t;
 
 /* `listener_t` keeps a store-view in sync with a branch. Its constructor
 contacts a `broadcaster_t` to sign up for real-time updates, and also backfills
@@ -221,7 +223,7 @@ private:
     // This uuid exists solely as a temporary used to be passed to
     // uuid_to_str for perfmon_collection initialization and the
     // backfill queue file name
-    const uuid_t uuid_;
+    const uuid_u uuid_;
 
     perfmon_collection_t perfmon_collection_;
     perfmon_membership_t perfmon_collection_membership_;

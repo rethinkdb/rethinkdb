@@ -38,6 +38,8 @@ typedef rdb_protocol_t::read_response_t read_response_t;
 
 typedef rdb_protocol_t::point_read_t point_read_t;
 typedef rdb_protocol_t::point_read_response_t point_read_response_t;
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_read_response_t, data);
+
 
 typedef rdb_protocol_t::rget_read_t rget_read_t;
 typedef rdb_protocol_t::rget_read_response_t rget_read_response_t;
@@ -84,6 +86,15 @@ RDB_IMPL_PROTOB_SERIALIZABLE(WriteQuery_ForEach);
 RDB_IMPL_PROTOB_SERIALIZABLE(Term2);
 RDB_IMPL_PROTOB_SERIALIZABLE(Datum);
 
+
+namespace rdb_protocol_details {
+
+RDB_IMPL_SERIALIZABLE_3(backfill_atom_t, key, value, recency);
+RDB_IMPL_SERIALIZABLE_3(transform_atom_t, variant, scopes, backtrace);
+RDB_IMPL_SERIALIZABLE_3(terminal_t, variant, scopes, backtrace);
+RDB_IMPL_SERIALIZABLE_0(Length);
+
+}  // namespace rdb_protocol_details
 
 rdb_protocol_t::context_t::context_t()
     : pool_group(NULL), ns_repo(NULL),
@@ -973,3 +984,39 @@ rdb_protocol_t::backfill_chunk_t rdb_protocol_t::backfill_chunk_t::shard(const r
     backfill_chunk_shard_visitor_t v(region);
     return boost::apply_visitor(v, val);
 }
+
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::rget_read_response_t::length_t, length);
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::rget_read_response_t::inserted_t, inserted);
+
+
+RDB_IMPL_ME_SERIALIZABLE_5(rdb_protocol_t::rget_read_response_t,
+                           result, errors, key_range, truncated, last_considered_key);
+RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::distribution_read_response_t, region, key_counts);
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::read_response_t, response);
+
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_read_t, key);
+RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::rget_read_t, region, transform, terminal);
+
+RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::distribution_read_t, max_depth, result_limit, region);
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::read_t, read);
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_write_response_t, result);
+
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_delete_response_t, result);
+RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::point_modify_response_t, result, exc);
+
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::write_response_t, response);
+
+RDB_IMPL_ME_SERIALIZABLE_6(rdb_protocol_t::point_modify_t, primary_key, key, op, scopes, backtrace, mapping);
+
+RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::point_write_t, key, data, overwrite);
+
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_delete_t, key);
+
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::write_t, write);
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::delete_key_t, key);
+
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::delete_range_t, range);
+
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::key_value_pair_t, backfill_atom);
+
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t, val);

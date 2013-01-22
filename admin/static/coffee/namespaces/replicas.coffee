@@ -4,11 +4,11 @@
 module 'NamespaceView', ->
     class @Replicas extends Backbone.View
         className: 'namespace-replicas'
-        template: Handlebars.compile $('#namespace_view-replica-template').html()
-        no_datacenter_template: Handlebars.compile $('#namespace_view-replica-no_datacenter-template').html()
-        datacenter_list_template: Handlebars.compile $('#namespace_view-replica-datacenters_list-template').html()
-        acks_greater_than_replicas_template: Handlebars.compile $('#namespace_view-acks_greater_than_replicas-template').html()
-        replica_status_template: Handlebars.compile $('#replica_status-template').html()
+        template: Handlebars.templates['namespace_view-replica-template']
+        no_datacenter_template: Handlebars.templates['namespace_view-replica-no_datacenter-template']
+        datacenter_list_template: Handlebars.templates['namespace_view-replica-datacenters_list-template']
+        acks_greater_than_replicas_template: Handlebars.templates['namespace_view-acks_greater_than_replicas-template']
+        replica_status_template: Handlebars.templates['replica_status-template']
         events:
             'click .nav_datacenter': 'handle_click_datacenter'
             'click .toggle-mdc': 'toggle_mdc'
@@ -323,18 +323,18 @@ module 'NamespaceView', ->
 
     class @DatacenterReplicas extends Backbone.View
         className: 'datacenter_view'
-        template: Handlebars.compile $('#namespace_view-datacenter_replica-template').html()
-        universe_template: Handlebars.compile $('#namespace_view-universe_replica-template').html()
-        edit_template: Handlebars.compile $('#namespace_view-edit_datacenter_replica-template').html()
-        error_template: Handlebars.compile $('#namespace_view-edit_datacenter_replica-error-template').html()
-        error_msg_template: Handlebars.compile $('#namespace_view-edit_datacenter_replica-alert_messages-template').html()
-        replicas_acks_success_template: Handlebars.compile $('#namespace_view-edit_datacenter_replica-success-template').html()
-        replication_complete_template: Handlebars.compile $('#namespace_view-edit_datacenter_replica-replication_done-template').html()
-        replication_status: Handlebars.compile $('#namespace_view-edit_datacenter_replica-replication_status-template').html()
-        replicas_ajax_error_template: Handlebars.compile $('#namespace_view-edit_datacenter_replica-ajax_error-template').html()
-        need_replicas_template: Handlebars.compile $('#need_replicas-template').html()
-        progress_bar_template: Handlebars.compile $('#backfill_progress_bar').html()
-        success_set_primary: Handlebars.compile $('#changed_primary_dc-replica-template').html()
+        template: Handlebars.templates['namespace_view-datacenter_replica-template']
+        universe_template: Handlebars.templates['namespace_view-universe_replica-template']
+        edit_template: Handlebars.templates['namespace_view-edit_datacenter_replica-template']
+        error_template: Handlebars.templates['namespace_view-edit_datacenter_replica-error-template']
+        error_msg_template: Handlebars.templates['namespace_view-edit_datacenter_replica-alert_messages-template']
+        replicas_acks_success_template: Handlebars.templates['namespace_view-edit_datacenter_replica-success-template']
+        replication_complete_template: Handlebars.templates['namespace_view-edit_datacenter_replica-replication_done-template']
+        replication_status: Handlebars.templates['namespace_view-edit_datacenter_replica-replication_status-template']
+        replicas_ajax_error_template: Handlebars.templates['namespace_view-edit_datacenter_replica-ajax_error-template']
+        need_replicas_template: Handlebars.templates['need_replicas-template']
+        progress_bar_template: Handlebars.templates['backfill_progress_bar']
+        success_set_primary: Handlebars.templates['changed_primary_dc-replica-template']
         states: ['read_only', 'editable']
 
         events:
@@ -651,8 +651,8 @@ module 'NamespaceView', ->
             @model.off 'change:replica_affinities', @render_acks_replica
 
     class @PrimaryDatacenter extends Backbone.View
-        template: Handlebars.compile $('#namespace_view-primary_datacenter-template').html()
-        content_template: Handlebars.compile $('#namespace_view-primary_datacenter_content-template').html()
+        template: Handlebars.templates['namespace_view-primary_datacenter-template']
+        content_template: Handlebars.templates['namespace_view-primary_datacenter_content-template']
 
         # These are the possible states for the ProgressBar
         states: ['none', 'show_primary', 'choose_primary', 'confirm_off']

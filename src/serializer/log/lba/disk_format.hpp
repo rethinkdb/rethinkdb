@@ -9,23 +9,23 @@
 
 
 
-// Contains an off64_t, or a "padding" value, or a "unused" value.  I
+// Contains an int64_t, or a "padding" value, or a "unused" value.  I
 // don't think we really need separate padding and unused values.
 
 // There used to be some flag bits on the value but now there's only
 // one special sentinel value for deletion entries or padding entries.
 union flagged_off64_t {
-    off64_t the_value_;
+    int64_t the_value_;
 
     bool has_value() const {
         return the_value_ >= 0;
     }
-    off64_t get_value() const {
+    int64_t get_value() const {
         rassert(has_value());
         return the_value_;
     }
 
-    static flagged_off64_t make(off64_t off) {
+    static flagged_off64_t make(int64_t off) {
         rassert(off >= 0);
         flagged_off64_t ret;
         ret.the_value_ = off;
@@ -55,12 +55,12 @@ struct lba_shard_metablock_t {
      * written to). Once the extent is filled, the reference is
      * moved to the lba superblock, and the next block gets a
      * reference to the clean extent. */
-    off64_t last_lba_extent_offset;
+    int64_t last_lba_extent_offset;
     int32_t last_lba_extent_entries_count;
     int32_t padding1;
 
     /* Reference to the LBA superblock and its size */
-    off64_t lba_superblock_offset;
+    int64_t lba_superblock_offset;
     int32_t lba_superblock_entries_count;
     int32_t padding2;
 };
@@ -126,7 +126,7 @@ struct lba_extent_t {
 
 
 struct lba_superblock_entry_t {
-    off64_t offset;
+    int64_t offset;
     int64_t lba_entries_count;
 };
 

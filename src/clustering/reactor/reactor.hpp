@@ -35,10 +35,7 @@ public:
             perfmon_collection_t *_parent_perfmon_collection,
             typename protocol_t::context_t *) THROWS_NOTHING;
 
-    clone_ptr_t<watchable_t<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > > get_reactor_directory() {
-        return directory_echo_writer.get_watchable();
-    }
-
+    clone_ptr_t<watchable_t<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > > get_reactor_directory();
 private:
     /* a directory_entry_t is a sentry that in its contructor inserts an entry
      * into the directory for a role that we are performing (a role that we
@@ -56,9 +53,7 @@ private:
         directory_echo_version_t update_without_changing_id(typename reactor_business_card_t<protocol_t>::activity_t);
         ~directory_entry_t();
 
-        reactor_activity_id_t get_reactor_activity_id() const {
-            return reactor_activity_id;
-        }
+        reactor_activity_id_t get_reactor_activity_id() const;
     private:
         reactor_t<protocol_t> *const parent;
         const typename protocol_t::region_t region;
@@ -69,17 +64,15 @@ private:
 
     class current_role_t {
     public:
-        current_role_t(blueprint_role_t r, const blueprint_t<protocol_t> &b) :
-            role(r), blueprint(b) { }
+        current_role_t(blueprint_role_t r, const blueprint_t<protocol_t> &b);
         blueprint_role_t role;
         watchable_variable_t<blueprint_t<protocol_t> > blueprint;
         cond_t abort_roles;
     };
 
     /* To save typing */
-    peer_id_t get_me() THROWS_NOTHING {
-        return mailbox_manager->get_connectivity_service()->get_me();
-    }
+    peer_id_t get_me() THROWS_NOTHING;
+
 
     void on_blueprint_changed() THROWS_NOTHING;
     void try_spawn_roles() THROWS_NOTHING;
@@ -108,8 +101,7 @@ private:
         typedef clone_ptr_t<watchable_t<boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > > > > backfiller_bcard_view_t;
         class backfill_location_t {
         public:
-            backfill_location_t(const backfiller_bcard_view_t &b, peer_id_t p, reactor_activity_id_t i) :
-                 backfiller(b), peer_id(p), activity_id(i) { }
+            backfill_location_t(const backfiller_bcard_view_t &b, peer_id_t p, reactor_activity_id_t i);
             backfiller_bcard_view_t backfiller;
             peer_id_t peer_id;
             reactor_activity_id_t activity_id;

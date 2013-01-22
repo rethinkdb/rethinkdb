@@ -24,7 +24,7 @@ struct test_driver_t {
         fd_t get_fd() const { return fd; }
         void *get_buf() const { return buf; }
         size_t get_count() const { return count; }
-        // TODO: sizeof(off_t) seems to be 8 on linux but let's use off64_t, neh?
+        // TODO: sizeof(off_t) seems to be 8 on linux but let's use int64_t, neh?  Not on 32-bit Linux.
         off_t get_offset() const { return offset; }
         void set_successful_due_to_conflict() { }
 

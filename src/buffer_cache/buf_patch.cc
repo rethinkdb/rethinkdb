@@ -63,7 +63,7 @@ buf_patch_t *buf_patch_t::load_patch(const char *source) {
         return result;
     } catch (const patch_deserialization_error_t &e) {
         logERR("%s", e.c_str());
-        throw e;
+        throw;
     }
 }
 

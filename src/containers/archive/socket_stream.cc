@@ -181,7 +181,7 @@ int64_t socket_stream_t::read_interruptible(void *buf, int64_t size, signal_t *i
             if (res == -1) {
                 if (errno != EPIPE && errno != ECONNRESET && errno != ENOTCONN) {
                     // Unexpected error (not just "we closed").
-                    logERR("Could not read from socket: %s", strerror(errno));
+                    logERR("Could not read from socket: %s", errno_string(errno).c_str());
                 }
             } else {
                 guarantee(res == 0); // sanity
@@ -227,7 +227,7 @@ int64_t socket_stream_t::write_interruptible(const void *buf, int64_t size, sign
             if (res == -1) {
                 if (errno != EPIPE && errno != ENOTCONN && errno != ECONNRESET) {
                     // Unexpected error (not just "we closed")
-                    logERR("Could not write to socket: %s", strerror(errno));
+                    logERR("Could not write to socket: %s", errno_string(errno).c_str());
                 }
             } else {
                 logERR("Didn't expect write() to return %zd.", res);
@@ -246,7 +246,7 @@ void socket_stream_t::shutdown_read() {
 
     int res = ::shutdown(fd_.get(), SHUT_RD);
     if (res != 0 && errno != ENOTCONN) {
-        logERR("Could not shutdown socket for reading: %s", strerror(errno));
+        logERR("Could not shutdown socket for reading: %s", errno_string(errno).c_str());
     }
 
     if (fd_watcher_->is_read_open())
@@ -258,7 +258,7 @@ void socket_stream_t::shutdown_write() {
 
     int res = ::shutdown(fd_.get(), SHUT_WR);
     if (res != 0 && errno != ENOTCONN) {
-        logERR("Could not shutdown socket for writing: %s", strerror(errno));
+        logERR("Could not shutdown socket for writing: %s", errno_string(errno).c_str());
     }
 
     if (fd_watcher_->is_write_open())
@@ -336,7 +336,7 @@ int unix_socket_stream_t::send_fds(size_t num_fds, int *fds, signal_t *interrupt
         if (errno != EAGAIN && errno != EWOULDBLOCK) {
             if (errno != EPIPE && errno != ENOTCONN && errno != ECONNRESET) {
                 // Unexpected error (not just "we closed")
-                logERR("Could not send fds on socket: %s", strerror(errno));
+                logERR("Could not send fds on socket: %s", errno_string(errno).c_str());
             }
             shutdown_write();
             return -1;

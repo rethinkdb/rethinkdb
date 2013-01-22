@@ -47,7 +47,7 @@ void linux_aio_submit_sync_t::pump() {
             request_batch.push_back(source->pop());
         }
 
-        if (request_batch.size() == 0)
+        if (request_batch.empty())
             break;
 
         int actual_size = io_submit(context->id, request_batch.size(), request_batch.data());
@@ -55,7 +55,7 @@ void linux_aio_submit_sync_t::pump() {
         if (actual_size == -EAGAIN) {
             break;
         } else if (actual_size < 0) {
-            crash("io_submit() failed: (%d) %s\n", -actual_size, strerror(-actual_size));
+            crash("io_submit() failed: (%d) %s\n", -actual_size, errno_string(-actual_size).c_str());
         } else {
             request_batch.erase(request_batch.begin(), request_batch.begin() + actual_size);
             n_pending += actual_size;

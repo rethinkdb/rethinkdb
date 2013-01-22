@@ -41,12 +41,18 @@ public:
 
     class connect_failed_exc_t : public std::exception {
     public:
-        explicit connect_failed_exc_t(int en) : error(en) { }
+        explicit connect_failed_exc_t(int en) :
+            error(en),
+            info("Could not make connection: " + errno_string(error)) { }
+
         const char *what() const throw () {
-            return strprintf("Could not make connection: %s", strerror(error)).c_str();
+            return info.c_str();
         }
+
         ~connect_failed_exc_t() throw () { }
-        int error;
+
+        const int error;
+        const std::string info;
     };
 
     // NB. interruptor cannot be NULL.

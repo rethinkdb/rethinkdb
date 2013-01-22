@@ -2,7 +2,7 @@
 # Namespace view
 module 'NamespaceView', ->
     class @NotFound extends Backbone.View
-        template: Handlebars.compile $('#element_view-not_found-template').html()
+        template: Handlebars.templates['element_view-not_found-template']
         initialize: (id) ->
             @id = id
         render: =>
@@ -16,8 +16,8 @@ module 'NamespaceView', ->
     # Container for the entire namespace view
     class @Container extends Backbone.View
         className: 'namespace-view'
-        template: Handlebars.compile $('#namespace_view-container-template').html()
-        alert_tmpl: Handlebars.compile $('#modify_shards-alert-template').html()
+        template: Handlebars.templates['namespace_view-container-template']
+        alert_tmpl: Handlebars.templates['modify_shards-alert-template']
 
         events: ->
             'click .tab-link': 'change_route'
@@ -130,7 +130,7 @@ module 'NamespaceView', ->
     # NamespaceView.Title
     class @Title extends Backbone.View
         className: 'namespace-info-view'
-        template: Handlebars.compile $('#namespace_view_title-template').html()
+        template: Handlebars.templates['namespace_view_title-template']
         initialize: ->
             @name = @model.get('name')
             @model.on 'change:name', @update
@@ -151,7 +151,7 @@ module 'NamespaceView', ->
     # Profile view
     class @Profile extends Backbone.View
         className: 'namespace-profile'
-        template: Handlebars.compile $('#namespace_view-profile-template').html()
+        template: Handlebars.templates['namespace_view-profile-template']
 
         initialize: ->
             # @model is a namespace.  somebody is supposed to pass model: namespace to the constructor.
@@ -173,6 +173,8 @@ module 'NamespaceView', ->
                 data.total_keys = 0
                 for key of @model.get('key_distr')
                     data.total_keys += parseInt @model.get('key_distr')[key]
+            if data.total_keys_available is true and data.total_keys? and data.total_keys is data.total_keys # Check for NaN, just in case
+                data.total_keys = DataUtils.approximate_count data.total_keys
 
             data.stats_up_to_date = true
             for machine in machines.models

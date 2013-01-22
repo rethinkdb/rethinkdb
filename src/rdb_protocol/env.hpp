@@ -67,7 +67,7 @@ public:
     val_t *new_val(T *ptr, U *ptr2, term_t *parent) {
         return add_ptr(new val_t(add_ptr(ptr), add_ptr(ptr2), parent, this));
     }
-    val_t *new_val(uuid_t db, term_t *parent) {
+    val_t *new_val(uuid_u db, term_t *parent) {
         return add_ptr(new val_t(db, parent, this));
     }
     term_t *new_term(const Term2 *source) {
@@ -207,7 +207,7 @@ public:
         directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
         boost::shared_ptr<js::runner_t> _js_runner,
         signal_t *_interruptor,
-        uuid_t _this_machine)
+        uuid_u _this_machine)
         : next_gensym_val(-2),
           implicit_depth(0),
           pool(_pool_group->get()),
@@ -256,7 +256,7 @@ public:
     boost::shared_ptr<js::runner_t> get_js_runner();
 
     signal_t *interruptor;
-    uuid_t this_machine;
+    uuid_u this_machine;
 
 private:
     DISABLE_COPYING(env_t);

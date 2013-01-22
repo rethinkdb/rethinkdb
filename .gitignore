@@ -1,6 +1,7 @@
 *.pyc
 *~
 .*.swp
+.DS_Store
 .tags
 TAGS
 .cscope
@@ -33,6 +34,8 @@ external/protobuf-plugin-closure/js/javascript_package.pb.cc
 external/protobuf-plugin-closure/js/javascript_package.pb.h
 external/protobuf-plugin-closure/protoc-gen-ccjs
 external/protobuf-plugin-closure/protoc-gen-js
+external/gtest-1.6.0/make/gtest-all.o
+external/gtest-1.6.0/make/gtest.a
 last_tested_versions
 .deps/
 src/spin_up_clusters.py
@@ -41,3 +44,4 @@ src/find_replace.sh
 src/make_filter.sh
 scripts/netrecord/netrecord
 src/cluster_directory_*
+support/

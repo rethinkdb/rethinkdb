@@ -6,7 +6,6 @@
 #include <utility>
 
 #include "clustering/generic/registration_metadata.hpp"
-#include "clustering/generic/resource.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/fifo_enforcer.hpp"
@@ -96,7 +95,7 @@ public:
 /* `backfiller_business_card_t` represents a thing that is willing to serve
 backfills over the network. It appears in the directory. */
 
-typedef uuid_t backfill_session_id_t;
+typedef uuid_u backfill_session_id_t;
 
 template<class protocol_t>
 struct backfiller_business_card_t {

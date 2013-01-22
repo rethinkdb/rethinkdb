@@ -38,7 +38,7 @@ public:
     val_t *new_val(const datum_t *d, table_t *t);
     val_t *new_val(datum_stream_t *s);
     val_t *new_val(table_t *t, datum_stream_t *s);
-    val_t *new_val(uuid_t db);
+    val_t *new_val(uuid_u db);
     val_t *new_val(table_t *t);
     val_t *new_val(func_t *f);
     val_t *new_val_bool(bool b) { return new_val(new datum_t(datum_t::R_BOOL, b)); }

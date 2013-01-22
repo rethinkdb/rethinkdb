@@ -210,7 +210,7 @@ void backfiller_t<protocol_t>::on_cancel_backfill(backfill_session_id_t session_
     typename std::map<backfill_session_id_t, cond_t *>::iterator it =
         local_interruptors.find(session_id);
     if (it != local_interruptors.end()) {
-        (*it).second->pulse();
+        it->second->pulse();
     } else {
         /* The backfill ended on its own right as we were trying to cancel
            it. Since the backfill was over, we removed the local interruptor

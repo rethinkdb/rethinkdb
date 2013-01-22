@@ -7,7 +7,6 @@
 #include "concurrency/rwi_lock.hpp"
 #include "concurrency/signal.hpp"
 #include "concurrency/wait_any.hpp"
-#include "containers/archive/file_stream.hpp"
 #include "containers/printf_buffer.hpp"
 #include "mock/serializer_filestream.hpp"
 
@@ -69,12 +68,12 @@ void dummy_protocol_t::read_t::unshard(const read_response_t *resps, size_t coun
     for (size_t i = 0; i < count; ++i) {
         for (std::map<std::string, std::string>::const_iterator it = resps[i].values.begin();
                 it != resps[i].values.end(); it++) {
-            rassert(keys.keys.count((*it).first) != 0,
+            rassert(keys.keys.count(it->first) != 0,
                 "We got a response that doesn't match our request");
-            rassert(response->values.count((*it).first) == 0,
+            rassert(response->values.count(it->first) == 0,
                 "Part of the query was run multiple times, or a response was "
                 "duplicated.");
-            response->values[(*it).first] = (*it).second;
+            response->values[it->first] = it->second;
         }
     }
 }
@@ -87,7 +86,7 @@ dummy_protocol_t::region_t dummy_protocol_t::write_t::get_region() const {
     region_t region;
     for (std::map<std::string, std::string>::const_iterator it = values.begin();
             it != values.end(); it++) {
-        region.keys.insert((*it).first);
+        region.keys.insert(it->first);
     }
     return region;
 }
@@ -98,8 +97,8 @@ dummy_protocol_t::write_t dummy_protocol_t::write_t::shard(region_t region) cons
     write_t w;
     for (std::map<std::string, std::string>::const_iterator it = values.begin();
             it != values.end(); it++) {
-        if (region.keys.count((*it).first) != 0) {
-            w.values[(*it).first] = (*it).second;
+        if (region.keys.count(it->first) != 0) {
+            w.values[it->first] = it->second;
         }
     }
     return w;
@@ -110,12 +109,12 @@ void dummy_protocol_t::write_t::unshard(const write_response_t* resps, size_t co
     for (size_t i = 0; i < count; ++i) {
         for (std::map<std::string, std::string>::const_iterator it = resps[i].old_values.begin();
                 it != resps[i].old_values.end(); it++) {
-            rassert(values.find((*it).first) != values.end(),
+            rassert(values.find(it->first) != values.end(),
                 "We got a response that doesn't match our request.");
-            rassert(response->old_values.count((*it).first) == 0,
+            rassert(response->old_values.count(it->first) == 0,
                 "Part of the query was run multiple times, or a response was "
                 "duplicated.");
-            response->old_values[(*it).first] = (*it).second;
+            response->old_values[it->first] = it->second;
         }
     }
 }
@@ -383,9 +382,9 @@ void dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_checker_t<dummy_
         if (rng.randint(2) == 0) nap(rng.randint(10));
         for (std::map<std::string, std::string>::const_iterator it = write.values.begin();
                 it != write.values.end(); it++) {
-            response->old_values[(*it).first] = values[(*it).first];
-            values[(*it).first] = (*it).second;
-            timestamps[(*it).first] = timestamp.timestamp_after();
+            response->old_values[it->first] = values[it->first];
+            values[it->first] = it->second;
+            timestamps[it->first] = timestamp.timestamp_after();
         }
 
         metainfo.update(new_metainfo);

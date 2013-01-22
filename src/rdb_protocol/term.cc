@@ -200,13 +200,13 @@ val_t *term_t::new_val(datum_stream_t *s) { return env->new_val(s, this); }
 val_t *term_t::new_val(table_t *d, datum_stream_t *s) {
     return env->new_val(d, s, this);
 }
-val_t *term_t::new_val(uuid_t db) { return env->new_val(db, this); }
+val_t *term_t::new_val(uuid_u db) { return env->new_val(db, this); }
 val_t *term_t::new_val(table_t *t) { return env->new_val(t, this); }
 val_t *term_t::new_val(func_t *f) { return env->new_val(f, this); }
 
 // val_t *term_t::new_val(datum_t *d) { return env->new_val(d, this); }
 // val_t *term_t::new_val(datum_stream_t *s) { return env->new_val(s, this); }
-// val_t *term_t::new_val(uuid_t db) { return env->add_and_ret(db, this); }
+// val_t *term_t::new_val(uuid_u db) { return env->add_and_ret(db, this); }
 // val_t *term_t::new_val(table_t *t) { return env->add_and_ret(t, this); }
 // val_t *term_t::new_val(func_t *f) { return env->add_and_ret(f, this); }
 

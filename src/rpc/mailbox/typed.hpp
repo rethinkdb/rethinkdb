@@ -1,3 +1,4 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef RPC_MAILBOX_TYPED_HPP_
 #define RPC_MAILBOX_TYPED_HPP_
 
@@ -12,7 +13,6 @@ Please modify '../scripts/generate_rpc_templates.py' instead of modifying this f
 #include "rpc/serialize_macros.hpp"
 #include "rpc/mailbox/mailbox.hpp"
 
-#pragma GCC diagnostic ignored "-Wuninitialized"
 /* If you pass `mailbox_callback_mode_coroutine` to the `mailbox_t` 
 constructor, it will spawn the callback in a new coroutine. If you 
 `mailbox_callback_mode_inline`, it will call the callback inline 

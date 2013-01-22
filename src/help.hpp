@@ -39,8 +39,11 @@ private:
         char *c = msg;
         int nlines = 0;
 
-        while (c != msg_hd)
-            if (*c++ == '\n') nlines++;
+        while (c != msg_hd) {
+            if (*c++ == '\n') {
+                nlines++;
+            }
+        }
 
         return nlines;
     }
@@ -62,8 +65,9 @@ public:
         msg_hd = '\0'; //Null terminate it;
         fprintf(print_to, "%s", msg);
 
-        if (print_to != stderr)
+        if (print_to != stderr) {
             fclose(print_to);
+        }
     }
 
     static help_pager_t* instance() {

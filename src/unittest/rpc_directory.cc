@@ -58,11 +58,11 @@ void run_exchange_test() {
     cr2.join(c1.get_peer_address(c1.get_me()));
     cr3.join(c1.get_peer_address(c1.get_me()));
     mock::let_stuff_happen();
-    EXPECT_EQ(1, rm1.get_root_view()->get().count(c1.get_me()));
+    EXPECT_EQ(1u, rm1.get_root_view()->get().count(c1.get_me()));
     EXPECT_EQ(101, rm1.get_root_view()->get().find(c1.get_me())->second);
-    EXPECT_EQ(1, rm1.get_root_view()->get().count(c2.get_me()));
+    EXPECT_EQ(1u, rm1.get_root_view()->get().count(c2.get_me()));
     EXPECT_EQ(202, rm1.get_root_view()->get().find(c2.get_me())->second);
-    EXPECT_EQ(1, rm3.get_root_view()->get().count(c1.get_me()));
+    EXPECT_EQ(1u, rm3.get_root_view()->get().count(c1.get_me()));
     EXPECT_EQ(101, rm3.get_root_view()->get().find(c1.get_me())->second);
 }
 TEST(RPCDirectoryTest, Exchange) {
@@ -85,11 +85,11 @@ void run_update_test() {
     mock::let_stuff_happen();
     w1.set_value(151);
     mock::let_stuff_happen();
-    ASSERT_EQ(1, rm1.get_root_view()->get().count(c1.get_me()));
+    ASSERT_EQ(1u, rm1.get_root_view()->get().count(c1.get_me()));
     EXPECT_EQ(151, rm1.get_root_view()->get().find(c1.get_me())->second);
-    ASSERT_EQ(1, rm2.get_root_view()->get().count(c1.get_me()));
+    ASSERT_EQ(1u, rm2.get_root_view()->get().count(c1.get_me()));
     EXPECT_EQ(151, rm2.get_root_view()->get().find(c1.get_me())->second);
-    ASSERT_EQ(1, rm3.get_root_view()->get().count(c1.get_me()));
+    ASSERT_EQ(1u, rm3.get_root_view()->get().count(c1.get_me()));
     EXPECT_EQ(151, rm3.get_root_view()->get().find(c1.get_me())->second);
 }
 TEST(RPCDirectoryTest, Update) {

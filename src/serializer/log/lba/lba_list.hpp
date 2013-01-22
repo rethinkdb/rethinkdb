@@ -43,9 +43,9 @@ public:
     block_id_t end_block_id();
 
 #ifndef NDEBUG
-    bool is_extent_referenced(off64_t offset);
-    bool is_offset_referenced(off64_t offset);
-    int extent_refcount(off64_t offset);
+    bool is_extent_referenced(int64_t offset);
+    bool is_offset_referenced(int64_t offset);
+    int extent_refcount(int64_t offset);
 #endif
 
 public:

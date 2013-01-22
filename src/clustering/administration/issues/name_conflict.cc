@@ -4,12 +4,12 @@
 name_conflict_issue_t::name_conflict_issue_t(
         const std::string &_type,
         const std::string &_contested_name,
-        const std::set<uuid_t> &_contestants) :
+        const std::set<uuid_u> &_contestants) :
     type(_type), contested_name(_contested_name), contestants(_contestants) { }
 
 std::string name_conflict_issue_t::get_description() const {
     std::string message = "The following " + type + "s are all named '" + contested_name + "': ";
-    for (std::set<uuid_t>::iterator it = contestants.begin(); it != contestants.end(); it++) {
+    for (std::set<uuid_u>::iterator it = contestants.begin(); it != contestants.end(); it++) {
         message += uuid_to_str(*it) + "; ";
     }
     return message;
@@ -19,7 +19,7 @@ cJSON *name_conflict_issue_t::get_json_description() {
     issue_json_t json;
     json.critical = false;
     json.description = "The following " + type + "s are all named '" + contested_name + "': ";
-    for (std::set<uuid_t>::iterator it = contestants.begin(); it != contestants.end(); it++) {
+    for (std::set<uuid_u>::iterator it = contestants.begin(); it != contestants.end(); it++) {
         json.description += uuid_to_str(*it) + "; ";
     }
     json.type = "NAME_CONFLICT_ISSUE";
@@ -41,8 +41,8 @@ name_conflict_issue_t *name_conflict_issue_t::clone() const {
 class name_map_t {
 public:
     template<class object_metadata_t>
-    void file_away(const std::map<uuid_t, deletable_t<object_metadata_t> > &map) {
-        for (typename std::map<uuid_t, deletable_t<object_metadata_t> >::const_iterator it = map.begin();
+    void file_away(const std::map<uuid_u, deletable_t<object_metadata_t> > &map) {
+        for (typename std::map<uuid_u, deletable_t<object_metadata_t> >::const_iterator it = map.begin();
                 it != map.end(); it++) {
             if (!it->second.is_deleted()) {
                 if (!it->second.get().name.in_conflict()) {
@@ -53,7 +53,7 @@ public:
     }
 
     void report(const std::string &type, std::list<clone_ptr_t<global_issue_t> > *out) const {
-        for (std::map<name_string_t, std::set<uuid_t>, case_insensitive_less_t>::const_iterator it =
+        for (std::map<name_string_t, std::set<uuid_u>, case_insensitive_less_t>::const_iterator it =
                 by_name.begin(); it != by_name.end(); it++) {
             if (it->second.size() > 1) {
                 out->push_back(clone_ptr_t<global_issue_t>(new name_conflict_issue_t(type, it->first.str(), it->second)));
@@ -65,21 +65,21 @@ private:
     class case_insensitive_less_t {
     public:
         bool operator()(const name_string_t &a, const name_string_t &b) {
-            return strcasecmp(a.str().c_str(), b.str().c_str()) < 0;
+            return strcasecmp(a.c_str(), b.c_str()) < 0;
         }
     };
 
-    std::map<name_string_t, std::set<uuid_t>, case_insensitive_less_t> by_name;
+    std::map<name_string_t, std::set<uuid_u>, case_insensitive_less_t> by_name;
 };
 
 class namespace_map_t {
 public:
-    namespace_map_t(const std::map<uuid_t, deletable_t<database_semilattice_metadata_t> > &_databases)
+    explicit namespace_map_t(const std::map<uuid_u, deletable_t<database_semilattice_metadata_t> > &_databases)
         : databases(_databases) { }
 
     template<class object_metadata_t>
-    void file_away(const std::map<uuid_t, deletable_t<object_metadata_t> > &map) {
-        for (typename std::map<uuid_t, deletable_t<object_metadata_t> >::const_iterator it = map.begin();
+    void file_away(const std::map<uuid_u, deletable_t<object_metadata_t> > &map) {
+        for (typename std::map<uuid_u, deletable_t<object_metadata_t> >::const_iterator it = map.begin();
                 it != map.end(); it++) {
             if (!it->second.is_deleted()) {
                 if (!it->second.get().name.in_conflict() &&
@@ -97,7 +97,7 @@ public:
 
     void report(const std::string &type,
             std::list<clone_ptr_t<global_issue_t> > *out) const {
-        for (std::map<db_table_name_t, std::set<uuid_t>, case_insensitive_less_t>::const_iterator it =
+        for (std::map<db_table_name_t, std::set<uuid_u>, case_insensitive_less_t>::const_iterator it =
                 by_name.begin(); it != by_name.end(); it++) {
             if (it->second.size() > 1) {
                 // TODO: This is awful, why is name_conflict_issue_t a single type for different kinds of issues?
@@ -124,8 +124,8 @@ private:
         }
     };
 
-    std::map<db_table_name_t, std::set<uuid_t>, case_insensitive_less_t> by_name;
-    std::map<uuid_t, deletable_t<database_semilattice_metadata_t> > databases;
+    std::map<db_table_name_t, std::set<uuid_u>, case_insensitive_less_t> by_name;
+    std::map<uuid_u, deletable_t<database_semilattice_metadata_t> > databases;
 };
 
 name_conflict_issue_tracker_t::name_conflict_issue_tracker_t(boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > _semilattice_view)

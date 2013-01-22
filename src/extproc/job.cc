@@ -1,30 +1,8 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
+#include <unistd.h>
 #include "extproc/job.hpp"
-#include "clustering/administration/proc_stats.hpp"
 
 namespace extproc {
-
-bool is_rdb_alive(pid_t rdb_pid) {
-    bool retval = false;
-    try {
-        proc_pid_stat_t stats = proc_pid_stat_t::for_pid(rdb_pid);
-        switch (stats.state) {
-            case 'R':
-            case 'S':
-            case 'D':
-            case 'T':
-            case 'W':
-                retval = true;
-                break;
-            default:
-                break;
-        }
-    } catch (const std::runtime_error &ex) {
-        // Failed to check stats, assume the rdb process has died
-    }
-
-    return retval;
-}
 
 // ---------- job_t ----------
 int job_t::accept_job(control_t *control, void *extra) {
@@ -34,9 +12,8 @@ int job_t::accept_job(control_t *control, void *extra) {
     if (res < (int64_t) sizeof(jobfunc)) {
         // Don't log anything if the parent isn't alive, it likely means there was an unclean shutdown,
         //  and the file descriptor is invalid.  We don't want to pollute the output.
-        if (is_rdb_alive(control->get_rdb_pid())) {
-            control->log("Couldn't read job function: %s",
-                          res == -1 ? strerror(errno) : "end-of-file received");
+        if (res != 0) {
+            control->log("Couldn't read job function: %s", errno_string(errno).c_str());
         }
         return -1;
     }
@@ -67,20 +44,23 @@ int job_t::send_over(write_stream_t *stream) const {
 
 
 // ---------- job_t::control_t ----------
-job_t::control_t::control_t(pid_t _pid, pid_t _rdb_pid, scoped_fd_t *fd) :
+job_t::control_t::control_t(pid_t _pid, pid_t _spawner_pid, scoped_fd_t *fd) :
     unix_socket_stream_t(fd, new blocking_fd_watcher_t()),
     pid(_pid),
-    rdb_pid(_rdb_pid)
+    spawner_pid(_spawner_pid)
 { }
 
-pid_t job_t::control_t::get_rdb_pid() const {
-    return rdb_pid;
+pid_t job_t::control_t::get_spawner_pid() const {
+    return spawner_pid;
 }
 
 // TODO(rntz): some way to send log messages to the engine.
 void job_t::control_t::vlog(const char *fmt, va_list ap) {
-    std::string real_fmt = strprintf("[%d] worker: %s\n", pid, fmt);
-    vfprintf(stderr, real_fmt.c_str(), ap);
+    flockfile(stderr);
+    fprintf(stderr, "[%d] worker: ", pid);
+    vfprintf(stderr, fmt, ap);
+    fprintf(stderr, "\n");
+    funlockfile(stderr);
 }
 
 void job_t::control_t::log(const char *fmt, ...) {

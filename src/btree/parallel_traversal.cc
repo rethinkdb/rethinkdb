@@ -609,7 +609,7 @@ progress_completion_fraction_t parallel_traversal_progress_t::guess_completion()
     std::vector<int> population_by_level_guesses;
     population_by_level_guesses.push_back(learned[0]);
 
-    rassert(learned.size() != 0);
+    rassert(!learned.empty());
     for (unsigned i = 0; i + 1 < learned.size(); i++) {
         population_by_level_guesses.push_back(static_cast<int>(released_to_acquired_ratios[i] * population_by_level_guesses[i]));
     }

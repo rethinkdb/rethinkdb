@@ -50,15 +50,15 @@ void verify(block_size_t block_size, const internal_node_t *buf) {
 }
 
 TEST(InternalNodeTest, Offsets) {
-    EXPECT_EQ(0, offsetof(internal_node_t, magic));
-    EXPECT_EQ(4, offsetof(internal_node_t, npairs));
-    EXPECT_EQ(6, offsetof(internal_node_t, frontmost_offset));
-    EXPECT_EQ(8, offsetof(internal_node_t, pair_offsets));
-    EXPECT_EQ(8, sizeof(internal_node_t));
+    EXPECT_EQ(0u, offsetof(internal_node_t, magic));
+    EXPECT_EQ(4u, offsetof(internal_node_t, npairs));
+    EXPECT_EQ(6u, offsetof(internal_node_t, frontmost_offset));
+    EXPECT_EQ(8u, offsetof(internal_node_t, pair_offsets));
+    EXPECT_EQ(8u, sizeof(internal_node_t));
 
-    EXPECT_EQ(0, offsetof(btree_internal_pair, lnode));
-    EXPECT_EQ(4, offsetof(btree_internal_pair, key));
-    EXPECT_EQ(5, sizeof(btree_internal_pair));
+    EXPECT_EQ(0u, offsetof(btree_internal_pair, lnode));
+    EXPECT_EQ(4u, offsetof(btree_internal_pair, key));
+    EXPECT_EQ(5u, sizeof(btree_internal_pair));
 }
 
 

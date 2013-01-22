@@ -15,7 +15,7 @@ class term_t;
 
 class table_t : public ptr_baggable_t {
 public:
-    table_t(env_t *_env, uuid_t db_id, const std::string &name, bool use_outdated);
+    table_t(env_t *_env, uuid_u db_id, const std::string &name, bool use_outdated);
     datum_stream_t *as_datum_stream();
     const std::string &get_pkey();
     const datum_t *get_row(const datum_t *pval);
@@ -60,10 +60,10 @@ public:
     val_t(table_t *_table, const term_t *_parent, env_t *_env);
     val_t(table_t *_table, datum_stream_t *_sequence,
           const term_t *_parent, env_t *_env);
-    val_t(uuid_t _db, const term_t *_parent, env_t *_env);
+    val_t(uuid_u _db, const term_t *_parent, env_t *_env);
     val_t(func_t *_func, const term_t *_parent, env_t *_env);
 
-    uuid_t as_db();
+    uuid_u as_db();
     table_t *as_table();
     std::pair<table_t *, datum_stream_t *> as_selection();
     datum_stream_t *as_seq();
@@ -83,7 +83,7 @@ private:
     env_t *env;
 
     type_t type;
-    uuid_t db;
+    uuid_u db;
     table_t *table;
     datum_stream_t *sequence;
     const datum_t *datum;

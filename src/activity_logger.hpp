@@ -16,7 +16,7 @@
 
 class log_event_t {
 public:
-    log_event_t(const std::string &_msg, bool log_bt = true);
+    explicit log_event_t(const std::string &_msg, bool log_bt = true);
     std::string print(bool print_bt);
 
 private:

@@ -11,6 +11,7 @@
 #include <boost/lexical_cast.hpp>
 
 #include "arch/arch.hpp"
+#include "arch/io/network.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "db_thread_info.hpp"
 
@@ -107,10 +108,14 @@ void protob_server_t<request_t, response_t, context_t>::handle_conn(const scoped
                     if (force_response) {
                         send(forced_response, conn.get(), &ct_keepalive);
                     } else {
+#ifdef __linux
                         linux_event_watcher_t *ew = conn->get_event_watcher();
                         linux_event_watcher_t::watch_t conn_interrupted(ew, poll_event_rdhup);
                         wait_any_t interruptor(&conn_interrupted, shutdown_signal());
                         ctx.interruptor = &interruptor;
+#else
+                        ctx.interruptor = shutdown_signal();
+#endif  // __linux
                         send(f(&request, &ctx), conn.get(), &ct_keepalive);
                     }
                     break;

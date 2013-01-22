@@ -156,15 +156,7 @@ class Namespace extends Backbone.Model
         __s =
             keys_read: 0
             keys_set: 0
-            global_cpu_util:
-                avg: 0
-            global_mem_total: 0
-            global_mem_used: 0
             global_disk_space: 0
-            global_net_recv_persec:
-                avg: 0
-            global_net_sent_persec:
-                avg: 0
         _s = this.get_stats()
         if _s?
             __s.keys_read += _s.keys_read
@@ -174,14 +166,7 @@ class Namespace extends Backbone.Model
         for machine in machines.models
             if machine.get('stats')? and @get('id') of machine.get('stats') and machine.is_reachable
                 num_machines_in_namespace++
-                mstats = machine.get_stats().proc
-                __s.global_cpu_util.avg += if mstats.global_cpu_util? then parseFloat(mstats.global_cpu_util.avg) else 0
-                __s.global_mem_total += parseInt(mstats.global_mem_total)
-                __s.global_mem_used += parseInt(mstats.global_mem_used)
                 __s.global_disk_space += machine.get_used_disk_space()
-                __s.global_net_recv_persec.avg += if mstats.global_net_recv_persec? then parseFloat(mstats.global_net_recv_persec.avg) else 0
-                __s.global_net_sent_persec.avg += if mstats.global_net_sent_persec? then parseFloat(mstats.global_net_sent_persec.avg) else 0
-        __s.global_cpu_util.avg /= num_machines_in_namespace
         return __s
 
 class Datacenter extends Backbone.Model
@@ -202,22 +187,10 @@ class Datacenter extends Backbone.Model
         machines.filter (machine) => machine.get('datacenter_uuid') is @get('id')
     get_stats: =>
         stats =
-            global_cpu_util:
-                avg: 0
-            global_mem_total: 0
-            global_mem_used: 0
             dc_disk_space: 0
-        nmachines = 0
         for machine in machines.models
             if machine.get('datacenter_uuid') is @get('id')
-                mstats = machine.get_stats().proc
-                if mstats?.global_cpu_util?
-                    nmachines += 1
-                    stats.global_cpu_util.avg += parseFloat(mstats.global_cpu_util.avg)
-                    stats.global_mem_total += parseFloat(mstats.global_mem_total)
-                    stats.global_mem_used += parseFloat(mstats.global_mem_used)
-                    stats.dc_disk_space += machine.get_used_disk_space()
-        stats.global_cpu_util.avg /= nmachines
+                stats.dc_disk_space += machine.get_used_disk_space()
         return stats
 
     get_stats_for_performance: =>
@@ -225,15 +198,7 @@ class Datacenter extends Backbone.Model
         __s =
             keys_read: 0
             keys_set: 0
-            global_cpu_util:
-                avg: 0
-            global_mem_total: 0
-            global_mem_used: 0
             global_disk_space: 0
-            global_net_recv_persec:
-                avg: 0
-            global_net_sent_persec:
-                avg: 0
         for namespace in namespaces.models
             if not namespace.get('blueprint')? or not namespace.get('blueprint').peers_roles?
                 continue
@@ -261,14 +226,7 @@ class Datacenter extends Backbone.Model
         for machine in machines.models
             if machine.get('datacenter_uuid') is @get('id') and machine.is_reachable
                 num_machines_in_datacenter++
-                mstats = machine.get_stats().proc
-                __s.global_cpu_util.avg += if mstats.global_cpu_util? then parseFloat(mstats.global_cpu_util.avg) else 0
-                __s.global_mem_total += parseInt(mstats.global_mem_total)
-                __s.global_mem_used += parseInt(mstats.global_mem_used)
                 __s.global_disk_space += machine.get_used_disk_space()
-                __s.global_net_recv_persec.avg += if mstats.global_net_recv_persec? then parseFloat(mstats.global_net_recv_persec.avg) else 0
-                __s.global_net_sent_persec.avg += if mstats.global_net_sent_persec? then parseFloat(mstats.global_net_sent_persec.avg) else 0
-        __s.global_cpu_util.avg /= num_machines_in_datacenter
         return __s
 
 
@@ -293,19 +251,10 @@ class Machine extends Backbone.Model
 
     get_stats_for_performance: =>
         stats_full = @get_stats()
-        mstats = stats_full.proc
         __s =
             keys_read: 0
             keys_set: 0
-            global_cpu_util:
-                avg: if mstats.global_cpu_util? then parseFloat(mstats.global_cpu_util.avg) else 0
-            global_mem_total: parseInt(mstats.global_mem_total)
-            global_mem_used: parseInt(mstats.global_mem_used)
             global_disk_space: parseInt(@get_used_disk_space())
-            global_net_recv_persec:
-                avg: if mstats.global_net_recv_persec? then parseFloat(mstats.global_net_recv_persec.avg) else 0
-            global_net_sent_persec:
-                avg: if mstats.global_net_sent_persec? then parseFloat(mstats.global_net_sent_persec.avg) else 0
 
         for namespace in namespaces.models
             _s = namespace.get_stats()
@@ -416,15 +365,7 @@ class ComputedCluster extends Backbone.Model
         __s =
             keys_read: 0
             keys_set: 0
-            global_cpu_util:
-                avg: 0
-            global_mem_total: 0
-            global_mem_used: 0
             global_disk_space: 0
-            global_net_recv_persec:
-                avg: 0
-            global_net_sent_persec:
-                avg: 0
         for namespace in namespaces.models
             _s = namespace.get_stats()
             if not _s?
@@ -433,15 +374,7 @@ class ComputedCluster extends Backbone.Model
             __s.keys_set += _s.keys_set
         # CPU, mem, disk
         for m in machines.models
-            mstats = m.get_stats().proc
-            if mstats? and mstats.global_cpu_util? #if global_cpu_util is present, the other attributes should too.
-                __s.global_cpu_util.avg += parseFloat(mstats.global_cpu_util.avg)
-                __s.global_mem_total += parseInt(mstats.global_mem_total)
-                __s.global_mem_used += parseInt(mstats.global_mem_used)
-                __s.global_disk_space += m.get_used_disk_space()
-                __s.global_net_recv_persec.avg += parseFloat(mstats.global_net_recv_persec.avg)
-                __s.global_net_sent_persec.avg += parseFloat(mstats.global_net_sent_persec.avg)
-        __s.global_cpu_util.avg /= machines.models.length
+            __s.global_disk_space += m.get_used_disk_space()
 
         return __s
 
@@ -965,3 +898,57 @@ module 'DataUtils', ->
     @is_integer = (data) ->
         return data.search(/^\d+$/) isnt -1
 
+    # Deep copy. We do not copy prototype.
+    @deep_copy = (data) ->
+        if typeof data is 'boolean' or typeof data is 'number' or typeof data is 'string' or typeof data is 'number' or data is null or data is undefined
+            return data
+        else if typeof data is 'object' and Object.prototype.toString.call(data) is '[object Array]'
+            result = []
+            for value in data
+                result.push @deep_copy value
+            return result
+        else if typeof data is 'object'
+            result = {}
+            for key, value of data
+                result[key] = @deep_copy value
+            return result
+
+    @approximate_count = (num) ->
+        # 0 => 0
+        # 1 - 5 => 5
+        # 5 - 10 => 10
+        # 11 - 99 => Rounded to _0
+        # 100 - 999 => Rounded to _00
+        # 1,000 - 9,999 => _._K
+        # 10,000 - 10,000 => __K
+        # 100,000 - 1,000,000 => __0K
+        # Millions and billions have the same behavior as thousands
+        # If num>1000B, then we just print the number of billions
+        if num is 0
+            return '0'
+        else if num <= 5
+            return '5'
+        else if num <= 10
+            return '10'
+        else
+            # Approximation to 2 significant digit
+            approx = Math.round(num/Math.pow(10, num.toString().length-2))*Math.pow(10, num.toString().length-2)
+            if approx < 100 # We just want one digit
+                return (Math.floor(approx/10)*10).toString()
+            else if approx < 1000 # We just want one digit
+                return (Math.floor(approx/100)*100).toString()
+            else if approx < 1000000
+                result = (approx/1000).toString()
+                if result.length is 1 # In case we have 4 for 4000, we want 4.0
+                    result = result + '.0'
+                return result+'K'
+            else if approx < 1000000000
+                result = (approx/1000000).toString()
+                if result.length is 1 # In case we have 4 for 4000, we want 4.0
+                    result = result + '.0'
+                return result+'M'
+            else
+                result = (approx/1000000000).toString()
+                if result.length is 1 # In case we have 4 for 4000, we want 4.0
+                    result = result + '.0'
+                return result+'B'
