@@ -1160,32 +1160,32 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
 void help_rethinkdb_create() {
     std::stringstream sstream;
     sstream << get_rethinkdb_create_options_visible();
-    scoped_ptr_t<help_pager_t> help(new help_pager_t());
-    help->pagef("'rethinkdb create' is used to prepare a directory to act"
+    help_pager_t help;
+    help.pagef("'rethinkdb create' is used to prepare a directory to act"
                 " as the storage location for a RethinkDB cluster node.\n");
-    help->pagef("%s\n", sstream.str().c_str());
+    help.pagef("%s\n", sstream.str().c_str());
 }
 
 void help_rethinkdb_serve() {
     std::stringstream sstream;
     sstream << get_rethinkdb_serve_options_visible();
-    scoped_ptr_t<help_pager_t> help(new help_pager_t());
-    help->pagef("'rethinkdb serve' is the actual process for a RethinkDB cluster node.\n");
-    help->pagef("%s\n", sstream.str().c_str());
+    help_pager_t help;
+    help.pagef("'rethinkdb serve' is the actual process for a RethinkDB cluster node.\n");
+    help.pagef("%s\n", sstream.str().c_str());
 }
 
 void help_rethinkdb_proxy() {
     std::stringstream sstream;
     sstream << get_rethinkdb_proxy_options_visible();
-    scoped_ptr_t<help_pager_t> help(new help_pager_t());
-    help->pagef("'rethinkdb proxy' serves as a proxy to an existing RethinkDB cluster.\n");
-    help->pagef("%s\n", sstream.str().c_str());
+    help_pager_t help;
+    help.pagef("'rethinkdb proxy' serves as a proxy to an existing RethinkDB cluster.\n");
+    help.pagef("%s\n", sstream.str().c_str());
 }
 
 void help_rethinkdb_import() {
     std::stringstream sstream;
     sstream << get_rethinkdb_import_options();
-    scoped_ptr_t<help_pager_t> help(new help_pager_t());
-    help->pagef("'rethinkdb import' imports content from a CSV file.\n");
-    help->pagef("%s\n", sstream.str().c_str());
+    help_pager_t help;
+    help.pagef("'rethinkdb import' imports content from a CSV file.\n");
+    help.pagef("%s\n", sstream.str().c_str());
 }
