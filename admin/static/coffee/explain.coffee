@@ -137,8 +137,7 @@ module 'Explain', ->
             #TODO bind to proper things
             @.$('rect').tooltip
                 placement: 'right'
-                trigger: 'manual'
-            @.$('rect').tooltip('show')
+                trigger: 'hover'
 
             @.$('circle').tooltip
                 trigger: 'hover'
@@ -151,7 +150,7 @@ module 'Explain', ->
         height_before_bifurcation: 20
         border_size: 4
         stroke_width: 2
-        proportion_bloc: 2/6
+        proportion_bloc: 2/5
         background_color: '#fff'
         task_color: '#eee'
         task_border_color: '#dfdfdf'
