@@ -66,7 +66,7 @@ public:
         fprintf(print_to, "%s", msg);
 
         if (print_to != stderr) {
-            fclose(print_to);
+            pclose(print_to);
         }
     }
 
