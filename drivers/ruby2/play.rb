@@ -1,7 +1,7 @@
 $LOAD_PATH.unshift('./lib')
+load 'rethinkdb.rb'
 require 'rubygems'
 require 'pp'
-require 'ql2.pb.rb'
 require 'socket'
 
 def to_termtype sym
@@ -12,8 +12,7 @@ def check pred
   raise RuntimeError, "CHECK FAILED" if not pred
 end
 
-$socket = TCPSocket.open('localhost', 60616)
-$socket.send([0xaf61ba35].pack('L<'), 0)
+$c = RethinkDB::Connection.new('localhost', 60616)
 
 def nativize_datum d
   dt = Datum::DatumType
@@ -61,24 +60,8 @@ class RQL
     @term
   end
 
-  @@token_cnt = 0
-  @@socket = $socket
-
-  def to_query
-    q = Query2.new
-    q.type = Query2::QueryType::START
-    q.query = self.to_term
-    q.token = @@token_cnt += 1
-    return q
-  end
   def run
-    q = to_query
-    payload = q.serialize_to_string
-    packet = [payload.length].pack('L<') + payload
-    @@socket.send(packet, 0)
-    rlen = @@socket.read(4).unpack('L<')[0]
-    r = @@socket.read(rlen)
-    return nativize_response(Response2.new.parse_from_string(r))
+    nativize_response(RethinkDB::Connection.last.run self.to_term)
   end
 
   def opt(key, val)
