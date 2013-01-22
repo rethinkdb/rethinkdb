@@ -13,11 +13,9 @@
 //have less installed
 #define HELP_VIEWER "less -R"
 
-/* !< \brief Class to create pageable help messages instead of print them to
+/* !< \brief Class to create pageable help messages instead of printing them to
  * stderr
  */
-
-#define MAX_HELP_MSG_LEN (1024*1024)
 
 class help_pager_t {
 private:
@@ -36,12 +34,11 @@ private:
     }
 
     int msg_lines() {
-        char *c = msg;
         int nlines = 0;
 
-        while (c != msg_hd) {
-            if (*c++ == '\n') {
-                nlines++;
+        for (size_t i = 0; i < msg.length(); ++i) {
+            if (msg[i] == '\n') {
+                ++nlines;
             }
         }
 
@@ -50,8 +47,7 @@ private:
 
 public:
     help_pager_t() {
-        msg[0] = '\0';
-        msg_hd = msg;
+        // Do nothing
     }
 
     ~help_pager_t() {
@@ -62,8 +58,7 @@ public:
             print_to = stderr;
         }
 
-        msg_hd = '\0'; //Null terminate it;
-        fprintf(print_to, "%s", msg);
+        fprintf(print_to, "%s", msg.c_str());
 
         if (print_to != stderr) {
             pclose(print_to);
@@ -75,24 +70,18 @@ public:
         return &help;
     }
     int pagef(const char *format, ...) __attribute__ ((format (printf, 2, 3))) {
-        int res;
         va_list arg;
         va_start(arg, format);
 
-        if (msg_hd < msg + MAX_HELP_MSG_LEN - 1) {
-            res = vsnprintf(msg_hd, (msg + MAX_HELP_MSG_LEN - 1) - msg_hd, format, arg);
-        } else {
-            unreachable("Help message is too big, increase MAX_HELP_MSG_LEN");
-        }
+        std::string delta = vstrprintf(format, arg);
+        msg.append(delta);
 
-        msg_hd += res;
         va_end(arg);
-        return res;
+        return delta.length();
     }
 
 private:
-    char msg[MAX_HELP_MSG_LEN];
-    char *msg_hd;
+    std::string msg;
 
     DISABLE_COPYING(help_pager_t);
 };
