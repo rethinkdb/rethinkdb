@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CONCURRENCY_FIFO_ENFORCER_HPP_
 #define CONCURRENCY_FIFO_ENFORCER_HPP_
 
@@ -115,6 +115,8 @@ public:
 
     private:
         friend class fifo_enforcer_sink_t;
+        friend bool left_is_higher_priority(fifo_enforcer_sink_t::internal_exit_read_t *left,
+                                            fifo_enforcer_sink_t::internal_exit_read_t *right);
 
         /* Returns the read token for this operation. It will be used to sort
         the operation in the queue. */
@@ -127,10 +129,6 @@ public:
         /* Called when the FIFO enforcer is being destroyed. The operation will
         already have been removed from the queue. */
         virtual void on_early_shutdown() = 0;
-
-        bool is_higher_priority_than(internal_exit_read_t *other) {
-            return get_token().timestamp < other->get_token().timestamp;
-        }
     };
 
     class internal_exit_write_t : public intrusive_priority_queue_node_t<internal_exit_write_t> {
@@ -139,6 +137,8 @@ public:
 
     private:
         friend class fifo_enforcer_sink_t;
+        friend bool left_is_higher_priority(fifo_enforcer_sink_t::internal_exit_write_t *left,
+                                            fifo_enforcer_sink_t::internal_exit_write_t *right);
 
         /* Returns the write token for this operation. It will be used to sort
         the operation in the queue. */
@@ -153,10 +153,6 @@ public:
         /* Called when the FIFO enforcer is being destroyed. The operation will
         already have been removed from the queue. */
         virtual void on_early_shutdown() = 0;
-
-        bool is_higher_priority_than(internal_exit_write_t *other) {
-            return get_token().timestamp < other->get_token().timestamp;
-        }
     };
 
     /* `exit_{read,write}_t` notes that the given FIFO enforcer token has
@@ -274,5 +270,17 @@ private:
 
     DISABLE_COPYING(fifo_enforcer_sink_t);
 };
+
+
+inline bool left_is_higher_priority(fifo_enforcer_sink_t::internal_exit_read_t *left,
+                                    fifo_enforcer_sink_t::internal_exit_read_t *right) {
+    return left->get_token().timestamp < right->get_token().timestamp;
+}
+
+inline bool left_is_higher_priority(fifo_enforcer_sink_t::internal_exit_write_t *left,
+                                    fifo_enforcer_sink_t::internal_exit_write_t *right) {
+    return left->get_token().timestamp < right->get_token().timestamp;
+}
+
 
 #endif /* CONCURRENCY_FIFO_ENFORCER_HPP_ */
