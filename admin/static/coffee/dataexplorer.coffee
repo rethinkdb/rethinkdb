@@ -94,7 +94,7 @@ module 'DataExplorerView', ->
             for group in data['sections']
                 for command in group['commands']
                     tag = command['langs']['js']['name']
-                    if tag is '()'
+                    if tag is '()' or tag is 'runp'
                         continue
                     if tag is 'row' # We want r.row and r.row(
                         new_command = DataUtils.deep_copy command
@@ -364,8 +364,11 @@ module 'DataExplorerView', ->
             DataExplorerView.Container.prototype.saved_query = @codemirror.getValue()
             saved_cursor = @codemirror.getCursor()
             if event?.which?
+                if event.which is 27
+                    @hide_suggestion()
+                    return true
                 # If the user hit tab, we switch the highlighted suggestion
-                if event.which is 9
+                else if event.which is 9
                     event.preventDefault()
                     if event.type isnt 'keydown'
                         return true

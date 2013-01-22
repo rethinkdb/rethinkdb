@@ -8,7 +8,6 @@ render_body = ->
         keyboard: true
 
     # Set actions on developer tools
-    $('#dev-tools #show-walkthrough-popup').on 'click', (event) -> $('.walkthrough-popup').html (new Walkthrough).render().el
     $('#dev-tools #pause-application').on 'click', (event) -> debugger
 
 class IsDisconnected extends Backbone.View

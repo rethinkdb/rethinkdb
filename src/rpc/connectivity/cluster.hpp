@@ -25,8 +25,6 @@ template <class> class scoped_ptr;
 template <class> class function;
 }
 
-extern const char *const cluster_proto_header;
-
 class peer_address_t {
 public:
     peer_address_t(const std::set<ip_address_t> &_ips, int p) : port(p), ips(_ips) { }
@@ -96,6 +94,11 @@ class connectivity_cluster_t :
     public home_thread_mixin_debug_only_t
 {
 public:
+    static const std::string cluster_proto_header;
+    static const std::string cluster_version;
+    static const std::string cluster_arch_bitsize;
+    static const std::string cluster_build_mode;
+
     class run_t {
     public:
         run_t(connectivity_cluster_t *parent,

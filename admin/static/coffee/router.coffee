@@ -40,18 +40,11 @@ class BackboneCluster extends Backbone.Router
         @navbar = new NavBarView
         @render_navbar()
 
-        if not $.cookie('rethinkdb-admin')?
-            $.cookie('rethinkdb-admin', new Date())
-            @render_walkthrough_popup()
-
         @.bind 'all', (route, router) ->
             @navbar.set_active_tab route
 
     render_sidebar: -> @$sidebar.html @sidebar.render().el
     render_navbar: -> $('#navbar-container').html @navbar.render().el
-    render_walkthrough_popup: ->
-        # TODO: add this back when we're ready to do it
-        # $('.walkthrough-popup').html (new Walkthrough).render().el
 
     set_stats_call: (url) =>
         clearTimeout stats_param.timeout

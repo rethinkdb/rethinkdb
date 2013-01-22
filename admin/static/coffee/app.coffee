@@ -237,9 +237,17 @@ driver_connect_fail = ->
 
 # Define the server to which the javascript is going to connect to
 # Tweaking the value of server.host or server.port can trigger errors for testing
+if window.location.port is ''
+    if window.location.protocol is 'https:'
+        port = 443
+    else
+        port = 80
+else
+    port = parseInt window.location.port
 window.server =
     host: window.location.hostname
-    port: if window.location.port is '' then 80 else parseInt window.location.port
+    port: port
+    protocol: if window.location.protocol is 'https:' then 'https' else 'http'
 
 # Connect the driver every five minutes (the connection times out every 5-10 minutes)
 driver_connect = ->

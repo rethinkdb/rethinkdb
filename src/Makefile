@@ -525,6 +525,17 @@ endif  # ($(LEGACY_GCC), 1)
 endif  # ($(COMPILER), CLANG)
 endif  # ($(COMPILER), INTEL)
 
+COVERAGE?=0
+
+ifeq ($(COVERAGE), 1)
+  ifeq ($(COMPILER), GCC)
+    RT_CXXFLAGS+=--coverage
+    RT_LDFLAGS+=--coverage
+  else
+    $(error COVERAGE=1 not yet supported for $(COMPILER))
+  endif
+endif # ($(COVERAGE), 1)
+
 ifeq ($(AGRESSIVE_BUF_UNLOADING),1)
 RT_CXXFLAGS+=-DAGRESSIVE_BUF_UNLOADING=1
 endif
@@ -777,7 +788,6 @@ COFFEE_SOURCES:=$(patsubst %, $(WEB_SOURCE_DIR)/static/coffee/%,\
 			vis.coffee \
 			models.coffee \
 			navbar.coffee \
-			walkthrough.coffee \
 			router.coffee \
 			app.coffee)
 LESS_SOURCES:=$(shell find $(WEB_SOURCE_DIR)/static/less -name '*.less')
@@ -792,12 +802,14 @@ FAVICON:=$(WEB_SOURCE_DIR)/favicon.ico
 FORCEVERSION?=0
 ifeq ($(FORCEVERSION),1)
 RETHINKDB_VERSION:=$(PVERSION)
+RETHINKDB_CODE_VERSION?=$(shell ../scripts/gen-version.sh)
 RETHINKDB_SHORT_VERSION:=$(shell echo $(RETHINKDB_VERSION) | sed 's/\([^.]\+\.[^.]\+\).*$$/\1/')
 # RETHINKDB_SHORT_VERSION:=$(shell ../scripts/gen-version.sh -s)
 PACKAGING_ALTERNATIVES_PRIORITY:=0
 else
 RETHINKDB_FALLBACK_VERSION:=$(shell if [ -e ../NOTES ] ; then cat ../NOTES | grep '^. Release' | head -n 1 | awk '{ printf "%s" , $$3 ; }' ; fi ; )
 RETHINKDB_VERSION:=$(shell env FALLBACK_VERSION=$(RETHINKDB_FALLBACK_VERSION) ../scripts/gen-version.sh)
+RETHINKDB_CODE_VERSION?=$(shell ../scripts/gen-version.sh)
 RETHINKDB_SHORT_VERSION:=$(shell echo $(RETHINKDB_VERSION) | sed 's/\([^.]\+\.[^.]\+\).*$$/\1/')
 # RETHINKDB_SHORT_VERSION:=$(shell ../scripts/gen-version.sh -s)
 PACKAGING_ALTERNATIVES_PRIORITY:=$(shell expr $$(../scripts/gen-version.sh -r) / 100)
@@ -809,6 +821,7 @@ endif
 # endif
 RETHINKDB_PACKAGING_VERSION?=$(RETHINKDB_VERSION)
 RT_CXXFLAGS+=-DRETHINKDB_VERSION=\"$(RETHINKDB_VERSION)\"
+RT_CXXFLAGS+=-DRETHINKDB_CODE_VERSION=\"$(RETHINKDB_CODE_VERSION)\"
 
 NAMEVERSIONED?=0
 ifeq ($(NAMEVERSIONED),1)
@@ -840,6 +853,14 @@ unit:
 $(UNIT_STATIC_LIBRARY_PATH):
 	@echo "    GTEST"
 	$(QUIET) cd $(EXTERNAL_DIR)/gtest-1.6.0/make && $(MAKE) gtest.a
+
+coverage:
+	$(MAKE) UNIT_TESTS=1 COVERAGE=1 DEBUG=1
+	$(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME) --gtest_filter=$(UNIT_TEST_FILTER)
+	lcov --directory $(OBJ_DIR) --base-directory "`pwd`" --capture --output-file $(BUILD_DIR)/coverage.full.info
+	lcov --remove $(BUILD_DIR)/coverage.full.info /usr/\* -o $(BUILD_DIR)/coverage.info
+	genhtml --demangle-cpp --no-branch-coverage --no-prefix -o $(BUILD_DIR)/coverage $(BUILD_DIR)/coverage.info 
+	echo "Wrote unit tests coverage report to $(BUILD_DIR)/coverage"
 
 # Packaging
 ifeq ($(PACKAGING),1)
@@ -1284,6 +1305,9 @@ rpc/semilattice/joins/macros.hpp rpc/serialize_macros.hpp rpc/mailbox/typed.hpp:
 web-assets: $(WEB_ASSETS)
 
 $(WEB_ASSETS_BUILD_DIR)/js/template.js: $(WEB_SOURCE_DIR)/static/handlebars $(TC_HANDLEBARS_EXE) ../scripts/build_handlebars_templates.py
+ifeq ($(VERBOSE),0)
+	@echo "    HANDLEBARS $@"
+endif
 	$(QUIET) env TC_HANDLEBARS_EXE=$(TC_HANDLEBARS_EXE) ../scripts/build_handlebars_templates.py $(WEB_SOURCE_DIR)/static/handlebars $(BUILD_DIR) $(WEB_ASSETS_BUILD_DIR)/js
 
 $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee: $(COFFEE_SOURCES)
