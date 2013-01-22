@@ -1,14 +1,15 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "errors.hpp"
 #include "btree/slice.hpp"
 #include "btree/node.hpp"
+#include "btree/operations.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 #include "concurrency/cond_var.hpp"
 
 // Run backfilling at a reduced priority
 #define BACKFILL_CACHE_PRIORITY 10
 
-void btree_slice_t::create(cache_t *cache) {
+void btree_slice_t::create(cache_t *cache, const std::vector<char> &metainfo_key, const std::vector<char> &metainfo_value) {
 
     /* Initialize the btree superblock and the delete queue */
     transaction_t txn(cache, rwi_write, 1, repli_timestamp_t::distant_past, order_token_t::ignore);
@@ -27,6 +28,8 @@ void btree_slice_t::create(cache_t *cache) {
     sb->magic = btree_superblock_t::expected_magic;
     sb->root_block = NULL_BLOCK_ID;
     sb->stat_block = NULL_BLOCK_ID;
+
+    set_superblock_metainfo(&txn, &superblock, metainfo_key, metainfo_value);
 }
 
 btree_slice_t::btree_slice_t(cache_t *c, perfmon_collection_t *parent)

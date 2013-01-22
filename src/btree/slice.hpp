@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef BTREE_SLICE_HPP_
 #define BTREE_SLICE_HPP_
 
@@ -40,12 +40,11 @@ public:
 cache for the purpose of storing a btree. There are many btree_slice_ts per
 btree_key_value_store_t. */
 
-class btree_slice_t :
-    public home_thread_mixin_debug_only_t
-{
+class btree_slice_t : public home_thread_mixin_debug_only_t {
 public:
-    // Blocks
-    static void create(cache_t *cache);
+    // Initializes a cache for use with btrees (by creating the superblock in block SUPERBLOCK_ID),
+    // setting the initial value of the metainfo (with a single key/value pair).
+    static void create(cache_t *cache, const std::vector<char> &metainfo_key, const std::vector<char> &metainfo_value);
 
     // Blocks
     btree_slice_t(cache_t *cache, perfmon_collection_t *parent);
