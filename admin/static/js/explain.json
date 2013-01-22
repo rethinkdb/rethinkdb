@@ -4,9 +4,17 @@
     "machine_id": "1",
     "size_message_received": 2000,
     "size_message_sent": 8000,
-    "execution_duration": 800,
+    "execution_duration": 850,
     "sub_tasks_are_parallel": false,
     "sub_tasks": [
+        {
+            "query": "r.db(...).table(...).whole_query.run()",
+            "explanation": "Parsing query",
+            "machine_id": "1",
+            "size_message_received": 3000,
+            "size_message_sent": 3000,
+            "execution_duration": 20
+        },
         {
             "query": ".map(...)",
             "explanation": "Map table users",
@@ -135,7 +143,7 @@
                     "machine_id": "3",
                     "size_message_received": 2000,
                     "size_message_sent": 5000,
-                    "execution_duration": 130
+                    "execution_duration": 110
                 },
                 {
                     "query": ".map(...)",
@@ -143,7 +151,15 @@
                     "machine_id": "4",
                     "size_message_received": 1000,
                     "size_message_sent": 500,
-                    "execution_duration": 160
+                    "execution_duration": 130
+                },
+                {
+                    "query": ".map(...)",
+                    "explanation": "Map table users on shard [XX, +oo]",
+                    "machine_id": "5",
+                    "size_message_received": 1000,
+                    "size_message_sent": 500,
+                    "execution_duration": 110
                 }
             ]
         },
@@ -167,7 +183,7 @@
                 {
                     "query": "map on shard 2",
                     "explanation": "Map things",
-                    "machine_id": "2",
+                    "machine_id": "4",
                     "size_message_received": 1000,
                     "size_message_sent": 2000,
                     "execution_duration": 100
