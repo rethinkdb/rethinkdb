@@ -5,6 +5,7 @@ import shutil
 import subprocess
 import sys
 import os
+import fnmatch
 
 HTML_INPUT_DIR = sys.argv[1]
 BUILD_DIR = sys.argv[2]
@@ -42,11 +43,13 @@ try:
     parts = []
 
     # Split all the html files by script tags.
-    for path in subprocess.check_output(['find', HTML_INPUT_DIR, '-name', '*.html']).splitlines():
-        with open(path) as f:
-            text = f.read()
-            tmp_parts = split_by_script_tags(text)
-            parts += tmp_parts
+    for root, dirnames, filenames in os.walk(HTML_INPUT_DIR):
+        for filename in fnmatch.filter(filenames, "*.html"):
+            path = os.path.join(root,filename)
+            with open(path) as f:
+                text = f.read()
+                tmp_parts = split_by_script_tags(text)
+                parts += tmp_parts
 
     # Now build parts corresponding to script tags.
     named_parts = { }
