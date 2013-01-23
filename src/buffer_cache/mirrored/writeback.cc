@@ -215,12 +215,11 @@ bool writeback_t::can_read_ahead_block_be_accepted(block_id_t block_id) {
 void writeback_t::on_timer() {
     // The flush timer callback.
 
-    writeback_t *self = this;
-    self->flush_timer = NULL;
+    flush_timer = NULL;
 
-    self->cache->assert_thread();
+    cache->assert_thread();
 
-    self->cache->stats->pm_patches_size_ratio.record(self->cache->get_max_patches_size_ratio());
+    cache->stats->pm_patches_size_ratio.record(cache->get_max_patches_size_ratio());
 
     /*
      * Update the max_patches_size_ratio. If we detect that the previous writeback
@@ -233,24 +232,24 @@ void writeback_t::on_timer() {
      * and gradually increase max_patches_size_ratio towards MAX_PATCHES_SIZE_RATIO_MAX
      * to save the overhead associated with managing and writing patches.
      */
-    if (self->active_flushes < self->max_concurrent_flushes || self->num_dirty_blocks() < self->max_dirty_blocks * RAISE_PATCHES_RATIO_AT_FRACTION_OF_UNSAVED_DATA_LIMIT) {
+    if (active_flushes < max_concurrent_flushes || num_dirty_blocks() < max_dirty_blocks * RAISE_PATCHES_RATIO_AT_FRACTION_OF_UNSAVED_DATA_LIMIT) {
         /* The currently running writeback probably finished on-time. (of we have enough headroom left before hitting the unsaved data limit)
         Adjust max_patches_size_ratio to trade i/o efficiency for CPU cycles */
-        if (!self->wait_for_flush) {
-            self->cache->adjust_max_patches_size_ratio_toward_minimum();
+        if (!wait_for_flush) {
+            cache->adjust_max_patches_size_ratio_toward_minimum();
         }
     } else {
         /* The currently running writeback apparently takes too long.
         try to reduce that bottleneck by adjusting max_patches_size_ratio */
-        if (!self->wait_for_flush) {
-            self->cache->adjust_max_patches_size_ratio_toward_maximum();
+        if (!wait_for_flush) {
+            cache->adjust_max_patches_size_ratio_toward_maximum();
         }
     }
 
     /* Don't sync if we're in the shutdown process, because if we do that we'll trip an rassert() on
     the cache, and besides we're about to sync anyway. */
-    if (!self->cache->shutting_down && (self->num_dirty_blocks() > 0 || self->sync_callbacks.size() > 0)) {
-        self->sync(NULL);
+    if (!cache->shutting_down && (num_dirty_blocks() > 0 || sync_callbacks.size() > 0)) {
+        sync(NULL);
     }
 }
 
