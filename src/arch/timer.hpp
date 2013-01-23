@@ -12,28 +12,6 @@ struct timer_callback_t {
     virtual ~timer_callback_t() { }
 };
 
-class timer_token_t : public intrusive_priority_queue_node_t<timer_token_t> {
-    friend class timer_handler_t;
-
-    bool is_higher_priority_than(timer_token_t *competitor) {
-        return next_time_in_nanos < competitor->next_time_in_nanos;
-    }
-
-private:
-    timer_token_t() : interval_nanos(-1), next_time_in_nanos(-1), callback(NULL) { }
-
-    // The time between rings, if a repeating timer, otherwise zero.
-    int64_t interval_nanos;
-
-    // The time of the next 'ring'.
-    int64_t next_time_in_nanos;
-
-    // The callback we call upon each 'ring'.
-    timer_callback_t *callback;
-
-    DISABLE_COPYING(timer_token_t);
-};
-
 /* This timer class uses the underlying OS timer provider to get one-shot timing events. It then
  * manages a list of application timers based on that lower level interface. Everyone who needs a
  * timer should use this class (through the thread pool). */

@@ -3,6 +3,28 @@
 #include "arch/runtime/thread_pool.hpp"
 #include "utils.hpp"
 
+class timer_token_t : public intrusive_priority_queue_node_t<timer_token_t> {
+    friend class timer_handler_t;
+
+    bool is_higher_priority_than(timer_token_t *competitor) {
+        return next_time_in_nanos < competitor->next_time_in_nanos;
+    }
+
+private:
+    timer_token_t() : interval_nanos(-1), next_time_in_nanos(-1), callback(NULL) { }
+
+    // The time between rings, if a repeating timer, otherwise zero.
+    int64_t interval_nanos;
+
+    // The time of the next 'ring'.
+    int64_t next_time_in_nanos;
+
+    // The callback we call upon each 'ring'.
+    timer_callback_t *callback;
+
+    DISABLE_COPYING(timer_token_t);
+};
+
 timer_handler_t::timer_handler_t(linux_event_queue_t *queue)
     : timer_provider(queue),
       expected_oneshot_time_in_nanos(0) {
