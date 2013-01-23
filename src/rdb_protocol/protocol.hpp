@@ -508,10 +508,21 @@ struct rdb_protocol_t {
 
             RDB_DECLARE_ME_SERIALIZABLE;
         };
+        struct sindexes_t {
+            std::map<uuid_u, secondary_index_t> sindexes;
+
+            sindexes_t() { }
+            explicit sindexes_t(const std::map<uuid_u, secondary_index_t> &_sindexes) 
+                : sindexes(_sindexes) { }
+
+            RDB_DECLARE_ME_SERIALIZABLE;
+        };
+
+        typedef boost::variant<delete_range_t, delete_key_t, key_value_pair_t, sindexes_t> value_t;
 
         backfill_chunk_t() { }
-        explicit backfill_chunk_t(boost::variant<delete_range_t, delete_key_t, key_value_pair_t> _val) : val(_val) { }
-        boost::variant<delete_range_t, delete_key_t, key_value_pair_t> val;
+        explicit backfill_chunk_t(const value_t &_val) : val(_val) { }
+        value_t val;
 
         static backfill_chunk_t delete_range(const region_t& range) {
             return backfill_chunk_t(delete_range_t(range));
@@ -521,6 +532,10 @@ struct rdb_protocol_t {
         }
         static backfill_chunk_t set_key(const rdb_protocol_details::backfill_atom_t& key) {
             return backfill_chunk_t(key_value_pair_t(key));
+        }
+
+        static backfill_chunk_t sindexes(const std::map<uuid_u, secondary_index_t> &sindexes) {
+            return backfill_chunk_t(sindexes_t(sindexes));
         }
 
         region_t get_region() const;
@@ -577,6 +592,7 @@ struct rdb_protocol_t {
         void protocol_receive_backfill(btree_slice_t *btree,
                                        transaction_t *txn,
                                        superblock_t *superblock,
+                                       write_token_pair_t *token_pair,
                                        signal_t *interruptor,
                                        const backfill_chunk_t &chunk);
 

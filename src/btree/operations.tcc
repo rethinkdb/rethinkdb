@@ -203,4 +203,3 @@ template <class Value>
 void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_loc, btree_key_t *key, repli_timestamp_t tstamp, key_modification_callback_t<Value> *km_callback, eviction_priority_t *root_eviction_priority) {
     apply_keyvalue_change(txn, kv_loc, key, tstamp, false, km_callback, root_eviction_priority);
 }
-

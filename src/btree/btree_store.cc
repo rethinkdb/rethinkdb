@@ -137,7 +137,7 @@ bool btree_store_t<protocol_t>::send_backfill(
 template <class protocol_t>
 void btree_store_t<protocol_t>::receive_backfill(
         const typename protocol_t::backfill_chunk_t &chunk,
-        object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
+        write_token_pair_t *token_pair,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
@@ -146,9 +146,9 @@ void btree_store_t<protocol_t>::receive_backfill(
     scoped_ptr_t<real_superblock_t> superblock;
     const int expected_change_count = 1; // FIXME: this is probably not correct
 
-    acquire_superblock_for_write(rwi_write, chunk.get_btree_repli_timestamp(), expected_change_count, token, &txn, &superblock, interruptor);
+    acquire_superblock_for_write(rwi_write, chunk.get_btree_repli_timestamp(), expected_change_count, &token_pair->main_write_token, &txn, &superblock, interruptor);
 
-    protocol_receive_backfill(btree.get(), txn.get(), superblock.get(), interruptor, chunk);
+    protocol_receive_backfill(btree.get(), txn.get(), superblock.get(), token_pair, interruptor, chunk);
 }
 
 template <class protocol_t>

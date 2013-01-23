@@ -94,7 +94,7 @@ public:
 
     void receive_backfill(
             const typename protocol_t::backfill_chunk_t &chunk,
-            object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
+            write_token_pair_t *token_pair,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -144,6 +144,7 @@ void acquire_sindex_block_for_write(
 
     typedef region_map_t<protocol_t, sindex_details::sindex_state_t> sindex_metainfo_t;
 
+    //TODO relocate these.
     void get_metainfo(const secondary_index_t &sindex, sindex_metainfo_t *metainfo);
 
     void set_metainfo(secondary_index_t *sindex, const sindex_metainfo_t &metainfo);
@@ -259,6 +260,7 @@ protected:
     virtual void protocol_receive_backfill(btree_slice_t *btree,
                                            transaction_t *txn,
                                            superblock_t *superblock,
+                                           write_token_pair_t *token_pair,
                                            signal_t *interruptor,
                                            const typename protocol_t::backfill_chunk_t &chunk) = 0;
 

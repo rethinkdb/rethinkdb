@@ -462,8 +462,9 @@ bool dummy_protocol_t::store_t::send_backfill(const region_map_t<dummy_protocol_
     }
 }
 
-void dummy_protocol_t::store_t::receive_backfill(const dummy_protocol_t::backfill_chunk_t &chunk, object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-    object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(token);
+void dummy_protocol_t::store_t::receive_backfill(const dummy_protocol_t::backfill_chunk_t &chunk, write_token_pair_t *token_pair, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(&token_pair->main_write_token);
+    object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer2(&token_pair->sindex_write_token);
 
     rassert(get_region().keys.count(chunk.key) != 0);
 

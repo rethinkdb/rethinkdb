@@ -699,6 +699,7 @@ private:
 void store_t::protocol_receive_backfill(btree_slice_t *btree,
                                         transaction_t *txn,
                                         superblock_t *superblock,
+                                        write_token_pair_t *,
                                         signal_t *interruptor,
                                         const backfill_chunk_t &chunk) {
     boost::apply_visitor(receive_backfill_visitor_t(btree, txn, superblock, interruptor), chunk.val);

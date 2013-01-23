@@ -151,7 +151,7 @@ public:
                            signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
         void receive_backfill(const dummy_protocol_t::backfill_chunk_t &chunk,
-                              object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
+                              write_token_pair_t *token,
                               signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
         void reset_data(const dummy_protocol_t::region_t &subregion,

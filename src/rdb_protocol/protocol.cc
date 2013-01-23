@@ -846,6 +846,14 @@ struct backfill_chunk_get_region_visitor_t : public boost::static_visitor<region
     region_t operator()(const backfill_chunk_t::key_value_pair_t &kv) {
         return rdb_protocol_t::monokey_region(kv.backfill_atom.key);
     }
+
+    region_t operator()(const backfill_chunk_t::sindexes_t &sindexes) {
+        std::map<uuid_u, secondary_index_t>::const_iterator head = sindexes.sindexes.begin();
+        guarantee(head != sindexes.sindexes.end());
+        region_map_t<rdb_protocol_t, sindex_details::sindex_state_t> metainfo;
+        //get_metainfo(head->second, &metainfo);
+        return metainfo.get_domain();
+    }
 };
 
 }   /* anonymous namespace */
@@ -868,6 +876,10 @@ struct backfill_chunk_get_btree_repli_timestamp_visitor_t : public boost::static
 
     repli_timestamp_t operator()(const backfill_chunk_t::key_value_pair_t &kv) {
         return kv.backfill_atom.recency;
+    }
+
+    repli_timestamp_t operator()(const backfill_chunk_t::sindexes_t &) {
+        return repli_timestamp_t::invalid;
     }
 };
 
@@ -894,8 +906,12 @@ public:
         chunk_fun_cb->send_chunk(chunk_t::delete_key(to_store_key(key), recency), interruptor);
     }
 
-    void on_keyvalue(const rdb_backfill_atom_t& atom, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    void on_keyvalue(const rdb_backfill_atom_t &atom, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         chunk_fun_cb->send_chunk(chunk_t::set_key(atom), interruptor);
+    }
+
+    void on_sindexes(const std::map<uuid_u, secondary_index_t> &sindexes, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+        chunk_fun_cb->send_chunk(chunk_t::sindexes(sindexes), interruptor);
     }
 
 protected:
@@ -948,11 +964,14 @@ void store_t::protocol_send_backfill(const region_map_t<rdb_protocol_t, state_ti
 namespace {
 
 struct receive_backfill_visitor_t : public boost::static_visitor<void> {
-    receive_backfill_visitor_t(btree_slice_t *_btree,
+    receive_backfill_visitor_t(btree_store_t<rdb_protocol_t> *_store,
+                               btree_slice_t *_btree,
                                transaction_t *_txn,
                                superblock_t *_superblock,
+                               write_token_pair_t *_token_pair,
                                signal_t *_interruptor) :
-      btree(_btree), txn(_txn), superblock(_superblock), interruptor(_interruptor) { }
+      store(_store), btree(_btree), txn(_txn), superblock(_superblock),
+      token_pair(_token_pair), interruptor(_interruptor) { }
 
     void operator()(const backfill_chunk_t::delete_key_t& delete_key) const {
         point_delete_response_t response;
@@ -978,6 +997,10 @@ struct receive_backfill_visitor_t : public boost::static_visitor<void> {
         //TODO this doesn't update the secondary index and it needs to.
     }
 
+    void operator()(const backfill_chunk_t::sindexes_t &) const {
+        not_implemented();
+    }
+
 private:
     /* TODO: This might be redundant. I thought that `key_tester_t` was only
     originally necessary because in v1.1.x the hashing scheme might be different
@@ -993,9 +1016,11 @@ private:
         const region_t& delete_range;
     };
 
+    btree_store_t<rdb_protocol_t> *store;
     btree_slice_t *btree;
     transaction_t *txn;
     superblock_t *superblock;
+    write_token_pair_t *token_pair;
     signal_t *interruptor;  // FIXME: interruptors are not used in btree code, so this one ignored.
 };
 
@@ -1004,9 +1029,10 @@ private:
 void store_t::protocol_receive_backfill(btree_slice_t *btree,
                                         transaction_t *txn,
                                         superblock_t *superblock,
+                                        write_token_pair_t *token_pair,
                                         signal_t *interruptor,
                                         const backfill_chunk_t &chunk) {
-    boost::apply_visitor(receive_backfill_visitor_t(btree, txn, superblock, interruptor), chunk.val);
+    boost::apply_visitor(receive_backfill_visitor_t(this, btree, txn, superblock, token_pair, interruptor), chunk.val);
 }
 
 void store_t::protocol_reset_data(const region_t& subregion,
@@ -1049,6 +1075,12 @@ public:
         rdb_protocol_t::backfill_chunk_t ret(kv);
         rassert(region_is_superset(region, ret.get_region()));
         return ret;
+    }
+    rdb_protocol_t::backfill_chunk_t operator()(const rdb_protocol_t::backfill_chunk_t::sindexes_t &) {
+        crash("not implemented");
+        //rdb_protocol_t::region_t r = region_intersection(sindexes.region, region);
+        //rassert(!region_is_empty(r));
+        //return rdb_protocol_t::backfill_chunk_t(rdb_protocol_t::backfill_chunk_t::sindexes_t(sindexes.sindexes, r));
     }
 private:
     const rdb_protocol_t::region_t &region;
@@ -1101,5 +1133,7 @@ RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::delete_key_t, key);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::delete_range_t, range);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::key_value_pair_t, backfill_atom);
+
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::sindexes_t, sindexes);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t, val);

@@ -414,7 +414,7 @@ public:
     */
     virtual void receive_backfill(
             const typename protocol_t::backfill_chunk_t &chunk,
-            object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
+            write_token_pair_t *token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
 
@@ -574,11 +574,11 @@ public:
 
     void receive_backfill(
             const typename protocol_t::backfill_chunk_t &chunk,
-            object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
+            write_token_pair_t *token_pair,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
-        store_view->receive_backfill(chunk, token, interruptor);
+        store_view->receive_backfill(chunk, token_pair, interruptor);
     }
 
     void reset_data(
