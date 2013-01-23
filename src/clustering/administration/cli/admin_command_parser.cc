@@ -372,24 +372,24 @@ void admin_command_parser_t::do_usage_internal(const std::vector<admin_help_info
                                                const std::string& header,
                                                bool console) {
     const char *prefix = console ? "" : "rethinkdb admin <ADMIN-OPTIONS> ";
-    scoped_ptr_t<help_pager_t> help(new help_pager_t());
+    help_pager_t help;
 
     struct winsize ws;
     size_t width = 80;
     if (ioctl(1, TIOCGWINSZ, &ws) == 0) width = ws.ws_col;
 
     if (!header.empty()) {
-        help->pagef("%s\n", make_bold("INFO").c_str());
-        if (console) help->pagef("%s\n\n", indent_and_underline(header, 4, 6, width).c_str());
-        else         help->pagef("%s\n\n", indent_and_underline("rethinkdb admin " + header, 4, 6, width).c_str());
+        help.pagef("%s\n", make_bold("INFO").c_str());
+        if (console) help.pagef("%s\n\n", indent_and_underline(header, 4, 6, width).c_str());
+        else         help.pagef("%s\n\n", indent_and_underline("rethinkdb admin " + header, 4, 6, width).c_str());
     }
 
-    help->pagef("%s\n", make_bold("COMMANDS").c_str());
+    help.pagef("%s\n", make_bold("COMMANDS").c_str());
     for (size_t i = 0; i < helps.size(); ++i) {
         std::string text = prefix + helps[i].command + " " + helps[i].usage;
-        help->pagef("%s\n", indent_and_underline(text, 4, 6, width).c_str());
+        help.pagef("%s\n", indent_and_underline(text, 4, 6, width).c_str());
     }
-    help->pagef("\n");
+    help.pagef("\n");
 
     bool description_header_printed = false;
     for (size_t i = 0; i < helps.size(); ++i) {
@@ -397,31 +397,31 @@ void admin_command_parser_t::do_usage_internal(const std::vector<admin_help_info
             continue;
         }
         if (description_header_printed == false) {
-            help->pagef("%s\n", make_bold("DESCRIPTION").c_str());
+            help.pagef("%s\n", make_bold("DESCRIPTION").c_str());
             description_header_printed = true;
         }
         std::string some_other_header = prefix + helps[i].command + " " + helps[i].usage;
         std::string desc = helps[i].description;
-        help->pagef("%s\n%s\n\n", indent_and_underline(some_other_header, 4, 6, width).c_str(),
-                                  indent_and_underline(desc, 8, 8, width).c_str());
+        help.pagef("%s\n%s\n\n", indent_and_underline(some_other_header, 4, 6, width).c_str(),
+                                 indent_and_underline(desc, 8, 8, width).c_str());
     }
 
     if (!console || !options.empty()) {
-        help->pagef("%s\n", make_bold("OPTIONS").c_str());
+        help.pagef("%s\n", make_bold("OPTIONS").c_str());
 
         if (!console) {
-            help->pagef("%s\n", indent_and_underline("<ADMIN-OPTIONS>", 4, 6, width).c_str());
+            help.pagef("%s\n", indent_and_underline("<ADMIN-OPTIONS>", 4, 6, width).c_str());
 #ifndef NDEBUG
-            help->pagef("%s\n", indent_and_underline("[--client-port <PORT>]", 8, 10, width).c_str());
-            help->pagef("%s\n\n", indent_and_underline("debug only option, specify the local port to use when connecting to the cluster", 12, 12, width).c_str());
+            help.pagef("%s\n", indent_and_underline("[--client-port <PORT>]", 8, 10, width).c_str());
+            help.pagef("%s\n\n", indent_and_underline("debug only option, specify the local port to use when connecting to the cluster", 12, 12, width).c_str());
 #endif
-            help->pagef("%s\n", indent_and_underline("-j,--join <HOST>:<PORT>", 8, 10, width).c_str());
-            help->pagef("%s\n\n", indent_and_underline("specify the host and cluster port of a node in the cluster to join", 12, 12, width).c_str());
+            help.pagef("%s\n", indent_and_underline("-j,--join <HOST>:<PORT>", 8, 10, width).c_str());
+            help.pagef("%s\n\n", indent_and_underline("specify the host and cluster port of a node in the cluster to join", 12, 12, width).c_str());
         }
 
         for (size_t i = 0; i < options.size(); ++i) {
-            help->pagef("%s\n", indent_and_underline(options[i].first, 4, 6, width).c_str());
-            help->pagef("%s\n\n", indent_and_underline(options[i].second, 8, 8, width).c_str());
+            help.pagef("%s\n", indent_and_underline(options[i].first, 4, 6, width).c_str());
+            help.pagef("%s\n\n", indent_and_underline(options[i].second, 8, 8, width).c_str());
         }
     }
 }

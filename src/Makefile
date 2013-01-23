@@ -802,12 +802,14 @@ FAVICON:=$(WEB_SOURCE_DIR)/favicon.ico
 FORCEVERSION?=0
 ifeq ($(FORCEVERSION),1)
 RETHINKDB_VERSION:=$(PVERSION)
+RETHINKDB_CODE_VERSION?=$(shell ../scripts/gen-version.sh)
 RETHINKDB_SHORT_VERSION:=$(shell echo $(RETHINKDB_VERSION) | sed 's/\([^.]\+\.[^.]\+\).*$$/\1/')
 # RETHINKDB_SHORT_VERSION:=$(shell ../scripts/gen-version.sh -s)
 PACKAGING_ALTERNATIVES_PRIORITY:=0
 else
 RETHINKDB_FALLBACK_VERSION:=$(shell if [ -e ../NOTES ] ; then cat ../NOTES | grep '^. Release' | head -n 1 | awk '{ printf "%s" , $$3 ; }' ; fi ; )
 RETHINKDB_VERSION:=$(shell env FALLBACK_VERSION=$(RETHINKDB_FALLBACK_VERSION) ../scripts/gen-version.sh)
+RETHINKDB_CODE_VERSION?=$(shell ../scripts/gen-version.sh)
 RETHINKDB_SHORT_VERSION:=$(shell echo $(RETHINKDB_VERSION) | sed 's/\([^.]\+\.[^.]\+\).*$$/\1/')
 # RETHINKDB_SHORT_VERSION:=$(shell ../scripts/gen-version.sh -s)
 PACKAGING_ALTERNATIVES_PRIORITY:=$(shell expr $$(../scripts/gen-version.sh -r) / 100)
@@ -819,6 +821,7 @@ endif
 # endif
 RETHINKDB_PACKAGING_VERSION?=$(RETHINKDB_VERSION)
 RT_CXXFLAGS+=-DRETHINKDB_VERSION=\"$(RETHINKDB_VERSION)\"
+RT_CXXFLAGS+=-DRETHINKDB_CODE_VERSION=\"$(RETHINKDB_CODE_VERSION)\"
 
 NAMEVERSIONED?=0
 ifeq ($(NAMEVERSIONED),1)
@@ -1302,6 +1305,9 @@ rpc/semilattice/joins/macros.hpp rpc/serialize_macros.hpp rpc/mailbox/typed.hpp:
 web-assets: $(WEB_ASSETS)
 
 $(WEB_ASSETS_BUILD_DIR)/js/template.js: $(WEB_SOURCE_DIR)/static/handlebars $(TC_HANDLEBARS_EXE) ../scripts/build_handlebars_templates.py
+ifeq ($(VERBOSE),0)
+	@echo "    HANDLEBARS $@"
+endif
 	$(QUIET) env TC_HANDLEBARS_EXE=$(TC_HANDLEBARS_EXE) ../scripts/build_handlebars_templates.py $(WEB_SOURCE_DIR)/static/handlebars $(BUILD_DIR) $(WEB_ASSETS_BUILD_DIR)/js
 
 $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee: $(COFFEE_SOURCES)
