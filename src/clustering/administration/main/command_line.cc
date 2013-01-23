@@ -44,11 +44,26 @@ MUST_USE bool numwrite(const char *path, int number) {
     return true;
 }
 
+static const char *pid_file = NULL;
+
+void remove_pid_file() {
+    if (pid_file) {
+        remove(pid_file);
+        pid_file = NULL;
+    }
+}
+
+// write_pid_file registers remove_pid_file with atexit.
+// Always call it after spawner_t::create to ensure correct behaviour.
 int write_pid_file(const po::variables_map& vm) {
     if (vm.count("pid-file") && vm["pid-file"].as<std::string>().length()) {
         // Be very careful about modifying this. It is important that the code that removes the
         // pid-file only run if the checks here pass. Right now, this is guaranteed by the return on
         // failure here.
+        if (pid_file) {
+            fprintf(stderr, "ERROR: Attempting to write pid-file twice.\n");
+            return EXIT_FAILURE;
+        }
         if (!access(vm["pid-file"].as<std::string>().c_str(), F_OK)) {
             fprintf(stderr, "ERROR: The pid-file specified already exists. This might mean that an instance is already running.\n");
             return EXIT_FAILURE;
@@ -57,14 +72,10 @@ int write_pid_file(const po::variables_map& vm) {
             fprintf(stderr, "ERROR: Writing to the specified pid-file failed.\n");
             return EXIT_FAILURE;
         }
+        pid_file = vm["pid-file"].as<std::string>().c_str();
+        atexit(remove_pid_file);
     }
     return EXIT_SUCCESS;
-}
-
-void remove_pid_file(const po::variables_map& vm) {
-    if (vm.count("pid-file") && vm["pid-file"].as<std::string>().length()) {
-        remove(vm["pid-file"].as<std::string>().c_str());
-    }
 }
 
 class host_and_port_t {
@@ -852,8 +863,6 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
                                    &result, web_path),
                        num_workers);
 
-    remove_pid_file(vm);
-
     return result ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
@@ -946,8 +955,6 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
                                    address_ports,
                                    &result, web_path),
                        num_workers);
-
-    remove_pid_file(vm);
 
     return result ? EXIT_SUCCESS : EXIT_FAILURE;
 }
@@ -1147,8 +1154,6 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
                                        web_path,
                                        new_directory),
                            num_workers);
-
-        remove_pid_file(vm);
 
         return result ? EXIT_SUCCESS : EXIT_FAILURE;
     } catch (const boost::program_options::error &e) {
