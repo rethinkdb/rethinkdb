@@ -124,25 +124,4 @@ private:
     RDB_NAME("union")
 };
 
-class nth_term_t : public op_term_t {
-public:
-    nth_term_t(env_t *env, const Term2 *term) : op_term_t(env, term, argspec_t(2)) { }
-private:
-    virtual val_t *eval_impl() {
-        datum_stream_t *s = arg(0)->as_seq();
-        int n = arg(1)->as_datum()->as_int();
-        rcheck(n >= 0, strprintf("Index out of bounds: %d", n));
-
-        for (int i = 0; i < n; ++i) {
-            env_checkpoint_t ect(env, &env_t::discard_checkpoint);
-            const datum_t *d = s->next();
-            rcheck(d, strprintf("Index out of bounds: %d", n));
-        }
-        const datum_t *d = s->next();
-        rcheck(d, strprintf("Index out of bounds: %d", n));
-        return new_val(d);
-    }
-    RDB_NAME("nth")
-};
-
 } //namespace ql

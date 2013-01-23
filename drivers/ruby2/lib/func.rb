@@ -9,6 +9,7 @@ module RethinkDB
 
     @@rewrites = {
       :< => :lt, :<= => :le, :> => :gt, :>= => :ge,
+      :+ => :add, :- => :sub, :* => :mul, :/ => :div,
       :"|" => :any, :or => :any,
       :"&" => :all, :and => :all }
     def method_missing(m, *a, &b)
@@ -22,6 +23,18 @@ module RethinkDB
       return RQL.new t
     end
 
+    def [](ind)
+      if ind.class == Fixnum
+        return nth(ind)
+      elsif ind.class == Range
+        if ind.end == 0 && ind.exclude_end?
+          raise ArgumentError, "Cannot slice to an excluded end of 0."
+        end
+        return slice(ind.begin, ind.end - (ind.exclude_end? ? 1 : 0))
+      end
+      raise ArgumentError, "[] cannot handle #{ind.inspect} of type #{ind.class}."
+    end
+
     def ==(rhs)
       raise ArgumentError,"
       Cannot use inline ==/!= with RQL queries, use .eq() instead if
@@ -32,7 +45,7 @@ module RethinkDB
     end
 
     def do(*a, &b)
-      RQL.new.funcall(new_func(&b), (@body ? [self] : []) + a)
+      RQL.new.funcall(new_func(&b), *((@body ? [self] : []) + a))
     end
   end
 end
