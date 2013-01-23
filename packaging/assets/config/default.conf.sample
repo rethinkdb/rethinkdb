@@ -1,12 +1,70 @@
+#
+# RethinkDB instance configuration sample
+#
+#
 # Give this file the extension .conf and put it in /etc/rethinkdb/instances.d in order to enable it.
-# It is generally necessary to run
-# rethinkdb create -d /var/lib/rethinkdb/instances.d/default ;
-# as the target user before enabling this configuration.
-runuser=somebody
-rungroup=somegroup
-directory=/var/lib/rethinkdb/instances.d/default
-pid-file=/var/run/rethinkdb/instances.d/default.pid
-driver-port=28015
-cluster-port=29015
-http-port=8080
+#
+# See http://www.rethinkdb.com/docs/guides/startup/ for the complete documentation
+#
+# Uncomment an option to change its value.
 
+###############################
+## Init script configuration
+###############################
+
+## User and group used to run rethinkdb
+## Default: rethinkdb user and group
+# runuser=rethinkdb
+# rungroup=rethinkdb
+
+## Stash the pid in this file when the process is running
+## Default: /var/run/rethinkdb/<name>/pid_file (where <name> is the name of this config file without the extension)
+# pid-file=/var/run/rethinkdb/rethinkdb.pid
+
+###############################
+## RethinkDB configuration
+###############################
+
+### File path options
+
+## Directory to store data and metadata
+## Default: /var/lib/rethinkdb/<name>/ (where <name> is the name of this file without the extension)
+# directory=/var/lib/rethinkdb/default
+
+### Network options
+
+## Address of local interfaces to listen on when accepting connections
+## May be 'all' or an IP address, loopback addresses are enabled by default
+## Default: all local addresses
+# bind=127.0.0.1
+
+## The port for rethinkdb protocol for client drivers
+## Default: 28015 + port-offset
+# driver-port=28015
+
+## The port for receiving connections from other nodes
+## Default: 29015 + port-offset
+# cluster-port=29015
+
+## The host:port of a node that rethinkdb will connect to
+## This option can be specified multiple times.
+## Default: none
+# join=example.com:29015
+
+## All ports used locally will have this value added
+## By default, if no ports are specified, the port-offset will be automatically
+## allocated, starting from 0. The first instance will listen on the ports 28015,
+## 29015 and 8080. The second instance will listen on the ports 28016, 29016 and 8081.
+# port-offset=0
+
+### Web options
+
+## Port for the http admin console
+## Default: 8080 + port-offset
+# http-port=8080
+
+### CPU options
+
+## The number of cores to use
+## Default: total number of cores of the CPU
+# cores=2
