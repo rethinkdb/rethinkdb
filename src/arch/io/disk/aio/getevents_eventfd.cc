@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef NO_EVENTFD
 #ifdef AIOSUPPORT
 
@@ -15,7 +15,6 @@
 #include <algorithm>
 
 #include "arch/runtime/system_event/eventfd.hpp"
-#include "arch/io/arch.hpp"
 #include "config/args.hpp"
 #include "utils.hpp"
 #include "logger.hpp"

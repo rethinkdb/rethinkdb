@@ -1,5 +1,6 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "arch/timer.hpp"
+#include "arch/runtime/thread_pool.hpp"
 #include "utils.hpp"
 
 timer_handler_t::timer_handler_t(linux_event_queue_t *queue)
@@ -70,4 +71,18 @@ void timer_handler_t::cancel_timer(timer_token_t *token) {
     if (token_queue.empty()) {
         timer_provider.unschedule_oneshot();
     }
+}
+
+
+
+timer_token_t *add_timer(int64_t ms, timer_callback_t *callback) {
+    return linux_thread_pool_t::thread->timer_handler.add_timer_internal(ms, callback, false);
+}
+
+timer_token_t *fire_timer_once(int64_t ms, timer_callback_t *callback) {
+    return linux_thread_pool_t::thread->timer_handler.add_timer_internal(ms, callback, true);
+}
+
+void cancel_timer(timer_token_t *timer) {
+    linux_thread_pool_t::thread->timer_handler.cancel_timer(timer);
 }

@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "buffer_cache/mirrored/writeback.hpp"
 
 #include <math.h>
@@ -6,7 +6,7 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
-#include "arch/arch.hpp"
+#include "arch/runtime/runtime.hpp"
 #include "buffer_cache/mirrored/mirrored.hpp"
 #include "containers/scoped.hpp"
 #include "perfmon/perfmon.hpp"

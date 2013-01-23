@@ -1,10 +1,10 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef RPC_CONNECTIVITY_HEARTBEAT_HPP_
 #define RPC_CONNECTIVITY_HEARTBEAT_HPP_
 
 #include <map>
 
-#include "arch/io/arch.hpp"
+#include "arch/timer.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/one_per_thread.hpp"
 #include "rpc/connectivity/connectivity.hpp"

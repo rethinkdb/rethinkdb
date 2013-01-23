@@ -1,8 +1,8 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "concurrency/rwi_lock.hpp"
 
 #include "config/args.hpp"
-#include "arch/arch.hpp"
+#include "arch/runtime/runtime.hpp"
 #include "concurrency/cond_var.hpp"
 
 

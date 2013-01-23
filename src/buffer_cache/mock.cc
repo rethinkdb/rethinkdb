@@ -1,7 +1,7 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "buffer_cache/mock.hpp"
 
-#include "arch/arch.hpp"
+#include "arch/timing.hpp"
 #include "serializer/serializer.hpp"
 
 /* Internal buf object */
