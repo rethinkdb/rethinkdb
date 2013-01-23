@@ -53,6 +53,8 @@ struct service_address_ports_t {
 
     std::string get_addresses_string() const;
 
+    bool is_bind_all() const;
+
     std::set<ip_address_t> local_addresses;
     int port;
     int client_port;
@@ -74,7 +76,8 @@ bool serve(extproc::spawner_t::info_t *spawner_info,
            machine_id_t machine_id,
            const cluster_semilattice_metadata_t &semilattice_metadata,
            std::string web_assets,
-           signal_t *stop_cond);
+           signal_t *stop_cond,
+           const boost::optional<std::string>& config_file);
 
 bool serve_proxy(extproc::spawner_t::info_t *spawner_info,
                  const peer_address_set_t &joins,
@@ -82,6 +85,7 @@ bool serve_proxy(extproc::spawner_t::info_t *spawner_info,
                  machine_id_t machine_id,
                  const cluster_semilattice_metadata_t &semilattice_metadata,
                  std::string web_assets,
-                 signal_t *stop_cond);
+                 signal_t *stop_cond,
+                 const boost::optional<std::string>& config_file);
 
 #endif /* CLUSTERING_ADMINISTRATION_MAIN_SERVE_HPP_ */
