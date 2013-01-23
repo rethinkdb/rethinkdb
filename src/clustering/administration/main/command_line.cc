@@ -372,7 +372,7 @@ void run_rethinkdb_porcelain(const std::string &filepath,
                              const io_backend_t io_backend,
                              bool *result_out,
                              bool new_directory,
-                             const struct serve_info_t &serve_info) {
+                             const serve_info_t &serve_info) {
     logINF("Running %s...\n", RETHINKDB_VERSION_STR);
     os_signal_cond_t sigint_cond;
 
