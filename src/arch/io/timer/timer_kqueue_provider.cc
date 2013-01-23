@@ -27,7 +27,7 @@ timer_kqueue_provider_t::~timer_kqueue_provider_t() {
     guarantee_err(res == 0, "Could not close the kqueue timer.");
 }
 
-void timer_kqueue_provider_t::schedule_oneshot(const int64_t next_time_in_nanos, timer_provider_interactor_t *const cb) {
+void timer_kqueue_provider_t::schedule_oneshot(const int64_t next_time_in_nanos, timer_provider_callback_t *const cb) {
     const int64_t time_difference = next_time_in_nanos - static_cast<int64_t>(get_ticks());
     const int64_t wait_nanos = std::max<int64_t>(1, time_difference);
 
@@ -110,7 +110,7 @@ void timer_kqueue_provider_t::on_event(int eventmask) {
 
     if (expiration_count > 0 && callback_ != NULL) {
         // Make the callback be NULL before we call it, so that a new callback can be set.
-        timer_provider_interactor_t *local_cb = callback_;
+        timer_provider_callback_t *local_cb = callback_;
         callback_ = NULL;
         local_cb->on_oneshot();
     }

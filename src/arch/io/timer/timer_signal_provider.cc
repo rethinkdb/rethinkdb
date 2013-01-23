@@ -23,7 +23,7 @@
 void timer_signal_provider_signal_handler(UNUSED int signum, siginfo_t *siginfo, UNUSED void *uctx) {
     timer_signal_provider_t *provider = static_cast<timer_signal_provider_t *>(siginfo->si_value.sival_ptr);
 
-    timer_provider_interactor_t *local_cb = provider->callback;
+    timer_provider_callback_t *local_cb = provider->callback;
     if (local_cb != NULL) {
         provider->callback = NULL;
         local_cb->on_oneshot();
@@ -66,7 +66,7 @@ timer_signal_provider_t::~timer_signal_provider_t() {
     guarantee_err(res == 0, "timer signal provider could not unregister the signal handler");
 }
 
-void timer_signal_provider_t::schedule_oneshot(int64_t next_time_in_nanos, timer_provider_interactor_t *cb) {
+void timer_signal_provider_t::schedule_oneshot(int64_t next_time_in_nanos, timer_provider_callback_t *cb) {
     // We could ostensibly use TIMER_ABSTIME in the timer_settime call instead of specifying a
     // relative timer, but that would make our code fragilely depend on get_ticks() using
     // CLOCK_MONOTONIC.

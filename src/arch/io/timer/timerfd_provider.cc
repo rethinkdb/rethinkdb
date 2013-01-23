@@ -35,7 +35,7 @@ timerfd_provider_t::~timerfd_provider_t() {
     guarantee_err(res == 0 || errno == EINTR, "Could not close the timer.");
 }
 
-void timerfd_provider_t::schedule_oneshot(const int64_t next_time_in_nanos, timer_provider_interactor_t *const cb) {
+void timerfd_provider_t::schedule_oneshot(const int64_t next_time_in_nanos, timer_provider_callback_t *const cb) {
     // We could pass TFD_TIMER_ABSTIME to timerfd_settime (thus avoiding the std::max logic below),
     // but that would mean this code depends on the fact that get_ticks() is implemented in terms of
     // CLOCK_MONOTONIC.
@@ -80,7 +80,7 @@ void timerfd_provider_t::on_event(int events) {
         // The callback could be unscheduled but after the timerfd rang, maybe.  So we check here.
         if (callback != NULL) {
             // Make the callback be NULL before we call it, so that a new callback can be set.
-            timer_provider_interactor_t *local_cb = callback;
+            timer_provider_callback_t *local_cb = callback;
             callback = NULL;
             local_cb->on_oneshot();
         }
