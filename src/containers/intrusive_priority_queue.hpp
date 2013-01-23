@@ -114,7 +114,8 @@ public:
         rassert(to_insert);
         rassert(node_queue(to_remove) == this);
         rassert(node_queue(to_insert) == NULL);
-        rassert(!left_is_higher_priority(to_remove, to_insert));
+        // Pass const pointers to one call of left_is_higher_priority to enforce that it be const.
+        rassert(!left_is_higher_priority(const_cast<const node_t *>(to_remove), const_cast<const node_t *>(to_insert)));
         rassert(!left_is_higher_priority(to_insert, to_remove));
         DEBUG_ONLY_CODE(node_queue(to_insert) = this);
         node_index(to_insert) = node_index(to_remove);
