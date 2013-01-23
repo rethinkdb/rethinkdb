@@ -655,6 +655,12 @@ std::string errno_string(int errsv) {
     return std::string(errstr);
 }
 
+
+// The last thread is a service thread that runs an connection acceptor, a log writer, and possibly
+// similar services, and does not run any db code (caches, serializers, etc). The reasoning is that
+// when the acceptor (and possibly other utils) get placed on an event queue with the db code, the
+// latency for these utils can increase significantly. In particular, it causes timeout bugs in
+// clients that expect the acceptor to work faster.
 int get_num_db_threads() {
     return get_num_threads() - 1;
 }
