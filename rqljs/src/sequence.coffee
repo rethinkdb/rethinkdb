@@ -10,18 +10,19 @@ class RDBSequence extends RDBType
         other = other.asArray()
         new RDBPrimitive (v.eq other[i] for v,i in self).reduce (a,b)->a&&b
 
+    nth: (index) -> @asArray()[index.asJSON()]
     append: (val) -> new RDBArray @asArray().concat [val]
     asArray: -> throw new ServerError "Abstract method"
     count: -> new RDBPrimitive @asArray().length
-    union: (other) -> new RDBArray @asArray().concat other.asArray()
-    slice: (left, right) -> new RDBArray @asArray().slice left, right
+    union: (others...) -> new RDBArray @asArray().concat (others.map (v)->v.asArray())...
+    slice: (left = 0, right = -1) -> new RDBArray @asArray()[left.asJSON()..right.asJSON()]
 
     orderBy: (orderbys) ->
         new RDBArray @asArray().sort (a,b) ->
-            for ob in orderbys
-                op = (if ob.asc then 'gt' else 'lt')
-                if a[ob.attr][op](b[ob.attr]).asJSON() then return new RDBPrimitive true
-            return new RDBPrimitive false
+            for ob in orderbys.asArray()
+                op = (if ob.asc.asJSON() then 'gt' else 'lt')
+                if a[ob.attr.asJSON()][op](b[ob.attr.asJSON()]).asJSON() then return true
+            return false
 
     distinct: ->
         neu = []
@@ -37,35 +38,66 @@ class RDBSequence extends RDBType
         new RDBArray neu
 
     map: (mapping) -> new RDBArray @asArray().map mapping
-    reduce: (reduction, base) -> new RDBArray @asArray().reduce reduction, base
+    reduce: (reduction) -> @asArray().reduce reduction
 
     groupedMapReduce: (groupMapping, valueMapping, reduction) ->
         groups = {}
         @asArray().forEach (doc) ->
-            groupID = (groupMapping doc).asJSON()
+            groupID = groupMapping(doc).asJSON()
             unless groups[groupID]?
                 groups[groupID] = []
                 groups[groupID]._actualGroupID = groupID
             groups[groupID].push doc
 
         new RDBArray (for own groupID,group of groups
-            res = new RDBObject
-            res['group'] = new RDBPrimitive group._actualGroupID
-            res['reduction'] = (group.map valueMapping).reduce reduction
-            res
+            new RDBObject {
+                'group': new RDBPrimitive group._actualGroupID
+                'reduction': (new RDBArray group).map(valueMapping).reduce(reduction)
+            }
         )
 
     concatMap: (mapping) ->
-        new RDBArray Array::concat.apply [], @map(mapping).asArray()
+        new RDBArray Array::concat.apply [], @map(mapping).map((v)->v.asArray()).asArray()
 
     filter: (predicate) -> new RDBArray @asArray().filter (v) -> predicate(v).asJSON()
 
-    between: (attr, lowerBound, upperBound) ->
+    between: (lowerBound, upperBound) ->
+        attr = @getPK()
         result = []
-        for v,i in @orderBy({attr:attr, asc:true}).asArray()
-            if lowerBound.le(v[attr]).asJSON() and upperBound.ge(v[attr]).asJSON()
+        for v,i in @orderBy(new RDBArray [{attr:@getPK(), asc:new RDBPrimitive true}]).asArray()
+            if (lowerBound is undefined || lowerBound.le(v[attr.asJSON()]).asJSON()) and
+               (upperBound is undefined || upperBound.ge(v[attr.asJSON()]).asJSON())
                 result.push(v)
         return new RDBArray result
+
+    innerJoin: (right, predicate) ->
+        @concatMap (lRow) ->
+            right.concatMap (rRow) ->
+                if predicate(lRow, rRow).asJSON()
+                    new RDBArray [new RDBObject {left: lRow, right: rRow}]
+                else
+                    new RDBArray []
+
+    outerJoin: (right, predicate) ->
+        @concatMap (lRow) ->
+            forInL = right.concatMap (rRow) ->
+                if predicate(lRow, rRow).asJSON()
+                    new RDBArray [new RDBObject {left: lRow, right: rRow}]
+                else
+                    new RDBArray []
+            if forInL.count().asJSON() > 0
+                return forInL
+            else
+                return new RDBArray [new RDBObject {left: lRow}]
+
+    # We're just going to implement this on top of inner join
+    eqJoin: (right, {left_attr, right_attr}) ->
+        unless left_attr
+            left_attr = @getPK().asJSON()
+        unless right_attr
+            right_attr = right.getPK().asJSON()
+        @innerJoin right, (lRow, rRow) ->
+            lRow[left_attr.asJSON()].eq(rRow[right_attr.asJSON()])
 
     objSum = (arr, base) ->
         arr.forEach (val) ->
@@ -81,11 +113,16 @@ class RDBSequence extends RDBType
     forEach: (mapping) ->
         results = @asArray().map (v) -> mapping(v)
         base = {inserted: 0, errors: 0, updated: 0}
-        results.map (res) ->
-            base = objSum res, base
-        base
 
-    update: (mapping, demoServer) ->
+        #TODO results is empty. Why are the write results not propogating?
+
+        #results.map (res) ->
+        #    base = objSum res, base
+        new RDBObject base
+
+    getPK: -> @asArray()[0].getPK()
+
+    update: (mapping) ->
         updated = 0
         skipped = 0
         errors = 0
@@ -95,13 +132,14 @@ class RDBSequence extends RDBType
                 v.update mapping
                 updated++
             catch err
-                unless first_error then first_error = demoServer.appendBacktrace err.message
+                console.log err
+                unless first_error then first_error = err
                 errors++
         result = {updated: updated, errors: errors, skipped: skipped}
         if first_error then result.first_error = first_error
-        return result
+        return new RDBObject result
 
-    replace: (mapping, demoServer) ->
+    replace: (mapping) ->
         modified = 0
         inserted = 0
         deleted = 0
@@ -114,16 +152,16 @@ class RDBSequence extends RDBType
                     when "deleted"  then deleted++
                     when "inserted" then inserted++
             catch err
-                unless first_error then first_error = demoServer.appendBacktrace err.message
+                unless first_error then first_error = err
                 errors++
 
         result = {deleted: deleted, errors: errors, inserted: inserted, modified: modified}
         if first_error then result.first_error = first_error
-        return result
+        return new RDBObject result
 
     del: ->
         results = @asArray().map (v) -> v.del()
-        objSum results, {deleted:0}
+        new RDBObject objSum results, {deleted:0}
 
 class RDBArray extends RDBSequence
     constructor: (arr) -> @data = arr

@@ -4,32 +4,30 @@ goog.require('rethinkdb.RDBTable')
 
 # A RQL database
 class RDBDatabase
-    constructor: ->
+    constructor: (objrep) ->
         # A database is just a map of table names to tables
         @tables = {}
 
-    createTable: (name, {primaryKey}) ->
-        Utils.checkName name
-        if @tables[name]?
-            throw new RuntimeError "Error during operation `CREATE_TABLE #{name}`: Entry already exists."
+        if objrep?
+            for own tableName,table of objrep['tables']
+                @tables[tableName] = new RDBTable table['primaryKey'], table['records']
 
-        primaryKey ?= 'id'
-        @tables[name] = new RDBTable primaryKey
-        return []
+    serialize: -> "{\"tables\":{#{("\"#{tableName}\":#{table.serialize()}" for own tableName,table of @tables)}}}"
+
+    createTable: (name) ->
+        name = name.asJSON()
+        @tables[name] = new RDBTable 'id'
+        new RDBObject {'created': 1}
 
     dropTable: (name, db_name) ->
-        Utils.checkName name
-        if not @tables[name]?
-            throw new RuntimeError "Error during operation `FIND_TABLE #{db_name}.#{name}`: "+
-                                   "No entry with that name."
         delete @tables[name]
-        return []
+        new RDBObject {'dropped': 1}
 
     getTable: (name) ->
-        Utils.checkName name
+        name = name.asJSON()
         if @tables[name]?
             return @tables[name]
         else
             throw new RuntimeError "Error during operation `EVAL_TABLE #{name}`: No entry with that name."
 
-    listTables: -> (tblN for own tblN of @tables)
+    listTables: -> new RDBArray ((new RDBPrimitive tblN) for own tblN of @tables)

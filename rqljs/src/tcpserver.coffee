@@ -22,6 +22,8 @@ class RDBTcpServer
         readData = null
 
         readMagic = (buf) =>
+            if buf.length < 4
+                return 0
             magic = buf.readUInt32LE 0
             if magic is VersionDummy.Version.V0_1
                 readData = readQuery
@@ -37,7 +39,8 @@ class RDBTcpServer
             # Does this buffer contain the full query?
             if buf.length <= total
                 arraybufdata = new Uint8Array data
-                socket.write @pbserver.execute arraybufdata
+                result = @pbserver.execute arraybufdata
+                socket.write new Buffer result
                 return total
             else
                 # Wait for more data

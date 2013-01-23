@@ -4,7 +4,7 @@ goog.require('rethinkdb.RDBSequence')
 
 # A RQL table
 class RDBTable extends RDBSequence
-    constructor: (primaryKey) ->
+    constructor: (primaryKey, records) ->
         @primaryKey = primaryKey
 
         # A table is really just a set of JSON documents.
@@ -12,6 +12,15 @@ class RDBTable extends RDBSequence
         # primary key. A javascript map (object) is a good enough
         # first approximation.
         @records = {}
+
+        if records?
+            for own id,record of records
+                rec = new RDBObject record
+                @records[id] = rec
+                RDBSelection::makeSelection record, @
+
+    serialize: -> "{\"primaryKey\":\"#{@primaryKey}\",
+\"records\":{#{("\"#{id}\":#{record.serialize()}" for own id,record of @records)}}}"
 
     generateUUID = ->
         result = (Math.random()+'').slice(2)+(Math.random()+'').slice(2)
@@ -23,45 +32,32 @@ class RDBTable extends RDBSequence
                  result.slice(20, 32)
         return result
 
-    insert: (record, upsert=false) ->
-        result = null
+    insert: (records, upsert=false) ->
+        result = new RDBObject
 
-        pkVal = record[@primaryKey]
+        for record in records.asArray()
+            pkVal = record[@primaryKey]
 
-        unless pkVal?
-            # Generate a key
-            id_was_generated = true
-            pkVal = generateUUID()
-            record[@primaryKey] = new RDBPrimitive pkVal
-            result = pkVal
-        else
-            pkVal = pkVal.asJSON()
-            id_was_generated = false
+            unless pkVal?
+                # Generate a key
+                id_was_generated = true
+                pkVal = generateUUID()
+                record[@primaryKey] = new RDBPrimitive pkVal
+                #result = pkVal
+            else
+                pkVal = pkVal.asJSON()
+                id_was_generated = false
 
-        if typeof pkVal isnt 'string' and typeof pkVal isnt 'number'
-            throw new RuntimeError "Cannot insert row #{Utils.stringify(record.asJSON())} "+
-                                   "with primary key #{JSON.stringify(pkVal)} of non-string, non-number type."
-        else if not upsert and @records[pkVal]? and id_was_generated is true
-            throw new RuntimeError "Generated key was a duplicate either you've won "+
-                                   "the uuid lottery or you've intentionnaly tried "+
-                                   "to predict the keys rdb would generate... in "+
-                                   "which case well done."
-
-        else if not upsert and @records[pkVal]? and not id_was_generated
-            # That's a cheap hack to match the json of the server.
-            # Let's not use colon in our value for now...
-            throw new RuntimeError "Duplicate primary key id in #{Utils.stringify(record.asJSON())}"
-        else
             @records[pkVal] = record
 
-        # Ensure that this new record is a selection of this table
-        RDBSelection::makeSelection record, @
+            # Ensure that this new record is a selection of this table
+            RDBSelection::makeSelection record, @
 
         return result
 
     get: (pkVal) ->
         if typeof pkVal isnt 'string' and typeof pkVal isnt 'number'
-            throw new RuntimeError "Primary key must be a number or a string, not #{Utils.stringify(pkVal)}"
+            throw new RuntimeError "No such key"
         @records[pkVal] || RDBSelection::makeSelection(new RDBPrimitive(null), @)
 
     deleteKey: (pkVal) -> delete @records[pkVal]

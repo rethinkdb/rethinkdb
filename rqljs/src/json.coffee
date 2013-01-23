@@ -9,6 +9,16 @@ class RDBType
     @OBJECT:  4
     @STRING:  5
 
+    @buildFrom: (jsVal) ->
+        if jsVal instanceof RDBType
+            jsVal
+        else if jsVal instanceof Array
+            new RDBArray jsVal
+        else if jsVal instanceof Object
+            new RDBObject jsVal
+        else
+            new RDBPrimitive jsVal
+
     typeOf: ->
         if goog.isArray(@asJSON())
             RDBType.ARRAY
@@ -62,10 +72,8 @@ class RDBSelection
                 updated = mapping @
                 neu = @.merge updated
                 unless neu[table.primaryKey].eq(@[table.primaryKey]).asJSON()
-                    throw new RuntimeError "update cannot change primary key #{table.primaryKey} "+
-                                           "(got objects #{Utils.stringify(@.asJSON())}, "+
-                                           "#{Utils.stringify(updated.asJSON())})"
-                table.insert neu, true
+                    throw new RuntimeError ""
+                table.insert new RDBArray [neu], true
                 return true
 
             replace: (mapping) ->
@@ -75,20 +83,20 @@ class RDBSelection
                     return "deleted"
 
                 if @isNull()
-                    table.insert replacement
+                    table.insert new RDBArray [replacement]
                     return "inserted"
 
                 if replacement[table.primaryKey].eq(@[table.primaryKey]).asJSON()
-                    table.insert replacement, true
+                    table.insert new RDBArray [replacement], true
                     return "modified"
                     
-                throw new RuntimeError "mutate cannot change primary key #{table.primaryKey} "+
-                                       "(got objects #{Utils.stringify(@.asJSON())}, "+
-                                       "#{Utils.stringify(replacement.asJSON())})"
+                throw new RuntimeError ""
 
             del: ->
                 table.deleteKey @[table.primaryKey].asJSON()
                 {deleted: 1}
+
+            getPK: -> new RDBPrimitive table.primaryKey
 
         proto.__proto__ = obj.__proto__
         obj.__proto__ = proto
@@ -114,6 +122,12 @@ class RDBPrimitive extends RDBType
     mod: (other) -> new RDBPrimitive @data % other.asJSON()
 
 class RDBObject extends RDBType
+    constructor: (obj) ->
+        for own k,v of obj
+            @[k] = RDBType.buildFrom v
+
+    serialize: -> JSON.stringify @asJSON()
+
     asJSON: ->
         obj = {}
         for own k,v of @
@@ -128,7 +142,6 @@ class RDBObject extends RDBType
         for own k,v of @
             result[k] = v.copy()
         return result
-
 
     eq: (other) ->
         ks1 = @keys()
@@ -158,15 +171,24 @@ class RDBObject extends RDBType
             self[k] = v
         return self
 
-    pick: (attrs) ->
+    contains: (attrs...) ->
+        for attr in attrs
+            if not @[attr.asJSON()]?
+                return new RDBPrimitive false
+        return new RDBPrimitive true
+
+    get: (key) -> @[key.asJSON()]
+
+    pluck: (attrs...) ->
         self = @copy()
-        result = new RDBObject()
+        result = new RDBObject
         for k,i in attrs
+            k = k.asJSON()
             result[k] = self[k]
         return result
 
-    unpick: (attrs) ->
+    without: (attrs...) ->
         self = @copy()
         for k in attrs
-            delete self[k]
+            delete self[k.asJSON()]
         return self

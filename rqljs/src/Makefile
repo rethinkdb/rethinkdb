@@ -48,7 +48,7 @@ $(RQLJS): $(BUILD_DIR) $(PB_JS_FILE) $(COMPILED_COFFEE)
 		--output_file=$@
 
 test: $(RQLJS)
-	node $(RQLJS)
+	node --debug $(RQLJS)
 
 clean:
 	rm -rf $(BUILD_DIR)
