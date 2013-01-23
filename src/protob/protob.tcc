@@ -13,7 +13,7 @@
 #include "arch/arch.hpp"
 #include "arch/io/network.hpp"
 #include "concurrency/cross_thread_signal.hpp"
-#include "db_thread_info.hpp"
+#include "utils.hpp"
 
 template <class request_t, class response_t, class context_t>
 protob_server_t<request_t, response_t, context_t>::protob_server_t(const std::set<ip_address_t> &local_addresses,

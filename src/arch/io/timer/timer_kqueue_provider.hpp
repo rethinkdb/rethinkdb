@@ -9,17 +9,18 @@ struct timer_provider_callback_t;
 // This uses a kqueue to basically act like a Linux timerfd.  This isn't designed to run on kqueue.
 struct timer_kqueue_provider_t : public linux_event_callback_t {
 public:
-    timer_kqueue_provider_t(linux_event_queue_t *queue,
-                            timer_provider_callback_t *callback,
-                            time_t secs, int32_t nsecs);
+    timer_kqueue_provider_t(linux_event_queue_t *queue);
     ~timer_kqueue_provider_t();
+
+    void schedule_oneshot(int64_t next_time_in_nanos, timer_provider_callback_t *cb);
+    void unschedule_oneshot();
 
 private:
     void on_event(int events);
 
     linux_event_queue_t *queue_;
-    timer_provider_callback_t *callback_;
     fd_t kq_fd_;
+    timer_provider_callback_t *callback_;
 
     DISABLE_COPYING(timer_kqueue_provider_t);
 };

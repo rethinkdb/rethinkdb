@@ -37,7 +37,7 @@ void heartbeat_manager_t::begin_peer_heartbeat(const peer_id_t &peer_id) {
 
     if (data->timer_token == NULL) {
         rassert(data->connections.size() == 1);
-        data->timer_token = add_timer(HEARTBEAT_INTERVAL_MS, &timer_callback, this);
+        data->timer_token = add_timer(HEARTBEAT_INTERVAL_MS, this);
     }
 }
 
@@ -61,9 +61,9 @@ void heartbeat_manager_t::set_keepalive_tracker(const peer_id_t &peer, heartbeat
     }
 }
 
-void heartbeat_manager_t::timer_callback(void *ctx) {
+void heartbeat_manager_t::on_timer() {
     ASSERT_FINITE_CORO_WAITING;
-    heartbeat_manager_t *self = reinterpret_cast<heartbeat_manager_t*>(ctx);
+    heartbeat_manager_t *self = this;
     per_thread_data_t *data = self->thread_data.get();
     for (std::map<peer_id_t, per_thread_data_t::conn_data_t>::iterator it = data->connections.begin();
          it != data->connections.end(); ++it) {
