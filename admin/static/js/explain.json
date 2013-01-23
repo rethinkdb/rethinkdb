@@ -36,33 +36,33 @@
                     "query": ".map(...)",
                     "explanation": "Map table users on shard [DD, MM]",
                     "machine_id": "2",
-                    "size_message_received": 50,
-                    "size_message_sent": 50,
-                    "execution_duration": 100
+                    "size_message_received": 40,
+                    "size_message_sent": 40,
+                    "execution_duration": 80
                 },
                 {
                     "query": ".map(...)",
                     "explanation": "Map table users on shard [MM, XX]",
                     "machine_id": "3",
-                    "size_message_received": 50,
-                    "size_message_sent": 50,
-                    "execution_duration": 100
+                    "size_message_received": 10,
+                    "size_message_sent": 30,
+                    "execution_duration": 50
                 },
                 {
                     "query": ".map(...)",
                     "explanation": "Map table users on shard [XX, +oo]",
                     "machine_id": "4",
-                    "size_message_received": 50,
-                    "size_message_sent": 50,
-                    "execution_duration": 100
+                    "size_message_received": 40,
+                    "size_message_sent": 40,
+                    "execution_duration": 90
                 },
                 {
                     "query": ".map(...)",
                     "explanation": "Map table users on shard [XX, +oo]",
                     "machine_id": "5",
-                    "size_message_received": 50,
-                    "size_message_sent": 50,
-                    "execution_duration": 100
+                    "size_message_received": 30,
+                    "size_message_sent": 30,
+                    "execution_duration": 30
                 }
             ]
         },
@@ -97,7 +97,7 @@
                     "machine_id": "3",
                     "size_message_received": 50,
                     "size_message_sent": 50,
-                    "execution_duration": 100
+                    "execution_duration": 80
                 }
             ]
         },
@@ -120,7 +120,7 @@
     ],
     "sub_tasks_stats": {
         "average": 250,
-        "count": 4,
+        "count": 5,
         "longest": 300,
         "fastest": 3200
     }
