@@ -19,13 +19,15 @@ class datum_stream_t;
 
 class datum_t : public ptr_baggable_t {
 public:
+    // This ordering is important, because we use it to sort objects of
+    // disparate type.  It should be alphabetical.
     enum type_t {
-        R_NULL   = 1,
+        R_ARRAY  = 1,
         R_BOOL   = 2,
-        R_NUM    = 3,
-        R_STR    = 4,
-        R_ARRAY  = 5,
-        R_OBJECT = 6
+        R_NULL   = 3,
+        R_NUM    = 4,
+        R_OBJECT = 5,
+        R_STR    = 6
     };
     explicit datum_t(type_t _type);
 

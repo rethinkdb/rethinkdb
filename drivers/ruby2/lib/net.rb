@@ -4,13 +4,20 @@ require 'thread'
 require 'json'
 
 module RethinkDB
+  class RQL
+    def run
+      unbound_if !@body
+      Shim.response_to_native(Connection.last.run @body)
+    end
+  end
+
   class Connection
     def initialize(host='localhost', port=28015, default_db='test')
-      begin
-        @abort_module = ::IRB
-      rescue NameError => e
-        @abort_module = Faux_Abort
-      end
+      # begin
+      #   @abort_module = ::IRB
+      # rescue NameError => e
+      #   @abort_module = Faux_Abort
+      # end
       @@last = self
       @host = host
       @port = port

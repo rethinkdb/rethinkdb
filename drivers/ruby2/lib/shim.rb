@@ -1,6 +1,6 @@
 module RethinkDB
   module Shim
-    def datum_to_native d
+    def self.datum_to_native d
       dt = Datum::DatumType
       case d.type
       when dt::R_NUM then d.r_num
@@ -13,11 +13,11 @@ module RethinkDB
       end
     end
 
-    def response_to_native r
+    def self.response_to_native r
       rt = Response2::ResponseType
       case r.type
-      when rt::SUCCESS_ATOM then nativize_datum(r.response[0])
-      when rt::SUCCESS_SEQUENCE then r.response.map{|d| nativize_datum(d)}
+      when rt::SUCCESS_ATOM then datum_to_native(r.response[0])
+      when rt::SUCCESS_SEQUENCE then r.response.map{|d| datum_to_native(d)}
       when rt::RUNTIME_ERROR then
         raise RuntimeError, "#{r.response[0].r_str}
 Backtrace: #{r.backtrace.map{|x| x.pos || x.opt}.inspect}"
