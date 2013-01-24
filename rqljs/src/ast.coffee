@@ -326,7 +326,6 @@ class Func
     eval: (context) ->
         body = @args[1]
         formals = @args[0].eval(context)
-
         (arg_num) ->
             (actuals...) ->
                 binds = {}
