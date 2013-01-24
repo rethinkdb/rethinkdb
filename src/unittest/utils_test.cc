@@ -1,11 +1,11 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
-#include "unittest/gtest.hpp"
 #include <ctime>
 
-#include "utils.hpp"
 #include "arch/address.hpp"
 #include "arch/runtime/runtime.hpp"
 #include "mock/unittest_utils.hpp"
+#include "unittest/gtest.hpp"
+#include "utils.hpp"
 
 namespace unittest {
 
