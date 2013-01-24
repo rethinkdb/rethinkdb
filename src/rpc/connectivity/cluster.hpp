@@ -62,7 +62,7 @@ class peer_address_set_t {
 public:
     size_t erase(const peer_address_t &addr) {
         size_t erased = 0;
-        for (iterator it = vec.begin(); it != vec.end(); ++it) {
+        for (std::vector<peer_address_t>::iterator it = vec.begin(); it != vec.end(); ++it) {
             if (*it == addr) {
                 vec.erase(it);
                 ++erased;
@@ -71,11 +71,10 @@ public:
         }
         return erased;
     }
-    typedef std::vector<peer_address_t>::iterator iterator;
-    typedef std::vector<peer_address_t>::const_iterator const_iterator;
-    iterator begin() { return vec.begin(); }
-    iterator end() { return vec.end(); }
-    iterator find(const peer_address_t &addr) {
+    typedef std::vector<peer_address_t>::const_iterator iterator;
+    iterator begin() const { return vec.begin(); }
+    iterator end() const { return vec.end(); }
+    iterator find(const peer_address_t &addr) const {
         return std::find(vec.begin(), vec.end(), addr);
     }
     iterator insert(const peer_address_t &addr) {
