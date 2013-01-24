@@ -66,7 +66,7 @@ void fifo_enforcer_sink_t::exit_read_t::end() THROWS_NOTHING {
         public:
             dummy_exit_read_t(fifo_enforcer_read_token_t t, fifo_enforcer_sink_t *s) :
                 token(t), sink(s) { }
-            fifo_enforcer_read_token_t get_token() {
+            fifo_enforcer_read_token_t get_token() const {
                 return token;
             }
             void on_reached_head_of_queue() {
@@ -124,7 +124,7 @@ void fifo_enforcer_sink_t::exit_write_t::end() THROWS_NOTHING {
         public:
             dummy_exit_write_t(fifo_enforcer_write_token_t t, fifo_enforcer_sink_t *s) :
                 token(t), sink(s) { }
-            fifo_enforcer_write_token_t get_token() {
+            fifo_enforcer_write_token_t get_token() const {
                 return token;
             }
             void on_reached_head_of_queue() {

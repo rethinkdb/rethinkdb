@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CONTAINERS_INTRUSIVE_PRIORITY_QUEUE_HPP_
 #define CONTAINERS_INTRUSIVE_PRIORITY_QUEUE_HPP_
 
@@ -6,6 +6,9 @@
 #include <vector>
 
 #include "errors.hpp"
+
+// TODO: Make this type generally not be awful: Make intrusive_priority_queue_node_t not have
+// virtual functions, make it not use an O(n) vector.
 
 template <class node_t>
 class intrusive_priority_queue_t;
@@ -19,10 +22,8 @@ public:
 #endif
         { }
 
-    virtual bool is_higher_priority_than(node_t *competitor) = 0;
-
 protected:
-    virtual ~intrusive_priority_queue_node_t() {
+    ~intrusive_priority_queue_node_t() {
         rassert(queue == NULL);
     }
 
@@ -31,7 +32,9 @@ private:
 #ifndef NDEBUG
     intrusive_priority_queue_t<node_t> *queue;
 #endif
-    int index;
+    size_t index;
+
+    DISABLE_COPYING(intrusive_priority_queue_node_t);
 };
 
 template <class node_t>
@@ -52,25 +55,24 @@ public:
     }
 
     void push(node_t *x) {
-        rassert(x);
-        rassert(get_mixin(x)->queue == NULL);
-        DEBUG_ONLY_CODE(get_mixin(x)->queue = this);
+        rassert(x != NULL);
+        rassert(node_queue(x) == NULL);
+        DEBUG_ONLY_CODE(node_queue(x) = this);
 
         nodes.push_back(x);
-        get_mixin(x)->index = nodes.size() - 1;
+        node_index(x) = nodes.size() - 1;
         bubble_towards_root(x);
     }
 
     void remove(node_t *x) {
         rassert(x);
-        rassert(get_mixin(x)->queue == this);
-        DEBUG_ONLY_CODE(get_mixin(x)->queue = NULL);
-        // TODO: static_cast?  really?
-        if (get_mixin(x)->index == static_cast<int>(nodes.size()) - 1) {
+        rassert(node_queue(x) == this);
+        DEBUG_ONLY_CODE(node_queue(x) = NULL);
+        if (node_index(x) == nodes.size() - 1) {
             nodes.pop_back();
         } else {
-            node_t *replacement = nodes[get_mixin(x)->index] = nodes.back();
-            get_mixin(replacement)->index = get_mixin(x)->index;
+            node_t *replacement = nodes[node_index(x)] = nodes.back();
+            node_index(replacement) = node_index(x);
             nodes.pop_back();
             bubble_towards_root(replacement);
             bubble_towards_leaves(replacement);
@@ -90,13 +92,13 @@ public:
             return NULL;
         } else {
             node_t *x = nodes.front();
-            rassert(get_mixin(x)->queue == this);
+            rassert(node_queue(x) == this);
             DEBUG_ONLY_CODE(x->queue = NULL);
             if (nodes.size() == 1) {
                 nodes.pop_back();
             } else {
                 node_t *replacement = nodes[0] = nodes.back();
-                get_mixin(replacement)->index = 0;
+                node_index(replacement) = 0;
                 nodes.pop_back();
                 bubble_towards_leaves(replacement);
             }
@@ -113,58 +115,65 @@ public:
     void swap_in_place(node_t *to_remove, node_t *to_insert) {
         rassert(to_remove);
         rassert(to_insert);
-        rassert(get_mixin(to_remove)->queue == this);
-        rassert(get_mixin(to_insert)->queue == NULL);
-        rassert(!get_mixin(to_remove)->is_higher_priority_than(to_insert));
-        rassert(!get_mixin(to_insert)->is_higher_priority_than(to_remove));
-        DEBUG_ONLY_CODE(get_mixin(to_insert)->queue = this);
-        get_mixin(to_insert)->index = get_mixin(to_remove)->index;
-        nodes[get_mixin(to_remove)->index] = to_insert;
-        DEBUG_ONLY_CODE(get_mixin(to_remove)->queue = NULL);
+        rassert(node_queue(to_remove) == this);
+        rassert(node_queue(to_insert) == NULL);
+        // Pass const pointers to one call of left_is_higher_priority to enforce that it be const.
+        rassert(!left_is_higher_priority(const_cast<const node_t *>(to_remove), const_cast<const node_t *>(to_insert)));
+        rassert(!left_is_higher_priority(to_insert, to_remove));
+        DEBUG_ONLY_CODE(node_queue(to_insert) = this);
+        node_index(to_insert) = node_index(to_remove);
+        nodes[node_index(to_remove)] = to_insert;
+        DEBUG_ONLY_CODE(node_queue(to_remove) = NULL);
     }
 
 private:
-    static intrusive_priority_queue_node_t<node_t> *get_mixin(node_t *node) {
-        return node;
+    static size_t& node_index(node_t *x) {
+        intrusive_priority_queue_node_t<node_t> *node = x;
+        return node->index;
     }
 
-    static int compute_parent_index(int index) {
+    static intrusive_priority_queue_t<node_t> *& node_queue(node_t *x) {
+        intrusive_priority_queue_node_t<node_t> *node = x;
+        return node->queue;
+    }
+
+    static size_t parent_index(size_t index) {
         rassert(index != 0);
         return (index + (index % 2) - 2) / 2;
     }
 
-    static int compute_left_child_index(int index) {
+    static size_t left_child_index(size_t index) {
         return index * 2 + 1;
     }
 
-    static int compute_right_child_index(int index) {
+    static size_t right_child_index(size_t index) {
         return index * 2 + 2;
     }
 
-    void swap_nodes(int i, int j) {
-        get_mixin(nodes[i])->index = j;
-        get_mixin(nodes[j])->index = i;
+    void swap_nodes(size_t i, size_t j) {
+        node_index(nodes[i]) = j;
+        node_index(nodes[j]) = i;
         std::swap(nodes[i], nodes[j]);
     }
 
     void bubble_towards_root(node_t *node) {
-        while (get_mixin(node)->index != 0 &&
-                get_mixin(node)->is_higher_priority_than(nodes[compute_parent_index(get_mixin(node)->index)])) {
-            swap_nodes(get_mixin(node)->index, compute_parent_index(get_mixin(node)->index));
+        while (node_index(node) != 0 &&
+               left_is_higher_priority(node, nodes[parent_index(node_index(node))])) {
+            swap_nodes(node_index(node), parent_index(node_index(node)));
         }
     }
 
     void bubble_towards_leaves(node_t *node) {
         while (true) {
-            int left_index = compute_left_child_index(get_mixin(node)->index);
-            int right_index = compute_right_child_index(get_mixin(node)->index);
-            int winner = get_mixin(node)->index;
-            if (left_index < static_cast<int>(nodes.size()) &&
-                    get_mixin(nodes[left_index])->is_higher_priority_than(nodes[winner])) {
+            const size_t left_index = left_child_index(node_index(node));
+            const size_t right_index = right_child_index(node_index(node));
+            size_t winner = node_index(node);
+            if (left_index < nodes.size() &&
+                left_is_higher_priority(nodes[left_index], nodes[winner])) {
                 winner = left_index;
             }
-            if (right_index < static_cast<int>(nodes.size()) &&
-                    get_mixin(nodes[right_index])->is_higher_priority_than(nodes[winner])) {
+            if (right_index < nodes.size() &&
+                left_is_higher_priority(nodes[right_index], nodes[winner])) {
                 winner = right_index;
             }
             if (winner == node->index) {

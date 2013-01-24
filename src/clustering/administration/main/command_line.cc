@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "clustering/administration/main/command_line.hpp"
 
 #include <signal.h>
@@ -13,7 +13,7 @@
 #include <boost/bind.hpp>
 #include <boost/program_options.hpp>
 
-#include "arch/arch.hpp"
+#include "arch/io/disk.hpp"
 #include "arch/os_signal.hpp"
 #include "arch/runtime/starter.hpp"
 #include "clustering/administration/cli/admin_command_parser.hpp"
@@ -33,6 +33,13 @@
 
 namespace po = boost::program_options;
 
+template <typename T>
+static inline boost::optional<T> optional_variable_value(const po::variable_value& var){
+    return var.empty() ?
+        boost::optional<T>() :
+        boost::optional<T>(var.as<T>());
+}
+
 MUST_USE bool numwrite(const char *path, int number) {
     // Try to figure out what this function does.
     FILE *fp1 = fopen(path, "w");
@@ -44,11 +51,26 @@ MUST_USE bool numwrite(const char *path, int number) {
     return true;
 }
 
+static const char *pid_file = NULL;
+
+void remove_pid_file() {
+    if (pid_file) {
+        remove(pid_file);
+        pid_file = NULL;
+    }
+}
+
+// write_pid_file registers remove_pid_file with atexit.
+// Always call it after spawner_t::create to ensure correct behaviour.
 int write_pid_file(const po::variables_map& vm) {
     if (vm.count("pid-file") && vm["pid-file"].as<std::string>().length()) {
         // Be very careful about modifying this. It is important that the code that removes the
         // pid-file only run if the checks here pass. Right now, this is guaranteed by the return on
         // failure here.
+        if (pid_file) {
+            fprintf(stderr, "ERROR: Attempting to write pid-file twice.\n");
+            return EXIT_FAILURE;
+        }
         if (!access(vm["pid-file"].as<std::string>().c_str(), F_OK)) {
             fprintf(stderr, "ERROR: The pid-file specified already exists. This might mean that an instance is already running.\n");
             return EXIT_FAILURE;
@@ -57,14 +79,10 @@ int write_pid_file(const po::variables_map& vm) {
             fprintf(stderr, "ERROR: Writing to the specified pid-file failed.\n");
             return EXIT_FAILURE;
         }
+        pid_file = vm["pid-file"].as<std::string>().c_str();
+        atexit(remove_pid_file);
     }
     return EXIT_SUCCESS;
-}
-
-void remove_pid_file(const po::variables_map& vm) {
-    if (vm.count("pid-file") && vm["pid-file"].as<std::string>().length()) {
-        remove(vm["pid-file"].as<std::string>().c_str());
-    }
 }
 
 class host_and_port_t {
@@ -72,6 +90,26 @@ public:
     host_and_port_t(const std::string& h, int p) : host(h), port(p) { }
     std::string host;
     int port;
+};
+
+class serve_info_t {
+public:
+    serve_info_t(extproc::spawner_t::info_t *_spawner_info,
+                 const std::vector<host_and_port_t> &_joins,
+                 service_address_ports_t _ports,
+                 std::string _web_assets,
+                 boost::optional<std::string> _config_file):
+        spawner_info(_spawner_info),
+        joins(&_joins),
+        ports(_ports),
+        web_assets(_web_assets),
+        config_file(_config_file) { }
+
+    extproc::spawner_t::info_t *spawner_info;
+    const std::vector<host_and_port_t> *joins;
+    service_address_ports_t ports;
+    std::string web_assets;
+    boost::optional<std::string> config_file;
 };
 
 std::string metadata_file(const std::string& file_path) {
@@ -218,7 +256,7 @@ void run_rethinkdb_create(const std::string &filepath, const name_string_t &mach
     }
 }
 
-peer_address_set_t look_up_peers_addresses(std::vector<host_and_port_t> names) {
+peer_address_set_t look_up_peers_addresses(const std::vector<host_and_port_t> &names) {
     peer_address_set_t peers;
     for (size_t i = 0; i < names.size(); ++i) {
         peers.insert(peer_address_t(ip_address_t::from_hostname(names[i].host),
@@ -289,13 +327,10 @@ void run_rethinkdb_import(extproc::spawner_t::info_t *spawner_info,
     }
 }
 
-void run_rethinkdb_serve(extproc::spawner_t::info_t *spawner_info,
-                         const std::string &filepath,
-                         const std::vector<host_and_port_t> &joins,
-                         service_address_ports_t address_ports,
+void run_rethinkdb_serve(const std::string &filepath,
                          const io_backend_t io_backend,
                          bool *result_out,
-                         std::string web_assets) {
+                         const serve_info_t& serve_info) {
     os_signal_cond_t sigint_cond;
 
     if (!check_existence(filepath)) {
@@ -313,15 +348,16 @@ void run_rethinkdb_serve(extproc::spawner_t::info_t *spawner_info,
     try {
         metadata_persistence::persistent_file_t store(io_backender.get(), metadata_file(filepath), &metadata_perfmon_collection);
 
-        *result_out = serve(spawner_info,
+        *result_out = serve(serve_info.spawner_info,
                             io_backender.get(),
                             filepath, &store,
-                            look_up_peers_addresses(joins),
-                            address_ports,
+                            look_up_peers_addresses(*serve_info.joins),
+                            serve_info.ports,
                             store.read_machine_id(),
                             store.read_metadata(),
-                            web_assets,
-                            &sigint_cond);
+                            serve_info.web_assets,
+                            &sigint_cond,
+                            serve_info.config_file);
     } catch (const metadata_persistence::file_in_use_exc_t &ex) {
         logINF("Directory '%s' is in use by another rethinkdb process.\n", filepath.c_str());
         *result_out = false;
@@ -331,15 +367,12 @@ void run_rethinkdb_serve(extproc::spawner_t::info_t *spawner_info,
     }
 }
 
-void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info,
-                             const std::string &filepath,
+void run_rethinkdb_porcelain(const std::string &filepath,
                              const name_string_t &machine_name,
-                             const std::vector<host_and_port_t> &joins,
-                             service_address_ports_t address_ports,
                              const io_backend_t io_backend,
                              bool *result_out,
-                             std::string web_assets,
-                             bool new_directory) {
+                             bool new_directory,
+                             const serve_info_t &serve_info) {
     logINF("Running %s...\n", RETHINKDB_VERSION_STR);
     os_signal_cond_t sigint_cond;
 
@@ -354,14 +387,15 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info,
         try {
             metadata_persistence::persistent_file_t store(io_backender.get(), metadata_file(filepath), &metadata_perfmon_collection);
 
-            *result_out = serve(spawner_info,
+            *result_out = serve(serve_info.spawner_info,
                                 io_backender.get(),
                                 filepath, &store,
-                                look_up_peers_addresses(joins),
-                                address_ports,
+                                look_up_peers_addresses(*serve_info.joins),
+                                serve_info.ports,
                                 store.read_machine_id(), store.read_metadata(),
-                                web_assets,
-                                &sigint_cond);
+                                serve_info.web_assets,
+                                &sigint_cond,
+                                serve_info.config_file);
         } catch (const metadata_persistence::file_in_use_exc_t &ex) {
             logINF("Directory '%s' is in use by another rethinkdb process.\n", filepath.c_str());
             *result_out = false;
@@ -381,7 +415,7 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info,
         our_machine_metadata.name = vclock_t<name_string_t>(machine_name, our_machine_id);
         our_machine_metadata.datacenter = vclock_t<datacenter_id_t>(nil_uuid(), our_machine_id);
         semilattice_metadata.machines.machines.insert(std::make_pair(our_machine_id, our_machine_metadata));
-        if (joins.empty()) {
+        if (serve_info.joins->empty()) {
             logINF("Creating a default database for your convenience. (This is because you ran 'rethinkdb' "
                    "without 'create', 'serve', or '--join', and the directory '%s' did not already exist.)\n",
                    filepath.c_str());
@@ -406,14 +440,15 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info,
         try {
             metadata_persistence::persistent_file_t store(io_backender.get(), metadata_file(filepath), &metadata_perfmon_collection, our_machine_id, semilattice_metadata);
 
-            *result_out = serve(spawner_info,
+            *result_out = serve(serve_info.spawner_info,
                                 io_backender.get(),
                                 filepath, &store,
-                                look_up_peers_addresses(joins),
-                                address_ports,
+                                look_up_peers_addresses(*serve_info.joins),
+                                serve_info.ports,
                                 our_machine_id, semilattice_metadata,
-                                web_assets,
-                                &sigint_cond);
+                                serve_info.web_assets,
+                                &sigint_cond,
+                                serve_info.config_file);
         } catch (const metadata_persistence::file_in_use_exc_t &ex) {
             logINF("Directory '%s' is in use by another rethinkdb process.\n", filepath.c_str());
             *result_out = false;
@@ -424,21 +459,19 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info,
     }
 }
 
-void run_rethinkdb_proxy(extproc::spawner_t::info_t *spawner_info,
-                         const std::vector<host_and_port_t> &joins,
-                         service_address_ports_t address_ports,
-                         bool *result_out,
-                         std::string web_assets) {
+void run_rethinkdb_proxy(bool *result_out,
+                         const serve_info_t &serve_info) {
     os_signal_cond_t sigint_cond;
-    guarantee(!joins.empty());
+    guarantee(!serve_info.joins->empty());
 
     try {
-        *result_out = serve_proxy(spawner_info,
-                                  look_up_peers_addresses(joins),
-                                  address_ports,
+        *result_out = serve_proxy(serve_info.spawner_info,
+                                  look_up_peers_addresses(*serve_info.joins),
+                                  serve_info.ports,
                                   generate_uuid(), cluster_semilattice_metadata_t(),
-                                  web_assets,
-                                  &sigint_cond);
+                                  serve_info.web_assets,
+                                  &sigint_cond,
+                                  serve_info.config_file);
     } catch (const host_lookup_exc_t &ex) {
         logERR("%s\n", ex.what());
         *result_out = false;
@@ -844,15 +877,15 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
     }
 
     install_fallback_log_writer(logfilepath);
+    
+    serve_info_t serve_info(&spawner_info, joins, address_ports, web_path,
+                            optional_variable_value<std::string>(vm["config-file"]));
 
     bool result;
-    run_in_thread_pool(boost::bind(&run_rethinkdb_serve, &spawner_info, filepath, joins,
-                                   address_ports,
-                                   io_backend,
-                                   &result, web_path),
+    run_in_thread_pool(boost::bind(&run_rethinkdb_serve, filepath,
+                                   io_backend, &result,
+                                   serve_info),
                        num_workers);
-
-    remove_pid_file(vm);
 
     return result ? EXIT_SUCCESS : EXIT_FAILURE;
 }
@@ -939,15 +972,14 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
+    serve_info_t serve_info(&spawner_info, joins, address_ports, web_path,
+                            optional_variable_value<std::string>(vm["config-file"]));
+
     bool result;
     run_in_thread_pool(boost::bind(&run_rethinkdb_proxy,
-                                   &spawner_info,
-                                   joins,
-                                   address_ports,
-                                   &result, web_path),
+                                   &result,
+                                   serve_info),
                        num_workers);
-
-    remove_pid_file(vm);
 
     return result ? EXIT_SUCCESS : EXIT_FAILURE;
 }
@@ -1134,21 +1166,20 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         }
 
         install_fallback_log_writer(logfilepath);
+        
+        serve_info_t serve_info(&spawner_info, joins, address_ports, web_path,
+                                optional_variable_value<std::string>(vm["config-file"]));
+
 
         bool result;
         run_in_thread_pool(boost::bind(&run_rethinkdb_porcelain,
-                                       &spawner_info,
                                        filepath,
                                        machine_name,
-                                       joins,
-                                       address_ports,
                                        io_backend,
                                        &result,
-                                       web_path,
-                                       new_directory),
+                                       new_directory,
+                                       serve_info),
                            num_workers);
-
-        remove_pid_file(vm);
 
         return result ? EXIT_SUCCESS : EXIT_FAILURE;
     } catch (const boost::program_options::error &e) {
