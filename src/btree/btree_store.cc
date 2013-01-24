@@ -229,25 +229,6 @@ void btree_store_t<protocol_t>::acquire_sindex_block_for_write(
     sindex_block_out->init(new buf_lock_t(txn, sindex_block_id, rwi_write));
 }
 
-template <class protocol_t>
-void btree_store_t<protocol_t>::get_metainfo(const secondary_index_t &sindex, sindex_metainfo_t *metainfo) {
-    vector_read_stream_t read_stream(&sindex.metainfo);
-    int res = deserialize(&read_stream, metainfo);
-    guarantee_err(res == 0, "Corrupted metainfo.");
-}
-
-template <class protocol_t>
-void btree_store_t<protocol_t>::set_metainfo(secondary_index_t *sindex, const sindex_metainfo_t &metainfo) {
-    write_message_t wm;
-    wm << metainfo;
-
-    vector_stream_t stream;
-    int res = send_write_message(&stream, &wm);
-    guarantee(res == 0);
-
-    sindex->metainfo = stream.vector();
-}
-
 template <class region_map_t>
 bool has_homogenous_value(const region_map_t &metainfo, typename region_map_t::mapped_type state) {
     for (typename region_map_t::const_iterator it  = metainfo.begin(); 
@@ -296,7 +277,7 @@ void btree_store_t<protocol_t>::add_sindex(
         btree_slice_t::create(txn->get_cache(), sindex.superblock, txn);
         secondary_index_slices.insert(id, new btree_slice_t(cache.get(), &perfmon_collection, uuid_to_str(id)));
     } else {
-        get_metainfo(sindex, &metainfo);
+        get_sindex_metainfo(sindex, &metainfo);
     }
 
     /* First a sanity check this region hasn't already been created. */
@@ -306,7 +287,7 @@ void btree_store_t<protocol_t>::add_sindex(
     /* TODO when we have th code the recompute the index for existing data this
      * should be set to incomplete. */
     metainfo.set(region_to_index, sindex_details::CREATED);
-    set_metainfo(&sindex, metainfo);
+    set_sindex_metainfo(&sindex, metainfo);
 
     ::set_secondary_index(txn, sindex_block.get(), id, sindex);
 }
@@ -331,13 +312,13 @@ THROWS_ONLY(interrupted_exc_t) {
     /* A state map for the secondary index. Declared here because we need to
      * deserialize in to it if the index already exists. */
     sindex_metainfo_t metainfo(protocol_t::region_t::universe(), sindex_details::UNCREATED);
-    get_metainfo(sindex, &metainfo);
+    get_sindex_metainfo(sindex, &metainfo);
 
     guarantee_err(has_homogenous_value(metainfo.mask(up_to_date_region), sindex_details::INCOMPLETE),
                   "Trying to create the same index for the same region twice.");
 
     metainfo.set(up_to_date_region, sindex_details::CREATED);
-    set_metainfo(&sindex, metainfo);
+    set_sindex_metainfo(&sindex, metainfo);
 
     ::set_secondary_index(txn, sindex_block.get(), id, sindex);
 }
@@ -365,7 +346,7 @@ void btree_store_t<protocol_t>::drop_sindex(
     guarantee(found, "Tried to delete a value that didn't exist.");
 
     sindex_metainfo_t metainfo;
-    get_metainfo(sindex, &metainfo);
+    get_sindex_metainfo(sindex, &metainfo);
 
     guarantee_err(has_homogenous_value(metainfo.mask(unindexed_region), sindex_details::CREATED) ||
                   has_homogenous_value(metainfo.mask(unindexed_region), sindex_details::INCOMPLETE),
@@ -434,7 +415,7 @@ void btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
      * exception, I'd prefer to be able to guarantee this doesn't happen but
      * we'll see. */
     sindex_metainfo_t metainfo;
-    get_metainfo(sindex, &metainfo);
+    get_sindex_metainfo(sindex, &metainfo);
     guarantee(has_homogenous_value(metainfo.mask(region_to_read), sindex_details::CREATED),
               "Trying to read from an UNCREATED index, this means either the " \
               "index wasn't create, was created but isn't up to date or was " \
@@ -478,7 +459,7 @@ void btree_store_t<protocol_t>::acquire_sindex_superblock_for_write(
      * exception, I'd prefer to be able to guarantee this doesn't happen but
      * we'll see. */
     sindex_metainfo_t metainfo;
-    get_metainfo(sindex, &metainfo);
+    get_sindex_metainfo(sindex, &metainfo);
     guarantee(has_homogenous_value(metainfo.mask(region_to_write), sindex_details::CREATED),
               "Trying to write to an UNCREATED index, this means either the " \
               "index wasn't create, was created but isn't up to date or was " \
@@ -519,7 +500,7 @@ void btree_store_t<protocol_t>::acquire_all_sindex_superblocks_for_write(
         /* TODO this order token should probably be passed back up and used. */
 
         sindex_metainfo_t metainfo;
-        get_metainfo(it->second, &metainfo);
+        get_sindex_metainfo(it->second, &metainfo);
         guarantee(has_homogenous_value(metainfo.mask(region_to_write), sindex_details::CREATED),
                   "Trying to write to an UNCREATED index, this means either the " \
                   "index wasn't create, was created but isn't up to date or was " \

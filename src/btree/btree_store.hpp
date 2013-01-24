@@ -144,11 +144,6 @@ void acquire_sindex_block_for_write(
 
     typedef region_map_t<protocol_t, sindex_details::sindex_state_t> sindex_metainfo_t;
 
-    //TODO relocate these.
-    void get_metainfo(const secondary_index_t &sindex, sindex_metainfo_t *metainfo);
-
-    void set_metainfo(secondary_index_t *sindex, const sindex_metainfo_t &metainfo);
-
 public: // <--- so this is some bullshit right here
     friend void unittest::run_sindex_btree_store_api_test();
 

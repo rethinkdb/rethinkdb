@@ -8,6 +8,8 @@
 #include "btree/slice.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 #include "concurrency/promise.hpp"
+#include "protocol_api.hpp" //for region_map_t relocate to secondary operations
+#include "containers/archive/vector_stream.hpp" //relocate to secondary operations
 
 // TODO: consider B#/B* trees to improve space efficiency
 
@@ -202,4 +204,23 @@ void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_lo
 template <class Value>
 void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_loc, btree_key_t *key, repli_timestamp_t tstamp, key_modification_callback_t<Value> *km_callback, eviction_priority_t *root_eviction_priority) {
     apply_keyvalue_change(txn, kv_loc, key, tstamp, false, km_callback, root_eviction_priority);
+}
+
+template <class protocol_t>
+void get_sindex_metainfo(const secondary_index_t &sindex, region_map_t<protocol_t, sindex_details::sindex_state_t> *metainfo) {
+    vector_read_stream_t read_stream(&sindex.metainfo);
+    int res = deserialize(&read_stream, metainfo);
+    guarantee_err(res == 0, "Corrupted metainfo.");
+}
+
+template <class protocol_t>
+void set_sindex_metainfo(secondary_index_t *sindex, const region_map_t<protocol_t, sindex_details::sindex_state_t> &metainfo) {
+    write_message_t wm;
+    wm << metainfo;
+
+    vector_stream_t stream;
+    int res = send_write_message(&stream, &wm);
+    guarantee(res == 0);
+
+    sindex->metainfo = stream.vector();
 }

@@ -851,7 +851,7 @@ struct backfill_chunk_get_region_visitor_t : public boost::static_visitor<region
         std::map<uuid_u, secondary_index_t>::const_iterator head = sindexes.sindexes.begin();
         guarantee(head != sindexes.sindexes.end());
         region_map_t<rdb_protocol_t, sindex_details::sindex_state_t> metainfo;
-        //get_metainfo(head->second, &metainfo);
+        get_sindex_metainfo(head->second, &metainfo);
         return metainfo.get_domain();
     }
 };
@@ -1076,11 +1076,18 @@ public:
         rassert(region_is_superset(region, ret.get_region()));
         return ret;
     }
-    rdb_protocol_t::backfill_chunk_t operator()(const rdb_protocol_t::backfill_chunk_t::sindexes_t &) {
-        crash("not implemented");
-        //rdb_protocol_t::region_t r = region_intersection(sindexes.region, region);
-        //rassert(!region_is_empty(r));
-        //return rdb_protocol_t::backfill_chunk_t(rdb_protocol_t::backfill_chunk_t::sindexes_t(sindexes.sindexes, r));
+    rdb_protocol_t::backfill_chunk_t operator()(const rdb_protocol_t::backfill_chunk_t::sindexes_t &s) {
+        std::map<uuid_u, secondary_index_t> sindexes = s.sindexes;
+
+        for (std::map<uuid_u, secondary_index_t>::iterator it  = sindexes.begin();
+                                                           it != sindexes.end();
+                                                           ++it) {
+            region_map_t<rdb_protocol_t, sindex_details::sindex_state_t> sindex_metainfo;
+            get_sindex_metainfo(it->second, &sindex_metainfo);
+            set_sindex_metainfo(&it->second, sindex_metainfo.mask(region));
+        }
+
+        return rdb_protocol_t::backfill_chunk_t(rdb_protocol_t::backfill_chunk_t::sindexes_t(sindexes));
     }
 private:
     const rdb_protocol_t::region_t &region;
