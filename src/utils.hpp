@@ -153,7 +153,7 @@ public:
     int randint(int n);
     explicit rng_t(int seed = -1);
 private:
-    unsigned short xsubi[3];
+    unsigned short xsubi[3];  // NOLINT(runtime/int)
     DISABLE_COPYING(rng_t);
 };
 
