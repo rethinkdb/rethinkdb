@@ -29,7 +29,7 @@ public:
         map["DB"] = DB_TYPE;
         map["TABLE"] = TABLE_TYPE;
         map["SELECTION"] = SELECTION_TYPE;
-        map["SEQUENCE"] = SEQUENCE_TYPE;
+        map["STREAM"] = SEQUENCE_TYPE;
         map["SINGLE_SELECTION"] = SINGLE_SELECTION_TYPE;
         map["DATUM"] = DATUM_TYPE;
         map["FUNCTION"] = FUNC_TYPE;

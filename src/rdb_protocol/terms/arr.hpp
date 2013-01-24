@@ -19,9 +19,16 @@ private:
     RDB_NAME("append")
 };
 
-size_t canonicalize(int index, size_t size) {
+size_t canonicalize(int index, size_t size, bool *oob_out = 0) {
     if (index >= 0) return index;
-    rcheck(size_t(index * -1) <= size, strprintf("Index out of bounds: %d", index));
+    if (size_t(index * -1) <= size) {
+        if (oob_out) {
+            *oob_out = true;
+        } else {
+            rfail("Index out of bounds: %d", index);
+        }
+        return 0;
+    }
     return size + index;
 }
 
@@ -58,26 +65,37 @@ private:
     RDB_NAME("nth")
 };
 
+static const char *const slice_optargs[] = {"exclude_end"};
 class slice_term_t : public op_term_t {
 public:
-    slice_term_t(env_t *env, const Term2 *term) : op_term_t(env, term, argspec_t(3)) { }
+    slice_term_t(env_t *env, const Term2 *term)
+        : op_term_t(env, term, argspec_t(3), LEGAL_OPTARGS(slice_optargs)) { }
 private:
     virtual val_t *eval_impl() {
+        val_t *ee = optarg("exclude_end", 0);
+        bool exclude_end = ee ? ee->as_datum()->as_bool() : false;
+
         val_t *v   = arg(0);
         int fake_l = arg(1)->as_datum()->as_int();
         int fake_r = arg(2)->as_datum()->as_int();
         if (v->get_type().is_convertible(val_t::type_t::DATUM)) {
             const datum_t *arr = v->as_datum();
             rcheck(arr->get_type() == datum_t::R_ARRAY, "Cannot slice non-sequences.");
-            size_t real_l = canonicalize(fake_l, arr->size());
-            size_t real_r = canonicalize(fake_r, arr->size());
+            bool l_oob = false;
+            size_t real_l = canonicalize(fake_l, arr->size(), &l_oob);
+            if (l_oob) real_l = 0;
+            bool r_oob = false;
+            size_t real_r = canonicalize(fake_r, arr->size(), &r_oob);
            //rcheck(real_l < arr->size(), strprintf("Index out of bounds: %lu", real_l));
            //rcheck(real_r < arr->size(), strprintf("Index out of bounds: %lu", real_r));
 
             scoped_ptr_t<datum_t> out(new datum_t(datum_t::R_ARRAY));
-            for (size_t i = real_l; i <= real_r; ++i) {
-                if (i >= arr->size()) break;
-                out->add(arr->el(i));
+            if (!r_oob) {
+                for (size_t i = real_l; i <= real_r; ++i) {
+                    if (i == real_r && exclude_end) break;
+                    if (i >= arr->size()) break;
+                    out->add(arr->el(i));
+                }
             }
             return new_val(out.release());
         } else if (v->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
@@ -88,7 +106,7 @@ private:
             datum_stream_t *seq = v->as_seq();
             rcheck(fake_l >= 0, "Cannot use a negative left index on a stream.");
             rcheck(fake_r >= -1, "Cannot use a right index < -1 on a stream");
-            datum_stream_t *new_ds = seq->slice(fake_l, fake_r);
+            datum_stream_t *new_ds = seq->slice(fake_l, fake_r, exclude_end);
             return t ? new_val(t, new_ds) : new_val(new_ds);
         }
         rfail("Cannot slice non-sequences.");

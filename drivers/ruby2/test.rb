@@ -149,6 +149,25 @@ class ClientTest < Test::Unit::TestCase
     assert_raise(RuntimeError) { r(0).count.run }
   end
 
+  # from python tests
+  def test_stream_fancy
+    assert_equal([], r.limit([], 0).run)
+    assert_equal([], r.limit([1, 2], 0).run)
+    assert_equal([1], r.limit([1, 2], 1).run)
+    assert_equal([1, 2], r.limit([1, 2], 5).run)
+    assert_raise(RuntimeError) { r.limit([], -1).run }
+
+    assert_equal([], r.skip([], 0).run)
+    assert_equal([], r.skip([1, 2], 5).run)
+    assert_equal([1, 2], r.skip([1, 2], 0).run)
+    assert_equal([2], r.skip([1, 2], 1).run)
+
+    assert_equal([], r.distinct([]).run)
+    assert_equal([1, 2, 3], r.distinct(([1, 2, 3] * 10)).run)
+    assert_equal([1, 2, 3], r.distinct([1, 2, 3, 2]).run)
+    assert_equal([true, 2, false], r.distinct([true, 2, false, 2]).run)
+  end
+
   def setup
     begin
       r.db_create('test').run

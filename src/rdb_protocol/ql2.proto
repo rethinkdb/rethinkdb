@@ -220,6 +220,7 @@ message Term2 {
         APPEND = 29; // ARRAY, DATUM -> ARRAY
         // http://www.rethinkdb.com/api/#js:transformations-slice
         SLICE  = 30; // Sequence, NUM, NUM -> Sequence
+                     // Optags: exclude_end
 
         // Stream/Object Ops
         // Get a particular attribute out of an object, or map that over a

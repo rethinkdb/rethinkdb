@@ -7,6 +7,9 @@ module RethinkDB
       RQL.new.func(args, body)
     end
 
+    @@opt_off = {
+      :slice => -1
+    }
     @@rewrites = {
       :< => :lt, :<= => :le, :> => :gt, :>= => :ge,
       :+ => :add, :- => :sub, :* => :mul, :/ => :div,
@@ -16,12 +19,34 @@ module RethinkDB
       m = @@rewrites[m] || m
       termtype = Term2::TermType.values[m.to_s.upcase.to_sym]
       unbound_if(!termtype, m)
+
+      if (opt_offset = @@opt_off[m])
+        maybe_optargs = a[opt_offset]
+        if maybe_optargs.class == Hash
+          optargs = maybe_optargs
+          a.delete_at opt_offset
+        end
+      end
+
       args = (@body ? [self] : []) + a + (b ? [new_func(&b)] : [])
       t = Term2.new
       t.type = termtype
       t.args = args.map{|x| RQL.new.expr(x).to_pb}
+      t.optargs = (optargs || {}).map {|k,v|
+        ap = Term2::AssocPair.new
+        ap.key = k.to_s
+        ap.val = RQL.new.expr(v).to_pb
+        ap
+      }
       return RQL.new t
     end
+
+    # def limit(*a)
+    #   n = a[-1]
+    #   extra = a[0..-2]
+    #   slice(*(extra + [0, n, {:exclude_end => true}]))
+    # end
+    # def skip(*a); slice(*(a + [-1])); end
 
     def [](ind)
       if ind.class == Fixnum
