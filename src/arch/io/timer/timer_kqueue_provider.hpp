@@ -1,6 +1,6 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
-#ifndef TIMER_KQUEUE_PROVIDER_HPP_
-#define TIMER_KQUEUE_PROVIDER_HPP_
+// Copyright 2010-2013 RethinkDB, all rights reserved.
+#ifndef ARCH_IO_TIMER_TIMER_KQUEUE_PROVIDER_HPP_
+#define ARCH_IO_TIMER_TIMER_KQUEUE_PROVIDER_HPP_
 
 #include "arch/runtime/event_queue.hpp"
 
@@ -26,4 +26,4 @@ private:
 };
 
 
-#endif  // TIMER_KQUEUE_PROVIDER_HPP_
+#endif  // ARCH_IO_TIMER_TIMER_KQUEUE_PROVIDER_HPP_
