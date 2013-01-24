@@ -78,6 +78,16 @@ private:
 
 void rdb_get(const store_key_t &key, btree_slice_t *slice, transaction_t *txn, superblock_t *superblock, point_read_response_t *response);
 
+void rdb_replace(const std::string &primary_key,
+                 const store_key_t &key,
+                 ql::map_wire_func_t *f,
+                 ql::env_t *ql_env,
+                 Datum *response,
+                 btree_slice_t *slice,
+                 repli_timestamp_t timestamp,
+                 transaction_t *txn,
+                 superblock_t *superblock);
+
 void rdb_modify(const std::string &primary_key, const store_key_t &key, const point_modify_ns::op_t op,
                 query_language::runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace,
                 const Mapping &mapping,
@@ -122,8 +132,11 @@ struct rget_response_t {
 
 void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
                     transaction_t *txn, superblock_t *superblock,
-                    query_language::runtime_environment_t *env, const rdb_protocol_details::transform_t &transform,
-                    boost::optional<rdb_protocol_details::terminal_t> terminal, rget_read_response_t *response);
+                    query_language::runtime_environment_t *env,
+                    ql::env_t *ql_env,
+                    const rdb_protocol_details::transform_t &transform,
+                    boost::optional<rdb_protocol_details::terminal_t> terminal,
+                    rget_read_response_t *response);
 
 void rdb_distribution_get(btree_slice_t *slice, int max_depth, const store_key_t &left_key,
                           transaction_t *txn, superblock_t *superblock, distribution_read_response_t *response);

@@ -34,3 +34,9 @@ std::string activity_logger_t::print_range(size_t start, size_t end, bool print_
     }
     return s;
 }
+
+bool alprng(activity_logger_t *l, size_t start, size_t end, bool print_bt) {
+    std::string s = l->print_range(start, end, print_bt);
+    debugf("%s", s.c_str());
+    return true;
+}

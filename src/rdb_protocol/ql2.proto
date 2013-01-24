@@ -179,7 +179,7 @@ message Term2 {
         DB    = 14; // STR -> DB
         // Returns a reference to a table.
         // http://www.rethinkdb.com/api/#js:selecting_data-table
-        TABLE = 15; // STR, DB -> Table
+        TABLE = 15; // DB, STR -> Table
                          // Optargs: use_outdated (BOOL)
         // Gets a single element from a table by its primary key.
         // http://www.rethinkdb.com/api/#js:selecting_data-get
@@ -219,8 +219,8 @@ message Term2 {
         // http://www.rethinkdb.com/api/#js:document_manipulation-append
         APPEND = 29; // ARRAY, DATUM -> ARRAY
         // http://www.rethinkdb.com/api/#js:transformations-slice
-        SLICE  = 30; // Sequence -> Sequence
-                     // Optargs: left_extent (NUM), right_extent (NUM)
+        SLICE  = 30; // Sequence, NUM, NUM -> Sequence
+                     // Optags: exclude_end
 
         // Stream/Object Ops
         // Get a particular attribute out of an object, or map that over a
@@ -250,7 +250,7 @@ message Term2 {
         // Get all elements of a sequence between two values.
         // http://www.rethinkdb.com/api/#js:selecting_data-between
         BETWEEN   = 36; // Sequence -> Sequence
-                                 // Optargs: left_bound (DATUM), right_bound (DATUM)
+                        // Optargs: left_bound (DATUM), right_bound (DATUM)
         // http://www.rethinkdb.com/api/#js:aggregation-reduce
         REDUCE    = 37; // Sequence, DATUM, FUNC (arity 2) -> DATUM
         // http://www.rethinkdb.com/api/#js:transformations-map
@@ -291,8 +291,7 @@ message Term2 {
         OUTER_JOIN         = 49; // Sequence, Sequence, FUNC (arity 2) -> Sequence
         // An inner-join that does an equality comparison on two attributes.
         // http://www.rethinkdb.com/api/#js:joins-eqJoin
-        EQ_JOIN            = 50; // Sequence, Sequence -> Sequence
-                                 // Optargs: left_attr (LIT(STR)), right_attr (LIT(STR))
+        EQ_JOIN            = 50; // Sequence, LIT(STR), Sequence -> Sequence
 
         // * Type Ops
         // Coerces a datum to a named type (e.g. "bool").
@@ -307,6 +306,7 @@ message Term2 {
         // to be updated, and then merges the result of that call.
         // http://www.rethinkdb.com/api/#js:writing_data-update
         UPDATE   = 53; // Selection, FUNC (arity 1) -> OBJECT
+                       // Optargs: non_atomic_ok (BOOL)
         // Deletes all the rows in a selection.
         // http://www.rethinkdb.com/api/#js:writing_data-delete
         DELETE   = 54; // Selection -> OBJECT
@@ -315,6 +315,7 @@ message Term2 {
         // call.
         // http://www.rethinkdb.com/api/#js:writing_data-replace
         REPLACE  = 55; // Selection, FUNC (arity 1) -> OBJECT
+                       // Optargs: non_atomic_ok (BOOL)
         // Inserts into a table.  If `upsert` is true, overwrites entries with
         // the same primary key (otherwise errors).
         // http://www.rethinkdb.com/api/#js:writing_data-insert

@@ -25,19 +25,26 @@ std::string filepath_file_opener_t::file_name() const {
 }
 
 bool filepath_file_opener_t::open_serializer_file(int extra_flag, scoped_ptr_t<file_t> *file_out) {
-    scoped_ptr_t<direct_file_t> file(new direct_file_t(filepath_.c_str(),
-                                                       direct_file_t::mode_read | direct_file_t::mode_write | extra_flag,
-                                                       backender_));
-    if (!file->exists()) {
-        return false;
-    } else {
-        file_out->init(file.release());
-        return true;
+    file_open_result_t open_res = open_direct_file(filepath_.c_str(),
+                                                   linux_file_t::mode_read | linux_file_t::mode_write | extra_flag,
+                                                   backender_,
+                                                   file_out);
+    if (open_res.outcome == file_open_result_t::ERROR) {
+        crash_due_to_inaccessible_database_file(filepath_.c_str(), open_res);
     }
+
+    if (open_res.outcome == file_open_result_t::BUFFERED) {
+        logWRN("Could not turn off filesystem caching for database file: \"%s\" "
+               "(Is the file located on a filesystem that doesn't support direct I/O "
+               "(e.g. some encrypted or journaled file systems)?) "
+               "This can cause performance problems.",
+               filepath_.c_str());
+    }
+    return open_res.outcome != file_open_result_t::ERROR;
 }
 
 bool filepath_file_opener_t::open_serializer_file_create(scoped_ptr_t<file_t> *file_out) {
-    return open_serializer_file(direct_file_t::mode_create, file_out);
+    return open_serializer_file(linux_file_t::mode_create, file_out);
 }
 
 bool filepath_file_opener_t::open_serializer_file_existing(scoped_ptr_t<file_t> *file_out) {
@@ -60,11 +67,11 @@ bool filepath_file_opener_t::open_semantic_checking_file(int *fd_out) {
         return true;
     }
 }
-#endif
+#endif  // SEMANTIC_SERIALIZER_CHECK
 
 
 
-log_serializer_stats_t::log_serializer_stats_t(perfmon_collection_t *parent) 
+log_serializer_stats_t::log_serializer_stats_t(perfmon_collection_t *parent)
     : serializer_collection(),
       pm_serializer_block_reads(secs_to_ticks(1)),
       pm_serializer_index_reads(),
@@ -336,15 +343,6 @@ log_serializer_t::~log_serializer_t() {
     rassert(state == state_unstarted || state == state_shut_down);
     rassert(last_write == NULL);
     rassert(active_write_count == 0);
-}
-
-void ls_check_existing(const char *filename, io_backender_t *backender, log_serializer_t::check_callback_t *cb) {
-    direct_file_t df(filename, direct_file_t::mode_read, backender);
-    cb->on_serializer_check(static_header_check(&df));
-}
-
-void log_serializer_t::check_existing(const char *filename, io_backender_t *io_backender, check_callback_t *cb) {
-    coro_t::spawn(boost::bind(ls_check_existing, filename, io_backender, cb));
 }
 
 void *log_serializer_t::malloc() {

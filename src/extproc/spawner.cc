@@ -140,7 +140,7 @@ void exec_spawner(fd_t socket) {
         guarantee_err(res == 0, "spawner: Could not ignore SIGCHLD");
     }
 
-    pid_t spawner_pid = getpid();
+    pid_t local_spawner_pid = getpid();
 
     for (;;) {
         // Get an fd from our parent.
@@ -161,7 +161,7 @@ void exec_spawner(fd_t socket) {
         if (0 == pid) {
             // We're the child/worker.
             guarantee_err(0 == close(socket), "worker: could not close fd");
-            exec_worker(spawner_pid, fd);
+            exec_worker(local_spawner_pid, fd);
             unreachable();
         }
 
@@ -198,11 +198,11 @@ void check_ppid_for_death(int) {
 }
 
 // Runs the worker process. Does not return.
-void exec_worker(pid_t spawner_pid, fd_t sockfd) {
+void exec_worker(pid_t local_spawner_pid, fd_t sockfd) {
     // Make sure we die when our parent dies.  (The parent, the spawner process, dies when the
     // rethinkdb process dies.)
     {
-        spawner_pid_for_sigalrm = spawner_pid;
+        spawner_pid_for_sigalrm = local_spawner_pid;
 
         struct sigaction sa = make_sa_handler(0, check_ppid_for_death);
         int res = sigaction(SIGALRM, &sa, NULL);
@@ -221,7 +221,7 @@ void exec_worker(pid_t spawner_pid, fd_t sockfd) {
 
     // Receive one job and run it.
     scoped_fd_t fd(sockfd);
-    job_t::control_t control(getpid(), spawner_pid, &fd);
+    job_t::control_t control(getpid(), local_spawner_pid, &fd);
     exit(job_t::accept_job(&control, NULL));
 }
 

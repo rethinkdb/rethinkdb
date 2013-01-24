@@ -83,6 +83,7 @@
 #endif
 
 #define UNUSED __attribute__((unused))
+
 #define MUST_USE __attribute__((warn_unused_result))
 
 #define fail_due_to_user_error(msg, ...) do {  \
@@ -188,7 +189,7 @@ void mcheck_all(void);
 // put this in a private: section.
 #define DISABLE_COPYING(T)                      \
     T(const T&);                                \
-    void operator=(const T&)
+    T& operator=(const T&)
 
 
 /* Put these after functions to indicate what they throw. In release mode, they

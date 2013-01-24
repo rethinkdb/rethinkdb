@@ -24,7 +24,7 @@ void fifo_enforcer_queue_t<T>::push(fifo_enforcer_read_token_t token, const T &t
     if (read_counter) { ++(*read_counter); }
 
     assert_thread();
-    mutex_assertion_t::acq_t acq(&lock);
+    DEBUG_VAR mutex_assertion_t::acq_t acq(&lock);
 
     read_queue.insert(std::make_pair(token.timestamp, t));
     consider_changing_available();
@@ -47,7 +47,7 @@ void fifo_enforcer_queue_t<T>::push(fifo_enforcer_write_token_t token, const T &
     if (write_counter) { ++(*write_counter); }
 
     assert_thread();
-    mutex_assertion_t::acq_t acq(&lock);
+    DEBUG_VAR mutex_assertion_t::acq_t acq(&lock);
 
     write_queue.insert(std::make_pair(token.timestamp, std::make_pair(token.num_preceding_reads, t)));
     consider_changing_available();

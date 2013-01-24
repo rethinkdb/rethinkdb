@@ -172,7 +172,7 @@ void run_metainfo_test() {
                     printf("    '%s' = <not found> (expected '%s')\n", it->first.c_str(), it->second.c_str());
                 }
             }
-            EXPECT_EQ(0, mirror_copy.size()) << "missing key(s)";
+            EXPECT_EQ(0u, mirror_copy.size()) << "missing key(s)";
         }
     }
 }

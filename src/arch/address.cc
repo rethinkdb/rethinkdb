@@ -10,7 +10,8 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
-#include "arch/arch.hpp"
+#include "arch/io/network.hpp"
+#include "arch/runtime/thread_pool.hpp"
 
 /* Get our hostname as an std::string. */
 std::string str_gethostname() {

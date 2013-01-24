@@ -19,8 +19,8 @@ public:
     void run();
 
 protected:
-    static const int init_value;
-    static const int changed_value;
+    static const uint32_t init_value;
+    static const uint32_t changed_value;
 
     // Helper functions
     static void snap(transaction_t *txn);
@@ -29,7 +29,6 @@ protected:
     static bool acq_check_if_blocks_until_buf_released(buf_lock_t *newly_acquired_block, transaction_t *acquiring_txn, buf_lock_t *already_acquired_block, access_t acquire_mode, bool do_release);
     static void create_two_blocks(transaction_t *txn, block_id_t *block_A, block_id_t *block_B);
 
-protected:
     virtual void run_tests(cache_t *cache) = 0;
     virtual void run_serializer_tests();
 
@@ -51,8 +50,9 @@ private:
         void run();
     };
 
-private:
     void setup_server_and_run_tests();
+
+    DISABLE_COPYING(server_test_helper_t);
 };
 
 }  // namespace unittest

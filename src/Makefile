@@ -103,7 +103,7 @@ endif
 SEMANTIC_SERIALIZER_CHECK?=0
 MOCK_CACHE_CHECK?=0
 VERBOSE?=0
-UNIT_TESTS?=0
+UNIT_TESTS?=$(DEBUG)
 AIOSUPPORT?=0
 BUILD_DRIVERS?=1
 LINT?=0
@@ -328,6 +328,7 @@ TC_NODE_INT_EXE:=$(SUPPORT_DIR_ABS)/usr/bin/node
 TC_NPM_INT_EXE:=$(SUPPORT_DIR_ABS)/usr/bin/npm
 TC_LESSC_INT_EXE:=$(SUPPORT_DIR_ABS)/toolchain/node_modules/less/bin/lessc
 TC_COFFEE_INT_EXE:=$(SUPPORT_DIR_ABS)/toolchain/node_modules/coffee-script/bin/coffee
+TC_HANDLEBARS_INT_EXE:=$(SUPPORT_DIR_ABS)/toolchain/node_modules/handlebars/bin/handlebars
 
 TC_PROTOC_CFLAGS:=
 INT_CHAIN_NODE:=0
@@ -349,6 +350,7 @@ TC_NODE_EXE:=$(TC_NODE_INT_EXE)
 TC_NPM_EXE:=$(TC_NPM_INT_EXE)
 TC_LESSC_EXE:=$(TC_LESSC_INT_EXE)
 TC_COFFEE_EXE:=$(TC_COFFEE_INT_EXE)
+TC_HANDLEBARS_EXE:=$(TC_HANDLEBARS_INT_EXE)
 TCMALLOC_CHAIN_IF_NECESSARY:=1
 else
 ifeq ($(ALLOW_INTERNAL_TOOLS),1)
@@ -384,6 +386,11 @@ TC_COFFEE_EXE:=$(TC_COFFEE_INT_EXE)
 else
 TC_COFFEE_EXE:=$(shell which coffee || true)
 endif
+ifeq ($(shell which handlebars || true),)
+TC_HANDLEBARS_EXE:=$(TC_HANDLEBARS_INT_EXE)
+else
+TC_HANDLEBARS_EXE:=$(shell which handlebars || true)
+endif
 ifeq ($(OSX),0)
 ifeq ($(shell /sbin/ldconfig -p | awk '/libtcmalloc_minimal.so /'),)
 TCMALLOC_CHAIN_IF_NECESSARY:=1
@@ -394,6 +401,7 @@ TC_PROTOC_EXE:=$(shell which protoc || true)
 TC_PROTOC_RUN:=$(TC_PROTOC_EXE)
 TC_LESSC_EXE:=$(shell which lessc || true)
 TC_COFFEE_EXE:=$(shell which coffee || true)
+TC_HANDLEBARS_EXE:=$(shell which which handlebars || true)
 TC_NODE_EXE:=$(shell which node || true)
 TC_NPM_EXE:=$(shell which npm || true)
 endif # ALLOW_INTERNAL_TOOLS
@@ -517,6 +525,17 @@ endif  # ($(LEGACY_GCC), 1)
 endif  # ($(COMPILER), CLANG)
 endif  # ($(COMPILER), INTEL)
 
+COVERAGE?=0
+
+ifeq ($(COVERAGE), 1)
+  ifeq ($(COMPILER), GCC)
+    RT_CXXFLAGS+=--coverage
+    RT_LDFLAGS+=--coverage
+  else
+    $(error COVERAGE=1 not yet supported for $(COMPILER))
+  endif
+endif # ($(COVERAGE), 1)
+
 ifeq ($(AGRESSIVE_BUF_UNLOADING),1)
 RT_CXXFLAGS+=-DAGRESSIVE_BUF_UNLOADING=1
 endif
@@ -561,8 +580,11 @@ RT_CXXFLAGS+=-O0
 ifeq ($(KEEP_INLINE),1)
 RT_CXXFLAGS+=-fkeep-inline-functions
 endif
+ifeq ($(NO_INLINE),1)
+RT_CXXFLAGS+=-fno-inline
+endif
 
-else
+else  # ifeq ($(DEBUG),1)
 # use -fno-strict-aliasing to not break things
 # march=native used to break the serializer
 RT_CXXFLAGS+=-O3 -DNDEBUG -fno-strict-aliasing # -march=native
@@ -570,10 +592,8 @@ RT_CXXFLAGS+=-O3 -DNDEBUG -fno-strict-aliasing # -march=native
 RT_CXXFLAGS+=-DNO_MEMCACHE
 ifeq ($(NO_OMIT_FRAME_POINTER),1)
 RT_CXXFLAGS+=-fno-omit-frame-pointer
-else
-RT_CXXFLAGS+=-fomit-frame-pointer
 endif
-endif
+endif  # ifeq ($(DEBUG),1)
 
 ifeq ($(DISABLE_BREAKPOINTS),1)
 RT_CXXFLAGS+=-DDISABLE_BREAKPOINTS
@@ -712,8 +732,8 @@ endif
 endif
 
 ifeq ($(UNIT_TESTS),1)
-UNIT_STATIC_LIBRARIES+=gtest
-UNIT_STATIC_LIBRARY_PATHS+=$(foreach lib,$(UNIT_STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }'))
+UNIT_STATIC_LIBRARY_PATH+=../external/gtest-1.6.0/make/gtest.a
+RT_CXXFLAGS+=-I../external/gtest-1.6.0/include
 endif
 
 UNIT_TEST_FILTER?=*
@@ -730,20 +750,27 @@ else
 SOURCES:=$(shell find $(SOURCE_DIR) -name '*.cc' | grep -vF "`find $(SOURCE_DIR)/unittest`")
 endif
 
-PROTO_SOURCES:=$(shell find $(SOURCE_DIR) -name '*.proto')
-PROTO_HEADERS:=$(patsubst $(SOURCE_DIR)/%.proto,$(PROTO_DIR)/%.pb.h,$(PROTO_SOURCES))
-PROTO_CODE:=$(patsubst $(SOURCE_DIR)/%.proto,$(PROTO_DIR)/%.pb.cc,$(PROTO_SOURCES))
-PROTO_NAMES+=$(patsubst $(PROTO_DIR)/%.cc,%,$(PROTO_CODE))
-PROTO_OBJS:=$(patsubst %,$(OBJ_DIR)/%.o,$(PROTO_NAMES))
+QL_PROTO_SOURCES:=./rdb_protocol/query_language.proto ./rdb_protocol/internal_extensions.proto
+QL_PROTO_HEADERS:=$(patsubst $(SOURCE_DIR)/%.proto,$(PROTO_DIR)/%.pb.h,$(QL_PROTO_SOURCES))
+QL_PROTO_CODE:=$(patsubst $(SOURCE_DIR)/%.proto,$(PROTO_DIR)/%.pb.cc,$(QL_PROTO_SOURCES))
+QL_PROTO_NAMES+=$(patsubst $(PROTO_DIR)/%.cc,%,$(QL_PROTO_CODE))
+QL_PROTO_OBJS:=$(patsubst %,$(OBJ_DIR)/%.o,$(QL_PROTO_NAMES))
+
+QL2_PROTO_SOURCES:=./rdb_protocol/ql2.proto
+QL2_PROTO_HEADERS:=$(patsubst $(SOURCE_DIR)/%.proto,$(PROTO_DIR)/%.pb.h,$(QL2_PROTO_SOURCES))
+QL2_PROTO_CODE:=$(patsubst $(SOURCE_DIR)/%.proto,$(PROTO_DIR)/%.pb.cc,$(QL2_PROTO_SOURCES))
+QL2_PROTO_NAMES+=$(patsubst $(PROTO_DIR)/%.cc,%,$(QL2_PROTO_CODE))
+QL2_PROTO_OBJS:=$(patsubst %,$(OBJ_DIR)/%.o,$(QL2_PROTO_NAMES))
+
 PROTOCFLAGS:= --proto_path=$(SOURCE_DIR)
 
 NAMES:=$(patsubst $(SOURCE_DIR)/%.cc,%,$(SOURCES))
 DEPS:=$(patsubst %,$(DEP_DIR)/%.d,$(NAMES))
-OBJS:=$(PROTO_OBJS) $(patsubst %,$(OBJ_DIR)/%.o,$(NAMES))
+OBJS:=$(QL_PROTO_OBJS) $(QL2_PROTO_OBJS) $(patsubst %,$(OBJ_DIR)/%.o,$(NAMES))
 
-SERVER_EXEC_OBJS:=$(PROTO_OBJS) $(patsubst %.cc,$(OBJ_DIR)/%.o,$(filter-out $(SOURCE_DIR)/unittest/%,$(SOURCES)))
+SERVER_EXEC_OBJS:=$(QL_PROTO_OBJS) $(QL2_PROTO_OBJS) $(patsubst %.cc,$(OBJ_DIR)/%.o,$(filter-out $(SOURCE_DIR)/unittest/%,$(SOURCES)))
 
-SERVER_NOMAIN_OBJS:=$(PROTO_OBJS) $(patsubst %.cc,$(OBJ_DIR)/%.o,$(filter-out %/main.cc,$(SOURCES)))
+SERVER_NOMAIN_OBJS:=$(QL_PROTO_OBJS) $(QL2_PROTO_OBJS) $(patsubst %.cc,$(OBJ_DIR)/%.o,$(filter-out %/main.cc,$(SOURCES)))
 
 SERVER_UNIT_TEST_OBJS:=$(SERVER_NOMAIN_OBJS) $(OBJ_DIR)/unittest/main.o
 
@@ -751,6 +778,8 @@ SERVER_UNIT_TEST_OBJS:=$(SERVER_NOMAIN_OBJS) $(OBJ_DIR)/unittest/main.o
 WEB_SOURCE_DIR:=../admin
 WEB_ASSETS_BUILD_DIR:=$(BUILD_DIR)/web
 WEB_ASSETS_OBJ_DIR:=$(BUILD_DIR)/webobj
+WEB_ASSETS:=$(WEB_ASSETS_BUILD_DIR)/cluster-min.js $(WEB_ASSETS_BUILD_DIR)/cluster.css $(WEB_ASSETS_BUILD_DIR)/index.html $(WEB_ASSETS_BUILD_DIR)/js $(WEB_ASSETS_BUILD_DIR)/fonts $(WEB_ASSETS_BUILD_DIR)/images $(WEB_ASSETS_BUILD_DIR)/favicon.ico $(WEB_ASSETS_BUILD_DIR)/js/rethinkdb.js $(WEB_ASSETS_BUILD_DIR)/js/template.js 
+
 #This atrociousness comes from the fact... fuck it blah blah blah coffee script.
 #Basically coffee script can't handle dependencies.
 COFFEE_SOURCES:=$(patsubst %, $(WEB_SOURCE_DIR)/static/coffee/%,\
@@ -769,10 +798,8 @@ COFFEE_SOURCES:=$(patsubst %, $(WEB_SOURCE_DIR)/static/coffee/%,\
 			vis.coffee \
 			models.coffee \
 			navbar.coffee \
-			walkthrough.coffee \
 			router.coffee \
 			app.coffee)
-HANDLEBARS_SOURCES:=$(shell find $(WEB_SOURCE_DIR)/static/coffee -name '*.html')
 LESS_SOURCES:=$(shell find $(WEB_SOURCE_DIR)/static/less -name '*.less')
 LESS_MAIN:=$(WEB_SOURCE_DIR)/static/less/styles.less
 CLUSTER_HTML:=$(WEB_SOURCE_DIR)/templates/cluster.html
@@ -817,8 +844,9 @@ endif
 # High level build targets
 
 # Frank removed $(BUILD_DIR)/$(START_DB_NAME) from this list .
+# Note that drivers, as a phony target, only gets rebuilt consistently because it is a prerequisite of real file $(WEB_ASSETS_BUILD_DIR)/js/rethinkdb.js.
 
-all: $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME) web-assets drivers
+all: $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME) $(WEB_ASSETS) drivers
 	@echo "    Finished building RethinkDB key-value store server version '${RETHINKDB_VERSION}'"
 
 ifeq ($(UNIT_TESTS),1)
@@ -828,6 +856,18 @@ endif
 unit:
 	$(MAKE) UNIT_TESTS=1
 	$(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME) --gtest_filter=$(UNIT_TEST_FILTER)
+
+$(UNIT_STATIC_LIBRARY_PATH):
+	@echo "    GTEST"
+	$(QUIET) cd $(EXTERNAL_DIR)/gtest-1.6.0/make && $(MAKE) gtest.a
+
+coverage:
+	$(MAKE) UNIT_TESTS=1 COVERAGE=1 DEBUG=1
+	$(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME) --gtest_filter=$(UNIT_TEST_FILTER)
+	lcov --directory $(OBJ_DIR) --base-directory "`pwd`" --capture --output-file $(BUILD_DIR)/coverage.full.info
+	lcov --remove $(BUILD_DIR)/coverage.full.info /usr/\* -o $(BUILD_DIR)/coverage.info
+	genhtml --demangle-cpp --no-branch-coverage --no-prefix -o $(BUILD_DIR)/coverage $(BUILD_DIR)/coverage.info 
+	echo "Wrote unit tests coverage report to $(BUILD_DIR)/coverage"
 
 # Packaging
 ifeq ($(PACKAGING),1)
@@ -1013,10 +1053,8 @@ install-deb: install
 		gzip -c9 | \
 		install -m644 -T /dev/stdin $(DESTDIR)$(doc_dir)/changelog.Debian.gz
 
-DEBIAN_V8_VERSION:=$(shell apt-cache show libv8-dev | grep '^Version:' | sed -e 's/^Version: \\([0-9]*\\(\\.[0-9]*\\)*\\).*$$/\\1/g' || true ; )
-
 ifeq ($(BUILD_PORTABLE),1)
-build-deb-support: $(TC_LESSC_INT_EXE) $(TC_COFFEE_INT_EXE) $(V8_SRC_DIR) $(NODE_SRC_DIR) $(PROTOC_SRC_DIR) $(GPERFTOOLS_SRC_DIR) $(LIBUNWIND_SRC_DIR)
+build-deb-support: $(TC_LESSC_INT_EXE) $(TC_COFFEE_INT_EXE) $(TC_HANDLEBARS_INT_EXE) $(V8_SRC_DIR) $(NODE_SRC_DIR) $(PROTOC_SRC_DIR) $(GPERFTOOLS_SRC_DIR) $(LIBUNWIND_SRC_DIR)
 else
 build-deb-support: $(TC_LESSC_INT_EXE) $(TC_COFFEE_INT_EXE)
 endif
@@ -1033,7 +1071,6 @@ build-deb-src-control:
 				-D "TRIAL_PACKAGE_NAME=$(TRIAL_PACKAGE_NAME)"						\
 				-D "VERSIONED_TRIAL_PACKAGE_NAME=$(VERSIONED_TRIAL_PACKAGE_NAME)"						\
 				-D "VERSIONED_QUALIFIED_PACKAGE_NAME=$(VERSIONED_QUALIFIED_PACKAGE_NAME)" \
-				-D "DEBIAN_V8_VERSION=$(DEBIAN_V8_VERSION)" \
 				-D "PACKAGE_VERSION=$(RETHINKDB_VERSION_DEB)" \
 				-D "LEGACY_PACKAGE=$(LEGACY_PACKAGE)" \
 				-D "STATIC_V8=$(STATIC_V8)" \
@@ -1101,7 +1138,6 @@ build-deb: all prepare_deb_package_dirs
 				-D "VERSIONED_TRIAL_PACKAGE_NAME=$(VERSIONED_TRIAL_PACKAGE_NAME)"						\
 				-D "PACKAGE_VERSION=$(RETHINKDB_VERSION_DEB)"						\
 				-D "VERSIONED_QUALIFIED_PACKAGE_NAME=$(VERSIONED_QUALIFIED_PACKAGE_NAME)" \
-				-D "DEBIAN_V8_VERSION=$(DEBIAN_V8_VERSION)" \
 				-D "LEGACY_PACKAGE=$(LEGACY_PACKAGE)"												\
 				-D "STATIC_V8=$(STATIC_V8)" \
 				-D "TC_BUNDLED=$(BUILD_PORTABLE)" \
@@ -1273,7 +1309,13 @@ rpc/mailbox/typed.hpp: ../scripts/generate_rpc_templates.py
 rpc/semilattice/joins/macros.hpp rpc/serialize_macros.hpp rpc/mailbox/typed.hpp:
 	$< > $@
 
-web-assets: $(WEB_ASSETS_BUILD_DIR)/cluster-min.js $(WEB_ASSETS_BUILD_DIR)/cluster.css $(WEB_ASSETS_BUILD_DIR)/index.html $(WEB_ASSETS_BUILD_DIR)/js $(WEB_ASSETS_BUILD_DIR)/fonts $(WEB_ASSETS_BUILD_DIR)/images $(WEB_ASSETS_BUILD_DIR)/favicon.ico $(WEB_ASSETS_BUILD_DIR)/js/rethinkdb.js
+web-assets: $(WEB_ASSETS)
+
+$(WEB_ASSETS_BUILD_DIR)/js/template.js: $(WEB_SOURCE_DIR)/static/handlebars $(TC_HANDLEBARS_EXE) ../scripts/build_handlebars_templates.py
+ifeq ($(VERBOSE),0)
+	@echo "    HANDLEBARS $@"
+endif
+	$(QUIET) env TC_HANDLEBARS_EXE=$(TC_HANDLEBARS_EXE) ../scripts/build_handlebars_templates.py $(WEB_SOURCE_DIR)/static/handlebars $(BUILD_DIR) $(WEB_ASSETS_BUILD_DIR)/js
 
 $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee: $(COFFEE_SOURCES)
 	$(QUIET) mkdir -p $(WEB_ASSETS_OBJ_DIR)
@@ -1296,13 +1338,12 @@ ifeq ($(VERBOSE),0)
 endif
 	$(QUIET) $(NODE_EXE_SPEC)$(TC_LESSC_EXE) $(LESS_MAIN) > $@ || ( echo "      Build failure." ; rm $@ ; false ; )
 
-$(WEB_ASSETS_BUILD_DIR)/index.html: $(CLUSTER_HTML) $(HANDLEBARS_SOURCES)
+$(WEB_ASSETS_BUILD_DIR)/index.html: $(CLUSTER_HTML)
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
 ifeq ($(VERBOSE),0)
-	@echo "    STRIP GEN $@"
-	@echo "    INJECT HANDLEBARS $@"
+	@echo "    SED $(CLUSTER_HTML) -> $@"
 endif
-	$(QUIET) sed 's:="gen/:=":g' $(CLUSTER_HTML) | python -c 'import sys; sys.stdout.write(sys.stdin.read().replace("<!--{{INJECT_HANDLEBARS_TEMPLATES}}-->", reduce(lambda acc, fname: acc + open(fname).read(), sys.argv[1:], "")))' $(HANDLEBARS_SOURCES) > $@ || ( echo "      Build failure." ; rm $@ ; false ; )
+	$(QUIET) sed "s/{RETHINKDB_VERSION}/$(RETHINKDB_VERSION)/" $(CLUSTER_HTML) > $@
 
 $(WEB_ASSETS_BUILD_DIR)/js:
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
@@ -1334,16 +1375,16 @@ endif
 
 # Special recipe for the proto buffer generated code
 # Need to use a dummy file to avoid calling protoc once for each input file.
-$(PROTO_DIR)/dummy: $(PROTO_SOURCES) $(TC_PROTOC_EXE)
+$(PROTO_DIR)/dummy: $(QL_PROTO_SOURCES) $(QL2_PROTO_SOURCES) $(TC_PROTOC_EXE)
 	$(QUIET) mkdir -p $(PROTO_DIR)
 ifeq ($(VERBOSE),0)
 	@echo "    PROTOC[CPP] $^"
 endif
-	$(QUIET) $(TC_PROTOC_RUN) $(PROTOCFLAGS) --cpp_out $(PROTO_DIR) $(PROTO_SOURCES) && touch $@
-# The preceding line used $^ instead of $(PROTO_SOURCES) before.
-# The touch command was on a separate line, but that caused problems since make ignored the failure of that line and touched the file anyway.
+	$(QUIET) protoc $(PROTOCFLAGS) --cpp_out $(PROTO_DIR) $(QL_PROTO_SOURCES) && touch $@
+	$(QUIET) protoc $(PROTOCFLAGS) --cpp_out $(PROTO_DIR) $(QL2_PROTO_SOURCES) && touch $@
+	$(QUIET) touch $@
 
-$(PROTO_HEADERS) $(PROTO_CODE): $(PROTO_DIR)/dummy
+$(QL_PROTO_HEADERS) $(QL2_PROTO_HEADERS) $(QL_PROTO_CODE) $(QL2_PROTO_CODE): $(PROTO_DIR)/dummy
 
 $(BUILD_DIR)/$(SERVER_EXEC_NAME): $(OBJS) $(BUILD_DIR) $(OBJ_SUPPS)
 ifeq ($(VERBOSE),0)
@@ -1369,18 +1410,18 @@ endif
 # default cases. So we have to remove the -Wswitch-default argument for them.
 $(OBJ_DIR)/unittest/%.o: RT_CXXFLAGS:=$(filter-out -Wswitch-default,$(RT_CXXFLAGS))
 
-$(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME): $(OBJS) $(BUILD_DIR) $(OBJ_SUPPS)
+$(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME): $(OBJS) $(BUILD_DIR) $(OBJ_SUPPS) $(UNIT_STATIC_LIBRARY_PATH)
 ifeq ($(VERBOSE),0)
 	@echo "    LD $@"
 endif
 ifeq ($(IGNORE_SOME_ICC_LD_WARNINGS),0)
-	$(QUIET) $(RT_CXX) $(RT_LDFLAGS) $(SERVER_UNIT_TEST_OBJS) $(STATIC_LIBRARY_PATHS) $(UNIT_STATIC_LIBRARY_PATHS) -o $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME)
+	$(QUIET) $(RT_CXX) $(RT_LDFLAGS) $(SERVER_UNIT_TEST_OBJS) $(STATIC_LIBRARY_PATHS) $(UNIT_STATIC_LIBRARY_PATH) -o $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME)
 else
 # Note: that is the copy of the problem description that we have above in server linking section.
 # The following line runs CXX in linking mode (supplying only the object files and libraries) and then
 # pass the output through a filter which filters out bogus (?) icc-related problems.
 # FIXME: figure out why we get these problems
-	$(QUIET) ($(RT_CXX) $(RT_LDFLAGS) $(SERVER_UNIT_TEST_OBJS) $(STATIC_LIBRARY_PATHS) $(UNIT_STATIC_LIBRARY_PATHS) -o $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME) 2>&1 >&3 | (grep -v "warning: relocation refers to discarded section" || true) >&2) 3>&1
+	$(QUIET) ($(RT_CXX) $(RT_LDFLAGS) $(SERVER_UNIT_TEST_OBJS) $(STATIC_LIBRARY_PATHS) $(UNIT_STATIC_LIBRARY_PATH) -o $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME) 2>&1 >&3 | (grep -v "warning: relocation refers to discarded section" || true) >&2) 3>&1
 endif
 
 $(BUILD_DIR)/$(START_DB_NAME):
@@ -1482,7 +1523,7 @@ $(BUILD_DIR):
 
 # Proto buffers object files
 # This is hacky, as the following rule is just a duplicate of the rule for our own sources
-$(OBJ_DIR)/%.pb.o:  $(PROTO_DIR)/%.pb.cc $(MAKEFILE_DEPENDENCY) $(PROTO_HEADERS)
+$(OBJ_DIR)/%.pb.o:  $(PROTO_DIR)/%.pb.cc $(MAKEFILE_DEPENDENCY) $(QL_PROTO_HEADERS) $(QL2_PROTO_HEADERS)
 	$(QUIET) mkdir -p $(dir $@)
 ifeq ($(VERBOSE),0)
 	@echo "    CC $< -o $@"
@@ -1497,7 +1538,7 @@ endif
 	$(QUIET) $(RT_CXX) $(RT_CXXFLAGS) -c -o $@ $<
 
 # Dependencies
-$(DEP_DIR)/%.d: $(SOURCE_DIR)/%.cc $(PROTO_HEADERS) $(V8_DEP)
+$(DEP_DIR)/%.d: $(SOURCE_DIR)/%.cc $(QL_PROTO_HEADERS) $(QL2_PROTO_HEADERS) $(V8_DEP)
 ifeq ($(VERBOSE),0)
 	@echo "    DEP $@"
 endif
@@ -1508,9 +1549,9 @@ endif
 # intermediate files; then the .d files are read in, and some depend on the proto headers, so they
 # get remade. This is redundant work. Also, it appears to cause nondeterministic races - possibly a
 # bug in GNU Make, possibly a bug in our Makefile.
-.SECONDARY: $(PROTO_HEADERS)
+.SECONDARY: $(QL_PROTO_HEADERS) $(QL2_PROTO_HEADERS)
 
-NO_DEPS_TARGETS:=clean depclean tags etags analyze cscope style web-assets build-deb-src-control build-deb-support $(WEB_ASSETS_BUILD_DIR)/cluster-min.js $(WEB_ASSETS_BUILD_DIR)/cluster.css $(WEB_ASSETS_BUILD_DIR)/index.html $(WEB_ASSETS_BUILD_DIR)/js $(WEB_ASSETS_BUILD_DIR)/fonts $(WEB_ASSETS_BUILD_DIR)/images $(WEB_ASSETS_BUILD_DIR)/favicon.ico $(WEB_ASSETS_BUILD_DIR)/js/rethinkdb.js $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee $(COFFEE_SOURCES) $(PROTO_DIR)/dummy $(PROTO_SOURCES) $(PROTO_HEADERS) $(PROTO_CODE) $(PROTO_DIR)/dummy $(OPROF_TARGETS) $(TC_LESSC_INT_EXE) $(TC_COFFEE_INT_EXE) $(SUPPORT_DIR) $(V8_SRC_DIR) $(V8_DIR) $(V8_LIB) $(NODE_SRC_DIR) $(NODE_DIR) $(TC_NODE_INT_EXE) $(TC_NPM_INT_EXE) $(PROTOC_SRC_DIR) $(PROTOC_DIR) $(TC_PROTOC_INT_EXE) $(GPERFTOOLS_SRC_DIR) $(GPERFTOOLS_DIR) $(LIBUNWIND_SRC_DIR) $(LIBUNWIND_DIR) $(TCMALLOC_MINIMAL_INT_LIB)
+NO_DEPS_TARGETS:=clean depclean tags etags analyze cscope style web-assets build-deb-src build-deb-src-control build-deb-support $(TC_LESSC_INT_EXE) $(TC_COFFEE_INT_EXE) $(SUPPORT_DIR) $(WEB_ASSETS_BUILD_DIR)/cluster-min.js $(WEB_ASSETS_BUILD_DIR)/cluster.css $(WEB_ASSETS_BUILD_DIR)/index.html $(WEB_ASSETS_BUILD_DIR)/js $(WEB_ASSETS_BUILD_DIR)/fonts $(WEB_ASSETS_BUILD_DIR)/images $(WEB_ASSETS_BUILD_DIR)/favicon.ico $(WEB_ASSETS_BUILD_DIR)/js/rethinkdb.js $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee $(COFFEE_SOURCES) $(PROTO_DIR)/dummy $(QL_PROTO_SOURCES) $(QL2_PROTO_SOURCES) $(QL_PROTO_HEADERS) $(QL2_PROTO_HEADERS) $(QL_PROTO_CODE) $(QL2_PROTO_CODE) $(QL_PROTO_DIR) $(QL2_PROTO_DIR)/dummy $(OPROF_TARGETS) $(TC_LESSC_INT_EXE) $(TC_COFFEE_INT_EXE) $(TC_HANDLEBARS_INT_EXE) $(SUPPORT_DIR) $(V8_SRC_DIR) $(V8_DIR) $(V8_LIB) $(NODE_SRC_DIR) $(NODE_DIR) $(TC_NODE_INT_EXE) $(TC_NPM_INT_EXE) $(PROTOC_SRC_DIR) $(PROTOC_DIR) $(TC_PROTOC_INT_EXE) $(GPERFTOOLS_SRC_DIR) $(GPERFTOOLS_DIR) $(LIBUNWIND_SRC_DIR) $(LIBUNWIND_DIR) $(TCMALLOC_MINIMAL_INT_LIB)
 # Include the dependencies into the makefile so that they take effect
 ifneq (,$(if $(MAKECMDGOALS),$(filter-out $(NO_DEPS_TARGETS),$(MAKECMDGOALS)),non-empty-placeholder))
 -include $(DEPS)
@@ -1543,6 +1584,18 @@ ifeq ($(FETCH_INTERNAL_TOOLS),1)
 # endif
 else
 	@ if [ ! -e $(TC_COFFEE_INT_EXE) ] ; then echo "    ERROR: Internal coffee-script is necessary but not present, and FETCH_INTERNAL_TOOLS != 1." ; false ; fi ;
+endif
+
+$(TC_HANDLEBARS_INT_EXE): $(TC_NPM_EXE)
+ifeq ($(FETCH_INTERNAL_TOOLS),1)
+# ifeq ($(shell npm list --global --parseable | grep '\/handlebars$$'),)
+	$(QUIET) if [ ! -e $(SUPPORT_DIR) ] ; then mkdir -p $(SUPPORT_DIR) ; fi ;
+	$(QUIET) if [ -d $(SUPPORT_DIR) ] && [ ! -e $(SUPPORT_DIR)/toolchain ] ; then mkdir -p $(SUPPORT_DIR)/toolchain ; fi ;
+	@echo "    NPM-I handlebars"
+	$(QUIET) cd $(SUPPORT_DIR)/toolchain ; $(TC_NPM_EXE) install handlebars ;
+# endif
+else
+	@ if [ ! -e $(TC_HANDLEBARS_INT_EXE) ] ; then echo "    ERROR: Internal handlebars is necessary but not present, and FETCH_INTERNAL_TOOLS != 1." ; false ; fi ;
 endif
 
 $(SUPPORT_DIR):

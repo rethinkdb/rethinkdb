@@ -3,11 +3,11 @@
 
 #include <exception>
 
-#include "errors.hpp"
 #include "utils.hpp"
 #include <boost/bind.hpp>
+#include <boost/algorithm/string.hpp>
 
-#include "arch/arch.hpp"
+#include "arch/io/network.hpp"
 #include "logger.hpp"
 
 static const char *resource_parts_sep_char = "/";
@@ -97,7 +97,7 @@ http_req_t::http_req_t(const http_req_t &from, const resource_t::iterator& resou
 
 boost::optional<std::string> http_req_t::find_query_param(const std::string& key) const {
     //TODO this is inefficient we should actually load it all into a map
-    for (std::vector<query_parameter_t>::const_iterator it = query_params.begin(); it != query_params.end(); it++) {
+    for (std::vector<query_parameter_t>::const_iterator it = query_params.begin(); it != query_params.end(); ++it) {
         if (it->key == key)
             return boost::optional<std::string>(it->val);
     }
@@ -106,8 +106,8 @@ boost::optional<std::string> http_req_t::find_query_param(const std::string& key
 
 boost::optional<std::string> http_req_t::find_header_line(const std::string& key) const {
     //TODO this is inefficient we should actually load it all into a map
-    for (std::vector<header_line_t>::const_iterator it = header_lines.begin(); it != header_lines.end(); it++) {
-        if (it->key == key)
+    for (std::vector<header_line_t>::const_iterator it = header_lines.begin(); it != header_lines.end(); ++it) {
+        if (boost::iequals(it->key, key))
             return boost::optional<std::string>(it->val);
     }
     return boost::none;
@@ -115,8 +115,8 @@ boost::optional<std::string> http_req_t::find_header_line(const std::string& key
 
 bool http_req_t::has_header_line(const std::string& key) const {
     //TODO this is inefficient we should actually load it all into a map
-    for (std::vector<header_line_t>::const_iterator it = header_lines.begin(); it != header_lines.end(); it++) {
-        if (it->key == key) {
+    for (std::vector<header_line_t>::const_iterator it = header_lines.begin(); it != header_lines.end(); ++it) {
+        if (boost::iequals(it->key, key)) {
             return true;
         }
     }
@@ -127,12 +127,13 @@ std::string http_req_t::get_sanitized_body() const {
     return sanitize_for_logger(body);
 }
 
-int content_length(http_req_t msg) {
-    for (std::vector<header_line_t>::iterator it = msg.header_lines.begin(); it != msg.header_lines.end(); it++) {
-        if (it->key == std::string("Content-Length"))
-            return atoi(it->val.c_str());
-    }
-    return 0;
+int content_length(const http_req_t &msg) {
+    boost::optional<std::string> content_length = msg.find_header_line("Content-Length");
+
+    if (!content_length)
+        return 0;
+
+    return atoi(content_length.get().c_str());
 }
 
 http_res_t::http_res_t()
@@ -161,7 +162,7 @@ void http_res_t::add_header_line(const std::string& key, const std::string& val)
 }
 
 void http_res_t::set_body(const std::string& content_type, const std::string& content) {
-    for (std::vector<header_line_t>::iterator it = header_lines.begin(); it != header_lines.end(); it++) {
+    for (std::vector<header_line_t>::iterator it = header_lines.begin(); it != header_lines.end(); ++it) {
         guarantee(it->key != "Content-Type");
         guarantee(it->key != "Content-Length");
     }
@@ -176,23 +177,6 @@ void http_res_t::set_body(const std::string& content_type, const std::string& co
 
 http_res_t http_error_res(const std::string &content, http_status_code_t rescode) {
     return http_res_t(rescode, "application/text", content);
-}
-
-//TODO: What the hell is this?
-void test_header_parser() {
-    http_req_t res("/foo/bar");
-    //str_http_msg_parser_t http_msg_parser;
-    std::string header =
-        "GET /foo/bar HTTP/1.1\r\n"
-        "Date: Fri, 31 Dec 1999 23:59:59 GMT\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 0\r\n"
-        "\r\n";
-    //std::string::const_iterator iter = header.begin();
-    //std::string::const_iterator end = header.end();
-    //UNUSED bool success = parse(iter, end, http_msg_parser, res);
-    BREAKPOINT;
-    UNUSED bool success = true;
 }
 
 http_server_t::http_server_t(const std::set<ip_address_t> &local_addresses,
@@ -302,7 +286,7 @@ std::string human_readable_status(int code) {
 
 void write_http_msg(tcp_conn_t *conn, const http_res_t &res, signal_t *closer) THROWS_ONLY(tcp_conn_write_closed_exc_t) {
     conn->writef(closer, "HTTP/%s %d %s\r\n", res.version.c_str(), res.code, human_readable_status(res.code).c_str());
-    for (std::vector<header_line_t>::const_iterator it = res.header_lines.begin(); it != res.header_lines.end(); it++) {
+    for (std::vector<header_line_t>::const_iterator it = res.header_lines.begin(); it != res.header_lines.end(); ++it) {
         conn->writef(closer, "%s: %s\r\n", it->key.c_str(), it->val.c_str());
     }
     conn->writef(closer, "\r\n");
@@ -502,7 +486,7 @@ std::string percent_escaped_string(const std::string &s) {
     std::string res;
     for (std::string::const_iterator it =  s.begin();
                                      it != s.end();
-                                     it++) {
+                                     ++it) {
         if (is_safe(*it)) {
             res.push_back(*it);
         } else {
@@ -521,10 +505,10 @@ bool percent_unescape_string(const std::string &s, std::string *out) {
     std::string res;
     for (std::string::const_iterator it  = s.begin();
                                      it != s.end();
-                                     it++) {
+                                     ++it) {
         if (*it == '%') {
             //read an escaped character
-            it++;
+            ++it;
             if (it == s.end()) {
                 return false;
             }
@@ -533,7 +517,7 @@ bool percent_unescape_string(const std::string &s, std::string *out) {
                 return false;
             }
 
-            it++;
+            ++it;
             if (it == s.end()) {
                 return false;
             }
@@ -554,4 +538,24 @@ bool percent_unescape_string(const std::string &s, std::string *out) {
 
     *out = res;
     return true;
+}
+
+std::string http_format_date(const time_t date) {
+    struct tm t;
+    struct tm *res1 = gmtime_r(&date, &t);
+    guarantee_err(res1 == &t, "gmtime_r() failed.");
+    
+    static const char *weekday[] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
+    static const char *month[] =  { "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+
+    return strprintf(
+        "%s, %02d %s %04d %02d:%02d:%02d GMT",
+        weekday[t.tm_wday],
+        t.tm_mday,
+        month[t.tm_mon],
+        t.tm_year + 1900,
+        t.tm_hour,
+        t.tm_min,
+        t.tm_sec);
 }

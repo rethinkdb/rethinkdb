@@ -33,7 +33,7 @@ timer_signal_provider_t::timer_signal_provider_t(UNUSED linux_event_queue_t *que
     struct sigaction sa = make_sa_sigaction(SA_SIGINFO, &timer_signal_provider_signal_handler);
 
     // Register the signal.
-    res = sigaction(TIMER_NOTIFY_SIGNAL, &sa, NULL);
+    int res = sigaction(TIMER_NOTIFY_SIGNAL, &sa, NULL);
     guarantee_err(res == 0, "timer signal provider could not register the signal handler");
 
     // Initialize the event structure

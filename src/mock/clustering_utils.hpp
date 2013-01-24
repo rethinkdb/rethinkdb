@@ -185,8 +185,8 @@ public:
                                it != values_inserted->end();
                                it++) {
             cond_t interruptor;
-            std::string response = rfun((*it).first, osource->check_in(strprintf("mock::test_inserter_t::validate(%p)", this)).with_read_mode(), &interruptor);
-            rassert((*it).second == response);
+            std::string response = rfun(it->first, osource->check_in(strprintf("mock::test_inserter_t::validate(%p)", this)).with_read_mode(), &interruptor);
+            rassert(it->second == response);
         }
     }
 

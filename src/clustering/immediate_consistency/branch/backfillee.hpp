@@ -4,7 +4,11 @@
 
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
+#include "clustering/generic/resource.hpp"
 #include "rpc/semilattice/view.hpp"
+
+template <class> class clone_ptr_t;
+template <class> class watchable_t;
 
 /* `backfillee()` contacts the given backfiller and requests a backfill from it.
 It takes responsibility for updating the metainfo. */

@@ -9,6 +9,15 @@
 #include <string>
 #include <vector>
 
+#include "errors.hpp"
+#include <boost/shared_ptr.hpp>
+#include <boost/optional.hpp>
+
+#include "containers/archive/boost_types.hpp"
+#include "http/json.hpp"
+#include "rdb_protocol/rdb_protocol_json.hpp"
+#include "rpc/serialize_macros.hpp"
+
 template <class T>
 inline void guarantee_T(const T &) { }
 
@@ -99,6 +108,7 @@ public:
     };
 
     RDB_MAKE_ME_SERIALIZABLE_1(scopes);
+
 private:
     std::list<std::map<std::string, T> > scopes;
 };

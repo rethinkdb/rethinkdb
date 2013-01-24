@@ -5,6 +5,7 @@
 #include <map>
 
 #include "arch/io/arch.hpp"
+#include "concurrency/auto_drainer.hpp"
 #include "concurrency/one_per_thread.hpp"
 #include "rpc/connectivity/connectivity.hpp"
 #include "rpc/connectivity/messages.hpp"
@@ -20,6 +21,16 @@ public:
     void end_peer_heartbeat(const peer_id_t &peer_id);
 
     void message_from_peer(const peer_id_t &source_peer);
+
+    // Callback class which keeps track of traffic on the connection
+    class heartbeat_keepalive_tracker_t {
+    public:
+        virtual ~heartbeat_keepalive_tracker_t() { }
+        virtual bool check_and_reset_reads() = 0;
+        virtual bool check_and_reset_writes() = 0;
+    };
+
+    void set_keepalive_tracker(const peer_id_t &peer_id, heartbeat_keepalive_tracker_t *tracker);
 
 private:
     static const int64_t HEARTBEAT_INTERVAL_MS = 2000;
@@ -42,7 +53,14 @@ private:
         ~per_thread_data_t();
 
         timer_token_t *timer_token;
-        std::map<peer_id_t, uint32_t> connections;
+
+        struct conn_data_t {
+            conn_data_t();
+            uint32_t outstanding;
+            heartbeat_keepalive_tracker_t *tracker;
+        };
+
+        std::map<peer_id_t, conn_data_t> connections;
         auto_drainer_t drainer;
     };
 

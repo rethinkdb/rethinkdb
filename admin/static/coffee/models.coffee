@@ -898,3 +898,57 @@ module 'DataUtils', ->
     @is_integer = (data) ->
         return data.search(/^\d+$/) isnt -1
 
+    # Deep copy. We do not copy prototype.
+    @deep_copy = (data) ->
+        if typeof data is 'boolean' or typeof data is 'number' or typeof data is 'string' or typeof data is 'number' or data is null or data is undefined
+            return data
+        else if typeof data is 'object' and Object.prototype.toString.call(data) is '[object Array]'
+            result = []
+            for value in data
+                result.push @deep_copy value
+            return result
+        else if typeof data is 'object'
+            result = {}
+            for key, value of data
+                result[key] = @deep_copy value
+            return result
+
+    @approximate_count = (num) ->
+        # 0 => 0
+        # 1 - 5 => 5
+        # 5 - 10 => 10
+        # 11 - 99 => Rounded to _0
+        # 100 - 999 => Rounded to _00
+        # 1,000 - 9,999 => _._K
+        # 10,000 - 10,000 => __K
+        # 100,000 - 1,000,000 => __0K
+        # Millions and billions have the same behavior as thousands
+        # If num>1000B, then we just print the number of billions
+        if num is 0
+            return '0'
+        else if num <= 5
+            return '5'
+        else if num <= 10
+            return '10'
+        else
+            # Approximation to 2 significant digit
+            approx = Math.round(num/Math.pow(10, num.toString().length-2))*Math.pow(10, num.toString().length-2)
+            if approx < 100 # We just want one digit
+                return (Math.floor(approx/10)*10).toString()
+            else if approx < 1000 # We just want one digit
+                return (Math.floor(approx/100)*100).toString()
+            else if approx < 1000000
+                result = (approx/1000).toString()
+                if result.length is 1 # In case we have 4 for 4000, we want 4.0
+                    result = result + '.0'
+                return result+'K'
+            else if approx < 1000000000
+                result = (approx/1000000).toString()
+                if result.length is 1 # In case we have 4 for 4000, we want 4.0
+                    result = result + '.0'
+                return result+'M'
+            else
+                result = (approx/1000000000).toString()
+                if result.length is 1 # In case we have 4 for 4000, we want 4.0
+                    result = result + '.0'
+                return result+'B'

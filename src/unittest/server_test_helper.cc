@@ -12,8 +12,8 @@
 
 namespace unittest {
 
-const int server_test_helper_t::init_value = 0x12345678;
-const int server_test_helper_t::changed_value = 0x87654321;
+const uint32_t server_test_helper_t::init_value = 0x12345678;
+const uint32_t server_test_helper_t::changed_value = 0x87654321;
 
 server_test_helper_t::server_test_helper_t()
     : serializer(NULL), thread_pool(new thread_pool_t(1, false)) { }

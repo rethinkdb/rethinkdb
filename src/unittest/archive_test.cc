@@ -30,10 +30,10 @@ TEST(WriteMessageTest, Variant) {
     std::vector<char> u(s.begin(), s.end());
 
     ASSERT_EQ(2, u[0]);
-    ASSERT_EQ(13, *reinterpret_cast<uint64_t *>(u.data() + 1));
+    ASSERT_EQ(13u, *reinterpret_cast<uint64_t *>(u.data() + 1));
     ASSERT_EQ('H', u[9]);
     ASSERT_EQ('!', u[21]);
-    ASSERT_EQ(22, u.size());
+    ASSERT_EQ(22u, u.size());
 }
 
 

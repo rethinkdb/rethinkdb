@@ -15,12 +15,17 @@
 #include "containers/archive/vector_stream.hpp"
 #include "protob/protob.hpp"
 #include "rdb_protocol/btree.hpp"
+#include "rdb_protocol/env.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/query_language.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/watchable.hpp"
 #include "serializer/config.hpp"
 
+
+// TODO: this is absurd, and messes up my ETAGS jumping.  We should just alias
+// the module to something shorter and type out the shorter name everywhere, or
+// else use a `using` declaration.
 typedef rdb_protocol_details::backfill_atom_t rdb_backfill_atom_t;
 
 typedef rdb_protocol_t::context_t context_t;
@@ -33,6 +38,8 @@ typedef rdb_protocol_t::read_response_t read_response_t;
 
 typedef rdb_protocol_t::point_read_t point_read_t;
 typedef rdb_protocol_t::point_read_response_t point_read_response_t;
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_read_response_t, data);
+
 
 typedef rdb_protocol_t::rget_read_t rget_read_t;
 typedef rdb_protocol_t::rget_read_response_t rget_read_response_t;
@@ -48,6 +55,9 @@ typedef rdb_protocol_t::point_write_response_t point_write_response_t;
 
 typedef rdb_protocol_t::point_modify_t point_modify_t;
 typedef rdb_protocol_t::point_modify_response_t point_modify_response_t;
+
+typedef rdb_protocol_t::point_replace_t point_replace_t;
+typedef rdb_protocol_t::point_replace_response_t point_replace_response_t;
 
 typedef rdb_protocol_t::point_delete_t point_delete_t;
 typedef rdb_protocol_t::point_delete_response_t point_delete_response_t;
@@ -72,6 +82,19 @@ RDB_IMPL_PROTOB_SERIALIZABLE(Builtin_GroupedMapReduce);
 RDB_IMPL_PROTOB_SERIALIZABLE(Mapping);
 RDB_IMPL_PROTOB_SERIALIZABLE(Reduction);
 RDB_IMPL_PROTOB_SERIALIZABLE(WriteQuery_ForEach);
+
+RDB_IMPL_PROTOB_SERIALIZABLE(Term2);
+RDB_IMPL_PROTOB_SERIALIZABLE(Datum);
+
+
+namespace rdb_protocol_details {
+
+RDB_IMPL_SERIALIZABLE_3(backfill_atom_t, key, value, recency);
+RDB_IMPL_SERIALIZABLE_3(transform_atom_t, variant, scopes, backtrace);
+RDB_IMPL_SERIALIZABLE_3(terminal_t, variant, scopes, backtrace);
+RDB_IMPL_SERIALIZABLE_0(Length);
+
+}  // namespace rdb_protocol_details
 
 rdb_protocol_t::context_t::context_t()
     : pool_group(NULL), ns_repo(NULL),
@@ -254,6 +277,8 @@ public:
 
                 if (const runtime_exc_t *e = boost::get<runtime_exc_t>(&(_rr->result))) {
                     throw *e;
+                } else if (const ql::exc_t *e2 = boost::get<ql::exc_t>(&(_rr->result))) {
+                    throw *e2;
                 }
             }
 
@@ -330,6 +355,36 @@ public:
                     Term body = r->body();
                     *res_atom = eval_term_as_json(&body, &env, scopes_copy, rg.terminal->backtrace.with("body"));
                 }
+            } else if (boost::get<ql::reduce_wire_func_t>(&rg.terminal->variant)
+                       || boost::get<ql::count_wire_func_t>(&rg.terminal->variant)) {
+                typedef std::vector<ql::wire_datum_t> wire_data_t;
+                wire_data_t *out_vec = boost::get<wire_data_t>(
+                    &(rg_response.result = wire_data_t()));
+                for (size_t i = 0; i < count; ++i) {
+                    const rget_read_response_t *_rr =
+                        boost::get<rget_read_response_t>(&responses[i].response);
+                    guarantee(_rr);
+                    if (const ql::wire_datum_t *d =
+                        boost::get<ql::wire_datum_t>(&(_rr->result))) {
+                        out_vec->push_back(*d);
+                    } else {
+                        guarantee(boost::get<rget_read_response_t::empty_t>(
+                                      &(_rr->result)));
+                    }
+                }
+            } else if (boost::get<ql::gmr_wire_func_t>(&rg.terminal->variant)) {
+                typedef std::vector<ql::wire_datum_map_t> wire_datum_maps_t;
+                wire_datum_maps_t *out_vec = boost::get<wire_datum_maps_t>(
+                    &(rg_response.result = wire_datum_maps_t()));
+                for (size_t i = 0; i < count; ++i) {
+                    const rget_read_response_t *_rr =
+                        boost::get<rget_read_response_t>(&responses[i].response);
+                    guarantee(_rr);
+                    const ql::wire_datum_map_t *dm =
+                        boost::get<ql::wire_datum_map_t>(&(_rr->result));
+                    r_sanity_check(dm);
+                    out_vec->push_back(*dm);
+                }
             } else if (boost::get<rdb_protocol_details::Length>(&rg.terminal->variant)) {
                 rg_response.result = length_t();
                 length_t *res_length = boost::get<length_t>(&rg_response.result);
@@ -358,6 +413,8 @@ public:
                 unreachable();
             }
         } catch (const runtime_exc_t &e) {
+            rg_response.result = e;
+        } catch (const ql::exc_t &e) {
             rg_response.result = e;
         }
     }
@@ -457,6 +514,10 @@ struct w_get_region_visitor : public boost::static_visitor<region_t> {
     region_t operator()(const point_delete_t &pd) const {
         return rdb_protocol_t::monokey_region(pd.key);
     }
+
+    region_t operator()(const point_replace_t &pr) const {
+        return rdb_protocol_t::monokey_region(pr.key);
+    }
 };
 
 }   /* anonymous namespace */
@@ -485,6 +546,11 @@ struct w_shard_visitor : public boost::static_visitor<write_t> {
     write_t operator()(const point_delete_t &pd) const {
         rassert(rdb_protocol_t::monokey_region(pd.key) == region);
         return write_t(pd);
+    }
+
+    write_t operator()(const point_replace_t &pr) const {
+        rassert(rdb_protocol_t::monokey_region(pr.key) == region);
+        return write_t(pr);
     }
     const region_t &region;
 };
@@ -527,7 +593,7 @@ struct read_visitor_t : public boost::static_visitor<void> {
     void operator()(const rget_read_t &rget) {
         response->response = rget_read_response_t();
         rget_read_response_t &res = boost::get<rget_read_response_t>(response->response);
-        rdb_rget_slice(btree, rget.region.inner, txn, superblock, &env, rget.transform, rget.terminal, &res);
+        rdb_rget_slice(btree, rget.region.inner, txn, superblock, &env, &ql_env, rget.transform, rget.terminal, &res);
     }
 
     void operator()(const distribution_read_t &dg) {
@@ -570,7 +636,16 @@ struct read_visitor_t : public boost::static_visitor<void> {
             ctx->semilattice_metadata,
             boost::make_shared<js::runner_t>(),
             &interruptor,
-            ctx->machine_id)
+            ctx->machine_id),
+        ql_env(ctx->pool_group,
+               ctx->ns_repo,
+               ctx->cross_thread_namespace_watchables[get_thread_id()].get()->get_watchable(),
+               ctx->cross_thread_database_watchables[get_thread_id()].get()->get_watchable(),
+               ctx->semilattice_metadata,
+               NULL,
+               boost::make_shared<js::runner_t>(),
+               &interruptor,
+               ctx->machine_id)
     { }
 
 private:
@@ -580,6 +655,7 @@ private:
     superblock_t *superblock;
     wait_any_t interruptor;
     query_language::runtime_environment_t env;
+    ql::env_t ql_env;
 };
 
 }   /* anonymous namespace */
@@ -598,6 +674,16 @@ namespace {
 
 // TODO: get rid of this extra response_t copy on the stack
 struct write_visitor_t : public boost::static_visitor<void> {
+    void operator()(const point_replace_t &r) {
+        response->response = point_replace_response_t();
+        point_replace_response_t *res =
+            boost::get<point_replace_response_t>(&response->response);
+        // TODO: modify surrounding code so we can dump this const_cast.
+        ql::map_wire_func_t *f = const_cast<ql::map_wire_func_t *>(&r.f);
+        rdb_replace(r.primary_key, r.key, f, &ql_env,
+                    res, btree, timestamp, txn, superblock);
+    }
+
     void operator()(const point_write_t &w) {
         response->response = point_write_response_t();
         point_write_response_t &res = boost::get<point_write_response_t>(response->response);
@@ -636,7 +722,18 @@ struct write_visitor_t : public boost::static_visitor<void> {
             ctx->semilattice_metadata,
             boost::make_shared<js::runner_t>(),
             &interruptor,
-            ctx->machine_id)
+            ctx->machine_id),
+        ql_env(ctx->pool_group,
+               ctx->ns_repo,
+               ctx->cross_thread_namespace_watchables[
+                   get_thread_id()].get()->get_watchable(),
+               ctx->cross_thread_database_watchables[
+                   get_thread_id()].get()->get_watchable(),
+               ctx->semilattice_metadata,
+               0,
+               boost::make_shared<js::runner_t>(),
+               &interruptor,
+               ctx->machine_id)
     { }
 
 private:
@@ -647,6 +744,7 @@ private:
     repli_timestamp_t timestamp;
     wait_any_t interruptor;
     query_language::runtime_environment_t env;
+    ql::env_t ql_env;
 };
 
 }   /* anonymous namespace */
@@ -886,3 +984,39 @@ rdb_protocol_t::backfill_chunk_t rdb_protocol_t::backfill_chunk_t::shard(const r
     backfill_chunk_shard_visitor_t v(region);
     return boost::apply_visitor(v, val);
 }
+
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::rget_read_response_t::length_t, length);
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::rget_read_response_t::inserted_t, inserted);
+
+
+RDB_IMPL_ME_SERIALIZABLE_5(rdb_protocol_t::rget_read_response_t,
+                           result, errors, key_range, truncated, last_considered_key);
+RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::distribution_read_response_t, region, key_counts);
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::read_response_t, response);
+
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_read_t, key);
+RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::rget_read_t, region, transform, terminal);
+
+RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::distribution_read_t, max_depth, result_limit, region);
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::read_t, read);
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_write_response_t, result);
+
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_delete_response_t, result);
+RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::point_modify_response_t, result, exc);
+
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::write_response_t, response);
+
+RDB_IMPL_ME_SERIALIZABLE_6(rdb_protocol_t::point_modify_t, primary_key, key, op, scopes, backtrace, mapping);
+
+RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::point_write_t, key, data, overwrite);
+
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_delete_t, key);
+
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::write_t, write);
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::delete_key_t, key);
+
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::delete_range_t, range);
+
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::key_value_pair_t, backfill_atom);
+
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t, val);

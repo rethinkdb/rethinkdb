@@ -254,30 +254,53 @@ private:
     DISABLE_COPYING(cluster_conn_closing_subscription_t);
 };
 
-class heartbeat_keepalive_t : public keepalive_tcp_conn_stream_t::keepalive_callback_t {
+class heartbeat_keepalive_t : public keepalive_tcp_conn_stream_t::keepalive_callback_t,
+                              public heartbeat_manager_t::heartbeat_keepalive_tracker_t {
 public:
     heartbeat_keepalive_t(keepalive_tcp_conn_stream_t *_conn, heartbeat_manager_t *_heartbeat, peer_id_t _peer) :
         conn(_conn),
         heartbeat(_heartbeat),
         peer(_peer)
     {
+        rassert(conn != NULL);
+        rassert(heartbeat != NULL);
         conn->set_keepalive_callback(this);
+        heartbeat->set_keepalive_tracker(peer, this);
     }
 
     ~heartbeat_keepalive_t() {
         conn->set_keepalive_callback(NULL);
+        heartbeat->set_keepalive_tracker(peer, NULL);
     }
 
-    void keepalive() {
-        if (heartbeat != NULL) {
-            heartbeat->message_from_peer(peer);
-        }
+    void keepalive_read() {
+        read_done = true;
+    }
+
+    void keepalive_write() {
+        write_done = true;
+    }
+
+    bool check_and_reset_reads() {
+        bool result = read_done;
+        read_done = false;
+        return result;
+    }
+
+    bool check_and_reset_writes() {
+        bool result = write_done;
+        write_done = false;
+        return result;
     }
 
 private:
     keepalive_tcp_conn_stream_t * const conn;
     heartbeat_manager_t * const heartbeat;
     const peer_id_t peer;
+    bool read_done;
+    bool write_done;
+
+    DISABLE_COPYING(heartbeat_keepalive_t);
 };
 
 // Error-handling helper for connectivity_cluster_t::run_t::handle(). Returns true if handle()
@@ -299,6 +322,43 @@ static bool deserialize_and_check(tcp_conn_stream_t *c, T *p, const char *peer) 
         logERR("unknown error occurred on connection from %s, closing connection", peer);
         return true;
     }
+}
+
+bool is_similar_peer_address(const peer_address_t &left, const peer_address_t &right) {
+    bool left_loopback_only = true;
+    bool right_loopback_only = true;
+
+    if (left.port != right.port) {
+        return false;
+    }
+
+    // We ignore any loopback addresses because they don't give us any useful information
+    // Return true if any non-loopback addresses match
+    for (std::set<ip_address_t>::iterator left_it = left.all_ips()->begin();
+         left_it != left.all_ips()->end(); ++left_it) {
+        if (left_it->is_loopback()) {
+            continue;
+        } else {
+            left_loopback_only = false;
+        }
+
+        for (std::set<ip_address_t>::iterator right_it = right.all_ips()->begin();
+             right_it != right.all_ips()->end(); ++right_it) {
+            if (right_it->is_loopback()) {
+                continue;
+            } else {
+                right_loopback_only = false;
+            }
+
+            if (*right_it == *left_it) {
+                return true;
+            }
+        }
+    }
+
+    // No non-loopback addresses matched, return true if either side was *only* loopback addresses
+    //  because we can't easily prove if they are the same or different addresses
+    return left_loopback_only || right_loopback_only;
 }
 
 // We log error conditions as follows:
@@ -384,7 +444,7 @@ void connectivity_cluster_t::run_t::handle(
         }
         return;
     }
-    if (expected_address && other_address != *expected_address) {
+    if (expected_address && !is_similar_peer_address(other_address, *expected_address)) {
         printf_buffer_t<500> buf;
         buf.appendf("expected_address = ");
         debug_print(&buf, *expected_address);
@@ -565,7 +625,11 @@ void connectivity_cluster_t::run_t::handle(
         constructor registers it in the `connectivity_cluster_t`'s connection
         map and notifies any connect listeners. */
         connection_entry_t conn_structure(this, other_id, conn, other_address);
-        heartbeat_keepalive_t keepalive(conn, heartbeat_manager, other_id);
+        object_buffer_t<heartbeat_keepalive_t> keepalive;
+
+        if (heartbeat_manager != NULL) {
+            keepalive.create(conn, heartbeat_manager, other_id);
+        }
 
         /* Main message-handling loop: read messages off the connection until
         it's closed, which may be due to network events, or the other end
@@ -620,7 +684,7 @@ std::set<peer_id_t> connectivity_cluster_t::get_peers_list() THROWS_NOTHING {
     std::set<peer_id_t> peers;
     for (std::map<peer_id_t, std::pair<run_t::connection_entry_t *, auto_drainer_t::lock_t> >::const_iterator it = connection_map->begin();
             it != connection_map->end(); it++) {
-        peers.insert((*it).first);
+        peers.insert(it->first);
     }
     return peers;
 }
@@ -694,8 +758,8 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
             is not always possible). So just return. */
             return;
         }
-        conn_structure = (*it).second.first;
-        conn_structure_lock = (*it).second.second;
+        conn_structure = it->second.first;
+        conn_structure_lock = it->second.second;
     }
 
     if (conn_structure->conn == NULL) {

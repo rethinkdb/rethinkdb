@@ -19,7 +19,7 @@ def generate_make_serializable_macro(nfields):
     print "#define RDB_EXPAND_SERIALIZABLE_%d(function_attr, type_t%s) \\" % \
         (nfields, "".join(", field%d" % (i+1) for i in xrange(nfields)))
     zeroarg = ("UNUSED " if nfields == 0 else "")
-    print "    function_attr write_message_t &operator<<(%swrite_message_t &msg /* NOLINT */, %sconst type_t &thing) { \\" % (zeroarg, zeroarg)
+    print "    function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, %sconst type_t &thing) { \\" % zeroarg
     for i in xrange(nfields):
         print "        msg << thing.field%d; \\" % (i + 1)
     print "    return msg; \\"
@@ -54,8 +54,25 @@ def generate_make_me_serializable_macro(nfields):
     print "        return res; \\"
     print "    }"
 
+def generate_impl_me_serializable_macro(nfields):
+    print "#define RDB_IMPL_ME_SERIALIZABLE_%d(typ%s) \\" % \
+        (nfields, "".join(", field%d" % (i+1) for i in xrange(nfields)))
+    zeroarg = ("UNUSED " if nfields == 0 else "")
+    print "    void typ::rdb_serialize(%swrite_message_t &msg /* NOLINT */) const { \\" % zeroarg
+    for i in xrange(nfields):
+        print "        msg << field%d; \\" % (i + 1)
+    print "    } \\"
+    print "    archive_result_t typ::rdb_deserialize(%sread_stream_t *s) { \\" % zeroarg
+    print "        archive_result_t res = ARCHIVE_SUCCESS; \\"
+    for i in xrange(nfields):
+        print "        res = deserialize(s, &field%d); \\" % (i + 1)
+        print "        if (res) { return res; } \\"
+    print "        return res; \\"
+    print "    }"
+
 if __name__ == "__main__":
 
+    print "// Copyright 2010-2012 RethinkDB, all rights reserved."
     print "#ifndef RPC_SERIALIZE_MACROS_HPP_"
     print "#define RPC_SERIALIZE_MACROS_HPP_"
     print
@@ -93,12 +110,18 @@ the class scope. */
     print "    write_message_t &operator<<(write_message_t &, const type_t &); \\"
     print "    archive_result_t deserialize(read_stream_t *s, type_t *thing)"
     print
+    print "#define RDB_DECLARE_ME_SERIALIZABLE \\"
+    print "    void rdb_serialize(write_message_t &msg /* NOLINT */) const; \\"
+    print "    friend class archive_deserializer_t; \\"
+    print "    archive_result_t rdb_deserialize(read_stream_t *s)"
+    print
 
     for nfields in xrange(20):
         generate_make_serializable_macro(nfields)
         print
         generate_make_me_serializable_macro(nfields)
         print
+        generate_impl_me_serializable_macro(nfields)
         print
 
     print "#endif // RPC_SERIALIZE_MACROS_HPP_"

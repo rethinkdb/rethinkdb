@@ -1254,20 +1254,31 @@ TODO: retire this
     .active{
         display: block;
     }
+
+    .wrapper_scrollbar{
+        position: fixed;
+        bottom: 0px;
+        overflow-x: scroll;
+        overflow-y: hidden;
+        width: 888px;
+        .scrollbar_fake_content{
+            height: 20px;
+        }
+        z-index: 1000;
+    }
     .results{
-        width: 100%;
+        width: 888px;
         margin: 15px 0px 0px 0px;
         padding: 0px;
         overflow: auto;
         .tree_view{
-            padding: 20px;
-            overflow: auto;
             .border-radius(4px);
             border: 1px solid #e3e3e3;
             background: #f8f8f8;
             .box-shadow(~"inset 0 3px 3px -3px #ddd");
         }
         .json_tree{
+            padding: 20px;
             float: left; // Clear the horizontal arrow
             font: 13px/18px monospace,mono,consolas;
             .jt_null{
@@ -1290,23 +1301,23 @@ TODO: retire this
                 color: green;
             }
             /*.jt_b{ font-weight: bold; }*/
-            .jt_close{ margin-left: 24px; }
+            .jt_close{ margin-left: 6px; }
             .jt_array{
                 list-style: none;
                 margin-left: 7px;
-                padding-left: 19px;
+                padding-left: 22px;
                 border-left: 1px dotted #bbb;
             }
             .jt_object{
                 list-style: none;
                 margin-left: 7px;
-                padding-left: 19px;
+                padding-left: 22px;
                 border-left: 1px dotted #bbb;
             }
             .jt_arrow{
                 width: 15px;
                 height: 15px;
-                margin: 3px 2px 0px 2px;
+                margin: 3px 2px 0px -15px;
                 float: left;
                 display: block;
                 background: url('/images/arrow_down.gif') no-repeat;
@@ -1321,11 +1332,7 @@ TODO: retire this
             }   
         }
 
-
-
-
         .json_table_container{
-            overflow: auto;
             width: 888px;
             .json_table{
                 font: 13px/18px monospace,mono,consolas;
@@ -1362,7 +1369,7 @@ TODO: retire this
                     display: inline-block;
                 }
                 td{
-                    max-width: 145px;
+                    max-width: 310px;
                     padding: 0px 5px 0px 0px;
                     vertical-align: top;
                     border: 1px solid #dfdfdf;
@@ -1377,7 +1384,7 @@ TODO: retire this
                 .jta_value{
                     cursor: auto;
                     padding: 7px 0px 5px 15px;
-                    max-width: 125px; // smaller margin on the right in case of overflow
+                    max-width: 290px; // smaller margin on the right in case of overflow
                     overflow: hidden;
                 }
                 .jta_array{ padding: 7px 0px 5px 0px; }

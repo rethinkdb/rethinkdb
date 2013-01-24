@@ -30,11 +30,11 @@ TEST(UtilsTest, StrtofooStrict) {
 
     const char *end;
 
-    ASSERT_EQ(0, strtou64_strict(test1, &end, 10));
-    ASSERT_EQ(1024, strtou64_strict(test2, &end, 10));
-    ASSERT_EQ(0, strtou64_strict(test3, &end, 10));
-    ASSERT_EQ(123, strtou64_strict(test4, &end, 10));
-    ASSERT_FALSE(strncmp("lskdjf", end, 6));
+    ASSERT_EQ(0u, strtou64_strict(test1, &end, 10));
+    ASSERT_EQ(1024u, strtou64_strict(test2, &end, 10));
+    ASSERT_EQ(0u, strtou64_strict(test3, &end, 10));
+    ASSERT_EQ(123u, strtou64_strict(test4, &end, 10));
+    ASSERT_EQ(0, strncmp("lskdjf", end, 6));
 
     bool success;
     uint64_t u_res;
@@ -59,19 +59,25 @@ TEST(UtilsTest, StrtofooStrict) {
 }
 
 TEST(UtilsTest, Time) {
-    // The way this test is written depends on the timezone we're in
-    time_t current_time;
-    struct tm timeinfo;
-    time(&current_time);
-    localtime_r(&current_time, &timeinfo);
+    // Change the timezone for the duration of this test
+    char *hastz = getenv("TZ");
+    std::string oldtz(hastz ? hastz : "");
+    setenv("TZ", "America/Los_Angeles", 1);
+    tzset();
 
-    // Subtract the timezone's offset to the timespec so it'll cancel out
-    struct timespec time = {1335272322 - timeinfo.tm_gmtoff, 1234};
+    struct timespec time = {1335301122, 1234};
     std::string formatted = format_time(time);
     EXPECT_EQ("2012-04-24T13:58:42.000001234", formatted);
     struct timespec parsed = parse_time(formatted);
     EXPECT_EQ(time.tv_sec, parsed.tv_sec);
     EXPECT_EQ(time.tv_nsec, parsed.tv_nsec);
+
+    if (hastz) {
+      setenv("TZ", oldtz.c_str(), 1);
+    } else {
+      unsetenv("TZ");
+    }
+    tzset();
 }
 
 TEST(UtilsTest, SizedStrcmp)

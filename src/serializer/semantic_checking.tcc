@@ -68,11 +68,6 @@ semantic_checking_serializer_t<inner_serializer_t>::
 }
 
 template<class inner_serializer_t>
-void semantic_checking_serializer_t<inner_serializer_t>::check_existing(const char *db_path, io_backender_t *backender, check_callback_t *cb) {
-    inner_serializer_t::check_existing(db_path, backender, cb);
-}
-
-template<class inner_serializer_t>
 void *semantic_checking_serializer_t<inner_serializer_t>::malloc() {
     void *p = inner_serializer.malloc();
 

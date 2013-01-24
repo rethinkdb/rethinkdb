@@ -5,8 +5,9 @@
 
 namespace query_language {
 
-transform_visitor_t::transform_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json, json_list_t *_out, query_language::runtime_environment_t *_env, const scopes_t &_scopes, const backtrace_t &_backtrace)
-    : json(_json), out(_out), env(_env), scopes(_scopes), backtrace(_backtrace)
+transform_visitor_t::transform_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json, json_list_t *_out, query_language::runtime_environment_t *_env, ql::env_t *_ql_env, const scopes_t &_scopes, const backtrace_t &_backtrace)
+    : json(_json), out(_out), env(_env), ql_env(_ql_env),
+      scopes(_scopes), backtrace(_backtrace)
 { }
 
 void transform_visitor_t::operator()(const Builtin_Filter &filter) const {
@@ -62,21 +63,61 @@ void transform_visitor_t::operator()(Builtin_Range range) const {
     }
 }
 
-terminal_initializer_visitor_t::terminal_initializer_visitor_t(rget_read_response_t::result_t *_out,
-                                                               query_language::runtime_environment_t *_env,
-                                                               const scopes_t &_scopes,
-                                                               const backtrace_t &_backtrace)
-    : out(_out), env(_env), scopes(_scopes), backtrace(_backtrace)
+void transform_visitor_t::operator()(ql::map_wire_func_t &func) const {
+    try {
+        ql::env_checkpoint_t(ql_env, &ql::env_t::discard_checkpoint);
+        const ql::datum_t *arg = ql_env->add_ptr(new ql::datum_t(json, ql_env));
+        out->push_back(func.compile(ql_env)->call(arg)->as_datum()->as_json());
+    } catch (ql::exc_t &e) {
+        e.backtrace.frames.push_front(func.bt());
+        throw;
+    }
+}
+
+void transform_visitor_t::operator()(ql::concatmap_wire_func_t &func) const {
+    try {
+        ql::env_checkpoint_t(ql_env, &ql::env_t::discard_checkpoint);
+        const ql::datum_t *arg = ql_env->add_ptr(new ql::datum_t(json, ql_env));
+        ql::datum_stream_t *ds = func.compile(ql_env)->call(arg)->as_seq();
+        while (const ql::datum_t *d = ds->next()) out->push_back(d->as_json());
+    } catch (ql::exc_t &e) {
+        e.backtrace.frames.push_front(func.bt());
+        throw;
+    }
+}
+
+void transform_visitor_t::operator()(ql::filter_wire_func_t &func) const {
+    try {
+        ql::env_checkpoint_t(ql_env, &ql::env_t::discard_checkpoint);
+        ql::func_t *f = func.compile(ql_env);
+        const ql::datum_t *arg = ql_env->add_ptr(new ql::datum_t(json, ql_env));
+        if (f->call(arg)->as_datum()->as_bool()) out->push_back(arg->as_json());
+    } catch (ql::exc_t &e) {
+        e.backtrace.frames.push_front(func.bt());
+        throw;
+    }
+}
+
+terminal_initializer_visitor_t::terminal_initializer_visitor_t(
+    rget_read_response_t::result_t *_out,
+    query_language::runtime_environment_t *_env,
+    ql::env_t *_ql_env,
+    const scopes_t &_scopes,
+    const backtrace_t &_backtrace)
+    : out(_out), env(_env), ql_env(_ql_env), scopes(_scopes), backtrace(_backtrace)
 { }
 
-void terminal_initializer_visitor_t::operator()(const Builtin_GroupedMapReduce &) const { *out = rget_read_response_t::groups_t(); }
+void terminal_initializer_visitor_t::operator()(const Builtin_GroupedMapReduce &) const {
+    *out = rget_read_response_t::groups_t();
+}
 
 void terminal_initializer_visitor_t::operator()(const Reduction &r) const {
     Term base = r.base();
     *out = eval_term_as_json(&base, env, scopes, backtrace.with("base"));
 }
 
-void terminal_initializer_visitor_t::operator()(const rdb_protocol_details::Length &) const {
+void terminal_initializer_visitor_t::operator()(
+    const rdb_protocol_details::Length &) const {
     rget_read_response_t::length_t l;
     l.length = 0;
     *out = l;
@@ -90,10 +131,12 @@ void terminal_initializer_visitor_t::operator()(const WriteQuery_ForEach &) cons
 
 terminal_visitor_t::terminal_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json,
                    query_language::runtime_environment_t *_env,
+                   ql::env_t *_ql_env,
                    const scopes_t &_scopes,
                    const backtrace_t &_backtrace,
                    rget_read_response_t::result_t *_out)
-    : json(_json), env(_env), scopes(_scopes), backtrace(_backtrace), out(_out)
+    : json(_json), env(_env), ql_env(_ql_env),
+      scopes(_scopes), backtrace(_backtrace), out(_out)
 { }
 
 void terminal_visitor_t::operator()(const Builtin_GroupedMapReduce &gmr) const {
@@ -157,6 +200,58 @@ void terminal_visitor_t::operator()(const WriteQuery_ForEach &w) const {
         WriteQuery q = w.queries(i);
         Response r; //TODO we need to actually return this somewhere I suppose.
         execute_write_query(&q, env, &r, scopes_copy, backtrace.with(strprintf("query:%d", i)));
+    }
+}
+
+void terminal_initializer_visitor_t::operator()(
+    UNUSED const ql::gmr_wire_func_t &f) const {
+    *out = ql::wire_datum_map_t();
+}
+void terminal_visitor_t::operator()(ql::gmr_wire_func_t &func) const {
+    ql::wire_datum_map_t *obj = boost::get<ql::wire_datum_map_t>(out);
+    guarantee(obj);
+
+    const ql::datum_t *el = ql_env->add_ptr(new ql::datum_t(json, ql_env));
+    const ql::datum_t *el_group = func.compile_group(ql_env)->call(el)->as_datum();
+    const ql::datum_t *el_map = func.compile_map(ql_env)->call(el)->as_datum();
+
+    if (!obj->has(el_group)) {
+        obj->set(el_group, el_map);
+    } else {
+        const ql::datum_t *lhs = obj->get(el_group);
+        obj->set(el_group, func.compile_reduce(ql_env)->call(lhs, el_map)->as_datum());
+    }
+}
+
+void terminal_initializer_visitor_t::operator()(
+    UNUSED const ql::count_wire_func_t &f) const {
+    *out = ql::wire_datum_t(ql_env->add_ptr(new ql::datum_t(0)));
+}
+
+void terminal_visitor_t::operator()(UNUSED const ql::count_wire_func_t &func) const {
+    // TODO: just pass an int around
+    ql::wire_datum_t *d = boost::get<ql::wire_datum_t>(out);
+    d->reset(ql_env->add_ptr(new ql::datum_t(d->get()->as_int() + 1)));
+}
+
+void terminal_initializer_visitor_t::operator()(
+    UNUSED const ql::reduce_wire_func_t &f) const {
+    *out = rget_read_response_t::empty_t();
+}
+
+void terminal_visitor_t::operator()(ql::reduce_wire_func_t &func) const {
+    try {
+        ql::wire_datum_t *d = boost::get<ql::wire_datum_t>(out);
+        const ql::datum_t *rhs = ql_env->add_ptr(new ql::datum_t(json, ql_env));
+        if (d) {
+            d->reset(func.compile(ql_env)->call(d->get(), rhs)->as_datum());
+        } else {
+            guarantee(boost::get<rget_read_response_t::empty_t>(out));
+            *out = ql::wire_datum_t(rhs);
+        }
+    } catch (ql::exc_t &e) {
+        e.backtrace.frames.push_front(func.bt());
+        throw;
     }
 }
 
