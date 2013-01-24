@@ -53,13 +53,13 @@ class LazyIterator
     more: -> @_endFlag && @_index >= @_results.length
 
     forEach: (cb) ->
-        @_cont = ->
+        @_cont = =>
             while @_index < @_results.length
                 cb @_results[@_index++]
         @_prompt()
 
     collect: (cb) ->
-        @_cont = ->
+        @_cont = =>
             if @_endFlag
                 cb @_results
         @_prompt()

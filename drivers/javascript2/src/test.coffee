@@ -30,7 +30,6 @@ withConn = (conn, cont) ->
         queries.push [query, expected]
         prompt()
 
-    
 r.connect {host:'localhost', port: 28015}, (err, conn) ->
     if err then throw err
 
