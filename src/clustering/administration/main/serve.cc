@@ -43,8 +43,8 @@ std::string service_address_ports_t::get_addresses_string() const {
     bool first = true;
     std::string result;
 
-    // If the set is empty, it means we're listening on all addresses.  Get the actual list for printing
-    if (actual_addresses.empty()) {
+    // Get the actual list for printing if we're listening on all addresses.
+    if (is_bind_all()) {
         actual_addresses = ip_address_t::get_local_addresses(std::set<ip_address_t>(), true);
     }
 
@@ -56,6 +56,11 @@ std::string service_address_ports_t::get_addresses_string() const {
     return result;
 }
 
+bool service_address_ports_t::is_bind_all() const {
+    // If the set is empty, it means we're listening on all addresses.
+    return local_addresses.empty();
+}
+
 bool do_serve(
     extproc::spawner_t::info_t *spawner_info,
     io_backender_t *io_backender,
@@ -65,7 +70,8 @@ bool do_serve(
     const peer_address_set_t &joins,
     service_address_ports_t address_ports,
     machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata,
-    std::string web_assets, signal_t *stop_cond) {
+    std::string web_assets, signal_t *stop_cond,
+    const boost::optional<std::string> &config_file) {
     try {
         guarantee(spawner_info);
         extproc::pool_group_t extproc_pool_group(spawner_info, extproc::pool_group_t::DEFAULTS);
@@ -129,9 +135,6 @@ bool do_serve(
                                                                &message_multiplexer_run,
                                                                address_ports.client_port,
                                                                &heartbeat_manager);
-
-        const std::string addresses_string = address_ports.get_addresses_string();
-        logINF("Listening on addresses (add more using '--bind'): %s.\n", addresses_string.c_str());
 
         // If (0 == port), then we asked the OS to give us a port number.
         if (address_ports.port != 0) {
@@ -328,6 +331,18 @@ bool do_serve(
                         logINF("Listening for administrative HTTP connections on port %d.\n", admin_server_ptr->get_port());
                     }
 
+                    const std::string addresses_string = address_ports.get_addresses_string();
+                    logINF("Listening on addresses: %s.\n", addresses_string.c_str());
+
+                    if (!address_ports.is_bind_all()) {
+                        logINF("If you are unable to connect to the server, make sure you are using the correct port and");
+                        if(config_file) {
+                            logINF("try adding `bind=all' to the config file (%s) to listen on all interfaces.", (*config_file).c_str());
+                        } else {
+                            logINF("try running rethinkdb with the `--bind all' command line option to listen on all interfaces.");
+                        }
+                    }
+
                     logINF("Server ready\n");
 
                     stop_cond->wait_lazily_unordered();
@@ -364,7 +379,8 @@ bool serve(extproc::spawner_t::info_t *spawner_info,
            machine_id_t machine_id,
            const cluster_semilattice_metadata_t &semilattice_metadata,
            std::string web_assets,
-           signal_t *stop_cond) {
+           signal_t *stop_cond,
+           const boost::optional<std::string>& config_file) {
     return do_serve(spawner_info,
                     io_backender,
                     true,
@@ -375,7 +391,8 @@ bool serve(extproc::spawner_t::info_t *spawner_info,
                     machine_id,
                     semilattice_metadata,
                     web_assets,
-                    stop_cond);
+                    stop_cond,
+                    config_file);
 }
 
 bool serve_proxy(extproc::spawner_t::info_t *spawner_info,
@@ -384,7 +401,8 @@ bool serve_proxy(extproc::spawner_t::info_t *spawner_info,
                  machine_id_t machine_id,
                  const cluster_semilattice_metadata_t &semilattice_metadata,
                  std::string web_assets,
-                 signal_t *stop_cond) {
+                 signal_t *stop_cond,
+                 const boost::optional<std::string>& config_file) {
     // TODO: filepath doesn't _seem_ ignored.
     // filepath and persistent_file are ignored for proxies, so we use the empty string & NULL respectively.
     return do_serve(spawner_info,
@@ -397,5 +415,6 @@ bool serve_proxy(extproc::spawner_t::info_t *spawner_info,
                     machine_id,
                     semilattice_metadata,
                     web_assets,
-                    stop_cond);
+                    stop_cond,
+                    config_file);
 }

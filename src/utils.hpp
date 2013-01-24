@@ -93,7 +93,7 @@ timespec clock_monotonic();
 timespec clock_realtime();
 
 typedef uint64_t ticks_t;
-ticks_t secs_to_ticks(double secs);
+ticks_t secs_to_ticks(time_t secs);
 ticks_t get_ticks();
 time_t get_secs();
 double ticks_to_secs(ticks_t ticks);
@@ -322,6 +322,9 @@ static inline std::string time2str(const time_t &t) {
 
 std::string errno_string(int errsv);
 
+
+int get_num_db_threads();
+
 template <class T>
 T valgrind_undefined(T value) {
 #ifdef VALGRIND
@@ -329,6 +332,7 @@ T valgrind_undefined(T value) {
 #endif
     return value;
 }
+
 
 #define STR(x) #x
 #define MSTR(x) STR(x) // Stringify a macro
