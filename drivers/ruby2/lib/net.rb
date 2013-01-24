@@ -69,7 +69,7 @@ module RethinkDB
     end
 
     @@last = nil
-    @@magic_number = 0xaf61ba35
+    @@magic_number = 0x3f61ba36
 
     def debug_socket; @socket; end
 
