@@ -2,6 +2,7 @@
 #include "btree/btree_store.hpp"
 
 #include "btree/operations.hpp"
+#include "btree/secondary_operations.hpp"
 #include "serializer/config.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "concurrency/wait_any.hpp"

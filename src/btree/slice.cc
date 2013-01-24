@@ -1,6 +1,7 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "btree/node.hpp"
 #include "btree/operations.hpp"
+#include "btree/secondary_operations.hpp"
 #include "btree/slice.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 #include "concurrency/cond_var.hpp"
