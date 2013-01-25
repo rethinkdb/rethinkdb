@@ -26,7 +26,7 @@ static void run_jsproc_test(extproc::spawner_t::info_t *spawner_info, test_t fun
 static void main_jsproc_test(test_t func) {
     extproc::spawner_t::info_t spawner_info;
     extproc::spawner_t::create(&spawner_info);
-    mock::run_in_thread_pool(boost::bind(run_jsproc_test, &spawner_info, func));
+    unittest::run_in_thread_pool(boost::bind(run_jsproc_test, &spawner_info, func));
 }
 
 // TODO: should have some way to make sure that we finish a test within a given

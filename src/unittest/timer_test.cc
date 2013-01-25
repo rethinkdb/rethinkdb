@@ -29,7 +29,7 @@ void run_TestApproximateWaitTimes() {
 
 
 TEST(TimerTest, TestApproximateWaitTimes) {
-    mock::run_in_thread_pool(run_TestApproximateWaitTimes);
+    unittest::run_in_thread_pool(run_TestApproximateWaitTimes);
 }
 
 

@@ -31,7 +31,7 @@ static void run_read_write_test() {
     order_source_t order_source;
 
     /* Set up a cluster so mailboxes can be created */
-    mock::simple_mailbox_cluster_t cluster;
+    simple_mailbox_cluster_t cluster;
 
     /* Set up branch history tracker */
     mock::in_memory_branch_history_manager_t<dummy_protocol_t> branch_history_manager;
@@ -40,7 +40,7 @@ static void run_read_write_test() {
     make_io_backender(aio_default, &io_backender);
 
     /* Set up a branch */
-    mock::test_store_t<dummy_protocol_t> initial_store(io_backender.get(), &order_source);
+    test_store_t<dummy_protocol_t> initial_store(io_backender.get(), &order_source);
     cond_t interruptor;
     broadcaster_t<dummy_protocol_t> broadcaster(cluster.get_mailbox_manager(),
                                                 &branch_history_manager,
@@ -84,9 +84,9 @@ static void run_read_write_test() {
 
     /* Send some writes to the namespace */
     std::map<std::string, std::string> inserter_state;
-    mock::test_inserter_t inserter(
+    test_inserter_t inserter(
         &master_access,
-        &mock::dummy_key_gen,
+        &dummy_key_gen,
         &order_source,
         "run_read_write_test(clustering_query.cc)/inserter",
         &inserter_state);
@@ -112,14 +112,14 @@ static void run_read_write_test() {
 }
 
 TEST(ClusteringQuery, ReadWrite) {
-    mock::run_in_thread_pool(&run_read_write_test);
+    unittest::run_in_thread_pool(&run_read_write_test);
 }
 
 static void run_broadcaster_problem_test() {
     order_source_t order_source;
 
     /* Set up a cluster so mailboxes can be created */
-    mock::simple_mailbox_cluster_t cluster;
+    simple_mailbox_cluster_t cluster;
 
     /* Set up metadata meeting-places */
     mock::in_memory_branch_history_manager_t<dummy_protocol_t> branch_history_manager;
@@ -129,7 +129,7 @@ static void run_broadcaster_problem_test() {
     make_io_backender(aio_default, &io_backender);
 
     /* Set up a branch */
-    mock::test_store_t<dummy_protocol_t> initial_store(io_backender.get(), &order_source);
+    test_store_t<dummy_protocol_t> initial_store(io_backender.get(), &order_source);
     cond_t interruptor;
     broadcaster_t<dummy_protocol_t> broadcaster(cluster.get_mailbox_manager(),
                                                 &branch_history_manager,
@@ -191,7 +191,7 @@ static void run_broadcaster_problem_test() {
 }
 
 TEST(ClusteringQuery, BroadcasterProblem) {
-    mock::run_in_thread_pool(&run_broadcaster_problem_test);
+    unittest::run_in_thread_pool(&run_broadcaster_problem_test);
 }
 
 }   /* namespace unittest */

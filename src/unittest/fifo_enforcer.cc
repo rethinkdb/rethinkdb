@@ -72,7 +72,7 @@ void run_fifo_enforcer_test() {
 }
 
 TEST(FIFOEnforcer, FIFOEnforcer) {
-    mock::run_in_thread_pool(&run_fifo_enforcer_test);
+    unittest::run_in_thread_pool(&run_fifo_enforcer_test);
 }
 
 void run_state_transfer_test() {
@@ -92,7 +92,7 @@ void run_state_transfer_test() {
 }
 
 TEST(FIFOEnforcer, StateTransfer) {
-    mock::run_in_thread_pool(&run_state_transfer_test);
+    unittest::run_in_thread_pool(&run_state_transfer_test);
 }
 
 /* This tests that dummy entries to fifo enforcers, that is entries which we
@@ -108,7 +108,7 @@ void run_dummy_entry_destruction_test() {
 }
 
 TEST(FIFOEnforcer, DummyEntry) {
-    mock::run_in_thread_pool(&run_dummy_entry_destruction_test);
+    unittest::run_in_thread_pool(&run_dummy_entry_destruction_test);
 }
 
 void run_queue_equivalence_test() {
@@ -145,7 +145,7 @@ void run_queue_equivalence_test() {
 }
 
 TEST(FIFOEnforcer, QueueEquivalence) {
-    mock::run_in_thread_pool(&run_queue_equivalence_test);
+    unittest::run_in_thread_pool(&run_queue_equivalence_test);
 }
 
 }   /* namespace unittest */

@@ -80,7 +80,7 @@ void run_backfill_test() {
             backfiller_store.new_write_token(&token);
 
 #ifndef NDEBUG
-            mock::equality_metainfo_checker_callback_t<dummy_protocol_t>
+            equality_metainfo_checker_callback_t<dummy_protocol_t>
                 metainfo_checker_callback(binary_blob_t(version_range_t(version_t(dummy_branch_id, ts.timestamp_before()))));
             metainfo_checker_t<dummy_protocol_t> metainfo_checker(&metainfo_checker_callback, region);
 #endif
@@ -100,7 +100,7 @@ void run_backfill_test() {
 
     // Set up a cluster so mailboxes can be created
 
-    mock::simple_mailbox_cluster_t cluster;
+    simple_mailbox_cluster_t cluster;
 
     /* Expose the backfiller to the cluster */
 
@@ -161,7 +161,7 @@ void run_backfill_test() {
     //EXPECT_EQ(timestamp, backfillee_metadata[0].second.earliest.timestamp);
 }
 TEST(ClusteringBackfill, BackfillTest) {
-    mock::run_in_thread_pool(&run_backfill_test);
+    unittest::run_in_thread_pool(&run_backfill_test);
 }
 
 }   /* namespace unittest */

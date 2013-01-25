@@ -14,17 +14,17 @@ namespace unittest {
 
 void run_with_broadcaster(
         boost::function< void(io_backender_t *,
-                              mock::simple_mailbox_cluster_t *,
+                              simple_mailbox_cluster_t *,
                               branch_history_manager_t<memcached_protocol_t> *,
                               clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<memcached_protocol_t> > > > >,
                               scoped_ptr_t<broadcaster_t<memcached_protocol_t> > *,
-                              mock::test_store_t<memcached_protocol_t> *,
+                              test_store_t<memcached_protocol_t> *,
                               scoped_ptr_t<listener_t<memcached_protocol_t> > *,
                               order_source_t *)> fun) {
     order_source_t order_source;
 
     /* Set up a cluster so mailboxes can be created */
-    mock::simple_mailbox_cluster_t cluster;
+    simple_mailbox_cluster_t cluster;
 
     /* Set up branch history manager */
     mock::in_memory_branch_history_manager_t<memcached_protocol_t> branch_history_manager;
@@ -34,7 +34,7 @@ void run_with_broadcaster(
     make_io_backender(aio_default, &io_backender);
 
     /* Set up a broadcaster and initial listener */
-    mock::test_store_t<memcached_protocol_t> initial_store(io_backender.get(), &order_source);
+    test_store_t<memcached_protocol_t> initial_store(io_backender.get(), &order_source);
     cond_t interruptor;
 
     scoped_ptr_t<broadcaster_t<memcached_protocol_t> > broadcaster(
@@ -71,15 +71,15 @@ void run_with_broadcaster(
 
 void run_in_thread_pool_with_broadcaster(
         boost::function< void(io_backender_t *,
-                              mock::simple_mailbox_cluster_t *,
+                              simple_mailbox_cluster_t *,
                               branch_history_manager_t<memcached_protocol_t> *,
                               clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<memcached_protocol_t> > > > >,
                               scoped_ptr_t<broadcaster_t<memcached_protocol_t> > *,
-                              mock::test_store_t<memcached_protocol_t> *,
+                              test_store_t<memcached_protocol_t> *,
                               scoped_ptr_t<listener_t<memcached_protocol_t> > *,
                               order_source_t *)> fun)
 {
-    mock::run_in_thread_pool(boost::bind(&run_with_broadcaster, fun));
+    unittest::run_in_thread_pool(boost::bind(&run_with_broadcaster, fun));
 }
 
 
@@ -94,7 +94,7 @@ void write_to_broadcaster(broadcaster_t<memcached_protocol_t> *broadcaster, cons
     set.exptime = 0;
     set.add_policy = add_policy_yes;
     set.replace_policy = replace_policy_yes;
-    mock::fake_fifo_enforcement_t enforce;
+    unittest::fake_fifo_enforcement_t enforce;
     memcached_protocol_t::write_t write(set, time(NULL), 12345);
     fifo_enforcer_sink_t::exit_write_t exiter(&enforce.sink, enforce.source.enter_write());
     class : public broadcaster_t<memcached_protocol_t>::write_callback_t, public cond_t {
@@ -112,11 +112,11 @@ void write_to_broadcaster(broadcaster_t<memcached_protocol_t> *broadcaster, cons
 }
 
 void run_partial_backfill_test(io_backender_t *io_backender,
-                               mock::simple_mailbox_cluster_t *cluster,
+                               simple_mailbox_cluster_t *cluster,
                                branch_history_manager_t<memcached_protocol_t> *branch_history_manager,
                                clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<memcached_protocol_t> > > > > broadcaster_metadata_view,
                                scoped_ptr_t<broadcaster_t<memcached_protocol_t> > *broadcaster,
-                               mock::test_store_t<memcached_protocol_t> *,
+                               test_store_t<memcached_protocol_t> *,
                                scoped_ptr_t<listener_t<memcached_protocol_t> > *initial_listener,
                                order_source_t *order_source) {
     /* Set up a replier so the broadcaster can handle operations */
@@ -128,17 +128,17 @@ void run_partial_backfill_test(io_backender_t *io_backender,
 
     /* Start sending operations to the broadcaster */
     std::map<std::string, std::string> inserter_state;
-    mock::test_inserter_t inserter(
+    test_inserter_t inserter(
         boost::bind(&write_to_broadcaster, broadcaster->get(), _1, _2, _3, _4),
         NULL,
-        &mock::mc_key_gen,
+        &mc_key_gen,
         order_source,
         "memcached_backfill run_partial_backfill_test inserter",
         &inserter_state);
     nap(10000);
 
     /* Set up a second mirror */
-    mock::test_store_t<memcached_protocol_t> store2(io_backender, order_source);
+    test_store_t<memcached_protocol_t> store2(io_backender, order_source);
     cond_t interruptor;
     listener_t<memcached_protocol_t> listener2(
         io_backender,
@@ -168,7 +168,7 @@ void run_partial_backfill_test(io_backender_t *io_backender,
         get_query_t get;
         get.key = store_key_t(it->first);
         memcached_protocol_t::read_t read(get, time(NULL));
-        mock::fake_fifo_enforcement_t enforce;
+        unittest::fake_fifo_enforcement_t enforce;
         fifo_enforcer_sink_t::exit_read_t exiter(&enforce.sink, enforce.source.enter_read());
         cond_t non_interruptor;
         memcached_protocol_t::read_response_t response;

@@ -30,7 +30,7 @@ public:
         directory_manager_client_run(&directory_manager_client, &directory_read_manager),
         message_multiplexer_run(&message_multiplexer),
         connectivity_cluster_run(&connectivity_cluster,
-                                 mock::get_unittest_addresses(),
+                                 get_unittest_addresses(),
                                  port,
                                  &message_multiplexer_run,
                                  0,
@@ -58,7 +58,7 @@ public:
 }   /* anonymous namespace */
 
 void run_directory_echo_test() {
-    int port = mock::randport();
+    int port = randport();
     directory_echo_cluster_t<std::string> cluster1("hello", port), cluster2("world", port+1);
     cluster1.connectivity_cluster_run.join(cluster2.connectivity_cluster.get_peer_address(cluster2.connectivity_cluster.get_me()));
 
@@ -74,7 +74,7 @@ void run_directory_echo_test() {
     EXPECT_EQ("Hello", cluster2_sees_cluster1_directory_as);
 }
 TEST(ClusteringDirectoryEcho, DirectoryEcho) {
-    mock::run_in_thread_pool(&run_directory_echo_test);
+    unittest::run_in_thread_pool(&run_directory_echo_test);
 }
 
 }   /* namespace unittest */

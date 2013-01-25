@@ -61,7 +61,7 @@ void runCrossThreadWatchabletest() {
 }
 
 TEST(CrossThreadWatchable, CrossThreadWatchableTest) {
-    mock::run_in_thread_pool(&runCrossThreadWatchabletest, 2);
+    unittest::run_in_thread_pool(&runCrossThreadWatchabletest, 2);
 }
 
 } //namespace unittest
