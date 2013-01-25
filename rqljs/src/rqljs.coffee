@@ -3,7 +3,7 @@ goog.provide('rethinkdb.RQLJS')
 
 goog.require('rethinkdb.TCPServer')
 
-port = 28015
+port = 28016
 
 # Start the server
 new RDBTcpServer(port)
