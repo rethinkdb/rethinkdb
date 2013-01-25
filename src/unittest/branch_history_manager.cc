@@ -1,7 +1,4 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
-#ifndef MOCK_BRANCH_HISTORY_MANAGER_TCC_
-#define MOCK_BRANCH_HISTORY_MANAGER_TCC_
-
 #include "unittest/branch_history_manager.hpp"
 
 #include <map>
@@ -75,6 +72,3 @@ template class unittest::in_memory_branch_history_manager_t<mock::dummy_protocol
 
 #include "memcached/protocol.hpp"
 template class unittest::in_memory_branch_history_manager_t<memcached_protocol_t>;
-
-
-#endif /* MOCK_BRANCH_HISTORY_MANAGER_TCC_ */
