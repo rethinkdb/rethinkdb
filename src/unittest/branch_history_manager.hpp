@@ -1,6 +1,6 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
-#ifndef MOCK_BRANCH_HISTORY_MANAGER_HPP_
-#define MOCK_BRANCH_HISTORY_MANAGER_HPP_
+// Copyright 2010-2013 RethinkDB, all rights reserved.
+#ifndef UNITTEST_BRANCH_HISTORY_MANAGER_HPP_
+#define UNITTEST_BRANCH_HISTORY_MANAGER_HPP_
 
 #include <set>
 
@@ -23,4 +23,4 @@ private:
 
 }  // namespace unittest
 
-#endif /* MOCK_BRANCH_HISTORY_MANAGER_HPP_ */
+#endif  // UNITTEST_BRANCH_HISTORY_MANAGER_HPP_

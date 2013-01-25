@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "rpc/directory/write_manager.tcc"
 
 template class directory_write_manager_t<int>;
