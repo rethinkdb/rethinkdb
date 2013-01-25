@@ -5,7 +5,7 @@
 #include "clustering/immediate_consistency/branch/listener.hpp"
 #include "clustering/immediate_consistency/branch/replier.hpp"
 #include "memcached/protocol.hpp"
-#include "mock/branch_history_manager.hpp"
+#include "unittest/branch_history_manager.hpp"
 #include "unittest/clustering_utils.hpp"
 #include "unittest/unittest_utils.hpp"
 #include "unittest/dummy_metadata_controller.hpp"
@@ -27,7 +27,7 @@ void run_with_broadcaster(
     simple_mailbox_cluster_t cluster;
 
     /* Set up branch history manager */
-    mock::in_memory_branch_history_manager_t<memcached_protocol_t> branch_history_manager;
+    in_memory_branch_history_manager_t<memcached_protocol_t> branch_history_manager;
 
     // io backender
     scoped_ptr_t<io_backender_t> io_backender;

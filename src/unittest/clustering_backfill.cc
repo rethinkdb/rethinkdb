@@ -4,7 +4,7 @@
 #include "clustering/immediate_consistency/branch/backfillee.hpp"
 #include "containers/uuid.hpp"
 #include "rpc/semilattice/view/field.hpp"
-#include "mock/branch_history_manager.hpp"
+#include "unittest/branch_history_manager.hpp"
 #include "unittest/clustering_utils.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "unittest/unittest_utils.hpp"
@@ -36,7 +36,7 @@ void run_backfill_test() {
     dummy_protocol_t::store_t backfiller_store;
     dummy_protocol_t::store_t backfillee_store;
 
-    mock::in_memory_branch_history_manager_t<mock::dummy_protocol_t> branch_history_manager;
+    in_memory_branch_history_manager_t<mock::dummy_protocol_t> branch_history_manager;
     branch_id_t dummy_branch_id = generate_uuid();
     {
         branch_birth_certificate_t<dummy_protocol_t> dummy_branch;

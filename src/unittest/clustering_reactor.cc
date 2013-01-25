@@ -2,7 +2,7 @@
 #include "unittest/gtest.hpp"
 
 #include "clustering/reactor/blueprint.hpp"
-#include "mock/branch_history_manager.hpp"
+#include "unittest/branch_history_manager.hpp"
 #include "unittest/clustering_utils.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "mock/dummy_protocol_json_adapter.hpp"

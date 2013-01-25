@@ -19,7 +19,7 @@
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/cow_ptr_type.hpp"
 #include "concurrency/watchable.hpp"
-#include "mock/branch_history_manager.hpp"
+#include "unittest/branch_history_manager.hpp"
 #include "unittest/clustering_utils.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "unittest/unittest_utils.hpp"
@@ -115,7 +115,7 @@ public:
     message_multiplexer_t::run_t message_multiplexer_run;
     connectivity_cluster_t::run_t connectivity_cluster_run;
 
-    mock::in_memory_branch_history_manager_t<protocol_t> branch_history_manager;
+    in_memory_branch_history_manager_t<protocol_t> branch_history_manager;
 };
 
 

@@ -6,7 +6,7 @@
 #include "clustering/immediate_consistency/branch/replier.hpp"
 #include "clustering/immediate_consistency/query/master.hpp"
 #include "clustering/immediate_consistency/query/master_access.hpp"
-#include "mock/branch_history_manager.hpp"
+#include "unittest/branch_history_manager.hpp"
 #include "unittest/clustering_utils.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "unittest/unittest_utils.hpp"
@@ -34,7 +34,7 @@ static void run_read_write_test() {
     simple_mailbox_cluster_t cluster;
 
     /* Set up branch history tracker */
-    mock::in_memory_branch_history_manager_t<dummy_protocol_t> branch_history_manager;
+    in_memory_branch_history_manager_t<dummy_protocol_t> branch_history_manager;
 
     scoped_ptr_t<io_backender_t> io_backender;
     make_io_backender(aio_default, &io_backender);
@@ -122,7 +122,7 @@ static void run_broadcaster_problem_test() {
     simple_mailbox_cluster_t cluster;
 
     /* Set up metadata meeting-places */
-    mock::in_memory_branch_history_manager_t<dummy_protocol_t> branch_history_manager;
+    in_memory_branch_history_manager_t<dummy_protocol_t> branch_history_manager;
 
     // io backender.
     scoped_ptr_t<io_backender_t> io_backender;

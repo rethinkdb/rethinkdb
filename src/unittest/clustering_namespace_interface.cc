@@ -7,7 +7,7 @@
 #include "clustering/immediate_consistency/query/master.hpp"
 #include "clustering/reactor/blueprint.hpp"
 #include "clustering/reactor/namespace_interface.hpp"
-#include "mock/branch_history_manager.hpp"
+#include "unittest/branch_history_manager.hpp"
 #include "unittest/clustering_utils.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "unittest/unittest_utils.hpp"

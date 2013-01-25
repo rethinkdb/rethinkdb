@@ -6,7 +6,7 @@
 
 #include "clustering/immediate_consistency/branch/history.hpp"
 
-namespace mock {
+namespace unittest {
 
 template <class protocol_t>
 class in_memory_branch_history_manager_t : public branch_history_manager_t<protocol_t> {
@@ -21,8 +21,6 @@ private:
     branch_history_t<protocol_t> bh;
 };
 
-}   /* namespace mock */
-
-#include "mock/branch_history_manager.tcc"
+}  // namespace unittest
 
 #endif /* MOCK_BRANCH_HISTORY_MANAGER_HPP_ */
