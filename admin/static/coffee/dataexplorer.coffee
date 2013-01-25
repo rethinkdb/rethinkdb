@@ -364,11 +364,10 @@ module 'DataExplorerView', ->
             DataExplorerView.Container.prototype.saved_query = @codemirror.getValue()
             saved_cursor = @codemirror.getCursor()
             if event?.which?
-                if event.which is 27
+                if event.which is 27 # Esc
                     @hide_suggestion()
                     return true
-                # If the user hit tab, we switch the highlighted suggestion
-                else if event.which is 9
+                else if event.which is 9 # If the user hit tab, we switch the highlighted suggestion
                     event.preventDefault()
                     if event.type isnt 'keydown'
                         return true
@@ -390,7 +389,7 @@ module 'DataExplorerView', ->
                             start_line_index = 0
                         else
                             start_line_index += 1
-                        position = (@query_first_part + @current_completed_query + @current_suggestions[@current_highlighted_suggestion]).length - start_line_index 
+                        position = (@query_first_part + @current_completed_query + @current_suggestions[@current_highlighted_suggestion]).length - start_line_index
                         @position_cursor
                             line: saved_cursor.line
                             ch: position
@@ -408,16 +407,34 @@ module 'DataExplorerView', ->
                             return false
 
                     return true
-
-                # If the user hit enter and (Ctrl or Shift)
-                if event.which is 13 and (event.shiftKey or event.ctrlKey)
+                else if event.which is 13 and (event.shiftKey or event.ctrlKey) # If the user hit enter and (Ctrl or Shift)
                     @hide_suggestion()
                     event.preventDefault()
                     if event.type isnt 'keydown'
                         return true
                     @show_or_hide_arrow()
                     @execute_query()
-            
+                else if event.ctrlKey and event.which is 86 and event.type is 'keydown' # Ctrl + V
+                    @last_action_is_paste = true
+                    @num_released_keys = 0 # We want to know when the user release Ctrl AND V
+                    @hide_suggestion()
+                    return true
+                else if event.type is 'keyup' and @last_action_is_paste is true and event.which is 17 # When the user release Ctrl after a ctrl + V
+                    @num_released_keys++
+                    if @num_released_keys is 2
+                        @last_action_is_paste = false
+                    @hide_suggestion()
+                    return true
+                else if event.type is 'keyup' and @last_action_is_paste is true and event.which is 86 # When the user release V after a ctrl + V
+                    @num_released_keys++
+                    if @num_released_keys is 2
+                        @last_action_is_paste = false
+                    @hide_suggestion()
+                    return true
+                else if @codemirror.getSelection() isnt '' # If the user select something, we don't show any suggestion
+                    @hide_suggestion()
+                    return false
+
             # We just look at key up so we don't fire the call 3 times
             if event?.type? and event.type isnt 'keyup' or (event?.which? and event.which is 16) # We don't do anything for shift
                 return false
