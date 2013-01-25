@@ -5,7 +5,7 @@
 #include "buffer_cache/buffer_cache.hpp"
 #include "containers/buffer_group.hpp"
 #include "containers/scoped.hpp"
-#include "mock/unittest_utils.hpp"
+#include "unittest/unittest_utils.hpp"
 
 namespace unittest {
 

@@ -2,7 +2,7 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
-#include "mock/unittest_utils.hpp"
+#include "unittest/unittest_utils.hpp"
 
 #include "containers/archive/archive.hpp"
 #include "extproc/job.hpp"

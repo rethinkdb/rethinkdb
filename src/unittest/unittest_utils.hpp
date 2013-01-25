@@ -1,6 +1,6 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
-#ifndef MOCK_UNITTEST_UTILS_HPP_
-#define MOCK_UNITTEST_UTILS_HPP_
+#ifndef UNITTEST_UNITTEST_UTILS_HPP_
+#define UNITTEST_UNITTEST_UTILS_HPP_
 
 #include <set>
 
@@ -52,4 +52,4 @@ inline void semilattice_join(sl_int_t *a, sl_int_t b) {
 
 }  // namespace unittest
 
-#endif /* MOCK_UNITTEST_UTILS_HPP_ */
+#endif /* UNITTEST_UNITTEST_UTILS_HPP_ */

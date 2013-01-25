@@ -7,7 +7,7 @@
 #include "concurrency/queue/disk_backed_queue_wrapper.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "containers/disk_backed_queue.hpp"
-#include "mock/unittest_utils.hpp"
+#include "unittest/unittest_utils.hpp"
 #include "unittest/gtest.hpp"
 
 namespace unittest {

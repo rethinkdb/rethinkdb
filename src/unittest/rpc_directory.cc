@@ -5,7 +5,7 @@
 #include "rpc/connectivity/cluster.hpp"
 #include "rpc/directory/read_manager.hpp"
 #include "rpc/directory/write_manager.hpp"
-#include "mock/unittest_utils.hpp"
+#include "unittest/unittest_utils.hpp"
 
 namespace unittest {
 

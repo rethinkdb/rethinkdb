@@ -3,8 +3,8 @@
 
 #include "clustering/generic/registrar.hpp"
 #include "clustering/generic/registrant.hpp"
-#include "mock/clustering_utils.hpp"
-#include "mock/unittest_utils.hpp"
+#include "unittest/clustering_utils.hpp"
+#include "unittest/unittest_utils.hpp"
 
 namespace unittest {
 

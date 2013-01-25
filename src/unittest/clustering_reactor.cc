@@ -3,10 +3,10 @@
 
 #include "clustering/reactor/blueprint.hpp"
 #include "mock/branch_history_manager.hpp"
-#include "mock/clustering_utils.hpp"
+#include "unittest/clustering_utils.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "mock/dummy_protocol_json_adapter.hpp"
-#include "mock/unittest_utils.hpp"
+#include "unittest/unittest_utils.hpp"
 #include "unittest/test_cluster_group.hpp"
 
 using mock::dummy_protocol_t;

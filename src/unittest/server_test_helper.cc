@@ -9,7 +9,7 @@
 #include "arch/timing.hpp"
 #include "btree/slice.hpp"
 #include "buffer_cache/buffer_cache.hpp"
-#include "mock/unittest_utils.hpp"
+#include "unittest/unittest_utils.hpp"
 #include "serializer/config.hpp"
 #include "serializer/log/log_serializer.hpp"
 #include "serializer/translator.hpp"

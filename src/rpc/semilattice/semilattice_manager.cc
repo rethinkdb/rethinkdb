@@ -435,5 +435,5 @@ void semilattice_manager_t<metadata_t>::wait_for_version_from_peer(peer_id_t pee
 #include "clustering/administration/metadata.hpp"
 template class semilattice_manager_t<cluster_semilattice_metadata_t>;
 
-#include "mock/unittest_utils.hpp"
+#include "unittest/unittest_utils.hpp"
 template class semilattice_manager_t<unittest::sl_int_t>;

@@ -3,7 +3,7 @@
 #include <boost/bind.hpp>
 
 #include "containers/archive/archive.hpp"
-#include "mock/unittest_utils.hpp"
+#include "unittest/unittest_utils.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
 #include "rpc/semilattice/joins/map.hpp"
 #include "rpc/semilattice/view/field.hpp"

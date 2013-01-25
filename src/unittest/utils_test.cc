@@ -3,7 +3,7 @@
 
 #include "arch/address.hpp"
 #include "arch/runtime/runtime.hpp"
-#include "mock/unittest_utils.hpp"
+#include "unittest/unittest_utils.hpp"
 #include "unittest/gtest.hpp"
 #include "utils.hpp"
 

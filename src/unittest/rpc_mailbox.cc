@@ -2,7 +2,7 @@
 #include "unittest/gtest.hpp"
 
 #include "arch/timing.hpp"
-#include "mock/unittest_utils.hpp"
+#include "unittest/unittest_utils.hpp"
 #include "rpc/mailbox/mailbox.hpp"
 #include "rpc/mailbox/typed.hpp"
 

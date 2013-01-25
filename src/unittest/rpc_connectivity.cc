@@ -5,7 +5,7 @@
 #include "arch/runtime/thread_pool.hpp"
 #include "arch/timing.hpp"
 #include "containers/scoped.hpp"
-#include "mock/unittest_utils.hpp"
+#include "unittest/unittest_utils.hpp"
 #include "rpc/connectivity/cluster.hpp"
 #include "rpc/connectivity/multiplexer.hpp"
 #include "unittest/gtest.hpp"

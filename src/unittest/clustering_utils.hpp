@@ -1,6 +1,6 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
-#ifndef MOCK_CLUSTERING_UTILS_HPP_
-#define MOCK_CLUSTERING_UTILS_HPP_
+#ifndef UNITTEST_CLUSTERING_UTILS_HPP_
+#define UNITTEST_CLUSTERING_UTILS_HPP_
 
 #include <map>
 #include <string>
@@ -10,7 +10,7 @@
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "clustering/immediate_consistency/query/master_access.hpp"
 #include "mock/dummy_protocol.hpp"
-#include "mock/unittest_utils.hpp"
+#include "unittest/unittest_utils.hpp"
 #include "serializer/config.hpp"
 
 class memcached_protocol_t;
@@ -270,4 +270,4 @@ private:
 
 }   /* namespace unittest */
 
-#endif  // MOCK_CLUSTERING_UTILS_HPP_
+#endif  // UNITTEST_CLUSTERING_UTILS_HPP_

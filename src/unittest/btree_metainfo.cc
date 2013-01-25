@@ -3,7 +3,7 @@
 
 #include "arch/io/disk.hpp"
 #include "btree/operations.hpp"
-#include "mock/unittest_utils.hpp"
+#include "unittest/unittest_utils.hpp"
 #include "serializer/config.hpp"
 
 namespace unittest {

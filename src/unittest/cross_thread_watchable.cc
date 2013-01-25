@@ -7,7 +7,7 @@
 #include "concurrency/cross_thread_watchable.hpp"
 #include "concurrency/watchable.hpp"
 #include "containers/clone_ptr.hpp"
-#include "mock/unittest_utils.hpp"
+#include "unittest/unittest_utils.hpp"
 #include "unittest/gtest.hpp"
 
 namespace unittest {

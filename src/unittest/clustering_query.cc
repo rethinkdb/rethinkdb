@@ -7,9 +7,9 @@
 #include "clustering/immediate_consistency/query/master.hpp"
 #include "clustering/immediate_consistency/query/master_access.hpp"
 #include "mock/branch_history_manager.hpp"
-#include "mock/clustering_utils.hpp"
+#include "unittest/clustering_utils.hpp"
 #include "mock/dummy_protocol.hpp"
-#include "mock/unittest_utils.hpp"
+#include "unittest/unittest_utils.hpp"
 
 using mock::dummy_protocol_t;
 

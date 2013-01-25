@@ -6,8 +6,8 @@
 #include "clustering/immediate_consistency/branch/replier.hpp"
 #include "memcached/protocol.hpp"
 #include "mock/branch_history_manager.hpp"
-#include "mock/clustering_utils.hpp"
-#include "mock/unittest_utils.hpp"
+#include "unittest/clustering_utils.hpp"
+#include "unittest/unittest_utils.hpp"
 #include "unittest/dummy_metadata_controller.hpp"
 
 namespace unittest {

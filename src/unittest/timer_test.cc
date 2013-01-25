@@ -2,7 +2,7 @@
 
 #include "arch/timing.hpp"
 #include "concurrency/pmap.hpp"
-#include "mock/unittest_utils.hpp"
+#include "unittest/unittest_utils.hpp"
 #include "utils.hpp"
 
 namespace unittest {
