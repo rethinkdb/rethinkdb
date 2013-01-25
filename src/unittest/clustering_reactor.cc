@@ -1,12 +1,12 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "unittest/gtest.hpp"
 
 #include "clustering/reactor/blueprint.hpp"
-#include "mock/branch_history_manager.hpp"
-#include "mock/clustering_utils.hpp"
+#include "unittest/branch_history_manager.hpp"
+#include "unittest/clustering_utils.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "mock/dummy_protocol_json_adapter.hpp"
-#include "mock/unittest_utils.hpp"
+#include "unittest/unittest_utils.hpp"
 #include "unittest/test_cluster_group.hpp"
 
 using mock::dummy_protocol_t;
@@ -14,7 +14,7 @@ using mock::dummy_protocol_t;
 namespace unittest {
 
 void runOneShardOnePrimaryOneNodeStartupShutdowntest() {
-    mock::test_cluster_group_t<dummy_protocol_t> cluster_group(2);
+    test_cluster_group_t<dummy_protocol_t> cluster_group(2);
 
     cluster_group.construct_all_reactors(cluster_group.compile_blueprint("p,n"));
 
@@ -24,11 +24,11 @@ void runOneShardOnePrimaryOneNodeStartupShutdowntest() {
 }
 
 TEST(ClusteringReactor, OneShardOnePrimaryOneNodeStartupShutdown) {
-    mock::run_in_thread_pool(&runOneShardOnePrimaryOneNodeStartupShutdowntest);
+    unittest::run_in_thread_pool(&runOneShardOnePrimaryOneNodeStartupShutdowntest);
 }
 
 void runOneShardOnePrimaryOneSecondaryStartupShutdowntest() {
-    mock::test_cluster_group_t<dummy_protocol_t> cluster_group(3);
+    test_cluster_group_t<dummy_protocol_t> cluster_group(3);
 
     cluster_group.construct_all_reactors(cluster_group.compile_blueprint("p,s,n"));
 
@@ -38,11 +38,11 @@ void runOneShardOnePrimaryOneSecondaryStartupShutdowntest() {
 }
 
 TEST(ClusteringReactor, OneShardOnePrimaryOneSecondaryStartupShutdowntest) {
-    mock::run_in_thread_pool(&runOneShardOnePrimaryOneSecondaryStartupShutdowntest);
+    unittest::run_in_thread_pool(&runOneShardOnePrimaryOneSecondaryStartupShutdowntest);
 }
 
 void runTwoShardsTwoNodes() {
-    mock::test_cluster_group_t<dummy_protocol_t> cluster_group(2);
+    test_cluster_group_t<dummy_protocol_t> cluster_group(2);
 
     cluster_group.construct_all_reactors(cluster_group.compile_blueprint("ps,sp"));
 
@@ -52,11 +52,11 @@ void runTwoShardsTwoNodes() {
 }
 
 TEST(ClusteringReactor, TwoShardsTwoNodes) {
-    mock::run_in_thread_pool(&runTwoShardsTwoNodes);
+    unittest::run_in_thread_pool(&runTwoShardsTwoNodes);
 }
 
 void runRoleSwitchingTest() {
-    mock::test_cluster_group_t<dummy_protocol_t> cluster_group(2);
+    test_cluster_group_t<dummy_protocol_t> cluster_group(2);
 
     cluster_group.construct_all_reactors(cluster_group.compile_blueprint("p,n"));
     cluster_group.wait_until_blueprint_is_satisfied("p,n");
@@ -70,11 +70,11 @@ void runRoleSwitchingTest() {
 }
 
 TEST(ClusteringReactor, RoleSwitchingTest) {
-    mock::run_in_thread_pool(&runRoleSwitchingTest);
+    unittest::run_in_thread_pool(&runRoleSwitchingTest);
 }
 
 void runOtherRoleSwitchingTest() {
-    mock::test_cluster_group_t<dummy_protocol_t> cluster_group(2);
+    test_cluster_group_t<dummy_protocol_t> cluster_group(2);
 
     cluster_group.construct_all_reactors(cluster_group.compile_blueprint("p,s"));
     cluster_group.wait_until_blueprint_is_satisfied("p,s");
@@ -87,11 +87,11 @@ void runOtherRoleSwitchingTest() {
 }
 
 TEST(ClusteringReactor, OtherRoleSwitchingTest) {
-    mock::run_in_thread_pool(&runOtherRoleSwitchingTest);
+    unittest::run_in_thread_pool(&runOtherRoleSwitchingTest);
 }
 
 void runAddSecondaryTest() {
-    mock::test_cluster_group_t<dummy_protocol_t> cluster_group(3);
+    test_cluster_group_t<dummy_protocol_t> cluster_group(3);
     cluster_group.construct_all_reactors(cluster_group.compile_blueprint("p,s,n"));
     cluster_group.wait_until_blueprint_is_satisfied("p,s,n");
     cluster_group.run_queries();
@@ -102,11 +102,11 @@ void runAddSecondaryTest() {
 }
 
 TEST(ClusteringReactor, AddSecondaryTest) {
-    mock::run_in_thread_pool(&runAddSecondaryTest);
+    unittest::run_in_thread_pool(&runAddSecondaryTest);
 }
 
 void runReshardingTest() {
-    mock::test_cluster_group_t<dummy_protocol_t> cluster_group(2);
+    test_cluster_group_t<dummy_protocol_t> cluster_group(2);
 
     cluster_group.construct_all_reactors(cluster_group.compile_blueprint("p,n"));
     cluster_group.wait_until_blueprint_is_satisfied("p,n");
@@ -122,11 +122,11 @@ void runReshardingTest() {
 }
 
 TEST(ClusteringReactor, ReshardingTest) {
-    mock::run_in_thread_pool(&runReshardingTest);
+    unittest::run_in_thread_pool(&runReshardingTest);
 }
 
 void runLessGracefulReshardingTest() {
-    mock::test_cluster_group_t<dummy_protocol_t> cluster_group(2);
+    test_cluster_group_t<dummy_protocol_t> cluster_group(2);
 
     cluster_group.construct_all_reactors(cluster_group.compile_blueprint("p,n"));
     cluster_group.wait_until_blueprint_is_satisfied("p,n");
@@ -138,7 +138,7 @@ void runLessGracefulReshardingTest() {
 }
 
 TEST(ClusteringReactor, LessGracefulReshardingTest) {
-    mock::run_in_thread_pool(&runLessGracefulReshardingTest);
+    unittest::run_in_thread_pool(&runLessGracefulReshardingTest);
 }
 
 } // namespace unittest

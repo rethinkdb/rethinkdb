@@ -7,10 +7,10 @@
 #include "concurrency/wait_any.hpp"
 #include "logger.hpp"
 
-// This is a helper function used by find_peer_address_in_set to avoice code duplication
-//  It will return an iterator to the first peer_address_t in the set that matches any
-//  of the IP addresses in addr.
-peer_address_set_t::iterator find_peer_address_internal(peer_address_set_t &peers,
+// This is a helper function used by find_peer_address_in_set to avoice code duplication.
+// It will return an iterator to the first peer_address_t in the set that matches any
+// of the IP addresses in addr.
+peer_address_set_t::iterator find_peer_address_internal(const peer_address_set_t &peers,
                                                         const peer_address_t &addr) {
     for (peer_address_set_t::iterator other = peers.begin(); other != peers.end(); ++other) {
         if (addr.port != other->port) {
@@ -29,15 +29,15 @@ peer_address_set_t::iterator find_peer_address_internal(peer_address_set_t &peer
     return peers.end();
 }
 
-// We need to make sure we find the *right* address in the set
+// We need to make sure we find the *right* address in the set.
 // Example:
-//  Set contains [127.0.1.1] and [192.168.0.15]
-//  find is called with [127.0.0.1, 127.0.1.1, 192.168.0.15]
+//  Set contains [127.0.1.1] and [192.168.0.15].
+//  find is called with [127.0.0.1, 127.0.1.1, 192.168.0.15].
 // In this case, only 192.168.0.15 should be removed, because the loopback
-//  address is obviously talking about a different peer
+// address is obviously talking about a different peer.
 // So, first we create a peer_address_t without any loopback addresses
-//  then, if there are no matches for that, use the original
-peer_address_set_t::iterator find_peer_address_in_set(peer_address_set_t &peers,
+// then, if there are no matches for that, use the original.
+peer_address_set_t::iterator find_peer_address_in_set(const peer_address_set_t &peers,
                                                       const peer_address_t &addr) {
     // Compare non-loopback addresses first
     const std::set<ip_address_t> *ips = addr.all_ips();
@@ -101,7 +101,7 @@ void initial_joiner_t::main_coro(connectivity_cluster_t::run_t *cluster_run, aut
     try {
         int retry_interval_ms = initial_retry_interval_ms;
         do {
-            for (peer_address_set_t::const_iterator it = peers_not_heard_from.begin(); it != peers_not_heard_from.end(); it++) {
+            for (peer_address_set_t::iterator it = peers_not_heard_from.begin(); it != peers_not_heard_from.end(); it++) {
                 cluster_run->join(*it);
             }
             signal_timer_t retry_timer(retry_interval_ms);
@@ -113,7 +113,7 @@ void initial_joiner_t::main_coro(connectivity_cluster_t::run_t *cluster_run, aut
             retry_interval_ms = std::min(static_cast<int>(retry_interval_ms * retry_interval_growth_rate), max_retry_interval_ms);
         } while (!peers_not_heard_from.empty() && (!grace_period_timer.has() || !grace_period_timer->is_pulsed()));
         if (!peers_not_heard_from.empty()) {
-            peer_address_set_t::const_iterator it = peers_not_heard_from.begin();
+            peer_address_set_t::iterator it = peers_not_heard_from.begin();
             std::string s = strprintf("%s:%d", it->primary_ip().as_dotted_decimal().c_str(), it->port);
             for (it++; it != peers_not_heard_from.end(); it++) {
                 s += strprintf(", %s:%d", it->primary_ip().as_dotted_decimal().c_str(), it->port);
@@ -134,7 +134,7 @@ void initial_joiner_t::on_connect(peer_id_t peer) {
         peer_address_t peer_addr = cluster->get_peer_address(peer);
 
         // We want to remove a peer address, find it in the set (if it's there at all, and remove it)
-        std::vector<peer_address_t>::iterator join_addr = find_peer_address_in_set(peers_not_heard_from, peer_addr);
+        peer_address_set_t::iterator join_addr = find_peer_address_in_set(peers_not_heard_from, peer_addr);
         if (join_addr != peers_not_heard_from.end()) {
             peers_not_heard_from.erase(*join_addr);
         }

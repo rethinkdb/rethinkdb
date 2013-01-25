@@ -354,8 +354,13 @@ file_open_result_t open_direct_file(const char *path, int mode, io_backender_t *
 
     // When building, we must either support O_DIRECT or F_NOCACHE.  The former works on Linux,
     // the latter works on OS X.
-#ifdef O_DIRECT
-    int fcntl_res = fcntl(fd.get(), F_SETFL, static_cast<long>(flags | O_DIRECT));
+#ifdef __linux__
+    // fcntl(2) is documented to take an argument of type long, not of type int, with the F_SETFL
+    // command, on Linux.  But POSIX says it's supposed to take an int?  Passing long should be
+    // generally fine, with either the x86 or amd64 calling convention, on another system (that
+    // supports O_DIRECT) but we use "#ifdef __linux__" (and not "#ifdef O_DIRECT") specifically to
+    // avoid such concerns.
+    int fcntl_res = fcntl(fd.get(), F_SETFL, static_cast<long>(flags | O_DIRECT));  // NOLINT(runtime/int)
 #else
     int fcntl_res = fcntl(fd.get(), F_NOCACHE, 1);
 #endif  // O_DIRECT.

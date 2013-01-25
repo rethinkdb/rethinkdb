@@ -427,28 +427,28 @@ void apply_json_to(cJSON *, int *);
 void on_subfield_change(int *);
 
 // ctx-less JSON adapter for unsigned long long
-json_adapter_if_t::json_adapter_map_t get_json_subfields(unsigned long long *);
-cJSON *render_as_json(unsigned long long *);
-void apply_json_to(cJSON *, unsigned long long *);
-void on_subfield_change(unsigned long long *);
+json_adapter_if_t::json_adapter_map_t get_json_subfields(unsigned long long *);  // NOLINT(runtime/int)
+cJSON *render_as_json(unsigned long long *);  // NOLINT(runtime/int)
+void apply_json_to(cJSON *, unsigned long long *);  // NOLINT(runtime/int)
+void on_subfield_change(unsigned long long *);  // NOLINT(runtime/int)
 
 // ctx-less JSON adapter for long long
-json_adapter_if_t::json_adapter_map_t get_json_subfields(long long *);
-cJSON *render_as_json(long long *);
-void apply_json_to(cJSON *, long long *);
-void on_subfield_change(long long *);
+json_adapter_if_t::json_adapter_map_t get_json_subfields(long long *);  // NOLINT(runtime/int)
+cJSON *render_as_json(long long *);  // NOLINT(runtime/int)
+void apply_json_to(cJSON *, long long *);  // NOLINT(runtime/int)
+void on_subfield_change(long long *);  // NOLINT(runtime/int)
 
 // ctx-less JSON adapter for unsigned long
-json_adapter_if_t::json_adapter_map_t get_json_subfields(unsigned long *);
-cJSON *render_as_json(unsigned long *);
-void apply_json_to(cJSON *, unsigned long *);
-void on_subfield_change(unsigned long *);
+json_adapter_if_t::json_adapter_map_t get_json_subfields(unsigned long *);  // NOLINT(runtime/int)
+cJSON *render_as_json(unsigned long *);  // NOLINT(runtime/int)
+void apply_json_to(cJSON *, unsigned long *);  // NOLINT(runtime/int)
+void on_subfield_change(unsigned long *);  // NOLINT(runtime/int)
 
 // ctx-less JSON adapter for long
-json_adapter_if_t::json_adapter_map_t get_json_subfields(long *);
-cJSON *render_as_json(long *);
-void apply_json_to(cJSON *, long *);
-void on_subfield_change(long *);
+json_adapter_if_t::json_adapter_map_t get_json_subfields(long *);  // NOLINT(runtime/int)
+cJSON *render_as_json(long *);  // NOLINT(runtime/int)
+void apply_json_to(cJSON *, long *);  // NOLINT(runtime/int)
+void on_subfield_change(long *);  // NOLINT(runtime/int)
 
 // ctx-less JSON adapter for bool
 json_adapter_if_t::json_adapter_map_t get_json_subfields(bool *);

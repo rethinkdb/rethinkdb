@@ -1,7 +1,7 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "buffer_cache/buffer_cache.hpp"
 #include "errors.hpp"
-#include "mock/unittest_utils.hpp"
+#include "unittest/unittest_utils.hpp"
 #include "serializer/log/log_serializer.hpp" // for ls_buf_data_t
 #include "serializer/translator.hpp"
 #include "unittest/gtest.hpp"

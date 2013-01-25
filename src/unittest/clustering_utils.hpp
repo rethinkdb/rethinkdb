@@ -1,6 +1,6 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
-#ifndef MOCK_CLUSTERING_UTILS_HPP_
-#define MOCK_CLUSTERING_UTILS_HPP_
+// Copyright 2010-2013 RethinkDB, all rights reserved.
+#ifndef UNITTEST_CLUSTERING_UTILS_HPP_
+#define UNITTEST_CLUSTERING_UTILS_HPP_
 
 #include <map>
 #include <string>
@@ -10,12 +10,12 @@
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "clustering/immediate_consistency/query/master_access.hpp"
 #include "mock/dummy_protocol.hpp"
-#include "mock/unittest_utils.hpp"
+#include "unittest/unittest_utils.hpp"
 #include "serializer/config.hpp"
 
 class memcached_protocol_t;
 
-namespace mock {
+namespace unittest {
 
 struct fake_fifo_enforcement_t {
     fifo_enforcer_source_t source;
@@ -54,18 +54,18 @@ public:
     typename protocol_t::store_t store;
 };
 
-inline void test_inserter_write_master_access(master_access_t<dummy_protocol_t> *ma, const std::string &key, const std::string &value, order_token_t otok, signal_t *interruptor) {
-    dummy_protocol_t::write_t w;
-    dummy_protocol_t::write_response_t response;
+inline void test_inserter_write_master_access(master_access_t<mock::dummy_protocol_t> *ma, const std::string &key, const std::string &value, order_token_t otok, signal_t *interruptor) {
+    mock::dummy_protocol_t::write_t w;
+    mock::dummy_protocol_t::write_response_t response;
     w.values[key] = value;
     fifo_enforcer_sink_t::exit_write_t write_token;
     ma->new_write_token(&write_token);
     ma->write(w, &response, otok, &write_token, interruptor);
 }
 
-inline std::string test_inserter_read_master_access(master_access_t<dummy_protocol_t> *ma, const std::string &key, order_token_t otok, signal_t *interruptor) {
-    dummy_protocol_t::read_t r;
-    dummy_protocol_t::read_response_t response;
+inline std::string test_inserter_read_master_access(master_access_t<mock::dummy_protocol_t> *ma, const std::string &key, order_token_t otok, signal_t *interruptor) {
+    mock::dummy_protocol_t::read_t r;
+    mock::dummy_protocol_t::read_response_t response;
     r.keys.keys.insert(key);
     fifo_enforcer_sink_t::exit_read_t read_token;
     ma->new_read_token(&read_token);
@@ -73,16 +73,16 @@ inline std::string test_inserter_read_master_access(master_access_t<dummy_protoc
     return response.values.find(key)->second;
 }
 
-inline void test_inserter_write_namespace_if(namespace_interface_t<dummy_protocol_t> *nif, const std::string& key, const std::string& value, order_token_t otok, signal_t *interruptor) {
-    dummy_protocol_t::write_t w;
-    dummy_protocol_t::write_response_t response;
+inline void test_inserter_write_namespace_if(namespace_interface_t<mock::dummy_protocol_t> *nif, const std::string& key, const std::string& value, order_token_t otok, signal_t *interruptor) {
+    mock::dummy_protocol_t::write_t w;
+    mock::dummy_protocol_t::write_response_t response;
     w.values[key] = value;
     nif->write(w, &response, otok, interruptor);
 }
 
-inline std::string test_inserter_read_namespace_if(namespace_interface_t<dummy_protocol_t> *nif, const std::string& key, order_token_t otok, signal_t *interruptor) {
-    dummy_protocol_t::read_t r;
-    dummy_protocol_t::read_response_t response;
+inline std::string test_inserter_read_namespace_if(namespace_interface_t<mock::dummy_protocol_t> *nif, const std::string& key, order_token_t otok, signal_t *interruptor) {
+    mock::dummy_protocol_t::read_t r;
+    mock::dummy_protocol_t::read_response_t response;
     r.keys.keys.insert(key);
     nif->read(r, &response, otok, interruptor);
     return response.values[key];
@@ -165,7 +165,7 @@ private:
             for (int i = 0; ; i++) {
                 if (keepalive.get_drain_signal()->is_pulsed()) throw interrupted_exc_t();
 
-                dummy_protocol_t::write_t w;
+                mock::dummy_protocol_t::write_t w;
                 std::string key = key_gen_fun();
                 std::string value = (*values_inserted)[key] = strprintf("%d", i);
 
@@ -215,7 +215,7 @@ template <class protocol_t>
 std::string key_gen();
 
 template <>
-inline std::string key_gen<dummy_protocol_t>() {
+inline std::string key_gen<mock::dummy_protocol_t>() {
     return dummy_key_gen();
 }
 
@@ -268,6 +268,6 @@ private:
 };
 #endif
 
-}   /* namespace unittest */
+}  // namespace unittest
 
-#endif  // MOCK_CLUSTERING_UTILS_HPP_
+#endif  // UNITTEST_CLUSTERING_UTILS_HPP_

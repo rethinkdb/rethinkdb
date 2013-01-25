@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 
 #include "errors.hpp"
 #include <boost/scoped_ptr.hpp>
@@ -7,7 +7,7 @@
 #include "concurrency/cross_thread_watchable.hpp"
 #include "concurrency/watchable.hpp"
 #include "containers/clone_ptr.hpp"
-#include "mock/unittest_utils.hpp"
+#include "unittest/unittest_utils.hpp"
 #include "unittest/gtest.hpp"
 
 namespace unittest {
@@ -61,7 +61,7 @@ void runCrossThreadWatchabletest() {
 }
 
 TEST(CrossThreadWatchable, CrossThreadWatchableTest) {
-    mock::run_in_thread_pool(&runCrossThreadWatchabletest, 2);
+    unittest::run_in_thread_pool(&runCrossThreadWatchabletest, 2);
 }
 
 } //namespace unittest

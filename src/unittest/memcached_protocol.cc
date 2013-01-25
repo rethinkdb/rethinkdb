@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "errors.hpp"
 #include <boost/make_shared.hpp>
 
@@ -21,7 +21,7 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<mem
     shards.push_back(hash_region_t<key_range_t>(key_range_t(key_range_t::none,   store_key_t(),  key_range_t::open, store_key_t("n"))));
     shards.push_back(hash_region_t<key_range_t>(key_range_t(key_range_t::closed, store_key_t("n"), key_range_t::none, store_key_t() )));
 
-    mock::temp_file_t temp_file("/tmp/rdb_unittest.XXXXXX");
+    temp_file_t temp_file("/tmp/rdb_unittest.XXXXXX");
 
     scoped_ptr_t<io_backender_t> io_backender;
     make_io_backender(aio_default, &io_backender);
@@ -61,7 +61,7 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<mem
 }
 
 void run_in_thread_pool_with_namespace_interface(boost::function<void(namespace_interface_t<memcached_protocol_t> *, order_source_t *)> fun) {
-    mock::run_in_thread_pool(boost::bind(&run_with_namespace_interface, fun));
+    unittest::run_in_thread_pool(boost::bind(&run_with_namespace_interface, fun));
 }
 
 /* `SetupTeardown` makes sure that it can start and stop without anything going
