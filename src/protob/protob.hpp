@@ -130,7 +130,7 @@ private:
 
 template<class request_t, class response_t, class context_t>
 const int32_t protob_server_t<request_t, response_t, context_t>::magic_number
-    = 0xaf61ba35;
+    = 0x3f61ba36;
 
 //TODO figure out how to do 0 copy serialization with this.
 

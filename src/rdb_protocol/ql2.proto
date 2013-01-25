@@ -357,7 +357,7 @@ message Term2 {
         //                               }];
         //                     }];
         //           }];
-        Function = 69; // ARRAY, Term -> ARRAY -> Term
+        FUNC = 69; // ARRAY, Term -> ARRAY -> Term
     };
     required TermType type = 1;
 
