@@ -11,19 +11,27 @@
 #include "unittest/dummy_metadata_controller.hpp"
 #include "unittest/gtest.hpp"
 
+
+
 namespace unittest {
 
-namespace {
+class sl_int_t {
+public:
+    sl_int_t() { }
+    explicit sl_int_t(uint64_t initial) : i(initial) { }
+    uint64_t i;
 
+    RDB_MAKE_ME_SERIALIZABLE_1(i);
+};
 
+inline void semilattice_join(sl_int_t *a, sl_int_t b) {
+    a->i |= b.i;
+}
 
 class sl_pair_t {
 public:
     sl_pair_t(sl_int_t _x, sl_int_t _y) : x(_x), y(_y) { }
     sl_int_t x, y;
-
-    // FIXME: serialization functions are never referenced and build with Intel fails
-    // RDB_MAKE_ME_SERIALIZABLE_2(x, y);
 };
 
 void semilattice_join(sl_pair_t *a, sl_pair_t b) {
@@ -35,8 +43,6 @@ template<class T>
 void assign(T *target, T value) {
     *target = value;
 }
-
-}   /* anonymous namespace */
 
 /* `SingleMetadata` tests metadata's properties on a single node. */
 
@@ -281,3 +287,6 @@ TEST(RPCSemilatticeTest, MemberViewMultiThread) {
 }
 
 }   /* namespace unittest */
+
+#include "rpc/semilattice/semilattice_manager.tcc"
+template class semilattice_manager_t<unittest::sl_int_t>;

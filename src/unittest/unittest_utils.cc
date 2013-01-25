@@ -8,7 +8,7 @@
 
 #include "arch/timing.hpp"
 #include "arch/runtime/starter.hpp"
-#include "utils.hpp"            // randint
+#include "utils.hpp"
 
 namespace unittest {
 
