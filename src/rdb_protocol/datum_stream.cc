@@ -61,8 +61,8 @@ const datum_t *datum_stream_t::gmr(func_t *g, func_t *m, func_t *r) {
     return egct.finalize(map.to_arr(env));
 }
 
-datum_stream_t *datum_stream_t::slice(size_t l, size_t r, bool exclude_end) {
-    return env->add_ptr(new slice_datum_stream_t(env, l, r, exclude_end, this));
+datum_stream_t *datum_stream_t::slice(size_t l, size_t r) {
+    return env->add_ptr(new slice_datum_stream_t(env, l, r, this));
 }
 
 const datum_t *datum_stream_t::as_arr() {
@@ -234,11 +234,10 @@ const datum_t *filter_datum_stream_t::next() {
 
 // SLICE_DATUM_STREAM_T
 slice_datum_stream_t::slice_datum_stream_t(
-    env_t *_env, size_t _l, size_t _r, bool _exclude_end, datum_stream_t *_src)
-    : datum_stream_t(_env), env(_env), ind(0), l(_l), r(_r),
-      exclude_end(_exclude_end), src(_src) { }
+    env_t *_env, size_t _l, size_t _r, datum_stream_t *_src)
+    : datum_stream_t(_env), env(_env), ind(0), l(_l), r(_r), src(_src) { }
 const datum_t *slice_datum_stream_t::next() {
-    if (ind > r || (exclude_end && ind == r)) return 0;
+    if (l > r || ind > r) return 0;
     while (ind++ < l) {
         env_checkpoint_t ect(env, &env_t::discard_checkpoint);
         src->next();

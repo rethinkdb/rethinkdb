@@ -8,7 +8,6 @@ module RethinkDB
     end
 
     @@opt_off = {
-      :slice => -1
     }
     @@rewrites = {
       :< => :lt, :<= => :le, :> => :gt, :>= => :ge,
@@ -40,13 +39,6 @@ module RethinkDB
       }
       return RQL.new t
     end
-
-    # def limit(*a)
-    #   n = a[-1]
-    #   extra = a[0..-2]
-    #   slice(*(extra + [0, n, {:exclude_end => true}]))
-    # end
-    # def skip(*a); slice(*(a + [-1])); end
 
     def [](ind)
       if ind.class == Fixnum

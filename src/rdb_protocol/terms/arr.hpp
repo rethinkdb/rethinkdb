@@ -21,7 +21,7 @@ private:
 
 size_t canonicalize(int index, size_t size, bool *oob_out = 0) {
     if (index >= 0) return index;
-    if (size_t(index * -1) <= size) {
+    if (size_t(index * -1) > size) {
         if (oob_out) {
             *oob_out = true;
         } else {
@@ -65,16 +65,12 @@ private:
     RDB_NAME("nth")
 };
 
-static const char *const slice_optargs[] = {"exclude_end"};
 class slice_term_t : public op_term_t {
 public:
     slice_term_t(env_t *env, const Term2 *term)
-        : op_term_t(env, term, argspec_t(3), LEGAL_OPTARGS(slice_optargs)) { }
+        : op_term_t(env, term, argspec_t(3)) { }
 private:
     virtual val_t *eval_impl() {
-        val_t *ee = optarg("exclude_end", 0);
-        bool exclude_end = ee ? ee->as_datum()->as_bool() : false;
-
         val_t *v   = arg(0);
         int fake_l = arg(1)->as_datum()->as_int();
         int fake_r = arg(2)->as_datum()->as_int();
@@ -92,7 +88,6 @@ private:
             scoped_ptr_t<datum_t> out(new datum_t(datum_t::R_ARRAY));
             if (!r_oob) {
                 for (size_t i = real_l; i <= real_r; ++i) {
-                    if (i == real_r && exclude_end) break;
                     if (i >= arr->size()) break;
                     out->add(arr->el(i));
                 }
@@ -106,13 +101,38 @@ private:
             datum_stream_t *seq = v->as_seq();
             rcheck(fake_l >= 0, "Cannot use a negative left index on a stream.");
             rcheck(fake_r >= -1, "Cannot use a right index < -1 on a stream");
-            datum_stream_t *new_ds = seq->slice(fake_l, fake_r, exclude_end);
+            datum_stream_t *new_ds = seq->slice(fake_l, fake_r);
             return t ? new_val(t, new_ds) : new_val(new_ds);
         }
         rfail("Cannot slice non-sequences.");
         unreachable();
     }
     RDB_NAME("slice")
+};
+
+class limit_term_t : public op_term_t {
+public:
+    limit_term_t(env_t *env, const Term2 *term) : op_term_t(env, term, argspec_t(2)) { }
+private:
+    virtual val_t *eval_impl() {
+        val_t *v = arg(0);
+        table_t *t = 0;
+        if (v->get_type().is_convertible(val_t::type_t::SELECTION)) {
+            t = v->as_selection().first;
+        }
+        datum_stream_t *ds = v->as_seq();
+        int r = arg(1)->as_datum()->as_int();
+
+        rcheck(r >= 0, strprintf("LIMIT takes a non-negative argument (got %d)", r));
+        datum_stream_t *new_ds;
+        if (r == 0) {
+            new_ds = ds->slice(1, 0);
+        } else {
+            new_ds = ds->slice(0, r-1);
+        }
+        return t ? new_val(t, new_ds) : new_val(new_ds);
+    }
+    RDB_NAME("limit")
 };
 
 } // namespace ql

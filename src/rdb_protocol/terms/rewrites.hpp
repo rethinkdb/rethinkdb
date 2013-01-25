@@ -155,7 +155,7 @@ public:
     delete_term_t(env_t *env, const Term2 *term) : rewrite_term_t(env, term, rewrite) { }
 private:
     static void rewrite(env_t *env, const Term2 *in, Term2 *out) {
-        rcheck(in->args_size() == 1, "delete requires ` arguments");
+        rcheck(in->args_size() == 1, "delete requires 1 argument");
         int x = env->gensym();
 
         Term2 *arg = out;
@@ -172,7 +172,7 @@ public:
     update_term_t(env_t *env, const Term2 *term) : rewrite_term_t(env, term, rewrite) { }
 private:
     static void rewrite(env_t *env, const Term2 *in, Term2 *out) {
-        rcheck(in->args_size() == 2, "update requires ` arguments");
+        rcheck(in->args_size() == 2, "update requires 2 arguments");
         int x = env->gensym();
 
         Term2 *arg = out;
@@ -188,6 +188,21 @@ private:
 #pragma GCC diagnostic pop
     }
     RDB_NAME("update")
+};
+
+class skip_term_t : public rewrite_term_t {
+public:
+    skip_term_t(env_t *env, const Term2 *term) : rewrite_term_t(env, term, rewrite) { }
+private:
+    static void rewrite(UNUSED env_t *env, const Term2 *in, Term2 *out) {
+        rcheck(in->args_size() == 2, "skip requires 2 arguments");
+        Term2 *arg = out;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"
+        N3(SLICE, *arg = in->args(0), *arg = in->args(1), pb::set_int(arg, -1))
+#pragma GCC diagnostic pop
+     }
+     RDB_NAME("skip")
 };
 
 } // namespace ql

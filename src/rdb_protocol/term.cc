@@ -64,8 +64,8 @@ term_t *compile_term(env_t *env, const Term2 *t) {
     case Term2_TermType_UNION:              return new union_term_t(env, t);
     case Term2_TermType_NTH:                return new nth_term_t(env, t);
     case Term2_TermType_GROUPED_MAP_REDUCE: return new gmr_term_t(env, t);
-    case Term2_TermType_LIMIT:
-    case Term2_TermType_SKIP:
+    case Term2_TermType_LIMIT:              return new limit_term_t(env, t);
+    case Term2_TermType_SKIP:               return new skip_term_t(env, t);
     case Term2_TermType_GROUPBY:
         rfail("UNIMPLEMENTED");
     case Term2_TermType_INNER_JOIN:         return new inner_join_term_t(env, t);
