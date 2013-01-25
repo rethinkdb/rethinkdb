@@ -178,6 +178,91 @@ class ClientTest < Test::Unit::TestCase
                  r(docs).filter{|x| x[:b].eq 0}.orderby('-a').run)
   end
 
+  # +,-,%,*,/,<,>,<=,>=,eq,ne,any,all
+  def test_ops
+    assert_equal(8, (r(5) + 3).run)
+    assert_equal(8, r(5).add(3).run)
+    assert_equal(8, r.add(5, 3).run)
+    assert_equal(8, r.add(2, 3, 3).run)
+
+    assert_equal(2, (r(5) - 3).run)
+    assert_equal(2, r(5).sub(3).run)
+    assert_equal(2, r.sub(5, 3).run)
+
+    assert_equal(2, (r(5) % 3).run)
+    assert_equal(2, r(5).mod(3).run)
+    assert_equal(2, r.mod(5, 3).run)
+
+    assert_equal(15, (r(5) * 3).run)
+    assert_equal(15, r(5).mul(3).run)
+    assert_equal(15, r.mul(5, 3).run)
+
+    assert_equal(5, (r(15) / 3).run)
+    assert_equal(5, r(15).div(3).run)
+    assert_equal(5, r.div(15, 3).run)
+
+    assert_equal(false, r.lt(3, 2).run)
+    assert_equal(false, r.lt(3, 3).run)
+    assert_equal(true, r.lt(3, 4).run)
+    assert_equal(false, r(3).lt(2).run)
+    assert_equal(false, r(3).lt(3).run)
+    assert_equal(true, r(3).lt(4).run)
+    assert_equal(false, (r(3) < 2).run)
+    assert_equal(false, (r(3) < 3).run)
+    assert_equal(true, (r(3) < 4).run)
+
+    assert_equal(false, r.le(3, 2).run)
+    assert_equal(true, r.le(3, 3).run)
+    assert_equal(true, r.le(3, 4).run)
+    assert_equal(false, r(3).le(2).run)
+    assert_equal(true, r(3).le(3).run)
+    assert_equal(true, r(3).le(4).run)
+    assert_equal(false, (r(3) <= 2).run)
+    assert_equal(true, (r(3) <= 3).run)
+    assert_equal(true, (r(3) <= 4).run)
+
+    assert_equal(true, r.gt(3, 2).run)
+    assert_equal(false, r.gt(3, 3).run)
+    assert_equal(false, r.gt(3, 4).run)
+    assert_equal(true, r(3).gt(2).run)
+    assert_equal(false, r(3).gt(3).run)
+    assert_equal(false, r(3).gt(4).run)
+    assert_equal(true, (r(3) > 2).run)
+    assert_equal(false, (r(3) > 3).run)
+    assert_equal(false, (r(3) > 4).run)
+
+    assert_equal(true, r.ge(3, 2).run)
+    assert_equal(true, r.ge(3, 3).run)
+    assert_equal(false, r.ge(3, 4).run)
+    assert_equal(true, r(3).ge(2).run)
+    assert_equal(true, r(3).ge(3).run)
+    assert_equal(false, r(3).ge(4).run)
+    assert_equal(true, (r(3) >= 2).run)
+    assert_equal(true, (r(3) >= 3).run)
+    assert_equal(false, (r(3) >= 4).run)
+
+    assert_equal(false, r.eq(3, 2).run)
+    assert_equal(true, r.eq(3, 3).run)
+
+    assert_equal(true, r.ne(3, 2).run)
+    assert_equal(false, r.ne(3, 3).run)
+
+    assert_equal(true, r.all(true, true, true).run)
+    assert_equal(false, r.all(true, false, true).run)
+    assert_equal(true, r.and(true, true, true).run)
+    assert_equal(false, r.and(true, false, true).run)
+    assert_equal(true, r(true).and(true).run)
+    assert_equal(false, r(true).and(false).run)
+
+    assert_equal(false, r.any(false, false, false).run)
+    assert_equal(true, r.any(false, true, false).run)
+
+    assert_equal(false, r.or(false, false, false).run)
+    assert_equal(true, r.or(false, true, false).run)
+    assert_equal(false, r(false).or(false).run)
+    assert_equal(true, r(true).or(false).run)
+  end
+
   def setup
     begin
       r.db_create('test').run
