@@ -168,6 +168,16 @@ class ClientTest < Test::Unit::TestCase
     assert_equal([false, true, 2.0], r.distinct([true, 2, false, 2]).run)
   end
 
+  def test_ordering
+    docs = (0..9).map { |n| { "id" => ((100 + n)), "a" => (n), "b" => ((n % 3)) } }
+    assert_equal(docs.sort_by { |x| x["a"] }, r(docs).orderby(:s).run)
+    assert_equal(docs.sort_by { |x| x["a"] }.reverse, r(docs).orderby('-a').run)
+    assert_equal(docs.select { |x| (x["b"] == 0) }.sort_by { |x| x["a"] },
+                 r(docs).filter{|x| x[:b].eq 0}.orderby('+a').run)
+    assert_equal(docs.select { |x| (x["b"] == 0) }.sort_by { |x| x["a"] }.reverse,
+                 r(docs).filter{|x| x[:b].eq 0}.orderby('-a').run)
+  end
+
   def setup
     begin
       r.db_create('test').run
