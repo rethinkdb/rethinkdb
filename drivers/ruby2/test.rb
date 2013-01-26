@@ -382,11 +382,22 @@ class ClientTest < Test::Unit::TestCase
 
   def test_random_insert_regressions
     assert_raise(RuntimeError){tbl.insert(true).run}
-    assert_raise(RuntimeError){tbl.insert([true, true]).run}
+    assert_not_nil(tbl.insert([true, true]).run['errors'])
   end
 
   def test_too_big_key
     assert_not_nil(tbl.insert({ :id => (("a" * 1000)) }).run["first_error"])
+  end
+
+  def test_key_generation
+    assert_equal(data, tbl.order_by(:id).run.to_a)
+    res = tbl.insert([[], {}, { :a => 1 }, { :id => -1, :a => 2 }]).run
+    assert_equal(1, res["errors"])
+    assert_equal(3, res["inserted"])
+    assert_equal(2, res["generated_keys"].length)
+    assert_equal(1, tbl.get(res["generated_keys"][0]).delete.run["deleted"])
+    assert_equal(2,tbl.filter{|x| (x[:id] < 0)|(x[:id] > 1000)}.delete.run["deleted"])
+    assert_equal(data, tbl.order_by(:id).run.to_a)
   end
 
   def setup
