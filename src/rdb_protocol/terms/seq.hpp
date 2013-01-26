@@ -42,9 +42,9 @@ private:
     virtual val_t *eval_impl() {
         if (arg(0)->get_type().is_convertible(val_t::type_t::SELECTION)) {
             std::pair<table_t *, datum_stream_t *> tds = arg(0)->as_selection();
-            return new_val(tds.first, tds.second->filter(arg(1)->as_func()));
+            return new_val(tds.first, tds.second->filter(arg(1)->as_func(SHORTCUT_OK)));
         } else {
-            return new_val(arg(0)->as_seq()->filter(arg(1)->as_func()));
+            return new_val(arg(0)->as_seq()->filter(arg(1)->as_func(SHORTCUT_OK)));
         }
     }
     RDB_NAME("filter")

@@ -18,8 +18,8 @@ private:
                 std::string attrname = attrs->el(i)->as_str();
                 bool invert = (attrname[0] == '-');
                 if (attrname[0] == '-' || attrname[0] == '+') attrname.erase(0, 1);
-                const datum_t *lattr = l->el(attrname, 0);
-                const datum_t *rattr = r->el(attrname, 0);
+                const datum_t *lattr = l->el(attrname, NOTHROW);
+                const datum_t *rattr = r->el(attrname, NOTHROW);
                 if (!lattr && !rattr) continue;
                 if (!lattr) return bool(true ^ invert);
                 if (!rattr) return bool(false ^ invert);

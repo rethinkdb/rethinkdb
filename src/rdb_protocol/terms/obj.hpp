@@ -18,8 +18,7 @@ public:
     contains_term_t(env_t *env, const Term2 *term) : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual val_t *eval_impl() {
-        bool b = arg(0)->as_datum()->el(arg(1)->as_datum()->as_str(), false);
-        //                     Return 0 instead of throwing on error. ^^^^^
+        bool b = arg(0)->as_datum()->el(arg(1)->as_datum()->as_str(), NOTHROW);
         return new_val(new datum_t(datum_t::R_BOOL, b));
     }
     RDB_NAME("contains")

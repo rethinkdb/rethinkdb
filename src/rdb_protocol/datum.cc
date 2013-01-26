@@ -164,17 +164,19 @@ size_t datum_t::size() const {
     return as_array().size();
 }
 
-const datum_t *datum_t::el(size_t index, bool throw_if_missing) const {
+const datum_t *datum_t::el(size_t index, throw_bool_t throw_bool) const {
     if (index < as_array().size()) return as_array()[index];
-    if (throw_if_missing) rfail("Index out of bounds: %lu", index);
+    if (throw_bool == THROW) rfail("Index out of bounds: %lu", index);
     return 0;
 }
 
-const datum_t *datum_t::el(const std::string &key, bool throw_if_missing) const {
+const datum_t *datum_t::el(const std::string &key, throw_bool_t throw_bool) const {
     std::map<const std::string, const datum_t *>::const_iterator
         it = as_object().find(key);
     if (it != as_object().end()) return it->second;
-    if (throw_if_missing) rfail("No key %s in object %s.", key.c_str(), print().c_str());
+    if (throw_bool == THROW) {
+        rfail("No key %s in object %s.", key.c_str(), print().c_str());
+    }
     return 0;
 }
 
@@ -231,11 +233,12 @@ void datum_t::add(const datum_t *val) {
     r_array.push_back(val);
 }
 
-MUST_USE bool datum_t::add(const std::string &key, const datum_t *val, bool clobber) {
+MUST_USE bool datum_t::add(const std::string &key, const datum_t *val,
+                           clobber_bool_t clobber_bool) {
     check_type(R_OBJECT);
     r_sanity_check(val);
     bool key_in_obj = r_object.count(key) > 0;
-    if (!key_in_obj || clobber) r_object[key] = val;
+    if (!key_in_obj || (clobber_bool == CLOBBER)) r_object[key] = val;
     return key_in_obj;
 }
 
@@ -248,7 +251,7 @@ const datum_t *datum_t::merge(const datum_t *rhs) const {
     const std::map<const std::string, const datum_t *> &rhs_obj = rhs->as_object();
     for (std::map<const std::string, const datum_t *>::const_iterator
              it = rhs_obj.begin(); it != rhs_obj.end(); ++it) {
-        UNUSED bool b = d->add(it->first, it->second, true/*clobber*/);
+        UNUSED bool b = d->add(it->first, it->second, CLOBBER);
     }
     return d.release();
 }
@@ -257,8 +260,8 @@ const datum_t *datum_t::merge(env_t *env, const datum_t *rhs, merge_res_f f) con
     const std::map<const std::string, const datum_t *> &rhs_obj = rhs->as_object();
     for (std::map<const std::string, const datum_t *>::const_iterator
              it = rhs_obj.begin(); it != rhs_obj.end(); ++it) {
-        if (const datum_t *l = el(it->first, false /*nothrow*/)) {
-            bool b = d->add(it->first, f(env, it->first, l, it->second), true);
+        if (const datum_t *l = el(it->first, NOTHROW)) {
+            bool b = d->add(it->first, f(env, it->first, l, it->second), CLOBBER);
             r_sanity_check(b);
         } else {
             bool b = d->add(it->first, it->second);

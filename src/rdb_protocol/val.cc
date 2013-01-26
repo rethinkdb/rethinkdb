@@ -264,7 +264,11 @@ std::pair<table_t *, const datum_t *> val_t::as_single_selection() {
     return std::make_pair(table, datum);
 }
 
-func_t *val_t::as_func() {
+func_t *val_t::as_func(shortcut_ok_bool_t shortcut_ok) {
+    if (get_type().is_convertible(type_t::DATUM) && shortcut_ok == SHORTCUT_OK) {
+        if (!func) func = env->add_ptr(func_t::new_shortcut_func(env, as_datum()));
+        return func;
+    }
     rcheck(type.raw_type == type_t::FUNC,
            strprintf("Type error: cannot convert %s to FUNC.", type.name()));
     return func;

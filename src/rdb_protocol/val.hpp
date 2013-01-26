@@ -30,6 +30,8 @@ private:
     scoped_ptr_t<namespace_repo_t<rdb_protocol_t>::access_t> access;
 };
 
+
+enum shortcut_ok_bool_t { SHORTCUT_NOT_OK = 0, SHORTCUT_OK = 1};
 class val_t : public ptr_baggable_t {
 public:
     class type_t {
@@ -69,7 +71,7 @@ public:
     datum_stream_t *as_seq();
     std::pair<table_t *, const datum_t *> as_single_selection();
     const datum_t *as_datum();
-    func_t *as_func();
+    func_t *as_func(shortcut_ok_bool_t shortcut_ok = SHORTCUT_NOT_OK);
 
     std::string print() {
         if (get_type().is_convertible(type_t::DATUM)) {

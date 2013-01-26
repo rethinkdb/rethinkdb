@@ -17,6 +17,8 @@ namespace ql {
 class env_t;
 class datum_stream_t;
 
+enum throw_bool_t { NOTHROW = 0, THROW = 1};
+enum clobber_bool_t { NOCLOBBER = 0, CLOBBER = 1};
 class datum_t : public ptr_baggable_t {
 public:
     // This ordering is important, because we use it to sort objects of
@@ -61,14 +63,15 @@ public:
     const std::vector<const datum_t *> &as_array() const;
     void add(const datum_t *val);
     size_t size() const;
-    const datum_t *el(size_t index, bool throw_if_missing = true) const;
+    const datum_t *el(size_t index, throw_bool_t throw_bool = THROW) const;
 
     const std::map<const std::string, const datum_t *> &as_object() const;
     // Returns true if `key` was already in object.
-    MUST_USE bool add(const std::string &key, const datum_t *val, bool clobber = false);
+    MUST_USE bool add(const std::string &key, const datum_t *val,
+                      clobber_bool_t clobber_bool = NOCLOBBER);
     // Returns true if key was in object.
     MUST_USE bool del(const std::string &key);
-    const datum_t *el(const std::string &key, bool throw_if_missing = true) const;
+    const datum_t *el(const std::string &key, throw_bool_t throw_bool = THROW) const;
     const datum_t *merge(const datum_t *rhs) const;
     typedef const datum_t *(*merge_res_f)(env_t *env, const std::string &key,
                                           const datum_t *l, const datum_t *r);
