@@ -64,6 +64,9 @@ const datum_t *datum_stream_t::gmr(func_t *g, func_t *m, func_t *r) {
 datum_stream_t *datum_stream_t::slice(size_t l, size_t r) {
     return env->add_ptr(new slice_datum_stream_t(env, l, r, this));
 }
+datum_stream_t *datum_stream_t::zip() {
+    return env->add_ptr(new zip_datum_stream_t(env, this));
+}
 
 const datum_t *datum_stream_t::as_arr() {
     datum_t *arr = env->add_ptr(new datum_t(datum_t::R_ARRAY));
@@ -242,6 +245,18 @@ const datum_t *slice_datum_stream_t::next() {
         src->next();
     }
     return src->next();
+}
+
+// ZIP_DATUM_STREAM_T
+zip_datum_stream_t::zip_datum_stream_t(env_t *_env, datum_stream_t *_src)
+    : datum_stream_t(_env), env(_env), src(_src) { }
+const datum_t *zip_datum_stream_t::next() {
+    const datum_t *d = src->next();
+    if (!d) return 0;
+    const datum_t *l = d->el("left", NOTHROW);
+    const datum_t *r = d->el("right", NOTHROW);
+    rcheck(l, "ZIP can only be called on the result of a join.");
+    return r ? env->add_ptr(l->merge(r)) : l;
 }
 
 // UNION_DATUM_STREAM_T

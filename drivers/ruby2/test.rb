@@ -336,6 +336,54 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(data[(0...5)], id_sort(tbl.filter { |r| (r[:id] < 5) }.run.to_a))
   end
 
+  def test_joins
+    db_name = rand((2 ** 64)).to_s
+    tbl_name = rand((2 ** 64)).to_s
+    r.db_create(db_name).run
+    r.db(db_name).table_create((tbl_name + "1")).run
+    r.db(db_name).table_create((tbl_name + "2")).run
+    tbl1 = r.db(db_name).table((tbl_name + "1"))
+    tbl2 = r.db(db_name).table((tbl_name + "2"))
+
+    assert_equal({ "inserted" => 10},
+                 tbl1.insert((0...10).map { |x| { :id => (x), :a => ((x * 2)) } }).run)
+    assert_equal({ "inserted" => 10},
+                 tbl2.insert((0...10).map { |x| { :id => (x), :b => ((x * 100)) } }).run)
+
+    tbl1.eq_join(:a, tbl2).run.each do |pair|
+      assert_equal(pair["right"]["id"], pair["left"]["a"])
+    end
+
+    assert_equal(tbl1.inner_join(tbl2){ |l, r| l[:a].eq(r[:id]) }.run.to_a.sort_by do |x|
+      x["left"]["id"]
+    end, tbl1.eq_join(:a, tbl2).run.to_a.sort_by { |x| x["left"]["id"] })
+
+    assert_equal((tbl1.eq_join(:a, tbl2).run.to_a +
+                  tbl1.filter{|row| tbl2.get(row[:a]).eq(nil)}.map {|row|
+      {:left => row}}.run.to_a).sort_by {|x| x['left']['id']},
+        tbl1.outer_join(tbl2) {|l,r|
+        l[:a].eq(r[:id])}.run.to_a.sort_by {|x| x['left']['id']})
+
+    assert_equal(tbl1.outer_join(tbl2) {
+                   |l,r| l[:a].eq(r[:id])}.zip.run.to_a.sort_by {|x| x['a']},
+                 [{"b"=>0, "a"=>0, "id"=>0},
+                  {"b"=>200, "a"=>2, "id"=>2},
+                  {"b"=>400, "a"=>4, "id"=>4},
+                  {"b"=>600, "a"=>6, "id"=>6},
+                  {"b"=>800, "a"=>8, "id"=>8},
+                  {"a"=>10, "id"=>5},
+                  {"a"=>12, "id"=>6},
+                  {"a"=>14, "id"=>7},
+                  {"a"=>16, "id"=>8},
+                  {"a"=>18, "id"=>9}])
+  ensure
+    r.db_drop(db_name).run
+  end
+
+  def test_too_big_key
+    assert_not_nil(tbl.insert({ :id => (("a" * 1000)) }).run["first_error"])
+  end
+
   def setup
     begin
       r.db_create('test').run

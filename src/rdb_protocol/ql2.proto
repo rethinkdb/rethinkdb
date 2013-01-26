@@ -263,6 +263,8 @@ message Term2 {
         OUTER_JOIN         = 49; // Sequence, Sequence, Function(2) -> Sequence
         // An inner-join that does an equality comparison on two attributes.
         EQ_JOIN            = 50; // Sequence, !STRING, Sequence -> Sequence
+        ZIP                = 72; // Sequence -> Sequence
+
 
         // * Type Ops
         // Coerces a datum to a named type (e.g. "bool").
