@@ -8,7 +8,7 @@ module RethinkDB
     end
 
     @@opt_off = {
-      :reduce => -1
+      :reduce => -1, :between => -1
     }
     @@rewrites = {
       :< => :lt, :<= => :le, :> => :gt, :>= => :ge,
@@ -47,6 +47,10 @@ module RethinkDB
     def reduce(*a, &b)
       a = a[1..-2] + [{:base => a[-1]}] if a != []
       super(*a, &b)
+    end
+
+    def between(l=nil, r=nil)
+      super(Hash[(l ? [['left_bound', l]] : []) + (r ? [['right_bound', r]] : [])])
     end
 
     def [](ind)

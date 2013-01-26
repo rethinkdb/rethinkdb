@@ -441,6 +441,20 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(want.sort, query.run.to_a.sort)
   end
 
+  # RANGE
+  def test_range
+#    assert_raise(RuntimeError) { tbl.between(1, r([3])).run.to_a }
+#    assert_raise(RuntimeError) { tbl.between(2, 1).run.to_a }
+    assert_equal(data[(1..3)], id_sort(tbl.between(1, 3).run.to_a))
+    assert_equal(data[(3..3)], id_sort(tbl.between(3, 3).run.to_a))
+    assert_equal(data[(2..-1)], id_sort(tbl.between(2, nil).run.to_a))
+    assert_equal(data[(1..3)], id_sort(tbl.between(1, 3).run.to_a))
+    assert_equal(data[(0..4)], id_sort(tbl.between(nil, 4).run.to_a))
+
+    assert_raise(RuntimeError) { r([1]).between(1, 3).run.to_a }
+    assert_raise(RuntimeError) { r([1, 2]).between(1, 3).run.to_a }
+  end
+
   def setup
     begin
       r.db_create('test').run
