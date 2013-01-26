@@ -89,7 +89,7 @@ public:
             const region_map_t<protocol_t, state_timestamp_t> &start_point,
             send_backfill_callback_t<protocol_t> *send_backfill_cb,
             typename protocol_t::backfill_progress_t *progress,
-            object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
+            read_token_pair_t *token_pair,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -178,6 +178,14 @@ public: // <--- so this is some bullshit right here
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
 
+    void get_sindexes(
+        std::map<uuid_u, secondary_index_t> *sindexes_out,
+        read_token_pair_t *token_pair,
+        transaction_t *txn,
+        superblock_t *super_block,
+        signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t);
+
     void acquire_sindex_superblock_for_read(
             uuid_u id,
             const typename protocol_t::region_t &region_to_read,
@@ -247,6 +255,7 @@ protected:
     virtual void protocol_send_backfill(const region_map_t<protocol_t, state_timestamp_t> &start_point,
                                         chunk_fun_callback_t<protocol_t> *chunk_fun_cb,
                                         superblock_t *superblock,
+                                        buf_lock_t *sindex_block,
                                         btree_slice_t *btree,
                                         transaction_t *txn,
                                         typename protocol_t::backfill_progress_t *progress,

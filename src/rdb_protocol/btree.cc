@@ -259,6 +259,17 @@ public:
         cb_->on_keyvalue(atom, interruptor);
     }
 
+    void on_sindexes(const std::map<uuid_u, secondary_index_t> &sindexes, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+        for (std::map<uuid_u, secondary_index_t>::const_iterator it  = sindexes.begin();
+                                                                 it != sindexes.end();
+                                                                 ++it) {
+            region_map_t<rdb_protocol_t, sindex_details::sindex_state_t> sindex_metainfo;
+            get_sindex_metainfo(it->second, &sindex_metainfo);
+            guarantee(sindex_metainfo.get_domain() == rdb_protocol_t::region_t(kr_));
+        }
+        cb_->on_sindexes(sindexes, interruptor);
+    }
+
     rdb_backfill_callback_t *cb_;
     key_range_t kr_;
 };
@@ -266,11 +277,12 @@ public:
 void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range,
         repli_timestamp_t since_when, rdb_backfill_callback_t *callback,
         transaction_t *txn, superblock_t *superblock,
+        buf_lock_t *sindex_block,
         parallel_traversal_progress_t *p, signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
     agnostic_rdb_backfill_callback_t agnostic_cb(callback, key_range);
     value_sizer_t<rdb_value_t> sizer(slice->cache()->get_block_size());
-    do_agnostic_btree_backfill(&sizer, slice, key_range, since_when, &agnostic_cb, txn, superblock, p, interruptor);
+    do_agnostic_btree_backfill(&sizer, slice, key_range, since_when, &agnostic_cb, txn, superblock, sindex_block, p, interruptor);
 }
 
 void rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t timestamp,

@@ -417,7 +417,7 @@ void dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_checker_t<dummy_
 bool dummy_protocol_t::store_t::send_backfill(const region_map_t<dummy_protocol_t, state_timestamp_t> &start_point,
                                               send_backfill_callback_t<dummy_protocol_t> *send_backfill_cb,
                                               traversal_progress_combiner_t *progress,
-                                              object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
+                                              read_token_pair_t *token_pair,
                                               signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     {
         scoped_ptr_t<traversal_progress_t> progress_owner(new dummy_protocol_t::backfill_progress_t(get_thread_id()));
@@ -426,9 +426,10 @@ bool dummy_protocol_t::store_t::send_backfill(const region_map_t<dummy_protocol_
 
     rassert(region_is_superset(get_region(), start_point.get_domain()));
 
-    object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer(token);
+    object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer(&token_pair->main_read_token);
+    object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer2(&token_pair->sindex_read_token);
 
-    wait_interruptible(token->get(), interruptor);
+    wait_interruptible(token_pair->main_read_token.get(), interruptor);
 
     metainfo_t masked_metainfo = metainfo.mask(start_point.get_domain());
     if (send_backfill_cb->should_backfill(masked_metainfo)) {
@@ -438,7 +439,7 @@ bool dummy_protocol_t::store_t::send_backfill(const region_map_t<dummy_protocol_
 
         if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
 
-        token->reset();
+        token_pair->main_read_token.reset();
 
         if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
         for (region_map_t<dummy_protocol_t, state_timestamp_t>::const_iterator r_it  = start_point.begin();

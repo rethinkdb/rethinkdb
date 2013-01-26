@@ -402,7 +402,7 @@ public:
             const region_map_t<protocol_t, state_timestamp_t> &start_point,
             send_backfill_callback_t<protocol_t> *send_backfill_cb,
             traversal_progress_combiner_t *progress,
-            object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
+            read_token_pair_t *token_pair,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
 
@@ -563,13 +563,13 @@ public:
             const region_map_t<protocol_t, state_timestamp_t> &start_point,
             send_backfill_callback_t<protocol_t> *send_backfill_cb,
             traversal_progress_combiner_t *p,
-            object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
+            read_token_pair_t *token_pair,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
         rassert(region_is_superset(get_region(), start_point.get_domain()));
 
-        return store_view->send_backfill(start_point, send_backfill_cb, p, token, interruptor);
+        return store_view->send_backfill(start_point, send_backfill_cb, p, token_pair, interruptor);
     }
 
     void receive_backfill(

@@ -99,6 +99,7 @@ public:
     virtual void on_delete_range(const key_range_t &range, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
     virtual void on_deletion(const btree_key_t *key, repli_timestamp_t recency, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
     virtual void on_keyvalue(const rdb_protocol_details::backfill_atom_t& atom, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
+    virtual void on_sindexes(const std::map<uuid_u, secondary_index_t> &sindexes, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
 protected:
     virtual ~rdb_backfill_callback_t() { }
 };
@@ -107,6 +108,7 @@ protected:
 void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range,
         repli_timestamp_t since_when, rdb_backfill_callback_t *callback,
         transaction_t *txn, superblock_t *superblock,
+        buf_lock_t *sindex_block,
         parallel_traversal_progress_t *p, signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 

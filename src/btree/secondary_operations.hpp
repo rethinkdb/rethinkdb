@@ -2,6 +2,13 @@
 #ifndef BTREE_SECONDARY_OPERATIONS_HPP
 #define BTREE_SECONDARY_OPERATIONS_HPP
 
+#include <vector>
+
+#include "buffer_cache/mirrored/writeback.hpp"
+#include "containers/archive/archive.hpp"
+#include "rpc/serialize_macros.hpp"
+#include "serializer/types.hpp"
+
 namespace sindex_details {
 enum sindex_state_t {
     UNCREATED,

@@ -1,4 +1,8 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
+
+#include "containers/archive/vector_stream.hpp"
+#include "protocol_api.hpp"
+
 template <class protocol_t>
 void get_sindex_metainfo(const secondary_index_t &sindex, region_map_t<protocol_t, sindex_details::sindex_state_t> *metainfo) {
     vector_read_stream_t read_stream(&sindex.metainfo);

@@ -116,20 +116,23 @@ bool btree_store_t<protocol_t>::send_backfill(
         const region_map_t<protocol_t, state_timestamp_t> &start_point,
         send_backfill_callback_t<protocol_t> *send_backfill_cb,
         typename protocol_t::backfill_progress_t *progress,
-        object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
+        read_token_pair_t *token_pair,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
 
     scoped_ptr_t<transaction_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
-    acquire_superblock_for_backfill(token, &txn, &superblock, interruptor);
+    acquire_superblock_for_backfill(&token_pair->main_read_token, &txn, &superblock, interruptor);
+
+    scoped_ptr_t<buf_lock_t> sindex_block;
+    acquire_sindex_block_for_read(token_pair, txn.get(), &sindex_block, superblock->get_sindex_block_id(), interruptor);
 
     region_map_t<protocol_t, binary_blob_t> unmasked_metainfo;
     get_metainfo_internal(txn.get(), superblock->get(), &unmasked_metainfo);
     region_map_t<protocol_t, binary_blob_t> metainfo = unmasked_metainfo.mask(start_point.get_domain());
     if (send_backfill_cb->should_backfill(metainfo)) {
-        protocol_send_backfill(start_point, send_backfill_cb, superblock.get(), btree.get(), txn.get(), progress, interruptor);
+        protocol_send_backfill(start_point, send_backfill_cb, superblock.get(), sindex_block.get(), btree.get(), txn.get(), progress, interruptor);
         return true;
     }
     return false;
@@ -381,6 +384,21 @@ void btree_store_t<protocol_t>::drop_sindex(
         }
     }
 }
+
+template <class protocol_t>
+void btree_store_t<protocol_t>::get_sindexes(
+        std::map<uuid_u, secondary_index_t> *sindexes_out,
+        read_token_pair_t *token_pair,
+        transaction_t *txn,
+        superblock_t *super_block,
+        signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t) {
+    scoped_ptr_t<buf_lock_t> sindex_block;
+    acquire_sindex_block_for_read(token_pair, txn, &sindex_block, super_block->get_sindex_block_id(), interruptor);
+
+    return get_secondary_indexes(txn, sindex_block.get(), sindexes_out);
+}
+
 
 template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(

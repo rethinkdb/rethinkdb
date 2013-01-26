@@ -83,7 +83,6 @@ bool delete_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, uuid_u
     std::map<uuid_u, secondary_index_t> sindex_map;
     get_secondary_indexes_internal(txn, sindex_block, &sindex_map);
 
-    std::map<uuid_u, secondary_index_t>::const_iterator it = sindex_map.find(uuid);
     if (sindex_map.erase(uuid) == 1) {
         set_secondary_indexes_internal(txn, sindex_block, sindex_map);
         return true;

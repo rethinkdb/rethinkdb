@@ -612,14 +612,14 @@ private:
 };
 
 static void call_memcached_backfill(int i, btree_slice_t *btree, const std::vector<std::pair<region_t, state_timestamp_t> > &regions,
-        memcached_backfill_callback_t *callback, transaction_t *txn, superblock_t *superblock, memcached_protocol_t::backfill_progress_t *progress,
+        memcached_backfill_callback_t *callback, transaction_t *txn, superblock_t *superblock, buf_lock_t *sindex_block, memcached_protocol_t::backfill_progress_t *progress,
         signal_t *interruptor) {
     parallel_traversal_progress_t *p = new parallel_traversal_progress_t;
     scoped_ptr_t<traversal_progress_t> p_owner(p);
     progress->add_constituent(&p_owner);
     repli_timestamp_t timestamp = regions[i].second.to_repli_timestamp();
     try {
-        memcached_backfill(btree, regions[i].first.inner, timestamp, callback, txn, superblock, p, interruptor);
+        memcached_backfill(btree, regions[i].first.inner, timestamp, callback, txn, superblock, sindex_block, p, interruptor);
     } catch (interrupted_exc_t) {
         /* do nothing; `protocol_send_backfill()` will notice and deal with it.
         */
@@ -630,6 +630,7 @@ static void call_memcached_backfill(int i, btree_slice_t *btree, const std::vect
 void store_t::protocol_send_backfill(const region_map_t<memcached_protocol_t, state_timestamp_t> &start_point,
                                      chunk_fun_callback_t<memcached_protocol_t> *chunk_fun_cb,
                                      superblock_t *superblock,
+                                     buf_lock_t *sindex_block,
                                      btree_slice_t *btree,
                                      transaction_t *txn,
                                      backfill_progress_t *progress,
@@ -645,7 +646,7 @@ void store_t::protocol_send_backfill(const region_map_t<memcached_protocol_t, st
         // it's harmless, because caching is basically perfect.
         refcount_superblock_t refcount_wrapper(superblock, regions.size());
         pmap(regions.size(), boost::bind(&call_memcached_backfill, _1,
-                                         btree, regions, &callback, txn, &refcount_wrapper, progress, interruptor));
+                                         btree, regions, &callback, txn, &refcount_wrapper, sindex_block, progress, interruptor));
 
         /* if interruptor was pulsed in `call_memcached_backfill()`, it returned
         normally anyway. So now we have to check manually. */
