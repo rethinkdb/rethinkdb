@@ -60,32 +60,11 @@ func_t::func_t(env_t *env, const Term2 *_source) : body(0), source(_source) {
     env->dump_scope(&scope);
 }
 
-func_t *func_t::new_shortcut_func(env_t *env, const datum_t *obj) {
-    env_wrapper_t<Term2> *twrap = env->add_ptr(new env_wrapper_t<Term2>());
-    int x = env->gensym();
-    Term2 *t = pb::set_func(&twrap->t, x);
-    pb::set(t, Term2_TermType_ALL, 0, 0);
-    for (std::map<const std::string, const datum_t *>::const_iterator
-             it = obj->as_object().begin(); it != obj->as_object().end(); ++it) {
-        std::string key = it->first;
-        const datum_t *val = it->second;
-
-        Term2 *arg = t->add_args();
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wshadow"
-        N2(EQ,
-           N2(GETATTR, pb::set_var(arg, x), pb::set_str(arg, key)),
-           val->write_to_protobuf(pb::set_datum(arg)));
-#pragma GCC diagnostic pop
-    }
-    return env->add_ptr(new func_t(env, &twrap->t));
-}
-
 val_t *func_t::_call(const std::vector<const datum_t *> &args) {
-    rcheck(args.size() == argptrs.size(),
+    rcheck(args.size() == argptrs.size() || argptrs.size() == 0,
            strprintf("Passed %lu arguments to function of arity %lu.",
                      args.size(), argptrs.size()));
-    for (size_t i = 0; i < args.size(); ++i) {
+    for (size_t i = 0; i < argptrs.size(); ++i) {
         r_sanity_check(args[i]);
         //debugf("Setting %p to %p\n", &argptrs[i], args[i]);
         argptrs[i] = args[i];
@@ -143,6 +122,27 @@ func_term_t::func_term_t(env_t *env, const Term2 *term)
 val_t *func_term_t::eval_impl() { return new_val(func); }
 bool func_term_t::is_deterministic() {
     return func->is_deterministic();
+}
+
+func_t *func_t::new_shortcut_func(env_t *env, const datum_t *obj) {
+    env_wrapper_t<Term2> *twrap = env->add_ptr(new env_wrapper_t<Term2>());
+    int x = env->gensym();
+    Term2 *t = pb::set_func(&twrap->t, x);
+    pb::set(t, Term2_TermType_ALL, 0, 0);
+    for (std::map<const std::string, const datum_t *>::const_iterator
+             it = obj->as_object().begin(); it != obj->as_object().end(); ++it) {
+        std::string key = it->first;
+        const datum_t *val = it->second;
+
+        Term2 *arg = t->add_args();
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"
+        N2(EQ,
+           N2(GETATTR, pb::set_var(arg, x), pb::set_str(arg, key)),
+           val->write_to_protobuf(pb::set_datum(arg)));
+#pragma GCC diagnostic pop
+    }
+    return env->add_ptr(new func_t(env, &twrap->t));
 }
 
 } // namespace ql

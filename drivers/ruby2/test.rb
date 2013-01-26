@@ -428,7 +428,18 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(want, query.run.to_a.map { |o| o["id"] })
   end
 
-  
+  # CONCATMAP, DISTINCT
+  def test_concatmap
+    assert_equal([1, 2, 1, 2, 1, 2], r([1, 2, 3]).concat_map { r([1, 2]) }.run.to_a)
+    assert_equal([1, 2], r([[1], [2]]).concat_map { |x| x }.run.to_a)
+    assert_raise(RuntimeError) { r([[1], 2]).concat_map { |x| x }.run.to_a }
+    assert_raise(RuntimeError) { r(1).concat_map { |x| x }.run.to_a }
+    assert_equal([1, 2], r([[1], [2]]).concat_map { |x| x }.run.to_a)
+    query = tbl.concat_map { |row| tbl.map { |row2| (row2[:id] * row[:id]) } }.distinct
+    nums = data.map { |o| o["id"] }
+    want = nums.map { |n| nums.map { |m| (n * m) } }.flatten(1).uniq
+    assert_equal(want.sort, query.run.to_a.sort)
+  end
 
   def setup
     begin
