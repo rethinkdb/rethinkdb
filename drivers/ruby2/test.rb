@@ -380,6 +380,11 @@ class ClientTest < Test::Unit::TestCase
     r.db_drop(db_name).run
   end
 
+  def test_random_insert_regressions
+    assert_raise(RuntimeError){tbl.insert(true).run}
+    assert_raise(RuntimeError){tbl.insert([true, true]).run}
+  end
+
   def test_too_big_key
     assert_not_nil(tbl.insert({ :id => (("a" * 1000)) }).run["first_error"])
   end
