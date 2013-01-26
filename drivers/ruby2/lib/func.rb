@@ -8,7 +8,7 @@ module RethinkDB
     end
 
     @@opt_off = {
-      :reduce => 0
+      :reduce => -1
     }
     @@rewrites = {
       :< => :lt, :<= => :le, :> => :gt, :>= => :ge,
@@ -41,6 +41,11 @@ module RethinkDB
         ap
       }
       return RQL.new t
+    end
+
+    def reduce(*a, &b)
+      a = a[1..-2] + [{:base => a[-1]}] if a != []
+      super(*a, &b)
     end
 
     def [](ind)

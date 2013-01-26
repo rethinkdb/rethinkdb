@@ -291,7 +291,6 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(data[0], query2.run["obj"])
   end
 
-
   # MAP, FILTER, GETATTR, IMPLICIT_GETATTR, STREAMTOARRAY
   def test_map
     assert_equal([1, 2], r([{ :id => 1 }, { :id => 2 }]).map { |row| row[:id] }.run.to_a)
@@ -301,6 +300,40 @@ class ClientTest < Test::Unit::TestCase
       tbl.filter { |row| (row[:id] < outer_row[:id]) }.coerce("array")
     end
     assert_equal(data[(0..1)], id_sort(query.run.to_a[2]))
+  end
+
+  # REDUCE, HASATTR, IMPLICIT_HASATTR
+  def test_reduce
+    # TODO: Error checking for reduce
+    assert_equal(6, r([1, 2, 3]).reduce(0) { |a, b| (a + b) }.run)
+    assert_raise(RuntimeError) { r(1).reduce(0) { 0 }.run }
+
+    # assert_equal(  tbl.map{|row| row['id']}.reduce(0){|a,b| a+b}.run,
+    #              data.map{|row| row['id']}.reduce(0){|a,b| a+b})
+
+    assert_equal(data.map{ true }, tbl.map { |r| r.contains(:id) }.run.to_a)
+    assert_equal(data.map{ false }, tbl.map { |row| r.not(row.contains("id")) }.run.to_a)
+    assert_equal(data.map{ false }, tbl.map { |row| r.not(row.contains("id")) }.run.to_a)
+    assert_equal(data.map{ false }, tbl.map { |row| r.not(row.contains("id")) }.run.to_a)
+    assert_equal(data.map{ true }, tbl.map { |r| r.contains(:id) }.run.to_a)
+    assert_equal(data.map{ false }, tbl.map { |r| r.contains("id").not }.run.to_a)
+  end
+
+  # assert_equal(  tbl.map{|row| row['id']}.reduce(0){|a,b| a+b}.run,
+  #              data.map{|row| row['id']}.reduce(0){|a,b| a+b})
+  # FILTER
+  def test_filter
+    assert_equal([1, 2], r([1, 2, 3]).filter { |x| (x < 3) }.run.to_a)
+    assert_raise(RuntimeError) { r(1).filter { true }.run.to_a }
+    query_5 = tbl.filter { |r| r[:name].eq("5") }
+    assert_equal([data[5]], query_5.run.to_a)
+    query_2345 = tbl.filter { |row| r.and((row[:id] >= 2), (row[:id] <= 5)) }
+    query_234 = query_2345.filter { |row| row[:num].ne(5) }
+    query_23 = query_234.filter { |row| r.any(row[:num].eq(2), row[:num].eq(3)) }
+    assert_equal(data[(2..5)], id_sort(query_2345.run.to_a))
+    assert_equal(data[(2..4)], id_sort(query_234.run.to_a))
+    assert_equal(data[(2..3)], id_sort(query_23.run.to_a))
+    assert_equal(data[(0...5)], id_sort(tbl.filter { |r| (r[:id] < 5) }.run.to_a))
   end
 
   def setup
