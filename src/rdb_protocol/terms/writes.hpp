@@ -32,7 +32,7 @@ private:
     void maybe_generate_key(table_t *tbl,
                             std::vector<std::string> *generated_keys_out,
                             const datum_t **datum_out) {
-        if (!(*datum_out)->el(tbl->get_pkey(), false /* nothrow*/)) {
+        if (!(*datum_out)->el(tbl->get_pkey(), NOTHROW)) {
             std::string key = uuid_to_str(generate_uuid());
             const datum_t *keyd = env->add_ptr(new datum_t(key));
             datum_t *d = env->add_ptr(new datum_t(datum_t::R_OBJECT));

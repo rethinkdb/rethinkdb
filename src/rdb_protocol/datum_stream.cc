@@ -178,8 +178,7 @@ array_datum_stream_t::array_datum_stream_t(env_t *env, const datum_t *_arr) :
     datum_stream_t(env), index(0), arr(_arr) { }
 
 const datum_t *array_datum_stream_t::next() {
-    return arr->el(index++, false);
-    //                      ^^^^^ return 0 instead of throwing on error
+    return arr->el(index++, NOTHROW);
 }
 
 // MAP_DATUM_STREAM_T

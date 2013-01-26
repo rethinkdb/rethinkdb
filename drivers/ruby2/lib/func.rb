@@ -8,12 +8,15 @@ module RethinkDB
     end
 
     @@opt_off = {
+      :reduce => 0
     }
     @@rewrites = {
       :< => :lt, :<= => :le, :> => :gt, :>= => :ge,
       :+ => :add, :- => :sub, :* => :mul, :/ => :div, :% => :mod,
       :"|" => :any, :or => :any,
-      :"&" => :all, :and => :all }
+      :"&" => :all, :and => :all,
+      :order_by => :orderby
+    }
     def method_missing(m, *a, &b)
       m = @@rewrites[m] || m
       termtype = Term2::TermType.values[m.to_s.upcase.to_sym]

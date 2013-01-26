@@ -1,5 +1,6 @@
-#include "rdb_protocol/func.hpp"
 #include "rdb_protocol/env.hpp"
+#include "rdb_protocol/func.hpp"
+#include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/ql2.pb.h"
 
 namespace ql {
@@ -45,7 +46,7 @@ func_t::func_t(env_t *env, const Term2 *_source) : body(0), source(_source) {
         env->push_var(args[i], &argptrs[i]);
         if (args.size() == 1) env->push_implicit(&argptrs[i]);
     }
-    guarantee(env->top_var(args[0]) == &argptrs[0]);
+    if (args.size()) guarantee(env->top_var(args[0]) == &argptrs[0]);
 
     const Term2 *body_source = &t->args(1);
     body = env->new_term(body_source);
@@ -57,6 +58,27 @@ func_t::func_t(env_t *env, const Term2 *_source) : body(0), source(_source) {
     }
 
     env->dump_scope(&scope);
+}
+
+func_t *func_t::new_shortcut_func(env_t *env, const datum_t *obj) {
+    env_wrapper_t<Term2> *twrap = env->add_ptr(new env_wrapper_t<Term2>());
+    int x = env->gensym();
+    Term2 *t = pb::set_func(&twrap->t, x);
+    pb::set(t, Term2_TermType_ALL, 0, 0);
+    for (std::map<const std::string, const datum_t *>::const_iterator
+             it = obj->as_object().begin(); it != obj->as_object().end(); ++it) {
+        std::string key = it->first;
+        const datum_t *val = it->second;
+
+        Term2 *arg = t->add_args();
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"
+        N2(EQ,
+           N2(GETATTR, pb::set_var(arg, x), pb::set_str(arg, key)),
+           val->write_to_protobuf(pb::set_datum(arg)));
+#pragma GCC diagnostic pop
+    }
+    return env->add_ptr(new func_t(env, &twrap->t));
 }
 
 val_t *func_t::_call(const std::vector<const datum_t *> &args) {

@@ -68,6 +68,8 @@ Backtrace: #{r.backtrace.map{|x| x.pos || x.opt}.inspect}"
         t.type = Term2::TermType::MAKE_OBJ
         t.optargs = x.map{|k,v| ap = Term2::AssocPair.new;
           ap.key = k.to_s; ap.val = expr(v).to_pb; ap}
+      when Proc.hash
+        t = RQL.new.new_func(&x).to_pb
       else raise RuntimeError, "r.expr can't handle #{x.inspect} of type #{x.class}"
       end
 

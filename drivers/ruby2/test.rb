@@ -263,6 +263,46 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(true, r(true).or(false).run)
   end
 
+  # TABLE
+  def test_easy_read
+    assert_equal(id_sort(tbl.run.to_a), data)
+    assert_equal(id_sort(r.db("test").table("tbl").run.to_a), data)
+  end
+
+  # IF, JSON, ERROR
+  def test_error
+    query = r.branch((r.add(1, 2) >= 3), r([1,2,3]), r.error("unreachable"))
+    query_err = r.branch((r.add(1, 2) > 3), r([1,2,3]), r.error("reachable"))
+    assert_equal([1, 2, 3], query.run)
+    assert_raise(RuntimeError) { assert_equal(query_err.run) }
+  end
+
+  # BOOL, JSON_NULL, ARRAY, ARRAYTOSTREAM
+  def test_array
+    assert_equal([true, false, nil], r([true, false, nil]).run)
+    assert_equal([true, false, nil], r([true, false, nil]).coerce("array").run.to_a)
+  end
+
+  # OBJECT, GETBYKEY
+  def test_getbykey
+    query = r("obj" => (tbl.get(0)))
+    query2 = r("obj" => (tbl.get(0)))
+    assert_equal(data[0], query.run["obj"])
+    assert_equal(data[0], query2.run["obj"])
+  end
+
+
+  # MAP, FILTER, GETATTR, IMPLICIT_GETATTR, STREAMTOARRAY
+  def test_map
+    assert_equal([1, 2], r([{ :id => 1 }, { :id => 2 }]).map { |row| row[:id] }.run.to_a)
+    assert_raise(RuntimeError) { r(1).map { }.run.to_a }
+    assert_equal([data[1]], tbl.filter("num" => 1).run.to_a)
+    query = tbl.order_by(:id).map do |outer_row|
+      tbl.filter { |row| (row[:id] < outer_row[:id]) }.coerce("array")
+    end
+    assert_equal(data[(0..1)], id_sort(query.run.to_a[2]))
+  end
+
   def setup
     begin
       r.db_create('test').run
