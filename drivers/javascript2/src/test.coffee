@@ -17,7 +17,7 @@ withConn = (conn, cont) ->
             [query, expected] = queries.shift()
             conn.run query, (err, res) ->
                 if err
-                    print "Error received:", err
+                    throw err
                 else
                     testEquals res, expected
                 active = false

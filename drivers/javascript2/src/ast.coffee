@@ -71,7 +71,7 @@ class DatumTerm extends RDBVal
         self.data = val
         return self
 
-    compose: -> return @data
+    compose: -> return ''+@data
 
     build: ->
         datum = new Datum
@@ -135,6 +135,8 @@ class RDBOp extends RDBVal
             term.addOptargs pair
         return term
 
+    compose: (args) -> ['r.', @st, '(', args[0], ')']
+
 class MakeArray extends RDBOp
     tt: Term2.TermType.MAKE_ARRAY
 
@@ -146,6 +148,7 @@ class Var extends RDBOp
 
 class JavaScript extends RDBOp
     tt: Term2.TermType.JAVASCRIPT
+    st: 'js'
 
 class UserError extends RDBOp
     tt: Term2.TermType.ERROR

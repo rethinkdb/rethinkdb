@@ -8,7 +8,7 @@ goog.require("goog.proto2.WireFormatSerializer")
 
 class Connection
     DEFAULT_HOST: 'localhost'
-    DEFAULT_PORT: 28015
+    DEFAULT_PORT: 28016
 
     constructor: (host, callback) ->
         if typeof host is 'undefined'
@@ -31,13 +31,10 @@ class Connection
             (new DataView buf).setUint32 0, VersionDummy.Version.V0_1, true
             @write buf
             @open = true
+            @_error = => # Clear failed to connect callback
             callback null, @
 
-        @_error = =>
-            @open = false
-            callback new DriverError "Could not connect to server"
-
-        Connection::lastConn = @
+        @_error = => callback new DriverError "Could not connect to server"
 
     _data: (buf) ->
         # Buffer data, execute return results if need be
@@ -45,6 +42,7 @@ class Connection
 
         while @buffer.byteLength >= 4
             responseLength = (new DataView @buffer).getUint32 0, true
+            responseLength2= (new DataView @buffer).getUint32 0, true
             unless @buffer.byteLength >= (4 + responseLength)
                 break
 
@@ -67,9 +65,10 @@ class Connection
             else
                 switch response.getType()
                     when Response2.ResponseType.COMPILE_ERROR
-                        cursor.goError new DriverError "Response type not yet implemented"
+                        message = DatumTerm.deconstruct response.getResponse 0
+                        cursor.goError new RuntimeError message, cursor.root, response.backtraceArray()
                     when Response2.ResponseType.CLIENT_ERROR
-                        cursor.goError new DriverError "Response type not yet implemented"
+                        cursor.goError new RuntimeError DatumTerm.deconstruct response.getResponse 0
                     when Response2.ResponseType.RUNTIME_ERROR
                         cursor.goError new RuntimeError DatumTerm.deconstruct response.getResponse 0
                     when Response2.ResponseType.SUCCESS_ATOM
@@ -117,9 +116,6 @@ class Connection
         cb()
         @connStack.pop
 
-    lastConn: null
-    connStack: []
-
 class TcpConnection extends Connection
     @isAvailable: -> typeof require isnt 'undefined' and require('net')
 
@@ -144,7 +140,7 @@ class TcpConnection extends Connection
             arr = new Uint8Array new ArrayBuffer buf.length
             for byte,i in buf
                 arr[i] = byte
-            @_data(arr)
+            @_data(arr.buffer)
 
     close: ->
         @rawSocket.destroy()
@@ -173,8 +169,8 @@ rethinkdb.connect = (host, callback) ->
 
 bufferConcat = (buf1, buf2) ->
     view = new Uint8Array (buf1.byteLength + buf2.byteLength)
-    view.set buf1, 0
-    view.set buf2, buf1.byteLength
+    view.set new Uint8Array(buf1), 0
+    view.set new Uint8Array(buf2), buf1.byteLength
     view.buffer
 
 bufferSlice = (buffer, offset) ->
