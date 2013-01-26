@@ -8,7 +8,7 @@ namespace ql {
 class orderby_term_t : public op_term_t {
 public:
     orderby_term_t(env_t *env, const Term2 *term)
-        : op_term_t(env, term, argspec_t(2)) { }
+        : op_term_t(env, term, argspec_t(1, -1)) { }
 private:
     class lt_cmp_t {
     public:

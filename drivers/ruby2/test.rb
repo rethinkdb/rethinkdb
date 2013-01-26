@@ -400,6 +400,36 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(data, tbl.order_by(:id).run.to_a)
   end
 
+  # SLICE
+  def test_slice
+    arr = [0, 1, 2, 3, 4, 5]
+    assert_equal(1, r(arr)[1].run)
+    assert_equal(r(arr)[(2..-1)].run.to_a, r(arr)[(2...6)].run.to_a)
+    assert_equal(r(arr)[(2..4)].run.to_a, r(arr)[(2...5)].run.to_a)
+    assert_raise(ArgumentError) { r(arr)[(2...0)].run.to_a }
+  end
+
+  def test_mapmerge
+    assert_equal({ "a" => 1, "b" => 2 }, r(:a => 1).merge(:b => 2).run)
+    assert_equal({ "a" => 2 }, r.merge({ :a => 1 }, :a => 2).run)
+  end
+
+  # ORDERBY, MAP
+  def test_order_by
+    assert_equal(data, tbl.order_by(:id).run.to_a)
+    assert_equal(data, tbl.order_by("id").run.to_a)
+    assert_equal(data, tbl.order_by(:id).run.to_a)
+    assert_equal(data, tbl.order_by(:"+id").run.to_a)
+    assert_equal(data.reverse, tbl.order_by(:"-id").run.to_a)
+    query = tbl.map { |x|
+      r(:id => (x[:id]), :num => (x[:id].mod(2)))
+    }.order_by(:num, '-id')
+    want = data.map { |o| o["id"] }.sort_by { |n| (((n % 2) * data.length) - n) }
+    assert_equal(want, query.run.to_a.map { |o| o["id"] })
+  end
+
+  
+
   def setup
     begin
       r.db_create('test').run
