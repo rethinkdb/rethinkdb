@@ -9,6 +9,11 @@ const datum_t *stats_merge(env_t *env, UNUSED const std::string &key,
         //debugf("%s %s %s -> %s\n", key.c_str(), l->print().c_str(), r->print().c_str(),
         //       env->add_ptr(new datum_t(l->as_num() + r->as_num()))->print().c_str());
         return env->add_ptr(new datum_t(l->as_num() + r->as_num()));
+    } else if (l->get_type() == datum_t::R_ARRAY && r->get_type() == datum_t::R_ARRAY) {
+        datum_t *arr = env->add_ptr(new datum_t(datum_t::R_ARRAY));
+        for (size_t i = 0; i < l->size(); ++i) arr->add(l->el(i));
+        for (size_t i = 0; i < r->size(); ++i) arr->add(r->el(i));
+        return arr;
     }
     r_sanity_check(l->get_type() == datum_t::R_STR && r->get_type() == datum_t::R_STR);
     // debugf("%s %s %s -> %s\n", key.c_str(), l->print().c_str(), r->print().c_str(),
