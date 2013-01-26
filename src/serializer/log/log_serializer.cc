@@ -29,6 +29,10 @@ std::string filepath_file_opener_t::temporary_file_name() const {
     return filepath_ + ".create";
 }
 
+std::string filepath_file_opener_t::current_file_name() const {
+    return opened_temporary_ ? temporary_file_name() : file_name();
+}
+
 bool filepath_file_opener_t::open_serializer_file(const std::string &path, int extra_flags, scoped_ptr_t<file_t> *file_out) {
     debugf("Opening serializer file with path %s\n", path.c_str());
     file_open_result_t open_res = open_direct_file(path.c_str(),
@@ -75,12 +79,18 @@ bool filepath_file_opener_t::move_serializer_file_to_permanent_location() {
 }
 
 bool filepath_file_opener_t::open_serializer_file_existing(scoped_ptr_t<file_t> *file_out) {
-    return open_serializer_file(opened_temporary_ ? temporary_file_name() : file_name(), 0, file_out);
+    return open_serializer_file(current_file_name(), 0, file_out);
+}
+
+bool filepath_file_opener_t::unlink_serializer_file() {
+    const int res = ::unlink(current_file_name().c_str());
+    guarantee_err(res == 0, "unlink() falied");
+    return res == 0;
 }
 
 #ifdef SEMANTIC_SERIALIZER_CHECK
 bool filepath_file_opener_t::open_semantic_checking_file(int *fd_out) {
-    std::string semantic_filepath = filepath_ + "_semantic";
+    const std::string semantic_filepath = filepath_ + "_semantic";
     int semantic_fd;
     do {
         semantic_fd = open(semantic_filepath.c_str(),

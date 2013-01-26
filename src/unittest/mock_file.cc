@@ -56,12 +56,13 @@ std::string mock_file_opener_t::file_name() const {
 }
 
 MUST_USE bool mock_file_opener_t::open_serializer_file_create_temporary(scoped_ptr_t<file_t> *file_out) {
-    file_out->init(new mock_file_t(mock_file_t::mode_rw, &file_));
     if (file_existence_state_ != no_file) {
         return false;
+    } else {
+        file_out->init(new mock_file_t(mock_file_t::mode_rw, &file_));
+        file_existence_state_ = temporary_file;
+        return true;
     }
-    file_existence_state_ = temporary_file;
-    return true;
 }
 
 MUST_USE bool mock_file_opener_t::move_serializer_file_to_permanent_location() {
@@ -74,10 +75,19 @@ MUST_USE bool mock_file_opener_t::move_serializer_file_to_permanent_location() {
 }
 
 MUST_USE bool mock_file_opener_t::open_serializer_file_existing(scoped_ptr_t<file_t> *file_out) {
-    if (!file_existence_state_ != permanent_file) {
+    if (file_existence_state_ != temporary_file && file_existence_state_ != permanent_file) {
         return false;
     } else {
         file_out->init(new mock_file_t(mock_file_t::mode_rw, &file_));
+        return true;
+    }
+}
+
+MUST_USE bool mock_file_opener_t::unlink_serializer_file() {
+    if (file_existence_state_ != temporary_file && file_existence_state_ != permanent_file) {
+        return false;
+    } else {
+        file_existence_state_ = unlinked_file;
         return true;
     }
 }

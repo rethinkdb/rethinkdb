@@ -52,6 +52,7 @@ public:
     MUST_USE bool open_serializer_file_create_temporary(scoped_ptr_t<file_t> *file_out);
     MUST_USE bool move_serializer_file_to_permanent_location();
     MUST_USE bool open_serializer_file_existing(scoped_ptr_t<file_t> *file_out);
+    MUST_USE bool unlink_serializer_file();
 #ifdef SEMANTIC_SERIALIZER_CHECK
     MUST_USE bool open_semantic_checking_file(int *fd_out);
 #endif
@@ -61,6 +62,9 @@ private:
 
     // The path of the temporary file.  This is file_name() with some suffix appended.
     std::string temporary_file_name() const;
+
+    // Either file_name() or temporary_file_name(), depending on whether opened_temporary_ is true.
+    std::string current_file_name() const;
 
     // The filepath of the final position of the file.
     const std::string filepath_;

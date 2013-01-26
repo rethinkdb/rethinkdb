@@ -26,8 +26,8 @@ internal_disk_backed_queue_t::internal_disk_backed_queue_t(io_backender_t *io_ba
     /* Remove the file we just created from the filesystem, so that it will
        get deleted as soon as the serializer is destroyed or if the process
        crashes */
-    int res = unlink(filename.c_str());
-    guarantee_err(res == 0, "unlink() failed");
+    const bool unlink_success = file_opener.unlink_serializer_file();
+    guarantee(unlink_success, "unlinking disk-backed-queue file failed");
 
     /* Create the cache. */
     mirrored_cache_static_config_t cache_static_config;

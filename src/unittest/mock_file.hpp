@@ -56,12 +56,13 @@ public:
     MUST_USE bool open_serializer_file_create_temporary(scoped_ptr_t<file_t> *file_out);
     MUST_USE bool move_serializer_file_to_permanent_location();
     MUST_USE bool open_serializer_file_existing(scoped_ptr_t<file_t> *file_out);
+    MUST_USE bool unlink_serializer_file();
 #ifdef SEMANTIC_SERIALIZER_CHECK
     MUST_USE bool open_semantic_checking_file(int *fd_out);
 #endif
 
 private:
-    enum { no_file, temporary_file, permanent_file } file_existence_state_;
+    enum { no_file, temporary_file, permanent_file, unlinked_file } file_existence_state_;
     std::vector<char> file_;
 #ifdef SEMANTIC_SERIALIZER_CHECK
     std::vector<char> semantic_checking_file_;
