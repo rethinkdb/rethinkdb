@@ -15,7 +15,7 @@
 #include "perfmon/perfmon.hpp"
 
 filepath_file_opener_t::filepath_file_opener_t(const std::string &filepath, io_backender_t *backender)
-    : filepath_(filepath), backender_(backender) {
+    : filepath_(filepath), backender_(backender), opened_temporary_(false) {
     guarantee(!filepath.empty());
 }
 
@@ -25,13 +25,18 @@ std::string filepath_file_opener_t::file_name() const {
     return filepath_;
 }
 
-bool filepath_file_opener_t::open_serializer_file(int extra_flag, scoped_ptr_t<file_t> *file_out) {
-    file_open_result_t open_res = open_direct_file(filepath_.c_str(),
-                                                   linux_file_t::mode_read | linux_file_t::mode_write | extra_flag,
+std::string filepath_file_opener_t::temporary_file_name() const {
+    return filepath_ + ".create";
+}
+
+bool filepath_file_opener_t::open_serializer_file(const std::string &path, int extra_flags, scoped_ptr_t<file_t> *file_out) {
+    debugf("Opening serializer file with path %s\n", path.c_str());
+    file_open_result_t open_res = open_direct_file(path.c_str(),
+                                                   linux_file_t::mode_read | linux_file_t::mode_write | extra_flags,
                                                    backender_,
                                                    file_out);
     if (open_res.outcome == file_open_result_t::ERROR) {
-        crash_due_to_inaccessible_database_file(filepath_.c_str(), open_res);
+        crash_due_to_inaccessible_database_file(path.c_str(), open_res);
     }
 
     if (open_res.outcome == file_open_result_t::BUFFERED) {
@@ -39,17 +44,38 @@ bool filepath_file_opener_t::open_serializer_file(int extra_flag, scoped_ptr_t<f
                "(Is the file located on a filesystem that doesn't support direct I/O "
                "(e.g. some encrypted or journaled file systems)?) "
                "This can cause performance problems.",
-               filepath_.c_str());
+               path.c_str());
     }
     return open_res.outcome != file_open_result_t::ERROR;
 }
 
-bool filepath_file_opener_t::open_serializer_file_create(scoped_ptr_t<file_t> *file_out) {
-    return open_serializer_file(linux_file_t::mode_create, file_out);
+bool filepath_file_opener_t::open_serializer_file_create_temporary(scoped_ptr_t<file_t> *file_out) {
+    bool success = open_serializer_file(temporary_file_name(), linux_file_t::mode_create | linux_file_t::mode_truncate, file_out);
+    if (success) {
+        // TODO(84): More rigorous temporary file state management.
+        opened_temporary_ = true;
+    }
+    return success;
+}
+
+bool filepath_file_opener_t::move_serializer_file_to_permanent_location() {
+    // TODO(84): This blocks?  Run in a thread pool.
+
+    guarantee(opened_temporary_);
+    debugf("Renaming file %s to %s\n", temporary_file_name().c_str(), file_name().c_str());
+    int res = ::rename(temporary_file_name().c_str(), file_name().c_str());
+
+    if (res != 0) {
+        crash("Could not rename database file %s to permanent location %s\n",
+              temporary_file_name().c_str(), file_name().c_str());
+    }
+
+    opened_temporary_ = false;
+    return true;
 }
 
 bool filepath_file_opener_t::open_serializer_file_existing(scoped_ptr_t<file_t> *file_out) {
-    return open_serializer_file(0, file_out);
+    return open_serializer_file(opened_temporary_ ? temporary_file_name() : file_name(), 0, file_out);
 }
 
 #ifdef SEMANTIC_SERIALIZER_CHECK
@@ -115,7 +141,7 @@ void log_serializer_t::create(serializer_file_opener_t *file_opener, static_conf
     log_serializer_on_disk_static_config_t *on_disk_config = &static_config;
 
     scoped_ptr_t<file_t> file;
-    if (!file_opener->open_serializer_file_create(&file)) {
+    if (!file_opener->open_serializer_file_create_temporary(&file)) {
         crash("could not open file %s for creation", file_opener->file_name().c_str());
     }
 

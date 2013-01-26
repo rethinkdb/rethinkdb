@@ -299,6 +299,7 @@ void verify_aligned_file_access(DEBUG_VAR size_t file_size, DEBUG_VAR size_t off
 }
 
 file_open_result_t open_direct_file(const char *path, int mode, io_backender_t *backender, scoped_ptr_t<file_t> *out) {
+    debugf("Opening file with path %s, mode = %d\n", path, mode);
     // Construct file flags
 
     // Let's have a sanity check for our attempt to check whether O_DIRECT and O_NOATIME are
@@ -307,7 +308,17 @@ file_open_result_t open_direct_file(const char *path, int mode, io_backender_t *
 #error "O_CREAT and other open flags are apparently not defined in the preprocessor."
 #endif
 
-    int flags = O_CREAT;
+    int flags = 0;
+
+    if (mode & linux_file_t::mode_create) {
+        flags |= O_CREAT;
+    }
+
+    // We support file truncation for opening temporary files used when starting up creation of some
+    // serializer file that needs some initialization before being put in its permanent place.
+    if (mode & linux_file_t::mode_truncate) {
+        flags |= O_TRUNC;
+    }
 
     // For now, we have a whitelist of kernels that don't support O_LARGEFILE (or O_DSYNC, for that
     // matter).  Linux is the only known kernel that has (or may need) the O_LARGEFILE flag.

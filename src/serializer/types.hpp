@@ -91,7 +91,8 @@ public:
     // real files, this should be the filepath.
     virtual std::string file_name() const = 0;
 
-    virtual MUST_USE bool open_serializer_file_create(scoped_ptr_t<file_t> *file_out) = 0;
+    virtual MUST_USE bool open_serializer_file_create_temporary(scoped_ptr_t<file_t> *file_out) = 0;
+    virtual MUST_USE bool move_serializer_file_to_permanent_location() = 0;
     virtual MUST_USE bool open_serializer_file_existing(scoped_ptr_t<file_t> *file_out) = 0;
 #ifdef SEMANTIC_SERIALIZER_CHECK
     virtual MUST_USE bool open_semantic_checking_file(int *fd_out) = 0;
