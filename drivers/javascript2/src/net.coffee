@@ -60,24 +60,33 @@ class Connection
         token = response.getToken()
         cursor = @outstandingCursors[token]
         if cursor
+            atom = DatumTerm.deconstruct response.getResponse 0
+            iter = (DatumTerm.deconstruct res for res in response.responseArray())
+            
+            msg = DatumTerm.deconstruct response.getResponse 0
+            bt = for frame in response.backtraceArray()
+                    if frame.getType() is Response2.Frame.FrameType.POS
+                        frame.getPos()
+                    else
+                        frame.getOpt()
+            errr = new RuntimeError msg, cursor.root, bt
+                                    
             if response.getType() is Response2.ResponseType.SUCCESS_PARTIAL
-                cursor.partIter (DatumTerm.deconstruct res for res in response.responseArray())
+                cursor.partIter iter
             else
                 switch response.getType()
                     when Response2.ResponseType.COMPILE_ERROR
-                        message = DatumTerm.deconstruct response.getResponse 0
-                        cursor.goError new RuntimeError message, cursor.root, response.backtraceArray()
+                        cursor.goError errr
                     when Response2.ResponseType.CLIENT_ERROR
-                        cursor.goError new RuntimeError DatumTerm.deconstruct response.getResponse 0
+                        cursor.goError errr
                     when Response2.ResponseType.RUNTIME_ERROR
-                        cursor.goError new RuntimeError DatumTerm.deconstruct response.getResponse 0
+                        cursor.goError errr
                     when Response2.ResponseType.SUCCESS_ATOM
                         cursor.goResult DatumTerm.deconstruct response.getResponse 0
                     when Response2.ResponseType.SUCCESS_SEQUENCE
-                        cursor.endIter (DatumTerm.deconstruct res for res in response.responseArray())
+                        cursor.endIter iter
                     else
                         cursor.goError new DriverError "Unknown response type"
-
                 # This query is done, delete this cursor
                 delete @outstandingCursors[token]
         else

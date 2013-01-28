@@ -15,13 +15,13 @@ class RDBSequence extends RDBType
     asArray: -> throw new ServerError "Abstract method"
     count: -> new RDBPrimitive @asArray().length
     union: (others...) -> new RDBArray @asArray().concat (others.map (v)->v.asArray())...
-    slice: (left = 0, right = -1) -> new RDBArray @asArray()[left.asJSON()..right.asJSON()]
+    slice: (left, right) -> new RDBArray @asArray()[left.asJSON()..right.asJSON()]
 
     orderBy: (orderbys) ->
         new RDBArray @asArray().sort (a,b) ->
             for ob in orderbys.asArray()
-                op = (if ob.asc.asJSON() then 'gt' else 'lt')
-                if a[ob.attr.asJSON()][op](b[ob.attr.asJSON()]).asJSON() then return true
+                op = (if ob.asJSON()[0] == '-' then 'lt' else 'gt')
+                if a[ob.asJSON()][op](b[ob.asJSON()]).asJSON() then return true
             return false
 
     distinct: ->
@@ -38,7 +38,15 @@ class RDBSequence extends RDBType
         new RDBArray neu
 
     map: (mapping) -> new RDBArray @asArray().map mapping
-    reduce: (reduction) -> @asArray().reduce reduction
+    reduce: (reduction, base) ->
+        # This is necessary because of the strange behavior of builtin reduce. It seems to
+        # distinguish between the no second argument case and the `undefined` passed as the
+        # second argument case, passing undefined to the first call to the reduction function
+        # in the latter case. In a user land reduce implementation that would not be possible.
+        if base is undefined
+            @asArray().reduce reduction
+        else
+            @asArray().reduce reduction, base
 
     groupedMapReduce: (groupMapping, valueMapping, reduction) ->
         groups = {}
@@ -64,7 +72,7 @@ class RDBSequence extends RDBType
     between: (lowerBound, upperBound) ->
         attr = @getPK()
         result = []
-        for v,i in @orderBy(new RDBArray [{attr:@getPK(), asc:new RDBPrimitive true}]).asArray()
+        for v,i in @orderBy(new RDBArray [@getPK()]).asArray()
             if (lowerBound is undefined || lowerBound.le(v[attr.asJSON()]).asJSON()) and
                (upperBound is undefined || upperBound.ge(v[attr.asJSON()]).asJSON())
                 result.push(v)

@@ -34,7 +34,7 @@ class RDBVal extends TermBase
     mod: (other) -> new Mod {}, @, other
 
     append: (val) -> new Append {}, @, val
-    slice: (left, right) -> new Slice {left_extent:left, right_extent:right}, @
+    slice: (left=0, right=-1) -> new Slice {}, @, left, right
     getAttr: (field) -> new GetAttr {}, @, field
     contains: (fields...) -> new Contains {}, @, fields...
     pluck: (fields...) -> new Pluck {}, @, fields...
@@ -45,7 +45,7 @@ class RDBVal extends TermBase
     map: (func) -> new Map {}, @, func
     filter: (predicate) -> new Filter {}, @, predicate
     concatMap: (func) -> new ConcatMap {}, @, func
-    orderBy: -> throw DriverError "Not implemented"
+    orderBy: (fields...) -> new OrderBy {}, fields...
     distinct: -> new Distinct {}, @
     count: -> new Count {}, @
     union: (others...) -> new Union {}, @, other...
@@ -66,12 +66,19 @@ class RDBVal extends TermBase
     forEach: (func) -> new ForEach {}, @, func
 
 class DatumTerm extends RDBVal
+    args: []
+
     constructor: (val) ->
         self = super()
         self.data = val
         return self
 
-    compose: -> return ''+@data
+    compose: ->
+        switch typeof @data
+            when 'string'
+                '"'+@data+'"'
+            else
+                ''+@data
 
     build: ->
         datum = new Datum
@@ -152,6 +159,7 @@ class JavaScript extends RDBOp
 
 class UserError extends RDBOp
     tt: Term2.TermType.ERROR
+    st: 'error'
 
 class ImplicitVar extends RDBOp
     tt: Term2.TermType.IMPLICIT_VAR
@@ -195,6 +203,7 @@ class Not extends RDBOp
 
 class Add extends RDBOp
     tt: Term2.TermType.ADD
+    st: 'add'
 
 class Sub extends RDBOp
     tt: Term2.TermType.SUB
@@ -213,6 +222,7 @@ class Append extends RDBOp
 
 class Slice extends RDBOp
     tt: Term2.TermType.SLICE
+    st: 'slice'
 
 class GetAttr extends RDBOp
     tt: Term2.TermType.GETATTR

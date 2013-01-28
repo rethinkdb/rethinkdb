@@ -45,7 +45,7 @@ class BatchedIterator:
 
     def __repr__(self):
         vals = ', '.join([repr(i) for i in self.results[:8]])
-        if self.results > 8 or not self.end_flag:
+        if len(self.results) > 8 or not self.end_flag:
             return "["+vals+"... ]"
         return "["+vals+"]"
 

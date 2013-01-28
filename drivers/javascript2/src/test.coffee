@@ -17,7 +17,7 @@ withConn = (conn, cont) ->
             [query, expected] = queries.shift()
             conn.run query, (err, res) ->
                 if err
-                    throw err
+                    print ''+err
                 else
                     testEquals res, expected
                 active = false
@@ -77,3 +77,7 @@ r.connect {host:'localhost', port: 28016}, (err, conn) ->
         run r({'a':1, 'b':2}).contains('c'), false
         run (r(1).do (a) -> a.add(a)), 2
         run r.dbList(), ['bob', 'test']
+
+        # Error printing
+        run r.error('bob'), ''
+        run r(1).add(r.error('bob')), ''
