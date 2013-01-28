@@ -593,6 +593,24 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(docs, id_sort(tbl.run.to_a))
   end
 
+  def test_getitem
+    arr = (0...10).map { |x| x }
+    [(0..-1), (2..-1), (0...2), (-1..-1), (0...-1), (3...5), 3, -1].each do |rng|
+      assert_equal(arr[rng], r(arr)[rng].run)
+    end
+    obj = { :a => 3, :b => 4 }
+    [:a, :b].each { |attr| assert_equal(obj[attr], r(obj)[attr].run) }
+    assert_raise(RuntimeError) { r(obj)[:c].run }
+  end
+
+  def test_contains
+    obj = r(:a => 1, :b => 2)
+    assert_equal(true, obj.contains(:a).run)
+    assert_equal(false, obj.contains(:c).run)
+    assert_equal(true, obj.contains(:a, :b).run)
+    assert_equal(false, obj.contains(:a, :c).run)
+  end
+
   def setup
     begin
       r.db_create('test').run
