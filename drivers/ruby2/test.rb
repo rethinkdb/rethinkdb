@@ -611,6 +611,73 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(false, obj.contains(:a, :c).run)
   end
 
+  #FOREACH
+  def test_array_foreach
+    assert_equal(data, id_sort(tbl.run.to_a))
+    assert_equal({"replaced" => 6}, r([2, 3, 4]).for_each do |x|
+      [tbl.get(x).update { { :num => 0 } }, tbl.get((x * 2)).update { { :num => 0 } }]
+    end.run)
+    assert_equal({ "unchanged" => 4, "replaced" => 6 },
+                 tbl.coerce("array").for_each do |row|
+      tbl.filter { |r| r[:id].eq(row[:id]) }.update do |row|
+        r.branch(row[:num].eq(0), { :num => (row[:id]) }, nil)
+      end
+    end.run)
+    assert_equal(data, id_sort(tbl.run.to_a))
+  end
+
+  #FOREACH
+  def test_foreach_multi
+    db_name = ("foreach_multi" + rand((2 ** 64)).to_s)
+    table_name = ("foreach_multi_tbl" + rand((2 ** 64)).to_s)
+    table_name_2 = (table_name + rand((2 ** 64)).to_s)
+    table_name_3 = (table_name_2 + rand((2 ** 64)).to_s)
+    table_name_4 = (table_name_3 + rand((2 ** 64)).to_s)
+    assert_equal({"created"=>1.0}, r.db_create(db_name).run)
+    assert_equal({"created"=>1.0}, r.db(db_name).table_create(table_name).run)
+    assert_equal({"created"=>1.0}, r.db(db_name).table_create(table_name_2).run)
+    assert_equal({"created"=>1.0}, r.db(db_name).table_create(table_name_3).run)
+    assert_equal({"created"=>1.0}, r.db(db_name).table_create(table_name_4).run)
+    tbl = r.db(db_name).table(table_name)
+    tbl2 = r.db(db_name).table(table_name_2)
+    tbl3 = r.db(db_name).table(table_name_3)
+    tbl4 = r.db(db_name).table(table_name_4)
+    assert_equal({ "inserted" => 10 }, tbl.insert(data).run)
+    assert_equal({ "inserted" => 10 }, tbl2.insert(data).run)
+    query = tbl.for_each do |row|
+      tbl2.for_each do |row2|
+        tbl3.insert({ "id" => (((row[:id] * 1000) + row2[:id])) })
+      end
+    end
+    assert_equal({ "inserted" => 100 }, query.run)
+    query = tbl.for_each do |row|
+      tbl2.filter { |r| r[:id].eq((row[:id] * row[:id])) }.delete
+    end
+    assert_equal({ "deleted" => 4 }, query.run)
+    query = tbl.for_each do |row|
+      tbl2.for_each do |row2|
+        tbl3.filter { |r| r[:id].eq(((row[:id] * 1000) + row2[:id])) }.delete
+      end
+    end
+    assert_equal({ "deleted" => 60 }, query.run)
+    assert_equal({ "inserted" => 10 }, tbl.for_each { |row| tbl4.insert(row) }.run)
+    assert_equal({ "deleted" => 6 }, tbl2.for_each { |row|
+                   tbl4.filter { |r| r[:id].eq(row[:id]) }.delete
+                 }.run)
+
+    # TODO: Pending resolution of issue #930
+    # assert_equal(tbl3.order_by(:id).run,
+    #              r.let([['x', tbl2.concat_map{|row|
+    #                        tbl.filter{
+    #                          r[:id].neq(row[:id])
+    #                        }
+    #                      }.map{r[:id]}.distinct.coerce("array")]],
+    #                    tbl.concat_map{|row|
+    #                      r[:$x].to_stream.map{|id| row[:id]*1000+id}}).run)
+  ensure
+    r.db_drop(db_name).run
+  end
+
   def setup
     begin
       r.db_create('test').run

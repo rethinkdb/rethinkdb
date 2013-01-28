@@ -128,10 +128,14 @@ private:
     virtual val_t *eval_impl() {
         datum_stream_t *ds = arg(0)->as_seq();
         const datum_t *stats = env->add_ptr(new datum_t(datum_t::R_OBJECT));
-        while (const datum_t *d = ds->next()) {
-            const datum_t *arr = arg(1)->as_func()->call(d)->as_datum();
-            for (size_t i = 0; i < arr->size(); ++i) {
-                stats = stats->merge(env, arr->el(i), stats_merge);
+        while (const datum_t *row = ds->next()) {
+            const datum_t *d = arg(1)->as_func()->call(row)->as_datum();
+            if (d->get_type() == datum_t::R_OBJECT) {
+                stats = stats->merge(env, d, stats_merge);
+            } else {
+                for (size_t i = 0; i < d->size(); ++i) {
+                    stats = stats->merge(env, d->el(i), stats_merge);
+                }
             }
         }
         return new_val(stats);

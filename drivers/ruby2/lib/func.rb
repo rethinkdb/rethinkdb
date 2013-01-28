@@ -16,7 +16,8 @@ module RethinkDB
       :"|" => :any, :or => :any,
       :"&" => :all, :and => :all,
       :order_by => :orderby,
-      :concat_map => :concatmap
+      :concat_map => :concatmap,
+      :for_each => :foreach
     }
     def method_missing(m, *a, &b)
       m = @@rewrites[m] || m
