@@ -278,7 +278,7 @@ int derived_cmp(T a, T b) {
 }
 
 int datum_t::cmp(const datum_t &rhs) const {
-    if (get_type() != rhs.get_type()) return get_type() - rhs.get_type();
+    if (get_type() != rhs.get_type()) return derived_cmp(get_type(), rhs.get_type());
     switch(get_type()) {
     case R_NULL: return 0;
     case R_BOOL: return derived_cmp(as_bool(), rhs.as_bool());

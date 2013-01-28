@@ -124,4 +124,14 @@ private:
     RDB_NAME("union")
 };
 
+class zip_term_t : public op_term_t {
+public:
+    zip_term_t(env_t *env, const Term2 *term) : op_term_t(env, term, argspec_t(1)) { }
+private:
+    virtual val_t *eval_impl() {
+        return new_val(arg(0)->as_seq()->zip());
+    }
+    RDB_NAME("zip")
+};
+
 } //namespace ql

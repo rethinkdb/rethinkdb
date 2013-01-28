@@ -291,7 +291,6 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(data[0], query2.run["obj"])
   end
 
-
   # MAP, FILTER, GETATTR, IMPLICIT_GETATTR, STREAMTOARRAY
   def test_map
     assert_equal([1, 2], r([{ :id => 1 }, { :id => 2 }]).map { |row| row[:id] }.run.to_a)
@@ -301,6 +300,189 @@ class ClientTest < Test::Unit::TestCase
       tbl.filter { |row| (row[:id] < outer_row[:id]) }.coerce("array")
     end
     assert_equal(data[(0..1)], id_sort(query.run.to_a[2]))
+  end
+
+  # REDUCE, HASATTR, IMPLICIT_HASATTR
+  def test_reduce
+    # TODO: Error checking for reduce
+    assert_equal(6, r([1, 2, 3]).reduce(0) { |a, b| (a + b) }.run)
+    assert_raise(RuntimeError) { r(1).reduce(0) { 0 }.run }
+
+    # assert_equal(  tbl.map{|row| row['id']}.reduce(0){|a,b| a+b}.run,
+    #              data.map{|row| row['id']}.reduce(0){|a,b| a+b})
+
+    assert_equal(data.map{ true }, tbl.map { |r| r.contains(:id) }.run.to_a)
+    assert_equal(data.map{ false }, tbl.map { |row| r.not(row.contains("id")) }.run.to_a)
+    assert_equal(data.map{ false }, tbl.map { |row| r.not(row.contains("id")) }.run.to_a)
+    assert_equal(data.map{ false }, tbl.map { |row| r.not(row.contains("id")) }.run.to_a)
+    assert_equal(data.map{ true }, tbl.map { |r| r.contains(:id) }.run.to_a)
+    assert_equal(data.map{ false }, tbl.map { |r| r.contains("id").not }.run.to_a)
+  end
+
+  # assert_equal(  tbl.map{|row| row['id']}.reduce(0){|a,b| a+b}.run,
+  #              data.map{|row| row['id']}.reduce(0){|a,b| a+b})
+  # FILTER
+  def test_filter
+    assert_equal([1, 2], r([1, 2, 3]).filter { |x| (x < 3) }.run.to_a)
+    assert_raise(RuntimeError) { r(1).filter { true }.run.to_a }
+    query_5 = tbl.filter { |r| r[:name].eq("5") }
+    assert_equal([data[5]], query_5.run.to_a)
+    query_2345 = tbl.filter { |row| r.and((row[:id] >= 2), (row[:id] <= 5)) }
+    query_234 = query_2345.filter { |row| row[:num].ne(5) }
+    query_23 = query_234.filter { |row| r.any(row[:num].eq(2), row[:num].eq(3)) }
+    assert_equal(data[(2..5)], id_sort(query_2345.run.to_a))
+    assert_equal(data[(2..4)], id_sort(query_234.run.to_a))
+    assert_equal(data[(2..3)], id_sort(query_23.run.to_a))
+    assert_equal(data[(0...5)], id_sort(tbl.filter { |r| (r[:id] < 5) }.run.to_a))
+  end
+
+  def test_joins
+    db_name = rand((2 ** 64)).to_s
+    tbl_name = rand((2 ** 64)).to_s
+    r.db_create(db_name).run
+    r.db(db_name).table_create((tbl_name + "1")).run
+    r.db(db_name).table_create((tbl_name + "2")).run
+    tbl1 = r.db(db_name).table((tbl_name + "1"))
+    tbl2 = r.db(db_name).table((tbl_name + "2"))
+
+    assert_equal({ "inserted" => 10},
+                 tbl1.insert((0...10).map { |x| { :id => (x), :a => ((x * 2)) } }).run)
+    assert_equal({ "inserted" => 10},
+                 tbl2.insert((0...10).map { |x| { :id => (x), :b => ((x * 100)) } }).run)
+
+    tbl1.eq_join(:a, tbl2).run.each do |pair|
+      assert_equal(pair["right"]["id"], pair["left"]["a"])
+    end
+
+    assert_equal(tbl1.inner_join(tbl2){ |l, r| l[:a].eq(r[:id]) }.run.to_a.sort_by do |x|
+      x["left"]["id"]
+    end, tbl1.eq_join(:a, tbl2).run.to_a.sort_by { |x| x["left"]["id"] })
+
+    assert_equal((tbl1.eq_join(:a, tbl2).run.to_a +
+                  tbl1.filter{|row| tbl2.get(row[:a]).eq(nil)}.map {|row|
+      {:left => row}}.run.to_a).sort_by {|x| x['left']['id']},
+        tbl1.outer_join(tbl2) {|l,r|
+        l[:a].eq(r[:id])}.run.to_a.sort_by {|x| x['left']['id']})
+
+    assert_equal(tbl1.outer_join(tbl2) {
+                   |l,r| l[:a].eq(r[:id])}.zip.run.to_a.sort_by {|x| x['a']},
+                 [{"b"=>0, "a"=>0, "id"=>0},
+                  {"b"=>200, "a"=>2, "id"=>2},
+                  {"b"=>400, "a"=>4, "id"=>4},
+                  {"b"=>600, "a"=>6, "id"=>6},
+                  {"b"=>800, "a"=>8, "id"=>8},
+                  {"a"=>10, "id"=>5},
+                  {"a"=>12, "id"=>6},
+                  {"a"=>14, "id"=>7},
+                  {"a"=>16, "id"=>8},
+                  {"a"=>18, "id"=>9}])
+  ensure
+    r.db_drop(db_name).run
+  end
+
+  def test_random_insert_regressions
+    assert_raise(RuntimeError){tbl.insert(true).run}
+    assert_not_nil(tbl.insert([true, true]).run['errors'])
+  end
+
+  def test_too_big_key
+    assert_not_nil(tbl.insert({ :id => (("a" * 1000)) }).run["first_error"])
+  end
+
+  def test_key_generation
+    assert_equal(data, tbl.order_by(:id).run.to_a)
+    res = tbl.insert([[], {}, { :a => 1 }, { :id => -1, :a => 2 }]).run
+    assert_equal(1, res["errors"])
+    assert_equal(3, res["inserted"])
+    assert_equal(2, res["generated_keys"].length)
+    assert_equal(1, tbl.get(res["generated_keys"][0]).delete.run["deleted"])
+    assert_equal(2,tbl.filter{|x| (x[:id] < 0)|(x[:id] > 1000)}.delete.run["deleted"])
+    assert_equal(data, tbl.order_by(:id).run.to_a)
+  end
+
+  # SLICE
+  def test_slice
+    arr = [0, 1, 2, 3, 4, 5]
+    assert_equal(1, r(arr)[1].run)
+    assert_equal(r(arr)[(2..-1)].run.to_a, r(arr)[(2...6)].run.to_a)
+    assert_equal(r(arr)[(2..4)].run.to_a, r(arr)[(2...5)].run.to_a)
+    assert_raise(ArgumentError) { r(arr)[(2...0)].run.to_a }
+  end
+
+  def test_mapmerge
+    assert_equal({ "a" => 1, "b" => 2 }, r(:a => 1).merge(:b => 2).run)
+    assert_equal({ "a" => 2 }, r.merge({ :a => 1 }, :a => 2).run)
+  end
+
+  # ORDERBY, MAP
+  def test_order_by
+    assert_equal(data, tbl.order_by(:id).run.to_a)
+    assert_equal(data, tbl.order_by("id").run.to_a)
+    assert_equal(data, tbl.order_by(:id).run.to_a)
+    assert_equal(data, tbl.order_by(:"+id").run.to_a)
+    assert_equal(data.reverse, tbl.order_by(:"-id").run.to_a)
+    query = tbl.map { |x|
+      r(:id => (x[:id]), :num => (x[:id].mod(2)))
+    }.order_by(:num, '-id')
+    want = data.map { |o| o["id"] }.sort_by { |n| (((n % 2) * data.length) - n) }
+    assert_equal(want, query.run.to_a.map { |o| o["id"] })
+  end
+
+  # CONCATMAP, DISTINCT
+  def test_concatmap
+    assert_equal([1, 2, 1, 2, 1, 2], r([1, 2, 3]).concat_map { r([1, 2]) }.run.to_a)
+    assert_equal([1, 2], r([[1], [2]]).concat_map { |x| x }.run.to_a)
+    assert_raise(RuntimeError) { r([[1], 2]).concat_map { |x| x }.run.to_a }
+    assert_raise(RuntimeError) { r(1).concat_map { |x| x }.run.to_a }
+    assert_equal([1, 2], r([[1], [2]]).concat_map { |x| x }.run.to_a)
+    query = tbl.concat_map { |row| tbl.map { |row2| (row2[:id] * row[:id]) } }.distinct
+    nums = data.map { |o| o["id"] }
+    want = nums.map { |n| nums.map { |m| (n * m) } }.flatten(1).uniq
+    assert_equal(want.sort, query.run.to_a.sort)
+  end
+
+  # RANGE
+  def test_range
+#    assert_raise(RuntimeError) { tbl.between(1, r([3])).run.to_a }
+#    assert_raise(RuntimeError) { tbl.between(2, 1).run.to_a }
+    assert_equal(data[(1..3)], id_sort(tbl.between(1, 3).run.to_a))
+    assert_equal(data[(3..3)], id_sort(tbl.between(3, 3).run.to_a))
+    assert_equal(data[(2..-1)], id_sort(tbl.between(2, nil).run.to_a))
+    assert_equal(data[(1..3)], id_sort(tbl.between(1, 3).run.to_a))
+    assert_equal(data[(0..4)], id_sort(tbl.between(nil, 4).run.to_a))
+
+    assert_raise(RuntimeError) { r([1]).between(1, 3).run.to_a }
+    assert_raise(RuntimeError) { r([1, 2]).between(1, 3).run.to_a }
+  end
+
+
+  # GROUPEDMAPREDUCE
+  def test_groupedmapreduce
+    assert_equal(data, tbl.order_by(:id).run.to_a)
+    assert_equal(data, tbl.coerce("array").order_by(:id).run.to_a)
+    assert_equal([0, 1], r([{ :id => 1 }, { :id => 0 }]).order_by(:id).run.to_a.map { |x| x["id"] })
+    assert_raise(RuntimeError) { r(1).order_by(:id).run.to_a }
+    assert_raise(RuntimeError) { r([1]).nth(0).order_by(:id).run.to_a }
+    assert_equal([1], r([1]).order_by(:id).run.to_a)
+    assert_equal([{'num' => 1}], r([{ :num => 1 }]).order_by(:id).run.to_a)
+    assert_equal([], r([]).order_by(:id).run.to_a)
+
+    gmr = tbl.grouped_map_reduce(lambda { |row| (row[:id] % 4) }, lambda { |row| row[:id] }, 0, lambda { |a, b| (a + b) })
+    gmr2 = tbl.grouped_map_reduce(lambda { |r| (r[:id] % 4) }, lambda { |r| r[:id] }, 0, lambda { |a, b| (a + b) })
+    gmr3 = tbl.coerce("array").grouped_map_reduce(lambda { |row| (row[:id] % 4) }, lambda { |row| row[:id] }, 0, lambda { |a, b| (a + b) })
+    gmr4 = r(data).grouped_map_reduce(lambda { |row| (row[:id] % 4) }, lambda { |row| row[:id] }, 0, lambda { |a, b| (a + b) })
+    assert_equal(gmr2.run.to_a, gmr.run.to_a)
+    assert_equal(gmr3.run.to_a, gmr.run.to_a)
+    assert_equal(gmr4.run.to_a, gmr.run.to_a)
+    gmr5 = r([data]).grouped_map_reduce(lambda { |row| (row[:id] % 4) }, lambda { |row| row[:id] }, 0, lambda { |a, b| (a + b) })
+    gmr6 = r(1).grouped_map_reduce(lambda { |row| (row[:id] % 4) }, lambda { |row| row[:id] }, 0, lambda { |a, b| (a + b) })
+    assert_raise(RuntimeError) { gmr5.run.to_a }
+    assert_raise(RuntimeError) { gmr6.run.to_a }
+    gmr.run.to_a.each do |obj|
+      want = data.map { |x| x["id"] }.select { |x| ((x % 4) == obj["group"]) }.reduce(0, :+)
+      assert_equal(want, obj["reduction"])
+    end
+    assert_equal(data, tbl.order_by(:id).run.to_a)
   end
 
   def setup

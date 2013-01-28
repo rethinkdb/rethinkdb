@@ -71,6 +71,7 @@ term_t *compile_term(env_t *env, const Term2 *t) {
     case Term2_TermType_INNER_JOIN:         return new inner_join_term_t(env, t);
     case Term2_TermType_OUTER_JOIN:         return new outer_join_term_t(env, t);
     case Term2_TermType_EQ_JOIN:            return new eq_join_term_t(env, t);
+    case Term2_TermType_ZIP:                return new zip_term_t(env, t);
     case Term2_TermType_COERCE:             return new coerce_term_t(env, t);
     case Term2_TermType_TYPEOF:             return new typeof_term_t(env, t);
     case Term2_TermType_UPDATE:             return new update_term_t(env, t);

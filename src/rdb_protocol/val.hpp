@@ -20,9 +20,23 @@ public:
     const std::string &get_pkey();
     const datum_t *get_row(const datum_t *pval);
 
-    const datum_t *replace(const datum_t *orig, const map_wire_func_t &mwf);
-    const datum_t *replace(const datum_t *orig, func_t *f, bool nondet_ok);
-    const datum_t *replace(const datum_t *orig, const datum_t *d, bool upsert);
+    const datum_t *_replace(const datum_t *orig, const map_wire_func_t &mwf,
+                            bool _so_the_template_matches = false);
+    const datum_t *_replace(const datum_t *orig, func_t *f, bool nondet_ok);
+    const datum_t *_replace(const datum_t *orig, const datum_t *d, bool upsert);
+    datum_t *env_add_ptr(datum_t *d);
+    template<class T>
+    const datum_t *replace(const datum_t *d, T t, bool b) {
+        try {
+            return _replace(d, t, b);
+        } catch (const exc_t &e) {
+            datum_t *d = env_add_ptr(new datum_t(datum_t::R_OBJECT));
+            std::string err = e.what();
+            UNUSED bool b = d->add("first_error", env_add_ptr(new datum_t(err)))
+                         || d->add("errors", env_add_ptr(new datum_t(1)));
+            return d;
+        }
+    }
 private:
     env_t *env;
     bool use_outdated;

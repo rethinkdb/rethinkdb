@@ -12,10 +12,11 @@ public:
     virtual datum_stream_t *map(func_t *f);
     virtual datum_stream_t *concatmap(func_t *f);
     virtual datum_stream_t *slice(size_t l, size_t r);
+    virtual datum_stream_t *zip();
 
     virtual const datum_t *count();
     virtual const datum_t *reduce(val_t *base_val, func_t *f);
-    virtual const datum_t *gmr(func_t *g, func_t *m, func_t *r);
+    virtual const datum_t *gmr(func_t *g, func_t *m, const datum_t *d, func_t *r);
 
         virtual const datum_t *next() = 0;
     virtual const datum_t *as_arr();
@@ -33,7 +34,7 @@ public:
 
     virtual const datum_t *count();
     virtual const datum_t *reduce(val_t *base_val, func_t *f);
-    virtual const datum_t *gmr(func_t *g, func_t *m, func_t *r);
+    virtual const datum_t *gmr(func_t *g, func_t *m, const datum_t *d, func_t *r);
     virtual const datum_t *next();
     virtual const datum_t *as_arr() { return 0; } // cannot be converted implicitly
 private:
@@ -99,6 +100,15 @@ public:
 private:
     env_t *env;
     size_t ind, l, r;
+    datum_stream_t *src;
+};
+
+class zip_datum_stream_t : public datum_stream_t {
+public:
+    zip_datum_stream_t(env_t *_env, datum_stream_t *_src);
+    virtual const datum_t *next();
+private:
+    env_t *env;
     datum_stream_t *src;
 };
 

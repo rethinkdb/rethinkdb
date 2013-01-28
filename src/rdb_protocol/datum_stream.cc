@@ -42,7 +42,7 @@ const datum_t *datum_stream_t::reduce(val_t *base_val, func_t *f) {
     }
 }
 
-const datum_t *datum_stream_t::gmr(func_t *g, func_t *m, func_t *r) {
+const datum_t *datum_stream_t::gmr(func_t *g, func_t *m, const datum_t *d, func_t *r) {
     int i = 0;
     env_gc_checkpoint_t egct(env);
     wire_datum_map_t map;
@@ -50,7 +50,7 @@ const datum_t *datum_stream_t::gmr(func_t *g, func_t *m, func_t *r) {
         const datum_t *el_group = g->call(el)->as_datum();
         const datum_t *el_map = m->call(el)->as_datum();
         if (!map.has(el_group)) {
-            map.set(el_group, el_map);
+            map.set(el_group, d ? r->call(d, el_map)->as_datum() : el_map);
         } else {
             map.set(el_group, r->call(map.get(el_group), el_map)->as_datum());
             // TODO: this is a hack because GCing a `wire_datum_map_t` is
@@ -63,6 +63,9 @@ const datum_t *datum_stream_t::gmr(func_t *g, func_t *m, func_t *r) {
 
 datum_stream_t *datum_stream_t::slice(size_t l, size_t r) {
     return env->add_ptr(new slice_datum_stream_t(env, l, r, this));
+}
+datum_stream_t *datum_stream_t::zip() {
+    return env->add_ptr(new zip_datum_stream_t(env, this));
 }
 
 const datum_t *datum_stream_t::as_arr() {
@@ -140,7 +143,8 @@ const datum_t *lazy_datum_stream_t::reduce(val_t *base_val, func_t *f) {
     }
 }
 
-const datum_t *lazy_datum_stream_t::gmr(func_t *g, func_t *m, func_t *r) {
+const datum_t *lazy_datum_stream_t::gmr(
+    func_t *g, func_t *m, const datum_t *d, func_t *r) {
     terminal = rdb_protocol_details::terminal_variant_t(gmr_wire_func_t(env, g, m, r));
     rdb_protocol_t::rget_read_response_t::result_t res =
         json_stream->apply_terminal(terminal, 0, env, _s, _b);
@@ -158,7 +162,7 @@ const datum_t *lazy_datum_stream_t::gmr(func_t *g, func_t *m, func_t *r) {
             const datum_t *key = rhs_arr->el(f)->el("group");
             const datum_t *val = rhs_arr->el(f)->el("reduction");
             if (!map.has(key)) {
-                map.set(key, val);
+                map.set(key, d ? r->call(d, val)->as_datum() : val);
             } else {
                 map.set(key, r->call(map.get(key), val)->as_datum());
             }
@@ -242,6 +246,18 @@ const datum_t *slice_datum_stream_t::next() {
         src->next();
     }
     return src->next();
+}
+
+// ZIP_DATUM_STREAM_T
+zip_datum_stream_t::zip_datum_stream_t(env_t *_env, datum_stream_t *_src)
+    : datum_stream_t(_env), env(_env), src(_src) { }
+const datum_t *zip_datum_stream_t::next() {
+    const datum_t *d = src->next();
+    if (!d) return 0;
+    const datum_t *l = d->el("left", NOTHROW);
+    const datum_t *r = d->el("right", NOTHROW);
+    rcheck(l, "ZIP can only be called on the result of a join.");
+    return r ? env->add_ptr(l->merge(r)) : l;
 }
 
 // UNION_DATUM_STREAM_T
