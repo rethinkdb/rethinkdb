@@ -678,6 +678,80 @@ class ClientTest < Test::Unit::TestCase
     r.db_drop(db_name).run
   end
 
+  #FOREACH
+  def test_fancy_foreach
+    db_name = rand((2 ** 64)).to_s
+    table_name = rand((2 ** 64)).to_s
+
+    assert_equal({"created"=>1.0}, r.db_create(db_name).run)
+    assert_equal({"created"=>1.0}, r.db(db_name).table_create(table_name).run)
+    tbl = r.db(db_name).table(table_name)
+    assert_equal({ "inserted" => 10 }, tbl.insert(data).run)
+    tbl.insert({ :id => 11, :broken => (true) }).run
+    tbl.insert({ :id => 12, :broken => (true) }).run
+    tbl.insert({ :id => 13, :broken => (true) }).run
+
+    query = tbl.order_by(:id).for_each do |row|
+      [tbl.update { |row2| r.branch(row[:id].eq(row2[:id]),
+                                    { :num => ((row2[:num] * 2)) }, nil)},
+        tbl.filter { |r| r[:id].eq(row[:id]) }.replace { |row|
+         r.branch((row[:id] % 2).eq(1), nil, row) },
+        tbl.get(0).delete, tbl.get(12).delete]
+    end
+
+    res = query.run
+
+    assert_equal(2, res["errors"])
+    assert_not_nil(res["first_error"])
+    assert_equal(9, res["deleted"])
+    assert_equal(10, res["replaced"])
+    assert_equal([{ "num" => 4, "id" => 2, "name" => "2" }, { "num" => 8, "id" => 4, "name" => "4" }, { "num" => 12, "id" => 6, "name" => "6" }, { "num" => 16, "id" => 8, "name" => "8" }], tbl.order_by(:id).run.to_a)
+
+  ensure
+    r.db_drop(db_name).run
+  end
+
+  def test_bad_primary_key_type
+    assert_not_nil(tbl.insert({ :id => ([]) }).run["first_error"])
+    assert_not_nil(tbl.get(100).replace{ { :id => ([]) } }.run["first_error"])
+  end
+
+  def test_big_between
+    data_100 = (0..99).map { |x| { :id => (x) } }
+    res = tbl.insert(data_100).run
+    assert_equal(10, res['errors'])
+    assert_equal(90, res['inserted'])
+    assert_equal([{"num"=>1.0, "name"=>"1", "id"=>1.0},
+                  {"num"=>2.0, "name"=>"2", "id"=>2.0}],
+                 id_sort(tbl.between(1, 2).run.to_a))
+    assert_equal({ "deleted" => 100 }, tbl.delete.run)
+    assert_equal({ "inserted" => 10 }, tbl.insert(data).run)
+    assert_equal(data, id_sort(tbl.run.to_a))
+  end
+
+  #POINTMUTATE
+  def test_mutate_edge_cases
+    res = tbl.replace { 1 }.run
+    assert_equal(10, res["errors"])
+    assert_equal(data, tbl.order_by(:id).run.to_a)
+    assert_equal({ "deleted" => 1 }, tbl.get(0).replace { nil }.run)
+    assert_equal(data[(1..-1)], tbl.order_by(:id).run.to_a)
+    assert_equal({ "skipped" => 1 }, tbl.get(0).replace { nil }.run)
+    assert_equal(data[(1..-1)], tbl.order_by(:id).run.to_a)
+    #assert_equal(tbl.get(0).replace{|row| r.branch(row.eq(nil), data[0], data[1])}.run,
+    assert_equal({ "inserted" => 1 }, tbl.get(0).replace { data[0] }.run)
+    assert_not_nil(tbl.get(-1).replace { { :id => ([]) } }.run['first_error'])
+    # TODO: maybe we *do* want this contraint?
+    # assert_not_nil(tbl.get(-1).replace { { :id => 0 } }.run['first_error'])
+    assert_equal(data, tbl.order_by(:id).run.to_a)
+    assert_not_nil(tbl.get(0).replace { |row|
+                     r.branch(row.eq(nil), data[0], data[1])
+                   }.run['first_error'])
+    assert_equal({ "replaced" => 1 },
+                 tbl.get(0).replace{|row| r.branch(row.eq(nil), data[1], data[0])}.run)
+    assert_equal(data, tbl.order_by(:id).run.to_a)
+  end
+
   def setup
     begin
       r.db_create('test').run
