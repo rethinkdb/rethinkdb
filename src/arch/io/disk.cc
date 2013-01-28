@@ -221,7 +221,7 @@ void linux_file_t::set_size(size_t size) {
 
     int fcntl_res;
     do {
-        fcntl_res = fcntl(fd, F_FULLFSYNC);
+        fcntl_res = fcntl(fd.get(), F_FULLFSYNC);
     } while (fcntl_res == -1 && errno == EINTR);
 
 #elif FILE_SYNC_TECHNIQUE == FILE_SYNC_TECHNIQUE_DSYNC
