@@ -985,8 +985,10 @@ struct receive_backfill_visitor_t : public boost::static_visitor<void> {
         //TODO this doesn't update the secondary index and it needs to.
     }
 
-    void operator()(const backfill_chunk_t::sindexes_t &) const {
-        not_implemented();
+    void operator()(const backfill_chunk_t::sindexes_t &s) const {
+        value_sizer_t<rdb_value_t> sizer(txn->cache->get_block_size());
+        rdb_value_deleter_t deleter;
+        store->set_sindexes(token_pair, s.sindexes, txn, superblock, &sizer, &deleter, interruptor);
     }
 
 private:

@@ -11,7 +11,7 @@
 
 struct secondary_index_t {
     secondary_index_t()
-        : superblock(NULL_BLOCK_ID)
+        : superblock(NULL_BLOCK_ID), post_construction_complete(false)
     { }
 
     /* A virtual superblock. */

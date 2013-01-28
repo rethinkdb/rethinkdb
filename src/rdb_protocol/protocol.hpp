@@ -510,7 +510,7 @@ struct rdb_protocol_t {
             std::map<uuid_u, secondary_index_t> sindexes;
 
             sindexes_t() { }
-            explicit sindexes_t(const std::map<uuid_u, secondary_index_t> &_sindexes) 
+            explicit sindexes_t(const std::map<uuid_u, secondary_index_t> &_sindexes)
                 : sindexes(_sindexes) { }
 
             RDB_DECLARE_ME_SERIALIZABLE;

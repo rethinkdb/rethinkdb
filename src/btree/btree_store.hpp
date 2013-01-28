@@ -155,6 +155,16 @@ public: // <--- so this is some bullshit right here
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
 
+    void set_sindexes(
+        write_token_pair_t *token_pair,
+        const std::map<uuid_u, secondary_index_t> &sindexes,
+        transaction_t *txn,
+        superblock_t *super_block,
+        value_sizer_t<void> *sizer,
+        value_deleter_t *deleter,
+        signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t);
+
     void mark_index_up_to_date(
         write_token_pair_t *token_pair,
         uuid_u id,
