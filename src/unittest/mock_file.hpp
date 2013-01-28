@@ -53,16 +53,17 @@ public:
     mock_file_opener_t() : file_existence_state_(no_file) { }
     std::string file_name() const;
 
-    MUST_USE bool open_serializer_file_create_temporary(scoped_ptr_t<file_t> *file_out);
-    MUST_USE bool move_serializer_file_to_permanent_location();
-    MUST_USE bool open_serializer_file_existing(scoped_ptr_t<file_t> *file_out);
-    MUST_USE bool unlink_serializer_file();
+    void open_serializer_file_create_temporary(scoped_ptr_t<file_t> *file_out);
+    void move_serializer_file_to_permanent_location();
+    void open_serializer_file_existing(scoped_ptr_t<file_t> *file_out);
+    void unlink_serializer_file();
 #ifdef SEMANTIC_SERIALIZER_CHECK
-    MUST_USE bool open_semantic_checking_file(int *fd_out);
+    void open_semantic_checking_file(int *fd_out);
 #endif
 
 private:
-    enum { no_file, temporary_file, permanent_file, unlinked_file } file_existence_state_;
+    enum existence_state_t { no_file, temporary_file, permanent_file, unlinked_file };
+    existence_state_t file_existence_state_;
     std::vector<char> file_;
 #ifdef SEMANTIC_SERIALIZER_CHECK
     std::vector<char> semantic_checking_file_;

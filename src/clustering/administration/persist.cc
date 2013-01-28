@@ -90,8 +90,7 @@ persistent_file_t::persistent_file_t(io_backender_t *io_backender, const std::st
 
     construct_branch_history_managers(true);
 
-    const bool move_succeeded = file_opener.move_serializer_file_to_permanent_location();
-    guarantee(move_succeeded, "Moving the serializer file to its final location %s failed", file_opener.file_name().c_str());
+    file_opener.move_serializer_file_to_permanent_location();
 }
 
 persistent_file_t::~persistent_file_t() {

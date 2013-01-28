@@ -33,40 +33,34 @@ std::string filepath_file_opener_t::current_file_name() const {
     return opened_temporary_ ? temporary_file_name() : file_name();
 }
 
-bool filepath_file_opener_t::open_serializer_file(const std::string &path, int extra_flags, scoped_ptr_t<file_t> *file_out) {
-    file_open_result_t open_res = open_direct_file(path.c_str(),
-                                                   linux_file_t::mode_read | linux_file_t::mode_write | extra_flags,
-                                                   backender_,
-                                                   file_out);
-    if (open_res.outcome == file_open_result_t::ERROR) {
-        crash_due_to_inaccessible_database_file(path.c_str(), open_res);
+void filepath_file_opener_t::open_serializer_file(const std::string &path, int extra_flags, scoped_ptr_t<file_t> *file_out) {
+    const file_open_result_t res = open_direct_file(path.c_str(),
+                                                    linux_file_t::mode_read | linux_file_t::mode_write | extra_flags,
+                                                    backender_,
+                                                    file_out);
+    if (res.outcome == file_open_result_t::ERROR) {
+        crash_due_to_inaccessible_database_file(path.c_str(), res);
     }
 
-    if (open_res.outcome == file_open_result_t::BUFFERED) {
+    if (res.outcome == file_open_result_t::BUFFERED) {
         logWRN("Could not turn off filesystem caching for database file: \"%s\" "
                "(Is the file located on a filesystem that doesn't support direct I/O "
                "(e.g. some encrypted or journaled file systems)?) "
                "This can cause performance problems.",
                path.c_str());
     }
-    return open_res.outcome != file_open_result_t::ERROR;
 }
 
-bool filepath_file_opener_t::open_serializer_file_create_temporary(scoped_ptr_t<file_t> *file_out) {
-    // TODO(84): Make this a mutex_guarantee_t.
+void filepath_file_opener_t::open_serializer_file_create_temporary(scoped_ptr_t<file_t> *file_out) {
     mutex_assertion_t::acq_t acq(&reentrance_mutex_);
-    bool success = open_serializer_file(temporary_file_name(), linux_file_t::mode_create | linux_file_t::mode_truncate, file_out);
-    if (success) {
-        // TODO(84): More rigorous temporary file state management.
-        opened_temporary_ = true;
-    }
-    return success;
+    open_serializer_file(temporary_file_name(), linux_file_t::mode_create | linux_file_t::mode_truncate, file_out);
+    opened_temporary_ = true;
 }
 
-void filepath_file_opener_t::do_move_serializer_file_to_permanent_location(bool *success_out) {
+void filepath_file_opener_t::do_move_serializer_file_to_permanent_location() {
     guarantee(coro_t::self() == NULL);
     guarantee(opened_temporary_);
-    int res = ::rename(temporary_file_name().c_str(), file_name().c_str());
+    const int res = ::rename(temporary_file_name().c_str(), file_name().c_str());
 
     if (res != 0) {
         crash("Could not rename database file %s to permanent location %s\n",
@@ -74,33 +68,26 @@ void filepath_file_opener_t::do_move_serializer_file_to_permanent_location(bool 
     }
 
     opened_temporary_ = false;
-    *success_out = true;
 }
 
-bool filepath_file_opener_t::move_serializer_file_to_permanent_location() {
+void filepath_file_opener_t::move_serializer_file_to_permanent_location() {
     mutex_assertion_t::acq_t acq(&reentrance_mutex_);
-    bool success;
-    // TODO(84): Should we drop the pretense of returning a bool?  What about for the other functions?
-    thread_pool_t::run_in_blocker_pool(boost::bind(&filepath_file_opener_t::do_move_serializer_file_to_permanent_location, this, &success));
-    return success;
+    thread_pool_t::run_in_blocker_pool(boost::bind(&filepath_file_opener_t::do_move_serializer_file_to_permanent_location, this));
 }
 
-bool filepath_file_opener_t::open_serializer_file_existing(scoped_ptr_t<file_t> *file_out) {
+void filepath_file_opener_t::open_serializer_file_existing(scoped_ptr_t<file_t> *file_out) {
     mutex_assertion_t::acq_t acq(&reentrance_mutex_);
-    return open_serializer_file(current_file_name(), 0, file_out);
+    open_serializer_file(current_file_name(), 0, file_out);
 }
 
-void filepath_file_opener_t::do_unlink_serializer_file(bool *success_out) {
+void filepath_file_opener_t::do_unlink_serializer_file() {
     const int res = ::unlink(current_file_name().c_str());
-    guarantee_err(res == 0, "unlink() falied");
-    *success_out = (res == 0);
+    guarantee_err(res == 0, "unlink() failed");
 }
 
-bool filepath_file_opener_t::unlink_serializer_file() {
+void filepath_file_opener_t::unlink_serializer_file() {
     mutex_assertion_t::acq_t acq(&reentrance_mutex_);
-    bool success;
-    thread_pool_t::run_in_blocker_pool(boost::bind(&filepath_file_opener_t::do_unlink_serializer_file, this, &success));
-    return success;
+    thread_pool_t::run_in_blocker_pool(boost::bind(&filepath_file_opener_t::do_unlink_serializer_file, this));
 }
 
 #ifdef SEMANTIC_SERIALIZER_CHECK
@@ -116,7 +103,6 @@ bool filepath_file_opener_t::open_semantic_checking_file(int *fd_out) {
         fail_due_to_user_error("Inaccessible semantic checking file: \"%s\": %s", semantic_filepath.c_str(), errno_string(errno).c_str());
     } else {
         *fd_out = semantic_fd;
-        return true;
     }
 }
 #endif  // SEMANTIC_SERIALIZER_CHECK
@@ -166,9 +152,7 @@ void log_serializer_t::create(serializer_file_opener_t *file_opener, static_conf
     log_serializer_on_disk_static_config_t *on_disk_config = &static_config;
 
     scoped_ptr_t<file_t> file;
-    if (!file_opener->open_serializer_file_create_temporary(&file)) {
-        crash("could not open file %s for creation", file_opener->file_name().c_str());
-    }
+    file_opener->open_serializer_file_create_temporary(&file);
 
     co_static_header_write(file.get(), on_disk_config, sizeof(*on_disk_config));
 
@@ -209,9 +193,7 @@ struct ls_start_existing_fsm_t :
         ser->state = log_serializer_t::state_starting_up;
 
         scoped_ptr_t<file_t> dbfile;
-        if (!file_opener->open_serializer_file_existing(&dbfile)) {
-            crash("Database file \"%s\" could not be opened.  (It does not exist?)\n", file_opener->file_name().c_str());
-        }
+        file_opener->open_serializer_file_existing(&dbfile);
         ser->dbfile = dbfile.release();
 
         start_existing_state = state_read_static_header;

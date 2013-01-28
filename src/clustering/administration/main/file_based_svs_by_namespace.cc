@@ -178,8 +178,7 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
                                  &dummy_interruptor);
 
         // Finally, the store is created.
-        const bool move_succeeded = file_opener.move_serializer_file_to_permanent_location();
-        guarantee(move_succeeded, "Moving the serializer file to its final location %s failed.", file_opener.file_name().c_str());
+        file_opener.move_serializer_file_to_permanent_location();
     }
 
     stores_out->serializer()->init(serializer.release());

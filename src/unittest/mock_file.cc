@@ -2,6 +2,7 @@
 #include "unittest/mock_file.hpp"
 
 #include "arch/io/disk.hpp"
+#include "unittest/gtest.hpp"
 
 namespace unittest {
 
@@ -55,45 +56,29 @@ std::string mock_file_opener_t::file_name() const {
     return "<mock file>";
 }
 
-MUST_USE bool mock_file_opener_t::open_serializer_file_create_temporary(scoped_ptr_t<file_t> *file_out) {
-    if (file_existence_state_ != no_file) {
-        return false;
-    } else {
-        file_out->init(new mock_file_t(mock_file_t::mode_rw, &file_));
-        file_existence_state_ = temporary_file;
-        return true;
-    }
+void mock_file_opener_t::open_serializer_file_create_temporary(scoped_ptr_t<file_t> *file_out) {
+    ASSERT_EQ(no_file, file_existence_state_);
+    file_out->init(new mock_file_t(mock_file_t::mode_rw, &file_));
+    file_existence_state_ = temporary_file;
 }
 
-MUST_USE bool mock_file_opener_t::move_serializer_file_to_permanent_location() {
-    if (file_existence_state_ != temporary_file) {
-        return false;
-    } else {
-        file_existence_state_ = permanent_file;
-        return true;
-    }
+void mock_file_opener_t::move_serializer_file_to_permanent_location() {
+    ASSERT_EQ(temporary_file, file_existence_state_);
+    file_existence_state_ = permanent_file;
 }
 
-MUST_USE bool mock_file_opener_t::open_serializer_file_existing(scoped_ptr_t<file_t> *file_out) {
-    if (file_existence_state_ != temporary_file && file_existence_state_ != permanent_file) {
-        return false;
-    } else {
-        file_out->init(new mock_file_t(mock_file_t::mode_rw, &file_));
-        return true;
-    }
+void mock_file_opener_t::open_serializer_file_existing(scoped_ptr_t<file_t> *file_out) {
+    ASSERT_TRUE(file_existence_state_ == temporary_file || file_existence_state_ == permanent_file);
+    file_out->init(new mock_file_t(mock_file_t::mode_rw, &file_));
 }
 
-MUST_USE bool mock_file_opener_t::unlink_serializer_file() {
-    if (file_existence_state_ != temporary_file && file_existence_state_ != permanent_file) {
-        return false;
-    } else {
-        file_existence_state_ = unlinked_file;
-        return true;
-    }
+void mock_file_opener_t::unlink_serializer_file() {
+    ASSERT_TRUE(file_existence_state_ == temporary_file || file_existence_state_ == permanent_file);
+    file_existence_state_ = unlinked_file;
 }
 
 #ifdef SEMANTIC_SERIALIZER_CHECK
-MUST_USE bool mock_file_opener_t::open_semantic_checking_file(UNUSED int *fd_out) {
+void mock_file_opener_t::open_semantic_checking_file(UNUSED int *fd_out) {
     crash("mock_file_t cannot be used with semantic serializer checker for now");
 }
 #endif

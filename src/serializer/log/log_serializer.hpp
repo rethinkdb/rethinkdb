@@ -50,20 +50,20 @@ public:
     // The path of the final position of the file.
     std::string file_name() const;
 
-    MUST_USE bool open_serializer_file_create_temporary(scoped_ptr_t<file_t> *file_out);
-    MUST_USE bool move_serializer_file_to_permanent_location();
-    MUST_USE bool open_serializer_file_existing(scoped_ptr_t<file_t> *file_out);
-    MUST_USE bool unlink_serializer_file();
+    void open_serializer_file_create_temporary(scoped_ptr_t<file_t> *file_out);
+    void move_serializer_file_to_permanent_location();
+    void open_serializer_file_existing(scoped_ptr_t<file_t> *file_out);
+    void unlink_serializer_file();
 #ifdef SEMANTIC_SERIALIZER_CHECK
-    MUST_USE bool open_semantic_checking_file(int *fd_out);
+    void open_semantic_checking_file(int *fd_out);
 #endif
 
 private:
-    MUST_USE bool open_serializer_file(const std::string &path, int extra_flags, scoped_ptr_t<file_t> *file_out);
+    void open_serializer_file(const std::string &path, int extra_flags, scoped_ptr_t<file_t> *file_out);
 
     // Functions to be run in the blocker pool.
-    void do_move_serializer_file_to_permanent_location(bool *success_out);
-    void do_unlink_serializer_file(bool *success_out);
+    void do_move_serializer_file_to_permanent_location();
+    void do_unlink_serializer_file();
 
     // The path of the temporary file.  This is file_name() with some suffix appended.
     std::string temporary_file_name() const;
