@@ -34,7 +34,6 @@ std::string filepath_file_opener_t::current_file_name() const {
 }
 
 bool filepath_file_opener_t::open_serializer_file(const std::string &path, int extra_flags, scoped_ptr_t<file_t> *file_out) {
-    debugf("Opening serializer file with path %s\n", path.c_str());
     file_open_result_t open_res = open_direct_file(path.c_str(),
                                                    linux_file_t::mode_read | linux_file_t::mode_write | extra_flags,
                                                    backender_,
@@ -62,11 +61,9 @@ bool filepath_file_opener_t::open_serializer_file_create_temporary(scoped_ptr_t<
     return success;
 }
 
-bool filepath_file_opener_t::move_serializer_file_to_permanent_location() {
-    // TODO(84): This blocks?  Run in a thread pool.
-
+void filepath_file_opener_t::do_move_serializer_file_to_permanent_location(bool *success_out) {
+    guarantee(coro_t::self() == NULL);
     guarantee(opened_temporary_);
-    debugf("Renaming file %s to %s\n", temporary_file_name().c_str(), file_name().c_str());
     int res = ::rename(temporary_file_name().c_str(), file_name().c_str());
 
     if (res != 0) {
@@ -74,8 +71,16 @@ bool filepath_file_opener_t::move_serializer_file_to_permanent_location() {
               temporary_file_name().c_str(), file_name().c_str());
     }
 
+    // TODO(84): More rigorous temporary file state management.
     opened_temporary_ = false;
-    return true;
+    *success_out = true;
+}
+
+bool filepath_file_opener_t::move_serializer_file_to_permanent_location() {
+    bool success;
+    // TODO(84): Should we drop the pretense of returning a bool?  What about for the other functions?
+    thread_pool_t::run_in_blocker_pool(boost::bind(&filepath_file_opener_t::do_move_serializer_file_to_permanent_location, this, &success));
+    return success;
 }
 
 bool filepath_file_opener_t::open_serializer_file_existing(scoped_ptr_t<file_t> *file_out) {
