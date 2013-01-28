@@ -485,6 +485,41 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(data, tbl.order_by(:id).run.to_a)
   end
 
+  # NTH
+  def test_nth
+    assert_equal(data[2], tbl.order_by(:id).nth(2).run)
+  end
+
+  def test_pluck
+    e = r([{ "a" => 1, "b" => 2, "c" => 3 }, { "a" => 4, "b" => 5, "c" => 6 }])
+    assert_equal([{}, {}], e.pluck.run)
+    assert_equal([{ "a" => 1 }, { "a" => 4 }], e.pluck("a").run)
+    assert_equal([{ "a" => 1, "b" => 2 }, { "a" => 4, "b" => 5 }], e.pluck("a", "b").run)
+  end
+
+  # PICKATTRS, # UNION, # LENGTH
+  def test_pickattrs
+    q1 = r.union(tbl.map{|r| r.pluck(:id, :name)}, tbl.map{|row| row.pluck(:id, :num)})
+    q2 = r.union(tbl.map{|r| r.pluck(:id, :name)}, tbl.map {|row| row.pluck(:id, :num)})
+    q1v = q1.run.to_a.sort_by { |x| ((x["name"].to_s + ",") + x["id"].to_s) }
+    assert_equal(q2.run.to_a.sort_by{|x| ((x["name"].to_s + ",") + x["id"].to_s)}, q1v)
+
+    len = data.length
+
+    assert_equal((2 * len), q2.count.run)
+    assert_equal(Array.new(len, nil), q1v.map { |o| o["num"] }[(len..((2 * len) - 1))])
+    assert_equal(Array.new(len, nil), q1v.map { |o| o["name"] }[(0..(len - 1))])
+  end
+
+  def test_pointdelete
+    assert_equal(data, tbl.order_by(:id).run.to_a)
+    assert_equal({ "deleted" => 1 }, tbl.get(0).delete.run)
+    assert_equal({ "skipped" => 1 }, tbl.get(0).delete.run)
+    assert_equal(data[(1..-1)], tbl.order_by(:id).run.to_a)
+    assert_equal({ "inserted" => 1 }, tbl.insert(data[0]).run)
+    assert_equal(data, tbl.order_by(:id).run.to_a)
+  end
+
   def setup
     begin
       r.db_create('test').run
