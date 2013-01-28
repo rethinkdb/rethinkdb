@@ -209,11 +209,35 @@ uint64_t linux_file_t::get_size() {
 }
 
 void linux_file_t::set_size(size_t size) {
-    int res = ftruncate(fd.get(), size);
+    int res;
+    do {
+        res = ftruncate(fd.get(), size);
+    } while (res == -1 && errno == EINTR);
     guarantee_err(res == 0, "Could not ftruncate()");
-    fsync(fd.get()); // Make sure that the metadata change gets persisted
-                     // before we start writing to the resized file.
-                     // (to be safe in case of system crashes etc.)
+
+#ifndef FILE_SYNC_TECHNIQUE
+#error "FILE_SYNC_TECHNIQUE is not defined"
+#elif FILE_SYNC_TECHNIQUE == FILE_SYNC_TECHNIQUE_FULLFSYNC
+
+    int fcntl_res;
+    do {
+        fcntl_res = fcntl(fd, F_FULLFSYNC);
+    } while (fcntl_res == -1 && errno == EINTR);
+
+#elif FILE_SYNC_TECHNIQUE == FILE_SYNC_TECHNIQUE_DSYNC
+
+    // Make sure that the metadata change gets persisted before we start writing to the resized
+    // file (to be safe in case of system crashes, etc).
+    int fsync_res;
+    do {
+        fsync_res = fsync(fd.get());
+    } while (fsync_res == -1 && errno == EINTR);
+    guarantee_err(fsync_res == 0);
+
+#else
+#error "Unrecognized FILE_SYNC_TECHNIQUE value."
+#endif  // FILE_SYNC_TECHNIQUE
+
     file_size = size;
 }
 
