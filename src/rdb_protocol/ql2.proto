@@ -256,7 +256,7 @@ message Term2 {
         // - A function to group the sequence by.
         // - A function to map over the groups.
         // - A reduction to apply to each of the groups.
-        GROUPED_MAP_REDUCE = 46; // Sequence, Function(1), Function(1), Function(2) -> Sequence
+        GROUPED_MAP_REDUCE = 46; // Sequence, Function(1), Function(1), Function(2), {base:DATUM} -> Sequence
         // Groups a sequence by one or more attributes, and then applies a reduction.
         GROUPBY            = 47; // Sequence, ARRAY, STRING -> OBJECT
         INNER_JOIN         = 48; // Sequence, Sequence, Function(2) -> Sequence

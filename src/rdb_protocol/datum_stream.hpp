@@ -16,7 +16,7 @@ public:
 
     virtual const datum_t *count();
     virtual const datum_t *reduce(val_t *base_val, func_t *f);
-    virtual const datum_t *gmr(func_t *g, func_t *m, func_t *r);
+    virtual const datum_t *gmr(func_t *g, func_t *m, const datum_t *d, func_t *r);
 
         virtual const datum_t *next() = 0;
     virtual const datum_t *as_arr();
@@ -34,7 +34,7 @@ public:
 
     virtual const datum_t *count();
     virtual const datum_t *reduce(val_t *base_val, func_t *f);
-    virtual const datum_t *gmr(func_t *g, func_t *m, func_t *r);
+    virtual const datum_t *gmr(func_t *g, func_t *m, const datum_t *d, func_t *r);
     virtual const datum_t *next();
     virtual const datum_t *as_arr() { return 0; } // cannot be converted implicitly
 private:

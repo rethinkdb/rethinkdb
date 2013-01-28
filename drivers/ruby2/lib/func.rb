@@ -8,7 +8,7 @@ module RethinkDB
     end
 
     @@opt_off = {
-      :reduce => -1, :between => -1
+      :reduce => -1, :between => -1, :grouped_map_reduce => -1
     }
     @@rewrites = {
       :< => :lt, :<= => :le, :> => :gt, :>= => :ge,
@@ -45,7 +45,12 @@ module RethinkDB
     end
 
     def reduce(*a, &b)
-      a = a[1..-2] + [{:base => a[-1]}] if a != []
+      a = a[1..-2] + [{:base => a[-1]}] if a.size + (@body ? 1 : 0) == 2
+      super(*a, &b)
+    end
+
+    def grouped_map_reduce(*a, &b)
+      a << {:base => a.delete_at(-2)} if a.size >= 2 && a[-2].class != Proc
       super(*a, &b)
     end
 

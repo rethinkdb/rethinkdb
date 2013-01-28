@@ -455,6 +455,36 @@ class ClientTest < Test::Unit::TestCase
     assert_raise(RuntimeError) { r([1, 2]).between(1, 3).run.to_a }
   end
 
+
+  # GROUPEDMAPREDUCE
+  def test_groupedmapreduce
+    assert_equal(data, tbl.order_by(:id).run.to_a)
+    assert_equal(data, tbl.coerce("array").order_by(:id).run.to_a)
+    assert_equal([0, 1], r([{ :id => 1 }, { :id => 0 }]).order_by(:id).run.to_a.map { |x| x["id"] })
+    assert_raise(RuntimeError) { r(1).order_by(:id).run.to_a }
+    assert_raise(RuntimeError) { r([1]).nth(0).order_by(:id).run.to_a }
+    assert_equal([1], r([1]).order_by(:id).run.to_a)
+    assert_equal([{'num' => 1}], r([{ :num => 1 }]).order_by(:id).run.to_a)
+    assert_equal([], r([]).order_by(:id).run.to_a)
+
+    gmr = tbl.grouped_map_reduce(lambda { |row| (row[:id] % 4) }, lambda { |row| row[:id] }, 0, lambda { |a, b| (a + b) })
+    gmr2 = tbl.grouped_map_reduce(lambda { |r| (r[:id] % 4) }, lambda { |r| r[:id] }, 0, lambda { |a, b| (a + b) })
+    gmr3 = tbl.coerce("array").grouped_map_reduce(lambda { |row| (row[:id] % 4) }, lambda { |row| row[:id] }, 0, lambda { |a, b| (a + b) })
+    gmr4 = r(data).grouped_map_reduce(lambda { |row| (row[:id] % 4) }, lambda { |row| row[:id] }, 0, lambda { |a, b| (a + b) })
+    assert_equal(gmr2.run.to_a, gmr.run.to_a)
+    assert_equal(gmr3.run.to_a, gmr.run.to_a)
+    assert_equal(gmr4.run.to_a, gmr.run.to_a)
+    gmr5 = r([data]).grouped_map_reduce(lambda { |row| (row[:id] % 4) }, lambda { |row| row[:id] }, 0, lambda { |a, b| (a + b) })
+    gmr6 = r(1).grouped_map_reduce(lambda { |row| (row[:id] % 4) }, lambda { |row| row[:id] }, 0, lambda { |a, b| (a + b) })
+    assert_raise(RuntimeError) { gmr5.run.to_a }
+    assert_raise(RuntimeError) { gmr6.run.to_a }
+    gmr.run.to_a.each do |obj|
+      want = data.map { |x| x["id"] }.select { |x| ((x % 4) == obj["group"]) }.reduce(0, :+)
+      assert_equal(want, obj["reduction"])
+    end
+    assert_equal(data, tbl.order_by(:id).run.to_a)
+  end
+
   def setup
     begin
       r.db_create('test').run
