@@ -9,17 +9,6 @@
 #include "rpc/serialize_macros.hpp"
 #include "serializer/types.hpp"
 
-namespace sindex_details {
-enum sindex_state_t {
-    UNCREATED,
-    INCOMPLETE,
-    CREATED,
-    DELETED
-};
-} //namespace sindex_details
-
-ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(sindex_details::sindex_state_t, int8_t, sindex_details::UNCREATED, sindex_details::DELETED);
-
 struct secondary_index_t {
     secondary_index_t()
         : superblock(NULL_BLOCK_ID)
@@ -37,12 +26,11 @@ struct secondary_index_t {
      */
     typedef std::vector<char> opaque_definition_t;
 
+    /* Whether or not the sindex has complete postconstruction. */
+    bool post_construction_complete;
+
     /* An opaque blob that describes the index */
     opaque_definition_t opaque_definition;
-
-    /* Another opaque blob that describes which parts of the index are up to
-     * data. (Much like metainfo does for the main B-Tree) */
-    std::vector<char> metainfo;
 
     /* Used in unit tests. */
     bool operator==(const secondary_index_t & other) const {
@@ -50,7 +38,7 @@ struct secondary_index_t {
                opaque_definition == other.opaque_definition;
     }
 
-    RDB_MAKE_ME_SERIALIZABLE_3(superblock, opaque_definition, metainfo);
+    RDB_MAKE_ME_SERIALIZABLE_3(superblock, opaque_definition, post_construction_complete);
 };
 
 //Secondary Index functions
@@ -70,7 +58,5 @@ void set_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, uuid_u uu
 //XXX note this just drops the entry. It doesn't cleanup the btree that it
 //points to. drop_secondary_index. Does both and should be used publicly.
 bool delete_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, uuid_u uuid);
-
-#include "btree/secondary_operations.tcc"
 
 #endif

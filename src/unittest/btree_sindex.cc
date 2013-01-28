@@ -136,7 +136,6 @@ void run_sindex_btree_store_api_test() {
                     &token_pair,
                     id,
                     std::vector<char>(),
-                    rdb_protocol_t::region_t::universe(),
                     txn.get(),
                     super_block.get(),
                     &dummy_interuptor);
@@ -160,7 +159,6 @@ void run_sindex_btree_store_api_test() {
             store_key_t key("foo");
 
             store.acquire_sindex_superblock_for_write(id,
-                    rdb_protocol_t::monokey_region(key),
                     super_block->get_sindex_block_id(), &token_pair, txn.get(),
                     &sindex_super_block, &dummy_interuptor);
 
@@ -192,7 +190,6 @@ void run_sindex_btree_store_api_test() {
             store_key_t key("foo");
 
             store.acquire_sindex_superblock_for_read(id,
-                    rdb_protocol_t::monokey_region(key),
                     main_sb->get_sindex_block_id(), &token_pair,
                     txn.get(), &sindex_super_block, &dummy_interuptor);
 
@@ -226,15 +223,9 @@ void run_sindex_btree_store_api_test() {
 
         rdb_value_deleter_t deleter;
 
-        store.drop_sindex(
-                &token_pair,
-                *it,
-                rdb_protocol_t::region_t::universe(),
-                txn.get(),
-                super_block.get(),
-                &sizer,
-                &deleter,
-                &dummy_interuptor);
+        store.drop_sindex( &token_pair, *it,
+                txn.get(), super_block.get(), &sizer,
+                &deleter, &dummy_interuptor);
     }
 }
 

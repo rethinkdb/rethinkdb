@@ -481,12 +481,12 @@ struct w_get_region_visitor : public boost::static_visitor<region_t> {
         return rdb_protocol_t::monokey_region(pd.key);
     }
 
-    region_t operator()(const sindex_create_t &c) const {
-        return c.region_to_index;
+    region_t operator()(const sindex_create_t &) const {
+        return rdb_protocol_t::region_t::universe();
     }
 
-    region_t operator()(const sindex_drop_t &d) const {
-        return d.region_to_unindex;
+    region_t operator()(const sindex_drop_t &) const {
+        return rdb_protocol_t::region_t::universe();
     }
 };
 
@@ -519,15 +519,11 @@ struct w_shard_visitor : public boost::static_visitor<write_t> {
     }
 
     write_t operator()(const sindex_create_t &c) const {
-        sindex_create_t cpy(c);
-        cpy.region_to_index = region;
-        return write_t(cpy);
+        return write_t(c);
     }
 
     write_t operator()(const sindex_drop_t &d) const {
-        sindex_drop_t cpy(d);
-        cpy.region_to_unindex = region;
-        return write_t(cpy);
+        return write_t(d);
     }
     const region_t &region;
 };
@@ -614,7 +610,7 @@ struct read_visitor_t : public boost::static_visitor<void> {
         } else {
             scoped_ptr_t<real_superblock_t> sindex_sb;
             store->acquire_sindex_superblock_for_read(*rget.sindex,
-                    rget.region, superblock->get_sindex_block_id(), token_pair,
+                    superblock->get_sindex_block_id(), token_pair,
                     txn, &sindex_sb, &interruptor);
 
             guarantee(rget.sindex_region, "If an rget has a sindex uuid specified it should also have a sindex_region.");
@@ -709,8 +705,7 @@ struct write_visitor_t : public boost::static_visitor<void> {
         rdb_set(w.key, w.data, w.overwrite, btree, timestamp, txn, superblock, &res, &mod_report);
 
         sindex_access_vector_t sindexes;
-        store->acquire_all_sindex_superblocks_for_write(rdb_protocol_t::monokey_region(w.key),
-                sindex_block_id, token_pair, txn, &sindexes, &interruptor);
+        store->acquire_all_sindex_superblocks_for_write(sindex_block_id, token_pair, txn, &sindexes, &interruptor);
         rdb_update_sindexes(sindexes, w.key, &mod_report, txn);
     }
 
@@ -722,8 +717,7 @@ struct write_visitor_t : public boost::static_visitor<void> {
         rdb_modify(m.primary_key, m.key, m.op, &env, m.scopes, m.backtrace, m.mapping, btree, timestamp, txn, superblock, &res, &mod_report);
 
         sindex_access_vector_t sindexes;
-        store->acquire_all_sindex_superblocks_for_write(rdb_protocol_t::monokey_region(m.key),
-                sindex_block_id, token_pair, txn, &sindexes, &interruptor);
+        store->acquire_all_sindex_superblocks_for_write(sindex_block_id, token_pair, txn, &sindexes, &interruptor);
         rdb_update_sindexes(sindexes, m.key, &mod_report, txn);
     }
 
@@ -735,8 +729,7 @@ struct write_visitor_t : public boost::static_visitor<void> {
         rdb_delete(d.key, btree, timestamp, txn, superblock, &res, &mod_report);
 
         sindex_access_vector_t sindexes;
-        store->acquire_all_sindex_superblocks_for_write(rdb_protocol_t::monokey_region(d.key),
-                sindex_block_id, token_pair, txn, &sindexes, &interruptor);
+        store->acquire_all_sindex_superblocks_for_write(sindex_block_id, token_pair, txn, &sindexes, &interruptor);
         rdb_update_sindexes(sindexes, d.key, &mod_report, txn);
     }
 
@@ -754,7 +747,6 @@ struct write_visitor_t : public boost::static_visitor<void> {
                 token_pair,
                 c.id,
                 stream.vector(),
-                c.region_to_index,
                 txn,
                 superblock,
                 &interruptor);
@@ -768,7 +760,6 @@ struct write_visitor_t : public boost::static_visitor<void> {
         store->drop_sindex(
                 token_pair,
                 d.id,
-                d.region_to_unindex,
                 txn,
                 superblock,
                 &sizer,
@@ -847,12 +838,8 @@ struct backfill_chunk_get_region_visitor_t : public boost::static_visitor<region
         return rdb_protocol_t::monokey_region(kv.backfill_atom.key);
     }
 
-    region_t operator()(const backfill_chunk_t::sindexes_t &sindexes) {
-        std::map<uuid_u, secondary_index_t>::const_iterator head = sindexes.sindexes.begin();
-        guarantee(head != sindexes.sindexes.end());
-        region_map_t<rdb_protocol_t, sindex_details::sindex_state_t> metainfo;
-        get_sindex_metainfo(head->second, &metainfo);
-        return metainfo.get_domain();
+    region_t operator()(const backfill_chunk_t::sindexes_t &) {
+        return region_t::universe();
     }
 };
 
@@ -1078,17 +1065,7 @@ public:
         return ret;
     }
     rdb_protocol_t::backfill_chunk_t operator()(const rdb_protocol_t::backfill_chunk_t::sindexes_t &s) {
-        std::map<uuid_u, secondary_index_t> sindexes = s.sindexes;
-
-        for (std::map<uuid_u, secondary_index_t>::iterator it  = sindexes.begin();
-                                                           it != sindexes.end();
-                                                           ++it) {
-            region_map_t<rdb_protocol_t, sindex_details::sindex_state_t> sindex_metainfo;
-            get_sindex_metainfo(it->second, &sindex_metainfo);
-            set_sindex_metainfo(&it->second, sindex_metainfo.mask(region));
-        }
-
-        return rdb_protocol_t::backfill_chunk_t(rdb_protocol_t::backfill_chunk_t::sindexes_t(sindexes));
+        return rdb_protocol_t::backfill_chunk_t(rdb_protocol_t::backfill_chunk_t::sindexes_t(s.sindexes));
     }
 private:
     const rdb_protocol_t::region_t &region;

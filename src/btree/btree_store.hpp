@@ -143,8 +143,6 @@ void acquire_sindex_block_for_write(
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
 
-    typedef region_map_t<protocol_t, sindex_details::sindex_state_t> sindex_metainfo_t;
-
 public: // <--- so this is some bullshit right here
     friend void unittest::run_sindex_btree_store_api_test();
 
@@ -152,7 +150,6 @@ public: // <--- so this is some bullshit right here
         write_token_pair_t *token_pair,
         uuid_u id,
         const secondary_index_t::opaque_definition_t &definition,
-        const typename protocol_t::region_t &region_to_index,
         transaction_t *txn,
         superblock_t *super_block,
         signal_t *interruptor)
@@ -161,7 +158,6 @@ public: // <--- so this is some bullshit right here
     void mark_index_up_to_date(
         write_token_pair_t *token_pair,
         uuid_u id,
-        const typename protocol_t::region_t &up_to_date_region,
         transaction_t *txn,
         superblock_t *super_block,
         signal_t *interruptor)
@@ -170,7 +166,6 @@ public: // <--- so this is some bullshit right here
     void drop_sindex(
         write_token_pair_t *token_pair,
         uuid_u id,
-        const typename protocol_t::region_t &unindexed_region,
         transaction_t *txn,
         superblock_t *super_block,
         value_sizer_t<void> *sizer,
@@ -188,7 +183,6 @@ public: // <--- so this is some bullshit right here
 
     void acquire_sindex_superblock_for_read(
             uuid_u id,
-            const typename protocol_t::region_t &region_to_read,
             block_id_t sindex_block_id,
             read_token_pair_t *token_pair,
             transaction_t *txn_out,
@@ -198,7 +192,6 @@ public: // <--- so this is some bullshit right here
 
     void acquire_sindex_superblock_for_write(
             uuid_u id,
-            const typename protocol_t::region_t &region_to_write,
             block_id_t sindex_block_id,
             write_token_pair_t *token_pair,
             transaction_t *txn,
@@ -221,7 +214,6 @@ public: // <--- so this is some bullshit right here
     typedef boost::ptr_vector<sindex_access_t> sindex_access_vector_t;
 
     void acquire_all_sindex_superblocks_for_write(
-            const typename protocol_t::region_t &region_to_write,
             block_id_t sindex_block_id,
             write_token_pair_t *token_pair,
             transaction_t *txn,

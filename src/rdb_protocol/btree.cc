@@ -260,13 +260,6 @@ public:
     }
 
     void on_sindexes(const std::map<uuid_u, secondary_index_t> &sindexes, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        for (std::map<uuid_u, secondary_index_t>::const_iterator it  = sindexes.begin();
-                                                                 it != sindexes.end();
-                                                                 ++it) {
-            region_map_t<rdb_protocol_t, sindex_details::sindex_state_t> sindex_metainfo;
-            get_sindex_metainfo(it->second, &sindex_metainfo);
-            guarantee(sindex_metainfo.get_domain() == rdb_protocol_t::region_t(kr_));
-        }
         cb_->on_sindexes(sindexes, interruptor);
     }
 
