@@ -173,18 +173,22 @@ public:
 private:
     static void rewrite(env_t *env, const Term2 *in, Term2 *out) {
         rcheck(in->args_size() == 2, "update requires 2 arguments");
-        int x = env->gensym();
+        int old_row = env->gensym();
+        int new_row = env->gensym();
 
         Term2 *arg = out;
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
-        N2(REPLACE, *arg = in->args(0), arg = pb::set_func(arg, x);
+        N2(REPLACE, *arg = in->args(0), arg = pb::set_func(arg, old_row);
            N3(BRANCH,
-              N2(EQ, pb::set_var(arg, x), pb::set_null(arg)),
+              N2(EQ, pb::set_var(arg, old_row), pb::set_null(arg)),
               pb::set_null(arg),
-              N2(MERGE,
-                 pb::set_var(arg, x),
-                 N2(FUNCALL, *arg = in->args(1), pb::set_var(arg, x)))));
+              N2(FUNCALL, arg = pb::set_func(arg, new_row);
+                 N3(BRANCH,
+                    N2(EQ, pb::set_var(arg, new_row), pb::set_null(arg)),
+                    pb::set_var(arg, old_row),
+                    N2(MERGE, pb::set_var(arg, old_row), pb::set_var(arg, new_row))),
+                 N2(FUNCALL, *arg = in->args(1), pb::set_var(arg, old_row)))))
 #pragma GCC diagnostic pop
     }
     RDB_NAME("update")

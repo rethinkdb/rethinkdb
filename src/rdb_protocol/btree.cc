@@ -201,9 +201,13 @@ void rdb_replace(const std::string &primary_key,
                 kv_location_delete(&kv_location, key, slice, timestamp, txn);
             } else {
                 if (*old_val->el(primary_key) == *new_val->el(primary_key)) {
-                    conflict = resp->add("replaced", num_1);
-                    kv_location_set(&kv_location, key, new_val->as_json(),
-                                    slice, timestamp, txn);
+                    if (*old_val == *new_val) {
+                        conflict = resp->add("unchanged", num_1);
+                    } else {
+                        conflict = resp->add("replaced", num_1);
+                        kv_location_set(&kv_location, key, new_val->as_json(),
+                                        slice, timestamp, txn);
+                    }
                 } else {
                     std::string msg = strprintf(
                         "Primary key (%s) cannot be changed (%s -> %s)",

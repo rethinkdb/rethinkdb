@@ -520,6 +520,79 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(data, tbl.order_by(:id).run.to_a)
   end
 
+  def test_write_python # from python tests
+    tbl.delete.run
+    docs = [{ "a" => 3, "b" => 10, "id" => 1 },
+            { "a" => 9, "b" => -5, "id" => 2 },
+             { "a" => 9, "b" => 3, "id" => 3 }]
+    assert_equal({ "inserted" => (docs.length)}, tbl.insert(docs).run)
+    docs.each { |doc| assert_equal(doc, tbl.get(doc["id"]).run) }
+    assert_equal([docs[0]], tbl.filter("a" => 3).run.to_a)
+    assert_raise(RuntimeError) { tbl.filter("a" => ((tbl.count + ""))).run.to_a }
+    assert_equal(nil, tbl.get(0).run)
+    assert_equal({ "inserted" => 1}, tbl.insert({ :id => 100, :text => "\u{30b0}\u{30eb}\u{30e1}" }).run)
+    assert_equal("\u{30b0}\u{30eb}\u{30e1}", tbl.get(100)[:text].run)
+    tbl.delete.run
+    docs = [{ "id" => 1 }, { "id" => 2 }]
+    assert_equal({ "inserted" => (docs.length)}, tbl.insert(docs).run)
+    assert_equal({ "deleted" => 1 }, tbl.limit(1).delete.run)
+    assert_equal(1, tbl.run.to_a.length)
+    tbl.delete.run
+    docs = (0...4).map { |n| { "id" => ((100 + n)), "a" => (n), "b" => ((n % 3)) } }
+    assert_equal({ "inserted" => (docs.length)}, tbl.insert(docs).run)
+    docs.each { |doc| assert_equal(doc, tbl.get(doc["id"]).run) }
+    tbl.delete.run
+    docs = (0...10).map { |n| { "id" => ((100 + n)), "a" => (n), "b" => ((n % 3)) } }
+    assert_equal({ "inserted" => (docs.length)}, tbl.insert(docs).run)
+
+    # TODO: still an error?
+    # assert_raise(ArgumentError){r[:a] == 5}
+    # assert_raise(ArgumentError){r[:a] != 5}
+    assert_equal(docs.select { |x| (x["a"] < 5) }, id_sort(tbl.filter { |r| (r[:a] < 5) }.run.to_a))
+    assert_equal(docs.select { |x| (x["a"] <= 5) }, id_sort(tbl.filter { |r| (r[:a] <= 5) }.run.to_a))
+    assert_equal(docs.select { |x| (x["a"] > 5) }, id_sort(tbl.filter { |r| (r[:a] > 5) }.run.to_a))
+    assert_equal(docs.select { |x| (x["a"] >= 5) }, id_sort(tbl.filter { |r| (r[:a] >= 5) }.run.to_a))
+    assert_equal(docs.select { |x| (x["a"] == x["b"]) }, id_sort(tbl.filter { |r| r[:a].eq(r[:b]) }.run.to_a))
+
+    assert_equal(r(-5).run, -r(5).run)
+    assert_equal(r(5).run, +r(5).run)
+
+    assert_equal(7, (r(3) + 4).run)
+    assert_equal(-1, (r(3) - 4).run)
+    assert_equal(12, (r(3) * 4).run)
+    assert_equal((3.0 / 4), (r(3) / 4).run)
+    assert_equal((3 % 2), (r(3) % 2).run)
+    assert_raise(TypeError) { (4 + r(3)) }
+    assert_raise(TypeError) { (4 - r(3)) }
+    assert_raise(TypeError) { (4 * r(3)) }
+    assert_raise(TypeError) { (4 / r(3)) }
+    assert_raise(TypeError) { (4 % r(3)) }
+
+    assert_equal(84, (((r(3) + 4) * -r(6)) * (r(-5) + 3)).run)
+
+    tbl.delete.run
+    docs = (0...10).map { |n| { "id" => ((100 + n)), "a" => (n), "b" => ((n % 3)) } }
+    assert_equal({ "inserted" => (docs.length) }, tbl.insert(docs).run)
+    assert_equal({ "unchanged" => (docs.length) }, tbl.replace { |x| x }.run)
+    assert_equal(docs, id_sort(tbl.run.to_a))
+    assert_equal({ "unchanged" => 10}, tbl.update { nil }.run)
+
+    res = tbl.update { 1 }.run
+    assert_equal(10, res["errors"])
+    res = tbl.update { |row| row[:id] }.run
+    assert_equal(10, res["errors"])
+    res = tbl.update { |r| r[:id] }.run
+    assert_equal(10, res["errors"])
+
+    res = tbl.update { |row| r.branch((row[:id] % 2).eq(0), { :id => -1 }, row) }.run
+    assert_not_nil(res["first_error"])
+    filtered_res = res.reject { |k, v| (k == "first_error") }
+    assert_not_equal(filtered_res, res)
+    assert_equal({ "replaced" => 5, "errors" => 5 }, filtered_res)
+
+    assert_equal(docs, id_sort(tbl.run.to_a))
+  end
+
   def setup
     begin
       r.db_create('test').run

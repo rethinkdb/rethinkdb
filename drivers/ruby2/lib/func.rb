@@ -58,6 +58,8 @@ module RethinkDB
       super(Hash[(l ? [['left_bound', l]] : []) + (r ? [['right_bound', r]] : [])])
     end
 
+    def -@; RQL.new.sub(0, self); end
+
     def [](ind)
       if ind.class == Fixnum
         return nth(ind)
