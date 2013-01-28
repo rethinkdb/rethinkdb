@@ -53,6 +53,8 @@ bool filepath_file_opener_t::open_serializer_file(const std::string &path, int e
 }
 
 bool filepath_file_opener_t::open_serializer_file_create_temporary(scoped_ptr_t<file_t> *file_out) {
+    // TODO(84): Make this a mutex_guarantee_t.
+    mutex_assertion_t::acq_t acq(&reentrance_mutex_);
     bool success = open_serializer_file(temporary_file_name(), linux_file_t::mode_create | linux_file_t::mode_truncate, file_out);
     if (success) {
         // TODO(84): More rigorous temporary file state management.
@@ -71,12 +73,12 @@ void filepath_file_opener_t::do_move_serializer_file_to_permanent_location(bool 
               temporary_file_name().c_str(), file_name().c_str());
     }
 
-    // TODO(84): More rigorous temporary file state management.
     opened_temporary_ = false;
     *success_out = true;
 }
 
 bool filepath_file_opener_t::move_serializer_file_to_permanent_location() {
+    mutex_assertion_t::acq_t acq(&reentrance_mutex_);
     bool success;
     // TODO(84): Should we drop the pretense of returning a bool?  What about for the other functions?
     thread_pool_t::run_in_blocker_pool(boost::bind(&filepath_file_opener_t::do_move_serializer_file_to_permanent_location, this, &success));
@@ -84,13 +86,21 @@ bool filepath_file_opener_t::move_serializer_file_to_permanent_location() {
 }
 
 bool filepath_file_opener_t::open_serializer_file_existing(scoped_ptr_t<file_t> *file_out) {
+    mutex_assertion_t::acq_t acq(&reentrance_mutex_);
     return open_serializer_file(current_file_name(), 0, file_out);
 }
 
-bool filepath_file_opener_t::unlink_serializer_file() {
+void filepath_file_opener_t::do_unlink_serializer_file(bool *success_out) {
     const int res = ::unlink(current_file_name().c_str());
     guarantee_err(res == 0, "unlink() falied");
-    return res == 0;
+    *success_out = (res == 0);
+}
+
+bool filepath_file_opener_t::unlink_serializer_file() {
+    mutex_assertion_t::acq_t acq(&reentrance_mutex_);
+    bool success;
+    thread_pool_t::run_in_blocker_pool(boost::bind(&filepath_file_opener_t::do_unlink_serializer_file, this, &success));
+    return success;
 }
 
 #ifdef SEMANTIC_SERIALIZER_CHECK

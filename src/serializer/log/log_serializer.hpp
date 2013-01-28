@@ -10,6 +10,7 @@
 #include "serializer/log/config.hpp"
 #include "utils.hpp"
 #include "concurrency/mutex.hpp"
+#include "concurrency/mutex_assertion.hpp"
 
 #include "serializer/log/metablock_manager.hpp"
 #include "serializer/log/extent_manager.hpp"
@@ -60,7 +61,9 @@ public:
 private:
     MUST_USE bool open_serializer_file(const std::string &path, int extra_flags, scoped_ptr_t<file_t> *file_out);
 
+    // Functions to be run in the blocker pool.
     void do_move_serializer_file_to_permanent_location(bool *success_out);
+    void do_unlink_serializer_file(bool *success_out);
 
     // The path of the temporary file.  This is file_name() with some suffix appended.
     std::string temporary_file_name() const;
@@ -72,10 +75,14 @@ private:
     const std::string filepath_;
     io_backender_t *const backender_;
 
+    // Makes sure that only one member function gets called at a time.  Some of them are blocking,
+    // and we don't want to have to worry about stuff like what the value of opened_temporary_
+    // should be during the blocking call to move_serializer_file_to_permanent_location().
+    mutex_assertion_t reentrance_mutex_;
+
     // This begins false.  It becomes true when open_serializer_file_create_temporary is called.  It
     // becomes false again when move_serializer_file_to_permanent_location is called.  It is used by
     // open_serializer_file_existing to know whether it should use the temporary or permanent path.
-    // TODO(84): Have more rigorous management of file open state.
     bool opened_temporary_;
 
     DISABLE_COPYING(filepath_file_opener_t);
