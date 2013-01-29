@@ -3,69 +3,64 @@ goog.provide("rethinkdb.cursor")
 goog.require("rethinkdb.base")
 
 class Cursor
-    constructor: (rootTerm, cb) ->
-        @root = rootTerm # Saved for backtrace printing
-        @cb = cb
-        @iter = null
-        @iterPassed = false
-    
-    goResult: (result) ->
-        @cb null, result
-
-    goError: (err) ->
-        @cb err, undefined
-
-    endIter: (results) ->
-        unless @iter?
-            @iter = new LazyIterator
-        @iter._endResults results
-        unless @iterPassed
-            @cb null, @iter
-            @iterPassed = true
-
-    partIter: (results) ->
-        unless @iter?
-            @iter = new LazyIterator
-        @iter._addResults results
-        unless @iterPassed
-            @cb null, @iter
-            @iterPassed = true
-
-class LazyIterator
-    constructor: ->
-        @_results = []
+    constructor: (conn, token) ->
+        @_conn = conn
+        @_token = token
+        @_data = []
         @_index = 0
         @_endFlag = false
+        @_contFlag = false
         @_cont = null
         
-    _addResults: (results) ->
-        @_results = @_results.concat results
+    _addData: (data) ->
+        @_data = @_data.concat data
         @_prompt()
+        @
 
-    _endResults: (results) ->
+    _endData: (data) ->
         @_endFlag = true
-        @_addResults results
+        @_addData data
 
     _prompt: ->
         if @_cont?
             @_cont()
 
-    more: -> @_endFlag && @_index >= @_results.length
+    _getMore: ->
+        unless @_contFlag
+            @_conn._continue(@_token)
+            @_contFlag = true
 
-    forEach: (cb) ->
+    hasNext: -> @_endFlag && @_index >= @_data.length
+
+    next: (cb) ->
         @_cont = =>
-            while @_index < @_results.length
-                cb @_results[@_index++]
+            if @_index < @_data.length
+                cb @_data[@_index++]
+            else
+                @_getMore()
         @_prompt()
 
-    collect: (cb) ->
+    each: (cb) ->
+        @_cont = =>
+            while @_index < @_data.length
+                cb @_data[@_index++]
+            @_getMore()
+        @_prompt()
+
+    toArray: (cb) ->
         @_cont = =>
             if @_endFlag
-                cb @_results
+                cb @_data
+            else
+                @_getMore()
         @_prompt()
 
+    close: ->
+        unless @_endFlag
+            @_conn._end(@_token)
+
     toString: ->
-        if @_endFlag and @_results.length < 8
-            "[#{@_results}]"
+        if @_endFlag and @_data.length < 8
+            "[#{@_data}]"
         else
-            "[#{@_results[..8]}, ...]"
+            "[#{@_data[..8]}, ...]"

@@ -3,8 +3,8 @@ r = require('../build/rethinkdb')
 print = console.log
 
 testEquals = (got, expected) ->
-    if got?.collect?
-        got.collect (got2) ->
+    if got?.toArray?
+        got.toArray (got2) ->
             print got2, '==', expected
     else
         print got, '==', expected
