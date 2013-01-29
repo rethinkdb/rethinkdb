@@ -215,14 +215,13 @@ void linux_file_t::set_size(size_t size) {
     } while (res == -1 && errno == EINTR);
     guarantee_err(res == 0, "Could not ftruncate()");
 
-#ifndef FILE_SYNC_TECHNIQUE
-#error "FILE_SYNC_TECHNIQUE is not defined"
-#elif FILE_SYNC_TECHNIQUE == FILE_SYNC_TECHNIQUE_FULLFSYNC
+#if FILE_SYNC_TECHNIQUE == FILE_SYNC_TECHNIQUE_FULLFSYNC
 
     int fcntl_res;
     do {
         fcntl_res = fcntl(fd.get(), F_FULLFSYNC);
     } while (fcntl_res == -1 && errno == EINTR);
+    guarantee_err(fcntl_res == 0, "Could not fsync with fcntl(..., F_FULLFSYNC).");
 
 #elif FILE_SYNC_TECHNIQUE == FILE_SYNC_TECHNIQUE_DSYNC
 
@@ -232,10 +231,10 @@ void linux_file_t::set_size(size_t size) {
     do {
         fsync_res = fsync(fd.get());
     } while (fsync_res == -1 && errno == EINTR);
-    guarantee_err(fsync_res == 0);
+    guarantee_err(fsync_res == 0, "Could not fsync.");
 
 #else
-#error "Unrecognized FILE_SYNC_TECHNIQUE value."
+#error "Unrecognized FILE_SYNC_TECHNIQUE value.  Did you include the header file?"
 #endif  // FILE_SYNC_TECHNIQUE
 
     file_size = size;
