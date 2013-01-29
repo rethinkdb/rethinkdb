@@ -19,9 +19,9 @@ class BatchedIterator:
     def _read_more(self):
         if self.end_flag:
             return
-        chunk, complete = self.conn._request_more(self.query)
-        self.results.extend(chunk)
-        self.end_flag = complete
+        other = self.conn._continue(self.query)
+        self.results.extend(other.results)
+        self.end_flag = other.end_flag
 
     def _read_until(self, index):
         while index >= len(self.results):
@@ -75,30 +75,33 @@ class Connection():
             self.socket.close()
             self.socket = None
 
-    def run(self, term):
+    def _start(self, term):
+        token = self.next_token
+        self.next_token += 1
 
         # Construct query
         query = p.Query2()
         query.type = p.Query2.START
-        query.token = self.next_token
-        self.next_token += 1
+        query.token = token
 
         # Compile query to protobuf
         term.build(query.query)
-        response = self._run_query(query)
+        return self._send_query(query, term)
 
-        # Sequence responses
-        if response.type is p.Response2.SUCCESS_PARTIAL or response.type is p.Response2.SUCCESS_SEQUENCE:
-            chunk = [Datum.deconstruct(datum) for datum in response.response]
-            return BatchedIterator(self, query.token, chunk, response.type is p.Response2.SUCCESS_SEQUENCE)
+    def _continue(self, query):
+        query = p.Query2()
+        query.type = p.Query2.CONTINUE
+        query.token = orig_query.token
+        return self._send_query(query, term)
 
-        # Atom response
-        if response.type is p.Response2.SUCCESS_ATOM:
-            return Datum.deconstruct(response.response[0])
-
-        self._raiseError(response, term)
+    def _end(self, query):
+        query = p.Query2()
+        query.type = p.Query2.END
+        query.token = orig_query.token
+        return self._send_query(query, term)
         
-    def _run_query(self, query):
+    def _send_query(self, query, term):
+
         # Send protobuf
         query_protobuf = query.SerializeToString()
         query_header = struct.pack("<L", len(query_protobuf))
@@ -113,9 +116,7 @@ class Connection():
         response = p.Response2()
         response.ParseFromString(response_protobuf)
 
-        return response
-
-    def _raiseError(self, response, term):
+        # Error responses
         if response.type is p.Response2.RUNTIME_ERROR:
             message = Datum.deconstruct(response.response[0])
             raise RuntimeError(message, term, response.backtrace)
@@ -126,19 +127,15 @@ class Connection():
             message = Datum.deconstruct(response.response[0])
             raise RuntimeError(message, term, response.backtrace)
 
-    def _request_more(self, orig_query):
-        # Construct request
-        query = p.Query2()
-        query.type = p.Query2.CONTINUE
-        query.token = orig_query.token
-        response = self._run_query(query)
-
+        # Sequence responses
         if response.type is p.Response2.SUCCESS_PARTIAL or response.type is p.Response2.SUCCESS_SEQUENCE:
             chunk = [Datum.deconstruct(datum) for datum in response.response]
-            return chunk, response.type is p.Response2.SUCCESS_SEQUENCE
+            return BatchedIterator(self, query, chunk, response.type is p.Response2.SUCCESS_SEQUENCE)
 
-        self._raiseError(response, orig_query.term)
-
+        # Atom response
+        if response.type is p.Response2.SUCCESS_ATOM:
+            return Datum.deconstruct(response.response[0])
+        
 def connect(host='localhost', port=28016, db_name='test'):
     return Connection(host, port, db_name)
 

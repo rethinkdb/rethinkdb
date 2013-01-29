@@ -5,7 +5,7 @@ from errors import *
 
 class RDBBase():
     def run(self, c):
-        return c.run(self)
+        return c._start(self)
 
 class RDBValue(RDBBase):
     def __eq__(self, other):

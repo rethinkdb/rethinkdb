@@ -15,7 +15,7 @@ withConn = (conn, cont) ->
         if !active and queries.length > 0
             active = true
             [query, expected] = queries.shift()
-            conn.run query, (err, res) ->
+            query.run conn, (err, res) ->
                 if err
                     print ''+err
                 else

@@ -103,7 +103,7 @@ class Connection
         @outstandingCallbacks = {}
         @close()
 
-    run: (term, cb) ->
+    _start: (term, cb) ->
         unless @open then throw DriverError "Connection closed"
 
         # Assign token
@@ -119,6 +119,24 @@ class Connection
         # Save callback
         @outstandingCallbacks[token] = {cb:cb, root:term}
 
+        @_sendQuery(query)
+        
+    _continue: (token) ->
+        query = new Query2
+        query.setType Query2.QueryType.CONTINUE
+        query.setToken token
+
+        @_sendQuery(query)
+
+    _end: (token) ->
+        query = new Query2
+        query.setType Query2.QueryType.END
+        query.setToken token
+
+        @_sendQuery(query)
+
+    _sendQuery: (query) ->
+
         # Serialize protobuf
         serializer = new goog.proto2.WireFormatSerializer
         data = serializer.serialize query
@@ -129,37 +147,6 @@ class Connection
         finalArray.set data, 4
 
         @write finalArray
-
-    _continue: (token) ->
-        query = new Query2
-        query.setType Query2.QueryType.CONTINUE
-        query.setToken token
-
-        serializer = new goog.proto2.WireFormatSerializer
-        data = serializer.serialize query
-
-        length = data.byteLength
-        finalArray = new Uint8Array length + 4
-        (new DataView(finalArray.buffer)).setInt32(0, length, true)
-        finalArray.set data, 4
-
-        @write finalArray
-        
-    _end: (token) ->
-        query = new Query2
-        query.setType Query2.QueryType.END
-        query.setToken token
-
-        serializer = new goog.proto2.WireFormatSerializer
-        data = serializer.serialize query
-
-        length = data.byteLength
-        finalArray = new Uint8Array length + 4
-        (new DataView(finalArray.buffer)).setInt32(0, length, true)
-        finalArray.set data, 4
-
-        @write finalArray
-
 
 class TcpConnection extends Connection
     @isAvailable: -> typeof require isnt 'undefined' and require('net')

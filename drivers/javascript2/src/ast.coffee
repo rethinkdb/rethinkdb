@@ -11,11 +11,8 @@ class TermBase
         self.__proto__ = @.__proto__
         return self
 
-    run: (cb) ->
-        conn = Connection::connStack[-2..-1][0]
-        unless conn? then conn = Connection::lastConn
-        unless conn? then throw DriverError "No connection in use"
-        conn.run @, cb
+    run: (conn, cb) ->
+        conn._start @, cb
 
 class RDBVal extends TermBase
     eq: (other) -> new Eq {}, @, other
