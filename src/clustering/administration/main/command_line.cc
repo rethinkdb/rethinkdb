@@ -438,9 +438,7 @@ void run_rethinkdb_porcelain(const std::string &filepath,
         perfmon_collection_t metadata_perfmon_collection;
         perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
         try {
-            debugf("About to construct persistent_file_t\n");
             metadata_persistence::persistent_file_t store(io_backender.get(), metadata_file(filepath), &metadata_perfmon_collection, our_machine_id, semilattice_metadata);
-            debugf("Constructed persistent_file_t\n");
 
             *result_out = serve(serve_info.spawner_info,
                                 io_backender.get(),

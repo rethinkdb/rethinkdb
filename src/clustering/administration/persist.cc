@@ -71,10 +71,8 @@ persistent_file_t::persistent_file_t(io_backender_t *io_backender, const std::st
 }
 
 persistent_file_t::persistent_file_t(io_backender_t *io_backender, const std::string& filename, perfmon_collection_t *perfmon_parent, const machine_id_t &machine_id, const cluster_semilattice_metadata_t &initial_metadata) {
-    debugf("persistent_file_t constructor\n");
     filepath_file_opener_t file_opener(filename, io_backender);
     construct_serializer_and_cache(true, &file_opener, perfmon_parent);
-    debugf("persistent_file_t constructor constructed serializer and cache\n");
 
     transaction_t txn(cache.get(), rwi_write, 1, repli_timestamp_t::distant_past, cache_order_source.check_in("persistent_file_t"));
     buf_lock_t superblock(&txn, SUPERBLOCK_ID, rwi_write);
