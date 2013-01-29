@@ -22,16 +22,16 @@ class ServerError extends Error
 
     printCarrots = (term, frames) ->
         tree = composeCarrots(term, frames)
-        joinTree tree
+        (joinTree tree).replace(/[^\^]/g, ' ')
 
     composeCarrots = (term, frames) ->
         argNum = frames.shift()
         unless argNum? then argNum = -1
         args = for arg,i in term.args
-                   if i == argNum
-                       composeCarrots(arg, frames)
-                   else
-                       composeTerm(arg)
+                    if i == argNum
+                        composeCarrots(arg, frames)
+                    else
+                        composeTerm(arg)
         if argNum >= 0
             term.compose(args)
         else

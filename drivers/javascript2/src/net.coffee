@@ -66,7 +66,7 @@ class Connection
             msg = DatumTerm.deconstruct response.getResponse 0
             bt = for frame in response.backtraceArray()
                     if frame.getType() is Response2.Frame.FrameType.POS
-                        frame.getPos()
+                        parseInt frame.getPos()
                     else
                         frame.getOpt()
             errr = new RuntimeError msg, cursor.root, bt

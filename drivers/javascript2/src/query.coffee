@@ -31,4 +31,6 @@ rethinkdb.dbDrop = (dbName) -> new DbDrop {}, dbName
 
 rethinkdb.dbList = -> new DbList {}
 
+rethinkdb.do = (args...) -> new FunCall {}, args[-1..][0], args[...-1]...
+
 rethinkdb.branch = (test, trueBranch, falseBranch) -> new Branch {}, test, trueBranch, falseBranch
