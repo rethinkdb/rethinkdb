@@ -467,15 +467,24 @@ class ClientTest < Test::Unit::TestCase
     assert_equal([{'num' => 1}], r([{:num => 1}]).order_by(:id).run.to_a)
     assert_equal([], r([]).order_by(:id).run.to_a)
 
-    gmr = tbl.grouped_map_reduce(lambda {|row| (row[:id] % 4)}, lambda {|row| row[:id]}, 0, lambda {|a, b| (a + b)})
-    gmr2 = tbl.grouped_map_reduce(lambda {|r| (r[:id] % 4)}, lambda {|r| r[:id]}, 0, lambda {|a, b| (a + b)})
-    gmr3 = tbl.coerce("array").grouped_map_reduce(lambda {|row| (row[:id] % 4)}, lambda {|row| row[:id]}, 0, lambda {|a, b| (a + b)})
-    gmr4 = r(data).grouped_map_reduce(lambda {|row| (row[:id] % 4)}, lambda {|row| row[:id]}, 0, lambda {|a, b| (a + b)})
+    gmr = tbl.grouped_map_reduce(lambda {|row| (row[:id] % 4)},
+                                 lambda {|row| row[:id]}, 0, lambda {|a, b| (a + b)})
+    gmr2 = tbl.grouped_map_reduce(lambda {|r| (r[:id] % 4)}, lambda {|r| r[:id]},
+                                  0, lambda {|a, b| (a + b)})
+    gmr3 = tbl.coerce("array").grouped_map_reduce(lambda {|row| (row[:id] % 4)},
+                                                  lambda {|row| row[:id]},
+                                                  0, lambda {|a, b| (a + b)})
+    gmr4 = r(data).grouped_map_reduce(lambda {|row| (row[:id] % 4)},
+                                      lambda {|row| row[:id]},
+                                      0, lambda {|a, b| (a + b)})
     assert_equal(gmr2.run.to_a, gmr.run.to_a)
     assert_equal(gmr3.run.to_a, gmr.run.to_a)
     assert_equal(gmr4.run.to_a, gmr.run.to_a)
-    gmr5 = r([data]).grouped_map_reduce(lambda {|row| (row[:id] % 4)}, lambda {|row| row[:id]}, 0, lambda {|a, b| (a + b)})
-    gmr6 = r(1).grouped_map_reduce(lambda {|row| (row[:id] % 4)}, lambda {|row| row[:id]}, 0, lambda {|a, b| (a + b)})
+    gmr5 = r([data]).grouped_map_reduce(lambda {|row| (row[:id] % 4)},
+                                        lambda {|row| row[:id]},
+                                        0, lambda {|a, b| (a + b)})
+    gmr6 = r(1).grouped_map_reduce(lambda {|row| (row[:id] % 4)},
+                                   lambda {|row| row[:id]}, 0, lambda {|a, b| (a + b)})
     assert_raise(RuntimeError) {gmr5.run.to_a}
     assert_raise(RuntimeError) {gmr6.run.to_a}
     gmr.run.to_a.each do |obj|
@@ -530,7 +539,8 @@ class ClientTest < Test::Unit::TestCase
     assert_equal([docs[0]], tbl.filter("a" => 3).run.to_a)
     assert_raise(RuntimeError) {tbl.filter("a" => ((tbl.count + ""))).run.to_a}
     assert_equal(nil, tbl.get(0).run)
-    assert_equal({"inserted" => 1}, tbl.insert({:id => 100, :text => "\u{30b0}\u{30eb}\u{30e1}"}).run)
+    assert_equal({"inserted" => 1},
+                 tbl.insert({:id => 100, :text => "\u{30b0}\u{30eb}\u{30e1}"}).run)
     assert_equal("\u{30b0}\u{30eb}\u{30e1}", tbl.get(100)[:text].run)
     tbl.delete.run
     docs = [{"id" => 1}, {"id" => 2}]
@@ -548,11 +558,16 @@ class ClientTest < Test::Unit::TestCase
     # TODO: still an error?
     # assert_raise(ArgumentError){r[:a] == 5}
     # assert_raise(ArgumentError){r[:a] != 5}
-    assert_equal(docs.select {|x| (x["a"] < 5)}, id_sort(tbl.filter {|r| (r[:a] < 5)}.run.to_a))
-    assert_equal(docs.select {|x| (x["a"] <= 5)}, id_sort(tbl.filter {|r| (r[:a] <= 5)}.run.to_a))
-    assert_equal(docs.select {|x| (x["a"] > 5)}, id_sort(tbl.filter {|r| (r[:a] > 5)}.run.to_a))
-    assert_equal(docs.select {|x| (x["a"] >= 5)}, id_sort(tbl.filter {|r| (r[:a] >= 5)}.run.to_a))
-    assert_equal(docs.select {|x| (x["a"] == x["b"])}, id_sort(tbl.filter {|r| r[:a].eq(r[:b])}.run.to_a))
+    assert_equal(docs.select {|x| (x["a"] < 5)},
+                 id_sort(tbl.filter {|r| (r[:a] < 5)}.run.to_a))
+    assert_equal(docs.select {|x| (x["a"] <= 5)},
+                 id_sort(tbl.filter {|r| (r[:a] <= 5)}.run.to_a))
+    assert_equal(docs.select {|x| (x["a"] > 5)},
+                 id_sort(tbl.filter {|r| (r[:a] > 5)}.run.to_a))
+    assert_equal(docs.select {|x| (x["a"] >= 5)},
+                 id_sort(tbl.filter {|r| (r[:a] >= 5)}.run.to_a))
+    assert_equal(docs.select {|x| (x["a"] == x["b"])},
+                 id_sort(tbl.filter {|r| r[:a].eq(r[:b])}.run.to_a))
 
     assert_equal(r(-5).run, -r(5).run)
     assert_equal(r(5).run, +r(5).run)
@@ -588,7 +603,7 @@ class ClientTest < Test::Unit::TestCase
     assert_not_nil(res["first_error"])
     filtered_res = res.reject {|k, v| (k == "first_error")}
     assert_not_equal(filtered_res, res)
-    assert_equal({"replaced" => 5, "errors" => 5}, filtered_res)
+    assert_equal({"unchanged" => 5, "errors" => 5}, filtered_res)
 
     assert_equal(docs, id_sort(tbl.run.to_a))
   end
@@ -614,10 +629,10 @@ class ClientTest < Test::Unit::TestCase
   #FOREACH
   def test_array_foreach
     assert_equal(data, id_sort(tbl.run.to_a))
-    assert_equal({"replaced" => 6}, r([2, 3, 4]).for_each do |x|
+    assert_equal({"unchanged" => 1, "replaced" => 5}, r([2, 3, 4]).for_each do |x|
       [tbl.get(x).update {{:num => 0}}, tbl.get((x * 2)).update {{:num => 0}}]
     end.run)
-    assert_equal({"unchanged" => 4, "replaced" => 6},
+    assert_equal({"unchanged" => 5, "replaced" => 5},
                  tbl.coerce("array").for_each do |row|
       tbl.filter {|r| r[:id].eq(row[:id])}.update do |row|
         r.branch(row[:num].eq(0), {:num => (row[:id])}, nil)
@@ -704,8 +719,12 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(2, res["errors"])
     assert_not_nil(res["first_error"])
     assert_equal(9, res["deleted"])
-    assert_equal(10, res["replaced"])
-    assert_equal([{"num" => 4, "id" => 2, "name" => "2"}, {"num" => 8, "id" => 4, "name" => "4"}, {"num" => 12, "id" => 6, "name" => "6"}, {"num" => 16, "id" => 8, "name" => "8"}], tbl.order_by(:id).run.to_a)
+    assert_equal(102, res["unchanged"])
+    assert_equal(9, res["replaced"])
+    assert_equal([{"num" => 4, "id" => 2, "name" => "2"},
+                  {"num" => 8, "id" => 4, "name" => "4"},
+                  {"num" => 12, "id" => 6, "name" => "6"},
+                  {"num" => 16, "id" => 8, "name" => "8"}], tbl.order_by(:id).run.to_a)
 
   ensure
     r.db_drop(db_name).run
@@ -747,7 +766,7 @@ class ClientTest < Test::Unit::TestCase
     assert_not_nil(tbl.get(0).replace {|row|
                      r.branch(row.eq(nil), data[0], data[1])
                   }.run['first_error'])
-    assert_equal({"replaced" => 1},
+    assert_equal({"unchanged" => 1},
                  tbl.get(0).replace{|row| r.branch(row.eq(nil), data[1], data[0])}.run)
     assert_equal(data, tbl.order_by(:id).run.to_a)
   end
@@ -808,7 +827,8 @@ class ClientTest < Test::Unit::TestCase
     assert_equal({"inserted" => 1},
                  r.db(db_name).table(table_name).insert({:id => 0}).run)
     assert_equal([{"id" => 0}], r.db(db_name).table(table_name).run.to_a)
-    assert_equal({'created' => 1}, r.db(db_name).table_create((table_name + table_name)).run)
+    assert_equal({'created' => 1},
+                 r.db(db_name).table_create((table_name + table_name)).run)
     assert_equal(2, r.db(db_name).table_list.run.length)
     assert_raise(RuntimeError) {r.db("").table("").run.to_a}
     assert_raise(RuntimeError) {r.db("test").table(table_name).run.to_a}
@@ -832,7 +852,7 @@ class ClientTest < Test::Unit::TestCase
 
     # insert, UPDATE, :upsert
     assert_equal(len, tbl2.insert(data, :upsert).run["inserted"])
-    assert_equal((len * 2), tbl2.insert((data + data), :upsert).run["replaced"])
+    assert_equal((len * 2), tbl2.insert((data + data), :upsert).run["unchanged"])
     assert_equal(data, id_sort(tbl2.run.to_a))
     assert_equal(1, tbl2.insert({:id => 0, :broken => (true)}, :upsert).run["replaced"])
     assert_equal(1, tbl2.insert({:id => 1, :broken => (true)}, :upsert).run["replaced"])
@@ -842,11 +862,11 @@ class ClientTest < Test::Unit::TestCase
     mutate = tbl2.filter {|r| r[:id].eq(0)}.replace {data[0]}.run
     assert_equal({"replaced" => 1}, mutate)
     update = tbl2.update {|x| r.branch(x.contains(:broken), data[1], x)}.run
-    assert_equal({"replaced" => (len)}, update)
+    assert_equal({"replaced" => 1, "unchanged" => 9}, update)
     mutate = tbl2.replace do |x|
       {:id => (x[:id]), :num => (x[:num]), :name => (x[:name])}
     end.run
-    assert_equal({"replaced" => 10}, mutate)
+    assert_equal({"replaced" => 1, "unchanged" => 9}, mutate)
     assert_equal(data, id_sort(tbl2.run.to_a))
     mutate = tbl2.replace do |row|
       r.branch(row[:id].eq(4).|(row[:id].eq(5)), {:id => -1}, row)
@@ -858,9 +878,9 @@ class ClientTest < Test::Unit::TestCase
     mutate = tbl2.replace {|row| r.merge(row, :num => ((row[:num] * 2)))}.run
     assert_not_nil(mutate["first_error"])
     filtered_mutate = mutate.reject {|k, v| (k == "first_error")}
-    assert_equal({"replaced" => 9, "errors" => 1}, filtered_mutate)
+    assert_equal({"replaced" => 8, "unchanged" => 1, "errors" => 1}, filtered_mutate)
     assert_equal("5", tbl2.get(5).run["num"])
-    assert_equal({"replaced" => 10}, tbl2.replace do |row|
+    assert_equal({"replaced" => 9, "unchanged" => 1}, tbl2.replace do |row|
       r.branch(row[:id].eq(5), data[5], row.merge(:num => ((row[:num] / 2))))
     end.run)
     assert_equal(data, id_sort(tbl2.run.to_a))
@@ -885,9 +905,10 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(data, id_sort(tbl2.run.to_a))
 
     # MUTATE
-    assert_equal({"replaced" => (len)}, tbl2.replace {|row| row}.run)
+    assert_equal({"unchanged" => (len)}, tbl2.replace {|row| row}.run)
     assert_equal(data, id_sort(tbl2.run.to_a))
-    assert_equal({"replaced" => 5, "deleted" => ((len - 5))}, tbl2.replace {|row| r.branch((row[:id] < 5), nil, row)}.run)
+    assert_equal({"unchanged" => 5, "deleted" => ((len - 5))},
+                 tbl2.replace {|row| r.branch((row[:id] < 5), nil, row)}.run)
     assert_equal(data[(5..-1)], id_sort(tbl2.run.to_a))
     assert_equal({"inserted" => 5}, tbl2.insert(data[(0...5)], :upsert).run)
 
@@ -906,20 +927,18 @@ class ClientTest < Test::Unit::TestCase
     query = tbl2.get(0).update {{:id => 0, :broken => 5}}
     assert_equal({"replaced" => 1}, query.run)
     query = tbl2.insert(data[0], :upsert)
-    assert_equal({"inserted" => 1}, query.run)
+    assert_equal({"replaced" => 1}, query.run)
     assert_equal(data, id_sort(tbl2.run.to_a))
 
-    assert_equal({"replaced" => 0, "deleted" => 1},
-                 tbl2.get(0).replace {nil}.run)
+    assert_equal({"deleted" => 1}, tbl2.get(0).replace {nil}.run)
     assert_equal(data[(1..-1)], id_sort(tbl2.run.to_a))
-    assert_raise(RuntimeError) {tbl2.get(1).replace {{:id => -1}}.run.to_a}
-    assert_raise(RuntimeError) do
-      tbl2.get(1).replace {|row| {:name => ((row[:name] * 2))}}.run.to_a
-    end
+    assert_not_nil(tbl2.get(1).replace {{:id => -1}}.run['first_error'])
+    assert_not_nil(tbl2.get(1).replace {|row|
+                     {:name => ((row[:name] * 2))}}.run['first_error'])
     assert_equal({"replaced" => 1},
                  tbl2.get(1).replace {|row| row.merge(:num => 2)}.run)
     assert_equal(2, tbl2.get(1).run["num"])
-    assert_equal({"inserted" => 2},
+    assert_equal({"inserted" => 1, "replaced" => 1},
                  tbl2.insert(data[(0...2)], :upsert).run)
 
     assert_equal(data, id_sort(tbl2.run.to_a))
@@ -928,6 +947,11 @@ class ClientTest < Test::Unit::TestCase
       r.db_drop(db_name).run
     rescue Exception => e
     end
+  end
+
+  def test_close_and_reconnect
+    assert_nothing_raised { c.close }
+    c.reconnect
   end
 
   def setup
