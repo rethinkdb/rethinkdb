@@ -305,6 +305,9 @@ int datum_t::cmp(const datum_t &rhs) const {
             it = obj.begin(),
             it2 = rhs_obj.begin();
         while (it != obj.end() && it2 != rhs_obj.end()) {
+            // debugf("(%s,%s) vs. (%s,%s)",
+            //        it->first.c_str(), it->second->print().c_str(),
+            //        it2->first.c_str(), it2->second->print().c_str());
             int key_cmpval = derived_cmp(it->first, it2->first);
             if (key_cmpval) return key_cmpval;
             int val_cmpval = it->second->cmp(*it2->second);
@@ -313,7 +316,7 @@ int datum_t::cmp(const datum_t &rhs) const {
             ++it2;
         }
         if (it != obj.end()) return 1;
-        if (it2 != obj.end()) return -1;
+        if (it2 != rhs_obj.end()) return -1;
         return 0;
     }; unreachable();
     default: unreachable();

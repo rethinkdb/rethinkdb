@@ -8,7 +8,7 @@ module RethinkDB
     end
 
     @@opt_off = {
-      :reduce => -1, :between => -1, :grouped_map_reduce => -1
+      :reduce => -1, :between => -1, :grouped_map_reduce => -1, :insert => -1
     }
     @@rewrites = {
       :< => :lt, :<= => :le, :> => :gt, :>= => :ge,
@@ -57,6 +57,15 @@ module RethinkDB
 
     def between(l=nil, r=nil)
       super(Hash[(l ? [['left_bound', l]] : []) + (r ? [['right_bound', r]] : [])])
+    end
+
+    def insert(*a, &b)
+      if [String.hash, Symbol.hash].include?(a[-1].class.hash) && a[-1] == :upsert
+        a[-1] = {:upsert => true}
+      else
+        a << {}
+      end
+      super(*a, &b)
     end
 
     def -@; RQL.new.sub(0, self); end
