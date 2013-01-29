@@ -559,19 +559,27 @@ void linux_tcp_conn_t::on_event(int events) {
 
             The same can happen for reads, see next case. */
 
-            if (is_write_open()) on_shutdown_write();
+            if (is_write_open()) {
+                on_shutdown_write();
+            }
         }
 
         if (reading) {
             /* See description for write case above */
-            if (is_read_open()) on_shutdown_read();
+            if (is_read_open()) {
+                on_shutdown_read();
+            }
         }
 
         if (!reading && !writing) {
             /* We often get a combination of poll_event_err and poll_event_hup when a socket
             suddenly disconnects. It seems safe to assume it just indicates a hang-up. */
-            if (!read_closed.is_pulsed()) shutdown_read();
-            if (!write_closed.is_pulsed()) shutdown_write();
+            if (!read_closed.is_pulsed()) {
+                shutdown_read();
+            }
+            if (!write_closed.is_pulsed()) {
+                shutdown_write();
+            }
         }
 
     } else {
