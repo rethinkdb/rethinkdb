@@ -34,7 +34,6 @@ r.connect {host:'localhost', port: 28016}, (err, conn) ->
     if err then throw err
 
     withConn conn, (run) ->
-        '''
         run r(1), 1
         run r('a'), 'a'
         run r(null), null
@@ -78,7 +77,6 @@ r.connect {host:'localhost', port: 28016}, (err, conn) ->
         run r({'a':1, 'b':2}).contains('c'), false
         run (r(1).do (a) -> a.add(a)), 2
         run r.dbList(), ['bob', 'test']
-        '''
 
         # Error printing
         run r.error('bob')

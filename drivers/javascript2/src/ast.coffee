@@ -67,6 +67,7 @@ class RDBVal extends TermBase
 
 class DatumTerm extends RDBVal
     args: []
+    optargs: {}
 
     constructor: (val) ->
         self = super()

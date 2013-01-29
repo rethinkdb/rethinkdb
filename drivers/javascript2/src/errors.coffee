@@ -18,7 +18,10 @@ class ServerError extends Error
 
     composeTerm = (term) ->
         args = (composeTerm arg for arg in term.args)
-        term.compose(args)
+        optargs = {}
+        for own key,arg in term.optargs
+            optargs[key] = composeTerm(arg)
+        term.compose(args, optargs)
 
     printCarrots = (term, frames) ->
         tree = composeCarrots(term, frames)
@@ -27,15 +30,23 @@ class ServerError extends Error
     composeCarrots = (term, frames) ->
         argNum = frames.shift()
         unless argNum? then argNum = -1
+
         args = for arg,i in term.args
                     if i == argNum
                         composeCarrots(arg, frames)
                     else
                         composeTerm(arg)
+
+        optargs = {}
+        for own key,arg in term.optargs
+            optargs[key] = if key == argNum
+                             composeCarrots(arg, frames)
+                           else
+                             comoseTerm(arg)
         if argNum >= 0
-            term.compose(args)
+            term.compose(args, optargs)
         else
-            carrotify(term.compose(args))
+            carrotify(term.compose(args, optargs))
 
     carrotify = (tree) -> (joinTree tree).replace(/[^\^]/g, '^')
     
