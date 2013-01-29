@@ -34,10 +34,10 @@ inline standard_serializer_t *create_and_construct_serializer(temp_file_t *temp_
 template<class protocol_t>
 class test_store_t {
 public:
-    test_store_t(io_backender_t *io_backender, order_source_t *order_source) :
+    test_store_t(io_backender_t *io_backender, order_source_t *order_source, typename protocol_t::context_t *_ctx) :
             temp_file("/tmp/rdb_unittest.XXXXXX"),
-            serializer(create_and_construct_serializer(&temp_file, io_backender)),
-            store(serializer.get(), temp_file.name(), GIGABYTE, true, &get_global_perfmon_collection(), &ctx) {
+            serializer(create_and_construct_serializer(&temp_file, io_backender)), ctx(_ctx),
+            store(serializer.get(), temp_file.name(), GIGABYTE, true, &get_global_perfmon_collection(), ctx) {
         /* Initialize store metadata */
         cond_t non_interruptor;
         object_buffer_t<fifo_enforcer_sink_t::exit_write_t> token;
@@ -50,7 +50,7 @@ public:
 
     temp_file_t temp_file;
     scoped_ptr_t<standard_serializer_t> serializer;
-    typename protocol_t::context_t ctx;
+    typename protocol_t::context_t *ctx;
     typename protocol_t::store_t store;
 };
 
