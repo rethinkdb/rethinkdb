@@ -91,7 +91,7 @@ void filepath_file_opener_t::unlink_serializer_file() {
 }
 
 #ifdef SEMANTIC_SERIALIZER_CHECK
-bool filepath_file_opener_t::open_semantic_checking_file(int *fd_out) {
+void filepath_file_opener_t::open_semantic_checking_file(int *fd_out) {
     const std::string semantic_filepath = filepath_ + "_semantic";
     int semantic_fd;
     do {

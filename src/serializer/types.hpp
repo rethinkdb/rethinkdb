@@ -161,7 +161,6 @@ void intrusive_ptr_release(scs_block_token_t<inner_serializer_t> *p) {
 
 
 
-template <>
 template <class inner_serializer_type>
 struct serializer_traits_t<semantic_checking_serializer_t<inner_serializer_type> > {
     typedef scs_block_token_t<inner_serializer_type> block_token_type;
