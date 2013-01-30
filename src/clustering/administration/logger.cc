@@ -46,10 +46,10 @@ std::string format_log_message(const log_message_t &m, bool for_console) {
 
     std::string prepend;
     if (!for_console) {
-        prepend = strprintf("%s %ld.%06lds %s: ",
+        prepend = strprintf("%s %ld.%06llds %s: ",
                             format_time(m.timestamp).c_str(),
                             m.uptime.tv_sec,
-                            m.uptime.tv_nsec / 1000,
+                            m.uptime.tv_nsec / THOUSAND,
                             format_log_level(m.level).c_str());
     } else {
         prepend = strprintf("%s: ", format_log_level(m.level).c_str());
@@ -147,7 +147,7 @@ log_message_t parse_log_message(const std::string &s) THROWS_ONLY(std::runtime_e
         }
 
         // TODO: Seriously?  We assume three decimal places?
-        uptime.tv_nsec = 1000 * tv_nsec;
+        uptime.tv_nsec = THOUSAND * tv_nsec;
     }
 
     log_level_t level = parse_log_level(std::string(start_level, end_level - start_level));
@@ -160,7 +160,7 @@ log_message_t assemble_log_message(log_level_t level, const std::string &message
     struct timespec timestamp = clock_realtime();
     struct timespec uptime = clock_monotonic();
     if (uptime.tv_nsec < uptime_reference.tv_nsec) {
-        uptime.tv_nsec += 1000000000;
+        uptime.tv_nsec += BILLION;
         uptime.tv_sec -= 1;
     }
     uptime.tv_nsec -= uptime_reference.tv_nsec;

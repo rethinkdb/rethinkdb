@@ -1,13 +1,12 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "arch/io/disk.hpp"
 
 #include <fcntl.h>
-
-#include <unistd.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/file.h>
+#include <unistd.h>
 
 #include <algorithm>
 
@@ -16,7 +15,6 @@
 
 #include "arch/types.hpp"
 #include "arch/runtime/system_event/eventfd.hpp"
-#include "arch/io/arch.hpp"
 #include "config/args.hpp"
 #include "backtrace.hpp"
 #include "arch/runtime/runtime.hpp"

@@ -1,10 +1,11 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "serializer/log/static_header.hpp"
 
 #include "utils.hpp"
 #include <boost/bind.hpp>
 
 #include "arch/arch.hpp"
+#include "arch/runtime/coroutines.hpp"
 #include "config/args.hpp"
 
 
