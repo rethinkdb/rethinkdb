@@ -36,6 +36,8 @@ void pool_diskmgr_t::action_t::run() {
         } while (res == -1 && errno == EINTR);
         io_result = res >= 0 ? res : -errno;
 
+        // On OS X, we have to manually fsync to complete the write.  (We use F_FULLFSYNC because
+        // fsync lies.)  On Linux we just open the descriptor with the O_DSYNC flag.
 #ifndef FILE_SYNC_TECHNIQUE
 #error "FILE_SYNC_TECHNIQUE is not defined"
 #elif FILE_SYNC_TECHNIQUE == FILE_SYNC_TECHNIQUE_FULLFSYNC
