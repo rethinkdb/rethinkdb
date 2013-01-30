@@ -429,7 +429,7 @@ void run_blob_join_test() {
     while (!pass) {
         mock::let_stuff_happen();
         ++total_waits;
-        ASSERT_LT(50u, total_waits);  // cluster blobs took to long to coalesce internally
+        ASSERT_LT(total_waits, 50u);  // cluster blobs took to long to coalesce internally
 
         pass = true;
         for (size_t i = 0; i < blob_size * 2; i++) {
@@ -444,7 +444,7 @@ void run_blob_join_test() {
     while (!pass) {
         mock::let_stuff_happen();
         ++total_waits;
-        ASSERT_LT(50u, total_waits); // cluster blobs took to long to coalesce with each other
+        ASSERT_LT(total_waits, 50u); // cluster blobs took to long to coalesce with each other
 
         pass = true;
         for (size_t i = 0; i < blob_size * 2; i++) {

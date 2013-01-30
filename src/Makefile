@@ -103,7 +103,7 @@ endif
 SEMANTIC_SERIALIZER_CHECK?=0
 MOCK_CACHE_CHECK?=0
 VERBOSE?=0
-UNIT_TESTS?=0
+UNIT_TESTS?=$(DEBUG)
 AIOSUPPORT?=0
 BUILD_DRIVERS?=1
 LINT?=0
@@ -840,7 +840,7 @@ unit:
 
 $(UNIT_STATIC_LIBRARY_PATH):
 	@echo "    GTEST"
-	$(QUIET) cd $(EXTERNAL_DIR)/gtest-1.6.0/make && make gtest.a
+	$(QUIET) cd $(EXTERNAL_DIR)/gtest-1.6.0/make && $(MAKE) gtest.a
 
 # Packaging
 ifeq ($(PACKAGING),1)
