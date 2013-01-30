@@ -481,12 +481,12 @@ struct w_get_region_visitor : public boost::static_visitor<region_t> {
         return rdb_protocol_t::monokey_region(pd.key);
     }
 
-    region_t operator()(const sindex_create_t &) const {
-        return rdb_protocol_t::region_t::universe();
+    region_t operator()(const sindex_create_t &s) const {
+        return s.region;
     }
 
-    region_t operator()(const sindex_drop_t &) const {
-        return rdb_protocol_t::region_t::universe();
+    region_t operator()(const sindex_drop_t &d) const {
+        return d.region;
     }
 };
 
@@ -519,11 +519,15 @@ struct w_shard_visitor : public boost::static_visitor<write_t> {
     }
 
     write_t operator()(const sindex_create_t &c) const {
-        return write_t(c);
+        sindex_create_t cpy = c;
+        cpy.region = region;
+        return write_t(cpy);
     }
 
     write_t operator()(const sindex_drop_t &d) const {
-        return write_t(d);
+        sindex_drop_t cpy = d;
+        cpy.region = region;
+        return write_t(cpy);
     }
     const region_t &region;
 };
@@ -1092,7 +1096,7 @@ RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::distribution_read_response_t, region,
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::read_response_t, response);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_read_t, key);
-RDB_IMPL_ME_SERIALIZABLE_4(rdb_protocol_t::rget_read_t, region, sindex, transform, terminal);
+RDB_IMPL_ME_SERIALIZABLE_5(rdb_protocol_t::rget_read_t, region, sindex, sindex_region, transform, terminal);
 
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::distribution_read_t, max_depth, result_limit, region);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::read_t, read);
@@ -1111,8 +1115,8 @@ RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::point_write_t, key, data, overwrite);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_delete_t, key);
 
-RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::sindex_create_t, id, mapping);
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sindex_drop_t, id);
+RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::sindex_create_t, id, mapping, region);
+RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::sindex_drop_t, id, region);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::write_t, write);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::delete_key_t, key);

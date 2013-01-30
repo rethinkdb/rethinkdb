@@ -441,11 +441,12 @@ struct rdb_protocol_t {
     public:
         sindex_create_t() { }
         sindex_create_t(uuid_u _id, const Mapping &_mapping)
-            : id(_id), mapping(_mapping)
+            : id(_id), mapping(_mapping), region(region_t::universe())
         { }
 
         uuid_u id;
         Mapping mapping;
+        region_t region;
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };
@@ -454,9 +455,11 @@ struct rdb_protocol_t {
     public:
         sindex_drop_t() { }
         explicit sindex_drop_t(uuid_u _id)
-            : id(_id) { }
+            : id(_id), region(region_t::universe())
+        { }
 
         uuid_u id;
+        region_t region;
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };
