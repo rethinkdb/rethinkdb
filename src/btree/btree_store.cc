@@ -450,12 +450,6 @@ void btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
     scoped_ptr_t<buf_lock_t> sindex_block;
     acquire_sindex_block_for_read(token_pair, txn, &sindex_block, sindex_block_id, interruptor);
 
-    /* Check in with the order source. */
-    //order_token_t order_token = order_source.check_in("btree_store_t<" + protocol_t::protocol_name +
-    //                                "::acquire_sindex_superblock_for_read").with_read_mode();
-    //order_token = sindex_slice->pre_begin_txn_checkpoint_.check_through(order_token);
-    /* TODO this order token should probably be passed back up and used. */
-
     /* Figure out what the superblock for this index is. */
     secondary_index_t sindex;
     ::get_secondary_index(txn, sindex_block.get(), id, &sindex);
@@ -483,12 +477,6 @@ void btree_store_t<protocol_t>::acquire_sindex_superblock_for_write(
     /* Get the sindex block. */
     scoped_ptr_t<buf_lock_t> sindex_block;
     acquire_sindex_block_for_write(token_pair, txn, &sindex_block, sindex_block_id, interruptor);
-
-    /* Check in with the order source. */
-    //order_token_t order_token = order_source.check_in("btree_store_t<" + protocol_t::protocol_name +
-    //                                "::acquire_sindex_superblock_for_write").with_write_mode();
-    //order_token = sindex_slice->pre_begin_txn_checkpoint_.check_through(order_token);
-    /* TODO this order token should probably be passed back up and used. */
 
     /* Figure out what the superblock for this index is. */
     secondary_index_t sindex;
