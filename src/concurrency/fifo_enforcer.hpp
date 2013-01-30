@@ -115,12 +115,12 @@ public:
 
     private:
         friend class fifo_enforcer_sink_t;
-        friend bool left_is_higher_priority(fifo_enforcer_sink_t::internal_exit_read_t *left,
-                                            fifo_enforcer_sink_t::internal_exit_read_t *right);
+        friend bool left_is_higher_priority(const fifo_enforcer_sink_t::internal_exit_read_t *left,
+                                            const fifo_enforcer_sink_t::internal_exit_read_t *right);
 
         /* Returns the read token for this operation. It will be used to sort
         the operation in the queue. */
-        virtual fifo_enforcer_read_token_t get_token() = 0;
+        virtual fifo_enforcer_read_token_t get_token() const = 0;
 
         /* Called when the operation has reached the head of the queue. It
         should remove the operation from the queue. */
@@ -137,12 +137,12 @@ public:
 
     private:
         friend class fifo_enforcer_sink_t;
-        friend bool left_is_higher_priority(fifo_enforcer_sink_t::internal_exit_write_t *left,
-                                            fifo_enforcer_sink_t::internal_exit_write_t *right);
+        friend bool left_is_higher_priority(const fifo_enforcer_sink_t::internal_exit_write_t *left,
+                                            const fifo_enforcer_sink_t::internal_exit_write_t *right);
 
         /* Returns the write token for this operation. It will be used to sort
         the operation in the queue. */
-        virtual fifo_enforcer_write_token_t get_token() = 0;
+        virtual fifo_enforcer_write_token_t get_token() const = 0;
 
         /* Called when the operation has reached the head of the queue. It
         should remove the operation from the queue. (Or change its token, which
@@ -177,7 +177,7 @@ public:
         void end() THROWS_NOTHING;
 
     private:
-        fifo_enforcer_read_token_t get_token() {
+        fifo_enforcer_read_token_t get_token() const {
             return token;
         }
         void on_reached_head_of_queue() {
@@ -211,7 +211,7 @@ public:
         void end() THROWS_NOTHING;
 
     private:
-        fifo_enforcer_write_token_t get_token() {
+        fifo_enforcer_write_token_t get_token() const {
             return token;
         }
         void on_reached_head_of_queue() {
@@ -272,13 +272,13 @@ private:
 };
 
 
-inline bool left_is_higher_priority(fifo_enforcer_sink_t::internal_exit_read_t *left,
-                                    fifo_enforcer_sink_t::internal_exit_read_t *right) {
+inline bool left_is_higher_priority(const fifo_enforcer_sink_t::internal_exit_read_t *left,
+                                    const fifo_enforcer_sink_t::internal_exit_read_t *right) {
     return left->get_token().timestamp < right->get_token().timestamp;
 }
 
-inline bool left_is_higher_priority(fifo_enforcer_sink_t::internal_exit_write_t *left,
-                                    fifo_enforcer_sink_t::internal_exit_write_t *right) {
+inline bool left_is_higher_priority(const fifo_enforcer_sink_t::internal_exit_write_t *left,
+                                    const fifo_enforcer_sink_t::internal_exit_write_t *right) {
     return left->get_token().timestamp < right->get_token().timestamp;
 }
 
