@@ -8,7 +8,8 @@ module RethinkDB
     end
 
     @@opt_off = {
-      :reduce => -1, :between => -1, :grouped_map_reduce => -1, :insert => -1
+      :reduce => -1, :between => -1, :grouped_map_reduce => -1,
+      :table => -1, :insert => -1
     }
     @@rewrites = {
       :< => :lt, :<= => :le, :> => :gt, :>= => :ge,

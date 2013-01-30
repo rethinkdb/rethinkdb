@@ -949,6 +949,26 @@ class ClientTest < Test::Unit::TestCase
     end
   end
 
+  def test_outdated_raise
+    outdated = r.db("test").table("tbl", :use_outdated => (true))
+
+    assert_raise(RuntimeError) { outdated.insert({ :id => 0 }, :upsert).run }
+
+    assert_raise(RuntimeError) do
+      outdated.filter { |row| (row[:id] < 5) }.update { {} }.run
+    end
+
+    assert_raise(RuntimeError) { outdated.update { {} }.run }
+
+    assert_raise(RuntimeError) do
+      outdated.filter { |row| (row[:id] < 5) }.delete.run
+    end
+
+    assert_raise(RuntimeError) do
+      outdated.filter { |row| (row[:id] < 5) }.between(2, 3).replace { nil }.run
+    end
+  end
+
   def test_close_and_reconnect
     assert_nothing_raised { c.close }
     c.reconnect

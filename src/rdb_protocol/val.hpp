@@ -27,6 +27,7 @@ public:
     datum_t *env_add_ptr(datum_t *d);
     template<class T>
     const datum_t *replace(const datum_t *d, T t, bool b) {
+        rcheck(!use_outdated, "Cannot perform write operations on outdated tables.");
         try {
             return _replace(d, t, b);
         } catch (const exc_t &e) {
