@@ -322,6 +322,43 @@ static bool deserialize_and_check(tcp_conn_stream_t *c, T *p, const char *peer) 
     }
 }
 
+bool is_similar_peer_address(const peer_address_t &left, const peer_address_t &right) {
+    bool left_loopback_only = true;
+    bool right_loopback_only = true;
+
+    if (left.port != right.port) {
+        return false;
+    }
+
+    // We ignore any loopback addresses because they don't give us any useful information
+    // Return true if any non-loopback addresses match
+    for (std::set<ip_address_t>::iterator left_it = left.all_ips()->begin();
+         left_it != left.all_ips()->end(); ++left_it) {
+        if (left_it->is_loopback()) {
+            continue;
+        } else {
+            left_loopback_only = false;
+        }
+
+        for (std::set<ip_address_t>::iterator right_it = right.all_ips()->begin();
+             right_it != right.all_ips()->end(); ++right_it) {
+            if (right_it->is_loopback()) {
+                continue;
+            } else {
+                right_loopback_only = false;
+            }
+
+            if (*right_it == *left_it) {
+                return true;
+            }
+        }
+    }
+
+    // No non-loopback addresses matched, return true if either side was *only* loopback addresses
+    //  because we can't easily prove if they are the same or different addresses
+    return left_loopback_only || right_loopback_only;
+}
+
 // We log error conditions as follows:
 // - silent: network error; conflict between parallel connections
 // - warning: invalid header
@@ -405,7 +442,7 @@ void connectivity_cluster_t::run_t::handle(
         }
         return;
     }
-    if (expected_address && other_address != *expected_address) {
+    if (expected_address && !is_similar_peer_address(other_address, *expected_address)) {
         printf_buffer_t<500> buf;
         buf.appendf("expected_address = ");
         debug_print(&buf, *expected_address);
