@@ -1,6 +1,7 @@
 *.pyc
 *~
 .*.swp
+.DS_Store
 .tags
 TAGS
 .cscope
@@ -43,3 +44,4 @@ src/find_replace.sh
 src/make_filter.sh
 scripts/netrecord/netrecord
 src/cluster_directory_*
+support/
