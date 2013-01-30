@@ -23,8 +23,6 @@ rethinkdb.row = new ImplicitVar {}
 
 rethinkdb.db = (dbName) -> new Db {}, dbName
 
-rethinkdb.table = (tblName, opts) -> new Table opts, tblName
-
 rethinkdb.dbCreate = (dbName) -> new DbCreate {}, dbName
 
 rethinkdb.dbDrop = (dbName) -> new DbDrop {}, dbName

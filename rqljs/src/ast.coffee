@@ -238,7 +238,7 @@ class GroupedMapReduce extends RDBOp
 
 class GroupBy extends RDBOp
     type: "Sequence, ARRAY, STRING -> OBJECT"
-    op: new RuntimeError "Not implemented"
+    op: (args) -> args[0].groupBy args[1], args[2]
 
 class InnerJoin extends RDBOp
     type: "Sequence, Sequence -> Function(2) -> Sequence"

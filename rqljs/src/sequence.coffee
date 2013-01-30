@@ -64,6 +64,22 @@ class RDBSequence extends RDBType
             }
         )
 
+    aggregator:
+        count:
+            mapping: (row) -> new RDBPrimitive 1
+            reduction: (a,b) -> a.add(b)
+            finalizer: (row) -> row
+
+    groupBy: (fields, aggregator) ->
+        agg = aggregators[aggregator]
+        unless agg? then throw RuntimeError "No such aggregator"
+        @groupedMapReduce((row) ->
+            row[fields.asArray()[0].asJSON()]
+        , agg.mapping
+        , agg.reduction
+        ).map (group) ->
+            group.merge({'reduction': agg.finalizer(group['reduction'])})
+
     concatMap: (mapping) ->
         new RDBArray Array::concat.apply [], @map(mapping).map((v)->v.asArray()).asArray()
 
@@ -119,7 +135,7 @@ class RDBSequence extends RDBType
         base
 
     forEach: (mapping) ->
-        results = @asArray().map (v) -> mapping(v)
+        results = @asArray().map mapping
         base = {inserted: 0, errors: 0, updated: 0}
 
         #TODO results is empty. Why are the write results not propogating?

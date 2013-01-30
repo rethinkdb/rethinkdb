@@ -184,9 +184,11 @@ class Db extends RDBOp
     tt: Term2.TermType.DB
     st: 'db'
 
-    tableCreate: (tblName) -> new TableCreate {}, tblName
-    tableDrop: (tblName) -> new TableDrop {}, tblName
-    tableList: -> new TableList {}
+    tableCreate: (tblName, opts) -> new TableCreate opts, @, tblName
+    tableDrop: (tblName) -> new TableDrop {}, @, tblName
+    tableList: -> new TableList {}, @
+
+    table: (tblName, opts) -> new Table opts, @, tblName
 
 class Table extends RDBOp
     tt: Term2.TermType.TABLE
