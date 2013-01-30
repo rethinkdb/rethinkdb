@@ -780,7 +780,6 @@ COFFEE_SOURCES:=$(patsubst %, $(WEB_SOURCE_DIR)/static/coffee/%,\
 			walkthrough.coffee \
 			router.coffee \
 			app.coffee)
-HANDLEBARS_SOURCES:=$(shell find $(WEB_SOURCE_DIR)/static/coffee -name '*.html')
 LESS_SOURCES:=$(shell find $(WEB_SOURCE_DIR)/static/less -name '*.less')
 LESS_MAIN:=$(WEB_SOURCE_DIR)/static/less/styles.less
 CLUSTER_HTML:=$(WEB_SOURCE_DIR)/templates/cluster.html
@@ -1308,12 +1307,12 @@ ifeq ($(VERBOSE),0)
 endif
 	$(QUIET) $(NODE_EXE_SPEC)$(TC_LESSC_EXE) $(LESS_MAIN) > $@ || ( echo "      Build failure." ; rm $@ ; false ; )
 
-$(WEB_ASSETS_BUILD_DIR)/index.html: $(CLUSTER_HTML) $(HANDLEBARS_SOURCES)
+$(WEB_ASSETS_BUILD_DIR)/index.html: $(CLUSTER_HTML)
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
-	$(QUIET) cp $(CLUSTER_HTML) $@
 ifeq ($(VERBOSE),0)
 	@echo "    CP $(CLUSTER_HTML) -> $@"
 endif
+	sed "s/{RETHINKDB_VERSION}/$(RETHINKDB_VERSION)/" $(CLUSTER_HTML) > $@
 
 $(WEB_ASSETS_BUILD_DIR)/js:
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
