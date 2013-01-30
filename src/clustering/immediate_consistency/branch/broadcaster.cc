@@ -224,7 +224,7 @@ public:
         If we don't do this, bad things could happen: for example, a write might get
         dispatched to us twice if it starts after we're in `controller->dispatchees`
         but before we've iterated over `incomplete_writes`. */
-        mutex_assertion_t::acq_t acq(&controller->mutex);
+        DEBUG_VAR mutex_assertion_t::acq_t acq(&controller->mutex);
         ASSERT_FINITE_CORO_WAITING;
 
         controller->dispatchees[this] = auto_drainer_t::lock_t(&drainer);
@@ -244,7 +244,7 @@ public:
     }
 
     ~dispatchee_t() THROWS_NOTHING {
-        mutex_assertion_t::acq_t acq(&controller->mutex);
+        DEBUG_VAR mutex_assertion_t::acq_t acq(&controller->mutex);
         ASSERT_FINITE_CORO_WAITING;
         if (is_readable) controller->readable_dispatchees.remove(this);
         controller->dispatchees.erase(this);
@@ -274,7 +274,7 @@ private:
                  typename listener_business_card_t<protocol_t>::read_mailbox_t::address_t rm,
                  auto_drainer_t::lock_t)
             THROWS_NOTHING {
-        mutex_assertion_t::acq_t acq(&controller->mutex);
+        DEBUG_VAR mutex_assertion_t::acq_t acq(&controller->mutex);
         ASSERT_FINITE_CORO_WAITING;
         guarantee(!is_readable);
         is_readable = true;
@@ -285,7 +285,7 @@ private:
 
     void downgrade(mailbox_addr_t<void()> ack_addr, auto_drainer_t::lock_t) THROWS_NOTHING {
         {
-            mutex_assertion_t::acq_t acq(&controller->mutex);
+            DEBUG_VAR mutex_assertion_t::acq_t acq(&controller->mutex);
             ASSERT_FINITE_CORO_WAITING;
             guarantee(is_readable);
             is_readable = false;
@@ -457,7 +457,7 @@ void broadcaster_t<protocol_t>::spawn_write(const typename protocol_t::write_t &
     dispatchee does, then the new dispatchee's constructor will send off the
     write. Otherwise, the write will be sent directly to the new dispatchee
     by the loop further down in this very function. */
-    mutex_assertion_t::acq_t mutex_acq(&mutex);
+    DEBUG_VAR mutex_assertion_t::acq_t mutex_acq(&mutex);
 
     lock->end();
 
@@ -549,7 +549,7 @@ void broadcaster_t<protocol_t>::end_write(boost::shared_ptr<incomplete_write_t> 
     view of `newest_complete_timestamp` and the front of `incomplete_writes`.
     Specifically, this is important for newly-created dispatchees and for
     `sanity_check()`. */
-    mutex_assertion_t::acq_t mutex_acq(&mutex);
+    DEBUG_VAR mutex_assertion_t::acq_t mutex_acq(&mutex);
     ASSERT_FINITE_CORO_WAITING;
     /* It's safe to remove a write from the queue once it has acquired the root
     of every mirror's btree. We aren't notified when it acquires the root; we're

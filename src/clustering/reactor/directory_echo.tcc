@@ -21,7 +21,7 @@ directory_echo_version_t directory_echo_writer_t<internal_t>::our_value_change_t
 
 template<class internal_t>
 directory_echo_writer_t<internal_t>::ack_waiter_t::ack_waiter_t(directory_echo_writer_t *parent, peer_id_t peer, directory_echo_version_t _version) {
-    mutex_assertion_t::acq_t acq(&parent->ack_lock);
+    DEBUG_VAR mutex_assertion_t::acq_t acq(&parent->ack_lock);
     std::map<peer_id_t, directory_echo_version_t>::iterator it = parent->last_acked.find(peer);
     if (it != parent->last_acked.end() && it->second >= _version) {
         pulse();
@@ -47,7 +47,7 @@ directory_echo_writer_t<internal_t>::directory_echo_writer_t(
 template<class internal_t>
 void directory_echo_writer_t<internal_t>::on_ack(peer_id_t peer, directory_echo_version_t _version, auto_drainer_t::lock_t lock) {
     lock.assert_is_holding(&drainer);
-    mutex_assertion_t::acq_t acq(&ack_lock);
+    DEBUG_VAR mutex_assertion_t::acq_t acq(&ack_lock);
     std::map<peer_id_t, directory_echo_version_t>::iterator it = last_acked.find(peer);
     if (it == last_acked.end() || it->second < _version) {
         last_acked[peer] = _version;
