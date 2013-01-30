@@ -65,7 +65,9 @@ private:
 
 class fifo_enforcer_state_t {
 public:
-    fifo_enforcer_state_t() THROWS_NOTHING { }
+    // TODO: Initialize these fields in the default constructor with values that valgrind would
+    // treat as uninitialized.
+    fifo_enforcer_state_t() THROWS_NOTHING : timestamp(state_timestamp_t::zero()), num_reads(0) { }
     fifo_enforcer_state_t(state_timestamp_t ts, int64_t nr) THROWS_NOTHING :
         timestamp(ts), num_reads(nr) { }
 
