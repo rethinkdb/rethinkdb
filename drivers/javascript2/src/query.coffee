@@ -23,12 +23,12 @@ rethinkdb.row = new ImplicitVar {}
 
 rethinkdb.db = (dbName) -> new Db {}, dbName
 
-rethinkdb.table = (tblName, opts) -> new Table opts, tblName
-
 rethinkdb.dbCreate = (dbName) -> new DbCreate {}, dbName
 
 rethinkdb.dbDrop = (dbName) -> new DbDrop {}, dbName
 
 rethinkdb.dbList = -> new DbList {}
+
+rethinkdb.do = (args...) -> new FunCall {}, args[-1..][0], args[...-1]...
 
 rethinkdb.branch = (test, trueBranch, falseBranch) -> new Branch {}, test, trueBranch, falseBranch

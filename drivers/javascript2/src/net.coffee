@@ -19,7 +19,7 @@ class Connection
         @host = host.host || @DEFAULT_HOST
         @port = host.port || @DEFAULT_PORT
 
-        @outstandingCursors = {}
+        @outstandingCallbacks = {}
         @nextToken = 1
         @open = false
 
@@ -58,35 +58,54 @@ class Connection
 
     _processResponse: (response) ->
         token = response.getToken()
-        cursor = @outstandingCursors[token]
-        if cursor
+        {cb:cb, root:root} = @outstandingCallbacks[token]
+        if cb
+            atom = DatumTerm.deconstruct response.getResponse 0
+            sequ = (DatumTerm.deconstruct res for res in response.responseArray())
+            cursor = new Cursor @, token
+            
+            msg = DatumTerm.deconstruct response.getResponse 0
+            bt = for frame in response.backtraceArray()
+                    if frame.getType() is Response2.Frame.FrameType.POS
+                        parseInt frame.getPos()
+                    else
+                        frame.getOpt()
+            err = new RuntimeError msg, root, bt
+                                    
             if response.getType() is Response2.ResponseType.SUCCESS_PARTIAL
-                cursor.partIter (DatumTerm.deconstruct res for res in response.responseArray())
+                cb null, cursor._addData(sequ)
             else
                 switch response.getType()
                     when Response2.ResponseType.COMPILE_ERROR
-                        message = DatumTerm.deconstruct response.getResponse 0
-                        cursor.goError new RuntimeError message, cursor.root, response.backtraceArray()
+                        cb err
                     when Response2.ResponseType.CLIENT_ERROR
-                        cursor.goError new RuntimeError DatumTerm.deconstruct response.getResponse 0
+                        cb err
                     when Response2.ResponseType.RUNTIME_ERROR
-                        cursor.goError new RuntimeError DatumTerm.deconstruct response.getResponse 0
+                        cb err
                     when Response2.ResponseType.SUCCESS_ATOM
-                        cursor.goResult DatumTerm.deconstruct response.getResponse 0
+                        cb null, atom
                     when Response2.ResponseType.SUCCESS_SEQUENCE
-                        cursor.endIter (DatumTerm.deconstruct res for res in response.responseArray())
+                        cb null, cursor._endData(sequ)
                     else
-                        cursor.goError new DriverError "Unknown response type"
-
+                        cb new DriverError "Unknown response type"
                 # This query is done, delete this cursor
-                delete @outstandingCursors[token]
+                delete @outstandingCallbacks[token]
+
+                if (k for own k of @outstandingCallbacks).length < 1 and not @open
+                    @cancel()
         else
             @_error new DriverError "Unknown token in response"
 
     close: ->
         @open = false
 
-    run: (term, cb) ->
+    cancel: ->
+        @outstandingCallbacks = {}
+        @close()
+
+    _start: (term, cb) ->
+        unless @open then throw DriverError "Connection closed"
+
         # Assign token
         token = ''+@nextToken
         @nextToken++
@@ -97,8 +116,26 @@ class Connection
         query.setQuery term.build()
         query.setToken token
 
-        # Save cursor
-        @outstandingCursors[token] = new Cursor term, cb
+        # Save callback
+        @outstandingCallbacks[token] = {cb:cb, root:term}
+
+        @_sendQuery(query)
+        
+    _continue: (token) ->
+        query = new Query2
+        query.setType Query2.QueryType.CONTINUE
+        query.setToken token
+
+        @_sendQuery(query)
+
+    _end: (token) ->
+        query = new Query2
+        query.setType Query2.QueryType.END
+        query.setToken token
+
+        @_sendQuery(query)
+
+    _sendQuery: (query) ->
 
         # Serialize protobuf
         serializer = new goog.proto2.WireFormatSerializer
@@ -110,11 +147,6 @@ class Connection
         finalArray.set data, 4
 
         @write finalArray
-
-    with: (cb) ->
-        @connStack.push @
-        cb()
-        @connStack.pop
 
 class TcpConnection extends Connection
     @isAvailable: -> typeof require isnt 'undefined' and require('net')
@@ -142,7 +174,7 @@ class TcpConnection extends Connection
                 arr[i] = byte
             @_data(arr.buffer)
 
-    close: ->
+    cancel: ->
         @rawSocket.destroy()
         super()
 

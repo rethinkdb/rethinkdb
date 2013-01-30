@@ -1,6 +1,6 @@
 import rethinkdb as r
 
-c = r.connect(host='localhost', port=28016+32600)
+c = r.connect(host='localhost', port=28016)
 
 def tests():
     print r.expr(1).run(c)
@@ -102,7 +102,7 @@ def tests():
     print r.expr([{'id':2}, {'id':3}, {'id':1}]).order_by('id').run(c)
     print r.expr([{'g':0, 'v':1}, {'g':0, 'v':2}, {'g':1, 'v':1}, {'g':1, 'v':2}]).grouped_map_reduce(lambda row: row['g'], lambda row: row['v'] + 1, lambda a,b: a + b).run(c)
 
-    print r.expr([1,2]).for_each(lambda i: [test.insert({'id':i, 'a': i+1})]).run(c)
+    #print r.expr([1,2]).for_each(lambda i: [test.insert({'id':i, 'a': i+1})]).run(c)
     print test.run(c)
 
 class except_printer:

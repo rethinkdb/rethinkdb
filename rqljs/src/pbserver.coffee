@@ -144,12 +144,12 @@ class RDBPbServer
             when Term2.TermType.UNION        then Union
             when Term2.TermType.NTH          then Nth
             when Term2.TermType.GROUPED_MAP_REDUCE then GroupedMapReduce
-            when Term2.TermType.GROUPBY      then throw new ServerError "Not Implemented"
+            when Term2.TermType.GROUPBY      then GroupBy
             when Term2.TermType.INNER_JOIN   then InnerJoin
             when Term2.TermType.OUTER_JOIN   then OuterJoin
             when Term2.TermType.EQ_JOIN      then EqJoin
-            when Term2.TermType.COERCE       then throw new ServerError "Not Implemented"
-            when Term2.TermType.TYPEOF       then throw new ServerError "Not Implemented"
+            when Term2.TermType.COERCE       then Coerce
+            when Term2.TermType.TYPEOF       then TypeOf
             when Term2.TermType.UPDATE       then Update
             when Term2.TermType.DELETE       then Delete
             when Term2.TermType.REPLACE      then Replace

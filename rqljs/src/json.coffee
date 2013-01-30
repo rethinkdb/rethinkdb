@@ -165,11 +165,12 @@ class RDBObject extends RDBType
         else
             return new RDBPrimitive @typeOf() < other.typeOf()
 
-    merge: (other) ->
+    merge: (others...) ->
+        if others.length < 1 then return @
         self = @copy()
-        for own k,v of other
+        for own k,v of others[0]
             self[k] = v
-        return self
+        return self.merge(others[1..]...)
 
     contains: (attrs...) ->
         for attr in attrs
