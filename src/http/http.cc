@@ -5,6 +5,7 @@
 
 #include "utils.hpp"
 #include <boost/bind.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include "arch/io/network.hpp"
 #include "logger.hpp"
@@ -106,7 +107,7 @@ boost::optional<std::string> http_req_t::find_query_param(const std::string& key
 boost::optional<std::string> http_req_t::find_header_line(const std::string& key) const {
     //TODO this is inefficient we should actually load it all into a map
     for (std::vector<header_line_t>::const_iterator it = header_lines.begin(); it != header_lines.end(); ++it) {
-        if (it->key == key)
+        if (boost::iequals(it->key, key))
             return boost::optional<std::string>(it->val);
     }
     return boost::none;
@@ -115,7 +116,7 @@ boost::optional<std::string> http_req_t::find_header_line(const std::string& key
 bool http_req_t::has_header_line(const std::string& key) const {
     //TODO this is inefficient we should actually load it all into a map
     for (std::vector<header_line_t>::const_iterator it = header_lines.begin(); it != header_lines.end(); ++it) {
-        if (it->key == key) {
+        if (boost::iequals(it->key, key)) {
             return true;
         }
     }
@@ -126,12 +127,13 @@ std::string http_req_t::get_sanitized_body() const {
     return sanitize_for_logger(body);
 }
 
-int content_length(http_req_t msg) {
-    for (std::vector<header_line_t>::iterator it = msg.header_lines.begin(); it != msg.header_lines.end(); ++it) {
-        if (it->key == std::string("Content-Length"))
-            return atoi(it->val.c_str());
-    }
-    return 0;
+int content_length(const http_req_t &msg) {
+    boost::optional<std::string> content_length = msg.find_header_line("Content-Length");
+
+    if (!content_length)
+        return 0;
+
+    return atoi(content_length.get().c_str());
 }
 
 http_res_t::http_res_t()
@@ -175,23 +177,6 @@ void http_res_t::set_body(const std::string& content_type, const std::string& co
 
 http_res_t http_error_res(const std::string &content, http_status_code_t rescode) {
     return http_res_t(rescode, "application/text", content);
-}
-
-//TODO: What the hell is this?
-void test_header_parser() {
-    http_req_t res("/foo/bar");
-    //str_http_msg_parser_t http_msg_parser;
-    std::string header =
-        "GET /foo/bar HTTP/1.1\r\n"
-        "Date: Fri, 31 Dec 1999 23:59:59 GMT\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 0\r\n"
-        "\r\n";
-    //std::string::const_iterator iter = header.begin();
-    //std::string::const_iterator end = header.end();
-    //UNUSED bool success = parse(iter, end, http_msg_parser, res);
-    BREAKPOINT;
-    UNUSED bool success = true;
 }
 
 http_server_t::http_server_t(const std::set<ip_address_t> &local_addresses,

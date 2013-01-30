@@ -85,7 +85,7 @@ struct http_req_t {
     bool has_header_line(const std::string&) const;
 };
 
-int content_length(http_req_t);
+int content_length(const http_req_t&);
 
 enum http_status_code_t {
     HTTP_OK = 200,
@@ -116,8 +116,6 @@ public:
 };
 http_res_t http_error_res(const std::string &content,
                           http_status_code_t rescode = HTTP_BAD_REQUEST);
-
-void test_header_parser();
 
 class tcp_http_msg_parser_t {
 public:
