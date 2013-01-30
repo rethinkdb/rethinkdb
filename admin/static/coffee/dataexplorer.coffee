@@ -364,8 +364,11 @@ module 'DataExplorerView', ->
             DataExplorerView.Container.prototype.saved_query = @codemirror.getValue()
             saved_cursor = @codemirror.getCursor()
             if event?.which?
+                if event.which is 27
+                    @hide_suggestion()
+                    return true
                 # If the user hit tab, we switch the highlighted suggestion
-                if event.which is 9
+                else if event.which is 9
                     event.preventDefault()
                     if event.type isnt 'keydown'
                         return true
