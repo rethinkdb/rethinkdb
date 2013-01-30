@@ -1310,9 +1310,9 @@ endif
 $(WEB_ASSETS_BUILD_DIR)/index.html: $(CLUSTER_HTML)
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
 ifeq ($(VERBOSE),0)
-	@echo "    CP $(CLUSTER_HTML) -> $@"
+	@echo "    SED $(CLUSTER_HTML) -> $@"
 endif
-	sed "s/{RETHINKDB_VERSION}/$(RETHINKDB_VERSION)/" $(CLUSTER_HTML) > $@
+	$(QUIET) sed "s/{RETHINKDB_VERSION}/$(RETHINKDB_VERSION)/" $(CLUSTER_HTML) > $@
 
 $(WEB_ASSETS_BUILD_DIR)/js:
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
