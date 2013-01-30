@@ -969,6 +969,18 @@ class ClientTest < Test::Unit::TestCase
     end
   end
 
+  def test_op_raise
+    assert_raise(ArgumentError) do
+      r.db("a").table_create("b").run(:bad_opt => (true))
+    end
+
+    assert_raise(ArgumentError) do
+      r.db("a").table_create("b", :bad_opt => (true))
+    end
+
+    assert_raise(ArgumentError) { r.db("a").table("b", :bad_opt => (true)) }
+  end
+
   def test_close_and_reconnect
     assert_nothing_raised { c.close }
     c.reconnect
