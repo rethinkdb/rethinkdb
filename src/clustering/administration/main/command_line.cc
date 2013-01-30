@@ -673,7 +673,10 @@ MUST_USE bool pull_io_backend_option(const po::variables_map& vm, io_backend_t *
 
 MUST_USE bool parse_commands_flat(int argc, char *argv[], po::variables_map *vm, const po::options_description& options) {
     try {
-        po::store(po::parse_command_line(argc, argv, options), *vm);
+        int style =
+            po::command_line_style::default_style &
+            ~po::command_line_style::allow_guessing;
+        po::store(po::parse_command_line(argc, argv, options, style), *vm);
     } catch (const po::multiple_occurrences& ex) {
         logERR("flag specified too many times\n");
         return false;

@@ -13,6 +13,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifdef VALGRIND
+#include <valgrind/memcheck.h>
+#endif  // VALGRIND
+
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -317,6 +321,14 @@ static inline std::string time2str(const time_t &t) {
 }
 
 std::string errno_string(int errsv);
+
+template <class T>
+T valgrind_undefined(T value) {
+#ifdef VALGRIND
+    VALGRIND_MAKE_MEM_UNDEFINED(&value, sizeof(value));
+#endif
+    return value;
+}
 
 #define STR(x) #x
 #define MSTR(x) STR(x) // Stringify a macro
