@@ -1,4 +1,4 @@
 #!/bin/sh
 
-rm /usr/bin/rethinkdb
-rm -r /usr/share/rethinkdb
+rm /usr/local/bin/rethinkdb
+rm -r /usr/local/share/rethinkdb
