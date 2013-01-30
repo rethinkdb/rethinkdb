@@ -59,19 +59,20 @@ TEST(UtilsTest, StrtofooStrict) {
 }
 
 TEST(UtilsTest, Time) {
-    // The way this test is written depends on the timezone we're in
-    time_t current_time;
-    struct tm timeinfo;
-    time(&current_time);
-    localtime_r(&current_time, &timeinfo);
+    // Change the timezone for the duration of this test
+    char *oldtz = getenv("TZ");
+    setenv("TZ", "America/Los_Angeles", 1);
+    tzset();
 
-    // Subtract the timezone's offset to the timespec so it'll cancel out
-    struct timespec time = {1335272322 - timeinfo.tm_gmtoff, 1234};
+    struct timespec time = {1335301122, 1234};
     std::string formatted = format_time(time);
     EXPECT_EQ("2012-04-24T13:58:42.000001234", formatted);
     struct timespec parsed = parse_time(formatted);
     EXPECT_EQ(time.tv_sec, parsed.tv_sec);
     EXPECT_EQ(time.tv_nsec, parsed.tv_nsec);
+
+    setenv("TZ", oldtz, 1);
+    tzset();
 }
 
 TEST(UtilsTest, SizedStrcmp)
