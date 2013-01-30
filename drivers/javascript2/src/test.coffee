@@ -34,7 +34,6 @@ r.connect {host:'localhost', port: 28016}, (err, conn) ->
     if err then throw err
 
     withConn conn, (run) ->
-        '''
         run r(1), 1
         run r('a'), 'a'
         run r(null), null
@@ -79,14 +78,12 @@ r.connect {host:'localhost', port: 28016}, (err, conn) ->
         run (r(1).do (a) -> a.add(a)), 2
         run r.dbList(), ['bob', 'test']
         run r.db('bob').tableList(), ''
-        '''
         run r.db('bob').tableList(), ''
         run r.db('bob').table('bob').insert([{id:0}]), ''
         run r.db('bob').table('bob'), ''
-        run r([1,2,3]).forEach (v) -> [r.db('bob').table('bob').insert({id:v})]
+        #run r([1,2,3]).forEach (v) -> [r.db('bob').table('bob').insert({id:v})]
         run r.db('bob').table('bob'), ''
 
-        '''
         # Error printing
         run r.error('bob')
         run r.error('bob').add(1)
@@ -99,4 +96,10 @@ r.connect {host:'localhost', port: 28016}, (err, conn) ->
         run r(2).do (a) -> a.mul(r.error('bob'))
         run r([1,2,3]).map (a)->a.mul(2).div(r.error('bob'))
         run r([1,2,3]).reduce (a,b)->a.add(r.error('bob').mul(b))
-        '''
+
+        # Type errors
+        run r(1).add("a")
+        run r(1).map((v) -> v.add(1))
+        run r([1,2,3]).map((v) -> v.add([1,2,3]))
+        run r([1,2,3]).map(1)
+        run r([1,2,3]).append((a)->a)
