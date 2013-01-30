@@ -58,7 +58,7 @@ public:
         reader(this), mailbox(m, mailbox_home_thread, &reader)
         { }
     void expect(int message) {
-        EXPECT_EQ(1, inbox.count(message));
+        EXPECT_EQ(1u, inbox.count(message));
     }
     raw_mailbox_t mailbox;
 };
@@ -195,7 +195,7 @@ void run_typed_mailbox_test() {
 
     mock::let_stuff_happen();
 
-    EXPECT_EQ(inbox.size(), 3);
+    EXPECT_EQ(3u, inbox.size());
     if (inbox.size() == 3) {
         EXPECT_EQ(inbox[0], "foo");
         EXPECT_EQ(inbox[1], "bar");

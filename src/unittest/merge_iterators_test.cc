@@ -147,16 +147,16 @@ TEST(MergeIteratorsTest, merge_empty) {
     merged.add_mergee(c);
 
     ASSERT_FALSE(merged.next());
-    ASSERT_EQ(blocked_without_prefetch_a, 0);
-    ASSERT_EQ(blocked_without_prefetch_b, 0);
-    ASSERT_EQ(blocked_without_prefetch_c, 0);
+    ASSERT_EQ(0u, blocked_without_prefetch_a);
+    ASSERT_EQ(0u, blocked_without_prefetch_b);
+    ASSERT_EQ(0u, blocked_without_prefetch_c);
 }
 
 TEST(MergeIteratorsTest, parse_data_blocks) {
     test_iterator_t::data_blocks_t db = parse_data_blocks("1 2 3 | 42 56 | 93");
-    ASSERT_EQ(db.size(), 3);
-    ASSERT_EQ(db.front().size(), 3);
-    ASSERT_EQ(db.back().size(), 1);
+    ASSERT_EQ(3u, db.size());
+    ASSERT_EQ(3u, db.front().size());
+    ASSERT_EQ(1u, db.back().size());
 }
 
 TEST(MergeIteratorsTest, three_way_merge) {
@@ -190,9 +190,9 @@ TEST(MergeIteratorsTest, three_way_merge) {
     merged_expected.merge(c_db_flat);
 
     ASSERT_TRUE(std::equal(merged_expected.begin(), merged_expected.end(), merged.begin()));
-    ASSERT_EQ(blocked_without_prefetch_a, 0);
-    ASSERT_EQ(blocked_without_prefetch_b, 0);
-    ASSERT_EQ(blocked_without_prefetch_c, 0);
+    ASSERT_EQ(0u, blocked_without_prefetch_a);
+    ASSERT_EQ(0u, blocked_without_prefetch_b);
+    ASSERT_EQ(0u, blocked_without_prefetch_c);
 }
 
 TEST(MergeIteratorsTest, iterators_get_deleted) {
@@ -233,10 +233,10 @@ TEST(MergeIteratorsTest, iterators_get_deleted) {
     EXPECT_TRUE(a_deleted) << "merge_ordered_data_iterator_t should have deleted the 'a' iterator long ago";
     EXPECT_TRUE(b_deleted && c_deleted) << "merge_ordered_data_iterator_t should delete the iterator after it has exhausted";
 
-    ASSERT_EQ(blocked_without_prefetch_a, 0);
-    ASSERT_EQ(blocked_without_prefetch_b, 0);
-    ASSERT_EQ(blocked_without_prefetch_c, 0);
-    ASSERT_EQ(blocked_without_prefetch_d, 0);
+    ASSERT_EQ(0u, blocked_without_prefetch_a);
+    ASSERT_EQ(0u, blocked_without_prefetch_b);
+    ASSERT_EQ(0u, blocked_without_prefetch_c);
+    ASSERT_EQ(0u, blocked_without_prefetch_d);
 
     a_deleted = false;
     b_deleted = false;
@@ -254,8 +254,8 @@ TEST(MergeIteratorsTest, iterators_get_deleted) {
         (void) other_merge_iterator.next();
     }
     EXPECT_TRUE(a_deleted && b_deleted) << "merge_ordered_data_iterator_t should delete the iterators on destruction, even when they have not been exhausted";
-    ASSERT_EQ(blocked_without_prefetch_a, 0);
-    ASSERT_EQ(blocked_without_prefetch_b, 0);
+    ASSERT_EQ(0u, blocked_without_prefetch_a);
+    ASSERT_EQ(0u, blocked_without_prefetch_b);
 }
 
 }  // namespace unittest

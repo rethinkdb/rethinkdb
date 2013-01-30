@@ -30,11 +30,11 @@ TEST(UtilsTest, StrtofooStrict) {
 
     const char *end;
 
-    ASSERT_EQ(0, strtou64_strict(test1, &end, 10));
-    ASSERT_EQ(1024, strtou64_strict(test2, &end, 10));
-    ASSERT_EQ(0, strtou64_strict(test3, &end, 10));
-    ASSERT_EQ(123, strtou64_strict(test4, &end, 10));
-    ASSERT_FALSE(strncmp("lskdjf", end, 6));
+    ASSERT_EQ(0u, strtou64_strict(test1, &end, 10));
+    ASSERT_EQ(1024u, strtou64_strict(test2, &end, 10));
+    ASSERT_EQ(0u, strtou64_strict(test3, &end, 10));
+    ASSERT_EQ(123u, strtou64_strict(test4, &end, 10));
+    ASSERT_EQ(0, strncmp("lskdjf", end, 6));
 
     bool success;
     uint64_t u_res;

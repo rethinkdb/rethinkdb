@@ -311,13 +311,13 @@ public:
 };
 
 TEST(LeafNodeTest, Offsets) {
-    ASSERT_EQ(0, offsetof(leaf_node_t, magic));
-    ASSERT_EQ(4, offsetof(leaf_node_t, num_pairs));
-    ASSERT_EQ(6, offsetof(leaf_node_t, live_size));
-    ASSERT_EQ(8, offsetof(leaf_node_t, frontmost));
-    ASSERT_EQ(10, offsetof(leaf_node_t, tstamp_cutpoint));
-    ASSERT_EQ(12, offsetof(leaf_node_t, pair_offsets));
-    ASSERT_EQ(12, sizeof(leaf_node_t));
+    ASSERT_EQ(0u, offsetof(leaf_node_t, magic));
+    ASSERT_EQ(4u, offsetof(leaf_node_t, num_pairs));
+    ASSERT_EQ(6u, offsetof(leaf_node_t, live_size));
+    ASSERT_EQ(8u, offsetof(leaf_node_t, frontmost));
+    ASSERT_EQ(10u, offsetof(leaf_node_t, tstamp_cutpoint));
+    ASSERT_EQ(12u, offsetof(leaf_node_t, pair_offsets));
+    ASSERT_EQ(12u, sizeof(leaf_node_t));
 }
 
 TEST(LeafNodeTest, Reinserts) {
