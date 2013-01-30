@@ -16,8 +16,22 @@
 #include "logger.hpp"
 #include "utils.hpp"
 
-#define CLUSTER_PROTO_HEADER "RethinkDB " RETHINKDB_VERSION " cluster\n"
-const char *const cluster_proto_header = CLUSTER_PROTO_HEADER;
+const std::string connectivity_cluster_t::cluster_proto_header("RethinkDB cluster\n");
+const std::string connectivity_cluster_t::cluster_version(RETHINKDB_CODE_VERSION);
+
+#if defined (__x86_64__)
+const std::string connectivity_cluster_t::cluster_arch_bitsize("64bit");
+#elif defined (__i386__)
+const std::string connectivity_cluster_t::cluster_arch_bitsize("32bit");
+#else
+#error "Could not determine architecture"
+#endif
+
+#if defined (NDEBUG)
+const std::string connectivity_cluster_t::cluster_build_mode("release");
+#else
+const std::string connectivity_cluster_t::cluster_build_mode("debug");
+#endif
 
 void debug_print(append_only_printf_buffer_t *buf, const peer_address_t &address) {
     buf->appendf("peer_address{ips=[");
@@ -391,33 +405,65 @@ void connectivity_cluster_t::run_t::handle(
 
     // Each side sends a header followed by its own ID and address, then receives and checks the
     // other side's.
-    const int64_t header_size = sizeof(CLUSTER_PROTO_HEADER) - 1;
-
-    // Send header, id, address.
     {
         write_message_t msg;
-        msg.append(cluster_proto_header, header_size);
+        msg.append(cluster_proto_header.c_str(), cluster_proto_header.length());
+        msg << cluster_version;
+        msg << cluster_arch_bitsize;
+        msg << cluster_build_mode;
         msg << parent->me;
         msg << routing_table[parent->me];
         if (send_write_message(conn, &msg))
-            return;             // network error.
+            return; // network error.
     }
 
     // Receive & check header.
     {
-        char data[header_size];
+        const int64_t buffer_size = 64;
+        char buffer[buffer_size];
         int64_t r;
-        for (int64_t i = 0; i < header_size; i += r) {
-            r = conn->read(data, header_size - i);
+        for (uint64_t i = 0; i < cluster_proto_header.length(); i += r) {
+            r = conn->read(buffer, std::min(buffer_size, int64_t(cluster_proto_header.length() - i)));
             if (-1 == r)
-                return;         // network error.
+                return; // network error.
             rassert(r >= 0);
-            // If EOF or data does not match header, terminate connection.
-            if (0 == r || memcmp(cluster_proto_header + i, data, r)) {
-                // Wrong header.
+            // If EOF or remote_header does not match header, terminate connection.
+            if (0 == r || memcmp(cluster_proto_header.c_str() + i, buffer, r) != 0) {
                 logWRN("Received invalid clustering header from %s, closing connection -- something might be connecting to the wrong port.", peername);
                 return;
             }
+        }
+    }
+
+    {
+        std::string remote_version;
+        std::string remote_arch_bitsize;
+        std::string remote_build_mode;
+
+        if (deserialize_and_check(conn, &remote_version, peername) ||
+            deserialize_and_check(conn, &remote_arch_bitsize, peername),
+            deserialize_and_check(conn, &remote_build_mode, peername))
+            return;
+
+        if (remote_version != cluster_version) {
+            logWRN("Connection attempt with a RethinkDB node of the wrong version,"
+                   " local version: %s, remote version: %s, connection dropped\n",
+                   cluster_version.c_str(), remote_version.c_str());
+            return;
+        }
+
+        if (remote_arch_bitsize != cluster_arch_bitsize) {
+            logWRN("Connection attempt with a RethinkDB node of the wrong architecture,"
+                   " local: %s, remote: %s, connection dropped\n",
+                   cluster_arch_bitsize.c_str(), remote_arch_bitsize.c_str());
+            return;
+        }
+
+        if (remote_build_mode != cluster_build_mode) {
+            logWRN("Connection attempt with a RethinkDB node of the wrong build mode,"
+                   " local: %s, remote: %s, connection dropped\n",
+                   cluster_build_mode.c_str(), remote_build_mode.c_str());
+            return;
         }
     }
 
