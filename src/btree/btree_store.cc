@@ -572,8 +572,8 @@ void btree_store_t<protocol_t>::update_metainfo(const metainfo_t &old_metainfo, 
         DEBUG_VAR int res = send_write_message(&key, &msg);
         rassert(!res);
 
-        std::vector<char> value(static_cast<const char*>((*i).second.data()),
-                                static_cast<const char*>((*i).second.data()) + (*i).second.size());
+        std::vector<char> value(static_cast<const char*>(i->second.data()),
+                                static_cast<const char*>(i->second.data()) + i->second.size());
 
         set_superblock_metainfo(txn, sb_buf, key.vector(), value); // FIXME: this is not efficient either, see how value is created
     }

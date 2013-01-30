@@ -294,7 +294,7 @@ void do_one_get(txt_memcached_handler_t *rh, bool with_cas, get_t *gets, int i, 
             gets[i].res = boost::get<get_result_t>(response.result);
         }
         gets[i].ok = true;
-    } catch (cannot_perform_query_exc_t e) {
+    } catch (const cannot_perform_query_exc_t &e) {
         gets[i].error_message = e.what();
         gets[i].ok = false;
     } catch (interrupted_exc_t) {
@@ -325,7 +325,7 @@ void do_get(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, bool with_cas, 
         }
         rh->stats->pm_get_key_size.record(gets.back().key.size());
     }
-    if (gets.size() == 0) {
+    if (gets.empty()) {
         pipeliner_acq.done_argparsing();
         pipeliner_acq.begin_write();
         rh->error();
@@ -500,7 +500,9 @@ void do_rget(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, order_source_t
             rh->nsi->read(read, &response, order_source->check_in("do_rget").with_read_mode(), rh->interruptor);
             rget_result_t results = boost::get<rget_result_t>(response.result);
 
-            for (std::vector<key_with_data_buffer_t>::iterator it = results.pairs.begin(); it != results.pairs.end(); it++) {
+            for (std::vector<key_with_data_buffer_t>::iterator it = results.pairs.begin();
+                                                               it != results.pairs.end();
+                                                               ++it) {
                 rh->write_value_header(reinterpret_cast<const char *>(it->key.contents()), it->key.size(), it->mcflags, it->value_provider->size());
                 rh->write_from_data_provider(it->value_provider.get());
                 rh->write_crlf();
@@ -541,12 +543,12 @@ void do_rget(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, order_source_t
         }
         rh->write_end();
 
-    } catch (cannot_perform_query_exc_t e) {
+    } catch (const cannot_perform_query_exc_t &e) {
         /* We can't call `server_error()` directly from within here because
         it's not safe to call `coro_t::wait()` from inside a `catch`-block.
         */
         error_message = e.what();
-    } catch (interrupted_exc_t) {
+    } catch (const interrupted_exc_t &) {
         /* continue */
     }
 
@@ -628,10 +630,10 @@ void run_storage_command(txt_memcached_handler_t *rh,
             rh->nsi->write(write, &result, token, rh->interruptor);
             res = boost::get<set_result_t>(result.result);
             ok = true;
-        } catch (cannot_perform_query_exc_t e) {
+        } catch (const cannot_perform_query_exc_t &e) {
             error_message = e.what();
             ok = false;
-        } catch (interrupted_exc_t) {
+        } catch (const interrupted_exc_t &) {
             pipeliner_acq->begin_write();
             pipeliner_acq->end_write();
             return;
@@ -687,10 +689,10 @@ void run_storage_command(txt_memcached_handler_t *rh,
             rh->nsi->write(write, &result, token, rh->interruptor);
             res = boost::get<append_prepend_result_t>(result.result);
             ok = true;
-        } catch (cannot_perform_query_exc_t e) {
+        } catch (const cannot_perform_query_exc_t &e) {
             error_message = e.what();
             ok = false;
-        } catch (interrupted_exc_t) {
+        } catch (const interrupted_exc_t &) {
             pipeliner_acq->begin_write();
             pipeliner_acq->end_write();
             return;
@@ -876,11 +878,11 @@ void run_incr_decr(txt_memcached_handler_t *rh, pipeliner_acq_t *pipeliner_acq, 
         rh->nsi->write(write, &result, token, rh->interruptor);
         res = boost::get<incr_decr_result_t>(result.result);
         ok = true;
-    } catch (cannot_perform_query_exc_t e) {
+    } catch (const cannot_perform_query_exc_t &e) {
         error_message = e.what();
         res = incr_decr_result_t();   /* shut up compiler warnings */
         ok = false;
-    } catch (interrupted_exc_t) {
+    } catch (const interrupted_exc_t &) {
         pipeliner_acq->begin_write();
         pipeliner_acq->end_write();
         return;
@@ -978,10 +980,10 @@ void run_delete(txt_memcached_handler_t *rh, pipeliner_acq_t *pipeliner_acq, sto
         rh->nsi->write(write, &result, token, rh->interruptor);
         res = boost::get<delete_result_t>(result.result);
         ok = true;
-    } catch (cannot_perform_query_exc_t e) {
+    } catch (const cannot_perform_query_exc_t &e) {
         error_message = e.what();
         ok = false;
-    } catch (interrupted_exc_t) {
+    } catch (const interrupted_exc_t &) {
         pipeliner_acq->begin_write();
         pipeliner_acq->end_write();
         return;
@@ -1076,7 +1078,7 @@ void format_stats(const perfmon_result_t *stats, const std::string& name, const 
             }
             break;
         case perfmon_result_t::type_map:
-            for (perfmon_result_t::const_iterator i = stats->begin(); i != stats->end(); i++) {
+            for (perfmon_result_t::const_iterator i = stats->begin(); i != stats->end(); ++i) {
                 std::string sub_name(name.empty() ? i->first : name + "." + i->first);
                 format_stats(i->second, sub_name, names_to_match, result);
             }
@@ -1143,7 +1145,7 @@ void handle_memcache(memcached_interface_t *interface,
             l = NULL;
         }
 
-        if (args.size() == 0) {
+        if (args.empty()) {
             pipeliner_acq_t pipeliner_acq(&pipeliner);
             pipeliner_acq.done_argparsing();
             pipeliner_acq.begin_write();

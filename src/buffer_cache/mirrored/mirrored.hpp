@@ -346,11 +346,11 @@ public:
 
     // must be O(1)
     mc_inner_buf_t::version_id_t get_min_snapshot_version(mc_inner_buf_t::version_id_t default_version) const {
-        return no_active_snapshots() ? default_version : (*active_snapshots.begin()).first;
+        return no_active_snapshots() ? default_version : active_snapshots.begin()->first;
     }
     // must be O(1)
     mc_inner_buf_t::version_id_t get_max_snapshot_version(mc_inner_buf_t::version_id_t default_version) const {
-        return no_active_snapshots() ? default_version : (*active_snapshots.rbegin()).first;
+        return no_active_snapshots() ? default_version : active_snapshots.rbegin()->first;
     }
 
     void register_snapshot(mc_transaction_t *txn);

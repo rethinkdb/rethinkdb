@@ -194,7 +194,7 @@ void mcheck_all(void);
 // put this in a private: section.
 #define DISABLE_COPYING(T)                      \
     T(const T&);                                \
-    void operator=(const T&)
+    T& operator=(const T&)
 
 
 /* Put these after functions to indicate what they throw. In release mode, they

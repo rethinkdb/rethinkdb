@@ -146,11 +146,11 @@ void run_read_write_test(UNUSED io_backender_t *io_backender,
         fifo_enforcer_sink_t::exit_read_t exiter(&enforce.sink, enforce.source.enter_read());
 
         dummy_protocol_t::read_t r;
-        r.keys.keys.insert((*it).first);
+        r.keys.keys.insert(it->first);
         cond_t non_interruptor;
         dummy_protocol_t::read_response_t resp;
         (*broadcaster)->read(r, &resp, &exiter, order_source->check_in("unittest::run_read_write_test(read)").with_read_mode(), &non_interruptor);
-        EXPECT_EQ((*it).second, resp.values[(*it).first]);
+        EXPECT_EQ(it->second, resp.values[it->first]);
     }
 }
 
@@ -235,8 +235,8 @@ void run_backfill_test(io_backender_t *io_backender,
     /* Confirm that both mirrors have all of the writes */
     for (std::map<std::string, std::string>::iterator it = inserter.values_inserted->begin();
             it != inserter.values_inserted->end(); it++) {
-        EXPECT_EQ((*it).second, store1->store.values[(*it).first]);
-        EXPECT_EQ((*it).second, store2.store.values[(*it).first]);
+        EXPECT_EQ(it->second, store1->store.values[it->first]);
+        EXPECT_EQ(it->second, store2.store.values[it->first]);
     }
 }
 TEST(ClusteringBranch, Backfill) {
@@ -301,9 +301,9 @@ void run_partial_backfill_test(io_backender_t *io_backender,
     /* Confirm that both mirrors have all of the writes */
     for (std::map<std::string, std::string>::iterator it = inserter.values_inserted->begin();
             it != inserter.values_inserted->end(); it++) {
-        if (subregion.keys.count((*it).first) > 0) {
-            EXPECT_EQ((*it).second, store1->store.values[(*it).first]);
-            EXPECT_EQ((*it).second, store2.store.values[(*it).first]);
+        if (subregion.keys.count(it->first) > 0) {
+            EXPECT_EQ(it->second, store1->store.values[it->first]);
+            EXPECT_EQ(it->second, store2.store.values[it->first]);
         }
     }
 }

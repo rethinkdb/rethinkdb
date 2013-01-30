@@ -23,7 +23,7 @@ template<class internal_t>
 directory_echo_writer_t<internal_t>::ack_waiter_t::ack_waiter_t(directory_echo_writer_t *parent, peer_id_t peer, directory_echo_version_t _version) {
     mutex_assertion_t::acq_t acq(&parent->ack_lock);
     std::map<peer_id_t, directory_echo_version_t>::iterator it = parent->last_acked.find(peer);
-    if (it != parent->last_acked.end() && (*it).second >= _version) {
+    if (it != parent->last_acked.end() && it->second >= _version) {
         pulse();
         return;
     }
@@ -55,10 +55,10 @@ void directory_echo_writer_t<internal_t>::on_ack(peer_id_t peer, directory_echo_
     typename std::map<peer_id_t, std::multimap<directory_echo_version_t, ack_waiter_t *> >::iterator it2 =
         waiters.find(peer);
     if (it2 != waiters.end()) {
-        for (typename std::multimap<directory_echo_version_t, ack_waiter_t *>::iterator it3 = (*it2).second.begin();
-                it3 != (*it2).second.upper_bound(_version); it3++) {
-            if (!(*it3).second->is_pulsed()) {
-                (*it3).second->pulse();
+        for (typename std::multimap<directory_echo_version_t, ack_waiter_t *>::iterator it3 = it2->second.begin();
+                it3 != it2->second.upper_bound(_version); it3++) {
+            if (!it3->second->is_pulsed()) {
+                it3->second->pulse();
             }
         }
     }
