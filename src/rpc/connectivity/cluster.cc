@@ -262,6 +262,8 @@ public:
         heartbeat(_heartbeat),
         peer(_peer)
     {
+        rassert(conn != NULL);
+        rassert(heartbeat != NULL);
         conn->set_keepalive_callback(this);
         heartbeat->set_keepalive_tracker(peer, this);
     }
@@ -623,7 +625,11 @@ void connectivity_cluster_t::run_t::handle(
         constructor registers it in the `connectivity_cluster_t`'s connection
         map and notifies any connect listeners. */
         connection_entry_t conn_structure(this, other_id, conn, other_address);
-        heartbeat_keepalive_t keepalive(conn, heartbeat_manager, other_id);
+        object_buffer_t<heartbeat_keepalive_t> keepalive;
+
+        if (heartbeat_manager != NULL) {
+            keepalive.create(conn, heartbeat_manager, other_id);
+        }
 
         /* Main message-handling loop: read messages off the connection until
         it's closed, which may be due to network events, or the other end
