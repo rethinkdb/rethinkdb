@@ -4,6 +4,7 @@
         <div id="user-alert-space"></div>
         <div class="reason_dataexplorer_broken alert alert-error"></div>
         <div class="input_query_full_container"></div>
+
     </div>
     <div class="results_container section">
     </div>
@@ -181,19 +182,20 @@ Did you forget to append .run() at the end of your query?{{/if}}</pre>
         
 
         <ul class="nav nav-tabs change_view_container"">
-            <li><a href="#raw_view" data-toggle="tab" class="link_to_raw_view" data-view="raw">Raw view</a></li>
-            <li><a href="#table_view" data-toggle="tab" class="link_to_table_view" data-view="table">Table view</a></li>
-            <li class="active"><a href="#tree_view" data-toggle="tab" class="link_to_tree_view active" data-view="tree">Tree view</a></li>
+            <li><a href="#raw_view" class="link_to_raw_view">Raw view</a></li>
+            <li><a href="#table_view" class="link_to_table_view">Table view</a></li>
+            <li><a href="#tree_view" class="link_to_tree_view active">Tree view</a></li>
         </ul>
     </div>
+    <div class="wrapper_scrollbar"><div class="scrollbar_fake_content"></div></div>
     <div class="tab-content">  
-        <div class="tab-pane results active" id="tree_view">
+        <div class="results active tree_view_container">
             <div class="results_wrap tree_view"></div>
         </div>
-        <div class="tab-pane results" id="table_view">
+        <div class="results table_view_container">
             <div class="results_wrap table_view"></div>
         </div>
-        <div class="tab-pane results" id="raw_view">
+        <div class="results raw_view_container">
             <div class="raw_view_container raw_view">
                 <textarea class="raw_view_textarea"></textarea>
             </div>
@@ -286,6 +288,9 @@ Did you forget to append .run() at the end of your query?{{/if}}</pre>
 
 <script id="dataexplorer_result_json_table_tr_attr-template" type="text/xs-handlebars-template">
     <tr class="jta_tr">
+        <td class="td_attr col-record" data-col="record">
+            <div class="jta_attr">#</div>
+        </td>
         {{#each attr}}
         <td class="td_attr col-{{col}}" data-col={{col}}>
             <div class="jta_attr">{{key}}</div>
@@ -297,6 +302,7 @@ Did you forget to append .run() at the end of your query?{{/if}}</pre>
 <script id="dataexplorer_result_json_table_tr_value-template" type="text/xs-handlebars-template">
     {{#each document}}
     <tr class="jta_tr">
+        <td class="col-record" data-col="record"><div class="jta_value col-record">{{record}}</div></td>
         {{#each cells}}
             {{print_safe this}}
         {{/each}}
@@ -311,27 +317,27 @@ Did you forget to append .run() at the end of your query?{{/if}}</pre>
 </script>
 
 <script id="dataexplorer_result_json_table_td_value-template" type="text/xs-handlebars-template">
-    <td class="{{class_td}}">
+    <td class="col-{{col}}"  data-col={{col}}>
         {{print_safe cell_content}}
     </td>
 </script>
 
 <script id="dataexplorer_result_json_table_td_value_content-template" type="text/xs-handlebars-template">
-        {{#if data_to_expand}}
-        <div class="{{class_value}} jta_value {{classname}}">       
-            <span data-json_data="{{data_to_expand}}" class="jta_object">
-                <span class="jta_arrow jta_arrow_v"></span>
-                <span class="jta_arrow jta_arrow_h"></span>
-                <strong>{{print_safe value}}</strong>
-            </span>
-        </div>
-        {{else}}
-        <div class="jta_value {{class_value}} {{classname}}">
-            <span>
-                {{value}}
-            </span>
-        </div>
-        {{/if}}
+    {{#if data_to_expand}}
+    <div class="{{class_value}} jta_value {{classname}}">       
+        <span data-json_data="{{data_to_expand}}" class="jta_object">
+            <span class="jta_arrow jta_arrow_v"></span>
+            <span class="jta_arrow jta_arrow_h"></span>
+            <strong>{{print_safe value}}</strong>
+        </span>
+    </div>
+    {{else}}
+    <div class="jta_value {{class_value}} {{classname}}">
+        <span>
+            {{value}}
+        </span>
+    </div>
+    {{/if}}
 </script>
 
 <!-- Ugly indentation to avoid extra spaces before comma -->
