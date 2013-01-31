@@ -263,7 +263,7 @@ service_address_ports_t get_service_address_ports(const po::variables_map& vm) {
         http_admin_is_disabled, http_port, reql_port, port_offset);
 }
 
-void run_rethinkdb_create(const base_path_t &basepath, const name_string_t &machine_name, const io_backend_t io_backend, bool *result_out) {
+void run_rethinkdb_create(const base_path_t &base_path, const name_string_t &machine_name, const io_backend_t io_backend, bool *const result_out) {
     machine_id_t our_machine_id = generate_uuid();
     logINF("Our machine ID: %s\n", uuid_to_str(our_machine_id).c_str());
 
@@ -281,11 +281,11 @@ void run_rethinkdb_create(const base_path_t &basepath, const name_string_t &mach
     perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
 
     try {
-        metadata_persistence::persistent_file_t store(io_backender.get(), metadata_file(basepath), &metadata_perfmon_collection, our_machine_id, metadata);
-        logINF("Created directory '%s' and a metadata file inside it.\n", basepath.path().c_str());
+        metadata_persistence::persistent_file_t store(io_backender.get(), metadata_file(base_path), &metadata_perfmon_collection, our_machine_id, metadata);
+        logINF("Created directory '%s' and a metadata file inside it.\n", base_path.path().c_str());
         *result_out = true;
     } catch (const metadata_persistence::file_in_use_exc_t &ex) {
-        logINF("Directory '%s' is in use by another rethinkdb process.\n", basepath.path().c_str());
+        logINF("Directory '%s' is in use by another rethinkdb process.\n", base_path.path().c_str());
         *result_out = false;
     }
 }
@@ -299,7 +299,7 @@ peer_address_set_t look_up_peers_addresses(const std::vector<host_and_port_t> &n
     return peers;
 }
 
-void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins, int client_port, const std::vector<std::string>& command_args, bool exit_on_failure, bool *result_out) {
+void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins, int client_port, const std::vector<std::string>& command_args, bool exit_on_failure, bool *const result_out) {
     os_signal_cond_t sigint_cond;
     *result_out = true;
     std::string host_port;
@@ -373,10 +373,10 @@ std::string uname_msr() {
 
 void run_rethinkdb_serve(const base_path_t &base_path,
                          const io_backend_t io_backend,
-                         bool *result_out,
                          const serve_info_t& serve_info,
-                         const machine_id_t *our_machine_id = NULL,
-                         const cluster_semilattice_metadata_t *semilattice_metadata = NULL) {
+                         const machine_id_t *our_machine_id,
+                         const cluster_semilattice_metadata_t *semilattice_metadata,
+                         bool *const result_out) {
     logINF("Running %s...\n", RETHINKDB_VERSION_STR);
     logINF("Running on %s", uname_msr().c_str());
     os_signal_cond_t sigint_cond;
@@ -431,11 +431,11 @@ void run_rethinkdb_serve(const base_path_t &base_path,
 void run_rethinkdb_porcelain(const base_path_t &base_path,
                              const name_string_t &machine_name,
                              const io_backend_t io_backend,
-                             bool *result_out,
-                             bool new_directory,
-                             const serve_info_t &serve_info) {
+                             const bool new_directory,
+                             const serve_info_t &serve_info,
+                             bool *const result_out) {
     if (!new_directory) {
-        run_rethinkdb_serve(base_path, io_backend, result_out, serve_info);
+        run_rethinkdb_serve(base_path, io_backend, serve_info, NULL, NULL, result_out);
     } else {
         logINF("Creating directory %s\n", base_path.path().c_str());
 
@@ -464,13 +464,12 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
                 deletable_t<database_semilattice_metadata_t>(database_metadata)));
         }
 
-        run_rethinkdb_serve(base_path, io_backend, result_out, serve_info,
-                            &our_machine_id, &semilattice_metadata);
+        run_rethinkdb_serve(base_path, io_backend, serve_info,
+                            &our_machine_id, &semilattice_metadata, result_out);
     }
 }
 
-void run_rethinkdb_proxy(bool *result_out,
-                         const serve_info_t &serve_info) {
+void run_rethinkdb_proxy(const serve_info_t &serve_info, bool *const result_out) {
     os_signal_cond_t sigint_cond;
     guarantee(!serve_info.joins->empty());
 
@@ -897,10 +896,11 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
 
     bool result;
     run_in_thread_pool(boost::bind(&run_rethinkdb_serve, base_path,
-                                   io_backend, &result,
+                                   io_backend,
                                    serve_info,
                                    static_cast<machine_id_t*>(NULL),
-                                   static_cast<cluster_semilattice_metadata_t*>(NULL)),
+                                   static_cast<cluster_semilattice_metadata_t*>(NULL),
+                                   &result),
                        num_workers);
 
     return result ? EXIT_SUCCESS : EXIT_FAILURE;
@@ -992,9 +992,7 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
                             optional_variable_value<std::string>(vm["config-file"]));
 
     bool result;
-    run_in_thread_pool(boost::bind(&run_rethinkdb_proxy,
-                                   &result,
-                                   serve_info),
+    run_in_thread_pool(boost::bind(&run_rethinkdb_proxy, serve_info, &result),
                        num_workers);
 
     return result ? EXIT_SUCCESS : EXIT_FAILURE;
@@ -1194,9 +1192,9 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
                                        base_path,
                                        machine_name,
                                        io_backend,
-                                       &result,
                                        new_directory,
-                                       serve_info),
+                                       serve_info,
+                                       &result),
                            num_workers);
 
         return result ? EXIT_SUCCESS : EXIT_FAILURE;
