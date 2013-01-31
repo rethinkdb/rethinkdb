@@ -371,7 +371,7 @@ std::string uname_msr() {
     return buf;
 }
 
-void run_rethinkdb_serve(const base_path_t &filepath,
+void run_rethinkdb_serve(const base_path_t &base_path,
                          const io_backend_t io_backend,
                          bool *result_out,
                          const serve_info_t& serve_info,
@@ -381,13 +381,13 @@ void run_rethinkdb_serve(const base_path_t &filepath,
     logINF("Running on %s", uname_msr().c_str());
     os_signal_cond_t sigint_cond;
 
-    if (!check_existence(filepath)) {
-        logERR("ERROR: The directory '%s' does not exist.  Run 'rethinkdb create -d \"%s\"' and try again.\n", filepath.path().c_str(), filepath.path().c_str());
+    if (!check_existence(base_path)) {
+        logERR("ERROR: The directory '%s' does not exist.  Run 'rethinkdb create -d \"%s\"' and try again.\n", base_path.path().c_str(), base_path.path().c_str());
         *result_out = false;
         return;
     }
 
-    logINF("Loading data from directory %s\n", filepath.path().c_str());
+    logINF("Loading data from directory %s\n", base_path.path().c_str());
 
     scoped_ptr_t<io_backender_t> io_backender;
     make_io_backender(io_backend, &io_backender);
@@ -399,18 +399,18 @@ void run_rethinkdb_serve(const base_path_t &filepath,
         scoped_ptr_t<metadata_persistence::persistent_file_t> store;
         if (our_machine_id && semilattice_metadata) {
             store.init(new metadata_persistence::persistent_file_t(io_backender.get(),
-                                                                   metadata_file(filepath),
+                                                                   metadata_file(base_path),
                                                                    &metadata_perfmon_collection,
                                                                    *our_machine_id,
                                                                    *semilattice_metadata));
         } else {
             store.init(new metadata_persistence::persistent_file_t(io_backender.get(),
-                                                                   metadata_file(filepath),
+                                                                   metadata_file(base_path),
                                                                    &metadata_perfmon_collection));
                        }
         *result_out = serve(serve_info.spawner_info,
                             io_backender.get(),
-                            filepath, store.get(),
+                            base_path, store.get(),
                             look_up_peers_addresses(*serve_info.joins),
                             serve_info.ports,
                             store->read_machine_id(),
@@ -420,7 +420,7 @@ void run_rethinkdb_serve(const base_path_t &filepath,
                             serve_info.config_file);
 
     } catch (const metadata_persistence::file_in_use_exc_t &ex) {
-        logINF("Directory '%s' is in use by another rethinkdb process.\n", filepath.path().c_str());
+        logINF("Directory '%s' is in use by another rethinkdb process.\n", base_path.path().c_str());
         *result_out = false;
     } catch (const host_lookup_exc_t &ex) {
         logERR("%s\n", ex.what());
