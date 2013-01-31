@@ -8,6 +8,16 @@ $c = RethinkDB::Connection.new('localhost', $port_base + 28015 + 1)
 class ClientTest < Test::Unit::TestCase
   include RethinkDB::Shortcuts
 
+  def test_coerce
+    assert_equal("1", r(1).coerce("string").run)
+    assert_equal([["a", 1.0], ["b", 2.0]], r({:a => 1, :b => 2}).coerce("array").run)
+    assert_raise(RuntimeError) {r(1).coerce("datum").run}
+    assert_equal(2, r.db('test').table('tbl').coerce("array")[-3..-2].run.size)
+    assert_raise(RuntimeError) {r.db('test').table('tbl')[-3..-2].run}
+    assert_equal({"a"=>1.0, "b"=>2.0}, r([["a", 1], ["b", 2]]).coerce("object").run)
+    assert_raise(RuntimeError) {r([["a", 1], ["a", 2]]).coerce("object").run}
+  end
+
   def test_typeof
     assert_equal("ARRAY", r([]).typeof.run)
     assert_equal("BOOL", r(true).typeof.run)
