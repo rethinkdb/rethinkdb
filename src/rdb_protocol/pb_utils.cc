@@ -23,6 +23,21 @@ Term2 *set_func(Term2 *f, int varnum) {
     return f->add_args();
 }
 
+Term2 *set_func(Term2 *f, int varnum1, int varnum2) {
+    f->set_type(T(FUNC));
+
+    Datum *vars = set_datum(f->add_args());
+    vars->set_type(D(R_ARRAY));
+    Datum *var1 = vars->add_r_array();
+    var1->set_type(D(R_NUM));
+    var1->set_r_num(varnum1);
+    Datum *var2 = vars->add_r_array();
+    var2->set_type(D(R_NUM));
+    var2->set_r_num(varnum2);
+
+    return f->add_args();
+}
+
 void set_var(Term2 *v, int varnum) {
     v->set_type(T(VAR));
     Datum *vn = set_datum(v->add_args());

@@ -66,8 +66,7 @@ term_t *compile_term(env_t *env, const Term2 *t) {
     case Term2_TermType_GROUPED_MAP_REDUCE: return new gmr_term_t(env, t);
     case Term2_TermType_LIMIT:              return new limit_term_t(env, t);
     case Term2_TermType_SKIP:               return new skip_term_t(env, t);
-    case Term2_TermType_GROUPBY:
-        rfail("UNIMPLEMENTED");
+    case Term2_TermType_GROUPBY:            return new groupby_term_t(env, t);
     case Term2_TermType_INNER_JOIN:         return new inner_join_term_t(env, t);
     case Term2_TermType_OUTER_JOIN:         return new outer_join_term_t(env, t);
     case Term2_TermType_EQ_JOIN:            return new eq_join_term_t(env, t);
@@ -92,7 +91,6 @@ term_t *compile_term(env_t *env, const Term2 *t) {
     case Term2_TermType_FUNC:               return new func_term_t(env, t);
     default: unreachable();
     }
-    rfail("UNIMPLEMENTED %p", env);
     unreachable();
 }
 
@@ -123,6 +121,8 @@ void run(Query2 *q, env_t *env, Response2 *res, stream_cache_t *stream_cache) {
                     if (!d) break;
                     d->write_to_protobuf(res->add_response());
                 }
+            } else {
+                rfail("Query returned non-datum %s.", val->print().c_str());
             }
         } catch (const exc_t &e) {
             fill_error(res, Response2::RUNTIME_ERROR, e.what(), e.backtrace);

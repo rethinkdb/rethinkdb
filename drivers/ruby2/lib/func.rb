@@ -8,7 +8,8 @@ module RethinkDB
     end
 
     @@opt_off = {
-      :reduce => -1, :between => -1, :grouped_map_reduce => -1
+      :reduce => -1, :between => -1, :grouped_map_reduce => -1,
+      :table => -1, :insert => -1, :table_create => -1
     }
     @@rewrites = {
       :< => :lt, :<= => :le, :> => :gt, :>= => :ge,
@@ -16,7 +17,9 @@ module RethinkDB
       :"|" => :any, :or => :any,
       :"&" => :all, :and => :all,
       :order_by => :orderby,
-      :concat_map => :concatmap
+      :group_by => :groupby,
+      :concat_map => :concatmap,
+      :for_each => :foreach
     }
     def method_missing(m, *a, &b)
       m = @@rewrites[m] || m
@@ -44,6 +47,24 @@ module RethinkDB
       return RQL.new t
     end
 
+    def group_by(*a, &b)
+      a = [self] + a if @body
+      RQL.new.method_missing(:group_by, a[0], a[1..-2], a[-1], &b)
+    end
+    def groupby(*a, &b); group_by(*a, &b); end
+
+    def avg(attr)
+      unbound_if @body
+      {:AVG => attr}
+    end
+    def sum(attr)
+      unbound_if @body
+      {:SUM => attr}
+    end
+    def count(*a, &b)
+      !@body && a == [] ? {:COUNT => true} : super(*a, &b)
+    end
+
     def reduce(*a, &b)
       a = a[1..-2] + [{:base => a[-1]}] if a.size + (@body ? 1 : 0) == 2
       super(*a, &b)
@@ -57,6 +78,17 @@ module RethinkDB
     def between(l=nil, r=nil)
       super(Hash[(l ? [['left_bound', l]] : []) + (r ? [['right_bound', r]] : [])])
     end
+
+    def insert(*a, &b)
+      if [String.hash, Symbol.hash].include?(a[-1].class.hash) && a[-1] == :upsert
+        a[-1] = {:upsert => true}
+      else
+        a << {}
+      end
+      super(*a, &b)
+    end
+
+    def -@; RQL.new.sub(0, self); end
 
     def [](ind)
       if ind.class == Fixnum

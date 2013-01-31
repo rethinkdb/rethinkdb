@@ -18,6 +18,7 @@ datum_t::datum_t(int _num) : type(R_NUM), r_num(_num) {
     rcheck(std::isfinite(r_num), strprintf("Non-finite number: %.20g", r_num));
 }
 datum_t::datum_t(const std::string &_str) : type(R_STR), r_str(_str) { }
+datum_t::datum_t(const char *cstr) : type(R_STR), r_str(cstr) { }
 datum_t::datum_t(const std::vector<const datum_t *> &_array)
     : type(R_ARRAY), r_array(_array) { }
 datum_t::datum_t(const std::map<const std::string, const datum_t *> &_object)
@@ -131,7 +132,7 @@ std::string datum_t::print_primary() const {
 
 void datum_t::check_type(type_t desired) const {
     if (get_type() != desired) {
-        //debugf("%s != %s\n", datum_type_name(get_type()), datum_type_name(desired));
+        // debugf("%s != %s\n", datum_type_name(get_type()), datum_type_name(desired));
     }
     rcheck(get_type() == desired,
            strprintf("Wrong type: expected %s but got %s.",
@@ -214,14 +215,15 @@ boost::shared_ptr<scoped_cJSON_t> datum_t::as_json() const {
     return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(as_raw_json()));
 }
 
+// TODO: make STR and OBJECT convertible to sequence?
 datum_stream_t *datum_t::as_datum_stream(env_t *env) const {
     switch(get_type()) {
     case R_NULL: //fallthru
     case R_BOOL: //fallthru
     case R_NUM: rfail("Cannot convert %s to sequence", datum_type_name(get_type()));
-    case R_STR: rfail("Unimplemented.");
+    case R_STR: rfail("Cannot convert %s to sequence", datum_type_name(get_type()));
     case R_ARRAY: return env->add_ptr(new array_datum_stream_t(env, this));
-    case R_OBJECT: rfail("Unimplemented.");
+    case R_OBJECT: rfail("Cannot convert %s to sequence", datum_type_name(get_type()));
     default: unreachable();
     }
     unreachable();
@@ -305,6 +307,9 @@ int datum_t::cmp(const datum_t &rhs) const {
             it = obj.begin(),
             it2 = rhs_obj.begin();
         while (it != obj.end() && it2 != rhs_obj.end()) {
+            // debugf("(%s,%s) vs. (%s,%s)",
+            //        it->first.c_str(), it->second->print().c_str(),
+            //        it2->first.c_str(), it2->second->print().c_str());
             int key_cmpval = derived_cmp(it->first, it2->first);
             if (key_cmpval) return key_cmpval;
             int val_cmpval = it->second->cmp(*it2->second);
@@ -313,7 +318,7 @@ int datum_t::cmp(const datum_t &rhs) const {
             ++it2;
         }
         if (it != obj.end()) return 1;
-        if (it2 != obj.end()) return -1;
+        if (it2 != rhs_obj.end()) return -1;
         return 0;
     }; unreachable();
     default: unreachable();

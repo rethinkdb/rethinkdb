@@ -163,7 +163,11 @@ private:
         }
 
         if (opaque_start_type.is_convertible(val_t::type_t::SEQUENCE)) {
-            datum_stream_t *ds = val->as_seq();
+            datum_stream_t *ds;
+            try { ds = val->as_seq(); } catch (const exc_t &e) {
+                rfail("Cannot COERCE %s to %s (failed to produce intermediate stream).",
+                      get_name(start_type).c_str(), get_name(end_type).c_str());
+            }
             // SEQUENCE -> ARRAY
             if (end_type == R_ARRAY_TYPE || end_type == DATUM_TYPE) {
                 datum_t *arr = env->add_ptr(new datum_t(datum_t::R_ARRAY));
@@ -188,7 +192,6 @@ private:
                     return new_val(obj);
                 }
             }
-
         }
 
         rfail("Cannot COERCE %s to %s.",
