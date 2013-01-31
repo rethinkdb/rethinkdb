@@ -327,10 +327,24 @@ void run_rethinkdb_import(extproc::spawner_t::info_t *spawner_info,
     }
 }
 
+std::string uname_msr() {
+    char buf[1024];
+    static const std::string unknown = "unknown operating system\n";
+    FILE *out = popen("uname -msr", "r");
+    if (!out) return unknown;
+    if (!fgets(buf, sizeof(buf), out)) return unknown;
+    pclose(out);
+    return buf;
+}
+
 void run_rethinkdb_serve(const std::string &filepath,
                          const io_backend_t io_backend,
                          bool *result_out,
-                         const serve_info_t& serve_info) {
+                         const serve_info_t& serve_info,
+                         const machine_id_t *our_machine_id = NULL,
+                         const cluster_semilattice_metadata_t *semilattice_metadata = NULL) {
+    logINF("Running %s...\n", RETHINKDB_VERSION_STR);
+    logINF("Running on %s", uname_msr().c_str());
     os_signal_cond_t sigint_cond;
 
     if (!check_existence(filepath)) {
@@ -338,6 +352,8 @@ void run_rethinkdb_serve(const std::string &filepath,
         *result_out = false;
         return;
     }
+    
+    logINF("Loading data from directory %s\n", filepath.c_str());
 
     scoped_ptr_t<io_backender_t> io_backender;
     make_io_backender(io_backend, &io_backender);
@@ -346,18 +362,29 @@ void run_rethinkdb_serve(const std::string &filepath,
     perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
 
     try {
-        metadata_persistence::persistent_file_t store(io_backender.get(), metadata_file(filepath), &metadata_perfmon_collection);
-
+        scoped_ptr_t<metadata_persistence::persistent_file_t> store;
+        if (our_machine_id && semilattice_metadata) {
+            store.init(new metadata_persistence::persistent_file_t(io_backender.get(),
+                                                                   metadata_file(filepath),
+                                                                   &metadata_perfmon_collection,
+                                                                   *our_machine_id,
+                                                                   *semilattice_metadata));
+        } else {
+            store.init(new metadata_persistence::persistent_file_t(io_backender.get(),
+                                                                   metadata_file(filepath),
+                                                                   &metadata_perfmon_collection));
+                       }
         *result_out = serve(serve_info.spawner_info,
                             io_backender.get(),
-                            filepath, &store,
+                            filepath, store.get(),
                             look_up_peers_addresses(*serve_info.joins),
                             serve_info.ports,
-                            store.read_machine_id(),
-                            store.read_metadata(),
+                            store->read_machine_id(),
+                            store->read_metadata(),
                             serve_info.web_assets,
                             &sigint_cond,
                             serve_info.config_file);
+
     } catch (const metadata_persistence::file_in_use_exc_t &ex) {
         logINF("Directory '%s' is in use by another rethinkdb process.\n", filepath.c_str());
         *result_out = false;
@@ -373,37 +400,8 @@ void run_rethinkdb_porcelain(const std::string &filepath,
                              bool *result_out,
                              bool new_directory,
                              const serve_info_t &serve_info) {
-    logINF("Running %s...\n", RETHINKDB_VERSION_STR);
-    os_signal_cond_t sigint_cond;
-
     if (!new_directory) {
-        logINF("Loading data from directory %s\n", filepath.c_str());
-
-        scoped_ptr_t<io_backender_t> io_backender;
-        make_io_backender(io_backend, &io_backender);
-
-        perfmon_collection_t metadata_perfmon_collection;
-        perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
-        try {
-            metadata_persistence::persistent_file_t store(io_backender.get(), metadata_file(filepath), &metadata_perfmon_collection);
-
-            *result_out = serve(serve_info.spawner_info,
-                                io_backender.get(),
-                                filepath, &store,
-                                look_up_peers_addresses(*serve_info.joins),
-                                serve_info.ports,
-                                store.read_machine_id(), store.read_metadata(),
-                                serve_info.web_assets,
-                                &sigint_cond,
-                                serve_info.config_file);
-        } catch (const metadata_persistence::file_in_use_exc_t &ex) {
-            logINF("Directory '%s' is in use by another rethinkdb process.\n", filepath.c_str());
-            *result_out = false;
-        } catch (const host_lookup_exc_t &ex) {
-            logERR("%s\n", ex.what());
-            *result_out = false;
-        }
-
+        run_rethinkdb_serve(filepath, io_backend, result_out, serve_info);
     } else {
         logINF("Creating directory %s\n", filepath.c_str());
 
@@ -432,30 +430,8 @@ void run_rethinkdb_porcelain(const std::string &filepath,
                 deletable_t<database_semilattice_metadata_t>(database_metadata)));
         }
 
-        scoped_ptr_t<io_backender_t> io_backender;
-        make_io_backender(io_backend, &io_backender);
-
-        perfmon_collection_t metadata_perfmon_collection;
-        perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
-        try {
-            metadata_persistence::persistent_file_t store(io_backender.get(), metadata_file(filepath), &metadata_perfmon_collection, our_machine_id, semilattice_metadata);
-
-            *result_out = serve(serve_info.spawner_info,
-                                io_backender.get(),
-                                filepath, &store,
-                                look_up_peers_addresses(*serve_info.joins),
-                                serve_info.ports,
-                                our_machine_id, semilattice_metadata,
-                                serve_info.web_assets,
-                                &sigint_cond,
-                                serve_info.config_file);
-        } catch (const metadata_persistence::file_in_use_exc_t &ex) {
-            logINF("Directory '%s' is in use by another rethinkdb process.\n", filepath.c_str());
-            *result_out = false;
-        } catch (const host_lookup_exc_t &ex) {
-            logERR("%s\n", ex.what());
-            *result_out = false;
-        }
+        run_rethinkdb_serve(filepath, io_backend, result_out, serve_info,
+                            &our_machine_id, &semilattice_metadata);
     }
 }
 
@@ -884,7 +860,9 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
     bool result;
     run_in_thread_pool(boost::bind(&run_rethinkdb_serve, filepath,
                                    io_backend, &result,
-                                   serve_info),
+                                   serve_info,
+                                   static_cast<machine_id_t*>(NULL),
+                                   static_cast<cluster_semilattice_metadata_t*>(NULL)),
                        num_workers);
 
     return result ? EXIT_SUCCESS : EXIT_FAILURE;
