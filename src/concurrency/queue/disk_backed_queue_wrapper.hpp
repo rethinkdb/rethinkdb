@@ -30,7 +30,7 @@ public:
     static const int memory_queue_capacity = 1000;
 
     disk_backed_queue_wrapper_t(io_backender_t *_io_backender,
-            const std::string &_filename, perfmon_collection_t *_stats_parent) :
+            const serializer_filepath_t &_filename, perfmon_collection_t *_stats_parent) :
         passive_producer_t<T>(&available_control),
         memory_queue(memory_queue_capacity),
         notify_when_room_in_memory_queue(NULL),
@@ -126,7 +126,7 @@ private:
     auto_drainer_t drainer;
 
     io_backender_t *io_backender;
-    const std::string filename;
+    const serializer_filepath_t filename;
     perfmon_collection_t *stats_parent;
 
     // This is used to tell a push operation to restart the copy_from_disk_queue_to_memory_queue

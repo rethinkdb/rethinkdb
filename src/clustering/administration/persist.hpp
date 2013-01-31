@@ -23,9 +23,9 @@ public:
 
 class persistent_file_t {
 public:
-    persistent_file_t(io_backender_t *io_backender, const std::string &filename,
+    persistent_file_t(io_backender_t *io_backender, const serializer_filepath_t &filename,
                       perfmon_collection_t *perfmon_parent);
-    persistent_file_t(io_backender_t *io_backender, const std::string &filename,
+    persistent_file_t(io_backender_t *io_backender, const serializer_filepath_t &filename,
                       perfmon_collection_t *perfmon_parent, const machine_id_t &machine_id,
                       const cluster_semilattice_metadata_t &initial_metadata);
     ~persistent_file_t();

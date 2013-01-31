@@ -11,19 +11,17 @@
 #include "buffer_cache/types.hpp"
 #include "perfmon/perfmon.hpp"
 
-filepath_file_opener_t::filepath_file_opener_t(const std::string &filepath, io_backender_t *backender)
-    : filepath_(filepath), backender_(backender), opened_temporary_(false) {
-    guarantee(!filepath.empty());
-}
+filepath_file_opener_t::filepath_file_opener_t(const serializer_filepath_t &filepath, io_backender_t *backender)
+    : filepath_(filepath), backender_(backender), opened_temporary_(false) { }
 
 filepath_file_opener_t::~filepath_file_opener_t() { }
 
 std::string filepath_file_opener_t::file_name() const {
-    return filepath_;
+    return filepath_.permanent_path();
 }
 
 std::string filepath_file_opener_t::temporary_file_name() const {
-    return filepath_ + ".create";
+    return filepath_.temporary_path();
 }
 
 std::string filepath_file_opener_t::current_file_name() const {

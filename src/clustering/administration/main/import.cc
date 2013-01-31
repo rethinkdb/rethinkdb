@@ -16,7 +16,6 @@
 #include "clustering/administration/perfmon_collection_repo.hpp"
 #include "clustering/administration/proc_stats.hpp"
 #include "clustering/administration/suggester.hpp"
-#include "clustering/administration/sys_stats.hpp"
 #include "clustering/administration/main/ports.hpp"
 #include "extproc/pool.hpp"
 #include "http/json.hpp"
@@ -147,12 +146,6 @@ bool run_json_import(extproc::spawner_t::info_t *spawner_info,
     perfmon_membership_t proc_stats_membership(&get_global_perfmon_collection(), &proc_stats_collection, "proc");
 
     proc_stats_collector_t proc_stats_collector(&proc_stats_collection);
-
-    perfmon_collection_t sys_stats_collection;
-    perfmon_membership_t sys_stats_membership(&get_global_perfmon_collection(), &sys_stats_collection, "sys");
-
-    const char *bs_filepath = "";
-    sys_stats_collector_t sys_stats_collector(bs_filepath, &sys_stats_collection);
 
     scoped_ptr_t<initial_joiner_t> initial_joiner;
     if (!joins.empty()) {

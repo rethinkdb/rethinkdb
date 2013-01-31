@@ -64,13 +64,13 @@ static void read_blob(transaction_t *txn, const char *ref, int maxreflen, T *val
     guarantee(res == 0);
 }
 
-persistent_file_t::persistent_file_t(io_backender_t *io_backender, const std::string &filename, perfmon_collection_t *perfmon_parent) {
+persistent_file_t::persistent_file_t(io_backender_t *io_backender, const serializer_filepath_t &filename, perfmon_collection_t *perfmon_parent) {
     filepath_file_opener_t file_opener(filename, io_backender);
     construct_serializer_and_cache(false, &file_opener, perfmon_parent);
     construct_branch_history_managers(false);
 }
 
-persistent_file_t::persistent_file_t(io_backender_t *io_backender, const std::string& filename, perfmon_collection_t *perfmon_parent, const machine_id_t &machine_id, const cluster_semilattice_metadata_t &initial_metadata) {
+persistent_file_t::persistent_file_t(io_backender_t *io_backender, const serializer_filepath_t& filename, perfmon_collection_t *perfmon_parent, const machine_id_t &machine_id, const cluster_semilattice_metadata_t &initial_metadata) {
     filepath_file_opener_t file_opener(filename, io_backender);
     construct_serializer_and_cache(true, &file_opener, perfmon_parent);
 

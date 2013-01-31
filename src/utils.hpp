@@ -334,6 +334,45 @@ T valgrind_undefined(T value) {
 }
 
 
+// Contains the name of the directory in which all data is stored.
+class base_path_t {
+public:
+    base_path_t() { }
+    explicit base_path_t(const std::string& path) : path_(path) { }
+
+    const std::string& path() const {
+        guarantee(!path_.empty());
+        return path_;
+    }
+private:
+    std::string path_;
+};
+
+static const char *TEMPORARY_DIRECTORY_NAME = "tmp";
+
+// Contains the name of a serializer file.
+class serializer_filepath_t {
+public:
+    serializer_filepath_t(const base_path_t& directory, const std::string& relative_path)
+        : directory_(directory), relative_path_(relative_path) {
+        guarantee(!relative_path.empty());
+    }
+
+    // A serializer_file_opener_t will first open the file in a temporary location, then move it to
+    // the permanent location when it's finished being created.  These give the names of those
+    // locations.
+    std::string permanent_path() const { return directory_.path() + "/" + relative_path_; }
+    std::string temporary_path() const {
+        return directory_.path() + "/" + TEMPORARY_DIRECTORY_NAME + "/" + relative_path_ + ".create";
+    }
+
+private:
+    base_path_t directory_;
+    std::string relative_path_;
+};
+
+
+
 #define STR(x) #x
 #define MSTR(x) STR(x) // Stringify a macro
 #if defined __clang__

@@ -15,12 +15,12 @@ namespace unittest {
 
 class temp_file_t {
 public:
-    explicit temp_file_t(const char *tmpl);
-    const char *name() { return filename.data(); }
+    temp_file_t();
+    serializer_filepath_t name() const { return serializer_filepath_t(base_path_t("/tmp"), filename); }
     ~temp_file_t();
 
 private:
-    scoped_array_t<char> filename;
+    std::string filename;
 
     DISABLE_COPYING(temp_file_t);
 };

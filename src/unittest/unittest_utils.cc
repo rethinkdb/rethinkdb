@@ -12,17 +12,17 @@
 
 namespace unittest {
 
-temp_file_t::temp_file_t(const char *tmpl) {
-    size_t len = strlen(tmpl);
-    filename.init(len + 1);
-    memcpy(filename.data(), tmpl, len+1);
-    int fd = mkstemp(filename.data());
+temp_file_t::temp_file_t() {
+    char tmpl[] = "/tmp/rdb_unittest.XXXXXX";
+    const int fd = mkstemp(tmpl);
     guarantee_err(fd != -1, "Couldn't create a temporary file");
     close(fd);
+
+    filename = tmpl + 5;
 }
 
 temp_file_t::~temp_file_t() {
-    unlink(filename.data());
+    unlink(("/tmp" + filename).c_str());
 }
 
 void let_stuff_happen() {

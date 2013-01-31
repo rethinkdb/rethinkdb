@@ -98,12 +98,12 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
 
     const int num_stores = CLUSTER_CPU_SHARDING_FACTOR;
 
-    const std::string serializer_filepath = file_name_for(namespace_id);
+    const serializer_filepath_t serializer_filepath = file_name_for(namespace_id);
 
     scoped_ptr_t<standard_serializer_t> serializer;
     scoped_ptr_t<serializer_multiplexer_t> multiplexer;
 
-    int res = access(serializer_filepath.c_str(), R_OK | W_OK);
+    int res = access(serializer_filepath.permanent_path().c_str(), R_OK | W_OK);
     store_args_t<protocol_t> store_args(io_backender_, namespace_id, cache_size, serializers_perfmon_collection, ctx);
     if (res == 0) {
         filepath_file_opener_t file_opener(serializer_filepath, io_backender_);
@@ -188,17 +188,14 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
 template <class protocol_t>
 void file_based_svs_by_namespace_t<protocol_t>::destroy_svs(namespace_id_t namespace_id) {
     // TODO: Handle errors?  It seems like we can't really handle the error so let's just ignore it?
-    unlink(file_name_for(namespace_id).c_str());
+    const std::string filepath = file_name_for(namespace_id).permanent_path();
+    const int res = ::unlink(filepath.c_str());
+    guarantee_err(res == 0 || errno == ENOENT, "unlink failed for file %s", filepath.c_str());
 }
 
 template <class protocol_t>
-std::string file_based_svs_by_namespace_t<protocol_t>::file_name_for(namespace_id_t namespace_id) {
-    return file_path_ + "/" + uuid_to_str(namespace_id);
-}
-
-template <class protocol_t>
-std::string file_based_svs_by_namespace_t<protocol_t>::hash_shard_name_for(namespace_id_t namespace_id, int shardnum) {
-    return file_name_for(namespace_id) + strprintf("_%d", shardnum);
+serializer_filepath_t file_based_svs_by_namespace_t<protocol_t>::file_name_for(namespace_id_t namespace_id) {
+    return serializer_filepath_t(base_path_, uuid_to_str(namespace_id));
 }
 
 #include "mock/dummy_protocol.hpp"
