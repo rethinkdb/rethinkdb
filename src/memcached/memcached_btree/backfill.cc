@@ -38,7 +38,10 @@ public:
     }
 
     void on_sindexes(const std::map<uuid_u, secondary_index_t> &, signal_t *) THROWS_ONLY(interrupted_exc_t) {
-        not_implemented();
+        //Not implemented.
+        //Right now this is a noop because memcached doesn't support secondar
+        //indexes. We don't crash here because we still want the memcached unit
+        //tests to work.
     }
 
     backfill_callback_t *cb_;
