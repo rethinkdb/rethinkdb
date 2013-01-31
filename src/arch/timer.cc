@@ -70,7 +70,7 @@ void timer_handler_t::on_oneshot() {
 
 timer_token_t *timer_handler_t::add_timer_internal(const int64_t ms, timer_callback_t *callback, const bool once) {
     const int64_t nanos = ms * MILLION;
-    guarantee(nanos > 0);
+    rassert(nanos > 0);
 
     const int64_t next_time_in_nanos = get_ticks() + nanos;
 
