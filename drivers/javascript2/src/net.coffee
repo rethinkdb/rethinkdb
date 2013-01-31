@@ -212,7 +212,7 @@ class HttpConnection extends Connection
 
     cancel: ->
         xhr = new XMLHttpRequest
-        xhr.open("POST", @_url+"close-connection?conn_id=#{@_connId}", true)
+        xhr.open("POST", "#{@_url}close-connection?conn_id=#{@_connId}", true)
         xhr.send()
         @_url = null
         @_connId = null
@@ -220,7 +220,7 @@ class HttpConnection extends Connection
 
     write: (chunk) ->
         xhr = new XMLHttpRequest
-        xhr.open("POST", @_url+"?conn_id=#{@_connID}", true)
+        xhr.open("POST", "#{@_url}?conn_id=#{@_connId}", true)
         xhr.responseType = "arraybuffer"
 
         xhr.onreadystatechange = (e) =>
