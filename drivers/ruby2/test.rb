@@ -8,6 +8,21 @@ $c = RethinkDB::Connection.new('localhost', $port_base + 28015 + 1)
 class ClientTest < Test::Unit::TestCase
   include RethinkDB::Shortcuts
 
+  def test_typeof
+    assert_equal("ARRAY", r([]).typeof.run)
+    assert_equal("BOOL", r(true).typeof.run)
+    assert_equal("NULL", r(nil).typeof.run)
+    assert_equal("NUMBER", r(1).typeof.run)
+    assert_equal("OBJECT", r({}).typeof.run)
+    assert_equal("STRING", r("").typeof.run)
+    assert_equal("DB", r.db('test').typeof.run)
+    assert_equal("TABLE", r.db('test').table('tbl').typeof.run)
+    assert_equal("STREAM", r.db('test').table('tbl').map{|x| x}.typeof.run)
+    assert_equal("SELECTION", r.db('test').table('tbl').filter{|x| true}.typeof.run)
+    assert_equal("SINGLE_SELECTION", r.db('test').table('tbl').get(0).typeof.run)
+    assert_equal("FUNCTION", r(lambda {}).typeof.run)
+  end
+
   def test_numops
     assert_raise(RuntimeError) {r.div(1, 0).run}
     assert_raise(RuntimeError) {r.div(0, 0).run}
@@ -970,15 +985,16 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test_op_raise
-    assert_raise(ArgumentError) do
-      r.db("a").table_create("b").run(:bad_opt => (true))
+    # assert_raise(ArgumentError) do
+    #   r.db("a").table_create("b").run(:bad_opt => (true))
+    # end
+
+    assert_raise(RuntimeError) do
+      r.db("a").table_create("b", :bad_opt => (true)).run
     end
 
-    assert_raise(ArgumentError) do
-      r.db("a").table_create("b", :bad_opt => (true))
-    end
-
-    assert_raise(ArgumentError) { r.db("a").table("b", :bad_opt => (true)) }
+    assert_raise(RuntimeError) { r.db("a").table("b", :bad_opt => (true)).run }
+    assert_raise(RuntimeError) { r.db("a").run }
   end
 
   def test_close_and_reconnect

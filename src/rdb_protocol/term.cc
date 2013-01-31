@@ -123,6 +123,8 @@ void run(Query2 *q, env_t *env, Response2 *res, stream_cache_t *stream_cache) {
                     if (!d) break;
                     d->write_to_protobuf(res->add_response());
                 }
+            } else {
+                rfail("Query returned non-datum %s.", val->print().c_str());
             }
         } catch (const exc_t &e) {
             fill_error(res, Response2::RUNTIME_ERROR, e.what(), e.backtrace);
