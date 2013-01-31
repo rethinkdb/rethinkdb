@@ -3,6 +3,7 @@
 #define UNITTEST_UNITTEST_UTILS_HPP_
 
 #include <set>
+#include <string>
 
 #include "errors.hpp"
 #include <boost/function.hpp>
