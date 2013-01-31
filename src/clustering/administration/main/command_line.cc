@@ -62,7 +62,7 @@ void recreate_temporary_directory(const base_path_t& base_path) {
     do {
         res = mkdir(path.c_str(), 0755);
     } while (res == -1 && errno == EINTR);
-    guarantee_err(res == 0, "mkdir of temporary directory %s failed", path);
+    guarantee_err(res == 0, "mkdir of temporary directory %s failed", path.c_str());
 }
 
 template <typename T>

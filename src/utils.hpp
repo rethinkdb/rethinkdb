@@ -337,7 +337,6 @@ T valgrind_undefined(T value) {
 // Contains the name of the directory in which all data is stored.
 class base_path_t {
 public:
-    base_path_t() { }
     explicit base_path_t(const std::string& path) : path_(path) { }
 
     const std::string& path() const {

@@ -15,11 +15,8 @@ struct disk_stat_t {
         // get disk space data using statvfs
         struct statvfs fsdata;
 
-        if (filepath == "") {
-            res = statvfs(".", &fsdata);
-        } else {
-            res = statvfs(filepath.c_str(), &fsdata);
-        }
+        res = statvfs(filepath.c_str(), &fsdata);
+
         if (res < 0) {
             disk_space_total = -1;
             disk_space_free = -1;
