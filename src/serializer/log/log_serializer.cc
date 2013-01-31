@@ -6,9 +6,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
-
 #include "arch/io/disk.hpp"
 #include "arch/runtime/runtime.hpp"
 #include "buffer_cache/types.hpp"
@@ -57,8 +54,12 @@ void filepath_file_opener_t::open_serializer_file_create_temporary(scoped_ptr_t<
     opened_temporary_ = true;
 }
 
-void filepath_file_opener_t::do_move_serializer_file_to_permanent_location() {
-    guarantee(coro_t::self() == NULL);
+void filepath_file_opener_t::move_serializer_file_to_permanent_location() {
+    // TODO: Make caller not require that this not block, run ::rename in a blocker pool.
+    ASSERT_NO_CORO_WAITING;
+
+    mutex_assertion_t::acq_t acq(&reentrance_mutex_);
+
     guarantee(opened_temporary_);
     const int res = ::rename(temporary_file_name().c_str(), file_name().c_str());
 
@@ -70,24 +71,19 @@ void filepath_file_opener_t::do_move_serializer_file_to_permanent_location() {
     opened_temporary_ = false;
 }
 
-void filepath_file_opener_t::move_serializer_file_to_permanent_location() {
-    mutex_assertion_t::acq_t acq(&reentrance_mutex_);
-    thread_pool_t::run_in_blocker_pool(boost::bind(&filepath_file_opener_t::do_move_serializer_file_to_permanent_location, this));
-}
-
 void filepath_file_opener_t::open_serializer_file_existing(scoped_ptr_t<file_t> *file_out) {
     mutex_assertion_t::acq_t acq(&reentrance_mutex_);
     open_serializer_file(current_file_name(), 0, file_out);
 }
 
-void filepath_file_opener_t::do_unlink_serializer_file() {
+void filepath_file_opener_t::unlink_serializer_file() {
+    // TODO: Make caller not require that this not block, run ::unlink in a blocker pool.
+    ASSERT_NO_CORO_WAITING;
+
+    mutex_assertion_t::acq_t acq(&reentrance_mutex_);
+    guarantee(opened_temporary_);
     const int res = ::unlink(current_file_name().c_str());
     guarantee_err(res == 0, "unlink() failed");
-}
-
-void filepath_file_opener_t::unlink_serializer_file() {
-    mutex_assertion_t::acq_t acq(&reentrance_mutex_);
-    thread_pool_t::run_in_blocker_pool(boost::bind(&filepath_file_opener_t::do_unlink_serializer_file, this));
 }
 
 #ifdef SEMANTIC_SERIALIZER_CHECK

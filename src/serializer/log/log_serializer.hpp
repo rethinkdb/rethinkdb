@@ -61,10 +61,6 @@ public:
 private:
     void open_serializer_file(const std::string &path, int extra_flags, scoped_ptr_t<file_t> *file_out);
 
-    // Functions to be run in the blocker pool.
-    void do_move_serializer_file_to_permanent_location();
-    void do_unlink_serializer_file();
-
     // The path of the temporary file.  This is file_name() with some suffix appended.
     std::string temporary_file_name() const;
 
