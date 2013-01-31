@@ -142,7 +142,7 @@ class Connection
         (new DataView(finalArray.buffer)).setInt32(0, length, true)
         finalArray.set data, 4
 
-        @write finalArray
+        @write finalArray.buffer
 
 class TcpConnection extends Connection
     @isAvailable: -> typeof require isnt 'undefined' and require('net')
@@ -228,6 +228,17 @@ class HttpConnection extends Connection
                 @_data(xhr.response)
         xhr.send chunk
 
+class EmbeddedConnection extends Connection
+    @isAvailable: -> (typeof RDBPbServer isnt "undefined")
+    constructor: (embeddedServer, callback) ->
+        super({}, callback)
+        @_embeddedServer = embeddedServer
+        @_connect()
+
+    cancel: -> super()
+
+    write: (chunk) -> @_data(@_embeddedServer.execute(chunk))
+
 rethinkdb.connect = (host, callback) ->
     unless callback? then callback = (->)
     if TcpConnection.isAvailable()
@@ -236,6 +247,12 @@ rethinkdb.connect = (host, callback) ->
         new HttpConnection host, callback
     else
         throw new DriverError "Neither TCP nor HTTP avaiable in this environment"
+
+rethinkdb.embeddedConnect = (callback) ->
+    unless callback? then callback = (->)
+    unless EmbeddedConnection.isAvailable()
+        throw new DriverError "Embedded connection not available in this environment"
+    new EmbeddedConnection new RDBPbServer, callback
 
 bufferConcat = (buf1, buf2) ->
     view = new Uint8Array (buf1.byteLength + buf2.byteLength)

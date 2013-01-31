@@ -53,7 +53,7 @@ class RDBPbServer
             for datum in result
                 response.addResponse @deconstructDatum datum
         catch err
-            unless err instanceof RDBError then throw err
+            unless err instanceof RDBError then RDBthrow err
 
             response.setType (
                 if err instanceof RuntimeError
@@ -105,67 +105,67 @@ class RDBPbServer
 
         # Else builtin function
         opClass = switch term.getType()
-            when Term2.TermType.MAKE_ARRAY   then MakeArray
-            when Term2.TermType.MAKE_OBJ     then MakeObj
-            when Term2.TermType.VAR          then Var
-            when Term2.TermType.JAVASCRIPT   then JavaScript
-            when Term2.TermType.ERROR        then UserError
-            when Term2.TermType.IMPLICIT_VAR then ImplicitVar
-            when Term2.TermType.DB           then DBRef
-            when Term2.TermType.TABLE        then TableRef
-            when Term2.TermType.GET          then GetByKey
-            when Term2.TermType.EQ           then Eq
-            when Term2.TermType.NE           then Ne
-            when Term2.TermType.LT           then Lt
-            when Term2.TermType.LE           then Le
-            when Term2.TermType.GT           then Gt
-            when Term2.TermType.GE           then Ge
-            when Term2.TermType.NOT          then Not
-            when Term2.TermType.ADD          then Add
-            when Term2.TermType.SUB          then Sub
-            when Term2.TermType.MUL          then Mul
-            when Term2.TermType.DIV          then Div
-            when Term2.TermType.MOD          then Mod
-            when Term2.TermType.APPEND       then Append
-            when Term2.TermType.SLICE        then Slice
-            when Term2.TermType.GETATTR      then GetAttr
-            when Term2.TermType.CONTAINS     then Contains
-            when Term2.TermType.PLUCK        then Pluck
-            when Term2.TermType.WITHOUT      then Without
-            when Term2.TermType.MERGE        then Merge
-            when Term2.TermType.BETWEEN      then Between
-            when Term2.TermType.REDUCE       then Reduce
-            when Term2.TermType.MAP          then Map
-            when Term2.TermType.FILTER       then Filter
-            when Term2.TermType.CONCATMAP    then ConcatMap
-            when Term2.TermType.ORDERBY      then OrderBy
-            when Term2.TermType.DISTINCT     then Distinct
-            when Term2.TermType.COUNT        then Count
-            when Term2.TermType.UNION        then Union
-            when Term2.TermType.NTH          then Nth
-            when Term2.TermType.GROUPED_MAP_REDUCE then GroupedMapReduce
-            when Term2.TermType.GROUPBY      then GroupBy
-            when Term2.TermType.INNER_JOIN   then InnerJoin
-            when Term2.TermType.OUTER_JOIN   then OuterJoin
-            when Term2.TermType.EQ_JOIN      then EqJoin
-            when Term2.TermType.COERCE       then Coerce
-            when Term2.TermType.TYPEOF       then TypeOf
-            when Term2.TermType.UPDATE       then Update
-            when Term2.TermType.DELETE       then Delete
-            when Term2.TermType.REPLACE      then Replace
-            when Term2.TermType.INSERT       then Insert
-            when Term2.TermType.DB_CREATE    then DbCreate
-            when Term2.TermType.DB_DROP      then DbDrop
-            when Term2.TermType.DB_LIST      then DbList
-            when Term2.TermType.TABLE_CREATE then TableCreate
-            when Term2.TermType.TABLE_DROP   then TableDrop
-            when Term2.TermType.TABLE_LIST   then TableList
-            when Term2.TermType.FUNCALL      then Funcall
-            when Term2.TermType.BRANCH       then Branch
-            when Term2.TermType.ANY          then Any
-            when Term2.TermType.ALL          then All
-            when Term2.TermType.FOREACH      then ForEach
-            when Term2.TermType.FUNC         then Func
+            when Term2.TermType.MAKE_ARRAY   then RDBMakeArray
+            when Term2.TermType.MAKE_OBJ     then RDBMakeObj
+            when Term2.TermType.VAR          then RDBVar
+            when Term2.TermType.JAVASCRIPT   then RDBJavaScript
+            when Term2.TermType.ERROR        then RDBUserError
+            when Term2.TermType.IMPLICIT_VAR then RDBImplicitVar
+            when Term2.TermType.DB           then RDBDBRef
+            when Term2.TermType.TABLE        then RDBTableRef
+            when Term2.TermType.GET          then RDBGetByKey
+            when Term2.TermType.EQ           then RDBEq
+            when Term2.TermType.NE           then RDBNe
+            when Term2.TermType.LT           then RDBLt
+            when Term2.TermType.LE           then RDBLe
+            when Term2.TermType.GT           then RDBGt
+            when Term2.TermType.GE           then RDBGe
+            when Term2.TermType.NOT          then RDBNot
+            when Term2.TermType.ADD          then RDBAdd
+            when Term2.TermType.SUB          then RDBSub
+            when Term2.TermType.MUL          then RDBMul
+            when Term2.TermType.DIV          then RDBDiv
+            when Term2.TermType.MOD          then RDBMod
+            when Term2.TermType.APPEND       then RDBAppend
+            when Term2.TermType.SLICE        then RDBSlice
+            when Term2.TermType.GETATTR      then RDBGetAttr
+            when Term2.TermType.CONTAINS     then RDBContains
+            when Term2.TermType.PLUCK        then RDBPluck
+            when Term2.TermType.WITHOUT      then RDBWithout
+            when Term2.TermType.MERGE        then RDBMerge
+            when Term2.TermType.BETWEEN      then RDBBetween
+            when Term2.TermType.REDUCE       then RDBReduce
+            when Term2.TermType.MAP          then RDBMap
+            when Term2.TermType.FILTER       then RDBFilter
+            when Term2.TermType.CONCATMAP    then RDBConcatMap
+            when Term2.TermType.ORDERBY      then RDBOrderBy
+            when Term2.TermType.DISTINCT     then RDBDistinct
+            when Term2.TermType.COUNT        then RDBCount
+            when Term2.TermType.UNION        then RDBUnion
+            when Term2.TermType.NTH          then RDBNth
+            when Term2.TermType.GROUPED_MAP_REDUCE then RDBGroupedMapReduce
+            when Term2.TermType.GROUPBY      then RDBGroupBy
+            when Term2.TermType.INNER_JOIN   then RDBInnerJoin
+            when Term2.TermType.OUTER_JOIN   then RDBOuterJoin
+            when Term2.TermType.EQ_JOIN      then RDBEqJoin
+            when Term2.TermType.COERCE       then RDBCoerce
+            when Term2.TermType.TYPEOF       then RDBTypeOf
+            when Term2.TermType.UPDATE       then RDBUpdate
+            when Term2.TermType.DELETE       then RDBDelete
+            when Term2.TermType.REPLACE      then RDBReplace
+            when Term2.TermType.INSERT       then RDBInsert
+            when Term2.TermType.DB_CREATE    then RDBDbCreate
+            when Term2.TermType.DB_DROP      then RDBDbDrop
+            when Term2.TermType.DB_LIST      then RDBDbList
+            when Term2.TermType.TABLE_CREATE then RDBTableCreate
+            when Term2.TermType.TABLE_DROP   then RDBTableDrop
+            when Term2.TermType.TABLE_LIST   then RDBTableList
+            when Term2.TermType.FUNCALL      then RDBFuncall
+            when Term2.TermType.BRANCH       then RDBBranch
+            when Term2.TermType.ANY          then RDBAny
+            when Term2.TermType.ALL          then RDBAll
+            when Term2.TermType.FOREACH      then RDBForEach
+            when Term2.TermType.FUNC         then RDBFunc
             else throw new RuntimeError "Unknown Term Type"
 
         args = (@buildTerm arg for arg in term.argsArray())
