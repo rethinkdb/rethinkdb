@@ -26,10 +26,6 @@ class Connection
         @buffer = new ArrayBuffer 0
 
         @_connect = =>
-            # Initialize connection with magic number to validate version
-            buf = new ArrayBuffer 4
-            (new DataView buf).setUint32 0, VersionDummy.Version.V0_1, true
-            @write buf
             @open = true
             @_error = => # Clear failed to connect callback
             callback null, @
@@ -161,7 +157,12 @@ class TcpConnection extends Connection
         @rawSocket = net.connect @port, @host
         @rawSocket.setNoDelay()
 
-        @rawSocket.on 'connect', => @_connect()
+        @rawSocket.on 'connect', =>
+            # Initialize connection with magic number to validate version
+            buf = new ArrayBuffer 4
+            (new DataView buf).setUint32 0, VersionDummy.Version.V0_1, true
+            @write buf
+            @_connect()
 
         @rawSocket.on 'error', => @_error()
 
@@ -187,8 +188,45 @@ class TcpConnection extends Connection
         @rawSocket.write buf
 
 class HttpConnection extends Connection
-    @isAvailable: -> return false
-    constructor: -> throw new DriverError "Not implemented"
+    @isAvailable: -> typeof XMLHttpRequest isnt "undefined"
+    constructor: (host, callback) ->
+        unless HttpConnection.isAvailable()
+            throw new DriverError "XMLHttpRequest is not available in this environment"
+
+        super(host, callback)
+
+        url = "http://#{@host}:#{@port}/ajax/reql/"
+        xhr = new XMLHttpRequest
+        xhr.open("GET", url+"open-new-connection", true)
+        xhr.responseType = "arraybuffer"
+
+        xhr.onreadystatechange = (e) =>
+            if xhr.readyState is 4
+                if xhr.status is 200
+                    @_url = url
+                    @_connId = (new DataView xhr.response).getInt32(0, true)
+                    @_connect()
+                else
+                    @_error()
+        xhr.send()
+
+    cancel: ->
+        xhr = new XMLHttpRequest
+        xhr.open("POST", @_url+"close-connection?conn_id=#{@_connId}", true)
+        xhr.send()
+        @_url = null
+        @_connId = null
+        super()
+
+    write: (chunk) ->
+        xhr = new XMLHttpRequest
+        xhr.open("POST", @_url+"?conn_id=#{@_connID}", true)
+        xhr.responseType = "arraybuffer"
+
+        xhr.onreadystatechange = (e) =>
+            if xhr.readyState is 4 and xhr.status is 200
+                @_data(xhr.response)
+        xhr.send chunk
 
 rethinkdb.connect = (host, callback) ->
     unless callback? then callback = (->)

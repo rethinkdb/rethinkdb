@@ -4,4 +4,4 @@ rethinkdb = (val) -> rethinkdb.expr(val)
 
 goog.provide("rethinkdb.base")
 
-print = console.log
+print = (args...) -> console.log(args...)

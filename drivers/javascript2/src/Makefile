@@ -25,7 +25,7 @@ OUTPUT_MODE=script
 
 DRIVER_LIB=$(BUILD_DIR)/rethinkdb.js
 
-all: test
+all: testWeb
 
 $(PROTOC_JS_HOME_DIR)/protoc-gen-js:
 	cd ../../external/protobuf-plugin-closure ; $(MAKE);
@@ -49,6 +49,9 @@ $(DRIVER_LIB): $(BUILD_DIR) $(PB_JS_FILE) $(COMPILED_COFFEE)
 
 test: $(DRIVER_LIB)
 	coffee test.coffee
+
+testWeb: $(DRIVER_LIB)
+	cd ..; python -m SimpleHTTPServer
 
 clean:
 	rm -rf $(BUILD_DIR)
