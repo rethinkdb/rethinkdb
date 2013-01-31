@@ -302,8 +302,9 @@ void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins, int client_p
     *result_out = true;
     std::string host_port;
 
-    if (!joins.empty())
+    if (!joins.empty()) {
         host_port = strprintf("%s:%d", joins[0].host.c_str(), joins[0].port);
+    }
 
     try {
         if (command_args.empty())
@@ -405,7 +406,8 @@ void run_rethinkdb_serve(const base_path_t &base_path,
             store.init(new metadata_persistence::persistent_file_t(io_backender.get(),
                                                                    metadata_file(base_path),
                                                                    &metadata_perfmon_collection));
-                       }
+        }
+
         *result_out = serve(serve_info.spawner_info,
                             io_backender.get(),
                             base_path, store.get(),
