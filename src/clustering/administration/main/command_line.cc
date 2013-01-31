@@ -1,6 +1,7 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "clustering/administration/main/command_line.hpp"
 
+#include <ftw.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,6 +33,37 @@
 #include "help.hpp"
 
 namespace po = boost::program_options;
+
+int delete_all_helper(const char *path, UNUSED const struct stat *ptr, UNUSED const int flag, UNUSED FTW *ftw) {
+    int res = ::remove(path);
+    guarantee_err(res == 0, "remove syscall failed");
+    return 0;
+}
+
+void delete_all(const char *path) {
+    // max_openfd is ignored on OS X (which claims the parameter specifies the maximum traversal
+    // depth) and used by Linux to limit the number of file descriptors that are open (by opening
+    // and closing directories extra times if it needs to go deeper than that).
+    const int max_openfd = 128;
+    int res = nftw(path, delete_all_helper, max_openfd, FTW_PHYS | FTW_MOUNT | FTW_DEPTH);
+    guarantee_err(res == 0 || errno == ENOENT, "Trouble while traversing and destroying temporary directory %s.", path);
+}
+
+void recreate_temporary_directory(const char *path) {
+    delete_all(path);
+
+#if 0
+    int res;
+    do {
+        res = mkdir(path, 0755);
+    } while (res == -1 && errno == EINTR);
+    guarantee_err(res == 0, "mkdir of temporary directory %s failed", path);
+#endif
+}
+
+std::string temporary_directory_path(const std::string& filepath) {
+    return filepath + "/tmp";
+}
 
 template <typename T>
 static inline boost::optional<T> optional_variable_value(const po::variable_value& var){
@@ -813,11 +845,13 @@ int main_rethinkdb_create(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    int res = mkdir(filepath.c_str(), 0755);
+    const int res = mkdir(filepath.c_str(), 0755);
     if (res != 0) {
         fprintf(stderr, "Could not create directory: %s\n", errno_string(errno).c_str());
         return EXIT_FAILURE;
     }
+
+    recreate_temporary_directory(temporary_directory_path(filepath).c_str());
 
     install_fallback_log_writer(logfilepath);
 
@@ -875,6 +909,8 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
         fprintf(stderr, "ERROR: The directory '%s' does not exist.  Run 'rethinkdb create -d \"%s\"' and try again.\n", filepath.c_str(), filepath.c_str());
         return EXIT_FAILURE;
     }
+
+    recreate_temporary_directory(temporary_directory_path(filepath).c_str());
 
     install_fallback_log_writer(logfilepath);
     
@@ -1111,8 +1147,8 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
-        std::string filepath = vm["directory"].as<std::string>();
-        std::string logfilepath = get_logfilepath(filepath);
+        const std::string filepath = vm["directory"].as<std::string>();
+        const std::string logfilepath = get_logfilepath(filepath);
 
         std::string machine_name_str = vm["machine-name"].as<std::string>();
         name_string_t machine_name;
@@ -1165,8 +1201,10 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
             }
         }
 
+        recreate_temporary_directory(temporary_directory_path(filepath).c_str());
+
         install_fallback_log_writer(logfilepath);
-        
+
         serve_info_t serve_info(&spawner_info, joins, address_ports, web_path,
                                 optional_variable_value<std::string>(vm["config-file"]));
 
