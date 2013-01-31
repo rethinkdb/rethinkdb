@@ -8,6 +8,19 @@ $c = RethinkDB::Connection.new('localhost', $port_base + 28015 + 1)
 class ClientTest < Test::Unit::TestCase
   include RethinkDB::Shortcuts
 
+  def test_groupby
+    assert_equal(data, tbl.order_by(:id).run.to_a)
+    assert_equal({ "replaced" => 10 },
+                 tbl.update { |row| { :gb => ((row[:id] % 3)) } }.run)
+    counts = tbl.group_by(:gb, r.count).run.sort_by { |x| x["group"] }
+    sums = tbl.group_by(:gb, r.sum(:id)).run.sort_by { |x| x["group"] }
+    avgs = tbl.group_by(:gb, r.avg(:id)).run.sort_by { |x| x["group"] }
+    avgs.each_index do |i|
+      assert_equal(avgs[i]["reduction"],
+                   (sums[i]["reduction"].to_f / counts[i]["reduction"]))
+    end
+  end
+
   def test_coerce
     assert_equal("1", r(1).coerce("string").run)
     assert_equal([["a", 1.0], ["b", 2.0]], r({:a => 1, :b => 2}).coerce("array").run)

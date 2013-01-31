@@ -17,6 +17,7 @@ module RethinkDB
       :"|" => :any, :or => :any,
       :"&" => :all, :and => :all,
       :order_by => :orderby,
+      :group_by => :groupby,
       :concat_map => :concatmap,
       :for_each => :foreach
     }
@@ -44,6 +45,24 @@ module RethinkDB
         ap
       }
       return RQL.new t
+    end
+
+    def group_by(*a, &b)
+      a = [self] + a if @body
+      RQL.new.method_missing(:group_by, a[0], a[1..-2], a[-1], &b)
+    end
+    def groupby(*a, &b); group_by(*a, &b); end
+
+    def avg(attr)
+      unbound_if @body
+      {:AVG => attr}
+    end
+    def sum(attr)
+      unbound_if @body
+      {:SUM => attr}
+    end
+    def count(*a, &b)
+      !@body && a == [] ? {:COUNT => true} : super(*a, &b)
     end
 
     def reduce(*a, &b)

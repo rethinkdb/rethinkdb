@@ -25,10 +25,106 @@ private:
     scoped_ptr_t<term_t> real;
 };
 
+class groupby_term_t : public rewrite_term_t {
+public:
+    groupby_term_t(env_t *env, const Term2 *term)
+        : rewrite_term_t(env, term, rewrite) { }
+    static void rewrite(env_t *env, const Term2 *in, Term2 *out) {
+        rcheck(in->args_size() == 3, "Groupby requires 3 arguments.");
+        std::string dc;
+        const Term2 *dc_arg;
+        parse_dc(&in->args(2), &dc, &dc_arg);
+        Term2 *arg = out;
+        arg = final_wrap(env, arg, dc, dc_arg);
+        N4(GROUPED_MAP_REDUCE,
+           *arg = in->args(0),
+           group_fn(env, arg, &in->args(1)),
+           map_fn(env, arg, dc, dc_arg),
+           reduce_fn(env, arg, dc, dc_arg));
+    }
+private:
+    static void parse_dc(const Term2 *t, std::string *dc_out,
+                         const Term2 **dc_arg_out) {
+        rcheck(t->type() == Term2_TermType_MAKE_OBJ, "Invalid data collector.");
+        rcheck(t->optargs_size() == 1, "Invalid data collector.");
+        const Term2_AssocPair *ap = &t->optargs(0);
+        *dc_out = ap->key();
+        rcheck(*dc_out == "SUM" || *dc_out == "AVG" || *dc_out == "COUNT",
+               strprintf("Unrecognized data collector `%s`.", dc_out->c_str()));
+        *dc_arg_out = &ap->val();
+    }
+    static void group_fn(env_t *env, Term2 *arg, const Term2 *group_attrs) {
+        int obj = env->gensym();
+        int attr = env->gensym();
+        arg = pb::set_func(arg, obj);
+        N2(MAP, *arg = *group_attrs, arg = pb::set_func(arg, attr);
+           N3(BRANCH,
+              N2(CONTAINS, pb::set_var(arg, obj), pb::set_var(arg, attr)),
+              N2(GETATTR, pb::set_var(arg, obj), pb::set_var(arg, attr)),
+              pb::set_null(arg)));
+        // debugf("%s\n", arg->DebugString().c_str());
+    }
+    static void map_fn(env_t *env, Term2 *arg,
+                       const std::string &dc, const Term2 *dc_arg) {
+        int obj = env->gensym(), attr = env->gensym();
+        arg = pb::set_func(arg, obj);
+        if (dc == "COUNT") {
+            NDATUM(env, 1);
+        } else if (dc == "SUM") {
+            N2(FUNCALL, arg = pb::set_func(arg, attr);
+               N3(BRANCH,
+                  N2(CONTAINS, NVAR(obj), NVAR(attr)),
+                  N2(GETATTR, NVAR(obj), NVAR(attr)),
+                  NDATUM(env, 0)),
+               *arg = *dc_arg);
+        } else if (dc == "AVG") {
+            N2(FUNCALL, arg = pb::set_func(arg, attr);
+               N3(BRANCH,
+                  N2(CONTAINS, NVAR(obj), NVAR(attr)),
+                  N2(MAKE_ARRAY, N2(GETATTR, NVAR(obj), NVAR(attr)), NDATUM(env, 1)),
+                  N2(MAKE_ARRAY, NDATUM(env, 0), NDATUM(env, 0))),
+               *arg = *dc_arg);
+        } else { unreachable(); }
+    }
+    static void reduce_fn(env_t *env, Term2 *arg,
+                          const std::string &dc, UNUSED const Term2 *dc_arg) {
+        int a = env->gensym(), b = env->gensym();
+        arg = pb::set_func(arg, a, b);
+        if (dc == "COUNT" || dc == "SUM") {
+            N2(ADD, NVAR(a), NVAR(b));
+        } else if (dc == "AVG") {
+            N2(MAKE_ARRAY,
+               N2(ADD, N2(NTH, NVAR(a), NDATUM(env, 0)),
+                       N2(NTH, NVAR(b), NDATUM(env, 0))),
+               N2(ADD, N2(NTH, NVAR(a), NDATUM(env, 1)),
+                       N2(NTH, NVAR(b), NDATUM(env, 1))));
+        } else { unreachable(); }
+    }
+    static Term2 *final_wrap(env_t *env, Term2 *arg,
+                            const std::string &dc, UNUSED const Term2 *dc_arg) {
+        if (dc == "COUNT" || dc == "SUM") return arg;
+
+        int val = env->gensym(), obj = env->gensym();
+        Term2 *argout = 0;
+        if (dc == "AVG") {
+            N2(MAP, argout = arg, arg = pb::set_func(arg, obj);
+               OPT2(MAKE_OBJ,
+                    "group", N2(GETATTR, NVAR(obj), NDATUM(env, "group")),
+                    "reduction",
+                    N2(FUNCALL, arg = pb::set_func(arg, val);
+                       N2(DIV, N2(NTH, NVAR(val), NDATUM(env, 0)),
+                          N2(NTH, NVAR(val), NDATUM(env, 1))),
+                       N2(GETATTR, NVAR(obj), NDATUM(env, "reduction")))));
+        }
+        return argout;
+    }
+    RDB_NAME("groupby");
+};
+
 class inner_join_term_t : public rewrite_term_t {
 public:
-    inner_join_term_t(env_t *env, const Term2 *term) :
-        rewrite_term_t(env, term, rewrite) { }
+    inner_join_term_t(env_t *env, const Term2 *term)
+        : rewrite_term_t(env, term, rewrite) { }
     static void rewrite(env_t *env, const Term2 *in, Term2 *out) {
         rcheck(in->args_size() == 3, "Inner Join requires 3 arguments.");
         const Term2 *l = &in->args(0);
