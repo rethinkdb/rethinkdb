@@ -54,8 +54,7 @@ void set(Term2 *out, Term2_TermType type, std::vector<Term2 *> *args_out, int nu
 
 #define NVAR(varnum) pb::set_var(arg, varnum)
 // TODO: no need for this, just construct a temporary object.
-#define NDATUM(env, val) \
-    env->add_ptr(new datum_t(val))->write_to_protobuf(pb::set_datum(arg))
+#define NDATUM(val) datum_t(val).write_to_protobuf(pb::set_datum(arg))
 
 #define OPT1(PB, STR1, ARG1) {                          \
         arg->set_type(Term2_TermType_##PB);             \
