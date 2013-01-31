@@ -58,13 +58,11 @@ void recreate_temporary_directory(const base_path_t& base_path) {
 
     delete_all(path.c_str());
 
-#if 0
     int res;
     do {
         res = mkdir(path.c_str(), 0755);
     } while (res == -1 && errno == EINTR);
     guarantee_err(res == 0, "mkdir of temporary directory %s failed", path);
-#endif
 }
 
 template <typename T>
