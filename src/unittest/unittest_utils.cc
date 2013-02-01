@@ -22,8 +22,17 @@ temp_file_t::temp_file_t() {
 }
 
 temp_file_t::~temp_file_t() {
-    unlink(("/tmp" + filename).c_str());
+    // Unlink both possible locations of the file.
+    const int res1 = ::unlink(name().temporary_path().c_str());
+    EXPECT_TRUE(res1 == 0 || errno == ENOENT);
+    const int res2 = ::unlink(name().permanent_path().c_str());
+    EXPECT_TRUE(res2 == 0 || errno == ENOENT);
 }
+
+serializer_filepath_t temp_file_t::name() const {
+    return serializer_filepath_t(base_path_t("/tmp"), filename);
+}
+
 
 void let_stuff_happen() {
 #ifdef VALGRIND

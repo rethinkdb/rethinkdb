@@ -17,8 +17,8 @@ namespace unittest {
 class temp_file_t {
 public:
     temp_file_t();
-    serializer_filepath_t name() const { return serializer_filepath_t(base_path_t("/tmp"), filename); }
     ~temp_file_t();
+    serializer_filepath_t name() const;
 
 private:
     std::string filename;
