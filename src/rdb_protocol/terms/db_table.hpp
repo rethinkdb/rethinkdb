@@ -133,7 +133,7 @@ static const char *const table_create_optargs[] =
 class table_create_term_t : public meta_write_op_t {
 public:
     table_create_term_t(env_t *env, const Term2 *term) :
-        meta_write_op_t(env, term, argspec_t(2), LEGAL_OPTARGS(table_create_optargs)) { }
+        meta_write_op_t(env, term, argspec_t(2), optargspec_t(table_create_optargs)) { }
 private:
     virtual std::string write_eval_impl() {
         uuid_u dc_id = nil_uuid();
@@ -320,7 +320,7 @@ static const char *const table_optargs[] = {"use_outdated"};
 class table_term_t : public op_term_t {
 public:
     table_term_t(env_t *env, const Term2 *term)
-        : op_term_t(env, term, argspec_t(2), LEGAL_OPTARGS(table_optargs)) { }
+        : op_term_t(env, term, argspec_t(2), optargspec_t(table_optargs)) { }
 private:
     virtual val_t *eval_impl() {
         val_t *t = optarg("use_outdated", 0);

@@ -31,7 +31,7 @@ static const char *const insert_optargs[] = {"upsert"};
 class insert_term_t : public op_term_t {
 public:
     insert_term_t(env_t *env, const Term2 *term)
-        : op_term_t(env, term, argspec_t(2), LEGAL_OPTARGS(insert_optargs)) { }
+        : op_term_t(env, term, argspec_t(2), optargspec_t(insert_optargs)) { }
 private:
 
     void maybe_generate_key(table_t *tbl,
@@ -96,7 +96,7 @@ static const char *const replace_optargs[] = {"non_atomic"};
 class replace_term_t : public op_term_t {
 public:
     replace_term_t(env_t *env, const Term2 *term)
-        : op_term_t(env, term, argspec_t(2), LEGAL_OPTARGS(replace_optargs)) { }
+        : op_term_t(env, term, argspec_t(2), optargspec_t(replace_optargs)) { }
 private:
     virtual val_t *eval_impl() {
         bool nondet_ok = false;

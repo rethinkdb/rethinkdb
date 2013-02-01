@@ -54,7 +54,7 @@ static const char *const reduce_optargs[] = {"base"};
 class reduce_term_t : public op_term_t {
 public:
     reduce_term_t(env_t *env, const Term2 *term) :
-        op_term_t(env, term, argspec_t(2), LEGAL_OPTARGS(reduce_optargs)) { }
+        op_term_t(env, term, argspec_t(2), optargspec_t(reduce_optargs)) { }
 private:
     virtual val_t *eval_impl() {
         return new_val(arg(0)->as_seq()->reduce(optarg("base", 0), arg(1)->as_func()));
@@ -66,7 +66,7 @@ static const char *const between_optargs[] = {"left_bound", "right_bound"};
 class between_term_t : public op_term_t {
 public:
     between_term_t(env_t *env, const Term2 *term)
-        : op_term_t(env, term, argspec_t(1), LEGAL_OPTARGS(between_optargs)) { }
+        : op_term_t(env, term, argspec_t(1), optargspec_t(between_optargs)) { }
 private:
 
     static void set_cmp(Term2 *out, int varnum, const std::string &pk,

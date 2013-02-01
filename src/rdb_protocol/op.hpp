@@ -27,6 +27,8 @@ struct argspec_t {
 struct optargspec_t {
     static optargspec_t make_object() { return optargspec_t(-1, 0); }
     optargspec_t(int n, const char *const *c) : num_legal_args(n), legal_args(c) { }
+    template<int n>
+    optargspec_t(const char *const (&arr)[n]) : num_legal_args(n), legal_args(arr) { }
     bool contains(const std::string &key) const {
         r_sanity_check(!is_make_object());
         for (int i = 0; i < num_legal_args; ++i) if (key == legal_args[i]) return true;
@@ -36,7 +38,6 @@ struct optargspec_t {
     int num_legal_args;
     const char *const *legal_args;
 };
-#define LEGAL_OPTARGS(arr) optargspec_t(sizeof(arr)/sizeof(*arr), arr)
 
 class op_term_t : public term_t {
 public:
