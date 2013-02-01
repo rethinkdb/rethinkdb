@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef BUFFER_CACHE_MIRRORED_CONFIG_HPP_
 #define BUFFER_CACHE_MIRRORED_CONFIG_HPP_
 
@@ -6,7 +6,7 @@
 #include "utils.hpp"
 #include "containers/archive/archive.hpp"
 
-#define NEVER_FLUSH -1
+#define NEVER_FLUSH (-1)
 
 /* Configuration for the cache (it can all change from run to run) */
 
