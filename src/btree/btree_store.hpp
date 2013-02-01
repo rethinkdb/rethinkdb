@@ -102,7 +102,7 @@ public:
     void reset_data(
             const typename protocol_t::region_t &subregion,
             const metainfo_t &new_metainfo,
-            object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
+            write_token_pair_t *token_pair,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -176,6 +176,15 @@ public: // <--- so this is some bullshit right here
     void drop_sindex(
         write_token_pair_t *token_pair,
         uuid_u id,
+        transaction_t *txn,
+        superblock_t *super_block,
+        value_sizer_t<void> *sizer,
+        value_deleter_t *deleter,
+        signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t);
+
+    void drop_all_sindexes(
+        write_token_pair_t *token_pair,
         transaction_t *txn,
         superblock_t *super_block,
         value_sizer_t<void> *sizer,
@@ -274,7 +283,8 @@ protected:
     virtual void protocol_reset_data(const typename protocol_t::region_t& subregion,
                                      btree_slice_t *btree,
                                      transaction_t *txn,
-                                     superblock_t *superblock) = 0;
+                                     superblock_t *superblock,
+                                     write_token_pair_t *token_pair) = 0;
 
 private:
     void get_metainfo_internal(transaction_t* txn, buf_lock_t* sb_buf, region_map_t<protocol_t, binary_blob_t> *out) const THROWS_NOTHING;

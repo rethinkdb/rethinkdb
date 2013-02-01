@@ -729,7 +729,8 @@ private:
 void store_t::protocol_reset_data(const region_t& subregion,
                                   btree_slice_t *btree,
                                   transaction_t *txn,
-                                  superblock_t *superblock) {
+                                  superblock_t *superblock,
+                                  write_token_pair_t *) {
     hash_key_tester_t key_tester(subregion.beg, subregion.end);
     memcached_erase_range(btree, &key_tester, subregion.inner, txn, superblock);
 }

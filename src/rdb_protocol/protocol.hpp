@@ -601,7 +601,8 @@ struct rdb_protocol_t {
         void protocol_reset_data(const region_t& subregion,
                                  btree_slice_t *btree,
                                  transaction_t *txn,
-                                 superblock_t *superblock);
+                                 superblock_t *superblock,
+                                 write_token_pair_t *token_pair);
         context_t *ctx;
     };
 

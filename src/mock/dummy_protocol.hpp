@@ -156,7 +156,7 @@ public:
 
         void reset_data(const dummy_protocol_t::region_t &subregion,
                         const metainfo_t &new_metainfo,
-                        object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
+                        write_token_pair_t *token_pair,
                         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
         std::map<std::string, std::string> values;

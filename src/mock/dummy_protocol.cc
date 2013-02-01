@@ -476,14 +476,15 @@ void dummy_protocol_t::store_t::receive_backfill(const dummy_protocol_t::backfil
 
 void dummy_protocol_t::store_t::reset_data(const dummy_protocol_t::region_t &subregion,
                                            const metainfo_t &new_metainfo,
-                                           object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
+                                           write_token_pair_t *token_pair,
                                            signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(get_region(), subregion));
     rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
 
-    object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(token);
+    object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(&token_pair->main_write_token);
+    object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer2(&token_pair->sindex_write_token);
 
-    wait_interruptible(token->get(), interruptor);
+    wait_interruptible(token_pair->main_write_token.get(), interruptor);
 
     rassert(region_is_superset(get_region(), subregion));
     for (std::set<std::string>::iterator it = subregion.keys.begin(); it != subregion.keys.end(); it++) {

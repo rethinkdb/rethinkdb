@@ -59,4 +59,8 @@ void set_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, uuid_u uu
 //points to. drop_secondary_index. Does both and should be used publicly.
 bool delete_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, uuid_u uuid);
 
+//XXX note this just drops the enties. It doesn't cleanup the btree that it
+//points to. drop_secondary_indexes. Does both and should be used publicly.
+void delete_all_secondary_indexes(transaction_t *txn, buf_lock_t *sindex_block);
+
 #endif

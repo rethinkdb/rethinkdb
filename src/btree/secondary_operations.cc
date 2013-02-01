@@ -91,3 +91,7 @@ bool delete_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, uuid_u
     }
 }
 
+void delete_all_secondary_indexes(transaction_t *txn, buf_lock_t *sindex_block) {
+    set_secondary_indexes_internal(txn, sindex_block, std::map<uuid_u, secondary_index_t>());
+}
+

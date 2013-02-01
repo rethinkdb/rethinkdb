@@ -159,7 +159,7 @@ template <class protocol_t>
 void btree_store_t<protocol_t>::reset_data(
         const typename protocol_t::region_t& subregion,
         const metainfo_t &new_metainfo,
-        object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
+        write_token_pair_t *token_pair,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
@@ -174,13 +174,13 @@ void btree_store_t<protocol_t>::reset_data(
     // TOnDO that's not reasonable; reset_data() is sometimes used to wipe out
     // entire databases.
     const int expected_change_count = 2;
-    acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid, expected_change_count, token, &txn, &superblock, interruptor);
+    acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid, expected_change_count, &token_pair->main_write_token, &txn, &superblock, interruptor);
 
     region_map_t<protocol_t, binary_blob_t> old_metainfo;
     get_metainfo_internal(txn.get(), superblock->get(), &old_metainfo);
     update_metainfo(old_metainfo, new_metainfo, txn.get(), superblock.get());
 
-    protocol_reset_data(subregion, btree.get(), txn.get(), superblock.get());
+    protocol_reset_data(subregion, btree.get(), txn.get(), superblock.get(), token_pair);
 }
 
 template <class protocol_t>
@@ -412,6 +412,53 @@ void btree_store_t<protocol_t>::drop_sindex(
 
         {
             buf_lock_t sindex_superblock_lock(txn, sindex.superblock, rwi_write);
+            sindex_superblock_lock.mark_deleted();
+        }
+    }
+}
+
+template <class protocol_t>
+void btree_store_t<protocol_t>::drop_all_sindexes(
+        write_token_pair_t *token_pair,
+        transaction_t *txn,
+        superblock_t *super_block,
+        value_sizer_t<void> *sizer,
+        value_deleter_t *deleter,
+        signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t) {
+    assert_thread();
+
+    /* First get the sindex block. */
+    scoped_ptr_t<buf_lock_t> sindex_block;
+    acquire_sindex_block_for_write(token_pair, txn, &sindex_block, super_block, interruptor);
+
+    /* Remove reference in the super block */
+    std::map<uuid_u, secondary_index_t> sindexes;
+    get_secondary_indexes(txn, sindex_block.get(), &sindexes);
+
+    delete_all_secondary_indexes(txn, sindex_block.get());
+    sindex_block->release(); //So others may proceed
+
+
+    for (std::map<uuid_u, secondary_index_t>::iterator it  = sindexes.begin();
+                                                       it != sindexes.end();
+                                                       ++it) {
+        /* Make sure we have a record of the slice. */
+        guarantee(std_contains(secondary_index_slices, it->first));
+        btree_slice_t *sindex_slice = &(secondary_index_slices.at(it->first));
+
+        {
+            buf_lock_t sindex_superblock_lock(txn, it->second.superblock, rwi_write);
+            real_superblock_t sindex_superblock(&sindex_superblock_lock);
+
+            erase_all(sizer, sindex_slice,
+                      deleter, txn, &sindex_superblock);
+        }
+
+        secondary_index_slices.erase(it->first);
+
+        {
+            buf_lock_t sindex_superblock_lock(txn, it->second.superblock, rwi_write);
             sindex_superblock_lock.mark_deleted();
         }
     }
