@@ -14,6 +14,9 @@
 
 namespace unittest {
 
+serializer_filepath_t make_unittest_filepaths(const std::string &permanent_path,
+                                              const std::string &temporary_path);
+
 class temp_file_t {
 public:
     temp_file_t();
