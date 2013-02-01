@@ -277,13 +277,13 @@ message Term2 {
         // * Write Ops (the OBJECTs contain data about number of errors etc.)
         // Updates all the rows in a selection.  Calls its Function with the row
         // to be updated, and then merges the result of that call.
-        UPDATE   = 53; // Selection, Function(1), {non_atomic_ok:BOOL} -> OBJECT
+        UPDATE   = 53; // Selection, Function(1), {non_atomic:BOOL} -> OBJECT
         // Deletes all the rows in a selection.
         DELETE   = 54; // Selection -> OBJECT
         // Replaces all the rows in a selection.  Calls its Function with the row
         // to be replaced, and then discards it and stores the result of that
         // call.
-        REPLACE  = 55; // Selection, Function(1), {non_atomic_ok:BOOL} -> OBJECT
+        REPLACE  = 55; // Selection, Function(1), {non_atomic:BOOL} -> OBJECT
         // Inserts into a table.  If `upsert` is true, overwrites entries with
         // the same primary key (otherwise errors).
         INSERT   = 56; // | Table, OBJECT, {upsert:BOOL} -> OBJECT

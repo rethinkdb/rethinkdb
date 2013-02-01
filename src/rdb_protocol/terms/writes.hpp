@@ -92,7 +92,7 @@ private:
     RDB_NAME("insert")
 };
 
-static const char *const replace_optargs[] = {"non_atomic_ok"};
+static const char *const replace_optargs[] = {"non_atomic"};
 class replace_term_t : public op_term_t {
 public:
     replace_term_t(env_t *env, const Term2 *term)
@@ -100,11 +100,11 @@ public:
 private:
     virtual val_t *eval_impl() {
         bool nondet_ok = false;
-        if (val_t *v = optarg("non_atomic_ok", 0)) nondet_ok = v->as_datum()->as_bool();
+        if (val_t *v = optarg("non_atomic", 0)) nondet_ok = v->as_datum()->as_bool();
         func_t *f = arg(1)->as_func();
         rcheck((f->is_deterministic() || nondet_ok),
                "Could not prove function deterministic.  "
-               "Maybe you want to use the non_atomic_ok flag?");
+               "Maybe you want to use the non_atomic flag?");
 
         if (arg(0)->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
             std::pair<table_t *, const datum_t *> tblrow = arg(0)->as_single_selection();

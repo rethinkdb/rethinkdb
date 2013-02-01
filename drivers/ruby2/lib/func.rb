@@ -7,9 +7,12 @@ module RethinkDB
       RQL.new.func(args, body)
     end
 
+    @@special_optargs = {
+      :replace => :non_atomic, :update => :non_atomic, :insert => :upsert
+    }
     @@opt_off = {
       :reduce => -1, :between => -1, :grouped_map_reduce => -1,
-      :table => -1, :insert => -1, :table_create => -1
+      :table => -1, :table_create => -1
     }
     @@rewrites = {
       :< => :lt, :<= => :le, :> => :gt, :>= => :ge,
@@ -26,12 +29,12 @@ module RethinkDB
       termtype = Term2::TermType.values[m.to_s.upcase.to_sym]
       unbound_if(!termtype, m)
 
-      if (opt_offset = @@opt_off[m])
-        maybe_optargs = a[opt_offset]
-        if maybe_optargs.class == Hash
-          optargs = maybe_optargs
-          a.delete_at opt_offset
-        end
+      if (opt_name = @@special_optargs[m])
+        a = optarg_jiggle(a, opt_name)
+        opt_offset = -1
+      end
+      if (opt_offset ||= @@opt_off[m])
+        optargs = a.delete_at(opt_offset) if a[opt_offset].class == Hash
       end
 
       args = (@body ? [self] : []) + a + (b ? [new_func(&b)] : [])
@@ -52,6 +55,15 @@ module RethinkDB
       RQL.new.method_missing(:group_by, a[0], a[1..-2], a[-1], &b)
     end
     def groupby(*a, &b); group_by(*a, &b); end
+
+    def optarg_jiggle(args, optarg)
+      if (ind = args.map{|x| x.class == Symbol ? x : nil}.index(optarg))
+        args << {args.delete_at(ind) => true}
+      else
+        args << {}
+      end
+      return args
+    end
 
     def avg(attr)
       unbound_if @body
@@ -77,15 +89,6 @@ module RethinkDB
 
     def between(l=nil, r=nil)
       super(Hash[(l ? [['left_bound', l]] : []) + (r ? [['right_bound', r]] : [])])
-    end
-
-    def insert(*a, &b)
-      if [String.hash, Symbol.hash].include?(a[-1].class.hash) && a[-1] == :upsert
-        a[-1] = {:upsert => true}
-      else
-        a << {}
-      end
-      super(*a, &b)
     end
 
     def -@; RQL.new.sub(0, self); end
