@@ -4,6 +4,7 @@ module 'DataExplorerView', ->
     class @Container extends Backbone.View
         id: 'dataexplorer'
         template: Handlebars.templates['dataexplorer_view-template']
+        input_query_template: Handlebars.templates['dataexplorer_input_query-template']
         description_template: Handlebars.templates['dataexplorer-description-template']
         template_suggestion_name: Handlebars.templates['dataexplorer_suggestion_name_li-template']
         description_with_example_template: Handlebars.templates['dataexplorer-description_with_example-template']
@@ -14,12 +15,11 @@ module 'DataExplorerView', ->
         reason_dataexplorer_broken_template: Handlebars.templates['dataexplorer-reason_broken-template']
 
         # That's all the thing we want to store so we can display the view as it was (when the user left the data explorer)
-        saved_query: null # Last value @codemirror.getValue()
-        last_query: null # Last executed query
-        last_results: null # Last results
-        last_cursor: null # Last cursor
-        last_metadat: null # Last metadata
-        cursor_timed_out: false # Whether the cursor timed out or not (ie. we reconnected)
+        saved_data: {}
+
+        # Constants
+        limit: 40 # How many results we display per page // Final for now
+        line_height: 13 # Define the height of a line (used for a line is too long)
 
         events:
             'click .CodeMirror': 'handle_keypress'
@@ -40,39 +40,34 @@ module 'DataExplorerView', ->
             event.preventDefault()
             $(event.currentTarget).parent().slideUp('fast', -> $(this).remove())
 
-        # Map function -> state
-        map_state:
+        # Build the suggestions
+        map_state: # Map function -> state
             '': ''
-        # Descriptions
         descriptions: {}
-        # Suggestions[state] = function for this state
-        suggestions: {}
-    
+        suggestions: {} # Suggestions[state] = function for this state
+
         set_doc_description: (command, tag, suggestions) =>
-            if command['langs']['js']['dont_need_parenthesis'] is true
-                full_tag = tag # Here full_tag is just the name of the tag
-                @descriptions[tag] =
+            if tag is 'run' # run is a special case, we don't want use to pass a callback, so we change a little the body
+                full_tag = tag+'(' # full tag is the name plus a parenthesis (we will match the parenthesis too)
+                @descriptions[full_tag] =
                     name: tag
+                    args: '( )'
                     description: @description_with_example_template
                         description: command['description']
                         examples: command['langs']['js']['examples']
             else
-                if tag is 'run' # run is a special case, we don't want use to pass a callback, so we change a little the body
-                    full_tag = tag+'(' # full tag is the name plus a parenthesis (we will match the parenthesis too)
-                    @descriptions[full_tag] =
-                        name: tag
-                        args: '( )'
-                        description: @description_with_example_template
-                            description: command['description']
-                            examples: command['langs']['js']['examples']
+                if command['langs']['js']['dont_need_parenthesis'] is true
+                    full_tag = tag # Here full_tag is just the name of the tag
                 else
                     full_tag = tag+'(' # full tag is the name plus a parenthesis (we will match the parenthesis too)
-                    @descriptions[full_tag] =
-                        name: tag
-                        args: '( '+command['langs']['js']['body']+' )'
-                        description: @description_with_example_template
-                            description: command['description']
-                            examples: command['langs']['js']['examples']
+
+                @descriptions[full_tag] =
+                    name: tag
+                    dont_need_parenthesis: command['langs']['js']['dont_need_parenthesis']
+                    args: '( '+command['langs']['js']['body']+' )'
+                    description: @description_with_example_template
+                        description: command['description']
+                        examples: command['langs']['js']['examples']
 
             parent = command['parent']
             if tag is 'run'
@@ -82,7 +77,7 @@ module 'DataExplorerView', ->
                 parent = ''
             if not suggestions[parent]?
                 suggestions[parent] = []
-            suggestions[parent].push full_tag #+something
+            suggestions[parent].push full_tag
 
             @map_state[full_tag] = command['returns'] # We use full_tag because we need to differentiate between r. and r(
 
@@ -94,7 +89,7 @@ module 'DataExplorerView', ->
             for group in data['sections']
                 for command in group['commands']
                     tag = command['langs']['js']['name']
-                    if tag is '()' or tag is 'runp'
+                    if tag is '()' or tag is 'runp' # TODO add connection stuff
                         continue
                     if tag is 'row' # We want r.row and r.row(
                         new_command = DataUtils.deep_copy command
@@ -125,11 +120,138 @@ module 'DataExplorerView', ->
             for state of @suggestions
                 @suggestions[state].sort()
 
-        # Define the height of a line (used for a line is too long)
-        line_height: 13
-        #TODO bind suggestions to keyup so we don't have an extra line when at the end of a line without a next char
-        num_char_per_line: 106
-        default_num_char_per_line: 106
+        initialize: (options) =>
+            if options?
+                @options = options
+
+            if @prototype?.saved_data?
+                saved_data = @prototype.saved_data
+            else
+                saved_data = {}
+            if saved_data is null # This is the first time we initialize @.prototype.saved_data
+                if window.localStorage?.rethinkdb_dataexplorer?
+                    saved_data = JSON.parse window.localStorage.rethinkdb_dataexplorer
+                    saved_data = true # First time, so there is no way we have a valid cursor
+                else
+                    saved_data =
+                        query: null # Last value @codemirror.getValue()
+                        last_query: null # Last executed query
+                        last_results: null # Last results
+                        last_cursor: null # Last cursor
+                        last_metadata: null # Last metadata
+                        cursor_timed_out: false # Whether the cursor timed out or not (ie. we reconnected)
+                window.localStorage?.rethinkdb_dataexplorer = JSON.stringify saved_data
+
+            # We escape the last function because we are building a regex on top of it.
+            @unsafe_to_safe_regexstr = []
+            @unsafe_to_safe_regexstr.push # This one has to be firest
+                pattern: /\\/g
+                replacement: '\\\\'
+            @unsafe_to_safe_regexstr.push
+                pattern: /\(/g
+                replacement: '\\('
+            @unsafe_to_safe_regexstr.push
+                pattern: /\)/g
+                replacement: '\\)'
+            @unsafe_to_safe_regexstr.push
+                pattern: /\^/g
+                replacement: '\\^'
+            @unsafe_to_safe_regexstr.push
+                pattern: /\$/g
+                replacement: '\\$'
+            @unsafe_to_safe_regexstr.push
+                pattern: /\*/g
+                replacement: '\\*'
+            @unsafe_to_safe_regexstr.push
+                pattern: /\+/g
+                replacement: '\\+'
+            @unsafe_to_safe_regexstr.push
+                pattern: /\?/g
+                replacement: '\\?'
+            @unsafe_to_safe_regexstr.push
+                pattern: /\./g
+                replacement: '\\.'
+            @unsafe_to_safe_regexstr.push
+                pattern: /\|/g
+                replacement: '\\|'
+            @unsafe_to_safe_regexstr.push
+                pattern: /\{/g
+                replacement: '\\{'
+            @unsafe_to_safe_regexstr.push
+                pattern: /\}/g
+                replacement: '\\}'
+            @unsafe_to_safe_regexstr.push
+                pattern: /\[/g
+                replacement: '\\['
+
+            @results_view = new DataExplorerView.ResultView @limit
+
+            @render()
+
+            # Connect the driver
+
+            if @options.use_http_connection is true
+                if not window.r?
+                    #TODO Implement error
+                    console.log 'no driver'
+                else if window.driver_connected isnt 'connected'
+                    window.driver_connect()
+
+        render: =>
+            @.$el.html @template()
+            @.$('.input_query_full_container').html @input_query_template()
+            
+            # Check if the browser supports the JavaScript driver
+            # We do not support internet explorer (even IE 10) and old browsers.
+            if navigator?.appName is 'Microsoft Internet Explorer'
+                @.$('.reason_dataexplorer_broken').html @reason_dataexplorer_broken_template
+                    is_internet_explorer: true
+                @.$('.reason_dataexplorer_broken').slideDown 'fast'
+                @.$('.button_query').prop 'disabled', 'disabled'
+            else if (not DataView?) or (not Uint8Array?) # The main two components that the javascript driver requires.
+                @.$('.reason_dataexplorer_broken').html @reason_dataexplorer_broken_template
+                @.$('.reason_dataexplorer_broken').slideDown 'fast'
+                @.$('.button_query').prop 'disabled', 'disabled'
+            else if not window.r? # In case the javascript driver is not found (if build from source for example)
+                @.$('.reason_dataexplorer_broken').html @reason_dataexplorer_broken_template
+                    no_driver: true
+                @.$('.reason_dataexplorer_broken').slideDown 'fast'
+                @.$('.button_query').prop 'disabled', 'disabled'
+
+            # Let's bring back the data explorer to its old state (if there was)
+            if @saved_data?.last_query? and @saved_data?.last_results? and @saved_data?.last_metadata?
+                @results_view.render_result
+                    query: @saved_data.last_query
+                    results: @saved_data.last_results
+                @results_view.render_metadata @saved_data.last_metadata
+                # The query in code mirror is set in call_codemirror (because we can't set it now)
+            else
+                @.$('.results_container').html @results_view.render_default().$el
+
+            # If driver not conneced
+            if window.driver_connected is false
+                @error_on_connect()
+
+            return @
+
+        # Create a code mirror instance
+        # This method has to be called AFTER the el element has been inserted in the DOM tree.
+        call_codemirror: =>
+            @codemirror = CodeMirror.fromTextArea document.getElementById('input_query'),
+                mode:
+                    name: 'javascript'
+                    json: true
+                onKeyEvent: @handle_keypress
+                onBlur: @hide_suggestion
+                onGutterClick: @handle_gutter_click
+                lineNumbers: true
+                lineWrapping: true
+                matchBrackets: true
+
+            @codemirror.setSize '100%', 'auto'
+            if @saved_data.query?
+                @codemirror.setValue @saved_data.query
+            @codemirror.focus() # Give focus
 
         # We have to keep track of a lot of things because web-kit browsers handle the events keydown, keyup, blur etc... in a strange way.
         current_suggestions: []
@@ -138,15 +260,666 @@ module 'DataExplorerView', ->
         query_first_part: ''
         query_last_part: ''
 
+        # Core of the suggestions' system: We have to parse the query
+        handle_keypress: (editor, event) =>
+            # Save the last query (even incomplete)
+            @__proto__.saved_data._query = @codemirror.getValue()
+            saved_cursor = @codemirror.getCursor()
+            if event?.which?
+                if event.which is 27 # ESC
+                    @hide_suggestion()
+                    return true
+                # If the user hit tab, we switch the highlighted suggestion
+                else if event.which is 9
+                    event.preventDefault()
+                    if event.type isnt 'keydown'
+                        return true
+                    # Switch throught the suggestions
+                    if event.shiftKey
+                        @current_highlighted_suggestion--
+                        if @current_highlighted_suggestion < 0
+                            @current_highlighted_suggestion = @current_suggestions.length-1
+                    else
+                        @current_highlighted_suggestion++
+                        if @current_highlighted_suggestion >= @current_suggestions.length
+                            @current_highlighted_suggestion = 0
+
+                    if @current_suggestions[@current_highlighted_suggestion]?
+                        @highlight_suggestion @current_highlighted_suggestion # Highlight the current suggestion
+                        @write_suggestion
+                            suggestion_to_write: @current_suggestions[@current_highlighted_suggestion] # Auto complete with the highlighted suggestion
+                            saved_cursor: saved_cursor
+
+                    if @current_suggestions.length is 0
+                        query_lines = @codemirror.getValue().split '\n'
+
+                        # Get query before the cursor
+                        # TODO That's a strange behavior. Slava wanted this, let's ask him if it's still true
+                        query_before_cursor = ''
+                        if @codemirror.getCursor().line > 0
+                            for i in [0..@codemirror.getCursor().line-1]
+                                query_before_cursor += query_lines[i] + '\n'
+                        query_before_cursor += query_lines[@codemirror.getCursor().line].slice 0, @codemirror.getCursor().ch
+                        if query_before_cursor[query_before_cursor.length-1] isnt '('
+                            return false
+
+                    return true
+                else if event.which is 13 and (event.shiftKey or event.ctrlKey) # If the user hit enter and (Ctrl or Shift)
+                    @hide_suggestion()
+                    event.preventDefault()
+                    if event.type isnt 'keydown'
+                        return true
+                    @show_or_hide_arrow()
+                    @execute_query()
+                else if event.ctrlKey and event.which is 86 and event.type is 'keydown' # Ctrl + V
+                    @last_action_is_paste = true
+                    @num_released_keys = 0 # We want to know when the user release Ctrl AND V
+                    @hide_suggestion()
+                    return true
+                else if event.type is 'keyup' and @last_action_is_paste is true and event.which is 17 # When the user release Ctrl after a ctrl + V
+                    @num_released_keys++
+                    if @num_released_keys is 2
+                        @last_action_is_paste = false
+                    @hide_suggestion()
+                    return true
+                else if event.type is 'keyup' and @last_action_is_paste is true and event.which is 86 # When the user release V after a ctrl + V
+                    @num_released_keys++
+                    if @num_released_keys is 2
+                        @last_action_is_paste = false
+                    @hide_suggestion()
+                    return true
+                else if @codemirror.getSelection() isnt '' # If the user select something, we don't show any suggestion
+                    @hide_suggestion()
+                    return false
+             
+            # We just look at key up so we don't fire the call 3 times
+            # TODO Make it flawless. I'm not sure that's the desired behavior
+            if event?.type? and event.type isnt 'keyup' or (event?.which? and event.which is 16) # We don't do anything for shift
+                return false
+
+            @current_highlighted_suggestion = -1
+            @.$('.suggestion_name_list').empty()
+
+            # Codemirror return a position given by line/char.
+            # We need to retrieve the lines first
+            query_lines = @codemirror.getValue().split '\n'
+            # Then let's get query before the cursor
+            query_before_cursor = ''
+            if @codemirror.getCursor().line > 0
+                for i in [0..@codemirror.getCursor().line-1]
+                    query_before_cursor += query_lines[i] + '\n'
+            query_before_cursor += query_lines[@codemirror.getCursor().line].slice 0, @codemirror.getCursor().ch
+
+            # Get query after the cursor
+            query_after_cursor = query_lines[@codemirror.getCursor().line].slice @codemirror.getCursor().ch
+            if query_lines.length > @codemirror.getCursor().line+1
+                query_after_cursor += '\n'
+                for i in [@codemirror.getCursor().line+1..query_lines.length-1]
+                    if i isnt query_lines.length-1
+                        query_after_cursor += query_lines[i] + '\n'
+                    else
+                        query_after_cursor += query_lines[i]
+            
+
+            # We could perform better, but that would make the code harder to read, so let's not work too hard
+            @parse_query
+                query_before_cursor: query_before_cursor
+                query_after_cursor: query_after_cursor
+
+            ###
+            errors = @get_errors_from_query @codemirror.getValue()
+
+
+            # Check if we are in a string or in the middle of a word, if we are in a string, we just show the description
+            is_in_string = @is_in_string query_before_cursor
+            if is_in_string.boolean is true
+                @hide_suggestion()
+                last_function_for_description = @extract_last_function_for_description
+                    is_string: true
+                    char_used: is_in_string.char_used
+                    query: query_before_cursor
+                if last_function_for_description isnt ''
+                    @add_description last_function_for_description
+                return ''
+            
+            # We do not suggest things if in the middle of a word
+            index_next_character = 0
+            while query_after_cursor[index_next_character]?
+                if /\s/.test(query_after_cursor[index_next_character]) is false
+                    next_non_white_character = query_after_cursor[index_next_character]
+                    break
+                index_next_character++
+            if next_non_white_character? and next_non_white_character isnt '.' and next_non_white_character isnt ',' and next_non_white_character isnt ')' and next_non_white_character isnt ';'
+                @hide_suggestion()
+                last_function_for_description = @extract_last_function_for_description(query_before_cursor)
+                if last_function_for_description isnt ''
+                    @add_description last_function_for_description
+                return ''
+
+            # Extract the current query (the inner query)
+            slice_index = @extract_query_first_part query_before_cursor
+            query = query_before_cursor.slice slice_index
+            
+            # Store data to reconstruct when a suggestion is selected
+            @query_first_part = query_before_cursor.slice 0, slice_index
+            @query_last_part = query_after_cursor
+
+            # Get the last completed function for description and suggestion
+            last_function = @extract_last_function(query)
+            just_description = false # Boolean to know if we want to display just the description and not the suggestions
+            # Hack in case a new parenthesis is opened. Ex: r.table('foo').filter( // We want to describe filter, not suggest r(
+            if /^\s*$/.test(query) is true or last_function is '' # We have an empty cursor
+                last_function_full = @extract_last_function_for_description(query_before_cursor)
+                if last_function_full isnt ''
+                    last_function = last_function_full
+                    just_description = true
+
+            # Hack because last_function returns 'r' if the query is 'r'. and r isn't a function
+            if last_function is query and last_function is 'r'
+                last_function = ''
+
+            if @map_state[last_function]? and @suggestions[@map_state[last_function]]?
+                if not @suggestions[@map_state[last_function]]? or @suggestions[@map_state[last_function]].length is 0 or just_description is true
+                    @hide_suggestion()
+                    last_function_for_description = @extract_last_function_for_description(query_before_cursor)
+
+                    if last_function_for_description isnt ''
+                        @add_description last_function_for_description
+                else
+                    could_append = @append_suggestion(query, @suggestions[@map_state[last_function]])
+                    if could_append is false # We couldn't find any suggestion that matched. We are probably at the end of a function (closing parenthesis)
+                        last_function_for_description = @extract_last_function_for_description(query_before_cursor)
+
+                        if last_function_for_description isnt ''
+                            @add_description last_function_for_description
+            else
+                @hide_suggestion()
+                last_function_for_description = @extract_last_function_for_description(query_before_cursor)
+
+                if last_function_for_description isnt ''
+                    @add_description last_function_for_description
+            ###
+            return false
+
+        # Check if the end of the query is in the middle of a string. 
+        is_in_string: (query) ->
+            is_string = false
+            char_used = ''
+            
+            for char, i in query
+                if is_string is false
+                    if char is '"' or char is '\''
+                        is_string = true
+                        char_used = char
+
+
+                else
+                    if char is char_used and query[i-1] isnt '\\' # It's safe to get query[i-1] because is_string cannot be true for the first char
+                        is_string = false
+
+            boolean: is_string
+            char_used: char_used
+        # Hipsters stuff
+        
+        #Highlight suggestion. Method called when the user hit tab or mouseover
+        highlight_suggestion: (id) =>
+            @.$('.suggestion_name_li').removeClass 'suggestion_name_li_hl'
+            @.$('.suggestion_name_li').eq(id).addClass 'suggestion_name_li_hl'
+            @.$('.suggestion_description').html @description_template @extend_description @current_suggestions[id]
+            @show_suggestion_description()
+
+        # Show the description of the suggestion
+        show_suggestion_description: =>
+            margin = (parseInt(@.$('.CodeMirror-cursor').css('top').replace('px', ''))+@line_height)+'px'
+            @.$('.suggestion_full_container').css 'margin-top', margin
+            @.$('.arrow').css 'margin-top', margin
+
+            @.$('.suggestion_description').show()
+            @.$('.arrow').show()
+
+        # Write the suggestion
+        write_suggestion: (args) =>
+            suggestion_to_write = args.suggestion_to_write
+            saved_cursor = args.saved_cursor
+            @codemirror.setValue @query_first_part + @current_completed_query + suggestion_to_write + @query_last_part
+    
+            # We want look for the position of the cursor on the current line.
+            start_line_index = (@query_first_part + @current_completed_query).lastIndexOf('\n')
+            start_line_index++ # Set to 0 if not found else move after \n
+
+            position = (@query_first_part + @current_completed_query + suggestion_to_write).length - start_line_index
+            @codemirror.setCursor position
+                line: saved_cursor.line
+                ch: position
+
+            # Let's save the new query
+            @__proto__.saved_data._query = @codemirror.getValue()
+
+        # Select the suggestion highlighted
+        select_suggestion: (event) =>
+            saved_cursor = @codemirror.getCursor()
+
+            suggestion_to_write = @.$(event.target).html()
+            @write_suggestion suggestion_to_write
+
+            # Give back focus to code mirror
+            @codemirror.focus()
+            @hide_suggestion()
+
+            @handle_keypress() # We can have a description to show or even suggestions (like after r or row)
+
+
+        # Extract information from the current query
+        
+        # r.table(...).filter( functi => filter
+        # r.table(...).filter( function(doc) { => filter
+        # r.table(...).filter( function(doc) { r( => r
+        # r.table(...).filter( function(doc) { doc('test => (
+        # r.table(...).filter( function(doc) { r.row('key').add( => add
+        # r.table(...).filter( function(doc) { r.row('key').add('fdsf => add
+        # r.expr().map( {} )
+        # r.table(...).filter( function(doc) { doc('id').eq('xxx') } ).count().run()
+        #| |          |                                              |       |
+        #                                    |                     |
+        #                                         |    |   |     |
+        # map( function(doc) { return doc.merge({1: doc('i
+        # r.table('test').filter(function(doc) { doc('id').eq({key: 'test', other_key: 'other_value')}).map(r.row('data')('age').add(2)).count().run()
+        # [
+        #   { value: 'r',
+        #     type: 'function'
+        #   },
+        #   {
+        #     value: 'table('test')',
+        #     type: function
+        #     body: [
+        #       value: 'test'
+        #       type: string
+        #     ]
+        #   },
+        #   {
+        #     value: filter
+        #     type: function
+        #     body: [
+        #       'doc'
+        #     ]
+        #     content: [
+        #       doc('id').eq({key: 'test', other_key: 'other_value')
+        #     ]
+        #   }
+        # ]
+        #                                                                                                                                            
+        # Ok, I give up the parsing from right to left
+        #
+        # We have to parse "return" too
+        regex:
+            anonymous:/^(\s)*function\(([a-zA-Z0-9,\s]*)\)(\s)*{/
+            method: /^(\s)*([a-zA-Z]+)\(/ # forEach( merge( filter(
+            method_var: /^(\s)*([a-zA-Z]+)\./ # r. r.row. (r.count will be caught later)
+            return : /^(\s)*return(\s)*/
+            object: /^(\s)*{(\s)*/
+            white: /^(\s)+$/
+            white_and_comma: /^(\s)*(,)+(\s)*/
+            comma: /^(\s)*,(\s)*/
+        stop_char:
+            opening:
+                '(': true
+                '{': true
+                '[': true
+            closing:
+                ')': '('
+                '}': '{'
+                ']': '['
+
+        parse_query: (args) =>
+            console.log '==============================================='
+            console.log JSON.stringify @extract_data_from_query({ query: args.query_before_cursor, context: {}}), undefined, 2
+
+
+        extract_data_from_query: (args) =>
+            query = args.query
+            context = if args.context? then DataUtils.deep_copy(args.context) else {}
+
+            # query_after_cursor = args.query_before_cursor
+            
+            stack = []
+            element =
+                type: null
+                start: 0
+                context: context
+                complete: false
+
+            is_parsing_string = false
+            to_skip = 0
+
+            console.log query
+
+            for char, i in query
+                if to_skip > 0 # Because we cannot mess with the iterator in coffee-script
+                    to_skip--
+                    continue
+
+                if is_parsing_string is true
+                    if char is string_delimiter # End of the string, we can work again?
+                        is_parsing_string = false # Else we just keep parsing the string
+                        if element.type is 'string'
+                            element.name = query.slice element.start, i+1
+                            element.complete = true
+                            stack.push element
+                            element =
+                                type: null
+                                start: i+1
+                                context: context
+                                complete: false
+                else # if element.is_parsing_string is false
+                    if char is '\'' or char is '"' # So we get a string here
+                        is_parsing_string = true
+                        string_delimiter = char
+                        if element.type is null
+                            element.type = 'string'
+                            element.start = i
+                        continue
+
+                   
+                    if element.type is null # We have no idea what the fuck is that, so let's test
+                        if element.start is i
+                            result_regex = @regex.anonymous.exec query.slice i # Check for anonymouse function
+                            if result_regex isnt null
+                                element.type = 'anonymous_function'
+                                list_args = result_regex[2]?.split(',')
+                                for arg in list_args
+                                    arg.replace(/(^\s*)|(\s*$)/gi,"") # Removing leading/trailing spaces
+                                element.args = list_args
+                                new_context = DataUtils.deep_copy context
+                                for arg in list_args
+                                    new_context[arg] = true
+                                element.context = new_context
+                                to_skip = result_regex[0].length
+                                element.body_start = i+result_regex[0].length
+                                stack_stop_char = ['{']
+                                continue
+
+                            result_regex = @regex.return.exec query.slice i # Check for return
+                            if result_regex isnt null
+                                # I'm not sure we need to keep track of return, but let's keep it for now
+                                element.type = 'return'
+                                element.complete = true
+                                to_skip = result_regex[0].length-1
+                                stack.push element
+                                element =
+                                    type: null
+                                    start: i+result_regex[0].length
+                                    context: context
+                                    complete: false
+                                continue
+
+                            result_regex = @regex.object.exec query.slice i # Check for object
+                            if result_regex isnt null
+                                element.type = 'object'
+                                element.data = {}
+                                element.next_key = null
+                                element.data = {}
+                                element.current_key_start = i+result_regex[0].length
+                                to_skip = result_regex[0].length-1
+                                stack_stop_char = ['{']
+                                continue
+
+                            if char is '.'
+                                start = i+1
+                            else
+                                start = i
+                            result_regex = @regex.method.exec query.slice start # Check for a standard method
+                            if result_regex isnt null and stack[0]?.type is 'function' # We want the query to start with r. or arg.
+                                #TODO Check if we are dealing with row(
+                                element.type = 'function'
+                                element.name = result_regex[0]
+                                element.start += start-i
+                                to_skip = result_regex[0].length-1+start-i
+                                stack_stop_char = ['(']
+                                continue
+
+                            result_regex = @regex.method_var.exec query.slice start # Check for method without parenthesis r., r.row., doc.merge(...
+                            if result_regex isnt null
+                                element.type = 'function'
+                                element.name = result_regex[0].slice 0, result_regex[0].length-1
+                                element.start += start-i
+                                element.complete = true
+                                to_skip = element.name.length-1+start-i
+                                stack.push element
+                                element =
+                                    type: null
+                                    start: start+to_skip+1
+                                    context: context
+                                    complete: false
+                                continue
+                        else # if element.start isnt i
+                            # Skip white spaces
+                            result_regex = @regex.white_and_comma.exec query.slice i
+                            if result_regex isnt null
+                                # element should have been pushed in stack. If not, the query is malformed
+                                element.complete = true
+                                stack.push
+                                    type: 'separator'
+                                    name: query.slice i, result_regex[0].length
+                                element =
+                                    type: null
+                                    start: i+result_regex[0].length-1+1
+                                    context: context
+                                    complete: false
+                                to_skip = result_regex[0].length-1
+                                #element.start += to_skip
+                                continue
+                    
+                    else # element.type isnt null
+                        # White spaces can means a new start: r.table(...).eqJoin('id', r.table(...), 'other_id')
+                        # Is that even possible?
+                        result_regex = @regex.white_and_comma.exec(query.slice(i))
+                        if result_regex isnt null and stack_stop_char.length < 1
+                            # element should have been pushed in stack. If not, the query is malformed
+                            stack.push
+                                type: 'separator'
+                                name: query.slice i, result_regex[0].length
+                            element =
+                                type: null
+                                start: i+result_regex[0].length-1
+                                context: context
+                                complete: false
+                            to_skip = result_regex[0].length-1
+                            #element.start += to_skip
+                            continue
+
+
+                        # Hum, if we reach here, the query is probably malformed of there's a bug here
+                        else if element.type is 'anonymous_function'
+                            if char of @stop_char.opening
+                                stack_stop_char.push char
+                            else if char of @stop_char.closing
+                                if stack_stop_char[stack_stop_char.length-1] is @stop_char.closing[char]
+                                    stack_stop_char.pop()
+                                    if stack_stop_char.length is 0
+                                        element.body = @extract_data_from_query
+                                            query: query.slice element.body_start, i
+                                            context: element.context
+                                        element.complete = true
+                                        stack.push element
+                                        element =
+                                            type: null
+                                            start: i+1
+                                            context: context
+                                #else something is broken here.
+                                #TODO Default behavior? The user forgot to close something?
+                                #@get_error_from_query is going to report this issue
+                        else if element.type is 'function'
+                            if char of @stop_char.opening
+                                stack_stop_char.push char
+                            else if char of @stop_char.closing
+                                if stack_stop_char[stack_stop_char.length-1] is @stop_char.closing[char]
+                                    stack_stop_char.pop()
+                                    if stack_stop_char.length is 0
+                                        element.body = @extract_data_from_query
+                                            query: query.slice element.start+element.name.length, i
+                                            context: element.context
+                                        element.complete = true
+                                        stack.push element
+                                        element =
+                                            type: null
+                                            start: i+1
+                                            context: context
+                        else if element.type is 'object'
+                            # Since we are sure that we are not in a string, we can just look for colon and comma
+                            # Still, we need to check the stack_stop_char since we can have { key: { inner: 'test, 'other_inner'}, other_key: 'other_value'}
+                            keys_values = []
+                            if char of @stop_char.opening
+                                stack_stop_char.push char
+                            else if char of @stop_char.closing
+                                if stack_stop_char[stack_stop_char.length-1] is @stop_char.closing[char]
+                                    stack_stop_char.pop()
+                                    if stack_stop_char.length is 0
+                                        if element.next_key?
+                                            element.key_complete = true
+                                            element.data[element.next_key] = @extract_data_from_query
+                                                query: query.slice element.current_value_start, i
+                                                context: element.context
+                                        element.next_key = null # No more next_key
+                                        element.complete = true
+                                        #else the next key is not defined
+                                        #TODO Check that the next_key is just white spaces, else "throw" an error
+                                        #if not element.next_key?
+                                        #    element.key_complete = false
+                                        #    element.next_key = query.slice element.current_key_start
+
+                                        element.data
+                                        stack.push element
+                                        element =
+                                            type: null
+                                            start: i+1
+                                            context: context
+                                        continue
+
+                            if not element.next_key?
+                                if stack_stop_char.length is 1 and char is ':'
+                                    element.next_key = query.slice element.current_key_start, i
+                                    element.current_value_start = i+1
+                            else
+                                result_regex = @regex.comma.exec query.slice i
+                                if stack_stop_char.length is 1 and result_regex isnt null #We reached the end of the object or the end of a value
+                                    new_value = query.slice element.current_value_start, i
+                                    element.data[element.next_key] = @extract_data_from_query
+                                        query: query.slice element.current_value_start, i
+                                        context: element.context
+                                    to_skip = result_regex[0].length-1
+                                    element.next_key = null
+                                    element.current_key_start = i+result_regex[0].length
+
+            if element.type isnt null
+                element.complete = false
+                if element.type is 'function'
+                    element.body = @extract_data_from_query
+                        query: query.slice element.start+element.name.length
+                        context: element.context
+                    stack.push element
+                else if element.type is 'anonymous_function'
+                    element.body = @extract_data_from_query
+                        query: query.slice element.body_start
+                        context: element.context
+                    stack.push element
+                else if element.type is 'string'
+                    element.name = query.slice element.start
+                    stack.push element
+                else if element.type is 'object'
+                    if not element.next_key? # Key not defined yet
+                        element.key_complete = false
+                        element.next_key = query.slice element.current_key_start
+                    else
+                        element.key_complete = true
+                        element.data[element.next_key] = @extract_data_from_query
+                            query: query.slice element.current_value_start
+                            context: element.context
+                        element.next_key = null # No more next_key
+
+
+            else if element.start isnt i
+                if query[element.start] is '.'
+                    #TODO add check for [a-zA-Z]?
+                    element.type = 'function'
+                    element.name = query.slice element.start+1
+                else
+                    element.name = query.slice element.start
+                element.complete = false
+                if @regex.white.test(element.name) is false # If its type is null and the name is just white spaces, we ignore the element
+                    stack.push element
+            console.log 'DEBUG: '+stack_stop_char
+            return stack
+
+        # Return the first unmatched closing parenthesis/square bracket/curly bracket
+        # Returns
+        #   error: true
+        #   char: the character used
+        #   position: the faulty char
+        # or returns null
+        # TODO Check if a key is used more than once in an object
+        get_errors_from_query: (query) =>
+            is_string = false
+            char_used = ''
+
+            stack = [] # Stack of opening parenthesis/square brackets/curly brackets
+            for char, i in query
+                if is_string is false
+                    if char is '"' or char is '\''
+                        is_string = true
+                        char_used = char
+                        position_string = i
+                    else if char is '('
+                        stack.push char
+                    else if char is ')'
+                        if stack.pop() isnt char
+                            return {
+                                error: true
+                                char: char
+                                position: i
+                            }
+                    else if char is '['
+                        stack.push char
+                    else if char is ']'
+                        if stack.pop() isnt char
+                            return {
+                                error: true
+                                char: char
+                                position: i
+                            }
+                     else if char is '{'
+                        stack.push char
+                    else if char is '}'
+                        if stack.pop() isnt char
+                            return {
+                                error: true
+                                char: char
+                                position: i
+                            }
+                else
+                    if char is char_used and query[i-1] isnt '\\' # It's safe to get query[i-1] because is_string cannot be true for the first char
+                        is_string = false
+            if is_string is true
+                return {
+                    error: true
+                    char: char_used
+                    position: i
+                }
+            else
+                return null
+
+
+
+        ###
+        # Current refactoring ends here for Container
+        ###
+
         show_or_hide_arrow: =>
             if @.$('.suggestion_name_list').css('display') is 'none' and @.$('.suggestion_description').css('display') is 'none'
                 @.$('.arrow').hide()
             else
                 @.$('.arrow').show()
     
-        # Write the suggestion
-        write_suggestion: (suggestion_to_write) =>
-            @codemirror.setValue @query_first_part + @current_completed_query + suggestion_to_write + @query_last_part
+
 
         # Highlight a suggestion in case of a mouseover
         mouseover_suggestion: (event) =>
@@ -156,65 +929,20 @@ module 'DataExplorerView', ->
         mouseout_suggestion: (event) =>
             @hide_suggestion_description()
 
-        # Highlight suggestion
-        highlight_suggestion: (id) =>
-            @.$('.suggestion_name_li').removeClass 'suggestion_name_li_hl'
-            @.$('.suggestion_name_li').eq(id).addClass 'suggestion_name_li_hl'
 
-            @.$('.suggestion_description').html @description_template @extend_description @current_suggestions[id]
-
-            @show_suggestion_description()
-
-        # Set cursor to position
-        position_cursor: (position) =>
-            @codemirror.setCursor position
-
-        # Select the suggestion highlighted
-        select_suggestion: (event) =>
-            saved_cursor = @codemirror.getCursor()
-
-            suggestion_to_write = @.$(event.target).html()
-            @write_suggestion suggestion_to_write
-
-            start_line_index = (@query_first_part + @current_completed_query).lastIndexOf('\n')
-            if start_line_index is -1
-                start_line_index = 0
-            else
-                start_line_index += 1
-            
-            ch = (@query_first_part + @current_completed_query + suggestion_to_write).length - start_line_index
-
-            @cursor =
-                line: saved_cursor.line
-                ch: ch
-
-            setTimeout @position_cursor_after_click, 1 # Ugliest hack ever.
-
-        # Set the position of the cursor after a suggestion has been clicked
-        position_cursor_after_click: =>
-            @codemirror.focus()
-            @position_cursor @cursor
-            @handle_keypress()
         
         # Hide the suggestion
         hide_suggestion: =>
             @.$('.suggestion_name_list').css 'display', 'none'
             @hide_suggestion_description()
             @current_suggestions = []
-            @show_or_hide_arrow()
+            @.$('.arrow').hide()
 
         # Hide the description
         hide_suggestion_description: =>
             @.$('.suggestion_description').html ''
             @.$('.suggestion_description').css 'display', 'none'
-            @show_or_hide_arrow()
-
-        # Change the num_char_per_line value when we switch from normal view to full view and vice versa 
-        set_char_per_line: =>
-            if @displaying_full_view is true
-                @num_char_per_line = Math.floor (@.$('.CodeMirror-scroll').width()-37)/8
-            else
-                @num_char_per_line = @default_num_char_per_line
+            @.$('.arrow').hide()
 
         move_suggestion: =>
 
@@ -238,16 +966,10 @@ module 'DataExplorerView', ->
             margin = (parseInt(@.$('.CodeMirror-cursor').css('top').replace('px', ''))+@line_height)+'px'
             @.$('.suggestion_full_container').css 'margin-top', margin
             @.$('.arrow').css 'margin-top', margin
-            @.$('.suggestion_name_list').css 'display', 'block'
-            @move_suggestion()
-            @show_or_hide_arrow()
 
-        show_suggestion_description: =>
-            margin = (parseInt(@.$('.CodeMirror-cursor').css('top').replace('px', ''))+@line_height)+'px'
-            @.$('.suggestion_full_container').css 'margin-top', margin
-            @.$('.arrow').css 'margin-top', margin
-            @.$('.suggestion_description').css 'display', 'block'
-            @show_or_hide_arrow()
+            @.$('.suggestion_name_list').show()
+            @.$('.arrow').show()
+
 
         # Extend description for db() and table() with a list of databases or namespaces
         extend_description: (fn) =>
@@ -358,168 +1080,42 @@ module 'DataExplorerView', ->
                 height = @.$('.input_query').prop('scrollHeight') # We should have -8 but Firefox doesn't add padding in scrollHeight... Maybe we should start adding hacks...
                 @.$('.input_query').css 'height', height if @.$('.input_query').height() isnt height
 
-        # Make suggestions when the user is writing
-        handle_keypress: (editor, event) =>
-            # Save the last query (even incomplete)
-            DataExplorerView.Container.prototype.saved_query = @codemirror.getValue()
-            saved_cursor = @codemirror.getCursor()
-            if event?.which?
-                if event.which is 27
-                    @hide_suggestion()
-                    return true
-                # If the user hit tab, we switch the highlighted suggestion
-                else if event.which is 9
-                    event.preventDefault()
-                    if event.type isnt 'keydown'
-                        return true
-                    if event.shiftKey
-                        @current_highlighted_suggestion--
-                        if @current_highlighted_suggestion < 0
-                            @current_highlighted_suggestion = @current_suggestions.length-1
-                    else
-                        @current_highlighted_suggestion++
-                        if @current_highlighted_suggestion >= @current_suggestions.length
-                            @current_highlighted_suggestion = 0
 
-                    if @current_suggestions[@current_highlighted_suggestion]?
-                        @highlight_suggestion @current_highlighted_suggestion
-                        @write_suggestion @current_suggestions[@current_highlighted_suggestion]
-                
-                        start_line_index = (@query_first_part + @current_completed_query).lastIndexOf('\n')
-                        if start_line_index is -1
-                            start_line_index = 0
-                        else
-                            start_line_index += 1
-                        position = (@query_first_part + @current_completed_query + @current_suggestions[@current_highlighted_suggestion]).length - start_line_index 
-                        @position_cursor
-                            line: saved_cursor.line
-                            ch: position
+        # Extract the last function to give a description
+        # r.table(...).filter( function(doc) { => filter
+        # r.table(...).filter( function(doc) { r( => r
+        # r.table(...).filter( function(doc) { doc('test => (
+        # r.table(...).filter( function(doc) { r.row('key').add( => add
+        # r.table(...).filter( function(doc) { r.row('key').add('fdsf => add
+        extract_last_function_for_description: (args) =>
+            is_string = if args.is_string? then args.is_string else false
+            char_used = if args.char_used? then args.char_used else true
+            query = args.query
 
-                    if @current_suggestions.length is 0
-                        query_lines = @codemirror.getValue().split '\n'
-
-                        # Get query before the cursor
-                        query_before_cursor = ''
-                        if @codemirror.getCursor().line > 0
-                            for i in [0..@codemirror.getCursor().line-1]
-                                query_before_cursor += query_lines[i] + '\n'
-                        query_before_cursor += query_lines[@codemirror.getCursor().line].slice 0, @codemirror.getCursor().ch
-                        if query_before_cursor[query_before_cursor.length-1] isnt '('
-                            return false
-
-                    return true
-
-                # If the user hit enter and (Ctrl or Shift)
-                if event.which is 13 and (event.shiftKey or event.ctrlKey)
-                    @hide_suggestion()
-                    event.preventDefault()
-                    if event.type isnt 'keydown'
-                        return true
-                    @show_or_hide_arrow()
-                    @execute_query()
-            
-            # We just look at key up so we don't fire the call 3 times
-            if event?.type? and event.type isnt 'keyup' or (event?.which? and event.which is 16) # We don't do anything for shift
-                return false
-
-            @current_highlighted_suggestion = -1
-            @.$('.suggestion_name_list').html ''
-
-            query_lines = @codemirror.getValue().split '\n'
-
-            # Get query before the cursor
-            query_before_cursor = ''
-            if @codemirror.getCursor().line > 0
-                for i in [0..@codemirror.getCursor().line-1]
-                    query_before_cursor += query_lines[i] + '\n'
-            query_before_cursor += query_lines[@codemirror.getCursor().line].slice 0, @codemirror.getCursor().ch
-
-            # Get query after the cursor
-            query_after_cursor = query_lines[@codemirror.getCursor().line].slice @codemirror.getCursor().ch
-            if query_lines.length > @codemirror.getCursor().line+1
-                query_after_cursor += '\n'
-                for i in [@codemirror.getCursor().line+1..query_lines.length-1]
-                    if i isnt query_lines.length-1
-                        query_after_cursor += query_lines[i] + '\n'
-                    else
-                        query_after_cursor += query_lines[i]
-
-
-            # Check if we are in a string or in the middle of a word, if we are in a string, we just show the description
-            if @is_in_string(query_before_cursor) is true
-                @hide_suggestion()
-                last_function_for_description = @extract_last_function_for_description(query_before_cursor)
-                if last_function_for_description isnt ''
-                    @add_description last_function_for_description
-                return ''
-            
-            # We do not suggest things if in the middle of a word
-            index_next_character = 0
-            while query_after_cursor[index_next_character]?
-                if /\s/.test(query_after_cursor[index_next_character]) is false
-                    next_non_white_character = query_after_cursor[index_next_character]
-                    break
-                index_next_character++
-            if next_non_white_character? and next_non_white_character isnt '.' and next_non_white_character isnt ',' and next_non_white_character isnt ')' and next_non_white_character isnt ';'
-                @hide_suggestion()
-                last_function_for_description = @extract_last_function_for_description(query_before_cursor)
-                if last_function_for_description isnt ''
-                    @add_description last_function_for_description
-                return ''
-
-            # Extract the current query (the inner query)
-            slice_index = @extract_query_first_part query_before_cursor
-            query = query_before_cursor.slice slice_index
-            
-            # Store data to reconstruct when a suggestion is selected
-            @query_first_part = query_before_cursor.slice 0, slice_index
-            @query_last_part = query_after_cursor
-
-            # Get the last completed function for description and suggestion
-            last_function = @extract_last_function(query)
-            just_description = false # Boolean to know if we want to display just the description and not the suggestions
-            # Hack in case a new parenthesis is opened. Ex: r.table('foo').filter( // We want to describe filter, not suggest r(
-            if /^\s*$/.test(query) is true or last_function is '' # We have an empty cursor
-                last_function_full = @extract_last_function_for_description(query_before_cursor)
-                if last_function_full isnt ''
-                    last_function = last_function_full
-                    just_description = true
-
-            # Hack because last_function returns 'r' if the query is 'r'. and r isn't a function
-            if last_function is query and last_function is 'r'
-                last_function = ''
-
-            if @map_state[last_function]? and @suggestions[@map_state[last_function]]?
-                if not @suggestions[@map_state[last_function]]? or @suggestions[@map_state[last_function]].length is 0 or just_description is true
-                    @hide_suggestion()
-                    last_function_for_description = @extract_last_function_for_description(query_before_cursor)
-
-                    if last_function_for_description isnt ''
-                        @add_description last_function_for_description
-                else
-                    could_append = @append_suggestion(query, @suggestions[@map_state[last_function]])
-                    if could_append is false # We couldn't find any suggestion that matched. We are probably at the end of a function (closing parenthesis)
-                        last_function_for_description = @extract_last_function_for_description(query_before_cursor)
-
-                        if last_function_for_description isnt ''
-                            @add_description last_function_for_description
-            else
-                @hide_suggestion()
-                last_function_for_description = @extract_last_function_for_description(query_before_cursor)
-
-                if last_function_for_description isnt ''
-                    @add_description last_function_for_description
-
-            return false
-
-        # Extract the last function to give a description, regardless of if we are in a string or not
-        # Note: We are really not efficient... We can do way better parsing from left to right. Let's do it next time we refactor all this thing
-        extract_last_function_for_description: (query) =>
-            # query = query_before_cursor
-            count_dot = 0
             num_not_open_parenthesis = 0
 
             for i in [query.length-1..0] by -1
+                char = query[i]
+                if is_string is false
+                    if char is '"' or char is '\''
+                        is_string = true
+                        char_used = char
+                    else if query[i] is '(' and num_not_open_parenthesis >= 0
+                        if @is_in_string(query.slice(0, i)) is false
+                            num_not_open_parenthesis--
+                            end = i+1
+                    else if query[i] is '(' and num_not_open_parenthesis < 0
+                        return query.slice i+1, end
+                    else if query[i] is ')'
+                        num_not_open_parenthesis++
+                    else if query[i] is '.' and num_not_open_parenthesis < 0
+                        return query.slice i+1, end
+                else
+                    if char is char_used and ((not query[i-1]?) or query[i-1] isnt '\\') # It's safe to get query[i-1] because is_string cannot be true for the first char
+                        is_string = false
+
+
+
                 if query[i] is '(' and num_not_open_parenthesis >= 0
                     if @is_in_string(query.slice(0, i)) is false
                         num_not_open_parenthesis--
@@ -536,23 +1132,7 @@ module 'DataExplorerView', ->
 
             return ''
 
-        # Check if we are in a string (for the last position)
-        is_in_string: (query) ->
-            is_string = false
-            char_used = ''
 
-            for i in [query.length-1..0] by -1
-                if is_string is false
-                    if (query[i] is '"' or query[i] is '\'')
-                        is_string = true
-                        char_used = query[i]
-                else if is_string is true
-                    if query[i] is char_used
-                        if query[i-1]? and query[i-1] is '\\'
-                            continue
-                        else
-                            is_string = false
-            return is_string
 
         # Extract the last completed function of the current line, taking in account if we are in a string
         # Ex: r.d => r
@@ -705,8 +1285,9 @@ module 'DataExplorerView', ->
                 # Save the last executed query and the last displayed results
                 DataExplorerView.Container.prototype.last_query = @query
                 DataExplorerView.Container.prototype.last_results = @current_results
-                @results_view.render_result null, @current_results # The first parameter null is the query because we don't want to display it.
-                #TODO Refactor render_results since it's not really friendly as it is
+                @results_view.render_result
+                    query: null
+                    results: @current_results # The first parameter null is the query because we don't want to display it.
 
                 execution_time = new Date() - @start_time
                 metadata =
@@ -768,7 +1349,9 @@ module 'DataExplorerView', ->
                     # Save the last executed query and the last displayed results
                     DataExplorerView.Container.prototype.last_query = @query
                     DataExplorerView.Container.prototype.last_results = @current_results
-                    @results_view.render_result null, @current_results # The first parameter is null ( = query, so we don't display it)
+                    @results_view.render_result
+                        query: null
+                        results: @current_results # The first parameter is null ( = query, so we don't display it)
 
                     execution_time = new Date() - @start_time
                     metadata =
@@ -801,7 +1384,6 @@ module 'DataExplorerView', ->
                 catch err
                     @.$('.loading_query_img').css 'display', 'none'
                     @results_view.render_error(@query, err)
-
             return false
 
         # Function that execute the query
@@ -950,115 +1532,8 @@ module 'DataExplorerView', ->
             clearTimeout window.timeout_driver_connect
             window.driver_connect()
 
-        initialize: (options) =>
-            if options?
-                @options = options
-
-            @limit = 40
-
-            # We escape the last function because we are building a regex on top of it.
-            @unsafe_to_safe_regexstr = []
-            @unsafe_to_safe_regexstr.push # This one has to be firest
-                pattern: /\\/g
-                replacement: '\\\\'
-            @unsafe_to_safe_regexstr.push
-                pattern: /\(/g
-                replacement: '\\('
-            @unsafe_to_safe_regexstr.push
-                pattern: /\)/g
-                replacement: '\\)'
-            @unsafe_to_safe_regexstr.push
-                pattern: /\^/g
-                replacement: '\\^'
-            @unsafe_to_safe_regexstr.push
-                pattern: /\$/g
-                replacement: '\\$'
-            @unsafe_to_safe_regexstr.push
-                pattern: /\*/g
-                replacement: '\\*'
-            @unsafe_to_safe_regexstr.push
-                pattern: /\+/g
-                replacement: '\\+'
-            @unsafe_to_safe_regexstr.push
-                pattern: /\?/g
-                replacement: '\\?'
-            @unsafe_to_safe_regexstr.push
-                pattern: /\./g
-                replacement: '\\.'
-            @unsafe_to_safe_regexstr.push
-                pattern: /\|/g
-                replacement: '\\|'
-            @unsafe_to_safe_regexstr.push
-                pattern: /\{/g
-                replacement: '\\{'
-            @unsafe_to_safe_regexstr.push
-                pattern: /\}/g
-                replacement: '\\}'
-            @unsafe_to_safe_regexstr.push
-                pattern: /\[/g
-                replacement: '\\['
 
 
-            @input_query = new DataExplorerView.InputQuery
-            @results_view = new DataExplorerView.ResultView @limit
-
-            @render()
-
-            $(window).on 'resize', @set_char_per_line
-
-            # Connect the driver
-            if window.driver_connected isnt true and window.r?
-                window.driver_connect()
-
-        render: =>
-            @.$el.html @template
-            @.$('.input_query_full_container').html @input_query.render().$el
-            @.$('.results_container').html @results_view.render().$el
-            @.$('.results_container').html @results_view.render_default().$el
-
-            # We do not support internet explorer (even IE 10) and old browsers.
-            if navigator?.appName is 'Microsoft Internet Explorer'
-                @.$('.reason_dataexplorer_broken').html @reason_dataexplorer_broken_template
-                    is_internet_explorer: true
-                @.$('.reason_dataexplorer_broken').slideDown 'fast'
-                @.$('.button_query').prop 'disabled', 'disabled'
-            else if (not DataView?) or (not Uint8Array?) # The main two components that the javascript driver requires.
-                @.$('.reason_dataexplorer_broken').html @reason_dataexplorer_broken_template
-                @.$('.reason_dataexplorer_broken').slideDown 'fast'
-                @.$('.button_query').prop 'disabled', 'disabled'
-            else if not window.r? # In case the javascript driver is not found (if build from source for example)
-                @.$('.reason_dataexplorer_broken').html @reason_dataexplorer_broken_template
-                    no_driver: true
-                @.$('.reason_dataexplorer_broken').slideDown 'fast'
-                @.$('.button_query').prop 'disabled', 'disabled'
-
-
-            if @last_query? and @last_results? and @last_metadata?
-                @results_view.render_result @last_query, @last_results
-                @results_view.render_metadata @last_metadata
-
-            # If driver not conneced
-            if window.driver_connected is false
-                @error_on_connect()
-
-            return @
-
-        # Create a code mirror instance
-        call_codemirror: =>
-            @codemirror = CodeMirror.fromTextArea document.getElementById('input_query'),
-                mode:
-                    name: 'javascript'
-                    json: true
-                onKeyEvent: @handle_keypress
-                onBlur: @hide_suggestion
-                onGutterClick: @handle_gutter_click
-                lineNumbers: true
-                lineWrapping: true
-                matchBrackets: true
-
-            @codemirror.setSize '100%', 'auto'
-            if @saved_query?
-                @codemirror.setValue @saved_query
 
         handle_gutter_click: (editor, line) =>
             start =
@@ -1075,12 +1550,10 @@ module 'DataExplorerView', ->
                 @display_normal()
                 $(window).off 'resize', @display_full
                 @displaying_full_view = false
-                @set_char_per_line()
             else
                 @display_full()
                 $(window).on 'resize', @display_full
                 @displaying_full_view = true
-                @set_char_per_line()
             @results_view.set_scrollbar()
 
         display_normal: =>
@@ -1096,18 +1569,9 @@ module 'DataExplorerView', ->
         destroy: =>
             @display_normal()
             $(window).off 'resize', @display_full
-            @input_query.destroy()
             @results_view.destroy()
             # We do not destroy the cursor, because the user might come back and use it.
     
-    class @InputQuery extends Backbone.View
-        className: 'query_control'
-        template: Handlebars.templates['dataexplorer_input_query-template']
- 
-        render: =>
-            @.$el.html @template()
-            return @
-
     class @ResultView extends Backbone.View
         className: 'result_view'
         template: Handlebars.templates['dataexplorer_result_container-template']
@@ -1521,11 +1985,11 @@ module 'DataExplorerView', ->
 
         default_size_column: 310 # max-width value of a cell of a table (as defined in the css file)
 
-        render_result: (query, result) =>
-            if query?
-                @query = query
-            if result?
-                @result = result
+        render_result: (args) =>
+            if args.query?
+                @query = args.query
+            if args.results?
+                @result = args.results
             @.$el.html @template
                 query: @query
 
@@ -1705,6 +2169,7 @@ module 'DataExplorerView', ->
 
         render_default: =>
             @.$el.html @default_template()
+            return @
 
         toggle_collapse: (event) =>
             @.$(event.target).nextAll('.jt_collapsible').toggleClass('jt_collapsed')
@@ -1712,13 +2177,6 @@ module 'DataExplorerView', ->
             @.$(event.target).nextAll('.jt_b').toggleClass('jt_b_collapsed')
             @.$(event.target).toggleClass('jt_arrow_hidden')
             @set_scrollbar()
-
-        handle_keypress: (event) =>
-            if event.which is 13 and !event.shiftKey
-                event.preventDefault()
-                @.$('suggestion_name_list').css 'display', 'none'
-                @.$(event.target).blur()
-
 
         #TODO Fix it for Firefox
         expand_raw_textarea: =>
