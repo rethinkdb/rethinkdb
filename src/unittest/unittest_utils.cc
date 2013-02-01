@@ -8,6 +8,7 @@
 
 #include "arch/timing.hpp"
 #include "arch/runtime/starter.hpp"
+#include "unittest/gtest.hpp"
 #include "utils.hpp"
 
 namespace unittest {
