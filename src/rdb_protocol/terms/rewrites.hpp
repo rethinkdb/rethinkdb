@@ -17,7 +17,7 @@ public:
         real.init(compile_term(env, &out));
     }
 private:
-    virtual bool is_deterministic() { return real->is_deterministic(); }
+    virtual bool is_deterministic_impl() const { return real->is_deterministic(); }
     virtual val_t *eval_impl() { return real->eval(use_cached_val); }
     const Term2 *in;
     Term2 out;

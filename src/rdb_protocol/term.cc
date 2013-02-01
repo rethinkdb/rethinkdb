@@ -154,35 +154,44 @@ term_t::term_t(env_t *_env) : use_cached_val(false), env(_env), cached_val(0) {
 }
 term_t::~term_t() { }
 
-//#define INSTRUMENT 1
+// #define INSTRUMENT 1
 #ifdef INSTRUMENT
-__thread int depth = 0;
-#endif //INSTRUMENT
+__thread int __depth = 0;
+#define DBG(s, args...) {                               \
+    std::string __s = "";                               \
+    for (int __i = 0; __i < __depth; ++__i) __s += " "; \
+    debugf("%s" s, __s.c_str(), args);                  \
+}
+#define INC_DEPTH ++__depth
+#define DEC_DEPTH --__depth
+#else // INSTRUMENT
+#define DBG(s, args...)
+#define INC_DEPTH
+#define DEC_DEPTH
+#endif // INSTRUMENT
+
+bool term_t::is_deterministic() const {
+    bool b = is_deterministic_impl();
+    // DBG("%s det: %d\n", name(), b);
+    return b;
+}
 
 val_t *term_t::eval(bool _use_cached_val) {
-#ifdef INSTRUMENT
-    std::string s = "";
-    for (int i = 0; i < depth; ++i) s += " ";
-    debugf("%sEVALUATING %s:\n", s.c_str(), name());
-    ++depth;
-#endif // INSTRUMENT
+    DBG("EVALUATING %s (%d):\n", name(), is_deterministic());
+    INC_DEPTH;
 
     use_cached_val = _use_cached_val;
     try {
         if (!cached_val || !use_cached_val) cached_val = eval_impl();
     } catch (exc_t &e) {
-#ifdef INSTRUMENT
-        --depth;
-        debugf("%s%s THREW\n", s.c_str(), name());
-#endif // INSTRUMENT
+        DEC_DEPTH;
+        DBG("%s THREW\n", name());
         if (has_bt()) e.backtrace.frames.push_front(get_bt());
         throw;
     }
 
-#ifdef INSTRUMENT
-    --depth;
-    debugf("%s%s returned %s\n", s.c_str(), name(), cached_val->print().c_str());
-#endif // INSTRUMENT
+    DEC_DEPTH;
+    DBG("%s returned %s\n", name(), cached_val->print().c_str());
     return cached_val;
 }
 

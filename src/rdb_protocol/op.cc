@@ -43,9 +43,13 @@ val_t *op_term_t::optarg(const std::string &key, val_t *def/*ault*/) {
     return it->second->eval(use_cached_val);
 }
 
-bool op_term_t::is_deterministic() {
+bool op_term_t::is_deterministic_impl() const {
     for (size_t i = 0; i < num_args(); ++i) {
         if (!args[i].is_deterministic()) return false;
+    }
+    for (boost::ptr_map<const std::string, term_t>::const_iterator
+             it = optargs.begin(); it != optargs.end(); ++it) {
+        if (!it->second->is_deterministic()) return false;
     }
     return true;
 }

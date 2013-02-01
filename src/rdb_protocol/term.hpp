@@ -52,12 +52,13 @@ public:
     bool has_bt() { return frame.has(); }
     backtrace_t::frame_t get_bt() { return *frame.get(); }
 
-    virtual bool is_deterministic() = 0;
+    virtual bool is_deterministic() const;
 protected:
     bool use_cached_val;
     env_t *env;
 private:
     virtual val_t *eval_impl() = 0;
+    virtual bool is_deterministic_impl() const = 0;
     val_t *cached_val;
 
     scoped_ptr_t<backtrace_t::frame_t> frame;

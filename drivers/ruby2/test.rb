@@ -5,6 +5,7 @@ require 'rethinkdb.rb'
 require 'test/unit'
 $port_base ||= ARGV[0].to_i # 0 if none given
 $c = RethinkDB::Connection.new('localhost', $port_base + 28015 + 1)
+
 class ClientTest < Test::Unit::TestCase
   include RethinkDB::Shortcuts
 
@@ -1055,5 +1056,38 @@ class ClientTest < Test::Unit::TestCase
     @data ||= (0..9).map do |i|
       {'id' => i, 'num' => i, 'name' => i.to_s}
     end
+  end
+end
+
+class DetTest < Test::Unit::TestCase
+  include RethinkDB::Shortcuts
+  def rdb; r.db('test').table('tbl'); end
+  @@c = RethinkDB::Connection.new('localhost', $port_base + 28016)
+  def c; @@c; end
+  def server_data; rdb.order_by(:id).run.to_a; end
+
+  def test__init
+    begin
+      r.db('test').table_create('tbl').run
+    rescue
+    end
+    $data = (0...10).map{|x| {'id' => x}}
+    rdb.delete.run
+    rdb.insert($data).run
+  end
+
+  def test_det
+    #TODO: JS tests here
+    assert_raise(RuntimeError){rdb.update{|row| {:count => rdb.get(0).map{|x| 0}}}.run}
+    assert_equal({'replaced'=>10}, rdb.update{|row| {:count => 0}}.run)
+
+    assert_raise(RuntimeError){rdb.replace{|row| rdb.get(row[:id])}.run}
+
+    assert_raise(RuntimeError) {
+      rdb.update{{:count => rdb.map{|x| x[:count]}.reduce(0){|a,b| a+b}}}.run
+    }
+    static = r.expr(server_data)
+    assert_equal({'replaced'=>10},
+                 rdb.update{{:count => static.map{|x| x[:id]}.reduce(0){|a,b| a+b}}}.run)
   end
 end

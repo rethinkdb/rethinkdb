@@ -48,7 +48,7 @@ protected:
     val_t *arg(size_t i);
     val_t *optarg(const std::string &key, val_t *def/*ault*/);
 private:
-    virtual bool is_deterministic();
+    virtual bool is_deterministic_impl() const;
     boost::ptr_vector<term_t> args;
 
     friend class make_obj_term_t; // need special access to optargs
