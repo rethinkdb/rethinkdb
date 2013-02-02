@@ -362,13 +362,547 @@ module 'DataExplorerView', ->
             
 
             # We could perform better, but that would make the code harder to read, so let's not work too hard
-            @parse_query
-                query_before_cursor: query_before_cursor
-                query_after_cursor: query_after_cursor
+            stack = @extract_data_from_query
+                query: query_before_cursor
+            console.log JSON.stringify(stack, null, 2)
+
+
+            result =
+                status: null
+                #to_complete: undefined
+                #to_describe: undefined
+
+            @create_suggestion
+                stack: stack
+                query: query_before_cursor
+                result: result
+
+            
+        # Extract information from the current query
+        regex:
+            anonymous:/^(\s)*function\(([a-zA-Z0-9,\s]*)\)(\s)*{/
+            method: /^(\s)*([a-zA-Z]+)\(/ # forEach( merge( filter(
+            method_var: /^(\s)*([a-zA-Z]+)\./ # r. r.row. (r.count will be caught later)
+            return : /^(\s)*return(\s)*/
+            object: /^(\s)*{(\s)*/
+            white: /^(\s)+$/
+            white_replace: /\s/g
+            white_start: /^(\s)+/
+            comma: /^(\s)*,(\s)*/
+        stop_char:
+            opening:
+                '(': true
+                '{': true
+                '[': true
+            closing:
+                ')': '('
+                '}': '{'
+                ']': '['
+
+
+        ### 
+        element.type in ['string', 'function', 'var', 'separator', 'anonymous_function', 'object']
+        TODO Add array type
+        TODO Collapse the query.slice(...)
+        
+        ###
+        extract_data_from_query: (args) =>
+            query = args.query
+            context = if args.context? then DataUtils.deep_copy(args.context) else {}
+
+            # query_after_cursor = args.query_before_cursor
+            
+            stack = []
+            element =
+                type: null
+                context: context
+                complete: false
+            start = 0
+
+            is_parsing_string = false
+            to_skip = 0
+
+            i = 0
+            for char in query
+                if to_skip > 0 # Because we cannot mess with the iterator in coffee-script
+                    to_skip--
+                    continue
+
+                if is_parsing_string is true
+                    if char is string_delimiter # End of the string, we can work again?
+                        is_parsing_string = false # Else we just keep parsing the string
+                        if element.type is 'string'
+                            element.name = query.slice start, i+1
+                            element.complete = true
+                            stack.push element
+                            element =
+                                type: null
+                                context: context
+                                complete: false
+                            start = i+1
+                else # if element.is_parsing_string is false
+                    if char is '\'' or char is '"' # So we get a string here
+                        is_parsing_string = true
+                        string_delimiter = char
+                        if element.type is null
+                            element.type = 'string'
+                            start = i
+                        continue
+
+                   
+                    if element.type is null # We have no idea what the fuck is that, so let's test
+                        if start is i
+                            result_white = @regex.white_start.exec query.slice i
+                            if result_white?
+                                to_skip = result_white[0].length-1
+                                start += result_white[0].length
+                                continue
+
+                            result_regex = @regex.anonymous.exec query.slice i # Check for anonymouse function
+                            if result_regex isnt null
+                                element.type = 'anonymous_function'
+                                list_args = result_regex[2]?.split(',')
+                                for arg in list_args
+                                    arg.replace(/(^\s*)|(\s*$)/gi,"") # Removing leading/trailing spaces
+                                element.args = list_args
+                                new_context = DataUtils.deep_copy context
+                                for arg in list_args
+                                    new_context[arg] = true
+                                element.context = new_context
+                                to_skip = result_regex[0].length
+                                body_start = i+result_regex[0].length
+                                stack_stop_char = ['{']
+                                continue
+
+                            result_regex = @regex.return.exec query.slice i # Check for return
+                            if result_regex isnt null
+                                # I'm not sure we need to keep track of return, but let's keep it for now
+                                element.type = 'return'
+                                element.complete = true
+                                to_skip = result_regex[0].length-1
+                                stack.push element
+                                element =
+                                    type: null
+                                    context: context
+                                    complete: false
+
+                                start = i+result_regex[0].length
+                                continue
+
+                            result_regex = @regex.object.exec query.slice i # Check for object
+                            if result_regex isnt null
+                                element.type = 'object'
+                                element.next_key = null
+                                element.body = [] # We need to keep tracker of the order of pairs
+                                element.current_key_start = i+result_regex[0].length
+                                to_skip = result_regex[0].length-1
+                                stack_stop_char = ['{']
+                                continue
+
+                            if char is '.'
+                                new_start = i+1
+                            else
+                                new_start = i
+                            #new_start = i
+
+                            result_regex = @regex.method.exec query.slice new_start # Check for a standard method
+                            if result_regex isnt null
+                                if stack[stack.length-1]?.type is 'function' # We want the query to start with r. or arg.
+                                    element.type = 'function'
+                                    element.name = result_regex[0]
+                                    start += new_start-i
+                                    to_skip = result_regex[0].length-1+new_start-i
+                                    stack_stop_char = ['(']
+                                    continue
+                                else
+                                    position_opening_parenthesis = result_regex[0].indexOf('(')
+                                    if position_opening_parenthesis isnt -1 and result_regex[0].slice(0, position_opening_parenthesis) of context
+                                        # Save the var
+                                        # TODO Look for do() to get real_type
+                                        element.type = 'var'
+                                        element.name = result_regex[0].slice(0, position_opening_parenthesis)
+                                        stack.push element
+                                        element =
+                                            type: 'function'
+                                            name: '('
+                                            context: context
+                                            complete: 'false'
+                                        stack_stop_char = ['(']
+                                        start = position_opening_parenthesis
+                                        to_skip = result_regex[0].length-1
+
+
+                            result_regex = @regex.method_var.exec query.slice new_start # Check for method without parenthesis r., r.row., doc.
+                            if result_regex isnt null
+                                if result_regex[0].slice(0, result_regex[0].length-1) of context
+                                    element.type = 'var'
+                                else
+                                    element.type = 'function'
+                                element.name = result_regex[0].slice(0, result_regex[0].length-1).replace(/\s/, '')
+                                start += new_start-i
+                                element.complete = true
+                                to_skip = element.name.length-1+new_start-i
+                                stack.push element
+                                element =
+                                    type: null
+                                    context: context
+                                    complete: false
+                                start = new_start+to_skip+1
+                                continue
+
+                            # Look for a comma
+                            result_regex = @regex.comma.exec query.slice i
+                            if result_regex isnt null
+                                # element should have been pushed in stack. If not, the query is malformed
+                                element.complete = true
+                                stack.push
+                                    type: 'separator'
+                                    complete: true
+                                    name: query.slice i, result_regex[0].length
+                                element =
+                                    type: null
+                                    context: context
+                                    complete: false
+                                start = i+result_regex[0].length-1+1
+                                to_skip = result_regex[0].length-1
+                                continue
+
+                        #else # if element.start isnt i
+                            # Skip white spaces
+                            # TODO
+
+
+                    
+                    else # element.type isnt null
+                        # White spaces can means a new start: r.table(...).eqJoin('id', r.table(...), 'other_id')
+                        # Is that even possible?
+                        result_regex = @regex.comma.exec(query.slice(i))
+                        if result_regex isnt null and stack_stop_char.length < 1
+                            # element should have been pushed in stack. If not, the query is malformed
+                            stack.push
+                                type: 'separator'
+                                complete: true
+                                name: query.slice i, result_regex[0].length
+                            element =
+                                type: null
+                                context: context
+                                complete: false
+                            start = i+result_regex[0].length-1
+                            to_skip = result_regex[0].length-1
+                            continue
+
+
+                        # Hum, if we reach here, the query is probably malformed of there's a bug here
+                        else if element.type is 'anonymous_function'
+                            if char of @stop_char.opening
+                                stack_stop_char.push char
+                            else if char of @stop_char.closing
+                                if stack_stop_char[stack_stop_char.length-1] is @stop_char.closing[char]
+                                    stack_stop_char.pop()
+                                    if stack_stop_char.length is 0
+                                        element.body = @extract_data_from_query
+                                            query: query.slice body_start, i
+                                            context: element.context
+                                        element.complete = true
+                                        stack.push element
+                                        element =
+                                            type: null
+                                            context: context
+                                        start = i+1
+                                #else something is broken here.
+                                #TODO Default behavior? The user forgot to close something?
+                                #@get_error_from_query is going to report this issue
+                        else if element.type is 'function'
+                            if char of @stop_char.opening
+                                stack_stop_char.push char
+                            else if char of @stop_char.closing
+                                if stack_stop_char[stack_stop_char.length-1] is @stop_char.closing[char]
+                                    stack_stop_char.pop()
+                                    if stack_stop_char.length is 0
+                                        element.body = @extract_data_from_query
+                                            query: query.slice start+element.name.length, i
+                                            context: element.context
+                                        element.complete = true
+                                        stack.push element
+                                        element =
+                                            type: null
+                                            context: context
+                                        start = i+1
+                        else if element.type is 'object'
+                            # Since we are sure that we are not in a string, we can just look for colon and comma
+                            # Still, we need to check the stack_stop_char since we can have { key: { inner: 'test, 'other_inner'}, other_key: 'other_value'}
+                            keys_values = []
+                            if char of @stop_char.opening
+                                stack_stop_char.push char
+                            else if char of @stop_char.closing
+                                if stack_stop_char[stack_stop_char.length-1] is @stop_char.closing[char]
+                                    stack_stop_char.pop()
+                                    if stack_stop_char.length is 0
+                                        # We just reach a }, it's the end of the object
+                                        if element.next_key?
+                                            new_element =
+                                                type: 'object_key'
+                                                key: element.next_key
+                                                key_complete: true
+                                                body: @extract_data_from_query
+                                                    query: query.slice element.current_value_start, i
+                                                    context: element.context
+                                            element.body[element.body.length-1] = new_element
+                                        element.next_key = null # No more next_key
+                                        element.complete = true
+                                        #else the next key is not defined
+                                        #TODO Check that the next_key is just white spaces, else "throw" an error
+                                        #if not element.next_key?
+                                        #    element.key_complete = false
+                                        #    element.next_key = query.slice element.current_key_start
+
+                                        stack.push element
+                                        element =
+                                            type: null
+                                            context: context
+                                        start = i+1
+                                        continue
+
+                            if not element.next_key?
+                                if stack_stop_char.length is 1 and char is ':'
+                                    new_element =
+                                        type: 'object_key'
+                                        key: query.slice element.current_key_start, i
+                                        key_complete: true
+                                    if element.body.length is 0
+                                        element.body.push new_element
+                                    else
+                                        element.body[element.body.length-1] = new_element
+                                    element.next_key = query.slice element.current_key_start, i
+                                    element.current_value_start = i+1
+                            else
+                                result_regex = @regex.comma.exec query.slice i
+                                if stack_stop_char.length is 1 and result_regex isnt null #We reached the end of a value
+                                    new_element =
+                                        type: 'object_key'
+                                        key:  element.next_key
+                                        key_complete: true
+                                        body: @extract_data_from_query
+                                            query: query.slice element.current_value_start, i
+                                            context: element.context
+                                    element.body[element.body.length-1] = new_element
+                                    to_skip = result_regex[0].length-1
+                                    element.next_key = null
+                                    element.current_key_start = i+result_regex[0].length
+                i++
+
+            if element.type isnt null
+                element.complete = false
+                if element.type is 'function'
+                    element.body = @extract_data_from_query
+                        query: query.slice start+element.name.length
+                        context: element.context
+                else if element.type is 'anonymous_function'
+                    element.body = @extract_data_from_query
+                        query: query.slice body_start
+                        context: element.context
+                else if element.type is 'string'
+                    element.name = query.slice start
+                else if element.type is 'object'
+                    if not element.next_key? # Key not defined yet
+                        new_element =
+                            type: 'object_key'
+                            key: query.slice element.current_key_start
+                            key_complete: false
+                            complete: false
+                        element.body.push new_element # They key was not defined, so we add a new element
+                        element.next_key = query.slice element.current_key_start
+                    else
+                        new_element =
+                            type: 'object_key'
+                            key: element.next_key
+                            key_complete: true
+                            body: @extract_data_from_query
+                                query: query.slice element.current_value_start
+                                context: element.context
+                        element.body[element.body.length-1] = new_element
+                        element.next_key = null # No more next_key
+                stack.push element
+
+
+            else if start isnt i
+                if query[start] is '.'
+                    #TODO add check for [a-zA-Z]?
+                    element.type = 'function'
+                    element.name = query.slice start+1
+                else
+                    element.name = query.slice start
+                element.complete = false
+                if @regex.white.test(element.name) is false # If its type is null and the name is just white spaces, we ignore the element
+                    stack.push element
+            console.log 'DEBUG: '+stack_stop_char
+            return stack
+
+
+        # TODO return type
+        create_suggestion: (args) =>
+            stack = args.stack
+            query = args.query
+            result = args.result
+
+            for element in [stack.length-1..0] by -1
+                if element.body? and element.body.length > 0
+                    @create_suggestion args
+
+                if result.status is 'done'
+                    continue
+
+                if result.status is null
+                    result.is_defined = true
+
+                    # Top of the stack
+                    if element.complete is true
+                        if (element.type is 'function' and @map_state[element.name] is 'json') or (element.type is 'var' and element.real_type is 'json')
+                            result.suggestions = ['(']
+                            result.state = 'json'
+                            result.description = null
+                            result.status = 'done'
+                        else if element.type is 'anonymous_function' or element.type is 'separator' or element.type is 'object' or element.type is 'object_key' or element.type is 'return'
+                            # element.type === 'object' is impossible I think with the current implementation of extract_data_from_query
+                            result.suggestions = null
+                            result.status = 'look_for_description'
+                            break # We want to look in the upper levels
+                        #else type cannot be null (because not complete)
+
+                    else # if element.complete is false
+                        if element.type is 'function'
+                            if element.body? # It means that element.body.length === 0
+                                # We just opened a new function, so let's just show the description
+                                result.suggestions = null
+                                result.description = element.name # That means we are going to describe the function named element.name
+                                result.status = 'done'
+                                break
+                            else
+                                # function not complete, need suggestion
+                                result.suggestions = []
+                                result.suggestions_regex = @create_safe_regex element.name # That means we are going to give all the suggestions that match element.name and that are in the good group (not yet defined)
+                                result.description = null
+                                if i isnt 0
+                                    result.status = 'look_for_state'
+                                else
+                                    result.state = ''
+                        else if element.type is 'anonymous_function' or element.type is 'object_key' or element.type is 'string' or element.type is 'separator'
+                            result.suggestions = null
+                            result.status = 'look_for_description'
+                            break
+                        #else if element.type is 'object' # Not possible
+                        #else if element.type is 'var' # Not possible because we require a . or ( to asssess that it's a var
+                        else if element.type is null
+                            result.suggestions = null
+                            result.status = 'look_for_description'
+                            ### For this state "r.expr( r" we just want the description of expr
+                            # This code is if we want to get the suggestion for "r"
+                            result.suggestions = []
+                            regex = @create_safe_regex element.name
+                            for variable of element.context
+                                if regex.test(variable) is true
+                                    result.suggestions.push variable
+                                    break
+                            for suggestion of @suggestions
+                                if regex.test(suggestion) is true
+                                    result.suggestions.push variable
+                            result.status = 'done'
+                            ###
+                else if result.status is 'look_for_description'
+                    if element.type is 'function'
+                        result.description = @description[element.name]
+                        result.status = 'done'
+                else if result.status is 'look_for_state'
+                    if element.type is 'function' and element.complete is true
+                        result.state = element.name
+                        for suggestion of @suggestions[@map_state[element.name]]
+                            if result.suggestions_regex.test(suggestion) is true
+                                result.suggestions.push suggestion
+                        result.status = 'done'
+                    else if element.type is 'var' and element.complete is true
+                        result.state = element.real_type
+                        for suggestion of @suggestions[@map_state[element.name]]
+                            if result.suggestions_regex.test(suggestion) is true
+                                result.suggestions.push suggestion
+                        result.status = 'done'
+                    #else # Is that possible? A function can only be preceded by a function (except for r)
+
+        create_safe_regex: (str) =>
+            for char in @unsafe_to_safe_regexstr
+                str = str.replace char.pattern, char.replacement
+            return new RegExp('^('+element_currently_written+')', 'i')
+
+
+        ###
+        # Current refactoring ends here for Container
+        ###
+
+
+
+
+
+        # Return the first unmatched closing parenthesis/square bracket/curly bracket
+        # Returns
+        #   error: true
+        #   char: the character used
+        #   position: the faulty char
+        # or returns null
+        # TODO Check if a key is used more than once in an object
+        get_errors_from_query: (query) =>
+            is_string = false
+            char_used = ''
+
+            stack = [] # Stack of opening parenthesis/square brackets/curly brackets
+            for char, i in query
+                if is_string is false
+                    if char is '"' or char is '\''
+                        is_string = true
+                        char_used = char
+                        position_string = i
+                    else if char is '('
+                        stack.push char
+                    else if char is ')'
+                        if stack.pop() isnt char
+                            return {
+                                error: true
+                                char: char
+                                position: i
+                            }
+                    else if char is '['
+                        stack.push char
+                    else if char is ']'
+                        if stack.pop() isnt char
+                            return {
+                                error: true
+                                char: char
+                                position: i
+                            }
+                     else if char is '{'
+                        stack.push char
+                    else if char is '}'
+                        if stack.pop() isnt char
+                            return {
+                                error: true
+                                char: char
+                                position: i
+                            }
+                else
+                    if char is char_used and query[i-1] isnt '\\' # It's safe to get query[i-1] because is_string cannot be true for the first char
+                        is_string = false
+            if is_string is true
+                return {
+                    error: true
+                    char: char_used
+                    position: i
+                }
+            else
+                return null
+
+
+           
 
             ###
             errors = @get_errors_from_query @codemirror.getValue()
-
 
             # Check if we are in a string or in the middle of a word, if we are in a string, we just show the description
             is_in_string = @is_in_string query_before_cursor
@@ -509,409 +1043,6 @@ module 'DataExplorerView', ->
             @handle_keypress() # We can have a description to show or even suggestions (like after r or row)
 
 
-        # Extract information from the current query
-        
-        # r.table(...).filter( functi => filter
-        # r.table(...).filter( function(doc) { => filter
-        # r.table(...).filter( function(doc) { r( => r
-        # r.table(...).filter( function(doc) { doc('test => (
-        # r.table(...).filter( function(doc) { r.row('key').add( => add
-        # r.table(...).filter( function(doc) { r.row('key').add('fdsf => add
-        # r.expr().map( {} )
-        # r.table(...).filter( function(doc) { doc('id').eq('xxx') } ).count().run()
-        #| |          |                                              |       |
-        #                                    |                     |
-        #                                         |    |   |     |
-        # map( function(doc) { return doc.merge({1: doc('i
-        # r.table('test').filter(function(doc) { doc('id').eq({key: 'test', other_key: 'other_value')}).map(r.row('data')('age').add(2)).count().run()
-        # [
-        #   { value: 'r',
-        #     type: 'function'
-        #   },
-        #   {
-        #     value: 'table('test')',
-        #     type: function
-        #     body: [
-        #       value: 'test'
-        #       type: string
-        #     ]
-        #   },
-        #   {
-        #     value: filter
-        #     type: function
-        #     body: [
-        #       'doc'
-        #     ]
-        #     content: [
-        #       doc('id').eq({key: 'test', other_key: 'other_value')
-        #     ]
-        #   }
-        # ]
-        #                                                                                                                                            
-        # Ok, I give up the parsing from right to left
-        #
-        # We have to parse "return" too
-        regex:
-            anonymous:/^(\s)*function\(([a-zA-Z0-9,\s]*)\)(\s)*{/
-            method: /^(\s)*([a-zA-Z]+)\(/ # forEach( merge( filter(
-            method_var: /^(\s)*([a-zA-Z]+)\./ # r. r.row. (r.count will be caught later)
-            return : /^(\s)*return(\s)*/
-            object: /^(\s)*{(\s)*/
-            white: /^(\s)+$/
-            white_and_comma: /^(\s)*(,)+(\s)*/
-            comma: /^(\s)*,(\s)*/
-        stop_char:
-            opening:
-                '(': true
-                '{': true
-                '[': true
-            closing:
-                ')': '('
-                '}': '{'
-                ']': '['
-
-        parse_query: (args) =>
-            console.log '==============================================='
-            console.log JSON.stringify @extract_data_from_query({ query: args.query_before_cursor, context: {}}), undefined, 2
-
-
-        extract_data_from_query: (args) =>
-            query = args.query
-            context = if args.context? then DataUtils.deep_copy(args.context) else {}
-
-            # query_after_cursor = args.query_before_cursor
-            
-            stack = []
-            element =
-                type: null
-                start: 0
-                context: context
-                complete: false
-
-            is_parsing_string = false
-            to_skip = 0
-
-            console.log query
-
-            for char, i in query
-                if to_skip > 0 # Because we cannot mess with the iterator in coffee-script
-                    to_skip--
-                    continue
-
-                if is_parsing_string is true
-                    if char is string_delimiter # End of the string, we can work again?
-                        is_parsing_string = false # Else we just keep parsing the string
-                        if element.type is 'string'
-                            element.name = query.slice element.start, i+1
-                            element.complete = true
-                            stack.push element
-                            element =
-                                type: null
-                                start: i+1
-                                context: context
-                                complete: false
-                else # if element.is_parsing_string is false
-                    if char is '\'' or char is '"' # So we get a string here
-                        is_parsing_string = true
-                        string_delimiter = char
-                        if element.type is null
-                            element.type = 'string'
-                            element.start = i
-                        continue
-
-                   
-                    if element.type is null # We have no idea what the fuck is that, so let's test
-                        if element.start is i
-                            result_regex = @regex.anonymous.exec query.slice i # Check for anonymouse function
-                            if result_regex isnt null
-                                element.type = 'anonymous_function'
-                                list_args = result_regex[2]?.split(',')
-                                for arg in list_args
-                                    arg.replace(/(^\s*)|(\s*$)/gi,"") # Removing leading/trailing spaces
-                                element.args = list_args
-                                new_context = DataUtils.deep_copy context
-                                for arg in list_args
-                                    new_context[arg] = true
-                                element.context = new_context
-                                to_skip = result_regex[0].length
-                                element.body_start = i+result_regex[0].length
-                                stack_stop_char = ['{']
-                                continue
-
-                            result_regex = @regex.return.exec query.slice i # Check for return
-                            if result_regex isnt null
-                                # I'm not sure we need to keep track of return, but let's keep it for now
-                                element.type = 'return'
-                                element.complete = true
-                                to_skip = result_regex[0].length-1
-                                stack.push element
-                                element =
-                                    type: null
-                                    start: i+result_regex[0].length
-                                    context: context
-                                    complete: false
-                                continue
-
-                            result_regex = @regex.object.exec query.slice i # Check for object
-                            if result_regex isnt null
-                                element.type = 'object'
-                                element.data = {}
-                                element.next_key = null
-                                element.data = {}
-                                element.current_key_start = i+result_regex[0].length
-                                to_skip = result_regex[0].length-1
-                                stack_stop_char = ['{']
-                                continue
-
-                            if char is '.'
-                                start = i+1
-                            else
-                                start = i
-                            result_regex = @regex.method.exec query.slice start # Check for a standard method
-                            if result_regex isnt null and stack[0]?.type is 'function' # We want the query to start with r. or arg.
-                                #TODO Check if we are dealing with row(
-                                element.type = 'function'
-                                element.name = result_regex[0]
-                                element.start += start-i
-                                to_skip = result_regex[0].length-1+start-i
-                                stack_stop_char = ['(']
-                                continue
-
-                            result_regex = @regex.method_var.exec query.slice start # Check for method without parenthesis r., r.row., doc.merge(...
-                            if result_regex isnt null
-                                element.type = 'function'
-                                element.name = result_regex[0].slice 0, result_regex[0].length-1
-                                element.start += start-i
-                                element.complete = true
-                                to_skip = element.name.length-1+start-i
-                                stack.push element
-                                element =
-                                    type: null
-                                    start: start+to_skip+1
-                                    context: context
-                                    complete: false
-                                continue
-                        else # if element.start isnt i
-                            # Skip white spaces
-                            result_regex = @regex.white_and_comma.exec query.slice i
-                            if result_regex isnt null
-                                # element should have been pushed in stack. If not, the query is malformed
-                                element.complete = true
-                                stack.push
-                                    type: 'separator'
-                                    name: query.slice i, result_regex[0].length
-                                element =
-                                    type: null
-                                    start: i+result_regex[0].length-1+1
-                                    context: context
-                                    complete: false
-                                to_skip = result_regex[0].length-1
-                                #element.start += to_skip
-                                continue
-                    
-                    else # element.type isnt null
-                        # White spaces can means a new start: r.table(...).eqJoin('id', r.table(...), 'other_id')
-                        # Is that even possible?
-                        result_regex = @regex.white_and_comma.exec(query.slice(i))
-                        if result_regex isnt null and stack_stop_char.length < 1
-                            # element should have been pushed in stack. If not, the query is malformed
-                            stack.push
-                                type: 'separator'
-                                name: query.slice i, result_regex[0].length
-                            element =
-                                type: null
-                                start: i+result_regex[0].length-1
-                                context: context
-                                complete: false
-                            to_skip = result_regex[0].length-1
-                            #element.start += to_skip
-                            continue
-
-
-                        # Hum, if we reach here, the query is probably malformed of there's a bug here
-                        else if element.type is 'anonymous_function'
-                            if char of @stop_char.opening
-                                stack_stop_char.push char
-                            else if char of @stop_char.closing
-                                if stack_stop_char[stack_stop_char.length-1] is @stop_char.closing[char]
-                                    stack_stop_char.pop()
-                                    if stack_stop_char.length is 0
-                                        element.body = @extract_data_from_query
-                                            query: query.slice element.body_start, i
-                                            context: element.context
-                                        element.complete = true
-                                        stack.push element
-                                        element =
-                                            type: null
-                                            start: i+1
-                                            context: context
-                                #else something is broken here.
-                                #TODO Default behavior? The user forgot to close something?
-                                #@get_error_from_query is going to report this issue
-                        else if element.type is 'function'
-                            if char of @stop_char.opening
-                                stack_stop_char.push char
-                            else if char of @stop_char.closing
-                                if stack_stop_char[stack_stop_char.length-1] is @stop_char.closing[char]
-                                    stack_stop_char.pop()
-                                    if stack_stop_char.length is 0
-                                        element.body = @extract_data_from_query
-                                            query: query.slice element.start+element.name.length, i
-                                            context: element.context
-                                        element.complete = true
-                                        stack.push element
-                                        element =
-                                            type: null
-                                            start: i+1
-                                            context: context
-                        else if element.type is 'object'
-                            # Since we are sure that we are not in a string, we can just look for colon and comma
-                            # Still, we need to check the stack_stop_char since we can have { key: { inner: 'test, 'other_inner'}, other_key: 'other_value'}
-                            keys_values = []
-                            if char of @stop_char.opening
-                                stack_stop_char.push char
-                            else if char of @stop_char.closing
-                                if stack_stop_char[stack_stop_char.length-1] is @stop_char.closing[char]
-                                    stack_stop_char.pop()
-                                    if stack_stop_char.length is 0
-                                        if element.next_key?
-                                            element.key_complete = true
-                                            element.data[element.next_key] = @extract_data_from_query
-                                                query: query.slice element.current_value_start, i
-                                                context: element.context
-                                        element.next_key = null # No more next_key
-                                        element.complete = true
-                                        #else the next key is not defined
-                                        #TODO Check that the next_key is just white spaces, else "throw" an error
-                                        #if not element.next_key?
-                                        #    element.key_complete = false
-                                        #    element.next_key = query.slice element.current_key_start
-
-                                        element.data
-                                        stack.push element
-                                        element =
-                                            type: null
-                                            start: i+1
-                                            context: context
-                                        continue
-
-                            if not element.next_key?
-                                if stack_stop_char.length is 1 and char is ':'
-                                    element.next_key = query.slice element.current_key_start, i
-                                    element.current_value_start = i+1
-                            else
-                                result_regex = @regex.comma.exec query.slice i
-                                if stack_stop_char.length is 1 and result_regex isnt null #We reached the end of the object or the end of a value
-                                    new_value = query.slice element.current_value_start, i
-                                    element.data[element.next_key] = @extract_data_from_query
-                                        query: query.slice element.current_value_start, i
-                                        context: element.context
-                                    to_skip = result_regex[0].length-1
-                                    element.next_key = null
-                                    element.current_key_start = i+result_regex[0].length
-
-            if element.type isnt null
-                element.complete = false
-                if element.type is 'function'
-                    element.body = @extract_data_from_query
-                        query: query.slice element.start+element.name.length
-                        context: element.context
-                    stack.push element
-                else if element.type is 'anonymous_function'
-                    element.body = @extract_data_from_query
-                        query: query.slice element.body_start
-                        context: element.context
-                    stack.push element
-                else if element.type is 'string'
-                    element.name = query.slice element.start
-                    stack.push element
-                else if element.type is 'object'
-                    if not element.next_key? # Key not defined yet
-                        element.key_complete = false
-                        element.next_key = query.slice element.current_key_start
-                    else
-                        element.key_complete = true
-                        element.data[element.next_key] = @extract_data_from_query
-                            query: query.slice element.current_value_start
-                            context: element.context
-                        element.next_key = null # No more next_key
-
-
-            else if element.start isnt i
-                if query[element.start] is '.'
-                    #TODO add check for [a-zA-Z]?
-                    element.type = 'function'
-                    element.name = query.slice element.start+1
-                else
-                    element.name = query.slice element.start
-                element.complete = false
-                if @regex.white.test(element.name) is false # If its type is null and the name is just white spaces, we ignore the element
-                    stack.push element
-            console.log 'DEBUG: '+stack_stop_char
-            return stack
-
-        # Return the first unmatched closing parenthesis/square bracket/curly bracket
-        # Returns
-        #   error: true
-        #   char: the character used
-        #   position: the faulty char
-        # or returns null
-        # TODO Check if a key is used more than once in an object
-        get_errors_from_query: (query) =>
-            is_string = false
-            char_used = ''
-
-            stack = [] # Stack of opening parenthesis/square brackets/curly brackets
-            for char, i in query
-                if is_string is false
-                    if char is '"' or char is '\''
-                        is_string = true
-                        char_used = char
-                        position_string = i
-                    else if char is '('
-                        stack.push char
-                    else if char is ')'
-                        if stack.pop() isnt char
-                            return {
-                                error: true
-                                char: char
-                                position: i
-                            }
-                    else if char is '['
-                        stack.push char
-                    else if char is ']'
-                        if stack.pop() isnt char
-                            return {
-                                error: true
-                                char: char
-                                position: i
-                            }
-                     else if char is '{'
-                        stack.push char
-                    else if char is '}'
-                        if stack.pop() isnt char
-                            return {
-                                error: true
-                                char: char
-                                position: i
-                            }
-                else
-                    if char is char_used and query[i-1] isnt '\\' # It's safe to get query[i-1] because is_string cannot be true for the first char
-                        is_string = false
-            if is_string is true
-                return {
-                    error: true
-                    char: char_used
-                    position: i
-                }
-            else
-                return null
-
-
-
-        ###
-        # Current refactoring ends here for Container
-        ###
 
         show_or_hide_arrow: =>
             if @.$('.suggestion_name_list').css('display') is 'none' and @.$('.suggestion_description').css('display') is 'none'
