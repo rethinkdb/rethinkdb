@@ -9,6 +9,7 @@ else
 endif
 
 UNAME:=$(shell uname)
+ARCH:=$(shell uname -m)
 
 ifeq ($(UNAME),Darwin)
 SPREFIX?=/usr/local
@@ -17,7 +18,13 @@ SPREFIX?=/usr
 endif
 
 INCLUDE=$(SPREFIX)/include
+
+ifeq ($(ARCH),x86_64)
+LIB=$(SPREFIX)/lib64
+else 
 LIB=$(SPREFIX)/lib
+endif
+
 BIN=$(SPREFIX)/bin
 PROTOC?=$(SPREFIX)/bin/protoc
 TC_PROTOC_CFLAGS?=
