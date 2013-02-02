@@ -1,7 +1,7 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "rdb_protocol/query_language.hpp"
 
-#include <math.h>
+#include <cmath>
 
 #include "errors.hpp"
 #include <boost/make_shared.hpp>
@@ -62,7 +62,7 @@ void wait_for_rdb_table_readiness(namespace_repo_t<rdb_protocol_t> *ns_repo,
 namespace query_language {
 
 cJSON *safe_cJSON_CreateNumber(double d, const backtrace_t &backtrace) {
-    if (!isfinite(d)) throw runtime_exc_t(strprintf("Illegal numeric value %e.", d), backtrace);
+    if (!std::isfinite(d)) throw runtime_exc_t(strprintf("Illegal numeric value %e.", d), backtrace);
     return cJSON_CreateNumber(d);
 }
 #define cJSON_CreateNumber(...) CT_ASSERT(!"Use safe_cJSON_CreateNumber")
