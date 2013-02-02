@@ -9,6 +9,7 @@
 
 #include "arch/runtime/event_queue_types.hpp"
 #include "arch/runtime/runtime_utils.hpp"
+#include "errors.hpp"
 
 // Event queue structure
 class poll_event_queue_t {
@@ -27,6 +28,8 @@ private:
 
     std::vector<pollfd> watched_fds;
     std::map<fd_t, linux_event_callback_t *> callbacks;
+
+    DISABLE_COPYING(poll_event_queue_t);
 };
 
 
