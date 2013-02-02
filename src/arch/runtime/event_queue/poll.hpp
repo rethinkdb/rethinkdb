@@ -11,11 +11,7 @@
 #include "arch/runtime/runtime_utils.hpp"
 
 // Event queue structure
-struct poll_event_queue_t {
-public:
-    typedef std::vector<pollfd> pollfd_vector_t;
-    typedef std::map<fd_t, linux_event_callback_t*> callback_map_t;
-
+class poll_event_queue_t {
 public:
     explicit poll_event_queue_t(linux_queue_parent_t *parent);
     void run();
@@ -25,8 +21,8 @@ private:
     linux_queue_parent_t *parent;
 
 private:
-    pollfd_vector_t watched_fds;
-    callback_map_t callbacks;
+    std::vector<pollfd> watched_fds;
+    std::map<fd_t, linux_event_callback_t *> callbacks;
 
 public:
     // These should only be called by the event queue itself or by the linux_* classes
