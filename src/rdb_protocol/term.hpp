@@ -50,7 +50,10 @@ public:
     template<class T>
     void set_bt(T t) { frame.init(new backtrace_t::frame_t(t)); }
     bool has_bt() { return frame.has(); }
-    backtrace_t::frame_t get_bt() { return *frame.get(); }
+    backtrace_t::frame_t get_bt() const {
+        r_sanity_check(frame.has());
+        return *frame.get();
+    }
 
     virtual bool is_deterministic() const;
 protected:

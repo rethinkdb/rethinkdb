@@ -7,17 +7,27 @@ namespace ql {
 
 // DATUM_STREAM_T
 datum_stream_t::datum_stream_t(env_t *_env) : env(_env) { guarantee(env); }
-datum_stream_t *datum_stream_t::map(func_t *f) {
-    return env->add_ptr(new map_datum_stream_t(env, f, this));
+
+datum_stream_t *datum_stream_t::slice(size_t l, size_t r) {
+    return env->add_ptr(new slice_datum_stream_t(env, l, r, this));
 }
-datum_stream_t *datum_stream_t::concatmap(func_t *f) {
-    return env->add_ptr(new concatmap_datum_stream_t(env, f, this));
-}
-datum_stream_t *datum_stream_t::filter(func_t *f) {
-    return env->add_ptr(new filter_datum_stream_t(env, f, this));
+datum_stream_t *datum_stream_t::zip() {
+    return env->add_ptr(new zip_datum_stream_t(env, this));
 }
 
-const datum_t *datum_stream_t::count() {
+const datum_t *datum_stream_t::next() {
+    try {
+        return next_impl();
+    } catch (exc_t &e) {
+        add_bt(&e);
+        throw;
+    }
+}
+void datum_stream_t::add_bt(exc_t *e) {
+    e->backtrace.frames.push_front(0);
+}
+
+const datum_t *eager_datum_stream_t::count() {
     int i = 0;
     for (;;) {
         env_checkpoint_t ect(env, &env_t::discard_checkpoint);
@@ -27,7 +37,7 @@ const datum_t *datum_stream_t::count() {
     return env->add_ptr(new datum_t(i));
 }
 
-const datum_t *datum_stream_t::reduce(val_t *base_val, func_t *f) {
+const datum_t *eager_datum_stream_t::reduce(val_t *base_val, func_t *f) {
     const datum_t *base = base_val ? base_val->as_datum() : next();
     rcheck(base, "Cannot reduce over an empty stream with no base.");
     try {
@@ -42,7 +52,8 @@ const datum_t *datum_stream_t::reduce(val_t *base_val, func_t *f) {
     }
 }
 
-const datum_t *datum_stream_t::gmr(func_t *g, func_t *m, const datum_t *d, func_t *r) {
+const datum_t *eager_datum_stream_t::gmr(
+    func_t *g, func_t *m, const datum_t *d, func_t *r) {
     int i = 0;
     env_gc_checkpoint_t egct(env);
     wire_datum_map_t map;
@@ -61,14 +72,18 @@ const datum_t *datum_stream_t::gmr(func_t *g, func_t *m, const datum_t *d, func_
     return egct.finalize(map.to_arr(env));
 }
 
-datum_stream_t *datum_stream_t::slice(size_t l, size_t r) {
-    return env->add_ptr(new slice_datum_stream_t(env, l, r, this));
+datum_stream_t *eager_datum_stream_t::filter(func_t *f) {
+    return env->add_ptr(new filter_datum_stream_t(env, f, this));
 }
-datum_stream_t *datum_stream_t::zip() {
-    return env->add_ptr(new zip_datum_stream_t(env, this));
+datum_stream_t *eager_datum_stream_t::map(func_t *f) {
+    return env->add_ptr(new map_datum_stream_t(env, f, this));
+}
+datum_stream_t *eager_datum_stream_t::concatmap(func_t *f) {
+    return env->add_ptr(new concatmap_datum_stream_t(env, f, this));
 }
 
-const datum_t *datum_stream_t::as_arr() {
+
+const datum_t *eager_datum_stream_t::as_arr() {
     datum_t *arr = env->add_ptr(new datum_t(datum_t::R_ARRAY));
     while (const datum_t *d = next()) arr->add(d);
     return arr;
@@ -171,7 +186,7 @@ const datum_t *lazy_datum_stream_t::gmr(
     return egct.finalize(map.to_arr(env));
 }
 
-const datum_t *lazy_datum_stream_t::next() {
+const datum_t *lazy_datum_stream_t::next_impl() {
     boost::shared_ptr<scoped_cJSON_t> json = json_stream->next();
     if (!json.get()) return 0;
     return env->add_ptr(new datum_t(json, env));
@@ -179,14 +194,14 @@ const datum_t *lazy_datum_stream_t::next() {
 
 // ARRAY_DATUM_STREAM_T
 array_datum_stream_t::array_datum_stream_t(env_t *env, const datum_t *_arr) :
-    datum_stream_t(env), index(0), arr(_arr) { }
+    eager_datum_stream_t(env), index(0), arr(_arr) { }
 
-const datum_t *array_datum_stream_t::next() {
+const datum_t *array_datum_stream_t::next_impl() {
     return arr->el(index++, NOTHROW);
 }
 
 // MAP_DATUM_STREAM_T
-const datum_t *map_datum_stream_t::next() {
+const datum_t *map_datum_stream_t::next_impl() {
     try {
         const datum_t *arg = src->next();
         if (!arg) return 0;
@@ -198,7 +213,7 @@ const datum_t *map_datum_stream_t::next() {
 }
 
 // CONCATMAP_DATUM_STREAM_T
-const datum_t *concatmap_datum_stream_t::next() {
+const datum_t *concatmap_datum_stream_t::next_impl() {
     try {
         for (;;) {
             if (!subsrc) {
@@ -215,8 +230,7 @@ const datum_t *concatmap_datum_stream_t::next() {
     }
 }
 
-// FILTER_DATUM_STREAM_T
-const datum_t *filter_datum_stream_t::next() {
+const datum_t *filter_datum_stream_t::next_impl() {
     try {
         const datum_t *arg = 0;
         for (;;) {
@@ -238,8 +252,8 @@ const datum_t *filter_datum_stream_t::next() {
 // SLICE_DATUM_STREAM_T
 slice_datum_stream_t::slice_datum_stream_t(
     env_t *_env, size_t _l, size_t _r, datum_stream_t *_src)
-    : datum_stream_t(_env), env(_env), ind(0), l(_l), r(_r), src(_src) { }
-const datum_t *slice_datum_stream_t::next() {
+    : eager_datum_stream_t(_env), env(_env), ind(0), l(_l), r(_r), src(_src) { }
+const datum_t *slice_datum_stream_t::next_impl() {
     if (l > r || ind > r) return 0;
     while (ind++ < l) {
         env_checkpoint_t ect(env, &env_t::discard_checkpoint);
@@ -250,8 +264,8 @@ const datum_t *slice_datum_stream_t::next() {
 
 // ZIP_DATUM_STREAM_T
 zip_datum_stream_t::zip_datum_stream_t(env_t *_env, datum_stream_t *_src)
-    : datum_stream_t(_env), env(_env), src(_src) { }
-const datum_t *zip_datum_stream_t::next() {
+    : eager_datum_stream_t(_env), env(_env), src(_src) { }
+const datum_t *zip_datum_stream_t::next_impl() {
     const datum_t *d = src->next();
     if (!d) return 0;
     const datum_t *l = d->el("left", NOTHROW);
@@ -261,7 +275,7 @@ const datum_t *zip_datum_stream_t::next() {
 }
 
 // UNION_DATUM_STREAM_T
-const datum_t *union_datum_stream_t::next() {
+const datum_t *union_datum_stream_t::next_impl() {
     for (; streams_index < streams.size(); ++streams_index) {
         if (const datum_t *d = streams[streams_index]->next()) return d;
     }

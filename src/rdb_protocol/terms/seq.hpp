@@ -81,6 +81,7 @@ private:
             }
             cmp_to->write_to_protobuf(pb::set_datum(cmp_args[1]));
         }
+        debugf("%s\n", out->DebugString().c_str());
     }
 
     virtual val_t *eval_impl() {
@@ -105,7 +106,7 @@ private:
 
         guarantee(filter_func.has());
         //debugf("%s\n", filter_func->DebugString().c_str());
-        return new_val(seq->filter(env->new_func(filter_func.get())));
+        return new_val(seq->filter(env->new_func(filter_func.get(), get_bt())));
     }
     RDB_NAME("between")
 

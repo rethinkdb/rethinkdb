@@ -31,6 +31,10 @@ struct backtrace_t {
         frame_t(int _pos) : type(POS), pos(_pos) { }
         frame_t(const std::string &_opt) : type(OPT), opt(_opt) { }
         Response2_Frame toproto() const;
+        bool is_valid() {
+            return (type == POS && pos >= 0)
+                || (type == OPT && opt != "UNINITIALIZED");
+        }
     private:
         enum type_t { POS = 0, OPT = 1 };
         int type; // serialize macros didn't like `type_t` for some reason
@@ -63,4 +67,14 @@ void fill_error(Response2 *res, Response2_ResponseType type, std::string msg,
                 const backtrace_t &bt=backtrace_t());
 
 }
+
+#define WITH_BT(N, cmd)                         \
+    try {                                       \
+        cmd;                                    \
+    } catch (exc_t &e) {                        \
+        e.backtrace.frames.push_front(N);       \
+        throw;                                  \
+    }
+
+
 #endif // RDB_PROTOCOL_ERR_HPP_

@@ -15,15 +15,16 @@ module RethinkDB
 
     def self.response_to_native r
       rt = Response2::ResponseType
+      bt = r.backtrace.map {|x|
+        x.type == Response2::Frame::FrameType::POS ? x.pos : x.opt
+      }
       case r.type
       when rt::SUCCESS_ATOM then datum_to_native(r.response[0])
       when rt::SUCCESS_SEQUENCE then r.response.map{|d| datum_to_native(d)}
       when rt::RUNTIME_ERROR then
-        raise RuntimeError, "#{r.response[0].r_str}
-Backtrace: #{r.backtrace.map{|x| x.pos || x.opt}.inspect}"
+        raise RuntimeError, "#{r.response[0].r_str}\nBacktrace: #{bt.inspect}"
       when rt::COMPILE_ERROR then # TODO: remove?
-        raise RuntimeError, "#{r.response[0].r_str}
-Backtrace: #{r.backtrace.map{|x| x.pos || x.opt}.inspect}"
+        raise RuntimeError, "#{r.response[0].r_str}\nBacktrace: #{bt.inspect}"
       else r
       end
     end

@@ -56,8 +56,8 @@ public:
         bags[bags.size()-1]->add(p);
         return p;
     }
-    func_t *new_func(const Term2 *term) {
-        return add_ptr(new func_t(this, term));
+    func_t *new_func(const Term2 *term, backtrace_t::frame_t frame) {
+        return add_ptr(new func_t(this, term, frame));
     }
     template<class T>
     val_t *new_val(T *ptr, term_t *parent) {

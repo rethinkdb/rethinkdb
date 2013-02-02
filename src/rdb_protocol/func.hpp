@@ -15,20 +15,24 @@ namespace ql {
 
 class func_t : public ptr_baggable_t {
 public:
-    func_t(env_t *env, const Term2 *_source);
-    static func_t *new_shortcut_func(env_t *env, const datum_t *obj);
+    func_t(env_t *env, const Term2 *_source, backtrace_t::frame_t _frame);
+    static func_t *new_shortcut_func(env_t *env, const datum_t *obj,
+                                     backtrace_t::frame_t frame);
     val_t *_call(const std::vector<const datum_t *> &args);
     val_t *call(const datum_t *arg);
     val_t *call(const datum_t *arg1, const datum_t *arg2);
 
     void dump_scope(std::map<int, Datum> *out) const;
     bool is_deterministic() const;
+
+    void maybe_set_frame(backtrace_t::frame_t _frame);
 private:
     std::vector<const datum_t *> argptrs;
     term_t *body;
 
     friend class wire_func_t;
     const Term2 *source;
+    backtrace_t::frame_t frame;
     bool implicit_bound;
 
     // TODO: make this smarter
@@ -43,13 +47,15 @@ public:
     wire_func_t();
     virtual ~wire_func_t() { }
     wire_func_t(env_t *env, func_t *_func);
-    wire_func_t(const Term2 &_source, std::map<int, Datum> *_scope);
+    wire_func_t(const Term2 &_source, std::map<int, Datum> *_scope,
+                backtrace_t::frame_t _frame);
     func_t *compile(env_t *env);
     virtual backtrace_t::frame_t bt() = 0;
 protected:
     std::map<env_t *, func_t *> cached_funcs;
 
     Term2 source;
+    backtrace_t::frame_t frame;
     std::map<int, Datum> scope;
 public:
     //RDB_MAKE_ME_SERIALIZABLE_2(source, scope);
@@ -61,10 +67,11 @@ class name##_wire_func_t : public wire_func_t {                               \
 public:                                                                       \
     name##_wire_func_t() : wire_func_t() { }                                  \
     name##_wire_func_t(env_t *env, func_t *func) : wire_func_t(env, func) { } \
-    name##_wire_func_t(const Term2 &_source, std::map<int, Datum> *_scope)    \
-        : wire_func_t(_source, _scope) { }                                    \
+    name##_wire_func_t(const Term2 &_source, std::map<int, Datum> *_scope,    \
+                       backtrace_t::frame_t _frame)                           \
+        : wire_func_t(_source, _scope, _frame) { }                            \
     virtual backtrace_t::frame_t bt() { return name##_bt_frame; }             \
-    RDB_MAKE_ME_SERIALIZABLE_2(source, scope);                                \
+    RDB_MAKE_ME_SERIALIZABLE_3(source, frame, scope);                         \
 };                                                                            \
 
 SIMPLE_FUNC_IMPL(map, 1);

@@ -100,6 +100,8 @@ void run(Query2 *q, env_t *env, Response2 *res, stream_cache_t *stream_cache) {
         term_t *root_term = 0;
         try {
             root_term = env->new_term(&q->query());
+            // TODO: handle this properly
+            root_term->set_bt(1000);
         } catch (const exc_t &e) {
             fill_error(res, Response2::COMPILE_ERROR, e.what(), e.backtrace);
             return;

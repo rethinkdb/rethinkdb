@@ -88,7 +88,7 @@ const datum_t *table_t::_replace(const datum_t *orig, const datum_t *d, bool ups
 #pragma GCC diagnostic pop
     }
 
-    return _replace(orig, map_wire_func_t(t, 0));
+    return _replace(orig, map_wire_func_t(t, 0, 1));
 }
 
 const std::string &table_t::get_pkey() { return pkey; }
@@ -270,7 +270,11 @@ std::pair<table_t *, const datum_t *> val_t::as_single_selection() {
 
 func_t *val_t::as_func(shortcut_ok_bool_t shortcut_ok) {
     if (get_type().is_convertible(type_t::DATUM) && shortcut_ok == SHORTCUT_OK) {
-        if (!func) func = env->add_ptr(func_t::new_shortcut_func(env, as_datum()));
+        if (!func) {
+            r_sanity_check(parent);
+            func = env->add_ptr(func_t::new_shortcut_func(env, as_datum(),
+                                                          parent->get_bt()));
+        }
         return func;
     }
     rcheck(type.raw_type == type_t::FUNC,
