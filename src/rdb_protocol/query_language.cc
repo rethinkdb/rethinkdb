@@ -4,7 +4,6 @@
 #include <cmath>
 
 #include "errors.hpp"
-#include <boost/make_shared.hpp>
 #include <boost/variant.hpp>
 
 #include "clustering/administration/main/ports.hpp"
@@ -846,7 +845,7 @@ void check_query_type(Query *q, type_checking_environment_t *env, bool *is_det_o
     }
 }
 
-boost::shared_ptr<js::runner_t> runtime_environment_t::get_js_runner() {
+std::shared_ptr<js::runner_t> runtime_environment_t::get_js_runner() {
     pool->assert_thread();
     if (!js_runner->connected()) {
         js_runner->begin(pool);
@@ -1812,7 +1811,7 @@ std::shared_ptr<scoped_cJSON_t> eval_term_as_json(Term *t, runtime_environment_t
         // TODO (rntz): implicitly bound argument should become receiver
         // ("this") object on javascript side.
 
-        boost::shared_ptr<js::runner_t> js = env->get_js_runner();
+        std::shared_ptr<js::runner_t> js = env->get_js_runner();
         std::string errmsg;
         std::shared_ptr<scoped_cJSON_t> result;
 

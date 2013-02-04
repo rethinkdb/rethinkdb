@@ -2,7 +2,6 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
-#include <boost/make_shared.hpp>
 
 #include "btree/erase_range.hpp"
 #include "btree/parallel_traversal.hpp"
@@ -238,7 +237,7 @@ public:
               ctx->cross_thread_namespace_watchables[get_thread_id()].get()->get_watchable(),
               ctx->cross_thread_database_watchables[get_thread_id()].get()->get_watchable(),
               ctx->semilattice_metadata,
-              boost::make_shared<js::runner_t>(),
+              std::make_shared<js::runner_t>(),
               ctx->signals[get_thread_id()].get(),
               ctx->machine_id)
     { }
@@ -579,7 +578,7 @@ struct read_visitor_t : public boost::static_visitor<void> {
             ctx->cross_thread_namespace_watchables[get_thread_id()].get()->get_watchable(),
             ctx->cross_thread_database_watchables[get_thread_id()].get()->get_watchable(),
             ctx->semilattice_metadata,
-            boost::make_shared<js::runner_t>(),
+            std::make_shared<js::runner_t>(),
             &interruptor,
             ctx->machine_id)
     { }
@@ -645,7 +644,7 @@ struct write_visitor_t : public boost::static_visitor<void> {
             ctx->cross_thread_namespace_watchables[get_thread_id()].get()->get_watchable(),
             ctx->cross_thread_database_watchables[get_thread_id()].get()->get_watchable(),
             ctx->semilattice_metadata,
-            boost::make_shared<js::runner_t>(),
+            std::make_shared<js::runner_t>(),
             &interruptor,
             ctx->machine_id)
     { }

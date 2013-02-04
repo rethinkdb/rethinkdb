@@ -26,7 +26,7 @@ public:
         const std::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
             &_semilattice_metadata,
         directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
-        boost::shared_ptr<js::runner_t> _js_runner,
+        std::shared_ptr<js::runner_t> _js_runner,
         signal_t *_interruptor,
         uuid_u _this_machine)
         : pool(_pool_group->get()),
@@ -50,7 +50,7 @@ public:
              _databases_semilattice_metadata,
         const std::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
             &_semilattice_metadata,
-        boost::shared_ptr<js::runner_t> _js_runner,
+        std::shared_ptr<js::runner_t> _js_runner,
         signal_t *_interruptor,
         uuid_u _this_machine)
         : pool(_pool_group->get()),
@@ -79,7 +79,7 @@ public:
 private:
     // Ideally this would be a scoped_ptr_t<js::runner_t>. We used to copy
     // `runtime_environment_t` to capture scope, which is why this is a
-    // `boost::shared_ptr`. But now we pass scope around separately, so this
+    // `std::shared_ptr`. But now we pass scope around separately, so this
     // could be changed.
     //
     // Note that js_runner is "lazily initialized": we only call
@@ -90,12 +90,12 @@ private:
     // In the future we might want to be even finer-grained than this, and
     // release worker jobs once we know we no longer need JS execution, or
     // multiplex queries onto worker processes.
-    boost::shared_ptr<js::runner_t> js_runner;
+    std::shared_ptr<js::runner_t> js_runner;
 
 public:
     // Returns js_runner, but first calls js_runner->begin() if it hasn't
     // already been called.
-    boost::shared_ptr<js::runner_t> get_js_runner();
+    std::shared_ptr<js::runner_t> get_js_runner();
 
     signal_t *interruptor;
     uuid_u this_machine;
