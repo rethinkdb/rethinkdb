@@ -48,7 +48,7 @@ machine_ghost_issue_t *machine_ghost_issue_t::clone() const {
 
 
 machine_down_issue_tracker_t::machine_down_issue_tracker_t(
-        boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > _semilattice_view,
+        const std::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > &_semilattice_view,
         const clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > &_machine_id_translation_table) :
     semilattice_view(_semilattice_view),
     machine_id_translation_table(_machine_id_translation_table) { }

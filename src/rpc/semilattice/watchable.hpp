@@ -1,12 +1,19 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef RPC_SEMILATTICE_WATCHABLE_HPP_
 #define RPC_SEMILATTICE_WATCHABLE_HPP_
+
+#include <memory>
+
+#include "errors.hpp"
+#include <boost/function.hpp>
+
+#include "concurrency/mutex_assertion.hpp"
 
 template <class T>
 class semilattice_watchable_t : public watchable_t<T> {
 public:
     semilattice_watchable_t() { }
-    explicit semilattice_watchable_t(const boost::shared_ptr<semilattice_read_view_t<T> > &_view)
+    explicit semilattice_watchable_t(const std::shared_ptr<semilattice_read_view_t<T> > &_view)
         : view(_view) { }
 
     semilattice_watchable_t *clone() const {
@@ -26,14 +33,14 @@ public:
     }
 
 private:
-    boost::shared_ptr<semilattice_read_view_t<T> > view;
+    std::shared_ptr<semilattice_read_view_t<T> > view;
     rwi_lock_assertion_t rwi_lock_assertion;
 
     DISABLE_COPYING(semilattice_watchable_t);
 };
 
 template<class T>
-cross_thread_watchable_variable_t<T> cross_thread_watchable_from_semilattice(boost::shared_ptr<semilattice_read_view_t<T> > view, int dest_thread) {
+cross_thread_watchable_variable_t<T> cross_thread_watchable_from_semilattice(const std::shared_ptr<semilattice_read_view_t<T> > &view, int dest_thread) {
     return cross_thread_watchable_variable_t<T>(new semilattice_watchable_t<T>(view), dest_thread);
 }
 

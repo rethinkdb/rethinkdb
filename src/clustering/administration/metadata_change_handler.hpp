@@ -20,7 +20,7 @@ public:
     typedef mailbox_t<void(typename ack_mailbox_t::address_t)> request_mailbox_t;
 
     metadata_change_handler_t(mailbox_manager_t *_mailbox_manager,
-                              const boost::shared_ptr<semilattice_readwrite_view_t<metadata_t> > &_metadata) :
+                              const std::shared_ptr<semilattice_readwrite_view_t<metadata_t> > &_metadata) :
         mailbox_manager(_mailbox_manager),
         request_mailbox(mailbox_manager,
                         boost::bind(&metadata_change_handler_t<metadata_t>::remote_change_request, this, _1),
@@ -122,7 +122,7 @@ public:
 private:
     mailbox_manager_t *mailbox_manager;
     request_mailbox_t request_mailbox;
-    boost::shared_ptr<semilattice_readwrite_view_t<metadata_t> > metadata_view;
+    std::shared_ptr<semilattice_readwrite_view_t<metadata_t> > metadata_view;
     std::set<cond_t*> coro_invalid_conditions;
     auto_drainer_t drainer;
 

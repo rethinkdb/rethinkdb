@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_ISSUES_VECTOR_CLOCK_CONFLICT_HPP_
 #define CLUSTERING_ADMINISTRATION_ISSUES_VECTOR_CLOCK_CONFLICT_HPP_
 
@@ -55,14 +55,14 @@ private:
 
 class vector_clock_conflict_issue_tracker_t : public global_issue_tracker_t {
 public:
-    explicit vector_clock_conflict_issue_tracker_t(boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > _semilattice_view);
+    explicit vector_clock_conflict_issue_tracker_t(const std::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > &_semilattice_view);
     ~vector_clock_conflict_issue_tracker_t();
 
     std::list<clone_ptr_t<global_issue_t> > get_issues();
     std::list<clone_ptr_t<vector_clock_conflict_issue_t> > get_vector_clock_issues();
 
 private:
-    boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > semilattice_view;
+    std::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > semilattice_view;
 
     DISABLE_COPYING(vector_clock_conflict_issue_tracker_t);
 };

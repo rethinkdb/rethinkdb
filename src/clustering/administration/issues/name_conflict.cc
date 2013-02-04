@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "clustering/administration/issues/name_conflict.hpp"
 
 name_conflict_issue_t::name_conflict_issue_t(
@@ -128,7 +128,7 @@ private:
     std::map<uuid_u, deletable_t<database_semilattice_metadata_t> > databases;
 };
 
-name_conflict_issue_tracker_t::name_conflict_issue_tracker_t(boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > _semilattice_view)
+name_conflict_issue_tracker_t::name_conflict_issue_tracker_t(const std::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > &_semilattice_view)
     : semilattice_view(_semilattice_view) { }
 
 name_conflict_issue_tracker_t::~name_conflict_issue_tracker_t() { }

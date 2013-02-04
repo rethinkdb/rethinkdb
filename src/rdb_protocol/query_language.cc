@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "rdb_protocol/query_language.hpp"
 
 #include <cmath>
@@ -17,11 +17,12 @@
 #include "rdb_protocol/proto_utils.hpp"
 
 
-//TODO: why is this not in the query_language namespace? - because it's also used by rethinkdb import at the moment
+// TODO: why is this not in the query_language namespace? - because it's also used by rethinkdb import at the moment
+// TODO: ^ WTF?  How is that a reason?
 void wait_for_rdb_table_readiness(namespace_repo_t<rdb_protocol_t> *ns_repo,
                                   namespace_id_t namespace_id,
                                   signal_t *interruptor,
-                                  boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > semilattice_metadata) THROWS_ONLY(interrupted_exc_t) {
+                                  const std::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > &semilattice_metadata) THROWS_ONLY(interrupted_exc_t) {
     /* The following is an ugly hack, but it's probably what we want.  It
        takes about a third of a second for the new namespace to get to the
        point where we can do reads/writes on it.  We don't want to return

@@ -1,8 +1,9 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_ISSUES_NAME_CONFLICT_HPP_
 #define CLUSTERING_ADMINISTRATION_ISSUES_NAME_CONFLICT_HPP_
 
 #include <list>
+#include <memory>
 #include <set>
 #include <string>
 
@@ -38,13 +39,13 @@ private:
 
 class name_conflict_issue_tracker_t : public global_issue_tracker_t {
 public:
-    explicit name_conflict_issue_tracker_t(boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > _semilattice_view);
+    explicit name_conflict_issue_tracker_t(const std::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > &_semilattice_view);
     ~name_conflict_issue_tracker_t();
 
     std::list<clone_ptr_t<global_issue_t> > get_issues();
 
 private:
-    boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > semilattice_view;
+    std::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > semilattice_view;
 
     DISABLE_COPYING(name_conflict_issue_tracker_t);
 };

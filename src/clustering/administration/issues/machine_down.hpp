@@ -45,14 +45,14 @@ private:
 class machine_down_issue_tracker_t : public global_issue_tracker_t {
 public:
     machine_down_issue_tracker_t(
-            boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > semilattice_view,
+            const std::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > &semilattice_view,
             const clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > &machine_id_translation_table);
     ~machine_down_issue_tracker_t();
 
     std::list<clone_ptr_t<global_issue_t> > get_issues();
 
 private:
-    boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > semilattice_view;
+    std::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > semilattice_view;
     clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > machine_id_translation_table;
 
     DISABLE_COPYING(machine_down_issue_tracker_t);

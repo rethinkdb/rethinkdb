@@ -94,7 +94,7 @@ rdb_protocol_t::context_t::context_t()
 
 rdb_protocol_t::context_t::context_t(extproc::pool_group_t *_pool_group,
           namespace_repo_t<rdb_protocol_t> *_ns_repo,
-          boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _semilattice_metadata,
+          const std::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > &_semilattice_metadata,
           directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
           machine_id_t _machine_id)
     : pool_group(_pool_group), ns_repo(_ns_repo),

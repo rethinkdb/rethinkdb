@@ -1,12 +1,10 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_AUTO_RECONNECT_HPP_
 #define CLUSTERING_ADMINISTRATION_AUTO_RECONNECT_HPP_
 
 #include <map>
+#include <memory>
 #include <utility>
-
-#include "errors.hpp"
-#include <boost/shared_ptr.hpp>
 
 #include "clustering/administration/machine_metadata.hpp"
 #include "concurrency/watchable.hpp"
@@ -19,7 +17,7 @@ public:
         connectivity_cluster_t *connectivity_cluster,
         connectivity_cluster_t::run_t *connectivity_cluster_run,
         const clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > &machine_id_translation_table,
-        const boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > &machine_metadata);
+        const std::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > &machine_metadata);
 
 private:
     void on_connect_or_disconnect();
@@ -34,7 +32,7 @@ private:
     connectivity_cluster_t *connectivity_cluster;
     connectivity_cluster_t::run_t *connectivity_cluster_run;
     clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > machine_id_translation_table;
-    boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machine_metadata;
+    std::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machine_metadata;
 
     /* this is so that `on_disconnect()` can find the machine ID and last
     known address of a peer that just disconnected. */

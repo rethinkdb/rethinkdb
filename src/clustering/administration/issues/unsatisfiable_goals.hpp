@@ -1,9 +1,10 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_ISSUES_UNSATISFIABLE_GOALS_HPP_
 #define CLUSTERING_ADMINISTRATION_ISSUES_UNSATISFIABLE_GOALS_HPP_
 
 #include <list>
 #include <map>
+#include <memory>
 #include <string>
 
 #include "clustering/administration/issues/global.hpp"
@@ -36,13 +37,13 @@ private:
 
 class unsatisfiable_goals_issue_tracker_t : public global_issue_tracker_t {
 public:
-    explicit unsatisfiable_goals_issue_tracker_t(boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > _semilattice_view);
+    explicit unsatisfiable_goals_issue_tracker_t(const std::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > &_semilattice_view);
     ~unsatisfiable_goals_issue_tracker_t();
 
     std::list<clone_ptr_t<global_issue_t> > get_issues();
 
 private:
-    boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > semilattice_view;
+    std::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > semilattice_view;
 
     DISABLE_COPYING(unsatisfiable_goals_issue_tracker_t);
 };

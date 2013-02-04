@@ -1,6 +1,8 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "clustering/administration/main/import.hpp"
 
+#include <memory>
+
 // TODO: Which of these headers, other than rdb_protocol/query_language.hpp, contains rdb_protocol_t stuff?
 
 #include "arch/io/network.hpp"
@@ -34,7 +36,7 @@ bool do_json_importation(namespace_repo_t<rdb_protocol_t> *repo,
                          const json_import_target_t &target,
                          mailbox_manager_t *mailbox_manager,
                          const clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > &directory,
-                         boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > semilattice_metadata,
+                         const std::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > &semilattice_metadata,
                          signal_t *interruptor);
 
 bool get_other_peer(const std::set<peer_id_t> &peers_list, const peer_id_t &me, peer_id_t *other_peer_out) {
@@ -324,7 +326,7 @@ peer_id_t get_change_request_info(const std::map<peer_id_t, cluster_directory_me
 namespace_id_t get_or_create_metadata(namespace_repo_t<rdb_protocol_t> *ns_repo,
                                       mailbox_manager_t *mailbox_manager,
                                       const clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > &directory,
-                                      boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > semilattice_metadata,
+                                      const std::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > &semilattice_metadata,
                                       json_import_target_t target,
                                       signal_t *interruptor) {
     namespace_id_t ns_id = nil_uuid();
@@ -400,7 +402,7 @@ bool do_json_importation(namespace_repo_t<rdb_protocol_t> *repo,
                          const json_import_target_t &target,
                          mailbox_manager_t *mailbox_manager,
                          const clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > &directory,
-                         boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > semilattice_metadata,
+                         const std::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > &semilattice_metadata,
                          signal_t *interruptor) {
 
     // This function will verify that the selected datacenter, database, and table exist

@@ -1,8 +1,9 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_CLI_ADMIN_CLUSTER_LINK_HPP_
 #define CLUSTERING_ADMINISTRATION_CLI_ADMIN_CLUSTER_LINK_HPP_
 
 #include <map>
+#include <memory>
 #include <set>
 #include <string>
 #include <vector>
@@ -379,7 +380,7 @@ private:
     message_multiplexer_t::client_t semilattice_manager_client;
     const scoped_ptr_t<semilattice_manager_t<cluster_semilattice_metadata_t> > semilattice_manager_cluster;
     message_multiplexer_t::client_t::run_t semilattice_manager_client_run;
-    boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > semilattice_metadata;
+    std::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > semilattice_metadata;
     metadata_change_handler_t<cluster_semilattice_metadata_t> metadata_change_handler;
     message_multiplexer_t::client_t directory_manager_client;
     watchable_variable_t<cluster_directory_metadata_t> our_directory_metadata;

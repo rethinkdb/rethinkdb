@@ -1,8 +1,9 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_ENVIRONMENT_HPP_
 #define RDB_PROTOCOL_ENVIRONMENT_HPP_
 
 #include <map>
+#include <memory>
 
 #include "clustering/administration/database_metadata.hpp"
 #include "clustering/administration/metadata.hpp"
@@ -22,8 +23,8 @@ public:
              _namespaces_semilattice_metadata,
         clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >
              _databases_semilattice_metadata,
-        boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
-            _semilattice_metadata,
+        const std::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
+            &_semilattice_metadata,
         directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
         boost::shared_ptr<js::runner_t> _js_runner,
         signal_t *_interruptor,
@@ -47,8 +48,8 @@ public:
              _namespaces_semilattice_metadata,
         clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >
              _databases_semilattice_metadata,
-        boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
-            _semilattice_metadata,
+        const std::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
+            &_semilattice_metadata,
         boost::shared_ptr<js::runner_t> _js_runner,
         signal_t *_interruptor,
         uuid_u _this_machine)
@@ -71,7 +72,7 @@ public:
     clone_ptr_t<watchable_t<databases_semilattice_metadata_t> > databases_semilattice_metadata;
     //TODO this should really just be the namespace metadata... but
     //constructing views is too hard :-/
-    boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
+    const std::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
         semilattice_metadata;
     directory_read_manager_t<cluster_directory_metadata_t> *directory_read_manager;
 

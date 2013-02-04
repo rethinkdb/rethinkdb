@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include <string>
 #include <set>
 
@@ -22,18 +22,16 @@ static const uint64_t MAX_STAT_REQ_TIMEOUT_MS = 60*1000;
 class stats_request_record_t {
 public:
     explicit stats_request_record_t(mailbox_manager_t *mbox_manager)
-        : response_mailbox(mbox_manager, boost::bind(&promise_t<perfmon_result_t>::pulse, &stats, _1), mailbox_callback_mode_inline)
-    { }
+        : response_mailbox(mbox_manager, boost::bind(&promise_t<perfmon_result_t>::pulse, &stats, _1), mailbox_callback_mode_inline) { }
+
     promise_t<perfmon_result_t> stats;
     mailbox_t<void(perfmon_result_t)> response_mailbox;
 };
 
 stat_http_app_t::stat_http_app_t(mailbox_manager_t *_mbox_manager,
                                  clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > >& _directory,
-                                 boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >& _semilattice
-                                 )
-    : mbox_manager(_mbox_manager), directory(_directory), semilattice(_semilattice)
-{ }
+                                 const std::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >& _semilattice)
+    : mbox_manager(_mbox_manager), directory(_directory), semilattice(_semilattice) { }
 
 cJSON *render_as_json(perfmon_result_t *target) {
     if (target->is_map()) {

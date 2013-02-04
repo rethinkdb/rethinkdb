@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "clustering/administration/issues/unsatisfiable_goals.hpp"
 
 #include "rpc/semilattice/view.hpp"
@@ -102,7 +102,7 @@ static void make_issues(const cow_ptr_t<namespaces_semilattice_metadata_t<protoc
     }
 }
 
-unsatisfiable_goals_issue_tracker_t::unsatisfiable_goals_issue_tracker_t(boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > _semilattice_view)
+unsatisfiable_goals_issue_tracker_t::unsatisfiable_goals_issue_tracker_t(const std::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > &_semilattice_view)
     : semilattice_view(_semilattice_view) { }
 unsatisfiable_goals_issue_tracker_t::~unsatisfiable_goals_issue_tracker_t() { }
 

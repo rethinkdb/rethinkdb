@@ -1,7 +1,8 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_PARSER_MAKER_HPP_
 #define CLUSTERING_ADMINISTRATION_PARSER_MAKER_HPP_
 
+#include <memory>
 #include <set>
 #include <string>
 
@@ -13,7 +14,7 @@ template<class protocol_t, class parser_t>
 class parser_maker_t {
 public:
     parser_maker_t(mailbox_manager_t *,
-                   boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > >,
+                   const std::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > > &,
                    const std::set<ip_address_t> &_local_addresses,
                    int port_offset,
                    namespace_repo_t<protocol_t> *repo,
@@ -32,7 +33,7 @@ private:
     void serve_queries(std::string ns_name, namespace_id_t ns, int port, auto_drainer_t::lock_t keepalive);
 
     mailbox_manager_t *mailbox_manager;
-    boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > > namespaces_semilattice_metadata;
+    std::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > > namespaces_semilattice_metadata;
     const std::set<ip_address_t> local_addresses;
     int port_offset;
     namespace_repo_t<protocol_t> *repo;
