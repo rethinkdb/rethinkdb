@@ -451,7 +451,7 @@ bool do_json_importation(namespace_repo_t<rdb_protocol_t> *repo,
 
             store_key_t key(internal_key);
 
-            boost::shared_ptr<scoped_cJSON_t> json_copy_fml(new scoped_cJSON_t(json.DeepCopy()));
+            std::shared_ptr<scoped_cJSON_t> json_copy_fml(new scoped_cJSON_t(json.DeepCopy()));
 
             rdb_protocol_t::point_write_t point_write(key, json_copy_fml, false);
             rdb_protocol_t::write_t rdb_write;

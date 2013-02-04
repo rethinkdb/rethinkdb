@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
@@ -47,8 +47,8 @@ void run_timeout_test(js::runner_t *runner) {
 
     try {
         runner->call(id,
-                     boost::shared_ptr<scoped_cJSON_t>(),
-                     std::vector<boost::shared_ptr<scoped_cJSON_t> >(),
+                     std::shared_ptr<scoped_cJSON_t>(),
+                     std::vector<std::shared_ptr<scoped_cJSON_t> >(),
                      &errmsg,
                      &config);
         FAIL() << "didn't time out";

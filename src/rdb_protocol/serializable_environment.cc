@@ -1,3 +1,4 @@
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "rdb_protocol/serializable_environment.hpp"
 
 #include "containers/archive/boost_types.hpp"

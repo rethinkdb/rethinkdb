@@ -1,15 +1,13 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_JS_HPP_
 #define RDB_PROTOCOL_JS_HPP_
 
 #include <map>
+#include <memory>
 #include <set>
 #include <string>
 #include <vector>
 #include <utility>
-
-#include "errors.hpp"
-#include <boost/shared_ptr.hpp>
 
 #include "arch/timing.hpp"      // signal_timer_t
 #include "containers/archive/archive.hpp"
@@ -106,15 +104,15 @@ class runner_t : private extproc::job_handle_t {
         const req_config_t *config = NULL);
 
     // Calls a previously compiled function.
-    boost::shared_ptr<scoped_cJSON_t> call(
+    std::shared_ptr<scoped_cJSON_t> call(
         id_t func_id,
         // The receiver object ("this") in the function body. *Can* be an empty
         // pointer (but not an empty scoped_cJSON_t), to indicate a default
         // empty object receiver.
         //
         // Note: if present, *must* be a JSON object, not eg. an integer.
-        boost::shared_ptr<scoped_cJSON_t> object,
-        const std::vector<boost::shared_ptr<scoped_cJSON_t> > &args,
+        std::shared_ptr<scoped_cJSON_t> object,
+        const std::vector<std::shared_ptr<scoped_cJSON_t> > &args,
         std::string *errmsg,
         const req_config_t *config = NULL);
 

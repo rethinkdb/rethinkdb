@@ -20,8 +20,8 @@
 #include "rdb_protocol/query_language.hpp"
 #include "rdb_protocol/transform_visitors.hpp"
 
-typedef std::list<boost::shared_ptr<scoped_cJSON_t> > json_list_t;
-typedef std::list<std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> > > keyed_json_list_t;
+typedef std::list<std::shared_ptr<scoped_cJSON_t> > json_list_t;
+typedef std::list<std::pair<store_key_t, std::shared_ptr<scoped_cJSON_t> > > keyed_json_list_t;
 
 #define MAX_RDB_VALUE_SIZE MAX_IN_NODE_VALUE_SIZE
 
@@ -84,10 +84,10 @@ block_magic_t value_sizer_t<rdb_value_t>::btree_leaf_magic() const {
 
 block_size_t value_sizer_t<rdb_value_t>::block_size() const { return block_size_; }
 
-boost::shared_ptr<scoped_cJSON_t> get_data(const rdb_value_t *value, transaction_t *txn) {
+std::shared_ptr<scoped_cJSON_t> get_data(const rdb_value_t *value, transaction_t *txn) {
     blob_t blob(const_cast<rdb_value_t *>(value)->value_ref(), blob::btree_maxreflen);
 
-    boost::shared_ptr<scoped_cJSON_t> data;
+    std::shared_ptr<scoped_cJSON_t> data;
 
     blob_acq_t acq_group;
     buffer_group_t buffer_group;
@@ -125,7 +125,7 @@ void kv_location_delete(keyvalue_location_t<rdb_value_t> *kv_location, const sto
 }
 
 void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location, const store_key_t &key,
-                     boost::shared_ptr<scoped_cJSON_t> data,
+                     std::shared_ptr<scoped_cJSON_t> data,
                      btree_slice_t *slice, repli_timestamp_t timestamp, transaction_t *txn) {
 
     scoped_malloc_t<rdb_value_t> new_value(MAX_RDB_VALUE_SIZE);
@@ -161,14 +161,14 @@ void rdb_modify(const std::string &primary_key, const store_key_t &key, point_mo
         keyvalue_location_t<rdb_value_t> kv_location;
         find_keyvalue_location_for_write(txn, superblock, key.btree_key(), &kv_location,
                                          &slice->root_eviction_priority, &slice->stats);
-        boost::shared_ptr<scoped_cJSON_t> lhs;
+        std::shared_ptr<scoped_cJSON_t> lhs;
         if (!kv_location.value.has()) {
             lhs.reset(new scoped_cJSON_t(cJSON_CreateNull()));
         } else {
             lhs = get_data(kv_location.value.get(), txn);
             guarantee(lhs->GetObjectItem(primary_key.c_str()));
         }
-        boost::shared_ptr<scoped_cJSON_t> new_row;
+        std::shared_ptr<scoped_cJSON_t> new_row;
         std::string new_key;
         point_modify_ns::result_t res = query_language::calculate_modify(
             lhs, primary_key, op, mapping, env, scopes, backtrace, &new_row, &new_key);
@@ -198,7 +198,7 @@ void rdb_modify(const std::string &primary_key, const store_key_t &key, point_mo
     }
 }
 
-void rdb_set(const store_key_t &key, boost::shared_ptr<scoped_cJSON_t> data, bool overwrite,
+void rdb_set(const store_key_t &key, std::shared_ptr<scoped_cJSON_t> data, bool overwrite,
              btree_slice_t *slice, repli_timestamp_t timestamp,
              transaction_t *txn, superblock_t *superblock, point_write_response_t *response) {
     //block_size_t block_size = slice->cache()->get_block_size();
@@ -294,10 +294,11 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
     rdb_erase_range(slice, tester, left_key_supplied, left_exclusive, right_key_supplied, right_inclusive, txn, superblock);
 }
 
-size_t estimate_rget_response_size(const boost::shared_ptr<scoped_cJSON_t> &/*json*/) {
+size_t estimate_rget_response_size(UNUSED const std::shared_ptr<scoped_cJSON_t> & json) {
     // TODO: don't be stupid, be a smarty, come and join the nazy
     // party (json size estimation will be much easier once we switch
     // to bson -- fuck it for now).
+    // TODO: ^ WTF, how will it be easier?
     return 250;
 }
 

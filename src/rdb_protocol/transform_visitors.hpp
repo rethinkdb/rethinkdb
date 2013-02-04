@@ -1,11 +1,10 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_TRANSFORM_VISITORS_HPP_
 #define RDB_PROTOCOL_TRANSFORM_VISITORS_HPP_
 
 #include <list>
 
 #include "errors.hpp"
-#include <boost/shared_ptr.hpp>
 #include <boost/variant.hpp>
 
 #include "http/json.hpp"
@@ -18,12 +17,12 @@ typedef rdb_protocol_t::rget_read_response_t rget_read_response_t;
 
 class runtime_environment_t;
 
-typedef std::list<boost::shared_ptr<scoped_cJSON_t> > json_list_t;
+typedef std::list<std::shared_ptr<scoped_cJSON_t> > json_list_t;
 
 /* A visitor for applying a transformation to a bit of json. */
 class transform_visitor_t : public boost::static_visitor<void> {
 public:
-    transform_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json, json_list_t *_out, query_language::runtime_environment_t *_env, const scopes_t &_scopes, const backtrace_t &_backtrace);
+    transform_visitor_t(std::shared_ptr<scoped_cJSON_t> _json, json_list_t *_out, query_language::runtime_environment_t *_env, const scopes_t &_scopes, const backtrace_t &_backtrace);
 
     void operator()(const Builtin_Filter &filter) const;
 
@@ -34,7 +33,7 @@ public:
     void operator()(Builtin_Range range) const;
 
 private:
-    boost::shared_ptr<scoped_cJSON_t> json;
+    std::shared_ptr<scoped_cJSON_t> json;
     json_list_t *out;
     query_language::runtime_environment_t *env;
     scopes_t scopes;
@@ -66,7 +65,7 @@ private:
 /* A visitor for applying a terminal to a bit of json. */
 class terminal_visitor_t : public boost::static_visitor<void> {
 public:
-    terminal_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json,
+    terminal_visitor_t(std::shared_ptr<scoped_cJSON_t> _json,
                        query_language::runtime_environment_t *_env,
                        const scopes_t &_scopes,
                        const backtrace_t &_backtrace,
@@ -81,7 +80,7 @@ public:
     void operator()(const WriteQuery_ForEach &w) const;
 
 private:
-    boost::shared_ptr<scoped_cJSON_t> json;
+    std::shared_ptr<scoped_cJSON_t> json;
     query_language::runtime_environment_t *env;
     scopes_t scopes;
     backtrace_t backtrace;

@@ -151,7 +151,7 @@ static cJSON *mkJSON(const v8::Handle<v8::Value> value, int recursion_limit, std
     }
 }
 
-boost::shared_ptr<scoped_cJSON_t> toJSON(const v8::Handle<v8::Value> value, std::string *errmsg) {
+std::shared_ptr<scoped_cJSON_t> toJSON(const v8::Handle<v8::Value> value, std::string *errmsg) {
     guarantee(!value.IsEmpty());
     guarantee(errmsg);
 
@@ -161,9 +161,9 @@ boost::shared_ptr<scoped_cJSON_t> toJSON(const v8::Handle<v8::Value> value, std:
 
     cJSON *json = mkJSON(value, TOJSON_RECURSION_LIMIT, errmsg);
     if (json) {
-        return boost::make_shared<scoped_cJSON_t>(json);
+        return std::make_shared<scoped_cJSON_t>(json);
     } else {
-        return boost::shared_ptr<scoped_cJSON_t>();
+        return std::shared_ptr<scoped_cJSON_t>();
     }
 }
 

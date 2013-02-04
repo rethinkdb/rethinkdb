@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_PROTOCOL_HPP_
 #define RDB_PROTOCOL_PROTOCOL_HPP_
 
@@ -82,12 +82,12 @@ namespace rdb_protocol_details {
 
 struct backfill_atom_t {
     store_key_t key;
-    boost::shared_ptr<scoped_cJSON_t> value;
+    std::shared_ptr<scoped_cJSON_t> value;
     repli_timestamp_t recency;
 
     backfill_atom_t() { }
     backfill_atom_t(const store_key_t& _key,
-                    const boost::shared_ptr<scoped_cJSON_t>& _value,
+                    const std::shared_ptr<scoped_cJSON_t>& _value,
                     const repli_timestamp_t& _recency) :
         key(_key),
         value(_value),
@@ -173,9 +173,9 @@ struct rdb_protocol_t {
     };
 
     struct point_read_response_t {
-        boost::shared_ptr<scoped_cJSON_t> data;
+        std::shared_ptr<scoped_cJSON_t> data;
         point_read_response_t() { }
-        explicit point_read_response_t(boost::shared_ptr<scoped_cJSON_t> _data)
+        explicit point_read_response_t(const std::shared_ptr<scoped_cJSON_t> &_data)
             : data(_data)
         { }
 
@@ -183,9 +183,9 @@ struct rdb_protocol_t {
     };
 
     struct rget_read_response_t {
-        typedef std::vector<std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> > > stream_t; //Present if there was no terminal
-        typedef std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less_t> groups_t; //Present if the terminal was a groupedmapreduce
-        typedef boost::shared_ptr<scoped_cJSON_t> atom_t; //Present if the terminal was a reduction
+        typedef std::vector<std::pair<store_key_t, std::shared_ptr<scoped_cJSON_t> > > stream_t; //Present if there was no terminal
+        typedef std::map<std::shared_ptr<scoped_cJSON_t>, std::shared_ptr<scoped_cJSON_t>, shared_scoped_less_t> groups_t; //Present if the terminal was a groupedmapreduce
+        typedef std::shared_ptr<scoped_cJSON_t> atom_t; //Present if the terminal was a reduction
 
         struct length_t {
             int length;
@@ -386,11 +386,11 @@ struct rdb_protocol_t {
     class point_write_t {
     public:
         point_write_t() { }
-        point_write_t(const store_key_t& _key, boost::shared_ptr<scoped_cJSON_t> _data, bool _overwrite = true)
+        point_write_t(const store_key_t& _key, std::shared_ptr<scoped_cJSON_t> _data, bool _overwrite = true)
             : key(_key), data(_data), overwrite(_overwrite) { }
 
         store_key_t key;
-        boost::shared_ptr<scoped_cJSON_t> data;
+        std::shared_ptr<scoped_cJSON_t> data;
         bool overwrite;
 
         RDB_DECLARE_ME_SERIALIZABLE;

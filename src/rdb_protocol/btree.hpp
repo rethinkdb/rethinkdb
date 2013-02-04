@@ -84,7 +84,7 @@ void rdb_modify(const std::string &primary_key, const store_key_t &key, const po
                 btree_slice_t *slice, repli_timestamp_t timestamp,
                 transaction_t *txn, superblock_t *superblock, point_modify_response_t *response);
 
-void rdb_set(const store_key_t &key, boost::shared_ptr<scoped_cJSON_t> data, bool overwrite,
+void rdb_set(const store_key_t &key, std::shared_ptr<scoped_cJSON_t> data, bool overwrite,
              btree_slice_t *slice, repli_timestamp_t timestamp,
              transaction_t *txn, superblock_t *superblock, point_write_response_t *response);
 
@@ -113,10 +113,10 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
                                  transaction_t *txn, superblock_t *superblock);
 
 /* RGETS */
-size_t estimate_rget_response_size(const boost::shared_ptr<scoped_cJSON_t> &json);
+size_t estimate_rget_response_size(const std::shared_ptr<scoped_cJSON_t> &json);
 
 struct rget_response_t {
-    std::vector<std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> > > pairs;
+    std::vector<std::pair<store_key_t, std::shared_ptr<scoped_cJSON_t> > > pairs;
     bool truncated;
 };
 

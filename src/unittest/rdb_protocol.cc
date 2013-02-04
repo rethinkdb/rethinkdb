@@ -76,7 +76,7 @@ TEST(RDBProtocol, SetupTeardown) {
 
 /* `GetSet` tests basic get and set operations */
 void run_get_set_test(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t *osource) {
-    boost::shared_ptr<scoped_cJSON_t> data(new scoped_cJSON_t(cJSON_CreateNull()));
+    std::shared_ptr<scoped_cJSON_t> data(new scoped_cJSON_t(cJSON_CreateNull()));
     {
         rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(store_key_t("a"), data));
         rdb_protocol_t::write_response_t response;
