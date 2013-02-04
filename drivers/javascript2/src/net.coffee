@@ -117,14 +117,14 @@ class Connection
 
         @_sendQuery(query)
         
-    _continue: (token) ->
+    _continueQuery: (token) ->
         query = new Query2
         query.setType Query2.QueryType.CONTINUE
         query.setToken token
 
         @_sendQuery(query)
 
-    _end: (token) ->
+    _endQuery: (token) ->
         query = new Query2
         query.setType Query2.QueryType.END
         query.setToken token
@@ -174,6 +174,10 @@ class TcpConnection extends Connection
             for byte,i in buf
                 arr[i] = byte
             @_data(arr.buffer)
+
+    close: ->
+        @rawSocket.end()
+        super()
 
     cancel: ->
         @rawSocket.destroy()

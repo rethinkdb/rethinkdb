@@ -1,0 +1,114 @@
+#!/usr/bin/python
+
+from yaml import load
+from os import walk
+from sys import argv
+from getopt import getopt
+from subprocess import call, Popen
+from time import sleep
+
+class TestGroup:
+    def __init__(self, path, group):
+        self.path = path
+        self.group = group
+
+    def iter_tests(self, lang):
+        for test in self.group['tests']:
+            if lang in test:
+                yield (test[lang], test['ot'])
+
+# Walk the test tree and get an object representing all
+# the test data from the yaml files. Each yaml file defines
+# a test group. The test groups themselves are nested by
+# their directory structure.
+def get_test_structure():
+    tests = {}
+
+    for root, dirs, files in walk("src"):
+        
+        # Find the nested group location from the root
+        path = root.split('/')[1:]
+        cur = tests
+        for level in path:
+            if not cur.has_key(level):
+                cur[level] = {}
+            cur = cur[level]
+        
+        # Parse and insert the yaml structures
+        for name in filter(lambda name: name.endswith('.yaml'), files):
+            test_group = load(open(root+'/'+name))
+            leaf = name.partition('.')[0]
+            cur[leaf] = TestGroup(path+[leaf], test_group)
+
+    return tests
+
+def build_test_scripts():
+    tests = get_test_structure()
+
+    build_script(tests, 'py')
+    build_script(tests, 'js')
+
+def build_script(tests, lang):
+    script = open('build/test.'+lang, 'w+')
+    
+    driver = open('drivers/driver.'+lang)
+
+    if lang is 'py':
+        comment = '#'
+    elif lang is 'js':
+        comment = '//'
+
+    # The driver is the head of the file
+    script.write(driver.read())
+
+    # Now append the tests
+    def walk(level, ln):
+        for name,sub in level.iteritems():
+            script.write(comment*ln + ' ' + name + '\n')
+            if isinstance(sub, TestGroup):
+                script.write(comment*ln + '  ' + sub.group['desc'] + '\n\n')
+                for test,expected in sub.iter_tests(lang):
+                    if not isinstance(test, list):
+                        test = [test]
+                    for variant in test:
+                        script.write("test("+repr(variant)+", "+repr(str(expected))+")\n")
+            else:
+                script.write('\n')
+                walk(sub, ln+1)
+            script.write('\n'+comment*ln + '\n')
+                
+    walk(tests, 1)
+
+class RethinkDBTestServers:
+    def __init__(self):
+        self.start()
+
+    def start(self):
+        call(['../../build/debug/rethinkdb', 'create', '-d', 'build/cpp_data'])
+        self.cpp_server = Popen(['../../build/debug/rethinkdb', 'serve', '-d', 'build/cpp_data'])
+        self.js_server = Popen(['node', '../../rqljs/build/rqljs', '1'])
+        sleep(0.1)
+
+    def stop(self):
+        self.cpp_server.terminate()
+        self.js_server.terminate()
+
+def run_tests(lang):
+    if lang is 'py':
+        interpreter = 'python'
+    elif lang is 'js':
+        interpreter = 'node'
+
+    print "Running "+lang+" tests"
+    call([interpreter, 'build/test.'+lang])
+    print "Finished running "+lang+" tests"
+
+# Run the tests
+def run():
+    servers = RethinkDBTestServers()
+    run_tests('py')
+    run_tests('js')
+    servers.stop()
+
+if __name__ == '__main__':
+    eval(argv[1]+'()')
