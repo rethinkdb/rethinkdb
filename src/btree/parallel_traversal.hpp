@@ -1,12 +1,10 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef BTREE_PARALLEL_TRAVERSAL_HPP_
 #define BTREE_PARALLEL_TRAVERSAL_HPP_
 
+#include <memory>
 #include <utility>
 #include <vector>
-
-#include "utils.hpp"
-#include <boost/shared_ptr.hpp>
 
 #include "backfill_progress.hpp"
 #include "buffer_cache/types.hpp"
@@ -75,7 +73,7 @@ public:
     void receive_interesting_child(int child_index);
     void no_more_interesting_children();
 
-    interesting_children_callback_t(traversal_state_t *_state, parent_releaser_t *_releaser, int _level, const boost::shared_ptr<ranged_block_ids_t>& _ids_source)
+    interesting_children_callback_t(traversal_state_t *_state, parent_releaser_t *_releaser, int _level, const std::shared_ptr<ranged_block_ids_t>& _ids_source)
         : state(_state), releaser(_releaser), level(_level), acquisition_countdown(1), ids_source(_ids_source) { }
 
 private:
@@ -86,7 +84,7 @@ private:
     parent_releaser_t *releaser;
     int level;
     int acquisition_countdown;
-    boost::shared_ptr<ranged_block_ids_t> ids_source;
+    std::shared_ptr<ranged_block_ids_t> ids_source;
 
     DISABLE_COPYING(interesting_children_callback_t);
 };
