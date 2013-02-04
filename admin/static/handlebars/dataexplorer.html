@@ -157,6 +157,9 @@ Did you forget to append .run() at the end of your query?{{/if}}</pre>
     <ul class="history_query_list queries_list">
     </ul>
 </script>
+<script id="dataexplorer-toggle_size_button-template" type="text/x-handlebars-template">
+    {{#if view_is_full}}Smaller view{{else}}Full view{{/if}}
+</script>
 
 <script id="dataexplorer_query_element-template" type="text/x-handlebars-template">
     <li class="query_element"><a href="#" class="old_query" data-query="{{query}}">{{query_summary}}</a></li>
