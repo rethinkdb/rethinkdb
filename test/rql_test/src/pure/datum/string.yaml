@@ -1,0 +1,22 @@
+desc: Tests of converstion to and from the RQL string type
+tests:
+    
+    # Simple strings
+    - py: r.expr('str')
+      js: [r('str'), r.expr('str')]
+      ot: "'str'"
+    - py: r.expr("str")
+      js: [r("str"), r.expr("str")]
+      ot: "\"str\""
+
+    # Unicode
+    - py: # Python supports unicode strings with the u'' pattern
+        code: r.expr(u'str')
+        ot: u'str'
+
+    # Hard to do right now because of python 2 unicode support
+    - py:
+        code: "r.expr(u'こんにちは')"
+        ot: "u'こんにちは'"
+
+    # etc.

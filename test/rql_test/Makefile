@@ -9,7 +9,7 @@ TEST_FILES=$(patsubst $(DRIVERS)/driver.%,$(BUILD)/test.%,$(DRIVER_FILES))
 run: $(TEST_FILES)
 	./test-runner run
 
-$(TEST_FILES): $(YAML_FILES) $(DRIVER_FILES)
+$(TEST_FILES): $(YAML_FILES) $(DRIVER_FILES) test-runner
 	mkdir -p build
 	./test-runner build_test_scripts
 

@@ -14,8 +14,11 @@ class TestGroup:
 
     def iter_tests(self, lang):
         for test in self.group['tests']:
+            expected = None
+            if 'ot' in test:
+                expected = test['ot']
             if lang in test:
-                yield (test[lang], test['ot'])
+                yield (test[lang], expected)
 
 # Walk the test tree and get an object representing all
 # the test data from the yaml files. Each yaml file defines
@@ -48,6 +51,14 @@ def build_test_scripts():
     build_script(tests, 'py')
     build_script(tests, 'js')
 
+def myrepr(string, lang):
+    if isinstance(string, unicode):
+        if lang == 'py': 
+            return repr(string)
+        else:
+            return '"'+string+'"'
+    return repr(str(string))
+
 def build_script(tests, lang):
     script = open('build/test.'+lang, 'w+')
     
@@ -65,13 +76,28 @@ def build_script(tests, lang):
     def walk(level, ln):
         for name,sub in level.iteritems():
             script.write(comment*ln + ' ' + name + '\n')
+
             if isinstance(sub, TestGroup):
                 script.write(comment*ln + '  ' + sub.group['desc'] + '\n\n')
+
                 for test,expected in sub.iter_tests(lang):
-                    if not isinstance(test, list):
-                        test = [test]
-                    for variant in test:
-                        script.write("test("+repr(variant)+", "+repr(str(expected))+")\n")
+                    
+                    # Test may be a dict providing specific values for this language
+                    if isinstance(test, dict):
+                        code = test['code']
+                        if 'ot' in test:
+                            expected = test['ot']
+                    else:
+                        code = test
+
+                    # Test may be a list of syntactically different but practically similar variants 
+                    if not isinstance(code, list):
+                        code = [code]
+
+                    # Write out each variant as a separate test
+                    for variant in code:
+                        test = "test("+myrepr(variant, lang)+", "+myrepr(expected, lang)+")\n"
+                        script.write(test)
             else:
                 script.write('\n')
                 walk(sub, ln+1)
