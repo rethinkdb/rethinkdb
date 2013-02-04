@@ -22,7 +22,7 @@ void transform_visitor_t::operator()(const Mapping &mapping) const {
 
 void transform_visitor_t::operator()(const Builtin_ConcatMap &concatmap) const {
     Term t = concatmap.mapping().body();
-    boost::shared_ptr<json_stream_t> stream = query_language::concatmap(concatmap.mapping().arg(), &t, env, scopes, backtrace, json);
+    std::shared_ptr<json_stream_t> stream = query_language::concatmap(concatmap.mapping().arg(), &t, env, scopes, backtrace, json);
     while (std::shared_ptr<scoped_cJSON_t> data = stream->next()) {
         out->push_back(data);
     }

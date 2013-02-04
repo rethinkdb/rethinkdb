@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_QUERY_LANGUAGE_HPP_
 #define RDB_PROTOCOL_QUERY_LANGUAGE_HPP_
 
@@ -62,11 +62,11 @@ void execute_write_query(WriteQuery *r, runtime_environment_t *, Response *res, 
 
 std::shared_ptr<scoped_cJSON_t> eval_term_as_json(Term *t, runtime_environment_t *, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t);
 
-boost::shared_ptr<json_stream_t> eval_term_as_stream(Term *t, runtime_environment_t *, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t);
+std::shared_ptr<json_stream_t> eval_term_as_stream(Term *t, runtime_environment_t *, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t);
 
 std::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term::Call *c, runtime_environment_t *, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t);
 
-boost::shared_ptr<json_stream_t> eval_call_as_stream(Term::Call *c, runtime_environment_t *, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t);
+std::shared_ptr<json_stream_t> eval_call_as_stream(Term::Call *c, runtime_environment_t *, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t);
 
 namespace_repo_t<rdb_protocol_t>::access_t eval_table_ref(TableRef *t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t);
 
@@ -74,13 +74,13 @@ class view_t {
 public:
     view_t(const namespace_repo_t<rdb_protocol_t>::access_t &_access,
            const std::string &_primary_key,
-           boost::shared_ptr<json_stream_t> _stream)
+           std::shared_ptr<json_stream_t> _stream)
         : access(_access), primary_key(_primary_key), stream(_stream)
     { }
 
     namespace_repo_t<rdb_protocol_t>::access_t access;
     std::string primary_key;
-    boost::shared_ptr<json_stream_t> stream;
+    std::shared_ptr<json_stream_t> stream;
 };
 
 view_t eval_term_as_view(Term *t, runtime_environment_t *, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t);
@@ -105,7 +105,7 @@ std::shared_ptr<scoped_cJSON_t> eval_mapping(Mapping m, runtime_environment_t *e
 
 std::shared_ptr<scoped_cJSON_t> map_rdb(std::string arg, Term *term, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace, std::shared_ptr<scoped_cJSON_t> val);
 
-boost::shared_ptr<json_stream_t> concatmap(std::string arg, Term *term, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace, std::shared_ptr<scoped_cJSON_t> val);
+std::shared_ptr<json_stream_t> concatmap(std::string arg, Term *term, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace, std::shared_ptr<scoped_cJSON_t> val);
 
 } //namespace query_language
 
