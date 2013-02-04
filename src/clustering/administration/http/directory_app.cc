@@ -1,9 +1,8 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include <string>
 
 #include "errors.hpp"
 #include <boost/optional.hpp>
-#include <boost/shared_ptr.hpp>
 
 #include "containers/uuid.hpp"
 #include "http/http.hpp"
@@ -15,7 +14,7 @@ directory_http_app_t::directory_http_app_t(const clone_ptr_t<watchable_t<std::ma
 static const char *any_machine_id_wildcard = "_";
 
 cJSON *directory_http_app_t::get_metadata_json(cluster_directory_metadata_t *metadata, http_req_t::resource_t::iterator path_begin, http_req_t::resource_t::iterator path_end) THROWS_ONLY(schema_mismatch_exc_t) {
-    boost::shared_ptr<json_adapter_if_t> json_adapter_head(new json_read_only_adapter_t<cluster_directory_metadata_t>(metadata));
+    std::shared_ptr<json_adapter_if_t> json_adapter_head(new json_read_only_adapter_t<cluster_directory_metadata_t>(metadata));
 
     // Traverse through the subfields until we're done with the url
     for (http_req_t::resource_t::iterator it = path_begin; it != path_end; ++it) {

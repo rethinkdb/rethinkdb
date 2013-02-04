@@ -1,7 +1,8 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_HTTP_JSON_ADAPTERS_HPP_
 #define CLUSTERING_ADMINISTRATION_HTTP_JSON_ADAPTERS_HPP_
 
+#include <memory>
 #include <string>
 
 #include "http/json/json_adapter.hpp"
@@ -30,7 +31,7 @@ private:
     void apply_impl(cJSON *change);
     void reset_impl();
     void erase_impl();
-    boost::shared_ptr<subfield_change_functor_t> get_change_callback();
+    std::shared_ptr<subfield_change_functor_t> get_change_callback();
 
     vclock_t<T> *target_;
     const vclock_ctx_t ctx_;
@@ -49,7 +50,7 @@ private:
     void apply_impl(cJSON *);
     void reset_impl();
     void erase_impl();
-    boost::shared_ptr<subfield_change_functor_t>  get_change_callback();
+    std::shared_ptr<subfield_change_functor_t>  get_change_callback();
 
     vclock_t<T> *target_;
     const vclock_ctx_t ctx_;

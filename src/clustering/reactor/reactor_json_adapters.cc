@@ -12,9 +12,9 @@ namespace reactor_business_card_details {
 // ctx-less json adapter concept for backfill location
 json_adapter_if_t::json_adapter_map_t get_json_subfields(backfill_location_t *target) {
     json_adapter_if_t::json_adapter_map_t res;
-    res["backfill_session_id"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<backfill_session_id_t>(&target->backfill_session_id));
-    res["peer_id"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<peer_id_t>(&target->peer_id));
-    res["activity_id"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<reactor_activity_id_t>(&target->activity_id));
+    res["backfill_session_id"] = std::shared_ptr<json_adapter_if_t>(new json_adapter_t<backfill_session_id_t>(&target->backfill_session_id));
+    res["peer_id"] = std::shared_ptr<json_adapter_if_t>(new json_adapter_t<peer_id_t>(&target->peer_id));
+    res["activity_id"] = std::shared_ptr<json_adapter_if_t>(new json_adapter_t<reactor_activity_id_t>(&target->activity_id));
     return res;
 }
 
@@ -33,8 +33,8 @@ void on_subfield_change(backfill_location_t *) { }
 template <class protocol_t>
 json_adapter_if_t::json_adapter_map_t get_json_subfields(primary_when_safe_t<protocol_t> *target) {
     json_adapter_if_t::json_adapter_map_t res;
-    res["type"] = boost::shared_ptr<json_adapter_if_t>(new json_temporary_adapter_t<std::string>("primary_when_safe"));
-    res["backfillers"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<std::vector<backfill_location_t> >(&target->backfills_waited_on));
+    res["type"] = std::shared_ptr<json_adapter_if_t>(new json_temporary_adapter_t<std::string>("primary_when_safe"));
+    res["backfillers"] = std::shared_ptr<json_adapter_if_t>(new json_adapter_t<std::vector<backfill_location_t> >(&target->backfills_waited_on));
     return res;
 }
 
@@ -56,8 +56,8 @@ void on_subfield_change(primary_when_safe_t<protocol_t> *) { }
 template <class protocol_t>
 json_adapter_if_t::json_adapter_map_t get_json_subfields(primary_t<protocol_t> *target) {
     json_adapter_if_t::json_adapter_map_t res;
-    res["type"] = boost::shared_ptr<json_adapter_if_t>(new json_temporary_adapter_t<std::string>("primary"));
-    res["replier_present"] = boost::shared_ptr<json_adapter_if_t>(new json_temporary_adapter_t<bool>(target->replier.is_initialized()));
+    res["type"] = std::shared_ptr<json_adapter_if_t>(new json_temporary_adapter_t<std::string>("primary"));
+    res["replier_present"] = std::shared_ptr<json_adapter_if_t>(new json_temporary_adapter_t<bool>(target->replier.is_initialized()));
     // TODO: git blame this and ask the person why the code is commented out.
     //res["broadcaster"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<broadcaster_business_card_t<protocol_t> >(&target->broadcaster));
     //res["replier"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<boost::optional<replier_business_card_t<protocol_t> > >(&target->replier));
@@ -81,8 +81,8 @@ void on_subfield_change(primary_t<protocol_t> *) { }
 template <class protocol_t>
 json_adapter_if_t::json_adapter_map_t get_json_subfields(secondary_up_to_date_t<protocol_t> *target) {
     json_adapter_if_t::json_adapter_map_t res;
-    res["type"] = boost::shared_ptr<json_adapter_if_t>(new json_temporary_adapter_t<std::string>("secondary_up_to_date"));
-    res["branch_id"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<branch_id_t>(&target->branch_id));
+    res["type"] = std::shared_ptr<json_adapter_if_t>(new json_temporary_adapter_t<std::string>("secondary_up_to_date"));
+    res["branch_id"] = std::shared_ptr<json_adapter_if_t>(new json_adapter_t<branch_id_t>(&target->branch_id));
     // TODO: git blame this and ask why it's commented out.
     //res["replier"] =   boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<replier_business_card_t<protocol_t> >(&target->replier));
     return res;
@@ -106,7 +106,7 @@ void on_subfield_change(secondary_up_to_date_t<protocol_t> *) { }
 template <class protocol_t>
 json_adapter_if_t::json_adapter_map_t get_json_subfields(secondary_without_primary_t<protocol_t> *) {
     json_adapter_if_t::json_adapter_map_t res;
-    res["type"] = boost::shared_ptr<json_adapter_if_t>(new json_temporary_adapter_t<std::string>("secondary_without_primary"));
+    res["type"] = std::shared_ptr<json_adapter_if_t>(new json_temporary_adapter_t<std::string>("secondary_without_primary"));
     // TODO: git blame this and ask why it's commented out.
     //res["current_state"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<region_map_t<protocol_t, version_range_t> >(&target->current_state));
     //res["backfiller"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<backfiller_business_card_t<protocol_t> >(&target->backfiller));
@@ -130,8 +130,8 @@ void on_subfield_change(secondary_without_primary_t<protocol_t> *) { }
 template <class protocol_t>
 json_adapter_if_t::json_adapter_map_t get_json_subfields(secondary_backfilling_t<protocol_t> *target) {
     json_adapter_if_t::json_adapter_map_t res;
-    res["type"] = boost::shared_ptr<json_adapter_if_t>(new json_temporary_adapter_t<std::string>("secondary_backfilling"));
-    res["backfiller"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<backfill_location_t>(&target->backfill));
+    res["type"] = std::shared_ptr<json_adapter_if_t>(new json_temporary_adapter_t<std::string>("secondary_backfilling"));
+    res["backfiller"] = std::shared_ptr<json_adapter_if_t>(new json_adapter_t<backfill_location_t>(&target->backfill));
     return res;
 }
 
@@ -152,7 +152,7 @@ void on_subfield_change(secondary_backfilling_t<protocol_t> *) { }
 template <class protocol_t>
 json_adapter_if_t::json_adapter_map_t get_json_subfields(nothing_when_safe_t<protocol_t> *) {
     json_adapter_if_t::json_adapter_map_t res;
-    res["type"] = boost::shared_ptr<json_adapter_if_t>(new json_temporary_adapter_t<std::string>("nothing_when_safe"));
+    res["type"] = std::shared_ptr<json_adapter_if_t>(new json_temporary_adapter_t<std::string>("nothing_when_safe"));
     // TODO: git blame this and ask why this is commented out.
     //res["current_state"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<region_map_t<protocol_t, version_range_t> >(&target->current_state));
     //res["backfiller"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<backfiller_business_card_t<protocol_t> >(&target->backfiller));
@@ -178,7 +178,7 @@ void on_subfield_change(nothing_when_safe_t<protocol_t> *) { }
 template <class protocol_t>
 json_adapter_if_t::json_adapter_map_t get_json_subfields(nothing_t<protocol_t> *) {
     json_adapter_if_t::json_adapter_map_t res;
-    res["type"] = boost::shared_ptr<json_adapter_if_t>(new json_temporary_adapter_t<std::string>("nothing"));
+    res["type"] = std::shared_ptr<json_adapter_if_t>(new json_temporary_adapter_t<std::string>("nothing"));
     return res;
 }
 
@@ -200,7 +200,7 @@ void on_subfield_change(nothing_t<protocol_t> *) { }
 template <class protocol_t>
 json_adapter_if_t::json_adapter_map_t get_json_subfields(nothing_when_done_erasing_t<protocol_t> *) {
     json_adapter_if_t::json_adapter_map_t res;
-    res["type"] = boost::shared_ptr<json_adapter_if_t>(new json_temporary_adapter_t<std::string>("nothing_when_done_erasing"));
+    res["type"] = std::shared_ptr<json_adapter_if_t>(new json_temporary_adapter_t<std::string>("nothing_when_done_erasing"));
     return res;
 }
 
@@ -227,8 +227,8 @@ template <class protocol_t>
 json_adapter_if_t::json_adapter_map_t get_json_subfields(reactor_activity_entry_t<protocol_t> *target) {
     // TODO: Rename these fields and rename this in the UI.
     json_adapter_if_t::json_adapter_map_t res;
-    res["first"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<typename protocol_t::region_t>(&target->region));
-    res["second"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<typename reactor_business_card_t<protocol_t>::activity_t>(&target->activity));
+    res["first"] = std::shared_ptr<json_adapter_if_t>(new json_adapter_t<typename protocol_t::region_t>(&target->region));
+    res["second"] = std::shared_ptr<json_adapter_if_t>(new json_adapter_t<typename reactor_business_card_t<protocol_t>::activity_t>(&target->activity));
     return res;
 }
 
@@ -260,7 +260,7 @@ void on_subfield_change(reactor_activity_entry_t<protocol_t> *) { }
 template <class protocol_t>
 json_adapter_if_t::json_adapter_map_t get_json_subfields(reactor_business_card_t<protocol_t> *target) {
     json_adapter_if_t::json_adapter_map_t res;
-    res["activity_map"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<typename reactor_business_card_t<protocol_t>::activity_map_t>(&target->activities));
+    res["activity_map"] = std::shared_ptr<json_adapter_if_t>(new json_adapter_t<typename reactor_business_card_t<protocol_t>::activity_map_t>(&target->activities));
     return res;
 }
 

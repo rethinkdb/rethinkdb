@@ -1,12 +1,14 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
-#include "errors.hpp"
+// Copyright 2010-2013 RethinkDB, all rights reserved.
+#include "clustering/administration/http/semilattice_app.hpp"
 
+#include <memory>
 #include <string>
+
+#include "errors.hpp"
 #include <boost/algorithm/string/predicate.hpp>
 
 #include "http/http.hpp"
 #include "clustering/administration/http/json_adapters.hpp"
-#include "clustering/administration/http/semilattice_app.hpp"
 #include "clustering/administration/suggester.hpp"
 #include "stl_utils.hpp"
 
@@ -30,7 +32,7 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
 
         //as we traverse the json sub directories this will keep track of where we are
         vclock_ctx_t json_ctx(us);
-        boost::shared_ptr<json_adapter_if_t> json_adapter_head(new json_ctx_adapter_t<cluster_semilattice_metadata_t, vclock_ctx_t>(&cluster_metadata, json_ctx));
+        std::shared_ptr<json_adapter_if_t> json_adapter_head(new json_ctx_adapter_t<cluster_semilattice_metadata_t, vclock_ctx_t>(&cluster_metadata, json_ctx));
 
         http_req_t::resource_t::iterator it = req.resource.begin();
 
