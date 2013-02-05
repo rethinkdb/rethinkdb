@@ -77,7 +77,8 @@ module 'DataExplorerView', ->
                 parent = ''
             if not suggestions[parent]?
                 suggestions[parent] = []
-            suggestions[parent].push full_tag
+            if tag isnt '' # We don't want to save ()
+                suggestions[parent].push full_tag
 
             @map_state[full_tag] = command['returns'] # We use full_tag because we need to differentiate between r. and r(
 
@@ -89,7 +90,7 @@ module 'DataExplorerView', ->
             for group in data['sections']
                 for command in group['commands']
                     tag = command['langs']['js']['name']
-                    if tag is '()' or tag is 'runp' # TODO add connection stuff
+                    if tag is 'runp' # TODO add connection stuff
                         continue
                     if tag is 'row' # We want r.row and r.row(
                         new_command = DataUtils.deep_copy command
@@ -97,6 +98,8 @@ module 'DataExplorerView', ->
                         new_command['langs']['js']['body'] = 'attr'
                         new_command['description'] = 'Return the attribute of the currently visited document'
                         @set_doc_description new_command, tag, suggestions
+                    if tag is '()'
+                        tag = ''
                     @set_doc_description command, tag, suggestions
 
             # Deep copy of suggestions
@@ -364,7 +367,7 @@ module 'DataExplorerView', ->
             # We could perform better, but that would make the code harder to read, so let's not work too hard
             stack = @extract_data_from_query
                 query: query_before_cursor
-            console.log JSON.stringify(stack, null, 2)
+            console.log JSON.stringify stack, null, 2
 
 
             result =
@@ -376,6 +379,37 @@ module 'DataExplorerView', ->
                 stack: stack
                 query: query_before_cursor
                 result: result
+
+            #console.log JSON.stringify result, null, 2
+
+            # Initalize some variables
+
+
+            @current_suggestions = []
+            if result.suggestions?.length > 0
+                for suggestion, i in result.suggestions
+                    @current_suggestions.push suggestion
+                    @.$('.suggestion_name_list').append @template_suggestion_name
+                        id: i
+                        suggestion: suggestion
+                @show_suggestion()
+                @hide_description()
+                return true
+            else if result.description?
+                @hide_suggestion()
+                @show_description result.description
+            else
+                @hide_suggestion()
+                @hide_description()
+
+
+            result_non_white_char_after_cursor = @regex.get_first_non_white_char.exec(query_after_cursor)
+            if result_non_white_char_after_cursor isnt null and result_non_white_char_after_cursor[1] isnt '.'
+                @hide_suggestion()
+            else
+                result_last_char_is_white = @regex.last_char_is_white.exec(query_after_cursor)
+                if result_last_char_is_white isnt null
+                    @hide_suggestion()
 
             
         # Extract information from the current query
@@ -389,6 +423,9 @@ module 'DataExplorerView', ->
             white_replace: /\s/g
             white_start: /^(\s)+/
             comma: /^(\s)*,(\s)*/
+            number: /^[0-9]+\.?[0-9]*/
+            get_first_non_white_char: /\s*(\S+)/
+            last_char_is_white: /.*(\s+)/
         stop_char:
             opening:
                 '(': true
@@ -422,8 +459,7 @@ module 'DataExplorerView', ->
             is_parsing_string = false
             to_skip = 0
 
-            i = 0
-            for char in query
+            for char, i in query
                 if to_skip > 0 # Because we cannot mess with the iterator in coffee-script
                     to_skip--
                     continue
@@ -503,7 +539,6 @@ module 'DataExplorerView', ->
                                 new_start = i+1
                             else
                                 new_start = i
-                            #new_start = i
 
                             result_regex = @regex.method.exec query.slice new_start # Check for a standard method
                             if result_regex isnt null
@@ -519,6 +554,7 @@ module 'DataExplorerView', ->
                                     if position_opening_parenthesis isnt -1 and result_regex[0].slice(0, position_opening_parenthesis) of context
                                         # Save the var
                                         # TODO Look for do() to get real_type
+                                        element.real_type = 'json'
                                         element.type = 'var'
                                         element.name = result_regex[0].slice(0, position_opening_parenthesis)
                                         stack.push element
@@ -528,7 +564,7 @@ module 'DataExplorerView', ->
                                             context: context
                                             complete: 'false'
                                         stack_stop_char = ['(']
-                                        start = position_opening_parenthesis
+                                        start = position_opening_parenthesis+1
                                         to_skip = result_regex[0].length-1
 
 
@@ -536,6 +572,7 @@ module 'DataExplorerView', ->
                             if result_regex isnt null
                                 if result_regex[0].slice(0, result_regex[0].length-1) of context
                                     element.type = 'var'
+                                    element.real_type = 'json'
                                 else
                                     element.type = 'function'
                                 element.name = result_regex[0].slice(0, result_regex[0].length-1).replace(/\s/, '')
@@ -571,8 +608,6 @@ module 'DataExplorerView', ->
                             # Skip white spaces
                             # TODO
 
-
-                    
                     else # element.type isnt null
                         # White spaces can means a new start: r.table(...).eqJoin('id', r.table(...), 'other_id')
                         # Is that even possible?
@@ -689,7 +724,6 @@ module 'DataExplorerView', ->
                                     to_skip = result_regex[0].length-1
                                     element.next_key = null
                                     element.current_key_start = i+result_regex[0].length
-                i++
 
             if element.type isnt null
                 element.complete = false
@@ -726,42 +760,61 @@ module 'DataExplorerView', ->
 
 
             else if start isnt i
-                if query[start] is '.'
+                if query.slice(start) of element.context
+                    element.name = query.slice start
+                    element.type = 'var'
+                    element.real_type = 'json'
+                    element.complete = true
+                else if @regex.number.test(query.slice(start)) is true
+                    element.type = 'number'
+                    element.name = query.slice start
+                    element.complete = true
+                else if query[start] is '.'
                     #TODO add check for [a-zA-Z]?
                     element.type = 'function'
                     element.name = query.slice start+1
+                    element.complete = false
                 else
                     element.name = query.slice start
-                element.complete = false
-                if @regex.white.test(element.name) is false # If its type is null and the name is just white spaces, we ignore the element
-                    stack.push element
-            console.log 'DEBUG: '+stack_stop_char
+                    element.complete = false
+
+                #if @regex.white.test(element.name) is false # If its type is null and the name is just white spaces, we ignore the element
+                stack.push element
+
             return stack
 
 
         # TODO return type
         create_suggestion: (args) =>
             stack = args.stack
-            query = args.query
+            query = args.query # We don't need it anymore. Remove it later if it's really the case
             result = args.result
 
-            for element in [stack.length-1..0] by -1
-                if element.body? and element.body.length > 0
-                    @create_suggestion args
+            for i in [stack.length-1..0] by -1
+                element = stack[i]
+                if element.body? and element.body.length > 0 and element.complete is false
+                    @create_suggestion
+                        stack: element.body
+                        query: args.query
+                        result: args.result
 
                 if result.status is 'done'
                     continue
 
                 if result.status is null
-                    result.is_defined = true
-
                     # Top of the stack
                     if element.complete is true
                         if (element.type is 'function' and @map_state[element.name] is 'json') or (element.type is 'var' and element.real_type is 'json')
+                            console.log "It's working"
                             result.suggestions = ['(']
                             result.state = 'json'
                             result.description = null
                             result.status = 'done'
+                            break
+                        else if element.type is 'function'
+                            result.suggestions = null
+                            result.status = 'look_for_description'
+                            break
                         else if element.type is 'anonymous_function' or element.type is 'separator' or element.type is 'object' or element.type is 'object_key' or element.type is 'return'
                             # element.type === 'object' is impossible I think with the current implementation of extract_data_from_query
                             result.suggestions = null
@@ -793,8 +846,13 @@ module 'DataExplorerView', ->
                         #else if element.type is 'object' # Not possible
                         #else if element.type is 'var' # Not possible because we require a . or ( to asssess that it's a var
                         else if element.type is null
-                            result.suggestions = null
-                            result.status = 'look_for_description'
+                            result.suggestions = []
+                            result.status = 'look_for_description' # We'll look for a description. If we can't find one, we show the current suggestions assuming an empty state
+                            result.suggestions_regex = @create_safe_regex element.name
+                            for suggestion in @suggestions['']
+                                if result.suggestions_regex.test(suggestion) is true
+                                    result.suggestions.push suggestion
+                            
                             ### For this state "r.expr( r" we just want the description of expr
                             # This code is if we want to get the suggestion for "r"
                             result.suggestions = []
@@ -810,18 +868,19 @@ module 'DataExplorerView', ->
                             ###
                 else if result.status is 'look_for_description'
                     if element.type is 'function'
-                        result.description = @description[element.name]
+                        result.description = element.name
+                        result.suggestions = null
                         result.status = 'done'
                 else if result.status is 'look_for_state'
                     if element.type is 'function' and element.complete is true
                         result.state = element.name
-                        for suggestion of @suggestions[@map_state[element.name]]
+                        for suggestion in @suggestions[@map_state[element.name]]
                             if result.suggestions_regex.test(suggestion) is true
                                 result.suggestions.push suggestion
                         result.status = 'done'
                     else if element.type is 'var' and element.complete is true
                         result.state = element.real_type
-                        for suggestion of @suggestions[@map_state[element.name]]
+                        for suggestion in @suggestions[result.state]
                             if result.suggestions_regex.test(suggestion) is true
                                 result.suggestions.push suggestion
                         result.status = 'done'
@@ -830,7 +889,7 @@ module 'DataExplorerView', ->
         create_safe_regex: (str) =>
             for char in @unsafe_to_safe_regexstr
                 str = str.replace char.pattern, char.replacement
-            return new RegExp('^('+element_currently_written+')', 'i')
+            return new RegExp('^('+str+')', 'i')
 
 
         ###
@@ -898,8 +957,53 @@ module 'DataExplorerView', ->
             else
                 return null
 
+        show_suggestion: =>
+            @move_suggestion()
+            margin = (parseInt(@.$('.CodeMirror-cursor').css('top').replace('px', ''))+@line_height)+'px'
+            @.$('.suggestion_full_container').css 'margin-top', margin
+            @.$('.arrow').css 'margin-top', margin
+
+            @.$('.suggestion_name_list').show()
+            @.$('.arrow').show()
+
+        show_description: (fn) =>
+            if @descriptions[fn]?
+                margin = (parseInt(@.$('.CodeMirror-cursor').css('top').replace('px', ''))+@line_height)+'px'
+
+                @.$('.suggestion_full_container').css 'margin-top', margin
+                @.$('.arrow').css 'margin-top', margin
+
+                @.$('.suggestion_description').html @description_template @extend_description fn
+
+                @.$('.suggestion_description').show()
+                @move_suggestion()
+                @show_or_hide_arrow()
+            else
+                @hide_description()
+
+        hide_suggestion: =>
+            @.$('.suggestion_name_list').hide()
+        hide_description: =>
+            @.$('.suggestion_description').hide()
+
+        move_suggestion: =>
+            margin_left = parseInt(@.$('.CodeMirror-cursor').css('left').replace('px', ''))+27
+
+            @.$('.arrow').css 'margin-left', margin_left
+
+            if margin_left < 200
+                @.$('.suggestion_full_container').css 'left', '0px'
+            else
+                 max_margin = @.$('.CodeMirror-scroll').width()-418
+
+                if margin_left > max_margin
+                    @.$('.suggestion_full_container').css 'left', (max_margin-28)+'px'
+                else
+                    margin_left = Math.min max_margin, Math.floor(margin_left/100)*100
+                    @.$('.suggestion_full_container').css 'left', (margin_left-100)+'px'
 
            
+
 
             ###
             errors = @get_errors_from_query @codemirror.getValue()
@@ -1075,31 +1179,8 @@ module 'DataExplorerView', ->
             @.$('.suggestion_description').css 'display', 'none'
             @.$('.arrow').hide()
 
-        move_suggestion: =>
-
-            margin_left = parseInt(@.$('.CodeMirror-cursor').css('left').replace('px', ''))+27
-
-            @.$('.arrow').css 'margin-left', margin_left
-
-            if margin_left < 200
-                @.$('.suggestion_full_container').css 'left', '0px'
-            else
-                 max_margin = @.$('.CodeMirror-scroll').width()-418
-
-                if margin_left > max_margin
-                    @.$('.suggestion_full_container').css 'left', (max_margin-28)+'px'
-                else
-                    margin_left = Math.min max_margin, Math.floor(margin_left/100)*100
-                    @.$('.suggestion_full_container').css 'left', (margin_left-100)+'px'
 
         #TODO refactor show_suggestion, show_suggestion_description, add_description
-        show_suggestion: =>
-            margin = (parseInt(@.$('.CodeMirror-cursor').css('top').replace('px', ''))+@line_height)+'px'
-            @.$('.suggestion_full_container').css 'margin-top', margin
-            @.$('.arrow').css 'margin-top', margin
-
-            @.$('.suggestion_name_list').show()
-            @.$('.arrow').show()
 
 
         # Extend description for db() and table() with a list of databases or namespaces
