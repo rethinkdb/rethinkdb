@@ -37,7 +37,4 @@ tests:
       ot: -73850380122423
 
     # Expected error cases
-    #- py: r.expr(1234567890987654321)
-    #  ot: RuntimeError
-
-    # etc.
+    # ...
