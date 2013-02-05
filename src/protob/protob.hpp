@@ -51,25 +51,27 @@ public:
 
     http_conn_cache_t() : next_id(0), http_timeout_timer(TIMEOUT_MS, this) { }
     ~http_conn_cache_t() {
-        typename std::map<int32_t, boost::shared_ptr<http_conn_t> >::iterator it;
+        typename std::map<int32_t, std::shared_ptr<http_conn_t> >::iterator it;
         for (it = cache.begin(); it != cache.end(); ++it) it->second->pulse();
     }
 
-    boost::shared_ptr<http_conn_t> find(int32_t key) {
-        typename std::map<int32_t, boost::shared_ptr<http_conn_t> >::iterator
+    std::shared_ptr<http_conn_t> find(int32_t key) {
+        typename std::map<int32_t, std::shared_ptr<http_conn_t> >::iterator
             it = cache.find(key);
-        if (it == cache.end()) return boost::shared_ptr<http_conn_t>();
+        if (it == cache.end()) {
+            return std::shared_ptr<http_conn_t>();
+        }
         return it->second;
     }
     int32_t create() {
         int32_t key = next_id++;
-        cache.insert(std::make_pair(key, boost::shared_ptr<http_conn_t>(new http_conn_t())));
+        cache.insert(std::make_pair(key, std::shared_ptr<http_conn_t>(new http_conn_t())));
         return key;
     }
     size_t erase(int32_t key) { return cache.erase(key); }
 
     void on_ring() {
-        typename std::map<int32_t, boost::shared_ptr<http_conn_t> >::iterator it, tmp;
+        typename std::map<int32_t, std::shared_ptr<http_conn_t> >::iterator it, tmp;
         for (it = cache.begin(); it != cache.end();) {
             tmp = it++;
             if (tmp->second->is_expired()) {
@@ -81,7 +83,7 @@ public:
 private:
         static const int TIMEOUT_SEC = 5*60;
         static const int TIMEOUT_MS = TIMEOUT_SEC*1000;
-    std::map<int32_t, boost::shared_ptr<http_conn_t> > cache;
+    std::map<int32_t, std::shared_ptr<http_conn_t> > cache;
     int32_t next_id;
     repeating_timer_t http_timeout_timer;
 };
