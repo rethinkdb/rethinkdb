@@ -123,8 +123,6 @@ private:
 
 class btree_stats_t;
 
-//struct secondary_index_t; RSI
-
 template <class Value>
 class key_modification_callback_t;
 
