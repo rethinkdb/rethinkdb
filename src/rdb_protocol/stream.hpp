@@ -1,10 +1,9 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_STREAM_HPP_
 #define RDB_PROTOCOL_STREAM_HPP_
 
 #include <algorithm>
 #include <list>
-#include <memory>
 #include <set>
 #include <string>
 #include <vector>
@@ -12,6 +11,7 @@
 #include "errors.hpp"
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/function.hpp>
+#include <boost/scoped_ptr.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/variant/get.hpp>
 
@@ -26,14 +26,14 @@ namespace query_language {
 
 class runtime_environment_t;
 
-typedef std::list<std::shared_ptr<scoped_cJSON_t> > json_list_t;
+typedef std::list<boost::shared_ptr<scoped_cJSON_t> > json_list_t;
 typedef rdb_protocol_t::rget_read_response_t::result_t result_t;
 
-class json_stream_t : public std::enable_shared_from_this<json_stream_t> {
+class json_stream_t : public boost::enable_shared_from_this<json_stream_t> {
 public:
     json_stream_t() { }
-    virtual std::shared_ptr<scoped_cJSON_t> next() = 0; //MAY THROW
-    virtual MUST_USE std::shared_ptr<json_stream_t> add_transformation(const rdb_protocol_details::transform_variant_t &, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace);
+    virtual boost::shared_ptr<scoped_cJSON_t> next() = 0; //MAY THROW
+    virtual MUST_USE boost::shared_ptr<json_stream_t> add_transformation(const rdb_protocol_details::transform_variant_t &, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace);
     virtual result_t apply_terminal(const rdb_protocol_details::terminal_variant_t &, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace);
 
     virtual ~json_stream_t() { }
@@ -47,7 +47,7 @@ private:
 class in_memory_stream_t : public json_stream_t {
 public:
     explicit in_memory_stream_t(json_array_iterator_t it);
-    explicit in_memory_stream_t(std::shared_ptr<json_stream_t> stream);
+    explicit in_memory_stream_t(boost::shared_ptr<json_stream_t> stream);
 
     template <class Ordering>
     void sort(const Ordering &o) {
@@ -59,7 +59,7 @@ public:
         }
     }
 
-    std::shared_ptr<scoped_cJSON_t> next();
+    boost::shared_ptr<scoped_cJSON_t> next();
 
     /* Use default implementation of `add_transformation()` and `apply_terminal()` */
 
@@ -69,13 +69,13 @@ private:
 
 class transform_stream_t : public json_stream_t {
 public:
-    transform_stream_t(std::shared_ptr<json_stream_t> stream, runtime_environment_t *env, const rdb_protocol_details::transform_t &tr);
+    transform_stream_t(boost::shared_ptr<json_stream_t> stream, runtime_environment_t *env, const rdb_protocol_details::transform_t &tr);
 
-    std::shared_ptr<scoped_cJSON_t> next();
-    std::shared_ptr<json_stream_t> add_transformation(const rdb_protocol_details::transform_variant_t &, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace);
+    boost::shared_ptr<scoped_cJSON_t> next();
+    boost::shared_ptr<json_stream_t> add_transformation(const rdb_protocol_details::transform_variant_t &, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace);
 
 private:
-    std::shared_ptr<json_stream_t> stream;
+    boost::shared_ptr<json_stream_t> stream;
     runtime_environment_t *env;
     rdb_protocol_details::transform_t transform;
     json_list_t data;
@@ -88,9 +88,9 @@ public:
                           int _batch_size, const backtrace_t &_table_scan_backtrace,
                           bool _use_outdated);
 
-    std::shared_ptr<scoped_cJSON_t> next();
+    boost::shared_ptr<scoped_cJSON_t> next();
 
-    std::shared_ptr<json_stream_t> add_transformation(const rdb_protocol_details::transform_variant_t &t, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace);
+    boost::shared_ptr<json_stream_t> add_transformation(const rdb_protocol_details::transform_variant_t &t, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace);
     result_t apply_terminal(const rdb_protocol_details::terminal_variant_t &t, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace);
 
     virtual void reset_interruptor(signal_t *new_interruptor) {
@@ -116,13 +116,13 @@ private:
 
 class union_stream_t : public json_stream_t {
 public:
-    typedef std::list<std::shared_ptr<json_stream_t> > stream_list_t;
+    typedef std::list<boost::shared_ptr<json_stream_t> > stream_list_t;
 
     explicit union_stream_t(const stream_list_t &_streams);
 
-    std::shared_ptr<scoped_cJSON_t> next();
+    boost::shared_ptr<scoped_cJSON_t> next();
 
-    std::shared_ptr<json_stream_t> add_transformation(const rdb_protocol_details::transform_variant_t &, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace);
+    boost::shared_ptr<json_stream_t> add_transformation(const rdb_protocol_details::transform_variant_t &, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace);
 
     /* TODO: Maybe we can optimize `apply_terminal()`. */
 
@@ -134,28 +134,28 @@ private:
 template <class C>
 class distinct_stream_t : public json_stream_t {
 public:
-    typedef boost::function<bool(std::shared_ptr<scoped_cJSON_t>)> predicate;  // NOLINT
-    distinct_stream_t(std::shared_ptr<json_stream_t> _stream, const C &_c)
+    typedef boost::function<bool(boost::shared_ptr<scoped_cJSON_t>)> predicate;  // NOLINT
+    distinct_stream_t(boost::shared_ptr<json_stream_t> _stream, const C &_c)
         : stream(_stream), seen(_c)
     { }
 
-    std::shared_ptr<scoped_cJSON_t> next() {
-        while (std::shared_ptr<scoped_cJSON_t> json = stream->next()) {
+    boost::shared_ptr<scoped_cJSON_t> next() {
+        while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
             if (seen.insert(json).second) { // was this not already present?
                 return json;
             }
         }
-        return std::shared_ptr<scoped_cJSON_t>();
+        return boost::shared_ptr<scoped_cJSON_t>();
     }
 
 private:
-    std::shared_ptr<json_stream_t> stream;
-    std::set<std::shared_ptr<scoped_cJSON_t>, C> seen;
+    boost::shared_ptr<json_stream_t> stream;
+    std::set<boost::shared_ptr<scoped_cJSON_t>, C> seen;
 };
 
 class slice_stream_t : public json_stream_t {
 public:
-    slice_stream_t(std::shared_ptr<json_stream_t> _stream, int _start, bool _unbounded, int _stop)
+    slice_stream_t(boost::shared_ptr<json_stream_t> _stream, int _start, bool _unbounded, int _stop)
         : stream(_stream), start(_start), unbounded(_unbounded), stop(_stop)
     {
         guarantee(start >= 0);
@@ -164,7 +164,7 @@ public:
         stop -= start;
     }
 
-    std::shared_ptr<scoped_cJSON_t> next() {
+    boost::shared_ptr<scoped_cJSON_t> next() {
         while (start) {
             start--;
             stream->next();
@@ -173,11 +173,11 @@ public:
             stop--;
             return stream->next();
         }
-        return std::shared_ptr<scoped_cJSON_t>();
+        return boost::shared_ptr<scoped_cJSON_t>();
     }
 
 private:
-    std::shared_ptr<json_stream_t> stream;
+    boost::shared_ptr<json_stream_t> stream;
     int start;
     bool unbounded;
     int stop;
@@ -185,33 +185,33 @@ private:
 
 class skip_stream_t : public json_stream_t {
 public:
-    skip_stream_t(std::shared_ptr<json_stream_t> _stream, int _offset)
+    skip_stream_t(boost::shared_ptr<json_stream_t> _stream, int _offset)
         : stream(_stream), offset(_offset)
     {
         guarantee(offset >= 0);
     }
 
-    std::shared_ptr<scoped_cJSON_t> next() {
+    boost::shared_ptr<scoped_cJSON_t> next() {
         return stream->next();
     }
 
 private:
-    std::shared_ptr<json_stream_t> stream;
+    boost::shared_ptr<json_stream_t> stream;
     int offset;
 };
 
 class range_stream_t : public json_stream_t {
 public:
-    range_stream_t(std::shared_ptr<json_stream_t> _stream, const key_range_t &_range,
+    range_stream_t(boost::shared_ptr<json_stream_t> _stream, const key_range_t &_range,
                    const std::string &_attrname, const backtrace_t &_backtrace)
         : stream(_stream), range(_range), attrname(_attrname), backtrace(_backtrace)
     { }
 
-    std::shared_ptr<scoped_cJSON_t> next() {
+    boost::shared_ptr<scoped_cJSON_t> next() {
         // TODO: ***use an index***
         // TODO: more error handling
         // TODO reevaluate this when we better understand what we're doing for ordering
-        while (std::shared_ptr<scoped_cJSON_t> json = stream->next()) {
+        while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
             guarantee(json);
             guarantee(json->get());
             if (json->type() != cJSON_Object) {
@@ -226,11 +226,11 @@ public:
                 return json;
             }
         }
-        return std::shared_ptr<scoped_cJSON_t>();
+        return boost::shared_ptr<scoped_cJSON_t>();
     }
 
 private:
-    std::shared_ptr<json_stream_t> stream;
+    boost::shared_ptr<json_stream_t> stream;
     key_range_t range;
     std::string attrname;
     backtrace_t backtrace;

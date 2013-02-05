@@ -1,9 +1,8 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef HTTP_JSON_JSON_ADAPTER_HPP_
 #define HTTP_JSON_JSON_ADAPTER_HPP_
 
 #include <map>
-#include <memory>
 #include <set>
 #include <stdexcept>
 #include <string>
@@ -134,7 +133,7 @@ private:
 //TODO come up with a better name for this
 class json_adapter_if_t {
 public:
-    typedef std::map<std::string, std::shared_ptr<json_adapter_if_t> > json_adapter_map_t;
+    typedef std::map<std::string, boost::shared_ptr<json_adapter_if_t> > json_adapter_map_t;
 
 public:
     json_adapter_if_t() { }
@@ -154,9 +153,9 @@ private:
     virtual void reset_impl() = 0;
     /* follows the creation paradigm, ie the caller is responsible for the
      * object this points to */
-    virtual std::shared_ptr<subfield_change_functor_t>  get_change_callback() = 0;
+    virtual boost::shared_ptr<subfield_change_functor_t>  get_change_callback() = 0;
 
-    std::vector<std::shared_ptr<subfield_change_functor_t> > superfields;
+    std::vector<boost::shared_ptr<subfield_change_functor_t> > superfields;
 
     DISABLE_COPYING(json_adapter_if_t);
 };
@@ -176,7 +175,7 @@ private:
     virtual void apply_impl(cJSON *);
     virtual void erase_impl();
     virtual void reset_impl();
-    std::shared_ptr<subfield_change_functor_t> get_change_callback();
+    boost::shared_ptr<subfield_change_functor_t> get_change_callback();
 
     T *target_;
 
@@ -198,7 +197,7 @@ private:
     virtual void apply_impl(cJSON *);
     virtual void erase_impl();
     virtual void reset_impl();
-    std::shared_ptr<subfield_change_functor_t> get_change_callback();
+    boost::shared_ptr<subfield_change_functor_t> get_change_callback();
 
     T *target_;
     const ctx_t ctx_;
@@ -279,7 +278,7 @@ private:
     void erase_impl();
     void reset_impl();
     json_adapter_map_t get_subfields_impl();
-    std::shared_ptr<subfield_change_functor_t> get_change_callback();
+    boost::shared_ptr<subfield_change_functor_t> get_change_callback();
 
     container_t *target;
     gen_function_t generator;
@@ -305,7 +304,7 @@ private:
     void erase_impl();
     void reset_impl();
     json_adapter_map_t get_subfields_impl();
-    std::shared_ptr<subfield_change_functor_t> get_change_callback();
+    boost::shared_ptr<subfield_change_functor_t> get_change_callback();
 
     container_t *target;
     gen_function_t generator;
@@ -333,7 +332,7 @@ private:
     void apply_impl(cJSON *);
     void erase_impl();
     void reset_impl();
-    std::shared_ptr<subfield_change_functor_t> get_change_callback();
+    boost::shared_ptr<subfield_change_functor_t> get_change_callback();
 private:
     container_t *target;
     gen_function_t generator;
@@ -356,7 +355,7 @@ private:
     void apply_impl(cJSON *);
     void erase_impl();
     void reset_impl();
-    std::shared_ptr<subfield_change_functor_t> get_change_callback();
+    boost::shared_ptr<subfield_change_functor_t> get_change_callback();
 private:
     container_t *target;
     gen_function_t generator;

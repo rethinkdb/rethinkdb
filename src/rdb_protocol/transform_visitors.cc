@@ -1,11 +1,11 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "rdb_protocol/transform_visitors.hpp"
 #include "rdb_protocol/query_language.hpp"
 
 
 namespace query_language {
 
-transform_visitor_t::transform_visitor_t(std::shared_ptr<scoped_cJSON_t> _json, json_list_t *_out, query_language::runtime_environment_t *_env, const scopes_t &_scopes, const backtrace_t &_backtrace)
+transform_visitor_t::transform_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json, json_list_t *_out, query_language::runtime_environment_t *_env, const scopes_t &_scopes, const backtrace_t &_backtrace)
     : json(_json), out(_out), env(_env), scopes(_scopes), backtrace(_backtrace)
 { }
 
@@ -22,14 +22,14 @@ void transform_visitor_t::operator()(const Mapping &mapping) const {
 
 void transform_visitor_t::operator()(const Builtin_ConcatMap &concatmap) const {
     Term t = concatmap.mapping().body();
-    std::shared_ptr<json_stream_t> stream = query_language::concatmap(concatmap.mapping().arg(), &t, env, scopes, backtrace, json);
-    while (std::shared_ptr<scoped_cJSON_t> data = stream->next()) {
+    boost::shared_ptr<json_stream_t> stream = query_language::concatmap(concatmap.mapping().arg(), &t, env, scopes, backtrace, json);
+    while (boost::shared_ptr<scoped_cJSON_t> data = stream->next()) {
         out->push_back(data);
     }
 }
 
 void transform_visitor_t::operator()(Builtin_Range range) const {
-    std::shared_ptr<scoped_cJSON_t> lowerbound, upperbound;
+    boost::shared_ptr<scoped_cJSON_t> lowerbound, upperbound;
 
     key_range_t key_range;
 
@@ -88,7 +88,7 @@ void terminal_initializer_visitor_t::operator()(const WriteQuery_ForEach &) cons
     *out = i;
 }
 
-terminal_visitor_t::terminal_visitor_t(std::shared_ptr<scoped_cJSON_t> _json,
+terminal_visitor_t::terminal_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json,
                    query_language::runtime_environment_t *_env,
                    const scopes_t &_scopes,
                    const backtrace_t &_backtrace,
@@ -102,14 +102,14 @@ void terminal_visitor_t::operator()(const Builtin_GroupedMapReduce &gmr) const {
     guarantee(res_groups);
 
     //Grab the grouping
-    std::shared_ptr<scoped_cJSON_t> grouping;
+    boost::shared_ptr<scoped_cJSON_t> grouping;
     {
         Term body = gmr.group_mapping().body();
         grouping = query_language::map_rdb(gmr.group_mapping().arg(), &body, env, scopes, backtrace.with("group_mapping"), json);
     }
 
     //Apply the mapping
-    std::shared_ptr<scoped_cJSON_t> mapped_value;
+    boost::shared_ptr<scoped_cJSON_t> mapped_value;
     {
         Term body = gmr.value_mapping().body();
         mapped_value = query_language::map_rdb(gmr.value_mapping().arg(), &body, env, scopes, backtrace.with("value_mapping"), json);

@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_HTTP_JSON_ADAPTERS_TCC_
 #define CLUSTERING_ADMINISTRATION_HTTP_JSON_ADAPTERS_TCC_
 
@@ -98,8 +98,8 @@ void json_vclock_resolver_t<T>::erase_impl() {
 }
 
 template <class T>
-std::shared_ptr<subfield_change_functor_t> json_vclock_resolver_t<T>::get_change_callback() {
-    return std::shared_ptr<subfield_change_functor_t>();
+boost::shared_ptr<subfield_change_functor_t> json_vclock_resolver_t<T>::get_change_callback() {
+    return boost::shared_ptr<subfield_change_functor_t>();
 }
 
 template <class T>
@@ -114,7 +114,7 @@ template <class T>
 json_adapter_if_t::json_adapter_map_t json_vclock_adapter_t<T>::get_subfields_impl() {
     json_adapter_if_t::json_adapter_map_t res = with_ctx_get_json_subfields(target_, ctx_);
     std::pair<json_adapter_if_t::json_adapter_map_t::iterator, bool> insert_res
-        = res.insert(std::make_pair(std::string("resolve"), std::shared_ptr<json_adapter_if_t>(new json_vclock_resolver_t<T>(target_, ctx_))));
+        = res.insert(std::make_pair(std::string("resolve"), boost::shared_ptr<json_adapter_if_t>(new json_vclock_resolver_t<T>(target_, ctx_))));
 
     // We cannot put anything with a "resolve" field in a vector clock.
     guarantee(insert_res.second);
@@ -143,8 +143,8 @@ void json_vclock_adapter_t<T>::erase_impl() {
 }
 
 template <class T>
-std::shared_ptr<subfield_change_functor_t>  json_vclock_adapter_t<T>::get_change_callback() {
-    return std::shared_ptr<subfield_change_functor_t>(new standard_ctx_subfield_change_functor_t<vclock_t<T>, vclock_ctx_t>(target_, ctx_));
+boost::shared_ptr<subfield_change_functor_t>  json_vclock_adapter_t<T>::get_change_callback() {
+    return boost::shared_ptr<subfield_change_functor_t>(new standard_ctx_subfield_change_functor_t<vclock_t<T>, vclock_ctx_t>(target_, ctx_));
 }
 
 //json adapter concept for deletable_t
@@ -273,8 +273,8 @@ private:
 
     /* follows the creation paradigm, ie the caller is responsible for the
      * object this points to */
-    std::shared_ptr<subfield_change_functor_t>  get_change_callback() {
-        return std::shared_ptr<subfield_change_functor_t>(new noop_subfield_change_functor_t());
+    boost::shared_ptr<subfield_change_functor_t>  get_change_callback() {
+        return boost::shared_ptr<subfield_change_functor_t>(new noop_subfield_change_functor_t());
     }
 
     target_region_map_t *parent;
@@ -292,7 +292,7 @@ json_adapter_if_t::json_adapter_map_t get_json_subfields(region_map_t<protocol_t
                                                               ++it) {
         scoped_cJSON_t key(render_as_json(&it->first));
         guarantee(key.get()->type == cJSON_String);
-        res[get_string(key.get())] = std::shared_ptr<json_adapter_if_t>(new json_region_adapter_t<protocol_t, value_t>(target, it->first));
+        res[get_string(key.get())] = boost::shared_ptr<json_adapter_if_t>(new json_region_adapter_t<protocol_t, value_t>(target, it->first));
     }
 
     return res;

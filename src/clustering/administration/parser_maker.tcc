@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_PARSER_MAKER_TCC_
 #define CLUSTERING_ADMINISTRATION_PARSER_MAKER_TCC_
 
@@ -9,7 +9,7 @@
 
 template<class protocol_t, class parser_t>
 parser_maker_t<protocol_t, parser_t>::parser_maker_t(mailbox_manager_t *_mailbox_manager,
-                               const std::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > > &_namespaces_semilattice_metadata,
+                               boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > > _namespaces_semilattice_metadata,
                                const std::set<ip_address_t> &_local_addresses,
                                int _port_offset,
                                namespace_repo_t<protocol_t> *_repo,

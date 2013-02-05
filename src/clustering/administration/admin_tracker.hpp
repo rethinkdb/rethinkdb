@@ -1,8 +1,10 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_ADMIN_TRACKER_HPP_
 #define CLUSTERING_ADMINISTRATION_ADMIN_TRACKER_HPP_
 
 #include <map>
+
+#include <boost/shared_ptr.hpp>
 
 #include "concurrency/watchable.hpp"
 #include "containers/clone_ptr.hpp"
@@ -22,7 +24,7 @@ template <class> class watchable_t;
 
 struct admin_tracker_t {
     admin_tracker_t(
-        const std::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > &semilattice_view,
+        boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > semilattice_view,
         const clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > &directory_view);
 
     ~admin_tracker_t();

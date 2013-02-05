@@ -1,10 +1,9 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef CONTAINERS_ITERATORS_HPP_
 #define CONTAINERS_ITERATORS_HPP_
 
 #include <algorithm>
 #include <functional>
-#include <memory>
 #include <queue>
 #include <set>
 #include <vector>
@@ -13,6 +12,7 @@
 #include "utils.hpp"
 #include <boost/function.hpp>
 #include <boost/optional.hpp>
+#include <boost/shared_ptr.hpp>
 
 #include "containers/scoped.hpp"
 
@@ -90,7 +90,7 @@ struct first_greater {
 template <typename T, typename Cmp = std::less<T> >
 class merge_ordered_data_iterator_t : public one_way_iterator_t<T> {
 public:
-    typedef std::shared_ptr<one_way_iterator_t<T> > mergee_t;
+    typedef boost::shared_ptr<one_way_iterator_t<T> > mergee_t;
 
 
 
@@ -107,7 +107,7 @@ public:
     }
 
     void add_mergee(one_way_iterator_t<T> *mergee) {
-        std::shared_ptr<one_way_iterator_t<T> > _mergee(mergee);
+        boost::shared_ptr<one_way_iterator_t<T> > _mergee(mergee);
         add_mergee(_mergee);
     }
 

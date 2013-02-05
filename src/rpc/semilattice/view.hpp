@@ -1,11 +1,10 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef RPC_SEMILATTICE_VIEW_HPP_
 #define RPC_SEMILATTICE_VIEW_HPP_
 
-#include <memory>
-
 #include "errors.hpp"
 #include <boost/function.hpp>
+#include <boost/shared_ptr.hpp>
 
 #include "concurrency/pubsub.hpp"
 #include "rpc/connectivity/connectivity.hpp"
@@ -42,10 +41,10 @@ public:
     class subscription_t {
     public:
         explicit subscription_t(boost::function<void()> cb) : subs(cb) { }
-        subscription_t(boost::function<void()> cb, const std::shared_ptr<semilattice_read_view_t> &v) : subs(cb) {
+        subscription_t(boost::function<void()> cb, boost::shared_ptr<semilattice_read_view_t> v) : subs(cb) {
             reset(v);
         }
-        void reset(const std::shared_ptr<semilattice_read_view_t> &v) {
+        void reset(boost::shared_ptr<semilattice_read_view_t> v) {
             subs.reset(v->get_publisher());
             view = v;
         }
@@ -56,7 +55,7 @@ public:
     private:
         /* Hold a pointer to the `semilattice_read_view_t` so it doesn't die while
         we are subscribed to it */
-        std::shared_ptr<semilattice_read_view_t> view;
+        boost::shared_ptr<semilattice_read_view_t> view;
         publisher_t<boost::function<void()> >::subscription_t subs;
     };
 

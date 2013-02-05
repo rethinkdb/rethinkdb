@@ -261,7 +261,7 @@ void persistent_file_t::construct_branch_history_managers(bool create) {
 
 semilattice_watching_persister_t::semilattice_watching_persister_t(
         persistent_file_t *persistent_file_,
-        const std::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > &v) :
+        boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > v) :
     persistent_file(persistent_file_), view(v),
     flush_again(new cond_t),
     subs(boost::bind(&semilattice_watching_persister_t::on_change, this), v)

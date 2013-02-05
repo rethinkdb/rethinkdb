@@ -55,7 +55,7 @@ Response query_server_t::handle(Query *q, context_t *query_context) {
     try {
         query_language::check_query_type(
             q, &type_environment, &is_deterministic, root_backtrace);
-        std::shared_ptr<js::runner_t> js_runner = std::make_shared<js::runner_t>();
+        boost::shared_ptr<js::runner_t> js_runner = boost::make_shared<js::runner_t>();
         int thread = get_thread_id();
         query_language::runtime_environment_t runtime_environment(
             ctx->pool_group, ctx->ns_repo,

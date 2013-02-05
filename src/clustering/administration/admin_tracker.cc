@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include <map>
 #include <list>
 
@@ -7,7 +7,7 @@
 #include "rpc/semilattice/view/field.hpp"
 
 admin_tracker_t::admin_tracker_t(
-        const std::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > &semilattice_view,
+        boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > semilattice_view,
         const clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > &directory_view) :
     issue_aggregator(),
 

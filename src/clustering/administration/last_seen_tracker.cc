@@ -1,11 +1,11 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "clustering/administration/last_seen_tracker.hpp"
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
 last_seen_tracker_t::last_seen_tracker_t(
-        const std::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > &mv,
+        const boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > &mv,
         const clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > &mim) :
     machines_view(mv), machine_id_map(mim),
     machines_view_subs(boost::bind(&last_seen_tracker_t::on_machines_view_change, this)),

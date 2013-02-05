@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_SERIALIZABLE_ENVIRONMENT_HPP_
 #define RDB_PROTOCOL_SERIALIZABLE_ENVIRONMENT_HPP_
 
@@ -47,12 +47,12 @@ struct type_checking_environment_t {
 };
 
 //Scopes for single pieces of json
-typedef variable_scope_t<std::shared_ptr<scoped_cJSON_t> > variable_val_scope_t;
+typedef variable_scope_t<boost::shared_ptr<scoped_cJSON_t> > variable_val_scope_t;
 
 typedef variable_val_scope_t::new_scope_t new_val_scope_t;
 
 //Implicit value typedef
-typedef implicit_value_t<std::shared_ptr<scoped_cJSON_t> >::impliciter_t implicit_value_setter_t;
+typedef implicit_value_t<boost::shared_ptr<scoped_cJSON_t> >::impliciter_t implicit_value_setter_t;
 
 /* Wrapper for the scopes in the runtime environment. Makes it convenient to
  * serialize all the in scope variables. */
@@ -60,7 +60,7 @@ struct scopes_t {
     variable_val_scope_t scope;
     type_checking_environment_t type_env;
 
-    implicit_value_t<std::shared_ptr<scoped_cJSON_t> > implicit_attribute_value;
+    implicit_value_t<boost::shared_ptr<scoped_cJSON_t> > implicit_attribute_value;
 
     RDB_DECLARE_ME_SERIALIZABLE;
 };

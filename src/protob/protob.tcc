@@ -198,7 +198,7 @@ http_res_t protob_server_t<request_t, response_t, context_t>::handle(const http_
         response_t response;
         switch (cb_mode) {
         case INLINE: {
-            std::shared_ptr<typename http_conn_cache_t<context_t>::http_conn_t> conn =
+            boost::shared_ptr<typename http_conn_cache_t<context_t>::http_conn_t> conn =
                 http_conn_cache.find(conn_id);
             if (!parseSucceeded) {
                 std::string err = "Client is buggy (failed to deserialize protobuf).";

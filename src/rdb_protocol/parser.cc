@@ -1,14 +1,17 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "rdb_protocol/parser.hpp"
 
 #include <stdexcept>
+
+#include "utils.hpp"
+#include <boost/make_shared.hpp>
 
 #include "rdb_protocol/query_language.pb.h"
 
 namespace rdb_protocol {
 
-query_http_app_t::query_http_app_t(const std::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > &_semilattice_metadata,
-                                   namespace_repo_t<rdb_protocol_t> *_ns_repo)
+query_http_app_t::query_http_app_t(const boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > &_semilattice_metadata,
+                                   namespace_repo_t<rdb_protocol_t> * _ns_repo)
     : semilattice_metadata(_semilattice_metadata), ns_repo(_ns_repo)
 { }
 
@@ -101,7 +104,7 @@ http_res_t query_http_app_t::handle(const http_req_t &req) {
 
                 store_key_t key(*it);
 
-                std::shared_ptr<scoped_cJSON_t> doc(new scoped_cJSON_t(cJSON_Parse(req.body.c_str())));
+                boost::shared_ptr<scoped_cJSON_t> doc(new scoped_cJSON_t(cJSON_Parse(req.body.c_str())));
 
                 if (!doc->get()) {
                     return http_res_t(HTTP_BAD_REQUEST, "text/plain", "Json failed to parse");

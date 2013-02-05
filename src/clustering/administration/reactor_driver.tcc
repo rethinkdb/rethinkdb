@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_REACTOR_DRIVER_TCC_
 #define CLUSTERING_ADMINISTRATION_REACTOR_DRIVER_TCC_
 
@@ -79,8 +79,8 @@ template <class protocol_t>
 class ack_info_t : public home_thread_mixin_t {
 public:
     ack_info_t(const clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > &machine_id_translation_table,
-               const std::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > &machines_view,
-               const std::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > > &namespaces_view)
+               const boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > &machines_view,
+               const boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > > &namespaces_view)
         : machine_id_translation_table_(machine_id_translation_table),
           machines_view_(machines_view),
           namespaces_view_(namespaces_view),
@@ -304,8 +304,8 @@ reactor_driver_t<protocol_t>::reactor_driver_t(io_backender_t *_io_backender,
                                                mailbox_manager_t *_mbox_manager,
                                                const clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > &_directory_view,
                                                branch_history_manager_t<protocol_t> *_branch_history_manager,
-                                               const std::shared_ptr<semilattice_readwrite_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > > &_namespaces_view,
-                                               const std::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > &machines_view_,
+                                               boost::shared_ptr<semilattice_readwrite_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > > _namespaces_view,
+                                               boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machines_view_,
                                                const clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > &_machine_id_translation_table,
                                                svs_by_namespace_t<protocol_t> *_svs_by_namespace,
                                                perfmon_collection_repo_t *_perfmon_collection_repo,

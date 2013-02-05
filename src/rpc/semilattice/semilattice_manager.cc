@@ -3,6 +3,7 @@
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
+#include <boost/make_shared.hpp>
 
 #include <algorithm>
 #include <map>
@@ -18,7 +19,7 @@
 template<class metadata_t>
 semilattice_manager_t<metadata_t>::semilattice_manager_t(message_service_t *ms, const metadata_t &initial_metadata) :
     message_service(ms),
-    root_view(std::make_shared<root_view_t>(this)),
+    root_view(boost::make_shared<root_view_t>(this)),
     metadata_version(0),
     metadata(initial_metadata),
     next_sync_from_query_id(0), next_sync_to_query_id(0),
@@ -36,7 +37,7 @@ semilattice_manager_t<metadata_t>::~semilattice_manager_t() THROWS_NOTHING {
 }
 
 template<class metadata_t>
-std::shared_ptr<semilattice_readwrite_view_t<metadata_t> > semilattice_manager_t<metadata_t>::get_root_view() {
+boost::shared_ptr<semilattice_readwrite_view_t<metadata_t> > semilattice_manager_t<metadata_t>::get_root_view() {
     assert_thread();
     return root_view;
 }

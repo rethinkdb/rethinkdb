@@ -1,9 +1,8 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef RPC_SEMILATTICE_SEMILATTICE_MANAGER_HPP_
 #define RPC_SEMILATTICE_SEMILATTICE_MANAGER_HPP_
 
 #include <map>
-#include <memory>
 #include <utility>
 
 #include "rpc/mailbox/mailbox.hpp"
@@ -21,7 +20,7 @@ constraints:
 1. It must have public and sane default constructor, copy constructor,
     copy assignment, and destructor.
 
-2. It must be serializable using `containers/archive` stuff.
+2. It must be serializable using `boost::serialization`.
 
 3. There must exist a function:
 
@@ -39,7 +38,7 @@ public:
     semilattice_manager_t(message_service_t *service, const metadata_t &initial_metadata);
     ~semilattice_manager_t() THROWS_NOTHING;
 
-    std::shared_ptr<semilattice_readwrite_view_t<metadata_t> > get_root_view();
+    boost::shared_ptr<semilattice_readwrite_view_t<metadata_t> > get_root_view();
 
 private:
     typedef uint64_t metadata_version_t, sync_from_query_id_t, sync_to_query_id_t;
@@ -82,7 +81,7 @@ private:
     void wait_for_version_from_peer(peer_id_t peer, metadata_version_t version, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, sync_failed_exc_t);
 
     message_service_t *const message_service;
-    const std::shared_ptr<root_view_t> root_view;
+    const boost::shared_ptr<root_view_t> root_view;
 
     metadata_version_t metadata_version;
     metadata_t metadata;

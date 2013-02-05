@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_HTTP_SEMILATTICE_APP_HPP_
 #define CLUSTERING_ADMINISTRATION_HTTP_SEMILATTICE_APP_HPP_
 
@@ -6,7 +6,6 @@
 #include <string>
 
 #include "clustering/administration/metadata.hpp"
-#include "http/http.hpp"
 #include "http/json.hpp"
 
 class semilattice_http_app_t : public http_json_app_t {

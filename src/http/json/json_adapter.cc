@@ -103,12 +103,12 @@ void json_adapter_if_t::apply(cJSON *change) {
         std::string s = cJSON_print_std_string(change);
         throw schema_mismatch_exc_t(strprintf("Failed to apply change: %s", s.c_str()));
     }
-    std::shared_ptr<subfield_change_functor_t> change_callback = get_change_callback();
+    boost::shared_ptr<subfield_change_functor_t> change_callback = get_change_callback();
     if (change_callback) {
         get_change_callback()->on_change();
     }
 
-    for (std::vector<std::shared_ptr<subfield_change_functor_t> >::iterator it = superfields.begin();
+    for (std::vector<boost::shared_ptr<subfield_change_functor_t> >::iterator it = superfields.begin();
          it != superfields.end();
          ++it) {
         if (*it) {
@@ -120,12 +120,12 @@ void json_adapter_if_t::apply(cJSON *change) {
 void json_adapter_if_t::erase() {
     erase_impl();
 
-    std::shared_ptr<subfield_change_functor_t> change_callback = get_change_callback();
+    boost::shared_ptr<subfield_change_functor_t> change_callback = get_change_callback();
     if (change_callback) {
         get_change_callback()->on_change();
     }
 
-    for (std::vector<std::shared_ptr<subfield_change_functor_t> >::iterator it = superfields.begin();
+    for (std::vector<boost::shared_ptr<subfield_change_functor_t> >::iterator it = superfields.begin();
          it != superfields.end();
          ++it) {
         if (*it) {
@@ -137,12 +137,12 @@ void json_adapter_if_t::erase() {
 void json_adapter_if_t::reset() {
     reset_impl();
 
-    std::shared_ptr<subfield_change_functor_t> change_callback = get_change_callback();
+    boost::shared_ptr<subfield_change_functor_t> change_callback = get_change_callback();
     if (change_callback) {
         get_change_callback()->on_change();
     }
 
-    for (std::vector<std::shared_ptr<subfield_change_functor_t> >::iterator it = superfields.begin();
+    for (std::vector<boost::shared_ptr<subfield_change_functor_t> >::iterator it = superfields.begin();
          it != superfields.end();
          ++it) {
         if (*it) {
@@ -171,7 +171,7 @@ namespace std {
 // ctx-less JSON adapter for std::string
 
 json_adapter_if_t::json_adapter_map_t get_json_subfields(std::string *) {
-    return std::map<std::string, std::shared_ptr<json_adapter_if_t> >();
+    return std::map<std::string, boost::shared_ptr<json_adapter_if_t> >();
 }
 
 cJSON *render_as_json(std::string *target) {
@@ -193,7 +193,7 @@ std::string to_string_for_json_key(const std::string *s) {
 
 // ctx-less JSON adapter for uuid_u
 json_adapter_if_t::json_adapter_map_t get_json_subfields(uuid_u *) {
-    return std::map<std::string, std::shared_ptr<json_adapter_if_t> >();
+    return std::map<std::string, boost::shared_ptr<json_adapter_if_t> >();
 }
 
 cJSON *render_as_json(const uuid_u *uuid) {

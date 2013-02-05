@@ -1,8 +1,9 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef UNITTEST_DUMMY_METADATA_CONTROLLER_HPP_
 #define UNITTEST_DUMMY_METADATA_CONTROLLER_HPP_
 
-#include <memory>
+#include "errors.hpp"
+#include <boost/make_shared.hpp>
 
 #include "arch/timing.hpp"
 #include "rpc/semilattice/view.hpp"
@@ -17,14 +18,14 @@ class dummy_semilattice_controller_t {
 
 public:
     explicit dummy_semilattice_controller_t(const metadata_t &m) :
-        view(std::make_shared<view_t>(this)),
+        view(boost::make_shared<view_t>(this)),
         metadata(m) { }
 
     ~dummy_semilattice_controller_t() {
         view->controller = NULL;
     }
 
-    std::shared_ptr<semilattice_readwrite_view_t<metadata_t> > get_view() {
+    boost::shared_ptr<semilattice_readwrite_view_t<metadata_t> > get_view() {
         return view;
     }
 
@@ -61,7 +62,7 @@ private:
         dummy_semilattice_controller_t *controller;
         rng_t rng;
     };
-    std::shared_ptr<view_t> view;
+    boost::shared_ptr<view_t> view;
 
     metadata_t metadata;
 

@@ -1,7 +1,8 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "rpc/semilattice/view/field.hpp"
 
-#include <memory>
+#include "errors.hpp"
+#include <boost/make_shared.hpp>
 
 /* `semilattice_field_read_view_t` is a `semilattice_read_view_t` that corresponds to
 some sub-field of another `semilattice_read_view_t`. Pass the field to the
@@ -11,7 +12,7 @@ template<class outer_t, class inner_t>
 class semilattice_field_read_view_t : public semilattice_read_view_t<inner_t> {
 
 public:
-    semilattice_field_read_view_t(inner_t outer_t::*f, const std::shared_ptr<semilattice_read_view_t<outer_t> > &o) :
+    semilattice_field_read_view_t(inner_t outer_t::*f, boost::shared_ptr<semilattice_read_view_t<outer_t> > o) :
         field(f), outer(o) { }
 
     inner_t get() {
@@ -38,9 +39,7 @@ public:
 
 private:
     inner_t outer_t::*field;
-    std::shared_ptr<semilattice_read_view_t<outer_t> > outer;
-
-    DISABLE_COPYING(semilattice_field_read_view_t);
+    boost::shared_ptr<semilattice_read_view_t<outer_t> > outer;
 };
 
 /* A `semilattice_field_readwrite_view_t` is like a `semilattice_field_read_view_t`
@@ -50,7 +49,7 @@ template<class outer_t, class inner_t>
 class semilattice_field_readwrite_view_t : public semilattice_readwrite_view_t<inner_t> {
 
 public:
-    semilattice_field_readwrite_view_t(inner_t outer_t::*f, const std::shared_ptr<semilattice_readwrite_view_t<outer_t> > &o) :
+    semilattice_field_readwrite_view_t(inner_t outer_t::*f, boost::shared_ptr<semilattice_readwrite_view_t<outer_t> > o) :
         field(f), outer(o) { }
 
     inner_t get() {
@@ -78,23 +77,25 @@ public:
 
 private:
     inner_t outer_t::*field;
-    std::shared_ptr<semilattice_readwrite_view_t<outer_t> > outer;
-
-    DISABLE_COPYING(semilattice_field_readwrite_view_t);
+    boost::shared_ptr<semilattice_readwrite_view_t<outer_t> > outer;
 };
 
 /* Convenient wrappers around `semilattice_field_read[write]_view_t` */
 
 template<class outer_t, class inner_t>
-std::shared_ptr<semilattice_read_view_t<inner_t> > metadata_field(
+boost::shared_ptr<semilattice_read_view_t<inner_t> > metadata_field(
         inner_t outer_t::*field,
-        const std::shared_ptr<semilattice_read_view_t<outer_t> > &outer) {
-    return std::make_shared<semilattice_field_read_view_t<outer_t, inner_t> >(field, outer);
+        boost::shared_ptr<semilattice_read_view_t<outer_t> > outer)
+{
+    return boost::make_shared<semilattice_field_read_view_t<outer_t, inner_t> >(
+        field, outer);
 }
 
 template<class outer_t, class inner_t>
-std::shared_ptr<semilattice_readwrite_view_t<inner_t> > metadata_field(
+boost::shared_ptr<semilattice_readwrite_view_t<inner_t> > metadata_field(
         inner_t outer_t::*field,
-        const std::shared_ptr<semilattice_readwrite_view_t<outer_t> > &outer) {
-    return std::make_shared<semilattice_field_readwrite_view_t<outer_t, inner_t> >(field, outer);
+        boost::shared_ptr<semilattice_readwrite_view_t<outer_t> > outer)
+{
+    return boost::make_shared<semilattice_field_readwrite_view_t<outer_t, inner_t> >(
+        field, outer);
 }

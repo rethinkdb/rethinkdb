@@ -229,7 +229,7 @@ private:
     DISABLE_COPYING(traversal_state_t);
 };
 
-void subtrees_traverse(traversal_state_t *state, parent_releaser_t *releaser, int level, const std::shared_ptr<ranged_block_ids_t>& ids_source);
+void subtrees_traverse(traversal_state_t *state, parent_releaser_t *releaser, int level, const boost::shared_ptr<ranged_block_ids_t>& ids_source);
 void do_a_subtree_traversal(traversal_state_t *state, int level, block_id_t block_id, btree_key_t *left_exclusive_or_null, btree_key_t *right_inclusive_or_null, lock_in_line_callback_t *acq_start_cb);
 
 void process_a_leaf_node(traversal_state_t *state, scoped_ptr_t<buf_lock_t> *buf, int level,
@@ -360,7 +360,7 @@ void btree_parallel_traversal(transaction_t *txn, superblock_t *superblock, btre
     } else {
         state.level_count(0) += 1;
         state.acquisition_waiter_stacks.resize(1);
-        std::shared_ptr<ranged_block_ids_t> ids_source(new ranged_block_ids_t(root_id, NULL, NULL, 0));
+        boost::shared_ptr<ranged_block_ids_t> ids_source(new ranged_block_ids_t(root_id, NULL, NULL, 0));
         subtrees_traverse(&state, &superblock_releaser, 1, ids_source);
         state.wait();
         /* Wait for `state.wait()` to succeed even if `interruptor` is pulsed,
@@ -372,7 +372,7 @@ void btree_parallel_traversal(transaction_t *txn, superblock_t *superblock, btre
 }
 
 
-void subtrees_traverse(traversal_state_t *state, parent_releaser_t *releaser, int level, const std::shared_ptr<ranged_block_ids_t>& ids_source) {
+void subtrees_traverse(traversal_state_t *state, parent_releaser_t *releaser, int level, const boost::shared_ptr<ranged_block_ids_t>& ids_source) {
     rassert(coro_t::self());
     interesting_children_callback_t *fsm = new interesting_children_callback_t(state, releaser, level, ids_source);
     state->helper->filter_interesting_children(state->transaction_ptr, ids_source.get(), fsm);
@@ -440,7 +440,7 @@ void do_a_subtree_traversal(traversal_state_t *state, int level, block_id_t bloc
 void process_a_internal_node(traversal_state_t *state, scoped_ptr_t<buf_lock_t> *buf, int level, const btree_key_t *left_exclusive_or_null, const btree_key_t *right_inclusive_or_null) {
     const internal_node_t *node = reinterpret_cast<const internal_node_t *>((*buf)->get_data_read());
 
-    std::shared_ptr<ranged_block_ids_t> ids_source(new ranged_block_ids_t(state->slice->cache()->get_block_size(), node, left_exclusive_or_null, right_inclusive_or_null, level));
+    boost::shared_ptr<ranged_block_ids_t> ids_source(new ranged_block_ids_t(state->slice->cache()->get_block_size(), node, left_exclusive_or_null, right_inclusive_or_null, level));
 
     subtrees_traverse(state, new internal_node_releaser_t(buf, state), level + 1, ids_source);
 }

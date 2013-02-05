@@ -1,11 +1,10 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_PROTOCOL_HPP_
 #define RDB_PROTOCOL_PROTOCOL_HPP_
 
 #include <algorithm>
 #include <list>
 #include <map>
-#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
@@ -82,12 +81,12 @@ namespace rdb_protocol_details {
 
 struct backfill_atom_t {
     store_key_t key;
-    std::shared_ptr<scoped_cJSON_t> value;
+    boost::shared_ptr<scoped_cJSON_t> value;
     repli_timestamp_t recency;
 
     backfill_atom_t() { }
     backfill_atom_t(const store_key_t& _key,
-                    const std::shared_ptr<scoped_cJSON_t>& _value,
+                    const boost::shared_ptr<scoped_cJSON_t>& _value,
                     const repli_timestamp_t& _recency) :
         key(_key),
         value(_value),
@@ -150,7 +149,7 @@ struct rdb_protocol_t {
         context_t();
         context_t(extproc::pool_group_t *_pool_group,
                   namespace_repo_t<rdb_protocol_t> *_ns_repo,
-                  const std::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > &_semilattice_metadata,
+                  boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _semilattice_metadata,
                   directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
                   uuid_u _machine_id);
         ~context_t();
@@ -162,20 +161,17 @@ struct rdb_protocol_t {
          * ie cross_thread_namespace_watchables[0] is a watchable for thread 0. */
         scoped_array_t<scoped_ptr_t<cross_thread_watchable_variable_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > > > cross_thread_namespace_watchables;
         scoped_array_t<scoped_ptr_t<cross_thread_watchable_variable_t<databases_semilattice_metadata_t> > > cross_thread_database_watchables;
-        std::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > semilattice_metadata;
+        boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > semilattice_metadata;
         directory_read_manager_t<cluster_directory_metadata_t> *directory_read_manager;
         cond_t interruptor; //TODO figure out where we're going to want to interrupt this from and put this there instead
         scoped_array_t<scoped_ptr_t<cross_thread_signal_t> > signals;
         uuid_u machine_id;
-
-    private:
-        DISABLE_COPYING(context_t);
     };
 
     struct point_read_response_t {
-        std::shared_ptr<scoped_cJSON_t> data;
+        boost::shared_ptr<scoped_cJSON_t> data;
         point_read_response_t() { }
-        explicit point_read_response_t(const std::shared_ptr<scoped_cJSON_t> &_data)
+        explicit point_read_response_t(boost::shared_ptr<scoped_cJSON_t> _data)
             : data(_data)
         { }
 
@@ -183,9 +179,9 @@ struct rdb_protocol_t {
     };
 
     struct rget_read_response_t {
-        typedef std::vector<std::pair<store_key_t, std::shared_ptr<scoped_cJSON_t> > > stream_t; //Present if there was no terminal
-        typedef std::map<std::shared_ptr<scoped_cJSON_t>, std::shared_ptr<scoped_cJSON_t>, shared_scoped_less_t> groups_t; //Present if the terminal was a groupedmapreduce
-        typedef std::shared_ptr<scoped_cJSON_t> atom_t; //Present if the terminal was a reduction
+        typedef std::vector<std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> > > stream_t; //Present if there was no terminal
+        typedef std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less_t> groups_t; //Present if the terminal was a groupedmapreduce
+        typedef boost::shared_ptr<scoped_cJSON_t> atom_t; //Present if the terminal was a reduction
 
         struct length_t {
             int length;
@@ -386,11 +382,11 @@ struct rdb_protocol_t {
     class point_write_t {
     public:
         point_write_t() { }
-        point_write_t(const store_key_t& _key, std::shared_ptr<scoped_cJSON_t> _data, bool _overwrite = true)
+        point_write_t(const store_key_t& _key, boost::shared_ptr<scoped_cJSON_t> _data, bool _overwrite = true)
             : key(_key), data(_data), overwrite(_overwrite) { }
 
         store_key_t key;
-        std::shared_ptr<scoped_cJSON_t> data;
+        boost::shared_ptr<scoped_cJSON_t> data;
         bool overwrite;
 
         RDB_DECLARE_ME_SERIALIZABLE;

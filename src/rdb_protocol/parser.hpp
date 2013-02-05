@@ -1,8 +1,6 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_PARSER_HPP_
 #define RDB_PROTOCOL_PARSER_HPP_
-
-#include <memory>
 
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/namespace_interface_repository.hpp"
@@ -15,17 +13,15 @@ namespace rdb_protocol {
 
 class query_http_app_t : public http_app_t {
 public:
-    query_http_app_t(const std::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > &_semilattice_metadata, namespace_repo_t<rdb_protocol_t> * _ns_repo);
+    query_http_app_t(const boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > &_semilattice_metadata, namespace_repo_t<rdb_protocol_t> * _ns_repo);
     ~query_http_app_t();
     http_res_t handle(const http_req_t &);
 
 private:
-    std::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > semilattice_metadata;
+    boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > semilattice_metadata;
     namespace_repo_t<rdb_protocol_t> *ns_repo;
     order_source_t order_source;
     cond_t on_destruct;
-
-    DISABLE_COPYING(query_http_app_t);
 };
 
 } //namespace rdb_protocol

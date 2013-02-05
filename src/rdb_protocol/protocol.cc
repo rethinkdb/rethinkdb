@@ -1,6 +1,8 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "errors.hpp"
 #include <boost/bind.hpp>
+#include <boost/function.hpp>
+#include <boost/make_shared.hpp>
 
 #include "btree/erase_range.hpp"
 #include "btree/parallel_traversal.hpp"
@@ -92,7 +94,7 @@ rdb_protocol_t::context_t::context_t()
 
 rdb_protocol_t::context_t::context_t(extproc::pool_group_t *_pool_group,
           namespace_repo_t<rdb_protocol_t> *_ns_repo,
-          const std::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > &_semilattice_metadata,
+          boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _semilattice_metadata,
           directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
           machine_id_t _machine_id)
     : pool_group(_pool_group), ns_repo(_ns_repo),
@@ -236,7 +238,7 @@ public:
               ctx->cross_thread_namespace_watchables[get_thread_id()].get()->get_watchable(),
               ctx->cross_thread_database_watchables[get_thread_id()].get()->get_watchable(),
               ctx->semilattice_metadata,
-              std::make_shared<js::runner_t>(),
+              boost::make_shared<js::runner_t>(),
               ctx->signals[get_thread_id()].get(),
               ctx->machine_id)
     { }
@@ -445,8 +447,8 @@ void read_t::unshard(read_response_t *responses, size_t count, read_response_t *
     boost::apply_visitor(v, read);
 }
 
-bool rget_data_cmp(const std::pair<store_key_t, std::shared_ptr<scoped_cJSON_t> >& a,
-                   const std::pair<store_key_t, std::shared_ptr<scoped_cJSON_t> >& b) {
+bool rget_data_cmp(const std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> >& a,
+                   const std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> >& b) {
     return a.first < b.first;
 }
 
@@ -577,7 +579,7 @@ struct read_visitor_t : public boost::static_visitor<void> {
             ctx->cross_thread_namespace_watchables[get_thread_id()].get()->get_watchable(),
             ctx->cross_thread_database_watchables[get_thread_id()].get()->get_watchable(),
             ctx->semilattice_metadata,
-            std::make_shared<js::runner_t>(),
+            boost::make_shared<js::runner_t>(),
             &interruptor,
             ctx->machine_id)
     { }
@@ -643,7 +645,7 @@ struct write_visitor_t : public boost::static_visitor<void> {
             ctx->cross_thread_namespace_watchables[get_thread_id()].get()->get_watchable(),
             ctx->cross_thread_database_watchables[get_thread_id()].get()->get_watchable(),
             ctx->semilattice_metadata,
-            std::make_shared<js::runner_t>(),
+            boost::make_shared<js::runner_t>(),
             &interruptor,
             ctx->machine_id)
     { }

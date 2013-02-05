@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_HTTP_DISTRIBUTION_APP_HPP_
 #define CLUSTERING_ADMINISTRATION_HTTP_DISTRIBUTION_APP_HPP_
 
@@ -15,15 +15,15 @@ struct rdb_protocol_t;
 
 class distribution_app_t : public http_app_t {
 public:
-    distribution_app_t(const std::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> > > > &, namespace_repo_t<memcached_protocol_t> *,
-                       const std::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > > &, namespace_repo_t<rdb_protocol_t> *);
+    distribution_app_t(boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> > > >, namespace_repo_t<memcached_protocol_t> *,
+                       boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > >, namespace_repo_t<rdb_protocol_t> *);
     http_res_t handle(const http_req_t &);
 
 private:
-    std::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> > > > namespaces_sl_metadata;
+    boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> > > > namespaces_sl_metadata;
     namespace_repo_t<memcached_protocol_t> *ns_repo;
 
-    std::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > > rdb_namespaces_sl_metadata;
+    boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > > rdb_namespaces_sl_metadata;
     namespace_repo_t<rdb_protocol_t> *rdb_ns_repo;
 
     DISABLE_COPYING(distribution_app_t);

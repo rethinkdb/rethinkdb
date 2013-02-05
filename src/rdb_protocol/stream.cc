@@ -1,58 +1,58 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "rdb_protocol/stream.hpp"
 #include "rdb_protocol/environment.hpp"
 #include "rdb_protocol/transform_visitors.hpp"
 
 namespace query_language {
 
-std::shared_ptr<json_stream_t> json_stream_t::add_transformation(const rdb_protocol_details::transform_variant_t &t, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace) {
+boost::shared_ptr<json_stream_t> json_stream_t::add_transformation(const rdb_protocol_details::transform_variant_t &t, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace) {
     rdb_protocol_details::transform_t transform;
     transform.push_back(rdb_protocol_details::transform_atom_t(t, scopes, backtrace));
-    return std::make_shared<transform_stream_t>(shared_from_this(), env, transform);
+    return boost::make_shared<transform_stream_t>(shared_from_this(), env, transform);
 }
 
 result_t json_stream_t::apply_terminal(const rdb_protocol_details::terminal_variant_t &t, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace) {
     result_t res;
     boost::apply_visitor(terminal_initializer_visitor_t(&res, env, scopes, backtrace), t);
-    std::shared_ptr<scoped_cJSON_t> json;
+    boost::shared_ptr<scoped_cJSON_t> json;
     while ((json = next())) boost::apply_visitor(terminal_visitor_t(json, env, scopes, backtrace, &res), t);
     return res;
 }
 
 in_memory_stream_t::in_memory_stream_t(json_array_iterator_t it) {
     while (cJSON *json = it.next()) {
-        data.push_back(std::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_DeepCopy(json))));
+        data.push_back(boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_DeepCopy(json))));
     }
 }
 
-in_memory_stream_t::in_memory_stream_t(std::shared_ptr<json_stream_t> stream) {
-    while (std::shared_ptr<scoped_cJSON_t> json = stream->next()) {
+in_memory_stream_t::in_memory_stream_t(boost::shared_ptr<json_stream_t> stream) {
+    while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
         data.push_back(json);
     }
 }
 
-std::shared_ptr<scoped_cJSON_t> in_memory_stream_t::next() {
+boost::shared_ptr<scoped_cJSON_t> in_memory_stream_t::next() {
     if (data.empty()) {
-        return std::shared_ptr<scoped_cJSON_t>();
+        return boost::shared_ptr<scoped_cJSON_t>();
     } else {
-        std::shared_ptr<scoped_cJSON_t> res = data.front();
+        boost::shared_ptr<scoped_cJSON_t> res = data.front();
         data.pop_front();
         return res;
     }
 }
 
-transform_stream_t::transform_stream_t(std::shared_ptr<json_stream_t> _stream,
+transform_stream_t::transform_stream_t(boost::shared_ptr<json_stream_t> _stream,
                                        runtime_environment_t *_env,
                                        const rdb_protocol_details::transform_t &tr) :
     stream(_stream),
     env(_env),
     transform(tr) { }
 
-std::shared_ptr<scoped_cJSON_t> transform_stream_t::next() {
+boost::shared_ptr<scoped_cJSON_t> transform_stream_t::next() {
     while (data.empty()) {
-        std::shared_ptr<scoped_cJSON_t> input = stream->next();
+        boost::shared_ptr<scoped_cJSON_t> input = stream->next();
         if (!input) {
-            return std::shared_ptr<scoped_cJSON_t>();
+            return boost::shared_ptr<scoped_cJSON_t>();
         }
 
         json_list_t accumulator;
@@ -78,12 +78,12 @@ std::shared_ptr<scoped_cJSON_t> transform_stream_t::next() {
         std::swap(data, accumulator);
     }
 
-    std::shared_ptr<scoped_cJSON_t> res = data.front();
+    boost::shared_ptr<scoped_cJSON_t> res = data.front();
     data.pop_front();
     return res;
 }
 
-std::shared_ptr<json_stream_t> transform_stream_t::add_transformation(const rdb_protocol_details::transform_variant_t &t, UNUSED runtime_environment_t *env2, const scopes_t &scopes, const backtrace_t &backtrace) {
+boost::shared_ptr<json_stream_t> transform_stream_t::add_transformation(const rdb_protocol_details::transform_variant_t &t, UNUSED runtime_environment_t *env2, const scopes_t &scopes, const backtrace_t &backtrace) {
     transform.push_back(rdb_protocol_details::transform_atom_t(t, scopes, backtrace));
     return shared_from_this();
 }
@@ -98,25 +98,25 @@ batched_rget_stream_t::batched_rget_stream_t(const namespace_repo_t<rdb_protocol
       table_scan_backtrace(_table_scan_backtrace)
 { }
 
-std::shared_ptr<scoped_cJSON_t> batched_rget_stream_t::next() {
+boost::shared_ptr<scoped_cJSON_t> batched_rget_stream_t::next() {
     started = true;
     if (data.empty()) {
         if (finished) {
-            return std::shared_ptr<scoped_cJSON_t>();
+            return boost::shared_ptr<scoped_cJSON_t>();
         }
         read_more();
         if (data.empty()) {
             finished = true;
-            return std::shared_ptr<scoped_cJSON_t>();
+            return boost::shared_ptr<scoped_cJSON_t>();
         }
     }
-    std::shared_ptr<scoped_cJSON_t> ret = data.front();
+    boost::shared_ptr<scoped_cJSON_t> ret = data.front();
     data.pop_front();
 
     return ret;
 }
 
-std::shared_ptr<json_stream_t> batched_rget_stream_t::add_transformation(const rdb_protocol_details::transform_variant_t &t, UNUSED runtime_environment_t *env2, const scopes_t &scopes, const backtrace_t &per_op_backtrace) {
+boost::shared_ptr<json_stream_t> batched_rget_stream_t::add_transformation(const rdb_protocol_details::transform_variant_t &t, UNUSED runtime_environment_t *env2, const scopes_t &scopes, const backtrace_t &per_op_backtrace) {
     guarantee(!started);
     transform.push_back(rdb_protocol_details::transform_atom_t(t, scopes, per_op_backtrace));
     return shared_from_this();
@@ -192,18 +192,18 @@ union_stream_t::union_stream_t(const stream_list_t &_streams)
     : streams(_streams), hd(streams.begin())
 { }
 
-std::shared_ptr<scoped_cJSON_t> union_stream_t::next() {
+boost::shared_ptr<scoped_cJSON_t> union_stream_t::next() {
     while (hd != streams.end()) {
-        if (std::shared_ptr<scoped_cJSON_t> json = (*hd)->next()) {
+        if (boost::shared_ptr<scoped_cJSON_t> json = (*hd)->next()) {
             return json;
         } else {
             ++hd;
         }
     }
-    return std::shared_ptr<scoped_cJSON_t>();
+    return boost::shared_ptr<scoped_cJSON_t>();
 }
 
-std::shared_ptr<json_stream_t> union_stream_t::add_transformation(const rdb_protocol_details::transform_variant_t &t, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace) {
+boost::shared_ptr<json_stream_t> union_stream_t::add_transformation(const rdb_protocol_details::transform_variant_t &t, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace) {
     for (stream_list_t::iterator it  = streams.begin();
                                  it != streams.end();
                                  ++it) {

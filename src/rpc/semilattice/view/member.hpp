@@ -1,9 +1,11 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef RPC_SEMILATTICE_VIEW_MEMBER_HPP_
 #define RPC_SEMILATTICE_VIEW_MEMBER_HPP_
 
 #include <map>
-#include <memory>
+
+#include "errors.hpp"
+#include <boost/shared_ptr.hpp>
 
 #include "rpc/semilattice/view.hpp"
 
@@ -13,23 +15,23 @@
 member of a `std::map` in another metadata view. */
 
 template<class key_t, class value_t>
-std::shared_ptr<semilattice_read_view_t<value_t> > metadata_member(
+boost::shared_ptr<semilattice_read_view_t<value_t> > metadata_member(
     key_t,
-    const std::shared_ptr<semilattice_read_view_t<std::map<key_t, value_t> > > &);
+    boost::shared_ptr<semilattice_read_view_t<std::map<key_t, value_t> > >);
 
 template<class key_t, class value_t>
-std::shared_ptr<semilattice_readwrite_view_t<value_t> > metadata_member(
+boost::shared_ptr<semilattice_readwrite_view_t<value_t> > metadata_member(
     key_t,
-    const std::shared_ptr<semilattice_readwrite_view_t<std::map<key_t, value_t> > > &);
+    boost::shared_ptr<semilattice_readwrite_view_t<std::map<key_t, value_t> > >);
 
 /* `metadata_new_member` inserts a new default-constructed `value_t` into the
 given view under the given key, and returns a view pointing to the newly-
 inserted object. */
 
 template<class key_t, class value_t>
-std::shared_ptr<semilattice_readwrite_view_t<value_t> > metadata_new_member(
+boost::shared_ptr<semilattice_readwrite_view_t<value_t> > metadata_new_member(
     key_t,
-    const std::shared_ptr<semilattice_readwrite_view_t<std::map<key_t, value_t> > > &);
+    boost::shared_ptr<semilattice_readwrite_view_t<std::map<key_t, value_t> > >);
 
 #include "rpc/semilattice/view/member.tcc"
 

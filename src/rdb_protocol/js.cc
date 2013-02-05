@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #define __STDC_LIMIT_MACROS
 #include <stdint.h>             // for UINT32_MAX
 
@@ -393,8 +393,8 @@ id_t runner_t::compile(
 struct call_task_t : auto_task_t<call_task_t> {
     call_task_t() {}
     call_task_t(id_t id,
-                std::shared_ptr<scoped_cJSON_t> obj,
-                const std::vector<std::shared_ptr<scoped_cJSON_t> > &args)
+                boost::shared_ptr<scoped_cJSON_t> obj,
+                const std::vector<boost::shared_ptr<scoped_cJSON_t> > &args)
         : func_id_(id), args_(args)
     {
         if (NULL != obj.get()) {
@@ -404,8 +404,8 @@ struct call_task_t : auto_task_t<call_task_t> {
     }
 
     id_t func_id_;
-    boost::optional<std::shared_ptr<scoped_cJSON_t> > obj_;
-    std::vector<std::shared_ptr<scoped_cJSON_t> > args_;
+    boost::optional<boost::shared_ptr<scoped_cJSON_t> > obj_;
+    std::vector<boost::shared_ptr<scoped_cJSON_t> > args_;
     RDB_MAKE_ME_SERIALIZABLE_3(func_id_, obj_, args_);
 
     v8::Handle<v8::Value> eval(v8::Handle<v8::Function> func, std::string *errmsg) {
@@ -447,7 +447,7 @@ struct call_task_t : auto_task_t<call_task_t> {
         v8::Handle<v8::Value> value = eval(func, errmsg);
         if (!value.IsEmpty()) {
             // JSONify result.
-            std::shared_ptr<scoped_cJSON_t> json = toJSON(value, errmsg);
+            boost::shared_ptr<scoped_cJSON_t> json = toJSON(value, errmsg);
             if (json) {
                 result = json;
             }
@@ -460,10 +460,10 @@ struct call_task_t : auto_task_t<call_task_t> {
     }
 };
 
-std::shared_ptr<scoped_cJSON_t> runner_t::call(
+boost::shared_ptr<scoped_cJSON_t> runner_t::call(
     id_t func_id,
-    std::shared_ptr<scoped_cJSON_t> object,
-    const std::vector<std::shared_ptr<scoped_cJSON_t> > &args,
+    boost::shared_ptr<scoped_cJSON_t> object,
+    const std::vector<boost::shared_ptr<scoped_cJSON_t> > &args,
     std::string *errmsg,
     const req_config_t *config)
 {

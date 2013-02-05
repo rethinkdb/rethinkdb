@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "clustering/administration/issues/vector_clock_conflict.hpp"
 
 namespace {
@@ -39,7 +39,7 @@ void check_namespaces_for_protocol(
 
 }   /* anonymous namespace */
 
-vector_clock_conflict_issue_tracker_t::vector_clock_conflict_issue_tracker_t(const std::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > &_semilattice_view)
+vector_clock_conflict_issue_tracker_t::vector_clock_conflict_issue_tracker_t(boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > _semilattice_view)
     : semilattice_view(_semilattice_view) { }
 vector_clock_conflict_issue_tracker_t::~vector_clock_conflict_issue_tracker_t() { }
 

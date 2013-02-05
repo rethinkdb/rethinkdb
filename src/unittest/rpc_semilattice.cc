@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
@@ -223,7 +223,7 @@ void run_field_view_test() {
     dummy_semilattice_controller_t<sl_pair_t> controller(
         sl_pair_t(sl_int_t(8), sl_int_t(4)));
 
-    std::shared_ptr<semilattice_read_view_t<sl_int_t> > x_view =
+    boost::shared_ptr<semilattice_read_view_t<sl_int_t> > x_view =
         metadata_field(&sl_pair_t::x, controller.get_view());
 
     EXPECT_EQ(8u, x_view->get().i);
@@ -255,7 +255,7 @@ void run_member_view_test() {
     dummy_semilattice_controller_t<std::map<std::string, sl_int_t> > controller(
         initial_value);
 
-    std::shared_ptr<semilattice_read_view_t<sl_int_t> > foo_view =
+    boost::shared_ptr<semilattice_read_view_t<sl_int_t> > foo_view =
         metadata_member(std::string("foo"), controller.get_view());
 
     EXPECT_EQ(8u, foo_view->get().i);

@@ -57,7 +57,7 @@ class semilattice_watching_persister_t {
 public:
     semilattice_watching_persister_t(
             persistent_file_t *persistent_file_,
-            const std::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > &view);
+            boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > view);
 
     /* `stop_and_flush()` finishes flushing the current value to disk but stops
     responding to future changes. It's usually called right before the
@@ -74,7 +74,7 @@ private:
 
     persistent_file_t *persistent_file;
     machine_id_t machine_id;
-    std::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > view;
+    boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > view;
 
     scoped_ptr_t<cond_t> flush_again;
 
