@@ -30,6 +30,8 @@ struct backtrace_t {
         frame_t() : type(OPT), opt("UNITIALIZED") { }
         frame_t(int _pos) : type(POS), pos(_pos) { }
         frame_t(const std::string &_opt) : type(OPT), opt(_opt) { }
+        frame_t(const char *_opt) : type(OPT), opt(_opt) { }
+        frame_t(const frame_t &rhs) : type(rhs.type), pos(rhs.pos), opt(rhs.opt) { }
         Response2_Frame toproto() const;
         bool is_valid() {
             return (type == POS && pos >= 0)
@@ -44,9 +46,15 @@ struct backtrace_t {
     public:
         RDB_MAKE_ME_SERIALIZABLE_3(type, pos, opt);
     };
-    std::list<frame_t> frames;
-
+    void fill_error(Response2 *res, Response2_ResponseType type, std::string msg) const;
     RDB_MAKE_ME_SERIALIZABLE_1(frames);
+
+    void push_front(frame_t f) {
+        debugf("PUSHING %s\n", f.toproto().DebugString().c_str());
+        frames.push_front(f);
+    }
+private:
+    std::list<frame_t> frames;
 };
 
 class exc_t : public std::exception {
@@ -72,9 +80,15 @@ void fill_error(Response2 *res, Response2_ResponseType type, std::string msg,
     try {                                       \
         cmd;                                    \
     } catch (exc_t &e) {                        \
-        e.backtrace.frames.push_front(N);       \
+        debugf("WITH_BT\n");                    \
+        e.backtrace.push_front(N);              \
         throw;                                  \
     }
 
+#define CATCH_WITH_BT(N) catch (exc_t &e) { \
+        debugf("CATCH_WITH_BT\n");          \
+        e.backtrace.push_front(N);          \
+        throw;                              \
+    }
 
 #endif // RDB_PROTOCOL_ERR_HPP_

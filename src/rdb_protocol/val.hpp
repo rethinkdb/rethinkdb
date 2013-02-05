@@ -16,7 +16,7 @@ class term_t;
 class table_t : public ptr_baggable_t {
 public:
     table_t(env_t *_env, uuid_u db_id, const std::string &name, bool use_outdated);
-    datum_stream_t *as_datum_stream();
+    datum_stream_t *as_datum_stream(backtrace_t::frame_t f);
     const std::string &get_pkey();
     const datum_t *get_row(const datum_t *pval);
 

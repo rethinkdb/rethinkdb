@@ -11,8 +11,8 @@ void _runtime_check(const char *test, const char *file, int line,
     throw exc_t(msg);
 }
 
-void fill_error(Response2 *res, Response2_ResponseType type, std::string msg,
-                const backtrace_t &bt) {
+void backtrace_t::fill_error(Response2 *res, Response2_ResponseType type,
+                             std::string msg) const {
     guarantee(type == Response2::CLIENT_ERROR ||
               type == Response2::COMPILE_ERROR ||
               type == Response2::RUNTIME_ERROR);
@@ -22,9 +22,13 @@ void fill_error(Response2 *res, Response2_ResponseType type, std::string msg,
     res->set_type(type);
     *res->add_response() = error_msg;
     for (std::list<backtrace_t::frame_t>::const_iterator
-             it = bt.frames.begin(); it != bt.frames.end(); ++it) {
+             it = frames.begin(); it != frames.end(); ++it) {
         *res->add_backtrace() = it->toproto();
     }
+}
+void fill_error(Response2 *res, Response2_ResponseType type, std::string msg,
+                const backtrace_t &bt) {
+    bt.fill_error(res, type, msg);
 }
 
 Response2_Frame backtrace_t::frame_t::toproto() const {

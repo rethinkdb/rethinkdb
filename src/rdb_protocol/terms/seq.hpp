@@ -81,7 +81,6 @@ private:
             }
             cmp_to->write_to_protobuf(pb::set_datum(cmp_args[1]));
         }
-        debugf("%s\n", out->DebugString().c_str());
     }
 
     virtual val_t *eval_impl() {
@@ -120,7 +119,7 @@ private:
     virtual val_t *eval_impl() {
         std::vector<datum_stream_t *> streams;
         for (size_t i = 0; i < num_args(); ++i) streams.push_back(arg(i)->as_seq());
-        return new_val(new union_datum_stream_t(env, streams));
+        return new_val(new union_datum_stream_t(env, streams, get_bt()));
     }
     RDB_NAME("union")
 };

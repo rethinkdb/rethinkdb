@@ -109,8 +109,8 @@ const datum_t *table_t::get_row(const datum_t *pval) {
     return env->add_ptr(new datum_t(p_res->data, env));
 }
 
-datum_stream_t *table_t::as_datum_stream() {
-    return env->add_ptr(new lazy_datum_stream_t(env, use_outdated, access.get()));
+datum_stream_t *table_t::as_datum_stream(backtrace_t::frame_t f) {
+    return env->add_ptr(new lazy_datum_stream_t(env, use_outdated, access.get(), f));
 }
 
 val_t::type_t::type_t(val_t::type_t::raw_type_t _raw_type) : raw_type(_raw_type) { }
@@ -247,9 +247,9 @@ datum_stream_t *val_t::as_seq() {
     if (type.raw_type == type_t::SEQUENCE || type.raw_type == type_t::SELECTION) {
         // passthru
     } else if (type.raw_type == type_t::TABLE) {
-        if (!sequence) sequence = table->as_datum_stream();
+        if (!sequence) sequence = table->as_datum_stream(parent->get_bt());
     } else if (type.raw_type == type_t::DATUM) {
-        if (!sequence) sequence = datum->as_datum_stream(env);
+        if (!sequence) sequence = datum->as_datum_stream(env, parent->get_bt());
     } else {
         rfail("Type error: cannot convert %s to SEQUENCE.", type.name());
     }

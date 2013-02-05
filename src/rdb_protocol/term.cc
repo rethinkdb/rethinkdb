@@ -156,7 +156,7 @@ term_t::term_t(env_t *_env) : use_cached_val(false), env(_env), cached_val(0) {
 }
 term_t::~term_t() { }
 
-// #define INSTRUMENT 1
+#define INSTRUMENT 1
 #ifdef INSTRUMENT
 __thread int __depth = 0;
 #define DBG(s, args...) {                               \
@@ -179,6 +179,7 @@ bool term_t::is_deterministic() const {
 }
 
 val_t *term_t::eval(bool _use_cached_val) {
+    r_sanity_check(has_bt());
     DBG("EVALUATING %s (%d):\n", name(), is_deterministic());
     INC_DEPTH;
 
@@ -188,7 +189,7 @@ val_t *term_t::eval(bool _use_cached_val) {
     } catch (exc_t &e) {
         DEC_DEPTH;
         DBG("%s THREW\n", name());
-        if (has_bt()) e.backtrace.frames.push_front(get_bt());
+        if (has_bt()) e.backtrace.push_front(get_bt());
         throw;
     }
 

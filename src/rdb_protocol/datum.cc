@@ -216,13 +216,13 @@ boost::shared_ptr<scoped_cJSON_t> datum_t::as_json() const {
 }
 
 // TODO: make STR and OBJECT convertible to sequence?
-datum_stream_t *datum_t::as_datum_stream(env_t *env) const {
+datum_stream_t *datum_t::as_datum_stream(env_t *env, backtrace_t::frame_t frame) const {
     switch(get_type()) {
     case R_NULL: //fallthru
     case R_BOOL: //fallthru
     case R_NUM: rfail("Cannot convert %s to sequence", datum_type_name(get_type()));
     case R_STR: rfail("Cannot convert %s to sequence", datum_type_name(get_type()));
-    case R_ARRAY: return env->add_ptr(new array_datum_stream_t(env, this));
+    case R_ARRAY: return env->add_ptr(new array_datum_stream_t(env, this, frame));
     case R_OBJECT: rfail("Cannot convert %s to sequence", datum_type_name(get_type()));
     default: unreachable();
     }

@@ -80,7 +80,7 @@ public:
 
     cJSON *as_raw_json() const;
     boost::shared_ptr<scoped_cJSON_t> as_json() const;
-    datum_stream_t *as_datum_stream(env_t *env) const;
+    datum_stream_t *as_datum_stream(env_t *env, backtrace_t::frame_t frame) const;
 
     int cmp(const datum_t &rhs) const;
     bool operator==(const datum_t &rhs) const;

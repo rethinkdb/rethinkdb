@@ -69,7 +69,7 @@ void transform_visitor_t::operator()(ql::map_wire_func_t &func) const {
         const ql::datum_t *arg = ql_env->add_ptr(new ql::datum_t(json, ql_env));
         out->push_back(func.compile(ql_env)->call(arg)->as_datum()->as_json());
     } catch (ql::exc_t &e) {
-        e.backtrace.frames.push_front(func.bt());
+        e.backtrace.push_front(func.bt());
         throw;
     }
 }
@@ -81,7 +81,7 @@ void transform_visitor_t::operator()(ql::concatmap_wire_func_t &func) const {
         ql::datum_stream_t *ds = func.compile(ql_env)->call(arg)->as_seq();
         while (const ql::datum_t *d = ds->next()) out->push_back(d->as_json());
     } catch (ql::exc_t &e) {
-        e.backtrace.frames.push_front(func.bt());
+        e.backtrace.push_front(func.bt());
         throw;
     }
 }
@@ -93,7 +93,7 @@ void transform_visitor_t::operator()(ql::filter_wire_func_t &func) const {
         const ql::datum_t *arg = ql_env->add_ptr(new ql::datum_t(json, ql_env));
         if (f->call(arg)->as_datum()->as_bool()) out->push_back(arg->as_json());
     } catch (ql::exc_t &e) {
-        e.backtrace.frames.push_front(func.bt());
+        e.backtrace.push_front(func.bt());
         throw;
     }
 }
@@ -250,7 +250,7 @@ void terminal_visitor_t::operator()(ql::reduce_wire_func_t &func) const {
             *out = ql::wire_datum_t(rhs);
         }
     } catch (ql::exc_t &e) {
-        e.backtrace.frames.push_front(func.bt());
+        e.backtrace.push_front(func.bt());
         throw;
     }
 }

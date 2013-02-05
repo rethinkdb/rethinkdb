@@ -39,7 +39,7 @@ private:
         lt_cmp_t lt_cmp(arr);
         // We can't have datum_stream_t::sort because templates suck.
         datum_stream_t *s = new sort_datum_stream_t<lt_cmp_t>(
-            env, lt_cmp, arg(0)->as_seq());
+            env, lt_cmp, arg(0)->as_seq(), get_bt());
         return new_val(s);
     }
     RDB_NAME("orderby")
@@ -54,14 +54,14 @@ private:
     virtual val_t *eval_impl() {
         datum_stream_t *s =
             new sort_datum_stream_t<bool (*)(const datum_t *, const datum_t *)>(
-                env, lt_cmp, arg(0)->as_seq());
+                env, lt_cmp, arg(0)->as_seq(), get_bt());
         datum_t *arr = env->add_ptr(new datum_t(datum_t::R_ARRAY));
         const datum_t *last = 0;
         while (const datum_t *d = s->next()) {
             if (last && *last == *d) continue;
             arr->add(last = d);
         }
-        return new_val(new array_datum_stream_t(env, arr));
+        return new_val(new array_datum_stream_t(env, arr, get_bt()));
     }
     RDB_NAME("distinct")
 };

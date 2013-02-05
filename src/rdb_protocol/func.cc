@@ -51,6 +51,7 @@ func_t::func_t(env_t *env, const Term2 *_source, backtrace_t::frame_t _frame)
 
     const Term2 *body_source = &t->args(1);
     body = env->new_term(body_source);
+    body->set_bt(1);
 
     for (size_t i = 0; i < args.size(); ++i) {
         //debugf("popping %d\n", args[i]);
@@ -75,7 +76,7 @@ val_t *func_t::_call(const std::vector<const datum_t *> &args) {
         //                ^^^^^ don't use cached value
     } catch (exc_t &e) {
         r_sanity_check(frame.is_valid());
-        e.backtrace.frames.push_front(frame);
+        e.backtrace.push_front(frame);
         throw;
     }
 }
