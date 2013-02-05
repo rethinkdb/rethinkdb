@@ -936,7 +936,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         /* Create namespace, insert into metadata, then join into real metadata. */
         database_semilattice_metadata_t db;
         db.name = vclock_t<name_string_t>(db_name, env->this_machine);
-        metadata.databases.databases.insert(std::make_pair(generate_uuid(), db));
+        metadata.databases.databases.insert(std::make_pair(generate_uuid(), make_deletable(db)));
         try {
             fill_in_blueprints(&metadata, directory_metadata->get(), env->this_machine, false);
         } catch (const missing_machine_exc_t &e) {
@@ -1023,7 +1023,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
                                           primary_key, port_defaults::reql_port, cache_size);
         {
             cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t change(&metadata.rdb_namespaces);
-            change.get()->namespaces.insert(std::make_pair(namespace_id, ns));
+            change.get()->namespaces.insert(std::make_pair(namespace_id, make_deletable(ns)));
         }
         try {
             fill_in_blueprints(&metadata, directory_metadata->get(), env->this_machine, false);
