@@ -7,7 +7,7 @@
 #include "concurrency/signal.hpp"
 #include "containers/intrusive_list.hpp"
 #include "containers/object_buffer.hpp"
-
+#include "utils.hpp"
 
 /* Monitors multiple signals; becomes pulsed if any individual signal becomes
 pulsed. */
@@ -16,12 +16,10 @@ class wait_any_subscription_t;
 
 class wait_any_t : public signal_t {
 public:
-    wait_any_t();
-    explicit wait_any_t(const signal_t *s1);
-    wait_any_t(const signal_t *s1, const signal_t *s2);
-    wait_any_t(const signal_t *s1, const signal_t *s2, const signal_t *s3);
-    wait_any_t(const signal_t *s1, const signal_t *s2, const signal_t *s3, const signal_t *s4);
-    wait_any_t(const signal_t *s1, const signal_t *s2, const signal_t *s3, const signal_t *s4, const signal_t *s5);
+    template <typename... Args>
+    explicit wait_any_t(Args... args) {
+        UNUSED int foo[] = { (add(args), 1)... };
+    }
 
     ~wait_any_t();
 
