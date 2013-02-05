@@ -266,6 +266,7 @@ module 'DataExplorerView', ->
         # Core of the suggestions' system: We have to parse the query
         handle_keypress: (editor, event) =>
             # Save the last query (even incomplete)
+            # TODO clean that proto thing
             @__proto__.saved_data._query = @codemirror.getValue()
             saved_cursor = @codemirror.getCursor()
             if event?.which?
@@ -394,7 +395,6 @@ module 'DataExplorerView', ->
                         suggestion: suggestion
                 @show_suggestion()
                 @hide_description()
-                return true
             else if result.description?
                 @hide_suggestion()
                 @show_description result.description
@@ -404,11 +404,14 @@ module 'DataExplorerView', ->
 
 
             result_non_white_char_after_cursor = @regex.get_first_non_white_char.exec(query_after_cursor)
-            if result_non_white_char_after_cursor isnt null and result_non_white_char_after_cursor[1] isnt '.'
+            #console.log 'DEBUG: '+JSON.stringify result_non_white_char_after_cursor[1][0]
+            if result_non_white_char_after_cursor isnt null and result_non_white_char_after_cursor[1]?[0] isnt '.'
+                console.log 'REMOVE SUGGESTIONS 1'
                 @hide_suggestion()
             else
-                result_last_char_is_white = @regex.last_char_is_white.exec(query_after_cursor)
+                result_last_char_is_white = @regex.last_char_is_white.exec(query_before_cursor)
                 if result_last_char_is_white isnt null
+                    console.log 'REMOVE SUGGESTIONS 2'
                     @hide_suggestion()
 
             
@@ -419,13 +422,14 @@ module 'DataExplorerView', ->
             method_var: /^(\s)*([a-zA-Z]+)\./ # r. r.row. (r.count will be caught later)
             return : /^(\s)*return(\s)*/
             object: /^(\s)*{(\s)*/
+            array: /^(\s)*\[(\s)*/
             white: /^(\s)+$/
             white_replace: /\s/g
             white_start: /^(\s)+/
             comma: /^(\s)*,(\s)*/
             number: /^[0-9]+\.?[0-9]*/
             get_first_non_white_char: /\s*(\S+)/
-            last_char_is_white: /.*(\s+)/
+            last_char_is_white: /.*(\s+)$/
         stop_char:
             opening:
                 '(': true
@@ -439,8 +443,8 @@ module 'DataExplorerView', ->
 
         ### 
         element.type in ['string', 'function', 'var', 'separator', 'anonymous_function', 'object']
-        TODO Add array type
         TODO Collapse the query.slice(...)
+        TODO Pass position
         
         ###
         extract_data_from_query: (args) =>
@@ -498,11 +502,10 @@ module 'DataExplorerView', ->
                             if result_regex isnt null
                                 element.type = 'anonymous_function'
                                 list_args = result_regex[2]?.split(',')
-                                for arg in list_args
-                                    arg.replace(/(^\s*)|(\s*$)/gi,"") # Removing leading/trailing spaces
                                 element.args = list_args
                                 new_context = DataUtils.deep_copy context
                                 for arg in list_args
+                                    arg = arg.replace(/(^\s*)|(\s*$)/gi,"") # Removing leading/trailing spaces
                                     new_context[arg] = true
                                 element.context = new_context
                                 to_skip = result_regex[0].length
@@ -535,6 +538,17 @@ module 'DataExplorerView', ->
                                 stack_stop_char = ['{']
                                 continue
 
+                            result_regex = @regex.array.exec query.slice i # Check for array
+                            if result_regex isnt null
+                                element.type = 'array'
+                                element.next_key = null
+                                element.body = []
+                                entry_start = i+result_regex[0].length
+                                to_skip = result_regex[0].length-1
+                                stack_stop_char = ['[']
+                                continue
+
+
                             if char is '.'
                                 new_start = i+1
                             else
@@ -542,7 +556,7 @@ module 'DataExplorerView', ->
 
                             result_regex = @regex.method.exec query.slice new_start # Check for a standard method
                             if result_regex isnt null
-                                if stack[stack.length-1]?.type is 'function' # We want the query to start with r. or arg.
+                                if stack[stack.length-1]?.type is 'function' or stack[stack.length-1]?.type is 'var' # We want the query to start with r. or arg.
                                     element.type = 'function'
                                     element.name = result_regex[0]
                                     start += new_start-i
@@ -679,6 +693,7 @@ module 'DataExplorerView', ->
                                                 type: 'object_key'
                                                 key: element.next_key
                                                 key_complete: true
+                                                complete: false
                                                 body: @extract_data_from_query
                                                     query: query.slice element.current_value_start, i
                                                     context: element.context
@@ -724,6 +739,34 @@ module 'DataExplorerView', ->
                                     to_skip = result_regex[0].length-1
                                     element.next_key = null
                                     element.current_key_start = i+result_regex[0].length
+                        else if element.type is 'array'
+                            if char of @stop_char.opening
+                                stack_stop_char.push char
+                            else if char of @stop_char.closing
+                                if stack_stop_char[stack_stop_char.length-1] is @stop_char.closing[char]
+                                    stack_stop_char.pop()
+                                    if stack_stop_char.length is 0
+                                        # We just reach a ], it's the end of the object
+                                        new_element =
+                                            type: 'array_entry'
+                                            complete: true
+                                            body: @extract_data_from_query
+                                                query: query.slice entry_start, i
+                                                context: element.context
+                                        if new_element.body.length > 0
+                                            element.body.push new_element
+                                        continue
+
+                            if stack_stop_char.length is 1 and char is ','
+                                new_element =
+                                    type: 'array_entry'
+                                    complete: true
+                                    body: @extract_data_from_query
+                                        query: query.slice entry_start, i
+                                        context: element.context
+                                if new_element.body.length > 0
+                                    element.body.push new_element
+                                entry_start = i+1
 
             if element.type isnt null
                 element.complete = false
@@ -751,14 +794,22 @@ module 'DataExplorerView', ->
                             type: 'object_key'
                             key: element.next_key
                             key_complete: true
+                            complete: false
                             body: @extract_data_from_query
                                 query: query.slice element.current_value_start
                                 context: element.context
                         element.body[element.body.length-1] = new_element
                         element.next_key = null # No more next_key
+                else if element.type is 'array'
+                    new_element =
+                        type: 'array_entry'
+                        complete: false
+                        body: @extract_data_from_query
+                            query: query.slice entry_start
+                            context: element.context
+                    if new_element.body.length > 0
+                        element.body.push new_element
                 stack.push element
-
-
             else if start isnt i
                 if query.slice(start) of element.context
                     element.name = query.slice start
@@ -777,10 +828,8 @@ module 'DataExplorerView', ->
                 else
                     element.name = query.slice start
                     element.complete = false
-
                 #if @regex.white.test(element.name) is false # If its type is null and the name is just white spaces, we ignore the element
                 stack.push element
-
             return stack
 
 
@@ -804,6 +853,7 @@ module 'DataExplorerView', ->
                 if result.status is null
                     # Top of the stack
                     if element.complete is true
+                        ###
                         if (element.type is 'function' and @map_state[element.name] is 'json') or (element.type is 'var' and element.real_type is 'json')
                             console.log "It's working"
                             result.suggestions = ['(']
@@ -811,11 +861,12 @@ module 'DataExplorerView', ->
                             result.description = null
                             result.status = 'done'
                             break
-                        else if element.type is 'function'
+                        ###
+                        if element.type is 'function'
                             result.suggestions = null
                             result.status = 'look_for_description'
                             break
-                        else if element.type is 'anonymous_function' or element.type is 'separator' or element.type is 'object' or element.type is 'object_key' or element.type is 'return'
+                        else if element.type is 'anonymous_function' or element.type is 'separator' or element.type is 'object' or element.type is 'object_key' or element.type is 'return' or 'element.type' is 'array'
                             # element.type === 'object' is impossible I think with the current implementation of extract_data_from_query
                             result.suggestions = null
                             result.status = 'look_for_description'
@@ -835,11 +886,12 @@ module 'DataExplorerView', ->
                                 result.suggestions = []
                                 result.suggestions_regex = @create_safe_regex element.name # That means we are going to give all the suggestions that match element.name and that are in the good group (not yet defined)
                                 result.description = null
+                                @current_query
                                 if i isnt 0
                                     result.status = 'look_for_state'
                                 else
                                     result.state = ''
-                        else if element.type is 'anonymous_function' or element.type is 'object_key' or element.type is 'string' or element.type is 'separator'
+                        else if element.type is 'anonymous_function' or element.type is 'object_key' or element.type is 'string' or element.type is 'separator' or element.type is 'array'
                             result.suggestions = null
                             result.status = 'look_for_description'
                             break
@@ -874,6 +926,7 @@ module 'DataExplorerView', ->
                 else if result.status is 'look_for_state'
                     if element.type is 'function' and element.complete is true
                         result.state = element.name
+                        console.log element.name
                         for suggestion in @suggestions[@map_state[element.name]]
                             if result.suggestions_regex.test(suggestion) is true
                                 result.suggestions.push suggestion
@@ -983,8 +1036,17 @@ module 'DataExplorerView', ->
 
         hide_suggestion: =>
             @.$('.suggestion_name_list').hide()
+            @show_or_hide_arrow()
         hide_description: =>
             @.$('.suggestion_description').hide()
+            @show_or_hide_arrow()
+
+        show_or_hide_arrow: =>
+            if @.$('.suggestion_name_list').css('display') is 'none' and @.$('.suggestion_description').css('display') is 'none'
+                @.$('.arrow').hide()
+            else
+                @.$('.arrow').show()
+
 
         move_suggestion: =>
             margin_left = parseInt(@.$('.CodeMirror-cursor').css('left').replace('px', ''))+27
@@ -1148,14 +1210,6 @@ module 'DataExplorerView', ->
 
 
 
-        show_or_hide_arrow: =>
-            if @.$('.suggestion_name_list').css('display') is 'none' and @.$('.suggestion_description').css('display') is 'none'
-                @.$('.arrow').hide()
-            else
-                @.$('.arrow').show()
-    
-
-
         # Highlight a suggestion in case of a mouseover
         mouseover_suggestion: (event) =>
             @highlight_suggestion event.target.dataset.id
@@ -1165,13 +1219,6 @@ module 'DataExplorerView', ->
             @hide_suggestion_description()
 
 
-        
-        # Hide the suggestion
-        hide_suggestion: =>
-            @.$('.suggestion_name_list').css 'display', 'none'
-            @hide_suggestion_description()
-            @current_suggestions = []
-            @.$('.arrow').hide()
 
         # Hide the description
         hide_suggestion_description: =>
