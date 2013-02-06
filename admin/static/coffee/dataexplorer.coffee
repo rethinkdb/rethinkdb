@@ -13,6 +13,7 @@ module 'DataExplorerView', ->
         databases_suggestions_template: Handlebars.templates['dataexplorer-databases_suggestions-template']
         namespaces_suggestions_template: Handlebars.templates['dataexplorer-namespaces_suggestions-template']
         reason_dataexplorer_broken_template: Handlebars.templates['dataexplorer-reason_broken-template']
+        toggle_size_button_template: Handlebars.templates['dataexplorer-toggle_size_button-template']
 
         # That's all the thing we want to store so we can display the view as it was (when the user left the data explorer)
         saved_data: {}
@@ -1889,11 +1890,15 @@ module 'DataExplorerView', ->
         display_normal: =>
             $('#cluster').addClass 'container'
             $('#cluster').removeClass 'cluster_with_margin'
+            @$('.change_size').html @toggle_size_button_template
+                view_is_full: false
             @.$('.wrapper_scrollbar').css 'width', '888px'
 
         display_full: =>
             $('#cluster').removeClass 'container'
             $('#cluster').addClass 'cluster_with_margin'
+            @$('.change_size').html @toggle_size_button_template
+                view_is_full: true
             @.$('.wrapper_scrollbar').css 'width', ($(window).width()-92)+'px'
 
         destroy: =>
