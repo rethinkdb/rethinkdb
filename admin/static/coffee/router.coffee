@@ -101,6 +101,7 @@ class BackboneCluster extends Backbone.Router
         clear_modals()
         @current_view.destroy()
         @current_view = new DataExplorerView.Container
+            connect_driver: window.connect_driver # Defined in app.coffee
         @$container.html @current_view.render().el
         @current_view.call_codemirror()
         @current_view.results_view.set_scrollbar() # In case we check the data explorer, leave and come back

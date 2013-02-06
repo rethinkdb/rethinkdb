@@ -213,70 +213,8 @@ collect_stat_data = ->
             stats_param.fail = true
             stats_param.timeout = setTimeout collect_stat_data, 1000
 
-
-# driver_connected: State of the driver
-# - true => connected
-# - false => error
-# - null => not connected ( left the data explorer or never came )
-# 'connected'
-# null = never connected before
-# 'error'
-
-
-# Method called if the driver just connected
-driver_connect_success = ->
-    # If the view is DataExplorerView.Container and if we were disconencted before, we'll say that we did reconnect
-    if window.router.current_view instanceof DataExplorer.Container is true
-        window.router.current_view.success_on_connect()
-    window.driver_connected = 'connected'
-
-# Method called if the driver fail to connect
-driver_connect_fail = ->
-    # If the view is DataExplorerView.Container and if we were connected before, we'll display an error
-    if window.router.current_view instanceof DataExplorer.Container is true
-        window.router.current_view.error_on_connect()
-    window.driver_connected = 'error'
-
 # Define the server to which the javascript is going to connect to
 # Tweaking the value of server.host or server.port can trigger errors for testing
-if window.location.port is ''
-    if window.location.protocol is 'https:'
-        port = 443
-    else
-        port = 80
-else
-    port = parseInt window.location.port
-window.server =
-    host: window.location.hostname
-    port: port
-    protocol: if window.location.protocol is 'https:' then 'https' else 'http'
-
-# Connect the driver every five minutes (the connection times out every 5-10 minutes)
-driver_connect = ->
-    # Whether we are going to reconnect or not, the cursor might have timed out.
-    DataExplorerView.Container.prototype.cursor_timed_out = true
-
-    # We try to close the connection if we were connected
-    if window.conn?
-        if window.driver_connected is 'connected'
-            try
-                window.conn.close()
-            catch err
-                #TODO Implement
-                console.log 'Could not destroy connection'
-
-    # We are going to reconnect only if we still need to (that is to say the user is viewing the data explorer)
-    if window.router.current_view instanceof DataExplorer.Container is true
-        window.conn = r.connect window.server, driver_connect_success, driver_connect_fail
-
-        if window.timeout_driver_connect?
-            clearTimeout window.timeout_driver_connect
-        window.timeout_driver_connect = setTimeout driver_connect, 5*60*1000
-    else
-        # We are not going to maintain the connection since the user is not using the data explorer anymore
-        window.driver_connected = null
-
-
 $ ->
     render_loading()
     bind_dev_tools()

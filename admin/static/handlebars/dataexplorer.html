@@ -52,7 +52,7 @@ Sorry, the data explorer does not support your browser. Please upgrade it. See t
     {{#if no_database}}
         No database found. Use dbCreate() to create a new database first.
     {{else}}
-        List of databases available: {{comma_separated_simple databases_available}}
+        List of databases available: <strong>{{comma_separated_simple databases_available}}</strong>
     {{/if}}
     </p>
 </script>
@@ -69,7 +69,7 @@ Sorry, the data explorer does not support your browser. Please upgrade it. See t
                 You need to create a database then a table first.
             {{/if}}
         {{else}}
-            List of tables{{#if database_name}} in {{database_name}}{{/if}}: {{comma_separated_simple namespaces_available}}
+            List of tables{{#if database_name}} in {{database_name}}{{/if}}: <strong>{{comma_separated_simple namespaces_available}}</strong>
         {{/if}}
     {{/if}}
     </p>
