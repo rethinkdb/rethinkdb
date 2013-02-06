@@ -533,26 +533,11 @@ int linux_tcp_conn_t::getpeername(ip_address_t *ip) {
     return res;
 }
 
-void linux_tcp_conn_t::on_event(int events) {
+void linux_tcp_conn_t::on_event(UNUSED int events) {
     assert_thread();
 
     /* This is called by linux_event_watcher_t when error events occur. Ordinary
     poll_event_in/poll_event_out events are not sent through this function. */
-
-    bool reading = event_watcher->is_watching(poll_event_in);
-    bool writing = event_watcher->is_watching(poll_event_out);
-
-    if (!(events == (poll_event_err | poll_event_hup) || events == poll_event_hup)) {
-        /* We don't know why we got this, so log it and then shut down the socket */
-        logERR("Unexpected epoll err/hup"
-#ifdef __linux
-               "/rdhup"
-#endif
-               ". events=%s, reading=%s, writing=%s",
-            format_poll_event(events).c_str(),
-            reading ? "yes" : "no",
-            writing ? "yes" : "no");
-    }
 
     if (is_write_open()) {
         shutdown_write();
