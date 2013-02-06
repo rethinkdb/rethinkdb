@@ -3,6 +3,51 @@ var r = require('./../../../drivers/javascript2/build/rethinkdb.js');
 var CPPPORT = 28016
 var JSPORT = 28017
 
+// -- utilities --
+
+function eq_test(one, two) {
+    if (one instanceof Array) {
+
+        if (!(two instanceof Array)) return false;
+        
+        // Recurse on each element of array
+        for (var i = 0; i < one.length; i++) {
+            if (!eq_test(one[i], two[i])) return false;
+        }
+
+        return true;
+
+    } else if (one instanceof Object) {
+
+        if (!(two instanceof Object)) return false;
+
+        // Recurse on each property of object
+        for (var key in one) {
+            if (one.hasOwnProperty(key)) {
+                if (!eq_test(one[key], two[key])) return false;
+            }
+        }
+        return true;
+
+    } else {
+
+        // Primitive comparison
+        return (typeof one === typeof two) && (one === two)
+    }
+}
+
+// -- Curried output test functions --
+
+// Equality comparison
+function eq(exp) {
+    return function(val) {
+        if (!eq_test(val, exp)) {
+            console.log("Equality comparison failed");
+            console.log("Value:", val, "Expected:", exp);
+        }
+    }
+}
+
 // Tests are stored in list until they can be sequentially evaluated
 var tests = []
 
@@ -21,33 +66,44 @@ r.connect({port:CPPPORT}, function(err, cpp_conn) {
 				} catch(err) {
 					throw new Error("Query construction error")
 				}
-				expected = eval(testPair[1]);
+
+				exp_fun = eval(testPair[1]);
+                if (!(exp_fun instanceof Function))
+                    exp_fun = eq(exp_fun);
 
 				// Run test first on cpp server
 				test.run(cpp_conn, function(cpp_err, cpp_res) {
+
+                    // Convert to array if it's a cursor
+                    if (cpp_res instanceof Object && cpp_res.toArray) {
+                        cpp_res.toArray(afterArray);
+                    } else {
+                        afterArray(null, cpp_res);
+                    }
 					
-					// Now run test on js server
-					test.run(js_conn, function(js_err, js_res) {
-						
-						// First, are the two results equal to each other?
-						if (cpp_res != js_res) {
-							throw new Error("Cpp and JS results not equal");
-						}
+                    function afterArray(err, cpp_res) {
 
-						// Now compare to expected result
-						if (cpp_res !== expected) {
-							throw new Error("Cpp result not expected");
-						}
+                        // Now run test on js server
+                        test.run(js_conn, function(js_err, js_res) {
 
-						if (js_res !== expected) {
-							throw new Error("Js result not expected");
-						}
+                            if (js_res instanceof Object && js_res.toArray) {
+                                js_res.toArray(afterArray2);
+                            } else {
+                                afterArray2(null, js_res);
+                            }
 
-						// Continue to next test. Tests are fully sequential
-						// so you can rely on previous queries results in
-						// subsequent tests.
-						runTest();
-					});
+                            // Again, convert to array
+                            function afterArray2(err, js_res) {
+                                exp_fun(cpp_res);
+                                exp_fun(js_res);
+
+                                // Continue to next test. Tests are fully sequential
+                                // so you can rely on previous queries results in
+                                // subsequent tests.
+                                runTest();
+                            }
+                        });
+                    }
 				});
 			} else {
 				// We've hit the end of our test list

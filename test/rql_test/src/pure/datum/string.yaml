@@ -13,8 +13,6 @@ tests:
     - py: # Python supports unicode strings with the u'' pattern
         code: r.expr(u'str')
         ot: u'str'
-
-    # Hard to do right now because of python 2 unicode support
     - py:
         code: "r.expr(u'こんにちは')"
         ot: "u'こんにちは'"

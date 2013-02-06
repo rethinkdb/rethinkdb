@@ -1,6 +1,5 @@
 desc: Tests of conversion to and from the RQL bool type
 tests:
-    
     - py:
         code: r.expr(True)
         ot: "True"

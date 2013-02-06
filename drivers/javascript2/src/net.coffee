@@ -52,43 +52,52 @@ class Connection
 
     _end: -> @close()
 
+    mkAtom = (response) -> DatumTerm.deconstruct response.getResponse 0
+
+    mkSeq = (response) -> (DatumTerm.deconstruct res for res in response.responseArray())
+
+    mkErr = (response, root) ->
+        msg = mkAtom response
+        bt = for frame in response.backtraceArray()
+                if frame.getType() is Response2.Frame.FrameType.POS
+                    parseInt frame.getPos()
+                else
+                    frame.getOpt()
+        new RuntimeError msg, root, bt
+
+    _delQuery: (token) ->
+        # This query is done, delete this cursor
+        delete @outstandingCallbacks[token]
+
+        if (k for own k of @outstandingCallbacks).length < 1 and not @open
+            @cancel()
+
     _processResponse: (response) ->
         token = response.getToken()
         {cb:cb, root:root} = @outstandingCallbacks[token]
         if cb
-            atom = DatumTerm.deconstruct response.getResponse 0
-            sequ = (DatumTerm.deconstruct res for res in response.responseArray())
-            cursor = new Cursor @, token
-            
-            msg = DatumTerm.deconstruct response.getResponse 0
-            bt = for frame in response.backtraceArray()
-                    if frame.getType() is Response2.Frame.FrameType.POS
-                        parseInt frame.getPos()
-                    else
-                        frame.getOpt()
-            err = new RuntimeError msg, root, bt
-                                    
-            if response.getType() is Response2.ResponseType.SUCCESS_PARTIAL
-                cb null, cursor._addData(sequ)
+            # Behavior varies considerably based on response type
+            if response.getType() is Response2.ResponseType.COMPILE_ERROR
+                cb mkErr(response, root)
+                @_delQuery(token)
+            else if response.getType() is Response2.ResponseType.CLIENT_ERROR
+                cb mkErr(response, root)
+                @_delQuery(token)
+            else if response.getType() is Response2.ResponseType.RUNTIME_ERROR
+                cb mkErr(response, root)
+                @_delQuery(token)
+            else if response.getType() is Response2.ResponseType.SUCCESS_ATOM
+                cb null, mkAtom(response)
+                @_delQuery(token)
+            else if response.getType() is Response2.ResponseType.SUCCESS_PARTIAL
+                cursor = new Cursor @, token
+                cb null, cursor._addData(mkSeq response)
+            else if response.getType() is Response2.ResponseType.SUCCESS_SEQUENCE
+                cursor = new Cursor @, token
+                cb null, cursor._endData(mkSeq response)
+                @_delQuery(token)
             else
-                switch response.getType()
-                    when Response2.ResponseType.COMPILE_ERROR
-                        cb err
-                    when Response2.ResponseType.CLIENT_ERROR
-                        cb err
-                    when Response2.ResponseType.RUNTIME_ERROR
-                        cb err
-                    when Response2.ResponseType.SUCCESS_ATOM
-                        cb null, atom
-                    when Response2.ResponseType.SUCCESS_SEQUENCE
-                        cb null, cursor._endData(sequ)
-                    else
-                        cb new DriverError "Unknown response type"
-                # This query is done, delete this cursor
-                delete @outstandingCallbacks[token]
-
-                if (k for own k of @outstandingCallbacks).length < 1 and not @open
-                    @cancel()
+                cb new DriverError "Unknown response type"
         else
             @_error new DriverError "Unknown token in response"
 
@@ -126,7 +135,7 @@ class Connection
 
     _endQuery: (token) ->
         query = new Query2
-        query.setType Query2.QueryType.END
+        query.setType Query2.QueryType.STOP
         query.setToken token
 
         @_sendQuery(query)

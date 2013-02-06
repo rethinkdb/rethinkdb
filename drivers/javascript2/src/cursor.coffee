@@ -35,7 +35,7 @@ class Cursor
     next: (cb) ->
         @_cont = =>
             if @_index < @_data.length
-                cb @_data[@_index++]
+                cb null, @_data[@_index++]
             else
                 @_getMore()
         @_prompt()
@@ -43,14 +43,14 @@ class Cursor
     each: (cb) ->
         @_cont = =>
             while @_index < @_data.length
-                cb @_data[@_index++]
+                cb null, @_data[@_index++]
             @_getMore()
         @_prompt()
 
     toArray: (cb) ->
         @_cont = =>
             if @_endFlag
-                cb @_data
+                cb null, @_data
             else
                 @_getMore()
         @_prompt()
