@@ -487,6 +487,8 @@ bool linux_tcp_conn_t::is_write_open() {
 linux_tcp_conn_t::~linux_tcp_conn_t() THROWS_NOTHING {
     assert_thread();
 
+    // Tell the readers and writers to stop.  The auto drainer will
+    // wait for them to stop.
     if (is_read_open()) shutdown_read();
     if (is_write_open()) shutdown_write();
 }
