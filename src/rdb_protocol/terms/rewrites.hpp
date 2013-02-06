@@ -15,6 +15,7 @@ public:
         }
         //debugf("%s\n--->\n%s\n", in->DebugString().c_str(), out.DebugString().c_str());
         real.init(compile_term(env, &out));
+        real->set_bt(1001);
     }
 private:
     virtual bool is_deterministic_impl() const { return real->is_deterministic(); }

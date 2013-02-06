@@ -33,6 +33,9 @@ struct backtrace_t {
         frame_t(const char *_opt) : type(OPT), opt(_opt) { }
         frame_t(const frame_t &rhs) : type(rhs.type), pos(rhs.pos), opt(rhs.opt) { }
         Response2_Frame toproto() const;
+
+        static frame_t head() { return frame_t(1337); }
+        bool is_head() const { return type == POS && pos == 1337; }
         bool is_valid() {
             return (type == POS && pos >= 0)
                 || (type == OPT && opt != "UNINITIALIZED");

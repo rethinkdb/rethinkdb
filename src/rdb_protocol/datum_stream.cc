@@ -186,11 +186,9 @@ const datum_t *array_datum_stream_t::next_impl() {
 
 // MAP_DATUM_STREAM_T
 const datum_t *map_datum_stream_t::next_impl() {
-    const datum_t *arg, *ret;
-    WITH_BT(0, arg = src->next());
-    WITH_BT(1, ret = !arg ? 0 : f->call(arg)->as_datum());
-    return ret;
-}
+    const datum_t *arg = src->next();
+    return !arg ? 0 : f->call(arg)->as_datum();
+ }
 
 // CONCATMAP_DATUM_STREAM_T
 const datum_t *concatmap_datum_stream_t::next_impl() {

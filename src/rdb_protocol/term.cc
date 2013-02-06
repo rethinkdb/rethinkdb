@@ -101,7 +101,7 @@ void run(Query2 *q, env_t *env, Response2 *res, stream_cache_t *stream_cache) {
         try {
             root_term = env->new_term(&q->query());
             // TODO: handle this properly
-            root_term->set_bt(1000);
+            root_term->set_bt(backtrace_t::frame_t::head());
         } catch (const exc_t &e) {
             fill_error(res, Response2::COMPILE_ERROR, e.what(), e.backtrace);
             return;
