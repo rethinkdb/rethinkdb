@@ -13,6 +13,12 @@ class BacktraceTest < Test::Unit::TestCase
     assert_equal([1, 1, 2],
                  bt{r.concatmap(r.map([1], r.func([], 1)),
                                 r.func([], [0, 1, r.error("a")]))})
+    assert_equal([1, 1, 2, 0],
+                 bt{r.concatmap(r.map([1], r.func([], 1)),
+                                r.func([], [0, 1, [r.error("a")]]))})
+    assert_equal([0, 1, 1],
+                 bt{r.concatmap(r.map([1], r.func([], r.error("b"))),
+                                r.func([], [0, 1, [r.error("a")]]))})
   end
 
   def bt
