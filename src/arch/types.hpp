@@ -59,12 +59,6 @@ typedef linux_thread_pool_t thread_pool_t;
 
 class file_account_t;
 
-class linux_direct_file_t;
-typedef linux_direct_file_t direct_file_t;
-
-class linux_nondirect_file_t;
-typedef linux_nondirect_file_t nondirect_file_t;
-
 class linux_iocallback_t;
 typedef linux_iocallback_t iocallback_t;
 
@@ -91,7 +85,6 @@ typedef linux_tcp_conn_t tcp_conn_t;
 class file_t {
 public:
     virtual ~file_t() { }
-    virtual bool exists() = 0;
     virtual bool is_block_device() = 0;
     virtual uint64_t get_size() = 0;
     virtual void set_size(size_t size) = 0;

@@ -299,7 +299,6 @@ bool linenoiseIsUnescapedSpace(const char *line, int index) {
 
 static int completeLine(int fd, const char *prompt, char *buf, size_t buflen, size_t *len, size_t *pos, size_t cols) {
     linenoiseCompletions lc = { 0, NULL };
-    int nread, nwritten;
     char c = 0;
 
     // TODO: don't do completion if we're currently in a quote
@@ -333,6 +332,8 @@ static int completeLine(int fd, const char *prompt, char *buf, size_t buflen, si
                 new_buflen = 0;
             }
         }
+
+        int nwritten;
 
         if (lc.len == 1) {
             // Update buffer and return (add a space on the end for effect)
@@ -376,7 +377,7 @@ static int completeLine(int fd, const char *prompt, char *buf, size_t buflen, si
 
             while (true) {
 
-                nread = read(fd,&c,1);
+                int nread = read(fd,&c,1);
                 if (nread <= 0) {
                     linenoiseFreeCompletions(&lc);
                     return -1;
@@ -643,7 +644,6 @@ static int linenoiseRaw(char *buf, size_t buflen, const char *prompt) {
 
 char *linenoise(const char *prompt) {
     char buf[LINENOISE_MAX_LINE];
-    int count;
 
     if (isUnsupportedTerm()) {
         size_t len;
@@ -658,7 +658,7 @@ char *linenoise(const char *prompt) {
         }
         return strdup(buf);
     } else {
-        count = linenoiseRaw(buf,LINENOISE_MAX_LINE,prompt);
+        int count = linenoiseRaw(buf,LINENOISE_MAX_LINE,prompt);
         if (count == -1) return NULL;
         return strdup(buf);
     }

@@ -88,7 +88,7 @@ public:
         void assert_is_holding(connectivity_service_t *);
     private:
         rwi_lock_assertion_t::read_acq_t acq;
-    } UNUSED;
+    };
 
     /* `peers_list_subscription_t` will call the given functions when a peer
     connects or disconnects. */

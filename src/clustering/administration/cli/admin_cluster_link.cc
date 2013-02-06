@@ -2327,7 +2327,7 @@ void admin_cluster_link_t::do_admin_set_acks(const admin_command_parser_t::comma
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
     metadata_info_t *ns_info(get_info_from_id(guarantee_param_0(data.params, "table")));
     datacenter_id_t dc_id = nil_uuid();
-    std::string acks_str = guarantee_param_0(data.params, "num-acks").c_str();
+    std::string acks_str = guarantee_param_0(data.params, "num-acks");
     uint64_t acks_num;
 
     // Make sure num-acks is a number
@@ -2427,7 +2427,7 @@ void admin_cluster_link_t::do_admin_set_replicas(const admin_command_parser_t::c
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
     metadata_info_t *ns_info = get_info_from_id(guarantee_param_0(data.params, "table"));
     datacenter_id_t dc_id = nil_uuid();
-    std::string replicas_str = guarantee_param_0(data.params, "num-replicas").c_str();
+    std::string replicas_str = guarantee_param_0(data.params, "num-replicas");
     uint64_t num_replicas;
 
     // Make sure num-replicas is a number

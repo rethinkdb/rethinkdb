@@ -1,5 +1,5 @@
 #!/bin/sh
-# Copyright 2012 RethinkDB.
+# Copyright 2013 RethinkDB.
 # Portions from Frank Trampe and Novell used with permission.
 
 # This file targets Ubuntu and is not in line with the Linux specification. Move runlevel 2 from Default-Start to Default-Stop for compliance.
@@ -11,69 +11,208 @@
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
 # Short-Description: This starts a set of rethinkdb server instances.
-# Description:       This looks in /etc/rethinkdb/instancds.d for rethinkdb config files and launches, stops, or examines each instance described there.
+# Description:       This looks in /etc/rethinkdb/instances.d for rethinkdb config files and launches, stops, or examines each instance described there.
 ### END INIT INFO
 
-itask="$1"
+set -e -u
+
+itask="${1:-}"
 
 rtdbbin=/usr/bin/rethinkdb ;
 rtdbconfigdir=/etc/rethinkdb ;
 
-if [ "$itask" = "" ] ;
-then
-	echo "Usage: /etc/init.d/rethinkdb COMMAND" ;
-else
-	# We check for active configurations .
-	if [ -e "$rtdbconfigdir"/instances.d/*.conf ] ;
-	then
-		for rtdbconffile in "$rtdbconfigdir"/instances.d/*.conf ;
-		do
-			# We check for instructions about which user and group ought to run the service .
-			runuser="" ;
-			rungroup="" ;
-			if [ -e "$rtdbconffile" ] ;
-			then
-				runuser="`cat "$rtdbconffile" | grep '^[ \t]*runuser[ \t]*\=' | head -n 1 | sed -e 's/^\([ \ta-zA-Z0-9]\|[-]\)*\=[ \t]*//g'`" ;
-				rungroup="`cat "$rtdbconffile" | grep '^[ \t]*rungroup[ \t]*\=' | head -n 1 | sed -e 's/^\([ \ta-zA-Z0-9]\|[-]\)*\=[ \t]*//g'`" ;
-			fi ;
-			useropt="" ;
-			if [ "$runuser" != "" ] ;
-			then
-				useropt="--chuid" ;
-			fi ;
-			groupopt="" ;
-			if [ "$runuser" != "" ] ;
-			then
-				groupopt="--group" ;
-			fi ;
-			# We seek the pid-file .
-			rtdbpidfile="`cat "$rtdbconffile" | grep '^[ \t]*pid-file[ \t]*\=' | head -n 1 | sed -e 's/^\([ \ta-zA-Z0-9]\|[-]\)*\=[ \t]*//g'`" ;
-			if [ "$itask" = "stop" ] || [ "$itask" = "restart" ] || [ "$itask" = "reload" ] || [ "$itask" = "force-reload" ] ;
-			then
-				start-stop-daemon --stop --pidfile "$rtdbpidfile" --signal INT "$useropt" "$runuser" "$groupopt" "$rungroup" ;
-			fi ;
-			if [ "$itask" = "start" ] || [ "$itask" = "restart" ] || [ "$itask" = "reload" ] || [ "$itask" = "force-reload" ] ;
-			then
-				if [ -e /var/run ] && [ "`echo "$rtdbpidfile" | grep '^/var/run'`" != "" ] ;
-				then
-					mkdir -p "`dirname "$rtdbpidfile"`" ;
-				fi ;
-				start-stop-daemon --start --pidfile "$rtdbpidfile" "$useropt" "$runuser" "$groupopt" "$rungroup" --startas "$rtdbbin" --background -- --config-file="$rtdbconffile" ;
-			fi ;
-			if [ "$itask" = "status" ] ;
-			then
-				if [ -e "$rtdbpidfile" ] ;
-				then
-					if [ "`ps -Af | awk 'BEGIN { inited = 0 ; pidpos = 0 ; } { if ( inited == 0 ) { count1 = 0 ; while ( count1 < NF ) { count1 ++ ; if ( $count1 ~ /^[Pp][Ii][Dd]$/ ) { pidpos = count1 ; inited = 1 ; } } } else { printf "%s\n" , $pidpos ; } }' | grep '^'"\`cat \"$rtdbpidfile\"\`"'$'`" = "" ] ;
-					then
-						echo "rethinkdb:""$rtdbconffile"" stop/crashed" ;
-					else
-						echo "rethinkdb:""$rtdbconffile"" start/running, pid `cat $rtdbpidfile | grep '^[0-9]*$'`" ;
-					fi ;
-				else
-					echo "rethinkdb:""$rtdbconffile"" stop/waiting" ;
-				fi ;
-			fi ;
-		done ;
-	fi ;
-fi ;
+# parse a line from the config file
+conf_read_line () {
+    local _val="${1#*=}"
+    local _key="${1%%=*}"
+    if [ "$_val" = "$1" ]; then
+        unset -v $2
+        unset -v $3
+        false
+    else
+        read -r $2 <<EOF
+`echo $_key`
+EOF
+        read -r $3 <<EOF
+${_val# }
+EOF
+    fi
+}
+
+# conf_read <file> <var>
+# read the config file file into the variable var
+conf_read () {
+    local _dict="#"
+    local n=1
+    local line sect key val
+    while read -r full_line; do
+        line=${full_line%%#*}
+        if conf_read_line "$line" key val; then
+            _dict="$_dict$key=$val#"
+        elif [ "`echo -n $line`" != "" ]; then
+            echo "$0: $1: parse error on line $n:" >&2
+            echo "$full_line"
+            unset -v "$2"
+            return 1
+        fi
+        n=$((n + 1))
+    done < $1 && read -r $2 <<EOF
+$_dict
+EOF
+}
+
+# get <conf> <key> [var]
+# extract the value of key from the parsed config conf
+# into the variable var or if var is not passed, into the variable key
+get () {
+    local _valp="${1#*#$2=}"
+    local _val="${_valp%%#*}"
+    if [ "$_valp" = "$1" ]; then
+        unset -v ${3:-$2}
+        return 1
+    else
+        read -r ${3:-$2} <<EOF
+$_val
+EOF
+    fi
+}
+
+default_ports_available=true
+
+default_driver_port=28015
+default_cluster_port=29015
+default_http_port=8080
+default_port_offset=0
+
+# is_running <pid>
+# test if the process exists
+is_running () {
+    ps -p "$1" > /dev/null
+}
+
+if [ "$itask" = "" ] ; then
+    echo "Usage: /etc/init.d/rethinkdb [start|stop|restart|force-restart|status]" ;
+    exit 1
+fi
+
+# We check for active configurations .
+if ! ls "$rtdbconfigdir"/instances.d/*.conf >/dev/null 2>/dev/null ; then
+    echo "rethinkdb: No instances defined in $rtdbconfigdir/instances.d/"
+    echo "rethinkdb: See http://www.rethinkdb.com/docs/guides/startup/ for more information" ;
+    exit
+fi
+
+for rtdbconffile in "$rtdbconfigdir"/instances.d/*.conf ;
+do
+    if ! conf_read "$rtdbconffile" conf; then
+        continue
+    fi
+
+    instance_name=`basename "$rtdbconffile" .conf`
+
+    # $@ will contain the options we pass to start-stop-daemon
+    set -- # empty $@
+
+    get "$conf" runuser || runuser=rethinkdb
+    set -- "$@" --chuid "$runuser"
+    
+    get "$conf" rungroup || rungroup=rethinkdb
+    set -- "$@" --group "$rungroup"
+
+    set -- "$@" -- --config-file="$rtdbconffile"
+
+    # If no pid file is specified, assign one and make sure the parent folder has the correct permissions
+    if ! get "$conf" pid-file rtdbpidfile; then
+        rtdbpidfile="/var/run/rethinkdb/$instance_name/pid_file"
+        parent_directory="`dirname "$rtdbpidfile"`"
+        if [ ! -e "$parent_directory" ]; then
+            if mkdir -p "$parent_directory"; then
+                test -n "${runuser:-}"  && chown -- "$runuser"  "$parent_directory"
+                test -n "${rungroup:-}" && chgrp -- "$rungroup" "$parent_directory"
+            fi
+        fi
+        
+        set -- "$@" --pid-file "$rtdbpidfile"
+    fi
+
+    # If no data directory is specified, assign one and make sure it has the correct permissions
+    if ! get "$conf" directory rtdb_directory; then
+        rtdb_directory="/var/lib/rethinkdb/$instance_name/data"
+        parent_directory="/var/lib/rethinkdb/$instance_name"
+        if [ ! -e "$parent_directory" ]; then
+            if mkdir -p "$parent_directory"; then
+                test -n "${runuser:-}"  && chown -- "$runuser"  "$parent_directory"
+                test -n "${rungroup:-}" && chgrp -- "$rungroup" "$parent_directory"
+            fi
+        fi
+        set -- "$@" --directory "$rtdb_directory" 
+    fi
+
+    # Only one of the instances can use the default ports
+    get "$conf" driver-port driver_port || :
+    get "$conf" cluster-port cluster_port || :
+    get "$conf" http-port http_port || :
+    get "$conf" port-offset port_offset || :
+    if [ "${driver_port:-$default_driver_port}" = "$default_driver_port" -o \
+         "${cluster_port:-$default_cluster_port}" = "$default_cluster_port" -o \
+         "${http-port:-$default_http_port}" = "$default_http_port" -o \
+         "${port_offset:-$default_port_offset}" = "$default_port_offset" ]; then
+        if $default_ports_available; then
+            default_ports_available=false
+        else
+            echo "rethinkdb: $instance_name: error: the default ports are already used by another instance"
+            echo "rethinkdb: $instance_name: error: please use non-default values for driver-port, cluster-port and http-port in $rtdbconffile"
+            continue
+        fi
+    fi
+
+    if [ "$itask" = "stop" -o "$itask" = "restart" -o "$itask" = "restart" -o "$itask" = "force-restart" ] ; then
+        # stop rethinkdb
+
+        if [ ! -e "$rtdbpidfile" ] ; then
+            echo "rethinkdb: $instance_name: The instance is not running (there is no pid file)"
+        elif is_running "`cat "$rtdbpidfile"`" ; then
+            echo "rethinkdb: $instance_name: Stopping instance (pid `cat "$rtdbpidfile"`)"
+            kill -INT "`cat "$rtdbpidfile"`"
+        else
+            rm -f "$rtdbpidfile"
+        fi
+    fi
+
+    if [ "$itask" = "start" -o "$itask" = "restart" -o "$itask" = "restart" -o "$itask" = "force-restart" ] ; then
+        # start rethinkdb
+
+        if ! get "$conf" bind x; then
+            echo "rethinkdb: $instance_name: will only listen on local network interfaces."
+            echo "rethinkdb: $instance_name: To expose rethinkdb on the network, add the 'bind=all' option to $rtdbconffile"
+        fi
+
+        if [ -e /var/run -a "${rtdbpidfile#/var/run}" != "$rtdbpidfile" ] ; then
+            mkdir -p "`dirname "$rtdbpidfile"`"
+        fi
+
+        if [ -e "$rtdbpidfile" ] && is_running "$(cat "$rtdbpidfile")"; then
+            echo "rethinkdb: $instance_name: The instance has already started"
+        else
+            if [ -e "$rtdbpidfile" ] ; then
+                rm "$rtdbpidfile"
+            fi
+            echo "rethinkdb: $instance_name: Starting instance. (logging to \`$rtdb_directory/log_file')"
+            start-stop-daemon --start --pidfile "$rtdbpidfile" --startas "$rtdbbin" --background "$@"
+        fi
+    fi
+
+    if [ "$itask" = "status" ] ; then
+        # show the rethinkdb status
+
+        if [ -e "$rtdbpidfile" ] ; then
+            if ! is_running "$(cat "$rtdbpidfile")"; then
+                echo "rethinkdb: $instance_name: stop/crashed"
+            else
+                echo "rethinkdb: $instance_name: start/running, pid `cat "$rtdbpidfile"`"
+            fi
+        else
+            echo "rethinkdb: $instance_name: stop/waiting"
+        fi
+    fi
+done

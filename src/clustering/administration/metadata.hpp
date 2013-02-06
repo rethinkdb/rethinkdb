@@ -59,7 +59,7 @@ enum cluster_directory_peer_type_t {
     PROXY_PEER
 };
 
-ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(cluster_directory_peer_type_t);
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(cluster_directory_peer_type_t, int8_t, ADMIN_PEER, PROXY_PEER);
 
 class cluster_directory_metadata_t {
 public:

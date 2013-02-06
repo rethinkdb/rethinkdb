@@ -65,7 +65,7 @@ private:
     class case_insensitive_less_t {
     public:
         bool operator()(const name_string_t &a, const name_string_t &b) {
-            return strcasecmp(a.str().c_str(), b.str().c_str()) < 0;
+            return strcasecmp(a.c_str(), b.c_str()) < 0;
         }
     };
 

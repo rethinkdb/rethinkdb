@@ -6,10 +6,10 @@
 
 #include "arch/io/network.hpp"
 #include "concurrency/cross_thread_signal.hpp"
-#include "db_thread_info.hpp"
 #include "logger.hpp"
 #include "memcached/parser.hpp"
 #include "perfmon/perfmon.hpp"
+#include "utils.hpp"
 
 struct tcp_conn_memcached_interface_t : public memcached_interface_t, public home_thread_mixin_debug_only_t {
     explicit tcp_conn_memcached_interface_t(tcp_conn_t *c) : conn(c) { }
@@ -99,10 +99,10 @@ void serve_memcache(tcp_conn_t *conn, namespace_interface_t<memcached_protocol_t
 memcache_listener_t::memcache_listener_t(const std::set<ip_address_t> &local_addresses,
                                          int _port,
                                          namespace_repo_t<memcached_protocol_t> *_ns_repo,
-                                         const namespace_id_t &_ns_id,
+                                         uuid_u _namespace_id,
                                          perfmon_collection_t *_parent)
     : port(_port),
-      ns_id(_ns_id),
+      namespace_id(_namespace_id),
       ns_repo(_ns_repo),
       next_thread(0),
       parent(_parent),
@@ -139,7 +139,7 @@ void memcache_listener_t::handle(auto_drainer_t::lock_t keepalive, const scoped_
     /* `serve_memcache()` will continuously serve memcache queries on the given conn
     until the connection is closed. */
     try {
-        namespace_repo_t<memcached_protocol_t>::access_t ns_access(ns_repo, ns_id, &signal_transfer);
+        namespace_repo_t<memcached_protocol_t>::access_t ns_access(ns_repo, namespace_id, &signal_transfer);
         serve_memcache(conn.get(), ns_access.get_namespace_if(), &stats, &signal_transfer);
     } catch (const interrupted_exc_t &ex) {
         // Interrupted, nothing to do but return

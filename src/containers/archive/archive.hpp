@@ -4,8 +4,8 @@
 
 #include <stdint.h>
 
-#include "errors.hpp"
 #include "containers/intrusive_list.hpp"
+#include "utils.hpp"
 
 class uuid_u;
 
@@ -163,9 +163,11 @@ MUST_USE int send_write_message(write_stream_t *s, const write_message_t *msg);
         } u;                                                            \
         int64_t res = force_read(s, u.buf, sizeof(typ));                \
         if (res == -1) {                                                \
+            *x = valgrind_undefined<typ>(0);                            \
             return ARCHIVE_SOCK_ERROR;                                  \
         }                                                               \
         if (res < int64_t(sizeof(typ))) {                               \
+            *x = valgrind_undefined<typ>(0);                            \
             return ARCHIVE_SOCK_EOF;                                    \
         }                                                               \
         *x = u.v;                                                       \

@@ -131,7 +131,7 @@ raw_mailbox_t *mailbox_manager_t::mailbox_table_t::find_mailbox(raw_mailbox_t::i
     if (it == mailboxes.end()) {
         return NULL;
     } else {
-        return (*it).second;
+        return it->second;
     }
 }
 

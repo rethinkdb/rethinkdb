@@ -30,7 +30,7 @@ public:
     term_type_t type;
     bool deterministic;
 
-    RDB_MAKE_ME_SERIALIZABLE_2(type, deterministic);
+    RDB_DECLARE_ME_SERIALIZABLE;
 };
 
 typedef variable_scope_t<term_info_t> variable_type_scope_t;
@@ -43,7 +43,7 @@ struct type_checking_environment_t {
     variable_type_scope_t scope;
     implicit_type_t implicit_type;
 
-    RDB_MAKE_ME_SERIALIZABLE_2(scope, implicit_type);
+    RDB_DECLARE_ME_SERIALIZABLE;
 };
 
 //Scopes for single pieces of json
@@ -62,7 +62,7 @@ struct scopes_t {
 
     implicit_value_t<boost::shared_ptr<scoped_cJSON_t> > implicit_attribute_value;
 
-    RDB_MAKE_ME_SERIALIZABLE_3(scope, type_env, implicit_attribute_value);
+    RDB_DECLARE_ME_SERIALIZABLE;
 };
 
 

@@ -3,6 +3,7 @@
 #define ARCH_TIMING_HPP_
 
 #include "concurrency/signal.hpp"
+#include "arch/timer.hpp"
 
 /* Coroutine function that delays for some number of milliseconds. */
 
@@ -19,13 +20,13 @@ class timer_token_t;
 the signal will be pulsed. It is safe to destroy the `signal_timer_t` before the
 timer "rings". */
 
-struct signal_timer_t : public signal_t {
+struct signal_timer_t : public signal_t, private timer_callback_t {
 
     explicit signal_timer_t(int64_t ms);
     ~signal_timer_t();
 
 private:
-    static void on_timer_ring(void *v_timer);
+    void on_timer();
     timer_token_t *timer;
 };
 
@@ -39,14 +40,13 @@ protected:
     virtual ~repeating_timer_callback_t() { }
 };
 
-class repeating_timer_t {
+class repeating_timer_t : private timer_callback_t {
 public:
-
     repeating_timer_t(int64_t frequency_ms, repeating_timer_callback_t *ringee);
     ~repeating_timer_t();
 
 private:
-    static void on_timer_ring(void *v_timer);
+    void on_timer();
     timer_token_t *timer;
     repeating_timer_callback_t *ringee;
 

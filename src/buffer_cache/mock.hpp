@@ -152,10 +152,6 @@ private:
     scoped_ptr_t<auto_drainer_t> transaction_counter;
     block_size_t block_size;
 
-    // Makes sure that write operations do not get reordered, which
-    // throttling is supposed to do in the real buffer cache.
-    coro_fifo_t write_operation_random_delay_fifo;
-
     scoped_ptr_t< segmented_vector_t<internal_buf_t *, MAX_BLOCK_ID> > bufs;
 
     coro_fifo_t transaction_constructor_coro_fifo_;

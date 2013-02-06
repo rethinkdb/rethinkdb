@@ -97,8 +97,8 @@ public:
     // A unique identifier for this particular instance of coro_t over
     // the lifetime of the process.
     static int64_t selfname() {
-        coro_t *self = coro_t::self();
-        return self ? self->selfname_number : 0;
+        coro_t *running_coro = self();
+        return running_coro ? running_coro->selfname_number : 0;
     }
 
     const std::string& get_coroutine_type() { return coroutine_type; }

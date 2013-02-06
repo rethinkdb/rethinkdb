@@ -3,15 +3,15 @@
 module 'DataExplorerView', ->
     class @Container extends Backbone.View
         id: 'dataexplorer'
-        template: Handlebars.compile $('#dataexplorer_view-template').html()
-        description_template: Handlebars.compile $('#dataexplorer-description-template').html()
-        template_suggestion_name: Handlebars.compile $('#dataexplorer_suggestion_name_li-template').html()
-        description_with_example_template: Handlebars.compile $('#dataexplorer-description_with_example-template').html()
-        alert_connection_fail_template: Handlebars.compile $('#alert-connection_fail-template').html()
-        alert_reconnection_success_template: Handlebars.compile $('#alert-reconnection_success-template').html()
-        databases_suggestions_template: Handlebars.compile $('#dataexplorer-databases_suggestions-template').html()
-        namespaces_suggestions_template: Handlebars.compile $('#dataexplorer-namespaces_suggestions-template').html()
-        reason_dataexplorer_broken_template: Handlebars.compile $('#dataexplorer-reason_broken-template').html()
+        template: Handlebars.templates['dataexplorer_view-template']
+        description_template: Handlebars.templates['dataexplorer-description-template']
+        template_suggestion_name: Handlebars.templates['dataexplorer_suggestion_name_li-template']
+        description_with_example_template: Handlebars.templates['dataexplorer-description_with_example-template']
+        alert_connection_fail_template: Handlebars.templates['alert-connection_fail-template']
+        alert_reconnection_success_template: Handlebars.templates['alert-reconnection_success-template']
+        databases_suggestions_template: Handlebars.templates['dataexplorer-databases_suggestions-template']
+        namespaces_suggestions_template: Handlebars.templates['dataexplorer-namespaces_suggestions-template']
+        reason_dataexplorer_broken_template: Handlebars.templates['dataexplorer-reason_broken-template']
 
         # That's all the thing we want to store so we can display the view as it was (when the user left the data explorer)
         saved_query: null # Last value @codemirror.getValue()
@@ -30,17 +30,8 @@ module 'DataExplorerView', ->
             'click .execute_query': 'execute_query'
             'click .change_size': 'toggle_size'
             'click #reconnect': 'reconnect'
-
             'click .more_results': 'show_more_results'
-
-            'click .link_to_tree_view': 'save_tab'
-            'click .link_to_table_view': 'save_tab'
-            'click .link_to_raw_view': 'save_tab'
             'click .close': 'close_alert'
-
-        save_tab: (event) =>
-            @results_view.set_view @.$(event.target).data('view')
-
 
         displaying_full_view: false # Boolean for the full view (true if full view)
 
@@ -57,6 +48,44 @@ module 'DataExplorerView', ->
         # Suggestions[state] = function for this state
         suggestions: {}
     
+        set_doc_description: (command, tag, suggestions) =>
+            if command['langs']['js']['dont_need_parenthesis'] is true
+                full_tag = tag # Here full_tag is just the name of the tag
+                @descriptions[tag] =
+                    name: tag
+                    description: @description_with_example_template
+                        description: command['description']
+                        examples: command['langs']['js']['examples']
+            else
+                if tag is 'run' # run is a special case, we don't want use to pass a callback, so we change a little the body
+                    full_tag = tag+'(' # full tag is the name plus a parenthesis (we will match the parenthesis too)
+                    @descriptions[full_tag] =
+                        name: tag
+                        args: '( )'
+                        description: @description_with_example_template
+                            description: command['description']
+                            examples: command['langs']['js']['examples']
+                else
+                    full_tag = tag+'(' # full tag is the name plus a parenthesis (we will match the parenthesis too)
+                    @descriptions[full_tag] =
+                        name: tag
+                        args: '( '+command['langs']['js']['body']+' )'
+                        description: @description_with_example_template
+                            description: command['description']
+                            examples: command['langs']['js']['examples']
+
+            parent = command['parent']
+            if tag is 'run'
+                parent = 'query'
+
+            if parent is null
+                parent = ''
+            if not suggestions[parent]?
+                suggestions[parent] = []
+            suggestions[parent].push full_tag #+something
+
+            @map_state[full_tag] = command['returns'] # We use full_tag because we need to differentiate between r. and r(
+
         # Method called on the content of reql_docs.json
         # Load the suggestions in @suggestions, @map_state, @descriptions
         set_docs: (data) =>
@@ -65,44 +94,15 @@ module 'DataExplorerView', ->
             for group in data['sections']
                 for command in group['commands']
                     tag = command['langs']['js']['name']
-                    if tag is '()'
+                    if tag is '()' or tag is 'runp'
                         continue
-                    if tag is 'r' and command['langs']['js']['dont_need_parenthesis'] is true
-                        full_tag = tag # Here full_tag is just the name of the tag
-                        @descriptions[tag] =
-                            name: tag
-                            description: @description_with_example_template
-                                description: command['description']
-                                examples: command['langs']['js']['examples']
-                    else
-                        if tag is 'run'
-                            full_tag = tag+'(' # full tag is the name plus a parenthesis (we will match the parenthesis too)
-                            @descriptions[full_tag] =
-                                name: tag
-                                args: '( )'
-                                description: @description_with_example_template
-                                    description: command['description']
-                                    examples: command['langs']['js']['examples']
-                        else
-                            full_tag = tag+'(' # full tag is the name plus a parenthesis (we will match the parenthesis too)
-                            @descriptions[full_tag] =
-                                name: tag
-                                args: '( '+command['langs']['js']['body']+' )'
-                                description: @description_with_example_template
-                                    description: command['description']
-                                    examples: command['langs']['js']['examples']
-
-                    parent = command['parent']
-                    if tag is 'run'
-                        parent = 'query'
-
-                    if parent is null
-                        parent = ''
-                    if not suggestions[parent]?
-                        suggestions[parent] = []
-                    suggestions[parent].push full_tag #+something
-
-                    @map_state[full_tag] = command['returns'] # We use full_tag because we need to differentiate between r. and r(
+                    if tag is 'row' # We want r.row and r.row(
+                        new_command = DataUtils.deep_copy command
+                        new_command['langs']['js']['dont_need_parenthesis'] = false
+                        new_command['langs']['js']['body'] = 'attr'
+                        new_command['description'] = 'Return the attribute of the currently visited document'
+                        @set_doc_description new_command, tag, suggestions
+                    @set_doc_description command, tag, suggestions
 
             # Deep copy of suggestions
             for group of suggestions
@@ -204,7 +204,7 @@ module 'DataExplorerView', ->
             @show_or_hide_arrow()
 
         # Hide the description
-        hide_suggestion_description: ->
+        hide_suggestion_description: =>
             @.$('.suggestion_description').html ''
             @.$('.suggestion_description').css 'display', 'none'
             @show_or_hide_arrow()
@@ -364,8 +364,11 @@ module 'DataExplorerView', ->
             DataExplorerView.Container.prototype.saved_query = @codemirror.getValue()
             saved_cursor = @codemirror.getCursor()
             if event?.which?
+                if event.which is 27
+                    @hide_suggestion()
+                    return true
                 # If the user hit tab, we switch the highlighted suggestion
-                if event.which is 9
+                else if event.which is 9
                     event.preventDefault()
                     if event.type isnt 'keydown'
                         return true
@@ -724,6 +727,8 @@ module 'DataExplorerView', ->
 
         # Function triggered when the user click on 'more results'
         show_more_results: (event) =>
+            if @last_results isnt null
+                @results_view.update_start_record @last_results.length
             try
                 event.preventDefault()
                 @current_results = []
@@ -811,6 +816,7 @@ module 'DataExplorerView', ->
         # - We don't execute q1_3
         # - User retrieve results for q2
         execute_query: =>
+            @results_view.set_start_record 1
             # The user just executed a query, so we reset cursor_timed_out to false
             DataExplorerView.Container.prototype.cursor_timed_out = false
 
@@ -1065,9 +1071,9 @@ module 'DataExplorerView', ->
 
         # Switch between full view and normal view
         toggle_size: =>
-            if @displaying_full_view
+            if @displaying_full_view is true
                 @display_normal()
-                $(window).on 'resize', @display_full
+                $(window).off 'resize', @display_full
                 @displaying_full_view = false
                 @set_char_per_line()
             else
@@ -1075,16 +1081,17 @@ module 'DataExplorerView', ->
                 $(window).on 'resize', @display_full
                 @displaying_full_view = true
                 @set_char_per_line()
+            @results_view.set_scrollbar()
 
         display_normal: =>
             $('#cluster').addClass 'container'
             $('#cluster').removeClass 'cluster_with_margin'
-            @.$('.json_table_container').css 'width', '888px'
+            @.$('.wrapper_scrollbar').css 'width', '888px'
 
         display_full: =>
             $('#cluster').removeClass 'container'
             $('#cluster').addClass 'cluster_with_margin'
-            @.$('.json_table_container').css 'width', ($(window).width()-52)+'px'
+            @.$('.wrapper_scrollbar').css 'width', ($(window).width()-92)+'px'
 
         destroy: =>
             @display_normal()
@@ -1095,7 +1102,7 @@ module 'DataExplorerView', ->
     
     class @InputQuery extends Backbone.View
         className: 'query_control'
-        template: Handlebars.compile $('#dataexplorer_input_query-template').html()
+        template: Handlebars.templates['dataexplorer_input_query-template']
  
         render: =>
             @.$el.html @template()
@@ -1103,34 +1110,32 @@ module 'DataExplorerView', ->
 
     class @ResultView extends Backbone.View
         className: 'result_view'
-        template: Handlebars.compile $('#dataexplorer_result_container-template').html()
-        default_template: Handlebars.compile $('#dataexplorer_default_result_container-template').html()
-        metadata_template: Handlebars.compile $('#dataexplorer-metadata-template').html()
-        option_template: Handlebars.compile $('#dataexplorer-option_page-template').html()
-        error_template: Handlebars.compile $('#dataexplorer-error-template').html()
-        template_no_result: Handlebars.compile $('#dataexplorer_result_empty-template').html()
+        template: Handlebars.templates['dataexplorer_result_container-template']
+        default_template: Handlebars.templates['dataexplorer_default_result_container-template']
+        metadata_template: Handlebars.templates['dataexplorer-metadata-template']
+        option_template: Handlebars.templates['dataexplorer-option_page-template']
+        error_template: Handlebars.templates['dataexplorer-error-template']
+        template_no_result: Handlebars.templates['dataexplorer_result_empty-template']
         template_json_tree:
-            'container' : Handlebars.compile $('#dataexplorer_result_json_tree_container-template').html()
-            'span': Handlebars.compile $('#dataexplorer_result_json_tree_span-template').html()
-            'span_with_quotes': Handlebars.compile $('#dataexplorer_result_json_tree_span_with_quotes-template').html()
-            'url': Handlebars.compile $('#dataexplorer_result_json_tree_url-template').html()
-            'email': Handlebars.compile $('#dataexplorer_result_json_tree_email-template').html()
-            'object': Handlebars.compile $('#dataexplorer_result_json_tree_object-template').html()
-            'array': Handlebars.compile $('#dataexplorer_result_json_tree_array-template').html()
+            'container' : Handlebars.templates['dataexplorer_result_json_tree_container-template']
+            'span': Handlebars.templates['dataexplorer_result_json_tree_span-template']
+            'span_with_quotes': Handlebars.templates['dataexplorer_result_json_tree_span_with_quotes-template']
+            'url': Handlebars.templates['dataexplorer_result_json_tree_url-template']
+            'email': Handlebars.templates['dataexplorer_result_json_tree_email-template']
+            'object': Handlebars.templates['dataexplorer_result_json_tree_object-template']
+            'array': Handlebars.templates['dataexplorer_result_json_tree_array-template']
 
         template_json_table:
-            'container' : Handlebars.compile $('#dataexplorer_result_json_table_container-template').html()
-            'tr_attr': Handlebars.compile $('#dataexplorer_result_json_table_tr_attr-template').html()
-            'td_attr': Handlebars.compile $('#dataexplorer_result_json_table_td_attr-template').html()
-            'tr_value': Handlebars.compile $('#dataexplorer_result_json_table_tr_value-template').html()
-            'td_value': Handlebars.compile $('#dataexplorer_result_json_table_td_value-template').html()
-            'td_value_content': Handlebars.compile $('#dataexplorer_result_json_table_td_value_content-template').html()
-            'data_inline': Handlebars.compile $('#dataexplorer_result_json_table_data_inline-template').html()
-        cursor_timed_out_template: Handlebars.compile $('#dataexplorer-cursor_timed_out-template').html()
+            'container' : Handlebars.templates['dataexplorer_result_json_table_container-template']
+            'tr_attr': Handlebars.templates['dataexplorer_result_json_table_tr_attr-template']
+            'td_attr': Handlebars.templates['dataexplorer_result_json_table_td_attr-template']
+            'tr_value': Handlebars.templates['dataexplorer_result_json_table_tr_value-template']
+            'td_value': Handlebars.templates['dataexplorer_result_json_table_td_value-template']
+            'td_value_content': Handlebars.templates['dataexplorer_result_json_table_td_value_content-template']
+            'data_inline': Handlebars.templates['dataexplorer_result_json_table_data_inline-template']
+        cursor_timed_out_template: Handlebars.templates['dataexplorer-cursor_timed_out-template']
 
         events:
-            # Global events
-            'click .link_to_raw_view': 'expand_raw_textarea'
             # For Tree view
             'click .jt_arrow': 'toggle_collapse'
             # For Table view
@@ -1138,21 +1143,52 @@ module 'DataExplorerView', ->
             'click .jta_arrow_v': 'expand_tree_in_table'
             'click .jta_arrow_h': 'expand_table_in_table'
 
+            'click .link_to_tree_view': 'show_tree'
+            'click .link_to_table_view': 'show_table'
+            'click .link_to_raw_view': 'show_raw'
+
         current_result: []
 
         initialize: (limit) =>
             @set_limit limit
             @set_skip 0
-            @set_view 'tree'
+            if not DataExplorerView.ResultView.prototype.view?
+                DataExplorerView.ResultView.prototype.view = 'tree'
+            @view = DataExplorerView.ResultView.prototype.view
+
             $(window).mousemove @handle_mousemove
             $(window).mouseup @handle_mouseup
+
+            @last_keys = [] # Arrays of the last keys displayed
+            @last_columns_size = {} # Size of the columns displayed. Undefined if a column has the default size
 
         set_limit: (limit) =>
             @limit = limit
         set_skip: (skip) =>
             @skip = skip
-        set_view: (view) =>
-            @view = view
+
+        show_tree: (event) =>
+            event.preventDefault()
+            @view = 'tree'
+            DataExplorerView.ResultView.prototype.view = 'tree'
+            @render_result()
+        show_table: (event) =>
+            event.preventDefault()
+            @view = 'table'
+            DataExplorerView.ResultView.prototype.view = 'table'
+            @render_result()
+        show_raw: (event) =>
+            event.preventDefault()
+            @view = 'raw'
+            DataExplorerView.ResultView.prototype.view = 'raw'
+            @render_result()
+
+        set_start_record: (start) =>
+            @start_record = start
+            DataExplorerView.ResultView.prototype.start_record = @start_record
+        update_start_record: (to_add) =>
+            @start_record += to_add
+            DataExplorerView.ResultView.prototype.start_record = @start_record
 
         render_error: (query, err) =>
             @.$el.html @error_template
@@ -1268,23 +1304,27 @@ module 'DataExplorerView', ->
                     else return 0
             )
 
+            @last_keys = _.union(['record'], keys_sorted.map( (key) -> return key[0] ))
+
             return @template_json_table.container
                 table_attr: @json_to_table_get_attr keys_sorted
                 table_data: @json_to_table_get_values result, keys_sorted
 
-        json_to_table_get_attr: (keys_sorted) ->
+        json_to_table_get_attr: (keys_sorted) =>
             attr = []
             for element, col in keys_sorted
                 attr.push
                     key: element[0]
                     col: col
  
-            return @template_json_table.tr_attr 
+            return @template_json_table.tr_attr
                 attr: attr
 
-        json_to_table_get_values: (result, keys_stored) ->
+        json_to_table_get_values: (result, keys_stored) =>
+            if not @start_record?
+                @start_record = DataExplorerView.ResultView.prototype.start_record
             document_list = []
-            for element in result
+            for element, i in result
                 new_document = {}
                 new_document.cells = []
                 for key_container, col in keys_stored
@@ -1295,7 +1335,7 @@ module 'DataExplorerView', ->
                         value = element[key]
 
                     new_document.cells.push @json_to_table_get_td_value value, col
-
+                new_document.record = @start_record + i
                 document_list.push new_document
             return @template_json_table.tr_value
                 document: document_list
@@ -1304,7 +1344,7 @@ module 'DataExplorerView', ->
             data = @compute_data_for_type(value, col)
 
             return @template_json_table.td_value
-                class_td: 'col-'+col
+                col: col
                 cell_content: @template_json_table.td_value_content data
             
         compute_data_for_type: (value,  col) =>
@@ -1358,10 +1398,11 @@ module 'DataExplorerView', ->
  
             @.$(event.target).parent().css 'max-width', 'none'
             @.$(event.target).remove() #TODO Fix this trick
+            @set_scrollbar()
 
 
         # Expand the table with new columns (with the attributes of the expanded object)
-        expand_table_in_table: (event) ->
+        expand_table_in_table: (event) =>
             dom_element = @.$(event.target).parent()
             parent = dom_element.parent()
             classname = dom_element.parent().attr('class').split(' ')[0] #TODO Use a regex
@@ -1434,7 +1475,8 @@ module 'DataExplorerView', ->
                             
                         return true
 
-                $('.'+classcolumn) .remove();
+                $('.'+classcolumn) .remove()
+            @set_scrollbar()
 
         # Helper for expanding a table when showing an object (creating new columns)
         join_table: (data) =>
@@ -1451,7 +1493,7 @@ module 'DataExplorerView', ->
 
         #TODO change cursor
         mouse_down: false
-        handle_mousedown: (event) ->
+        handle_mousedown: (event) =>
             if event.target.nodeName is 'TD' and event.which is 1
                 @event_target = event.target
                 @col_resizing = event.target.dataset.col
@@ -1463,36 +1505,164 @@ module 'DataExplorerView', ->
         #TODO Handle when last column is resized or when table expands too much
         handle_mousemove: (event) =>
             if @mouse_down
-                # +30 for padding
-                # Fix bug with Firefox (-30) or fix chrome bug...
-                $('.col-'+@col_resizing).css 'max-width', @start_width-@start_x+event.pageX
-                $('.value-'+@col_resizing).css 'max-width', @start_width-@start_x+event.pageX-20
+                @resize_column @col_resizing, @start_width-@start_x+event.pageX # Resize
+                @last_columns_size[@col_resizing] = @start_width-@start_x+event.pageX # Save the personalized size
 
-                $('.col-'+@col_resizing).css 'width' ,@start_width-@start_x+event.pageX
-                $('.value-'+@col_resizing).css 'width', @start_width-@start_x+event.pageX-20
+        resize_column: (col, size) =>
+            $('.col-'+col).css 'max-width', size
+            $('.value-'+col).css 'max-width', size-20
+            $('.col-'+col).css 'width', size
+            $('.value-'+col).css 'width', size-20
 
         handle_mouseup: (event) =>
             @mouse_down = false
             @.$('.json_table').toggleClass('resizing', false)
+            @set_scrollbar()
+
+        default_size_column: 310 # max-width value of a cell of a table (as defined in the css file)
 
         render_result: (query, result) =>
+            if query?
+                @query = query
+            if result?
+                @result = result
             @.$el.html @template
-                query: query
-            @.$('.tree_view').html @json_to_tree result
-            @.$('.table_view').html @json_to_table result
-            @.$('.raw_view_textarea').html JSON.stringify result
-            @expand_raw_textarea()
+                query: @query
 
             switch @view
                 when 'tree'
-                    @.$('.link_to_tree_view').tab 'show'
+                    @.$('.tree_view').html @json_to_tree @result
+                    @$('.results').hide()
+                    @$('.tree_view_container').show()
+                    @.$('.link_to_tree_view').addClass 'active'
+                    @.$('.link_to_tree_view').parent().addClass 'active'
                 when 'table'
-                    @.$('.link_to_table_view').tab 'show'
+                    previous_keys = @last_keys # Save previous keys. @last_keys will be updated in @json_to_table
+                    @.$('.table_view').html @json_to_table @result
+                    @$('.results').hide()
+                    @$('.table_view_container').show()
+                    @.$('.link_to_table_view').addClass 'active'
+                    @.$('.link_to_table_view').parent().addClass 'active'
+
+                    # Check if the keys are the same
+                    if @last_keys.length isnt previous_keys.length
+                        same_keys = false
+                    else
+                        same_keys = true
+                        for keys, index in @last_keys
+                            if @last_keys[index] isnt previous_keys[index]
+                                same_keys = false
+
+                    # If the keys are the same, we are going to resize the columns as they were before
+                    if same_keys is true
+                        for col, value of @last_columns_size
+                            @resize_column col, value
+                    else
+                        # Reinitialize @last_columns_size
+                        @last_column_size = {}
+
+                    # Let's try to expand as much as we can
+                    extra_size_table = @$('.json_table_container').width()-@$('.json_table').width()
+                    if extra_size_table > 0 # The table doesn't take the full width
+                        expandable_columns = []
+                        for index in [0..@last_keys.length-2] # We skip the column record
+                            real_size = 0
+                            @$('.col-'+index).children().children().each((i, bloc) ->
+                                $bloc = $(bloc)
+                                if real_size<$bloc.width()
+                                    real_size = $bloc.width()
+                            )
+                            if real_size? and real_size is real_size and real_size > @default_size_column
+                                expandable_columns.push
+                                    col: index
+                                    size: real_size+20 # 20 for padding
+                        while expandable_columns.length > 0
+                            expandable_columns.sort (a, b) ->
+                                return a.size-b.size
+                            if expandable_columns[0].size-@$('.col-'+expandable_columns[0].col).width() < extra_size_table/expandable_columns.length
+                                extra_size_table = extra_size_table-(expandable_columns[0]['size']-@$('.col-'+expandable_columns[0].col).width())
+
+                                @$('.col-'+expandable_columns[0]['col']).css 'max-width', expandable_columns[0]['size']
+                                @$('.value-'+expandable_columns[0]['col']).css 'max-width', expandable_columns[0]['size']-20
+                                expandable_columns.shift()
+                            else
+                                max_size = extra_size_table/expandable_columns.length
+                                for column in expandable_columns
+                                    current_size = @$('.col-'+expandable_columns[0].col).width()
+                                    @$('.col-'+expandable_columns[0]['col']).css 'max-width', current_size+max_size
+                                    @$('.value-'+expandable_columns[0]['col']).css 'max-width', current_size+max_size-20
+                                expandable_columns = []
                 when 'raw'
-                    @.$('.link_to_raw_view').tab 'show'
+                    @.$('.raw_view_textarea').html JSON.stringify @result
+                    @$('.results').hide()
+                    @$('.raw_view_container').show()
+                    @expand_raw_textarea()
+                    @.$('.link_to_raw_view').addClass 'active'
+                    @.$('.link_to_raw_view').parent().addClass 'active'
+
+            @set_scrollbar()
+            if (not query?) and (not result?)
+                @render_metadata()
  
+        set_scrollbar: =>
+            if @view is 'table'
+                content_name = '.json_table'
+                content_container = '.table_view_container'
+            else if @view is 'tree'
+                content_name = '.json_tree'
+                content_container = '.tree_view_container'
+            else if @view is 'raw'
+                @$('.wrapper_scrollbar').hide()
+                # There is no scrolbar with the raw view
+                return
+
+            # Set the floating scrollbar
+            width_value = @$(content_name).innerWidth() # Include padding
+            if width_value < @$(content_container).width()
+                # If there is no need for scrollbar, we hide the one on the top
+                @$('.wrapper_scrollbar').hide()
+                $(window).unbind 'scroll'
+            else
+                # Else we set the fake_content to the same width as the table that contains data and links the two scrollbars
+                @$('.wrapper_scrollbar').show()
+                @$('.scrollbar_fake_content').width width_value
+
+                $(".wrapper_scrollbar").scroll ->
+                    $(content_container).scrollLeft($(".wrapper_scrollbar").scrollLeft())
+                $(content_container).scroll ->
+                    $(".wrapper_scrollbar").scrollLeft($(content_container).scrollLeft())
+
+                position_scrollbar = ->
+                    if $(content_container).offset()?
+                        # Sometimes we don't have to display the scrollbar (when the results are not shown because the query is too big)
+                        if $(window).scrollTop()+$(window).height() < $(content_container).offset().top+20 # bottom of the window < beginning of $('.json_table_container') // 20 pixels is the approximate height of the scrollbar (so we don't show JUST the scrollbar)
+                            that.$('.wrapper_scrollbar').hide()
+                        # We show the scrollbar and stick it to the bottom of the window because there is more content below
+                        else if $(window).scrollTop()+$(window).height() < $(content_container).offset().top+$(content_container).height() # bottom of the window < end of $('.json_table_container')
+                            that.$('.wrapper_scrollbar').show()
+                            that.$('.wrapper_scrollbar').css 'overflow', 'auto'
+                            that.$('.wrapper_scrollbar').css 'margin-bottom', '0px'
+                        # And sometimes we "hide" it
+                        else
+                            # We can not hide .wrapper_scrollbar because it would break the binding between wrapper_scrollbar and content_container
+                            that.$('.wrapper_scrollbar').css 'overflow', 'hidden'
+
+                that = @
+                position_scrollbar()
+                $(window).scroll ->
+                    position_scrollbar()
+                $(window).resize ->
+                    position_scrollbar()
+
+
+
         # Render the metadata of an the results
         render_metadata: (data) =>
+            if data?
+                @metadata = data
+            else # If we have called render_metadata() without arguments, it's because we just switched view
+                data = @metadata
+
             limit_value = data.limit_value
             skip_value = data.skip_value
             execution_time = data.execution_time
@@ -1541,6 +1711,7 @@ module 'DataExplorerView', ->
             @.$(event.target).nextAll('.jt_points').toggleClass('jt_points_collapsed')
             @.$(event.target).nextAll('.jt_b').toggleClass('jt_b_collapsed')
             @.$(event.target).toggleClass('jt_arrow_hidden')
+            @set_scrollbar()
 
         handle_keypress: (event) =>
             if event.which is 13 and !event.shiftKey
@@ -1564,3 +1735,5 @@ module 'DataExplorerView', ->
         destroy: =>
             $(document).unbind 'mousemove', @handle_mousemove
             $(document).unbind 'mouseup', @handle_mouseup
+            $(window).unbind 'scroll'
+            $(window).unbind 'resize'

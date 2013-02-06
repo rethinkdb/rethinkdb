@@ -1,15 +1,16 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "serializer/log/static_header.hpp"
 
 #include "utils.hpp"
 #include <boost/bind.hpp>
 
 #include "arch/arch.hpp"
+#include "arch/runtime/coroutines.hpp"
 #include "config/args.hpp"
 
 
 bool static_header_check(file_t *file) {
-    if (!file->exists() || file->get_size() < DEVICE_BLOCK_SIZE) {
+    if (file->get_size() < DEVICE_BLOCK_SIZE) {
         return false;
     } else {
         static_header_t *buffer = reinterpret_cast<static_header_t *>(malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE));
@@ -53,7 +54,6 @@ bool static_header_write(file_t *file, void *data, size_t data_size, static_head
 
 void co_static_header_read(file_t *file, static_header_read_callback_t *callback, void *data_out, size_t data_size) {
     rassert(sizeof(static_header_t) + data_size < DEVICE_BLOCK_SIZE);
-    rassert(file->exists());
     static_header_t *buffer = reinterpret_cast<static_header_t *>(malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE));
     co_read(file, 0, DEVICE_BLOCK_SIZE, buffer, DEFAULT_DISK_ACCOUNT);
     if (memcmp(buffer->software_name, SOFTWARE_NAME_STRING, sizeof(SOFTWARE_NAME_STRING)) != 0) {

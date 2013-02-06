@@ -1,7 +1,6 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "memcached/file.hpp"
 #include "memcached/parser.hpp"
-#include "progress/progress.hpp"
 #include "concurrency/fifo_checker.hpp"
 
 /* `file_memcached_interface_t` is a `memcached_interface_t` that reads queries
@@ -11,12 +10,10 @@ class file_memcached_interface_t : public memcached_interface_t {
 
 private:
     FILE *file;
-    file_progress_bar_t progress_bar;
 
 public:
     explicit file_memcached_interface_t(const char *filename) :
-        file(fopen(filename, "r")),
-        progress_bar(std::string("Import"), file)
+        file(fopen(filename, "r"))
     { }
     ~file_memcached_interface_t() {
         fclose(file);

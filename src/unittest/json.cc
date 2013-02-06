@@ -100,7 +100,7 @@ namespace unittest {
         int count = 10000;
         for (std::set<std::string>::iterator it = keys.begin(); it != keys.end(); ++it) {
             ASSERT_EQ(cJSON_GetArraySize(obj), count);
-            cJSON_DeleteItemFromObject(obj, (*it).c_str());
+            cJSON_DeleteItemFromObject(obj, it->c_str());
             count--;
 
             //This line is basically there to segfault if we have corrupted structure.
@@ -209,7 +209,7 @@ namespace unittest {
 
                 if (i < j) {
                     expected = -1;
-                } else if (i < j) {
+                } else if (i > j) {
                     expected = 1;
                 } else {
                     expected = 0;

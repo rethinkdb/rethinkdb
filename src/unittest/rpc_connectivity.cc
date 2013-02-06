@@ -211,7 +211,7 @@ void run_get_peers_list_test() {
     /* Make sure `get_peers_list()` is initially sane */
     std::set<peer_id_t> list_1 = c1.get_peers_list();
     EXPECT_TRUE(list_1.find(c1.get_me()) != list_1.end());
-    EXPECT_EQ(list_1.size(), 1);
+    EXPECT_EQ(1u, list_1.size());
 
     {
         connectivity_cluster_t c2;
@@ -232,7 +232,7 @@ void run_get_peers_list_test() {
 
     /* Make sure `get_peers_list()` notices that a peer has disconnected */
     std::set<peer_id_t> list_3 = c1.get_peers_list();
-    EXPECT_EQ(list_3.size(), 1);
+    EXPECT_EQ(1u, list_3.size());
 }
 TEST(RPCConnectivityTest, GetPeersList) {
     mock::run_in_thread_pool(&run_get_peers_list_test);
@@ -383,7 +383,7 @@ void run_stop_mid_join_test() {
 
     coro_t::yield();
 
-    EXPECT_NE(num_members, nodes[1]->get_peers_list().size()) << "This test is "
+    EXPECT_NE(static_cast<size_t>(num_members), nodes[1]->get_peers_list().size()) << "This test is "
         "supposed to test what happens when a cluster is interrupted as it "
         "starts up, but the cluster finished starting up before we could "
         "interrupt it.";
@@ -428,7 +428,8 @@ void run_blob_join_test() {
     bool pass = false;
     while (!pass) {
         mock::let_stuff_happen();
-        ASSERT_LT(++total_waits, 50); // cluster blobs took to long to coalesce internally
+        ++total_waits;
+        ASSERT_LT(total_waits, 50u);  // cluster blobs took to long to coalesce internally
 
         pass = true;
         for (size_t i = 0; i < blob_size * 2; i++) {
@@ -442,7 +443,8 @@ void run_blob_join_test() {
     pass = false;
     while (!pass) {
         mock::let_stuff_happen();
-        ASSERT_LT(++total_waits, 50); // cluster blobs took to long to coalesce with each other
+        ++total_waits;
+        ASSERT_LT(total_waits, 50u); // cluster blobs took to long to coalesce with each other
 
         pass = true;
         for (size_t i = 0; i < blob_size * 2; i++) {
@@ -587,29 +589,29 @@ void run_check_headers_test() {
     tcp_conn_stream_t conn(addr.primary_ip(), addr.port, &cond, 0);
 
     // Read & check its header.
-    const int64_t len = strlen(cluster_proto_header);
+    const int64_t len = connectivity_cluster_t::cluster_proto_header.length();
     {
         scoped_array_t<char> data(len + 1);
         int64_t read = force_read(&conn, data.data(), len);
         ASSERT_GE(read, 0);
         data[read] = 0;         // null-terminate
-        ASSERT_STREQ(cluster_proto_header, data.data());
+        ASSERT_STREQ(connectivity_cluster_t::cluster_proto_header.c_str(), data.data());
     }
 
     // Send it an initially okay-looking but ultimately malformed header.
     const int64_t initlen = 10;
     ASSERT_TRUE(initlen < len); // sanity check
-    ASSERT_TRUE(initlen == conn.write(cluster_proto_header, initlen));
+    ASSERT_TRUE(initlen == conn.write(connectivity_cluster_t::cluster_proto_header.c_str(), initlen));
     mock::let_stuff_happen();
     ASSERT_TRUE(conn.is_read_open() && conn.is_write_open());
 
     // Send malformed continuation.
-    char badchar = cluster_proto_header[initlen] ^ 0x7f;
+    char badchar = connectivity_cluster_t::cluster_proto_header[initlen] ^ 0x7f;
     ASSERT_EQ(1, conn.write(&badchar, 1));
     mock::let_stuff_happen();
 
     // Try to write something, and discover that the other end has shut down.
-    (void)(1 == conn.write("a", 1)); // avoid unused return value warning
+    UNUSED int64_t res = conn.write("a", 1);
     mock::let_stuff_happen();
     ASSERT_FALSE(conn.is_write_open());
     ASSERT_FALSE(conn.is_read_open());
@@ -617,6 +619,150 @@ void run_check_headers_test() {
 
 TEST(RPCConnectivityTest, CheckHeaders) {
     mock::run_in_thread_pool(&run_check_headers_test);
+}
+
+void run_different_version_test() {
+    int port = mock::randport();
+
+    // Set up a cluster node.
+    connectivity_cluster_t c1;
+    connectivity_cluster_t::run_t cr1(&c1, mock::get_unittest_addresses(), port, NULL, 0, NULL);
+
+    // Manually connect to the cluster.
+    peer_address_t addr = c1.get_peer_address(c1.get_me());
+    cond_t cond;                // dummy signal
+    tcp_conn_stream_t conn(addr.primary_ip(), addr.port, &cond, 0);
+
+    // Read & check its header.
+    const int64_t len = connectivity_cluster_t::cluster_proto_header.length();
+    {
+        scoped_array_t<char> data(len + 1);
+        int64_t read = force_read(&conn, data.data(), len);
+        ASSERT_GE(read, 0);
+        data[read] = 0;         // null-terminate
+        ASSERT_STREQ(connectivity_cluster_t::cluster_proto_header.c_str(), data.data());
+    }
+
+    // Send the base header
+    ASSERT_EQ(len,
+              conn.write(connectivity_cluster_t::cluster_proto_header.c_str(),
+                         connectivity_cluster_t::cluster_proto_header.length()));
+    mock::let_stuff_happen();
+    ASSERT_TRUE(conn.is_read_open() && conn.is_write_open());
+
+    // Send bad version
+    write_message_t bad_version_msg;
+    bad_version_msg << std::string("0.1.1b");
+    bad_version_msg << connectivity_cluster_t::cluster_arch_bitsize;
+    bad_version_msg << connectivity_cluster_t::cluster_build_mode;
+    ASSERT_FALSE(send_write_message(&conn, &bad_version_msg));
+    mock::let_stuff_happen();
+
+    // Try to write something, and discover that the other end has shut down.
+    UNUSED int64_t res = conn.write("a", 1);
+    mock::let_stuff_happen();
+    ASSERT_FALSE(conn.is_write_open());
+    ASSERT_FALSE(conn.is_read_open());
+}
+
+TEST(RPCConnectivityTest, DifferentVersion) {
+    mock::run_in_thread_pool(&run_different_version_test);
+}
+
+void run_different_arch_test() {
+    int port = mock::randport();
+
+    // Set up a cluster node.
+    connectivity_cluster_t c1;
+    connectivity_cluster_t::run_t cr1(&c1, mock::get_unittest_addresses(), port, NULL, 0, NULL);
+
+    // Manually connect to the cluster.
+    peer_address_t addr = c1.get_peer_address(c1.get_me());
+    cond_t cond;                // dummy signal
+    tcp_conn_stream_t conn(addr.primary_ip(), addr.port, &cond, 0);
+
+    // Read & check its header.
+    const int64_t len = connectivity_cluster_t::cluster_proto_header.length();
+    {
+        scoped_array_t<char> data(len + 1);
+        int64_t read = force_read(&conn, data.data(), len);
+        ASSERT_GE(read, 0);
+        data[read] = 0;         // null-terminate
+        ASSERT_STREQ(connectivity_cluster_t::cluster_proto_header.c_str(), data.data());
+    }
+
+    // Send the base header
+    ASSERT_EQ(len,
+              conn.write(connectivity_cluster_t::cluster_proto_header.c_str(),
+                         connectivity_cluster_t::cluster_proto_header.length()));
+    mock::let_stuff_happen();
+    ASSERT_TRUE(conn.is_read_open() && conn.is_write_open());
+
+    // Send the expected version but bad arch bitsize
+    write_message_t bad_arch_msg;
+    bad_arch_msg << connectivity_cluster_t::cluster_version;
+    bad_arch_msg << std::string("96bit");
+    bad_arch_msg << connectivity_cluster_t::cluster_build_mode;
+    ASSERT_FALSE(send_write_message(&conn, &bad_arch_msg));
+    mock::let_stuff_happen();
+
+    // Try to write something, and discover that the other end has shut down.
+    UNUSED int64_t res = conn.write("a", 1);
+    mock::let_stuff_happen();
+    ASSERT_FALSE(conn.is_write_open());
+    ASSERT_FALSE(conn.is_read_open());
+}
+
+TEST(RPCConnectivityTest, DifferentArch) {
+    mock::run_in_thread_pool(&run_different_arch_test);
+}
+
+void run_different_build_mode_test() {
+    int port = mock::randport();
+
+    // Set up a cluster node.
+    connectivity_cluster_t c1;
+    connectivity_cluster_t::run_t cr1(&c1, mock::get_unittest_addresses(), port, NULL, 0, NULL);
+
+    // Manually connect to the cluster.
+    peer_address_t addr = c1.get_peer_address(c1.get_me());
+    cond_t cond;                // dummy signal
+    tcp_conn_stream_t conn(addr.primary_ip(), addr.port, &cond, 0);
+
+    // Read & check its header.
+    const int64_t len = connectivity_cluster_t::cluster_proto_header.length();
+    {
+        scoped_array_t<char> data(len + 1);
+        int64_t read = force_read(&conn, data.data(), len);
+        ASSERT_GE(read, 0);
+        data[read] = 0;         // null-terminate
+        ASSERT_STREQ(connectivity_cluster_t::cluster_proto_header.c_str(), data.data());
+    }
+
+    // Send the base header
+    ASSERT_EQ(len,
+              conn.write(connectivity_cluster_t::cluster_proto_header.c_str(),
+                         connectivity_cluster_t::cluster_proto_header.length()));
+    mock::let_stuff_happen();
+    ASSERT_TRUE(conn.is_read_open() && conn.is_write_open());
+
+    // Send the expected version but bad arch bitsize
+    write_message_t bad_build_mode_msg;
+    bad_build_mode_msg << connectivity_cluster_t::cluster_version;
+    bad_build_mode_msg << connectivity_cluster_t::cluster_arch_bitsize;
+    bad_build_mode_msg << std::string("build mode activated");
+    ASSERT_FALSE(send_write_message(&conn, &bad_build_mode_msg));
+    mock::let_stuff_happen();
+
+    // Try to write something, and discover that the other end has shut down.
+    UNUSED int64_t res = conn.write("a", 1);
+    mock::let_stuff_happen();
+    ASSERT_FALSE(conn.is_write_open());
+    ASSERT_FALSE(conn.is_read_open());
+}
+
+TEST(RPCConnectivityTest, DifferentBuildMode) {
+    mock::run_in_thread_pool(&run_different_build_mode_test);
 }
 
 }   /* namespace unittest */

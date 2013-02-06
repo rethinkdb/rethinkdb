@@ -16,8 +16,22 @@
 #include "logger.hpp"
 #include "utils.hpp"
 
-#define CLUSTER_PROTO_HEADER "RethinkDB " RETHINKDB_VERSION " cluster\n"
-const char *const cluster_proto_header = CLUSTER_PROTO_HEADER;
+const std::string connectivity_cluster_t::cluster_proto_header("RethinkDB cluster\n");
+const std::string connectivity_cluster_t::cluster_version(RETHINKDB_CODE_VERSION);
+
+#if defined (__x86_64__)
+const std::string connectivity_cluster_t::cluster_arch_bitsize("64bit");
+#elif defined (__i386__)
+const std::string connectivity_cluster_t::cluster_arch_bitsize("32bit");
+#else
+#error "Could not determine architecture"
+#endif
+
+#if defined (NDEBUG)
+const std::string connectivity_cluster_t::cluster_build_mode("release");
+#else
+const std::string connectivity_cluster_t::cluster_build_mode("debug");
+#endif
 
 void debug_print(append_only_printf_buffer_t *buf, const peer_address_t &address) {
     buf->appendf("peer_address{ips=[");
@@ -254,30 +268,53 @@ private:
     DISABLE_COPYING(cluster_conn_closing_subscription_t);
 };
 
-class heartbeat_keepalive_t : public keepalive_tcp_conn_stream_t::keepalive_callback_t {
+class heartbeat_keepalive_t : public keepalive_tcp_conn_stream_t::keepalive_callback_t,
+                              public heartbeat_manager_t::heartbeat_keepalive_tracker_t {
 public:
     heartbeat_keepalive_t(keepalive_tcp_conn_stream_t *_conn, heartbeat_manager_t *_heartbeat, peer_id_t _peer) :
         conn(_conn),
         heartbeat(_heartbeat),
         peer(_peer)
     {
+        rassert(conn != NULL);
+        rassert(heartbeat != NULL);
         conn->set_keepalive_callback(this);
+        heartbeat->set_keepalive_tracker(peer, this);
     }
 
     ~heartbeat_keepalive_t() {
         conn->set_keepalive_callback(NULL);
+        heartbeat->set_keepalive_tracker(peer, NULL);
     }
 
-    void keepalive() {
-        if (heartbeat != NULL) {
-            heartbeat->message_from_peer(peer);
-        }
+    void keepalive_read() {
+        read_done = true;
+    }
+
+    void keepalive_write() {
+        write_done = true;
+    }
+
+    bool check_and_reset_reads() {
+        bool result = read_done;
+        read_done = false;
+        return result;
+    }
+
+    bool check_and_reset_writes() {
+        bool result = write_done;
+        write_done = false;
+        return result;
     }
 
 private:
     keepalive_tcp_conn_stream_t * const conn;
     heartbeat_manager_t * const heartbeat;
     const peer_id_t peer;
+    bool read_done;
+    bool write_done;
+
+    DISABLE_COPYING(heartbeat_keepalive_t);
 };
 
 // Error-handling helper for connectivity_cluster_t::run_t::handle(). Returns true if handle()
@@ -299,6 +336,43 @@ static bool deserialize_and_check(tcp_conn_stream_t *c, T *p, const char *peer) 
         logERR("unknown error occurred on connection from %s, closing connection", peer);
         return true;
     }
+}
+
+bool is_similar_peer_address(const peer_address_t &left, const peer_address_t &right) {
+    bool left_loopback_only = true;
+    bool right_loopback_only = true;
+
+    if (left.port != right.port) {
+        return false;
+    }
+
+    // We ignore any loopback addresses because they don't give us any useful information
+    // Return true if any non-loopback addresses match
+    for (std::set<ip_address_t>::iterator left_it = left.all_ips()->begin();
+         left_it != left.all_ips()->end(); ++left_it) {
+        if (left_it->is_loopback()) {
+            continue;
+        } else {
+            left_loopback_only = false;
+        }
+
+        for (std::set<ip_address_t>::iterator right_it = right.all_ips()->begin();
+             right_it != right.all_ips()->end(); ++right_it) {
+            if (right_it->is_loopback()) {
+                continue;
+            } else {
+                right_loopback_only = false;
+            }
+
+            if (*right_it == *left_it) {
+                return true;
+            }
+        }
+    }
+
+    // No non-loopback addresses matched, return true if either side was *only* loopback addresses
+    //  because we can't easily prove if they are the same or different addresses
+    return left_loopback_only || right_loopback_only;
 }
 
 // We log error conditions as follows:
@@ -331,33 +405,65 @@ void connectivity_cluster_t::run_t::handle(
 
     // Each side sends a header followed by its own ID and address, then receives and checks the
     // other side's.
-    const int64_t header_size = sizeof(CLUSTER_PROTO_HEADER) - 1;
-
-    // Send header, id, address.
     {
         write_message_t msg;
-        msg.append(cluster_proto_header, header_size);
+        msg.append(cluster_proto_header.c_str(), cluster_proto_header.length());
+        msg << cluster_version;
+        msg << cluster_arch_bitsize;
+        msg << cluster_build_mode;
         msg << parent->me;
         msg << routing_table[parent->me];
         if (send_write_message(conn, &msg))
-            return;             // network error.
+            return; // network error.
     }
 
     // Receive & check header.
     {
-        char data[header_size];
+        const int64_t buffer_size = 64;
+        char buffer[buffer_size];
         int64_t r;
-        for (int64_t i = 0; i < header_size; i += r) {
-            r = conn->read(data, header_size - i);
+        for (uint64_t i = 0; i < cluster_proto_header.length(); i += r) {
+            r = conn->read(buffer, std::min(buffer_size, int64_t(cluster_proto_header.length() - i)));
             if (-1 == r)
-                return;         // network error.
+                return; // network error.
             rassert(r >= 0);
-            // If EOF or data does not match header, terminate connection.
-            if (0 == r || memcmp(cluster_proto_header + i, data, r)) {
-                // Wrong header.
+            // If EOF or remote_header does not match header, terminate connection.
+            if (0 == r || memcmp(cluster_proto_header.c_str() + i, buffer, r) != 0) {
                 logWRN("Received invalid clustering header from %s, closing connection -- something might be connecting to the wrong port.", peername);
                 return;
             }
+        }
+    }
+
+    {
+        std::string remote_version;
+        std::string remote_arch_bitsize;
+        std::string remote_build_mode;
+
+        if (deserialize_and_check(conn, &remote_version, peername) ||
+            deserialize_and_check(conn, &remote_arch_bitsize, peername),
+            deserialize_and_check(conn, &remote_build_mode, peername))
+            return;
+
+        if (remote_version != cluster_version) {
+            logWRN("Connection attempt with a RethinkDB node of the wrong version,"
+                   " local version: %s, remote version: %s, connection dropped\n",
+                   cluster_version.c_str(), remote_version.c_str());
+            return;
+        }
+
+        if (remote_arch_bitsize != cluster_arch_bitsize) {
+            logWRN("Connection attempt with a RethinkDB node of the wrong architecture,"
+                   " local: %s, remote: %s, connection dropped\n",
+                   cluster_arch_bitsize.c_str(), remote_arch_bitsize.c_str());
+            return;
+        }
+
+        if (remote_build_mode != cluster_build_mode) {
+            logWRN("Connection attempt with a RethinkDB node of the wrong build mode,"
+                   " local: %s, remote: %s, connection dropped\n",
+                   cluster_build_mode.c_str(), remote_build_mode.c_str());
+            return;
         }
     }
 
@@ -384,7 +490,7 @@ void connectivity_cluster_t::run_t::handle(
         }
         return;
     }
-    if (expected_address && other_address != *expected_address) {
+    if (expected_address && !is_similar_peer_address(other_address, *expected_address)) {
         printf_buffer_t<500> buf;
         buf.appendf("expected_address = ");
         debug_print(&buf, *expected_address);
@@ -565,7 +671,11 @@ void connectivity_cluster_t::run_t::handle(
         constructor registers it in the `connectivity_cluster_t`'s connection
         map and notifies any connect listeners. */
         connection_entry_t conn_structure(this, other_id, conn, other_address);
-        heartbeat_keepalive_t keepalive(conn, heartbeat_manager, other_id);
+        object_buffer_t<heartbeat_keepalive_t> keepalive;
+
+        if (heartbeat_manager != NULL) {
+            keepalive.create(conn, heartbeat_manager, other_id);
+        }
 
         /* Main message-handling loop: read messages off the connection until
         it's closed, which may be due to network events, or the other end
@@ -620,7 +730,7 @@ std::set<peer_id_t> connectivity_cluster_t::get_peers_list() THROWS_NOTHING {
     std::set<peer_id_t> peers;
     for (std::map<peer_id_t, std::pair<run_t::connection_entry_t *, auto_drainer_t::lock_t> >::const_iterator it = connection_map->begin();
             it != connection_map->end(); it++) {
-        peers.insert((*it).first);
+        peers.insert(it->first);
     }
     return peers;
 }
@@ -694,8 +804,8 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
             is not always possible). So just return. */
             return;
         }
-        conn_structure = (*it).second.first;
-        conn_structure_lock = (*it).second.second;
+        conn_structure = it->second.first;
+        conn_structure_lock = it->second.second;
     }
 
     if (conn_structure->conn == NULL) {

@@ -49,12 +49,14 @@ public:
     class keepalive_callback_t {
     public:
         virtual ~keepalive_callback_t() { }
-        virtual void keepalive() = 0;
+        virtual void keepalive_read() = 0;
+        virtual void keepalive_write() = 0;
     };
 
     void set_keepalive_callback(keepalive_callback_t *_keepalive_callback);
 
     virtual MUST_USE int64_t read(void *p, int64_t n);
+    virtual MUST_USE int64_t write(const void *p, int64_t n);
 
 private:
     keepalive_callback_t *keepalive_callback;

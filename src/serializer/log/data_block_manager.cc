@@ -1,11 +1,11 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #define __STDC_FORMAT_MACROS
 #include "serializer/log/data_block_manager.hpp"
 
 #include "utils.hpp"
 #include <boost/bind.hpp>
 
-#include "arch/arch.hpp"
+#include "arch/runtime/coroutines.hpp"
 #include "concurrency/mutex.hpp"
 #include "perfmon/perfmon.hpp"
 #include "serializer/log/log_serializer.hpp"
