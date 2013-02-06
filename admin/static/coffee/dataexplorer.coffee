@@ -329,30 +329,34 @@ module 'DataExplorerView', ->
                     return true
                 else if event.which is 13 and (event.shiftKey or event.ctrlKey) # If the user hit enter and (Ctrl or Shift)
                     @hide_suggestion()
+                    @hide_description()
                     event.preventDefault()
                     if event.type isnt 'keydown'
                         return true
-                    @show_or_hide_arrow()
                     @execute_query()
                 else if event.ctrlKey and event.which is 86 and event.type is 'keydown' # Ctrl + V
                     @last_action_is_paste = true
                     @num_released_keys = 0 # We want to know when the user release Ctrl AND V
                     @hide_suggestion()
+                    @hide_description()
                     return true
                 else if event.type is 'keyup' and @last_action_is_paste is true and event.which is 17 # When the user release Ctrl after a ctrl + V
                     @num_released_keys++
                     if @num_released_keys is 2
                         @last_action_is_paste = false
                     @hide_suggestion()
+                    @hide_description()
                     return true
                 else if event.type is 'keyup' and @last_action_is_paste is true and event.which is 86 # When the user release V after a ctrl + V
                     @num_released_keys++
                     if @num_released_keys is 2
                         @last_action_is_paste = false
                     @hide_suggestion()
+                    @hide_description()
                     return true
                 else if @codemirror.getSelection() isnt '' # If the user select something, we don't show any suggestion
                     @hide_suggestion()
+                    @hide_description()
                     return false
              
             # The user just hit a normal key
@@ -1978,7 +1982,7 @@ module 'DataExplorerView', ->
             @render_result()
         show_raw: (event) =>
             event.preventDefault()
-            @prototype.view = 'ram'
+            @prototype.view = 'raw'
             @render_result()
 
         set_start_record: (start) =>
@@ -2320,23 +2324,23 @@ module 'DataExplorerView', ->
         default_size_column: 310 # max-width value of a cell of a table (as defined in the css file)
 
         render_result: (args) =>
-            if args.query?
+            if args?.query?
                 @query = args.query
-            if args.results?
-                @result = args.results
+            if args?.results?
+                @results = args.results
             @.$el.html @template
                 query: @query
 
             switch @prototype.view
                 when 'tree'
-                    @.$('.tree_view').html @json_to_tree @result
+                    @.$('.tree_view').html @json_to_tree @results
                     @$('.results').hide()
                     @$('.tree_view_container').show()
                     @.$('.link_to_tree_view').addClass 'active'
                     @.$('.link_to_tree_view').parent().addClass 'active'
                 when 'table'
                     previous_keys = @last_keys # Save previous keys. @last_keys will be updated in @json_to_table
-                    @.$('.table_view').html @json_to_table @result
+                    @.$('.table_view').html @json_to_table @results
                     @$('.results').hide()
                     @$('.table_view_container').show()
                     @.$('.link_to_table_view').addClass 'active'
@@ -2391,7 +2395,7 @@ module 'DataExplorerView', ->
                                     @$('.value-'+expandable_columns[0]['col']).css 'max-width', current_size+max_size-20
                                 expandable_columns = []
                 when 'raw'
-                    @.$('.raw_view_textarea').html JSON.stringify @result
+                    @.$('.raw_view_textarea').html JSON.stringify @results
                     @$('.results').hide()
                     @$('.raw_view_container').show()
                     @expand_raw_textarea()
@@ -2399,7 +2403,8 @@ module 'DataExplorerView', ->
                     @.$('.link_to_raw_view').parent().addClass 'active'
 
             @set_scrollbar()
-            if (not query?) and (not result?)
+            @delegateEvents()
+            if (not args?.query?) and (not args?.results?)
                 @render_metadata()
  
         set_scrollbar: =>
