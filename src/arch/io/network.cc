@@ -247,7 +247,6 @@ void linux_tcp_conn_t::pop(size_t len, signal_t *closer) THROWS_ONLY(tcp_conn_re
 }
 
 void linux_tcp_conn_t::shutdown_read() {
-    debugf("(%p) calling shutdown SHUT_RD\n", this);
     assert_thread();
     int res = ::shutdown(sock.get(), SHUT_RD);
     if (res != 0 && errno != ENOTCONN) {
@@ -461,7 +460,6 @@ void linux_tcp_conn_t::flush_buffer_eventually(signal_t *closer) THROWS_ONLY(tcp
 
 void linux_tcp_conn_t::shutdown_write() {
     assert_thread();
-    debugf("(%p) calling shutdown SHUT_WR\n", this);
 
     int res = ::shutdown(sock.get(), SHUT_WR);
     if (res != 0 && errno != ENOTCONN) {
@@ -488,8 +486,6 @@ bool linux_tcp_conn_t::is_write_open() {
 
 linux_tcp_conn_t::~linux_tcp_conn_t() THROWS_NOTHING {
     assert_thread();
-
-    debugf("(%p) ~linux_tcp_conn_t\n", this);
 
     // TODO: There's no point in calling these.
     if (is_read_open()) shutdown_read();
@@ -539,8 +535,6 @@ int linux_tcp_conn_t::getpeername(ip_address_t *ip) {
 
 void linux_tcp_conn_t::on_event(int events) {
     assert_thread();
-
-    debugf("(%p) tcp conn events %d\n", this, events);
 
     /* This is called by linux_event_watcher_t when error events occur. Ordinary
     poll_event_in/poll_event_out events are not sent through this function. */
