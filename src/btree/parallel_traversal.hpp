@@ -113,7 +113,7 @@ struct btree_traversal_helper_t {
                                 int *population_change_out,
                                 signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
 
-    virtual void postprocess_internal_node(buf_lock_t *internal_node_buf) = 0;
+    virtual void postprocess_internal_node(UNUSED buf_lock_t *internal_node_buf) = 0;
 
     virtual void filter_interesting_children(transaction_t *txn, ranged_block_ids_t *ids_source, interesting_children_callback_t *cb) = 0;
 

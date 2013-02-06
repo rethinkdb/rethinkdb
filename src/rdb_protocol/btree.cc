@@ -11,6 +11,7 @@
 #include "btree/erase_range.hpp"
 #include "btree/get_distribution.hpp"
 #include "btree/operations.hpp"
+#include "btree/parallel_traversal.hpp"
 #include "buffer_cache/blob.hpp"
 #include "containers/archive/buffer_group_stream.hpp"
 #include "containers/archive/vector_stream.hpp"
@@ -523,4 +524,56 @@ void rdb_update_sindexes(const btree_store_t<rdb_protocol_t>::sindex_access_vect
                      modification->added, it->btree, repli_timestamp_t::distant_past, txn);
         }
     }
+}
+
+class post_construct_traversal_helper_t : public btree_traversal_helper_t {
+public:
+    explicit post_construct_traversal_helper_t(
+            const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes)
+        : sindexes_(sindexes)
+    { }
+
+    // This is free to call mark_deleted.
+    void process_a_leaf(transaction_t *txn, buf_lock_t *leaf_node_buf,
+                        const btree_key_t *, const btree_key_t *,
+                        int *, signal_t *) THROWS_ONLY(interrupted_exc_t) {
+        const leaf_node_t *leaf_node = reinterpret_cast<const leaf_node_t *>(leaf_node_buf->get_data_read());
+        leaf::live_iter_t node_iter = iter_for_whole_leaf(leaf_node);
+
+        const void *value;
+        while ((value = node_iter.get_value(leaf_node))) {
+            /* Grab relevant values from the leaf node. */
+            const btree_key_t *key = node_iter.get_key(leaf_node);
+            guarantee(key);
+            node_iter.step(leaf_node);
+
+            rdb_modification_report_t mod_report;
+            const rdb_value_t *rdb_value = reinterpret_cast<const rdb_value_t *>(value);
+            mod_report.added = get_data(rdb_value, txn);
+
+            rdb_update_sindexes(sindexes_, store_key_t(key), &mod_report, txn);
+        }
+    }
+
+    void postprocess_internal_node(buf_lock_t *) { }
+
+    void filter_interesting_children(UNUSED transaction_t *txn, ranged_block_ids_t *ids_source, interesting_children_callback_t *cb) {
+        for (int i = 0, e = ids_source->num_block_ids(); i < e; ++i) {
+            cb->receive_interesting_child(i);
+        }
+    }
+
+    access_t btree_superblock_mode() { return rwi_read; }
+    access_t btree_node_mode() { return rwi_read; }
+
+    const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes_;
+};
+
+void post_construct_secondary_indexes(btree_slice_t *slice, transaction_t *txn, superblock_t *superblock,
+                                      const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
+                                      signal_t *interruptor) 
+                                      THROWS_ONLY(interrupted_exc_t) {
+    post_construct_traversal_helper_t helper(sindexes);
+
+    btree_parallel_traversal(txn, superblock, slice, &helper, interruptor);
 }
