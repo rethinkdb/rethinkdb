@@ -542,20 +542,7 @@ void linux_tcp_conn_t::on_event(int events) {
     bool reading = event_watcher->is_watching(poll_event_in);
     bool writing = event_watcher->is_watching(poll_event_out);
 
-    /* Nobody seems to understand this particular bit of code. */
-
-    if (events == (poll_event_err | poll_event_hup) || events == poll_event_hup) {
-        if (is_write_open()) {
-            shutdown_write();
-        }
-
-        if (is_read_open()) {
-            shutdown_read();
-        }
-
-        event_watcher->stop_watching_for_errors();
-
-    } else {
+    if (!(events == (poll_event_err | poll_event_hup) || events == poll_event_hup)) {
         /* We don't know why we got this, so log it and then shut down the socket */
         logERR("Unexpected epoll err/hup"
 #ifdef __linux
@@ -565,9 +552,17 @@ void linux_tcp_conn_t::on_event(int events) {
             format_poll_event(events).c_str(),
             reading ? "yes" : "no",
             writing ? "yes" : "no");
-        if (!read_closed.is_pulsed()) shutdown_read();
-        if (!write_closed.is_pulsed()) shutdown_write();
     }
+
+    if (is_write_open()) {
+        shutdown_write();
+    }
+
+    if (is_read_open()) {
+        shutdown_read();
+    }
+
+    event_watcher->stop_watching_for_errors();
 }
 
 
