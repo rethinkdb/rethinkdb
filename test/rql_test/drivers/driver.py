@@ -62,17 +62,19 @@ class PyTestDriver:
         try:
             query = eval(query)
         except Exception as err:
-            raise Exception("Query construction error")
+            print "Python error on construction of query:", str(err)
+            return
 
         try:
             cppres = query.run(self.cpp_conn)
         except Exception as err:
-            cppres = err
+            print "Error on running of query on CPP server:", str(err)
+            return
 
         try:
             jsres = query.run(self.js_conn)
         except Exception as err:
-            jsres = err
+            print "Error on running of query on JS server:", str(err)
 
         exp_fun = eval(expected)
         if not isinstance(exp_fun, types.FunctionType):

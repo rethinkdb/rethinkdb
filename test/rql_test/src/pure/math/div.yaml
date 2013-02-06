@@ -1,0 +1,15 @@
+desc: Tests for the basic usage of the division operation
+tests:
+
+    # Python supports the overloaded operator '/' in both directions
+    - py: [(r.expr(4) / 2), (4 / r.expr(2))]
+      js: r(4).div(2)
+      ot: 2
+
+    - py: r.expr(-1) / -2
+      js: r(-1).div(-2)
+      ot: 0.5
+
+    - py: r.expr(4.9) / 0.7
+      js: r(4.9).div(0.7)
+      ot: 4.9 / 0.7

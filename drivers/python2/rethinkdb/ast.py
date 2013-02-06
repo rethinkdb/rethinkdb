@@ -32,17 +32,32 @@ class RDBValue(RDBBase):
     def __add__(self, other):
         return Add(self, other)
 
+    def __radd__(self, other):
+        return Add(other, self)
+
     def __sub__(self, other):
         return Sub(self, other)
+
+    def __rsub__(self, other):
+        return Sub(other, self)
 
     def __mul__(self, other):
         return Mul(self, other)
 
+    def __rmul__(self, other):
+        return Mul(other, self)
+
     def __div__(self, other):
         return Div(self, other)
 
+    def __rdiv__(self, other):
+        return Div(other, self)
+
     def __mod__(self, other):
         return Mod(self, other)
+
+    def __rmod__(self, other):
+        return Mod(other, self)
 
     def __getitem__(self, key):
         return GetAttr(self, key)

@@ -1,0 +1,15 @@
+desc: Tests for basic usage of the subtraction operation
+tests:
+    
+    # Python supports the overloaded operator '-' in both directions
+    - py: [(r.expr(1) - 1), (1 - r.expr(1))]
+      js: r(1).sub(1)
+      ot: 0
+
+    - py: r.expr(-1) - 1
+      js: r(-1).sub(1)
+      ot: -2
+
+    - py: r.expr(1.75) - 8.5
+      js: r(1.75).sub(8.5)
+      ot: -6.75
