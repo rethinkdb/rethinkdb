@@ -8,7 +8,7 @@ struct timer_provider_callback_t;
 
 struct timerfd_provider_t : public linux_event_callback_t {
 public:
-    timerfd_provider_t(linux_event_queue_t *_queue);
+    explicit timerfd_provider_t(linux_event_queue_t *_queue);
     ~timerfd_provider_t();
 
     void schedule_oneshot(int64_t next_time_in_nanos, timer_provider_callback_t *cb);

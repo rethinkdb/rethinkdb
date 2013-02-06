@@ -844,8 +844,10 @@ void gc_entry::destroy() {
 void gc_entry::print() {
     debugf("gc_entry:\n");
     debugf("extent_ref offset: %" PRIi64 "\n", extent_ref.offset());
-    for (unsigned int i = 0; i < g_array.size(); i++)
-        debugf("%.8llx:\t%d\n", (unsigned long long int)(extent_ref.offset() + (i * DEVICE_BLOCK_SIZE)), g_array.test(i));
+    for (size_t i = 0; i < g_array.size(); ++i) {
+        int64_t block_offset = extent_ref.offset() + i * DEVICE_BLOCK_SIZE;
+        debugf("%.8" PRIx64 ":\t%d\n", block_offset, g_array.test(i));
+    }
     debugf("\n");
     debugf("\n");
 }
