@@ -1030,6 +1030,9 @@ TODO: retire this
 */
 #dataexplorer{
     margin: 0px;
+    .options_container{
+        float: right;
+    }
 
     h1.title{
         font-family: @serif;
@@ -1216,19 +1219,20 @@ TODO: retire this
             background: #eee;
         }
         .results_header{
-            .options_container{
-                float: right;
-            }
             .query_executed{
                 font-family: @sans;
                 word-wrap: break-word;
             }
-            .metadata{ font-family: @sans; }
+            .metadata{
+                font-family: @sans;
+                width: 100%;
+                float: left;
+                margin: 10px 0px;
+            }
         }
         .more_results{
             width: 100%;
             text-align: right;
-            display: none;
             .more_results_paragraph{
                 margin-right: 100px;
                 text-align: right;
@@ -1238,24 +1242,20 @@ TODO: retire this
     }
     .change_view_container{
         margin: 0px;
-        padding: 0px 10px 0px 0px;
+        padding: 0px;
         width: 100%;
-    }
-    .helper_view { overflow: auto; }
-    .nav-tabs > li {
         float: right;
-        &.active a {
-            border-bottom-color: #FBFBFB;
-            background-color: #FBFBFB;
+        margin-top: -35px;
+        li{
+            float: right;
+            &.active a {
+                border-bottom-color: #FBFBFB;
+                background-color: #FBFBFB;
+            }
+            &:first-child {
+                margin-right: 10px;
+            }
         }
-    }
-
-    .tab-pane{
-        display: none;
-        font: @monospace;
-    }
-    .active{
-        display: block;
     }
 
     .wrapper_scrollbar{

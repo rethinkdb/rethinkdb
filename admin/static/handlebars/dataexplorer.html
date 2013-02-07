@@ -1,5 +1,8 @@
 <script id="dataexplorer_view-template" type="text/x-handlebars-template">
     <div class="section">
+        <div class="options_container">
+            <button class="btn button_query change_size">Full view</button> 
+        </div>
         <h1 class="title">Data Explorer</h1>
         <div id="user-alert-space"></div>
         <div class="reason_dataexplorer_broken alert alert-error"></div>
@@ -173,17 +176,13 @@ Did you forget to append .run() at the end of your query?{{/if}}</pre>
 </script>
 <script id="dataexplorer_result_container-template" type="text/x-handlebars-template">
     <div class="results_header">
-        <div class="options_container">
-            <button class="btn button_query change_size">Full view</button> 
-        </div>
-
         <h1 class="title">Results</h1>
-        {{#if query}}
-            <p class="query_executed">For query: {{query}}</p>
-        {{/if}}
-        <p class="metadata"></p>
-        
-
+        <p class="metadata">
+        {{#if query}}<span class="query_executed">For query: {{query}}</span><br/>{{/if}}
+            {{#if execution_time_pretty}}Executed in {{execution_time_pretty}}.{{/if}}
+            {{#if limit_value}}{{limit_value}} {{pluralize_noun "row" limit_value}} displayed.{{/if}}
+            {{#if skip_value}}{{skip_value}} {{pluralize_noun "row" skip_value}} skipped.{{/if}}
+        </p>
         <ul class="nav nav-tabs change_view_container"">
             <li><a href="#raw_view" class="link_to_raw_view">Raw view</a></li>
             <li><a href="#table_view" class="link_to_table_view">Table view</a></li>
@@ -204,17 +203,17 @@ Did you forget to append .run() at the end of your query?{{/if}}</pre>
             </div>
         </div>
     </div>
-    <div class="more_results"><p class="more_results_paragraph"><a href="#" class="more_results_link">More data &gt;&gt;</a><p></div>
+    {{#if show_more_data}}
+    <div class="more_results more_valid_results"><p class="more_results_paragraph"><a href="#" class="more_results_link">More data &gt;&gt;</a><p></div>
+    {{else}}
+        {{#if cursor_timed_out_template}}
+            <div class="more_results"><p class="more_results_paragraph">{{print_safe cursor_timed_out_template}}<p></div>
+        {{/if}}
+    {{/if}}
 </script>
 
 <script id="dataexplorer-option_page-template" type="text/x-handlebars-template">
     <option class="page" value="{{page}}" {{#if selected}}selected="selected"{{/if}}>{{page}}</option>
-</script>
-
-<script id="dataexplorer-metadata-template" type="text/x-handlebars-template">
-    {{#if execution_time}}Executed in {{execution_time}}.{{/if}}
-    {{#if limit_value}}{{limit_value}} {{pluralize_noun "row" limit_value}} displayed.{{/if}}
-    {{#if skip_value}}{{skip_value}} {{pluralize_noun "row" skip_value}} skipped.{{/if}}
 </script>
 
 <script id="dataexplorer_result_empty-template" type="text/x-handlebars-template">

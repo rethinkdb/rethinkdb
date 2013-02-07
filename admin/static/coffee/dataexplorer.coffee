@@ -15,9 +15,6 @@ module 'DataExplorerView', ->
         reason_dataexplorer_broken_template: Handlebars.templates['dataexplorer-reason_broken-template']
         toggle_size_button_template: Handlebars.templates['dataexplorer-toggle_size_button-template']
 
-        # That's all the thing we want to store so we can display the view as it was (when the user left the data explorer)
-        saved_data: {}
-
         # Constants
         limit: 40 # How many results we display per page // Final for now
         line_height: 13 # Define the height of a line (used for a line is too long)
@@ -31,7 +28,7 @@ module 'DataExplorerView', ->
             'click .execute_query': 'execute_query'
             'click .change_size': 'toggle_size'
             'click #reconnect': 'reconnect'
-            'click .more_results': 'show_more_results'
+            'click .more_valid_results': 'show_more_results'
             'click .close': 'close_alert'
             #TODO show warning
 
@@ -128,35 +125,56 @@ module 'DataExplorerView', ->
 
         save_data_in_localstorage: =>
             if window.localStorage?
-                window.localStorage.rethinkdb_dataexplorer = JSON.stringify @saved_data
+                # The cursor has some circular references, so we cannot naively store it. Let's just not save it in localStorage (as long as we have it in prototype, it's ok)
+                data_to_save = {}
+                for key, value of @saved_data
+                    if key isnt 'cursor'
+                        data_to_save[key] = value
+                window.localStorage.rethinkdb_dataexplorer = JSON.stringify data_to_save
+        save_query: (query) =>
+            if window.localStorage?
+                @history.push query
+                window.localStorage.rethinkdb_history = JSON.stringify @history
+        erase_history: =>
+            @history = []
+            window.localStorage.rethinkdb_history = JSON.stringify @history
 
         initialize: (args) =>
-            @connect_driver = args.connect_driver
-
             if not DataExplorerView.Container.prototype.saved_data?
                 if window.localStorage? and window.localStorage.rethinkdb_dataexplorer?
                     try
-                        DataExplorerView.Container.prototype.saved_data = window.localStorage.rethinkdb_dataexplorer
+                        DataExplorerView.Container.prototype.saved_data = JSON.parse window.localStorage.rethinkdb_dataexplorer
+                        DataExplorerView.Container.prototype.saved_data.cursor_timed_out = true # We do not recreate the cursor
                     catch err
                         DataExplorerView.Container.prototype.saved_data =
-                            query: null # Last value @codemirror.getValue()
-                            last_query: null # Last executed query
-                            last_results: null # Last results
-                            last_cursor: null # Last cursor
-                            last_metadata: null # Last metadata
-                            cursor_timed_out: false # Whether the cursor timed out or not (ie. we reconnected)
+                            current_query: null # Last value @codemirror.getValue()
+                            query: null # Last executed query
+                            results: null # Last results
+                            cursor: null # Last cursor
+                            metadata: null # Last metadata
+                            cursor_timed_out: true # Whether the cursor timed out or not (ie. we reconnected)
                 else
                     DataExplorerView.Container.prototype.saved_data =
+                        current_query: null
                         query: null
-                        last_query: null
-                        last_results: null
-                        last_cursor: null
-                        last_metadata: null
-                        cursor_timed_out: false
+                        results: null
+                        cursor: null
+                        metadata: null
+                        cursor_timed_out: true
             # Else the user created a data explorer view before
+
+            # Load history
+            if window.localStorage?.rethinkdb_history?
+                @history = JSON.parse window.localStorage.rethinkdb_history
+            else
+                @history = []
+
 
             # Let's have a shortcut
             @saved_data = DataExplorerView.Container.prototype.saved_data
+            @saved_data.show_query = @saved_data.query isnt @saved_data.current_query
+            @current_results = @saved_data.results
+
             @save_data_in_localstorage()
 
             # We escape the last function because we are building a regex on top of it.
@@ -211,39 +229,37 @@ module 'DataExplorerView', ->
 
             @render()
 
-            # Connect the driver
-            @interval = setInterval @connect_driver, 3*1000
-
         render: =>
-            @.$el.html @template()
-            @.$('.input_query_full_container').html @input_query_template()
+            @$el.html @template()
+            @$('.input_query_full_container').html @input_query_template()
             
             # Check if the browser supports the JavaScript driver
             # We do not support internet explorer (even IE 10) and old browsers.
             if navigator?.appName is 'Microsoft Internet Explorer'
-                @.$('.reason_dataexplorer_broken').html @reason_dataexplorer_broken_template
+                @$('.reason_dataexplorer_broken').html @reason_dataexplorer_broken_template
                     is_internet_explorer: true
-                @.$('.reason_dataexplorer_broken').slideDown 'fast'
-                @.$('.button_query').prop 'disabled', 'disabled'
+                @$('.reason_dataexplorer_broken').slideDown 'fast'
+                @$('.button_query').prop 'disabled', 'disabled'
             else if (not DataView?) or (not Uint8Array?) # The main two components that the javascript driver requires.
-                @.$('.reason_dataexplorer_broken').html @reason_dataexplorer_broken_template
-                @.$('.reason_dataexplorer_broken').slideDown 'fast'
-                @.$('.button_query').prop 'disabled', 'disabled'
+                @$('.reason_dataexplorer_broken').html @reason_dataexplorer_broken_template
+                @$('.reason_dataexplorer_broken').slideDown 'fast'
+                @$('.button_query').prop 'disabled', 'disabled'
             else if not window.r? # In case the javascript driver is not found (if build from source for example)
-                @.$('.reason_dataexplorer_broken').html @reason_dataexplorer_broken_template
+                @$('.reason_dataexplorer_broken').html @reason_dataexplorer_broken_template
                     no_driver: true
-                @.$('.reason_dataexplorer_broken').slideDown 'fast'
-                @.$('.button_query').prop 'disabled', 'disabled'
+                @$('.reason_dataexplorer_broken').slideDown 'fast'
+                @$('.button_query').prop 'disabled', 'disabled'
 
             # Let's bring back the data explorer to its old state (if there was)
-            if @saved_data?.last_query? and @saved_data?.last_results? and @saved_data?.last_metadata?
-                @results_view.render_result
-                    query: @saved_data.last_query
-                    results: @saved_data.last_results
-                @results_view.render_metadata @saved_data.last_metadata
+            if @saved_data?.query? and @saved_data?.results? and @saved_data?.metadata?
+                @$('.results_container').html @results_view.render_result({
+                    query: @saved_data.query
+                    results: @saved_data.results
+                    metadata: @saved_data.metadata
+                }).$el
                 # The query in code mirror is set in call_codemirror (because we can't set it now)
             else
-                @.$('.results_container').html @results_view.render_default().$el
+                @$('.results_container').html @results_view.render_default().$el
 
             # If driver not conneced
             if @driver_connected is false
@@ -259,16 +275,18 @@ module 'DataExplorerView', ->
                     name: 'javascript'
                     json: true
                 onKeyEvent: @handle_keypress
-                onBlur: @hide_suggestion
+                onBlur: @hide_suggestion_and_description
                 onGutterClick: @handle_gutter_click
                 lineNumbers: true
                 lineWrapping: true
                 matchBrackets: true
 
             @codemirror.setSize '100%', 'auto'
-            if @saved_data.query?
-                @codemirror.setValue @saved_data.query
+            if @saved_data.current_query?
+                @codemirror.setValue @saved_data.current_query
             @codemirror.focus() # Give focus
+            @codemirror.setCursor @codemirror.lineCount(), 0
+            @handle_keypress() # Show suggestions/description if there are
 
         # We have to keep track of a lot of things because web-kit browsers handle the events keydown, keyup, blur etc... in a strange way.
         current_suggestions: []
@@ -281,18 +299,16 @@ module 'DataExplorerView', ->
         # Return true if we want code mirror to ignore the event
         handle_keypress: (editor, event) =>
             # Save the last query (even incomplete)
-            # TODO clean that proto thing
-            @saved_data.query = @codemirror.getValue()
+            @saved_data.current_query = @codemirror.getValue()
+            @save_data_in_localstorage()
 
             if @codemirror.getSelection() isnt ''
-                @hide_suggestion()
-                @hide_description()
+                @hide_suggestion_and_description()
                 return false
 
             if event?.which?
                 if event.which is 27 # ESC
-                    @hide_suggestion()
-                    @hide_description()
+                    @hide_suggestion_and_description()
                     return true
                 # If the user hit tab, we switch the highlighted suggestion
                 else if event.which is 9
@@ -328,8 +344,7 @@ module 'DataExplorerView', ->
                             return false
                     return true
                 else if event.which is 13 and (event.shiftKey or event.ctrlKey) # If the user hit enter and (Ctrl or Shift)
-                    @hide_suggestion()
-                    @hide_description()
+                    @hide_suggestion_and_description()
                     event.preventDefault()
                     if event.type isnt 'keydown'
                         return true
@@ -337,26 +352,22 @@ module 'DataExplorerView', ->
                 else if event.ctrlKey and event.which is 86 and event.type is 'keydown' # Ctrl + V
                     @last_action_is_paste = true
                     @num_released_keys = 0 # We want to know when the user release Ctrl AND V
-                    @hide_suggestion()
-                    @hide_description()
+                    @hide_suggestion_and_description()
                     return true
                 else if event.type is 'keyup' and @last_action_is_paste is true and event.which is 17 # When the user release Ctrl after a ctrl + V
                     @num_released_keys++
                     if @num_released_keys is 2
                         @last_action_is_paste = false
-                    @hide_suggestion()
-                    @hide_description()
+                    @hide_suggestion_and_description()
                     return true
                 else if event.type is 'keyup' and @last_action_is_paste is true and event.which is 86 # When the user release V after a ctrl + V
                     @num_released_keys++
                     if @num_released_keys is 2
                         @last_action_is_paste = false
-                    @hide_suggestion()
-                    @hide_description()
+                    @hide_suggestion_and_description()
                     return true
                 else if @codemirror.getSelection() isnt '' # If the user select something, we don't show any suggestion
-                    @hide_suggestion()
-                    @hide_description()
+                    @hide_suggestion_and_description()
                     return false
              
             # The user just hit a normal key
@@ -404,19 +415,16 @@ module 'DataExplorerView', ->
                 #to_describe: undefined
                 
             result_non_white_char_after_cursor = @regex.get_first_non_white_char.exec(query_after_cursor)
-            #console.log 'DEBUG: '+JSON.stringify result_non_white_char_after_cursor[1][0]
             if result_non_white_char_after_cursor isnt null and (result_non_white_char_after_cursor[1]?[0] isnt '.' and result_non_white_char_after_cursor[1]?[0] isnt '}' and result_non_white_char_after_cursor[1]?[0] isnt ')' and result_non_white_char_after_cursor[1]?[0] isnt ',')
                 ###
                 and result_non_white_char_after_cursor[1]?[0] isnt '\''
                 and result_non_white_char_after_cursor[1]?[0] isnt '"')
                 ###
-                console.log 'REMOVE SUGGESTIONS 1'
                 result.status = 'break_and_look_for_description'
                 @hide_suggestion()
             else
                 result_last_char_is_white = @regex.last_char_is_white.exec(query_before_cursor)
                 if result_last_char_is_white isnt null
-                    console.log 'REMOVE SUGGESTIONS 2'
                     result.status = 'break_and_look_for_description'
                     @hide_suggestion()
 
@@ -438,14 +446,10 @@ module 'DataExplorerView', ->
                 @hide_suggestion()
                 @show_description result.description
             else
-                @hide_suggestion()
-                @hide_description()
+                @hide_suggestion_and_description()
 
-
-
-
-            
         # Extract information from the current query
+        # Regex used
         regex:
             anonymous:/^(\s)*function\(([a-zA-Z0-9,\s]*)\)(\s)*{/
             method: /^(\s)*([a-zA-Z]+)\(/ # forEach( merge( filter(
@@ -460,13 +464,13 @@ module 'DataExplorerView', ->
             number: /^[0-9]+\.?[0-9]*/
             get_first_non_white_char: /\s*(\S+)/
             last_char_is_white: /.*(\s+)$/
-        stop_char:
+        stop_char: # Just for performance
             opening:
                 '(': true
                 '{': true
                 '[': true
             closing:
-                ')': '('
+                ')': '(' # Match the opening character
                 '}': '{'
                 ']': '['
 
@@ -474,8 +478,6 @@ module 'DataExplorerView', ->
         ### 
         element.type in ['string', 'function', 'var', 'separator', 'anonymous_function', 'object']
         TODO Collapse the query.slice(...)
-        TODO Pass position
-        
         ###
         extract_data_from_query: (args) =>
             query = args.query
@@ -519,7 +521,6 @@ module 'DataExplorerView', ->
                             element.type = 'string'
                             start = i
                         continue
-
                    
                     if element.type is null
                         if start is i
@@ -578,7 +579,6 @@ module 'DataExplorerView', ->
                                 to_skip = result_regex[0].length-1
                                 stack_stop_char = ['[']
                                 continue
-
 
                             if char is '.'
                                 new_start = i+1
@@ -879,7 +879,6 @@ module 'DataExplorerView', ->
                 stack.push element
             return stack
 
-
         # TODO return type
         create_suggestion: (args) =>
             stack = args.stack
@@ -899,7 +898,7 @@ module 'DataExplorerView', ->
                 if element.body? and element.body.length > 0 and element.complete is false
                     @create_suggestion
                         stack: element.body
-                        query: args.query
+                        query: args?.query
                         result: args.result
 
                 if result.status is 'done'
@@ -911,7 +910,6 @@ module 'DataExplorerView', ->
                     if element.complete is true
                         ###
                         if (element.type is 'function' and @map_state[element.name] is 'json') or (element.type is 'var' and element.real_type is 'json')
-                            console.log "It's working"
                             result.suggestions = ['(']
                             result.state = 'json'
                             result.description = null
@@ -1030,10 +1028,6 @@ module 'DataExplorerView', ->
         # Current refactoring ends here for Container
         ###
 
-
-
-
-
         # Return the first unmatched closing parenthesis/square bracket/curly bracket
         # Returns
         #   error: true
@@ -1121,19 +1115,20 @@ module 'DataExplorerView', ->
         hide_description: =>
             @.$('.suggestion_description').hide()
             @show_or_hide_arrow()
+        hide_suggestion_and_description: =>
+            @hide_suggestion()
+            @hide_description()
 
+        # Show the arrow if suggestion or/and description is being displayed
         show_or_hide_arrow: =>
             if @.$('.suggestion_name_list').css('display') is 'none' and @.$('.suggestion_description').css('display') is 'none'
                 @.$('.arrow').hide()
             else
                 @.$('.arrow').show()
 
-
         move_suggestion: =>
             margin_left = parseInt(@.$('.CodeMirror-cursor').css('left').replace('px', ''))+27
-
             @.$('.arrow').css 'margin-left', margin_left
-
             if margin_left < 200
                 @.$('.suggestion_full_container').css 'left', '0px'
             else
@@ -1145,120 +1140,15 @@ module 'DataExplorerView', ->
                     margin_left = Math.min max_margin, Math.floor(margin_left/100)*100
                     @.$('.suggestion_full_container').css 'left', (margin_left-100)+'px'
 
-           
-
-
-            ###
-            errors = @get_errors_from_query @codemirror.getValue()
-
-            # Check if we are in a string or in the middle of a word, if we are in a string, we just show the description
-            is_in_string = @is_in_string query_before_cursor
-            if is_in_string.boolean is true
-                @hide_suggestion()
-                last_function_for_description = @extract_last_function_for_description
-                    is_string: true
-                    char_used: is_in_string.char_used
-                    query: query_before_cursor
-                if last_function_for_description isnt ''
-                    @add_description last_function_for_description
-                return ''
-            
-            # We do not suggest things if in the middle of a word
-            index_next_character = 0
-            while query_after_cursor[index_next_character]?
-                if /\s/.test(query_after_cursor[index_next_character]) is false
-                    next_non_white_character = query_after_cursor[index_next_character]
-                    break
-                index_next_character++
-            if next_non_white_character? and next_non_white_character isnt '.' and next_non_white_character isnt ',' and next_non_white_character isnt ')' and next_non_white_character isnt ';'
-                @hide_suggestion()
-                last_function_for_description = @extract_last_function_for_description(query_before_cursor)
-                if last_function_for_description isnt ''
-                    @add_description last_function_for_description
-                return ''
-
-            # Extract the current query (the inner query)
-            slice_index = @extract_query_first_part query_before_cursor
-            query = query_before_cursor.slice slice_index
-            
-            # Store data to reconstruct when a suggestion is selected
-            @query_first_part = query_before_cursor.slice 0, slice_index
-            @query_last_part = query_after_cursor
-
-            # Get the last completed function for description and suggestion
-            last_function = @extract_last_function(query)
-            just_description = false # Boolean to know if we want to display just the description and not the suggestions
-            # Hack in case a new parenthesis is opened. Ex: r.table('foo').filter( // We want to describe filter, not suggest r(
-            if /^\s*$/.test(query) is true or last_function is '' # We have an empty cursor
-                last_function_full = @extract_last_function_for_description(query_before_cursor)
-                if last_function_full isnt ''
-                    last_function = last_function_full
-                    just_description = true
-
-            # Hack because last_function returns 'r' if the query is 'r'. and r isn't a function
-            if last_function is query and last_function is 'r'
-                last_function = ''
-
-            if @map_state[last_function]? and @suggestions[@map_state[last_function]]?
-                if not @suggestions[@map_state[last_function]]? or @suggestions[@map_state[last_function]].length is 0 or just_description is true
-                    @hide_suggestion()
-                    last_function_for_description = @extract_last_function_for_description(query_before_cursor)
-
-                    if last_function_for_description isnt ''
-                        @add_description last_function_for_description
-                else
-                    could_append = @append_suggestion(query, @suggestions[@map_state[last_function]])
-                    if could_append is false # We couldn't find any suggestion that matched. We are probably at the end of a function (closing parenthesis)
-                        last_function_for_description = @extract_last_function_for_description(query_before_cursor)
-
-                        if last_function_for_description isnt ''
-                            @add_description last_function_for_description
-            else
-                @hide_suggestion()
-                last_function_for_description = @extract_last_function_for_description(query_before_cursor)
-
-                if last_function_for_description isnt ''
-                    @add_description last_function_for_description
-            ###
-            return false
-
-        # Check if the end of the query is in the middle of a string. 
-        is_in_string: (query) ->
-            is_string = false
-            char_used = ''
-            
-            for char, i in query
-                if is_string is false
-                    if char is '"' or char is '\''
-                        is_string = true
-                        char_used = char
-
-
-                else
-                    if char is char_used and query[i-1] isnt '\\' # It's safe to get query[i-1] because is_string cannot be true for the first char
-                        is_string = false
-
-            boolean: is_string
-            char_used: char_used
-        # Hipsters stuff
-        
         #Highlight suggestion. Method called when the user hit tab or mouseover
         highlight_suggestion: (id) =>
             @.$('.suggestion_name_li').removeClass 'suggestion_name_li_hl'
             @.$('.suggestion_name_li').eq(id).addClass 'suggestion_name_li_hl'
             @.$('.suggestion_description').html @description_template @extend_description @current_suggestions[id]
-            @show_suggestion_description()
-
-        # Show the description of the suggestion
-        show_suggestion_description: =>
-            margin = (parseInt(@.$('.CodeMirror-cursor').css('top').replace('px', ''))+@line_height)+'px'
-            @.$('.suggestion_full_container').css 'margin-top', margin
-            @.$('.arrow').css 'margin-top', margin
-
+            
             @.$('.suggestion_description').show()
-            @.$('.arrow').show()
 
-        # Write the suggestion
+        # Write the suggestion in the code mirror
         write_suggestion: (args) =>
             suggestion_to_write = args.suggestion_to_write
             @codemirror.setValue @query_first_part+suggestion_to_write+@query_last_part
@@ -1268,10 +1158,7 @@ module 'DataExplorerView', ->
                 line: @cursor_for_auto_completion.line
                 ch: @cursor_for_auto_completion.ch+suggestion_to_write.length
 
-
-            # TODO save data
-
-        # Select the suggestion highlighted
+        # Select the suggestion. Called by mousdown .suggestion_name_li
         select_suggestion: (event) =>
             suggestion_to_write = @.$(event.target).html()
             @write_suggestion
@@ -1291,21 +1178,13 @@ module 'DataExplorerView', ->
 
         # Hide suggestion in case of a mouse out
         mouseout_suggestion: (event) =>
-            @hide_suggestion_description()
-
-
-
-        # Hide the description
-        hide_suggestion_description: =>
-            @.$('.suggestion_description').html ''
-            @.$('.suggestion_description').css 'display', 'none'
-            @.$('.arrow').hide()
+            @hide_description()
 
 
         #TODO refactor show_suggestion, show_suggestion_description, add_description
 
-
         # Extend description for db() and table() with a list of databases or namespaces
+        # TODO refactor extend_description and extract_database_used. We can just use the stack built by extract_data_from_query
         extend_description: (fn) =>
             if @options?.can_extend? and @options?.can_extend is false
                 return @descriptions[fn]
@@ -1393,211 +1272,6 @@ module 'DataExplorerView', ->
                     db_found: false
                     error: true
                 }
-            
-        add_description: (fn) =>
-            if @descriptions[fn]?
-                margin = (parseInt(@.$('.CodeMirror-cursor').css('top').replace('px', ''))+@line_height)+'px'
-
-                @.$('.suggestion_full_container').css 'margin-top', margin
-                @.$('.arrow').css 'margin-top', margin
-
-                @.$('.suggestion_description').html @description_template @extend_description fn
-
-                @.$('.suggestion_description').css 'display', 'block'
-                @move_suggestion()
-                @show_or_hide_arrow()
-
-        # Expand the textarea of the raw view
-        expand_textarea: (event) =>
-            if @.$('.input_query').length is 1
-                @.$('.input_query').height 0
-                height = @.$('.input_query').prop('scrollHeight') # We should have -8 but Firefox doesn't add padding in scrollHeight... Maybe we should start adding hacks...
-                @.$('.input_query').css 'height', height if @.$('.input_query').height() isnt height
-
-
-        # Extract the last function to give a description
-        # r.table(...).filter( function(doc) { => filter
-        # r.table(...).filter( function(doc) { r( => r
-        # r.table(...).filter( function(doc) { doc('test => (
-        # r.table(...).filter( function(doc) { r.row('key').add( => add
-        # r.table(...).filter( function(doc) { r.row('key').add('fdsf => add
-        extract_last_function_for_description: (args) =>
-            is_string = if args.is_string? then args.is_string else false
-            char_used = if args.char_used? then args.char_used else true
-            query = args.query
-
-            num_not_open_parenthesis = 0
-
-            for i in [query.length-1..0] by -1
-                char = query[i]
-                if is_string is false
-                    if char is '"' or char is '\''
-                        is_string = true
-                        char_used = char
-                    else if query[i] is '(' and num_not_open_parenthesis >= 0
-                        if @is_in_string(query.slice(0, i)) is false
-                            num_not_open_parenthesis--
-                            end = i+1
-                    else if query[i] is '(' and num_not_open_parenthesis < 0
-                        return query.slice i+1, end
-                    else if query[i] is ')'
-                        num_not_open_parenthesis++
-                    else if query[i] is '.' and num_not_open_parenthesis < 0
-                        return query.slice i+1, end
-                else
-                    if char is char_used and ((not query[i-1]?) or query[i-1] isnt '\\') # It's safe to get query[i-1] because is_string cannot be true for the first char
-                        is_string = false
-
-
-
-                if query[i] is '(' and num_not_open_parenthesis >= 0
-                    if @is_in_string(query.slice(0, i)) is false
-                        num_not_open_parenthesis--
-                        end = i+1
-                else if query[i] is '(' and num_not_open_parenthesis < 0
-                    return query.slice i+1, end
-                else if query[i] is ')'
-                    if @is_in_string(query.slice(0, i)) is false
-                        num_not_open_parenthesis++
-                else if query[i] is '.' and num_not_open_parenthesis < 0
-                    return query.slice i+1, end
-            if end?
-                return query.slice 0, end
-
-            return ''
-
-
-
-        # Extract the last completed function of the current line, taking in account if we are in a string
-        # Ex: r.d => r
-        # Ex: r.db('test').table( => db(
-        # Ex: r.db( => r
-        extract_last_function: (query) =>
-            count_dot = 0
-            first_dot_position = 0
-            second_dot_position = query.length
-
-            num_not_open_parenthesis = 0
-
-            is_string = false
-            char_used = ''
-            for i in [query.length-1..0] by -1
-                if is_string is false
-                    if (query[i] is '"' or query[i] is '\'')
-                        is_string = true
-                        char_used = query[i]
-                    else if query[i] is ',' and num_not_open_parenthesis<=0
-                        if first_dot_position is 0
-                            first_dot_position = i+1
-                        break
-                    else if query[i] is '('
-                        num_not_open_parenthesis--
-                    else if query[i] is ')'
-                        num_not_open_parenthesis++
-                    else if query[i] is '.' and num_not_open_parenthesis <= 0
-                        count_dot++
-                        if count_dot is 1
-                            second_dot_position = i
-                        else if count_dot is 2
-                            first_dot_position = i+1
-                            break
-                else if is_string is true
-                    if query[i] is char_used
-                        if query[i-1]? and query[i-1] is '\\'
-                            continue
-                        else
-                            is_string = false
-
-            parenthesis_position = query.indexOf('(', first_dot_position+1)
-            if parenthesis_position is -1
-                parenthesis_position = query.length
-            else
-                parenthesis_position++
-
-            if parenthesis_position is 0
-                end = second_dot_position
-            else if parenthesis_position < second_dot_position
-                end = parenthesis_position
-            else
-                end = second_dot_position
-        
-
-            return query.slice(first_dot_position, end).replace(/\s/g, '')
-
-
-
-        # Return the position of the beggining of the first subquery
-        extract_query_first_part: (query) ->
-            is_string = false
-            char_used = ""
-            count_opening_parenthesis = 0
-            for i in [query.length-1..0] by -1
-                if is_string is false
-                    if (query[i] is '"' or query[i] is '\'')
-                        is_string = true
-                        char_used = query[i]
-                    else if query[i] is ';'
-                        k = 0 # Strip white char
-                        while query[i+1+k]? and /\s/.test(query[i+1+k])
-                            k++
-                        return i+1+k
-                    else if query[i] is ',' and count_opening_parenthesis >= 0
-                            k = 0 # Strip white char
-                            while query[i+1+k]? and /\s/.test(query[i+1+k])
-                                k++
-                            return i+1+k
-                    else if query[i] is '('
-                        count_opening_parenthesis++
-                        if count_opening_parenthesis > 0
-                            k = 0 # Strip white char
-                            while query[i+1+k]? and /\s/.test(query[i+1+k])
-                                k++
-                            return i+1+k
-                    else if query[i] is ')'
-                        count_opening_parenthesis--
-
-                else if is_string is true
-                    if query[i] is char_used
-                        if query[i-1]? and query[i-1] is '\\'
-                            continue
-                        else
-                            is_string = false
-            return 0
-
-        # Append suggestion and display them or hide them if suggestions is empty
-        # Returns true if we found some suggestion, else false
-        append_suggestion: (query, suggestions) =>
-            @hide_suggestion()
-            splitdata = query.split('.')
-            @current_completed_query = ''
-            if splitdata.length>1
-                for i in [0..splitdata.length-2]
-                    @current_completed_query += splitdata[i]+'.'
-            if splitdata.length > 1
-                element_currently_written = splitdata[splitdata.length-1]
-            else
-                element_currently_written = query
-
-
-            for char in @unsafe_to_safe_regexstr
-                element_currently_written = element_currently_written.replace char.pattern, char.replacement
-            found_suggestion = false
-            pattern = new RegExp('^('+element_currently_written+')', 'i')
-            @current_suggestions = []
-            for suggestion, i in suggestions
-                if pattern.test(suggestion)
-                    found_suggestion = true
-                    @current_suggestions.push suggestion
-                    @.$('.suggestion_name_list').append @template_suggestion_name
-                        id: i
-                        suggestion: suggestion
-
-            if found_suggestion
-                @show_suggestion()
-                return true
-            else
-                @hide_suggestion()
-                return false
 
         # Callback used by the cursor when the user hit 'more results'
         callback_query: (data) =>
@@ -1617,22 +1291,19 @@ module 'DataExplorerView', ->
                 @.$('.loading_query_img').css 'display', 'none'
 
                 # Save the last executed query and the last displayed results
-                @saved_data.last_query = @query
-                @saved_data.last_results = @current_results
-                @results_view.render_result
-                    query: null
-                    results: @current_results # The first parameter null is the query because we don't want to display it.
-
-                execution_time = new Date() - @start_time
-                metadata =
+                @saved_data.query = @query
+                @saved_data.results = @current_results
+                
+                @saved_data.metadata =
                     limit_value: @current_results.length
                     skip_value: @skip_value
-                    execution_time: execution_time
+                    execution_time: new Date() - @start_time
                     query: @query
                     has_more_data: (true if data?) # if data is undefined, it means that there is no more data
-                @saved_data.last_metadata = metadata # Let's save the metadata too.
-
-                @results_view.render_metadata metadata
+                @results_view.render_result
+                    query: null # We don't want to display this query because it's freshly executed
+                    results: @current_results # The first parameter null is the query because we don't want to display it.
+                    metadata: @saved_data.metadata
 
                 if data isnt undefined #there is nore data
                     @skip_value += @current_results.length
@@ -1642,13 +1313,13 @@ module 'DataExplorerView', ->
 
         # Function triggered when the user click on 'more results'
         show_more_results: (event) =>
-            if @last_results isnt null
-                @results_view.update_start_record @last_results.length
+            if @current_results isnt null
+                @results_view.update_start_record @current_results.length
             try
                 event.preventDefault()
                 @current_results = []
                 @start_time = new Date()
-                @last_cursor.next(@callback_query)
+                @saved_data.cursor.next(@callback_query)
                 $(window).scrollTop(@.$('.results_container').offset().top)
             catch err
                 @.$('.loading_query_img').css 'display', 'none'
@@ -1681,22 +1352,21 @@ module 'DataExplorerView', ->
                     @.$('.loading_query_img').css 'display', 'none'
 
                     # Save the last executed query and the last displayed results
-                    @saved_data.last_query = @query
-                    @saved_data.last_results = @current_results
+                    @saved_data.query = @query
+                    @saved_data.results = @current_results
+                    @saved_data.metadata =
+                        limit_value: @current_results.length
+                        skip_value: @skip_value
+                        execution_time: new Date() - @start_time
+                        query: @query
+                        has_more_data: (true if data?) # if data is undefined, it means that there is no more data
+
+                    @save_data_in_localstorage()
+
                     @results_view.render_result
                         query: null
                         results: @current_results # The first parameter is null ( = query, so we don't display it)
-
-                    execution_time = new Date() - @start_time
-                    metadata =
-                        limit_value: @current_results.length
-                        skip_value: @skip_value
-                        execution_time: execution_time
-                        query: @query
-                        has_more_data: (true if data?) # if data is undefined, it means that there is no more data
-                    @saved_data.last_metadata = metadata # Saving the metadata
-
-                    @results_view.render_metadata metadata
+                        metadata: @saved_data.metadata
 
                     if data isnt undefined #there is nore data
                         @skip_value += @current_results.length
@@ -1713,7 +1383,7 @@ module 'DataExplorerView', ->
                     @skip_value = 0
 
                     @cursor = eval(@queries[@current_query_index])
-                    @saved_data.last_cursor = @cursor # Saving the cursor so the user can call more results later
+                    @saved_data.cursor = @cursor # Saving the cursor so the user can call more results later
                     @cursor.next(@callback_multiple_queries)
                 catch err
                     @.$('.loading_query_img').css 'display', 'none'
@@ -1732,31 +1402,18 @@ module 'DataExplorerView', ->
         # - We don't execute q1_3
         # - User retrieve results for q2
         execute_query: =>
+            # Initialize start
             @results_view.set_start_record 1
             # The user just executed a query, so we reset cursor_timed_out to false
             @saved_data.cursor_timed_out = false
+            @saved_data.show_query = false
 
             # postpone reconnection
             @driver_handler.postpone_reconnection()
 
-            @query = @codemirror.getValue()
-
-            # Replace new lines with \n so the query is not splitted.
-            is_string = false
-            char_used = ''
-            i = 0
-            while i < @query.length
-                if is_string is true
-                    if @query[i] is char_used
-                        if @query[i-1]? and @query[i-1] isnt '\\'
-                            @query = @query.slice(0, start_string) + @query.slice(start_string, i).replace('\n', '\\n') + @query.slice(i)
-                            is_string = false
-                else if is_string is false
-                    if @query[i] is '\'' or @query[i] is '"'
-                        is_string = true
-                        start_string = i
-                        char_used = @query[i]
-                i++
+            query = @codemirror.getValue()
+            @save_query query
+            @query = @replace_new_lines_in_query query # Save it because we'll use it in @callback_multilples_queries
             
             # Display the loading gif
             @.$('.loading_query_img').css 'display', 'block'
@@ -1775,12 +1432,31 @@ module 'DataExplorerView', ->
 
                 @cursor = eval(@queries[@current_query_index])
                 # Save the last cursor to fetch more results later
-                @saved_data.last_cursor = @cursor
+                @saved_data.cursor = @cursor
                 @cursor.next(@callback_multiple_queries)
 
             catch err
                 @.$('.loading_query_img').css 'display', 'none'
                 @results_view.render_error(@query, err)
+
+        # Replace new lines with \n so the query is not splitted.
+        replace_new_lines_in_query: (query) ->
+            is_string = false
+            char_used = ''
+            i = 0
+            while i < query.length
+                if is_string is true
+                    if query[i] is char_used
+                        if query[i-1]? and query[i-1] isnt '\\'
+                            query = query.slice(0, start_string) + query.slice(start_string, i).replace('\n', '\\n') + query.slice(i)
+                            is_string = false
+                else if is_string is false
+                    if query[i] is '\'' or query[i] is '"'
+                        is_string = true
+                        start_string = i
+                        char_used = query[i]
+                i++
+            return query
 
         # Separate the queries so we can execute them in a synchronous order. We use .run()\s*; to separate queries (and we make sure that the separator is not in a string)
         separate_queries: (query) =>
@@ -1839,7 +1515,7 @@ module 'DataExplorerView', ->
 
         # Called if the driver could connect
         success_on_connect: =>
-            @results_view.check_if_cursor_timed_out()
+            @results_view.cursor_timed_out()
             # If the we were disconnected because of an error, we say that we did reconnect
             if window.driver_connected_previous_state is false
                 @.$('#user-alert-space').hide()
@@ -1850,7 +1526,7 @@ module 'DataExplorerView', ->
 
         # Called if the driver could not connect
         error_on_connect: =>
-            @results_view.check_if_cursor_timed_out()
+            @results_view.cursor_timed_out()
             # We fail to connect, so we display a message except if we were already disconnected and we are not trying to manually reconnect
             # So if the user fails to reconnect after a failure, the alert will still flash
             if window.driver_connected_previous_state isnt false or @reconnecting is true
@@ -2328,8 +2004,23 @@ module 'DataExplorerView', ->
                 @query = args.query
             if args?.results?
                 @results = args.results
-            @.$el.html @template
-                query: @query
+            if args?.metadata?
+                @metadata = args.metadata
+
+                if args.metadata.execution_time?
+                    if args.metadata.execution_time < 1000
+                        @metadata.execution_time_pretty = args.metadata.execution_time+"ms"
+                    else if args.metadata.execution_time < 60*1000
+                        @metadata.execution_time_pretty = (args.metadata.execution_time/1000).toFixed(2)+"s"
+                    else # We do not expect query to last one hour.
+                        minutes = Math.floor(args.metadata.execution_time/(60*1000))
+                        @metadata.execution_time_pretty = minutes+"min "+((args.metadata.execution_time-minutes*60*1000)/1000).toFixed(2)+"s"
+
+            @.$el.html @template _.extend @metadata,
+                query: (@query if @container.saved_data.show_query is true)
+                show_more_data: @metadata.has_more_data is true and @container.saved_data.cursor_timed_out is false
+                cursor_timed_out_template: (@cursor_timed_out_template() if @metadata.has_more_data is true and @container.saved_data.cursor_timed_out is true)
+                execution_time_pretty: @metadata.execution_time_pretty
 
             switch @prototype.view
                 when 'tree'
@@ -2404,8 +2095,7 @@ module 'DataExplorerView', ->
 
             @set_scrollbar()
             @delegateEvents()
-            if (not args?.query?) and (not args?.results?)
-                @render_metadata()
+            return @
  
         set_scrollbar: =>
             if @view is 'table'
@@ -2440,7 +2130,7 @@ module 'DataExplorerView', ->
                         # Sometimes we don't have to display the scrollbar (when the results are not shown because the query is too big)
                         if $(window).scrollTop()+$(window).height() < $(content_container).offset().top+20 # bottom of the window < beginning of $('.json_table_container') // 20 pixels is the approximate height of the scrollbar (so we don't show JUST the scrollbar)
                             that.$('.wrapper_scrollbar').hide()
-                        # We show the scrollbar and stick it to the bottom of the window because there is more content below
+                        # We show the scrollbar and stick it to the bottom of the window because there ismore content below
                         else if $(window).scrollTop()+$(window).height() < $(content_container).offset().top+$(content_container).height() # bottom of the window < end of $('.json_table_container')
                             that.$('.wrapper_scrollbar').show()
                             that.$('.wrapper_scrollbar').css 'overflow', 'auto'
@@ -2457,51 +2147,11 @@ module 'DataExplorerView', ->
                 $(window).resize ->
                     position_scrollbar()
 
-
-
-        # Render the metadata of an the results
-        render_metadata: (data) =>
-            if data?
-                @metadata = data
-            else # If we have called render_metadata() without arguments, it's because we just switched view
-                data = @metadata
-
-            limit_value = data.limit_value
-            skip_value = data.skip_value
-            execution_time = data.execution_time
-            query = data.query
-            has_more_data = data.has_more_data
-
-            if execution_time?
-                if execution_time < 1000
-                    execution_time_pretty = execution_time+"ms"
-                else if execution_time < 60*1000
-                    execution_time_pretty = (execution_time/1000).toFixed(2)+"s"
-                else # We do not expect query to last one hour.
-                    minutes = Math.floor(execution_time/(60*1000))
-                    execution_time_pretty = minutes+"min "+((execution_time-minutes*60*1000)/1000).toFixed(2)+"s"
-
-            data =
-                skip_value: skip_value
-                limit_value: limit_value
-                execution_time: (execution_time_pretty if execution_time_pretty?)
-
-            @.$('.metadata').html @metadata_template data
-
-            # TODO Since we removed pagination and iter, this thing should be moved in render_results or another method.
-            #render pagination
-            if has_more_data? and has_more_data is true
-                @check_if_cursor_timed_out()
-                @.$('.more_results').show()
-            else
-                @.$('.more_results').hide()
             
         # Check if the cursor timed out. If yes, make sure that the user cannot fetch more results
-        check_if_cursor_timed_out: =>
-
-            if @prototype.cursor_timed_out is true
-                @.$('.more_results_paragraph').html @cursor_timed_out_template()
-
+        cursor_timed_out: =>
+            if @container.saved_data.has_more_data is true and @container.saved_data.cursor_timed_out is true
+                @$('.more_results_paragraph').html @cursor_timed_out_template()
 
         render: =>
             @delegateEvents()
@@ -2558,8 +2208,6 @@ module 'DataExplorerView', ->
 
             @connect()
 
-
-
         connect: =>
             # Whether we are going to reconnect or not, the cursor might have timed out.
             @container.saved_data.cursor_timed_out = true
@@ -2571,8 +2219,8 @@ module 'DataExplorerView', ->
                     catch err
                         # Nothing bad here, let's just not pollute the console
 
-                window.conn = r.connect window.server, @on_successs, @on_fail
             @connection = r.connect @server, @on_success, @on_fail
+            @container.saved_data.cursor_timed_out = true
             @timeout = setTimeout @connect, 5*60*1000
     
         postpone_reconnection: =>
