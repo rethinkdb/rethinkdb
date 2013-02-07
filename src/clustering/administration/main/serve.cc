@@ -140,7 +140,7 @@ bool do_serve(
         if (address_ports.port != 0) {
             guarantee(address_ports.port == connectivity_cluster_run.get_port());
         }
-        logINF("Listening for intracluster connections on port %d.\n", connectivity_cluster_run.get_port());
+        logINF("Listening for intracluster connections on port %d\n", connectivity_cluster_run.get_port());
 
         auto_reconnector_t auto_reconnector(
             &connectivity_cluster,
@@ -301,9 +301,9 @@ bool do_serve(
                 rdb_protocol::query_http_app_t rdb_parser(semilattice_manager_cluster.get_root_view(), &rdb_namespace_repo);
 
                 query_server_t rdb_pb_server(address_ports.local_addresses, address_ports.reql_port, &rdb_ctx);
-                logINF("Listening for client driver connections on port %d.\n", rdb_pb_server.get_port());
+                logINF("Listening for client driver connections on port %d\n", rdb_pb_server.get_port());
                 query2_server_t rdb_pb2_server(address_ports.local_addresses, address_ports.reql_port+1, &rdb_ctx);
-                logINF("Listening for client driver2 connections on port %d.\n", rdb_pb2_server.get_port());
+                logINF("Listening for client driver2 connections on port %d\n", rdb_pb2_server.get_port());
 
                 scoped_ptr_t<metadata_persistence::semilattice_watching_persister_t> persister(!i_am_a_server ? NULL :
                     new metadata_persistence::semilattice_watching_persister_t(
@@ -330,11 +330,11 @@ bool do_serve(
                                 rdb_pb_server.get_http_app(),
                                 machine_id,
                                 web_assets));
-                        logINF("Listening for administrative HTTP connections on port %d.\n", admin_server_ptr->get_port());
+                        logINF("Listening for administrative HTTP connections on port %d\n", admin_server_ptr->get_port());
                     }
 
                     const std::string addresses_string = address_ports.get_addresses_string();
-                    logINF("Listening on addresses: %s.\n", addresses_string.c_str());
+                    logINF("Listening on addresses: %s\n", addresses_string.c_str());
 
                     if (!address_ports.is_bind_all()) {
                         logINF("To fully expose RethinkDB on the network, bind to all addresses");
