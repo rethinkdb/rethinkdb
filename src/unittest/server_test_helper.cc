@@ -1,14 +1,18 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
+#include "unittest/server_test_helper.hpp"
+
+#include "errors.hpp"
 #include <boost/bind.hpp>
 
-#include "arch/arch.hpp"
+#include "arch/io/disk.hpp"
+#include "arch/runtime/thread_pool.hpp"
+#include "arch/timing.hpp"
 #include "btree/slice.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 #include "mock/unittest_utils.hpp"
 #include "serializer/config.hpp"
 #include "serializer/log/log_serializer.hpp"
 #include "serializer/translator.hpp"
-#include "unittest/server_test_helper.hpp"
 
 namespace unittest {
 
@@ -58,8 +62,8 @@ void server_test_helper_t::run_serializer_tests() {
     mirrored_cache_static_config_t cache_static_cfg;
     cache_t::create(this->serializer, &cache_static_cfg);
     mirrored_cache_config_t cache_cfg;
-    cache_cfg.flush_timer_ms = 1000000;
-    cache_cfg.flush_dirty_size = 1000000000;
+    cache_cfg.flush_timer_ms = MILLION;
+    cache_cfg.flush_dirty_size = BILLION;
     cache_cfg.max_size = GIGABYTE;
     cache_t cache(this->serializer, &cache_cfg, &get_global_perfmon_collection());
 

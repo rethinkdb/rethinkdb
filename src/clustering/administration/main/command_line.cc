@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "clustering/administration/main/command_line.hpp"
 
 #include <signal.h>
@@ -13,7 +13,7 @@
 #include <boost/bind.hpp>
 #include <boost/program_options.hpp>
 
-#include "arch/arch.hpp"
+#include "arch/io/disk.hpp"
 #include "arch/os_signal.hpp"
 #include "arch/runtime/starter.hpp"
 #include "clustering/administration/cli/admin_command_parser.hpp"

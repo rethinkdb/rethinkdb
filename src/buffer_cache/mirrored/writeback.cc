@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "buffer_cache/mirrored/writeback.hpp"
 
 #include <math.h>
@@ -6,7 +6,7 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
-#include "arch/arch.hpp"
+#include "arch/runtime/runtime.hpp"
 #include "buffer_cache/mirrored/mirrored.hpp"
 #include "containers/scoped.hpp"
 #include "perfmon/perfmon.hpp"
@@ -149,7 +149,7 @@ void writeback_t::on_transaction_commit(transaction_t *txn) {
         if (!flush_timer && !flush_time_randomizer.is_never_flush() && !flush_time_randomizer.is_zero()) {
             /* Start the flush timer so that the modified data doesn't sit in memory for too long
             without being written to disk and the patches_size_ratio gets updated */
-            flush_timer = fire_timer_once(flush_time_randomizer.next_time_interval(), flush_timer_callback, this);
+            flush_timer = fire_timer_once(flush_time_randomizer.next_time_interval(), this);
         }
     }
 }
@@ -212,13 +212,14 @@ bool writeback_t::can_read_ahead_block_be_accepted(block_id_t block_id) {
     return reject_read_ahead_blocks.find(block_id) == reject_read_ahead_blocks.end();
 }
 
-void writeback_t::flush_timer_callback(void *ctx) {
-    writeback_t *self = static_cast<writeback_t *>(ctx);
-    self->flush_timer = NULL;
+void writeback_t::on_timer() {
+    // The flush timer callback.
 
-    self->cache->assert_thread();
+    flush_timer = NULL;
 
-    self->cache->stats->pm_patches_size_ratio.record(self->cache->get_max_patches_size_ratio());
+    cache->assert_thread();
+
+    cache->stats->pm_patches_size_ratio.record(cache->get_max_patches_size_ratio());
 
     /*
      * Update the max_patches_size_ratio. If we detect that the previous writeback
@@ -231,24 +232,24 @@ void writeback_t::flush_timer_callback(void *ctx) {
      * and gradually increase max_patches_size_ratio towards MAX_PATCHES_SIZE_RATIO_MAX
      * to save the overhead associated with managing and writing patches.
      */
-    if (self->active_flushes < self->max_concurrent_flushes || self->num_dirty_blocks() < self->max_dirty_blocks * RAISE_PATCHES_RATIO_AT_FRACTION_OF_UNSAVED_DATA_LIMIT) {
+    if (active_flushes < max_concurrent_flushes || num_dirty_blocks() < max_dirty_blocks * RAISE_PATCHES_RATIO_AT_FRACTION_OF_UNSAVED_DATA_LIMIT) {
         /* The currently running writeback probably finished on-time. (of we have enough headroom left before hitting the unsaved data limit)
         Adjust max_patches_size_ratio to trade i/o efficiency for CPU cycles */
-        if (!self->wait_for_flush) {
-            self->cache->adjust_max_patches_size_ratio_toward_minimum();
+        if (!wait_for_flush) {
+            cache->adjust_max_patches_size_ratio_toward_minimum();
         }
     } else {
         /* The currently running writeback apparently takes too long.
         try to reduce that bottleneck by adjusting max_patches_size_ratio */
-        if (!self->wait_for_flush) {
-            self->cache->adjust_max_patches_size_ratio_toward_maximum();
+        if (!wait_for_flush) {
+            cache->adjust_max_patches_size_ratio_toward_maximum();
         }
     }
 
     /* Don't sync if we're in the shutdown process, because if we do that we'll trip an rassert() on
     the cache, and besides we're about to sync anyway. */
-    if (!self->cache->shutting_down && (self->num_dirty_blocks() > 0 || self->sync_callbacks.size() > 0)) {
-        self->sync(NULL);
+    if (!cache->shutting_down && (num_dirty_blocks() > 0 || sync_callbacks.size() > 0)) {
+        sync(NULL);
     }
 }
 
