@@ -17,6 +17,10 @@ class BacktraceTest < Test::Unit::TestCase
     assert_bt([2]) { r([1,2,3,4,5]).slice(0, "a").run }
     assert_bt([1]) { r([1,2,3,4,5]).slice(tbl, 0).run }
     assert_bt([1]) { r([1,2,3,4,5]).slice("a", 0).run }
+
+    assert_bt([0, 0, 2]) { r([1,2,3]).slice(0,:a).slice(0,0).slice(0,0).run }
+    assert_bt([0, 2]) { r([1,2,3]).slice(0,0).slice(0,:a).slice(0,0).run }
+    assert_bt([0, 0, 0]) { r.error('a').slice(0,:a).slice(0,0).slice(0,0).run }
   end
 
   def test_map_concatmap
