@@ -34,6 +34,18 @@ class BacktraceTest < Test::Unit::TestCase
     assert_bt([0, 2]) { tbl.slice(0,0).slice(0,:a).slice(0,0).run }
   end
 
+  def test_count
+    assert_bt([0, 0, 0, 2]) { tbl.slice(0,:a).slice(0,0).slice(0,0).count.run }
+  end
+
+  def test_reduce
+    assert_bt([1, 1]) { r([1,2,"a"]).reduce{|x,y|x+y} }
+    assert_bt([1, 1, 0]) { r([1,2,"a"]).reduce{|x,y|[x+y]} }
+    assert_bt([0, 0, 1, 1]) {
+      r([1,2,"a"]).map{|x|x}.map{|x|r.error("a")}.map{|x|x}.reduce{|x,y|[x+y]}
+    }
+  end
+
   def test_map_concatmap
     assert_equal([1, 1, 2],
                  bt{r.concatmap(r.map([1], r.func([], 1)),
