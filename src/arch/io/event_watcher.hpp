@@ -29,6 +29,9 @@ public:
 
     bool is_watching(int event);
 
+    // TODO: This is a complete hack, kill yourself out of shame for the human race.
+    void stop_watching_for_errors();
+
 private:
     fd_t fd;
     linux_event_callback_t *error_handler;
@@ -39,6 +42,8 @@ private:
 #ifdef __linux
     watch_t *rdhup_watcher;
 #endif
+
+    bool stopped_watching_for_errors;
 
     int old_mask;
     void remask();

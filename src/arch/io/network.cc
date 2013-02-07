@@ -247,7 +247,6 @@ void linux_tcp_conn_t::pop(size_t len, signal_t *closer) THROWS_ONLY(tcp_conn_re
 }
 
 void linux_tcp_conn_t::shutdown_read() {
-    // debugf("calling shutdown SHUT_RD\n");
     assert_thread();
     int res = ::shutdown(sock.get(), SHUT_RD);
     if (res != 0 && errno != ENOTCONN) {
@@ -461,7 +460,6 @@ void linux_tcp_conn_t::flush_buffer_eventually(signal_t *closer) THROWS_ONLY(tcp
 
 void linux_tcp_conn_t::shutdown_write() {
     assert_thread();
-    // debugf("calling shutdown SHUT_WR\n");
 
     int res = ::shutdown(sock.get(), SHUT_WR);
     if (res != 0 && errno != ENOTCONN) {
@@ -534,78 +532,21 @@ int linux_tcp_conn_t::getpeername(ip_address_t *ip) {
     return res;
 }
 
-void linux_tcp_conn_t::on_event(int events) {
+void linux_tcp_conn_t::on_event(UNUSED int events) {
     assert_thread();
-
-    // debugf("tcp conn events %d\n", events);
 
     /* This is called by linux_event_watcher_t when error events occur. Ordinary
     poll_event_in/poll_event_out events are not sent through this function. */
 
-    bool reading = event_watcher->is_watching(poll_event_in);
-    bool writing = event_watcher->is_watching(poll_event_out);
-
-    /* Nobody seems to understand this particular bit of code. */
-
-    if (events == (poll_event_err | poll_event_hup) || events == poll_event_hup) {
-        /* HEY: What's the significance of these 'if' statements? Do they actually make
-        any sense? Why don't we just close both halves of the socket? */
-
-        if (writing) {
-            // debugf("Writing\n");
-            /* We get this when the socket is closed but there is still data we are trying to send.
-            For example, it can sometimes be reproduced by sending "nonsense\r\n" and then sending
-            "set [key] 0 0 [length] noreply\r\n[value]\r\n" a hundred times then immediately closing
-            the socket.
-
-            I speculate that the "error" part comes from the fact that there is undelivered data
-            in the socket send buffer, and the "hup" part comes from the fact that the remote end
-            has hung up.
-
-            The same can happen for reads, see next case. */
-
-            if (is_write_open()) {
-                // debugf("is_write_open is true, shutdown write.\n");
-                on_shutdown_write();
-            }
-        }
-
-        if (reading) {
-            // debugf("Reading\n");
-            /* See description for write case above */
-            if (is_read_open()) {
-                // debugf("is_read_open is true, shutdown read.\n");
-                on_shutdown_read();
-            }
-        }
-
-        if (!reading && !writing) {
-            // debugf("not reading and not writing\n");
-            /* We often get a combination of poll_event_err and poll_event_hup when a socket
-            suddenly disconnects. It seems safe to assume it just indicates a hang-up. */
-            if (!read_closed.is_pulsed()) {
-                // debugf("We shutdown read...\n");
-                shutdown_read();
-            }
-            if (!write_closed.is_pulsed()) {
-                // debugf("We shutdown write...\n");
-                shutdown_write();
-            }
-        }
-
-    } else {
-        /* We don't know why we got this, so log it and then shut down the socket */
-        logERR("Unexpected epoll err/hup"
-#ifdef __linux
-               "/rdhup"
-#endif
-               ". events=%s, reading=%s, writing=%s",
-            format_poll_event(events).c_str(),
-            reading ? "yes" : "no",
-            writing ? "yes" : "no");
-        if (!read_closed.is_pulsed()) shutdown_read();
-        if (!write_closed.is_pulsed()) shutdown_write();
+    if (is_write_open()) {
+        shutdown_write();
     }
+
+    if (is_read_open()) {
+        shutdown_read();
+    }
+
+    event_watcher->stop_watching_for_errors();
 }
 
 
