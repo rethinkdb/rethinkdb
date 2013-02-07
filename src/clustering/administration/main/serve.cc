@@ -337,11 +337,11 @@ bool do_serve(
                     logINF("Listening on addresses: %s.\n", addresses_string.c_str());
 
                     if (!address_ports.is_bind_all()) {
-                        logINF("If you are unable to connect to the server, make sure you are using the correct port and");
+                        logINF("To fully expose RethinkDB on the network, bind to all addresses");
                         if(config_file) {
-                            logINF("try adding `bind=all' to the config file (%s) to listen on all interfaces.", (*config_file).c_str());
+                            logINF("by adding `bind=all' to the config file (%s).", (*config_file).c_str());
                         } else {
-                            logINF("try running rethinkdb with the `--bind all' command line option to listen on all interfaces.");
+                            logINF("by running rethinkdb with the `--bind all' command line option.");
                         }
                     }
 
