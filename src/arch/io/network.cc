@@ -532,7 +532,7 @@ int linux_tcp_conn_t::getpeername(ip_address_t *ip) {
     return res;
 }
 
-void linux_tcp_conn_t::on_event(UNUSED int events) {
+void linux_tcp_conn_t::on_event(int /* events */) {
     assert_thread();
 
     /* This is called by linux_event_watcher_t when error events occur. Ordinary
