@@ -20,6 +20,7 @@ namespace unittest {
 // A forward decleration of this is needed so that it can be friended and the
 // unit test can access the private API of btree_store_t.
 void run_sindex_btree_store_api_test();
+void run_sindex_post_construction();
 } //namespace unittest
 
 class btree_slice_t;
@@ -145,6 +146,7 @@ void acquire_sindex_block_for_write(
 
 public: // <--- so this is some bullshit right here
     friend void unittest::run_sindex_btree_store_api_test();
+    friend void unittest::run_sindex_post_construction();
 
     void add_sindex(
         write_token_pair_t *token_pair,
