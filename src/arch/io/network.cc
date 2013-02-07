@@ -811,11 +811,6 @@ linux_nonthrowing_tcp_listener_t::~linux_nonthrowing_tcp_listener_t() {
 void linux_nonthrowing_tcp_listener_t::on_event(int) {
     /* This is only called in cases of error; normal input events are recieved
     via event_listener.watch(). */
-
-    if (log_next_error) {
-        //logERR("poll()/epoll() sent linux_nonthrowing_tcp_listener_t errors: %d.", events);
-        log_next_error = false;
-    }
 }
 
 void noop_fun(UNUSED const scoped_ptr_t<linux_tcp_conn_descriptor_t>& arg) { }
