@@ -56,8 +56,9 @@ private:
         bool done = false;
         const datum_t *stats = env->add_ptr(new datum_t(datum_t::R_OBJECT));;
         std::vector<std::string> generated_keys;
-        if (arg(1)->get_type().is_convertible(val_t::type_t::DATUM)) {
-            const datum_t *d = arg(1)->as_datum();
+        val_t *v1 = arg(1);
+        if (v1->get_type().is_convertible(val_t::type_t::DATUM)) {
+            const datum_t *d = v1->as_datum();
             if (d->get_type() == datum_t::R_OBJECT) {
                 maybe_generate_key(t, &generated_keys, &d);
                 stats = stats->merge(env, t->replace(d, d, upsert), stats_merge);
@@ -66,7 +67,7 @@ private:
         }
 
         if (!done) {
-            datum_stream_t *ds = arg(1)->as_seq();
+            datum_stream_t *ds = v1->as_seq();
             while (const datum_t *d = ds->next()) {
                 try {
                     maybe_generate_key(t, &generated_keys, &d);
@@ -106,11 +107,12 @@ private:
                "Could not prove function deterministic.  "
                "Maybe you want to use the non_atomic flag?");
 
-        if (arg(0)->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
-            std::pair<table_t *, const datum_t *> tblrow = arg(0)->as_single_selection();
+        val_t *v0 = arg(0);
+        if (v0->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
+            std::pair<table_t *, const datum_t *> tblrow = v0->as_single_selection();
             return new_val(tblrow.first->replace(tblrow.second, f, nondet_ok));
         }
-        std::pair<table_t *, datum_stream_t *> tblrows = arg(0)->as_selection();
+        std::pair<table_t *, datum_stream_t *> tblrows = v0->as_selection();
         table_t *tbl = tblrows.first;
         datum_stream_t *ds = tblrows.second;
         const datum_t *stats = env->add_ptr(new datum_t(datum_t::R_OBJECT));

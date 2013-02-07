@@ -156,7 +156,7 @@ term_t::term_t(env_t *_env) : use_cached_val(false), env(_env), cached_val(0) {
 }
 term_t::~term_t() { }
 
-#define INSTRUMENT 1
+// #define INSTRUMENT 1
 #ifdef INSTRUMENT
 __thread int __depth = 0;
 #define DBG(s, args...) {                               \

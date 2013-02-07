@@ -54,7 +54,8 @@ struct backtrace_t {
     RDB_MAKE_ME_SERIALIZABLE_1(frames);
 
     void push_front(frame_t f) {
-        debugf("PUSHING %s\n", f.toproto().DebugString().c_str());
+        r_sanity_check(f.is_valid());
+        // debugf("PUSHING %s\n", f.toproto().DebugString().c_str());
         frames.push_front(f);
     }
 private:
@@ -84,13 +85,11 @@ void fill_error(Response2 *res, Response2_ResponseType type, std::string msg,
     try {                                       \
         cmd;                                    \
     } catch (exc_t &e) {                        \
-        debugf("WITH_BT\n");                    \
         e.backtrace.push_front(N);              \
         throw;                                  \
     }
 
 #define CATCH_WITH_BT(N) catch (exc_t &e) { \
-        debugf("CATCH_WITH_BT\n");          \
         e.backtrace.push_front(N);          \
         throw;                              \
     }
