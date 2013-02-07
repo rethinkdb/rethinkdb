@@ -23,8 +23,8 @@ void backtrace_t::fill_error(Response2 *res, Response2_ResponseType type,
     *res->add_response() = error_msg;
     for (std::list<backtrace_t::frame_t>::const_iterator
              it = frames.begin(); it != frames.end(); ++it) {
-        if (it == frames.begin()) {
-            rassert(it->is_head());
+        if (it->is_head()) {
+            rassert(it == frames.begin());
             continue;
         }
         *res->add_backtrace() = it->toproto();

@@ -428,19 +428,25 @@ public:
             data.push_back(get_data(rdb_value, transaction));
 
             //Apply transforms to the data
-            typedef rdb_protocol_details::transform_t::iterator tit_t;
-            for (tit_t it  = transform.begin();
-                       it != transform.end();
-                       ++it) {
-                json_list_t tmp;
+            rdb_protocol_details::transform_t::iterator it;
+            try {
+                for (it = transform.begin(); it != transform.end(); ++it) {
+                    json_list_t tmp;
 
-                for (json_list_t::iterator jt  = data.begin();
-                                           jt != data.end();
-                                           ++jt) {
-                    boost::apply_visitor(query_language::transform_visitor_t(*jt, &tmp, env, ql_env, it->scopes, it->backtrace), it->variant);
+                    for (json_list_t::iterator jt  = data.begin();
+                         jt != data.end();
+                         ++jt) {
+                        boost::apply_visitor(query_language::transform_visitor_t(
+                                                 *jt, &tmp, env, ql_env, it->scopes,
+                                                 it->backtrace), it->variant);
+                    }
+                    data.clear();
+                    data.splice(data.begin(), tmp);
                 }
-                data.clear();
-                data.splice(data.begin(), tmp);
+            } catch (ql::exc_t &e) {
+                if (!terminal) ++it;
+                for (; it != transform.end(); ++it) e.backtrace.push_front(0);
+                throw;
             }
 
             if (!terminal) {
@@ -458,9 +464,8 @@ public:
             } else {
                 ql::env_gc_checkpoint_t egct(ql_env);
                 int i = 0;
-                for (json_list_t::iterator jt  = data.begin();
-                                           jt != data.end();
-                                           ++jt) {
+                json_list_t::iterator jt;
+                for (jt = data.begin(); jt != data.end(); ++jt) {
                     boost::apply_visitor(query_language::terminal_visitor_t(
                                              *jt, env, ql_env, terminal->scopes,
                                              terminal->backtrace, &response->result),
@@ -469,7 +474,8 @@ public:
                         = boost::get<ql::wire_datum_t>(&terminal->variant)) {
                         egct.maybe_gc(wd->get());
                     } else if (ql::wire_datum_map_t *wdm
-                        = boost::get<ql::wire_datum_map_t>(&terminal->variant)) {
+                               = boost::get<ql::wire_datum_map_t>(
+                                   &terminal->variant)) {
                         // TODO: this is a hack because GCing a `wire_datum_map_t` is
                         // expensive.  Need a better way to do this.
                         if (!(++i%10000)) egct.maybe_gc(wdm->to_arr(ql_env));

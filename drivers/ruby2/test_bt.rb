@@ -34,6 +34,28 @@ class BacktraceTest < Test::Unit::TestCase
     assert_bt([0, 2]) { tbl.slice(0,0).slice(0,:a).slice(0,0).run }
   end
 
+  def test_map
+    assert_bt([1, 1]) { r.map(r.map(tbl, r.func([], 1)), r.func([], r.error("a"))) }
+    assert_bt([0, 1, 1]) {
+      r.map(r.map(tbl, r.func([], r.error("b"))), r.func([], r.error("a")))
+    }
+    assert_bt([0, 0, 1, 1]) {
+      r.map(r.map(tbl, r.func([], r.error("b"))), r.func([], r.error("a"))).map{|x|x}
+    }
+    assert_bt([0, 1, 1, 0]) {
+      r.map(r.map(tbl, r.func([], 1)), r.func([], [r.error("a")])).map{|x|x}
+    }
+  end
+
+  def test_reduce
+    assert_bt([1, 1]) { tbl.map{1}.reduce{r.error("a")} }
+    assert_bt([1, 1, 0]) { tbl.map{r.error('b')}.reduce{[r.error("a")]} }
+    assert_bt([0, 1, 1]) { tbl.map{r.error("b")}.reduce{r.error("a")} }
+    assert_bt([0, 1, 1]) { tbl.map{r.error("b")}.map{|x|x}.reduce{1} }
+    assert_bt([0, 0, 1, 1]) { tbl.map{r.error("b")}.map{|x|x}.reduce{1} }
+    assert_bt([0, 0, 1, 1]) { tbl.map{|x|x}.map{r.error("b")}.map{|x|x}.reduce{1} }
+  end
+
   def test_count
     assert_bt([0, 0, 0, 2]) { tbl.slice(0,:a).slice(0,0).slice(0,0).count.run }
   end

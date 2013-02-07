@@ -50,7 +50,6 @@ public:
     wire_func_t(const Term2 &_source, std::map<int, Datum> *_scope,
                 backtrace_t::frame_t _frame);
     func_t *compile(env_t *env);
-    virtual backtrace_t::frame_t bt() = 0;
 protected:
     std::map<env_t *, func_t *> cached_funcs;
 
@@ -62,7 +61,6 @@ public:
 };
 
 #define SIMPLE_FUNC_IMPL(name, frame_num)                                     \
-static const int name##_bt_frame = frame_num;                                 \
 class name##_wire_func_t : public wire_func_t {                               \
 public:                                                                       \
     name##_wire_func_t() : wire_func_t() { }                                  \
@@ -70,7 +68,6 @@ public:                                                                       \
     name##_wire_func_t(const Term2 &_source, std::map<int, Datum> *_scope,    \
                        backtrace_t::frame_t _frame)                           \
         : wire_func_t(_source, _scope, _frame) { }                            \
-    virtual backtrace_t::frame_t bt() { return name##_bt_frame; }             \
     RDB_MAKE_ME_SERIALIZABLE_3(source, frame, scope);                         \
 };                                                                            \
 

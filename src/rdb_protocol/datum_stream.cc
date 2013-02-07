@@ -86,6 +86,7 @@ lazy_datum_stream_t::lazy_datum_stream_t(
 lazy_datum_stream_t::lazy_datum_stream_t(lazy_datum_stream_t *src)
     : datum_stream_t(src->env, src->frame) {
     *this = *src;
+    frame = backtrace_t::frame_t(-1);
 }
 
 #define SIMPLE_LAZY_TRANSFORMATION(name)                                                \
