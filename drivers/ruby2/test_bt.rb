@@ -44,6 +44,8 @@ class BacktraceTest < Test::Unit::TestCase
     assert_bt([0, 0, 1, 1]) {
       r([1,2,"a"]).map{|x|x}.map{|x|r.error("a")}.map{|x|x}.reduce{|x,y|[x+y]}
     }
+    assert_bt(["base"]) { r([]).reduce{|x,y|x+y} }
+    assert_bt(["base"]) { r([1]).reduce(r.error('a')){|x,y|x+y} }
   end
 
   def test_map_concatmap
