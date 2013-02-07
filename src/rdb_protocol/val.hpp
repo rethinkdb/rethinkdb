@@ -85,8 +85,12 @@ public:
     std::pair<table_t *, datum_stream_t *> as_selection();
     datum_stream_t *as_seq();
     std::pair<table_t *, const datum_t *> as_single_selection();
-    const datum_t *as_datum();
     func_t *as_func(shortcut_ok_bool_t shortcut_ok = SHORTCUT_NOT_OK);
+
+    bool as_bool();
+    double as_num();
+    int as_int();
+    const std::string &as_str();
 
     std::string print() {
         if (get_type().is_convertible(type_t::DATUM)) {
@@ -96,6 +100,8 @@ public:
         }
     }
 private:
+    const datum_t *as_datum();
+
     const term_t *parent;
     env_t *env;
 

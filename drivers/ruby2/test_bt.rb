@@ -9,6 +9,11 @@ $c = RethinkDB::Connection.new('localhost', $port_base + 28015 + 1)
 class BacktraceTest < Test::Unit::TestCase
   include RethinkDB::Shortcuts
 
+  def test_slice
+    assert_bt([2]) { r([1,2,3,4,5]).slice(0, r.error("a")) }
+    assert_bt([1]) { r([1,2,3,4,5]).slice(r.error("b"), r.error("a")) }
+  end
+
   def test_map_concatmap
     assert_equal([1, 1, 2],
                  bt{r.concatmap(r.map([1], r.func([], 1)),
@@ -21,6 +26,9 @@ class BacktraceTest < Test::Unit::TestCase
                                 r.func([], [0, 1, [r.error("a")]]))})
   end
 
+  def assert_bt(val, &b)
+    assert_equal(val, bt(&b))
+  end
   def bt
     begin
       yield.run
