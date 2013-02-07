@@ -6,12 +6,10 @@
 class timer_token_t : public intrusive_priority_queue_node_t<timer_token_t> {
     friend class timer_handler_t;
 
-    bool is_higher_priority_than(timer_token_t *competitor) {
-        return next_time_in_nanos < competitor->next_time_in_nanos;
-    }
-
 private:
     timer_token_t() : interval_nanos(-1), next_time_in_nanos(-1), callback(NULL) { }
+
+    friend bool left_is_higher_priority(const timer_token_t *left, const timer_token_t *right);
 
     // The time between rings, if a repeating timer, otherwise zero.
     int64_t interval_nanos;
@@ -24,6 +22,10 @@ private:
 
     DISABLE_COPYING(timer_token_t);
 };
+
+bool left_is_higher_priority(const timer_token_t *left, const timer_token_t *right) {
+    return left->next_time_in_nanos < right->next_time_in_nanos;
+}
 
 timer_handler_t::timer_handler_t(linux_event_queue_t *queue)
     : timer_provider(queue),
