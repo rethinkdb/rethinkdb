@@ -8,7 +8,7 @@ namespace ql {
 
 name_string_t get_name(val_t *val) {
     r_sanity_check(val);
-    std::string raw_name = val->as_datum()->as_str();
+    std::string raw_name = val->as_str();
     name_string_t name;
     bool b = name.assign_value(raw_name);
     rcheck(b, strprintf("name %s invalid (%s)", raw_name.c_str(), valid_char_msg));
@@ -139,14 +139,14 @@ private:
         uuid_u dc_id = nil_uuid();
         if (val_t *v = optarg("datacenter", 0)) {
             dc_id = meta_get_uuid(dc_searcher.get(), get_name(v),
-                                  "FIND_DATACENTER " + v->as_datum()->as_str());
+                                  "FIND_DATACENTER " + v->as_str());
         }
 
         std::string primary_key = "id";
-        if (val_t *v = optarg("primary_key", 0)) primary_key = v->as_datum()->as_str();
+        if (val_t *v = optarg("primary_key", 0)) primary_key = v->as_str();
 
         int cache_size = 1073741824;
-        if (val_t *v = optarg("cache_size", 0)) cache_size = v->as_datum()->as_int();
+        if (val_t *v = optarg("cache_size", 0)) cache_size = v->as_int();
 
         uuid_u db_id = arg(0)->as_db();
 
@@ -324,9 +324,9 @@ public:
 private:
     virtual val_t *eval_impl() {
         val_t *t = optarg("use_outdated", 0);
-        bool use_outdated = t ? t->as_datum()->as_bool() : false;
+        bool use_outdated = t ? t->as_bool() : false;
         uuid_u db = arg(0)->as_db();
-        std::string name = arg(1)->as_datum()->as_str();
+        std::string name = arg(1)->as_str();
         return new_val(new table_t(env, db, name, use_outdated));
     }
     RDB_NAME("table")

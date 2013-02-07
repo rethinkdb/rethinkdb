@@ -124,7 +124,7 @@ private:
         }
         int start_type = merge_types(start_supertype, start_subtype);
 
-        std::string end_type_name = arg(1)->as_datum()->as_str();
+        std::string end_type_name = arg(1)->as_str();
         int end_type = get_type(end_type_name);
 
         // Identity

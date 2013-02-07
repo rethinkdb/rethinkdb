@@ -304,24 +304,32 @@ uuid_u val_t::as_db() {
     } CATCH_WITH_BT(parent->get_bt());
 }
 
-bool as_bool() {
+bool val_t::as_bool() {
+    const datum_t *d = as_datum();
+    r_sanity_check(d);
     try {
-        return as_datum()->as_bool();
+        return d->as_bool();
     } CATCH_WITH_BT(parent->get_bt());
 }
-double as_num() {
+double val_t::as_num() {
+    const datum_t *d = as_datum();
+    r_sanity_check(d);
     try {
-        return as_datum()->as_num();
+        return d->as_num();
     } CATCH_WITH_BT(parent->get_bt());
 }
-int as_int() {
+int val_t::as_int() {
+    const datum_t *d = as_datum();
+    r_sanity_check(d);
     try {
-        return as_datum()->as_int();
+        return d->as_int();
     } CATCH_WITH_BT(parent->get_bt());
 }
-const std::string &as_str() {
+const std::string &val_t::as_str() {
+    const datum_t *d = as_datum();
+    r_sanity_check(d);
     try {
-        return as_datum()->as_str();
+        return d->as_str();
     } CATCH_WITH_BT(parent->get_bt());
 }
 

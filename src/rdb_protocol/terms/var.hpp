@@ -6,7 +6,7 @@ namespace ql {
 class var_term_t : public op_term_t {
 public:
     var_term_t(env_t *env, const Term2 *term) : op_term_t(env, term, argspec_t(1)) {
-        int var = arg(0)->as_datum()->as_int();
+        int var = arg(0)->as_int();
         datum_val = env->top_var(var);
     }
 private:

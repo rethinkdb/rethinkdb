@@ -51,7 +51,7 @@ private:
     virtual val_t *eval_impl() {
         table_t *t = arg(0)->as_table();
         val_t *upsert_val = optarg("upsert", 0);
-        bool upsert = upsert_val ? upsert_val->as_datum()->as_bool() : false;
+        bool upsert = upsert_val ? upsert_val->as_bool() : false;
 
         bool done = false;
         const datum_t *stats = env->add_ptr(new datum_t(datum_t::R_OBJECT));;
@@ -100,7 +100,7 @@ public:
 private:
     virtual val_t *eval_impl() {
         bool nondet_ok = false;
-        if (val_t *v = optarg("non_atomic", 0)) nondet_ok = v->as_datum()->as_bool();
+        if (val_t *v = optarg("non_atomic", 0)) nondet_ok = v->as_bool();
         func_t *f = arg(1)->as_func();
         rcheck((f->is_deterministic() || nondet_ok),
                "Could not prove function deterministic.  "

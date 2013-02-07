@@ -87,6 +87,7 @@ public:
     std::pair<table_t *, const datum_t *> as_single_selection();
     func_t *as_func(shortcut_ok_bool_t shortcut_ok = SHORTCUT_NOT_OK);
 
+    const datum_t *as_datum(); // prefer the 4 below
     bool as_bool();
     double as_num();
     int as_int();
@@ -100,8 +101,6 @@ public:
         }
     }
 private:
-    const datum_t *as_datum();
-
     const term_t *parent;
     env_t *env;
 

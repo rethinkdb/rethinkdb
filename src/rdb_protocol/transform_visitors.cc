@@ -91,7 +91,7 @@ void transform_visitor_t::operator()(ql::filter_wire_func_t &func) const {
         ql::env_checkpoint_t(ql_env, &ql::env_t::discard_checkpoint);
         ql::func_t *f = func.compile(ql_env);
         const ql::datum_t *arg = ql_env->add_ptr(new ql::datum_t(json, ql_env));
-        if (f->call(arg)->as_datum()->as_bool()) out->push_back(arg->as_json());
+        if (f->call(arg)->as_bool()) out->push_back(arg->as_json());
     } catch (ql::exc_t &e) {
         e.backtrace.push_front(func.bt());
         throw;
