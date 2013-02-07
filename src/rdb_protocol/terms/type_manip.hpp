@@ -206,8 +206,9 @@ public:
     typeof_term_t(env_t *env, const Term2 *term) : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual val_t *eval_impl() {
-        int t = arg(0)->get_type().raw_type * MAX_TYPE;
-        if (t == DATUM_TYPE) t += arg(0)->as_datum()->get_type();
+        val_t *v0 = arg(0);
+        int t = v0->get_type().raw_type * MAX_TYPE;
+        if (t == DATUM_TYPE) t += v0->as_datum()->get_type();
         return new_val(get_name(t));
     }
     RDB_NAME("typeof")

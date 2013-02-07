@@ -16,11 +16,12 @@ public:
 private:
     virtual val_t *obj_eval() = 0;
     virtual val_t *eval_impl() {
-        if (arg(0)->get_type().is_convertible(val_t::type_t::DATUM)) {
-            if (arg(0)->as_datum()->get_type() == datum_t::R_OBJECT) return obj_eval();
+        val_t *v0 = arg(0);
+        if (v0->get_type().is_convertible(val_t::type_t::DATUM)) {
+            if (v0->as_datum()->get_type() == datum_t::R_OBJECT) return obj_eval();
         }
-        if (arg(0)->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
-            return new_val(arg(0)->as_seq()->map(env->new_func(&map_func, get_bt())));
+        if (v0->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
+            return new_val(v0->as_seq()->map(env->new_func(&map_func, get_bt())));
         }
         rfail("Cannot perform %s on a non-object non-sequence.", name());
         unreachable();
