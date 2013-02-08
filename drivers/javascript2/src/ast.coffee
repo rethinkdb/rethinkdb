@@ -15,23 +15,25 @@ class TermBase
         conn._start @, cb
 
 class RDBVal extends TermBase
-    eq: (other) -> new Eq {}, @, other
-    ne: (other) -> new Ne {}, @, other
-    lt: (other) -> new Lt {}, @, other
-    le: (other) -> new Le {}, @, other
-    gt: (other) -> new Gt {}, @, other
-    ge: (other) -> new Ge {}, @, other
+    eq: (others...) -> new Eq {}, @, others...
+    ne: (others...) -> new Ne {}, @, others...
+    lt: (others...) -> new Lt {}, @, others...
+    le: (others...) -> new Le {}, @, others...
+    gt: (others...) -> new Gt {}, @, others...
+    ge: (others...) -> new Ge {}, @, others...
 
     not: -> new Not {}, @
 
-    add: (other) -> new Add {}, @, other
-    sub: (other) -> new Sub {}, @, other
-    mul: (other) -> new Mul {}, @, other
-    div: (other) -> new Div {}, @, other
+    add: (others...) -> new Add {}, @, others...
+    sub: (others...) -> new Sub {}, @, others...
+    mul: (others...) -> new Mul {}, @, others...
+    div: (others...) -> new Div {}, @, others...
     mod: (other) -> new Mod {}, @, other
 
     append: (val) -> new Append {}, @, val
     slice: (left=0, right=-1) -> new Slice {}, @, left, right
+    skip: (index) -> new Skip {}, @, index
+    limit: (index) -> new Limit {}, @, index
     getAttr: (field) -> new GetAttr {}, @, field
     contains: (fields...) -> new Contains {}, @, fields...
     pluck: (fields...) -> new Pluck {}, @, fields...
@@ -42,10 +44,10 @@ class RDBVal extends TermBase
     map: (func) -> new Map {}, @, func
     filter: (predicate) -> new Filter {}, @, predicate
     concatMap: (func) -> new ConcatMap {}, @, func
-    orderBy: (fields...) -> new OrderBy {}, fields...
+    orderBy: (fields...) -> new OrderBy {}, @, fields...
     distinct: -> new Distinct {}, @
     count: -> new Count {}, @
-    union: (others...) -> new Union {}, @, other...
+    union: (others...) -> new Union {}, @, others...
     nth: (index) -> new Nth {}, @, index
     groupedMapReduce: (group, map, reduce) -> new GroupedMapReduce {}, @, group, map, reduce
     groupBy: -> throw DriverError "Not implemented"
@@ -58,8 +60,10 @@ class RDBVal extends TermBase
     delete: -> new Delete {}, @
     replace: (func) -> new Replace {}, @, func
     do: (func) -> new FunCall {}, func, @
-    or: (other) -> new Any {}, @, other
-    and: (other) -> new All {}, @, other
+
+    or: (others...) -> new Any {}, @, others...
+    and: (others...) -> new All {}, @, others...
+
     forEach: (func) -> new ForEach {}, @, func
 
 class DatumTerm extends RDBVal
@@ -256,6 +260,14 @@ class Append extends RDBOp
 class Slice extends RDBOp
     tt: Term2.TermType.SLICE
     st: 'slice'
+
+class Skip extends RDBOp
+    tt: Term2.TermType.SKIP
+    st: 'skip'
+
+class Limit extends RDBOp
+    tt: Term2.TermType.LIMIT
+    st: 'limit'
 
 class GetAttr extends RDBOp
     tt: Term2.TermType.GETATTR

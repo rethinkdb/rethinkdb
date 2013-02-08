@@ -18,6 +18,7 @@
 #include "rdb_protocol/terms/type_manip.hpp"
 #include "rdb_protocol/terms/var.hpp"
 #include "rdb_protocol/terms/writes.hpp"
+#include "rdb_protocol/terms/js.hpp"
 
 namespace ql {
 
@@ -27,8 +28,7 @@ term_t *compile_term(env_t *env, const Term2 *t) {
     case Term2_TermType_MAKE_ARRAY:         return new make_array_term_t(env, t);
     case Term2_TermType_MAKE_OBJ:           return new make_obj_term_t(env, t);
     case Term2_TermType_VAR:                return new var_term_t(env, t);
-    case Term2_TermType_JAVASCRIPT:
-        throw exc_t("JAVASCRIPT UNIMPLEMENTED (Bill's job.)");
+    case Term2_TermType_JAVASCRIPT:         return new javascript_term_t(env, t);
     case Term2_TermType_ERROR:              return new error_term_t(env, t);
     case Term2_TermType_IMPLICIT_VAR:       return new implicit_var_term_t(env, t);
     case Term2_TermType_DB:                 return new db_term_t(env, t);

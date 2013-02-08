@@ -71,7 +71,7 @@ private:
             while (const datum_t *d = ds->next()) {
                 try {
                     maybe_generate_key(t, &generated_keys, &d);
-                } catch (UNUSED const exc_t &e) {
+                } catch (const exc_t &) {
                     // We just ignore it, the same error will be handled in `replace`.
                 }
                 stats = stats->merge(env, t->replace(d, d, upsert), stats_merge);

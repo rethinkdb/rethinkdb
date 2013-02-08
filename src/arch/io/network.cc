@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "arch/io/network.hpp"
 
 #include <arpa/inet.h>
@@ -487,6 +487,8 @@ bool linux_tcp_conn_t::is_write_open() {
 linux_tcp_conn_t::~linux_tcp_conn_t() THROWS_NOTHING {
     assert_thread();
 
+    // Tell the readers and writers to stop.  The auto drainer will
+    // wait for them to stop.
     if (is_read_open()) shutdown_read();
     if (is_write_open()) shutdown_write();
 }
@@ -532,61 +534,21 @@ int linux_tcp_conn_t::getpeername(ip_address_t *ip) {
     return res;
 }
 
-void linux_tcp_conn_t::on_event(int events) {
+void linux_tcp_conn_t::on_event(int /* events */) {
     assert_thread();
 
     /* This is called by linux_event_watcher_t when error events occur. Ordinary
     poll_event_in/poll_event_out events are not sent through this function. */
 
-    bool reading = event_watcher->is_watching(poll_event_in);
-    bool writing = event_watcher->is_watching(poll_event_out);
-
-    /* Nobody seems to understand this particular bit of code. */
-
-    if (events == (poll_event_err | poll_event_hup) || events == poll_event_hup) {
-        /* HEY: What's the significance of these 'if' statements? Do they actually make
-        any sense? Why don't we just close both halves of the socket? */
-
-        if (writing) {
-            /* We get this when the socket is closed but there is still data we are trying to send.
-            For example, it can sometimes be reproduced by sending "nonsense\r\n" and then sending
-            "set [key] 0 0 [length] noreply\r\n[value]\r\n" a hundred times then immediately closing
-            the socket.
-
-            I speculate that the "error" part comes from the fact that there is undelivered data
-            in the socket send buffer, and the "hup" part comes from the fact that the remote end
-            has hung up.
-
-            The same can happen for reads, see next case. */
-
-            if (is_write_open()) on_shutdown_write();
-        }
-
-        if (reading) {
-            /* See description for write case above */
-            if (is_read_open()) on_shutdown_read();
-        }
-
-        if (!reading && !writing) {
-            /* We often get a combination of poll_event_err and poll_event_hup when a socket
-            suddenly disconnects. It seems safe to assume it just indicates a hang-up. */
-            if (!read_closed.is_pulsed()) shutdown_read();
-            if (!write_closed.is_pulsed()) shutdown_write();
-        }
-
-    } else {
-        /* We don't know why we got this, so log it and then shut down the socket */
-        logERR("Unexpected epoll err/hup"
-#ifdef __linux
-               "/rdhup"
-#endif
-               ". events=%s, reading=%s, writing=%s",
-            format_poll_event(events).c_str(),
-            reading ? "yes" : "no",
-            writing ? "yes" : "no");
-        if (!read_closed.is_pulsed()) shutdown_read();
-        if (!write_closed.is_pulsed()) shutdown_write();
+    if (is_write_open()) {
+        shutdown_write();
     }
+
+    if (is_read_open()) {
+        shutdown_read();
+    }
+
+    event_watcher->stop_watching_for_errors();
 }
 
 
@@ -849,11 +811,6 @@ linux_nonthrowing_tcp_listener_t::~linux_nonthrowing_tcp_listener_t() {
 void linux_nonthrowing_tcp_listener_t::on_event(int) {
     /* This is only called in cases of error; normal input events are recieved
     via event_listener.watch(). */
-
-    if (log_next_error) {
-        //logERR("poll()/epoll() sent linux_nonthrowing_tcp_listener_t errors: %d.", events);
-        log_next_error = false;
-    }
 }
 
 void noop_fun(UNUSED const scoped_ptr_t<linux_tcp_conn_descriptor_t>& arg) { }

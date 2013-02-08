@@ -32,17 +32,32 @@ class RDBValue(RDBBase):
     def __add__(self, other):
         return Add(self, other)
 
+    def __radd__(self, other):
+        return Add(other, self)
+
     def __sub__(self, other):
         return Sub(self, other)
+
+    def __rsub__(self, other):
+        return Sub(other, self)
 
     def __mul__(self, other):
         return Mul(self, other)
 
+    def __rmul__(self, other):
+        return Mul(other, self)
+
     def __div__(self, other):
         return Div(self, other)
 
+    def __rdiv__(self, other):
+        return Div(other, self)
+
     def __mod__(self, other):
         return Mod(self, other)
+
+    def __rmod__(self, other):
+        return Mod(other, self)
 
     def __getitem__(self, key):
         return GetAttr(self, key)
@@ -50,8 +65,14 @@ class RDBValue(RDBBase):
     def __and__(self, other):
         return All(self, other)
 
+    def __rand__(self, other):
+        return All(other, self)
+
     def __or__(self, other):
         return Any(self, other)
+
+    def __ror__(self, other):
+        return Any(other, self)
 
     # N.B. Cannot use 'in' operator because it must return a boolean
     def contains(self, *attr):
@@ -75,7 +96,7 @@ class RDBOp(RDBBase):
 
         self.optargs = {}
         for k in optargs.keys():
-            if optargs[k] == ():
+            if optargs[k] is ():
                 continue
             self.optargs[k] = expr(optargs[k])
 
@@ -104,6 +125,21 @@ class RDBSequence(RDBBase):
                 stop = -1
             return Slice(self, index.start, stop)
         return Nth(self, index)
+
+    def slice(self, left=None, right=None):
+        return Slice(self, left, right)
+
+    def skip(self, index):
+        return Skip(self, index)
+
+    def limit(self, index):
+        return Limit(self, index)
+
+    def pluck(self, *attrs):
+        return Pluck(self, *attrs)
+
+    def without(self, *attrs):
+        return Without(self, *attrs)
 
     def reduce(self, func, base=()):
         return Reduce(self, Func(func), base=base)
@@ -329,6 +365,14 @@ class Slice(RDBSeqOp):
     def compose(self, args, optargs):
         return T(args[0], '[', args[1], ':', args[2], ']')
 
+class Skip(RDBSeqOp, RDBMethod):
+    tt = p.Term2.SKIP
+    st = 'skip'
+
+class Limit(RDBSeqOp, RDBMethod):
+    tt = p.Term2.LIMIT
+    st = 'limit'
+
 class GetAttr(RDBValOp):
     tt = p.Term2.GETATTR
 
@@ -428,9 +472,11 @@ class Union(RDBSeqOp, RDBMethod):
     tt = p.Term2.UNION
     st = 'union'
 
-class Nth(RDBValOp, RDBMethod):
+class Nth(RDBValOp):
     tt = p.Term2.NTH
-    st = 'nth'
+
+    def compose(self, args, optargs):
+        return T(args[0], '[', args[1], ']')
 
 class GroupedMapReduce(RDBValOp, RDBMethod):
     tt = p.Term2.GROUPED_MAP_REDUCE

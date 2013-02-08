@@ -1196,3 +1196,5 @@ class DetTest < Test::Unit::TestCase
                  (rdb.map{|row| row[:id]}.reduce(0){|a,b| a+b} * rdb.count).run)
   end
 end
+
+

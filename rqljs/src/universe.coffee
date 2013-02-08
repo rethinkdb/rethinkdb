@@ -14,20 +14,33 @@ class RDBUniverse
     load: -> @loadFrom @canonicalLocation
 
     loadFrom: (keyOrFile) ->
-        fs = require('fs')
-        try
-            strrep = fs.readFileSync(keyOrFile, 'utf8')
-        catch err
-            return false
+        if haveFS()
+            fs = require('fs')
+            try
+                strrep = fs.readFileSync(keyOrFile, 'utf8')
+            catch err
+                return false
+        else if haveLocalStorage()
+            strrep = localStorage.getItem(keyOrFile)
+            unless strrep?
+                return false
+        else
+            throw new ServerError "Cannot load database, no file system or local storage"
+
         @deserialize strrep
         return true
 
     save: -> @saveTo @canonicalLocation
         
     saveTo: (keyOrFile) ->
-        fs = require('fs')
         strrep = @serialize()
-        fs.writeFileSync(keyOrFile, strrep, 'utf8')
+        if haveFS()
+            fs = require('fs')
+            fs.writeFileSync(keyOrFile, strrep, 'utf8')
+        else if haveLocalStorage()
+            localStorage.setItem(keyOrFile, strrep)
+        else
+            throw new ServerError "Cannot load database, no file system or local storage"
 
     deserialize: (strrep) ->
         objrep = JSON.parse strrep
@@ -54,3 +67,6 @@ class RDBUniverse
             return @dbs[strName]
     
     listDatabases: -> new RDBArray ((new RDBPrimitive dbN) for own dbN of @dbs)
+
+    haveFS = -> typeof require isnt 'undefined' and require('fs')?
+    haveLocalStorage = -> typeof localStorage isnt 'undefined'

@@ -253,7 +253,14 @@ private:
 public:
     // Returns js_runner, but first calls js_runner->begin() if it hasn't
     // already been called.
-    boost::shared_ptr<js::runner_t> get_js_runner();
+    //TODO(bill) should the implementation of this go into a different file?
+    boost::shared_ptr<js::runner_t> get_js_runner() {
+        pool->assert_thread();
+        if (!js_runner->connected()) {
+            js_runner->begin(pool);
+        }
+        return js_runner;
+    }
 
     signal_t *interruptor;
     uuid_u this_machine;

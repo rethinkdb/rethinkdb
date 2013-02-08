@@ -1,0 +1,13 @@
+desc: Tests of conversion to and from the RQL null type
+tests:
+    - py:
+        code: r.expr(None)
+        ot: None
+    - js:
+        code: [r(null), r.expr(null)]
+        ot: "null"
+
+    # What other behavior do we need to test here?
+
+    # expected error cases
+    # ...

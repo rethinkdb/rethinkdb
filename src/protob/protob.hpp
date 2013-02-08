@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef PROTOB_PROTOB_HPP_
 #define PROTOB_PROTOB_HPP_
 
@@ -11,7 +11,7 @@
 #include <boost/ptr_container/ptr_map.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
 
-#include "arch/arch.hpp"
+#include "arch/timing.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "containers/archive/archive.hpp"

@@ -5,6 +5,7 @@
 #include <set>
 #include <vector>
 
+#include "arch/timer.hpp"
 #include "concurrency/rwi_lock.hpp"
 #include "concurrency/semaphore.hpp"
 #include "buffer_cache/buf_patch.hpp"
@@ -18,8 +19,7 @@ class mc_buf_lock_t;
 class mc_inner_buf_t;
 class mc_transaction_t;
 
-class writeback_t
-{
+class writeback_t : private timer_callback_t {
     // TODO: These typedefs are horrible, since globally they could be different, in other files.
     typedef mc_cache_t cache_t;
     typedef mc_buf_lock_t buf_lock_t;
@@ -62,7 +62,7 @@ public:
     class local_buf_t : public intrusive_list_node_t<local_buf_t> {
     public:
         local_buf_t();
-        
+
         /* reset() resets the local_buf_t to its factory settings.
         This is usually called once by the constructor.
         However, due to a peculiarity of how snapshots interact with the deletion of blocks
@@ -120,7 +120,8 @@ private:
     // automatically started to store it on disk. flush_timer is the timer to keep track of how
     // much longer the data can sit in memory.
     timer_token_t *flush_timer;
-    static void flush_timer_callback(void *ctx);
+    // The flush timer callback.
+    void on_timer();
 
     bool writeback_in_progress;
     unsigned int active_flushes;

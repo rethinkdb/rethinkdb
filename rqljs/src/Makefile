@@ -24,6 +24,7 @@ COMPILED_COFFEE=$(patsubst %.coffee,$(COFFEE_BUILD_DIR)/%.js,$(COFFEE_FILES))
 OUTPUT_MODE=script
 
 RQLJS=$(BUILD_DIR)/rqljs
+EMBEDDED=$(BUILD_DIR)/rqljs-web.js
 
 all: test
 
@@ -47,10 +48,22 @@ $(RQLJS): $(BUILD_DIR) $(PB_JS_FILE) $(COMPILED_COFFEE)
 		--output_mode=$(OUTPUT_MODE) \
 		--output_file=$@
 
+$(EMBEDDED): $(BUILD_DIR) $(PB_JS_FILE) $(COMPILED_COFFEE)
+	$(CLOSURE_BUILDER) \
+		--root=$(CLOSURE_LIB) \
+		--root=$(BUILD_DIR) \
+		--namespace=rethinkdb.PbServer \
+		--output_mode=$(OUTPUT_MODE) \
+		--output_file=$@
+
+rqljs: $(RQLJS)
+
 test: $(RQLJS)
 	node --debug $(RQLJS)
+
+web: $(EMBEDDED)
 
 clean:
 	rm -rf $(BUILD_DIR)
 
-.PHONY: clean all test
+.PHONY: clean all rqljs test web

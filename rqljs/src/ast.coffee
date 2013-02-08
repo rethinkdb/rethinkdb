@@ -56,51 +56,51 @@ class RDBWriteOp extends RDBOp
         context.universe.save()
         return res
 
-class MakeArray extends RDBOp
+class RDBMakeArray extends RDBOp
     type: tp "DATUM... -> ARRAY"
     op: (args) -> new RDBArray args
 
-class MakeObj extends RDBOp
+class RDBMakeObj extends RDBOp
     type: tp "-> OBJECT"
     op: (args, optargs) ->
         new RDBObject optargs
 
-class Var extends RDBOp
+class RDBVar extends RDBOp
     type: tp "!NUMBER -> DATUM"
     op: (args, optargs, context) ->
         context.lookupVar args[0].asJSON()
 
-class JavaScript extends RDBOp
+class RDBJavaScript extends RDBOp
     type: tp "STRING -> DATUM"
     op: (args) -> new RDBPrimitive eval args[0].asJSON()
 
-class UserError extends RDBOp
+class RDBUserError extends RDBOp
     type: tp "STRING -> Error"
     op: (args) -> throw new RuntimeError args[0].asJSON()
 
-class ImplicitVar extends RDBOp
+class RDBImplicitVar extends RDBOp
     type: tp "-> DATUM"
     op: (args, optargs, context) -> context.getImplicitVar()
 
-class DBRef extends RDBOp
+class RDBDBRef extends RDBOp
     type: tp "STRING -> Database"
     op: (args, optargs, context) -> context.universe.getDatabase args[0]
 
-class TableRef extends RDBOp
+class RDBTableRef extends RDBOp
     type: tp "Database, STRING, {use_outdated:BOOL} -> Table"
     op: (args, optargs) -> args[0].getTable args[1]
 
-class GetByKey extends RDBOp
+class RDBGetByKey extends RDBOp
     type: tp "Table, STRING -> SingleSelection"
     op: (args) -> args[0].get args[1]
 
-class Not extends RDBOp
+class RDBNot extends RDBOp
     type: tp "BOOL -> BOOL"
     op: (args) -> new RDBPrimitive not args[0].asJSON()
 
-class CompareOp extends RDBOp
+class RDBCompareOp extends RDBOp
     type: tp "DATUM... -> BOOL"
-    cop: "Abstract class variable"
+    cop: "Abstract class RDBvariable"
     op: (args) ->
         i = 1
         while i < args.length
@@ -109,25 +109,25 @@ class CompareOp extends RDBOp
             i++
         return new RDBPrimitive true
 
-class Eq extends CompareOp
+class RDBEq extends RDBCompareOp
     cop: 'eq'
 
-class Ne extends CompareOp
+class RDBNe extends RDBCompareOp
     cop: 'ne'
 
-class Lt extends CompareOp
+class RDBLt extends RDBCompareOp
     cop: 'lt'
 
-class Le extends CompareOp
+class RDBLe extends RDBCompareOp
     cop: 'le'
 
-class Gt extends CompareOp
+class RDBGt extends RDBCompareOp
     cop: 'gt'
 
-class Ge extends CompareOp
+class RDBGe extends RDBCompareOp
     cop: 'ge'
 
-class ArithmeticOp extends RDBOp
+class RDBArithmeticOp extends RDBOp
     type: tp "NUMBER... -> NUMBER"
     op: (args) ->
         i = 1
@@ -137,182 +137,182 @@ class ArithmeticOp extends RDBOp
             i++
         return acc
 
-class Add extends ArithmeticOp
+class RDBAdd extends RDBArithmeticOp
     type: tp "NUMBER... -> NUMBER | STRING... -> STRING"
     aop: "add"
 
-class Sub extends ArithmeticOp
+class RDBSub extends RDBArithmeticOp
     aop: "sub"
 
-class Mul extends ArithmeticOp
+class RDBMul extends RDBArithmeticOp
     aop: "mul"
 
-class Div extends ArithmeticOp
+class RDBDiv extends RDBArithmeticOp
     aop: "div"
 
-class Mod extends ArithmeticOp
+class RDBMod extends RDBArithmeticOp
     type: tp "NUMBER, NUMBER -> NUMBER"
     aop: "mod"
 
-class Append extends RDBOp
+class RDBAppend extends RDBOp
     type: tp "ARRAY, DATUM -> ARRAY"
     op: (args) -> args[0].append args[1]
 
-class Slice extends RDBOp
+class RDBSlice extends RDBOp
     type: tp "Sequence, NUMBER, NUMBER -> Sequence"
     op: (args, optargs) ->
         args[0].slice args[1], args[2]
 
-class Skip extends RDBOp
+class RDBSkip extends RDBOp
     type: tp "Sequence, NUMBER -> Sequence"
     op: (args) -> args[0].slice args[1], new RDBPrimitive -1
 
-class Limit extends RDBOp
+class RDBLimit extends RDBOp
     type: tp "Sequence, NUMBER -> Sequence"
-    op: (args) -> args[0].slice new RDBPrimitive 0, args[1]
+    op: (args) -> args[0].limit args[1]
 
-class GetAttr extends RDBOp
+class RDBGetAttr extends RDBOp
     type: tp "OBJECT, STRING -> DATUM"
     op: (args) -> args[0].get args[1]
 
-class Contains extends RDBOp
+class RDBContains extends RDBOp
     type: tp "OBJECT, STRING... -> BOOL"
     op: (args) -> args[0].contains args[1..]...
 
-class Pluck extends RDBOp
+class RDBPluck extends RDBOp
     type: tp "Sequence, STRING... -> Sequence | OBJECT, STRING... -> OBJECT"
     op: (args) -> args[0].pluck args[1..]...
 
-class Without extends RDBOp
+class RDBWithout extends RDBOp
     type: tp "Sequence, STRING... -> Sequence | OBJECT, STRING... -> OBJECT"
     op: (args) -> args[0].without args[1..]...
 
-class Merge extends RDBOp
+class RDBMerge extends RDBOp
     type: tp "OBJECT... -> OBJECT"
-    op: (args) -> args[0].merge args[1]...
+    op: (args) -> args[0].merge args[1..]...
 
-class Between extends RDBOp
+class RDBBetween extends RDBOp
     type: tp "Sequence, {left_bound:DATUM; right_bound:DATUM} -> Sequence"
     op: (args, optargs) -> args[0].between optargs['left_bound'], optargs['right_bound']
 
-class Reduce extends RDBOp
+class RDBReduce extends RDBOp
     type: tp "Sequence, Function(2), {base:DATUM} -> DATUM"
     op: (args, optargs) -> args[0].reduce args[1](1), optargs['base']
 
-class Map extends RDBOp
+class RDBMap extends RDBOp
     type: tp "Sequence, Function(1) -> Sequence"
     op: (args, optargs, context) ->
         args[0].map context.bindIvar args[1](1)
 
-class Filter extends RDBOp
+class RDBFilter extends RDBOp
     type: tp "Sequence, Function(1) -> Sequence"
     op: (args, optargs, context) ->
         args[0].filter context.bindIvar args[1](1)
 
-class ConcatMap extends RDBOp
+class RDBConcatMap extends RDBOp
     type: tp "Sequence, Function(1) -> Sequence"
     op: (args, optargs, context) ->
         args[0].concatMap context.bindIvar args[1](1)
 
-class OrderBy extends RDBOp
+class RDBOrderBy extends RDBOp
     type: tp "Sequence, !STRING... -> Sequence"
     op: (args) -> args[0].orderBy new RDBArray args[1..]
 
-class Distinct extends RDBOp
+class RDBDistinct extends RDBOp
     type: tp "Sequence -> Sequence"
     op: (args) -> args[0].distinct()
 
-class Count extends RDBOp
+class RDBCount extends RDBOp
     type: tp "Sequence -> NUMBER"
     op: (args) -> args[0].count()
 
-class Union extends RDBOp
+class RDBUnion extends RDBOp
     type: tp "Sequence... -> Sequence"
     op: (args) -> args[0].union args[1..]...
 
-class Nth extends RDBOp
+class RDBNth extends RDBOp
     type: tp "Sequence, NUMBER, -> DATUM"
     op: (args) -> args[0].nth args[1]
 
-class GroupedMapReduce extends RDBOp
+class RDBGroupedMapReduce extends RDBOp
     type: tp "Sequence, Function(1), Function(1) Function(2) -> Sequence"
     op: (args) -> args[0].groupedMapReduce args[1](1), args[2](2), args[3](3)
 
-class GroupBy extends RDBOp
+class RDBGroupBy extends RDBOp
     type: tp "Sequence, ARRAY, STRING -> OBJECT"
     op: (args) -> args[0].groupBy args[1], args[2]
 
-class InnerJoin extends RDBOp
+class RDBInnerJoin extends RDBOp
     type: tp "Sequence, Sequence -> Function(2) -> Sequence"
     op: (args) -> args[0].innerJoin args[1], args[2](2)
 
-class OuterJoin extends RDBOp
+class RDBOuterJoin extends RDBOp
     type: tp "Sequence, Sequence -> Function(2) -> Sequence"
     op: (args) -> args[0].outerJoin args[1], args[2](2)
 
-class EqJoin extends RDBOp
+class RDBEqJoin extends RDBOp
     type: tp "Sequence, !STRING, Sequence -> Sequence"
     op: (args, optargs) -> args[0].eqJoin args[1], optargs
 
-class Coerce extends RDBOp
+class RDBCoerce extends RDBOp
     type: tp "Top, STRING -> Top"
     op: new RuntimeError "Not implemented"
 
-class TypeOf extends RDBOp
+class RDBTypeOf extends RDBOp
     type: tp "Top -> STRING"
     op: new RuntimeError "Not implemented"
 
-class Update extends RDBOp
+class RDBUpdate extends RDBOp
     type: tp "Selection, Function(1), {non_atomic_ok:BOOL} -> OBJECT"
     op: (args) -> args[0].update args[1](1)
 
-class Delete extends RDBOp
+class RDBDelete extends RDBOp
     type: tp "Selection -> OBJECT"
     op: (args) -> args[0].del()
 
-class Replace extends RDBOp
+class RDBReplace extends RDBOp
     type: tp "Selection, Function(1), {non_atomic_ok:BOOL} -> OBJECT"
     op: (args) -> args[0].replace args[1](1)
 
-class Insert extends RDBWriteOp
+class RDBInsert extends RDBWriteOp
     type: tp "Table, OBJECT, {upsert:BOOL} -> OBJECT | Table, Sequence, {upsert:BOOL} -> OBJECT"
     op: (args) -> args[0].insert args[1]
 
-class DbCreate extends RDBWriteOp
+class RDBDbCreate extends RDBWriteOp
     type: tp "STRING -> OBJECT"
     op: (args, optargs, context) ->
         context.universe.createDatabase args[0]
 
-class DbDrop extends RDBWriteOp
+class RDBDbDrop extends RDBWriteOp
     type: tp "STRING -> OBJECT"
     op: (args, optargs, context) ->
         context.universe.dropDatabase args[0]
 
-class DbList extends RDBOp
+class RDBDbList extends RDBOp
     type: tp "-> ARRAY"
     op: (args, optargs, context) -> context.universe.listDatabases()
 
-class TableCreate extends RDBWriteOp
+class RDBTableCreate extends RDBWriteOp
     type: tp "Database, STRING, {datacenter:STRING; primary_key:STRING; cache_size:NUMBER} -> OBJECT"
     op: (args) -> args[0].createTable args[1]
 
-class TableDrop extends RDBWriteOp
+class RDBTableDrop extends RDBWriteOp
     type: tp "Database, STRING -> OBJECT"
     op: (args) -> args[0].dropTable args[1]
 
-class TableList extends RDBOp
+class RDBTableList extends RDBOp
     type: tp "Database -> ARRAY"
     op: (args) -> args[0].listTables()
 
-class Funcall extends RDBOp
+class RDBFuncall extends RDBOp
     type: tp "Function, DATUM... -> DATUM"
     op: (args) -> args[0](0)(args[1..]...)
 
-class Branch extends RDBOp
+class RDBBranch extends RDBOp
     type: tp "BOOL, Top, Top -> Top"
     op: (args) -> if args[0].asJSON() then args[1] else args[2]
 
-class Any
+class RDBAny
     constructor: (args) ->
         @args = args
 
@@ -324,7 +324,7 @@ class Any
                 return new RDBPrimitive true
         return new RDBPrimitive false
 
-class All
+class RDBAll
     constructor: (args) ->
         @args = args
 
@@ -336,11 +336,11 @@ class All
                 return new RDBPrimitive false
         return new RDBPrimitive true
 
-class ForEach extends RDBOp
+class RDBForEach extends RDBOp
     type: tp "Sequence, Function(1) -> OBJECT"
     op: (args) -> args[0].forEach args[1](1)
 
-class Func
+class RDBFunc
     constructor: (args) ->
         @args = args
 

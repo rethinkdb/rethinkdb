@@ -39,11 +39,14 @@ public:
         parse_dc(&in->args(2), &dc, &dc_arg);
         Term2 *arg = out;
         arg = final_wrap(env, arg, dc, dc_arg);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"
         N4(GROUPED_MAP_REDUCE,
            *arg = in->args(0),
            group_fn(env, arg, &in->args(1)),
            map_fn(env, arg, dc, dc_arg),
            reduce_fn(env, arg, dc, dc_arg));
+#pragma GCC diagnostic pop
     }
 private:
     static void parse_dc(const Term2 *t, std::string *dc_out,
@@ -60,11 +63,14 @@ private:
         int obj = env->gensym();
         int attr = env->gensym();
         arg = pb::set_func(arg, obj);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"
         N2(MAP, *arg = *group_attrs, arg = pb::set_func(arg, attr);
            N3(BRANCH,
               N2(CONTAINS, NVAR(obj), NVAR(attr)),
               N2(GETATTR, NVAR(obj), NVAR(attr)),
               NDATUM(datum_t::R_NULL)));
+#pragma GCC diagnostic pop
         // debugf("%s\n", arg->DebugString().c_str());
     }
     static void map_fn(env_t *env, Term2 *arg,
@@ -74,19 +80,26 @@ private:
         if (dc == "COUNT") {
             NDATUM(1);
         } else if (dc == "SUM") {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"
             N2(FUNCALL, arg = pb::set_func(arg, attr);
                N3(BRANCH,
                   N2(CONTAINS, NVAR(obj), NVAR(attr)),
                   N2(GETATTR, NVAR(obj), NVAR(attr)),
                   NDATUM(0)),
                *arg = *dc_arg);
+#pragma GCC diagnostic pop
         } else if (dc == "AVG") {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"
             N2(FUNCALL, arg = pb::set_func(arg, attr);
                N3(BRANCH,
                   N2(CONTAINS, NVAR(obj), NVAR(attr)),
                   N2(MAKE_ARRAY, N2(GETATTR, NVAR(obj), NVAR(attr)), NDATUM(1)),
                   N2(MAKE_ARRAY, NDATUM(0), NDATUM(0))),
                *arg = *dc_arg);
+#pragma GCC diagnostic pop
+        } else if (dc == "AVG") {
         } else { unreachable(); }
     }
     static void reduce_fn(env_t *env, Term2 *arg,
@@ -94,13 +107,19 @@ private:
         int a = env->gensym(), b = env->gensym();
         arg = pb::set_func(arg, a, b);
         if (dc == "COUNT" || dc == "SUM") {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"
             N2(ADD, NVAR(a), NVAR(b));
+#pragma GCC diagnostic pop
         } else if (dc == "AVG") {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"
             N2(MAKE_ARRAY,
                N2(ADD, N2(NTH, NVAR(a), NDATUM(0)),
                        N2(NTH, NVAR(b), NDATUM(0))),
                N2(ADD, N2(NTH, NVAR(a), NDATUM(1)),
                        N2(NTH, NVAR(b), NDATUM(1))));
+#pragma GCC diagnostic pop
         } else { unreachable(); }
     }
     static Term2 *final_wrap(env_t *env, Term2 *arg,
@@ -110,14 +129,17 @@ private:
         int val = env->gensym(), obj = env->gensym();
         Term2 *argout = 0;
         if (dc == "AVG") {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"
             N2(MAP, argout = arg, arg = pb::set_func(arg, obj);
                OPT2(MAKE_OBJ,
                     "group", N2(GETATTR, NVAR(obj), NDATUM("group")),
                     "reduction",
                     N2(FUNCALL, arg = pb::set_func(arg, val);
                        N2(DIV, N2(NTH, NVAR(val), NDATUM(0)),
-                          N2(NTH, NVAR(val), NDATUM(1))),
+                               N2(NTH, NVAR(val), NDATUM(1))),
                        N2(GETATTR, NVAR(obj), NDATUM("reduction")))));
+#pragma GCC diagnostic pop
         }
         return argout;
     }

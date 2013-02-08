@@ -31,11 +31,12 @@ public:
         try {
             return _replace(d, t, b);
         } catch (const exc_t &e) {
-            datum_t *d = env_add_ptr(new datum_t(datum_t::R_OBJECT));
+            datum_t *datum = env_add_ptr(new datum_t(datum_t::R_OBJECT));
             std::string err = e.what();
-            UNUSED bool b = d->add("first_error", env_add_ptr(new datum_t(err)))
-                         || d->add("errors", env_add_ptr(new datum_t(1)));
-            return d;
+            //TODO why is this bool (which is marked as MUST USE not used?)
+            UNUSED bool key_in_object = datum->add("first_error", env_add_ptr(new datum_t(err)))
+                         || datum->add("errors", env_add_ptr(new datum_t(1)));
+            return datum;
         }
     }
 private:

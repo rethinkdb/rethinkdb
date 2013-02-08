@@ -9,7 +9,7 @@ import ql2_pb2 as p
 
 from errors import *
 
-class BatchedIterator:
+class BatchedIterator(list):
     def __init__(self, conn, query, chunk, complete):
         self.results = chunk
         self.conn = conn
@@ -18,14 +18,15 @@ class BatchedIterator:
 
     def _read_more(self):
         if self.end_flag:
-            return
+            return False
         other = self.conn._continue(self.query)
         self.results.extend(other.results)
         self.end_flag = other.end_flag
+        return True
 
     def _read_until(self, index):
-        while index >= len(self.results):
-            self._read_more()
+        while index >= len(self.results) and self._read_more():
+            pass
 
     def __iter__(self):
         index = 0
@@ -35,6 +36,11 @@ class BatchedIterator:
             self._read_until(index)
             yield self.results[index]
             index += 1
+
+    def __len__(self):
+        while self._read_more():
+            pass
+        return len(self.results)
 
     def __getitem__(self, index):
         if isinstance(index, slice):

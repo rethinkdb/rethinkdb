@@ -1,0 +1,21 @@
+desc: Tests RQL control flow structures
+tests:
+    
+    ## FunCall
+
+    - py: "r.expr(1).do(lambda v: v * 2)"
+      js: r.expr(1).do(function(v) { return v.mul(2); })
+      ot: 2
+
+    ## Branch
+
+    - py: r.branch(True, 1, 2)
+      js: r.branch(true, 1, 2)
+      ot: 1
+    - py: r.branch(False, 1, 2)
+      js: r.branch(false, 1, 2)
+      ot: 2
+
+    ## ForEach
+
+    #TODO How to tests this without side effecting queries?

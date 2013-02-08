@@ -1,0 +1,10 @@
+desc: Tests of conversion to and from the RQL bool type
+tests:
+    - py: r.expr(True)
+      js: [r.expr(true), r(true)]
+      ot: true
+    - py: r.expr(False)
+      js: [r.expr(false), r(false)]
+      ot: false
+
+    # Any more?
