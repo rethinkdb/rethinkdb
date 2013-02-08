@@ -26,6 +26,7 @@ private:
     scoped_ptr_t<term_t> real;
 };
 
+//TODO(mlucy): Why do we push around the whole term, then push again internally?
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
 class groupby_term_t : public rewrite_term_t {

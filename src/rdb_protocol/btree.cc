@@ -428,34 +428,34 @@ public:
             data.push_back(get_data(rdb_value, transaction));
 
             //Apply transforms to the data
-            rdb_protocol_details::transform_t::iterator it;
-            try {
-                for (it = transform.begin(); it != transform.end(); ++it) {
-                    json_list_t tmp;
+            {
+                rdb_protocol_details::transform_t::iterator it;
+                try {
+                    for (it = transform.begin(); it != transform.end(); ++it) {
+                        json_list_t tmp;
 
-                    for (json_list_t::iterator jt  = data.begin();
-                         jt != data.end();
-                         ++jt) {
-                        boost::apply_visitor(query_language::transform_visitor_t(
-                                                 *jt, &tmp, env, ql_env, it->scopes,
-                                                 it->backtrace), it->variant);
+                        for (json_list_t::iterator jt  = data.begin();
+                             jt != data.end();
+                             ++jt) {
+                            boost::apply_visitor(query_language::transform_visitor_t(
+                                                     *jt, &tmp, env, ql_env, it->scopes,
+                                                     it->backtrace), it->variant);
+                        }
+                        data.clear();
+                        data.splice(data.begin(), tmp);
                     }
-                    data.clear();
-                    data.splice(data.begin(), tmp);
+                } catch (ql::exc_t &e) {
+                    if (!terminal) ++it;
+                    for (; it != transform.end(); ++it) e.backtrace.push_front(0);
+                    throw;
                 }
-            } catch (ql::exc_t &e) {
-                if (!terminal) ++it;
-                for (; it != transform.end(); ++it) e.backtrace.push_front(0);
-                throw;
             }
 
             if (!terminal) {
                 typedef rget_read_response_t::stream_t stream_t;
                 stream_t *stream = boost::get<stream_t>(&response->result);
                 guarantee(stream);
-                for (json_list_t::iterator it =  data.begin();
-                                           it != data.end();
-                                           ++it) {
+                for (json_list_t::iterator it = data.begin(); it != data.end(); ++it) {
                     stream->push_back(std::make_pair(key, *it));
                     cumulative_size += estimate_rget_response_size(*it);
                 }
