@@ -13,11 +13,12 @@ module 'DataExplorerView', ->
         databases_suggestions_template: Handlebars.templates['dataexplorer-databases_suggestions-template']
         namespaces_suggestions_template: Handlebars.templates['dataexplorer-namespaces_suggestions-template']
         reason_dataexplorer_broken_template: Handlebars.templates['dataexplorer-reason_broken-template']
-        toggle_size_button_template: Handlebars.templates['dataexplorer-toggle_size_button-template']
+        dataexplorer_query_li_template: Handlebars.templates['dataexplorer-query_li-template']
 
         # Constants
         limit: 40 # How many results we display per page // Final for now
         line_height: 13 # Define the height of a line (used for a line is too long)
+        size_history: 100
 
         events:
             'click .CodeMirror': 'handle_keypress'
@@ -81,6 +82,16 @@ module 'DataExplorerView', ->
 
             @map_state[full_tag] = command['returns'] # We use full_tag because we need to differentiate between r. and r(
 
+        # All the commands we are going to ignore
+        ignored_commands:
+            'connect': true
+            'close': true
+            'reconnect': true
+            'use': true
+            'runp': true
+            'next': true
+            'collect': true
+
         # Method called on the content of reql_docs.json
         # Load the suggestions in @suggestions, @map_state, @descriptions
         set_docs: (data) =>
@@ -89,9 +100,9 @@ module 'DataExplorerView', ->
             for group in data['sections']
                 for command in group['commands']
                     tag = command['langs']['js']['name']
-                    if tag is 'runp' # TODO add connection stuff
+                    if tag of @ignored_commands
                         continue
-                    if tag is 'row' # We want r.row and r.row(
+                    if tag is 'row' # In case we have row(, we give a better description than just (
                         new_command = DataUtils.deep_copy command
                         new_command['langs']['js']['dont_need_parenthesis'] = false
                         new_command['langs']['js']['body'] = 'attr'
@@ -134,7 +145,10 @@ module 'DataExplorerView', ->
         save_query: (query) =>
             if window.localStorage?
                 @history.push query
-                window.localStorage.rethinkdb_history = JSON.stringify @history
+                if @history.length>@size_history
+                    window.localStorage.rethinkdb_history = JSON.stringify @history.slice @history.length-@size_history
+                else
+                    window.localStorage.rethinkdb_history = JSON.stringify @history
         erase_history: =>
             @history = []
             window.localStorage.rethinkdb_history = JSON.stringify @history
@@ -163,11 +177,20 @@ module 'DataExplorerView', ->
                         cursor_timed_out: true
             # Else the user created a data explorer view before
 
-            # Load history
-            if window.localStorage?.rethinkdb_history?
-                @history = JSON.parse window.localStorage.rethinkdb_history
-            else
-                @history = []
+            # Load history, keep it in memory for the session
+            # The size of the history is infinite per session. But each session will not load with more that @size_history entries
+            if not DataExplorerView.Container.prototype.history?
+                if window.localStorage?.rethinkdb_history?
+                    #TODO Trim history
+                    DataExplorerView.Container.prototype.history = JSON.parse window.localStorage.rethinkdb_history
+                else
+                    DataExplorerView.Container.prototype.history = []
+            @history = DataExplorerView.Container.prototype.history
+            debugger
+            for query in @history
+                @$('.history_list').append @dataexplorer_query_li_template
+                    query: query
+                    displayed_class: 'displayed'
 
 
             # Let's have a shortcut
@@ -406,12 +429,12 @@ module 'DataExplorerView', ->
             stack = @extract_data_from_query
                 query: query_before_cursor
                 position: 0
-            #console.log JSON.stringify stack, null, 2
+            console.log JSON.stringify stack, null, 2
 
 
             result =
                 status: null
-                #to_complete: undefine#d
+                #to_complete: undefined
                 #to_describe: undefined
                 
             result_non_white_char_after_cursor = @regex.get_first_non_white_char.exec(query_after_cursor)
@@ -452,7 +475,7 @@ module 'DataExplorerView', ->
         # Regex used
         regex:
             anonymous:/^(\s)*function\(([a-zA-Z0-9,\s]*)\)(\s)*{/
-            method: /^(\s)*([a-zA-Z]+)\(/ # forEach( merge( filter(
+            method: /^(\s)*([a-zA-Z]*)\(/ # forEach( merge( filter(
             method_var: /^(\s)*([a-zA-Z]+)\./ # r. r.row. (r.count will be caught later)
             return : /^(\s)*return(\s)*/
             object: /^(\s)*{(\s)*/
@@ -587,6 +610,7 @@ module 'DataExplorerView', ->
 
                             result_regex = @regex.method.exec query.slice new_start # Check for a standard method
                             if result_regex isnt null
+                                # We could check if we are matching row( and split it in "row" and "("
                                 if stack[stack.length-1]?.type is 'function' or stack[stack.length-1]?.type is 'var' # We want the query to start with r. or arg.
                                     element.type = 'function'
                                     element.name = result_regex[0]
@@ -890,8 +914,9 @@ module 'DataExplorerView', ->
                 result.suggestions = []
                 result.status = 'done'
                 @query_first_part = ''
-                for suggestion in @suggestions['']
-                    result.suggestions.push suggestion
+                if @suggestions['']? # The docs may not have loaded
+                    for suggestion in @suggestions['']
+                        result.suggestions.push suggestion
 
             for i in [stack.length-1..0] by -1
                 element = stack[i]
@@ -960,13 +985,18 @@ module 'DataExplorerView', ->
                         #else if element.type is 'var' # Not possible because we require a . or ( to asssess that it's a var
                         else if element.type is null
                             result.suggestions = []
-                            result.status = 'look_for_description' # We'll look for a description. If we can't find one, we show the current suggestions assuming an empty state
+                            result.status = 'look_for_description'
+                            ###
+                            # We'll look for a description. If we can't find one, we show the current suggestions assuming an empty state
                             result.suggestions_regex = @create_safe_regex element.name
                             @query_first_part = query.slice 0, element.position
                             @cursor_for_auto_completion.ch -= element.name.length
-                            for suggestion in @suggestions['']
-                                if result.suggestions_regex.test(suggestion) is true
-                                    result.suggestions.push suggestion
+                            if @suggestions['']? # In case the docs have not loaded yet
+                                for suggestion in @suggestions['']
+                                    if result.suggestions_regex.test(suggestion) is true
+                                        result.suggestions.push suggestion
+                            ###
+                            break
                             
                             ### For this state "r.expr( r" we just want the description of expr
                             # This code is if we want to get the suggestion for "r"
@@ -1007,14 +1037,14 @@ module 'DataExplorerView', ->
                                 if result.suggestions_regex.test(suggestion) is true
                                     result.suggestions.push suggestion
                         else
-                            #TODO show warning
-                            console.log 'The last function is not valid'
+                            #TODO fully test the suggestion then when everything is cool, show a warning
                         result.status = 'done'
                     else if element.type is 'var' and element.complete is true
                         result.state = element.real_type
-                        for suggestion in @suggestions[result.state]
-                            if result.suggestions_regex.test(suggestion) is true
-                                result.suggestions.push suggestion
+                        if @suggestions[result.state]?
+                            for suggestion in @suggestions[result.state]
+                                if result.suggestions_regex.test(suggestion) is true
+                                    result.suggestions.push suggestion
                         result.status = 'done'
                     #else # Is that possible? A function can only be preceded by a function (except for r)
 
@@ -1304,6 +1334,7 @@ module 'DataExplorerView', ->
                     query: null # We don't want to display this query because it's freshly executed
                     results: @current_results # The first parameter null is the query because we don't want to display it.
                     metadata: @saved_data.metadata
+                @save_data_in_localstorage()
 
                 if data isnt undefined #there is nore data
                     @skip_value += @current_results.length
@@ -1313,8 +1344,6 @@ module 'DataExplorerView', ->
 
         # Function triggered when the user click on 'more results'
         show_more_results: (event) =>
-            if @current_results isnt null
-                @results_view.update_start_record @current_results.length
             try
                 event.preventDefault()
                 @current_results = []
@@ -1402,8 +1431,6 @@ module 'DataExplorerView', ->
         # - We don't execute q1_3
         # - User retrieve results for q2
         execute_query: =>
-            # Initialize start
-            @results_view.set_start_record 1
             # The user just executed a query, so we reset cursor_timed_out to false
             @saved_data.cursor_timed_out = false
             @saved_data.show_query = false
@@ -1570,15 +1597,11 @@ module 'DataExplorerView', ->
         display_normal: =>
             $('#cluster').addClass 'container'
             $('#cluster').removeClass 'cluster_with_margin'
-            @$('.change_size').html @toggle_size_button_template
-                view_is_full: false
             @.$('.wrapper_scrollbar').css 'width', '888px'
 
         display_full: =>
             $('#cluster').removeClass 'container'
             $('#cluster').addClass 'cluster_with_margin'
-            @$('.change_size').html @toggle_size_button_template
-                view_is_full: true
             @.$('.wrapper_scrollbar').css 'width', ($(window).width()-92)+'px'
 
         destroy: =>
@@ -1660,13 +1683,6 @@ module 'DataExplorerView', ->
             event.preventDefault()
             @prototype.view = 'raw'
             @render_result()
-
-        set_start_record: (start) =>
-            @start_record = start
-            @prototype.start_record = @start_record
-        update_start_record: (to_add) =>
-            @start_record += to_add
-            @prototype.start_record = @start_record
 
         render_error: (query, err) =>
             @.$el.html @error_template
@@ -1782,6 +1798,9 @@ module 'DataExplorerView', ->
                     else return 0
             )
 
+            if keys_sorted.length > 1 and map['_anonymous object']?
+                keys_sorted.shift()
+
             @last_keys = _.union(['record'], keys_sorted.map( (key) -> return key[0] ))
 
             return @template_json_table.container
@@ -1799,8 +1818,6 @@ module 'DataExplorerView', ->
                 attr: attr
 
         json_to_table_get_values: (result, keys_stored) =>
-            if not @start_record?
-                @start_record = @prototype.start_record
             document_list = []
             for element, i in result
                 new_document = {}
@@ -1810,10 +1827,13 @@ module 'DataExplorerView', ->
                     if key is '_anonymous object'
                         value = element
                     else
-                        value = element[key]
+                        if element?
+                            value = element[key]
+                        else
+                            value = undefined
 
                     new_document.cells.push @json_to_table_get_td_value value, col
-                new_document.record = @start_record + i
+                new_document.record = @container.saved_data.start_record + i
                 document_list.push new_document
             return @template_json_table.tr_value
                 document: document_list
@@ -2006,6 +2026,10 @@ module 'DataExplorerView', ->
                 @results = args.results
             if args?.metadata?
                 @metadata = args.metadata
+            if args?.metadata?.skip_value?
+                # @container.saved_data.start_record is the old value of @container.saved_data.skip_value
+                # Here we just deal with start_record
+                @container.saved_data.start_record = args.metadata.skip_value
 
                 if args.metadata.execution_time?
                     if args.metadata.execution_time < 1000
@@ -2024,7 +2048,7 @@ module 'DataExplorerView', ->
 
             switch @prototype.view
                 when 'tree'
-                    @.$('.tree_view').html @json_to_tree @results
+                    @.$('.json_tree_container').html @json_to_tree @results
                     @$('.results').hide()
                     @$('.tree_view_container').show()
                     @.$('.link_to_tree_view').addClass 'active'
@@ -2150,7 +2174,8 @@ module 'DataExplorerView', ->
             
         # Check if the cursor timed out. If yes, make sure that the user cannot fetch more results
         cursor_timed_out: =>
-            if @container.saved_data.has_more_data is true and @container.saved_data.cursor_timed_out is true
+            @container.saved_data.cursor_timed_out = true
+            if @container.saved_data.metadata.has_more_data is true
                 @$('.more_results_paragraph').html @cursor_timed_out_template()
 
         render: =>
@@ -2220,7 +2245,7 @@ module 'DataExplorerView', ->
                         # Nothing bad here, let's just not pollute the console
 
             @connection = r.connect @server, @on_success, @on_fail
-            @container.saved_data.cursor_timed_out = true
+            @container.results_view.cursor_timed_out()
             @timeout = setTimeout @connect, 5*60*1000
     
         postpone_reconnection: =>

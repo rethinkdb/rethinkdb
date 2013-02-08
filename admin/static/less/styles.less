@@ -1032,6 +1032,14 @@ TODO: retire this
     margin: 0px;
     .options_container{
         float: right;
+        margin: -7px -7px 0px 0px;
+        .change_size{
+            height: 21px;
+            width: 20px;
+            padding: 4px;
+            background: url('/images/full_view.png') 4px 4px no-repeat;
+            .box-shadow(~"inset 0px 2px 3px 0px #eee");
+        }
     }
 
     h1.title{
@@ -1152,6 +1160,26 @@ TODO: retire this
                     cursor: auto;
                 }
             }
+            .history{
+                font: @monospace;
+                background: #f8f8f8;
+                .history_list{
+                    list-style: none;
+                    .query_history{
+                        word-break: break-word;
+                        padding: 7px 10px;
+                        border: 1px solid #ccc;
+                        border-radius: 3px;
+                        background: #eee;
+                    }
+                    &.displayed{
+                        display: block;
+                    }
+                    &.hidden{
+                        display: none;
+                    }
+                }
+            }
         }
         .loading_query{
             text-align: center;
@@ -1222,12 +1250,13 @@ TODO: retire this
             .query_executed{
                 font-family: @sans;
                 word-wrap: break-word;
+                margin-bottom: 10px;
             }
             .metadata{
                 font-family: @sans;
-                width: 100%;
+                width: 400px;
                 float: left;
-                margin: 10px 0px;
+                margin: -30px 0px 10px 0px;
             }
         }
         .more_results{
@@ -1245,7 +1274,6 @@ TODO: retire this
         padding: 0px;
         width: 100%;
         float: right;
-        margin-top: -35px;
         li{
             float: right;
             &.active a {
@@ -1273,59 +1301,63 @@ TODO: retire this
         margin: 15px 0px 0px 0px;
         padding: 0px;
         overflow: auto;
-        .json_tree{
-            padding: 0px 20px;
-            float: left; // Clear the horizontal arrow
-            font: 13px/18px monospace,mono,consolas;
-            .jt_null{
-                color: red
+        width: 100%;
+        .json_tree_container{
+            width: 888px;
+            .json_tree{
+                padding: 0px 20px;
+                float: left; // Clear the horizontal arrow
+                font: 13px/18px monospace,mono,consolas;
+                .jt_null{
+                    color: red
+                }
+                .jt_bool{
+                    color: #ee00ff;
+                }
+                .jt_num{
+                    color: blue;
+                }
+                .jt_link{
+                    text-decoration: none;
+                    color: #000;
+                }
+                .jt_url{ color: #08c; }
+                .jt_email{ color: #08c; }
+                .jt_string{
+                    padding: 2px 0px;
+                    color: green;
+                }
+                /*.jt_b{ font-weight: bold; }*/
+                .jt_close{ margin-left: 6px; }
+                .jt_array{
+                    list-style: none;
+                    margin-left: 7px;
+                    padding-left: 22px;
+                    border-left: 1px dotted #bbb;
+                }
+                .jt_object{
+                    list-style: none;
+                    margin-left: 7px;
+                    padding-left: 22px;
+                    border-left: 1px dotted #bbb;
+                }
+                .jt_arrow{
+                    width: 15px;
+                    height: 15px;
+                    margin: 3px 2px 0px -15px;
+                    float: left;
+                    display: block;
+                    background: url('/images/arrow_down.png') no-repeat;
+                }
+                .jt_arrow_hidden{ background: url('/images/arrow_right.png') no-repeat; }
+                .jt_points{ display: none; }
+                .jt_points_collapsed{ display: inline; }
+                .jt_collapsed{ display: none; }
+                .jt_b_collapsed{
+                    display: inline;
+                    margin-left: 0px;
+                }   
             }
-            .jt_bool{
-                color: #ee00ff;
-            }
-            .jt_num{
-                color: blue;
-            }
-            .jt_link{
-                text-decoration: none;
-                color: #000;
-            }
-            .jt_url{ color: #08c; }
-            .jt_email{ color: #08c; }
-            .jt_string{
-                padding: 2px 0px;
-                color: green;
-            }
-            /*.jt_b{ font-weight: bold; }*/
-            .jt_close{ margin-left: 6px; }
-            .jt_array{
-                list-style: none;
-                margin-left: 7px;
-                padding-left: 22px;
-                border-left: 1px dotted #bbb;
-            }
-            .jt_object{
-                list-style: none;
-                margin-left: 7px;
-                padding-left: 22px;
-                border-left: 1px dotted #bbb;
-            }
-            .jt_arrow{
-                width: 15px;
-                height: 15px;
-                margin: 3px 2px 0px -15px;
-                float: left;
-                display: block;
-                background: url('/images/arrow_down.png') no-repeat;
-            }
-            .jt_arrow_hidden{ background: url('/images/arrow_right.png') no-repeat; }
-            .jt_points{ display: none; }
-            .jt_points_collapsed{ display: inline; }
-            .jt_collapsed{ display: none; }
-            .jt_b_collapsed{
-                display: inline;
-                margin-left: 0px;
-            }   
         }
 
         .json_table_container{

@@ -1,7 +1,7 @@
 <script id="dataexplorer_view-template" type="text/x-handlebars-template">
     <div class="section">
         <div class="options_container">
-            <button class="btn button_query change_size">Full view</button> 
+            <button class="btn button_query change_size"></button> 
         </div>
         <h1 class="title">Data Explorer</h1>
         <div id="user-alert-space"></div>
@@ -95,7 +95,9 @@ Sorry, the data explorer does not support your browser. Please upgrade it. See t
         </div>
         <div class="suggestion_description_arrow arrow"></div>
         <div class="suggestion_description_arrow_overlay arrow"></div>
-
+        <div class="history">
+            <ul class="history_list"></ul>
+        </div>
         <textarea class="input_query" id="input_query"></textarea>
         <div class="button_container">
             <button class="btn button_query execute_query">Execute</button>
@@ -105,6 +107,10 @@ Sorry, the data explorer does not support your browser. Please upgrade it. See t
     <div class="loading_query">
         <img src="/images/ajax-loader.gif" class="loading_query_img"/>
     </div>
+</script>
+
+<script id="dataexplorer-query_li-template" type="text/x-handlebars-template">
+    <li class="query_history {{displayed_class}}">{{query}}</li>
 </script>
 
 <script id="dataexplorer_suggestion_name_li-template" type="text/x-handlebars-template">
@@ -160,9 +166,6 @@ Did you forget to append .run() at the end of your query?{{/if}}</pre>
     <ul class="history_query_list queries_list">
     </ul>
 </script>
-<script id="dataexplorer-toggle_size_button-template" type="text/x-handlebars-template">
-    {{#if view_is_full}}Smaller view{{else}}Full view{{/if}}
-</script>
 
 <script id="dataexplorer_query_element-template" type="text/x-handlebars-template">
     <li class="query_element"><a href="#" class="old_query" data-query="{{query}}">{{query_summary}}</a></li>
@@ -177,22 +180,23 @@ Did you forget to append .run() at the end of your query?{{/if}}</pre>
 <script id="dataexplorer_result_container-template" type="text/x-handlebars-template">
     <div class="results_header">
         <h1 class="title">Results</h1>
-        <p class="metadata">
-        {{#if query}}<span class="query_executed">For query: {{query}}</span><br/>{{/if}}
-            {{#if execution_time_pretty}}Executed in {{execution_time_pretty}}.{{/if}}
-            {{#if limit_value}}{{limit_value}} {{pluralize_noun "row" limit_value}} displayed.{{/if}}
-            {{#if skip_value}}{{skip_value}} {{pluralize_noun "row" skip_value}} skipped.{{/if}}
-        </p>
+        {{#if query}}<div class="query_executed">For query: {{query}}</div>{{/if}}
         <ul class="nav nav-tabs change_view_container"">
             <li><a href="#raw_view" class="link_to_raw_view">Raw view</a></li>
             <li><a href="#table_view" class="link_to_table_view">Table view</a></li>
             <li><a href="#tree_view" class="link_to_tree_view active">Tree view</a></li>
         </ul>
+        <p class="metadata">
+            {{#if execution_time_pretty}}Executed in {{execution_time_pretty}}.{{/if}}
+            {{#if limit_value}}{{limit_value}} {{pluralize_noun "row" limit_value}} displayed.{{/if}}
+            {{#if skip_value}}{{skip_value}} {{pluralize_noun "row" skip_value}} skipped.{{/if}}
+        </p>
     </div>
     <div class="wrapper_scrollbar"><div class="scrollbar_fake_content"></div></div>
     <div class="tab-content">  
         <div class="results active tree_view_container">
-            <div class="results_wrap tree_view"></div>
+            <div class="results_wrap tree_view"><div class="json_tree_container"></div>
+            </div>
         </div>
         <div class="results table_view_container">
             <div class="results_wrap table_view"></div>
