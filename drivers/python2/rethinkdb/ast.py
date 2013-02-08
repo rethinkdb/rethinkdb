@@ -96,7 +96,7 @@ class RDBOp(RDBBase):
 
         self.optargs = {}
         for k in optargs.keys():
-            if optargs[k] == ():
+            if optargs[k] is ():
                 continue
             self.optargs[k] = expr(optargs[k])
 

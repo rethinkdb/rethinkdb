@@ -1,5 +1,10 @@
 desc: Tests meta queries for databases
 tests:
+
+    # We should always start out with a 'test' database
+    - py: r.db_list()
+      js: r.dbList()
+      ot: ['test']
     
     ## DB create
 
@@ -17,3 +22,19 @@ tests:
       ot: bag(['a', 'b', 'test'])
 
     ## DB drop
+
+    - py: r.db_drop('b')
+      js: r.dbDrop('b')
+      ot: ({'dropped':1})
+
+    - py: r.db_list()
+      js: r.dbList()
+      ot: bag(['a', 'test'])
+
+    - py: r.db_drop('a')
+      js: r.dbDrop('a')
+      ot: ({'dropped':1})
+
+    - py: r.db_list()
+      js: r.dbList()
+      ot: bag(['test'])

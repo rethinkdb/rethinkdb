@@ -10,4 +10,8 @@ tests:
       js: r([1,2,3,4,5])
       ot: [1,2,3,4,5]
 
+    # Nested expression
+    - cd: r.expr([r.expr(1)])
+      ot: [1]
+
     # errors, etc.

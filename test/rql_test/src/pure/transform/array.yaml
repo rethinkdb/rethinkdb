@@ -73,6 +73,9 @@ tests:
     - py: "arr.map(lambda v: v + 1)"
       js: arr.map(function(v) { return v.add(1); })
       ot: [2,3,4]
+    #- py: objArr.map(r.row['b'])
+    #  js: objArr.map(r.row('b'))
+    #  ot: ['a', 'b', 'c']
 
     ## Reduce
 

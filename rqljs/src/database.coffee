@@ -19,7 +19,8 @@ class RDBDatabase
         @tables[name] = new RDBTable 'id'
         new RDBObject {'created': 1}
 
-    dropTable: (name, db_name) ->
+    dropTable: (name) ->
+        name = name.asJSON()
         delete @tables[name]
         new RDBObject {'dropped': 1}
 

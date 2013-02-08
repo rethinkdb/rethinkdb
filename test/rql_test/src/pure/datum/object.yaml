@@ -15,3 +15,7 @@ tests:
       js:
         code: "r({a: 1, b: 'two', c: true})"
         ot: "({a: 1, b: 'two', c: true})"
+
+    # Nested expressions
+    - cd: r.expr({'a':r.expr(1)})
+      ot: ({'a':1})
