@@ -241,14 +241,8 @@ public:
     // constructing views is too hard :-/
     boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
         semilattice_metadata;
-public:
     directory_read_manager_t<cluster_directory_metadata_t> *directory_read_manager;
 
-public:
-    cluster_semilattice_metadata_t get_semilattice_metadata() {
-        on_thread_t switcher(semilattice_metadata->home_thread());
-        return semilattice_metadata->get();
-    }
     // Semilattice modification functions
     void join_and_wait_to_propagate(
             const cluster_semilattice_metadata_t &metadata_to_join)
