@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "arch/io/event_watcher.hpp"
 #include "arch/runtime/thread_pool.hpp"
 
@@ -8,6 +8,7 @@ linux_event_watcher_t::linux_event_watcher_t(fd_t f, linux_event_callback_t *eh)
 #ifdef __linux
     rdhup_watcher(NULL),
 #endif
+    stopped_watching_for_errors(false),
     old_mask(0)
 {
     /* At first, only register for error events */
@@ -15,7 +16,14 @@ linux_event_watcher_t::linux_event_watcher_t(fd_t f, linux_event_callback_t *eh)
 }
 
 linux_event_watcher_t::~linux_event_watcher_t() {
-    linux_thread_pool_t::thread->queue.forget_resource(fd, this);
+    stop_watching_for_errors();
+}
+
+void linux_event_watcher_t::stop_watching_for_errors() {
+    if (!stopped_watching_for_errors) {
+        linux_thread_pool_t::thread->queue.forget_resource(fd, this);
+        stopped_watching_for_errors = true;
+    }
 }
 
 linux_event_watcher_t::watch_t::watch_t(linux_event_watcher_t *p, int e) :
