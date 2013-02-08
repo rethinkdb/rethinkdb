@@ -2,6 +2,7 @@
 #if defined(LEGACY_LINUX) && !defined(NO_EVENTFD)
 
 #include <sys/syscall.h>
+#include <unistd.h>
 
 // Wrappers for eventfd(), since CentOS backported the system
 // calls but not the libc wrappers.
