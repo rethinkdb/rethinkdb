@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifdef AIOSUPPORT
 
 #include "arch/io/disk/aio.hpp"
@@ -15,7 +15,6 @@
 #include "arch/io/disk/aio/getevents_eventfd.hpp"
 #include "arch/io/disk/aio/getevents_noeventfd.hpp"
 #include "arch/io/disk/aio/submit_sync.hpp"
-#include "arch/io/arch.hpp"
 #include "config/args.hpp"
 #include "utils.hpp"
 

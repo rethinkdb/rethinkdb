@@ -16,9 +16,9 @@
 #include "clustering/reactor/reactor.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
 #include "concurrency/watchable.hpp"
-#include "db_thread_info.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/watchable.hpp"
+#include "utils.hpp"
 
 /* This files contains the class reactor driver whose job is to create and
  * destroy reactors based on blueprints given to the server. */

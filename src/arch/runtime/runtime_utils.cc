@@ -29,7 +29,7 @@ uint64_t get_clock_cycles() {
 
 bool watchdog_check_enabled = false;
 __thread uint64_t watchdog_start_time = 0;
-const uint64_t MAX_WATCHDOG_DELTA = 100000000;
+const uint64_t MAX_WATCHDOG_DELTA = 100 * MILLION;
 #endif  // NDEBUG
 
 int get_cpu_count() {

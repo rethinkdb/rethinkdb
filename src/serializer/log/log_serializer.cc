@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "serializer/log/log_serializer.hpp"
 
 #include <fcntl.h>
@@ -9,7 +9,8 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
-#include "arch/arch.hpp"
+#include "arch/io/disk.hpp"
+#include "arch/runtime/runtime.hpp"
 #include "buffer_cache/types.hpp"
 #include "perfmon/perfmon.hpp"
 
