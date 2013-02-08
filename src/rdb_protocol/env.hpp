@@ -19,6 +19,15 @@
 namespace ql {
 class term_t;
 
+/* Checks that divisor is indeed a divisor of multiple. */
+template <class T>
+bool is_joined(const T &multiple, const T &divisor) {
+    T cpy = multiple;
+
+    semilattice_join(&cpy, divisor);
+    return cpy == multiple;
+}
+
 class env_t : private home_thread_mixin_t {
 public:
     int gensym() {
@@ -228,11 +237,45 @@ public:
 
     clone_ptr_t<watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > > namespaces_semilattice_metadata;
     clone_ptr_t<watchable_t<databases_semilattice_metadata_t> > databases_semilattice_metadata;
-    //TODO this should really just be the namespace metadata... but
-    //constructing views is too hard :-/
+    // TODO this should really just be the namespace metadata... but
+    // constructing views is too hard :-/
     boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
         semilattice_metadata;
+public:
     directory_read_manager_t<cluster_directory_metadata_t> *directory_read_manager;
+
+public:
+    cluster_semilattice_metadata_t get_semilattice_metadata() {
+        on_thread_t switcher(semilattice_metadata->home_thread());
+        return semilattice_metadata->get();
+    }
+    // Semilattice modification functions
+    void join_and_wait_to_propagate(
+            const cluster_semilattice_metadata_t &metadata_to_join)
+            THROWS_ONLY(interrupted_exc_t) {
+        cluster_semilattice_metadata_t sl_metadata;
+        {
+            on_thread_t switcher(semilattice_metadata->home_thread());
+            semilattice_metadata->join(metadata_to_join);
+            sl_metadata = semilattice_metadata->get();
+        }
+
+        boost::function<bool(const cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > s)> p =
+                boost::bind(&is_joined<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > >,
+                _1,
+                sl_metadata.rdb_namespaces);
+
+        {
+            on_thread_t switcher(namespaces_semilattice_metadata->home_thread());
+        namespaces_semilattice_metadata->run_until_satisfied(p,
+                interruptor);
+        databases_semilattice_metadata->run_until_satisfied(
+                boost::bind(&is_joined<databases_semilattice_metadata_t>,
+                _1,
+                sl_metadata.databases),
+                interruptor);
+        }
+    }
 
 private:
     // Ideally this would be a scoped_ptr_t<js::runner_t>. We used to copy
