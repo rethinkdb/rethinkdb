@@ -1,0 +1,19 @@
+desc: Tests meta queries for databases
+tests:
+    
+    ## DB create
+
+    - py: r.db_create('a')
+      js: r.dbCreate('a')
+      ot: ({'created':1})
+    - py: r.db_create('b')
+      js: r.dbCreate('b')
+      ot: ({'created':1})
+
+    ## DB list
+    
+    - py: r.db_list()
+      js: r.dbList()
+      ot: bag(['a', 'b', 'test'])
+
+    ## DB drop

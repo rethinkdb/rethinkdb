@@ -12,43 +12,69 @@ CPPPORT = 28016
 
 # -- utilities --
 
-def eq_test(one, two):
-    if isinstance(one, list):
+class Lst:
+    def __init__(self, lst):
+        self.lst = lst
 
-        if not isinstance(two, list):
-            return False
-
-        if len(one) != len(two):
+    def __eq__(self, other):
+        if len(self.lst) != len(other):
             return False
         
-        for i in xrange(len(one)):
-            if not eq_test(one[i], two[i]):
+        for i in xrange(len(self.lst)):
+            if not (self.lst[i] == other[i]):
                 return False
 
         return True
 
-    elif isinstance(one, dict):
+    def __repr__(self):
+        return repr(self.lst)
+
+class Bag(Lst):
+    def __init__(self, lst):
+        self.lst = sorted(lst)
+
+    def __eq__(self, other):
+        other = sorted(other)
+
+        if len(self.lst) != len(other):
+            return False
         
-        for key in one.keys():
-            if not key in two.keys():
-                return False
-            if not eq_test(one[key], two[key]):
+        for i in xrange(len(self.lst)):
+            if not (self.lst[i] == other[i]):
                 return False
 
         return True
 
-    else:
-        
-        # Primitive comparison
-        return (one == two)
+class Dct:
+    def __init__(self, dct):
+        self.dct = dct
+    
+    def __eq__(self, other): 
+        for key in self.dct.keys():
+            if not key in other.keys():
+                return False
+            if not (self.dct[key] == other[key]):
+                return False
+        return True
+
+    def __repr__(self):
+        return repr(self.dct)
 
 # -- Curried output test functions --
 
 def eq(exp):
+    if isinstance(exp, list):
+        exp = Lst(exp)
+    elif isinstance(exp, dict):
+        exp = Dct(exp)
+
     def sub(val):
-        if not eq_test(val, exp):
+        if not (val == exp):
             print "Equality comparison failed"
             print "Value:", repr(val), "Expected:", repr(exp)
+            return False
+        else:
+            return True
     return sub
 
 class PyTestDriver:
@@ -57,10 +83,14 @@ class PyTestDriver:
     def connect(self):
         self.js_conn = r.connect(host='localhost', port=JSPORT)
         self.cpp_conn = r.connect(host='localhost', port=CPPPORT)
+        self.scope = {}
 
-    def run(self, query, expected):
+    def define(self, expr):
+        exec expr in globals(), self.scope
+
+    def run(self, src, expected):
         try:
-            query = eval(query)
+            query = eval(src, globals(), self.scope)
         except Exception as err:
             print "Python error on construction of query:", str(err)
             return
@@ -76,12 +106,14 @@ class PyTestDriver:
         except Exception as err:
             print "Error on running of query on JS server:", str(err)
 
-        exp_fun = eval(expected)
+        exp_fun = eval(expected, globals(), self.scope)
         if not isinstance(exp_fun, types.FunctionType):
             exp_fun = eq(exp_fun)
 
-        exp_fun(cppres)
-        exp_fun(jsres)
+        if not exp_fun(cppres):
+            print " in CPP version of:", src
+        if not exp_fun(jsres):
+            print " in JS version of:", src
 
 driver = PyTestDriver()
 driver.connect()
@@ -89,4 +121,12 @@ driver.connect()
 # Emitted test code will consist of calls to this function
 def test(query, expected):
     driver.run(query, expected)
+
+# Emitted test code can call this function to define variables
+def define(expr):
+    driver.define(expr)
+
+# Emitted test code can call this function to set bag equality on a list
+def bag(lst):
+    return Bag(lst)
 

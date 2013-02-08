@@ -106,7 +106,7 @@ class TypeName
         @repeated = repeated
         @airity = airity
 
-    @typeOf = (val) ->
+    typeOf: (val) ->
         new (if val instanceof RDBDatabase then DatabaseType
         else if val instanceof RDBTable then TableType
         else if val instanceof Function then FunctionType
@@ -118,10 +118,14 @@ class TypeName
                 when RDBType.BOOLEAN then BoolType
                 when RDBType.NUMBER then NumberType
                 when RDBType.STRING then StringType
+                else
+                    Object
+        else
+            Object
         )
 
     check: (val) ->
-        TypeName.typeOf(val) instanceof @constructor
+        TypeName::typeOf(val) instanceof @constructor
 
     toString: -> @st
 
@@ -156,7 +160,7 @@ class SequenceType extends TopType
     st: "Sequence"
 
     check: (val) ->
-        t = TypeName.typeOf(val)
+        t = TypeName::typeOf(val)
         (t instanceof ArrayType or t instanceof @constructor)
 
 class StreamType extends SequenceType

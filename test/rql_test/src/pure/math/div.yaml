@@ -13,3 +13,8 @@ tests:
     - py: r.expr(4.9) / 0.7
       js: r(4.9).div(0.7)
       ot: 4.9 / 0.7
+
+    # All arithmetic operations (except mod) actually support arbitrary arguments
+    # but this feature can't be accessed in Python because it's operators are binary
+    - js: r(1).div(2,3,4,5)
+      ot: 1/120

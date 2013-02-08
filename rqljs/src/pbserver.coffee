@@ -53,7 +53,7 @@ class RDBPbServer
             for datum in result
                 response.addResponse @deconstructDatum datum
         catch err
-            unless err instanceof RDBError then RDBthrow err
+            unless err instanceof RDBError then throw err
 
             response.setType (
                 if err instanceof RuntimeError
@@ -128,6 +128,8 @@ class RDBPbServer
             when Term2.TermType.MOD          then RDBMod
             when Term2.TermType.APPEND       then RDBAppend
             when Term2.TermType.SLICE        then RDBSlice
+            when Term2.TermType.SKIP         then RDBSkip
+            when Term2.TermType.LIMIT        then RDBLimit
             when Term2.TermType.GETATTR      then RDBGetAttr
             when Term2.TermType.CONTAINS     then RDBContains
             when Term2.TermType.PLUCK        then RDBPluck

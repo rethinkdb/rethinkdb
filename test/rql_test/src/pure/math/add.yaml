@@ -22,3 +22,12 @@ tests:
     - py: r.expr('abc') + 'def'
       js: r('abc').add('def')
       ot: "'abcdef'"
+
+    # All arithmetic operations (except mod) actually support arbitrary arguments
+    # but this feature can't be accessed in Python because it's operators are binary
+    - js: r(1).add(2,3,4,5)
+      ot: 15
+
+    - js: r('a').add('b', 'c', 'd')
+      ot: "'abcd'"
+

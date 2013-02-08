@@ -12,13 +12,8 @@ class TestGroup:
         self.path = path
         self.group = group
 
-    def iter_tests(self, lang):
-        for test in self.group['tests']:
-            expected = None
-            if 'ot' in test:
-                expected = test['ot']
-            if lang in test:
-                yield (test[lang], expected)
+    def __iter__(self):
+        return iter(self.group['tests'])
 
 # Walk the test tree and get an object representing all
 # the test data from the yaml files. Each yaml file defines
@@ -57,6 +52,9 @@ def myrepr(string, lang):
             return repr(string)
         else:
             return '"'+string+'"'
+    if isinstance(string, bool):
+        if lang == 'js':
+            return repr('true') if string else repr('false')
     return repr(str(string))
 
 def build_script(tests, lang):
@@ -80,24 +78,46 @@ def build_script(tests, lang):
             if isinstance(sub, TestGroup):
                 script.write(comment*ln + '  ' + sub.group['desc'] + '\n\n')
 
-                for test,expected in sub.iter_tests(lang):
-                    
-                    # Test may be a dict providing specific values for this language
-                    if isinstance(test, dict):
-                        code = test['code']
+                for test in sub:
+
+                    # This test may define variables to be used later
+                    if 'def' in test:
+                        define = test['def']
+                        if isinstance(define, dict):
+                            if lang in define:
+                                define = define[lang]
+                            else:
+                                define = None
+
+                        if define:
+                            script.write("define("+myrepr(define, lang)+")\n")
+
+                    t = None
+                    if 'cd' in test:
+                        t = test['cd']
+                    if lang in test:
+                        t = test[lang]
+
+                    if t:
                         if 'ot' in test:
                             expected = test['ot']
-                    else:
-                        code = test
+                    
+                        # Test may be a dict providing specific values for this language
+                        if isinstance(t, dict):
+                            code = t['code']
+                            if 'ot' in t:
+                                expected = t['ot']
+                        else:
+                            code = t
 
-                    # Test may be a list of syntactically different but practically similar variants 
-                    if not isinstance(code, list):
-                        code = [code]
+                        # Test may be a list of syntactically different but practically similar variants 
+                        if not isinstance(code, list):
+                            code = [code]
 
-                    # Write out each variant as a separate test
-                    for variant in code:
-                        test = "test("+myrepr(variant, lang)+", "+myrepr(expected, lang)+")\n"
-                        script.write(test)
+                        # Write out each variant as a separate test
+                        for variant in code:
+                            test = "test("+myrepr(variant, lang)+", "+myrepr(expected, lang)+")\n"
+                            script.write(test)
             else:
                 script.write('\n')
                 walk(sub, ln+1)
@@ -110,14 +130,22 @@ class RethinkDBTestServers:
         self.start()
 
     def start(self):
-        call(['../../build/debug/rethinkdb', 'create', '-d', 'build/cpp_data'])
-        self.cpp_server = Popen(['../../build/debug/rethinkdb', 'serve', '-d', 'build/cpp_data'])
+        self.cpp_server = Popen(['../../build/debug/rethinkdb'])
         self.js_server = Popen(['node', '../../rqljs/build/rqljs', '1'])
         sleep(0.1)
 
     def stop(self):
         self.cpp_server.terminate()
         self.js_server.terminate()
+        self.clear_data()
+
+    def clear_data(self):
+        call(['rm', 'rethinkdb-data']) # JS server data
+        call(['rm', '-r', 'rethinkdb_data'])
+
+    def restart(self):
+        self.stop()
+        self.start()
 
 def run_tests(lang):
     if lang is 'py':
@@ -125,15 +153,21 @@ def run_tests(lang):
     elif lang is 'js':
         interpreter = 'node'
 
-    print "Running "+lang+" tests"
+    print "Running "+lang+" tests\n"
     call([interpreter, 'build/test.'+lang])
-    print "Finished running "+lang+" tests"
+    print "Finished running "+lang+" tests\n"
 
 # Run the tests
 def run():
     servers = RethinkDBTestServers()
     run_tests('py')
+    servers.restart()
     run_tests('js')
+    servers.stop()
+
+def run_py():
+    servers = RethinkDBTestServers()
+    run_tests('py')
     servers.stop()
 
 if __name__ == '__main__':

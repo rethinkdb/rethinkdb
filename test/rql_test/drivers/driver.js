@@ -44,12 +44,18 @@ function eq(exp) {
         if (!eq_test(val, exp)) {
             console.log("Equality comparison failed");
             console.log("Value:", val, "Expected:", exp);
+            return false;
+        } else {
+            return true;
         }
     }
 }
 
 // Tests are stored in list until they can be sequentially evaluated
 var tests = []
+
+// Any variables defined by the tests are stored here
+var defines = {}
 
 // Connect first to cpp server
 r.connect({port:CPPPORT}, function(err, cpp_conn) {
@@ -61,10 +67,15 @@ r.connect({port:CPPPORT}, function(err, cpp_conn) {
 		function runTest() {
 			var testPair = tests.shift();
 			if (testPair) {
+                var src = testPair[0]
 				try {
-					test = eval(testPair[0]);
+                    with (defines) {
+					    test = eval(src);
+                    }
 				} catch(err) {
-					throw new Error("Query construction error")
+                    console.log("Error "+err.message+" in construction of: "+src)
+                    // continue to next test
+                    runTest();
 				}
 
 				exp_fun = eval(testPair[1]);
@@ -73,7 +84,7 @@ r.connect({port:CPPPORT}, function(err, cpp_conn) {
 
 				// Run test first on cpp server
 				test.run(cpp_conn, function(cpp_err, cpp_res) {
-
+                    
                     // Convert to array if it's a cursor
                     if (cpp_res instanceof Object && cpp_res.toArray) {
                         cpp_res.toArray(afterArray);
@@ -94,8 +105,14 @@ r.connect({port:CPPPORT}, function(err, cpp_conn) {
 
                             // Again, convert to array
                             function afterArray2(err, js_res) {
-                                exp_fun(cpp_res);
-                                exp_fun(js_res);
+
+                                if (!exp_fun(cpp_res)) {
+                                    console.log(" in CPP version of: "+src)
+                                }
+
+                                if (!exp_fun(js_res)) {
+                                    console.log(" in JS version of: "+src)
+                                }
 
                                 // Continue to next test. Tests are fully sequential
                                 // so you can rely on previous queries results in
@@ -125,3 +142,17 @@ function test(testSrc, resSrc) {
 	tests.push([testSrc, resSrc])
 }
 
+// Invoked by generated code to define variables to used within
+// subsequent tests
+function define(expr) {
+    eval("defines."+expr);
+}
+
+// Invoked by generated code to support bag comparison on this expected value
+function bag(list) {
+    var bag = eval(list).sort();
+    return function(other) {
+        other = other.sort();
+        return eq_test(bag, other);
+    }
+}

@@ -169,7 +169,7 @@ class RDBSkip extends RDBOp
 
 class RDBLimit extends RDBOp
     type: tp "Sequence, NUMBER -> Sequence"
-    op: (args) -> args[0].slice new RDBPrimitive 0, args[1]
+    op: (args) -> args[0].limit args[1]
 
 class RDBGetAttr extends RDBOp
     type: tp "OBJECT, STRING -> DATUM"
@@ -189,7 +189,7 @@ class RDBWithout extends RDBOp
 
 class RDBMerge extends RDBOp
     type: tp "OBJECT... -> OBJECT"
-    op: (args) -> args[0].merge args[1]...
+    op: (args) -> args[0].merge args[1..]...
 
 class RDBBetween extends RDBOp
     type: tp "Sequence, {left_bound:DATUM; right_bound:DATUM} -> Sequence"

@@ -13,3 +13,8 @@ tests:
     - py: r.expr(1.5) * 4.5
       js: r(1.5).mul(4.5)
       ot: 6.75
+
+    # All arithmetic operations (except mod) actually support arbitrary arguments
+    # but this feature can't be accessed in Python because it's operators are binary
+    - js: r(1).mul(2,3,4,5)
+      ot: 120

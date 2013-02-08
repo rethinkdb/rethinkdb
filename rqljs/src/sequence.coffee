@@ -10,18 +10,35 @@ class RDBSequence extends RDBType
         other = other.asArray()
         new RDBPrimitive (v.eq other[i] for v,i in self).reduce (a,b)->a&&b
 
-    nth: (index) -> @asArray()[index.asJSON()]
+    nth: (index) ->
+        i = index.asJSON()
+        if i < 0 then throw new RuntimeError "Nth doesn't support negative indicies"
+        if i >= @asArray().length then throw new RuntimeError "Index too large"
+        @asArray()[index.asJSON()]
+
     append: (val) -> new RDBArray @asArray().concat [val]
     asArray: -> throw new ServerError "Abstract method"
     count: -> new RDBPrimitive @asArray().length
     union: (others...) -> new RDBArray @asArray().concat (others.map (v)->v.asArray())...
     slice: (left, right) -> new RDBArray @asArray()[left.asJSON()..right.asJSON()]
+    limit: (right) ->
+        num = right.asJSON()
+        if num < 0 then num = 0
+        new RDBArray @asArray()[0...num]
+
+    pluck: (attrs...) -> @map (row) -> row.pluck(attrs...)
+    without: (attrs...) -> @map (row) -> row.without(attrs...)
 
     orderBy: (orderbys) ->
         new RDBArray @asArray().sort (a,b) ->
             for ob in orderbys.asArray()
-                op = (if ob.asJSON()[0] == '-' then 'lt' else 'gt')
-                if a[ob.asJSON()][op](b[ob.asJSON()]).asJSON() then return true
+                ob = ob.asJSON()
+                if ob[0] == '-'
+                    op = 'lt'
+                    ob = ob.slice(1)
+                else
+                    op = 'gt'
+                if a[ob][op](b[ob]).asJSON() then return true
             return false
 
     distinct: ->
