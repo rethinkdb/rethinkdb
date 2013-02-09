@@ -6,12 +6,36 @@
         <h1 class="title">Data Explorer</h1>
         <div id="user-alert-space"></div>
         <div class="reason_dataexplorer_broken alert alert-error"></div>
+        <div class="history_container">
+        </div>
         <div class="input_query_full_container"></div>
 
     </div>
     <div class="results_container section">
     </div>
 </script>
+
+<script id="dataexplorer-history-template" type="text/x-handlebars-template">
+    <div class="previous_queries_container"><a href="#" class="previous_queries_link">Previous queries</a></div>
+    <div class="next_queries_container"><a href="#" class="next_queries_link">Next queries</a></div>
+
+    <div class="close_queries_container"><a href="#" class="close_queries_link">Show history</a></div>
+    <div class="clear_queries_container"><a href="#" class="clear_queries_link">Clear history</a></div>
+    <ul class="history_list"></ul>
+</script>
+
+<script id="dataexplorer-toggle_history-template" type="text/x-handlebars-template">
+    {{#if show}}Show history{{else}}Close history{{/if}}
+</script>
+
+<script id="dataexplorer-query_li-template" type="text/x-handlebars-template">
+    {{#if no_query}}
+    <li class="no_history {{displayed_class}}">No history available</li>
+    {{else}}
+    <li class="query_history {{displayed_class}}">{{query}}</li>
+    {{/if}}
+</script>
+
 
 <script id="dataexplorer-reason_broken-template" type="text/x-handlebars-template">
 {{#if is_internet_explorer}}
@@ -95,9 +119,6 @@ Sorry, the data explorer does not support your browser. Please upgrade it. See t
         </div>
         <div class="suggestion_description_arrow arrow"></div>
         <div class="suggestion_description_arrow_overlay arrow"></div>
-        <div class="history">
-            <ul class="history_list"></ul>
-        </div>
         <textarea class="input_query" id="input_query"></textarea>
         <div class="button_container">
             <button class="btn button_query execute_query">Execute</button>
@@ -109,49 +130,8 @@ Sorry, the data explorer does not support your browser. Please upgrade it. See t
     </div>
 </script>
 
-<script id="dataexplorer-query_li-template" type="text/x-handlebars-template">
-    <li class="query_history {{displayed_class}}">{{query}}</li>
-</script>
-
 <script id="dataexplorer_suggestion_name_li-template" type="text/x-handlebars-template">
     <li class="suggestion_name_li" data-has_argument="{{has_argument}}" data-id={{id}}>{{suggestion}}</li>
-</script>
-
-<script id="dataexplorer_default_view-template" type="text/x-handlebars-template">
-    <p>You can automatically build a query by clicking on a table or on a previous query. You can then modify them as you wish.</p>
-    <p>The data explorer is equipped with a suggestion feature, but if you are lost, you can find more details in the <a href="#help">help page</a>.</p>
-
-    <div class="namespaces_available_container">
-        <h3>Tables available</h3>
-
-        {{#if has_namespaces}}
-            {{#each databases}}
-                <h4>{{name}}</h4>
-                <ul class="namespaces_available_list queries_list">
-                    {{#each namespaces}}
-                        <li class="namespace_element"><a href="#" data-database="{{database}}" data-name="{{name}}" class="namespace_link">{{name}}</a></li>
-                    {{/each}}
-                </ul>
-            {{/each}}
-        {{else}}
-        <p>There is no table available. <br />Start by <a href="#tables">creating one</a>.</p>
-        {{/if}}
-   </div>
-    <div class="history_queries">
-        <h3>Previous query</h3>
-        
-        <div class="history_query_container">
-        {{#if has_old_queries}}
-        <ul class="history_queries_list queries_list">
-            {{#each old_queries}}
-            <li class="query_element"><a href="#" class="old_query" data-query="{{query}}">{{query_summary}}</a></li>
-            {{/each}}
-        </ul>
-        {{else}}
-        <p>There are no previous queries.</p>
-        {{/if}}
-    </div>
-    </div>
 </script>
 
 <script id="dataexplorer-error-template" type="text/x-handlebars-template">
@@ -162,10 +142,6 @@ Sorry, the data explorer does not support your browser. Please upgrade it. See t
 Did you forget to append .run() at the end of your query?{{/if}}</pre>
 </script>
 
-<script id="dataexplorer_query_list-template" type="text/x-handlebars-template">
-    <ul class="history_query_list queries_list">
-    </ul>
-</script>
 
 <script id="dataexplorer_query_element-template" type="text/x-handlebars-template">
     <li class="query_element"><a href="#" class="old_query" data-query="{{query}}">{{query_summary}}</a></li>
@@ -232,7 +208,7 @@ Did you forget to append .run() at the end of your query?{{/if}}</pre>
 
 <!-- Keep </script> without space/new line before so the comma stick to the value of the object-->
 <script id="dataexplorer_result_json_tree_container-template" type="text/x-handlebars-template">
-    <span class="jta_arrow jta_arrow_h"></span><div class="json_tree">{{print_safe tree}}</div></script>
+    <div class="json_tree">{{print_safe tree}}</div></script>
 
 <script id="dataexplorer_result_json_tree_span-template" type="text/x-handlebars-template">
     <span class="jt_editable {{classname}}" >{{value}}</span></script>
@@ -294,8 +270,7 @@ Did you forget to append .run() at the end of your query?{{/if}}</pre>
 
 <script id="dataexplorer_result_json_table_tr_attr-template" type="text/xs-handlebars-template">
     <tr class="jta_tr">
-        <td class="td_attr col-record" data-col="record">
-            <div class="jta_attr">#</div>
+        <td class="td_attr col-record col-record-attr" data-col="record">
         </td>
         {{#each attr}}
         <td class="td_attr col-{{col}}" data-col={{col}}>
@@ -308,7 +283,7 @@ Did you forget to append .run() at the end of your query?{{/if}}</pre>
 <script id="dataexplorer_result_json_table_tr_value-template" type="text/xs-handlebars-template">
     {{#each document}}
     <tr class="jta_tr">
-        <td class="col-record" data-col="record"><div class="jta_value col-record">{{record}}</div></td>
+        <td class="col-record-td" data-col="record"><div class="jta_value col-record">{{record}}</div></td>
         {{#each cells}}
             {{print_safe this}}
         {{/each}}
@@ -331,9 +306,9 @@ Did you forget to append .run() at the end of your query?{{/if}}</pre>
 <script id="dataexplorer_result_json_table_td_value_content-template" type="text/xs-handlebars-template">
     {{#if data_to_expand}}
     <div class="{{class_value}} jta_value {{classname}}">       
+        <span class="jta_arrow jta_arrow_hh"></span>
         <span data-json_data="{{data_to_expand}}" class="jta_object">
             <span class="jta_arrow jta_arrow_h"></span>
-            <span class="jta_arrow jta_arrow_v"></span>
             <strong>{{print_safe value}}</strong>
         </span>
     </div>

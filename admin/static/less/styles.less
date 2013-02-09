@@ -1049,6 +1049,7 @@ TODO: retire this
         margin-bottom: 25px;
     }
     .input_query_full_container{
+        clear: both;
         position: relative;
         width: 100%;
         .suggestion_description_arrow{
@@ -1160,26 +1161,7 @@ TODO: retire this
                     cursor: auto;
                 }
             }
-            .history{
-                font: @monospace;
-                background: #f8f8f8;
-                .history_list{
-                    list-style: none;
-                    .query_history{
-                        word-break: break-word;
-                        padding: 7px 10px;
-                        border: 1px solid #ccc;
-                        border-radius: 3px;
-                        background: #eee;
-                    }
-                    &.displayed{
-                        display: block;
-                    }
-                    &.hidden{
-                        display: none;
-                    }
-                }
-            }
+
         }
         .loading_query{
             text-align: center;
@@ -1190,45 +1172,74 @@ TODO: retire this
             .loading_query_img{ display: none; }
         }
     }
-    .data_container{
-        .results_header{
-            overflow: hidden;
-            p{ font-family: @sans; }
-        }
-        .namespaces_available_container{
-            float: left;
-            width: 330px;
-            padding: 20px 10px 10px 10px;
-            h4 { margin: 7px 0px 5px 0px; }
-        }
-        .history_queries{
-            float: left;
-            width: 330px;
-            padding: 20px 10px 10px 10px;
-        }
-        .queries_list{
-            margin: 0px;
+    .history{
+        font-family: @monospace;
+        font-size: 15px; // Exact match with codemirror
+        .history_list{
+            display: none;
+            clear: both;
             list-style: none;
-            font-family: monospace;
-            li{
-                padding: 0px 0px 0px 7px;
-                margin: 0px;
-                border-left: 1px solid #ccc;
+            margin: 0px 0px 0px 10px;
+            padding: 0px 0px 0px 18px;
+            .query_history{
+                display: none;
+                word-break: break-word;
+                white-space: pre;
+                margin: 0px 0px 10px 0px;
+                padding: 7px 4px;
+                border: 1px solid #ccc;
+                border-radius: 3px;
+                background: #f8f8f8;
+                color: #aaa;
+                &.displayed{
+                    display: block;
+                }
+                &.hidden{
+                    display: none;
+                }
+                &:last-child{ //Need it to make the slideDown/Up smooth
+                    margin: 0px;
+                }
             }
-            .query_element{
-                width: 300px;
-                overflow: hidden;
-            }
-            .namespace_element{
-                padding: 0px 0px 0px 7px;
+            .no_history{
+                word-break: break-word;
+                white-space: pre;
                 margin: 0px;
-                border-left: 1px solid #ccc;
-
-                width: 300px;
-                overflow: hidden;
+                padding: 7px 4px;
+                border: 1px solid #ccc;
+                border-radius: 3px;
+                background: #fff;
+                color: #aaa;               
+                &.displayed{
+                    display: block;
+                }
+                &.hidden{
+                    display: none;
+                }
             }
         }
+        .previous_queries_container{
+            display: none;
+            float: left;
+            margin: 0px 20px 7px 28px;
+        }
+        .next_queries_container{
+            display: none;
+            float: left;
+            margin: 0px 0px 7px 0px;
+        }
+        .clear_queries_container{
+            display: none;
+            float: right;
+            margin: 0px 20px 7px 0px;
+        }
+        .close_queries_container{
+            float: right;
+            margin: 0px 0px 7px 0px;
+        }
+
     }
+
     .result_view{
         .error{ font-family: @sans; }
         .error_details{
@@ -1304,62 +1315,61 @@ TODO: retire this
         width: 100%;
         .json_tree_container{
             width: 888px;
-            .json_tree{
-                padding: 0px 20px;
-                float: left; // Clear the horizontal arrow
-                font: 13px/18px monospace,mono,consolas;
-                .jt_null{
-                    color: red
-                }
-                .jt_bool{
-                    color: #ee00ff;
-                }
-                .jt_num{
-                    color: blue;
-                }
-                .jt_link{
-                    text-decoration: none;
-                    color: #000;
-                }
-                .jt_url{ color: #08c; }
-                .jt_email{ color: #08c; }
-                .jt_string{
-                    padding: 2px 0px;
-                    color: green;
-                }
-                /*.jt_b{ font-weight: bold; }*/
-                .jt_close{ margin-left: 6px; }
-                .jt_array{
-                    list-style: none;
-                    margin-left: 7px;
-                    padding-left: 22px;
-                    border-left: 1px dotted #bbb;
-                }
-                .jt_object{
-                    list-style: none;
-                    margin-left: 7px;
-                    padding-left: 22px;
-                    border-left: 1px dotted #bbb;
-                }
-                .jt_arrow{
-                    width: 15px;
-                    height: 15px;
-                    margin: 3px 2px 0px -15px;
-                    float: left;
-                    display: block;
-                    background: url('/images/arrow_down.png') no-repeat;
-                }
-                .jt_arrow_hidden{ background: url('/images/arrow_right.png') no-repeat; }
-                .jt_points{ display: none; }
-                .jt_points_collapsed{ display: inline; }
-                .jt_collapsed{ display: none; }
-                .jt_b_collapsed{
-                    display: inline;
-                    margin-left: 0px;
-                }   
-            }
         }
-
+        .json_tree{ // Used in json_tree_container AND json_table_container
+            padding: 0px 20px;
+            float: left; // Clear the horizontal arrow
+            font: 13px/18px monospace,mono,consolas;
+            .jt_null{
+                color: red
+            }
+            .jt_bool{
+                color: #ee00ff;
+            }
+            .jt_num{
+                color: blue;
+            }
+            .jt_link{
+                text-decoration: none;
+                color: #000;
+            }
+            .jt_url{ color: #08c; }
+            .jt_email{ color: #08c; }
+            .jt_string{
+                padding: 2px 0px;
+                color: green;
+            }
+            /*.jt_b{ font-weight: bold; }*/
+            .jt_close{ margin-left: 6px; }
+            .jt_array{
+                list-style: none;
+                margin-left: 7px;
+                padding-left: 22px;
+                border-left: 1px dotted #bbb;
+            }
+            .jt_object{
+                list-style: none;
+                margin-left: 7px;
+                padding-left: 22px;
+                border-left: 1px dotted #bbb;
+            }
+            .jt_arrow{
+                width: 15px;
+                height: 15px;
+                margin: 3px 2px 0px -15px;
+                float: left;
+                display: block;
+                background: url('/images/arrow_down.png') no-repeat;
+            }
+            .jt_arrow_hidden{ background: url('/images/arrow_right.png') no-repeat; }
+            .jt_points{ display: none; }
+            .jt_points_collapsed{ display: inline; }
+            .jt_collapsed{ display: none; }
+            .jt_b_collapsed{
+                display: inline;
+                margin-left: 0px;
+            }   
+        }
         .json_table_container{
             width: 888px;
             .json_table{
@@ -1395,7 +1405,6 @@ TODO: retire this
                 .jta_object{
                     vertical-align: top;
                     display: inline-block;
-                    width: 100%;
                 }
                 td{
                     max-width: 310px;
@@ -1429,7 +1438,20 @@ TODO: retire this
                 }
                 .jta_arrow_h{
                     background: url('/images/arrow_right.png') no-repeat;
+                    float: left;
+                }
+                .jta_arrow_hh{
+                    width: 20px;
+                    height: 10px;
+                    background: url('/images/arrow_right.png') repeat-x;
                     float: right;
+                }
+                .col-record-attr{
+                    visibility: hidden;
+                }
+                .col-record{
+                    color: #aaa;
+                    padding: 7px 0px 5px 10px;
                 }
             }
             .resizing{

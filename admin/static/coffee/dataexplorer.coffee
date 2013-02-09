@@ -13,13 +13,10 @@ module 'DataExplorerView', ->
         databases_suggestions_template: Handlebars.templates['dataexplorer-databases_suggestions-template']
         namespaces_suggestions_template: Handlebars.templates['dataexplorer-namespaces_suggestions-template']
         reason_dataexplorer_broken_template: Handlebars.templates['dataexplorer-reason_broken-template']
-        dataexplorer_query_li_template: Handlebars.templates['dataexplorer-query_li-template']
 
         # Constants
         limit: 40 # How many results we display per page // Final for now
         line_height: 13 # Define the height of a line (used for a line is too long)
-        size_history: 100
-
         events:
             'click .CodeMirror': 'handle_keypress'
             'mousedown .suggestion_name_li': 'select_suggestion' # Keep mousedown to compete with blur on .input_query
@@ -143,13 +140,18 @@ module 'DataExplorerView', ->
                         data_to_save[key] = value
                 window.localStorage.rethinkdb_dataexplorer = JSON.stringify data_to_save
         save_query: (query) =>
+            query = query.replace(/^\s*$[\n\r]{1,}/gm, '')
+            if query[query.length-1] is '\n' or query[query.length-1] is '\r'
+                query.slice 0, query.length-1
             if window.localStorage?
-                @history.push query
-                if @history.length>@size_history
-                    window.localStorage.rethinkdb_history = JSON.stringify @history.slice @history.length-@size_history
-                else
-                    window.localStorage.rethinkdb_history = JSON.stringify @history
-        erase_history: =>
+                if @history.length is 0 or @history[@history.length-1] isnt query and @regex.white.test(query) is false
+                    @history.push query
+                    if @history.length>@size_history
+                        window.localStorage.rethinkdb_history = JSON.stringify @history.slice @history.length-@size_history
+                    else
+                        window.localStorage.rethinkdb_history = JSON.stringify @history
+                    @history_view.add_query query
+        clear_history: =>
             @history = []
             window.localStorage.rethinkdb_history = JSON.stringify @history
 
@@ -186,12 +188,6 @@ module 'DataExplorerView', ->
                 else
                     DataExplorerView.Container.prototype.history = []
             @history = DataExplorerView.Container.prototype.history
-            debugger
-            for query in @history
-                @$('.history_list').append @dataexplorer_query_li_template
-                    query: query
-                    displayed_class: 'displayed'
-
 
             # Let's have a shortcut
             @saved_data = DataExplorerView.Container.prototype.saved_data
@@ -247,6 +243,10 @@ module 'DataExplorerView', ->
                 limit: @limit
 
 
+            @history_view = new DataExplorerView.HistoryView
+                container: @
+                history: @history
+
             @driver_handler = new DataExplorerView.DriverHandler
                 container: @
 
@@ -287,6 +287,8 @@ module 'DataExplorerView', ->
             # If driver not conneced
             if @driver_connected is false
                 @error_on_connect()
+    
+            @$('.history_container').html @history_view.render().$el
 
             return @
 
@@ -429,7 +431,7 @@ module 'DataExplorerView', ->
             stack = @extract_data_from_query
                 query: query_before_cursor
                 position: 0
-            console.log JSON.stringify stack, null, 2
+            #console.log JSON.stringify stack, null, 2
 
 
             result =
@@ -1117,6 +1119,7 @@ module 'DataExplorerView', ->
 
         show_suggestion: =>
             @move_suggestion()
+            #margin = (parseInt(@.$('.CodeMirror-cursor').css('top').replace('px', ''))+@line_height)+'px'
             margin = (parseInt(@.$('.CodeMirror-cursor').css('top').replace('px', ''))+@line_height)+'px'
             @.$('.suggestion_full_container').css 'margin-top', margin
             @.$('.arrow').css 'margin-top', margin
@@ -1439,6 +1442,7 @@ module 'DataExplorerView', ->
             @driver_handler.postpone_reconnection()
 
             query = @codemirror.getValue()
+            # TODO save only successful queries?
             @save_query query
             @query = @replace_new_lines_in_query query # Save it because we'll use it in @callback_multilples_queries
             
@@ -1643,8 +1647,8 @@ module 'DataExplorerView', ->
             'click .jt_arrow': 'toggle_collapse'
             # For Table view
             'mousedown td': 'handle_mousedown'
-            'click .jta_arrow_v': 'expand_tree_in_table'
-            'click .jta_arrow_h': 'expand_table_in_table'
+            'click .jta_arrow_h': 'expand_tree_in_table'
+            'click .jta_arrow_hh': 'expand_table_in_table'
 
             'click .link_to_tree_view': 'show_tree'
             'click .link_to_table_view': 'show_table'
@@ -1798,9 +1802,6 @@ module 'DataExplorerView', ->
                     else return 0
             )
 
-            if keys_sorted.length > 1 and map['_anonymous object']?
-                keys_sorted.shift()
-
             @last_keys = _.union(['record'], keys_sorted.map( (key) -> return key[0] ))
 
             return @template_json_table.container
@@ -1825,7 +1826,10 @@ module 'DataExplorerView', ->
                 for key_container, col in keys_stored
                     key = key_container[0]
                     if key is '_anonymous object'
-                        value = element
+                        if jQuery.isPlainObject(element)
+                            value = undefined
+                        else
+                            value = element
                     else
                         if element?
                             value = element[key]
@@ -1886,6 +1890,7 @@ module 'DataExplorerView', ->
         # Expand a JSON object in a table. We just call the @json_to_tree
         expand_tree_in_table: (event) =>
             dom_element = @.$(event.target).parent()
+            @.$(event.target).remove()
             data = dom_element.data('json_data')
             result = @json_to_tree data
             dom_element.html result
@@ -1893,15 +1898,14 @@ module 'DataExplorerView', ->
             $('.'+classname_to_change).css 'max-width', 'none'
             classname_to_change = dom_element.parent().parent().attr('class')
             $('.'+classname_to_change).css 'max-width', 'none'
- 
-            @.$(event.target).parent().css 'max-width', 'none'
-            @.$(event.target).remove() #TODO Fix this trick
+            dom_element.css 'max-width', 'none'
             @set_scrollbar()
 
 
         # Expand the table with new columns (with the attributes of the expanded object)
+        # TODO Save the expansion
         expand_table_in_table: (event) =>
-            dom_element = @.$(event.target).parent()
+            dom_element = @.$(event.target).siblings()
             parent = dom_element.parent()
             classname = dom_element.parent().attr('class').split(' ')[0] #TODO Use a regex
             data = dom_element.data('json_data')
@@ -2211,6 +2215,128 @@ module 'DataExplorerView', ->
             $(window).unbind 'scroll'
             $(window).unbind 'resize'
 
+    class @HistoryView extends Backbone.View
+        dataexplorer_history_template: Handlebars.templates['dataexplorer-history-template']
+        dataexplorer_query_li_template: Handlebars.templates['dataexplorer-query_li-template']
+        dataexplorer_toggle_history_template: Handlebars.templates['dataexplorer-toggle_history-template']
+        className: 'history'
+        
+        size_history: 100
+        size_history_displayed: 3
+        state: 'hidden'
+        index_displayed: 0
+
+        events:
+            'click .clear_queries_link': 'clear_history'
+            'click .close_queries_link': 'open_close_history'
+            'click .previous_queries_link': 'previous_queries'
+            'click .next_queries_link': 'next_queries'
+
+        initialize: (args) =>
+            @container = args.container
+            @history = args.history
+
+        render: =>
+            @$el.html @dataexplorer_history_template()
+            @delegateEvents()
+            return @
+
+        add_query: (query) =>
+            # We don't keep state because we consider that people will not fire two differents queries in less than 200ms.
+            # TODO add state because they can still do it (at least I know how to do it :))
+            if @$('.query_history').length > @size_history_displayed-1
+                @index_displayed++
+                @$('.query_history:first').slideUp 'fast', ->
+                    @remove()
+            @$('.history_list').show()
+            @$('.no_history').slideUp 'fast', ->
+                @remove()
+            @$('.history_list').append @dataexplorer_query_li_template
+                query: query
+                displayed_class: 'hidden'
+            @$('.query_history:last').slideDown 'fast'
+            @toggle_previous_and_next()
+
+        clear_history: (event) =>
+            event.preventDefault()
+            @container.clear_history()
+            @history = @container.history
+
+            @$('.query_history').slideUp 'fast', ->
+                @remove()
+            if @$('.no_history').length is 0
+                @$('.history_list').append @dataexplorer_query_li_template
+                    no_query: true
+                    displayed_class: 'hidden'
+                @$('.no_history').slideDown 'fast'
+
+            @index_displayed = 0
+            @toggle_previous_and_next()
+
+        toggle_previous_and_next: =>
+            if @index_displayed > 0
+                @$('.previous_queries_container').fadeIn 'fast'
+            else
+                @$('.previous_queries_container').fadeOut 'fast'
+
+            if @index_displayed+@size_history_displayed <= @history.length
+                @$('.next_queries_container').fadeIn 'fast'
+            else
+                @$('.next_queries_container').fadeOut 'fast'
+
+
+        open_close_history: (event) =>
+            event.preventDefault()
+            that = @
+
+            if @state is 'visible'
+                @state = 'hidden'
+                @$('.history_list').slideUp 'fast', ->
+                    that.$('.history_list').empty()
+                @$('.previous_queries_container').fadeOut 'fast'
+                @$('.next_queries_container').fadeOut 'fast'
+                @$('.clear_queries_container').fadeOut 'fast'
+                @$('.close_queries_link').fadeOut 'fast', ->
+                    @html that.template_toggle_history_template
+                        show: false
+                    @fadeIn 'fast'
+                @index_displayed = 0
+            else
+                @state = 'visible'
+                if @history.length > 0
+                    @$('.no_history').slideUp 'fast', ->
+                        @remove()
+                    if @history.length > @size_history_displayed
+                        start = @history.length-@size_history_displayed
+                    else
+                        start = 0
+                    @index_displayed = start
+                    for i in [start..@history.length-1]
+                        query = @history[i]
+                        @$('.history_list').append @dataexplorer_query_li_template
+                            query: query
+                            displayed_class: 'displayed'
+                else
+                    @index_displayed = 0
+                    @$('.history_list').append @dataexplorer_query_li_template
+                        no_query: true
+                        displayed_class: 'displayed'
+                @toggle_previous_and_next()
+
+                @$('.history_list').slideDown 'fast'
+                @$('.clear_queries_container').fadeIn 'fast'
+                @$('.close_queries_link').fadeOut 'fast', ->
+                    @html that.template_toggle_history_template
+                        show: true
+                    @fadeIn 'fast'
+
+
+
+        previous_queries: (event) =>
+            event.preventDefault()
+
+        next_queries: (event) =>
+            event.preventDefault()
 
     class @DriverHandler
         # I don't want that thing in window
