@@ -1,14 +1,15 @@
 from sys import path
+import sys
 import types
 import pdb
 import collections
-path.append("/home/wmrowan/rethinkdb/drivers/python2")
+path.append("../../drivers/python2")
 
 from os import environ
 import rethinkdb as r 
 
-JSPORT = 28017
-CPPPORT = 28016
+JSPORT = int(sys.argv[1])
+CPPPORT = int(sys.argv[2])
 
 # -- utilities --
 
@@ -81,7 +82,9 @@ class PyTestDriver:
 
     # Set up connections to each database server
     def connect(self):
+        print 'Connecting to JS server on port ' + str(JSPORT)
         self.js_conn = r.connect(host='localhost', port=JSPORT)
+        print 'Connecting to CPP server on port ' + str(CPPPORT)
         self.cpp_conn = r.connect(host='localhost', port=CPPPORT)
         self.scope = {}
 
@@ -109,6 +112,7 @@ class PyTestDriver:
         exp_fun = eval(expected, globals(), self.scope)
         if not isinstance(exp_fun, types.FunctionType):
             exp_fun = eq(exp_fun)
+
 
         if not exp_fun(cppres):
             print " in CPP version of:", src

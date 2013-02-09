@@ -1,7 +1,7 @@
 var r = require('./../../../drivers/javascript2/build/rethinkdb.js');
 
-var CPPPORT = 28016
-var JSPORT = 28017
+var JSPORT = process.argv[2]
+var CPPPORT = process.argv[3]
 
 // -- utilities --
 
@@ -10,6 +10,8 @@ function eq_test(one, two) {
 
         if (!(two instanceof Array)) return false;
         
+        if (one.length != two.length) return false;
+
         // Recurse on each element of array
         for (var i = 0; i < one.length; i++) {
             if (!eq_test(one[i], two[i])) return false;
@@ -21,6 +23,7 @@ function eq_test(one, two) {
 
         if (!(two instanceof Object)) return false;
 
+        // TODO: eq_test({},{foo:4}) will return true
         // Recurse on each property of object
         for (var key in one) {
             if (one.hasOwnProperty(key)) {

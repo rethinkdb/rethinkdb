@@ -9,8 +9,8 @@ TEST_FILES=$(patsubst $(DRIVERS)/driver.%,$(BUILD)/test.%,$(DRIVER_FILES))
 run: $(TEST_FILES)
 	./test-runner run
 
-py: $(TEST_FILES)
-	./test-runner run_py
+py js rb: $(TEST_FILES)
+	./test-runner run_$@
 
 $(TEST_FILES): $(YAML_FILES) $(DRIVER_FILES) test-runner
 	mkdir -p build

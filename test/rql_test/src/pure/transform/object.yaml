@@ -2,7 +2,10 @@ desc: Tests manipulation operations on objects
 tests:
 
     # Define some objects to work with
-    - def: obj = r.expr({'a':1, 'b':2, 'c':"str"})
+    - def: 
+        py: obj = r.expr({'a':1, 'b':2, 'c':"str"})
+        js: obj = r.expr({'a':1, 'b':2, 'c':"str"})
+        rb: obj = r.expr({'a'=>1, 'b'=>2, 'c'=>"str"})
 
     ##  Get attr
 

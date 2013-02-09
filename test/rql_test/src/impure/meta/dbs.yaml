@@ -4,6 +4,7 @@ tests:
     # We should always start out with a 'test' database
     - py: r.db_list()
       js: r.dbList()
+      rb: r.db_list
       ot: ['test']
     
     ## DB create
