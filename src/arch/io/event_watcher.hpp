@@ -43,9 +43,10 @@ private:
     watch_t *rdhup_watcher;
 #endif
 
-    bool stopped_watching_for_errors;
+    bool watching_for_errors;
 
     int old_mask;
+    bool old_watching_for_errors;
     void remask();
 
     void on_event(int event);
