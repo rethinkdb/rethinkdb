@@ -8,6 +8,7 @@ from subprocess import call, Popen
 from time import sleep
 import random
 import socket
+import re
 
 class TestGroup:
     def __init__(self, path, group):
@@ -67,10 +68,13 @@ def build_script(tests, lang):
 
     if lang is 'py':
         comment = '#'
+        translate = lambda x: x
     elif lang is 'js':
         comment = '//'
+        translate = lambda x: re.sub('_[a-z]', lambda m: m.group()[1].upper(), x)
     elif lang is 'rb':
         comment = '#'
+        translate = lambda x: re.sub(':', '=>', x)
 
     # The driver is the head of the file
     script.write(driver.read())
@@ -94,21 +98,27 @@ def build_script(tests, lang):
                                 define = define[lang]
                             else:
                                 define = None
+                        else:
+                            define = translate(define)
 
                         if define:
                             script.write("define("+myrepr(define, lang)+")\n")
+                        continue
 
                     if lang in test:
+                        generic_code = False
                         t = test[lang]
                     elif 'cd' in test:
+                        generic_code = True
                         t = test['cd']
                     else:
                         t = None
                         print "Missing test for %s: %s-%d" % (lang, '/'.join(sub.path), i)
 
                     if t:
+                        # print "Generating test for %s: %s-%d" % (lang, '/'.join(sub.path), i)
                         if 'ot' in test:
-                            expected = test['ot']
+                            expected = translate(str(test['ot']))
                     
                         # Test may be a dict providing specific values for this language
                         if isinstance(t, dict):
@@ -122,9 +132,12 @@ def build_script(tests, lang):
                         if not isinstance(code, list):
                             code = [code]
 
+                        if generic_code:
+                            code = map(translate, code)
+
                         # Write out each variant as a separate test
                         for variant in code:
-                            test = "test("+myrepr(variant, lang)+", "+myrepr(expected, lang)+")\n"
+                            test = "test("+myrepr(variant, lang)+", "+myrepr(expected, lang)+", '"+('/'.join(sub.path))+"-"+str(i)+"')\n"
                             script.write(test)
             else:
                 script.write('\n')

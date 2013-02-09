@@ -91,23 +91,23 @@ class PyTestDriver:
     def define(self, expr):
         exec expr in globals(), self.scope
 
-    def run(self, src, expected):
+    def run(self, src, expected, name):
         try:
             query = eval(src, globals(), self.scope)
         except Exception as err:
-            print "Python error on construction of query:", str(err)
+            print name, "- Python error on construction of query:", str(err)
             return
 
         try:
             cppres = query.run(self.cpp_conn)
         except Exception as err:
-            print "Error on running of query on CPP server:", str(err)
+            print name, "- Error on running of query on CPP server:", str(err)
             return
 
         try:
             jsres = query.run(self.js_conn)
         except Exception as err:
-            print "Error on running of query on JS server:", str(err)
+            print name, "- Error on running of query on JS server:", str(err)
 
         exp_fun = eval(expected, globals(), self.scope)
         if not isinstance(exp_fun, types.FunctionType):
@@ -115,16 +115,16 @@ class PyTestDriver:
 
 
         if not exp_fun(cppres):
-            print " in CPP version of:", src
+            print " in CPP version of:", name, src
         if not exp_fun(jsres):
-            print " in JS version of:", src
+            print " in JS version of:", name, src
 
 driver = PyTestDriver()
 driver.connect()
 
 # Emitted test code will consist of calls to this function
-def test(query, expected):
-    driver.run(query, expected)
+def test(query, expected, name):
+    driver.run(query, expected, name)
 
 # Emitted test code can call this function to define variables
 def define(expr):

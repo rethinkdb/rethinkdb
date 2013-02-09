@@ -3,9 +3,12 @@ tests:
     - py:
         code: r.expr(None)
         ot: None
-    - js:
+      js:
         code: [r(null), r.expr(null)]
         ot: "null"
+      rb:
+        code: r nil
+        ot: nil
 
     # What other behavior do we need to test here?
 
