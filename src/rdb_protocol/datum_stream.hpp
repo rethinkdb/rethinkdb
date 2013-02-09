@@ -119,16 +119,20 @@ public:
     virtual const datum_t *as_arr() { return 0; } // cannot be converted implicitly
 private:
     lazy_datum_stream_t(lazy_datum_stream_t *src);
+    // To make the 1.4 release, this class was basically made into a shim
+    // between the datum logic and the original json streams.
     boost::shared_ptr<query_language::json_stream_t> json_stream;
 
+    // These are used on the json streams.  They're in the class instead of
+    // being locally allocated because it makes debugging easier.
     rdb_protocol_details::transform_variant_t trans;
     rdb_protocol_details::terminal_variant_t terminal;
     query_language::scopes_t _s;
     query_language::backtrace_t _b;
 
     template<class T>
-    void run_terminal(T t);
-    std::vector<const datum_t *> shard_data;
+    void run_terminal(T t); // only used in datum_stream.cc
+    std::vector<const datum_t *> shard_data; // used by run_terminal
 };
 
 class array_datum_stream_t : public eager_datum_stream_t {
@@ -160,7 +164,10 @@ private:
     datum_stream_t *src;
 };
 
-static const size_t sort_el_limit = 1000000;
+// This has to be constructed explicitly rather than invoking `.sort()`.  There
+// was a good reason for this involving header dependencies, but I don't
+// remember exactly what it was.
+static const size_t sort_el_limit = 1000000; // maximum number of elements we'll sort
 template<class T>
 class sort_datum_stream_t : public eager_datum_stream_t {
 public:
@@ -172,9 +179,12 @@ public:
     virtual const datum_t *next_impl() {
         if (data_index == -1) {
             data_index = 0;
-            while (const datum_t *d = src->next()) data.push_back(d);
-            rcheck(data.size() <= sort_el_limit,
-                   strprintf("Can only sort at most %lu elements.", sort_el_limit));
+            size_t sort_els = 0;
+            while (const datum_t *d = src->next()) {
+                rcheck(++sort_els <= sort_el_limit,
+                       strprintf("Can only sort at most %lu elements.", sort_el_limit));
+                data.push_back(d);
+            }
             std::sort(data.begin(), data.end(), lt_cmp);
         }
         if (data_index >= static_cast<int>(data.size())) return 0;

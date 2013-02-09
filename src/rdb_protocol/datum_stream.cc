@@ -51,7 +51,8 @@ const datum_t *eager_datum_stream_t::gmr(
             map.set(el_group, r->call(map.get(el_group), el_map)->as_datum());
             // TODO: this is a hack because GCing a `wire_datum_map_t` is
             // expensive.  Need a better way to do this.
-            if (!(++i%10000)) egct.maybe_gc(map.to_arr(env));
+            int rounds = 10000 DEBUG_ONLY(/ 5000);
+            if (!(++i%rounds)) egct.maybe_gc(map.to_arr(env));
         }
     }
     return egct.finalize(map.to_arr(env));
@@ -66,7 +67,6 @@ datum_stream_t *eager_datum_stream_t::map(func_t *f) {
 datum_stream_t *eager_datum_stream_t::concatmap(func_t *f) {
     return env->add_ptr(new concatmap_datum_stream_t(env, f, this, -1));
 }
-
 
 const datum_t *eager_datum_stream_t::as_arr() {
     datum_t *arr = env->add_ptr(new datum_t(datum_t::R_ARRAY));
@@ -89,6 +89,7 @@ lazy_datum_stream_t::lazy_datum_stream_t(lazy_datum_stream_t *src)
     frame = backtrace_t::frame_t(-1);
 }
 
+// TODO: macroexpand before Sam sees this.
 #define SIMPLE_LAZY_TRANSFORMATION(name)                                                \
 datum_stream_t *lazy_datum_stream_t::name(func_t *f) {                                  \
     lazy_datum_stream_t *out = env->add_ptr(new lazy_datum_stream_t(this));             \
@@ -102,6 +103,8 @@ SIMPLE_LAZY_TRANSFORMATION(concatmap);
 SIMPLE_LAZY_TRANSFORMATION(filter);
 #undef SIMPLE_LAZY_TRANSFORMATION
 
+// This applies a terminal to the JSON stream, evaluates it, and pulls out the
+// shard data.
 template<class T>
 void lazy_datum_stream_t::run_terminal(T t) {
     terminal = rdb_protocol_details::terminal_variant_t(t);

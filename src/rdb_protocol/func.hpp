@@ -60,28 +60,39 @@ public:
     //RDB_MAKE_ME_SERIALIZABLE_2(source, scope);
 };
 
-#define SIMPLE_FUNC_IMPL(name, frame_num)                                     \
-class name##_wire_func_t : public wire_func_t {                               \
-public:                                                                       \
-    name##_wire_func_t() : wire_func_t() { }                                  \
-    name##_wire_func_t(env_t *env, func_t *func) : wire_func_t(env, func) { } \
-    name##_wire_func_t(const Term2 &_source, std::map<int, Datum> *_scope,    \
-                       backtrace_t::frame_t _frame)                           \
-        : wire_func_t(_source, _scope, _frame) { }                            \
-    RDB_MAKE_ME_SERIALIZABLE_3(source, frame, scope);                         \
-};                                                                            \
+namespace derived {
+// For whatever reason RDB_MAKE_ME_SERIALIZABLE_3 wasn't happy inside of the
+// template, so, you know, yeah.
+class serializable_wire_func_t : public wire_func_t {
+public:
+    serializable_wire_func_t() : wire_func_t() { }
+    serializable_wire_func_t(env_t *env, func_t *func) : wire_func_t(env, func) { }
+    serializable_wire_func_t(const Term2 &_source, std::map<int, Datum> *_scope,
+                             backtrace_t::frame_t _frame)
+        : wire_func_t(_source, _scope, _frame) { }
+    RDB_MAKE_ME_SERIALIZABLE_3(source, frame, scope);
+};
+enum simple_funcs { MAP, FILTER, REDUCE, CONCATMAP };
+template<int fconst>
+class derived_wire_func_t : public serializable_wire_func_t {
+public:
+    derived_wire_func_t() : serializable_wire_func_t() { }
+    derived_wire_func_t(env_t *env, func_t *func)
+        : serializable_wire_func_t(env, func) { }
+    derived_wire_func_t(const Term2 &_source, std::map<int, Datum> *_scope,
+                        backtrace_t::frame_t _frame)
+        : serializable_wire_func_t(_source, _scope, _frame) { }
+};
+} // namespace derived
+typedef derived::derived_wire_func_t<derived::MAP> map_wire_func_t;
+typedef derived::derived_wire_func_t<derived::FILTER> filter_wire_func_t;
+typedef derived::derived_wire_func_t<derived::REDUCE> reduce_wire_func_t;
+typedef derived::derived_wire_func_t<derived::CONCATMAP> concatmap_wire_func_t;
 
-SIMPLE_FUNC_IMPL(map, 1);
-SIMPLE_FUNC_IMPL(filter, 1);
-SIMPLE_FUNC_IMPL(reduce, 1);
-SIMPLE_FUNC_IMPL(concatmap, 1);
 // Faux functions
 struct count_wire_func_t { RDB_MAKE_ME_SERIALIZABLE_0() };
 
 // Grouped Map Reduce
-static const int gmr_group_bt_frame = 1;
-static const int gmr_map_bt_frame = 2;
-static const int gmr_reduce_bt_frame = 3;
 class gmr_wire_func_t {
 public:
     gmr_wire_func_t() { }

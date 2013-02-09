@@ -152,6 +152,8 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location, const store_
     //                                                                  ^^^^^ That means the key isn't expired.
 }
 
+// QL2 This implements UPDATE, INSERT, DELETE, and REPLACE (each is just a
+// different function passed to this function.)
 void rdb_replace(const std::string &primary_key,
                  const store_key_t &key,
                  ql::map_wire_func_t *f,
@@ -172,9 +174,11 @@ void rdb_replace(const std::string &primary_key,
         bool started_empty, ended_empty;
         const ql::datum_t *old_val;
         if (!kv_location.value.has()) {
+            // If there's no entry with this key, pass NULL to the function.
             started_empty = true;
             old_val = ql_env->add_ptr(new ql::datum_t(ql::datum_t::R_NULL));
         } else {
+            // Otherwise pass the entry with this key to the function.
             started_empty = false;
             boost::shared_ptr<scoped_cJSON_t> old_val_json =
                 get_data(kv_location.value.get(), txn);
@@ -187,6 +191,8 @@ void rdb_replace(const std::string &primary_key,
         ended_empty = (new_val->get_type() == ql::datum_t::R_NULL);
 
         bool conflict = true;
+        // Figure out what operation we're doing (based on started_empty,
+        // ended_empty, and the result of the function call) and then do it.
         if (started_empty) {
             if (ended_empty) {
                 conflict = resp->add("skipped", num_1);
@@ -445,6 +451,8 @@ public:
                         data.splice(data.begin(), tmp);
                     }
                 } catch (ql::exc_t &e) {
+                    // Backtrace mangling so that we descend the right depth on
+                    // the client.
                     if (!terminal) ++it;
                     for (; it != transform.end(); ++it) e.backtrace.push_front(0);
                     throw;
@@ -462,6 +470,8 @@ public:
 
                 return cumulative_size < rget_max_chunk_size;
             } else {
+                // We use garbage collect during the reduction step, since most
+                // reductions throw away most of the allocate data.
                 ql::env_gc_checkpoint_t egct(ql_env);
                 int i = 0;
                 json_list_t::iterator jt;
@@ -470,6 +480,8 @@ public:
                                              *jt, env, ql_env, terminal->scopes,
                                              terminal->backtrace, &response->result),
                                          terminal->variant);
+                    // A reduce returns a `wire_datum_t` and a gmr returns a
+                    // `wire_datum_map_t`
                     if (ql::wire_datum_t *wd
                         = boost::get<ql::wire_datum_t>(&terminal->variant)) {
                         egct.maybe_gc(wd->get());
@@ -478,7 +490,8 @@ public:
                                    &terminal->variant)) {
                         // TODO: this is a hack because GCing a `wire_datum_map_t` is
                         // expensive.  Need a better way to do this.
-                        if (!(++i%10000)) egct.maybe_gc(wdm->to_arr(ql_env));
+                        int rounds = 10000 DEBUG_ONLY(/ 5000);
+                        if (!(++i%rounds)) egct.maybe_gc(wdm->to_arr(ql_env));
                     }
 
                 }

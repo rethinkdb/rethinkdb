@@ -17,22 +17,24 @@ namespace ql {
 class env_t;
 class datum_stream_t;
 
+// These let us write e.g. `foo(NOTHROW) instead of `foo(false/*nothrow*/)`.
 enum throw_bool_t { NOTHROW = 0, THROW = 1};
 enum clobber_bool_t { NOCLOBBER = 0, CLOBBER = 1};
+
+// A `datum_t` is basically a JSON value, although we may extend it later.
 class datum_t : public ptr_baggable_t {
 public:
     // This ordering is important, because we use it to sort objects of
     // disparate type.  It should be alphabetical.
-    enum type_t {
-        R_ARRAY  = 1,
-        R_BOOL   = 2,
-        R_NULL   = 3,
-        R_NUM    = 4,
-        R_OBJECT = 5,
-        R_STR    = 6
-    };
+    enum type_t { R_ARRAY = 1, R_BOOL = 2, R_NULL = 3,
+                  R_NUM = 4, R_OBJECT = 5, R_STR = 6 };
     explicit datum_t(type_t _type);
 
+    // These allow you to construct a datum from the type of value it
+    // represents.  Note that the `bool` constructor is special to avoid nasty
+    // pointer conversion bugs, and an undefined `bool` constructor is declared
+    // to catch cases where people try to write `datum_t(true)` (which would
+    // otherwise be converted to an `int`).
     explicit datum_t(bool _bool); // undefined, catches implicit conversion errors
     datum_t(type_t _type, bool _bool); // Need to explicitly ask to construct a bool.
     explicit datum_t(double _num);
@@ -42,12 +44,14 @@ public:
     explicit datum_t(const std::vector<const datum_t *> &_array);
     explicit datum_t(const std::map<const std::string, const datum_t *> &_object);
 
+    // These construct a datum from an equivalent representation.
     explicit datum_t(const Datum *d); // Undefined, need to pass `env` below.
     explicit datum_t(const Datum *d, env_t *env);
     explicit datum_t(cJSON *json);
     explicit datum_t(cJSON *json, env_t *env);
     explicit datum_t(boost::shared_ptr<scoped_cJSON_t> json);
     explicit datum_t(boost::shared_ptr<scoped_cJSON_t> json, env_t *env);
+
     void write_to_protobuf(Datum *out) const;
 
     type_t get_type() const;
@@ -61,15 +65,17 @@ public:
     int as_int() const;
     const std::string &as_str() const;
 
+    // Use of `size` and `el` is preferred to `as_array` when possible.
     const std::vector<const datum_t *> &as_array() const;
-    void add(const datum_t *val);
+    void add(const datum_t *val); // add to an array
     size_t size() const;
     const datum_t *el(size_t index, throw_bool_t throw_bool = THROW) const;
 
+    // Use of `el` is preferred to `as_object` when possible.
     const std::map<const std::string, const datum_t *> &as_object() const;
     // Returns true if `key` was already in object.
     MUST_USE bool add(const std::string &key, const datum_t *val,
-                      clobber_bool_t clobber_bool = NOCLOBBER);
+                      clobber_bool_t clobber_bool = NOCLOBBER); // add to an object
     // Returns true if key was in object.
     MUST_USE bool del(const std::string &key);
     const datum_t *el(const std::string &key, throw_bool_t throw_bool = THROW) const;
@@ -82,6 +88,10 @@ public:
     boost::shared_ptr<scoped_cJSON_t> as_json() const;
     datum_stream_t *as_datum_stream(env_t *env, backtrace_t::frame_t frame) const;
 
+    // These behave as expected and defined in RQL.  Theoretically, two data of
+    // the same type should compare the same way their printed representations
+    // would compare lexicographcally, while dispareate types are compared
+    // alphabetically by type name.
     int cmp(const datum_t &rhs) const;
     bool operator==(const datum_t &rhs) const;
     bool operator!=(const datum_t &rhs) const;
@@ -91,22 +101,26 @@ public:
     bool operator>(const datum_t &rhs) const;
     bool operator>=(const datum_t &rhs) const;
 
+    // Iterate through an object or array with a callback.  (The callback
+    // returns whether or not to continue iterating.)  Used for e.g. garbage
+    // collection.
     void iter(bool (*callback)(const datum_t *, env_t *), env_t *env) const;
 private:
     void init_json(cJSON *json, env_t *env);
 
-    // Listing everything is more debugging-friendly than a boost::variant,
-    // but less efficient.  TODO: fix later.
+    // TODO: fix later.  Listing everything is more debugging-friendly than a
+    // boost::variant, but less efficient.
     type_t type;
     bool r_bool;
     double r_num;
     std::string r_str;
-
     std::vector<const datum_t *> r_array;
     std::map<const std::string, const datum_t *> r_object;
 };
 
 RDB_DECLARE_SERIALIZABLE(Datum);
+// A `wire_datum_t` is necessary to serialize data over the wire.  See README.md
+// for more info.
 class wire_datum_t {
 public:
     wire_datum_t() : ptr(0), state(INVALID) { }
@@ -138,6 +152,9 @@ private:
     enum { INVALID, JUST_READ, COMPILED, READY_TO_WRITE } state;
 };
 
+// This is like a `wire_datum_t` but for gmr.  We need it because gmr allows
+// non-strings as keys, while the data model we pinched from JSON doesn't.  See
+// README.md for more info.
 class wire_datum_map_t {
 public:
     wire_datum_map_t() : map(lt), state(COMPILED) { }

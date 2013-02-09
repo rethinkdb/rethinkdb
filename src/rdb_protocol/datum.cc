@@ -166,7 +166,7 @@ size_t datum_t::size() const {
 }
 
 const datum_t *datum_t::el(size_t index, throw_bool_t throw_bool) const {
-    if (index < as_array().size()) return as_array()[index];
+    if (index < size()) return as_array()[index];
     if (throw_bool == THROW) rfail("Index out of bounds: %lu", index);
     return 0;
 }
@@ -220,10 +220,10 @@ datum_stream_t *datum_t::as_datum_stream(env_t *env, backtrace_t::frame_t frame)
     switch(get_type()) {
     case R_NULL: //fallthru
     case R_BOOL: //fallthru
-    case R_NUM: rfail("Cannot convert %s to sequence", datum_type_name(get_type()));
-    case R_STR: rfail("Cannot convert %s to sequence", datum_type_name(get_type()));
-    case R_ARRAY: return env->add_ptr(new array_datum_stream_t(env, this, frame));
+    case R_NUM:  //fallthru
+    case R_STR:  //fallthru
     case R_OBJECT: rfail("Cannot convert %s to sequence", datum_type_name(get_type()));
+    case R_ARRAY: return env->add_ptr(new array_datum_stream_t(env, this, frame));
     default: unreachable();
     }
     unreachable();
@@ -307,9 +307,6 @@ int datum_t::cmp(const datum_t &rhs) const {
             it = obj.begin(),
             it2 = rhs_obj.begin();
         while (it != obj.end() && it2 != rhs_obj.end()) {
-            // debugf("(%s,%s) vs. (%s,%s)",
-            //        it->first.c_str(), it->second->print().c_str(),
-            //        it2->first.c_str(), it2->second->print().c_str());
             int key_cmpval = derived_cmp(it->first, it2->first);
             if (key_cmpval) return key_cmpval;
             int val_cmpval = it->second->cmp(*it2->second);

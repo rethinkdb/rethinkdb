@@ -21,32 +21,40 @@ class term_t;
 
 class env_t : private home_thread_mixin_t {
 public:
-    int gensym() {
-        r_sanity_check(next_gensym_val > -100000);
-        return next_gensym_val--;
-    }
-
+    // returns a globaly unique variable
+    int gensym();
 private:
-    int next_gensym_val;
+    int next_gensym_val; // always negative
 
 public:
-    void push_implicit(const datum_t **val) {
-        implicit_var.push(val);
-    }
-    const datum_t **top_implicit() {
-        rcheck(!implicit_var.empty(), "No implicit variable in scope.");
-        rcheck(implicit_var.size() == 1,
-               "Cannot use implicit variable in nested queries; name your variables.");
-        return implicit_var.top();
-    }
-    void pop_implicit() {
-        implicit_var.pop();
-    }
+    // Bind a variable in the current scope.
+    void push_var(int var, const datum_t **val);
+    // Get the current binding of a variable in the current scope.
+    const datum_t **top_var(int var);
+    // Unbind a variable in the current scope.
+    void pop_var(int var);
+
+    // Dump the current scope.
+    void dump_scope(std::map<int, const datum_t **> *out);
+    // Swap in a previously-dumped scope.
+    void push_scope(std::map<int, Datum> *in);
+    // Discard a previously-pushed scope and restore original scope.
+    void pop_scope();
+private:
+    std::map<int, std::stack<const datum_t **> > vars;
+    std::stack<std::vector<std::pair<int, const datum_t *> > > scope_stack;
+
+public:
+    // Implicit Variables (same interface as normal variables above).
+    void push_implicit(const datum_t **val);
+    const datum_t **top_implicit();
+    void pop_implicit();
 private:
     friend class implicit_binder_t;
     int implicit_depth;
     std::stack<const datum_t **> implicit_var;
 
+    // Allocation Functions
 public:
     template<class T>
     T *add_ptr(T *p) {
@@ -74,124 +82,33 @@ public:
         return add_ptr(compile_term(this, source));
     }
 
-    size_t num_checkpoints() {
-        return bags.size()-1;
-    }
+    // Checkpoint code (most of the logic is in `env_checkpoint_t` and
+    // env_gc_checkpoint_t` below).  Checkpoints should be created by
+    // constructing a `*_checkpoint_t`, which is why the `checkpoint` function
+    // is private.
+public:
+    void merge_checkpoint(); // Merge in all allocations since checkpoint
+    void discard_checkpoint(); // Discard all allocations since checkpoint
 private:
-    bool some_bag_has(const ptr_baggable_t *p) {
-        for (size_t i = 0; i < bags.size(); ++i) if (bags[i]->has(p)) return true;
-        return false;
-    }
-
+    void checkpoint(); // create a new checkpoint
     friend class env_checkpoint_t;
     friend class env_gc_checkpoint_t;
-    void checkpoint() {
-        bags.push_back(new ptr_bag_t());
-    }
+    size_t num_checkpoints(); // number of checkpoints
+    bool some_bag_has(const ptr_baggable_t *p);
 
-    ptr_bag_t *old_bag;
-    ptr_bag_t *new_bag;
-    static bool gc_callback_trampoline(const datum_t *el, env_t *env) {
-        return env->gc_callback(el);
-    }
-    bool gc_callback(const datum_t *el) {
-        if (old_bag->has(el)) {
-            old_bag->yield_to(new_bag, el, true /*dup_ok*/);
-            return true;
-        }
-        r_sanity_check(some_bag_has(el));
-        return false;
-    }
-    void gc(const datum_t *root) {
-        old_bag = get_bag();
-        scoped_ptr_t<ptr_bag_t> _new_bag(new ptr_bag_t);
-        new_bag = _new_bag.get();
-        // debugf("GC {\n");
-        // debugf("  old_bag: %s\n", old_bag->print_debug().c_str());
-        // debugf("  new_bag: %s\n", new_bag->print_debug().c_str());
-        root->iter(gc_callback_trampoline, this);
-        // debugf(" --- \n");
-        // debugf("  old_bag: %s\n", old_bag->print_debug().c_str());
-        // debugf("  new_bag: %s\n", new_bag->print_debug().c_str());
-        // debugf("}\n");
-        get_bag() = _new_bag.release();
-        delete old_bag;
-    }
-public:
-    void merge_checkpoint() {
-        r_sanity_check(bags.size() >= 2);
-        bags[bags.size()-2]->add(bags[bags.size()-1]);
-        bags.pop_back();
-    }
-    void discard_checkpoint() {
-        r_sanity_check(bags.size() >= 2);
-        delete bags[bags.size()-1];
-        bags.pop_back();
-    }
-    ~env_t() {
-        guarantee(bags.size() == 1);
-        delete bags[0];
-    }
 private:
-    ptr_bag_t *&get_bag() {
-        r_sanity_check(bags.size() > 0);
-        return bags[bags.size()-1];
-    }
+    // `old_bag` and `new_bag` are so that `gc` can communicate with `gc_callback`.
+    ptr_bag_t *old_bag, *new_bag;
+    static bool gc_callback_trampoline(const datum_t *el, env_t *env);
+    bool gc_callback(const datum_t *el);
+    void gc(const datum_t *root);
+
+    ptr_bag_t *get_bag(); // gets the top bag
+    ptr_bag_t **get_bag_ptr();
     std::vector<ptr_bag_t *> bags;
 
 public:
-    void push_var(int var, const datum_t **val) {
-        // debugf("%p VAR push %d -> %p\n", this, var, val);
-        vars[var].push(val);
-    }
-    const datum_t **top_var(int var) {
-        // if (vars[var].empty()) debugf("%p VAR top %d -> FAILED\n", this, var);
-        rcheck(!vars[var].empty(),
-               strprintf("Unrecognized variabled %d", var));
-        // debugf("%p VAR top %d -> %p\n", this, var, vars[var].top());
-        return vars[var].top();
-    }
-    void pop_var(int var) {
-        // debugf("%p VAR pop %d (%p)\n", this, var, vars[var].top());
-        vars[var].pop();
-    }
-    const datum_t **get_var(int var) { return vars[var].top(); }
-    void dump_scope(std::map<int, const datum_t **> *out) {
-        for (std::map<int, std::stack<const datum_t **> >::iterator
-                 it = vars.begin(); it != vars.end(); ++it) {
-            if (it->second.size() == 0) continue;
-            r_sanity_check(it->second.top());
-            (*out)[it->first] = it->second.top();
-        }
-    }
-    void push_scope(std::map<int, Datum> *in) {
-        scope_stack.push(std::vector<std::pair<int, const datum_t *> >());
-
-        for (std::map<int, Datum>::iterator it = in->begin(); it != in->end(); ++it) {
-            const datum_t *d = add_ptr(new datum_t(&it->second, this));
-            scope_stack.top().push_back(std::make_pair(it->first, d));
-        }
-
-        for (size_t i = 0; i < scope_stack.top().size(); ++i) {
-            // debugf("%p -> %p\n",
-            //        &scope_stack.top()[i].second,
-            //        scope_stack.top()[i].second);
-            push_var(scope_stack.top()[i].first, &scope_stack.top()[i].second);
-        }
-    }
-    void pop_scope() {
-        r_sanity_check(scope_stack.size() > 0);
-        for (size_t i = 0; i < scope_stack.top().size(); ++i) {
-            pop_var(scope_stack.top()[i].first);
-        }
-        // DO NOT pop the vector off the scope stack.  You might invalidate a
-        // pointer too early.
-    }
-private:
-    std::map<int, std::stack<const datum_t **> > vars;
-    std::stack<std::vector<std::pair<int, const datum_t *> > > scope_stack;
-
-public:
+    // This is copied basically verbatim from old code.
     env_t(
         extproc::pool_group_t *_pool_group,
         namespace_repo_t<rdb_protocol_t> *_ns_repo,
@@ -221,6 +138,10 @@ public:
           this_machine(_this_machine) {
         guarantee(js_runner);
         bags.push_back(new ptr_bag_t());
+    }
+    ~env_t() {
+        guarantee(bags.size() == 1);
+        delete bags[0];
     }
 
     extproc::pool_t *pool;      // for running external JS jobs
@@ -269,60 +190,32 @@ private:
     DISABLE_COPYING(env_t);
 };
 
+// Construct this to checkpoint the environment.  You should pass it a pointer
+// to either `env_t::merge_checkpoint` or `env_t::discard_checkpoint`, which
+// will be its default action when deconstructed.  You can change this action
+// with `reset`.
 class env_checkpoint_t {
 public:
-    env_checkpoint_t(env_t *_env, void (env_t::*_f)()) : env(_env) , f(_f) {
-        env->checkpoint();
-    }
-    ~env_checkpoint_t() { (env->*f)(); }
-    void reset(void (env_t::*_f)()) { f = _f; }
-    void gc(const datum_t *root) { env->gc(root); }
+    env_checkpoint_t(env_t *_env, void (env_t::*_f)());
+    ~env_checkpoint_t();
+    void reset(void (env_t::*_f)());
+    // This will garbage-collect the checkpoint so that only `root` and data it
+    // points to remain.
+    void gc(const datum_t *root);
 private:
     env_t *env;
     void (env_t::*f)();
 };
 
-
-// We GC more frequently (~ every 16 data) in debug mode to help with testing.
-static int default_gen1_cutoff = (8 * 1024 * 1024)
-    DEBUG_ONLY(* 0 + (sizeof(datum_t) * ptr_bag_t::size_est_mul * 16));
+// This is a checkpoint (as above) that also does shitty generational garbage
+// collection for `reduce` and `gmr` queries.
 class env_gc_checkpoint_t {
+    static int default_gen1_cutoff;
 public:
-    env_gc_checkpoint_t(env_t *_env, size_t _gen1 = 0, size_t _gen2 = 0)
-        : finalized(false), env(_env), gen1(_gen1), gen2(_gen2) {
-        r_sanity_check(env);
-        if (!gen1) gen1 = default_gen1_cutoff;
-        if (!gen2) gen2 = 8 * gen1;
-        env->checkpoint();
-        env->checkpoint();
-    }
-    ~env_gc_checkpoint_t() {
-        // We might not be finalized if e.g. an exception was thrown.
-        if (!finalized) {
-            env->merge_checkpoint();
-            env->merge_checkpoint();
-        }
-    }
-    const datum_t *maybe_gc(const datum_t *root) {
-        if (env->get_bag()->size_est() > gen1) {
-            env->gc(root);
-            env->merge_checkpoint();
-            if (env->get_bag()->size_est() > gen2) {
-                env->gc(root);
-                if (env->get_bag()->size_est() > gen2) gen2 *= 4;
-            }
-            env->checkpoint();
-        }
-        return root;
-    }
-    const datum_t *finalize(const datum_t *root) {
-        finalized = true;
-        if (root) env->gc(root);
-        env->merge_checkpoint();
-        if (root) env->gc(root);
-        env->merge_checkpoint();
-        return root;
-    }
+    env_gc_checkpoint_t(env_t *_env, size_t _gen1 = 0, size_t _gen2 = 0);
+    ~env_gc_checkpoint_t();
+    const datum_t *maybe_gc(const datum_t *root);
+    const datum_t *finalize(const datum_t *root);
 private:
     bool finalized;
     env_t *env;

@@ -15,7 +15,11 @@ const datum_t *stats_merge(env_t *env, UNUSED const std::string &key,
         for (size_t i = 0; i < r->size(); ++i) arr->add(r->el(i));
         return arr;
     }
-    r_sanity_check(l->get_type() == datum_t::R_STR && r->get_type() == datum_t::R_STR);
+
+    // Merging a string is left-preferential, which is just a no-op.
+    rcheck(l->get_type() == datum_t::R_STR && r->get_type() == datum_t::R_STR,
+           strprintf("Cannot merge statistics of type %s/%s -- what are you doing?",
+                     l->get_type_name(), r->get_type_name()));
     // debugf("%s %s %s -> %s\n", key.c_str(), l->print().c_str(), r->print().c_str(),
     //        l->print().c_str());
     return l;

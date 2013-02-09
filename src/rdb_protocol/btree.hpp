@@ -78,6 +78,8 @@ private:
 
 void rdb_get(const store_key_t &key, btree_slice_t *slice, transaction_t *txn, superblock_t *superblock, point_read_response_t *response);
 
+// QL2 This implements UPDATE, INSERT, DELETE, and REPLACE (each is just a
+// different function passed to this function.)
 void rdb_replace(const std::string &primary_key,
                  const store_key_t &key,
                  ql::map_wire_func_t *f,
