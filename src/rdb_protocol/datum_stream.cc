@@ -131,7 +131,7 @@ const datum_t *lazy_datum_stream_t::reduce(val_t *base_val, func_t *f) {
     run_terminal(reduce_wire_func_t(env, f));
     const datum_t *out;
     if (base_val) {
-        WITH_BT("base", out = base_val->as_datum());
+        try { out = base_val->as_datum(); } CATCH_WITH_BT("base");
     } else {
         rcheck(shard_data.size() > 0,
                "Cannot reduce over an empty stream with no base.");

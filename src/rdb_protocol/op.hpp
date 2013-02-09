@@ -6,6 +6,7 @@
 #include "rdb_protocol/val.hpp"
 namespace ql {
 
+// Specifies the range of normal arguments a function can take.
 struct argspec_t {
     argspec_t(int n) : min(n), max(n) { }
     argspec_t(int _min, int _max) : min(_min), max(_max) { }
@@ -24,6 +25,7 @@ struct argspec_t {
     std::string _print;
 };
 
+// Specifies the optional arguments a function can take.
 struct optargspec_t {
     static optargspec_t make_object() { return optargspec_t(-1, 0); }
     optargspec_t(int n, const char *const *c) : num_legal_args(n), legal_args(c) { }
@@ -39,23 +41,29 @@ struct optargspec_t {
     const char *const *legal_args;
 };
 
+// Almost all terms will inherit from this and use its member functions to
+// access their arguments.
 class op_term_t : public term_t {
 public:
     op_term_t(env_t *env, const Term2 *term,
               argspec_t argspec, optargspec_t optargspec = optargspec_t(0, 0));
     virtual ~op_term_t();
 protected:
-    size_t num_args() const;
-    val_t *arg(size_t i);
+    size_t num_args() const; // number of arguments
+    val_t *arg(size_t i); // returns argument `i`
+    // Tries to get an optional argument, returns `def` if not found.
     val_t *optarg(const std::string &key, val_t *def/*ault*/);
 private:
     virtual bool is_deterministic_impl() const;
     boost::ptr_vector<term_t> args;
 
-    friend class make_obj_term_t; // need special access to optargs
+    friend class make_obj_term_t; // needs special access to optargs
     boost::ptr_map<const std::string, term_t> optargs;
 };
 
+// There was a good reason for defining both of these, but I forget it.  Maybe
+// debugging?  In any case, this macro can be used to name terms that inherit
+// from `op_term_t`.
 #define RDB_NAME(str) \
     static const char *_name() { return str; } \
     virtual const char *name() const { return str; }

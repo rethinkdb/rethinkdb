@@ -14,16 +14,23 @@ namespace ql {
 
 void _runtime_check(const char *test, const char *file, int line,
                     bool pred, std::string msg = "");
-#define rcheck(pred, msg) \
+
+// Use these macros to return errors to users.
+#define rcheck(pred, msg)                                               \
     _runtime_check(stringify(pred), __FILE__, __LINE__, pred, msg)
-// TODO: do something smarter?
 #define rfail(args...) rcheck(false, strprintf(args))
+
+
+// r_sanity_check should be used in place of guarantee if you think the
+// guarantee will almost always fail due to an error in the query logic rather
+// than memory corruption.
 #ifndef NDEBUG
 #define r_sanity_check(test) guarantee(test)
 #else
 #define r_sanity_check(test) rcheck(test, "SANITY CHECK FAILED (server is buggy)")
 #endif // NDEBUG
 
+// A backtrace we return to the user.  Pretty self-explanatory.
 struct backtrace_t {
     struct frame_t {
     public:
@@ -36,7 +43,7 @@ struct backtrace_t {
 
         static frame_t head() { return frame_t(-1337); }
         bool is_head() const { return type == POS && pos == -1337; }
-        bool is_valid() {
+        bool is_valid() { // -1 is the classic "invalid" frame
             return is_head()
                 || (type == POS && pos >= 0)
                 || (type == OPT && opt != "UNINITIALIZED");
@@ -50,9 +57,11 @@ struct backtrace_t {
     public:
         RDB_MAKE_ME_SERIALIZABLE_3(type, pos, opt);
     };
+    // Write out the backtrace to return it to the user.
     void fill_error(Response2 *res, Response2_ResponseType type, std::string msg) const;
     RDB_MAKE_ME_SERIALIZABLE_1(frames);
 
+    // Push a frame onto the front of the backtrace.
     void push_front(frame_t f) {
         r_sanity_check(f.is_valid());
         // debugf("PUSHING %s\n", f.toproto().DebugString().c_str());
@@ -62,8 +71,10 @@ private:
     std::list<frame_t> frames;
 };
 
+// A RQL exception.  In the future it will be tagged.
 class exc_t : public std::exception {
 public:
+    // We have a default constructor because these are serialized.
     exc_t() : exc_msg("UNINITIALIZED") { }
     exc_t(const std::string &_exc_msg) : exc_msg(_exc_msg) { }
     virtual ~exc_t() throw () { }
@@ -79,15 +90,7 @@ public:
 void fill_error(Response2 *res, Response2_ResponseType type, std::string msg,
                 const backtrace_t &bt=backtrace_t());
 
-}
-
-#define WITH_BT(N, cmd)                         \
-    try {                                       \
-        cmd;                                    \
-    } catch (exc_t &e) {                        \
-        e.backtrace.push_front(N);              \
-        throw;                                  \
-    }
+} // namespace ql
 
 #define CATCH_WITH_BT(N) catch (exc_t &e) { \
         e.backtrace.push_front(N);          \
