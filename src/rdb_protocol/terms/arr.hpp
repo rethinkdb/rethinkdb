@@ -19,6 +19,8 @@ private:
     RDB_NAME("append")
 };
 
+// This gets the literal index of a (possibly negative) index relative to a
+// fixed size.
 size_t canonicalize(int index, size_t size, bool *oob_out = 0) {
     if (index >= 0) return index;
     if (size_t(index * -1) > size) {
@@ -65,6 +67,7 @@ private:
     RDB_NAME("nth")
 };
 
+// TODO: this kinda sucks.
 class slice_term_t : public op_term_t {
 public:
     slice_term_t(env_t *env, const Term2 *term)
@@ -126,9 +129,9 @@ private:
         rcheck(r >= 0, strprintf("LIMIT takes a non-negative argument (got %d)", r));
         datum_stream_t *new_ds;
         if (r == 0) {
-            new_ds = ds->slice(1, 0);
+            new_ds = ds->slice(1, 0); // (0, -1) has a different meaning
         } else {
-            new_ds = ds->slice(0, r-1);
+            new_ds = ds->slice(0, r-1); // note that both bounds are inclusive
         }
         return t ? new_val(t, new_ds) : new_val(new_ds);
     }

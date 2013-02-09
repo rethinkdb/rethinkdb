@@ -3,6 +3,8 @@
 
 namespace ql {
 
+// This function is used by e.g. foreach to merge statistics from multiple write
+// operations.
 const datum_t *stats_merge(env_t *env, UNUSED const std::string &key,
                            const datum_t *l, const datum_t *r) {
     if (l->get_type() == datum_t::R_NUM && r->get_type() == datum_t::R_NUM) {
@@ -25,6 +27,7 @@ const datum_t *stats_merge(env_t *env, UNUSED const std::string &key,
     return l;
 }
 
+// Use this merge if it should theoretically never be called.
 const datum_t *pure_merge(UNUSED env_t *env, UNUSED const std::string &key,
                            UNUSED const datum_t *l, UNUSED const datum_t *r) {
     r_sanity_check(false);
@@ -77,6 +80,7 @@ private:
                     maybe_generate_key(t, &generated_keys, &d);
                 } catch (const exc_t &) {
                     // We just ignore it, the same error will be handled in `replace`.
+                    // TODO: that solution sucks.
                 }
                 stats = stats->merge(env, t->replace(d, d, upsert), stats_merge);
             }

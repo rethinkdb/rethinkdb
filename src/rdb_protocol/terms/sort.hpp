@@ -23,7 +23,7 @@ private:
                 if (!lattr && !rattr) continue;
                 if (!lattr) return bool(true ^ invert);
                 if (!rattr) return bool(false ^ invert);
-                // TODO: use datum::cmp instead to be faster
+                // TODO: use datum_t::cmp instead to be faster
                 if (*lattr == *rattr) continue;
                 return bool((*lattr < *rattr) ^ invert);
             }

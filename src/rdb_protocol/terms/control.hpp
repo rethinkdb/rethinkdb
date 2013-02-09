@@ -2,6 +2,11 @@
 #include "rdb_protocol/err.hpp"
 
 namespace ql {
+
+// ALL and ANY are written strangely because I originally thought that we could
+// have non-boolean values that evaluate to true, but then we decided not to do
+// that.
+
 class all_term_t : public op_term_t {
 public:
     all_term_t(env_t *env, const Term2 *term) : op_term_t(env, term, argspec_t(1,-1)) { }

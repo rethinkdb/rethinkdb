@@ -7,6 +7,7 @@
 
 namespace ql {
 
+// Most of this logic is copy-pasted from the old query language.
 table_t::table_t(env_t *_env, uuid_u db_id, const std::string &name, bool _use_outdated)
     : env(_env), use_outdated(_use_outdated) {
     name_string_t table_name;
@@ -82,9 +83,9 @@ const datum_t *table_t::_replace(const datum_t *orig, const datum_t *d, bool ups
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
         N3(BRANCH,
-           N2(EQ, pb::set_var(arg, x), pb::set_null(arg)),
-           d->write_to_protobuf(pb::set_datum(arg)),
-           N1(ERROR, pb::set_str(arg, "Duplicate primary key.")))
+           N2(EQ, NVAR(x), NDATUM(datum_t::R_NULL)),
+           NDATUM(d),
+           N1(ERROR, NDATUM("Duplicate primary key.")))
 #pragma GCC diagnostic pop
     }
 
@@ -115,6 +116,8 @@ datum_stream_t *table_t::as_datum_stream(backtrace_t::frame_t f) {
 
 val_t::type_t::type_t(val_t::type_t::raw_type_t _raw_type) : raw_type(_raw_type) { }
 
+// NOTE: This *MUST* be kept in sync with the surrounding code (not that it
+// should have to change very often).
 bool raw_type_is_convertible(val_t::type_t::raw_type_t _t1,
                              val_t::type_t::raw_type_t _t2) {
     const int t1 = _t1, t2 = _t2,

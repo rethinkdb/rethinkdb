@@ -4,6 +4,8 @@
 
 namespace ql {
 
+// Most of the real logic for these is in datum_stream.cc.
+
 class count_term_t : public op_term_t {
 public:
     count_term_t(env_t *env, const Term2 *term) : op_term_t(env, term, argspec_t(1)) { }
@@ -63,6 +65,7 @@ private:
     RDB_NAME("reduce")
 };
 
+// TODO: this sucks.  Change to use the same macros as rewrites.hpp?
 static const char *const between_optargs[] = {"left_bound", "right_bound"};
 class between_term_t : public op_term_t {
 public:

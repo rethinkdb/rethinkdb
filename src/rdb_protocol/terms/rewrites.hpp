@@ -4,6 +4,9 @@
 
 namespace ql {
 
+// This file implements terms that are rewritten into other terms.  See
+// pb_utils.hpp for explanations of the macros.
+
 class rewrite_term_t : public term_t {
 public:
     rewrite_term_t(env_t *env, const Term2 *term,
@@ -26,7 +29,7 @@ private:
     scoped_ptr_t<term_t> real;
 };
 
-//TODO(mlucy): Why do we push around the whole term, then push again internally?
+//TODO(mlucy for Joe): Why do we push around the whole term, then push again internally?
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
 class groupby_term_t : public rewrite_term_t {

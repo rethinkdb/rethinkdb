@@ -4,6 +4,9 @@
 
 namespace ql {
 
+// This term is used for functions that are polymorphic on objects and
+// sequences, like `pluck`.  It will handle the polymorphism; terms inheriting
+// from it just need to implement evaluation on objects (`obj_eval`).
 class obj_or_seq_op_term_t : public op_term_t {
 public:
     obj_or_seq_op_term_t(env_t *env, const Term2 *term, argspec_t argspec)

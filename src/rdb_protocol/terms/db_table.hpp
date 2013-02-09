@@ -15,6 +15,9 @@ name_string_t get_name(val_t *val) {
     return name;
 }
 
+// Meta operations (BUT NOT TABLE TERMS) should inherit from this.  It will
+// handle a lot of the nasty semilattice initialization stuff for them,
+// including the thread switching.
 class meta_op_t : public op_term_t {
 public:
     meta_op_t(env_t *env, const Term2 *term, argspec_t argspec)

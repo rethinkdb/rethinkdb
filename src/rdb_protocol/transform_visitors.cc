@@ -63,6 +63,10 @@ void transform_visitor_t::operator()(Builtin_Range range) const {
     }
 }
 
+// All of this logic is analogous to the eager logic in datum_stream.cc.  This
+// code duplication needs to go away, but I'm not 100% sure how to do it (there
+// are sometimes minor differences between the lazy and eager evaluations) and
+// it definitely isn't making it into 1.4.
 void transform_visitor_t::operator()(ql::map_wire_func_t &func) const {
     ql::env_checkpoint_t(ql_env, &ql::env_t::discard_checkpoint);
     const ql::datum_t *arg = ql_env->add_ptr(new ql::datum_t(json, ql_env));
@@ -192,6 +196,10 @@ void terminal_initializer_visitor_t::operator()(
     UNUSED const ql::gmr_wire_func_t &f) const {
     *out = ql::wire_datum_map_t();
 }
+// All of this logic is analogous to the eager logic in datum_stream.cc.  This
+// code duplication needs to go away, but I'm not 100% sure how to do it (there
+// are sometimes minor differences between the lazy and eager evaluations) and
+// it definitely isn't making it into 1.4.
 void terminal_visitor_t::operator()(ql::gmr_wire_func_t &func) const {
     ql::wire_datum_map_t *obj = boost::get<ql::wire_datum_map_t>(out);
     guarantee(obj);
