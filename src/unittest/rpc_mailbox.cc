@@ -177,6 +177,10 @@ TEST(RPCMailboxTest, MailboxAddressSemanticsMultiThread) {
 
 /* `TypedMailbox` makes sure that `mailbox_t<>` works. */
 
+void string_push_back(std::vector<std::string> *v, const std::string &pushee) {
+    v->push_back(pushee);
+}
+
 void run_typed_mailbox_test() {
 
     int port = mock::randport();
@@ -185,7 +189,7 @@ void run_typed_mailbox_test() {
     connectivity_cluster_t::run_t r(&c, mock::get_unittest_addresses(), port, &m, 0, NULL);
 
     std::vector<std::string> inbox;
-    mailbox_t<void(std::string)> mbox(&m, boost::bind(&std::vector<std::string>::push_back, &inbox, _1), mailbox_callback_mode_inline);
+    mailbox_t<void(std::string)> mbox(&m, boost::bind(&string_push_back, &inbox, _1), mailbox_callback_mode_inline);
 
     mailbox_addr_t<void(std::string)> addr = mbox.get_address();
 

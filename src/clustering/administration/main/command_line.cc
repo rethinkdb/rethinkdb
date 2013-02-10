@@ -238,7 +238,7 @@ void run_rethinkdb_create(const std::string &filepath, const name_string_t &mach
     machine_semilattice_metadata_t machine_semilattice_metadata;
     machine_semilattice_metadata.name = machine_semilattice_metadata.name.make_new_version(machine_name, our_machine_id);
     machine_semilattice_metadata.datacenter = vclock_t<datacenter_id_t>(nil_uuid(), our_machine_id);
-    metadata.machines.machines.insert(std::make_pair(our_machine_id, machine_semilattice_metadata));
+    metadata.machines.machines.insert(std::make_pair(our_machine_id, make_deletable(machine_semilattice_metadata)));
 
     scoped_ptr_t<io_backender_t> io_backender;
     make_io_backender(io_backend, &io_backender);
@@ -412,7 +412,7 @@ void run_rethinkdb_porcelain(const std::string &filepath,
         machine_semilattice_metadata_t our_machine_metadata;
         our_machine_metadata.name = vclock_t<name_string_t>(machine_name, our_machine_id);
         our_machine_metadata.datacenter = vclock_t<datacenter_id_t>(nil_uuid(), our_machine_id);
-        semilattice_metadata.machines.machines.insert(std::make_pair(our_machine_id, our_machine_metadata));
+        semilattice_metadata.machines.machines.insert(std::make_pair(our_machine_id, make_deletable(our_machine_metadata)));
         if (serve_info.joins->empty()) {
             logINF("Creating a default database for your convenience. (This is because you ran 'rethinkdb' "
                    "without 'create', 'serve', or '--join', and the directory '%s' did not already exist.)\n",

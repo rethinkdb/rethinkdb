@@ -99,11 +99,9 @@ public:
 
     intrusive_list_t<write_buffer_t> *unsafe_expose_buffers() { return &buffers_; }
 
-    // This _could_ destroy the object yo.
     template <class T>
-    write_message_t &operator<<(const T &x) {
+    void append_value(const T &x) {
         x.rdb_serialize(*this);
-        return *this;
     }
 
 private:
@@ -113,6 +111,12 @@ private:
 
     DISABLE_COPYING(write_message_t);
 };
+
+template <class T>
+write_message_t &operator<<(write_message_t& msg, const T &x) {
+    msg.append_value(x);
+    return msg;
+}
 
 MUST_USE int send_write_message(write_stream_t *s, const write_message_t *msg);
 

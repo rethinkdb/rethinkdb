@@ -508,10 +508,10 @@ else
 RT_CXXFLAGS+=-DRETHINKDB_CACHE_PRODUCT
 endif
 
-RT_CXXFLAGS+=-Wall -Wextra -Werror -Wnon-virtual-dtor
+RT_CXXFLAGS+=-Wall -Wextra -Werror -Wnon-virtual-dtor -std=gnu++0x
 
 ifeq ($(COMPILER), INTEL)
-RT_CXXFLAGS+=-std=gnu++98 -w1 -ftls-model=local-dynamic
+RT_CXXFLAGS+=-w1 -ftls-model=local-dynamic
 else
 ifeq ($(COMPILER), CLANG)
 RT_CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default -Wno-unneeded-internal-declaration -Wused-but-marked-unused -Wunused-macros -Wundef -Wvla -Wshadow -Wconditional-uninitialized -Wmissing-noreturn
