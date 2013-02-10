@@ -83,3 +83,14 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, uuid_u *uuid) {
     return ARCHIVE_SUCCESS;
 }
 
+
+write_message_t &operator<<(write_message_t &msg, const portno_t &portno) {
+    return msg << portno.as_uint16();
+}
+
+MUST_USE archive_result_t deserialize(read_stream_t *s, portno_t *portno) {
+    uint16_t value;
+    archive_result_t ret = deserialize(s, &value);
+    *portno = portno_t(value);
+    return ret;
+}

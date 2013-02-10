@@ -194,5 +194,10 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(bool, int8_t, 0, 1);
 write_message_t &operator<<(write_message_t &msg, const uuid_u &uuid);
 MUST_USE archive_result_t deserialize(read_stream_t *s, uuid_u *uuid);
 
+write_message_t &operator<<(write_message_t &msg, const portno_t &portno);
+MUST_USE archive_result_t deserialize(read_stream_t *s, portno_t *portno);
+
+
+
 
 #endif  // CONTAINERS_ARCHIVE_ARCHIVE_HPP_
