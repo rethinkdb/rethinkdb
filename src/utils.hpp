@@ -333,6 +333,32 @@ T valgrind_undefined(T value) {
     return value;
 }
 
+// A static type for port number values.
+class portno_t {
+public:
+    // Unimplemented constructors to snag attempts to pass things other than uint16_t.
+    explicit portno_t(int portno);
+    explicit portno_t(int16_t portno);
+
+    explicit portno_t(const uint16_t portno) : portno_(portno) { }
+
+    uint16_t as_uint16() const { return portno_; }
+
+    uint16_t as_uint16_with_offset(const int port_offset) const {
+        rassert(port_offset >= 0);
+        if (portno_ == 0) {
+            return 0;
+        } else {
+            int ret = portno_ + port_offset;
+            guarantee(ret < 0x10000);
+            return ret;
+        }
+    }
+
+private:
+    uint16_t portno_;
+};
+
 
 #define STR(x) #x
 #define MSTR(x) STR(x) // Stringify a macro
