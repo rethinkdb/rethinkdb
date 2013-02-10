@@ -1,8 +1,8 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "errors.hpp"
 #include "unittest/gtest.hpp"
 #include "unittest/server_test_helper.hpp"
-#include "mock/unittest_utils.hpp"
+#include "unittest/unittest_utils.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 
 namespace unittest {

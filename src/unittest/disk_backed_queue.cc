@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include <queue>
 
 #include "arch/io/disk.hpp"
@@ -7,7 +7,7 @@
 #include "concurrency/queue/disk_backed_queue_wrapper.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "containers/disk_backed_queue.hpp"
-#include "mock/unittest_utils.hpp"
+#include "unittest/unittest_utils.hpp"
 #include "unittest/gtest.hpp"
 
 namespace unittest {
@@ -36,7 +36,7 @@ void run_many_ints_test() {
 }
 
 TEST(DiskBackedQueue, ManyInts) {
-    mock::run_in_thread_pool(&run_many_ints_test, 2);
+    unittest::run_in_thread_pool(&run_many_ints_test, 2);
 }
 
 void run_big_values_test() {
@@ -64,7 +64,7 @@ void run_big_values_test() {
 }
 
 TEST(DiskBackedQueue, BigVals) {
-    mock::run_in_thread_pool(&run_big_values_test, 2);
+    unittest::run_in_thread_pool(&run_big_values_test, 2);
 }
 
 static void randomly_delay(int, signal_t *) {
@@ -86,7 +86,7 @@ void run_concurrent_test() {
 }
 
 TEST(DiskBackedQueue, Concurrent) {
-    mock::run_in_thread_pool(&run_concurrent_test, 1);
+    unittest::run_in_thread_pool(&run_concurrent_test, 1);
 }
 
 } //namespace unittest

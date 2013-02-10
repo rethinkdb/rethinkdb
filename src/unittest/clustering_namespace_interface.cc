@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "unittest/gtest.hpp"
 
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
@@ -7,10 +7,10 @@
 #include "clustering/immediate_consistency/query/master.hpp"
 #include "clustering/reactor/blueprint.hpp"
 #include "clustering/reactor/namespace_interface.hpp"
-#include "mock/branch_history_manager.hpp"
-#include "mock/clustering_utils.hpp"
+#include "unittest/branch_history_manager.hpp"
+#include "unittest/clustering_utils.hpp"
 #include "mock/dummy_protocol.hpp"
-#include "mock/unittest_utils.hpp"
+#include "unittest/unittest_utils.hpp"
 #include "unittest/test_cluster_group.hpp"
 
 using mock::dummy_protocol_t;
@@ -19,7 +19,7 @@ namespace unittest {
 
 static void run_missing_master_test() {
     /* Set up a cluster so mailboxes can be created */
-    mock::simple_mailbox_cluster_t cluster;
+    simple_mailbox_cluster_t cluster;
 
     /* Set up a reactor directory with no reactors in it */
     std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<dummy_protocol_t> > > empty_reactor_directory;
@@ -58,11 +58,11 @@ static void run_missing_master_test() {
 }
 
 TEST(ClusteringNamespaceInterface, MissingMaster) {
-    mock::run_in_thread_pool(&run_missing_master_test);
+    unittest::run_in_thread_pool(&run_missing_master_test);
 }
 
 static void run_read_outdated_test() {
-    mock::test_cluster_group_t<dummy_protocol_t> cluster_group(2);
+    test_cluster_group_t<dummy_protocol_t> cluster_group(2);
 
     cluster_group.construct_all_reactors(cluster_group.compile_blueprint("p,s"));
 
@@ -80,7 +80,7 @@ static void run_read_outdated_test() {
 }
 
 TEST(ClusteringNamespaceInterface, ReadOutdated) {
-    mock::run_in_thread_pool(&run_read_outdated_test);
+    unittest::run_in_thread_pool(&run_read_outdated_test);
 }
 
 }   /* namespace unittest */

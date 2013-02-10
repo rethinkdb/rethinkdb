@@ -1,5 +1,5 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
-#include "mock/unittest_utils.hpp"
+// Copyright 2010-2013 RethinkDB, all rights reserved.
+#include "unittest/unittest_utils.hpp"
 
 #include <stdlib.h>
 
@@ -8,9 +8,9 @@
 
 #include "arch/timing.hpp"
 #include "arch/runtime/starter.hpp"
-#include "utils.hpp"            // randint
+#include "utils.hpp"
 
-namespace mock {
+namespace unittest {
 
 temp_file_t::temp_file_t(const char *tmpl) {
     size_t len = strlen(tmpl);
@@ -45,4 +45,4 @@ void run_in_thread_pool(const boost::function<void()>& fun, int num_workers) {
     ::run_in_thread_pool(fun, num_workers);
 }
 
-}  // namespace mock
+}  // namespace unittest

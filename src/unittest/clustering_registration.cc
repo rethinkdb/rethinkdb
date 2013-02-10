@@ -1,10 +1,10 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "unittest/gtest.hpp"
 
 #include "clustering/generic/registrar.hpp"
 #include "clustering/generic/registrant.hpp"
-#include "mock/clustering_utils.hpp"
-#include "mock/unittest_utils.hpp"
+#include "unittest/clustering_utils.hpp"
+#include "unittest/unittest_utils.hpp"
 
 namespace unittest {
 
@@ -44,7 +44,7 @@ registrant. */
 
 void run_register_test() {
 
-    mock::simple_mailbox_cluster_t cluster;
+    simple_mailbox_cluster_t cluster;
 
     monitoring_controller_t controller;
     registrar_t<std::string, monitoring_controller_t *, monitoring_controller_t::registrant_t> registrar(
@@ -61,18 +61,18 @@ void run_register_test() {
             cluster.get_mailbox_manager(),
             metadata_controller.get_watchable()->subview(&wrap_in_optional),
             "hello");
-        mock::let_stuff_happen();
+        let_stuff_happen();
 
         EXPECT_FALSE(registrant.get_failed_signal()->is_pulsed());
         EXPECT_TRUE(controller.has_registrant);
         EXPECT_EQ("hello", controller.registrant_data);
     }
-    mock::let_stuff_happen();
+    let_stuff_happen();
 
     EXPECT_FALSE(controller.has_registrant);
 }
 TEST(ClusteringRegistration, Register) {
-    mock::run_in_thread_pool(&run_register_test);
+    unittest::run_in_thread_pool(&run_register_test);
 }
 
 /* `RegistrarDeath` tests the case where the registrar dies while the registrant
@@ -80,7 +80,7 @@ is registered. */
 
 void run_registrar_death_test() {
 
-    mock::simple_mailbox_cluster_t cluster;
+    simple_mailbox_cluster_t cluster;
 
     monitoring_controller_t controller;
 
@@ -100,7 +100,7 @@ void run_registrar_death_test() {
         cluster.get_mailbox_manager(),
         metadata_controller.get_watchable()->subview(&wrap_in_optional),
         "hello");
-    mock::let_stuff_happen();
+    let_stuff_happen();
 
     EXPECT_FALSE(registrant.get_failed_signal()->is_pulsed());
     EXPECT_TRUE(controller.has_registrant);
@@ -110,13 +110,13 @@ void run_registrar_death_test() {
     metadata_controller.set_value(boost::optional<registrar_business_card_t<std::string> >());
     registrar.reset();
 
-    mock::let_stuff_happen();
+    let_stuff_happen();
 
     EXPECT_TRUE(registrant.get_failed_signal()->is_pulsed());
     EXPECT_FALSE(controller.has_registrant);
 }
 TEST(ClusteringRegistration, RegistrarDeath) {
-    mock::run_in_thread_pool(&run_registrar_death_test);
+    unittest::run_in_thread_pool(&run_registrar_death_test);
 }
 
 /* `QuickDisconnect` is to expose a bug that could appear if the registrant is
@@ -124,7 +124,7 @@ deleted immediately after being created. */
 
 void run_quick_disconnect_test() {
 
-    mock::simple_mailbox_cluster_t cluster;
+    simple_mailbox_cluster_t cluster;
 
     monitoring_controller_t controller;
     registrar_t<std::string, monitoring_controller_t *, monitoring_controller_t::registrant_t> registrar(
@@ -142,12 +142,12 @@ void run_quick_disconnect_test() {
             metadata_controller.get_watchable()->subview(&wrap_in_optional),
             "hello");
     }
-    mock::let_stuff_happen();
+    let_stuff_happen();
 
     EXPECT_FALSE(controller.has_registrant);
 }
 TEST(ClusteringRegistration, QuickDisconnect) {
-    mock::run_in_thread_pool(&run_quick_disconnect_test);
+    unittest::run_in_thread_pool(&run_quick_disconnect_test);
 }
 
 }   /* namespace unittest */

@@ -1,8 +1,8 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
-#include "mock/unittest_utils.hpp"
+#include "unittest/unittest_utils.hpp"
 
 #include "containers/archive/archive.hpp"
 #include "extproc/job.hpp"
@@ -22,7 +22,7 @@ static void run_extproc_test(extproc::spawner_t::info_t *spawner_info, test_t fu
 static void main_extproc_test(test_t func) {
     extproc::spawner_t::info_t spawner_info;
     extproc::spawner_t::create(&spawner_info);
-    mock::run_in_thread_pool(boost::bind(run_extproc_test, &spawner_info, func));
+    unittest::run_in_thread_pool(boost::bind(run_extproc_test, &spawner_info, func));
 }
 
 int fib(int n) {
@@ -242,5 +242,5 @@ void run_multijob_test(extproc::spawner_t::info_t *spawner_info) {
 TEST(ExtProc, MultiJob) {
     extproc::spawner_t::info_t spawner_info;
     extproc::spawner_t::create(&spawner_info);
-    mock::run_in_thread_pool(boost::bind(run_multijob_test, &spawner_info));
+    unittest::run_in_thread_pool(boost::bind(run_multijob_test, &spawner_info));
 }
