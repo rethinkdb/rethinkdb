@@ -2811,7 +2811,7 @@ void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
                 std::map<datacenter_id_t, ack_expectation_t>::const_iterator ack_it = ack_expectations.find(i->first);
                 uint32_t acks = 0;
                 if (ack_it != ack_expectations.end()) {
-                    acks = ack_it->second.memory_expectation() /* TODO(ack) sophisticated */;
+                    acks = ack_it->second.memory_expectation() /* TODO(acks) sophisticated */;
                 }
                 delta.push_back(strprintf("%d", acks));
 
