@@ -8,21 +8,28 @@ linux_event_watcher_t::linux_event_watcher_t(fd_t f, linux_event_callback_t *eh)
 #ifdef __linux
     rdhup_watcher(NULL),
 #endif
-    stopped_watching_for_errors(false),
-    old_mask(0)
+    watching_for_errors(true),
+    old_mask(0),
+    old_watching_for_errors(false)
 {
     /* At first, only register for error events */
-    linux_thread_pool_t::thread->queue.watch_resource(fd, 0, this);
+    remask();
 }
 
 linux_event_watcher_t::~linux_event_watcher_t() {
+    guarantee(!in_watcher);
+    guarantee(!out_watcher);
+#ifdef __linux
+    guarantee(!rdhup_watcher);
+#endif
+
     stop_watching_for_errors();
 }
 
 void linux_event_watcher_t::stop_watching_for_errors() {
-    if (!stopped_watching_for_errors) {
-        linux_thread_pool_t::thread->queue.forget_resource(fd, this);
-        stopped_watching_for_errors = true;
+    if (watching_for_errors) {
+        watching_for_errors = false;
+        remask();
     }
 }
 
@@ -63,9 +70,28 @@ void linux_event_watcher_t::remask() {
 #ifdef __linux
     if (rdhup_watcher) new_mask |= poll_event_rdhup;
 #endif
-    if (new_mask != old_mask) {
-        linux_thread_pool_t::thread->queue.adjust_resource(fd, new_mask, this);
+
+    // What we do (watch_resource, adjust_resource, forget_resource) depends on whether we are
+    // currently registered to watch the resource.
+
+    const bool old_registered = (old_mask != 0 || old_watching_for_errors);
+    const bool new_registered = (new_mask != 0 || watching_for_errors);
+
+    if (old_registered) {
+        if (new_registered) {
+            if (old_mask != new_mask) {
+                linux_thread_pool_t::thread->queue.adjust_resource(fd, new_mask, this);
+            }
+        } else {
+            linux_thread_pool_t::thread->queue.forget_resource(fd, this);
+        }
+    } else {
+        if (new_registered) {
+            linux_thread_pool_t::thread->queue.watch_resource(fd, new_mask, this);
+        }
     }
+
+    old_watching_for_errors = watching_for_errors;
     old_mask = new_mask;
 }
 
