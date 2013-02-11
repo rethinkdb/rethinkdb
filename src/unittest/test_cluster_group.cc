@@ -90,7 +90,7 @@ bool is_blueprint_satisfied(const blueprint_t<protocol_t> &bp,
 template<class protocol_t>
 class reactor_test_cluster_t {
 public:
-    explicit reactor_test_cluster_t(int port);
+    explicit reactor_test_cluster_t(portno_t port);
     ~reactor_test_cluster_t();
 
     peer_id_t get_me();
@@ -143,7 +143,7 @@ private:
  * have a reactor due to the annoyance of needing the peer ids to create a
  * correct blueprint. */
 template<class protocol_t>
-reactor_test_cluster_t<protocol_t>::reactor_test_cluster_t(int port) :
+reactor_test_cluster_t<protocol_t>::reactor_test_cluster_t(portno_t port) :
     connectivity_cluster(),
     message_multiplexer(&connectivity_cluster),
 
@@ -166,7 +166,7 @@ reactor_test_cluster_t<protocol_t>::reactor_test_cluster_t(int port) :
                              get_unittest_addresses(),
                              port,
                              &message_multiplexer_run,
-                             0,
+                             portno_t::zero(),
                              &heartbeat_manager) { }
 
 template <class protocol_t>
@@ -212,7 +212,7 @@ std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_b
 
 template <class protocol_t>
 test_cluster_group_t<protocol_t>::test_cluster_group_t(int n_machines) {
-    int port = randport();
+    portno_t port = randport();
     make_io_backender(aio_default, &io_backender);
 
     for (int i = 0; i < n_machines; i++) {
@@ -228,7 +228,7 @@ test_cluster_group_t<protocol_t>::test_cluster_group_t(int n_machines) {
         svses.push_back(new multistore_ptr_t<protocol_t>(&store_ptr, 1));
         stores.back().metainfo.set(mock::a_thru_z_region(), binary_blob_t(version_range_t(version_t::zero())));
 
-        test_clusters.push_back(new reactor_test_cluster_t<protocol_t>(port + i));
+        test_clusters.push_back(new reactor_test_cluster_t<protocol_t>(port.with_offset(i)));
         if (i > 0) {
             test_clusters[0].connectivity_cluster_run.join(test_clusters[i].connectivity_cluster.get_peer_address(test_clusters[i].connectivity_cluster.get_me()));
         }

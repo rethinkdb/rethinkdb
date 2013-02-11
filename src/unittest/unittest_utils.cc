@@ -37,8 +37,8 @@ std::set<ip_address_t> get_unittest_addresses() {
     return ip_address_t::get_local_addresses(std::set<ip_address_t>(), false);
 }
 
-int randport() {
-    return 10000 + randint(20000);
+portno_t randport() {
+    return portno_t(static_cast<uint16_t>(10000 + randint(20000)));
 }
 
 void run_in_thread_pool(const boost::function<void()>& fun, int num_workers) {

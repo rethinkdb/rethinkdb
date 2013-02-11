@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_HTTP_SERVER_HPP_
 #define CLUSTERING_ADMINISTRATION_HTTP_SERVER_HPP_
 
@@ -34,7 +34,7 @@ class administrative_http_server_manager_t {
 public:
     administrative_http_server_manager_t(
         const std::set<ip_address_t> &local_addresses,
-        int port,
+        portno_t port,
         mailbox_manager_t *mbox_manager,
         metadata_change_handler_t<cluster_semilattice_metadata_t> *_metadata_change_handler,
         boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _semilattice_metadata,
@@ -47,7 +47,7 @@ public:
         std::string _path);
     ~administrative_http_server_manager_t();
 
-    int get_port() const;
+    portno_t get_port() const;
 private:
 
     scoped_ptr_t<file_http_app_t> file_app;

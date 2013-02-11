@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_MAIN_SERVE_HPP_
 #define CLUSTERING_ADMINISTRATION_MAIN_SERVE_HPP_
 
@@ -10,32 +10,15 @@
 #include "extproc/spawner.hpp"
 #include "arch/address.hpp"
 
-#define MAX_PORT 65536
-
-inline void sanitize_port(int port, const char *name, int port_offset) {
-    if (port >= MAX_PORT) {
-        if (port_offset == 0) {
-            nice_crash("%s has a value (%d) above the maximum allowed port (%d).", name, port, MAX_PORT);
-        } else {
-            nice_crash("%s has a value (%d) above the maximum allowed port (%d). Note port_offset is set to %d which may cause this error.", name, port, MAX_PORT, port_offset);
-        }
-    }
-}
-
 struct service_address_ports_t {
-    service_address_ports_t() :
-        port(0),
-        client_port(0),
-        http_port(0),
-        reql_port(0),
-        port_offset(0) { }
+    service_address_ports_t() : port_offset(0) { }
 
     service_address_ports_t(const std::set<ip_address_t> &_local_addresses,
-                            int _port,
-                            int _client_port,
+                            portno_t _port,
+                            portno_t _client_port,
                             bool _http_admin_is_disabled,
-                            int _http_port,
-                            int _reql_port,
+                            portno_t _http_port,
+                            portno_t _reql_port,
                             int _port_offset) :
         local_addresses(_local_addresses),
         port(_port),
@@ -43,12 +26,9 @@ struct service_address_ports_t {
         http_admin_is_disabled(_http_admin_is_disabled),
         http_port(_http_port),
         reql_port(_reql_port),
-        port_offset(_port_offset)
-    {
-            sanitize_port(port, "port", port_offset);
-            sanitize_port(client_port, "client_port", port_offset);
-            sanitize_port(http_port, "http_port", port_offset);
-            sanitize_port(reql_port, "reql_port", port_offset);
+        port_offset(_port_offset) {
+        // TODO: Figure out if port_offset is used anywhere.  Previous code suggested that it had
+        // already been applied.
     }
 
     std::string get_addresses_string() const;
@@ -56,11 +36,11 @@ struct service_address_ports_t {
     bool is_bind_all() const;
 
     std::set<ip_address_t> local_addresses;
-    int port;
-    int client_port;
+    portno_t port;
+    portno_t client_port;
     bool http_admin_is_disabled;
-    int http_port;
-    int reql_port;
+    portno_t http_port;
+    portno_t reql_port;
     int port_offset;
 };
 

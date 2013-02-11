@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef ARCH_TYPES_HPP_
 #define ARCH_TYPES_HPP_
 
@@ -14,11 +14,11 @@
 // The linux_tcp_listener_t constructor can throw this exception
 class address_in_use_exc_t : public std::exception {
 public:
-    address_in_use_exc_t(const char* hostname, int port) throw () {
-        if (port == 0) {
+    address_in_use_exc_t(const char* hostname, portno_t port) throw () {
+        if (port == portno_t::zero()) {
             info = strprintf("Could not establish sockets on all selected local addresses using the same port");
         } else {
-            info = strprintf("The address at %s:%d is reserved or already in use", hostname, port);
+            info = strprintf("The address at %s:%" PRIu16 " is reserved or already in use", hostname, port.as_uint16());
         }
     }
     ~address_in_use_exc_t() throw () { }

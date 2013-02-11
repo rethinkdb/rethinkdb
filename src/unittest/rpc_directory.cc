@@ -12,12 +12,12 @@ namespace unittest {
 /* `OneNode` starts a single directory node, then shuts it down again. */
 
 void run_one_node_test() {
-    int port = randport();
+    portno_t port = randport();
     connectivity_cluster_t c;
     directory_read_manager_t<int> read_manager(&c);
     watchable_variable_t<int> watchable(5);
     directory_write_manager_t<int> write_manager(&c, watchable.get_watchable());
-    connectivity_cluster_t::run_t cr(&c, get_unittest_addresses(), port, &read_manager, 0, NULL);
+    connectivity_cluster_t::run_t cr(&c, get_unittest_addresses(), port, &read_manager, portno_t::zero(), NULL);
     let_stuff_happen();
 }
 TEST(RPCDirectoryTest, OneNode) {
@@ -28,14 +28,14 @@ TEST(RPCDirectoryTest, OneNode) {
 then shuts them down again. */
 
 void run_three_nodes_test() {
-    int port = randport();
+    portno_t port = randport();
     connectivity_cluster_t c1, c2, c3;
     directory_read_manager_t<int> rm1(&c1), rm2(&c2), rm3(&c3);
     watchable_variable_t<int> w1(101), w2(202), w3(303);
     directory_write_manager_t<int> wm1(&c1, w1.get_watchable()), wm2(&c2, w2.get_watchable()), wm3(&c3, w3.get_watchable());
-    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), port, &rm1, 0, NULL);
-    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), port+1, &rm2, 0, NULL);
-    connectivity_cluster_t::run_t cr3(&c3, get_unittest_addresses(), port+2, &rm3, 0, NULL);
+    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), port, &rm1, portno_t::zero(), NULL);
+    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), port.with_offset(1), &rm2, portno_t::zero(), NULL);
+    connectivity_cluster_t::run_t cr3(&c3, get_unittest_addresses(), port.with_offset(2), &rm3, portno_t::zero(), NULL);
     cr2.join(c1.get_peer_address(c1.get_me()));
     cr3.join(c1.get_peer_address(c1.get_me()));
     let_stuff_happen();
@@ -47,14 +47,14 @@ TEST(RPCDirectoryTest, ThreeNodes) {
 /* `Exchange` tests that directory nodes receive values from their peers. */
 
 void run_exchange_test() {
-    int port = randport();
+    portno_t port = randport();
     connectivity_cluster_t c1, c2, c3;
     directory_read_manager_t<int> rm1(&c1), rm2(&c2), rm3(&c3);
     watchable_variable_t<int> w1(101), w2(202), w3(303);
     directory_write_manager_t<int> wm1(&c1, w1.get_watchable()), wm2(&c2, w2.get_watchable()), wm3(&c3, w3.get_watchable());
-    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), port, &rm1, 0, NULL);
-    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), port+1, &rm2, 0, NULL);
-    connectivity_cluster_t::run_t cr3(&c3, get_unittest_addresses(), port+2, &rm3, 0, NULL);
+    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), port, &rm1, portno_t::zero(), NULL);
+    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), port.with_offset(1), &rm2, portno_t::zero(), NULL);
+    connectivity_cluster_t::run_t cr3(&c3, get_unittest_addresses(), port.with_offset(2), &rm3, portno_t::zero(), NULL);
     cr2.join(c1.get_peer_address(c1.get_me()));
     cr3.join(c1.get_peer_address(c1.get_me()));
     let_stuff_happen();
@@ -72,14 +72,14 @@ TEST(RPCDirectoryTest, Exchange) {
 /* `Update` tests that directory nodes see updates from their peers. */
 
 void run_update_test() {
-    int port = randport();
+    portno_t port = randport();
     connectivity_cluster_t c1, c2, c3;
     directory_read_manager_t<int> rm1(&c1), rm2(&c2), rm3(&c3);
     watchable_variable_t<int> w1(101), w2(202), w3(303);
     directory_write_manager_t<int> wm1(&c1, w1.get_watchable()), wm2(&c2, w2.get_watchable()), wm3(&c3, w3.get_watchable());
-    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), port, &rm1, 0, NULL);
-    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), port+1, &rm2, 0, NULL);
-    connectivity_cluster_t::run_t cr3(&c3, get_unittest_addresses(), port+2, &rm3, 0, NULL);
+    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), port, &rm1, portno_t::zero(), NULL);
+    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), port.with_offset(1), &rm2, portno_t::zero(), NULL);
+    connectivity_cluster_t::run_t cr3(&c3, get_unittest_addresses(), port.with_offset(2), &rm3, portno_t::zero(), NULL);
     cr2.join(c1.get_peer_address(c1.get_me()));
     cr3.join(c1.get_peer_address(c1.get_me()));
     let_stuff_happen();
@@ -99,12 +99,12 @@ TEST(RPCDirectoryTest, Update) {
 /* `DestructorRace` tests a nasty race condition that we had at some point. */
 
 void run_destructor_race_test() {
-    int port = randport();
+    portno_t port = randport();
     connectivity_cluster_t c;
     directory_read_manager_t<int> rm(&c);
     watchable_variable_t<int> w(5);
     directory_write_manager_t<int> wm(&c, w.get_watchable());
-    connectivity_cluster_t::run_t cr(&c, get_unittest_addresses(), port, &rm, 0, NULL);
+    connectivity_cluster_t::run_t cr(&c, get_unittest_addresses(), port, &rm, portno_t::zero(), NULL);
 
     w.set_value(6);
 }

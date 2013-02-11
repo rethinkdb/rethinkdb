@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "clustering/administration/main/serve.hpp"
 
 #include <stdio.h>
@@ -137,10 +137,10 @@ bool do_serve(
                                                                &heartbeat_manager);
 
         // If (0 == port), then we asked the OS to give us a port number.
-        if (address_ports.port != 0) {
+        if (address_ports.port != portno_t::zero()) {
             guarantee(address_ports.port == connectivity_cluster_run.get_port());
         }
-        logINF("Listening for intracluster connections on port %d\n", connectivity_cluster_run.get_port());
+        logINF("Listening for intracluster connections on port %" PRIu16 "\n", connectivity_cluster_run.get_port().as_uint16());
 
         auto_reconnector_t auto_reconnector(
             &connectivity_cluster,
@@ -301,7 +301,7 @@ bool do_serve(
                 rdb_protocol::query_http_app_t rdb_parser(semilattice_manager_cluster.get_root_view(), &rdb_namespace_repo);
 
                 query_server_t rdb_pb_server(address_ports.local_addresses, address_ports.reql_port, &rdb_ctx);
-                logINF("Listening for client driver connections on port %d\n", rdb_pb_server.get_port());
+                logINF("Listening for client driver connections on port %" PRIu16 "\n", rdb_pb_server.get_port().as_uint16());
 
                 scoped_ptr_t<metadata_persistence::semilattice_watching_persister_t> persister(!i_am_a_server ? NULL :
                     new metadata_persistence::semilattice_watching_persister_t(
@@ -312,8 +312,6 @@ bool do_serve(
                     if (address_ports.http_admin_is_disabled) {
                         logINF("Administrative HTTP connections are disabled.\n");
                     } else {
-                        // TODO: Pardon me what, but is this how we fail here?
-                        guarantee(address_ports.http_port < 65536);
                         admin_server_ptr.init(
                             new administrative_http_server_manager_t(
                                 address_ports.local_addresses,
@@ -328,7 +326,7 @@ bool do_serve(
                                 rdb_pb_server.get_http_app(),
                                 machine_id,
                                 web_assets));
-                        logINF("Listening for administrative HTTP connections on port %d\n", admin_server_ptr->get_port());
+                        logINF("Listening for administrative HTTP connections on port %" PRIu16 "\n", admin_server_ptr->get_port().as_uint16());
                     }
 
                     const std::string addresses_string = address_ports.get_addresses_string();

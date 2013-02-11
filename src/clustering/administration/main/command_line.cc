@@ -87,9 +87,9 @@ int write_pid_file(const po::variables_map& vm) {
 
 class host_and_port_t {
 public:
-    host_and_port_t(const std::string& h, int p) : host(h), port(p) { }
+    host_and_port_t(const std::string& h, portno_t p) : host(h), port(p) { }
     std::string host;
-    int port;
+    portno_t port;
 };
 
 class serve_info_t {
@@ -198,35 +198,37 @@ std::set<ip_address_t> get_local_addresses(const po::variables_map& vm) {
     return result;
 }
 
+portno_t convert_to_portno(const int base_port, const int port_offset) {
+    const int port = base_port == 0 ? 0 : base_port + port_offset;
+    if (0 <= port && port < 0x10000) {
+        return portno_t(static_cast<uint16_t>(port));
+    } else {
+        crash("port %d (with offset %d) is out of range", base_port, port_offset);
+    }
+}
+
 service_address_ports_t get_service_address_ports(const po::variables_map& vm) {
     // serve
-    int cluster_port = vm["cluster-port"].as<int>();
-    int http_port = vm["http-port"].as<int>();
-    bool http_admin_is_disabled = vm.count("no-http-admin") > 0;
+    const int cluster_port = vm["cluster-port"].as<int>();
+    const int http_port = vm["http-port"].as<int>();
+    const bool http_admin_is_disabled = vm.count("no-http-admin") > 0;
 #ifndef NDEBUG
-    int cluster_client_port = vm["client-port"].as<int>();
+    const int cluster_client_port = vm["client-port"].as<int>();
 #else
-    int cluster_client_port = port_defaults::client_port;
+    const int cluster_client_port = port_defaults::client_port;
 #endif
-    // int reql_port = vm["reql-port"].as<int>();
-    int reql_port = vm["driver-port"].as<int>();
-    int port_offset = vm["port-offset"].as<int>();
+    const int reql_port = vm["driver-port"].as<int>();
+    const int port_offset = vm["port-offset"].as<int>();
 
-    if (cluster_port != 0) {
-        cluster_port += port_offset;
-    }
-
-    if (http_port != 0) {
-        http_port += port_offset;
-    }
-
-    if (reql_port != 0) {
-        reql_port += port_offset;
-    }
+    const portno_t cluster_portno = convert_to_portno(cluster_port, port_offset);
+    // The client port doesn't get a port offset applied (for reasons that are hopefully obvious).
+    const portno_t cluster_client_portno = convert_to_portno(cluster_client_port, 0);
+    const portno_t http_portno = convert_to_portno(http_port, port_offset);
+    const portno_t reql_portno = convert_to_portno(reql_port, port_offset);
 
     return service_address_ports_t(
-        get_local_addresses(vm), cluster_port, cluster_client_port,
-        http_admin_is_disabled, http_port, reql_port, port_offset);
+        get_local_addresses(vm), cluster_portno, cluster_client_portno,
+        http_admin_is_disabled, http_portno, reql_portno, port_offset);
 }
 
 void run_rethinkdb_create(const std::string &filepath, const name_string_t &machine_name, const io_backend_t io_backend, bool *result_out) {
@@ -265,13 +267,13 @@ peer_address_set_t look_up_peers_addresses(const std::vector<host_and_port_t> &n
     return peers;
 }
 
-void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins, int client_port, const std::vector<std::string>& command_args, bool exit_on_failure, bool *result_out) {
+void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins, portno_t client_port, const std::vector<std::string>& command_args, bool exit_on_failure, bool *result_out) {
     os_signal_cond_t sigint_cond;
     *result_out = true;
     std::string host_port;
 
     if (!joins.empty())
-        host_port = strprintf("%s:%d", joins[0].host.c_str(), joins[0].port);
+        host_port = strprintf("%s:%" PRIu16, joins[0].host.c_str(), joins[0].port.as_uint16());
 
     try {
         if (command_args.empty())
@@ -294,7 +296,7 @@ void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins, int client_p
 void run_rethinkdb_import(extproc::spawner_t::info_t *spawner_info,
                           std::vector<host_and_port_t> joins,
                           const std::set<ip_address_t> &local_addresses,
-                          int client_port,
+                          portno_t client_port,
                           json_import_target_t target,
                           std::string separators,
                           std::string input_filepath,
@@ -309,7 +311,7 @@ void run_rethinkdb_import(extproc::spawner_t::info_t *spawner_info,
         *result_out = run_json_import(spawner_info,
                                       look_up_peers_addresses(joins),
                                       local_addresses,
-                                      0,
+                                      portno_t::zero(),
                                       client_port,
                                       target,
                                       &importer,
@@ -494,13 +496,13 @@ void validate(boost::any& value_out, const std::vector<std::string>& words,
         host_and_port_t *, int)
 {
     po::validators::check_first_occurrence(value_out);
-    const std::string& word = po::validators::get_single_string(words);
-    size_t colon_loc = word.find_first_of(':');
+    const std::string word = po::validators::get_single_string(words);
+    const size_t colon_loc = word.find_first_of(':');
     if (colon_loc != std::string::npos) {
         std::string host = word.substr(0, colon_loc);
         int port = atoi(word.substr(colon_loc + 1).c_str());
-        if (host.size() != 0 && port != 0) {
-            value_out = host_and_port_t(host, port);
+        if (host.size() != 0 && port > 0 && port < 0x10000) {
+            value_out = host_and_port_t(host, portno_t(static_cast<uint16_t>(port)));
             return;
         }
     }
@@ -887,10 +889,13 @@ int main_rethinkdb_admin(int argc, char *argv[]) {
             joins = vm["join"].as<std::vector<host_and_port_t> >();
         }
 #ifndef NDEBUG
-        int client_port = vm["client-port"].as<int>();
+        const int client_port = vm["client-port"].as<int>();
 #else
-        int client_port = port_defaults::client_port;
+        const int client_port = port_defaults::client_port;
 #endif
+
+        const portno_t client_portno = convert_to_portno(client_port, 0);
+
         bool exit_on_failure = false;
         if (vm.count("exit-failure") > 0)
             exit_on_failure = true;
@@ -903,7 +908,7 @@ int main_rethinkdb_admin(int argc, char *argv[]) {
             cmd_args.push_back(last_arg);
 
         const int num_workers = get_cpu_count();
-        run_in_thread_pool(boost::bind(&run_rethinkdb_admin, joins, client_port, cmd_args, exit_on_failure, &result),
+        run_in_thread_pool(boost::bind(&run_rethinkdb_admin, joins, client_portno, cmd_args, exit_on_failure, &result),
                            num_workers);
 
     } catch (const std::exception& ex) {
@@ -1005,10 +1010,12 @@ int main_rethinkdb_import(int argc, char *argv[]) {
         }
 
 #ifndef NDEBUG
-        int client_port = vm["client-port"].as<int>();
+        const int client_port = vm["client-port"].as<int>();
 #else
-        int client_port = port_defaults::client_port;
+        const int client_port = port_defaults::client_port;
 #endif
+        const portno_t client_portno = convert_to_portno(client_port, 0);
+
         std::string db_table = vm["table"].as<std::string>();
         std::string db_name_str;
         std::string table_name_str;
@@ -1066,7 +1073,7 @@ int main_rethinkdb_import(int argc, char *argv[]) {
                                        &spawner_info,
                                        joins,
                                        local_addresses,
-                                       client_port,
+                                       client_portno,
                                        target,
                                        separators,
                                        input_filepath,

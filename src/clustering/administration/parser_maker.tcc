@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_PARSER_MAKER_TCC_
 #define CLUSTERING_ADMINISTRATION_PARSER_MAKER_TCC_
 
@@ -28,11 +28,8 @@ parser_maker_t<protocol_t, parser_t>::parser_maker_t(mailbox_manager_t *_mailbox
 }
 
 template<class protocol_t>
-int get_port(const namespace_semilattice_metadata_t<protocol_t> &ns, int port_offset) {
-    if (ns.port.get() == 0)
-        return 0;
-
-    return ns.port.get() + port_offset;
+portno_t get_port(const namespace_semilattice_metadata_t<protocol_t> &ns, int port_offset) {
+    return ns.port.get().with_offset(port_offset);
 }
 
 static const char * ns_name_in_conflict = "<in conflict>";
@@ -68,7 +65,7 @@ void parser_maker_t<protocol_t, parser_t>::on_change() {
             // TODO: Why not resort to uuid when the name is in conflict, if it's for user output?
             std::string ns_name = v_ns_name.in_conflict() ? ns_name_in_conflict : v_ns_name.get().str();
 
-            int port = get_port(it->second.get(), port_offset);
+            portno_t port = get_port(it->second.get(), port_offset);
             namespace_id_t tmp = it->first;
             namespaces_being_handled.insert(tmp, new ns_record_t(port));
             coro_t::spawn_sometime(boost::bind(
@@ -81,10 +78,10 @@ void parser_maker_t<protocol_t, parser_t>::on_change() {
 template<class protocol_t, class parser_t>
 void parser_maker_t<protocol_t, parser_t>::serve_queries(std::string ns_name,
                                                          namespace_id_t ns,
-                                                         int port,
+                                                         portno_t port,
                                                          auto_drainer_t::lock_t keepalive) {
     try {
-        logINF("Listening for queries for the namespace '%s' %s on port %d.\n", ns_name.c_str(), uuid_to_str(ns).c_str(), port);
+        logINF("Listening for queries for the namespace '%s' %s on port %" PRIu16 ".\n", ns_name.c_str(), uuid_to_str(ns).c_str(), port.as_uint16());
 
         wait_any_t interruptor(&namespaces_being_handled.find(ns)->second->stopper, keepalive.get_drain_signal());
         parser_t parser(local_addresses, port, repo, ns, &perfmon_collection_repo->get_perfmon_collections_for_namespace(ns)->namespace_collection);
@@ -93,7 +90,7 @@ void parser_maker_t<protocol_t, parser_t>::serve_queries(std::string ns_name,
 
         scoped_ptr_t<local_issue_tracker_t::entry_t> bound_issue_tracker_entry;
         issue_subscription_t bound_subscription(&bound_issue_tracker_entry);
-        local_issue_t bound_issue("PORT_CONFLICT", true, strprintf("cannot bind to port %d to serve namespace %s", port, ns_name.c_str()));
+        local_issue_t bound_issue("PORT_CONFLICT", true, strprintf("cannot bind to port %" PRIu16 " to serve namespace %s", port.as_uint16(), ns_name.c_str()));
 
         // Don't bother propogating the issue unless we don't immediately connect
         if (!is_bound->is_pulsed()) {
@@ -110,7 +107,7 @@ void parser_maker_t<protocol_t, parser_t>::serve_queries(std::string ns_name,
         // for the lifetime of the server.
         interruptor.wait_lazily_unordered();
 
-        logINF("Stopped listening for queries for the namespace '%s' %s on port %d.\n", ns_name.c_str(), uuid_to_str(ns).c_str(), port);
+        logINF("Stopped listening for queries for the namespace '%s' %s on port %" PRIu16 ".\n", ns_name.c_str(), uuid_to_str(ns).c_str(), port.as_uint16());
     } catch (interrupted_exc_t) {
         /* pass */
     }

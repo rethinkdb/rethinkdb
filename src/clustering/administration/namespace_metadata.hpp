@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_NAMESPACE_METADATA_HPP_
 #define CLUSTERING_ADMINISTRATION_NAMESPACE_METADATA_HPP_
 
@@ -6,9 +6,6 @@
 #include <set>
 #include <string>
 #include <utility>
-
-#include "utils.hpp"
-#include <boost/bind.hpp>
 
 #include "clustering/administration/database_metadata.hpp"
 #include "clustering/administration/datacenter_metadata.hpp"
@@ -30,6 +27,7 @@
 #include "rpc/semilattice/joins/map.hpp"
 #include "rpc/semilattice/joins/vclock.hpp"
 #include "rpc/serialize_macros.hpp"
+#include "utils.hpp"
 
 typedef uuid_u namespace_id_t;
 
@@ -50,7 +48,7 @@ public:
     vclock_t<std::map<datacenter_id_t, int> > ack_expectations;
     vclock_t<nonoverlapping_regions_t<protocol_t> > shards;
     vclock_t<name_string_t> name;
-    vclock_t<int> port;
+    vclock_t<portno_t> port;
     vclock_t<region_map_t<protocol_t, machine_id_t> > primary_pinnings;
     vclock_t<region_map_t<protocol_t, std::set<machine_id_t> > > secondary_pinnings;
     vclock_t<std::string> primary_key; //TODO this should actually never be changed...
@@ -90,7 +88,7 @@ void debug_print(append_only_printf_buffer_t *buf, const namespace_semilattice_m
 template<class protocol_t>
 namespace_semilattice_metadata_t<protocol_t> new_namespace(
     uuid_u machine, uuid_u database, uuid_u datacenter,
-    const name_string_t &name, const std::string &key, int port,
+    const name_string_t &name, const std::string &key, portno_t port,
     int64_t cache_size) {
 
     namespace_semilattice_metadata_t<protocol_t> ns;

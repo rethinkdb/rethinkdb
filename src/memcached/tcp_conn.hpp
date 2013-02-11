@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef MEMCACHED_TCP_CONN_HPP_
 #define MEMCACHED_TCP_CONN_HPP_
 
@@ -21,7 +21,7 @@ connections until the destructor is called. */
 
 struct memcache_listener_t : public home_thread_mixin_debug_only_t {
     memcache_listener_t(const std::set<ip_address_t> &local_addresses,
-                        int _port,
+                        portno_t _port,
                         namespace_repo_t<memcached_protocol_t> *_ns_repo,
                         uuid_u _namespace_id,
                         perfmon_collection_t *_parent);
@@ -29,7 +29,7 @@ struct memcache_listener_t : public home_thread_mixin_debug_only_t {
 
     signal_t *get_bound_signal();
 
-    int port;
+    portno_t port;
 
 private:
     const uuid_u namespace_id;

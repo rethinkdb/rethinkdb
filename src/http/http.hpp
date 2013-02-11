@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef HTTP_HTTP_HPP_
 #define HTTP_HTTP_HPP_
 
@@ -163,9 +163,9 @@ public:
  * msg that's a meaningful response */
 class http_server_t {
 public:
-    http_server_t(const std::set<ip_address_t> &local_addresses, int port, http_app_t *application);
+    http_server_t(const std::set<ip_address_t> &local_addresses, portno_t port, http_app_t *application);
     ~http_server_t();
-    int get_port() const;
+    portno_t get_port() const;
 private:
     void handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &conn, auto_drainer_t::lock_t);
     http_app_t *application;

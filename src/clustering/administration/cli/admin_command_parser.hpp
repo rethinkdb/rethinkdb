@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_CLI_ADMIN_COMMAND_PARSER_HPP_
 #define CLUSTERING_ADMINISTRATION_CLI_ADMIN_COMMAND_PARSER_HPP_
 
@@ -87,7 +87,7 @@ public:
         std::map<std::string, std::vector<std::string> > params;
     };
 
-    admin_command_parser_t(const std::string& peer_string, const peer_address_set_t& joins, int client_port, signal_t *_interruptor);
+    admin_command_parser_t(const std::string& peer_string, const peer_address_set_t& joins, portno_t client_port, signal_t *_interruptor);
     ~admin_command_parser_t();
 
     void parse_and_run_command(const std::vector<std::string>& line);
@@ -144,7 +144,7 @@ private:
     // Variables to instantiate a link to the cluster
     std::string join_peer;
     peer_address_set_t joins_param;
-    int client_port_param;
+    portno_t client_port_param;
     scoped_ptr_t<admin_cluster_link_t> cluster;
     bool console_mode;
     signal_t *interruptor;

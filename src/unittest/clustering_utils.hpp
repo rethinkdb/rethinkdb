@@ -232,7 +232,7 @@ public:
                                  get_unittest_addresses(),
                                  randport(),
                                  &mailbox_manager,
-                                 0,
+                                 portno_t::zero(),
                                  NULL)
         { }
     connectivity_service_t *get_connectivity_service() {

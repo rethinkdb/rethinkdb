@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef __STDC_FORMAT_MACROS
 #define __STDC_FORMAT_MACROS
 #endif
@@ -190,6 +190,25 @@ std::string to_string_for_json_key(const std::string *s) {
 
 }  // namespace std
 
+// ctx-less JSON adapter for portno_t
+json_adapter_if_t::json_adapter_map_t get_json_subfields(portno_t *) {
+    uint16_t dummy = valgrind_undefined<uint16_t>(0);
+    return get_json_subfields(&dummy);
+}
+
+cJSON *render_as_json(const portno_t *portno) {
+    const uint16_t port = portno->as_uint16();
+    return render_as_json(&port);
+}
+
+void apply_json_to(cJSON *change, portno_t *portno) {
+    uint16_t port;
+    apply_json_to(change, &port);
+    *portno = portno_t(port);
+}
+
+void on_subfield_change(portno_t *) { }
+
 
 // ctx-less JSON adapter for uuid_u
 json_adapter_if_t::json_adapter_map_t get_json_subfields(uuid_u *) {
@@ -304,7 +323,6 @@ json_adapter_if_t::json_adapter_map_t get_json_subfields(int *) {
 }
 
 cJSON *render_as_json(int *target) {
-    // TODO: Should we not fail when we cannot convert to double (or when we go outside 53-bit range?)
     return cJSON_CreateNumber(*target);
 }
 
@@ -313,4 +331,19 @@ void apply_json_to(cJSON *change, int *target) {
 }
 
 void on_subfield_change(int *) { }
+
+// ctx-less JSON adapter for uint16_t
+json_adapter_if_t::json_adapter_map_t get_json_subfields(uint16_t *) {
+    return json_adapter_if_t::json_adapter_map_t();
+}
+
+cJSON *render_as_json(const uint16_t *target) {
+    return cJSON_CreateNumber(*target);
+}
+
+void apply_json_to(cJSON *change, uint16_t *target) {
+    *target = get_int(change, 0, UINT16_MAX);
+}
+
+void on_subfield_change(uint16_t *) { }
 
