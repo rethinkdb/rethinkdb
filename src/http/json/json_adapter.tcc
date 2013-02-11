@@ -17,15 +17,6 @@
 #include "stl_utils.hpp"
 #include "utils.hpp"
 
-//implementation for standard_subfield_functor_t
-template<class T>
-standard_subfield_change_functor_t<T>::standard_subfield_change_functor_t(T *_target)
-    : target(_target) { }
-
-template<class T>
-void standard_subfield_change_functor_t<T>::on_change() {
-    /* do nothing */
-}
 
 //implementation for standard_ctx_subfield_functor_t
 template<class T, class ctx_t>
@@ -61,7 +52,7 @@ json_adapter_if_t::json_adapter_map_t json_adapter_t<T>::get_subfields_impl() {
 
 template <class T>
 boost::shared_ptr<subfield_change_functor_t> json_adapter_t<T>::get_change_callback() {
-    return boost::shared_ptr<subfield_change_functor_t>(new standard_subfield_change_functor_t<T>(target_));
+    return boost::shared_ptr<subfield_change_functor_t>(new noop_subfield_change_functor_t());
 }
 
 //implementation for json_ctx_adapter_t
@@ -200,7 +191,7 @@ json_adapter_if_t::json_adapter_map_t json_map_inserter_t<container_t>::get_subf
 
 template <class container_t>
 boost::shared_ptr<subfield_change_functor_t> json_map_inserter_t<container_t>::get_change_callback() {
-    return boost::shared_ptr<subfield_change_functor_t>(new standard_subfield_change_functor_t<container_t>(target));
+    return boost::shared_ptr<subfield_change_functor_t>(new noop_subfield_change_functor_t());
 }
 
 //implementation for json_ctx_map_inserter_t
@@ -298,7 +289,7 @@ json_adapter_if_t::json_adapter_map_t json_adapter_with_inserter_t<container_t>:
 
 template <class container_t>
 boost::shared_ptr<subfield_change_functor_t> json_adapter_with_inserter_t<container_t>::get_change_callback() {
-    return boost::shared_ptr<subfield_change_functor_t>(new standard_subfield_change_functor_t<container_t>(target));
+    return boost::shared_ptr<subfield_change_functor_t>(new noop_subfield_change_functor_t());
 }
 
 //implementation for json_ctx_adapter_with_inserter_t

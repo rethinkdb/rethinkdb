@@ -107,17 +107,6 @@ public:
     void on_change() { }
 };
 
-template <class T>
-class standard_subfield_change_functor_t : public subfield_change_functor_t {
-public:
-    explicit standard_subfield_change_functor_t(T *target);
-    void on_change();
-private:
-    T *target;
-
-    DISABLE_COPYING(standard_subfield_change_functor_t);
-};
-
 template <class T, class ctx_t>
 class standard_ctx_subfield_change_functor_t : public subfield_change_functor_t {
 public:
