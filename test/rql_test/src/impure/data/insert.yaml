@@ -1,0 +1,44 @@
+desc: Tests insertion into tables
+tests:
+    
+    # Set up our test tables
+    - py: r.db('test').table_create('test')
+      js: r.db('test').tableCreate('test')
+      ot: ({'created':1})
+      def: tbl = r.db('test').table('test')
+
+    - py: r.db('test').table_create('test2')
+      js: r.db('test').tableCreate('test2')
+      ot: ({'created':1})
+      def: tbl2 = r.db('test').table('test2')
+
+    # Single doc insert
+    - cd: tbl.insert({'id':0})
+      ot: ({'inserted':1})
+    - cd: tbl.count()
+      ot: 1
+    - cd: tbl.insert({'id':1})
+      ot: ({'inserted':1})
+    - cd: tbl.count()
+      ot: 2
+
+    # Multi doc insert
+    - cd: tbl.insert([{'id':2}, {'id':3}])
+      ot: ({'inserted':2})
+
+    # Stream insert
+    - cd: tbl2.insert(tbl)
+      ot: ({'inserted':4})
+
+    # Insert within for each
+    - py: "tbl.for_each(lambda row: tbl2.insert(row.merge({'id': row['id'] + 100})))"
+      js: "tbl.forEach(function(row) { return tbl2.insert(row.merge({'id': row('id').add(100)})); })"
+      ot: ({'inserted':4})
+
+    # clean up
+    - py: r.db('test').table_drop('test')
+      js: r.db('test').tableDrop('test')
+      ot: "({'dropped': 1})"
+    - py: r.db('test').table_drop('test2')
+      js: r.db('test').tableDrop('test2')
+      ot: "({'dropped': 1})"

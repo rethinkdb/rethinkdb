@@ -140,26 +140,23 @@ class RDBSequence extends RDBType
         @innerJoin right, (lRow, rRow) ->
             lRow[left_attr.asJSON()].eq(rRow[right_attr.asJSON()])
 
-    objSum = (arr, base) ->
-        arr.forEach (val) ->
-            for own k,v of base
-                if k is 'first_error'
-                    continue
-                if val[k]?
-                    base[k] += val[k]
-            if (not base['first_error']?) and val['error']?
-                base['first_error'] = val['error']
-        base
+    statsMerge = (results) ->
+        base = new RDBObject {}
+        for result in results.asArray()
+            for own k,v of result
+                if base[k]?
+                    switch v.typeOf()
+                        when RDBType.NUMBER
+                            base[k] = base[k].add(v)
+                        when RDBType.STRING
+                            null # left preferential
+                        when RDBType.ARRAY
+                            base[k] = base[k].union(v)
+                else
+                    base[k] = v
+        return base
 
-    forEach: (mapping) ->
-        results = @asArray().map mapping
-        base = {inserted: 0, errors: 0, updated: 0}
-
-        #TODO results is empty. Why are the write results not propogating?
-
-        #results.map (res) ->
-        #    base = objSum res, base
-        new RDBObject base
+    forEach: (mapping) -> statsMerge @map mapping
 
     getPK: -> @asArray()[0].getPK()
 

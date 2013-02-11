@@ -127,7 +127,14 @@ def build_script(tests, lang):
 
 class RethinkDBTestServers:
     def __init__(self):
+        pass
+
+    def __enter__(self):
         self.start()
+        return self
+
+    def __exit__(self, *args):
+        self.stop()
 
     def start(self):
         self.cpp_server = Popen(['../../build/debug/rethinkdb'])
@@ -138,6 +145,7 @@ class RethinkDBTestServers:
         self.cpp_server.terminate()
         self.js_server.terminate()
         self.clear_data()
+        sleep(0.1)
 
     def clear_data(self):
         call(['rm', 'rethinkdb-data']) # JS server data
@@ -159,11 +167,10 @@ def run_tests(lang):
 
 # Run the tests
 def run():
-    servers = RethinkDBTestServers()
-    run_tests('py')
-    servers.restart()
-    run_tests('js')
-    servers.stop()
+    with RethinkDBTestServers() as servers:
+        run_tests('py')
+        servers.restart()
+        run_tests('js')
 
 def run_py():
     servers = RethinkDBTestServers()

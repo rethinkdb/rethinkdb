@@ -86,34 +86,32 @@ class PyTestDriver:
         self.scope = {}
 
     def define(self, expr):
-        exec expr in globals(), self.scope
+        exec(expr, globals(), self.scope)
 
     def run(self, src, expected):
         try:
-            query = eval(src, globals(), self.scope)
+            query = eval(src, dict(globals().items() + self.scope.items()))
         except Exception as err:
             print "Python error on construction of query:", str(err)
             return
 
-        try:
-            cppres = query.run(self.cpp_conn)
-        except Exception as err:
-            print "Error on running of query on CPP server:", str(err)
-            return
-
-        try:
-            jsres = query.run(self.js_conn)
-        except Exception as err:
-            print "Error on running of query on JS server:", str(err)
-
-        exp_fun = eval(expected, globals(), self.scope)
+        exp_fun = eval(expected, dict(globals().items() + self.scope.items()))
         if not isinstance(exp_fun, types.FunctionType):
             exp_fun = eq(exp_fun)
 
-        if not exp_fun(cppres):
-            print " in CPP version of:", src
-        if not exp_fun(jsres):
-            print " in JS version of:", src
+        try:
+            cppres = query.run(self.cpp_conn)
+            if not exp_fun(cppres):
+                print " in CPP version of:", src
+        except Exception as err:
+            print "Error on running of query on CPP server:", str(err)
+
+        try:
+            jsres = query.run(self.js_conn)
+            if not exp_fun(jsres):
+                print " in JS version of:", src
+        except Exception as err:
+            print "Error on running of query on JS server:", str(err)
 
 driver = PyTestDriver()
 driver.connect()

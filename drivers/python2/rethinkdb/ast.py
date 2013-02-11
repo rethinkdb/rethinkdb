@@ -426,8 +426,6 @@ class Table(RDBSeqOp, RDBMethod):
     st = 'table'
 
     def insert(self, records):
-        if not isinstance(records, list):
-            records = [records]
         return Insert(self, records)
 
     def get(self, key):
@@ -556,6 +554,8 @@ class Func(RDBOp):
 
     def __init__(self, lmbd):
         if isinstance(lmbd, types.FunctionType):
+            self.lmbd_expr = True
+
             vrs = []
             vrids = []
             for i in xrange(lmbd.func_code.co_argcount):
@@ -566,11 +566,17 @@ class Func(RDBOp):
             self.vrs = vrs
             self.args = [MakeArray(*vrids), expr(lmbd(*vrs))]
         else:
+            self.lmbd_expr = False
+
+            self.vrs = []
             self.args = [MakeArray(), expr(lmbd)]
         
         self.optargs = {}
 
     def compose(self, args, optargs):
-        return T('lambda ', T(*[v.compose([v.args[0].compose(None, None)], []) for v in self.vrs], intsp=', '), ': ', args[1])
+        if self.lmbd_expr:
+            return T('lambda ', T(*[v.compose([v.args[0].compose(None, None)], []) for v in self.vrs], intsp=', '), ': ', args[1])
+        else:
+            return args[1]
 
 from query import expr

@@ -76,9 +76,13 @@ r.connect({port:CPPPORT}, function(err, cpp_conn) {
                     console.log("Error "+err.message+" in construction of: "+src)
                     // continue to next test
                     runTest();
+                    return;
 				}
 
-				exp_fun = eval(testPair[1]);
+				var exp_fun = eval(testPair[1]);
+                if (!exp_fun)
+                    exp_fun = function() { return true; };
+
                 if (!(exp_fun instanceof Function))
                     exp_fun = eq(exp_fun);
 
@@ -89,10 +93,10 @@ r.connect({port:CPPPORT}, function(err, cpp_conn) {
                     if (cpp_res instanceof Object && cpp_res.toArray) {
                         cpp_res.toArray(afterArray);
                     } else {
-                        afterArray(null, cpp_res);
+                        afterArray(cpp_err, cpp_res);
                     }
 					
-                    function afterArray(err, cpp_res) {
+                    function afterArray(cpp_err, cpp_res) {
 
                         // Now run test on js server
                         test.run(js_conn, function(js_err, js_res) {
@@ -100,17 +104,23 @@ r.connect({port:CPPPORT}, function(err, cpp_conn) {
                             if (js_res instanceof Object && js_res.toArray) {
                                 js_res.toArray(afterArray2);
                             } else {
-                                afterArray2(null, js_res);
+                                afterArray2(js_err, js_res);
                             }
 
                             // Again, convert to array
-                            function afterArray2(err, js_res) {
+                            function afterArray2(js_err, js_res) {
 
-                                if (!exp_fun(cpp_res)) {
+                                if (cpp_err) {
+                                    console.log("Error when evaluating on CPP server:");
+                                    console.log(" "+cpp_err.name+": "+cpp_err.message);
+                                } else if (!exp_fun(cpp_res)) {
                                     console.log(" in CPP version of: "+src)
                                 }
 
-                                if (!exp_fun(js_res)) {
+                                if (js_err) {
+                                    console.log("Error when evaluating on JS server:");
+                                    console.log(" "+js_err.name+": "+js_err.message);
+                                } else if (!exp_fun(js_res)) {
                                     console.log(" in JS version of: "+src)
                                 }
 
@@ -118,6 +128,7 @@ r.connect({port:CPPPORT}, function(err, cpp_conn) {
                                 // so you can rely on previous queries results in
                                 // subsequent tests.
                                 runTest();
+                                return;
                             }
                         });
                     }

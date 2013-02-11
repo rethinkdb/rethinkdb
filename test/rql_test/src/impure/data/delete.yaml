@@ -1,0 +1,35 @@
+desc: Tests deletes of selections
+tests:
+
+    # Set up some data
+    - py: r.db('test').table_create('test')
+      js: r.db('test').tableCreate('test')
+      ot: ({'created':1})
+      def: tbl = r.db('test').table('test')
+
+    - py: r.db('test').table_create('test2')
+      js: r.db('test').tableCreate('test2')
+      ot: ({'created':1})
+      def: tbl2 = r.db('test').table('test2')
+
+    - py: |
+        for i in xrange(100):
+            tbl.insert({'id':i})
+      js: |
+        for (var i = 0; i < 100; i++) {
+            tbl.insert({id:i})
+        }
+
+    # Point delete
+
+    # Delete selection of table
+
+    # Delete whole table
+
+    # clean up
+    - py: r.db('test').table_drop('test')
+      js: r.db('test').tableDrop('test')
+      ot: "({'dropped': 1})"
+    - py: r.db('test').table_drop('test2')
+      js: r.db('test').tableDrop('test2')
+      ot: "({'dropped': 1})"

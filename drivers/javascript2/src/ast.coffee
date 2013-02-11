@@ -157,7 +157,7 @@ intsp = (seq) ->
     return res
 
 kved = (optargs) ->
-    ['{', intsp([k, ': ', v] for k,v in optargs), '}']
+    ['{', intsp([k, ': ', v] for own k,v of optargs), '}']
 
 class MakeArray extends RDBOp
     tt: Term2.TermType.MAKE_ARRAY

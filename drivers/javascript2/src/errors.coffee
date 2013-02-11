@@ -19,7 +19,7 @@ class ServerError extends Error
     composeTerm = (term) ->
         args = (composeTerm arg for arg in term.args)
         optargs = {}
-        for own key,arg in term.optargs
+        for own key,arg of term.optargs
             optargs[key] = composeTerm(arg)
         term.compose(args, optargs)
 

@@ -35,6 +35,10 @@ class RDBTable extends RDBSequence
     insert: (records, upsert=false) ->
         result = new RDBObject
 
+        if records.typeOf() == RDBType.OBJECT
+            records = new RDBArray [records]
+
+        inserted = 0
         for record in records.asArray()
             pkVal = record[@primaryKey]
 
@@ -52,8 +56,9 @@ class RDBTable extends RDBSequence
 
             # Ensure that this new record is a selection of this table
             RDBSelection::makeSelection record, @
+            inserted++
 
-        return result
+        return new RDBObject {'inserted':inserted}
 
     get: (pkVal) ->
         if typeof pkVal isnt 'string' and typeof pkVal isnt 'number'

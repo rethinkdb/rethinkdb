@@ -2,8 +2,6 @@ goog.provide('rethinkdb.AST')
 
 goog.require('rethinkdb.TypeChecker')
 
-print = console.log
-
 class RDBNode
     eval: -> throw "Abstract Method"
 
@@ -32,7 +30,6 @@ class RDBOp extends RDBNode
                 v = n.eval(context)
                 args.push v
             catch err
-                console.log err
                 err.backtrace.unshift i
                 throw err
 
@@ -42,7 +39,6 @@ class RDBOp extends RDBNode
                 v = n.eval(context)
                 optargs[k] = v
             catch err
-                console.log err
                 err.backtrace.unshift k
                 throw err
 
@@ -361,7 +357,6 @@ class RDBFunc
                     context.popScope()
                     return result
                 catch err
-                    console.log err
                     err.backtrace.unshift 1 # for the body of this func
                     err.backtrace.unshift arg_num # for whatever called us
                     throw err
