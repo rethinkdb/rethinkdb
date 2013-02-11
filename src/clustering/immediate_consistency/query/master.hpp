@@ -20,12 +20,16 @@ sends the queries to the `master_t`.
 `master_t` internally contains a `multi_throttling_server_t`, which is
 responsible for throttling queries from the different `master_access_t`s. */
 
+// Describes the "ack state" of a replica.  Has the data been written to the cache, or has it been
+// written to disk?
+enum ack_state_t { ack_state_cache, ack_state_disk };
+
 template<class protocol_t>
 class master_t {
 public:
     class ack_checker_t : public home_thread_mixin_t {
     public:
-        virtual bool is_acceptable_ack_set(const std::set<peer_id_t> &acks) = 0;
+        virtual bool is_acceptable_ack_set(const std::map<peer_id_t, ack_state_t> &acks) = 0;
 
         ack_checker_t() { }
     protected:

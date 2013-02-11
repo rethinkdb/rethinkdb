@@ -124,7 +124,7 @@ class test_reactor_t : private master_t<protocol_t>::ack_checker_t {
 public:
     test_reactor_t(io_backender_t *io_backender, reactor_test_cluster_t<protocol_t> *r, const blueprint_t<protocol_t> &initial_blueprint, multistore_ptr_t<protocol_t> *svs);
     ~test_reactor_t();
-    bool is_acceptable_ack_set(const std::set<peer_id_t> &acks);
+    bool is_acceptable_ack_set(const std::map<peer_id_t, ack_state_t> &acks);
 
     watchable_variable_t<blueprint_t<protocol_t> > blueprint_watchable;
     reactor_t<protocol_t> reactor;
@@ -191,7 +191,7 @@ template <class protocol_t>
 test_reactor_t<protocol_t>::~test_reactor_t() { }
 
 template <class protocol_t>
-bool test_reactor_t<protocol_t>::is_acceptable_ack_set(const std::set<peer_id_t> &acks) {
+bool test_reactor_t<protocol_t>::is_acceptable_ack_set(const std::map<peer_id_t, ack_state_t> &acks) {
     return acks.size() >= 1;
 }
 

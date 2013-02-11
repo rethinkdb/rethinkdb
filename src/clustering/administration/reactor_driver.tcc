@@ -158,7 +158,7 @@ public:
         }
     }
 
-    static bool compute_is_acceptable_ack_set(const std::set<peer_id_t> &acks, const namespace_id_t &namespace_id, per_thread_ack_info_t<protocol_t> *ack_info) {
+    static bool compute_is_acceptable_ack_set(const std::map<peer_id_t, ack_state_t> &acks, const namespace_id_t &namespace_id, per_thread_ack_info_t<protocol_t> *ack_info) {
         /* There are a bunch of weird corner cases: what if the namespace was
         deleted? What if we got an ack from a machine but then it was declared
         dead? What if the namespaces `expected_acks` field is in conflict? We
@@ -167,20 +167,33 @@ public:
         conflict, for example, then all writes will report that there are not
         enough acks. That's a bit weird, but fortunately it can't lead to data
         corruption. */
-        std::multiset<datacenter_id_t> acks_by_dc;
+        struct dc_acks_t {
+            uint32_t cache_acks, disk_acks;
+            dc_acks_t() : cache_acks(0), disk_acks(0) { }
+            dc_acks_t(uint32_t _cache_acks, uint32_t _disk_acks)
+                : cache_acks(_cache_acks), disk_acks(_disk_acks) { }
+        };
+
+        std::map<datacenter_id_t, dc_acks_t> acks_by_dc;
         std::map<peer_id_t, machine_id_t> translation_table_snapshot = ack_info->get_machine_id_translation_table();
         machines_semilattice_metadata_t mmd = ack_info->get_machines_view();
         cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > nmd = ack_info->get_namespaces_view();
 
-        for (std::set<peer_id_t>::const_iterator it = acks.begin(); it != acks.end(); it++) {
-            std::map<peer_id_t, machine_id_t>::iterator tt_it = translation_table_snapshot.find(*it);
+        for (auto it = acks.begin(); it != acks.end(); it++) {
+            std::map<peer_id_t, machine_id_t>::iterator tt_it = translation_table_snapshot.find(it->first);
             if (tt_it == translation_table_snapshot.end()) continue;
             machines_semilattice_metadata_t::machine_map_t::iterator jt = mmd.machines.find(tt_it->second);
             if (jt == mmd.machines.end()) continue;
             if (jt->second.is_deleted()) continue;
             if (jt->second.get().datacenter.in_conflict()) continue;
             datacenter_id_t dc = jt->second.get().datacenter.get();
-            acks_by_dc.insert(dc);
+
+            dc_acks_t it_acks(1, it->second == ack_state_disk ? 1 : 0);
+            auto insert_res = acks_by_dc.insert(std::make_pair(dc, it_acks));
+            if (!insert_res.second) {
+                insert_res.first->second.cache_acks += 1;
+                insert_res.first->second.disk_acks += (it->second == ack_state_disk);
+            }
         }
         typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::const_iterator it =
             nmd->namespaces.find(namespace_id);
@@ -190,33 +203,37 @@ public:
         std::map<datacenter_id_t, ack_expectation_t> expected_acks = it->second.get().ack_expectations.get();
 
         /* The nil uuid represents acks from anywhere. */
-        uint32_t extra_acks = 0;
+        dc_acks_t extra_acks;
         for (auto kt = expected_acks.begin(); kt != expected_acks.end(); ++kt) {
             if (!kt->first.is_nil()) {
-                if (acks_by_dc.count(kt->first) < kt->second.memory_expectation() /* TODO(acks) the ack set needs to be more sophisticated now */) {
+                dc_acks_t kt_acks = acks_by_dc[kt->first];
+                if (kt_acks.cache_acks < kt->second.memory_expectation()
+                    || kt_acks.disk_acks < kt->second.disk_expectation()) {
                     return false;
                 }
-                extra_acks += acks_by_dc.count(kt->first) - kt->second.memory_expectation() /* TODO(acks) the ack set needs to be more sophisticated now */;
+                extra_acks.cache_acks += kt_acks.cache_acks - kt->second.memory_expectation();
+                extra_acks.disk_acks += kt_acks.disk_acks - kt->second.disk_expectation();
             }
         }
 
         /* Add in the acks that came from datacenters we had no expectations
          * for (or the nil datacenter). */
-        for (std::multiset<datacenter_id_t>::iterator at  = acks_by_dc.begin();
-                                                      at != acks_by_dc.end();
-                                                      ++at) {
-            if (!std_contains(expected_acks, *at) || at->is_nil()) {
-                extra_acks++;
+        for (auto at = acks_by_dc.begin(); at != acks_by_dc.end(); ++at) {
+            if (at->first.is_nil() || expected_acks.find(at->first) == expected_acks.end()) {
+                extra_acks.cache_acks += at->second.cache_acks;
+                extra_acks.disk_acks += at->second.disk_acks;
             }
         }
 
-        if (extra_acks < expected_acks[nil_uuid()].memory_expectation() /* TODO(acks) more sophisticated */) {
+        ack_expectation_t nil_expectation = expected_acks[nil_uuid()];
+        if (extra_acks.cache_acks < nil_expectation.memory_expectation()
+            || extra_acks.disk_acks < nil_expectation.disk_expectation()) {
             return false;
         }
         return true;
     }
 
-    bool is_acceptable_ack_set(const std::set<peer_id_t> &acks) {
+    bool is_acceptable_ack_set(const std::map<peer_id_t, ack_state_t> &acks) {
         return compute_is_acceptable_ack_set(acks, namespace_id_, parent_->ack_info->per_thread_ack_info());
     }
 

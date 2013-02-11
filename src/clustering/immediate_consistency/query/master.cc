@@ -60,7 +60,7 @@ void master_t<protocol_t>::client_t::perform_request(
             void on_response(peer_id_t peer, const typename protocol_t::write_response_t &response) {
                 if (!response_promise.get_ready_signal()->is_pulsed()) {
                     ASSERT_NO_CORO_WAITING;
-                    ack_set.insert(peer);
+                    ack_set.insert(std::make_pair(peer, ack_state_disk));  /* TODO(acks) sophisticated */
                     // TODO: Having this centralized ack checker is horrible?  But maybe it's ok.
                     bool is_acceptable = ack_checker->is_acceptable_ack_set(ack_set);
                     if (is_acceptable) {
@@ -72,7 +72,7 @@ void master_t<protocol_t>::client_t::perform_request(
                 done_cond.pulse();
             }
             ack_checker_t *ack_checker;
-            std::set<peer_id_t> ack_set;
+            std::map<peer_id_t, ack_state_t> ack_set;
             promise_t<typename protocol_t::write_response_t> response_promise;
             cond_t done_cond;
         } write_callback(parent->ack_checker);
