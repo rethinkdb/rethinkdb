@@ -2518,7 +2518,8 @@ void admin_cluster_link_t::do_admin_set_replicas_internal(const namespace_id_t& 
     }
 
     std::map<datacenter_id_t, ack_expectation_t>::iterator ack_iter = ns->ack_expectations.get_mutable().find(dc_id);
-    if (ack_iter != ns->ack_expectations.get_mutable().end() && ack_iter->second.cache_expectation() /* TODO(acks) sophisticated */ > static_cast<uint32_t>(num_replicas)) {
+    // We don't bother comparing ack_iter->second.disk_expectation because it's less than cache_expectation.
+    if (ack_iter != ns->ack_expectations.get_mutable().end() && ack_iter->second.cache_expectation() > static_cast<uint32_t>(num_replicas)) {
         throw admin_cluster_exc_t("the number of replicas for this datacenter cannot be less than the number of acks, run 'help set acks' for more information");
     }
 
