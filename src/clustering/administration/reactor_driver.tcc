@@ -207,11 +207,11 @@ public:
         for (auto kt = expected_acks.begin(); kt != expected_acks.end(); ++kt) {
             if (!kt->first.is_nil()) {
                 dc_acks_t kt_acks = acks_by_dc[kt->first];
-                if (kt_acks.cache_acks < kt->second.memory_expectation()
+                if (kt_acks.cache_acks < kt->second.cache_expectation()
                     || kt_acks.disk_acks < kt->second.disk_expectation()) {
                     return false;
                 }
-                extra_acks.cache_acks += kt_acks.cache_acks - kt->second.memory_expectation();
+                extra_acks.cache_acks += kt_acks.cache_acks - kt->second.cache_expectation();
                 extra_acks.disk_acks += kt_acks.disk_acks - kt->second.disk_expectation();
             }
         }
@@ -226,7 +226,7 @@ public:
         }
 
         ack_expectation_t nil_expectation = expected_acks[nil_uuid()];
-        if (extra_acks.cache_acks < nil_expectation.memory_expectation()
+        if (extra_acks.cache_acks < nil_expectation.cache_expectation()
             || extra_acks.disk_acks < nil_expectation.disk_expectation()) {
             return false;
         }

@@ -5,25 +5,25 @@
 #include "clustering/administration/metadata.hpp"
 
 
-bool ack_expectation_t::make(uint32_t disk_expectation, uint32_t memory_expectation, ack_expectation_t *out) {
-    if (disk_expectation <= memory_expectation) {
+bool ack_expectation_t::make(uint32_t disk_expectation, uint32_t cache_expectation, ack_expectation_t *out) {
+    if (disk_expectation <= cache_expectation) {
         out->disk_expectation_ = disk_expectation;
-        out->memory_expectation_ = memory_expectation_;
+        out->cache_expectation_ = cache_expectation_;
         return true;
     } else {
         return false;
     }
 }
 
-RDB_IMPL_ME_SERIALIZABLE_2(ack_expectation_t, disk_expectation_, memory_expectation_);
+RDB_IMPL_ME_SERIALIZABLE_2(ack_expectation_t, disk_expectation_, cache_expectation_);
 
 bool ack_expectation_t::operator==(ack_expectation_t other) const {
-    return disk_expectation_ == other.disk_expectation_ && memory_expectation_ == other.memory_expectation_;
+    return disk_expectation_ == other.disk_expectation_ && cache_expectation_ == other.cache_expectation_;
 }
 
 void debug_print(append_only_printf_buffer_t *buf, const ack_expectation_t &x) {
     buf->appendf("ack_expectation{disk=%" PRIi32 " memory=%" PRIi32 "}",
-                 x.disk_expectation(), x.memory_expectation());
+                 x.disk_expectation(), x.cache_expectation());
 }
 
 // json adapter concept for ack_expectation_t
@@ -32,11 +32,11 @@ json_adapter_if_t::json_adapter_map_t get_json_subfields(ack_expectation_t *) {
     return json_adapter_if_t::json_adapter_map_t();
 }
 cJSON *render_as_json(const ack_expectation_t *target) {
-    uint32_t memory = target->memory_expectation();
+    uint32_t memory = target->cache_expectation();
     return render_as_json(&memory);
 }
 void apply_json_to(cJSON *change, ack_expectation_t *target) {
-    uint32_t memory = target->memory_expectation() /* TODO(acks) sophisticated */;
+    uint32_t memory = target->cache_expectation() /* TODO(acks) sophisticated */;
     apply_json_to(change, &memory);
     *target = ack_expectation_t(memory);
 }

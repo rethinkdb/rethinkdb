@@ -143,7 +143,7 @@ std::string admin_value_to_string(const std::map<uuid_u, ack_expectation_t>& val
     size_t count = 0;
     for (auto it = value.begin(); it != value.end(); ++it) {
         ++count;
-        result += strprintf("%s: %" PRIi32 "%s", uuid_to_str(it->first).c_str(), it->second.memory_expectation() /* TODO(acks) sophisticated */, count == value.size() ? "" : ", ");
+        result += strprintf("%s: %" PRIi32 "%s", uuid_to_str(it->first).c_str(), it->second.cache_expectation() /* TODO(acks) sophisticated */, count == value.size() ? "" : ", ");
     }
     return result;
 }
@@ -2518,7 +2518,7 @@ void admin_cluster_link_t::do_admin_set_replicas_internal(const namespace_id_t& 
     }
 
     std::map<datacenter_id_t, ack_expectation_t>::iterator ack_iter = ns->ack_expectations.get_mutable().find(dc_id);
-    if (ack_iter != ns->ack_expectations.get_mutable().end() && ack_iter->second.memory_expectation() /* TODO(acks) sophisticated */ > static_cast<uint32_t>(num_replicas)) {
+    if (ack_iter != ns->ack_expectations.get_mutable().end() && ack_iter->second.cache_expectation() /* TODO(acks) sophisticated */ > static_cast<uint32_t>(num_replicas)) {
         throw admin_cluster_exc_t("the number of replicas for this datacenter cannot be less than the number of acks, run 'help set acks' for more information");
     }
 
@@ -2811,7 +2811,7 @@ void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
                 std::map<datacenter_id_t, ack_expectation_t>::const_iterator ack_it = ack_expectations.find(i->first);
                 uint32_t acks = 0;
                 if (ack_it != ack_expectations.end()) {
-                    acks = ack_it->second.memory_expectation() /* TODO(acks) sophisticated */;
+                    acks = ack_it->second.cache_expectation() /* TODO(acks) sophisticated */;
                 }
                 delta.push_back(strprintf("%d", acks));
 
@@ -2838,7 +2838,7 @@ void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
             std::map<datacenter_id_t, ack_expectation_t>::const_iterator ack_it = ack_expectations.find(nil_uuid());
             uint32_t acks = 0;
             if (ack_it != ack_expectations.end()) {
-                acks = ack_it->second.memory_expectation() /* TODO(acks) sophisticated */;
+                acks = ack_it->second.cache_expectation() /* TODO(acks) sophisticated */;
             }
             delta.push_back(strprintf("%" PRIu32, acks));
 

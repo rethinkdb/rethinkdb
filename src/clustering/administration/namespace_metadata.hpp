@@ -39,15 +39,15 @@ typedef uuid_u namespace_id_t;
 
 class ack_expectation_t {
 public:
-    ack_expectation_t() : disk_expectation_(0), memory_expectation_(0) { }
+    ack_expectation_t() : disk_expectation_(0), cache_expectation_(0) { }
 
     explicit ack_expectation_t(uint32_t expectations)
-        : disk_expectation_(expectations), memory_expectation_(expectations) { }
+        : disk_expectation_(expectations), cache_expectation_(expectations) { }
 
-    bool make(uint32_t disk_expectation, uint32_t memory_expectation, ack_expectation_t *out);
+    bool make(uint32_t disk_expectation, uint32_t cache_expectation, ack_expectation_t *out);
 
     uint32_t disk_expectation() const { return disk_expectation_; }
-    uint32_t memory_expectation() const { return memory_expectation_; }
+    uint32_t cache_expectation() const { return cache_expectation_; }
 
     RDB_DECLARE_ME_SERIALIZABLE;
 
@@ -55,7 +55,7 @@ public:
 
 private:
     uint32_t disk_expectation_;
-    uint32_t memory_expectation_;
+    uint32_t cache_expectation_;
 };
 
 void debug_print(append_only_printf_buffer_t *buf, const ack_expectation_t &x);
