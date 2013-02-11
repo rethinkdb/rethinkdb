@@ -485,9 +485,8 @@ void rdb_update_sindexes(const btree_store_t<rdb_protocol_t>::sindex_access_vect
 
         superblock_t *super_block = it->super_block.get();
 
-
         if (modification->deleted) {
-            promise_t<superblock_t *> return_super_block;
+            promise_t<superblock_t *> return_superblock_local;
             {
                 boost::shared_ptr<scoped_cJSON_t> index = eval_mapping(mapping,
                         local_env, scopes, backtrace, modification->deleted);
@@ -499,13 +498,13 @@ void rdb_update_sindexes(const btree_store_t<rdb_protocol_t>::sindex_access_vect
                 find_keyvalue_location_for_write(txn, super_block,
                         sindex_key.btree_key(), &kv_location,
                         &it->btree->root_eviction_priority, &it->btree->stats,
-                        &return_super_block);
+                        &return_superblock_local);
 
                 kv_location_delete(&kv_location, sindex_key,
                             it->btree, repli_timestamp_t::distant_past, txn);
                 //The keyvalue location gets destroyed here.
             }
-            super_block = return_super_block.wait();
+            super_block = return_superblock_local.wait();
         }
 
         if (modification->added) {

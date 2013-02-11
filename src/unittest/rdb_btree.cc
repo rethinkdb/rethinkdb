@@ -50,7 +50,7 @@ void run_sindex_post_construction() {
         rdb_modification_report_t mod_report;
         rdb_set(store_key_t(cJSON_print_primary(scoped_cJSON_t(cJSON_CreateNumber(i)).get(), backtrace_t())),
                 boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_Parse(data.c_str()))),
-                false, store.btree.get(), repli_timestamp_t::invalid, txn.get(), 
+                false, store.btree.get(), repli_timestamp_t::invalid, txn.get(),
                 superblock.get(), &response, &mod_report);
     }
 
@@ -90,6 +90,23 @@ void run_sindex_post_construction() {
                 txn.get(),
                 super_block.get(),
                 &dummy_interuptor);
+    }
+
+    {
+        write_token_pair_t token_pair;
+        store.new_write_token_pair(&token_pair);
+
+        scoped_ptr_t<transaction_t> txn;
+        scoped_ptr_t<real_superblock_t> super_block;
+        store.acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid,
+                1, &token_pair.main_write_token, &txn, &super_block, &dummy_interuptor);
+
+        btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindexes;
+        store.acquire_all_sindex_superblocks_for_write(super_block->get_sindex_block_id(),
+                &token_pair, txn.get(), &sindexes, &dummy_interuptor);
+
+        post_construct_secondary_indexes(store.btree.get(), txn.get(), super_block.get(),
+                sindexes, &dummy_interuptor);
     }
 }
 
