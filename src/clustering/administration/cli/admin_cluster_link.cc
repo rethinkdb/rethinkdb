@@ -130,10 +130,11 @@ std::string admin_value_to_string(const name_string_t& name) {
 
 std::string admin_value_to_string(const std::map<uuid_u, int32_t>& value) {
     std::string result;
-    size_t count = 0;
-    for (std::map<uuid_u, int32_t>::const_iterator i = value.begin(); i != value.end(); ++i) {
-        ++count;
-        result += strprintf("%s: %" PRIi32 "%s", uuid_to_str(i->first).c_str(), i->second, count == value.size() ? "" : ", ");
+    for (auto it = value.begin(); it != value.end(); ++it) {
+        result += strprintf("%s%s: %" PRIi32,
+                            it == value.begin() ? "" : ", ",
+                            uuid_to_str(it->first).c_str(),
+                            it->second);
     }
     return result;
 }
