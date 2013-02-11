@@ -140,10 +140,12 @@ std::string admin_value_to_string(const std::map<uuid_u, int32_t>& value) {
 
 std::string admin_value_to_string(const std::map<uuid_u, ack_expectation_t>& value) {
     std::string result;
-    size_t count = 0;
     for (auto it = value.begin(); it != value.end(); ++it) {
-        ++count;
-        result += strprintf("%s: %" PRIi32 "%s", uuid_to_str(it->first).c_str(), it->second.cache_expectation() /* TODO(acks) sophisticated */, count == value.size() ? "" : ", ");
+        result += strprintf("%s%s: %" PRIu32 " disk %" PRIu32 " cache",
+                            it == value.begin() ? "" : ", ",
+                            uuid_to_str(it->first).c_str(),
+                            it->second.disk_expectation(),
+                            it->second.cache_expectation());
     }
     return result;
 }
