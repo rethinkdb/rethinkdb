@@ -935,14 +935,6 @@ module 'DataExplorerView', ->
                 if result.status is null
                     # Top of the stack
                     if element.complete is true
-                        ###
-                        if (element.type is 'function' and @map_state[element.name] is 'json') or (element.type is 'var' and element.real_type is 'json')
-                            result.suggestions = ['(']
-                            result.state = 'json'
-                            result.description = null
-                            result.status = 'done'
-                            break
-                        ###
                         if element.type is 'function'
                             if element.complete is true or element.name is ''
                                 result.suggestions = null
@@ -958,7 +950,6 @@ module 'DataExplorerView', ->
                             result.status = 'look_for_description'
                             break # We want to look in the upper levels
                         #else type cannot be null (because not complete)
-
                     else # if element.complete is false
                         if element.type is 'function'
                             if element.body? # It means that element.body.length === 0
@@ -988,31 +979,7 @@ module 'DataExplorerView', ->
                         else if element.type is null
                             result.suggestions = []
                             result.status = 'look_for_description'
-                            ###
-                            # We'll look for a description. If we can't find one, we show the current suggestions assuming an empty state
-                            result.suggestions_regex = @create_safe_regex element.name
-                            @query_first_part = query.slice 0, element.position
-                            @cursor_for_auto_completion.ch -= element.name.length
-                            if @suggestions['']? # In case the docs have not loaded yet
-                                for suggestion in @suggestions['']
-                                    if result.suggestions_regex.test(suggestion) is true
-                                        result.suggestions.push suggestion
-                            ###
                             break
-                            
-                            ### For this state "r.expr( r" we just want the description of expr
-                            # This code is if we want to get the suggestion for "r"
-                            result.suggestions = []
-                            regex = @create_safe_regex element.name
-                            for variable of element.context
-                                if regex.test(variable) is true
-                                    result.suggestions.push variable
-                                    break
-                            for suggestion of @suggestions
-                                if regex.test(suggestion) is true
-                                    result.suggestions.push variable
-                            result.status = 'done'
-                            ###
                 else if result.status is 'look_for_description'
                     if element.type is 'function'
                         result.description = element.name
@@ -1056,17 +1023,10 @@ module 'DataExplorerView', ->
             return new RegExp('^('+str+')', 'i')
 
 
-        ###
-        # Current refactoring ends here for Container
-        ###
-
         # Return the first unmatched closing parenthesis/square bracket/curly bracket
-        # Returns
-        #   error: true
-        #   char: the character used
-        #   position: the faulty char
-        # or returns null
         # TODO Check if a key is used more than once in an object
+        # TODO Talked to Slava, we may not use this functionnality, so let's just keep it commented for now
+        ###
         get_errors_from_query: (query) =>
             is_string = false
             char_used = ''
@@ -1116,6 +1076,7 @@ module 'DataExplorerView', ->
                 }
             else
                 return null
+        ###
 
         show_suggestion: =>
             @move_suggestion()
@@ -2049,6 +2010,7 @@ module 'DataExplorerView', ->
                 show_more_data: @metadata.has_more_data is true and @container.saved_data.cursor_timed_out is false
                 cursor_timed_out_template: (@cursor_timed_out_template() if @metadata.has_more_data is true and @container.saved_data.cursor_timed_out is true)
                 execution_time_pretty: @metadata.execution_time_pretty
+                no_results: @metadata.has_more_data isnt true and @results.length is 0 and @metadata.skip_value is 0
 
             switch @prototype.view
                 when 'tree'
@@ -2179,7 +2141,7 @@ module 'DataExplorerView', ->
         # Check if the cursor timed out. If yes, make sure that the user cannot fetch more results
         cursor_timed_out: =>
             @container.saved_data.cursor_timed_out = true
-            if @container.saved_data.metadata.has_more_data is true
+            if @container.saved_data.metadata?.has_more_data is true
                 @$('.more_results_paragraph').html @cursor_timed_out_template()
 
         render: =>
@@ -2219,11 +2181,12 @@ module 'DataExplorerView', ->
         dataexplorer_history_template: Handlebars.templates['dataexplorer-history-template']
         dataexplorer_query_li_template: Handlebars.templates['dataexplorer-query_li-template']
         dataexplorer_toggle_history_template: Handlebars.templates['dataexplorer-toggle_history-template']
+        dataexplorer_toggle_history_link_template: Handlebars.templates['dataexplorer-toggle_history_link-template']
         className: 'history'
         
         size_history: 100
         size_history_displayed: 3
-        state: 'hidden'
+        state: 'hidden' # hidden, visible
         index_displayed: 0
 
         events:
@@ -2231,6 +2194,7 @@ module 'DataExplorerView', ->
             'click .close_queries_link': 'open_close_history'
             'click .previous_queries_link': 'previous_queries'
             'click .next_queries_link': 'next_queries'
+            'click .load_query': 'load_query'
 
         initialize: (args) =>
             @container = args.container
@@ -2241,21 +2205,28 @@ module 'DataExplorerView', ->
             @delegateEvents()
             return @
 
+        load_query: (event) =>
+            id = @$(event.target).data().id
+            @container.codemirror.setValue @history[parseInt(id)]
+
         add_query: (query) =>
             # We don't keep state because we consider that people will not fire two differents queries in less than 200ms.
             # TODO add state because they can still do it (at least I know how to do it :))
-            if @$('.query_history').length > @size_history_displayed-1
-                @index_displayed++
-                @$('.query_history:first').slideUp 'fast', ->
+            if @state is 'visible' and @index_displayed+@size_history_displayed >= @history.length-1
+                if @$('.query_history').length > @size_history_displayed-1
+                    @index_displayed++
+                    @$('.query_history:first').slideUp 'fast', ->
+                        @remove()
+                @$('.history_list').show()
+                @$('.no_history').slideUp 'fast', ->
                     @remove()
-            @$('.history_list').show()
-            @$('.no_history').slideUp 'fast', ->
-                @remove()
-            @$('.history_list').append @dataexplorer_query_li_template
-                query: query
-                displayed_class: 'hidden'
-            @$('.query_history:last').slideDown 'fast'
-            @toggle_previous_and_next()
+                @$('.history_list').append @dataexplorer_query_li_template
+                    query: query
+                    displayed_class: 'hidden'
+                    id: @history.length-1
+                    num: @history.length
+                @$('.query_history:last').slideDown 'fast'
+                @toggle_previous_and_next()
 
         clear_history: (event) =>
             event.preventDefault()
@@ -2274,15 +2245,24 @@ module 'DataExplorerView', ->
             @toggle_previous_and_next()
 
         toggle_previous_and_next: =>
+            @$('.previous_queries_container').show()
+            @$('.next_queries_container').show()
             if @index_displayed > 0
-                @$('.previous_queries_container').fadeIn 'fast'
+                @$('.previous_queries_container').html @dataexplorer_toggle_history_link_template
+                    previous: true
+                    active: true
             else
-                @$('.previous_queries_container').fadeOut 'fast'
-
-            if @index_displayed+@size_history_displayed <= @history.length
-                @$('.next_queries_container').fadeIn 'fast'
+                @$('.previous_queries_container').html @dataexplorer_toggle_history_link_template
+                    previous: true
+                    active: false
+            if @index_displayed+@size_history_displayed < @history.length
+                @$('.next_queries_container').html @dataexplorer_toggle_history_link_template
+                    previous: false
+                    active: true
             else
-                @$('.next_queries_container').fadeOut 'fast'
+                @$('.next_queries_container').html @dataexplorer_toggle_history_link_template
+                    previous: false
+                    active: false
 
 
         open_close_history: (event) =>
@@ -2292,14 +2272,14 @@ module 'DataExplorerView', ->
             if @state is 'visible'
                 @state = 'hidden'
                 @$('.history_list').slideUp 'fast', ->
-                    that.$('.history_list').empty()
+                    $(this).empty()
                 @$('.previous_queries_container').fadeOut 'fast'
                 @$('.next_queries_container').fadeOut 'fast'
                 @$('.clear_queries_container').fadeOut 'fast'
                 @$('.close_queries_link').fadeOut 'fast', ->
-                    @html that.template_toggle_history_template
-                        show: false
-                    @fadeIn 'fast'
+                    $(@).html that.dataexplorer_toggle_history_template
+                        show: true
+                    $(@).fadeIn 'fast'
                 @index_displayed = 0
             else
                 @state = 'visible'
@@ -2316,6 +2296,8 @@ module 'DataExplorerView', ->
                         @$('.history_list').append @dataexplorer_query_li_template
                             query: query
                             displayed_class: 'displayed'
+                            id: i
+                            num: i+1
                 else
                     @index_displayed = 0
                     @$('.history_list').append @dataexplorer_query_li_template
@@ -2326,16 +2308,44 @@ module 'DataExplorerView', ->
                 @$('.history_list').slideDown 'fast'
                 @$('.clear_queries_container').fadeIn 'fast'
                 @$('.close_queries_link').fadeOut 'fast', ->
-                    @html that.template_toggle_history_template
-                        show: true
-                    @fadeIn 'fast'
+                    $(@).html that.dataexplorer_toggle_history_template
+                        show: false
+                    $(@).fadeIn 'fast'
 
 
 
         previous_queries: (event) =>
             event.preventDefault()
+            i = 0
+            while i < @size_history_displayed and @index_displayed > 0
+                @index_displayed--
+                @$('.history_list').prepend @dataexplorer_query_li_template
+                    query: @history[@index_displayed]
+                    displayed_class: 'hidden'
+                    id: @index_displayed
+                    num: @index_displayed+1
+                @$('.query_history:first').slideDown 'fast'
+                @$('#query_history_'+(@index_displayed+@size_history_displayed)).slideUp 'fast', ->
+                    $(@).remove()
+                i++
 
+            @toggle_previous_and_next()
         next_queries: (event) =>
+            event.preventDefault()
+            i = 0
+            while i < @size_history_displayed and @index_displayed+@size_history_displayed < @history.length
+                @index_displayed++
+                @$('.history_list').append @dataexplorer_query_li_template
+                    query: @history[@index_displayed+@size_history_displayed-1]
+                    displayed_class: 'hidden'
+                    id: @index_displayed+@size_history_displayed-1
+                    num: @index_displayed+@size_history_displayed
+                @$('.query_history:last').slideDown 'fast'
+                @$('#query_history_'+(@index_displayed-1)).slideUp 'fast', ->
+                    $(@).remove()
+                i++
+
+            @toggle_previous_and_next()
             event.preventDefault()
 
     class @DriverHandler

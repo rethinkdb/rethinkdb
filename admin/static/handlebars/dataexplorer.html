@@ -24,6 +24,23 @@
     <ul class="history_list"></ul>
 </script>
 
+<script id="dataexplorer-toggle_history_link-template" type="text/x-handlebars-template">
+    {{#if previous}}
+        {{#if active}}
+        <a href="#" class="previous_queries_link">Previous queries</a>
+        {{else}}
+        Previous queries
+        {{/if}}
+    {{else}}
+        {{#if active}}
+        <a href="#" class="next_queries_link">Next queries</a>
+        {{else}}
+        Next queries
+        {{/if}}
+    {{/if}}
+
+</script>
+
 <script id="dataexplorer-toggle_history-template" type="text/x-handlebars-template">
     {{#if show}}Show history{{else}}Close history{{/if}}
 </script>
@@ -32,7 +49,9 @@
     {{#if no_query}}
     <li class="no_history {{displayed_class}}">No history available</li>
     {{else}}
-    <li class="query_history {{displayed_class}}">{{query}}</li>
+    <li class="query_history {{displayed_class}}" id="query_history_{{id}}">
+    <div class="query_id">{{num}}.</div><div class="query_history_content"><span class="query">{{query}}</span><button class="btn load_query" data-id={{id}}>Load</button></div>
+    </li>
     {{/if}}
 </script>
 
@@ -166,6 +185,7 @@ Did you forget to append .run() at the end of your query?{{/if}}</pre>
             {{#if execution_time_pretty}}Executed in {{execution_time_pretty}}.{{/if}}
             {{#if limit_value}}{{limit_value}} {{pluralize_noun "row" limit_value}} displayed.{{/if}}
             {{#if skip_value}}{{skip_value}} {{pluralize_noun "row" skip_value}} skipped.{{/if}}
+            {{#if no_results}}No results returned.{{/if}}
         </p>
     </div>
     <div class="wrapper_scrollbar"><div class="scrollbar_fake_content"></div></div>

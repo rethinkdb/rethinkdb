@@ -1046,7 +1046,7 @@ TODO: retire this
         font-family: @serif;
         color: #4d535c;
         font-size: 19px;
-        margin-bottom: 25px;
+        margin-bottom: 15px;
     }
     .input_query_full_container{
         clear: both;
@@ -1179,18 +1179,13 @@ TODO: retire this
             display: none;
             clear: both;
             list-style: none;
-            margin: 0px 0px 0px 10px;
-            padding: 0px 0px 0px 18px;
+            padding: 0px;
+            margin: 0px;
             .query_history{
                 display: none;
-                word-break: break-word;
-                white-space: pre;
                 margin: 0px 0px 10px 0px;
-                padding: 7px 4px;
-                border: 1px solid #ccc;
-                border-radius: 3px;
-                background: #f8f8f8;
-                color: #aaa;
+                padding: 0px;
+                overflow: auto;
                 &.displayed{
                     display: block;
                 }
@@ -1199,6 +1194,30 @@ TODO: retire this
                 }
                 &:last-child{ //Need it to make the slideDown/Up smooth
                     margin: 0px;
+                }
+                .query_history_content{
+                    overflow: auto;
+                    word-break: break-word;
+                    white-space: pre;
+                    margin: -32px 0px 0px 28px;
+                    padding: 7px 4px;
+                    border: 1px solid #ccc;
+                    border-radius: 3px;
+                    background: #f8f8f8;
+                    color: #aaa;
+                    .btn{
+                        padding: 0px 10px;
+                        float: right;
+                        margin: -2px 12px 0px 0px;
+                        top: 1px;
+                        .box-shadow(~"0px 0px 0px 0px #fff");
+                    }
+                }
+                .query_id{
+                    padding: 7px 0px;
+                    width: 28px;
+                    text-align: center;
+                    color: #aaa;
                 }
             }
             .no_history{
@@ -1234,6 +1253,7 @@ TODO: retire this
             margin: 0px 20px 7px 0px;
         }
         .close_queries_container{
+            width: 104px;
             float: right;
             margin: 0px 0px 7px 0px;
         }
