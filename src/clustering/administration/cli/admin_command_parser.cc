@@ -486,7 +486,7 @@ void admin_command_parser_t::destroy_command_descriptions(std::map<std::string, 
 admin_command_parser_t::command_info_t *admin_command_parser_t::add_command(const std::string& full_cmd,
                                                                             const std::string& cmd,
                                                                             const std::string& usage,
-                                                                            void (admin_cluster_link_t::*const fn)(const command_data&),
+                                                                            void (admin_cluster_link_t::*const fn)(const command_data_t&),
                                                                             std::map<std::string, command_info_t *> *cmd_map) {
     command_info_t *info = NULL;
     size_t space_index = cmd.find_first_of(" \t\r\n");
@@ -683,9 +683,9 @@ admin_command_parser_t::command_info_t *admin_command_parser_t::find_command(con
     return i->second;
 }
 
-admin_command_parser_t::command_data admin_command_parser_t::parse_command(command_info_t *info, const std::vector<std::string>& line)
+admin_command_parser_t::command_data_t admin_command_parser_t::parse_command(command_info_t *info, const std::vector<std::string>& line)
 {
-    command_data data(info);
+    command_data_t data(info);
     size_t positional_index = 0;
     size_t positional_count = 0;
 
@@ -743,7 +743,7 @@ admin_command_parser_t::command_data admin_command_parser_t::parse_command(comma
     return data;
 }
 
-void admin_command_parser_t::run_command(const command_data& data) {
+void admin_command_parser_t::run_command(const command_data_t& data) {
     // Special cases for help and join, which do nothing through the cluster
     if (data.info->command == "help") {
         do_admin_help(data);
@@ -1010,7 +1010,7 @@ void admin_command_parser_t::parse_and_run_command(const std::vector<std::string
             throw admin_parse_exc_t("incomplete command");
         }
 
-        command_data data(parse_command(info, std::vector<std::string>(line.begin() + index, line.end())));
+        command_data_t data(parse_command(info, std::vector<std::string>(line.begin() + index, line.end())));
         run_command(data);
     } catch (const admin_parse_exc_t& ex) {
         std::string exception_str(ex.what());
@@ -1093,7 +1093,7 @@ void admin_command_parser_t::run_console(bool exit_on_failure) {
     console_mode = false;
 }
 
-void admin_command_parser_t::do_admin_help(const command_data& data) {
+void admin_command_parser_t::do_admin_help(const command_data_t& data) {
     if (data.params.count("command") == 1) {
         std::string command = guarantee_param_0(data.params, "command");
         std::string subcommand = (data.params.count("subcommand") > 0 ? guarantee_param_0(data.params, "subcommand") : "");

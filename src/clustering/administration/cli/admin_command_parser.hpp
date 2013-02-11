@@ -36,7 +36,7 @@ private:
 
 class admin_command_parser_t {
 public:
-    struct command_data;
+    struct command_data_t;
 
     // Used by the command-line launcher to run complete in a special mode
     static const char *complete_command;
@@ -61,7 +61,7 @@ private:
         command_info_t(std::string full_cmd,
                      std::string cmd,
                      std::string use,
-                     void (admin_cluster_link_t::*const fn)(const command_data&)) :
+                     void (admin_cluster_link_t::*const fn)(const command_data_t&)) :
             full_command(full_cmd), command(cmd), usage(use), do_function(fn) { }
 
         ~command_info_t();
@@ -72,7 +72,7 @@ private:
         std::string full_command;
         std::string command;
         std::string usage;
-        void (admin_cluster_link_t::*do_function)(const command_data&);
+        void (admin_cluster_link_t::*do_function)(const command_data_t&);
 
         std::vector<param_options_t *> positionals;
         std::map<std::string, param_options_t *> flags;
@@ -81,8 +81,8 @@ private:
 
 public:
 
-    struct command_data {
-        explicit command_data(const command_info_t *cmd_info) : info(cmd_info) { }
+    struct command_data_t {
+        explicit command_data_t(const command_info_t *cmd_info) : info(cmd_info) { }
         const command_info_t *const info;
         std::map<std::string, std::vector<std::string> > params;
     };
@@ -116,15 +116,15 @@ private:
     command_info_t *add_command(const std::string& full_cmd,
                                 const std::string& cmd,
                                 const std::string& usage,
-                                void (admin_cluster_link_t::*const fn)(const command_data&),
+                                void (admin_cluster_link_t::*const fn)(const command_data_t&),
                                 std::map<std::string, command_info_t *> *cmd_map);
     admin_cluster_link_t *get_cluster();
 
-    void do_admin_help(const command_data& data);
+    void do_admin_help(const command_data_t& data);
 
     command_info_t *find_command(const std::map<std::string, command_info_t *>& cmd_map, const std::vector<std::string>& line, size_t& index);
-    command_data parse_command(command_info_t *info, const std::vector<std::string>& command_args);
-    void run_command(const command_data& data);
+    command_data_t parse_command(command_info_t *info, const std::vector<std::string>& command_args);
+    void run_command(const command_data_t& data);
 
     std::string get_subcommands_usage(command_info_t *info);
 

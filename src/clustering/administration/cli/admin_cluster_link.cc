@@ -506,7 +506,7 @@ datacenter_id_t get_machine_datacenter(const std::string& id, const machine_id_t
     return i->second.get().datacenter.get();
 }
 
-void admin_cluster_link_t::do_admin_pin_shard(const admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_pin_shard(const admin_command_parser_t::command_data_t& data) {
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
         change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
@@ -792,7 +792,7 @@ void insert_pinning(map_type& region_map, const key_range_t& shard, value_type& 
 }
 
 // TODO: templatize on protocol
-void admin_cluster_link_t::do_admin_split_shard(const admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_split_shard(const admin_command_parser_t::command_data_t& data) {
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
         change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
@@ -915,7 +915,7 @@ std::string admin_cluster_link_t::split_shards(vclock_t<nonoverlapping_regions_t
     return error;
 }
 
-void admin_cluster_link_t::do_admin_merge_shard(const admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_merge_shard(const admin_command_parser_t::command_data_t& data) {
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
         change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
@@ -1037,7 +1037,7 @@ std::string admin_cluster_link_t::merge_shards(vclock_t<nonoverlapping_regions_t
     return error;
 }
 
-void admin_cluster_link_t::do_admin_list(const admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_list(const admin_command_parser_t::command_data_t& data) {
     cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
     std::map<std::string, std::vector<std::string> >::const_iterator obj_it = data.params.find("object");
     std::string obj_str = (obj_it == data.params.end() ? "" : obj_it->second[0]);
@@ -1190,7 +1190,7 @@ struct admin_stats_request_t {
     mailbox_t<void(perfmon_result_t)> response_mailbox;
 };
 
-void admin_cluster_link_t::do_admin_list_stats(const admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_list_stats(const admin_command_parser_t::command_data_t& data) {
     std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager->get_root_view()->get();
     cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
     boost::ptr_map<machine_id_t, admin_stats_request_t> request_map;
@@ -1303,7 +1303,7 @@ void admin_cluster_link_t::do_admin_list_stats(const admin_command_parser_t::com
     }
 }
 
-void admin_cluster_link_t::do_admin_list_directory(const admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_list_directory(const admin_command_parser_t::command_data_t& data) {
     std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager->get_root_view()->get();
     cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
     bool long_format = data.params.count("long");
@@ -1359,7 +1359,7 @@ void admin_cluster_link_t::do_admin_list_directory(const admin_command_parser_t:
     }
 }
 
-void admin_cluster_link_t::do_admin_list_issues(const admin_command_parser_t::command_data& data UNUSED) {
+void admin_cluster_link_t::do_admin_list_issues(const admin_command_parser_t::command_data_t& data UNUSED) {
     std::list<clone_ptr_t<global_issue_t> > issues = admin_tracker.issue_aggregator.get_issues();
     for (std::list<clone_ptr_t<global_issue_t> >::iterator i = issues.begin(); i != issues.end(); ++i) {
         puts((*i)->get_description().c_str());
@@ -1480,7 +1480,7 @@ void admin_cluster_link_t::add_datacenter_affinities(const map_type& ns_map, std
     }
 }
 
-void admin_cluster_link_t::do_admin_list_databases(const admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_list_databases(const admin_command_parser_t::command_data_t& data) {
     cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
     bool long_format = (data.params.find("long") != data.params.end());
 
@@ -1530,7 +1530,7 @@ void admin_cluster_link_t::do_admin_list_databases(const admin_command_parser_t:
     }
 }
 
-void admin_cluster_link_t::do_admin_list_datacenters(const admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_list_datacenters(const admin_command_parser_t::command_data_t& data) {
     cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
     bool long_format = (data.params.find("long") != data.params.end());
 
@@ -1640,7 +1640,7 @@ size_t admin_cluster_link_t::get_replica_count_from_blueprint(const persistable_
     return count;
 }
 
-void admin_cluster_link_t::do_admin_list_tables(const admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_list_tables(const admin_command_parser_t::command_data_t& data) {
     cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
     std::map<std::string, std::vector<std::string> >::const_iterator type_it = data.params.find("protocol");
     std::string type = (type_it == data.params.end() ? "" : type_it->second[0]);
@@ -1798,7 +1798,7 @@ void admin_cluster_link_t::add_machine_info_from_blueprint(const persistable_blu
     }
 }
 
-void admin_cluster_link_t::do_admin_list_machines(const admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_list_machines(const admin_command_parser_t::command_data_t& data) {
     cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
     bool long_format = (data.params.count("long") == 1);
 
@@ -1873,7 +1873,7 @@ void admin_cluster_link_t::do_admin_list_machines(const admin_command_parser_t::
     }
 }
 
-void admin_cluster_link_t::do_admin_create_database(const admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_create_database(const admin_command_parser_t::command_data_t& data) {
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
         change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
@@ -1890,7 +1890,7 @@ void admin_cluster_link_t::do_admin_create_database(const admin_command_parser_t
     printf("uuid: %s\n", uuid_to_str(new_id).c_str());
 }
 
-void admin_cluster_link_t::do_admin_create_datacenter(const admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_create_datacenter(const admin_command_parser_t::command_data_t& data) {
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
         change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
@@ -1907,7 +1907,7 @@ void admin_cluster_link_t::do_admin_create_datacenter(const admin_command_parser
     printf("uuid: %s\n", uuid_to_str(new_id).c_str());
 }
 
-void admin_cluster_link_t::do_admin_create_table(const admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_create_table(const admin_command_parser_t::command_data_t& data) {
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
         change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
@@ -2052,7 +2052,7 @@ namespace_id_t admin_cluster_link_t::do_admin_create_table_internal(const name_s
     return id;
 }
 
-void admin_cluster_link_t::do_admin_set_primary(const admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_set_primary(const admin_command_parser_t::command_data_t& data) {
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
         change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
@@ -2088,7 +2088,7 @@ void admin_cluster_link_t::do_admin_set_primary(const admin_command_parser_t::co
     do_metadata_update(&cluster_metadata, &change_request, false);
 }
 
-void admin_cluster_link_t::do_admin_unset_primary(const admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_unset_primary(const admin_command_parser_t::command_data_t& data) {
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
         change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
@@ -2112,7 +2112,7 @@ void admin_cluster_link_t::do_admin_unset_primary(const admin_command_parser_t::
     do_metadata_update(&cluster_metadata, &change_request, false);
 }
 
-void admin_cluster_link_t::do_admin_set_datacenter(const admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_set_datacenter(const admin_command_parser_t::command_data_t& data) {
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
         change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
@@ -2136,7 +2136,7 @@ void admin_cluster_link_t::do_admin_set_datacenter(const admin_command_parser_t:
     do_metadata_update(&cluster_metadata, &change_request, false);
 }
 
-void admin_cluster_link_t::do_admin_unset_datacenter(const admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_unset_datacenter(const admin_command_parser_t::command_data_t& data) {
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
         change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
@@ -2153,7 +2153,7 @@ void admin_cluster_link_t::do_admin_unset_datacenter(const admin_command_parser_
     do_metadata_update(&cluster_metadata, &change_request, false);
 }
 
-void admin_cluster_link_t::do_admin_set_database(const admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_set_database(const admin_command_parser_t::command_data_t& data) {
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
         change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
@@ -2290,7 +2290,7 @@ void admin_cluster_link_t::remove_machine_pinnings(const machine_id_t& machine,
     }
 }
 
-void admin_cluster_link_t::do_admin_set_name(const admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_set_name(const admin_command_parser_t::command_data_t& data) {
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
         change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
@@ -2343,7 +2343,7 @@ void admin_cluster_link_t::do_admin_set_name_internal(const uuid_u& id, const st
     }
 }
 
-void admin_cluster_link_t::do_admin_set_acks(const admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_set_acks(const admin_command_parser_t::command_data_t& data) {
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
         change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
@@ -2448,7 +2448,7 @@ void admin_cluster_link_t::do_admin_set_acks_internal(const datacenter_id_t& dat
     ns->ack_expectations.upgrade_version(change_request_id);
 }
 
-void admin_cluster_link_t::do_admin_set_replicas(const admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_set_replicas(const admin_command_parser_t::command_data_t& data) {
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
         change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
@@ -2538,22 +2538,22 @@ void admin_cluster_link_t::do_admin_set_replicas_internal(const namespace_id_t& 
     ns->replica_affinities.upgrade_version(change_request_id);
 }
 
-void admin_cluster_link_t::do_admin_remove_machine(const admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_remove_machine(const admin_command_parser_t::command_data_t& data) {
     std::vector<std::string> ids = guarantee_param_vec(data.params, "id");
     do_admin_remove_internal("machines", ids);
 }
 
-void admin_cluster_link_t::do_admin_remove_table(const admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_remove_table(const admin_command_parser_t::command_data_t& data) {
     std::vector<std::string> ids = guarantee_param_vec(data.params, "id");
     do_admin_remove_internal("namespaces", ids);
 }
 
-void admin_cluster_link_t::do_admin_remove_datacenter(const admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_remove_datacenter(const admin_command_parser_t::command_data_t& data) {
     std::vector<std::string> ids = guarantee_param_vec(data.params, "id");
     do_admin_remove_internal("datacenters", ids);
 }
 
-void admin_cluster_link_t::do_admin_remove_database(const admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_remove_database(const admin_command_parser_t::command_data_t& data) {
     std::vector<std::string> ids = guarantee_param_vec(data.params, "id");
     do_admin_remove_internal("databases", ids);
 }
@@ -2720,7 +2720,7 @@ void admin_cluster_link_t::remove_database_tables_internal(const database_id_t& 
     }
 }
 
-void admin_cluster_link_t::do_admin_touch(UNUSED const admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_touch(UNUSED const admin_command_parser_t::command_data_t& data) {
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
         change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
@@ -3226,7 +3226,7 @@ bool admin_cluster_link_t::add_single_machine_blueprint(const machine_id_t& mach
     return match;
 }
 
-void admin_cluster_link_t::do_admin_resolve(const admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_resolve(const admin_command_parser_t::command_data_t& data) {
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
         change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
