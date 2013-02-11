@@ -690,8 +690,8 @@ void admin_cluster_link_t::do_admin_pin_shard_internal(const shard_input_t& shar
     }
 
     // Build the full set of secondaries, carry over any datacenters that were ignored in the command
-    std::map<datacenter_id_t, int> affinities = ns->replica_affinities.get();
-    for (std::map<datacenter_id_t, int>::iterator i = affinities.begin(); i != affinities.end(); ++i) {
+    std::map<datacenter_id_t, int32_t> affinities = ns->replica_affinities.get();
+    for (std::map<datacenter_id_t, int32_t>::iterator i = affinities.begin(); i != affinities.end(); ++i) {
         if (datacenter_use.count(i->first) == 0) {
             // No machines specified for this datacenter, copy over any from the old stuff
             for (std::multimap<datacenter_id_t, machine_id_t>::iterator j = old_datacenter_use.lower_bound(i->first); j != old_datacenter_use.end() && j->first == i->first; ++j) {
@@ -1456,8 +1456,8 @@ void admin_cluster_link_t::add_datacenter_affinities(const map_type& ns_map, std
             }
 
             if (!i->second.get().replica_affinities.in_conflict()) {
-                std::map<datacenter_id_t, int> affinities = i->second.get().replica_affinities.get();
-                for (std::map<datacenter_id_t, int>::iterator j = affinities.begin(); j != affinities.end(); ++j) {
+                std::map<datacenter_id_t, int32_t> affinities = i->second.get().replica_affinities.get();
+                for (std::map<datacenter_id_t, int32_t>::iterator j = affinities.begin(); j != affinities.end(); ++j) {
                     if (j->second > 0) {
                         ++(*results)[j->first].tables;
                     }
@@ -2404,8 +2404,8 @@ void admin_cluster_link_t::do_admin_set_acks_internal(const datacenter_id_t& dat
     }
 
     // Make sure the selected datacenter is assigned to the namespace and that the number of replicas is less than or equal to the number of acks
-    const std::map<datacenter_id_t, int> replica_affinities = ns->replica_affinities.get();
-    std::map<datacenter_id_t, int>::const_iterator i = replica_affinities.find(datacenter);
+    const std::map<datacenter_id_t, int32_t> replica_affinities = ns->replica_affinities.get();
+    std::map<datacenter_id_t, int32_t>::const_iterator i = replica_affinities.find(datacenter);
     bool is_primary = (datacenter == ns->primary_datacenter.get());
     int replicas = (is_primary ? 1 : 0);
     if (i == replica_affinities.end() || i->second == 0) {
@@ -2507,7 +2507,7 @@ void admin_cluster_link_t::do_admin_set_replicas_internal(const namespace_id_t& 
         throw admin_cluster_exc_t("the number of replicas for the primary datacenter cannot be 0");
     }
 
-    std::map<datacenter_id_t, int>::iterator ack_iter = ns->ack_expectations.get_mutable().find(dc_id);
+    std::map<datacenter_id_t, int32_t>::iterator ack_iter = ns->ack_expectations.get_mutable().find(dc_id);
     if (ack_iter != ns->ack_expectations.get_mutable().end() && ack_iter->second > num_replicas) {
         throw admin_cluster_exc_t("the number of replicas for this datacenter cannot be less than the number of acks, run 'help set acks' for more information");
     }
@@ -2778,8 +2778,8 @@ void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
             table.push_back(delta);
         }
 
-        const std::map<datacenter_id_t, int> replica_affinities = ns.replica_affinities.get();
-        const std::map<datacenter_id_t, int> ack_expectations = ns.ack_expectations.get();
+        const std::map<datacenter_id_t, int32_t> replica_affinities = ns.replica_affinities.get();
+        const std::map<datacenter_id_t, int32_t> ack_expectations = ns.ack_expectations.get();
 
         for (datacenters_semilattice_metadata_t::datacenter_map_t::const_iterator i = cluster_metadata.datacenters.datacenters.begin();
              i != cluster_metadata.datacenters.datacenters.end(); ++i) {
@@ -2789,7 +2789,7 @@ void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
                 delta.push_back(uuid_to_str(i->first));
                 delta.push_back(i->second.get().name.in_conflict() ? "<conflict>" : i->second.get().name.get().str());
 
-                std::map<datacenter_id_t, int>::const_iterator replica_it = replica_affinities.find(i->first);
+                std::map<datacenter_id_t, int32_t>::const_iterator replica_it = replica_affinities.find(i->first);
                 int replicas = 0;
                 if (!ns.primary_datacenter.in_conflict() && ns.primary_datacenter.get() == i->first) {
                     replicas = 1 + (replica_it != replica_affinities.end() ? replica_it->second : 0);
@@ -2798,7 +2798,7 @@ void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
                 }
                 delta.push_back(strprintf("%d", replicas));
 
-                std::map<datacenter_id_t, int>::const_iterator ack_it = ack_expectations.find(i->first);
+                std::map<datacenter_id_t, int32_t>::const_iterator ack_it = ack_expectations.find(i->first);
                 int acks = 0;
                 if (ack_it != ack_expectations.end()) {
                     acks = ack_it->second;
@@ -2818,14 +2818,14 @@ void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
             delta.push_back(uuid_to_str(nil_uuid()));
             delta.push_back("universe");
 
-            std::map<datacenter_id_t, int>::const_iterator replica_it = replica_affinities.find(nil_uuid());
+            std::map<datacenter_id_t, int32_t>::const_iterator replica_it = replica_affinities.find(nil_uuid());
             int replicas = (nil_is_primary ? 1 : 0);
             if (replica_it != replica_affinities.end()) {
                 replicas += replica_it->second;
             }
             delta.push_back(strprintf("%d", replicas));
 
-            std::map<datacenter_id_t, int>::const_iterator ack_it = ack_expectations.find(nil_uuid());
+            std::map<datacenter_id_t, int32_t>::const_iterator ack_it = ack_expectations.find(nil_uuid());
             int acks = 0;
             if (ack_it != ack_expectations.end()) {
                 acks = ack_it->second;
@@ -3020,9 +3020,9 @@ void admin_cluster_link_t::add_single_datacenter_affinities(const datacenter_id_
             }
 
             if (!ns.replica_affinities.in_conflict()) {
-                const std::map<datacenter_id_t, int> replica_affinities = ns.replica_affinities.get();
+                const std::map<datacenter_id_t, int32_t> replica_affinities = ns.replica_affinities.get();
 
-                std::map<datacenter_id_t, int>::const_iterator jt = replica_affinities.find(dc_id);
+                std::map<datacenter_id_t, int32_t>::const_iterator jt = replica_affinities.find(dc_id);
                 if (jt != replica_affinities.end()) {
                     replicas += jt->second;
                 }

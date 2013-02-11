@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_REACTOR_DRIVER_TCC_
 #define CLUSTERING_ADMINISTRATION_REACTOR_DRIVER_TCC_
 
@@ -187,11 +187,11 @@ public:
         if (it == nmd->namespaces.end()) return false;
         if (it->second.is_deleted()) return false;
         if (it->second.get().ack_expectations.in_conflict()) return false;
-        std::map<datacenter_id_t, int> expected_acks = it->second.get().ack_expectations.get();
+        std::map<datacenter_id_t, int32_t> expected_acks = it->second.get().ack_expectations.get();
 
         /* The nil uuid represents acks from anywhere. */
         int extra_acks = 0;
-        for (std::map<datacenter_id_t, int>::const_iterator kt = expected_acks.begin(); kt != expected_acks.end(); ++kt) {
+        for (std::map<datacenter_id_t, int32_t>::const_iterator kt = expected_acks.begin(); kt != expected_acks.end(); ++kt) {
             if (!kt->first.is_nil()) {
                 if (acks_by_dc.count(kt->first) < static_cast<size_t>(kt->second)) {
                     return false;

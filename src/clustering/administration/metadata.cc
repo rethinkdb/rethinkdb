@@ -209,8 +209,8 @@ json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(namespace_semi
     json_adapter_if_t::json_adapter_map_t res;
     res["blueprint"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_read_only_adapter_t<vclock_t<persistable_blueprint_t<protocol_t> >, vclock_ctx_t>(&target->blueprint, ctx));
     res["primary_uuid"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<datacenter_id_t>(&target->primary_datacenter, ctx));
-    res["replica_affinities"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<std::map<datacenter_id_t, int> >(&target->replica_affinities, ctx));
-    res["ack_expectations"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<std::map<datacenter_id_t, int> >(&target->ack_expectations, ctx));
+    res["replica_affinities"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<std::map<datacenter_id_t, int32_t> >(&target->replica_affinities, ctx));
+    res["ack_expectations"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<std::map<datacenter_id_t, int32_t> >(&target->ack_expectations, ctx));
     res["name"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<name_string_t>(&target->name, ctx));
     res["shards"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<nonoverlapping_regions_t<protocol_t> >(&target->shards, ctx));
     res["port"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<portno_t>(&target->port, ctx));

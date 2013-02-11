@@ -44,8 +44,8 @@ public:
 
     vclock_t<persistable_blueprint_t<protocol_t> > blueprint;
     vclock_t<datacenter_id_t> primary_datacenter;
-    vclock_t<std::map<datacenter_id_t, int> > replica_affinities;
-    vclock_t<std::map<datacenter_id_t, int> > ack_expectations;
+    vclock_t<std::map<datacenter_id_t, int32_t> > replica_affinities;
+    vclock_t<std::map<datacenter_id_t, int32_t> > ack_expectations;
     vclock_t<nonoverlapping_regions_t<protocol_t> > shards;
     vclock_t<name_string_t> name;
     vclock_t<portno_t> port;
@@ -98,7 +98,7 @@ namespace_semilattice_metadata_t<protocol_t> new_namespace(
     ns.primary_key        = make_vclock(key, machine);
     ns.port               = make_vclock(port, machine);
 
-    std::map<uuid_u, int> ack_expectations;
+    std::map<uuid_u, int32_t> ack_expectations;
     ack_expectations[datacenter] = 1;
     ns.ack_expectations = make_vclock(ack_expectations, machine);
 
