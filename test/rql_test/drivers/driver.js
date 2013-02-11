@@ -114,14 +114,14 @@ r.connect({port:CPPPORT}, function(err, cpp_conn) {
                             function afterArray2(js_err, js_res) {
 
                                 if (cpp_err) {
-                                    console.log("Error when evaluating on CPP server:");
+                                    console.log(testPair[2], "- Error when evaluating on CPP server:");
                                     console.log(" "+cpp_err.name+": "+cpp_err.message);
                                 } else if (!exp_fun(cpp_res)) {
                                     console.log(" in CPP version of: "+src)
                                 }
 
                                 if (js_err) {
-                                    console.log("Error when evaluating on JS server:");
+                                    console.log(testPair[2], "- Error when evaluating on JS server:");
                                     console.log(" "+js_err.name+": "+js_err.message);
                                 } else if (!exp_fun(js_res)) {
                                     console.log(" in JS version of: "+src)
@@ -152,8 +152,8 @@ r.connect({port:CPPPORT}, function(err, cpp_conn) {
 
 // Invoked by generated code to add test and expected result
 // Really constructs list of tests to be sequentially evaluated
-function test(testSrc, resSrc) {
-	tests.push([testSrc, resSrc])
+function test(testSrc, resSrc, name) {
+	tests.push([testSrc, resSrc, name])
 }
 
 // Invoked by generated code to define variables to used within

@@ -103,7 +103,6 @@ def build_script(tests, lang):
 
                         if define:
                             script.write("define("+myrepr(define, lang)+")\n")
-                        continue
 
                     if lang in test:
                         generic_code = False

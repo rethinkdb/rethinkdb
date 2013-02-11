@@ -151,6 +151,7 @@ class RDBOp extends RDBVal
             [args[0], '.', @mt, '(', intsp(args[1..]), ')']
 
 intsp = (seq) ->
+    unless seq[0]? then return []
     res = [seq[0]]
     for e in seq[1..]
         res.push(', ', e)
