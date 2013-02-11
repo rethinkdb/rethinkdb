@@ -2357,6 +2357,8 @@ void admin_cluster_link_t::do_admin_set_acks(const admin_command_parser_t::comma
         throw admin_parse_exc_t("num-acks is not a number");
     }
 
+    ack_expectation_t ack_expectation(acks_num);  // TODO(acks) sophisticated
+
     if (data.params.count("datacenter") != 0) {
         metadata_info_t *dc_info(get_info_from_id(guarantee_param_0(data.params, "datacenter")));
         dc_id = dc_info->uuid;
@@ -2373,7 +2375,7 @@ void admin_cluster_link_t::do_admin_set_acks(const admin_command_parser_t::comma
         } else if (i->second.is_deleted()) {
             throw admin_cluster_exc_t("unexpected error, table has been deleted");
         }
-        do_admin_set_acks_internal(dc_id, acks_num, i->second.get_mutable());
+        do_admin_set_acks_internal(dc_id, ack_expectation, i->second.get_mutable());
 
     } else if (ns_info->path[0] == "dummy_namespaces") {
         cow_ptr_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t> >::change_t change(&cluster_metadata.dummy_namespaces);
@@ -2383,7 +2385,7 @@ void admin_cluster_link_t::do_admin_set_acks(const admin_command_parser_t::comma
         } else if (i->second.is_deleted()) {
             throw admin_cluster_exc_t("unexpected error, table has been deleted");
         }
-        do_admin_set_acks_internal(dc_id, acks_num, i->second.get_mutable());
+        do_admin_set_acks_internal(dc_id, ack_expectation, i->second.get_mutable());
 
     } else if (ns_info->path[0] == "memcached_namespaces") {
         cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::change_t change(&cluster_metadata.memcached_namespaces);
@@ -2393,7 +2395,7 @@ void admin_cluster_link_t::do_admin_set_acks(const admin_command_parser_t::comma
         } else if (i->second.is_deleted()) {
             throw admin_cluster_exc_t("unexpected error, table has been deleted");
         }
-        do_admin_set_acks_internal(dc_id, acks_num, i->second.get_mutable());
+        do_admin_set_acks_internal(dc_id, ack_expectation, i->second.get_mutable());
 
     } else {
         throw admin_parse_exc_t(guarantee_param_0(data.params, "table") + " is not a table");
@@ -2403,7 +2405,7 @@ void admin_cluster_link_t::do_admin_set_acks(const admin_command_parser_t::comma
 }
 
 template <class protocol_t>
-void admin_cluster_link_t::do_admin_set_acks_internal(const datacenter_id_t& datacenter, int num_acks, namespace_semilattice_metadata_t<protocol_t> *ns) {
+void admin_cluster_link_t::do_admin_set_acks_internal(const datacenter_id_t& datacenter, ack_expectation_t ack_expectation, namespace_semilattice_metadata_t<protocol_t> *ns) {
     if (ns->primary_datacenter.in_conflict()) {
         throw admin_cluster_exc_t("the specified table's primary datacenter is in conflict, run 'help resolve' for more information");
     }
@@ -2431,14 +2433,17 @@ void admin_cluster_link_t::do_admin_set_acks_internal(const datacenter_id_t& dat
         replicas += i->second;
     }
 
-    if (num_acks > replicas) {
+    // We don't bother checking ack_expectation.disk_expectation() because it must be no greater
+    // than cache_expectation.
+    if (ack_expectation.cache_expectation() > static_cast<uint32_t>(replicas)) {
         throw admin_cluster_exc_t("cannot assign more ack expectations than replicas in a datacenter");
     }
 
-    if (num_acks == 0) {
+    if (ack_expectation.cache_expectation() == 0) {
+        // As with the comparison above, we know that disk_expectation must be zero.
         ns->ack_expectations.get_mutable().erase(datacenter);
     } else {
-        ns->ack_expectations.get_mutable()[datacenter] = ack_expectation_t(num_acks) /* TODO(acks) sophisticated */;
+        ns->ack_expectations.get_mutable()[datacenter] = ack_expectation;
     }
     ns->ack_expectations.upgrade_version(change_request_id);
 }

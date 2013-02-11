@@ -129,7 +129,7 @@ private:
 
     template <class protocol_t>
     void do_admin_set_acks_internal(const datacenter_id_t& datacenter,
-                                    int num_acks,
+                                    ack_expectation_t ack_expectation,
                                     namespace_semilattice_metadata_t<protocol_t> *ns);
     template <class map_type>
     void do_admin_set_replicas_internal(const namespace_id_t& ns_id,
