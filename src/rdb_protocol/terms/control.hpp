@@ -2,6 +2,11 @@
 #include "rdb_protocol/err.hpp"
 
 namespace ql {
+
+// ALL and ANY are written strangely because I originally thought that we could
+// have non-boolean values that evaluate to true, but then we decided not to do
+// that.
+
 class all_term_t : public op_term_t {
 public:
     all_term_t(env_t *env, const Term2 *term) : op_term_t(env, term, argspec_t(1,-1)) { }
@@ -10,7 +15,7 @@ private:
         for (size_t i = 0; i < num_args(); ++i) {
             env_checkpoint_t ect(env, &env_t::discard_checkpoint);
             val_t *v = arg(i);
-            if (!v->as_datum()->as_bool()) {
+            if (!v->as_bool()) {
                 ect.reset(&env_t::merge_checkpoint);
                 return v;
             } else if (i == num_args()-1) {
@@ -31,7 +36,7 @@ private:
         for (size_t i = 0; i < num_args(); ++i) {
             env_checkpoint_t ect(env, &env_t::discard_checkpoint);
             val_t *v = arg(i);
-            if (v->as_datum()->as_bool()) {
+            if (v->as_bool()) {
                 ect.reset(&env_t::merge_checkpoint);
                 return v;
             }
@@ -49,7 +54,7 @@ private:
     virtual val_t *eval_impl() {
         bool b; {
             env_checkpoint_t ect(env, &env_t::discard_checkpoint);
-            b = arg(0)->as_datum()->as_bool();
+            b = arg(0)->as_bool();
         }
         return b ? arg(1) : arg(2);
     }

@@ -8,13 +8,16 @@ namespace ql {
 
 name_string_t get_name(val_t *val) {
     r_sanity_check(val);
-    std::string raw_name = val->as_datum()->as_str();
+    std::string raw_name = val->as_str();
     name_string_t name;
     bool b = name.assign_value(raw_name);
     rcheck(b, strprintf("name %s invalid (%s)", raw_name.c_str(), valid_char_msg));
     return name;
 }
 
+// Meta operations (BUT NOT TABLE TERMS) should inherit from this.  It will
+// handle a lot of the nasty semilattice initialization stuff for them,
+// including the thread switching.
 class meta_op_t : public op_term_t {
 public:
     meta_op_t(env_t *env, const Term2 *term, argspec_t argspec)
@@ -26,6 +29,7 @@ public:
           original_thread(get_thread_id()),
           metadata_home_thread(env->semilattice_metadata->home_thread()) { init(); }
 private:
+    virtual bool is_deterministic_impl() const { return false; }
     void init() {
         on_thread_t rethreader(metadata_home_thread);
         metadata = env->semilattice_metadata->get();
@@ -87,7 +91,6 @@ class db_term_t : public meta_op_t {
 public:
     db_term_t(env_t *env, const Term2 *term) : meta_op_t(env, term, argspec_t(1)) { }
 private:
-    virtual bool is_deterministic() { return false; }
     virtual val_t *eval_impl() {
         name_string_t db_name = get_name(arg(0));
         return new_val(meta_get_uuid(db_searcher.get(), db_name,
@@ -133,20 +136,20 @@ static const char *const table_create_optargs[] =
 class table_create_term_t : public meta_write_op_t {
 public:
     table_create_term_t(env_t *env, const Term2 *term) :
-        meta_write_op_t(env, term, argspec_t(2), LEGAL_OPTARGS(table_create_optargs)) { }
+        meta_write_op_t(env, term, argspec_t(2), optargspec_t(table_create_optargs)) { }
 private:
     virtual std::string write_eval_impl() {
         uuid_u dc_id = nil_uuid();
         if (val_t *v = optarg("datacenter", 0)) {
             dc_id = meta_get_uuid(dc_searcher.get(), get_name(v),
-                                  "FIND_DATACENTER " + v->as_datum()->as_str());
+                                  "FIND_DATACENTER " + v->as_str());
         }
 
         std::string primary_key = "id";
-        if (val_t *v = optarg("primary_key", 0)) primary_key = v->as_datum()->as_str();
+        if (val_t *v = optarg("primary_key", 0)) primary_key = v->as_str();
 
         int cache_size = 1073741824;
-        if (val_t *v = optarg("cache_size", 0)) cache_size = v->as_datum()->as_int();
+        if (val_t *v = optarg("cache_size", 0)) cache_size = v->as_int();
 
         uuid_u db_id = arg(0)->as_db();
 
@@ -279,7 +282,6 @@ public:
     db_list_term_t(env_t *env, const Term2 *term) :
         meta_op_t(env, term, argspec_t(0)) { }
 private:
-    virtual bool is_deterministic() { return false; }
     virtual val_t *eval_impl() {
         datum_t *arr = env->add_ptr(new datum_t(datum_t::R_ARRAY));
         for (metadata_searcher_t<database_semilattice_metadata_t>::iterator
@@ -321,13 +323,13 @@ static const char *const table_optargs[] = {"use_outdated"};
 class table_term_t : public op_term_t {
 public:
     table_term_t(env_t *env, const Term2 *term)
-        : op_term_t(env, term, argspec_t(2), LEGAL_OPTARGS(table_optargs)) { }
+        : op_term_t(env, term, argspec_t(2), optargspec_t(table_optargs)) { }
 private:
     virtual val_t *eval_impl() {
         val_t *t = optarg("use_outdated", 0);
-        bool use_outdated = t ? t->as_datum()->as_bool() : false;
+        bool use_outdated = t ? t->as_bool() : false;
         uuid_u db = arg(0)->as_db();
-        std::string name = arg(1)->as_datum()->as_str();
+        std::string name = arg(1)->as_str();
         return new_val(new table_t(env, db, name, use_outdated));
     }
     RDB_NAME("table")

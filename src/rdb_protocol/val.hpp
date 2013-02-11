@@ -11,20 +11,25 @@ namespace ql {
 class env_t;
 class val_t;
 class term_t;
-// namespace_repo_t<rdb_protocol_t>::access_t *
 
 class table_t : public ptr_baggable_t {
 public:
     table_t(env_t *_env, uuid_u db_id, const std::string &name, bool use_outdated);
-    datum_stream_t *as_datum_stream();
+    datum_stream_t *as_datum_stream(backtrace_t::frame_t f);
     const std::string &get_pkey();
     const datum_t *get_row(const datum_t *pval);
 
+    // Use `replace` unless you're sure you know what you're doing.  We
+    // implement insert, delete, and update in terms of replace.
     const datum_t *_replace(const datum_t *orig, const map_wire_func_t &mwf,
                             bool _so_the_template_matches = false);
     const datum_t *_replace(const datum_t *orig, func_t *f, bool nondet_ok);
     const datum_t *_replace(const datum_t *orig, const datum_t *d, bool upsert);
     datum_t *env_add_ptr(datum_t *d);
+
+    // A wrapper around `_replace` that does error handling correctly.
+    // TODO: Use a variadic template so we can get rid of
+    // `_so_the_template_matches` above?
     template<class T>
     const datum_t *replace(const datum_t *d, T t, bool b) {
         rcheck(!use_outdated, "Cannot perform write operations on outdated tables.");
@@ -33,9 +38,15 @@ public:
         } catch (const exc_t &e) {
             datum_t *datum = env_add_ptr(new datum_t(datum_t::R_OBJECT));
             std::string err = e.what();
-            //TODO why is this bool (which is marked as MUST USE not used?)
-            UNUSED bool key_in_object = datum->add("first_error", env_add_ptr(new datum_t(err)))
-                         || datum->add("errors", env_add_ptr(new datum_t(1)));
+            // TODO why is this bool (which is marked as MUST USE not used?)
+            // TODONE: the bool is true if there's a conflict when inserting the
+            // key, but since we just created an empty object above conflicts
+            // are impossible here.  If you want to harden this against future
+            // changes, you could store the bool and `r_sanity_check` that it's
+            // false.
+            UNUSED bool key_in_object =
+                   datum->add("first_error", env_add_ptr(new datum_t(err)))
+                || datum->add("errors", env_add_ptr(new datum_t(1)));
             return datum;
         }
     }
@@ -48,8 +59,14 @@ private:
 
 
 enum shortcut_ok_bool_t { SHORTCUT_NOT_OK = 0, SHORTCUT_OK = 1};
+
+// A value is anything RQL can pass around -- a datum, a sequence, a function, a
+// selection, whatever.
 class val_t : public ptr_baggable_t {
 public:
+    // This type is intentionally opaque.  It is almost always an error to
+    // compare two `val_t` types rather than testing whether one is convertible
+    // to another.
     class type_t {
         friend class val_t;
     public:
@@ -86,13 +103,20 @@ public:
     std::pair<table_t *, datum_stream_t *> as_selection();
     datum_stream_t *as_seq();
     std::pair<table_t *, const datum_t *> as_single_selection();
-    const datum_t *as_datum();
+    // See func.hpp for an explanation of shortcut functions.
     func_t *as_func(shortcut_ok_bool_t shortcut_ok = SHORTCUT_NOT_OK);
+
+    const datum_t *as_datum(); // prefer the 4 below
+    bool as_bool();
+    double as_num();
+    int as_int();
+    const std::string &as_str();
 
     std::string print() {
         if (get_type().is_convertible(type_t::DATUM)) {
             return as_datum()->print();
         } else {
+            // TODO: Do something smarter here?
             return strprintf("OPAQUE VAL %s", get_type().name());
         }
     }
@@ -106,8 +130,6 @@ private:
     datum_stream_t *sequence;
     const datum_t *datum;
     func_t *func;
-
-    bool consumed;
 };
 
 } //namespace ql

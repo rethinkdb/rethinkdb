@@ -6,6 +6,16 @@
 
 namespace ql {
 
+// TODO: Make this whole file not suck.
+
+// Some Problems:
+// * The method of constructing a canonical type from supertype * MAX_TYPE +
+//   subtype is brittle.
+// * Everything is done with nested ifs.  Ideally we'd build some sort of graph
+//   structure and walk it.
+// * Why did I decide to have a global _coerce_map variable?  Check that map
+//   access is actually thread safe.
+
 static const int MAX_TYPE = 10;
 
 static const int DB_TYPE = val_t::type_t::DB * MAX_TYPE;
@@ -120,11 +130,12 @@ private:
         int start_supertype = opaque_start_type.raw_type;
         int start_subtype = 0;
         if (opaque_start_type.is_convertible(val_t::type_t::DATUM)) {
+            start_supertype = val_t::type_t::DATUM;
             start_subtype = val->as_datum()->get_type();
         }
         int start_type = merge_types(start_supertype, start_subtype);
 
-        std::string end_type_name = arg(1)->as_datum()->as_str();
+        std::string end_type_name = arg(1)->as_str();
         int end_type = get_type(end_type_name);
 
         // Identity
@@ -206,8 +217,9 @@ public:
     typeof_term_t(env_t *env, const Term2 *term) : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual val_t *eval_impl() {
-        int t = arg(0)->get_type().raw_type * MAX_TYPE;
-        if (t == DATUM_TYPE) t += arg(0)->as_datum()->get_type();
+        val_t *v0 = arg(0);
+        int t = v0->get_type().raw_type * MAX_TYPE;
+        if (t == DATUM_TYPE) t += v0->as_datum()->get_type();
         return new_val(get_name(t));
     }
     RDB_NAME("typeof")

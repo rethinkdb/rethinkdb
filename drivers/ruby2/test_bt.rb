@@ -1,263 +1,146 @@
+# -*- coding: utf-8 -*-
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 $LOAD_PATH.unshift('./lib')
-require 'test/unit'
 require 'rethinkdb.rb'
-extend RethinkDB::Shortcuts
-$port_base = ARGV[0].to_i # 0 if none given
-$c = RethinkDB::Connection.new('localhost', $port_base + 28015)
-begin
-  r.db('test').table_create('tbl').run
-rescue
-end
-$rdb = r.db('test').table('tbl')
-$rdb.delete.run
-$rdb.insert((0...10).map{|i| {:id => i}}).run
+require 'test/unit'
+$port_base ||= ARGV[0].to_i # 0 if none given
+$c = RethinkDB::Connection.new('localhost', $port_base + 28015 + 1)
 
-class ClientBacktraceTest < Test::Unit::TestCase
+class BacktraceTest < Test::Unit::TestCase
   include RethinkDB::Shortcuts
-  def check(query, str1, str2, debug=false)
-    begin
-      RethinkDB::BT.force_raise(query, debug)
-    rescue Exception => e
-      print e.message if debug
-      lines = e.message.split("\n")
-      expected = [str1.gsub(/_var_[0-9]+/,'VAR'), str2]
-      got = [lines[-2].gsub(/_var_[0-9]+/,'VAR'), lines[-1]]
-      print [expected, got] if debug
-      assert_equal(expected, got)
-      return
-    end
-    assert_equal(true, false)
+
+  def test_slice
+    assert_bt([2]) { r([1,2,3,4,5]).slice(0, r.error("a")) }
+    assert_bt([1]) { r([1,2,3,4,5]).slice(r.error("b"), r.error("a")) }
+
+    assert_bt([2]) { r([1,2,3,4,5]).slice(0, tbl).run }
+    assert_bt([2]) { r([1,2,3,4,5]).slice(0, "a").run }
+    assert_bt([1]) { r([1,2,3,4,5]).slice(tbl, 0).run }
+    assert_bt([1]) { r([1,2,3,4,5]).slice("a", 0).run }
+
+    assert_bt([0, 0, 2]) { r([1,2,3]).slice(0,:a).slice(0,0).slice(0,0).run }
+    assert_bt([0, 2]) { r([1,2,3]).slice(0,0).slice(0,:a).slice(0,0).run }
+    assert_bt([0, 0, 0]) { r.error('a').slice(0,:a).slice(0,0).slice(0,0).run }
+
+    assert_bt([2]) { tbl.slice(0, r.error("a")) }
+    assert_bt([1]) { tbl.slice(r.error("b"), r.error("a")) }
+
+    assert_bt([2]) { tbl.slice(0, tbl).run }
+    assert_bt([2]) { tbl.slice(0, "a").run }
+    assert_bt([1]) { tbl.slice(tbl, 0).run }
+    assert_bt([1]) { tbl.slice("a", 0).run }
+
+    assert_bt([0, 0, 2]) { tbl.slice(0,:a).slice(0,0).slice(0,0).run }
+    assert_bt([0, 2]) { tbl.slice(0,0).slice(0,:a).slice(0,0).run }
   end
 
-  def test_simple_args
-    check(r.add(1, "a"),
-          'Query: add(1, "a")',
-          '              ^^^')
-    check(r.add(1, r.add(2, r.add(3, 4), r.add("a", 1)), r.add(5, 6)),
-          'Query: add(1, add(2, add(3, 4), add("a", 1)), add(5, 6))',
-          '                                    ^^^')
-    check(r.mul(1, r.div(2, r.add(3, 4)-r.expr("a")+1), r.add(5, 6)),
-          'Query: multiply(1, divide(2, add(subtract(add(3, 4), "a"), 1)), add(5, 6))',
-          '                                                     ^^^')
-  end
+  def test_map
+    assert_bt([1, 1]) { r.map(r.map(tbl, r.func([], 1)), r.func([], r.error("a"))) }
+    assert_bt([0, 1, 1]) {
+      r.map(r.map(tbl, r.func([], r.error("b"))), r.func([], r.error("a")))
+    }
+    assert_bt([0, 0, 1, 1]) {
+      r.map(r.map(tbl, r.func([], r.error("b"))), r.func([], r.error("a"))).map{|x|x}
+    }
+    assert_bt([0, 1, 1, 0]) {
+      r.map(r.map(tbl, r.func([], 1)), r.func([], [r.error("a")])).map{|x|x}
+    }
 
-  def test_get_pick_has
-    check(r.add(r.expr({:a => 1})[:b], 1),
-          'Query: add({:a=>1}[:b], 1)',
-          '           ^^^^^^^^^^^')
-    check(r.add(r.expr({:a => r.add(1, "a")})[:b], 1),
-          'Query: add({:a=>add(1, "a")}[:b], 1)',
-          '                       ^^^')
-    check(r.expr(1)[:b],
-          'Query: 1[:b]',
-          '       ^')
-
-    check(r.add(r.expr({:a => 1}).pick(:b), 1),
-          'Query: add({:a=>1}.pick(:b), 1)',
-          '           ^^^^^^^^^^^^^^^^')
-    check(r.add(r.expr({:a => 1}).pick(:b, :c), 1),
-          'Query: add({:a=>1}.pick(:b, :c), 1)',
-          '           ^^^^^^^^^^^^^^^^^^^^')
-    check(r.expr(1).pick(:a),
-          'Query: 1.pick(:a)',
-          '       ^')
-
-    check(r.expr(1).contains(:b),
-          'Query: 1.contains(:b)',
-          '       ^')
-
-    check(r.expr(1).unpick(:id),
-          'Query: 1.unpick(:id)',
-          '       ^')
-  end
-
-  def test_if
-    check(r.branch(1, 2, 3),
-          'Query: branch(1, 2, 3)',
-          '              ^')
-    check(r.branch(r.branch(true,1,false),2,3),
-          'Query: branch(branch(true, 1, false), 2, 3)',
-          '              ^^^^^^^^^^^^^^^^^^^^^^')
-    check(r.branch(true, r.add(1, "a"), r.add("b", 2)),
-          'Query: branch(true, add(1, "a"), add("b", 2))',
-          '                           ^^^')
-    check(r.branch(false, r.add(1, "a"), r.add("b", 2)),
-          'Query: branch(false, add(1, "a"), add("b", 2))',
-          '                                      ^^^')
-  end
-
-  def test_point
-    check(r.add($rdb.get(0, :bah), 1),
-          'Query: add(getbykey(["test", "tbl"], :bah, 0), 1)',
-          '           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^')
-    check($rdb.get(0).update{|row| {:id => 1}},
-          'Query: pointupdate(["test", "tbl"], :id, 0, ["_var_1001", {:id=>1}])',
-          '                                                          ^^^^^^^^')
-    check($rdb.get(0).replace{|row| {:id => 2}},
-          'Query: pointreplace(["test", "tbl"], :id, 0, ["_var_1002", {:id=>2}])',
-          '                                                           ^^^^^^^^')
-    check($rdb.get(0, :bah),
-          'Query: getbykey(["test", "tbl"], :bah, 0)',
-          '       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^')
-    check($rdb.get(0, :bah).update{{}},
-          'Query: pointupdate(["test", "tbl"], :bah, 0, ["_var_1003", {}])',
-          '       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^')
-    check($rdb.get(0, :bah).replace{{}},
-          'Query: pointreplace(["test", "tbl"], :bah, 0, ["_var_1004", {}])',
-          '       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^')
-
-    check($rdb.get(0).update{{:new => r.add(1,"a")}},
-          'Query: pointupdate(["test", "tbl"], :id, 0, ["_var_1046", {:new=>add(1, "a")}])',
-          '                                                                        ^^^')
-    check($rdb.get(0).replace{{:new => r.add(1,"a")}},
-          'Query: pointreplace(["test", "tbl"], :id, 0, ["_var_1047", {:new=>add(1, "a")}])',
-          '                                                                         ^^^')
+    assert_bt([1, 1]) { r.map(r.map(r([1]), r.func([], 1)), r.func([], r.error("a"))) }
+    assert_bt([0, 1, 1]) {
+      r.map(r.map(r([1]), r.func([], r.error("b"))), r.func([], r.error("a")))
+    }
+    assert_bt([0, 0, 1, 1]) {
+      r.map(r.map(r([1]), r.func([], r.error("b"))), r.func([], r.error("a"))).map{|x|x}
+    }
+    assert_bt([0, 1, 1, 0]) {
+      r.map(r.map(r([1]), r.func([], 1)), r.func([], [r.error("a")])).map{|x|x}
+    }
   end
 
   def test_reduce
-    check($rdb.reduce(0){|a,b| a+b},
-          'Query: db("test").table("tbl").reduce(0, "_var_1014", "_var_1015", add(_var_1014, _var_1015))',
-          '                                                                                  ^^^^^^^^^')
-    check($rdb.map{|x| x[:id]}.reduce(r.add(1,"a")){|a,b| a+b},
-          'Query: db("test").table("tbl").map("_var_1016", _var_1016[:id]).reduce(add(1, "a"), "_var_1017", "_var_1018", add(_var_1017, _var_1018))',
-          '                                                                              ^^^')
-    check($rdb.map{|x| x[:id]}.reduce($rdb){|a,b| a+b},
-          'Query: db("test").table("tbl").map("_var_1019", _var_1019[:id]).reduce(db("test").table("tbl"), "_var_1020", "_var_1021", add(_var_1020, _var_1021))',
-          '                                                                       ^^^^^^^^^^^^^^^^^^^^^^^')
+    assert_bt([1, 1]) { tbl.map{1}.reduce{r.error("a")} }
+    assert_bt([1, 1, 0]) { tbl.map{r.error('b')}.reduce{[r.error("a")]} }
+    assert_bt([0, 1, 1]) { tbl.map{r.error("b")}.reduce{r.error("a")} }
+    assert_bt([0, 1, 1]) { tbl.map{r.error("b")}.map{|x|x}.reduce{1} }
+    assert_bt([0, 0, 1, 1]) { tbl.map{r.error("b")}.map{|x|x}.reduce{1} }
+    assert_bt([0, 0, 1, 1]) { tbl.map{|x|x}.map{r.error("b")}.map{|x|x}.reduce{1} }
 
-    check($rdb.grouped_map_reduce(lambda {|x| x[:id] % "a"}, lambda {|x| x[:id]}, 0, lambda {|a,b| a+b}),
-          'Query: db("test").table("tbl").groupedmapreduce(["_var_1030", modulo(_var_1030[:id], "a")], ["_var_1031", _var_1031[:id]], [0, "_var_1032", "_var_1033", add(_var_1032, _var_1033)])',
-          '                                                                                     ^^^')
-    check($rdb.grouped_map_reduce(lambda {|x| x[:id] % 4}, lambda {|x| x[:id]+"a"}, 0, lambda {|a,b| a+b}),
-          'Query: db("test").table("tbl").groupedmapreduce(["_var_1034", modulo(_var_1034[:id], 4)], ["_var_1035", add(_var_1035[:id], "a")], [0, "_var_1036", "_var_1037", add(_var_1036, _var_1037)])',
-          '                                                                                                                            ^^^')
-    check($rdb.grouped_map_reduce(lambda {|x| x[:id] % 4}, lambda {|x| x[:id]}, r.add(1,"a"), lambda {|a,b| a+b}),
-          'Query: db("test").table("tbl").groupedmapreduce(["_var_1038", modulo(_var_1038[:id], 4)], ["_var_1039", _var_1039[:id]], [add(1, "a"), "_var_1040", "_var_1041", add(_var_1040, _var_1041)])',
-          '                                                                                                                                 ^^^')
-    check($rdb.grouped_map_reduce(lambda {|x| x[:id] % 4}, lambda {|x| x[:id]}, 0, lambda {|a,b| a+b+"a"}),
-          'Query: db("test").table("tbl").groupedmapreduce(["_var_1042", modulo(_var_1042[:id], 4)], ["_var_1043", _var_1043[:id]], [0, "_var_1044", "_var_1045", add(add(_var_1044, _var_1045), "a")])',
-          '                                                                                                                                                                                      ^^^')
+    assert_bt([1, 1]) { r([1]).map{1}.reduce{r.error("a")} }
+    assert_bt([1, 1, 0]) { r([1]).map{r.error('b')}.reduce{[r.error("a")]} }
+    assert_bt([0, 1, 1]) { r([1]).map{r.error("b")}.reduce{r.error("a")} }
+    assert_bt([0, 1, 1]) { r([1]).map{r.error("b")}.map{|x|x}.reduce{1} }
+    assert_bt([0, 0, 1, 1]) { r([1]).map{r.error("b")}.map{|x|x}.reduce{1} }
+    assert_bt([0, 0, 1, 1]) { r([1]).map{|x|x}.map{r.error("b")}.map{|x|x}.reduce{1} }
   end
 
-  def test_meta
-    check(r.db('test').table_create('tbl'),
-          'Query: db("test").create_table("tbl")',
-          '       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^')
-    check(r.db('test').table_drop('fake'),
-          'Query: db("test").drop_table("fake")',
-          '       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^')
-    check(r.db('a').table_create(''),
-          'Query: db("a").create_table("")',
-          '       ^^^^^^^^^^^^^^^^^^^^^^^^')
-    check(r.db('a').table_drop(''),
-          'Query: db("a").drop_table("")',
-          '       ^^^^^^^^^^^^^^^^^^^^^^')
-    check(r.db('a').table_list,
-          'Query: db("a").list_tables',
-          '       ^^^^^^^^^^^^^^^^^^^')
+  def test_count
+    assert_bt([0, 0, 0, 2]) { tbl.slice(0,:a).slice(0,0).slice(0,0).count.run }
   end
 
-  def test_let
-    check(r.let(:a => 1){r.letvar('b')},
-          'Query: let([["a", 1]], letvar("b"))',
-          '                       ^^^^^^^^^^^')
-    check(r.let({:a => r.add(1, "a")}){r.letvar('a')},
-          'Query: let([["a", add(1, "a")]], letvar("a"))',
-          '                         ^^^')
+  def test_reduce
+    assert_bt([1, 1]) { r([1,2,"a"]).reduce{|x,y|x+y} }
+    assert_bt([1, 1, 0]) { r([1,2,"a"]).reduce{|x,y|[x+y]} }
+    assert_bt([0, 0, 1, 1]) {
+      r([1,2,"a"]).map{|x|x}.map{|x|r.error("a")}.map{|x|x}.reduce{|x,y|[x+y]}
+    }
+    assert_bt(["base"]) { r([]).reduce{|x,y|x+y} }
+    assert_bt(["base"]) { r([1]).reduce(r.error('a')){|x,y|x+y} }
   end
 
-  def test_between
-    check($rdb.between({}, 4),
-          'Query: db("test").table("tbl").between(:id, {}, 4)',
-          '                                            ^^')
-    check($rdb.between(0, {}),
-          'Query: db("test").table("tbl").between(:id, 0, {})',
-          '                                               ^^')
-    check($rdb.between(r.add(1,"a"), r.add(1,"a")),
-          'Query: db("test").table("tbl").between(:id, add(1, "a"), add(1, "a"))',
-          '                                                   ^^^')
-    check($rdb.between(0, r.add(1,"a")),
-          'Query: db("test").table("tbl").between(:id, 0, add(1, "a"))',
-          '                                                      ^^^')
+  def test_map_concatmap
+    assert_equal([1, 1, 2],
+                 bt{r.concatmap(r.map([1], r.func([], 1)),
+                                r.func([], [0, 1, r.error("a")]))})
+    assert_equal([1, 1, 2, 0],
+                 bt{r.concatmap(r.map([1], r.func([], 1)),
+                                r.func([], [0, 1, [r.error("a")]]))})
+    assert_equal([0, 1, 1],
+                 bt{r.concatmap(r.map([1], r.func([], r.error("b"))),
+                                r.func([], [0, 1, [r.error("a")]]))})
   end
 
-  def test_streamops
-    check($rdb.map{|x| r.add(1,x)},
-          'Query: db("test").table("tbl").map("_var_1050", add(1, _var_1050))',
-          '                                                       ^^^^^^^^^')
-    check(r.db('a').table('b').update{{}},
-          'Query: update(db("a").table("b"), ["_var_1007", {}])',
-          '              ^^^^^^^^^^^^^^^^^^')
-    check($rdb.update{{:new => r.add(1, "a")}},
-          'Query: update(db("test").table("tbl"), ["_var_1052", {:new=>add(1, "a")}])',
-          '                                                                   ^^^')
-    check($rdb.update{{:id => -1}},
-          'Query: update(db("test").table("tbl"), ["_var_1054", {:id=>-1}])',
-          '                                                     ^^^^^^^^^')
-    check(r.db('a').table('b').replace{{}},
-          'Query: replace(db("a").table("b"), ["_var_1008", {}])',
-          '               ^^^^^^^^^^^^^^^^^^')
-    check($rdb.replace{{:new => r.add(1, "a")}},
-          'Query: replace(db("test").table("tbl"), ["_var_1056", {:new=>add(1, "a")}])',
-          '                                                                    ^^^')
-    check($rdb.replace{{:new => 1}},
-          'Query: replace(db("test").table("tbl"), ["_var_1056", {:new=>1}])',
-          '                                                      ^^^^^^^^^')
-    check($rdb.filter{1},
-          'Query: db("test").table("tbl").filter("_var_1060", 1)',
-          '                                                   ^')
-    check($rdb.filter{$rdb},
-          'Query: db("test").table("tbl").filter("_var_1061", db("test").table("tbl"))',
-          '                                                   ^^^^^^^^^^^^^^^^^^^^^^^')
-    check($rdb.filter{|row| r.eq(row[:id], r.add(1, "a"))},
-          'Query: db("test").table("tbl").filter("_var_1062", compare(:eq, _var_1062[:id], add(1, "a")))',
-          '                                                                                       ^^^')
-    check($rdb.filter{|row| row[:id]},
-          'Query: db("test").table("tbl").filter("_var_1002", _var_1002[:id])',
-          '                                                   ^^^^^^^^^^^^^^')
+  def assert_bt(val, &b)
+    assert_equal(val, bt(&b))
+  end
+  def bt
+    begin
+      yield.run
+    rescue Exception => e
+      e.to_str.match(/\nBacktrace: (\[[^\]]+\])/) ? eval($1) : []
+    end
   end
 
-  def test_orderby
-    check($rdb.order_by(:bah),
-          'Query: db("test").table("tbl").orderby([:bah, true])',
-          '       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^')
+  def setup
+    begin
+      r.db_create('test').run
+    rescue Exception => e
+    end
+    begin
+      r.db('test').table_create('tbl').run
+    rescue Exception => e
+    end
+
+    tbl.delete.run
+    tbl.insert(data).run
   end
 
-  def test_foreach
-    check(r.db('a').table('b').for_each{|row| $rdb.get(0).update{{:new => row[:id]}}},
-          'Query: foreach(db("a").table("b"), "_var_1066", [pointupdate(["test", "tbl"], :id, 0, ["_var_1067", {:new=>_var_1066[:id]}])])',
-          '               ^^^^^^^^^^^^^^^^^^')
-    check($rdb.for_each{|row| [$rdb.get(0).update{{:id => row[:id]}}, $rdb.replace{|row| row}]},
-          'Query: foreach(db("test").table("tbl"), "_var_1071", [pointupdate(["test", "tbl"], :id, 0, ["_var_1072", {:id=>_var_1071[:id]}]), replace(db("test").table("tbl"), ["_var_1073", _var_1073])])',
-          '                                                                                                         ^^^^^^^^^^^^^^^^^^^^^')
-    check($rdb.for_each{|row| [$rdb.get(0).update{{:new => row[:id]}}, $rdb.replace{|row| {}}]},
-          'Query: foreach(db("test").table("tbl"), "_var_1001", [pointupdate(["test", "tbl"], :id, 0, ["_var_1002", {:new=>_var_1001[:id]}]), replace(db("test").table("tbl"), ["_var_1003", {}])])',
-          '                                                                                                                                                                                  ^^')
+  def tbl
+    r.db('test').table('tbl')
   end
 
-  def test_obj_access
-    check(r.expr({:a => r.add(1,"a")})[:b],
-          'Query: {:a=>add(1, "a")}[:b]',
-          '                   ^^^')
-    check(r.expr({:a => 1})[:b],
-          'Query: {:a=>1}[:b]',
-          '       ^^^^^^^^^^^')
+  def c; $c; end
+
+  def id_sort x
+    x.sort_by do |y|
+      y['id']
+    end
   end
 
-  def test_insert
-    $rdb.filter{|row| row[:id] < -1000}.delete.run
-    check($rdb.insert([{:id => -1337}, {:id => 0}]),
-          'Query: insert(["test", "tbl"], [{:id=>-1337}, {:id=>0}], false)',
-          '                                              ^^^^^^^^')
-    check($rdb.insert([{:id => {}}]),
-          'Query: insert(["test", "tbl"], [{:id=>{}}], false)',
-          '                                ^^^^^^^^^')
-    check(r.db('a').table('b').insert({:id => -1337}),
-          'Query: insert(["a", "b"], [{:id=>-1337}], false)',
-          '       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^')
-    check($rdb.insert(r.expr([{:id => {}}]).array_to_stream),
-          'Query: insert(["test", "tbl"], [[{:id=>{}}].array_to_stream()], false)',
-          '                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^')
+  def data
+    @data ||= (0..9).map do |i|
+      {'id' => i, 'num' => i, 'name' => i.to_s}
+    end
   end
 end
+

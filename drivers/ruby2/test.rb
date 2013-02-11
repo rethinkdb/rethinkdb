@@ -5,6 +5,7 @@ require 'rethinkdb.rb'
 require 'test/unit'
 $port_base ||= ARGV[0].to_i # 0 if none given
 $c = RethinkDB::Connection.new('localhost', $port_base + 28015 + 1)
+
 class ClientTest < Test::Unit::TestCase
   include RethinkDB::Shortcuts
 
@@ -1057,3 +1058,143 @@ class ClientTest < Test::Unit::TestCase
     end
   end
 end
+
+class DetTest < Test::Unit::TestCase
+  include RethinkDB::Shortcuts
+  def rdb; r.db('test').table('tbl'); end
+  @@c = RethinkDB::Connection.new('localhost', $port_base + 28016)
+  def c; @@c; end
+  def server_data; rdb.order_by(:id).run.to_a; end
+
+  def test__init
+    begin
+      r.db('test').table_create('tbl').run
+    rescue
+    end
+    $data = (0...10).map{|x| {'id' => x}}
+    rdb.delete.run
+    rdb.insert($data).run
+  end
+
+  def test_det
+    #TODO: JS tests here
+    assert_raise(RuntimeError){rdb.update{|row| {:count => rdb.get(0).map{|x| 0}}}.run}
+    assert_equal({'replaced'=>10}, rdb.update{|row| {:count => 0}}.run)
+
+    assert_raise(RuntimeError){rdb.replace{|row| rdb.get(row[:id])}.run}
+
+    assert_raise(RuntimeError) {
+      rdb.update{{:count => rdb.map{|x| x[:count]}.reduce(0){|a,b| a+b}}}.run
+    }
+    static = r.expr(server_data)
+    assert_equal({'replaced'=>10},
+                 rdb.update{{:count => static.map{|x| x[:id]}.reduce(0){|a,b| a+b}}}.run)
+  end
+
+
+  def test_nonatomic
+    # UPDATE MODIFY
+    assert_raise(RuntimeError){rdb.update{|row| {:x => rdb.get(0).do{1}}}.run}
+    assert_equal({"replaced" => 10},
+                 rdb.update(:non_atomic){|row| {:x => rdb.get(0).do{1}}}.run)
+    assert_equal(rdb.map{|row| row[:x]}.reduce(0){|a,b| a+b}.run, 10)
+
+    assert_raise(RuntimeError){rdb.get(0).update{|row| {:x => rdb.get(0).do{1}}}.run}
+    assert_equal({"replaced" => 1},
+                 rdb.get(0).update(:non_atomic){|row| {:x => rdb.get(0).do{2}}}.run)
+    assert_equal(11, rdb.map{|row| row[:x]}.reduce(0){|a,b| a+b}.run)
+
+    # UPDATE ERROR
+    assert_not_nil(rdb.update{r.error("")}.run['first_error'])
+    assert_equal(11, rdb.map{|row| row[:x]}.reduce(0){|a,b| a+b}.run)
+
+    #UPDATE SKIPPED
+    assert_raise(RuntimeError){
+      rdb.update{|row| r.branch(rdb.get(0).do{true}, nil, {:x => 0.1})}.run
+    }
+    res = rdb.update(:non_atomic) { |row|
+      r.branch(rdb.get(0).do{true}, nil, {:x => 0.1})
+    }.run
+    assert_equal({"unchanged" => 10}, res)
+    assert_equal(11, rdb.map{|row| row[:x]}.reduce(0){|a,b| a+b}.run)
+
+    assert_raise(RuntimeError){
+      rdb.get(0).update{r.branch(rdb.get(0).do{true}, nil, {:x => 0.1})}.run
+    }
+    res = rdb.get(0).update(:non_atomic){
+      r.branch(rdb.get(0).do{true}, nil, {:x => 0.1})
+    }.run
+    assert_equal({"unchanged" => 1}, res)
+    assert_equal(11, rdb.map{|row| row[:x]}.reduce(0){|a,b| a+b}.run)
+
+    # MUTATE MODIFY
+    assert_raise(RuntimeError) {
+      rdb.get(0).replace{|row| r.branch(rdb.get(0).do{true}, row, nil)}.run
+    }
+    res = rdb.get(0).replace(:non_atomic) {|row|
+      r.branch(rdb.get(0).do{true},row,nil)
+    }.run
+    assert_equal({"unchanged"=>1}, res)
+    assert_equal(11, rdb.map{|row| row[:x]}.reduce(0){|a,b| a+b}.run)
+
+    assert_raise(RuntimeError){rdb.replace{|row| rdb.get(0).do{row}}.run}
+    res = rdb.replace(:non_atomic) { |row|
+      r.branch(rdb.get(0).do{row}[:id].eq(1), row.merge({:x => 2}), row)
+    }.run
+    assert_equal({"unchanged"=>9.0, "replaced"=>1.0}, res)
+    assert_equal(12, rdb.map{|row| row[:x]}.reduce(0){|a,b| a+b}.run)
+
+    #MUTATE ERROR
+    assert_raise(RuntimeError) {
+      rdb.get(0).replace{|row| r.branch(rdb.get(0).do{r.error("")}, row, nil)}.run
+    }
+    assert_not_nil(rdb.get(0).replace(:non_atomic) {|row|
+                     r.branch(rdb.get(0).do{r.error("")},row,nil)
+                   }.run['first_error'])
+    assert_equal(12, rdb.map{|row| row[:x]}.reduce(0){|a,b| a+b}.run)
+
+    assert_raise(RuntimeError) {
+      rdb.replace{|row| r.branch(rdb.get(0).do{r.error("")}, row, nil)}.run
+    }
+    res = rdb.replace(:non_atomic) {|row|
+      r.branch(rdb.get(0).do{r.error("")},row,nil)
+    }.run
+    assert_equal(10, res['errors']); assert_not_nil(res['first_error'])
+    assert_equal(12, rdb.map{|row| row[:x]}.reduce(0){|a,b| a+b}.run)
+
+    #MUTATE DELETE
+    assert_raise(RuntimeError){rdb.get(0).replace{|row| r.branch(rdb.get(0).do{true},nil,row)}.run}
+    res = rdb.get(0).replace(:non_atomic){|row| r.branch(rdb.get(0).do{true},nil,row)}.run
+    assert_equal({"deleted"=>1.0}, res)
+    assert_equal(10, rdb.map{|row| row[:x]}.reduce(0){|a,b| a+b}.run)
+
+    assert_raise(RuntimeError){
+      rdb.replace{|row| r.branch(rdb.get(0).do{row}[:id] < 3, nil, row)}.run
+    }
+    res = rdb.replace(:non_atomic) {|row|
+      r.branch(rdb.get(0).do{row}[:id] < 3, nil, row)
+    }.run
+    assert_equal({'deleted'=>2, 'unchanged'=>7}, res)
+    assert_equal(7, rdb.map{|row| row[:x]}.reduce(0){|a,b| a+b}.run)
+
+    #MUTATE INSERT
+    assert_raise(RuntimeError){rdb.get(0).replace{
+        {:id => 0, :count => rdb.get(3)[:count], :x => rdb.get(3)[:x]}}.run}
+    res = rdb.get(0).replace(:non_atomic){
+      {:id => 0, :count => rdb.get(3)[:count], :x => rdb.get(3)[:x]}}.run
+    assert_equal({"inserted"=>1}, res)
+    assert_raise(RuntimeError){rdb.get(1).replace{rdb.get(3).merge({:id => 1})}.run}
+    res = rdb.get(1).replace(:non_atomic){rdb.get(3).merge({:id => 1})}.run
+    assert_equal({"inserted"=>1}, res)
+    res = rdb.get(2).replace(:non_atomic){rdb.get(1).merge({:id => 2})}.run
+    assert_equal({"inserted"=>1}, res)
+    assert_equal(10, rdb.map{|row| row[:x]}.reduce(0){|a,b| a+b}.run)
+  end
+
+  def test_det_end
+    assert_equal(rdb.map{|row| row[:count]}.reduce(0){|a,b| a+b}.run,
+                 (rdb.map{|row| row[:id]}.reduce(0){|a,b| a+b} * rdb.count).run)
+  end
+end
+
+

@@ -15,69 +15,95 @@ namespace ql {
 
 class func_t : public ptr_baggable_t {
 public:
-    func_t(env_t *env, const Term2 *_source);
-    static func_t *new_shortcut_func(env_t *env, const datum_t *obj);
+    func_t(env_t *env, const Term2 *_source, backtrace_t::frame_t _frame);
+    // Some queries, like filter, can take a shortcut object instead of a
+    // function as their argument.
+    static func_t *new_shortcut_func(env_t *env, const datum_t *obj,
+                                     backtrace_t::frame_t frame);
+    // Use `call` in preference to `_call` (it's just a wrapper).
     val_t *_call(const std::vector<const datum_t *> &args);
     val_t *call(const datum_t *arg);
     val_t *call(const datum_t *arg1, const datum_t *arg2);
 
     void dump_scope(std::map<int, Datum> *out) const;
-    bool is_deterministic();
-private:
-    std::vector<const datum_t *> argptrs;
-    term_t *body;
+    bool is_deterministic() const;
 
+    // Set the backtrace frame if it isn't already set.  (This interface made
+    // some other logic much easier, but in general backtraces are bad and
+    // brittle, so hopefully this will go away if we fix that.)
+    void maybe_set_frame(backtrace_t::frame_t _frame);
+private:
+    // Pointers to this function's arguments.
+    std::vector<const datum_t *> argptrs;
+    term_t *body; // body to evaluate with functions bound
+
+    // This is what's serialized over the wire.
     friend class wire_func_t;
     const Term2 *source;
+    backtrace_t::frame_t frame;
     bool implicit_bound;
 
-    // TODO: make this smarter
+    // TODO: make this smarter (it's sort of slow and shitty as-is)
     std::map<int, const datum_t **> scope;
 };
 
 
 RDB_MAKE_PROTOB_SERIALIZABLE(Term2);
 RDB_MAKE_PROTOB_SERIALIZABLE(Datum);
+// Used to serialize a function (or gmr) over the wire.
 class wire_func_t {
 public:
     wire_func_t();
     virtual ~wire_func_t() { }
     wire_func_t(env_t *env, func_t *_func);
-    wire_func_t(const Term2 &_source, std::map<int, Datum> *_scope);
+    wire_func_t(const Term2 &_source, std::map<int, Datum> *_scope,
+                backtrace_t::frame_t _frame);
     func_t *compile(env_t *env);
-    virtual backtrace_t::frame_t bt() = 0;
 protected:
+    // We cache a separeate function for every environment.
     std::map<env_t *, func_t *> cached_funcs;
 
     Term2 source;
+    backtrace_t::frame_t frame;
     std::map<int, Datum> scope;
 public:
     //RDB_MAKE_ME_SERIALIZABLE_2(source, scope);
 };
 
-#define SIMPLE_FUNC_IMPL(name, frame_num)                                     \
-static const int name##_bt_frame = frame_num;                                 \
-class name##_wire_func_t : public wire_func_t {                               \
-public:                                                                       \
-    name##_wire_func_t() : wire_func_t() { }                                  \
-    name##_wire_func_t(env_t *env, func_t *func) : wire_func_t(env, func) { } \
-    name##_wire_func_t(const Term2 &_source, std::map<int, Datum> *_scope)    \
-        : wire_func_t(_source, _scope) { }                                    \
-    virtual backtrace_t::frame_t bt() { return name##_bt_frame; }             \
-    RDB_MAKE_ME_SERIALIZABLE_2(source, scope);                                \
-};                                                                            \
+// This is a hack because MAP, FILTER, REDUCE, and CONCATMAP are all the same.
+namespace derived {
+// For whatever reason RDB_MAKE_ME_SERIALIZABLE_3 wasn't happy inside of the
+// template, so, you know, yeah.
+class serializable_wire_func_t : public wire_func_t {
+public:
+    serializable_wire_func_t() : wire_func_t() { }
+    serializable_wire_func_t(env_t *env, func_t *func) : wire_func_t(env, func) { }
+    serializable_wire_func_t(const Term2 &_source, std::map<int, Datum> *_scope,
+                             backtrace_t::frame_t _frame)
+        : wire_func_t(_source, _scope, _frame) { }
+    RDB_MAKE_ME_SERIALIZABLE_3(source, frame, scope);
+};
+enum simple_funcs { MAP, FILTER, REDUCE, CONCATMAP };
+template<int fconst>
+class derived_wire_func_t : public serializable_wire_func_t {
+public:
+    derived_wire_func_t() : serializable_wire_func_t() { }
+    derived_wire_func_t(env_t *env, func_t *func)
+        : serializable_wire_func_t(env, func) { }
+    derived_wire_func_t(const Term2 &_source, std::map<int, Datum> *_scope,
+                        backtrace_t::frame_t _frame)
+        : serializable_wire_func_t(_source, _scope, _frame) { }
+};
+} // namespace derived
+typedef derived::derived_wire_func_t<derived::MAP> map_wire_func_t;
+typedef derived::derived_wire_func_t<derived::FILTER> filter_wire_func_t;
+typedef derived::derived_wire_func_t<derived::REDUCE> reduce_wire_func_t;
+typedef derived::derived_wire_func_t<derived::CONCATMAP> concatmap_wire_func_t;
 
-SIMPLE_FUNC_IMPL(map, 1);
-SIMPLE_FUNC_IMPL(filter, 1);
-SIMPLE_FUNC_IMPL(reduce, 1);
-SIMPLE_FUNC_IMPL(concatmap, 1);
-// Faux functions
+// Count is a fake function because we don't need to send anything.
 struct count_wire_func_t { RDB_MAKE_ME_SERIALIZABLE_0() };
 
 // Grouped Map Reduce
-static const int gmr_group_bt_frame = 1;
-static const int gmr_map_bt_frame = 2;
-static const int gmr_reduce_bt_frame = 3;
 class gmr_wire_func_t {
 public:
     gmr_wire_func_t() { }
@@ -94,11 +120,12 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_3(group, map, reduce);
 };
 
+// Evaluating this returns a `func_t` wrapped in a `val_t`.
 class func_term_t : public term_t {
 public:
     func_term_t(env_t *env, const Term2 *term);
 private:
-    virtual bool is_deterministic();
+    virtual bool is_deterministic_impl() const;
     virtual val_t *eval_impl();
     virtual const char *name() const { return "func"; }
     func_t *func;

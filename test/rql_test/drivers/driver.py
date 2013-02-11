@@ -1,14 +1,15 @@
 from sys import path
+import sys
 import types
 import pdb
 import collections
-path.append("/home/wmrowan/rethinkdb/drivers/python2")
+path.append("../../drivers/python2")
 
 from os import environ
 import rethinkdb as r 
 
-JSPORT = 28017
-CPPPORT = 28016
+JSPORT = int(sys.argv[1])
+CPPPORT = int(sys.argv[2])
 
 # -- utilities --
 
@@ -81,18 +82,20 @@ class PyTestDriver:
 
     # Set up connections to each database server
     def connect(self):
+        print 'Connecting to JS server on port ' + str(JSPORT)
         self.js_conn = r.connect(host='localhost', port=JSPORT)
+        print 'Connecting to CPP server on port ' + str(CPPPORT)
         self.cpp_conn = r.connect(host='localhost', port=CPPPORT)
         self.scope = {}
 
     def define(self, expr):
         exec(expr, globals(), self.scope)
 
-    def run(self, src, expected):
+    def run(self, src, expected, name):
         try:
             query = eval(src, dict(globals().items() + self.scope.items()))
         except Exception as err:
-            print "Python error on construction of query:", str(err)
+            print name, "- Python error on construction of query:", str(err)
             return
 
         exp_fun = eval(expected, dict(globals().items() + self.scope.items()))
@@ -102,23 +105,23 @@ class PyTestDriver:
         try:
             cppres = query.run(self.cpp_conn)
             if not exp_fun(cppres):
-                print " in CPP version of:", src
+                print " in CPP version of:", name, src
         except Exception as err:
-            print "Error on running of query on CPP server:", str(err)
+            print name, "- Error on running of query on CPP server:", str(err)
 
         try:
             jsres = query.run(self.js_conn)
             if not exp_fun(jsres):
-                print " in JS version of:", src
+                print " in JS version of:", name, src
         except Exception as err:
-            print "Error on running of query on JS server:", str(err)
+            print name, "- Error on running of query on JS server:", str(err)
 
 driver = PyTestDriver()
 driver.connect()
 
 # Emitted test code will consist of calls to this function
-def test(query, expected):
-    driver.run(query, expected)
+def test(query, expected, name):
+    driver.run(query, expected, name)
 
 # Emitted test code can call this function to define variables
 def define(expr):

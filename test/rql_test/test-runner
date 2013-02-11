@@ -6,6 +6,9 @@ from sys import argv
 from getopt import getopt
 from subprocess import call, Popen
 from time import sleep
+import random
+import socket
+import re
 
 class TestGroup:
     def __init__(self, path, group):
@@ -45,6 +48,7 @@ def build_test_scripts():
 
     build_script(tests, 'py')
     build_script(tests, 'js')
+    build_script(tests, 'rb')
 
 def myrepr(string, lang):
     if isinstance(string, unicode):
@@ -64,8 +68,13 @@ def build_script(tests, lang):
 
     if lang is 'py':
         comment = '#'
+        translate = lambda x: x
     elif lang is 'js':
         comment = '//'
+        translate = lambda x: re.sub('_[a-z]', lambda m: m.group()[1].upper(), x)
+    elif lang is 'rb':
+        comment = '#'
+        translate = lambda x: re.sub(':', '=>', x)
 
     # The driver is the head of the file
     script.write(driver.read())
@@ -78,8 +87,9 @@ def build_script(tests, lang):
             if isinstance(sub, TestGroup):
                 script.write(comment*ln + '  ' + sub.group['desc'] + '\n\n')
 
+                i = 0
                 for test in sub:
-
+                    i = i + 1
                     # This test may define variables to be used later
                     if 'def' in test:
                         define = test['def']
@@ -88,19 +98,27 @@ def build_script(tests, lang):
                                 define = define[lang]
                             else:
                                 define = None
+                        else:
+                            define = translate(define)
 
                         if define:
                             script.write("define("+myrepr(define, lang)+")\n")
+                        continue
 
-                    t = None
-                    if 'cd' in test:
-                        t = test['cd']
                     if lang in test:
+                        generic_code = False
                         t = test[lang]
+                    elif 'cd' in test:
+                        generic_code = True
+                        t = test['cd']
+                    else:
+                        t = None
+                        print "Missing test for %s: %s-%d" % (lang, '/'.join(sub.path), i)
 
                     if t:
+                        # print "Generating test for %s: %s-%d" % (lang, '/'.join(sub.path), i)
                         if 'ot' in test:
-                            expected = test['ot']
+                            expected = translate(str(test['ot']))
                     
                         # Test may be a dict providing specific values for this language
                         if isinstance(t, dict):
@@ -114,9 +132,12 @@ def build_script(tests, lang):
                         if not isinstance(code, list):
                             code = [code]
 
+                        if generic_code:
+                            code = map(translate, code)
+
                         # Write out each variant as a separate test
                         for variant in code:
-                            test = "test("+myrepr(variant, lang)+", "+myrepr(expected, lang)+")\n"
+                            test = "test("+myrepr(variant, lang)+", "+myrepr(expected, lang)+", '"+('/'.join(sub.path))+"-"+str(i)+"')\n"
                             script.write(test)
             else:
                 script.write('\n')
@@ -124,6 +145,29 @@ def build_script(tests, lang):
             script.write('\n'+comment*ln + '\n')
                 
     walk(tests, 1)
+
+def find_available_port_offset(port_list):
+    max_loop = 10
+    offset_max = 65535 - max(port_list)
+    for i in range(max_loop):
+        offset = random.randint(0, offset_max)
+        good = True
+        for port in port_list:
+            if not port_available(port + offset):
+                good = False
+                break
+        if good:
+            return offset
+
+def port_available(port):
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.bind(("127.0.0.1",port))
+        s.close()
+    except socket.error:
+        return False
+    return True
+        
 
 class RethinkDBTestServers:
     def __init__(self):
@@ -136,9 +180,16 @@ class RethinkDBTestServers:
     def __exit__(self, *args):
         self.stop()
 
-    def start(self):
-        self.cpp_server = Popen(['../../build/debug/rethinkdb'])
-        self.js_server = Popen(['node', '../../rqljs/build/rqljs', '1'])
+    def start(self): 
+        cpp_port_offset = find_available_port_offset([28015, 28016])
+        self.cpp_port = 28015 + cpp_port_offset
+        self.cpp_server = Popen(['../../build/debug/rethinkdb',
+                                 '--driver-port', str(self.cpp_port - 1),
+                                 '--http-port=0',
+                                 '--cluster-port=0'])
+        js_port_offset = find_available_port_offset([8080, 28016])
+        self.js_server = Popen(['node', '../../rqljs/build/rqljs', str(js_port_offset)])
+        self.js_port = 28016 + js_port_offset
         sleep(0.1)
 
     def stop(self):
@@ -155,27 +206,44 @@ class RethinkDBTestServers:
         self.stop()
         self.start()
 
-def run_tests(lang):
+def run_tests(lang, servers):
     if lang is 'py':
         interpreter = 'python'
     elif lang is 'js':
         interpreter = 'node'
+    elif lang is 'rb':
+        interpreter = 'ruby'
+    else:
+        exit("Unkown language: " + lang)
 
     print "Running "+lang+" tests\n"
-    call([interpreter, 'build/test.'+lang])
+    call([interpreter, 'build/test.'+lang, str(servers.js_port), str(servers.cpp_port)])
     print "Finished running "+lang+" tests\n"
 
 # Run the tests
 def run():
     with RethinkDBTestServers() as servers:
-        run_tests('py')
+        run_tests('py', servers)
         servers.restart()
-        run_tests('js')
+        run_tests('js', servers)
+        servers.restart()
+        run_tests('rb', servers)
 
 def run_py():
     servers = RethinkDBTestServers()
-    run_tests('py')
+    run_tests('py', servers)
     servers.stop()
+
+def run_rb():
+    servers = RethinkDBTestServers()
+    run_tests('rb', servers)
+    servers.stop()
+
+def run_js():
+    servers = RethinkDBTestServers()
+    run_tests('js', servers)
+    servers.stop()
+
 
 if __name__ == '__main__':
     eval(argv[1]+'()')

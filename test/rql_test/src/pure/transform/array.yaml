@@ -3,7 +3,10 @@ tests:
     
     # Define a sequence to work with
     - def: arr = r.expr([1, 2, 3])
-    - def: objArr = r.expr([{'a':1, 'b':'a'}, {'a':2, 'b':'b'}, {'a':3, 'b':'c'}])
+    - def:
+        js: objArr = r.expr([{'a':1, 'b':'a'}, {'a':2, 'b':'b'}, {'a':3, 'b':'c'}])
+        py: objArr = r.expr([{'a':1, 'b':'a'}, {'a':2, 'b':'b'}, {'a':3, 'b':'c'}])
+        rb: objArr = r.expr([{'a'=>1, 'b'=>'a'}, {'a'=>2, 'b'=>'b'}, {'a'=>3, 'b'=>'c'}])
 
     ## Append
 

@@ -4,6 +4,8 @@
 
 namespace ql {
 
+// Most of the real logic for these is in datum_stream.cc.
+
 class count_term_t : public op_term_t {
 public:
     count_term_t(env_t *env, const Term2 *term) : op_term_t(env, term, argspec_t(1)) { }
@@ -40,11 +42,12 @@ public:
     filter_term_t(env_t *env, const Term2 *term) : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual val_t *eval_impl() {
-        if (arg(0)->get_type().is_convertible(val_t::type_t::SELECTION)) {
-            std::pair<table_t *, datum_stream_t *> tds = arg(0)->as_selection();
-            return new_val(tds.first, tds.second->filter(arg(1)->as_func(SHORTCUT_OK)));
+        val_t *v0 = arg(0), *v1 = arg(1);
+        if (v0->get_type().is_convertible(val_t::type_t::SELECTION)) {
+            std::pair<table_t *, datum_stream_t *> tds = v0->as_selection();
+            return new_val(tds.first, tds.second->filter(v1->as_func(SHORTCUT_OK)));
         } else {
-            return new_val(arg(0)->as_seq()->filter(arg(1)->as_func(SHORTCUT_OK)));
+            return new_val(v0->as_seq()->filter(v1->as_func(SHORTCUT_OK)));
         }
     }
     RDB_NAME("filter")
@@ -54,7 +57,7 @@ static const char *const reduce_optargs[] = {"base"};
 class reduce_term_t : public op_term_t {
 public:
     reduce_term_t(env_t *env, const Term2 *term) :
-        op_term_t(env, term, argspec_t(2), LEGAL_OPTARGS(reduce_optargs)) { }
+        op_term_t(env, term, argspec_t(2), optargspec_t(reduce_optargs)) { }
 private:
     virtual val_t *eval_impl() {
         return new_val(arg(0)->as_seq()->reduce(optarg("base", 0), arg(1)->as_func()));
@@ -62,11 +65,12 @@ private:
     RDB_NAME("reduce")
 };
 
+// TODO: this sucks.  Change to use the same macros as rewrites.hpp?
 static const char *const between_optargs[] = {"left_bound", "right_bound"};
 class between_term_t : public op_term_t {
 public:
     between_term_t(env_t *env, const Term2 *term)
-        : op_term_t(env, term, argspec_t(1), LEGAL_OPTARGS(between_optargs)) { }
+        : op_term_t(env, term, argspec_t(1), optargspec_t(between_optargs)) { }
 private:
 
     static void set_cmp(Term2 *out, int varnum, const std::string &pk,
@@ -105,7 +109,7 @@ private:
 
         guarantee(filter_func.has());
         //debugf("%s\n", filter_func->DebugString().c_str());
-        return new_val(seq->filter(env->new_func(filter_func.get())));
+        return new_val(seq->filter(env->new_func(filter_func.get(), get_bt())));
     }
     RDB_NAME("between")
 
@@ -119,7 +123,7 @@ private:
     virtual val_t *eval_impl() {
         std::vector<datum_stream_t *> streams;
         for (size_t i = 0; i < num_args(); ++i) streams.push_back(arg(i)->as_seq());
-        return new_val(new union_datum_stream_t(env, streams));
+        return new_val(new union_datum_stream_t(env, streams, get_bt()));
     }
     RDB_NAME("union")
 };

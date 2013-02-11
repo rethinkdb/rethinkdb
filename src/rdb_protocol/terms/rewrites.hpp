@@ -4,6 +4,9 @@
 
 namespace ql {
 
+// This file implements terms that are rewritten into other terms.  See
+// pb_utils.hpp for explanations of the macros.
+
 class rewrite_term_t : public term_t {
 public:
     rewrite_term_t(env_t *env, const Term2 *term,
@@ -15,9 +18,10 @@ public:
         }
         //debugf("%s\n--->\n%s\n", in->DebugString().c_str(), out.DebugString().c_str());
         real.init(compile_term(env, &out));
+        real->set_bt(1001);
     }
 private:
-    virtual bool is_deterministic() { return real->is_deterministic(); }
+    virtual bool is_deterministic_impl() const { return real->is_deterministic(); }
     virtual val_t *eval_impl() { return real->eval(use_cached_val); }
     const Term2 *in;
     Term2 out;
@@ -25,6 +29,9 @@ private:
     scoped_ptr_t<term_t> real;
 };
 
+//TODO(mlucy for Joe): Why do we push around the whole term, then push again internally?
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"
 class groupby_term_t : public rewrite_term_t {
 public:
     groupby_term_t(env_t *env, const Term2 *term)
@@ -64,9 +71,9 @@ private:
 #pragma GCC diagnostic ignored "-Wshadow"
         N2(MAP, *arg = *group_attrs, arg = pb::set_func(arg, attr);
            N3(BRANCH,
-              N2(CONTAINS, pb::set_var(arg, obj), pb::set_var(arg, attr)),
-              N2(GETATTR, pb::set_var(arg, obj), pb::set_var(arg, attr)),
-              pb::set_null(arg)));
+              N2(CONTAINS, NVAR(obj), NVAR(attr)),
+              N2(GETATTR, NVAR(obj), NVAR(attr)),
+              NDATUM(datum_t::R_NULL)));
 #pragma GCC diagnostic pop
         // debugf("%s\n", arg->DebugString().c_str());
     }
@@ -75,7 +82,7 @@ private:
         int obj = env->gensym(), attr = env->gensym();
         arg = pb::set_func(arg, obj);
         if (dc == "COUNT") {
-            NDATUM(env, 1);
+            NDATUM(1);
         } else if (dc == "SUM") {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
@@ -83,7 +90,7 @@ private:
                N3(BRANCH,
                   N2(CONTAINS, NVAR(obj), NVAR(attr)),
                   N2(GETATTR, NVAR(obj), NVAR(attr)),
-                  NDATUM(env, 0)),
+                  NDATUM(0)),
                *arg = *dc_arg);
 #pragma GCC diagnostic pop
         } else if (dc == "AVG") {
@@ -92,8 +99,8 @@ private:
             N2(FUNCALL, arg = pb::set_func(arg, attr);
                N3(BRANCH,
                   N2(CONTAINS, NVAR(obj), NVAR(attr)),
-                  N2(MAKE_ARRAY, N2(GETATTR, NVAR(obj), NVAR(attr)), NDATUM(env, 1)),
-                  N2(MAKE_ARRAY, NDATUM(env, 0), NDATUM(env, 0))),
+                  N2(MAKE_ARRAY, N2(GETATTR, NVAR(obj), NVAR(attr)), NDATUM(1)),
+                  N2(MAKE_ARRAY, NDATUM(0), NDATUM(0))),
                *arg = *dc_arg);
 #pragma GCC diagnostic pop
         } else if (dc == "AVG") {
@@ -112,10 +119,10 @@ private:
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
             N2(MAKE_ARRAY,
-               N2(ADD, N2(NTH, NVAR(a), NDATUM(env, 0)),
-                       N2(NTH, NVAR(b), NDATUM(env, 0))),
-               N2(ADD, N2(NTH, NVAR(a), NDATUM(env, 1)),
-                       N2(NTH, NVAR(b), NDATUM(env, 1))));
+               N2(ADD, N2(NTH, NVAR(a), NDATUM(0)),
+                       N2(NTH, NVAR(b), NDATUM(0))),
+               N2(ADD, N2(NTH, NVAR(a), NDATUM(1)),
+                       N2(NTH, NVAR(b), NDATUM(1))));
 #pragma GCC diagnostic pop
         } else { unreachable(); }
     }
@@ -130,18 +137,19 @@ private:
 #pragma GCC diagnostic ignored "-Wshadow"
             N2(MAP, argout = arg, arg = pb::set_func(arg, obj);
                OPT2(MAKE_OBJ,
-                    "group", N2(GETATTR, NVAR(obj), NDATUM(env, "group")),
+                    "group", N2(GETATTR, NVAR(obj), NDATUM("group")),
                     "reduction",
                     N2(FUNCALL, arg = pb::set_func(arg, val);
-                       N2(DIV, N2(NTH, NVAR(val), NDATUM(env, 0)),
-                          N2(NTH, NVAR(val), NDATUM(env, 1))),
-                       N2(GETATTR, NVAR(obj), NDATUM(env, "reduction")))));
+                       N2(DIV, N2(NTH, NVAR(val), NDATUM(0)),
+                               N2(NTH, NVAR(val), NDATUM(1))),
+                       N2(GETATTR, NVAR(obj), NDATUM("reduction")))));
 #pragma GCC diagnostic pop
         }
         return argout;
     }
     RDB_NAME("groupby");
 };
+#pragma GCC diagnostic pop
 
 class inner_join_term_t : public rewrite_term_t {
 public:
@@ -165,12 +173,9 @@ public:
               // r.branch(
               N3(BRANCH,
                  // r.funcall(`f`, n, m),
-                 N3(FUNCALL, *arg = *f, pb::set_var(arg, n), pb::set_var(arg, m)),
+                 N3(FUNCALL, *arg = *f, NVAR(n), NVAR(m)),
                  // [{:left => n, :right => m}],
-                 N1(MAKE_ARRAY,
-                    OPT2(MAKE_OBJ,
-                         "left", pb::set_var(arg, n),
-                         "right", pb::set_var(arg, m))),
+                 N1(MAKE_ARRAY, OPT2(MAKE_OBJ, "left", NVAR(n), "right", NVAR(m))),
                  // [])}}
                  N0(MAKE_ARRAY))));
 #pragma GCC diagnostic pop
@@ -184,15 +189,10 @@ public:
         rewrite_term_t(env, term, rewrite) { }
     static void rewrite(env_t *env, const Term2 *in, Term2 *out) {
         rcheck(in->args_size() == 3, "Outer Join requires 3 arguments.");
-        const Term2 *l = &in->args(0);
-        const Term2 *r = &in->args(1);
-        const Term2 *f = &in->args(2);
-        int n = env->gensym();
-        int m = env->gensym();
-        int lst = env->gensym();
+        const Term2 *l = &in->args(0), *r = &in->args(1), *f = &in->args(2);
+        int n = env->gensym(), m = env->gensym(), lst = env->gensym();
 
         Term2 *arg = out;
-        // TODO: implement a new primitive to do this without coercing
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
@@ -203,11 +203,11 @@ public:
               // r.branch(
               N3(BRANCH,
                  // r.gt(r.count(lst), 0),
-                 N2(GT, N1(COUNT, pb::set_var(arg, lst)), pb::set_int(arg, 0)),
+                 N2(GT, N1(COUNT, NVAR(lst)), NDATUM(0)),
                  // lst,
-                 pb::set_var(arg, lst),
+                 NVAR(lst),
                  // [{:left => n}])},
-                 N1(MAKE_ARRAY, OPT1(MAKE_OBJ, "left", pb::set_var(arg, n)))),
+                 N1(MAKE_ARRAY, OPT1(MAKE_OBJ, "left", NVAR(n)))),
               // r.coerce(
               N2(COERCE,
                  // `r`.concatmap { |m|
@@ -215,16 +215,13 @@ public:
                     // r.branch(
                     N3(BRANCH,
                        // r.funcall(`f`, n, m),
-                       N3(FUNCALL, *arg = *f, pb::set_var(arg, n), pb::set_var(arg, m)),
+                       N3(FUNCALL, *arg = *f, NVAR(n), NVAR(m)),
                        // [{:left => n, :right => m}],
-                       N1(MAKE_ARRAY,
-                          OPT2(MAKE_OBJ,
-                               "left", pb::set_var(arg, n),
-                               "right", pb::set_var(arg, m))),
+                       N1(MAKE_ARRAY, OPT2(MAKE_OBJ, "left", NVAR(n), "right", NVAR(m))),
                        // [])},
                        N0(MAKE_ARRAY))),
                  // "ARRAY"))}
-                 pb::set_str(arg, "ARRAY"))))
+                 NDATUM("ARRAY"))));
 #pragma GCC diagnostic pop
     }
     RDB_NAME("outer_join")
@@ -237,11 +234,8 @@ public:
 private:
     static void rewrite(env_t *env, const Term2 *in, Term2 *out) {
         rcheck(in->args_size() == 3, "eq_join requires 3 arguments.");
-        const Term2 *l = &in->args(0);
-        const Term2 *lattr = &in->args(1);
-        const Term2 *r = &in->args(2);
-        int row = env->gensym();
-        int v = env->gensym();
+        const Term2 *l = &in->args(0), *lattr = &in->args(1), *r = &in->args(2);
+        int row = env->gensym(), v = env->gensym();
 
         Term2 *arg = out;
 #pragma GCC diagnostic push
@@ -253,16 +247,13 @@ private:
               // r.branch(
               N3(BRANCH,
                  // r.ne(v, nil),
-                 N2(NE, pb::set_var(arg, v), pb::set_null(arg)),
+                 N2(NE, NVAR(v), NDATUM(datum_t::R_NULL)),
                  // [{:left => row, :right => v}],
-                 N1(MAKE_ARRAY,
-                    OPT2(MAKE_OBJ,
-                         "left", pb::set_var(arg, row),
-                         "right", pb::set_var(arg, v))),
+                 N1(MAKE_ARRAY, OPT2(MAKE_OBJ, "left", NVAR(row), "right", NVAR(v))),
                  // []),
                  N0(MAKE_ARRAY)),
-              // `r`.get(l[`lattr]))}
-              N2(GET, *arg = *r, N2(GETATTR, pb::set_var(arg, row), *arg = *lattr))));
+              // `r`.get(l[`lattr`]))}
+              N2(GET, *arg = *r, N2(GETATTR, NVAR(row), *arg = *lattr))));
 #pragma GCC diagnostic pop
     }
     RDB_NAME("inner_join")
@@ -299,14 +290,14 @@ private:
 #pragma GCC diagnostic ignored "-Wshadow"
         N2(REPLACE, *arg = in->args(0), arg = pb::set_func(arg, old_row);
            N3(BRANCH,
-              N2(EQ, pb::set_var(arg, old_row), pb::set_null(arg)),
-              pb::set_null(arg),
+              N2(EQ, NVAR(old_row), NDATUM(datum_t::R_NULL)),
+              NDATUM(datum_t::R_NULL),
               N2(FUNCALL, arg = pb::set_func(arg, new_row);
                  N3(BRANCH,
-                    N2(EQ, pb::set_var(arg, new_row), pb::set_null(arg)),
-                    pb::set_var(arg, old_row),
-                    N2(MERGE, pb::set_var(arg, old_row), pb::set_var(arg, new_row))),
-                 N2(FUNCALL, *arg = in->args(1), pb::set_var(arg, old_row)))))
+                    N2(EQ, NVAR(new_row), NDATUM(datum_t::R_NULL)),
+                    NVAR(old_row),
+                    N2(MERGE, NVAR(old_row), NVAR(new_row))),
+                 N2(FUNCALL, *arg = in->args(1), NVAR(old_row)))));
 #pragma GCC diagnostic pop
     }
     RDB_NAME("update")
@@ -321,7 +312,7 @@ private:
         Term2 *arg = out;
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
-        N3(SLICE, *arg = in->args(0), *arg = in->args(1), pb::set_int(arg, -1))
+        N3(SLICE, *arg = in->args(0), *arg = in->args(1), NDATUM(-1));
 #pragma GCC diagnostic pop
      }
      RDB_NAME("skip")

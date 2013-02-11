@@ -7,6 +7,7 @@
 
 namespace ql {
 
+// Most of this logic is copy-pasted from the old query language.
 table_t::table_t(env_t *_env, uuid_u db_id, const std::string &name, bool _use_outdated)
     : env(_env), use_outdated(_use_outdated) {
     name_string_t table_name;
@@ -67,8 +68,7 @@ const datum_t *table_t::_replace(const datum_t *orig, func_t *f, bool nondet_ok)
     if (f->is_deterministic()) {
         return _replace(orig, map_wire_func_t(env, f));
     } else {
-        rcheck(nondet_ok, "Could not prove function deterministic.  "
-               "Maybe you want to use the non_atomic_ok flag?");
+        r_sanity_check(nondet_ok);
         return _replace(orig, f->call(orig)->as_datum(), true);
     }
 }
@@ -83,13 +83,13 @@ const datum_t *table_t::_replace(const datum_t *orig, const datum_t *d, bool ups
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
         N3(BRANCH,
-           N2(EQ, pb::set_var(arg, x), pb::set_null(arg)),
-           d->write_to_protobuf(pb::set_datum(arg)),
-           N1(ERROR, pb::set_str(arg, "Duplicate primary key.")))
+           N2(EQ, NVAR(x), NDATUM(datum_t::R_NULL)),
+           NDATUM(d),
+           N1(ERROR, NDATUM("Duplicate primary key.")))
 #pragma GCC diagnostic pop
     }
 
-    return _replace(orig, map_wire_func_t(t, 0));
+    return _replace(orig, map_wire_func_t(t, 0, 1));
 }
 
 const std::string &table_t::get_pkey() { return pkey; }
@@ -110,12 +110,14 @@ const datum_t *table_t::get_row(const datum_t *pval) {
     return env->add_ptr(new datum_t(p_res->data, env));
 }
 
-datum_stream_t *table_t::as_datum_stream() {
-    return env->add_ptr(new lazy_datum_stream_t(env, use_outdated, access.get()));
+datum_stream_t *table_t::as_datum_stream(backtrace_t::frame_t f) {
+    return env->add_ptr(new lazy_datum_stream_t(env, use_outdated, access.get(), f));
 }
 
 val_t::type_t::type_t(val_t::type_t::raw_type_t _raw_type) : raw_type(_raw_type) { }
 
+// NOTE: This *MUST* be kept in sync with the surrounding code (not that it
+// should have to change very often).
 bool raw_type_is_convertible(val_t::type_t::raw_type_t _t1,
                              val_t::type_t::raw_type_t _t2) {
     const int t1 = _t1, t2 = _t2,
@@ -232,57 +234,106 @@ val_t::val_t(func_t *_func, const term_t *_parent, env_t *_env)
 val_t::type_t val_t::get_type() const { return type; }
 
 const datum_t *val_t::as_datum() {
-    if (type.raw_type != type_t::DATUM && type.raw_type != type_t::SINGLE_SELECTION) {
-         rfail("Type error: cannot convert %s to DATUM.", type.name());
-    }
-    return datum;
+    try {
+        if (type.raw_type != type_t::DATUM
+            && type.raw_type != type_t::SINGLE_SELECTION) {
+            rfail("Type error: cannot convert %s to DATUM.", type.name());
+        }
+        return datum;
+    } CATCH_WITH_BT(parent->get_bt());
 }
 
 table_t *val_t::as_table() {
-    rcheck(type.raw_type == type_t::TABLE,
-           strprintf("Type error: cannot convert %s to TABLE.", type.name()));
-    return table;
+    try {
+        rcheck(type.raw_type == type_t::TABLE,
+               strprintf("Type error: cannot convert %s to TABLE.", type.name()));
+        return table;
+    } CATCH_WITH_BT(parent->get_bt());
 }
 
 datum_stream_t *val_t::as_seq() {
-    if (type.raw_type == type_t::SEQUENCE || type.raw_type == type_t::SELECTION) {
-        // passthru
-    } else if (type.raw_type == type_t::TABLE) {
-        if (!sequence) sequence = table->as_datum_stream();
-    } else if (type.raw_type == type_t::DATUM) {
-        if (!sequence) sequence = datum->as_datum_stream(env);
-    } else {
-        rfail("Type error: cannot convert %s to SEQUENCE.", type.name());
-    }
-    return sequence;
+    try {
+        if (type.raw_type == type_t::SEQUENCE || type.raw_type == type_t::SELECTION) {
+            // passthru
+        } else if (type.raw_type == type_t::TABLE) {
+            if (!sequence) sequence = table->as_datum_stream(parent->get_bt());
+        } else if (type.raw_type == type_t::DATUM) {
+            if (!sequence) sequence = datum->as_datum_stream(env, parent->get_bt());
+        } else {
+            rfail("Type error: cannot convert %s to SEQUENCE.", type.name());
+        }
+        return sequence;
+    } CATCH_WITH_BT(parent->get_bt());
 }
 
 std::pair<table_t *, datum_stream_t *> val_t::as_selection() {
-    rcheck(type.raw_type == type_t::TABLE || type.raw_type == type_t::SELECTION,
-           strprintf("Type error: cannot convert %s to SELECTION.", type.name()));
-    return std::make_pair(table, as_seq());
+    try {
+        rcheck(type.raw_type == type_t::TABLE || type.raw_type == type_t::SELECTION,
+               strprintf("Type error: cannot convert %s to SELECTION.", type.name()));
+        return std::make_pair(table, as_seq());
+    } CATCH_WITH_BT(parent->get_bt());
 }
 
 std::pair<table_t *, const datum_t *> val_t::as_single_selection() {
-    rcheck(type.raw_type == type_t::SINGLE_SELECTION,
-           strprintf("Type error: cannot convert %s to SINGLE_SELECTION.", type.name()));
-    return std::make_pair(table, datum);
+    try {
+        rcheck(type.raw_type == type_t::SINGLE_SELECTION,
+               strprintf("Type error: cannot convert %s to SINGLE_SELECTION.",
+                         type.name()));
+        return std::make_pair(table, datum);
+    } CATCH_WITH_BT(parent->get_bt());
 }
 
 func_t *val_t::as_func(shortcut_ok_bool_t shortcut_ok) {
-    if (get_type().is_convertible(type_t::DATUM) && shortcut_ok == SHORTCUT_OK) {
-        if (!func) func = env->add_ptr(func_t::new_shortcut_func(env, as_datum()));
+    try {
+        if (get_type().is_convertible(type_t::DATUM) && shortcut_ok == SHORTCUT_OK) {
+            if (!func) {
+                r_sanity_check(parent);
+                func = env->add_ptr(func_t::new_shortcut_func(env, as_datum(),
+                                                              parent->get_bt()));
+            }
+            return func;
+        }
+        rcheck(type.raw_type == type_t::FUNC,
+               strprintf("Type error: cannot convert %s to FUNC.", type.name()));
         return func;
-    }
-    rcheck(type.raw_type == type_t::FUNC,
-           strprintf("Type error: cannot convert %s to FUNC.", type.name()));
-    return func;
+    } CATCH_WITH_BT(parent->get_bt());
 }
 
 uuid_u val_t::as_db() {
-    rcheck(type.raw_type == type_t::DB,
-           strprintf("Type error: cannot convert %s to DB.", type.name()));
-    return db;
+    try {
+        rcheck(type.raw_type == type_t::DB,
+               strprintf("Type error: cannot convert %s to DB.", type.name()));
+        return db;
+    } CATCH_WITH_BT(parent->get_bt());
+}
+
+bool val_t::as_bool() {
+    const datum_t *d = as_datum();
+    r_sanity_check(d);
+    try {
+        return d->as_bool();
+    } CATCH_WITH_BT(parent->get_bt());
+}
+double val_t::as_num() {
+    const datum_t *d = as_datum();
+    r_sanity_check(d);
+    try {
+        return d->as_num();
+    } CATCH_WITH_BT(parent->get_bt());
+}
+int val_t::as_int() {
+    const datum_t *d = as_datum();
+    r_sanity_check(d);
+    try {
+        return d->as_int();
+    } CATCH_WITH_BT(parent->get_bt());
+}
+const std::string &val_t::as_str() {
+    const datum_t *d = as_datum();
+    r_sanity_check(d);
+    try {
+        return d->as_str();
+    } CATCH_WITH_BT(parent->get_bt());
 }
 
 } //namespace ql

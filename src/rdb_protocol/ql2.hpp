@@ -10,8 +10,9 @@
 #include "rdb_protocol/stream_cache.hpp"
 
 namespace ql {
-// Fills in [res] with an error of type [type] and message [msg].
+// Runs a query!  This is all outside code should ever need to call.  See
+// term.cc for definition.
 void run(Query2 *q, env_t *env, Response2 *res, stream_cache_t *stream_cache);
 } // namespace ql
 
-#endif /* RDB_PROTOCOL_QL2_HPP_ */
+#endif // RDB_PROTOCOL_QL2_HPP_
