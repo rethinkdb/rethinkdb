@@ -5,6 +5,43 @@
 #include "clustering/administration/metadata.hpp"
 
 
+bool ack_expectation_t::make(uint32_t disk_expectation, uint32_t memory_expectation, ack_expectation_t *out) {
+    if (disk_expectation <= memory_expectation) {
+        out->disk_expectation_ = disk_expectation;
+        out->memory_expectation_ = memory_expectation_;
+        return true;
+    } else {
+        return false;
+    }
+}
+
+RDB_IMPL_ME_SERIALIZABLE_2(ack_expectation_t, disk_expectation_, memory_expectation_);
+
+bool ack_expectation_t::operator==(ack_expectation_t other) const {
+    return disk_expectation_ == other.disk_expectation_ && memory_expectation_ == other.memory_expectation_;
+}
+
+void debug_print(append_only_printf_buffer_t *buf, const ack_expectation_t &x) {
+    buf->appendf("ack_expectation{disk=%" PRIi32 " memory=%" PRIi32 "}",
+                 x.disk_expectation(), x.memory_expectation());
+}
+
+// json adapter concept for ack_expectation_t
+// TODO(acks) sophisticated, use both fields
+json_adapter_if_t::json_adapter_map_t get_json_subfields(ack_expectation_t *) {
+    return json_adapter_if_t::json_adapter_map_t();
+}
+cJSON *render_as_json(const ack_expectation_t *target) {
+    uint32_t memory = target->memory_expectation();
+    return render_as_json(&memory);
+}
+void apply_json_to(cJSON *change, ack_expectation_t *target) {
+    uint32_t memory = target->memory_expectation() /* TODO(acks) sophisticated */;
+    apply_json_to(change, &memory);
+    *target = ack_expectation_t(memory);
+}
+
+
 //json adapter concept for machine_semilattice_metadata_t
 json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(machine_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
     json_adapter_if_t::json_adapter_map_t res;
@@ -174,8 +211,6 @@ void apply_json_to(cJSON *change, cluster_directory_metadata_t *target) {
     apply_as_directory(change, target);
 }
 
-void on_subfield_change(cluster_directory_metadata_t *) { }
-
 
 
 
@@ -200,8 +235,6 @@ cJSON *render_as_json(cluster_directory_peer_type_t *peer_type) {
 
 void apply_json_to(cJSON *, cluster_directory_peer_type_t *) { }
 
-void on_subfield_change(cluster_directory_peer_type_t *) { }
-
 
 //json adapter concept for namespace_semilattice_metadata_t
 template <class protocol_t>
@@ -210,7 +243,7 @@ json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(namespace_semi
     res["blueprint"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_read_only_adapter_t<vclock_t<persistable_blueprint_t<protocol_t> >, vclock_ctx_t>(&target->blueprint, ctx));
     res["primary_uuid"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<datacenter_id_t>(&target->primary_datacenter, ctx));
     res["replica_affinities"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<std::map<datacenter_id_t, int32_t> >(&target->replica_affinities, ctx));
-    res["ack_expectations"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<std::map<datacenter_id_t, int32_t> >(&target->ack_expectations, ctx));
+    res["ack_expectations"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<std::map<datacenter_id_t, ack_expectation_t> >(&target->ack_expectations, ctx));
     res["name"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<name_string_t>(&target->name, ctx));
     res["shards"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<nonoverlapping_regions_t<protocol_t> >(&target->shards, ctx));
     res["port"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<portno_t>(&target->port, ctx));
@@ -295,9 +328,6 @@ void apply_json_to(cJSON *change, namespaces_directory_metadata_t<protocol_t> *t
     apply_as_directory(change, target);
 }
 
-template <class protocol_t>
-void on_subfield_change(UNUSED namespaces_directory_metadata_t<protocol_t> *target) { }
-
 
 
 #include "memcached/protocol_json_adapter.hpp"
@@ -309,7 +339,6 @@ template void with_ctx_on_subfield_change<memcached_protocol_t>(namespaces_semil
 template json_adapter_if_t::json_adapter_map_t get_json_subfields<memcached_protocol_t>(namespaces_directory_metadata_t<memcached_protocol_t> *target);
 template cJSON *render_as_json<memcached_protocol_t>(namespaces_directory_metadata_t<memcached_protocol_t> *target);
 template void apply_json_to<memcached_protocol_t>(cJSON *change, namespaces_directory_metadata_t<memcached_protocol_t> *target);
-template void on_subfield_change<memcached_protocol_t>(UNUSED namespaces_directory_metadata_t<memcached_protocol_t> *target);
 
 
 #include "rdb_protocol/protocol.hpp"
@@ -321,7 +350,6 @@ template void with_ctx_on_subfield_change<rdb_protocol_t>(namespaces_semilattice
 template json_adapter_if_t::json_adapter_map_t get_json_subfields<rdb_protocol_t>(namespaces_directory_metadata_t<rdb_protocol_t> *target);
 template cJSON *render_as_json<rdb_protocol_t>(namespaces_directory_metadata_t<rdb_protocol_t> *target);
 template void apply_json_to<rdb_protocol_t>(cJSON *change, namespaces_directory_metadata_t<rdb_protocol_t> *target);
-template void on_subfield_change<rdb_protocol_t>(UNUSED namespaces_directory_metadata_t<rdb_protocol_t> *target);
 
 
 #include "mock/dummy_protocol_json_adapter.hpp"
@@ -333,4 +361,3 @@ template void with_ctx_on_subfield_change<mock::dummy_protocol_t>(namespaces_sem
 template json_adapter_if_t::json_adapter_map_t get_json_subfields<mock::dummy_protocol_t>(namespaces_directory_metadata_t<mock::dummy_protocol_t> *target);
 template cJSON *render_as_json<mock::dummy_protocol_t>(namespaces_directory_metadata_t<mock::dummy_protocol_t> *target);
 template void apply_json_to<mock::dummy_protocol_t>(cJSON *change, namespaces_directory_metadata_t<mock::dummy_protocol_t> *target);
-template void on_subfield_change<mock::dummy_protocol_t>(UNUSED namespaces_directory_metadata_t<mock::dummy_protocol_t> *target);

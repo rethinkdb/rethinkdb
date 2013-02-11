@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CONTAINERS_NAME_STRING_HPP_
 #define CONTAINERS_NAME_STRING_HPP_
 
@@ -48,7 +48,6 @@ inline bool operator<(const name_string_t& x, const name_string_t& y) {
 json_adapter_if_t::json_adapter_map_t get_json_subfields(name_string_t *target);
 cJSON *render_as_json(name_string_t *target);
 void apply_json_to(cJSON *change, name_string_t *target);
-void on_subfield_change(name_string_t *);
 
 void debug_print(append_only_printf_buffer_t *buf, const name_string_t& s);
 

@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef HTTP_JSON_JSON_ADAPTER_TCC_
 #define HTTP_JSON_JSON_ADAPTER_TCC_
 
@@ -24,7 +24,7 @@ standard_subfield_change_functor_t<T>::standard_subfield_change_functor_t(T *_ta
 
 template<class T>
 void standard_subfield_change_functor_t<T>::on_change() {
-    on_subfield_change(target);
+    /* do nothing */
 }
 
 //implementation for standard_ctx_subfield_functor_t
@@ -391,9 +391,6 @@ void apply_json_to(cJSON *, boost::variant<T1, T2, T3, T4, T5, T6, T7, T8, T9, T
     throw permission_denied_exc_t("Can't write to a boost::variant.");
 }
 
-template <class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9, class T10, class T11, class T12, class T13, class T14, class T15, class T16, class T17, class T18, class T19, class T20>
-void on_subfield_change(boost::variant<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> *) { }
-
 } //namespace boost
 
 namespace std {
@@ -514,9 +511,6 @@ void apply_json_to(cJSON *change, std::map<K, V> *map) {
     }
 }
 
-template <class K, class V>
-void on_subfield_change(std::map<K, V> *) { }
-
 
 // ctx-less JSON adapter for std::set
 template <class V>
@@ -549,9 +543,6 @@ void apply_json_to(cJSON *change, std::set<V> *target) {
     *target = res;
 }
 
-template <class V>
-void on_subfield_change(std::set<V> *) { }
-
 
 // ctx-less JSON adapter for std::pair
 template <class F, class S>
@@ -580,9 +571,6 @@ void apply_json_to(cJSON *change, std::pair<F, S> *target) {
     apply_json_to(first, &target->first);
     apply_json_to(second, &target->second);
 }
-
-template <class F, class S>
-void on_subfield_change(std::pair<F, S> *) { }
 
 
 // ctx-less JSON adapter for std::vector
@@ -614,9 +602,6 @@ void apply_json_to(cJSON *change, std::vector<V> *target) {
 
     *target = val;
 }
-
-template <class V>
-void on_subfield_change(std::vector<V> *) { }
 
 
 } //namespace std
@@ -663,12 +648,6 @@ template <class T>
 void apply_json_to(cJSON *json, cow_ptr_t<T> *ptr) {
     typename cow_ptr_t<T>::change_t change(ptr);
     return apply_json_to(json, change.get());
-}
-
-template <class T>
-void on_subfield_change(cow_ptr_t<T> *ptr) {
-    typename cow_ptr_t<T>::change_t change(ptr);
-    return on_subfield_change(change.get());
 }
 
 //some convenience functions

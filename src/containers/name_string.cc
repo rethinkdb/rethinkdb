@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "containers/name_string.hpp"
 
 #include <ctype.h>
@@ -44,8 +44,6 @@ void apply_json_to(cJSON *change, name_string_t *target) {
         throw schema_mismatch_exc_t("invalid name: " + tmp);
     }
 }
-
-void on_subfield_change(name_string_t *) { }
 
 void debug_print(append_only_printf_buffer_t *buf, const name_string_t& s) {
     debug_print(buf, s.str());

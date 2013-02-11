@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef MEMCACHED_PROTOCOL_JSON_ADAPTER_HPP_
 #define MEMCACHED_PROTOCOL_JSON_ADAPTER_HPP_
 
@@ -15,7 +15,6 @@ struct key_range_t;
 json_adapter_if_t::json_adapter_map_t get_json_subfields(store_key_t *);
 cJSON *render_as_json(store_key_t *);
 void apply_json_to(cJSON *, store_key_t *);
-void  on_subfield_change(store_key_t *);
 std::string to_string_for_json_key(const store_key_t *);
 
 
@@ -29,15 +28,12 @@ cJSON *render_as_json(key_range_t *target);
 
 void apply_json_to(cJSON *change, key_range_t *target);
 
-void on_subfield_change(key_range_t *target);
-
 
 
 // json adapter concept for hash_region_t<key_range_t>
 json_adapter_if_t::json_adapter_map_t get_json_subfields(hash_region_t<key_range_t> *);
 cJSON *render_as_json(hash_region_t<key_range_t> *);
 void apply_json_to(cJSON *, hash_region_t<key_range_t> *);
-void  on_subfield_change(hash_region_t<key_range_t> *);
 std::string render_region_as_string(hash_region_t<key_range_t> *target);
 std::string to_string_for_json_key(hash_region_t<key_range_t> *target);
 

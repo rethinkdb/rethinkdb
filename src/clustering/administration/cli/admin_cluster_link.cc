@@ -128,12 +128,22 @@ std::string admin_value_to_string(const name_string_t& name) {
     return admin_value_to_string(name.str());
 }
 
-std::string admin_value_to_string(const std::map<uuid_u, int>& value) {
+std::string admin_value_to_string(const std::map<uuid_u, int32_t>& value) {
     std::string result;
     size_t count = 0;
-    for (std::map<uuid_u, int>::const_iterator i = value.begin(); i != value.end(); ++i) {
+    for (std::map<uuid_u, int32_t>::const_iterator i = value.begin(); i != value.end(); ++i) {
         ++count;
-        result += strprintf("%s: %i%s", uuid_to_str(i->first).c_str(), i->second, count == value.size() ? "" : ", ");
+        result += strprintf("%s: %" PRIi32 "%s", uuid_to_str(i->first).c_str(), i->second, count == value.size() ? "" : ", ");
+    }
+    return result;
+}
+
+std::string admin_value_to_string(const std::map<uuid_u, ack_expectation_t>& value) {
+    std::string result;
+    size_t count = 0;
+    for (auto it = value.begin(); it != value.end(); ++it) {
+        ++count;
+        result += strprintf("%s: %" PRIi32 "%s", uuid_to_str(it->first).c_str(), it->second.memory_expectation() /* TODO(acks) sophisticated */, count == value.size() ? "" : ", ");
     }
     return result;
 }
@@ -2024,7 +2034,7 @@ namespace_id_t admin_cluster_link_t::do_admin_create_table_internal(const name_s
     obj->shards.get_mutable() = shards;
     obj->shards.upgrade_version(change_request_id);
 
-    obj->ack_expectations.get_mutable()[primary] = 1;
+    obj->ack_expectations.get_mutable()[primary] = ack_expectation_t(1);
     obj->ack_expectations.upgrade_version(change_request_id);
 
     /* It's important to initialize this because otherwise it will be
@@ -2425,7 +2435,7 @@ void admin_cluster_link_t::do_admin_set_acks_internal(const datacenter_id_t& dat
     if (num_acks == 0) {
         ns->ack_expectations.get_mutable().erase(datacenter);
     } else {
-        ns->ack_expectations.get_mutable()[datacenter] = num_acks;
+        ns->ack_expectations.get_mutable()[datacenter] = ack_expectation_t(num_acks) /* TODO(acks) sophisticated */;
     }
     ns->ack_expectations.upgrade_version(change_request_id);
 }
@@ -2507,8 +2517,8 @@ void admin_cluster_link_t::do_admin_set_replicas_internal(const namespace_id_t& 
         throw admin_cluster_exc_t("the number of replicas for the primary datacenter cannot be 0");
     }
 
-    std::map<datacenter_id_t, int32_t>::iterator ack_iter = ns->ack_expectations.get_mutable().find(dc_id);
-    if (ack_iter != ns->ack_expectations.get_mutable().end() && ack_iter->second > num_replicas) {
+    std::map<datacenter_id_t, ack_expectation_t>::iterator ack_iter = ns->ack_expectations.get_mutable().find(dc_id);
+    if (ack_iter != ns->ack_expectations.get_mutable().end() && ack_iter->second.memory_expectation() /* TODO(acks) sophisticated */ > static_cast<uint32_t>(num_replicas)) {
         throw admin_cluster_exc_t("the number of replicas for this datacenter cannot be less than the number of acks, run 'help set acks' for more information");
     }
 
@@ -2779,7 +2789,7 @@ void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
         }
 
         const std::map<datacenter_id_t, int32_t> replica_affinities = ns.replica_affinities.get();
-        const std::map<datacenter_id_t, int32_t> ack_expectations = ns.ack_expectations.get();
+        const std::map<datacenter_id_t, ack_expectation_t> ack_expectations = ns.ack_expectations.get();
 
         for (datacenters_semilattice_metadata_t::datacenter_map_t::const_iterator i = cluster_metadata.datacenters.datacenters.begin();
              i != cluster_metadata.datacenters.datacenters.end(); ++i) {
@@ -2798,10 +2808,10 @@ void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
                 }
                 delta.push_back(strprintf("%d", replicas));
 
-                std::map<datacenter_id_t, int32_t>::const_iterator ack_it = ack_expectations.find(i->first);
-                int acks = 0;
+                std::map<datacenter_id_t, ack_expectation_t>::const_iterator ack_it = ack_expectations.find(i->first);
+                uint32_t acks = 0;
                 if (ack_it != ack_expectations.end()) {
-                    acks = ack_it->second;
+                    acks = ack_it->second.memory_expectation() /* TODO(ack) sophisticated */;
                 }
                 delta.push_back(strprintf("%d", acks));
 
@@ -2825,12 +2835,12 @@ void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
             }
             delta.push_back(strprintf("%d", replicas));
 
-            std::map<datacenter_id_t, int32_t>::const_iterator ack_it = ack_expectations.find(nil_uuid());
-            int acks = 0;
+            std::map<datacenter_id_t, ack_expectation_t>::const_iterator ack_it = ack_expectations.find(nil_uuid());
+            uint32_t acks = 0;
             if (ack_it != ack_expectations.end()) {
-                acks = ack_it->second;
+                acks = ack_it->second.memory_expectation() /* TODO(acks) sophisticated */;
             }
-            delta.push_back(strprintf("%d", acks));
+            delta.push_back(strprintf("%" PRIu32, acks));
 
             table.push_back(delta);
         }

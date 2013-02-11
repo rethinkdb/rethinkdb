@@ -187,16 +187,16 @@ public:
         if (it == nmd->namespaces.end()) return false;
         if (it->second.is_deleted()) return false;
         if (it->second.get().ack_expectations.in_conflict()) return false;
-        std::map<datacenter_id_t, int32_t> expected_acks = it->second.get().ack_expectations.get();
+        std::map<datacenter_id_t, ack_expectation_t> expected_acks = it->second.get().ack_expectations.get();
 
         /* The nil uuid represents acks from anywhere. */
-        int extra_acks = 0;
-        for (std::map<datacenter_id_t, int32_t>::const_iterator kt = expected_acks.begin(); kt != expected_acks.end(); ++kt) {
+        uint32_t extra_acks = 0;
+        for (auto kt = expected_acks.begin(); kt != expected_acks.end(); ++kt) {
             if (!kt->first.is_nil()) {
-                if (acks_by_dc.count(kt->first) < static_cast<size_t>(kt->second)) {
+                if (acks_by_dc.count(kt->first) < kt->second.memory_expectation() /* TODO(acks) the ack set needs to be more sophisticated now */) {
                     return false;
                 }
-                extra_acks += acks_by_dc.count(kt->first) - static_cast<size_t>(kt->second);
+                extra_acks += acks_by_dc.count(kt->first) - kt->second.memory_expectation() /* TODO(acks) the ack set needs to be more sophisticated now */;
             }
         }
 
@@ -210,7 +210,7 @@ public:
             }
         }
 
-        if (extra_acks < expected_acks[nil_uuid()]) {
+        if (extra_acks < expected_acks[nil_uuid()].memory_expectation() /* TODO(acks) more sophisticated */) {
             return false;
         }
         return true;
