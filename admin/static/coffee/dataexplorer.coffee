@@ -1970,8 +1970,8 @@ module 'DataExplorerView', ->
         #TODO Handle when last column is resized or when table expands too much
         handle_mousemove: (event) =>
             if @mouse_down
-                @resize_column @col_resizing, @start_width-@start_x+event.pageX # Resize
-                @last_columns_size[@col_resizing] = @start_width-@start_x+event.pageX # Save the personalized size
+                @last_columns_size[@col_resizing] = Math.max 20, @start_width-@start_x+event.pageX # Save the personalized size
+                @resize_column @col_resizing, @last_columns_size[@col_resizing] # Resize
 
         resize_column: (col, size) =>
             $('.col-'+col).css 'max-width', size
