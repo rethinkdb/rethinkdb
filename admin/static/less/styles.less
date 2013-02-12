@@ -1032,7 +1032,6 @@ TODO: retire this
     margin: 0px;
     .options_container{
         float: right;
-        margin: -7px -7px 0px 0px;
         .change_size{
             height: 21px;
             width: 20px;
@@ -1403,7 +1402,7 @@ TODO: retire this
                 border-spacing: 0px;
                 border-collapse: collapse;
                 .td_attr{
-                    color: #000;
+                    color: #444;
                     background: #f1f1f1;
                     .box-shadow(~"inset 0 4px 4px -4px #fff");
                 }
@@ -1435,7 +1434,15 @@ TODO: retire this
                     border: 1px solid #dfdfdf;
                     overflow: hidden;
                     cursor: e-resize;
-                    background: #fff;
+                }
+                tr{
+                    padding: 20px;
+                    &:nth-child(even) {
+                        background: #fff;
+                    }
+                    &:nth-child(odd) {
+                        background: #f9f9f9;
+                    }
                 }
                 .jta_attr{
                     padding: 7px 10px 5px 15px;
@@ -1473,6 +1480,7 @@ TODO: retire this
                 }
                 .col-record-td{
                     padding: 0px;
+                    background: #f0f0f0;
                 }
                 .col-record{
                     color: #aaa;
