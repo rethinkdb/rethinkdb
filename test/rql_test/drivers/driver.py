@@ -91,37 +91,50 @@ class PyTestDriver:
     def define(self, expr):
         exec(expr, globals(), self.scope)
 
-    def run(self, src, expected, name):
+    def run(self, src, expected):
+
+        # Try to build the test
         try:
             query = eval(src, dict(globals().items() + self.scope.items()))
         except Exception as err:
-            print name, "- Python error on construction of query:", str(err)
-            return
+            print "Python error on construction of query:", str(err), 'in:\n', src
+            return # Can't continue with this test if there is no test query
 
-        exp_fun = eval(expected, dict(globals().items() + self.scope.items()))
+        if expected:
+            # Try to build the expected result
+            exp_fun = eval(expected, dict(globals().items() + self.scope.items()))
+        else:
+            # This test might not have come with an expected result, we'll just ensure it doesn't fail
+            expected = lambda: True
+
+        # If left off the comparison function is equality by default
         if not isinstance(exp_fun, types.FunctionType):
             exp_fun = eq(exp_fun)
 
+        # Try actually running the test
         try:
             cppres = query.run(self.cpp_conn)
+
+            # And comparing the expected result
             if not exp_fun(cppres):
-                print " in CPP version of:", name, src
+                print " in CPP version of:", src
+
         except Exception as err:
-            print name, "- Error on running of query on CPP server:", str(err)
+            print "Error on running of query on CPP server:", str(err), 'in:\n', src
 
         try:
             jsres = query.run(self.js_conn)
             if not exp_fun(jsres):
-                print " in JS version of:", name, src
+                print " in JS version of:", src
         except Exception as err:
-            print name, "- Error on running of query on JS server:", str(err)
+            print "Error on running of query on JS server:", str(err), 'in:\n', src
 
 driver = PyTestDriver()
 driver.connect()
 
 # Emitted test code will consist of calls to this function
-def test(query, expected, name):
-    driver.run(query, expected, name)
+def test(query, expected=None):
+    driver.run(query, expected)
 
 # Emitted test code can call this function to define variables
 def define(expr):

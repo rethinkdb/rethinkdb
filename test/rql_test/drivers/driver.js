@@ -170,6 +170,3 @@ function bag(list) {
         return eq_test(bag, other);
     }
 }
-
-True = true;
-False = false;

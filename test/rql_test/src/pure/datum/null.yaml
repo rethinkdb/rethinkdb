@@ -1,13 +1,13 @@
 desc: Tests of conversion to and from the RQL null type
 tests:
     - py:
-        code: r.expr(None)
+        cd: r.expr(None)
         ot: None
       js:
-        code: [r(null), r.expr(null)]
+        cd: [r(null), r.expr(null)]
         ot: "null"
       rb:
-        code: r nil
+        cd: r nil
         ot: nil
 
     # What other behavior do we need to test here?
