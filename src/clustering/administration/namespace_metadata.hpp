@@ -44,7 +44,7 @@ public:
     explicit ack_expectation_t(uint32_t expectations)
         : disk_expectation_(expectations), cache_expectation_(expectations) { }
 
-    bool make(uint32_t disk_expectation, uint32_t cache_expectation, ack_expectation_t *out);
+    static bool make(uint32_t disk_expectation, uint32_t cache_expectation, ack_expectation_t *out);
 
     uint32_t disk_expectation() const { return disk_expectation_; }
     uint32_t cache_expectation() const { return cache_expectation_; }

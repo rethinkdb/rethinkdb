@@ -2343,21 +2343,32 @@ void admin_cluster_link_t::do_admin_set_name_internal(const uuid_u& id, const st
     }
 }
 
+uint32_t guarantee_uint32(const std::map<std::string, std::vector<std::string> >& params, const std::string& name) {
+    const std::string arg = guarantee_param_0(params, name);
+    uint64_t number;
+    if (!strtou64_strict(arg, 10, &number)) {
+        throw admin_parse_exc_t(name + " is not a number");
+    } else if (number > UINT32_MAX) {
+        throw admin_parse_exc_t(name + " is too big");
+    }
+
+    return number;
+}
+
 void admin_cluster_link_t::do_admin_set_acks(const admin_command_parser_t::command_data_t& data) {
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
         change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
     metadata_info_t *ns_info(get_info_from_id(guarantee_param_0(data.params, "table")));
     datacenter_id_t dc_id = nil_uuid();
-    std::string acks_str = guarantee_param_0(data.params, "num-acks");
-    uint64_t acks_num;
 
-    // Make sure num-acks is a number
-    if (!strtou64_strict(acks_str, 10, &acks_num)) {
-        throw admin_parse_exc_t("num-acks is not a number");
+    const uint32_t disk_acks = guarantee_uint32(data.params, "disk-acks");
+    const uint32_t cache_acks = guarantee_uint32(data.params, "cache-acks");
+
+    ack_expectation_t ack_expectation;
+    if (!ack_expectation_t::make(disk_acks, cache_acks, &ack_expectation)) {
+        throw admin_parse_exc_t("disk-acks must not be greater than cache-acks");
     }
-
-    ack_expectation_t ack_expectation(acks_num);  // TODO(acks) sophisticated
 
     if (data.params.count("datacenter") != 0) {
         metadata_info_t *dc_info(get_info_from_id(guarantee_param_0(data.params, "datacenter")));

@@ -8,7 +8,7 @@
 bool ack_expectation_t::make(uint32_t disk_expectation, uint32_t cache_expectation, ack_expectation_t *out) {
     if (disk_expectation <= cache_expectation) {
         out->disk_expectation_ = disk_expectation;
-        out->cache_expectation_ = cache_expectation_;
+        out->cache_expectation_ = cache_expectation;
         return true;
     } else {
         return false;
