@@ -1,6 +1,11 @@
 #!/bin/sh
 set -e
 
+dnl This file is preprocessed my m4
+
+dnl set m4 quotes to avoid conflict with shell backquotes
+changequote(`.oO{', `}Oo.')
+
 bin_dir=BIN_DIR
 man1_dir=MAN1_DIR
 bash_completion_dir=BASH_COMPLETION_DIR
@@ -23,7 +28,6 @@ case "$1" in
   fi ;
     update-rc.d rethinkdb defaults ;
     invoke-rc.d rethinkdb start ;
-    ;;
 
   if [ "`find /etc/rethinkdb/instances.d -maxdepth 1 -type f -name '*.conf'`" = "" ]; then
     echo The RethinkDB startup service is installed but disabled. To enable it,
@@ -33,6 +37,7 @@ case "$1" in
   if [ "$1" = "configure" ]; then
     adduser --system --quiet --group --no-create-home rethinkdb || true
   fi
+  ;;
 
   *)
     echo "Warning: RethinkDB postinst script called with unknown set of arguments: $*"
