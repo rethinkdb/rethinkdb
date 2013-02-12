@@ -1121,18 +1121,20 @@ module 'DataExplorerView', ->
                 @.$('.arrow').show()
 
         move_suggestion: =>
-            margin_left = parseInt(@.$('.CodeMirror-cursor').css('left').replace('px', ''))+27
+            margin_left = parseInt(@.$('.CodeMirror-cursor').css('left').replace('px', ''))+23
             @.$('.arrow').css 'margin-left', margin_left
             if margin_left < 200
                 @.$('.suggestion_full_container').css 'left', '0px'
             else
-                 max_margin = @.$('.CodeMirror-scroll').width()-418
+                max_margin = @.$('.CodeMirror-scroll').width()-418
 
-                if margin_left > max_margin
-                    @.$('.suggestion_full_container').css 'left', (max_margin-28)+'px'
+                margin_left_bloc = Math.min max_margin, Math.floor(margin_left/200)*200
+                if margin_left > max_margin+418-150-23 # We are really at the end
+                    @.$('.suggestion_full_container').css 'left', (max_margin-34)+'px'
+                else if margin_left_bloc > max_margin-150-23
+                    @.$('.suggestion_full_container').css 'left', (max_margin-34-150)+'px'
                 else
-                    margin_left = Math.min max_margin, Math.floor(margin_left/100)*100
-                    @.$('.suggestion_full_container').css 'left', (margin_left-100)+'px'
+                    @.$('.suggestion_full_container').css 'left', (margin_left_bloc-100)+'px'
 
         #Highlight suggestion. Method called when the user hit tab or mouseover
         highlight_suggestion: (id) =>
