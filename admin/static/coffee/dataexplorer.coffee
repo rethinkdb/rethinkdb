@@ -1192,7 +1192,7 @@ module 'DataExplorerView', ->
                     data =
                         no_database: false
                         databases_available: _.map(databases.models, (database) -> return database.get('name'))
-                description.description += @databases_suggestions_template data
+                description.description = @databases_suggestions_template(data)+description.description
             else if fn is 'table('
                 # Look for the argument of the previous db()
                 database_used = @extract_database_used()
@@ -1213,7 +1213,7 @@ module 'DataExplorerView', ->
                     data =
                         error: database_used.error
 
-                description.description += @namespaces_suggestions_template data
+                description.description = @namespaces_suggestions_template(data) + description.description
             else
                 description = @descriptions[fn]
             return description
