@@ -2858,11 +2858,14 @@ void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
             delta.push_back(strprintf("%d", replicas));
 
             std::map<datacenter_id_t, ack_expectation_t>::const_iterator ack_it = ack_expectations.find(nil_uuid());
-            uint32_t acks = 0;
+
+            ack_expectation_t acks;
             if (ack_it != ack_expectations.end()) {
-                acks = ack_it->second.cache_expectation() /* TODO(acks) sophisticated */;
+                acks = ack_it->second;
             }
-            delta.push_back(strprintf("%" PRIu32, acks));
+            delta.push_back(strprintf("%" PRIu32 " disk %" PRIu32 " cache",
+                                      acks.disk_expectation(),
+                                      acks.cache_expectation()));
 
             table.push_back(delta);
         }
