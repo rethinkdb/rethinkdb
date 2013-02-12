@@ -1746,7 +1746,7 @@ module 'DataExplorerView', ->
                         else
                             map[key] = 1
                 else
-                    map['_anonymous object'] = Infinity
+                    map['_primitive value'] = Infinity
 
             keys_sorted = []
             for key of map
@@ -1788,7 +1788,7 @@ module 'DataExplorerView', ->
                 new_document.cells = []
                 for key_container, col in keys_stored
                     key = key_container[0]
-                    if key is '_anonymous object'
+                    if key is '_primitive value'
                         if jQuery.isPlainObject(element)
                             value = undefined
                         else
