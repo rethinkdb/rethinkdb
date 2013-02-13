@@ -158,7 +158,7 @@ module 'DataExplorerView', ->
         initialize: (args) =>
             if not DataExplorerView.Container.prototype.saved_data?
                 if window.localStorage? and window.localStorage.rethinkdb_dataexplorer?
-                    try
+                    try # We use try catch just in case the data is malformed
                         DataExplorerView.Container.prototype.saved_data = JSON.parse window.localStorage.rethinkdb_dataexplorer
                         DataExplorerView.Container.prototype.saved_data.cursor_timed_out = true # We do not recreate the cursor
                     catch err
@@ -183,8 +183,10 @@ module 'DataExplorerView', ->
             # The size of the history is infinite per session. But each session will not load with more that @size_history entries
             if not DataExplorerView.Container.prototype.history?
                 if window.localStorage?.rethinkdb_history?
-                    #TODO Trim history
-                    DataExplorerView.Container.prototype.history = JSON.parse window.localStorage.rethinkdb_history
+                    try
+                        DataExplorerView.Container.prototype.history = JSON.parse window.localStorage.rethinkdb_history
+                    catch err
+                        DataExplorerView.Container.prototype.history = []
                 else
                     DataExplorerView.Container.prototype.history = []
             @history = DataExplorerView.Container.prototype.history
