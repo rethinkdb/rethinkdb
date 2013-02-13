@@ -156,7 +156,7 @@ message Datum {
 //     Sequence
 //       ARRAY
 //       Stream
-//         Selection
+//         StreamSelection
 //           Table
 //     Database
 //     Function
@@ -191,7 +191,7 @@ message Term2 {
         // Returns a reference to a table.
         TABLE = 15; // Database, STRING, {use_outdated:BOOL} -> Table
         // Gets a single element from a table by its primary key.
-        GET   = 16; // Table, STRING -> SingleSelection
+        GET   = 16; // Table, STRING -> SingleSelection | Table, NUMBER -> SingleSelection
 
         // Simple DATUM Ops
         EQ  = 17; // DATUM... -> BOOL
@@ -202,8 +202,7 @@ message Term2 {
         GE  = 22; // DATUM... -> BOOL
         NOT = 23; // BOOL -> BOOL
         // ADD can either add two numbers or concatenate two arrays.
-        ADD = 24; // | NUMBER... -> NUMBER
-                  // | STRING... -> STRING
+        ADD = 24; // NUMBER... -> NUMBER | STRING... -> STRING
         SUB = 25; // NUMBER... -> NUMBER
         MUL = 26; // NUMBER... -> NUMBER
         DIV = 27; // NUMBER... -> NUMBER
@@ -225,12 +224,10 @@ message Term2 {
         CONTAINS = 32; // OBJECT, STRING... -> BOOL
         // Get a subset of an object by selecting some attributes to preserve,
         // or map that over a sequence.  (Both pick and pluck, polymorphic.)
-        PLUCK    = 33; // | Sequence, STRING... -> Sequence
-                       // | OBJECT, STRING... -> OBJECT
+        PLUCK    = 33; // Sequence, STRING... -> Sequence | OBJECT, STRING... -> OBJECT
         // Get a subset of an object by selecting some attributes to discard, or
         // map that over a sequence.  (Both unpick and without, polymorphic.)
-        WITHOUT  = 34; // | Sequence, STRING... -> Sequence
-                       // | OBJECT, STRING... -> OBJECT
+        WITHOUT  = 34; // Sequence, STRING... -> Sequence | OBJECT, STRING... -> OBJECT
         // Merge objects (right-preferential)
         MERGE    = 35; // OBJECT... -> OBJECT
 
@@ -277,17 +274,16 @@ message Term2 {
         // * Write Ops (the OBJECTs contain data about number of errors etc.)
         // Updates all the rows in a selection.  Calls its Function with the row
         // to be updated, and then merges the result of that call.
-        UPDATE   = 53; // Selection, Function(1), {non_atomic:BOOL} -> OBJECT
+        UPDATE   = 53; // StreamSelection, Function(1), {non_atomic:BOOL} -> OBJECT | SingleSelection, Function(1), {non_atomic:BOOL} -> OBJECT
         // Deletes all the rows in a selection.
-        DELETE   = 54; // Selection -> OBJECT
+        DELETE   = 54; // StreamSelection -> OBJECT | SingleSelection -> OBJECT
         // Replaces all the rows in a selection.  Calls its Function with the row
         // to be replaced, and then discards it and stores the result of that
         // call.
-        REPLACE  = 55; // Selection, Function(1), {non_atomic:BOOL} -> OBJECT
+        REPLACE  = 55; // StreamSelection, Function(1), {non_atomic:BOOL} -> OBJECT | SingleSelection, Function(1), {non_atomic:BOOL} -> OBJECT 
         // Inserts into a table.  If `upsert` is true, overwrites entries with
         // the same primary key (otherwise errors).
-        INSERT   = 56; // | Table, OBJECT, {upsert:BOOL} -> OBJECT
-                       // | Table, Sequence, {upsert:BOOL} -> OBJECT
+        INSERT   = 56; // Table, OBJECT, {upsert:BOOL} -> OBJECT | Table, Sequence, {upsert:BOOL} -> OBJECT
 
         // * Administrative OPs
         // Creates a database with a particular name.

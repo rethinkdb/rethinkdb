@@ -197,9 +197,7 @@ class RDBSequence extends RDBType
         if first_error then result.first_error = first_error
         return new RDBObject result
 
-    del: ->
-        results = @asArray().map (v) -> v.del()
-        new RDBObject objSum results, {deleted:0}
+    del: -> statsMerge @map (v) -> v.del()
 
 class RDBArray extends RDBSequence
     constructor: (arr) -> @data = arr

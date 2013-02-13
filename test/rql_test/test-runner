@@ -304,21 +304,21 @@ def run():
         run_tests('py', servers)
         servers.restart()
         run_tests('js', servers)
-        servers.restart()
-        run_tests('rb', servers)
+        #servers.restart()
+        #run_tests('rb', servers)
 
 # Run just the tests for the given language, can be called
 # from shell as "./test-runner run_py"
 def run_py():
-    with RethinkDBTestServers as servers:
+    with RethinkDBTestServers() as servers:
         run_tests('py', servers)
 
 def run_rb():
-    with RethinkDBTestServers as servers:
+    with RethinkDBTestServers() as servers:
         run_tests('rb', servers)
 
 def run_js():
-    with RethinkDBTestServers as servers:
+    with RethinkDBTestServers() as servers:
         run_tests('js', servers)
 
 def build_test_scripts():

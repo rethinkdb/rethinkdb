@@ -52,7 +52,7 @@ class TypeChecker
                         argError.backtrace.unshift i
                         break
                 unless type.check(arg)
-                    argError = new TypeError "expected type #{type}"
+                    argError = new TypeError "expected type #{type}, got #{TypeName::typeOf(arg)}"
                     argError.backtrace.unshift i
                     break
 
@@ -63,7 +63,7 @@ class TypeChecker
 
                 # Check return val
                 unless sig.result.check(ret)
-                    throw new TypeError "expected type #{sig.result}"
+                    throw new TypeError "expected type #{sig.result}, got #{TypeName::typeOf(ret)}"
 
                 return ret
             else
@@ -93,7 +93,7 @@ class TypeName
             when "ARRAY" then ArrayType
             when "Sequence" then SequenceType
             when "Stream" then StreamType
-            when "Selection" then SelectionType
+            when "StreamSelection" then StreamSelectionType
             when "Table" then TableType
             when "Database" then DatabaseType
             when "Function" then FunctionType
@@ -111,7 +111,8 @@ class TypeName
         else if val instanceof RDBTable then TableType
         else if val instanceof Function then FunctionType
         else if val instanceof RDBArray then ArrayType
-        else if val instanceof RDBObject then ObjectType
+        else if val instanceof RDBObject
+            if val.getPK? then SingleSelectionType else ObjectType
         else if val instanceof RDBPrimitive
             switch val.typeOf()
                 when RDBType.NULL then NullType
@@ -166,10 +167,10 @@ class SequenceType extends TopType
 class StreamType extends SequenceType
     st: "Stream"
 
-class SelectionType extends StreamType
-    st: "Selection"
+class StreamSelectionType extends StreamType
+    st: "StreamSelection"
 
-class TableType extends SelectionType
+class TableType extends StreamSelectionType
     st: "Table"
 
 class DatabaseType extends TopType

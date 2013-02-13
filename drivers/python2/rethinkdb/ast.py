@@ -90,6 +90,9 @@ class RDBValue(RDBBase):
     def do(self, func):
         return FunCall(Func(func), self)
 
+    def delete(self):
+        return Delete(self)
+
 class RDBOp(RDBBase):
     def __init__(self, *args, **optargs):
         self.args = [expr(e) for e in args]
@@ -432,7 +435,7 @@ class Table(RDBSeqOp, RDBMethod):
         return Get(self, key)
 
     def compose(self, args, optargs):
-        return T(args[1], '.table(', args[0], ')')
+        return T(args[0], '.table(', args[1], ')')
 
 class Get(RDBValOp, RDBMethod):
     tt = p.Term2.GET

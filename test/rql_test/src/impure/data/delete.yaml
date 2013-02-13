@@ -12,19 +12,34 @@ tests:
       ot: ({'created':1})
       def: tbl2 = r.db('test').table('test2')
 
-    - py: |
-        for i in xrange(100):
-            tbl.insert({'id':i})
+    - py: tbl.insert([{'id':i} for i in xrange(100)])
       js: |
-        for (var i = 0; i < 100; i++) {
-            tbl.insert({id:i})
-        }
+        tbl.insert(function(){
+            var res = []
+            for (var i = 0; i < 100; i++) {
+                res.push({id:i});
+            }
+            return res;
+        }())
+      ot: ({'inserted':100})
+
+    - cd: tbl.count()
+      ot: 100
 
     # Point delete
 
+    - cd: tbl.get(12).delete()
+      ot: ({'deleted':1})
+
     # Delete selection of table
 
+    - cd: tbl.skip(50).delete()
+      ot: ({'deleted':49})
+
     # Delete whole table
+
+    - cd: tbl.delete()
+      ot: ({'deleted':50})
 
     # clean up
     - py: r.db('test').table_drop('test')

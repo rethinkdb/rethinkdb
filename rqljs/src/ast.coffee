@@ -87,7 +87,7 @@ class RDBTableRef extends RDBOp
     op: (args, optargs) -> args[0].getTable args[1]
 
 class RDBGetByKey extends RDBOp
-    type: tp "Table, STRING -> SingleSelection"
+    type: tp "Table, STRING -> SingleSelection | Table, NUMBER -> SingleSelection"
     op: (args) -> args[0].get args[1]
 
 class RDBNot extends RDBOp
@@ -259,15 +259,15 @@ class RDBTypeOf extends RDBOp
     op: new RuntimeError "Not implemented"
 
 class RDBUpdate extends RDBOp
-    type: tp "Selection, Function(1), {non_atomic_ok:BOOL} -> OBJECT"
+    type: tp "StreamSelection, Function(1), {non_atomic_ok:BOOL} -> OBJECT | StreamSelection, Function(1), {non_atomic_ok:BOOL} -> OBJECT"
     op: (args) -> args[0].update args[1](1)
 
 class RDBDelete extends RDBOp
-    type: tp "Selection -> OBJECT"
+    type: tp "StreamSelection -> OBJECT | SingleSelection -> OBJECT"
     op: (args) -> args[0].del()
 
 class RDBReplace extends RDBOp
-    type: tp "Selection, Function(1), {non_atomic_ok:BOOL} -> OBJECT"
+    type: tp "StreamSelection, Function(1), {non_atomic_ok:BOOL} -> OBJECT | StreamSelection, Function(1), {non_atomic_ok:BOOL} -> OBJECT"
     op: (args) -> args[0].replace args[1](1)
 
 class RDBInsert extends RDBWriteOp

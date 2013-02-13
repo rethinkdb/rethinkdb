@@ -94,7 +94,7 @@ class RDBSelection
 
             del: ->
                 table.deleteKey @[table.primaryKey].asJSON()
-                {deleted: 1}
+                new RDBObject {deleted: 1}
 
             getPK: -> new RDBPrimitive table.primaryKey
 

@@ -105,7 +105,7 @@ class PyTestDriver:
             exp_fun = eval(expected, dict(globals().items() + self.scope.items()))
         else:
             # This test might not have come with an expected result, we'll just ensure it doesn't fail
-            expected = lambda: True
+            exp_fun = lambda v: True
 
         # If left off the comparison function is equality by default
         if not isinstance(exp_fun, types.FunctionType):
