@@ -12,11 +12,52 @@ tests:
       ot: ({'created':1})
       def: tbl2 = r.db('test').table('test2')
 
-    # Replace whole table
+    - py: tbl.insert([{'id':i} for i in xrange(100)])
+      js: |
+        tbl.insert(function(){
+            var res = []
+            for (var i = 0; i < 100; i++) {
+                res.push({id:i});
+            }
+            return res;
+        }())
+      ot: ({'inserted':100})
 
-    # Replace update
+    - cd: tbl.count()
+      ot: 100
+
+    # Identity
+
+    - py: "tbl.get(12).replace(lambda row: {'id': row['id']})"
+      js: "tbl.get(12).replace(function(row) { return {'id': row('id')}; })"
+      ot: ({'unchanged':1})
+
+    # Replace single row
+
+    - py: "tbl.get(12).replace(lambda row: {'id': row['id'], 'a': row['id']})"
+      js: "tbl.get(12).replace(function(row) { return {'id': row('id'), 'a': row('id')}; })"
+      ot: ({'replaced':1})
+
+    - py: "tbl.get(13).replace(lambda row: None)"
+      js: "tbl.get(13).replace(function(row) { return null; })"
+      ot: ({'deleted':1})
 
     # Replace selection of table
+
+    # Between is buggy on the CPP server right now and this doesn't work
+    #- py: "tbl.between(10, 20).replace(lambda row: {'a':row['id']})"
+    #  js: "tbl.between(10, 20).replace(function(row) { return {'a':row('id')}; })"
+    #  ot: ({'replaced':9, 'unchanged':1})
+
+    - py: "tbl.filter(lambda row: (row['id'] >= 10) & (row['id'] < 20)).replace(lambda row: {'id': row['id'], 'a':row['id']})"
+      js: "tbl.filter(function(row) { return row('id').ge(10).and(row('id').lt(20))}).replace(function(row) { return {'id': row('id'), 'a':row('id')}; })"
+      ot: ({'replaced':8, 'unchanged':1})
+
+    # Replace whole table
+
+    - py: "tbl.replace(lambda row: None)"
+      js: "tbl.replace(function(row) { return null; })"
+      ot: ({'deleted':99})
 
     # clean up
     - py: r.db('test').table_drop('test')

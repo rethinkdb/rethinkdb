@@ -90,6 +90,12 @@ class RDBValue(RDBBase):
     def do(self, func):
         return FunCall(Func(func), self)
 
+    def update(self, func):
+        return Update(self, Func(func))
+
+    def replace(self, func):
+        return Replace(self, Func(func))
+
     def delete(self):
         return Delete(self)
 

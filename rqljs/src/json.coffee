@@ -73,22 +73,29 @@ class RDBSelection
                 neu = @.merge updated
                 unless neu[table.primaryKey].eq(@[table.primaryKey]).asJSON()
                     throw new RuntimeError ""
+
+                if @eq(neu).asJSON()
+                    return new RDBObject {'unchanged': 1}
+
                 table.insert new RDBArray [neu], true
-                return true
+                return new RDBObject {'replaced': 1}
 
             replace: (mapping) ->
                 replacement = mapping @
                 if replacement.isNull()
                     @del()
-                    return "deleted"
+                    return new RDBObject {'deleted': 1}
 
                 if @isNull()
                     table.insert new RDBArray [replacement]
-                    return "inserted"
+                    return new RDBObject {'inserted': 1}
+
+                if @eq(replacement).asJSON()
+                    return new RDBObject {'unchanged': 1}
 
                 if replacement[table.primaryKey].eq(@[table.primaryKey]).asJSON()
                     table.insert new RDBArray [replacement], true
-                    return "modified"
+                    return new RDBObject {'replaced': 1}
                     
                 throw new RuntimeError ""
 

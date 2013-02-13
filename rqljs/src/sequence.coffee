@@ -160,43 +160,8 @@ class RDBSequence extends RDBType
 
     getPK: -> @asArray()[0].getPK()
 
-    update: (mapping) ->
-        updated = 0
-        skipped = 0
-        errors = 0
-        first_error = null
-        @asArray().forEach (v) ->
-            try
-                v.update mapping
-                updated++
-            catch err
-                console.log err
-                unless first_error then first_error = err
-                errors++
-        result = {updated: updated, errors: errors, skipped: skipped}
-        if first_error then result.first_error = first_error
-        return new RDBObject result
-
-    replace: (mapping) ->
-        modified = 0
-        inserted = 0
-        deleted = 0
-        errors = 0
-        first_error = null
-        @asArray().forEach (v) ->
-            try
-                switch v.replace mapping
-                    when "modified" then modified++
-                    when "deleted"  then deleted++
-                    when "inserted" then inserted++
-            catch err
-                unless first_error then first_error = err
-                errors++
-
-        result = {deleted: deleted, errors: errors, inserted: inserted, modified: modified}
-        if first_error then result.first_error = first_error
-        return new RDBObject result
-
+    update: (mapping) -> statsMerge @map (row) -> row.update mapping
+    replace: (mapping) -> statsMerge @map (row) -> row.replace mapping
     del: -> statsMerge @map (v) -> v.del()
 
 class RDBArray extends RDBSequence

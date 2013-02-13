@@ -259,7 +259,7 @@ class RDBTypeOf extends RDBOp
     op: new RuntimeError "Not implemented"
 
 class RDBUpdate extends RDBOp
-    type: tp "StreamSelection, Function(1), {non_atomic_ok:BOOL} -> OBJECT | StreamSelection, Function(1), {non_atomic_ok:BOOL} -> OBJECT"
+    type: tp "StreamSelection, Function(1), {non_atomic_ok:BOOL} -> OBJECT | SingleSelection, Function(1), {non_atomic_ok:BOOL} -> OBJECT"
     op: (args) -> args[0].update args[1](1)
 
 class RDBDelete extends RDBOp
@@ -267,7 +267,7 @@ class RDBDelete extends RDBOp
     op: (args) -> args[0].del()
 
 class RDBReplace extends RDBOp
-    type: tp "StreamSelection, Function(1), {non_atomic_ok:BOOL} -> OBJECT | StreamSelection, Function(1), {non_atomic_ok:BOOL} -> OBJECT"
+    type: tp "StreamSelection, Function(1), {non_atomic_ok:BOOL} -> OBJECT | SingleSelection, Function(1), {non_atomic_ok:BOOL} -> OBJECT"
     op: (args) -> args[0].replace args[1](1)
 
 class RDBInsert extends RDBWriteOp
