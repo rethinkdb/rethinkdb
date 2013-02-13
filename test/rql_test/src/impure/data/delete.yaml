@@ -2,13 +2,11 @@ desc: Tests deletes of selections
 tests:
 
     # Set up some data
-    - py: r.db('test').table_create('test')
-      js: r.db('test').tableCreate('test')
+    - cd: r.db('test').table_create('test')
       ot: ({'created':1})
       def: tbl = r.db('test').table('test')
 
-    - py: r.db('test').table_create('test2')
-      js: r.db('test').tableCreate('test2')
+    - cd: r.db('test').table_create('test2')
       ot: ({'created':1})
       def: tbl2 = r.db('test').table('test2')
 
@@ -42,9 +40,7 @@ tests:
       ot: ({'deleted':50})
 
     # clean up
-    - py: r.db('test').table_drop('test')
-      js: r.db('test').tableDrop('test')
-      ot: "({'dropped': 1})"
-    - py: r.db('test').table_drop('test2')
-      js: r.db('test').tableDrop('test2')
-      ot: "({'dropped': 1})"
+    - cd: r.db('test').table_drop('test')
+      ot: ({'dropped':1})
+    - cd: r.db('test').table_drop('test2')
+      ot: ({'dropped':1})

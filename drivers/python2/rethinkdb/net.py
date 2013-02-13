@@ -9,7 +9,7 @@ import ql2_pb2 as p
 
 from errors import *
 
-class BatchedIterator(list):
+class Cursor(list):
     def __init__(self, conn, query, chunk, complete):
         self.results = chunk
         self.conn = conn
@@ -136,7 +136,7 @@ class Connection():
         # Sequence responses
         if response.type is p.Response2.SUCCESS_PARTIAL or response.type is p.Response2.SUCCESS_SEQUENCE:
             chunk = [Datum.deconstruct(datum) for datum in response.response]
-            return BatchedIterator(self, query, chunk, response.type is p.Response2.SUCCESS_SEQUENCE)
+            return Cursor(self, query, chunk, response.type is p.Response2.SUCCESS_SEQUENCE)
 
         # Atom response
         if response.type is p.Response2.SUCCESS_ATOM:

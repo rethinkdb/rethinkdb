@@ -168,7 +168,7 @@ class TestGroup:
         if code and not isinstance(code, list):
             assert isinstance(code, types.StringTypes)
             code = [code]
-        else:
+        elif not code:
             code = []
 
         # Construct the appropriate representation for each test in this language
