@@ -394,9 +394,11 @@ file_open_result_t open_direct_file(const char *path, int mode, io_backender_t *
     // supports O_DIRECT) but we use "#ifdef __linux__" (and not "#ifdef O_DIRECT") specifically to
     // avoid such concerns.
     int fcntl_res = fcntl(fd.get(), F_SETFL, static_cast<long>(flags | O_DIRECT));  // NOLINT(runtime/int)
-#else
+#elif defined(__APPLE__)
     int fcntl_res = fcntl(fd.get(), F_NOCACHE, 1);
-#endif  // O_DIRECT.
+#else
+#error "Figure out how to do direct I/O and fsync correctly (despite your operating system's lies) on your platform."
+#endif  // __linux__, defined(__APPLE__)
 
     file_open_result_t open_res = (fcntl_res == -1 ? file_open_result_t(file_open_result_t::BUFFERED, 0) : file_open_result_t(file_open_result_t::DIRECT, 0));
 

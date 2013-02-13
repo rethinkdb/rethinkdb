@@ -81,8 +81,9 @@ http_res_t log_http_app_t::handle(const http_req_t &req) {
         }
     }
 
+    const int seconds_into_the_future = THOUSAND;
     int max_length = 100;
-    struct timespec min_timestamp = {0, 0}, max_timestamp = {time(NULL) + THOUSAND, 0};
+    struct timespec min_timestamp = {0, 0}, max_timestamp = {time(NULL) + seconds_into_the_future, 0};
     if (boost::optional<std::string> max_length_string = req.find_query_param("max_length")) {
         char dummy;
         int res = sscanf(max_length_string.get().c_str(), "%d%c", &max_length, &dummy);

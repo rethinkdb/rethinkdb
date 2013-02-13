@@ -165,7 +165,7 @@ std::string get_web_path(const po::variables_map& vm, char *argv[]) {
     } else {
         result = parse_as_path(argv[0]);
         result.nodes.pop_back();
-        result.nodes.push_back("web");
+        result.nodes.push_back(WEB_ASSETS_DIR_NAME);
         #ifdef WEBRESDIR
         std::string chkdir(WEBRESDIR);
         if ((access(render_as_path(result).c_str(), F_OK)) && (!access(chkdir.c_str(), F_OK))) {

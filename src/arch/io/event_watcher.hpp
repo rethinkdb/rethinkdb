@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef ARCH_IO_EVENT_WATCHER_HPP_
 #define ARCH_IO_EVENT_WATCHER_HPP_
 
@@ -29,6 +29,9 @@ public:
 
     bool is_watching(int event);
 
+    // TODO: This is a complete hack, kill yourself out of shame for the human race.
+    void stop_watching_for_errors();
+
 private:
     fd_t fd;
     linux_event_callback_t *error_handler;
@@ -40,7 +43,10 @@ private:
     watch_t *rdhup_watcher;
 #endif
 
+    bool watching_for_errors;
+
     int old_mask;
+    bool old_watching_for_errors;
     void remask();
 
     void on_event(int event);
