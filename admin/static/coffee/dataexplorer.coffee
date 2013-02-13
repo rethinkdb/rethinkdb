@@ -2198,11 +2198,10 @@ module 'DataExplorerView', ->
             @.$(event.target).toggleClass('jt_arrow_hidden')
             @set_scrollbar()
 
-        #TODO Fix it for Firefox
         expand_raw_textarea: =>
-            if $('.'+classname).length > 0
-                height = $('.'+classname)[0].scrollHeight
-                $('.'+classname).height(height)
+            if $('.raw_view_textarea').length > 0
+                height = $('.raw_view_textarea')[0].scrollHeight
+                $('.raw_view_textarea').height(height)
 
         destroy: =>
             $(document).unbind 'mousemove', @handle_mousemove
