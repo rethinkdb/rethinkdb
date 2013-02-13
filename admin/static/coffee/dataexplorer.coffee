@@ -2200,12 +2200,6 @@ module 'DataExplorerView', ->
 
         #TODO Fix it for Firefox
         expand_raw_textarea: =>
-            setTimeout(@bootstrap_hack, 0) #TODO remove this trick when we will remove bootstrap's tab 
-        bootstrap_hack: =>
-            @expand_textarea 'raw_view_textarea'
-            return @
-
-        expand_textarea: (classname) =>
             if $('.'+classname).length > 0
                 height = $('.'+classname)[0].scrollHeight
                 $('.'+classname).height(height)
