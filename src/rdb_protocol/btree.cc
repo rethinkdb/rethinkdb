@@ -539,10 +539,11 @@ public:
         const leaf_node_t *leaf_node = reinterpret_cast<const leaf_node_t *>(leaf_node_buf->get_data_read());
         leaf::live_iter_t node_iter = iter_for_whole_leaf(leaf_node);
 
-        const void *value;
-        while ((value = node_iter.get_value(leaf_node))) {
+        const btree_key_t *key;
+        while ((key = node_iter.get_key(leaf_node))) {
+            debugf("Got a key\n");
             /* Grab relevant values from the leaf node. */
-            const btree_key_t *key = node_iter.get_key(leaf_node);
+            const void *value = node_iter.get_value(leaf_node);
             guarantee(key);
             node_iter.step(leaf_node);
 
@@ -560,6 +561,7 @@ public:
         for (int i = 0, e = ids_source->num_block_ids(); i < e; ++i) {
             cb->receive_interesting_child(i);
         }
+        cb->no_more_interesting_children();
     }
 
     access_t btree_superblock_mode() { return rwi_read; }
@@ -570,7 +572,7 @@ public:
 
 void post_construct_secondary_indexes(btree_slice_t *slice, transaction_t *txn, superblock_t *superblock,
                                       const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
-                                      signal_t *interruptor) 
+                                      signal_t *interruptor)
                                       THROWS_ONLY(interrupted_exc_t) {
     post_construct_traversal_helper_t helper(sindexes);
 

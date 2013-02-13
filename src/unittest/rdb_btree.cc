@@ -37,7 +37,7 @@ void run_sindex_post_construction() {
 
     cond_t dummy_interuptor;
 
-    for (int i = 0; i < 1000; ++i) {
+    for (int i = 0; i < 10; ++i) {
         scoped_ptr_t<transaction_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
         write_token_pair_t token_pair;
