@@ -5,10 +5,8 @@ goog.require('rethinkdb.TCPServer')
 goog.require('rethinkdb.HttpServer')
 
 args = process.argv[2..]
-portOffset = parseInt(args[0] || '0')
-
-port = 28016+portOffset
-httpPort = 8080+portOffset
+port = parseInt(args[0] || '28016')
+httpPort = parseInt(args[1] || '8080')
 
 # Start the server
 new RDBTcpServer(port)

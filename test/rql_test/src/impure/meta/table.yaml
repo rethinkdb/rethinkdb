@@ -3,40 +3,31 @@ tests:
     
     - def: db = r.db('test')
 
-    - py: db.table_list()
-      js: db.tableList()
+    - cd: db.table_list()
       ot: []
 
     # Table create
-    - py: db.table_create('a')
-      js: db.tableCreate('a')
+    - cd: db.table_create('a')
       ot: ({'created':1})
 
-    - py: db.table_list()
-      js: db.tableList()
+    - cd: db.table_list()
       ot: ['a']
 
-    - py: db.table_create('b')
-      js: db.tableCreate('b')
+    - cd: db.table_create('b')
       ot: ({'created':1})
 
-    - py: db.table_list()
-      js: db.tableList()
+    - cd: db.table_list()
       ot: bag(['a', 'b'])
 
     # Table drop
-    - py: db.table_drop('a')
-      js: db.tableDrop('a')
+    - cd: db.table_drop('a')
       ot: ({'dropped':1})
 
-    - py: db.table_list()
-      js: db.tableList()
+    - cd: db.table_list()
       ot: ['b']
 
-    - py: db.table_drop('b')
-      js: db.tableDrop('b')
+    - cd: db.table_drop('b')
       ot: ({'dropped':1})
 
-    - py: db.table_list()
-      js: db.tableList()
+    - cd: db.table_list()
       ot: []

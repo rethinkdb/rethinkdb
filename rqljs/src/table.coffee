@@ -14,10 +14,7 @@ class RDBTable extends RDBSequence
         @records = {}
 
         if records?
-            for own id,record of records
-                rec = new RDBObject record
-                @records[id] = rec
-                RDBSelection::makeSelection record, @
+            @insert(new RDBArray (new RDBObject row for own k,row of records))
 
     serialize: -> "{\"primaryKey\":\"#{@primaryKey}\",
 \"records\":{#{("\"#{id}\":#{record.serialize()}" for own id,record of @records)}}}"
@@ -35,6 +32,10 @@ class RDBTable extends RDBSequence
     insert: (records, upsert=false) ->
         result = new RDBObject
 
+        if records.typeOf() == RDBType.OBJECT
+            records = new RDBArray [records]
+
+        inserted = 0
         for record in records.asArray()
             pkVal = record[@primaryKey]
 
@@ -52,13 +53,11 @@ class RDBTable extends RDBSequence
 
             # Ensure that this new record is a selection of this table
             RDBSelection::makeSelection record, @
+            inserted++
 
-        return result
+        return new RDBObject {'inserted':inserted}
 
-    get: (pkVal) ->
-        if typeof pkVal isnt 'string' and typeof pkVal isnt 'number'
-            throw new RuntimeError "No such key"
-        @records[pkVal] || RDBSelection::makeSelection(new RDBPrimitive(null), @)
+    get: (pkVal) -> @records[pkVal.asJSON()] || RDBSelection::makeSelection(new RDBPrimitive(null), @)
 
     deleteKey: (pkVal) -> delete @records[pkVal]
 

@@ -2,8 +2,6 @@ goog.provide('rethinkdb.AST')
 
 goog.require('rethinkdb.TypeChecker')
 
-print = console.log
-
 class RDBNode
     eval: -> throw "Abstract Method"
 
@@ -32,7 +30,6 @@ class RDBOp extends RDBNode
                 v = n.eval(context)
                 args.push v
             catch err
-                console.log err
                 err.backtrace.unshift i
                 throw err
 
@@ -42,7 +39,6 @@ class RDBOp extends RDBNode
                 v = n.eval(context)
                 optargs[k] = v
             catch err
-                console.log err
                 err.backtrace.unshift k
                 throw err
 
@@ -91,7 +87,7 @@ class RDBTableRef extends RDBOp
     op: (args, optargs) -> args[0].getTable args[1]
 
 class RDBGetByKey extends RDBOp
-    type: tp "Table, STRING -> SingleSelection"
+    type: tp "Table, STRING -> SingleSelection | Table, NUMBER -> SingleSelection"
     op: (args) -> args[0].get args[1]
 
 class RDBNot extends RDBOp
@@ -263,15 +259,15 @@ class RDBTypeOf extends RDBOp
     op: new RuntimeError "Not implemented"
 
 class RDBUpdate extends RDBOp
-    type: tp "Selection, Function(1), {non_atomic_ok:BOOL} -> OBJECT"
+    type: tp "StreamSelection, Function(1), {non_atomic_ok:BOOL} -> OBJECT | SingleSelection, Function(1), {non_atomic_ok:BOOL} -> OBJECT"
     op: (args) -> args[0].update args[1](1)
 
 class RDBDelete extends RDBOp
-    type: tp "Selection -> OBJECT"
+    type: tp "StreamSelection -> OBJECT | SingleSelection -> OBJECT"
     op: (args) -> args[0].del()
 
 class RDBReplace extends RDBOp
-    type: tp "Selection, Function(1), {non_atomic_ok:BOOL} -> OBJECT"
+    type: tp "StreamSelection, Function(1), {non_atomic_ok:BOOL} -> OBJECT | SingleSelection, Function(1), {non_atomic_ok:BOOL} -> OBJECT"
     op: (args) -> args[0].replace args[1](1)
 
 class RDBInsert extends RDBWriteOp
@@ -361,7 +357,6 @@ class RDBFunc
                     context.popScope()
                     return result
                 catch err
-                    console.log err
                     err.backtrace.unshift 1 # for the body of this func
                     err.backtrace.unshift arg_num # for whatever called us
                     throw err

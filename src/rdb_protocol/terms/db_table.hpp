@@ -124,7 +124,7 @@ private:
         } catch (const missing_machine_exc_t &e) {
             throw exc_t(e.what());
         }
-        env->semilattice_metadata->join(metadata);
+        env->join_and_wait_to_propagate(metadata);
 
         return "created";
     }
@@ -180,7 +180,7 @@ private:
         } catch (const missing_machine_exc_t &e) {
             throw exc_t(e.what());
         }
-        env->semilattice_metadata->join(metadata);
+        env->join_and_wait_to_propagate(metadata);
 
         // UGLY HACK BELOW (see wait_for_rdb_table_readiness)
 
@@ -236,7 +236,7 @@ private:
         } catch (const missing_machine_exc_t &e) {
             throw exc_t(e.what());
         }
-        env->semilattice_metadata->join(metadata);
+        env->join_and_wait_to_propagate(metadata);
 
         return "dropped";
     }
@@ -270,7 +270,7 @@ private:
         } catch (const missing_machine_exc_t &e) {
             throw exc_t(e.what());
         }
-        env->semilattice_metadata->join(metadata);
+        env->join_and_wait_to_propagate(metadata);
 
         return "dropped";
     }

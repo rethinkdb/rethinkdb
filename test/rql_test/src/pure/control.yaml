@@ -5,6 +5,7 @@ tests:
 
     - py: "r.expr(1).do(lambda v: v * 2)"
       js: r.expr(1).do(function(v) { return v.mul(2); })
+      rb: r.expr(1).do{|v| v.mul(2) }
       ot: 2
 
     ## Branch

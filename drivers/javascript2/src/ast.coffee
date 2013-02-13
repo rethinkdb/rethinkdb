@@ -151,13 +151,14 @@ class RDBOp extends RDBVal
             [args[0], '.', @mt, '(', intsp(args[1..]), ')']
 
 intsp = (seq) ->
+    unless seq[0]? then return []
     res = [seq[0]]
     for e in seq[1..]
         res.push(', ', e)
     return res
 
 kved = (optargs) ->
-    ['{', intsp([k, ': ', v] for k,v in optargs), '}']
+    ['{', intsp([k, ': ', v] for own k,v of optargs), '}']
 
 class MakeArray extends RDBOp
     tt: Term2.TermType.MAKE_ARRAY

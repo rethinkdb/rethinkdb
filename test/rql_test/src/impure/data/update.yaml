@@ -1,0 +1,64 @@
+desc: Tests updates of selections
+tests:
+
+    # Set up some data
+    - py: r.db('test').table_create('test')
+      js: r.db('test').tableCreate('test')
+      ot: ({'created':1})
+      def: tbl = r.db('test').table('test')
+
+    - py: r.db('test').table_create('test2')
+      js: r.db('test').tableCreate('test2')
+      ot: ({'created':1})
+      def: tbl2 = r.db('test').table('test2')
+
+    - py: tbl.insert([{'id':i} for i in xrange(100)])
+      js: |
+        tbl.insert(function(){
+            var res = []
+            for (var i = 0; i < 100; i++) {
+                res.push({id:i});
+            }
+            return res;
+        }())
+      ot: ({'inserted':100})
+
+    - cd: tbl.count()
+      ot: 100
+
+    # Identity
+    - py: "tbl.get(12).update(lambda row: row)"
+      js: tbl.get(12).update(function(row) { return row; })
+      ot: "({'unchanged': 1})"
+
+    # Point update
+    - py: "tbl.get(12).update(lambda row: {'a':row['id']})"
+      js: "tbl.get(12).update(function(row) { return {'a':row('id')}; })"
+      ot: ({'replaced':1})
+
+    - cd: tbl.get(12)
+      ot: ({'id':12, 'a':12})
+
+    # Update selection of table
+
+    # Between is buggy on the CPP server right now and this doesn't work
+    #- py: "tbl.between(10, 19).update(lambda row: {'a':row['id']})"
+    #  js: "tbl.between(10, 19).update(function(row) { return {'a':row('id')}; })"
+    #  ot: ({'replaced':9, 'unchanged':1})
+
+    - py: "tbl.filter(lambda row: (row['id'] >= 10) & (row['id'] < 20)).update(lambda row: {'a':row['id']})"
+      js: "tbl.filter(function(row) { return row('id').ge(10).and(row('id').lt(20))}).update(function(row) { return {'a':row('id')}; })"
+      ot: ({'replaced':9, 'unchanged':1})
+
+    # Update whole table
+    - py: "tbl.update(lambda row: {'a':row['id']})"
+      js: "tbl.update(function(row) { return {'a':row('id')}; })"
+      ot: ({'replaced':90, 'unchanged':10})
+
+    # clean up
+    - py: r.db('test').table_drop('test')
+      js: r.db('test').tableDrop('test')
+      ot: "({'dropped': 1})"
+    - py: r.db('test').table_drop('test2')
+      js: r.db('test').tableDrop('test2')
+      ot: "({'dropped': 1})"

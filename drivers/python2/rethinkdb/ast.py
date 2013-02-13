@@ -90,6 +90,15 @@ class RDBValue(RDBBase):
     def do(self, func):
         return FunCall(Func(func), self)
 
+    def update(self, func):
+        return Update(self, Func(func))
+
+    def replace(self, func):
+        return Replace(self, Func(func))
+
+    def delete(self):
+        return Delete(self)
+
 class RDBOp(RDBBase):
     def __init__(self, *args, **optargs):
         self.args = [expr(e) for e in args]
@@ -426,15 +435,13 @@ class Table(RDBSeqOp, RDBMethod):
     st = 'table'
 
     def insert(self, records):
-        if not isinstance(records, list):
-            records = [records]
         return Insert(self, records)
 
     def get(self, key):
         return Get(self, key)
 
     def compose(self, args, optargs):
-        return T(args[1], '.table(', args[0], ')')
+        return T(args[0], '.table(', args[1], ')')
 
 class Get(RDBValOp, RDBMethod):
     tt = p.Term2.GET
@@ -556,6 +563,8 @@ class Func(RDBOp):
 
     def __init__(self, lmbd):
         if isinstance(lmbd, types.FunctionType):
+            self.lmbd_expr = True
+
             vrs = []
             vrids = []
             for i in xrange(lmbd.func_code.co_argcount):
@@ -566,11 +575,17 @@ class Func(RDBOp):
             self.vrs = vrs
             self.args = [MakeArray(*vrids), expr(lmbd(*vrs))]
         else:
+            self.lmbd_expr = False
+
+            self.vrs = []
             self.args = [MakeArray(), expr(lmbd)]
         
         self.optargs = {}
 
     def compose(self, args, optargs):
-        return T('lambda ', T(*[v.compose([v.args[0].compose(None, None)], []) for v in self.vrs], intsp=', '), ': ', args[1])
+        if self.lmbd_expr:
+            return T('lambda ', T(*[v.compose([v.args[0].compose(None, None)], []) for v in self.vrs], intsp=', '), ': ', args[1])
+        else:
+            return args[1]
 
 from query import expr

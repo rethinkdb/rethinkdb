@@ -140,69 +140,29 @@ class RDBSequence extends RDBType
         @innerJoin right, (lRow, rRow) ->
             lRow[left_attr.asJSON()].eq(rRow[right_attr.asJSON()])
 
-    objSum = (arr, base) ->
-        arr.forEach (val) ->
-            for own k,v of base
-                if k is 'first_error'
-                    continue
-                if val[k]?
-                    base[k] += val[k]
-            if (not base['first_error']?) and val['error']?
-                base['first_error'] = val['error']
-        base
+    statsMerge = (results) ->
+        base = new RDBObject {}
+        for result in results.asArray()
+            for own k,v of result
+                if base[k]?
+                    switch v.typeOf()
+                        when RDBType.NUMBER
+                            base[k] = base[k].add(v)
+                        when RDBType.STRING
+                            null # left preferential
+                        when RDBType.ARRAY
+                            base[k] = base[k].union(v)
+                else
+                    base[k] = v
+        return base
 
-    forEach: (mapping) ->
-        results = @asArray().map mapping
-        base = {inserted: 0, errors: 0, updated: 0}
-
-        #TODO results is empty. Why are the write results not propogating?
-
-        #results.map (res) ->
-        #    base = objSum res, base
-        new RDBObject base
+    forEach: (mapping) -> statsMerge @map mapping
 
     getPK: -> @asArray()[0].getPK()
 
-    update: (mapping) ->
-        updated = 0
-        skipped = 0
-        errors = 0
-        first_error = null
-        @asArray().forEach (v) ->
-            try
-                v.update mapping
-                updated++
-            catch err
-                console.log err
-                unless first_error then first_error = err
-                errors++
-        result = {updated: updated, errors: errors, skipped: skipped}
-        if first_error then result.first_error = first_error
-        return new RDBObject result
-
-    replace: (mapping) ->
-        modified = 0
-        inserted = 0
-        deleted = 0
-        errors = 0
-        first_error = null
-        @asArray().forEach (v) ->
-            try
-                switch v.replace mapping
-                    when "modified" then modified++
-                    when "deleted"  then deleted++
-                    when "inserted" then inserted++
-            catch err
-                unless first_error then first_error = err
-                errors++
-
-        result = {deleted: deleted, errors: errors, inserted: inserted, modified: modified}
-        if first_error then result.first_error = first_error
-        return new RDBObject result
-
-    del: ->
-        results = @asArray().map (v) -> v.del()
-        new RDBObject objSum results, {deleted:0}
+    update: (mapping) -> statsMerge @map (row) -> row.update mapping
+    replace: (mapping) -> statsMerge @map (row) -> row.replace mapping
+    del: -> statsMerge @map (v) -> v.del()
 
 class RDBArray extends RDBSequence
     constructor: (arr) -> @data = arr
