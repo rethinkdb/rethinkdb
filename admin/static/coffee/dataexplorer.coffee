@@ -486,6 +486,7 @@ module 'DataExplorerView', ->
             white_replace: /\s/g
             white_start: /^(\s)+/
             comma: /^(\s)*,(\s)*/
+            semicolon: /^(\s)*;(\s)*/
             number: /^[0-9]+\.?[0-9]*/
             get_first_non_white_char: /\s*(\S+)/
             last_char_is_white: /.*(\s+)$/
@@ -677,7 +678,22 @@ module 'DataExplorerView', ->
                                 start = i+result_regex[0].length-1+1
                                 to_skip = result_regex[0].length-1
                                 continue
-
+                            # Look for a semi colon
+                            result_regex = @regex.semicolon.exec query.slice i
+                            if result_regex isnt null
+                                # element should have been pushed in stack. If not, the query is malformed
+                                element.complete = true
+                                stack.push
+                                    type: 'separator'
+                                    complete: true
+                                    name: query.slice i, result_regex[0].length
+                                element =
+                                    type: null
+                                    context: context
+                                    complete: false
+                                start = i+result_regex[0].length-1+1
+                                to_skip = result_regex[0].length-1
+                                continue
                         #else # if element.start isnt i
                             # Skip white spaces
                             # TODO
