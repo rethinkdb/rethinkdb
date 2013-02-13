@@ -1459,7 +1459,7 @@ module 'DataExplorerView', ->
                         if query[i-1]? and query[i-1] isnt '\\'
                             active_string = query.slice(start_string, i)
                             count_replace = active_string.match(/\n/g)?.length
-                            query = query.slice(0, start_string) + active_string.replace('\n', '\\n') + query.slice(i)
+                            query = query.slice(0, start_string) + active_string.replace(/\n/g, '\\n') + query.slice(i)
                             is_string = false
                             if count_replace?
                                 i += count_replace
