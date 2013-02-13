@@ -2214,7 +2214,10 @@ module 'DataExplorerView', ->
 
         load_query: (event) =>
             id = @$(event.target).data().id
+            # Set + save codemirror
             @container.codemirror.setValue @history[parseInt(id)]
+            @container.saved_data.current_query = @history[parseInt(id)]
+            @container.save_data_in_localstorage()
 
         add_query: (query) =>
             # We don't keep state because we consider that people will not fire two differents queries in less than 200ms.
