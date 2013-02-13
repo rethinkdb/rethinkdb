@@ -183,9 +183,12 @@ Did you forget to append .run() at the end of your query?{{/if}}</pre>
         </ul>
         <p class="metadata">
             {{#if execution_time_pretty}}Executed in {{execution_time_pretty}}.{{/if}}
-            {{#if limit_value}}{{limit_value}} {{pluralize_noun "row" limit_value}} displayed.{{/if}}
-            {{#if skip_value}}{{skip_value}} {{pluralize_noun "row" skip_value}} skipped.{{/if}}
-            {{#if no_results}}No results returned.{{/if}}
+            {{#if no_results}}No result returned.{{/if}}
+            {{#if num_results}}{{num_results}} {{pluralize_noun 'row' num_results}} returned
+                {{#if limit_value}}, {{limit_value}} displayed{{/if}}{{#if skip_value}}, {{skip_value}} skipped.{{/if}}
+            {{else}}
+                {{#if limit_value}}{{limit_value}} {{pluralize_noun "row" limit_value}} displayed{{/if}}{{#if skip_value}}, {{skip_value}} skipped.{{/if}}
+            {{/if}}
         </p>
     </div>
     <div class="wrapper_scrollbar"><div class="scrollbar_fake_content"></div></div>

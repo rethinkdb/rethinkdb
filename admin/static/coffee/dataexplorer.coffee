@@ -1312,7 +1312,6 @@ module 'DataExplorerView', ->
         show_more_results: (event) =>
             try
                 event.preventDefault()
-                @current_results = []
                 @start_time = new Date()
                 @saved_data.cursor.next(@callback_query)
                 $(window).scrollTop(@.$('.results_container').offset().top)
@@ -2018,6 +2017,7 @@ module 'DataExplorerView', ->
                 cursor_timed_out_template: (@cursor_timed_out_template() if @metadata.has_more_data is true and @container.saved_data.cursor_timed_out is true)
                 execution_time_pretty: @metadata.execution_time_pretty
                 no_results: @metadata.has_more_data isnt true and @results.length is 0 and @metadata.skip_value is 0
+                num_results: ((@metadata.skip_value+@results.length) if @metadata.has_more_data isnt true)
 
             switch @prototype.view
                 when 'tree'
