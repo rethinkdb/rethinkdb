@@ -44,6 +44,12 @@ message Query2 {
     optional Term2 query = 2; // only present when [type] = [START]
     required int64 token = 3;
     optional bool noreply = 4 [default = false]; // CURRENTLY IGNORED, NO SERVER SUPPORT
+
+    message AssocPair {
+        required string key = 1;
+        required Term2 val = 2;
+    };
+    repeated AssocPair global_optargs = 6;
 };
 
 // You get back a response with the same [token] as your query.

@@ -2,6 +2,17 @@
 
 namespace ql {
 
+bool env_t::add_optarg(const std::string &key, term_t *val) {
+    if (optargs.count(key)) return true;
+    optargs[key] = val;
+    return false;
+}
+val_t *env_t::get_optarg(const std::string &key){
+    if (!optargs.count(key)) return 0;
+    return optargs[key]->eval(true);
+}
+
+
 int env_t::gensym() {
     r_sanity_check(next_gensym_val > -100000);
     return next_gensym_val--;

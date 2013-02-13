@@ -98,6 +98,21 @@ void run(Query2 *q, scoped_ptr_t<env_t> *env_ptr,
          Response2 *res, stream_cache2_t *stream_cache2) {
     env_t *env = env_ptr->get();
     int64_t token = q->token();
+
+    for (int i = 0; i < q->global_optargs_size(); ++i) {
+        const Query2::AssocPair &ap = q->global_optargs(i);
+        bool conflict = env->add_optarg(ap.key(), compile_term(env, &ap.val()));
+        rcheck(!conflict, strprintf("Duplicate key: %s", ap.key().c_str()));
+    }
+    env_wrapper_t<Term2> *ewt = env->add_ptr(new env_wrapper_t<Term2>());
+    Term2 *arg = &ewt->t;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"
+    N1(DB, NDATUM("test"));
+#pragma GCC diagnostic pop
+    UNUSED bool _b = env->add_optarg("db", compile_term(env, arg));
+    // UNUSED because user can override this value safely
+
     switch(q->type()) {
     case Query2_QueryType_START: {
         term_t *root_term = 0;
