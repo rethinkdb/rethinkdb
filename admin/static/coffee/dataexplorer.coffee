@@ -1457,8 +1457,12 @@ module 'DataExplorerView', ->
                 if is_string is true
                     if query[i] is char_used
                         if query[i-1]? and query[i-1] isnt '\\'
-                            query = query.slice(0, start_string) + query.slice(start_string, i).replace('\n', '\\n') + query.slice(i)
+                            active_string = query.slice(start_string, i)
+                            count_replace = active_string.match(/\n/g)?.length
+                            query = query.slice(0, start_string) + active_string.replace('\n', '\\n') + query.slice(i)
                             is_string = false
+                            if count_replace?
+                                i += count_replace
                 else if is_string is false
                     if query[i] is '\'' or query[i] is '"'
                         is_string = true
@@ -1482,27 +1486,39 @@ module 'DataExplorerView', ->
             last_function = '' # The last function used with its arguments 
             for i in [0..query.length-1]
                 if is_string is false
-                    if (query[i] is '"' or query[i] is '\'')
-                        is_string = true
-                        char_used = query[i]
-                    else if query[i] is ';'
-                        if last_function is 'run()' # If the last function is run(), we have one query
-                            queries.push query.slice start, i
-                            start = i+1
+                    if is_inline_comment is true
+                        if query[i] is '\n' or query[i] is '\r'
+                            is_inline_comment = false
+                    else if is_comment
+                        if query[i] is '*' or query[i] is '/'
+                            is_comment = false
+                    else
+                        if (query[i] is '"' or query[i] is '\'')
+                            is_string = true
+                            char_used = query[i]
+                        else if query[i] is ';'
+                            if last_function is 'run()' # If the last function is run(), we have one query
+                                queries.push query.slice start, i
+                                start = i+1
+                        else if query[i] is '/'
+                            if query[i+1] is '/'
+                                is_inline_comment = true
+                            else if query[i+1] is '*'
+                                is_comment = true
 
-                    # Keep track of the last function used
-                    if query[i] is '.' # New function detected, let's reset last_function and switch on is_parsing_function
-                        last_function = ''
-                        is_parsing_function = true
-                    else if is_parsing_function is true
-                        if is_parsing_args is false or /\s/.test(query[i]) is false # If we are parsing arguments, we are not interested in white space
-                            last_function += query[i]
+                        # Keep track of the last function used
+                        if query[i] is '.' # New function detected, let's reset last_function and switch on is_parsing_function
+                            last_function = ''
+                            is_parsing_function = true
+                        else if is_parsing_function is true
+                            if is_parsing_args is false or /\s/.test(query[i]) is false # If we are parsing arguments, we are not interested in white space
+                                last_function += query[i]
 
-                        if query[i] is '(' # We are going to parse arguments now
-                            is_parsing_args = true
-                        else if query[i] is ')' # End of the function
-                            is_parsing_function = false
-                            is_parsing_args = false
+                            if query[i] is '(' # We are going to parse arguments now
+                                is_parsing_args = true
+                            else if query[i] is ')' # End of the function
+                                is_parsing_function = false
+                                is_parsing_args = false
 
 
                 else if is_string is true
