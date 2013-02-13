@@ -1429,11 +1429,10 @@ TODO: retire this
                 }
                 td{
                     max-width: 310px;
-                    padding: 0px 5px 0px 0px;
+                    padding: 0px;
                     vertical-align: top;
                     border: 1px solid #dfdfdf;
                     overflow: hidden;
-                    cursor: e-resize;
                 }
                 tr{
                     padding: 20px;
@@ -1445,12 +1444,14 @@ TODO: retire this
                     }
                 }
                 .jta_attr{
+                    margin: 0px 5px 0px 0px;
                     padding: 7px 0px 5px 15px;
                     cursor: auto;
                     overflow: hidden;
                 }
                 .jta_value{
                     cursor: auto;
+                    margin: 0px 5px 0px 0px;
                     padding: 7px 0px 5px 15px;
                     max-width: 290px; // smaller margin on the right in case of overflow
                     overflow: hidden;
@@ -1486,6 +1487,10 @@ TODO: retire this
                 .col-record{
                     color: #aaa;
                     padding: 7px 10px 5px 10px;
+                }
+                .click_detector{
+                    width: 100%;
+                    cursor: e-resize;
                 }
             }
             .resizing{

@@ -1609,10 +1609,9 @@ module 'DataExplorerView', ->
             # For Tree view
             'click .jt_arrow': 'toggle_collapse'
             # For Table view
-            'mousedown td': 'handle_mousedown'
+            'mousedown .click_detector': 'handle_mousedown'
             'click .jta_arrow_h': 'expand_tree_in_table'
             'click .jta_arrow_hh': 'expand_table_in_table'
-
             'click .link_to_tree_view': 'show_tree'
             'click .link_to_table_view': 'show_table'
             'click .link_to_raw_view': 'show_raw'
@@ -1959,25 +1958,31 @@ module 'DataExplorerView', ->
         #TODO change cursor
         mouse_down: false
         handle_mousedown: (event) =>
-            if event.target.nodeName is 'TD' and event.which is 1
-                @event_target = event.target
-                @col_resizing = event.target.dataset.col
-                @start_width = @.$(event.target).width()
+            if event.target.nodeName is 'DIV'
+                @col_resizing = @$(event.target).parent().data('col')
+                @start_width = @$(event.target).parent().width()
                 @start_x = event.pageX
                 @mouse_down = true
-                @.$('.json_table').toggleClass('resizing', true)
+                @$('.json_table').toggleClass('resizing', true)
 
         #TODO Handle when last column is resized or when table expands too much
         handle_mousemove: (event) =>
             if @mouse_down
-                @last_columns_size[@col_resizing] = Math.max 15, @start_width-@start_x+event.pageX # Save the personalized size
+                @last_columns_size[@col_resizing] = Math.max 5, @start_width-@start_x+event.pageX # Save the personalized size
                 @resize_column @col_resizing, @last_columns_size[@col_resizing] # Resize
 
         resize_column: (col, size) =>
             $('.col-'+col).css 'max-width', size
-            $('.value-'+col).css 'max-width', size-15
+            $('.value-'+col).css 'max-width', size-20
             $('.col-'+col).css 'width', size
-            $('.value-'+col).css 'width', size-15
+            $('.value-'+col).css 'width', size-20
+            if size < 20
+                $('.value-'+col).css 'padding-left', (size-5)+'px'
+                $('.value-'+col).css 'visibility', 'hidden'
+            else
+                $('.value-'+col).css 'padding-left', '15px'
+                $('.value-'+col).css 'visibility', 'visible'
+
 
         handle_mouseup: (event) =>
             @mouse_down = false

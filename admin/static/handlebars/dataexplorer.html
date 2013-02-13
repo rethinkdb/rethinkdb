@@ -294,7 +294,9 @@ Did you forget to append .run() at the end of your query?{{/if}}</pre>
         </td>
         {{#each attr}}
         <td class="td_attr col-{{col}}" data-col={{col}}>
-            <div class="jta_attr value-{{col}}">{{key}}</div>
+            <div class="click_detector">
+                <div class="jta_attr value-{{col}}">{{key}}</div>
+            </div>
         </td>
         {{/each}}
     </tr>
@@ -324,6 +326,7 @@ Did you forget to append .run() at the end of your query?{{/if}}</pre>
 </script>
 
 <script id="dataexplorer_result_json_table_td_value_content-template" type="text/xs-handlebars-template">
+    <div class="click_detector">
     {{#if data_to_expand}}
     <div class="{{class_value}} jta_value {{classname}}">       
         <span class="jta_arrow jta_arrow_hh"></span>
@@ -339,6 +342,7 @@ Did you forget to append .run() at the end of your query?{{/if}}</pre>
         </span>
     </div>
     {{/if}}
+</div>
 </script>
 
 <script id="dataexplorer_result_json_table_data_inline-template" type="text/xs-handlebars-template">
