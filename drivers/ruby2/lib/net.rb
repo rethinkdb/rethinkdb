@@ -7,7 +7,50 @@ module RethinkDB
   class RQL
     def run
       unbound_if !@body
-      Shim.response_to_native(Connection.last.run @body)
+      Connection.last.run @body
+    end
+  end
+
+  class Cursor
+    include Enumerable
+    def out_of_date # :nodoc:
+      @conn.conn_id != @conn_id
+    end
+
+    def inspect # :nodoc:
+      state = @run ? "(exhausted)" : "(enumerable)"
+      extra = out_of_date ? " (Connection #{@conn.inspect} reset!)" : ""
+      "#<RethinkDB::Query_Results:#{self.object_id} #{state}#{extra}: #{@query.inspect}>"
+    end
+
+    def initialize(results, msg, connection, token) # :nodoc:
+      @results = results
+      @msg = msg
+      @run = false
+      @conn_id = connection.conn_id
+      @conn = connection
+      @token = token
+    end
+
+    def each (&block) # :nodoc:
+      raise RuntimeError, "Can only iterate over Query_Results once!" if @run
+      @run = true
+      raise RuntimeError, "Connection has been reset!" if out_of_date
+      while true
+        @results.each(&block)
+        q = Query2.new
+        q.type = Query2::QueryType::CONTINUE
+        q.query = @msg
+        q.token = @token
+        res = @conn.run_internal q
+        if res.type == Response2::ResponseType::SUCCESS_PARTIAL
+          @results = Shim.response_to_native res
+        else
+          @results = Shim.response_to_native res
+          @results.each(&block)
+          return self
+        end
+      end
     end
   end
 
@@ -28,13 +71,21 @@ module RethinkDB
     attr_reader :default_db, :conn_id
 
     @@token_cnt = 0
+    def run_internal q
+      dispatch q
+      wait q.token
+    end
     def run msg
       q = Query2.new
       q.type = Query2::QueryType::START
       q.query = msg
       q.token = @@token_cnt += 1
-      dispatch q
-      wait q.token
+      res = run_internal q
+      if res.type == Response2::ResponseType::SUCCESS_PARTIAL
+        Cursor.new(Shim.response_to_native(res), msg, self, q.token)
+      else
+        Shim.response_to_native res
+      end
     end
 
     def dispatch msg

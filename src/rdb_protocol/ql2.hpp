@@ -12,7 +12,8 @@
 namespace ql {
 // Runs a query!  This is all outside code should ever need to call.  See
 // term.cc for definition.
-void run(Query2 *q, env_t *env, Response2 *res, stream_cache_t *stream_cache);
+void run(Query2 *q, scoped_ptr_t<env_t> *env_ptr,
+         Response2 *res, stream_cache2_t *stream_cache2);
 } // namespace ql
 
 #endif // RDB_PROTOCOL_QL2_HPP_

@@ -94,7 +94,10 @@ term_t *compile_term(env_t *env, const Term2 *t) {
     unreachable();
 }
 
-void run(Query2 *q, env_t *env, Response2 *res, stream_cache_t *stream_cache) {
+void run(Query2 *q, scoped_ptr_t<env_t> *env_ptr,
+         Response2 *res, stream_cache2_t *stream_cache2) {
+    env_t *env = env_ptr->get();
+    int64_t token = q->token();
     switch(q->type()) {
     case Query2_QueryType_START: {
         term_t *root_term = 0;
@@ -108,23 +111,25 @@ void run(Query2 *q, env_t *env, Response2 *res, stream_cache_t *stream_cache) {
         }
 
         try {
+            rcheck(!stream_cache2->contains(token),
+                   strprintf("ERROR: duplicate token %ld", token));
+        } catch (const exc_t &e) {
+            fill_error(res, Response2::CLIENT_ERROR, e.what(), e.backtrace);
+            return;
+        }
+
+        try {
             val_t *val = root_term->eval(false);
             if (val->get_type().is_convertible(val_t::type_t::DATUM)) {
                 res->set_type(Response2_ResponseType_SUCCESS_ATOM);
                 const datum_t *d = val->as_datum();
                 d->write_to_protobuf(res->add_response());
             } else if (val->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
-                // TODO: SUCCESS_PARTIAL
-                res->set_type(Response2_ResponseType_SUCCESS_SEQUENCE);
-                datum_stream_t *ds = val->as_seq();
-                for (;;) {
-                    env_checkpoint_t(env, &env_t::discard_checkpoint);
-                    const datum_t *d = ds->next();
-                    if (!d) break;
-                    d->write_to_protobuf(res->add_response());
-                }
+                stream_cache2->insert(q, token, env_ptr, val->as_seq());
+                bool b = stream_cache2->serve(token, res, env->interruptor);
+                r_sanity_check(b);
             } else {
-                rfail("Query returned non-datum %s.", val->print().c_str());
+                rfail("Query returned opaque value %s.", val->print().c_str());
             }
         } catch (const exc_t &e) {
             fill_error(res, Response2::RUNTIME_ERROR, e.what(), e.backtrace);
@@ -133,7 +138,8 @@ void run(Query2 *q, env_t *env, Response2 *res, stream_cache_t *stream_cache) {
     }; break;
     case Query2_QueryType_CONTINUE: {
         try {
-            rfail("UNIMPLEMENTED %p", stream_cache);
+            bool b = stream_cache2->serve(token, res, env->interruptor);
+            rcheck(b, strprintf("Token %ld not in stream cache.", token));
         } catch (const exc_t &e) {
             fill_error(res, Response2::CLIENT_ERROR, e.what(), e.backtrace);
             return;
@@ -141,7 +147,9 @@ void run(Query2 *q, env_t *env, Response2 *res, stream_cache_t *stream_cache) {
     }; break;
     case Query2_QueryType_STOP: {
         try {
-            rfail("UNIMPLEMENTED");
+            rcheck(stream_cache2->contains(token),
+                   strprintf("Token %ld not in stream cache.", token));
+            stream_cache2->erase(token);
         } catch (const exc_t &e) {
             fill_error(res, Response2::CLIENT_ERROR, e.what(), e.backtrace);
             return;

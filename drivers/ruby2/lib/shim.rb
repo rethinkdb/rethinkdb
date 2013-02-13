@@ -20,12 +20,13 @@ module RethinkDB
       }
       case r.type
       when rt::SUCCESS_ATOM then datum_to_native(r.response[0])
+      when rt::SUCCESS_PARTIAL then r.response.map{|d| datum_to_native(d)}
       when rt::SUCCESS_SEQUENCE then r.response.map{|d| datum_to_native(d)}
       when rt::RUNTIME_ERROR then
         raise RuntimeError, "#{r.response[0].r_str}\nBacktrace: #{bt.inspect}"
       when rt::COMPILE_ERROR then # TODO: remove?
         raise RuntimeError, "#{r.response[0].r_str}\nBacktrace: #{bt.inspect}"
-      else r
+      else raise RuntimeError, "Unexpected response: #{r.inspect}"
       end
     end
 

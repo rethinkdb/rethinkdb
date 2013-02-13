@@ -3,6 +3,10 @@
 
 #include "rdb_protocol/stream.hpp"
 
+namespace query_language {
+class json_stream_t;
+}
+
 namespace ql {
 
 class datum_stream_t : public ptr_baggable_t {

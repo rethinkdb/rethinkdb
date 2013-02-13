@@ -112,7 +112,7 @@ Response2 on_unparsable_query2(Query2 *q, std::string msg) {
 }
 
 Response2 query2_server_t::handle(Query2 *q, context_t *query2_context) {
-    stream_cache_t *stream_cache = &query2_context->stream_cache;
+    ql::stream_cache2_t *stream_cache2 = &query2_context->stream_cache2;
     signal_t *interruptor = query2_context->interruptor;
     guarantee(interruptor);
     Response2 res;
@@ -122,14 +122,15 @@ Response2 query2_server_t::handle(Query2 *q, context_t *query2_context) {
         boost::shared_ptr<js::runner_t> js_runner = boost::make_shared<js::runner_t>();
         int thread = get_thread_id();
         guarantee(ctx->directory_read_manager);
-        ql::env_t env(
+        scoped_ptr_t<ql::env_t> env(
+            new ql::env_t(
             ctx->pool_group, ctx->ns_repo,
             ctx->cross_thread_namespace_watchables[thread]->get_watchable(),
             ctx->cross_thread_database_watchables[thread]->get_watchable(),
             ctx->semilattice_metadata, ctx->directory_read_manager,
-            js_runner, interruptor, ctx->machine_id);
+            js_runner, interruptor, ctx->machine_id));
         //[ql::run] will set the status code
-        ql::run(q, &env, &res, stream_cache);
+        ql::run(q, &env, &res, stream_cache2);
     } catch (const interrupted_exc_t &e) {
         ql::fill_error(&res, Response2::RUNTIME_ERROR,
                        "Query2 interrupted.  Did you shut down the server?");
