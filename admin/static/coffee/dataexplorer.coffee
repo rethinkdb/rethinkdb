@@ -491,6 +491,8 @@ module 'DataExplorerView', ->
             comma: /^(\s)*,(\s)*/
             semicolon: /^(\s)*;(\s)*/
             number: /^[0-9]+\.?[0-9]*/
+            inline_comment: /^(\s)*\/\/.*\n/
+            multiple_line_comment: /^(\s)*\/\*[^]*\*\//
             get_first_non_white_char: /\s*(\S+)/
             last_char_is_white: /.*(\s+)$/
         stop_char: # Just for performance
@@ -550,7 +552,18 @@ module 'DataExplorerView', ->
                             element.type = 'string'
                             start = i
                         continue
-                   
+                    
+                    result_inline_comment = @regex.inline_comment.exec query.slice i
+                    if result_inline_comment?
+                        to_skip = result_inline_comment[0].length-1
+                        start += result_inline_comment[0].length
+                        continue
+                    result_multiple_line_comment = @regex.multiple_line_comment.exec query.slice i
+                    if result_multiple_line_comment?
+                        to_skip = result_multiple_line_comment[0].length-1
+                        start += result_multiple_line_comment[0].length
+                        continue
+
                     if element.type is null
                         if start is i
                             result_white = @regex.white_start.exec query.slice i
