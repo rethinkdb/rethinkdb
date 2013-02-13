@@ -280,7 +280,7 @@ module 'DataExplorerView', ->
                     results: @saved_data.results
                     metadata: @saved_data.metadata
                 }).$el
-                # The query in code mirror is set in call_codemirror (because we can't set it now)
+                # The query in code mirror is set in init_after_dom_rendered (because we can't set it now)
             else
                 @$('.results_container').html @results_view.render_default().$el
 
@@ -294,7 +294,7 @@ module 'DataExplorerView', ->
 
         # Create a code mirror instance
         # This method has to be called AFTER the el element has been inserted in the DOM tree.
-        call_codemirror: =>
+        init_after_dom_rendered: =>
             @codemirror = CodeMirror.fromTextArea document.getElementById('input_query'),
                 mode:
                     name: 'javascript'
@@ -312,6 +312,7 @@ module 'DataExplorerView', ->
             @codemirror.focus() # Give focus
             @codemirror.setCursor @codemirror.lineCount(), 0
             @handle_keypress() # Show suggestions/description if there are
+            @results_view.expand_raw_textarea()
 
         # We have to keep track of a lot of things because web-kit browsers handle the events keydown, keyup, blur etc... in a strange way.
         current_suggestions: []
