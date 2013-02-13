@@ -51,7 +51,8 @@ private:
 #endif // NDEBUG
 
 template <class protocol_t>
-listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
+listener_t<protocol_t>::listener_t(const base_path_t &base_path,
+                                   io_backender_t *io_backender,
                                    mailbox_manager_t *mm,
                                    clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > broadcaster_metadata,
                                    branch_history_manager_t<protocol_t> *branch_history_manager,
@@ -69,7 +70,9 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
     perfmon_collection_(),
     perfmon_collection_membership_(backfill_stats_parent, &perfmon_collection_, "backfill-serialization-" + uuid_to_str(uuid_)),
     /* TODO: Put the file in the data directory, not here */
-    write_queue_(io_backender, "backfill-serialization-" + uuid_to_str(uuid_), &perfmon_collection_),
+    write_queue_(io_backender,
+                 serializer_filepath_t(base_path, "backfill-serialization-" + uuid_to_str(uuid_)),
+                 &perfmon_collection_),
     write_queue_semaphore_(SEMAPHORE_NO_LIMIT,
         WRITE_QUEUE_SEMAPHORE_TRICKLE_FRACTION),
     enforce_max_outstanding_writes_from_broadcaster_(MAX_OUTSTANDING_WRITES_FROM_BROADCASTER),
@@ -227,7 +230,8 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
 
 
 template <class protocol_t>
-listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
+listener_t<protocol_t>::listener_t(const base_path_t &base_path,
+                                   io_backender_t *io_backender,
                                    mailbox_manager_t *mm,
                                    clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > broadcaster_metadata,
                                    branch_history_manager_t<protocol_t> *branch_history_manager,
@@ -242,7 +246,7 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
     perfmon_collection_(),
     perfmon_collection_membership_(backfill_stats_parent, &perfmon_collection_, "backfill-serialization-" + uuid_to_str(uuid_)),
     /* TODO: Put the file in the data directory, not here */
-    write_queue_(io_backender, "backfill-serialization-" + uuid_to_str(uuid_), &perfmon_collection_),
+    write_queue_(io_backender, serializer_filepath_t(base_path, "backfill-serialization-" + uuid_to_str(uuid_)), &perfmon_collection_),
     write_queue_semaphore_(WRITE_QUEUE_SEMAPHORE_LONG_TERM_CAPACITY,
         WRITE_QUEUE_SEMAPHORE_TRICKLE_FRACTION),
     enforce_max_outstanding_writes_from_broadcaster_(MAX_OUTSTANDING_WRITES_FROM_BROADCASTER),

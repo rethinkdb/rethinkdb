@@ -9,7 +9,7 @@
 template <class protocol_t>
 class file_based_svs_by_namespace_t : public svs_by_namespace_t<protocol_t> {
 public:
-    file_based_svs_by_namespace_t(io_backender_t *io_backender, const std::string &file_path) : io_backender_(io_backender), file_path_(file_path) { }
+    file_based_svs_by_namespace_t(io_backender_t *io_backender, const base_path_t& base_path) : io_backender_(io_backender), base_path_(base_path) { }
 
     void get_svs(perfmon_collection_t *serializers_perfmon_collection, namespace_id_t namespace_id,
                  int64_t cache_size,
@@ -19,13 +19,12 @@ public:
 
     void destroy_svs(namespace_id_t namespace_id);
 
-    std::string file_name_for(namespace_id_t namespace_id);
-    std::string hash_shard_name_for(namespace_id_t namespace_id, int shardnum);
+    serializer_filepath_t file_name_for(namespace_id_t namespace_id);
 
 private:
 
     io_backender_t *io_backender_;
-    const std::string file_path_;
+    const base_path_t base_path_;
 
     DISABLE_COPYING(file_based_svs_by_namespace_t);
 };

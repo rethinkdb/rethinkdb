@@ -101,7 +101,8 @@ public:
     enum mode_t {
         mode_read = 1 << 0,
         mode_write = 1 << 1,
-        mode_create = 1 << 2
+        mode_create = 1 << 2,
+        mode_truncate = 1 << 3
     };
 
     bool is_block_device();

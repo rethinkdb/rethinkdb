@@ -1,9 +1,9 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include <ctime>
 
 #include "arch/address.hpp"
 #include "arch/runtime/runtime.hpp"
-#include "mock/unittest_utils.hpp"
+#include "unittest/unittest_utils.hpp"
 #include "unittest/gtest.hpp"
 #include "utils.hpp"
 
@@ -80,8 +80,7 @@ TEST(UtilsTest, Time) {
     tzset();
 }
 
-TEST(UtilsTest, SizedStrcmp)
-{
+TEST(UtilsTest, SizedStrcmp) {
     uint8_t test1[] = "foobarbazn\nqux";
     uint8_t test2[] = "foobarbazn\nquxr";
     uint8_t test3[] = "hello world";
@@ -102,10 +101,9 @@ void run_ip_address_test() {
     EXPECT_EQ("111.112.113.114", ips.begin()->as_dotted_decimal());
 }
 
-TEST(UtilsTest, IPAddress)
-{
+TEST(UtilsTest, IPAddress) {
     // Since ip_address_t may block, it requires a thread_pool_t to exist
-    mock::run_in_thread_pool(&run_ip_address_test);
+    unittest::run_in_thread_pool(&run_ip_address_test);
 }
 
 }  // namespace unittest

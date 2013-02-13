@@ -1,5 +1,5 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
-import sys, os, time, socket, signal, subprocess, shutil, tempfile, random
+import sys, os, time, socket, signal, subprocess, shutil, tempfile, random, re
 
 """`driver.py` is a module for starting groups of RethinkDB cluster nodes and
 connecting them to each other. It also supports netsplits.
@@ -200,7 +200,7 @@ class _Process(object):
         assert isinstance(cluster, Cluster)
         assert cluster.metacluster is not None
         assert all(hasattr(self, x) for x in
-                   "cluster_port local_cluster_port http_port port_offset".split())
+                   "local_cluster_port port_offset logfile_path".split())
 
         if executable_path is None:
             executable_path = find_rethinkdb_executable("debug")
@@ -224,14 +224,19 @@ class _Process(object):
             else:
                 self.log_file = open(self.log_path, "w")
 
+            if os.path.exists(self.logfile_path):
+                os.unlink(self.logfile_path)
+
             print "Launching: "
             print self.args
             self.process = subprocess.Popen(self.args, stdout = self.log_file, stderr = self.log_file)
 
+            self.read_ports_from_log()
+
         except Exception, e:
             # `close()` won't be called because we haven't put ourself into
             #  `cluster.processes` yet, so we have to clean up manually
-            for other_cluster in cluster.metacluster:
+            for other_cluster in cluster.metacluster.clusters:
                 if other_cluster is not cluster:
                     other_cluster._unblock_process(self)
             raise
@@ -255,6 +260,26 @@ class _Process(object):
                 s.close()
         else:
             raise RuntimeError("Process was not responding to HTTP traffic within %d seconds." % timeout)
+
+    def read_ports_from_log(self, timeout = 30):
+        time_limit = time.time() + timeout
+        while time.time() < time_limit:
+            self.check()
+            try:
+                log = file(self.logfile_path).read()
+                cluster_ports = re.findall("(?<=Listening for intracluster connections on port )([0-9]+)",log)
+                http_ports = re.findall("(?<=Listening for administrative HTTP connections on port )([0-9]+)",log)
+                if cluster_ports == [] or http_ports == []:
+                    time.sleep(1)
+                else:
+                    self.cluster_port = int(cluster_ports[-1])
+                    self.http_port = int(http_ports[-1])
+                    break
+            except IOError, e:
+                time.sleep(1)
+
+        else:
+            raise RuntimeError("Timeout while trying to read cluster port from log file")
 
     def check(self):
         """Throws an exception if the process has crashed or stopped. """
@@ -316,16 +341,19 @@ class Process(_Process):
         assert isinstance(files, Files)
 
         self.files = files
+        self.logfile_path = os.path.join(files.db_path, "log_file")
 
-        self.port_offset = cluster.metacluster.port_offset + self.files.id_number * 2
-        self.cluster_port = 29015 + self.port_offset
-        self.local_cluster_port = self.cluster_port + 1
-        self.http_port = 8080 + self.port_offset
+        self.port_offset = cluster.metacluster.port_offset + self.files.id_number
+        self.local_cluster_port = 29015 + self.port_offset
 
         options = ["serve",
                    "--directory=" + self.files.db_path,
                    "--port-offset=" + str(self.port_offset),
-                   "--client-port=" + str(self.local_cluster_port)] + extra_options
+                   "--client-port=" + str(self.local_cluster_port),
+                   "--cluster-port=0",
+                   "--driver-port=0",
+                   "--http-port=0"
+                   ] + extra_options
 
         _Process.__init__(self, cluster, options,
             log_path=log_path, executable_path=executable_path, command_prefix=command_prefix)
@@ -345,15 +373,16 @@ class ProxyProcess(_Process):
 
         self.logfile_path = logfile_path
 
-        self.port_offset = cluster.metacluster.port_offset + cluster.metacluster.files_counter * 2
-        self.cluster_port = 29015 + self.port_offset
-        self.local_cluster_port = self.cluster_port + 1
-        self.http_port = 8080 + self.port_offset
+        self.port_offset = cluster.metacluster.port_offset + cluster.metacluster.files_counter
+        self.local_cluster_port = 28015 + self.port_offset
 
         options = ["proxy",
                    "--log-file=" + self.logfile_path,
                    "--port-offset=" + str(self.port_offset),
-                   "--client-port=" + str(self.local_cluster_port)] + extra_options
+                   "--client-port=" + str(self.local_cluster_port),
+                   "--http-port=0",
+                   "--cluster-port=0",
+                   "--driver-port=0"] + extra_options
 
         _Process.__init__(self, cluster, options,
             log_path=log_path, executable_path=executable_path, command_prefix=command_prefix)

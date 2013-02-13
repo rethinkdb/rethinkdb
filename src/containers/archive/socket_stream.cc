@@ -68,6 +68,7 @@ void linux_event_fd_watcher_t::on_event(int events) {
     assert_thread();
     guarantee(event_callback_);
     event_callback_->on_event(events);
+    event_watcher_.stop_watching_for_errors();
 }
 
 bool linux_event_fd_watcher_t::is_read_open() { return !read_closed_.is_pulsed(); }
@@ -295,17 +296,11 @@ bool socket_stream_t::check_can_write(signal_t *interruptor) {
     return true;
 }
 
-void socket_stream_t::on_event(int events) {
+void socket_stream_t::on_event(UNUSED int events) {
     assert_thread();
 
     /* This is called by linux_event_watcher_t when error events occur. Ordinary
     poll_event_in/poll_event_out events are not sent through this function. */
-
-    if (!(events & (poll_event_err | poll_event_hup))) {
-        // It wasn't an error or hangup, so why did we fail? Log it.
-        std::string s(format_poll_event(events));
-        logERR("Unexpected epoll err/hup/rdhup. events=%s", s.c_str());
-    }
 
     // Shut down.
     if (fd_watcher_->is_write_open()) shutdown_write();
