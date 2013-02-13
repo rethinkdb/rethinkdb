@@ -133,7 +133,9 @@ driver = PyTestDriver()
 driver.connect()
 
 # Emitted test code will consist of calls to this function
-def test(query, expected=None):
+def test(query, expected, name):
+    if expected == '':
+        expected = None
     driver.run(query, expected)
 
 # Emitted test code can call this function to define variables

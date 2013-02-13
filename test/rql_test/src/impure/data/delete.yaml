@@ -4,21 +4,24 @@ tests:
     # Set up some data
     - cd: r.db('test').table_create('test')
       ot: ({'created':1})
-      def: tbl = r.db('test').table('test')
 
+    - def: tbl = r.db('test').table('test')
+      
     - cd: r.db('test').table_create('test2')
       ot: ({'created':1})
-      def: tbl2 = r.db('test').table('test2')
+
+    - def: tbl2 = r.db('test').table('test2')
 
     - py: tbl.insert([{'id':i} for i in xrange(100)])
       js: |
         tbl.insert(function(){
             var res = []
             for (var i = 0; i < 100; i++) {
-                res.push({id:i});
+                res.push({id: i});
             }
             return res;
         }())
+      rb: tbl.insert((1..100).map{ |i| {"id" => i} })
       ot: ({'inserted':100})
 
     - cd: tbl.count()
@@ -41,6 +44,6 @@ tests:
 
     # clean up
     - cd: r.db('test').table_drop('test')
-      ot: ({'dropped':1})
+      ot: "({'dropped':1})"
     - cd: r.db('test').table_drop('test2')
-      ot: ({'dropped':1})
+      ot: "({'dropped':1})"

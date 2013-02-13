@@ -8,16 +8,18 @@ CPPPORT = ARGV[1]
 
 def eq_test(one, two)
 
-  case one.class
-  when Array
+  case "#{one.class}"
+  when "Array"
     return false if one.class != two.class
     return false if one.length != two.length
     return one.zip(two).map{ |a, b| eq_test(a, b) }.all?
 
-  when Hash
+  when "Hash"
     return false if one.class != two.class
-    return false if a.keys.sort != b.keys.sort
-    return a.keys.map{|k| eq_test(a[k], b[k])}.all?
+    one = Hash[ one.map{ |k,v| [k.to_s, v] } ]
+    two = Hash[ two.map{ |k,v| [k.to_s, v] } ]
+    return false if one.keys.sort != two.keys.sort
+    return one.keys.map{|k| eq_test(one[k], two[k])}.all?
 
   else
     if not [Fixnum, Float].member? one.class
@@ -33,12 +35,17 @@ end
 
 def eq exp
   proc { |val|
-    if ! eq_test(val, exp)
-      puts "Equality comparison failed"
-      puts "Value: #{show val}, Expected: #{show exp}"
+    begin
+      if ! eq_test(val, exp)
+        puts "Equality comparison failed"
+        puts "Value: #{show val}, Expected: #{show exp}"
+        return false
+      else
+        return true
+      end
+    rescue Exception => e
+      puts "Exception: #{e} when comparing #{show exp} and #{show val}"
       return false
-    else
-      return true
     end
   }
 end
@@ -55,18 +62,21 @@ def test src, expected, name
   begin
     query = eval src, $defines
   rescue Exception => e
-    puts "#{name}: Error: #{e} in construction of #{src}"
+    puts "#{name}: Error: '#{e}' in construction of #{src}"
     return
   end
 
   #TODO: uncomment when it works
-  #print "#{name} JS: "
+  print "Testing #{name}... "
   #do_test query, expected, 'JS', $js_conn
-  print "#{name} CPP: "
-  do_test query, expected, 'CPP', $cpp_conn
+  begin
+    do_test query, expected, 'CPP', $cpp_conn
+  rescue Exception => e
+    puts "Error: '#{e}' testing query #{src}"
+  end
 end
 
-def do_test query, expected, server, con    
+def do_test query, expected, server, con
   begin
     # TODO: query.run(con)
     res = query.run
@@ -75,7 +85,7 @@ def do_test query, expected, server, con
     return false
     end
   
-  exp_fun = eval expected, $defines
+  exp_fun = eval expected.to_s, $defines
   
   if ! exp_fun.kind_of? Proc
     exp_fun = eq exp_fun

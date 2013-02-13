@@ -2,17 +2,14 @@ desc: Tests manipulation operations on objects
 tests:
 
     # Define some objects to work with
-    - def: 
-        py: obj = r.expr({'a':1, 'b':2, 'c':"str"})
-        js: obj = r.expr({'a':1, 'b':2, 'c':"str"})
-        rb: obj = r.expr({'a'=>1, 'b'=>2, 'c'=>"str"})
+    - def: obj = r.expr({'a':1, 'b':2, 'c':"str"})
 
     ##  Get attr
 
-    - py: obj['a']
+    - cd: obj['a']
       js: [obj('a'), obj.getAttr('a')]
       ot: 1
-    - py: obj['c']
+    - cd: obj['c']
       js: [obj('c'), obj.getAttr('c')]
       ot: "'str'"
 
@@ -48,9 +45,9 @@ tests:
     ## Merge
 
     # add property
-    - cd: "obj.merge({'d': -2})"
+    - cd: "obj.merge({'d':-2})"
       ot: ({'a':1, 'b':2, 'c':'str', 'd':-2})
 
     # overwrite
-    - cd: "obj.merge({'a': -1})"
+    - cd: "obj.merge({'a':-1})"
       ot: ({'a':-1, 'b':2, 'c':'str'})

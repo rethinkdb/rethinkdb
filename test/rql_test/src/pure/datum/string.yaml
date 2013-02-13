@@ -4,8 +4,9 @@ tests:
     # Simple strings
     - py: r.expr('str')
       js: [r('str'), r.expr('str')]
+      rb: r 'str'
       ot: "'str'"
-    - py: r.expr("str")
+    - cd: r.expr("str")
       js: [r("str"), r.expr("str")]
       ot: "\"str\""
 
@@ -13,8 +14,14 @@ tests:
     - py: # Python supports unicode strings with the u'' pattern
         cd: r.expr(u'str')
         ot: u'str'
+      cd: []
     - py:
         cd: "r.expr(u'こんにちは')"
         ot: "u'こんにちは'"
+      rb:
+        cd: "r 'こんにちは'"
+        ot: "'こんにちは'"
+      js: []
+        
 
     # etc.
