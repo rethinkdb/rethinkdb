@@ -18,7 +18,7 @@ module 'DataExplorerView', ->
         limit: 40 # How many results we display per page // Final for now
         line_height: 13 # Define the height of a line (used for a line is too long)
         events:
-            'click .CodeMirror': 'handle_keypress'
+            'mouseup .CodeMirror': 'handle_click'
             'mousedown .suggestion_name_li': 'select_suggestion' # Keep mousedown to compete with blur on .input_query
             'mouseover .suggestion_name_li' : 'mouseover_suggestion'
             'mouseout .suggestion_name_li' : 'mouseout_suggestion'
@@ -130,6 +130,7 @@ module 'DataExplorerView', ->
             for state of @suggestions
                 @suggestions[state].sort()
 
+            #TODO if codemirror has focus, trigger handle_keypress
 
         save_data_in_localstorage: =>
             if window.localStorage?
@@ -302,11 +303,13 @@ module 'DataExplorerView', ->
                     name: 'javascript'
                     json: true
                 onKeyEvent: @handle_keypress
-                onBlur: @hide_suggestion_and_description
-                onGutterClick: @handle_gutter_click
                 lineNumbers: true
                 lineWrapping: true
                 matchBrackets: true
+            @codemirror.on 'blur', @hide_suggestion_and_description
+            @codemirror.on 'gutterClick', @handle_gutter_click
+            ###
+            ###
 
             @codemirror.setSize '100%', 'auto'
             if @saved_data.current_query?
@@ -323,6 +326,13 @@ module 'DataExplorerView', ->
         query_first_part: ''
         query_last_part: ''
 
+        handle_click: =>
+            #TODO modify behavior. We should just show suggestion if there is
+            if @codemirror.getValue() isnt ''
+                @hide_suggestion_and_description()
+            else
+                @handle_keypress()
+
         # Core of the suggestions' system: We have to parse the query
         # Return true if we want code mirror to ignore the event
         handle_keypress: (editor, event) =>
@@ -332,6 +342,11 @@ module 'DataExplorerView', ->
 
             if @codemirror.getSelection() isnt ''
                 @hide_suggestion_and_description()
+                # We still want to catch ctrl + v
+                if event.ctrlKey and event.which is 86 and event.type is 'keydown' # Ctrl + V
+                    @last_action_is_paste = true
+                    @num_released_keys = 0 # We want to know when the user release Ctrl AND V
+                    @hide_suggestion_and_description()
                 return false
 
             if event?.which?
@@ -394,9 +409,6 @@ module 'DataExplorerView', ->
                         @last_action_is_paste = false
                     @hide_suggestion_and_description()
                     return true
-                else if @codemirror.getSelection() isnt '' # If the user select something, we don't show any suggestion
-                    @hide_suggestion_and_description()
-                    return false
              
             # The user just hit a normal key
             @cursor_for_auto_completion = @codemirror.getCursor()

@@ -73,6 +73,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     white_list.insert("/js/codemirror/codemirror.css");
     white_list.insert("/js/codemirror/codemirror.js");
     white_list.insert("/js/codemirror/javascript.js");
+    white_list.insert("/js/codemirror/matchbrackets.js");
     white_list.insert("/js/jquery.color.js");
     white_list.insert("/js/backbone.js");
     white_list.insert("/js/cubism.v1.js");
