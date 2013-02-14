@@ -541,7 +541,6 @@ public:
 
         const btree_key_t *key;
         while ((key = node_iter.get_key(leaf_node))) {
-            debugf("Got a key\n");
             /* Grab relevant values from the leaf node. */
             const void *value = node_iter.get_value(leaf_node);
             guarantee(key);

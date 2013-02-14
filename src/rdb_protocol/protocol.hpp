@@ -147,6 +147,7 @@ struct rdb_protocol_t {
 
     // Constructs a region which will query an sindex for matches to a specific
     // key
+    // TODO consider relocating this
     static key_range_t sindex_key_range(const store_key_t &k);
 
     struct context_t {

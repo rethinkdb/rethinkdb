@@ -7,6 +7,7 @@
 #include "mock/unittest_utils.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/proto_utils.hpp"
+#include "rdb_protocol/protocol.hpp"
 #include "serializer/log/log_serializer.hpp"
 
 namespace unittest {
@@ -37,7 +38,7 @@ void run_sindex_post_construction() {
 
     cond_t dummy_interuptor;
 
-    for (int i = 0; i < 10; ++i) {
+    for (int i = 0; i < 1000; ++i) {
         scoped_ptr_t<transaction_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
         write_token_pair_t token_pair;
@@ -54,8 +55,9 @@ void run_sindex_post_construction() {
                 superblock.get(), &response, &mod_report);
     }
 
+    uuid_u sindex_id;
     {
-        uuid_u id = generate_uuid();
+        sindex_id = generate_uuid();
         write_token_pair_t token_pair;
         store.new_write_token_pair(&token_pair);
 
@@ -85,7 +87,7 @@ void run_sindex_post_construction() {
 
         store.add_sindex(
                 &token_pair,
-                id,
+                sindex_id,
                 stream.vector(),
                 txn.get(),
                 super_block.get(),
@@ -107,6 +109,41 @@ void run_sindex_post_construction() {
 
         post_construct_secondary_indexes(store.btree.get(), txn.get(), super_block.get(),
                 sindexes, &dummy_interuptor);
+    }
+
+    {
+        for (int i = 0; i < 1000; ++i) {
+            read_token_pair_t token_pair;
+            store.new_read_token_pair(&token_pair);
+
+            scoped_ptr_t<transaction_t> txn;
+            scoped_ptr_t<real_superblock_t> super_block;
+
+            store.acquire_superblock_for_read(rwi_read,
+                    &token_pair.main_read_token, &txn, &super_block,
+                    &dummy_interuptor, true);
+
+            scoped_ptr_t<real_superblock_t> sindex_sb;
+
+            store.acquire_sindex_superblock_for_read(sindex_id,
+                    super_block->get_sindex_block_id(), &token_pair,
+                    txn.get(), &sindex_sb, &dummy_interuptor);
+
+            rdb_protocol_t::rget_read_response_t res;
+            rdb_rget_slice(store.get_sindex_slice(sindex_id),
+                   rdb_protocol_t::sindex_key_range(store_key_t(cJSON_print_primary(scoped_cJSON_t(cJSON_CreateNumber(i * i)).get(), backtrace_t()))),
+                   txn.get(), sindex_sb.get(), NULL, rdb_protocol_details::transform_t(),
+                   boost::optional<rdb_protocol_details::terminal_t>(), &res);
+
+            rdb_protocol_t::rget_read_response_t::stream_t *stream = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&res.result);
+            ASSERT_TRUE(stream != NULL);
+            ASSERT_EQ(stream->size(), 1ul);
+
+            std::string expected_data = strprintf("{\"id\" : %d, \"sid\" : %d}", i, i * i);
+            scoped_cJSON_t expected_value(cJSON_Parse(expected_data.c_str()));
+
+            ASSERT_EQ(query_language::json_cmp(expected_value.get(), stream->front().second->get()), 0);
+        }
     }
 }
 
