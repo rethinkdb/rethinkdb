@@ -255,6 +255,8 @@ module 'DataExplorerView', ->
 
             @driver_handler = new DataExplorerView.DriverHandler
                 container: @
+                on_success: @success_on_connect
+                on_fail: @error_on_connect
 
             @render()
 
@@ -1577,8 +1579,7 @@ module 'DataExplorerView', ->
         # Called if the driver could connect
         success_on_connect: =>
             @results_view.cursor_timed_out()
-            # If the we were disconnected because of an error, we say that we did reconnect
-            if window.driver_connected_previous_state is false
+            if @reconnecting is true
                 @.$('#user-alert-space').hide()
                 @.$('#user-alert-space').html @alert_reconnection_success_template()
                 @.$('#user-alert-space').slideDown 'fast'
@@ -1590,10 +1591,9 @@ module 'DataExplorerView', ->
             @results_view.cursor_timed_out()
             # We fail to connect, so we display a message except if we were already disconnected and we are not trying to manually reconnect
             # So if the user fails to reconnect after a failure, the alert will still flash
-            if window.driver_connected_previous_state isnt false or @reconnecting is true
-                @.$('#user-alert-space').hide()
-                @.$('#user-alert-space').html @alert_connection_fail_template({})
-                @.$('#user-alert-space').slideDown 'fast'
+            @.$('#user-alert-space').hide()
+            @.$('#user-alert-space').html @alert_connection_fail_template({})
+            @.$('#user-alert-space').slideDown 'fast'
             @reconnecting = false
             @driver_connected = 'error'
 
@@ -1601,11 +1601,7 @@ module 'DataExplorerView', ->
         reconnect: (event) =>
             @reconnecting = true
             event.preventDefault()
-            clearTimeout window.timeout_driver_connect
-            window.driver_connect()
-
-
-
+            @driver_handler.connect()
 
         handle_gutter_click: (editor, line) =>
             start =
@@ -1639,9 +1635,13 @@ module 'DataExplorerView', ->
             @.$('.wrapper_scrollbar').css 'width', ($(window).width()-92)+'px'
 
         destroy: =>
+            @results_view.destroy()
+            @history_view.destroy()
+            @driver_handler.destroy()
+
             @display_normal()
             $(window).off 'resize', @display_full
-            @results_view.destroy()
+
             clearTimeout @timeout_driver_connect
             # We do not destroy the cursor, because the user might come back and use it.
     
@@ -2443,6 +2443,8 @@ module 'DataExplorerView', ->
         connect: =>
             # Whether we are going to reconnect or not, the cursor might have timed out.
             @container.saved_data.cursor_timed_out = true
+            if @timeout?
+                clearTimeout @timeout
 
             if @connection?
                 if @driver_status is 'connected'
