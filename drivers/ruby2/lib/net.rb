@@ -7,6 +7,7 @@ module RethinkDB
   class RQL
     def run(c, opts={})
       unbound_if !@body
+      opts = {opts => true} if opts.class != Hash
       c.run(@body, opts)
     end
   end
