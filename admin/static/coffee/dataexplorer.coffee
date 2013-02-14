@@ -308,8 +308,6 @@ module 'DataExplorerView', ->
                 matchBrackets: true
             @codemirror.on 'blur', @hide_suggestion_and_description
             @codemirror.on 'gutterClick', @handle_gutter_click
-            ###
-            ###
 
             @codemirror.setSize '100%', 'auto'
             if @saved_data.current_query?
@@ -326,16 +324,16 @@ module 'DataExplorerView', ->
         query_first_part: ''
         query_last_part: ''
 
-        handle_click: =>
-            #TODO modify behavior. We should just show suggestion if there is
-            if @codemirror.getValue() isnt ''
-                @hide_suggestion_and_description()
-            else
-                @handle_keypress()
+        handle_click: (event) =>
+            @handle_keypress null, event
 
         # Core of the suggestions' system: We have to parse the query
         # Return true if we want code mirror to ignore the event
         handle_keypress: (editor, event) =>
+            # Let's hide the tooltip if the user just clicked on the textarea. We'll only display later the suggestions if there are (no description)
+            if event?.type is 'mouseup'
+                @hide_suggestion_and_description()
+
             # Save the last query (even incomplete)
             @saved_data.current_query = @codemirror.getValue()
             @save_data_in_localstorage()
@@ -343,7 +341,7 @@ module 'DataExplorerView', ->
             if @codemirror.getSelection() isnt ''
                 @hide_suggestion_and_description()
                 # We still want to catch ctrl + v
-                if event.ctrlKey and event.which is 86 and event.type is 'keydown' # Ctrl + V
+                if event? and event.ctrlKey is true and event.which is 86 and event.type is 'keydown' # Ctrl + V
                     @last_action_is_paste = true
                     @num_released_keys = 0 # We want to know when the user release Ctrl AND V
                     @hide_suggestion_and_description()
@@ -415,7 +413,7 @@ module 'DataExplorerView', ->
 
             # We just look at key up so we don't fire the call 3 times
             # TODO Make it flawless. I'm not sure that's the desired behavior
-            if event?.type? and event.type isnt 'keyup' or (event?.which? and event.which is 16) # We don't do anything for shift
+            if event?.type? and (event.type isnt 'keyup' and event.type isnt 'mouseup') or (event?.which? and event.which is 16) # We don't do anything for shift
                 return false
 
             @current_highlighted_suggestion = -1
@@ -482,7 +480,7 @@ module 'DataExplorerView', ->
                         suggestion: suggestion
                 @show_suggestion()
                 @hide_description()
-            else if result.description?
+            else if result.description? and event?.type isnt 'mouseup'
                 @hide_suggestion()
                 @show_description result.description
             else
