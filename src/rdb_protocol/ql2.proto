@@ -195,7 +195,7 @@ message Term2 {
         // Returns a reference to a database.
         DB    = 14; // STRING -> Database
         // Returns a reference to a table.
-        TABLE = 15; // Database, STRING, {use_outdated:BOOL} -> Table
+        TABLE = 15; // Database, STRING, {use_outdated:BOOL} -> Table | STRING, {use_outdated:BOOL} -> Table
         // Gets a single element from a table by its primary key.
         GET   = 16; // Table, STRING -> SingleSelection | Table, NUMBER -> SingleSelection
 

@@ -41,14 +41,21 @@ struct backtrace_t {
         frame_t(const frame_t &rhs) : type(rhs.type), pos(rhs.pos), opt(rhs.opt) { }
         Response2_Frame toproto() const;
 
-        static frame_t head() { return frame_t(-1337); }
-        bool is_head() const { return type == POS && pos == -1337; }
+        static frame_t head() { return frame_t(HEAD); }
+        bool is_head() const { return type == POS && pos == HEAD; }
+        static frame_t skip() { return frame_t(SKIP); }
+        bool is_skip() const { return type == POS && pos == SKIP; }
         bool is_valid() { // -1 is the classic "invalid" frame
-            return is_head()
+            return is_head() || is_skip()
                 || (type == POS && pos >= 0)
                 || (type == OPT && opt != "UNINITIALIZED");
         }
     private:
+        enum special_frames {
+            INVALID = -1,
+            HEAD = -2,
+            SKIP = -3
+        };
         enum type_t { POS = 0, OPT = 1 };
         int type; // serialize macros didn't like `type_t` for some reason
         int pos;

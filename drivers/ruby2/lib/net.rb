@@ -5,9 +5,9 @@ require 'json'
 
 module RethinkDB
   class RQL
-    def run(c)
+    def run(c, opts={})
       unbound_if !@body
-      c.run @body
+      c.run(@body, opts)
     end
   end
 
@@ -55,7 +55,7 @@ module RethinkDB
   end
 
   class Connection
-    def initialize(host='localhost', port=28015, default_db='test')
+    def initialize(host='localhost', port=28015, default_db=nil)
       # begin
       #   @abort_module = ::IRB
       # rescue NameError => e
@@ -64,7 +64,7 @@ module RethinkDB
       @@last = self
       @host = host
       @port = port
-      @default_db = default_db
+      @default_opts = default_db ? {:db => RQL.new.db(default_db)} : {}
       @conn_id = 0
       reconnect
     end
@@ -75,11 +75,19 @@ module RethinkDB
       dispatch q
       wait q.token
     end
-    def run msg
+    def run(msg, opts)
       q = Query2.new
       q.type = Query2::QueryType::START
       q.query = msg
       q.token = @@token_cnt += 1
+
+      @default_opts.merge(opts).each {|k,v|
+        ap = Query2::AssocPair.new
+        ap.key = k.to_s
+        ap.val = v.to_pb
+        q.global_optargs << ap
+      }
+
       res = run_internal q
       if res.type == Response2::ResponseType::SUCCESS_PARTIAL
         Cursor.new(Shim.response_to_native(res), msg, self, q.token)
@@ -110,7 +118,7 @@ module RethinkDB
 
     # Change the default database of a connection.
     def use(new_default_db)
-      @default_db = new_default_db
+      @default_opts[:db] = RQL.new.db(new_default_db)
     end
 
     def inspect

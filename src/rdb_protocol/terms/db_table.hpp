@@ -323,13 +323,23 @@ static const char *const table_optargs[] = {"use_outdated"};
 class table_term_t : public op_term_t {
 public:
     table_term_t(env_t *env, const Term2 *term)
-        : op_term_t(env, term, argspec_t(2), optargspec_t(table_optargs)) { }
+        : op_term_t(env, term, argspec_t(1,2), optargspec_t(table_optargs)) { }
 private:
     virtual val_t *eval_impl() {
         val_t *t = optarg("use_outdated", 0);
         bool use_outdated = t ? t->as_bool() : false;
-        uuid_u db = arg(0)->as_db();
-        std::string name = arg(1)->as_str();
+        uuid_u db;
+        std::string name;
+        if (num_args() == 1) {
+            val_t *dbv = optarg("db", 0);
+            r_sanity_check(dbv);
+            db = dbv->as_db();
+            name = arg(0)->as_str();
+        } else {
+            r_sanity_check(num_args() == 2);
+            db = arg(0)->as_db();
+            name = arg(1)->as_str();
+        }
         return new_val(new table_t(env, db, name, use_outdated));
     }
     RDB_NAME("table")

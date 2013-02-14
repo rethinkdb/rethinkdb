@@ -101,7 +101,9 @@ void run(Query2 *q, scoped_ptr_t<env_t> *env_ptr,
 
     for (int i = 0; i < q->global_optargs_size(); ++i) {
         const Query2::AssocPair &ap = q->global_optargs(i);
-        bool conflict = env->add_optarg(ap.key(), compile_term(env, &ap.val()));
+        term_t *op_term = compile_term(env, &ap.val());
+        op_term->set_bt(backtrace_t::frame_t::skip());
+        bool conflict = env->add_optarg(ap.key(), op_term);
         rcheck(!conflict, strprintf("Duplicate key: %s", ap.key().c_str()));
     }
     env_wrapper_t<Term2> *ewt = env->add_ptr(new env_wrapper_t<Term2>());
@@ -110,7 +112,9 @@ void run(Query2 *q, scoped_ptr_t<env_t> *env_ptr,
 #pragma GCC diagnostic ignored "-Wshadow"
     N1(DB, NDATUM("test"));
 #pragma GCC diagnostic pop
-    UNUSED bool _b = env->add_optarg("db", compile_term(env, arg));
+    term_t *db_term = compile_term(env, arg);
+    db_term->set_bt(backtrace_t::frame_t::skip());
+    UNUSED bool _b = env->add_optarg("db", db_term);
     // UNUSED because user can override this value safely
 
     switch(q->type()) {
