@@ -150,6 +150,7 @@ class RDBPbServer
             when Term2.TermType.INNER_JOIN   then RDBInnerJoin
             when Term2.TermType.OUTER_JOIN   then RDBOuterJoin
             when Term2.TermType.EQ_JOIN      then RDBEqJoin
+            when Term2.TermType.ZIP          then RDBZip
             when Term2.TermType.COERCE       then RDBCoerce
             when Term2.TermType.TYPEOF       then RDBTypeOf
             when Term2.TermType.UPDATE       then RDBUpdate

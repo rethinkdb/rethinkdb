@@ -185,8 +185,11 @@ class RDBSequence(RDBBase):
     def outer_join(self, other, predicate):
         return OuterJoin(self, other, predicate)
 
-    def eq_join(self, other, left_attr):
-        return EqJoin(self, other, left_attr)
+    def eq_join(self, left_attr, other):
+        return EqJoin(self, left_attr, other)
+
+    def zip(self):
+        return Zip(self)
 
     def grouped_map_reduce(self, grouping, mapping, reduction):
         return GroupedMapReduce(self, grouping, mapping, reduction)
@@ -500,6 +503,10 @@ class OuterJoin(RDBSeqOp, RDBMethod):
 class EqJoin(RDBSeqOp, RDBMethod):
     tt = p.Term2.EQ_JOIN
     st = 'eq_join'
+
+class Zip(RDBSeqOp, RDBMethod):
+    tt = p.Term2.ZIP
+    st = 'zip'
 
 class Update(RDBOp, RDBMethod):
     tt = p.Term2.UPDATE

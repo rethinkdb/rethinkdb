@@ -239,16 +239,20 @@ class RDBGroupBy extends RDBOp
     op: (args) -> args[0].groupBy args[1], args[2]
 
 class RDBInnerJoin extends RDBOp
-    type: tp "Sequence, Sequence -> Function(2) -> Sequence"
+    type: tp "Sequence, Sequence, Function(2) -> Sequence"
     op: (args) -> args[0].innerJoin args[1], args[2](2)
 
 class RDBOuterJoin extends RDBOp
-    type: tp "Sequence, Sequence -> Function(2) -> Sequence"
+    type: tp "Sequence, Sequence, Function(2) -> Sequence"
     op: (args) -> args[0].outerJoin args[1], args[2](2)
 
 class RDBEqJoin extends RDBOp
     type: tp "Sequence, !STRING, Sequence -> Sequence"
-    op: (args, optargs) -> args[0].eqJoin args[1], optargs
+    op: (args, optargs) -> args[0].eqJoin args[1], args[2]
+
+class RDBZip extends RDBOp
+    type: tp "Sequence -> Sequence"
+    op: (args) -> args[0].zip()
 
 class RDBCoerce extends RDBOp
     type: tp "Top, STRING -> Top"

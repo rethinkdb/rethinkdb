@@ -159,7 +159,9 @@ function test(testSrc, resSrc) {
 // Invoked by generated code to define variables to used within
 // subsequent tests
 function define(expr) {
-    eval("defines."+expr);
+    with (defines) {
+        eval("defines."+expr);
+    }
 }
 
 // Invoked by generated code to support bag comparison on this expected value

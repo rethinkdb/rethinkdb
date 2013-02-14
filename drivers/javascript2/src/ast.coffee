@@ -40,10 +40,10 @@ class RDBVal extends TermBase
     without: (fields...) -> new Without {}, @, fields...
     merge: (other) -> new Merge {}, @, other
     between: (left, right) -> new Between {left_bound:left, right_bound:right}, @
-    reduce: (func, base) -> new Reduce {base:base}, @, func
-    map: (func) -> new Map {}, @, func
-    filter: (predicate) -> new Filter {}, @, predicate
-    concatMap: (func) -> new ConcatMap {}, @, func
+    reduce: (func, base) -> new Reduce {base:base}, @, new Func({}, func)
+    map: (func) -> new Map {}, @, new Func({}, func)
+    filter: (predicate) -> new Filter {}, @, new Func({}, predicate)
+    concatMap: (func) -> new ConcatMap {}, @, new Func({}, func)
     orderBy: (fields...) -> new OrderBy {}, @, fields...
     distinct: -> new Distinct {}, @
     count: -> new Count {}, @
@@ -53,13 +53,14 @@ class RDBVal extends TermBase
     groupBy: -> throw DriverError "Not implemented"
     innerJoin: (other, predicate) -> new InnerJoin {}, @, other, predicate
     outerJoin: (other, predicate) -> new OuterJoin {}, @, other, predicate
-    eqJoin: (other, left, right) -> new InnerJoin {left_attr:left, right_attr:right}, @, other
+    eqJoin: (left_attr, right) -> new EqJoin {}, @, left_attr, right
+    zip: -> new Zip {}, @
     coerce: (type) -> new Coerce {}, @, type
     typeOf: -> new TypeOf {}, @
-    update: (func) -> new Update {}, @, func
+    update: (func) -> new Update {}, @, new Func({}, func)
     delete: -> new Delete {}, @
-    replace: (func) -> new Replace {}, @, func
-    do: (func) -> new FunCall {}, func, @
+    replace: (func) -> new Replace {}, @, new Func({}, func)
+    do: (func) -> new FunCall {}, new Func({}, func), @
 
     or: (others...) -> new Any {}, @, others...
     and: (others...) -> new All {}, @, others...
@@ -350,6 +351,10 @@ class EqJoin extends RDBOp
     tt: Term2.TermType.EQ_JOIN
     mt: 'eqJoin'
 
+class Zip extends RDBOp
+    tt: Term2.TermType.ZIP
+    mt: 'zip'
+
 class Coerce extends RDBOp
     tt: Term2.TermType.COERCE
     mt: 'coerce'
@@ -426,16 +431,25 @@ class Func extends RDBOp
     tt: Term2.TermType.FUNC
 
     constructor: (optargs, func) ->
-        args = []
-        argNums = []
-        i = 0
-        while i < func.length
-            argNums.push i
-            args.push new Var {}, i
-            i++
-        body = func.apply({}, args)
-        argsArr = new MakeArray({}, argNums...)
-        return super(optargs, argsArr, body)
+        if func instanceof Function
+            @_lambdExpr = true
+
+            args = []
+            argNums = []
+            i = 0
+            while i < func.length
+                argNums.push i
+                args.push new Var {}, i
+                i++
+            body = func(args...)
+            argsArr = new MakeArray({}, argNums...)
+            return super(optargs, argsArr, body)
+        else
+            @_lambdExpr = false
+            return super(optargs, new MakeArray({}), rethinkdb.expr(func))
 
     compose: (args) ->
-        ['function(', (Var::compose(arg) for arg in args[0][1...-1]), ') { return ', args[1], '; }']
+        if @_lambdExpr
+            ['function(', (Var::compose(arg) for arg in args[0][1...-1]), ') { return ', args[1], '; }']
+        else
+            args[1]

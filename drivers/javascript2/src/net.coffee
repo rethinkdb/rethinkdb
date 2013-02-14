@@ -260,6 +260,7 @@ rethinkdb.connect = (host, callback) ->
         new HttpConnection host, callback
     else
         throw new DriverError "Neither TCP nor HTTP avaiable in this environment"
+    return
 
 rethinkdb.embeddedConnect = (callback) ->
     unless callback? then callback = (->)

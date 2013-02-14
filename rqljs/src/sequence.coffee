@@ -38,8 +38,8 @@ class RDBSequence extends RDBType
                     ob = ob.slice(1)
                 else
                     op = 'gt'
-                if a[ob][op](b[ob]).asJSON() then return true
-            return false
+                if a[ob][op](b[ob]).asJSON() then return 1
+            return -1
 
     distinct: ->
         neu = []
@@ -132,13 +132,12 @@ class RDBSequence extends RDBType
                 return new RDBArray [new RDBObject {left: lRow}]
 
     # We're just going to implement this on top of inner join
-    eqJoin: (right, {left_attr, right_attr}) ->
-        unless left_attr
-            left_attr = @getPK().asJSON()
-        unless right_attr
-            right_attr = right.getPK().asJSON()
+    eqJoin: (left_attr, right) ->
+        right_attr = right.getPK()
         @innerJoin right, (lRow, rRow) ->
             lRow[left_attr.asJSON()].eq(rRow[right_attr.asJSON()])
+
+    zip: -> @map (row) -> row['left'].merge(row['right'])
 
     statsMerge = (results) ->
         base = new RDBObject {}
