@@ -209,11 +209,34 @@ uint64_t linux_file_t::get_size() {
 }
 
 void linux_file_t::set_size(size_t size) {
-    int res = ftruncate(fd.get(), size);
+    int res;
+    do {
+        res = ftruncate(fd.get(), size);
+    } while (res == -1 && errno == EINTR);
     guarantee_err(res == 0, "Could not ftruncate()");
-    fsync(fd.get()); // Make sure that the metadata change gets persisted
-                     // before we start writing to the resized file.
-                     // (to be safe in case of system crashes etc.)
+
+#if FILE_SYNC_TECHNIQUE == FILE_SYNC_TECHNIQUE_FULLFSYNC
+
+    int fcntl_res;
+    do {
+        fcntl_res = fcntl(fd.get(), F_FULLFSYNC);
+    } while (fcntl_res == -1 && errno == EINTR);
+    guarantee_err(fcntl_res == 0, "Could not fsync with fcntl(..., F_FULLFSYNC).");
+
+#elif FILE_SYNC_TECHNIQUE == FILE_SYNC_TECHNIQUE_DSYNC
+
+    // Make sure that the metadata change gets persisted before we start writing to the resized
+    // file (to be safe in case of system crashes, etc).
+    int fsync_res;
+    do {
+        fsync_res = fsync(fd.get());
+    } while (fsync_res == -1 && errno == EINTR);
+    guarantee_err(fsync_res == 0, "Could not fsync.");
+
+#else
+#error "Unrecognized FILE_SYNC_TECHNIQUE value.  Did you include the header file?"
+#endif  // FILE_SYNC_TECHNIQUE
+
     file_size = size;
 }
 
@@ -307,7 +330,17 @@ file_open_result_t open_direct_file(const char *path, int mode, io_backender_t *
 #error "O_CREAT and other open flags are apparently not defined in the preprocessor."
 #endif
 
-    int flags = O_CREAT;
+    int flags = 0;
+
+    if (mode & linux_file_t::mode_create) {
+        flags |= O_CREAT;
+    }
+
+    // We support file truncation for opening temporary files used when starting up creation of some
+    // serializer file that needs some initialization before being put in its permanent place.
+    if (mode & linux_file_t::mode_truncate) {
+        flags |= O_TRUNC;
+    }
 
     // For now, we have a whitelist of kernels that don't support O_LARGEFILE (or O_DSYNC, for that
     // matter).  Linux is the only known kernel that has (or may need) the O_LARGEFILE flag.
@@ -354,11 +387,18 @@ file_open_result_t open_direct_file(const char *path, int mode, io_backender_t *
 
     // When building, we must either support O_DIRECT or F_NOCACHE.  The former works on Linux,
     // the latter works on OS X.
-#ifdef O_DIRECT
-    int fcntl_res = fcntl(fd.get(), F_SETFL, static_cast<long>(flags | O_DIRECT));
-#else
+#ifdef __linux__
+    // fcntl(2) is documented to take an argument of type long, not of type int, with the F_SETFL
+    // command, on Linux.  But POSIX says it's supposed to take an int?  Passing long should be
+    // generally fine, with either the x86 or amd64 calling convention, on another system (that
+    // supports O_DIRECT) but we use "#ifdef __linux__" (and not "#ifdef O_DIRECT") specifically to
+    // avoid such concerns.
+    int fcntl_res = fcntl(fd.get(), F_SETFL, static_cast<long>(flags | O_DIRECT));  // NOLINT(runtime/int)
+#elif defined(__APPLE__)
     int fcntl_res = fcntl(fd.get(), F_NOCACHE, 1);
-#endif  // O_DIRECT.
+#else
+#error "Figure out how to do direct I/O and fsync correctly (despite your operating system's lies) on your platform."
+#endif  // __linux__, defined(__APPLE__)
 
     file_open_result_t open_res = (fcntl_res == -1 ? file_open_result_t(file_open_result_t::BUFFERED, 0) : file_open_result_t(file_open_result_t::DIRECT, 0));
 

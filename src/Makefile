@@ -508,10 +508,10 @@ else
 RT_CXXFLAGS+=-DRETHINKDB_CACHE_PRODUCT
 endif
 
-RT_CXXFLAGS+=-Wall -Wextra -Werror -Wnon-virtual-dtor
+RT_CXXFLAGS+=-Wall -Wextra -Werror -Wnon-virtual-dtor -std=gnu++0x
 
 ifeq ($(COMPILER), INTEL)
-RT_CXXFLAGS+=-std=gnu++98 -w1 -ftls-model=local-dynamic
+RT_CXXFLAGS+=-w1 -ftls-model=local-dynamic
 else
 ifeq ($(COMPILER), CLANG)
 RT_CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default -Wno-unneeded-internal-declaration -Wused-but-marked-unused -Wunused-macros -Wundef -Wvla -Wshadow -Wconditional-uninitialized -Wmissing-noreturn
@@ -776,7 +776,9 @@ SERVER_UNIT_TEST_OBJS:=$(SERVER_NOMAIN_OBJS) $(OBJ_DIR)/unittest/main.o
 
 #### Web UI sources
 WEB_SOURCE_DIR:=../admin
-WEB_ASSETS_BUILD_DIR:=$(BUILD_DIR)/web
+WEB_ASSETS_DIR_NAME:=rethinkdb_web_assets
+RT_CXXFLAGS+=-DWEB_ASSETS_DIR_NAME='"$(WEB_ASSETS_DIR_NAME)"'
+WEB_ASSETS_BUILD_DIR:=$(BUILD_DIR)/$(WEB_ASSETS_DIR_NAME)
 WEB_ASSETS_OBJ_DIR:=$(BUILD_DIR)/webobj
 WEB_ASSETS:=$(WEB_ASSETS_BUILD_DIR)/cluster-min.js $(WEB_ASSETS_BUILD_DIR)/cluster.css $(WEB_ASSETS_BUILD_DIR)/index.html $(WEB_ASSETS_BUILD_DIR)/js $(WEB_ASSETS_BUILD_DIR)/fonts $(WEB_ASSETS_BUILD_DIR)/images $(WEB_ASSETS_BUILD_DIR)/favicon.ico $(WEB_ASSETS_BUILD_DIR)/js/rethinkdb.js $(WEB_ASSETS_BUILD_DIR)/js/template.js 
 
@@ -1037,7 +1039,7 @@ install-data:
 install-web:
 	$(QUIET) install -m755 -d $(DESTDIR)$(web_res_dir)
 # This might break some ownership or permissions stuff.
-	$(QUIET) cp -pRP $(BUILD_DIR)/web/* $(DESTDIR)$(web_res_dir)/
+	$(QUIET) cp -pRP $(BUILD_DIR)/$(WEB_ASSETS_DIR_NAME)/* $(DESTDIR)$(web_res_dir)/
 
 install-drivers:
 

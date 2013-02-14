@@ -463,8 +463,10 @@ public:
                 typedef rget_read_response_t::stream_t stream_t;
                 stream_t *stream = boost::get<stream_t>(&response->result);
                 guarantee(stream);
-                for (json_list_t::iterator it = data.begin(); it != data.end(); ++it) {
-                    stream->push_back(std::make_pair(key, *it));
+                for (json_list_t::iterator it =  data.begin();
+                                           it != data.end();
+                                           ++it) {
+                    stream->push_back(std::make_pair(store_key_t(key), *it));
                     cumulative_size += estimate_rget_response_size(*it);
                 }
 

@@ -45,9 +45,7 @@ semantic_checking_serializer_t(dynamic_config_t config, serializer_file_opener_t
       last_index_write_started(0), last_index_write_finished(0),
       semantic_fd(-1)
 {
-    if (!file_opener->open_semantic_checking_file(&semantic_fd)) {
-        fail_due_to_user_error("Inaccessible semantic checking file: \"%s\"", file_opener->file_name().c_str());
-    }
+    file_opener->open_semantic_checking_file(&semantic_fd);
 
     // fill up the blocks from the semantic checking file
     int res = -1;
