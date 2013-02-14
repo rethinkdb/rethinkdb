@@ -2,6 +2,7 @@ desc: Tests conversion to and from the RQL object type
 tests:
     - py: r.expr({})
       js: ['r({})', 'r.expr({})']
+      rb: r({})
       ot: ({})
     - py:
         cd: r.expr({'a':1})
@@ -9,12 +10,18 @@ tests:
       js:
         cd: r({a:1})
         ot: "({a:1})"
+      rb:
+        cd: "r({'a'=>1})"
+        ot: "{'a'=>1}"
     - py:
-        cd: "r.expr({'a': 1, 'b': 'two', 'c': True})"
-        ot: "{'a': 1, 'b': 'two', 'c': True}"
+        cd: "r.expr({'a':1, 'b':'two', 'c':True})"
+        ot: "{'a':1, 'b':'two', 'c':True}"
       js:
         cd: "r({a: 1, b: 'two', c: true})"
         ot: "({a: 1, b: 'two', c: true})"
+      rb:
+        cd: "r({'a' => 1, 'b' => 'two', 'c' => true})"
+        ot: "{'a' => 1, 'b' => 'two', 'c' => true}"
 
     # Nested expressions
     - cd: r.expr({'a':r.expr(1)})

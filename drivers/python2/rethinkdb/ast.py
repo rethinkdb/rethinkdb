@@ -392,7 +392,7 @@ class Contains(RDBValOp, RDBMethod):
     tt = p.Term2.CONTAINS
     st = 'contains'
 
-class Pluck(RDBValOp, RDBMethod):
+class Pluck(RDBValOp, RDBSequence, RDBMethod):
     tt = p.Term2.PLUCK
     st = 'pluck'
 

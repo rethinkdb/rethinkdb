@@ -5,32 +5,32 @@ tests:
     
     # Python overloads '&' for 'and'
     - py: [r.expr(True) & True, True & r.expr(True)]
-      js: r(true).and(true)
+      cd: r(true).and(true)
       ot: true
     - py: [r.expr(True) & False, True & r.expr(False)]
-      js: r(true).and(false)
+      cd: r(true).and(false)
       ot: false
     - py: [r.expr(False) & False, False & r.expr(False)]
-      js: r(false).and(false)
+      cd: r(false).and(false)
       ot: false
 
     # Python overloads '|' for 'or'
     - py: [r.expr(True) | True, True | r.expr(True)]
-      js: r(true).or(true)
+      cd: r(true).or(true)
       ot: true
     - py: [r.expr(True) | False, True | r.expr(False)]
-      js: r(true).or(false)
+      cd: r(true).or(false) 
       ot: true
     - py: [r.expr(False) | False, False | r.expr(False)]
-      js: r(false).or(false)
+      cd: r(false).or(false)
       ot: false
 
     # Python overloads '~' for 'not'
     - py: ~r.expr(True)
-      js: r(true).not()
+      cd: r(true).not() 
       ot: false
     - py: ~r.expr(False)
-      js: r(false).not()
+      cd: r(false).not()
       ot: true
 
     ## DeMorgan's rules!
@@ -40,7 +40,7 @@ tests:
         - ~(True & r.expr(False)) == (~r.expr(True) | ~r.expr(False))
         - ~(False & r.expr(False)) == (~r.expr(False) | ~r.expr(False))
         - ~(False & r.expr(True)) == (~r.expr(False) | ~r.expr(True))
-      js:
+      cd:
         - r(true).and(true).not().eq(r(true).not().or(r(true).not()))
         - r(true).and(false).not().eq(r(true).not().or(r(false).not()))
         - r(false).and(false).not().eq(r(false).not().or(r(false).not()))

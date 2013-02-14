@@ -1,4 +1,5 @@
 $: << '../../drivers/ruby2/lib'
+$: << '../../build/drivers/ruby'
 require 'pp'
 require 'rethinkdb'
 extend RethinkDB::Shortcuts
@@ -8,16 +9,21 @@ CPPPORT = ARGV[1]
 
 def eq_test(one, two)
 
-  case one.class
-  when Array
+  case "#{two.class}"
+  when "Array"
     return false if one.class != two.class
     return false if one.length != two.length
     return one.zip(two).map{ |a, b| eq_test(a, b) }.all?
 
-  when Hash
+  when "Hash"
     return false if one.class != two.class
-    return false if a.keys.sort != b.keys.sort
-    return a.keys.map{|k| eq_test(a[k], b[k])}.all?
+    one = Hash[ one.map{ |k,v| [k.to_s, v] } ]
+    two = Hash[ two.map{ |k,v| [k.to_s, v] } ]
+    return false if one.keys.sort != two.keys.sort
+    return one.keys.map{|k| eq_test(one[k], two[k])}.all?
+
+  when "Bag"
+    return eq_test(one.sort, two.items.sort)
 
   else
     if not [Fixnum, Float].member? one.class
@@ -31,18 +37,6 @@ def show x
   return (PP.pp x, "").chomp
 end
 
-def eq exp
-  proc { |val|
-    if ! eq_test(val, exp)
-      puts "Equality comparison failed"
-      puts "Value: #{show val}, Expected: #{show exp}"
-      return false
-    else
-      return true
-    end
-  }
-end
-
 def eval_env; binding; end
 $defines = eval_env
 
@@ -50,54 +44,65 @@ $js_conn = RethinkDB::Connection.new('localhost', JSPORT)
 
 $cpp_conn = RethinkDB::Connection.new('localhost', CPPPORT)
 
+$test_count = 0
+$success_count = 0
 
 def test src, expected, name
+  $test_count += 1
   begin
     query = eval src, $defines
   rescue Exception => e
-    puts "#{name}: Error: #{e} in construction of #{src}"
+    puts "#{name}: Error: '#{e}' in construction of #{src}"
     return
   end
 
-  #TODO: uncomment when it works
-  #print "#{name} JS: "
-  #do_test query, expected, 'JS', $js_conn
-  print "#{name} CPP: "
-  do_test query, expected, 'CPP', $cpp_conn
+  begin
+    #TODO: uncomment when it works
+    #do_test query, expected, 'JS', $js_conn, name, src
+    if do_test query, expected, 'CPP', $cpp_conn, name, src
+      $success_count += 1
+    end
+  rescue Exception => e
+    puts "#{name}: Error: '#{e}' testing query #{src}"
+  end
 end
 
-def do_test query, expected, server, con    
+at_exit do
+  puts "Ruby: #{$success_count} of #{$test_count} tests passed. #{$test_count - $success_count} tests failed."
+end
+
+def do_test query, expected, server, con, name, src
   begin
     # TODO: query.run(con)
     res = query.run
   rescue Exception => e
-    puts "Error running query: #{e}"
+    puts "#{name}: Error: #{e} running query #{src}"
     return false
     end
   
-  exp_fun = eval expected, $defines
-  
-  if ! exp_fun.kind_of? Proc
-    exp_fun = eq exp_fun
-  end
-  
-  if ! exp_fun.call res
+  begin
+    expected = eval expected.to_s, $defines
+    if ! eq_test(res, expected)
+      puts "#{name}: Equality comparison failed for #{src}"
+      puts "Value: #{show res}, Expected: #{show expected}"
+      return false
+    else
+      return true
+    end
+  rescue Exception => e
+    puts "#{name}: Error: #{e} when comparing #{show res} and #{show expected}"
     return false
   end
-  
-  puts "Success"
-  return true
 end
 
 def define expr
   eval expr, $defines
 end
 
+Bag = Struct.new(:items)
+
 def bag list
-  bag = list.sort
-  proc do |other|
-    eq_test(bag, other.sort)
-  end
+  Bag.new(list)
 end
 
 True=true
