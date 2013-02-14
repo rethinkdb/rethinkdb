@@ -8,52 +8,61 @@ tests:
     # Python overloads the comparison operators (in both directions)
     - py: [r.expr(1) < 2, 1 < r.expr(2)]
       js: r(1).lt(2)
+      rb: r(1) < 2
       ot: true
     - py: r.expr(3) < 2
       js: r(3).lt(2)
+      rb: r(3) < 2
       ot: false
     - py: r.expr(2) < 2
       js: r(2).lt(2)
+      rb: r(2) < 2
       ot: false
 
     # All Comparisons can take an arbitrary number of arguments though
     # the functionality is only available in JS at the moment
     - js: r(1).lt(2, 3, 4)
-      py: []
+      cd: []
       ot: true
     - js: r(1).lt(2, 3, 2)
-      py: []
+      cd: []
       ot: false
 
     ## basic >
 
     - py: [r.expr(1) > 2, 1 > r.expr(2)]
       js: r(1).gt(2)
+      rb: r(1) > 2
       ot: false
     - py: r.expr(3) > 2
       js: r(3).gt(2)
+      rb: r(3) > 2
       ot: true
     - py: r.expr(2) > 2
       js: r(2).gt(2)
+      rb: r(2) > 2
       ot: false
 
     - js: r(4).gt(3, 2, 1)
-      py: []
+      cd: []
       ot: true
-      js: r(4).gt(3, 2, 3)
-      py: []
+    - js: r(4).gt(3, 2, 3)
+      cd: []
       ot: false
 
     ## basic ==
 
     - py: [r.expr(1) == 2, 1 == r.expr(2)]
       js: r(1).eq(2)
+      rb: r(1).eq 2
       ot: false
     - py: r.expr(3) == 2
       js: r(3).eq(2)
+      rb: r(3).eq 2
       ot: false
     - py: r.expr(2) == 2
       js: r(2).eq(2)
+      rb: r(2).eq 2
       ot: true
 
     - js: r(1).eq(1, 1, 1)
@@ -67,12 +76,15 @@ tests:
 
     - py: [r.expr(1) != 2, 1 != r.expr(2)]
       js: r(1).ne(2)
+      rb: r(1).ne 2
       ot: true
     - py: r.expr(3) != 2
       js: r(3).ne(2)
+      rb: r(3).ne 2
       ot: true
     - py: r.expr(2) != 2
       js: r(2).ne(2)
+      rb: r(2).ne 2
       ot: false
 
     - js: r(1).ne(3, 2, 4)
@@ -86,12 +98,15 @@ tests:
 
     - py: [r.expr(1) <= 2, 1 <= r.expr(2)]
       js: r(1).le(2)
+      rb: r(1) <= 2
       ot: true
     - py: r.expr(3) <= 2
       js: r(3).le(2)
+      rb: r(3) <= 2
       ot: false
     - py: r.expr(2) <= 2
       js: r(2).le(2)
+      rb: r(2) <= 2
       ot: true
 
     - js: r(1).le(1, 2, 2)
@@ -105,12 +120,15 @@ tests:
 
     - py: [r.expr(1) >= 2, 1 >= r.expr(2)]
       js: r(1).ge(2)
+      rb: r(1) >= 2
       ot: false
     - py: r.expr(3) >= 2
       js: r(3).ge(2)
+      rb: r(3) >= 2
       ot: true
     - py: r.expr(2) >= 2
       js: r(2).ge(2)
+      rb: r(2) >= 2
       ot: true
 
     - js: r(4).ge(4, 2, 2)

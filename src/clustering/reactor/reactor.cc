@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "clustering/reactor/reactor.hpp"
 
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
@@ -21,6 +21,7 @@ std::map<key_t, value_t> collapse_optionals_in_map(const std::map<key_t, boost::
 
 template<class protocol_t>
 reactor_t<protocol_t>::reactor_t(
+        const base_path_t& _base_path,
         io_backender_t *_io_backender,
         mailbox_manager_t *mm,
         typename master_t<protocol_t>::ack_checker_t *ack_checker_,
@@ -30,6 +31,7 @@ reactor_t<protocol_t>::reactor_t(
         multistore_ptr_t<protocol_t> *_underlying_svs,
         perfmon_collection_t *_parent_perfmon_collection,
         typename protocol_t::context_t *_ctx) THROWS_NOTHING :
+    base_path(_base_path),
     parent_perfmon_collection(_parent_perfmon_collection),
     regions_perfmon_collection(),
     regions_perfmon_membership(parent_perfmon_collection, &regions_perfmon_collection, "regions"),

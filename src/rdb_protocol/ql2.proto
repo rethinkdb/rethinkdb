@@ -44,6 +44,12 @@ message Query2 {
     optional Term2 query = 2; // only present when [type] = [START]
     required int64 token = 3;
     optional bool noreply = 4 [default = false]; // CURRENTLY IGNORED, NO SERVER SUPPORT
+
+    message AssocPair {
+        required string key = 1;
+        required Term2 val = 2;
+    };
+    repeated AssocPair global_optargs = 6;
 };
 
 // You get back a response with the same [token] as your query.
@@ -189,7 +195,7 @@ message Term2 {
         // Returns a reference to a database.
         DB    = 14; // STRING -> Database
         // Returns a reference to a table.
-        TABLE = 15; // Database, STRING, {use_outdated:BOOL} -> Table
+        TABLE = 15; // Database, STRING, {use_outdated:BOOL} -> Table | STRING, {use_outdated:BOOL} -> Table
         // Gets a single element from a table by its primary key.
         GET   = 16; // Table, STRING -> SingleSelection | Table, NUMBER -> SingleSelection
 

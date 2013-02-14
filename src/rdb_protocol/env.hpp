@@ -30,6 +30,13 @@ bool is_joined(const T &multiple, const T &divisor) {
 
 class env_t : private home_thread_mixin_t {
 public:
+    // returns whether or not there was a key conflict
+    MUST_USE bool add_optarg(const std::string &key, term_t *val);
+    val_t *get_optarg(const std::string &key); // returns 0 if no entry
+private:
+    std::map<std::string, term_t *> optargs;
+
+public:
     // returns a globaly unique variable
     int gensym();
 private:

@@ -2,7 +2,7 @@
 
 from yaml import load
 from os import walk
-from sys import argv
+from sys import argv, stdout
 from getopt import getopt
 from subprocess import call, Popen
 from time import sleep
@@ -76,7 +76,7 @@ class RbLang(SrcLang):
             return repr(str(val))
 
     def dicttranslate(self, dic):
-        return re.sub(':', '=>', dic)
+        return re.sub("'([^']+)':",":\\1=>", dic)
 
 # Really just used as a namespace here
 class Langs:
@@ -110,36 +110,39 @@ class TestGroup:
         # First, write header
         out.write(Langs.comment_for(lang)+' '+('/'.join(self.path))+' '+self.group['desc']+'\n\n')
 
+        i = 0
         for test in self.group['tests']:
-            self.write_test(out, test, lang)
+            i = i + 1
+            self.write_test(out, test, lang, str(i))
 
         out.write('\n')
 
-    def write_test(self, out, test, lang):
+    def write_test(self, out, test, lang, index):
 
         # Does this test define a variable?
         if 'def' in test:
-            self.write_def(out, test['def'], lang)
+            self.write_def(out, test['def'], lang, index)
 
         # See if this test even defines a test for our language
-        code = self.get_code(test, lang)
+        code = self.get_code(test, lang, index, test.keys() == ['def'])
         for test_case in code:
             out.write("test("+test_case)
             expected = self.get_expected(test, lang)
-            if expected:
-                out.write(', '+expected)
+            if not expected:
+                expected = '""'
+            out.write(', '+expected)
+            out.write(', "' + '-'.join(self.path) + '-' + str(index) + '"')
             out.write(')\n')
 
-    def write_def(self, out, defobj, lang):
-        code = self.get_code(defobj, lang)
+    def write_def(self, out, defobj, lang, index):
+        code = self.get_code(defobj, lang, index + '-def', True)
         if len(code) > 0:
             out.write('define('+code[0]+')\n')
 
     # Tests may specify generic test strings valid for 
     # all languages or language specific versions
-    def get_code(self, obj, lang):
+    def get_code(self, obj, lang, index, warn_missing):
 
-        code = None
         if isinstance(obj, dict):
 
             # Try language specific version first
@@ -154,11 +157,14 @@ class TestGroup:
                 else:
                     code = lang_specific
 
-            else:
-
-                # Try generic version
-                if 'cd' in obj:
+            elif 'cd' in obj:
                     code = obj['cd']
+
+            else:
+                if not warn_missing:
+                    print "Missing test %s for %s" % ('-'.join(self.path) + '-' + str(index), lang)
+                code = None
+                
         else:
 
             # obj itself is the code
@@ -166,7 +172,7 @@ class TestGroup:
 
         # Code may be a string or a list of syntactic variants
         if code and not isinstance(code, list):
-            assert isinstance(code, types.StringTypes)
+            assert isinstance(code, types.StringTypes) or isinstance(code, types.IntType)
             code = [code]
         elif not code:
             code = []
@@ -266,7 +272,7 @@ class RethinkDBTestServers:
                                  '--cluster-port=0'])
 
         self.js_port = self.find_available_port()
-        self.js_server = Popen(['node', '../../rqljs/build/rqljs', str(self.js_port)])
+        self.js_server = Popen(['node', '../../rqljs/build/rqljs', str(self.js_port), "0"])
 
         sleep(0.1)
 
@@ -295,8 +301,10 @@ def run_tests(lang, servers):
         exit("Unkown language: " + lang)
 
     print "Running "+lang+" tests\n"
+    stdout.flush()
     call([interpreter, 'build/test.'+lang, str(servers.js_port), str(servers.cpp_port)])
     print "Finished running "+lang+" tests\n"
+    stdout.flush()
 
 # Run all language tests
 def run():
@@ -304,8 +312,8 @@ def run():
         run_tests('py', servers)
         servers.restart()
         run_tests('js', servers)
-        #servers.restart()
-        #run_tests('rb', servers)
+        servers.restart()
+        run_tests('rb', servers)
 
 # Run just the tests for the given language, can be called
 # from shell as "./test-runner run_py"

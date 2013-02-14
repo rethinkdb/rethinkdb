@@ -5,16 +5,14 @@ tests:
 
     - py: "r.expr(1).do(lambda v: v * 2)"
       js: r.expr(1).do(function(v) { return v.mul(2); })
-      rb: r.expr(1).do{|v| v.mul(2) }
+      rb: r.expr(1).do{|v| v * 2 }
       ot: 2
 
     ## Branch
 
-    - py: r.branch(True, 1, 2)
-      js: r.branch(true, 1, 2)
+    - cd: r.branch(True, 1, 2)
       ot: 1
-    - py: r.branch(False, 1, 2)
-      js: r.branch(false, 1, 2)
+    - cd: r.branch(False, 1, 2)
       ot: 2
 
     ## ForEach

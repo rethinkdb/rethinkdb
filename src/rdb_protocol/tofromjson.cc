@@ -1,7 +1,7 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include <stdlib.h>
 
-#include <math.h>
+#include <cmath>
 
 #include "errors.hpp"
 #include <boost/scoped_array.hpp>
@@ -130,7 +130,7 @@ static cJSON *mkJSON(const v8::Handle<v8::Value> value, int recursion_limit, std
     } else if (value->IsNumber()) {
         double d = value->NumberValue();
         cJSON *r = 0;
-        if (isfinite(d)) r = cJSON_CreateNumber(value->NumberValue());
+        if (std::isfinite(d)) r = cJSON_CreateNumber(value->NumberValue());
         if (!r) *errmsg = "cJSON_CreateNumber() failed";
         return r;
 

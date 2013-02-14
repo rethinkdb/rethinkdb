@@ -4,23 +4,28 @@ tests:
     # Python supports the overloaded operator '+' in both directions
     - py: [(r.expr(1) + 1), (1 + r.expr(1))]
       js: r(1).add(1)
+      rb: r(1) + 1
       ot: 2
 
     - py: r.expr(-1) + 1
       js: r(-1).add(1)
+      rb: (r -1) + 1
       ot: 0
 
     - py: r.expr(1.75) + 8.5
       js: r(1.75).add(8.5)
+      rb: (r 1.75) + 8.5
       ot: 10.25
 
     # Add is polymorphic on strings
     - py: r.expr('') + ''
       js: r('').add('')
+      rb: (r '') + ''
       ot: "''"
 
     - py: r.expr('abc') + 'def'
       js: r('abc').add('def')
+      rb: (r 'abc') + 'def'
       ot: "'abcdef'"
 
     # All arithmetic operations (except mod) actually support arbitrary arguments

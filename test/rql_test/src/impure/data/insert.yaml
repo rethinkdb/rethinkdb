@@ -2,15 +2,15 @@ desc: Tests insertion into tables
 tests:
     
     # Set up our test tables
-    - py: r.db('test').table_create('test')
-      js: r.db('test').tableCreate('test')
+    - cd: r.db('test').table_create('test')
       ot: ({'created':1})
-      def: tbl = r.db('test').table('test')
 
-    - py: r.db('test').table_create('test2')
-      js: r.db('test').tableCreate('test2')
+    - def: tbl = r.db('test').table('test')
+
+    - cd: r.db('test').table_create('test2')
       ot: ({'created':1})
-      def: tbl2 = r.db('test').table('test2')
+      
+    - def: tbl2 = r.db('test').table('test2')
 
     # Single doc insert
     - cd: tbl.insert({'id':0})
@@ -31,14 +31,13 @@ tests:
       ot: ({'inserted':4})
 
     # Insert within for each
-    - py: "tbl.for_each(lambda row: tbl2.insert(row.merge({'id': row['id'] + 100})))"
-      js: "tbl.forEach(function(row) { return tbl2.insert(row.merge({'id': row('id').add(100)})); })"
+    - py: "tbl.for_each(lambda  row:          tbl2.insert(row.merge({'id':row['id']  +  100 }))   )"
+      js: "tbl.forEach(function(row) { return tbl2.insert(row.merge({'id':row('id').add(100)})); })"
+      rb: tbl.for_each(proc {  |row|          tbl2.insert(row.merge({'id'=>row['id']  +  100 }))  })
       ot: ({'inserted':4})
 
     # clean up
-    - py: r.db('test').table_drop('test')
-      js: r.db('test').tableDrop('test')
-      ot: "({'dropped': 1})"
-    - py: r.db('test').table_drop('test2')
-      js: r.db('test').tableDrop('test2')
-      ot: "({'dropped': 1})"
+    - cd: r.db('test').table_drop('test')
+      ot: "({'dropped':1})"
+    - cd: r.db('test').table_drop('test2')
+      ot: "({'dropped':1})"

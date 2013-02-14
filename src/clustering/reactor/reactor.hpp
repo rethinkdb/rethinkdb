@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_REACTOR_REACTOR_HPP_
 #define CLUSTERING_REACTOR_REACTOR_HPP_
 
@@ -25,6 +25,7 @@ template<class protocol_t>
 class reactor_t : public home_thread_mixin_t {
 public:
     reactor_t(
+            const base_path_t& base_path,
             io_backender_t *io_backender,
             mailbox_manager_t *mailbox_manager,
             typename master_t<protocol_t>::ack_checker_t *ack_checker,
@@ -154,6 +155,7 @@ private:
     template <class activity_t>
     clone_ptr_t<watchable_t<boost::optional<boost::optional<activity_t> > > > get_directory_entry_view(peer_id_t id, const reactor_activity_id_t&);
 
+    const base_path_t base_path;
     perfmon_collection_t *parent_perfmon_collection;
     perfmon_collection_t regions_perfmon_collection;
     perfmon_membership_t regions_perfmon_membership;

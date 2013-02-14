@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef UNITTEST_TEST_CLUSTER_GROUP_HPP_
 #define UNITTEST_TEST_CLUSTER_GROUP_HPP_
 
@@ -23,7 +23,7 @@ template <class> class reactor_business_card_t;
 class peer_id_t;
 class serializer_t;
 
-namespace mock {
+namespace unittest {
 
 class temp_file_t;
 
@@ -42,6 +42,7 @@ public:
 template<class protocol_t>
 class test_cluster_group_t {
 public:
+    const base_path_t base_path;
     boost::ptr_vector<temp_file_t> files;
     scoped_ptr_t<io_backender_t> io_backender;
     boost::ptr_vector<serializer_t> serializers;
@@ -81,6 +82,6 @@ public:
     void wait_until_blueprint_is_satisfied(const std::string& bp);
 };
 
-}   /* namespace mock */
+}  // namespace unittest
 
 #endif  // UNITTEST_TEST_CLUSTER_GROUP_HPP_

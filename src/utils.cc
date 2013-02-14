@@ -353,7 +353,7 @@ int rng_t::randint(int n) {
 }
 
 struct nrand_xsubi_t {
-    unsigned short xsubi[3];
+    unsigned short xsubi[3];  // NOLINT(runtime/int)
 };
 
 TLS_with_init(bool, rng_initialized, false)

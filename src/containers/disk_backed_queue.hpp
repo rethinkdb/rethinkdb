@@ -28,7 +28,7 @@ struct queue_block_t {
 
 class internal_disk_backed_queue_t {
 public:
-    internal_disk_backed_queue_t(io_backender_t *io_backender, const std::string& filename, perfmon_collection_t *stats_parent);
+    internal_disk_backed_queue_t(io_backender_t *io_backender, const serializer_filepath_t& filename, perfmon_collection_t *stats_parent);
     ~internal_disk_backed_queue_t();
 
     // TODO: order_token_t::ignore.  This should take an order token and store it.
@@ -61,7 +61,7 @@ private:
 template <class T>
 class disk_backed_queue_t {
 public:
-    disk_backed_queue_t(io_backender_t *io_backender, const std::string& filename, perfmon_collection_t *stats_parent)
+    disk_backed_queue_t(io_backender_t *io_backender, const serializer_filepath_t& filename, perfmon_collection_t *stats_parent)
         : internal_(io_backender, filename, stats_parent) { }
 
     void push(const T &t) {

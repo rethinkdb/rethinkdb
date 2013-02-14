@@ -7,7 +7,7 @@
 #include "concurrency/signal.hpp"
 #include "containers/intrusive_list.hpp"
 #include "containers/object_buffer.hpp"
-
+#include "utils.hpp"
 
 /* Monitors multiple signals; becomes pulsed if any individual signal becomes
 pulsed. */
@@ -16,12 +16,21 @@ class wait_any_subscription_t;
 
 class wait_any_t : public signal_t {
 public:
-    wait_any_t();
-    explicit wait_any_t(const signal_t *s1);
-    wait_any_t(const signal_t *s1, const signal_t *s2);
-    wait_any_t(const signal_t *s1, const signal_t *s2, const signal_t *s3);
-    wait_any_t(const signal_t *s1, const signal_t *s2, const signal_t *s3, const signal_t *s4);
-    wait_any_t(const signal_t *s1, const signal_t *s2, const signal_t *s3, const signal_t *s4, const signal_t *s5);
+    template <typename... Args>
+    explicit wait_any_t(Args... args) {
+        // This function uses variadic templates.  The initializer list below expands to things like
+        // { (add(arg1), 1), (add(arg2), 1), (add(arg3), 1) } where arg1, arg2, and arg3 are the
+        // arguments to the function (in the case that there were three arguments passed to the
+        // function).  As a result, add() is called on all the arguments, and the array is
+        // initialized to { 1, 1, 1 } (because of the comma operator).
+        //
+        // Initializer lists, unlike function argument lists, have a defined evaluation order in
+        // that the first expression is evaluated first, the second expression is evaluated next,
+        // and so on.
+        //
+        // See also http://www.smbc-comics.com/index.php?db=comics&id=1169
+        UNUSED int boner[] = { (add(args), 1)... };
+    }
 
     ~wait_any_t();
 

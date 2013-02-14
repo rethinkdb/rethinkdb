@@ -111,7 +111,8 @@ private:
             created and the deregistration message arrived before the
             registration message. Insert a NULL into the map so that
             `on_create()` realizes it. */
-            std::pair<registration_id_t, cond_t *> value(rid, NULL);
+            cond_t *const zero = 0;
+            std::pair<registration_id_t, cond_t *> value(rid, zero);
             registrations.insert(value);
         }
     }
