@@ -1716,7 +1716,7 @@ module 'DataExplorerView', ->
             @set_view 'table'
         show_raw: (event) =>
             event.preventDefault()
-            @set_view = 'raw'
+            @set_view 'raw'
 
         set_view: (view) =>
             @view = view
