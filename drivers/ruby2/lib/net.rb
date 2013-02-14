@@ -5,9 +5,9 @@ require 'json'
 
 module RethinkDB
   class RQL
-    def run
+    def run(c)
       unbound_if !@body
-      Connection.last.run @body
+      c.run @body
     end
   end
 
@@ -20,7 +20,7 @@ module RethinkDB
     def inspect # :nodoc:
       state = @run ? "(exhausted)" : "(enumerable)"
       extra = out_of_date ? " (Connection #{@conn.inspect} reset!)" : ""
-      "#<RethinkDB::Query_Results:#{self.object_id} #{state}#{extra}: #{@msg.inspect}>"
+      "#<RethinkDB::Cursor:#{self.object_id} #{state}#{extra}: #{@msg.inspect}>"
     end
 
     def initialize(results, msg, connection, token) # :nodoc:

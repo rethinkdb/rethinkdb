@@ -39,8 +39,9 @@ val_t *op_term_t::arg(size_t i) {
 
 val_t *op_term_t::optarg(const std::string &key, val_t *def/*ault*/) {
     boost::ptr_map<const std::string, term_t>::iterator it = optargs.find(key);
-    if (it == optargs.end()) return def;
-    return it->second->eval(use_cached_val);
+    if (it != optargs.end()) return it->second->eval(use_cached_val);
+    val_t *v = env->get_optarg(key);
+    return v ? v : def;
 }
 
 bool op_term_t::is_deterministic_impl() const {
