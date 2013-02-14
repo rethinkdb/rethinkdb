@@ -20,7 +20,7 @@ module RethinkDB
     def inspect # :nodoc:
       state = @run ? "(exhausted)" : "(enumerable)"
       extra = out_of_date ? " (Connection #{@conn.inspect} reset!)" : ""
-      "#<RethinkDB::Query_Results:#{self.object_id} #{state}#{extra}: #{@query.inspect}>"
+      "#<RethinkDB::Query_Results:#{self.object_id} #{state}#{extra}: #{@msg.inspect}>"
     end
 
     def initialize(results, msg, connection, token) # :nodoc:
