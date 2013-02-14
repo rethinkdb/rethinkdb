@@ -172,6 +172,7 @@ module 'DataExplorerView', ->
                             cursor: null # Last cursor
                             metadata: null # Last metadata
                             cursor_timed_out: true # Whether the cursor timed out or not (ie. we reconnected)
+                            view: 'tree'
                 else
                     DataExplorerView.Container.prototype.saved_data =
                         current_query: null
@@ -180,6 +181,7 @@ module 'DataExplorerView', ->
                         cursor: null
                         metadata: null
                         cursor_timed_out: true
+                        view: 'tree'
             # Else the user created a data explorer view before
 
             # Load history, keep it in memory for the session
@@ -247,6 +249,7 @@ module 'DataExplorerView', ->
             @results_view = new DataExplorerView.ResultView
                 container: @
                 limit: @limit
+                view: @saved_data.view
 
 
             @history_view = new DataExplorerView.HistoryView
@@ -1689,9 +1692,10 @@ module 'DataExplorerView', ->
             @container = args.container
             @set_limit args.limit
             @set_skip 0
-            @prototype = DataExplorerView.ResultView.prototype
-            if not @prototype.view?
-                @prototype.view = 'tree'
+            if args.view?
+                @view = args.view
+            else
+                @view = 'tree'
 
             $(window).mousemove @handle_mousemove
             $(window).mouseup @handle_mouseup
@@ -1706,15 +1710,18 @@ module 'DataExplorerView', ->
 
         show_tree: (event) =>
             event.preventDefault()
-            @prototype.view = 'tree'
-            @render_result()
+            @set_view 'tree'
         show_table: (event) =>
             event.preventDefault()
-            @prototype.view = 'table'
-            @render_result()
+            @set_view 'table'
         show_raw: (event) =>
             event.preventDefault()
-            @prototype.view = 'raw'
+            @set_view = 'raw'
+
+        set_view: (view) =>
+            @view = view
+            @container.saved_data.view = view
+            @container.save_data_in_localstorage()
             @render_result()
 
         render_error: (query, err) =>
@@ -2087,7 +2094,7 @@ module 'DataExplorerView', ->
                 no_results: @metadata.has_more_data isnt true and @results.length is 0 and @metadata.skip_value is 0
                 num_results: ((@metadata.skip_value+@results.length) if @metadata.has_more_data isnt true)
 
-            switch @prototype.view
+            switch @view
                 when 'tree'
                     @.$('.json_tree_container').html @json_to_tree @results
                     @$('.results').hide()
