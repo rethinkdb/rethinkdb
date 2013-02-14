@@ -61,7 +61,7 @@ module 'DataExplorerView', ->
                 @descriptions[full_tag] =
                     name: tag
                     dont_need_parenthesis: command['langs']['js']['dont_need_parenthesis']
-                    args: '( '+command['langs']['js']['body']+' )'
+                    args: ('( '+command['langs']['js']['body']+' )' if command['langs']['js']['dont_need_parenthesis'] isnt true)
                     description: @description_with_example_template
                         description: command['description']
                         examples: command['langs']['js']['examples']
