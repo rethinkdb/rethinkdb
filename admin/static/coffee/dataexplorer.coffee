@@ -28,7 +28,6 @@ module 'DataExplorerView', ->
             'click #reconnect': 'reconnect'
             'click .more_valid_results': 'show_more_results'
             'click .close': 'close_alert'
-            #TODO show warning
 
         displaying_full_view: false # Boolean for the full view (true if full view)
 
@@ -130,7 +129,10 @@ module 'DataExplorerView', ->
             for state of @suggestions
                 @suggestions[state].sort()
 
-            #TODO if codemirror has focus, trigger handle_keypress
+            if DataExplorerView.Container.prototype.focus_on_codemirror is true
+                # "@" refers to prototype -_-
+                # In case we give focus to codemirror then load the docs, we show the suggestion
+                window.router.current_view.handle_keypress()
 
         save_data_in_localstorage: =>
             if window.localStorage?
@@ -193,6 +195,7 @@ module 'DataExplorerView', ->
             @history = DataExplorerView.Container.prototype.history
 
             # Let's have a shortcut
+            @prototype = DataExplorerView.Container.prototype
             @saved_data = DataExplorerView.Container.prototype.saved_data
             @saved_data.show_query = @saved_data.query isnt @saved_data.current_query
             @current_results = @saved_data.results
@@ -306,16 +309,21 @@ module 'DataExplorerView', ->
                 lineNumbers: true
                 lineWrapping: true
                 matchBrackets: true
-            @codemirror.on 'blur', @hide_suggestion_and_description
+            @codemirror.on 'blur', @on_blur
             @codemirror.on 'gutterClick', @handle_gutter_click
 
             @codemirror.setSize '100%', 'auto'
             if @saved_data.current_query?
                 @codemirror.setValue @saved_data.current_query
             @codemirror.focus() # Give focus
+            @prototype.focus_on_codemirror = true
             @codemirror.setCursor @codemirror.lineCount(), 0
             @handle_keypress() # Show suggestions/description if there are
             @results_view.expand_raw_textarea()
+
+        on_blur: =>
+            @prototype.focus_on_codemirror = false
+            @hide_suggestion_and_description()
 
         # We have to keep track of a lot of things because web-kit browsers handle the events keydown, keyup, blur etc... in a strange way.
         current_suggestions: []
@@ -330,6 +338,7 @@ module 'DataExplorerView', ->
         # Core of the suggestions' system: We have to parse the query
         # Return true if we want code mirror to ignore the event
         handle_keypress: (editor, event) =>
+            @prototype.focus_on_codemirror = true
             # Let's hide the tooltip if the user just clicked on the textarea. We'll only display later the suggestions if there are (no description)
             if event?.type is 'mouseup'
                 @hide_suggestion_and_description()
@@ -415,7 +424,6 @@ module 'DataExplorerView', ->
             # TODO Make it flawless. I'm not sure that's the desired behavior
             if event?.type? and (event.type isnt 'keyup' and event.type isnt 'mouseup') or (event?.which? and event.which is 16) # We don't do anything for shift
                 return false
-
             @current_highlighted_suggestion = -1
             @.$('.suggestion_name_list').empty()
 
