@@ -754,6 +754,20 @@ struct write_visitor_t : public boost::static_visitor<void> {
                 txn,
                 superblock,
                 &interruptor);
+
+        std::set<uuid_u> uuids_to_acquire;
+        uuids_to_acquire.insert(c.id);
+
+        sindex_access_vector_t sindexes;
+        store->acquire_sindex_superblocks_for_write(
+                uuids_to_acquire,
+                superblock->get_sindex_block_id(),
+                token_pair,
+                txn,
+                &sindexes,
+                &interruptor);
+
+        post_construct_secondary_indexes(btree, txn, superblock, sindexes, &interruptor);
     }
 
     void operator()(const sindex_drop_t &d) {

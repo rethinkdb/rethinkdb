@@ -5,6 +5,7 @@
 #include <string>
 
 #include "errors.hpp"
+#include <boost/optional.hpp>
 #include <boost/ptr_container/ptr_map.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
 
@@ -235,6 +236,15 @@ public: // <--- so this is some bullshit right here
     typedef boost::ptr_vector<sindex_access_t> sindex_access_vector_t;
 
     void acquire_all_sindex_superblocks_for_write(
+            block_id_t sindex_block_id,
+            write_token_pair_t *token_pair,
+            transaction_t *txn,
+            sindex_access_vector_t *sindex_sbs_out,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
+
+    void acquire_sindex_superblocks_for_write(
+            boost::optional<std::set<uuid_u> > sindexes_to_acquire, //none means acquire all sindexes
             block_id_t sindex_block_id,
             write_token_pair_t *token_pair,
             transaction_t *txn,

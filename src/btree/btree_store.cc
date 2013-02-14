@@ -3,9 +3,10 @@
 
 #include "btree/operations.hpp"
 #include "btree/secondary_operations.hpp"
-#include "serializer/config.hpp"
-#include "containers/archive/vector_stream.hpp"
 #include "concurrency/wait_any.hpp"
+#include "containers/archive/vector_stream.hpp"
+#include "serializer/config.hpp"
+#include "stl_utils.hpp"
 
 template <class protocol_t>
 btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
@@ -537,6 +538,21 @@ void btree_store_t<protocol_t>::acquire_sindex_superblock_for_write(
 
 template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_all_sindex_superblocks_for_write(
+        block_id_t sindex_block_id,
+        write_token_pair_t *token_pair,
+        transaction_t *txn,
+        sindex_access_vector_t *sindex_sbs_out,
+        signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t) {
+    acquire_sindex_superblocks_for_write(
+            boost::optional<std::set<uuid_u> >(),
+            sindex_block_id, token_pair, txn,
+            sindex_sbs_out, interruptor);
+}
+
+template <class protocol_t>
+void btree_store_t<protocol_t>::acquire_sindex_superblocks_for_write(
+            boost::optional<std::set<uuid_u> > sindexes_to_acquire, //none means acquire all sindexes
             block_id_t sindex_block_id,
             write_token_pair_t *token_pair,
             transaction_t *txn,
@@ -555,6 +571,9 @@ void btree_store_t<protocol_t>::acquire_all_sindex_superblocks_for_write(
     for (std::map<uuid_u, secondary_index_t>::iterator it  = sindexes.begin();
                                                        it != sindexes.end();
                                                        ++it) {
+        if (sindexes_to_acquire && !std_contains(*sindexes_to_acquire, it->first)) {
+            continue;
+        }
         /* Getting the slice and asserting we're on the right thread. */
         btree_slice_t *sindex_slice = &(secondary_index_slices.at(it->first));
         sindex_slice->assert_thread();
