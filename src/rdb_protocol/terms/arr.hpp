@@ -50,18 +50,16 @@ private:
             rcheck(n >= -1, strprintf("Cannot use an index < -1 (%d) on a stream.", n));
 
             const datum_t *last_d = 0;
-            for (int i = 0; n >= 0 && i <= n; ++i) {
-                env_checkpoint_t ect(env, &env_t::discard_checkpoint);
+            for (int i = 0; ; ++i) {
                 const datum_t *d = s->next();
-                if (d) {
-                    last_d = d;
-                } else {
-                    if (n == -1) break;
-                    rcheck(d, strprintf("Index out of bounds: %d", n));
+                if (!d) {
+                    rcheck(n == -1 && last_d, strprintf("Index out of bounds: %d", n));
+                    return new_val(last_d);
                 }
+                if (i == n) return new_val(d);
+                last_d = d;
+                r_sanity_check(n == -1 || i < n);
             }
-            r_sanity_check(last_d);
-            return new_val(last_d);
         }
     }
     RDB_NAME("nth")

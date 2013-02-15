@@ -14,7 +14,12 @@ In the future we will have many more types of errors.
 
 ## Checkpoints
 
-If you're doing some computation that will produce needless allocations, you should use an `env_checkpoint_t` to create a checkpoint in the environment.  You can read more about this in `env.hpp` at the bottom, and see some examples in e.g. the code for filter.  There's also an `env_gc_checkpoint_t` used for reduce and gmr.
+If you're doing some computation that will produce needless
+allocations, you should use an `env_checkpoint_t` to create a
+checkpoint in the environment.  You can read more about this in
+`env.hpp` at the bottom, and see some examples in e.g. the code for
+filter.  There's also an `env_gc_checkpoint_t` used for reduce and
+gmr.
 
 ## wire_datum_t, wire_datum_map_t, wire_func_t, etc.
 
@@ -30,3 +35,4 @@ current state.
 
 ## Random Notes
 * `%.20g` is the accepted way of printing doubles.
+* `CATCH_WITH_BT` tacks an extra frame onto an `exc_t` and rethrows.

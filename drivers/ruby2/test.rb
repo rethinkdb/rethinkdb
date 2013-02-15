@@ -546,6 +546,8 @@ class ClientTest < Test::Unit::TestCase
   # NTH
   def test_nth
     assert_equal(data[2], tbl.order_by(:id).nth(2).run($c))
+    assert_equal(data[-1], tbl.order_by(:id).nth(-1).run($c))
+    assert_not_nil(tbl.nth(-1).run($c))
   end
 
   def test_pluck
