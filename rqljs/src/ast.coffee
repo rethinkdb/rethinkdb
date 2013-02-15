@@ -231,11 +231,11 @@ class RDBNth extends RDBOp
     op: (args) -> args[0].nth args[1]
 
 class RDBGroupedMapReduce extends RDBOp
-    type: tp "Sequence, Function(1), Function(1) Function(2) -> Sequence"
+    type: tp "Sequence, Function(1), Function(1), Function(2) -> Sequence"
     op: (args) -> args[0].groupedMapReduce args[1](1), args[2](2), args[3](3)
 
 class RDBGroupBy extends RDBOp
-    type: tp "Sequence, ARRAY, STRING -> OBJECT"
+    type: tp "Sequence, ARRAY, !OBJECT -> Sequence"
     op: (args) -> args[0].groupBy args[1], args[2]
 
 class RDBInnerJoin extends RDBOp

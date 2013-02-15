@@ -191,8 +191,11 @@ class RDBSequence(RDBBase):
     def zip(self):
         return Zip(self)
 
-    def grouped_map_reduce(self, grouping, mapping, reduction):
-        return GroupedMapReduce(self, grouping, mapping, reduction)
+    def grouped_map_reduce(self, grouping, mapping, data_collector):
+        return GroupedMapReduce(self, grouping, mapping, data_collector)
+
+    def group_by(self, attrs, reduction):
+        return GroupBy(self, attrs, reduction)
 
     def update(self, mapping):
         return Update(self, mapping)
@@ -491,6 +494,10 @@ class Nth(RDBValOp):
 class GroupedMapReduce(RDBValOp, RDBMethod):
     tt = p.Term2.GROUPED_MAP_REDUCE
     st = 'grouped_map_reduce'
+
+class GroupBy(RDBValOp, RDBMethod):
+    tt = p.Term2.GROUPBY
+    st = 'group_by'
 
 class InnerJoin(RDBSeqOp, RDBMethod):
     tt = p.Term2.INNER_JOIN

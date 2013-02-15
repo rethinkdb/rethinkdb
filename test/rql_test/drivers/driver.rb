@@ -1,5 +1,5 @@
 $: << '../../drivers/ruby2/lib'
-$: << '../../build/drivers/ruby'
+$: << '../../build/drivers/ruby/rdb_protocol'
 require 'pp'
 require 'rethinkdb'
 extend RethinkDB::Shortcuts

@@ -113,6 +113,48 @@ tests:
       cd: ej.count()
       ot: 100
 
+    # GMR
+    - py: tbl.grouped_map_reduce(lambda row:row['a'], lambda row:row['id'], lambda a,b:a + b)
+      js: |
+        tbl.groupedMapReduce(function(row) {
+            return row('a');
+        }, function(row) {
+            return row('id');
+        }, function(a,b) {
+            return a.add(b);
+        })
+      ot: |
+          ([{'group':0, 'reduction':1200},
+            {'group':1, 'reduction':1225},
+            {'group':2, 'reduction':1250},
+            {'group':3, 'reduction':1275}])
+
+    # GroupBy
+
+    # COUNT
+    - cd: tbl.group_by(['a'], {'COUNT':True})
+      ot: |
+          ([{'group':[0], 'reduction':25},
+            {'group':[1], 'reduction':25},
+            {'group':[2], 'reduction':25},
+            {'group':[3], 'reduction':25}])
+
+    # SUM
+    - cd: tbl.group_by(['a'], {'SUM':'id'})
+      ot: |
+          ([{'group':[0], 'reduction':1200},
+            {'group':[1], 'reduction':1225},
+            {'group':[2], 'reduction':1250},
+            {'group':[3], 'reduction':1275}])
+
+    # AVG
+    - cd: tbl.group_by(['a'], {'AVG':'id'})
+      ot: |
+          ([{'group':[0], 'reduction':48},
+            {'group':[1], 'reduction':49},
+            {'group':[2], 'reduction':50},
+            {'group':[3], 'reduction':51}])
+
     # Clean up
     - cd: r.db('test').table_drop('test')
       ot: ({'dropped':1})

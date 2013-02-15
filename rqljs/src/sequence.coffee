@@ -68,34 +68,47 @@ class RDBSequence extends RDBType
     groupedMapReduce: (groupMapping, valueMapping, reduction) ->
         groups = {}
         @asArray().forEach (doc) ->
-            groupID = groupMapping(doc).asJSON()
-            unless groups[groupID]?
-                groups[groupID] = []
-                groups[groupID]._actualGroupID = groupID
-            groups[groupID].push doc
+            groupID = groupMapping(doc)
+            actualGroupID = groupID.asJSON()
+            unless groups[actualGroupID]?
+                groups[actualGroupID] = []
+                groups[actualGroupID]._groupID = groupID
+            groups[actualGroupID].push doc
 
         new RDBArray (for own groupID,group of groups
             new RDBObject {
-                'group': new RDBPrimitive group._actualGroupID
+                'group': group._groupID
                 'reduction': (new RDBArray group).map(valueMapping).reduce(reduction)
             }
         )
 
-    aggregator:
-        count:
+    dataCollectors =
+        COUNT: ->
             mapping: (row) -> new RDBPrimitive 1
             reduction: (a,b) -> a.add(b)
-            finalizer: (row) -> row
+            finalizer: (v) -> v
+        SUM: (attr) ->
+            mapping: (row) -> row[attr.asJSON()]
+            reduction: (a,b) -> a.add(b)
+            finalizer: (v) -> v
+        AVG: (attr) ->
+            mapping: (row) -> new RDBObject {'count': 1, 'sum': row[attr.asJSON()]}
+            reduction: (a,b) -> new RDBObject {'count':a['count'].add(b['count']), 'sum':a['sum'].add(b['sum'])}
+            finalizer: (v) -> v['sum'].div(v['count'])
 
     groupBy: (fields, aggregator) ->
-        agg = aggregators[aggregator]
-        unless agg? then throw RuntimeError "No such aggregator"
+        for own col,arg of aggregator
+            collector = dataCollectors[col]
+            unless collector?
+                throw new RuntimeError "No such aggregator as #{col}"
+            collector = collector(arg)
+            break
+
         @groupedMapReduce((row) ->
-            row[fields.asArray()[0].asJSON()]
-        , agg.mapping
-        , agg.reduction
-        ).map (group) ->
-            group.merge({'reduction': agg.finalizer(group['reduction'])})
+            fields.map (f) -> row[f.asJSON()]
+        , collector.mapping
+        , collector.reduction
+        ).map (group) -> group.merge({'reduction': collector.finalizer(group['reduction'])})
 
     concatMap: (mapping) ->
         new RDBArray Array::concat.apply [], @map(mapping).map((v)->v.asArray()).asArray()
