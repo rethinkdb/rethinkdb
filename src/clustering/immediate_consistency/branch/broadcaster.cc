@@ -362,27 +362,6 @@ void store_listener_response(response_t *result_out, const response_t &result_in
 }
 
 template<class protocol_t>
-void listener_writeread(
-        mailbox_manager_t *mailbox_manager,
-        const typename listener_business_card_t<protocol_t>::writeread_mailbox_t::address_t &writeread_mailbox,
-        const typename protocol_t::write_t &w, typename protocol_t::write_response_t *response, transition_timestamp_t ts,
-        order_token_t order_token, fifo_enforcer_write_token_t token,
-        signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t)
-{
-    cond_t resp_cond;
-    mailbox_t<void(typename protocol_t::write_response_t)> resp_mailbox(
-        mailbox_manager,
-        boost::bind(&store_listener_response<typename protocol_t::write_response_t>, response, _1, &resp_cond),
-        mailbox_callback_mode_inline);
-
-    send(mailbox_manager, writeread_mailbox,
-         w, ts, order_token, token, resp_mailbox.get_address());
-
-    wait_interruptible(&resp_cond, interruptor);
-}
-
-template<class protocol_t>
 void listener_read(
         mailbox_manager_t *mailbox_manager,
         const typename listener_business_card_t<protocol_t>::read_mailbox_t::address_t &read_mailbox,
@@ -530,13 +509,20 @@ void broadcaster_t<protocol_t>::background_write(dispatchee_t *mirror, auto_drai
 template<class protocol_t>
 void broadcaster_t<protocol_t>::background_writeread(dispatchee_t *mirror, auto_drainer_t::lock_t mirror_lock, incomplete_write_ref_t write_ref, order_token_t order_token, fifo_enforcer_write_token_t token) THROWS_NOTHING {
     try {
-        typename protocol_t::write_response_t resp;
-        listener_writeread<protocol_t>(mailbox_manager, mirror->writeread_mailbox,
-                                       write_ref.get()->write, &resp, write_ref.get()->timestamp, order_token, token,
-                                       mirror_lock.get_drain_signal());
+        cond_t response_cond;
+        typename protocol_t::write_response_t response;
+        mailbox_t<void(typename protocol_t::write_response_t)> response_mailbox(
+            mailbox_manager,
+            boost::bind(&store_listener_response<typename protocol_t::write_response_t>, &response, _1, &response_cond),
+            mailbox_callback_mode_inline);
 
+        send(mailbox_manager, mirror->writeread_mailbox, write_ref.get()->write, write_ref.get()->timestamp, order_token, token, response_mailbox.get_address());
+
+        wait_interruptible(&response_cond, mirror_lock.get_drain_signal());
+
+        // TODO: Require that everybody provide a callback.
         if (write_ref.get()->callback) {
-            write_ref.get()->callback->on_response(mirror->get_peer(), resp);
+            write_ref.get()->callback->on_response(mirror->get_peer(), response);
             // Right now, we still have strong durability mode turned on, so we know the value's on
             // disk right now.  So we call the disk ack callback immediately after the on_response
             // callback.
