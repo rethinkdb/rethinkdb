@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 
 #include "utils.hpp"
@@ -516,20 +516,25 @@ void broadcaster_t<protocol_t>::background_writeread(dispatchee_t *mirror, auto_
             boost::bind(&store_listener_response<typename protocol_t::write_response_t>, &response, _1, &response_cond),
             mailbox_callback_mode_inline);
 
-        send(mailbox_manager, mirror->writeread_mailbox, write_ref.get()->write, write_ref.get()->timestamp, order_token, token, response_mailbox.get_address());
+        cond_t disk_ack_cond;
+        mailbox_t<void()> disk_ack_mailbox(mailbox_manager,
+                                           boost::bind(&cond_t::pulse, &disk_ack_cond),
+                                           mailbox_callback_mode_inline);
+
+        send(mailbox_manager, mirror->writeread_mailbox, write_ref.get()->write, write_ref.get()->timestamp, order_token, token, response_mailbox.get_address(), disk_ack_mailbox.get_address());
 
         wait_interruptible(&response_cond, mirror_lock.get_drain_signal());
 
         // TODO: Require that everybody provide a callback.
         if (write_ref.get()->callback) {
             write_ref.get()->callback->on_response(mirror->get_peer(), response);
-            // Right now, we still have strong durability mode turned on, so we know the value's on
-            // disk right now.  So we call the disk ack callback immediately after the on_response
-            // callback.
-            //
-            // TODO(acks): Actually make disk acks be informative.
+        }
+
+        wait_interruptible(&disk_ack_cond, mirror_lock.get_drain_signal());
+        if (write_ref.get()->callback) {
             write_ref.get()->callback->on_disk_ack(mirror->get_peer());
         }
+
     } catch (interrupted_exc_t) {
         return;
     }

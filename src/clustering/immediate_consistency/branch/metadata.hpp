@@ -39,7 +39,8 @@ public:
                            transition_timestamp_t,
                            order_token_t,
                            fifo_enforcer_write_token_t,
-                           mailbox_addr_t<void(typename protocol_t::write_response_t)>)> writeread_mailbox_t;
+                           mailbox_addr_t<void(typename protocol_t::write_response_t)>,
+                           mailbox_addr_t<void()> disk_ack_addr)> writeread_mailbox_t;
 
     typedef mailbox_t<void(typename protocol_t::read_t,
                            state_timestamp_t,

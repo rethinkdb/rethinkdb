@@ -80,7 +80,7 @@ listener_t<protocol_t>::listener_t(const base_path_t &base_path,
         boost::bind(&listener_t::on_write, this, _1, _2, _3, _4, _5),
         mailbox_callback_mode_inline),
     writeread_mailbox_(mailbox_manager_,
-        boost::bind(&listener_t::on_writeread, this, _1, _2, _3, _4, _5),
+        boost::bind(&listener_t::on_writeread, this, _1, _2, _3, _4, _5, _6),
         mailbox_callback_mode_inline),
     read_mailbox_(mailbox_manager_,
         boost::bind(&listener_t::on_read, this, _1, _2, _3, _4, _5),
@@ -254,7 +254,7 @@ listener_t<protocol_t>::listener_t(const base_path_t &base_path,
         boost::bind(&listener_t::on_write, this, _1, _2, _3, _4, _5),
         mailbox_callback_mode_inline),
     writeread_mailbox_(mailbox_manager_,
-        boost::bind(&listener_t::on_writeread, this, _1, _2, _3, _4, _5),
+        boost::bind(&listener_t::on_writeread, this, _1, _2, _3, _4, _5, _6),
         mailbox_callback_mode_inline),
     read_mailbox_(mailbox_manager_,
         boost::bind(&listener_t::on_read, this, _1, _2, _3, _4, _5),
@@ -482,9 +482,8 @@ void listener_t<protocol_t>::on_writeread(const typename protocol_t::write_t &wr
         transition_timestamp_t transition_timestamp,
         order_token_t order_token,
         fifo_enforcer_write_token_t fifo_token,
-        mailbox_addr_t<void(typename protocol_t::write_response_t)> ack_addr)
-        THROWS_NOTHING
-{
+        mailbox_addr_t<void(typename protocol_t::write_response_t)> ack_addr,
+        mailbox_addr_t<void()> disk_ack_addr) THROWS_NOTHING {
     rassert(region_is_superset(our_branch_region_, write.get_region()));
     rassert(!region_is_empty(write.get_region()));
     rassert(region_is_superset(svs_->get_region(), write.get_region()));
@@ -492,7 +491,7 @@ void listener_t<protocol_t>::on_writeread(const typename protocol_t::write_t &wr
 
     coro_t::spawn_sometime(boost::bind(
         &listener_t<protocol_t>::perform_writeread, this,
-        write, transition_timestamp, order_token, fifo_token, ack_addr,
+        write, transition_timestamp, order_token, fifo_token, ack_addr, disk_ack_addr,
         auto_drainer_t::lock_t(&drainer_)));
 }
 
@@ -502,9 +501,8 @@ void listener_t<protocol_t>::perform_writeread(const typename protocol_t::write_
         order_token_t order_token,
         fifo_enforcer_write_token_t fifo_token,
         mailbox_addr_t<void(typename protocol_t::write_response_t)> ack_addr,
-        auto_drainer_t::lock_t keepalive)
-        THROWS_NOTHING
-{
+        mailbox_addr_t<void()> disk_ack_addr,
+        auto_drainer_t::lock_t keepalive) THROWS_NOTHING {
     try {
         /* Make sure the broadcaster isn't sending us too many writes */
         semaphore_assertion_t::acq_t sem_acq(&enforce_max_outstanding_writes_from_broadcaster_);
@@ -552,6 +550,9 @@ void listener_t<protocol_t>::perform_writeread(const typename protocol_t::write_
         broadcaster can send us a new write as soon as we send the ack */
         sem_acq.reset();
         send(mailbox_manager_, ack_addr, response);
+
+        // TODO(acks) Actually support disk acks properly.
+        send(mailbox_manager_, disk_ack_addr);
 
     } catch (interrupted_exc_t) {
         /* pass */

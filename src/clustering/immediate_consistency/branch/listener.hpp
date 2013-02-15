@@ -170,7 +170,7 @@ private:
             auto_drainer_t::lock_t keepalive)
         THROWS_NOTHING;
 
-    void perform_enqueued_write(const write_queue_entry_t &serialized_write, state_timestamp_t backfill_end_timestamp, signal_t *interruptor) 
+    void perform_enqueued_write(const write_queue_entry_t &serialized_write, state_timestamp_t backfill_end_timestamp, signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
     /* See the note at the place where `writeread_mailbox` is declared for an
@@ -180,7 +180,8 @@ private:
             transition_timestamp_t transition_timestamp,
             order_token_t order_token,
             fifo_enforcer_write_token_t fifo_token,
-            mailbox_addr_t<void(typename protocol_t::write_response_t)> ack_addr)
+            mailbox_addr_t<void(typename protocol_t::write_response_t)> ack_addr,
+            mailbox_addr_t<void()> disk_ack_addr)
         THROWS_NOTHING;
 
     void perform_writeread(const typename protocol_t::write_t &write,
@@ -188,6 +189,7 @@ private:
             order_token_t order_token,
             fifo_enforcer_write_token_t fifo_token,
             mailbox_addr_t<void(typename protocol_t::write_response_t)> ack_addr,
+            mailbox_addr_t<void()> disk_ack_addr,
             auto_drainer_t::lock_t keepalive)
         THROWS_NOTHING;
 
