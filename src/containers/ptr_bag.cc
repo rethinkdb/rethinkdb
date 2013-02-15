@@ -43,7 +43,7 @@ std::string ptr_bag_t::print_debug() const {
 }
 
 size_t ptr_bag_t::mem_estimate() const {
-    return parent ? parent->mem_estimate() : (mem_estimate_ * mem_estimate_mul);
+    return parent ? parent->mem_estimate() : (mem_estimate_ * mem_estimate_multiplier);
 }
 
 void ptr_bag_t::real_add(ptr_baggable_t *ptr, size_t mem_estimate) {

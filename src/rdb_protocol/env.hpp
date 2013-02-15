@@ -255,6 +255,7 @@ private:
 // collection for `reduce` and `gmr` queries.
 class env_gc_checkpoint_t {
     static int default_gen1_cutoff;
+    static int default_gen2_size_multiplier;
 public:
     env_gc_checkpoint_t(env_t *_env, size_t _gen1 = 0, size_t _gen2 = 0);
     ~env_gc_checkpoint_t();

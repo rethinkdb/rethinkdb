@@ -41,8 +41,8 @@ public:
     std::string print_debug() const;
 
     // This is a bullshit constant.  We assume the memory usage of `T` is
-    // `sizeof(T) * mem_estimate_mul`.  This will be improved for explain.
-    static const int mem_estimate_mul = 2;
+    // `sizeof(T) * mem_estimate_multiplier`.  This will be improved for explain.
+    static const int mem_estimate_multiplier = 2;
     size_t mem_estimate() const;
 private:
     void real_add(ptr_baggable_t *ptr, size_t mem_estimate);
