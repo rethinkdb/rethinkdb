@@ -65,6 +65,11 @@ module RethinkDB
       return args
     end
 
+    def connect(*args)
+      unbound_if @body
+      Connection.new(*args)
+    end
+
     def avg(attr)
       unbound_if @body
       {:AVG => attr}

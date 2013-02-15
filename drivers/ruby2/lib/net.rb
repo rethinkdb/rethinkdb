@@ -5,9 +5,17 @@ require 'json'
 
 module RethinkDB
   class RQL
-    def run(c, opts={})
+    @@default_conn = nil
+    def self.set_default_conn c; @@default_conn = c; end
+    def run(c=@@default_conn, opts=nil)
       unbound_if !@body
+      c, opts = @@default_conn, c if opts.nil? && c.class != RethinkDB::Connection
+      opts = {} if opts.nil?
       opts = {opts => true} if opts.class != Hash
+      if !c
+        raise ArgumentError, "No connection specified!\n" \
+        "Use `query.run(conn)` or `conn.repl(); query.run`."
+      end
       c.run(@body, opts)
     end
   end
@@ -56,6 +64,8 @@ module RethinkDB
   end
 
   class Connection
+    def repl; RQL.set_default_conn self; end
+
     def initialize(host='localhost', port=28015, default_db=nil)
       # begin
       #   @abort_module = ::IRB
