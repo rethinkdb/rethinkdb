@@ -103,6 +103,9 @@ void write_to_broadcaster(broadcaster_t<memcached_protocol_t> *broadcaster, cons
         void on_response(peer_id_t, const memcached_protocol_t::write_response_t &) {
             /* ignore */
         }
+        void on_disk_ack(peer_id_t) {
+            /* ignore (I guess) */
+        }
         void on_done() {
             pulse();
         }

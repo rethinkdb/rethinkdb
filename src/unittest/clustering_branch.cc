@@ -110,14 +110,14 @@ void run_read_write_test(UNUSED io_backender_t *io_backender,
                          UNUSED test_store_t<dummy_protocol_t> *store,
                          scoped_ptr_t<listener_t<dummy_protocol_t> > *initial_listener,
                          order_source_t *order_source) {
-    /* Set up a replier so the broadcaster can handle operations */
+    /* Set up a replier so the broadcaster can handle operations. */
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
     replier_t<dummy_protocol_t> replier(initial_listener->get(), cluster->get_mailbox_manager(), branch_history_manager);
 
-    /* Give time for the broadcaster to see the replier */
+    /* Give time for the broadcaster to see the replier. */
     let_stuff_happen();
 
-    /* Send some writes via the broadcaster to the mirror */
+    /* Send some writes via the broadcaster to the mirror. */
     std::map<std::string, std::string> values_inserted;
     for (int i = 0; i < 10; i++) {
         unittest::fake_fifo_enforcement_t enforce;
@@ -129,7 +129,10 @@ void run_read_write_test(UNUSED io_backender_t *io_backender,
         class : public broadcaster_t<dummy_protocol_t>::write_callback_t, public cond_t {
         public:
             void on_response(peer_id_t, const dummy_protocol_t::write_response_t &) {
-                /* ignore */
+                /* Ignore. */
+            }
+            void on_disk_ack(peer_id_t) {
+                /* Ignore, I guess. */
             }
             void on_done() {
                 pulse();
@@ -140,7 +143,7 @@ void run_read_write_test(UNUSED io_backender_t *io_backender,
         write_callback.wait_lazily_unordered();
     }
 
-    /* Now send some reads */
+    /* Now send some reads. */
     for (std::map<std::string, std::string>::iterator it = values_inserted.begin();
             it != values_inserted.end(); it++) {
         unittest::fake_fifo_enforcement_t enforce;
@@ -171,7 +174,10 @@ static void write_to_broadcaster(broadcaster_t<dummy_protocol_t> *broadcaster, c
     class : public broadcaster_t<dummy_protocol_t>::write_callback_t, public cond_t {
     public:
         void on_response(peer_id_t, const dummy_protocol_t::write_response_t &) {
-            /* ignore */
+            /* Ignore. */
+        }
+        void on_disk_ack(peer_id_t) {
+            /* Ignore. */
         }
         void on_done() {
             pulse();

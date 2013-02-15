@@ -46,6 +46,7 @@ public:
     public:
         write_callback_t();
         virtual void on_response(peer_id_t peer, const typename protocol_t::write_response_t &response) = 0;
+        virtual void on_disk_ack(peer_id_t peer) = 0;
         virtual void on_done() = 0;
 
     protected:

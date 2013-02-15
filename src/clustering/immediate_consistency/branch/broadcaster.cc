@@ -537,6 +537,12 @@ void broadcaster_t<protocol_t>::background_writeread(dispatchee_t *mirror, auto_
 
         if (write_ref.get()->callback) {
             write_ref.get()->callback->on_response(mirror->get_peer(), resp);
+            // Right now, we still have strong durability mode turned on, so we know the value's on
+            // disk right now.  So we call the disk ack callback immediately after the on_response
+            // callback.
+            //
+            // TODO(acks): Actually make disk acks be informative.
+            write_ref.get()->callback->on_disk_ack(mirror->get_peer());
         }
     } catch (interrupted_exc_t) {
         return;
