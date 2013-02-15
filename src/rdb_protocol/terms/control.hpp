@@ -52,7 +52,8 @@ public:
     branch_term_t(env_t *env, const Term2 *term) : op_term_t(env, term, argspec_t(3)) { }
 private:
     virtual val_t *eval_impl() {
-        bool b; {
+        bool b;
+        {
             env_checkpoint_t ect(env, &env_t::discard_checkpoint);
             b = arg(0)->as_bool();
         }

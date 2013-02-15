@@ -56,12 +56,12 @@ private:
     DISABLE_COPYING(fake_activity_logger_t);
 };
 
-#define debugf_log(log, args...) {                                      \
+#define debugf_log(log, args...) do {                                   \
         activity_logger_t *_logptr = &(log);                            \
         std::string _debugf_log = strprintf(args);                      \
         _logptr->add(_debugf_log);                                      \
         debugf("%p[%z]: %s\n", _logptr, _logptr->size(), _debugf_log.c_str()); \
-}
+    } while (0)
 #define debugf_log_bt(log, args...) do {                                \
         activity_logger_t *_logptr = &(log);                            \
         std::string _debugf_log = strprintf(args);                      \
