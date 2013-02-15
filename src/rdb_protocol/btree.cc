@@ -493,7 +493,7 @@ public:
                         // TODO: this is a hack because GCing a `wire_datum_map_t` is
                         // expensive.  Need a better way to do this.
                         int rounds = 10000 DEBUG_ONLY(/ 5000);
-                        if (!(++i%rounds)) egct.maybe_gc(wdm->to_arr(ql_env));
+                        if (!(++i % rounds)) egct.maybe_gc(wdm->to_arr(ql_env));
                     }
 
                 }

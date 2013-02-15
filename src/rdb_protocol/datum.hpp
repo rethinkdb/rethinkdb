@@ -8,8 +8,9 @@
 #include <boost/shared_ptr.hpp>
 
 #include "containers/archive/archive.hpp"
-#include <containers/ptr_bag.hpp>
+#include "containers/ptr_bag.hpp"
 #include "http/json.hpp"
+#include "rdb_protocol/err.hpp"
 
 class Datum;
 

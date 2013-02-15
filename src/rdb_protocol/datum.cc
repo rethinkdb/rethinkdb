@@ -1,9 +1,10 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
-#include "math.h"
+#include <math.h>
+
+#include "rdb_protocol/datum.hpp"
 
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/err.hpp"
-#include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/proto_utils.hpp"
 
 namespace ql {
@@ -28,7 +29,7 @@ datum_t::datum_t(datum_t::type_t _type) : type(_type) {
 }
 
 void datum_t::init_json(cJSON *json, env_t *env) {
-    switch(json->type) {
+    switch (json->type) {
     case cJSON_False: {
         type = R_BOOL; r_bool = false;
     }; break;
@@ -69,7 +70,7 @@ datum_t::datum_t(boost::shared_ptr<scoped_cJSON_t> json, env_t *env) {
 
 datum_t::type_t datum_t::get_type() const { return type; }
 const char *datum_type_name(datum_t::type_t type) {
-    switch(type) {
+    switch (type) {
     case datum_t::R_NULL:   return "NULL";
     case datum_t::R_BOOL:   return "BOOL";
     case datum_t::R_NUM:    return "NUM";
@@ -95,7 +96,7 @@ std::string datum_t::print_primary() const {
         s += "N";
         union {
             double d;
-            int64_t u;
+            uint64_t u;
         } packed;
         guarantee(sizeof(packed.d) == sizeof(packed.u));
         packed.d = as_num();
@@ -114,7 +115,7 @@ std::string datum_t::print_primary() const {
             packed.u ^= (1ULL << 63);
         }
         // The formatting here is sensitive.  Talk to mlucy before changing it.
-        s += strprintf("%.*" PRIx64 "", static_cast<int>(sizeof(double)*2), packed.u);
+        s += strprintf("%.*" PRIx64, static_cast<int>(sizeof(double)*2), packed.u);
         s += strprintf("#%.20g", as_num());
     } else if (type == R_STR) {
         s += "S";
@@ -187,7 +188,7 @@ const std::map<const std::string, const datum_t *> &datum_t::as_object() const {
 }
 
 cJSON *datum_t::as_raw_json() const {
-    switch(get_type()) {
+    switch (get_type()) {
     case R_NULL: return cJSON_CreateNull();
     case R_BOOL: return cJSON_CreateBool(as_bool());
     case R_NUM: return cJSON_CreateNumber(as_num());
@@ -217,7 +218,7 @@ boost::shared_ptr<scoped_cJSON_t> datum_t::as_json() const {
 
 // TODO: make STR and OBJECT convertible to sequence?
 datum_stream_t *datum_t::as_datum_stream(env_t *env, backtrace_t::frame_t frame) const {
-    switch(get_type()) {
+    switch (get_type()) {
     case R_NULL: //fallthru
     case R_BOOL: //fallthru
     case R_NUM:  //fallthru
@@ -281,7 +282,7 @@ int derived_cmp(T a, T b) {
 
 int datum_t::cmp(const datum_t &rhs) const {
     if (get_type() != rhs.get_type()) return derived_cmp(get_type(), rhs.get_type());
-    switch(get_type()) {
+    switch (get_type()) {
     case R_NULL: return 0;
     case R_BOOL: return derived_cmp(as_bool(), rhs.as_bool());
     case R_NUM: return derived_cmp(as_num(), rhs.as_num());
@@ -330,7 +331,7 @@ bool datum_t::operator>  (const datum_t &rhs) const { return cmp(rhs) == 1;  }
 bool datum_t::operator>= (const datum_t &rhs) const { return cmp(rhs) != -1; }
 
 datum_t::datum_t(const Datum *d, env_t *env) {
-    switch(d->type()) {
+    switch (d->type()) {
     case Datum_DatumType_R_NULL: {
         type = R_NULL;
     }; break;
@@ -367,7 +368,7 @@ datum_t::datum_t(const Datum *d, env_t *env) {
 }
 
 void datum_t::write_to_protobuf(Datum *d) const {
-    switch(get_type()) {
+    switch (get_type()) {
     case R_NULL: {
         d->set_type(Datum_DatumType_R_NULL);
     }; break;
@@ -405,7 +406,7 @@ void datum_t::write_to_protobuf(Datum *d) const {
 
 void datum_t::iter(bool (*callback)(const datum_t *, env_t *), env_t *env) const {
     if (callback(this, env)) {
-        switch(get_type()) {
+        switch (get_type()) {
         case R_NULL: // fallthru
         case R_BOOL: // fallthru
         case R_NUM:  // fallthru
