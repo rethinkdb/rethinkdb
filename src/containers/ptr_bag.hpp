@@ -3,7 +3,6 @@
 
 #include <set>
 
-// #define PTR_BAG_LOG 1
 #include "utils.hpp"
 
 // Classes that can be put into a pointer bag should inherit from this.
@@ -33,8 +32,7 @@ public:
     ptr_bag_t *add(ptr_bag_t *sub_bag) {
         size_t sub_bag_size;
         sub_bag->shadow(this, &sub_bag_size);
-        real_add(static_cast<ptr_baggable_t *>(sub_bag),
-                 sizeof(ptr_bag_t) + sub_bag_size);
+        real_add(sub_bag, sizeof(ptr_bag_t) + sub_bag_size);
         return sub_bag;
     }
 
@@ -42,10 +40,12 @@ public:
     void yield_to(ptr_bag_t *new_bag, const ptr_baggable_t *ptr);
     std::string print_debug() const;
 
-    static const int size_est_mul = 2;
-    size_t size_est() const;
+    // This is a bullshit constant.  We assume the memory usage of `T` is
+    // `sizeof(T) * mem_estimate_mul`.  This will be improved for explain.
+    static const int mem_estimate_mul = 2;
+    size_t mem_estimate() const;
 private:
-    void real_add(ptr_baggable_t *ptr, size_t size_est);
+    void real_add(ptr_baggable_t *ptr, size_t mem_estimate);
 
     // When a ptr_bag shadows another ptr_bag, any pointers inserted into it in
     // the past or future are inserted into the parent ptr_bag.
@@ -55,7 +55,9 @@ private:
     std::set<ptr_baggable_t *> ptrs;
     DISABLE_COPYING(ptr_bag_t);
 
-    size_t size_est_;
+    size_t mem_estimate_;
 };
+
+void debug_print(append_only_printf_buffer_t *buf, const ptr_bag_t &pbag);
 
 #endif // CONTAINERS_PTR_BAG_HPP_

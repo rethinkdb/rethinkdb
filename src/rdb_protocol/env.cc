@@ -147,7 +147,7 @@ void env_checkpoint_t::gc(const datum_t *root) {
 
 // We GC more frequently (~ every 16 data) in debug mode to help with testing.
 int env_gc_checkpoint_t::default_gen1_cutoff = (8 * 1024 * 1024)
-    DEBUG_ONLY(* 0 + (sizeof(datum_t) * ptr_bag_t::size_est_mul * 16));
+    DEBUG_ONLY(* 0 + (sizeof(datum_t) * ptr_bag_t::mem_estimate_mul * 16));
 
 env_gc_checkpoint_t::env_gc_checkpoint_t(env_t *_env, size_t _gen1, size_t _gen2)
     : finalized(false), env(_env), gen1(_gen1), gen2(_gen2) {
@@ -165,12 +165,12 @@ env_gc_checkpoint_t::~env_gc_checkpoint_t() {
     }
 }
 const datum_t *env_gc_checkpoint_t::maybe_gc(const datum_t *root) {
-    if (env->get_bag()->size_est() > gen1) {
+    if (env->get_bag()->mem_estimate() > gen1) {
         env->gc(root);
         env->merge_checkpoint();
-        if (env->get_bag()->size_est() > gen2) {
+        if (env->get_bag()->mem_estimate() > gen2) {
             env->gc(root);
-            if (env->get_bag()->size_est() > (gen2 * 2 / 3)) gen2 *= 4;
+            if (env->get_bag()->mem_estimate() > (gen2 * 2 / 3)) gen2 *= 4;
         }
         env->checkpoint();
     }

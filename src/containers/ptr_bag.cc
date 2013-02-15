@@ -1,5 +1,7 @@
 #include "containers/ptr_bag.hpp"
 
+// #define PTR_BAG_LOG 1
+
 #ifdef PTR_BAG_LOG
 #include "activity_logger.hpp"
 static activity_logger_t ptr_bag_log;
@@ -8,7 +10,7 @@ static activity_logger_t ptr_bag_log;
 #define pblog(...)
 #endif // PTR_BAG_LOG
 
-ptr_bag_t::ptr_bag_t() : parent(0), size_est_(0) {
+ptr_bag_t::ptr_bag_t() : parent(0), mem_estimate_(0) {
     pblog("%p created", this);
 }
 ptr_bag_t::~ptr_bag_t() {
@@ -32,7 +34,7 @@ void ptr_bag_t::yield_to(ptr_bag_t *new_bag, const ptr_baggable_t *ptr) {
 }
 
 std::string ptr_bag_t::print_debug() const {
-    std::string acc = strprintf("%lu(%lu) [", ptrs.size(), size_est_);
+    std::string acc = strprintf("%lu(%lu) [", ptrs.size(), mem_estimate_);
     for (std::set<ptr_baggable_t *>::const_iterator
              it = ptrs.begin(); it != ptrs.end(); ++it) {
         acc += (it == ptrs.begin() ? "" : ", ") + strprintf("%p", *it);
@@ -40,21 +42,21 @@ std::string ptr_bag_t::print_debug() const {
     return acc + "]";
 }
 
-size_t ptr_bag_t::size_est() const {
-    return parent ? parent->size_est() : (size_est_ * size_est_mul);
+size_t ptr_bag_t::mem_estimate() const {
+    return parent ? parent->mem_estimate() : (mem_estimate_ * mem_estimate_mul);
 }
 
-void ptr_bag_t::real_add(ptr_baggable_t *ptr, size_t size_est) {
+void ptr_bag_t::real_add(ptr_baggable_t *ptr, size_t mem_estimate) {
     pblog("adding %p to %p", ptr, this);
     assert_thread();
     if (parent) {
         guarantee(ptrs.size() == 0);
-        guarantee(size_est_ == 0);
-        parent->real_add(ptr, size_est);
+        guarantee(mem_estimate_ == 0);
+        parent->real_add(ptr, mem_estimate);
     } else {
         guarantee(ptrs.count(ptr) == 0);
         ptrs.insert(static_cast<ptr_baggable_t *>(ptr));
-        size_est_ += size_est;
+        mem_estimate_ += mem_estimate;
     }
 }
 
@@ -65,6 +67,10 @@ void ptr_bag_t::shadow(ptr_bag_t *_parent, size_t *bag_size_out) {
         parent->real_add(*it, 0);
     }
     ptrs = std::set<ptr_baggable_t *>();
-    *bag_size_out = size_est_;
-    size_est_ = 0;
+    *bag_size_out = mem_estimate_;
+    mem_estimate_ = 0;
+}
+
+void debug_print(append_only_printf_buffer_t *buf, const ptr_bag_t &pbag) {
+    buf->appendf("%s", pbag.print_debug().c_str());
 }
