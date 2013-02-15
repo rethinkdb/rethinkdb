@@ -544,7 +544,7 @@ module 'NamespaceView', ->
 
             window.app.current_view.shards.render_status
                 new_value: @model.get('shards').length
-                
+            window.app.current_view.server_assignments.render()
 
             $.ajax
                 processData: false
