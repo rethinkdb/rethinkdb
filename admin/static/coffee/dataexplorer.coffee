@@ -359,7 +359,8 @@ module 'DataExplorerView', ->
                     @last_action_is_paste = true
                     @num_released_keys = 0 # We want to know when the user release Ctrl AND V
                     @hide_suggestion_and_description()
-                return false
+                if event?.type isnt 'mouseup'
+                    return false
 
             if event?.which?
                 if event.which is 27 # ESC
@@ -500,6 +501,7 @@ module 'DataExplorerView', ->
                 @show_description result.description
             else
                 @hide_suggestion_and_description()
+            return true
 
         # Extract information from the current query
         # Regex used
