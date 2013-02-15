@@ -58,7 +58,7 @@ bool env_t::gc_callback_trampoline(const datum_t *el, env_t *env) {
 }
 bool env_t::gc_callback(const datum_t *el) {
     if (old_bag->has(el)) {
-        old_bag->yield_to(new_bag, el, true /*dup_ok*/);
+        old_bag->yield_to(new_bag, el);
         return true;
     }
     r_sanity_check(some_bag_has(el));

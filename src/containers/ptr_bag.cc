@@ -22,13 +22,12 @@ ptr_bag_t::~ptr_bag_t() {
 }
 
 bool ptr_bag_t::has(const ptr_baggable_t *ptr) {
+    if (parent) return parent->has(ptr);
     return ptrs.count(const_cast<ptr_baggable_t *>(ptr)) > 0;
 }
-void ptr_bag_t::yield_to(ptr_bag_t *new_bag, const ptr_baggable_t *ptr, bool dup_ok) {
+void ptr_bag_t::yield_to(ptr_bag_t *new_bag, const ptr_baggable_t *ptr) {
     size_t num_erased = ptrs.erase(const_cast<ptr_baggable_t *>(ptr));
     guarantee(num_erased == 1);
-    // TODO(mlucy): this is fragile and should go away.
-    if (dup_ok && new_bag->has(ptr)) return;
     new_bag->add(ptr);
 }
 

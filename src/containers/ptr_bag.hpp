@@ -39,7 +39,7 @@ public:
     }
 
     bool has(const ptr_baggable_t *ptr);
-    void yield_to(ptr_bag_t *new_bag, const ptr_baggable_t *ptr, bool dup_ok = false);
+    void yield_to(ptr_bag_t *new_bag, const ptr_baggable_t *ptr);
     std::string print_debug() const;
 
     static const int size_est_mul = 2;
