@@ -23,8 +23,11 @@ public:
 
 class persistent_file_t {
 public:
-    persistent_file_t(io_backender_t *io_backender, const std::string &filename, perfmon_collection_t *perfmon_parent);
-    persistent_file_t(io_backender_t *io_backender, const std::string &filename, perfmon_collection_t *perfmon_parent, const machine_id_t &machine_id, const cluster_semilattice_metadata_t &initial_metadata);
+    persistent_file_t(io_backender_t *io_backender, const serializer_filepath_t &filename,
+                      perfmon_collection_t *perfmon_parent);
+    persistent_file_t(io_backender_t *io_backender, const serializer_filepath_t &filename,
+                      perfmon_collection_t *perfmon_parent, const machine_id_t &machine_id,
+                      const cluster_semilattice_metadata_t &initial_metadata);
     ~persistent_file_t();
 
     machine_id_t read_machine_id();
@@ -40,7 +43,8 @@ private:
     template <class protocol_t> class persistent_branch_history_manager_t;
 
     /* Shared between constructors */
-    void construct_serializer_and_cache(io_backender_t *io_backender, bool create, const std::string &filename, perfmon_collection_t *perfmon_parent);
+    void construct_serializer_and_cache(bool create, serializer_file_opener_t *file_opener,
+                                        perfmon_collection_t *perfmon_parent);
     void construct_branch_history_managers(bool create);
 
     order_source_t cache_order_source;  // order_token_t::ignore?

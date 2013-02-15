@@ -66,11 +66,14 @@ bool do_serve(
     io_backender_t *io_backender,
     bool i_am_a_server,
     // NB. filepath & persistent_file are used iff i_am_a_server is true.
-    const std::string &filepath, metadata_persistence::persistent_file_t *persistent_file,
+    const base_path_t &base_path,
+    metadata_persistence::persistent_file_t *persistent_file,
     const peer_address_set_t &joins,
     service_address_ports_t address_ports,
-    machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata,
-    std::string web_assets, signal_t *stop_cond,
+    machine_id_t machine_id,
+    const cluster_semilattice_metadata_t &semilattice_metadata,
+    std::string web_assets,
+    signal_t *stop_cond,
     const boost::optional<std::string> &config_file) {
     try {
         guarantee(spawner_info);
@@ -165,7 +168,7 @@ bool do_serve(
         perfmon_collection_t sys_stats_collection;
         perfmon_membership_t sys_stats_membership(&get_global_perfmon_collection(), &sys_stats_collection, "sys");
 
-        sys_stats_collector_t sys_stats_collector(filepath, &sys_stats_collection);
+        sys_stats_collector_t sys_stats_collector(base_path, &sys_stats_collection);
 
         scoped_ptr_t<initial_joiner_t> initial_joiner;
         if (!joins.empty()) {
@@ -211,9 +214,10 @@ bool do_serve(
             // Reactor drivers
 
             // Dummy
-            file_based_svs_by_namespace_t<mock::dummy_protocol_t> dummy_svs_source(io_backender, filepath);
+            file_based_svs_by_namespace_t<mock::dummy_protocol_t> dummy_svs_source(io_backender, base_path);
             scoped_ptr_t<reactor_driver_t<mock::dummy_protocol_t> > dummy_reactor_driver(!i_am_a_server ? NULL :
                 new reactor_driver_t<mock::dummy_protocol_t>(
+                    base_path,
                     io_backender,
                     &mailbox_manager,
                     directory_read_manager.get_root_view()->subview(
@@ -234,9 +238,10 @@ bool do_serve(
                         &our_root_directory_variable));
 
             // Memcached
-            file_based_svs_by_namespace_t<memcached_protocol_t> memcached_svs_source(io_backender, filepath);
+            file_based_svs_by_namespace_t<memcached_protocol_t> memcached_svs_source(io_backender, base_path);
             scoped_ptr_t<reactor_driver_t<memcached_protocol_t> > memcached_reactor_driver(!i_am_a_server ? NULL :
                 new reactor_driver_t<memcached_protocol_t>(
+                    base_path,
                     io_backender,
                     &mailbox_manager,
                     directory_read_manager.get_root_view()->subview(
@@ -257,9 +262,10 @@ bool do_serve(
                         &our_root_directory_variable));
 
             // RDB
-            file_based_svs_by_namespace_t<rdb_protocol_t> rdb_svs_source(io_backender, filepath);
+            file_based_svs_by_namespace_t<rdb_protocol_t> rdb_svs_source(io_backender, base_path);
             scoped_ptr_t<reactor_driver_t<rdb_protocol_t> > rdb_reactor_driver(!i_am_a_server ? NULL :
                 new reactor_driver_t<rdb_protocol_t>(
+                    base_path,
                     io_backender,
                     &mailbox_manager,
                     directory_read_manager.get_root_view()->subview(
@@ -370,7 +376,7 @@ bool do_serve(
 
 bool serve(extproc::spawner_t::info_t *spawner_info,
            io_backender_t *io_backender,
-           const std::string &filepath,
+           const base_path_t &base_path,
            metadata_persistence::persistent_file_t *persistent_file,
            const peer_address_set_t &joins,
            service_address_ports_t address_ports,
@@ -382,7 +388,7 @@ bool serve(extproc::spawner_t::info_t *spawner_info,
     return do_serve(spawner_info,
                     io_backender,
                     true,
-                    filepath,
+                    base_path,
                     persistent_file,
                     joins,
                     address_ports,
@@ -406,7 +412,7 @@ bool serve_proxy(extproc::spawner_t::info_t *spawner_info,
     return do_serve(spawner_info,
                     NULL,
                     false,
-                    "",
+                    base_path_t(""),
                     NULL,
                     joins,
                     address_ports,

@@ -49,7 +49,7 @@ long time to compile. */
 
 bool serve(extproc::spawner_t::info_t *spawner_info,
            io_backender_t *io_backender,
-           const std::string &filepath,
+           const base_path_t &base_path,
            metadata_persistence::persistent_file_t *persistent_file,
            const peer_address_set_t &joins,
            service_address_ports_t ports,

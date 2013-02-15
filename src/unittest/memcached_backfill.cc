@@ -50,7 +50,8 @@ void run_with_broadcaster(
     watchable_variable_t<boost::optional<boost::optional<broadcaster_business_card_t<memcached_protocol_t> > > > broadcaster_business_card_watchable_variable(boost::optional<boost::optional<broadcaster_business_card_t<memcached_protocol_t> > >(boost::optional<broadcaster_business_card_t<memcached_protocol_t> >(broadcaster->get_business_card())));
 
     scoped_ptr_t<listener_t<memcached_protocol_t> > initial_listener(
-        new listener_t<memcached_protocol_t>(io_backender.get(),
+        new listener_t<memcached_protocol_t>(base_path_t("."),
+                                             io_backender.get(),
                                              cluster.get_mailbox_manager(),
                                              broadcaster_business_card_watchable_variable.get_watchable(),
                                              &branch_history_manager,
@@ -141,6 +142,7 @@ void run_partial_backfill_test(io_backender_t *io_backender,
     test_store_t<memcached_protocol_t> store2(io_backender, order_source);
     cond_t interruptor;
     listener_t<memcached_protocol_t> listener2(
+        base_path_t("."),
         io_backender,
         cluster->get_mailbox_manager(),
         broadcaster_metadata_view,

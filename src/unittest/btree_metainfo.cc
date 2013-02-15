@@ -39,7 +39,7 @@ std::string vector_to_string(const std::vector<char> &v) {
 }
 
 void run_metainfo_test() {
-    temp_file_t temp_file("/tmp/rdb_unittest.XXXXXX");
+    temp_file_t temp_file;
 
     scoped_ptr_t<io_backender_t> io_backender;
     make_io_backender(aio_default, &io_backender);
@@ -60,13 +60,14 @@ void run_metainfo_test() {
     mirrored_cache_config_t cache_dynamic_config;
     cache_t cache(&serializer, &cache_dynamic_config, &get_global_perfmon_collection());
 
-    btree_slice_t::create(&cache);
+    btree_slice_t::create(&cache, std::vector<char>(), std::vector<char>());
+    std::map<std::string, std::string> mirror;
+    mirror[""] = "";
 
     btree_slice_t btree(&cache, &get_global_perfmon_collection());
 
     order_source_t order_source;
 
-    std::map<std::string, std::string> mirror;
 
     for (int i = 0; i < 1000; i++) {
 
