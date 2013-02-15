@@ -57,16 +57,16 @@ private:
 };
 
 #define debugf_log(log, args...) {                                      \
-    std::string _debugf_log = strprintf(args);                          \
-    (log).add(_debugf_log);                                             \
-    debugf("%p[%d]: %s\n", &(log), (int)(log).size(), _debugf_log.c_str()); \
+        activity_logger_t *_logptr = &(log);                            \
+        std::string _debugf_log = strprintf(args);                      \
+        _logptr->add(_debugf_log);                                      \
+        debugf("%p[%z]: %s\n", _logptr, _logptr->size(), _debugf_log.c_str()); \
 }
-#define debugf_log_bt(log, args...) {               \
-    std::string _debugf_log = strprintf(args);      \
-    (log).add(_debugf_log, true);                   \
-    debugf("%p[%d]: %s\n", &(log), (int)(log).size(), _debugf_log.c_str());            \
-}
-
-bool alprng(activity_logger_t *l, size_t start, size_t end, bool print_bt = true);
+#define debugf_log_bt(log, args...) do {                                \
+        activity_logger_t *_logptr = &(log);                            \
+        std::string _debugf_log = strprintf(args);                      \
+        _logptr->add(_debugf_log, true);                                \
+        debugf("%p[%z]: %s\n", _logptr, _logptr->size(), _debugf_log.c_str()); \
+    } while (0)
 
 #endif /* ACTIVITY_LOGGER_HPP_ */
