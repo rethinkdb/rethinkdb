@@ -54,7 +54,3 @@ bool patch_disk_storage_t::store_patch(buf_patch_t *patch, const block_sequence_
 
     return false;
 }
-
-unsigned int patch_disk_storage_t::get_number_of_log_blocks() const {
-    return (unsigned int)number_of_blocks;
-}

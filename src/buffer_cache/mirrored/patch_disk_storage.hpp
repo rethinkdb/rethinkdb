@@ -59,8 +59,6 @@ public:
     // This function never blocks and must only be called while the flush_lock is held.
     bool store_patch(buf_patch_t *patch, const block_sequence_id_t current_block_block_sequence_id);
 
-    unsigned int get_number_of_log_blocks() const;
-
 private:
     static const block_id_t number_of_blocks = 0;
 };
