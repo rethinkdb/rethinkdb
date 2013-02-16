@@ -132,7 +132,7 @@ func_t *wire_func_t::compile(env_t *env) {
 }
 
 func_term_t::func_term_t(env_t *env, const Term2 *term)
-    : term_t(env), func(env->new_func(term, skip_frame)) { }
+    : term_t(env), func(env->new_func(term, invalid_frame)) { }
 val_t *func_term_t::eval_impl() {
     func->maybe_set_frame(get_bt());
     return new_val(func);

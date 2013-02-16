@@ -40,6 +40,8 @@ struct backtrace_t {
         explicit frame_t(const char *_opt) : type(OPT), opt(_opt) { }
         Response2_Frame toproto() const;
 
+        static frame_t invalid() { return frame_t(INVALID); }
+        bool is_invalid() const { return type == POS && pos == INVALID; }
         static frame_t head() { return frame_t(HEAD); }
         bool is_head() const { return type == POS && pos == HEAD; }
         static frame_t skip() { return frame_t(SKIP); }
@@ -81,6 +83,7 @@ private:
     std::list<frame_t> frames;
 };
 
+const backtrace_t::frame_t invalid_frame = backtrace_t::frame_t::invalid();
 const backtrace_t::frame_t head_frame = backtrace_t::frame_t::head();
 const backtrace_t::frame_t skip_frame = backtrace_t::frame_t::skip();
 
