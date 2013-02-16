@@ -171,8 +171,6 @@ void mc_inner_buf_t::load_inner_buf(bool should_lock, file_account_t *io_account
     // Read the block sequence id
     block_sequence_id = cache->serializer->get_block_sequence_id(block_id, data.get());
 
-    replay_patches();
-
     if (should_lock) {
         lock.unlock();
     }
@@ -240,8 +238,6 @@ mc_inner_buf_t::mc_inner_buf_t(mc_cache_t *_cache, block_id_t _block_id, void *_
 
     // Read the block sequence id
     block_sequence_id = _cache->serializer->get_block_sequence_id(_block_id, data.get());
-
-    replay_patches();
 }
 
 mc_inner_buf_t *mc_inner_buf_t::allocate(mc_cache_t *cache, version_id_t snapshot_version, repli_timestamp_t recency_timestamp) {
@@ -352,9 +348,6 @@ mc_inner_buf_t::~mc_inner_buf_t() {
 
     --cache->stats->pm_n_blocks_in_memory;
 }
-
-// TODO(patch) Obviously remove this function.
-void mc_inner_buf_t::replay_patches() { }
 
 bool mc_inner_buf_t::snapshot_if_needed(version_id_t new_version, bool leave_clone) {
     cache->assert_thread();
