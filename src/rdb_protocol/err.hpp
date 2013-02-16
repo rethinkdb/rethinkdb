@@ -35,7 +35,7 @@ struct backtrace_t {
     struct frame_t {
     public:
         explicit frame_t() : type(OPT), opt("UNITIALIZED") { }
-        explicit frame_t(int _pos) : type(POS), pos(_pos) { }
+        explicit frame_t(int32_t _pos) : type(POS), pos(_pos) { }
         explicit frame_t(const std::string &_opt) : type(OPT), opt(_opt) { }
         explicit frame_t(const char *_opt) : type(OPT), opt(_opt) { }
         Response2_Frame toproto() const;
@@ -56,8 +56,8 @@ struct backtrace_t {
             SKIP = -3
         };
         enum type_t { POS = 0, OPT = 1 };
-        int type; // serialize macros didn't like `type_t` for some reason
-        int pos;
+        int32_t type; // serialize macros didn't like `type_t` for some reason
+        int32_t pos;
         std::string opt;
 
     public:
@@ -91,13 +91,12 @@ public:
     exc_t() : exc_msg("UNINITIALIZED") { }
     exc_t(const std::string &_exc_msg) : exc_msg(_exc_msg) { }
     virtual ~exc_t() throw () { }
-    backtrace_t backtrace;
     const char *what() const throw () { return exc_msg.c_str(); }
+    RDB_MAKE_ME_SERIALIZABLE_2(backtrace, exc_msg);
+
+    backtrace_t backtrace;
 private:
     std::string exc_msg;
-
-public:
-    RDB_MAKE_ME_SERIALIZABLE_2(backtrace, exc_msg);
 };
 
 void fill_error(Response2 *res, Response2_ResponseType type, std::string msg,

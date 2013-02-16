@@ -1,5 +1,5 @@
-#ifndef _META_UTILS_HPP
-#define _META_UTILS_HPP
+#ifndef RDB_PROTOCOL_META_UTILS_HPP_
+#define RDB_PROTOCOL_META_UTILS_HPP_
 
 #include "clustering/administration/metadata.hpp"
 
@@ -26,7 +26,8 @@ static void meta_check(metadata_search_status_t status, metadata_search_status_t
 }
 
 template<class T, class U>
-static uuid_u meta_get_uuid(T *searcher, const U &predicate, std::string operation) {
+static uuid_u meta_get_uuid(T *searcher, const U &predicate,
+                            const std::string &operation) {
     metadata_search_status_t status;
     typename T::iterator entry = searcher->find_uniq(predicate, &status);
     meta_check(status, METADATA_SUCCESS, operation);
@@ -34,4 +35,4 @@ static uuid_u meta_get_uuid(T *searcher, const U &predicate, std::string operati
 }
 
 } // namespace ql
-#endif // _META_UTILS_HPP
+#endif // RDB_PROTOCOL_META_UTILS_HPP_

@@ -1,5 +1,6 @@
-#include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
+
+#include "rdb_protocol/env.hpp"
 #include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/ql2.pb.h"
 

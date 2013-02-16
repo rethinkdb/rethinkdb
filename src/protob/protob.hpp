@@ -11,6 +11,7 @@
 #include <boost/ptr_container/ptr_map.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
 
+#include "arch/runtime/runtime.hpp"
 #include "arch/timing.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/cross_thread_signal.hpp"
