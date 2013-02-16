@@ -15,58 +15,6 @@ std::string patch_deserialization_message(const char *file, int line, const char
 
 patch_deserialization_error_t::patch_deserialization_error_t(const std::string &message) : message_(message) { }
 
-buf_patch_t *buf_patch_t::load_patch(const char *source) {
-    try {
-        uint16_t remaining_length = *reinterpret_cast<const uint16_t *>(source);
-        source += sizeof(remaining_length);
-        if (remaining_length == 0) {
-            return NULL;
-        }
-        remaining_length -= sizeof(remaining_length);
-        guarantee_patch_format(remaining_length >= sizeof(block_id_t) + sizeof(patch_counter_t) + sizeof(patch_operation_code_t));
-
-        // TODO: Put these fields in a POD struct and do a single memcpy.
-        block_id_t block_id = *reinterpret_cast<const block_id_t *>(source);
-        source += sizeof(block_id_t);
-        remaining_length -= sizeof(block_id_t);
-        patch_counter_t patch_counter = *reinterpret_cast<const patch_counter_t *>(source);
-        source += sizeof(patch_counter_t);
-        remaining_length -= sizeof(block_id_t);
-        block_sequence_id_t applies_to_block_sequence_id = *reinterpret_cast<const block_sequence_id_t *>(source);
-        source += sizeof(block_sequence_id_t);
-        remaining_length -= sizeof(block_sequence_id_t);
-        patch_operation_code_t operation_code = *reinterpret_cast<const patch_operation_code_t *>(source);
-        source += sizeof(patch_operation_code_t);
-        remaining_length -= sizeof(patch_operation_code_t);
-
-        buf_patch_t* result = NULL;
-        switch (operation_code) {
-        case OPER_MEMCPY:
-            result = new memcpy_patch_t(block_id, patch_counter, source, remaining_length);
-            break;
-        case OPER_MEMMOVE:
-            result = new memmove_patch_t(block_id, patch_counter, source, remaining_length);
-            break;
-        case OPER_LEAF_INSERT:
-            result = new leaf_insert_patch_t(block_id, patch_counter, source, remaining_length);
-            break;
-        case OPER_LEAF_REMOVE:
-            result = new leaf_remove_patch_t(block_id, patch_counter, source, remaining_length);
-            break;
-        case OPER_LEAF_ERASE_PRESENCE:
-            result = new leaf_erase_presence_patch_t(block_id, patch_counter, source, remaining_length);
-            break;
-        default:
-            throw patch_deserialization_error_t("Unsupported patch operation code");
-        }
-        result->set_block_sequence_id(applies_to_block_sequence_id);
-        return result;
-    } catch (const patch_deserialization_error_t &e) {
-        logERR("%s", e.c_str());
-        throw;
-    }
-}
-
 void buf_patch_t::serialize(char* destination) const {
     uint16_t length = get_serialized_size();
 
