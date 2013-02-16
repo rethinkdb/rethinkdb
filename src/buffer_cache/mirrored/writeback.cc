@@ -17,7 +17,7 @@
 // merged to now?
 
 writeback_t::writeback_t(
-        cache_t *_cache,
+        mc_cache_t *_cache,
         bool _wait_for_flush,
         unsigned int _flush_timer_ms,
         unsigned int _flush_threshold,
@@ -101,7 +101,7 @@ bool writeback_t::sync_patiently(sync_callback_t *callback) {
     return false;
 }
 
-void writeback_t::begin_transaction(transaction_t *txn) {
+void writeback_t::begin_transaction(mc_transaction_t *txn) {
 
     if (txn->get_access() == rwi_write) {
 
@@ -129,7 +129,7 @@ void writeback_t::begin_transaction(transaction_t *txn) {
     }
 }
 
-void writeback_t::on_transaction_commit(transaction_t *txn) {
+void writeback_t::on_transaction_commit(mc_transaction_t *txn) {
     if (txn->get_access() == rwi_write) {
 
         dirty_block_semaphore.unlock(txn->expected_change_count);
@@ -155,7 +155,7 @@ void writeback_t::on_transaction_commit(transaction_t *txn) {
 }
 
 void writeback_t::local_buf_t::set_dirty(bool _dirty) {
-    inner_buf_t *gbuf = static_cast<inner_buf_t *>(this);
+    mc_inner_buf_t *gbuf = static_cast<mc_inner_buf_t *>(this);
     if (!dirty && _dirty) {
         // Mark block as dirty if it hasn't been already
         dirty = true;
@@ -178,7 +178,7 @@ void writeback_t::local_buf_t::set_dirty(bool _dirty) {
 }
 
 void writeback_t::local_buf_t::set_recency_dirty(bool _recency_dirty) {
-    inner_buf_t *gbuf = static_cast<inner_buf_t *>(this);
+    mc_inner_buf_t *gbuf = static_cast<mc_inner_buf_t *>(this);
     if (!recency_dirty && _recency_dirty) {
         // Mark block as recency_dirty if it hasn't been already.
         recency_dirty = true;
@@ -200,7 +200,7 @@ void writeback_t::local_buf_t::set_recency_dirty(bool _recency_dirty) {
 
 // Add block_id to deleted_blocks list.
 void writeback_t::local_buf_t::mark_block_id_deleted() {
-    inner_buf_t *gbuf = static_cast<inner_buf_t *>(this);
+    mc_inner_buf_t *gbuf = static_cast<mc_inner_buf_t *>(this);
     gbuf->cache->writeback.deleted_blocks.push_back(gbuf->block_id);
 
     // As the block has been deleted, we must not accept any versions of it offered
@@ -368,7 +368,7 @@ void writeback_t::do_concurrent_flush() {
     cache->stats->pm_flushes_diff_flush.end(&start_time2);
 
     /* Start a read transaction so we can request bufs. */
-    transaction_t *transaction;
+    mc_transaction_t *transaction;
     {
         // This was originally for some hack where we change the value
         // of shutting_down, but I don't care to remove it.
@@ -494,7 +494,7 @@ void writeback_t::flush_prepare_patches() {
     bool patch_storage_failure = false;
     unsigned int patches_stored = 0;
     for (local_buf_t *lbuf = dirty_bufs.head(); lbuf; lbuf = dirty_bufs.next(lbuf)) {
-        inner_buf_t *inner_buf = static_cast<inner_buf_t *>(lbuf);
+        mc_inner_buf_t *inner_buf = static_cast<mc_inner_buf_t *>(lbuf);
 
         // If the patch storage failed before (which usually happens if it ran out of space),
         // we don't even try to write patches for this buffer. Instead we set needs_flush,
@@ -577,7 +577,7 @@ void writeback_t::flush_prepare_patches() {
         cache->stats->pm_flushes_diff_storage_failures.record(patches_stored);
 }
 
-void writeback_t::flush_acquire_bufs(transaction_t *transaction, flush_state_t *state) {
+void writeback_t::flush_acquire_bufs(mc_transaction_t *transaction, flush_state_t *state) {
     /* Request read locks on all of the blocks we need to flush. */
     // Log the size of this flush
     cache->stats->pm_flushes_blocks.record(dirty_bufs.size());
@@ -594,7 +594,7 @@ void writeback_t::flush_acquire_bufs(transaction_t *transaction, flush_state_t *
     unsigned int really_dirty = 0;
 
     while (local_buf_t *lbuf = dirty_bufs.head()) {
-        inner_buf_t *inner_buf = static_cast<inner_buf_t *>(lbuf);
+        mc_inner_buf_t *inner_buf = static_cast<mc_inner_buf_t *>(lbuf);
 
         bool buf_needs_flush = lbuf->needs_flush();
         //bool buf_dirty = lbuf->dirty;
@@ -611,12 +611,12 @@ void writeback_t::flush_acquire_bufs(transaction_t *transaction, flush_state_t *
             rassert(!inner_buf->do_delete);
 
             // Acquire the blocks
-            buf_lock_t *buf;
+            mc_buf_lock_t *buf;
             {
                 // Acquire always succeeds, but sometimes it blocks.
                 // But it won't block because we hold the flush lock.
                 ASSERT_NO_CORO_WAITING;
-                buf = new buf_lock_t(transaction, inner_buf->block_id, rwi_read_outdated_ok);
+                buf = new mc_buf_lock_t(transaction, inner_buf->block_id, rwi_read_outdated_ok);
             }
 
             // Fill the serializer structure

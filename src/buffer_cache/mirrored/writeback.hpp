@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef BUFFER_CACHE_MIRRORED_WRITEBACK_HPP_
 #define BUFFER_CACHE_MIRRORED_WRITEBACK_HPP_
 
@@ -20,15 +20,9 @@ class mc_inner_buf_t;
 class mc_transaction_t;
 
 class writeback_t : private timer_callback_t {
-    // TODO: These typedefs are horrible, since globally they could be different, in other files.
-    typedef mc_cache_t cache_t;
-    typedef mc_buf_lock_t buf_lock_t;
-    typedef mc_inner_buf_t inner_buf_t;
-    typedef mc_transaction_t transaction_t;
-
 public:
     writeback_t(
-        cache_t *cache,
+        mc_cache_t *cache,
         bool wait_for_flush,
         unsigned int flush_timer_ms,
         unsigned int flush_threshold,
@@ -51,9 +45,9 @@ public:
 
     /* `begin_transaction()` will block if the transaction is a write transaction and
     it ought to be throttled. */
-    void begin_transaction(transaction_t *txn);
+    void begin_transaction(mc_transaction_t *txn);
 
-    void on_transaction_commit(transaction_t *txn);
+    void on_transaction_commit(mc_transaction_t *txn);
 
     unsigned int num_dirty_blocks() {
         return dirty_bufs.size();
@@ -131,7 +125,7 @@ private:
 
     bool force_patch_storage_flush;
 
-    cache_t *cache;
+    mc_cache_t *cache;
 
     /* The flush lock is necessary because if we acquire dirty blocks
      * in random order during the flush, there might be a deadlock
@@ -188,7 +182,7 @@ private:
     void start_concurrent_flush();
     void do_concurrent_flush();
     void flush_prepare_patches();
-    void flush_acquire_bufs(transaction_t *transaction, flush_state_t *state);
+    void flush_acquire_bufs(mc_transaction_t *transaction, flush_state_t *state);
 };
 
 #endif // BUFFER_CACHE_MIRRORED_WRITEBACK_HPP_
