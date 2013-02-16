@@ -176,7 +176,6 @@ private:
     struct flush_state_t;
     void start_concurrent_flush();
     void do_concurrent_flush();
-    void flush_prepare_patches();
     void flush_acquire_bufs(mc_transaction_t *transaction, flush_state_t *state);
 };
 

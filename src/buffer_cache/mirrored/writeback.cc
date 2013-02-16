@@ -397,7 +397,6 @@ void writeback_t::do_concurrent_flush() {
         start_next_sync_immediately = false;
 
         // Go through the different flushing steps...
-        flush_prepare_patches();
         cache->stats->pm_flushes_writing.begin(&start_time);
         flush_acquire_bufs(transaction, &state);
     }
@@ -477,11 +476,6 @@ void writeback_t::do_concurrent_flush() {
             to_pulse_when_last_active_flush_finishes->pulse();
         }
     }
-}
-
-// TODO(patch) obviously remove this function.
-void writeback_t::flush_prepare_patches() {
-    rassert(writeback_in_progress);
 }
 
 void writeback_t::flush_acquire_bufs(mc_transaction_t *transaction, flush_state_t *state) {
