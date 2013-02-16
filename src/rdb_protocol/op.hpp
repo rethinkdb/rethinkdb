@@ -10,19 +10,17 @@ namespace ql {
 struct argspec_t {
     argspec_t(int n) : min(n), max(n) { }
     argspec_t(int _min, int _max) : min(_min), max(_max) { }
-    const char *print() {
+    std::string print() {
         if (min == max) {
-            _print = strprintf("%d argument(s)", min);
+            return strprintf("%d argument(s)", min);
         } else if (max == -1) {
-            _print = strprintf("at least %d arguments", min);
+            return strprintf("at least %d arguments", min);
         } else {
-            _print = strprintf("between %d and %d arguments", min, max);
+            return strprintf("between %d and %d arguments", min, max);
         }
-        return _print.c_str();
     }
     bool contains(int n) const { return min <= n && (max < 0 || n <= max); }
     int min, max; // max may be -1 for unbounded
-    std::string _print;
 };
 
 // Specifies the optional arguments a function can take.

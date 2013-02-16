@@ -11,7 +11,7 @@ op_term_t::op_term_t(env_t *env, const Term2 *term,
     }
     rcheck(argspec.contains(args.size()),
            strprintf("Wrong number of arguments: %lu (expected %s)",
-                     args.size(), argspec.print()));
+                     args.size(), argspec.print().c_str()));
 
     for (int i = 0; i < term->optargs_size(); ++i) {
         const Term2_AssocPair *ap = &term->optargs(i);
