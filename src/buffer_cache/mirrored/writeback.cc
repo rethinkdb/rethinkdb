@@ -357,14 +357,13 @@ void writeback_t::do_concurrent_flush() {
     // As we cannot afford waiting for blocks to get loaded from disk while holding the flush lock,
     // we instead reclaim some space in the on-disk patch storage now.
     ticks_t start_time2;
+    // TOOD(patch): Drop pm_flushes_diff_flush?
     cache->stats->pm_flushes_diff_flush.begin(&start_time2);
-    // TODO: What are these magic constants doing here?
-    unsigned int blocks_to_flush = uint64_t(dirty_bufs.size()) * 100LL / cache->get_block_size().value() + 1;
+
+    // TODO(patch): Drop the force_patch_storage_flush variable?
     if (force_patch_storage_flush) {
-        blocks_to_flush = std::max(cache->patch_disk_storage->get_number_of_log_blocks() / 20 + 1, blocks_to_flush);
         force_patch_storage_flush = false;
     }
-    cache->patch_disk_storage->clear_n_oldest_blocks(blocks_to_flush);
     cache->stats->pm_flushes_diff_flush.end(&start_time2);
 
     /* Start a read transaction so we can request bufs. */

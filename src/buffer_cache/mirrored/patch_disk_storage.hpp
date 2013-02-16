@@ -59,9 +59,6 @@ public:
     // This function never blocks and must only be called while the flush_lock is held.
     bool store_patch(buf_patch_t *patch, const block_sequence_id_t current_block_block_sequence_id);
 
-    // This function might block while it acquires old blocks from disk.
-    void clear_n_oldest_blocks(unsigned int n);
-
     void compress_n_oldest_blocks(unsigned int n);
 
     unsigned int get_number_of_log_blocks() const;

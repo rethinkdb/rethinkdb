@@ -55,10 +55,6 @@ bool patch_disk_storage_t::store_patch(buf_patch_t *patch, const block_sequence_
     return false;
 }
 
-// This function might block while it acquires old blocks from disk.
-void patch_disk_storage_t::clear_n_oldest_blocks(UNUSED unsigned int n) {
-}
-
 void patch_disk_storage_t::compress_n_oldest_blocks(UNUSED unsigned int n) {
 }
 
