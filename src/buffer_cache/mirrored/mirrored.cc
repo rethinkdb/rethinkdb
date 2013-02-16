@@ -858,8 +858,7 @@ void mc_buf_lock_t::ensure_flush() {
     if (!inner_buf->writeback_buf().needs_flush()) {
         // We bypass the patching system, make sure this buffer gets flushed.
         inner_buf->writeback_buf().set_needs_flush(true);
-        // ... we can also get rid of existing patches at this point.
-        inner_buf->cache->patch_memory_storage.drop_patches(inner_buf->block_id);
+        // TODO(patch): Maybe we don't need set_needs_flush or needs_flush anymore.
         // Make sure that the buf is marked as dirty
         inner_buf->writeback_buf().set_dirty();
         inner_buf->data_token.reset();

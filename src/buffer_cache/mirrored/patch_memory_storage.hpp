@@ -60,9 +60,6 @@ public:
 
     patch_memory_storage_t(); // Initialize an empty diff storage
 
-    // Remove all patches for that block (e.g. after patches have been applied and the block gets flushed to disk)
-    void drop_patches(const block_id_t block_id);
-
 private:
 
     typedef std::map<block_id_t, block_patch_list_t> patch_map_t;

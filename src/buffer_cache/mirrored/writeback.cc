@@ -490,18 +490,8 @@ void writeback_t::flush_prepare_patches() {
     // want to change it.
     ticks_t start_time2;
     cache->stats->pm_flushes_diff_store.begin(&start_time2);
-    bool patch_storage_failure = false;
-    unsigned int patches_stored = 0;
     for (local_buf_t *lbuf = dirty_bufs.head(); lbuf; lbuf = dirty_bufs.next(lbuf)) {
         mc_inner_buf_t *inner_buf = static_cast<mc_inner_buf_t *>(lbuf);
-
-        // If the patch storage failed before (which usually happens if it ran out of space),
-        // we don't even try to write patches for this buffer. Instead we set needs_flush,
-        // causing the block itself to be written to disk instead of its patches.
-        if (patch_storage_failure && lbuf->get_dirty() && !lbuf->needs_flush()) {
-            lbuf->set_needs_flush(true);
-            cache->patch_memory_storage.drop_patches(inner_buf->block_id);
-        }
 
         // TODO(patches) Removed a whole chunk of code here, see if more cleanup
         // is possible.
@@ -518,12 +508,6 @@ void writeback_t::flush_prepare_patches() {
         }
     }
     cache->stats->pm_flushes_diff_store.end(&start_time2);
-    if (patch_storage_failure)
-        force_patch_storage_flush = true; // Make sure we resolve the storage space shortage before the next flush...
-
-    cache->stats->pm_flushes_diff_patches_stored.record(patches_stored);
-    if (patch_storage_failure)
-        cache->stats->pm_flushes_diff_storage_failures.record(patches_stored);
 }
 
 void writeback_t::flush_acquire_bufs(mc_transaction_t *transaction, flush_state_t *state) {

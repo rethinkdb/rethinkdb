@@ -10,10 +10,6 @@
 patch_memory_storage_t::patch_memory_storage_t() {
 }
 
-void patch_memory_storage_t::drop_patches(UNUSED block_id_t block_id) {
-    guarantee(patch_map.empty());
-}
-
 patch_memory_storage_t::block_patch_list_t::block_patch_list_t() {
     patches_.reserve(32);
     patches_serialized_size_ = 0;
