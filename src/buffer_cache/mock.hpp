@@ -56,7 +56,6 @@ public:
     // Convenience function to move data within the buffer acquired through get_data_read. (similar to memmove)
     void move_data(void *dest, const void *src, const size_t n);
     void apply_patch(buf_patch_t *patch); // This might delete the supplied patch, do not use patch after its application
-    patch_counter_t get_next_patch_counter();
     void mark_deleted();
     void touch_recency(repli_timestamp_t timestamp);
 

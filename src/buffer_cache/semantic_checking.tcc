@@ -68,12 +68,6 @@ void scc_buf_lock_t<inner_cache_t>::apply_patch(buf_patch_t *patch) {
 }
 
 template<class inner_cache_t>
-patch_counter_t scc_buf_lock_t<inner_cache_t>::get_next_patch_counter() {
-    rassert(internal_buf_lock.has());
-    return internal_buf_lock->get_next_patch_counter();
-}
-
-template<class inner_cache_t>
 void scc_buf_lock_t<inner_cache_t>::mark_deleted() {
     rassert(internal_buf_lock.has());
     internal_buf_lock->mark_deleted();

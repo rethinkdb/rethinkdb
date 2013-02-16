@@ -62,10 +62,6 @@ void mock_buf_lock_t::apply_patch(buf_patch_t *patch) {
     delete patch;
 }
 
-patch_counter_t mock_buf_lock_t::get_next_patch_counter() {
-    return 0;
-}
-
 void mock_buf_lock_t::set_data(void *dest, const void *src, const size_t n) {
     size_t offset = reinterpret_cast<const char *>(dest) - reinterpret_cast<const char *>(internal_buf->data);
     apply_patch(new memcpy_patch_t(internal_buf->block_id, offset, reinterpret_cast<const char *>(src), n));

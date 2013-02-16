@@ -479,34 +479,9 @@ void writeback_t::do_concurrent_flush() {
     }
 }
 
+// TODO(patch) obviously remove this function.
 void writeback_t::flush_prepare_patches() {
     rassert(writeback_in_progress);
-
-    /* Write patches for blocks we don't want to flush now */
-    // Please note: Writing patches to the oocore_storage can still alter the dirty_bufs list!
-    // (because some of the patch storage blocks will become dirty)
-    // The iteration below doesn't have a problem with that, but be careful if you
-    // want to change it.
-    ticks_t start_time2;
-    cache->stats->pm_flushes_diff_store.begin(&start_time2);
-    for (local_buf_t *lbuf = dirty_bufs.head(); lbuf; lbuf = dirty_bufs.next(lbuf)) {
-        mc_inner_buf_t *inner_buf = static_cast<mc_inner_buf_t *>(lbuf);
-
-        // TODO(patches) Removed a whole chunk of code here, see if more cleanup
-        // is possible.
-
-        if (lbuf->needs_flush()) {
-            // Because the block will be rewritten and therefore receive a new
-            // block_sequence_id, we can reset the patch counter.
-            // (Remember: The applicability of a patch is determined by the
-            // block_sequence_id that it applies to, while the patch_counter
-            // provides an ordering over all patches that apply to a certain
-            // version of a block.)
-            inner_buf->next_patch_counter = 1;
-            // TODO(patch) removed something here, check it out.
-        }
-    }
-    cache->stats->pm_flushes_diff_store.end(&start_time2);
 }
 
 void writeback_t::flush_acquire_bufs(mc_transaction_t *transaction, flush_state_t *state) {

@@ -187,7 +187,6 @@ mc_inner_buf_t::mc_inner_buf_t(mc_cache_t *_cache, block_id_t _block_id, file_ac
       data(_cache->serializer->malloc()),
       version_id(_cache->get_min_snapshot_version(_cache->get_current_version_id())),
       lock(),
-      next_patch_counter(1),
       refcount(0),
       do_delete(false),
       cow_refcount(0),
@@ -289,7 +288,6 @@ void mc_inner_buf_t::initialize_to_new(version_id_t _snapshot_version, repli_tim
 #endif
     version_id = _snapshot_version;
     do_delete = false;
-    next_patch_counter = 1;
     cow_refcount = 0;
     snap_refcount = 0;
     block_sequence_id = NULL_BLOCK_SEQUENCE_ID;
@@ -356,10 +354,7 @@ mc_inner_buf_t::~mc_inner_buf_t() {
 }
 
 // TODO(patch) Obviously remove this function.
-void mc_inner_buf_t::replay_patches() {
-    // Set next_patch_counter such that the next patches get values consistent with the existing patches
-    next_patch_counter = 1;  // TODO(patch) Also follow this rabbit hole.  (Is this variable really used?)
-}
+void mc_inner_buf_t::replay_patches() { }
 
 bool mc_inner_buf_t::snapshot_if_needed(version_id_t new_version, bool leave_clone) {
     cache->assert_thread();
@@ -884,14 +879,6 @@ void mc_buf_lock_t::mark_deleted() {
 
     inner_buf->do_delete = true;
     ensure_flush(); // Disable patch log system for the buffer
-}
-
-patch_counter_t mc_buf_lock_t::get_next_patch_counter() {
-    rassert(!inner_buf->do_delete);
-    rassert(mode == rwi_write);
-    // TODO (sam): f'd up
-    rassert(inner_buf->data.equals(data));
-    return inner_buf->next_patch_counter++;
 }
 
 bool ptr_in_byte_range(const void *p, const void *range_start, size_t size_in_bytes) {

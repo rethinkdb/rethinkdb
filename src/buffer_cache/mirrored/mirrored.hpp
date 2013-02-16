@@ -116,8 +116,6 @@ private:
 
     // A lock for loading the block.
     rwi_lock_t lock;
-    // A patch counter that belongs to this block.
-    patch_counter_t next_patch_counter;
 
     // The number of mc_buf_lock_ts that exist for this mc_inner_buf_t.
     unsigned int refcount;
@@ -190,7 +188,6 @@ public:
     bool is_deleted() const;
     void mark_deleted();
 
-    patch_counter_t get_next_patch_counter();
     void apply_patch(buf_patch_t *patch); // This might delete the supplied patch, do not use patch after its application
 
     eviction_priority_t get_eviction_priority() const;
