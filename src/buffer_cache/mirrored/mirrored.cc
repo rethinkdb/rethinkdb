@@ -836,27 +836,8 @@ void mc_buf_lock_t::apply_patch(buf_patch_t *_patch) {
     // Invalidate the token
     inner_buf->data_token.reset();
 
-    // We cannot accept patches for blocks without a valid block sequence id (namely newly allocated blocks, they have to be written to disk at least once)
-    if (inner_buf->block_sequence_id == NULL_BLOCK_SEQUENCE_ID) {
-        ensure_flush();
-    }
-
-    if (!inner_buf->writeback_buf().needs_flush()) {
-        // Check if we want to disable patching for this block and flush it directly instead
-        const int32_t max_patches_size = inner_buf->cache->serializer->get_block_size().value() / inner_buf->cache->get_max_patches_size_ratio();
-        if (patch->get_serialized_size() + inner_buf->cache->patch_memory_storage.get_patches_serialized_size(inner_buf->block_id) > max_patches_size) {
-            ensure_flush();
-        } else {
-            // Store the patch if the buffer does not have to be flushed anyway
-            if (patch->get_patch_counter() == 1) {
-                // Clean up any left-over patches
-                inner_buf->cache->patch_memory_storage.drop_patches(inner_buf->block_id);
-            }
-
-            // Takes ownership of patch.
-            inner_buf->cache->patch_memory_storage.store_patch(patch.release());
-        }
-    }
+    // We just flush everything instead of storing patches.
+    ensure_flush();
 }
 
 void *mc_buf_lock_t::get_data_major_write() {

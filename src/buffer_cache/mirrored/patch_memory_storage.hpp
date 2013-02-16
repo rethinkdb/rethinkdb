@@ -66,10 +66,6 @@ public:
     // Returns true iff any changes have been made to the buf
     bool apply_patches(block_id_t block_id, char *buf_data, block_size_t bs) const;
 
-    inline void store_patch(buf_patch_t *patch) {
-        patch_map[patch->get_block_id()].add_patch(patch);
-    }
-
     bool has_patches_for_block(block_id_t block_id) const;
 
     patch_counter_t last_patch_materialized_or_zero(block_id_t block_id) const;
