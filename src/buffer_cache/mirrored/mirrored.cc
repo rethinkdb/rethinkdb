@@ -716,8 +716,7 @@ void mc_buf_lock_t::acquire_block(mc_inner_buf_t::version_id_t version_to_access
             if (!inner_buf->writeback_buf().needs_flush() &&
                   patches_serialized_size_at_start == -1 &&
                   global_full_perfmon) {
-                patches_serialized_size_at_start =
-                    inner_buf->cache->patch_memory_storage.get_patches_serialized_size(inner_buf->block_id);
+                patches_serialized_size_at_start = 0;  // TODO(patch) Is this really used?
             }
 
             break;
@@ -964,12 +963,6 @@ void mc_buf_lock_t::release() {
     guarantee(acquired);
     inner_buf->cache->assert_thread();
     inner_buf->cache->stats->pm_bufs_held.end(&start_time);
-
-    if (mode == rwi_write && !inner_buf->writeback_buf().needs_flush() && patches_serialized_size_at_start >= 0) {
-        if (inner_buf->cache->patch_memory_storage.get_patches_serialized_size(inner_buf->block_id) > patches_serialized_size_at_start) {
-            inner_buf->cache->stats->pm_patches_size_per_write.record(inner_buf->cache->patch_memory_storage.get_patches_serialized_size(inner_buf->block_id) - patches_serialized_size_at_start);
-        }
-    }
 
     rassert(inner_buf->refcount > 0);
     --inner_buf->refcount;

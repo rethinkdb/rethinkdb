@@ -60,11 +60,6 @@ public:
 
     patch_memory_storage_t(); // Initialize an empty diff storage
 
-    inline int32_t get_patches_serialized_size(UNUSED block_id_t block_id) const {
-        guarantee(patch_map.empty());
-        return 0;
-    }
-
     // Remove all patches for that block (e.g. after patches have been applied and the block gets flushed to disk)
     void drop_patches(const block_id_t block_id);
 
