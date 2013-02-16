@@ -5,7 +5,6 @@
 #include <vector>
 
 #include "buffer_cache/buf_patch.hpp"
-#include "buffer_cache/mirrored/patch_memory_storage.hpp"
 #include "buffer_cache/mirrored/config.hpp"
 
 class mc_cache_t;

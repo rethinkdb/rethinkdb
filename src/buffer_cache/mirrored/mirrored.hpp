@@ -20,7 +20,6 @@
 #include "containers/scoped.hpp"
 #include "buffer_cache/mirrored/config.hpp"
 #include "buffer_cache/buf_patch.hpp"
-#include "buffer_cache/mirrored/patch_memory_storage.hpp"
 #include "buffer_cache/mirrored/patch_disk_storage.hpp"
 #include "buffer_cache/mirrored/stats.hpp"
 #include "repli_timestamp.hpp"
@@ -418,8 +417,6 @@ private:
     int num_live_non_writeback_transactions;
 
     cond_t *to_pulse_when_last_transaction_commits;
-
-    patch_memory_storage_t patch_memory_storage;
 
     // Pointer, not member, because we need to call its destructor explicitly in our destructor
     scoped_ptr_t<patch_disk_storage_t> patch_disk_storage;
