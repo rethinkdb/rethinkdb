@@ -42,6 +42,3 @@ patch_disk_storage_t::patch_disk_storage_t(UNUSED mc_cache_t *_cache, UNUSED blo
 
 patch_disk_storage_t::~patch_disk_storage_t() { }
 
-// Loads on-disk data into memory
-void patch_disk_storage_t::load_patches(UNUSED patch_memory_storage_t *in_memory_storage) {
-}

@@ -50,11 +50,6 @@ public:
     patch_disk_storage_t(mc_cache_t *cache, block_id_t start_id);
     ~patch_disk_storage_t();
 
-    void shutdown();
-
-    // Loads on-disk data into memory
-    void load_patches(patch_memory_storage_t *in_memory_storage);
-
 private:
     static const block_id_t number_of_blocks = 0;
 };
