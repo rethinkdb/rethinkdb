@@ -71,16 +71,11 @@ public:
         bool get_recency_dirty() const { return recency_dirty; }
         void set_needs_flush(bool does_need_flush) { needs_flush_ = does_need_flush; }
         bool needs_flush() const { return needs_flush_; }
-        void set_last_patch_materialized(patch_counter_t value) { last_patch_materialized_ = value; }
-        patch_counter_t last_patch_materialized() const { return last_patch_materialized_; }
         void mark_block_id_deleted();
 
         bool safe_to_unload() const { return !dirty && !recency_dirty; }
 
     private:
-        /* All patches <= last_patch_materialized are in the on-disk log storage */
-        patch_counter_t last_patch_materialized_;
-
         /* true if we have to flush the block instead of just flushing patches. */
         /* Specifically, this is the case if we modified the block while bypassing the patching system */
         bool needs_flush_;

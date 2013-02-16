@@ -59,7 +59,6 @@ writeback_t::local_buf_t::local_buf_t() {
 }
 
 void writeback_t::local_buf_t::reset() {
-    last_patch_materialized_ = 0;
     needs_flush_ = false;
     dirty = false;
     recency_dirty = false;
@@ -504,7 +503,7 @@ void writeback_t::flush_prepare_patches() {
             // provides an ordering over all patches that apply to a certain
             // version of a block.)
             inner_buf->next_patch_counter = 1;
-            lbuf->set_last_patch_materialized(0);
+            // TODO(patch) removed something here, check it out.
         }
     }
     cache->stats->pm_flushes_diff_store.end(&start_time2);
