@@ -4,6 +4,9 @@
 
 #include <map>
 #include <stack>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include "clustering/administration/database_metadata.hpp"
 #include "clustering/administration/metadata.hpp"
@@ -125,13 +128,13 @@ private:
 
 public:
     // This is copied basically verbatim from old code.
+    typedef namespaces_semilattice_metadata_t<rdb_protocol_t> ns_metadata_t;
     env_t(
         extproc::pool_group_t *_pool_group,
         namespace_repo_t<rdb_protocol_t> *_ns_repo,
 
-        clone_ptr_t<watchable_t<cow_ptr_t<
-        namespaces_semilattice_metadata_t<rdb_protocol_t> > > >
-             _namespaces_semilattice_metadata,
+        clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >
+            _namespaces_semilattice_metadata,
 
         clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >
              _databases_semilattice_metadata,
@@ -163,8 +166,10 @@ public:
     extproc::pool_t *pool;      // for running external JS jobs
     namespace_repo_t<rdb_protocol_t> *ns_repo;
 
-    clone_ptr_t<watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > > namespaces_semilattice_metadata;
-    clone_ptr_t<watchable_t<databases_semilattice_metadata_t> > databases_semilattice_metadata;
+    clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t > > >
+        namespaces_semilattice_metadata;
+    clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >
+        databases_semilattice_metadata;
     // TODO this should really just be the namespace metadata... but
     // constructing views is too hard :-/
     boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
@@ -182,10 +187,11 @@ public:
             sl_metadata = semilattice_metadata->get();
         }
 
-        boost::function<bool(const cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > s)> p =
-                boost::bind(&is_joined<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > >,
-                _1,
-                sl_metadata.rdb_namespaces);
+        boost::function<bool (const cow_ptr_t<ns_metadata_t> s)> p = boost::bind(
+            &is_joined<cow_ptr_t<ns_metadata_t > >,
+            _1,
+            sl_metadata.rdb_namespaces
+        );
 
         {
             on_thread_t switcher(namespaces_semilattice_metadata->home_thread());
@@ -269,7 +275,9 @@ private:
 };
 
 template<class T>
-struct env_wrapper_t : public ptr_baggable_t { T t; };
+struct env_wrapper_t : public ptr_baggable_t {
+    T t;
+};
 
 } // ql
 

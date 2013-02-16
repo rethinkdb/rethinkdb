@@ -2,6 +2,7 @@
 #define CONTAINERS_PTR_BAG_HPP_
 
 #include <set>
+#include <string>
 
 #include "utils.hpp"
 

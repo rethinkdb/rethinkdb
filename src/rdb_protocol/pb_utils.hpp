@@ -1,6 +1,9 @@
 #ifndef RDB_PROTOCOL_PB_UTILS_HPP_
 #define RDB_PROTOCOL_PB_UTILS_HPP_
 
+#include <string>
+#include <vector>
+
 #include "rdb_protocol/ql2.pb.h"
 
 namespace ql {
@@ -37,23 +40,29 @@ void set(Term2 *out, Term2_TermType type, std::vector<Term2 *> *args_out, int nu
 #define N1(PB, ARG1) do {                       \
         arg->set_type(Term2_TermType_##PB);     \
         Term2 *PB_arg1 = arg->add_args();       \
-        Term2 *arg = PB_arg1; ARG1;             \
+        Term2 *arg = PB_arg1;                   \
+        ARG1;                                   \
     } while (0);
 #define N2(PB, ARG1, ARG2) do {                 \
         arg->set_type(Term2_TermType_##PB);     \
         Term2 *PB_arg1 = arg->add_args();       \
         Term2 *PB_arg2 = arg->add_args();       \
-        Term2 *arg = PB_arg1; ARG1;             \
-        arg = PB_arg2; ARG2;                    \
+        Term2 *arg = PB_arg1;                   \
+        ARG1;                                   \
+        arg = PB_arg2;                          \
+        ARG2;                                   \
     } while (0);
 #define N3(PB, ARG1, ARG2, ARG3) do {           \
         arg->set_type(Term2_TermType_##PB);     \
         Term2 *PB_arg1 = arg->add_args();       \
         Term2 *PB_arg2 = arg->add_args();       \
         Term2 *PB_arg3 = arg->add_args();       \
-        Term2 *arg = PB_arg1; ARG1;             \
-        arg = PB_arg2; ARG2;                    \
-        arg = PB_arg3; ARG3;                    \
+        Term2 *arg = PB_arg1;                   \
+        ARG1;                                   \
+        arg = PB_arg2;                          \
+        ARG2;                                   \
+        arg = PB_arg3;                          \
+        ARG3;                                   \
     } while (0);
 #define N4(PB, ARG1, ARG2, ARG3, ARG4) do {     \
         arg->set_type(Term2_TermType_##PB);     \
@@ -61,10 +70,14 @@ void set(Term2 *out, Term2_TermType type, std::vector<Term2 *> *args_out, int nu
         Term2 *PB_arg2 = arg->add_args();       \
         Term2 *PB_arg3 = arg->add_args();       \
         Term2 *PB_arg4 = arg->add_args();       \
-        Term2 *arg = PB_arg1; ARG1;             \
-        arg = PB_arg2; ARG2;                    \
-        arg = PB_arg3; ARG3;                    \
-        arg = PB_arg4; ARG4;                    \
+        Term2 *arg = PB_arg1;                   \
+        ARG1;                                   \
+        arg = PB_arg2;                          \
+        ARG2;                                   \
+        arg = PB_arg3;                          \
+        ARG3;                                   \
+        arg = PB_arg4;                          \
+        ARG4;                                   \
     } while (0);
 
 // Wrappers around `set_var` and `write_to_protobuf` that work with the `N*` macros.
@@ -89,7 +102,8 @@ void run(T t, U arg) { run(datum_t(t), arg); }
         arg->set_type(Term2_TermType_##PB);             \
         Term2_AssocPair *PB_ap1 = arg->add_optargs();   \
         PB_ap1->set_key(STR1);                          \
-        arg = PB_ap1->mutable_val(); ARG1;              \
+        arg = PB_ap1->mutable_val();                    \
+        ARG1;                                           \
     } while (0);
 #define OPT2(PB, STR1, ARG1, STR2, ARG2) do {           \
         arg->set_type(Term2_TermType_##PB);             \
@@ -97,13 +111,18 @@ void run(T t, U arg) { run(datum_t(t), arg); }
         PB_ap1->set_key(STR1);                          \
         Term2_AssocPair *PB_ap2 = arg->add_optargs();   \
         PB_ap2->set_key(STR2);                          \
-        arg = PB_ap1->mutable_val(); ARG1;              \
-        arg = PB_ap2->mutable_val(); ARG2;              \
+        arg = PB_ap1->mutable_val();                    \
+        ARG1;                                           \
+        arg = PB_ap2->mutable_val();                    \
+        ARG2;                                           \
     } while (0);
 
 // Used to empty portions of protobufs when we're modifying them in-place.
 template<class T>
-T *reset(T *t) { *t = T(); return t; }
+T *reset(T *t) {
+    *t = T();
+    return t;
+}
 
 // To debug: term->DebugString()
 

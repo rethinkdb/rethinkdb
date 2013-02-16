@@ -154,7 +154,7 @@ void run(Query2 *q, scoped_ptr_t<env_t> *env_ptr,
             fill_error(res, Response2::RUNTIME_ERROR, e.what(), e.backtrace);
             return;
         }
-    }; break;
+    } break;
     case Query2_QueryType_CONTINUE: {
         try {
             bool b = stream_cache2->serve(token, res, env->interruptor);
@@ -163,7 +163,7 @@ void run(Query2 *q, scoped_ptr_t<env_t> *env_ptr,
             fill_error(res, Response2::CLIENT_ERROR, e.what(), e.backtrace);
             return;
         }
-    }; break;
+    } break;
     case Query2_QueryType_STOP: {
         try {
             rcheck(stream_cache2->contains(token),
@@ -173,7 +173,7 @@ void run(Query2 *q, scoped_ptr_t<env_t> *env_ptr,
             fill_error(res, Response2::CLIENT_ERROR, e.what(), e.backtrace);
             return;
         }
-    }; break;
+    } break;
     default: unreachable();
     }
 }
@@ -216,7 +216,7 @@ val_t *term_t::eval(bool _use_cached_val) {
     use_cached_val = _use_cached_val;
     try {
         if (!cached_val || !use_cached_val) cached_val = eval_impl();
-    } catch (exc_t &e) {
+    } catch (exc_t &e/*NOLINT*/) {
         DEC_DEPTH;
         DBG("%s THREW\n", name());
         if (has_bt()) e.backtrace.push_front(get_bt());

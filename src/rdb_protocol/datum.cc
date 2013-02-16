@@ -31,26 +31,30 @@ datum_t::datum_t(datum_t::type_t _type) : type(_type) {
 void datum_t::init_json(cJSON *json, env_t *env) {
     switch (json->type) {
     case cJSON_False: {
-        type = R_BOOL; r_bool = false;
-    }; break;
+        type = R_BOOL;
+        r_bool = false;
+    } break;
     case cJSON_True: {
-        type = R_BOOL; r_bool = true;
-    }; break;
+        type = R_BOOL;
+        r_bool = true;
+    } break;
     case cJSON_NULL: {
         type = R_NULL;
-    }; break;
+    } break;
     case cJSON_Number: {
-        type = R_NUM; r_num = json->valuedouble;
-    }; break;
+        type = R_NUM;
+        r_num = json->valuedouble;
+    } break;
     case cJSON_String: {
-        type = R_STR; r_str = json->valuestring;
-    }; break;
+        type = R_STR;
+        r_str = json->valuestring;
+    } break;
     case cJSON_Array: {
         type = R_ARRAY;
         for (int i = 0; i < cJSON_GetArraySize(json); ++i) {
             add(env->add_ptr(new datum_t(cJSON_GetArrayItem(json, i), env)));
         }
-    }; break;
+    } break;
     case cJSON_Object: {
         type = R_OBJECT;
         for (int i = 0; i < cJSON_GetArraySize(json); ++i) {
@@ -58,7 +62,7 @@ void datum_t::init_json(cJSON *json, env_t *env) {
             bool b = add(el->string, env->add_ptr(new datum_t(el, env)));
             rcheck(!b, strprintf("Duplicate key: %s", el->string));
         }
-    }; break;
+    } break;
     default: unreachable();
     }
 }
@@ -199,7 +203,7 @@ cJSON *datum_t::as_raw_json() const {
             arr.AddItemToArray(as_array()[i]->as_raw_json());
         }
         return arr.release();
-    }; break;
+    } break;
     case R_OBJECT: {
         scoped_cJSON_t obj(cJSON_CreateObject());
         for (std::map<const std::string, const datum_t *>::const_iterator
@@ -207,7 +211,7 @@ cJSON *datum_t::as_raw_json() const {
             obj.AddItemToObject(it->first.c_str(), it->second->as_raw_json());
         }
         return obj.release();
-    }; break;
+    } break;
     default: unreachable();
     }
     unreachable();
@@ -299,7 +303,7 @@ int datum_t::cmp(const datum_t &rhs) const {
         }
         guarantee(i <= rhs.as_array().size());
         return i == rhs.as_array().size() ? 0 : -1;
-    }; unreachable();
+    } unreachable();
     case R_OBJECT: {
         const std::map<const std::string, const datum_t *>
             &obj = as_object(),
@@ -318,7 +322,7 @@ int datum_t::cmp(const datum_t &rhs) const {
         if (it != obj.end()) return 1;
         if (it2 != rhs_obj.end()) return -1;
         return 0;
-    }; unreachable();
+    } unreachable();
     default: unreachable();
     }
 }
@@ -334,25 +338,25 @@ datum_t::datum_t(const Datum *d, env_t *env) {
     switch (d->type()) {
     case Datum_DatumType_R_NULL: {
         type = R_NULL;
-    }; break;
+    } break;
     case Datum_DatumType_R_BOOL: {
         type = R_BOOL;
         r_bool = d->r_bool();
-    }; break;
+    } break;
     case Datum_DatumType_R_NUM: {
         type = R_NUM;
         r_num = d->r_num();
-    }; break;
+    } break;
     case Datum_DatumType_R_STR: {
         type = R_STR;
         r_str = d->r_str();
-    }; break;
+    } break;
     case Datum_DatumType_R_ARRAY: {
         type = R_ARRAY;
         for (int i = 0; i < d->r_array_size(); ++i) {
             r_array.push_back(env->add_ptr(new datum_t(&d->r_array(i), env)));
         }
-    }; break;
+    } break;
     case Datum_DatumType_R_OBJECT: {
         type = R_OBJECT;
         for (int i = 0; i < d->r_object_size(); ++i) {
@@ -362,7 +366,7 @@ datum_t::datum_t(const Datum *d, env_t *env) {
                    strprintf("Duplicate key %s in object.", key.c_str()));
             r_object[key] = env->add_ptr(new datum_t(&ap->val(), env));
         }
-    }; break;
+    } break;
     default: unreachable();
     }
 }
@@ -371,25 +375,25 @@ void datum_t::write_to_protobuf(Datum *d) const {
     switch (get_type()) {
     case R_NULL: {
         d->set_type(Datum_DatumType_R_NULL);
-    }; break;
+    } break;
     case R_BOOL: {
         d->set_type(Datum_DatumType_R_BOOL);
         d->set_r_bool(r_bool);
-    }; break;
+    } break;
     case R_NUM: {
         d->set_type(Datum_DatumType_R_NUM);
         d->set_r_num(r_num);
-    }; break;
+    } break;
     case R_STR: {
         d->set_type(Datum_DatumType_R_STR);
         d->set_r_str(r_str);
-    }; break;
+    } break;
     case R_ARRAY: {
         d->set_type(Datum_DatumType_R_ARRAY);
         for (size_t i = 0; i < r_array.size(); ++i) {
             r_array[i]->write_to_protobuf(d->add_r_array());
         }
-    }; break;
+    } break;
     case R_OBJECT: {
         d->set_type(Datum_DatumType_R_OBJECT);
         // We use rbegin and rend so that things print the way we expect.
@@ -399,7 +403,7 @@ void datum_t::write_to_protobuf(Datum *d) const {
             ap->set_key(it->first);
             it->second->write_to_protobuf(ap->mutable_val());
         }
-    }; break;
+    } break;
     default: unreachable();
     }
 }
@@ -413,13 +417,13 @@ void datum_t::iter(bool (*callback)(const datum_t *, env_t *), env_t *env) const
         case R_STR:  break;
         case R_ARRAY: {
             for (size_t i = 0; i < as_array().size(); ++i) el(i)->iter(callback, env);
-        }; break;
+        } break;
         case R_OBJECT: {
             for (std::map<const std::string, const datum_t *>::const_iterator
                      it = as_object().begin(); it != as_object().end(); ++it) {
                 it->second->iter(callback, env);
             }
-        }; break;
+        } break;
         default: unreachable();
         }
     }

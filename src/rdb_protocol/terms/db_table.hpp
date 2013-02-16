@@ -1,3 +1,9 @@
+#ifndef RDB_PROTOCOL_TERMS_DB_TABLE_HPP_
+#define RDB_PROTOCOL_TERMS_DB_TABLE_HPP_
+
+#include <map>
+#include <string>
+
 #include "clustering/administration/main/ports.hpp"
 #include "clustering/administration/suggester.hpp"
 #include "rdb_protocol/meta_utils.hpp"
@@ -80,7 +86,6 @@ private:
         const datum_t *num_1 = env->add_ptr(new datum_t(1L));
         UNUSED bool b = res->add(op, num_1);
         return new_val(res);
-
     }
 protected:
     clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > >
@@ -323,7 +328,7 @@ static const char *const table_optargs[] = {"use_outdated"};
 class table_term_t : public op_term_t {
 public:
     table_term_t(env_t *env, const Term2 *term)
-        : op_term_t(env, term, argspec_t(1,2), optargspec_t(table_optargs)) { }
+        : op_term_t(env, term, argspec_t(1, 2), optargspec_t(table_optargs)) { }
 private:
     virtual val_t *eval_impl() {
         val_t *t = optarg("use_outdated", 0);
@@ -359,3 +364,5 @@ private:
 };
 
 } // namespace ql
+
+#endif // RDB_PROTOCOL_TERMS_DB_TABLE_HPP_

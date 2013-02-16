@@ -1,3 +1,8 @@
+#ifndef RDB_PROTOCOL_TERMS_SORT_HPP_
+#define RDB_PROTOCOL_TERMS_SORT_HPP_
+
+#include <string>
+
 #include "rdb_protocol/datum_stream.hpp"
 #include "rdb_protocol/err.hpp"
 #include "rdb_protocol/op.hpp"
@@ -12,7 +17,7 @@ public:
 private:
     class lt_cmp_t {
     public:
-        lt_cmp_t(const datum_t *_attrs) : attrs(_attrs) { }
+        explicit lt_cmp_t(const datum_t *_attrs) : attrs(_attrs) { }
         bool operator()(const datum_t *l, const datum_t *r) {
             for (size_t i = 0; i < attrs->size(); ++i) {
                 std::string attrname = attrs->el(i)->as_str();
@@ -21,11 +26,11 @@ private:
                 const datum_t *lattr = l->el(attrname, NOTHROW);
                 const datum_t *rattr = r->el(attrname, NOTHROW);
                 if (!lattr && !rattr) continue;
-                if (!lattr) return bool(true ^ invert);
-                if (!rattr) return bool(false ^ invert);
+                if (!lattr) return static_cast<bool>(true ^ invert);
+                if (!rattr) return static_cast<bool>(false ^ invert);
                 // TODO: use datum_t::cmp instead to be faster
                 if (*lattr == *rattr) continue;
-                return bool((*lattr < *rattr) ^ invert);
+                return static_cast<bool>((*lattr < *rattr) ^ invert);
             }
             return false;
         }
@@ -69,3 +74,5 @@ private:
 };
 
 } // namespace ql
+
+#endif // RDB_PROTOCOL_TERMS_SORT_HPP_

@@ -1,4 +1,10 @@
+#ifndef RDB_PROTOCOL_TERMS_DATUM_TERMS_HPP_
+#define RDB_PROTOCOL_TERMS_DATUM_TERMS_HPP_
+
+#include <string>
+
 #include "rdb_protocol/op.hpp"
+
 namespace ql {
 
 class datum_term_t : public term_t {
@@ -47,3 +53,5 @@ private:
 };
 
 } // namespace ql
+
+#endif // RDB_PROTOCOL_TERMS_DATUM_TERMS_HPP_

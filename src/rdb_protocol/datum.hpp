@@ -1,8 +1,9 @@
 #ifndef RDB_PROTOCOL_DATUM_HPP_
 #define RDB_PROTOCOL_DATUM_HPP_
-#include <string>
-#include <vector>
 #include <map>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include "utils.hpp"
 #include <boost/shared_ptr.hpp>
@@ -125,7 +126,7 @@ RDB_DECLARE_SERIALIZABLE(Datum);
 class wire_datum_t {
 public:
     wire_datum_t() : ptr(0), state(INVALID) { }
-    wire_datum_t(const datum_t *_ptr) : ptr(_ptr), state(COMPILED) { }
+    explicit wire_datum_t(const datum_t *_ptr) : ptr(_ptr), state(COMPILED) { }
     const datum_t *get() const;
     const datum_t *reset(const datum_t *ptr2);
     const datum_t *compile(env_t *env);

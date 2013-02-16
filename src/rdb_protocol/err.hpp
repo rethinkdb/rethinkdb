@@ -92,7 +92,7 @@ class exc_t : public std::exception {
 public:
     // We have a default constructor because these are serialized.
     exc_t() : exc_msg("UNINITIALIZED") { }
-    exc_t(const std::string &_exc_msg) : exc_msg(_exc_msg) { }
+    explicit exc_t(const std::string &_exc_msg) : exc_msg(_exc_msg) { }
     virtual ~exc_t() throw () { }
     const char *what() const throw () { return exc_msg.c_str(); }
     RDB_MAKE_ME_SERIALIZABLE_2(backtrace, exc_msg);
@@ -103,13 +103,13 @@ private:
 };
 
 void fill_error(Response2 *res, Response2_ResponseType type, std::string msg,
-                const backtrace_t &bt=backtrace_t());
+                const backtrace_t &bt = backtrace_t());
 
 } // namespace ql
 
-#define CATCH_WITH_BT(N) catch (exc_t &e) { \
-        e.backtrace.push_front(N);          \
-        throw;                              \
+#define CATCH_WITH_BT(N) catch (exc_t &e/*NOLINT*/) {   \
+        e.backtrace.push_front(N);                      \
+        throw;                                          \
     }
 
 #endif // RDB_PROTOCOL_ERR_HPP_

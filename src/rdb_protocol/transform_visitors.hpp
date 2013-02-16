@@ -40,9 +40,9 @@ public:
     void operator()(Builtin_Range range) const;
 
     // This is a non-const reference because it caches the compiled function
-    void operator()(ql::map_wire_func_t &func) const;
-    void operator()(ql::filter_wire_func_t &func) const;
-    void operator()(ql::concatmap_wire_func_t &func) const;
+    void operator()(ql::map_wire_func_t &func/*NOLINT*/) const;
+    void operator()(ql::filter_wire_func_t &func/*NOLINT*/) const;
+    void operator()(ql::concatmap_wire_func_t &func/*NOLINT*/) const;
 
 private:
     boost::shared_ptr<scoped_cJSON_t> json;

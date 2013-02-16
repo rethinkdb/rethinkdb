@@ -175,7 +175,8 @@ val_t::val_t(const datum_t *_datum, table_t *_table, const term_t *_parent, env_
       sequence(0),
       datum(env->add_ptr(_datum)),
       func(0) {
-    guarantee(table); guarantee(datum);
+    guarantee(table);
+    guarantee(datum);
 }
 val_t::val_t(datum_stream_t *_sequence, const term_t *_parent, env_t *_env)
     : parent(_parent), env(_env),

@@ -200,8 +200,7 @@ void runner_t::release_id(id_t id) {
 // ----- eval() -----
 struct eval_task_t : auto_task_t<eval_task_t> {
     eval_task_t() {}
-    eval_task_t(const std::string &src)
-        : src_(src) {}
+    explicit eval_task_t(const std::string &src) : src_(src) {}
 
     std::string src_;
     RDB_MAKE_ME_SERIALIZABLE_1(src_);

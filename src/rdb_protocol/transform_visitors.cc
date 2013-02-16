@@ -67,20 +67,20 @@ void transform_visitor_t::operator()(Builtin_Range range) const {
 // code duplication needs to go away, but I'm not 100% sure how to do it (there
 // are sometimes minor differences between the lazy and eager evaluations) and
 // it definitely isn't making it into 1.4.
-void transform_visitor_t::operator()(ql::map_wire_func_t &func) const {
+void transform_visitor_t::operator()(ql::map_wire_func_t &func/*NOLINT*/) const {
     ql::env_checkpoint_t(ql_env, &ql::env_t::discard_checkpoint);
     const ql::datum_t *arg = ql_env->add_ptr(new ql::datum_t(json, ql_env));
     out->push_back(func.compile(ql_env)->call(arg)->as_datum()->as_json());
 }
 
-void transform_visitor_t::operator()(ql::concatmap_wire_func_t &func) const {
+void transform_visitor_t::operator()(ql::concatmap_wire_func_t &func/*NOLINT*/) const {
     ql::env_checkpoint_t(ql_env, &ql::env_t::discard_checkpoint);
     const ql::datum_t *arg = ql_env->add_ptr(new ql::datum_t(json, ql_env));
     ql::datum_stream_t *ds = func.compile(ql_env)->call(arg)->as_seq();
     while (const ql::datum_t *d = ds->next()) out->push_back(d->as_json());
 }
 
-void transform_visitor_t::operator()(ql::filter_wire_func_t &func) const {
+void transform_visitor_t::operator()(ql::filter_wire_func_t &func/*NOLINT*/) const {
     ql::env_checkpoint_t(ql_env, &ql::env_t::discard_checkpoint);
     ql::func_t *f = func.compile(ql_env);
     const ql::datum_t *arg = ql_env->add_ptr(new ql::datum_t(json, ql_env));
@@ -200,7 +200,7 @@ void terminal_initializer_visitor_t::operator()(
 // code duplication needs to go away, but I'm not 100% sure how to do it (there
 // are sometimes minor differences between the lazy and eager evaluations) and
 // it definitely isn't making it into 1.4.
-void terminal_visitor_t::operator()(ql::gmr_wire_func_t &func) const {
+void terminal_visitor_t::operator()(ql::gmr_wire_func_t &func/*NOLINT*/) const {
     ql::wire_datum_map_t *obj = boost::get<ql::wire_datum_map_t>(out);
     guarantee(obj);
 
@@ -232,7 +232,7 @@ void terminal_initializer_visitor_t::operator()(
     *out = rget_read_response_t::empty_t();
 }
 
-void terminal_visitor_t::operator()(ql::reduce_wire_func_t &func) const {
+void terminal_visitor_t::operator()(ql::reduce_wire_func_t &func/*NOLINT*/) const {
     ql::wire_datum_t *d = boost::get<ql::wire_datum_t>(out);
     const ql::datum_t *rhs = ql_env->add_ptr(new ql::datum_t(json, ql_env));
     if (d) {

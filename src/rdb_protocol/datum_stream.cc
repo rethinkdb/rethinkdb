@@ -1,5 +1,7 @@
 #include "rdb_protocol/datum_stream.hpp"
 
+#include <map>
+
 #include "clustering/administration/metadata.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/term.hpp"
@@ -133,7 +135,9 @@ const datum_t *lazy_datum_stream_t::reduce(val_t *base_val, func_t *f) {
     run_terminal(reduce_wire_func_t(env, f));
     const datum_t *out;
     if (base_val) {
-        try { out = base_val->as_datum(); } CATCH_WITH_BT("base");
+        try {
+            out = base_val->as_datum();
+        } CATCH_WITH_BT("base");
     } else {
         rcheck(shard_data.size() > 0,
                "Cannot reduce over an empty stream with no base.");
@@ -192,7 +196,7 @@ const datum_t *array_datum_stream_t::next_impl() {
 const datum_t *map_datum_stream_t::next_impl() {
     const datum_t *arg = src->next();
     return !arg ? 0 : f->call(arg)->as_datum();
- }
+}
 
 // CONCATMAP_DATUM_STREAM_T
 const datum_t *concatmap_datum_stream_t::next_impl() {

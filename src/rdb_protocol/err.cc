@@ -42,11 +42,11 @@ Response2_Frame backtrace_t::frame_t::toproto() const {
     case POS: {
         f.set_type(Response2_Frame_FrameType_POS);
         f.set_pos(pos);
-    }; break;
+    } break;
     case OPT: {
         f.set_type(Response2_Frame_FrameType_OPT);
         f.set_opt(opt);
-    }; break;
+    } break;
     default: unreachable();
     }
     return f;

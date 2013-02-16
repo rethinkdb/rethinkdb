@@ -1,3 +1,10 @@
+#ifndef RDB_PROTOCOL_TERMS_WRITES_HPP_
+#define RDB_PROTOCOL_TERMS_WRITES_HPP_
+
+#include <string>
+#include <utility>
+#include <vector>
+
 #include "rdb_protocol/op.hpp"
 #include "rdb_protocol/err.hpp"
 
@@ -61,7 +68,7 @@ private:
         bool upsert = upsert_val ? upsert_val->as_bool() : false;
 
         bool done = false;
-        const datum_t *stats = env->add_ptr(new datum_t(datum_t::R_OBJECT));;
+        const datum_t *stats = env->add_ptr(new datum_t(datum_t::R_OBJECT));
         std::vector<std::string> generated_keys;
         val_t *v1 = arg(1);
         if (v1->get_type().is_convertible(val_t::type_t::DATUM)) {
@@ -157,3 +164,5 @@ private:
 };
 
 } // namespace ql
+
+#endif // RDB_PROTOCOL_TERMS_WRITES_HPP_

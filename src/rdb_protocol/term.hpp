@@ -23,7 +23,7 @@ class val_t;
 class table_t;
 class term_t : public ptr_baggable_t {
 public:
-    term_t(env_t *_env);
+    explicit term_t(env_t *_env);
     virtual ~term_t();
 
     virtual const char *name() const = 0;

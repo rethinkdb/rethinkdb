@@ -1,5 +1,9 @@
 #ifndef RDB_PROTOCOL_OP_HPP_
 #define RDB_PROTOCOL_OP_HPP_
+
+#include <algorithm>
+#include <string>
+
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/err.hpp"
 #include "rdb_protocol/term.hpp"
@@ -8,7 +12,7 @@ namespace ql {
 
 // Specifies the range of normal arguments a function can take.
 struct argspec_t {
-    argspec_t(int n) : min(n), max(n) { }
+    explicit argspec_t(int n) : min(n), max(n) { }
     argspec_t(int _min, int _max) : min(_min), max(_max) { }
     std::string print() {
         if (min == max) {

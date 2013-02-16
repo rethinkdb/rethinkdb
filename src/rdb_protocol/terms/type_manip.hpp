@@ -1,4 +1,8 @@
+#ifndef RDB_PROTOCOL_TERMS_TYPE_MANIP_HPP_
+#define RDB_PROTOCOL_TERMS_TYPE_MANIP_HPP_
+
 #include <algorithm>
+#include <map>
 #include <string>
 
 #include "rdb_protocol/op.hpp"
@@ -86,7 +90,7 @@ private:
         case val_t::type_t::SINGLE_SELECTION:
         case val_t::type_t::DATUM:
         case val_t::type_t::FUNC:
-        default:;
+        default:; // NOLINT
         }
         switch (t2) {
         case datum_t::R_NULL:
@@ -95,7 +99,7 @@ private:
         case datum_t::R_STR:
         case datum_t::R_ARRAY:
         case datum_t::R_OBJECT:
-        default:;
+        default:; // NOLINT
         }
     }
 };
@@ -227,3 +231,5 @@ private:
 };
 
 } // namespace ql
+
+#endif // RDB_PROTOCOL_TERMS_TYPE_MANIP_HPP_

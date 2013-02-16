@@ -1,6 +1,9 @@
 #ifndef RDB_PROTOCOL_VAL_HPP_
 #define RDB_PROTOCOL_VAL_HPP_
 
+#include <string>
+#include <utility>
+
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/datum_stream.hpp"
 #include "rdb_protocol/func.hpp"
@@ -32,7 +35,7 @@ public:
             datum_t *datum = env_add_ptr(new datum_t(datum_t::R_OBJECT));
             std::string err = e.what();
             // TODO why is this bool (which is marked as MUST USE not used?)
-            // TODONE: the bool is true if there's a conflict when inserting the
+            // T0D0NE: the bool is true if there's a conflict when inserting the
             // key, but since we just created an empty object above conflicts
             // are impossible here.  If you want to harden this against future
             // changes, you could store the bool and `r_sanity_check` that it's
@@ -77,7 +80,7 @@ public:
             DATUM            = 6, // datum
             FUNC             = 7  // func
         };
-        type_t(raw_type_t _raw_type);
+        type_t(raw_type_t _raw_type); // NOLINT
         bool is_convertible(type_t rhs) const;
     private:
         friend class coerce_term_t;

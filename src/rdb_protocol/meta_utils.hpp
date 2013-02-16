@@ -1,6 +1,8 @@
 #ifndef RDB_PROTOCOL_META_UTILS_HPP_
 #define RDB_PROTOCOL_META_UTILS_HPP_
 
+#include <string>
+
 #include "clustering/administration/metadata.hpp"
 
 void wait_for_rdb_table_readiness(namespace_repo_t<rdb_protocol_t> *ns_repo, namespace_id_t namespace_id, signal_t *interruptor, boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > semilattice_metadata) THROWS_ONLY(interrupted_exc_t);

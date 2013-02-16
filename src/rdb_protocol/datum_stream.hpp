@@ -1,6 +1,9 @@
 #ifndef RDB_PROTOCOL_DATUM_STREAM_HPP_
 #define RDB_PROTOCOL_DATUM_STREAM_HPP_
 
+#include <algorithm>
+#include <vector>
+
 #include "rdb_protocol/stream.hpp"
 
 namespace query_language {
@@ -38,7 +41,7 @@ public:
     const datum_t *next() {
         try {
             return next_impl();
-        } catch (exc_t &e) {
+        } catch (exc_t &e/*NOLINT*/) {
             if (frame.is_valid()) e.backtrace.push_front(frame);
             throw;
         }
@@ -122,7 +125,7 @@ public:
     virtual const datum_t *next_impl();
     virtual const datum_t *as_arr() { return 0; } // cannot be converted implicitly
 private:
-    lazy_datum_stream_t(lazy_datum_stream_t *src);
+    const lazy_datum_stream_t(lazy_datum_stream_t *src);
     // To make the 1.4 release, this class was basically made into a shim
     // between the datum logic and the original json streams.
     boost::shared_ptr<query_language::json_stream_t> json_stream;

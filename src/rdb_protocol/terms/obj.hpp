@@ -1,3 +1,6 @@
+#ifndef RDB_PROTOCOL_TERMS_OBJ_HPP_
+#define RDB_PROTOCOL_TERMS_OBJ_HPP_
+
 #include "rdb_protocol/op.hpp"
 #include "rdb_protocol/err.hpp"
 
@@ -33,7 +36,7 @@ private:
 class merge_term_t : public op_term_t {
 public:
     merge_term_t(env_t *env, const Term2 *term)
-        : op_term_t(env, term, argspec_t(1,-1)) { }
+        : op_term_t(env, term, argspec_t(1, -1)) { }
 private:
     virtual val_t *eval_impl() {
         const datum_t *d = arg(0)->as_datum();
@@ -46,3 +49,5 @@ private:
 };
 
 } // namespace ql
+
+#endif // RDB_PROTOCOL_TERMS_OBJ_HPP_

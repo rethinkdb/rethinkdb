@@ -450,7 +450,7 @@ public:
                         data.clear();
                         data.splice(data.begin(), tmp);
                     }
-                } catch (ql::exc_t &e) {
+                } catch (ql::exc_t &e/*NOLINT*/) {
                     // Backtrace mangling so that we descend the right depth on
                     // the client.
                     if (!terminal) ++it;

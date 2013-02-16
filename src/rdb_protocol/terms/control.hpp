@@ -1,3 +1,8 @@
+#ifndef RDB_PROTOCOL_TERMS_CONTROL_HPP_
+#define RDB_PROTOCOL_TERMS_CONTROL_HPP_
+
+#include <vector>
+
 #include "rdb_protocol/op.hpp"
 #include "rdb_protocol/err.hpp"
 
@@ -9,7 +14,8 @@ namespace ql {
 
 class all_term_t : public op_term_t {
 public:
-    all_term_t(env_t *env, const Term2 *term) : op_term_t(env, term, argspec_t(1,-1)) { }
+    all_term_t(env_t *env, const Term2 *term)
+        : op_term_t(env, term, argspec_t(1, -1)) { }
 private:
     virtual val_t *eval_impl() {
         for (size_t i = 0; i < num_args(); ++i) {
@@ -30,7 +36,8 @@ private:
 
 class any_term_t : public op_term_t {
 public:
-    any_term_t(env_t *env, const Term2 *term) : op_term_t(env, term, argspec_t(1,-1)) { }
+    any_term_t(env_t *env, const Term2 *term)
+        : op_term_t(env, term, argspec_t(1, -1)) { }
 private:
     virtual val_t *eval_impl() {
         for (size_t i = 0; i < num_args(); ++i) {
@@ -65,7 +72,7 @@ private:
 class funcall_term_t : public op_term_t {
 public:
     funcall_term_t(env_t *env, const Term2 *term)
-        : op_term_t(env, term, argspec_t(1,-1)) { }
+        : op_term_t(env, term, argspec_t(1, -1)) { }
 private:
     virtual val_t *eval_impl() {
         func_t *f = arg(0)->as_func();
@@ -77,3 +84,5 @@ private:
 };
 
 } // namespace ql
+
+#endif // RDB_PROTOCOL_TERMS_CONTROL_HPP_

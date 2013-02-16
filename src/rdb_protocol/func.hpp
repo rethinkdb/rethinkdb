@@ -1,6 +1,7 @@
 #ifndef RDB_PROTOCOL_FUNC_HPP_
 #define RDB_PROTOCOL_FUNC_HPP_
 
+#include <map>
 #include <vector>
 
 #include "utils.hpp"

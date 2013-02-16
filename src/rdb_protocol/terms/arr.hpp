@@ -1,3 +1,6 @@
+#ifndef RDB_PROTOCOL_TERMS_ARR_HPP_
+#define RDB_PROTOCOL_TERMS_ARR_HPP_
+
 #include "rdb_protocol/op.hpp"
 #include "rdb_protocol/err.hpp"
 
@@ -135,3 +138,5 @@ private:
 };
 
 } // namespace ql
+
+#endif // RDB_PROTOCOL_TERMS_ARR_HPP_

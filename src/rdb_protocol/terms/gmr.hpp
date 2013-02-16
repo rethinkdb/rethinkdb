@@ -1,3 +1,6 @@
+#ifndef RDB_PROTOCOL_TERMS_GMR_HPP_
+#define RDB_PROTOCOL_TERMS_GMR_HPP_
+
 #include "rdb_protocol/op.hpp"
 #include "rdb_protocol/err.hpp"
 #include "rdb_protocol/pb_utils.hpp"
@@ -20,3 +23,5 @@ private:
 };
 
 } // namespace ql
+
+#endif // RDB_PROTOCOL_TERMS_GMR_HPP_
