@@ -118,8 +118,6 @@ private:
     /* Use `adjustable_semaphore_t` instead of `semaphore_t` so we can get `force_lock()`. */
     adjustable_semaphore_t dirty_block_semaphore;
 
-    bool force_patch_storage_flush;
-
     mc_cache_t *cache;
 
     /* The flush lock is necessary because if we acquire dirty blocks

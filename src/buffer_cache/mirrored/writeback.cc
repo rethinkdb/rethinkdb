@@ -35,7 +35,6 @@ writeback_t::writeback_t(
     writeback_in_progress(false),
     active_flushes(0),
     dirty_block_semaphore(_max_dirty_blocks),
-    force_patch_storage_flush(false),
     cache(_cache),
     start_next_sync_immediately(false),
     to_pulse_when_last_active_flush_finishes(NULL) {
@@ -359,10 +358,6 @@ void writeback_t::do_concurrent_flush() {
     // TOOD(patch): Drop pm_flushes_diff_flush?
     cache->stats->pm_flushes_diff_flush.begin(&start_time2);
 
-    // TODO(patch): Drop the force_patch_storage_flush variable?
-    if (force_patch_storage_flush) {
-        force_patch_storage_flush = false;
-    }
     cache->stats->pm_flushes_diff_flush.end(&start_time2);
 
     /* Start a read transaction so we can request bufs. */
