@@ -10,33 +10,6 @@
 patch_memory_storage_t::patch_memory_storage_t() {
 }
 
-// This assumes that patches is properly sorted. It will initialize a block_patch_list_t and store it.
-void patch_memory_storage_t::load_block_patch_list(block_id_t block_id, const std::list<buf_patch_t*>& patches) {
-    rassert(patch_map.find(block_id) == patch_map.end());
-
-    // Verify patches list
-    block_sequence_id_t previous_block_sequence = 0;
-    patch_counter_t previous_patch_counter = 0;
-    for (std::list<buf_patch_t*>::const_iterator p = patches.begin(); p != patches.end(); ++p) {
-        rassert(previous_block_sequence <= (*p)->get_block_sequence_id(),
-                "Non-sequential patch list: Block sequence id %" PRIu64 " follows %" PRIu64,
-                (*p)->get_block_sequence_id(), previous_block_sequence);
-        if (previous_block_sequence == 0 || (*p)->get_block_sequence_id() != previous_block_sequence) {
-            previous_patch_counter = 0;
-        }
-        guarantee(previous_patch_counter == 0 || (*p)->get_patch_counter() > previous_patch_counter, "Non-sequential patch list: Patch counter %d follows %d", (*p)->get_patch_counter(), previous_patch_counter);
-        previous_patch_counter = (*p)->get_patch_counter();
-        previous_block_sequence = (*p)->get_block_sequence_id();
-    }
-
-    block_patch_list_t& summarizing_patch_list = patch_map[block_id];
-    rassert(summarizing_patch_list.empty());
-
-    for (std::list<buf_patch_t *>::const_iterator p = patches.begin(), e = patches.end(); p != e; ++p) {
-        summarizing_patch_list.add_patch(*p);
-    }
-}
-
 // Removes all patches which are obsolete w.r.t. the given block sequence_id
 void patch_memory_storage_t::filter_applied_patches(block_id_t block_id, block_sequence_id_t block_sequence_id) {
     patch_map_t::iterator map_entry = patch_map.find(block_id);

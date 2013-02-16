@@ -60,9 +60,6 @@ public:
 
     patch_memory_storage_t(); // Initialize an empty diff storage
 
-    // This assumes that patches is properly sorted. It will initialize a block_patch_list_t and store it.
-    void load_block_patch_list(block_id_t block_id, const std::list<buf_patch_t *>& patches);
-
     // Removes all patches which are obsolete w.r.t. the given block sequence id
     void filter_applied_patches(block_id_t block_id, block_sequence_id_t block_sequence_id);
 
