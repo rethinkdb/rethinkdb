@@ -37,8 +37,3 @@ void patch_disk_storage_t::create(serializer_t *serializer, block_id_t start_id,
 
     serializer->free(c);
 }
-
-patch_disk_storage_t::patch_disk_storage_t(UNUSED mc_cache_t *_cache, UNUSED block_id_t start_id) { }
-
-patch_disk_storage_t::~patch_disk_storage_t() { }
-

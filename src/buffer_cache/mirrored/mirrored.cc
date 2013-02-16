@@ -1334,9 +1334,6 @@ mc_cache_t::mc_cache_t(serializer_t *_serializer,
     writebacks_allowed = false;
 #endif
 
-    /* Load differential log from disk */
-    patch_disk_storage.init(new patch_disk_storage_t(this, MC_CONFIGBLOCK_ID));
-
     /* Please note: writebacks must *not* happen prior to this point! */
     /* Writebacks ( / syncs / flushes) can cause blocks to be rewritten and require an intact patch_memory_storage! */
 #ifndef NDEBUG
@@ -1391,10 +1388,6 @@ mc_cache_t::~mc_cache_t() {
         void on_sync() { pulse(); }
     } sync_cb;
     if (!writeback.sync(&sync_cb)) sync_cb.wait();
-
-    /* Must destroy patch_disk_storage before we delete bufs because it uses the buf mechanism
-    to hold the differential log. */
-    patch_disk_storage.reset();
 
     /* Delete all the buffers */
     while (evictable_t *buf = page_repl.get_first_buf()) {
