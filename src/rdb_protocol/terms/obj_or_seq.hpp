@@ -53,7 +53,7 @@ private:
         }
         return new_val(out.release());
     }
-    RDB_NAME("pluck")
+    RDB_NAME("pluck");
 };
 
 class without_term_t : public obj_or_seq_op_term_t {
@@ -72,7 +72,7 @@ private:
         }
         return new_val(out.release());
     }
-    RDB_NAME("without")
+    RDB_NAME("without");
 };
 
 } // namespace ql

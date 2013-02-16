@@ -25,7 +25,7 @@ private:
         }
         unreachable();
     }
-    RDB_NAME("all")
+    RDB_NAME("all");
 };
 
 class any_term_t : public op_term_t {
@@ -44,7 +44,7 @@ private:
         return new_val(new datum_t(datum_t::R_BOOL, false));
         unreachable();
     }
-    RDB_NAME("any")
+    RDB_NAME("any");
 };
 
 class branch_term_t : public op_term_t {
@@ -59,7 +59,7 @@ private:
         }
         return b ? arg(1) : arg(2);
     }
-    RDB_NAME("branch")
+    RDB_NAME("branch");
 };
 
 
@@ -74,7 +74,7 @@ private:
         for (size_t i = 1; i < num_args(); ++i) args.push_back(arg(i)->as_datum());
         return f->_call(args);
     }
-    RDB_NAME("funcall")
+    RDB_NAME("funcall");
 };
 
 } // namespace ql

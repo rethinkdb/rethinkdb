@@ -64,7 +64,8 @@ private:
 // from `op_term_t`.
 #define RDB_NAME(str) \
     static const char *_name() { return str; } \
-    virtual const char *name() const { return str; }
+    virtual const char *name() const { return str; } \
+    typedef int RDB_NAME_MACRO_WAS_NOT_TERMINATED_WITH_SEMICOLON
 
-}
+} // namespace ql
 #endif // RDB_PROTOCOL_OP_HPP_

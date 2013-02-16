@@ -13,7 +13,7 @@ private:
     virtual val_t *eval_impl() {
         return new_val(arg(0)->as_seq()->count());
     }
-    RDB_NAME("count")
+    RDB_NAME("count");
 };
 
 class map_term_t : public op_term_t {
@@ -34,7 +34,7 @@ private:
     virtual val_t *eval_impl() {
         return new_val(arg(0)->as_seq()->concatmap(arg(1)->as_func()));
     }
-    RDB_NAME("concatmap")
+    RDB_NAME("concatmap");
 };
 
 class filter_term_t : public op_term_t {
@@ -50,7 +50,7 @@ private:
             return new_val(v0->as_seq()->filter(v1->as_func(SHORTCUT_OK)));
         }
     }
-    RDB_NAME("filter")
+    RDB_NAME("filter");
 };
 
 static const char *const reduce_optargs[] = {"base"};
@@ -62,7 +62,7 @@ private:
     virtual val_t *eval_impl() {
         return new_val(arg(0)->as_seq()->reduce(optarg("base", 0), arg(1)->as_func()));
     }
-    RDB_NAME("reduce")
+    RDB_NAME("reduce");
 };
 
 // TODO: this sucks.  Change to use the same macros as rewrites.hpp?
@@ -111,7 +111,7 @@ private:
         //debugf("%s\n", filter_func->DebugString().c_str());
         return new_val(seq->filter(env->new_func(filter_func.get(), get_bt())));
     }
-    RDB_NAME("between")
+    RDB_NAME("between");
 
     scoped_ptr_t<Term2> filter_func;
 };
@@ -125,7 +125,7 @@ private:
         for (size_t i = 0; i < num_args(); ++i) streams.push_back(arg(i)->as_seq());
         return new_val(new union_datum_stream_t(env, streams, get_bt()));
     }
-    RDB_NAME("union")
+    RDB_NAME("union");
 };
 
 class zip_term_t : public op_term_t {
@@ -135,7 +135,7 @@ private:
     virtual val_t *eval_impl() {
         return new_val(arg(0)->as_seq()->zip());
     }
-    RDB_NAME("zip")
+    RDB_NAME("zip");
 };
 
 } //namespace ql

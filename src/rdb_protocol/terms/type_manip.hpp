@@ -209,7 +209,7 @@ private:
               get_name(start_type).c_str(), get_name(end_type).c_str());
         unreachable();
     }
-    RDB_NAME("coerce")
+    RDB_NAME("coerce");
 };
 
 class typeof_term_t : public op_term_t {
@@ -222,7 +222,7 @@ private:
         if (t == DATUM_TYPE) t += v0->as_datum()->get_type();
         return new_val(get_name(t));
     }
-    RDB_NAME("typeof")
+    RDB_NAME("typeof");
 };
 
 } // namespace ql

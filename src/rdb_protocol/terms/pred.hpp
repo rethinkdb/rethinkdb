@@ -59,7 +59,7 @@ public:
     not_term_t(env_t *env, const Term2 *term) : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual val_t *eval_impl() { return new_val_bool(!arg(0)->as_bool()); }
-    RDB_NAME("not")
+    RDB_NAME("not");
 };
 
 } //namespace ql

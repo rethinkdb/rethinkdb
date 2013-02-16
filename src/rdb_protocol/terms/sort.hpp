@@ -42,7 +42,7 @@ private:
             env, lt_cmp, arg(0)->as_seq(), get_bt());
         return new_val(s);
     }
-    RDB_NAME("orderby")
+    RDB_NAME("orderby");
 };
 
 class distinct_term_t : public op_term_t {
@@ -63,7 +63,7 @@ private:
         }
         return new_val(new array_datum_stream_t(env, arr, get_bt()));
     }
-    RDB_NAME("distinct")
+    RDB_NAME("distinct");
 };
 
 } // namespace ql

@@ -96,7 +96,7 @@ private:
         return new_val(meta_get_uuid(db_searcher.get(), db_name,
                                      "FIND_DB " + db_name.str()));
     }
-    RDB_NAME("db")
+    RDB_NAME("db");
 };
 
 class db_create_term_t : public meta_write_op_t {
@@ -128,7 +128,7 @@ private:
 
         return "created";
     }
-    RDB_NAME("db_create")
+    RDB_NAME("db_create");
 };
 
 static const char *const table_create_optargs[] =
@@ -196,7 +196,7 @@ private:
 
         return "created";
     }
-    RDB_NAME("table_create")
+    RDB_NAME("table_create");
 };
 
 class db_drop_term_t : public meta_write_op_t {
@@ -240,7 +240,7 @@ private:
 
         return "dropped";
     }
-    RDB_NAME("db_drop")
+    RDB_NAME("db_drop");
 };
 
 class table_drop_term_t : public meta_write_op_t {
@@ -274,7 +274,7 @@ private:
 
         return "dropped";
     }
-    RDB_NAME("table_drop")
+    RDB_NAME("table_drop");
 };
 
 class db_list_term_t : public meta_op_t {
@@ -294,7 +294,7 @@ private:
         }
         return new_val(arr);
     }
-    RDB_NAME("db_list")
+    RDB_NAME("db_list");
 };
 
 class table_list_term_t : public meta_op_t {
@@ -316,7 +316,7 @@ private:
         }
         return new_val(arr);
     }
-    RDB_NAME("table_list")
+    RDB_NAME("table_list");
 };
 
 static const char *const table_optargs[] = {"use_outdated"};
@@ -342,7 +342,7 @@ private:
         }
         return new_val(new table_t(env, db, name, use_outdated));
     }
-    RDB_NAME("table")
+    RDB_NAME("table");
 };
 
 class get_term_t : public op_term_t {
@@ -355,6 +355,6 @@ private:
         const datum_t *row = table->get_row(pkey);
         return new_val(row, table);
     }
-    RDB_NAME("get")
+    RDB_NAME("get");
 };
 } // ql

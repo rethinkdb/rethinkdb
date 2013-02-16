@@ -10,7 +10,7 @@ public:
 private:
     virtual bool is_deterministic_impl() const { return true; }
     virtual val_t *eval_impl() { return raw_val; }
-    RDB_NAME("datum")
+    RDB_NAME("datum");
     val_t *raw_val;
 };
 
@@ -24,7 +24,7 @@ private:
         for (size_t i = 0; i < num_args(); ++i) acc->add(arg(i)->as_datum());
         return new_val(acc);
     }
-    RDB_NAME("make_array")
+    RDB_NAME("make_array");
 };
 
 class make_obj_term_t : public op_term_t {
@@ -41,7 +41,7 @@ private:
         }
         return new_val(acc);
     }
-    RDB_NAME("make_obj")
+    RDB_NAME("make_obj");
 };
 
 }

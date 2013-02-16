@@ -98,7 +98,7 @@ private:
 
         return new_val(stats);
     }
-    RDB_NAME("insert")
+    RDB_NAME("insert");
 };
 
 static const char *const replace_optargs[] = {"non_atomic"};
@@ -129,7 +129,7 @@ private:
         }
         return new_val(stats);
     }
-    RDB_NAME("replace")
+    RDB_NAME("replace");
 };
 
 // DELETE and UPDATE are in rewrites.hpp
@@ -153,7 +153,7 @@ private:
         }
         return new_val(stats);
     }
-    RDB_NAME("foreach")
+    RDB_NAME("foreach");
 };
 
 } // namespace ql

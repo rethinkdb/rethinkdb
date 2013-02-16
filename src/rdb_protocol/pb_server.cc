@@ -124,12 +124,12 @@ Response2 query2_server_t::handle(Query2 *q, context_t *query2_context) {
         guarantee(ctx->directory_read_manager);
         scoped_ptr_t<ql::env_t> env(
             new ql::env_t(
-            ctx->pool_group, ctx->ns_repo,
-            ctx->cross_thread_namespace_watchables[thread]->get_watchable(),
-            ctx->cross_thread_database_watchables[thread]->get_watchable(),
-            ctx->semilattice_metadata, ctx->directory_read_manager,
-            js_runner, interruptor, ctx->machine_id));
-        //[ql::run] will set the status code
+                ctx->pool_group, ctx->ns_repo,
+                ctx->cross_thread_namespace_watchables[thread]->get_watchable(),
+                ctx->cross_thread_database_watchables[thread]->get_watchable(),
+                ctx->semilattice_metadata, ctx->directory_read_manager,
+                js_runner, interruptor, ctx->machine_id));
+        // `ql::run` will set the status code
         ql::run(q, &env, &res, stream_cache2);
     } catch (const interrupted_exc_t &e) {
         ql::fill_error(&res, Response2::RUNTIME_ERROR,

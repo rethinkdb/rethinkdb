@@ -74,7 +74,7 @@ private:
         rcheck(i1, "Cannot take a number modulo 0.");
         return new_val(i0 % i1);
     }
-    RDB_NAME("mod")
+    RDB_NAME("mod");
 };
 
 } //namespace ql
