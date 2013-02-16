@@ -504,7 +504,6 @@ void writeback_t::flush_acquire_bufs(mc_transaction_t *transaction, flush_state_
         mc_inner_buf_t *inner_buf = static_cast<mc_inner_buf_t *>(lbuf);
 
         bool buf_needs_flush = lbuf->needs_flush();
-        //bool buf_dirty = lbuf->dirty;
         bool recency_dirty = lbuf->get_recency_dirty();
 
         // Removes it from dirty_bufs
