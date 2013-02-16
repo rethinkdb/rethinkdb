@@ -12,12 +12,12 @@
 
 namespace ql {
 
-void _runtime_check(const char *test, const char *file, int line,
-                    bool pred, std::string msg = "");
+void runtime_check(const char *test, const char *file, int line,
+                   bool pred, std::string msg);
 
 // Use these macros to return errors to users.
 #define rcheck(pred, msg)                                               \
-    _runtime_check(stringify(pred), __FILE__, __LINE__, pred, msg)
+    runtime_check(stringify(pred), __FILE__, __LINE__, pred, msg)
 #define rfail(args...) rcheck(false, strprintf(args))
 
 

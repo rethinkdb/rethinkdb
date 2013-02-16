@@ -76,8 +76,9 @@ private:
 
     scoped_ptr_t<backtrace_t::frame_t> frame;
 };
+
 term_t *compile_term(env_t *env, const Term2 *t);
 
-}
+} // namespace ql
 
 #endif // RDB_PROTOCOL_TERM_HPP_

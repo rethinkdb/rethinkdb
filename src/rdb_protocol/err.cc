@@ -1,8 +1,8 @@
 #include "rdb_protocol/err.hpp"
 
 namespace ql {
-void _runtime_check(const char *test, const char *file, int line,
-                    bool pred, std::string msg) {
+void runtime_check(const char *test, const char *file, int line,
+                   bool pred, std::string msg) {
     if (pred) return;
 #ifndef NDEBUG
     msg = strprintf("%s\nFailed assertion: %s\nAt: %s:%d",

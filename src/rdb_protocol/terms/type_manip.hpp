@@ -13,8 +13,6 @@ namespace ql {
 //   subtype is brittle.
 // * Everything is done with nested ifs.  Ideally we'd build some sort of graph
 //   structure and walk it.
-// * Why did I decide to have a global _coerce_map variable?  Check that map
-//   access is actually thread safe.
 
 static const int MAX_TYPE = 10;
 

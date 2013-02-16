@@ -357,4 +357,5 @@ private:
     }
     RDB_NAME("get");
 };
-} // ql
+
+} // namespace ql

@@ -21,7 +21,9 @@ public:
 private:
     virtual val_t *eval_impl() {
         datum_t *acc = env->add_ptr(new datum_t(datum_t::R_ARRAY));
-        for (size_t i = 0; i < num_args(); ++i) acc->add(arg(i)->as_datum());
+        for (size_t i = 0; i < num_args(); ++i) {
+            acc->add(arg(i)->as_datum());
+        }
         return new_val(acc);
     }
     RDB_NAME("make_array");
@@ -44,4 +46,4 @@ private:
     RDB_NAME("make_obj");
 };
 
-}
+} // namespace ql
