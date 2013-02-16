@@ -67,13 +67,6 @@ public:
     unsigned int get_number_of_log_blocks() const;
 
 private:
-    block_id_t active_log_block;
-    uint16_t next_patch_offset;
-
-    unsigned int waiting_for_clear;
-
-    mc_cache_t *cache;
-    block_id_t first_block;
     static const block_id_t number_of_blocks = 0;
 };
 

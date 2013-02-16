@@ -38,36 +38,17 @@ void patch_disk_storage_t::create(serializer_t *serializer, block_id_t start_id,
     serializer->free(c);
 }
 
-patch_disk_storage_t::patch_disk_storage_t(mc_cache_t *_cache, block_id_t start_id) :
-    cache(_cache), first_block(start_id + 1)
-{
-    active_log_block = 0;
-    next_patch_offset = 0;
-
-    // Read the existing config block & determine which blocks are alive
-    {
-        on_thread_t switcher(cache->serializer->home_thread());
-
-        // Load and parse config block
-        mc_config_block_t *config_block = reinterpret_cast<mc_config_block_t *>(cache->serializer->malloc());
-        cache->serializer->block_read(cache->serializer->index_read(start_id), config_block, DEFAULT_DISK_ACCOUNT);
-        guarantee(mc_config_block_t::expected_magic == config_block->magic, "Invalid mirrored cache config block magic");
-        guarantee(config_block->cache.n_patch_log_blocks == 0, "n_patch_log_blocks is %" PRIi32, config_block->cache.n_patch_log_blocks);
-        cache->serializer->free(config_block);
-    }
-}
+patch_disk_storage_t::patch_disk_storage_t(UNUSED mc_cache_t *_cache, UNUSED block_id_t start_id) { }
 
 patch_disk_storage_t::~patch_disk_storage_t() { }
 
 // Loads on-disk data into memory
 void patch_disk_storage_t::load_patches(UNUSED patch_memory_storage_t *in_memory_storage) {
-    cache->assert_thread();
 }
 
 // Returns true on success, false if patch could not be stored (e.g. because of insufficient free space in log)
 // This function never blocks and must only be called while the flush_lock is held.
 bool patch_disk_storage_t::store_patch(buf_patch_t *patch, const block_sequence_id_t current_block_block_sequence_id) {
-    cache->assert_thread();
     rassert(patch->get_block_sequence_id() == NULL_BLOCK_SEQUENCE_ID);
     patch->set_block_sequence_id(current_block_block_sequence_id);
 
@@ -76,11 +57,9 @@ bool patch_disk_storage_t::store_patch(buf_patch_t *patch, const block_sequence_
 
 // This function might block while it acquires old blocks from disk.
 void patch_disk_storage_t::clear_n_oldest_blocks(UNUSED unsigned int n) {
-    cache->assert_thread();
 }
 
 void patch_disk_storage_t::compress_n_oldest_blocks(UNUSED unsigned int n) {
-    cache->assert_thread();
 }
 
 unsigned int patch_disk_storage_t::get_number_of_log_blocks() const {
