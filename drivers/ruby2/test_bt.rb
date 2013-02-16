@@ -4,7 +4,7 @@ $LOAD_PATH.unshift('./lib')
 require 'rethinkdb.rb'
 require 'test/unit'
 $port_base ||= ARGV[0].to_i # 0 if none given
-$c = RethinkDB::Connection.new('localhost', $port_base + 28015 + 1)
+$c = RethinkDB::Connection.new('localhost', $port_base + 28015 + 1).repl
 
 class BacktraceTest < Test::Unit::TestCase
   include RethinkDB::Shortcuts
