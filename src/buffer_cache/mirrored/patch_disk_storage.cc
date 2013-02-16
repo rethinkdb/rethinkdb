@@ -52,66 +52,9 @@ patch_disk_storage_t::patch_disk_storage_t(mc_cache_t *_cache, block_id_t start_
         mc_config_block_t *config_block = reinterpret_cast<mc_config_block_t *>(cache->serializer->malloc());
         cache->serializer->block_read(cache->serializer->index_read(start_id), config_block, DEFAULT_DISK_ACCOUNT);
         guarantee(mc_config_block_t::expected_magic == config_block->magic, "Invalid mirrored cache config block magic");
-        number_of_blocks = config_block->cache.n_patch_log_blocks;
+        guarantee(config_block->cache.n_patch_log_blocks == 0, "n_patch_log_blocks is %" PRIi32, config_block->cache.n_patch_log_blocks);
         cache->serializer->free(config_block);
-
-        if (uint64_t(number_of_blocks) > uint64_t(cache->dynamic_config.max_size) / cache->get_block_size().ser_value()) {
-            fail_due_to_user_error("The cache of size %" PRId64 " blocks is too small to hold this database's diff log of %d blocks.",
-                                   cache->dynamic_config.max_size / cache->get_block_size().ser_value(),
-                                   number_of_blocks);
-        }
-
-        if (number_of_blocks == 0)
-            return;
-
-        // Determine which blocks are alive
-        block_is_empty.resize(number_of_blocks, false);
-        for (block_id_t current_block = first_block; current_block < first_block + number_of_blocks; ++current_block) {
-            block_is_empty[current_block - first_block] = cache->serializer->get_delete_bit(current_block);
-        }
     }
-
-    // We manage our block IDs separately from the normal mechanism, but they are still in the same
-    // ID-space. So we have to reserve the block IDs. TODO: We should use a separate ID-space.
-    for (block_id_t current_block = first_block; current_block < first_block + number_of_blocks; ++current_block) {
-        if (block_is_empty[current_block - first_block]) {
-            cache->free_list.reserve_block_id(current_block);
-        }
-    }
-
-    // Preload log blocks so that they get read from disk in parallel
-    // TODO: This doesn't synergize very well with read-ahead. The blocks are likely to all be
-    // close together on disk, but no read-ahead callback has been installed. It's bad that we
-    // now have two different ways to preload blocks from disk, and we should fix that.
-    for (block_id_t current_block = first_block; current_block < first_block + number_of_blocks; ++current_block) {
-        if (!block_is_empty[current_block - first_block]) {
-            /* This automatically starts reading the block from disk and registers it with the cache. */
-            new mc_inner_buf_t(cache, current_block, cache->reads_io_account.get());
-        }
-    }
-
-    // Load all log blocks into memory
-    for (block_id_t current_block = first_block; current_block < first_block + number_of_blocks; ++current_block) {
-        if (block_is_empty[current_block - first_block]) {
-            // Initialize a new log block here
-            new mc_inner_buf_t(cache, current_block, cache->get_current_version_id(), repli_timestamp_t::invalid);
-
-            log_block_bufs.push_back(mc_buf_lock_t::acquire_non_locking_lock(cache, current_block));
-
-            init_log_block(current_block);
-
-        } else {
-            log_block_bufs.push_back(mc_buf_lock_t::acquire_non_locking_lock(cache, current_block));
-
-            // Check that this is a valid log block
-            mc_buf_lock_t *log_buf = log_block_bufs[current_block - first_block];
-            const void *buf_data = log_buf->get_data_read();
-            guarantee(*reinterpret_cast<const block_magic_t *>(buf_data) == log_block_magic);
-        }
-    }
-    rassert(log_block_bufs.size() == number_of_blocks);
-
-    set_active_log_block(first_block);
 }
 
 patch_disk_storage_t::~patch_disk_storage_t() {

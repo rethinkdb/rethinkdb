@@ -89,9 +89,9 @@ private:
 
     mc_cache_t *cache;
     block_id_t first_block;
-    block_id_t number_of_blocks;
-    std::vector<bool> block_is_empty;
-    std::vector<mc_buf_lock_t *> log_block_bufs;
+    static const block_id_t number_of_blocks = 0;
+    std::vector<bool> block_is_empty;  // always empty
+    std::vector<mc_buf_lock_t *> log_block_bufs;  // always empty
 };
 
 #endif /* BUFFER_CACHE_MIRRORED_PATCH_DISK_STORAGE_HPP_ */
