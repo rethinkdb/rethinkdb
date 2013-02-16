@@ -46,7 +46,7 @@ public:
             // false.
             UNUSED bool key_in_object =
                    datum->add("first_error", env_add_ptr(new datum_t(err)))
-                || datum->add("errors", env_add_ptr(new datum_t(1)));
+                || datum->add("errors", env_add_ptr(new datum_t(1L)));
             return datum;
         }
     }
@@ -109,7 +109,14 @@ public:
     const datum_t *as_datum(); // prefer the 4 below
     bool as_bool();
     double as_num();
-    int as_int();
+    template<class T>
+    T as_int() {
+        int64_t i = as_int();
+        T t = static_cast<T>(i);
+        rcheck(static_cast<int64_t>(t) == i, strprintf("Integer too large: %ld", i));
+        return t;
+    }
+    int64_t as_int();
     const std::string &as_str();
 
     std::string print() {

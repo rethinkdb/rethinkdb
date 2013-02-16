@@ -47,7 +47,7 @@ const datum_t *table_t::_replace(const datum_t *orig, const map_wire_func_t &mwf
         orig = mwf2.compile(env)->call(orig)->as_datum();
         if (orig->get_type() == datum_t::R_NULL) {
             datum_t *resp = env->add_ptr(new datum_t(datum_t::R_OBJECT));
-            const datum_t *num_1 = env->add_ptr(new ql::datum_t(1));
+            const datum_t *num_1 = env->add_ptr(new ql::datum_t(1L));
             bool b = resp->add("skipped", num_1);
             r_sanity_check(!b);
             return resp;
@@ -321,7 +321,7 @@ double val_t::as_num() {
         return d->as_num();
     } CATCH_WITH_BT(parent->get_bt());
 }
-int val_t::as_int() {
+int64_t val_t::as_int() {
     const datum_t *d = as_datum();
     r_sanity_check(d);
     try {

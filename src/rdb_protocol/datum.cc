@@ -15,7 +15,7 @@ datum_t::datum_t(type_t _type, bool _bool) : type(_type), r_bool(_bool) {
 datum_t::datum_t(double _num) : type(R_NUM), r_num(_num) {
     rcheck(std::isfinite(r_num), strprintf("Non-finite number: %.20g", r_num));
 }
-datum_t::datum_t(int _num) : type(R_NUM), r_num(_num) {
+datum_t::datum_t(int64_t _num) : type(R_NUM), r_num(_num) {
     rcheck(std::isfinite(r_num), strprintf("Non-finite number: %.20g", r_num));
 }
 datum_t::datum_t(const std::string &_str) : type(R_STR), r_str(_str) { }
@@ -148,9 +148,9 @@ double datum_t::as_num() const {
     check_type(R_NUM);
     return r_num;
 }
-int datum_t::as_int() const {
+int64_t datum_t::as_int() const {
     double d = as_num();
-    int i = d;
+    int64_t i = d;
     rcheck(static_cast<double>(i) == d, strprintf("Number not an integer: %.20g", d));
     return i;
 }

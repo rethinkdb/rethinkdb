@@ -67,6 +67,7 @@ void stream_cache2_t::maybe_evict() {
                                     ENTRY_T
 *******************************************************************************/
 bool valid_chunk_size(int64_t chunk_size) {
+    // TODO: when users can specify chunk sizes, pick a better bound than INT_MAX.
     return 0 <= chunk_size && chunk_size <= INT_MAX;
 }
 bool valid_age(int64_t age) { return 0 <= age; }

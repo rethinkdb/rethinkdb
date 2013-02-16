@@ -163,7 +163,7 @@ void rdb_replace(const std::string &primary_key,
                  repli_timestamp_t timestamp,
                  transaction_t *txn,
                  superblock_t *superblock) {
-    const ql::datum_t *num_1 = ql_env->add_ptr(new ql::datum_t(1));
+    const ql::datum_t *num_1 = ql_env->add_ptr(new ql::datum_t(1L));
     ql::datum_t *resp = ql_env->add_ptr(new ql::datum_t(ql::datum_t::R_OBJECT));
     try {
         keyvalue_location_t<rdb_value_t> kv_location;

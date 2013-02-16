@@ -69,9 +69,12 @@ public:
     mod_term_t(env_t *env, const Term2 *term) : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual val_t *eval_impl() {
-        int i0 = arg(0)->as_int();
-        int i1 = arg(1)->as_int();
+        int64_t i0 = arg(0)->as_int();
+        int64_t i1 = arg(1)->as_int();
         rcheck(i1, "Cannot take a number modulo 0.");
+        // Sam says this is a floating-point exception
+        rcheck(!(i0 == INT64_MIN && i1 == -1),
+               strprintf("Cannot take %ld mod %ld", i0, i1));
         return new_val(i0 % i1);
     }
     RDB_NAME("mod");

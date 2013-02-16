@@ -39,7 +39,7 @@ public:
     explicit datum_t(bool _bool); // undefined, catches implicit conversion errors
     datum_t(type_t _type, bool _bool); // Need to explicitly ask to construct a bool.
     explicit datum_t(double _num);
-    explicit datum_t(int _num);
+    explicit datum_t(int64_t _num);
     explicit datum_t(const std::string &_str);
     explicit datum_t(const char *cstr);
     explicit datum_t(const std::vector<const datum_t *> &_array);
@@ -63,7 +63,7 @@ public:
 
     bool as_bool() const;
     double as_num() const;
-    int as_int() const;
+    int64_t as_int() const;
     const std::string &as_str() const;
 
     // Use of `size` and `el` is preferred to `as_array` when possible.

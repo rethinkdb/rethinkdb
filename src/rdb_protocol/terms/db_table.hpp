@@ -77,7 +77,7 @@ private:
     virtual val_t *eval_impl() {
         std::string op = write_eval_impl();
         datum_t *res = env->add_ptr(new datum_t(datum_t::R_OBJECT));
-        const datum_t *num_1 = env->add_ptr(new datum_t(1));
+        const datum_t *num_1 = env->add_ptr(new datum_t(1L));
         UNUSED bool b = res->add(op, num_1);
         return new_val(res);
 
@@ -149,7 +149,7 @@ private:
         if (val_t *v = optarg("primary_key", 0)) primary_key = v->as_str();
 
         int cache_size = 1073741824;
-        if (val_t *v = optarg("cache_size", 0)) cache_size = v->as_int();
+        if (val_t *v = optarg("cache_size", 0)) cache_size = v->as_int<int>();
 
         uuid_u db_id = arg(0)->as_db();
 

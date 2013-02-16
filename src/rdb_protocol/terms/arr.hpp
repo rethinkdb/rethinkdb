@@ -21,7 +21,8 @@ private:
 
 // This gets the literal index of a (possibly negative) index relative to a
 // fixed size.
-size_t canonicalize(int index, size_t size, bool *oob_out = 0) {
+size_t canonicalize(int32_t index, size_t size, bool *oob_out = 0) {
+    CT_ASSERT(sizeof(size_t) >= sizeof(int32_t));
     if (index >= 0) return index;
     if (size_t(index * -1) > size) {
         if (oob_out) {
@@ -40,7 +41,7 @@ public:
 private:
     virtual val_t *eval_impl() {
         val_t *v = arg(0);
-        int n    = arg(1)->as_int();
+        int32_t n = arg(1)->as_int<int32_t>();
         if (v->get_type().is_convertible(val_t::type_t::DATUM)) {
             const datum_t *arr = v->as_datum();
             size_t real_n = canonicalize(n, arr->size());
@@ -50,7 +51,7 @@ private:
             rcheck(n >= -1, strprintf("Cannot use an index < -1 (%d) on a stream.", n));
 
             const datum_t *last_d = 0;
-            for (int i = 0; ; ++i) {
+            for (int32_t i = 0; ; ++i) {
                 const datum_t *d = s->next();
                 if (!d) {
                     rcheck(n == -1 && last_d, strprintf("Index out of bounds: %d", n));
@@ -72,9 +73,9 @@ public:
         : op_term_t(env, term, argspec_t(3)) { }
 private:
     virtual val_t *eval_impl() {
-        val_t *v   = arg(0);
-        int fake_l = arg(1)->as_int();
-        int fake_r = arg(2)->as_int();
+        val_t *v = arg(0);
+        int32_t fake_l = arg(1)->as_int<int32_t>();
+        int32_t fake_r = arg(2)->as_int<int32_t>();
         if (v->get_type().is_convertible(val_t::type_t::DATUM)) {
             const datum_t *arr = v->as_datum();
             rcheck(arr->get_type() == datum_t::R_ARRAY, "Cannot slice non-sequences.");
@@ -83,8 +84,6 @@ private:
             if (l_oob) real_l = 0;
             bool r_oob = false;
             size_t real_r = canonicalize(fake_r, arr->size(), &r_oob);
-           //rcheck(real_l < arr->size(), strprintf("Index out of bounds: %lu", real_l));
-           //rcheck(real_r < arr->size(), strprintf("Index out of bounds: %lu", real_r));
 
             scoped_ptr_t<datum_t> out(new datum_t(datum_t::R_ARRAY));
             if (!r_oob) {
@@ -122,8 +121,7 @@ private:
             t = v->as_selection().first;
         }
         datum_stream_t *ds = v->as_seq();
-        int r = arg(1)->as_int();
-
+        int32_t r = arg(1)->as_int<int32_t>();
         rcheck(r >= 0, strprintf("LIMIT takes a non-negative argument (got %d)", r));
         datum_stream_t *new_ds;
         if (r == 0) {

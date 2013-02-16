@@ -16,7 +16,7 @@ datum_stream_t *datum_stream_t::zip() {
 }
 
 const datum_t *eager_datum_stream_t::count() {
-    int i = 0;
+    int64_t i = 0;
     for (;;) {
         env_checkpoint_t ect(env, &env_t::discard_checkpoint);
         if (!next()) break;
@@ -120,7 +120,7 @@ void lazy_datum_stream_t::run_terminal(T t) {
 }
 
 const datum_t *lazy_datum_stream_t::count() {
-    datum_t *d = env->add_ptr(new datum_t(0));
+    datum_t *d = env->add_ptr(new datum_t(0L));
     env_checkpoint_t ect(env, &env_t::discard_checkpoint);
     run_terminal(count_wire_func_t());
     for (size_t i = 0; i < shard_data.size(); ++i) {

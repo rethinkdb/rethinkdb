@@ -82,7 +82,7 @@ private:
         int obj = env->gensym(), attr = env->gensym();
         arg = pb::set_func(arg, obj);
         if (dc == "COUNT") {
-            NDATUM(1);
+            NDATUM(1L);
         } else if (dc == "SUM") {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
@@ -90,7 +90,7 @@ private:
                N3(BRANCH,
                   N2(CONTAINS, NVAR(obj), NVAR(attr)),
                   N2(GETATTR, NVAR(obj), NVAR(attr)),
-                  NDATUM(0)),
+                  NDATUM(0L)),
                *arg = *dc_arg);
 #pragma GCC diagnostic pop
         } else if (dc == "AVG") {
@@ -99,8 +99,8 @@ private:
             N2(FUNCALL, arg = pb::set_func(arg, attr);
                N3(BRANCH,
                   N2(CONTAINS, NVAR(obj), NVAR(attr)),
-                  N2(MAKE_ARRAY, N2(GETATTR, NVAR(obj), NVAR(attr)), NDATUM(1)),
-                  N2(MAKE_ARRAY, NDATUM(0), NDATUM(0))),
+                  N2(MAKE_ARRAY, N2(GETATTR, NVAR(obj), NVAR(attr)), NDATUM(1L)),
+                  N2(MAKE_ARRAY, NDATUM(0L), NDATUM(0L))),
                *arg = *dc_arg);
 #pragma GCC diagnostic pop
         } else if (dc == "AVG") {
@@ -119,10 +119,10 @@ private:
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
             N2(MAKE_ARRAY,
-               N2(ADD, N2(NTH, NVAR(a), NDATUM(0)),
-                       N2(NTH, NVAR(b), NDATUM(0))),
-               N2(ADD, N2(NTH, NVAR(a), NDATUM(1)),
-                       N2(NTH, NVAR(b), NDATUM(1))));
+               N2(ADD, N2(NTH, NVAR(a), NDATUM(0L)),
+                       N2(NTH, NVAR(b), NDATUM(0L))),
+               N2(ADD, N2(NTH, NVAR(a), NDATUM(1L)),
+                       N2(NTH, NVAR(b), NDATUM(1L))));
 #pragma GCC diagnostic pop
         } else { unreachable(); }
     }
@@ -140,8 +140,8 @@ private:
                     "group", N2(GETATTR, NVAR(obj), NDATUM("group")),
                     "reduction",
                     N2(FUNCALL, arg = pb::set_func(arg, val);
-                       N2(DIV, N2(NTH, NVAR(val), NDATUM(0)),
-                               N2(NTH, NVAR(val), NDATUM(1))),
+                       N2(DIV, N2(NTH, NVAR(val), NDATUM(0L)),
+                               N2(NTH, NVAR(val), NDATUM(1L))),
                        N2(GETATTR, NVAR(obj), NDATUM("reduction")))));
 #pragma GCC diagnostic pop
         }
@@ -190,7 +190,7 @@ public:
     static void rewrite(env_t *env, const Term2 *in, Term2 *out) {
         rcheck(in->args_size() == 3, "Outer Join requires 3 arguments.");
         const Term2 *l = &in->args(0), *r = &in->args(1), *f = &in->args(2);
-        int n = env->gensym(), m = env->gensym(), lst = env->gensym();
+        int64_t n = env->gensym(), m = env->gensym(), lst = env->gensym();
 
         Term2 *arg = out;
 
@@ -203,7 +203,7 @@ public:
               // r.branch(
               N3(BRANCH,
                  // r.gt(r.count(lst), 0),
-                 N2(GT, N1(COUNT, NVAR(lst)), NDATUM(0)),
+                 N2(GT, N1(COUNT, NVAR(lst)), NDATUM(0L)),
                  // lst,
                  NVAR(lst),
                  // [{:left => n}])},
@@ -312,7 +312,7 @@ private:
         Term2 *arg = out;
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
-        N3(SLICE, *arg = in->args(0), *arg = in->args(1), NDATUM(-1));
+        N3(SLICE, *arg = in->args(0), *arg = in->args(1), NDATUM(-1L));
 #pragma GCC diagnostic pop
      }
      RDB_NAME("skip");
