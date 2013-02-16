@@ -83,5 +83,7 @@ stream_cache2_t::entry_t::entry_t(time_t _last_activity, scoped_ptr_t<env_t> *en
     // parse the possible non-default values out of `q` here.
 }
 
+stream_cache2_t::entry_t::~entry_t() { }
+
 
 } // namespace ql

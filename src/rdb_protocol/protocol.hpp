@@ -14,19 +14,18 @@
 #include <boost/variant.hpp>
 #include <boost/optional.hpp>
 
-#include "rdb_protocol/func.hpp"
-
 #include "btree/btree_store.hpp"
 #include "btree/keys.hpp"
 #include "buffer_cache/types.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "extproc/pool.hpp"
+#include "hash_region.hpp"
 #include "http/json.hpp"
 #include "http/json/cJSON.hpp"
 #include "memcached/region.hpp"
-#include "hash_region.hpp"
 #include "protocol_api.hpp"
 #include "rdb_protocol/exceptions.hpp"
+#include "rdb_protocol/func.hpp"
 #include "rdb_protocol/query_language.pb.h"
 #include "rdb_protocol/rdb_protocol_json.hpp"
 #include "rdb_protocol/serializable_environment.hpp"

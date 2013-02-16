@@ -53,6 +53,7 @@ namespace ql {
 
 class stream_cache2_t {
 public:
+    stream_cache2_t() { }
     MUST_USE bool contains(int64_t key);
     void insert(Query2 *q, int64_t key,
                 scoped_ptr_t<env_t> *val_env, datum_stream_t *val_stream);
@@ -62,6 +63,7 @@ private:
     void maybe_evict();
 
     struct entry_t {
+        ~entry_t(); // `env_t` is incomplete
         static const int DEFAULT_MAX_CHUNK_SIZE = 1000 DEBUG_ONLY(/ 200);
         static const time_t DEFAULT_MAX_AGE = 0; // 0 = never evict
         entry_t(time_t _last_activity, scoped_ptr_t<env_t> *env_ptr,
@@ -71,9 +73,12 @@ private:
         datum_stream_t *stream;
         int max_chunk_size; // Size of 0 = unlimited
         time_t max_age;
+    private:
+        DISABLE_COPYING(entry_t);
     };
 
     boost::ptr_map<int64_t, entry_t> streams;
+    DISABLE_COPYING(stream_cache2_t);
 };
 
 } // namespace ql

@@ -20,8 +20,8 @@ public:
     // function as their argument.
     static func_t *new_shortcut_func(env_t *env, const datum_t *obj,
                                      backtrace_t::frame_t frame);
-    // Use `call` in preference to `_call` (it's just a wrapper).
-    val_t *_call(const std::vector<const datum_t *> &args);
+    val_t *call(const std::vector<const datum_t *> &args);
+    // Prefer these two version of call.
     val_t *call(const datum_t *arg);
     val_t *call(const datum_t *arg1, const datum_t *arg2);
 

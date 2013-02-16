@@ -71,7 +71,7 @@ private:
         func_t *f = arg(0)->as_func();
         std::vector<const datum_t *> args;
         for (size_t i = 1; i < num_args(); ++i) args.push_back(arg(i)->as_datum());
-        return f->_call(args);
+        return f->call(args);
     }
     RDB_NAME("funcall");
 };

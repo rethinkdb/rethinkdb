@@ -63,7 +63,7 @@ func_t::func_t(env_t *env, const Term2 *_source, backtrace_t::frame_t _frame)
     env->dump_scope(&scope);
 }
 
-val_t *func_t::_call(const std::vector<const datum_t *> &args) {
+val_t *func_t::call(const std::vector<const datum_t *> &args) {
     try {
         rcheck(args.size() == argptrs.size() || argptrs.size() == 0,
                strprintf("Passed %zu arguments to function of arity %zu.",
@@ -85,14 +85,14 @@ val_t *func_t::_call(const std::vector<const datum_t *> &args) {
 val_t *func_t::call(const datum_t *arg) {
     std::vector<const datum_t *> args;
     args.push_back(arg);
-    return _call(args);
+    return call(args);
 }
 
 val_t *func_t::call(const datum_t *arg1, const datum_t *arg2) {
     std::vector<const datum_t *> args;
     args.push_back(arg1);
     args.push_back(arg2);
-    return _call(args);
+    return call(args);
 }
 
 void func_t::dump_scope(std::map<int, Datum> *out) const {
