@@ -214,10 +214,6 @@ private:
     // Presumably, the mode with which this mc_buf_lock_t holds the inner buf.
     access_t mode;
 
-    // Used for perfmon, measuring how much the patches' serialized
-    // size changed.  TODO: Maybe this could be a uint16_t.
-    int32_t patches_serialized_size_at_start;
-
     // Our pointer to an inner_buf -- we have a bunch of mc_buf_lock_t's
     // all pointing at an inner buf.
     mc_inner_buf_t *inner_buf;

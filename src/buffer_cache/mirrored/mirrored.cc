@@ -537,7 +537,6 @@ void mc_buf_lock_t::initialize(mc_inner_buf_t::version_id_t version_to_access,
 {
     inner_buf->cache->assert_thread();
     inner_buf->refcount++;
-    patches_serialized_size_at_start = -1;
 
     if (snapshotted) {
         rassert(is_read_mode(mode), "Only read access is allowed to block snapshots");
@@ -698,12 +697,6 @@ void mc_buf_lock_t::acquire_block(mc_inner_buf_t::version_id_t version_to_access
             data = inner_buf->data.has() ? inner_buf->data.get() : 0;
             rassert(data != NULL);
 
-            if (!inner_buf->writeback_buf().needs_flush() &&
-                  patches_serialized_size_at_start == -1 &&
-                  global_full_perfmon) {
-                patches_serialized_size_at_start = 0;  // TODO(patch) Is this really used?
-            }
-
             break;
         }
         case rwi_intent:
@@ -728,7 +721,6 @@ void mc_buf_lock_t::swap(mc_buf_lock_t& swapee) {
     std::swap(non_locking_access, swapee.non_locking_access);
     std::swap(start_time, swapee.start_time);
     std::swap(mode, swapee.mode);
-    std::swap(patches_serialized_size_at_start, swapee.patches_serialized_size_at_start);
     std::swap(inner_buf, swapee.inner_buf);
     std::swap(data, swapee.data);
     std::swap(subtree_recency, swapee.subtree_recency);
