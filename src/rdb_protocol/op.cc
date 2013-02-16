@@ -10,7 +10,7 @@ op_term_t::op_term_t(env_t *env, const Term2 *term,
         args.push_back(t);
     }
     rcheck(argspec.contains(args.size()),
-           strprintf("Wrong number of arguments: %lu (expected %s)",
+           strprintf("Wrong number of arguments: %zu (expected %s)",
                      args.size(), argspec.print().c_str()));
 
     for (int i = 0; i < term->optargs_size(); ++i) {
@@ -33,7 +33,7 @@ op_term_t::~op_term_t() { }
 
 size_t op_term_t::num_args() const { return args.size(); }
 val_t *op_term_t::arg(size_t i) {
-    rcheck(i < num_args(), strprintf("Index out of range: %lu", i));
+    rcheck(i < num_args(), strprintf("Index out of range: %zu", i));
     return args[i].eval(use_cached_val);
 }
 

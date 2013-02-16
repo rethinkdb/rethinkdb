@@ -64,7 +64,7 @@ void datum_t::init_json(cJSON *json, env_t *env) {
 }
 
 datum_t::datum_t(cJSON *json, env_t *env) { init_json(json, env); }
-datum_t::datum_t(boost::shared_ptr<scoped_cJSON_t> json, env_t *env) {
+datum_t::datum_t(const boost::shared_ptr<scoped_cJSON_t> &json, env_t *env) {
     init_json(json->get(), env);
 }
 
@@ -168,7 +168,7 @@ size_t datum_t::size() const {
 
 const datum_t *datum_t::el(size_t index, throw_bool_t throw_bool) const {
     if (index < size()) return as_array()[index];
-    if (throw_bool == THROW) rfail("Index out of bounds: %lu", index);
+    if (throw_bool == THROW) rfail("Index out of bounds: %zu", index);
     return 0;
 }
 

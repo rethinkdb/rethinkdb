@@ -1,9 +1,10 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
+#include "rdb_protocol/val.hpp"
+
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/meta_utils.hpp"
 #include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/term.hpp"
-#include "rdb_protocol/val.hpp"
 
 namespace ql {
 

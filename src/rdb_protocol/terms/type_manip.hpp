@@ -43,8 +43,7 @@ public:
         map["SINGLE_SELECTION"] = SINGLE_SELECTION_TYPE;
         map["DATUM"] = DATUM_TYPE;
         map["FUNCTION"] = FUNC_TYPE;
-        // TODO: CT_ASSERT this?
-        r_sanity_check(val_t::type_t::FUNC < MAX_TYPE);
+        CT_ASSERT(val_t::type_t::FUNC < MAX_TYPE);
 
         map["NULL"] = R_NULL_TYPE;
         map["BOOL"] = R_BOOL_TYPE;
@@ -52,20 +51,22 @@ public:
         map["STRING"] = R_STR_TYPE;
         map["ARRAY"] = R_ARRAY_TYPE;
         map["OBJECT"] = R_OBJECT_TYPE;
-        r_sanity_check(datum_t::R_OBJECT < MAX_TYPE);
+        CT_ASSERT(datum_t::R_OBJECT < MAX_TYPE);
 
         for (std::map<std::string, int>::iterator
                  it = map.begin(); it != map.end(); ++it) {
             rmap[it->second] = it->first;
         }
     }
-    int get_type(const std::string &s) {
-        rcheck(map.count(s) == 1, strprintf("Unknown Type: %s", s.c_str()));
-        return map[s];
+    int get_type(const std::string &s) const {
+        std::map<std::string, int>::const_iterator it = map.find(s);
+        rcheck(it != map.end(), strprintf("Unknown Type: %s", s.c_str()));
+        return it->second;
     }
-    std::string get_name(int type) {
-        r_sanity_check(rmap.count(type) == 1);
-        return rmap[type];
+    std::string get_name(int type) const {
+        std::map<int, std::string>::const_iterator it = rmap.find(type);
+        r_sanity_check(it != rmap.end());
+        return it->second;
     }
 private:
     std::map<std::string, int> map;
@@ -78,8 +79,8 @@ private:
     // * Add the various coercions
     // * !!! CHECK WHETHER WE HAVE MORE THAN MAX_TYPE TYPES AND INCREASE !!!
     //   !!! MAX_TYPE IF WE DO                                           !!!
-    void __ct_catch_new_types(val_t::type_t::raw_type_t t, datum_t::type_t t2) {
-        switch(t) {
+    void NOCALL_ct_catch_new_types(val_t::type_t::raw_type_t t, datum_t::type_t t2) {
+        switch (t) {
         case val_t::type_t::DB:
         case val_t::type_t::TABLE:
         case val_t::type_t::SELECTION:
@@ -89,7 +90,7 @@ private:
         case val_t::type_t::FUNC:
         default:;
         }
-        switch(t2) {
+        switch (t2) {
         case datum_t::R_NULL:
         case datum_t::R_BOOL:
         case datum_t::R_NUM:
@@ -101,7 +102,7 @@ private:
     }
 };
 
-static coerce_map_t _coerce_map;
+static const coerce_map_t _coerce_map;
 static int get_type(std::string s) {
     std::transform(s.begin(), s.end(), s.begin(), ::toupper);
     return _coerce_map.get_type(s);
@@ -175,7 +176,9 @@ private:
 
         if (opaque_start_type.is_convertible(val_t::type_t::SEQUENCE)) {
             datum_stream_t *ds;
-            try { ds = val->as_seq(); } catch (const exc_t &e) {
+            try {
+                ds = val->as_seq();
+            } catch (const exc_t &e) {
                 rfail("Cannot COERCE %s to %s (failed to produce intermediate stream).",
                       get_name(start_type).c_str(), get_name(end_type).c_str());
             }

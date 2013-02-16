@@ -18,7 +18,7 @@ private:
             if (!v->as_bool()) {
                 ect.reset(&env_t::merge_checkpoint);
                 return v;
-            } else if (i == num_args()-1) {
+            } else if (i == num_args() - 1) {
                 ect.reset(&env_t::merge_checkpoint);
                 return v;
             }
@@ -42,7 +42,6 @@ private:
             }
         }
         return new_val(new datum_t(datum_t::R_BOOL, false));
-        unreachable();
     }
     RDB_NAME("any");
 };

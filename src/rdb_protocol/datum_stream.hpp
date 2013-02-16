@@ -186,7 +186,7 @@ public:
             size_t sort_els = 0;
             while (const datum_t *d = src->next()) {
                 rcheck(++sort_els <= sort_el_limit,
-                       strprintf("Can only sort at most %lu elements.", sort_el_limit));
+                       strprintf("Can only sort at most %zu elements.", sort_el_limit));
                 data.push_back(d);
             }
             std::sort(data.begin(), data.end(), lt_cmp);

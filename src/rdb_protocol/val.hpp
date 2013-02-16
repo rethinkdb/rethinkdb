@@ -18,13 +18,6 @@ public:
     datum_stream_t *as_datum_stream(backtrace_t::frame_t f);
     const std::string &get_pkey();
     const datum_t *get_row(const datum_t *pval);
-
-    // Use `replace` unless you're sure you know what you're doing.  We
-    // implement insert, delete, and update in terms of replace.
-    const datum_t *_replace(const datum_t *orig, const map_wire_func_t &mwf,
-                            bool _so_the_template_matches = false);
-    const datum_t *_replace(const datum_t *orig, func_t *f, bool nondet_ok);
-    const datum_t *_replace(const datum_t *orig, const datum_t *d, bool upsert);
     datum_t *env_add_ptr(datum_t *d);
 
     // A wrapper around `_replace` that does error handling correctly.
@@ -51,6 +44,11 @@ public:
         }
     }
 private:
+    const datum_t *_replace(const datum_t *orig, const map_wire_func_t &mwf,
+                            bool _so_the_template_matches = false);
+    const datum_t *_replace(const datum_t *orig, func_t *f, bool nondet_ok);
+    const datum_t *_replace(const datum_t *orig, const datum_t *d, bool upsert);
+
     env_t *env;
     bool use_outdated;
     std::string pkey;
@@ -137,6 +135,8 @@ private:
     datum_stream_t *sequence;
     const datum_t *datum;
     func_t *func;
+
+    DISABLE_COPYING(val_t);
 };
 
 } //namespace ql

@@ -50,8 +50,8 @@ public:
     explicit datum_t(const Datum *d, env_t *env);
     explicit datum_t(cJSON *json);
     explicit datum_t(cJSON *json, env_t *env);
-    explicit datum_t(boost::shared_ptr<scoped_cJSON_t> json);
-    explicit datum_t(boost::shared_ptr<scoped_cJSON_t> json, env_t *env);
+    explicit datum_t(const boost::shared_ptr<scoped_cJSON_t> &json);
+    explicit datum_t(const boost::shared_ptr<scoped_cJSON_t> &json, env_t *env);
 
     void write_to_protobuf(Datum *out) const;
 
@@ -158,7 +158,7 @@ private:
 // README.md for more info.
 class wire_datum_map_t {
 public:
-    wire_datum_map_t() : map(lt), state(COMPILED) { }
+    wire_datum_map_t() : state(COMPILED) { }
     bool has(const datum_t *key);
     const datum_t *get(const datum_t *key);
     void set(const datum_t *key, const datum_t *val);
@@ -168,12 +168,12 @@ public:
 
     const datum_t *to_arr(env_t *env) const;
 private:
-    static bool lt(const datum_t *a, const datum_t *b) {
-        return *a < *b;
-    }
-    typedef std::map<const datum_t *, const datum_t *,
-                     bool (*)(const datum_t *, const datum_t *)
-                     > map_t;
+    struct datum_value_compare_t {
+        bool operator()(const datum_t *a, const datum_t *b) const {
+            return *a < *b;
+        }
+    };
+    typedef std::map<const datum_t *, const datum_t *, datum_value_compare_t> map_t;
     map_t map;
     std::vector<std::pair<Datum, Datum> > map_pb;
 

@@ -1,5 +1,7 @@
 #include "rdb_protocol/stream_cache.hpp"
 
+#include "rdb_protocol/env.hpp"
+
 namespace ql {
 
 bool stream_cache2_t::contains(int64_t key) {

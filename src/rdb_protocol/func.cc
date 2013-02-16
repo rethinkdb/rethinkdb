@@ -66,7 +66,7 @@ func_t::func_t(env_t *env, const Term2 *_source, backtrace_t::frame_t _frame)
 val_t *func_t::_call(const std::vector<const datum_t *> &args) {
     try {
         rcheck(args.size() == argptrs.size() || argptrs.size() == 0,
-               strprintf("Passed %lu arguments to function of arity %lu.",
+               strprintf("Passed %zu arguments to function of arity %zu.",
                          args.size(), argptrs.size()));
         for (size_t i = 0; i < argptrs.size(); ++i) {
             r_sanity_check(args[i]);
