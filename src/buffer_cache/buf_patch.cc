@@ -23,8 +23,6 @@ void buf_patch_t::serialize(char* destination) const {
     destination += sizeof(length);
     memcpy(destination, &block_id, sizeof(block_id));
     destination += sizeof(block_id);
-    memcpy(destination, &patch_counter, sizeof(patch_counter));
-    destination += sizeof(patch_counter);
     memcpy(destination, &applies_to_block_sequence_id, sizeof(applies_to_block_sequence_id));
     destination += sizeof(applies_to_block_sequence_id);
     memcpy(destination, &operation_code, sizeof(operation_code));
@@ -32,22 +30,20 @@ void buf_patch_t::serialize(char* destination) const {
     serialize_data(destination);
 }
 
-buf_patch_t::buf_patch_t(const block_id_t _block_id, const patch_counter_t _patch_counter, const patch_operation_code_t _operation_code) :
-            block_id(_block_id),
-            patch_counter(_patch_counter),
-            applies_to_block_sequence_id(NULL_BLOCK_SEQUENCE_ID),
-            operation_code(_operation_code) {
-}
+buf_patch_t::buf_patch_t(const block_id_t _block_id, const patch_operation_code_t _operation_code) :
+    block_id(_block_id),
+    applies_to_block_sequence_id(NULL_BLOCK_SEQUENCE_ID),
+    operation_code(_operation_code) { }
 
 
-memcpy_patch_t::memcpy_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const uint16_t _dest_offset, const char* src, const uint16_t n) :
-            buf_patch_t(block_id, patch_counter, buf_patch_t::OPER_MEMCPY),
+memcpy_patch_t::memcpy_patch_t(const block_id_t block_id, const uint16_t _dest_offset, const char* src, const uint16_t n) :
+            buf_patch_t(block_id, buf_patch_t::OPER_MEMCPY),
             dest_offset(_dest_offset) {
     src_buf.init(n);
     memcpy(src_buf.data(), src, n);
 }
-memcpy_patch_t::memcpy_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const char *data, const uint16_t data_length)  :
-            buf_patch_t(block_id, patch_counter, buf_patch_t::OPER_MEMCPY) {
+memcpy_patch_t::memcpy_patch_t(const block_id_t block_id, const char *data, const uint16_t data_length)  :
+            buf_patch_t(block_id, buf_patch_t::OPER_MEMCPY) {
     uint16_t n;
     guarantee_patch_format(data_length >= sizeof(dest_offset) + sizeof(n));
     dest_offset = *reinterpret_cast<const uint16_t *>(data);
@@ -83,14 +79,14 @@ void memcpy_patch_t::apply_to_buf(char* buf_data, UNUSED block_size_t bs) {
     memcpy(buf_data + dest_offset, src_buf.data(), src_buf.size());
 }
 
-memmove_patch_t::memmove_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const uint16_t _dest_offset, const uint16_t _src_offset, const uint16_t _n) :
-            buf_patch_t(block_id, patch_counter, buf_patch_t::OPER_MEMMOVE),
+memmove_patch_t::memmove_patch_t(const block_id_t block_id, const uint16_t _dest_offset, const uint16_t _src_offset, const uint16_t _n) :
+            buf_patch_t(block_id, buf_patch_t::OPER_MEMMOVE),
             dest_offset(_dest_offset),
             src_offset(_src_offset),
             n(_n) { }
 
-memmove_patch_t::memmove_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const char* data, const uint16_t data_length)  :
-            buf_patch_t(block_id, patch_counter, buf_patch_t::OPER_MEMMOVE) {
+memmove_patch_t::memmove_patch_t(const block_id_t block_id, const char* data, const uint16_t data_length)  :
+            buf_patch_t(block_id, buf_patch_t::OPER_MEMMOVE) {
     guarantee_patch_format(data_length == get_data_size());
     dest_offset = *reinterpret_cast<const uint16_t *>(data);
     data += sizeof(dest_offset);

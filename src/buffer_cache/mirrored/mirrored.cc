@@ -926,7 +926,7 @@ void mc_buf_lock_t::set_data(void *dest, const void *src, size_t n) {
     } else {
         size_t offset = reinterpret_cast<uint8_t *>(dest) - reinterpret_cast<uint8_t *>(data);
         // block_sequence ID will be set later...
-        apply_patch(new memcpy_patch_t(inner_buf->block_id, get_next_patch_counter(), offset, reinterpret_cast<const char *>(src), n));
+        apply_patch(new memcpy_patch_t(inner_buf->block_id, offset, reinterpret_cast<const char *>(src), n));
     }
 }
 
@@ -949,7 +949,7 @@ void mc_buf_lock_t::move_data(void *dest, const void *src, const size_t n) {
         size_t dest_offset = reinterpret_cast<uint8_t *>(dest) - reinterpret_cast<uint8_t *>(data);
         size_t src_offset = reinterpret_cast<const uint8_t *>(src) - reinterpret_cast<uint8_t *>(data);
         // tblock_sequence ID will be set later...
-        apply_patch(new memmove_patch_t(inner_buf->block_id, get_next_patch_counter(), dest_offset, src_offset, n));
+        apply_patch(new memmove_patch_t(inner_buf->block_id, dest_offset, src_offset, n));
     }
 }
 

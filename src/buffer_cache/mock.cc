@@ -68,13 +68,13 @@ patch_counter_t mock_buf_lock_t::get_next_patch_counter() {
 
 void mock_buf_lock_t::set_data(void *dest, const void *src, const size_t n) {
     size_t offset = reinterpret_cast<const char *>(dest) - reinterpret_cast<const char *>(internal_buf->data);
-    apply_patch(new memcpy_patch_t(internal_buf->block_id, get_next_patch_counter(), offset, reinterpret_cast<const char *>(src), n));
+    apply_patch(new memcpy_patch_t(internal_buf->block_id, offset, reinterpret_cast<const char *>(src), n));
 }
 
 void mock_buf_lock_t::move_data(void *dest, const void *src, const size_t n) {
     size_t dest_offset = reinterpret_cast<const char *>(dest) - reinterpret_cast<const char *>(internal_buf->data);
     size_t src_offset = reinterpret_cast<const char *>(src) - reinterpret_cast<const char *>(internal_buf->data);
-    apply_patch(new memmove_patch_t(internal_buf->block_id, get_next_patch_counter(), dest_offset, src_offset, n));
+    apply_patch(new memmove_patch_t(internal_buf->block_id, dest_offset, src_offset, n));
 }
 
 void mock_buf_lock_t::mark_deleted() {
