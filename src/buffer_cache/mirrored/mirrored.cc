@@ -358,10 +358,10 @@ mc_inner_buf_t::~mc_inner_buf_t() {
 // TODO(patch) Obviously remove this function.
 void mc_inner_buf_t::replay_patches() {
     // All patches that currently exist must have been materialized out of core...
-    writeback_buf().set_last_patch_materialized(cache->patch_memory_storage.last_patch_materialized_or_zero(block_id));
+    writeback_buf().set_last_patch_materialized(0);  // TODO(patch) Follow this rabbit hole (passing 0 is new).
 
     // Set next_patch_counter such that the next patches get values consistent with the existing patches
-    next_patch_counter = cache->patch_memory_storage.last_patch_materialized_or_zero(block_id) + 1;
+    next_patch_counter = 1;  // TODO(patch) Also follow this rabbit hole.  (Is this variable really used?)
 }
 
 bool mc_inner_buf_t::snapshot_if_needed(version_id_t new_version, bool leave_clone) {

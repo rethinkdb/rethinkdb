@@ -60,8 +60,6 @@ public:
 
     patch_memory_storage_t(); // Initialize an empty diff storage
 
-    patch_counter_t last_patch_materialized_or_zero(block_id_t block_id) const;
-
     inline int32_t get_patches_serialized_size(UNUSED block_id_t block_id) const {
         guarantee(patch_map.empty());
         return 0;

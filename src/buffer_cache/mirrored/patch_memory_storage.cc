@@ -10,11 +10,6 @@
 patch_memory_storage_t::patch_memory_storage_t() {
 }
 
-patch_counter_t patch_memory_storage_t::last_patch_materialized_or_zero(UNUSED block_id_t block_id) const {
-    guarantee(patch_map.empty());
-    return 0;
-}
-
 void patch_memory_storage_t::drop_patches(UNUSED block_id_t block_id) {
     guarantee(patch_map.empty());
 }
