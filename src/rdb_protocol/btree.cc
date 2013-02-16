@@ -84,7 +84,8 @@ block_magic_t value_sizer_t<rdb_value_t>::btree_leaf_magic() const {
 
 block_size_t value_sizer_t<rdb_value_t>::block_size() const { return block_size_; }
 
-boost::shared_ptr<scoped_cJSON_t> get_data(const rdb_value_t *value, transaction_t *txn) {
+boost::shared_ptr<scoped_cJSON_t> get_data(const rdb_value_t *value,
+                                           transaction_t *txn) {
     blob_t blob(const_cast<rdb_value_t *>(value)->value_ref(), blob::btree_maxreflen);
 
     boost::shared_ptr<scoped_cJSON_t> data;
@@ -336,8 +337,9 @@ void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range,
     do_agnostic_btree_backfill(&sizer, slice, key_range, since_when, &agnostic_cb, txn, superblock, p, interruptor);
 }
 
-void rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t timestamp,
-                transaction_t *txn, superblock_t *superblock, point_delete_response_t *response) {
+void rdb_delete(const store_key_t &key, btree_slice_t *slice,
+                repli_timestamp_t timestamp, transaction_t *txn,
+                superblock_t *superblock, point_delete_response_t *response) {
     keyvalue_location_t<rdb_value_t> kv_location;
     find_keyvalue_location_for_write(txn, superblock, key.btree_key(), &kv_location, &slice->root_eviction_priority, &slice->stats);
     bool exists = kv_location.value.has();

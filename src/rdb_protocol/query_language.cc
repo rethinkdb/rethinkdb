@@ -291,7 +291,7 @@ term_info_t get_term_type(Term *t, type_checking_environment_t *env, const backt
     } break;
     case Term::JAVASCRIPT: {
         check_protobuf(t->has_javascript());
-        ret.reset(term_info_t(TERM_TYPE_JSON, false)); //javascript is never deterministic
+        ret.reset(term_info_t(TERM_TYPE_JSON, false)); // js is never deterministic
     } break;
     default: unreachable("unhandled Term case");
     }
@@ -675,7 +675,7 @@ void check_reduction_type(Reduction *r, type_checking_environment_t *env, bool *
 void check_mapping_type(Mapping *m, term_type_t return_type, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace) {
     bool is_det = true;
     new_scope_t scope_maker(&env->scope);
-    env->scope.put_in_scope(m->arg(), term_info_t(TERM_TYPE_JSON, true/*deterministic*/));
+    env->scope.put_in_scope(m->arg(), term_info_t(TERM_TYPE_JSON, true/*det*/));
     check_term_type(m->mutable_body(), return_type, env, &is_det, backtrace);
     *is_det_out &= is_det;
 }
@@ -1658,7 +1658,8 @@ void eval_let_binds(Term::Let *let, runtime_environment_t *env, scopes_t *scopes
             scopes_in_out->scope.put_in_scope(let->binds(i).var(),
                     eval_term_as_json(let->mutable_binds(i)->mutable_term(), env, *scopes_in_out, backtrace_bind));
         } else if (type.type == TERM_TYPE_STREAM || type.type == TERM_TYPE_VIEW) {
-            throw runtime_exc_t("Cannot bind streams/views to variable names", backtrace);
+            throw runtime_exc_t("Cannot bind streams/views to variable names",
+                                backtrace);
         } else if (type.type == TERM_TYPE_ARBITRARY) {
             eval_term_as_json(let->mutable_binds(i)->mutable_term(), env, *scopes_in_out, backtrace_bind);
             unreachable("This term has type `TERM_TYPE_ARBITRARY`, so "
@@ -1834,7 +1835,8 @@ boost::shared_ptr<scoped_cJSON_t> eval_term_as_json(Term *t, runtime_environment
             // Not compiled yet. Compile it and add the extension.
             id = js->compile(argnames, t->javascript(), &errmsg);
             if (js::INVALID_ID == id) {
-                throw runtime_exc_t("failed to compile javascript: " + errmsg, backtrace);
+                throw runtime_exc_t("failed to compile javascript: " + errmsg,
+                                    backtrace);
             }
             t->SetExtension(extension::js_id, (int32_t) id);
         }
@@ -2732,7 +2734,8 @@ namespace_repo_t<rdb_protocol_t>::access_t eval_table_ref(TableRef *t, runtime_e
     namespace_predicate_t pred(&table_name, &db_id);
     uuid_u id = meta_get_uuid(ns_searcher, pred, "EVAL_TABLE " + table_name.str(), bt);
 
-    return namespace_repo_t<rdb_protocol_t>::access_t(env->ns_repo, id, env->interruptor);
+    return namespace_repo_t<rdb_protocol_t>::access_t(
+        env->ns_repo, id, env->interruptor);
 }
 
 view_t eval_call_as_view(Term::Call *c, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {

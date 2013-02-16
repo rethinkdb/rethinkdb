@@ -104,11 +104,14 @@ rdb_protocol_t::context_t::context_t()
     signals(get_num_threads())
 { }
 
-rdb_protocol_t::context_t::context_t(extproc::pool_group_t *_pool_group,
-          namespace_repo_t<rdb_protocol_t> *_ns_repo,
-          boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _semilattice_metadata,
-          directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
-          machine_id_t _machine_id)
+rdb_protocol_t::context_t::context_t(
+    extproc::pool_group_t *_pool_group,
+    namespace_repo_t<rdb_protocol_t> *_ns_repo,
+    boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
+        _semilattice_metadata,
+    directory_read_manager_t<cluster_directory_metadata_t>
+        *_directory_read_manager,
+    machine_id_t _machine_id)
     : pool_group(_pool_group), ns_repo(_ns_repo),
       cross_thread_namespace_watchables(get_num_threads()),
       cross_thread_database_watchables(get_num_threads()),
@@ -222,7 +225,8 @@ public:
     }
 };
 
-// Scale the distribution down by combining ranges to fit it within the limit of the query
+// Scale the distribution down by combining ranges to fit it within the limit of
+// the query
 void scale_down_distribution(size_t result_limit, std::map<store_key_t, int64_t> *key_counts) {
     guarantee(result_limit > 0);
     const size_t combine = (key_counts->size() / result_limit); // Combine this many other ranges into the previous range
@@ -461,7 +465,7 @@ public:
                 // Scale up the selected hash shard
                 double scale_factor = static_cast<double>(total_range_keys) / static_cast<double>(largest_size);
 
-                guarantee(scale_factor >= 1.0);  // Directly provable from the code above.
+                guarantee(scale_factor >= 1.0);  // Directly provable from code above.
 
                 for (std::map<store_key_t, int64_t>::iterator mit = results[largest_index].key_counts.begin();
                      mit != results[largest_index].key_counts.end();
@@ -631,16 +635,20 @@ struct read_visitor_t : public boost::static_visitor<void> {
         interruptor(_interruptor, ctx->signals[get_thread_id()].get()),
         env(ctx->pool_group,
             ctx->ns_repo,
-            ctx->cross_thread_namespace_watchables[get_thread_id()].get()->get_watchable(),
-            ctx->cross_thread_database_watchables[get_thread_id()].get()->get_watchable(),
+            ctx->cross_thread_namespace_watchables[get_thread_id()].get()
+                ->get_watchable(),
+            ctx->cross_thread_database_watchables[get_thread_id()].get()
+                ->get_watchable(),
             ctx->semilattice_metadata,
             boost::make_shared<js::runner_t>(),
             &interruptor,
             ctx->machine_id),
         ql_env(ctx->pool_group,
                ctx->ns_repo,
-               ctx->cross_thread_namespace_watchables[get_thread_id()].get()->get_watchable(),
-               ctx->cross_thread_database_watchables[get_thread_id()].get()->get_watchable(),
+               ctx->cross_thread_namespace_watchables[get_thread_id()].get()
+                   ->get_watchable(),
+               ctx->cross_thread_database_watchables[get_thread_id()].get()
+                   ->get_watchable(),
                ctx->semilattice_metadata,
                NULL,
                boost::make_shared<js::runner_t>(),
@@ -717,8 +725,10 @@ struct write_visitor_t : public boost::static_visitor<void> {
         interruptor(_interruptor, ctx->signals[get_thread_id()].get()),
         env(ctx->pool_group,
             ctx->ns_repo,
-            ctx->cross_thread_namespace_watchables[get_thread_id()].get()->get_watchable(),
-            ctx->cross_thread_database_watchables[get_thread_id()].get()->get_watchable(),
+            ctx->cross_thread_namespace_watchables[get_thread_id()].get()
+                ->get_watchable(),
+            ctx->cross_thread_database_watchables[get_thread_id()].get()
+                ->get_watchable(),
             ctx->semilattice_metadata,
             boost::make_shared<js::runner_t>(),
             &interruptor,
@@ -884,7 +894,8 @@ struct receive_backfill_visitor_t : public boost::static_visitor<void> {
 
     void operator()(const backfill_chunk_t::delete_key_t& delete_key) const {
         point_delete_response_t response;
-        rdb_delete(delete_key.key, btree, delete_key.recency, txn, superblock, &response);
+        rdb_delete(delete_key.key, btree, delete_key.recency,
+                   txn, superblock, &response);
     }
 
     void operator()(const backfill_chunk_t::delete_range_t& delete_range) const {
@@ -939,7 +950,8 @@ void store_t::protocol_reset_data(const region_t& subregion,
     rdb_erase_range(btree, &key_tester, subregion.inner, txn, superblock);
 }
 
-region_t rdb_protocol_t::cpu_sharding_subspace(int subregion_number, int num_cpu_shards) {
+region_t rdb_protocol_t::cpu_sharding_subspace(int subregion_number,
+                                               int num_cpu_shards) {
     guarantee(subregion_number >= 0);
     guarantee(subregion_number < num_cpu_shards);
 

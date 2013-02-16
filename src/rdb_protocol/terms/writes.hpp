@@ -143,7 +143,8 @@ private:
 
 class foreach_term_t : public op_term_t {
 public:
-    foreach_term_t(env_t *env, const Term2 *term) : op_term_t(env, term, argspec_t(2)) { }
+    foreach_term_t(env_t *env, const Term2 *term)
+        : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual val_t *eval_impl() {
         datum_stream_t *ds = arg(0)->as_seq();
