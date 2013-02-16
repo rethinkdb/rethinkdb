@@ -64,49 +64,11 @@ patch_disk_storage_t::~patch_disk_storage_t() {
 }
 
 // Loads on-disk data into memory
-void patch_disk_storage_t::load_patches(patch_memory_storage_t *in_memory_storage) {
+void patch_disk_storage_t::load_patches(UNUSED patch_memory_storage_t *in_memory_storage) {
     rassert(log_block_bufs.size() == number_of_blocks);
     cache->assert_thread();
     if (number_of_blocks == 0)
         return;
-
-    std::map<block_id_t, std::list<buf_patch_t*> > patch_map;
-
-    // Scan through all log blocks, build a map block_id -> patch list
-    for (block_id_t current_block = first_block; current_block < first_block + number_of_blocks; ++current_block) {
-        mc_buf_lock_t *log_buf = log_block_bufs[current_block - first_block];
-        const void *buf_data = log_buf->get_data_read();
-        guarantee(*reinterpret_cast<const block_magic_t *>(buf_data) == log_block_magic);
-        uint16_t current_offset = sizeof(log_block_magic);
-        while (current_offset + buf_patch_t::get_min_serialized_size() < cache->get_block_size().value()) {
-            buf_patch_t *patch = buf_patch_t::load_patch(reinterpret_cast<const char *>(buf_data) + current_offset);
-            if (!patch) {
-                break;
-            } else {
-                current_offset += patch->get_serialized_size();
-                // Only store the patch if the corresponding block still exists
-                // (otherwise we'd get problems when flushing the log, as deleted blocks would cause an error)
-                rassert(get_thread_id() == cache->home_thread());
-                bool block_in_use;
-                {
-                    on_thread_t thread_switcher(cache->serializer->home_thread());
-                    block_in_use = !cache->serializer->get_delete_bit(patch->get_block_id());
-                }
-                if (block_in_use)
-                    patch_map[patch->get_block_id()].push_back(patch);
-                else
-                    delete patch;
-            }
-        }
-    }
-
-    for (std::map<block_id_t, std::list<buf_patch_t*> >::iterator patch_list = patch_map.begin(); patch_list != patch_map.end(); ++patch_list) {
-        // Sort the list to get patches in the right order
-        patch_list->second.sort(dereferencing_buf_patch_compare_t());
-
-        // Store list into in_core_storage
-        in_memory_storage->load_block_patch_list(patch_list->first, patch_list->second);
-    }
 }
 
 // Returns true on success, false if patch could not be stored (e.g. because of insufficient free space in log)
@@ -119,101 +81,23 @@ bool patch_disk_storage_t::store_patch(buf_patch_t *patch, const block_sequence_
 
     if (number_of_blocks == 0)
         return false;
-
-    // Check if we have sufficient free space in the current log block to store the patch
-    const size_t patch_serialized_size = patch->get_serialized_size();
-    rassert(cache->get_block_size().value() >= (size_t)next_patch_offset);
-    size_t free_space = cache->get_block_size().value() - (size_t)next_patch_offset;
-    if (patch_serialized_size > free_space) {
-        // Try reclaiming some space (this usually switches to another log block)
-        const block_id_t initial_log_block = active_log_block;
-        const uint16_t initial_next_patch_offset = next_patch_offset;
-
-        reclaim_space(patch_serialized_size);
-
-        free_space = cache->get_block_size().value() - (size_t)next_patch_offset;
-
-        // Enforce a certain fraction of the block to be freed up. If that is not possible
-        // we rather fail than continue trying to free up space for the following patches,
-        // as the latter might make everything very inefficient.
-        const size_t min_reclaimed_space = cache->get_block_size().value() / 3;
-
-        // Check if enough space could be reclaimed
-        if (std::max(patch_serialized_size, min_reclaimed_space) > free_space) {
-            // No success :-(
-            // We go back to the initial block to make sure that this one gets flushed
-            // when flush_n_oldest_blocks is called next (as it is obviously full)...
-            active_log_block = initial_log_block;
-            next_patch_offset = initial_next_patch_offset;
-            return false;
-        }
-    }
-
-    // Serialize patch at next_patch_offset, increase offset
-    mc_buf_lock_t *log_buf = log_block_bufs[active_log_block - first_block];
-    rassert(log_buf);
-    block_is_empty[active_log_block - first_block] = false;
-
-    void *buf_data = log_buf->get_data_major_write();
-    patch->serialize(reinterpret_cast<char *>(buf_data) + next_patch_offset);
-    next_patch_offset += patch_serialized_size;
-
-    return true;
 }
 
 // This function might block while it acquires old blocks from disk.
-void patch_disk_storage_t::clear_n_oldest_blocks(unsigned int n) {
+void patch_disk_storage_t::clear_n_oldest_blocks(UNUSED unsigned int n) {
     rassert(log_block_bufs.size() == number_of_blocks);
     cache->assert_thread();
 
     if (number_of_blocks == 0)
         return;
-
-    n = std::min(number_of_blocks, n);
-
-    waiting_for_clear = 0;
-    // Flush the n oldest blocks
-    for (block_id_t i = 1; i <= n; ++i) {
-        block_id_t current_block = active_log_block + i;
-        if (current_block >= first_block + number_of_blocks)
-            current_block -= number_of_blocks;
-
-        if (!block_is_empty[current_block - first_block]) {
-            ++waiting_for_clear;
-            coro_t::spawn(boost::bind(&patch_disk_storage_t::clear_block, this, current_block, coro_t::self()));
-        }
-    }
-    if (waiting_for_clear > 0)
-        coro_t::wait();
-
-    // If we affected the active block, we have to reset next_patch_offset
-    if (n == number_of_blocks)
-        set_active_log_block(active_log_block);
 }
 
-void patch_disk_storage_t::compress_n_oldest_blocks(unsigned int n) {
+void patch_disk_storage_t::compress_n_oldest_blocks(UNUSED unsigned int n) {
     rassert(log_block_bufs.size() == number_of_blocks);
     cache->assert_thread();
 
     if (number_of_blocks == 0)
         return;
-
-    n = std::min(number_of_blocks, n);
-
-    // Compress the n oldest blocks
-    for (block_id_t i = 1; i <= n; ++i) {
-        block_id_t current_block = active_log_block + i;
-        if (current_block >= first_block + number_of_blocks)
-            current_block -= number_of_blocks;
-
-        if (!block_is_empty[current_block - first_block]) {
-            compress_block(current_block);
-        }
-    }
-
-    // If we affected the active block, we have to reset next_patch_offset
-    if (n == number_of_blocks)
-        set_active_log_block(active_log_block);
 }
 
 unsigned int patch_disk_storage_t::get_number_of_log_blocks() const {
