@@ -407,19 +407,21 @@ module 'DataExplorerView', ->
                             return false
 
                     return true
-                else if event.which is 13 and (event.shiftKey or event.ctrlKey) # If the user hit enter and (Ctrl or Shift)
+                else if event.which is 13 and (event.shiftKey or event.ctrlKey or event.metaKey) # If the user hit enter and (Ctrl or Shift)
                     @hide_suggestion()
                     event.preventDefault()
                     if event.type isnt 'keydown'
                         return true
                     @show_or_hide_arrow()
                     @execute_query()
-                else if event.ctrlKey and event.which is 86 and event.type is 'keydown' # Ctrl + V
+                else if (event.ctrlKey  or event.metaKey) and event.which is 86 and event.type is 'keydown' # Ctrl + V
                     @last_action_is_paste = true
                     @num_released_keys = 0 # We want to know when the user release Ctrl AND V
+                    if event.metaKey is true
+                        @num_released_keys++ # Because on OS X, the keyup event is not fired when the metaKey is pressed (true for Firefox, Chrome, Safari at least...)
                     @hide_suggestion()
                     return true
-                else if event.type is 'keyup' and @last_action_is_paste is true and event.which is 17 # When the user release Ctrl after a ctrl + V
+                else if event.type is 'keyup' and @last_action_is_paste is true and (event.which is 17 or event.which is 91) # When the user release Ctrl after a ctrl + V
                     @num_released_keys++
                     if @num_released_keys is 2
                         @last_action_is_paste = false
