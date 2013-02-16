@@ -82,8 +82,6 @@ public:
     // This is called from buf_lock_t
     virtual void apply_to_buf(char* buf_data, block_size_t block_size) = 0;
 
-    bool applies_before(const buf_patch_t *p) const;
-
 protected:
     virtual uint16_t get_data_size() const = 0;
 
@@ -108,12 +106,6 @@ private:
     patch_operation_code_t operation_code;
 
     DISABLE_COPYING(buf_patch_t);
-};
-
-struct dereferencing_buf_patch_compare_t {
-    bool operator()(buf_patch_t *x, buf_patch_t *y) const {
-        return x->applies_before(y);
-    }
 };
 
 /* Binary patches */

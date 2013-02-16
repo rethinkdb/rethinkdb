@@ -39,14 +39,6 @@ buf_patch_t::buf_patch_t(const block_id_t _block_id, const patch_counter_t _patc
             operation_code(_operation_code) {
 }
 
-bool buf_patch_t::applies_before(const buf_patch_t *p) const {
-    rassert(block_id == p->block_id, "Tried to compare incomparable patches");
-    return applies_to_block_sequence_id < p->applies_to_block_sequence_id
-        || (applies_to_block_sequence_id == p->applies_to_block_sequence_id && patch_counter < p->patch_counter);
-}
-
-
-
 
 memcpy_patch_t::memcpy_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const uint16_t _dest_offset, const char* src, const uint16_t n) :
             buf_patch_t(block_id, patch_counter, buf_patch_t::OPER_MEMCPY),
