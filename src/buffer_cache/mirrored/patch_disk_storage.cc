@@ -55,9 +55,6 @@ bool patch_disk_storage_t::store_patch(buf_patch_t *patch, const block_sequence_
     return false;
 }
 
-void patch_disk_storage_t::compress_n_oldest_blocks(UNUSED unsigned int n) {
-}
-
 unsigned int patch_disk_storage_t::get_number_of_log_blocks() const {
     return (unsigned int)number_of_blocks;
 }
