@@ -1948,7 +1948,7 @@ module 'DataExplorerView', ->
             classname = dom_element.parent().attr('class').split(' ')[0] #TODO Use a regex
             data = dom_element.data('json_data')
             if data.constructor? and data.constructor is Array
-                classcolumn = dom_element.parent().parent().attr('class')
+                classcolumn = dom_element.parent().parent().parent().attr('class')
                 $('.'+classcolumn).css 'max-width', 'none'
                 join_table = @join_table
                 $('.'+classname).each ->
@@ -1960,7 +1960,7 @@ module 'DataExplorerView', ->
                     $(this).css 'max-width', 'none'
                         
             else if typeof data is 'object'
-                classcolumn = dom_element.parent().parent().attr('class')
+                classcolumn = dom_element.parent().parent().parent().attr('class')
                 map = {}
                 $('.'+classname).each ->
                     new_data = $(this).children('.jta_object').data('json_data')
@@ -1998,13 +1998,13 @@ module 'DataExplorerView', ->
                     collection.each ->
                         if is_description
                             is_description = false
-                            prefix = $(this).children('.jta_attr').html()
+                            prefix = $(this).children().children('.jta_attr').html()
                             $(this).after template_json_table_td_attr
                                 classtd: classcolumn+'-'+i
                                 key: prefix+'.'+key[0]
                                 col: $(this).data('col')+'-'+i
                         else
-                            new_data = $(this).children().children('.jta_object').data('json_data')
+                            new_data = $(this).children().children().children('.jta_object').data('json_data')
                             if new_data? and new_data[key[0]]?
                                 value = new_data[key[0]]
                                     
@@ -2015,7 +2015,7 @@ module 'DataExplorerView', ->
                             
                         return true
 
-                $('.'+classcolumn) .remove()
+                $('.'+classcolumn).remove()
             @set_scrollbar()
 
         # Helper for expanding a table when showing an object (creating new columns)

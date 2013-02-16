@@ -318,7 +318,9 @@ Did you forget to append .run() at the end of your query?{{/if}}</pre>
 
 <script id="dataexplorer_result_json_table_td_attr-template" type="text/xs-handlebars-template">
     <td class="td_attr {{classtd}}" data-col={{col}}>
-        <div class="jta_attr">{{key}}</div>
+        <div class="click_detector">
+            <div class="jta_attr value-{{col}}">{{key}}</div>
+        </div>
     </td>
 </script>
 
