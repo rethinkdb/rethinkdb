@@ -91,7 +91,7 @@ public:
 private:
 
     typedef std::map<block_id_t, block_patch_list_t> patch_map_t;
-    patch_map_t patch_map;
+    patch_map_t patch_map;  // Always empty.
 };
 
 
