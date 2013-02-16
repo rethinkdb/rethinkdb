@@ -11,66 +11,33 @@ patch_memory_storage_t::patch_memory_storage_t() {
 }
 
 // Removes all patches which are obsolete w.r.t. the given block sequence_id
-void patch_memory_storage_t::filter_applied_patches(block_id_t block_id, block_sequence_id_t block_sequence_id) {
-    patch_map_t::iterator map_entry = patch_map.find(block_id);
-    rassert(map_entry != patch_map.end());
-    map_entry->second.filter_before_block_sequence(block_sequence_id);
-    if (map_entry->second.empty()) {
-        patch_map.erase(map_entry);
-    } else {
-#ifndef NDEBUG
-        map_entry->second.verify_patches_list(block_sequence_id);
-#endif
-    }
+void patch_memory_storage_t::filter_applied_patches(UNUSED block_id_t block_id, UNUSED block_sequence_id_t block_sequence_id) {
+    guarantee(false);
 }
 
 // Returns true iff any changes have been made to the buf
-bool patch_memory_storage_t::apply_patches(block_id_t block_id, char *buf_data, block_size_t bs) const {
-    patch_map_t::const_iterator map_entry = patch_map.find(block_id);
-    if (map_entry == patch_map.end()) {
-        return false;
-    }
-
-    for (block_patch_list_t::const_iterator p = map_entry->second.patches_begin(), e = map_entry->second.patches_end();
-         p != e;
-         ++p) {
-        (*p)->apply_to_buf(buf_data, bs);
-    }
-
-    return true;
+bool patch_memory_storage_t::apply_patches(UNUSED block_id_t block_id, UNUSED char *buf_data, UNUSED block_size_t bs) const {
+    guarantee(patch_map.empty());
+    return false;
 }
 
-bool patch_memory_storage_t::has_patches_for_block(block_id_t block_id) const {
-    patch_map_t::const_iterator map_entry = patch_map.find(block_id);
-    if (map_entry == patch_map.end()) {
-        return false;
-    }
-    return !map_entry->second.empty();
+bool patch_memory_storage_t::has_patches_for_block(UNUSED block_id_t block_id) const {
+    guarantee(patch_map.empty());
+    return false;
 }
 
-patch_counter_t patch_memory_storage_t::last_patch_materialized_or_zero(block_id_t block_id) const {
-    patch_map_t::const_iterator map_entry = patch_map.find(block_id);
-    if (map_entry == patch_map.end() || map_entry->second.empty()) {
-        // Nothing of relevance is materialized (only obsolete patches if any).
-        return 0;
-    } else {
-        // TODO: ugh.
-        return (*(map_entry->second.patches_end() - 1))->get_patch_counter();
-    }
+patch_counter_t patch_memory_storage_t::last_patch_materialized_or_zero(UNUSED block_id_t block_id) const {
+    guarantee(patch_map.empty());
+    return 0;
 }
 
 std::pair<patch_memory_storage_t::const_patch_iterator, patch_memory_storage_t::const_patch_iterator>
-patch_memory_storage_t::patches_for_block(block_id_t block_id) const {
-    patch_map_t::const_iterator map_entry = patch_map.find(block_id);
-    rassert(map_entry != patch_map.end());
-    rassert(!map_entry->second.empty());
-    return std::make_pair(map_entry->second.patches_begin(), map_entry->second.patches_end());
+patch_memory_storage_t::patches_for_block(UNUSED block_id_t block_id) const {
+    crash("can't call this");
 }
 
-void patch_memory_storage_t::drop_patches(block_id_t block_id) {
-    patch_map_t::iterator map_entry = patch_map.find(block_id);
-    if (map_entry != patch_map.end())
-        patch_map.erase(map_entry);
+void patch_memory_storage_t::drop_patches(UNUSED block_id_t block_id) {
+    guarantee(patch_map.empty());
 }
 
 patch_memory_storage_t::block_patch_list_t::block_patch_list_t() {

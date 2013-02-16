@@ -72,13 +72,9 @@ public:
 
     std::pair<const_patch_iterator, const_patch_iterator> patches_for_block(block_id_t block_id) const;
 
-    inline int32_t get_patches_serialized_size(block_id_t block_id) const  {
-        patch_map_t::const_iterator map_entry = patch_map.find(block_id);
-        if (map_entry == patch_map.end()) {
-            return 0;
-        } else {
-            return map_entry->second.patches_serialized_size();
-        }
+    inline int32_t get_patches_serialized_size(UNUSED block_id_t block_id) const {
+        guarantee(patch_map.empty());
+        return 0;
     }
 
     // Remove all patches for that block (e.g. after patches have been applied and the block gets flushed to disk)
