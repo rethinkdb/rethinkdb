@@ -74,8 +74,6 @@ public:
 
     patch_counter_t last_patch_materialized_or_zero(block_id_t block_id) const;
 
-    buf_patch_t *first_patch(block_id_t block_id) const;
-
     std::pair<const_patch_iterator, const_patch_iterator> patches_for_block(block_id_t block_id) const;
 
     inline int32_t get_patches_serialized_size(block_id_t block_id) const  {

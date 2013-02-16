@@ -59,10 +59,6 @@ patch_counter_t patch_memory_storage_t::last_patch_materialized_or_zero(block_id
     }
 }
 
-buf_patch_t *patch_memory_storage_t::first_patch(block_id_t block_id) const {
-    return *patches_for_block(block_id).first;
-}
-
 std::pair<patch_memory_storage_t::const_patch_iterator, patch_memory_storage_t::const_patch_iterator>
 patch_memory_storage_t::patches_for_block(block_id_t block_id) const {
     patch_map_t::const_iterator map_entry = patch_map.find(block_id);
