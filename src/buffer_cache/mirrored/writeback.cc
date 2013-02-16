@@ -525,18 +525,18 @@ void writeback_t::flush_prepare_patches() {
                     // writeback. Use lbuf->last_patch_materialized to make
                     // that decision. This way we never have duplicate patches on disk.
                     if (lbuf->last_patch_materialized() < (*range.second)->get_patch_counter()) {
-                        if (!cache->patch_disk_storage->store_patch(*range.second, block_sequence_id)) {
-                            patch_storage_failure = true;
-                            // We were not able to store all the patches to disk,
-                            // so we fall back to re-writing the block itself.
-                            lbuf->set_needs_flush(true);
-                            // Dropping the patches invalidates our iterators in range,
-                            // but we can simply break out of the loop at this point.
-                            cache->patch_memory_storage.drop_patches(inner_buf->block_id);
-                            break;
-                        } else {
-                            patches_stored++;
-                        }
+                        buf_patch_t *const patch = *range.second;
+                        patch->set_block_sequence_id(block_sequence_id);
+
+                        // TODO(patch): You can probably do some cleanup here.  For example, we always break.
+                        patch_storage_failure = true;
+                        // We were not able to store all the patches to disk,
+                        // so we fall back to re-writing the block itself.
+                        lbuf->set_needs_flush(true);
+                        // Dropping the patches invalidates our iterators in range,
+                        // but we can simply break out of the loop at this point.
+                        cache->patch_memory_storage.drop_patches(inner_buf->block_id);
+                        break;
                     } else {
                         // We hit a patch that we had written to disk before.
                         // Because we are iterating over patches from most recent to older,

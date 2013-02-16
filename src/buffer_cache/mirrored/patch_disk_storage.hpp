@@ -55,10 +55,6 @@ public:
     // Loads on-disk data into memory
     void load_patches(patch_memory_storage_t *in_memory_storage);
 
-    // Returns true on success, false if patch could not be stored (e.g. because of insufficient free space in log)
-    // This function never blocks and must only be called while the flush_lock is held.
-    bool store_patch(buf_patch_t *patch, const block_sequence_id_t current_block_block_sequence_id);
-
 private:
     static const block_id_t number_of_blocks = 0;
 };

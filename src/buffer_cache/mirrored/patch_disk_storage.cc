@@ -45,12 +45,3 @@ patch_disk_storage_t::~patch_disk_storage_t() { }
 // Loads on-disk data into memory
 void patch_disk_storage_t::load_patches(UNUSED patch_memory_storage_t *in_memory_storage) {
 }
-
-// Returns true on success, false if patch could not be stored (e.g. because of insufficient free space in log)
-// This function never blocks and must only be called while the flush_lock is held.
-bool patch_disk_storage_t::store_patch(buf_patch_t *patch, const block_sequence_id_t current_block_block_sequence_id) {
-    rassert(patch->get_block_sequence_id() == NULL_BLOCK_SEQUENCE_ID);
-    patch->set_block_sequence_id(current_block_block_sequence_id);
-
-    return false;
-}
