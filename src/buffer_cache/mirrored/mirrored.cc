@@ -906,16 +906,8 @@ void mc_buf_lock_t::move_data(void *dest, const void *src, const size_t n) {
     rassert(range_inside_of_byte_range(src, n, data, inner_buf->cache->get_block_size().value()));
     rassert(range_inside_of_byte_range(dest, n, data, inner_buf->cache->get_block_size().value()));
 
-    if (inner_buf->writeback_buf().needs_flush()) {
-        // Save the allocation / construction of a patch object
-        get_data_major_write();
-        memmove(dest, src, n);
-    } else {
-        size_t dest_offset = reinterpret_cast<uint8_t *>(dest) - reinterpret_cast<uint8_t *>(data);
-        size_t src_offset = reinterpret_cast<const uint8_t *>(src) - reinterpret_cast<uint8_t *>(data);
-        // tblock_sequence ID will be set later...
-        apply_patch(new memmove_patch_t(inner_buf->block_id, dest_offset, src_offset, n));
-    }
+    get_data_major_write();
+    memmove(dest, src, n);
 }
 
 
