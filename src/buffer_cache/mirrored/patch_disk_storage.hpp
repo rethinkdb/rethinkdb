@@ -67,21 +67,6 @@ public:
     unsigned int get_number_of_log_blocks() const;
 
 private:
-
-    void reclaim_space(const size_t space_required); // Calls compress_block for select_log_block_for_compression()
-    block_id_t select_log_block_for_compression(); // For now: just always select the oldest (=next) block
-    void compress_block(const block_id_t log_block_id);
-
-    void clear_block(const block_id_t log_block_id, coro_t* notify_coro);
-    void set_active_log_block(const block_id_t log_block_id);
-
-    void init_log_block(const block_id_t log_block_id);
-
-    // We use our own acquire function which does not care about locks
-    // (we are the only one ever acessing the log blocks, except for writeback_t
-    //      which takes care of synchronizing with us by itself)
-    mc_buf_lock_t * acquire_block_no_locking(const block_id_t log_block_id);
-
     block_id_t active_log_block;
     uint16_t next_patch_offset;
 
