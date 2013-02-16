@@ -10,18 +10,8 @@
 patch_memory_storage_t::patch_memory_storage_t() {
 }
 
-// Removes all patches which are obsolete w.r.t. the given block sequence_id
-void patch_memory_storage_t::filter_applied_patches(UNUSED block_id_t block_id, UNUSED block_sequence_id_t block_sequence_id) {
-    guarantee(false);
-}
-
 // Returns true iff any changes have been made to the buf
 bool patch_memory_storage_t::apply_patches(UNUSED block_id_t block_id, UNUSED char *buf_data, UNUSED block_size_t bs) const {
-    guarantee(patch_map.empty());
-    return false;
-}
-
-bool patch_memory_storage_t::has_patches_for_block(UNUSED block_id_t block_id) const {
     guarantee(patch_map.empty());
     return false;
 }
@@ -29,11 +19,6 @@ bool patch_memory_storage_t::has_patches_for_block(UNUSED block_id_t block_id) c
 patch_counter_t patch_memory_storage_t::last_patch_materialized_or_zero(UNUSED block_id_t block_id) const {
     guarantee(patch_map.empty());
     return 0;
-}
-
-std::pair<patch_memory_storage_t::const_patch_iterator, patch_memory_storage_t::const_patch_iterator>
-patch_memory_storage_t::patches_for_block(UNUSED block_id_t block_id) const {
-    crash("can't call this");
 }
 
 void patch_memory_storage_t::drop_patches(UNUSED block_id_t block_id) {

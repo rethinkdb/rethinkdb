@@ -356,13 +356,6 @@ mc_inner_buf_t::~mc_inner_buf_t() {
 }
 
 void mc_inner_buf_t::replay_patches() {
-    // Remove obsolete patches from diff storage
-    if (cache->patch_memory_storage.has_patches_for_block(block_id)) {
-        // TODO: Perhaps there is a problem if the question of whether
-        // we can call filter_applied_patches depends on whether the
-        // block id is already in the patch_memory_storage.
-        cache->patch_memory_storage.filter_applied_patches(block_id, block_sequence_id);
-    }
     // All patches that currently exist must have been materialized out of core...
     writeback_buf().set_last_patch_materialized(cache->patch_memory_storage.last_patch_materialized_or_zero(block_id));
 

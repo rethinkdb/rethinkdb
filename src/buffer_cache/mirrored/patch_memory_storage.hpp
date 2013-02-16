@@ -60,17 +60,10 @@ public:
 
     patch_memory_storage_t(); // Initialize an empty diff storage
 
-    // Removes all patches which are obsolete w.r.t. the given block sequence id
-    void filter_applied_patches(block_id_t block_id, block_sequence_id_t block_sequence_id);
-
     // Returns true iff any changes have been made to the buf
     bool apply_patches(block_id_t block_id, char *buf_data, block_size_t bs) const;
 
-    bool has_patches_for_block(block_id_t block_id) const;
-
     patch_counter_t last_patch_materialized_or_zero(block_id_t block_id) const;
-
-    std::pair<const_patch_iterator, const_patch_iterator> patches_for_block(block_id_t block_id) const;
 
     inline int32_t get_patches_serialized_size(UNUSED block_id_t block_id) const {
         guarantee(patch_map.empty());
