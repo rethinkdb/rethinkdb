@@ -1,3 +1,5 @@
+#include "rdb_protocol/datum_stream.hpp"
+
 #include "clustering/administration/metadata.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/term.hpp"
@@ -7,10 +9,10 @@ namespace ql {
 
 // DATUM_STREAM_T
 datum_stream_t *datum_stream_t::slice(size_t l, size_t r) {
-    return env->add_ptr(new slice_datum_stream_t(env, l, r, this, -1));
+    return env->add_ptr(new slice_datum_stream_t(env, l, r, this, skip_frame));
 }
 datum_stream_t *datum_stream_t::zip() {
-    return env->add_ptr(new zip_datum_stream_t(env, this, -1));
+    return env->add_ptr(new zip_datum_stream_t(env, this, skip_frame));
 }
 
 const datum_t *eager_datum_stream_t::count() {
@@ -59,13 +61,13 @@ const datum_t *eager_datum_stream_t::gmr(
 }
 
 datum_stream_t *eager_datum_stream_t::filter(func_t *f) {
-    return env->add_ptr(new filter_datum_stream_t(env, f, this, -1));
+    return env->add_ptr(new filter_datum_stream_t(env, f, this, skip_frame));
 }
 datum_stream_t *eager_datum_stream_t::map(func_t *f) {
-    return env->add_ptr(new map_datum_stream_t(env, f, this, -1));
+    return env->add_ptr(new map_datum_stream_t(env, f, this, skip_frame));
 }
 datum_stream_t *eager_datum_stream_t::concatmap(func_t *f) {
-    return env->add_ptr(new concatmap_datum_stream_t(env, f, this, -1));
+    return env->add_ptr(new concatmap_datum_stream_t(env, f, this, skip_frame));
 }
 
 const datum_t *eager_datum_stream_t::as_arr() {

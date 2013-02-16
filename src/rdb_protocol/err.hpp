@@ -34,11 +34,10 @@ void _runtime_check(const char *test, const char *file, int line,
 struct backtrace_t {
     struct frame_t {
     public:
-        frame_t() : type(OPT), opt("UNITIALIZED") { }
-        frame_t(int _pos) : type(POS), pos(_pos) { }
-        frame_t(const std::string &_opt) : type(OPT), opt(_opt) { }
-        frame_t(const char *_opt) : type(OPT), opt(_opt) { }
-        frame_t(const frame_t &rhs) : type(rhs.type), pos(rhs.pos), opt(rhs.opt) { }
+        explicit frame_t() : type(OPT), opt("UNITIALIZED") { }
+        explicit frame_t(int _pos) : type(POS), pos(_pos) { }
+        explicit frame_t(const std::string &_opt) : type(OPT), opt(_opt) { }
+        explicit frame_t(const char *_opt) : type(OPT), opt(_opt) { }
         Response2_Frame toproto() const;
 
         static frame_t head() { return frame_t(HEAD); }
@@ -74,9 +73,16 @@ struct backtrace_t {
         // debugf("PUSHING %s\n", f.toproto().DebugString().c_str());
         frames.push_front(f);
     }
+    template<class T>
+    void push_front(T t) {
+        push_front(frame_t(t));
+    }
 private:
     std::list<frame_t> frames;
 };
+
+const backtrace_t::frame_t head_frame = backtrace_t::frame_t::head();
+const backtrace_t::frame_t skip_frame = backtrace_t::frame_t::skip();
 
 // A RQL exception.  In the future it will be tagged.
 class exc_t : public std::exception {

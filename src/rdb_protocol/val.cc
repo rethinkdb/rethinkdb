@@ -89,7 +89,7 @@ const datum_t *table_t::_replace(const datum_t *orig, const datum_t *d, bool ups
 #pragma GCC diagnostic pop
     }
 
-    return _replace(orig, map_wire_func_t(t, 0, 1));
+    return _replace(orig, map_wire_func_t(t, 0, backtrace_t::frame_t(1)));
 }
 
 const std::string &table_t::get_pkey() { return pkey; }

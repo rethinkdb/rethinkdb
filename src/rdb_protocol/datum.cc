@@ -126,7 +126,7 @@ std::string datum_t::print_primary() const {
     }
     if (s.size() > MAX_KEY_SIZE) {
         rfail("Primary key too long (max %d characters): %s",
-              MAX_KEY_SIZE-1, print().c_str());
+              MAX_KEY_SIZE - 1, print().c_str());
     }
     return s;
 }
