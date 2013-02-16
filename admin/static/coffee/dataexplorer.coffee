@@ -1653,7 +1653,6 @@ module 'DataExplorerView', ->
     class @ResultView extends Backbone.View
         className: 'result_view'
         template: Handlebars.templates['dataexplorer_result_container-template']
-        default_template: Handlebars.templates['dataexplorer_default_result_container-template']
         metadata_template: Handlebars.templates['dataexplorer-metadata-template']
         option_template: Handlebars.templates['dataexplorer-option_page-template']
         error_template: Handlebars.templates['dataexplorer-error-template']
@@ -2233,7 +2232,6 @@ module 'DataExplorerView', ->
             return @
 
         render_default: =>
-            @.$el.html @default_template()
             return @
 
         toggle_collapse: (event) =>

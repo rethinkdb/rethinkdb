@@ -9,9 +9,7 @@
         <div class="history_container">
         </div>
         <div class="input_query_full_container"></div>
-
-    </div>
-    <div class="results_container section">
+        <div class="results_container"> </div>
     </div>
 </script>
 
@@ -168,13 +166,10 @@ Did you forget to append .run() at the end of your query?{{/if}}</pre>
 
 <script id="dataexplorer_default_result_container-template" type="text/x-handlebars-template">
     <div class="results_header">
-        <h1 class="title">Results</h1>
-        <p class="error">No query executed.</p>
     </div>
 </script>
 <script id="dataexplorer_result_container-template" type="text/x-handlebars-template">
     <div class="results_header">
-        <h1 class="title">Results</h1>
         {{#if query}}<div class="query_executed">For query: {{query}}</div>{{/if}}
         <ul class="nav nav-tabs change_view_container"">
             <li><a href="#raw_view" class="link_to_raw_view">Raw view</a></li>
@@ -183,7 +178,7 @@ Did you forget to append .run() at the end of your query?{{/if}}</pre>
         </ul>
         <p class="metadata">
             {{#if execution_time_pretty}}Executed in {{execution_time_pretty}}.{{/if}}
-            {{#if no_results}}No result returned.{{/if}}
+            {{#if no_results}}No results returned.{{/if}}
             {{#if num_results}}{{num_results}} {{pluralize_noun 'row' num_results}} returned
                 {{#if limit_value}}, {{limit_value}} displayed{{/if}}{{#if skip_value}}, {{skip_value}} skipped.{{/if}}
             {{else}}
