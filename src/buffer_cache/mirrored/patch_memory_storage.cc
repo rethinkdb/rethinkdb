@@ -10,12 +10,6 @@
 patch_memory_storage_t::patch_memory_storage_t() {
 }
 
-// Returns true iff any changes have been made to the buf
-bool patch_memory_storage_t::apply_patches(UNUSED block_id_t block_id, UNUSED char *buf_data, UNUSED block_size_t bs) const {
-    guarantee(patch_map.empty());
-    return false;
-}
-
 patch_counter_t patch_memory_storage_t::last_patch_materialized_or_zero(UNUSED block_id_t block_id) const {
     guarantee(patch_map.empty());
     return 0;

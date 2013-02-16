@@ -355,12 +355,10 @@ mc_inner_buf_t::~mc_inner_buf_t() {
     --cache->stats->pm_n_blocks_in_memory;
 }
 
+// TODO(patch) Obviously remove this function.
 void mc_inner_buf_t::replay_patches() {
     // All patches that currently exist must have been materialized out of core...
     writeback_buf().set_last_patch_materialized(cache->patch_memory_storage.last_patch_materialized_or_zero(block_id));
-
-    // Apply outstanding patches
-    cache->patch_memory_storage.apply_patches(block_id, reinterpret_cast<char *>(data.get()), cache->get_block_size());
 
     // Set next_patch_counter such that the next patches get values consistent with the existing patches
     next_patch_counter = cache->patch_memory_storage.last_patch_materialized_or_zero(block_id) + 1;

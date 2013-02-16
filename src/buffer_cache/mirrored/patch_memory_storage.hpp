@@ -60,9 +60,6 @@ public:
 
     patch_memory_storage_t(); // Initialize an empty diff storage
 
-    // Returns true iff any changes have been made to the buf
-    bool apply_patches(block_id_t block_id, char *buf_data, block_size_t bs) const;
-
     patch_counter_t last_patch_materialized_or_zero(block_id_t block_id) const;
 
     inline int32_t get_patches_serialized_size(UNUSED block_id_t block_id) const {
