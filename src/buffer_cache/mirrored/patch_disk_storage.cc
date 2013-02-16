@@ -57,47 +57,30 @@ patch_disk_storage_t::patch_disk_storage_t(mc_cache_t *_cache, block_id_t start_
     }
 }
 
-patch_disk_storage_t::~patch_disk_storage_t() {
-    for (size_t i = 0; i < log_block_bufs.size(); ++i)
-        delete log_block_bufs[i];
-    log_block_bufs.clear();
-}
+patch_disk_storage_t::~patch_disk_storage_t() { }
 
 // Loads on-disk data into memory
 void patch_disk_storage_t::load_patches(UNUSED patch_memory_storage_t *in_memory_storage) {
-    rassert(log_block_bufs.size() == number_of_blocks);
     cache->assert_thread();
-    if (number_of_blocks == 0)
-        return;
 }
 
 // Returns true on success, false if patch could not be stored (e.g. because of insufficient free space in log)
 // This function never blocks and must only be called while the flush_lock is held.
 bool patch_disk_storage_t::store_patch(buf_patch_t *patch, const block_sequence_id_t current_block_block_sequence_id) {
-    rassert(log_block_bufs.size() == number_of_blocks);
     cache->assert_thread();
     rassert(patch->get_block_sequence_id() == NULL_BLOCK_SEQUENCE_ID);
     patch->set_block_sequence_id(current_block_block_sequence_id);
 
-    if (number_of_blocks == 0)
-        return false;
+    return false;
 }
 
 // This function might block while it acquires old blocks from disk.
 void patch_disk_storage_t::clear_n_oldest_blocks(UNUSED unsigned int n) {
-    rassert(log_block_bufs.size() == number_of_blocks);
     cache->assert_thread();
-
-    if (number_of_blocks == 0)
-        return;
 }
 
 void patch_disk_storage_t::compress_n_oldest_blocks(UNUSED unsigned int n) {
-    rassert(log_block_bufs.size() == number_of_blocks);
     cache->assert_thread();
-
-    if (number_of_blocks == 0)
-        return;
 }
 
 unsigned int patch_disk_storage_t::get_number_of_log_blocks() const {
