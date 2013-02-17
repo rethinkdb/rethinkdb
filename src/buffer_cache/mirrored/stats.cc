@@ -44,7 +44,6 @@ mc_cache_stats_t::mc_cache_stats_t(perfmon_collection_t *parent)
       pm_n_blocks_in_memory(),
       pm_n_blocks_dirty(),
       pm_n_blocks_total(),
-      pm_patches_size_ratio(secs_to_ticks(5), false),
       pm_n_blocks_evicted(),
       pm_block_size(),
       cache_collection_membership(&cache_collection,
@@ -69,7 +68,6 @@ mc_cache_stats_t::mc_cache_stats_t(perfmon_collection_t *parent)
           &pm_n_blocks_in_memory, "blocks_in_memory",
           &pm_n_blocks_dirty, "blocks_dirty",
           &pm_n_blocks_total, "blocks_total",
-          &pm_patches_size_ratio, "patches_size_ratio",
           &pm_n_blocks_evicted, "blocks_evicted",
           &pm_block_size, "block_size",
           NULLPTR)

@@ -216,33 +216,6 @@ void writeback_t::on_timer() {
 
     cache->assert_thread();
 
-    cache->stats->pm_patches_size_ratio.record(cache->get_max_patches_size_ratio());
-
-    /*
-     * Update the max_patches_size_ratio. If we detect that the previous writeback
-     * is still active and the max_dirty_blocks_limit is exhausted at a level of
-     * at least RAISE_PATCHES_RATIO_AT_FRACTION_OF_UNSAVED_DATA_LIMIT, we
-     * consider the system to be i/o bound. In this case, we proactively decrease
-     * the max_patches_size_ratio towards MAX_PATCHES_SIZE_RATIO_MIN, to increase
-     * the usage of patches and reduce the amount of i/o.
-     * Otherwise, we consider the system to be bound by something other than i/o
-     * and gradually increase max_patches_size_ratio towards MAX_PATCHES_SIZE_RATIO_MAX
-     * to save the overhead associated with managing and writing patches.
-     */
-    if (active_flushes < max_concurrent_flushes || num_dirty_blocks() < max_dirty_blocks * RAISE_PATCHES_RATIO_AT_FRACTION_OF_UNSAVED_DATA_LIMIT) {
-        /* The currently running writeback probably finished on-time. (of we have enough headroom left before hitting the unsaved data limit)
-        Adjust max_patches_size_ratio to trade i/o efficiency for CPU cycles */
-        if (!wait_for_flush) {
-            cache->adjust_max_patches_size_ratio_toward_minimum();
-        }
-    } else {
-        /* The currently running writeback apparently takes too long.
-        try to reduce that bottleneck by adjusting max_patches_size_ratio */
-        if (!wait_for_flush) {
-            cache->adjust_max_patches_size_ratio_toward_maximum();
-        }
-    }
-
     /* Don't sync if we're in the shutdown process, because if we do that we'll trip an rassert() on
     the cache, and besides we're about to sync anyway. */
     if (!cache->shutting_down && (num_dirty_blocks() > 0 || sync_callbacks.size() > 0)) {

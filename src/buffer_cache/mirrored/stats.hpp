@@ -11,13 +11,13 @@ struct mc_cache_stats_t {
 
     explicit mc_cache_stats_t(perfmon_collection_t *parent);
 
-    perfmon_counter_t 
+    perfmon_counter_t
         pm_registered_snapshots,
         pm_registered_snapshot_blocks;
 
     perfmon_sampler_t pm_snapshots_per_transaction;
 
-    perfmon_counter_t 
+    perfmon_counter_t
         pm_cache_hits,
         pm_cache_misses;
 
@@ -48,8 +48,6 @@ struct mc_cache_stats_t {
         pm_n_blocks_in_memory,
         pm_n_blocks_dirty,
         pm_n_blocks_total;
-
-    perfmon_sampler_t pm_patches_size_ratio;
 
     // used in buffer_cache/mirrored/page_repl_random.cc
     perfmon_counter_t pm_n_blocks_evicted;

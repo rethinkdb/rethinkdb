@@ -408,20 +408,6 @@ private:
     // Pointer, not member, because we need to call its destructor explicitly in our destructor
     scoped_ptr_t<patch_disk_storage_t> patch_disk_storage;
 
-    // The ratio of block size to patch size (for some block id, at
-    // some point in time) at which we think it's worth it to flush
-    // the whole block and drop the patch history.
-    unsigned int max_patches_size_ratio;
-
-    unsigned int get_max_patches_size_ratio() const { return max_patches_size_ratio; }
-    // Functions that adjust this ratio up and down, between
-    // MAX_PATCHES_SIZE_RATIO_MIN and MAX_PATCHES_SIZE_RATIO_MAX, for
-    // use based on whether we are bottlenecking on I/O.  Note that
-    // increasing the field's value lowers the proportion of block
-    // size at which we would drop the patches.
-    void adjust_max_patches_size_ratio_toward_minimum();
-    void adjust_max_patches_size_ratio_toward_maximum();
-
     bool read_ahead_registered;
 
     std::map<mc_inner_buf_t::version_id_t, mc_transaction_t *> active_snapshots;

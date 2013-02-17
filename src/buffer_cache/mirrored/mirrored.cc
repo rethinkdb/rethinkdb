@@ -1208,7 +1208,6 @@ mc_cache_t::mc_cache_t(serializer_t *_serializer,
     num_live_writeback_transactions(0),
     num_live_non_writeback_transactions(0),
     to_pulse_when_last_transaction_commits(NULL),
-    max_patches_size_ratio((dynamic_config.wait_for_flush || dynamic_config.flush_timer_ms == 0) ? MAX_PATCHES_SIZE_RATIO_DURABILITY : MAX_PATCHES_SIZE_RATIO_MIN),
     read_ahead_registered(false),
     next_snapshot_version(mc_inner_buf_t::faux_version_id+1) {
 
@@ -1429,24 +1428,3 @@ void mc_cache_t::maybe_unregister_read_ahead_callback() {
         coro_t::spawn_now_dangerously(boost::bind(&serializer_t::unregister_read_ahead_cb, serializer, this));
     }
 }
-
-void mc_cache_t::adjust_max_patches_size_ratio_toward_minimum() {
-    rassert(MAX_PATCHES_SIZE_RATIO_MAX <= MAX_PATCHES_SIZE_RATIO_MIN);  // just to make things clear.
-    max_patches_size_ratio = static_cast<unsigned int>(0.9 * max_patches_size_ratio + 0.1 * MAX_PATCHES_SIZE_RATIO_MIN);
-    rassert(max_patches_size_ratio <= MAX_PATCHES_SIZE_RATIO_MIN);
-    rassert(max_patches_size_ratio >= MAX_PATCHES_SIZE_RATIO_MAX);
-}
-
-void mc_cache_t::adjust_max_patches_size_ratio_toward_maximum() {
-    rassert(MAX_PATCHES_SIZE_RATIO_MAX <= MAX_PATCHES_SIZE_RATIO_MIN);  // just to make things clear.
-    // We should be paranoid that if max_patches_size_ratio ==
-    // MAX_PATCHES_SIZE_RATIO_MAX, (i.e. that 2 == 2) then 0.9f * 2 +
-    // 0.1f * 2 will be less than 2 (and then round down to 1).
-    max_patches_size_ratio = static_cast<unsigned int>(0.9 * max_patches_size_ratio + 0.1 * MAX_PATCHES_SIZE_RATIO_MAX);
-    if (max_patches_size_ratio < MAX_PATCHES_SIZE_RATIO_MAX) {
-        max_patches_size_ratio = MAX_PATCHES_SIZE_RATIO_MAX;
-    }
-    rassert(max_patches_size_ratio <= MAX_PATCHES_SIZE_RATIO_MIN);
-    rassert(max_patches_size_ratio >= MAX_PATCHES_SIZE_RATIO_MAX);
-}
-
