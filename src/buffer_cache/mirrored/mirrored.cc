@@ -1206,16 +1206,6 @@ mc_cache_t::mc_cache_t(serializer_t *_serializer,
         writes_io_account.init(serializer->make_io_account(dynamic_config.io_priority_writes));
     }
 
-#ifndef NDEBUG
-    writebacks_allowed = false;
-#endif
-
-    /* Please note: writebacks must *not* happen prior to this point! */
-    /* Writebacks ( / syncs / flushes) can cause blocks to be rewritten and require an intact patch_memory_storage! */
-#ifndef NDEBUG
-    writebacks_allowed = true;
-#endif
-
     // Register us for read ahead to warm up faster
     serializer->register_read_ahead_cb(this);
     read_ahead_registered = true;

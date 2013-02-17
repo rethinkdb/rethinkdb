@@ -383,9 +383,6 @@ private:
 
     // More fields
     bool shutting_down;
-#ifndef NDEBUG
-    bool writebacks_allowed;
-#endif
 
     // Used to keep track of how many transactions there are so that
     // we can wait for transactions to complete before shutting down,
