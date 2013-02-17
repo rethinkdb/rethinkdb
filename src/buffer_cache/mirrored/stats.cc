@@ -62,8 +62,6 @@ mc_cache_stats_t::mc_cache_stats_t(perfmon_collection_t *parent)
           &pm_n_blocks_total, "blocks_total",
           &pm_n_blocks_evicted, "blocks_evicted",
           &pm_block_size, "block_size",
-          NULLPTR)
-
-{ }
+          NULLPTR) { }
 
 
