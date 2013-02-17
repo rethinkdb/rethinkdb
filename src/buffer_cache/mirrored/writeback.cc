@@ -454,7 +454,9 @@ void writeback_t::flush_acquire_bufs(mc_transaction_t *transaction, flush_state_
         mc_inner_buf_t *inner_buf = static_cast<mc_inner_buf_t *>(lbuf);
 
         const bool dirty = lbuf->get_dirty();
+#ifndef NDEBUG
         const bool recency_dirty = lbuf->get_recency_dirty();
+#endif
 
         // Removes it from dirty_bufs
         lbuf->set_dirty(false);
