@@ -252,7 +252,7 @@ bool semantic_checking_serializer_t<inner_serializer_t>::coop_lock_and_check() {
 
 template<class inner_serializer_t>
 block_size_t semantic_checking_serializer_t<inner_serializer_t>::
-get_block_size() { return inner_serializer.get_block_size(); }
+get_block_size() const { return inner_serializer.get_block_size(); }
 
 template<class inner_serializer_t>
 block_id_t semantic_checking_serializer_t<inner_serializer_t>::
