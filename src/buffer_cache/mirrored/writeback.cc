@@ -500,6 +500,7 @@ void writeback_t::flush_acquire_bufs(mc_transaction_t *transaction, flush_state_
         lbuf->set_recency_dirty(false);
         lbuf->set_needs_flush(false);
 
+        guarantee(buf_needs_flush || recency_dirty);
         if (buf_needs_flush) {
             ++really_dirty;
 
