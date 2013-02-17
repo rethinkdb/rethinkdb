@@ -66,9 +66,6 @@ void server_test_helper_t::run_serializer_tests() {
     cache_cfg.max_size = GIGABYTE;
     cache_t cache(this->serializer, &cache_cfg, &get_global_perfmon_collection());
 
-    // TODO(patch): What if we drop this line?
-    nap(200);   // to let patch_disk_storage do writeback.sync();
-
     run_tests(&cache);
 }
 
