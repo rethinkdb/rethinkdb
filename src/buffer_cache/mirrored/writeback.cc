@@ -324,14 +324,6 @@ void writeback_t::do_concurrent_flush() {
     cache->stats->pm_flushes_locking.begin(&start_time);
     cache->assert_thread();
 
-    // As we cannot afford waiting for blocks to get loaded from disk while holding the flush lock,
-    // we instead reclaim some space in the on-disk patch storage now.
-    ticks_t start_time2;
-    // TOOD(patch): Drop pm_flushes_diff_flush?
-    cache->stats->pm_flushes_diff_flush.begin(&start_time2);
-
-    cache->stats->pm_flushes_diff_flush.end(&start_time2);
-
     /* Start a read transaction so we can request bufs. */
     mc_transaction_t *transaction;
     {
