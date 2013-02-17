@@ -299,11 +299,9 @@ public:
 };
 
 struct writeback_t::flush_state_t {
-    bool block_sequence_ids_have_been_updated;
     std::vector<buf_writer_t *> buf_writers;
     // Writes to submit to the serializer
     std::vector<serializer_write_t> serializer_writes;
-    flush_state_t() : block_sequence_ids_have_been_updated(false) {}
 };
 
 void writeback_t::start_concurrent_flush() {
