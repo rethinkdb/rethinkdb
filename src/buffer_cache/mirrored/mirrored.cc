@@ -832,17 +832,9 @@ void mc_buf_lock_t::ensure_flush() {
 
     // TODO (sam): f'd up
     rassert(inner_buf->data.equals(data));
-    if (!inner_buf->writeback_buf().needs_flush()) {
-        // We bypass the patching system, make sure this buffer gets flushed.
-        inner_buf->writeback_buf().set_needs_flush(true);
-        // TODO(patch): Maybe we don't need set_needs_flush or needs_flush anymore.
-        // Make sure that the buf is marked as dirty
-        inner_buf->writeback_buf().set_dirty();
-        inner_buf->data_token.reset();
-    } else {
-        guarantee(inner_buf->writeback_buf().get_dirty());
-        guarantee(!inner_buf->data_token.has());
-    }
+
+    inner_buf->writeback_buf().set_dirty();
+    inner_buf->data_token.reset();
 }
 
 void mc_buf_lock_t::mark_deleted() {

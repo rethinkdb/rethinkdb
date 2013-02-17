@@ -58,7 +58,6 @@ writeback_t::local_buf_t::local_buf_t() {
 }
 
 void writeback_t::local_buf_t::reset() {
-    needs_flush_ = false;
     dirty = false;
     recency_dirty = false;
 }
@@ -492,16 +491,14 @@ void writeback_t::flush_acquire_bufs(mc_transaction_t *transaction, flush_state_
     while (local_buf_t *lbuf = dirty_bufs.head()) {
         mc_inner_buf_t *inner_buf = static_cast<mc_inner_buf_t *>(lbuf);
 
-        bool buf_needs_flush = lbuf->needs_flush();
-        bool recency_dirty = lbuf->get_recency_dirty();
+        const bool dirty = lbuf->get_dirty();
+        const bool recency_dirty = lbuf->get_recency_dirty();
 
         // Removes it from dirty_bufs
         lbuf->set_dirty(false);
         lbuf->set_recency_dirty(false);
-        lbuf->set_needs_flush(false);
 
-        guarantee(buf_needs_flush || recency_dirty);
-        if (buf_needs_flush) {
+        if (dirty) {
             ++really_dirty;
 
             rassert(!inner_buf->do_delete);
@@ -524,7 +521,8 @@ void writeback_t::flush_acquire_bufs(mc_transaction_t *transaction, flush_state_
                                                 buf->get_data_read(),
                                                 buf_writer,
                                                 &buf_writer->launch_cb));
-        } else if (recency_dirty) {
+        } else {
+            rassert(recency_dirty);
             // No need to acquire the block, since we're only writing its recency & don't need its contents.
             state->serializer_writes.push_back(serializer_write_t::make_touch(inner_buf->block_id, inner_buf->subtree_recency));
         }
