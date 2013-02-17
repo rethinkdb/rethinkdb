@@ -60,18 +60,12 @@ public:
     void serialize(char* destination) const;
 
     inline uint16_t get_serialized_size() const {
-        return sizeof(uint16_t) + sizeof(block_id_t) + sizeof(block_sequence_id_t) + sizeof(patch_operation_code_t) + get_data_size();
+        return sizeof(uint16_t) + sizeof(block_id_t) + sizeof(patch_operation_code_t) + get_data_size();
     }
     inline static uint16_t get_min_serialized_size() {
-        return sizeof(uint16_t) + sizeof(block_id_t) + sizeof(block_sequence_id_t) + sizeof(patch_operation_code_t);
+        return sizeof(uint16_t) + sizeof(block_id_t) + sizeof(patch_operation_code_t);
     }
 
-    inline block_sequence_id_t get_block_sequence_id() const {
-        return applies_to_block_sequence_id;
-    }
-    inline void set_block_sequence_id(block_sequence_id_t block_sequence_id) {
-        applies_to_block_sequence_id = block_sequence_id;
-    }
     inline block_id_t get_block_id() const {
         return block_id;
     }
@@ -98,7 +92,6 @@ protected:
 
 private:
     block_id_t block_id;
-    block_sequence_id_t applies_to_block_sequence_id;
     patch_operation_code_t operation_code;
 
     DISABLE_COPYING(buf_patch_t);

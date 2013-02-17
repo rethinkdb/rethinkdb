@@ -125,10 +125,6 @@ private:
     // snapshot. this is ugly, but necessary to correctly initialize buf_snapshot_t refcounts.
     size_t snap_refcount;
 
-    // This is used to figure out what patches still need to be
-    // applied.
-    block_sequence_id_t block_sequence_id;
-
     // snapshot types' implementations are internal and deferred to mirrored.cc
     intrusive_list_t<buf_snapshot_t> snapshots;
 

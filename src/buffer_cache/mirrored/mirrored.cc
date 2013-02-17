@@ -168,9 +168,6 @@ void mc_inner_buf_t::load_inner_buf(bool should_lock, file_account_t *io_account
         cache->serializer->block_read(data_token, data.get(), io_account);
     }
 
-    // Read the block sequence id
-    block_sequence_id = cache->serializer->get_block_sequence_id(block_id, data.get());
-
     if (should_lock) {
         lock.unlock();
     }
@@ -188,8 +185,7 @@ mc_inner_buf_t::mc_inner_buf_t(mc_cache_t *_cache, block_id_t _block_id, file_ac
       refcount(0),
       do_delete(false),
       cow_refcount(0),
-      snap_refcount(0),
-      block_sequence_id(NULL_BLOCK_SEQUENCE_ID) {
+      snap_refcount(0) {
 
     rassert(version_id != faux_version_id);
 
@@ -223,8 +219,7 @@ mc_inner_buf_t::mc_inner_buf_t(mc_cache_t *_cache, block_id_t _block_id, void *_
       refcount(0),
       do_delete(false),
       cow_refcount(0),
-      snap_refcount(0),
-      block_sequence_id(NULL_BLOCK_SEQUENCE_ID) {
+      snap_refcount(0) {
 
     rassert(version_id != faux_version_id);
 
@@ -235,9 +230,6 @@ mc_inner_buf_t::mc_inner_buf_t(mc_cache_t *_cache, block_id_t _block_id, void *_
     _cache->page_repl.make_space();
     _cache->maybe_unregister_read_ahead_callback();
     refcount--;
-
-    // Read the block sequence id
-    block_sequence_id = _cache->serializer->get_block_sequence_id(_block_id, data.get());
 }
 
 mc_inner_buf_t *mc_inner_buf_t::allocate(mc_cache_t *cache, version_id_t snapshot_version, repli_timestamp_t recency_timestamp) {
@@ -286,7 +278,6 @@ void mc_inner_buf_t::initialize_to_new(version_id_t _snapshot_version, repli_tim
     do_delete = false;
     cow_refcount = 0;
     snap_refcount = 0;
-    block_sequence_id = NULL_BLOCK_SEQUENCE_ID;
     data_token.reset();
 }
 

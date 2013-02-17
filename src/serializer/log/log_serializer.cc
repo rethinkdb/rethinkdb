@@ -727,17 +727,6 @@ void log_serializer_t::remap_block_to_new_offset(int64_t current_offset, int64_t
     }
 }
 
-// The block_id is there to keep the interface independent from the serializer
-// implementation. This method should work even if there's no block sequence id in
-// buf.
-block_sequence_id_t log_serializer_t::get_block_sequence_id(DEBUG_VAR block_id_t block_id, const void* buf) const {
-    // No thread assertion.  Really we should just make this a static method.
-    const ls_buf_data_t *ser_data = reinterpret_cast<const ls_buf_data_t *>(buf);
-    ser_data--;
-    rassert(ser_data->block_id == block_id);
-    return ser_data->block_sequence_id;
-}
-
 // TODO: Make this const.
 block_size_t log_serializer_t::get_block_size() const {
     return static_config.block_size();
