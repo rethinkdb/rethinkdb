@@ -180,7 +180,7 @@ void scc_cache_t<inner_cache_t>::create(serializer_t *serializer) {
 
 template<class inner_cache_t>
 scc_cache_t<inner_cache_t>::scc_cache_t(serializer_t *serializer,
-                                        mirrored_cache_config_t *dynamic_config,
+                                        const mirrored_cache_config_t &dynamic_config,
                                         perfmon_collection_t *parent)
     : inner_cache(serializer, dynamic_config, parent) { }
 

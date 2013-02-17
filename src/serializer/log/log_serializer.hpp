@@ -147,7 +147,7 @@ public:
 
     block_sequence_id_t get_block_sequence_id(block_id_t block_id, const void* buf) const;
 
-    block_size_t get_block_size();
+    block_size_t get_block_size() const;
 
     bool coop_lock_and_check();
 

@@ -25,7 +25,7 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
     cache_dynamic_config.max_dirty_size = cache_target / 2;
     cache_dynamic_config.wait_for_flush = true;
     cache_dynamic_config.flush_waiting_threshold = 1;
-    cache.init(new cache_t(serializer, &cache_dynamic_config, &perfmon_collection));
+    cache.init(new cache_t(serializer, cache_dynamic_config, &perfmon_collection));
 
     if (create) {
         vector_stream_t key;

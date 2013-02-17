@@ -133,7 +133,7 @@ public:
 
     static void create(serializer_t *serializer);
     scc_cache_t(serializer_t *serializer,
-                mirrored_cache_config_t *dynamic_config,
+                const mirrored_cache_config_t &dynamic_config,
                 perfmon_collection_t *parent);
 
     block_size_t get_block_size();

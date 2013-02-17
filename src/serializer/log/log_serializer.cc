@@ -739,7 +739,7 @@ block_sequence_id_t log_serializer_t::get_block_sequence_id(DEBUG_VAR block_id_t
 }
 
 // TODO: Make this const.
-block_size_t log_serializer_t::get_block_size() {
+block_size_t log_serializer_t::get_block_size() const {
     return static_config.block_size();
 }
 

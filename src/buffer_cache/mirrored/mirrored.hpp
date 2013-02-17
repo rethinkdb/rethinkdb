@@ -311,12 +311,11 @@ public:
     typedef mc_transaction_t transaction_type;
     typedef mc_cache_account_t cache_account_type;
 
-    // TODO: Make these pointers-to-const.
     static void create(serializer_t *serializer);
-    mc_cache_t(serializer_t *serializer, mirrored_cache_config_t *dynamic_config, perfmon_collection_t *);
+    mc_cache_t(serializer_t *serializer, const mirrored_cache_config_t &dynamic_config, perfmon_collection_t *);
     ~mc_cache_t();
 
-    block_size_t get_block_size();
+    block_size_t get_block_size() const;
 
     // TODO: Come up with a consistent priority scheme, i.e. define a "default" priority etc.
     // TODO: As soon as we can support it, we might consider supporting a mem_cap paremeter.

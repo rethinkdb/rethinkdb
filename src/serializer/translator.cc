@@ -246,7 +246,7 @@ block_sequence_id_t translator_serializer_t::get_block_sequence_id(block_id_t bl
     return inner->get_block_sequence_id(translate_block_id(block_id), buf);
 }
 
-block_size_t translator_serializer_t::get_block_size() {
+block_size_t translator_serializer_t::get_block_size()  const {
     return inner->get_block_size();
 }
 

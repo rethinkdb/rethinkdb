@@ -129,7 +129,7 @@ public:
     typedef mock_cache_account_t cache_account_type;
 
     static void create(serializer_t *serializer);
-    mock_cache_t(serializer_t *serializer, mirrored_cache_config_t *dynamic_config, perfmon_collection_t *parent);
+    mock_cache_t(serializer_t *serializer, const mirrored_cache_config_t &dynamic_config, perfmon_collection_t *parent);
     ~mock_cache_t();
 
     block_size_t get_block_size();

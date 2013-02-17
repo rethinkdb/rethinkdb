@@ -1183,9 +1183,9 @@ void mc_cache_t::create(serializer_t *serializer) {
 }
 
 mc_cache_t::mc_cache_t(serializer_t *_serializer,
-                       mirrored_cache_config_t *_dynamic_config,
+                       const mirrored_cache_config_t &_dynamic_config,
                        perfmon_collection_t *perfmon_parent) :
-    dynamic_config(*_dynamic_config),
+    dynamic_config(_dynamic_config),
     serializer(_serializer),
     stats(new mc_cache_stats_t(perfmon_parent)),
     page_repl(
@@ -1288,7 +1288,7 @@ mc_cache_t::~mc_cache_t() {
     }
 }
 
-block_size_t mc_cache_t::get_block_size() {
+block_size_t mc_cache_t::get_block_size() const {
     return serializer->get_block_size();
 }
 

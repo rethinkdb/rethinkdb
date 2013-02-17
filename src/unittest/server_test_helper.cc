@@ -64,7 +64,7 @@ void server_test_helper_t::run_serializer_tests() {
     cache_cfg.flush_timer_ms = MILLION;
     cache_cfg.flush_dirty_size = BILLION;
     cache_cfg.max_size = GIGABYTE;
-    cache_t cache(this->serializer, &cache_cfg, &get_global_perfmon_collection());
+    cache_t cache(this->serializer, cache_cfg, &get_global_perfmon_collection());
 
     run_tests(&cache);
 }
