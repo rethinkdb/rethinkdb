@@ -291,7 +291,7 @@ void mc_inner_buf_t::initialize_to_new(version_id_t _snapshot_version, repli_tim
 }
 
 // This form of the buf constructor is used when a completely new block is being created.
-// Used by mc_inner_buf_t::allocate() and by the patch log.
+// Used by mc_inner_buf_t::allocate().
 // If you update this constructor, please don't forget to update mc_inner_buf_t::allocate
 // accordingly.
 mc_inner_buf_t::mc_inner_buf_t(mc_cache_t *_cache, block_id_t _block_id, version_id_t _snapshot_version, repli_timestamp_t _recency_timestamp)
@@ -588,31 +588,6 @@ void mc_buf_lock_t::initialize(mc_inner_buf_t::version_id_t version_to_access,
         ++parent_transaction->num_buf_locks_acquired;
     }
     acquired = true;
-}
-
-/* Constructor for mc_buf_lock_t used by patch_disk_storage_t, takes some shortcuts and has some special behavior */
-mc_buf_lock_t * mc_buf_lock_t::acquire_non_locking_lock(mc_cache_t *cache, const block_id_t block_id)
-{
-    mc_buf_lock_t *lock = new mc_buf_lock_t();
-    lock->mode = rwi_read;
-    lock->inner_buf = cache->page_map.find(block_id);
-    cache->assert_thread();
-
-    if (!lock->inner_buf) {
-        /* The buf isn't in the cache and must be loaded from disk */
-        lock->inner_buf = new mc_inner_buf_t(cache, block_id, cache->reads_io_account.get());
-    }
-
-    // We still have to acquire the lock once to wait for the buf to get ready
-    lock->initialize(mc_inner_buf_t::faux_version_id, DEFAULT_DISK_ACCOUNT, 0);
-
-    // Release the lock we've got
-    lock->inner_buf->lock.unlock();
-    lock->non_locking_access = true;
-    lock->mode = rwi_write;
-
-    cache->assert_thread();
-    return lock;
 }
 
 mc_buf_lock_t::mc_buf_lock_t(mc_transaction_t *transaction) THROWS_NOTHING :

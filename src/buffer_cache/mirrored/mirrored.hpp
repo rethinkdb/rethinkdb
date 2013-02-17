@@ -152,9 +152,6 @@ public:
     mc_buf_lock_t();
     ~mc_buf_lock_t();
 
-    // Special construction for patch_disk_storage_t
-    static mc_buf_lock_t * acquire_non_locking_lock(mc_cache_t *cache, const block_id_t block_id);
-
     // Swaps this mc_buf_lock_t with another, thus obeying RAII since one
     // mc_buf_lock_t owns up to one mc_inner_buf_t at a time.
     void swap(mc_buf_lock_t& swapee);
