@@ -839,6 +839,9 @@ void mc_buf_lock_t::ensure_flush() {
         // Make sure that the buf is marked as dirty
         inner_buf->writeback_buf().set_dirty();
         inner_buf->data_token.reset();
+    } else {
+        guarantee(inner_buf->writeback_buf().get_dirty());
+        guarantee(!inner_buf->data_token.has());
     }
 }
 
