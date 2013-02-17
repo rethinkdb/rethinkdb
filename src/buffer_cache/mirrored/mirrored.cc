@@ -765,11 +765,6 @@ void mc_buf_lock_t::apply_patch(buf_patch_t *_patch) {
     scoped_ptr_t<buf_patch_t> patch(_patch);
 
     patch->apply_to_buf(reinterpret_cast<char *>(data), inner_buf->cache->get_block_size());
-    inner_buf->writeback_buf().set_dirty();
-    // Invalidate the token
-    inner_buf->data_token.reset();
-
-    // We just flush everything instead of storing patches.
     ensure_flush();
 }
 
@@ -785,8 +780,6 @@ void *mc_buf_lock_t::get_data_major_write() {
 
     inner_buf->assert_thread();
 
-    // Invalidate the token
-    inner_buf->data_token.reset();
     ensure_flush();
 
     return data;
