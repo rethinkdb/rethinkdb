@@ -1164,10 +1164,8 @@ mc_cache_account_t::~mc_cache_account_t() {
  * Cache implementation.
  */
 
-void mc_cache_t::create(serializer_t *serializer, mirrored_cache_static_config_t *config) {
+void mc_cache_t::create(serializer_t *serializer) {
     /* Initialize config block and differential log */
-
-    patch_disk_storage_t::create(serializer, MC_CONFIGBLOCK_ID, config);
 
     /* Write an empty superblock */
 

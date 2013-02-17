@@ -59,14 +59,14 @@ void server_test_helper_t::setup_server_and_run_tests() {
 }
 
 void server_test_helper_t::run_serializer_tests() {
-    mirrored_cache_static_config_t cache_static_cfg;
-    cache_t::create(this->serializer, &cache_static_cfg);
+    cache_t::create(this->serializer);
     mirrored_cache_config_t cache_cfg;
     cache_cfg.flush_timer_ms = MILLION;
     cache_cfg.flush_dirty_size = BILLION;
     cache_cfg.max_size = GIGABYTE;
     cache_t cache(this->serializer, &cache_cfg, &get_global_perfmon_collection());
 
+    // TODO(patch): What if we drop this line?
     nap(200);   // to let patch_disk_storage do writeback.sync();
 
     run_tests(&cache);

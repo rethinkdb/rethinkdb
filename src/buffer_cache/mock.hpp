@@ -128,7 +128,7 @@ public:
     typedef mock_transaction_t transaction_type;
     typedef mock_cache_account_t cache_account_type;
 
-    static void create(serializer_t *serializer, mirrored_cache_static_config_t *static_config);
+    static void create(serializer_t *serializer);
     mock_cache_t(serializer_t *serializer, mirrored_cache_config_t *dynamic_config, perfmon_collection_t *parent);
     ~mock_cache_t();
 

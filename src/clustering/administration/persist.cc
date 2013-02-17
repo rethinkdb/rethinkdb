@@ -240,8 +240,7 @@ void persistent_file_t::construct_serializer_and_cache(const bool create, serial
     }
 
     if (create) {
-        mirrored_cache_static_config_t cache_static_config;
-        cache_t::create(serializer.get(), &cache_static_config);
+        cache_t::create(serializer.get());
     }
 
     cache_dynamic_config.wait_for_flush = true;         // flush to disk immediately on change

@@ -17,8 +17,7 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
       perfmon_collection(),
       perfmon_collection_membership(parent_perfmon_collection, &perfmon_collection, perfmon_name) {
     if (create) {
-        mirrored_cache_static_config_t cache_static_config;
-        cache_t::create(serializer, &cache_static_config);
+        cache_t::create(serializer);
     }
 
     // TODO: Don't specify cache dynamic config here.

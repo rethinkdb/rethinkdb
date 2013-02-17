@@ -174,19 +174,15 @@ void scc_transaction_t<inner_cache_t>::get_subtree_recencies(block_id_t *block_i
 /* Cache */
 
 template<class inner_cache_t>
-void scc_cache_t<inner_cache_t>::create(
-        serializer_t *serializer,
-        mirrored_cache_static_config_t *static_config)
-{
-    inner_cache_t::create(serializer, static_config);
+void scc_cache_t<inner_cache_t>::create(serializer_t *serializer) {
+    inner_cache_t::create(serializer);
 }
 
 template<class inner_cache_t>
 scc_cache_t<inner_cache_t>::scc_cache_t(serializer_t *serializer,
                                         mirrored_cache_config_t *dynamic_config,
                                         perfmon_collection_t *parent)
-    : inner_cache(serializer, dynamic_config, parent) {
-}
+    : inner_cache(serializer, dynamic_config, parent) { }
 
 template<class inner_cache_t>
 block_size_t scc_cache_t<inner_cache_t>::get_block_size() {

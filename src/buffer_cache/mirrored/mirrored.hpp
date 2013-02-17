@@ -20,7 +20,6 @@
 #include "containers/scoped.hpp"
 #include "buffer_cache/mirrored/config.hpp"
 #include "buffer_cache/buf_patch.hpp"
-#include "buffer_cache/mirrored/patch_disk_storage.hpp"
 #include "buffer_cache/mirrored/stats.hpp"
 #include "repli_timestamp.hpp"
 
@@ -48,7 +47,6 @@ class mc_inner_buf_t : public evictable_t,
     friend class writeback_t::local_buf_t;
     friend class page_repl_random_t;
     friend class array_map_t;
-    friend class patch_disk_storage_t;
 
     typedef uint64_t version_id_t;
 
@@ -308,7 +306,6 @@ class mc_cache_t : public home_thread_mixin_t, public serializer_read_ahead_call
     friend class page_repl_random_t;
     friend class evictable_t;
     friend class array_map_t;
-    friend class patch_disk_storage_t;
 
 public:
     typedef mc_buf_lock_t buf_lock_type;
@@ -316,7 +313,7 @@ public:
     typedef mc_cache_account_t cache_account_type;
 
     // TODO: Make these pointers-to-const.
-    static void create(serializer_t *serializer, mirrored_cache_static_config_t *config);
+    static void create(serializer_t *serializer);
     mc_cache_t(serializer_t *serializer, mirrored_cache_config_t *dynamic_config, perfmon_collection_t *);
     ~mc_cache_t();
 
@@ -404,9 +401,6 @@ private:
     int num_live_non_writeback_transactions;
 
     cond_t *to_pulse_when_last_transaction_commits;
-
-    // Pointer, not member, because we need to call its destructor explicitly in our destructor
-    scoped_ptr_t<patch_disk_storage_t> patch_disk_storage;
 
     bool read_ahead_registered;
 

@@ -178,10 +178,7 @@ mock_transaction_t::~mock_transaction_t() {
 
 /* Cache */
 
-// TODO: Why do we take a static_config if we don't use it?
-// (I.i.r.c. we have a similar situation in the mirrored cache.)
-
-void mock_cache_t::create(serializer_t *serializer, UNUSED mirrored_cache_static_config_t *static_config) {
+void mock_cache_t::create(serializer_t *serializer) {
     on_thread_t switcher(serializer->home_thread());
 
     void *superblock = serializer->malloc();
