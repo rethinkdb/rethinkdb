@@ -26,7 +26,6 @@
 #include "buffer_cache/mirrored/writeback.hpp"
 
 #include "buffer_cache/mirrored/page_repl_random.hpp"
-typedef page_repl_random_t page_repl_t;
 
 #include "buffer_cache/mirrored/free_list.hpp"
 
@@ -383,7 +382,7 @@ private:
     scoped_ptr_t<file_account_t> writes_io_account;
 
     array_map_t page_map;
-    page_repl_t page_repl;
+    page_repl_random_t page_repl;
     writeback_t writeback;
     array_free_list_t free_list;
 
