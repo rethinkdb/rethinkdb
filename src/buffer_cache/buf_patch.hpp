@@ -97,45 +97,5 @@ private:
     DISABLE_COPYING(buf_patch_t);
 };
 
-/* Binary patches */
-
-/* memcpy_patch_t copies n bytes from src to the offset dest_offset of a buffer */
-class memcpy_patch_t : public buf_patch_t {
-public:
-    memcpy_patch_t(block_id_t block_id, uint16_t dest_offset, const char *src, uint16_t n);
-    memcpy_patch_t(block_id_t block_id, const char* data, uint16_t data_length);
-
-    virtual ~memcpy_patch_t();
-
-    virtual void apply_to_buf(char* buf_data, block_size_t bs);
-
-protected:
-    virtual void serialize_data(char* destination) const;
-    virtual uint16_t get_data_size() const;
-
-private:
-    uint16_t dest_offset;
-    scoped_array_t<char> src_buf;
-};
-
-/* memove_patch_t moves data from src_offset to dest_offset within a single buffer (with semantics equivalent to memmove()) */
-class memmove_patch_t : public buf_patch_t {
-public:
-    memmove_patch_t(block_id_t block_id, uint16_t dest_offset, uint16_t src_offset, uint16_t n);
-    memmove_patch_t(block_id_t block_id, const char* data, uint16_t data_length);
-
-    virtual void apply_to_buf(char* buf_data, block_size_t bs);
-
-    virtual uint16_t get_data_size() const;
-
-protected:
-    virtual void serialize_data(char* destination) const;
-
-private:
-    uint16_t dest_offset;
-    uint16_t src_offset;
-    uint16_t n;
-};
-
 #endif /* BUFFER_CACHE_BUF_PATCH_HPP_ */
 

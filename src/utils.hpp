@@ -383,6 +383,11 @@ private:
 
 
 
+bool ptr_in_byte_range(const void *p, const void *range_start, size_t size_in_bytes);
+bool range_inside_of_byte_range(const void *p, size_t n_bytes, const void *range_start, size_t size_in_bytes);
+
+
+
 #define STR(x) #x
 #define MSTR(x) STR(x) // Stringify a macro
 #if defined __clang__
