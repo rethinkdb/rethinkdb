@@ -53,15 +53,6 @@ void *mock_buf_lock_t::get_data_major_write() {
     return internal_buf->data;
 }
 
-void mock_buf_lock_t::apply_patch(buf_patch_t *patch) {
-    rassert(access == rwi_write);
-
-    patch->apply_to_buf(reinterpret_cast<char *>(internal_buf->data), internal_buf->cache->block_size);
-    dirty = true;
-
-    delete patch;
-}
-
 void mock_buf_lock_t::set_data(void *dest, const void *src, const size_t n) {
     void *const data = get_data_major_write();
 

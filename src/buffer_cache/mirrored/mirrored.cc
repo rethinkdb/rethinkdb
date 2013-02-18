@@ -752,22 +752,6 @@ void mc_buf_lock_t::set_eviction_priority(eviction_priority_t val) {
     inner_buf->eviction_priority = val;
 }
 
-void mc_buf_lock_t::apply_patch(buf_patch_t *_patch) {
-    assert_thread();
-    rassert(!inner_buf->safe_to_unload()); // If this assertion fails, it probably means that you're trying to access a buf you don't own.
-    rassert(!inner_buf->do_delete);
-    rassert(mode == rwi_write);
-    // TODO (sam): Obviously something's f'd up about this.
-    rassert(inner_buf->data.equals(data));
-    rassert(data, "Probably tried to write to a buffer acquired with !should_load.");
-    rassert(_patch->get_block_id() == inner_buf->block_id);
-
-    scoped_ptr_t<buf_patch_t> patch(_patch);
-
-    patch->apply_to_buf(reinterpret_cast<char *>(data), inner_buf->cache->get_block_size());
-    ensure_flush();
-}
-
 void *mc_buf_lock_t::get_data_major_write() {
     ASSERT_NO_CORO_WAITING;
 
