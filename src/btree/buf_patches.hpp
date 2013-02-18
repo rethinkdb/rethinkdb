@@ -15,25 +15,6 @@ template <class V> class value_sizer_t;
 class key_modification_proof_t;
 
 
-/* Remove a key/value pair from a leaf node */
-class leaf_remove_patch_t : public buf_patch_t {
-public:
-    leaf_remove_patch_t(const block_id_t block_id, const char* data, uint16_t data_length);
-
-    virtual void apply_to_buf(char* buf_data, block_size_t bs);
-
-protected:
-    virtual void serialize_data(char* destination) const;
-    virtual uint16_t get_data_size() const;
-
-private:
-    friend void leaf_patched_remove(buf_lock_t *node, const btree_key_t *key, repli_timestamp_t tstamp, key_modification_proof_t km_proof);
-    leaf_remove_patch_t(block_id_t block_id, repli_timestamp_t block_timestamp, repli_timestamp_t tstamp, const btree_key_t *key);
-
-    repli_timestamp_t timestamp;
-    store_key_t key;
-};
-
 /* Erase a key/value pair from a leaf node, when this is an idempotent
    operation.  Does not leave deletion history behind. */
 class leaf_erase_presence_patch_t : public buf_patch_t {
