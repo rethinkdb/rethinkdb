@@ -15,28 +15,6 @@ template <class V> class value_sizer_t;
 class key_modification_proof_t;
 
 
-/* Insert and/or replace a key/value pair in a leaf node */
-class leaf_insert_patch_t : public buf_patch_t {
-public:
-    leaf_insert_patch_t(block_id_t block_id, const char* data, uint16_t data_length);
-
-    virtual void apply_to_buf(char* buf_data, block_size_t bs);
-
-protected:
-    virtual void serialize_data(char* destination) const;
-    virtual uint16_t get_data_size() const;
-
-private:
-    friend void leaf_patched_insert(value_sizer_t<void> *sizer, buf_lock_t *node, const btree_key_t *key, const void *value, repli_timestamp_t tstamp, key_modification_proof_t km_proof);
-
-    leaf_insert_patch_t(block_id_t block_id, repli_timestamp_t block_timestamp, uint16_t value_size, const void *value, const btree_key_t *key, repli_timestamp_t insertion_time);
-
-    uint16_t value_size;
-    scoped_malloc_t<char> value_buf;
-    store_key_t key;
-    repli_timestamp_t insertion_time;
-};
-
 /* Remove a key/value pair from a leaf node */
 class leaf_remove_patch_t : public buf_patch_t {
 public:

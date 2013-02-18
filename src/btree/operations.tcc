@@ -156,7 +156,13 @@ void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_lo
             population_change = 1;
         }
 
-        leaf_patched_insert(&sizer, &kv_loc->buf, key, kv_loc->value.get(), tstamp, km_proof);
+        leaf::insert(&sizer,
+                     static_cast<leaf_node_t *>(kv_loc->buf.get_data_major_write()),
+                     key,
+                     kv_loc->value.get(),
+                     tstamp,
+                     km_proof);
+
         kv_loc->stats->pm_keys_set.record();
     } else {
         // Delete the value if it's there.
