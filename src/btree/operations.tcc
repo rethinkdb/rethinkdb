@@ -177,8 +177,12 @@ void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_lo
                 population_change = -1;
                 kv_loc->stats->pm_keys_set.record();
             } else {
+                // TODO: Oh god oh god get rid of "expired".
                 // Expirations do an erase, not a delete.
-                leaf_patched_erase_presence(&kv_loc->buf, key, km_proof);
+                leaf::erase_presence(&sizer,
+                                     static_cast<leaf_node_t *>(kv_loc->buf.get_data_major_write()),
+                                     key,
+                                     km_proof);
                 population_change = 0;
                 kv_loc->stats->pm_keys_expired.record();
             }

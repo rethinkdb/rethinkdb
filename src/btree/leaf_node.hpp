@@ -177,7 +177,5 @@ live_iter_t iter_for_whole_leaf(const leaf_node_t *node);
 
 using leaf::leaf_node_t;
 
-void leaf_patched_erase_presence(buf_lock_t *node, const btree_key_t *key, key_modification_proof_t km_proof);
-
 
 #endif  // BTREE_LEAF_NODE_HPP_
