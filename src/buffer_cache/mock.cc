@@ -54,7 +54,7 @@ void *mock_buf_lock_t::get_data_major_write() {
 }
 
 void mock_buf_lock_t::set_data(void *dest, const void *src, const size_t n) {
-    void *const data = get_data_major_write();
+    DEBUG_VAR void *const data = get_data_major_write();
 
     rassert(range_inside_of_byte_range(dest, n, data, internal_buf->cache->block_size.value()));
 
@@ -62,8 +62,8 @@ void mock_buf_lock_t::set_data(void *dest, const void *src, const size_t n) {
 }
 
 void mock_buf_lock_t::move_data(void *dest, const void *src, const size_t n) {
-    void *const data = get_data_major_write();
-    const size_t block_size = internal_buf->cache->block_size.value();
+    DEBUG_VAR void *const data = get_data_major_write();
+    DEBUG_VAR const size_t block_size = internal_buf->cache->block_size.value();
 
     rassert(range_inside_of_byte_range(src, n, data, block_size));
     rassert(range_inside_of_byte_range(dest, n, data, block_size));
