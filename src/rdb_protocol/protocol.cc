@@ -747,12 +747,14 @@ struct write_visitor_t : public boost::static_visitor<void> {
         int res = send_write_message(&stream, &wm);
         guarantee(res == 0);
 
+        scoped_ptr_t<buf_lock_t> sindex_block;
         store->add_sindex(
                 token_pair,
                 c.id,
                 stream.vector(),
                 txn,
                 superblock,
+                &sindex_block,
                 &interruptor);
 
         std::set<uuid_u> uuids_to_acquire;
@@ -761,11 +763,9 @@ struct write_visitor_t : public boost::static_visitor<void> {
         sindex_access_vector_t sindexes;
         store->acquire_sindex_superblocks_for_write(
                 uuids_to_acquire,
-                superblock->get_sindex_block_id(),
-                token_pair,
+                sindex_block.get(),
                 txn,
-                &sindexes,
-                &interruptor);
+                &sindexes);
 
         post_construct_secondary_indexes(btree, txn, superblock, sindexes, &interruptor);
     }

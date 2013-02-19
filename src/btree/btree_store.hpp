@@ -158,6 +158,16 @@ public: // <--- so this is some bullshit right here
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
 
+    void add_sindex(
+        write_token_pair_t *token_pair,
+        uuid_u id,
+        const secondary_index_t::opaque_definition_t &definition,
+        transaction_t *txn,
+        superblock_t *super_block,
+        scoped_ptr_t<buf_lock_t> *sindex_block_out,
+        signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t);
+
     void set_sindexes(
         write_token_pair_t *token_pair,
         const std::map<uuid_u, secondary_index_t> &sindexes,
@@ -243,14 +253,18 @@ public: // <--- so this is some bullshit right here
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
 
+    void acquire_all_sindex_superblocks_for_write(
+            buf_lock_t *sindex_block,
+            transaction_t *txn,
+            sindex_access_vector_t *sindex_sbs_out)
+            THROWS_NOTHING;
+
     void acquire_sindex_superblocks_for_write(
             boost::optional<std::set<uuid_u> > sindexes_to_acquire, //none means acquire all sindexes
-            block_id_t sindex_block_id,
-            write_token_pair_t *token_pair,
+            buf_lock_t *sindex_block,
             transaction_t *txn,
-            sindex_access_vector_t *sindex_sbs_out,
-            signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t);
+            sindex_access_vector_t *sindex_sbs_out)
+            THROWS_NOTHING;
 
     btree_slice_t *get_sindex_slice(uuid_u id) {
         return &(secondary_index_slices.at(id));

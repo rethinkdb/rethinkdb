@@ -259,10 +259,28 @@ void btree_store_t<protocol_t>::add_sindex(
 
     /* Get the sindex block which we will need to modify. */
     scoped_ptr_t<buf_lock_t> sindex_block;
-    acquire_sindex_block_for_write(token_pair, txn, &sindex_block, super_block, interruptor);
+
+    add_sindex(token_pair, id, definition, txn,
+               super_block, &sindex_block,
+               interruptor);
+}
+
+template <class protocol_t>
+void btree_store_t<protocol_t>::add_sindex(
+        write_token_pair_t *token_pair,
+        uuid_u id,
+        const secondary_index_t::opaque_definition_t &definition,
+        transaction_t *txn,
+        superblock_t *super_block,
+        scoped_ptr_t<buf_lock_t> *sindex_block_out,
+        signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t) {
+    assert_thread();
+
+    acquire_sindex_block_for_write(token_pair, txn, sindex_block_out, super_block, interruptor);
 
     secondary_index_t sindex;
-    if (::get_secondary_index(txn, sindex_block.get(), id, &sindex)) {
+    if (::get_secondary_index(txn, sindex_block_out->get(), id, &sindex)) {
         /* sindex was already created. */
         return;
     } else {
@@ -282,7 +300,7 @@ void btree_store_t<protocol_t>::add_sindex(
         // we'll begin postconstruction from here.
         sindex.post_construction_complete = true;
 
-        ::set_secondary_index(txn, sindex_block.get(), id, sindex);
+        ::set_secondary_index(txn, sindex_block_out->get(), id, sindex);
     }
 }
 
@@ -544,29 +562,38 @@ void btree_store_t<protocol_t>::acquire_all_sindex_superblocks_for_write(
         sindex_access_vector_t *sindex_sbs_out,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
-    acquire_sindex_superblocks_for_write(
-            boost::optional<std::set<uuid_u> >(),
-            sindex_block_id, token_pair, txn,
-            sindex_sbs_out, interruptor);
-}
-
-template <class protocol_t>
-void btree_store_t<protocol_t>::acquire_sindex_superblocks_for_write(
-            boost::optional<std::set<uuid_u> > sindexes_to_acquire, //none means acquire all sindexes
-            block_id_t sindex_block_id,
-            write_token_pair_t *token_pair,
-            transaction_t *txn,
-            sindex_access_vector_t *sindex_sbs_out,
-            signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
 
     /* Get the sindex block. */
     scoped_ptr_t<buf_lock_t> sindex_block;
     acquire_sindex_block_for_write(token_pair, txn, &sindex_block, sindex_block_id, interruptor);
 
+    acquire_all_sindex_superblocks_for_write(sindex_block.get(), txn, sindex_sbs_out);
+}
+
+template <class protocol_t>
+void btree_store_t<protocol_t>::acquire_all_sindex_superblocks_for_write(
+        buf_lock_t *sindex_block,
+        transaction_t *txn,
+        sindex_access_vector_t *sindex_sbs_out)
+        THROWS_NOTHING {
+    acquire_sindex_superblocks_for_write(
+            boost::optional<std::set<uuid_u> >(),
+            sindex_block, txn,
+            sindex_sbs_out);
+}
+
+template <class protocol_t>
+void btree_store_t<protocol_t>::acquire_sindex_superblocks_for_write(
+            boost::optional<std::set<uuid_u> > sindexes_to_acquire, //none means acquire all sindexes
+            buf_lock_t *sindex_block,
+            transaction_t *txn,
+            sindex_access_vector_t *sindex_sbs_out)
+            THROWS_NOTHING {
+    assert_thread();
+
     std::map<uuid_u, secondary_index_t> sindexes;
-    ::get_secondary_indexes(txn, sindex_block.get(), &sindexes);
+    ::get_secondary_indexes(txn, sindex_block, &sindexes);
 
     for (std::map<uuid_u, secondary_index_t>::iterator it  = sindexes.begin();
                                                        it != sindexes.end();
@@ -577,14 +604,13 @@ void btree_store_t<protocol_t>::acquire_sindex_superblocks_for_write(
         /* Getting the slice and asserting we're on the right thread. */
         btree_slice_t *sindex_slice = &(secondary_index_slices.at(it->first));
         sindex_slice->assert_thread();
-        /* Check in with the order source. */
-        //order_token_t order_token = order_source.check_in("btree_store_t<" + protocol_t::protocol_name +
-        //                                "::acquire_all_sindex_superblocks_for_write").with_write_mode();
-        //order_token = sindex_slice->pre_begin_txn_checkpoint_.check_through(order_token);
-        /* TODO this order token should probably be passed back up and used. */
 
         guarantee(it->second.post_construction_complete);
 
+        /* Notice this looks like a bug but isn't. This buf_lock_t will indeed
+         * get destructed at the end of this function but passing it to the
+         * real_superblock_t constructor below swaps out its acual lock so it's
+         * just default constructed lock when it gets constructed. */
         buf_lock_t superblock_lock(txn, it->second.superblock, rwi_write);
 
         sindex_sbs_out->push_back(new
