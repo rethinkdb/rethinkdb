@@ -307,7 +307,6 @@ void clear_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock) {
 
 void insert_root(block_id_t root_id, superblock_t* sb) {
     sb->set_root_block_id(root_id);
-    //sb->release(); //XXX it's a little bit weird that we release this from here. RSI let's make sure this is okay
 }
 
 void ensure_stat_block(transaction_t *txn, superblock_t *sb, eviction_priority_t stat_block_eviction_priority) {
