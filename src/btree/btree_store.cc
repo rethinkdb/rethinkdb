@@ -309,23 +309,24 @@ void btree_store_t<protocol_t>::set_sindexes(
         write_token_pair_t *token_pair,
         const std::map<uuid_u, secondary_index_t> &sindexes,
         transaction_t *txn,
-        superblock_t *super_block,
+        superblock_t *superblock,
         value_sizer_t<void> *sizer,
         value_deleter_t *deleter,
+        scoped_ptr_t<buf_lock_t> *sindex_block_out,
+        std::set<uuid_u> *created_sindexes_out,
         signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t) {
+    THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
 
     /* Get the sindex block which we will need to modify. */
-    scoped_ptr_t<buf_lock_t> sindex_block;
-    acquire_sindex_block_for_write(token_pair, txn, &sindex_block, super_block, interruptor);
+    acquire_sindex_block_for_write(token_pair, txn, sindex_block_out, superblock, interruptor);
 
     std::map<uuid_u, secondary_index_t> existing_sindexes;
-    ::get_secondary_indexes(txn, sindex_block.get(), &existing_sindexes);
+    ::get_secondary_indexes(txn, sindex_block_out->get(), &existing_sindexes);
 
     for (std::map<uuid_u, secondary_index_t>::const_iterator it = existing_sindexes.begin(); it != existing_sindexes.end(); ++it) {
         if (!std_contains(sindexes, it->first)) {
-            delete_secondary_index(txn, sindex_block.get(), it->first);
+            delete_secondary_index(txn, sindex_block_out->get(), it->first);
 
             guarantee(std_contains(secondary_index_slices, it->first));
             btree_slice_t *sindex_slice = &(secondary_index_slices.at(it->first));
@@ -365,7 +366,9 @@ void btree_store_t<protocol_t>::set_sindexes(
             // we'll begin postconstruction from here.
             sindex.post_construction_complete = true;
 
-            ::set_secondary_index(txn, sindex_block.get(), it->first, sindex);
+            ::set_secondary_index(txn, sindex_block_out->get(), it->first, sindex);
+
+            created_sindexes_out->insert(it->first);
         }
     }
 }

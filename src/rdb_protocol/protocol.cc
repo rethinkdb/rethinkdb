@@ -1006,7 +1006,18 @@ struct receive_backfill_visitor_t : public boost::static_visitor<void> {
     void operator()(const backfill_chunk_t::sindexes_t &s) const {
         value_sizer_t<rdb_value_t> sizer(txn->cache->get_block_size());
         rdb_value_deleter_t deleter;
-        store->set_sindexes(token_pair, s.sindexes, txn, superblock, &sizer, &deleter, interruptor);
+        scoped_ptr_t<buf_lock_t> sindex_block;
+        std::set<uuid_u> created_sindexes;
+        store->set_sindexes(token_pair, s.sindexes, txn, superblock, &sizer, &deleter, &sindex_block, &created_sindexes, interruptor);
+
+        sindex_access_vector_t sindexes;
+        store->acquire_sindex_superblocks_for_write(
+                created_sindexes,
+                sindex_block.get(),
+                txn,
+                &sindexes);
+
+        post_construct_secondary_indexes(btree, txn, superblock, sindexes, interruptor);
     }
 
 private:

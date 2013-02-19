@@ -172,9 +172,11 @@ public: // <--- so this is some bullshit right here
         write_token_pair_t *token_pair,
         const std::map<uuid_u, secondary_index_t> &sindexes,
         transaction_t *txn,
-        superblock_t *super_block,
+        superblock_t *superblock,
         value_sizer_t<void> *sizer,
         value_deleter_t *deleter,
+        scoped_ptr_t<buf_lock_t> *sindex_block_out,
+        std::set<uuid_u> *created_sindexes_out,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
 
