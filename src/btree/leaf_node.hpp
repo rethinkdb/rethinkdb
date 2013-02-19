@@ -28,27 +28,6 @@ public:
     static key_modification_proof_t real_proof() { return key_modification_proof_t(); }
 };
 
-namespace leaf {
-
-
-// We must maintain timestamps and deletion entries as best we can,
-// with the following limitations.  The number of timestamps stored
-// need not be more than the most `MANDATORY_TIMESTAMPS` recent
-// timestamps.  The deletions stored need not be any more than what is
-// necessary to fill `(block_size - offsetof(leaf_node_t,
-// pair_offsets)) / DELETION_RESERVE_FRACTION` bytes.  For example,
-// with a 4084 block size, if the five most recent operations were
-// deletions of 250-byte keys, we would only be required to store the
-// 2 most recent deletions and the 2 most recent timestamps.
-//
-// These parameters are in the header because some unit tests are
-// based on them.
-const int MANDATORY_TIMESTAMPS = 5;
-const int DELETION_RESERVE_FRACTION = 10;
-
-
-
-
 // The leaf node begins with the following struct layout.
 struct leaf_node_t {
     // The value-type-specific magic value.  It's a bit of a hack, but
@@ -72,6 +51,27 @@ struct leaf_node_t {
     // The pair offsets.
     uint16_t pair_offsets[];
 };
+
+
+namespace leaf {
+
+
+// We must maintain timestamps and deletion entries as best we can,
+// with the following limitations.  The number of timestamps stored
+// need not be more than the most `MANDATORY_TIMESTAMPS` recent
+// timestamps.  The deletions stored need not be any more than what is
+// necessary to fill `(block_size - offsetof(leaf_node_t,
+// pair_offsets)) / DELETION_RESERVE_FRACTION` bytes.  For example,
+// with a 4084 block size, if the five most recent operations were
+// deletions of 250-byte keys, we would only be required to store the
+// 2 most recent deletions and the 2 most recent timestamps.
+//
+// These parameters are in the header because some unit tests are
+// based on them.
+const int MANDATORY_TIMESTAMPS = 5;
+const int DELETION_RESERVE_FRACTION = 10;
+
+
 
 
 
@@ -166,8 +166,6 @@ live_iter_t iter_for_inclusive_lower_bound(const leaf_node_t *node, const btree_
 live_iter_t iter_for_whole_leaf(const leaf_node_t *node);
 
 }  // namespace leaf
-
-using leaf::leaf_node_t;
 
 
 #endif  // BTREE_LEAF_NODE_HPP_
