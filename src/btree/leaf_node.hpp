@@ -25,15 +25,7 @@ class repli_timestamp_t;
 // constructing one of these dummy values.
 class key_modification_proof_t {
 public:
-    bool is_fake() const { return is_fake_; }
-    // TODO: Get rid of fake_proof, and fakeness.
-    static key_modification_proof_t fake_proof() { return key_modification_proof_t(true); }
-
-    static key_modification_proof_t real_proof() { return key_modification_proof_t(false); }
-private:
-
-    explicit key_modification_proof_t(bool fake) : is_fake_(fake) { }
-    bool is_fake_;
+    static key_modification_proof_t real_proof() { return key_modification_proof_t(); }
 };
 
 namespace leaf {

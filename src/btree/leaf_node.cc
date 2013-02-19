@@ -1381,9 +1381,8 @@ MUST_USE bool prepare_space_for_new_entry(value_sizer_t<void> *sizer, leaf_node_
 
 // Inserts a key/value pair into the node.  Hopefully you've already
 // cleaned up the old value, if there is one.
-void insert(value_sizer_t<void> *sizer, leaf_node_t *node, const btree_key_t *key, const void *value, repli_timestamp_t tstamp, DEBUG_VAR key_modification_proof_t km_proof) {
+void insert(value_sizer_t<void> *sizer, leaf_node_t *node, const btree_key_t *key, const void *value, repli_timestamp_t tstamp, UNUSED key_modification_proof_t km_proof) {
     rassert(!is_full(sizer, node, key, value));
-    rassert(!km_proof.is_fake());
 
     /* Make space for the entry itself */
 
@@ -1408,9 +1407,7 @@ void insert(value_sizer_t<void> *sizer, leaf_node_t *node, const btree_key_t *ke
 // This asserts that the key is in the node.  TODO: This means we're
 // already sure the key is in the node, which means we're doing an
 // unnecessary binary search.
-void remove(value_sizer_t<void> *sizer, leaf_node_t *node, const btree_key_t *key, repli_timestamp_t tstamp, DEBUG_VAR key_modification_proof_t km_proof) {
-    rassert(!km_proof.is_fake());
-
+void remove(value_sizer_t<void> *sizer, leaf_node_t *node, const btree_key_t *key, repli_timestamp_t tstamp, UNUSED key_modification_proof_t km_proof) {
     /* Confirm that the key is already in the node */
     DEBUG_VAR int index;
     rassert(find_key(node, key, &index), "remove() called on key that's not in node");
@@ -1438,8 +1435,6 @@ void remove(value_sizer_t<void> *sizer, leaf_node_t *node, const btree_key_t *ke
 
 // Erases the entry for the given key, leaving behind no trace.
 void erase_presence(value_sizer_t<void> *sizer, leaf_node_t *node, const btree_key_t *key, UNUSED key_modification_proof_t km_proof) {
-    // TODO: Maybe we don't want key_modification_proof_t for this function.
-    //XXX according to sam it's safe to remove this assert. To be fair we only trip this from a call siterassert(!km_proof.is_fake());
     int index;
     bool found = find_key(node, key, &index);
 
