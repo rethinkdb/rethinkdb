@@ -764,20 +764,10 @@ void *mc_buf_lock_t::get_data_major_write() {
 
     inner_buf->assert_thread();
 
-    ensure_flush();
-
-    return data;
-}
-
-void mc_buf_lock_t::ensure_flush() {
-    ASSERT_NO_CORO_WAITING;
-    assert_thread();
-
-    // TODO (sam): f'd up
-    rassert(inner_buf->data.equals(data));
-
     inner_buf->writeback_buf().set_dirty();
     inner_buf->data_token.reset();
+
+    return data;
 }
 
 void mc_buf_lock_t::mark_deleted() {
@@ -801,7 +791,7 @@ void mc_buf_lock_t::mark_deleted() {
     data = NULL;
 
     inner_buf->do_delete = true;
-    ensure_flush(); // Disable patch log system for the buffer
+    inner_buf->data_token.reset();
 }
 
 // Personally I'd be happier if these functions took offsets.  That's

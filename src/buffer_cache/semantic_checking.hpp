@@ -61,7 +61,6 @@ public:
     void touch_recency(repli_timestamp_t timestamp);
 
     bool is_acquired() const;
-    void ensure_flush();
     bool is_deleted() const;
     repli_timestamp_t get_recency() const;
 

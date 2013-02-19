@@ -166,9 +166,6 @@ public:
     // Convenience function to move data within the buffer acquired through get_data_read. (similar to memmove)
     void move_data(void* dest, const void* src, size_t n);
 
-    // Makes sure the block itself gets flushed, instead of just the patch log
-    void ensure_flush();
-
     block_id_t get_block_id() const;
 
     bool is_deleted() const;
