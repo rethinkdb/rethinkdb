@@ -178,6 +178,7 @@ const datum_t *env_gc_checkpoint_t::maybe_gc(const datum_t *root) {
     return root;
 }
 const datum_t *env_gc_checkpoint_t::finalize(const datum_t *root) {
+    r_sanity_check(!finalized);
     finalized = true;
     if (root) env->gc(root);
     env->merge_checkpoint();
