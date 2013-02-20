@@ -23,14 +23,14 @@ public:
     const datum_t *get_row(const datum_t *pval);
     datum_t *env_add_ptr(datum_t *d);
 
-    // A wrapper around `_replace` that does error handling correctly.
+    // A wrapper around `p_replace` that does error handling correctly.
     // TODO: Use a variadic template so we can get rid of
     // `_so_the_template_matches` above?
     template<class T>
     const datum_t *replace(const datum_t *d, T t, bool b) {
         rcheck(!use_outdated, "Cannot perform write operations on outdated tables.");
         try {
-            return _replace(d, t, b);
+            return p_replace(d, t, b);
         } catch (const exc_t &e) {
             datum_t *datum = env_add_ptr(new datum_t(datum_t::R_OBJECT));
             std::string err = e.what();
@@ -47,10 +47,10 @@ public:
         }
     }
 private:
-    const datum_t *_replace(const datum_t *orig, const map_wire_func_t &mwf,
-                            bool _so_the_template_matches = false);
-    const datum_t *_replace(const datum_t *orig, func_t *f, bool nondet_ok);
-    const datum_t *_replace(const datum_t *orig, const datum_t *d, bool upsert);
+    const datum_t *p_replace(const datum_t *orig, const map_wire_func_t &mwf,
+                             bool _so_the_template_matches = false);
+    const datum_t *p_replace(const datum_t *orig, func_t *f, bool nondet_ok);
+    const datum_t *p_replace(const datum_t *orig, const datum_t *d, bool upsert);
 
     env_t *env;
     bool use_outdated;
@@ -115,7 +115,7 @@ public:
         int64_t i = as_int();
         T t = static_cast<T>(i);
         rcheck(static_cast<int64_t>(t) == i,
-               strprintf("Integer too large: " PRIi64, i));
+               strprintf("Integer too large: %" PRIi64, i));
         return t;
     }
     int64_t as_int();
