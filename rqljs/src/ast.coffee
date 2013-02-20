@@ -72,7 +72,7 @@ class RDBJavaScript extends RDBOp
 
 class RDBUserError extends RDBOp
     type: tp "STRING -> Error"
-    op: (args) -> throw new RuntimeError args[0].asJSON()
+    op: (args) -> throw new RqlRuntimeError args[0].asJSON()
 
 class RDBImplicitVar extends RDBOp
     type: tp "-> DATUM"
@@ -256,11 +256,11 @@ class RDBZip extends RDBOp
 
 class RDBCoerce extends RDBOp
     type: tp "Top, STRING -> Top"
-    op: new RuntimeError "Not implemented"
+    op: new RqlRuntimeError "Not implemented"
 
 class RDBTypeOf extends RDBOp
     type: tp "Top -> STRING"
-    op: new RuntimeError "Not implemented"
+    op: new RqlRuntimeError "Not implemented"
 
 class RDBUpdate extends RDBOp
     type: tp "StreamSelection, Function(1), {non_atomic_ok:BOOL} -> OBJECT | SingleSelection, Function(1), {non_atomic_ok:BOOL} -> OBJECT"

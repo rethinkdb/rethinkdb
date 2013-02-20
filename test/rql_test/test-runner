@@ -312,8 +312,8 @@ def run():
         run_tests('py', servers)
         servers.restart()
         run_tests('js', servers)
-        servers.restart()
-        run_tests('rb', servers)
+        #servers.restart()
+        #run_tests('rb', servers)
 
 # Run just the tests for the given language, can be called
 # from shell as "./test-runner run_py"

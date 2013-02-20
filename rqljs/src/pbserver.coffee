@@ -53,15 +53,15 @@ class RDBPbServer
             for datum in result
                 response.addResponse @deconstructDatum datum
         catch err
-            unless err instanceof RDBError then throw err
+            unless err instanceof RqlError then throw err
 
             response.setType (
-                if err instanceof RuntimeError
+                if err instanceof RqlRuntimeError
                     Response2.ResponseType.RUNTIME_ERROR
-                else if err instanceof ServerError
-                    Response2.ResponseType.RUNTIME_ERROR
-                else if err instanceof BadQuery
-                    Response2.ResponseType.RUNTIME_ERROR
+                else if err instanceof RqlCompileError
+                    Response2.ResponseType.COMPILE_ERROR
+                else if err instanceof RqlClientError
+                    Response2.ResponseType.CLIENT_ERROR
                 )
 
             response.addResponse @deconstructDatum new RDBPrimitive err.message

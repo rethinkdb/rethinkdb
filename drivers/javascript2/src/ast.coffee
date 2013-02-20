@@ -14,6 +14,8 @@ class TermBase
     run: (conn, cb) ->
         conn._start @, cb
 
+    toString: -> RqlQueryPrinter::printQuery(@)
+
 class RDBVal extends TermBase
     eq: (others...) -> new Eq {}, @, others...
     ne: (others...) -> new Ne {}, @, others...
@@ -99,7 +101,7 @@ class DatumTerm extends RDBVal
                     datum.setType Datum.DatumType.R_STR
                     datum.setRStr @data
                 else
-                    throw new DriverError "Unknown datum value: #{@data}"
+                    throw new RqlDriverError "Unknown datum value: #{@data}"
         term = new Term2
         term.setType Term2.TermType.DATUM
         term.setDatum datum
@@ -265,7 +267,7 @@ class Slice extends RDBOp
 
 class Skip extends RDBOp
     tt: Term2.TermType.SKIP
-    st: 'skip'
+    mt: 'skip'
 
 class Limit extends RDBOp
     tt: Term2.TermType.LIMIT

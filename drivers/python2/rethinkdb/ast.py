@@ -7,6 +7,13 @@ class RDBBase():
     def run(self, c):
         return c._start(self)
 
+    def __str__(self):
+        qp = QueryPrinter(self)
+        return qp.print_query()
+
+    def __repr__(self):
+        return "<RDBBase instance: %s >" % str(self)
+
 class RDBValue(RDBBase):
     def __eq__(self, other):
         return Eq(self, other)

@@ -61,81 +61,90 @@ var tests = []
 var defines = {}
 
 // Connect first to cpp server
-r.connect({port:CPPPORT}, function(err, cpp_conn) {
+r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
 	
 	// Now connect to js server
-	r.connect({port:JSPORT}, function(err, js_conn) {
+	r.connect({port:JSPORT}, function(js_conn_err, js_conn) {
 
 		// Pull a test off the queue and run it
 		function runTest() {
 			var testPair = tests.shift();
-			if (testPair) {
-                var src = testPair[0]
-				try {
-                    with (defines) {
-					    test = eval(src);
-                    }
-				} catch(err) {
-                    console.log("Error "+err.message+" in construction of: "+src)
-                    // continue to next test
+            if (testPair) {
+                if (testPair instanceof Function) {
+                    testPair();
                     runTest();
                     return;
-				}
+                } else {
 
-				var exp_fun = eval(testPair[1]);
-                if (!exp_fun)
-                    exp_fun = function() { return true; };
-
-                if (!(exp_fun instanceof Function))
-                    exp_fun = eq(exp_fun);
-
-				// Run test first on cpp server
-				test.run(cpp_conn, function(cpp_err, cpp_res) {
-                    
-                    // Convert to array if it's a cursor
-                    if (cpp_res instanceof Object && cpp_res.toArray) {
-                        cpp_res.toArray(afterArray);
-                    } else {
-                        afterArray(cpp_err, cpp_res);
+                    var src = testPair[0]
+                    try {
+                        with (defines) {
+                            test = eval(src);
+                        }
+                    } catch(bld_err) {
+                        console.log("Error "+bld_err.message+" in construction of: "+src)
+                        // continue to next test
+                        runTest();
+                        return;
                     }
-					
-                    function afterArray(cpp_err, cpp_res) {
 
-                        // Now run test on js server
-                        test.run(js_conn, function(js_err, js_res) {
+                    var exp_fun = eval(testPair[1]);
+                    if (!exp_fun)
+                        exp_fun = function() { return true; };
 
-                            if (js_res instanceof Object && js_res.toArray) {
-                                js_res.toArray(afterArray2);
-                            } else {
-                                afterArray2(js_err, js_res);
-                            }
+                    if (!(exp_fun instanceof Function))
+                        exp_fun = eq(exp_fun);
 
-                            // Again, convert to array
-                            function afterArray2(js_err, js_res) {
+                    // Run test first on cpp server
+                    test.run(cpp_conn, function(cpp_err, cpp_res) {
+                        
+                        // Convert to array if it's a cursor
+                        if (cpp_res instanceof Object && cpp_res.toArray) {
+                            cpp_res.toArray(afterArray);
+                        } else {
+                            afterArray(cpp_err, cpp_res);
+                        }
+                        
+                        function afterArray(cpp_err, cpp_res) {
 
-                                if (cpp_err) {
-                                    console.log("Error when evaluating on CPP server:");
-                                    console.log(" "+cpp_err.name+": "+cpp_err.message);
-                                } else if (!exp_fun(cpp_res)) {
-                                    console.log(" in CPP version of: "+src)
+                            // Now run test on js server
+                            test.run(js_conn, function(js_err, js_res) {
+
+                                if (js_res instanceof Object && js_res.toArray) {
+                                    js_res.toArray(afterArray2);
+                                } else {
+                                    afterArray2(js_err, js_res);
                                 }
 
-                                if (js_err) {
-                                    console.log("Error when evaluating on JS server:");
-                                    console.log(" "+js_err.name+": "+js_err.message);
-                                } else if (!exp_fun(js_res)) {
-                                    console.log(" in JS version of: "+src)
-                                }
+                                // Again, convert to array
+                                function afterArray2(js_err, js_res) {
 
-                                // Continue to next test. Tests are fully sequential
-                                // so you can rely on previous queries results in
-                                // subsequent tests.
-                                runTest();
-                                return;
-                            }
-                        });
-                    }
-				});
+                                    /*
+                                    if (cpp_err && !exp_fun(cpp_err)) {
+                                        console.log("Error when evaluating on CPP server:");
+                                        console.log(" "+cpp_err.name+": "+cpp_err.message);
+                                    } else if (!exp_fun(cpp_res)) {
+                                        console.log(" in CPP version of: "+src)
+                                    }
+                                    */
+
+                                    if (js_err && !exp_fun(js_err)) {
+                                        console.log("Error when evaluating on JS server:");
+                                        console.log(" "+js_err.name+": "+js_err.message);
+                                    } else if (js_res && !exp_fun(js_res)) {
+                                        console.log(" in JS version of: "+src)
+                                    }
+
+                                    // Continue to next test. Tests are fully sequential
+                                    // so you can rely on previous queries results in
+                                    // subsequent tests.
+                                    runTest();
+                                    return;
+                                }
+                            });
+                        }
+                    });
+                }
 			} else {
 				// We've hit the end of our test list
 				// closing the connection will allow the
@@ -159,9 +168,11 @@ function test(testSrc, resSrc) {
 // Invoked by generated code to define variables to used within
 // subsequent tests
 function define(expr) {
-    with (defines) {
-        eval("defines."+expr);
-    }
+    tests.push(function() {
+        with (defines) {
+            eval("defines."+expr);
+        }
+    });
 }
 
 // Invoked by generated code to support bag comparison on this expected value
@@ -173,5 +184,23 @@ function bag(list) {
     }
 }
 
-True=true;
-False=false;
+// Invoked by generated code to demonstrate expected error output
+function err(err_name, err_msg, err_frames) {
+    return function(other) {
+        if (!(function() {
+            if (!(other instanceof Error)) return false;
+            if (err_name && !(other.name === err_name)) return false;
+            if (err_msg && !(other.msg === err_msg)) return false;
+            if (err_frames && !(eq_test(other.frames, err_frames))) return false;
+            return true;
+        })()) {
+            console.log("Error equivalency failed");
+            console.log("Value:", other, "Expected:", err_name+"("+err_msg+")");
+            return false;
+        }
+        return true;
+    }
+}
+
+True = true;
+False = false;

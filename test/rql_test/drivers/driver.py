@@ -61,6 +61,30 @@ class Dct:
     def __repr__(self):
         return repr(self.dct)
 
+class Err:
+    def __init__(self, err_type=None, err_msg=None, err_frames=None):
+        self.etyp = err_type
+        self.emsg = err_msg
+        self.frames = err_frames
+
+    def __eq__(self, other):
+        if not isinstance(other, Exception):
+            return False
+
+        if self.etyp and self.etyp != other.__class__.__name__:
+            return False
+
+        if self.emsg and self.emsg != other.message:
+            return False
+
+        if self.frames and self.frames != other.frames:
+            return False
+
+        return True
+
+    def __repr__(self):
+        return "%s(%s)" % (self.etyp, repr(self.emsg) or '')
+
 # -- Curried output test functions --
 
 def eq(exp):
@@ -93,15 +117,8 @@ class PyTestDriver:
 
     def run(self, src, expected):
 
-        # Try to build the test
-        try:
-            query = eval(src, dict(globals().items() + self.scope.items()))
-        except Exception as err:
-            print "Python error on construction of query:", str(err), 'in:\n', src
-            return # Can't continue with this test if there is no test query
-
+        # Try to build the expected result
         if expected:
-            # Try to build the expected result
             exp_fun = eval(expected, dict(globals().items() + self.scope.items()))
         else:
             # This test might not have come with an expected result, we'll just ensure it doesn't fail
@@ -111,7 +128,16 @@ class PyTestDriver:
         if not isinstance(exp_fun, types.FunctionType):
             exp_fun = eq(exp_fun)
 
+        # Try to build the test
+        try:
+            query = eval(src, dict(globals().items() + self.scope.items()))
+        except Exception as err:
+            if not exp_fun(err):
+                print "Python error on construction of query:", str(err), 'in:\n', src
+                return # Can't continue with this test if there is no test query
+
         # Try actually running the test
+        '''
         try:
             cppres = query.run(self.cpp_conn)
 
@@ -120,14 +146,17 @@ class PyTestDriver:
                 print " in CPP version of:", src
 
         except Exception as err:
-            print "Error on running of query on CPP server:", str(err), 'in:\n', src
+            if not exp_fun(err):
+                print "Error on running of query on CPP server:", str(err), 'in:\n', src
+        '''
 
         try:
             jsres = query.run(self.js_conn)
             if not exp_fun(jsres):
                 print " in JS version of:", src
         except Exception as err:
-            print "Error on running of query on JS server:", str(err), 'in:\n', src
+            if not exp_fun(err):
+                print "Error on running of query on JS server:", str(err), 'in:\n', src
 
 driver = PyTestDriver()
 driver.connect()
@@ -146,3 +175,6 @@ def define(expr):
 def bag(lst):
     return Bag(lst)
 
+# Emitted test code can call this function to indicate expected error output
+def err(err_type, err_msg=None, frames=None):
+    return Err(err_type, err_msg, frames)
