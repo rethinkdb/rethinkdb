@@ -122,8 +122,8 @@ private:
     bool gc_callback(const datum_t *el);
     void gc(const datum_t *root);
 
-    ptr_bag_t *get_bag(); // gets the top bag
-    ptr_bag_t **get_bag_ptr();
+    ptr_bag_t *current_bag(); // gets the top bag
+    ptr_bag_t **current_bag_ptr();
     std::vector<ptr_bag_t *> bags;
 
 public:
@@ -143,25 +143,8 @@ public:
         directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
         boost::shared_ptr<js::runner_t> _js_runner,
         signal_t *_interruptor,
-        uuid_u _this_machine)
-        : next_gensym_val(-2),
-          implicit_depth(0),
-          pool(_pool_group->get()),
-          ns_repo(_ns_repo),
-          namespaces_semilattice_metadata(_namespaces_semilattice_metadata),
-          databases_semilattice_metadata(_databases_semilattice_metadata),
-          semilattice_metadata(_semilattice_metadata),
-          directory_read_manager(_directory_read_manager),
-          js_runner(_js_runner),
-          interruptor(_interruptor),
-          this_machine(_this_machine) {
-        guarantee(js_runner);
-        bags.push_back(new ptr_bag_t());
-    }
-    ~env_t() {
-        guarantee(bags.size() == 1);
-        delete bags[0];
-    }
+        uuid_u _this_machine);
+    ~env_t();
 
     extproc::pool_t *pool;      // for running external JS jobs
     namespace_repo_t<rdb_protocol_t> *ns_repo;
@@ -178,32 +161,8 @@ public:
 
     // Semilattice modification functions
     void join_and_wait_to_propagate(
-            const cluster_semilattice_metadata_t &metadata_to_join)
-            THROWS_ONLY(interrupted_exc_t) {
-        cluster_semilattice_metadata_t sl_metadata;
-        {
-            on_thread_t switcher(semilattice_metadata->home_thread());
-            semilattice_metadata->join(metadata_to_join);
-            sl_metadata = semilattice_metadata->get();
-        }
-
-        boost::function<bool (const cow_ptr_t<ns_metadata_t> s)> p = boost::bind(
-            &is_joined<cow_ptr_t<ns_metadata_t > >,
-            _1,
-            sl_metadata.rdb_namespaces
-        );
-
-        {
-            on_thread_t switcher(namespaces_semilattice_metadata->home_thread());
-        namespaces_semilattice_metadata->run_until_satisfied(p,
-                interruptor);
-        databases_semilattice_metadata->run_until_satisfied(
-                boost::bind(&is_joined<databases_semilattice_metadata_t>,
-                _1,
-                sl_metadata.databases),
-                interruptor);
-        }
-    }
+        const cluster_semilattice_metadata_t &metadata_to_join)
+        THROWS_ONLY(interrupted_exc_t);
 
 private:
     // Ideally this would be a scoped_ptr_t<js::runner_t>. We used to copy

@@ -65,7 +65,7 @@ bool env_t::gc_callback(const datum_t *el) {
     return false;
 }
 void env_t::gc(const datum_t *root) {
-    old_bag = get_bag();
+    old_bag = current_bag();
     scoped_ptr_t<ptr_bag_t> _new_bag(new ptr_bag_t);
     new_bag = _new_bag.get();
     // debugf("GC {\n");
@@ -76,12 +76,12 @@ void env_t::gc(const datum_t *root) {
     // debugf("  old_bag: %s\n", old_bag->print_debug().c_str());
     // debugf("  new_bag: %s\n", new_bag->print_debug().c_str());
     // debugf("}\n");
-    *get_bag_ptr() = _new_bag.release();
+    *current_bag_ptr() = _new_bag.release();
     delete old_bag;
 }
 
-ptr_bag_t *env_t::get_bag() { return *get_bag_ptr(); }
-ptr_bag_t **env_t::get_bag_ptr() {
+ptr_bag_t *env_t::current_bag() { return *current_bag_ptr(); }
+ptr_bag_t **env_t::current_bag_ptr() {
     r_sanity_check(bags.size() > 0);
     return &bags[bags.size()-1];
 }
@@ -166,12 +166,12 @@ env_gc_checkpoint_t::~env_gc_checkpoint_t() {
     }
 }
 const datum_t *env_gc_checkpoint_t::maybe_gc(const datum_t *root) {
-    if (env->get_bag()->mem_estimate() > gen1) {
+    if (env->current_bag()->mem_estimate() > gen1) {
         env->gc(root);
         env->merge_checkpoint();
-        if (env->get_bag()->mem_estimate() > gen2) {
+        if (env->current_bag()->mem_estimate() > gen2) {
             env->gc(root);
-            if (env->get_bag()->mem_estimate() > (gen2 * 2 / 3)) gen2 *= 4;
+            if (env->current_bag()->mem_estimate() > (gen2 * 2 / 3)) gen2 *= 4;
         }
         env->checkpoint();
     }
@@ -185,6 +185,71 @@ const datum_t *env_gc_checkpoint_t::finalize(const datum_t *root) {
     if (root) env->gc(root);
     env->merge_checkpoint();
     return root;
+}
+
+void env_t::join_and_wait_to_propagate(
+    const cluster_semilattice_metadata_t &metadata_to_join)
+    THROWS_ONLY(interrupted_exc_t) {
+    cluster_semilattice_metadata_t sl_metadata;
+    {
+        on_thread_t switcher(semilattice_metadata->home_thread());
+        semilattice_metadata->join(metadata_to_join);
+        sl_metadata = semilattice_metadata->get();
+    }
+
+    boost::function<bool (const cow_ptr_t<ns_metadata_t> s)> p = boost::bind(
+        &is_joined<cow_ptr_t<ns_metadata_t > >,
+        _1,
+        sl_metadata.rdb_namespaces
+    );
+
+    {
+        on_thread_t switcher(namespaces_semilattice_metadata->home_thread());
+        namespaces_semilattice_metadata->run_until_satisfied(p,
+                                                             interruptor);
+        databases_semilattice_metadata->run_until_satisfied(
+            boost::bind(&is_joined<databases_semilattice_metadata_t>,
+                        _1,
+                        sl_metadata.databases),
+            interruptor);
+    }
+}
+
+env_t::env_t(
+    extproc::pool_group_t *_pool_group,
+    namespace_repo_t<rdb_protocol_t> *_ns_repo,
+
+    clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >
+    _namespaces_semilattice_metadata,
+
+    clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >
+    _databases_semilattice_metadata,
+    boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
+    _semilattice_metadata,
+    directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
+    boost::shared_ptr<js::runner_t> _js_runner,
+    signal_t *_interruptor,
+    uuid_u _this_machine)
+  : next_gensym_val(-2),
+    implicit_depth(0),
+    pool(_pool_group->get()),
+    ns_repo(_ns_repo),
+    namespaces_semilattice_metadata(_namespaces_semilattice_metadata),
+    databases_semilattice_metadata(_databases_semilattice_metadata),
+    semilattice_metadata(_semilattice_metadata),
+    directory_read_manager(_directory_read_manager),
+    js_runner(_js_runner),
+    interruptor(_interruptor),
+    this_machine(_this_machine) {
+
+    guarantee(js_runner);
+    bags.push_back(new ptr_bag_t());
+
+}
+
+env_t::~env_t() {
+    guarantee(bags.size() == 1);
+    delete bags[0];
 }
 
 } // namespace ql

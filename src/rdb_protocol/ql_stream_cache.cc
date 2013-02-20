@@ -52,17 +52,7 @@ bool stream_cache2_t::serve(int64_t key, Response2 *res, signal_t *interruptor) 
 }
 
 void stream_cache2_t::maybe_evict() {
-    // TODO: If we ever support eviction, port this to new query language.
-
-    // time_t cur_time = time(0);
-    // std::map<int64_t, entry_t>::iterator it_old, it = streams.begin();
-    // while (it != streams.end()) {
-    //     it_old = it++;
-    //     entry_t *entry = &it_old->second;
-    //     if (entry->max_age && cur_time - entry->last_activity > entry->max_age) {
-    //         streams.erase(it_old);
-    //     }
-    // }
+    // We never evict right now.
 }
 
 /*******************************************************************************
