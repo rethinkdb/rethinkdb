@@ -1,17 +1,27 @@
 import ql2_pb2 as p
 
-class RDBError(Exception):
+class RqlError(Exception):
     def __init__(self, message, term, frames):
         self.message = message
-        self.query_printer = QueryPrinter(term, frames)
+        self.frames = [frame.pos if frame.type is p.Response2.Frame.POS else frame.opt for frame in frames]
+        self.query_printer = QueryPrinter(term, self.frames)
 
     def __str__(self):
-        return self.err_name+": "+self.message+" in:\n"+self.query_printer.print_query()+'\n'+self.query_printer.print_carrots()
-    
-class RuntimeError(RDBError):
-    err_name = "RuntimeError"
+        return self.__class__.__name__+": "+self.message+" in:\n"+self.query_printer.print_query()+'\n'+self.query_printer.print_carrots()
 
-class DriverError(Exception):
+    def __repr__(self):
+        return self.__class__.__name__+"("+repr(self.message)+")"
+
+class RqlClientError(RqlError):
+    pass
+
+class RqlCompileError(RqlError):
+    pass
+    
+class RqlRuntimeError(RqlError):
+    pass
+
+class RqlDriverError(Exception):
     def __init__(self, message):
         self.message = message
 
@@ -19,9 +29,9 @@ class DriverError(Exception):
         return "Driver error: "+self.message
 
 class QueryPrinter:
-    def __init__(self, root, frames):
+    def __init__(self, root, frames=[]):
         self.root = root
-        self.frames = [frame.pos if frame.type is p.Response2.Frame.POS else frame.opt for frame in frames]
+        self.frames = frames
 
     def print_query(self):
         return ''.join(self.compose_term(self.root))

@@ -72,7 +72,7 @@ class RDBJavaScript extends RDBOp
 
 class RDBUserError extends RDBOp
     type: tp "STRING -> Error"
-    op: (args) -> throw new RuntimeError args[0].asJSON()
+    op: (args) -> throw new RqlRuntimeError args[0].asJSON()
 
 class RDBImplicitVar extends RDBOp
     type: tp "-> DATUM"
@@ -231,32 +231,36 @@ class RDBNth extends RDBOp
     op: (args) -> args[0].nth args[1]
 
 class RDBGroupedMapReduce extends RDBOp
-    type: tp "Sequence, Function(1), Function(1) Function(2) -> Sequence"
+    type: tp "Sequence, Function(1), Function(1), Function(2) -> Sequence"
     op: (args) -> args[0].groupedMapReduce args[1](1), args[2](2), args[3](3)
 
 class RDBGroupBy extends RDBOp
-    type: tp "Sequence, ARRAY, STRING -> OBJECT"
+    type: tp "Sequence, ARRAY, !OBJECT -> Sequence"
     op: (args) -> args[0].groupBy args[1], args[2]
 
 class RDBInnerJoin extends RDBOp
-    type: tp "Sequence, Sequence -> Function(2) -> Sequence"
+    type: tp "Sequence, Sequence, Function(2) -> Sequence"
     op: (args) -> args[0].innerJoin args[1], args[2](2)
 
 class RDBOuterJoin extends RDBOp
-    type: tp "Sequence, Sequence -> Function(2) -> Sequence"
+    type: tp "Sequence, Sequence, Function(2) -> Sequence"
     op: (args) -> args[0].outerJoin args[1], args[2](2)
 
 class RDBEqJoin extends RDBOp
     type: tp "Sequence, !STRING, Sequence -> Sequence"
-    op: (args, optargs) -> args[0].eqJoin args[1], optargs
+    op: (args, optargs) -> args[0].eqJoin args[1], args[2]
+
+class RDBZip extends RDBOp
+    type: tp "Sequence -> Sequence"
+    op: (args) -> args[0].zip()
 
 class RDBCoerce extends RDBOp
     type: tp "Top, STRING -> Top"
-    op: new RuntimeError "Not implemented"
+    op: new RqlRuntimeError "Not implemented"
 
 class RDBTypeOf extends RDBOp
     type: tp "Top -> STRING"
-    op: new RuntimeError "Not implemented"
+    op: new RqlRuntimeError "Not implemented"
 
 class RDBUpdate extends RDBOp
     type: tp "StreamSelection, Function(1), {non_atomic_ok:BOOL} -> OBJECT | SingleSelection, Function(1), {non_atomic_ok:BOOL} -> OBJECT"

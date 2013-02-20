@@ -7,6 +7,13 @@ class RDBBase():
     def run(self, c):
         return c._start(self)
 
+    def __str__(self):
+        qp = QueryPrinter(self)
+        return qp.print_query()
+
+    def __repr__(self):
+        return "<RDBBase instance: %s >" % str(self)
+
 class RDBValue(RDBBase):
     def __eq__(self, other):
         return Eq(self, other)
@@ -185,11 +192,17 @@ class RDBSequence(RDBBase):
     def outer_join(self, other, predicate):
         return OuterJoin(self, other, predicate)
 
-    def eq_join(self, other, left_attr):
-        return EqJoin(self, other, left_attr)
+    def eq_join(self, left_attr, other):
+        return EqJoin(self, left_attr, other)
 
-    def grouped_map_reduce(self, grouping, mapping, reduction):
-        return GroupedMapReduce(self, grouping, mapping, reduction)
+    def zip(self):
+        return Zip(self)
+
+    def grouped_map_reduce(self, grouping, mapping, data_collector):
+        return GroupedMapReduce(self, grouping, mapping, data_collector)
+
+    def group_by(self, attrs, reduction):
+        return GroupBy(self, attrs, reduction)
 
     def update(self, mapping):
         return Update(self, mapping)
@@ -489,6 +502,10 @@ class GroupedMapReduce(RDBValOp, RDBMethod):
     tt = p.Term2.GROUPED_MAP_REDUCE
     st = 'grouped_map_reduce'
 
+class GroupBy(RDBValOp, RDBMethod):
+    tt = p.Term2.GROUPBY
+    st = 'group_by'
+
 class InnerJoin(RDBSeqOp, RDBMethod):
     tt = p.Term2.INNER_JOIN
     st = 'inner_join'
@@ -500,6 +517,10 @@ class OuterJoin(RDBSeqOp, RDBMethod):
 class EqJoin(RDBSeqOp, RDBMethod):
     tt = p.Term2.EQ_JOIN
     st = 'eq_join'
+
+class Zip(RDBSeqOp, RDBMethod):
+    tt = p.Term2.ZIP
+    st = 'zip'
 
 class Update(RDBOp, RDBMethod):
     tt = p.Term2.UPDATE

@@ -2,17 +2,26 @@ goog.provide("rethinkdb.errors")
 
 goog.require("rethinkdb.base")
 
-class DriverError extends Error
+class RqlDriverError extends Error
     constructor: (msg) ->
-        @name = "DriverError"
+        @name = @constructor.name
         @message = msg
 
-class ServerError extends Error
+class RqlServerError extends Error
     constructor: (msg, term, frames) ->
-        @name = "RuntimeError"
-        @message = "#{msg} in:\n#{printQuery(term)}\n#{printCarrots(term, frames)}"
+        @name = @constructor.name
+        @msg = msg
+        @frames = frames[0..]
+        @message = "#{msg} in:\n#{RqlQueryPrinter::printQuery(term)}\n#{RqlQueryPrinter::printCarrots(term, frames)}"
 
-    printQuery = (term) ->
+class RqlRuntimeError extends RqlServerError
+
+class RqlCompileError extends RqlServerError
+
+class RqlClientError extends RqlServerError
+
+class RqlQueryPrinter
+    printQuery: (term) ->
         tree = composeTerm(term)
         joinTree tree
 
@@ -23,7 +32,7 @@ class ServerError extends Error
             optargs[key] = composeTerm(arg)
         term.compose(args, optargs)
 
-    printCarrots = (term, frames) ->
+    printCarrots: (term, frames) ->
         tree = composeCarrots(term, frames)
         (joinTree tree).replace(/[^\^]/g, ' ')
 
@@ -49,7 +58,7 @@ class ServerError extends Error
             carrotify(term.compose(args, optargs))
 
     carrotify = (tree) -> (joinTree tree).replace(/[^\^]/g, '^')
-    
+
     joinTree = (tree) ->
         str = ''
         for term in tree
@@ -58,6 +67,3 @@ class ServerError extends Error
             else
                 str += term
         return str
-
-class RuntimeError extends ServerError
-    errName = "RuntimeError"

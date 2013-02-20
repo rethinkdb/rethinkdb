@@ -1,27 +1,27 @@
 goog.provide('rethinkdb.Errors')
 
-class RDBError extends Error
+class RqlError extends Error
 
-class ServerError extends RDBError
+class RqlServerError extends RqlError
     constructor: (msg) ->
-        @name = "Server Error"
+        @name = "RqlServerError"
         @message = msg
         @backtrace = []
 
-class RuntimeError extends RDBError
+class RqlClientError extends RqlError
     constructor: (msg) ->
-        @name = "Runtime error"
+        @name = "RqlClientError"
         @message = msg
         @backtrace = []
 
-class TypeError extends RuntimeError
+class RqlCompileError extends RqlError
     constructor: (msg) ->
-        @name = "TypeError"
+        @name = "RqlCompileError"
         @message = msg
         @backtrace = []
 
-class BadQuery extends RDBError
+class RqlRuntimeError extends RqlError
     constructor: (msg) ->
-        @name = "Bad Query"
+        @name = "RqlRuntimeError"
         @message = msg
         @backtrace = []

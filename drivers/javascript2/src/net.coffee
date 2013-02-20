@@ -30,7 +30,7 @@ class Connection
             @_error = => # Clear failed to connect callback
             callback null, @
 
-        @_error = => callback new DriverError "Could not connect to server"
+        @_error = => callback new RqlDriverError "Could not connect to server"
 
     _data: (buf) ->
         # Buffer data, execute return results if need be
@@ -56,14 +56,14 @@ class Connection
 
     mkSeq = (response) -> (DatumTerm.deconstruct res for res in response.responseArray())
 
-    mkErr = (response, root) ->
+    mkErr = (ErrClass, response, root) ->
         msg = mkAtom response
         bt = for frame in response.backtraceArray()
                 if frame.getType() is Response2.Frame.FrameType.POS
                     parseInt frame.getPos()
                 else
                     frame.getOpt()
-        new RuntimeError msg, root, bt
+        new ErrClass msg, root, bt
 
     _delQuery: (token) ->
         # This query is done, delete this cursor
@@ -78,13 +78,13 @@ class Connection
         if cb
             # Behavior varies considerably based on response type
             if response.getType() is Response2.ResponseType.COMPILE_ERROR
-                cb mkErr(response, root)
+                cb mkErr(RqlCompileError, response, root)
                 @_delQuery(token)
             else if response.getType() is Response2.ResponseType.CLIENT_ERROR
-                cb mkErr(response, root)
+                cb mkErr(RqlClientErr, response, root)
                 @_delQuery(token)
             else if response.getType() is Response2.ResponseType.RUNTIME_ERROR
-                cb mkErr(response, root)
+                cb mkErr(RqlRuntimeError, response, root)
                 @_delQuery(token)
             else if response.getType() is Response2.ResponseType.SUCCESS_ATOM
                 cb null, mkAtom(response)
@@ -97,9 +97,9 @@ class Connection
                 cb null, cursor._endData(mkSeq response)
                 @_delQuery(token)
             else
-                cb new DriverError "Unknown response type"
+                cb new RqlDriverError "Unknown response type"
         else
-            @_error new DriverError "Unknown token in response"
+            @_error new RqlDriverError "Unknown token in response"
 
     close: ->
         @open = false
@@ -109,7 +109,7 @@ class Connection
         @close()
 
     _start: (term, cb) ->
-        unless @open then throw DriverError "Connection closed"
+        unless @open then throw RqlDriverError "Connection closed"
 
         # Assign token
         token = ''+@nextToken
@@ -158,7 +158,7 @@ class TcpConnection extends Connection
 
     constructor: (host, callback) ->
         unless TcpConnection.isAvailable()
-            throw new DriverError "TCP sockets are not available in this environment"
+            throw new RqlDriverError "TCP sockets are not available in this environment"
 
         super(host, callback)
 
@@ -204,7 +204,7 @@ class HttpConnection extends Connection
     @isAvailable: -> typeof XMLHttpRequest isnt "undefined"
     constructor: (host, callback) ->
         unless HttpConnection.isAvailable()
-            throw new DriverError "XMLHttpRequest is not available in this environment"
+            throw new RqlDriverError "XMLHttpRequest is not available in this environment"
 
         super(host, callback)
 
@@ -259,12 +259,13 @@ rethinkdb.connect = (host, callback) ->
     else if HttpConnection.isAvailable()
         new HttpConnection host, callback
     else
-        throw new DriverError "Neither TCP nor HTTP avaiable in this environment"
+        throw new RqlDriverError "Neither TCP nor HTTP avaiable in this environment"
+    return
 
 rethinkdb.embeddedConnect = (callback) ->
     unless callback? then callback = (->)
     unless EmbeddedConnection.isAvailable()
-        throw new DriverError "Embedded connection not available in this environment"
+        throw new RqlDriverError "Embedded connection not available in this environment"
     new EmbeddedConnection new RDBPbServer, callback
 
 bufferConcat = (buf1, buf2) ->

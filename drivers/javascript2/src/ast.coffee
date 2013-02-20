@@ -14,6 +14,8 @@ class TermBase
     run: (conn, cb) ->
         conn._start @, cb
 
+    toString: -> RqlQueryPrinter::printQuery(@)
+
 class RDBVal extends TermBase
     eq: (others...) -> new Eq {}, @, others...
     ne: (others...) -> new Ne {}, @, others...
@@ -40,26 +42,27 @@ class RDBVal extends TermBase
     without: (fields...) -> new Without {}, @, fields...
     merge: (other) -> new Merge {}, @, other
     between: (left, right) -> new Between {left_bound:left, right_bound:right}, @
-    reduce: (func, base) -> new Reduce {base:base}, @, func
-    map: (func) -> new Map {}, @, func
-    filter: (predicate) -> new Filter {}, @, predicate
-    concatMap: (func) -> new ConcatMap {}, @, func
+    reduce: (func, base) -> new Reduce {base:base}, @, new Func({}, func)
+    map: (func) -> new Map {}, @, new Func({}, func)
+    filter: (predicate) -> new Filter {}, @, new Func({}, predicate)
+    concatMap: (func) -> new ConcatMap {}, @, new Func({}, func)
     orderBy: (fields...) -> new OrderBy {}, @, fields...
     distinct: -> new Distinct {}, @
     count: -> new Count {}, @
     union: (others...) -> new Union {}, @, others...
     nth: (index) -> new Nth {}, @, index
     groupedMapReduce: (group, map, reduce) -> new GroupedMapReduce {}, @, group, map, reduce
-    groupBy: -> throw DriverError "Not implemented"
+    groupBy: (attrs, collector) -> new GroupBy {}, @, attrs, collector
     innerJoin: (other, predicate) -> new InnerJoin {}, @, other, predicate
     outerJoin: (other, predicate) -> new OuterJoin {}, @, other, predicate
-    eqJoin: (other, left, right) -> new InnerJoin {left_attr:left, right_attr:right}, @, other
+    eqJoin: (left_attr, right) -> new EqJoin {}, @, left_attr, right
+    zip: -> new Zip {}, @
     coerce: (type) -> new Coerce {}, @, type
     typeOf: -> new TypeOf {}, @
-    update: (func) -> new Update {}, @, func
+    update: (func) -> new Update {}, @, new Func({}, func)
     delete: -> new Delete {}, @
-    replace: (func) -> new Replace {}, @, func
-    do: (func) -> new FunCall {}, func, @
+    replace: (func) -> new Replace {}, @, new Func({}, func)
+    do: (func) -> new FunCall {}, new Func({}, func), @
 
     or: (others...) -> new Any {}, @, others...
     and: (others...) -> new All {}, @, others...
@@ -98,7 +101,7 @@ class DatumTerm extends RDBVal
                     datum.setType Datum.DatumType.R_STR
                     datum.setRStr @data
                 else
-                    throw new DriverError "Unknown datum value: #{@data}"
+                    throw new RqlDriverError "Unknown datum value: #{@data}"
         term = new Term2
         term.setType Term2.TermType.DATUM
         term.setDatum datum
@@ -264,7 +267,7 @@ class Slice extends RDBOp
 
 class Skip extends RDBOp
     tt: Term2.TermType.SKIP
-    st: 'skip'
+    mt: 'skip'
 
 class Limit extends RDBOp
     tt: Term2.TermType.LIMIT
@@ -338,6 +341,10 @@ class GroupBy extends RDBOp
     tt: Term2.TermType.GROUPBY
     mt: 'groupBy'
 
+class GroupBy extends RDBOp
+    tt: Term2.TermType.GROUPBY
+    mt: 'groupBy'
+
 class InnerJoin extends RDBOp
     tt: Term2.TermType.INNER_JOIN
     mt: 'innerJoin'
@@ -349,6 +356,10 @@ class OuterJoin extends RDBOp
 class EqJoin extends RDBOp
     tt: Term2.TermType.EQ_JOIN
     mt: 'eqJoin'
+
+class Zip extends RDBOp
+    tt: Term2.TermType.ZIP
+    mt: 'zip'
 
 class Coerce extends RDBOp
     tt: Term2.TermType.COERCE
@@ -426,16 +437,25 @@ class Func extends RDBOp
     tt: Term2.TermType.FUNC
 
     constructor: (optargs, func) ->
-        args = []
-        argNums = []
-        i = 0
-        while i < func.length
-            argNums.push i
-            args.push new Var {}, i
-            i++
-        body = func.apply({}, args)
-        argsArr = new MakeArray({}, argNums...)
-        return super(optargs, argsArr, body)
+        if func instanceof Function
+            @_lambdExpr = true
+
+            args = []
+            argNums = []
+            i = 0
+            while i < func.length
+                argNums.push i
+                args.push new Var {}, i
+                i++
+            body = func(args...)
+            argsArr = new MakeArray({}, argNums...)
+            return super(optargs, argsArr, body)
+        else
+            @_lambdExpr = false
+            return super(optargs, new MakeArray({}), rethinkdb.expr(func))
 
     compose: (args) ->
-        ['function(', (Var::compose(arg) for arg in args[0][1...-1]), ') { return ', args[1], '; }']
+        if @_lambdExpr
+            ['function(', (Var::compose(arg) for arg in args[0][1...-1]), ') { return ', args[1], '; }']
+        else
+            args[1]

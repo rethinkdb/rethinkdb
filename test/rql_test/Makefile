@@ -19,4 +19,4 @@ $(TEST_FILES): $(YAML_FILES) $(DRIVER_FILES) test-runner
 clean:
 	rm -r build
 
-.PHONY: run clean
+.PHONY: run py js rb clean
