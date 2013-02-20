@@ -48,7 +48,7 @@ $test_count = 0
 $success_count = 0
 
 def test src, expected, name
-  $test_count += 1
+  $test_count += 2
   begin
     query = eval src, $defines
   rescue Exception => e
@@ -57,9 +57,10 @@ def test src, expected, name
   end
 
   begin
-    #TODO: uncomment when it works
-    #do_test query, expected, 'JS', $js_conn, name, src
-    if do_test query, expected, 'CPP', $cpp_conn, name, src
+    if do_test query, expected, $cpp_conn, name + '-CPP', src
+      $success_count += 1
+    end
+    if do_test query, expected, $js_conn, name + '-JS', src
       $success_count += 1
     end
   rescue Exception => e
@@ -71,10 +72,9 @@ at_exit do
   puts "Ruby: #{$success_count} of #{$test_count} tests passed. #{$test_count - $success_count} tests failed."
 end
 
-def do_test query, expected, server, con, name, src
+def do_test query, expected, con, name, src
   begin
-    # TODO: query.run(con)
-    res = query.run
+    res = query.run(con)
   rescue Exception => e
     puts "#{name}: Error: #{e} running query #{src}"
     return false

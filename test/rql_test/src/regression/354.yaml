@@ -18,4 +18,5 @@ tests:
 
     - py: arr.skip(None)
       js: arr.skip(null)
+      rb: arr.skip nil
       ot: err("RqlRuntimeError", "Expected type NUMBER but found NULL.", [1])

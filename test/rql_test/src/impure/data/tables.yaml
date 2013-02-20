@@ -19,6 +19,7 @@ tests:
             }
             return res;
         }())
+      rb: tbl.insert((1..100).map{ |i| { :id => i, :a => i % 4 } })
       ot: ({'inserted':100})
 
     - py: tbl2.insert([{'id':i, 'b':i%4} for i in xrange(100)])
@@ -30,6 +31,7 @@ tests:
             }
             return res;
         }())
+      rb: tbl2.insert((1..100).map{ |i| { :id => i, :b => i % 4 } })
       ot: ({'inserted':100})
 
     # Between
@@ -45,6 +47,7 @@ tests:
     # Filter
     - py: tbl.filter(lambda row:row['a'] > 2).count()
       js: tbl.filter(function(row) { return row('a').gt(2); }).count()
+      rb: tbl.filter{ |row| row[:a] > 2 }.count
       ot: 25
 
     # Map-Reduce
@@ -55,29 +58,35 @@ tests:
       js:
         - tbl.map(function(row) { return row('id'); }).reduce(function(a,b) { return a.add(b); })
         #- tbl.map(r.row('id')).reduce(function(a,b) { return a.add(b); })
+      rb: tbl.map{ |row| row[:id] }.reduce{ |a, b| a + b }
       ot: 4950
 
     # Concat-map
     - py: tbl.concat_map(lambda row:[])
       js: tbl.concatMap(function(row) { return []; })
+      rb: tbl.concat_map{ |row| [] }
       ot: ([])
     - def:
-        py: ccm = tbl.concat_map(lambda row:[row['a'], (row['a'] + 1 % 4)])
+        py: ccm = tbl.concat_map(lambda row:[row['a'], (row['a'] + 1) % 4])
         js: ccm = tbl.concatMap(function(row) { return [row('a'), row('a').add(1).mod(4)]; })
+        rb: ccm = tbl.concat_map{ |row| [row[:a], (row[:a] + 1) % 4] }
     - cd: ccm.count()
       ot: 200
     - py: ccm.reduce(lambda a,b:(a+b) % 4)
       js: ccm.reduce(function(a,b) { return a.add(b).mod(4); })
+      rb: ccm.reduce{ |a, b| (a + b) % 4 }
       ot: 0
 
     # Order by
     - py: tbl.order_by('id')[0]
       js: tbl.orderBy('id').nth(0)
+      rb: tbl.order_by(:id)[0]
       ot: ({'id':0, 'a':0})
 
     # Distinct
     - py: tbl.map(lambda row:row['a']).distinct().count()
       js: tbl.map(function(row) { return row('a'); }).distinct().count()
+      rb: tbl.map{ |row| row[:a] }.distinct.count
       ot: 4
 
     # Union
@@ -92,20 +101,24 @@ tests:
     - def:
         py: ij = tbl.inner_join(tbl2, lambda x,y:x['a'] == y['b']).zip()
         js: ij = tbl.innerJoin(tbl2, function(x, y) { return x('a').eq(y('b')); }).zip()
+        rb: ij = tbl.inner_join(tbl2){ |x, y| x[:a].eq y[:b] }.zip
     - cd: ij.count()
       ot: 2500
     - py: ij.filter(lambda row:row['a'] != row['b']).count()
       js: ij.filter(function(row) { return row('a').ne(row('b')); }).count()
+      rb: ij.filter{ |row| row[:a].ne row[:b] }.count
       ot: 0
 
     # Outer-Join
     - def:
         py: oj = tbl.outer_join(tbl2, lambda x,y:x['a'] == y['b']).zip()
         js: oj = tbl.outerJoin(tbl2, function(x, y) { return x('a').eq(y('b')); }).zip()
+        rb: oj = tbl.outer_join(tbl2){ |x, y| x[:a].eq y[:b] }.zip
     - cd: oj.count()
       ot: 2500
     - py: oj.filter(lambda row:row['a'] != row['b']).count()
       js: oj.filter(function(row) { return row('a').ne(row('b')); }).count()
+      rb: oj.filter{ |row| row[:a].ne row[:b] }
       ot: 0
 
     # Eq-Join
@@ -115,6 +128,7 @@ tests:
 
     # GMR
     - py: tbl.grouped_map_reduce(lambda row:row['a'], lambda row:row['id'], lambda a,b:a + b)
+      rb: tbl.grouped_map_reduce { |row| row[:a] } { |row| row[:id] } { |a, b| a + b}
       js: |
         tbl.groupedMapReduce(function(row) {
             return row('a');
@@ -122,7 +136,7 @@ tests:
             return row('id');
         }, function(a,b) {
             return a.add(b);
-        })
+        }) 
       ot: |
           ([{'group':0, 'reduction':1200},
             {'group':1, 'reduction':1225},

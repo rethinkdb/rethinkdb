@@ -38,14 +38,14 @@ class RDBType
 
     isNull: -> (@ instanceof RDBPrimitive and @asJSON() is null)
 
-    pick:   (attr) -> throw new RuntimeError "Type Error"
-    unpick: (attr) -> throw new RuntimeError "Type Error"
-    merge:  (attr) -> throw new RuntimeError "Type Error"
-    append: (attr) -> throw new RuntimeError "Type Error"
+    pick:   (attr) -> throw new RqlRuntimeError "Type Error"
+    unpick: (attr) -> throw new RqlRuntimeError "Type Error"
+    merge:  (attr) -> throw new RqlRuntimeError "Type Error"
+    append: (attr) -> throw new RqlRuntimeError "Type Error"
 
-    union: (other) -> throw new RuntimeError "Type Error"
-    count:         -> throw new RuntimeError "Type Error"
-    distinct:      -> throw new RuntimeError "Type Error"
+    union: (other) -> throw new RqlRuntimeError "Type Error"
+    count:         -> throw new RqlRuntimeError "Type Error"
+    distinct:      -> throw new RqlRuntimeError "Type Error"
     
     not: -> new ServerError "Abstract method"
 
@@ -72,7 +72,7 @@ class RDBSelection
                 updated = mapping @
                 neu = @.merge updated
                 unless neu[table.primaryKey].eq(@[table.primaryKey]).asJSON()
-                    throw new RuntimeError ""
+                    throw new RqlRuntimeError ""
 
                 if @eq(neu).asJSON()
                     return new RDBObject {'unchanged': 1}
@@ -97,7 +97,7 @@ class RDBSelection
                     table.insert new RDBArray [replacement], true
                     return new RDBObject {'replaced': 1}
                     
-                throw new RuntimeError ""
+                throw new RqlRuntimeError ""
 
             del: ->
                 table.deleteKey @[table.primaryKey].asJSON()

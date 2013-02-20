@@ -26,7 +26,7 @@ class RDBContext
                 return val
             else
                 cur = cur.parent
-        throw new RuntimeError "Var #{varId} is not in scope"
+        throw new RqlRuntimeError "Var #{varId} is not in scope"
 
     bindIvar: (fun) ->
         (row) =>
@@ -39,6 +39,6 @@ class RDBContext
     popImplicitVar: (implicitVar) -> @implicitVarStack.pop implicitVar
 
     getImplicitVar: ->
-        if @implicitVarStack.length > 1 then throw new RuntimeError "ambiguious implicit var"
-        else if @implicitVarStack.length < 1 then throw new RuntimeError "no implicit var"
+        if @implicitVarStack.length > 1 then throw new RqlRuntimeError "ambiguious implicit var"
+        else if @implicitVarStack.length < 1 then throw new RqlRuntimeError "no implicit var"
         else @implicitVarStack[0]

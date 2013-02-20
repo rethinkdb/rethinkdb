@@ -30,6 +30,7 @@ class RDBOp extends RDBNode
                 v = n.eval(context)
                 args.push v
             catch err
+                unless err instanceof RqlError then throw err
                 err.backtrace.unshift i
                 throw err
 
@@ -39,6 +40,7 @@ class RDBOp extends RDBNode
                 v = n.eval(context)
                 optargs[k] = v
             catch err
+                unless err instanceof RqlError then throw err
                 err.backtrace.unshift k
                 throw err
 
