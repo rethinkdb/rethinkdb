@@ -1,7 +1,7 @@
 #include "rdb_protocol/err.hpp"
 
 namespace ql {
-void runtime_check(const char *test, const char *file, int line,
+void runtime_check(UNUSED const char *test, UNUSED const char *file, UNUSED int line,
                    bool pred, std::string msg) {
     if (pred) return;
 #ifndef NDEBUG

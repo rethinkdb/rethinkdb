@@ -18,8 +18,8 @@ void runtime_check(const char *test, const char *file, int line,
 // Use these macros to return errors to users.
 #define rcheck(pred, msg)                                               \
     pred                                                                \
-    ? runtime_check(stringify(pred), __FILE__, __LINE__, true, "NO_ERR") \
-    : runtime_check(stringify(pred), __FILE__, __LINE__, false, msg)
+    ? ql::runtime_check(stringify(pred), __FILE__, __LINE__, true, "NO_ERR") \
+    : ql::runtime_check(stringify(pred), __FILE__, __LINE__, false, msg)
 #define rfail(args...) rcheck(false, strprintf(args))
 
 

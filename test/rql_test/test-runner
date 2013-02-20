@@ -266,7 +266,7 @@ class RethinkDBTestServers:
 
     def start(self): 
         self.cpp_port = self.find_available_port()
-        self.cpp_server = Popen(['../../build/debug_clang/rethinkdb',
+        self.cpp_server = Popen(['../../build/release_clang/rethinkdb',
                                  '--driver-port', str(self.cpp_port - 1), # - 1 is for temp Query2 server
                                  '--http-port=0',
                                  '--cluster-port=0'])
