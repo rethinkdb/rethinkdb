@@ -47,20 +47,6 @@ void *scc_buf_lock_t<inner_cache_t>::get_data_write() {
 }
 
 template<class inner_cache_t>
-void scc_buf_lock_t<inner_cache_t>::set_data(void *dest, const void *src, const size_t n) {
-    rassert(internal_buf_lock.has());
-    has_been_changed = true;
-    internal_buf_lock->set_data(dest, src, n);
-}
-
-template<class inner_cache_t>
-void scc_buf_lock_t<inner_cache_t>::move_data(void *dest, const void *src, const size_t n) {
-    rassert(internal_buf_lock.has());
-    has_been_changed = true;
-    internal_buf_lock->move_data(dest, src, n);
-}
-
-template<class inner_cache_t>
 void scc_buf_lock_t<inner_cache_t>::mark_deleted() {
     rassert(internal_buf_lock.has());
     internal_buf_lock->mark_deleted();
