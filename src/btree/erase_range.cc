@@ -22,7 +22,7 @@ public:
                         const btree_key_t *r_incl,
                         signal_t * /*interruptor*/,
                         int *population_change_out) THROWS_ONLY(interrupted_exc_t) {
-        leaf_node_t *node = reinterpret_cast<leaf_node_t *>(leaf_node_buf->get_data_major_write());
+        leaf_node_t *node = reinterpret_cast<leaf_node_t *>(leaf_node_buf->get_data_write());
 
         std::vector<store_key_t> keys_to_delete;
 

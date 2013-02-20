@@ -156,7 +156,7 @@ void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_lo
         }
 
         leaf::insert(&sizer,
-                     static_cast<leaf_node_t *>(kv_loc->buf.get_data_major_write()),
+                     static_cast<leaf_node_t *>(kv_loc->buf.get_data_write()),
                      key,
                      kv_loc->value.get(),
                      tstamp,
@@ -169,7 +169,7 @@ void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_lo
             if (!expired) {
                 rassert(tstamp != repli_timestamp_t::invalid, "Deletes need a valid timestamp now.");
                 leaf::remove(&sizer,
-                             static_cast<leaf_node_t *>(kv_loc->buf.get_data_major_write()),
+                             static_cast<leaf_node_t *>(kv_loc->buf.get_data_write()),
                              key,
                              tstamp,
                              km_proof);
@@ -179,7 +179,7 @@ void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_lo
                 // TODO: Oh god oh god get rid of "expired".
                 // Expirations do an erase, not a delete.
                 leaf::erase_presence(&sizer,
-                                     static_cast<leaf_node_t *>(kv_loc->buf.get_data_major_write()),
+                                     static_cast<leaf_node_t *>(kv_loc->buf.get_data_write()),
                                      key,
                                      km_proof);
                 population_change = 0;
@@ -196,7 +196,7 @@ void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_lo
 
     //Modify the stats block
     buf_lock_t stat_block(txn, kv_loc->stat_block, rwi_write, buffer_cache_order_mode_ignore);
-    reinterpret_cast<btree_statblock_t *>(stat_block.get_data_major_write())->population += population_change;
+    reinterpret_cast<btree_statblock_t *>(stat_block.get_data_write())->population += population_change;
 }
 
 template <class Value>

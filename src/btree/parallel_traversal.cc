@@ -466,7 +466,7 @@ void process_a_leaf_node(traversal_state_t *state, scoped_ptr_t<buf_lock_t> *buf
         rassert(population_change == 0, "A read only operation claims it change the population of a leaf.\n");
     } else if (population_change != 0) {
         buf_lock_t stat_block(state->transaction_ptr, state->stat_block, rwi_write, buffer_cache_order_mode_ignore);
-        static_cast<btree_statblock_t *>(stat_block.get_data_major_write())->population += population_change;
+        static_cast<btree_statblock_t *>(stat_block.get_data_write())->population += population_change;
     } else {
         //don't aquire the block to not change the value
     }

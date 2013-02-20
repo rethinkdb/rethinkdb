@@ -752,7 +752,7 @@ void mc_buf_lock_t::set_eviction_priority(eviction_priority_t val) {
     inner_buf->eviction_priority = val;
 }
 
-void *mc_buf_lock_t::get_data_major_write() {
+void *mc_buf_lock_t::get_data_write() {
     ASSERT_NO_CORO_WAITING;
 
     rassert(!inner_buf->safe_to_unload()); // If this assertion fails, it probably means that you're trying to access a buf you don't own.
@@ -807,7 +807,7 @@ void mc_buf_lock_t::set_data(void *dest, const void *src, size_t n) {
     }
     rassert(range_inside_of_byte_range(dest, n, data, inner_buf->cache->get_block_size().value()));
 
-    get_data_major_write();
+    get_data_write();
     memcpy(dest, src, n);
 }
 
@@ -822,7 +822,7 @@ void mc_buf_lock_t::move_data(void *dest, const void *src, const size_t n) {
     rassert(range_inside_of_byte_range(src, n, data, inner_buf->cache->get_block_size().value()));
     rassert(range_inside_of_byte_range(dest, n, data, inner_buf->cache->get_block_size().value()));
 
-    get_data_major_write();
+    get_data_write();
     memmove(dest, src, n);
 }
 
