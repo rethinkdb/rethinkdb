@@ -688,8 +688,8 @@ struct write_visitor_t : public boost::static_visitor<void> {
             boost::get<point_replace_response_t>(&response->response);
         // TODO: modify surrounding code so we can dump this const_cast.
         ql::map_wire_func_t *f = const_cast<ql::map_wire_func_t *>(&r.f);
-        rdb_replace(r.primary_key, r.key, f, &ql_env,
-                    res, btree, timestamp, txn, superblock);
+        rdb_replace(btree, timestamp, txn, superblock,
+                    r.primary_key, r.key, f, &ql_env, res);
     }
 
     void operator()(const point_write_t &w) {

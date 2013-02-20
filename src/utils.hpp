@@ -401,4 +401,6 @@ private:
 
 #define NULLPTR (static_cast<void *>(0))
 
+#define DBLPRI "%.20g"
+
 #endif // UTILS_HPP_

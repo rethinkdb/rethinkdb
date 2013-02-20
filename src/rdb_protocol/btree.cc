@@ -153,17 +153,17 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location, const store_
     //                                                                  ^^^^^ That means the key isn't expired.
 }
 
-// QL2 This implements UPDATE, INSERT, DELETE, and REPLACE (each is just a
-// different function passed to this function.)
-void rdb_replace(const std::string &primary_key,
+// QL2 This implements UPDATE, REPLACE, and part of DELETE and INSERT (each is
+// just a different function passed to this function).
+void rdb_replace(btree_slice_t *slice,
+                 repli_timestamp_t timestamp,
+                 transaction_t *txn,
+                 superblock_t *superblock,
+                 const std::string &primary_key,
                  const store_key_t &key,
                  ql::map_wire_func_t *f,
                  ql::env_t *ql_env,
-                 Datum *response,
-                 btree_slice_t *slice,
-                 repli_timestamp_t timestamp,
-                 transaction_t *txn,
-                 superblock_t *superblock) {
+                 Datum *response_out) {
     const ql::datum_t *num_1 = ql_env->add_ptr(new ql::datum_t(1L));
     ql::datum_t *resp = ql_env->add_ptr(new ql::datum_t(ql::datum_t::R_OBJECT));
     try {
@@ -191,6 +191,9 @@ void rdb_replace(const std::string &primary_key,
         const ql::datum_t *new_val = f->compile(ql_env)->call(old_val)->as_datum();
         ended_empty = (new_val->get_type() == ql::datum_t::R_NULL);
 
+        // We use `conflict` below to store whether or not there was a key
+        // conflict when constructing the stats object.  It defaults to `true`
+        // so that we fail an assertion if we never update the stats object.
         bool conflict = true;
         // Figure out what operation we're doing (based on started_empty,
         // ended_empty, and the result of the function call) and then do it.
@@ -233,7 +236,7 @@ void rdb_replace(const std::string &primary_key,
               || resp->add("first_error", ql_env->add_ptr(new ql::datum_t(msg)));
         guarantee(!b);
     }
-    resp->write_to_protobuf(response);
+    resp->write_to_protobuf(response_out);
 }
 
 void rdb_modify(const std::string &primary_key, const store_key_t &key, point_modify_ns::op_t op,
@@ -474,8 +477,8 @@ public:
 
                 return cumulative_size < rget_max_chunk_size;
             } else {
-                // We use garbage collect during the reduction step, since most
-                // reductions throw away most of the allocate data.
+                // We use garbage collection during the reduction step, since
+                // most reductions throw away most of the allocate data.
                 ql::env_gc_checkpoint_t egct(ql_env);
                 int i = 0;
                 json_list_t::iterator jt;

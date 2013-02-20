@@ -13,10 +13,10 @@ datum_t::datum_t(type_t _type, bool _bool) : type(_type), r_bool(_bool) {
     r_sanity_check(_type == R_BOOL);
 }
 datum_t::datum_t(double _num) : type(R_NUM), r_num(_num) {
-    rcheck(std::isfinite(r_num), strprintf("Non-finite number: %.20g", r_num));
+    rcheck(std::isfinite(r_num), strprintf("Non-finite number: " DBLPRI, r_num));
 }
 datum_t::datum_t(int64_t _num) : type(R_NUM), r_num(_num) {
-    rcheck(std::isfinite(r_num), strprintf("Non-finite number: %.20g", r_num));
+    rcheck(std::isfinite(r_num), strprintf("Non-finite number: " DBLPRI, r_num));
 }
 datum_t::datum_t(const std::string &_str) : type(R_STR), r_str(_str) { }
 datum_t::datum_t(const char *cstr) : type(R_STR), r_str(cstr) { }
@@ -44,6 +44,7 @@ void datum_t::init_json(cJSON *json, env_t *env) {
     case cJSON_Number: {
         type = R_NUM;
         r_num = json->valuedouble;
+        r_sanity_check(std::isfinite(r_num));
     } break;
     case cJSON_String: {
         type = R_STR;
@@ -120,7 +121,7 @@ std::string datum_t::print_primary() const {
         }
         // The formatting here is sensitive.  Talk to mlucy before changing it.
         s += strprintf("%.*" PRIx64, static_cast<int>(sizeof(double)*2), packed.u);
-        s += strprintf("#%.20g", as_num());
+        s += strprintf("#" DBLPRI, as_num());
     } else if (type == R_STR) {
         s += "S";
         s += as_str();
@@ -152,10 +153,15 @@ double datum_t::as_num() const {
     check_type(R_NUM);
     return r_num;
 }
+
+static const int64_t max_dbl_int = 0x1L << 53;
+static const int64_t min_dbl_int = max_dbl_int * -1;
 int64_t datum_t::as_int() const {
     double d = as_num();
     int64_t i = d;
-    rcheck(static_cast<double>(i) == d, strprintf("Number not an integer: %.20g", d));
+    rcheck(i <= max_dbl_int, strprintf("Number not an integer (>2^53): " DBLPRI, d));
+    rcheck(i >= min_dbl_int, strprintf("Number not an integer (<-2^53): " DBLPRI, d));
+    rcheck(static_cast<double>(i) == d, strprintf("Number not an integer: " DBLPRI, d));
     return i;
 }
 const std::string &datum_t::as_str() const {

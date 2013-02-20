@@ -34,5 +34,5 @@ runtime if you try to perform an operation that is illegal in their
 current state.
 
 ## Random Notes
-* `%.20g` is the accepted way of printing doubles.
+* `DBLPRI` (`"%.20g"`) is the accepted way of printing doubles.
 * `CATCH_WITH_BT` tacks an extra frame onto an `exc_t` and rethrows.

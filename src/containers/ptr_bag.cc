@@ -34,7 +34,7 @@ void ptr_bag_t::yield_to(ptr_bag_t *new_bag, const ptr_baggable_t *ptr) {
 }
 
 std::string ptr_bag_t::print_debug() const {
-    std::string acc = strprintf("%lu(%lu) [", ptrs.size(), mem_estimate_);
+    std::string acc = strprintf("%zu(%zu) [", ptrs.size(), mem_estimate_);
     for (std::set<ptr_baggable_t *>::const_iterator
              it = ptrs.begin(); it != ptrs.end(); ++it) {
         acc += (it == ptrs.begin() ? "" : ", ") + strprintf("%p", *it);
