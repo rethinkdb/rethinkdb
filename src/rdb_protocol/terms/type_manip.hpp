@@ -90,7 +90,7 @@ private:
         case val_t::type_t::SINGLE_SELECTION:
         case val_t::type_t::DATUM:
         case val_t::type_t::FUNC:
-        default:; // NOLINT
+        default: break;
         }
         switch (t2) {
         case datum_t::R_NULL:
@@ -99,7 +99,7 @@ private:
         case datum_t::R_STR:
         case datum_t::R_ARRAY:
         case datum_t::R_OBJECT:
-        default:; // NOLINT
+        default: break;
         }
     }
 };

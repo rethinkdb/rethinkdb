@@ -75,7 +75,7 @@ val_t *func_t::call(const std::vector<const datum_t *> &args) {
         }
         return body->eval(false);
         //                ^^^^^ don't use cached value
-    } catch (exc_t &e/*NOLINT*/) {
+    } catch (exc_t &e) { // NOLINT (non-const reference)
         r_sanity_check(frame.is_valid());
         e.backtrace.push_front(frame);
         throw;

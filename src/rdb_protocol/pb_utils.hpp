@@ -92,7 +92,7 @@ template<class U>
 void run(const datum_t *d, U arg) { run(*d, arg); }
 template<class T, class U>
 void run(T t, U arg) { run(datum_t(t), arg); }
-} // ndatum_impl
+} // namespace ndatum_impl
 
 #define NDATUM(val) ql::pb::ndatum_impl::run(val, arg)
 

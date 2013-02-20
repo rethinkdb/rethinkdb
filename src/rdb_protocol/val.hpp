@@ -114,7 +114,8 @@ public:
     T as_int() {
         int64_t i = as_int();
         T t = static_cast<T>(i);
-        rcheck(static_cast<int64_t>(t) == i, strprintf("Integer too large: %ld", i));
+        rcheck(static_cast<int64_t>(t) == i,
+               strprintf("Integer too large: " PRIi64, i));
         return t;
     }
     int64_t as_int();
