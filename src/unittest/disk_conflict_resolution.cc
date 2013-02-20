@@ -1,5 +1,5 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
-#include <list>
+#include <vector>
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
@@ -24,14 +24,13 @@ struct test_driver_t {
         fd_t get_fd() const { return fd; }
         void *get_buf() const { return buf; }
         size_t get_count() const { return count; }
-        // TODO: sizeof(off_t) seems to be 8 on linux but let's use int64_t, neh?  Not on 32-bit Linux.
-        off_t get_offset() const { return offset; }
+        int64_t get_offset() const { return offset; }
         void set_successful_due_to_conflict() { }
 
         bool is_read;
         void *buf;
         size_t count;
-        off_t offset;
+        int64_t offset;
 
         core_action_t() :
             has_begun(false), done(false), fd(IRRELEVANT_DEFAULT_FD) { }
@@ -105,7 +104,7 @@ struct test_driver_t {
 
 struct read_test_t {
 
-    read_test_t(test_driver_t *_driver, off_t o, const std::string& e) :
+    read_test_t(test_driver_t *_driver, int64_t o, const std::string &e) :
         driver(_driver),
         offset(o),
         expected(e),
@@ -119,7 +118,7 @@ struct read_test_t {
         driver->submit(&action);
     }
     test_driver_t *driver;
-    off_t offset;
+    int64_t offset;
     std::string expected;
     scoped_array_t<char> buffer;
     test_driver_t::action_t action;
@@ -143,7 +142,7 @@ struct read_test_t {
 
 struct write_test_t {
 
-    write_test_t(test_driver_t *_driver, off_t o, const std::string& d) :
+    write_test_t(test_driver_t *_driver, int64_t o, const std::string &d) :
         driver(_driver),
         offset(o),
         data(d)
@@ -151,15 +150,17 @@ struct write_test_t {
         action.is_read = false;
         action.fd = 0;
         // It's OK to cast away the const; it won't be modified.
-        action.buf = const_cast<void*>(reinterpret_cast<const void*>(d.data()));
+        action.buf = const_cast<void *>(reinterpret_cast<const void *>(d.data()));
         action.count = d.size();
         action.offset = o;
         driver->submit(&action);
     }
+
     test_driver_t *driver;
-    off_t offset;
+    int64_t offset;
     std::string data;
     test_driver_t::action_t action;
+
     bool was_sent() {
         return action.done || action.has_begun;
     }
