@@ -28,6 +28,13 @@ module 'DataExplorerView', ->
             'click #reconnect': 'reconnect'
             'click .more_valid_results': 'show_more_results'
             'click .close': 'close_alert'
+            'click .clear_queries_link': 'clear_history_view'
+            'click .close_queries_link': 'open_close_history'
+
+        clear_history_view: (event) =>
+            @history_view.clear_history event
+        open_close_history: (event) =>
+            @history_view.open_close_history event, @$('.close_queries_link')
 
         displaying_full_view: false # Boolean for the full view (true if full view)
 
@@ -145,7 +152,7 @@ module 'DataExplorerView', ->
         save_query: (query) =>
             query = query.replace(/^\s*$[\n\r]{1,}/gm, '')
             if query[query.length-1] is '\n' or query[query.length-1] is '\r'
-                query.slice 0, query.length-1
+                query = query.slice 0, query.length-1
             if window.localStorage?
                 if @history.length is 0 or @history[@history.length-1] isnt query and @regex.white.test(query) is false
                     @history.push query
@@ -261,7 +268,17 @@ module 'DataExplorerView', ->
                 on_success: @success_on_connect
                 on_fail: @error_on_connect
 
+            $(window).mousemove @handle_mousemove
+            $(window).mouseup @handle_mouseup
             @render()
+
+        handle_mousemove: (event) =>
+            @results_view.handle_mousemove event
+            @history_view.handle_mousemove event
+
+        handle_mouseup: (event) =>
+            @results_view.handle_mouseup event
+            @history_view.handle_mouseup event
 
         render: =>
             @$el.html @template()
@@ -359,9 +376,17 @@ module 'DataExplorerView', ->
                     @last_action_is_paste = true
                     @num_released_keys = 0 # We want to know when the user release Ctrl AND V
                     @hide_suggestion_and_description()
+
+                if event? and event.which is 13 and (event.shiftKey or event.ctrlKey or event.metaKey) # If the user hit enter and (Ctrl or Shift)
+                    @hide_suggestion_and_description()
+                    event.preventDefault()
+                    if event.type isnt 'keydown'
+                        return true
+                    @execute_query()
+                    return true
+
                 if event?.type isnt 'mouseup'
                     return false
-
             if event?.which?
                 if event.which is 27 # ESC
                     @hide_suggestion_and_description()
@@ -405,6 +430,7 @@ module 'DataExplorerView', ->
                     if event.type isnt 'keydown'
                         return true
                     @execute_query()
+                    return true
                 else if (event.ctrlKey or event.metaKey) and event.which is 86 and event.type is 'keydown' # Ctrl + V
                     @last_action_is_paste = true
                     @num_released_keys = 0 # We want to know when the user release Ctrl AND V
@@ -1425,6 +1451,10 @@ module 'DataExplorerView', ->
                         @skip_value += @current_results.length
                         @current_results = []
                         @current_results.push data
+
+                    # Successful query, let's save it in the history
+                    @save_query @raw_query
+
                     return false
             else #  Else if it's not the last query, we just execute the next query
                 try
@@ -1462,10 +1492,8 @@ module 'DataExplorerView', ->
             # postpone reconnection
             @driver_handler.postpone_reconnection()
 
-            query = @codemirror.getValue()
-            # TODO save only successful queries?
-            @save_query query
-            @query = @replace_new_lines_in_query query # Save it because we'll use it in @callback_multilples_queries
+            @raw_query = @codemirror.getValue()
+            @query = @replace_new_lines_in_query @raw_query # Save it because we'll use it in @callback_multilples_queries
             
             # Display the loading gif
             @.$('.loading_query_img').css 'display', 'block'
@@ -1646,6 +1674,9 @@ module 'DataExplorerView', ->
 
             @display_normal()
             $(window).off 'resize', @display_full
+            $(document).unbind 'mousemove', @handle_mousemove
+            $(document).unbind 'mouseup', @handle_mouseup
+
 
             clearTimeout @timeout_driver_connect
             # We do not destroy the cursor, because the user might come back and use it.
@@ -1697,9 +1728,6 @@ module 'DataExplorerView', ->
                 @view = args.view
             else
                 @view = 'tree'
-
-            $(window).mousemove @handle_mousemove
-            $(window).mouseup @handle_mouseup
 
             @last_keys = [] # Arrays of the last keys displayed
             @last_columns_size = {} # Size of the columns displayed. Undefined if a column has the default size
@@ -2038,7 +2066,7 @@ module 'DataExplorerView', ->
                 @start_width = @$(event.target).parent().width()
                 @start_x = event.pageX
                 @mouse_down = true
-                @$('.json_table').toggleClass('resizing', true)
+                $('body').toggleClass('resizing', true)
 
         #TODO Handle when last column is resized or when table expands too much
         handle_mousemove: (event) =>
@@ -2060,9 +2088,10 @@ module 'DataExplorerView', ->
 
 
         handle_mouseup: (event) =>
-            @mouse_down = false
-            @.$('.json_table').toggleClass('resizing', false)
-            @set_scrollbar()
+            if @mouse_down is true
+                @mouse_down = false
+                $('body').toggleClass('resizing', false)
+                @set_scrollbar()
 
         default_size_column: 310 # max-width value of a cell of a table (as defined in the css file)
 
@@ -2247,8 +2276,6 @@ module 'DataExplorerView', ->
                 $('.raw_view_textarea').height(height)
 
         destroy: =>
-            $(document).unbind 'mousemove', @handle_mousemove
-            $(document).unbind 'mouseup', @handle_mouseup
             $(window).unbind 'scroll'
             $(window).unbind 'resize'
 
@@ -2256,20 +2283,32 @@ module 'DataExplorerView', ->
         dataexplorer_history_template: Handlebars.templates['dataexplorer-history-template']
         dataexplorer_query_li_template: Handlebars.templates['dataexplorer-query_li-template']
         dataexplorer_toggle_history_template: Handlebars.templates['dataexplorer-toggle_history-template']
-        dataexplorer_toggle_history_link_template: Handlebars.templates['dataexplorer-toggle_history_link-template']
         className: 'history'
         
         size_history: 100
-        size_history_displayed: 3
+        size_history_displayed: 300
         state: 'hidden' # hidden, visible
         index_displayed: 0
 
         events:
-            'click .clear_queries_link': 'clear_history'
-            'click .close_queries_link': 'open_close_history'
-            'click .previous_queries_link': 'previous_queries'
-            'click .next_queries_link': 'next_queries'
             'click .load_query': 'load_query'
+            'mousedown .nano_border_bottom': 'start_resize'
+
+        start_resize: (event) =>
+            @start_y = event.pageY
+            @start_height = @$('.nano').height()
+            @mouse_down = true
+            $('body').toggleClass('resizing', true)
+
+        handle_mousemove: (event) =>
+            if @mouse_down is true
+                @$('.nano').height Math.max 0, @start_height-@start_y+event.pageY
+
+        handle_mouseup: (event) =>
+            if @mouse_down is true
+                @mouse_down = false
+                $('.nano').nanoScroller({preventPageScrolling: true})
+                $('body').toggleClass('resizing', false)
 
         initialize: (args) =>
             @container = args.container
@@ -2277,6 +2316,16 @@ module 'DataExplorerView', ->
 
         render: =>
             @$el.html @dataexplorer_history_template()
+            if @history.length is 0
+                @$('.history_list').append @dataexplorer_query_li_template
+                    no_query: true
+                    displayed_class: 'displayed'
+            else
+                for query, i in @history
+                    @$('.history_list').append @dataexplorer_query_li_template
+                        query: query
+                        id: i
+                        num: i+1
             @delegateEvents()
             return @
 
@@ -2288,25 +2337,31 @@ module 'DataExplorerView', ->
             @container.save_data_in_localstorage()
 
         add_query: (query) =>
-            # We don't keep state because we consider that people will not fire two differents queries in less than 200ms.
-            # TODO add state because they can still do it (at least I know how to do it :))
-            if @state is 'visible' and @index_displayed+@size_history_displayed >= @history.length-1
-                if @$('.query_history').length > @size_history_displayed-1
-                    @index_displayed++
-                    @$('.query_history:first').slideUp 'fast', ->
-                        @remove()
-                @$('.history_list').show()
-                @$('.no_history').slideUp 'fast', ->
-                    @remove()
-                @$('.history_list').append @dataexplorer_query_li_template
-                    query: query
-                    displayed_class: 'hidden'
-                    id: @history.length-1
-                    num: @history.length
-                @$('.query_history:last').slideDown 'fast'
-                @toggle_previous_and_next()
+            that = @
+            is_at_bottom = @$('.history_list').height() is @$('.nano > .content').scrollTop()+@$('.nano').height()
+            @$('.history_list').append @dataexplorer_query_li_template
+                query: query
+                id: @history.length-1
+                num: @history.length
+            if @state is 'visible'
+                if is_at_bottom is true
+                    $('.nano >.content').animate
+                        scrollTop: @$('.history_list').height()
+                        , 200
+                if @$('.no_history').length isnt 0
+                    @$('.no_history').slideUp 'fast', ->
+                        $(@).remove()
+                    that.resize
+                        extra: -32
+                else
+                    @resize()
+            else
+                if @$('.no_history').length isnt 0
+                    @$('.no_history').show()
+ 
 
         clear_history: (event) =>
+            that = @
             event.preventDefault()
             @container.clear_history()
             @history = @container.history
@@ -2318,113 +2373,54 @@ module 'DataExplorerView', ->
                     no_query: true
                     displayed_class: 'hidden'
                 @$('.no_history').slideDown 'fast'
+                if @state is 'visible'
+                    @resize
+                        size: 32
 
-            @index_displayed = 0
-            @toggle_previous_and_next()
-
-        toggle_previous_and_next: =>
-            @$('.previous_queries_container').show()
-            @$('.next_queries_container').show()
-            if @index_displayed > 0
-                @$('.previous_queries_container').html @dataexplorer_toggle_history_link_template
-                    previous: true
-                    active: true
-            else
-                @$('.previous_queries_container').html @dataexplorer_toggle_history_link_template
-                    previous: true
-                    active: false
-            if @index_displayed+@size_history_displayed < @history.length
-                @$('.next_queries_container').html @dataexplorer_toggle_history_link_template
-                    previous: false
-                    active: true
-            else
-                @$('.next_queries_container').html @dataexplorer_toggle_history_link_template
-                    previous: false
-                    active: false
-
-
-        open_close_history: (event) =>
-            event.preventDefault()
+        open_close_history: (event, container) =>
+            event?.preventDefault()
             that = @
 
             if @state is 'visible'
                 @state = 'hidden'
-                @$('.history_list').slideUp 'fast', ->
-                    $(this).empty()
-                @$('.previous_queries_container').fadeOut 'fast'
-                @$('.next_queries_container').fadeOut 'fast'
-                @$('.clear_queries_container').fadeOut 'fast'
-                @$('.close_queries_link').fadeOut 'fast', ->
-                    $(@).html that.dataexplorer_toggle_history_template
-                        show: true
-                    $(@).fadeIn 'fast'
-                @index_displayed = 0
+                @$('.nano').animate
+                    height: 0
+                    , 200
+                    , ->
+                        $(@).css 'visibility', 'hidden'
+                @$('.nano_border').slideUp 'fast'
+                @$('.arrow_history').slideUp 'fast'
+                container.html @dataexplorer_toggle_history_template
+                    displayed: true
             else
                 @state = 'visible'
-                if @history.length > 0
-                    @$('.no_history').slideUp 'fast', ->
-                        @remove()
-                    if @history.length > @size_history_displayed
-                        start = @history.length-@size_history_displayed
-                    else
-                        start = 0
-                    @index_displayed = start
-                    for i in [start..@history.length-1]
-                        query = @history[i]
-                        @$('.history_list').append @dataexplorer_query_li_template
-                            query: query
-                            displayed_class: 'displayed'
-                            id: i
-                            num: i+1
+                @$('.arrow_history').show()
+                @$('.nano_border').show()
+                @resize()
+                @$('.nano >.content').scrollTop $('.history_list').height()
+                container.html @dataexplorer_toggle_history_template
+                    displayed: false
+
+
+        # args =
+        #   size: absolute size
+        #   extra: extra size
+        # Note, we can define extra OR extra but not both
+        resize: (args) =>
+            if args?.size?
+                size = args.size
+            else
+                if args?.extra?
+                    size = Math.min @$('.history_list').height()+args.extra, 200
                 else
-                    @index_displayed = 0
-                    @$('.history_list').append @dataexplorer_query_li_template
-                        no_query: true
-                        displayed_class: 'displayed'
-                @toggle_previous_and_next()
+                    size = Math.min @$('.history_list').height(), 200
+            @$('.nano').css 'visibility', 'visible'
+            @$('.nano').animate
+                height: size
+                , 200
+                , ->
+                    $(@).nanoScroller({preventPageScrolling: true})
 
-                @$('.history_list').slideDown 'fast'
-                @$('.clear_queries_container').fadeIn 'fast'
-                @$('.close_queries_link').fadeOut 'fast', ->
-                    $(@).html that.dataexplorer_toggle_history_template
-                        show: false
-                    $(@).fadeIn 'fast'
-
-
-
-        previous_queries: (event) =>
-            event.preventDefault()
-            i = 0
-            while i < @size_history_displayed and @index_displayed > 0
-                @index_displayed--
-                @$('.history_list').prepend @dataexplorer_query_li_template
-                    query: @history[@index_displayed]
-                    displayed_class: 'hidden'
-                    id: @index_displayed
-                    num: @index_displayed+1
-                @$('.query_history:first').slideDown 'fast'
-                @$('#query_history_'+(@index_displayed+@size_history_displayed)).slideUp 'fast', ->
-                    $(@).remove()
-                i++
-
-            @toggle_previous_and_next()
-        next_queries: (event) =>
-            event.preventDefault()
-            i = 0
-            while i < @size_history_displayed and @index_displayed+@size_history_displayed < @history.length
-                @index_displayed++
-                @$('.history_list').append @dataexplorer_query_li_template
-                    query: @history[@index_displayed+@size_history_displayed-1]
-                    displayed_class: 'hidden'
-                    id: @index_displayed+@size_history_displayed-1
-                    num: @index_displayed+@size_history_displayed
-                @$('.query_history:last').slideDown 'fast'
-                @$('#query_history_'+(@index_displayed-1)).slideUp 'fast', ->
-                    $(@).remove()
-                i++
-
-            @toggle_previous_and_next()
-            event.preventDefault()
 
     class @DriverHandler
         # I don't want that thing in window

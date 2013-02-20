@@ -1,46 +1,33 @@
 <script id="dataexplorer_view-template" type="text/x-handlebars-template">
     <div class="section">
         <div class="options_container">
-            <button class="btn button_query change_size"></button> 
+
+            <button class="clear_queries_link btn">Clear history</button>
+            <button class="close_queries_link btn">Show history</button>
+            <button class="btn button_query change_size">&rarr;</button> 
         </div>
         <h1 class="title small_margin_bottom">Data Explorer</h1>
         <div id="user-alert-space"></div>
         <div class="reason_dataexplorer_broken alert alert-error"></div>
-        <div class="history_container">
-        </div>
+        <div class="history_container"></div> 
         <div class="input_query_full_container"></div>
         <div class="results_container"> </div>
     </div>
 </script>
 
 <script id="dataexplorer-history-template" type="text/x-handlebars-template">
-    <div class="previous_queries_container"><a href="#" class="previous_queries_link">Previous queries</a></div>
-    <div class="next_queries_container"><a href="#" class="next_queries_link">Next queries</a></div>
-
-    <div class="close_queries_container"><a href="#" class="close_queries_link">Show history</a></div>
-    <div class="clear_queries_container"><a href="#" class="clear_queries_link">Clear history</a></div>
-    <ul class="history_list"></ul>
-</script>
-
-<script id="dataexplorer-toggle_history_link-template" type="text/x-handlebars-template">
-    {{#if previous}}
-        {{#if active}}
-        <a href="#" class="previous_queries_link">Previous queries</a>
-        {{else}}
-        Previous queries
-        {{/if}}
-    {{else}}
-        {{#if active}}
-        <a href="#" class="next_queries_link">Next queries</a>
-        {{else}}
-        Next queries
-        {{/if}}
-    {{/if}}
-
+    <div class="arrow_history"></div>
+    <div class="nano_border"></div>
+    <div class="nano">
+        <div class="content">
+            <ul class="history_list"></ul>
+         </div>
+    </div>
+    <div class="nano_border nano_border_bottom"></div>
 </script>
 
 <script id="dataexplorer-toggle_history-template" type="text/x-handlebars-template">
-    {{#if show}}Show history{{else}}Close history{{/if}}
+    {{#if displayed}}Show history{{else}}Hide history{{/if}}
 </script>
 
 <script id="dataexplorer-query_li-template" type="text/x-handlebars-template">
@@ -48,7 +35,7 @@
     <li class="no_history {{displayed_class}}">No history available</li>
     {{else}}
     <li class="query_history {{displayed_class}}" id="query_history_{{id}}">
-    <div class="query_id">{{num}}.</div><div class="query_history_content"><span class="query">{{query}}</span><button class="btn load_query" data-id={{id}}>Load</button></div>
+    <div class="query_id">[{{num}}]</div><div class="query_history_content"><span class="query">{{query}}<button class="btn load_query" data-id={{id}}>Load</button></div></span>
     </li>
     {{/if}}
 </script>

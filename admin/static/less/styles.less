@@ -1028,16 +1028,22 @@ TODO: retire this
     Data explorer 
     ----------------------------
 */
+/* Prevent the user from selecting something when he's resizing a div */
+.resizing{
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
 #dataexplorer{
     margin: 0px;
     .options_container{
         float: right;
-        .change_size{
-            height: 21px;
-            width: 20px;
-            padding: 4px;
-            background: url('/images/full_view.png') 4px 4px no-repeat;
-            .box-shadow(~"inset 0px 2px 3px 0px #eee");
+        margin-top: 5px;
+        .close_queries_link{
+            width: 108px;
         }
     }
 
@@ -1173,20 +1179,44 @@ TODO: retire this
             .loading_query_img{ display: none; }
         }
     }
-    .history{
+    .arrow_history{
+        display: none;
+        width: 0; 
+        height: 0; 
+        margin-left: 774px;
+        border-left: 6px solid transparent;
+        border-right: 6px solid transparent;
+        border-bottom: 6px solid #aaa;
+    }
+    .nano{
+        visibility: hidden;
+        height: 0px;
+        padding: 0px 15px 0px 0px;
+    }
+    .nano_border{
+        display: none;
+        width: 100%;
+        border-top: 2px solid #aaa;
+    }
+    .nano_border_bottom{
+        cursor:s-resize;
+        padding: 0px 0px 2px 0px;
+    }
+    .history_container{
         font-family: @monospace;
         font-size: 15px; // Exact match with codemirror
+        width: 100%;
         .history_list{
-            display: none;
+            margin: 0px 15px 0px 0px;
+            display: block;
             clear: both;
             list-style: none;
             padding: 0px;
-            margin: 0px;
             .query_history{
-                display: none;
-                margin: 0px 0px 10px 0px;
+                margin: 0px;
                 padding: 0px;
                 overflow: auto;
+                border-bottom: 1px solid #e4e4e4;
                 &.displayed{
                     display: block;
                 }
@@ -1195,6 +1225,7 @@ TODO: retire this
                 }
                 &:last-child{ //Need it to make the slideDown/Up smooth
                     margin: 0px;
+                    border-bottom: 0px;
                 }
                 .query_history_content{
                     overflow: auto;
@@ -1202,9 +1233,6 @@ TODO: retire this
                     white-space: pre;
                     margin: -40px 0px 0px 30px;
                     padding: 11px 4px;
-                    border: 1px solid #ccc;
-                    border-radius: 3px;
-                    background: #f8f8f8;
                     color: #aaa;
                     .btn{
                         padding: 2px 10px;
@@ -1220,6 +1248,9 @@ TODO: retire this
                     text-align: center;
                     color: #aaa;
                 }
+                .btn{
+                    opacity: 0.6;
+                }
             }
             .no_history{
                 word-break: break-word;
@@ -1227,9 +1258,6 @@ TODO: retire this
                 margin: 0px;
                 padding: 7px 4px;
                 margin: 0px 0px 0px 26px;
-                border: 1px solid #ccc;
-                border-radius: 3px;
-                background: #fff;
                 color: #aaa;               
                 &.displayed{
                     display: block;
@@ -1239,27 +1267,6 @@ TODO: retire this
                 }
             }
         }
-        .previous_queries_container{
-            display: none;
-            float: left;
-            margin: 0px 20px 7px 28px;
-        }
-        .next_queries_container{
-            display: none;
-            float: left;
-            margin: 0px 0px 7px 0px;
-        }
-        .clear_queries_container{
-            display: none;
-            float: right;
-            margin: 0px 20px 7px 0px;
-        }
-        .close_queries_container{
-            width: 104px;
-            float: right;
-            margin: 0px 0px 7px 0px;
-        }
-
     }
 
     .result_view{
@@ -1498,14 +1505,6 @@ TODO: retire this
                     width: 100%;
                     cursor: e-resize;
                 }
-            }
-            .resizing{
-                -webkit-touch-callout: none;
-                -webkit-user-select: none;
-                -khtml-user-select: none;
-                -moz-user-select: none;
-                -ms-user-select: none;
-                user-select: none;
             }
         }
         .raw_view_container{
