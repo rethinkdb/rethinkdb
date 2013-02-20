@@ -48,11 +48,11 @@ class TypeChecker
                     if last? and last.repeated
                         type = last
                     else
-                        argError = new RqlCompileError "Too many arguments provided. Expected #{sig.args.length}."
+                        argError = new RqlRuntimeError "Too many arguments provided. Expected #{sig.args.length}."
                         argError.backtrace.unshift i
                         break
                 unless type.check(arg)
-                    argError = new RqlCompileError "Expected argument type #{type} but found #{TypeName::typeOf(arg)}"
+                    argError = new RqlRuntimeError "Expected type #{type} but found #{TypeName::typeOf(arg)}."
                     argError.backtrace.unshift i
                     break
 
@@ -63,7 +63,7 @@ class TypeChecker
 
                 # Check return val
                 unless sig.result.check(ret)
-                    throw new RqlCompileError "Expected return type #{sig.result} buf found #{TypeName::typeOf(ret)}"
+                    throw new RqlRuntimeError "Expected type #{sig.result} buf found #{TypeName::typeOf(ret)}."
 
                 return ret
             else

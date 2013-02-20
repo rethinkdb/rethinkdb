@@ -65,7 +65,7 @@ class Err:
     def __init__(self, err_type=None, err_msg=None, err_frames=None):
         self.etyp = err_type
         self.emsg = err_msg
-        self.frames = err_frames
+        self.frames = None #err_frames # Do not test frames for now, not until they're ready for prime time on the C++ server
 
     def __eq__(self, other):
         if not isinstance(other, Exception):

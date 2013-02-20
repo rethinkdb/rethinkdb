@@ -124,7 +124,7 @@ class TestGroup:
             self.write_def(out, test['def'], lang, index)
 
         # See if this test even defines a test for our language
-        code = self.get_code(test, lang, index, test.keys() == ['def'])
+        code = self.get_code(test, lang, index)
         for test_case in code:
             out.write("test("+test_case)
             expected = self.get_expected(test, lang)
@@ -135,13 +135,13 @@ class TestGroup:
             out.write(')\n')
 
     def write_def(self, out, defobj, lang, index):
-        code = self.get_code(defobj, lang, index + '-def', True)
+        code = self.get_code(defobj, lang, index + '-def')
         if len(code) > 0:
             out.write('define('+code[0]+')\n')
 
     # Tests may specify generic test strings valid for 
     # all languages or language specific versions
-    def get_code(self, obj, lang, index, warn_missing):
+    def get_code(self, obj, lang, index):
 
         if isinstance(obj, dict):
 
@@ -161,8 +161,6 @@ class TestGroup:
                     code = obj['cd']
 
             else:
-                if not warn_missing:
-                    print "Missing test %s for %s" % ('-'.join(self.path) + '-' + str(index), lang)
                 code = None
                 
         else:
