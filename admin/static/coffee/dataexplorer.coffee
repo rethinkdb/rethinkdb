@@ -369,24 +369,7 @@ module 'DataExplorerView', ->
             @saved_data.current_query = @codemirror.getValue()
             @save_data_in_localstorage()
 
-            if @codemirror.getSelection() isnt ''
-                @hide_suggestion_and_description()
-                # We still want to catch ctrl + v
-                if event? and event.ctrlKey is true and event.which is 86 and event.type is 'keydown' # Ctrl + V
-                    @last_action_is_paste = true
-                    @num_released_keys = 0 # We want to know when the user release Ctrl AND V
-                    @hide_suggestion_and_description()
 
-                if event? and event.which is 13 and (event.shiftKey or event.ctrlKey or event.metaKey) # If the user hit enter and (Ctrl or Shift)
-                    @hide_suggestion_and_description()
-                    event.preventDefault()
-                    if event.type isnt 'keydown'
-                        return true
-                    @execute_query()
-                    return true
-
-                if event?.type isnt 'mouseup'
-                    return false
             if event?.which?
                 if event.which is 27 # ESC
                     @hide_suggestion_and_description()
@@ -414,8 +397,6 @@ module 'DataExplorerView', ->
                     if @current_suggestions.length is 0
                         query_lines = @codemirror.getValue().split '\n'
 
-                        # Get query before the cursor
-                        # TODO That's a strange behavior. Slava wanted this, let's ask him if it's still true
                         query_before_cursor = ''
                         if @codemirror.getCursor().line > 0
                             for i in [0..@codemirror.getCursor().line-1]
@@ -451,6 +432,22 @@ module 'DataExplorerView', ->
                     @hide_suggestion_and_description()
                     return true
              
+            # If a selection is active, we just catch shift+enter
+            if @codemirror.getSelection() isnt ''
+                @hide_suggestion_and_description()
+                if event? and event.which is 13 and (event.shiftKey or event.ctrlKey or event.metaKey) # If the user hit enter and (Ctrl or Shift or Cmd)
+                    @hide_suggestion_and_description()
+                    if event.type isnt 'keydown'
+                        return true
+                    @execute_query()
+                    return true
+                # If the user select something and end somehwere with suggestion
+                if event?.type isnt 'mouseup'
+                    return false
+                else
+                    console.log 'hmmm'
+                    return true
+
             # The user just hit a normal key
             @cursor_for_auto_completion = @codemirror.getCursor()
 
