@@ -2344,17 +2344,21 @@ module 'DataExplorerView', ->
                 id: @history.length-1
                 num: @history.length
             if @state is 'visible'
+                ###
                 if is_at_bottom is true
                     $('.nano >.content').animate
                         scrollTop: @$('.history_list').height()
                         , 200
+                ###
                 if @$('.no_history').length isnt 0
                     @$('.no_history').slideUp 'fast', ->
                         $(@).remove()
                     that.resize
                         extra: -32
+                        is_at_bottom: is_at_bottom
                 else
-                    @resize()
+                    @resize
+                        is_at_bottom: is_at_bottom
             else
                 if @$('.no_history').length isnt 0
                     @$('.no_history').show()
@@ -2420,8 +2424,10 @@ module 'DataExplorerView', ->
                 , 200
                 , ->
                     $(@).nanoScroller({preventPageScrolling: true})
-
-
+                    if args?.is_at_bottom is true
+                        $('.nano >.content').animate
+                            scrollTop: $('.history_list').height()
+                            , 300
     class @DriverHandler
         # I don't want that thing in window
         constructor: (args) ->
