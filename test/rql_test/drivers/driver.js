@@ -119,14 +119,12 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
                                 // Again, convert to array
                                 function afterArray2(js_err, js_res) {
 
-                                    /*
                                     if (cpp_err && !exp_fun(cpp_err)) {
                                         console.log("Error when evaluating on CPP server:");
                                         console.log(" "+cpp_err.name+": "+cpp_err.message);
                                     } else if (!exp_fun(cpp_res)) {
                                         console.log(" in CPP version of: "+src)
                                     }
-                                    */
 
                                     if (js_err && !exp_fun(js_err)) {
                                         console.log("Error when evaluating on JS server:");

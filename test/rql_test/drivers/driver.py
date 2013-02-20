@@ -137,7 +137,6 @@ class PyTestDriver:
                 return # Can't continue with this test if there is no test query
 
         # Try actually running the test
-        '''
         try:
             cppres = query.run(self.cpp_conn)
 
@@ -148,7 +147,6 @@ class PyTestDriver:
         except Exception as err:
             if not exp_fun(err):
                 print "Error on running of query on CPP server:", str(err), 'in:\n', src
-        '''
 
         try:
             jsres = query.run(self.js_conn)
