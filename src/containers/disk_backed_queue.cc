@@ -6,38 +6,11 @@
 #include "buffer_cache/buffer_cache.hpp"
 #include "serializer/config.hpp"
 
-internal_disk_backed_queue_t::internal_disk_backed_queue_t(io_backender_t *io_backender,
-                                                           const std::string& filename,
-                                                           perfmon_collection_t *stats_parent)
-    : queue_size(0), head_block_id(NULL_BLOCK_ID), tail_block_id(NULL_BLOCK_ID) {
-    /* We're going to register for writes, however those writes won't be able
-     * to find their way in to the btree until we're done backfilling. Thus we
-     * need to set up a serializer and cache for them to go in to. */
-    //perfmon_collection_t backfill_stats_collection("queue-" + filename, NULL, true, true);
-
-    filepath_file_opener_t file_opener(filename, io_backender);
-    standard_serializer_t::create(&file_opener,
-                                  standard_serializer_t::static_config_t());
-
-    serializer.init(new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
-                                              &file_opener,
-                                              stats_parent));
-
-    /* Remove the file we just created from the filesystem, so that it will
-       get deleted as soon as the serializer is destroyed or if the process
-       crashes */
-    int res = unlink(filename.c_str());
-    guarantee_err(res == 0, "unlink() failed");
-
-    /* Create the cache. */
-    mirrored_cache_static_config_t cache_static_config;
-    cache_t::create(serializer.get(), &cache_static_config);
-
-    mirrored_cache_config_t cache_dynamic_config;
-    cache_dynamic_config.max_size = MEGABYTE;
-    cache_dynamic_config.max_dirty_size = MEGABYTE / 2;
-    cache.init(new cache_t(serializer.get(), &cache_dynamic_config, stats_parent));
-}
+internal_disk_backed_queue_t::internal_disk_backed_queue_t(
+        cache_t *_cache, block_id_t _head_block_id, block_id_t _tail_block_id)
+    : queue_size(0), head_block_id(_head_block_id), 
+      tail_block_id(_tail_block_id), cache(_cache)
+{ }
 
 internal_disk_backed_queue_t::~internal_disk_backed_queue_t() { }
 
@@ -45,7 +18,7 @@ void internal_disk_backed_queue_t::push(const write_message_t& wm) {
     mutex_t::acq_t mutex_acq(&mutex);
 
     //first we need a transaction
-    transaction_t txn(cache.get(), rwi_write, 2, repli_timestamp_t::distant_past, cache_order_source.check_in("push"));
+    transaction_t txn(cache, rwi_write, 2, repli_timestamp_t::distant_past, cache_order_source.check_in("push"));
 
     if (head_block_id == NULL_BLOCK_ID) {
         add_block_to_head(&txn);
@@ -85,7 +58,7 @@ void internal_disk_backed_queue_t::pop(std::vector<char> *buf_out) {
     mutex_t::acq_t mutex_acq(&mutex);
 
     char buffer[MAX_REF_SIZE];
-    transaction_t txn(cache.get(), rwi_write, 2, repli_timestamp_t::distant_past, cache_order_source.check_in("pop"));
+    transaction_t txn(cache, rwi_write, 2, repli_timestamp_t::distant_past, cache_order_source.check_in("pop"));
 
     scoped_ptr_t<buf_lock_t> _tail(new buf_lock_t(&txn, tail_block_id, rwi_write));
     queue_block_t *tail = reinterpret_cast<queue_block_t *>(_tail->get_data_major_write());
@@ -168,3 +141,34 @@ void internal_disk_backed_queue_t::remove_block_from_tail(transaction_t *txn) {
     _old_tail.mark_deleted();
 }
 
+
+cache_serializer_t::cache_serializer_t(
+        io_backender_t *io_backender,
+        const std::string &filename, 
+        perfmon_collection_t *stats_parent) 
+{
+    filepath_file_opener_t file_opener(filename, io_backender);
+    standard_serializer_t::create(&file_opener,
+                                  standard_serializer_t::static_config_t());
+
+    serializer.init(new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
+                                              &file_opener,
+                                              stats_parent));
+
+    /* Remove the file we just created from the filesystem, so that it will
+       get deleted as soon as the serializer is destroyed or if the process
+       crashes */
+    int res = unlink(filename.c_str());
+    guarantee_err(res == 0, "unlink() failed");
+
+    /* Create the cache. */
+    mirrored_cache_static_config_t cache_static_config;
+    cache_t::create(serializer.get(), &cache_static_config);
+
+    mirrored_cache_config_t cache_dynamic_config;
+    cache_dynamic_config.max_size = MEGABYTE;
+    cache_dynamic_config.max_dirty_size = MEGABYTE / 2;
+    cache.init(new cache_t(serializer.get(), &cache_dynamic_config, stats_parent));
+}
+
+cache_serializer_t::~cache_serializer_t() { }

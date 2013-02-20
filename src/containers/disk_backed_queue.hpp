@@ -28,13 +28,12 @@ struct queue_block_t {
 
 class internal_disk_backed_queue_t {
 public:
-    internal_disk_backed_queue_t(io_backender_t *io_backender, const std::string& filename, perfmon_collection_t *stats_parent);
+    internal_disk_backed_queue_t(
+            cache_t *cache, block_id_t head_block_id, block_id_t tail_block_id);
     ~internal_disk_backed_queue_t();
 
-    // TODO: order_token_t::ignore.  This should take an order token and store it.
     void push(const write_message_t& value);
 
-    // TODO: order_token_t::ignore.  This should output an order token (that was passed in to push).
     void pop(std::vector<char> *buf_out);
 
     bool empty();
@@ -49,8 +48,7 @@ private:
     mutex_t mutex;
     int64_t queue_size;
     block_id_t head_block_id, tail_block_id;
-    scoped_ptr_t<standard_serializer_t> serializer;
-    scoped_ptr_t<cache_t> cache;
+    cache_t *cache;
 
     // Serves more as sanity-checking for the cache than this type's ordering.
     order_source_t cache_order_source;
@@ -58,11 +56,33 @@ private:
     DISABLE_COPYING(internal_disk_backed_queue_t);
 };
 
+/* This creates a disk_backed_queue that constructs it's own cache and
+ * serializer. */
+class cache_serializer_t {
+public:
+    cache_serializer_t(io_backender_t *io_backender,
+            const std::string &filename, perfmon_collection_t *stats_parent);
+    ~cache_serializer_t();
+
+    scoped_ptr_t<standard_serializer_t> serializer;
+    scoped_ptr_t<cache_t> cache;
+
+private:
+    DISABLE_COPYING(cache_serializer_t);
+};
+
 template <class T>
 class disk_backed_queue_t {
 public:
-    disk_backed_queue_t(io_backender_t *io_backender, const std::string& filename, perfmon_collection_t *stats_parent)
-        : internal_(io_backender, filename, stats_parent) { }
+    disk_backed_queue_t(io_backender_t *io_backender, const std::string &filename, perfmon_collection_t *stats_parent)
+        : cache_serializer_(new cache_serializer_t(io_backender, filename, stats_parent)),
+            internal_(cache_serializer_->cache.get(),
+                    NULL_BLOCK_ID, NULL_BLOCK_ID)
+    { }
+
+    disk_backed_queue_t(cache_t *cache, block_id_t head_block_id, block_id_t tail_block_id)
+        : internal_(cache, head_block_id, tail_block_id)
+    { }
 
     void push(const T &t) {
         write_message_t wm;
@@ -89,6 +109,7 @@ public:
     }
 
 private:
+    scoped_ptr_t<cache_serializer_t> cache_serializer_;
     internal_disk_backed_queue_t internal_;
     DISABLE_COPYING(disk_backed_queue_t);
 };
