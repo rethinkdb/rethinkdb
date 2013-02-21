@@ -151,6 +151,9 @@ class RDBOp extends RDBVal
         if @st
             ['r.', @st, '(', intsp(args), ')']
         else
+            if @args[0] instanceof DatumTerm
+                args[0] = ['r(', args[0], ')']
+
             [args[0], '.', @mt, '(', intsp(args[1..]), ')']
 
 intsp = (seq) ->

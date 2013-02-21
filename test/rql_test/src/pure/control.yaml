@@ -14,7 +14,3 @@ tests:
       ot: 1
     - cd: r.branch(False, 1, 2)
       ot: 2
-
-    ## ForEach
-
-    #TODO How to tests this without side effecting queries?

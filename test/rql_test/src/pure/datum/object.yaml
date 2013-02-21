@@ -26,3 +26,6 @@ tests:
     # Nested expressions
     - cd: r.expr({'a':r.expr(1)})
       ot: ({'a':1})
+
+    - cd: r.expr({'a':{'b':[{'c':2}, 'a', 4]}})
+      ot: ({'a':{'b':[{'c':2}, 'a', 4]}})

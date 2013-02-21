@@ -229,6 +229,8 @@ class RDBAnyOp(RDBValue, RDBSequence, RDBOp):
 
 class RDBBiOper:
     def compose(self, args, optargs):
+        if isinstance(self.args[0], Datum):
+            args[0] = T('r.expr(', args[0], ')')
         return T('(', args[0], ' ', self.st, ' ', args[1], ')')
 
 class RDBTopFun:
