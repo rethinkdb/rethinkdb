@@ -52,7 +52,7 @@ class RDBVal extends TermBase
     union: (others...) -> new Union {}, @, others...
     nth: (index) -> new Nth {}, @, index
     groupedMapReduce: (group, map, reduce) -> new GroupedMapReduce {}, @, group, map, reduce
-    groupBy: (attrs, collector) -> new GroupBy {}, @, attrs, collector
+    groupBy: (attrs..., collector) -> new GroupBy {}, @, attrs, collector
     innerJoin: (other, predicate) -> new InnerJoin {}, @, other, predicate
     outerJoin: (other, predicate) -> new OuterJoin {}, @, other, predicate
     eqJoin: (left_attr, right) -> new EqJoin {}, @, left_attr, right

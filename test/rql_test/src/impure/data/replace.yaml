@@ -44,7 +44,7 @@ tests:
 
     - py: tbl.get(13).replace(lambda row:None)
       js: tbl.get(13).replace(function(row) { return null; })
-      rb: tbl.get(12).replace{ |row| nil }
+      rb: tbl.get(13).replace{ |row| nil }
       ot: ({'deleted':1})
 
     # Replace selection of table

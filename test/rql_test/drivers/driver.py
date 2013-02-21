@@ -3,6 +3,7 @@ import sys
 import types
 import pdb
 import collections
+import types
 path.append("../../drivers/python2")
 
 from os import environ
@@ -18,6 +19,9 @@ class Lst:
         self.lst = lst
 
     def __eq__(self, other):
+        if not hasattr(other, '__iter__'):
+            return False
+
         if len(self.lst) != len(other):
             return False
         
@@ -35,6 +39,9 @@ class Bag(Lst):
         self.lst = sorted(lst)
 
     def __eq__(self, other):
+        if not hasattr(other, '__iter__'):
+            return False
+
         other = sorted(other)
 
         if len(self.lst) != len(other):
@@ -51,6 +58,9 @@ class Dct:
         self.dct = dct
     
     def __eq__(self, other): 
+        if not isinstance(other, types.DictType):
+            return False
+
         for key in self.dct.keys():
             if not key in other.keys():
                 return False

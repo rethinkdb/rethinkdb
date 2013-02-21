@@ -12,8 +12,8 @@ class RDBSequence extends RDBType
 
     nth: (index) ->
         i = index.asJSON()
-        if i < 0 then throw new RuntimeError "Nth doesn't support negative indicies"
-        if i >= @asArray().length then throw new RuntimeError "Index too large"
+        if i < 0 then throw new RqlRuntimeError "Nth doesn't support negative indicies"
+        if i >= @asArray().length then throw new RqlRuntimeError "Index too large"
         @asArray()[index.asJSON()]
 
     append: (val) -> new RDBArray @asArray().concat [val]
@@ -100,7 +100,7 @@ class RDBSequence extends RDBType
         for own col,arg of aggregator
             collector = dataCollectors[col]
             unless collector?
-                throw new RuntimeError "No such aggregator as #{col}"
+                throw new RqlRuntimeError "No such aggregator as #{col}"
             collector = collector(arg)
             break
 
@@ -116,6 +116,9 @@ class RDBSequence extends RDBType
     filter: (predicate) -> new RDBArray @asArray().filter (v) -> predicate(v).asJSON()
 
     between: (lowerBound, upperBound) ->
+        if @asArray().length == 0
+            # Return immediately because getPK does not work on empty arrays
+            return new RDBArray []
         attr = @getPK()
         result = []
         for v,i in @orderBy(new RDBArray [@getPK()]).asArray()
@@ -146,6 +149,9 @@ class RDBSequence extends RDBType
 
     # We're just going to implement this on top of inner join
     eqJoin: (left_attr, right) ->
+        if right.asArray().length == 0
+            # Return immediately because getPK does not work on empty arrays
+            return new RDBArray []
         right_attr = right.getPK()
         @innerJoin right, (lRow, rRow) ->
             lRow[left_attr.asJSON()].eq(rRow[right_attr.asJSON()])
