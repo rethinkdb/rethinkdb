@@ -404,6 +404,7 @@ module 'DataExplorerView', ->
                             @highlight_suggestion @current_highlighted_suggestion # Highlight the current suggestion
                             @write_suggestion
                                 suggestion_to_write: @current_suggestions[@current_highlighted_suggestion] # Auto complete with the highlighted suggestion
+                            @ignore_tab_keyup = true # If we are switching suggestion, we don't want to do anything else related to tab
                             return true
                 else if event.which is 13 and (event.shiftKey or event.ctrlKey or event.metaKey) # If the user hit enter and (Ctrl or Shift)
                     @hide_suggestion_and_description()
@@ -495,9 +496,15 @@ module 'DataExplorerView', ->
             @cursor_for_auto_completion = @codemirror.getCursor()
 
             # We just look at key up so we don't fire the call 3 times
-            # Tab is an exception, we let it pass (we tab bring back suggestions)
-            if (event?.type? and (event.type isnt 'keyup' and event.type isnt 'mouseup') and event.which isnt 9) or (event?.which is 16) # We don't do anything for shift
+            if event?.type? and event.type isnt 'keyup' and event.which isnt 9 and event.type isnt 'mouseup'
                 return false
+            if event?.which is 16 # We don't do anything with Shift.
+                return false
+            # Tab is an exception, we let it pass (we tab bring back suggestions) - What we want is to catch keydown
+            if @ignore_tab_keyup is true and event?.which is 9
+                if event.type is 'keyup'
+                    @ignore_tab_keyup = false
+                return true
 
             @current_highlighted_suggestion = -1
             @.$('.suggestion_name_list').empty()
@@ -527,7 +534,6 @@ module 'DataExplorerView', ->
             stack = @extract_data_from_query
                 query: query_before_cursor
                 position: 0
-            #console.log JSON.stringify stack, null, 2
 
             result =
                 status: null
