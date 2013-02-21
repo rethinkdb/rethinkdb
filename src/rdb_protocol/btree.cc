@@ -532,7 +532,6 @@ public:
         : sindexes_(sindexes)
     { }
 
-    // This is free to call mark_deleted.
     void process_a_leaf(transaction_t *txn, buf_lock_t *leaf_node_buf,
                         const btree_key_t *, const btree_key_t *,
                         int *, signal_t *) THROWS_ONLY(interrupted_exc_t) {

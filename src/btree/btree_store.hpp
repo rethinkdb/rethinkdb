@@ -262,7 +262,7 @@ public: // <--- so this is some bullshit right here
             THROWS_NOTHING;
 
     void acquire_sindex_superblocks_for_write(
-            boost::optional<std::set<uuid_u> > sindexes_to_acquire, //none means acquire all sindexes
+            boost::optional<std::set<uuid_u> > sindexes_to_acquire, //empty means acquire all sindexes
             buf_lock_t *sindex_block,
             transaction_t *txn,
             sindex_access_vector_t *sindex_sbs_out)

@@ -20,16 +20,24 @@ class perfmon_collection_t;
 //TODO there are extra copies all over the place mostly stemming from having a
 //vector<char> from the serialization code and strings from the blob code.
 
+struct queue_superblock_t {
+    block_id_t head, tail;
+    int64_t queue_size;
+};
+
 struct queue_block_t {
     block_id_t next;
     int data_size, live_data_offset;
     char data[0];
 };
 
+
 class internal_disk_backed_queue_t {
 public:
-    internal_disk_backed_queue_t(
-            cache_t *cache, block_id_t head_block_id, block_id_t tail_block_id);
+    /* Initializes a new disk backed queue. */
+    internal_disk_backed_queue_t(cache_t *cache);
+    internal_disk_backed_queue_t(cache_t *cache, transaction_t *txn);
+    internal_disk_backed_queue_t(cache_t *cache, block_id_t superblock_id);
     ~internal_disk_backed_queue_t();
 
     void push(const write_message_t& value);
@@ -41,13 +49,14 @@ public:
     int64_t size();
 
 private:
-    void add_block_to_head(transaction_t *txn);
+    queue_superblock_t *get_superblock(transaction_t *txn, scoped_ptr_t<buf_lock_t> *superblock_out);
 
-    void remove_block_from_tail(transaction_t *txn);
+    void add_block_to_head(transaction_t *txn, queue_superblock_t *superblock);
+
+    void remove_block_from_tail(transaction_t *txn, queue_superblock_t *superblock);
 
     mutex_t mutex;
-    int64_t queue_size;
-    block_id_t head_block_id, tail_block_id;
+    block_id_t superblock_id;
     cache_t *cache;
 
     // Serves more as sanity-checking for the cache than this type's ordering.
@@ -76,12 +85,15 @@ class disk_backed_queue_t {
 public:
     disk_backed_queue_t(io_backender_t *io_backender, const std::string &filename, perfmon_collection_t *stats_parent)
         : cache_serializer_(new cache_serializer_t(io_backender, filename, stats_parent)),
-            internal_(cache_serializer_->cache.get(),
-                    NULL_BLOCK_ID, NULL_BLOCK_ID)
+            internal_(cache_serializer_->cache.get())
     { }
 
-    disk_backed_queue_t(cache_t *cache, block_id_t head_block_id, block_id_t tail_block_id)
-        : internal_(cache, head_block_id, tail_block_id)
+    disk_backed_queue_t(cache_t *cache, transaction_t *txn)
+        : internal_(cache, txn)
+    { }
+
+    disk_backed_queue_t(cache_t *cache, block_id_t superblock_id)
+        : internal_(cache, superblock_id)
     { }
 
     void push(const T &t) {

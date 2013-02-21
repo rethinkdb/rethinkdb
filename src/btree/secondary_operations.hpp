@@ -14,7 +14,7 @@ struct secondary_index_t {
         : superblock(NULL_BLOCK_ID), post_construction_complete(false)
     { }
 
-    /* A virtual superblock. */
+    /* The block_id of the superblock. */
     block_id_t superblock;
 
     /* An opaque_definition_t is a serializable description of the secondary
