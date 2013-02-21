@@ -2,13 +2,13 @@
 
 namespace ql {
 void runtime_check(const char *test, const char *file, int line,
-                   bool pred, std::string msg) {
+                   bool pred, std::string msg, Term2 *bt_source) {
     if (pred) return;
 #ifndef NDEBUG
     msg = strprintf("%s\nFailed assertion: %s\nAt: %s:%d",
                     msg.c_str(), test, file, line);
 #endif
-    throw exc_t(msg);
+    throw exc_t(msg, bt_source);
 }
 
 void backtrace_t::fill_error(Response2 *res, Response2_ResponseType type,
@@ -36,20 +36,33 @@ void fill_error(Response2 *res, Response2_ResponseType type, std::string msg,
     bt.fill_error(res, type, msg);
 }
 
-Response2_Frame backtrace_t::frame_t::toproto() const {
-    Response2_Frame f;
+Frame backtrace_t::frame_t::toproto() const {
+    Frame f;
     switch(type) {
     case POS: {
-        f.set_type(Response2_Frame_FrameType_POS);
+        f.set_type(Frame_FrameType_POS);
         f.set_pos(pos);
     } break;
     case OPT: {
-        f.set_type(Response2_Frame_FrameType_OPT);
+        f.set_type(Frame_FrameType_OPT);
         f.set_opt(opt);
     } break;
     default: unreachable();
     }
     return f;
+}
+
+backtrace_t::frame_t::frame_t(const Frame &f) {
+    switch(f.type()) {
+    case Frame::POS: {
+        type = POS;
+        pos = f.pos();
+    } break;
+    case Frame::OPT: {
+        type = OPT;
+        opt = f.opt();
+    } break;
+    }
 }
 
 } // namespace ql

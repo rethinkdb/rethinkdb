@@ -8,18 +8,29 @@
 
 #include "containers/archive/stl_types.hpp"
 #include "rdb_protocol/ql2.pb.h"
+#include "rdb_protocol/ql2_extensions.pb.h"
 #include "rpc/serialize_macros.hpp"
 
 namespace ql {
 
 void runtime_check(const char *test, const char *file, int line,
-                   bool pred, std::string msg);
+                   bool pred, std::string msg, Term2 *bt_source = 0);
 
 // Use these macros to return errors to users.
-#define rcheck(pred, msg)                                               \
-    pred                                                                \
-    ? runtime_check(stringify(pred), __FILE__, __LINE__, true, "NO_ERR") \
-    : runtime_check(stringify(pred), __FILE__, __LINE__, false, msg)
+#ifndef NDEBUG
+#define rcheck(pred, msg, args...) do {                                             \
+        (pred)                                                                      \
+        ? runtime_check(stringify(pred), __FILE__, __LINE__, true, (msg), ##args)   \
+        : runtime_check(stringify(pred), __FILE__, __LINE__, false, (msg), ##args); \
+    } while (0)
+#else
+#define rcheck(pred, msg, args...) do {                                             \
+        (pred)                                                                      \
+        ? (void)0                                                                   \
+        : runtime_check(stringify(pred), __FILE__, __LINE__, false, (msg), ##args); \
+    } while (0)
+#endif // NDEBUG
+
 #define rfail(args...) rcheck(false, strprintf(args))
 
 
@@ -33,14 +44,23 @@ void runtime_check(const char *test, const char *file, int line,
 #endif // NDEBUG
 
 // A backtrace we return to the user.  Pretty self-explanatory.
-struct backtrace_t {
-    struct frame_t {
+class backtrace_t {
+public:
+    backtrace_t(Term2 *t) {
+        for (int i = 0; i < t->ExtensionSize(ql2::extension::backtrace); ++i) {
+            push_back(t->GetExtension(ql2::extension::backtrace, i));
+        }
+    }
+    backtrace_t() { }
+
+    class frame_t {
     public:
         explicit frame_t() : type(OPT), opt("UNITIALIZED") { }
         explicit frame_t(int32_t _pos) : type(POS), pos(_pos) { }
         explicit frame_t(const std::string &_opt) : type(OPT), opt(_opt) { }
         explicit frame_t(const char *_opt) : type(OPT), opt(_opt) { }
-        Response2_Frame toproto() const;
+        explicit frame_t(const Frame &f);
+        Frame toproto() const;
 
         static frame_t invalid() { return frame_t(INVALID); }
         bool is_invalid() const { return type == POS && pos == INVALID; }
@@ -52,6 +72,9 @@ struct backtrace_t {
             return is_head() || is_skip()
                 || (type == POS && pos >= 0)
                 || (type == OPT && opt != "UNINITIALIZED");
+        }
+        bool is_stream_funcall_frame() {
+            return type == POS && pos != 0;
         }
     private:
         enum special_frames {
@@ -81,6 +104,19 @@ struct backtrace_t {
     void push_front(T t) {
         push_front(frame_t(t));
     }
+
+    // Push a frame onto the back of the backtrace.
+    void push_back(frame_t f) {
+        r_sanity_check(f.is_valid());
+        // debugf("PUSHING %s\n", f.toproto().DebugString().c_str());
+        frames.push_back(f);
+    }
+    template<class T>
+    void push_back(T t) {
+        push_back(frame_t(t));
+    }
+
+    bool is_empty() { return frames.size() == 0; }
 private:
     std::list<frame_t> frames;
 };
@@ -95,11 +131,18 @@ public:
     // We have a default constructor because these are serialized.
     exc_t() : exc_msg("UNINITIALIZED") { }
     explicit exc_t(const std::string &_exc_msg) : exc_msg(_exc_msg) { }
+    explicit exc_t(const std::string &_exc_msg, Term2 *bt_source) : exc_msg(_exc_msg) {
+        if (bt_source) set_backtrace(bt_source);
+    }
     virtual ~exc_t() throw () { }
     const char *what() const throw () { return exc_msg.c_str(); }
     RDB_MAKE_ME_SERIALIZABLE_2(backtrace, exc_msg);
 
     backtrace_t backtrace;
+    void set_backtrace(Term2 *t) {
+        r_sanity_check(backtrace.is_empty());
+        backtrace = backtrace_t(t);
+    }
 private:
     std::string exc_msg;
 };

@@ -753,7 +753,7 @@ QL_PROTO_CODE:=$(patsubst $(SOURCE_DIR)/%.proto,$(PROTO_DIR)/%.pb.cc,$(QL_PROTO_
 QL_PROTO_NAMES+=$(patsubst $(PROTO_DIR)/%.cc,%,$(QL_PROTO_CODE))
 QL_PROTO_OBJS:=$(patsubst %,$(OBJ_DIR)/%.o,$(QL_PROTO_NAMES))
 
-QL2_PROTO_SOURCES:=./rdb_protocol/ql2.proto
+QL2_PROTO_SOURCES:=./rdb_protocol/ql2.proto ./rdb_protocol/ql2_extensions.proto
 QL2_PROTO_HEADERS:=$(patsubst $(SOURCE_DIR)/%.proto,$(PROTO_DIR)/%.pb.h,$(QL2_PROTO_SOURCES))
 QL2_PROTO_CODE:=$(patsubst $(SOURCE_DIR)/%.proto,$(PROTO_DIR)/%.pb.cc,$(QL2_PROTO_SOURCES))
 QL2_PROTO_NAMES+=$(patsubst $(PROTO_DIR)/%.cc,%,$(QL2_PROTO_CODE))

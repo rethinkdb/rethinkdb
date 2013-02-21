@@ -5,9 +5,9 @@
 #include "utils.hpp"
 
 #include "rdb_protocol/env.hpp"
-#include "rdb_protocol/term.hpp"
 #include "rdb_protocol/ql2.pb.h"
 #include "rdb_protocol/stream_cache.hpp"
+#include "rdb_protocol/term.hpp"
 
 namespace ql {
 // Runs a query!  This is all outside code should ever need to call.  See

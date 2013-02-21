@@ -1,7 +1,9 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
-#include <math.h>
 
 #include "rdb_protocol/datum.hpp"
+
+#include <float.h>
+#include <math.h>
 
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/err.hpp"
@@ -154,13 +156,14 @@ double datum_t::as_num() const {
     return r_num;
 }
 
-static const int64_t max_dbl_int = 0x1L << 53;
-static const int64_t min_dbl_int = max_dbl_int * -1;
+static const double max_dbl_int = 0x1LL << DBL_MANT_DIG;
+static const double min_dbl_int = max_dbl_int * -1;
 int64_t datum_t::as_int() const {
+    static_assert(DBL_MANT_DIG == 53, "ERROR: Doubles are wrong size.");
     double d = as_num();
+    rcheck(d <= max_dbl_int, strprintf("Number not an integer (>2^53): " DBLPRI, d));
+    rcheck(d >= min_dbl_int, strprintf("Number not an integer (<-2^53): " DBLPRI, d));
     int64_t i = d;
-    rcheck(i <= max_dbl_int, strprintf("Number not an integer (>2^53): " DBLPRI, d));
-    rcheck(i >= min_dbl_int, strprintf("Number not an integer (<-2^53): " DBLPRI, d));
     rcheck(static_cast<double>(i) == d, strprintf("Number not an integer: " DBLPRI, d));
     return i;
 }

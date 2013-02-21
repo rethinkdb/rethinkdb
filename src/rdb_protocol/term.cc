@@ -1,6 +1,7 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/term.hpp"
+#include "rdb_protocol/term_walker.hpp"
 
 #include "rdb_protocol/terms/arith.hpp"
 #include "rdb_protocol/terms/arr.hpp"
@@ -99,28 +100,34 @@ void run(Query2 *q, scoped_ptr_t<env_t> *env_ptr,
     env_t *env = env_ptr->get();
     int64_t token = q->token();
 
-    for (int i = 0; i < q->global_optargs_size(); ++i) {
-        const Query2::AssocPair &ap = q->global_optargs(i);
-        term_t *op_term = compile_term(env, &ap.val());
-        op_term->set_bt(backtrace_t::frame_t::skip());
-        bool conflict = env->add_optarg(ap.key(), op_term);
-        rcheck(!conflict, strprintf("Duplicate key: %s", ap.key().c_str()));
-    }
-    env_wrapper_t<Term2> *ewt = env->add_ptr(new env_wrapper_t<Term2>());
-    Term2 *arg = &ewt->t;
+    try {
+        for (int i = 0; i < q->global_optargs_size(); ++i) {
+            const Query2::AssocPair &ap = q->global_optargs(i);
+            term_t *op_term = compile_term(env, &ap.val());
+            op_term->set_bt(backtrace_t::frame_t::skip());
+            bool conflict = env->add_optarg(ap.key(), op_term);
+            rcheck(!conflict, strprintf("Duplicate key: %s", ap.key().c_str()));
+        }
+        env_wrapper_t<Term2> *ewt = env->add_ptr(new env_wrapper_t<Term2>());
+        Term2 *arg = &ewt->t;
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
-    N1(DB, NDATUM("test"));
+        N1(DB, NDATUM("test"));
 #pragma GCC diagnostic pop
-    term_t *db_term = compile_term(env, arg);
-    db_term->set_bt(backtrace_t::frame_t::skip());
-    UNUSED bool _b = env->add_optarg("db", db_term);
-    // UNUSED because user can override this value safely
+        term_t *db_term = compile_term(env, arg);
+        db_term->set_bt(backtrace_t::frame_t::skip());
+        UNUSED bool _b = env->add_optarg("db", db_term);
+        // UNUSED because user can override this value safely
+    } catch (const exc_t &e) {
+        fill_error(res, Response2::COMPILE_ERROR, e.what(), e.backtrace);
+        return;
+    }
 
     switch(q->type()) {
     case Query2_QueryType_START: {
         term_t *root_term = 0;
         try {
+            term_walker_t term_walker(q->mutable_query());
             root_term = env->new_term(&q->query());
             // TODO: handle this properly
             root_term->set_bt(backtrace_t::frame_t::head());
