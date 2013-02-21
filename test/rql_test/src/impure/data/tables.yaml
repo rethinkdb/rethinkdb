@@ -19,7 +19,7 @@ tests:
             }
             return res;
         }())
-      rb: tbl.insert((1..100).map{ |i| { :id => i, :a => i % 4 } })
+      rb: tbl.insert((0..99).map{ |i| { :id => i, :a => i % 4 } })
       ot: ({'inserted':100})
 
     - py: tbl2.insert([{'id':i, 'b':i%4} for i in xrange(100)])
@@ -31,7 +31,7 @@ tests:
             }
             return res;
         }())
-      rb: tbl2.insert((1..100).map{ |i| { :id => i, :b => i % 4 } })
+      rb: tbl2.insert((0..99).map{ |i| { :id => i, :b => i % 4 } })
       ot: ({'inserted':100})
 
     # Between
@@ -118,7 +118,7 @@ tests:
       ot: 2500
     - py: oj.filter(lambda row:row['a'] != row['b']).count()
       js: oj.filter(function(row) { return row('a').ne(row('b')); }).count()
-      rb: oj.filter{ |row| row[:a].ne row[:b] }
+      rb: oj.filter{ |row| row[:a].ne row[:b] }.count
       ot: 0
 
     # Eq-Join
@@ -128,7 +128,7 @@ tests:
 
     # GMR
     - py: tbl.grouped_map_reduce(lambda row:row['a'], lambda row:row['id'], lambda a,b:a + b)
-      rb: tbl.grouped_map_reduce { |row| row[:a] } { |row| row[:id] } { |a, b| a + b}
+      rb: tbl.grouped_map_reduce(lambda { |row| row[:a] }, lambda { |row| row[:id] }, lambda { |a, b| a + b})
       js: |
         tbl.groupedMapReduce(function(row) {
             return row('a');
@@ -146,7 +146,8 @@ tests:
     # GroupBy
 
     # COUNT
-    - cd: tbl.group_by(['a'], {'COUNT':True})
+
+    - cd: tbl.group_by('a', r.count)
       ot: |
           ([{'group':[0], 'reduction':25},
             {'group':[1], 'reduction':25},
@@ -154,7 +155,7 @@ tests:
             {'group':[3], 'reduction':25}])
 
     # SUM
-    - cd: tbl.group_by(['a'], {'SUM':'id'})
+    - cd: tbl.group_by('a', r.sum('id'))
       ot: |
           ([{'group':[0], 'reduction':1200},
             {'group':[1], 'reduction':1225},
@@ -162,12 +163,16 @@ tests:
             {'group':[3], 'reduction':1275}])
 
     # AVG
-    - cd: tbl.group_by(['a'], {'AVG':'id'})
+    - cd: tbl.group_by('a', r.avg('id'))
       ot: |
           ([{'group':[0], 'reduction':48},
             {'group':[1], 'reduction':49},
             {'group':[2], 'reduction':50},
             {'group':[3], 'reduction':51}])
+
+    # Multiple keys
+    - cd: tbl.group_by('a','id', r.count).count()
+      ot: 100
 
     # Clean up
     - cd: r.db('test').table_drop('test')

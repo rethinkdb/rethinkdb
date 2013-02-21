@@ -201,8 +201,8 @@ class RDBSequence(RDBBase):
     def grouped_map_reduce(self, grouping, mapping, data_collector):
         return GroupedMapReduce(self, grouping, mapping, data_collector)
 
-    def group_by(self, attrs, reduction):
-        return GroupBy(self, attrs, reduction)
+    def group_by(self, *attrs_reduction):
+        return GroupBy(self, list(attrs_reduction[:-1]), attrs_reduction[-1])
 
     def update(self, mapping):
         return Update(self, mapping)
@@ -269,7 +269,7 @@ class Datum(RDBValue):
             term.datum.type = p.Datum.R_STR
             term.datum.r_str = self.data
         else:
-            raise RuntimeError("type not handled")
+            raise RuntimeError("Cannot build a query from a %s" % type(term).__name__, term)
 
     def compose(self, args, optargs):
         return repr(self.data)
@@ -502,7 +502,7 @@ class GroupedMapReduce(RDBValOp, RDBMethod):
     tt = p.Term2.GROUPED_MAP_REDUCE
     st = 'grouped_map_reduce'
 
-class GroupBy(RDBValOp, RDBMethod):
+class GroupBy(RDBSeqOp, RDBMethod):
     tt = p.Term2.GROUPBY
     st = 'group_by'
 
