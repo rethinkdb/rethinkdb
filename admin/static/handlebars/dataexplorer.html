@@ -4,14 +4,14 @@
 
             <button class="clear_queries_link btn">Clear history</button>
             <button class="close_queries_link btn">Show history</button>
-            <button class="btn button_query change_size">&rarr;</button> 
+            <button class="btn button_query change_size"><img src="/images/arrow-expand_right.png" /></button> 
         </div>
         <h1 class="title small_margin_bottom">Data Explorer</h1>
         <div id="user-alert-space"></div>
         <div class="reason_dataexplorer_broken alert alert-error"></div>
         <div class="history_container"></div> 
         <div class="input_query_full_container"></div>
-        <div class="results_container"> </div>
+        <div class="results_container"></div>
     </div>
 </script>
 
@@ -24,6 +24,10 @@
          </div>
     </div>
     <div class="nano_border nano_border_bottom"></div>
+</script>
+
+<script id="dataexplorer-toggle_size-template" type="text/x-handlebars-template">
+    {{#if normal_view}}<img src="/images/arrow-expand_right.png" />{{else}}<img src="/images/arrow-expand_left.png" />{{/if}}
 </script>
 
 <script id="dataexplorer-toggle_history-template" type="text/x-handlebars-template">
@@ -280,7 +284,11 @@ Did you forget to append .run() at the end of your query?{{/if}}</pre>
         {{#each attr}}
         <td class="td_attr col-{{col}}" data-col={{col}}>
             <div class="click_detector">
-                <div class="jta_attr value-{{col}}">{{key}}</div>
+                {{#if is_primitive}}
+                    <div class="jta_attr value-{{col}}"><em>value</em></div>
+                {{else}}
+                    <div class="jta_attr value-{{col}}">{{key}}</div>
+                {{/if}}
             </div>
         </td>
         {{/each}}

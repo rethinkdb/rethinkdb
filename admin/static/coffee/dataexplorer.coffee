@@ -1,5 +1,4 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
-# TODO: We changed so many times the behavior of the suggestions, the code is a mess. We should refactor soon.
 module 'DataExplorerView', ->
     class @Container extends Backbone.View
         id: 'dataexplorer'
@@ -13,6 +12,7 @@ module 'DataExplorerView', ->
         databases_suggestions_template: Handlebars.templates['dataexplorer-databases_suggestions-template']
         namespaces_suggestions_template: Handlebars.templates['dataexplorer-namespaces_suggestions-template']
         reason_dataexplorer_broken_template: Handlebars.templates['dataexplorer-reason_broken-template']
+        dataexplorer_toggle_size_template: Handlebars.templates['dataexplorer-toggle_size-template']
 
         # Constants
         limit: 40 # How many results we display per page // Final for now
@@ -211,6 +211,8 @@ module 'DataExplorerView', ->
 
             @save_data_in_localstorage()
 
+            @history_displayed_id = 0
+
             # We escape the last function because we are building a regex on top of it.
             @unsafe_to_safe_regexstr = []
             @unsafe_to_safe_regexstr.push # This one has to be firest
@@ -343,6 +345,8 @@ module 'DataExplorerView', ->
             @handle_keypress() # Show suggestions/description if there are
             @results_view.expand_raw_textarea()
 
+            @draft = @codemirror.getValue()
+
         on_blur: =>
             @prototype.focus_on_codemirror = false
             @hide_suggestion_and_description()
@@ -353,6 +357,14 @@ module 'DataExplorerView', ->
         current_conpleted_query: ''
         query_first_part: ''
         query_last_part: ''
+        mouse_type_event:
+            click: true
+            dblclick: true
+            mousedown: true
+            mouseup: true
+            mouseover: true
+            mouseout: true
+            mousemove: true
 
         handle_click: (event) =>
             @handle_keypress null, event
@@ -377,34 +389,22 @@ module 'DataExplorerView', ->
                 # If the user hit tab, we switch the highlighted suggestion
                 else if event.which is 9
                     event.preventDefault()
-                    if event.type isnt 'keydown'
-                        return true
-                    # Switch throught the suggestions
-                    if event.shiftKey
-                        @current_highlighted_suggestion--
-                        if @current_highlighted_suggestion < 0
-                            @current_highlighted_suggestion = @current_suggestions.length-1
-                    else
-                        @current_highlighted_suggestion++
-                        if @current_highlighted_suggestion >= @current_suggestions.length
-                            @current_highlighted_suggestion = 0
+                    if event.type is 'keydown'
+                        # Switch throught the suggestions
+                        if event.shiftKey
+                            @current_highlighted_suggestion--
+                            if @current_highlighted_suggestion < 0
+                                @current_highlighted_suggestion = @current_suggestions.length-1
+                        else
+                            @current_highlighted_suggestion++
+                            if @current_highlighted_suggestion >= @current_suggestions.length
+                                @current_highlighted_suggestion = 0
 
-                    if @current_suggestions[@current_highlighted_suggestion]?
-                        @highlight_suggestion @current_highlighted_suggestion # Highlight the current suggestion
-                        @write_suggestion
-                            suggestion_to_write: @current_suggestions[@current_highlighted_suggestion] # Auto complete with the highlighted suggestion
-
-                    if @current_suggestions.length is 0
-                        query_lines = @codemirror.getValue().split '\n'
-
-                        query_before_cursor = ''
-                        if @codemirror.getCursor().line > 0
-                            for i in [0..@codemirror.getCursor().line-1]
-                                query_before_cursor += query_lines[i] + '\n'
-                        query_before_cursor += query_lines[@codemirror.getCursor().line].slice 0, @codemirror.getCursor().ch
-                        if query_before_cursor[query_before_cursor.length-1] isnt '('
-                            return false
-                    return true
+                        if @current_suggestions[@current_highlighted_suggestion]?
+                            @highlight_suggestion @current_highlighted_suggestion # Highlight the current suggestion
+                            @write_suggestion
+                                suggestion_to_write: @current_suggestions[@current_highlighted_suggestion] # Auto complete with the highlighted suggestion
+                            return true
                 else if event.which is 13 and (event.shiftKey or event.ctrlKey or event.metaKey) # If the user hit enter and (Ctrl or Shift)
                     @hide_suggestion_and_description()
                     event.preventDefault()
@@ -431,7 +431,35 @@ module 'DataExplorerView', ->
                         @last_action_is_paste = false
                     @hide_suggestion_and_description()
                     return true
-             
+                # Catching history navigation
+                else if event.type is 'keyup' and (event.ctrlKey or event.metaKey or event.altKey) and event.which is 38 # Key up
+                    if @history_displayed_id < @history.length
+                        @history_displayed_id++
+                        @codemirror.setValue @history[@history.length-@history_displayed_id]
+                        event.preventDefault()
+                        return true
+                else if event.type is 'keyup' and (event.ctrlKey or event.metaKey or event.altKey) and event.which is 40 # Key down
+                    if @history_displayed_id > 1
+                        @history_displayed_id--
+                        @codemirror.setValue @history[@history.length-@history_displayed_id]
+                        event.preventDefault()
+                        return true
+                    else if @history_displayed_id is 1
+                        @history_displayed_id--
+                        @codemirror.setValue @draft
+                        @codemirror.setCursor @codemirror.lineCount(), 0 # We hit the draft and put the cursor at the end
+                else if event.type is 'keyup' and (event.ctrlKey or event.metaKey or event.altKey) and event.which is 33 # Page up
+                    @history_displayed_id = @history.length
+                    @codemirror.setValue @history[@history.length-@history_displayed_id]
+                    event.preventDefault()
+                    return true
+                else if event.type is 'keyup' and (event.ctrlKey or event.metaKey or event.altKey) and event.which is 34 # Page down
+                    @history_displayed_id = @history.length
+                    @codemirror.setValue @history[@history.length-@history_displayed_id]
+                    @codemirror.setCursor @codemirror.lineCount(), 0 # We hit the draft and put the cursor at the end
+                    event.preventDefault()
+                    return true
+
             # If a selection is active, we just catch shift+enter
             if @codemirror.getSelection() isnt ''
                 @hide_suggestion_and_description()
@@ -445,16 +473,32 @@ module 'DataExplorerView', ->
                 if event?.type isnt 'mouseup'
                     return false
                 else
-                    console.log 'hmmm'
                     return true
+
+            if @$('.suggestion_name_li_hl').length > 0 # If there is a hilighted suggestion, we want to catch enter
+                if event?.which is 13
+                    event.preventDefault()
+                    @handle_keypress()
+                    return true
+
+            if @history_displayed_id isnt 0 and event? # We are scrolling in history
+                # We catch ctrl, shift, alt, 
+                if event.ctrlKey or event.shiftKey or event.altKey or event.which is 16 or event.which is 17 or event.which is 18 or event.which is 20 or event.which is 91 or event.which is 92 or event.type of @mouse_type_event
+                    return false
+            # Avoid arrows+home+end+page down+pageup
+            # if event? and (event.which is 24 or event.which is ..)
+            if not event? or (event.which isnt 37 and event.which isnt 38 and event.which isnt 39 and event.which isnt 40 and event.which isnt 33 and event.which isnt 34 and event.which isnt 35 and event.which isnt 36)
+                @history_displayed_id = 0
+                @draft = @codemirror.getValue()
 
             # The user just hit a normal key
             @cursor_for_auto_completion = @codemirror.getCursor()
 
             # We just look at key up so we don't fire the call 3 times
-            # TODO Make it flawless. I'm not sure that's the desired behavior
-            if event?.type? and (event.type isnt 'keyup' and event.type isnt 'mouseup') or (event?.which? and event.which is 16) # We don't do anything for shift
+            # Tab is an exception, we let it pass (we tab bring back suggestions)
+            if (event?.type? and (event.type isnt 'keyup' and event.type isnt 'mouseup') and event.which isnt 9) or (event?.which is 16) # We don't do anything for shift
                 return false
+
             @current_highlighted_suggestion = -1
             @.$('.suggestion_name_list').empty()
 
@@ -484,7 +528,6 @@ module 'DataExplorerView', ->
                 query: query_before_cursor
                 position: 0
             #console.log JSON.stringify stack, null, 2
-
 
             result =
                 status: null
@@ -524,6 +567,18 @@ module 'DataExplorerView', ->
                 @show_description result.description
             else
                 @hide_suggestion_and_description()
+
+            if event?.which is 9 # If we catch it here again, it means that we are not showing any suggestions
+                query_lines = @codemirror.getValue().split '\n'
+
+                query_before_cursor = ''
+                if @codemirror.getCursor().line > 0
+                    for i in [0..@codemirror.getCursor().line-1]
+                        query_before_cursor += query_lines[i] + '\n'
+                query_before_cursor += query_lines[@codemirror.getCursor().line].slice 0, @codemirror.getCursor().ch
+                if query_before_cursor[query_before_cursor.length-1] isnt '(' # This regex is a little too constraining /\((\s*)$/
+                    return false
+
             return true
 
         # Extract information from the current query
@@ -1658,11 +1713,16 @@ module 'DataExplorerView', ->
             $('#cluster').addClass 'container'
             $('#cluster').removeClass 'cluster_with_margin'
             @.$('.wrapper_scrollbar').css 'width', '888px'
+            @$('.change_size').html @dataexplorer_toggle_size_template
+                normal_view: true
 
         display_full: =>
             $('#cluster').removeClass 'container'
             $('#cluster').addClass 'cluster_with_margin'
             @.$('.wrapper_scrollbar').css 'width', ($(window).width()-92)+'px'
+            @$('.change_size').html @dataexplorer_toggle_size_template
+                normal_view: false
+
 
         destroy: =>
             @results_view.destroy()
@@ -1703,7 +1763,7 @@ module 'DataExplorerView', ->
             'td_value_content': Handlebars.templates['dataexplorer_result_json_table_td_value_content-template']
             'data_inline': Handlebars.templates['dataexplorer_result_json_table_data_inline-template']
         cursor_timed_out_template: Handlebars.templates['dataexplorer-cursor_timed_out-template']
-
+        primitive_key: '_-primitive value-_' # We suppose that there is no key with such value in the database.
         events:
             # For Tree view
             'click .jt_arrow': 'toggle_collapse'
@@ -1761,8 +1821,6 @@ module 'DataExplorerView', ->
             return @template_json_tree.container
                 tree: @json_to_node(result)
 
-        #TODO catch RangeError: Maximum call stack size exceeded?
-        #TODO what to do with new line?
         # We build the tree in a recursive way
         json_to_node: (value) =>
             value_type = typeof value
@@ -1845,7 +1903,7 @@ module 'DataExplorerView', ->
                         else
                             map[key] = 1
                 else
-                    map['_primitive value'] = Infinity
+                    map[@primitive_key] = Infinity
 
             keys_sorted = []
             for key of map
@@ -1874,6 +1932,7 @@ module 'DataExplorerView', ->
             attr = []
             for element, col in keys_sorted
                 attr.push
+                    is_primitive: element[0] is @primitive_key
                     key: element[0]
                     col: col
  
@@ -1887,7 +1946,7 @@ module 'DataExplorerView', ->
                 new_document.cells = []
                 for key_container, col in keys_stored
                     key = key_container[0]
-                    if key is '_primitive value'
+                    if key is @primitive_key
                         if jQuery.isPlainObject(element)
                             value = undefined
                         else
@@ -2299,7 +2358,8 @@ module 'DataExplorerView', ->
 
         handle_mousemove: (event) =>
             if @mouse_down is true
-                @$('.nano').height Math.max 0, @start_height-@start_y+event.pageY
+                @height_history = Math.max 0, @start_height-@start_y+event.pageY
+                @$('.nano').height @height_history
 
         handle_mouseup: (event) =>
             if @mouse_down is true
@@ -2310,6 +2370,7 @@ module 'DataExplorerView', ->
         initialize: (args) =>
             @container = args.container
             @history = args.history
+            @height_history = 200
 
         render: =>
             @$el.html @dataexplorer_history_template()
@@ -2341,12 +2402,6 @@ module 'DataExplorerView', ->
                 id: @history.length-1
                 num: @history.length
             if @state is 'visible'
-                ###
-                if is_at_bottom is true
-                    $('.nano >.content').animate
-                        scrollTop: @$('.history_list').height()
-                        , 200
-                ###
                 if @$('.no_history').length isnt 0
                     @$('.no_history').slideUp 'fast', ->
                         $(@).remove()
@@ -2381,14 +2436,17 @@ module 'DataExplorerView', ->
         open_close_history: (event, container) =>
             event?.preventDefault()
             that = @
-
             if @state is 'visible'
                 @state = 'hidden'
+                @desactivate_overflow()
                 @$('.nano').animate
                     height: 0
                     , 200
                     , ->
+                        $('body').css 'overflow', 'auto'
                         $(@).css 'visibility', 'hidden'
+                        $('.nano_border').hide() # In case the user trigger hide/show really fast
+                        $('.arrow_history').hide() # In case the user trigger hide/show really fast
                 @$('.nano_border').slideUp 'fast'
                 @$('.arrow_history').slideUp 'fast'
                 container.html @dataexplorer_toggle_history_template
@@ -2412,19 +2470,31 @@ module 'DataExplorerView', ->
                 size = args.size
             else
                 if args?.extra?
-                    size = Math.min @$('.history_list').height()+args.extra, 200
+                    size = Math.min @$('.history_list').height()+args.extra, @height_history
                 else
-                    size = Math.min @$('.history_list').height(), 200
+                    size = Math.min @$('.history_list').height(), @height_history
             @$('.nano').css 'visibility', 'visible'
+            @desactivate_overflow()
             @$('.nano').animate
                 height: size
                 , 200
                 , ->
+                    $('body').css 'overflow', 'auto'
+                    $(@).css 'visibility', 'visible' # In case the user trigger hide/show really fast
+                    $('.arrow_history').show() # In case the user trigger hide/show really fast
+                    $('.nano_border').show() # In case the user trigger hide/show really fast
                     $(@).nanoScroller({preventPageScrolling: true})
                     if args?.is_at_bottom is true
                         $('.nano >.content').animate
                             scrollTop: $('.history_list').height()
                             , 300
+
+        # The 3 secrets of French cuisine is butter, butter and butter
+        # We desactivate the scrollbar (if there isn't) while animating to have a smoother experience. We´ll put back the scrollbar once the animation is done.
+        desactivate_overflow: =>
+            if $(window).height() >= $(document).height()
+                $('body').css 'overflow', 'hidden'
+
     class @DriverHandler
         # I don't want that thing in window
         constructor: (args) ->
