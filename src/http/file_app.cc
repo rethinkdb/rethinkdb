@@ -41,7 +41,13 @@ http_res_t file_http_app_t::handle(const http_req_t &req) {
 
     http_res_t res;
 
+#ifndef NDEBUG
+    // In debug mode, do not cache static web assets
+    time_t expires = get_secs() - 31536000; // Some time in the past
+#else
+    // In release mode, cache static web assets
     time_t expires = get_secs() + 31536000; // One year from now
+#endif
     res.add_header_line("Expires", http_format_date(expires));
 
     thread_pool_t::run_in_blocker_pool(boost::bind(&file_http_app_t::handle_blocking, this, filename, &res));
