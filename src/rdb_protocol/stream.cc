@@ -89,11 +89,11 @@ boost::shared_ptr<json_stream_t> transform_stream_t::add_transformation(const rd
 }
 
 batched_rget_stream_t::batched_rget_stream_t(const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
-                      signal_t *_interruptor, key_range_t _range,
-                      int _batch_size, const backtrace_t &_table_scan_backtrace,
-                      bool _use_outdated)
+                                             signal_t *_interruptor, key_range_t _range,
+                                             const backtrace_t &_table_scan_backtrace,
+                                             bool _use_outdated)
     : ns_access(_ns_access), interruptor(_interruptor),
-      range(_range), batch_size(_batch_size), index(0),
+      range(_range),
       finished(false), started(false), use_outdated(_use_outdated),
       table_scan_backtrace(_table_scan_backtrace)
 { }

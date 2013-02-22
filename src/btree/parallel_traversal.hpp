@@ -136,9 +136,7 @@ void btree_parallel_traversal(transaction_t *txn,
 
 class parallel_traversal_progress_t : public traversal_progress_t {
 public:
-    parallel_traversal_progress_t()
-        : height(-1), print_counter(0)
-    { }
+    parallel_traversal_progress_t() : height(-1) { }
 
     enum action_t {
         LEARN,
@@ -162,8 +160,6 @@ private:
     std::vector<int> released; //How many nodes at each level we've released
 
     int height; //The height we've learned the tree has. Or -1 if we're still unsure;
-
-    int print_counter;
 
     DISABLE_COPYING(parallel_traversal_progress_t);
 };
