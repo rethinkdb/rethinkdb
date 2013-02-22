@@ -13,15 +13,22 @@ import shlex
 import subprocess
 import sys
 import os
+from vcoptparse import *
 
-if sys.argv[1] == '--workload':
-    workload = sys.argv[2]
-else:
-    raise "Invalid command line: expecting '%s --workload <workload>'" % sys.argv[0]
+op = OptParser()
+op["workload"] = StringFlag("--workload")
+op["pre-workload"] = StringFlag("--pre-workload", "true")
+opts = op.parse(sys.argv)
+
+workload = opts["workload"]
+pre_workload = opts["pre_workload"]
 
 num_clients = int(os.environ.get('NUM_CLIENTS', 1000))
 
 children = []
+
+child = subprocess.Popen(shlex.split(pre_workload))
+child.wait()
 
 for i in xrange(num_clients):
     popen = subprocess.Popen(shlex.split(workload))
