@@ -415,13 +415,13 @@ module 'DataExplorerView', ->
                     @hide_suggestion_and_description()
                     return true
                 # Catching history navigation
-                else if event.type is 'keyup' and (event.ctrlKey or event.metaKey or event.altKey) and event.which is 38 # Key up
+                else if event.type is 'keyup' and event.altKey and event.which is 38 # Key up
                     if @history_displayed_id < @history.length
                         @history_displayed_id++
                         @codemirror.setValue @history[@history.length-@history_displayed_id]
                         event.preventDefault()
                         return true
-                else if event.type is 'keyup' and (event.ctrlKey or event.metaKey or event.altKey) and event.which is 40 # Key down
+                else if event.type is 'keyup' and event.altKey and event.which is 40 # Key down
                     if @history_displayed_id > 1
                         @history_displayed_id--
                         @codemirror.setValue @history[@history.length-@history_displayed_id]
@@ -431,12 +431,12 @@ module 'DataExplorerView', ->
                         @history_displayed_id--
                         @codemirror.setValue @draft
                         @codemirror.setCursor @codemirror.lineCount(), 0 # We hit the draft and put the cursor at the end
-                else if event.type is 'keyup' and (event.ctrlKey or event.metaKey or event.altKey) and event.which is 33 # Page up
+                else if event.type is 'keyup' and event.altKey and event.which is 33 # Page up
                     @history_displayed_id = @history.length
                     @codemirror.setValue @history[@history.length-@history_displayed_id]
                     event.preventDefault()
                     return true
-                else if event.type is 'keyup' and (event.ctrlKey or event.metaKey or event.altKey) and event.which is 34 # Page down
+                else if event.type is 'keyup' and event.altKey and event.which is 34 # Page down
                     @history_displayed_id = @history.length
                     @codemirror.setValue @history[@history.length-@history_displayed_id]
                     @codemirror.setCursor @codemirror.lineCount(), 0 # We hit the draft and put the cursor at the end
@@ -473,7 +473,7 @@ module 'DataExplorerView', ->
             # 0 is for firefox
             if not event? or (event.which isnt 37 and event.which isnt 38 and event.which isnt 39 and event.which isnt 40 and event.which isnt 33 and event.which isnt 34 and event.which isnt 35 and event.which isnt 36 and event.which isnt 0)
                 @history_displayed_id = 0
-                @draft = @codemirror.getValue()a
+                @draft = @codemirror.getValue()
 
             if event?.which isnt 9 # has to be before create_suggestion
                 @cursor_for_auto_completion = @codemirror.getCursor()
