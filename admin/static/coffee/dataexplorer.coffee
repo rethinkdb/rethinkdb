@@ -2091,7 +2091,7 @@ module 'DataExplorerView', ->
         #TODO change cursor
         mouse_down: false
         handle_mousedown: (event) =>
-            if event.target.nodeName is 'DIV'
+            if event?.target?.className is 'click_detector'
                 @col_resizing = @$(event.target).parent().data('col')
                 @start_width = @$(event.target).parent().width()
                 @start_x = event.pageX
