@@ -23,10 +23,10 @@ import rethinkdb.internal
 class RDBTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.conn = connect(
-            os.environ.get('HOST', 'localhost'),
-            int(os.environ.get('PORT', 28015))
-            )
+        host_name = os.environ.get('HOST', 'localhost')
+        port_number = int(os.environ.get('PORT', 28015))
+        print "Going to connect to %s:%s" % (host_name, port_number)
+        cls.conn = connect(host_name, port_number)
         cls.db = db(os.environ.get('DB_NAME', 'test'))
         cls.table_name = os.environ.get('TABLE_NAME', 'test')
         cls.table = cls.db.table(cls.table_name)
