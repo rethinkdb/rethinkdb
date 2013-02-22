@@ -375,6 +375,7 @@ module 'DataExplorerView', ->
                                 @current_highlighted_suggestion = 0
 
                         if @current_suggestions[@current_highlighted_suggestion]?
+                            @show_suggestion()
                             @highlight_suggestion @current_highlighted_suggestion # Highlight the current suggestion
                             @write_suggestion
                                 suggestion_to_write: @current_suggestions[@current_highlighted_suggestion] # Auto complete with the highlighted suggestion
@@ -515,7 +516,7 @@ module 'DataExplorerView', ->
                 #to_describe: undefined
                 
             result_non_white_char_after_cursor = @regex.get_first_non_white_char.exec(query_after_cursor)
-            if result_non_white_char_after_cursor isnt null and (result_non_white_char_after_cursor[1]?[0] isnt '.' and result_non_white_char_after_cursor[1]?[0] isnt '}' and result_non_white_char_after_cursor[1]?[0] isnt ')' and result_non_white_char_after_cursor[1]?[0] isnt ',')
+            if result_non_white_char_after_cursor isnt null and (result_non_white_char_after_cursor[1]?[0] isnt '.' and result_non_white_char_after_cursor[1]?[0] isnt '}' and result_non_white_char_after_cursor[1]?[0] isnt ')' and result_non_white_char_after_cursor[1]?[0] isnt ','  and result_non_white_char_after_cursor[1]?[0] isnt ';')
                 ###
                 and result_non_white_char_after_cursor[1]?[0] isnt '\''
                 and result_non_white_char_after_cursor[1]?[0] isnt '"')
