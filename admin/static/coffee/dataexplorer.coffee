@@ -141,14 +141,6 @@ module 'DataExplorerView', ->
                 # In case we give focus to codemirror then load the docs, we show the suggestion
                 window.router.current_view.handle_keypress()
 
-        save_data_in_localstorage: =>
-            if window.localStorage?
-                # The cursor has some circular references, so we cannot naively store it. Let's just not save it in localStorage (as long as we have it in prototype, it's ok)
-                data_to_save = {}
-                for key, value of @saved_data
-                    if key isnt 'cursor'
-                        data_to_save[key] = value
-                window.localStorage.rethinkdb_dataexplorer = JSON.stringify data_to_save
         save_query: (query) =>
             query = query.replace(/^\s*$[\n\r]{1,}/gm, '')
             if query[query.length-1] is '\n' or query[query.length-1] is '\r'
@@ -167,29 +159,14 @@ module 'DataExplorerView', ->
 
         initialize: (args) =>
             if not DataExplorerView.Container.prototype.saved_data?
-                if window.localStorage? and window.localStorage.rethinkdb_dataexplorer?
-                    try # We use try catch just in case the data is malformed
-                        DataExplorerView.Container.prototype.saved_data = JSON.parse window.localStorage.rethinkdb_dataexplorer
-                        DataExplorerView.Container.prototype.saved_data.cursor_timed_out = true # We do not recreate the cursor
-                    catch err
-                        DataExplorerView.Container.prototype.saved_data =
-                            current_query: null # Last value @codemirror.getValue()
-                            query: null # Last executed query
-                            results: null # Last results
-                            cursor: null # Last cursor
-                            metadata: null # Last metadata
-                            cursor_timed_out: true # Whether the cursor timed out or not (ie. we reconnected)
-                            view: 'tree'
-                else
-                    DataExplorerView.Container.prototype.saved_data =
-                        current_query: null
-                        query: null
-                        results: null
-                        cursor: null
-                        metadata: null
-                        cursor_timed_out: true
-                        view: 'tree'
-            # Else the user created a data explorer view before
+                DataExplorerView.Container.prototype.saved_data =
+                    current_query: null
+                    query: null
+                    results: null
+                    cursor: null
+                    metadata: null
+                    cursor_timed_out: true
+                    view: 'tree'
 
             # Load history, keep it in memory for the session
             # The size of the history is infinite per session. But each session will not load with more that @size_history entries
@@ -206,10 +183,8 @@ module 'DataExplorerView', ->
             # Let's have a shortcut
             @prototype = DataExplorerView.Container.prototype
             @saved_data = DataExplorerView.Container.prototype.saved_data
-            @saved_data.show_query = @saved_data.query isnt @saved_data.current_query
+            @show_query_warning = @saved_data.query isnt @saved_data.current_query
             @current_results = @saved_data.results
-
-            @save_data_in_localstorage()
 
             @history_displayed_id = 0
 
@@ -306,7 +281,7 @@ module 'DataExplorerView', ->
             # Let's bring back the data explorer to its old state (if there was)
             if @saved_data?.query? and @saved_data?.results? and @saved_data?.metadata?
                 @$('.results_container').html @results_view.render_result({
-                    query: @saved_data.query
+                    show_query_warning: @show_query_warning
                     results: @saved_data.results
                     metadata: @saved_data.metadata
                 }).$el
@@ -342,7 +317,8 @@ module 'DataExplorerView', ->
             @codemirror.focus() # Give focus
             @prototype.focus_on_codemirror = true
             @codemirror.setCursor @codemirror.lineCount(), 0
-            @handle_keypress() # Show suggestions/description if there are
+            if @codemirror.getValue() is '' # We show suggestion for an empty query only
+                @handle_keypress()
             @results_view.expand_raw_textarea()
 
             @draft = @codemirror.getValue()
@@ -379,8 +355,6 @@ module 'DataExplorerView', ->
 
             # Save the last query (even incomplete)
             @saved_data.current_query = @codemirror.getValue()
-            @save_data_in_localstorage()
-
 
             if event?.which?
                 if event.which is 27 # ESC
@@ -488,10 +462,10 @@ module 'DataExplorerView', ->
                     return false
             # Avoid arrows+home+end+page down+pageup
             # if event? and (event.which is 24 or event.which is ..)
-            if not event? or (event.which isnt 37 and event.which isnt 38 and event.which isnt 39 and event.which isnt 40 and event.which isnt 33 and event.which isnt 34 and event.which isnt 35 and event.which isnt 36)
+            # 0 is for firefox
+            if not event? or (event.which isnt 37 and event.which isnt 38 and event.which isnt 39 and event.which isnt 40 and event.which isnt 33 and event.which isnt 34 and event.which isnt 35 and event.which isnt 36 and event.which isnt 0)
                 @history_displayed_id = 0
                 @draft = @codemirror.getValue()
-
             # The user just hit a normal key
             @cursor_for_auto_completion = @codemirror.getCursor()
 
@@ -1440,10 +1414,8 @@ module 'DataExplorerView', ->
                     query: @query
                     has_more_data: (true if data?) # if data is undefined, it means that there is no more data
                 @results_view.render_result
-                    query: null # We don't want to display this query because it's freshly executed
                     results: @current_results # The first parameter null is the query because we don't want to display it.
                     metadata: @saved_data.metadata
-                @save_data_in_localstorage()
 
                 if data isnt undefined #there is nore data
                     @skip_value += @current_results.length
@@ -1498,10 +1470,7 @@ module 'DataExplorerView', ->
                         query: @query
                         has_more_data: (true if data?) # if data is undefined, it means that there is no more data
 
-                    @save_data_in_localstorage()
-
                     @results_view.render_result
-                        query: null
                         results: @current_results # The first parameter is null ( = query, so we don't display it)
                         metadata: @saved_data.metadata
 
@@ -1545,7 +1514,7 @@ module 'DataExplorerView', ->
         execute_query: =>
             # The user just executed a query, so we reset cursor_timed_out to false
             @saved_data.cursor_timed_out = false
-            @saved_data.show_query = false
+            @saved_data.show_query_warning = false
 
             # postpone reconnection
             @driver_handler.postpone_reconnection()
@@ -1813,7 +1782,6 @@ module 'DataExplorerView', ->
         set_view: (view) =>
             @view = view
             @container.saved_data.view = view
-            @container.save_data_in_localstorage()
             @render_result()
 
         render_error: (query, err) =>
@@ -2158,8 +2126,6 @@ module 'DataExplorerView', ->
         default_size_column: 310 # max-width value of a cell of a table (as defined in the css file)
 
         render_result: (args) =>
-            if args?.query?
-                @query = args.query
             if args?.results?
                 @results = args.results
             if args?.metadata?
@@ -2179,7 +2145,7 @@ module 'DataExplorerView', ->
                         @metadata.execution_time_pretty = minutes+"min "+((args.metadata.execution_time-minutes*60*1000)/1000).toFixed(2)+"s"
 
             @.$el.html @template _.extend @metadata,
-                query: (@query if @container.saved_data.show_query is true)
+                show_query_warning: args?.show_query_warning
                 show_more_data: @metadata.has_more_data is true and @container.saved_data.cursor_timed_out is false
                 cursor_timed_out_template: (@cursor_timed_out_template() if @metadata.has_more_data is true and @container.saved_data.cursor_timed_out is true)
                 execution_time_pretty: @metadata.execution_time_pretty
@@ -2398,7 +2364,6 @@ module 'DataExplorerView', ->
             # Set + save codemirror
             @container.codemirror.setValue @history[parseInt(id)]
             @container.saved_data.current_query = @history[parseInt(id)]
-            @container.save_data_in_localstorage()
 
         add_query: (query) =>
             that = @
@@ -2429,7 +2394,7 @@ module 'DataExplorerView', ->
             @history = @container.history
 
             @$('.query_history').slideUp 'fast', ->
-                @remove()
+                $(@).remove()
             if @$('.no_history').length is 0
                 @$('.history_list').append @dataexplorer_query_li_template
                     no_query: true

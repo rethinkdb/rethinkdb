@@ -161,13 +161,13 @@ Did you forget to append .run() at the end of your query?{{/if}}</pre>
 </script>
 <script id="dataexplorer_result_container-template" type="text/x-handlebars-template">
     <div class="results_header">
-        {{#if query}}<div class="query_executed">For query: {{query}}</div>{{/if}}
         <ul class="nav nav-tabs change_view_container"">
             <li><a href="#raw_view" class="link_to_raw_view">Raw view</a></li>
             <li><a href="#table_view" class="link_to_table_view">Table view</a></li>
             <li><a href="#tree_view" class="link_to_tree_view active">Tree view</a></li>
         </ul>
         <p class="metadata">
+            {{#if show_query_warning}}Results from the previous query:{{/if}}
             {{#if execution_time_pretty}}Executed in {{execution_time_pretty}}.{{/if}}
             {{#if no_results}}No results returned.{{/if}}
             {{#if num_results}}{{num_results}} {{pluralize_noun 'row' num_results}} returned
