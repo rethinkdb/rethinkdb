@@ -20,18 +20,6 @@ table_name = os.environ.get('TABLE_NAME', 'test')
 print "Connecting to %s:%s" % (host_name, port_number)
 conn = r.connect(host_name, port_number)
 
-
-# Create the database and table, if necessary.
-try:
-    conn.run(r.db_create(db_name))
-except:
-    pass
-
-try:
-    conn.run(db.table_create(table_name))
-except:
-    pass
-
 pid = os.getpid()
 
 db = r.db(db_name)

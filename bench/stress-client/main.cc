@@ -35,9 +35,37 @@ FILE *get_out_file(const char *name, const char *what) {
 
 #define BACKUP_FOLDER "sqlite_backup"
 
+// This function was stolen from the inside of
+// run_generic_global_startup_behavior from src/utils.cc.
+void maximize_open_descriptor_limit() {
+    rlimit file_limit;
+    int res = getrlimit(RLIMIT_NOFILE, &file_limit);
+    if (res != 0) {
+        perror("getrlimit with RLIMIT_NOFILE failed");
+        abort();
+    }
+
+    // We need to set the file descriptor limit maximum to a higher value.  On OS X, rlim_max is
+    // RLIM_INFINITY and, with RLIMIT_NOFILE, it's illegal to set rlim_cur to RLIM_INFINITY.  On
+    // Linux, maybe the same thing is illegal, but rlim_max is set to a finite value (65K - 1)
+    // anyway.  OS X has OPEN_MAX defined to limit the highest possible file descriptor value, and
+    // that's what'll end up being the new rlim_cur value.  (The man page on OS X suggested it.)  I
+    // don't know if Linux has a similar thing, or other platforms, so we just go with rlim_max, and
+    // if we ever see a warning, we'll fix it.  Users can always deal with the problem on their end
+    // for a while using ulimit or whatever.)
+
+#ifdef __MACH__
+    file_limit.rlim_cur = std::min<rlim_t>(OPEN_MAX, file_limit.rlim_max);
+#else
+    file_limit.rlim_cur = file_limit.rlim_max;
+#endif
+    res = setrlimit(RLIMIT_NOFILE, &file_limit);
+}
+
 /* Tie it all together */
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
+    maximize_open_descriptor_limit();
+
     // Initialize randomness
     srand(time(NULL));
 
