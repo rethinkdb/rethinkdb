@@ -17,6 +17,8 @@ module 'DataExplorerView', ->
         # Constants
         limit: 40 # How many results we display per page // Final for now
         line_height: 13 # Define the height of a line (used for a line is too long)
+        size_history: 100
+
         events:
             'mouseup .CodeMirror': 'handle_click'
             'mousedown .suggestion_name_li': 'select_suggestion' # Keep mousedown to compete with blur on .input_query
@@ -49,6 +51,7 @@ module 'DataExplorerView', ->
         descriptions: {}
         suggestions: {} # Suggestions[state] = function for this state
 
+        # Once we are done moving the doc, we could generate a .js in the makefile file with the data so we don't have to do an ajax request+all this stuff
         set_doc_description: (command, tag, suggestions) =>
             if tag is 'run' # run is a special case, we don't want use to pass a callback, so we change a little the body
                 full_tag = tag+'(' # full tag is the name plus a parenthesis (we will match the parenthesis too)
@@ -141,7 +144,10 @@ module 'DataExplorerView', ->
                 # In case we give focus to codemirror then load the docs, we show the suggestion
                 window.router.current_view.handle_keypress()
 
+        # Save the query in the history
+        # The size of the history is infinite per session. But we will just save @size_history queries in localStorage
         save_query: (query) =>
+            # Remove empty lines
             query = query.replace(/^\s*$[\n\r]{1,}/gm, '')
             if query[query.length-1] is '\n' or query[query.length-1] is '\r'
                 query = query.slice 0, query.length-1
@@ -153,11 +159,13 @@ module 'DataExplorerView', ->
                     else
                         window.localStorage.rethinkdb_history = JSON.stringify @history
                     @history_view.add_query query
+
         clear_history: =>
             @history = []
             window.localStorage.rethinkdb_history = JSON.stringify @history
 
         initialize: (args) =>
+            # We do not load data from localStorage.
             if not DataExplorerView.Container.prototype.saved_data?
                 DataExplorerView.Container.prototype.saved_data =
                     current_query: null
@@ -169,7 +177,6 @@ module 'DataExplorerView', ->
                     view: 'tree'
 
             # Load history, keep it in memory for the session
-            # The size of the history is infinite per session. But each session will not load with more that @size_history entries
             if not DataExplorerView.Container.prototype.history?
                 if window.localStorage?.rethinkdb_history?
                     try
@@ -186,6 +193,7 @@ module 'DataExplorerView', ->
             @show_query_warning = @saved_data.query isnt @saved_data.current_query
             @current_results = @saved_data.results
 
+            # Index used to navigate through history with the keyboard
             @history_displayed_id = 0
 
             # We escape the last function because we are building a regex on top of it.
@@ -235,7 +243,6 @@ module 'DataExplorerView', ->
                 limit: @limit
                 view: @saved_data.view
 
-
             @history_view = new DataExplorerView.HistoryView
                 container: @
                 history: @history
@@ -245,6 +252,7 @@ module 'DataExplorerView', ->
                 on_success: @success_on_connect
                 on_fail: @error_on_connect
 
+            # One callback to rule them all
             $(window).mousemove @handle_mousemove
             $(window).mouseup @handle_mouseup
             @render()
@@ -297,8 +305,7 @@ module 'DataExplorerView', ->
 
             return @
 
-        # Create a code mirror instance
-        # This method has to be called AFTER the el element has been inserted in the DOM tree.
+        # This method has to be called AFTER the el element has been inserted in the DOM tree, mostly for codemirror
         init_after_dom_rendered: =>
             @codemirror = CodeMirror.fromTextArea document.getElementById('input_query'),
                 mode:
@@ -315,7 +322,11 @@ module 'DataExplorerView', ->
             if @saved_data.current_query?
                 @codemirror.setValue @saved_data.current_query
             @codemirror.focus() # Give focus
+            
+            # Track if the focus is on codemirror
+            # We use it to refresh the docs once the reql_docs.json is loaded
             @prototype.focus_on_codemirror = true
+
             @codemirror.setCursor @codemirror.lineCount(), 0
             if @codemirror.getValue() is '' # We show suggestion for an empty query only
                 @handle_keypress()
@@ -352,10 +363,11 @@ module 'DataExplorerView', ->
         handle_click: (event) =>
             @handle_keypress null, event
 
-        # Core of the suggestions' system: We have to parse the query
+        # Handle events on codemirror
         # Return true if we want code mirror to ignore the event
         handle_keypress: (editor, event) =>
             @prototype.focus_on_codemirror = true
+
             # Let's hide the tooltip if the user just clicked on the textarea. We'll only display later the suggestions if there are (no description)
             if event?.type is 'mouseup'
                 @hide_suggestion_and_description()
@@ -363,6 +375,7 @@ module 'DataExplorerView', ->
             # Save the last query (even incomplete)
             @saved_data.current_query = @codemirror.getValue()
 
+            # Look for special commands
             if event?.which?
                 if event.which is 27 # ESC
                     @hide_suggestion_and_description()
@@ -388,27 +401,31 @@ module 'DataExplorerView', ->
                                 suggestion_to_write: @current_suggestions[@current_highlighted_suggestion] # Auto complete with the highlighted suggestion
                             @ignore_tab_keyup = true # If we are switching suggestion, we don't want to do anything else related to tab
                             return true
-                else if event.which is 13 and (event.shiftKey or event.ctrlKey or event.metaKey) # If the user hit enter and (Ctrl or Shift)
+                # If the user hit enter and (Ctrl or Shift)
+                else if event.which is 13 and (event.shiftKey or event.ctrlKey or event.metaKey)
                     @hide_suggestion_and_description()
                     event.preventDefault()
                     if event.type isnt 'keydown'
                         return true
                     @execute_query()
                     return true
-                else if (event.ctrlKey or event.metaKey) and event.which is 86 and event.type is 'keydown' # Ctrl + V
+                # Ctrl/Cmd + V
+                else if (event.ctrlKey or event.metaKey) and event.which is 86 and event.type is 'keydown'
                     @last_action_is_paste = true
                     @num_released_keys = 0 # We want to know when the user release Ctrl AND V
                     if event.metaKey
                         @num_released_keys++ # Because on OS X, the keyup event is not fired when the metaKey is pressed (true for Firefox, Chrome, Safari at least...)
                     @hide_suggestion_and_description()
                     return true
-                else if event.type is 'keyup' and @last_action_is_paste is true and (event.which is 17 or event.which is 91) # When the user release Ctrl after a ctrl + V
+                # When the user release Ctrl/Cmd after a Ctrl/Cmd + V
+                else if event.type is 'keyup' and @last_action_is_paste is true and (event.which is 17 or event.which is 91)
                     @num_released_keys++
                     if @num_released_keys is 2
                         @last_action_is_paste = false
                     @hide_suggestion_and_description()
                     return true
-                else if event.type is 'keyup' and @last_action_is_paste is true and event.which is 86 # When the user release V after a ctrl + V
+                # When the user release V after a Ctrl/Cmd + V
+                else if event.type is 'keyup' and @last_action_is_paste is true and event.which is 86
                     @num_released_keys++
                     if @num_released_keys is 2
                         @last_action_is_paste = false
@@ -451,31 +468,34 @@ module 'DataExplorerView', ->
                     if event.type isnt 'keydown'
                         return true
                     @execute_query()
-                    return true
+                    return true # We do not replace the selection with a new line
                 # If the user select something and end somehwere with suggestion
                 if event?.type isnt 'mouseup'
                     return false
                 else
                     return true
 
-            if @$('.suggestion_name_li_hl').length > 0 # If there is a hilighted suggestion, we want to catch enter
+            # If there is a hilighted suggestion, we want to catch enter
+            if @$('.suggestion_name_li_hl').length > 0
                 if event?.which is 13
                     event.preventDefault()
                     @handle_keypress()
                     return true
 
-            if @history_displayed_id isnt 0 and event? # We are scrolling in history
+            # We are scrolling in history
+            if @history_displayed_id isnt 0 and event?
                 # We catch ctrl, shift, alt, 
                 if event.ctrlKey or event.shiftKey or event.altKey or event.which is 16 or event.which is 17 or event.which is 18 or event.which is 20 or event.which is 91 or event.which is 92 or event.type of @mouse_type_event
                     return false
+
             # Avoid arrows+home+end+page down+pageup
             # if event? and (event.which is 24 or event.which is ..)
-            # 0 is for firefox
+            # 0 is for firefox...
             if not event? or (event.which isnt 37 and event.which isnt 38 and event.which isnt 39 and event.which isnt 40 and event.which isnt 33 and event.which isnt 34 and event.which isnt 35 and event.which isnt 36 and event.which isnt 0)
                 @history_displayed_id = 0
                 @draft = @codemirror.getValue()
 
-            if event?.which isnt 9 # has to be before create_suggestion
+            if event?.which isnt 9 # has to be before create_suggestion()
                 @cursor_for_auto_completion = @codemirror.getCursor()
 
             # We just look at key up so we don't fire the call 3 times
@@ -483,7 +503,8 @@ module 'DataExplorerView', ->
                 return false
             if event?.which is 16 # We don't do anything with Shift.
                 return false
-            # Tab is an exception, we let it pass (we tab bring back suggestions) - What we want is to catch keydown
+
+            # Tab is an exception, we let it pass (tab bring back suggestions) - What we want is to catch keydown
             if @ignore_tab_keyup is true and event?.which is 9
                 if event.type is 'keyup'
                     @ignore_tab_keyup = false
@@ -513,16 +534,17 @@ module 'DataExplorerView', ->
                         query_after_cursor += query_lines[i]
             @query_last_part = query_after_cursor
 
-            # We could perform better, but that would make the code harder to read, so let's not work too hard
             stack = @extract_data_from_query
                 query: query_before_cursor
                 position: 0
 
             result =
                 status: null
+                # create_suggestion is going to fill to_complete and to_describe
                 #to_complete: undefined
                 #to_describe: undefined
                 
+            # If we are in the middle of a function (text after the cursor - that is not an element in @char_breakers), we just show a description, not a suggestion
             result_non_white_char_after_cursor = @regex.get_first_non_white_char.exec(query_after_cursor)
             if result_non_white_char_after_cursor isnt null and not(result_non_white_char_after_cursor[1]?[0] of @char_breakers)
                 result.status = 'break_and_look_for_description'
@@ -533,6 +555,7 @@ module 'DataExplorerView', ->
                     result.status = 'break_and_look_for_description'
                     @hide_suggestion()
 
+            # Create the suggestion/description
             @create_suggestion
                 stack: stack
                 query: query_before_cursor
@@ -586,7 +609,7 @@ module 'DataExplorerView', ->
             multiple_line_comment: /^(\s)*\/\*[^]*\*\//
             get_first_non_white_char: /\s*(\S+)/
             last_char_is_white: /.*(\s+)$/
-        stop_char: # Just for performance
+        stop_char: # Just for performance and cleaner code
             opening:
                 '(': true
                 '{': true
@@ -597,17 +620,14 @@ module 'DataExplorerView', ->
                 ']': '['
 
 
-        ### 
-        element.type in ['string', 'function', 'var', 'separator', 'anonymous_function', 'object']
-        TODO Collapse the query.slice(...)
-        ###
+        # We build a stack of the query.
+        # Chained functions are in the same array, arguments/inner queries are in a nested array
+        # element.type in ['string', 'function', 'var', 'separator', 'anonymous_function', 'object', 'array_entry', 'object_key' 'array']
         extract_data_from_query: (args) =>
             query = args.query
             context = if args.context? then DataUtils.deep_copy(args.context) else {}
             position = args.position
 
-            # query_after_cursor = args.query_before_cursor
-            
             stack = []
             element =
                 type: null
@@ -663,7 +683,8 @@ module 'DataExplorerView', ->
                                 start += result_white[0].length
                                 continue
 
-                            result_regex = @regex.anonymous.exec query.slice i # Check for anonymouse function
+                            # Check for anonymouse function
+                            result_regex = @regex.anonymous.exec query.slice i
                             if result_regex isnt null
                                 element.type = 'anonymous_function'
                                 list_args = result_regex[2]?.split(',')
@@ -677,8 +698,9 @@ module 'DataExplorerView', ->
                                 body_start = i+result_regex[0].length
                                 stack_stop_char = ['{']
                                 continue
-
-                            result_regex = @regex.return.exec query.slice i # Check for return
+                            
+                            # Check for return
+                            result_regex = @regex.return.exec query.slice i
                             if result_regex isnt null
                                 # I'm not sure we need to keep track of return, but let's keep it for now
                                 element.type = 'return'
@@ -693,7 +715,8 @@ module 'DataExplorerView', ->
                                 start = i+result_regex[0].length
                                 continue
 
-                            result_regex = @regex.object.exec query.slice i # Check for object
+                            # Check for object
+                            result_regex = @regex.object.exec query.slice i
                             if result_regex isnt null
                                 element.type = 'object'
                                 element.next_key = null
@@ -703,7 +726,8 @@ module 'DataExplorerView', ->
                                 stack_stop_char = ['{']
                                 continue
 
-                            result_regex = @regex.array.exec query.slice i # Check for array
+                            # Check for array
+                            result_regex = @regex.array.exec query.slice i
                             if result_regex isnt null
                                 element.type = 'array'
                                 element.next_key = null
@@ -718,9 +742,9 @@ module 'DataExplorerView', ->
                             else
                                 new_start = i
 
-                            result_regex = @regex.method.exec query.slice new_start # Check for a standard method
+                            # Check for a standard method
+                            result_regex = @regex.method.exec query.slice new_start
                             if result_regex isnt null
-                                # We could check if we are matching row( and split it in "row" and "("
                                 if stack[stack.length-1]?.type is 'function' or stack[stack.length-1]?.type is 'var' # We want the query to start with r. or arg.
                                     element.type = 'function'
                                     element.name = result_regex[0]
@@ -733,7 +757,6 @@ module 'DataExplorerView', ->
                                     position_opening_parenthesis = result_regex[0].indexOf('(')
                                     if position_opening_parenthesis isnt -1 and result_regex[0].slice(0, position_opening_parenthesis) of context
                                         # Save the var
-                                        # TODO Look for do() to get real_type
                                         element.real_type = 'json'
                                         element.type = 'var'
                                         element.name = result_regex[0].slice(0, position_opening_parenthesis)
@@ -748,8 +771,8 @@ module 'DataExplorerView', ->
                                         start = position_opening_parenthesis+1
                                         to_skip = result_regex[0].length-1
 
-
-                            result_regex = @regex.method_var.exec query.slice new_start # Check for method without parenthesis r., r.row., doc.
+                            # Check for method without parenthesis r., r.row., doc.
+                            result_regex = @regex.method_var.exec query.slice new_start
                             if result_regex isnt null
                                 if result_regex[0].slice(0, result_regex[0].length-1) of context
                                     element.type = 'var'
@@ -785,6 +808,7 @@ module 'DataExplorerView', ->
                                 start = i+result_regex[0].length-1+1
                                 to_skip = result_regex[0].length-1
                                 continue
+
                             # Look for a semi colon
                             result_regex = @regex.semicolon.exec query.slice i
                             if result_regex isnt null
@@ -802,12 +826,10 @@ module 'DataExplorerView', ->
                                 to_skip = result_regex[0].length-1
                                 continue
                         #else # if element.start isnt i
-                            # Skip white spaces
-                            # TODO
+                        # We caught the white spaces, so there is nothing to do here
 
                     else # element.type isnt null
-                        # White spaces can means a new start: r.table(...).eqJoin('id', r.table(...), 'other_id')
-                        # Is that even possible?
+                        # Catch separator like for groupedMapReduce
                         result_regex = @regex.comma.exec(query.slice(i))
                         if result_regex isnt null and stack_stop_char.length < 1
                             # element should have been pushed in stack. If not, the query is malformed
@@ -824,8 +846,7 @@ module 'DataExplorerView', ->
                             to_skip = result_regex[0].length-1
                             continue
 
-
-                        # Hum, if we reach here, the query is probably malformed of there's a bug here
+                        # Catch for anonymous function
                         else if element.type is 'anonymous_function'
                             if char of @stop_char.opening
                                 stack_stop_char.push char
@@ -843,9 +864,9 @@ module 'DataExplorerView', ->
                                             type: null
                                             context: context
                                         start = i+1
-                                #else something is broken here.
-                                #TODO Default behavior? The user forgot to close something?
-                                #@get_error_from_query is going to report this issue
+                                #else the written query is broken here. The user forgot to close something?
+                                #TODO Default behavior? Wait for Brackets/Ace to see how we handle errors
+                        # Catch for function
                         else if element.type is 'function'
                             if char of @stop_char.opening
                                 stack_stop_char.push char
@@ -863,6 +884,8 @@ module 'DataExplorerView', ->
                                             type: null
                                             context: context
                                         start = i+1
+
+                        # Catch for object
                         else if element.type is 'object'
                             # Since we are sure that we are not in a string, we can just look for colon and comma
                             # Still, we need to check the stack_stop_char since we can have { key: { inner: 'test, 'other_inner'}, other_key: 'other_value'}
@@ -887,11 +910,9 @@ module 'DataExplorerView', ->
                                             element.body[element.body.length-1] = new_element
                                         element.next_key = null # No more next_key
                                         element.complete = true
-                                        #else the next key is not defined
-                                        #TODO Check that the next_key is just white spaces, else "throw" an error
-                                        #if not element.next_key?
-                                        #    element.key_complete = false
-                                        #    element.next_key = query.slice element.current_key_start
+                                        # if not element.next_key?
+                                        # The next key is not defined, this is a broken query.
+                                        # TODO show error once brackets/ace will be used
 
                                         stack.push element
                                         element =
@@ -927,6 +948,7 @@ module 'DataExplorerView', ->
                                     to_skip = result_regex[0].length-1
                                     element.next_key = null
                                     element.current_key_start = i+result_regex[0].length
+                        # Catch for array
                         else if element.type is 'array'
                             if char of @stop_char.opening
                                 stack_stop_char.push char
@@ -958,6 +980,7 @@ module 'DataExplorerView', ->
                                     element.body.push new_element
                                 entry_start = i+1
 
+            # We just reached the end, let's try to find the type of the incomplete element
             if element.type isnt null
                 element.complete = false
                 if element.type is 'function'
@@ -1015,7 +1038,6 @@ module 'DataExplorerView', ->
                     element.name = query.slice start
                     element.complete = true
                 else if query[start] is '.'
-                    #TODO add check for [a-zA-Z]?
                     element.type = 'function'
                     element.position = position+start
                     element.name = query.slice start+1
@@ -1024,14 +1046,14 @@ module 'DataExplorerView', ->
                     element.name = query.slice start
                     element.position = position+start
                     element.complete = false
-                #if @regex.white.test(element.name) is false # If its type is null and the name is just white spaces, we ignore the element
                 stack.push element
             return stack
 
-        # TODO return type
+        # Decide if we have to show a suggestion or a description
+        # Mainly use the stack created by extract_data_from_query
         create_suggestion: (args) =>
             stack = args.stack
-            query = args.query # We don't need it anymore. Remove it later if it's really the case
+            query = args.query
             result = args.result
 
             # No stack, ie an empty query
@@ -1128,8 +1150,8 @@ module 'DataExplorerView', ->
                             for suggestion in @suggestions[@map_state[element.name]]
                                 if result.suggestions_regex.test(suggestion) is true
                                     result.suggestions.push suggestion
-                        else
-                            #TODO fully test the suggestion then when everything is cool, show a warning
+                        #else # This is a non valid ReQL function.
+                        # It may be a personalized function defined in the data explorer...
                         result.status = 'done'
                     else if element.type is 'var' and element.complete is true
                         result.state = element.real_type
@@ -1140,6 +1162,7 @@ module 'DataExplorerView', ->
                         result.status = 'done'
                     #else # Is that possible? A function can only be preceded by a function (except for r)
 
+        # Create regex based on the user input. We make it safe
         create_safe_regex: (str) =>
             for char in @unsafe_to_safe_regexstr
                 str = str.replace char.pattern, char.replacement
@@ -1147,8 +1170,8 @@ module 'DataExplorerView', ->
 
 
         # Return the first unmatched closing parenthesis/square bracket/curly bracket
+        # TODO use and show errors once we'll have decided how to handle errors. Brackets/ace may do it themselves.
         # TODO Check if a key is used more than once in an object
-        # TODO Talked to Slava, we may not use this functionnality, so let's just keep it commented for now
         ###
         get_errors_from_query: (query) =>
             is_string = false
@@ -1201,22 +1224,24 @@ module 'DataExplorerView', ->
                 return null
         ###
 
+        # Show suggestion and determine where to put the box
         show_suggestion: =>
             @move_suggestion()
-            #margin = (parseInt(@.$('.CodeMirror-cursor').css('top').replace('px', ''))+@line_height)+'px'
             margin = (parseInt(@.$('.CodeMirror-cursor').css('top').replace('px', ''))+@line_height)+'px'
             @.$('.suggestion_full_container').css 'margin-top', margin
             @.$('.arrow').css 'margin-top', margin
 
             @.$('.suggestion_name_list').show()
             @.$('.arrow').show()
-
+        
+        # If want to show suggestion without moving the arrow
         show_suggestion_without_moving: =>
             @.$('.arrow').show()
             @.$('.suggestion_name_list').show()
 
+        # Show description and determine where to put it
         show_description: (fn) =>
-            if @descriptions[fn]?
+            if @descriptions[fn]? # Just for safety
                 margin = (parseInt(@.$('.CodeMirror-cursor').css('top').replace('px', ''))+@line_height)+'px'
 
                 @.$('.suggestion_full_container').css 'margin-top', margin
@@ -1247,6 +1272,7 @@ module 'DataExplorerView', ->
             else
                 @.$('.arrow').show()
 
+        # Move the suggestion. We have steps of 200 pixels and try not to overlaps button if we can. If we cannot, we just hide them all since their total width is less than 200 pixels
         move_suggestion: =>
             margin_left = parseInt(@.$('.CodeMirror-cursor').css('left').replace('px', ''))+23
             @.$('.arrow').css 'margin-left', margin_left
@@ -1303,11 +1329,7 @@ module 'DataExplorerView', ->
         mouseout_suggestion: (event) =>
             @hide_description()
 
-
-        #TODO refactor show_suggestion, show_suggestion_description, add_description
-
-        # Extend description for db() and table() with a list of databases or namespaces
-        # TODO refactor extend_description and extract_database_used. We can just use the stack built by extract_data_from_query
+        # Extend description for .db() and .table() with dbs/tables names
         extend_description: (fn) =>
             if @options?.can_extend? and @options?.can_extend is false
                 return @descriptions[fn]
@@ -1347,6 +1369,8 @@ module 'DataExplorerView', ->
                 description = @descriptions[fn]
             return description
 
+        # We could create a new stack with @extract_data_from_query, but that would be a more expensive for not that much
+        # We can not use the previous stack too since autocompletion doesn't validate the query until you hit enter (or another key than tab)
         extract_database_used: =>
             query_lines = @codemirror.getValue().split '\n'
             query_before_cursor = ''
@@ -1354,7 +1378,7 @@ module 'DataExplorerView', ->
                 for i in [0..@codemirror.getCursor().line-1]
                     query_before_cursor += query_lines[i] + '\n'
             query_before_cursor += query_lines[@codemirror.getCursor().line].slice 0, @codemirror.getCursor().ch
-            # TODO: check that there is not a string containing db( before...
+            # We cannot have ".db(" in a db name
             last_db_position = query_before_cursor.lastIndexOf('.db(')
             if last_db_position is -1
                 for database in databases.models
@@ -1444,6 +1468,7 @@ module 'DataExplorerView', ->
                 @.$('.loading_query_img').css 'display', 'none'
                 @results_view.render_error(@query, err)
 
+        # Callback for the query executed
         callback_multiple_queries: (data) =>
             # Check if the data sent by the server is an error
             if data instanceof rethinkdb.errors.RuntimeError or data instanceof rethinkdb.errors.BadQuery or data instanceof rethinkdb.errors.ClientError or data instanceof rethinkdb.errors.ClientError
@@ -1835,8 +1860,8 @@ module 'DataExplorerView', ->
                     sub_values.push
                         key: key
                         value: @json_to_node value[key]
-                    #TODO Remove this check by sending whether the comma should be add or not
-                    if typeof value[key] is 'string' and (/^(http|https):\/\/[^\s]+$/i.test(value[key]) or  /^[a-z0-9._-]+@[a-z0-9]+.[a-z0-9._-]{2,4}/i.test(value[key]))
+                    # We don't add a coma for url and emails, because we put it in value (value = url, >>)
+                    if typeof value[key] is 'string' and ((/^(http|https):\/\/[^\s]+$/i.test(value[key]) or /^[a-z0-9._-]+@[a-z0-9]+.[a-z0-9._-]{2,4}/i.test(value[key])))
                         sub_values[sub_values.length-1]['no_comma'] = true
 
                 if sub_values.length isnt 0
@@ -1970,8 +1995,6 @@ module 'DataExplorerView', ->
                     data['value'] = '[ ]'
                     data['classname'] = 'empty array'
                 else
-                    #TODO Build preview
-                    #TODO Add arrows for attributes
                     data['value'] = '[ ... ]'
                     data['data_to_expand'] = JSON.stringify(value)
             else if value_type is 'object'
@@ -1998,7 +2021,7 @@ module 'DataExplorerView', ->
             data = dom_element.data('json_data')
             result = @json_to_tree data
             dom_element.html result
-            classname_to_change = dom_element.parent().attr('class').split(' ')[0] #TODO Use a Regex
+            classname_to_change = dom_element.parent().attr('class').split(' ')[0]
             $('.'+classname_to_change).css 'max-width', 'none'
             classname_to_change = dom_element.parent().parent().attr('class')
             $('.'+classname_to_change).css 'max-width', 'none'
@@ -2018,7 +2041,6 @@ module 'DataExplorerView', ->
                  
             return result
 
-        #TODO change cursor
         mouse_down: false
         handle_mousedown: (event) =>
             if event?.target?.className is 'click_detector'
@@ -2028,7 +2050,6 @@ module 'DataExplorerView', ->
                 @mouse_down = true
                 $('body').toggleClass('resizing', true)
 
-        #TODO Handle when last column is resized or when table expands too much
         handle_mousemove: (event) =>
             if @mouse_down
                 @last_columns_size[@col_resizing] = Math.max 5, @start_width-@start_x+event.pageX # Save the personalized size
@@ -2243,7 +2264,6 @@ module 'DataExplorerView', ->
         dataexplorer_toggle_history_template: Handlebars.templates['dataexplorer-toggle_history-template']
         className: 'history'
         
-        size_history: 100
         size_history_displayed: 300
         state: 'hidden' # hidden, visible
         index_displayed: 0
