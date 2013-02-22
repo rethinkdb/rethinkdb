@@ -2384,7 +2384,7 @@ module 'DataExplorerView', ->
                         is_at_bottom: is_at_bottom
             else
                 if @$('.no_history').length isnt 0
-                    @$('.no_history').show()
+                    @$('.no_history').remove()
  
 
         clear_history: (event) =>
