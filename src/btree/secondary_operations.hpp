@@ -63,4 +63,6 @@ bool delete_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, uuid_u
 //points to. drop_secondary_indexes. Does both and should be used publicly.
 void delete_all_secondary_indexes(transaction_t *txn, buf_lock_t *sindex_block);
 
+block_id_t ensure_queue(transaction_t *txn, buf_lock_t *sindex_block);
+
 #endif

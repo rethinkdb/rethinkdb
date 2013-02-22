@@ -145,6 +145,10 @@ int64_t internal_disk_backed_queue_t::size() {
     return get_superblock(&txn, &_superblock)->queue_size;
 }
 
+block_id_t internal_disk_backed_queue_t::get_superblock_id() {
+    return superblock_id;
+}
+
 queue_superblock_t *internal_disk_backed_queue_t::get_superblock(transaction_t *txn, scoped_ptr_t<buf_lock_t> *superblock_out) {
     if (superblock_id == NULL_BLOCK_ID) {
         superblock_out->init(new buf_lock_t(txn));

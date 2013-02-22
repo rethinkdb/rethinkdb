@@ -709,7 +709,9 @@ struct write_visitor_t : public boost::static_visitor<void> {
         rdb_set(w.key, w.data, w.overwrite, btree, timestamp, txn, superblock, &res, &mod_report);
 
         sindex_access_vector_t sindexes;
-        store->acquire_all_sindex_superblocks_for_write(sindex_block_id, token_pair, txn, &sindexes, &interruptor);
+        store->acquire_all_sindex_superblocks_for_write(
+                sindex_block_id, token_pair, txn, 
+                DONT_ACQUIRE_POST_CONSTRUCTING, &sindexes, &interruptor);
         rdb_update_sindexes(sindexes, w.key, &mod_report, txn);
     }
 
@@ -721,7 +723,9 @@ struct write_visitor_t : public boost::static_visitor<void> {
         rdb_modify(m.primary_key, m.key, m.op, &env, m.scopes, m.backtrace, m.mapping, btree, timestamp, txn, superblock, &res, &mod_report);
 
         sindex_access_vector_t sindexes;
-        store->acquire_all_sindex_superblocks_for_write(sindex_block_id, token_pair, txn, &sindexes, &interruptor);
+        store->acquire_all_sindex_superblocks_for_write(
+                sindex_block_id, token_pair, txn, 
+                DONT_ACQUIRE_POST_CONSTRUCTING, &sindexes, &interruptor);
         rdb_update_sindexes(sindexes, m.key, &mod_report, txn);
     }
 
@@ -733,7 +737,9 @@ struct write_visitor_t : public boost::static_visitor<void> {
         rdb_delete(d.key, btree, timestamp, txn, superblock, &res, &mod_report);
 
         sindex_access_vector_t sindexes;
-        store->acquire_all_sindex_superblocks_for_write(sindex_block_id, token_pair, txn, &sindexes, &interruptor);
+        store->acquire_all_sindex_superblocks_for_write(
+                sindex_block_id, token_pair, txn, 
+                DONT_ACQUIRE_POST_CONSTRUCTING, &sindexes, &interruptor);
         rdb_update_sindexes(sindexes, d.key, &mod_report, txn);
     }
 

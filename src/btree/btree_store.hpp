@@ -14,6 +14,7 @@
 #include "btree/secondary_operations.hpp"
 #include "buffer_cache/mirrored/config.hpp"  // TODO: Move to buffer_cache/config.hpp or something.
 #include "buffer_cache/types.hpp"
+#include "containers/disk_backed_queue.hpp"
 #include "perfmon/perfmon.hpp"
 #include "protocol_api.hpp"
 
@@ -23,6 +24,12 @@ namespace unittest {
 void run_sindex_btree_store_api_test();
 void run_sindex_post_construction();
 } //namespace unittest
+
+/* Used in the acquire_all_sindex_superblocks_for_write method. */
+enum acquire_post_constructing_t {
+    ACQUIRE_POST_CONSTRUCTING,
+    DONT_ACQUIRE_POST_CONSTRUCTING
+};
 
 class btree_slice_t;
 class io_backender_t;
@@ -232,6 +239,7 @@ public: // <--- so this is some bullshit right here
             block_id_t sindex_block_id,
             write_token_pair_t *token_pair,
             transaction_t *txn,
+            acquire_post_constructing_t acquire_post_constructing,
             sindex_access_vector_t *sindex_sbs_out,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
@@ -239,15 +247,26 @@ public: // <--- so this is some bullshit right here
     void acquire_all_sindex_superblocks_for_write(
             buf_lock_t *sindex_block,
             transaction_t *txn,
+            acquire_post_constructing_t acquire_post_constructing,
             sindex_access_vector_t *sindex_sbs_out)
             THROWS_NOTHING;
 
     void acquire_sindex_superblocks_for_write(
-            boost::optional<std::set<uuid_u> > sindexes_to_acquire, //empty means acquire all sindexes
+            boost::optional<std::set<uuid_u> > sindexes_to_acquire, //nothing means acquire all sindexes
             buf_lock_t *sindex_block,
             transaction_t *txn,
             sindex_access_vector_t *sindex_sbs_out)
             THROWS_NOTHING;
+
+    template <class T>
+    void get_sindex_queue_block(
+                buf_lock_t *sindex_block,
+                transaction_t *txn,
+                scoped_ptr_t<disk_backed_queue_t<T> > *queue)
+                THROWS_NOTHING {
+        block_id_t queue_superblock = ensure_queue(txn, sindex_block);
+        queue->init(new disk_backed_queue_t<T>(txn->get_cache(), queue_superblock));
+    }
 
     btree_slice_t *get_sindex_slice(uuid_u id) {
         return &(secondary_index_slices.at(id));

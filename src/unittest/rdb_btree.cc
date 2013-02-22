@@ -92,6 +92,8 @@ void run_sindex_post_construction() {
                 txn.get(),
                 super_block.get(),
                 &dummy_interuptor);
+
+        //TODO update this to do post construction
     }
 
     {
@@ -104,8 +106,10 @@ void run_sindex_post_construction() {
                 1, &token_pair.main_write_token, &txn, &super_block, &dummy_interuptor);
 
         btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindexes;
-        store.acquire_all_sindex_superblocks_for_write(super_block->get_sindex_block_id(),
-                &token_pair, txn.get(), &sindexes, &dummy_interuptor);
+        store.acquire_all_sindex_superblocks_for_write(
+                super_block->get_sindex_block_id(),
+                &token_pair, txn.get(), ACQUIRE_POST_CONSTRUCTING, 
+                &sindexes, &dummy_interuptor);
 
         post_construct_secondary_indexes(store.btree.get(), txn.get(), super_block.get(),
                 sindexes, &dummy_interuptor);

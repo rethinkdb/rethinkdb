@@ -37,6 +37,8 @@ public:
     /* Initializes a new disk backed queue. */
     internal_disk_backed_queue_t(cache_t *cache);
     internal_disk_backed_queue_t(cache_t *cache, transaction_t *txn);
+
+    /* Gain access to an existing disk_backed_queue_t. */
     internal_disk_backed_queue_t(cache_t *cache, block_id_t superblock_id);
     ~internal_disk_backed_queue_t();
 
@@ -47,6 +49,8 @@ public:
     bool empty();
 
     int64_t size();
+
+    block_id_t get_superblock_id();
 
 private:
     queue_superblock_t *get_superblock(transaction_t *txn, scoped_ptr_t<buf_lock_t> *superblock_out);
@@ -118,6 +122,10 @@ public:
 
     int64_t size() {
         return internal_.size();
+    }
+
+    block_id_t get_superblock() {
+        return internal_.get_superblock_id();
     }
 
 private:
