@@ -1513,8 +1513,11 @@ TODO: retire this
                 .click_detector{
                     width: 100%;
                     cursor: e-resize;
-                    div{
-                        cursor: default;
+                    div{ // All for the sake of Opera
+                        cursor: text;
+                        .jt_arrow, .jta_arrow{
+                            cursor: default;
+                        }   
                     }
                 }
             }
