@@ -473,7 +473,10 @@ module 'DataExplorerView', ->
             # 0 is for firefox
             if not event? or (event.which isnt 37 and event.which isnt 38 and event.which isnt 39 and event.which isnt 40 and event.which isnt 33 and event.which isnt 34 and event.which isnt 35 and event.which isnt 36 and event.which isnt 0)
                 @history_displayed_id = 0
-                @draft = @codemirror.getValue()
+                @draft = @codemirror.getValue()a
+
+            if event?.which isnt 9 # has to be before create_suggestion
+                @cursor_for_auto_completion = @codemirror.getCursor()
 
             # We just look at key up so we don't fire the call 3 times
             if event?.type? and event.type isnt 'keyup' and event.which isnt 9 and event.type isnt 'mouseup'
@@ -560,10 +563,7 @@ module 'DataExplorerView', ->
                 query_before_cursor += query_lines[@codemirror.getCursor().line].slice 0, @codemirror.getCursor().ch
                 if query_before_cursor[query_before_cursor.length-1] isnt '(' # This regex is a little too constraining /\((\s*)$/
                     return false
-            else
-                # The user just hit a normal key
-                @cursor_for_auto_completion = @codemirror.getCursor()
-
+            
 
             return true
 
