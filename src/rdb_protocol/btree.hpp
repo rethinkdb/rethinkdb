@@ -109,8 +109,8 @@ void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range,
 void rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t timestamp, transaction_t *txn, superblock_t *superblock, point_delete_response_t *response);
 
 void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
-                                 const key_range_t &keys,
-                                 transaction_t *txn, superblock_t *superblock);
+                     const key_range_t &keys,
+                     transaction_t *txn, superblock_t *superblock);
 
 /* RGETS */
 size_t estimate_rget_response_size(const boost::shared_ptr<scoped_cJSON_t> &json);

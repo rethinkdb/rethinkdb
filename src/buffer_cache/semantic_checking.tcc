@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "buffer_cache/semantic_checking.hpp"
 
 #include <algorithm>
@@ -40,37 +40,10 @@ const void *scc_buf_lock_t<inner_cache_t>::get_data_read() const {
 }
 
 template<class inner_cache_t>
-void *scc_buf_lock_t<inner_cache_t>::get_data_major_write() {
+void *scc_buf_lock_t<inner_cache_t>::get_data_write() {
     rassert(internal_buf_lock.has());
     has_been_changed = true;
-    return internal_buf_lock->get_data_major_write();
-}
-
-template<class inner_cache_t>
-void scc_buf_lock_t<inner_cache_t>::set_data(void *dest, const void *src, const size_t n) {
-    rassert(internal_buf_lock.has());
-    has_been_changed = true;
-    internal_buf_lock->set_data(dest, src, n);
-}
-
-template<class inner_cache_t>
-void scc_buf_lock_t<inner_cache_t>::move_data(void *dest, const void *src, const size_t n) {
-    rassert(internal_buf_lock.has());
-    has_been_changed = true;
-    internal_buf_lock->move_data(dest, src, n);
-}
-
-template<class inner_cache_t>
-void scc_buf_lock_t<inner_cache_t>::apply_patch(buf_patch_t *patch) {
-    rassert(internal_buf_lock.has());
-    has_been_changed = true;
-    internal_buf_lock->apply_patch(patch);
-}
-
-template<class inner_cache_t>
-patch_counter_t scc_buf_lock_t<inner_cache_t>::get_next_patch_counter() {
-    rassert(internal_buf_lock.has());
-    return internal_buf_lock->get_next_patch_counter();
+    return internal_buf_lock->get_data_write();
 }
 
 template<class inner_cache_t>
@@ -180,19 +153,15 @@ void scc_transaction_t<inner_cache_t>::get_subtree_recencies(block_id_t *block_i
 /* Cache */
 
 template<class inner_cache_t>
-void scc_cache_t<inner_cache_t>::create(
-        serializer_t *serializer,
-        mirrored_cache_static_config_t *static_config)
-{
-    inner_cache_t::create(serializer, static_config);
+void scc_cache_t<inner_cache_t>::create(serializer_t *serializer) {
+    inner_cache_t::create(serializer);
 }
 
 template<class inner_cache_t>
 scc_cache_t<inner_cache_t>::scc_cache_t(serializer_t *serializer,
-                                        mirrored_cache_config_t *dynamic_config,
+                                        const mirrored_cache_config_t &dynamic_config,
                                         perfmon_collection_t *parent)
-    : inner_cache(serializer, dynamic_config, parent) {
-}
+    : inner_cache(serializer, dynamic_config, parent) { }
 
 template<class inner_cache_t>
 block_size_t scc_cache_t<inner_cache_t>::get_block_size() {

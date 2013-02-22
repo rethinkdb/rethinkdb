@@ -140,7 +140,7 @@ void debugf_print(const char *msg, const T& obj) {
 
 class debugf_in_dtor_t {
 public:
-    explicit debugf_in_dtor_t(const char *msg, ...);
+    explicit debugf_in_dtor_t(const char *msg, ...) __attribute__((format (printf, 2, 3)));
     ~debugf_in_dtor_t();
 private:
     std::string message;
@@ -175,8 +175,8 @@ uint64_t strtou64_strict(const char *string, const char **end, int base);
 MUST_USE bool strtoi64_strict(const std::string &str, int base, int64_t *out_result);
 MUST_USE bool strtou64_strict(const std::string &str, int base, uint64_t *out_result);
 
-std::string strprintf(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
-std::string vstrprintf(const char *format, va_list ap);
+std::string strprintf(const char *format, ...) __attribute__((format (printf, 1, 2)));
+std::string vstrprintf(const char *format, va_list ap) __attribute__((format (printf, 1, 0)));
 
 
 // formatted time:
@@ -380,6 +380,11 @@ private:
     const std::string permanent_path_;
     const std::string temporary_path_;
 };
+
+
+
+bool ptr_in_byte_range(const void *p, const void *range_start, size_t size_in_bytes);
+bool range_inside_of_byte_range(const void *p, size_t n_bytes, const void *range_start, size_t size_in_bytes);
 
 
 

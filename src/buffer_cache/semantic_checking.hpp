@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef BUFFER_CACHE_SEMANTIC_CHECKING_HPP_
 #define BUFFER_CACHE_SEMANTIC_CHECKING_HPP_
 
@@ -7,7 +7,6 @@
 #include "utils.hpp"
 #include <boost/crc.hpp>
 
-#include "buffer_cache/buf_patch.hpp"
 #include "buffer_cache/mirrored/config.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/coro_fifo.hpp"
@@ -53,18 +52,11 @@ public:
     block_id_t get_block_id() const;
     const void *get_data_read() const;
     // Use this only for writes which affect a large part of the block, as it bypasses the diff system
-    void *get_data_major_write();
-    // Convenience function to set some address in the buffer acquired through get_data_read. (similar to memcpy)
-    void set_data(void* dest, const void* src, const size_t n);
-    // Convenience function to move data within the buffer acquired through get_data_read. (similar to memmove)
-    void move_data(void* dest, const void* src, const size_t n);
-    void apply_patch(buf_patch_t *patch); // This might delete the supplied patch, do not use patch after its application
-    patch_counter_t get_next_patch_counter();
+    void *get_data_write();
     void mark_deleted();
     void touch_recency(repli_timestamp_t timestamp);
 
     bool is_acquired() const;
-    void ensure_flush();
     bool is_deleted() const;
     repli_timestamp_t get_recency() const;
 
@@ -132,11 +124,9 @@ public:
     typedef scc_transaction_t<inner_cache_t> transaction_type;
     typedef typename inner_cache_t::cache_account_type cache_account_type;
 
-    static void create(
-        serializer_t *serializer,
-        mirrored_cache_static_config_t *static_config);
+    static void create(serializer_t *serializer);
     scc_cache_t(serializer_t *serializer,
-                mirrored_cache_config_t *dynamic_config,
+                const mirrored_cache_config_t &dynamic_config,
                 perfmon_collection_t *parent);
 
     block_size_t get_block_size();

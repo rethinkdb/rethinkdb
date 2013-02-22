@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 
@@ -30,22 +30,16 @@ mc_cache_stats_t::mc_cache_stats_t(perfmon_collection_t *parent)
       pm_cache_misses(),
       pm_bufs_acquiring(secs_to_ticks(1)),
       pm_bufs_held(secs_to_ticks(1)),
-      pm_patches_size_per_write(secs_to_ticks(1), false),
       pm_transactions_starting(secs_to_ticks(1)),
       pm_transactions_active(secs_to_ticks(1)),
       pm_transactions_committing(secs_to_ticks(1)),
-      pm_flushes_diff_flush(secs_to_ticks(1)),
-      pm_flushes_diff_store(secs_to_ticks(1)),
       pm_flushes_locking(secs_to_ticks(1)),
       pm_flushes_writing(secs_to_ticks(1)),
       pm_flushes_blocks(secs_to_ticks(1), true),
       pm_flushes_blocks_dirty(secs_to_ticks(1), true),
-      pm_flushes_diff_patches_stored(secs_to_ticks(1), false),
-      pm_flushes_diff_storage_failures(secs_to_ticks(30), true),
       pm_n_blocks_in_memory(),
       pm_n_blocks_dirty(),
       pm_n_blocks_total(),
-      pm_patches_size_ratio(secs_to_ticks(5), false),
       pm_n_blocks_evicted(),
       pm_block_size(),
       cache_collection_membership(&cache_collection,
@@ -56,26 +50,18 @@ mc_cache_stats_t::mc_cache_stats_t(perfmon_collection_t *parent)
           &pm_cache_misses, "cache_misses",
           &pm_bufs_acquiring, "bufs_acquiring",
           &pm_bufs_held, "bufs_held",
-          &pm_patches_size_per_write, "patches_size_per_write_buf",
           &pm_transactions_starting, "transactions_starting",
           &pm_transactions_active, "transactions_active",
           &pm_transactions_committing, "transactions_committing",
-          &pm_flushes_diff_flush, "flushes_diff_flushing",
-          &pm_flushes_diff_store, "flushes_diff_store",
           &pm_flushes_locking, "flushes_locking",
           &pm_flushes_writing, "flushes_writing",
           &pm_flushes_blocks, "flushes_blocks",
           &pm_flushes_blocks_dirty, "flushes_blocks_need_flush",
-          &pm_flushes_diff_patches_stored, "flushes_diff_patches_stored",
-          &pm_flushes_diff_storage_failures, "flushes_diff_storage_failures",
           &pm_n_blocks_in_memory, "blocks_in_memory",
           &pm_n_blocks_dirty, "blocks_dirty",
           &pm_n_blocks_total, "blocks_total",
-          &pm_patches_size_ratio, "patches_size_ratio",
           &pm_n_blocks_evicted, "blocks_evicted",
           &pm_block_size, "block_size",
-          NULLPTR)
-
-{ }
+          NULLPTR) { }
 
 
