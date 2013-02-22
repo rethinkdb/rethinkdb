@@ -341,7 +341,14 @@ module 'DataExplorerView', ->
             mouseover: true
             mouseout: true
             mousemove: true
-
+        char_breakers:
+            '.': true
+            '}': true
+            ')': true
+            ',': true
+            ';': true
+            ']': true
+            
         handle_click: (event) =>
             @handle_keypress null, event
 
@@ -375,7 +382,7 @@ module 'DataExplorerView', ->
                                 @current_highlighted_suggestion = 0
 
                         if @current_suggestions[@current_highlighted_suggestion]?
-                            @show_suggestion()
+                            @show_suggestion_without_moving()
                             @highlight_suggestion @current_highlighted_suggestion # Highlight the current suggestion
                             @write_suggestion
                                 suggestion_to_write: @current_suggestions[@current_highlighted_suggestion] # Auto complete with the highlighted suggestion
@@ -467,8 +474,6 @@ module 'DataExplorerView', ->
             if not event? or (event.which isnt 37 and event.which isnt 38 and event.which isnt 39 and event.which isnt 40 and event.which isnt 33 and event.which isnt 34 and event.which isnt 35 and event.which isnt 36 and event.which isnt 0)
                 @history_displayed_id = 0
                 @draft = @codemirror.getValue()
-            # The user just hit a normal key
-            @cursor_for_auto_completion = @codemirror.getCursor()
 
             # We just look at key up so we don't fire the call 3 times
             if event?.type? and event.type isnt 'keyup' and event.which isnt 9 and event.type isnt 'mouseup'
@@ -516,11 +521,7 @@ module 'DataExplorerView', ->
                 #to_describe: undefined
                 
             result_non_white_char_after_cursor = @regex.get_first_non_white_char.exec(query_after_cursor)
-            if result_non_white_char_after_cursor isnt null and (result_non_white_char_after_cursor[1]?[0] isnt '.' and result_non_white_char_after_cursor[1]?[0] isnt '}' and result_non_white_char_after_cursor[1]?[0] isnt ')' and result_non_white_char_after_cursor[1]?[0] isnt ','  and result_non_white_char_after_cursor[1]?[0] isnt ';')
-                ###
-                and result_non_white_char_after_cursor[1]?[0] isnt '\''
-                and result_non_white_char_after_cursor[1]?[0] isnt '"')
-                ###
+            if result_non_white_char_after_cursor isnt null and not(result_non_white_char_after_cursor[1]?[0] of @char_breakers)
                 result.status = 'break_and_look_for_description'
                 @hide_suggestion()
             else
@@ -559,6 +560,10 @@ module 'DataExplorerView', ->
                 query_before_cursor += query_lines[@codemirror.getCursor().line].slice 0, @codemirror.getCursor().ch
                 if query_before_cursor[query_before_cursor.length-1] isnt '(' # This regex is a little too constraining /\((\s*)$/
                     return false
+            else
+                # The user just hit a normal key
+                @cursor_for_auto_completion = @codemirror.getCursor()
+
 
             return true
 
@@ -1205,6 +1210,10 @@ module 'DataExplorerView', ->
 
             @.$('.suggestion_name_list').show()
             @.$('.arrow').show()
+
+        show_suggestion_without_moving: =>
+            @.$('.arrow').show()
+            @.$('.suggestion_name_list').show()
 
         show_description: (fn) =>
             if @descriptions[fn]?
