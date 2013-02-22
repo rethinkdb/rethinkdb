@@ -1755,7 +1755,6 @@ module 'DataExplorerView', ->
             # For Table view
             'mousedown .click_detector': 'handle_mousedown'
             'click .jta_arrow_h': 'expand_tree_in_table'
-            'click .jta_arrow_hh': 'expand_table_in_table'
             'click .link_to_tree_view': 'show_tree'
             'click .link_to_table_view': 'show_table'
             'click .link_to_raw_view': 'show_raw'
@@ -2004,85 +2003,6 @@ module 'DataExplorerView', ->
             classname_to_change = dom_element.parent().parent().attr('class')
             $('.'+classname_to_change).css 'max-width', 'none'
             dom_element.css 'max-width', 'none'
-            @set_scrollbar()
-
-
-        # Expand the table with new columns (with the attributes of the expanded object)
-        # TODO Save the expansion
-        expand_table_in_table: (event) =>
-            dom_element = @.$(event.target).siblings()
-            parent = dom_element.parent()
-            classname = dom_element.parent().attr('class').split(' ')[0] #TODO Use a regex
-            data = dom_element.data('json_data')
-            if data.constructor? and data.constructor is Array
-                classcolumn = dom_element.parent().parent().parent().attr('class')
-                $('.'+classcolumn).css 'max-width', 'none'
-                join_table = @join_table
-                $('.'+classname).each ->
-                    $(this).children('.jta_arrow_v').remove()
-                    new_data = $(this).children('.jta_object').data('json_data')
-                    if new_data? and new_data.constructor? and new_data.constructor is Array
-                        $(this).children('.jta_object').html join_table(new_data)
-                        $(this).children('.jta_arrow_h').remove()
-                    $(this).css 'max-width', 'none'
-                        
-            else if typeof data is 'object'
-                classcolumn = dom_element.parent().parent().parent().attr('class')
-                map = {}
-                $('.'+classname).each ->
-                    new_data = $(this).children('.jta_object').data('json_data')
-                    if new_data? and typeof new_data is 'object'
-                        for key of new_data
-                            if map[key]?
-                                map[key]++
-                            else
-                                map[key] = 1
-                    $(this).css 'max-width', 'none'
-                keys_sorted = []
-                for key of map
-                    keys_sorted.push [key, map[key]]
-
-                # TODO Use a stable sort, Mozilla doesn't use a stable sort for .sort
-                keys_sorted.sort (a, b) ->
-                    if a[1] < b[1]
-                        return 1
-                    else if a[1] > b[1]
-                        return -1
-                    else
-                        if a[0] < b[0]
-                            return -1
-                        else if a[0] > b[0]
-                            return 1
-                        else return 0
-                for i in [keys_sorted.length-1..0] by -1
-                    key = keys_sorted[i]
-                    collection = $('.'+classcolumn)
-
-                    is_description = true
-                    template_json_table_td_attr = @template_json_table.td_attr
-                    json_to_table_get_td_value = @json_to_table_get_td_value
-
-                    collection.each ->
-                        if is_description
-                            is_description = false
-                            prefix = $(this).children().children('.jta_attr').html()
-                            $(this).after template_json_table_td_attr
-                                classtd: classcolumn+'-'+i
-                                key: prefix+'.'+key[0]
-                                col: $(this).data('col')+'-'+i
-                        else
-                            new_data = $(this).children().children().children('.jta_object').data('json_data')
-                            if new_data? and new_data[key[0]]?
-                                value = new_data[key[0]]
-                                    
-                            full_class = classname+'-'+i
-                            col = full_class.slice(full_class.indexOf('-')+1) #TODO Replace this trick
-
-                            $(this).after json_to_table_get_td_value(value, col)
-                            
-                        return true
-
-                $('.'+classcolumn).remove()
             @set_scrollbar()
 
         # Helper for expanding a table when showing an object (creating new columns)
