@@ -193,6 +193,27 @@ class RDBArray extends RDBSequence
         (return new RDBPrimitive false for v,i in @asArray() when v isnt other.asArray()[i])
 
     lt: (other) ->
-        for v,i in @asArray()
-            if v.lt(other.asArray()[i]).asJSON() then return new RDBPrimitive false
-        return other.count().ge(@count)
+        if @typeOf() is other.typeOf()
+
+            one = @asArray()
+            two = other.asArray()
+
+            i = 0
+            while true
+                e1 = one[i]
+                e2 = two[i]
+
+                # shorter array behaves as if padded by a special symbol that is always less than any other
+                if e1 is undefined and e2 isnt undefined
+                    return new RDBPrimitive true
+
+                # Will always terminate the loop
+                if e1 is undefined or e2 is undefined
+                    return new RDBPrimitive false
+
+                unless e1.eq(e2).asJSON()
+                    return e1.lt(e2)
+
+                i++
+        else
+            return new RDBPrimitive (@typeOf() < other.typeOf())

@@ -161,16 +161,36 @@ class RDBObject extends RDBType
 
     lt: (other) ->
         if @typeOf() is other.typeOf()
-            otherKeys = other.keys()
-            for k,i in @keys()
-                if k is otherKeys[i]
-                    if not @[k].eq(other[k]).asJSON()
-                        return @[k].lt(other[k])
-                else
-                    return new RDBPrimitive k < otherKeys[i]
-            return new RDBPrimitive false
+
+            one = @keys().sort()
+            two = other.keys().sort()
+
+            i = 0
+            while true
+
+                k1 = one[i]
+                k2 = two[i]
+
+                if k1 is undefined and k2 isnt undefined
+                    return new RDBPrimitive true
+
+                if k1 is undefined or k2 is undefined
+                    return new RDBPrimitive false
+
+                # Compare keys lexographically
+                unless k1 == k2
+                    return new RDBPrimitive (k1 < k2)
+
+                # They are the same, compare the values
+                v1 = @[k1]
+                v2 = other[k2]
+                unless v1.eq(v2).asJSON()
+                    return v1.lt(v2)
+
+                i++
+            
         else
-            return new RDBPrimitive @typeOf() < other.typeOf()
+            return new RDBPrimitive (@typeOf() < other.typeOf())
 
     merge: (others...) ->
         self = @copy()

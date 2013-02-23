@@ -11,3 +11,16 @@ tests:
       js: r(-10).mod(-3)
       rb: (r -10) % -3
       ot: -1
+
+    # Type errors
+    - py: r.expr(4) % 'a'
+      js: r(4).mod('a')
+      ot: err('RqlRuntimeError', 'Expected type NUMBER but found STRING.', [1])
+
+    - py: r.expr('a') % 1
+      js: r('a').mod(1)
+      ot: err('RqlRuntimeError', 'Expected type NUMBER but found STRING.', [0])
+
+    - py: r.expr('a') % 'b'
+      js: r('a').mod('b')
+      ot: err('RqlRuntimeError', 'Expected type NUMBER but found STRING.', [0])

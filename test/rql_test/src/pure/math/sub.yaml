@@ -20,5 +20,17 @@ tests:
     # All arithmetic operations (except mod) actually support arbitrary arguments
     # but this feature can't be accessed in Python because it's operators are binary
     - js: r(1).sub(2,3,4,5)
-      cd: []
       ot: -13 
+
+    # Type errors
+    - py: r.expr('a') - 0.8
+      js: r('a').sub(0.8)
+      ot: err('RqlRuntimeError', 'Expected type NUMBER but found STRING.', [0])
+
+    - py: r.expr(1) - 'a'
+      js: r(1).sub('a')
+      ot: err('RqlRuntimeError', 'Expected type NUMBER but found STRING.', [1])
+
+    - py: r.expr('b') - 'a'
+      js: r('b').sub('a')
+      ot: err('RqlRuntimeError', 'Expected type NUMBER but found STRING.', [0])

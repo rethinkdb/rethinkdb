@@ -14,7 +14,7 @@ class RDBBase():
     def __repr__(self):
         return "<RDBBase instance: %s >" % str(self)
 
-class RDBValue(RDBBase):
+class RDBComparable:
     def __eq__(self, other):
         return Eq(self, other)
 
@@ -33,6 +33,7 @@ class RDBValue(RDBBase):
     def __ge__(self, other):
         return Ge(self, other)
 
+class RDBValue(RDBBase, RDBComparable):
     def __invert__(self):
         return Not(self)
 
@@ -128,7 +129,7 @@ class RDBOp(RDBBase):
             pair.key = k
             self.optargs[k].build(pair.val)
 
-class RDBSequence(RDBBase):
+class RDBSequence(RDBBase, RDBComparable):
     def append(self, val):
         return Append(self, val)
 
@@ -341,7 +342,7 @@ class Ne(RDBValOp, RDBBiOper):
 
 class Lt(RDBValOp, RDBBiOper):
     tt = p.Term2.LT
-    st = "<="
+    st = "<"
 
 class Le(RDBValOp, RDBBiOper):
     tt = p.Term2.LE

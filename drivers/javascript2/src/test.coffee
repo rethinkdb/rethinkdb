@@ -69,6 +69,7 @@ r.connect {host:'localhost', port: 28016}, (err, conn) ->
         run r(2).mul(2), 4
         run r(6).div(2), 3
         run r(4).mod(3), 1
+        run r(4).mod(3, 2), 1
         run r([1,2]).append(3), [1,2,3]
         run r([1,2,3]).slice(1, 2), [2,3]
         run r({'a':1, 'b':2}).getAttr('a'), 1
