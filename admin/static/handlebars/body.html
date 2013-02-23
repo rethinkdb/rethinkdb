@@ -6,9 +6,31 @@
             <button id="pause-application" class="btn">Pause JS</button>
         </div>
         <div id="sidebar"></div>
+        <div class="updates_container alert"> 
+            <div class="updates">
+                Do you want the web interface to check for updates? This setting can be changed later if desired.
+            </div>
+            <a class="close" href="#">&times;</a>
+            <div class="options_container">
+                <button class="btn">No</button>
+                <button class="btn">Yes</button>
+            </div>
+        </div>
         <div id="main-container">
             <div id="cluster" class="container"></div>
             <div id="modal-dialog"></div>
+            <div class="settings_container"> 
+                <div class="settings">
+                    <h2 class="title">Settings</h2>
+                    <div class="updates setting">
+                        <div class="options_container">
+                            <button class="btn">Turn off</button>
+                        </div>
+                        <div class="content">Check for new version of RethinkDB</div>
+                    </div>
+                </div>
+                <a class="close" href="#">&times;</a>
+            </div>
         </div>
     </div>
     <div id="footer">
@@ -18,13 +40,14 @@
                 <li><a href="http://rethinkdb.com/api/">API</a></li>
                 <li><a href="http://groups.google.com/group/rethinkdb">Google Groups</a></li>
                 <li><a href="irc://chat.freenode.net/#rethinkdb">#rethinkdb on freenode</a></li>
-                <li><a href="https://github.com/rethinkdb/rethinkdb/issues">Github project</a></li>
+                <li><a href="https://github.com/rethinkdb/rethinkdb/issues">Github</a></li>
+                <li><a href="http://rethinkdb.com/community/">Community</a></li>
                 {{!
                         We use an invisible span with no content to preload the monospace font for the data explorer:
                         This ensures that data explorer suggestions won't be delayed while loading the font.
                         This is an ugly hack, but using a prefetching / prerendering link tag doesn't resolve this adequately.
                 }}
-                <li><a href="http://rethinkdb.com/community/">Community</a><span class="preload_fonts"> </span></li>
+                <li><a href="#">Settings</a><span class="preload_fonts"> </span></li>
             </ul>
         </div>
     </div>
