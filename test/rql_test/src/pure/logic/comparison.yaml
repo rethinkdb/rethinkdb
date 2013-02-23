@@ -276,5 +276,66 @@ tests:
     #   OBJECT:  4
     #   STRING:  5
 
+    - py: r.expr([]) < True
+      js: r([]).lt(true)
+      ot: true
 
-      #ot: err('RqlRuntimeError', 'Expected type NUMBER but found STRING.', [1])
+    - py: r.expr([1,2]) < False
+      js: r([1,2]).lt(false)
+      ot: true
+
+    - py: r.expr(False) == []
+      js: r(false).lt([])
+      ot: false
+
+    - py: True < r.expr(None)
+      js: r(true).lt(null)
+      ot: true
+
+    - py: r.expr(None) > []
+      js: r(null).gt([])
+      ot: true
+
+    - py: r.expr(None) < 12
+      js: r(null).lt(12)
+      ot: true
+     
+    - py: r.expr(None) < -2
+      js: r(null).lt(-2)
+      ot: true
+
+    - py: r.expr(-12) < {}
+      js: r(-12).lt({})
+      ot: true
+
+    - py: r.expr(100) < {'a':-12}
+      js: r(100).lt({a:-12})
+      ot: true
+
+    - py: r.expr("abc") > {'a':-12}
+      js: r('abc').gt({a:-12})
+      ot: true
+
+    - py: r.expr("abc") > {'abc':'abc'}
+      js: r('abc').gt({abc:'abc'})
+      ot: true
+
+    - py: r.expr('zzz') > 128
+      js: r('zzz').gt(128)
+      ot: true
+
+    - py: r.expr('zzz') > {}
+      js: r('zzz').gt({})
+      ot: true
+
+    - py: "'zzz' > r.expr(-152)"
+      js: r('zzz').gt(-152)
+      ot: true
+
+    - py: "'zzz' > r.expr(None)"
+      js: r('zzz').gt(null)
+      ot: true
+
+    - py: "'zzz' > r.expr([])"
+      js: r('zzz').gt([])
+      ot: true
