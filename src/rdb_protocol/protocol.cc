@@ -708,11 +708,7 @@ struct write_visitor_t : public boost::static_visitor<void> {
         rdb_modification_report_t mod_report;
         rdb_set(w.key, w.data, w.overwrite, btree, timestamp, txn, superblock, &res, &mod_report);
 
-        sindex_access_vector_t sindexes;
-        store->acquire_all_sindex_superblocks_for_write(
-                sindex_block_id, token_pair, txn, 
-                DONT_ACQUIRE_POST_CONSTRUCTING, &sindexes, &interruptor);
-        rdb_update_sindexes(sindexes, w.key, &mod_report, txn);
+        update_sindexes(w.key, &mod_report);
     }
 
     void operator()(const point_modify_t &m) {
@@ -722,11 +718,7 @@ struct write_visitor_t : public boost::static_visitor<void> {
         rdb_modification_report_t mod_report;
         rdb_modify(m.primary_key, m.key, m.op, &env, m.scopes, m.backtrace, m.mapping, btree, timestamp, txn, superblock, &res, &mod_report);
 
-        sindex_access_vector_t sindexes;
-        store->acquire_all_sindex_superblocks_for_write(
-                sindex_block_id, token_pair, txn, 
-                DONT_ACQUIRE_POST_CONSTRUCTING, &sindexes, &interruptor);
-        rdb_update_sindexes(sindexes, m.key, &mod_report, txn);
+        update_sindexes(m.key, &mod_report);
     }
 
     void operator()(const point_delete_t &d) {
@@ -736,11 +728,7 @@ struct write_visitor_t : public boost::static_visitor<void> {
         rdb_modification_report_t mod_report;
         rdb_delete(d.key, btree, timestamp, txn, superblock, &res, &mod_report);
 
-        sindex_access_vector_t sindexes;
-        store->acquire_all_sindex_superblocks_for_write(
-                sindex_block_id, token_pair, txn, 
-                DONT_ACQUIRE_POST_CONSTRUCTING, &sindexes, &interruptor);
-        rdb_update_sindexes(sindexes, d.key, &mod_report, txn);
+        update_sindexes(d.key, &mod_report);
     }
 
     void operator()(const sindex_create_t &c) {
@@ -830,6 +818,24 @@ private:
     wait_any_t interruptor;
     query_language::runtime_environment_t env;
     block_id_t sindex_block_id;
+
+    void update_sindexes(const store_key_t &key, rdb_modification_report_t *mod_report) {
+        scoped_ptr_t<buf_lock_t> sindex_block;
+        sindex_access_vector_t sindexes;
+
+        store->acquire_all_sindex_superblocks_for_write(
+                sindex_block_id, token_pair, txn, 
+                DONT_ACQUIRE_POST_CONSTRUCTING, 
+                &sindex_block, &sindexes, &interruptor);
+
+        rdb_update_sindexes(sindexes, key, mod_report, txn);
+
+        if (store->sindexes_are_post_constructing(sindex_block.get(), txn)) {
+            scoped_ptr_t<disk_backed_queue_t<rdb_modification_report_t> > queue;
+            store->get_sindex_queue(sindex_block.get(), txn, &queue);
+            queue->push(*mod_report);
+        }
+    }
 };
 
 }   /* anonymous namespace */

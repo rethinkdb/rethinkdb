@@ -563,6 +563,25 @@ void btree_store_t<protocol_t>::acquire_all_sindex_superblocks_for_write(
 
 template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_all_sindex_superblocks_for_write(
+        block_id_t sindex_block_id,
+        write_token_pair_t *token_pair,
+        transaction_t *txn,
+        acquire_post_constructing_t acquire_post_constructing,
+        scoped_ptr_t<buf_lock_t> *sindex_block_out,
+        sindex_access_vector_t *sindex_sbs_out,
+        signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t) {
+    assert_thread();
+
+    /* Get the sindex block. */
+    acquire_sindex_block_for_write(token_pair, txn, sindex_block_out, sindex_block_id, interruptor);
+
+    acquire_all_sindex_superblocks_for_write(
+            sindex_block_out->get(), txn, acquire_post_constructing, sindex_sbs_out);
+}
+
+template <class protocol_t>
+void btree_store_t<protocol_t>::acquire_all_sindex_superblocks_for_write(
         buf_lock_t *sindex_block,
         transaction_t *txn,
         acquire_post_constructing_t acquire_post_constructing,
@@ -625,6 +644,25 @@ void btree_store_t<protocol_t>::acquire_sindex_superblocks_for_write(
                 sindex_access_t(get_sindex_slice(it->first), it->second, new
                     real_superblock_t(&superblock_lock)));
     }
+}
+
+template <class protocol_t>
+bool btree_store_t<protocol_t>::sindexes_are_post_constructing(
+        buf_lock_t *sindex_block,
+        transaction_t *txn) 
+        THROWS_NOTHING {
+    std::map<uuid_u, secondary_index_t> sindexes;
+    ::get_secondary_indexes(txn, sindex_block, &sindexes);
+
+    for (std::map<uuid_u, secondary_index_t>::iterator it  = sindexes.begin();
+                                                       it != sindexes.end();
+                                                       ++it) {
+        if (!it->second.post_construction_complete) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 template <class protocol_t>

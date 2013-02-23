@@ -147,6 +147,8 @@ void rdb_distribution_get(btree_slice_t *slice, int max_depth, const store_key_t
 struct rdb_modification_report_t {
     boost::shared_ptr<scoped_cJSON_t> deleted;
     boost::shared_ptr<scoped_cJSON_t> added;
+
+    RDB_MAKE_ME_SERIALIZABLE_2(deleted, added);
 };
 
 void rdb_update_sindexes(const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,

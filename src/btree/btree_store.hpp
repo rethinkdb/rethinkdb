@@ -245,6 +245,16 @@ public: // <--- so this is some bullshit right here
             THROWS_ONLY(interrupted_exc_t);
 
     void acquire_all_sindex_superblocks_for_write(
+            block_id_t sindex_block_id,
+            write_token_pair_t *token_pair,
+            transaction_t *txn,
+            acquire_post_constructing_t acquire_post_constructing,
+            scoped_ptr_t<buf_lock_t> *sindex_block_out,
+            sindex_access_vector_t *sindex_sbs_out,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
+
+    void acquire_all_sindex_superblocks_for_write(
             buf_lock_t *sindex_block,
             transaction_t *txn,
             acquire_post_constructing_t acquire_post_constructing,
@@ -258,8 +268,13 @@ public: // <--- so this is some bullshit right here
             sindex_access_vector_t *sindex_sbs_out)
             THROWS_NOTHING;
 
+    bool sindexes_are_post_constructing(
+            buf_lock_t *sindex_block,
+            transaction_t *txn)
+            THROWS_NOTHING;
+
     template <class T>
-    void get_sindex_queue_block(
+    void get_sindex_queue(
                 buf_lock_t *sindex_block,
                 transaction_t *txn,
                 scoped_ptr_t<disk_backed_queue_t<T> > *queue)
