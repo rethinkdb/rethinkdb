@@ -415,10 +415,12 @@ class TableList extends RDBOp
 class FunCall extends RDBOp
     tt: Term2.TermType.FUNCALL
     compose: (args) ->
-        if args.length == 2
-            [args[1], '.do(', args[0], ')']
-        else
+        if args.length > 2
             ['r.do(', instsp(args[1..]), ', ', args[0], ')']
+        else
+            if @args[1] instanceof DatumTerm
+                args[1] = ['r(', args[1], ')']
+            [args[1], '.do(', args[0], ')']
 
 class Branch extends RDBOp
     tt: Term2.TermType.BRANCH
