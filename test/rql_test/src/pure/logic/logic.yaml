@@ -70,3 +70,11 @@ tests:
     - py: r.expr(False) | 'str'
       js: r(false).or('str')
       ot: err('RqlRuntimeError', 'Expected type BOOL but found STRING.', [1])
+
+    - py: ~r.expr(1)
+      js: r(1).not()
+      ot: err('RqlRuntimeError', 'Expected type BOOL but found NUMBER.', [0])
+
+    - py: ~r.expr('abc')
+      js: r('abc').not()
+      ot: err('RqlRuntimeError', 'Expected type BOOL but found STRING.', [0])

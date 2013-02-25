@@ -356,9 +356,13 @@ class Ge(RDBValOp, RDBBiOper):
     tt = p.Term2.GE
     st = ">="
 
-class Not(RDBValOp, RDBMethod):
+class Not(RDBValOp):
     tt = p.Term2.NOT
-    st = "not"
+
+    def compose(self, args, optargs):
+        if isinstance(self.args[0], Datum):
+            args[0] = T('r.expr(', args[0], ')')
+        return T('(~', args[0], ')')
 
 class Add(RDBValOp, RDBBiOper):
     tt = p.Term2.ADD
