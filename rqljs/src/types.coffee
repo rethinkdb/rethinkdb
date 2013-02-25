@@ -36,7 +36,7 @@ class TypeChecker
             }
 
     checkType: (op, args, optargs, context) ->
-        
+
         # Check argument types from the first argument onwards
         lastError = null
         eligibleSigs = @typesigs[0..]
@@ -66,7 +66,7 @@ class TypeChecker
         passed = false
         for sig in eligibleSigs
             unless sig.result.check(ret)
-                firstError = new RqlRuntimeError "Expected type #{sig.result} buf found #{TypeName::typeOf(ret)}."
+                firstError = new RqlRuntimeError "Expected type #{sig.result} but found #{TypeName::typeOf(ret)}."
             else
                 passed = true
 
@@ -124,15 +124,17 @@ class TypeName
                 when RDBType.NUMBER then NumberType
                 when RDBType.STRING then StringType
                 else
-                    Object
+                    UnknownType
         else
-            Object
+            UnknownType
         )
 
-    check: (val) ->
-        TypeName::typeOf(val) instanceof @constructor
+    check: (val) -> TypeName::typeOf(val) instanceof @constructor
 
     toString: -> @st
+
+class UnknownType extends TypeName
+    st: "Unknown"
 
 class TopType extends TypeName
     st: "Top"

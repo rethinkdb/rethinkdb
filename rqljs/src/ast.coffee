@@ -321,8 +321,13 @@ class RDBAny
     type: tp "BOOL... -> BOOL"
 
     eval: (context) ->
-        for arg in @args
-            if arg.eval(context).asJSON()
+        for arg,i in @args
+            argRes = arg.eval(context)
+            unless TypeName::typeOf(argRes) instanceof BoolType
+                err = new RqlRuntimeError "Expected type BOOL but found #{TypeName::typeOf(argRes)}."
+                err.backtrace.unshift(i)
+                throw err
+            if argRes.asJSON()
                 return new RDBPrimitive true
         return new RDBPrimitive false
 
@@ -333,8 +338,13 @@ class RDBAll
     type: tp "BOOL... -> BOOL"
 
     eval: (context) ->
-        for arg in @args
-            if not arg.eval(context).asJSON()
+        for arg,i in @args
+            argRes = arg.eval(context)
+            unless TypeName::typeOf(argRes) instanceof BoolType
+                err = new RqlRuntimeError "Expected type BOOL but found #{TypeName::typeOf(argRes)}."
+                err.backtrace.unshift(i)
+                throw err
+            if not argRes.asJSON()
                 return new RDBPrimitive false
         return new RDBPrimitive true
 
