@@ -185,6 +185,51 @@ void btree_store_t<protocol_t>::reset_data(
 }
 
 template <class protocol_t>
+void btree_store_t<protocol_t>::lock_sindex_queue(mutex_t::acq_t *acq) {
+    acq->reset(&sindex_queue_mutex);
+}
+
+template <class protocol_t>
+void btree_store_t<protocol_t>::register_sindex_queue(
+            internal_disk_backed_queue_t *disk_backed_queue,
+            mutex_t::acq_t *acq) {
+    acq->assert_is_holding(&sindex_queue_mutex);
+
+    for (std::vector<internal_disk_backed_queue_t *>::iterator it = sindex_queues.begin();
+            it != sindex_queues.end(); ++it) {
+        guarantee(*it != disk_backed_queue);
+    }
+    sindex_queues.push_back(disk_backed_queue);
+}
+
+template <class protocol_t>
+void btree_store_t<protocol_t>::deregister_sindex_queue(
+            internal_disk_backed_queue_t *disk_backed_queue,
+            mutex_t::acq_t *acq) {
+    acq->assert_is_holding(&sindex_queue_mutex);
+
+    for (std::vector<internal_disk_backed_queue_t *>::iterator it = sindex_queues.begin();
+            it != sindex_queues.end(); ++it) {
+        if (*it == disk_backed_queue) {
+            sindex_queues.erase(it);
+            return;
+        }
+    }
+}
+
+template <class protocol_t>
+void btree_store_t<protocol_t>::sindex_queue_push(
+            const write_message_t& value,
+            mutex_t::acq_t *acq) {
+    acq->assert_is_holding(&sindex_queue_mutex);
+
+    for (std::vector<internal_disk_backed_queue_t *>::iterator it = sindex_queues.begin(); 
+            it != sindex_queues.end(); ++it) {
+        (*it)->push(value);
+    }
+}
+
+template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_sindex_block_for_read(
         read_token_pair_t *token_pair,
         transaction_t *txn,

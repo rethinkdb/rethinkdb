@@ -14,6 +14,7 @@
 #include "btree/secondary_operations.hpp"
 #include "buffer_cache/mirrored/config.hpp"  // TODO: Move to buffer_cache/config.hpp or something.
 #include "buffer_cache/types.hpp"
+#include "containers/disk_backed_queue.hpp"
 #include "perfmon/perfmon.hpp"
 #include "protocol_api.hpp"
 
@@ -107,6 +108,20 @@ public:
             write_token_pair_t *token_pair,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
+
+    void lock_sindex_queue(mutex_t::acq_t *acq);
+
+    void register_sindex_queue(
+            internal_disk_backed_queue_t *disk_backed_queue,
+            mutex_t::acq_t *acq);
+
+    void deregister_sindex_queue(
+            internal_disk_backed_queue_t *disk_backed_queue,
+            mutex_t::acq_t *acq);
+
+    void sindex_queue_push(
+            const write_message_t& value,
+            mutex_t::acq_t *acq);
 
 private:
 
@@ -370,6 +385,9 @@ private:
     perfmon_membership_t perfmon_collection_membership;
 
     boost::ptr_map<uuid_u, btree_slice_t> secondary_index_slices;
+
+    std::vector<internal_disk_backed_queue_t *> sindex_queues;
+    mutex_t sindex_queue_mutex;
 
     DISABLE_COPYING(btree_store_t);
 };
