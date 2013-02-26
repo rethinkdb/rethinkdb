@@ -25,8 +25,10 @@
 #include "errors.hpp"
 #include "config/args.hpp"
 
-void run_generic_global_startup_behavior();
+class Term2;
+void pb_print(Term2 *t);
 
+void run_generic_global_startup_behavior();
 
 struct const_charslice {
     const char *beg, *end;

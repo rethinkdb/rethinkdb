@@ -92,6 +92,7 @@ const datum_t *table_t::p_replace(const datum_t *orig, const datum_t *d, bool up
 #pragma GCC diagnostic pop
             }
 
+    propagate(&t);
     return p_replace(orig, map_wire_func_t(t, 0));
 }
 

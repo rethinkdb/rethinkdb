@@ -106,13 +106,15 @@ bool func_t::is_deterministic() const {
 
 wire_func_t::wire_func_t() : pb_rcheckable_t(&source) { }
 wire_func_t::wire_func_t(env_t *env, func_t *func)
-    : pb_rcheckable_t(&source) {
+    : pb_rcheckable_t(func->source) {
     if (env) cached_funcs[env] = func;
     source = *func->source;
+    rebase(&source); // TODO: this is hacky (defined in `pb_rcheckable_t`)
     func->dump_scope(&scope);
 }
 wire_func_t::wire_func_t(const Term2 &_source, std::map<int, Datum> *_scope)
-    : pb_rcheckable_t(&source), source(_source) {
+    : pb_rcheckable_t(&_source), source(_source) {
+    rebase(&source); // TODO: this is hacky (defined in `pb_rcheckable_t`)
     if (_scope) scope = *_scope;
 }
 

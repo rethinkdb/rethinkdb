@@ -88,7 +88,7 @@ void rdb_replace(btree_slice_t *slice,
                  const store_key_t &key,
                  ql::map_wire_func_t *f,
                  ql::env_t *ql_env,
-                 Datum *response_out);
+                 Datum *response_out) THROWS_NOTHING;
 
 void rdb_modify(const std::string &primary_key, const store_key_t &key, const point_modify_ns::op_t op,
                 query_language::runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace,

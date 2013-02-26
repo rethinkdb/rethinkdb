@@ -7,13 +7,13 @@ namespace ql {
 #include "rdb_protocol/ql2.pb.h"
 #include "rdb_protocol/ql2_extensions.pb.h"
 
-class term_walker_t : public rcheckable_t {
+class term_walker_t {
 public:
-    term_walker_t(Term2 *root) : depth(0), writes_legal(true), t(0), bt(0) {
+    term_walker_t(Term2 *root) : depth(0), writes_legal(true), bt(0) {
         walk(root, 0, head_frame);
     }
     term_walker_t(Term2 *root, const Backtrace *_bt)
-        : depth(0), writes_legal(true), t(0), bt(_bt) {
+        : depth(0), writes_legal(true), bt(_bt) {
         propwalk(root, 0, head_frame);
     }
     ~term_walker_t() {
@@ -21,32 +21,33 @@ public:
         r_sanity_check(writes_legal == true);
     }
 
-    void walk(Term2 *_t, Term2 *parent, backtrace_t::frame_t frame) {
+    void walk(Term2 *t, Term2 *parent, backtrace_t::frame_t frame) {
         r_sanity_check(!bt);
-        t = _t; // THIS IS AVAILABLE IN PRIVATE FUNCTIONS
 
         val_pusher_t<int> depth_pusher(&depth, depth+1);
-        add_bt(parent, frame);
+        add_bt(t, parent, frame);
 
         bool writes_still_legal = writes_are_still_legal(parent, frame);
-        rcheck(writes_still_legal || !this_term_is_write_or_meta(),
-               strprintf("Cannot nest writes or meta ops in stream operations"));
+        rcheck_src(&t->GetExtension(ql2::extension::backtrace),
+                   writes_still_legal || !term_is_write_or_meta(t),
+                   strprintf("Cannot nest writes or meta ops in stream operations"));
         val_pusher_t<bool> writes_legal_pusher(&writes_legal, writes_still_legal);
 
-        maybe_datum_recurse();
-        term_recurse(&term_walker_t::walk);
+        maybe_datum_recurse(t);
+        term_recurse(t, &term_walker_t::walk);
     }
 
-    void propwalk(Term2 *_t, UNUSED Term2 *parent, UNUSED backtrace_t::frame_t frame) {
+    void propwalk(Term2 *t, UNUSED Term2 *parent, UNUSED backtrace_t::frame_t frame) {
         r_sanity_check(bt);
-        t = _t;
+        // debugf("propwalk %p %s\n", t, t->DebugString().c_str());
 
-        if (t->ExtensionSize(ql2::extension::backtrace) == 0) {
+        if (!t->HasExtension(ql2::extension::backtrace)) {
             *t->MutableExtension(ql2::extension::backtrace) = *bt;
+            term_recurse(t, &term_walker_t::propwalk);
         }
     }
 private:
-    void maybe_datum_recurse() {
+    void maybe_datum_recurse(Term2 *t) {
         if (t->type() == Term2::DATUM) {
             Datum *d = t->mutable_datum();
             *d->MutableExtension(ql2::extension::datum_backtrace)
@@ -54,9 +55,10 @@ private:
         }
     }
 
-    void term_recurse(void (term_walker_t::*callback)(Term2 *, Term2 *,
-                                                      backtrace_t::frame_t)) {
+    void term_recurse(Term2 *t, void (term_walker_t::*callback)(Term2 *, Term2 *,
+                                                                backtrace_t::frame_t)) {
         for (int i = 0; i < t->args_size(); ++i) {
+            // debugf("%p %d / %d\n", t, i, t->args_size());
             (this->*callback)(t->mutable_args(i), t, backtrace_t::frame_t(i));
         }
         for (int i = 0; i < t->optargs_size(); ++i) {
@@ -65,16 +67,7 @@ private:
         }
     }
 
-    // NOTE: This is a thin wrapper around `runtime_check` in err.hpp which adds
-    // the source of the current term to the argument list.  It's usually
-    // invoked by `rcheck`.
-    void runtime_check(const char *test, const char *file, int line,
-                       bool pred, std::string msg) const {
-        ql::runtime_check(test, file, line, pred, msg,
-                          &t->GetExtension(ql2::extension::backtrace));
-    }
-
-    void add_bt(Term2 *parent, backtrace_t::frame_t frame) {
+    void add_bt(Term2 *t, Term2 *parent, backtrace_t::frame_t frame) {
         r_sanity_check(t->ExtensionSize(ql2::extension::backtrace) == 0);
         if (parent) {
             *t->MutableExtension(ql2::extension::backtrace)
@@ -85,7 +78,7 @@ private:
         *t->MutableExtension(ql2::extension::backtrace)->add_frames() = frame.toproto();
     }
 
-    bool this_term_is_write_or_meta() {
+    bool term_is_write_or_meta(Term2 *t) {
         return t->type() == Term2::UPDATE
             || t->type() == Term2::DELETE
             || t->type() == Term2::INSERT
@@ -141,7 +134,6 @@ private:
 
     int depth;
     bool writes_legal;
-    Term2 *t;
     const Backtrace *bt;
 };
 

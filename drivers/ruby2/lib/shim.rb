@@ -15,9 +15,13 @@ module RethinkDB
 
     def self.response_to_native r
       rt = Response2::ResponseType
-      bt = r.backtrace.map {|x|
-        x.type == Frame::FrameType::POS ? x.pos : x.opt
-      }
+      if r.backtrace
+        bt = r.backtrace.frames.map {|x|
+          x.type == Frame::FrameType::POS ? x.pos : x.opt
+        }
+      else
+        bt = []
+      end
       case r.type
       when rt::SUCCESS_ATOM then datum_to_native(r.response[0])
       when rt::SUCCESS_PARTIAL then r.response.map{|d| datum_to_native(d)}

@@ -77,7 +77,12 @@ private:
         if (v1->get_type().is_convertible(val_t::type_t::DATUM)) {
             const datum_t *d = v1->as_datum();
             if (d->get_type() == datum_t::R_OBJECT) {
-                maybe_generate_key(t, &generated_keys, &d);
+                try {
+                    maybe_generate_key(t, &generated_keys, &d);
+                } catch (const std::exception &) {
+                    // We just ignore it, the same error will be handled in `replace`.
+                    // TODO: that solution sucks.
+                }
                 stats = stats->merge(env, t->replace(d, d, upsert), stats_merge);
                 done = true;
             }
@@ -88,7 +93,7 @@ private:
             while (const datum_t *d = ds->next()) {
                 try {
                     maybe_generate_key(t, &generated_keys, &d);
-                } catch (const exc_t &) {
+                } catch (const std::exception &) {
                     // We just ignore it, the same error will be handled in `replace`.
                     // TODO: that solution sucks.
                 }

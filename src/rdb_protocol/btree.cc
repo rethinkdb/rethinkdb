@@ -163,7 +163,7 @@ void rdb_replace(btree_slice_t *slice,
                  const store_key_t &key,
                  ql::map_wire_func_t *f,
                  ql::env_t *ql_env,
-                 Datum *response_out) {
+                 Datum *response_out) THROWS_NOTHING {
     const ql::datum_t *num_1 = ql_env->add_ptr(new ql::datum_t(1L));
     ql::datum_t *resp = ql_env->add_ptr(new ql::datum_t(ql::datum_t::R_OBJECT));
     try {
@@ -230,7 +230,7 @@ void rdb_replace(btree_slice_t *slice,
             }
         }
         guarantee(!conflict); // message never added twice
-    } catch (const ql::exc_t &e) {
+    } catch (const std::exception &e) {
         std::string msg = e.what();
         bool b = resp->add("errors", num_1)
               || resp->add("first_error", ql_env->add_ptr(new ql::datum_t(msg)));

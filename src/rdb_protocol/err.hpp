@@ -39,6 +39,10 @@ public:
         ql::runtime_check(test, file, line, pred, msg, bt_src);
     }
 
+    void rebase(const Term2 *t) {
+        bt_src = &t->GetExtension(ql2::extension::backtrace);
+    }
+
     // Propagate the associated backtrace through the rewrite term.
     void propagate(Term2 *t) const;
 private:
@@ -52,10 +56,10 @@ private:
         ? (target)->runtime_check(stringify(pred), __FILE__, __LINE__, true, (msg))   \
         : (target)->runtime_check(stringify(pred), __FILE__, __LINE__, false, (msg)); \
     } while (0)
-#define rcheck_src(src, pred, msg) do {                                               \
-        (pred)                                                                        \
-        ? runtime_check(stringify(pred), __FILE__, __LINE__, true, (msg), (src))      \
-        : runtime_check(stringify(pred), __FILE__, __LINE__, false, (msg), (src));    \
+#define rcheck_src(src, pred, msg) do {                                                \
+        (pred)                                                                         \
+        ? ql::runtime_check(stringify(pred), __FILE__, __LINE__, true, (msg), (src))   \
+        : ql::runtime_check(stringify(pred), __FILE__, __LINE__, false, (msg), (src)); \
     } while (0)
 #else
 #define rcheck_target(target, pred, msg) do {                                         \
@@ -63,10 +67,10 @@ private:
         ? (void)0                                                                     \
         : (target)->runtime_check(stringify(pred), __FILE__, __LINE__, false, (msg)); \
     } while (0)
-#define rcheck_src(src, pred, msg) do {                                               \
-        (pred)                                                                        \
-        ? (void)0                                                                     \
-        : runtime_check(stringify(pred), __FILE__, __LINE__, false, (msg), (src));    \
+#define rcheck_src(src, pred, msg) do {                                                \
+        (pred)                                                                         \
+        ? (void)0                                                                      \
+        : ql::runtime_check(stringify(pred), __FILE__, __LINE__, false, (msg), (src)); \
     } while (0)
 #endif // NDEBUG
 #define rcheck(pred, msg) rcheck_target(this, pred, msg)
@@ -156,9 +160,7 @@ private:
     std::list<frame_t> frames;
 };
 
-const backtrace_t::frame_t invalid_frame = backtrace_t::frame_t::invalid();
 const backtrace_t::frame_t head_frame = backtrace_t::frame_t::head();
-const backtrace_t::frame_t skip_frame = backtrace_t::frame_t::skip();
 
 // A RQL exception.  In the future it will be tagged.
 class exc_t : public std::exception {
