@@ -30,7 +30,7 @@ const datum_t *eager_datum_stream_t::count() {
 const datum_t *eager_datum_stream_t::reduce(val_t *base_val, func_t *f) {
     const datum_t *base;
     base = base_val ? base_val->as_datum() : next();
-    rcheck_target(base_val, base, "Cannot reduce over an empty stream with no base.");
+    rcheck(base, "Cannot reduce over an empty stream with no base.");
 
     env_gc_checkpoint_t egct(env);
     while (const datum_t *rhs = next()){

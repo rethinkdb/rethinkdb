@@ -306,24 +306,44 @@ uuid_u val_t::as_db() {
 }
 
 bool val_t::as_bool() {
-    const datum_t *d = as_datum();
-    r_sanity_check(d);
-    return d->as_bool();
+    try {
+        const datum_t *d = as_datum();
+        r_sanity_check(d);
+        return d->as_bool();
+    } catch (const datum_exc_t &e) {
+        rfail("%s", e.what());
+        unreachable();
+    }
 }
 double val_t::as_num() {
-    const datum_t *d = as_datum();
-    r_sanity_check(d);
-    return d->as_num();
+    try {
+        const datum_t *d = as_datum();
+        r_sanity_check(d);
+        return d->as_num();
+    } catch (const datum_exc_t &e) {
+        rfail("%s", e.what());
+        unreachable();
+    }
 }
 int64_t val_t::as_int() {
-    const datum_t *d = as_datum();
-    r_sanity_check(d);
-    return d->as_int();
+    try {
+        const datum_t *d = as_datum();
+        r_sanity_check(d);
+        return d->as_int();
+    } catch (const datum_exc_t &e) {
+        rfail("%s", e.what());
+        unreachable();
+    }
 }
 const std::string &val_t::as_str() {
-    const datum_t *d = as_datum();
-    r_sanity_check(d);
-    return d->as_str();
+    try {
+        const datum_t *d = as_datum();
+        r_sanity_check(d);
+        return d->as_str();
+    } catch (const datum_exc_t &e) {
+        rfail("%s", e.what());
+        unreachable();
+    }
 }
 
 } //namespace ql
