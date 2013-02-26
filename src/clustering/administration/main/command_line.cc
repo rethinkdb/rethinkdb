@@ -696,6 +696,20 @@ po::options_description get_rethinkdb_porcelain_options() {
     return desc;
 }
 
+po::options_description get_rethinkdb_porcelain_options_visible() {
+    po::options_description desc("Allowed options");
+    desc.add(get_file_options());
+    desc.add(get_machine_options_visible());
+    desc.add(get_network_options());
+    desc.add(get_web_options_visible());
+#ifdef AIOSUPPORT
+    desc.add(get_disk_options());
+#endif // AIOSUPPORT
+    desc.add(get_cpu_options());
+    desc.add(get_service_options());
+    return desc;
+}
+
 // Returns true upon success.
 MUST_USE bool pull_io_backend_option(const po::variables_map& vm, io_backend_t *out) {
     std::string io_backend = vm["io-backend"].as<std::string>();
@@ -1209,6 +1223,24 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         fprintf(stderr, "%s\n", ex.what());
         return EXIT_FAILURE;
     }
+}
+
+void help_rethinkdb_porcelain() {
+    std::stringstream sstream;
+    sstream << get_rethinkdb_porcelain_options_visible();
+    help_pager_t help;
+    help.pagef("Running 'rethinkdb' will create a new data directory or use an existing one,\n");
+    help.pagef("  and serve as a RethinkDB cluster node.\n");
+    help.pagef("%s\n", sstream.str().c_str());
+    help.pagef("\n");
+    help.pagef("There are a number of subcommands for more specific tasks:\n");
+    help.pagef("    'rethinkdb create': prepare files on disk for a new server instance\n");
+    help.pagef("    'rethinkdb serve': use an existing data directory to host data and serve queries\n");
+    help.pagef("    'rethinkdb proxy': serve queries from an existing cluster but don't host data\n");
+    help.pagef("    'rethinkdb admin': access and modify an existing cluster's metadata\n");
+    help.pagef("    'rethinkdb import': import data from from a file into an existing cluster\n");
+    help.pagef("\n");
+    help.pagef("For more information, run 'rethinkdb help [subcommand]'.\n");
 }
 
 void help_rethinkdb_create() {
