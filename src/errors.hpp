@@ -1,10 +1,12 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef ERRORS_HPP_
 #define ERRORS_HPP_
 
 #include <errno.h>
 #include <signal.h>
 #include <stdlib.h>
+
+#define BOOST_NO_CXX11_RVALUE_REFERENCES
 
 #ifndef DISABLE_BREAKPOINTS
 #ifdef __linux__
