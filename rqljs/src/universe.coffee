@@ -50,12 +50,12 @@ class RDBUniverse
     serialize: -> "{\"dbs\":{#{("\"#{dbName}\":#{db.serialize()}" for own dbName,db of @dbs)}}}"
 
     createDatabase: (dbName) ->
-        if @dbs[dbName.asJSON()]? then throw new RqlRuntimeError "already exists"
+        if @dbs[dbName.asJSON()]? then throw new RqlRuntimeError "Database \"#{dbName.asJSON()}\" already exists."
         else @dbs[dbName.asJSON()] = new RDBDatabase
         new RDBObject {'created': 1}
 
     dropDatabase: (dbName) ->
-        if not @dbs[dbName.asJSON()]? then throw new RqlRuntimeError "does not exist"
+        if not @dbs[dbName.asJSON()]? then throw new RqlRuntimeError "Database \"#{dbName.asJSON()}\" does not exist."
         else delete @dbs[dbName.asJSON()]
         new RDBObject {'dropped': 1}
 

@@ -125,7 +125,15 @@ class RDBPrimitive extends RDBType
     add: (other) -> new RDBPrimitive @asJSON()+other.asJSON()
     sub: (other) -> new RDBPrimitive @data - other.asJSON()
     mul: (other) -> new RDBPrimitive @data * other.asJSON()
-    div: (other) -> new RDBPrimitive @data / other.asJSON()
+
+    div: (other) ->
+        denominator = other.asJSON()
+        if denominator is 0
+            err = new RqlRuntimeError "Cannot divide by zero."
+            err.backtrace.unshift(1)
+            throw err
+        new RDBPrimitive @data / other.asJSON()
+
     mod: (other) -> new RDBPrimitive @data % other.asJSON()
 
 class RDBObject extends RDBType

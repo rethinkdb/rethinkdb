@@ -65,18 +65,23 @@ class RDBPbServer
                 )
 
             response.addResponse @deconstructDatum new RDBPrimitive err.message
+
+            # Construct the backtrace
+            backtrace = new Backtrace
             for f in err.backtrace
-                frame = new Response2.Frame
+                frame = new Frame
 
                 if typeof f is 'number'
-                    frame.setType Response2.Frame.FrameType.POS
+                    frame.setType Frame.FrameType.POS
                     frame.setPos ''+f
                 else if typeof f is 'string'
-                    frame.setType Response2.Frame.FrameType.OPT
+                    frame.setType Frame.FrameType.OPT
                     frame.setOpt f
                 else throw new ServerError "Unexpected type in backtrace"
 
-                response.addBacktrace frame
+                backtrace.addFrames frame
+
+            response.setBacktrace backtrace
 
         # Serialize to protobuf format
         pbResponse = @serializer.serialize response
