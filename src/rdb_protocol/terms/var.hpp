@@ -10,7 +10,7 @@ class var_term_t : public op_term_t {
 public:
     var_term_t(env_t *env, const Term2 *term) : op_term_t(env, term, argspec_t(1)) {
         int var = arg(0)->as_int<int>();
-        datum_val = env->top_var(var);
+        datum_val = env->top_var(var, this);
     }
 private:
     const datum_t **datum_val; // pointer to variable's slot in argument array
@@ -25,7 +25,7 @@ class implicit_var_term_t : public op_term_t {
 public:
     implicit_var_term_t(env_t *env, const Term2 *term) :
         op_term_t(env, term, argspec_t(0)) {
-        datum_val = env->top_implicit();
+        datum_val = env->top_implicit(this);
     }
 private:
     const datum_t **datum_val;

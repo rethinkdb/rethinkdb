@@ -21,9 +21,9 @@ class datum_stream_t;
 class func_t;
 class val_t;
 class table_t;
-class term_t : public ptr_baggable_t {
+class term_t : public ptr_baggable_t, public pb_rcheckable_t {
 public:
-    explicit term_t(env_t *_env);
+    explicit term_t(env_t *_env, const Term2 *_src);
     virtual ~term_t();
 
     virtual const char *name() const = 0;
@@ -42,26 +42,15 @@ public:
     val_t *new_val(uuid_u db);
     val_t *new_val(table_t *t);
     val_t *new_val(func_t *f);
-    val_t *new_val_bool(bool b) { return new_val(new datum_t(datum_t::R_BOOL, b)); }
+    val_t *new_val_bool(bool b);
 
     template<class T>
     val_t *new_val(T *t) { return new_val(static_cast<datum_stream_t *>(t)); }
     template<class T>
     val_t *new_val(T t) { return new_val(new datum_t(t)); }
-    template<class T>
-
-    // The backtrace of a term *has* to be set before it is evaluated.  (We
-    // check this in `eval`.)  I think I originally had a good reason not to put
-    // this in the constructor, but whatever it was is no longer true, so this
-    // should go away in a future refactor.
-    void set_bt(T t) { frame.init(new backtrace_t::frame_t(t)); }
-    bool has_bt() { return frame.has(); }
-    backtrace_t::frame_t get_bt() const {
-        r_sanity_check(frame.has());
-        return *frame.get();
-    }
 
     virtual bool is_deterministic() const;
+
 protected:
     // `use_cached_val` once had a reason to exist (as did the corresponding
     // argument to `eval`), but it has since disappeared (people are required
@@ -73,8 +62,6 @@ private:
     virtual val_t *eval_impl() = 0;
     virtual bool is_deterministic_impl() const = 0;
     val_t *cached_val;
-
-    scoped_ptr_t<backtrace_t::frame_t> frame;
 };
 
 term_t *compile_term(env_t *env, const Term2 *t);

@@ -24,14 +24,14 @@ private:
 
 // This gets the literal index of a (possibly negative) index relative to a
 // fixed size.
-size_t canonicalize(int32_t index, size_t size, bool *oob_out = 0) {
+size_t canonicalize(const term_t *t, int32_t index, size_t size, bool *oob_out = 0) {
     CT_ASSERT(sizeof(size_t) >= sizeof(int32_t));
     if (index >= 0) return index;
     if (size_t(index * -1) > size) {
         if (oob_out) {
             *oob_out = true;
         } else {
-            rfail("Index out of bounds: %d", index);
+            rfail_target(t, "Index out of bounds: %d", index);
         }
         return 0;
     }
@@ -47,7 +47,7 @@ private:
         int32_t n = arg(1)->as_int<int32_t>();
         if (v->get_type().is_convertible(val_t::type_t::DATUM)) {
             const datum_t *arr = v->as_datum();
-            size_t real_n = canonicalize(n, arr->size());
+            size_t real_n = canonicalize(this, n, arr->size());
             return new_val(arr->el(real_n));
         } else {
             datum_stream_t *s = v->as_seq();
@@ -83,10 +83,10 @@ private:
             const datum_t *arr = v->as_datum();
             rcheck(arr->get_type() == datum_t::R_ARRAY, "Cannot slice non-sequences.");
             bool l_oob = false;
-            size_t real_l = canonicalize(fake_l, arr->size(), &l_oob);
+            size_t real_l = canonicalize(this, fake_l, arr->size(), &l_oob);
             if (l_oob) real_l = 0;
             bool r_oob = false;
-            size_t real_r = canonicalize(fake_r, arr->size(), &r_oob);
+            size_t real_r = canonicalize(this, fake_r, arr->size(), &r_oob);
 
             scoped_ptr_t<datum_t> out(new datum_t(datum_t::R_ARRAY));
             if (!r_oob) {

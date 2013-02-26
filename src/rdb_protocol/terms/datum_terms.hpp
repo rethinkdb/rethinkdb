@@ -9,8 +9,8 @@ namespace ql {
 
 class datum_term_t : public term_t {
 public:
-    datum_term_t(env_t *env, const Datum *datum)
-        : term_t(env), raw_val(new_val(new datum_t(datum, env))) {
+    datum_term_t(env_t *env, const Term2 *t)
+        : term_t(env, t), raw_val(new_val(new datum_t(&t->datum(), env))) {
         guarantee(raw_val);
     }
 private:

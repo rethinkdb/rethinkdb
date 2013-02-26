@@ -60,9 +60,9 @@ public:
             rmap[it->second] = it->first;
         }
     }
-    int get_type(const std::string &s) const {
+    int get_type(const std::string &s, const rcheckable_t *caller) const {
         std::map<std::string, int>::const_iterator it = map.find(s);
-        rcheck(it != map.end(), strprintf("Unknown Type: %s", s.c_str()));
+        rcheck_target(caller, it != map.end(), strprintf("Unknown Type: %s", s.c_str()));
         return it->second;
     }
     std::string get_name(int type) const {
@@ -105,9 +105,9 @@ private:
 };
 
 static const coerce_map_t _coerce_map;
-static int get_type(std::string s) {
+static int get_type(std::string s, const rcheckable_t *caller) {
     std::transform(s.begin(), s.end(), s.begin(), ::toupper);
-    return _coerce_map.get_type(s);
+    return _coerce_map.get_type(s, caller);
 }
 static std::string get_name(int type) {
     return _coerce_map.get_name(type);
@@ -139,7 +139,7 @@ private:
         int start_type = merge_types(start_supertype, start_subtype);
 
         std::string end_type_name = arg(1)->as_str();
-        int end_type = get_type(end_type_name);
+        int end_type = get_type(end_type_name, this);
 
         // Identity
         if (!subtype(end_type)

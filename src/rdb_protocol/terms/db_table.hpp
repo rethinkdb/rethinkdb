@@ -12,12 +12,13 @@
 
 namespace ql {
 
-name_string_t get_name(val_t *val) {
+name_string_t get_name(val_t *val, const term_t *caller) {
     r_sanity_check(val);
     std::string raw_name = val->as_str();
     name_string_t name;
-    bool b = name.assign_value(raw_name);
-    rcheck(b, strprintf("name %s invalid (%s)", raw_name.c_str(), valid_char_msg));
+    bool assignment_successful = name.assign_value(raw_name);
+    rcheck_target(caller, assignment_successful,
+                  strprintf("name %s invalid (%s)", raw_name.c_str(), valid_char_msg));
     return name;
 }
 
@@ -97,9 +98,9 @@ public:
     db_term_t(env_t *env, const Term2 *term) : meta_op_t(env, term, argspec_t(1)) { }
 private:
     virtual val_t *eval_impl() {
-        name_string_t db_name = get_name(arg(0));
+        name_string_t db_name = get_name(arg(0), this);
         return new_val(meta_get_uuid(db_searcher.get(), db_name,
-                                     "FIND_DB " + db_name.str()));
+                                     "FIND_DB " + db_name.str(), this));
     }
     RDB_NAME("db");
 };
@@ -110,14 +111,14 @@ public:
         meta_write_op_t(env, term, argspec_t(1)) { }
 private:
     virtual std::string write_eval_impl() {
-        name_string_t db_name = get_name(arg(0));
+        name_string_t db_name = get_name(arg(0), this);
 
         on_thread_t write_rethreader(metadata_home_thread);
 
         metadata_search_status_t status;
         // Ensure database doesn't already exist.
         db_searcher->find_uniq(db_name, &status);
-        meta_check(status, METADATA_ERR_NONE, "DB_CREATE " + db_name.str());
+        meta_check(status, METADATA_ERR_NONE, "DB_CREATE " + db_name.str(), this);
 
         // Create database, insert into metadata, then join into real metadata.
         database_semilattice_metadata_t db;
@@ -127,7 +128,7 @@ private:
             fill_in_blueprints(&metadata, directory_metadata->get(),
                                env->this_machine, false);
         } catch (const missing_machine_exc_t &e) {
-            throw exc_t(e.what());
+            rfail("%s", e.what());
         }
         env->join_and_wait_to_propagate(metadata);
 
@@ -146,8 +147,8 @@ private:
     virtual std::string write_eval_impl() {
         uuid_u dc_id = nil_uuid();
         if (val_t *v = optarg("datacenter", 0)) {
-            dc_id = meta_get_uuid(dc_searcher.get(), get_name(v),
-                                  "FIND_DATACENTER " + v->as_str());
+            dc_id = meta_get_uuid(dc_searcher.get(), get_name(v, this),
+                                  "FIND_DATACENTER " + v->as_str(), this);
         }
 
         std::string primary_key = "id";
@@ -158,12 +159,12 @@ private:
 
         uuid_u db_id = arg(0)->as_db();
 
-        name_string_t tbl_name = get_name(arg(1));
+        name_string_t tbl_name = get_name(arg(1), this);
         // Ensure table doesn't already exist.
         metadata_search_status_t status;
         namespace_predicate_t pred(&tbl_name, &db_id);
         ns_searcher->find_uniq(pred, &status);
-        meta_check(status, METADATA_ERR_NONE, "CREATE_TABLE " + tbl_name.str());
+        meta_check(status, METADATA_ERR_NONE, "CREATE_TABLE " + tbl_name.str(), this);
 
         on_thread_t write_rethreader(metadata_home_thread);
 
@@ -183,7 +184,7 @@ private:
             fill_in_blueprints(&metadata, directory_metadata->get(),
                                env->this_machine, false);
         } catch (const missing_machine_exc_t &e) {
-            throw exc_t(e.what());
+            rfail("%s", e.what());
         }
         env->join_and_wait_to_propagate(metadata);
 
@@ -196,7 +197,7 @@ private:
             wait_for_rdb_table_readiness(env->ns_repo, namespace_id,
                                          env->interruptor, env->semilattice_metadata);
         } catch (interrupted_exc_t e) {
-            throw exc_t("Query interrupted, probably by user.");
+            rfail("Query interrupted, probably by user.");
         }
 
         return "created";
@@ -210,7 +211,7 @@ public:
         meta_write_op_t(env, term, argspec_t(1)) { }
 private:
     virtual std::string write_eval_impl() {
-        name_string_t db_name = get_name(arg(0));
+        name_string_t db_name = get_name(arg(0), this);
 
         on_thread_t write_rethreader(metadata_home_thread);
 
@@ -218,7 +219,7 @@ private:
         // Get database metadata.
         metadata_searcher_t<database_semilattice_metadata_t>::iterator
             db_metadata = db_searcher->find_uniq(db_name, &status);
-        meta_check(status, METADATA_SUCCESS, "DB_DROP " + db_name.str());
+        meta_check(status, METADATA_SUCCESS, "DB_DROP " + db_name.str(), this);
         guarantee(!db_metadata->second.is_deleted());
         uuid_u db_id = db_metadata->first;
 
@@ -239,7 +240,7 @@ private:
             fill_in_blueprints(&metadata, directory_metadata->get(),
                                env->this_machine, false);
         } catch (const missing_machine_exc_t &e) {
-            throw exc_t(e.what());
+            rfail("%s", e.what());
         }
         env->join_and_wait_to_propagate(metadata);
 
@@ -255,7 +256,7 @@ public:
 private:
     virtual std::string write_eval_impl() {
         uuid_u db_id = arg(0)->as_db();
-        name_string_t tbl_name = get_name(arg(1));
+        name_string_t tbl_name = get_name(arg(1), this);
 
         on_thread_t write_rethreader(metadata_home_thread);
 
@@ -264,7 +265,7 @@ private:
         namespace_predicate_t pred(&tbl_name, &db_id);
         metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >::iterator
             ns_metadata = ns_searcher->find_uniq(pred, &status);
-        meta_check(status, METADATA_SUCCESS, "FIND_TABLE " + tbl_name.str());
+        meta_check(status, METADATA_SUCCESS, "FIND_TABLE " + tbl_name.str(), this);
         guarantee(!ns_metadata->second.is_deleted());
 
         // Delete table and join.
@@ -273,7 +274,7 @@ private:
             fill_in_blueprints(&metadata, directory_metadata->get(),
                                env->this_machine, false);
         } catch (const missing_machine_exc_t &e) {
-            throw exc_t(e.what());
+            rfail("%s", e.what());
         }
         env->join_and_wait_to_propagate(metadata);
 
@@ -345,7 +346,7 @@ private:
             db = arg(0)->as_db();
             name = arg(1)->as_str();
         }
-        return new_val(new table_t(env, db, name, use_outdated));
+        return new_val(new table_t(env, db, name, use_outdated, this));
     }
     RDB_NAME("table");
 };

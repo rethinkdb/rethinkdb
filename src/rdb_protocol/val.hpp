@@ -15,10 +15,11 @@ class env_t;
 class val_t;
 class term_t;
 
-class table_t : public ptr_baggable_t {
+class table_t : public ptr_baggable_t, public pb_rcheckable_t {
 public:
-    table_t(env_t *_env, uuid_u db_id, const std::string &name, bool use_outdated);
-    datum_stream_t *as_datum_stream(backtrace_t::frame_t f);
+    table_t(env_t *_env, uuid_u db_id, const std::string &name,
+            bool use_outdated, const pb_rcheckable_t *src);
+    datum_stream_t *as_datum_stream();
     const std::string &get_pkey();
     const datum_t *get_row(const datum_t *pval);
     datum_t *env_add_ptr(datum_t *d);
@@ -41,7 +42,7 @@ public:
             // changes, you could store the bool and `r_sanity_check` that it's
             // false.
             UNUSED bool key_in_object =
-                   datum->add("first_error", env_add_ptr(new datum_t(err)))
+                datum->add("first_error", env_add_ptr(new datum_t(err)))
                 || datum->add("errors", env_add_ptr(new datum_t(1L)));
             return datum;
         }
@@ -63,7 +64,7 @@ enum shortcut_ok_bool_t { SHORTCUT_NOT_OK = 0, SHORTCUT_OK = 1};
 
 // A value is anything RQL can pass around -- a datum, a sequence, a function, a
 // selection, whatever.
-class val_t : public ptr_baggable_t {
+class val_t : public ptr_baggable_t, public pb_rcheckable_t {
 public:
     // This type is intentionally opaque.  It is almost always an error to
     // compare two `val_t` types rather than testing whether one is convertible
@@ -129,6 +130,7 @@ public:
             return strprintf("OPAQUE VAL %s", get_type().name());
         }
     }
+
 private:
     const term_t *parent;
     env_t *env;

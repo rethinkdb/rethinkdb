@@ -62,6 +62,9 @@ message Frame {
     optional int64 pos = 2; // The index of the positional argument.
     optional string opt = 3; // The name of the optional argument.
 };
+message Backtrace {
+    repeated Frame frames = 1;
+}
 
 // You get back a response with the same [token] as your query.
 message Response2 {
@@ -103,7 +106,8 @@ message Response2 {
     // specifies either the index of a positional argument or the name of an
     // optional argument.  (Those words will make more sense if you look at the
     // [Term] message below.)
-    repeated Frame backtrace = 4; // Contains n [Frame]s when you get back an error.
+
+    required Backtrace backtrace = 4; // Contains n [Frame]s when you get back an error.
 };
 
 // A [Datum] is a chunk of data that can be serialized to disk or returned to
@@ -129,6 +133,8 @@ message Datum {
         required Datum val = 2;
     };
     repeated AssocPair r_object = 6;
+
+    extensions 10000 to 20000;
 };
 
 // A [Term] is either a piece of data (see **Datum** above), or an operator and

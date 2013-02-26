@@ -177,7 +177,9 @@ result_t batched_rget_stream_t::apply_terminal(
         if (table_scan_backtrace) {
             throw runtime_exc_t("cannot perform read: " + std::string(e.what()), *table_scan_backtrace);
         } else {
-            throw ql::exc_t("cannot perform read: " + std::string(e.what()));
+            // No backtrace for these.
+            throw ql::exc_t("cannot perform read: " + std::string(e.what()),
+                            ql::backtrace_t());
         }
     }
 }
@@ -223,7 +225,9 @@ void batched_rget_stream_t::read_more() {
         if (table_scan_backtrace) {
             throw runtime_exc_t("cannot perform read: " + std::string(e.what()), *table_scan_backtrace);
         } else {
-            throw ql::exc_t("cannot perform read: " + std::string(e.what()));
+            // No backtrace.
+            throw ql::exc_t("cannot perform read: " + std::string(e.what()),
+                            ql::backtrace_t());
         }
     }
 }

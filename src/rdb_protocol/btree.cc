@@ -441,26 +441,18 @@ public:
             //Apply transforms to the data
             {
                 rdb_protocol_details::transform_t::iterator it;
-                try {
-                    for (it = transform.begin(); it != transform.end(); ++it) {
-                        json_list_t tmp;
+                for (it = transform.begin(); it != transform.end(); ++it) {
+                    json_list_t tmp;
 
-                        for (json_list_t::iterator jt  = data.begin();
-                             jt != data.end();
-                             ++jt) {
-                            boost::apply_visitor(query_language::transform_visitor_t(
-                                                     *jt, &tmp, env, ql_env, it->scopes,
-                                                     it->backtrace), it->variant);
-                        }
-                        data.clear();
-                        data.splice(data.begin(), tmp);
+                    for (json_list_t::iterator jt  = data.begin();
+                         jt != data.end();
+                         ++jt) {
+                        boost::apply_visitor(query_language::transform_visitor_t(
+                                                 *jt, &tmp, env, ql_env, it->scopes,
+                                                 it->backtrace), it->variant);
                     }
-                } catch (ql::exc_t &e/*NOLINT*/) {
-                    // Backtrace mangling so that we descend the right depth on
-                    // the client.
-                    if (!terminal) ++it;
-                    for (; it != transform.end(); ++it) e.backtrace.push_front(0);
-                    throw;
+                    data.clear();
+                    data.splice(data.begin(), tmp);
                 }
             }
 

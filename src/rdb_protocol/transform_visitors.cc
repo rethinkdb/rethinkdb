@@ -206,7 +206,8 @@ void terminal_visitor_t::operator()(ql::gmr_wire_func_t &func/*NOLINT*/) const {
 
     const ql::datum_t *el = ql_env->add_ptr(new ql::datum_t(json, ql_env));
     const ql::datum_t *el_group = func.compile_group(ql_env)->call(el)->as_datum();
-    const ql::datum_t *el_map = func.compile_map(ql_env)->call(el)->as_datum();
+    const ql::datum_t *elm = ql_env->add_ptr(new ql::datum_t(json, ql_env));
+    const ql::datum_t *el_map = func.compile_map(ql_env)->call(elm)->as_datum();
 
     if (!obj->has(el_group)) {
         obj->set(el_group, el_map);

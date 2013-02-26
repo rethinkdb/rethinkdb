@@ -16,15 +16,17 @@
 class Datum;
 
 namespace ql {
-class env_t;
 class datum_stream_t;
+class env_t;
+class val_t;
 
 // These let us write e.g. `foo(NOTHROW) instead of `foo(false/*nothrow*/)`.
 enum throw_bool_t { NOTHROW = 0, THROW = 1};
 enum clobber_bool_t { NOCLOBBER = 0, CLOBBER = 1};
 
 // A `datum_t` is basically a JSON value, although we may extend it later.
-class datum_t : public ptr_baggable_t {
+// TODO: When we optimize for memory, this needs to stop inheriting from `rcheckable_t`
+class datum_t : public ptr_baggable_t, public rcheckable_t {
 public:
     // This ordering is important, because we use it to sort objects of
     // disparate type.  It should be alphabetical.
@@ -38,7 +40,8 @@ public:
     // to catch cases where people try to write `datum_t(true)` (which would
     // otherwise be converted to an `int`).
     explicit datum_t(bool _bool); // undefined, catches implicit conversion errors
-    datum_t(type_t _type, bool _bool); // Need to explicitly ask to construct a bool.
+    // Need to explicitly ask to construct a bool.
+    datum_t(type_t _type, bool _bool);
     explicit datum_t(double _num);
     explicit datum_t(int64_t _num);
     explicit datum_t(const std::string &_str);
@@ -83,12 +86,13 @@ public:
     const datum_t *el(const std::string &key, throw_bool_t throw_bool = THROW) const;
     const datum_t *merge(const datum_t *rhs) const;
     typedef const datum_t *(*merge_res_f)(env_t *env, const std::string &key,
-                                          const datum_t *l, const datum_t *r);
+                                          const datum_t *l, const datum_t *r,
+                                          const rcheckable_t *caller);
     const datum_t *merge(env_t *env, const datum_t *rhs, merge_res_f f) const;
 
     cJSON *as_raw_json() const;
     boost::shared_ptr<scoped_cJSON_t> as_json() const;
-    datum_stream_t *as_datum_stream(env_t *env, backtrace_t::frame_t frame) const;
+    datum_stream_t *as_datum_stream(env_t *env, const pb_rcheckable_t *bt_src) const;
 
     // These behave as expected and defined in RQL.  Theoretically, two data of
     // the same type should compare the same way their printed representations
@@ -118,6 +122,11 @@ private:
     std::string r_str;
     std::vector<const datum_t *> r_array;
     std::map<const std::string, const datum_t *> r_object;
+
+    virtual void runtime_check(const char *test, const char *file, int line,
+                               bool pred, std::string msg) const {
+        ql::runtime_check(test, file, line, pred, msg);
+    }
 };
 
 RDB_DECLARE_SERIALIZABLE(Datum);

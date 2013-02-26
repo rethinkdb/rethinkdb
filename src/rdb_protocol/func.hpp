@@ -14,13 +14,13 @@
 
 namespace ql {
 
-class func_t : public ptr_baggable_t {
+class func_t : public ptr_baggable_t, public pb_rcheckable_t {
 public:
-    func_t(env_t *env, const Term2 *_source, backtrace_t::frame_t _frame);
+    func_t(env_t *env, const Term2 *_source);
     // Some queries, like filter, can take a shortcut object instead of a
     // function as their argument.
     static func_t *new_shortcut_func(env_t *env, const datum_t *obj,
-                                     backtrace_t::frame_t frame);
+                                     const pb_rcheckable_t *root);
     val_t *call(const std::vector<const datum_t *> &args);
     // Prefer these two version of call.
     val_t *call(const datum_t *arg);
@@ -29,10 +29,6 @@ public:
     void dump_scope(std::map<int, Datum> *out) const;
     bool is_deterministic() const;
 
-    // Set the backtrace frame if it isn't already set.  (This interface made
-    // some other logic much easier, but in general backtraces are bad and
-    // brittle, so hopefully this will go away if we fix that.)
-    void maybe_set_frame(backtrace_t::frame_t _frame);
 private:
     // Pointers to this function's arguments.
     std::vector<const datum_t *> argptrs;
@@ -41,7 +37,6 @@ private:
     // This is what's serialized over the wire.
     friend class wire_func_t;
     const Term2 *source;
-    backtrace_t::frame_t frame;
     bool implicit_bound;
 
     // TODO: make this smarter (it's sort of slow and shitty as-is)
@@ -52,20 +47,18 @@ private:
 RDB_MAKE_PROTOB_SERIALIZABLE(Term2);
 RDB_MAKE_PROTOB_SERIALIZABLE(Datum);
 // Used to serialize a function (or gmr) over the wire.
-class wire_func_t {
+class wire_func_t : public pb_rcheckable_t {
 public:
     wire_func_t();
     virtual ~wire_func_t() { }
     wire_func_t(env_t *env, func_t *_func);
-    wire_func_t(const Term2 &_source, std::map<int, Datum> *_scope,
-                backtrace_t::frame_t _frame);
+    wire_func_t(const Term2 &_source, std::map<int, Datum> *_scope);
     func_t *compile(env_t *env);
 protected:
-    // We cache a separeate function for every environment.
+    // We cache a separate function for every environment.
     std::map<env_t *, func_t *> cached_funcs;
 
     Term2 source;
-    backtrace_t::frame_t frame;
     std::map<int, Datum> scope;
 public:
     //RDB_MAKE_ME_SERIALIZABLE_2(source, scope);
@@ -79,10 +72,9 @@ class serializable_wire_func_t : public wire_func_t {
 public:
     serializable_wire_func_t() : wire_func_t() { }
     serializable_wire_func_t(env_t *env, func_t *func) : wire_func_t(env, func) { }
-    serializable_wire_func_t(const Term2 &_source, std::map<int, Datum> *_scope,
-                             backtrace_t::frame_t _frame)
-        : wire_func_t(_source, _scope, _frame) { }
-    RDB_MAKE_ME_SERIALIZABLE_3(source, frame, scope);
+    serializable_wire_func_t(const Term2 &_source, std::map<int, Datum> *_scope)
+        : wire_func_t(_source, _scope) { }
+    RDB_MAKE_ME_SERIALIZABLE_2(source, scope);
 };
 enum simple_funcs { MAP, FILTER, REDUCE, CONCATMAP };
 template<int fconst>
@@ -91,9 +83,8 @@ public:
     derived_wire_func_t() : serializable_wire_func_t() { }
     derived_wire_func_t(env_t *env, func_t *func)
         : serializable_wire_func_t(env, func) { }
-    derived_wire_func_t(const Term2 &_source, std::map<int, Datum> *_scope,
-                        backtrace_t::frame_t _frame)
-        : serializable_wire_func_t(_source, _scope, _frame) { }
+    derived_wire_func_t(const Term2 &_source, std::map<int, Datum> *_scope)
+        : serializable_wire_func_t(_source, _scope) { }
 };
 } // namespace derived
 typedef derived::derived_wire_func_t<derived::MAP> map_wire_func_t;

@@ -35,7 +35,7 @@ private:
         boost::shared_ptr<scoped_cJSON_t> result = js->eval(source, &errmsg);
 
         if (!result) {
-            throw exc_t(errmsg);
+            rfail("%s", errmsg.c_str());
         }
 
         return new_val(new datum_t(result, env));

@@ -1,16 +1,38 @@
 #include "rdb_protocol/err.hpp"
+#include "rdb_protocol/term_walker.hpp"
 
 namespace ql {
+
 void runtime_check(const char *test, const char *file, int line,
-                   bool pred, std::string msg, Term2 *bt_source) {
+                   bool pred, std::string msg, const Backtrace *bt_src) {
     if (pred) return;
 #ifndef NDEBUG
     msg = strprintf("%s\nFailed assertion: %s\nAt: %s:%d",
                     msg.c_str(), test, file, line);
 #endif
-    throw exc_t(msg, bt_source);
+    throw exc_t(msg, bt_src);
+}
+void runtime_check(const char *test, const char *file, int line,
+                   bool pred, std::string msg) {
+    if (pred) return;
+#ifndef NDEBUG
+    msg = strprintf("%s\nFailed assertion: %s\nAt: %s:%d",
+                    msg.c_str(), test, file, line);
+#endif
+    throw datum_exc_t(msg);
 }
 
+void backtrace_t::fill_bt(Backtrace *bt) const {
+    for (std::list<backtrace_t::frame_t>::const_iterator
+             it = frames.begin(); it != frames.end(); ++it) {
+        if (it->is_skip()) continue;
+        if (it->is_head()) {
+            rassert(it == frames.begin());
+            continue;
+        }
+        *bt->add_frames() = it->toproto();
+    }
+}
 void backtrace_t::fill_error(Response2 *res, Response2_ResponseType type,
                              std::string msg) const {
     guarantee(type == Response2::CLIENT_ERROR ||
@@ -21,15 +43,7 @@ void backtrace_t::fill_error(Response2 *res, Response2_ResponseType type,
     error_msg.set_r_str(msg);
     res->set_type(type);
     *res->add_response() = error_msg;
-    for (std::list<backtrace_t::frame_t>::const_iterator
-             it = frames.begin(); it != frames.end(); ++it) {
-        if (it->is_skip()) continue;
-        if (it->is_head()) {
-            rassert(it == frames.begin());
-            continue;
-        }
-        *res->add_backtrace() = it->toproto();
-    }
+    fill_bt(res->mutable_backtrace());
 }
 void fill_error(Response2 *res, Response2_ResponseType type, std::string msg,
                 const backtrace_t &bt) {
@@ -64,5 +78,10 @@ backtrace_t::frame_t::frame_t(const Frame &f) {
     } break;
     }
 }
+
+void pb_rcheckable_t::propagate(Term2 *t) const {
+    term_walker_t(t, bt_src);
+}
+
 
 } // namespace ql

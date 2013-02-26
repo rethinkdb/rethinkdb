@@ -13,25 +13,68 @@
 
 namespace ql {
 
+// NOTE: you usually want to inherit from `rcheckable_t` instead of calling this
+// directly.
 void runtime_check(const char *test, const char *file, int line,
-                   bool pred, std::string msg, Term2 *bt_source = 0);
+                   bool pred, std::string msg, const Backtrace *bt_src);
+void runtime_check(const char *test, const char *file, int line,
+                   bool pred, std::string msg);
+
+// Inherit from this in classes that wish to use `rcheck`
+class rcheckable_t {
+public:
+    virtual ~rcheckable_t() { }
+    virtual void runtime_check(const char *test, const char *file, int line,
+                               bool pred, std::string msg) const = 0;
+};
+class pb_rcheckable_t : public rcheckable_t {
+public:
+    pb_rcheckable_t(const Datum *d)
+        : bt_src(&d->GetExtension(ql2::extension::datum_backtrace)) { }
+    pb_rcheckable_t(const Term2 *t)
+        : bt_src(&t->GetExtension(ql2::extension::backtrace)) { }
+    pb_rcheckable_t(const pb_rcheckable_t *rct) : bt_src(rct->bt_src) { }
+    virtual void runtime_check(const char *test, const char *file, int line,
+                               bool pred, std::string msg) const {
+        ql::runtime_check(test, file, line, pred, msg, bt_src);
+    }
+
+    // Propagate the associated backtrace through the rewrite term.
+    void propagate(Term2 *t) const;
+private:
+    const Backtrace *bt_src;
+};
 
 // Use these macros to return errors to users.
 #ifndef NDEBUG
-#define rcheck(pred, msg, args...) do {                                             \
-        (pred)                                                                      \
-        ? runtime_check(stringify(pred), __FILE__, __LINE__, true, (msg), ##args)   \
-        : runtime_check(stringify(pred), __FILE__, __LINE__, false, (msg), ##args); \
+#define rcheck_target(target, pred, msg) do {                                         \
+        (pred)                                                                        \
+        ? (target)->runtime_check(stringify(pred), __FILE__, __LINE__, true, (msg))   \
+        : (target)->runtime_check(stringify(pred), __FILE__, __LINE__, false, (msg)); \
+    } while (0)
+#define rcheck_src(src, pred, msg) do {                                               \
+        (pred)                                                                        \
+        ? runtime_check(stringify(pred), __FILE__, __LINE__, true, (msg), (src))      \
+        : runtime_check(stringify(pred), __FILE__, __LINE__, false, (msg), (src));    \
     } while (0)
 #else
-#define rcheck(pred, msg, args...) do {                                             \
-        (pred)                                                                      \
-        ? (void)0                                                                   \
-        : runtime_check(stringify(pred), __FILE__, __LINE__, false, (msg), ##args); \
+#define rcheck_target(target, pred, msg) do {                                         \
+        (pred)                                                                        \
+        ? (void)0                                                                     \
+        : (target)->runtime_check(stringify(pred), __FILE__, __LINE__, false, (msg)); \
+    } while (0)
+#define rcheck_src(src, pred, msg) do {                                               \
+        (pred)                                                                        \
+        ? (void)0                                                                     \
+        : runtime_check(stringify(pred), __FILE__, __LINE__, false, (msg), (src));    \
     } while (0)
 #endif // NDEBUG
+#define rcheck(pred, msg) rcheck_target(this, pred, msg)
+#define rcheck_toplevel(pred, msg) rcheck_src(0, pred, msg)
 
+#define rfail_target(target, args...) rcheck_target(target, false, strprintf(args))
 #define rfail(args...) rcheck(false, strprintf(args))
+#define rfail_toplevel(args...) rcheck_toplevel(false, strprintf(args))
 
 
 // r_sanity_check should be used in place of guarantee if you think the
@@ -46,9 +89,9 @@ void runtime_check(const char *test, const char *file, int line,
 // A backtrace we return to the user.  Pretty self-explanatory.
 class backtrace_t {
 public:
-    backtrace_t(Term2 *t) {
-        for (int i = 0; i < t->ExtensionSize(ql2::extension::backtrace); ++i) {
-            push_back(t->GetExtension(ql2::extension::backtrace, i));
+    backtrace_t(const Backtrace *bt) {
+        for (int i = 0; i < bt->frames_size(); ++i) {
+            push_back(bt->frames(i));
         }
     }
     backtrace_t() { }
@@ -90,21 +133,15 @@ public:
     public:
         RDB_MAKE_ME_SERIALIZABLE_3(type, pos, opt);
     };
+
+    void fill_bt(Backtrace *bt) const;
     // Write out the backtrace to return it to the user.
     void fill_error(Response2 *res, Response2_ResponseType type, std::string msg) const;
     RDB_MAKE_ME_SERIALIZABLE_1(frames);
 
-    // Push a frame onto the front of the backtrace.
-    void push_front(frame_t f) {
-        r_sanity_check(f.is_valid());
-        // debugf("PUSHING %s\n", f.toproto().DebugString().c_str());
-        frames.push_front(f);
-    }
-    template<class T>
-    void push_front(T t) {
-        push_front(frame_t(t));
-    }
+    bool is_empty() { return frames.size() == 0; }
 
+private:
     // Push a frame onto the back of the backtrace.
     void push_back(frame_t f) {
         r_sanity_check(f.is_valid());
@@ -116,8 +153,6 @@ public:
         push_back(frame_t(t));
     }
 
-    bool is_empty() { return frames.size() == 0; }
-private:
     std::list<frame_t> frames;
 };
 
@@ -130,19 +165,34 @@ class exc_t : public std::exception {
 public:
     // We have a default constructor because these are serialized.
     exc_t() : exc_msg("UNINITIALIZED") { }
-    explicit exc_t(const std::string &_exc_msg) : exc_msg(_exc_msg) { }
-    explicit exc_t(const std::string &_exc_msg, Term2 *bt_source) : exc_msg(_exc_msg) {
-        if (bt_source) set_backtrace(bt_source);
+    // explicit exc_t(const std::string &_exc_msg) : exc_msg(_exc_msg) { }
+    template<class T>
+    exc_t(const std::string &_exc_msg, const T *bt_src)
+        : exc_msg(_exc_msg) {
+        if (bt_src) set_backtrace(bt_src);
     }
+    exc_t(const std::string &_exc_msg, const backtrace_t &_backtrace)
+        : backtrace(_backtrace), exc_msg(_exc_msg) { }
     virtual ~exc_t() throw () { }
     const char *what() const throw () { return exc_msg.c_str(); }
     RDB_MAKE_ME_SERIALIZABLE_2(backtrace, exc_msg);
 
-    backtrace_t backtrace;
-    void set_backtrace(Term2 *t) {
+    template<class T>
+    void set_backtrace(const T *t) {
         r_sanity_check(backtrace.is_empty());
         backtrace = backtrace_t(t);
     }
+
+    backtrace_t backtrace;
+private:
+    std::string exc_msg;
+};
+
+class datum_exc_t : public std::exception {
+public:
+    datum_exc_t(const std::string &_exc_msg) : exc_msg(_exc_msg) { }
+    virtual ~datum_exc_t() throw () { }
+    const char *what() const throw () { return exc_msg.c_str(); }
 private:
     std::string exc_msg;
 };
@@ -151,10 +201,5 @@ void fill_error(Response2 *res, Response2_ResponseType type, std::string msg,
                 const backtrace_t &bt = backtrace_t());
 
 } // namespace ql
-
-#define CATCH_WITH_BT(N) catch (exc_t &e/*NOLINT*/) {   \
-        e.backtrace.push_front(N);                      \
-        throw;                                          \
-    }
 
 #endif // RDB_PROTOCOL_ERR_HPP_

@@ -49,7 +49,7 @@ public:
     // Bind a variable in the current scope.
     void push_var(int var, const datum_t **val);
     // Get the current binding of a variable in the current scope.
-    const datum_t **top_var(int var);
+    const datum_t **top_var(int var, const rcheckable_t *caller);
     // Unbind a variable in the current scope.
     void pop_var(int var);
 
@@ -66,7 +66,7 @@ private:
 public:
     // Implicit Variables (same interface as normal variables above).
     void push_implicit(const datum_t **val);
-    const datum_t **top_implicit();
+    const datum_t **top_implicit(const rcheckable_t *caller);
     void pop_implicit();
 private:
     friend class implicit_binder_t;
@@ -83,8 +83,8 @@ public:
         bags[bags.size()-1]->add(p);
         return p;
     }
-    func_t *new_func(const Term2 *term, backtrace_t::frame_t frame) {
-        return add_ptr(new func_t(this, term, frame));
+    func_t *new_func(const Term2 *term) {
+        return add_ptr(new func_t(this, term));
     }
     template<class T>
     val_t *new_val(T *ptr, term_t *parent) {

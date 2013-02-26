@@ -25,7 +25,7 @@ namespace ql {
 
 term_t *compile_term(env_t *env, const Term2 *t) {
     switch(t->type()) {
-    case Term2_TermType_DATUM:              return new datum_term_t(env, &t->datum());
+    case Term2_TermType_DATUM:              return new datum_term_t(env, t);
     case Term2_TermType_MAKE_ARRAY:         return new make_array_term_t(env, t);
     case Term2_TermType_MAKE_OBJ:           return new make_obj_term_t(env, t);
     case Term2_TermType_VAR:                return new var_term_t(env, t);
@@ -100,45 +100,45 @@ void run(Query2 *q, scoped_ptr_t<env_t> *env_ptr,
     env_t *env = env_ptr->get();
     int64_t token = q->token();
 
-    try {
-        for (int i = 0; i < q->global_optargs_size(); ++i) {
-            const Query2::AssocPair &ap = q->global_optargs(i);
-            term_t *op_term = compile_term(env, &ap.val());
-            op_term->set_bt(backtrace_t::frame_t::skip());
-            bool conflict = env->add_optarg(ap.key(), op_term);
-            rcheck(!conflict, strprintf("Duplicate key: %s", ap.key().c_str()));
-        }
-        env_wrapper_t<Term2> *ewt = env->add_ptr(new env_wrapper_t<Term2>());
-        Term2 *arg = &ewt->t;
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wshadow"
-        N1(DB, NDATUM("test"));
-#pragma GCC diagnostic pop
-        term_t *db_term = compile_term(env, arg);
-        db_term->set_bt(backtrace_t::frame_t::skip());
-        UNUSED bool _b = env->add_optarg("db", db_term);
-        // UNUSED because user can override this value safely
-    } catch (const exc_t &e) {
-        fill_error(res, Response2::COMPILE_ERROR, e.what(), e.backtrace);
-        return;
-    }
-
     switch(q->type()) {
     case Query2_QueryType_START: {
         term_t *root_term = 0;
         try {
-            term_walker_t term_walker(q->mutable_query());
-            root_term = env->new_term(&q->query());
+            Term2 *t = q->mutable_query();
+            term_walker_t term_walker(t); // fill backtraces
+            Backtrace *t_bt = t->MutableExtension(ql2::extension::backtrace);
+
+            // Parse global optargs
+            for (int i = 0; i < q->global_optargs_size(); ++i) {
+                const Query2::AssocPair &ap = q->global_optargs(i);
+                term_t *op_term = compile_term(env, &ap.val());
+                bool conflict = env->add_optarg(ap.key(), op_term);
+                rcheck_toplevel(
+                    !conflict,
+                    strprintf("Duplicate global optarg: %s", ap.key().c_str()));
+            }
+            env_wrapper_t<Term2> *ewt = env->add_ptr(new env_wrapper_t<Term2>());
+            Term2 *arg = &ewt->t;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"
+            N1(DB, NDATUM("test"));
+#pragma GCC diagnostic pop
+            term_walker_t(arg, t_bt); // duplicate toplevel backtrace
+            term_t *db_term = compile_term(env, arg);
+            UNUSED bool _b = env->add_optarg("db", db_term);
+            //          ^^ UNUSED because user can override this value safely
+
+            // Parse actual query
+            root_term = env->new_term(t);
             // TODO: handle this properly
-            root_term->set_bt(backtrace_t::frame_t::head());
         } catch (const exc_t &e) {
             fill_error(res, Response2::COMPILE_ERROR, e.what(), e.backtrace);
             return;
         }
 
         try {
-            rcheck(!stream_cache2->contains(token),
-                   strprintf("ERROR: duplicate token %ld", token));
+            rcheck_toplevel(!stream_cache2->contains(token),
+                strprintf("ERROR: duplicate token %ld", token));
         } catch (const exc_t &e) {
             fill_error(res, Response2::CLIENT_ERROR, e.what(), e.backtrace);
             return;
@@ -155,7 +155,7 @@ void run(Query2 *q, scoped_ptr_t<env_t> *env_ptr,
                 bool b = stream_cache2->serve(token, res, env->interruptor);
                 r_sanity_check(b);
             } else {
-                rfail("Query returned opaque value %s.", val->print().c_str());
+                rfail_toplevel("Query returned opaque value %s.", val->print().c_str());
             }
         } catch (const exc_t &e) {
             fill_error(res, Response2::RUNTIME_ERROR, e.what(), e.backtrace);
@@ -165,7 +165,7 @@ void run(Query2 *q, scoped_ptr_t<env_t> *env_ptr,
     case Query2_QueryType_CONTINUE: {
         try {
             bool b = stream_cache2->serve(token, res, env->interruptor);
-            rcheck(b, strprintf("Token %ld not in stream cache.", token));
+            rcheck_toplevel(b, strprintf("Token %ld not in stream cache.", token));
         } catch (const exc_t &e) {
             fill_error(res, Response2::CLIENT_ERROR, e.what(), e.backtrace);
             return;
@@ -173,8 +173,8 @@ void run(Query2 *q, scoped_ptr_t<env_t> *env_ptr,
     } break;
     case Query2_QueryType_STOP: {
         try {
-            rcheck(stream_cache2->contains(token),
-                   strprintf("Token %ld not in stream cache.", token));
+            rcheck_toplevel(stream_cache2->contains(token),
+                strprintf("Token %ld not in stream cache.", token));
             stream_cache2->erase(token);
         } catch (const exc_t &e) {
             fill_error(res, Response2::CLIENT_ERROR, e.what(), e.backtrace);
@@ -185,7 +185,8 @@ void run(Query2 *q, scoped_ptr_t<env_t> *env_ptr,
     }
 }
 
-term_t::term_t(env_t *_env) : use_cached_val(false), env(_env), cached_val(0) {
+term_t::term_t(env_t *_env, const Term2 *src)
+    : pb_rcheckable_t(src), use_cached_val(false), env(_env), cached_val(0) {
     guarantee(env);
 }
 term_t::~term_t() { }
@@ -216,18 +217,16 @@ bool term_t::is_deterministic() const {
 }
 
 val_t *term_t::eval(bool _use_cached_val) {
-    r_sanity_check(has_bt());
     DBG("EVALUATING %s (%d):\n", name(), is_deterministic());
     INC_DEPTH;
 
     use_cached_val = _use_cached_val;
     try {
         if (!cached_val || !use_cached_val) cached_val = eval_impl();
-    } catch (exc_t &e/*NOLINT*/) {
+    } catch (const datum_exc_t &e) {
         DEC_DEPTH;
         DBG("%s THREW\n", name());
-        if (has_bt()) e.backtrace.push_front(get_bt());
-        throw;
+        rfail("%s", e.what());
     }
 
     DEC_DEPTH;
@@ -255,5 +254,8 @@ val_t *term_t::new_val(table_t *d, datum_stream_t *s) {
 val_t *term_t::new_val(uuid_u db) { return env->new_val(db, this); }
 val_t *term_t::new_val(table_t *t) { return env->new_val(t, this); }
 val_t *term_t::new_val(func_t *f) { return env->new_val(f, this); }
+val_t *term_t::new_val_bool(bool b) {
+    return new_val(new datum_t(datum_t::R_BOOL, b));
+}
 
 } //namespace ql

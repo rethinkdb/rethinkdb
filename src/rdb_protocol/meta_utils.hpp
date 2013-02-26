@@ -10,8 +10,10 @@ void wait_for_rdb_table_readiness(namespace_repo_t<rdb_protocol_t> *ns_repo, nam
 namespace ql {
 
 static const char *valid_char_msg = name_string_t::valid_char_msg;
+
+template<class T>
 static void meta_check(metadata_search_status_t status, metadata_search_status_t want,
-                       const std::string &operation) {
+                       const std::string &operation, T *caller) {
     if (status != want) {
         const char *msg;
         switch (status) {
@@ -22,17 +24,16 @@ static void meta_check(metadata_search_status_t status, metadata_search_status_t
         default:
             unreachable();
         }
-        throw ql::exc_t(strprintf("Error during operation `%s`: %s",
-                                  operation.c_str(), msg));
+        rfail_target(caller, "Error during operation `%s`: %s", operation.c_str(), msg);
     }
 }
 
-template<class T, class U>
+template<class T, class U, class V>
 static uuid_u meta_get_uuid(T *searcher, const U &predicate,
-                            const std::string &operation) {
+                            const std::string &operation, V *caller) {
     metadata_search_status_t status;
     typename T::iterator entry = searcher->find_uniq(predicate, &status);
-    meta_check(status, METADATA_SUCCESS, operation);
+    meta_check(status, METADATA_SUCCESS, operation, caller);
     return entry->first;
 }
 

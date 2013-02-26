@@ -3,10 +3,9 @@
 namespace ql {
 op_term_t::op_term_t(env_t *env, const Term2 *term,
                      argspec_t argspec, optargspec_t optargspec)
-    : term_t(env) {
+    : term_t(env, term) {
     for (int i = 0; i < term->args_size(); ++i) {
         term_t *t = compile_term(env, &term->args(i));
-        t->set_bt(i);
         args.push_back(t);
     }
     rcheck(argspec.contains(args.size()),
@@ -25,7 +24,6 @@ op_term_t::op_term_t(env_t *env, const Term2 *term,
                           "object key" : "optional argument"),
                          ap->key().c_str()));
         term_t *t = compile_term(env, &ap->val());
-        t->set_bt(ap->key());
         optargs.insert(ap->key(), t);
     }
 }

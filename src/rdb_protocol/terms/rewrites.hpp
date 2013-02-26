@@ -15,15 +15,16 @@ namespace ql {
 class rewrite_term_t : public term_t {
 public:
     rewrite_term_t(env_t *env, const Term2 *term,
-                   void (*rewrite)(env_t *, const Term2 *, Term2 *))
-        : term_t(env), in(term) {
-        rewrite(env, in, &out);
+                   void (*rewrite)(env_t *, const Term2 *, Term2 *,
+                                   const pb_rcheckable_t *))
+        : term_t(env, term), in(term) {
+        rewrite(env, in, &out, this);
+        propagate(&out); // duplicates `in` backtrace (see `pb_rcheckable_t`)
         for (int i = 0; i < in->optargs_size(); ++i) {
             *out.add_optargs() = in->optargs(i);
         }
         //debugf("%s\n--->\n%s\n", in->DebugString().c_str(), out.DebugString().c_str());
         real.init(compile_term(env, &out));
-        real->set_bt(1001);
     }
 private:
     virtual bool is_deterministic_impl() const { return real->is_deterministic(); }
@@ -41,11 +42,12 @@ class groupby_term_t : public rewrite_term_t {
 public:
     groupby_term_t(env_t *env, const Term2 *term)
         : rewrite_term_t(env, term, rewrite) { }
-    static void rewrite(env_t *env, const Term2 *in, Term2 *out) {
-        rcheck(in->args_size() == 3, "Groupby requires 3 arguments.");
+    static void rewrite(env_t *env, const Term2 *in, Term2 *out,
+                        const pb_rcheckable_t *bt_src) {
+        rcheck_target(bt_src, in->args_size() == 3, "Groupby requires 3 arguments.");
         std::string dc;
         const Term2 *dc_arg;
-        parse_dc(&in->args(2), &dc, &dc_arg);
+        parse_dc(&in->args(2), &dc, &dc_arg, bt_src);
         Term2 *arg = out;
         arg = final_wrap(env, arg, dc, dc_arg);
 #pragma GCC diagnostic push
@@ -59,12 +61,13 @@ public:
     }
 private:
     static void parse_dc(const Term2 *t, std::string *dc_out,
-                         const Term2 **dc_arg_out) {
-        rcheck(t->type() == Term2_TermType_MAKE_OBJ, "Invalid data collector.");
-        rcheck(t->optargs_size() == 1, "Invalid data collector.");
+                         const Term2 **dc_arg_out, const pb_rcheckable_t *bt_src) {
+        rcheck_target(bt_src, t->type() == Term2_TermType_MAKE_OBJ,
+                      "Invalid data collector.");
+        rcheck_target(bt_src, t->optargs_size() == 1, "Invalid data collector.");
         const Term2_AssocPair *ap = &t->optargs(0);
         *dc_out = ap->key();
-        rcheck(*dc_out == "SUM" || *dc_out == "AVG" || *dc_out == "COUNT",
+        rcheck_target(bt_src, *dc_out == "SUM" || *dc_out == "AVG" || *dc_out == "COUNT",
                strprintf("Unrecognized data collector `%s`.", dc_out->c_str()));
         *dc_arg_out = &ap->val();
     }
@@ -160,8 +163,9 @@ class inner_join_term_t : public rewrite_term_t {
 public:
     inner_join_term_t(env_t *env, const Term2 *term)
         : rewrite_term_t(env, term, rewrite) { }
-    static void rewrite(env_t *env, const Term2 *in, Term2 *out) {
-        rcheck(in->args_size() == 3, "Inner Join requires 3 arguments.");
+    static void rewrite(env_t *env, const Term2 *in, Term2 *out,
+                        const pb_rcheckable_t *bt_src) {
+        rcheck_target(bt_src, in->args_size() == 3, "Inner Join requires 3 arguments.");
         const Term2 *l = &in->args(0);
         const Term2 *r = &in->args(1);
         const Term2 *f = &in->args(2);
@@ -192,8 +196,9 @@ class outer_join_term_t : public rewrite_term_t {
 public:
     outer_join_term_t(env_t *env, const Term2 *term) :
         rewrite_term_t(env, term, rewrite) { }
-    static void rewrite(env_t *env, const Term2 *in, Term2 *out) {
-        rcheck(in->args_size() == 3, "Outer Join requires 3 arguments.");
+    static void rewrite(env_t *env, const Term2 *in, Term2 *out,
+                        const pb_rcheckable_t *bt_src) {
+        rcheck_target(bt_src, in->args_size() == 3, "Outer Join requires 3 arguments.");
         const Term2 *l = &in->args(0), *r = &in->args(1), *f = &in->args(2);
         int64_t n = env->gensym(), m = env->gensym(), lst = env->gensym();
 
@@ -237,8 +242,9 @@ public:
     eq_join_term_t(env_t *env, const Term2 *term) :
         rewrite_term_t(env, term, rewrite) { }
 private:
-    static void rewrite(env_t *env, const Term2 *in, Term2 *out) {
-        rcheck(in->args_size() == 3, "eq_join requires 3 arguments.");
+    static void rewrite(env_t *env, const Term2 *in, Term2 *out,
+                        const pb_rcheckable_t *bt_src) {
+        rcheck_target(bt_src, in->args_size() == 3, "eq_join requires 3 arguments.");
         const Term2 *l = &in->args(0), *lattr = &in->args(1), *r = &in->args(2);
         int row = env->gensym(), v = env->gensym();
 
@@ -268,8 +274,9 @@ class delete_term_t : public rewrite_term_t {
 public:
     delete_term_t(env_t *env, const Term2 *term) : rewrite_term_t(env, term, rewrite) { }
 private:
-    static void rewrite(env_t *env, const Term2 *in, Term2 *out) {
-        rcheck(in->args_size() == 1, "delete requires 1 argument");
+    static void rewrite(env_t *env, const Term2 *in, Term2 *out,
+                        const pb_rcheckable_t *bt_src) {
+        rcheck_target(bt_src, in->args_size() == 1, "delete requires 1 argument");
         int x = env->gensym();
 
         Term2 *arg = out;
@@ -285,8 +292,9 @@ class update_term_t : public rewrite_term_t {
 public:
     update_term_t(env_t *env, const Term2 *term) : rewrite_term_t(env, term, rewrite) { }
 private:
-    static void rewrite(env_t *env, const Term2 *in, Term2 *out) {
-        rcheck(in->args_size() == 2, "update requires 2 arguments");
+    static void rewrite(env_t *env, const Term2 *in, Term2 *out,
+                        const pb_rcheckable_t *bt_src) {
+        rcheck_target(bt_src, in->args_size() == 2, "update requires 2 arguments");
         int old_row = env->gensym();
         int new_row = env->gensym();
 
@@ -312,8 +320,9 @@ class skip_term_t : public rewrite_term_t {
 public:
     skip_term_t(env_t *env, const Term2 *term) : rewrite_term_t(env, term, rewrite) { }
 private:
-    static void rewrite(UNUSED env_t *env, const Term2 *in, Term2 *out) {
-        rcheck(in->args_size() == 2, "skip requires 2 arguments");
+    static void rewrite(UNUSED env_t *env, const Term2 *in, Term2 *out,
+                        const pb_rcheckable_t *bt_src) {
+        rcheck_target(bt_src, in->args_size() == 2, "skip requires 2 arguments");
         Term2 *arg = out;
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"

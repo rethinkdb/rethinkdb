@@ -12,10 +12,11 @@ class json_stream_t;
 
 namespace ql {
 
-class datum_stream_t : public ptr_baggable_t {
+class datum_stream_t : public ptr_baggable_t, public pb_rcheckable_t {
 public:
-    datum_stream_t(env_t *_env, backtrace_t::frame_t _frame)
-        : env(_env), frame(_frame) {
+    template<class T>
+    datum_stream_t(env_t *_env, const T *bt_src)
+        : pb_rcheckable_t(bt_src), env(_env) {
         guarantee(env);
     }
     virtual ~datum_stream_t() { }
@@ -41,22 +42,22 @@ public:
     const datum_t *next() {
         try {
             return next_impl();
-        } catch (exc_t &e/*NOLINT*/) {
-            if (frame.is_valid()) e.backtrace.push_front(frame);
-            throw;
+        } catch (const datum_exc_t &e) {
+            rfail("%s", e.what());
+            unreachable();
         }
     }
 private:
     virtual const datum_t *next_impl() = 0;
 protected:
     env_t *env;
-    backtrace_t::frame_t frame;
 };
 
 class eager_datum_stream_t : public datum_stream_t {
 public:
-    eager_datum_stream_t(env_t *env, backtrace_t::frame_t frame)
-        : datum_stream_t(env, frame) { }
+    template<class T>
+    eager_datum_stream_t(env_t *env, const T *bt_src)
+        : datum_stream_t(env, bt_src) { }
 
     virtual datum_stream_t *filter(func_t *f);
     virtual datum_stream_t *map(func_t *f);
@@ -71,9 +72,8 @@ public:
 
 class map_datum_stream_t : public eager_datum_stream_t {
 public:
-    map_datum_stream_t(env_t *env, func_t *_f, datum_stream_t *_src,
-                       backtrace_t::frame_t frame)
-        : eager_datum_stream_t(env, frame), f(_f), src(_src) {
+    map_datum_stream_t(env_t *env, func_t *_f, datum_stream_t *_src)
+        : eager_datum_stream_t(env, _src), f(_f), src(_src) {
         guarantee(f && src);
     }
     virtual const datum_t *next_impl();
@@ -84,9 +84,8 @@ private:
 
 class filter_datum_stream_t : public eager_datum_stream_t {
 public:
-    filter_datum_stream_t(env_t *env, func_t *_f, datum_stream_t *_src,
-                          backtrace_t::frame_t frame)
-        : eager_datum_stream_t(env, frame), f(_f), src(_src) {
+    filter_datum_stream_t(env_t *env, func_t *_f, datum_stream_t *_src)
+        : eager_datum_stream_t(env, _src), f(_f), src(_src) {
         guarantee(f && src);
     }
     virtual const datum_t *next_impl();
@@ -97,9 +96,8 @@ private:
 
 class concatmap_datum_stream_t : public eager_datum_stream_t {
 public:
-    concatmap_datum_stream_t(env_t *env, func_t *_f, datum_stream_t *_src,
-                             backtrace_t::frame_t frame)
-        : eager_datum_stream_t(env, frame), f(_f), src(_src), subsrc(0) {
+    concatmap_datum_stream_t(env_t *env, func_t *_f, datum_stream_t *_src)
+        : eager_datum_stream_t(env, _src), f(_f), src(_src), subsrc(0) {
         guarantee(f && src);
     }
     virtual const datum_t *next_impl();
@@ -114,7 +112,7 @@ class lazy_datum_stream_t : public datum_stream_t {
 public:
     lazy_datum_stream_t(env_t *env, bool use_outdated,
                         namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
-                        backtrace_t::frame_t frame);
+                        const pb_rcheckable_t *bt_src);
     virtual datum_stream_t *filter(func_t *f);
     virtual datum_stream_t *map(func_t *f);
     virtual datum_stream_t *concatmap(func_t *f);
@@ -144,7 +142,7 @@ private:
 
 class array_datum_stream_t : public eager_datum_stream_t {
 public:
-    array_datum_stream_t(env_t *env, const datum_t *_arr, backtrace_t::frame_t frame);
+    array_datum_stream_t(env_t *env, const datum_t *_arr, const pb_rcheckable_t *bt_src);
     virtual const datum_t *next_impl();
 private:
     size_t index;
@@ -153,8 +151,7 @@ private:
 
 class slice_datum_stream_t : public eager_datum_stream_t {
 public:
-    slice_datum_stream_t(env_t *_env, size_t _l, size_t _r, datum_stream_t *_src,
-                         backtrace_t::frame_t frame);
+    slice_datum_stream_t(env_t *_env, size_t _l, size_t _r, datum_stream_t *_src);
     virtual const datum_t *next_impl();
 private:
     env_t *env;
@@ -164,7 +161,7 @@ private:
 
 class zip_datum_stream_t : public eager_datum_stream_t {
 public:
-    zip_datum_stream_t(env_t *_env, datum_stream_t *_src, backtrace_t::frame_t frame);
+    zip_datum_stream_t(env_t *_env, datum_stream_t *_src);
     virtual const datum_t *next_impl();
 private:
     env_t *env;
@@ -179,8 +176,8 @@ template<class T>
 class sort_datum_stream_t : public eager_datum_stream_t {
 public:
     sort_datum_stream_t(env_t *env, const T &_lt_cmp, datum_stream_t *_src,
-                        backtrace_t::frame_t frame)
-        : eager_datum_stream_t(env, frame), lt_cmp(_lt_cmp), src(_src), data_index(-1) {
+                        const pb_rcheckable_t *bt_src)
+        : eager_datum_stream_t(env, bt_src), lt_cmp(_lt_cmp), src(_src), data_index(-1) {
         guarantee(src);
     }
     virtual const datum_t *next_impl() {
@@ -209,8 +206,8 @@ private:
 class union_datum_stream_t : public eager_datum_stream_t {
 public:
     union_datum_stream_t(env_t *env, const std::vector<datum_stream_t *> &_streams,
-                         backtrace_t::frame_t frame)
-        : eager_datum_stream_t(env, frame), streams(_streams), streams_index(0) { }
+                         const pb_rcheckable_t *bt_src)
+        : eager_datum_stream_t(env, bt_src), streams(_streams), streams_index(0) { }
     virtual const datum_t *next_impl();
 private:
     std::vector<datum_stream_t *> streams;

@@ -13,7 +13,8 @@ namespace ql {
 // This function is used by e.g. foreach to merge statistics from multiple write
 // operations.
 const datum_t *stats_merge(env_t *env, UNUSED const std::string &key,
-                           const datum_t *l, const datum_t *r) {
+                           const datum_t *l, const datum_t *r,
+                           const rcheckable_t *caller) {
     if (l->get_type() == datum_t::R_NUM && r->get_type() == datum_t::R_NUM) {
         //debugf("%s %s %s -> %s\n", key.c_str(), l->print().c_str(), r->print().c_str(),
         //       env->add_ptr(new datum_t(l->as_num() + r->as_num()))->print().c_str());
@@ -26,9 +27,10 @@ const datum_t *stats_merge(env_t *env, UNUSED const std::string &key,
     }
 
     // Merging a string is left-preferential, which is just a no-op.
-    rcheck(l->get_type() == datum_t::R_STR && r->get_type() == datum_t::R_STR,
-           strprintf("Cannot merge statistics of type %s/%s -- what are you doing?",
-                     l->get_type_name(), r->get_type_name()));
+    rcheck_target(
+        caller, l->get_type() == datum_t::R_STR && r->get_type() == datum_t::R_STR,
+        strprintf("Cannot merge statistics of type %s/%s -- what are you doing?",
+                  l->get_type_name(), r->get_type_name()));
     // debugf("%s %s %s -> %s\n", key.c_str(), l->print().c_str(), r->print().c_str(),
     //        l->print().c_str());
     return l;
@@ -36,7 +38,8 @@ const datum_t *stats_merge(env_t *env, UNUSED const std::string &key,
 
 // Use this merge if it should theoretically never be called.
 const datum_t *pure_merge(UNUSED env_t *env, UNUSED const std::string &key,
-                           UNUSED const datum_t *l, UNUSED const datum_t *r) {
+                          UNUSED const datum_t *l, UNUSED const datum_t *r,
+                          UNUSED const rcheckable_t *caller) {
     r_sanity_check(false);
     return 0;
 }

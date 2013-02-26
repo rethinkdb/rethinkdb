@@ -48,7 +48,7 @@ private:
                 return v;
             }
         }
-        return new_val(new datum_t(datum_t::R_BOOL, false));
+        return new_val_bool(false);
     }
     RDB_NAME("any");
 };

@@ -35,4 +35,3 @@ current state.
 
 ## Random Notes
 * `DBLPRI` (`"%.20g"`) is the accepted way of printing doubles.
-* `CATCH_WITH_BT` tacks an extra frame onto an `exc_t` and rethrows.

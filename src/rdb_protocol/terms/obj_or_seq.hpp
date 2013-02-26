@@ -29,7 +29,7 @@ private:
             if (v0->as_datum()->get_type() == datum_t::R_OBJECT) return obj_eval();
         }
         if (v0->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
-            return new_val(v0->as_seq()->map(env->new_func(&map_func, get_bt())));
+            return new_val(v0->as_seq()->map(env->new_func(&map_func)));
         }
         rfail("Cannot perform %s on a non-object non-sequence.", name());
         unreachable();

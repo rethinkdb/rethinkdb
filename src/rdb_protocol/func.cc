@@ -6,8 +6,8 @@
 
 namespace ql {
 
-func_t::func_t(env_t *env, const Term2 *_source, backtrace_t::frame_t _frame)
-    : body(0), source(_source), frame(_frame) {
+func_t::func_t(env_t *env, const Term2 *_source)
+    : pb_rcheckable_t(_source), body(0), source(_source) {
     const Term2 *t = _source;
     r_sanity_check(t->type() == Term2_TermType_FUNC);
     rcheck(t->optargs_size() == 0, "FUNC takes no optional arguments.");
@@ -48,11 +48,10 @@ func_t::func_t(env_t *env, const Term2 *_source, backtrace_t::frame_t _frame)
         env->push_var(args[i], &argptrs[i]);
         if (args.size() == 1) env->push_implicit(&argptrs[i]);
     }
-    if (args.size()) guarantee(env->top_var(args[0]) == &argptrs[0]);
+    if (args.size()) guarantee(env->top_var(args[0], this) == &argptrs[0]);
 
     const Term2 *body_source = &t->args(1);
     body = env->new_term(body_source);
-    body->set_bt(1);
 
     for (size_t i = 0; i < args.size(); ++i) {
         //debugf("popping %d\n", args[i]);
@@ -75,10 +74,9 @@ val_t *func_t::call(const std::vector<const datum_t *> &args) {
         }
         return body->eval(false);
         //                ^^^^^ don't use cached value
-    } catch (exc_t &e) { // NOLINT (runtime/references)
-        r_sanity_check(frame.is_valid());
-        e.backtrace.push_front(frame);
-        throw;
+    } catch (const datum_exc_t &e) {
+        rfail("%s", e.what());
+        unreachable();
     }
 }
 
@@ -106,35 +104,30 @@ bool func_t::is_deterministic() const {
     return body->is_deterministic();
 }
 
-void func_t::maybe_set_frame(backtrace_t::frame_t _frame) {
-    if (!frame.is_valid()) frame = _frame;
-}
-
-wire_func_t::wire_func_t() { }
-wire_func_t::wire_func_t(env_t *env, func_t *func) : frame(func->frame) {
+wire_func_t::wire_func_t() : pb_rcheckable_t(&source) { }
+wire_func_t::wire_func_t(env_t *env, func_t *func)
+    : pb_rcheckable_t(&source) {
     if (env) cached_funcs[env] = func;
     source = *func->source;
     func->dump_scope(&scope);
 }
-wire_func_t::wire_func_t(const Term2 &_source, std::map<int, Datum> *_scope,
-                         backtrace_t::frame_t _frame)
-    : source(_source), frame(_frame) {
+wire_func_t::wire_func_t(const Term2 &_source, std::map<int, Datum> *_scope)
+    : pb_rcheckable_t(&source), source(_source) {
     if (_scope) scope = *_scope;
 }
 
 func_t *wire_func_t::compile(env_t *env) {
     if (cached_funcs.count(env) == 0) {
         env->push_scope(&scope);
-        cached_funcs[env] = env->new_func(&source, frame);
+        cached_funcs[env] = env->new_func(&source);
         env->pop_scope();
     }
     return cached_funcs[env];
 }
 
 func_term_t::func_term_t(env_t *env, const Term2 *term)
-    : term_t(env), func(env->new_func(term, invalid_frame)) { }
+    : term_t(env, term), func(env->new_func(term)) { }
 val_t *func_term_t::eval_impl() {
-    func->maybe_set_frame(get_bt());
     return new_val(func);
 }
 bool func_term_t::is_deterministic_impl() const {
@@ -142,7 +135,7 @@ bool func_term_t::is_deterministic_impl() const {
 }
 
 func_t *func_t::new_shortcut_func(env_t *env, const datum_t *obj,
-                                  backtrace_t::frame_t frame) {
+                                  const pb_rcheckable_t *bt_src) {
     env_wrapper_t<Term2> *twrap = env->add_ptr(new env_wrapper_t<Term2>());
     int x = env->gensym();
     Term2 *t = pb::set_func(&twrap->t, x);
@@ -160,7 +153,8 @@ func_t *func_t::new_shortcut_func(env_t *env, const datum_t *obj,
            val->write_to_protobuf(pb::set_datum(arg)));
 #pragma GCC diagnostic pop
     }
-    return env->add_ptr(new func_t(env, &twrap->t, frame));
+    bt_src->propagate(&twrap->t);
+    return env->add_ptr(new func_t(env, &twrap->t));
 }
 
 } // namespace ql

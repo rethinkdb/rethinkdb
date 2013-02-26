@@ -116,7 +116,7 @@ private:
 
         guarantee(filter_func.has());
         //debugf("%s\n", filter_func->DebugString().c_str());
-        return new_val(seq->filter(env->new_func(filter_func.get(), get_bt())));
+        return new_val(seq->filter(env->new_func(filter_func.get())));
     }
     RDB_NAME("between");
 
@@ -130,7 +130,7 @@ private:
     virtual val_t *eval_impl() {
         std::vector<datum_stream_t *> streams;
         for (size_t i = 0; i < num_args(); ++i) streams.push_back(arg(i)->as_seq());
-        return new_val(new union_datum_stream_t(env, streams, get_bt()));
+        return new_val(new union_datum_stream_t(env, streams, this));
     }
     RDB_NAME("union");
 };

@@ -21,10 +21,10 @@ int env_t::gensym() {
 void env_t::push_implicit(const datum_t **val) {
     implicit_var.push(val);
 }
-const datum_t **env_t::top_implicit() {
-    rcheck(!implicit_var.empty(), "No implicit variable in scope.");
-    rcheck(implicit_var.size() == 1,
-           "Cannot use implicit variable in nested queries; name your variables.");
+const datum_t **env_t::top_implicit(const rcheckable_t *caller) {
+    rcheck_target(caller, !implicit_var.empty(), "No implicit variable in scope.");
+    rcheck_target(caller, implicit_var.size() == 1,
+                  "Can't use r.row in nested queries; name your variables.");
     return implicit_var.top();
 }
 void env_t::pop_implicit() {
@@ -90,10 +90,10 @@ void env_t::push_var(int var, const datum_t **val) {
     // debugf("%p VAR push %d -> %p\n", this, var, val);
     vars[var].push(val);
 }
-const datum_t **env_t::top_var(int var) {
+const datum_t **env_t::top_var(int var, const rcheckable_t *caller) {
     // if (vars[var].empty()) debugf("%p VAR top %d -> FAILED\n", this, var);
-    rcheck(!vars[var].empty(),
-           strprintf("Unrecognized variabled %d", var));
+    rcheck_target(caller, !vars[var].empty(),
+                  strprintf("Unrecognized variabled %d", var));
     // debugf("%p VAR top %d -> %p\n", this, var, vars[var].top());
     return vars[var].top();
 }

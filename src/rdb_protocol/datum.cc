@@ -11,22 +11,28 @@
 
 namespace ql {
 
-datum_t::datum_t(type_t _type, bool _bool) : type(_type), r_bool(_bool) {
+datum_t::datum_t(type_t _type, bool _bool)
+    : type(_type), r_bool(_bool) {
     r_sanity_check(_type == R_BOOL);
 }
-datum_t::datum_t(double _num) : type(R_NUM), r_num(_num) {
+datum_t::datum_t(double _num)
+    : type(R_NUM), r_num(_num) {
     rcheck(std::isfinite(r_num), strprintf("Non-finite number: " DBLPRI, r_num));
 }
-datum_t::datum_t(int64_t _num) : type(R_NUM), r_num(_num) {
+datum_t::datum_t(int64_t _num)
+    : type(R_NUM), r_num(_num) {
     rcheck(std::isfinite(r_num), strprintf("Non-finite number: " DBLPRI, r_num));
 }
-datum_t::datum_t(const std::string &_str) : type(R_STR), r_str(_str) { }
-datum_t::datum_t(const char *cstr) : type(R_STR), r_str(cstr) { }
+datum_t::datum_t(const std::string &_str)
+    : type(R_STR), r_str(_str) { }
+datum_t::datum_t(const char *cstr)
+    : type(R_STR), r_str(cstr) { }
 datum_t::datum_t(const std::vector<const datum_t *> &_array)
     : type(R_ARRAY), r_array(_array) { }
 datum_t::datum_t(const std::map<const std::string, const datum_t *> &_object)
     : type(R_OBJECT), r_object(_object) { }
-datum_t::datum_t(datum_t::type_t _type) : type(_type) {
+datum_t::datum_t(datum_t::type_t _type)
+    : type(_type) {
     r_sanity_check(type == R_ARRAY || type == R_OBJECT || type == R_NULL);
 }
 
@@ -63,14 +69,16 @@ void datum_t::init_json(cJSON *json, env_t *env) {
         for (int i = 0; i < cJSON_GetArraySize(json); ++i) {
             cJSON *el = cJSON_GetArrayItem(json, i);
             bool b = add(el->string, env->add_ptr(new datum_t(el, env)));
-            rcheck(!b, strprintf("Duplicate key: %s", el->string));
+            r_sanity_check(!b);
         }
     } break;
     default: unreachable();
     }
 }
 
-datum_t::datum_t(cJSON *json, env_t *env) { init_json(json, env); }
+datum_t::datum_t(cJSON *json, env_t *env) {
+    init_json(json, env);
+}
 datum_t::datum_t(const boost::shared_ptr<scoped_cJSON_t> &json, env_t *env) {
     init_json(json->get(), env);
 }
@@ -230,14 +238,15 @@ boost::shared_ptr<scoped_cJSON_t> datum_t::as_json() const {
 }
 
 // TODO: make STR and OBJECT convertible to sequence?
-datum_stream_t *datum_t::as_datum_stream(env_t *env, backtrace_t::frame_t frame) const {
+datum_stream_t *datum_t::as_datum_stream(
+    env_t *env, const pb_rcheckable_t *bt_src) const {
     switch (get_type()) {
     case R_NULL: //fallthru
     case R_BOOL: //fallthru
     case R_NUM:  //fallthru
     case R_STR:  //fallthru
     case R_OBJECT: rfail("Cannot convert %s to sequence", datum_type_name(get_type()));
-    case R_ARRAY: return env->add_ptr(new array_datum_stream_t(env, this, frame));
+    case R_ARRAY: return env->add_ptr(new array_datum_stream_t(env, this, bt_src));
     default: unreachable();
     }
     unreachable();
@@ -277,7 +286,7 @@ const datum_t *datum_t::merge(env_t *env, const datum_t *rhs, merge_res_f f) con
     for (std::map<const std::string, const datum_t *>::const_iterator
              it = rhs_obj.begin(); it != rhs_obj.end(); ++it) {
         if (const datum_t *l = el(it->first, NOTHROW)) {
-            bool b = d->add(it->first, f(env, it->first, l, it->second), CLOBBER);
+            bool b = d->add(it->first, f(env, it->first, l, it->second, this), CLOBBER);
             r_sanity_check(b);
         } else {
             bool b = d->add(it->first, it->second);

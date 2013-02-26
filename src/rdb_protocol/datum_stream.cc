@@ -11,10 +11,10 @@ namespace ql {
 
 // DATUM_STREAM_T
 datum_stream_t *datum_stream_t::slice(size_t l, size_t r) {
-    return env->add_ptr(new slice_datum_stream_t(env, l, r, this, invalid_frame));
+    return env->add_ptr(new slice_datum_stream_t(env, l, r, this));
 }
 datum_stream_t *datum_stream_t::zip() {
-    return env->add_ptr(new zip_datum_stream_t(env, this, invalid_frame));
+    return env->add_ptr(new zip_datum_stream_t(env, this));
 }
 
 const datum_t *eager_datum_stream_t::count() {
@@ -29,10 +29,8 @@ const datum_t *eager_datum_stream_t::count() {
 
 const datum_t *eager_datum_stream_t::reduce(val_t *base_val, func_t *f) {
     const datum_t *base;
-    try {
-        base = base_val ? base_val->as_datum() : next();
-        rcheck(base, "Cannot reduce over an empty stream with no base.");
-    } CATCH_WITH_BT("base");
+    base = base_val ? base_val->as_datum() : next();
+    rcheck_target(base_val, base, "Cannot reduce over an empty stream with no base.");
 
     env_gc_checkpoint_t egct(env);
     while (const datum_t *rhs = next()){
@@ -63,13 +61,13 @@ const datum_t *eager_datum_stream_t::gmr(
 }
 
 datum_stream_t *eager_datum_stream_t::filter(func_t *f) {
-    return env->add_ptr(new filter_datum_stream_t(env, f, this, invalid_frame));
+    return env->add_ptr(new filter_datum_stream_t(env, f, this));
 }
 datum_stream_t *eager_datum_stream_t::map(func_t *f) {
-    return env->add_ptr(new map_datum_stream_t(env, f, this, invalid_frame));
+    return env->add_ptr(new map_datum_stream_t(env, f, this));
 }
 datum_stream_t *eager_datum_stream_t::concatmap(func_t *f) {
-    return env->add_ptr(new concatmap_datum_stream_t(env, f, this, invalid_frame));
+    return env->add_ptr(new concatmap_datum_stream_t(env, f, this));
 }
 
 const datum_t *eager_datum_stream_t::as_arr() {
@@ -81,16 +79,15 @@ const datum_t *eager_datum_stream_t::as_arr() {
 // LAZY_DATUM_STREAM_T
 lazy_datum_stream_t::lazy_datum_stream_t(
     env_t *env, bool use_outdated, namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
-    backtrace_t::frame_t frame)
-    : datum_stream_t(env, frame),
+    const pb_rcheckable_t *bt_src)
+    : datum_stream_t(env, bt_src),
       json_stream(new query_language::batched_rget_stream_t(
                       *ns_access, env->interruptor, key_range_t::universe(),
                       100, use_outdated))
 { }
 lazy_datum_stream_t::lazy_datum_stream_t(lazy_datum_stream_t *src)
-    : datum_stream_t(src->env, src->frame) {
+    : datum_stream_t(src->env, src) {
     *this = *src;
-    frame = backtrace_t::frame_t(-1);
 }
 
 // TODO: macroexpand before Sam sees this.
@@ -135,9 +132,7 @@ const datum_t *lazy_datum_stream_t::reduce(val_t *base_val, func_t *f) {
     run_terminal(reduce_wire_func_t(env, f));
     const datum_t *out;
     if (base_val) {
-        try {
-            out = base_val->as_datum();
-        } CATCH_WITH_BT("base");
+        out = base_val->as_datum();
     } else {
         rcheck(shard_data.size() > 0,
                "Cannot reduce over an empty stream with no base.");
@@ -185,8 +180,8 @@ const datum_t *lazy_datum_stream_t::next_impl() {
 
 // ARRAY_DATUM_STREAM_T
 array_datum_stream_t::array_datum_stream_t(env_t *env, const datum_t *_arr,
-                                           backtrace_t::frame_t frame)
-    : eager_datum_stream_t(env, frame), index(0), arr(_arr) { }
+                                           const pb_rcheckable_t *bt_src)
+    : eager_datum_stream_t(env, bt_src), index(0), arr(_arr) { }
 
 const datum_t *array_datum_stream_t::next_impl() {
     return arr->el(index++, NOTHROW);
@@ -227,9 +222,8 @@ const datum_t *filter_datum_stream_t::next_impl() {
 
 // SLICE_DATUM_STREAM_T
 slice_datum_stream_t::slice_datum_stream_t(
-    env_t *_env, size_t _l, size_t _r, datum_stream_t *_src,
-    backtrace_t::frame_t frame)
-    : eager_datum_stream_t(_env, frame), env(_env), ind(0), l(_l), r(_r), src(_src) { }
+    env_t *_env, size_t _l, size_t _r, datum_stream_t *_src)
+    : eager_datum_stream_t(_env, _src), env(_env), ind(0), l(_l), r(_r), src(_src) { }
 const datum_t *slice_datum_stream_t::next_impl() {
     if (l > r || ind > r) return 0;
     while (ind++ < l) {
@@ -240,9 +234,8 @@ const datum_t *slice_datum_stream_t::next_impl() {
 }
 
 // ZIP_DATUM_STREAM_T
-zip_datum_stream_t::zip_datum_stream_t(env_t *_env, datum_stream_t *_src,
-                                       backtrace_t::frame_t frame)
-    : eager_datum_stream_t(_env, frame), env(_env), src(_src) { }
+zip_datum_stream_t::zip_datum_stream_t(env_t *_env, datum_stream_t *_src)
+    : eager_datum_stream_t(_env, _src), env(_env), src(_src) { }
 const datum_t *zip_datum_stream_t::next_impl() {
     const datum_t *d = src->next();
     if (!d) return 0;
