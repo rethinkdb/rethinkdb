@@ -1,7 +1,8 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CONTAINERS_DEATH_RUNNER_HPP_
 #define CONTAINERS_DEATH_RUNNER_HPP_
 
+#include "errors.hpp"
 #include <boost/function.hpp>
 
 /* `death_runner_t` runs an arbitrary function in its destructor */

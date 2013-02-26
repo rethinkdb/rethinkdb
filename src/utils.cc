@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #define __STDC_LIMIT_MACROS
 #define __STDC_FORMAT_MACROS
 
@@ -22,6 +22,7 @@
 #include <valgrind/memcheck.h>
 #endif
 
+#include "errors.hpp"
 #include <boost/tokenizer.hpp>
 
 #include "arch/runtime/runtime.hpp"
