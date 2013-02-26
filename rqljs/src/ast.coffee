@@ -363,6 +363,14 @@ class RDBFunc
         formals = @args[0].eval(context)
         (arg_num) ->
             (actuals...) ->
+                expectedAirity = formals.asArray().length
+                foundAirity = actuals.length
+
+                if expectedAirity isnt foundAirity
+                    err = new RqlRuntimeError "Expected #{expectedAirity} argument(s) but found #{foundAirity}."
+                    err.backtrace.unshift arg_num
+                    throw err
+
                 binds = {}
                 for varId,i in formals.asArray()
                     binds[varId.asJSON()] = actuals[i]

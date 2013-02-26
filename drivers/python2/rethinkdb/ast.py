@@ -241,6 +241,8 @@ class RDBTopFun:
 
 class RDBMethod:
     def compose(self, args, optargs):
+        if isinstance(self.args[0], Datum):
+            args[0] = T('r.expr(', args[0], ')')
         return T(args[0], '.', self.st, '(', T(*args[1:], intsp=', '), ')')
 
 # This class handles the conversion of RQL terminal types in both directions
@@ -448,6 +450,12 @@ class FunCall(RDBAnyOp):
     tt = p.Term2.FUNCALL
 
     def compose(self, args, optargs):
+        if len(args) > 2:
+            return T('r.do(', T(*(args[1:]), intsp=', '), ', ', args[0], ')')
+
+        if isinstance(self.args[1], Datum):
+            args[1] = T('r.expr(', args[1], ')')
+
         return T(args[1], '.do(', args[0], ')')
 
 class Table(RDBSeqOp, RDBMethod):
