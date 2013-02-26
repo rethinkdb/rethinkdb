@@ -49,7 +49,7 @@ tests:
 
     # Replace selection of table
 
-    # Between is buggy on the CPP server right now and this doesn't work
+    # TODO: Between is buggy on the CPP server right now and this doesn't work
     #- py: "tbl.between(10, 20).replace(lambda row: {'a':row['id']})"
     #  js: "tbl.between(10, 20).replace(function(row) { return {'a':row('id')}; })"
     #  ot: ({'replaced':9, 'unchanged':1})
