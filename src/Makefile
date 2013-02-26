@@ -496,6 +496,9 @@ endif
 
 RT_CXXFLAGS?=
 
+# Makes compilation work at least with Boost 1.53.0 and OS X clang 4.0.
+RT_CXXFLAGS+="-DBOOST_NO_CXX11_RVALUE_REFERENCES"
+
 RT_CXXFLAGS+=-I$(SOURCE_DIR) -pthread
 RT_CXXFLAGS+="-DPRODUCT_NAME=\"$(PRODUCT_NAME)\""
 
