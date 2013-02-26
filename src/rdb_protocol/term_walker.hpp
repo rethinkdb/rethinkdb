@@ -33,7 +33,6 @@ public:
                    strprintf("Cannot nest writes or meta ops in stream operations"));
         val_pusher_t<bool> writes_legal_pusher(&writes_legal, writes_still_legal);
 
-        maybe_datum_recurse(t);
         term_recurse(t, &term_walker_t::walk);
     }
 
@@ -47,14 +46,6 @@ public:
         }
     }
 private:
-    void maybe_datum_recurse(Term2 *t) {
-        if (t->type() == Term2::DATUM) {
-            Datum *d = t->mutable_datum();
-            *d->MutableExtension(ql2::extension::datum_backtrace)
-                = t->GetExtension(ql2::extension::backtrace);
-        }
-    }
-
     void term_recurse(Term2 *t, void (term_walker_t::*callback)(Term2 *, Term2 *,
                                                                 backtrace_t::frame_t)) {
         for (int i = 0; i < t->args_size(); ++i) {

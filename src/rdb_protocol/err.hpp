@@ -30,8 +30,6 @@ public:
 };
 class pb_rcheckable_t : public rcheckable_t {
 public:
-    pb_rcheckable_t(const Datum *d)
-        : bt_src(&d->GetExtension(ql2::extension::datum_backtrace)) { }
     pb_rcheckable_t(const Term2 *t)
         : bt_src(&t->GetExtension(ql2::extension::backtrace)) { }
     pb_rcheckable_t(const pb_rcheckable_t *rct) : bt_src(rct->bt_src) { }
