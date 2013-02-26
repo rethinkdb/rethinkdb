@@ -793,117 +793,126 @@ MUST_USE bool parse_commands_deep(int argc, char *argv[], po::variables_map *vm,
 }
 
 int main_rethinkdb_create(int argc, char *argv[]) {
-    po::variables_map vm;
-    if (!parse_commands_deep(argc, argv, &vm, get_rethinkdb_create_options())) {
+    try {
+        po::variables_map vm;
+        if (!parse_commands_deep(argc, argv, &vm, get_rethinkdb_create_options())) {
+            return EXIT_FAILURE;
+        }
+
+        io_backend_t io_backend;
+        if (!pull_io_backend_option(vm, &io_backend)) {
+            fprintf(stderr, "ERROR: selected io-backend is invalid or unsupported.\n");
+            return EXIT_FAILURE;
+        }
+
+        const base_path_t base_path(vm["directory"].as<std::string>());
+        std::string logfilepath = get_logfilepath(base_path);
+
+        std::string machine_name_str = vm["machine-name"].as<std::string>();
+        name_string_t machine_name;
+        if (!machine_name.assign_value(machine_name_str)) {
+            fprintf(stderr, "ERROR: machine-name '%s' is invalid.  (%s)", machine_name_str.c_str(), name_string_t::valid_char_msg);
+            return EXIT_FAILURE;
+        }
+
+        const int num_workers = get_cpu_count();
+
+        // TODO: Why do we call check_existence when we just try calling mkdir anyway?  This is stupid.
+        if (check_existence(base_path)) {
+            fprintf(stderr, "The path '%s' already exists.  Delete it and try again.\n", base_path.path().c_str());
+            return EXIT_FAILURE;
+        }
+
+        const int res = mkdir(base_path.path().c_str(), 0755);
+        if (res != 0) {
+            fprintf(stderr, "Could not create directory: %s\n", errno_string(errno).c_str());
+            return EXIT_FAILURE;
+        }
+
+        recreate_temporary_directory(base_path);
+
+        install_fallback_log_writer(logfilepath);
+
+        bool result;
+        run_in_thread_pool(boost::bind(&run_rethinkdb_create, base_path, machine_name, io_backend, &result),
+                           num_workers);
+        return result ? EXIT_SUCCESS : EXIT_FAILURE;
+    } catch (const boost::program_options::error &ex) {
+        fprintf(stderr, "%s\n", ex.what());
+        return EXIT_FAILURE;
+    } catch (const std::exception& ex) {
+        fprintf(stderr, "%s\n", ex.what());
         return EXIT_FAILURE;
     }
-
-    io_backend_t io_backend;
-    if (!pull_io_backend_option(vm, &io_backend)) {
-        fprintf(stderr, "ERROR: selected io-backend is invalid or unsupported.\n");
-        return EXIT_FAILURE;
-    }
-
-    const base_path_t base_path(vm["directory"].as<std::string>());
-    std::string logfilepath = get_logfilepath(base_path);
-
-    std::string machine_name_str = vm["machine-name"].as<std::string>();
-    name_string_t machine_name;
-    if (!machine_name.assign_value(machine_name_str)) {
-        fprintf(stderr, "ERROR: machine-name '%s' is invalid.  (%s)", machine_name_str.c_str(), name_string_t::valid_char_msg);
-        return EXIT_FAILURE;
-    }
-
-    const int num_workers = get_cpu_count();
-
-    // TODO: Why do we call check_existence when we just try calling mkdir anyway?  This is stupid.
-    if (check_existence(base_path)) {
-        fprintf(stderr, "The path '%s' already exists.  Delete it and try again.\n", base_path.path().c_str());
-        return EXIT_FAILURE;
-    }
-
-    const int res = mkdir(base_path.path().c_str(), 0755);
-    if (res != 0) {
-        fprintf(stderr, "Could not create directory: %s\n", errno_string(errno).c_str());
-        return EXIT_FAILURE;
-    }
-
-    recreate_temporary_directory(base_path);
-
-    install_fallback_log_writer(logfilepath);
-
-    bool result;
-    run_in_thread_pool(boost::bind(&run_rethinkdb_create, base_path, machine_name, io_backend, &result),
-                       num_workers);
-
-    return result ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 int main_rethinkdb_serve(int argc, char *argv[]) {
-    po::variables_map vm;
-    if (!parse_commands_deep(argc, argv, &vm, get_rethinkdb_serve_options())) {
-        return EXIT_FAILURE;
-    }
-
-    const base_path_t base_path(vm["directory"].as<std::string>());
-    std::string logfilepath = get_logfilepath(base_path);
-
-    std::vector<host_and_port_t> joins;
-    if (vm.count("join") > 0) {
-        joins = vm["join"].as<std::vector<host_and_port_t> >();
-    }
-
-    service_address_ports_t address_ports;
     try {
-        address_ports = get_service_address_ports(vm);
-    } catch (const address_lookup_exc_t& ex) {
-        fprintf(stderr, "ERROR: %s\n", ex.what());
+        po::variables_map vm;
+        if (!parse_commands_deep(argc, argv, &vm, get_rethinkdb_serve_options())) {
+            return EXIT_FAILURE;
+        }
+
+        const base_path_t base_path(vm["directory"].as<std::string>());
+        std::string logfilepath = get_logfilepath(base_path);
+
+        std::vector<host_and_port_t> joins;
+        if (vm.count("join") > 0) {
+            joins = vm["join"].as<std::vector<host_and_port_t> >();
+        }
+
+        service_address_ports_t address_ports;
+            address_ports = get_service_address_ports(vm);
+
+        std::string web_path = get_web_path(vm, argv);
+
+        io_backend_t io_backend;
+        if (!pull_io_backend_option(vm, &io_backend)) {
+            fprintf(stderr, "ERROR: selected io-backend is invalid or unsupported.\n");
+            return EXIT_FAILURE;
+        }
+
+        extproc::spawner_t::info_t spawner_info;
+        extproc::spawner_t::create(&spawner_info);
+
+        const int num_workers = vm["cores"].as<int>();
+        if (num_workers <= 0 || num_workers > MAX_THREADS) {
+            fprintf(stderr, "ERROR: number specified for cores to utilize must be between 1 and %d\n", MAX_THREADS);
+            return EXIT_FAILURE;
+        }
+
+        if (write_pid_file(vm) != EXIT_SUCCESS) {
+            return EXIT_FAILURE;
+        }
+
+        if (!check_existence(base_path)) {
+            fprintf(stderr, "ERROR: The directory '%s' does not exist.  Run 'rethinkdb create -d \"%s\"' and try again.\n", base_path.path().c_str(), base_path.path().c_str());
+            return EXIT_FAILURE;
+        }
+
+        recreate_temporary_directory(base_path);
+
+        install_fallback_log_writer(logfilepath);
+
+        serve_info_t serve_info(&spawner_info, joins, address_ports, web_path,
+                                optional_variable_value<std::string>(vm["config-file"]));
+
+        bool result;
+        run_in_thread_pool(boost::bind(&run_rethinkdb_serve, base_path,
+                                       io_backend,
+                                       serve_info,
+                                       static_cast<machine_id_t*>(NULL),
+                                       static_cast<cluster_semilattice_metadata_t*>(NULL),
+                                       &result),
+                           num_workers);
+        return result ? EXIT_SUCCESS : EXIT_FAILURE;
+    } catch (const boost::program_options::error &ex) {
+        fprintf(stderr, "%s\n", ex.what());
+        return EXIT_FAILURE;
+    } catch (const std::exception& ex) {
+        fprintf(stderr, "%s\n", ex.what());
         return EXIT_FAILURE;
     }
-
-    std::string web_path = get_web_path(vm, argv);
-
-    io_backend_t io_backend;
-    if (!pull_io_backend_option(vm, &io_backend)) {
-        fprintf(stderr, "ERROR: selected io-backend is invalid or unsupported.\n");
-        return EXIT_FAILURE;
-    }
-
-    extproc::spawner_t::info_t spawner_info;
-    extproc::spawner_t::create(&spawner_info);
-
-    const int num_workers = vm["cores"].as<int>();
-    if (num_workers <= 0 || num_workers > MAX_THREADS) {
-        fprintf(stderr, "ERROR: number specified for cores to utilize must be between 1 and %d\n", MAX_THREADS);
-        return EXIT_FAILURE;
-    }
-
-    if (write_pid_file(vm) != EXIT_SUCCESS) {
-        return EXIT_FAILURE;
-    }
-
-    if (!check_existence(base_path)) {
-        fprintf(stderr, "ERROR: The directory '%s' does not exist.  Run 'rethinkdb create -d \"%s\"' and try again.\n", base_path.path().c_str(), base_path.path().c_str());
-        return EXIT_FAILURE;
-    }
-
-    recreate_temporary_directory(base_path);
-
-    install_fallback_log_writer(logfilepath);
-    
-    serve_info_t serve_info(&spawner_info, joins, address_ports, web_path,
-                            optional_variable_value<std::string>(vm["config-file"]));
-
-    bool result;
-    run_in_thread_pool(boost::bind(&run_rethinkdb_serve, base_path,
-                                   io_backend,
-                                   serve_info,
-                                   static_cast<machine_id_t*>(NULL),
-                                   static_cast<cluster_semilattice_metadata_t*>(NULL),
-                                   &result),
-                       num_workers);
-
-    return result ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 int main_rethinkdb_admin(int argc, char *argv[]) {
@@ -945,7 +954,7 @@ int main_rethinkdb_admin(int argc, char *argv[]) {
                            num_workers);
 
     } catch (const std::exception& ex) {
-        logERR("%s\n", ex.what());
+        fprintf(stderr, "%s\n", ex.what());
         result = false;
     }
 
@@ -953,49 +962,51 @@ int main_rethinkdb_admin(int argc, char *argv[]) {
 }
 
 int main_rethinkdb_proxy(int argc, char *argv[]) {
-    po::variables_map vm;
-    if (!parse_commands_deep(argc, argv, &vm, get_rethinkdb_proxy_options())) {
-        return EXIT_FAILURE;
-    }
-
-    if (!vm.count("join")) {
-        fprintf(stderr, "No --join option(s) given. A proxy needs to connect to something!\n"
-               "Run 'rethinkdb proxy help' for more information.\n");
-        return EXIT_FAILURE;
-     }
-
-    std::string logfilepath = vm["log-file"].as<std::string>();
-    install_fallback_log_writer(logfilepath);
-
-    std::vector<host_and_port_t> joins = vm["join"].as<std::vector<host_and_port_t> >();
-
-    service_address_ports_t address_ports;
     try {
+        po::variables_map vm;
+        if (!parse_commands_deep(argc, argv, &vm, get_rethinkdb_proxy_options())) {
+            return EXIT_FAILURE;
+        }
+
+        if (!vm.count("join")) {
+            fprintf(stderr, "No --join option(s) given. A proxy needs to connect to something!\n"
+                   "Run 'rethinkdb proxy help' for more information.\n");
+            return EXIT_FAILURE;
+         }
+
+        std::string logfilepath = vm["log-file"].as<std::string>();
+        install_fallback_log_writer(logfilepath);
+
+        std::vector<host_and_port_t> joins = vm["join"].as<std::vector<host_and_port_t> >();
+
+        service_address_ports_t address_ports;
         address_ports = get_service_address_ports(vm);
-    } catch (const address_lookup_exc_t& ex) {
-        fprintf(stderr, "ERROR: %s\n", ex.what());
+
+        std::string web_path = get_web_path(vm, argv);
+
+        extproc::spawner_t::info_t spawner_info;
+        extproc::spawner_t::create(&spawner_info);
+
+        const int num_workers = get_cpu_count();
+
+        if (write_pid_file(vm) != EXIT_SUCCESS) {
+            return EXIT_FAILURE;
+        }
+
+        serve_info_t serve_info(&spawner_info, joins, address_ports, web_path,
+                                optional_variable_value<std::string>(vm["config-file"]));
+
+        bool result;
+        run_in_thread_pool(boost::bind(&run_rethinkdb_proxy, serve_info, &result),
+                           num_workers);
+        return result ? EXIT_SUCCESS : EXIT_FAILURE;
+    } catch (const boost::program_options::error &ex) {
+        fprintf(stderr, "%s\n", ex.what());
+        return EXIT_FAILURE;
+    } catch (const std::exception& ex) {
+        fprintf(stderr, "%s\n", ex.what());
         return EXIT_FAILURE;
     }
-
-    std::string web_path = get_web_path(vm, argv);
-
-    extproc::spawner_t::info_t spawner_info;
-    extproc::spawner_t::create(&spawner_info);
-
-    const int num_workers = get_cpu_count();
-
-    if (write_pid_file(vm) != EXIT_SUCCESS) {
-        return EXIT_FAILURE;
-    }
-
-    serve_info_t serve_info(&spawner_info, joins, address_ports, web_path,
-                            optional_variable_value<std::string>(vm["config-file"]));
-
-    bool result;
-    run_in_thread_pool(boost::bind(&run_rethinkdb_proxy, serve_info, &result),
-                       num_workers);
-
-    return result ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 // TODO: Add split_db_table unit test.
@@ -1033,12 +1044,7 @@ int main_rethinkdb_import(int argc, char *argv[]) {
         joins = vm["join"].as<std::vector<host_and_port_t> >();
 
         std::set<ip_address_t> local_addresses;
-        try {
-            local_addresses = get_local_addresses(vm);
-        } catch (const address_lookup_exc_t& ex) {
-            fprintf(stderr, "ERROR: %s\n", ex.what());
-            return EXIT_FAILURE;
-        }
+        local_addresses = get_local_addresses(vm);
 
 #ifndef NDEBUG
         int client_port = vm["client-port"].as<int>();
@@ -1110,9 +1116,12 @@ int main_rethinkdb_import(int argc, char *argv[]) {
                            num_workers);
 
         return result ? EXIT_SUCCESS : EXIT_FAILURE;
+    } catch (const boost::program_options::error &ex) {
+        fprintf(stderr, "%s\n", ex.what());
+        return EXIT_FAILURE;
     } catch (const std::exception& ex) {
         // TODO: Sigh.
-        logERR("%s\n", ex.what());
+        fprintf(stderr, "%s\n", ex.what());
         return EXIT_FAILURE;
     }
 }
@@ -1140,12 +1149,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         }
 
         service_address_ports_t address_ports;
-        try {
-            address_ports = get_service_address_ports(vm);
-        } catch (const address_lookup_exc_t& ex) {
-            fprintf(stderr, "ERROR: %s\n", ex.what());
-            return EXIT_FAILURE;
-        }
+        address_ports = get_service_address_ports(vm);
 
         std::string web_path = get_web_path(vm, argv);
 
@@ -1198,8 +1202,11 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
                            num_workers);
 
         return result ? EXIT_SUCCESS : EXIT_FAILURE;
-    } catch (const boost::program_options::error &e) {
-        fprintf(stderr, "%s\n", e.what());
+    } catch (const boost::program_options::error &ex) {
+        fprintf(stderr, "%s\n", ex.what());
+        return EXIT_FAILURE;
+    } catch (const std::exception& ex) {
+        fprintf(stderr, "%s\n", ex.what());
         return EXIT_FAILURE;
     }
 }
