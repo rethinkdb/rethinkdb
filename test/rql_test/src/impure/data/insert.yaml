@@ -41,3 +41,9 @@ tests:
       ot: "({'dropped':1})"
     - cd: r.db('test').table_drop('test2')
       ot: "({'dropped':1})"
+
+    # TODO: test upsert option
+    # TODO: test auto pkey generation
+    # TODO: test auto pkey generation when pkey other than id is passed to table_create
+    # TODO: test pkey clash error case 
+    
