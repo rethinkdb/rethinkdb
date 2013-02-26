@@ -34,9 +34,9 @@ multi_throttling_client_t<request_type, inner_client_business_card_type>::ticket
 template <class request_type, class inner_client_business_card_type>
 multi_throttling_client_t<request_type, inner_client_business_card_type>::multi_throttling_client_t(
         mailbox_manager_t *mm,
-        UNUSED const clone_ptr_t<watchable_t<boost::optional<boost::optional<mt_business_card_t> > > > &server,
-        UNUSED const inner_client_business_card_type &inner_client_business_card,
-        UNUSED signal_t *interruptor) :
+        const clone_ptr_t<watchable_t<boost::optional<boost::optional<mt_business_card_t> > > > &server,
+        const inner_client_business_card_type &inner_client_business_card,
+        signal_t *interruptor) :
     mailbox_manager(mm),
     free_tickets(0),
     give_tickets_mailbox(mailbox_manager,
