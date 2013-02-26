@@ -253,17 +253,6 @@ void btree_store_t<protocol_t>::acquire_sindex_block_for_write(
         write_token_pair_t *token_pair,
         transaction_t *txn,
         scoped_ptr_t<buf_lock_t> *sindex_block_out,
-        const superblock_t *super_block,
-        signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t) {
-    acquire_sindex_block_for_write(token_pair, txn, sindex_block_out, super_block->get_sindex_block_id(), interruptor);
-}
-
-template <class protocol_t>
-void btree_store_t<protocol_t>::acquire_sindex_block_for_write(
-        write_token_pair_t *token_pair,
-        transaction_t *txn,
-        scoped_ptr_t<buf_lock_t> *sindex_block_out,
         block_id_t sindex_block_id,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t) {
@@ -322,7 +311,7 @@ void btree_store_t<protocol_t>::add_sindex(
     THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
 
-    acquire_sindex_block_for_write(token_pair, txn, sindex_block_out, super_block, interruptor);
+    acquire_sindex_block_for_write(token_pair, txn, sindex_block_out, super_block->get_sindex_block_id(), interruptor);
 
     secondary_index_t sindex;
     if (::get_secondary_index(txn, sindex_block_out->get(), id, &sindex)) {
@@ -364,7 +353,7 @@ void btree_store_t<protocol_t>::set_sindexes(
     assert_thread();
 
     /* Get the sindex block which we will need to modify. */
-    acquire_sindex_block_for_write(token_pair, txn, sindex_block_out, superblock, interruptor);
+    acquire_sindex_block_for_write(token_pair, txn, sindex_block_out, superblock->get_sindex_block_id(), interruptor);
 
     std::map<uuid_u, secondary_index_t> existing_sindexes;
     ::get_secondary_indexes(txn, sindex_block_out->get(), &existing_sindexes);
@@ -428,7 +417,7 @@ void btree_store_t<protocol_t>::mark_index_up_to_date(
 THROWS_ONLY(interrupted_exc_t) {
     /* Get the sindex block which we will need to modify. */
     scoped_ptr_t<buf_lock_t> sindex_block;
-    acquire_sindex_block_for_write(token_pair, txn, &sindex_block, super_block, interruptor);
+    acquire_sindex_block_for_write(token_pair, txn, &sindex_block, super_block->get_sindex_block_id(), interruptor);
 
     secondary_index_t sindex;
     bool found = ::get_secondary_index(txn, sindex_block.get(), id, &sindex);
@@ -453,7 +442,7 @@ void btree_store_t<protocol_t>::drop_sindex(
 
     /* First get the sindex block. */
     scoped_ptr_t<buf_lock_t> sindex_block;
-    acquire_sindex_block_for_write(token_pair, txn, &sindex_block, super_block, interruptor);
+    acquire_sindex_block_for_write(token_pair, txn, &sindex_block, super_block->get_sindex_block_id(), interruptor);
 
     /* Remove reference in the super block */
     secondary_index_t sindex;
@@ -497,7 +486,7 @@ void btree_store_t<protocol_t>::drop_all_sindexes(
 
     /* First get the sindex block. */
     scoped_ptr_t<buf_lock_t> sindex_block;
-    acquire_sindex_block_for_write(token_pair, txn, &sindex_block, super_block, interruptor);
+    acquire_sindex_block_for_write(token_pair, txn, &sindex_block, super_block->get_sindex_block_id(), interruptor);
 
     /* Remove reference in the super block */
     std::map<uuid_u, secondary_index_t> sindexes;

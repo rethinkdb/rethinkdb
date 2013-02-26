@@ -133,25 +133,6 @@ void acquire_sindex_block_for_read(
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
 
-/* Why are there two versions of acquire_superblock_for_write? The prior first
- * is to be used if you want to make a change to the sindexes right after
- * acquiring the superblock. This happens if you're creating a new sindex for
- * example. That later is for when you want to make a change having already
- * descended the tree. They are only superficial different mostly for
- * convenience. If you were to extract the sindex_block_id from the
- * superblock_t in the first method and pass it to the second you would get the
- * same results, there mostly for convenience. The same thing doesn't exist for
- * acquire_sindex_block_for_read because I can't actually think of a case where
- * people should be travering the primary B-Tree and then traversing the
- * secondaries so I can't think of a use case for it. */
-void acquire_sindex_block_for_write(
-        write_token_pair_t *token_pair,
-        transaction_t *txn,
-        scoped_ptr_t<buf_lock_t> *sindex_block_out,
-        const superblock_t *super_block,
-        signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t);
-
 void acquire_sindex_block_for_write(
         write_token_pair_t *token_pair,
         transaction_t *txn,
