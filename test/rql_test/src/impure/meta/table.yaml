@@ -43,5 +43,5 @@ tests:
       ot: ({'dropped':1})
       
     - cd: db.table_drop('foo')
-      ot: err('RqlRuntimeError', 'Database foo does not exist', [0])
+      ot: err('RqlRuntimeError', 'Table foo does not exist', [0])
       
