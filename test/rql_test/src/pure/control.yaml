@@ -8,9 +8,16 @@ tests:
       rb: r.expr(1).do{|v| v * 2 }
       ot: 2
 
+    - py: "r.do(1, 2, lambda x, y: x + y)"
+      js: r.do(1, 2, function(x, y) { return x.add(y); })
+      rb: r.do(1, 2) {|x, y| x + y}
+      ot: 3
+
     ## Branch
 
     - cd: r.branch(True, 1, 2)
       ot: 1
     - cd: r.branch(False, 1, 2)
       ot: 2
+    - cd: r.branch('foo', 1, 2)
+      ot: err("RqlRuntimeError", "Expected type BOOL but found STRING.", [1])
