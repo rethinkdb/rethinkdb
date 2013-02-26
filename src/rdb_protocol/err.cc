@@ -2,8 +2,9 @@
 #include "rdb_protocol/term_walker.hpp"
 
 namespace ql {
-void runtime_check(const char *test, const char *file, int line,
-                   bool pred, std::string msg, const Backtrace *bt_src) {
+void runtime_check(DEBUG_VAR const char *test, DEBUG_VAR const char *file,
+                   DEBUG_VAR int line, bool pred,
+                   std::string msg, const Backtrace *bt_src) {
     if (pred) return;
 #ifndef NDEBUG
     msg = strprintf("%s\nFailed assertion: %s\nAt: %s:%d",
@@ -11,14 +12,20 @@ void runtime_check(const char *test, const char *file, int line,
 #endif
     throw exc_t(msg, bt_src);
 }
-void runtime_check(const char *test, const char *file, int line,
-                   bool pred, std::string msg) {
+void runtime_check(DEBUG_VAR const char *test, DEBUG_VAR const char *file,
+                   DEBUG_VAR int line, bool pred, std::string msg) {
     if (pred) return;
 #ifndef NDEBUG
     msg = strprintf("%s\nFailed assertion: %s\nAt: %s:%d",
                     msg.c_str(), test, file, line);
 #endif
     throw datum_exc_t(msg);
+}
+
+void runtime_sanity_check(bool test) {
+    if (!test) {
+        throw exc_t("SANITY CHECK FAILED (server is buggy)", 0);
+    }
 }
 
 void backtrace_t::fill_bt(Backtrace *bt) const {
@@ -75,12 +82,12 @@ backtrace_t::frame_t::frame_t(const Frame &f) {
         type = OPT;
         opt = f.opt();
     } break;
+    default: unreachable();
     }
 }
 
 void pb_rcheckable_t::propagate(Term2 *t) const {
     term_walker_t(t, bt_src);
 }
-
 
 } // namespace ql

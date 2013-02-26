@@ -85,7 +85,7 @@ lazy_datum_stream_t::lazy_datum_stream_t(
                       *ns_access, env->interruptor, key_range_t::universe(),
                       100, use_outdated))
 { }
-lazy_datum_stream_t::lazy_datum_stream_t(lazy_datum_stream_t *src)
+lazy_datum_stream_t::lazy_datum_stream_t(const lazy_datum_stream_t *src)
     : datum_stream_t(src->env, src) {
     *this = *src;
 }

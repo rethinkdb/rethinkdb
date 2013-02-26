@@ -677,6 +677,6 @@ int get_num_db_threads() {
 // (the correct case is something like RETHINKDB_VERSION="1.2")
 UNUSED static const char _assert_RETHINKDB_VERSION_nonempty = 1/(!!strlen(RETHINKDB_VERSION));
 
-void pb_print(Term2 *t) {
+void pb_print(DEBUG_VAR Term2 *t) {
     debugf("%s\n", t->DebugString().c_str());
 }

@@ -123,7 +123,7 @@ public:
     virtual const datum_t *next_impl();
     virtual const datum_t *as_arr() { return 0; } // cannot be converted implicitly
 private:
-    const lazy_datum_stream_t(lazy_datum_stream_t *src);
+    lazy_datum_stream_t(const lazy_datum_stream_t *src);
     // To make the 1.4 release, this class was basically made into a shim
     // between the datum logic and the original json streams.
     boost::shared_ptr<query_language::json_stream_t> json_stream;

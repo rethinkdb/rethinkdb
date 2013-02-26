@@ -19,6 +19,7 @@ void runtime_check(const char *test, const char *file, int line,
                    bool pred, std::string msg, const Backtrace *bt_src);
 void runtime_check(const char *test, const char *file, int line,
                    bool pred, std::string msg);
+void runtime_sanity_check(bool test);
 
 // Inherit from this in classes that wish to use `rcheck`
 class rcheckable_t {
@@ -87,7 +88,7 @@ private:
 #ifndef NDEBUG
 #define r_sanity_check(test) guarantee(test)
 #else
-#define r_sanity_check(test) rcheck(test, "SANITY CHECK FAILED (server is buggy)")
+#define r_sanity_check(test) runtime_sanity_check(test)
 #endif // NDEBUG
 
 // A backtrace we return to the user.  Pretty self-explanatory.
