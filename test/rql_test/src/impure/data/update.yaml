@@ -65,3 +65,9 @@ tests:
       ot: "({'dropped':1})"
     - cd: r.db('test').table_drop('test2')
       ot: "({'dropped':1})"
+      
+    # TODO: test static value syntax
+    # TODO: test what happens if one tries to update a non-updatable object
+    # TODO: test atomicity constraints
+    # TODO: test seq.filter(...).filter(...).update
+    # TODO: test trying to change pkey of a document
