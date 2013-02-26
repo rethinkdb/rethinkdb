@@ -65,8 +65,8 @@ func_t::func_t(env_t *env, const Term2 *_source)
 val_t *func_t::call(const std::vector<const datum_t *> &args) {
     try {
         rcheck(args.size() == argptrs.size() || argptrs.size() == 0,
-               strprintf("Passed %zu arguments to function of arity %zu.",
-                         args.size(), argptrs.size()));
+               strprintf("Expected %zu argument(s) but found %zu.",
+                         argptrs.size(), args.size()));
         for (size_t i = 0; i < argptrs.size(); ++i) {
             r_sanity_check(args[i]);
             //debugf("Setting %p to %p\n", &argptrs[i], args[i]);

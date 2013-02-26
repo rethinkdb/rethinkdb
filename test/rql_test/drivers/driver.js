@@ -102,10 +102,10 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
                         if (cpp_res instanceof Object && cpp_res.toArray) {
                             cpp_res.toArray(afterArray);
                         } else {
-                            afterArray(cpp_err, cpp_res);
+                            afterArray(null, cpp_res);
                         }
                         
-                        function afterArray(cpp_err, cpp_res) {
+                        function afterArray(arr_err, cpp_res) {
 
                             // Now run test on js server
                             test.run(js_conn, function(js_err, js_res) {
@@ -113,22 +113,26 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
                                 if (js_res instanceof Object && js_res.toArray) {
                                     js_res.toArray(afterArray2);
                                 } else {
-                                    afterArray2(js_err, js_res);
+                                    afterArray2(null, js_res);
                                 }
 
                                 // Again, convert to array
-                                function afterArray2(js_err, js_res) {
+                                function afterArray2(arr_err, js_res) {
 
-                                    if (cpp_err && !exp_fun(cpp_err)) {
-                                        console.log("Error when evaluating on CPP server:");
-                                        console.log(" "+cpp_err.name+": "+cpp_err.message);
+                                    if (cpp_err) {
+                                        if (!exp_fun(cpp_err)) {
+                                            console.log("Error when evaluating on CPP server:");
+                                            console.log(" "+cpp_err.name+": "+cpp_err.message);
+                                        }
                                     } else if (!exp_fun(cpp_res)) {
                                         console.log(" in CPP version of: "+src)
                                     }
 
-                                    if (js_err && !exp_fun(js_err)) {
-                                        console.log("Error when evaluating on JS server:");
-                                        console.log(" "+js_err.name+": "+js_err.message);
+                                    if (js_err) {
+                                        if (!exp_fun(js_err)) {
+                                            console.log("Error when evaluating on JS server:");
+                                            console.log(" "+js_err.name+": "+js_err.message);
+                                        }
                                     } else if (js_res && !exp_fun(js_res)) {
                                         console.log(" in JS version of: "+src)
                                     }
@@ -184,6 +188,7 @@ function bag(list) {
 
 // Invoked by generated code to demonstrate expected error output
 function err(err_name, err_msg, err_frames) {
+    err_frames = null; // Don't test frames for now, at least not until the C++ is done with them
     return function(other) {
         if (!(function() {
             if (!(other instanceof Error)) return false;

@@ -29,6 +29,6 @@ class RDBDatabase
         if @tables[name]?
             return @tables[name]
         else
-            throw new RuntimeError "Error during operation `EVAL_TABLE #{name}`: No entry with that name."
+            throw new RqlRuntimeError "Error during operation `EVAL_TABLE #{name}`: No entry with that name."
 
     listTables: -> new RDBArray ((new RDBPrimitive tblN) for own tblN of @tables)

@@ -50,20 +50,31 @@ tests:
     # 'and' and 'or' take an arbitrary number of arguments though this functionality
     # can only be accessed in JS at the moment
     - js: r(true).and(true, true, true, true)
-      cd: []
       ot: true
     - js: r(true).and(true, true, false, true)
-      cd: []
       ot: false
     - js: r(true).and(false, true, false, true)
-      cd: []
       ot: false
     - js: r(false).or(false, false, false, false)
-      cd: []
       ot: false
     - js: r(false).or(false, false, true, false)
-      cd: []
       ot: true
     - js: r(false).or(true, false, true, false)
-      cd: []
       ot: true
+
+    # Type errors
+    - py: r.expr(1) & True
+      js: r(1).and(true)
+      ot: err('RqlRuntimeError', 'Expected type BOOL but found NUMBER.', [0])
+
+    - py: r.expr(False) | 'str'
+      js: r(false).or('str')
+      ot: err('RqlRuntimeError', 'Expected type BOOL but found STRING.', [1])
+
+    - py: ~r.expr(1)
+      js: r(1).not()
+      ot: err('RqlRuntimeError', 'Expected type BOOL but found NUMBER.', [0])
+
+    - py: ~r.expr('abc')
+      js: r('abc').not()
+      ot: err('RqlRuntimeError', 'Expected type BOOL but found STRING.', [0])

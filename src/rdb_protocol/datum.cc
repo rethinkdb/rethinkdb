@@ -88,8 +88,8 @@ const char *datum_type_name(datum_t::type_t type) {
     switch (type) {
     case datum_t::R_NULL:   return "NULL";
     case datum_t::R_BOOL:   return "BOOL";
-    case datum_t::R_NUM:    return "NUM";
-    case datum_t::R_STR:    return "STR";
+    case datum_t::R_NUM:    return "NUMBER";
+    case datum_t::R_STR:    return "STRING";
     case datum_t::R_ARRAY:  return "ARRAY";
     case datum_t::R_OBJECT: return "OBJECT";
     default: unreachable();
@@ -147,11 +147,8 @@ std::string datum_t::print_primary() const {
 }
 
 void datum_t::check_type(type_t desired) const {
-    if (get_type() != desired) {
-        // debugf("%s != %s\n", datum_type_name(get_type()), datum_type_name(desired));
-    }
     rcheck(get_type() == desired,
-           strprintf("Wrong type: expected %s but got %s.",
+           strprintf("Expected type %s but found %s.",
                      datum_type_name(desired), datum_type_name(get_type())));
 }
 

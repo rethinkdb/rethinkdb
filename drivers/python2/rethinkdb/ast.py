@@ -14,7 +14,7 @@ class RDBBase():
     def __repr__(self):
         return "<RDBBase instance: %s >" % str(self)
 
-class RDBValue(RDBBase):
+class RDBComparable:
     def __eq__(self, other):
         return Eq(self, other)
 
@@ -33,6 +33,7 @@ class RDBValue(RDBBase):
     def __ge__(self, other):
         return Ge(self, other)
 
+class RDBValue(RDBBase, RDBComparable):
     def __invert__(self):
         return Not(self)
 
@@ -128,7 +129,7 @@ class RDBOp(RDBBase):
             pair.key = k
             self.optargs[k].build(pair.val)
 
-class RDBSequence(RDBBase):
+class RDBSequence(RDBBase, RDBComparable):
     def append(self, val):
         return Append(self, val)
 
@@ -201,8 +202,8 @@ class RDBSequence(RDBBase):
     def grouped_map_reduce(self, grouping, mapping, data_collector):
         return GroupedMapReduce(self, grouping, mapping, data_collector)
 
-    def group_by(self, attrs, reduction):
-        return GroupBy(self, attrs, reduction)
+    def group_by(self, *attrs_reduction):
+        return GroupBy(self, list(attrs_reduction[:-1]), attrs_reduction[-1])
 
     def update(self, mapping):
         return Update(self, mapping)
@@ -229,6 +230,8 @@ class RDBAnyOp(RDBValue, RDBSequence, RDBOp):
 
 class RDBBiOper:
     def compose(self, args, optargs):
+        if isinstance(self.args[0], Datum):
+            args[0] = T('r.expr(', args[0], ')')
         return T('(', args[0], ' ', self.st, ' ', args[1], ')')
 
 class RDBTopFun:
@@ -238,6 +241,8 @@ class RDBTopFun:
 
 class RDBMethod:
     def compose(self, args, optargs):
+        if isinstance(self.args[0], Datum):
+            args[0] = T('r.expr(', args[0], ')')
         return T(args[0], '.', self.st, '(', T(*args[1:], intsp=', '), ')')
 
 # This class handles the conversion of RQL terminal types in both directions
@@ -269,7 +274,7 @@ class Datum(RDBValue):
             term.datum.type = p.Datum.R_STR
             term.datum.r_str = self.data
         else:
-            raise RuntimeError("type not handled")
+            raise RuntimeError("Cannot build a query from a %s" % type(term).__name__, term)
 
     def compose(self, args, optargs):
         return repr(self.data)
@@ -339,7 +344,7 @@ class Ne(RDBValOp, RDBBiOper):
 
 class Lt(RDBValOp, RDBBiOper):
     tt = p.Term2.LT
-    st = "<="
+    st = "<"
 
 class Le(RDBValOp, RDBBiOper):
     tt = p.Term2.LE
@@ -353,9 +358,13 @@ class Ge(RDBValOp, RDBBiOper):
     tt = p.Term2.GE
     st = ">="
 
-class Not(RDBValOp, RDBMethod):
+class Not(RDBValOp):
     tt = p.Term2.NOT
-    st = "not"
+
+    def compose(self, args, optargs):
+        if isinstance(self.args[0], Datum):
+            args[0] = T('r.expr(', args[0], ')')
+        return T('(~', args[0], ')')
 
 class Add(RDBValOp, RDBBiOper):
     tt = p.Term2.ADD
@@ -441,6 +450,12 @@ class FunCall(RDBAnyOp):
     tt = p.Term2.FUNCALL
 
     def compose(self, args, optargs):
+        if len(args) > 2:
+            return T('r.do(', T(*(args[1:]), intsp=', '), ', ', args[0], ')')
+
+        if isinstance(self.args[1], Datum):
+            args[1] = T('r.expr(', args[1], ')')
+
         return T(args[1], '.do(', args[0], ')')
 
 class Table(RDBSeqOp, RDBMethod):
@@ -502,7 +517,7 @@ class GroupedMapReduce(RDBValOp, RDBMethod):
     tt = p.Term2.GROUPED_MAP_REDUCE
     st = 'grouped_map_reduce'
 
-class GroupBy(RDBValOp, RDBMethod):
+class GroupBy(RDBSeqOp, RDBMethod):
     tt = p.Term2.GROUPBY
     st = 'group_by'
 

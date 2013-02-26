@@ -2,7 +2,6 @@
 #include "rdb_protocol/term_walker.hpp"
 
 namespace ql {
-
 void runtime_check(const char *test, const char *file, int line,
                    bool pred, std::string msg, const Backtrace *bt_src) {
     if (pred) return;

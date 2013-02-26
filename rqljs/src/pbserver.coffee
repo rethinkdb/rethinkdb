@@ -25,7 +25,7 @@ class RDBPbServer
         if pb.length is expectedLength
             return pb
         else
-            throw new RuntimeError "protocol buffer not of the correct length"
+            throw new RqlRuntimeError "protocol buffer not of the correct length"
 
     deserializePB: (pbArray) ->
         @serializer.deserialize Query2.getDescriptor(), pbArray
@@ -95,9 +95,9 @@ class RDBPbServer
             when Query2.QueryType.START
                 @buildTerm query.getQuery()
             when Query2.QueryType.CONTINUE
-                throw new RuntimeError "Not implemented"
+                throw new RqlRuntimeError "Not implemented"
             when Query2.QueryType.STOP
-                throw new RuntimeError "Not implemented"
+                throw new RqlRuntimeError "Not implemented"
 
     buildTerm: (term) ->
         if term.getType() is Term2.TermType.DATUM
@@ -169,7 +169,7 @@ class RDBPbServer
             when Term2.TermType.ALL          then RDBAll
             when Term2.TermType.FOREACH      then RDBForEach
             when Term2.TermType.FUNC         then RDBFunc
-            else throw new RuntimeError "Unknown Term Type"
+            else throw new RqlRuntimeError "Unknown Term Type"
 
         args = (@buildTerm arg for arg in term.argsArray())
 
@@ -196,7 +196,7 @@ class RDBPbServer
                 for pair in datum.rObjectArray()
                     obj[pair.getKey()] = @buildDatum pair.getVal()
                 new RDBDatum obj
-            else throw new RuntimeError "Unknown Datum Type"
+            else throw new RqlRuntimeError "Unknown Datum Type"
     
     deconstructDatum: (datum) ->
         res = new Datum

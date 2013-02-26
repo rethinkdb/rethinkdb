@@ -3,6 +3,7 @@ import sys
 import types
 import pdb
 import collections
+import types
 path.append("../../drivers/python2")
 
 from os import environ
@@ -18,6 +19,9 @@ class Lst:
         self.lst = lst
 
     def __eq__(self, other):
+        if not hasattr(other, '__iter__'):
+            return False
+
         if len(self.lst) != len(other):
             return False
         
@@ -35,6 +39,9 @@ class Bag(Lst):
         self.lst = sorted(lst)
 
     def __eq__(self, other):
+        if not hasattr(other, '__iter__'):
+            return False
+
         other = sorted(other)
 
         if len(self.lst) != len(other):
@@ -51,6 +58,9 @@ class Dct:
         self.dct = dct
     
     def __eq__(self, other): 
+        if not isinstance(other, types.DictType):
+            return False
+
         for key in self.dct.keys():
             if not key in other.keys():
                 return False
@@ -65,7 +75,7 @@ class Err:
     def __init__(self, err_type=None, err_msg=None, err_frames=None):
         self.etyp = err_type
         self.emsg = err_msg
-        self.frames = err_frames
+        self.frames = None #err_frames # Do not test frames for now, not until they're ready for prime time on the C++ server
 
     def __eq__(self, other):
         if not isinstance(other, Exception):

@@ -12,8 +12,8 @@ class RDBSequence extends RDBType
 
     nth: (index) ->
         i = index.asJSON()
-        if i < 0 then throw new RuntimeError "Nth doesn't support negative indicies"
-        if i >= @asArray().length then throw new RuntimeError "Index too large"
+        if i < 0 then throw new RqlRuntimeError "Nth doesn't support negative indicies"
+        if i >= @asArray().length then throw new RqlRuntimeError "Index too large"
         @asArray()[index.asJSON()]
 
     append: (val) -> new RDBArray @asArray().concat [val]
@@ -54,16 +54,17 @@ class RDBSequence extends RDBType
                 neu.push v
         new RDBArray neu
 
-    map: (mapping) -> new RDBArray @asArray().map mapping
+    map: (mapping) -> new RDBArray @asArray().map (v) -> mapping(v)
+
     reduce: (reduction, base) ->
         # This is necessary because of the strange behavior of builtin reduce. It seems to
         # distinguish between the no second argument case and the `undefined` passed as the
         # second argument case, passing undefined to the first call to the reduction function
         # in the latter case. In a user land reduce implementation that would not be possible.
         if base is undefined
-            @asArray().reduce reduction
+            @asArray().reduce (acc,v) -> reduction(acc,v)
         else
-            @asArray().reduce reduction, base
+            @asArray().reduce ((acc,v) -> reduction(acc,v)), base
 
     groupedMapReduce: (groupMapping, valueMapping, reduction) ->
         groups = {}
@@ -100,7 +101,7 @@ class RDBSequence extends RDBType
         for own col,arg of aggregator
             collector = dataCollectors[col]
             unless collector?
-                throw new RuntimeError "No such aggregator as #{col}"
+                throw new RqlRuntimeError "No such aggregator as #{col}"
             collector = collector(arg)
             break
 
@@ -116,6 +117,9 @@ class RDBSequence extends RDBType
     filter: (predicate) -> new RDBArray @asArray().filter (v) -> predicate(v).asJSON()
 
     between: (lowerBound, upperBound) ->
+        if @asArray().length == 0
+            # Return immediately because getPK does not work on empty arrays
+            return new RDBArray []
         attr = @getPK()
         result = []
         for v,i in @orderBy(new RDBArray [@getPK()]).asArray()
@@ -146,6 +150,9 @@ class RDBSequence extends RDBType
 
     # We're just going to implement this on top of inner join
     eqJoin: (left_attr, right) ->
+        if right.asArray().length == 0
+            # Return immediately because getPK does not work on empty arrays
+            return new RDBArray []
         right_attr = right.getPK()
         @innerJoin right, (lRow, rRow) ->
             lRow[left_attr.asJSON()].eq(rRow[right_attr.asJSON()])
@@ -187,6 +194,27 @@ class RDBArray extends RDBSequence
         (return new RDBPrimitive false for v,i in @asArray() when v isnt other.asArray()[i])
 
     lt: (other) ->
-        for v,i in @asArray()
-            if v.lt(other.asArray()[i]).asJSON() then return new RDBPrimitive false
-        return other.count().ge(@count)
+        if @typeOf() is other.typeOf()
+
+            one = @asArray()
+            two = other.asArray()
+
+            i = 0
+            while true
+                e1 = one[i]
+                e2 = two[i]
+
+                # shorter array behaves as if padded by a special symbol that is always less than any other
+                if e1 is undefined and e2 isnt undefined
+                    return new RDBPrimitive true
+
+                # Will always terminate the loop
+                if e1 is undefined or e2 is undefined
+                    return new RDBPrimitive false
+
+                unless e1.eq(e2).asJSON()
+                    return e1.lt(e2)
+
+                i++
+        else
+            return new RDBPrimitive (@typeOf() < other.typeOf())

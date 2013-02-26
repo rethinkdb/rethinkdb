@@ -30,6 +30,7 @@ class RDBOp extends RDBNode
                 v = n.eval(context)
                 args.push v
             catch err
+                unless err instanceof RqlError then throw err
                 err.backtrace.unshift i
                 throw err
 
@@ -39,6 +40,7 @@ class RDBOp extends RDBNode
                 v = n.eval(context)
                 optargs[k] = v
             catch err
+                unless err instanceof RqlError then throw err
                 err.backtrace.unshift k
                 throw err
 
@@ -319,8 +321,13 @@ class RDBAny
     type: tp "BOOL... -> BOOL"
 
     eval: (context) ->
-        for arg in @args
-            if arg.eval(context).asJSON()
+        for arg,i in @args
+            argRes = arg.eval(context)
+            unless TypeName::typeOf(argRes) instanceof BoolType
+                err = new RqlRuntimeError "Expected type BOOL but found #{TypeName::typeOf(argRes)}."
+                err.backtrace.unshift(i)
+                throw err
+            if argRes.asJSON()
                 return new RDBPrimitive true
         return new RDBPrimitive false
 
@@ -331,8 +338,13 @@ class RDBAll
     type: tp "BOOL... -> BOOL"
 
     eval: (context) ->
-        for arg in @args
-            if not arg.eval(context).asJSON()
+        for arg,i in @args
+            argRes = arg.eval(context)
+            unless TypeName::typeOf(argRes) instanceof BoolType
+                err = new RqlRuntimeError "Expected type BOOL but found #{TypeName::typeOf(argRes)}."
+                err.backtrace.unshift(i)
+                throw err
+            if not argRes.asJSON()
                 return new RDBPrimitive false
         return new RDBPrimitive true
 
@@ -351,6 +363,14 @@ class RDBFunc
         formals = @args[0].eval(context)
         (arg_num) ->
             (actuals...) ->
+                expectedAirity = formals.asArray().length
+                foundAirity = actuals.length
+
+                if expectedAirity isnt foundAirity
+                    err = new RqlRuntimeError "Expected #{expectedAirity} argument(s) but found #{foundAirity}."
+                    err.backtrace.unshift arg_num
+                    throw err
+
                 binds = {}
                 for varId,i in formals.asArray()
                     binds[varId.asJSON()] = actuals[i]

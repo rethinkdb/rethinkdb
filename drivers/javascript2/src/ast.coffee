@@ -52,7 +52,7 @@ class RDBVal extends TermBase
     union: (others...) -> new Union {}, @, others...
     nth: (index) -> new Nth {}, @, index
     groupedMapReduce: (group, map, reduce) -> new GroupedMapReduce {}, @, group, map, reduce
-    groupBy: (attrs, collector) -> new GroupBy {}, @, attrs, collector
+    groupBy: (attrs..., collector) -> new GroupBy {}, @, attrs, collector
     innerJoin: (other, predicate) -> new InnerJoin {}, @, other, predicate
     outerJoin: (other, predicate) -> new OuterJoin {}, @, other, predicate
     eqJoin: (left_attr, right) -> new EqJoin {}, @, left_attr, right
@@ -151,6 +151,9 @@ class RDBOp extends RDBVal
         if @st
             ['r.', @st, '(', intsp(args), ')']
         else
+            if @args[0] instanceof DatumTerm
+                args[0] = ['r(', args[0], ')']
+
             [args[0], '.', @mt, '(', intsp(args[1..]), ')']
 
 intsp = (seq) ->
@@ -412,10 +415,12 @@ class TableList extends RDBOp
 class FunCall extends RDBOp
     tt: Term2.TermType.FUNCALL
     compose: (args) ->
-        if args.length == 2
-            [args[1], '.do(', args[0], ')']
+        if args.length > 2
+            ['r.do(', intsp(args[1..]), ', ', args[0], ')']
         else
-            ['r.do(', instsp(args[1..]), ', ', args[0], ')']
+            if @args[1] instanceof DatumTerm
+                args[1] = ['r(', args[1], ')']
+            [args[1], '.do(', args[0], ')']
 
 class Branch extends RDBOp
     tt: Term2.TermType.BRANCH

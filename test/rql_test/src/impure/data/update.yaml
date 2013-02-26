@@ -44,7 +44,7 @@ tests:
 
     # Update selection of table
 
-    # Between is buggy on the CPP server right now and this doesn't work
+    # TODO: Between is buggy on the CPP server right now and this doesn't work
     #- py: "tbl.between(10, 19).update(lambda row: {'a':row['id']})"
     #  js: "tbl.between(10, 19).update(function(row) { return {'a':row('id')}; })"
     #  ot: ({'replaced':9, 'unchanged':1})
@@ -65,3 +65,9 @@ tests:
       ot: "({'dropped':1})"
     - cd: r.db('test').table_drop('test2')
       ot: "({'dropped':1})"
+      
+    # TODO: test static value syntax
+    # TODO: test what happens if one tries to update a non-updatable object
+    # TODO: test atomicity constraints (positive and negative test)
+    # TODO: test seq.filter(...).filter(...).update
+    # TODO: test trying to change pkey of a document

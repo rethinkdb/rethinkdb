@@ -31,3 +31,19 @@ tests:
 
     - cd: db.table_list()
       ot: []
+
+    # Table errors
+    - cd: db.table_create('foo')
+      ot: ({'created':1})
+
+    - cd: db.table_create('foo')
+      ot: err('RqlRuntimeError', 'Table foo already exists', [0])
+
+    - cd: db.table_drop('foo')
+      ot: ({'dropped':1})
+      
+    - cd: db.table_drop('foo')
+      ot: err('RqlRuntimeError', 'Table foo does not exist', [0])
+      
+    # TODO: test options to table_create (e.g. primary_key,
+    # primary_datacenter, cache_size)

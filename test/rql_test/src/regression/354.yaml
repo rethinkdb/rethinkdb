@@ -8,14 +8,15 @@ tests:
       ot: [3,4,5]
 
     - cd: arr.skip('a')
-      ot: err("RqlCompileError", "Expected argument type NUMBER but found STRING", [1])
+      ot: err("RqlRuntimeError", "Expected type NUMBER but found STRING.", [1])
 
     - cd: arr.skip([1,2,3])
-      ot: err("RqlCompileError", "Expected argument type NUMBER but found ARRAY", [1])
+      ot: err("RqlRuntimeError", "Expected type NUMBER but found ARRAY.", [1])
 
     - cd: arr.skip({}).count()
-      ot: err("RqlCompileError", "Expected argument type NUMBER but found OBJECT", [0, 1])
+      ot: err("RqlRuntimeError", "Expected type NUMBER but found OBJECT.", [0, 1])
 
     - py: arr.skip(None)
       js: arr.skip(null)
-      ot: err("RqlCompileError", "Expected argument type NUMBER but found NULL", [1])
+      rb: arr.skip nil
+      ot: err("RqlRuntimeError", "Expected type NUMBER but found NULL.", [1])

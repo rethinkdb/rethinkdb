@@ -28,6 +28,9 @@ def js(js_str):
 def error(msg):
     return UserError(msg)
 
+def do(*args):
+    return FunCall(Func(args[-1]), *args[:-1])
+    
 row = ImplicitVar()
 
 def db(db_name):
@@ -44,3 +47,11 @@ def db_list():
 
 def branch(predicate, true_branch, false_branch):
     return Branch(predicate, true_branch, false_branch)
+
+count = {'COUNT': True}
+
+def sum(attr):
+    return {'SUM': attr}
+
+def avg(attr):
+    return {'AVG': attr}

@@ -36,40 +36,44 @@ class TypeChecker
             }
 
     checkType: (op, args, optargs, context) ->
-        firstError = null
-        for sig in @typesigs
 
-            # Check args
-            argError = null
-            for arg,i in args
+        # Check argument types from the first argument onwards
+        lastError = null
+        eligibleSigs = @typesigs[0..]
+        for arg,i in args
+            for sig,j in eligibleSigs
+                unless sig? then continue
+
                 type = sig.args[i]
                 unless type?
                     last = sig.args[-1..-1][0]
                     if last? and last.repeated
                         type = last
-                    else
-                        argError = new RqlCompileError "Too many arguments provided. Expected #{sig.args.length}."
-                        argError.backtrace.unshift i
-                        break
-                unless type.check(arg)
-                    argError = new RqlCompileError "Expected argument type #{type} but found #{TypeName::typeOf(arg)}"
-                    argError.backtrace.unshift i
-                    break
+                unless type and type.check(arg)
+                    lastError = new RqlRuntimeError "Expected type #{type} but found #{TypeName::typeOf(arg)}."
+                    lastError.backtrace.unshift i
+                    eligibleSigs.splice(j, 1)
 
-            unless argError?
+        # If we're left with no sigs that match throw the first type error we found
+        if eligibleSigs.length == 0
+            throw lastError
 
-                # Eval
-                ret = op(args, optargs, context)
+        # Eval
+        ret = op(args, optargs, context)
 
-                # Check return val
-                unless sig.result.check(ret)
-                    throw new RqlCompileError "Expected return type #{sig.result} buf found #{TypeName::typeOf(ret)}"
-
-                return ret
+        # Check return val
+        firstError = null
+        passed = false
+        for sig in eligibleSigs
+            unless sig.result.check(ret)
+                firstError = new RqlRuntimeError "Expected type #{sig.result} but found #{TypeName::typeOf(ret)}."
             else
-                unless firstError? then firstError = argError
+                passed = true
 
-        throw firstError
+        unless passed
+            throw firstError
+
+        return ret
 
 class TypeName
     parse: (typestr) ->
@@ -120,15 +124,17 @@ class TypeName
                 when RDBType.NUMBER then NumberType
                 when RDBType.STRING then StringType
                 else
-                    Object
+                    UnknownType
         else
-            Object
+            UnknownType
         )
 
-    check: (val) ->
-        TypeName::typeOf(val) instanceof @constructor
+    check: (val) -> TypeName::typeOf(val) instanceof @constructor
 
     toString: -> @st
+
+class UnknownType extends TypeName
+    st: "Unknown"
 
 class TopType extends TypeName
     st: "Top"

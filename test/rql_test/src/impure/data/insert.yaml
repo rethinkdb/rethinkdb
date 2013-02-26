@@ -41,3 +41,16 @@ tests:
       ot: "({'dropped':1})"
     - cd: r.db('test').table_drop('test2')
       ot: "({'dropped':1})"
+
+    # TODO: test upsert option
+    # TODO: test auto pkey generation
+    # TODO: test auto pkey generation when pkey other than id is passed to table_create
+    # TODO: test pkey clash error case
+    # TODO: test what happens if one tries to insert into a non-insertable object
+    
+    # TODO: in all data modification operations (insert, update,
+    # replace, and delete) we should return a json document with all
+    # possible fields, (e.g. "{ inserted: 0, deleted: 1 }"), even the
+    # ones that are zeros, otherwise things can get really confusing
+    # for the user.
+    

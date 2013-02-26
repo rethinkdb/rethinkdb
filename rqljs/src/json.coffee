@@ -38,14 +38,14 @@ class RDBType
 
     isNull: -> (@ instanceof RDBPrimitive and @asJSON() is null)
 
-    pick:   (attr) -> throw new RuntimeError "Type Error"
-    unpick: (attr) -> throw new RuntimeError "Type Error"
-    merge:  (attr) -> throw new RuntimeError "Type Error"
-    append: (attr) -> throw new RuntimeError "Type Error"
+    pick:   (attr) -> throw new RqlRuntimeError "Type Error"
+    unpick: (attr) -> throw new RqlRuntimeError "Type Error"
+    merge:  (attr) -> throw new RqlRuntimeError "Type Error"
+    append: (attr) -> throw new RqlRuntimeError "Type Error"
 
-    union: (other) -> throw new RuntimeError "Type Error"
-    count:         -> throw new RuntimeError "Type Error"
-    distinct:      -> throw new RuntimeError "Type Error"
+    union: (other) -> throw new RqlRuntimeError "Type Error"
+    count:         -> throw new RqlRuntimeError "Type Error"
+    distinct:      -> throw new RqlRuntimeError "Type Error"
     
     not: -> new ServerError "Abstract method"
 
@@ -72,7 +72,7 @@ class RDBSelection
                 updated = mapping @
                 neu = @.merge updated
                 unless neu[table.primaryKey].eq(@[table.primaryKey]).asJSON()
-                    throw new RuntimeError ""
+                    throw new RqlRuntimeError ""
 
                 if @eq(neu).asJSON()
                     return new RDBObject {'unchanged': 1}
@@ -97,7 +97,7 @@ class RDBSelection
                     table.insert new RDBArray [replacement], true
                     return new RDBObject {'replaced': 1}
                     
-                throw new RuntimeError ""
+                throw new RqlRuntimeError ""
 
             del: ->
                 table.deleteKey @[table.primaryKey].asJSON()
@@ -161,16 +161,36 @@ class RDBObject extends RDBType
 
     lt: (other) ->
         if @typeOf() is other.typeOf()
-            otherKeys = other.keys()
-            for k,i in @keys()
-                if k is otherKeys[i]
-                    if not @[k].eq(other[k]).asJSON()
-                        return @[k].lt(other[k])
-                else
-                    return new RDBPrimitive k < otherKeys[i]
-            return new RDBPrimitive false
+
+            one = @keys().sort()
+            two = other.keys().sort()
+
+            i = 0
+            while true
+
+                k1 = one[i]
+                k2 = two[i]
+
+                if k1 is undefined and k2 isnt undefined
+                    return new RDBPrimitive true
+
+                if k1 is undefined or k2 is undefined
+                    return new RDBPrimitive false
+
+                # Compare keys lexographically
+                unless k1 == k2
+                    return new RDBPrimitive (k1 < k2)
+
+                # They are the same, compare the values
+                v1 = @[k1]
+                v2 = other[k2]
+                unless v1.eq(v2).asJSON()
+                    return v1.lt(v2)
+
+                i++
+            
         else
-            return new RDBPrimitive @typeOf() < other.typeOf()
+            return new RDBPrimitive (@typeOf() < other.typeOf())
 
     merge: (others...) ->
         self = @copy()
