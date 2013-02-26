@@ -12,7 +12,7 @@ tests:
       js: r([0, 1, 2]).do(function(v) { return v.append(3); })
       ot: [0, 1, 2, 3]
 
-    # Type erros
+    # FunCall errors
 
     - py: "r.expr('abc').do(lambda v: v.append(3))"
       js: r('abc').do(function(v) { return v.append(3); })
@@ -22,6 +22,18 @@ tests:
       js: r('abc').do(function(v) { return v.add(3); })
       ot: err("RqlRuntimeError", "Expected type STRING but found NUMBER.", [1, 1])
 
+    - py: "r.expr('abc').do(lambda v: v + 'def') + 3"
+      js: r('abc').do(function(v) { return v.add('def'); }).add(3)
+      ot: err("RqlRuntimeError", "Expected type STRING but found NUMBER.", [1])
+
+    - py: "r.expr(0).do(lambda a,b: a + b)"
+      js: r(0).do(function(a,b) { return a.add(b); })
+      ot: err("RqlRuntimeError", 'Expected 2 argument(s) but found 1.', [1])
+
+    - py: "r.do(1, 2, lambda a: a)"
+      js: r.do(1,2, function(a) { return a; })
+      ot: err("RqlRuntimeError", 'Expected 1 argument(s) but found 2.', [1])
+
     ## Branch
 
     - cd: r.branch(True, 1, 2)
@@ -29,7 +41,7 @@ tests:
     - cd: r.branch(False, 1, 2)
       ot: 2
 
-    # Type Error
+    # Branch errors
 
     - cd: r.branch(1, 'c', False)
       ot: err("RqlRuntimeError", "Expected type BOOL but found NUMBER.", [0])

@@ -54,16 +54,17 @@ class RDBSequence extends RDBType
                 neu.push v
         new RDBArray neu
 
-    map: (mapping) -> new RDBArray @asArray().map mapping
+    map: (mapping) -> new RDBArray @asArray().map (v) -> mapping(v)
+
     reduce: (reduction, base) ->
         # This is necessary because of the strange behavior of builtin reduce. It seems to
         # distinguish between the no second argument case and the `undefined` passed as the
         # second argument case, passing undefined to the first call to the reduction function
         # in the latter case. In a user land reduce implementation that would not be possible.
         if base is undefined
-            @asArray().reduce reduction
+            @asArray().reduce (acc,v) -> reduction(acc,v)
         else
-            @asArray().reduce reduction, base
+            @asArray().reduce ((acc,v) -> reduction(acc,v)), base
 
     groupedMapReduce: (groupMapping, valueMapping, reduction) ->
         groups = {}

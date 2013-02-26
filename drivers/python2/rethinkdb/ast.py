@@ -451,7 +451,7 @@ class FunCall(RDBAnyOp):
 
     def compose(self, args, optargs):
         if len(args) > 2:
-            return T('r.do(', T(*(args[1:]), intsp=', '), args[0])
+            return T('r.do(', T(*(args[1:]), intsp=', '), ', ', args[0], ')')
 
         if isinstance(self.args[1], Datum):
             args[1] = T('r.expr(', args[1], ')')
