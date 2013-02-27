@@ -16,11 +16,13 @@ class RDBDatabase
 
     createTable: (name) ->
         name = name.asJSON()
+        if @tables[name]? then throw new RqlRuntimeError "Table \"#{name}\" already exists."
         @tables[name] = new RDBTable 'id'
         new RDBObject {'created': 1}
 
     dropTable: (name) ->
         name = name.asJSON()
+        unless @tables[name]? then throw new RqlRuntimeError "Table \"#{name}\" does not exist."
         delete @tables[name]
         new RDBObject {'dropped': 1}
 
@@ -29,6 +31,6 @@ class RDBDatabase
         if @tables[name]?
             return @tables[name]
         else
-            throw new RqlRuntimeError "Error during operation `EVAL_TABLE #{name}`: No entry with that name."
+            throw new RqlRuntimeError "Table \"#{name}\" does not exist."
 
     listTables: -> new RDBArray ((new RDBPrimitive tblN) for own tblN of @tables)

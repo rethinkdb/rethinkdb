@@ -58,8 +58,8 @@ class Connection
 
     mkErr = (ErrClass, response, root) ->
         msg = mkAtom response
-        bt = for frame in response.backtraceArray()
-                if frame.getType() is Response2.Frame.FrameType.POS
+        bt = for frame in response.getBacktrace().framesArray()
+                if frame.getType() is Frame.FrameType.POS
                     parseInt frame.getPos()
                 else
                     frame.getOpt()

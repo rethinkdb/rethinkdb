@@ -33,17 +33,18 @@ public:
     virtual const char *name() const { return namestr; }
 private:
     datum_t add(const datum_t &lhs, const datum_t &rhs) {
-        rcheck(lhs.get_type() == rhs.get_type(),
-               strprintf("Cannot add %s to %s (types differ).",
-                         lhs.print().c_str(), rhs.print().c_str()));
         if (lhs.get_type() == datum_t::R_NUM) {
+            rhs.check_type(datum_t::R_NUM);
             return datum_t(lhs.as_num() + rhs.as_num());
         } else if (lhs.get_type() == datum_t::R_STR) {
+            rhs.check_type(datum_t::R_STR);
             return datum_t(lhs.as_str() + rhs.as_str());
         }
 
-        rfail("Cannot add objects of type %s (e.g. %s).",
-              lhs.get_type_name(), lhs.print().c_str());
+        // If we get here lhs is neither number nor string
+        // so we'll just error saying we expect a number
+        lhs.check_type(datum_t::R_NUM);
+
         unreachable();
     }
 
@@ -60,6 +61,7 @@ private:
     datum_t div(const datum_t &lhs, const datum_t &rhs) {
         lhs.check_type(datum_t::R_NUM);
         rhs.check_type(datum_t::R_NUM);
+        rcheck(rhs.as_num() != 0, "Cannot divide by zero.");
         return datum_t(lhs.as_num() / rhs.as_num()); // throws on non-finite values
     }
 

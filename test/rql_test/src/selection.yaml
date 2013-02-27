@@ -1,0 +1,73 @@
+desc: Tests that manipulation data in tables
+tests:
+
+    # Set up some data
+    - cd: r.db('test').table_create('test')
+      ot: ({'created':1})
+      def: tbl = r.db('test').table('test')
+
+    - cd: r.db('test').table_create('test2')
+      ot: ({'created':1})
+      def: tbl2 = r.db('test').table('test2')
+
+    - py: tbl.insert([{'id':i, 'a':i%4} for i in xrange(100)])
+      js: |
+        tbl.insert(function(){
+            var res = []
+            for (var i = 0; i < 100; i++) {
+                res.push({id:i, 'a':i%4});
+            }
+            return res;
+        }())
+      rb: tbl.insert((0..99).map{ |i| { :id => i, :a => i % 4 } })
+      ot: ({'inserted':100})
+
+    - py: tbl2.insert([{'id':i, 'b':i%4} for i in xrange(100)])
+      js: |
+        tbl2.insert(function(){
+            var res = []
+            for (var i = 0; i < 100; i++) {
+                res.push({id:i, 'b':i%4});
+            }
+            return res;
+        }())
+      rb: tbl2.insert((0..99).map{ |i| { :id => i, :b => i % 4 } })
+      ot: ({'inserted':100})
+
+    # TODO: test missing db 
+    # TODO: test missing table
+    # TODO: test accessing a table from default db
+
+    # TODO: GET a document that exists
+    # TODO: GET a document that doesn't exist
+    # TODO: does GET still support an attribute specification?
+
+    # Between
+    - cd: tbl.between(20,29).count()
+      ot: 10
+    - cd: tbl.between(-10,9).count() 
+      ot: 10
+    - cd: tbl.between(80,2000).count()
+      ot: 20
+    - cd: tbl.between(-2000, 2000).count()
+      ot: 100
+    # TODO: test between without the first argument
+    # TODO: test between without the second argument
+    # TODO: test between that has a wider range than the one in the db
+    # TODO: does between still support attribute specification?
+
+    # Filter
+    # TODO: test static value syntax for filter
+    # TODO: test seq.filter.filter
+    # TODO: test not returning a boolean
+    - py: tbl.filter(lambda row:row['a'] > 2).count()
+      js: tbl.filter(function(row) { return row('a').gt(2); }).count()
+      rb: tbl.filter{ |row| row[:a] > 2 }.count
+      ot: 25
+
+
+    # Clean up
+    - cd: r.db('test').table_drop('test')
+      ot: ({'dropped':1})
+    - cd: r.db('test').table_drop('test2')
+      ot: ({'dropped':1})

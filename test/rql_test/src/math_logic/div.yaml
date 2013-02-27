@@ -23,8 +23,21 @@ tests:
       ot: 1/120
 
     # Divide by zero test
-    - cd: [r.expr(1).div(0), r.expr(2.0).div(0), r.expr(3).div(0.0), r.expr(4.0).div(0.0), r.expr(0).div(0), r.expr(0.0).div(0.0)]
-      ot: err('RqlRuntimeError', 'Cannot divide by zero', [1])
+    - js:
+        - r(1).div(0)
+        - r(2.0).div(0)
+        - r(3).div(0.0)
+        - r(4.0).div(0.0)
+        - r(0).div(0)
+        - r(0.0).div(0.0)
+      py:
+        - r.expr(1) / 0
+        - r.expr(2.0) / 0
+        - r.expr(3) / 0.0
+        - r.expr(4.0) / 0.0
+        - r.expr(0) / 0
+        - r.expr(0.0) / 0.0
+      ot: err('RqlRuntimeError', 'Cannot divide by zero.', [1])
 
     # Type errors
     - py: r.expr('a') / 0.8

@@ -1,0 +1,89 @@
+desc: Tests that manipulation data in tables
+tests:
+
+    # Set up some data
+    - cd: r.db('test').table_create('test')
+      ot: ({'created':1})
+      def: tbl = r.db('test').table('test')
+
+    - cd: r.db('test').table_create('test2')
+      ot: ({'created':1})
+      def: tbl2 = r.db('test').table('test2')
+
+    - py: tbl.insert([{'id':i, 'a':i%4} for i in xrange(100)])
+      js: |
+        tbl.insert(function(){
+            var res = []
+            for (var i = 0; i < 100; i++) {
+                res.push({id:i, 'a':i%4});
+            }
+            return res;
+        }())
+      rb: tbl.insert((0..99).map{ |i| { :id => i, :a => i % 4 } })
+      ot: ({'inserted':100})
+
+    - py: tbl2.insert([{'id':i, 'b':i%4} for i in xrange(100)])
+      js: |
+        tbl2.insert(function(){
+            var res = []
+            for (var i = 0; i < 100; i++) {
+                res.push({id:i, 'b':i%4});
+            }
+            return res;
+        }())
+      rb: tbl2.insert((0..99).map{ |i| { :id => i, :b => i % 4 } })
+      ot: ({'inserted':100})
+
+    # Map-Reduce
+    - py:
+        - tbl.map(lambda row:row['id']).reduce(lambda a,b:a+b)
+        # TODO: Implicit var support buggy on CPP server
+        #- tbl.map(r.row['id']).reduce(lambda a,b:a+b)
+      js:
+        - tbl.map(function(row) { return row('id'); }).reduce(function(a,b) { return a.add(b); })
+        # TODO: Implicit var support buggy on CPP server
+        #- tbl.map(r.row('id')).reduce(function(a,b) { return a.add(b); })
+      rb: tbl.map{ |row| row[:id] }.reduce{ |a, b| a + b }
+      ot: 4950
+
+    # Concat-map
+    - py: tbl.concat_map(lambda row:[])
+      js: tbl.concatMap(function(row) { return []; })
+      rb: tbl.concat_map{ |row| [] }
+      ot: ([])
+    - def:
+        py: ccm = tbl.concat_map(lambda row:[row['a'], (row['a'] + 1) % 4])
+        js: ccm = tbl.concatMap(function(row) { return [row('a'), row('a').add(1).mod(4)]; })
+        rb: ccm = tbl.concat_map{ |row| [row[:a], (row[:a] + 1) % 4] }
+    - cd: ccm.count()
+      ot: 200
+    - py: ccm.reduce(lambda a,b:(a+b) % 4)
+      js: ccm.reduce(function(a,b) { return a.add(b).mod(4); })
+      rb: ccm.reduce{ |a, b| (a + b) % 4 }
+      ot: 0
+
+    # Order by
+    - py: tbl.order_by('id')[0]
+      js: tbl.orderBy('id').nth(0)
+      rb: tbl.order_by(:id)[0]
+      ot: ({'id':0, 'a':0})
+
+    # Distinct
+    - py: tbl.map(lambda row:row['a']).distinct().count()
+      js: tbl.map(function(row) { return row('a'); }).distinct().count()
+      rb: tbl.map{ |row| row[:a] }.distinct.count
+      ot: 4
+
+    # Union
+    - cd: tbl.union(tbl2).count()
+      ot: 200
+    - cd: tbl.union([1,2,3]).count()
+      ot: 103
+    - cd: r.expr([1,2,3]).union(tbl2).count()
+      ot: 103
+
+    # Clean up
+    - cd: r.db('test').table_drop('test')
+      ot: ({'dropped':1})
+    - cd: r.db('test').table_drop('test2')
+      ot: ({'dropped':1})

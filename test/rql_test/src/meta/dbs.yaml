@@ -36,11 +36,11 @@ tests:
       ot: ({'created':1})
 
     - cd: r.db_create('bar')
-      ot: err('RqlRuntimeError', 'Database bar already exists', [0])
+      ot: err('RqlRuntimeError', 'Database "bar" already exists.', [0])
 
     - cd: r.db_drop('bar')
       ot: ({'dropped':1})
 
     - cd: r.db_drop('bar')
-      ot: err('RqlRuntimeError', 'Database bar does not exist', [0])
+      ot: err('RqlRuntimeError', 'Database "bar" does not exist.', [0])
 
