@@ -56,5 +56,7 @@ tests:
 
     # TODO: add r.js() tests
     # TODO: add r.error() tests
-    # TODO: add positive and negative forEach tests
+    # TODO: add positive and negative forEach tests (including
+    # returning read queries from a forEach, and calling forEach in
+    # random places)
 
