@@ -296,8 +296,13 @@ bool socket_stream_t::check_can_write(signal_t *interruptor) {
     return true;
 }
 
-void socket_stream_t::on_event(UNUSED int events) {
+void socket_stream_t::do_on_event(int /*events*/) {
+    // The default behavior is to do nothing.
+}
+
+void socket_stream_t::on_event(int events) {
     assert_thread();
+    do_on_event(events);
 
     /* This is called by linux_event_watcher_t when error events occur. Ordinary
     poll_event_in/poll_event_out events are not sent through this function. */
