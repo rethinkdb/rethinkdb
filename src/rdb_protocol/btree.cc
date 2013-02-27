@@ -462,7 +462,6 @@ void rdb_distribution_get(btree_slice_t *slice, int max_depth, const store_key_t
 typedef btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindex_access_vector_t;
 
 void rdb_update_sindexes(const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
-        const store_key_t &primary_key,
         rdb_modification_report_t *modification,
         transaction_t *txn) {
 
@@ -491,7 +490,7 @@ void rdb_update_sindexes(const btree_store_t<rdb_protocol_t>::sindex_access_vect
                 boost::shared_ptr<scoped_cJSON_t> index = eval_mapping(mapping,
                         local_env, scopes, backtrace, modification->deleted);
 
-                store_key_t sindex_key(cJSON_print_secondary(index->get(), primary_key, backtrace));
+                store_key_t sindex_key(cJSON_print_secondary(index->get(), modification->primary_key, backtrace));
 
                 keyvalue_location_t<rdb_value_t> kv_location;
 
@@ -511,13 +510,15 @@ void rdb_update_sindexes(const btree_store_t<rdb_protocol_t>::sindex_access_vect
             boost::shared_ptr<scoped_cJSON_t> index = eval_mapping(mapping,
                     local_env, scopes, backtrace, modification->added);
 
-            store_key_t sindex_key(cJSON_print_secondary(index->get(), primary_key, backtrace));
+            store_key_t sindex_key(cJSON_print_secondary(index->get(), modification->primary_key, backtrace));
 
             keyvalue_location_t<rdb_value_t> kv_location;
 
+            promise_t<superblock_t *> dummy;
             find_keyvalue_location_for_write(txn, super_block,
                     sindex_key.btree_key(), &kv_location,
-                    &it->btree->root_eviction_priority, &it->btree->stats);
+                    &it->btree->root_eviction_priority, &it->btree->stats,
+                    &dummy);
 
             kv_location_set(&kv_location, sindex_key,
                      modification->added, it->btree, repli_timestamp_t::distant_past, txn);
@@ -546,11 +547,12 @@ public:
             guarantee(key);
             node_iter.step(leaf_node);
 
-            rdb_modification_report_t mod_report;
+            store_key_t pk(key);
+            rdb_modification_report_t mod_report(pk);
             const rdb_value_t *rdb_value = reinterpret_cast<const rdb_value_t *>(value);
             mod_report.added = get_data(rdb_value, txn);
 
-            rdb_update_sindexes(sindexes_, store_key_t(key), &mod_report, txn);
+            rdb_update_sindexes(sindexes_, &mod_report, txn);
         }
     }
 
@@ -570,10 +572,20 @@ public:
 };
 
 void post_construct_secondary_indexes(btree_slice_t *slice, transaction_t *txn, superblock_t *superblock,
-                                      const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
+                                      btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
                                       signal_t *interruptor)
                                       THROWS_ONLY(interrupted_exc_t) {
     post_construct_traversal_helper_t helper(sindexes);
 
+    for (btree_store_t<rdb_protocol_t>::sindex_access_vector_t::iterator it = sindexes.begin();
+            it != sindexes.end(); ++it) {
+        it->super_block->no_releasing = true;
+    }
+
     btree_parallel_traversal(txn, superblock, slice, &helper, interruptor);
+
+    for (btree_store_t<rdb_protocol_t>::sindex_access_vector_t::iterator it = sindexes.begin();
+            it != sindexes.end(); ++it) {
+        it->super_block->no_releasing = false;
+    }
 }

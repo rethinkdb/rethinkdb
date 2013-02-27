@@ -8,7 +8,7 @@
 #include "arch/runtime/thread_pool.hpp"
 #include "do_on_thread.hpp"
 
-inline int get_thread_id() {
+int get_thread_id() {
     return linux_thread_pool_t::thread_id;
 }
 

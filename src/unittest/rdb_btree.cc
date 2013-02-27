@@ -1,4 +1,9 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
+
+#include "errors.hpp"
+
+#include <boost/bind.hpp>
+
 #include "unittest/gtest.hpp"
 
 #include "arch/io/disk.hpp"
@@ -11,6 +16,42 @@
 #include "serializer/log/log_serializer.hpp"
 
 namespace unittest {
+
+void insert_rows(int start, int finish, btree_store_t<rdb_protocol_t> *store) {
+    guarantee(start <= finish);
+    for (int i = start; i < finish; ++i) {
+        cond_t dummy_interuptor;
+        scoped_ptr_t<transaction_t> txn;
+        scoped_ptr_t<real_superblock_t> superblock;
+        write_token_pair_t token_pair;
+        store->new_write_token_pair(&token_pair);
+        store->acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid,
+                                           1, &token_pair.main_write_token, &txn, &superblock, &dummy_interuptor);
+
+        std::string data = strprintf("{\"id\" : %d, \"sid\" : %d}", i, i * i);
+        point_write_response_t response;
+
+        store_key_t pk(cJSON_print_primary(scoped_cJSON_t(cJSON_CreateNumber(i)).get(), backtrace_t()));
+        rdb_modification_report_t mod_report(pk);
+        rdb_set(pk, boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_Parse(data.c_str()))),
+                false, store->btree.get(), repli_timestamp_t::invalid, txn.get(),
+                superblock.get(), &response, &mod_report);
+        {
+            mutex_t::acq_t acq;
+            store->lock_sindex_queue(&acq);
+        }
+
+        sindex_access_vector_t sindexes;
+        store->acquire_all_sindex_superblocks_for_write(sindex_block_id, token_pair, txn, &sindexes, &interruptor);
+        rdb_update_sindexes(sindexes, &mod_report, txn);
+    }
+}
+
+void insert_rows_and_pulse_when_done(int start, int finish, 
+        btree_store_t<rdb_protocol_t> *store, cond_t *pulse_when_done) {
+    insert_rows(start, finish, store);
+    pulse_when_done->pulse();
+}
 
 void run_sindex_post_construction() {
     mock::temp_file_t temp_file("/tmp/rdb_unittest.XXXXXX");
@@ -38,22 +79,7 @@ void run_sindex_post_construction() {
 
     cond_t dummy_interuptor;
 
-    for (int i = 0; i < 1000; ++i) {
-        scoped_ptr_t<transaction_t> txn;
-        scoped_ptr_t<real_superblock_t> superblock;
-        write_token_pair_t token_pair;
-        store.new_write_token_pair(&token_pair);
-        store.acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid,
-                                           1, &token_pair.main_write_token, &txn, &superblock, &dummy_interuptor);
-
-        std::string data = strprintf("{\"id\" : %d, \"sid\" : %d}", i, i * i);
-        point_write_response_t response;
-        rdb_modification_report_t mod_report;
-        rdb_set(store_key_t(cJSON_print_primary(scoped_cJSON_t(cJSON_CreateNumber(i)).get(), backtrace_t())),
-                boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_Parse(data.c_str()))),
-                false, store.btree.get(), repli_timestamp_t::invalid, txn.get(),
-                superblock.get(), &response, &mod_report);
-    }
+    insert_rows(0, 50, &store);
 
     uuid_u sindex_id;
     {
@@ -94,6 +120,7 @@ void run_sindex_post_construction() {
                 &dummy_interuptor);
     }
 
+    cond_t background_inserts_done;
     {
         write_token_pair_t token_pair;
         store.new_write_token_pair(&token_pair);
@@ -107,12 +134,17 @@ void run_sindex_post_construction() {
         store.acquire_all_sindex_superblocks_for_write(super_block->get_sindex_block_id(),
                 &token_pair, txn.get(), &sindexes, &dummy_interuptor);
 
+        coro_t::spawn_sometime(boost::bind(&insert_rows_and_pulse_when_done, 50, 100, 
+                    &store, &background_inserts_done));
+
         post_construct_secondary_indexes(store.btree.get(), txn.get(), super_block.get(),
                 sindexes, &dummy_interuptor);
+
     }
+    background_inserts_done.wait();
 
     {
-        for (int i = 0; i < 1000; ++i) {
+        for (int i = 0; i < 100; ++i) {
             read_token_pair_t token_pair;
             store.new_read_token_pair(&token_pair);
 

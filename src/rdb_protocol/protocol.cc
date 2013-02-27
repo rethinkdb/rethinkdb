@@ -1,9 +1,11 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
+
 #include "errors.hpp"
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
 #include <boost/make_shared.hpp>
 
+#include "arch/io/disk.hpp"
 #include "btree/erase_range.hpp"
 #include "btree/parallel_traversal.hpp"
 #include "btree/slice.hpp"
@@ -699,42 +701,115 @@ namespace {
 
 typedef btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindex_access_vector_t;
 
+/* Creates a queue of operations for the sindex, runs a post construction for
+ * the data already in the btree and finally drains the queue. */
+void bring_sindexes_up_to_date(
+        const std::set<uuid_u> &sindexes_to_bring_up_to_date,
+        btree_store_t<rdb_protocol_t> *store,
+        buf_lock_t *sindex_block,
+        transaction_t *txn,
+        btree_slice_t *btree,
+        superblock_t *superblock,
+        signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t)
+{
+    sindex_access_vector_t sindexes;
+    store->acquire_sindex_superblocks_for_write(
+            sindexes_to_bring_up_to_date,
+            sindex_block,
+            txn,
+            &sindexes);
+
+    /* We register our modification queue here. An important point about
+     * correctness here: we've held the superblock this whole time and will
+     * continue to do so until the call to post_construct_secondary_indexes
+     * begins a parallel traversal which releases the superblock. This
+     * serves to make sure that every changes which we don't learn about in
+     * the parallel traversal we do learn about from the mod queue. */
+    scoped_ptr_t<io_backender_t> io;
+    make_io_backender(aio_default, &io);
+    uuid_u post_construct_id = generate_uuid();
+    perfmon_collection_t dummy_collection;
+    internal_disk_backed_queue_t mod_queue(
+            io.get(), "post_construction_" + uuid_to_str(post_construct_id),
+            &dummy_collection);
+
+    {
+        mutex_t::acq_t acq;
+        store->lock_sindex_queue(&acq);
+        store->register_sindex_queue(&mod_queue, &acq);
+    }
+
+    post_construct_secondary_indexes(btree, txn, superblock, sindexes, interruptor);
+
+    /* Drain the queue. */
+
+    int previous_size = mod_queue.size();
+
+    while (mod_queue.size() > 0) {
+        mutex_t::acq_t acq;
+        store->lock_sindex_queue(&acq);
+
+        while (mod_queue.size() >= previous_size) {
+            std::vector<char> data_vec;
+            mod_queue.pop(&data_vec);
+            vector_read_stream_t read_stream(&data_vec);
+
+            rdb_modification_report_t mod_report; 
+            int ser_res = deserialize(&read_stream, &mod_report);
+            guarantee_err(ser_res == 0, "corruption in disk-backed queue");
+
+            rdb_update_sindexes(sindexes, &mod_report, txn);
+        }
+
+        previous_size = mod_queue.size();
+
+        if (mod_queue.size() == 0) {
+            for (std::set<uuid_u>::iterator it = sindexes_to_bring_up_to_date.begin();
+                    it != sindexes_to_bring_up_to_date.end(); ++it) {
+                    store->mark_index_up_to_date(*it, txn, sindex_block);
+            }
+        }
+    }
+}
+
+
 // TODO: get rid of this extra response_t copy on the stack
 struct write_visitor_t : public boost::static_visitor<void> {
     void operator()(const point_write_t &w) {
         response->response = point_write_response_t();
         point_write_response_t &res = boost::get<point_write_response_t>(response->response);
 
-        rdb_modification_report_t mod_report;
+        rdb_modification_report_t mod_report(w.key);
         rdb_set(w.key, w.data, w.overwrite, btree, timestamp, txn, superblock, &res, &mod_report);
 
         sindex_access_vector_t sindexes;
         store->acquire_all_sindex_superblocks_for_write(sindex_block_id, token_pair, txn, &sindexes, &interruptor);
-        rdb_update_sindexes(sindexes, w.key, &mod_report, txn);
+        rdb_update_sindexes(sindexes, &mod_report, txn);
     }
 
     void operator()(const point_modify_t &m) {
         response->response = point_modify_response_t();
         point_modify_response_t &res = boost::get<point_modify_response_t>(response->response);
 
-        rdb_modification_report_t mod_report;
+        rdb_modification_report_t mod_report(m.key);
         rdb_modify(m.primary_key, m.key, m.op, &env, m.scopes, m.backtrace, m.mapping, btree, timestamp, txn, superblock, &res, &mod_report);
 
         sindex_access_vector_t sindexes;
         store->acquire_all_sindex_superblocks_for_write(sindex_block_id, token_pair, txn, &sindexes, &interruptor);
-        rdb_update_sindexes(sindexes, m.key, &mod_report, txn);
+        rdb_update_sindexes(sindexes, &mod_report, txn);
     }
 
     void operator()(const point_delete_t &d) {
         response->response = point_delete_response_t();
         point_delete_response_t &res = boost::get<point_delete_response_t>(response->response);
 
-        rdb_modification_report_t mod_report;
+        rdb_modification_report_t mod_report(d.key);
         rdb_delete(d.key, btree, timestamp, txn, superblock, &res, &mod_report);
 
         sindex_access_vector_t sindexes;
         store->acquire_all_sindex_superblocks_for_write(sindex_block_id, token_pair, txn, &sindexes, &interruptor);
-        rdb_update_sindexes(sindexes, d.key, &mod_report, txn);
+        rdb_update_sindexes(sindexes, &mod_report, txn);
     }
 
     void operator()(const sindex_create_t &c) {
@@ -757,17 +832,10 @@ struct write_visitor_t : public boost::static_visitor<void> {
                 &sindex_block,
                 &interruptor);
 
-        std::set<uuid_u> uuids_to_acquire;
-        uuids_to_acquire.insert(c.id);
-
-        sindex_access_vector_t sindexes;
-        store->acquire_sindex_superblocks_for_write(
-                uuids_to_acquire,
-                sindex_block.get(),
-                txn,
-                &sindexes);
-
-        post_construct_secondary_indexes(btree, txn, superblock, sindexes, &interruptor);
+        std::set<uuid_u> sindexes;
+        sindexes.insert(c.id);
+        bring_sindexes_up_to_date(sindexes, store,
+                sindex_block.get(), txn, btree, superblock, &interruptor);
     }
 
     void operator()(const sindex_drop_t &d) {
@@ -1017,7 +1085,8 @@ struct receive_backfill_visitor_t : public boost::static_visitor<void> {
                 txn,
                 &sindexes);
 
-        post_construct_secondary_indexes(btree, txn, superblock, sindexes, interruptor);
+        bring_sindexes_up_to_date(created_sindexes, store,
+                sindex_block.get(), txn, btree, superblock, interruptor);
     }
 
 private:

@@ -82,6 +82,7 @@ void internal_disk_backed_queue_t::push(const write_message_t& wm) {
 }
 
 void internal_disk_backed_queue_t::pop(std::vector<char> *buf_out) {
+    guarantee(size() != 0);
     mutex_t::acq_t mutex_acq(&mutex);
 
     char buffer[MAX_REF_SIZE];

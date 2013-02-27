@@ -18,11 +18,14 @@
 #include "perfmon/perfmon.hpp"
 #include "protocol_api.hpp"
 
+struct rdb_protocol_t;
+template <class T> class btree_store_t;
 namespace unittest {
 // A forward decleration of this is needed so that it can be friended and the
 // unit test can access the private API of btree_store_t.
 void run_sindex_btree_store_api_test();
 void run_sindex_post_construction();
+void insert_rows(int start, int finish, btree_store_t<rdb_protocol_t> *store);
 } //namespace unittest
 
 class btree_slice_t;
@@ -144,6 +147,7 @@ void acquire_sindex_block_for_write(
 public: // <--- so this is some bullshit right here
     friend void unittest::run_sindex_btree_store_api_test();
     friend void unittest::run_sindex_post_construction();
+    friend void unittest::insert_rows(int start, int finish, btree_store_t<rdb_protocol_t> *store);
 
     void add_sindex(
         write_token_pair_t *token_pair,
@@ -177,12 +181,10 @@ public: // <--- so this is some bullshit right here
     THROWS_ONLY(interrupted_exc_t);
 
     void mark_index_up_to_date(
-        write_token_pair_t *token_pair,
         uuid_u id,
         transaction_t *txn,
-        superblock_t *super_block,
-        signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t);
+        buf_lock_t *sindex_block)
+    THROWS_NOTHING;
 
     void drop_sindex(
         write_token_pair_t *token_pair,

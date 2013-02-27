@@ -17,7 +17,8 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
                                          typename protocol_t::context_t *)
     : store_view_t<protocol_t>(protocol_t::region_t::universe()),
       perfmon_collection(),
-      perfmon_collection_membership(parent_perfmon_collection, &perfmon_collection, perfmon_name) {
+      perfmon_collection_membership(parent_perfmon_collection, &perfmon_collection, perfmon_name)
+{
     if (create) {
         mirrored_cache_static_config_t cache_static_config;
         cache_t::create(serializer, &cache_static_config);
@@ -186,6 +187,7 @@ void btree_store_t<protocol_t>::reset_data(
 
 template <class protocol_t>
 void btree_store_t<protocol_t>::lock_sindex_queue(mutex_t::acq_t *acq) {
+    assert_thread();
     acq->reset(&sindex_queue_mutex);
 }
 
@@ -193,6 +195,7 @@ template <class protocol_t>
 void btree_store_t<protocol_t>::register_sindex_queue(
             internal_disk_backed_queue_t *disk_backed_queue,
             mutex_t::acq_t *acq) {
+    assert_thread();
     acq->assert_is_holding(&sindex_queue_mutex);
 
     for (std::vector<internal_disk_backed_queue_t *>::iterator it = sindex_queues.begin();
@@ -206,6 +209,7 @@ template <class protocol_t>
 void btree_store_t<protocol_t>::deregister_sindex_queue(
             internal_disk_backed_queue_t *disk_backed_queue,
             mutex_t::acq_t *acq) {
+    assert_thread();
     acq->assert_is_holding(&sindex_queue_mutex);
 
     for (std::vector<internal_disk_backed_queue_t *>::iterator it = sindex_queues.begin();
@@ -221,6 +225,7 @@ template <class protocol_t>
 void btree_store_t<protocol_t>::sindex_queue_push(
             const write_message_t& value,
             mutex_t::acq_t *acq) {
+    assert_thread();
     acq->assert_is_holding(&sindex_queue_mutex);
 
     for (std::vector<internal_disk_backed_queue_t *>::iterator it = sindex_queues.begin(); 
@@ -409,23 +414,17 @@ void btree_store_t<protocol_t>::set_sindexes(
 
 template <class protocol_t>
 void btree_store_t<protocol_t>::mark_index_up_to_date(
-    write_token_pair_t *token_pair,
     uuid_u id,
     transaction_t *txn,
-    superblock_t *super_block,
-    signal_t *interruptor)
-THROWS_ONLY(interrupted_exc_t) {
-    /* Get the sindex block which we will need to modify. */
-    scoped_ptr_t<buf_lock_t> sindex_block;
-    acquire_sindex_block_for_write(token_pair, txn, &sindex_block, super_block->get_sindex_block_id(), interruptor);
-
+    buf_lock_t *sindex_block)
+THROWS_NOTHING {
     secondary_index_t sindex;
-    bool found = ::get_secondary_index(txn, sindex_block.get(), id, &sindex);
+    bool found = ::get_secondary_index(txn, sindex_block, id, &sindex);
     guarantee(found, "Trying to mark an index up to date that doesn't exist.");
 
     sindex.post_construction_complete = true;
 
-    ::set_secondary_index(txn, sindex_block.get(), id, sindex);
+    ::set_secondary_index(txn, sindex_block, id, sindex);
 }
 
 template <class protocol_t>
