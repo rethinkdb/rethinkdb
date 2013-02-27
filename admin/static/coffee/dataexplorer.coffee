@@ -197,46 +197,22 @@ module 'DataExplorerView', ->
             @history_displayed_id = 0 # 0 means we are showing the draft, n>0 means we are showing the nth query in the history
 
             # We escape the last function because we are building a regex on top of it.
-            @unsafe_to_safe_regexstr = []
-            @unsafe_to_safe_regexstr.push # This one has to be firest
-                pattern: /\\/g
-                replacement: '\\\\'
-            @unsafe_to_safe_regexstr.push
-                pattern: /\(/g
-                replacement: '\\('
-            @unsafe_to_safe_regexstr.push
-                pattern: /\)/g
-                replacement: '\\)'
-            @unsafe_to_safe_regexstr.push
-                pattern: /\^/g
-                replacement: '\\^'
-            @unsafe_to_safe_regexstr.push
-                pattern: /\$/g
-                replacement: '\\$'
-            @unsafe_to_safe_regexstr.push
-                pattern: /\*/g
-                replacement: '\\*'
-            @unsafe_to_safe_regexstr.push
-                pattern: /\+/g
-                replacement: '\\+'
-            @unsafe_to_safe_regexstr.push
-                pattern: /\?/g
-                replacement: '\\?'
-            @unsafe_to_safe_regexstr.push
-                pattern: /\./g
-                replacement: '\\.'
-            @unsafe_to_safe_regexstr.push
-                pattern: /\|/g
-                replacement: '\\|'
-            @unsafe_to_safe_regexstr.push
-                pattern: /\{/g
-                replacement: '\\{'
-            @unsafe_to_safe_regexstr.push
-                pattern: /\}/g
-                replacement: '\\}'
-            @unsafe_to_safe_regexstr.push
-                pattern: /\[/g
-                replacement: '\\['
+            # Structure: [ [ pattern, replacement], [pattern, replacement], ... ]
+            @unsafe_to_safe_regexstr = [
+                [/\\/g, '\\\\'] # This one has to be first
+                [/\(/g, '\\(']
+                [/\)/g, '\\)']
+                [/\^/g, '\\^']
+                [/\$/g, '\\$']
+                [/\*/g, '\\*']
+                [/\+/g, '\\+']
+                [/\?/g, '\\?']
+                [/\./g, '\\.']
+                [/\|/g, '\\|']
+                [/\{/g, '\\{']
+                [/\}/g, '\\}']
+                [/\[/g, '\\[']
+            ]
 
             @results_view = new DataExplorerView.ResultView
                 container: @
@@ -1165,7 +1141,7 @@ module 'DataExplorerView', ->
         # Create regex based on the user input. We make it safe
         create_safe_regex: (str) =>
             for char in @unsafe_to_safe_regexstr
-                str = str.replace char.pattern, char.replacement
+                str = str.replace char[0], char[1]
             return new RegExp('^('+str+')', 'i')
 
 
