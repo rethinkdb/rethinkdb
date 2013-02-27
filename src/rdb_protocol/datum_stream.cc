@@ -17,6 +17,17 @@ datum_stream_t *datum_stream_t::zip() {
     return env->add_ptr(new zip_datum_stream_t(env, this));
 }
 
+const datum_t *datum_stream_t::next() {
+    env->throw_if_interruptor_pulsed();
+    try {
+        return next_impl();
+    } catch (const datum_exc_t &e) {
+        rfail("%s", e.what());
+        unreachable();
+    }
+}
+
+
 const datum_t *eager_datum_stream_t::count() {
     int64_t i = 0;
     for (;;) {

@@ -39,14 +39,7 @@ public:
     virtual const datum_t *as_arr() = 0;
 
     // Gets the next element from the stream.  (Wrapper around `next_impl`.)
-    const datum_t *next() {
-        try {
-            return next_impl();
-        } catch (const datum_exc_t &e) {
-            rfail("%s", e.what());
-            unreachable();
-        }
-    }
+    const datum_t *next();
 private:
     virtual const datum_t *next_impl() = 0;
 protected:
