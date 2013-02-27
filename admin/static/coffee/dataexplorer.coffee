@@ -194,7 +194,7 @@ module 'DataExplorerView', ->
             @current_results = @saved_data.results
 
             # Index used to navigate through history with the keyboard
-            @history_displayed_id = 0
+            @history_displayed_id = 0 # 0 means we are showing the draft, n>0 means we are showing the nth query in the history
 
             # We escape the last function because we are building a regex on top of it.
             @unsafe_to_safe_regexstr = []
