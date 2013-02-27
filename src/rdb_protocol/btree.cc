@@ -230,7 +230,7 @@ void rdb_replace(btree_slice_t *slice,
             }
         }
         guarantee(!conflict); // message never added twice
-    } catch (const std::exception &e) {
+    } catch (const ql::any_ql_exc_t &e) {
         std::string msg = e.what();
         bool b = resp->add("errors", num_1)
               || resp->add("first_error", ql_env->add_ptr(new ql::datum_t(msg)));

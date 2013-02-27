@@ -164,6 +164,9 @@ public:
         const cluster_semilattice_metadata_t &metadata_to_join)
         THROWS_ONLY(interrupted_exc_t);
 
+    void throw_if_interruptor_pulsed() {
+        if (interruptor->is_pulsed()) throw interrupted_exc_t();
+    }
 private:
     // Ideally this would be a scoped_ptr_t<js::runner_t>. We used to copy
     // `runtime_environment_t` to capture scope, which is why this is a

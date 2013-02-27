@@ -218,6 +218,7 @@ bool term_t::is_deterministic() const {
 
 val_t *term_t::eval(bool _use_cached_val) {
     DBG("EVALUATING %s (%d):\n", name(), is_deterministic());
+    env->throw_if_interruptor_pulsed();
     INC_DEPTH;
 
     use_cached_val = _use_cached_val;

@@ -161,8 +161,14 @@ private:
 
 const backtrace_t::frame_t head_frame = backtrace_t::frame_t::head();
 
+// Catch this if you want to handle either `exc_t` or `datum_exc_t`.
+class any_ql_exc_t : public std::exception {
+public:
+    virtual ~any_ql_exc_t() { }
+};
+
 // A RQL exception.  In the future it will be tagged.
-class exc_t : public std::exception {
+class exc_t : public any_ql_exc_t {
 public:
     // We have a default constructor because these are serialized.
     exc_t() : exc_msg("UNINITIALIZED") { }
@@ -189,7 +195,7 @@ private:
     std::string exc_msg;
 };
 
-class datum_exc_t : public std::exception {
+class datum_exc_t : public any_ql_exc_t {
 public:
     datum_exc_t(const std::string &_exc_msg) : exc_msg(_exc_msg) { }
     virtual ~datum_exc_t() throw () { }
