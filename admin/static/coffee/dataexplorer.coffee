@@ -609,7 +609,7 @@ module 'DataExplorerView', ->
             multiple_line_comment: /^(\s)*\/\*[^]*\*\//
             get_first_non_white_char: /\s*(\S+)/
             last_char_is_white: /.*(\s+)$/
-        stop_char: # Just for performance and cleaner code
+        stop_char: # Just for performance (we look for a stop_char in constant time - which is better than having 3 and conditions) and cleaner code
             opening:
                 '(': true
                 '{': true
