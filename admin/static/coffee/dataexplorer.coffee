@@ -190,7 +190,7 @@ module 'DataExplorerView', ->
             # Let's have a shortcut
             @prototype = DataExplorerView.Container.prototype
             @saved_data = DataExplorerView.Container.prototype.saved_data
-            @show_query_warning = @saved_data.query isnt @saved_data.current_query
+            @show_query_warning = @saved_data.query isnt @saved_data.current_query # Show a warning in case the displayed results are not the one of the query in code mirror
             @current_results = @saved_data.results
 
             # Index used to navigate through history with the keyboard
