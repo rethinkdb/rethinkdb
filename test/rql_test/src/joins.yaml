@@ -1,0 +1,70 @@
+desc: Tests that manipulation data in tables
+tests:
+
+    # Set up some data
+    - cd: r.db('test').table_create('test')
+      ot: ({'created':1})
+      def: tbl = r.db('test').table('test')
+
+    - cd: r.db('test').table_create('test2')
+      ot: ({'created':1})
+      def: tbl2 = r.db('test').table('test2')
+
+    - py: tbl.insert([{'id':i, 'a':i%4} for i in xrange(100)])
+      js: |
+        tbl.insert(function(){
+            var res = []
+            for (var i = 0; i < 100; i++) {
+                res.push({id:i, 'a':i%4});
+            }
+            return res;
+        }())
+      rb: tbl.insert((0..99).map{ |i| { :id => i, :a => i % 4 } })
+      ot: ({'inserted':100})
+
+    - py: tbl2.insert([{'id':i, 'b':i%4} for i in xrange(100)])
+      js: |
+        tbl2.insert(function(){
+            var res = []
+            for (var i = 0; i < 100; i++) {
+                res.push({id:i, 'b':i%4});
+            }
+            return res;
+        }())
+      rb: tbl2.insert((0..99).map{ |i| { :id => i, :b => i % 4 } })
+      ot: ({'inserted':100})
+
+    # Inner-Join
+    - def:
+        py: ij = tbl.inner_join(tbl2, lambda x,y:x['a'] == y['b']).zip()
+        js: ij = tbl.innerJoin(tbl2, function(x, y) { return x('a').eq(y('b')); }).zip()
+        rb: ij = tbl.inner_join(tbl2){ |x, y| x[:a].eq y[:b] }.zip
+    - cd: ij.count()
+      ot: 2500
+    - py: ij.filter(lambda row:row['a'] != row['b']).count()
+      js: ij.filter(function(row) { return row('a').ne(row('b')); }).count()
+      rb: ij.filter{ |row| row[:a].ne row[:b] }.count
+      ot: 0
+
+    # Outer-Join
+    - def:
+        py: oj = tbl.outer_join(tbl2, lambda x,y:x['a'] == y['b']).zip()
+        js: oj = tbl.outerJoin(tbl2, function(x, y) { return x('a').eq(y('b')); }).zip()
+        rb: oj = tbl.outer_join(tbl2){ |x, y| x[:a].eq y[:b] }.zip
+    - cd: oj.count()
+      ot: 2500
+    - py: oj.filter(lambda row:row['a'] != row['b']).count()
+      js: oj.filter(function(row) { return row('a').ne(row('b')); }).count()
+      rb: oj.filter{ |row| row[:a].ne row[:b] }.count
+      ot: 0
+
+    # Eq-Join
+    - def: ej = tbl.eq_join('a', tbl2).zip()
+      cd: ej.count()
+      ot: 100
+
+    # Clean up
+    - cd: r.db('test').table_drop('test')
+      ot: ({'dropped':1})
+    - cd: r.db('test').table_drop('test2')
+      ot: ({'dropped':1})
