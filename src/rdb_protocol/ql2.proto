@@ -247,7 +247,7 @@ message Term2 {
 
         // Sequence Ops
         // Get all elements of a sequence between two values.
-        BETWEEN   = 36; // Sequence, {left_bound:DATUM, right_bound:DATUM} -> Sequence
+        BETWEEN   = 36; // StreamSelection, {left_bound:DATUM, right_bound:DATUM} -> StreamSelection
         REDUCE    = 37; // Sequence, Function(2), {base:DATUM} -> DATUM
         MAP       = 38; // Sequence, Function(1) -> Sequence
         FILTER    = 39; // Sequence, Function(1) -> Sequence

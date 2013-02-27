@@ -74,3 +74,9 @@ tests:
       ot: "({'dropped':1})"
     - cd: r.db('test').table_drop('test2')
       ot: "({'dropped':1})"
+
+    # TODO: static value syntax
+    # TODO: replace a non-replacable object
+    # TODO: test atomicity constraints
+    # TODO: test trying to change pkey of a document
+    # TODO: test not passing a pkey in the first place. What should happen?

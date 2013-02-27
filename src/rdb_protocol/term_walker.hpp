@@ -7,11 +7,18 @@ namespace ql {
 #include "rdb_protocol/ql2.pb.h"
 #include "rdb_protocol/ql2_extensions.pb.h"
 
+// We use this class to walk a term and do something to every node.
 class term_walker_t {
 public:
+    // This constructor fills in the backtraces of a term (`walk`) and checks
+    // that it's well-formed with regard to write placement.
     term_walker_t(Term2 *root) : depth(0), writes_legal(true), bt(0) {
         walk(root, 0, head_frame);
     }
+
+    // This constructor propagates a backtrace down a tree until it hits a node
+    // that already has a backtrace (this is used for e.g. rewrite terms so that
+    // they return reasonable backtraces in the macroexpanded nodes).
     term_walker_t(Term2 *root, const Backtrace *_bt)
         : depth(0), writes_legal(true), bt(_bt) {
         propwalk(root, 0, head_frame);
@@ -33,13 +40,11 @@ public:
                    strprintf("Cannot nest writes or meta ops in stream operations"));
         val_pusher_t<bool> writes_legal_pusher(&writes_legal, writes_still_legal);
 
-        maybe_datum_recurse(t);
         term_recurse(t, &term_walker_t::walk);
     }
 
     void propwalk(Term2 *t, UNUSED Term2 *parent, UNUSED backtrace_t::frame_t frame) {
         r_sanity_check(bt);
-        // debugf("propwalk %p %s\n", t, t->DebugString().c_str());
 
         if (!t->HasExtension(ql2::extension::backtrace)) {
             *t->MutableExtension(ql2::extension::backtrace) = *bt;
@@ -47,18 +52,10 @@ public:
         }
     }
 private:
-    void maybe_datum_recurse(Term2 *t) {
-        if (t->type() == Term2::DATUM) {
-            Datum *d = t->mutable_datum();
-            *d->MutableExtension(ql2::extension::datum_backtrace)
-                = t->GetExtension(ql2::extension::backtrace);
-        }
-    }
-
+    // Recurses to child terms.
     void term_recurse(Term2 *t, void (term_walker_t::*callback)(Term2 *, Term2 *,
                                                                 backtrace_t::frame_t)) {
         for (int i = 0; i < t->args_size(); ++i) {
-            // debugf("%p %d / %d\n", t, i, t->args_size());
             (this->*callback)(t->mutable_args(i), t, backtrace_t::frame_t(i));
         }
         for (int i = 0; i < t->optargs_size(); ++i) {
@@ -67,6 +64,7 @@ private:
         }
     }
 
+    // Adds a backtrace to a term.
     void add_bt(Term2 *t, Term2 *parent, backtrace_t::frame_t frame) {
         r_sanity_check(t->ExtensionSize(ql2::extension::backtrace) == 0);
         if (parent) {
@@ -78,7 +76,8 @@ private:
         *t->MutableExtension(ql2::extension::backtrace)->add_frames() = frame.toproto();
     }
 
-    bool term_is_write_or_meta(Term2 *t) {
+    // Returns true if `t` is a write or a meta op.
+    static bool term_is_write_or_meta(Term2 *t) {
         return t->type() == Term2::UPDATE
             || t->type() == Term2::DELETE
             || t->type() == Term2::INSERT
@@ -92,6 +91,12 @@ private:
             || t->type() == Term2::TABLE_LIST;
     }
 
+    // Returns true if writes are still legal at this node.  Basically:
+    // * Once writes become illegal, they are never legal again.
+    // * Writes are legal at the root.
+    // * If the parent term forbids writes in its function arguments AND we
+    //   aren't inside the 0th argument, writes are forbidden.
+    // * Writes are legal in all other cases.
     bool writes_are_still_legal(Term2 *parent, backtrace_t::frame_t frame) {
         if (!writes_legal) return false; // writes never become legal again
         if (!parent) return true; // writes legal at root of tree
@@ -117,6 +122,8 @@ private:
             || term->type() == Term2::INSERT;
     }
 
+    // We use this class to change a value while recursing, then restore it to
+    // its previous value.
     template<class T>
     class val_pusher_t {
     public:

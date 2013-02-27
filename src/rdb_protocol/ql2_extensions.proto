@@ -5,7 +5,3 @@ import "rdb_protocol/ql2.proto";
 extend Term2 {
     required Backtrace backtrace = 10000;
 };
-
-extend Datum {
-    required Backtrace datum_backtrace = 10000;
-};
