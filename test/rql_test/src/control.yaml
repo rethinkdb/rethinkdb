@@ -54,3 +54,7 @@ tests:
     - cd: r.branch('a', {}, [])
       ot: err("RqlRuntimeError", "Expected type BOOL but found STRING.", [0])
 
+    # TODO: add r.js() tests
+    # TODO: add r.error() tests
+    # TODO: add positive and negative forEach tests
+

@@ -41,6 +41,7 @@ tests:
     # TODO: GET a document that exists
     # TODO: GET a document that doesn't exist
     # TODO: does GET still support an attribute specification?
+    # TODO: test GET for table where id isn't a primary key
 
     # Between
     - cd: tbl.between(20,29).count()
@@ -55,6 +56,8 @@ tests:
     # TODO: test between without the second argument
     # TODO: test between that has a wider range than the one in the db
     # TODO: does between still support attribute specification?
+    # TODO: test between on non-selections
+    # TODO: test between table where id isn't a primary key
 
     # Filter
     # TODO: test static value syntax for filter
@@ -64,7 +67,6 @@ tests:
       js: tbl.filter(function(row) { return row('a').gt(2); }).count()
       rb: tbl.filter{ |row| row[:a] > 2 }.count
       ot: 25
-
 
     # Clean up
     - cd: r.db('test').table_drop('test')
