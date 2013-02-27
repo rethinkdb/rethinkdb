@@ -244,7 +244,12 @@ class RDBMethod:
     def compose(self, args, optargs):
         if isinstance(self.args[0], Datum):
             args[0] = T('r.expr(', args[0], ')')
-        return T(args[0], '.', self.st, '(', T(*args[1:], intsp=', '), ')')
+
+        restargs = args[1:]
+        restargs.extend([k+'='+v for k,v in optargs.items()])
+        restargs = T(*restargs, intsp=', ')
+
+        return T(args[0], '.', self.st, '(', restargs, ')')
 
 # This class handles the conversion of RQL terminal types in both directions
 # Going to the server though it does not support R_ARRAY or R_OBJECT as those

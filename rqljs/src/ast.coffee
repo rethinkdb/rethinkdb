@@ -190,7 +190,7 @@ class RDBMerge extends RDBOp
     op: (args) -> args[0].merge args[1..]...
 
 class RDBBetween extends RDBOp
-    type: tp "Sequence, {left_bound:DATUM; right_bound:DATUM} -> Sequence"
+    type: tp "StreamSelection, {left_bound:DATUM; right_bound:DATUM} -> Sequence"
     op: (args, optargs) -> args[0].between optargs['left_bound'], optargs['right_bound']
 
 class RDBReduce extends RDBOp
