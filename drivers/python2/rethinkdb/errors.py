@@ -26,7 +26,7 @@ class RqlDriverError(Exception):
         self.message = message
 
     def __str__(self):
-        return "Driver error: "+self.message
+        return self.message
 
 class QueryPrinter:
     def __init__(self, root, frames=[]):
