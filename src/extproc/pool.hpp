@@ -82,11 +82,13 @@ class pool_t :
         // condition on our socket. Calls on_error().
         virtual void do_on_event(int events);
 
+    private:
+        friend class pool_t;
+
         pool_t *const pool_;
         const pid_t pid_;
         bool attached_;
 
-      private:
         DISABLE_COPYING(worker_t);
     };
 
