@@ -12,12 +12,12 @@ namespace extproc {
 
 // Abstract base class for jobs.
 class job_t {
-  public:
+public:
     virtual ~job_t() {}
 
     // Passed in to a job on the worker process side.
     class control_t {
-      public:
+    public:
         void vlog(const char *fmt, va_list ap) __attribute__((format (printf, 2, 0)));
         void log(const char *fmt, ...) __attribute__((format (printf, 2, 3)));
 
@@ -25,7 +25,7 @@ class job_t {
 
         unix_socket_stream_t unix_socket;
 
-      private:
+    private:
         friend void exec_worker(pid_t spawner_pid, fd_t sockfd);
 
         control_t(pid_t pid, pid_t spawner_pid, scoped_fd_t *fd);

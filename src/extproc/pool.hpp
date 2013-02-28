@@ -22,11 +22,10 @@ class pool_t;
 
 // Use this to create one process pool per thread, and access the appropriate
 // one (via `get()`).
-class pool_group_t
-{
+class pool_group_t {
     friend class pool_t;
 
-  public:
+public:
     static const int DEFAULT_MIN_WORKERS = 2;
     static const int DEFAULT_MAX_WORKERS = 2;
 
@@ -43,23 +42,21 @@ class pool_group_t
 
     pool_t *get() { return pool_maker_.get(); }
 
-  private:
+private:
     spawner_t spawner_;
     config_t config_;
     one_per_thread_t<pool_t> pool_maker_;
 };
 
 // A per-thread worker pool.
-class pool_t :
-        public home_thread_mixin_debug_only_t
-{
-    friend class job_handle_t;
-
-  public:
+class pool_t : public home_thread_mixin_debug_only_t {
+public:
     explicit pool_t(pool_group_t *group);
     ~pool_t();
 
-  private:
+private:
+    friend class job_handle_t;
+
     pool_group_t::config_t *config() { return &group_->config_; }
     spawner_t *spawner() { return &group_->spawner_; }
 
@@ -70,7 +67,7 @@ class pool_t :
     {
         friend class job_handle_t;
 
-      public:
+    public:
         worker_t(pool_t *pool, pid_t pid, scoped_fd_t *fd);
         ~worker_t();
 
@@ -130,7 +127,7 @@ class pool_t :
         return idle_workers_.size() + busy_workers_.size() + num_spawning_workers_;
     }
 
-  private:
+private:
     pool_group_t *group_;
 
     // Worker processes.
@@ -148,13 +145,8 @@ class pool_t :
 };
 
 // A handle to a running job.
-class job_handle_t :
-    public interruptible_read_stream_t, public interruptible_write_stream_t
-{
-    friend class pool_t;
-    friend class interruptor_wrapper_t;
-
-  public:
+class job_handle_t : public interruptible_read_stream_t, public interruptible_write_stream_t {
+public:
     // When constructed, job handles are "disconnected", not associated with a
     // job. They are connected by pool_t::spawn_job().
     job_handle_t();
@@ -190,18 +182,22 @@ class job_handle_t :
     virtual MUST_USE int64_t read_interruptible(void *p, int64_t n, signal_t *interruptor);
     virtual int64_t write_interruptible(const void *p, int64_t n, signal_t *interruptor);
 
-  private:
+private:
+    friend class pool_t;
+    friend class interruptor_wrapper_t;
+
     void check_attached();
 
     class interruptor_wrapper_t : public signal_t, public signal_t::subscription_t {
-      public:
+    public:
         interruptor_wrapper_t(job_handle_t *handle, signal_t *signal);
         virtual void run() THROWS_NOTHING;
         job_handle_t *handle_;
     };
 
-  private:
     pool_t::worker_t *worker_;
+
+    DISABLE_COPYING(job_handle_t);
 };
 
 } // namespace extproc

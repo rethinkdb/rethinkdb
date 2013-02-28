@@ -12,9 +12,7 @@ namespace extproc {
 
 // A handle to the spawner process. Must only be used from the thread it is
 // created on.
-class spawner_t :
-    public home_thread_mixin_t
-{
+class spawner_t : public home_thread_mixin_t {
 public:
     class info_t {
         friend class spawner_t;
@@ -23,7 +21,7 @@ public:
 
         DISABLE_COPYING(info_t);
 
-      public:
+    public:
         info_t() {}
         ~info_t() {}
     };
