@@ -52,6 +52,11 @@ tests:
       ot: 20
     - cd: tbl.between(-2000, 2000).count()
       ot: 100
+    
+    # Between shouldn't work on arrays
+    - cd: r.expr([1, 2, 3]).between(-1, 2)
+      ot: err('RqlRuntimeError', 'Expected type StreamSelection but found ARRAY.', [0])
+
     # TODO: test between without the first argument
     # TODO: test between without the second argument
     # TODO: test between that has a wider range than the one in the db

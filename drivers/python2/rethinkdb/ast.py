@@ -228,9 +228,12 @@ class RDBAnyOp(RDBValue, RDBSequence, RDBOp):
 
 ### Representation classes
 
+def needs_wrap(arg):
+    return isinstance(arg, Datum) or isinstance(arg, MakeArray) or isinstance(arg, MakeObj)
+
 class RDBBiOper:
     def compose(self, args, optargs):
-        if isinstance(self.args[0], Datum) and isinstance(self.args[1], Datum):
+        if needs_wrap(self.args[0]) and needs_wrap(self.args[1]):
             args[0] = T('r.expr(', args[0], ')')
 
         return T('(', args[0], ' ', self.st, ' ', args[1], ')')
@@ -242,7 +245,7 @@ class RDBTopFun:
 
 class RDBMethod:
     def compose(self, args, optargs):
-        if isinstance(self.args[0], Datum):
+        if needs_wrap(self.args[0]):
             args[0] = T('r.expr(', args[0], ')')
 
         restargs = args[1:]
