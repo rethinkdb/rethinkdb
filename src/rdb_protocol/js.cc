@@ -359,7 +359,7 @@ struct compile_task_t : auto_task_t<compile_task_t> {
 
         write_message_t msg;
         msg << result;
-        int sendres = send_write_message(env->control(), &msg);
+        int sendres = send_write_message(&env->control()->unix_socket, &msg);
         guarantee(0 == sendres);
     }
 };
@@ -451,7 +451,7 @@ struct call_task_t : auto_task_t<call_task_t> {
 
         write_message_t msg;
         msg << result;
-        int sendres = send_write_message(env->control(), &msg);
+        int sendres = send_write_message(&env->control()->unix_socket, &msg);
         guarantee(0 == sendres);
     }
 };

@@ -269,7 +269,7 @@ int64_t job_handle_t::read_interruptible(void *p, int64_t n, signal_t *interrupt
     try {
         interruptor_wrapper_t wrapper(this, interruptor);
         res = worker_->read_interruptible(p, n, &wrapper);
-    } catch (interrupted_exc_t) {
+    } catch (const interrupted_exc_t &) {
         // We were interrupted, and need to clean up the detached worker created
         // by job_handle_t::interruptor_wrapper_t::run(). We do this by falling
         // through to check_attached(), which will re-raise an interrupted_exc_t
@@ -289,7 +289,7 @@ int64_t job_handle_t::write_interruptible(const void *p, int64_t n, signal_t *in
     try {
         interruptor_wrapper_t wrapper(this, interruptor);
         res = worker_->write_interruptible(p, n, &wrapper);
-    } catch (interrupted_exc_t) {
+    } catch (const interrupted_exc_t &) {
         // See comments in read_interruptible.
         rassert(worker_ && !worker_->attached_);
     }

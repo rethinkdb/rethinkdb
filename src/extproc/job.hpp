@@ -16,12 +16,14 @@ class job_t {
     virtual ~job_t() {}
 
     // Passed in to a job on the worker process side.
-    class control_t : public unix_socket_stream_t {
+    class control_t {
       public:
         void vlog(const char *fmt, va_list ap) __attribute__((format (printf, 2, 0)));
         void log(const char *fmt, ...) __attribute__((format (printf, 2, 3)));
 
         pid_t get_spawner_pid() const;
+
+        unix_socket_stream_t unix_socket;
 
       private:
         friend void exec_worker(pid_t spawner_pid, fd_t sockfd);
@@ -56,7 +58,7 @@ class job_t {
 
     // Returns a function that deserializes & runs an instance of the
     // appropriate job type. Called on worker process side.
-    typedef void (*func_t)(control_t*, void*);
+    typedef void (*func_t)(control_t *, void *);
     virtual func_t job_runner() const = 0;
 
     // Serialization methods. Suggest implementing by invoking
@@ -73,7 +75,7 @@ class auto_job_t : public base_job_t {
     static void job_runner_func(job_t::control_t *control, void *extra) {
         // Get the job instance.
         instance_t job;
-        archive_result_t res = deserialize(control, &job);
+        archive_result_t res = deserialize(&control->unix_socket, &job);
 
         if (res != ARCHIVE_SUCCESS) {
             control->log("Could not deserialize job: %s",

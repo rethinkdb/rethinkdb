@@ -53,7 +53,7 @@ struct fib_job_t : extproc::auto_job_t<fib_job_t> {
         int res = fib(n_);
         write_message_t msg;
         msg << res;
-        const int write_res = send_write_message(control, &msg);
+        const int write_res = send_write_message(&control->unix_socket, &msg);
         guarantee(0 == write_res);
     }
 };
@@ -72,7 +72,7 @@ struct collatz_job_t : extproc::auto_job_t<collatz_job_t> {
             // Send current value.
             write_message_t msg;
             msg << n_;
-            const int write_res = send_write_message(control, &msg);
+            const int write_res = send_write_message(&control->unix_socket, &msg);
             guarantee(0 == write_res);
 
             // We're done once we hit 1.
@@ -82,7 +82,7 @@ struct collatz_job_t : extproc::auto_job_t<collatz_job_t> {
 
             // Wait for signal to proceed.
             char c;
-            const int64_t read_res = force_read(control, &c, 1);
+            const int64_t read_res = force_read(&control->unix_socket, &c, 1);
             guarantee(1 == read_res);
 
             n_ = collatz(n_);
@@ -107,7 +107,7 @@ struct job_loop_t : extproc::auto_job_t<job_loop_t> {
         // Loops accepting jobs until we tell it to quit.
         for (;;) {
             bool quit;
-            const archive_result_t res = deserialize(control, &quit);
+            const archive_result_t res = deserialize(&control->unix_socket, &quit);
             guarantee(res == ARCHIVE_SUCCESS);
             if (quit) {
                 break;
@@ -117,7 +117,7 @@ struct job_loop_t : extproc::auto_job_t<job_loop_t> {
         }
 
         // Sends signal that it has quit.
-        const int64_t write_res = control->write("done", 4);
+        const int64_t write_res = control->unix_socket.write("done", 4);
         guarantee(4 == write_res);
     }
 };
