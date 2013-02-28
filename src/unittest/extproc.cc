@@ -41,7 +41,7 @@ int collatz(int n) {
 }
 
 // ----- Jobs
-struct fib_job_t : extproc::auto_job_t<fib_job_t> {
+struct fib_job_t : public extproc::auto_job_t<fib_job_t> {
     // Calculates the nth fibonacci number.
     fib_job_t() {}
     explicit fib_job_t(int n) : n_(n) {}
@@ -58,7 +58,7 @@ struct fib_job_t : extproc::auto_job_t<fib_job_t> {
     }
 };
 
-struct collatz_job_t : extproc::auto_job_t<collatz_job_t> {
+struct collatz_job_t : public extproc::auto_job_t<collatz_job_t> {
     // Streams the collatz numbers starting at the given number, until it hits
     // 1. Waits for a command to proceed in between each result.
     //
@@ -97,7 +97,7 @@ private:
     DISABLE_COPYING(collatz_job_t);
 };
 
-struct job_loop_t : extproc::auto_job_t<job_loop_t> {
+struct job_loop_t : public extproc::auto_job_t<job_loop_t> {
     // Receives a job and runs it.
     job_loop_t() {}
 
