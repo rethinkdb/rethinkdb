@@ -236,11 +236,11 @@ struct eval_task_t : auto_task_t<eval_task_t> {
                 if (result_val->IsFunction()) {
 
                     v8::Handle<v8::Function> func = v8::Handle<v8::Function>::Cast(result_val);
-                    id_result_t result("");
-                    result = env->rememberValue(func);
+                    id_result_t id_result("");
+                    id_result = env->rememberValue(func);
 
                     //TODO what to do with this result?
-                    *errmsg = "JS function types not yet support."
+                    *errmsg = "JS function types not yet support.";
 
                 } else {
                     guarantee(!result_val.IsEmpty());
