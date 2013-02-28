@@ -595,11 +595,19 @@ po::options_description get_service_options() {
     return desc;
 }
 
+po::options_description get_help_options() {
+    po::options_description desc("Help options");
+    desc.add_options()
+        ("help,h", "show command-line options instead of running rethinkdb");
+    return desc;
+}
+
 po::options_description get_rethinkdb_create_options() {
     po::options_description desc("Allowed options");
     desc.add(get_file_options());
     desc.add(get_machine_options());
     desc.add(get_disk_options());
+    desc.add(get_help_options());
     return desc;
 }
 
@@ -607,6 +615,7 @@ po::options_description get_rethinkdb_create_options_visible() {
     po::options_description desc("Allowed options");
     desc.add(get_file_options());
     desc.add(get_machine_options_visible());
+    desc.add(get_help_options());
 #ifdef AIOSUPPORT
     desc.add(get_disk_options());
 #endif // AIOSUPPORT
@@ -621,6 +630,7 @@ po::options_description get_rethinkdb_serve_options() {
     desc.add(get_disk_options());
     desc.add(get_cpu_options());
     desc.add(get_service_options());
+    desc.add(get_help_options());
     return desc;
 }
 
@@ -634,6 +644,7 @@ po::options_description get_rethinkdb_serve_options_visible() {
 #endif // AIOSUPPORT
     desc.add(get_cpu_options());
     desc.add(get_service_options());
+    desc.add(get_help_options());
     return desc;
 }
 
@@ -642,6 +653,7 @@ po::options_description get_rethinkdb_proxy_options() {
     desc.add(get_network_options());
     desc.add(get_web_options());
     desc.add(get_service_options());
+    desc.add(get_help_options());
     desc.add_options()
         ("log-file", po::value<std::string>()->default_value("log_file"), "specify log file");
     return desc;
@@ -652,6 +664,7 @@ po::options_description get_rethinkdb_proxy_options_visible() {
     desc.add(get_network_options());
     desc.add(get_web_options_visible());
     desc.add(get_service_options());
+    desc.add(get_help_options());
     desc.add_options()
         ("log-file", po::value<std::string>()->default_value("log_file"), "specify log file");
     return desc;
@@ -680,6 +693,7 @@ po::options_description get_rethinkdb_import_options() {
         ("primary-key", po::value<std::string>()->default_value("id"), "the primary key to create a new table with, or expected primary key")
         ("separators,s", po::value<std::string>()->default_value("\t,"), "list of characters to be used as whitespace -- uses \"\\t,\" by default")
         ("input-file", po::value<std::string>()->default_value(""), "the csv input file");
+    desc.add(get_help_options());
 
     return desc;
 }
@@ -693,6 +707,7 @@ po::options_description get_rethinkdb_porcelain_options() {
     desc.add(get_disk_options());
     desc.add(get_cpu_options());
     desc.add(get_service_options());
+    desc.add(get_help_options());
     return desc;
 }
 
@@ -707,6 +722,7 @@ po::options_description get_rethinkdb_porcelain_options_visible() {
 #endif // AIOSUPPORT
     desc.add(get_cpu_options());
     desc.add(get_service_options());
+    desc.add(get_help_options());
     return desc;
 }
 
@@ -735,13 +751,7 @@ MUST_USE bool parse_commands_flat(int argc, char *argv[], po::variables_map *vm,
             ~po::command_line_style::allow_guessing;
         po::store(po::parse_command_line(argc, argv, options, style), *vm);
     } catch (const po::multiple_occurrences& ex) {
-        logERR("flag specified too many times\n");
-        return false;
-    } catch (const po::unknown_option& ex) {
-        logERR("%s\n", ex.what());
-        return false;
-    } catch (const po::validation_error& ex) {
-        logERR("%s\n", ex.what());
+        fprintf(stderr, "flag specified too many times\n");
         return false;
     }
     return true;
@@ -768,17 +778,12 @@ MUST_USE bool parse_config_file_flat(const std::string & conf_file_name, po::var
     try {
         po::store(po::parse_config_file(conf_file, options, true), *vm);
     } catch (const po::multiple_occurrences& ex) {
-        logERR("flag specified too many times\n");
+        fprintf(stderr, "flag specified too many times\n");
         conf_file.close();
         return false;
-    } catch (const po::unknown_option& ex) {
-        logERR("%s\n", ex.what());
+    } catch (...) {
         conf_file.close();
-        return false;
-    } catch (const po::validation_error& ex) {
-        logERR("%s\n", ex.what());
-        conf_file.close();
-        return false;
+        throw;
     }
     return true;
 }
@@ -786,7 +791,10 @@ MUST_USE bool parse_config_file_flat(const std::string & conf_file_name, po::var
 MUST_USE bool parse_commands_deep(int argc, char *argv[], po::variables_map *vm, const po::options_description& options) {
     po::options_description opt2 = config_file_attach_wrapper(options);
     try {
-        po::store(po::parse_command_line(argc, argv, opt2), *vm);
+        int style =
+            po::command_line_style::default_style &
+            ~po::command_line_style::allow_guessing;
+        po::store(po::parse_command_line(argc, argv, opt2, style), *vm);
         if (vm->count("config-file") && (*vm)["config-file"].as<std::string>().length()) {
             if (!parse_config_file_flat((*vm)["config-file"].as<std::string>(), vm, options)) {
                 return false;
@@ -794,13 +802,7 @@ MUST_USE bool parse_commands_deep(int argc, char *argv[], po::variables_map *vm,
         }
         po::notify(*vm);
     } catch (const po::multiple_occurrences& ex) {
-        logERR("flag specified too many times\n");
-        return false;
-    } catch (const po::unknown_option& ex) {
-        logERR("%s\n", ex.what());
-        return false;
-    } catch (const po::validation_error& ex) {
-        logERR("%s\n", ex.what());
+        fprintf(stderr, "flag specified too many times\n");
         return false;
     }
     return true;
@@ -811,6 +813,11 @@ int main_rethinkdb_create(int argc, char *argv[]) {
         po::variables_map vm;
         if (!parse_commands_deep(argc, argv, &vm, get_rethinkdb_create_options())) {
             return EXIT_FAILURE;
+        }
+
+        if (vm.count("help") > 0) {
+            help_rethinkdb_create();
+            return EXIT_SUCCESS;
         }
 
         io_backend_t io_backend;
@@ -865,6 +872,11 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
         po::variables_map vm;
         if (!parse_commands_deep(argc, argv, &vm, get_rethinkdb_serve_options())) {
             return EXIT_FAILURE;
+        }
+
+        if (vm.count("help") > 0) {
+            help_rethinkdb_serve();
+            return EXIT_SUCCESS;
         }
 
         const base_path_t base_path(vm["directory"].as<std::string>());
@@ -982,6 +994,11 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
+        if (vm.count("help") > 0) {
+            help_rethinkdb_proxy();
+            return EXIT_SUCCESS;
+        }
+
         if (!vm.count("join")) {
             fprintf(stderr, "No --join option(s) given. A proxy needs to connect to something!\n"
                    "Run 'rethinkdb proxy help' for more information.\n");
@@ -1047,6 +1064,11 @@ int main_rethinkdb_import(int argc, char *argv[]) {
         po::variables_map vm;
         if (!parse_commands(argc - 1, argv + 1, &vm, get_rethinkdb_import_options())) {
             return EXIT_FAILURE;
+        }
+
+        if (vm.count("help") > 0) {
+            help_rethinkdb_import();
+            return EXIT_SUCCESS;
         }
 
         // TODO: Does this not work with a zero count?
@@ -1146,6 +1168,11 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         po::variables_map vm;
         if (!parse_commands_deep(argc, argv, &vm, get_rethinkdb_porcelain_options())) {
             return EXIT_FAILURE;
+        }
+
+        if (vm.count("help") > 0) {
+            help_rethinkdb_porcelain();
+            return EXIT_SUCCESS;
         }
 
         const base_path_t base_path(vm["directory"].as<std::string>());
