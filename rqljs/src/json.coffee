@@ -33,8 +33,8 @@ class RDBType
         else if typeof @asJSON() is 'string'
             RDBType.STRING
 
-    asJSON: -> new ServerError "Abstract method"
-    copy:   -> new ServerError "Abstract method"
+    asJSON: -> throw new ServerError "Abstract method"
+    copy:   -> throw new ServerError "Abstract method"
 
     isNull: -> (@ instanceof RDBPrimitive and @asJSON() is null)
 
@@ -228,3 +228,19 @@ class RDBObject extends RDBType
         for k in attrs
             delete self[k.asJSON()]
         return self
+
+class RDBJSFunction extends RDBType
+    constructor: (func) ->
+        @jsFunc = func
+
+    asJSON: -> throw new RqlRuntimeError "Cannot return function."
+
+    apply: (args) ->
+        if @jsFunc.length isnt args.length
+            throw new RqlRuntimeError(
+                "Expected #{@jsFunc.length} argument(s) but found #{args.length}.")
+
+        try
+            return new RDBPrimitive @jsFunc.apply({}, args.map((v)->v.asJSON()))
+        catch err
+            throw new RqlRuntimeError err.toString()
