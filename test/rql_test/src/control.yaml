@@ -97,3 +97,5 @@ tests:
     # returning read queries from a forEach, and calling forEach in
     # random places)
 
+    # TODO: what happens if we pass static values to things that expect functions
+    # TODO: passing r.js to seq.map

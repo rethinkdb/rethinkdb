@@ -81,6 +81,9 @@ tests:
       rb: tbl.filter{ |row| row[:a] > 2 }.count
       ot: 25
 
+    # TODO: seq.filter(true)
+    # TODO: seq.filter(1)
+    
     # Clean up
     - cd: r.db('test').table_drop('test')
       ot: ({'dropped':1})
