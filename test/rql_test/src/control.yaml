@@ -77,6 +77,8 @@ tests:
 
     - cd: r.do(1, 2, r.js('(function(a, b) { return a + b; })'))
       ot: 3
+
+    # TODO: screw with the number of arguments in the JS function (too few too many)
       
     - cd: r.expr(1).do(r.js('(function(x) { return x + 1; })'))
       ot: 2
