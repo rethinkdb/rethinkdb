@@ -57,10 +57,10 @@ class scoped_id_t {
 
 
 // A handle to a running "javascript evaluator" job.
-class runner_t : private extproc::job_handle_t {
+class runner_t {
+public:
     friend class run_task_t;
 
-  public:
     runner_t();
     ~runner_t();
 
@@ -70,11 +70,10 @@ class runner_t : private extproc::job_handle_t {
         std::string message;
     };
 
-    bool connected() { return extproc::job_handle_t::connected(); }
+    bool connected() { return job_handle_.connected(); }
 
     void begin(extproc::pool_t *pool);
     void finish();
-    void interrupt();
 
     // Invalidates an ID, dereferencing the object it refers to in the
     // javascript evaluator process.
@@ -121,7 +120,7 @@ class runner_t : private extproc::job_handle_t {
     // TODO (rntz): a way to send streams over to javascript.
     // TODO (rntz): a way to get streams back from javascript.
 
-  private:
+private:
     // The actual job that runs all this stuff.
     class job_t : public extproc::auto_job_t<job_t> {
       public:
@@ -146,7 +145,6 @@ class runner_t : private extproc::job_handle_t {
         DISABLE_COPYING(run_task_t);
     };
 
-  private:
     // TODO: This function one of those "identity function with assertion" functions.
     void note_id(id_t id) {
         guarantee(connected());
@@ -156,10 +154,13 @@ class runner_t : private extproc::job_handle_t {
         }
     }
 
-  private:
+    extproc::job_handle_t job_handle_;
+
     // Used only for assertions and guarantees.
     bool running_task_;
     std::set<id_t> used_ids_;
+
+    DISABLE_COPYING(runner_t);
 };
 
 } // namespace js

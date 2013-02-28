@@ -120,12 +120,8 @@ runner_t::~runner_t() {
 
 void runner_t::begin(extproc::pool_t *pool) {
     // TODO(rntz): might eventually want to handle external process failure
-    int res = extproc::job_handle_t::begin(pool, job_t());
+    int res = job_handle_.begin(pool, job_t());
     guarantee(0 == res);
-}
-
-void runner_t::interrupt() {
-    extproc::job_handle_t::interrupt();
 }
 
 struct quit_task_t : auto_task_t<quit_task_t> {
@@ -136,7 +132,7 @@ struct quit_task_t : auto_task_t<quit_task_t> {
 void runner_t::finish() {
     guarantee(connected());
     run_task_t(this, default_req_config(), quit_task_t());
-    extproc::job_handle_t::release();
+    job_handle_.release();
 }
 
 // ----- runner_t::job_t -----
@@ -167,11 +163,11 @@ runner_t::run_task_t::~run_task_t() {
 }
 
 int64_t runner_t::run_task_t::read(void *p, int64_t n) {
-    return runner_->read_interruptible(p, n, timer_.has() ? timer_.get() : NULL);
+    return runner_->job_handle_.read_interruptible(p, n, timer_.has() ? timer_.get() : NULL);
 }
 
 int64_t runner_t::run_task_t::write(const void *p, int64_t n) {
-    return runner_->write_interruptible(p, n, timer_.has() ? timer_.get() : NULL);
+    return runner_->job_handle_.write_interruptible(p, n, timer_.has() ? timer_.get() : NULL);
 }
 
 
