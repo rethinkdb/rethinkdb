@@ -1,21 +1,36 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #define __STDC_LIMIT_MACROS
-#include <stdint.h>             // for UINT32_MAX
+#include <stdint.h>
 
-#include "utils.hpp"
+#include "errors.hpp"
 #include <boost/optional.hpp>
 
 #include "containers/scoped.hpp"
+#include "extproc/job.hpp"
+#include "extproc/pool.hpp"
 #include "rdb_protocol/jsimpl.hpp"
 #include "rdb_protocol/rdb_protocol_json.hpp"
+#include "utils.hpp"
 
 namespace js {
+
+// The actual job that runs all this stuff.
+class runner_job_t : public extproc::auto_job_t<runner_job_t> {
+public:
+    runner_job_t() {}
+    virtual void run_job(control_t *control, UNUSED void *extra) {
+        // The reason we have env_t is to use it here.
+        env_t(control).run();
+    }
+
+    RDB_MAKE_ME_SERIALIZABLE_0();
+};
+
 
 const id_t MIN_ID = 1;
 // TODO: This is not the max id.  MAX_ID - 1 is the max id.
 const id_t MAX_ID = UINT32_MAX;
 
-// ---------- utility functions ----------
 static void append_caught_error(std::string *errmsg, const v8::TryCatch &try_catch) {
     if (!try_catch.HasCaught()) return;
 
@@ -31,7 +46,6 @@ static void append_caught_error(std::string *errmsg, const v8::TryCatch &try_cat
     errmsg->append(buf.data(), len);
 }
 
-// ---------- scoped_id_t ----------
 scoped_id_t::~scoped_id_t() {
     if (!empty()) reset();
 }
@@ -45,7 +59,6 @@ void scoped_id_t::reset(id_t id) {
 }
 
 
-// ---------- env_t ----------
 runner_t::req_config_t::req_config_t()
     : timeout_ms(0)
 {}
@@ -100,8 +113,8 @@ void env_t::forget(id_t id) {
 }
 
 
-// ---------- runner_t ----------
-runner_t::runner_t() : running_task_(false) { }
+runner_t::runner_t()
+    : job_handle_(new extproc::job_handle_t), running_task_(false) { }
 
 const runner_t::req_config_t *runner_t::default_req_config() {
     static req_config_t config;
@@ -118,9 +131,12 @@ runner_t::~runner_t() {
     if (connected()) finish();
 }
 
+bool runner_t::connected() { return job_handle_->connected(); }
+
+
 void runner_t::begin(extproc::pool_t *pool) {
     // TODO(rntz): might eventually want to handle external process failure
-    int res = job_handle_.begin(pool, job_t());
+    int res = job_handle_->begin(pool, runner_job_t());
     guarantee(0 == res);
 }
 
@@ -132,16 +148,9 @@ struct quit_task_t : auto_task_t<quit_task_t> {
 void runner_t::finish() {
     guarantee(connected());
     run_task_t(this, default_req_config(), quit_task_t());
-    job_handle_.release();
+    job_handle_->release();
 }
 
-// ----- runner_t::job_t -----
-void runner_t::job_t::run_job(control_t *control, UNUSED void *extra) {
-    // The reason we have env_t is to use it here.
-    env_t(control).run();
-}
-
-// ----- runner_t::run_task_t -----
 runner_t::run_task_t::run_task_t(runner_t *runner, const req_config_t *config, const task_t &task)
     : runner_(runner)
 {
@@ -163,16 +172,14 @@ runner_t::run_task_t::~run_task_t() {
 }
 
 int64_t runner_t::run_task_t::read(void *p, int64_t n) {
-    return runner_->job_handle_.read_interruptible(p, n, timer_.has() ? timer_.get() : NULL);
+    return runner_->job_handle_->read_interruptible(p, n, timer_.has() ? timer_.get() : NULL);
 }
 
 int64_t runner_t::run_task_t::write(const void *p, int64_t n) {
-    return runner_->job_handle_.write_interruptible(p, n, timer_.has() ? timer_.get() : NULL);
+    return runner_->job_handle_->write_interruptible(p, n, timer_.has() ? timer_.get() : NULL);
 }
 
 
-// ---------- tasks ----------
-// ----- release_id() -----
 struct release_task_t : auto_task_t<release_task_t> {
     release_task_t() {}
     explicit release_task_t(id_t id) : id_(id) {}
@@ -193,7 +200,6 @@ void runner_t::release_id(id_t id) {
     used_ids_.erase(it);
 }
 
-// ----- compile() -----
 struct compile_task_t : auto_task_t<compile_task_t> {
     compile_task_t() {}
     compile_task_t(const std::vector<std::string> &args, const std::string &src)
@@ -385,7 +391,6 @@ id_t runner_t::compile(
     return id;
 }
 
-// ----- call() -----
 struct call_task_t : auto_task_t<call_task_t> {
     call_task_t() {}
     call_task_t(id_t id,

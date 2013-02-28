@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_JS_HPP_
 #define RDB_PROTOCOL_JS_HPP_
 
@@ -14,10 +14,13 @@
 #include "arch/timing.hpp"      // signal_timer_t
 #include "containers/archive/archive.hpp"
 #include "containers/scoped.hpp"
-#include "extproc/job.hpp"
-#include "extproc/pool.hpp"
 #include "http/json.hpp"
 #include "rpc/serialize_macros.hpp"
+
+namespace extproc {
+class pool_t;
+class job_handle_t;
+};
 
 namespace js {
 
@@ -70,7 +73,7 @@ public:
         std::string message;
     };
 
-    bool connected() { return job_handle_.connected(); }
+    bool connected();
 
     void begin(extproc::pool_t *pool);
     void finish();
@@ -121,14 +124,6 @@ public:
     // TODO (rntz): a way to get streams back from javascript.
 
 private:
-    // The actual job that runs all this stuff.
-    class job_t : public extproc::auto_job_t<job_t> {
-      public:
-        job_t() {}
-        virtual void run_job(control_t *control, void *extra);
-        RDB_MAKE_ME_SERIALIZABLE_0();
-    };
-
     class run_task_t : public read_stream_t, public write_stream_t {
       public:
         // Starts running the given task. We can only run one task at a time.
@@ -154,7 +149,7 @@ private:
         }
     }
 
-    extproc::job_handle_t job_handle_;
+    scoped_ptr_t<extproc::job_handle_t> job_handle_;
 
     // Used only for assertions and guarantees.
     bool running_task_;

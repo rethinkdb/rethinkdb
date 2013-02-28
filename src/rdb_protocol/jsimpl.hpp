@@ -12,9 +12,14 @@
 #include <boost/shared_ptr.hpp>
 
 #include "containers/archive/boost_types.hpp"
+#include "extproc/job.hpp"
 #include "http/json.hpp"
 #include "rdb_protocol/js.hpp"
 #include "rpc/serialize_macros.hpp"
+
+namespace extproc {
+class job_t;
+};
 
 namespace js {
 
@@ -27,9 +32,9 @@ v8::Handle<v8::Value> fromJSON(const cJSON &json);
 
 // Worker-side JS evaluation environment.
 class env_t {
-    friend class runner_t;
+    friend class runner_job_t;
 
-  private:                      // Interface used by runner_t::job_t().
+  private:                      // Interface used by runner_job_t().
     explicit env_t(extproc::job_t::control_t *control);
     ~env_t();
 
