@@ -154,10 +154,12 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     white_list.insert("/fonts/opensans-semibolditalic-webfont.ttf");
     white_list.insert("/fonts/opensans-semibolditalic-webfont.woff");
     white_list.insert("/fonts/stylesheet.css");
+    white_list.insert("/images/fullscreen_16x16.png");
+    white_list.insert("/images/trash_stroke_16x16.png");
+    white_list.insert("/images/book_alt_16x16.png");
+    white_list.insert("/images/book_alt2_16x14.png");
+    white_list.insert("/images/fullscreen_exit_16x16.png");
     white_list.insert("/images/ajax-loader.gif");
-    white_list.insert("/images/arrow-expand_right.png");
-    white_list.insert("/images/arrow-expand_left.png");
-    white_list.insert("/images/full_view.png");
     white_list.insert("/images/arrow_down.png");
     white_list.insert("/images/arrow_right.png");
     white_list.insert("/images/bar-line-graph-icon.png");

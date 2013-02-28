@@ -1037,9 +1037,39 @@ TODO: retire this
     .options_container{
         float: right;
         margin-top: 5px;
-        .close_queries_link{
-            width: 110px; // 108 should be enough, but firefox on osx isn't happy. Anyway, it's going to be replaced with icons.. Anyway, it's going to be replaced with icons.. Anyway, it's going to be replaced with icons.. Anyway, it's going to be replaced with icons.. Anyway, it's going to be replaced with icons.
+        .option_icon{
+            width: 16px;
+            height: 16px;
+            opacity: 0.3;
         }
+        .fullscreen{
+            background: url(/images/fullscreen_16x16.png) center no-repeat;
+        }
+        .fullscreen_exit{
+            background: url(/images/fullscreen_exit_16x16.png) center no-repeat;
+        }
+        .show_history{
+            background: url(/images/book_alt_16x16.png) center no-repeat;
+            float: left;
+            margin-right: 5px;
+        }
+        .clear_queries_link{
+            display: none;
+            .clear_history{
+                background: url(/images/trash_stroke_16x16.png) center no-repeat;
+                float: left;
+                margin-right: 5px;
+            }
+        }
+        .close_queries_link{
+            &.active{
+                background-color: #f2f2f2; // layer fill content
+                .box-shadow(~"inset 0 2px 1px rgba(0,0,0,.06)"); // inner shadow
+                .gradient(~"linear-gradient(bottom, rgba(255,255,255,.02) 0%, rgba(0,0,0,.02) 100%)"); // gradient overlay
+            }
+        }
+
+
     }
 
     h1.title{

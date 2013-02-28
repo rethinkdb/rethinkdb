@@ -12,7 +12,6 @@ module 'DataExplorerView', ->
         databases_suggestions_template: Handlebars.templates['dataexplorer-databases_suggestions-template']
         namespaces_suggestions_template: Handlebars.templates['dataexplorer-namespaces_suggestions-template']
         reason_dataexplorer_broken_template: Handlebars.templates['dataexplorer-reason_broken-template']
-        dataexplorer_toggle_size_template: Handlebars.templates['dataexplorer-toggle_size-template']
 
         # Constants
         limit: 40 # How many results we display per page // Final for now
@@ -35,8 +34,15 @@ module 'DataExplorerView', ->
 
         clear_history_view: (event) =>
             @history_view.clear_history event
+
         open_close_history: (event) =>
             @history_view.open_close_history event, @$('.close_queries_link')
+            if @history_view.state is 'visible'
+                @$('.clear_queries_link').fadeIn 'fast'
+                @$('.close_queries_link').addClass 'active'
+            else
+                @$('.clear_queries_link').fadeOut 'fast'
+                @$('.close_queries_link').removeClass 'active'
 
         displaying_full_view: false # Boolean for the full view (true if full view)
 
@@ -1699,16 +1705,15 @@ module 'DataExplorerView', ->
             $('#cluster').addClass 'container'
             $('#cluster').removeClass 'cluster_with_margin'
             @.$('.wrapper_scrollbar').css 'width', '888px'
-            @$('.change_size').html @dataexplorer_toggle_size_template
-                normal_view: true
+            @$('.option_icon').removeClass 'fullscreen_exit'
+            @$('.option_icon').addClass 'fullscreen'
 
         display_full: =>
             $('#cluster').removeClass 'container'
             $('#cluster').addClass 'cluster_with_margin'
             @.$('.wrapper_scrollbar').css 'width', ($(window).width()-92)+'px'
-            @$('.change_size').html @dataexplorer_toggle_size_template
-                normal_view: false
-
+            @$('.option_icon').removeClass 'fullscreen'
+            @$('.option_icon').addClass 'fullscreen_exit'
 
         destroy: =>
             @results_view.destroy()
@@ -2237,7 +2242,6 @@ module 'DataExplorerView', ->
     class @HistoryView extends Backbone.View
         dataexplorer_history_template: Handlebars.templates['dataexplorer-history-template']
         dataexplorer_query_li_template: Handlebars.templates['dataexplorer-query_li-template']
-        dataexplorer_toggle_history_template: Handlebars.templates['dataexplorer-toggle_history-template']
         className: 'history'
         
         size_history_displayed: 300
@@ -2268,7 +2272,7 @@ module 'DataExplorerView', ->
         initialize: (args) =>
             @container = args.container
             @history = args.history
-            @height_history = 200
+            @height_history = 204
 
         render: =>
             @$el.html @dataexplorer_history_template()
@@ -2346,16 +2350,12 @@ module 'DataExplorerView', ->
                         $('.arrow_history').hide() # In case the user trigger hide/show really fast
                 @$('.nano_border').slideUp 'fast'
                 @$('.arrow_history').slideUp 'fast'
-                container.html @dataexplorer_toggle_history_template
-                    displayed: true
             else
                 @state = 'visible'
                 @$('.arrow_history').show()
                 @$('.nano_border').show()
                 @resize()
                 @$('.nano >.content').scrollTop $('.history_list').height()
-                container.html @dataexplorer_toggle_history_template
-                    displayed: false
 
 
         # args =
