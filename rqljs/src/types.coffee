@@ -33,6 +33,7 @@ class TypeChecker
                 result: result
                 args: args
                 optargs: optobj
+                typestr: sig
             }
 
     checkType: (op, args, optargs, context) ->
@@ -49,7 +50,8 @@ class TypeChecker
                     last = sig.args[-1..-1][0]
                     if last? and last.repeated
                         type = last
-                unless type and type.check(arg)
+
+                unless type? and type.check(arg)
                     lastError = new RqlRuntimeError "Expected type #{type} but found #{TypeName::typeOf(arg)}."
                     lastError.backtrace.unshift i
                     eligibleSigs.splice(j, 1)
@@ -116,7 +118,10 @@ class TypeName
         else if val instanceof Function then FunctionType
         else if val instanceof RDBArray then ArrayType
         else if val instanceof RDBObject
-            if val.getPK? then SingleSelectionType else ObjectType
+            if val.getPK?
+                SingleSelectionType
+            else
+                ObjectType
         else if val instanceof RDBPrimitive
             switch val.typeOf()
                 when RDBType.NULL then NullType
@@ -129,7 +134,8 @@ class TypeName
             UnknownType
         )
 
-    check: (val) -> TypeName::typeOf(val) instanceof @constructor
+    check: (val) ->
+        TypeName::typeOf(val) instanceof @constructor
 
     toString: -> @st
 
@@ -168,9 +174,9 @@ class SequenceType extends TopType
 
     check: (val) ->
         t = TypeName::typeOf(val)
-        (t instanceof ArrayType or t instanceof @constructor)
+        (t instanceof ArrayType or t instanceof StreamType)
 
-class StreamType extends SequenceType
+class StreamType extends TopType
     st: "Stream"
 
 class StreamSelectionType extends StreamType

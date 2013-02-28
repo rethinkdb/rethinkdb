@@ -149,12 +149,11 @@ class RDBOp extends RDBVal
 
     compose: (args, optargs) ->
         if @st
-            ['r.', @st, '(', intsp(args), ')']
+            return ['r.', @st, '(', intspallargs(args, optargs), ')']
         else
             if @args[0] instanceof DatumTerm
                 args[0] = ['r(', args[0], ')']
-
-            [args[0], '.', @mt, '(', intsp(args[1..]), ')']
+            return [args[0], '.', @mt, '(', intspallargs(args[1..], optargs), ')']
 
 intsp = (seq) ->
     unless seq[0]? then return []
@@ -165,6 +164,16 @@ intsp = (seq) ->
 
 kved = (optargs) ->
     ['{', intsp([k, ': ', v] for own k,v of optargs), '}']
+
+intspallargs = (args, optargs) ->
+    argrepr = []
+    if args.length > 0
+        argrepr.push(intsp(args))
+    if Object.keys(optargs).length > 0
+        if argrepr.length > 0
+            argrepr.push(', ')
+        argrepr.push(kved(optargs))
+    return argrepr
 
 class MakeArray extends RDBOp
     tt: Term2.TermType.MAKE_ARRAY

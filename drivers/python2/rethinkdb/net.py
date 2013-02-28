@@ -57,11 +57,10 @@ class Cursor(list):
 
 class Connection():
 
-    def __init__(self, host, port, db_name):
+    def __init__(self, host, port):
         self.socket = None
         self.host = host
         self.port = port
-        self.default_db = db_name
         self.next_token = 1
         self.reconnect()
 
@@ -73,11 +72,16 @@ class Connection():
 
     def reconnect(self):
         self.close()
-        self.socket = socket.create_connection((self.host, self.port))
+        try:
+            self.socket = socket.create_connection((self.host, self.port))
+        except Exception as err:
+            raise RqlDriverError("Could not connect to %s:%s." % (self.host, self.port))
+
         self.socket.sendall(struct.pack("<L", p.VersionDummy.V0_1))
 
     def close(self):
         if self.socket:
+            self.socket.shutdown(socket.SHUT_RDWR)
             self.socket.close()
             self.socket = None
 
@@ -108,6 +112,10 @@ class Connection():
         
     def _send_query(self, query, term):
 
+        # Error if this connection has closed
+        if not self.socket:
+            raise RqlDriverError("Connection is closed.")
+
         # Send protobuf
         query_protobuf = query.SerializeToString()
         query_header = struct.pack("<L", len(query_protobuf))
@@ -115,8 +123,13 @@ class Connection():
 
         # Get response
         response_header = self.socket.recv(4)
+        if len(response_header) == 0:
+            raise RqlDriverError("Connection is closed.")
+
         (response_len,) = struct.unpack("<L", response_header)
         response_protobuf = self.socket.recv(response_len)
+        if len(response_protobuf) == 0:
+            raise RqlDriverError("Connection is closed.")
 
         # Construct response
         response = p.Response2()
@@ -142,7 +155,7 @@ class Connection():
         if response.type is p.Response2.SUCCESS_ATOM:
             return Datum.deconstruct(response.response[0])
         
-def connect(host='localhost', port=28016, db_name='test'):
-    return Connection(host, port, db_name)
+def connect(host='localhost', port=28016):
+    return Connection(host, port)
 
 from ast import Datum
