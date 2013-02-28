@@ -42,8 +42,8 @@ datum_t *table_t::env_add_ptr(datum_t *d) {
     return env->add_ptr(d);
 }
 
-const datum_t *table_t::p_replace(const datum_t *orig, const map_wire_func_t &mwf,
-                                  UNUSED bool _so_the_template_matches) {
+const datum_t *table_t::do_replace(const datum_t *orig, const map_wire_func_t &mwf,
+                                   UNUSED bool _so_the_template_matches) {
     const std::string &pk = get_pkey();
     if (orig->get_type() == datum_t::R_NULL) {
         map_wire_func_t mwf2 = mwf;
@@ -67,16 +67,16 @@ const datum_t *table_t::p_replace(const datum_t *orig, const map_wire_func_t &mw
 }
 
 
-const datum_t *table_t::p_replace(const datum_t *orig, func_t *f, bool nondet_ok) {
+const datum_t *table_t::do_replace(const datum_t *orig, func_t *f, bool nondet_ok) {
     if (f->is_deterministic()) {
-        return p_replace(orig, map_wire_func_t(env, f));
+        return do_replace(orig, map_wire_func_t(env, f));
     } else {
         r_sanity_check(nondet_ok);
-        return p_replace(orig, f->call(orig)->as_datum(), true);
+        return do_replace(orig, f->call(orig)->as_datum(), true);
     }
 }
 
-const datum_t *table_t::p_replace(const datum_t *orig, const datum_t *d, bool upsert) {
+const datum_t *table_t::do_replace(const datum_t *orig, const datum_t *d, bool upsert) {
     Term2 t;
     int x = env->gensym();
     Term2 *arg = pb::set_func(&t, x);
@@ -93,7 +93,7 @@ const datum_t *table_t::p_replace(const datum_t *orig, const datum_t *d, bool up
             }
 
     propagate(&t);
-    return p_replace(orig, map_wire_func_t(t, 0));
+    return do_replace(orig, map_wire_func_t(t, 0));
 }
 
 const std::string &table_t::get_pkey() { return pkey; }
