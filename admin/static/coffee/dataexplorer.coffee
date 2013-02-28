@@ -34,6 +34,7 @@ module 'DataExplorerView', ->
 
         clear_history_view: (event) =>
             @history_view.clear_history event
+            @clear_history()
 
         open_close_history: (event) =>
             @history_view.open_close_history event, @$('.close_queries_link')
@@ -167,7 +168,7 @@ module 'DataExplorerView', ->
                     @history_view.add_query query
 
         clear_history: =>
-            @history = []
+            @history.length = 0
             window.localStorage.rethinkdb_history = JSON.stringify @history
 
         initialize: (args) =>
