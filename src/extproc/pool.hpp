@@ -82,8 +82,8 @@ class pool_t :
         // condition on our socket. Calls on_error().
         virtual void do_on_event(int events);
 
-        pool_t *pool_;
-        pid_t pid_;
+        pool_t *const pool_;
+        const pid_t pid_;
         bool attached_;
 
       private:
