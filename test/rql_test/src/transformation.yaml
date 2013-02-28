@@ -68,11 +68,13 @@ tests:
       rb: tbl.order_by(:id)[0]
       ot: ({'id':0, 'a':0})
 
-    # Distinct
-    - py: tbl.map(lambda row:row['a']).distinct().count()
-      js: tbl.map(function(row) { return row('a'); }).distinct().count()
-      rb: tbl.map{ |row| row[:a] }.distinct.count
-      ot: 4
+    # TODO: add tests for skip (positive, negative numbers, non-numbers)
+    # TODO: add tests for limit (positive, negative numbers, non-numbers)
+    # TODO: add tests for slice (positive, negative numbers, non-numbers)
+    # TODO: add tests for nth (positive, negative numbers, non-numbers)
+    # TODO: pluck
+    # TODO: without
+    # TODO: make sure all is properly polymorphic
 
     # Union
     - cd: tbl.union(tbl2).count()

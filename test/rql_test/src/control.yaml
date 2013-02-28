@@ -54,3 +54,44 @@ tests:
     - cd: r.branch('a', {}, [])
       ot: err("RqlRuntimeError", "Expected type BOOL but found STRING.", [0])
 
+    # r.error()
+    - cd: r.error('Hello World')
+      ot: err("RqlRuntimeError", "Hello World", [0])
+      
+    # r.error() negative cases
+    - cd: r.error()
+      ot: err("RqlDriverError", "Expected 1 argument but found 0.", [0])
+      
+    - cd: r.error('foo', 'bar')
+      ot: err("RqlDriverError", "Expected 1 argument but found 2.", [0])
+      
+    - cd: r.error(5) # we might want to allow this eventually
+      ot: err("RqlRuntimeError", "Expected type STRING but found NUMBER.", [0])
+
+    # r.js()
+    - cd: r.js('1 + 1')
+      ot: 2
+      
+    - cd: r.js('1 + 1; 2 + 2')
+      ot: 4
+
+    - cd: r.do(1, 2, r.js('(function(a, b) { return a + b; })'))
+      ot: 3
+      
+    - cd: r.expr(1).do(r.js('(function(x) { return x + 1; })'))
+      ot: 2
+
+    - cd: r.expr('foo').do(r.js('(function(x) { return x + "bar"; })'))
+      ot: "'foobar'"
+
+    # js error cases
+    - cd: r.js('(function() { return 1; })')
+      ot: err("RqlRuntimeError", "Expected type JSON but found Unknown.", [0])
+
+    - cd: r.js('function() { return 1; }')
+      ot: 'err("RqlRuntimeError", "SyntaxError: Unexpected token (", [0])'
+      
+    # TODO: add positive and negative forEach tests (including
+    # returning read queries from a forEach, and calling forEach in
+    # random places)
+

@@ -35,6 +35,7 @@ tests:
       ot: ({'inserted':100})
 
     # Inner-Join
+    # TODO: test an actual inner-join condition (where inner-join differs from outer-join)
     - def:
         py: ij = tbl.inner_join(tbl2, lambda x,y:x['a'] == y['b']).zip()
         js: ij = tbl.innerJoin(tbl2, function(x, y) { return x('a').eq(y('b')); }).zip()
@@ -47,6 +48,7 @@ tests:
       ot: 0
 
     # Outer-Join
+    # TODO: test an actual outer-join condition (where outer-join differs from inner-join)
     - def:
         py: oj = tbl.outer_join(tbl2, lambda x,y:x['a'] == y['b']).zip()
         js: oj = tbl.outerJoin(tbl2, function(x, y) { return x('a').eq(y('b')); }).zip()
@@ -59,6 +61,7 @@ tests:
       ot: 0
 
     # Eq-Join
+    # TODO: test for table where id isn't a primary key
     - def: ej = tbl.eq_join('a', tbl2).zip()
       cd: ej.count()
       ot: 100

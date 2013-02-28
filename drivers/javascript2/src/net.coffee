@@ -30,7 +30,7 @@ class Connection
             @_error = => # Clear failed to connect callback
             callback null, @
 
-        @_error = => callback new RqlDriverError "Could not connect to server"
+        @_error = => callback new RqlDriverError "Could not connect to #{@host}:#{@port}."
 
     _data: (buf) ->
         # Buffer data, execute return results if need be
@@ -108,6 +108,10 @@ class Connection
         @outstandingCallbacks = {}
         @close()
 
+    reconnect: (callback) ->
+        @cancel()
+        new @constructor({host:@host, port:@port}, callback)
+
     _start: (term, cb) ->
         unless @open then throw RqlDriverError "Connection closed"
 
@@ -162,6 +166,9 @@ class TcpConnection extends Connection
 
         super(host, callback)
 
+        if @rawSocket?
+            @rawSocket.end()
+
         net = require('net')
         @rawSocket = net.connect @port, @host
         @rawSocket.setNoDelay()
@@ -183,6 +190,9 @@ class TcpConnection extends Connection
             for byte,i in buf
                 arr[i] = byte
             @_data(arr.buffer)
+
+        @rawSocket.on 'close', =>
+            @close()
 
     close: ->
         @rawSocket.end()
@@ -247,8 +257,6 @@ class EmbeddedConnection extends Connection
         super({}, callback)
         @_embeddedServer = embeddedServer
         @_connect()
-
-    cancel: -> super()
 
     write: (chunk) -> @_data(@_embeddedServer.execute(chunk))
 
