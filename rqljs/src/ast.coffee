@@ -69,15 +69,19 @@ class RDBVar extends RDBOp
         context.lookupVar args[0].asJSON()
 
 class RDBJavaScript extends RDBOp
-    type: tp "STRING -> DATUM"
+    type: tp "STRING -> DATUM | STRING -> Function(*)"
     op: (args) ->
         src = args[0].asJSON()
         try
             res = eval src
+
+            if res instanceof Function
+                return new RDBJSFunction res
+            else
+                return new RDBPrimitive res
+
         catch err
-            throw new RqlRuntimeError err.message
-            
-        new RDBPrimitive res
+            throw new RqlRuntimeError err.toString()
 
 class RDBUserError extends RDBOp
     type: tp "STRING -> Error"
@@ -372,6 +376,17 @@ class RDBFunc
             (actuals...) ->
                 expectedAirity = formals.asArray().length
                 foundAirity = actuals.length
+
+                if expectedAirity == 0
+                    # This could be javascript function term, if so, we'll forward the arguments to it
+                    try
+                        result = body.eval(context)
+                        if result instanceof RDBJSFunction
+                            # Forward our argument to the JS function
+                            return result.apply(actuals)
+                    catch err
+                        err.backtrace.unshift arg_num
+                        throw err
 
                 if expectedAirity isnt foundAirity
                     err = new RqlRuntimeError "Expected #{expectedAirity} argument(s) but found #{foundAirity}."

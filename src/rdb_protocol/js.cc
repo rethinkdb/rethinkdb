@@ -19,16 +19,10 @@ const id_t MAX_ID = UINT32_MAX;
 static void append_caught_error(std::string *errmsg, const v8::TryCatch &try_catch) {
     if (!try_catch.HasCaught()) return;
 
-    v8::HandleScope handle_scope;
-    v8::Handle<v8::String> msg = try_catch.Message()->Get();
-
-    int len = msg->Utf8Length();
-    scoped_array_t<char> buf(len);
-    int written = msg->WriteUtf8(buf.data(), len);
-    guarantee(len == written);
-
-    errmsg->append(":\n");
-    errmsg->append(buf.data(), len);
+    v8::String::Utf8Value exception(try_catch.Exception());
+    const char *message = *exception;
+    guarantee(message);
+    errmsg->append(message, strlen(message));
 }
 
 // ---------- scoped_id_t ----------
@@ -223,7 +217,6 @@ struct eval_task_t : auto_task_t<eval_task_t> {
         if (script.IsEmpty()) {
 
             // Get the error out of the TryCatch object
-            *errmsg = "JS syntax error. Remember when passing function expressions to wrap in parens.";
             append_caught_error(errmsg, try_catch);
 
         } else {
@@ -234,7 +227,6 @@ struct eval_task_t : auto_task_t<eval_task_t> {
             if (result_val.IsEmpty()) {
 
                 // Get the error from the TryCatch object
-                *errmsg = "JS evaluation error.";
                 append_caught_error(errmsg, try_catch);
 
             } else {
@@ -243,9 +235,12 @@ struct eval_task_t : auto_task_t<eval_task_t> {
                 // to map, filter, reduce, etc.
                 if (result_val->IsFunction()) {
 
-                    //TODO(bill) implement this. This should evaluate to a v8 function handle of
-                    // some kind that can be later called with arguments.
-                    *errmsg = "JS function expressions not yet supported";
+                    v8::Handle<v8::Function> func = v8::Handle<v8::Function>::Cast(result_val);
+                    id_result_t result("");
+                    result = env->rememberValue(func);
+
+                    //TODO what to do with this result?
+                    *errmsg = "JS function types not yet support."
 
                 } else {
                     guarantee(!result_val.IsEmpty());
@@ -416,14 +411,12 @@ struct compile_task_t : auto_task_t<compile_task_t> {
 
         v8::Handle<v8::Script> script = v8::Script::Compile(src);
         if (script.IsEmpty()) {
-            *errmsg = "compiling function definition failed";
             append_caught_error(errmsg, try_catch);
             return result;
         }
 
         v8::Handle<v8::Value> funcv = script->Run();
         if (funcv.IsEmpty()) {
-            *errmsg = "evaluating function definition failed";
             append_caught_error(errmsg, try_catch);
             return result;
         }
@@ -515,7 +508,6 @@ struct call_task_t : auto_task_t<call_task_t> {
         // Call function with environment as its receiver.
         v8::Handle<v8::Value> result = func->Call(obj, nargs, handles.data());
         if (result.IsEmpty()) {
-            *errmsg = "calling function failed";
             append_caught_error(errmsg, try_catch);
         }
         return scope.Close(result);

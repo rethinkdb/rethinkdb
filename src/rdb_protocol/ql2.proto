@@ -193,7 +193,7 @@ message Term2 {
         // libraries, and because it's more efficient on the wire.)
         VAR          = 10; // !NUMBER -> DATUM
         // Takes some javascript code and executes it.
-        JAVASCRIPT   = 11; // STRING -> DATUM
+        JAVASCRIPT   = 11; // STRING -> DATUM | STRING -> Function(*)
         // Takes a string and throws an error with that message.
         ERROR        = 12; // STRING -> Error
         // Takes nothing and returns a reference to the implicit variable.
@@ -315,7 +315,7 @@ message Term2 {
 
         // * Control Operators
         // Calls a function on data
-        FUNCALL  = 64; // Function, DATUM... -> DATUM
+        FUNCALL  = 64; // Function(*), DATUM... -> DATUM
         // Executes its first argument, and returns its second argument if it
         // got [true] or its third argument if it got [false] (like an `if`
         // statement).
