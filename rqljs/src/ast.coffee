@@ -70,7 +70,14 @@ class RDBVar extends RDBOp
 
 class RDBJavaScript extends RDBOp
     type: tp "STRING -> DATUM"
-    op: (args) -> new RDBPrimitive eval args[0].asJSON()
+    op: (args) ->
+        src = args[0].asJSON()
+        try
+            res = eval src
+        catch err
+            throw new RqlRuntimeError err.message
+            
+        new RDBPrimitive res
 
 class RDBUserError extends RDBOp
     type: tp "STRING -> Error"
