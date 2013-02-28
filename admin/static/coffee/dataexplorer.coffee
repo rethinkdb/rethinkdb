@@ -36,12 +36,17 @@ module 'DataExplorerView', ->
             @history_view.clear_history event
             @clear_history()
 
-        open_close_history: (event) =>
-            @history_view.open_close_history event, @$('.close_queries_link')
+        open_close_history: (event, args) =>
+            @history_view.open_close_history(args)
             if @history_view.state is 'visible'
-                @$('.clear_queries_link').fadeIn 'fast'
+                @saved_data.history_state = 'visible'
+                if args?.no_animation is true
+                    @$('.clear_queries_link').show()
+                else
+                    @$('.clear_queries_link').fadeIn 'fast'
                 @$('.close_queries_link').addClass 'active'
             else
+                @saved_data.history_state = 'hidden'
                 @$('.clear_queries_link').fadeOut 'fast'
                 @$('.close_queries_link').removeClass 'active'
 
@@ -182,6 +187,7 @@ module 'DataExplorerView', ->
                     metadata: null
                     cursor_timed_out: true
                     view: 'tree'
+                    history_state: 'hidden'
 
             # Load history, keep it in memory for the session
             if not DataExplorerView.Container.prototype.history?
@@ -285,7 +291,6 @@ module 'DataExplorerView', ->
                 @error_on_connect()
     
             @$('.history_container').html @history_view.render().$el
-
             return @
 
         # This method has to be called AFTER the el element has been inserted in the DOM tree, mostly for codemirror
@@ -316,6 +321,10 @@ module 'DataExplorerView', ->
             @results_view.expand_raw_textarea()
 
             @draft = @codemirror.getValue()
+
+            if @saved_data.history_state is 'visible' # If the history was visible, we show it
+                @open_close_history event,
+                    no_animation: true
 
         on_blur: =>
             @prototype.focus_on_codemirror = false
@@ -2335,8 +2344,7 @@ module 'DataExplorerView', ->
                     @resize
                         size: 32
 
-        open_close_history: (event, container) =>
-            event?.preventDefault()
+        open_close_history: (args) =>
             that = @
             if @state is 'visible'
                 @state = 'hidden'
@@ -2355,7 +2363,7 @@ module 'DataExplorerView', ->
                 @state = 'visible'
                 @$('.arrow_history').show()
                 @$('.nano_border').show()
-                @resize()
+                @resize(args)
                 @$('.nano >.content').scrollTop $('.history_list').height()
 
 
@@ -2372,20 +2380,27 @@ module 'DataExplorerView', ->
                 else
                     size = Math.min @$('.history_list').height(), @height_history
             @$('.nano').css 'visibility', 'visible'
-            @desactivate_overflow()
-            @$('.nano').animate
-                height: size
-                , 200
-                , ->
-                    $('body').css 'overflow', 'auto'
-                    $(@).css 'visibility', 'visible' # In case the user trigger hide/show really fast
-                    $('.arrow_history').show() # In case the user trigger hide/show really fast
-                    $('.nano_border').show() # In case the user trigger hide/show really fast
-                    $(@).nanoScroller({preventPageScrolling: true})
-                    if args?.is_at_bottom is true
-                        $('.nano >.content').animate
-                            scrollTop: $('.history_list').height()
-                            , 300
+            if args?.no_animation is true
+                @$('.nano').height size
+                @$('.nano').css 'visibility', 'visible' # In case the user trigger hide/show really fast
+                @$('.arrow_history').show() # In case the user trigger hide/show really fast
+                @$('.nano_border').show() # In case the user trigger hide/show really fast
+                @$('.nano').nanoScroller({preventPageScrolling: true})
+            else
+                @desactivate_overflow()
+                @$('.nano').animate
+                    height: size
+                    , 200
+                    , ->
+                        $('body').css 'overflow', 'auto'
+                        $(@).css 'visibility', 'visible' # In case the user trigger hide/show really fast
+                        $('.arrow_history').show() # In case the user trigger hide/show really fast
+                        $('.nano_border').show() # In case the user trigger hide/show really fast
+                        $(@).nanoScroller({preventPageScrolling: true})
+                        if args?.is_at_bottom is true
+                            $('.nano >.content').animate
+                                scrollTop: $('.history_list').height()
+                                , 300
 
         # The 3 secrets of French cuisine is butter, butter and butter
         # We desactivate the scrollbar (if there isn't) while animating to have a smoother experience. We´ll put back the scrollbar once the animation is done.
