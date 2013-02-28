@@ -98,4 +98,4 @@ tests:
     # random places)
 
     # TODO: what happens if we pass static values to things that expect functions
-    # TODO: passing r.js to seq.map
+    # TODO: passing r.js to seq.map (r.js(1), r.js(func))
