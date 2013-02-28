@@ -49,7 +49,7 @@ struct fib_job_t : public extproc::auto_job_t<fib_job_t> {
     int n_;
     RDB_MAKE_ME_SERIALIZABLE_1(n_);
 
-    virtual void run_job(control_t *control, UNUSED void *extra) {
+    virtual void run_job(extproc::job_control_t *control, UNUSED void *extra) {
         int res = fib(n_);
         write_message_t msg;
         msg << res;
@@ -67,7 +67,7 @@ struct collatz_job_t : public extproc::auto_job_t<collatz_job_t> {
     collatz_job_t() {}
     explicit collatz_job_t(int n) : n_(n) {}
 
-    void run_job(control_t *control, UNUSED void *extra) {
+    void run_job(extproc::job_control_t *control, UNUSED void *extra) {
         for (;;) {
             // Send current value.
             write_message_t msg;
@@ -103,7 +103,7 @@ struct job_loop_t : public extproc::auto_job_t<job_loop_t> {
 
     RDB_MAKE_ME_SERIALIZABLE_0();
 
-    void run_job(control_t *control, UNUSED void *extra) {
+    void run_job(extproc::job_control_t *control, UNUSED void *extra) {
         // Loops accepting jobs until we tell it to quit.
         for (;;) {
             bool quit;

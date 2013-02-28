@@ -235,7 +235,7 @@ void exec_worker(pid_t local_spawner_pid, fd_t sockfd) {
 
     // Receive one job and run it.
     scoped_fd_t fd(sockfd);
-    job_t::control_t control(getpid(), local_spawner_pid, &fd);
+    job_control_t control(getpid(), local_spawner_pid, &fd);
     exit(job_t::accept_job(&control, NULL));
 }
 

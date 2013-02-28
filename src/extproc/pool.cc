@@ -135,7 +135,7 @@ class job_acceptor_t :
         public auto_job_t<job_acceptor_t>
 {
   public:
-    void run_job(control_t *control, UNUSED void *extra) {
+    void run_job(job_control_t *control, UNUSED void *extra) {
         while (-1 != accept_job(control, NULL)) {}
 
         // The "correct" way for us to die is to be killed by the engine

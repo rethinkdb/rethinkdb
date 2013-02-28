@@ -14,11 +14,33 @@
 
 namespace js {
 
+// Tasks: jobs we run on the JS worker, within an env_t
+class task_t :
+    private extproc::job_t
+{
+    friend class runner_t;
+
+  public:
+    virtual void run(env_t *env) = 0;
+
+    void run_job(extproc::job_control_t *control, void *extra) {
+        env_t *env = static_cast<env_t *>(extra);
+        guarantee(control == env->control());
+        context_t cx(env);
+        run(env);
+    }
+};
+
+template <class instance_t>
+struct auto_task_t : extproc::auto_job_t<instance_t, task_t> {};
+
+
+
 // The actual job that runs all this stuff.
 class runner_job_t : public extproc::auto_job_t<runner_job_t> {
 public:
     runner_job_t() {}
-    virtual void run_job(control_t *control, UNUSED void *extra) {
+    virtual void run_job(extproc::job_control_t *control, UNUSED void *extra) {
         // The reason we have env_t is to use it here.
         env_t(control).run();
     }
@@ -63,7 +85,7 @@ runner_t::req_config_t::req_config_t()
     : timeout_ms(0)
 {}
 
-env_t::env_t(extproc::job_t::control_t *control)
+env_t::env_t(extproc::job_control_t *control)
     : control_(control),
       should_quit_(false),
       next_id_(MIN_ID)
