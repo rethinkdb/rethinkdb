@@ -636,7 +636,7 @@ module 'DataExplorerView', ->
                     continue
 
                 if is_parsing_string is true
-                    if char is string_delimiter # End of the string, we can work again?
+                    if char is string_delimiter and query[i-1] isnt '\\' # query[i-1] is defined since we start the loop with is_parsing = false and we need at least to go through one character to toggle its value
                         is_parsing_string = false # Else we just keep parsing the string
                         if element.type is 'string'
                             element.name = query.slice start, i+1
