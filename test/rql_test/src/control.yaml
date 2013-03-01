@@ -97,3 +97,7 @@ tests:
     # returning read queries from a forEach, and calling forEach in
     # random places)
 
+    # TODO: what happens if we pass static values to things that expect functions (=> error unless we explicitly define it)
+    # TODO: passing r.js to seq.map (r.js(1), r.js(func))
+    # TODO: check r.js function not returning a value (e.g. undefined) in filter
+    # TODO: check js function in js client not returning a value (e.g. undefined) in filter
