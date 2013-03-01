@@ -36,7 +36,7 @@ pool_t::~pool_t() {
     guarantee(busy_workers_.empty(), "Busy workers at pool shutdown!");
 
     // Kill worker processes.
-    worker_t *w;
+    pool_worker_t *w;
     while ((w = idle_workers_.head()))
         end_worker(&idle_workers_, w);
 }
@@ -50,7 +50,7 @@ void pool_t::repair_invariants() {
     rassert(num_workers() >= config()->min_workers);
 }
 
-pool_t::worker_t *pool_t::acquire_worker() {
+pool_worker_t *pool_t::acquire_worker() {
     assert_thread();
 
     // We're going to be using up a worker process, so we lock the semaphore.
@@ -72,13 +72,13 @@ pool_t::worker_t *pool_t::acquire_worker() {
     guarantee(!idle_workers_.empty()); // sanity
 
     // Grab an idle worker, move it to the busy list, assign it to `handle`.
-    worker_t *worker = idle_workers_.head();
+    pool_worker_t *worker = idle_workers_.head();
     idle_workers_.remove(worker);
     busy_workers_.push_back(worker);
     return worker;
 }
 
-void pool_t::release_worker(worker_t *worker) THROWS_NOTHING {
+void pool_t::release_worker(pool_worker_t *worker) THROWS_NOTHING {
     assert_thread();
     rassert(worker && worker->pool_ == this && worker->attached_);
 
@@ -86,7 +86,7 @@ void pool_t::release_worker(worker_t *worker) THROWS_NOTHING {
     if (!worker->unix_socket.is_read_open() || !worker->unix_socket.is_write_open()) {
         worker->on_error();
 
-        // TODO(rntz): Currently worker_t::on_error() never returns. If we ever
+        // TODO(rntz): Currently pool_worker_t::on_error() never returns. If we ever
         // change this, some code needs to get written here.
         unreachable();
     }
@@ -99,7 +99,7 @@ void pool_t::release_worker(worker_t *worker) THROWS_NOTHING {
     worker_semaphore_.unlock();
 }
 
-void pool_t::interrupt_worker(worker_t *worker) THROWS_NOTHING {
+void pool_t::interrupt_worker(pool_worker_t *worker) THROWS_NOTHING {
     assert_thread();
     rassert(worker && worker->pool_ == this);
 
@@ -109,7 +109,7 @@ void pool_t::interrupt_worker(worker_t *worker) THROWS_NOTHING {
     repair_invariants();
 }
 
-void pool_t::detach_worker(worker_t *worker) {
+void pool_t::detach_worker(pool_worker_t *worker) {
     rassert(worker && worker->pool_ == this && worker->attached_);
     ASSERT_NO_CORO_WAITING;
 
@@ -124,7 +124,7 @@ void pool_t::detach_worker(worker_t *worker) {
     // block.
 }
 
-void pool_t::cleanup_detached_worker(worker_t *worker) {
+void pool_t::cleanup_detached_worker(pool_worker_t *worker) {
     rassert(worker && worker->pool_ == this && !worker->attached_);
     delete worker;
     repair_invariants();
@@ -164,9 +164,9 @@ void pool_t::spawn_workers(int num) {
         }
     }
 
-    // For every process spawned, create a corresponding worker_t.
+    // For every process spawned, create a corresponding pool_worker_t.
     for (int i = 0; i < num; ++i) {
-        worker_t *worker = new worker_t(this, pids[i], &fds[i]);
+        pool_worker_t *worker = new pool_worker_t(this, pids[i], &fds[i]);
 
         // Send it a job that just loops accepting jobs.
         const int res = job_acceptor_t().send_over(&worker->unix_socket);
@@ -180,7 +180,7 @@ void pool_t::spawn_workers(int num) {
 }
 
 // May only call when we're sure that the worker is not already dead.
-void pool_t::end_worker(workers_t *list, worker_t *worker) {
+void pool_t::end_worker(workers_t *list, pool_worker_t *worker) {
     rassert(worker && worker->pool_ == this);
 
     list->remove(worker);
@@ -190,8 +190,7 @@ void pool_t::end_worker(workers_t *list, worker_t *worker) {
 }
 
 
-// ---------- pool_t::worker_t ----------
-pool_t::worker_t::worker_t(pool_t *pool, pid_t pid, scoped_fd_t *fd)
+pool_worker_t::pool_worker_t(pool_t *pool, pid_t pid, scoped_fd_t *fd)
     : unix_socket(fd),
       pool_(pool),
       pid_(pid),
@@ -199,16 +198,16 @@ pool_t::worker_t::worker_t(pool_t *pool, pid_t pid, scoped_fd_t *fd)
     guarantee(pid > 1 && fd != NULL); // sanity
 }
 
-pool_t::worker_t::~worker_t() {}
+pool_worker_t::~pool_worker_t() {}
 
-void pool_t::worker_t::do_on_event(int /*events*/) {
+void pool_worker_t::do_on_event(int /*events*/) {
     // NB. We are not in coroutine context when this method is called.
     if (attached_) {
         on_error();
     }
 }
 
-void pool_t::worker_t::on_error() {
+void pool_worker_t::on_error() {
     // NB. We may or may not be in coroutine context when this method is called.
     unix_socket.assert_thread();
 

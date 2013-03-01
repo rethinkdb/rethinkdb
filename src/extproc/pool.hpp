@@ -48,6 +48,35 @@ private:
     one_per_thread_t<pool_t> pool_maker_;
 };
 
+// A worker process.
+class pool_worker_t : public intrusive_list_node_t<pool_worker_t> {
+    friend class job_handle_t;
+
+public:
+    pool_worker_t(pool_t *pool, pid_t pid, scoped_fd_t *fd);
+    ~pool_worker_t();
+
+    // Called when we get an error on a worker process socket, which usually
+    // indicates the worker process' death.
+    void on_error();
+
+    // Inherited from unix_socket_stream_t. Called when epoll finds an error
+    // condition on our socket. Calls on_error().
+    virtual void do_on_event(int events);
+
+    unix_socket_stream_t unix_socket;
+
+private:
+    friend class pool_t;
+
+    pool_t *const pool_;
+    const pid_t pid_;
+    bool attached_;
+
+    DISABLE_COPYING(pool_worker_t);
+};
+
+
 // A per-thread worker pool.
 class pool_t : public home_thread_mixin_debug_only_t {
 public:
@@ -60,35 +89,7 @@ private:
     pool_group_t::config_t *config() { return &group_->config_; }
     spawner_t *spawner() { return &group_->spawner_; }
 
-    // A worker process.
-    class worker_t : public intrusive_list_node_t<worker_t> {
-        friend class job_handle_t;
-
-    public:
-        worker_t(pool_t *pool, pid_t pid, scoped_fd_t *fd);
-        ~worker_t();
-
-        // Called when we get an error on a worker process socket, which usually
-        // indicates the worker process' death.
-        void on_error();
-
-        // Inherited from unix_socket_stream_t. Called when epoll finds an error
-        // condition on our socket. Calls on_error().
-        virtual void do_on_event(int events);
-
-        unix_socket_stream_t unix_socket;
-
-    private:
-        friend class pool_t;
-
-        pool_t *const pool_;
-        const pid_t pid_;
-        bool attached_;
-
-        DISABLE_COPYING(worker_t);
-    };
-
-    typedef intrusive_list_t<worker_t> workers_t;
+    typedef intrusive_list_t<pool_worker_t> workers_t;
 
   private:
     // Checks & repairs invariants, namely:
@@ -96,13 +97,13 @@ private:
     void repair_invariants();
 
     // Connects us to a worker. Private; used only by job_handle_t::spawn().
-    worker_t *acquire_worker();
+    pool_worker_t *acquire_worker();
 
     // Called by job_handle_t to indicate the job has finished or errored.
-    void release_worker(worker_t *worker) THROWS_NOTHING;
+    void release_worker(pool_worker_t *worker) THROWS_NOTHING;
 
     // Called by job_handle_t to interrupt a running job.
-    void interrupt_worker(worker_t *worker) THROWS_NOTHING;
+    void interrupt_worker(pool_worker_t *worker) THROWS_NOTHING;
 
     // Detaches the worker from the pool, sends it SIGKILL, and ignores further
     // errors from it (ie. on_event will not call on_error, and hence will not
@@ -114,13 +115,13 @@ private:
     //
     // It is the caller's responsibility to call cleanup_detached_worker() at
     // some point in the near future.
-    void detach_worker(worker_t *worker);
+    void detach_worker(pool_worker_t *worker);
 
     // Cleans up after a detached worker. Destroys the worker. May block.
-    void cleanup_detached_worker(worker_t *worker);
+    void cleanup_detached_worker(pool_worker_t *worker);
 
     void spawn_workers(int n);
-    void end_worker(workers_t *list, worker_t *worker);
+    void end_worker(workers_t *list, pool_worker_t *worker);
 
     int num_workers() {
         return idle_workers_.size() + busy_workers_.size() + num_spawning_workers_;
@@ -194,7 +195,7 @@ private:
         job_handle_t *handle_;
     };
 
-    pool_t::worker_t *worker_;
+    pool_worker_t *worker_;
 
     DISABLE_COPYING(job_handle_t);
 };
