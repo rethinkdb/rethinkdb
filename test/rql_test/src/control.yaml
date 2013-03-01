@@ -68,6 +68,8 @@ tests:
     - cd: r.error(5) # we might want to allow this eventually
       ot: err("RqlRuntimeError", "Expected type STRING but found NUMBER.", [0])
 
+    # TODO: test arity checking in other functions
+
     # r.js()
     - cd: r.js('1 + 1')
       ot: 2

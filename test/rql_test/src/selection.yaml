@@ -49,7 +49,7 @@ tests:
       ot: 100
 
     # TODO: GET a document that exists
-    # TODO: GET a document that doesn't exist
+    # TODO: GET a document that doesn't exist (and perhaps try to update it)
     # TODO: does GET still support an attribute specification?
     # TODO: test GET for table where id isn't a primary key
 
