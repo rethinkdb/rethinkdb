@@ -1,6 +1,11 @@
 desc: Tests RQL control flow structures
 tests:
     
+    # Setup
+    - cd: r.db('test').table_create('test')
+      ot: ({'created':1})
+      def: tbl = r.db('test').table('test')
+      
     ## FunCall
 
     - py: "r.expr(1).do(lambda v: v * 2)"
@@ -17,6 +22,36 @@ tests:
       rb: r.do(1, 2) {|x, y| x + y}
       ot: 3
 
+    # XXX: enable this later
+    #- py: "r.do(lambda: 1)"
+    #  js: r.do(function() { return 1; })
+    #  rb: r.do{1}
+    #  ot: 1
+
+    # do error cases
+    - py: "r.do(1, 2, lambda x: x)"
+      js: r.do(1, 2, function(x) { return x; })
+      rb: r.do(1, 2) {|x| x}
+      ot: err("RqlRuntimeError", 'Expected 1 argument(s) but found 2.', [1])
+      
+    - py: "r.do(1, 2, 3, lambda x, y: x + y)"
+      js: r.do(1, 2, 3, function(x, y) { return x.add(y); })
+      rb: r.do(1, 2, 3) {|x, y| x + y}
+      ot: err("RqlRuntimeError", 'Expected 2 argument(s) but found 3.', [1])
+      
+    # XXX: enable this later
+    #- cd: "r.do(1)"
+    #  ot: err("RqlRuntimeError", 'Expected type Function(*) but found NUMBER.', [1])
+
+    # XXX: enable this later
+    #- js: r.do(1, function(x) {})
+    #  ot: err("RqlDriverError", 'Unknown datum value "undefined", did you forget a "return"?', [1])
+    
+    # XXX: enable this later
+    #- cd: r.do()
+    #  ot: err("RqlRuntimeError", 'Expected 1 or more argument(s) but found 0.', [1])
+      
+    
     # FunCall errors
 
     - py: "r.expr('abc').do(lambda v: v.append(3))"
@@ -68,6 +103,8 @@ tests:
     - cd: r.error(5) # we might want to allow this eventually
       ot: err("RqlRuntimeError", "Expected type STRING but found NUMBER.", [0])
 
+    # TODO: test arity checking in other functions (so far we got do, js, and error)
+
     # r.js()
     - cd: r.js('1 + 1')
       ot: 2
@@ -75,29 +112,77 @@ tests:
     - cd: r.js('1 + 1; 2 + 2')
       ot: 4
 
-    - cd: r.do(1, 2, r.js('(function(a, b) { return a + b; })'))
-      ot: 3
+    # XXX: enable this later
+    #- cd: r.do(1, 2, r.js('(function(a, b) { return a + b; })'))
+    #  ot: 3
 
     # TODO: screw with the number of arguments in the JS function (too few too many)
       
-    - cd: r.expr(1).do(r.js('(function(x) { return x + 1; })'))
-      ot: 2
+    # XXX: enable this later
+    #- cd: r.expr(1).do(r.js('(function(x) { return x + 1; })'))
+    #  ot: 2
 
-    - cd: r.expr('foo').do(r.js('(function(x) { return x + "bar"; })'))
-      ot: "'foobar'"
+    # XXX: enable this later
+    #- cd: r.expr('foo').do(r.js('(function(x) { return x + "bar"; })'))
+    #  ot: "'foobar'"
 
     # js error cases
-    - cd: r.js('(function() { return 1; })')
-      ot: err("RqlRuntimeError", "Query result must be of type DATUM or Stream.", [0])
+    # XXX: enable this later
+    #- cd: r.js('(function() { return 1; })')
+    #  ot: err("RqlRuntimeError", "Query result must be of type DATUM or Stream.", [0])
 
     - cd: r.js('function() { return 1; }')
       ot: 'err("RqlRuntimeError", "SyntaxError: Unexpected token (", [0])'
       
-    # TODO: add positive and negative forEach tests (including
-    # returning read queries from a forEach, and calling forEach in
-    # random places)
-
-    # TODO: what happens if we pass static values to things that expect functions (=> error unless we explicitly define it)
     # TODO: passing r.js to seq.map (r.js(1), r.js(func))
     # TODO: check r.js function not returning a value (e.g. undefined) in filter
-    # TODO: check js function in js client not returning a value (e.g. undefined) in filter
+    
+    # TODO: what happens if we pass static values to things that expect functions (=> error unless we explicitly define it)
+    
+    # forEach
+    - js: "r.expr([1, 2, 3]).forEach(function (row) { return tbl.insert({ 'id': row }) })"
+      ot: ({'inserted':3})
+
+    # XXX: enable this later
+    #- js: "r.expr([1, 2, 3]).forEach(function (row) { return tbl.update({ 'foo': row }) })"
+    #  ot: ({'updated':3})
+      
+    # XXX: enable this later
+    #- js: "r.expr([1, 2, 3]).forEach(function (row) { return [tbl.insert({ 'id': row }), tbl.insert({ 'id': row.mul(10) })] })"
+    #  ot: ({'inserted':6})
+    
+    # XXX: enable this later
+    #- js: "r.expr([1, 2, 3]).forEach(function (row) { return [tbl.update({ 'foo': row }), tbl.update({ 'bar': row })] })"
+    #  ot: ({'updated':6})
+      
+    # XXX: enable this later
+    #- cd: "r.expr([1, 2, 3]).forEach( tbl.insert({ 'id': r.row }) )"
+    #  ot: err("RqlRuntimeError", "Cannot use r.row in nested queries. Use functions instead.", [0])
+    
+    # forEach negative cases
+    # XXX: enable this later
+    #- cd: r.expr([1, 2, 3]).forEach(1)
+    #  ot: 'err("RqlRuntimeError", "Expected type Function(1) but found NUMBER.", [0])'
+
+    # XXX: enable this later
+    #- py: "js: r.expr([1, 2, 3]).for_each(lambda x: x)"
+    #  js: r.expr([1, 2, 3]).forEach(function (x) { return x; })
+    #  ot: 'err("RqlRuntimeError", "Expected type WriteQuery but found NUMBER.", [0])'
+    
+    # XXX: enable this later
+    #- cd: r.expr([1, 2, 3]).forEach(r.row)
+    #  ot: err("RqlRuntimeError", "Expected type WriteQuery but found Function(1).", [0])
+
+    # XXX: enable this later
+    #- js: "r.expr([1, 2, 3]).forEach(function (row) { return tbl; })"
+    #  ot: err("RqlRuntimeError", "Expected type WriteQuery but found Function(1).", [0])
+    
+    # XXX: enable this later
+    #- js: "r.expr([1, 2, 3]).forEach(function (row) {})"
+    #  ot: err("RqlDriverError", 'Unknown datum value "undefined", did you forget a "return"?', [1])
+    
+    # TODO: try calling write queries in random places (e.g. in `do`))
+
+    # Cleanup    
+    - cd: r.db('test').table_drop('test')
+      ot: ({'dropped':1})

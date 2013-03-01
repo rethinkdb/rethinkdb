@@ -45,11 +45,12 @@ tests:
     # TODO: test for invalid chars in db and table names (and possibly json attrs)
       
     # Access a table from default db
-    - cd: r.table('test').count()
-      ot: 100
+    # XXX: enable this later
+    #- cd: r.table('test').count()
+    #  ot: 100
 
     # TODO: GET a document that exists
-    # TODO: GET a document that doesn't exist
+    # TODO: GET a document that doesn't exist (and perhaps try to update it)
     # TODO: does GET still support an attribute specification?
     # TODO: test GET for table where id isn't a primary key
 

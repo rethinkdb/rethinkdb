@@ -81,6 +81,5 @@ module RethinkDB
 
       return RQL.new(t)
     end
-
   end
 end
