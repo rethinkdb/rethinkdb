@@ -2421,6 +2421,7 @@ module 'DataExplorerView', ->
             else
                 @desactivate_overflow()
                 duration = Math.max 150, size
+                duration = Math.min duration, 250
                 @$('.nano').stop(true, true).animate
                     height: size
                     , duration
