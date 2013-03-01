@@ -46,6 +46,8 @@ private:
     spawner_t spawner_;
     config_t config_;
     one_per_thread_t<pool_t> pool_maker_;
+
+    DISABLE_COPYING(pool_group_t);
 };
 
 // A worker process.
@@ -121,7 +123,7 @@ private:
     void spawn_workers(int n);
     void end_worker(intrusive_list_t<pool_worker_t> *list, pool_worker_t *worker);
 
-    int num_workers() {
+    int num_workers() const {
         return idle_workers_.size() + busy_workers_.size() + num_spawning_workers_;
     }
 
@@ -141,6 +143,8 @@ private:
     // for a worker to become available when we already have
     // config_->max_workers workers running.
     semaphore_t worker_semaphore_;
+
+    DISABLE_COPYING(pool_t);
 };
 
 // A handle to a running job.
