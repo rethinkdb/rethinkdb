@@ -153,7 +153,7 @@ struct rdb_modification_report_t {
     boost::shared_ptr<scoped_cJSON_t> deleted;
     boost::shared_ptr<scoped_cJSON_t> added;
 
-    RDB_MAKE_ME_SERIALIZABLE_3(primary_key, deleted, added);
+    RDB_DECLARE_ME_SERIALIZABLE;
 };
 
 void rdb_update_sindexes(const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,

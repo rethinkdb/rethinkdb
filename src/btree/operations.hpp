@@ -65,7 +65,7 @@ public:
     void set_eviction_priority(eviction_priority_t eviction_priority);
     eviction_priority_t get_eviction_priority();
 
-    bool no_releasing;
+    bool no_releasing; //RSI
 
 private:
     buf_lock_t sb_buf_;

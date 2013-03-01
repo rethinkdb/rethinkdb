@@ -459,6 +459,58 @@ void rdb_distribution_get(btree_slice_t *slice, int max_depth, const store_key_t
     }
 }
 
+namespace {
+enum rdb_modification_has_value_t {
+    HAS_VALUE,
+    HAS_NO_VALUE
+};
+
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(rdb_modification_has_value_t, int8_t, HAS_VALUE, HAS_NO_VALUE);
+} //anonymous namespace
+
+void rdb_modification_report_t::rdb_serialize(write_message_t &msg /* NOLINT */) const {
+    msg << primary_key;
+    if (!deleted.get()) {
+        msg << HAS_NO_VALUE;
+    } else {
+        msg << HAS_VALUE;
+        msg << deleted;
+    }
+
+    if (!added.get()) {
+        msg << HAS_NO_VALUE;
+    } else {
+        msg << HAS_VALUE;
+        msg << added;
+    }
+}
+
+archive_result_t rdb_modification_report_t::rdb_deserialize(read_stream_t *s) {
+    archive_result_t res;
+
+    res = deserialize(s, &primary_key);
+    if (res) { return res; }
+
+    rdb_modification_has_value_t has_value;
+    res = deserialize(s, &has_value);
+    if (res) { return res; }
+
+    if (has_value == HAS_VALUE) {
+        res = deserialize(s, &deleted);
+        if (res) { return res; }
+    }
+
+    res = deserialize(s, &has_value);
+    if (res) { return res; }
+
+    if (has_value == HAS_VALUE) {
+        res = deserialize(s, &added);
+        if (res) { return res; }
+    }
+
+    return ARCHIVE_SUCCESS;
+}
+
 typedef btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindex_access_vector_t;
 
 void rdb_update_sindexes(const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
@@ -542,6 +594,7 @@ public:
 
         const btree_key_t *key;
         while ((key = node_iter.get_key(leaf_node))) {
+            fprintf(stderr, "Got a post construct value.\n");
             /* Grab relevant values from the leaf node. */
             const void *value = node_iter.get_value(leaf_node);
             guarantee(key);

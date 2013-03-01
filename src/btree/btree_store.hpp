@@ -259,6 +259,14 @@ public: // <--- so this is some bullshit right here
             sindex_access_vector_t *sindex_sbs_out)
             THROWS_NOTHING;
 
+    void aquire_post_constructed_sindex_superblocks_for_write(
+            block_id_t sindex_block_id,
+            write_token_pair_t *token_pair,
+            transaction_t *txn,
+            sindex_access_vector_t *sindex_sbs_out,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
+
     void acquire_sindex_superblocks_for_write(
             boost::optional<std::set<uuid_u> > sindexes_to_acquire, //none means acquire all sindexes
             buf_lock_t *sindex_block,
