@@ -39,8 +39,14 @@ public:
     // `*socket` to our end of the socket. The child process deserializes one
     // job from the socket, runs it, then exits. See job.hpp.
     //
+    // Also returns the *other end of the socket*, not just our end.  We need to
+    // avoid closing that file descriptor on OS X for a while after sending it
+    // to the spawer process over the unix domain socket, because OS X has a bug
+    // where otherwise, sometimes reading from the descriptor in the spawner
+    // process will produce ENOTCONN.
+    //
     // Returns -1 on error.
-    pid_t spawn_process(scoped_fd_t *socket);
+    pid_t spawn_process(scoped_fd_t *socket, scoped_fd_t *other_end_of_socket);
 
 private:
     friend void exec_worker(pid_t spawner_pid, fd_t sockfd);

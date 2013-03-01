@@ -156,17 +156,18 @@ void pool_t::spawn_workers(int num) {
     // Spawn off `num` processes.
     scoped_array_t<pid_t> pids(num);
     scoped_array_t<scoped_fd_t> fds(num);
+    scoped_array_t<scoped_fd_t> other_end_of_fds(num);
     {
         on_thread_t switcher(spawner()->home_thread());
         for (int i = 0; i < num; ++i) {
-            pids[i] = spawner()->spawn_process(&fds[i]);
+            pids[i] = spawner()->spawn_process(&fds[i], &other_end_of_fds[i]);
             guarantee(-1 != pids[i], "could not spawn worker process");
         }
     }
 
     // For every process spawned, create a corresponding pool_worker_t.
     for (int i = 0; i < num; ++i) {
-        pool_worker_t *worker = new pool_worker_t(this, pids[i], &fds[i]);
+        pool_worker_t *worker = new pool_worker_t(this, pids[i], &fds[i], &other_end_of_fds[i]);
 
         // Send it a job that just loops accepting jobs.
         const int res = job_acceptor_t().send_over(&worker->unix_socket);
@@ -190,8 +191,9 @@ void pool_t::end_worker(intrusive_list_t<pool_worker_t> *list, pool_worker_t *wo
 }
 
 
-pool_worker_t::pool_worker_t(pool_t *pool, pid_t pid, scoped_fd_t *fd)
+pool_worker_t::pool_worker_t(pool_t *pool, pid_t pid, scoped_fd_t *fd, scoped_fd_t *fd_worker_end)
     : unix_socket(fd),
+      other_end_of_unix_socket(fd_worker_end->release()),
       pool_(pool),
       pid_(pid),
       attached_(true) {

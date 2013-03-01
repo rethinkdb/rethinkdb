@@ -55,7 +55,7 @@ class pool_worker_t : public intrusive_list_node_t<pool_worker_t> {
     friend class job_handle_t;
 
 public:
-    pool_worker_t(pool_t *pool, pid_t pid, scoped_fd_t *fd);
+    pool_worker_t(pool_t *pool, pid_t pid, scoped_fd_t *fd, scoped_fd_t *fd_other_end);
     ~pool_worker_t();
 
     // Called when we get an error on a worker process socket, which usually
@@ -66,9 +66,27 @@ public:
     // condition on our socket. Calls on_error().
     virtual void do_on_event(int events);
 
+    // A nice juicy unix socket right here, that people use to talk to the worker.
+    // TODO: Why is this a unix socket?  I don't think this one needs to be a unix socket.  It could be a regular socket or pipe.
     unix_socket_stream_t unix_socket;
 
 private:
+    // This is the descriptor for the other end of the unix socket.  We keep it
+    // around because the following has race issues with OS X, because OS X is broken.
+    //
+    // 1. make a socketpair
+    // 2. send one half of the pair over a unix domain socket
+    // 3. close the half of the pair that you sent
+    // 4. receive the descriptor in another process, on the other end of the unix domain socket
+    // 5. try to read from that descriptor -- FAIL!  You get ENOTCONN (0.1% of
+    //    the time, on OS X) because the socket was magically destroyed.
+    //
+    // Step 3 sometimes jumps ahead of step 2 in the OS X kernel and a reference
+    // count gets decremented by step 3 before it got incremented by step 2.  So
+    // we remove step 3 -- we don't close the other half of the pair until
+    // later.  We keep it here.
+    scoped_fd_t other_end_of_unix_socket;
+
     friend class pool_t;
 
     pool_t *const pool_;
