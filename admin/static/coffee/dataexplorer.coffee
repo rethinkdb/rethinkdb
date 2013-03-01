@@ -376,23 +376,41 @@ module 'DataExplorerView', ->
                 else if event.which is 9
                     event.preventDefault()
                     if event.type is 'keydown'
-                        # Switch throught the suggestions
-                        if event.shiftKey
-                            @current_highlighted_suggestion--
-                            if @current_highlighted_suggestion < 0
-                                @current_highlighted_suggestion = @current_suggestions.length-1
-                        else
-                            @current_highlighted_suggestion++
-                            if @current_highlighted_suggestion >= @current_suggestions.length
-                                @current_highlighted_suggestion = 0
-
-                        if @current_suggestions[@current_highlighted_suggestion]?
-                            @show_suggestion_without_moving()
-                            @highlight_suggestion @current_highlighted_suggestion # Highlight the current suggestion
-                            @write_suggestion
-                                suggestion_to_write: @current_suggestions[@current_highlighted_suggestion] # Auto complete with the highlighted suggestion
-                            @ignore_tab_keyup = true # If we are switching suggestion, we don't want to do anything else related to tab
+                        if @$('.suggestion_name_list').css('display') is 'none'
+                            @show_suggestion()
                             return true
+                        else
+                            # Switch throught the suggestions
+                            if event.shiftKey
+                                @current_highlighted_suggestion--
+                                if @current_highlighted_suggestion < -1
+                                    @current_highlighted_suggestion = @current_suggestions.length-1
+                                else if @current_highlighted_suggestion < 0
+                                    @show_suggestion_without_moving()
+                                    @remove_highlight_suggestion()
+                                    @write_suggestion
+                                        suggestion_to_write: @current_element
+                                    @ignore_tab_keyup = true # If we are switching suggestion, we don't want to do anything else related to tab
+                                    return true
+                            else
+                                @current_highlighted_suggestion++
+                                if @current_highlighted_suggestion >= @current_suggestions.length
+                                    @show_suggestion_without_moving()
+                                    @remove_highlight_suggestion()
+                                    @write_suggestion
+                                        suggestion_to_write: @current_element
+                                    @ignore_tab_keyup = true # If we are switching suggestion, we don't want to do anything else related to tab
+                                    @current_highlighted_suggestion = -1
+                                    return true
+
+
+                            if @current_suggestions[@current_highlighted_suggestion]?
+                                @show_suggestion_without_moving()
+                                @highlight_suggestion @current_highlighted_suggestion # Highlight the current suggestion
+                                @write_suggestion
+                                    suggestion_to_write: @current_suggestions[@current_highlighted_suggestion] # Auto complete with the highlighted suggestion
+                                @ignore_tab_keyup = true # If we are switching suggestion, we don't want to do anything else related to tab
+                                return true
                 # If the user hit enter and (Ctrl or Shift)
                 else if event.which is 13 and (event.shiftKey or event.ctrlKey or event.metaKey)
                     @hide_suggestion_and_description()
@@ -1101,6 +1119,7 @@ module 'DataExplorerView', ->
                                 result.suggestions_regex = @create_safe_regex element.name # That means we are going to give all the suggestions that match element.name and that are in the good group (not yet defined)
                                 result.description = null
                                 @query_first_part = query.slice 0, element.position+1
+                                @current_element = element.name
                                 @cursor_for_auto_completion.ch -= element.name.length
                                 @current_query
                                 if i isnt 0
@@ -1283,11 +1302,14 @@ module 'DataExplorerView', ->
 
         #Highlight suggestion. Method called when the user hit tab or mouseover
         highlight_suggestion: (id) =>
-            @.$('.suggestion_name_li').removeClass 'suggestion_name_li_hl'
+            @remove_highlight_suggestion()
             @.$('.suggestion_name_li').eq(id).addClass 'suggestion_name_li_hl'
             @.$('.suggestion_description').html @description_template @extend_description @current_suggestions[id]
             
             @.$('.suggestion_description').show()
+
+        remove_highlight_suggestion: =>
+            @.$('.suggestion_name_li').removeClass 'suggestion_name_li_hl'
 
         # Write the suggestion in the code mirror
         write_suggestion: (args) =>
