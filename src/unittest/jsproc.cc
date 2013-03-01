@@ -46,11 +46,7 @@ void run_timeout_test(js::runner_t *runner) {
     config.timeout_ms = 20;
 
     try {
-        runner->call(id,
-                     boost::shared_ptr<scoped_cJSON_t>(),
-                     std::vector<boost::shared_ptr<scoped_cJSON_t> >(),
-                     &errmsg,
-                     &config);
+        runner->call(id, std::vector<boost::shared_ptr<scoped_cJSON_t> >(), &config);
         FAIL() << "didn't time out";
     } catch (interrupted_exc_t) {}
 

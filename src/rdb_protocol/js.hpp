@@ -8,6 +8,8 @@
 #include <vector>
 #include <utility>
 
+#include <boost/variant/variant.hpp>
+
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 
@@ -55,8 +57,8 @@ class scoped_id_t {
     DISABLE_COPYING(scoped_id_t);
 };
 
-// JS calls result either in a DATUM return value, a function id (which we can use to call
-// the function later), or an error string
+// JS calls result either in a DATUM return value, a function id (which we can
+// use to call the function later), or an error string
 typedef boost::variant<boost::shared_ptr<scoped_cJSON_t>, id_t, std::string> js_result_t;
 
 // A handle to a running "javascript evaluator" job.

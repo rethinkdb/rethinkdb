@@ -12,6 +12,29 @@ load 'pp.rb'
 
 class Term2
   attr_accessor :context
+  attr_accessor :is_error
+
+  def bt_tag bt
+    @is_error = true
+    begin
+      return if bt == []
+      frame, sub_bt = bt[0], bt [1..-1]
+      if frame.class == String
+        optargs.each {|optarg|
+          if optarg.key == frame
+            @is_error = false
+            optarg.val.bt_tag(sub_bt)
+          end
+        }
+      else
+        @is_error = false
+        args[frame].bt_tag(sub_bt)
+      end
+    rescue StandardError => e
+      @is_error = true
+      $stderr.puts "ERROR: Failed to parse backtrace (we'll take our best guess)."
+    end
+  end
 end
 
 module RethinkDB
@@ -44,7 +67,12 @@ module RethinkDB
       RethinkDB::RPP.pp(@body)
     end
     def inspect
-      @body ? pp : super
+      begin
+        @body ? pp : super
+      rescue Exception => e
+        "AN ERROR OCCURED DURING PRETTY-PRINTING:\n#{e.inspect}\n" +
+          "FALLING BACK TO PROTOBUF PRETTY-PRINTER.\n#{@body.inspect}"
+      end
     end
   end
 end
