@@ -303,6 +303,7 @@ module 'DataExplorerView', ->
                 lineNumbers: true
                 lineWrapping: true
                 matchBrackets: true
+                tabSize: 2
             @codemirror.on 'blur', @on_blur
             @codemirror.on 'gutterClick', @handle_gutter_click
 
@@ -376,41 +377,40 @@ module 'DataExplorerView', ->
                 else if event.which is 9
                     event.preventDefault()
                     if event.type is 'keydown'
-                        if @$('.suggestion_name_list').css('display') is 'none'
-                            @show_suggestion()
-                            return true
-                        else
-                            # Switch throught the suggestions
-                            if event.shiftKey
-                                @current_highlighted_suggestion--
-                                if @current_highlighted_suggestion < -1
-                                    @current_highlighted_suggestion = @current_suggestions.length-1
-                                else if @current_highlighted_suggestion < 0
-                                    @show_suggestion_without_moving()
-                                    @remove_highlight_suggestion()
-                                    @write_suggestion
-                                        suggestion_to_write: @current_element
-                                    @ignore_tab_keyup = true # If we are switching suggestion, we don't want to do anything else related to tab
-                                    return true
-                            else
-                                @current_highlighted_suggestion++
-                                if @current_highlighted_suggestion >= @current_suggestions.length
-                                    @show_suggestion_without_moving()
-                                    @remove_highlight_suggestion()
-                                    @write_suggestion
-                                        suggestion_to_write: @current_element
-                                    @ignore_tab_keyup = true # If we are switching suggestion, we don't want to do anything else related to tab
-                                    @current_highlighted_suggestion = -1
-                                    return true
-
-
-                            if @current_suggestions[@current_highlighted_suggestion]?
-                                @show_suggestion_without_moving()
-                                @highlight_suggestion @current_highlighted_suggestion # Highlight the current suggestion
-                                @write_suggestion
-                                    suggestion_to_write: @current_suggestions[@current_highlighted_suggestion] # Auto complete with the highlighted suggestion
-                                @ignore_tab_keyup = true # If we are switching suggestion, we don't want to do anything else related to tab
+                        if @current_suggestions?.length > 0
+                            if @$('.suggestion_name_list').css('display') is 'none'
+                                @show_suggestion()
                                 return true
+                            else
+                                # Switch throught the suggestions
+                                if event.shiftKey
+                                    @current_highlighted_suggestion--
+                                    if @current_highlighted_suggestion < -1
+                                        @current_highlighted_suggestion = @current_suggestions.length-1
+                                    else if @current_highlighted_suggestion < 0
+                                        @show_suggestion_without_moving()
+                                        @remove_highlight_suggestion()
+                                        @write_suggestion
+                                            suggestion_to_write: @current_element
+                                        @ignore_tab_keyup = true # If we are switching suggestion, we don't want to do anything else related to tab
+                                        return true
+                                else
+                                    @current_highlighted_suggestion++
+                                    if @current_highlighted_suggestion >= @current_suggestions.length
+                                        @show_suggestion_without_moving()
+                                        @remove_highlight_suggestion()
+                                        @write_suggestion
+                                            suggestion_to_write: @current_element
+                                        @ignore_tab_keyup = true # If we are switching suggestion, we don't want to do anything else related to tab
+                                        @current_highlighted_suggestion = -1
+                                        return true
+                                if @current_suggestions[@current_highlighted_suggestion]?
+                                    @show_suggestion_without_moving()
+                                    @highlight_suggestion @current_highlighted_suggestion # Highlight the current suggestion
+                                    @write_suggestion
+                                        suggestion_to_write: @current_suggestions[@current_highlighted_suggestion] # Auto complete with the highlighted suggestion
+                                    @ignore_tab_keyup = true # If we are switching suggestion, we don't want to do anything else related to tab
+                                    return true
                 # If the user hit enter and (Ctrl or Shift)
                 else if event.which is 13 and (event.shiftKey or event.ctrlKey or event.metaKey)
                     @hide_suggestion_and_description()
@@ -544,6 +544,7 @@ module 'DataExplorerView', ->
                         query_after_cursor += query_lines[i]
             @query_last_part = query_after_cursor
 
+            @current_element = '' # Initialize @current_element. We need it for tabs (when the user loop over ALL suggestions)
             stack = @extract_data_from_query
                 query: query_before_cursor
                 position: 0
@@ -586,18 +587,12 @@ module 'DataExplorerView', ->
             else
                 @hide_suggestion_and_description()
 
-            if event?.which is 9 # If we catch it here again, it means that we are not showing any suggestions
-                query_lines = @codemirror.getValue().split '\n'
-
-                query_before_cursor = ''
-                if @codemirror.getCursor().line > 0
-                    for i in [0..@codemirror.getCursor().line-1]
-                        query_before_cursor += query_lines[i] + '\n'
-                query_before_cursor += query_lines[@codemirror.getCursor().line].slice 0, @codemirror.getCursor().ch
-                if query_before_cursor[query_before_cursor.length-1] isnt '(' # This regex is a little too constraining /\((\s*)$/
+            if event?.which is 9
+                if @last_element_type_if_incomplete(stack) isnt 'string' and @regex.white_or_empty.test(query_lines[@codemirror.getCursor().line].slice(0, @codemirror.getCursor().ch)) isnt true
+                    return true
+                else
                     return false
-            
-
+           
             return true
 
         # Extract information from the current query
@@ -610,6 +605,7 @@ module 'DataExplorerView', ->
             object: /^(\s)*{(\s)*/
             array: /^(\s)*\[(\s)*/
             white: /^(\s)+$/
+            white_or_empty: /^(\s)*$/
             white_replace: /\s/g
             white_start: /^(\s)+/
             comma: /^(\s)*,(\s)*/
@@ -628,6 +624,20 @@ module 'DataExplorerView', ->
                 ')': '(' # Match the opening character
                 '}': '{'
                 ']': '['
+
+        # Return the type of the last incomplete object or an empty string
+        last_element_type_if_incomplete: (stack) =>
+            if stack.length is 0
+                return ''
+
+            element = stack[stack.length-1]
+            if element.body?
+                return @last_element_type_if_incomplete(element.body)
+            else
+                if element.complete is false
+                    return element.type
+                else
+                    return ''
 
 
         # We build a stack of the query.
