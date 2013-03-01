@@ -129,11 +129,31 @@ tests:
     - cd: r.js('function() { return 1; }')
       ot: 'err("RqlRuntimeError", "SyntaxError: Unexpected token (", [0])'
       
-    # TODO: add positive and negative forEach tests (including
-    # returning read queries from a forEach, and calling forEach in
-    # random places)
-
-    # TODO: what happens if we pass static values to things that expect functions (=> error unless we explicitly define it)
     # TODO: passing r.js to seq.map (r.js(1), r.js(func))
     # TODO: check r.js function not returning a value (e.g. undefined) in filter
-    # TODO: check js function in js client not returning a value (e.g. undefined) in filter
+    
+    # TODO: what happens if we pass static values to things that expect functions (=> error unless we explicitly define it)
+    
+    # forEach
+    
+    # forEach negative cases
+    # XXX: enable this later
+    #- cd: r.expr([1, 2, 3]).forEach(1)
+    #  ot: 'err("RqlRuntimeError", "Expected type Function(1) but found NUMBER.", [0])'
+
+    # XXX: enable this later
+    #- py: "js: r.expr([1, 2, 3]).for_each(lambda x: x)"
+    #  js: r.expr([1, 2, 3]).forEach(function (x) { return x; })
+    #  ot: 'err("RqlRuntimeError", "Expected type WriteQuery but found NUMBER.", [0])'
+    
+    # XXX: enable this later
+    #- cd: r.expr([1, 2, 3]).forEach(r.row)
+    #  ot: 'err("RqlRuntimeError", "Expected type WriteQuery but found Function(1).", [0])'
+
+      
+    # TODO: add positive and negative forEach tests (including
+    # returning read queries from a forEach, and calling write queries in
+    # random places (e.g. in `do`))
+
+
+    
