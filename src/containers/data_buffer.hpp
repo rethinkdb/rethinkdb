@@ -9,7 +9,7 @@ class append_only_printf_buffer_t;
 
 struct data_buffer_t {
 private:
-    int64_t ref_count_;
+    intptr_t ref_count_;
     int64_t size_;
     char bytes_[];
 
@@ -38,12 +38,12 @@ public:
 };
 
 inline void intrusive_ptr_add_ref(data_buffer_t *buffer) {
-    DEBUG_VAR int64_t res = __sync_add_and_fetch(&buffer->ref_count_, 1);
+    DEBUG_VAR const intptr_t res = __sync_add_and_fetch(&buffer->ref_count_, 1);
     rassert(res > 0);
 }
 
 inline void intrusive_ptr_release(data_buffer_t *buffer) {
-    int64_t res = __sync_sub_and_fetch(&buffer->ref_count_, 1);
+    const intptr_t res = __sync_sub_and_fetch(&buffer->ref_count_, 1);
     rassert(res >= 0);
     if (res == 0) {
         data_buffer_t::destroy(buffer);
