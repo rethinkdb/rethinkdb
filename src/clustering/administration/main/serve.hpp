@@ -7,8 +7,9 @@
 
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/persist.hpp"
-#include "extproc/spawner.hpp"
 #include "arch/address.hpp"
+
+namespace extproc { class spawner_info_t; }
 
 #define MAX_PORT 65536
 

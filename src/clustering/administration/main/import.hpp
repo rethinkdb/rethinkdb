@@ -9,11 +9,11 @@
 #include <boost/optional.hpp>
 
 #include "containers/name_string.hpp"
-#include "extproc/spawner.hpp"
 #include "arch/address.hpp"
 
 class peer_address_set_t;
 class json_importer_t;
+class signal_t;
 
 struct json_import_target_t {
     name_string_t db_name;
@@ -21,6 +21,8 @@ struct json_import_target_t {
     name_string_t table_name;
     std::string primary_key;
 };
+
+namespace extproc { class spawner_info_t; }
 
 bool run_json_import(extproc::spawner_info_t *spawner_info,
                      peer_address_set_t peers,
