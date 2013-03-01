@@ -17,8 +17,8 @@
 #include "btree/btree_store.hpp"
 #include "btree/keys.hpp"
 #include "buffer_cache/types.hpp"
+#include "concurrency/cond_var.hpp"
 #include "containers/archive/stl_types.hpp"
-#include "extproc/pool.hpp"
 #include "http/json.hpp"
 #include "http/json/cJSON.hpp"
 #include "memcached/region.hpp"
@@ -39,6 +39,8 @@ template <class> class namespace_repo_t;
 template <class> class namespaces_semilattice_metadata_t;
 template <class> class semilattice_readwrite_view_t;
 class traversal_progress_combiner_t;
+
+namespace extproc { class pool_group_t; }
 
 using query_language::scopes_t;
 using query_language::backtrace_t;
