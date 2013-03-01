@@ -41,6 +41,8 @@ tests:
     # Missing table case
     - cd: r.db('test').table('missing')
       ot: err("RqlRuntimeError", 'Table "missing" does not exist.', [0])
+
+    # TODO: test for invalid chars in db and table names (and possibly json attrs)
       
     # Access a table from default db
     - cd: r.table('test').count()
