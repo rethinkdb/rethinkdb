@@ -83,7 +83,7 @@ void pool_t::release_worker(worker_t *worker) THROWS_NOTHING {
     rassert(worker && worker->pool_ == this && worker->attached_);
 
     // If the worker's stream isn't open, something bad has happened.
-    if (!worker->is_read_open() || !worker->is_write_open()) {
+    if (!worker->unix_socket.is_read_open() || !worker->unix_socket.is_write_open()) {
         worker->on_error();
 
         // TODO(rntz): Currently worker_t::on_error() never returns. If we ever
@@ -169,7 +169,7 @@ void pool_t::spawn_workers(int num) {
         worker_t *worker = new worker_t(this, pids[i], &fds[i]);
 
         // Send it a job that just loops accepting jobs.
-        const int res = job_acceptor_t().send_over(worker);
+        const int res = job_acceptor_t().send_over(&worker->unix_socket);
         guarantee(0 == res, "Could not initialize worker process.");
 
         // We've successfully spawned one worker.
@@ -192,10 +192,10 @@ void pool_t::end_worker(workers_t *list, worker_t *worker) {
 
 // ---------- pool_t::worker_t ----------
 pool_t::worker_t::worker_t(pool_t *pool, pid_t pid, scoped_fd_t *fd)
-    : unix_socket_stream_t(fd),
-      pool_(pool), pid_(pid),
-      attached_(true)
-{
+    : unix_socket(fd),
+      pool_(pool),
+      pid_(pid),
+      attached_(true) {
     guarantee(pid > 1 && fd != NULL); // sanity
 }
 
@@ -210,7 +210,7 @@ void pool_t::worker_t::do_on_event(int /*events*/) {
 
 void pool_t::worker_t::on_error() {
     // NB. We may or may not be in coroutine context when this method is called.
-    assert_thread();
+    unix_socket.assert_thread();
 
     // We got an error on our socket to this worker. This shouldn't happen.
     crash_or_trap("Error on worker process socket");
@@ -268,7 +268,7 @@ int64_t job_handle_t::read_interruptible(void *p, int64_t n, signal_t *interrupt
     int res = -1;
     try {
         interruptor_wrapper_t wrapper(this, interruptor);
-        res = worker_->read_interruptible(p, n, &wrapper);
+        res = worker_->unix_socket.read_interruptible(p, n, &wrapper);
     } catch (const interrupted_exc_t &) {
         // We were interrupted, and need to clean up the detached worker created
         // by job_handle_t::interruptor_wrapper_t::run(). We do this by falling
@@ -288,7 +288,7 @@ int64_t job_handle_t::write_interruptible(const void *p, int64_t n, signal_t *in
     int res = -1;
     try {
         interruptor_wrapper_t wrapper(this, interruptor);
-        res = worker_->write_interruptible(p, n, &wrapper);
+        res = worker_->unix_socket.write_interruptible(p, n, &wrapper);
     } catch (const interrupted_exc_t &) {
         // See comments in read_interruptible.
         rassert(worker_ && !worker_->attached_);

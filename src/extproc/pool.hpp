@@ -61,10 +61,7 @@ private:
     spawner_t *spawner() { return &group_->spawner_; }
 
     // A worker process.
-    class worker_t :
-        public intrusive_list_node_t<worker_t>,
-        public unix_socket_stream_t
-    {
+    class worker_t : public intrusive_list_node_t<worker_t> {
         friend class job_handle_t;
 
     public:
@@ -78,6 +75,8 @@ private:
         // Inherited from unix_socket_stream_t. Called when epoll finds an error
         // condition on our socket. Calls on_error().
         virtual void do_on_event(int events);
+
+        unix_socket_stream_t unix_socket;
 
     private:
         friend class pool_t;
