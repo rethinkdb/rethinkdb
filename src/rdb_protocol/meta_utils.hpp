@@ -30,10 +30,10 @@ static void meta_check(metadata_search_status_t status, metadata_search_status_t
 
 template<class T, class U, class V>
 static uuid_u meta_get_uuid(T *searcher, const U &predicate,
-                            const std::string &operation, V *caller) {
+                            const std::string &message, V *caller) {
     metadata_search_status_t status;
     typename T::iterator entry = searcher->find_uniq(predicate, &status);
-    meta_check(status, METADATA_SUCCESS, operation, caller);
+    rcheck_target(caller, status == METADATA_SUCCESS, message); 
     return entry->first;
 }
 

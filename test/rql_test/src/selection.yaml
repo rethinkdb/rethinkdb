@@ -34,12 +34,22 @@ tests:
       rb: tbl2.insert((0..99).map{ |i| { :id => i, :b => i % 4 } })
       ot: ({'inserted':100})
 
-    # TODO: test missing db 
-    # TODO: test missing table
-    # TODO: test accessing a table from default db
+    # Missing db case
+    - cd: r.db('missing').table('bar')
+      ot: err("RqlRuntimeError", 'Database "missing" does not exist.', [0])
+
+    # Missing table case
+    - cd: r.db('test').table('missing')
+      ot: err("RqlRuntimeError", 'Table "missing" does not exist.', [0])
+
+    # TODO: test for invalid chars in db and table names (and possibly json attrs)
+      
+    # Access a table from default db
+    - cd: r.table('test').count()
+      ot: 100
 
     # TODO: GET a document that exists
-    # TODO: GET a document that doesn't exist
+    # TODO: GET a document that doesn't exist (and perhaps try to update it)
     # TODO: does GET still support an attribute specification?
     # TODO: test GET for table where id isn't a primary key
 
@@ -73,6 +83,9 @@ tests:
       rb: tbl.filter{ |row| row[:a] > 2 }.count
       ot: 25
 
+    # TODO: seq.filter(true)
+    # TODO: seq.filter(1)
+    
     # Clean up
     - cd: r.db('test').table_drop('test')
       ot: ({'dropped':1})

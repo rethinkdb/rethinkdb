@@ -29,7 +29,7 @@ def error(msg):
     return UserError(msg)
 
 def do(*args):
-    return FunCall(Func(args[-1]), *args[:-1])
+    return FunCall(func_wrap(args[-1]), *args[:-1])
     
 row = ImplicitVar()
 

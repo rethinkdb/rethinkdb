@@ -96,13 +96,13 @@ class RDBValue(RDBBase, RDBComparable):
         return Merge(self, other)
 
     def do(self, func):
-        return FunCall(Func(func), self)
+        return FunCall(func_wrap(func), self)
 
     def update(self, func):
-        return Update(self, Func(func))
+        return Update(self, func_wrap(func))
 
     def replace(self, func):
-        return Replace(self, Func(func))
+        return Replace(self, func_wrap(func))
 
     def delete(self):
         return Delete(self)
@@ -159,16 +159,16 @@ class RDBSequence(RDBBase, RDBComparable):
         return Without(self, *attrs)
 
     def reduce(self, func, base=()):
-        return Reduce(self, Func(func), base=base)
+        return Reduce(self, func_wrap(func), base=base)
 
     def map(self, func):
-        return Map(self, Func(func))
+        return Map(self, func_wrap(func))
 
     def filter(self, func):
-        return Filter(self, Func(func))
+        return Filter(self, func_wrap(func))
 
     def concat_map(self, func):
-        return ConcatMap(self, Func(func))
+        return ConcatMap(self, func_wrap(func))
 
     def order_by(self, *obs):
         return OrderBy(self, *obs)
@@ -315,7 +315,7 @@ class MakeArray(RDBSeqOp):
         return T('[', T(*args, intsp=', '),']')
 
     def do(self, func):
-        return FunCall(Func(func), self)
+        return FunCall(func_wrap(func), self)
 
 class MakeObj(RDBValOp):
     tt = p.Term2.MAKE_OBJ
@@ -602,35 +602,45 @@ class ForEach(RDBOp, RDBMethod):
     tt =p.Term2.FOREACH
     st = 'for_each'
 
+# Called on arguments that should be functions
+def func_wrap(val):
+    if isinstance(val, types.FunctionType):
+        return Func(val)
+
+    # Scan for IMPLICIT_VAR or JS
+    def ivar_scan(node):
+        if not isinstance(node, RDBBase):
+            return False
+
+        if isinstance(node, ImplicitVar):
+            return True
+        else:
+            if any([ivar_scan(arg) for arg in node.args]):
+                return True
+        return False
+
+    if ivar_scan(val):
+        return Func(lambda x: val)
+
+    return val
+
 class Func(RDBOp):
     tt = p.Term2.FUNC
     nextVarId = 1
 
     def __init__(self, lmbd):
-        if isinstance(lmbd, types.FunctionType):
-            self.lmbd_expr = True
+        vrs = []
+        vrids = []
+        for i in xrange(lmbd.func_code.co_argcount):
+            vrs.append(Var(Func.nextVarId))
+            vrids.append(Func.nextVarId)
+            Func.nextVarId += 1
 
-            vrs = []
-            vrids = []
-            for i in xrange(lmbd.func_code.co_argcount):
-                vrs.append(Var(Func.nextVarId))
-                vrids.append(Func.nextVarId)
-                Func.nextVarId += 1
-
-            self.vrs = vrs
-            self.args = [MakeArray(*vrids), expr(lmbd(*vrs))]
-        else:
-            self.lmbd_expr = False
-
-            self.vrs = []
-            self.args = [MakeArray(), expr(lmbd)]
-        
+        self.vrs = vrs
+        self.args = [MakeArray(*vrids), expr(lmbd(*vrs))]
         self.optargs = {}
 
     def compose(self, args, optargs):
-        if self.lmbd_expr:
             return T('lambda ', T(*[v.compose([v.args[0].compose(None, None)], []) for v in self.vrs], intsp=', '), ': ', args[1])
-        else:
-            return args[1]
 
 from query import expr

@@ -62,7 +62,7 @@ class RDBUniverse
     getDatabase: (dbName) ->
         strName = dbName.asJSON()
         unless @dbs[strName]?
-            throw new RqlRuntimeError "does not exist"
+            throw new RqlRuntimeError "Database \"#{dbName.asJSON()}\" does not exist."
         else
             return @dbs[strName]
     

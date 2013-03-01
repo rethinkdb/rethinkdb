@@ -48,4 +48,4 @@ tests:
     - cd: r.db('test').table_drop('test2')
       ot: "({'dropped':1})"
 
-    # TODO: test deletion on a non-deletable object
+    # TODO: test deletion on a non-deletable object (array, table post map)

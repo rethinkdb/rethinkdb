@@ -100,7 +100,7 @@ private:
     virtual val_t *eval_impl() {
         name_string_t db_name = get_name(arg(0), this);
         return new_val(meta_get_uuid(db_searcher.get(), db_name,
-                                     "FIND_DB " + db_name.str(), this));
+                                     strprintf("Database \"%s\" does not exist.", db_name.c_str()), this));
     }
     RDB_NAME("db");
 };

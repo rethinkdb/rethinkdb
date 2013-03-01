@@ -125,7 +125,7 @@ class PyTestDriver:
     def define(self, expr):
         exec(expr, globals(), self.scope)
 
-    def run(self, src, expected):
+    def run(self, src, expected, name):
 
         # Try to build the expected result
         if expected:
@@ -143,7 +143,7 @@ class PyTestDriver:
             query = eval(src, dict(globals().items() + self.scope.items()))
         except Exception as err:
             if not exp_fun(err):
-                print "Python error on construction of query:", str(err), 'in:\n', src
+                print "Python error on construction of query %s:" % name, str(err), 'in:\n', src
                 return # Can't continue with this test if there is no test query
 
         # Try actually running the test
@@ -156,7 +156,7 @@ class PyTestDriver:
 
         except Exception as err:
             if not exp_fun(err):
-                print "Error on running of query on CPP server:", str(err), 'in:\n', src
+                print "Error on running of query %s on CPP server:" % name, str(err), 'in:\n', src
 
         try:
             jsres = query.run(self.js_conn)
@@ -164,7 +164,7 @@ class PyTestDriver:
                 print " in JS version of:", src
         except Exception as err:
             if not exp_fun(err):
-                print "Error on running of query on JS server:", str(err), 'in:\n', src
+                print "Error on running of query %s on JS server:" % name, str(err), 'in:\n', src
 
 driver = PyTestDriver()
 driver.connect()
@@ -173,7 +173,7 @@ driver.connect()
 def test(query, expected, name):
     if expected == '':
         expected = None
-    driver.run(query, expected)
+    driver.run(query, expected, name)
 
 # Emitted test code can call this function to define variables
 def define(expr):

@@ -59,14 +59,16 @@ tests:
       ot: err("RqlRuntimeError", "Hello World", [0])
       
     # r.error() negative cases
-    - cd: r.error()
-      ot: err("RqlDriverError", "Expected 1 argument but found 0.", [0])
+    - js: r.error()
+      ot: err("RqlDriverError", "Expected 1 argument(s) but found 0.", [0])
       
-    - cd: r.error('foo', 'bar')
-      ot: err("RqlDriverError", "Expected 1 argument but found 2.", [0])
+    - js: r.error('foo', 'bar')
+      ot: err("RqlDriverError", "Expected 1 argument(s) but found 2.", [0])
       
     - cd: r.error(5) # we might want to allow this eventually
       ot: err("RqlRuntimeError", "Expected type STRING but found NUMBER.", [0])
+
+    # TODO: test arity checking in other functions
 
     # r.js()
     - cd: r.js('1 + 1')
@@ -77,6 +79,8 @@ tests:
 
     - cd: r.do(1, 2, r.js('(function(a, b) { return a + b; })'))
       ot: 3
+
+    # TODO: screw with the number of arguments in the JS function (too few too many)
       
     - cd: r.expr(1).do(r.js('(function(x) { return x + 1; })'))
       ot: 2
@@ -86,7 +90,7 @@ tests:
 
     # js error cases
     - cd: r.js('(function() { return 1; })')
-      ot: err("RqlRuntimeError", "Expected type JSON but found Unknown.", [0])
+      ot: err("RqlRuntimeError", "Query result must be of type DATUM or Stream.", [0])
 
     - cd: r.js('function() { return 1; }')
       ot: 'err("RqlRuntimeError", "SyntaxError: Unexpected token (", [0])'
@@ -95,3 +99,7 @@ tests:
     # returning read queries from a forEach, and calling forEach in
     # random places)
 
+    # TODO: what happens if we pass static values to things that expect functions (=> error unless we explicitly define it)
+    # TODO: passing r.js to seq.map (r.js(1), r.js(func))
+    # TODO: check r.js function not returning a value (e.g. undefined) in filter
+    # TODO: check js function in js client not returning a value (e.g. undefined) in filter

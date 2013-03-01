@@ -62,13 +62,13 @@ var defines = {}
 
 // Connect first to cpp server
 r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
-	
-	// Now connect to js server
-	r.connect({port:JSPORT}, function(js_conn_err, js_conn) {
+    
+    // Now connect to js server
+    r.connect({port:JSPORT}, function(js_conn_err, js_conn) {
 
-		// Pull a test off the queue and run it
-		function runTest() {
-			var testPair = tests.shift();
+        // Pull a test off the queue and run it
+        function runTest() {
+            var testPair = tests.shift();
             if (testPair) {
                 if (testPair instanceof Function) {
                     testPair();
@@ -76,17 +76,7 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
                     return;
                 } else {
 
-                    var src = testPair[0]
-                    try {
-                        with (defines) {
-                            test = eval(src);
-                        }
-                    } catch(bld_err) {
-                        console.log("Error "+bld_err.message+" in construction of: "+src)
-                        // continue to next test
-                        runTest();
-                        return;
-                    }
+                    testName = testPair[2];
 
                     var exp_fun = eval(testPair[1]);
                     if (!exp_fun)
@@ -95,9 +85,38 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
                     if (!(exp_fun instanceof Function))
                         exp_fun = eq(exp_fun);
 
+                    var src = testPair[0]
+                    try {
+                        with (defines) {
+                            test = eval(src);
+                        }
+                    } catch(bld_err) {
+                        if (!exp_fun(bld_err)) {
+                            console.log("Error when building "+testName+":");
+                            console.log(" "+bld_err.name+": "+bld_err.message);
+                        }
+
+                        // continue to next test
+                        runTest();
+                        return;
+                    }
+
                     // Run test first on cpp server
-                    test.run(cpp_conn, function(cpp_err, cpp_res) {
+                    try {
+                        test.run(cpp_conn, cpp_cont);
+                    } catch(err) {
+                        if (!exp_fun(err)) {
+                            console.log("Error when running "+testName+":");
+                            console.log(" "+err.name+": "+err.message);
+                        }
                         
+                        // Continue to next test
+                        runTest();
+                        return;
+                    }
+
+                    function cpp_cont(cpp_err, cpp_res) {
+
                         // Convert to array if it's a cursor
                         if (cpp_res instanceof Object && cpp_res.toArray) {
                             cpp_res.toArray(afterArray);
@@ -108,7 +127,9 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
                         function afterArray(arr_err, cpp_res) {
 
                             // Now run test on js server
-                            test.run(js_conn, function(js_err, js_res) {
+                            test.run(js_conn, js_cont);
+
+                            function js_cont(js_err, js_res) {
 
                                 if (js_res instanceof Object && js_res.toArray) {
                                     js_res.toArray(afterArray2);
@@ -121,20 +142,20 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
 
                                     if (cpp_err) {
                                         if (!exp_fun(cpp_err)) {
-                                            console.log("Error when evaluating on CPP server:");
+                                            console.log("Error when evaluating "+testName+" on CPP server:");
                                             console.log(" "+cpp_err.name+": "+cpp_err.message);
                                         }
                                     } else if (!exp_fun(cpp_res)) {
-                                        console.log(" in CPP version of: "+src)
+                                        console.log(" in CPP version of test "+testName+": "+src)
                                     }
 
                                     if (js_err) {
                                         if (!exp_fun(js_err)) {
-                                            console.log("Error when evaluating on JS server:");
+                                            console.log("Error when evaluating "+testName+" on JS server:");
                                             console.log(" "+js_err.name+": "+js_err.message);
                                         }
                                     } else if (js_res && !exp_fun(js_res)) {
-                                        console.log(" in JS version of: "+src)
+                                        console.log(" in JS version of test "+testName+": "+src)
                                     }
 
                                     // Continue to next test. Tests are fully sequential
@@ -143,28 +164,28 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
                                     runTest();
                                     return;
                                 }
-                            });
+                            }
                         }
-                    });
+                    }
                 }
-			} else {
-				// We've hit the end of our test list
-				// closing the connection will allow the
-				// event loop to quit naturally
-				cpp_conn.close();
-				js_conn.close();
-			}
-		}
+            } else {
+                // We've hit the end of our test list
+                // closing the connection will allow the
+                // event loop to quit naturally
+                cpp_conn.close();
+                js_conn.close();
+            }
+        }
 
-		// Start the recursion though all the tests
-		runTest();
-	});
+        // Start the recursion though all the tests
+        runTest();
+    });
 });
 
 // Invoked by generated code to add test and expected result
 // Really constructs list of tests to be sequentially evaluated
-function test(testSrc, resSrc) {
-	tests.push([testSrc, resSrc])
+function test(testSrc, resSrc, name) {
+    tests.push([testSrc, resSrc, name])
 }
 
 // Invoked by generated code to define variables to used within

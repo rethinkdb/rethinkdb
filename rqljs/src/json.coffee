@@ -33,8 +33,8 @@ class RDBType
         else if typeof @asJSON() is 'string'
             RDBType.STRING
 
-    asJSON: -> new ServerError "Abstract method"
-    copy:   -> new ServerError "Abstract method"
+    asJSON: -> throw new ServerError "Abstract method"
+    copy:   -> throw new ServerError "Abstract method"
 
     isNull: -> (@ instanceof RDBPrimitive and @asJSON() is null)
 
