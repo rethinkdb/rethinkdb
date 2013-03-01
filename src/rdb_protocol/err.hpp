@@ -152,7 +152,7 @@ const backtrace_t::frame_t head_frame = backtrace_t::frame_t::head();
 // Catch this if you want to handle either `exc_t` or `datum_exc_t`.
 class any_ql_exc_t : public std::exception {
 public:
-    virtual ~any_ql_exc_t() { }
+    virtual ~any_ql_exc_t() throw () { }
 };
 
 // A RQL exception.  In the future it will be tagged.
