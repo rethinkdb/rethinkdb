@@ -74,14 +74,23 @@ class RDBJavaScript extends RDBOp
         src = args[0].asJSON()
         try
             res = eval src
-
-            if res instanceof Function
-                return new RDBJSFunction res
-            else
-                return new RDBPrimitive res
-
         catch err
             throw new RqlRuntimeError err.toString()
+
+        if res instanceof Function
+            return (arg_num) ->
+                (actuals...) ->
+                    if res.length isnt actuals.length
+                        throw new RqlRuntimeError(
+                            "Expected #{res.length} argument(s) but found #{actuals.length}.")
+
+                    try
+                        return new RDBPrimitive res.apply({}, actuals.map((v)->v.asJSON()))
+                    catch err
+                        throw new RqlRuntimeError err.toString()
+
+        else
+            return new RDBPrimitive res
 
 class RDBUserError extends RDBOp
     type: tp "STRING -> Error"
@@ -318,7 +327,7 @@ class RDBTableList extends RDBOp
     op: (args) -> args[0].listTables()
 
 class RDBFuncall extends RDBOp
-    type: tp "Function, DATUM... -> DATUM"
+    type: tp "Function(*), DATUM... -> DATUM"
     op: (args) -> args[0](0)(args[1..]...)
 
 class RDBBranch extends RDBOp

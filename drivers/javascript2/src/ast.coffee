@@ -42,10 +42,10 @@ class RDBVal extends TermBase
     without: (fields...) -> new Without {}, @, fields...
     merge: (other) -> new Merge {}, @, other
     between: (left, right) -> new Between {left_bound:left, right_bound:right}, @
-    reduce: (func, base) -> new Reduce {base:base}, @, new Func({}, func)
-    map: (func) -> new Map {}, @, new Func({}, func)
-    filter: (predicate) -> new Filter {}, @, new Func({}, predicate)
-    concatMap: (func) -> new ConcatMap {}, @, new Func({}, func)
+    reduce: (func, base) -> new Reduce {base:base}, @, funcWrap(func)
+    map: (func) -> new Map {}, @, funcWrap(func)
+    filter: (predicate) -> new Filter {}, @, funcWrap(predicate)
+    concatMap: (func) -> new ConcatMap {}, @, funcWrap(func)
     orderBy: (fields...) -> new OrderBy {}, @, fields...
     distinct: -> new Distinct {}, @
     count: -> new Count {}, @
@@ -59,10 +59,10 @@ class RDBVal extends TermBase
     zip: -> new Zip {}, @
     coerce: (type) -> new Coerce {}, @, type
     typeOf: -> new TypeOf {}, @
-    update: (func) -> new Update {}, @, new Func({}, func)
+    update: (func) -> new Update {}, @, funcWrap(func)
     delete: -> new Delete {}, @
-    replace: (func) -> new Replace {}, @, new Func({}, func)
-    do: (func) -> new FunCall {}, new Func({}, func), @
+    replace: (func) -> new Replace {}, @, funcWrap(func)
+    do: (func) -> new FunCall {}, funcWrap(func), @
 
     or: (others...) -> new Any {}, @, others...
     and: (others...) -> new All {}, @, others...
@@ -447,29 +447,36 @@ class ForEach extends RDBOp
     tt: Term2.TermType.FOREACH
     mt: 'forEach'
 
+funcWrap = (val) ->
+    if val instanceof Function
+        return new Func {}, val
+
+    ivarScan = (node) ->
+        unless node instanceof TermBase then return false
+        if node instanceof ImplicitVar then return true
+        if (node.args.map ivarScan).some((a)->a) then return true
+        return false
+
+    if ivarScan(val)
+        return new Func {}, (x) -> val
+
+    return val
+
+
 class Func extends RDBOp
     tt: Term2.TermType.FUNC
 
     constructor: (optargs, func) ->
-        if func instanceof Function
-            @_lambdExpr = true
-
-            args = []
-            argNums = []
-            i = 0
-            while i < func.length
-                argNums.push i
-                args.push new Var {}, i
-                i++
-            body = func(args...)
-            argsArr = new MakeArray({}, argNums...)
-            return super(optargs, argsArr, body)
-        else
-            @_lambdExpr = false
-            return super(optargs, new MakeArray({}), rethinkdb.expr(func))
+        args = []
+        argNums = []
+        i = 0
+        while i < func.length
+            argNums.push i
+            args.push new Var {}, i
+            i++
+        body = func(args...)
+        argsArr = new MakeArray({}, argNums...)
+        return super(optargs, argsArr, body)
 
     compose: (args) ->
-        if @_lambdExpr
-            ['function(', (Var::compose(arg) for arg in args[0][1...-1]), ') { return ', args[1], '; }']
-        else
-            args[1]
+        ['function(', (Var::compose(arg) for arg in args[0][1...-1]), ') { return ', args[1], '; }']

@@ -43,6 +43,8 @@ class RDBPbServer
 
         try
             result = ast.eval(context)
+            unless result instanceof RDBType
+                throw new RqlRuntimeError "Query result type must be of type DATUM."
 
             if result instanceof RDBSequence
                 response.setType Response2.ResponseType.SUCCESS_SEQUENCE

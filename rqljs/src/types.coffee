@@ -116,7 +116,6 @@ class TypeName
         new (if val instanceof RDBDatabase then DatabaseType
         else if val instanceof RDBTable then TableType
         else if val instanceof Function then FunctionType
-        else if val instanceof RDBJSFunction then FunctionType
         else if val instanceof RDBArray then ArrayType
         else if val instanceof RDBObject
             if val.getPK?

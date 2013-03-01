@@ -6,7 +6,7 @@ goog.require("rethinkdb.ast")
 rethinkdb.expr = (val) ->
     if val instanceof TermBase
         val
-    else if typeof val is 'function'
+    else if val instanceof Function
         new Func {}, val
     else if goog.isArray val
         new MakeArray {}, val...
@@ -29,7 +29,7 @@ rethinkdb.dbDrop = (dbName) -> new DbDrop {}, dbName
 
 rethinkdb.dbList = -> new DbList {}
 
-rethinkdb.do = (args...) -> new FunCall {}, args[-1..][0], args[...-1]...
+rethinkdb.do = (args...) -> new FunCall {}, funcWrap(args[-1..][0]), args[...-1]...
 
 rethinkdb.branch = (test, trueBranch, falseBranch) -> new Branch {}, test, trueBranch, falseBranch
 

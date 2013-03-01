@@ -228,19 +228,3 @@ class RDBObject extends RDBType
         for k in attrs
             delete self[k.asJSON()]
         return self
-
-class RDBJSFunction extends RDBType
-    constructor: (func) ->
-        @jsFunc = func
-
-    asJSON: -> throw new RqlRuntimeError "Cannot return function."
-
-    apply: (args) ->
-        if @jsFunc.length isnt args.length
-            throw new RqlRuntimeError(
-                "Expected #{@jsFunc.length} argument(s) but found #{args.length}.")
-
-        try
-            return new RDBPrimitive @jsFunc.apply({}, args.map((v)->v.asJSON()))
-        catch err
-            throw new RqlRuntimeError err.toString()
