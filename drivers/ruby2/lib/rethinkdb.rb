@@ -43,5 +43,8 @@ module RethinkDB
       unbound_if !@body
       RethinkDB::RPP.pp(@body)
     end
+    def inspect
+      @body ? pp : super
+    end
   end
 end

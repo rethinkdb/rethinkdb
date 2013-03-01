@@ -29,31 +29,63 @@ module RethinkDB
 
     def self.pp_int_datum(q, dat, pre_dot)
       q.text("r(") if pre_dot
-      q.text(Shim.datum_to_native(dat).to_s)
+      q.text(Shim.datum_to_native(dat).inspect)
       q.text(")") if pre_dot
     end
 
+    def self.pp_int_func(q, func)
+        func_args = func.args[0].args.map{|x| x.datum.r_num}
+        func_body = func.args[1]
+        q.text(" ")
+        q.group(0, "{", "}") {
+          if func_args != []
+            q.text(func_args.map{|x| :"var_#{x}"}.inspect.gsub(/\[|\]/,"|").gsub(":",""))
+          end
+          q.nest(2) {
+            q.breakable
+            pp_int(q, func_body)
+          }
+          q.breakable('')
+        }
+      end
+
+    def self.can_prefix (name, args)
+      return false if name == "db"
+      return false if name == "table" && args.size == 1
+      return true
+    end
     def self.pp_int(q, term, pre_dot=false)
       return pp_int_datum(q, term.datum, pre_dot) if term.type == Term2::TermType::DATUM
 
       if term.type == Term2::TermType::VAR
         q.text("var_")
         return pp_int_datum(q, term.args[0].datum, false)
+      elsif term.type == Term2::TermType::FUNC
+        q.text("lambda")
+        return pp_int_func(q, term)
       end
 
       name = term.type.to_s.downcase
       args = term.args.dup
       optargs = term.optargs.dup
 
-      if first_arg = args.shift
+      if can_prefix(name, args) && first_arg = args.shift
         pp_int(q, first_arg, true)
-        q.text(".")
+      else
+        q.text("r")
       end
-      q.text(name)
+      if name == "getattr"
+        argstart, argstop = "[", "]"
+      else
+        q.text(".")
+        q.text(name)
+        argstart, argstop = "(", ")"
+      end
 
       func = args[-1] && args[-1].type == Term2::TermType::FUNC && args.pop
+
       if args != [] || optargs != []
-        q.group(0, "(", ")") {
+        q.group(0, argstart, argstop) {
           pushed = nil
           q.nest(2) {
             args.each {|arg|
@@ -73,26 +105,19 @@ module RethinkDB
               end
               pp_int_optargs(q, optargs)
             end
+            if func && name == "grouped_map_reduce"
+              q.text(",")
+              q.breakable
+              q.text("lambda")
+              pp_int_func(q, func)
+              func = nil
+            end
           }
           q.breakable('')
         }
       end
 
-      if func
-        func_args = func.args[0].args.map{|x| x.datum.r_num}
-        func_body = func.args[1]
-        q.text(" ")
-        q.group(0, "{", "}") {
-          if func_args != []
-            q.text(func_args.map{|x| :"var_#{x}"}.inspect.gsub(/\[|\]/,"|").gsub(":",""))
-          end
-          q.nest(2) {
-            q.breakable
-            pp_int(q, func_body)
-          }
-          q.breakable('')
-        }
-      end
+      pp_int_func(q, func) if func
     end
 
     def self.pp term
