@@ -2420,9 +2420,10 @@ module 'DataExplorerView', ->
                 @$('.nano').nanoScroller({preventPageScrolling: true})
             else
                 @desactivate_overflow()
-                @$('.nano').animate
+                duration = Math.max 150, size
+                @$('.nano').stop(true, true).animate
                     height: size
-                    , 200
+                    , duration
                     , ->
                         $('body').css 'overflow', 'auto'
                         $(@).css 'visibility', 'visible' # In case the user trigger hide/show really fast
