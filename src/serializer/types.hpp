@@ -66,7 +66,7 @@ class ls_block_token_pointee_t {
     ls_block_token_pointee_t(log_serializer_t *serializer, int64_t initial_offset);
 
     log_serializer_t *serializer_;
-    int64_t ref_count_;
+    intptr_t ref_count_;
 
     void do_destroy();
 
