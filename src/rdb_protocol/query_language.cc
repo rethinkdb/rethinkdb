@@ -1853,10 +1853,7 @@ boost::shared_ptr<scoped_cJSON_t> eval_term_as_json(Term *t, runtime_environment
         }
 
         // Evaluate the source.
-        result = js->call(id, object, argvals, &errmsg);
-        if (!result) {
-            throw runtime_exc_t("failed to evaluate javascript: " + errmsg, backtrace);
-        }
+        throw runtime_exc_t("failed to evaluate javascript: " + errmsg, backtrace);
         return result;
     }
 
