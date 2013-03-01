@@ -5,6 +5,7 @@ goog.require("rethinkdb.base")
 class RqlDriverError extends Error
     constructor: (msg) ->
         @name = @constructor.name
+        @msg = msg
         @message = msg
 
 class RqlServerError extends Error

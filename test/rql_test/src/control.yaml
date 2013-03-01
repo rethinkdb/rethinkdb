@@ -59,11 +59,11 @@ tests:
       ot: err("RqlRuntimeError", "Hello World", [0])
       
     # r.error() negative cases
-    - cd: r.error()
-      ot: err("RqlDriverError", "Expected 1 argument but found 0.", [0])
+    - js: r.error()
+      ot: err("RqlDriverError", "Expected 1 argument(s) but found 0.", [0])
       
-    - cd: r.error('foo', 'bar')
-      ot: err("RqlDriverError", "Expected 1 argument but found 2.", [0])
+    - js: r.error('foo', 'bar')
+      ot: err("RqlDriverError", "Expected 1 argument(s) but found 2.", [0])
       
     - cd: r.error(5) # we might want to allow this eventually
       ot: err("RqlRuntimeError", "Expected type STRING but found NUMBER.", [0])
@@ -88,7 +88,7 @@ tests:
 
     # js error cases
     - cd: r.js('(function() { return 1; })')
-      ot: err("RqlRuntimeError", "Expected type JSON but found Unknown.", [0])
+      ot: err("RqlRuntimeError", "Query result must be of type DATUM or Stream.", [0])
 
     - cd: r.js('function() { return 1; }')
       ot: 'err("RqlRuntimeError", "SyntaxError: Unexpected token (", [0])'

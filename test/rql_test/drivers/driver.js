@@ -78,18 +78,6 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
 
                     testName = testPair[2];
 
-                    var src = testPair[0]
-                    try {
-                        with (defines) {
-                            test = eval(src);
-                        }
-                    } catch(bld_err) {
-                        console.log("Error "+bld_err.message+" in construction of "+testName+": "+src);
-                        // continue to next test
-                        runTest();
-                        return;
-                    }
-
                     var exp_fun = eval(testPair[1]);
                     if (!exp_fun)
                         exp_fun = function() { return true; };
@@ -97,11 +85,32 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
                     if (!(exp_fun instanceof Function))
                         exp_fun = eq(exp_fun);
 
+                    var src = testPair[0]
+                    try {
+                        with (defines) {
+                            test = eval(src);
+                        }
+                    } catch(bld_err) {
+                        if (!exp_fun(bld_err)) {
+                            console.log("Error when building "+testName+":");
+                            console.log(" "+bld_err.name+": "+bld_err.message);
+                        }
+
+                        // continue to next test
+                        runTest();
+                        return;
+                    }
+
                     // Run test first on cpp server
                     try {
                         test.run(cpp_conn, cpp_cont);
                     } catch(err) {
-                        console.log("Error "+err.message+" in running of "+testName+": "+src);
+                        if (!exp_fun(err)) {
+                            console.log("Error when running "+testName+":");
+                            console.log(" "+err.name+": "+err.message);
+                        }
+                        
+                        // Continue to next test
                         runTest();
                         return;
                     }
@@ -118,13 +127,7 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
                         function afterArray(arr_err, cpp_res) {
 
                             // Now run test on js server
-                            try {
-                                test.run(js_conn, js_cont);
-                            } catch(err) {
-                                console.log("Error "+err.message+" in running of "+testName+": "+src);
-                                runTest();
-                                return;
-                            }
+                            test.run(js_conn, js_cont);
 
                             function js_cont(js_err, js_res) {
 

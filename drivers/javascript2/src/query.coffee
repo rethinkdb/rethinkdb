@@ -3,6 +3,13 @@ goog.provide("rethinkdb.query")
 goog.require("rethinkdb.base")
 goog.require("rethinkdb.ast")
 
+# Function wrapper that enforces that the function is
+# called with the correct number of arguments
+ar = (fun) -> (args...) ->
+    if args.length isnt fun.length
+        throw new RqlDriverError "Expected #{fun.length} argument(s) but found #{args.length}."
+    fun.apply(@, args)
+
 rethinkdb.expr = (val) ->
     if val instanceof TermBase
         val
@@ -17,7 +24,7 @@ rethinkdb.expr = (val) ->
 
 rethinkdb.js = (jssrc) -> new JavaScript {}, jssrc
 
-rethinkdb.error = (errstr) -> new UserError {}, errstr
+rethinkdb.error = ar (errstr) -> new UserError {}, errstr
 
 rethinkdb.row = new ImplicitVar {}
 

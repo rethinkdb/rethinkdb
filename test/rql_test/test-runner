@@ -184,7 +184,10 @@ class TestGroup:
         if lang in obj and isinstance(obj[lang], dict) and 'ot' in obj[lang]:
             return Langs.repr_for(lang, obj[lang]['ot'])
         elif 'ot' in obj:
-            return Langs.repr_for(lang, obj['ot'])
+            ot = obj['ot']
+            if isinstance(ot, dict):
+                ot = ot[lang]
+            return Langs.repr_for(lang, ot)
 
         return None
 
