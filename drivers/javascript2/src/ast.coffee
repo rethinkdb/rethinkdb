@@ -5,6 +5,13 @@ goog.require("rethinkdb.errors")
 goog.require("Term2")
 goog.require("Datum")
 
+# Function wrapper that enforces that the function is
+# called with the correct number of arguments
+ar = (fun) -> (args...) ->
+    if args.length isnt fun.length
+        throw new RqlDriverError "Expected #{fun.length} argument(s) but found #{args.length}."
+    fun.apply(@, args)
+
 class TermBase
     constructor: ->
         self = ((field) -> self.getAttr(field))
@@ -32,42 +39,42 @@ class RDBVal extends TermBase
     div: (others...) -> new Div {}, @, others...
     mod: (other) -> new Mod {}, @, other
 
-    append: (val) -> new Append {}, @, val
+    append: ar (val) -> new Append {}, @, val
     slice: (left=0, right=-1) -> new Slice {}, @, left, right
-    skip: (index) -> new Skip {}, @, index
-    limit: (index) -> new Limit {}, @, index
-    getAttr: (field) -> new GetAttr {}, @, field
+    skip: ar (index) -> new Skip {}, @, index
+    limit: ar (index) -> new Limit {}, @, index
+    getAttr: ar (field) -> new GetAttr {}, @, field
     contains: (fields...) -> new Contains {}, @, fields...
     pluck: (fields...) -> new Pluck {}, @, fields...
     without: (fields...) -> new Without {}, @, fields...
-    merge: (other) -> new Merge {}, @, other
-    between: (left, right) -> new Between {left_bound:left, right_bound:right}, @
+    merge: ar (other) -> new Merge {}, @, other
+    between: ar (left, right) -> new Between {left_bound:left, right_bound:right}, @
     reduce: (func, base) -> new Reduce {base:base}, @, funcWrap(func)
-    map: (func) -> new Map {}, @, funcWrap(func)
-    filter: (predicate) -> new Filter {}, @, funcWrap(predicate)
-    concatMap: (func) -> new ConcatMap {}, @, funcWrap(func)
+    map: ar (func) -> new Map {}, @, funcWrap(func)
+    filter: ar (predicate) -> new Filter {}, @, funcWrap(predicate)
+    concatMap: ar (func) -> new ConcatMap {}, @, funcWrap(func)
     orderBy: (fields...) -> new OrderBy {}, @, fields...
     distinct: -> new Distinct {}, @
     count: -> new Count {}, @
     union: (others...) -> new Union {}, @, others...
-    nth: (index) -> new Nth {}, @, index
-    groupedMapReduce: (group, map, reduce) -> new GroupedMapReduce {}, @, group, map, reduce
+    nth: ar (index) -> new Nth {}, @, index
+    groupedMapReduce: ar (group, map, reduce) -> new GroupedMapReduce {}, @, group, map, reduce
     groupBy: (attrs..., collector) -> new GroupBy {}, @, attrs, collector
-    innerJoin: (other, predicate) -> new InnerJoin {}, @, other, predicate
-    outerJoin: (other, predicate) -> new OuterJoin {}, @, other, predicate
-    eqJoin: (left_attr, right) -> new EqJoin {}, @, left_attr, right
+    innerJoin: ar (other, predicate) -> new InnerJoin {}, @, other, predicate
+    outerJoin: ar (other, predicate) -> new OuterJoin {}, @, other, predicate
+    eqJoin: ar (left_attr, right) -> new EqJoin {}, @, left_attr, right
     zip: -> new Zip {}, @
-    coerce: (type) -> new Coerce {}, @, type
+    coerce: ar (type) -> new Coerce {}, @, type
     typeOf: -> new TypeOf {}, @
-    update: (func) -> new Update {}, @, funcWrap(func)
+    update: ar (func) -> new Update {}, @, funcWrap(func)
     delete: -> new Delete {}, @
-    replace: (func) -> new Replace {}, @, funcWrap(func)
-    do: (func) -> new FunCall {}, funcWrap(func), @
+    replace: ar (func) -> new Replace {}, @, funcWrap(func)
+    do: ar (func) -> new FunCall {}, funcWrap(func), @
 
     or: (others...) -> new Any {}, @, others...
     and: (others...) -> new All {}, @, others...
 
-    forEach: (func) -> new ForEach {}, @, func
+    forEach: ar (func) -> new ForEach {}, @, func
 
 class DatumTerm extends RDBVal
     args: []
@@ -205,8 +212,8 @@ class Db extends RDBOp
     st: 'db'
 
     tableCreate: (tblName, opts) -> new TableCreate opts, @, tblName
-    tableDrop: (tblName) -> new TableDrop {}, @, tblName
-    tableList: -> new TableList {}, @
+    tableDrop: ar (tblName) -> new TableDrop {}, @, tblName
+    tableList: ar(-> new TableList {}, @)
 
     table: (tblName, opts) -> new Table opts, @, tblName
 

@@ -3,14 +3,7 @@ goog.provide("rethinkdb.query")
 goog.require("rethinkdb.base")
 goog.require("rethinkdb.ast")
 
-# Function wrapper that enforces that the function is
-# called with the correct number of arguments
-ar = (fun) -> (args...) ->
-    if args.length isnt fun.length
-        throw new RqlDriverError "Expected #{fun.length} argument(s) but found #{args.length}."
-    fun.apply(@, args)
-
-rethinkdb.expr = (val) ->
+rethinkdb.expr = ar (val) ->
     if val instanceof TermBase
         val
     else if val instanceof Function
@@ -22,24 +15,24 @@ rethinkdb.expr = (val) ->
     else
         new DatumTerm val
 
-rethinkdb.js = (jssrc) -> new JavaScript {}, jssrc
+rethinkdb.js = ar (jssrc) -> new JavaScript {}, jssrc
 
 rethinkdb.error = ar (errstr) -> new UserError {}, errstr
 
 rethinkdb.row = new ImplicitVar {}
 
-rethinkdb.db = (dbName) -> new Db {}, dbName
+rethinkdb.db = ar (dbName) -> new Db {}, dbName
 
-rethinkdb.dbCreate = (dbName) -> new DbCreate {}, dbName
+rethinkdb.dbCreate = ar (dbName) -> new DbCreate {}, dbName
 
-rethinkdb.dbDrop = (dbName) -> new DbDrop {}, dbName
+rethinkdb.dbDrop = ar (dbName) -> new DbDrop {}, dbName
 
 rethinkdb.dbList = -> new DbList {}
 
 rethinkdb.do = (args...) -> new FunCall {}, funcWrap(args[-1..][0]), args[...-1]...
 
-rethinkdb.branch = (test, trueBranch, falseBranch) -> new Branch {}, test, trueBranch, falseBranch
+rethinkdb.branch = ar (test, trueBranch, falseBranch) -> new Branch {}, test, trueBranch, falseBranch
 
 rethinkdb.count =           {'COUNT': true}
-rethinkdb.sum   = (attr) -> {'SUM': attr}
-rethinkdb.avg   = (attr) -> {'AVG': attr}
+rethinkdb.sum   = ar (attr) -> {'SUM': attr}
+rethinkdb.avg   = ar (attr) -> {'AVG': attr}
