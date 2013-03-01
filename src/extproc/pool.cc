@@ -180,7 +180,7 @@ void pool_t::spawn_workers(int num) {
 }
 
 // May only call when we're sure that the worker is not already dead.
-void pool_t::end_worker(workers_t *list, pool_worker_t *worker) {
+void pool_t::end_worker(intrusive_list_t<pool_worker_t> *list, pool_worker_t *worker) {
     rassert(worker && worker->pool_ == this);
 
     list->remove(worker);

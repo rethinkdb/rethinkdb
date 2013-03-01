@@ -89,8 +89,6 @@ private:
     pool_group_t::config_t *config() { return &group_->config_; }
     spawner_t *spawner() { return &group_->spawner_; }
 
-    typedef intrusive_list_t<pool_worker_t> workers_t;
-
   private:
     // Checks & repairs invariants, namely:
     // - num_workers() >= config()->min_workers
@@ -121,7 +119,7 @@ private:
     void cleanup_detached_worker(pool_worker_t *worker);
 
     void spawn_workers(int n);
-    void end_worker(workers_t *list, pool_worker_t *worker);
+    void end_worker(intrusive_list_t<pool_worker_t> *list, pool_worker_t *worker);
 
     int num_workers() {
         return idle_workers_.size() + busy_workers_.size() + num_spawning_workers_;
@@ -131,7 +129,8 @@ private:
     pool_group_t *group_;
 
     // Worker processes.
-    workers_t idle_workers_, busy_workers_;
+    intrusive_list_t<pool_worker_t> idle_workers_;
+    intrusive_list_t<pool_worker_t> busy_workers_;
 
     // Count of the number of workers in the process of being spawned. Necessary
     // in order to maintain (min_workers, max_workers) bounds without race
