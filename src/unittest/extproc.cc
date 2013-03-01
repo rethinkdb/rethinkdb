@@ -14,13 +14,13 @@
 // ----- Infrastructure
 typedef void (*test_t)(extproc::pool_t *pool);
 
-static void run_extproc_test(extproc::spawner_t::info_t *spawner_info, test_t func) {
+static void run_extproc_test(extproc::spawner_info_t *spawner_info, test_t func) {
     extproc::pool_group_t pool_group(spawner_info, extproc::pool_group_t::DEFAULTS);
     func(pool_group.get());
 }
 
 static void main_extproc_test(test_t func) {
-    extproc::spawner_t::info_t spawner_info;
+    extproc::spawner_info_t spawner_info;
     extproc::spawner_t::create(&spawner_info);
     unittest::run_in_thread_pool(boost::bind(run_extproc_test, &spawner_info, func));
 }
@@ -237,7 +237,7 @@ void run_interruptjob_test(extproc::pool_t *pool) {
 
 TEST(ExtProc, InterruptJob) { main_extproc_test(run_interruptjob_test); }
 
-void run_multijob_test(extproc::spawner_t::info_t *spawner_info) {
+void run_multijob_test(extproc::spawner_info_t *spawner_info) {
     extproc::pool_group_t::config_t config;
     // Ensure that we have the headroom to spawn an extra worker.
     const int njobs = config.max_workers = config.min_workers + 1;
@@ -268,7 +268,7 @@ void run_multijob_test(extproc::spawner_t::info_t *spawner_info) {
 }
 
 TEST(ExtProc, MultiJob) {
-    extproc::spawner_t::info_t spawner_info;
+    extproc::spawner_info_t spawner_info;
     extproc::spawner_t::create(&spawner_info);
     unittest::run_in_thread_pool(boost::bind(run_multijob_test, &spawner_info));
 }

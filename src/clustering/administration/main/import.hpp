@@ -22,7 +22,7 @@ struct json_import_target_t {
     std::string primary_key;
 };
 
-bool run_json_import(extproc::spawner_t::info_t *spawner_info,
+bool run_json_import(extproc::spawner_info_t *spawner_info,
                      peer_address_set_t peers,
                      const std::set<ip_address_t> &local_addresses,
                      int ports_port,

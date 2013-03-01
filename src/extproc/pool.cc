@@ -10,7 +10,7 @@ namespace extproc {
 // ---------- pool_group_t ----------
 const pool_group_t::config_t pool_group_t::DEFAULTS;
 
-pool_group_t::pool_group_t(spawner_t::info_t *info, const config_t &config)
+pool_group_t::pool_group_t(spawner_info_t *info, const config_t &config)
     : spawner_(info), config_(config),
       pool_maker_(this)
 {

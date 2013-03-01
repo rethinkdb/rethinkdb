@@ -38,7 +38,7 @@ public:
 
     static const config_t DEFAULTS;
 
-    pool_group_t(spawner_t::info_t *info, const config_t &config);
+    pool_group_t(spawner_info_t *info, const config_t &config);
 
     pool_t *get() { return pool_maker_.get(); }
 

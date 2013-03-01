@@ -44,7 +44,7 @@ static void sigchld_handler(int signo) {
     }
 }
 
-spawner_t::spawner_t(info_t *info)
+spawner_t::spawner_t(spawner_info_t *info)
     : pid_(info->pid), socket_(&info->socket)
 {
     guarantee(-1 == spawner_pid);
@@ -70,7 +70,7 @@ spawner_t::~spawner_t() {
     spawner_pid = -1;
 }
 
-void spawner_t::create(info_t *info) {
+void spawner_t::create(spawner_info_t *info) {
     int fds[2];
     const int res = socketpair(AF_UNIX, SOCK_STREAM, 0, fds);
     guarantee_err(0 == res, "could not create socketpair for spawner");

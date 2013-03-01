@@ -126,7 +126,7 @@ public:
 
 class serve_info_t {
 public:
-    serve_info_t(extproc::spawner_t::info_t *_spawner_info,
+    serve_info_t(extproc::spawner_info_t *_spawner_info,
                  const std::vector<host_and_port_t> &_joins,
                  service_address_ports_t _ports,
                  std::string _web_assets,
@@ -137,7 +137,7 @@ public:
         web_assets(_web_assets),
         config_file(_config_file) { }
 
-    extproc::spawner_t::info_t *spawner_info;
+    extproc::spawner_info_t *spawner_info;
     const std::vector<host_and_port_t> *joins;
     service_address_ports_t ports;
     std::string web_assets;
@@ -324,7 +324,7 @@ void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins, int client_p
     }
 }
 
-void run_rethinkdb_import(extproc::spawner_t::info_t *spawner_info,
+void run_rethinkdb_import(extproc::spawner_info_t *spawner_info,
                           std::vector<host_and_port_t> joins,
                           const std::set<ip_address_t> &local_addresses,
                           int client_port,
@@ -898,7 +898,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
-        extproc::spawner_t::info_t spawner_info;
+        extproc::spawner_info_t spawner_info;
         extproc::spawner_t::create(&spawner_info);
 
         const int num_workers = vm["cores"].as<int>();
@@ -1015,7 +1015,7 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
 
         std::string web_path = get_web_path(vm, argv);
 
-        extproc::spawner_t::info_t spawner_info;
+        extproc::spawner_info_t spawner_info;
         extproc::spawner_t::create(&spawner_info);
 
         const int num_workers = get_cpu_count();
@@ -1129,7 +1129,7 @@ int main_rethinkdb_import(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
-        extproc::spawner_t::info_t spawner_info;
+        extproc::spawner_info_t spawner_info;
         extproc::spawner_t::create(&spawner_info);
 
         json_import_target_t target;
@@ -1200,7 +1200,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
-        extproc::spawner_t::info_t spawner_info;
+        extproc::spawner_info_t spawner_info;
         extproc::spawner_t::create(&spawner_info);
 
         const int num_workers = vm["cores"].as<int>();

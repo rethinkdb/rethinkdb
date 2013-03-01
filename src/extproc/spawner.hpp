@@ -10,29 +10,29 @@
 
 namespace extproc {
 
+class spawner_info_t {
+    friend class spawner_t;
+    pid_t pid;
+    scoped_fd_t socket;
+
+    DISABLE_COPYING(spawner_info_t);
+
+public:
+    spawner_info_t() {}
+    ~spawner_info_t() {}
+};
+
 // A handle to the spawner process. Must only be used from the thread it is
 // created on.
 class spawner_t : public home_thread_mixin_t {
 public:
-    class info_t {
-        friend class spawner_t;
-        pid_t pid;
-        scoped_fd_t socket;
-
-        DISABLE_COPYING(info_t);
-
-    public:
-        info_t() {}
-        ~info_t() {}
-    };
-
     // Must be called within a thread pool, exactly once.
-    explicit spawner_t(info_t *info);
+    explicit spawner_t(spawner_info_t *info);
     ~spawner_t();
 
     // Called to fork off the spawner child process. Must be called *OUTSIDE* of
     // a thread pool (ie. before run_in_thread_pool).
-    static void create(info_t *info);
+    static void create(spawner_info_t *info);
 
     // Creates a socket pair and spawns a process with access to one end of it.
     // On success, returns the pid of the child process and initializes
