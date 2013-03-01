@@ -1,6 +1,11 @@
 desc: Tests RQL control flow structures
 tests:
     
+    # Setup
+    - cd: r.db('test').table_create('test')
+      ot: ({'created':1})
+      def: tbl = r.db('test').table('test')
+      
     ## FunCall
 
     - py: "r.expr(1).do(lambda v: v * 2)"
@@ -135,6 +140,24 @@ tests:
     # TODO: what happens if we pass static values to things that expect functions (=> error unless we explicitly define it)
     
     # forEach
+    - js: "r.expr([1, 2, 3]).forEach(function (row) { return tbl.insert({ 'id': row }) })"
+      ot: ({'inserted':3})
+
+    # XXX: enable this later
+    #- js: "r.expr([1, 2, 3]).forEach(function (row) { return tbl.update({ 'foo': row }) })"
+    #  ot: ({'updated':3})
+      
+    # XXX: enable this later
+    #- js: "r.expr([1, 2, 3]).forEach(function (row) { return [tbl.insert({ 'id': row }), tbl.insert({ 'id': row.mul(10) })] })"
+    #  ot: ({'inserted':6})
+    
+    # XXX: enable this later
+    #- js: "r.expr([1, 2, 3]).forEach(function (row) { return [tbl.update({ 'foo': row }), tbl.update({ 'bar': row })] })"
+    #  ot: ({'updated':6})
+      
+    # XXX: enable this later
+    #- cd: "r.expr([1, 2, 3]).forEach( tbl.insert({ 'id': r.row }) )"
+    #  ot: err("RqlRuntimeError", "Cannot use r.row in nested queries. Use functions instead.", [0])
     
     # forEach negative cases
     # XXX: enable this later
@@ -148,12 +171,18 @@ tests:
     
     # XXX: enable this later
     #- cd: r.expr([1, 2, 3]).forEach(r.row)
-    #  ot: 'err("RqlRuntimeError", "Expected type WriteQuery but found Function(1).", [0])'
+    #  ot: err("RqlRuntimeError", "Expected type WriteQuery but found Function(1).", [0])
 
-      
-    # TODO: add positive and negative forEach tests (including
-    # returning read queries from a forEach, and calling write queries in
-    # random places (e.g. in `do`))
-
-
+    # XXX: enable this later
+    #- js: "r.expr([1, 2, 3]).forEach(function (row) { return tbl; })"
+    #  ot: err("RqlRuntimeError", "Expected type WriteQuery but found Function(1).", [0])
     
+    # XXX: enable this later
+    #- js: "r.expr([1, 2, 3]).forEach(function (row) {})"
+    #  ot: err("RqlDriverError", 'Unknown datum value "undefined", did you forget a "return"?', [1])
+    
+    # TODO: try calling write queries in random places (e.g. in `do`))
+
+    # Cleanup    
+    - cd: r.db('test').table_drop('test')
+      ot: ({'dropped':1})
