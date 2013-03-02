@@ -562,15 +562,22 @@ po::options_description get_web_options_visible() {
     return desc;
 }
 
-po::options_description get_network_options() {
+po::options_description get_network_options(bool join_required) {
     po::options_description desc("Network options");
     desc.add_options()
         ("bind", po::value<std::vector<std::string> >()->composing(), "add the address of a local interface to listen on when accepting connections, may be 'all' or an IP address, loopback addresses are enabled by default")
         ("cluster-port", po::value<int>()->default_value(port_defaults::peer_port), "port for receiving connections from other nodes")
         DEBUG_ONLY(("client-port", po::value<int>()->default_value(port_defaults::client_port), "port to use when connecting to other nodes (for development)"))
         ("driver-port", po::value<int>()->default_value(port_defaults::reql_port), "port for rethinkdb protocol for client drivers")
-        ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a node that we will connect to")
         ("port-offset,o", po::value<int>()->default_value(port_defaults::port_offset), "all ports used locally will have this value added");
+    if (join_required) {
+        desc.add_options()
+            ("join,j", po::value<std::vector<host_and_port_t> >()->composing()->required(), "host:port of a rethinkdb node to connect to");
+    } else {
+        desc.add_options()
+            ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a rethinkdb node to connect to");
+    }
+
     return desc;
 }
 
@@ -625,7 +632,7 @@ po::options_description get_rethinkdb_create_options_visible() {
 po::options_description get_rethinkdb_serve_options() {
     po::options_description desc("Allowed options");
     desc.add(get_file_options());
-    desc.add(get_network_options());
+    desc.add(get_network_options(false));
     desc.add(get_web_options());
     desc.add(get_disk_options());
     desc.add(get_cpu_options());
@@ -637,7 +644,7 @@ po::options_description get_rethinkdb_serve_options() {
 po::options_description get_rethinkdb_serve_options_visible() {
     po::options_description desc("Allowed options");
     desc.add(get_file_options());
-    desc.add(get_network_options());
+    desc.add(get_network_options(false));
     desc.add(get_web_options_visible());
 #ifdef AIOSUPPORT
     desc.add(get_disk_options());
@@ -650,7 +657,7 @@ po::options_description get_rethinkdb_serve_options_visible() {
 
 po::options_description get_rethinkdb_proxy_options() {
     po::options_description desc("Allowed options");
-    desc.add(get_network_options());
+    desc.add(get_network_options(true));
     desc.add(get_web_options());
     desc.add(get_service_options());
     desc.add(get_help_options());
@@ -661,7 +668,7 @@ po::options_description get_rethinkdb_proxy_options() {
 
 po::options_description get_rethinkdb_proxy_options_visible() {
     po::options_description desc("Allowed options");
-    desc.add(get_network_options());
+    desc.add(get_network_options(true));
     desc.add(get_web_options_visible());
     desc.add(get_service_options());
     desc.add(get_help_options());
@@ -674,7 +681,7 @@ po::options_description get_rethinkdb_admin_options() {
     po::options_description desc("Allowed options");
     desc.add_options()
         DEBUG_ONLY(("client-port", po::value<int>()->default_value(port_defaults::client_port), "port to use when connecting to other nodes (for development)"))
-        ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a node that we will connect to")
+        ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a rethinkdb node to connect to")
         ("exit-failure,x", po::value<bool>()->zero_tokens(), "exit with an error code immediately if a command fails");
     return desc;
 }
@@ -683,16 +690,16 @@ po::options_description get_rethinkdb_import_options() {
     po::options_description desc("Allowed options");
     desc.add_options()
         DEBUG_ONLY(("client-port", po::value<int>()->default_value(port_defaults::client_port), "port to use when connecting to other nodes (for development)"))
-        ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a node that we will connect to")
-        // Default value of empty string?  Because who knows what the duck it returns with
+        ("join,j", po::value<std::vector<host_and_port_t> >()->composing()->required(), "host:port of a rethinkdb node to connect to")
+        // Default value of empty string?  Because who knows what the buck it returns with
         // no default value.  Or am I supposed to wade my way back into the
         // program_options documentation again?
         // A default value is not required. One can check vm.count("thing") in order to determine whether the user has supplied the option. --Juggernaut
-        ("table", po::value<std::string>()->default_value(""), "the database and table into which to import, of the format 'database.table'")
+        ("table", po::value<std::string>()->required(), "the database and table into which to import, of the format 'database.table'")
         ("datacenter", po::value<std::string>()->default_value(""), "the datacenter into which to create a table")
         ("primary-key", po::value<std::string>()->default_value("id"), "the primary key to create a new table with, or expected primary key")
         ("separators,s", po::value<std::string>()->default_value("\t,"), "list of characters to be used as whitespace -- uses \"\\t,\" by default")
-        ("input-file", po::value<std::string>()->default_value(""), "the csv input file");
+        ("input-file", po::value<std::string>()->required(), "the csv input file");
     desc.add(get_help_options());
 
     return desc;
@@ -702,7 +709,7 @@ po::options_description get_rethinkdb_porcelain_options() {
     po::options_description desc("Allowed options");
     desc.add(get_file_options());
     desc.add(get_machine_options());
-    desc.add(get_network_options());
+    desc.add(get_network_options(false));
     desc.add(get_web_options());
     desc.add(get_disk_options());
     desc.add(get_cpu_options());
@@ -715,7 +722,7 @@ po::options_description get_rethinkdb_porcelain_options_visible() {
     po::options_description desc("Allowed options");
     desc.add(get_file_options());
     desc.add(get_machine_options_visible());
-    desc.add(get_network_options());
+    desc.add(get_network_options(false));
     desc.add(get_web_options_visible());
 #ifdef AIOSUPPORT
     desc.add(get_disk_options());
@@ -744,23 +751,32 @@ MUST_USE bool pull_io_backend_option(const po::variables_map& vm, io_backend_t *
     return true;
 }
 
-MUST_USE bool parse_commands_flat(int argc, char *argv[], po::variables_map *vm, const po::options_description& options) {
+void output_option_description(const std::string &option_name, const po::options_description &options) {
+    const po::option_description& option = options.find(option_name, false);
+    fprintf(stderr, "usage: %s %s\t(%s)\n",
+            option.format_name().c_str(),
+            option.format_parameter().c_str(),
+            option.description().c_str());
+}
+
+MUST_USE bool parse_commands(int argc, char *argv[], po::variables_map *vm, const po::options_description& options) {
     try {
         int style =
             po::command_line_style::default_style &
             ~po::command_line_style::allow_guessing;
         po::store(po::parse_command_line(argc, argv, options, style), *vm);
-    } catch (const po::multiple_occurrences& ex) {
-        fprintf(stderr, "flag specified too many times\n");
-        return false;
-    }
-    return true;
-}
-
-MUST_USE bool parse_commands(int argc, char *argv[], po::variables_map *vm, const po::options_description& options) {
-    if (parse_commands_flat(argc, argv, vm, options)) {
         po::notify(*vm);
-    } else {
+    } catch (const po::multiple_occurrences &ex) {
+        fprintf(stderr, "%s flag specified too many times\n", ex.get_option_name().c_str());
+        output_option_description(ex.get_option_name(), options);
+        return false;
+    } catch (const po::required_option &ex) {
+        fprintf(stderr, "%s\n", ex.what());
+        output_option_description(ex.get_option_name(), options);
+        return false;
+    } catch (const po::validation_error &ex) {
+        fprintf(stderr, "%s\n", ex.what());
+        output_option_description(ex.get_option_name(), options);
         return false;
     }
     return true;
@@ -778,7 +794,18 @@ MUST_USE bool parse_config_file_flat(const std::string & conf_file_name, po::var
     try {
         po::store(po::parse_config_file(conf_file, options, true), *vm);
     } catch (const po::multiple_occurrences& ex) {
-        fprintf(stderr, "flag specified too many times\n");
+        fprintf(stderr, "%s flag specified too many times\n", ex.get_option_name().c_str());
+        output_option_description(ex.get_option_name(), options);
+        conf_file.close();
+        return false;
+    } catch (const po::required_option &ex) {
+        fprintf(stderr, "%s\n", ex.what());
+        output_option_description(ex.get_option_name(), options);
+        conf_file.close();
+        return false;
+    } catch (const po::validation_error &ex) {
+        fprintf(stderr, "%s\n", ex.what());
+        output_option_description(ex.get_option_name(), options);
         conf_file.close();
         return false;
     } catch (...) {
@@ -802,7 +829,16 @@ MUST_USE bool parse_commands_deep(int argc, char *argv[], po::variables_map *vm,
         }
         po::notify(*vm);
     } catch (const po::multiple_occurrences& ex) {
-        fprintf(stderr, "flag specified too many times\n");
+        fprintf(stderr, "%s flag specified too many times\n", ex.get_option_name().c_str());
+        output_option_description(ex.get_option_name(), options);
+        return false;
+    } catch (const po::required_option &ex) {
+        fprintf(stderr, "%s\n", ex.what());
+        output_option_description(ex.get_option_name(), options);
+        return false;
+    } catch (const po::validation_error &ex) {
+        fprintf(stderr, "%s\n", ex.what());
+        output_option_description(ex.get_option_name(), options);
         return false;
     }
     return true;
