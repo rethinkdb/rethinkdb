@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef ARCH_RUNTIME_SYSTEM_EVENT_PIPE_EVENT_HPP_
 #define ARCH_RUNTIME_SYSTEM_EVENT_PIPE_EVENT_HPP_
 
@@ -11,15 +11,16 @@ public:
     pipe_event_t();
     ~pipe_event_t();
 
-    uint64_t read();
-    void write(uint64_t value);
+    void consume_wakey_wakeys();
+    void wakey_wakey();
 
     int get_notify_fd() {
-        return pipefd[0];
+        return read_fd_;
     }
 
 private:
-    int pipefd[2];
+    int read_fd_;
+    int write_fd_;
     DISABLE_COPYING(pipe_event_t);
 };
 

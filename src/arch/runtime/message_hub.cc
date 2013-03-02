@@ -88,7 +88,7 @@ void linux_message_hub_t::insert_external_message(linux_thread_message_t *msg) {
     }
 
     // Wakey wakey eggs and bakey
-    notify_[current_thread_].event.write(1);
+    notify_[current_thread_].event.wakey_wakey();
 }
 
 void linux_message_hub_t::notify_t::on_event(int events) {
@@ -99,7 +99,7 @@ void linux_message_hub_t::notify_t::on_event(int events) {
 
     // Read from the event so level-triggered mechanism such as poll
     // don't pester us and use 100% cpu
-    event.read();
+    event.consume_wakey_wakeys();
 
     msg_list_t msg_list;
 
@@ -153,7 +153,7 @@ void linux_message_hub_t::push_messages() {
 
             // Wakey wakey, perhaps eggs and bakey
             if (do_wake_up) {
-                thread_pool_->threads[i]->message_hub.notify_[current_thread_].event.write(1);
+                thread_pool_->threads[i]->message_hub.notify_[current_thread_].event.wakey_wakey();
             }
         }
     }

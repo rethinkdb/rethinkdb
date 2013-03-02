@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef BUFFER_CACHE_MIRRORED_STATS_HPP_
 #define BUFFER_CACHE_MIRRORED_STATS_HPP_
 
@@ -11,21 +11,19 @@ struct mc_cache_stats_t {
 
     explicit mc_cache_stats_t(perfmon_collection_t *parent);
 
-    perfmon_counter_t 
+    perfmon_counter_t
         pm_registered_snapshots,
         pm_registered_snapshot_blocks;
 
     perfmon_sampler_t pm_snapshots_per_transaction;
 
-    perfmon_counter_t 
+    perfmon_counter_t
         pm_cache_hits,
         pm_cache_misses;
 
     perfmon_duration_sampler_t
         pm_bufs_acquiring,
         pm_bufs_held;
-
-    perfmon_sampler_t pm_patches_size_per_write;
 
     perfmon_duration_sampler_t
         pm_transactions_starting,
@@ -35,23 +33,17 @@ struct mc_cache_stats_t {
 
     /* Used in writeback.hpp */
     perfmon_duration_sampler_t
-        pm_flushes_diff_flush,
-        pm_flushes_diff_store,
         pm_flushes_locking,
         pm_flushes_writing;
 
     perfmon_sampler_t
         pm_flushes_blocks,
-        pm_flushes_blocks_dirty,
-        pm_flushes_diff_patches_stored,
-        pm_flushes_diff_storage_failures;
+        pm_flushes_blocks_dirty;
 
     perfmon_counter_t
         pm_n_blocks_in_memory,
         pm_n_blocks_dirty,
         pm_n_blocks_total;
-
-    perfmon_sampler_t pm_patches_size_ratio;
 
     // used in buffer_cache/mirrored/page_repl_random.cc
     perfmon_counter_t pm_n_blocks_evicted;

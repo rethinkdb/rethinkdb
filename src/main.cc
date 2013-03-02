@@ -55,17 +55,8 @@ int main(int argc, char *argv[]) {
         } else if (subcommand == "help" || subcommand == "-h" || subcommand == "--help") {
 
             if (argc == 2) {
-                puts("'rethinkdb' is divided into a number of subcommands:");
-                puts("");
-                puts("    'rethinkdb create': prepare files on disk");
-                puts("    'rethinkdb serve': serve queries and host data");
-                puts("    'rethinkdb proxy': serve queries but don't host data");
-                puts("    'rethinkdb admin': access and modify cluster metadata");
-                puts("    'rethinkdb import': import data from from a file");
-                puts("");
-                puts("For more information, run 'rethinkdb help [subcommand]'.");
+                help_rethinkdb_porcelain();
                 return 0;
-
             } else if (argc == 3) {
                 std::string subcommand2 = argv[2];
                 if (subcommand2 == "create") {

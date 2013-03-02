@@ -27,7 +27,9 @@ class semaphore_t {
     int capacity, current;
     intrusive_list_t<lock_request_t> waiters;
 
+#ifndef NDEBUG
     bool in_callback;
+#endif
 
 public:
     explicit semaphore_t(int cap) : capacity(cap), current(0)
@@ -68,11 +70,16 @@ class adjustable_semaphore_t {
     double trickle_fraction, trickle_points;
     intrusive_list_t<lock_request_t> waiters;
 
+#ifndef NDEBUG
     bool in_callback;
+#endif
 
 public:
     explicit adjustable_semaphore_t(int cap, double tf = 0.0) :
-        capacity(cap), current(0), trickle_fraction(tf), trickle_points(0), in_callback(false)
+        capacity(cap), current(0), trickle_fraction(tf), trickle_points(0)
+#ifndef NDEBUG
+        , in_callback(false)
+#endif
     {
         rassert(trickle_fraction <= 1.0 && trickle_fraction >= 0.0);
         rassert(capacity >= 0 || capacity == SEMAPHORE_NO_LIMIT);

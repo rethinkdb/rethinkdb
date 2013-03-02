@@ -1,9 +1,9 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef BTREE_INTERNAL_NODE_HPP_
 #define BTREE_INTERNAL_NODE_HPP_
 
 #include "btree/keys.hpp"
-#include "buffer_cache/types.hpp"
+#include "serializer/types.hpp"
 #include "utils.hpp"
 
 struct internal_node_t;
@@ -29,13 +29,13 @@ void init(block_size_t block_size, internal_node_t *node);
 void init(block_size_t block_size, internal_node_t *node, const internal_node_t *lnode, const uint16_t *offsets, int numpairs);
 
 block_id_t lookup(const internal_node_t *node, const btree_key_t *key);
-bool insert(block_size_t block_size, buf_lock_t *node_buf, const btree_key_t *key, block_id_t lnode, block_id_t rnode);
-bool remove(block_size_t block_size, buf_lock_t *node_buf, const btree_key_t *key);
-void split(block_size_t block_size, buf_lock_t *node_buf, internal_node_t *rnode, btree_key_t *median);
-void merge(block_size_t block_size, const internal_node_t *node, buf_lock_t *rnode_buf, const internal_node_t *parent);
-bool level(block_size_t block_size, buf_lock_t *node_buf, buf_lock_t *rnode_buf, btree_key_t *replacement_key, const internal_node_t *parent);
+bool insert(block_size_t block_size, internal_node_t *node, const btree_key_t *key, block_id_t lnode, block_id_t rnode);
+bool remove(block_size_t block_size, internal_node_t *node, const btree_key_t *key);
+void split(block_size_t block_size, internal_node_t *node, internal_node_t *rnode, btree_key_t *median);
+void merge(block_size_t block_size, const internal_node_t *node, internal_node_t *rnode, const internal_node_t *parent);
+bool level(block_size_t block_size, internal_node_t *node, internal_node_t *rnode, btree_key_t *replacement_key, const internal_node_t *parent);
 int sibling(const internal_node_t *node, const btree_key_t *key, block_id_t *sib_id, store_key_t *key_in_middle_out);
-void update_key(buf_lock_t *node_buf, const btree_key_t *key_to_replace, const btree_key_t *replacement_key);
+void update_key(internal_node_t *node, const btree_key_t *key_to_replace, const btree_key_t *replacement_key);
 int nodecmp(const internal_node_t *node1, const internal_node_t *node2);
 bool is_full(const internal_node_t *node);
 bool is_underfull(block_size_t block_size, const internal_node_t *node);

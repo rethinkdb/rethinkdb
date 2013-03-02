@@ -889,8 +889,8 @@ struct receive_backfill_visitor_t : public boost::static_visitor<void> {
     receive_backfill_visitor_t(btree_slice_t *_btree,
                                transaction_t *_txn,
                                superblock_t *_superblock,
-                               signal_t *_interruptor) :
-      btree(_btree), txn(_txn), superblock(_superblock), interruptor(_interruptor) { }
+                               UNUSED signal_t *_interruptor /* See the fixme below. */)
+        : btree(_btree), txn(_txn), superblock(_superblock) { }
 
     void operator()(const backfill_chunk_t::delete_key_t& delete_key) const {
         point_delete_response_t response;
@@ -929,7 +929,9 @@ private:
     btree_slice_t *btree;
     transaction_t *txn;
     superblock_t *superblock;
-    signal_t *interruptor;  // FIXME: interruptors are not used in btree code, so this one ignored.
+
+    /* FIXME: interruptors are not used in btree code, so this one ignored. */
+    // signal_t *interruptor;
 };
 
 }   /* anonymous namespace */

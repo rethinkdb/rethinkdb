@@ -95,16 +95,4 @@ struct mirrored_cache_config_t {
     }
 };
 
-/* This part of the serializer is part of the on-disk serializer_config_block and can
-only be set at creation time of a database */
-
-struct mirrored_cache_static_config_t {
-    mirrored_cache_static_config_t() {
-        n_patch_log_blocks = 0;
-    }
-
-    // How many blocks of each slice are allocated to the patch log?
-    int32_t n_patch_log_blocks;
-};
-
 #endif /* BUFFER_CACHE_MIRRORED_CONFIG_HPP_ */

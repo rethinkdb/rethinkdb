@@ -69,7 +69,8 @@ public:
     ~rethread_tcp_conn_stream_t();
 private:
     tcp_conn_stream_t *conn_;
-    int old_thread_, new_thread_;
+    int old_thread_;
+    int new_thread_;
     DISABLE_COPYING(rethread_tcp_conn_stream_t);
 };
 
