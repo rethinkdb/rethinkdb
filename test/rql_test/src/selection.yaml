@@ -103,7 +103,7 @@ tests:
     # TODO: test between table where id isn't a primary key
 
     # Filter
-    # TODO: test static value syntax for filter
+    # TODO: test static value syntax for filter (make sure r.row in it works)
     # TODO: test seq.filter.filter
     # TODO: test not returning a boolean
     - py: tbl.filter(lambda row:row['a'] > 2).count()
@@ -119,3 +119,6 @@ tests:
       ot: ({'dropped':1})
     - cd: r.db('test').table_drop('test2')
       ot: ({'dropped':1})
+
+    # TODO: make sure merge (and other things) are polymorphic on objects and streams
+    # TODO: seq.map(r.row[:foo])
