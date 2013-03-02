@@ -55,6 +55,7 @@ module RethinkDB
       return true
     end
     def self.pp_int(q, term, pre_dot=false)
+      q.text("\0x43", 0) if term.is_error
       return pp_int_datum(q, term.datum, pre_dot) if term.type == Term2::TermType::DATUM
 
       if term.type == Term2::TermType::VAR
@@ -118,13 +119,24 @@ module RethinkDB
       end
 
       pp_int_func(q, func) if func
+      q.text("\0x43", 0) if term.is_error
     end
 
     def self.pp term
       q = PrettyPrint.new
       pp_int(q, term)
       q.flush
-      q.output
+
+      in_bt = false
+      q.output.split("\n").map {|line|
+        line = line.gsub(/^ +/) {|x| x+"\0x43"} if in_bt
+        arr = line.split("\0x43")
+        if arr[1]
+          in_bt = !arr[2]
+          [arr.join(""), " "*arr[0].size + "^"*arr[1].size]
+        else line
+        end
+      }.flatten.join("\n")
     end
   end
 end

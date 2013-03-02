@@ -53,9 +53,9 @@ module RethinkDB
         q.token = @token
         res = @conn.run_internal q
         if res.type == Response2::ResponseType::SUCCESS_PARTIAL
-          @results = Shim.response_to_native res
+          @results = Shim.response_to_native(res, @msg)
         else
-          @results = Shim.response_to_native res
+          @results = Shim.response_to_native(res, @msg)
           @results.each(&block)
           return self
         end
@@ -101,9 +101,9 @@ module RethinkDB
 
       res = run_internal q
       if res.type == Response2::ResponseType::SUCCESS_PARTIAL
-        Cursor.new(Shim.response_to_native(res), msg, self, q.token)
+        Cursor.new(Shim.response_to_native(res, msg), msg, self, q.token)
       else
-        Shim.response_to_native res
+        Shim.response_to_native(res, msg)
       end
     end
 
