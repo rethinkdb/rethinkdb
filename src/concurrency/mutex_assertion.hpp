@@ -224,7 +224,6 @@ struct semaphore_assertion_t {
     };
     explicit semaphore_assertion_t(int) { }
 private:
-    int capacity;
     DISABLE_COPYING(semaphore_assertion_t);
 };
 

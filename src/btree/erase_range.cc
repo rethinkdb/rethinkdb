@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "btree/erase_range.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/node.hpp"
@@ -20,10 +20,9 @@ public:
     void process_a_leaf(transaction_t *txn, buf_lock_t *leaf_node_buf,
                         const btree_key_t *l_excl,
                         const btree_key_t *r_incl,
-                        int *population_change_out,
-                        UNUSED signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        rassert(*population_change_out == 0);
-        leaf_node_t *node = reinterpret_cast<leaf_node_t *>(leaf_node_buf->get_data_major_write());
+                        signal_t * /*interruptor*/,
+                        int *population_change_out) THROWS_ONLY(interrupted_exc_t) {
+        leaf_node_t *node = reinterpret_cast<leaf_node_t *>(leaf_node_buf->get_data_write());
 
         std::vector<store_key_t> keys_to_delete;
 
@@ -44,13 +43,15 @@ public:
 
         scoped_malloc_t<char> value(sizer_->max_possible_size());
 
-        for (int i = 0, e = keys_to_delete.size(); i < e; ++i) {
-            if (leaf::lookup(sizer_, node, keys_to_delete[i].btree_key(), value.get())) {
-                deleter_->delete_value(txn, value.get());
-                (*population_change_out)--;
-            }
-            leaf::erase_presence(sizer_, node, keys_to_delete[i].btree_key(), key_modification_proof_t::fake_proof());
+        for (size_t i = 0; i < keys_to_delete.size(); ++i) {
+            bool found = leaf::lookup(sizer_, node, keys_to_delete[i].btree_key(), value.get());
+            guarantee(found);
+            deleter_->delete_value(txn, value.get());
+            leaf::erase_presence(sizer_, node, keys_to_delete[i].btree_key(),
+                                 key_modification_proof_t::real_proof());
         }
+
+        *population_change_out = -static_cast<int>(keys_to_delete.size());
     }
 
     void postprocess_internal_node(UNUSED buf_lock_t *internal_node_buf) {

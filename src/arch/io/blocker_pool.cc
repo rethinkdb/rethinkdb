@@ -60,7 +60,7 @@ void* blocker_pool_t::event_loop(void *arg) {
             // If we don't have ce_lock released at that point, the following happens:
             // The signalled thread immediately has to acquire ce_lock, so the kernel has to yield control
             // again. Only after an additional scheduler roundtrip, we get control again and can release the ce_lock.
-            parent->ce_signal.write(1);
+            parent->ce_signal.wakey_wakey();
         }
     }
 }
@@ -113,7 +113,7 @@ void blocker_pool_t::do_job(job_t *job) {
 void blocker_pool_t::on_event(DEBUG_VAR int event) {
 
     rassert(event == poll_event_in);
-    ce_signal.read();   // So pipe doesn't get backed up
+    ce_signal.consume_wakey_wakeys();   // So pipe doesn't get backed up
 
     std::vector<job_t *> local_completed_events;
 

@@ -183,6 +183,7 @@ private:
             } catch (const exc_t &e) {
                 rfail("Cannot COERCE %s to %s (failed to produce intermediate stream).",
                       get_name(start_type).c_str(), get_name(end_type).c_str());
+                unreachable();
             }
             // SEQUENCE -> ARRAY
             if (end_type == R_ARRAY_TYPE || end_type == DATUM_TYPE) {

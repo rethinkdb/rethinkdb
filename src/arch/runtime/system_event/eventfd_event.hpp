@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef ARCH_RUNTIME_SYSTEM_EVENT_EVENTFD_EVENT_HPP_
 #define ARCH_RUNTIME_SYSTEM_EVENT_EVENTFD_EVENT_HPP_
 
@@ -12,8 +12,10 @@ public:
     eventfd_event_t();
     ~eventfd_event_t();
 
-    uint64_t read();
-    void write(uint64_t value);
+    // Consumes all the pings from the eventfd.
+    void consume_wakey_wakeys();
+    // Pings an eventfd.
+    void wakey_wakey();
 
     int get_notify_fd() {
         return eventfd_;

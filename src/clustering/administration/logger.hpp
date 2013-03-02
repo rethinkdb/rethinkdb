@@ -39,6 +39,9 @@ log_message_t parse_log_message(const std::string &s) THROWS_ONLY(std::runtime_e
 
 log_message_t assemble_log_message(log_level_t level, const std::string &message, struct timespec uptime);
 
+void log_internal(const char *src_file, int src_line, log_level_t level, const char *format, ...) __attribute__((format (printf, 4, 5)));
+void vlog_internal(const char *src_file, int src_line, log_level_t level, const char *format, va_list args) __attribute__((format (printf, 4, 0)));
+
 class thread_pool_log_writer_t : public home_thread_mixin_t {
 public:
     explicit thread_pool_log_writer_t(local_issue_tracker_t *issue_tracker);
