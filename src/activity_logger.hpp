@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef ACTIVITY_LOGGER_HPP_
 #define ACTIVITY_LOGGER_HPP_
 
@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 
+#include "errors.hpp"
 #include <boost/ptr_container/ptr_vector.hpp>
 
 #include "backtrace.hpp"

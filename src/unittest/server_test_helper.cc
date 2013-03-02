@@ -59,15 +59,12 @@ void server_test_helper_t::setup_server_and_run_tests() {
 }
 
 void server_test_helper_t::run_serializer_tests() {
-    mirrored_cache_static_config_t cache_static_cfg;
-    cache_t::create(this->serializer, &cache_static_cfg);
+    cache_t::create(this->serializer);
     mirrored_cache_config_t cache_cfg;
     cache_cfg.flush_timer_ms = MILLION;
     cache_cfg.flush_dirty_size = BILLION;
     cache_cfg.max_size = GIGABYTE;
-    cache_t cache(this->serializer, &cache_cfg, &get_global_perfmon_collection());
-
-    nap(200);   // to let patch_disk_storage do writeback.sync();
+    cache_t cache(this->serializer, cache_cfg, &get_global_perfmon_collection());
 
     run_tests(&cache);
 }
@@ -77,11 +74,11 @@ void server_test_helper_t::snap(transaction_t *txn) {
 }
 
 void server_test_helper_t::change_value(buf_lock_t *buf, uint32_t value) {
-    buf->set_data(const_cast<void *>(buf->get_data_read()), &value, sizeof(value));
+    *static_cast<uint32_t *>(buf->get_data_write()) = value;
 }
 
 uint32_t server_test_helper_t::get_value(buf_lock_t *buf) {
-    return *reinterpret_cast<const uint32_t *>(buf->get_data_read());
+    return *static_cast<const uint32_t *>(buf->get_data_read());
 }
 
 bool server_test_helper_t::acq_check_if_blocks_until_buf_released(buf_lock_t *newly_acquired_block, transaction_t *txn, buf_lock_t *already_acquired_block, access_t acquire_mode, bool do_release) {

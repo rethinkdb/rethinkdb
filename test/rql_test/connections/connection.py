@@ -105,3 +105,6 @@ try:
 except r.RqlDriverError as err:
     if not str(err) == "Connection is closed.":
         raise Exception("Error message wrong")
+
+# TODO: test cursors, streaming large values
+

@@ -49,7 +49,7 @@ tests:
 
     # Replace selection of table
 
-    # TODO: Between is buggy on the CPP server right now and this doesn't work
+    # XXX: enable this later
     #- py: "tbl.between(10, 20).replace(lambda row: {'a':row['id']})"
     #  js: "tbl.between(10, 20).replace(function(row) { return {'a':row('id')}; })"
     #  ot: ({'replaced':9, 'unchanged':1})
@@ -80,3 +80,4 @@ tests:
     # TODO: test atomicity constraints
     # TODO: test trying to change pkey of a document
     # TODO: test not passing a pkey in the first place. What should happen?
+    # TODO: table.replace({ id: 1, foo: 'bar' }) -- if id is present, it must match, if it's missing it's ok, r.row should work.

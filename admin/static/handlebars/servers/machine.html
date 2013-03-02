@@ -29,11 +29,15 @@
 </script>
 
 <script id="machine_view-ghost-template" type="text/x-handlebars-template">
-    <h2 class="title">Error</h2>
-    <p>This server has been previously killed but has been reconnected.<br/>
-    Please kill the RethinkDB instance on this server.</p>
-    <p>List of IPs: {{comma_separated_simple ips}}</p>
-    <p></p>
+    <div id="server-view">
+        <h1 class="title">Error - Zombie server</h1>
+        <div class="section statistics">
+            <p>This server was previously declared dead, but has been reconnected to the cluster.<br/>
+            Please kill the RethinkDB instance on this server.</p>
+            <p>List of IPs: {{comma_separated_simple ips}}</p>
+            <p></p>
+        </div>
+    </div>
 </script>
 
 <script id="machine_view_profile-template" type="text/x-handlebars-template">

@@ -69,9 +69,9 @@ class RDBPbServer
             response.addResponse @deconstructDatum new RDBPrimitive err.message
 
             # Construct the backtrace
-            backtrace = new Backtrace
+            backtrace = new Backtrace()
             for f in err.backtrace
-                frame = new Frame
+                frame = new Frame()
 
                 if typeof f is 'number'
                     frame.setType Frame.FrameType.POS

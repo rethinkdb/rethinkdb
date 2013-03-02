@@ -44,17 +44,17 @@ public:
     // TODO: We're _subclassing_ iocb?  This is insanity.
     struct action_t : private iocb {
         action_t() { }
-        void make_write(fd_t fd, const void *buf, size_t count, off_t offset) {
-            io_prep_pwrite(this, fd, const_cast<void*>(buf), count, offset);
+        void make_write(fd_t fd, const void *buf, size_t count, int64_t offset) {
+            io_prep_pwrite(this, fd, const_cast<void *>(buf), count, offset);
         }
-        void make_read(fd_t fd, void *buf, size_t count, off_t offset) {
+        void make_read(fd_t fd, void *buf, size_t count, int64_t offset) {
             io_prep_pread(this, fd, buf, count, offset);
         }
         fd_t get_fd() const { return this->aio_fildes; }
         void *get_buf() const { return this->u.c.buf; }
         bool get_is_read() const { return (this->aio_lio_opcode == IO_CMD_PREAD); }
         bool get_is_write() const { return !get_is_read(); }
-        off_t get_offset() const { return this->u.c.offset; }
+        int64_t get_offset() const { return this->u.c.offset; }
         size_t get_count() const { return this->u.c.nbytes; }
         void set_successful_due_to_conflict() { io_result = this->u.c.nbytes; }
         bool get_succeeded() const { return io_result == static_cast<int64_t>(this->u.c.nbytes); }

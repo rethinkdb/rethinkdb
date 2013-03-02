@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef SERIALIZER_LOG_LOG_SERIALIZER_HPP_
 #define SERIALIZER_LOG_LOG_SERIALIZER_HPP_
 
@@ -145,9 +145,7 @@ public:
     intrusive_ptr_t<ls_block_token_pointee_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb);
     intrusive_ptr_t<ls_block_token_pointee_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account);
 
-    block_sequence_id_t get_block_sequence_id(block_id_t block_id, const void* buf) const;
-
-    block_size_t get_block_size();
+    block_size_t get_block_size() const;
 
     bool coop_lock_and_check();
 

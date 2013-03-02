@@ -45,7 +45,7 @@ needs in order to complete the disk request. It must expose the following member
 functions:
     bool get_is_read() const;
     bool get_is_write() const;
-    off_t get_offset() const;
+    int64_t get_offset() const;
     size_t get_count() const;
     void *get_buf() const;
 

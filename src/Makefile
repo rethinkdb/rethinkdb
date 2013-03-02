@@ -433,7 +433,7 @@ STATIC_LIBRARY_PATHS:=
 
 STATIC_LIBRARIES:=
 
-STATIC_RECOMMENDS_INDIFFERENT:=boost_serialization boost_program_options
+STATIC_RECOMMENDS_INDIFFERENT:=boost_program_options
 
 ifeq ($(INT_CHAIN_PROTOC),1)
 STATIC_LIBRARY_PATHS+=$(TC_PROTOC_INT_LIB_DIR)/libprotobuf.a
@@ -495,6 +495,9 @@ STATIC_LIBRARY_PATHS+= # path to patched libtcmalloc_and_profiler.a
 endif
 
 RT_CXXFLAGS?=
+
+# Makes compilation work at least with Boost 1.53.0 and OS X clang 4.0.
+RT_CXXFLAGS+="-DBOOST_NO_CXX11_RVALUE_REFERENCES"
 
 RT_CXXFLAGS+=-I$(SOURCE_DIR) -pthread
 RT_CXXFLAGS+="-DPRODUCT_NAME=\"$(PRODUCT_NAME)\""

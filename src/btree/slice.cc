@@ -20,7 +20,7 @@ void btree_slice_t::create(cache_t *cache, const std::vector<char> &metainfo_key
     // ALL updates from master.
     superblock.touch_recency(repli_timestamp_t::distant_past);
 
-    btree_superblock_t *sb = reinterpret_cast<btree_superblock_t *>(superblock.get_data_major_write());
+    btree_superblock_t *sb = reinterpret_cast<btree_superblock_t *>(superblock.get_data_write());
     bzero(sb, cache->get_block_size().value());
 
     // sb->metainfo_blob has been properly zeroed.

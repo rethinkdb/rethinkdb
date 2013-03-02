@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include <backtrace.hpp>
 
 #include <cxxabi.h>
@@ -10,6 +10,7 @@
 
 #include <string>
 
+#include "errors.hpp"
 #include <boost/tokenizer.hpp>
 #include <boost/ptr_container/ptr_map.hpp>
 
