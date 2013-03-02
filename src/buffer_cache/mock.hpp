@@ -102,7 +102,6 @@ private:
     friend class mock_buf_lock_t;
     friend class mock_cache_t;
     access_t access;
-    int n_bufs;
     repli_timestamp_t recency_timestamp;
     auto_drainer_t::lock_t keepalive;
 };
