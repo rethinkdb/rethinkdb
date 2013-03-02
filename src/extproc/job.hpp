@@ -1,10 +1,10 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef EXTPROC_JOB_HPP_
 #define EXTPROC_JOB_HPP_
 
-#include <stdarg.h>             // va_list
+#include <stdarg.h>
 
-#include "arch/runtime/runtime_utils.hpp" // fd_t
+#include "arch/runtime/runtime_utils.hpp"
 #include "containers/archive/archive.hpp"
 #include "containers/archive/socket_stream.hpp"
 
@@ -18,7 +18,7 @@ class job_t {
     // Passed in to a job on the worker process side.
     class control_t : public unix_socket_stream_t {
       public:
-        void vlog(const char *fmt, va_list ap) __attribute__((format (printf, 2, 0))) ;
+        void vlog(const char *fmt, va_list ap) __attribute__((format (printf, 2, 0)));
         void log(const char *fmt, ...) __attribute__((format (printf, 2, 3)));
 
         pid_t get_spawner_pid() const;

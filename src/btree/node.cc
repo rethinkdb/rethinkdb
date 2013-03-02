@@ -38,30 +38,35 @@ bool is_mergable(value_sizer_t<void> *sizer, const node_t *node, const node_t *s
 }
 
 
-void split(value_sizer_t<void> *sizer, buf_lock_t *node_buf, node_t *rnode, btree_key_t *median) {
-    if (is_leaf(reinterpret_cast<const node_t *>(node_buf->get_data_read()))) {
-        leaf_node_t *node = reinterpret_cast<leaf_node_t *>(node_buf->get_data_major_write());
-        leaf::split(sizer, node, reinterpret_cast<leaf_node_t *>(rnode), median);
-    } else {
-        internal_node::split(sizer->block_size(), node_buf, reinterpret_cast<internal_node_t *>(rnode), median);
-    }
-}
-
-void merge(value_sizer_t<void> *sizer, node_t *node, buf_lock_t *rnode_buf, const internal_node_t *parent) {
+void split(value_sizer_t<void> *sizer, node_t *node, node_t *rnode, btree_key_t *median) {
     if (is_leaf(node)) {
-        leaf::merge(sizer, reinterpret_cast<leaf_node_t *>(node), reinterpret_cast<leaf_node_t *>(rnode_buf->get_data_major_write()));
+        leaf::split(sizer, reinterpret_cast<leaf_node_t *>(node),
+                    reinterpret_cast<leaf_node_t *>(rnode), median);
     } else {
-        // TODO: internal_node::merge should not take a buf_lock_t, just
-        // have it take an internal_node_t *rnode.
-        internal_node::merge(sizer->block_size(), reinterpret_cast<const internal_node_t *>(node), rnode_buf, parent);
+        internal_node::split(sizer->block_size(), reinterpret_cast<internal_node_t *>(node),
+                             reinterpret_cast<internal_node_t *>(rnode), median);
     }
 }
 
-bool level(value_sizer_t<void> *sizer, int nodecmp_node_with_sib, buf_lock_t *node_buf, buf_lock_t *rnode_buf, btree_key_t *replacement_key, const internal_node_t *parent) {
-    if (is_leaf(reinterpret_cast<const node_t *>(node_buf->get_data_read()))) {
-        return leaf::level(sizer, nodecmp_node_with_sib, reinterpret_cast<leaf_node_t *>(node_buf->get_data_major_write()), reinterpret_cast<leaf_node_t *>(rnode_buf->get_data_major_write()), replacement_key);
+void merge(value_sizer_t<void> *sizer, node_t *node, node_t *rnode, const internal_node_t *parent) {
+    if (is_leaf(node)) {
+        leaf::merge(sizer, reinterpret_cast<leaf_node_t *>(node), reinterpret_cast<leaf_node_t *>(rnode));
     } else {
-        return internal_node::level(sizer->block_size(), node_buf, rnode_buf, replacement_key, parent);
+        internal_node::merge(sizer->block_size(), reinterpret_cast<internal_node_t *>(node), reinterpret_cast<internal_node_t *>(rnode), parent);
+    }
+}
+
+bool level(value_sizer_t<void> *sizer, int nodecmp_node_with_sib, node_t *node, node_t *rnode, btree_key_t *replacement_key, const internal_node_t *parent) {
+    if (is_leaf(node)) {
+        return leaf::level(sizer, nodecmp_node_with_sib,
+                           reinterpret_cast<leaf_node_t *>(node),
+                           reinterpret_cast<leaf_node_t *>(rnode),
+                           replacement_key);
+    } else {
+        return internal_node::level(sizer->block_size(),
+                                    reinterpret_cast<internal_node_t *>(node),
+                                    reinterpret_cast<internal_node_t *>(rnode),
+                                    replacement_key, parent);
     }
 }
 

@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef SERIALIZER_TRANSLATOR_HPP_
 #define SERIALIZER_TRANSLATOR_HPP_
 
@@ -126,7 +126,7 @@ public:
     intrusive_ptr_t<standard_block_token_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb);
     using serializer_t::block_write;
 
-    block_size_t get_block_size();
+    block_size_t get_block_size() const;
 
     bool coop_lock_and_check();
 
@@ -139,7 +139,6 @@ public:
 
     repli_timestamp_t get_recency(block_id_t id);
     bool get_delete_bit(block_id_t id);
-    block_sequence_id_t get_block_sequence_id(block_id_t block_id, const void* buf) const;
 
     void block_read(const intrusive_ptr_t<standard_block_token_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb);
     void block_read(const intrusive_ptr_t<standard_block_token_t>& token, void *buf, file_account_t *io_account);

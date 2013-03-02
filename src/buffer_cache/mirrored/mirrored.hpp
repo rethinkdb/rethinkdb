@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef BUFFER_CACHE_MIRRORED_MIRRORED_HPP_
 #define BUFFER_CACHE_MIRRORED_MIRRORED_HPP_
 
@@ -19,16 +19,12 @@
 #include "containers/two_level_array.hpp"
 #include "containers/scoped.hpp"
 #include "buffer_cache/mirrored/config.hpp"
-#include "buffer_cache/buf_patch.hpp"
-#include "buffer_cache/mirrored/patch_memory_storage.hpp"
-#include "buffer_cache/mirrored/patch_disk_storage.hpp"
 #include "buffer_cache/mirrored/stats.hpp"
 #include "repli_timestamp.hpp"
 
 #include "buffer_cache/mirrored/writeback.hpp"
 
 #include "buffer_cache/mirrored/page_repl_random.hpp"
-typedef page_repl_random_t page_repl_t;
 
 #include "buffer_cache/mirrored/free_list.hpp"
 
@@ -49,7 +45,6 @@ class mc_inner_buf_t : public evictable_t,
     friend class writeback_t::local_buf_t;
     friend class page_repl_random_t;
     friend class array_map_t;
-    friend class patch_disk_storage_t;
 
     typedef uint64_t version_id_t;
 
@@ -95,9 +90,6 @@ class mc_inner_buf_t : public evictable_t,
     void release_snapshot_data(void *data);
 
 private:
-    // Helper function for inner_buf construction from an existing block
-    void replay_patches();
-    
     // Initializes an mc_inner_buf_t for use with a new block.
     // This is used by allocate() and the new buf constructor mc_inner_buf_t(cache, block_id, snapshot_version, recency_timestamp)
     void initialize_to_new(version_id_t snapshot_version, repli_timestamp_t recency_timestamp);
@@ -117,8 +109,6 @@ private:
 
     // A lock for loading the block.
     rwi_lock_t lock;
-    // A patch counter that belongs to this block.
-    patch_counter_t next_patch_counter;
 
     // The number of mc_buf_lock_ts that exist for this mc_inner_buf_t.
     unsigned int refcount;
@@ -133,10 +123,6 @@ private:
     // number of references from mc_buf_lock_t buffers which point to the current version of `data` as a
     // snapshot. this is ugly, but necessary to correctly initialize buf_snapshot_t refcounts.
     size_t snap_refcount;
-
-    // This is used to figure out what patches still need to be
-    // applied.
-    block_sequence_id_t block_sequence_id;
 
     // snapshot types' implementations are internal and deferred to mirrored.cc
     intrusive_list_t<buf_snapshot_t> snapshots;
@@ -158,9 +144,6 @@ public:
     mc_buf_lock_t();
     ~mc_buf_lock_t();
 
-    // Special construction for patch_disk_storage_t
-    static mc_buf_lock_t * acquire_non_locking_lock(mc_cache_t *cache, const block_id_t block_id);
-
     // Swaps this mc_buf_lock_t with another, thus obeying RAII since one
     // mc_buf_lock_t owns up to one mc_inner_buf_t at a time.
     void swap(mc_buf_lock_t& swapee);
@@ -176,23 +159,13 @@ public:
 
     // Get the data buffer for reading
     const void *get_data_read() const;
-    // Use this only for writes which affect a large part of the block, as it bypasses the diff system
-    void *get_data_major_write();
-    // Convenience function to set some address in the buffer acquired through get_data_read. (similar to memcpy)
-    void set_data(void *dest, const void *src, size_t n);
-    // Convenience function to move data within the buffer acquired through get_data_read. (similar to memmove)
-    void move_data(void* dest, const void* src, size_t n);
-
-    // Makes sure the block itself gets flushed, instead of just the patch log
-    void ensure_flush();
+    // Gets data for writing, also means the block will have to be flushed.
+    void *get_data_write();
 
     block_id_t get_block_id() const;
 
     bool is_deleted() const;
     void mark_deleted();
-
-    patch_counter_t get_next_patch_counter();
-    void apply_patch(buf_patch_t *patch); // This might delete the supplied patch, do not use patch after its application
 
     eviction_priority_t get_eviction_priority() const;
     void set_eviction_priority(eviction_priority_t val);
@@ -220,10 +193,6 @@ private:
 
     // Presumably, the mode with which this mc_buf_lock_t holds the inner buf.
     access_t mode;
-
-    // Used for perfmon, measuring how much the patches' serialized
-    // size changed.  TODO: Maybe this could be a uint16_t.
-    int32_t patches_serialized_size_at_start;
 
     // Our pointer to an inner_buf -- we have a bunch of mc_buf_lock_t's
     // all pointing at an inner buf.
@@ -322,19 +291,17 @@ class mc_cache_t : public home_thread_mixin_t, public serializer_read_ahead_call
     friend class page_repl_random_t;
     friend class evictable_t;
     friend class array_map_t;
-    friend class patch_disk_storage_t;
 
 public:
     typedef mc_buf_lock_t buf_lock_type;
     typedef mc_transaction_t transaction_type;
     typedef mc_cache_account_t cache_account_type;
 
-    // TODO: Make these pointers-to-const.
-    static void create(serializer_t *serializer, mirrored_cache_static_config_t *config);
-    mc_cache_t(serializer_t *serializer, mirrored_cache_config_t *dynamic_config, perfmon_collection_t *);
+    static void create(serializer_t *serializer);
+    mc_cache_t(serializer_t *serializer, const mirrored_cache_config_t &dynamic_config, perfmon_collection_t *);
     ~mc_cache_t();
 
-    block_size_t get_block_size();
+    block_size_t get_block_size() const;
 
     // TODO: Come up with a consistent priority scheme, i.e. define a "default" priority etc.
     // TODO: As soon as we can support it, we might consider supporting a mem_cap paremeter.
@@ -400,15 +367,12 @@ private:
     scoped_ptr_t<file_account_t> writes_io_account;
 
     array_map_t page_map;
-    page_repl_t page_repl;
+    page_repl_random_t page_repl;
     writeback_t writeback;
     array_free_list_t free_list;
 
     // More fields
     bool shutting_down;
-#ifndef NDEBUG
-    bool writebacks_allowed;
-#endif
 
     // Used to keep track of how many transactions there are so that
     // we can wait for transactions to complete before shutting down,
@@ -418,25 +382,6 @@ private:
     int num_live_non_writeback_transactions;
 
     cond_t *to_pulse_when_last_transaction_commits;
-
-    patch_memory_storage_t patch_memory_storage;
-
-    // Pointer, not member, because we need to call its destructor explicitly in our destructor
-    scoped_ptr_t<patch_disk_storage_t> patch_disk_storage;
-
-    // The ratio of block size to patch size (for some block id, at
-    // some point in time) at which we think it's worth it to flush
-    // the whole block and drop the patch history.
-    unsigned int max_patches_size_ratio;
-
-    unsigned int get_max_patches_size_ratio() const { return max_patches_size_ratio; }
-    // Functions that adjust this ratio up and down, between
-    // MAX_PATCHES_SIZE_RATIO_MIN and MAX_PATCHES_SIZE_RATIO_MAX, for
-    // use based on whether we are bottlenecking on I/O.  Note that
-    // increasing the field's value lowers the proportion of block
-    // size at which we would drop the patches.
-    void adjust_max_patches_size_ratio_toward_minimum();
-    void adjust_max_patches_size_ratio_toward_maximum();
 
     bool read_ahead_registered;
 

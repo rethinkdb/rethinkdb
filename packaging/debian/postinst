@@ -1,6 +1,11 @@
 #!/bin/sh
 set -e
 
+dnl This file is preprocessed my m4
+
+dnl set m4 quotes to avoid conflict with shell backquotes
+changequote(`.oO{', `}Oo.')
+
 bin_dir=BIN_DIR
 man1_dir=MAN1_DIR
 bash_completion_dir=BASH_COMPLETION_DIR
@@ -12,7 +17,7 @@ priority=PRIORITY
 install_links=0
 case "$1" in
   configure|abort-upgrade|abort-remove|abort-deconfigure)
-    # update-alternatives is idempotent (in the sence described in the Debian Policy Manual: Package maintainer scripts and installation procedure)
+    # update-alternatives is idempotent (in the sense described in the Debian Policy Manual: Package maintainer scripts and installation procedure)
     # prerm script could delete the link in case of abort-*, so we need to recreate it again.
   if [ UPDATE_ALTERNATIVES = 1 ] ;
   then
@@ -23,7 +28,17 @@ case "$1" in
   fi ;
     update-rc.d rethinkdb defaults ;
     invoke-rc.d rethinkdb start ;
-    ;;
+
+  if [ "`find /etc/rethinkdb/instances.d -maxdepth 1 -type f -name '*.conf'`" = "" ]; then
+    echo The RethinkDB startup service is installed but disabled. To enable it,
+    echo follow the instructions in the guide located at http://www.rethinkdb.com/docs/guides/startup/
+  fi
+
+  if [ "$1" = "configure" ]; then
+    adduser --system --quiet --group --no-create-home rethinkdb || true
+  fi
+  ;;
+
   *)
     echo "Warning: RethinkDB postinst script called with unknown set of arguments: $*"
     ;;

@@ -11,7 +11,7 @@ struct timer_provider_callback_t;
 /* Kernel timer provider based on signals */
 struct timer_signal_provider_t {
 public:
-    timer_signal_provider_t(linux_event_queue_t *_queue);
+    explicit timer_signal_provider_t(linux_event_queue_t *_queue);
     ~timer_signal_provider_t();
 
     void schedule_oneshot(int64_t next_time_in_nanos, timer_provider_callback_t *cb);

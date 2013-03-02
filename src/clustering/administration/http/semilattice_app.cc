@@ -1,7 +1,7 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
-#include "errors.hpp"
-
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include <string>
+
+#include "errors.hpp"
 #include <boost/algorithm/string/predicate.hpp>
 
 #include "http/http.hpp"
@@ -176,7 +176,7 @@ bool semilattice_http_app_t::verify_content_type(const http_req_t &req, const st
     boost::optional<std::string> content_type = req.find_header_line("Content-Type");
     // Only compare the beginning of the content-type. Some browsers may add additional
     // information, and e.g. send "application/json; charset=UTF-8" instead of "application/json"
-    if (!content_type || !boost::starts_with(content_type.get(), expected_content_type)) {
+    if (!content_type || !boost::istarts_with(content_type.get(), expected_content_type)) {
         std::string actual_content_type = (content_type ? content_type.get() : "<NONE>");
         logINF("Bad request, Content-Type should be %s, but is %s.", expected_content_type.c_str(), actual_content_type.c_str());
         return false;

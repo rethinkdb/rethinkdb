@@ -1,15 +1,14 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "arch/io/timer_provider.hpp"
 
 #if RDB_TIMER_PROVIDER == RDB_TIMER_PROVIDER_TIMERFD
 
-#include <fcntl.h>
-#include <unistd.h>
-#include <sys/eventfd.h>
-#include <sys/timerfd.h>
+#include <fcntl.h>  // NOLINT(build/include_order)
+#include <unistd.h>  // NOLINT(build/include_order)
+#include <sys/eventfd.h>  // NOLINT(build/include_order)
+#include <sys/timerfd.h>  // NOLINT(build/include_order)
 
 #include "arch/runtime/event_queue.hpp"
-#include "arch/io/timer_provider.hpp"
 #include "logger.hpp"
 #include "utils.hpp"
 

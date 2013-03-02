@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_REACTOR_DRIVER_TCC_
 #define CLUSTERING_ADMINISTRATION_REACTOR_DRIVER_TCC_
 
@@ -110,13 +110,15 @@ private:
 template <class protocol_t>
 class watchable_and_reactor_t : private master_t<protocol_t>::ack_checker_t {
 public:
-    watchable_and_reactor_t(io_backender_t *io_backender,
+    watchable_and_reactor_t(const base_path_t &_base_path,
+                            io_backender_t *io_backender,
                             reactor_driver_t<protocol_t> *parent,
                             namespace_id_t namespace_id,
                             int64_t _cache_size,
                             const blueprint_t<protocol_t> &bp,
                             svs_by_namespace_t<protocol_t> *svs_by_namespace,
                             typename protocol_t::context_t *_ctx) :
+        base_path(_base_path),
         watchable(bp),
         ctx(_ctx),
         parent_(parent),
@@ -252,6 +254,7 @@ private:
         svs_by_namespace_->get_svs(serializers_collection, namespace_id_, cache_size, &stores_lifetimer_, &svs_, ctx);
 
         reactor_.init(new reactor_t<protocol_t>(
+            base_path,
             io_backender,
             parent_->mbox_manager,
             this,
@@ -277,6 +280,8 @@ private:
         reactor_has_been_initialized_.pulse();
     }
 
+private:
+    const base_path_t base_path;
 public:
     watchable_variable_t<blueprint_t<protocol_t> > watchable;
 
@@ -300,7 +305,8 @@ private:
 };
 
 template <class protocol_t>
-reactor_driver_t<protocol_t>::reactor_driver_t(io_backender_t *_io_backender,
+reactor_driver_t<protocol_t>::reactor_driver_t(const base_path_t &_base_path,
+                                               io_backender_t *_io_backender,
                                                mailbox_manager_t *_mbox_manager,
                                                const clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > &_directory_view,
                                                branch_history_manager_t<protocol_t> *_branch_history_manager,
@@ -310,7 +316,8 @@ reactor_driver_t<protocol_t>::reactor_driver_t(io_backender_t *_io_backender,
                                                svs_by_namespace_t<protocol_t> *_svs_by_namespace,
                                                perfmon_collection_repo_t *_perfmon_collection_repo,
                                                typename protocol_t::context_t *_ctx)
-    : io_backender(_io_backender),
+    : base_path(_base_path),
+      io_backender(_io_backender),
       mbox_manager(_mbox_manager),
       directory_view(_directory_view),
       branch_history_manager(_branch_history_manager),
@@ -409,7 +416,7 @@ void reactor_driver_t<protocol_t>::on_change() {
                     }
 
                     namespace_id_t tmp = it->first;
-                    reactor_data.insert(tmp, new watchable_and_reactor_t<protocol_t>(io_backender, this, it->first, cache_size, bp, svs_by_namespace, ctx));
+                    reactor_data.insert(tmp, new watchable_and_reactor_t<protocol_t>(base_path, io_backender, this, it->first, cache_size, bp, svs_by_namespace, ctx));
                 } else {
                     reactor_data.find(it->first)->second->watchable.set_value(bp);
                 }

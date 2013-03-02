@@ -64,17 +64,19 @@ static void read_blob(transaction_t *txn, const char *ref, int maxreflen, T *val
     guarantee(res == 0);
 }
 
-persistent_file_t::persistent_file_t(io_backender_t *io_backender, const std::string &filename, perfmon_collection_t *perfmon_parent) {
-    construct_serializer_and_cache(io_backender, false, filename, perfmon_parent);
+persistent_file_t::persistent_file_t(io_backender_t *io_backender, const serializer_filepath_t &filename, perfmon_collection_t *perfmon_parent) {
+    filepath_file_opener_t file_opener(filename, io_backender);
+    construct_serializer_and_cache(false, &file_opener, perfmon_parent);
     construct_branch_history_managers(false);
 }
 
-persistent_file_t::persistent_file_t(io_backender_t *io_backender, const std::string& filename, perfmon_collection_t *perfmon_parent, const machine_id_t &machine_id, const cluster_semilattice_metadata_t &initial_metadata) {
-    construct_serializer_and_cache(io_backender, true, filename, perfmon_parent);
+persistent_file_t::persistent_file_t(io_backender_t *io_backender, const serializer_filepath_t& filename, perfmon_collection_t *perfmon_parent, const machine_id_t &machine_id, const cluster_semilattice_metadata_t &initial_metadata) {
+    filepath_file_opener_t file_opener(filename, io_backender);
+    construct_serializer_and_cache(true, &file_opener, perfmon_parent);
 
     transaction_t txn(cache.get(), rwi_write, 1, repli_timestamp_t::distant_past, cache_order_source.check_in("persistent_file_t"));
     buf_lock_t superblock(&txn, SUPERBLOCK_ID, rwi_write);
-    metadata_superblock_t *sb = static_cast<metadata_superblock_t *>(superblock.get_data_major_write());
+    metadata_superblock_t *sb = static_cast<metadata_superblock_t *>(superblock.get_data_write());
 
     bzero(sb, cache->get_block_size().value());
     sb->magic = metadata_superblock_t::expected_magic;
@@ -85,6 +87,8 @@ persistent_file_t::persistent_file_t(io_backender_t *io_backender, const std::st
     write_blob(&txn, sb->rdb_branch_history_blob, metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN, branch_history_t<rdb_protocol_t>());
 
     construct_branch_history_managers(true);
+
+    file_opener.move_serializer_file_to_permanent_location();
 }
 
 persistent_file_t::~persistent_file_t() {
@@ -113,7 +117,7 @@ cluster_semilattice_metadata_t persistent_file_t::read_metadata() {
 void persistent_file_t::update_metadata(const cluster_semilattice_metadata_t &metadata) {
     transaction_t txn(cache.get(), rwi_write, 1, repli_timestamp_t::distant_past, cache_order_source.check_in("update_metadata"));
     buf_lock_t superblock(&txn, SUPERBLOCK_ID, rwi_write);
-    metadata_superblock_t *sb = static_cast<metadata_superblock_t *>(superblock.get_data_major_write());
+    metadata_superblock_t *sb = static_cast<metadata_superblock_t *>(superblock.get_data_write());
     write_blob(&txn, sb->metadata_blob, metadata_superblock_t::METADATA_BLOB_MAXREFLEN, metadata);
 }
 
@@ -193,7 +197,7 @@ private:
     void flush(UNUSED signal_t *interruptor) {
         transaction_t txn(parent->cache.get(), rwi_write, 1, repli_timestamp_t::distant_past, parent->cache_order_source.check_in("flush"));
         buf_lock_t superblock(&txn, SUPERBLOCK_ID, rwi_write);
-        metadata_superblock_t *sb = static_cast<metadata_superblock_t *>(superblock.get_data_major_write());
+        metadata_superblock_t *sb = static_cast<metadata_superblock_t *>(superblock.get_data_write());
         write_blob(&txn, sb->*field_name, metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN, bh);
     }
 
@@ -219,35 +223,31 @@ branch_history_manager_t<rdb_protocol_t> *persistent_file_t::get_rdb_branch_hist
     return rdb_branch_history_manager.get();
 }
 
-void persistent_file_t::construct_serializer_and_cache(io_backender_t *io_backender, const bool create, const std::string &filename, perfmon_collection_t *const perfmon_parent) {
+void persistent_file_t::construct_serializer_and_cache(const bool create, serializer_file_opener_t *file_opener, perfmon_collection_t *const perfmon_parent) {
     standard_serializer_t::dynamic_config_t serializer_dynamic_config;
 
-    {
-        filepath_file_opener_t file_opener(filename, io_backender);
-        if (create) {
-            standard_serializer_t::create(&file_opener,
-                                          standard_serializer_t::static_config_t());
-        }
-
-        serializer.init(new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
-                                                  &file_opener,
-                                                  perfmon_parent));
+    if (create) {
+        standard_serializer_t::create(file_opener,
+                                      standard_serializer_t::static_config_t());
     }
+
+    serializer.init(new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
+                                              file_opener,
+                                              perfmon_parent));
 
     if (!serializer->coop_lock_and_check()) {
         throw file_in_use_exc_t();
     }
 
     if (create) {
-        mirrored_cache_static_config_t cache_static_config;
-        cache_t::create(serializer.get(), &cache_static_config);
+        cache_t::create(serializer.get());
     }
 
     cache_dynamic_config.wait_for_flush = true;         // flush to disk immediately on change
     cache_dynamic_config.flush_waiting_threshold = 0;
     cache_dynamic_config.max_size = MEGABYTE;
     cache_dynamic_config.max_dirty_size = MEGABYTE / 2;
-    cache.init(new cache_t(serializer.get(), &cache_dynamic_config, perfmon_parent));
+    cache.init(new cache_t(serializer.get(), cache_dynamic_config, perfmon_parent));
 }
 
 void persistent_file_t::construct_branch_history_managers(bool create) {

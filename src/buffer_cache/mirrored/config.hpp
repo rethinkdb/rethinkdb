@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef BUFFER_CACHE_MIRRORED_CONFIG_HPP_
 #define BUFFER_CACHE_MIRRORED_CONFIG_HPP_
 
@@ -6,7 +6,7 @@
 #include "utils.hpp"
 #include "containers/archive/archive.hpp"
 
-#define NEVER_FLUSH -1
+#define NEVER_FLUSH (-1)
 
 /* Configuration for the cache (it can all change from run to run) */
 
@@ -93,18 +93,6 @@ struct mirrored_cache_config_t {
         res = deserialize(s, &io_priority_writes);
         return res;
     }
-};
-
-/* This part of the serializer is part of the on-disk serializer_config_block and can
-only be set at creation time of a database */
-
-struct mirrored_cache_static_config_t {
-    mirrored_cache_static_config_t() {
-        n_patch_log_blocks = 0;
-    }
-
-    // How many blocks of each slice are allocated to the patch log?
-    int32_t n_patch_log_blocks;
 };
 
 #endif /* BUFFER_CACHE_MIRRORED_CONFIG_HPP_ */

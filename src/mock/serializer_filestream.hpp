@@ -23,7 +23,6 @@ public:
     MUST_USE int64_t read(void *p, int64_t n);
 
 private:
-    serializer_t *serializer_;
     scoped_ptr_t<cache_t> cache_;
     int64_t known_size_;
     int64_t position_;
@@ -42,7 +41,6 @@ public:
 private:
     void write_size(int64_t size, transaction_t *txn);
 
-    serializer_t *serializer_;
     scoped_ptr_t<cache_t> cache_;
     int64_t size_;
 

@@ -1,8 +1,9 @@
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "unittest/gtest.hpp"
 
 #include "arch/timing.hpp"
 #include "concurrency/pmap.hpp"
-#include "mock/unittest_utils.hpp"
+#include "unittest/unittest_utils.hpp"
 #include "utils.hpp"
 
 namespace unittest {
@@ -29,7 +30,7 @@ void run_TestApproximateWaitTimes() {
 
 
 TEST(TimerTest, TestApproximateWaitTimes) {
-    mock::run_in_thread_pool(run_TestApproximateWaitTimes);
+    unittest::run_in_thread_pool(run_TestApproximateWaitTimes);
 }
 
 

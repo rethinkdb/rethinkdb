@@ -114,28 +114,6 @@
 // on a specific slice at any given time.
 #define DEFAULT_MAX_CONCURRENT_FLUSHES            1
 
-// If the size of the data affected by the current set of patches in a block is larger than
-// block size / MAX_PATCHES_SIZE_RATIO, we flush the block instead of waiting for
-// more patches to come. Flushing the block means that we rewrite the actual data
-// block (including all patches). In this case, we don't have to store any of the
-// patches for that block, because to block will be re-written anyway. This results
-// in improved CPU efficiency, because we save the overhead of storing and managing
-// patches.
-// In summary: larger max patches size ratio -> less usage of patches, more i/o
-//     smaller max patches size ratio -> more usage of patches, less i/o, more CPU usage
-//
-// Note: An average write transaction under canonical workload leads to patches of about 75
-// bytes of affected data.
-// The actual value is constantly adjusted between MAX_PATCHES_SIZE_RATIO_MIN and
-// MAX_PATCHES_SIZE_RATIO_MAX depending on whether the system is i/o bound or not.
-// An exception from this is operating in durability mode, where any write
-// operation is ultimately i/o bound anyway. In this case, the patches size ratio
-// does not get dynamically adjusted but stays constant at MAX_PATCHES_SIZE_RATIO_DURABILITY.
-#define MAX_PATCHES_SIZE_RATIO_MIN                100
-#define MAX_PATCHES_SIZE_RATIO_MAX                2
-#define MAX_PATCHES_SIZE_RATIO_DURABILITY         5
-#define RAISE_PATCHES_RATIO_AT_FRACTION_OF_UNSAVED_DATA_LIMIT 0.6
-
 // If more than this many bytes of dirty data accumulate in the cache, then write
 // transactions will be throttled.
 // A value of 0 means that it will automatically be set to MAX_UNSAVED_DATA_LIMIT_FRACTION
@@ -195,10 +173,6 @@
 // The btree superblock, which has a reference to the root node block
 // id.
 #define SUPERBLOCK_ID                             0
-// HEY: This is kind of fragile because some patch disk storage code
-// expects this value to be 1 (since the free list returns 1 the first
-// time a block id is generated, or something).
-#define MC_CONFIGBLOCK_ID                         (SUPERBLOCK_ID + 1)
 
 // The ratio at which we should start GCing.  (HEY: What's the extra
 // 0.000001 in MAX_GC_HIGH_RATIO for?  Is it because we told the user

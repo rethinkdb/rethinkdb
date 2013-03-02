@@ -1,12 +1,12 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
-#ifndef MOCK_BRANCH_HISTORY_MANAGER_HPP_
-#define MOCK_BRANCH_HISTORY_MANAGER_HPP_
+// Copyright 2010-2013 RethinkDB, all rights reserved.
+#ifndef UNITTEST_BRANCH_HISTORY_MANAGER_HPP_
+#define UNITTEST_BRANCH_HISTORY_MANAGER_HPP_
 
 #include <set>
 
 #include "clustering/immediate_consistency/branch/history.hpp"
 
-namespace mock {
+namespace unittest {
 
 template <class protocol_t>
 class in_memory_branch_history_manager_t : public branch_history_manager_t<protocol_t> {
@@ -21,8 +21,6 @@ private:
     branch_history_t<protocol_t> bh;
 };
 
-}   /* namespace mock */
+}  // namespace unittest
 
-#include "mock/branch_history_manager.tcc"
-
-#endif /* MOCK_BRANCH_HISTORY_MANAGER_HPP_ */
+#endif  // UNITTEST_BRANCH_HISTORY_MANAGER_HPP_

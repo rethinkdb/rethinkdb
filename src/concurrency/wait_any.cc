@@ -5,39 +5,6 @@ void wait_any_t::wait_any_subscription_t::run() {
     parent->pulse_if_not_already_pulsed();
 }
 
-wait_any_t::wait_any_t() {
-}
-
-wait_any_t::wait_any_t(const signal_t *s1) {
-    add(s1);
-}
-
-wait_any_t::wait_any_t(const signal_t *s1, const signal_t *s2) {
-    add(s1);
-    add(s2);
-}
-
-wait_any_t::wait_any_t(const signal_t *s1, const signal_t *s2, const signal_t *s3) {
-    add(s1);
-    add(s2);
-    add(s3);
-}
-
-wait_any_t::wait_any_t(const signal_t *s1, const signal_t *s2, const signal_t *s3, const signal_t *s4) {
-    add(s1);
-    add(s2);
-    add(s3);
-    add(s4);
-}
-
-wait_any_t::wait_any_t(const signal_t *s1, const signal_t *s2, const signal_t *s3, const signal_t *s4, const signal_t *s5) {
-    add(s1);
-    add(s2);
-    add(s3);
-    add(s4);
-    add(s5);
-}
-
 wait_any_t::~wait_any_t() {
     while (!subs.empty()) {
         wait_any_subscription_t *p = subs.head();

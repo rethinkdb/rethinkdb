@@ -1,7 +1,7 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "rdb_protocol/query_language.hpp"
 
-#include <math.h>
+#include <cmath>
 
 #include "errors.hpp"
 #include <boost/make_shared.hpp>
@@ -62,7 +62,7 @@ void wait_for_rdb_table_readiness(namespace_repo_t<rdb_protocol_t> *ns_repo,
 namespace query_language {
 
 cJSON *safe_cJSON_CreateNumber(double d, const backtrace_t &backtrace) {
-    if (!isfinite(d)) throw runtime_exc_t(strprintf("Illegal numeric value %e.", d), backtrace);
+    if (!std::isfinite(d)) throw runtime_exc_t(strprintf("Illegal numeric value %e.", d), backtrace);
     return cJSON_CreateNumber(d);
 }
 #define cJSON_CreateNumber(...) CT_ASSERT(!"Use safe_cJSON_CreateNumber")
@@ -936,7 +936,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         /* Create namespace, insert into metadata, then join into real metadata. */
         database_semilattice_metadata_t db;
         db.name = vclock_t<name_string_t>(db_name, env->this_machine);
-        metadata.databases.databases.insert(std::make_pair(generate_uuid(), db));
+        metadata.databases.databases.insert(std::make_pair(generate_uuid(), make_deletable(db)));
         try {
             fill_in_blueprints(&metadata, directory_metadata->get(), env->this_machine, false);
         } catch (const missing_machine_exc_t &e) {
@@ -1023,7 +1023,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
                                           primary_key, port_defaults::reql_port, cache_size);
         {
             cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t change(&metadata.rdb_namespaces);
-            change.get()->namespaces.insert(std::make_pair(namespace_id, ns));
+            change.get()->namespaces.insert(std::make_pair(namespace_id, make_deletable(ns)));
         }
         try {
             fill_in_blueprints(&metadata, directory_metadata->get(), env->this_machine, false);
@@ -2885,7 +2885,8 @@ view_t eval_term_as_view(Term *t, runtime_environment_t *env, const scopes_t &sc
 view_t eval_table_as_view(Term::Table *t, runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
     namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval_table_ref(t->mutable_table_ref(), env, backtrace);
     std::string pk = get_primary_key(t->mutable_table_ref(), env, backtrace);
-    boost::shared_ptr<json_stream_t> stream(new batched_rget_stream_t(ns_access, env->interruptor, key_range_t::universe(), 100, backtrace, t->table_ref().use_outdated()));
+    // TODO(jdoliner): We used to pass 100 as a batch_size parameter to the batched_rget_stream_t constructor.
+    boost::shared_ptr<json_stream_t> stream(new batched_rget_stream_t(ns_access, env->interruptor, key_range_t::universe(), backtrace, t->table_ref().use_outdated()));
     return view_t(ns_access, pk, stream);
 }
 

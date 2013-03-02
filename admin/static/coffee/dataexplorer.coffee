@@ -373,8 +373,7 @@ module 'DataExplorerView', ->
                 if event.which is 27 # ESC
                     @hide_suggestion_and_description()
                     return true
-                # If the user hit tab, we switch the highlighted suggestion
-                else if event.which is 9
+                else if event.which is 9 # If the user hit tab, we switch the highlighted suggestion
                     event.preventDefault()
                     if event.type is 'keydown'
                         if @current_suggestions?.length > 0
@@ -507,7 +506,6 @@ module 'DataExplorerView', ->
 
             if event?.which isnt 9 # has to be before create_suggestion()
                 @cursor_for_auto_completion = @codemirror.getCursor()
-
             # We just look at key up so we don't fire the call 3 times
             if event?.type? and event.type isnt 'keyup' and event.which isnt 9 and event.type isnt 'mouseup'
                 return false

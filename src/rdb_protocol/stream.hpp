@@ -83,9 +83,9 @@ private:
 
 class batched_rget_stream_t : public json_stream_t {
 public:
-    batched_rget_stream_t(const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access, 
-                          signal_t *_interruptor, key_range_t _range, 
-                          int _batch_size, const backtrace_t &_table_scan_backtrace,
+    batched_rget_stream_t(const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
+                          signal_t *_interruptor, key_range_t _range,
+                          const backtrace_t &_table_scan_backtrace,
                           bool _use_outdated);
 
     boost::shared_ptr<scoped_cJSON_t> next();
@@ -104,10 +104,13 @@ private:
     namespace_repo_t<rdb_protocol_t>::access_t ns_access;
     signal_t *interruptor;
     key_range_t range;
-    int batch_size;
+    // TODO(jdoliner) What were batch_size and index doing being unused?  Does this type actually do
+    // batching?  (This code might be removed in the ql-refactor branch, so it might not matter.)
+    // int batch_size;
 
     json_list_t data;
-    int index;
+    // See the TODO(jdoliner) above.
+    // int index;
     bool finished, started;
     bool use_outdated;
 

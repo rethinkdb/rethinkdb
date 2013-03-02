@@ -1,10 +1,16 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef ERRORS_HPP_
 #define ERRORS_HPP_
 
 #include <errno.h>
 #include <signal.h>
 #include <stdlib.h>
+
+// Boost 1.53.0 would not build on OS X (using Apple's Clang 4.0, which is based
+// off of clang 3.1svn).  See https://github.com/rethinkdb/rethinkdb/issues/377
+#ifndef BOOST_NO_CXX11_RVALUE_REFERENCES
+#error "BOOST_NO_CXX11_RVALUE_REFERENCES should have been defined by the Makefile."
+#endif
 
 #ifndef DISABLE_BREAKPOINTS
 #ifdef __linux__
@@ -186,10 +192,9 @@ void mcheck_init(void);
 void mcheck_all(void);
 #endif
 
-// put this in a private: section.
 #define DISABLE_COPYING(T)                      \
-    T(const T&);                                \
-    T& operator=(const T&)
+    T(const T&) = delete;                       \
+    T& operator=(const T&) = delete
 
 
 /* Put these after functions to indicate what they throw. In release mode, they

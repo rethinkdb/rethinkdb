@@ -260,9 +260,9 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t 
 }
 
 void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
-                       bool left_key_supplied, const store_key_t& left_key_exclusive,
-                       bool right_key_supplied, const store_key_t& right_key_inclusive,
-                       transaction_t *txn, superblock_t *superblock) {
+                     bool left_key_supplied, const store_key_t& left_key_exclusive,
+                     bool right_key_supplied, const store_key_t& right_key_inclusive,
+                     transaction_t *txn, superblock_t *superblock) {
 
     value_sizer_t<rdb_value_t> rdb_sizer(slice->cache()->get_block_size());
     value_sizer_t<void> *sizer = &rdb_sizer;
@@ -360,7 +360,7 @@ public:
                 for (json_list_t::iterator it =  data.begin();
                                            it != data.end();
                                            ++it) {
-                    stream->push_back(std::make_pair(key, *it));
+                    stream->push_back(std::make_pair(store_key_t(key), *it));
                     cumulative_size += estimate_rget_response_size(*it);
                 }
 

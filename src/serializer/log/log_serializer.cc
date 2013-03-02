@@ -6,55 +6,87 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
-
 #include "arch/io/disk.hpp"
 #include "arch/runtime/runtime.hpp"
 #include "buffer_cache/types.hpp"
 #include "perfmon/perfmon.hpp"
 
-filepath_file_opener_t::filepath_file_opener_t(const std::string &filepath, io_backender_t *backender)
-    : filepath_(filepath), backender_(backender) {
-    guarantee(!filepath.empty());
-}
+filepath_file_opener_t::filepath_file_opener_t(const serializer_filepath_t &filepath, io_backender_t *backender)
+    : filepath_(filepath), backender_(backender), opened_temporary_(false) { }
 
 filepath_file_opener_t::~filepath_file_opener_t() { }
 
 std::string filepath_file_opener_t::file_name() const {
-    return filepath_;
+    return filepath_.permanent_path();
 }
 
-bool filepath_file_opener_t::open_serializer_file(int extra_flag, scoped_ptr_t<file_t> *file_out) {
-    file_open_result_t open_res = open_direct_file(filepath_.c_str(),
-                                                   linux_file_t::mode_read | linux_file_t::mode_write | extra_flag,
-                                                   backender_,
-                                                   file_out);
-    if (open_res.outcome == file_open_result_t::ERROR) {
-        crash_due_to_inaccessible_database_file(filepath_.c_str(), open_res);
+std::string filepath_file_opener_t::temporary_file_name() const {
+    return filepath_.temporary_path();
+}
+
+std::string filepath_file_opener_t::current_file_name() const {
+    return opened_temporary_ ? temporary_file_name() : file_name();
+}
+
+void filepath_file_opener_t::open_serializer_file(const std::string &path, int extra_flags, scoped_ptr_t<file_t> *file_out) {
+    const file_open_result_t res = open_direct_file(path.c_str(),
+                                                    linux_file_t::mode_read | linux_file_t::mode_write | extra_flags,
+                                                    backender_,
+                                                    file_out);
+    if (res.outcome == file_open_result_t::ERROR) {
+        crash_due_to_inaccessible_database_file(path.c_str(), res);
     }
 
-    if (open_res.outcome == file_open_result_t::BUFFERED) {
+    if (res.outcome == file_open_result_t::BUFFERED) {
         logWRN("Could not turn off filesystem caching for database file: \"%s\" "
                "(Is the file located on a filesystem that doesn't support direct I/O "
                "(e.g. some encrypted or journaled file systems)?) "
                "This can cause performance problems.",
-               filepath_.c_str());
+               path.c_str());
     }
-    return open_res.outcome != file_open_result_t::ERROR;
 }
 
-bool filepath_file_opener_t::open_serializer_file_create(scoped_ptr_t<file_t> *file_out) {
-    return open_serializer_file(linux_file_t::mode_create, file_out);
+void filepath_file_opener_t::open_serializer_file_create_temporary(scoped_ptr_t<file_t> *file_out) {
+    mutex_assertion_t::acq_t acq(&reentrance_mutex_);
+    open_serializer_file(temporary_file_name(), linux_file_t::mode_create | linux_file_t::mode_truncate, file_out);
+    opened_temporary_ = true;
 }
 
-bool filepath_file_opener_t::open_serializer_file_existing(scoped_ptr_t<file_t> *file_out) {
-    return open_serializer_file(0, file_out);
+void filepath_file_opener_t::move_serializer_file_to_permanent_location() {
+    // TODO: Make caller not require that this not block, run ::rename in a blocker pool.
+    ASSERT_NO_CORO_WAITING;
+
+    mutex_assertion_t::acq_t acq(&reentrance_mutex_);
+
+    guarantee(opened_temporary_);
+    const int res = ::rename(temporary_file_name().c_str(), file_name().c_str());
+
+    if (res != 0) {
+        crash("Could not rename database file %s to permanent location %s\n",
+              temporary_file_name().c_str(), file_name().c_str());
+    }
+
+    opened_temporary_ = false;
+}
+
+void filepath_file_opener_t::open_serializer_file_existing(scoped_ptr_t<file_t> *file_out) {
+    mutex_assertion_t::acq_t acq(&reentrance_mutex_);
+    open_serializer_file(current_file_name(), 0, file_out);
+}
+
+void filepath_file_opener_t::unlink_serializer_file() {
+    // TODO: Make caller not require that this not block, run ::unlink in a blocker pool.
+    ASSERT_NO_CORO_WAITING;
+
+    mutex_assertion_t::acq_t acq(&reentrance_mutex_);
+    guarantee(opened_temporary_);
+    const int res = ::unlink(current_file_name().c_str());
+    guarantee_err(res == 0, "unlink() failed");
 }
 
 #ifdef SEMANTIC_SERIALIZER_CHECK
-bool filepath_file_opener_t::open_semantic_checking_file(int *fd_out) {
-    std::string semantic_filepath = filepath_ + "_semantic";
+void filepath_file_opener_t::open_semantic_checking_file(int *fd_out) {
+    const std::string semantic_filepath = filepath_.permanent_path() + "_semantic";
     int semantic_fd;
     do {
         semantic_fd = open(semantic_filepath.c_str(),
@@ -65,7 +97,6 @@ bool filepath_file_opener_t::open_semantic_checking_file(int *fd_out) {
         fail_due_to_user_error("Inaccessible semantic checking file: \"%s\": %s", semantic_filepath.c_str(), errno_string(errno).c_str());
     } else {
         *fd_out = semantic_fd;
-        return true;
     }
 }
 #endif  // SEMANTIC_SERIALIZER_CHECK
@@ -115,9 +146,7 @@ void log_serializer_t::create(serializer_file_opener_t *file_opener, static_conf
     log_serializer_on_disk_static_config_t *on_disk_config = &static_config;
 
     scoped_ptr_t<file_t> file;
-    if (!file_opener->open_serializer_file_create(&file)) {
-        crash("could not open file %s for creation", file_opener->file_name().c_str());
-    }
+    file_opener->open_serializer_file_create_temporary(&file);
 
     co_static_header_write(file.get(), on_disk_config, sizeof(*on_disk_config));
 
@@ -158,9 +187,7 @@ struct ls_start_existing_fsm_t :
         ser->state = log_serializer_t::state_starting_up;
 
         scoped_ptr_t<file_t> dbfile;
-        if (!file_opener->open_serializer_file_existing(&dbfile)) {
-            crash("Database file \"%s\" could not be opened.  (It does not exist?)\n", file_opener->file_name().c_str());
-        }
+        file_opener->open_serializer_file_existing(&dbfile);
         ser->dbfile = dbfile.release();
 
         start_existing_state = state_read_static_header;
@@ -700,19 +727,8 @@ void log_serializer_t::remap_block_to_new_offset(int64_t current_offset, int64_t
     }
 }
 
-// The block_id is there to keep the interface independent from the serializer
-// implementation. This method should work even if there's no block sequence id in
-// buf.
-block_sequence_id_t log_serializer_t::get_block_sequence_id(DEBUG_VAR block_id_t block_id, const void* buf) const {
-    // No thread assertion.  Really we should just make this a static method.
-    const ls_buf_data_t *ser_data = reinterpret_cast<const ls_buf_data_t *>(buf);
-    ser_data--;
-    rassert(ser_data->block_id == block_id);
-    return ser_data->block_sequence_id;
-}
-
 // TODO: Make this const.
-block_size_t log_serializer_t::get_block_size() {
+block_size_t log_serializer_t::get_block_size() const {
     return static_config.block_size();
 }
 

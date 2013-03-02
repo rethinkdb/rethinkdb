@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "serializer/semantic_checking.hpp"
 
 #include <vector>
@@ -45,9 +45,7 @@ semantic_checking_serializer_t(dynamic_config_t config, serializer_file_opener_t
       last_index_write_started(0), last_index_write_finished(0),
       semantic_fd(-1)
 {
-    if (!file_opener->open_semantic_checking_file(&semantic_fd)) {
-        fail_due_to_user_error("Inaccessible semantic checking file: \"%s\"", file_opener->file_name().c_str());
-    }
+    file_opener->open_semantic_checking_file(&semantic_fd);
 
     // fill up the blocks from the semantic checking file
     int res = -1;
@@ -193,12 +191,6 @@ block_read(const intrusive_ptr_t< scs_block_token_t<inner_serializer_t> >& _toke
 }
 
 template<class inner_serializer_t>
-block_sequence_id_t semantic_checking_serializer_t<inner_serializer_t>::
-get_block_sequence_id(block_id_t block_id, const void* buf) const {
-    return inner_serializer.get_block_sequence_id(block_id, buf);
-}
-
-template<class inner_serializer_t>
 void semantic_checking_serializer_t<inner_serializer_t>::
 index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account) {
     std::vector<index_write_op_t> inner_ops;
@@ -260,7 +252,7 @@ bool semantic_checking_serializer_t<inner_serializer_t>::coop_lock_and_check() {
 
 template<class inner_serializer_t>
 block_size_t semantic_checking_serializer_t<inner_serializer_t>::
-get_block_size() { return inner_serializer.get_block_size(); }
+get_block_size() const { return inner_serializer.get_block_size(); }
 
 template<class inner_serializer_t>
 block_id_t semantic_checking_serializer_t<inner_serializer_t>::

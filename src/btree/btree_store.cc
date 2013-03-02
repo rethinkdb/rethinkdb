@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "btree/btree_store.hpp"
 
 #include "btree/operations.hpp"
@@ -17,8 +17,7 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
       perfmon_collection(),
       perfmon_collection_membership(parent_perfmon_collection, &perfmon_collection, perfmon_name) {
     if (create) {
-        mirrored_cache_static_config_t cache_static_config;
-        cache_t::create(serializer, &cache_static_config);
+        cache_t::create(serializer);
     }
 
     // TODO: Don't specify cache dynamic config here.
@@ -26,35 +25,20 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
     cache_dynamic_config.max_dirty_size = cache_target / 2;
     cache_dynamic_config.wait_for_flush = true;
     cache_dynamic_config.flush_waiting_threshold = 1;
-    cache.init(new cache_t(serializer, &cache_dynamic_config, &perfmon_collection));
+    cache.init(new cache_t(serializer, cache_dynamic_config, &perfmon_collection));
 
     if (create) {
-        btree_slice_t::create(cache.get());
-    }
-
-    btree.init(new btree_slice_t(cache.get(), &perfmon_collection));
-
-    if (create) {
-        // Initialize metainfo to an empty `binary_blob_t` because its domain is
-        // required to be `protocol_t::region_t::universe()` at all times
-        /* Wow, this is a lot of lines of code for a simple concept. Can we do better? */
-
-        scoped_ptr_t<transaction_t> txn;
-        scoped_ptr_t<real_superblock_t> superblock;
-        order_token_t order_token = order_source.check_in("btree_store_t<" + protocol_t::protocol_name + ">::store_t::store_t");
-        order_token = btree->pre_begin_txn_checkpoint_.check_through(order_token);
-        get_btree_superblock_and_txn(btree.get(), rwi_write, 1, repli_timestamp_t::invalid, order_token, &superblock, &txn);
-        buf_lock_t* sb_buf = superblock->get();
-        clear_superblock_metainfo(txn.get(), sb_buf);
-
         vector_stream_t key;
         write_message_t msg;
         typename protocol_t::region_t kr = protocol_t::region_t::universe();   // `operator<<` needs a non-const reference  // TODO <- what
         msg << kr;
-        DEBUG_VAR int res = send_write_message(&key, &msg);
-        rassert(!res);
-        set_superblock_metainfo(txn.get(), sb_buf, key.vector(), std::vector<char>());
+        int res = send_write_message(&key, &msg);
+        guarantee(!res);
+
+        btree_slice_t::create(cache.get(), key.vector(), std::vector<char>());
     }
+
+    btree.init(new btree_slice_t(cache.get(), &perfmon_collection));
 }
 
 template <class protocol_t>

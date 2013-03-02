@@ -1,6 +1,7 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "clustering/administration/main/command_line.hpp"
 
+#include <ftw.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,6 +33,37 @@
 #include "help.hpp"
 
 namespace po = boost::program_options;
+
+int delete_all_helper(const char *path, UNUSED const struct stat *ptr, UNUSED const int flag, UNUSED FTW *ftw) {
+    int res = ::remove(path);
+    guarantee_err(res == 0, "remove syscall failed");
+    return 0;
+}
+
+void delete_all(const char *path) {
+    // max_openfd is ignored on OS X (which claims the parameter specifies the maximum traversal
+    // depth) and used by Linux to limit the number of file descriptors that are open (by opening
+    // and closing directories extra times if it needs to go deeper than that).
+    const int max_openfd = 128;
+    int res = nftw(path, delete_all_helper, max_openfd, FTW_PHYS | FTW_MOUNT | FTW_DEPTH);
+    guarantee_err(res == 0 || errno == ENOENT, "Trouble while traversing and destroying temporary directory %s.", path);
+}
+
+std::string temporary_directory_path(const base_path_t& base_path) {
+    return base_path.path() + "/tmp";
+}
+
+void recreate_temporary_directory(const base_path_t& base_path) {
+    const std::string path = temporary_directory_path(base_path);
+
+    delete_all(path.c_str());
+
+    int res;
+    do {
+        res = mkdir(path.c_str(), 0755);
+    } while (res == -1 && errno == EINTR);
+    guarantee_err(res == 0, "mkdir of temporary directory %s failed", path.c_str());
+}
 
 template <typename T>
 static inline boost::optional<T> optional_variable_value(const po::variable_value& var){
@@ -112,16 +144,16 @@ public:
     boost::optional<std::string> config_file;
 };
 
-std::string metadata_file(const std::string& file_path) {
-    return file_path + "/metadata";
+serializer_filepath_t metadata_file(const base_path_t& dirpath) {
+    return serializer_filepath_t(dirpath, "metadata");
 }
 
-std::string get_logfilepath(const std::string& file_path) {
-    return file_path + "/log_file";
+std::string get_logfilepath(const base_path_t& dirpath) {
+    return dirpath.path() + "/log_file";
 }
 
-bool check_existence(const std::string& file_path) {
-    return 0 == access(file_path.c_str(), F_OK);
+bool check_existence(const base_path_t& base_path) {
+    return 0 == access(base_path.path().c_str(), F_OK);
 }
 
 std::string get_web_path(const po::variables_map& vm, char *argv[]) {
@@ -133,7 +165,7 @@ std::string get_web_path(const po::variables_map& vm, char *argv[]) {
     } else {
         result = parse_as_path(argv[0]);
         result.nodes.pop_back();
-        result.nodes.push_back("web");
+        result.nodes.push_back(WEB_ASSETS_DIR_NAME);
         #ifdef WEBRESDIR
         std::string chkdir(WEBRESDIR);
         if ((access(render_as_path(result).c_str(), F_OK)) && (!access(chkdir.c_str(), F_OK))) {
@@ -229,7 +261,7 @@ service_address_ports_t get_service_address_ports(const po::variables_map& vm) {
         http_admin_is_disabled, http_port, reql_port, port_offset);
 }
 
-void run_rethinkdb_create(const std::string &filepath, const name_string_t &machine_name, const io_backend_t io_backend, bool *result_out) {
+void run_rethinkdb_create(const base_path_t &base_path, const name_string_t &machine_name, const io_backend_t io_backend, bool *const result_out) {
     machine_id_t our_machine_id = generate_uuid();
     logINF("Our machine ID: %s\n", uuid_to_str(our_machine_id).c_str());
 
@@ -238,7 +270,7 @@ void run_rethinkdb_create(const std::string &filepath, const name_string_t &mach
     machine_semilattice_metadata_t machine_semilattice_metadata;
     machine_semilattice_metadata.name = machine_semilattice_metadata.name.make_new_version(machine_name, our_machine_id);
     machine_semilattice_metadata.datacenter = vclock_t<datacenter_id_t>(nil_uuid(), our_machine_id);
-    metadata.machines.machines.insert(std::make_pair(our_machine_id, machine_semilattice_metadata));
+    metadata.machines.machines.insert(std::make_pair(our_machine_id, make_deletable(machine_semilattice_metadata)));
 
     scoped_ptr_t<io_backender_t> io_backender;
     make_io_backender(io_backend, &io_backender);
@@ -247,11 +279,11 @@ void run_rethinkdb_create(const std::string &filepath, const name_string_t &mach
     perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
 
     try {
-        metadata_persistence::persistent_file_t store(io_backender.get(), metadata_file(filepath), &metadata_perfmon_collection, our_machine_id, metadata);
-        logINF("Created directory '%s' and a metadata file inside it.\n", filepath.c_str());
+        metadata_persistence::persistent_file_t store(io_backender.get(), metadata_file(base_path), &metadata_perfmon_collection, our_machine_id, metadata);
+        logINF("Created directory '%s' and a metadata file inside it.\n", base_path.path().c_str());
         *result_out = true;
     } catch (const metadata_persistence::file_in_use_exc_t &ex) {
-        logINF("Directory '%s' is in use by another rethinkdb process.\n", filepath.c_str());
+        logINF("Directory '%s' is in use by another rethinkdb process.\n", base_path.path().c_str());
         *result_out = false;
     }
 }
@@ -265,13 +297,14 @@ peer_address_set_t look_up_peers_addresses(const std::vector<host_and_port_t> &n
     return peers;
 }
 
-void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins, int client_port, const std::vector<std::string>& command_args, bool exit_on_failure, bool *result_out) {
+void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins, int client_port, const std::vector<std::string>& command_args, bool exit_on_failure, bool *const result_out) {
     os_signal_cond_t sigint_cond;
     *result_out = true;
     std::string host_port;
 
-    if (!joins.empty())
+    if (!joins.empty()) {
         host_port = strprintf("%s:%d", joins[0].host.c_str(), joins[0].port);
+    }
 
     try {
         if (command_args.empty())
@@ -327,17 +360,33 @@ void run_rethinkdb_import(extproc::spawner_t::info_t *spawner_info,
     }
 }
 
-void run_rethinkdb_serve(const std::string &filepath,
+std::string uname_msr() {
+    char buf[1024];
+    static const std::string unknown = "unknown operating system\n";
+    FILE *out = popen("uname -msr", "r");
+    if (!out) return unknown;
+    if (!fgets(buf, sizeof(buf), out)) return unknown;
+    pclose(out);
+    return buf;
+}
+
+void run_rethinkdb_serve(const base_path_t &base_path,
                          const io_backend_t io_backend,
-                         bool *result_out,
-                         const serve_info_t& serve_info) {
+                         const serve_info_t& serve_info,
+                         const machine_id_t *our_machine_id,
+                         const cluster_semilattice_metadata_t *semilattice_metadata,
+                         bool *const result_out) {
+    logINF("Running %s...\n", RETHINKDB_VERSION_STR);
+    logINF("Running on %s", uname_msr().c_str());
     os_signal_cond_t sigint_cond;
 
-    if (!check_existence(filepath)) {
-        logERR("ERROR: The directory '%s' does not exist.  Run 'rethinkdb create -d \"%s\"' and try again.\n", filepath.c_str(), filepath.c_str());
+    if (!check_existence(base_path)) {
+        logERR("ERROR: The directory '%s' does not exist.  Run 'rethinkdb create -d \"%s\"' and try again.\n", base_path.path().c_str(), base_path.path().c_str());
         *result_out = false;
         return;
     }
+
+    logINF("Loading data from directory %s\n", base_path.path().c_str());
 
     scoped_ptr_t<io_backender_t> io_backender;
     make_io_backender(io_backend, &io_backender);
@@ -346,20 +395,32 @@ void run_rethinkdb_serve(const std::string &filepath,
     perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
 
     try {
-        metadata_persistence::persistent_file_t store(io_backender.get(), metadata_file(filepath), &metadata_perfmon_collection);
+        scoped_ptr_t<metadata_persistence::persistent_file_t> store;
+        if (our_machine_id && semilattice_metadata) {
+            store.init(new metadata_persistence::persistent_file_t(io_backender.get(),
+                                                                   metadata_file(base_path),
+                                                                   &metadata_perfmon_collection,
+                                                                   *our_machine_id,
+                                                                   *semilattice_metadata));
+        } else {
+            store.init(new metadata_persistence::persistent_file_t(io_backender.get(),
+                                                                   metadata_file(base_path),
+                                                                   &metadata_perfmon_collection));
+        }
 
         *result_out = serve(serve_info.spawner_info,
                             io_backender.get(),
-                            filepath, &store,
+                            base_path, store.get(),
                             look_up_peers_addresses(*serve_info.joins),
                             serve_info.ports,
-                            store.read_machine_id(),
-                            store.read_metadata(),
+                            store->read_machine_id(),
+                            store->read_metadata(),
                             serve_info.web_assets,
                             &sigint_cond,
                             serve_info.config_file);
+
     } catch (const metadata_persistence::file_in_use_exc_t &ex) {
-        logINF("Directory '%s' is in use by another rethinkdb process.\n", filepath.c_str());
+        logINF("Directory '%s' is in use by another rethinkdb process.\n", base_path.path().c_str());
         *result_out = false;
     } catch (const host_lookup_exc_t &ex) {
         logERR("%s\n", ex.what());
@@ -367,45 +428,16 @@ void run_rethinkdb_serve(const std::string &filepath,
     }
 }
 
-void run_rethinkdb_porcelain(const std::string &filepath,
+void run_rethinkdb_porcelain(const base_path_t &base_path,
                              const name_string_t &machine_name,
                              const io_backend_t io_backend,
-                             bool *result_out,
-                             bool new_directory,
-                             const serve_info_t &serve_info) {
-    logINF("Running %s...\n", RETHINKDB_VERSION_STR);
-    os_signal_cond_t sigint_cond;
-
+                             const bool new_directory,
+                             const serve_info_t &serve_info,
+                             bool *const result_out) {
     if (!new_directory) {
-        logINF("Loading data from directory %s\n", filepath.c_str());
-
-        scoped_ptr_t<io_backender_t> io_backender;
-        make_io_backender(io_backend, &io_backender);
-
-        perfmon_collection_t metadata_perfmon_collection;
-        perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
-        try {
-            metadata_persistence::persistent_file_t store(io_backender.get(), metadata_file(filepath), &metadata_perfmon_collection);
-
-            *result_out = serve(serve_info.spawner_info,
-                                io_backender.get(),
-                                filepath, &store,
-                                look_up_peers_addresses(*serve_info.joins),
-                                serve_info.ports,
-                                store.read_machine_id(), store.read_metadata(),
-                                serve_info.web_assets,
-                                &sigint_cond,
-                                serve_info.config_file);
-        } catch (const metadata_persistence::file_in_use_exc_t &ex) {
-            logINF("Directory '%s' is in use by another rethinkdb process.\n", filepath.c_str());
-            *result_out = false;
-        } catch (const host_lookup_exc_t &ex) {
-            logERR("%s\n", ex.what());
-            *result_out = false;
-        }
-
+        run_rethinkdb_serve(base_path, io_backend, serve_info, NULL, NULL, result_out);
     } else {
-        logINF("Creating directory %s\n", filepath.c_str());
+        logINF("Creating directory %s\n", base_path.path().c_str());
 
         machine_id_t our_machine_id = generate_uuid();
 
@@ -414,11 +446,11 @@ void run_rethinkdb_porcelain(const std::string &filepath,
         machine_semilattice_metadata_t our_machine_metadata;
         our_machine_metadata.name = vclock_t<name_string_t>(machine_name, our_machine_id);
         our_machine_metadata.datacenter = vclock_t<datacenter_id_t>(nil_uuid(), our_machine_id);
-        semilattice_metadata.machines.machines.insert(std::make_pair(our_machine_id, our_machine_metadata));
+        semilattice_metadata.machines.machines.insert(std::make_pair(our_machine_id, make_deletable(our_machine_metadata)));
         if (serve_info.joins->empty()) {
             logINF("Creating a default database for your convenience. (This is because you ran 'rethinkdb' "
                    "without 'create', 'serve', or '--join', and the directory '%s' did not already exist.)\n",
-                   filepath.c_str());
+                   base_path.path().c_str());
 
             /* Create a test database. */
             database_id_t database_id = generate_uuid();
@@ -432,35 +464,12 @@ void run_rethinkdb_porcelain(const std::string &filepath,
                 deletable_t<database_semilattice_metadata_t>(database_metadata)));
         }
 
-        scoped_ptr_t<io_backender_t> io_backender;
-        make_io_backender(io_backend, &io_backender);
-
-        perfmon_collection_t metadata_perfmon_collection;
-        perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
-        try {
-            metadata_persistence::persistent_file_t store(io_backender.get(), metadata_file(filepath), &metadata_perfmon_collection, our_machine_id, semilattice_metadata);
-
-            *result_out = serve(serve_info.spawner_info,
-                                io_backender.get(),
-                                filepath, &store,
-                                look_up_peers_addresses(*serve_info.joins),
-                                serve_info.ports,
-                                our_machine_id, semilattice_metadata,
-                                serve_info.web_assets,
-                                &sigint_cond,
-                                serve_info.config_file);
-        } catch (const metadata_persistence::file_in_use_exc_t &ex) {
-            logINF("Directory '%s' is in use by another rethinkdb process.\n", filepath.c_str());
-            *result_out = false;
-        } catch (const host_lookup_exc_t &ex) {
-            logERR("%s\n", ex.what());
-            *result_out = false;
-        }
+        run_rethinkdb_serve(base_path, io_backend, serve_info,
+                            &our_machine_id, &semilattice_metadata, result_out);
     }
 }
 
-void run_rethinkdb_proxy(bool *result_out,
-                         const serve_info_t &serve_info) {
+void run_rethinkdb_proxy(const serve_info_t &serve_info, bool *const result_out) {
     os_signal_cond_t sigint_cond;
     guarantee(!serve_info.joins->empty());
 
@@ -586,11 +595,19 @@ po::options_description get_service_options() {
     return desc;
 }
 
+po::options_description get_help_options() {
+    po::options_description desc("Help options");
+    desc.add_options()
+        ("help,h", "show command-line options instead of running rethinkdb");
+    return desc;
+}
+
 po::options_description get_rethinkdb_create_options() {
     po::options_description desc("Allowed options");
     desc.add(get_file_options());
     desc.add(get_machine_options());
     desc.add(get_disk_options());
+    desc.add(get_help_options());
     return desc;
 }
 
@@ -598,6 +615,7 @@ po::options_description get_rethinkdb_create_options_visible() {
     po::options_description desc("Allowed options");
     desc.add(get_file_options());
     desc.add(get_machine_options_visible());
+    desc.add(get_help_options());
 #ifdef AIOSUPPORT
     desc.add(get_disk_options());
 #endif // AIOSUPPORT
@@ -612,6 +630,7 @@ po::options_description get_rethinkdb_serve_options() {
     desc.add(get_disk_options());
     desc.add(get_cpu_options());
     desc.add(get_service_options());
+    desc.add(get_help_options());
     return desc;
 }
 
@@ -625,6 +644,7 @@ po::options_description get_rethinkdb_serve_options_visible() {
 #endif // AIOSUPPORT
     desc.add(get_cpu_options());
     desc.add(get_service_options());
+    desc.add(get_help_options());
     return desc;
 }
 
@@ -633,6 +653,7 @@ po::options_description get_rethinkdb_proxy_options() {
     desc.add(get_network_options());
     desc.add(get_web_options());
     desc.add(get_service_options());
+    desc.add(get_help_options());
     desc.add_options()
         ("log-file", po::value<std::string>()->default_value("log_file"), "specify log file");
     return desc;
@@ -643,6 +664,7 @@ po::options_description get_rethinkdb_proxy_options_visible() {
     desc.add(get_network_options());
     desc.add(get_web_options_visible());
     desc.add(get_service_options());
+    desc.add(get_help_options());
     desc.add_options()
         ("log-file", po::value<std::string>()->default_value("log_file"), "specify log file");
     return desc;
@@ -671,6 +693,7 @@ po::options_description get_rethinkdb_import_options() {
         ("primary-key", po::value<std::string>()->default_value("id"), "the primary key to create a new table with, or expected primary key")
         ("separators,s", po::value<std::string>()->default_value("\t,"), "list of characters to be used as whitespace -- uses \"\\t,\" by default")
         ("input-file", po::value<std::string>()->default_value(""), "the csv input file");
+    desc.add(get_help_options());
 
     return desc;
 }
@@ -684,6 +707,22 @@ po::options_description get_rethinkdb_porcelain_options() {
     desc.add(get_disk_options());
     desc.add(get_cpu_options());
     desc.add(get_service_options());
+    desc.add(get_help_options());
+    return desc;
+}
+
+po::options_description get_rethinkdb_porcelain_options_visible() {
+    po::options_description desc("Allowed options");
+    desc.add(get_file_options());
+    desc.add(get_machine_options_visible());
+    desc.add(get_network_options());
+    desc.add(get_web_options_visible());
+#ifdef AIOSUPPORT
+    desc.add(get_disk_options());
+#endif // AIOSUPPORT
+    desc.add(get_cpu_options());
+    desc.add(get_service_options());
+    desc.add(get_help_options());
     return desc;
 }
 
@@ -712,13 +751,7 @@ MUST_USE bool parse_commands_flat(int argc, char *argv[], po::variables_map *vm,
             ~po::command_line_style::allow_guessing;
         po::store(po::parse_command_line(argc, argv, options, style), *vm);
     } catch (const po::multiple_occurrences& ex) {
-        logERR("flag specified too many times\n");
-        return false;
-    } catch (const po::unknown_option& ex) {
-        logERR("%s\n", ex.what());
-        return false;
-    } catch (const po::validation_error& ex) {
-        logERR("%s\n", ex.what());
+        fprintf(stderr, "flag specified too many times\n");
         return false;
     }
     return true;
@@ -745,17 +778,12 @@ MUST_USE bool parse_config_file_flat(const std::string & conf_file_name, po::var
     try {
         po::store(po::parse_config_file(conf_file, options, true), *vm);
     } catch (const po::multiple_occurrences& ex) {
-        logERR("flag specified too many times\n");
+        fprintf(stderr, "flag specified too many times\n");
         conf_file.close();
         return false;
-    } catch (const po::unknown_option& ex) {
-        logERR("%s\n", ex.what());
+    } catch (...) {
         conf_file.close();
-        return false;
-    } catch (const po::validation_error& ex) {
-        logERR("%s\n", ex.what());
-        conf_file.close();
-        return false;
+        throw;
     }
     return true;
 }
@@ -763,7 +791,10 @@ MUST_USE bool parse_config_file_flat(const std::string & conf_file_name, po::var
 MUST_USE bool parse_commands_deep(int argc, char *argv[], po::variables_map *vm, const po::options_description& options) {
     po::options_description opt2 = config_file_attach_wrapper(options);
     try {
-        po::store(po::parse_command_line(argc, argv, opt2), *vm);
+        int style =
+            po::command_line_style::default_style &
+            ~po::command_line_style::allow_guessing;
+        po::store(po::parse_command_line(argc, argv, opt2, style), *vm);
         if (vm->count("config-file") && (*vm)["config-file"].as<std::string>().length()) {
             if (!parse_config_file_flat((*vm)["config-file"].as<std::string>(), vm, options)) {
                 return false;
@@ -771,123 +802,143 @@ MUST_USE bool parse_commands_deep(int argc, char *argv[], po::variables_map *vm,
         }
         po::notify(*vm);
     } catch (const po::multiple_occurrences& ex) {
-        logERR("flag specified too many times\n");
-        return false;
-    } catch (const po::unknown_option& ex) {
-        logERR("%s\n", ex.what());
-        return false;
-    } catch (const po::validation_error& ex) {
-        logERR("%s\n", ex.what());
+        fprintf(stderr, "flag specified too many times\n");
         return false;
     }
     return true;
 }
 
 int main_rethinkdb_create(int argc, char *argv[]) {
-    po::variables_map vm;
-    if (!parse_commands_deep(argc, argv, &vm, get_rethinkdb_create_options())) {
+    try {
+        po::variables_map vm;
+        if (!parse_commands_deep(argc, argv, &vm, get_rethinkdb_create_options())) {
+            return EXIT_FAILURE;
+        }
+
+        if (vm.count("help") > 0) {
+            help_rethinkdb_create();
+            return EXIT_SUCCESS;
+        }
+
+        io_backend_t io_backend;
+        if (!pull_io_backend_option(vm, &io_backend)) {
+            fprintf(stderr, "ERROR: selected io-backend is invalid or unsupported.\n");
+            return EXIT_FAILURE;
+        }
+
+        const base_path_t base_path(vm["directory"].as<std::string>());
+        std::string logfilepath = get_logfilepath(base_path);
+
+        std::string machine_name_str = vm["machine-name"].as<std::string>();
+        name_string_t machine_name;
+        if (!machine_name.assign_value(machine_name_str)) {
+            fprintf(stderr, "ERROR: machine-name '%s' is invalid.  (%s)", machine_name_str.c_str(), name_string_t::valid_char_msg);
+            return EXIT_FAILURE;
+        }
+
+        const int num_workers = get_cpu_count();
+
+        // TODO: Why do we call check_existence when we just try calling mkdir anyway?  This is stupid.
+        if (check_existence(base_path)) {
+            fprintf(stderr, "The path '%s' already exists.  Delete it and try again.\n", base_path.path().c_str());
+            return EXIT_FAILURE;
+        }
+
+        const int res = mkdir(base_path.path().c_str(), 0755);
+        if (res != 0) {
+            fprintf(stderr, "Could not create directory: %s\n", errno_string(errno).c_str());
+            return EXIT_FAILURE;
+        }
+
+        recreate_temporary_directory(base_path);
+
+        install_fallback_log_writer(logfilepath);
+
+        bool result;
+        run_in_thread_pool(boost::bind(&run_rethinkdb_create, base_path, machine_name, io_backend, &result),
+                           num_workers);
+        return result ? EXIT_SUCCESS : EXIT_FAILURE;
+    } catch (const boost::program_options::error &ex) {
+        fprintf(stderr, "%s\n", ex.what());
+        return EXIT_FAILURE;
+    } catch (const std::exception& ex) {
+        fprintf(stderr, "%s\n", ex.what());
         return EXIT_FAILURE;
     }
-
-    io_backend_t io_backend;
-    if (!pull_io_backend_option(vm, &io_backend)) {
-        fprintf(stderr, "ERROR: selected io-backend is invalid or unsupported.\n");
-        return EXIT_FAILURE;
-    }
-
-    std::string filepath = vm["directory"].as<std::string>();
-    std::string logfilepath = get_logfilepath(filepath);
-
-    std::string machine_name_str = vm["machine-name"].as<std::string>();
-    name_string_t machine_name;
-    if (!machine_name.assign_value(machine_name_str)) {
-        fprintf(stderr, "ERROR: machine-name '%s' is invalid.  (%s)", machine_name_str.c_str(), name_string_t::valid_char_msg);
-        return EXIT_FAILURE;
-    }
-
-    const int num_workers = get_cpu_count();
-
-    // TODO: Why do we call check_existence when we just try calling mkdir anyway?  This is stupid.
-    if (check_existence(filepath)) {
-        fprintf(stderr, "The path '%s' already exists.  Delete it and try again.\n", filepath.c_str());
-        return EXIT_FAILURE;
-    }
-
-    int res = mkdir(filepath.c_str(), 0755);
-    if (res != 0) {
-        fprintf(stderr, "Could not create directory: %s\n", errno_string(errno).c_str());
-        return EXIT_FAILURE;
-    }
-
-    install_fallback_log_writer(logfilepath);
-
-    bool result;
-    run_in_thread_pool(boost::bind(&run_rethinkdb_create, filepath, machine_name, io_backend, &result),
-                       num_workers);
-
-    return result ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 int main_rethinkdb_serve(int argc, char *argv[]) {
-    po::variables_map vm;
-    if (!parse_commands_deep(argc, argv, &vm, get_rethinkdb_serve_options())) {
-        return EXIT_FAILURE;
-    }
-
-    std::string filepath = vm["directory"].as<std::string>();
-    std::string logfilepath = get_logfilepath(filepath);
-
-    std::vector<host_and_port_t> joins;
-    if (vm.count("join") > 0) {
-        joins = vm["join"].as<std::vector<host_and_port_t> >();
-    }
-
-    service_address_ports_t address_ports;
     try {
-        address_ports = get_service_address_ports(vm);
-    } catch (const address_lookup_exc_t& ex) {
-        fprintf(stderr, "ERROR: %s\n", ex.what());
+        po::variables_map vm;
+        if (!parse_commands_deep(argc, argv, &vm, get_rethinkdb_serve_options())) {
+            return EXIT_FAILURE;
+        }
+
+        if (vm.count("help") > 0) {
+            help_rethinkdb_serve();
+            return EXIT_SUCCESS;
+        }
+
+        const base_path_t base_path(vm["directory"].as<std::string>());
+        std::string logfilepath = get_logfilepath(base_path);
+
+        std::vector<host_and_port_t> joins;
+        if (vm.count("join") > 0) {
+            joins = vm["join"].as<std::vector<host_and_port_t> >();
+        }
+
+        service_address_ports_t address_ports;
+            address_ports = get_service_address_ports(vm);
+
+        std::string web_path = get_web_path(vm, argv);
+
+        io_backend_t io_backend;
+        if (!pull_io_backend_option(vm, &io_backend)) {
+            fprintf(stderr, "ERROR: selected io-backend is invalid or unsupported.\n");
+            return EXIT_FAILURE;
+        }
+
+        extproc::spawner_t::info_t spawner_info;
+        extproc::spawner_t::create(&spawner_info);
+
+        const int num_workers = vm["cores"].as<int>();
+        if (num_workers <= 0 || num_workers > MAX_THREADS) {
+            fprintf(stderr, "ERROR: number specified for cores to utilize must be between 1 and %d\n", MAX_THREADS);
+            return EXIT_FAILURE;
+        }
+
+        if (write_pid_file(vm) != EXIT_SUCCESS) {
+            return EXIT_FAILURE;
+        }
+
+        if (!check_existence(base_path)) {
+            fprintf(stderr, "ERROR: The directory '%s' does not exist.  Run 'rethinkdb create -d \"%s\"' and try again.\n", base_path.path().c_str(), base_path.path().c_str());
+            return EXIT_FAILURE;
+        }
+
+        recreate_temporary_directory(base_path);
+
+        install_fallback_log_writer(logfilepath);
+
+        serve_info_t serve_info(&spawner_info, joins, address_ports, web_path,
+                                optional_variable_value<std::string>(vm["config-file"]));
+
+        bool result;
+        run_in_thread_pool(boost::bind(&run_rethinkdb_serve, base_path,
+                                       io_backend,
+                                       serve_info,
+                                       static_cast<machine_id_t*>(NULL),
+                                       static_cast<cluster_semilattice_metadata_t*>(NULL),
+                                       &result),
+                           num_workers);
+        return result ? EXIT_SUCCESS : EXIT_FAILURE;
+    } catch (const boost::program_options::error &ex) {
+        fprintf(stderr, "%s\n", ex.what());
+        return EXIT_FAILURE;
+    } catch (const std::exception& ex) {
+        fprintf(stderr, "%s\n", ex.what());
         return EXIT_FAILURE;
     }
-
-    std::string web_path = get_web_path(vm, argv);
-
-    io_backend_t io_backend;
-    if (!pull_io_backend_option(vm, &io_backend)) {
-        fprintf(stderr, "ERROR: selected io-backend is invalid or unsupported.\n");
-        return EXIT_FAILURE;
-    }
-
-    extproc::spawner_t::info_t spawner_info;
-    extproc::spawner_t::create(&spawner_info);
-
-    const int num_workers = vm["cores"].as<int>();
-    if (num_workers <= 0 || num_workers > MAX_THREADS) {
-        fprintf(stderr, "ERROR: number specified for cores to utilize must be between 1 and %d\n", MAX_THREADS);
-        return EXIT_FAILURE;
-    }
-
-    if (write_pid_file(vm) != EXIT_SUCCESS) {
-        return EXIT_FAILURE;
-    }
-
-    if (!check_existence(filepath)) {
-        fprintf(stderr, "ERROR: The directory '%s' does not exist.  Run 'rethinkdb create -d \"%s\"' and try again.\n", filepath.c_str(), filepath.c_str());
-        return EXIT_FAILURE;
-    }
-
-    install_fallback_log_writer(logfilepath);
-    
-    serve_info_t serve_info(&spawner_info, joins, address_ports, web_path,
-                            optional_variable_value<std::string>(vm["config-file"]));
-
-    bool result;
-    run_in_thread_pool(boost::bind(&run_rethinkdb_serve, filepath,
-                                   io_backend, &result,
-                                   serve_info),
-                       num_workers);
-
-    return result ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 int main_rethinkdb_admin(int argc, char *argv[]) {
@@ -929,7 +980,7 @@ int main_rethinkdb_admin(int argc, char *argv[]) {
                            num_workers);
 
     } catch (const std::exception& ex) {
-        logERR("%s\n", ex.what());
+        fprintf(stderr, "%s\n", ex.what());
         result = false;
     }
 
@@ -937,51 +988,56 @@ int main_rethinkdb_admin(int argc, char *argv[]) {
 }
 
 int main_rethinkdb_proxy(int argc, char *argv[]) {
-    po::variables_map vm;
-    if (!parse_commands_deep(argc, argv, &vm, get_rethinkdb_proxy_options())) {
-        return EXIT_FAILURE;
-    }
-
-    if (!vm.count("join")) {
-        fprintf(stderr, "No --join option(s) given. A proxy needs to connect to something!\n"
-               "Run 'rethinkdb proxy help' for more information.\n");
-        return EXIT_FAILURE;
-     }
-
-    std::string logfilepath = vm["log-file"].as<std::string>();
-    install_fallback_log_writer(logfilepath);
-
-    std::vector<host_and_port_t> joins = vm["join"].as<std::vector<host_and_port_t> >();
-
-    service_address_ports_t address_ports;
     try {
+        po::variables_map vm;
+        if (!parse_commands_deep(argc, argv, &vm, get_rethinkdb_proxy_options())) {
+            return EXIT_FAILURE;
+        }
+
+        if (vm.count("help") > 0) {
+            help_rethinkdb_proxy();
+            return EXIT_SUCCESS;
+        }
+
+        if (!vm.count("join")) {
+            fprintf(stderr, "No --join option(s) given. A proxy needs to connect to something!\n"
+                   "Run 'rethinkdb proxy help' for more information.\n");
+            return EXIT_FAILURE;
+         }
+
+        std::string logfilepath = vm["log-file"].as<std::string>();
+        install_fallback_log_writer(logfilepath);
+
+        std::vector<host_and_port_t> joins = vm["join"].as<std::vector<host_and_port_t> >();
+
+        service_address_ports_t address_ports;
         address_ports = get_service_address_ports(vm);
-    } catch (const address_lookup_exc_t& ex) {
-        fprintf(stderr, "ERROR: %s\n", ex.what());
+
+        std::string web_path = get_web_path(vm, argv);
+
+        extproc::spawner_t::info_t spawner_info;
+        extproc::spawner_t::create(&spawner_info);
+
+        const int num_workers = get_cpu_count();
+
+        if (write_pid_file(vm) != EXIT_SUCCESS) {
+            return EXIT_FAILURE;
+        }
+
+        serve_info_t serve_info(&spawner_info, joins, address_ports, web_path,
+                                optional_variable_value<std::string>(vm["config-file"]));
+
+        bool result;
+        run_in_thread_pool(boost::bind(&run_rethinkdb_proxy, serve_info, &result),
+                           num_workers);
+        return result ? EXIT_SUCCESS : EXIT_FAILURE;
+    } catch (const boost::program_options::error &ex) {
+        fprintf(stderr, "%s\n", ex.what());
+        return EXIT_FAILURE;
+    } catch (const std::exception& ex) {
+        fprintf(stderr, "%s\n", ex.what());
         return EXIT_FAILURE;
     }
-
-    std::string web_path = get_web_path(vm, argv);
-
-    extproc::spawner_t::info_t spawner_info;
-    extproc::spawner_t::create(&spawner_info);
-
-    const int num_workers = get_cpu_count();
-
-    if (write_pid_file(vm) != EXIT_SUCCESS) {
-        return EXIT_FAILURE;
-    }
-
-    serve_info_t serve_info(&spawner_info, joins, address_ports, web_path,
-                            optional_variable_value<std::string>(vm["config-file"]));
-
-    bool result;
-    run_in_thread_pool(boost::bind(&run_rethinkdb_proxy,
-                                   &result,
-                                   serve_info),
-                       num_workers);
-
-    return result ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 // TODO: Add split_db_table unit test.
@@ -1010,6 +1066,11 @@ int main_rethinkdb_import(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
+        if (vm.count("help") > 0) {
+            help_rethinkdb_import();
+            return EXIT_SUCCESS;
+        }
+
         // TODO: Does this not work with a zero count?
         if (vm.count("join") == 0) {
             fprintf(stderr, "--join HOST:PORT must be specified\n");
@@ -1019,12 +1080,7 @@ int main_rethinkdb_import(int argc, char *argv[]) {
         joins = vm["join"].as<std::vector<host_and_port_t> >();
 
         std::set<ip_address_t> local_addresses;
-        try {
-            local_addresses = get_local_addresses(vm);
-        } catch (const address_lookup_exc_t& ex) {
-            fprintf(stderr, "ERROR: %s\n", ex.what());
-            return EXIT_FAILURE;
-        }
+        local_addresses = get_local_addresses(vm);
 
 #ifndef NDEBUG
         int client_port = vm["client-port"].as<int>();
@@ -1096,9 +1152,12 @@ int main_rethinkdb_import(int argc, char *argv[]) {
                            num_workers);
 
         return result ? EXIT_SUCCESS : EXIT_FAILURE;
+    } catch (const boost::program_options::error &ex) {
+        fprintf(stderr, "%s\n", ex.what());
+        return EXIT_FAILURE;
     } catch (const std::exception& ex) {
         // TODO: Sigh.
-        logERR("%s\n", ex.what());
+        fprintf(stderr, "%s\n", ex.what());
         return EXIT_FAILURE;
     }
 }
@@ -1111,8 +1170,13 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
-        std::string filepath = vm["directory"].as<std::string>();
-        std::string logfilepath = get_logfilepath(filepath);
+        if (vm.count("help") > 0) {
+            help_rethinkdb_porcelain();
+            return EXIT_SUCCESS;
+        }
+
+        const base_path_t base_path(vm["directory"].as<std::string>());
+        const std::string logfilepath = get_logfilepath(base_path);
 
         std::string machine_name_str = vm["machine-name"].as<std::string>();
         name_string_t machine_name;
@@ -1126,12 +1190,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         }
 
         service_address_ports_t address_ports;
-        try {
-            address_ports = get_service_address_ports(vm);
-        } catch (const address_lookup_exc_t& ex) {
-            fprintf(stderr, "ERROR: %s\n", ex.what());
-            return EXIT_FAILURE;
-        }
+        address_ports = get_service_address_ports(vm);
 
         std::string web_path = get_web_path(vm, argv);
 
@@ -1156,36 +1215,59 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
 
         bool new_directory = false;
         // Attempt to create the directory early so that the log file can use it.
-        if (!check_existence(filepath)) {
+        if (!check_existence(base_path)) {
             new_directory = true;
-            int mkdir_res = mkdir(filepath.c_str(), 0755);
+            int mkdir_res = mkdir(base_path.path().c_str(), 0755);
             if (mkdir_res != 0) {
                 fprintf(stderr, "Could not create directory: %s\n", errno_string(errno).c_str());
                 return EXIT_FAILURE;
             }
         }
 
+        recreate_temporary_directory(base_path);
+
         install_fallback_log_writer(logfilepath);
-        
+
         serve_info_t serve_info(&spawner_info, joins, address_ports, web_path,
                                 optional_variable_value<std::string>(vm["config-file"]));
 
 
         bool result;
         run_in_thread_pool(boost::bind(&run_rethinkdb_porcelain,
-                                       filepath,
+                                       base_path,
                                        machine_name,
                                        io_backend,
-                                       &result,
                                        new_directory,
-                                       serve_info),
+                                       serve_info,
+                                       &result),
                            num_workers);
 
         return result ? EXIT_SUCCESS : EXIT_FAILURE;
-    } catch (const boost::program_options::error &e) {
-        fprintf(stderr, "%s\n", e.what());
+    } catch (const boost::program_options::error &ex) {
+        fprintf(stderr, "%s\n", ex.what());
+        return EXIT_FAILURE;
+    } catch (const std::exception& ex) {
+        fprintf(stderr, "%s\n", ex.what());
         return EXIT_FAILURE;
     }
+}
+
+void help_rethinkdb_porcelain() {
+    std::stringstream sstream;
+    sstream << get_rethinkdb_porcelain_options_visible();
+    help_pager_t help;
+    help.pagef("Running 'rethinkdb' will create a new data directory or use an existing one,\n");
+    help.pagef("  and serve as a RethinkDB cluster node.\n");
+    help.pagef("%s\n", sstream.str().c_str());
+    help.pagef("\n");
+    help.pagef("There are a number of subcommands for more specific tasks:\n");
+    help.pagef("    'rethinkdb create': prepare files on disk for a new server instance\n");
+    help.pagef("    'rethinkdb serve': use an existing data directory to host data and serve queries\n");
+    help.pagef("    'rethinkdb proxy': serve queries from an existing cluster but don't host data\n");
+    help.pagef("    'rethinkdb admin': access and modify an existing cluster's metadata\n");
+    help.pagef("    'rethinkdb import': import data from from a file into an existing cluster\n");
+    help.pagef("\n");
+    help.pagef("For more information, run 'rethinkdb help [subcommand]'.\n");
 }
 
 void help_rethinkdb_create() {
