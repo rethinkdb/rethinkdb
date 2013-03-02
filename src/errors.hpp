@@ -211,7 +211,10 @@ release mode. */
 #endif
 
 // This is a workaround for old versions of boost causing a compilation error
+#include <boost/version.hpp> // NOLINT(build/include_order)
+#if (BOOST_VERSION >= 104200) && (BOOST_VERSION <= 104399)
 #include <boost/config.hpp> // NOLINT(build/include_order)
 #undef BOOST_HAS_RVALUE_REFS
+#endif
 
 #endif /* ERRORS_HPP_ */
