@@ -22,11 +22,10 @@ tests:
       rb: r.do(1, 2) {|x, y| x + y}
       ot: 3
 
-    # XXX: enable this later
-    #- py: "r.do(lambda: 1)"
-    #  js: r.do(function() { return 1; })
-    #  rb: r.do{1}
-    #  ot: 1
+    - py: "r.do(lambda: 1)"
+      js: r.do(function() { return 1; })
+      rb: r.do{1}
+      ot: 1
 
     # do error cases
     - py: "r.do(1, 2, lambda x: x)"
@@ -43,13 +42,12 @@ tests:
     #- cd: "r.do(1)"
     #  ot: err("RqlRuntimeError", 'Expected type Function(*) but found NUMBER.', [1])
 
-    # XXX
-    #- js: r.do(1, function(x) {})
-    #  ot: err("RqlDriverError", 'Unknown datum value "undefined", did you forget a "return"?', [1])
+    - js: r.do(1, function(x) {})
+      ot: err("RqlDriverError", 'Unknown datum value "undefined", did you forget a "return"?', [1])
     
-    # XXX
-    #- cd: r.do()
-    #  ot: err("RqlRuntimeError", 'Expected 1 or more argument(s) but found 0.', [1])
+    - cd: r.do()
+      py: [] # Case handled by native python error
+      ot: err("RqlDriverError", 'Expected 1 or more argument(s) but found 0.', [1])
       
     
     # FunCall errors

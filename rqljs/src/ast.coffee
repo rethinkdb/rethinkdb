@@ -386,17 +386,6 @@ class RDBFunc
                 expectedAirity = formals.asArray().length
                 foundAirity = actuals.length
 
-                if expectedAirity == 0
-                    # This could be javascript function term, if so, we'll forward the arguments to it
-                    try
-                        result = body.eval(context)
-                        if result instanceof RDBJSFunction
-                            # Forward our argument to the JS function
-                            return result.apply(actuals)
-                    catch err
-                        err.backtrace.unshift arg_num
-                        throw err
-
                 if expectedAirity isnt foundAirity
                     err = new RqlRuntimeError "Expected #{expectedAirity} argument(s) but found #{foundAirity}."
                     err.backtrace.unshift arg_num

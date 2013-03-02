@@ -138,13 +138,19 @@ class Connection():
         # Error responses
         if response.type is p.Response2.RUNTIME_ERROR:
             message = Datum.deconstruct(response.response[0])
-            raise RqlRuntimeError(message, term, response.backtrace)
+            backtrace = response.backtrace
+            frames = backtrace.frames or []
+            raise RqlRuntimeError(message, term, frames)
         elif response.type is p.Response2.COMPILE_ERROR:
             message = Datum.deconstruct(response.response[0])
-            raise RqlCompileError(message, term, response.backtrace)
+            backtrace = response.backtrace
+            frames = backtrace.frames or []
+            raise RqlCompileError(message, term, frames)
         elif response.type is p.Response2.CLIENT_ERROR:
             message = Datum.deconstruct(response.response[0])
-            raise RqlClientError(message, term, response.backtrace)
+            backtrace = response.backtrace
+            frames = backtrace.frames or []
+            raise RqlClientError(message, term, frames)
 
         # Sequence responses
         if response.type is p.Response2.SUCCESS_PARTIAL or response.type is p.Response2.SUCCESS_SEQUENCE:

@@ -108,7 +108,7 @@ class DatumTerm extends RDBVal
                     datum.setType Datum.DatumType.R_STR
                     datum.setRStr @data
                 else
-                    throw new RqlDriverError "Unknown datum value: #{@data}"
+                    throw new RqlDriverError "Unknown datum value \"#{@data}\", did you forget a \"return\"?"
         term = new Term2
         term.setType Term2.TermType.DATUM
         term.setDatum datum

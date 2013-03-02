@@ -29,7 +29,10 @@ rethinkdb.dbDrop = ar (dbName) -> new DbDrop {}, dbName
 
 rethinkdb.dbList = -> new DbList {}
 
-rethinkdb.do = (args...) -> new FunCall {}, funcWrap(args[-1..][0]), args[...-1]...
+rethinkdb.do = (args...) ->
+    unless args.length >= 1
+        throw new RqlDriverError "Expected 1 or more argument(s) but found #{args.length}."
+    new FunCall {}, funcWrap(args[-1..][0]), args[...-1]...
 
 rethinkdb.branch = ar (test, trueBranch, falseBranch) -> new Branch {}, test, trueBranch, falseBranch
 
