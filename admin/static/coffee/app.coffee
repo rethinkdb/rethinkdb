@@ -213,71 +213,8 @@ collect_stat_data = ->
             stats_param.fail = true
             stats_param.timeout = setTimeout collect_stat_data, 1000
 
-
-# driver_connected: State of the driver
-# - true => connected
-# - false => error
-# - null => not connected ( left the data explorer or never came )
-
-# Method called if the driver just connected
-driver_connect_success = ->
-    window.driver_connected_previous_state = window.driver_connected
-    window.driver_connected = true
-    # If the view is DataExplorerView.Container and if we were disconencted before, we'll say that we did reconnect
-    if Backbone.history.fragment is 'dataexplorer'
-        window.router.current_view?.success_on_connect()
-
-# Method called if the driver fail to connect
-driver_connect_fail = ->
-    window.driver_connected_previous_state = window.driver_connected
-    window.driver_connected = false
-    # If the view is DataExplorerView.Container and if we were connected before, we'll display an error
-    if Backbone.history.fragment is 'dataexplorer'
-        window.router.current_view?.error_on_connect()
-
 # Define the server to which the javascript is going to connect to
 # Tweaking the value of server.host or server.port can trigger errors for testing
-if window.location.port is ''
-    if window.location.protocol is 'https:'
-        port = 443
-    else
-        port = 80
-else
-    port = parseInt window.location.port
-window.server =
-    host: window.location.hostname
-    port: port
-    protocol: if window.location.protocol is 'https:' then 'https' else 'http'
-
-# Connect the driver every five minutes (the connection times out every 5-10 minutes)
-driver_connect = ->
-    # Whether we are going to reconnect or not, the cursor might have timed out.
-    DataExplorerView.Container.prototype.cursor_timed_out = true
-
-    # We try to close the connection if we were connected
-    if window.conn?
-        if window.driver_connected is true
-            try
-                window.conn.close()
-            #catch
-            #   console.log 'Could not destroy connection'
-            #   Can it fail?
-
-    # We are going to reconnect only if we still need to (that is to say the user is viewing the data explorer)
-    if Backbone.history.fragment is 'dataexplorer'
-        window.conn = r.connect window.server, driver_connect_success, driver_connect_fail
-
-        if window.timeout_driver_connect?
-            clearTimeout window.timeout_driver_connect
-        window.timeout_driver_connect = setTimeout driver_connect, 5*60*1000
-    else
-        # driver_connected_previous_state tracks the previous state of the driver.
-        # We need it to know for instance when we reconnect if we had an error before or if it's the first time we connect.
-        # In case there was an error, we display a message to say that we successfully reconnect
-        window.driver_connected_previous_state = window.driver_connected
-        window.driver_connected = null
-
-
 $ ->
     render_loading()
     bind_dev_tools()
