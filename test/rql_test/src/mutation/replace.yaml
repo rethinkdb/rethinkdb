@@ -80,4 +80,4 @@ tests:
     # TODO: test atomicity constraints
     # TODO: test trying to change pkey of a document
     # TODO: test not passing a pkey in the first place. What should happen?
-    # TODO: table.replace({ id: 1, foo: 'bar' })
+    # TODO: table.replace({ id: 1, foo: 'bar' }) -- if id is present, it must match, if it's missing it's ok, r.row should work.
