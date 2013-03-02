@@ -39,6 +39,6 @@ class RDBContext
     popImplicitVar: (implicitVar) -> @implicitVarStack.pop implicitVar
 
     getImplicitVar: ->
-        if @implicitVarStack.length > 1 then throw new RqlRuntimeError "ambiguious implicit var"
-        else if @implicitVarStack.length < 1 then throw new RqlRuntimeError "no implicit var"
+        if @implicitVarStack.length > 1 then throw new RqlCompileError "Cannot use r.row in nested queries. Use functions instead."
+        else if @implicitVarStack.length < 1 then throw new RqlCompileError "Cannot use r.row in nested queries. Use functions instead."
         else @implicitVarStack[0]
