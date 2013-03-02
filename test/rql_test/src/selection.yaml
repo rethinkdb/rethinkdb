@@ -42,7 +42,15 @@ tests:
     - cd: r.db('test').table('missing')
       ot: err("RqlRuntimeError", 'Table "missing" does not exist.', [0])
 
-    # TODO: test for invalid chars in db and table names (and possibly json attrs)
+    # XXX: fix this
+    #- cd: r.db('#$%')
+    #  ot: err("RqlCompileError", 'Database name "#$%" invalid (Use A-Za-z0-9_ only).', [0])
+    
+    # XXX: fix this
+    #- cd: r.db('test').table('#$%')
+    #  ot: err("RqlCompileError", 'Table name "#$%" invalid (Use A-Za-z0-9_ only).', [0])
+
+    # TODO: test for invalid chars in json attrs
       
     # Access a table from default db
     # XXX: enable this later
