@@ -636,7 +636,7 @@ module 'DataExplorerView', ->
                     continue
 
                 if is_parsing_string is true
-                    if char is string_delimiter # End of the string, we can work again?
+                    if char is string_delimiter and query[i-1]? and query[i-1] isnt '\\' # End of the string, we can work again?
                         is_parsing_string = false # Else we just keep parsing the string
                         if element.type is 'string'
                             element.name = query.slice start, i+1
@@ -1547,13 +1547,23 @@ module 'DataExplorerView', ->
             @driver_handler.postpone_reconnection()
 
             @raw_query = @codemirror.getValue()
+            #console.log @raw_query
             @query = @replace_new_lines_in_query @raw_query # Save it because we'll use it in @callback_multilples_queries
+            #console.log @query
             
             # Display the loading gif
             @.$('.loading_query_img').css 'display', 'block'
 
             # Execute the query
             try
+                # Separate queries
+                @non_rethinkdb_query = ''
+                @index = 0
+                @queries = @separate_queries @query
+
+                @execute_portion()
+
+                ###
                 @queries = @separate_queries @query
                 @start_time = new Date()
 
@@ -1568,34 +1578,179 @@ module 'DataExplorerView', ->
                 # Save the last cursor to fetch more results later
                 @saved_data.cursor = @cursor
                 @cursor.next(@callback_multiple_queries)
+                ###
 
             catch err
                 @.$('.loading_query_img').css 'display', 'none'
                 @results_view.render_error(@query, err)
 
-        # Replace new lines with \n so the query is not splitted.
-        replace_new_lines_in_query: (query) ->
-            is_string = false
-            char_used = ''
-            i = 0
-            while i < query.length
-                if is_string is true
-                    if query[i] is char_used
-                        if query[i-1]? and query[i-1] isnt '\\'
-                            active_string = query.slice(start_string, i)
-                            count_replace = active_string.match(/\n/g)?.length
-                            query = query.slice(0, start_string) + active_string.replace(/\n/g, '\\n') + query.slice(i)
-                            is_string = false
-                            if count_replace?
-                                i += count_replace
-                else if is_string is false
-                    if query[i] is '\'' or query[i] is '"'
-                        is_string = true
-                        start_string = i
-                        char_used = query[i]
-                i++
-            return query
+        execute_portion: =>
+            while @queries[@index]?
+                full_query = @non_rethinkdb_query
+                full_query += @queries[@index]
 
+                rdb_query = @evaluate(full_query)
+                @index++
+
+                if rdb_query instanceof TermBase
+                    @connection.run query, @rdb_global_callback
+                    break
+                else
+                    @non_rethinkdb_queries += @queries[@index]
+                    if @index is @queries.length-1
+                        #TODO implement nice error
+                        throw "Last query was not a rethinkdb query"
+        
+        rdb_global_callback: (error, cursor) =>
+            if error?
+                throw error
+
+            if @index is @query.length-1
+                if cursor?.hasNext() is true
+                    @current_results = []
+                    @cursor = cursor
+                    cursor.next @get_result_callback
+                else
+                    # Save the last executed query and the last displayed results
+                    @current_results = cursor
+
+                    @saved_data.query = @query
+                    @saved_data.results = @current_results
+                    @saved_data.metadata =
+                        limit_value: 0
+                        skip_value: @skip_value
+                        execution_time: new Date() - @start_time
+                        query: @query
+                        has_more_data: (true if data?) # if data is undefined, it means that there is no more data
+
+                    @results_view.render_result
+                        results: @current_results # The first parameter is null ( = query, so we don't display it)
+                        metadata: @saved_data.metadata
+
+                    # Successful query, let's save it in the history
+                    @save_query @raw_query
+            else
+                @execute_portion()
+
+        get_result_callback: (data) =>
+            if data isnt undefined
+                @current_results.push data
+                if @current_results.length < @limit and @cursor.hasNext() is true
+                    @cursor.next @get_result_callback
+                    return true
+
+            # if data is undefined or @current_results.length is @limit
+            @saved_data.query = @query
+            @saved_data.results = @current_results
+            @saved_data.metadata =
+                limit_value: 0
+                skip_value: @skip_value
+                execution_time: new Date() - @start_time
+                query: @query
+                has_more_data: @cursor.hasNext()
+
+            @results_view.render_result
+                results: @current_results # The first parameter is null ( = query, so we don't display it)
+                metadata: @saved_data.metadata
+
+            # Successful query, let's save it in the history
+            @save_query @raw_query
+
+
+        evaluate: (query) =>
+            "use strict"
+            return eval(query+'console.log(app)')
+
+        # In a string \n becomes \\\\n, outside a string we just remove \n
+        replace_new_lines_in_query: (query) ->
+            is_parsing_string = false
+            start = 0
+
+            result_query = ''
+            for char, i in query
+                if to_skip > 0
+                    to_skip--
+                    continue
+
+                if is_parsing_string is true
+                    if char is string_delimiter and query[i-1]? and query[i-1] isnt '\\'
+                        result_query += query.slice(start, i+1).replace(/\n/g, '\\\\n')
+                        start = i+1
+                        is_parsing_string = false
+                        continue
+                else # if element.is_parsing_string is false
+                    if char is '\'' or char is '"'
+                        result_query += query.slice(start, i).replace(/\n/g, '')
+                        start = i
+                        is_parsing_string = true
+                        string_delimiter = char
+                        continue
+
+                    result_inline_comment = @regex.inline_comment.exec query.slice i
+                    if result_inline_comment?
+                        to_skip = result_inline_comment[0].length-1
+                        continue
+                    result_multiple_line_comment = @regex.multiple_line_comment.exec query.slice i
+                    if result_multiple_line_comment?
+                        to_skip = result_multiple_line_comment[0].length-1
+                        continue
+            if is_parsing_string
+                result_query += query.slice(start, i).replace(/\n/g, '\\\\n')
+            else
+                result_query += query.slice(start, i).replace(/\n/g, '')
+
+            return result_query
+
+        separate_queries: (query) =>
+            queries = []
+            is_parsing_string = false
+            stack = []
+            start = 0
+
+            for char, i in query
+                if to_skip > 0 # Because we cannot mess with the iterator in coffee-script
+                    to_skip--
+                    continue
+
+                if is_parsing_string is true
+                    if char is string_delimiter and query[i-1]? and query[i-1] isnt '\\'
+                        is_parsing_string = false
+                        continue
+                else # if element.is_parsing_string is false
+                    if char is '\'' or char is '"'
+                        is_parsing_string = true
+                        string_delimiter = char
+                        continue
+
+                    result_inline_comment = @regex.inline_comment.exec query.slice i
+                    if result_inline_comment?
+                        to_skip = result_inline_comment[0].length-1
+                        continue
+                    result_multiple_line_comment = @regex.multiple_line_comment.exec query.slice i
+                    if result_multiple_line_comment?
+                        to_skip = result_multiple_line_comment[0].length-1
+                        continue
+
+                    if char of @stop_char.opening
+                        stack.push char
+                    else if char of @stop_char.closing
+                        if stack[stack.length-1] isnt @stop_char.closing[char]
+                            #TODO Give back line and char
+                            throw "Syntax error, missing opening brackets for #{char}"
+                        else
+                            stack.pop()
+                    else if char is ';' and stack.length is 0
+                        queries.push query.slice start, i+1
+                        start = i+1
+
+            if start < query.length-1
+                last_query = query.slice start
+                if @regex.white.test(last_query) is false
+                    queries.push last_query
+
+            return queries
+
+        ###
         # Separate the queries so we can execute them in a synchronous order. We use .run()\s*; to separate queries (and we make sure that the separator is not in a string)
         separate_queries: (query) =>
             start = 0
@@ -1657,6 +1812,7 @@ module 'DataExplorerView', ->
             if /^\s*$/.test(last_query) is false
                 queries.push query.slice start, query.length
             return queries
+        ###
 
         # Clear the input
         clear_query: =>
@@ -1664,7 +1820,9 @@ module 'DataExplorerView', ->
             @codemirror.focus()
 
         # Called if the driver could connect
-        success_on_connect: =>
+        success_on_connect: (connection) =>
+            @connection = connection
+
             @results_view.cursor_timed_out()
             if @reconnecting is true
                 @.$('#user-alert-space').hide()
@@ -2430,6 +2588,7 @@ module 'DataExplorerView', ->
             @connect()
 
         connect: =>
+            that = @
             # Whether we are going to reconnect or not, the cursor might have timed out.
             @container.saved_data.cursor_timed_out = true
             if @timeout?
@@ -2442,7 +2601,12 @@ module 'DataExplorerView', ->
                     catch err
                         # Nothing bad here, let's just not pollute the console
 
-            @connection = r.connect @server, @on_success, @on_fail
+            r.connect @server, (err, connection) ->
+                if err?
+                    that.on_fail()
+                else
+                    that.connection = connection
+                    that.on_success(connection)
             @container.results_view.cursor_timed_out()
             @timeout = setTimeout @connect, 5*60*1000
     
