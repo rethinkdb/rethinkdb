@@ -30,7 +30,7 @@ osx:
 	rm -rf build/packaging/osx/
 	mkdir -p build/packaging/osx/pkg/usr/local/bin build/packaging/osx/pkg/usr/local/share/rethinkdb build/packaging/osx/dmg build/packaging/osx/install
 	cp build/release/rethinkdb build/packaging/osx/pkg/usr/local/bin/rethinkdb
-	cp -R build/release/web build/packaging/osx/pkg/usr/local/share/rethinkdb/web
+	cp -R build/release/rethinkdb_web_assets build/packaging/osx/pkg/usr/local/share/rethinkdb/web
 	pkgbuild --root build/packaging/osx/pkg --identifier rethinkdb build/packaging/osx/install/rethinkdb.pkg
 	productbuild --distribution packaging/osx/Distribution.xml --package-path build/packaging/osx/install/ build/packaging/osx/dmg/rethinkdb.pkg
 	cp packaging/osx/uninstall-rethinkdb.sh build/packaging/osx/dmg/uninstall-rethinkdb.sh

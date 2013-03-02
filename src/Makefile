@@ -508,10 +508,10 @@ else
 RT_CXXFLAGS+=-DRETHINKDB_CACHE_PRODUCT
 endif
 
-RT_CXXFLAGS+=-Wall -Wextra -Werror -Wnon-virtual-dtor
+RT_CXXFLAGS+=-Wall -Wextra -Werror -Wnon-virtual-dtor -std=gnu++0x
 
 ifeq ($(COMPILER), INTEL)
-RT_CXXFLAGS+=-std=gnu++98 -w1 -ftls-model=local-dynamic
+RT_CXXFLAGS+=-w1 -ftls-model=local-dynamic
 else
 ifeq ($(COMPILER), CLANG)
 RT_CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default -Wno-unneeded-internal-declaration -Wused-but-marked-unused -Wunused-macros -Wundef -Wvla -Wshadow -Wconditional-uninitialized -Wmissing-noreturn
@@ -747,26 +747,35 @@ else
 SOURCES:=$(shell find $(SOURCE_DIR) -name '*.cc' | grep -vF "`find $(SOURCE_DIR)/unittest`")
 endif
 
-PROTO_SOURCES:=$(shell find $(SOURCE_DIR) -name '*.proto')
-PROTO_HEADERS:=$(patsubst $(SOURCE_DIR)/%.proto,$(PROTO_DIR)/%.pb.h,$(PROTO_SOURCES))
-PROTO_CODE:=$(patsubst $(SOURCE_DIR)/%.proto,$(PROTO_DIR)/%.pb.cc,$(PROTO_SOURCES))
-PROTO_NAMES+=$(patsubst $(PROTO_DIR)/%.cc,%,$(PROTO_CODE))
-PROTO_OBJS:=$(patsubst %,$(OBJ_DIR)/%.o,$(PROTO_NAMES))
+QL_PROTO_SOURCES:=./rdb_protocol/query_language.proto ./rdb_protocol/internal_extensions.proto
+QL_PROTO_HEADERS:=$(patsubst $(SOURCE_DIR)/%.proto,$(PROTO_DIR)/%.pb.h,$(QL_PROTO_SOURCES))
+QL_PROTO_CODE:=$(patsubst $(SOURCE_DIR)/%.proto,$(PROTO_DIR)/%.pb.cc,$(QL_PROTO_SOURCES))
+QL_PROTO_NAMES+=$(patsubst $(PROTO_DIR)/%.cc,%,$(QL_PROTO_CODE))
+QL_PROTO_OBJS:=$(patsubst %,$(OBJ_DIR)/%.o,$(QL_PROTO_NAMES))
+
+QL2_PROTO_SOURCES:=./rdb_protocol/ql2.proto ./rdb_protocol/ql2_extensions.proto
+QL2_PROTO_HEADERS:=$(patsubst $(SOURCE_DIR)/%.proto,$(PROTO_DIR)/%.pb.h,$(QL2_PROTO_SOURCES))
+QL2_PROTO_CODE:=$(patsubst $(SOURCE_DIR)/%.proto,$(PROTO_DIR)/%.pb.cc,$(QL2_PROTO_SOURCES))
+QL2_PROTO_NAMES+=$(patsubst $(PROTO_DIR)/%.cc,%,$(QL2_PROTO_CODE))
+QL2_PROTO_OBJS:=$(patsubst %,$(OBJ_DIR)/%.o,$(QL2_PROTO_NAMES))
+
 PROTOCFLAGS:= --proto_path=$(SOURCE_DIR)
 
 NAMES:=$(patsubst $(SOURCE_DIR)/%.cc,%,$(SOURCES))
 DEPS:=$(patsubst %,$(DEP_DIR)/%.d,$(NAMES))
-OBJS:=$(PROTO_OBJS) $(patsubst %,$(OBJ_DIR)/%.o,$(NAMES))
+OBJS:=$(QL_PROTO_OBJS) $(QL2_PROTO_OBJS) $(patsubst %,$(OBJ_DIR)/%.o,$(NAMES))
 
-SERVER_EXEC_OBJS:=$(PROTO_OBJS) $(patsubst %.cc,$(OBJ_DIR)/%.o,$(filter-out $(SOURCE_DIR)/unittest/%,$(SOURCES)))
+SERVER_EXEC_OBJS:=$(QL_PROTO_OBJS) $(QL2_PROTO_OBJS) $(patsubst %.cc,$(OBJ_DIR)/%.o,$(filter-out $(SOURCE_DIR)/unittest/%,$(SOURCES)))
 
-SERVER_NOMAIN_OBJS:=$(PROTO_OBJS) $(patsubst %.cc,$(OBJ_DIR)/%.o,$(filter-out %/main.cc,$(SOURCES)))
+SERVER_NOMAIN_OBJS:=$(QL_PROTO_OBJS) $(QL2_PROTO_OBJS) $(patsubst %.cc,$(OBJ_DIR)/%.o,$(filter-out %/main.cc,$(SOURCES)))
 
 SERVER_UNIT_TEST_OBJS:=$(SERVER_NOMAIN_OBJS) $(OBJ_DIR)/unittest/main.o
 
 #### Web UI sources
 WEB_SOURCE_DIR:=../admin
-WEB_ASSETS_BUILD_DIR:=$(BUILD_DIR)/web
+WEB_ASSETS_DIR_NAME:=rethinkdb_web_assets
+RT_CXXFLAGS+=-DWEB_ASSETS_DIR_NAME='"$(WEB_ASSETS_DIR_NAME)"'
+WEB_ASSETS_BUILD_DIR:=$(BUILD_DIR)/$(WEB_ASSETS_DIR_NAME)
 WEB_ASSETS_OBJ_DIR:=$(BUILD_DIR)/webobj
 WEB_ASSETS:=$(WEB_ASSETS_BUILD_DIR)/cluster-min.js $(WEB_ASSETS_BUILD_DIR)/cluster.css $(WEB_ASSETS_BUILD_DIR)/index.html $(WEB_ASSETS_BUILD_DIR)/js $(WEB_ASSETS_BUILD_DIR)/fonts $(WEB_ASSETS_BUILD_DIR)/images $(WEB_ASSETS_BUILD_DIR)/favicon.ico $(WEB_ASSETS_BUILD_DIR)/js/rethinkdb.js $(WEB_ASSETS_BUILD_DIR)/js/template.js 
 
@@ -1027,7 +1036,7 @@ install-data:
 install-web:
 	$(QUIET) install -m755 -d $(DESTDIR)$(web_res_dir)
 # This might break some ownership or permissions stuff.
-	$(QUIET) cp -pRP $(BUILD_DIR)/web/* $(DESTDIR)$(web_res_dir)/
+	$(QUIET) cp -pRP $(BUILD_DIR)/$(WEB_ASSETS_DIR_NAME)/* $(DESTDIR)$(web_res_dir)/
 
 install-drivers:
 
@@ -1368,16 +1377,16 @@ endif
 
 # Special recipe for the proto buffer generated code
 # Need to use a dummy file to avoid calling protoc once for each input file.
-$(PROTO_DIR)/dummy: $(PROTO_SOURCES) $(TC_PROTOC_EXE)
+$(PROTO_DIR)/dummy: $(QL_PROTO_SOURCES) $(QL2_PROTO_SOURCES) $(TC_PROTOC_EXE)
 	$(QUIET) mkdir -p $(PROTO_DIR)
 ifeq ($(VERBOSE),0)
 	@echo "    PROTOC[CPP] $^"
 endif
-	$(QUIET) $(TC_PROTOC_RUN) $(PROTOCFLAGS) --cpp_out $(PROTO_DIR) $(PROTO_SOURCES) && touch $@
-# The preceding line used $^ instead of $(PROTO_SOURCES) before.
-# The touch command was on a separate line, but that caused problems since make ignored the failure of that line and touched the file anyway.
+	$(QUIET) protoc $(PROTOCFLAGS) --cpp_out $(PROTO_DIR) $(QL_PROTO_SOURCES) && touch $@
+	$(QUIET) protoc $(PROTOCFLAGS) --cpp_out $(PROTO_DIR) $(QL2_PROTO_SOURCES) && touch $@
+	$(QUIET) touch $@
 
-$(PROTO_HEADERS) $(PROTO_CODE): $(PROTO_DIR)/dummy
+$(QL_PROTO_HEADERS) $(QL2_PROTO_HEADERS) $(QL_PROTO_CODE) $(QL2_PROTO_CODE): $(PROTO_DIR)/dummy
 
 $(BUILD_DIR)/$(SERVER_EXEC_NAME): $(OBJS) $(BUILD_DIR) $(OBJ_SUPPS)
 ifeq ($(VERBOSE),0)
@@ -1516,7 +1525,7 @@ $(BUILD_DIR):
 
 # Proto buffers object files
 # This is hacky, as the following rule is just a duplicate of the rule for our own sources
-$(OBJ_DIR)/%.pb.o:  $(PROTO_DIR)/%.pb.cc $(MAKEFILE_DEPENDENCY) $(PROTO_HEADERS)
+$(OBJ_DIR)/%.pb.o:  $(PROTO_DIR)/%.pb.cc $(MAKEFILE_DEPENDENCY) $(QL_PROTO_HEADERS) $(QL2_PROTO_HEADERS)
 	$(QUIET) mkdir -p $(dir $@)
 ifeq ($(VERBOSE),0)
 	@echo "    CC $< -o $@"
@@ -1531,7 +1540,7 @@ endif
 	$(QUIET) $(RT_CXX) $(RT_CXXFLAGS) -c -o $@ $<
 
 # Dependencies
-$(DEP_DIR)/%.d: $(SOURCE_DIR)/%.cc $(PROTO_HEADERS) $(V8_DEP)
+$(DEP_DIR)/%.d: $(SOURCE_DIR)/%.cc $(QL_PROTO_HEADERS) $(QL2_PROTO_HEADERS) $(V8_DEP)
 ifeq ($(VERBOSE),0)
 	@echo "    DEP $@"
 endif
@@ -1542,9 +1551,9 @@ endif
 # intermediate files; then the .d files are read in, and some depend on the proto headers, so they
 # get remade. This is redundant work. Also, it appears to cause nondeterministic races - possibly a
 # bug in GNU Make, possibly a bug in our Makefile.
-.SECONDARY: $(PROTO_HEADERS)
+.SECONDARY: $(QL_PROTO_HEADERS) $(QL2_PROTO_HEADERS)
 
-NO_DEPS_TARGETS:=clean depclean tags etags analyze cscope style web-assets build-deb-src-control build-deb-support $(WEB_ASSETS_BUILD_DIR)/cluster-min.js $(WEB_ASSETS_BUILD_DIR)/cluster.css $(WEB_ASSETS_BUILD_DIR)/index.html $(WEB_ASSETS_BUILD_DIR)/js $(WEB_ASSETS_BUILD_DIR)/fonts $(WEB_ASSETS_BUILD_DIR)/images $(WEB_ASSETS_BUILD_DIR)/favicon.ico $(WEB_ASSETS_BUILD_DIR)/js/rethinkdb.js $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee $(COFFEE_SOURCES) $(PROTO_DIR)/dummy $(PROTO_SOURCES) $(PROTO_HEADERS) $(PROTO_CODE) $(PROTO_DIR)/dummy $(OPROF_TARGETS) $(TC_LESSC_INT_EXE) $(TC_COFFEE_INT_EXE) $(TC_HANDLEBARS_INT_EXE) $(SUPPORT_DIR) $(V8_SRC_DIR) $(V8_DIR) $(V8_LIB) $(NODE_SRC_DIR) $(NODE_DIR) $(TC_NODE_INT_EXE) $(TC_NPM_INT_EXE) $(PROTOC_SRC_DIR) $(PROTOC_DIR) $(TC_PROTOC_INT_EXE) $(GPERFTOOLS_SRC_DIR) $(GPERFTOOLS_DIR) $(LIBUNWIND_SRC_DIR) $(LIBUNWIND_DIR) $(TCMALLOC_MINIMAL_INT_LIB)
+NO_DEPS_TARGETS:=clean depclean tags etags analyze cscope style web-assets build-deb-src build-deb-src-control build-deb-support $(TC_LESSC_INT_EXE) $(TC_COFFEE_INT_EXE) $(SUPPORT_DIR) $(WEB_ASSETS_BUILD_DIR)/cluster-min.js $(WEB_ASSETS_BUILD_DIR)/cluster.css $(WEB_ASSETS_BUILD_DIR)/index.html $(WEB_ASSETS_BUILD_DIR)/js $(WEB_ASSETS_BUILD_DIR)/fonts $(WEB_ASSETS_BUILD_DIR)/images $(WEB_ASSETS_BUILD_DIR)/favicon.ico $(WEB_ASSETS_BUILD_DIR)/js/rethinkdb.js $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee $(COFFEE_SOURCES) $(PROTO_DIR)/dummy $(QL_PROTO_SOURCES) $(QL2_PROTO_SOURCES) $(QL_PROTO_HEADERS) $(QL2_PROTO_HEADERS) $(QL_PROTO_CODE) $(QL2_PROTO_CODE) $(QL_PROTO_DIR) $(QL2_PROTO_DIR)/dummy $(OPROF_TARGETS) $(TC_LESSC_INT_EXE) $(TC_COFFEE_INT_EXE) $(TC_HANDLEBARS_INT_EXE) $(SUPPORT_DIR) $(V8_SRC_DIR) $(V8_DIR) $(V8_LIB) $(NODE_SRC_DIR) $(NODE_DIR) $(TC_NODE_INT_EXE) $(TC_NPM_INT_EXE) $(PROTOC_SRC_DIR) $(PROTOC_DIR) $(TC_PROTOC_INT_EXE) $(GPERFTOOLS_SRC_DIR) $(GPERFTOOLS_DIR) $(LIBUNWIND_SRC_DIR) $(LIBUNWIND_DIR) $(TCMALLOC_MINIMAL_INT_LIB)
 # Include the dependencies into the makefile so that they take effect
 ifneq (,$(if $(MAKECMDGOALS),$(filter-out $(NO_DEPS_TARGETS),$(MAKECMDGOALS)),non-empty-placeholder))
 -include $(DEPS)

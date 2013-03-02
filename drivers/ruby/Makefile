@@ -34,12 +34,15 @@ $(RUBY_PBDIR):
 
 driver-ruby: $(RUBY_PBDIR)/$(RUBY_PBFILE)
 PROTOFILE:=$(SOURCE_DIR)/rdb_protocol/query_language.proto
+PROTOFILE2:=$(SOURCE_DIR)/rdb_protocol/ql2.proto
 PROTOPATH:=$(SOURCE_DIR)/rdb_protocol
-$(RUBY_PBDIR)/$(RUBY_PBFILE): $(RUBY_PBDIR) $(PROTOFILE) $(TC_RPROTOC_EXE)
+$(RUBY_PBDIR)/$(RUBY_PBFILE): $(RUBY_PBDIR) $(PROTOFILE) $(PROTOFILE2) $(TC_RPROTOC_EXE)
 ifeq ($(VERBOSE),0)
-	@echo "    PROTOC[RB] $(PROTOFILE)"
+	@echo "    PROTOC[RB] $(PROTOFILE) $(PROTOFILE2)"
 endif
 	$(QUIET) $(TC_RPROTOC_EXE) $(PROTOCFLAGS) --out $(RUBY_PBDIR) $(PROTOFILE) | \
+		(grep -v 'writing...' || true)
+	$(QUIET) $(TC_RPROTOC_EXE) $(PROTOCFLAGS) --out $(RUBY_PBDIR) $(PROTOFILE2) | \
 		(grep -v 'writing...' || true)
 
 publish: $(GEMSPEC) driver-ruby

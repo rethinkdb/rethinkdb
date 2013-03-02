@@ -1,0 +1,36 @@
+desc: Tests for the basic usage of the multiplication operation
+tests:
+
+    # Python supports the overloaded operator '*' in both directions
+    - py: [(r.expr(1) * 2), (1 * r.expr(2))]
+      js: r(1).mul(2)
+      rb: (r 1) * 2
+      ot: 2
+
+    - py: r.expr(-1) * -1
+      js: r(-1).mul(-1)
+      rb: (r -1) * -1
+      ot: 1
+
+    - py: r.expr(1.5) * 4.5
+      js: r(1.5).mul(4.5)
+      rb: (r 1.5) * 4.5
+      ot: 6.75
+
+    # All arithmetic operations (except mod) actually support arbitrary arguments
+    # but this feature can't be accessed in Python because it's operators are binary
+    - js: r(1).mul(2,3,4,5)
+      ot: 120
+
+    # Type errors
+    - py: r.expr('a') * 0.8
+      js: r('a').mul(0.8)
+      ot: err('RqlRuntimeError', 'Expected type NUMBER but found STRING.', [0])
+
+    - py: r.expr(1) * 'a'
+      js: r(1).mul('a')
+      ot: err('RqlRuntimeError', 'Expected type NUMBER but found STRING.', [1])
+
+    - py: r.expr('b') * 'a'
+      js: r('b').mul('a')
+      ot: err('RqlRuntimeError', 'Expected type NUMBER but found STRING.', [0])

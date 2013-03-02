@@ -15,12 +15,17 @@
 #include "containers/archive/vector_stream.hpp"
 #include "protob/protob.hpp"
 #include "rdb_protocol/btree.hpp"
+#include "rdb_protocol/env.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/query_language.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/watchable.hpp"
 #include "serializer/config.hpp"
 
+
+// TODO: this is absurd, and messes up my ETAGS jumping.  We should just alias
+// the module to something shorter and type out the shorter name everywhere, or
+// else use a `using` declaration.
 typedef rdb_protocol_details::backfill_atom_t rdb_backfill_atom_t;
 
 typedef rdb_protocol_t::context_t context_t;
@@ -51,6 +56,9 @@ typedef rdb_protocol_t::point_write_response_t point_write_response_t;
 typedef rdb_protocol_t::point_modify_t point_modify_t;
 typedef rdb_protocol_t::point_modify_response_t point_modify_response_t;
 
+typedef rdb_protocol_t::point_replace_t point_replace_t;
+typedef rdb_protocol_t::point_replace_response_t point_replace_response_t;
+
 typedef rdb_protocol_t::point_delete_t point_delete_t;
 typedef rdb_protocol_t::point_delete_response_t point_delete_response_t;
 
@@ -75,6 +83,10 @@ RDB_IMPL_PROTOB_SERIALIZABLE(Mapping);
 RDB_IMPL_PROTOB_SERIALIZABLE(Reduction);
 RDB_IMPL_PROTOB_SERIALIZABLE(WriteQuery_ForEach);
 
+RDB_IMPL_PROTOB_SERIALIZABLE(Term2);
+RDB_IMPL_PROTOB_SERIALIZABLE(Datum);
+
+
 namespace rdb_protocol_details {
 
 RDB_IMPL_SERIALIZABLE_3(backfill_atom_t, key, value, recency);
@@ -92,11 +104,14 @@ rdb_protocol_t::context_t::context_t()
     signals(get_num_threads())
 { }
 
-rdb_protocol_t::context_t::context_t(extproc::pool_group_t *_pool_group,
-          namespace_repo_t<rdb_protocol_t> *_ns_repo,
-          boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _semilattice_metadata,
-          directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
-          machine_id_t _machine_id)
+rdb_protocol_t::context_t::context_t(
+    extproc::pool_group_t *_pool_group,
+    namespace_repo_t<rdb_protocol_t> *_ns_repo,
+    boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
+        _semilattice_metadata,
+    directory_read_manager_t<cluster_directory_metadata_t>
+        *_directory_read_manager,
+    machine_id_t _machine_id)
     : pool_group(_pool_group), ns_repo(_ns_repo),
       cross_thread_namespace_watchables(get_num_threads()),
       cross_thread_database_watchables(get_num_threads()),
@@ -210,7 +225,8 @@ public:
     }
 };
 
-// Scale the distribution down by combining ranges to fit it within the limit of the query
+// Scale the distribution down by combining ranges to fit it within the limit of
+// the query
 void scale_down_distribution(size_t result_limit, std::map<store_key_t, int64_t> *key_counts) {
     guarantee(result_limit > 0);
     const size_t combine = (key_counts->size() / result_limit); // Combine this many other ranges into the previous range
@@ -265,6 +281,8 @@ public:
 
                 if (const runtime_exc_t *e = boost::get<runtime_exc_t>(&(_rr->result))) {
                     throw *e;
+                } else if (const ql::exc_t *e2 = boost::get<ql::exc_t>(&(_rr->result))) {
+                    throw *e2;
                 }
             }
 
@@ -341,6 +359,36 @@ public:
                     Term body = r->body();
                     *res_atom = eval_term_as_json(&body, &env, scopes_copy, rg.terminal->backtrace.with("body"));
                 }
+            } else if (boost::get<ql::reduce_wire_func_t>(&rg.terminal->variant)
+                       || boost::get<ql::count_wire_func_t>(&rg.terminal->variant)) {
+                typedef std::vector<ql::wire_datum_t> wire_data_t;
+                wire_data_t *out_vec = boost::get<wire_data_t>(
+                    &(rg_response.result = wire_data_t()));
+                for (size_t i = 0; i < count; ++i) {
+                    const rget_read_response_t *_rr =
+                        boost::get<rget_read_response_t>(&responses[i].response);
+                    guarantee(_rr);
+                    if (const ql::wire_datum_t *d =
+                        boost::get<ql::wire_datum_t>(&(_rr->result))) {
+                        out_vec->push_back(*d);
+                    } else {
+                        guarantee(boost::get<rget_read_response_t::empty_t>(
+                                      &(_rr->result)));
+                    }
+                }
+            } else if (boost::get<ql::gmr_wire_func_t>(&rg.terminal->variant)) {
+                typedef std::vector<ql::wire_datum_map_t> wire_datum_maps_t;
+                wire_datum_maps_t *out_vec = boost::get<wire_datum_maps_t>(
+                    &(rg_response.result = wire_datum_maps_t()));
+                for (size_t i = 0; i < count; ++i) {
+                    const rget_read_response_t *_rr =
+                        boost::get<rget_read_response_t>(&responses[i].response);
+                    guarantee(_rr);
+                    const ql::wire_datum_map_t *dm =
+                        boost::get<ql::wire_datum_map_t>(&(_rr->result));
+                    r_sanity_check(dm);
+                    out_vec->push_back(*dm);
+                }
             } else if (boost::get<rdb_protocol_details::Length>(&rg.terminal->variant)) {
                 rg_response.result = length_t();
                 length_t *res_length = boost::get<length_t>(&rg_response.result);
@@ -369,6 +417,8 @@ public:
                 unreachable();
             }
         } catch (const runtime_exc_t &e) {
+            rg_response.result = e;
+        } catch (const ql::exc_t &e) {
             rg_response.result = e;
         }
     }
@@ -415,7 +465,7 @@ public:
                 // Scale up the selected hash shard
                 double scale_factor = static_cast<double>(total_range_keys) / static_cast<double>(largest_size);
 
-                guarantee(scale_factor >= 1.0);  // Directly provable from the code above.
+                guarantee(scale_factor >= 1.0);  // Directly provable from code above.
 
                 for (std::map<store_key_t, int64_t>::iterator mit = results[largest_index].key_counts.begin();
                      mit != results[largest_index].key_counts.end();
@@ -468,6 +518,10 @@ struct w_get_region_visitor : public boost::static_visitor<region_t> {
     region_t operator()(const point_delete_t &pd) const {
         return rdb_protocol_t::monokey_region(pd.key);
     }
+
+    region_t operator()(const point_replace_t &pr) const {
+        return rdb_protocol_t::monokey_region(pr.key);
+    }
 };
 
 }   /* anonymous namespace */
@@ -496,6 +550,11 @@ struct w_shard_visitor : public boost::static_visitor<write_t> {
     write_t operator()(const point_delete_t &pd) const {
         rassert(rdb_protocol_t::monokey_region(pd.key) == region);
         return write_t(pd);
+    }
+
+    write_t operator()(const point_replace_t &pr) const {
+        rassert(rdb_protocol_t::monokey_region(pr.key) == region);
+        return write_t(pr);
     }
     const region_t &region;
 };
@@ -538,7 +597,7 @@ struct read_visitor_t : public boost::static_visitor<void> {
     void operator()(const rget_read_t &rget) {
         response->response = rget_read_response_t();
         rget_read_response_t &res = boost::get<rget_read_response_t>(response->response);
-        rdb_rget_slice(btree, rget.region.inner, txn, superblock, &env, rget.transform, rget.terminal, &res);
+        rdb_rget_slice(btree, rget.region.inner, txn, superblock, &env, &ql_env, rget.transform, rget.terminal, &res);
     }
 
     void operator()(const distribution_read_t &dg) {
@@ -576,12 +635,25 @@ struct read_visitor_t : public boost::static_visitor<void> {
         interruptor(_interruptor, ctx->signals[get_thread_id()].get()),
         env(ctx->pool_group,
             ctx->ns_repo,
-            ctx->cross_thread_namespace_watchables[get_thread_id()].get()->get_watchable(),
-            ctx->cross_thread_database_watchables[get_thread_id()].get()->get_watchable(),
+            ctx->cross_thread_namespace_watchables[get_thread_id()].get()
+                ->get_watchable(),
+            ctx->cross_thread_database_watchables[get_thread_id()].get()
+                ->get_watchable(),
             ctx->semilattice_metadata,
             boost::make_shared<js::runner_t>(),
             &interruptor,
-            ctx->machine_id)
+            ctx->machine_id),
+        ql_env(ctx->pool_group,
+               ctx->ns_repo,
+               ctx->cross_thread_namespace_watchables[get_thread_id()].get()
+                   ->get_watchable(),
+               ctx->cross_thread_database_watchables[get_thread_id()].get()
+                   ->get_watchable(),
+               ctx->semilattice_metadata,
+               NULL,
+               boost::make_shared<js::runner_t>(),
+               &interruptor,
+               ctx->machine_id)
     { }
 
 private:
@@ -591,6 +663,7 @@ private:
     superblock_t *superblock;
     wait_any_t interruptor;
     query_language::runtime_environment_t env;
+    ql::env_t ql_env;
 };
 
 }   /* anonymous namespace */
@@ -609,6 +682,16 @@ namespace {
 
 // TODO: get rid of this extra response_t copy on the stack
 struct write_visitor_t : public boost::static_visitor<void> {
+    void operator()(const point_replace_t &r) {
+        response->response = point_replace_response_t();
+        point_replace_response_t *res =
+            boost::get<point_replace_response_t>(&response->response);
+        // TODO: modify surrounding code so we can dump this const_cast.
+        ql::map_wire_func_t *f = const_cast<ql::map_wire_func_t *>(&r.f);
+        rdb_replace(btree, timestamp, txn, superblock,
+                    r.primary_key, r.key, f, &ql_env, res);
+    }
+
     void operator()(const point_write_t &w) {
         response->response = point_write_response_t();
         point_write_response_t &res = boost::get<point_write_response_t>(response->response);
@@ -642,12 +725,25 @@ struct write_visitor_t : public boost::static_visitor<void> {
         interruptor(_interruptor, ctx->signals[get_thread_id()].get()),
         env(ctx->pool_group,
             ctx->ns_repo,
-            ctx->cross_thread_namespace_watchables[get_thread_id()].get()->get_watchable(),
-            ctx->cross_thread_database_watchables[get_thread_id()].get()->get_watchable(),
+            ctx->cross_thread_namespace_watchables[get_thread_id()].get()
+                ->get_watchable(),
+            ctx->cross_thread_database_watchables[get_thread_id()].get()
+                ->get_watchable(),
             ctx->semilattice_metadata,
             boost::make_shared<js::runner_t>(),
             &interruptor,
-            ctx->machine_id)
+            ctx->machine_id),
+        ql_env(ctx->pool_group,
+               ctx->ns_repo,
+               ctx->cross_thread_namespace_watchables[
+                   get_thread_id()].get()->get_watchable(),
+               ctx->cross_thread_database_watchables[
+                   get_thread_id()].get()->get_watchable(),
+               ctx->semilattice_metadata,
+               0,
+               boost::make_shared<js::runner_t>(),
+               &interruptor,
+               ctx->machine_id)
     { }
 
 private:
@@ -658,6 +754,7 @@ private:
     repli_timestamp_t timestamp;
     wait_any_t interruptor;
     query_language::runtime_environment_t env;
+    ql::env_t ql_env;
 };
 
 }   /* anonymous namespace */
@@ -797,7 +894,8 @@ struct receive_backfill_visitor_t : public boost::static_visitor<void> {
 
     void operator()(const backfill_chunk_t::delete_key_t& delete_key) const {
         point_delete_response_t response;
-        rdb_delete(delete_key.key, btree, delete_key.recency, txn, superblock, &response);
+        rdb_delete(delete_key.key, btree, delete_key.recency,
+                   txn, superblock, &response);
     }
 
     void operator()(const backfill_chunk_t::delete_range_t& delete_range) const {
@@ -852,7 +950,8 @@ void store_t::protocol_reset_data(const region_t& subregion,
     rdb_erase_range(btree, &key_tester, subregion.inner, txn, superblock);
 }
 
-region_t rdb_protocol_t::cpu_sharding_subspace(int subregion_number, int num_cpu_shards) {
+region_t rdb_protocol_t::cpu_sharding_subspace(int subregion_number,
+                                               int num_cpu_shards) {
     guarantee(subregion_number >= 0);
     guarantee(subregion_number < num_cpu_shards);
 

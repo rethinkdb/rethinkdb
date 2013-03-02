@@ -1,0 +1,80 @@
+desc: These tests are aimed at &&, ||, and !
+tests:
+
+    ## basic operator usage
+    
+    # Python overloads '&' for 'and'
+    - py: [r.expr(True) & True, True & r.expr(True)]
+      cd: r(true).and(true)
+      ot: true
+    - py: [r.expr(True) & False, True & r.expr(False)]
+      cd: r(true).and(false)
+      ot: false
+    - py: [r.expr(False) & False, False & r.expr(False)]
+      cd: r(false).and(false)
+      ot: false
+
+    # Python overloads '|' for 'or'
+    - py: [r.expr(True) | True, True | r.expr(True)]
+      cd: r(true).or(true)
+      ot: true
+    - py: [r.expr(True) | False, True | r.expr(False)]
+      cd: r(true).or(false) 
+      ot: true
+    - py: [r.expr(False) | False, False | r.expr(False)]
+      cd: r(false).or(false)
+      ot: false
+
+    # Python overloads '~' for 'not'
+    - py: ~r.expr(True)
+      cd: r(true).not() 
+      ot: false
+    - py: ~r.expr(False)
+      cd: r(false).not()
+      ot: true
+
+    ## DeMorgan's rules!
+
+    - py:
+        - ~(True & r.expr(True)) == (~r.expr(True) | ~r.expr(True))
+        - ~(True & r.expr(False)) == (~r.expr(True) | ~r.expr(False))
+        - ~(False & r.expr(False)) == (~r.expr(False) | ~r.expr(False))
+        - ~(False & r.expr(True)) == (~r.expr(False) | ~r.expr(True))
+      cd:
+        - r(true).and(true).not().eq(r(true).not().or(r(true).not()))
+        - r(true).and(false).not().eq(r(true).not().or(r(false).not()))
+        - r(false).and(false).not().eq(r(false).not().or(r(false).not()))
+        - r(false).and(true).not().eq(r(false).not().or(r(true).not()))
+      ot: true
+
+    # 'and' and 'or' take an arbitrary number of arguments though this functionality
+    # can only be accessed in JS at the moment
+    - js: r(true).and(true, true, true, true)
+      ot: true
+    - js: r(true).and(true, true, false, true)
+      ot: false
+    - js: r(true).and(false, true, false, true)
+      ot: false
+    - js: r(false).or(false, false, false, false)
+      ot: false
+    - js: r(false).or(false, false, true, false)
+      ot: true
+    - js: r(false).or(true, false, true, false)
+      ot: true
+
+    # Type errors
+    - py: r.expr(1) & True
+      js: r(1).and(true)
+      ot: err('RqlRuntimeError', 'Expected type BOOL but found NUMBER.', [0])
+
+    - py: r.expr(False) | 'str'
+      js: r(false).or('str')
+      ot: err('RqlRuntimeError', 'Expected type BOOL but found STRING.', [1])
+
+    - py: ~r.expr(1)
+      js: r(1).not()
+      ot: err('RqlRuntimeError', 'Expected type BOOL but found NUMBER.', [0])
+
+    - py: ~r.expr('abc')
+      js: r('abc').not()
+      ot: err('RqlRuntimeError', 'Expected type BOOL but found STRING.', [0])

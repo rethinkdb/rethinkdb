@@ -1,8 +1,8 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "unittest/gtest.hpp"
 
 #include "arch/timing.hpp"
-#include "mock/unittest_utils.hpp"
+#include "unittest/unittest_utils.hpp"
 #include "rpc/mailbox/mailbox.hpp"
 #include "rpc/mailbox/typed.hpp"
 
@@ -73,10 +73,10 @@ void send(mailbox_manager_t *c, raw_mailbox_t::address_t dest, int message) {
 /* `MailboxStartStop` creates and destroys some mailboxes. */
 
 void run_mailbox_start_stop_test() {
-    int port = mock::randport();
+    int port = randport();
     connectivity_cluster_t c;
     mailbox_manager_t m(&c);
-    connectivity_cluster_t::run_t r(&c, mock::get_unittest_addresses(), port, &m, 0, NULL);
+    connectivity_cluster_t::run_t r(&c, get_unittest_addresses(), port, &m, 0, NULL);
 
     /* Make sure we can create a mailbox */
     dummy_mailbox_t mbox1(&m);
@@ -86,19 +86,19 @@ void run_mailbox_start_stop_test() {
     dummy_mailbox_t mbox2(&m);
 }
 TEST(RPCMailboxTest, MailboxStartStop) {
-    mock::run_in_thread_pool(&run_mailbox_start_stop_test, 2);
+    unittest::run_in_thread_pool(&run_mailbox_start_stop_test, 2);
 }
 
 /* `MailboxMessage` sends messages to some mailboxes */
 
 void run_mailbox_message_test() {
-    int port = mock::randport();
+    int port = randport();
     connectivity_cluster_t c1, c2;
     mailbox_manager_t m1(&c1), m2(&c2);
-    connectivity_cluster_t::run_t r1(&c1, mock::get_unittest_addresses(), port, &m1, 0, NULL);
-    connectivity_cluster_t::run_t r2(&c2, mock::get_unittest_addresses(), port+1, &m2, 0, NULL);
+    connectivity_cluster_t::run_t r1(&c1, get_unittest_addresses(), port, &m1, 0, NULL);
+    connectivity_cluster_t::run_t r2(&c2, get_unittest_addresses(), port+1, &m2, 0, NULL);
     r1.join(c2.get_peer_address(c2.get_me()));
-    mock::let_stuff_happen();
+    let_stuff_happen();
 
     /* Create a mailbox and send it three messages */
     dummy_mailbox_t mbox(&m1);
@@ -108,29 +108,29 @@ void run_mailbox_message_test() {
     send(&m2, address, 3131);
     send(&m1, address, 7);
 
-    mock::let_stuff_happen();
+    let_stuff_happen();
 
     mbox.expect(88555);
     mbox.expect(3131);
     mbox.expect(7);
 }
 TEST(RPCMailboxTest, MailboxMessage) {
-    mock::run_in_thread_pool(&run_mailbox_message_test);
+    unittest::run_in_thread_pool(&run_mailbox_message_test);
 }
 
 TEST(RPCMailboxTest, MailboxMessageMultiThread) {
-    mock::run_in_thread_pool(&run_mailbox_message_test, 3);
+    unittest::run_in_thread_pool(&run_mailbox_message_test, 3);
 }
 
 /* `DeadMailbox` sends a message to a defunct mailbox. The expected behavior is
 for the message to be silently ignored. */
 
 void run_dead_mailbox_test() {
-    int port = mock::randport();
+    int port = randport();
     connectivity_cluster_t c1, c2;
     mailbox_manager_t m1(&c1), m2(&c2);
-    connectivity_cluster_t::run_t r1(&c1, mock::get_unittest_addresses(), port, &m1, 0, NULL);
-    connectivity_cluster_t::run_t r2(&c2, mock::get_unittest_addresses(), port+1, &m2, 0, NULL);
+    connectivity_cluster_t::run_t r1(&c1, get_unittest_addresses(), port, &m1, 0, NULL);
+    connectivity_cluster_t::run_t r2(&c2, get_unittest_addresses(), port+1, &m2, 0, NULL);
 
     /* Create a mailbox, take its address, then destroy it. */
     raw_mailbox_t::address_t address;
@@ -142,13 +142,13 @@ void run_dead_mailbox_test() {
     send(&m1, address, 12345);
     send(&m2, address, 78888);
 
-    mock::let_stuff_happen();
+    let_stuff_happen();
 }
 TEST(RPCMailboxTest, DeadMailbox) {
-    mock::run_in_thread_pool(&run_dead_mailbox_test);
+    unittest::run_in_thread_pool(&run_dead_mailbox_test);
 }
 TEST(RPCMailboxTest, DeadMailboxMultiThread) {
-    mock::run_in_thread_pool(&run_dead_mailbox_test, 3);
+    unittest::run_in_thread_pool(&run_dead_mailbox_test, 3);
 }
 /* `MailboxAddressSemantics` makes sure that `raw_mailbox_t::address_t` behaves as
 expected. */
@@ -158,10 +158,10 @@ void run_mailbox_address_semantics_test() {
     raw_mailbox_t::address_t nil_addr;
     EXPECT_TRUE(nil_addr.is_nil());
 
-    int port = mock::randport();
+    int port = randport();
     connectivity_cluster_t c;
     mailbox_manager_t m(&c);
-    connectivity_cluster_t::run_t r(&c, mock::get_unittest_addresses(), port, &m, 0, NULL);
+    connectivity_cluster_t::run_t r(&c, get_unittest_addresses(), port, &m, 0, NULL);
 
     dummy_mailbox_t mbox(&m);
     raw_mailbox_t::address_t mbox_addr = mbox.mailbox.get_address();
@@ -169,23 +169,27 @@ void run_mailbox_address_semantics_test() {
     EXPECT_TRUE(mbox_addr.get_peer() == c.get_me());
 }
 TEST(RPCMailboxTest, MailboxAddressSemantics) {
-    mock::run_in_thread_pool(&run_mailbox_address_semantics_test);
+    unittest::run_in_thread_pool(&run_mailbox_address_semantics_test);
 }
 TEST(RPCMailboxTest, MailboxAddressSemanticsMultiThread) {
-    mock::run_in_thread_pool(&run_mailbox_address_semantics_test, 3);
+    unittest::run_in_thread_pool(&run_mailbox_address_semantics_test, 3);
 }
 
 /* `TypedMailbox` makes sure that `mailbox_t<>` works. */
 
+void string_push_back(std::vector<std::string> *v, const std::string &pushee) {
+    v->push_back(pushee);
+}
+
 void run_typed_mailbox_test() {
 
-    int port = mock::randport();
+    int port = randport();
     connectivity_cluster_t c;
     mailbox_manager_t m(&c);
-    connectivity_cluster_t::run_t r(&c, mock::get_unittest_addresses(), port, &m, 0, NULL);
+    connectivity_cluster_t::run_t r(&c, get_unittest_addresses(), port, &m, 0, NULL);
 
     std::vector<std::string> inbox;
-    mailbox_t<void(std::string)> mbox(&m, boost::bind(&std::vector<std::string>::push_back, &inbox, _1), mailbox_callback_mode_inline);
+    mailbox_t<void(std::string)> mbox(&m, boost::bind(&string_push_back, &inbox, _1), mailbox_callback_mode_inline);
 
     mailbox_addr_t<void(std::string)> addr = mbox.get_address();
 
@@ -193,7 +197,7 @@ void run_typed_mailbox_test() {
     send(&m, addr, std::string("bar"));
     send(&m, addr, std::string("baz"));
 
-    mock::let_stuff_happen();
+    let_stuff_happen();
 
     EXPECT_EQ(3u, inbox.size());
     if (inbox.size() == 3) {
@@ -203,10 +207,10 @@ void run_typed_mailbox_test() {
     }
 }
 TEST(RPCMailboxTest, TypedMailbox) {
-    mock::run_in_thread_pool(&run_typed_mailbox_test);
+    unittest::run_in_thread_pool(&run_typed_mailbox_test);
 }
 TEST(RPCMailboxTest, TypedMailboxMultiThread) {
-    mock::run_in_thread_pool(&run_typed_mailbox_test, 3);
+    unittest::run_in_thread_pool(&run_typed_mailbox_test, 3);
 }
 
 }   /* namespace unittest */

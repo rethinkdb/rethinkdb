@@ -30,6 +30,8 @@
 #include "containers/archive/file_stream.hpp"
 #include "containers/printf_buffer.hpp"
 #include "logger.hpp"
+#include "rdb_protocol/ql2.pb.h"
+#include "rdb_protocol/ql2_extensions.pb.h"
 #include "thread_local.hpp"
 
 void run_generic_global_startup_behavior() {
@@ -353,7 +355,7 @@ int rng_t::randint(int n) {
 }
 
 struct nrand_xsubi_t {
-    unsigned short xsubi[3];
+    unsigned short xsubi[3];  // NOLINT(runtime/int)
 };
 
 TLS_with_init(bool, rng_initialized, false)
@@ -674,3 +676,7 @@ int get_num_db_threads() {
 // * RETHINKDB_VERSION=1.2
 // (the correct case is something like RETHINKDB_VERSION="1.2")
 UNUSED static const char _assert_RETHINKDB_VERSION_nonempty = 1/(!!strlen(RETHINKDB_VERSION));
+
+void pb_print(DEBUG_VAR Term2 *t) {
+    debugf("%s\n", t->DebugString().c_str());
+}

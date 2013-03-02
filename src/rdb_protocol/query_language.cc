@@ -1,7 +1,7 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "rdb_protocol/query_language.hpp"
 
-#include <math.h>
+#include <cmath>
 
 #include "errors.hpp"
 #include <boost/make_shared.hpp>
@@ -62,7 +62,7 @@ void wait_for_rdb_table_readiness(namespace_repo_t<rdb_protocol_t> *ns_repo,
 namespace query_language {
 
 cJSON *safe_cJSON_CreateNumber(double d, const backtrace_t &backtrace) {
-    if (!isfinite(d)) throw runtime_exc_t(strprintf("Illegal numeric value %e.", d), backtrace);
+    if (!std::isfinite(d)) throw runtime_exc_t(strprintf("Illegal numeric value %e.", d), backtrace);
     return cJSON_CreateNumber(d);
 }
 #define cJSON_CreateNumber(...) CT_ASSERT(!"Use safe_cJSON_CreateNumber")
@@ -291,7 +291,7 @@ term_info_t get_term_type(Term *t, type_checking_environment_t *env, const backt
     } break;
     case Term::JAVASCRIPT: {
         check_protobuf(t->has_javascript());
-        ret.reset(term_info_t(TERM_TYPE_JSON, false)); //javascript is never deterministic
+        ret.reset(term_info_t(TERM_TYPE_JSON, false)); // js is never deterministic
     } break;
     default: unreachable("unhandled Term case");
     }
@@ -675,7 +675,7 @@ void check_reduction_type(Reduction *r, type_checking_environment_t *env, bool *
 void check_mapping_type(Mapping *m, term_type_t return_type, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace) {
     bool is_det = true;
     new_scope_t scope_maker(&env->scope);
-    env->scope.put_in_scope(m->arg(), term_info_t(TERM_TYPE_JSON, true/*deterministic*/));
+    env->scope.put_in_scope(m->arg(), term_info_t(TERM_TYPE_JSON, true/*det*/));
     check_term_type(m->mutable_body(), return_type, env, &is_det, backtrace);
     *is_det_out &= is_det;
 }
@@ -936,7 +936,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         /* Create namespace, insert into metadata, then join into real metadata. */
         database_semilattice_metadata_t db;
         db.name = vclock_t<name_string_t>(db_name, env->this_machine);
-        metadata.databases.databases.insert(std::make_pair(generate_uuid(), db));
+        metadata.databases.databases.insert(std::make_pair(generate_uuid(), make_deletable(db)));
         try {
             fill_in_blueprints(&metadata, directory_metadata->get(), env->this_machine, false);
         } catch (const missing_machine_exc_t &e) {
@@ -1023,7 +1023,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
                                           primary_key, port_defaults::reql_port, cache_size);
         {
             cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t change(&metadata.rdb_namespaces);
-            change.get()->namespaces.insert(std::make_pair(namespace_id, ns));
+            change.get()->namespaces.insert(std::make_pair(namespace_id, make_deletable(ns)));
         }
         try {
             fill_in_blueprints(&metadata, directory_metadata->get(), env->this_machine, false);
@@ -1658,7 +1658,8 @@ void eval_let_binds(Term::Let *let, runtime_environment_t *env, scopes_t *scopes
             scopes_in_out->scope.put_in_scope(let->binds(i).var(),
                     eval_term_as_json(let->mutable_binds(i)->mutable_term(), env, *scopes_in_out, backtrace_bind));
         } else if (type.type == TERM_TYPE_STREAM || type.type == TERM_TYPE_VIEW) {
-            throw runtime_exc_t("Cannot bind streams/views to variable names", backtrace);
+            throw runtime_exc_t("Cannot bind streams/views to variable names",
+                                backtrace);
         } else if (type.type == TERM_TYPE_ARBITRARY) {
             eval_term_as_json(let->mutable_binds(i)->mutable_term(), env, *scopes_in_out, backtrace_bind);
             unreachable("This term has type `TERM_TYPE_ARBITRARY`, so "
@@ -1834,7 +1835,8 @@ boost::shared_ptr<scoped_cJSON_t> eval_term_as_json(Term *t, runtime_environment
             // Not compiled yet. Compile it and add the extension.
             id = js->compile(argnames, t->javascript(), &errmsg);
             if (js::INVALID_ID == id) {
-                throw runtime_exc_t("failed to compile javascript: " + errmsg, backtrace);
+                throw runtime_exc_t("failed to compile javascript: " + errmsg,
+                                    backtrace);
             }
             t->SetExtension(extension::js_id, (int32_t) id);
         }
@@ -2292,7 +2294,7 @@ boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term::Call *c, runtime_envir
                     length = array->GetArraySize();
                 } else {
                     boost::shared_ptr<json_stream_t> stream = eval_term_as_stream(c->mutable_args(0), env, scopes, backtrace.with("arg:0"));
-                    result_t res = stream->apply_terminal(rdb_protocol_details::Length(), env, scopes, backtrace);
+                    result_t res = stream->apply_terminal(rdb_protocol_details::Length(), env, 0, scopes, backtrace);
                     rdb_protocol_t::rget_read_response_t::length_t *l = boost::get<rdb_protocol_t::rget_read_response_t::length_t>(&res);
                     guarantee(l, "Applying the terminal returned an unexpected result.");
                     length = l->length;
@@ -2365,7 +2367,7 @@ boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term::Call *c, runtime_envir
                 boost::shared_ptr<json_stream_t> stream = eval_term_as_stream(c->mutable_args(0), env, scopes, backtrace.with("arg:0"));
 
                 try {
-                    return boost::get<boost::shared_ptr<scoped_cJSON_t> >(stream->apply_terminal(c->builtin().reduce(), env, scopes, backtrace.with("reduce")));
+                    return boost::get<boost::shared_ptr<scoped_cJSON_t> >(stream->apply_terminal(c->builtin().reduce(), env, 0, scopes, backtrace.with("reduce")));
                 } catch (const boost::bad_get &) {
                     crash("Expected a json atom... something is implemented wrong in the clustering code\n");
                 }
@@ -2375,7 +2377,7 @@ boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term::Call *c, runtime_envir
                 boost::shared_ptr<json_stream_t> stream = eval_term_as_stream(c->mutable_args(0), env, scopes, backtrace.with("arg:0"));
 
                 try {
-                    rdb_protocol_t::rget_read_response_t::result_t result = stream->apply_terminal(c->builtin().grouped_map_reduce(), env, scopes, backtrace);
+                    rdb_protocol_t::rget_read_response_t::result_t result = stream->apply_terminal(c->builtin().grouped_map_reduce(), env, 0, scopes, backtrace);
                     rdb_protocol_t::rget_read_response_t::groups_t *groups = boost::get<rdb_protocol_t::rget_read_response_t::groups_t>(&result);
                     boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateArray()));
                     std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less_t>::iterator it;
@@ -2562,19 +2564,19 @@ boost::shared_ptr<json_stream_t> eval_call_as_stream(Term::Call *c, runtime_envi
         case Builtin::FILTER:
             {
                 boost::shared_ptr<json_stream_t> stream = eval_term_as_stream(c->mutable_args(0), env, scopes, backtrace.with("arg:0"));
-                return stream->add_transformation(c->builtin().filter(), env, scopes, backtrace.with("predicate"));
+                return stream->add_transformation(c->builtin().filter(), env, 0, scopes, backtrace.with("predicate"));
             }
             break;
         case Builtin::MAP:
             {
                 boost::shared_ptr<json_stream_t> stream = eval_term_as_stream(c->mutable_args(0), env, scopes, backtrace.with("arg:0"));
-                return stream->add_transformation(c->builtin().map().mapping(), env, scopes, backtrace.with("mapping"));
+                return stream->add_transformation(c->builtin().map().mapping(), env, 0, scopes, backtrace.with("mapping"));
             }
             break;
         case Builtin::CONCATMAP:
             {
                 boost::shared_ptr<json_stream_t> stream = eval_term_as_stream(c->mutable_args(0), env, scopes, backtrace.with("arg:0"));
-                return stream->add_transformation(c->builtin().concat_map(), env, scopes, backtrace.with("mapping"));
+                return stream->add_transformation(c->builtin().concat_map(), env, 0, scopes, backtrace.with("mapping"));
             }
             break;
         case Builtin::ORDERBY: {
@@ -2732,7 +2734,8 @@ namespace_repo_t<rdb_protocol_t>::access_t eval_table_ref(TableRef *t, runtime_e
     namespace_predicate_t pred(&table_name, &db_id);
     uuid_u id = meta_get_uuid(ns_searcher, pred, "EVAL_TABLE " + table_name.str(), bt);
 
-    return namespace_repo_t<rdb_protocol_t>::access_t(env->ns_repo, id, env->interruptor);
+    return namespace_repo_t<rdb_protocol_t>::access_t(
+        env->ns_repo, id, env->interruptor);
 }
 
 view_t eval_call_as_view(Term::Call *c, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
@@ -2773,7 +2776,7 @@ view_t eval_call_as_view(Term::Call *c, runtime_environment_t *env, const scopes
             {
                 view_t view = eval_term_as_view(c->mutable_args(0), env, scopes, backtrace.with("arg:0"));
                 boost::shared_ptr<json_stream_t> new_stream =
-                    view.stream->add_transformation(c->builtin().filter(), env, scopes, backtrace.with("predicate"));
+                    view.stream->add_transformation(c->builtin().filter(), env, 0, scopes, backtrace.with("predicate"));
                 return view_t(view.access, view.primary_key, new_stream);
             }
             break;

@@ -84,7 +84,8 @@ block_magic_t value_sizer_t<rdb_value_t>::btree_leaf_magic() const {
 
 block_size_t value_sizer_t<rdb_value_t>::block_size() const { return block_size_; }
 
-boost::shared_ptr<scoped_cJSON_t> get_data(const rdb_value_t *value, transaction_t *txn) {
+boost::shared_ptr<scoped_cJSON_t> get_data(const rdb_value_t *value,
+                                           transaction_t *txn) {
     blob_t blob(const_cast<rdb_value_t *>(value)->value_ref(), blob::btree_maxreflen);
 
     boost::shared_ptr<scoped_cJSON_t> data;
@@ -152,6 +153,92 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location, const store_
     //                                                                  ^^^^^ That means the key isn't expired.
 }
 
+// QL2 This implements UPDATE, REPLACE, and part of DELETE and INSERT (each is
+// just a different function passed to this function).
+void rdb_replace(btree_slice_t *slice,
+                 repli_timestamp_t timestamp,
+                 transaction_t *txn,
+                 superblock_t *superblock,
+                 const std::string &primary_key,
+                 const store_key_t &key,
+                 ql::map_wire_func_t *f,
+                 ql::env_t *ql_env,
+                 Datum *response_out) THROWS_NOTHING {
+    const ql::datum_t *num_1 = ql_env->add_ptr(new ql::datum_t(1L));
+    ql::datum_t *resp = ql_env->add_ptr(new ql::datum_t(ql::datum_t::R_OBJECT));
+    try {
+        keyvalue_location_t<rdb_value_t> kv_location;
+        find_keyvalue_location_for_write(
+            txn, superblock, key.btree_key(), &kv_location,
+            &slice->root_eviction_priority, &slice->stats);
+
+        bool started_empty, ended_empty;
+        const ql::datum_t *old_val;
+        if (!kv_location.value.has()) {
+            // If there's no entry with this key, pass NULL to the function.
+            started_empty = true;
+            old_val = ql_env->add_ptr(new ql::datum_t(ql::datum_t::R_NULL));
+        } else {
+            // Otherwise pass the entry with this key to the function.
+            started_empty = false;
+            boost::shared_ptr<scoped_cJSON_t> old_val_json =
+                get_data(kv_location.value.get(), txn);
+            guarantee(old_val_json->GetObjectItem(primary_key.c_str()));
+            old_val = ql_env->add_ptr(new ql::datum_t(old_val_json, ql_env));
+        }
+        guarantee(old_val);
+
+        const ql::datum_t *new_val = f->compile(ql_env)->call(old_val)->as_datum();
+        ended_empty = (new_val->get_type() == ql::datum_t::R_NULL);
+
+        // We use `conflict` below to store whether or not there was a key
+        // conflict when constructing the stats object.  It defaults to `true`
+        // so that we fail an assertion if we never update the stats object.
+        bool conflict = true;
+        // Figure out what operation we're doing (based on started_empty,
+        // ended_empty, and the result of the function call) and then do it.
+        if (started_empty) {
+            if (ended_empty) {
+                conflict = resp->add("skipped", num_1);
+            } else {
+                conflict = resp->add("inserted", num_1);
+                kv_location_set(&kv_location, key, new_val->as_json(),
+                                slice, timestamp, txn);
+            }
+        } else {
+            if (ended_empty) {
+                conflict = resp->add("deleted", num_1);
+                kv_location_delete(&kv_location, key, slice, timestamp, txn);
+            } else {
+                if (*old_val->el(primary_key) == *new_val->el(primary_key)) {
+                    if (*old_val == *new_val) {
+                        conflict = resp->add("unchanged", num_1);
+                    } else {
+                        conflict = resp->add("replaced", num_1);
+                        kv_location_set(&kv_location, key, new_val->as_json(),
+                                        slice, timestamp, txn);
+                    }
+                } else {
+                    std::string msg = strprintf(
+                        "Primary key (%s) cannot be changed (%s -> %s)",
+                        primary_key.c_str(),
+                        old_val->print().c_str(), new_val->print().c_str());
+                    const ql::datum_t *msg_d = ql_env->add_ptr(new ql::datum_t(msg));
+                    conflict = resp->add("errors", num_1)
+                            || resp->add("first_error", msg_d);
+                }
+            }
+        }
+        guarantee(!conflict); // message never added twice
+    } catch (const ql::any_ql_exc_t &e) {
+        std::string msg = e.what();
+        bool b = resp->add("errors", num_1)
+              || resp->add("first_error", ql_env->add_ptr(new ql::datum_t(msg)));
+        guarantee(!b);
+    }
+    resp->write_to_protobuf(response_out);
+}
+
 void rdb_modify(const std::string &primary_key, const store_key_t &key, point_modify_ns::op_t op,
                 query_language::runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace,
                 const Mapping &mapping,
@@ -195,6 +282,9 @@ void rdb_modify(const std::string &primary_key, const store_key_t &key, point_mo
     } catch (const query_language::runtime_exc_t &e) {
         response->result = point_modify_ns::ERROR;
         response->exc = e;
+    } catch (const ql::exc_t &e2) {
+        response->result = point_modify_ns::ERROR;
+        response->ql_exc = e2;
     }
 }
 
@@ -250,8 +340,9 @@ void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range,
     do_agnostic_btree_backfill(&sizer, slice, key_range, since_when, &agnostic_cb, txn, superblock, p, interruptor);
 }
 
-void rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t timestamp,
-                transaction_t *txn, superblock_t *superblock, point_delete_response_t *response) {
+void rdb_delete(const store_key_t &key, btree_slice_t *slice,
+                repli_timestamp_t timestamp, transaction_t *txn,
+                superblock_t *superblock, point_delete_response_t *response) {
     keyvalue_location_t<rdb_value_t> kv_location;
     find_keyvalue_location_for_write(txn, superblock, key.btree_key(), &kv_location, &slice->root_eviction_priority, &slice->stats);
     bool exists = kv_location.value.has();
@@ -303,23 +394,33 @@ size_t estimate_rget_response_size(const boost::shared_ptr<scoped_cJSON_t> &/*js
 
 class rdb_rget_depth_first_traversal_callback_t : public depth_first_traversal_callback_t {
 public:
-    rdb_rget_depth_first_traversal_callback_t(transaction_t *txn, query_language::runtime_environment_t *_env,
-                                              const rdb_protocol_details::transform_t &_transform,
-                                              boost::optional<rdb_protocol_details::terminal_t> _terminal,
-                                              const key_range_t &range,
-                                              rget_read_response_t *_response)
+    rdb_rget_depth_first_traversal_callback_t(
+        transaction_t *txn,
+        query_language::runtime_environment_t *_env,
+        ql::env_t *_ql_env,
+        const rdb_protocol_details::transform_t &_transform,
+        boost::optional<rdb_protocol_details::terminal_t> _terminal,
+        const key_range_t &range,
+        rget_read_response_t *_response)
         : bad_init(false), transaction(txn), response(_response), cumulative_size(0),
-          env(_env), transform(_transform), terminal(_terminal)
+          env(_env), ql_env(_ql_env), transform(_transform), terminal(_terminal)
     {
         try {
             response->last_considered_key = range.left;
 
             if (terminal) {
-                boost::apply_visitor(query_language::terminal_initializer_visitor_t(&response->result, env, terminal->scopes, terminal->backtrace), terminal->variant);
+                boost::apply_visitor(query_language::terminal_initializer_visitor_t(
+                                         &response->result, env, ql_env,
+                                         terminal->scopes, terminal->backtrace),
+                                     terminal->variant);
             }
         } catch (const query_language::runtime_exc_t &e) {
             /* Evaluation threw so we're not going to be accepting any more requests. */
             response->result = e;
+            bad_init = true;
+        } catch (const ql::exc_t &e2) {
+            /* Evaluation threw so we're not going to be accepting any more requests. */
+            response->result = e2;
             bad_init = true;
         }
     }
@@ -338,19 +439,21 @@ public:
             data.push_back(get_data(rdb_value, transaction));
 
             //Apply transforms to the data
-            typedef rdb_protocol_details::transform_t::iterator tit_t;
-            for (tit_t it  = transform.begin();
-                       it != transform.end();
-                       ++it) {
-                json_list_t tmp;
+            {
+                rdb_protocol_details::transform_t::iterator it;
+                for (it = transform.begin(); it != transform.end(); ++it) {
+                    json_list_t tmp;
 
-                for (json_list_t::iterator jt  = data.begin();
-                                           jt != data.end();
-                                           ++jt) {
-                    boost::apply_visitor(query_language::transform_visitor_t(*jt, &tmp, env, it->scopes, it->backtrace), it->variant);
+                    for (json_list_t::iterator jt  = data.begin();
+                         jt != data.end();
+                         ++jt) {
+                        boost::apply_visitor(query_language::transform_visitor_t(
+                                                 *jt, &tmp, env, ql_env, it->scopes,
+                                                 it->backtrace), it->variant);
+                    }
+                    data.clear();
+                    data.splice(data.begin(), tmp);
                 }
-                data.clear();
-                data.splice(data.begin(), tmp);
             }
 
             if (!terminal) {
@@ -360,16 +463,36 @@ public:
                 for (json_list_t::iterator it =  data.begin();
                                            it != data.end();
                                            ++it) {
-                    stream->push_back(std::make_pair(key, *it));
+                    stream->push_back(std::make_pair(store_key_t(key), *it));
                     cumulative_size += estimate_rget_response_size(*it);
                 }
 
                 return cumulative_size < rget_max_chunk_size;
             } else {
-                for (json_list_t::iterator jt  = data.begin();
-                                           jt != data.end();
-                                           ++jt) {
-                    boost::apply_visitor(query_language::terminal_visitor_t(*jt, env, terminal->scopes, terminal->backtrace, &response->result), terminal->variant);
+                // We use garbage collection during the reduction step, since
+                // most reductions throw away most of the allocate data.
+                ql::env_gc_checkpoint_t egct(ql_env);
+                int i = 0;
+                json_list_t::iterator jt;
+                for (jt = data.begin(); jt != data.end(); ++jt) {
+                    boost::apply_visitor(query_language::terminal_visitor_t(
+                                             *jt, env, ql_env, terminal->scopes,
+                                             terminal->backtrace, &response->result),
+                                         terminal->variant);
+                    // A reduce returns a `wire_datum_t` and a gmr returns a
+                    // `wire_datum_map_t`
+                    if (ql::wire_datum_t *wd
+                        = boost::get<ql::wire_datum_t>(&terminal->variant)) {
+                        egct.maybe_gc(wd->get());
+                    } else if (ql::wire_datum_map_t *wdm
+                               = boost::get<ql::wire_datum_map_t>(
+                                   &terminal->variant)) {
+                        // TODO: this is a hack because GCing a `wire_datum_map_t` is
+                        // expensive.  Need a better way to do this.
+                        int rounds = 10000 DEBUG_ONLY(/ 5000);
+                        if (!(++i % rounds)) egct.maybe_gc(wdm->to_arr(ql_env));
+                    }
+
                 }
                 return true;
             }
@@ -377,28 +500,45 @@ public:
             /* Evaluation threw so we're not going to be accepting any more requests. */
             response->result = e;
             return false;
+        } catch (const ql::exc_t &e2) {
+            /* Evaluation threw so we're not going to be accepting any more requests. */
+            response->result = e2;
+            return false;
         }
+
     }
     bool bad_init;
     transaction_t *transaction;
     rget_read_response_t *response;
     size_t cumulative_size;
     query_language::runtime_environment_t *env;
+    ql::env_t *ql_env;
     rdb_protocol_details::transform_t transform;
     boost::optional<rdb_protocol_details::terminal_t> terminal;
 };
 
 void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
                     transaction_t *txn, superblock_t *superblock,
-                    query_language::runtime_environment_t *env, const rdb_protocol_details::transform_t &transform,
-                    boost::optional<rdb_protocol_details::terminal_t> terminal, rget_read_response_t *response) {
-    rdb_rget_depth_first_traversal_callback_t callback(txn, env, transform, terminal, range, response);
+                    query_language::runtime_environment_t *env,
+                    ql::env_t *ql_env,
+                    const rdb_protocol_details::transform_t &transform,
+                    const boost::optional<rdb_protocol_details::terminal_t> &terminal,
+                    rget_read_response_t *response) {
+    rdb_rget_depth_first_traversal_callback_t callback(txn, env, ql_env, transform, terminal, range, response);
     btree_depth_first_traversal(slice, txn, superblock, range, &callback);
 
     if (callback.cumulative_size >= rget_max_chunk_size) {
         response->truncated = true;
     } else {
         response->truncated = false;
+    }
+
+    //TODO: change this whole file so that this isn't necessary.
+    if (ql::wire_datum_t *d = boost::get<ql::wire_datum_t>(&response->result)) {
+        d->finalize();
+    } else if (ql::wire_datum_map_t *dm =
+               boost::get<ql::wire_datum_map_t>(&response->result)) {
+        dm->finalize();
     }
 }
 

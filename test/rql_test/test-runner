@@ -1,0 +1,335 @@
+#!/usr/bin/python
+
+from yaml import load
+from os import walk
+from sys import argv, stdout
+from getopt import getopt
+from subprocess import call, Popen
+from time import sleep
+import types
+import random
+import socket
+import re
+
+# A test script src language
+# This class attempts to abstract some of the details that
+# separate our source languages.
+class SrcLang:
+    # Returns the approriate line comment string
+    def comment(self, ):
+        return "#"
+    
+    # Converts input value into the appropriate string
+    # representation for this language.
+    def langrepr(self, val):
+        return repr(str(val))
+
+    # Translates names from canonical name representation
+    # (underscores) to the convention for this language
+    def nametranslate(self, name):
+        return name
+
+    # Translates dictionary (object) representation from cannonical
+    # form (e.g. "{'a':1}") to the appropriate representation for this
+    # language
+    def dicttranslate(self, dic):
+        return dic
+
+    # Translate a generic code string using the rules defined by `self`
+    def translate(self, src):
+        return self.dicttranslate(self.nametranslate(src))
+
+class PyLang(SrcLang):
+    def langrepr(self, val):
+        if not isinstance(val, types.UnicodeType):
+            return repr(str(val))
+        else:
+            return repr(unicode(val))
+
+class JsLang(SrcLang):
+    def comment(self):
+        return "//"
+
+    def langrepr(self, val):
+        if isinstance(val, types.StringType):
+            return repr(val)
+        elif isinstance(val, types.UnicodeType):
+            return repr(val)[1:] # Get rid of the 'u'
+        elif isinstance(val, types.BooleanType):
+            return ("true" if val else "false")
+        else:
+            return repr(str(val))
+
+    # Converts cannonical form (underscore separation) to camel case
+    def nametranslate(self, name):
+        return re.sub('_[a-z]', lambda m: m.group()[1].upper(), name)
+
+class RbLang(SrcLang):
+    def langrepr(self, val):
+        if isinstance(val, types.StringType):
+            return repr(val)
+        elif isinstance(val, types.UnicodeType):
+            return repr(val)[1:] # Get rid of the 'u'
+        elif isinstance(val, types.BooleanType):
+            return ("true" if val else "false")
+        else:
+            return repr(str(val))
+
+    def dicttranslate(self, dic):
+        return re.sub("'([^']+)':",":\\1=>", dic)
+
+# Really just used as a namespace here
+class Langs:
+    langs = {
+        'py':PyLang(),
+        'js':JsLang(),
+        'rb':RbLang()
+    }
+
+    @staticmethod
+    def comment_for(lang):
+        return Langs.langs[lang].comment()
+
+    @staticmethod
+    def repr_for(lang, val):
+        return Langs.translate_for(lang, Langs.langs[lang].langrepr(val))
+
+    @staticmethod
+    def translate_for(lang, src):
+        return Langs.langs[lang].translate(src)
+
+
+# Abstracts a set of tests given in a single file
+class TestGroup:
+    def __init__(self, path, group):
+        self.path = path
+        self.group = group
+
+    def write_group(self, out, lang):
+
+        # First, write header
+        out.write(Langs.comment_for(lang)+' '+('/'.join(self.path))+' '+self.group['desc']+'\n\n')
+
+        i = 0
+        for test in self.group['tests']:
+            i = i + 1
+            self.write_test(out, test, lang, str(i))
+
+        out.write('\n')
+
+    def write_test(self, out, test, lang, index):
+
+        # Does this test define a variable?
+        if 'def' in test:
+            self.write_def(out, test['def'], lang, index)
+
+        # See if this test even defines a test for our language
+        code = self.get_code(test, lang, index)
+        for test_case in code:
+            out.write("test("+test_case)
+            expected = self.get_expected(test, lang)
+            if not expected:
+                expected = '""'
+            out.write(', '+expected)
+            out.write(', "' + '-'.join(self.path) + '-' + str(index) + '"')
+            out.write(')\n')
+
+    def write_def(self, out, defobj, lang, index):
+        code = self.get_code(defobj, lang, index + '-def')
+        if len(code) > 0:
+            out.write('define('+code[0]+')\n')
+
+    # Tests may specify generic test strings valid for 
+    # all languages or language specific versions
+    def get_code(self, obj, lang, index):
+
+        if isinstance(obj, dict):
+
+            # Try language specific version first
+            if lang in obj:
+                
+                lang_specific = obj[lang]
+
+                # lang_specific may be a dict giving a code attribute
+                if isinstance(lang_specific, dict):
+                    assert 'cd' in lang_specific
+                    code = lang_specific['cd']
+                else:
+                    code = lang_specific
+
+            elif 'cd' in obj:
+                    code = obj['cd']
+
+            else:
+                code = None
+                
+        else:
+
+            # obj itself is the code
+            code = obj
+
+        # Code may be a string or a list of syntactic variants
+        if code and not isinstance(code, list):
+            assert isinstance(code, types.StringTypes) or isinstance(code, types.IntType)
+            code = [code]
+        elif not code:
+            code = []
+
+        # Construct the appropriate representation for each test in this language
+        return map(lambda src: Langs.repr_for(lang, src), code)
+
+    # Get the expected result from the test object. Either a generic result or 
+    # a language specific result.
+    def get_expected(self, obj, lang):
+        if lang in obj and isinstance(obj[lang], dict) and 'ot' in obj[lang]:
+            return Langs.repr_for(lang, obj[lang]['ot'])
+        elif 'ot' in obj:
+            return Langs.repr_for(lang, obj['ot'])
+
+        return None
+
+
+# Build test scripts by walking a tree of yaml files
+class TestBuilder:
+    def __init__(self, root="src"):
+        self.root = root
+        self.tests = self.get_test_structure()
+        self.build_test_scripts()
+
+    # Walk the test tree and get an object representing all
+    # the test data from the yaml files. Each yaml file defines
+    # a test group. The test groups themselves are nested by
+    # their directory structure.
+    def get_test_structure(self):
+        tests = []
+        for root, dirs, files in walk(self.root):
+        
+            # Find the nested group location from the root
+            path = root.split('/')[1:]
+            
+            # Parse and insert the yaml structures
+            for name in filter(lambda name: name.endswith('.yaml'), files):
+                test_group = load(open(root+'/'+name))
+                leaf = name.partition('.')[0]
+                tests.append(TestGroup(path+[leaf], test_group))
+
+        return tests
+
+    def build_test_scripts(self):
+        self.build_script('py')
+        self.build_script('js')
+        self.build_script('rb')
+
+    def build_script(self, lang):
+        with open('build/test.'+lang, 'w+') as script:
+            with open('drivers/driver.'+lang) as driver:
+
+                # The driver is the head of the file
+                script.write(driver.read())
+
+                for group in self.tests:
+                    group.write_group(script, lang)
+
+class RethinkDBTestServers:
+    def __init__(self):
+        pass
+
+    # Implement `with` methods to ensure proper lifetime management
+    def __enter__(self):
+        self.start()
+        return self
+
+    def __exit__(self, *args):
+        self.stop()
+
+    # Find a free port to bind to
+    def find_available_port(self):
+        max_loop = 10
+        for i in xrange(max_loop):
+            port = random.randint(1025, 65535)
+            if self.port_available(port):
+                return port
+        raise Exception("""Wow, you must have won the lottery or something.
+                           Ten random ports and they're all occupied""")
+
+    # Test if a given port is free
+    def port_available(self, port):
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.bind(("127.0.0.1",port))
+            s.close()
+        except socket.error:
+            return False
+        return True
+
+    def start(self): 
+        self.cpp_port = self.find_available_port()
+        self.cpp_server = Popen(['../../build/release_clang/rethinkdb',
+                                 '--driver-port', str(self.cpp_port - 1), # - 1 is for temp Query2 server
+                                 '--http-port=0',
+                                 '--cluster-port=0'])
+
+        self.js_port = self.find_available_port()
+        self.js_server = Popen(['node', '../../rqljs/build/rqljs', str(self.js_port), "0"])
+
+        sleep(0.1)
+
+    def stop(self):
+        self.cpp_server.terminate()
+        self.js_server.terminate()
+        self.clear_data()
+        sleep(0.1)
+
+    def clear_data(self):
+        call(['rm', 'rethinkdb-data']) # JS server data
+        call(['rm', '-r', 'rethinkdb_data'])
+
+    def restart(self):
+        self.stop()
+        self.start()
+
+def run_tests(lang, servers):
+    if lang is 'py':
+        interpreter = 'python'
+    elif lang is 'js':
+        interpreter = 'node'
+    elif lang is 'rb':
+        interpreter = 'ruby'
+    else:
+        exit("Unkown language: " + lang)
+
+    print "Running "+lang+" tests\n"
+    stdout.flush()
+    call([interpreter, 'build/test.'+lang, str(servers.js_port), str(servers.cpp_port)])
+    print "Finished running "+lang+" tests\n"
+    stdout.flush()
+
+# Run all language tests
+def run():
+    with RethinkDBTestServers() as servers:
+        run_tests('py', servers)
+        servers.restart()
+        run_tests('js', servers)
+        servers.restart()
+        run_tests('rb', servers)
+
+# Run just the tests for the given language, can be called
+# from shell as "./test-runner run_py"
+def run_py():
+    with RethinkDBTestServers() as servers:
+        run_tests('py', servers)
+
+def run_rb():
+    with RethinkDBTestServers() as servers:
+        run_tests('rb', servers)
+
+def run_js():
+    with RethinkDBTestServers() as servers:
+        run_tests('js', servers)
+
+def build_test_scripts():
+    TestBuilder('src')
+
+# Call 0-arg function given by shell (e.g. "./test-runner run")
+if __name__ == '__main__':
+    eval(argv[1]+'()')

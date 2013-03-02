@@ -64,9 +64,10 @@ bool valid_chunk_size(int64_t chunk_size) {
     return 0 <= chunk_size && chunk_size <= INT_MAX;
 }
 bool valid_age(int64_t age) { return 0 <= age; }
-stream_cache_t::entry_t::entry_t(time_t _last_activity,
-                                 boost::shared_ptr<query_language::json_stream_t> _stream,
-                                 ReadQuery *r)
+stream_cache_t::entry_t::entry_t(
+    time_t _last_activity,
+    boost::shared_ptr<query_language::json_stream_t> _stream,
+    ReadQuery *r)
     : last_activity(_last_activity), stream(_stream),
       max_chunk_size(DEFAULT_MAX_CHUNK_SIZE), max_age(DEFAULT_MAX_AGE) {
     if (r) {

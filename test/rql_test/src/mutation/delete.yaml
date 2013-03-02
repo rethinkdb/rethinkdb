@@ -1,0 +1,51 @@
+desc: Tests deletes of selections
+tests:
+
+    # Set up some data
+    - cd: r.db('test').table_create('test')
+      ot: ({'created':1})
+
+    - def: tbl = r.db('test').table('test')
+      
+    - cd: r.db('test').table_create('test2')
+      ot: ({'created':1})
+
+    - def: tbl2 = r.db('test').table('test2')
+
+    - py: tbl.insert([{'id':i} for i in xrange(100)])
+      js: |
+        tbl.insert(function(){
+            var res = []
+            for (var i = 0; i < 100; i++) {
+                res.push({id: i});
+            }
+            return res;
+        }())
+      rb: tbl.insert((1..100).map{ |i| {"id" => i} })
+      ot: ({'inserted':100})
+
+    - cd: tbl.count()
+      ot: 100
+
+    # Point delete
+
+    - cd: tbl.get(12).delete()
+      ot: ({'deleted':1})
+
+    # Delete selection of table
+
+    - cd: tbl.skip(50).delete()
+      ot: ({'deleted':49})
+
+    # Delete whole table
+
+    - cd: tbl.delete()
+      ot: ({'deleted':50})
+
+    # clean up
+    - cd: r.db('test').table_drop('test')
+      ot: "({'dropped':1})"
+    - cd: r.db('test').table_drop('test2')
+      ot: "({'dropped':1})"
+
+    # TODO: test deletion on a non-deletable object

@@ -164,7 +164,6 @@ rethinkdb.Connection.prototype.run = function(query, opt_callbackOrOptions) {
 
     // Assign a token
     pb.setToken((this.nextToken_++).toString());
-
     var cursor = new rethinkdb.Cursor(this, query, pb.getToken());
     this.outstandingQueries_[pb.getToken()] = cursor;
 
@@ -212,8 +211,12 @@ rethinkdb.Connection.prototype.recv_ = function(data) {
         cursor.concatResults(error, true);
         break;
     case Response.StatusCode.RUNTIME_ERROR:
+        var bt = response.getBacktrace();
+        if (bt) { bt = bt.frameArray() } else { bt = [] }
+        bt = JSON.stringify(bt)
         var error =
             new rethinkdb.errors.RuntimeError(rethinkdb.util.formatServerError_(response, cursor.query_));
+        error['bt'] = bt;
         cursor.concatResults(error, true);
         break;
     case Response.StatusCode.BAD_QUERY:

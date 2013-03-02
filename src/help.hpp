@@ -7,6 +7,9 @@
 #include <stdarg.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
+
+#include <string>
+
 #include "errors.hpp"
 
 //TODO make sure this doesn't get messed up if we run on a machine that doesn't

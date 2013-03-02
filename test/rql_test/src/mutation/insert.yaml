@@ -1,0 +1,56 @@
+desc: Tests insertion into tables
+tests:
+    
+    # Set up our test tables
+    - cd: r.db('test').table_create('test')
+      ot: ({'created':1})
+
+    - def: tbl = r.db('test').table('test')
+
+    - cd: r.db('test').table_create('test2')
+      ot: ({'created':1})
+      
+    - def: tbl2 = r.db('test').table('test2')
+
+    # Single doc insert
+    - cd: tbl.insert({'id':0})
+      ot: ({'inserted':1})
+    - cd: tbl.count()
+      ot: 1
+    - cd: tbl.insert({'id':1})
+      ot: ({'inserted':1})
+    - cd: tbl.count()
+      ot: 2
+
+    # Multi doc insert
+    - cd: tbl.insert([{'id':2}, {'id':3}])
+      ot: ({'inserted':2})
+
+    # Stream insert
+    - cd: tbl2.insert(tbl)
+      ot: ({'inserted':4})
+
+    # Insert within for each
+    - py: "tbl.for_each(lambda  row:          tbl2.insert(row.merge({'id':row['id']  +  100 }))   )"
+      js: "tbl.forEach(function(row) { return tbl2.insert(row.merge({'id':row('id').add(100)})); })"
+      rb: tbl.for_each(proc {  |row|          tbl2.insert(row.merge({'id'=>row['id']  +  100 }))  })
+      ot: ({'inserted':4})
+
+    # clean up
+    - cd: r.db('test').table_drop('test')
+      ot: "({'dropped':1})"
+    - cd: r.db('test').table_drop('test2')
+      ot: "({'dropped':1})"
+
+    # TODO: test upsert option
+    # TODO: test auto pkey generation
+    # TODO: test auto pkey generation when pkey other than id is passed to table_create
+    # TODO: test pkey clash error case
+    # TODO: test what happens if one tries to insert into a non-insertable object
+    
+    # TODO: in all data modification operations (insert, update,
+    # replace, and delete) we should return a json document with all
+    # possible fields, (e.g. "{ inserted: 0, deleted: 1 }"), even the
+    # ones that are zeros, otherwise things can get really confusing
+    # for the user.
+    

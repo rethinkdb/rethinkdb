@@ -94,6 +94,13 @@ class runner_t : private extproc::job_handle_t {
 
     static const req_config_t *default_req_config();
 
+    // Evalute JS source string
+    boost::shared_ptr<scoped_cJSON_t> eval(
+        // Source to eval
+        const std::string &source,
+        std::string *errmsg,
+        const req_config_t *config = NULL);
+
     // Returns INVALID_ID on error.
     // Returned id may only be used in `call`.
     MUST_USE id_t compile(

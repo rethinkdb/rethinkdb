@@ -1,0 +1,23 @@
+desc: Tests conversion to and from the RQL array type
+tests:
+    - py: r.expr([])
+      js: ['r.expr([])', 'r([])']
+      rb: r([])
+      ot: []
+
+    - py: r.expr([1])
+      js: r([1])
+      rb: r([1])
+      ot: [1]
+
+    - py: r.expr([1,2,3,4,5])
+      js: r([1,2,3,4,5])
+      rb: r.expr([1,2,3,4,5])
+      ot: [1,2,3,4,5]
+
+    # Nested expression
+    - cd: r.expr([r.expr(1)])
+      ot: [1]
+
+    # TODO: errors, etc.
+
