@@ -8,7 +8,6 @@ load 'exc.rb'
 load 'net.rb'
 load 'shim.rb'
 load 'func.rb'
-load 'pp.rb'
 
 class Term2
   attr_accessor :context

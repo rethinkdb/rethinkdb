@@ -1,4 +1,5 @@
 require 'pp'
+require 'prettyprint'
 
 module RethinkDB
   module RPP
