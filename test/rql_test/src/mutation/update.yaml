@@ -70,7 +70,7 @@ tests:
     - cd: r.db('test').table_drop('test2')
       ot: "({'dropped':1})"
       
-    # TODO: test static value syntax
+    # TODO: test static value syntax (make sure r.row works)
     # TODO: test what happens if one tries to update a non-updatable object
     # TODO: test atomicity constraints (positive and negative test)
     # TODO: test seq.filter(...).filter(...).update

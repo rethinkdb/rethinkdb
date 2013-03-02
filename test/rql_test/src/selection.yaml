@@ -92,15 +92,14 @@ tests:
     
     # Between shouldn't work on arrays
     # XXX: fix this later
-    
     #- cd: r.expr([1, 2, 3]).between(-1, 2)
     #  ot: err('RqlRuntimeError', 'Expected type StreamSelection but found Array.', [0])
 
+    # TODO: test between on non-selections
     # TODO: test between without the first argument
     # TODO: test between without the second argument
     # TODO: test between that has a wider range than the one in the db
     # TODO: does between still support attribute specification?
-    # TODO: test between on non-selections
     # TODO: test between table where id isn't a primary key
 
     # Filter
@@ -112,8 +111,8 @@ tests:
       rb: tbl.filter{ |row| row[:a] > 2 }.count
       ot: 25
 
-    # TODO: seq.filter(true)
-    # TODO: seq.filter(1)
+    # TODO: seq.filter(true) => error
+    # TODO: seq.filter(1)    => error
     
     # Clean up
     - cd: r.db('test').table_drop('test')
