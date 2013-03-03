@@ -9,7 +9,6 @@ module RethinkDB
   end
 
   class RQL
-    @@default_conn = nil
     def self.set_default_conn c; @@default_conn = c; end
     def run(c=@@default_conn, opts=nil)
       unbound_if !@body
@@ -33,7 +32,7 @@ module RethinkDB
     def inspect # :nodoc:
       state = @run ? "(exhausted)" : "(enumerable)"
       extra = out_of_date ? " (Connection #{@conn.inspect} reset!)" : ""
-      "#<RethinkDB::Cursor:#{self.object_id} #{state}#{extra}: #{@msg.inspect}>"
+      "#<RethinkDB::Cursor:#{self.object_id} #{state}#{extra}: #{RPP.pp(@msg)}>"
     end
 
     def initialize(results, msg, connection, token) # :nodoc:
