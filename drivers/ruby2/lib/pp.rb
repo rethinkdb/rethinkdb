@@ -56,24 +56,24 @@ module RethinkDB
       return true
     end
     def self.pp_int(q, term, pre_dot=false)
-      q.text("\0x43", 0) if term.is_error
+      q.text("\x43", 0) if term.is_error
       @@context = term.context if term.is_error
 
       if term.type == Term2::TermType::DATUM
         res = pp_int_datum(q, term.datum, pre_dot)
-        q.text("\0x43", 0) if term.is_error
+        q.text("\x43", 0) if term.is_error
         return res
       end
 
       if term.type == Term2::TermType::VAR
         q.text("var_")
         res = pp_int_datum(q, term.args[0].datum, false)
-        q.text("\0x43", 0) if term.is_error
+        q.text("\x43", 0) if term.is_error
         return res
       elsif term.type == Term2::TermType::FUNC
         q.text("lambda")
         res = pp_int_func(q, term)
-        q.text("\0x43", 0) if term.is_error
+        q.text("\x43", 0) if term.is_error
         return res
       end
 
@@ -130,26 +130,34 @@ module RethinkDB
       end
 
       pp_int_func(q, func) if func
-      q.text("\0x43", 0) if term.is_error
+      q.text("\x43", 0) if term.is_error
     end
 
     def self.pp term
-      @@context = nil
-      q = PrettyPrint.new
-      pp_int(q, term)
-      q.flush
+      begin
+        @@context = nil
+        q = PrettyPrint.new
+        pp_int(q, term)
+        q.flush
 
-      in_bt = false
-      q.output.split("\n").map {|line|
-        line = line.gsub(/^ +/) {|x| x+"\0x43"} if in_bt
-        arr = line.split("\0x43")
-        if arr[1]
-          in_bt = !arr[2]
-          [arr.join(""), " "*arr[0].size + "^"*arr[1].size]
-        else line
-        end
-      }.flatten.join("\n") +
-        "\nConstructed:\n#{@@context.map{|x| "\tfrom "+x}.join("\n")}\nCalled:"
+        in_bt = false
+        q.output.split("\n").map {|line|
+          line = line.gsub(/^ +/) {|x| x+"\x43"} if in_bt
+          arr = line.split("\x43")
+          if arr[1]
+            in_bt = !(arr[2] || (line[-1] == 0x43))
+            [arr.join(""), " "*arr[0].size + "^"*arr[1].size]
+          else
+            line
+          end
+        }.flatten.join("\n") +
+          "\nErronious_Portion_Constructed:\n" +
+          "#{@@context.map{|x| "\tfrom "+x}.join("\n")}" +
+          "\nCalled:"
+      rescue Exception => e
+        "AN ERROR OCCURED DURING PRETTY-PRINTING:\n#{e.inspect}\n" +
+          "FALLING BACK TO PROTOBUF PRETTY-PRINTER.\n#{@term.inspect}"
+      end
     end
   end
 end

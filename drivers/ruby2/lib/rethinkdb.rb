@@ -67,12 +67,7 @@ module RethinkDB
       RethinkDB::RPP.pp(@body)
     end
     def inspect
-      begin
-        @body ? pp : super
-      rescue Exception => e
-        "AN ERROR OCCURED DURING PRETTY-PRINTING:\n#{e.inspect}\n" +
-          "FALLING BACK TO PROTOBUF PRETTY-PRINTER.\n#{@body.inspect}"
-      end
+      @body ? pp : super
     end
   end
 end
