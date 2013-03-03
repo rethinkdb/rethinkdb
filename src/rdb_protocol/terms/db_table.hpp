@@ -18,7 +18,7 @@ name_string_t get_name(val_t *val, const term_t *caller) {
     name_string_t name;
     bool assignment_successful = name.assign_value(raw_name);
     rcheck_target(caller, assignment_successful,
-                  strprintf("name %s invalid (%s)", raw_name.c_str(), valid_char_msg));
+                  strprintf("Database name \"%s\" invalid (%s).", raw_name.c_str(), valid_char_msg));
     return name;
 }
 

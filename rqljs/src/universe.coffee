@@ -1,5 +1,9 @@
 goog.provide('rethinkdb.Universe')
 
+validateName = (thing, name) ->
+    if name.search(/[^A-Za-z0-9_]/) >= 0
+        throw new RqlRuntimeError "#{thing} name \"#{name}\" invalid (Use A-Za-z0-9_ only)."
+
 class RDBUniverse
     canonicalLocation: "rethinkdb-data"
 
@@ -61,6 +65,9 @@ class RDBUniverse
 
     getDatabase: (dbName) ->
         strName = dbName.asJSON()
+
+        validateName("Database", strName)
+
         unless @dbs[strName]?
             throw new RqlRuntimeError "Database \"#{dbName.asJSON()}\" does not exist."
         else

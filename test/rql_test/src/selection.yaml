@@ -44,13 +44,13 @@ tests:
 
     # TODO: make sure we can insert and query json docs by arbitrary unicode attrs
 
-    # XXX: fix this
-    #- cd: r.db('#$%')
-    #  ot: err("RqlCompileError", 'Database name "#$%" invalid (Use A-Za-z0-9_ only).', [0])
+    # YYY
+    - cd: r.db('#$%')
+      ot: err("RqlRuntimeError", 'Database name "#$%" invalid (Use A-Za-z0-9_ only).', [0])
     
     # XXX: fix this
-    #- cd: r.db('test').table('#$%')
-    #  ot: err("RqlCompileError", 'Table name "#$%" invalid (Use A-Za-z0-9_ only).', [0])
+    - cd: r.db('test').table('#$%')
+      ot: err("RqlRuntimeError", 'Table name "#$%" invalid (Use A-Za-z0-9_ only).', [0])
 
     # Access a table from default db
     - cd: r.table('test').count()

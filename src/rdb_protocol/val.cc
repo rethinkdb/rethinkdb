@@ -14,7 +14,7 @@ table_t::table_t(env_t *_env, uuid_u db_id, const std::string &name,
     : pb_rcheckable_t(src), env(_env), use_outdated(_use_outdated) {
     name_string_t table_name;
     bool b = table_name.assign_value(name);
-    rcheck(b, strprintf("table name %s invalid (%s)", name.c_str(), valid_char_msg));
+    rcheck(b, strprintf("Table name \"%s\" invalid (%s).", name.c_str(), valid_char_msg));
     cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >
         namespaces_metadata = env->namespaces_semilattice_metadata->get();
     cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t

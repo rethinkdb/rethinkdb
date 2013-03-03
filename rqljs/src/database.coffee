@@ -28,6 +28,9 @@ class RDBDatabase
 
     getTable: (name) ->
         name = name.asJSON()
+
+        validateName("Table", name)
+
         if @tables[name]?
             return @tables[name]
         else
