@@ -3,6 +3,11 @@ require 'socket'
 require 'thread'
 
 module RethinkDB
+  module Faux_Abort
+    class Abort
+    end
+  end
+
   class RQL
     @@default_conn = nil
     def self.set_default_conn c; @@default_conn = c; end
@@ -66,11 +71,11 @@ module RethinkDB
     def repl; RQL.set_default_conn self; end
 
     def initialize(host='localhost', port=28015, default_db=nil)
-      # begin
-      #   @abort_module = ::IRB
-      # rescue NameError => e
-      #   @abort_module = Faux_Abort
-      # end
+      begin
+        @abort_module = ::IRB
+      rescue NameError => e
+        @abort_module = Faux_Abort
+      end
       @@last = self
       @host = host
       @port = port
@@ -116,14 +121,20 @@ module RethinkDB
     end
 
     def wait token
-      res = nil
-      raise RuntimeError, "Connection closed by server!" if not @listener
-      @mutex.synchronize do
-        (@waiters[token] = ConditionVariable.new).wait(@mutex) if not @data[token]
-        res = @data.delete token if @data[token]
+      begin
+        res = nil
+        raise RuntimeError, "Connection closed by server!" if not @listener
+        @mutex.synchronize do
+          (@waiters[token] = ConditionVariable.new).wait(@mutex) if not @data[token]
+          res = @data.delete token if @data[token]
+        end
+        raise RuntimeError, "Connection closed by server!" if !@listener or !res
+        return res
+      rescue @abort_module::Abort => e
+        print "\nAborting query and reconnecting...\n"
+        reconnect
+        raise e
       end
-      raise RuntimeError, "Connection closed by server!" if !@listener or !res
-      return res
     end
 
     # Change the default database of a connection.
