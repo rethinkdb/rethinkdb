@@ -42,15 +42,41 @@ tests:
     - cd: r.db('test').table('missing')
       ot: err("RqlRuntimeError", 'Table "missing" does not exist.', [0])
 
-    # TODO: test for invalid chars in db and table names (and possibly json attrs)
-      
+    # TODO: make sure we can insert and query json docs by arbitrary unicode attrs
+
+    # XXX: fix this
+    #- cd: r.db('#$%')
+    #  ot: err("RqlCompileError", 'Database name "#$%" invalid (Use A-Za-z0-9_ only).', [0])
+    
+    # XXX: fix this
+    #- cd: r.db('test').table('#$%')
+    #  ot: err("RqlCompileError", 'Table name "#$%" invalid (Use A-Za-z0-9_ only).', [0])
+
     # Access a table from default db
     - cd: r.table('test').count()
       ot: 100
 
-    # TODO: GET a document that exists
-    # TODO: GET a document that doesn't exist (and perhaps try to update it)
-    # TODO: does GET still support an attribute specification?
+    # XXX: enable this later
+    #- cd: tbl.get(20).count()
+    #  ot: err("RqlRuntimeError", 'Expected type Sequence but found SingleSelection.', [0])
+      
+    # Get a document that exists
+    - cd: tbl.get(20)
+      ot: ({'id':20,'a':0})
+      
+    # Get a document that doesn't exist
+    - cd: tbl.get(2000)
+      ot: (null) # XXX: make the test framework convert 'null' to 'None' in python and whatever ruby alternative is
+      
+    # Make sure get only takes one arg (since we used to be able to pass id)
+    # XXX: enable this
+    #- cd: tbl.get()
+    #  ot: err("RqlRuntimeError", 'Expected 1 argument(s) but found 0.', [1])
+     
+    # XXX: enable this
+    #- cd: tbl.get(10, 20)
+    #  ot: err("RqlRuntimeError", 'Expected 1 argument(s) but found 2.', [1])
+      
     # TODO: test GET for table where id isn't a primary key
 
     # Between
@@ -64,18 +90,19 @@ tests:
       ot: 100
     
     # Between shouldn't work on arrays
-    - cd: r.expr([1, 2, 3]).between(-1, 2)
-      ot: err('RqlRuntimeError', 'Expected type StreamSelection but found ARRAY.', [0])
+    # XXX: fix this later
+    #- cd: r.expr([1, 2, 3]).between(-1, 2)
+    #  ot: err('RqlRuntimeError', 'Expected type StreamSelection but found Array.', [0])
 
+    # TODO: test between on non-selections
     # TODO: test between without the first argument
     # TODO: test between without the second argument
     # TODO: test between that has a wider range than the one in the db
     # TODO: does between still support attribute specification?
-    # TODO: test between on non-selections
     # TODO: test between table where id isn't a primary key
 
     # Filter
-    # TODO: test static value syntax for filter
+    # TODO: test static value syntax for filter (make sure r.row in it works)
     # TODO: test seq.filter.filter
     # TODO: test not returning a boolean
     - py: tbl.filter(lambda row:row['a'] > 2).count()
@@ -83,11 +110,14 @@ tests:
       rb: tbl.filter{ |row| row[:a] > 2 }.count
       ot: 25
 
-    # TODO: seq.filter(true)
-    # TODO: seq.filter(1)
+    # TODO: seq.filter(true) => error
+    # TODO: seq.filter(1)    => error
     
     # Clean up
     - cd: r.db('test').table_drop('test')
       ot: ({'dropped':1})
     - cd: r.db('test').table_drop('test2')
       ot: ({'dropped':1})
+
+    # TODO: make sure merge (and other things) are polymorphic on objects and streams
+    # TODO: seq.map(r.row[:foo])
