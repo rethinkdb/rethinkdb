@@ -44,11 +44,9 @@ tests:
 
     # TODO: make sure we can insert and query json docs by arbitrary unicode attrs
 
-    # YYY
     - cd: r.db('#$%')
       ot: err("RqlRuntimeError", 'Database name "#$%" invalid (Use A-Za-z0-9_ only).', [0])
     
-    # XXX: fix this
     - cd: r.db('test').table('#$%')
       ot: err("RqlRuntimeError", 'Table name "#$%" invalid (Use A-Za-z0-9_ only).', [0])
 
@@ -56,9 +54,9 @@ tests:
     - cd: r.table('test').count()
       ot: 100
 
-    # XXX: enable this later
-    #- cd: tbl.get(20).count()
-    #  ot: err("RqlRuntimeError", 'Expected type Sequence but found SingleSelection.', [0])
+    - cd: tbl.get(20).count()
+      py: [] # Handled by native Python error
+      ot: err("RqlRuntimeError", 'Expected type Sequence but found SingleSelection.', [0])
       
     # Get a document that exists
     - cd: tbl.get(20)
@@ -69,13 +67,13 @@ tests:
       ot: (null)
       
     # Make sure get only takes one arg (since we used to be able to pass id)
-    # XXX: enable this
-    #- cd: tbl.get()
-    #  ot: err("RqlRuntimeError", 'Expected 1 argument(s) but found 0.', [1])
+    - cd: tbl.get()
+      py: [] # Handled by native Python error
+      ot: err("RqlDriverError", 'Expected 1 argument(s) but found 0.', [1])
      
-    # XXX: enable this
-    #- cd: tbl.get(10, 20)
-    #  ot: err("RqlRuntimeError", 'Expected 1 argument(s) but found 2.', [1])
+    - cd: tbl.get(10, 20)
+      py: [] # Handled by native Python error
+      ot: err("RqlDriverError", 'Expected 1 argument(s) but found 2.', [1])
       
     # TODO: test GET for table where id isn't a primary key
 
@@ -90,9 +88,8 @@ tests:
       ot: 100
     
     # Between shouldn't work on arrays
-    # XXX: fix this later
-    #- cd: r.expr([1, 2, 3]).between(-1, 2)
-    #  ot: err('RqlRuntimeError', 'Expected type StreamSelection but found Array.', [0])
+    - cd: r.expr([1, 2, 3]).between(-1, 2)
+      ot: err('RqlRuntimeError', 'Expected type StreamSelection but found ARRAY.', [0])
 
     # TODO: test between on non-selections
     # TODO: test between without the first argument

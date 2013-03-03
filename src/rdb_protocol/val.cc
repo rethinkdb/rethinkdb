@@ -152,13 +152,13 @@ bool val_t::type_t::is_convertible(type_t rhs) const {
 
 const char *val_t::type_t::name() const {
     switch(raw_type) {
-    case DB: return "DATABASE";
-    case TABLE: return "TABLE";
-    case SELECTION: return "SELECTION";
-    case SEQUENCE: return "SEQUENCE";
-    case SINGLE_SELECTION: return "SINGLE_SELECTION";
+    case DB: return "Database";
+    case TABLE: return "Table";
+    case SELECTION: return "Selection";
+    case SEQUENCE: return "Sequence";
+    case SINGLE_SELECTION: return "SingleSelection";
     case DATUM: return "DATUM";
-    case FUNC: return "FUNCTION";
+    case FUNC: return "Function";
     default: unreachable();
     }
     unreachable();
