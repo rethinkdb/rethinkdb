@@ -172,8 +172,10 @@ class TestGroup:
         if code and not isinstance(code, list):
             assert isinstance(code, types.StringTypes) or isinstance(code, types.IntType)
             code = [code]
-        elif not code:
+        elif code == None:
             code = []
+            if not (isinstance(obj, dict) and obj.keys() == ['def']):
+                print 'Missing %s test for %s' % (lang, '-'.join(self.path) + '-' + str(index))
 
         # Construct the appropriate representation for each test in this language
         return map(lambda src: Langs.repr_for(lang, src), code)
@@ -264,7 +266,7 @@ class RethinkDBTestServers:
 
     def start(self): 
         self.cpp_port = self.find_available_port()
-        self.cpp_server = Popen(['../../build/release_clang/rethinkdb',
+        self.cpp_server = Popen(['../../build/debug/rethinkdb',
                                  '--driver-port', str(self.cpp_port - 1), # - 1 is for temp Query2 server
                                  '--http-port=0',
                                  '--cluster-port=0'])

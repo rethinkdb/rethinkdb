@@ -22,8 +22,10 @@ tests:
     # All Comparisons can take an arbitrary number of arguments though
     # the functionality is only available in JS at the moment
     - js: r(1).lt(2, 3, 4)
+      cd: []
       ot: true
     - js: r(1).lt(2, 3, 2)
+      cd: []
       ot: false
 
     ## basic >
@@ -42,8 +44,10 @@ tests:
       ot: false
 
     - js: r(4).gt(3, 2, 1)
+      cd: []
       ot: true
     - js: r(4).gt(3, 2, 3)
+      cd: []
       ot: false
 
     ## basic ==
@@ -62,8 +66,10 @@ tests:
       ot: true
 
     - js: r(1).eq(1, 1, 1)
+      cd: []
       ot: true
     - js: r(1).eq(1, 2, 1)
+      cd: []
       ot: false
 
     ## basic !=
@@ -82,8 +88,10 @@ tests:
       ot: false
 
     - js: r(1).ne(3, 2, 4)
+      cd: []
       ot: true
     - js: r(1).ne(3, 2, 3)
+      cd: []
       ot: true
 
     ## basic <=
@@ -102,8 +110,10 @@ tests:
       ot: true
 
     - js: r(1).le(1, 2, 2)
+      cd: []
       ot: true
     - js: r(1).le(1, 3, 2)
+      cd: []
       ot: false
 
     ## basic >=
@@ -122,149 +132,167 @@ tests:
       ot: true
 
     - js: r(4).ge(4, 2, 2)
+      cd: []
       ot: true
     - js: r(4).ge(4, 2, 3)
+      cd: []
       ot: false
 
     # Comparisons for NULL
     - py: [r.expr(None) == None, None == r.expr(None)]
       js: r(null).eq(null)
+      rb: r(nil).eq(nil)
       ot: true
 
     - py: [r.expr(None) < None, None < r.expr(None)]
       js: r(null).lt(null)
+      rb: r(nil) < nil
       ot: false
 
     - py: [r.expr(None) > None, None > r.expr(None)]
       js: r(null).gt(null)
+      rb: r(nil) > nil
       ot: false
 
     # Comparisons for STRING
     #  STRING comparison should be lexicagraphical
     - py: r.expr('a') == 'a'
-      js: r('a').eq('a')
+      cd: r('a').eq('a')
       ot: true
 
     - py: r.expr('a') == 'aa'
-      js: r('a').eq('aa')
+      cd: r('a').eq('aa')
       ot: false
 
     - py: r.expr('a') < 'aa'
-      js: r('a').lt('aa')
+      cd: r('a').lt('aa')
       ot: true
 
     - py: r.expr('a') < 'bb'
-      js: r('a').lt('bb')
+      cd: r('a').lt('bb')
       ot: true
 
     - py: r.expr('bb') > 'a'
-      js: r('bb').gt('a')
+      cd: r('bb').gt('a')
       ot: true
 
     - py: r.expr('abcdef') < 'abcdeg'
-      js: r('abcdef').lt('abcdeg')
+      cd: r('abcdef').lt('abcdeg')
       ot: true
 
     - py: r.expr('abcdefg') > 'abcdeg'
-      js: r('abcdefg').lt('abcdeg')
+      cd: r('abcdefg').lt('abcdeg')
       ot: false
 
     - py: r.expr('A quick brown fox') > 'A quick brawn fox')
       js: r('A quick brown fox').gt('A quick brawn fox')
+      rb: r('A quick brown fox') > 'A quick brawn fox'
+      ot: true
 
     # Comparisons for ARRAY
     #  Also lexicographical
 
     - py: r.expr([1]) < [2]
       js: r([1]).lt([2])
+      rb: r([1]) < [2]
       ot: true
 
     - py: r.expr([1]) > [2]
       js: r([1]).gt([2])
+      rb: r([1]) > [2]
       ot: false
 
     - py: r.expr([1, 0]) < [2]
       js: r([1, 0]).lt([2])
+      rb: r([1, 0]) < [2]
       ot: true
 
     - py: r.expr([1, 0]) < [1]
       js: r([1, 0]).lt([1])
+      rb: r([1, 0]) < [1]
       ot: false
 
     - py: r.expr([1, 0]) > [0]
       js: r([1, 0]).gt([0])
+      rb: r([1, 0]) > [0]
       ot: true
 
     - py: r.expr([1, 'a']) < [1, 'b']
       js: r([1, 'a']).lt([1, 'b'])
+      rb: r([1, 'a']) < [1, 'b']
       ot: true
 
     - py: r.expr([0, 'z']) < [1, 'b']
       js: r([0, 'z']).lt([1, 'b'])
+      rb: r([0, 'z']) < [1, 'b']
       ot: true
 
     - py: r.expr([1, 1, 1]) < [1, 0, 2]
+      js: r([1, 1, 1]).lt([1, 0, 2])
+      rb: r([1, 1, 1]) < [1, 0, 2]
       ot: false
 
     - py: r.expr([1, 0, 2]) < [1, 1, 1]
+      js: r([1, 0, 2]).lt([1, 1, 1])
+      rb: r([1, 0, 2]) < [1, 1, 1]
       ot: true
 
     # Comparisons for OBJECT
 
     - py: r.expr({'a':0}) == {'a':0}
-      js: r({a:0}).eq({'a':0})
+      cd: r({'a':0}).eq({'a':0})
       ot: true
 
     - py: r.expr({'a':0, 'b':1}) == {'b':1, 'a':0}
-      js: r({a:0, b:1}).eq({b:1, a:0})
+      cd: r({'a':0, 'b':1}).eq({'b':1, 'a':0})
       ot: true
 
     - py: r.expr({'a':0, 'b':1, 'c':2}) == {'b':1, 'a':0}
-      js: r({a:0, b:1, c:2}).eq({b:1, a:0})
+      cd: r({'a':0, 'b':1, 'c':2}).eq({'b':1, 'a':0})
       ot: false
 
     - py: r.expr({'a':0, 'b':1}) == {'b':1, 'a':0, 'c':2}
-      js: r({a:0, b:1}).eq({b:1, a:0, c:2})
+      cd: r({'a':0, 'b':1}).eq({'b':1, 'a':0, 'c':2})
       ot: false
 
     - py: r.expr({'a':0, 'b':1, 'd':2}) == {'b':1, 'a':0, 'c':2}
-      js: r({a:0, b:1, d:2}).eq({b:1, a:0, c:2})
+      cd: r({'a':0, 'b':1, 'd':2}).eq({'b':1, 'a':0, 'c':2})
       ot: false
 
     - py: r.expr({'a':0}) < {'b':0}
-      js: r({a:0}).lt({b:0})
+      cd: r({'a':0}).lt({'b':0})
       ot: true
 
     - py: r.expr({'a':1}) < {'b':0}
-      js: r({a:1}).lt({b:0})
+      cd: r({'a':1}).lt({'b':0})
       ot: true
 
     - py: r.expr({'b':1}) < {'b':0}
-      js: r({b:1}).lt({b:0})
+      cd: r({'b':1}).lt({'b':0})
       ot: false
 
     - py: r.expr({'b':1}) < {'a':0}
-      js: r({b:1}).lt({a:0})
+      cd: r({'b':1}).lt({'a':0})
       ot: false
 
     - py: r.expr({'a':0, 'b':1, 'c':2}) < {'a':0, 'b':1, 'c':2}
-      js: r({a:0, b:1, c:2}).lt({a:0, b:1, c:2})
+      cd: r({'a':0, 'b':1, 'c':2}).lt({'a':0, 'b':1, 'c':2})
       ot: false
 
     - py: r.expr({'a':0, 'b':1, 'c':2, 'd':3}) < {'a':0, 'b':1, 'c':2}
-      js: r({a:0, b:1, c:2, d:3}).lt({a:0, b:1, c:2})
+      cd: r({'a':0, 'b':1, 'c':2, 'd':3}).lt({'a':0, 'b':1, 'c':2})
       ot: false
 
     - py: r.expr({'a':0, 'b':1, 'c':2}) < {'a':0, 'b':1, 'c':2, 'd':3}
-      js: r({a:0, b:1, c:2}).lt({a:0, b:1, c:2, d:3})
+      cd: r({'a':0, 'b':1, 'c':2}).lt({'a':0, 'b':1, 'c':2, 'd':3})
       ot: true
 
     - py: r.expr({'a':0, 'c':2}) < {'a':0, 'b':1, 'c':2}
-      js: r({a:0, c:2}).lt({a:0, b:1, c:2})
+      cd: r({'a':0, 'c':2}).lt({'a':0, 'b':1, 'c':2})
       ot: false
 
     - py: r.expr({'a':0, 'c':2}) > {'a':0, 'b':1, 'c':2}
-      js: r({a:0, c:2}).gt({a:0, b:1, c:2})
+      cd: r({'a':0, 'c':2}).gt({'a':0, 'b':1, 'c':2})
       ot: true
 
     # Comparisons across types
@@ -278,64 +306,80 @@ tests:
 
     - py: r.expr([]) < True
       js: r([]).lt(true)
+      rb: r([]) < true
       ot: true
 
     - py: r.expr([1,2]) < False
       js: r([1,2]).lt(false)
+      rb: r([1,2]) < false
       ot: true
 
     - py: r.expr(False) == []
       js: r(false).lt([])
+      rb: r(false) < []
       ot: false
 
     - py: True < r.expr(None)
       js: r(true).lt(null)
+      rb: r(true) < nil
       ot: true
 
     - py: r.expr(None) > []
       js: r(null).gt([])
+      rb: r(nil) < []
       ot: true
 
     - py: r.expr(None) < 12
       js: r(null).lt(12)
+      rb: r(nil) > 12
       ot: true
      
     - py: r.expr(None) < -2
       js: r(null).lt(-2)
+      rb: r(nil) < -2
       ot: true
 
     - py: r.expr(-12) < {}
       js: r(-12).lt({})
+      rb: r(-12) < {}
       ot: true
 
     - py: r.expr(100) < {'a':-12}
       js: r(100).lt({a:-12})
+      rb: r(100) < { :a => 12 }
       ot: true
 
     - py: r.expr("abc") > {'a':-12}
       js: r('abc').gt({a:-12})
+      rb: r('abc') > { :a => 12 }
       ot: true
 
     - py: r.expr("abc") > {'abc':'abc'}
       js: r('abc').gt({abc:'abc'})
+      rb: r('abc') > { :abc => 'abc' }
       ot: true
 
     - py: r.expr('zzz') > 128
       js: r('zzz').gt(128)
+      rb: r('zzz') > 128
       ot: true
 
     - py: r.expr('zzz') > {}
       js: r('zzz').gt({})
+      rb: r('zzz') > {}
       ot: true
 
     - py: "'zzz' > r.expr(-152)"
       js: r('zzz').gt(-152)
+      rb: r('zzz') > -152
       ot: true
 
     - py: "'zzz' > r.expr(None)"
       js: r('zzz').gt(null)
+      rb: r('zzz') > nil
       ot: true
 
     - py: "'zzz' > r.expr([])"
       js: r('zzz').gt([])
+      rb: r('zzz') > []
       ot: true
