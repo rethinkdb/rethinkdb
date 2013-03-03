@@ -35,20 +35,20 @@ module RethinkDB
     end
 
     def self.pp_int_func(q, func)
-        func_args = func.args[0].args.map{|x| x.datum.r_num}
-        func_body = func.args[1]
-        q.text(" ")
-        q.group(0, "{", "}") {
-          if func_args != []
-            q.text(func_args.map{|x| :"var_#{x}"}.inspect.gsub(/\[|\]/,"|").gsub(":",""))
-          end
-          q.nest(2) {
-            q.breakable
-            pp_int(q, func_body)
-          }
-          q.breakable('')
+      func_args = func.args[0].args.map{|x| x.datum.r_num}
+      func_body = func.args[1]
+      q.text(" ")
+      q.group(0, "{", "}") {
+        if func_args != []
+          q.text(func_args.map{|x| :"var_#{x}"}.inspect.gsub(/\[|\]/,"|").gsub(":",""))
+        end
+        q.nest(2) {
+          q.breakable
+          pp_int(q, func_body)
         }
-      end
+        q.breakable('')
+      }
+    end
 
     def self.can_prefix (name, args)
       return false if name == "db"
@@ -57,14 +57,24 @@ module RethinkDB
     end
     def self.pp_int(q, term, pre_dot=false)
       q.text("\0x43", 0) if term.is_error
-      return pp_int_datum(q, term.datum, pre_dot) if term.type == Term2::TermType::DATUM
+      @@context = term.context if term.is_error
+
+      if term.type == Term2::TermType::DATUM
+        res = pp_int_datum(q, term.datum, pre_dot)
+        q.text("\0x43", 0) if term.is_error
+        return res
+      end
 
       if term.type == Term2::TermType::VAR
         q.text("var_")
-        return pp_int_datum(q, term.args[0].datum, false)
+        res = pp_int_datum(q, term.args[0].datum, false)
+        q.text("\0x43", 0) if term.is_error
+        return res
       elsif term.type == Term2::TermType::FUNC
         q.text("lambda")
-        return pp_int_func(q, term)
+        res = pp_int_func(q, term)
+        q.text("\0x43", 0) if term.is_error
+        return res
       end
 
       name = term.type.to_s.downcase
@@ -124,6 +134,7 @@ module RethinkDB
     end
 
     def self.pp term
+      @@context = nil
       q = PrettyPrint.new
       pp_int(q, term)
       q.flush
@@ -137,7 +148,8 @@ module RethinkDB
           [arr.join(""), " "*arr[0].size + "^"*arr[1].size]
         else line
         end
-      }.flatten.join("\n")
+      }.flatten.join("\n") +
+        "\nConstructed:\n#{@@context.map{|x| "\tfrom "+x}.join("\n")}\nCalled:"
     end
   end
 end
