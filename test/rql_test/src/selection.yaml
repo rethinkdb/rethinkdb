@@ -66,7 +66,7 @@ tests:
       
     # Get a document that doesn't exist
     - cd: tbl.get(2000)
-      ot: (null) # XXX: make the test framework convert 'null' to 'None' in python and whatever ruby alternative is
+      ot: (null)
       
     # Make sure get only takes one arg (since we used to be able to pass id)
     # XXX: enable this

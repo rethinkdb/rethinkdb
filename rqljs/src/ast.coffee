@@ -113,7 +113,8 @@ class RDBTableRef extends RDBOp
             context.getDefaultDb().getTable args[0]
 
 class RDBGetByKey extends RDBOp
-    type: tp "Table, STRING -> SingleSelection | Table, NUMBER -> SingleSelection"
+    type: tp "Table, STRING -> SingleSelection | Table, NUMBER -> SingleSelection |
+              Table, STRING -> NULL            | Table, NUMBER -> NULL"
     op: (args) -> args[0].get args[1]
 
 class RDBNot extends RDBOp

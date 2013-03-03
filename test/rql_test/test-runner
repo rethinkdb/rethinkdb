@@ -35,9 +35,13 @@ class SrcLang:
     def dicttranslate(self, dic):
         return dic
 
+    # Translates 'null' to langauge equivalents
+    def nulltranslate(self, strng):
+        return strng
+
     # Translate a generic code string using the rules defined by `self`
     def translate(self, src):
-        return self.dicttranslate(self.nametranslate(src))
+        return self.dicttranslate(self.nametranslate(self.nulltranslate(src)))
 
 class PyLang(SrcLang):
     def langrepr(self, val):
@@ -45,6 +49,9 @@ class PyLang(SrcLang):
             return repr(str(val))
         else:
             return repr(unicode(val))
+
+    def nulltranslate(self, strng):
+        return re.sub('null', 'None', strng)
 
 class JsLang(SrcLang):
     def comment(self):
@@ -77,6 +84,9 @@ class RbLang(SrcLang):
 
     def dicttranslate(self, dic):
         return re.sub("'([^']+)':",":\\1=>", dic)
+
+    def nulltranslate(self, strng):
+        return re.sub('null', 'nil', strng)
 
 # Really just used as a namespace here
 class Langs:
