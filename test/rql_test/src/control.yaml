@@ -100,9 +100,11 @@ tests:
       
     # r.error() negative cases
     - cd: r.error()
+      py: [] # Here we rely on a native python error
       ot: err("RqlDriverError", "Expected 1 argument(s) but found 0.", [0])
       
     - cd: r.error('foo', 'bar')
+      py: [] # Here we rely on a native python error
       ot: err("RqlDriverError", "Expected 1 argument(s) but found 2.", [0])
       
     - cd: r.error(5) # we might want to allow this eventually

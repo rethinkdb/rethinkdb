@@ -184,7 +184,7 @@ tests:
       cd: r('abcdefg').lt('abcdeg')
       ot: false
 
-    - py: r.expr('A quick brown fox') > 'A quick brawn fox')
+    - py: r.expr('A quick brown fox') > 'A quick brawn fox'
       js: r('A quick brown fox').gt('A quick brawn fox')
       rb: r('A quick brown fox') > 'A quick brawn fox'
       ot: true
