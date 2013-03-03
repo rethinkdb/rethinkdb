@@ -28,7 +28,7 @@ public:
     map_term_t(env_t *env, const Term2 *term) : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual val_t *eval_impl() {
-        return new_val(arg(0)->as_seq()->map(arg(1)->as_func()));
+        return new_val(arg(0)->as_seq()->map(arg(1)->as_func(1)));
     }
     RDB_NAME("map");
 };
@@ -39,7 +39,7 @@ public:
         : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual val_t *eval_impl() {
-        return new_val(arg(0)->as_seq()->concatmap(arg(1)->as_func()));
+        return new_val(arg(0)->as_seq()->concatmap(arg(1)->as_func(1)));
     }
     RDB_NAME("concatmap");
 };
@@ -52,9 +52,9 @@ private:
         val_t *v0 = arg(0), *v1 = arg(1);
         if (v0->get_type().is_convertible(val_t::type_t::SELECTION)) {
             std::pair<table_t *, datum_stream_t *> tds = v0->as_selection();
-            return new_val(tds.first, tds.second->filter(v1->as_func(SHORTCUT_OK)));
+            return new_val(tds.first, tds.second->filter(v1->as_func(1, SHORTCUT_OK)));
         } else {
-            return new_val(v0->as_seq()->filter(v1->as_func(SHORTCUT_OK)));
+            return new_val(v0->as_seq()->filter(v1->as_func(1, SHORTCUT_OK)));
         }
     }
     RDB_NAME("filter");
@@ -67,7 +67,7 @@ public:
         op_term_t(env, term, argspec_t(2), optargspec_t(reduce_optargs)) { }
 private:
     virtual val_t *eval_impl() {
-        return new_val(arg(0)->as_seq()->reduce(optarg("base", 0), arg(1)->as_func()));
+        return new_val(arg(0)->as_seq()->reduce(optarg("base", 0), arg(1)->as_func(2)));
     }
     RDB_NAME("reduce");
 };

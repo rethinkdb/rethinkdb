@@ -82,9 +82,16 @@ class RDBSelection
 
             replace: (mapping) ->
                 replacement = mapping @
+
+                if replacement.isNull() and @isNull()
+                    return new RDBObject {'unchanged':1}
+
                 if replacement.isNull()
                     @del()
                     return new RDBObject {'deleted': 1}
+
+                unless replacement[table.primaryKey]?
+                    throw new RqlRuntimeError "No key \"#{table.primaryKey}\" in object #{replacement.toString()}."
 
                 if @isNull()
                     table.insert new RDBArray [replacement]
@@ -228,3 +235,12 @@ class RDBObject extends RDBType
         for k in attrs
             delete self[k.asJSON()]
         return self
+
+    toString: ->
+        strrep = "{"
+
+        for own k,v of @
+            strrep += "\n\t\"#{k}\":\t#{v.asJSON()},"
+
+        strrep += "}"
+        strrep.replace(',}', '\n}')

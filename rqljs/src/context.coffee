@@ -10,6 +10,12 @@ class RDBContext
 
         @scopeStack = null
         @implicitVarStack = []
+        @defaultDb = null
+
+    setDefaultDb: (db) ->
+        @defaultDb = db
+
+    getDefaultDb: -> @defaultDb
 
     pushScope: (binds) ->
         binds.parent = @scopeStack

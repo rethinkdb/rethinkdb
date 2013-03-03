@@ -219,10 +219,15 @@ class Db extends RDBOp
 
 class Table extends RDBOp
     tt: Term2.TermType.TABLE
-    mt: 'table'
 
     get: (key, opts) -> new Get opts, @, key
     insert: (doc, opts) -> new Insert opts, @, doc
+
+    compose: (args, optargs) ->
+        if @args[0] instanceof Db
+            [args[0], '.table(', args[1], ')']
+        else
+            ['r.table(', args[0], ')']
 
 class Get extends RDBOp
     tt: Term2.TermType.GET

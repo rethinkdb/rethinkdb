@@ -31,16 +31,33 @@ class RDBPbServer
         @serializer.deserialize Query2.getDescriptor(), pbArray
 
     execute: (data) ->
+
+        # The context in which we will execute this query
+        context = new RDBContext @universe
+
         query = @deserializePB @validateBuffer data
+
+        # Extract global optargs
+        globalOptargs = query.globalOptargsArray()
+        for pair in globalOptargs
+            k = pair.getKey()
+            v = pair.getVal()
+
+            val_ast = @buildTerm v
+            val = val_ast.eval(context)
+
+            switch k
+                when 'db'
+                    context.setDefaultDb(val)
+                else
+                    # Ignore this option
 
         response = new Response2
         response.setToken query.getToken()
 
         ast = @buildQuery query
 
-        # The context in which we will execute this query
-        context = new RDBContext @universe
-
+        
         try
             result = ast.eval(context)
             unless result instanceof RDBType

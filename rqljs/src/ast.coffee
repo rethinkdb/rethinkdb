@@ -105,8 +105,12 @@ class RDBDBRef extends RDBOp
     op: (args, optargs, context) -> context.universe.getDatabase args[0]
 
 class RDBTableRef extends RDBOp
-    type: tp "Database, STRING, {use_outdated:BOOL} -> Table"
-    op: (args, optargs) -> args[0].getTable args[1]
+    type: tp "Database, STRING, {use_outdated:BOOL} -> Table | STRING, {use_outdated:BOOL} -> Table"
+    op: (args, optargs, context) ->
+        if args[0] instanceof RDBDatabase
+            args[0].getTable args[1]
+        else
+            context.getDefaultDb().getTable args[0]
 
 class RDBGetByKey extends RDBOp
     type: tp "Table, STRING -> SingleSelection | Table, NUMBER -> SingleSelection"

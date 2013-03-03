@@ -125,7 +125,7 @@ private:
     virtual val_t *eval_impl() {
         bool nondet_ok = false;
         if (val_t *v = optarg("non_atomic", 0)) nondet_ok = v->as_bool();
-        func_t *f = arg(1)->as_func();
+        func_t *f = arg(1)->as_func(1);
         rcheck((f->is_deterministic() || nondet_ok),
                "Could not prove function deterministic.  "
                "Maybe you want to use the non_atomic flag?");
@@ -158,7 +158,7 @@ private:
         datum_stream_t *ds = arg(0)->as_seq();
         const datum_t *stats = env->add_ptr(new datum_t(datum_t::R_OBJECT));
         while (const datum_t *row = ds->next()) {
-            const datum_t *d = arg(1)->as_func()->call(row)->as_datum();
+            const datum_t *d = arg(1)->as_func(1)->call(row)->as_datum();
             if (d->get_type() == datum_t::R_OBJECT) {
                 stats = stats->merge(env, d, stats_merge);
             } else {
