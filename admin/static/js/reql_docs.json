@@ -641,7 +641,7 @@
                 }, 
                 {
                   "description": "Insert multiple rows into a table named 'marvel'.",
-                  "code": "r.table('marvel').insert([{ superhero: 'Wolverine', superpower: 'Adamantium' }, { superhero: 'Spiderman', superpower: 'spidy sense' }]).run()"
+                  "code": "r.table('marvel').insert([{ superhero: 'Wolverine', superpower: 'regeneration' }, { superhero: 'Spiderman', superpower: 'spidey sense' }]).run()"
                 }, 
                 {
                   "description": "Insert a row into a table named 'marvel'. Overwriting if the document already exists.",
@@ -659,7 +659,7 @@
                 }, 
                 {
                   "description": "Insert multiple rows into a table named 'marvel'.",
-                  "code": "r.table('marvel').insert([{ 'superhero': 'Wolverine', 'superpower': 'Adamantium' }, { 'superhero': 'Spiderman', 'superpower': 'spidy sense' }]).run()"
+                  "code": "r.table('marvel').insert([{ 'superhero': 'Wolverine', 'superpower': 'regeneration' }, { 'superhero': 'Spiderman', 'superpower': 'spidey sense' }]).run()"
                 }, 
                 {
                   "description": "Insert a row into a table named 'marvel'. Overwriting if the document already exists.",
@@ -677,7 +677,7 @@
                 }, 
                 {
                   "description": "Insert multiple rows into a table named 'marvel'.",
-                  "code": "r.table('marvel').insert([{:superhero => 'Wolverine', :superpower => 'Adamantium'}, {:superhero => 'Spiderman', :superpower => 'spidy sense'}]).run"
+                  "code": "r.table('marvel').insert([{:superhero => 'Wolverine', :superpower => 'regeneration'}, {:superhero => 'Spiderman', :superpower => 'spidey sense'}]).run"
                 }, 
                 {
                   "description": "Insert a row into a table named 'marvel'. Overwriting if the document already exists.",
