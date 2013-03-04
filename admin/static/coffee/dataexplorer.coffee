@@ -1460,6 +1460,18 @@ module 'DataExplorerView', ->
                 @.$('.loading_query_img').css 'display', 'none'
                 @results_view.render_error(@query, err)
 
+        ###
+        show_more_results: (event) =>
+            try
+                event.preventDefault()
+                @start_time = new Date()
+                @saved_data.cursor.next(@callback_query)
+                $(window).scrollTop(@.$('.results_container').offset().top)
+            catch err
+                @.$('.loading_query_img').css 'display', 'none'
+                @results_view.render_error(@query, err)
+        ###
+
         # Callback for the query executed
         callback_multiple_queries: (data) =>
             # Check if the data sent by the server is an error
@@ -1606,6 +1618,11 @@ module 'DataExplorerView', ->
                 throw error
 
             if @index is @query.length-1
+                if cursor?
+                    @saved_data.cursor = @cursor
+
+
+                #TODO Check for empty array?
                 if cursor?.hasNext() is true
                     @current_results = []
                     @cursor = cursor
