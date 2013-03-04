@@ -69,7 +69,11 @@ class RDBSelection
     makeSelection: (obj, table) ->
         proto =
             update: (mapping) ->
-                updated = mapping @
+                if mapping instanceof Function
+                    updated = mapping @
+                else
+                    updated = mapping
+
                 neu = @.merge updated
                 unless neu[table.primaryKey].eq(@[table.primaryKey]).asJSON()
                     throw new RqlRuntimeError ""

@@ -183,7 +183,13 @@ class RDBSequence extends RDBType
             base['first_error'] = first_error
         return base
 
-    forEach: (mapping) -> statsMerge @map mapping
+    forEach: (mapping) -> statsMerge (@map mapping).concatMap (row) ->
+        # The for each mapping function may produce an array of
+        # results. We need to flatten this for `statsMerge`
+        unless row instanceof RDBArray
+            new RDBArray [row]
+        else
+            row
 
     getPK: -> @asArray()[0].getPK()
 

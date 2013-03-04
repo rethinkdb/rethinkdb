@@ -290,8 +290,15 @@ class RDBTypeOf extends RDBOp
     op: new RqlRuntimeError "Not implemented"
 
 class RDBUpdate extends RDBOp
-    type: tp "StreamSelection, Function(1), {non_atomic_ok:BOOL} -> OBJECT | SingleSelection, Function(1), {non_atomic_ok:BOOL} -> OBJECT"
-    op: (args) -> args[0].update args[1](1)
+    type: tp "StreamSelection, Function(1), {non_atomic_ok:BOOL} -> OBJECT |
+              SingleSelection, Function(1), {non_atomic_ok:BOOL} -> OBJECT |
+              StreamSelection, OBJECT,      {non_atomic_ok:BOOL} -> OBJECT |
+              SingleSelection, OBJECT,      {non_atomic_ok:BOOL} -> OBJECT"
+    op: (args) ->
+        if args[1] instanceof Function
+            args[0].update args[1](1)
+        else
+            args[0].update args[1]
 
 class RDBDelete extends RDBOp
     type: tp "StreamSelection -> OBJECT | SingleSelection -> OBJECT"

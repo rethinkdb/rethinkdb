@@ -289,7 +289,10 @@ message Term2 {
         // * Write Ops (the OBJECTs contain data about number of errors etc.)
         // Updates all the rows in a selection.  Calls its Function with the row
         // to be updated, and then merges the result of that call.
-        UPDATE   = 53; // StreamSelection, Function(1), {non_atomic:BOOL} -> OBJECT | SingleSelection, Function(1), {non_atomic:BOOL} -> OBJECT
+        UPDATE   = 53; // StreamSelection, Function(1), {non_atomic:BOOL} -> OBJECT |
+                       // SingleSelection, Function(1), {non_atomic:BOOL} -> OBJECT |
+                       // StreamSelection, OBJECT,      {non_atomic:BOOL} -> OBJECT |
+                       // SingleSelection, OBJECT,      {non_atomic:BOOL} -> OBJECT
         // Deletes all the rows in a selection.
         DELETE   = 54; // StreamSelection -> OBJECT | SingleSelection -> OBJECT
         // Replaces all the rows in a selection.  Calls its Function with the row
