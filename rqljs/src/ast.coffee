@@ -228,9 +228,16 @@ class RDBMap extends RDBOp
         args[0].map context.bindIvar args[1](1)
 
 class RDBFilter extends RDBOp
-    type: tp "Sequence, Function(1) -> Sequence"
+    type: tp "Sequence, Function(1) -> Sequence | Sequence, OBJECT -> Sequence"
     op: (args, optargs, context) ->
-        args[0].filter context.bindIvar args[1](1)
+        if args[1] instanceof Function
+            args[0].filter context.bindIvar args[1](1)
+        else
+            args[0].filter context.bindIvar (row) ->
+                for own k,v of args[1]
+                    unless row[k]? and row[k].eq(v).asJSON()
+                        return new RDBPrimitive false
+                return new RDBPrimitive true
 
 class RDBConcatMap extends RDBOp
     type: tp "Sequence, Function(1) -> Sequence"

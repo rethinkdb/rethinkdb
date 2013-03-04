@@ -251,7 +251,7 @@ message Term2 {
         BETWEEN   = 36; // StreamSelection, {left_bound:DATUM, right_bound:DATUM} -> StreamSelection
         REDUCE    = 37; // Sequence, Function(2), {base:DATUM} -> DATUM
         MAP       = 38; // Sequence, Function(1) -> Sequence
-        FILTER    = 39; // Sequence, Function(1) -> Sequence
+        FILTER    = 39; // Sequence, Function(1) -> Sequence | Sequence, OBJECT -> Sequence
         // Map a function over a sequence and then concatenate the results together.
         CONCATMAP = 40; // Sequence, Function(1) -> Sequence
         // Order a sequence based on one or more attributes.
