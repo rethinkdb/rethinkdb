@@ -57,8 +57,12 @@ module RethinkDB
 
   class RQL
     include Utils
-    def initialize(body = nil)
+
+    attr_accessor :body, :bitop
+
+    def initialize(body = nil, bitop = nil)
       @body = body
+      @bitop = bitop
       @body.context = RPP.sanitize_context caller if @body
     end
 

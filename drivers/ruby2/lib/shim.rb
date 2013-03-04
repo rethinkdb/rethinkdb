@@ -89,5 +89,9 @@ module RethinkDB
 
       return RQL.new(t)
     end
+
+    def coerce(other)
+      [RQL.new.expr(other), self]
+    end
   end
 end
