@@ -147,6 +147,7 @@ tests:
     - cd: tbl.count()
       ot: 0
 
+    # Insert three elements
     - js: r([1, 2, 3]).forEach(function (row) { return tbl.insert({ id:row }) })
       py: r.expr([1, 2, 3]).for_each(lambda row:tbl.insert({ 'id':row }))
       rb: r([1, 2, 3]).for_each{ |row| tbl.insert { :id => row } }
@@ -155,17 +156,20 @@ tests:
     - cd: tbl.count()
       ot: 3
 
+    # Update each row to add additional attribute
     - js: r([1, 2, 3]).forEach(function (row) { return tbl.update({ foo:row }) })
       py: r.expr([1,2,3]).for_each(lambda row:tbl.update({'foo':row}))
       ot: ({'replaced':9})
       
-    - js: r([1, 2, 3]).forEach(function (row) { return tbl.insert({ id:row.mul(10) }) })
-      py: r.expr([1,2,3]).for_each(lambda row:tbl.insert({'id':row * 10}))
-      ot: ({'inserted':3})
+    # Insert three more elements (and error on three)
+    - js: r([1, 2, 3]).forEach(function (row) { return [tbl.insert({ id:row }), tbl.insert({ id:row.mul(10) })] })
+      py: r.expr([1,2,3]).for_each(lambda row:tbl.insert([tbl.insert({ id:row }), tbl.insert({ id:row*10 })]))
+      ot: ({'inserted':3,'errors':3,'first_error':'Duplicate primary key.'})
 
     - cd: tbl.count()
       ot: 6
 
+    # We have six element, update them 6*2*3=36 times
     - js: r([1, 2, 3]).forEach(function (row) { return [tbl.update({ foo:row }), tbl.update({ bar:row })] })
       py: r.expr([1,2,3]).for_each(lambda row:[tbl.update({'foo':row}), tbl.update({'bar':row})])
       ot: ({'replaced':36})
