@@ -458,8 +458,8 @@ class DB(RDBOp, RDBTopFun):
     def table_drop(self, table_name):
         return TableDrop(self, table_name)
 
-    def table(self, table_name, use_outdated=False):
-        return Table(self, table_name, use_outdated=use_outdated)
+    def table(self, table_name, non_atomic_ok=False):
+        return Table(self, table_name, non_atomic_ok=non_atomic_ok)
 
 class FunCall(RDBAnyOp):
     tt = p.Term2.FUNCALL
