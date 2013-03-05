@@ -15,6 +15,10 @@ struct validation_error_t : public std::runtime_error {
     validation_error_t(const std::string &msg) : std::runtime_error(msg) { }
 };
 
+struct file_parse_error_t : public std::runtime_error {
+    file_parse_error_t(const std::string &msg) : std::runtime_error(msg) { }
+};
+
 class names_t {
 public:
     // Include dashes.  For example, name might be "--blah".
@@ -57,6 +61,7 @@ public:
     explicit option_t(names_t names, appearance_t appearance, std::string default_value);
 
 private:
+    friend std::map<std::string, std::vector<std::string> > default_values_map(const std::vector<option_t> &options);
     friend void do_parse_command_line(int argc, const char *const * argv, const std::vector<option_t> &options,
                                       std::vector<std::string> *unrecognized_out,
                                       std::map<std::string, std::vector<std::string> > *names_by_values_out);
@@ -96,6 +101,14 @@ void parse_command_line_and_collect_unrecognized(int argc, const char *const *ar
                                                  std::vector<std::string> *unrecognized_out,
                                                  std::map<std::string, std::vector<std::string> > *names_by_values_out);
 
+void merge_new_values(const std::map<std::string, std::vector<std::string> > &new_values,
+                      std::map<std::string, std::vector<std::string> > *names_by_values_ref);
+
+// We parse the file contents, using filepath solely for error messages,
+// retrieving some options.
+std::map<std::string, std::vector<std::string> > parse_config_file(const std::string &contents,
+                                                                   const std::string filepath,
+                                                                   const std::vector<option_t> &options);
 
 
 struct help_line_t {

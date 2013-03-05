@@ -1,6 +1,9 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "clustering/administration/main/options.hpp"
 
+#include <algorithm>
+#include <string>
+
 #include "errors.hpp"
 #include "utils.hpp"
 
@@ -79,9 +82,26 @@ const option_t *find_option(const char *const option_name, const std::vector<opt
     return NULL;
 }
 
+std::map<std::string, std::vector<std::string> > default_values_map(const std::vector<option_t> &options) {
+    std::map<std::string, std::vector<std::string> > names_by_values;
+    for (auto it = options.begin(); it != options.end(); ++it) {
+        if (it->min_appearances == 0) {
+            names_by_values.insert(std::make_pair(it->names[0], it->default_values));
+        }
+    }
+    return names_by_values;
+}
+
+void merge_new_values(const std::map<std::string, std::vector<std::string> > &new_values,
+                      std::map<std::string, std::vector<std::string> > *const names_by_values_ref) {
+    for (auto it = new_values.begin(); it != new_values.end(); ++it) {
+        (*names_by_values_ref)[it->first] = it->second;
+    }
+}
+
 void do_parse_command_line(const int argc, const char *const *const argv, const std::vector<option_t> &options,
                            std::vector<std::string> *const unrecognized_out,
-                           std::map<std::string, std::vector<std::string> > *const names_by_values_out) {
+                           std::map<std::string, std::vector<std::string> > *const names_by_values_ref) {
     guarantee(argc >= 0);
 
     std::map<std::string, std::vector<std::string> > names_by_values;
@@ -110,6 +130,7 @@ void do_parse_command_line(const int argc, const char *const *const argv, const 
 
         const std::string official_name = option->names[0];
 
+        // TODO(OPTIONS): Check max_appearances later.
         std::vector<std::string> *const option_parameters = &names_by_values[official_name];
         if (option_parameters->size() == static_cast<size_t>(option->max_appearances)) {
             throw parse_error_t(strprintf("option '%s' appears too many times (i.e. more than %zu times)",
@@ -136,14 +157,8 @@ void do_parse_command_line(const int argc, const char *const *const argv, const 
         }
     }
 
-    // For all options, insert the default value into the map if it does not already exist.
-    for (auto it = options.begin(); it != options.end(); ++it) {
-        if (it->min_appearances == 0) {
-            names_by_values.insert(std::make_pair(it->names[0], it->default_values));
-        }
-    }
+    merge_new_values(names_by_values, names_by_values_ref);
 
-    names_by_values_out->swap(names_by_values);
     if (unrecognized_out != NULL) {
         unrecognized_out->swap(unrecognized);
     }
@@ -190,6 +205,23 @@ std::vector<std::string> split_by_spaces(const std::string &s) {
     return ret;
 }
 
+std::vector<std::string> split_by_lines(const std::string &s) {
+    std::vector<std::string> ret;
+    auto it = s.begin();
+    const auto end = s.end();
+
+    while (it != end) {
+        auto jt = it;
+        while (jt != end && *jt != '\n') {
+            ++jt;
+        }
+
+        ret.push_back(std::string(it, jt));
+        it = jt == end ? jt : jt + 1;
+    }
+    return ret;
+}
+
 std::vector<std::string> word_wrap(const std::string &s, const size_t width) {
     const std::vector<std::string> words = split_by_spaces(s);
 
@@ -217,6 +249,75 @@ std::vector<std::string> word_wrap(const std::string &s, const size_t width) {
 
     return ret;
 }
+
+bool is_space_or_equal_sign(char ch) {
+    return isspace(ch) || ch == '=';
+}
+
+bool is_equal_sign(char ch) {
+    return ch == '=';
+}
+
+bool is_not_space(char ch) {
+    return !isspace(ch);
+}
+
+std::map<std::string, std::vector<std::string> > parse_config_file(const std::string &file_contents,
+                                                                   const std::string &filepath,
+                                                                   const std::vector<option_t> &options) {
+    const std::vector<std::string> lines = split_by_lines(file_contents);
+
+    std::map<std::string, std::vector<std::string> > ret;
+
+    for (auto it = lines.begin(); it != lines.end(); ++it) {
+        std::string stripped_line = *it;
+        // strip comment
+        stripped_line.erase(std::find(stripped_line.begin(), stripped_line.end(), '#'), stripped_line.end());
+
+        // strip trailing whitespace.
+        while (!stripped_line.empty() && isspace(stripped_line[stripped_line.size() - 1])) {
+            stripped_line.resize(stripped_line.size() - 1);
+        }
+
+        const auto config_name_beg = std::find_if(stripped_line.begin(), stripped_line.end(), is_not_space);
+
+        if (config_name_beg == stripped_line.end()) {
+            // all-whitespace (or comment) line
+            continue;
+        }
+
+        const auto config_name_end = std::find_if(config_name_beg, stripped_line.end(), is_space_or_equal_sign);
+        if (config_name_beg == config_name_end) {
+            throw file_parse_error_t(strprintf("Config file %s: parse error at line %zu",
+                                               filepath.c_str(),
+                                               it - lines.begin()));
+        }
+
+        const auto expected_equal_sign = std::find_if(config_name_end, stripped_line.end(), is_not_space);
+        if (expected_equal_sign == stripped_line.end() || *expected_equal_sign != '=') {
+            throw file_parse_error_t(strprintf("Config file %s: parse error at line %zu",
+                                               filepath.c_str(),
+                                               it - lines.begin()));
+        }
+
+        const auto beginning_of_value = std::find_if(expected_equal_sign + 1, stripped_line.end(), is_not_space);
+
+        const std::string name(config_name_beg, config_name_end);
+        const std::string value(beginning_of_value, stripped_line.end());
+
+        const option_t *option = find_option(name.c_str(), options);
+
+        if (option == NULL) {
+            throw file_parse_error_t(strprintf("Config file %s: parse error at line %zu: unrecognized option name '%s'",
+                                               filepath.c_str(), it - lines.begin(), name.c_str()));
+        }
+
+        ret[name].push_back(value);
+    }
+
+    return ret;
+}
+
 
 std::string format_help(const std::vector<help_section_t> &help) {
     size_t max_syntax_description_length = 0;
