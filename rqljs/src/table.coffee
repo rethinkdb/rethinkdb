@@ -37,6 +37,8 @@ class RDBTable extends RDBSequence
             records = new RDBArray [records]
 
         inserted = 0
+        first_error = null
+        errors = 0
         for record in records.asArray()
             pkVal = record[@primaryKey]
 
@@ -50,12 +52,19 @@ class RDBTable extends RDBSequence
                 pkVal = pkVal.asJSON()
                 id_was_generated = false
 
-            @records[pkVal] = record
+            if not upsert and @records[pkVal]?
+                unless first_error?
+                    first_error = (new RqlRuntimeError "Duplicate primary key.").message
+                errors++
+            else
+                @records[pkVal] = record
 
-            # Ensure that this new record is a selection of this table
-            RDBSelection::makeSelection record, @
-            inserted++
+                # Ensure that this new record is a selection of this table
+                RDBSelection::makeSelection record, @
+                inserted++
 
+        if first_error?
+            return new RDBObject {'inserted': inserted, 'errors': errors, 'first_error': first_error}
         return new RDBObject {'inserted':inserted}
 
     get: (pkVal) -> @records[pkVal.asJSON()] || RDBSelection::makeSelection(new RDBPrimitive(null), @)

@@ -87,7 +87,7 @@ class RDBSelection
                 if @eq(neu).asJSON()
                     return new RDBObject {'unchanged': 1}
 
-                table.insert new RDBArray [neu], true
+                table.insert(new RDBArray([neu]), true)
                 return new RDBObject {'replaced': 1}
 
             replace: (mapping) ->
@@ -111,7 +111,7 @@ class RDBSelection
                     return new RDBObject {'unchanged': 1}
 
                 if replacement[table.primaryKey].eq(@[table.primaryKey]).asJSON()
-                    table.insert new RDBArray [replacement], true
+                    table.insert(new RDBArray([replacement]), true)
                     return new RDBObject {'replaced': 1}
                     
                 throw new RqlRuntimeError ""
