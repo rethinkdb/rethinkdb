@@ -169,7 +169,7 @@ class RDBSequence extends RDBType
                 result = new RDBObject {'errors': 1}
 
             unless result.typeOf() is RDBType.OBJECT
-                throw new RqlRuntimeError "Expected type WriteQuery but found #{TypeName::typeOf(result).toString()}."
+                throw new RqlRuntimeError "FOREACH expects one or more write queries."
 
             for own k,v of result
                 if base[k]?
