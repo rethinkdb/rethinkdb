@@ -60,7 +60,11 @@ private:
 };
 
 
-enum shortcut_ok_bool_t { SHORTCUT_NOT_OK = 0, SHORTCUT_OK = 1};
+enum function_shortcut_t {
+    NO_SHORTCUT = 0,
+    FILTER_SHORTCUT = 1,
+    IDENTITY_SHORTCUT = 2
+};
 
 // A value is anything RQL can pass around -- a datum, a sequence, a function, a
 // selection, whatever.
@@ -106,7 +110,7 @@ public:
     datum_stream_t *as_seq();
     std::pair<table_t *, const datum_t *> as_single_selection();
     // See func.hpp for an explanation of shortcut functions.
-    func_t *as_func(shortcut_ok_bool_t shortcut_ok = SHORTCUT_NOT_OK);
+    func_t *as_func(function_shortcut_t shortcut = NO_SHORTCUT);
 
     const datum_t *as_datum(); // prefer the 4 below
     bool as_bool();

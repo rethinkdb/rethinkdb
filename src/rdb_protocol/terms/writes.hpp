@@ -125,7 +125,7 @@ private:
     virtual val_t *eval_impl() {
         bool nondet_ok = false;
         if (val_t *v = optarg("non_atomic", 0)) nondet_ok = v->as_bool();
-        func_t *f = arg(1)->as_func();
+        func_t *f = arg(1)->as_func(IDENTITY_SHORTCUT);
         rcheck((f->is_deterministic() || nondet_ok),
                "Could not prove function deterministic.  "
                "Maybe you want to use the non_atomic flag?");

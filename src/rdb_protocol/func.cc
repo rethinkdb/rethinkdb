@@ -157,8 +157,8 @@ bool func_term_t::is_deterministic_impl() const {
     return func->is_deterministic();
 }
 
-func_t *func_t::new_shortcut_func(env_t *env, const datum_t *obj,
-                                  const pb_rcheckable_t *bt_src) {
+func_t *func_t::new_filter_func(env_t *env, const datum_t *obj,
+                                const pb_rcheckable_t *bt_src) {
     env_wrapper_t<Term2> *twrap = env->add_ptr(new env_wrapper_t<Term2>());
     int x = env->gensym();
     Term2 *t = pb::set_func(&twrap->t, x);
@@ -176,6 +176,20 @@ func_t *func_t::new_shortcut_func(env_t *env, const datum_t *obj,
            val->write_to_protobuf(pb::set_datum(arg)));
 #pragma GCC diagnostic pop
     }
+    bt_src->propagate(&twrap->t);
+    return env->add_ptr(new func_t(env, &twrap->t));
+}
+
+
+func_t *func_t::new_identity_func(env_t *env, const datum_t *obj,
+                                  const pb_rcheckable_t *bt_src) {
+    env_wrapper_t<Term2> *twrap = env->add_ptr(new env_wrapper_t<Term2>());
+    int x = env->gensym();
+    Term2 *arg = pb::set_func(&twrap->t, x);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"
+    NDATUM(obj);
+#pragma GCC diagnostic pop
     bt_src->propagate(&twrap->t);
     return env->add_ptr(new func_t(env, &twrap->t));
 }

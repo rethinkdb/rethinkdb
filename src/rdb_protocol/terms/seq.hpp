@@ -52,9 +52,9 @@ private:
         val_t *v0 = arg(0), *v1 = arg(1);
         if (v0->get_type().is_convertible(val_t::type_t::SELECTION)) {
             std::pair<table_t *, datum_stream_t *> tds = v0->as_selection();
-            return new_val(tds.first, tds.second->filter(v1->as_func(SHORTCUT_OK)));
+            return new_val(tds.first, tds.second->filter(v1->as_func(FILTER_SHORTCUT)));
         } else {
-            return new_val(v0->as_seq()->filter(v1->as_func(SHORTCUT_OK)));
+            return new_val(v0->as_seq()->filter(v1->as_func(FILTER_SHORTCUT)));
         }
     }
     RDB_NAME("filter");
