@@ -15,7 +15,7 @@
 #include "rdb_protocol/protocol.hpp"
 #include "serializer/log/log_serializer.hpp"
 
-#define TOTAL_KEYS_TO_INSERT 10000
+#define TOTAL_KEYS_TO_INSERT 100 
 
 namespace unittest {
 
@@ -156,8 +156,7 @@ void run_sindex_post_construction() {
         created_sindexes.insert(sindex_id);
 
         rdb_protocol_details::bring_sindexes_up_to_date(created_sindexes, &store,
-                sindex_block.get(), txn.get(), store.btree.get(),
-                super_block.get(), &dummy_interuptor);
+                sindex_block.get(), &dummy_interuptor);
     }
 
     background_inserts_done.wait();

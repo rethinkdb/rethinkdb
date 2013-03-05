@@ -138,9 +138,6 @@ void bring_sindexes_up_to_date(
         const std::set<uuid_u> &sindexes_to_bring_up_to_date,
         btree_store_t<rdb_protocol_t> *store,
         buf_lock_t *sindex_block,
-        transaction_t *txn,
-        btree_slice_t *btree,
-        superblock_t *superblock,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
 

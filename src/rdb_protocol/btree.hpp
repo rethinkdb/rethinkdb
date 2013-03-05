@@ -160,9 +160,10 @@ void rdb_update_sindexes(const btree_store_t<rdb_protocol_t>::sindex_access_vect
                          rdb_modification_report_t *modification,
                          transaction_t *txn);
 
-void post_construct_secondary_indexes(btree_slice_t *slice, transaction_t *txn, superblock_t *superblock,
-         btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
-         signal_t *interruptor)
-         THROWS_ONLY(interrupted_exc_t);
+void post_construct_secondary_indexes(
+        btree_store_t<rdb_protocol_t> *store,
+        const std::set<uuid_u> &sindexes_to_post_construct,
+        signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t);
 
 #endif /* RDB_PROTOCOL_BTREE_HPP_ */

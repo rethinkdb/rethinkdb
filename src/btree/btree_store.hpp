@@ -112,6 +112,8 @@ public:
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
+    //TODO make this function take the sindex block it helps to enforce sane
+    //locking
     void lock_sindex_queue(mutex_t::acq_t *acq);
 
     void register_sindex_queue(
@@ -126,7 +128,7 @@ public:
             const write_message_t& value,
             mutex_t::acq_t *acq);
 
-private:
+//private: >.<
 
 void acquire_sindex_block_for_read(
         read_token_pair_t *token_pair,
@@ -145,9 +147,6 @@ void acquire_sindex_block_for_write(
     THROWS_ONLY(interrupted_exc_t);
 
 public: // <--- so this is some bullshit right here
-    friend void unittest::run_sindex_btree_store_api_test();
-    friend void unittest::run_sindex_post_construction();
-    friend void unittest::insert_rows(int start, int finish, btree_store_t<rdb_protocol_t> *store);
 
     void add_sindex(
         write_token_pair_t *token_pair,
@@ -278,7 +277,7 @@ public: // <--- so this is some bullshit right here
         return &(secondary_index_slices.at(id));
     }
 
-protected:
+//protected: >.<
     // Functions to be implemented by derived (protocol-specific) store_t classes
     virtual void protocol_read(const typename protocol_t::read_t &read,
                                typename protocol_t::read_response_t *response,
@@ -320,7 +319,7 @@ protected:
                                      superblock_t *superblock,
                                      write_token_pair_t *token_pair) = 0;
 
-private:
+//private: >.<
     void get_metainfo_internal(transaction_t* txn, buf_lock_t* sb_buf, region_map_t<protocol_t, binary_blob_t> *out) const THROWS_NOTHING;
 
     void acquire_superblock_for_read(

@@ -580,15 +580,52 @@ void rdb_update_sindexes(const btree_store_t<rdb_protocol_t>::sindex_access_vect
 
 class post_construct_traversal_helper_t : public btree_traversal_helper_t {
 public:
-    explicit post_construct_traversal_helper_t(
-            const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes)
-        : sindexes_(sindexes)
+    post_construct_traversal_helper_t(
+            btree_store_t<rdb_protocol_t> *store,
+            const std::set<uuid_u> &sindexes_to_post_construct,
+            signal_t *interruptor
+            )
+        : store_(store),
+          sindexes_to_post_construct_(sindexes_to_post_construct),
+          interruptor_(interruptor)
     { }
 
     // This is free to call mark_deleted.
     void process_a_leaf(transaction_t *txn, buf_lock_t *leaf_node_buf,
                         const btree_key_t *, const btree_key_t *,
                         int *, signal_t *) THROWS_ONLY(interrupted_exc_t) {
+        write_token_pair_t token_pair;
+        store_->new_write_token_pair(&token_pair);
+
+        scoped_ptr_t<transaction_t> wtxn;
+        btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindexes;
+        {
+            scoped_ptr_t<real_superblock_t> superblock;
+
+            store_->acquire_superblock_for_write(
+                rwi_write,
+                repli_timestamp_t::distant_past,
+                2,
+                &token_pair.main_write_token,
+                &wtxn,
+                &superblock,
+                interruptor_);
+
+            scoped_ptr_t<buf_lock_t> sindex_block;
+            store_->acquire_sindex_block_for_write(
+                &token_pair,
+                wtxn.get(),
+                &sindex_block,
+                superblock->get_sindex_block_id(),
+                interruptor_);
+
+            store_->acquire_sindex_superblocks_for_write(
+                    sindexes_to_post_construct_,
+                    sindex_block.get(),
+                    wtxn.get(),
+                    &sindexes);
+        }
+
         const leaf_node_t *leaf_node = reinterpret_cast<const leaf_node_t *>(leaf_node_buf->get_data_read());
         leaf::live_iter_t node_iter = iter_for_whole_leaf(leaf_node);
 
@@ -605,7 +642,7 @@ public:
             const rdb_value_t *rdb_value = reinterpret_cast<const rdb_value_t *>(value);
             mod_report.added = get_data(rdb_value, txn);
 
-            rdb_update_sindexes(sindexes_, &mod_report, txn);
+            rdb_update_sindexes(sindexes, &mod_report, wtxn.get());
         }
     }
 
@@ -621,24 +658,32 @@ public:
     access_t btree_superblock_mode() { return rwi_read; }
     access_t btree_node_mode() { return rwi_read; }
 
-    const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes_;
+    btree_store_t<rdb_protocol_t> *store_;
+    const std::set<uuid_u> &sindexes_to_post_construct_;
+    signal_t *interruptor_;
 };
 
-void post_construct_secondary_indexes(btree_slice_t *slice, transaction_t *txn, superblock_t *superblock,
-                                      btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
-                                      signal_t *interruptor)
-                                      THROWS_ONLY(interrupted_exc_t) {
-    post_construct_traversal_helper_t helper(sindexes);
+void post_construct_secondary_indexes(
+        btree_store_t<rdb_protocol_t> *store,
+        const std::set<uuid_u> &sindexes_to_post_construct,
+        signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t) {
+    post_construct_traversal_helper_t helper(store, 
+            sindexes_to_post_construct, interruptor);
 
-    for (btree_store_t<rdb_protocol_t>::sindex_access_vector_t::iterator it = sindexes.begin();
-            it != sindexes.end(); ++it) {
-        it->super_block->no_releasing = true;
-    }
+    object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
+    store->new_read_token(&read_token);
 
-    btree_parallel_traversal(txn, superblock, slice, &helper, interruptor);
+    scoped_ptr_t<transaction_t> txn;
+    scoped_ptr_t<real_superblock_t> superblock;
 
-    for (btree_store_t<rdb_protocol_t>::sindex_access_vector_t::iterator it = sindexes.begin();
-            it != sindexes.end(); ++it) {
-        it->super_block->no_releasing = false;
-    }
+    store->acquire_superblock_for_read(
+        rwi_read,
+        &read_token,
+        &txn,
+        &superblock,
+        interruptor,
+        true /* USE_SNAPSHOT */);
+    btree_parallel_traversal(txn.get(), superblock.get(), 
+            store->btree.get(), &helper, interruptor);
 }

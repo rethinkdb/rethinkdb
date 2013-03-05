@@ -92,25 +92,21 @@ RDB_IMPL_SERIALIZABLE_3(transform_atom_t, variant, scopes, backtrace);
 RDB_IMPL_SERIALIZABLE_3(terminal_t, variant, scopes, backtrace);
 RDB_IMPL_SERIALIZABLE_0(Length);
 
+void post_construct_and_drain_queue(
+        const std::set<uuid_u> &sindexes_to_bring_up_to_date,
+        btree_store_t<rdb_protocol_t> *store,
+        boost::shared_ptr<internal_disk_backed_queue_t> mod_queue,
+        signal_t *interruptor) 
+    THROWS_ONLY(interrupted_exc_t);
 /* Creates a queue of operations for the sindex, runs a post construction for
  * the data already in the btree and finally drains the queue. */
 void bring_sindexes_up_to_date(
         const std::set<uuid_u> &sindexes_to_bring_up_to_date,
         btree_store_t<rdb_protocol_t> *store,
-        buf_lock_t *sindex_block,
-        transaction_t *txn,
-        btree_slice_t *btree,
-        superblock_t *superblock,
+        UNUSED buf_lock_t *sindex_block,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t)
 {
-    sindex_access_vector_t sindexes;
-    store->acquire_sindex_superblocks_for_write(
-            sindexes_to_bring_up_to_date,
-            sindex_block,
-            txn,
-            &sindexes);
-
     /* We register our modification queue here. An important point about
      * correctness here: we've held the superblock this whole time and will
      * continue to do so until the call to post_construct_secondary_indexes
@@ -118,51 +114,101 @@ void bring_sindexes_up_to_date(
      * serves to make sure that every changes which we don't learn about in
      * the parallel traversal we do learn about from the mod queue. */
     scoped_ptr_t<io_backender_t> io;
-    make_io_backender(aio_default, &io);
+    make_io_backender(aio_default, &io); //TODO this io_backender should be passed in
     uuid_u post_construct_id = generate_uuid();
     perfmon_collection_t dummy_collection;
-    internal_disk_backed_queue_t mod_queue(
-            io.get(), "post_construction_" + uuid_to_str(post_construct_id),
-            &dummy_collection);
+
+    boost::shared_ptr<internal_disk_backed_queue_t> mod_queue(
+            new internal_disk_backed_queue_t(
+                io.get(), "post_construction_" + uuid_to_str(post_construct_id),
+                &dummy_collection));
 
     {
         fprintf(stderr, "Register queue\n");
         mutex_t::acq_t acq;
         store->lock_sindex_queue(&acq);
-        store->register_sindex_queue(&mod_queue, &acq);
+        store->register_sindex_queue(mod_queue.get(), &acq);
     }
 
-    post_construct_secondary_indexes(btree, txn, superblock, sindexes, interruptor);
+    coro_t::spawn_sometime(boost::bind(
+                &post_construct_and_drain_queue, 
+                sindexes_to_bring_up_to_date, 
+                store,
+                mod_queue,
+                interruptor));
+}
+
+/* This function is really part of the logic of bring_sindexes_up_to_date
+ * however it needs to be in a seperate function so that it can be spawned in a
+ * coro. */
+void post_construct_and_drain_queue(
+        const std::set<uuid_u> &sindexes_to_bring_up_to_date,
+        btree_store_t<rdb_protocol_t> *store,
+        boost::shared_ptr<internal_disk_backed_queue_t> mod_queue,
+        signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t)
+{
+    post_construct_secondary_indexes(store, sindexes_to_bring_up_to_date, interruptor);
 
     /* Drain the queue. */
 
-    int previous_size = mod_queue.size();
+    int previous_size = mod_queue->size();
     while (true) {
+        write_token_pair_t token_pair;
+        store->new_write_token_pair(&token_pair);
+
+        scoped_ptr_t<transaction_t> queue_txn;
+        scoped_ptr_t<real_superblock_t> queue_superblock;
+
+        store->acquire_superblock_for_write(
+            rwi_write,
+            repli_timestamp_t::distant_past,
+            2,
+            &token_pair.main_write_token,
+            &queue_txn,
+            &queue_superblock,
+            interruptor);
+
+        scoped_ptr_t<buf_lock_t> queue_sindex_block;
+        store->acquire_sindex_block_for_write(
+            &token_pair,
+            queue_txn.get(),
+            &queue_sindex_block,
+            queue_superblock->get_sindex_block_id(),
+            interruptor);
+
+        sindex_access_vector_t sindexes;
+        store->acquire_sindex_superblocks_for_write(
+                sindexes_to_bring_up_to_date,
+                queue_sindex_block.get(),
+                queue_txn.get(),
+                &sindexes);
+
         mutex_t::acq_t acq;
         store->lock_sindex_queue(&acq);
 
-        while (mod_queue.size() >= previous_size &&
-               mod_queue.size() > 0) {
+        while (mod_queue->size() >= previous_size &&
+               mod_queue->size() > 0) {
             std::vector<char> data_vec;
-            mod_queue.pop(&data_vec);
+            mod_queue->pop(&data_vec);
             vector_read_stream_t read_stream(&data_vec);
 
             rdb_modification_report_t mod_report;
             int ser_res = deserialize(&read_stream, &mod_report);
             guarantee_err(ser_res == 0, "corruption in disk-backed queue");
 
-            rdb_update_sindexes(sindexes, &mod_report, txn);
+            rdb_update_sindexes(sindexes, &mod_report, queue_txn.get());
         }
 
-        previous_size = mod_queue.size();
+        previous_size = mod_queue->size();
 
-        if (mod_queue.size() == 0) {
+        if (mod_queue->size() == 0) {
             for (std::set<uuid_u>::iterator it = sindexes_to_bring_up_to_date.begin();
                     it != sindexes_to_bring_up_to_date.end(); ++it) {
-                    store->mark_index_up_to_date(*it, txn, sindex_block);
+                    store->mark_index_up_to_date(*it, queue_txn.get(), queue_sindex_block.get());
             }
             fprintf(stderr, "Deregister queue\n");
-            store->deregister_sindex_queue(&mod_queue, &acq);
+            store->deregister_sindex_queue(mod_queue.get(), &acq);
             break;
         }
     }
@@ -839,7 +885,7 @@ struct write_visitor_t : public boost::static_visitor<void> {
         std::set<uuid_u> sindexes;
         sindexes.insert(c.id);
         rdb_protocol_details::bring_sindexes_up_to_date(sindexes, store,
-                sindex_block.get(), txn, btree, superblock, &interruptor);
+                sindex_block.get(), &interruptor);
     }
 
     void operator()(const sindex_drop_t &d) {
@@ -1102,7 +1148,7 @@ struct receive_backfill_visitor_t : public boost::static_visitor<void> {
                 &sindexes);
 
         rdb_protocol_details::bring_sindexes_up_to_date(created_sindexes, store,
-                sindex_block.get(), txn, btree, superblock, interruptor);
+                sindex_block.get(), interruptor);
     }
 
 private:
