@@ -113,7 +113,19 @@ tests:
     - cd: r.error(5) # we might want to allow this eventually
       ot: err("RqlRuntimeError", "Expected type STRING but found NUMBER.", [0])
 
-    # TODO: test arity checking in other functions (so far we got do, js, and error)
+    # For kicks, let's test arity checking in map and filter (Python driver doesn't require this)
+    - js: r.expr([1, 2, 3]).map()
+      rb: r.expr([1, 2, 3]).map()
+      ot: err("RqlDriverError", "Expected 1 argument(s) but found 0.", [0])
+    - js: r.expr([1, 2, 3]).map(1, 2)
+      rb: r.expr([1, 2, 3]).map(1, 2)
+      ot: err("RqlDriverError", "Expected 1 argument(s) but found 2.", [0])
+    - js: r.expr([1, 2, 3]).filter()
+      rb: r.expr([1, 2, 3]).filter()
+      ot: err("RqlDriverError", "Expected 1 argument(s) but found 0.", [0])
+    - js: r.expr([1, 2, 3]).filter(1, 2)
+      rb: r.expr([1, 2, 3]).filter(1, 2)
+      ot: err("RqlDriverError", "Expected 1 argument(s) but found 2.", [0])
 
     # r.js()
     - cd: r.js('1 + 1')
@@ -168,6 +180,13 @@ tests:
     - cd: r.expr([1, 2, 3]).filter('foo')
       ot: err("RqlRuntimeError", "Expected type OBJECT but found STRING.", [0])
 
+    - py: r.expr([1, 2, 4]).filter(False)
+      js: r.expr([1, 2, 4]).filter(false)
+      ot: err("RqlRuntimeError", "Expected type OBJECT but found BOOL.", [0])
+      
+    - cd: r.expr([1, 2, 4]).filter([])
+      ot: err("RqlRuntimeError", "Expected type OBJECT but found ARRAY.", [0])
+      
     # forEach
     - cd: tbl.count()
       ot: 0
@@ -205,7 +224,7 @@ tests:
       
     # forEach negative cases
     - cd: r.expr([1, 2, 3]).for_each( tbl.insert({ 'id':r.row }) )
-      ot: err("RqlCompileError", "No implicit variable is bound.", [0]) # TODO: change this error message, it's terrible
+      ot: err("RqlCompileError", "Cannot use r.row. Use functions instead.", [0])
     
     - cd: r.expr([1, 2, 3]).for_each(1)
       ot: 'err("RqlRuntimeError", "Expected type FUNCTION but found DATUM.", [0])'
@@ -226,6 +245,8 @@ tests:
       ot: err("RqlDriverError", 'Unknown datum value "undefined", did you forget a "return"?', [1])
     
     # TODO: try calling write queries in random places (e.g. in `do`))
+    
+    # TODO: test r.row and nestedness
 
     # Cleanup    
     - cd: r.db('test').table_drop('test')
@@ -233,3 +254,5 @@ tests:
       
     - cd: r.db('test').table_drop('test2')
       ot: ({'dropped':1})
+
+    
