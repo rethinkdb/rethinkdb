@@ -21,6 +21,8 @@ COFFEE_BUILD_DIR=$(BUILD_DIR)/coffee
 COFFEE_FILES=$(wildcard *.coffee)
 COMPILED_COFFEE=$(patsubst %.coffee,$(COFFEE_BUILD_DIR)/%.js,$(COFFEE_FILES))
 
+TMP_PKG_DIR=/tmp/js_pkg
+
 OUTPUT_MODE=script
 
 DRIVER_LIB=$(BUILD_DIR)/rethinkdb.js
@@ -47,6 +49,13 @@ $(DRIVER_LIB): $(BUILD_DIR) $(PB_JS_FILE) $(COMPILED_COFFEE)
 		--output_mode=$(OUTPUT_MODE) \
 		--output_file=$@
 
+publish: $(DRIVER_LIB)
+	mkdir -p $(TMP_PKG_DIR)
+	cp package.json $(TMP_PKG_DIR)
+	cp README.md $(TMP_PKG_DIR)
+	cp $(DRIVER_LIB) $(TMP_PKG_DIR)
+	cd $(TMP_PKG_DIR); npm publish --force
+
 test: $(DRIVER_LIB)
 	coffee test.coffee
 
@@ -56,4 +65,4 @@ testWeb: $(DRIVER_LIB)
 clean:
 	rm -rf $(BUILD_DIR)
 
-.PHONY: clean all test
+.PHONY: clean all test publish
