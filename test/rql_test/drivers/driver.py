@@ -4,6 +4,7 @@ import types
 import pdb
 import collections
 import types
+import re
 path.insert(0, "../../drivers/python2")
 
 from os import environ
@@ -90,6 +91,9 @@ class Err:
 
         if self.etyp and self.etyp != other.__class__.__name__:
             return False
+
+        # Strip "offending object" from the error message
+        other.message = re.sub(":\n.*", ".", other.message, flags=re.M|re.S)
 
         if self.emsg and self.emsg != other.message:
             return False
