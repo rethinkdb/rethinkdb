@@ -590,9 +590,12 @@ char int_to_hex(int x) {
     }
 }
 
-std::string read_file(const char *path) {
+bool read_file(const char *path, std::string *contents_out) {
     std::string s;
     FILE *fp = fopen(path, "rb");
+    if (fp == NULL) {
+        return false;
+    }
     char buffer[4096];
     int count;
     do {
@@ -600,12 +603,23 @@ std::string read_file(const char *path) {
         s.append(buffer, buffer + count);
     } while (count == sizeof(buffer));
 
-    rassert(feof(fp));
+    if (!feof(fp)) {
+        return false;
+    }
 
     fclose(fp);
 
-    return s;
+    contents_out->swap(s);
+    return true;
 }
+
+std::string read_file(const char *path) {
+    std::string ret;
+    bool success = read_file(path, &ret);
+    guarantee(success);
+    return ret;
+}
+
 
 static const char * unix_path_separator = "/";
 

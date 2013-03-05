@@ -96,23 +96,25 @@ private:
 // OPTIONAL_NO_PARAMETER options.  Uses the *official name* of the option
 // (the first parameter passed to names_t) for map keys.
 void parse_command_line(int argc, const char *const *argv, const std::vector<option_t> &options,
-                        std::map<std::string, std::vector<std::string> > *names_by_values_out);
+                        std::map<std::string, std::vector<std::string> > *names_by_values_ref);
 
 void parse_command_line_and_collect_unrecognized(int argc, const char *const *argv, const std::vector<option_t> &options,
                                                  std::vector<std::string> *unrecognized_out,
-                                                 std::map<std::string, std::vector<std::string> > *names_by_values_out);
+                                                 std::map<std::string, std::vector<std::string> > *names_by_values_ref);
 
+// new_values overwrites the values in names_by_values_ref.
 void merge_new_values(const std::map<std::string, std::vector<std::string> > &new_values,
                       std::map<std::string, std::vector<std::string> > *names_by_values_ref);
 
 void verify_option_counts(const std::vector<option_t> &options,
                           const std::map<std::string, std::vector<std::string> > &names_by_values);
 
+std::map<std::string, std::vector<std::string> > default_values_map(const std::vector<option_t> &options);
 
 // We parse the file contents, using filepath solely for error messages,
 // retrieving some options.
 std::map<std::string, std::vector<std::string> > parse_config_file(const std::string &contents,
-                                                                   const std::string filepath,
+                                                                   const std::string &filepath,
                                                                    const std::vector<option_t> &options);
 
 

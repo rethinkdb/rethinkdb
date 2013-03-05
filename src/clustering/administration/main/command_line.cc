@@ -145,7 +145,7 @@ std::string get_single_option(const std::map<std::string, std::vector<std::strin
     boost::optional<std::string> value = get_optional_option(opts, name);
 
     if (!value) {
-        throw std::logic_error("Missing option '%s'.  (It does not have a default value.)");
+        throw std::logic_error(strprintf("Missing option '%s'.  (It does not have a default value.)", name.c_str()));
     }
 
     return *value;
@@ -434,7 +434,7 @@ void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins, int client_p
     } catch (const admin_no_connection_exc_t& ex) {
         // Don't use logging, because we might want to printout multiple lines and such, which the log system doesn't like
         fprintf(stderr, "%s\n", ex.what());
-        fprintf(stderr, "valid --join option required to handle command, run 'rethinkdb admin help' for more information\n");
+        fprintf(stderr, "valid --join option required to handle command, run 'rethinkdb help admin' for more information\n");
         *result_out = false;
     } catch (const std::exception& ex) {
         fprintf(stderr, "%s\n", ex.what());
@@ -1009,7 +1009,10 @@ void output_option_description(const std::string &option_name, const po::options
 MUST_USE bool parse_commands(int argc, char **argv, const std::vector<options::option_t> &options,
                              std::map<std::string, std::vector<std::string> > *names_by_values_out) {
     try {
-        options::parse_command_line(argc, argv, options, names_by_values_out);
+        std::map<std::string, std::vector<std::string> > names_by_values = default_values_map(options);
+        options::parse_command_line(argc, argv, options, &names_by_values);
+        options::verify_option_counts(options, names_by_values);
+        names_by_values_out->swap(names_by_values);
         return true;
     } catch (const std::runtime_error &e) {
         fprintf(stderr, "%s\n", e.what());
@@ -1041,15 +1044,22 @@ MUST_USE bool parse_commands(int argc, char *argv[], po::variables_map *vm, cons
     return true;
 }
 
-MUST_USE bool parse_config_file_flat(const std::string &config_filepath,
-                                     const std::vector<options::option_t> &options,
-                                     std::map<std::string, std::vector<std::string> > *names_by_values_ref) {
-    (void)config_filepath;
-    (void)options;
-    (void)names_by_values_ref;
-    // TODO(OPTIONS): Implement this.  We need to smartly merge in config value
-    // options with existing names_by_values_ref options?
-    return false;
+void parse_config_file_flat(const std::string &config_filepath,
+                            const std::vector<options::option_t> &options,
+                            std::map<std::string, std::vector<std::string> > *names_by_values_ref) {
+
+    std::string file;
+    if (!read_file(config_filepath.c_str(), &file)) {
+        throw std::runtime_error(strprintf("Trouble reading config file '%s'", config_filepath.c_str()));
+    }
+
+    std::map<std::string, std::vector<std::string> > file_opts = parse_config_file(file, config_filepath,
+                                                                                   options);
+
+    // We give priority to the stuff in names_by_values_ref, which were command line options.
+    options::merge_new_values(*names_by_values_ref, &file_opts);
+
+    names_by_values_ref->swap(file_opts);
 }
 
 MUST_USE bool parse_config_file_flat(const std::string & conf_file_name, po::variables_map *vm, const po::options_description& options) {
@@ -1088,19 +1098,16 @@ MUST_USE bool parse_config_file_flat(const std::string & conf_file_name, po::var
 MUST_USE bool parse_commands_deep(int argc, char **argv, const std::vector<options::option_t> &options,
                                   std::map<std::string, std::vector<std::string> > *names_by_values_out) {
     try {
-        std::map<std::string, std::vector<std::string> > names_by_values;
-        parse_command_line(argc, argv, options, &names_by_values);
+        std::map<std::string, std::vector<std::string> > names_by_values = default_values_map(options);
+        options::parse_command_line(argc, argv, options, &names_by_values);
         auto config_file_it = names_by_values.find("config-file");
         if (config_file_it != names_by_values.end()) {
-            if (!parse_config_file_flat(config_file_it->second[0], options, &names_by_values)) {
-                return false;
-            }
+            parse_config_file_flat(config_file_it->second[0], options, &names_by_values);
         }
         names_by_values_out->swap(names_by_values);
         return true;
-    } catch (const std::runtime_error &e) {
+    } catch (const std::exception &e) {
         fprintf(stderr, "%s\n", e.what());
-        // TODO(OPTION): output option description
         return false;
     }
 }
@@ -1279,7 +1286,7 @@ int main_rethinkdb_admin(int argc, char *argv[]) {
         get_rethinkdb_admin_options(&options);
 
         std::vector<std::string> command_args;
-        std::map<std::string, std::vector<std::string> > opts;
+        std::map<std::string, std::vector<std::string> > opts = options::default_values_map(options);
         parse_command_line_and_collect_unrecognized(argc - 2, argv + 2, options,
                                                     &command_args,
                                                     &opts);

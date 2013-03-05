@@ -130,17 +130,10 @@ void do_parse_command_line(const int argc, const char *const *const argv, const 
 
         const std::string official_name = option->names[0];
 
-        // TODO(OPTIONS): Check max_appearances later.
-        std::vector<std::string> *const option_parameters = &names_by_values[official_name];
-        if (option_parameters->size() == static_cast<size_t>(option->max_appearances)) {
-            throw parse_error_t(strprintf("option '%s' appears too many times (i.e. more than %zu times)",
-                                          option_name, option->max_appearances));
-        }
-
         if (option->no_parameter) {
             // Push an empty parameter value -- in particular, this makes our
             // duplicate checking work.
-            option_parameters->push_back("");
+            names_by_values[official_name].push_back("");
         } else {
             if (i == argc) {
                 throw parse_error_t(strprintf("option '%s' is missing its parameter", option_name));
@@ -153,7 +146,7 @@ void do_parse_command_line(const int argc, const char *const *const argv, const 
                 throw parse_error_t(strprintf("option '%s' is missing its parameter (because '%s' looks like another option name)", option_name, option_parameter));
             }
 
-            option_parameters->push_back(option_parameter);
+            names_by_values[official_name].push_back(option_parameter);
         }
     }
 
