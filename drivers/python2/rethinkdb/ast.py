@@ -4,8 +4,8 @@ import sys
 from errors import *
 
 class RDBBase():
-    def run(self, c):
-        return c._start(self)
+    def run(self, c, **global_opt_args):
+        return c._start(self, **global_opt_args)
 
     def __str__(self):
         qp = QueryPrinter(self)
@@ -467,7 +467,7 @@ class FunCall(RDBAnyOp):
 
         return T(args[1], '.do(', args[0], ')')
 
-class Table(RDBSeqOp, RDBMethod):
+class Table(RDBSeqOp):
     tt = p.Term2.TABLE
     st = 'table'
 
@@ -478,7 +478,10 @@ class Table(RDBSeqOp, RDBMethod):
         return Get(self, key)
 
     def compose(self, args, optargs):
-        return T(args[0], '.table(', args[1], ')')
+        if isinstance(self.args[0], DB):
+            return T(args[0], '.table(', args[1], ')')
+        else:
+            return T('r.table(', args[0], ')')
 
 class Get(RDBValOp, RDBMethod):
     tt = p.Term2.GET

@@ -195,7 +195,7 @@ const datum_t *datum_t::el(const std::string &key, throw_bool_t throw_bool) cons
         it = as_object().find(key);
     if (it != as_object().end()) return it->second;
     if (throw_bool == THROW) {
-        rfail("No key %s in object %s.", key.c_str(), print().c_str());
+        rfail("No key \"%s\" in object %s.", key.c_str(), print().c_str());
     }
     return 0;
 }

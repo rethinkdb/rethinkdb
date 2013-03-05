@@ -205,7 +205,8 @@ message Term2 {
         // Returns a reference to a table.
         TABLE = 15; // Database, STRING, {use_outdated:BOOL} -> Table | STRING, {use_outdated:BOOL} -> Table
         // Gets a single element from a table by its primary key.
-        GET   = 16; // Table, STRING -> SingleSelection | Table, NUMBER -> SingleSelection
+        GET   = 16; // Table, STRING -> SingleSelection | Table, NUMBER -> SingleSelection |
+                    // Table, STRING -> NULL            | Table, NUMBER -> NULL
 
         // Simple DATUM Ops
         EQ  = 17; // DATUM... -> BOOL
@@ -250,7 +251,7 @@ message Term2 {
         BETWEEN   = 36; // StreamSelection, {left_bound:DATUM, right_bound:DATUM} -> StreamSelection
         REDUCE    = 37; // Sequence, Function(2), {base:DATUM} -> DATUM
         MAP       = 38; // Sequence, Function(1) -> Sequence
-        FILTER    = 39; // Sequence, Function(1) -> Sequence
+        FILTER    = 39; // Sequence, Function(1) -> Sequence | Sequence, OBJECT -> Sequence
         // Map a function over a sequence and then concatenate the results together.
         CONCATMAP = 40; // Sequence, Function(1) -> Sequence
         // Order a sequence based on one or more attributes.
@@ -288,7 +289,10 @@ message Term2 {
         // * Write Ops (the OBJECTs contain data about number of errors etc.)
         // Updates all the rows in a selection.  Calls its Function with the row
         // to be updated, and then merges the result of that call.
-        UPDATE   = 53; // StreamSelection, Function(1), {non_atomic:BOOL} -> OBJECT | SingleSelection, Function(1), {non_atomic:BOOL} -> OBJECT
+        UPDATE   = 53; // StreamSelection, Function(1), {non_atomic:BOOL} -> OBJECT |
+                       // SingleSelection, Function(1), {non_atomic:BOOL} -> OBJECT |
+                       // StreamSelection, OBJECT,      {non_atomic:BOOL} -> OBJECT |
+                       // SingleSelection, OBJECT,      {non_atomic:BOOL} -> OBJECT
         // Deletes all the rows in a selection.
         DELETE   = 54; // StreamSelection -> OBJECT | SingleSelection -> OBJECT
         // Replaces all the rows in a selection.  Calls its Function with the row

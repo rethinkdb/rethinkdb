@@ -57,11 +57,12 @@ class Cursor(list):
 
 class Connection():
 
-    def __init__(self, host, port):
+    def __init__(self, host, port, db='test'):
         self.socket = None
         self.host = host
         self.port = port
         self.next_token = 1
+        self.db = DB(db)
         self.reconnect()
 
     def __enter__(self):
@@ -69,6 +70,9 @@ class Connection():
 
     def __exit__(self, type, value, traceback):
         self.close()
+
+    def use(self, db):
+        self.db = DB(db)
 
     def reconnect(self):
         self.close()
@@ -85,7 +89,7 @@ class Connection():
             self.socket.close()
             self.socket = None
 
-    def _start(self, term):
+    def _start(self, term, **global_opt_args):
         token = self.next_token
         self.next_token += 1
 
@@ -93,6 +97,16 @@ class Connection():
         query = p.Query2()
         query.type = p.Query2.START
         query.token = token
+
+        # Set global opt args
+        if not 'db' in global_opt_args:
+            if self.db:
+                global_opt_args['db'] = self.db
+
+        for k,v in global_opt_args.iteritems():
+            pair = query.global_optargs.add()
+            pair.key = k
+            expr(v).build(pair.val)
 
         # Compile query to protobuf
         term.build(query.query)
@@ -164,4 +178,5 @@ class Connection():
 def connect(host='localhost', port=28016):
     return Connection(host, port)
 
-from ast import Datum
+from ast import Datum, DB
+from query import expr

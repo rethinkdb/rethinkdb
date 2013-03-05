@@ -14,7 +14,7 @@ table_t::table_t(env_t *_env, uuid_u db_id, const std::string &name,
     : pb_rcheckable_t(src), env(_env), use_outdated(_use_outdated) {
     name_string_t table_name;
     bool b = table_name.assign_value(name);
-    rcheck(b, strprintf("table name %s invalid (%s)", name.c_str(), valid_char_msg));
+    rcheck(b, strprintf("Table name \"%s\" invalid (%s).", name.c_str(), valid_char_msg));
     cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >
         namespaces_metadata = env->namespaces_semilattice_metadata->get();
     cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t
@@ -152,13 +152,13 @@ bool val_t::type_t::is_convertible(type_t rhs) const {
 
 const char *val_t::type_t::name() const {
     switch(raw_type) {
-    case DB: return "DATABASE";
-    case TABLE: return "TABLE";
-    case SELECTION: return "SELECTION";
-    case SEQUENCE: return "SEQUENCE";
-    case SINGLE_SELECTION: return "SINGLE_SELECTION";
+    case DB: return "Database";
+    case TABLE: return "Table";
+    case SELECTION: return "Selection";
+    case SEQUENCE: return "Sequence";
+    case SINGLE_SELECTION: return "SingleSelection";
     case DATUM: return "DATUM";
-    case FUNC: return "FUNCTION";
+    case FUNC: return "Function";
     default: unreachable();
     }
     unreachable();
@@ -250,14 +250,14 @@ val_t::type_t val_t::get_type() const { return type; }
 const datum_t *val_t::as_datum() {
     if (type.raw_type != type_t::DATUM
         && type.raw_type != type_t::SINGLE_SELECTION) {
-        rfail("Type error: cannot convert %s to DATUM.", type.name());
+        rfail("Expected type DATUM but found %s.", type.name());
     }
     return datum;
 }
 
 table_t *val_t::as_table() {
     rcheck(type.raw_type == type_t::TABLE,
-           strprintf("Type error: cannot convert %s to TABLE.", type.name()));
+           strprintf("Expected type TABLE but found %s.", type.name()));
     return table;
 }
 
@@ -269,7 +269,7 @@ datum_stream_t *val_t::as_seq() {
     } else if (type.raw_type == type_t::DATUM) {
         if (!sequence) sequence = datum->as_datum_stream(env, parent);
     } else {
-        rfail("Type error: cannot convert %s to SEQUENCE.", type.name());
+        rfail("Expected type Sequence but found %s.", type.name());
     }
     return sequence;
 }
@@ -286,12 +286,12 @@ std::pair<table_t *, datum_stream_t *> val_t::as_selection() {
 
 std::pair<table_t *, const datum_t *> val_t::as_single_selection() {
     rcheck(type.raw_type == type_t::SINGLE_SELECTION,
-           strprintf("Type error: cannot convert %s to SINGLE_SELECTION.",
+           strprintf("Expected type SingleSelection but found %s.",
                      type.name()));
     return std::make_pair(table, datum);
 }
 
-func_t *val_t::as_func(shortcut_ok_bool_t shortcut_ok) {
+func_t *val_t::as_func(int airity, shortcut_ok_bool_t shortcut_ok) {
     if (get_type().is_convertible(type_t::DATUM) && shortcut_ok == SHORTCUT_OK) {
         if (!func) {
             r_sanity_check(parent);
@@ -299,14 +299,15 @@ func_t *val_t::as_func(shortcut_ok_bool_t shortcut_ok) {
         }
         return func;
     }
-    rcheck(type.raw_type == type_t::FUNC,
-           strprintf("Type error: cannot convert %s to FUNC.", type.name()));
+
+    (void)airity;
+    rcheck(type.raw_type == type_t::FUNC, strprintf("Expected type Function but found %s.", type.name()));
     return func;
 }
 
 uuid_u val_t::as_db() {
     rcheck(type.raw_type == type_t::DB,
-           strprintf("Type error: cannot convert %s to DB.", type.name()));
+           strprintf("Expected type Database but found %s.", type.name()));
     return db;
 }
 

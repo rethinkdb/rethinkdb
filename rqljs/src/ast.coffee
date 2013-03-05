@@ -105,11 +105,16 @@ class RDBDBRef extends RDBOp
     op: (args, optargs, context) -> context.universe.getDatabase args[0]
 
 class RDBTableRef extends RDBOp
-    type: tp "Database, STRING, {use_outdated:BOOL} -> Table"
-    op: (args, optargs) -> args[0].getTable args[1]
+    type: tp "Database, STRING, {use_outdated:BOOL} -> Table | STRING, {use_outdated:BOOL} -> Table"
+    op: (args, optargs, context) ->
+        if args[0] instanceof RDBDatabase
+            args[0].getTable args[1]
+        else
+            context.getDefaultDb().getTable args[0]
 
 class RDBGetByKey extends RDBOp
-    type: tp "Table, STRING -> SingleSelection | Table, NUMBER -> SingleSelection"
+    type: tp "Table, STRING -> SingleSelection | Table, NUMBER -> SingleSelection |
+              Table, STRING -> NULL            | Table, NUMBER -> NULL"
     op: (args) -> args[0].get args[1]
 
 class RDBNot extends RDBOp
@@ -223,9 +228,16 @@ class RDBMap extends RDBOp
         args[0].map context.bindIvar args[1](1)
 
 class RDBFilter extends RDBOp
-    type: tp "Sequence, Function(1) -> Sequence"
+    type: tp "Sequence, Function(1) -> Sequence | Sequence, OBJECT -> Sequence"
     op: (args, optargs, context) ->
-        args[0].filter context.bindIvar args[1](1)
+        if args[1] instanceof Function
+            args[0].filter context.bindIvar args[1](1)
+        else
+            args[0].filter context.bindIvar (row) ->
+                for own k,v of args[1]
+                    unless row[k]? and row[k].eq(v).asJSON()
+                        return new RDBPrimitive false
+                return new RDBPrimitive true
 
 class RDBConcatMap extends RDBOp
     type: tp "Sequence, Function(1) -> Sequence"
@@ -285,8 +297,15 @@ class RDBTypeOf extends RDBOp
     op: new RqlRuntimeError "Not implemented"
 
 class RDBUpdate extends RDBOp
-    type: tp "StreamSelection, Function(1), {non_atomic_ok:BOOL} -> OBJECT | SingleSelection, Function(1), {non_atomic_ok:BOOL} -> OBJECT"
-    op: (args) -> args[0].update args[1](1)
+    type: tp "StreamSelection, Function(1), {non_atomic_ok:BOOL} -> OBJECT |
+              SingleSelection, Function(1), {non_atomic_ok:BOOL} -> OBJECT |
+              StreamSelection, OBJECT,      {non_atomic_ok:BOOL} -> OBJECT |
+              SingleSelection, OBJECT,      {non_atomic_ok:BOOL} -> OBJECT"
+    op: (args) ->
+        if args[1] instanceof Function
+            args[0].update args[1](1)
+        else
+            args[0].update args[1]
 
 class RDBDelete extends RDBOp
     type: tp "StreamSelection -> OBJECT | SingleSelection -> OBJECT"

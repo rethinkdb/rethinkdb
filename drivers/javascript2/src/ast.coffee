@@ -5,13 +5,6 @@ goog.require("rethinkdb.errors")
 goog.require("Term2")
 goog.require("Datum")
 
-# Function wrapper that enforces that the function is
-# called with the correct number of arguments
-ar = (fun) -> (args...) ->
-    if args.length isnt fun.length
-        throw new RqlDriverError "Expected #{fun.length} argument(s) but found #{args.length}."
-    fun.apply(@, args)
-
 class TermBase
     constructor: ->
         self = ((field) -> self.getAttr(field))
@@ -211,7 +204,7 @@ class Db extends RDBOp
     tt: Term2.TermType.DB
     st: 'db'
 
-    tableCreate: (tblName, opts) -> new TableCreate opts, @, tblName
+    tableCreate: aropt (tblName, opts) -> new TableCreate opts, @, tblName
     tableDrop: ar (tblName) -> new TableDrop {}, @, tblName
     tableList: ar(-> new TableList {}, @)
 
@@ -219,10 +212,15 @@ class Db extends RDBOp
 
 class Table extends RDBOp
     tt: Term2.TermType.TABLE
-    mt: 'table'
 
-    get: (key, opts) -> new Get opts, @, key
-    insert: (doc, opts) -> new Insert opts, @, doc
+    get: aropt (key, opts) -> new Get opts, @, key
+    insert: aropt (doc, opts) -> new Insert opts, @, doc
+
+    compose: (args, optargs) ->
+        if @args[0] instanceof Db
+            [args[0], '.table(', args[1], ')']
+        else
+            ['r.table(', args[0], ')']
 
 class Get extends RDBOp
     tt: Term2.TermType.GET
