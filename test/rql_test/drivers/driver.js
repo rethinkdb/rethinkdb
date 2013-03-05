@@ -10,7 +10,11 @@ function printTestFailure(name, src, message) {
 }
 
 function eq_test(one, two) {
-    if (one instanceof Array) {
+    if (one instanceof Function) {
+        return one(two);
+    } else if (two instanceof Function) {
+        return two(one);
+    } else if (one instanceof Array) {
 
         if (!(two instanceof Array)) return false;
         
@@ -265,6 +269,28 @@ function err(err_name, err_msg, err_frames) {
     };
     return fun;
 }
+
+function arr(length, eq_fun) {
+    var fun = function(thing) {
+        if (!thing.length || thing.length === length) return false;
+        return !eq_fun || eq_fun(thing);
+    };
+    fun.toString = function() {
+        return "arr("+length+(eq_fun ? ", "+eq_fun.toString() : '')+")";
+    };
+    return fun;
+}
+
+function uuid() {
+    var fun = function(thing) {
+        console.log(thing);
+        return thing.match && thing.match(/[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}/);
+    };
+    fun.toString = function() {
+        return "uuid()";
+    };
+    return fun;
+};
 
 True = true;
 False = false;

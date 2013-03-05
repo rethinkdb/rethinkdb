@@ -1,6 +1,5 @@
 from sys import path
 import sys
-import types
 import pdb
 import collections
 import types
@@ -105,6 +104,28 @@ class Err:
 
     def __repr__(self):
         return "%s(\"%s\")" % (self.etyp, repr(self.emsg) or '')
+
+class Arr:
+    def __init__(self, length, thing=None):
+        self.length = length
+
+    def __eq__(self, other):
+        if not isinstance(other, List):
+            return False
+
+        if not self.length == len(other):
+            return False
+
+        if thing is None:
+            return True
+
+        return other == thing
+
+class Uuid:
+    def __eq__(self, thing):
+        if not isinstance(thing, types.StringTypes):
+            return False
+        return re.match("[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}", thing) != None
 
 # -- Curried output test functions --
 
@@ -228,3 +249,9 @@ def bag(lst):
 # Emitted test code can call this function to indicate expected error output
 def err(err_type, err_msg=None, frames=None):
     return Err(err_type, err_msg, frames)
+
+def arr(length, thing=None):
+    return Arr(length, thing)
+
+def uuid():
+    return Uuid()
