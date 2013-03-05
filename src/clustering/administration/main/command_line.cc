@@ -84,36 +84,44 @@ MUST_USE bool numwrite(const char *path, int number) {
     return true;
 }
 
-static const char *pid_file = NULL;
+static std::string pid_file = NULL;
 
 void remove_pid_file() {
-    if (pid_file) {
-        remove(pid_file);
-        pid_file = NULL;
+    if (!pid_file.empty()) {
+        remove(pid_file.c_str());
+        pid_file.clear();
     }
+}
+
+int write_pid_file(const std::string &pid_filepath) {
+    guarantee(pid_filepath.size() > 0);
+
+    // Be very careful about modifying this. It is important that the code that removes the
+    // pid-file only run if the checks here pass. Right now, this is guaranteed by the return on
+    // failure here.
+    if (!pid_file.empty()) {
+        fprintf(stderr, "ERROR: Attempting to write pid-file twice.\n");
+        return EXIT_FAILURE;
+    }
+    if (!access(pid_filepath.c_str(), F_OK)) {
+        fprintf(stderr, "ERROR: The pid-file specified already exists. This might mean that an instance is already running.\n");
+        return EXIT_FAILURE;
+    }
+    if (!numwrite(pid_filepath.c_str(), getpid())) {
+        fprintf(stderr, "ERROR: Writing to the specified pid-file failed.\n");
+        return EXIT_FAILURE;
+    }
+    pid_file = pid_filepath;
+    atexit(remove_pid_file);
+
+    return EXIT_SUCCESS;
 }
 
 // write_pid_file registers remove_pid_file with atexit.
 // Always call it after spawner_t::create to ensure correct behaviour.
 int write_pid_file(const po::variables_map& vm) {
     if (vm.count("pid-file") && vm["pid-file"].as<std::string>().length()) {
-        // Be very careful about modifying this. It is important that the code that removes the
-        // pid-file only run if the checks here pass. Right now, this is guaranteed by the return on
-        // failure here.
-        if (pid_file) {
-            fprintf(stderr, "ERROR: Attempting to write pid-file twice.\n");
-            return EXIT_FAILURE;
-        }
-        if (!access(vm["pid-file"].as<std::string>().c_str(), F_OK)) {
-            fprintf(stderr, "ERROR: The pid-file specified already exists. This might mean that an instance is already running.\n");
-            return EXIT_FAILURE;
-        }
-        if (!numwrite(vm["pid-file"].as<std::string>().c_str(), getpid())) {
-            fprintf(stderr, "ERROR: Writing to the specified pid-file failed.\n");
-            return EXIT_FAILURE;
-        }
-        pid_file = vm["pid-file"].as<std::string>().c_str();
-        atexit(remove_pid_file);
+        return write_pid_file(vm["pid-file"].as<std::string>());
     }
     return EXIT_SUCCESS;
 }
