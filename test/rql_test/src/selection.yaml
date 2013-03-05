@@ -75,7 +75,22 @@ tests:
       py: [] # Handled by native Python error
       ot: err("RqlDriverError", 'Expected 1 argument(s) but found 2.', [1])
       
+    # Create a table with a non-id primary key
+    # XXX: enable this
+    #- cd: r.db('test').table_create('test_pkey', primary_key='foo')
+    #  ot: ({'created':1})
+    #  def: tbl_pkey = r.db('test').table('test')
+
+    # XXX: tell slava once test_pkey creation is enabled so he can continue
+    #- cd: tbl_pkey.insert({'foo':10,'a':10})
+    #  ot: ({'inserted':1})
+      
     # TODO: test GET for table where id isn't a primary key
+    
+    # Clean up pkey test table
+    # XXX: tell slava once test_pkey creation is enabled so he can continue
+    #- cd: r.db('test').table_drop('test_pkey')
+    #  ot: ({'dropped':1})
 
     # Between
     - cd: tbl.between(20,29).count()
