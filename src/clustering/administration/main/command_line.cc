@@ -1730,12 +1730,16 @@ void help_rethinkdb_porcelain() {
 }
 
 void help_rethinkdb_create() {
-    std::stringstream sstream;
-    sstream << get_rethinkdb_create_options_visible();
+    std::vector<options::help_section_t> help_sections;
+    {
+        std::vector<options::option_t> options;
+        get_rethinkdb_create_options(&help_sections, &options);
+    }
+
     help_pager_t help;
     help.pagef("'rethinkdb create' is used to prepare a directory to act"
                 " as the storage location for a RethinkDB cluster node.\n");
-    help.pagef("%s\n", sstream.str().c_str());
+    help.pagef("%s", format_help(help_sections).c_str());
 }
 
 void help_rethinkdb_serve() {

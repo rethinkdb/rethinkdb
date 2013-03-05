@@ -116,7 +116,7 @@ struct help_section_t {
     std::vector<help_line_t> help_lines;
 };
 
-
+std::string format_help(const std::vector<help_section_t> &help);
 
 
 

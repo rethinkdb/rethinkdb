@@ -141,7 +141,101 @@ void parse_command_line(const int argc, const char *const *const argv, const std
     names_by_values_out->swap(names_by_values);
 }
 
+std::vector<std::string> split_by_spaces(const std::string &s) {
+    std::vector<std::string> ret;
 
+    auto it = s.begin();
+    const auto end = s.end();
+
+    for (;;) {
+        while (it != end && isspace(*it)) {
+            ++it;
+        }
+
+        if (it == end) {
+            return ret;
+        }
+
+        auto jt = it;
+        while (jt != end && !isspace(*jt)) {
+            ++jt;
+        }
+
+        ret.push_back(std::string(it, jt));
+        it = jt;
+    }
+
+    return ret;
+}
+
+std::vector<std::string> word_wrap(const std::string &s, const size_t width) {
+    const std::vector<std::string> words = split_by_spaces(s);
+
+    std::vector<std::string> ret;
+
+    std::string current_line;
+
+    for (auto it = words.begin(); it != words.end(); ++it) {
+        if (current_line.empty()) {
+            current_line = *it;
+        } else {
+            if (current_line.size() + 1 + it->size() <= width) {
+                current_line += ' ';
+                current_line += *it;
+            } else {
+                ret.push_back(current_line);
+                current_line = *it;
+            }
+        }
+    }
+
+    // If words.empty(), then current_line == "" and we want one empty line returned.
+    // If !words.empty(), then current_line != "" and it's worth pushing.
+    ret.push_back(current_line);
+
+    return ret;
+}
+
+std::string format_help(const std::vector<help_section_t> &help) {
+    size_t max_syntax_description_length = 0;
+    for (auto section = help.begin(); section != help.end(); ++section) {
+        for (auto line = section->help_lines.begin(); line != section->help_lines.end(); ++line) {
+            max_syntax_description_length = std::max(max_syntax_description_length,
+                                                     line->syntax_description.size());
+        }
+    }
+
+    const size_t summary_width = std::max<ssize_t>(30, 79 - static_cast<ssize_t>(max_syntax_description_length));
+
+    // Two spaces before summary description, two spaces after.  2 + 2 = 4.
+    const size_t indent_width = 4 + max_syntax_description_length;
+
+    std::string ret;
+    for (auto section = help.begin(); section != help.end(); ++section) {
+        ret += section->section_name;
+        ret += ":\n";
+
+        for (auto line = section->help_lines.begin(); line != section->help_lines.end(); ++line) {
+            std::vector<std::string> parts = word_wrap(line->blurb, summary_width);
+
+            for (size_t i = 0; i < parts.size(); ++i) {
+                if (i == 0) {
+                    ret += "  ";  // 2 spaces
+                    ret += line->syntax_description;
+                    ret += std::string(indent_width - (2 + line->syntax_description.size()), ' ');
+                } else {
+                    ret += std::string(indent_width, ' ');
+                }
+
+                ret += parts[i];
+                ret += "\n";
+            }
+        }
+        ret += "\n";
+    }
+
+    return ret;
+}
 
 
 
