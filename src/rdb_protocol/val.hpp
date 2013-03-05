@@ -136,6 +136,8 @@ public:
     }
 
 private:
+    void rcheck_literal_type(type_t::raw_type_t expected_raw_type);
+
     const term_t *parent;
     env_t *env;
 
