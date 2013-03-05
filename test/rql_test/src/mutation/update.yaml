@@ -46,7 +46,7 @@ tests:
 
     - py: tbl.between(10, 19).update(lambda row:{'a':row['id']})
       js: tbl.between(10, 19).update(function(row) { return {'a':row('id')}; })
-      rb: tbl.betwenn(10, 10).update{ |row| { :a => row('id') } }
+      rb: tbl.between(10, 10).update{ |row| { :a => row('id') } }
       ot: ({'replaced':9, 'unchanged':1})
 
     - py: tbl.filter(lambda row:(row['id'] >= 10) & (row['id'] < 20)).update(lambda row:{'a':row['id']})
