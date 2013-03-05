@@ -102,9 +102,9 @@ std::map<std::string, std::vector<std::string> > merge(
     return ret;
 }
 
-void do_parse_command_line(const int argc, const char *const *const argv, const std::vector<option_t> &options,
-                           std::vector<std::string> *const unrecognized_out,
-                           std::map<std::string, std::vector<std::string> > *const names_by_values_ref) {
+std::map<std::string, std::vector<std::string> > do_parse_command_line(
+    const int argc, const char *const *const argv, const std::vector<option_t> &options,
+    std::vector<std::string> *const unrecognized_out) {
     guarantee(argc >= 0);
 
     std::map<std::string, std::vector<std::string> > names_by_values;
@@ -153,17 +153,15 @@ void do_parse_command_line(const int argc, const char *const *const argv, const 
         }
     }
 
-    *names_by_values_ref = merge(names_by_values, *names_by_values_ref);
-
     if (unrecognized_out != NULL) {
         unrecognized_out->swap(unrecognized);
     }
+
+    return names_by_values;
 }
 
 std::map<std::string, std::vector<std::string> > parse_command_line(const int argc, const char *const *const argv, const std::vector<option_t> &options) {
-    std::map<std::string, std::vector<std::string> > names_by_values;
-    do_parse_command_line(argc, argv, options, NULL, &names_by_values);
-    return names_by_values;
+    return do_parse_command_line(argc, argv, options, NULL);
 }
 
 std::map<std::string, std::vector<std::string> > parse_command_line_and_collect_unrecognized(
@@ -172,9 +170,8 @@ std::map<std::string, std::vector<std::string> > parse_command_line_and_collect_
     // We check that unrecognized_out is not NULL because do_parse_command_line
     // throws some exceptions depending on the nullness of that value.
     guarantee(unrecognized_out != NULL);
-    std::map<std::string, std::vector<std::string> > ret;
-    do_parse_command_line(argc, argv, options, unrecognized_out, &ret);
-    return ret;
+
+    return do_parse_command_line(argc, argv, options, unrecognized_out);
 }
 
 void verify_option_counts(const std::vector<option_t> &options,

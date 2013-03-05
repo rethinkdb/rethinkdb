@@ -77,9 +77,9 @@ public:
 
 private:
     friend std::map<std::string, std::vector<std::string> > default_values_map(const std::vector<option_t> &options);
-    friend void do_parse_command_line(int argc, const char *const * argv, const std::vector<option_t> &options,
-                                      std::vector<std::string> *unrecognized_out,
-                                      std::map<std::string, std::vector<std::string> > *names_by_values_out);
+    friend std::map<std::string, std::vector<std::string> > do_parse_command_line(
+        const int argc, const char *const *const argv, const std::vector<option_t> &options,
+        std::vector<std::string> *const unrecognized_out);
     friend const option_t *find_option(const char *const option_name, const std::vector<option_t> &options);
     friend void verify_option_counts(const std::vector<option_t> &options,
                                      const std::map<std::string, std::vector<std::string> > &names_by_values);
@@ -113,11 +113,11 @@ private:
 // number of option values.  (That only happens in `verify_option_counts`.)
 std::map<std::string, std::vector<std::string> > parse_command_line(int argc, const char *const *argv, const std::vector<option_t> &options);
 
-// Like `parse_command_line`, except that it tolerates unrecognized options.  Out-of-place
-// positional parameters and unrecognized options are output to `*unrecognized_out`, in the same
-// order that they appeared in the options list.  This can lead to some weird situations, if you
-// passed "--recognized-foo 3 --unrecognized --recognized-bar 4 5" on the command line.  You would
-// get ["--unrecognized", "5"] in `*unrecognized_out`.
+// Like `parse_command_line`, except that it tolerates unrecognized options, instead of throwing.
+// Out-of-place positional parameters and unrecognized options are output to `*unrecognized_out`, in
+// the same order that they appeared in the options list.  This can lead to some weird situations,
+// if you passed "--recognized-foo 3 --unrecognized --recognized-bar 4 5" on the command line.  You
+// would get ["--unrecognized", "5"] in `*unrecognized_out`.
 std::map<std::string, std::vector<std::string> > parse_command_line_and_collect_unrecognized(
     int argc, const char *const *argv, const std::vector<option_t> &options,
     std::vector<std::string> *unrecognized_out);
