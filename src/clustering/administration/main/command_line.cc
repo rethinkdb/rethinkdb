@@ -1177,6 +1177,11 @@ std::string get_single_option(const std::map<std::string, std::vector<std::strin
     return it->second.at(0);
 }
 
+bool exists_option(const std::map<std::string, std::vector<std::string> > &opts, std::string name) {
+    auto it = opts.find(name);
+    return it != opts.end() && it->second.size() > 0;
+}
+
 int main_rethinkdb_create(int argc, char *argv[]) {
     try {
         std::vector<options::option_t> options;
@@ -1187,11 +1192,11 @@ int main_rethinkdb_create(int argc, char *argv[]) {
 
         std::map<std::string, std::vector<std::string> > opts;
         // TODO(OPTIONS): Just make parse_commands_deep throw an exception?
-        if (!parse_commands_deep(argc, argv, options, &opts)) {
+        if (!parse_commands_deep(argc - 2, argv + 2, options, &opts)) {
             return EXIT_FAILURE;
         }
 
-        if (opts.find("--help") != opts.end()) {
+        if (exists_option(opts, "--help")) {
             help_rethinkdb_create();
             return EXIT_SUCCESS;
         }
