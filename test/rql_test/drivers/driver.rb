@@ -1,5 +1,5 @@
-$: << '../../drivers/ruby2/lib'
-$: << '../../build/drivers/ruby/rdb_protocol'
+$LOAD_PATH.unshift '../../drivers/ruby2/lib'
+$LOAD_PATH.unshift '../../build/drivers/ruby/rdb_protocol'
 require 'pp'
 require 'rethinkdb'
 extend RethinkDB::Shortcuts
@@ -75,17 +75,8 @@ def cmp_test(one, two)
   end
 end
 
-def eval_env; binding; end
-$defines = eval_env
-
-$js_conn = RethinkDB::Connection.new('localhost', JSPORT)
-
-$cpp_conn = RethinkDB::Connection.new('localhost', CPPPORT)
-
-$test_count = 0
-$success_count = 0
-
 def test src, expected, name
+
   $test_count += 2
   begin
     query = eval src, $defines

@@ -74,9 +74,9 @@ class JsLang(SrcLang):
 class RbLang(SrcLang):
     def langrepr(self, val):
         if isinstance(val, types.StringType):
-            return repr(val)
+            return re.sub("\\$","\\$", repr(val))
         elif isinstance(val, types.UnicodeType):
-            return repr(val)[1:] # Get rid of the 'u'
+            return re.sub("\\$","\\$", repr(val)[1:]) # Get rid of the 'u'
         elif isinstance(val, types.BooleanType):
             return ("true" if val else "false")
         else:
