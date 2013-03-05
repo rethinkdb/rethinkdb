@@ -193,6 +193,7 @@ tests:
       py: r.expr([1, 2, 3]).for_each(lambda row:tbl)
       ot: err("RqlRuntimeError", "Expected type WriteQuery but found Table.", [0])
     
+      # This is only relevant in JS -- what happens when we return undefined
     - js: "r([1, 2, 3]).forEach(function (row) {})"
       ot: err("RqlDriverError", 'Unknown datum value "undefined", did you forget a "return"?', [1])
     
