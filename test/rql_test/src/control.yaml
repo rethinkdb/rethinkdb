@@ -6,6 +6,10 @@ tests:
       ot: ({'created':1})
       def: tbl = r.db('test').table('test')
       
+    - cd: r.db('test').table_create('test2')
+      ot: ({'created':1})
+      def: tbl2 = r.db('test').table('test2')
+      
     ## FunCall
 
     - py: "r.expr(1).do(lambda v: v * 2)"
@@ -133,7 +137,7 @@ tests:
     # js error cases
     # YYY
     #- cd: r.js('(function() { return 1; })')
-    #  ot: err("RqlRuntimeError", "Query result must be of type DATUM or Stream.", [0])
+    #  ot: err("RqlRuntimeError", "Query result must be of type DATUM or STREAM.", [0])
 
     - cd: r.js('function() { return 1; }')
       ot: 'err("RqlRuntimeError", "SyntaxError: Unexpected token (", [0])'
@@ -169,18 +173,21 @@ tests:
     - cd: tbl.count()
       ot: 6
 
+    # XXX: fix this (accepting the insert query, and test framework gen_keys business)
+    #- cd: r.expr([1, 2, 3]).for_each( tbl2.insert({}) )
+    #  ot: ({'inserted':3, 'generated_keys':...})
+    
     # We have six elements, update them 6*2*3=36 times
     - js: r([1, 2, 3]).forEach(function (row) { return [tbl.update({ foo:row }), tbl.update({ bar:row })] })
       py: r.expr([1,2,3]).for_each(lambda row:[tbl.update({'foo':row}), tbl.update({'bar':row})])
       ot: ({'replaced':36})
       
+    # forEach negative cases
     - cd: r.expr([1, 2, 3]).for_each( tbl.insert({ 'id':r.row }) )
       ot: err("RqlCompileError", "No implicit variable is bound.", [0]) # TODO: change this error message, it's terrible
     
-    # forEach negative cases
-    # YYY
-    #- cd: r.expr([1, 2, 3]).for_each(1)
-    #  ot: 'err("RqlRuntimeError", "Expected type Function(1) but found NUMBER.", [0])'
+    - cd: r.expr([1, 2, 3]).for_each(1)
+      ot: 'err("RqlRuntimeError", "Expected type FUNCTION but found DATUM.", [0])'
 
     - py: r.expr([1, 2, 3]).for_each(lambda x:x)
       js: r([1, 2, 3]).forEach(function (x) { return x; })
@@ -201,4 +208,7 @@ tests:
 
     # Cleanup    
     - cd: r.db('test').table_drop('test')
+      ot: ({'dropped':1})
+      
+    - cd: r.db('test').table_drop('test2')
       ot: ({'dropped':1})
