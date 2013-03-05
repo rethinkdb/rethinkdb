@@ -21,7 +21,9 @@ public:
     func_t(env_t *env, const Term2 *_source);
     // Some queries, like filter, can take a shortcut object instead of a
     // function as their argument.
-    static func_t *new_shortcut_func(env_t *env, const datum_t *obj,
+    static func_t *new_filter_func(env_t *env, const datum_t *obj,
+                                   const pb_rcheckable_t *root);
+    static func_t *new_identity_func(env_t *env, const datum_t *obj,
                                      const pb_rcheckable_t *root);
     val_t *call(const std::vector<const datum_t *> &args);
     // Prefer these two version of call.

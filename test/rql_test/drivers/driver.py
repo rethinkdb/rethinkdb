@@ -4,7 +4,7 @@ import types
 import pdb
 import collections
 import types
-path.append("../../drivers/python2")
+path.insert(0, "../../drivers/python2")
 
 from os import environ
 import rethinkdb as r 
