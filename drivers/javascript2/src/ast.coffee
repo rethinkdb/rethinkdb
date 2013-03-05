@@ -151,7 +151,7 @@ class RDBOp extends RDBVal
         if @st
             return ['r.', @st, '(', intspallargs(args, optargs), ')']
         else
-            if @args[0] instanceof DatumTerm
+            if shouldWrap(@args[0])
                 args[0] = ['r(', args[0], ')']
             return [args[0], '.', @mt, '(', intspallargs(args[1..], optargs), ')']
 
@@ -175,10 +175,12 @@ intspallargs = (args, optargs) ->
         argrepr.push(kved(optargs))
     return argrepr
 
+shouldWrap = (arg) ->
+    arg instanceof DatumTerm or arg instanceof MakeArray or arg instanceof MakeObject
+
 class MakeArray extends RDBOp
     tt: Term2.TermType.MAKE_ARRAY
     compose: (args) -> ['[', intsp(args), ']']
-        
 
 class MakeObject extends RDBOp
     tt: Term2.TermType.MAKE_OBJ
@@ -432,7 +434,7 @@ class FunCall extends RDBOp
         if args.length > 2
             ['r.do(', intsp(args[1..]), ', ', args[0], ')']
         else
-            if @args[1] instanceof DatumTerm
+            if shouldWrap(@args[1])
                 args[1] = ['r(', args[1], ')']
             [args[1], '.do(', args[0], ')']
 
