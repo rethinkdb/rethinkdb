@@ -43,9 +43,8 @@ tests:
       rb: r.do(1, 2, 3) {|x, y| x + y}
       ot: err("RqlRuntimeError", 'Expected 2 argument(s) but found 3.', [1])
       
-    # YYY
     - cd: "r.do(1)"
-      ot: err("RqlRuntimeError", 'Expected type Function(*) but found NUMBER.', [1])
+      ot: err("RqlRuntimeError", 'Expected type FUNCTION but found DATUM.', [1])
 
     - js: r.do(1, function(x) {})
       cd: []
