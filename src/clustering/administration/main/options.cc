@@ -178,6 +178,31 @@ void parse_command_line_and_collect_unrecognized(int argc, const char *const *ar
     do_parse_command_line(argc, argv, options, unrecognized_out, names_by_values_out);
 }
 
+void verify_option_counts(const std::vector<option_t> &options,
+                          const std::map<std::string, std::vector<std::string> > &names_by_values) {
+    for (auto option = options.begin(); option != options.end(); ++option) {
+        const std::string option_name = option->names[0];
+        auto entry = names_by_values.find(option_name);
+        if (entry == names_by_values.end()) {
+            if (option->min_appearances > 0) {
+                throw parse_error_t(strprintf("option '%s' has not been specified", option_name.c_str()));
+            }
+        } else {
+            if (entry->second.size() < option->min_appearances || entry->second.size() > option->max_appearances) {
+                throw parse_error_t(strprintf("option '%s' has been specified the wrong number of times (%zu times, when it must be between %zu and %zu times)",
+                                              option_name.c_str(),
+                                              entry->second.size(),
+                                              option->min_appearances,
+                                              option->max_appearances));
+            }
+
+            if (option->no_parameter && entry->second.size() == 1 && entry->second[0] != "") {
+                throw parse_error_t(strprintf("option '%s' should not have a value", option_name.c_str()));
+            }
+        }
+    }
+}
+
 std::vector<std::string> split_by_spaces(const std::string &s) {
     std::vector<std::string> ret;
 

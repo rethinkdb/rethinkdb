@@ -66,7 +66,8 @@ private:
                                       std::vector<std::string> *unrecognized_out,
                                       std::map<std::string, std::vector<std::string> > *names_by_values_out);
     friend const option_t *find_option(const char *const option_name, const std::vector<option_t> &options);
-
+    friend void verify_option_counts(const std::vector<option_t> &options,
+                                     const std::map<std::string, std::vector<std::string> > &names_by_values);
     // Names for the option, e.g. "-j", "--join"
     std::vector<std::string> names;
 
@@ -103,6 +104,10 @@ void parse_command_line_and_collect_unrecognized(int argc, const char *const *ar
 
 void merge_new_values(const std::map<std::string, std::vector<std::string> > &new_values,
                       std::map<std::string, std::vector<std::string> > *names_by_values_ref);
+
+void verify_option_counts(const std::vector<option_t> &options,
+                          const std::map<std::string, std::vector<std::string> > &names_by_values);
+
 
 // We parse the file contents, using filepath solely for error messages,
 // retrieving some options.
