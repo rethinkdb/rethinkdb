@@ -866,26 +866,6 @@ void get_rethinkdb_create_options(std::vector<options::help_section_t> *help_out
     help_out->push_back(get_help_options(options_out));
 }
 
-po::options_description get_rethinkdb_create_options() {
-    po::options_description desc("Allowed options");
-    desc.add(get_file_options());
-    desc.add(get_machine_options());
-    desc.add(get_disk_options());
-    desc.add(get_help_options());
-    return desc;
-}
-
-po::options_description get_rethinkdb_create_options_visible() {
-    po::options_description desc("Allowed options");
-    desc.add(get_file_options());
-    desc.add(get_machine_options_visible());
-    desc.add(get_help_options());
-#ifdef AIOSUPPORT
-    desc.add(get_disk_options());
-#endif // AIOSUPPORT
-    return desc;
-}
-
 void get_rethinkdb_serve_options(std::vector<options::help_section_t> *help_out,
                                  std::vector<options::option_t> *options_out) {
     help_out->push_back(get_file_options(options_out));
@@ -895,32 +875,6 @@ void get_rethinkdb_serve_options(std::vector<options::help_section_t> *help_out,
     help_out->push_back(get_cpu_options(options_out));
     help_out->push_back(get_service_options(options_out));
     help_out->push_back(get_help_options(options_out));
-}
-
-po::options_description get_rethinkdb_serve_options() {
-    po::options_description desc("Allowed options");
-    desc.add(get_file_options());
-    desc.add(get_network_options(false));
-    desc.add(get_web_options());
-    desc.add(get_disk_options());
-    desc.add(get_cpu_options());
-    desc.add(get_service_options());
-    desc.add(get_help_options());
-    return desc;
-}
-
-po::options_description get_rethinkdb_serve_options_visible() {
-    po::options_description desc("Allowed options");
-    desc.add(get_file_options());
-    desc.add(get_network_options(false));
-    desc.add(get_web_options_visible());
-#ifdef AIOSUPPORT
-    desc.add(get_disk_options());
-#endif // AIOSUPPORT
-    desc.add(get_cpu_options());
-    desc.add(get_service_options());
-    desc.add(get_help_options());
-    return desc;
 }
 
 void get_rethinkdb_proxy_options(std::vector<options::help_section_t> *help_out,
@@ -936,28 +890,6 @@ void get_rethinkdb_proxy_options(std::vector<options::help_section_t> *help_out,
                                              "log_file"));
     help.add("--log-file path", "specifies the log file (defaults to 'log_file')");
     help_out->push_back(help);
-}
-
-po::options_description get_rethinkdb_proxy_options() {
-    po::options_description desc("Allowed options");
-    desc.add(get_network_options(true));
-    desc.add(get_web_options());
-    desc.add(get_service_options());
-    desc.add(get_help_options());
-    desc.add_options()
-        ("log-file", po::value<std::string>()->default_value("log_file"), "specify log file");
-    return desc;
-}
-
-po::options_description get_rethinkdb_proxy_options_visible() {
-    po::options_description desc("Allowed options");
-    desc.add(get_network_options(true));
-    desc.add(get_web_options_visible());
-    desc.add(get_service_options());
-    desc.add(get_help_options());
-    desc.add_options()
-        ("log-file", po::value<std::string>()->default_value("log_file"), "specify log file");
-    return desc;
 }
 
 options::help_section_t get_rethinkdb_admin_options(std::vector<options::option_t> *options_out) {
@@ -1029,25 +961,6 @@ options::help_section_t get_rethinkdb_import_options(std::vector<options::option
     help.add("--input-file path", "the csv input file");
 
     return help;
-}
-
-po::options_description get_rethinkdb_import_options() {
-    po::options_description desc("Allowed options");
-    desc.add_options()
-        DEBUG_ONLY(("client-port", po::value<int>()->default_value(port_defaults::client_port), "port to use when connecting to other nodes (for development)"))
-        ("join,j", po::value<std::vector<host_and_port_t> >()->composing()->required(), "host:port of a rethinkdb node to connect to")
-        // Default value of empty string?  Because who knows what the buck it returns with
-        // no default value.  Or am I supposed to wade my way back into the
-        // program_options documentation again?
-        // A default value is not required. One can check vm.count("thing") in order to determine whether the user has supplied the option. --Juggernaut
-        ("table", po::value<std::string>()->required(), "the database and table into which to import, of the format 'database.table'")
-        ("datacenter", po::value<std::string>()->default_value(""), "the datacenter into which to create a table")
-        ("primary-key", po::value<std::string>()->default_value("id"), "the primary key to create a new table with, or expected primary key")
-        ("separators,s", po::value<std::string>()->default_value("\t,"), "list of characters to be used as whitespace -- uses \"\\t,\" by default")
-        ("input-file", po::value<std::string>()->required(), "the csv input file");
-    desc.add(get_help_options());
-
-    return desc;
 }
 
 void get_rethinkdb_porcelain_options(std::vector<options::help_section_t> *help_out,
@@ -1712,12 +1625,16 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
 }
 
 void help_rethinkdb_porcelain() {
-    std::stringstream sstream;
-    sstream << get_rethinkdb_porcelain_options_visible();
+    std::vector<options::help_section_t> help_sections;
+    {
+        std::vector<options::option_t> options;
+        get_rethinkdb_porcelain_options(&help_sections, &options);
+    }
+
     help_pager_t help;
     help.pagef("Running 'rethinkdb' will create a new data directory or use an existing one,\n");
     help.pagef("  and serve as a RethinkDB cluster node.\n");
-    help.pagef("%s\n", sstream.str().c_str());
+    help.pagef("%s", format_help(help_sections).c_str());
     help.pagef("\n");
     help.pagef("There are a number of subcommands for more specific tasks:\n");
     help.pagef("    'rethinkdb create': prepare files on disk for a new server instance\n");
@@ -1758,7 +1675,7 @@ void help_rethinkdb_proxy() {
     std::vector<options::help_section_t> help_sections;
     {
         std::vector<options::option_t> options;
-        get_rethinkdb_serve_options(&help_sections, &options);
+        get_rethinkdb_proxy_options(&help_sections, &options);
     }
 
     help_pager_t help;
@@ -1770,7 +1687,7 @@ void help_rethinkdb_import() {
     std::vector<options::help_section_t> help_sections;
     {
         std::vector<options::option_t> options;
-        get_rethinkdb_serve_options(&help_sections, &options);
+        help_sections.push_back(get_rethinkdb_import_options(&options));
     }
 
     help_pager_t help;
