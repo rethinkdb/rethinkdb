@@ -199,33 +199,6 @@ void verify_option_counts(const std::vector<option_t> &options,
     }
 }
 
-std::vector<std::string> split_by_spaces(const std::string &s) {
-    std::vector<std::string> ret;
-
-    auto it = s.begin();
-    const auto end = s.end();
-
-    for (;;) {
-        while (it != end && isspace(*it)) {
-            ++it;
-        }
-
-        if (it == end) {
-            return ret;
-        }
-
-        auto jt = it;
-        while (jt != end && !isspace(*jt)) {
-            ++jt;
-        }
-
-        ret.push_back(std::string(it, jt));
-        it = jt;
-    }
-
-    return ret;
-}
-
 std::vector<std::string> split_by_lines(const std::string &s) {
     std::vector<std::string> ret;
     auto it = s.begin();
@@ -240,34 +213,6 @@ std::vector<std::string> split_by_lines(const std::string &s) {
         ret.push_back(std::string(it, jt));
         it = jt == end ? jt : jt + 1;
     }
-    return ret;
-}
-
-std::vector<std::string> word_wrap(const std::string &s, const size_t width) {
-    const std::vector<std::string> words = split_by_spaces(s);
-
-    std::vector<std::string> ret;
-
-    std::string current_line;
-
-    for (auto it = words.begin(); it != words.end(); ++it) {
-        if (current_line.empty()) {
-            current_line = *it;
-        } else {
-            if (current_line.size() + 1 + it->size() <= width) {
-                current_line += ' ';
-                current_line += *it;
-            } else {
-                ret.push_back(current_line);
-                current_line = *it;
-            }
-        }
-    }
-
-    // If words.empty(), then current_line == "" and we want one empty line returned.
-    // If !words.empty(), then current_line != "" and it's worth pushing.
-    ret.push_back(current_line);
-
     return ret;
 }
 
@@ -339,6 +284,53 @@ std::map<std::string, std::vector<std::string> > parse_config_file(const std::st
     return ret;
 }
 
+std::vector<std::string> word_wrap(const std::string &s, const size_t width) {
+    std::vector<std::string> ret;
+
+    auto it = s.begin();
+    const auto end = s.end();
+
+    for (;;) {
+        // We need to begin a new line.
+        it = std::find_if(it, end, is_not_space);
+        if (it == end) {
+            break;
+        }
+
+        // Find an end of this line that we _could_ truncate to.
+        const auto window = end - it <= static_cast<ssize_t>(width) ? end : it + width;
+        auto jt = window;
+        if (jt != end) {
+            while (it < jt && !isspace(*jt)) {
+                --jt;
+            }
+        }
+
+        // (We have a word that is longer than width.)
+        if (jt == it) {
+            jt = window;
+            while (jt < end && !isspace(*jt)) {
+                ++jt;
+            }
+        }
+
+        // Now we _could_ truncate to jt, but we should not leave trailing whitespace.
+        auto truncation_point = jt;
+        while (it < truncation_point && isspace(*(truncation_point - 1))) {
+            --truncation_point;
+        }
+
+        // Since `it` stopped at a non-whitespace character, there's no way this line is empty.
+        guarantee(it < truncation_point);
+
+        ret.push_back(std::string(it, truncation_point));
+
+        // Update it to jt, avoiding pointless work.
+        it = jt;
+    }
+
+    return ret;
+}
 
 std::string format_help(const std::vector<help_section_t> &help) {
     size_t max_syntax_description_length = 0;
