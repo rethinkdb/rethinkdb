@@ -70,7 +70,7 @@ var defines = {}
 r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
     
     // Now connect to js server
-    r.connect({port:JSPORT}, function(js_conn_err, js_conn) {
+    //r.connect({port:JSPORT}, function(js_conn_err, js_conn) {
 
         // Pull a test off the queue and run it
         function runTest() {
@@ -143,15 +143,18 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
                         function afterArray(arr_err, cpp_res) {
 
                             // Now run test on js server
-                            test.run(js_conn, js_cont);
+                            //test.run(js_conn, js_cont);
 
-                            function js_cont(js_err, js_res) {
+                            //function js_cont(js_err, js_res) {
 
+                                /*
                                 if (js_res instanceof Object && js_res.toArray) {
                                     js_res.toArray(afterArray2);
                                 } else {
                                     afterArray2(null, js_res);
                                 }
+                                */
+                                afterArray2(null, null);
 
                                 // Again, convert to array
                                 function afterArray2(arr_err, js_res) {
@@ -169,6 +172,7 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
                                             "\n\tVALUE: "+cpp_res.toString()+"\n\tEXPECTED: "+exp_fun.toString());
                                     }
 
+                                    /*
                                     if (js_err) {
                                         if (exp_fun.isErr && !exp_fun(js_err)) {
                                             printTestFailure(testName, src,
@@ -181,6 +185,7 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
                                             "JS result is not equal to expected result:"+
                                             "\n\tVALUE: "+js_res.toString()+"\n\tEXPECTED: "+exp_fun.toString());
                                     }
+                                    */
 
                                     // Continue to next test. Tests are fully sequential
                                     // so you can rely on previous queries results in
@@ -188,7 +193,7 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
                                     runTest();
                                     return;
                                 }
-                            }
+                            //}
                         }
                     }
                 }
@@ -197,13 +202,13 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
                 // closing the connection will allow the
                 // event loop to quit naturally
                 cpp_conn.close();
-                js_conn.close();
+                //js_conn.close();
             }
         }
 
         // Start the recursion though all the tests
         runTest();
-    });
+    //});
 });
 
 // Invoked by generated code to add test and expected result

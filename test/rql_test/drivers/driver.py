@@ -124,8 +124,9 @@ class PyTestDriver:
 
     # Set up connections to each database server
     def connect(self):
-        print 'Connecting to JS server on port ' + str(JSPORT)
-        self.js_conn = r.connect(host='localhost', port=JSPORT)
+        #print 'Connecting to JS server on port ' + str(JSPORT)
+        #self.js_conn = r.connect(host='localhost', port=JSPORT)
+
         print 'Connecting to CPP server on port ' + str(CPPPORT)
         print ''
         self.cpp_conn = r.connect(host='localhost', port=CPPPORT)
@@ -182,6 +183,7 @@ class PyTestDriver:
                         (repr(err), repr(exp_val))
                 )
 
+        """
         try:
             jsres = query.run(self.js_conn)
 
@@ -200,6 +202,7 @@ class PyTestDriver:
                     "Error running test on JS server not equal to expected err:\n\tERROR: %s\n\tEXPECTED: %s" %
                         (repr(err), repr(exp_val))
                 )
+        """
 
 driver = PyTestDriver()
 driver.connect()
