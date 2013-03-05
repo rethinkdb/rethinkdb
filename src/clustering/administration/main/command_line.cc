@@ -621,6 +621,21 @@ void validate(boost::any& value_out, const std::vector<std::string>& words,
 #endif
 }
 
+options::help_section_t get_web_options(std::vector<options::option_t> *options_out) {
+    options::help_section_t help("Web options");
+    options_out->push_back(options::option_t(options::names_t("--web-static-directory"),
+                                             options::OPTIONAL));
+    // No help for --web-static-directory.
+    options_out->push_back(options::option_t(options::names_t("--http-port"),
+                                             options::OPTIONAL,
+                                             strprintf("%d", port_defaults::http_port)));
+    help.add("--http-port port", "port for web administration console");
+    options_out->push_back(options::option_t(options::names_t("--no-http-admin"),
+                                             options::OPTIONAL_NO_PARAMETER));
+    help.add("--no-http-admin", "disable web administration console");
+    return help;
+}
+
 po::options_description get_web_options() {
     po::options_description desc("Web options");
     desc.add_options()
@@ -636,6 +651,41 @@ po::options_description get_web_options_visible() {
         ("http-port", po::value<int>()->default_value(port_defaults::http_port), "port for http admin console")
         ("no-http-admin", "disable http admin console");
     return desc;
+}
+
+options::help_section_t get_network_options(const bool join_required, std::vector<options::option_t> *options_out) {
+    options::help_section_t help("Network options");
+    options_out->push_back(options::option_t(options::names_t("--bind"),
+                                             options::OPTIONAL_REPEAT));
+    help.add("--bind {all | addr}", "add the address of a local interface to listen on when accepting connections; loopback addresses are enabled by deafult");
+
+    options_out->push_back(options::option_t(options::names_t("--cluster-port"),
+                                             options::OPTIONAL,
+                                             strprintf("%d", port_defaults::peer_port)));
+    help.add("--cluster-port port", "port for receiving connections from other nodes");
+
+#ifndef NDEBUG
+    options_out->push_back(options::option_t(options::names_t("--client-port"),
+                                             options::OPTIONAL,
+                                             strprintf("%d", port_defaults::client_port)));
+    help.add("--client-port port", "port to use when connecting to other nodes (for development)");
+#endif  // NDEBUG
+
+    options_out->push_back(options::option_t(options::names_t("--driver-port"),
+                                             options::OPTIONAL,
+                                             strprintf("%d", port_defaults::reql_port)));
+    help.add("--driver-port port", "port for rethinkdb protocol client drivers");
+
+    options_out->push_back(options::option_t(options::names_t("--port-offset", "-o"),
+                                             options::OPTIONAL,
+                                             strprintf("%d", port_defaults::port_offset)));
+    help.add("-o [ --port-offset ] offset", "all ports used locally will have this value added");
+
+    options_out->push_back(options::option_t(options::names_t("--join", "-j"),
+                                             join_required ? options::MANDATORY_REPEAT : options::OPTIONAL_REPEAT));
+    help.add("-j [ --join ] host:port", "host and port of a rethinkdb node to connect to");
+
+    return help;
 }
 
 po::options_description get_network_options(bool join_required) {
