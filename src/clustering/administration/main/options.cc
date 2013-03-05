@@ -271,14 +271,16 @@ std::map<std::string, std::vector<std::string> > parse_config_file(const std::st
         const std::string name(config_name_beg, config_name_end);
         const std::string value(beginning_of_value, stripped_line.end());
 
-        const option_t *option = find_option(name.c_str(), options);
+        const std::string option_name = "--" + name;
+
+        const option_t *option = find_option(option_name.c_str(), options);
 
         if (option == NULL) {
             throw file_parse_error_t(strprintf("Config file %s: parse error at line %zu: unrecognized option name '%s'",
                                                filepath.c_str(), it - lines.begin(), name.c_str()));
         }
 
-        ret[name].push_back(value);
+        ret[option_name].push_back(value);
     }
 
     return ret;
