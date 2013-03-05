@@ -975,34 +975,6 @@ void get_rethinkdb_porcelain_options(std::vector<options::help_section_t> *help_
     help_out->push_back(get_help_options(options_out));
 }
 
-po::options_description get_rethinkdb_porcelain_options() {
-    po::options_description desc("Allowed options");
-    desc.add(get_file_options());
-    desc.add(get_machine_options());
-    desc.add(get_network_options(false));
-    desc.add(get_web_options());
-    desc.add(get_disk_options());
-    desc.add(get_cpu_options());
-    desc.add(get_service_options());
-    desc.add(get_help_options());
-    return desc;
-}
-
-po::options_description get_rethinkdb_porcelain_options_visible() {
-    po::options_description desc("Allowed options");
-    desc.add(get_file_options());
-    desc.add(get_machine_options_visible());
-    desc.add(get_network_options(false));
-    desc.add(get_web_options_visible());
-#ifdef AIOSUPPORT
-    desc.add(get_disk_options());
-#endif // AIOSUPPORT
-    desc.add(get_cpu_options());
-    desc.add(get_service_options());
-    desc.add(get_help_options());
-    return desc;
-}
-
 io_backend_t get_io_backend_option(const std::string &option) {
     if (option == "pool") {
         return aio_pool;
