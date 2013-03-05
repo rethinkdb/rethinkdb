@@ -157,9 +157,10 @@ void do_parse_command_line(const int argc, const char *const *const argv, const 
     }
 }
 
-void parse_command_line(const int argc, const char *const *const argv, const std::vector<option_t> &options,
-                        std::map<std::string, std::vector<std::string> > *const names_by_values_out) {
-    do_parse_command_line(argc, argv, options, NULL, names_by_values_out);
+std::map<std::string, std::vector<std::string> > parse_command_line(const int argc, const char *const *const argv, const std::vector<option_t> &options) {
+    std::map<std::string, std::vector<std::string> > names_by_values;
+    do_parse_command_line(argc, argv, options, NULL, &names_by_values);
+    return names_by_values;
 }
 
 void parse_command_line_and_collect_unrecognized(int argc, const char *const *argv, const std::vector<option_t> &options,

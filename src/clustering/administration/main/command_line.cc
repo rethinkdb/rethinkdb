@@ -790,10 +790,13 @@ io_backend_t get_io_backend_option(const std::string &option) {
 MUST_USE bool parse_commands(int argc, char **argv, const std::vector<options::option_t> &options,
                              std::map<std::string, std::vector<std::string> > *names_by_values_out) {
     try {
-        std::map<std::string, std::vector<std::string> > names_by_values = default_values_map(options);
-        options::parse_command_line(argc, argv, options, &names_by_values);
-        options::verify_option_counts(options, names_by_values);
-        names_by_values_out->swap(names_by_values);
+        const std::map<std::string, std::vector<std::string> > command_options
+            = options::parse_command_line(argc, argv, options);
+        std::map<std::string, std::vector<std::string> > tmp = default_values_map(options);
+        options::merge_new_values(command_options, &tmp);
+
+        options::verify_option_counts(options, tmp);
+        names_by_values_out->swap(tmp);
         return true;
     } catch (const std::runtime_error &e) {
         fprintf(stderr, "%s\n", e.what());
@@ -815,8 +818,7 @@ std::map<std::string, std::vector<std::string> > parse_config_file_flat(const st
 MUST_USE bool parse_commands_deep(int argc, char **argv, const std::vector<options::option_t> &options,
                                   std::map<std::string, std::vector<std::string> > *names_by_values_out) {
     try {
-        std::map<std::string, std::vector<std::string> > names_by_values;
-        options::parse_command_line(argc, argv, options, &names_by_values);
+        std::map<std::string, std::vector<std::string> > names_by_values = options::parse_command_line(argc, argv, options);
         auto config_file_it = names_by_values.find("--config-file");
         if (config_file_it != names_by_values.end()) {
             if (config_file_it->second.size() != 1) {
@@ -830,6 +832,7 @@ MUST_USE bool parse_commands_deep(int argc, char **argv, const std::vector<optio
         }
         std::map<std::string, std::vector<std::string> > tmp = default_values_map(options);
         options::merge_new_values(names_by_values, &tmp);
+        verify_option_counts(options, tmp);
         names_by_values_out->swap(tmp);
         return true;
     } catch (const std::exception &e) {

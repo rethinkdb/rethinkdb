@@ -107,13 +107,11 @@ private:
     std::vector<std::string> default_values;
 };
 
-// Merges new command line names and values into `*names_by_values_ref`.  Uses empty-string
-// parameter values for appearances of OPTIONAL_NO_PARAMETER options.  Uses the *official name* of
-// the option (the first parameter passed to names_t) for map keys.  The value
-// `*names_by_values_ref` can already be partly populated with option values, which will get
-// overridden (NOT appended to) by new option appearances found on the command line.
-void parse_command_line(int argc, const char *const *argv, const std::vector<option_t> &options,
-                        std::map<std::string, std::vector<std::string> > *names_by_values_ref);
+// Parses options from a command line into a return value.  Uses empty-string parameter values for
+// appearances of OPTIONAL_NO_PARAMETER options.  Uses the *official name* of the option (the first
+// parameter passed to names_t) for map keys.  Does not do any verification that we have the right
+// number of option values.  (That only happens in `verify_option_counts`.)
+std::map<std::string, std::vector<std::string> > parse_command_line(int argc, const char *const *argv, const std::vector<option_t> &options);
 
 // Like `parse_command_line`, except that it tolerates unrecognized options.  Out-of-place
 // positional parameters and unrecognized options are output to `*unrecognized_out`, in the same
