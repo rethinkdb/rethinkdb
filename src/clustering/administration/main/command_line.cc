@@ -1632,7 +1632,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         }
 
         std::map<std::string, std::vector<std::string> > opts;
-        if (!parse_commands_deep(argc - 2, argv + 2, options, &opts)) {
+        if (!parse_commands_deep(argc - 1, argv + 1, options, &opts)) {
             return EXIT_FAILURE;
         }
 
