@@ -166,7 +166,10 @@ class RDBSequence extends RDBType
             if result instanceof RqlRuntimeError
                 unless first_error?
                     first_error = new RDBPrimitive result.message
-                result = {'errors': new RDBPrimitive 1}
+                result = new RDBObject {'errors': 1}
+
+            unless result.typeOf() is RDBType.OBJECT
+                throw new RqlRuntimeError "Expected type WriteQuery but found #{TypeName::typeOf(result).toString()}."
 
             for own k,v of result
                 if base[k]?

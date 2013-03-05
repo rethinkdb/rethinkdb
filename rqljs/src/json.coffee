@@ -175,7 +175,7 @@ class RDBObject extends RDBType
         unless ks1.length is ks2.length then return new RDBPrimitive false
         (return new RDBPrimitive false for k1,i in ks1 when k1 isnt ks2[i])
         for k in ks1
-            if (@[k].ne other[k]).asJSON() then return false
+            if (@[k].ne other[k]).asJSON() then return new RDBPrimitive false
         return new RDBPrimitive true
 
     lt: (other) ->

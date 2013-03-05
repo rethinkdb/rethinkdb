@@ -389,7 +389,8 @@ class RDBAll
 
 class RDBForEach extends RDBOp
     type: tp "Sequence, Function(1) -> OBJECT"
-    op: (args) -> args[0].forEach args[1](1)
+    op: (args, optargs, context) ->
+        args[0].forEach context.bindIvar args[1](1)
 
 class RDBFunc
     constructor: (args) ->
