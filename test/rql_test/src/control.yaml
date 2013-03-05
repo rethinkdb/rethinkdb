@@ -148,7 +148,7 @@ tests:
       ot: 1
 
     - cd: r.do(1, 2, r.js('(function(a, b, c) { return c; })'))
-      ot: err("RqlRuntimeError", "Cannot convert javascript `undefined` to JSON", [0])
+      ot: err("RqlRuntimeError", "Cannot convert javascript `undefined` to JSON.", [0])
 
     - cd: r.expr([1, 2, 3]).filter(r.js('(function(a) { return a >= 2; })'))
       ot: ([2, 3])
@@ -162,7 +162,12 @@ tests:
     - cd: r.expr([1, 2, 3]).filter(r.js('(function(a) {})'))
       ot: err("RqlRuntimeError", "Cannot convert javascript `undefined` to JSON.", [0])
     
-    # TODO: what happens if we pass static values to things that expect functions (=> error unless we explicitly define it)
+    # What happens if we pass static values to things that expect functions
+    - cd: r.expr([1, 2, 3]).map(1)
+      ot: err("RqlRuntimeError", "Expected type FUNCTION but found DATUM.", [0])
+      
+    - cd: r.expr([1, 2, 3]).filter('foo')
+      ot: err("RqlRuntimeError", "Expected type OBJECT but found STRING.", [0])
 
     # forEach
     - cd: tbl.count()
