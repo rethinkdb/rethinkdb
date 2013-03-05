@@ -47,3 +47,6 @@ tests:
       
     # TODO: test options to table_create (e.g. primary_key -- that's tested in selection,
     # primary_datacenter, cache_size)
+    
+    # TODO: test bad arguments to table_create (especially in js
+    # driver -- e.g. not an object but multiple args)
