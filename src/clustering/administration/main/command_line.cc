@@ -819,13 +819,10 @@ MUST_USE bool parse_commands_deep(int argc, char **argv, const std::vector<optio
                                   std::map<std::string, std::vector<std::string> > *names_by_values_out) {
     try {
         std::map<std::string, std::vector<std::string> > names_by_values = options::parse_command_line(argc, argv, options);
-        auto config_file_it = names_by_values.find("--config-file");
-        if (config_file_it != names_by_values.end()) {
-            if (config_file_it->second.size() != 1) {
-                throw std::runtime_error("expecting only one --config-file option");
-            }
+        boost::optional<std::string> config_file_name = get_optional_option(names_by_values, "--config-file");
+        if (config_file_name) {
             std::map<std::string, std::vector<std::string> > config_file_names_by_values
-                = parse_config_file_flat(config_file_it->second[0], options);
+                = parse_config_file_flat(*config_file_name, options);
 
             options::merge_new_values(names_by_values, &config_file_names_by_values);
             names_by_values.swap(config_file_names_by_values);
