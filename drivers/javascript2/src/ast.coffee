@@ -67,7 +67,7 @@ class RDBVal extends TermBase
     or: (others...) -> new Any {}, @, others...
     and: (others...) -> new All {}, @, others...
 
-    forEach: ar (func) -> new ForEach {}, @, func
+    forEach: ar (func) -> new ForEach {}, @, funcWrap(func)
 
 class DatumTerm extends RDBVal
     args: []
