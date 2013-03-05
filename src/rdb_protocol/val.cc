@@ -294,7 +294,7 @@ std::pair<table_t *, const datum_t *> val_t::as_single_selection() {
     return std::make_pair(table, datum);
 }
 
-func_t *val_t::as_func(int airity, shortcut_ok_bool_t shortcut_ok) {
+func_t *val_t::as_func(shortcut_ok_bool_t shortcut_ok) {
     if (get_type().is_convertible(type_t::DATUM) && shortcut_ok == SHORTCUT_OK) {
         if (!func) {
             r_sanity_check(parent);
@@ -303,7 +303,6 @@ func_t *val_t::as_func(int airity, shortcut_ok_bool_t shortcut_ok) {
         return func;
     }
 
-    (void)airity;
     rcheck(type.raw_type == type_t::FUNC,
            strprintf("Expected type Function but found %s.", type.name()));
     return func;

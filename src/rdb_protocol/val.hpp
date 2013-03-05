@@ -106,7 +106,7 @@ public:
     datum_stream_t *as_seq();
     std::pair<table_t *, const datum_t *> as_single_selection();
     // See func.hpp for an explanation of shortcut functions.
-    func_t *as_func(int airity = -1, shortcut_ok_bool_t shortcut_ok = SHORTCUT_NOT_OK);
+    func_t *as_func(shortcut_ok_bool_t shortcut_ok = SHORTCUT_NOT_OK);
 
     const datum_t *as_datum(); // prefer the 4 below
     bool as_bool();

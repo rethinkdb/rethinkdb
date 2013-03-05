@@ -16,7 +16,7 @@ private:
     virtual val_t *eval_impl() {
         val_t *baseval = optarg("base", 0);
         const datum_t *base = baseval ? baseval->as_datum() : 0;
-        func_t *g = arg(1)->as_func(1), *m = arg(2)->as_func(1), *r = arg(3)->as_func(2);
+        func_t *g = arg(1)->as_func(), *m = arg(2)->as_func(), *r = arg(3)->as_func();
         return new_val(arg(0)->as_seq()->gmr(g, m, base, r));
     }
     RDB_NAME("grouped_map_reduce");
