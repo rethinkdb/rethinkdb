@@ -175,7 +175,7 @@ tests:
       ot: ({'replaced':36})
       
     - cd: r.expr([1, 2, 3]).for_each( tbl.insert({ 'id':r.row }) )
-      ot: err("RqlCompileError", "No implicit variable is bound.", [0])
+      ot: err("RqlCompileError", "No implicit variable is bound.", [0]) # TODO: change this error message, it's terrible
     
     # forEach negative cases
     # YYY
