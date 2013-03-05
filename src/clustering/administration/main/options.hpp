@@ -172,6 +172,10 @@ struct help_section_t {
     std::vector<help_line_t> help_lines;
 };
 
+// Word wraps a string (which presumably doesn't contain newlines or tab characters) to the
+// specified width.
+std::vector<std::string> word_wrap(const std::string &s, size_t width);
+
 // Creates a help string suitable for output from --help, aligning and word-wrapping the blurbs.
 std::string format_help(const std::vector<help_section_t> &help);
 
