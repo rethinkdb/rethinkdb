@@ -117,6 +117,41 @@ int write_pid_file(const std::string &pid_filepath) {
     return EXIT_SUCCESS;
 }
 
+boost::optional<std::string> get_optional_option(const std::map<std::string, std::vector<std::string> > &opts,
+                                                 const std::string &name) {
+    auto it = opts.find(name);
+    if (it == opts.end() || it->second.empty()) {
+        return boost::optional<std::string>();
+    }
+
+    if (it->second.size() == 1) {
+        return it->second[0];
+    }
+
+    throw std::logic_error("Option '%s' appears multiple times (when it should only appear once.)");
+}
+
+int write_pid_file(const std::map<std::string, std::vector<std::string> > &opts) {
+    boost::optional<std::string> pid_filepath = get_optional_option(opts, "--pid-file");
+    if (!pid_filepath || pid_filepath->size() == 0) {
+        return EXIT_SUCCESS;
+    }
+
+    return write_pid_file(*pid_filepath);
+}
+
+std::string get_single_option(const std::map<std::string, std::vector<std::string> > &opts,
+                              const std::string &name) {
+    boost::optional<std::string> value = get_optional_option(opts, name);
+
+    if (!value) {
+        throw std::logic_error("Missing option '%s'.  (It does not have a default value.)");
+    }
+
+    return *value;
+}
+
+
 // write_pid_file registers remove_pid_file with atexit.
 // Always call it after spawner_t::create to ensure correct behaviour.
 int write_pid_file(const po::variables_map& vm) {
@@ -185,6 +220,11 @@ std::string get_web_path(boost::optional<std::string> web_static_directory, char
     }
 
     return render_as_path(result);
+}
+
+std::string get_web_path(const std::map<std::string, std::vector<std::string> > &opts, char **argv) {
+    boost::optional<std::string> web_static_directory = get_optional_option(opts, "--web-static-directory");
+    return get_web_path(web_static_directory, argv);
 }
 
 std::string get_web_path(const po::variables_map& vm, char *argv[]) {
@@ -264,6 +304,32 @@ struct port_command_line_options_t {
     int port_offset;
 };
 
+const std::vector<std::string> &all_options(const std::map<std::string, std::vector<std::string> > &opts,
+                                            const std::string &name) {
+    auto it = opts.find(name);
+    if (it == opts.end()) {
+        throw std::logic_error(strprintf("option '%s' not found", name.c_str()));
+    }
+    return it->second;
+}
+
+int get_single_int(const std::map<std::string, std::vector<std::string> > &opts, const std::string &name) {
+    const std::string value = get_single_option(opts, name);
+    int64_t x;
+    if (strtoi64_strict(value, 10, &x)) {
+        if (INT_MIN <= x && x <= INT_MAX) {
+            return x;
+        }
+    }
+    throw std::runtime_error(strprintf("Option '%s' (with value '%s') not a valid integer",
+                                       name.c_str(), value.c_str()));
+}
+
+bool exists_option(const std::map<std::string, std::vector<std::string> > &opts, const std::string &name) {
+    auto it = opts.find(name);
+    return it != opts.end() && it->second.size() > 0;
+}
+
 int offseted_port(const int port, const int port_offset) {
     return port == 0 ? 0 : port + port_offset;
 }
@@ -276,6 +342,23 @@ service_address_ports_t get_service_address_ports(port_command_line_options_t op
                                    offseted_port(options.http_port, options.port_offset),
                                    offseted_port(options.reql_port, options.port_offset),
                                    options.port_offset);
+}
+
+service_address_ports_t get_service_address_ports(const std::map<std::string, std::vector<std::string> > &opts) {
+    port_command_line_options_t options;
+    options.local_addresses = get_local_addresses(all_options(opts, "--bind"));
+    options.cluster_port = get_single_int(opts, "--cluster-port");
+    options.http_port = get_single_int(opts, "--http-port");
+    options.http_admin_is_disabled = exists_option(opts, "--no-http-admin");
+#ifndef NDEBUG
+    options.cluster_client_port = get_single_int(opts, "--client-port");
+#else
+    options.cluster_client_port = port_defaults::client_port;
+#endif
+    options.reql_port = get_single_int(opts, "--driver-port");
+    options.port_offset = get_single_int(opts, "--port-offset");
+
+    return get_service_address_ports(options);
 }
 
 
@@ -1166,22 +1249,6 @@ MUST_USE bool parse_commands_deep(int argc, char *argv[], po::variables_map *vm,
     return true;
 }
 
-std::string get_single_option(const std::map<std::string, std::vector<std::string> > &opts, std::string name) {
-    auto it = opts.find(name);
-    if (it == opts.end()) {
-        throw std::logic_error("Missing option '%s'.  (It does not have a default value.)");
-    }
-    if (it->second.size() != 1) {
-        throw std::logic_error("Option '%s' appears multiple times (when it should only appear once.)");
-    }
-    return it->second.at(0);
-}
-
-bool exists_option(const std::map<std::string, std::vector<std::string> > &opts, std::string name) {
-    auto it = opts.find(name);
-    return it != opts.end() && it->second.size() > 0;
-}
-
 int main_rethinkdb_create(int argc, char *argv[]) {
     try {
         std::vector<options::option_t> options;
@@ -1246,45 +1313,46 @@ int main_rethinkdb_create(int argc, char *argv[]) {
 
 int main_rethinkdb_serve(int argc, char *argv[]) {
     try {
-        po::variables_map vm;
-        if (!parse_commands_deep(argc, argv, &vm, get_rethinkdb_serve_options())) {
+        std::vector<options::option_t> options;
+        {
+            std::vector<options::help_section_t> help;
+            get_rethinkdb_serve_options(&help, &options);
+        }
+
+        std::map<std::string, std::vector<std::string> > opts;
+        if (!parse_commands_deep(argc - 2, argv + 2, options, &opts)) {
             return EXIT_FAILURE;
         }
 
-        if (vm.count("help") > 0) {
+        if (exists_option(opts, "--help")) {
             help_rethinkdb_serve();
             return EXIT_SUCCESS;
         }
 
-        const base_path_t base_path(vm["directory"].as<std::string>());
+        const base_path_t base_path(get_single_option(opts, "--directory"));
         std::string logfilepath = get_logfilepath(base_path);
 
         std::vector<host_and_port_t> joins;
-        if (vm.count("join") > 0) {
-            joins = vm["join"].as<std::vector<host_and_port_t> >();
+        for (auto it = opts["--join"].begin(); it != opts["--join"].end(); ++it) {
+            joins.push_back(parse_host_and_port(*it));
         }
 
-        service_address_ports_t address_ports;
-            address_ports = get_service_address_ports(vm);
+        service_address_ports_t address_ports = get_service_address_ports(opts);
 
-        std::string web_path = get_web_path(vm, argv);
+        std::string web_path = get_web_path(opts, argv);
 
-        io_backend_t io_backend;
-        if (!pull_io_backend_option(vm, &io_backend)) {
-            fprintf(stderr, "ERROR: selected io-backend is invalid or unsupported.\n");
-            return EXIT_FAILURE;
-        }
+        io_backend_t io_backend = get_io_backend_option(get_single_option(opts, "--io-backend"));
 
         extproc::spawner_info_t spawner_info;
         extproc::spawner_t::create(&spawner_info);
 
-        const int num_workers = vm["cores"].as<int>();
+        const int num_workers = get_single_int(opts, "--cores");
         if (num_workers <= 0 || num_workers > MAX_THREADS) {
             fprintf(stderr, "ERROR: number specified for cores to utilize must be between 1 and %d\n", MAX_THREADS);
             return EXIT_FAILURE;
         }
 
-        if (write_pid_file(vm) != EXIT_SUCCESS) {
+        if (write_pid_file(opts) != EXIT_SUCCESS) {
             return EXIT_FAILURE;
         }
 
@@ -1298,7 +1366,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
         install_fallback_log_writer(logfilepath);
 
         serve_info_t serve_info(&spawner_info, joins, address_ports, web_path,
-                                optional_variable_value<std::string>(vm["config-file"]));
+                                get_optional_option(opts, "--config-file"));
 
         bool result;
         run_in_thread_pool(boost::bind(&run_rethinkdb_serve, base_path,
