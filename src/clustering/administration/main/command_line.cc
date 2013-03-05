@@ -707,13 +707,19 @@ po::options_description get_network_options(bool join_required) {
     return desc;
 }
 
-options::help_section_t get_disk_options(std::vector<options::option_t> *options_out) {
-    options::help_section_t help("Disk I/O options");
+void get_disk_options(std::vector<options::help_section_t> *help_out,
+                      std::vector<options::option_t> *options_out) {
     options_out->push_back(options::option_t(options::names_t("--io-backend"),
                                              options::OPTIONAL,
                                              "pool"));
+
+#ifdef AIOSUPPORT
+    options::help_section_t help("Disk I/O options");
     help.add("--io-backend backend", "event backend to use: native or pool");
-    return help;
+    help_out->push_back(help);
+#else
+    (void)help_out;
+#endif
 }
 
 po::options_description get_disk_options() {
@@ -769,6 +775,14 @@ po::options_description get_help_options() {
     return desc;
 }
 
+void get_rethinkdb_create_options(std::vector<options::help_section_t> *help_out,
+                                  std::vector<options::option_t> *options_out) {
+    help_out->push_back(get_file_options(options_out));
+    help_out->push_back(get_machine_options(options_out));
+    get_disk_options(help_out, options_out);
+    help_out->push_back(get_help_options(options_out));
+}
+
 po::options_description get_rethinkdb_create_options() {
     po::options_description desc("Allowed options");
     desc.add(get_file_options());
@@ -787,6 +801,17 @@ po::options_description get_rethinkdb_create_options_visible() {
     desc.add(get_disk_options());
 #endif // AIOSUPPORT
     return desc;
+}
+
+void get_rethinkdb_serve_options(std::vector<options::help_section_t> *help_out,
+                                 std::vector<options::option_t> *options_out) {
+    help_out->push_back(get_file_options(options_out));
+    help_out->push_back(get_network_options(false, options_out));
+    help_out->push_back(get_web_options(options_out));
+    get_disk_options(help_out, options_out);
+    help_out->push_back(get_cpu_options(options_out));
+    help_out->push_back(get_service_options(options_out));
+    help_out->push_back(get_help_options(options_out));
 }
 
 po::options_description get_rethinkdb_serve_options() {
