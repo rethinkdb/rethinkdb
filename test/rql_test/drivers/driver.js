@@ -249,7 +249,7 @@ function err(err_name, err_msg, err_frames) {
             if (err_name && !(other.name === err_name)) return false;
 
             // Strip out "offending object" from err message
-            other.msg = other.msg.replace(/:(\n|.)*/m, ".");
+            other.msg = other.msg.replace(/:\n([\r\n]|.)*/m, ".");
 
             if (err_msg && !(other.msg === err_msg)) return false;
             if (err_frames && !(eq_test(other.frames, err_frames))) return false;
