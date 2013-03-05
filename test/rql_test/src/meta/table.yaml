@@ -45,5 +45,5 @@ tests:
     - cd: db.table_drop('foo')
       ot: err('RqlRuntimeError', 'Table "foo" does not exist.', [0])
       
-    # TODO: test options to table_create (e.g. primary_key,
+    # TODO: test options to table_create (e.g. primary_key -- that's tested in selection,
     # primary_datacenter, cache_size)
