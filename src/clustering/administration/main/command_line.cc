@@ -1457,7 +1457,7 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
 
         if (joins.empty()) {
             fprintf(stderr, "No --join option(s) given. A proxy needs to connect to something!\n"
-                   "Run 'rethinkdb proxy help' for more information.\n");
+                    "Run 'rethinkdb help proxy' for more information.\n");
             return EXIT_FAILURE;
         }
 
@@ -1514,33 +1514,39 @@ MUST_USE bool split_db_table(const std::string &db_table, std::string *db_name_o
 int main_rethinkdb_import(int argc, char *argv[]) {
     // TODO: On errors supply usage information?
     try {
-        po::variables_map vm;
-        if (!parse_commands(argc - 1, argv + 1, &vm, get_rethinkdb_import_options())) {
+        std::vector<options::option_t> options;
+        get_rethinkdb_import_options(&options);
+
+        std::map<std::string, std::vector<std::string> > opts;
+        if (!parse_commands_deep(argc - 2, argv + 2, options, &opts)) {
             return EXIT_FAILURE;
         }
 
-        if (vm.count("help") > 0) {
+        if (exists_option(opts, "--help")) {
             help_rethinkdb_import();
             return EXIT_SUCCESS;
         }
 
-        // TODO: Does this not work with a zero count?
-        if (vm.count("join") == 0) {
-            fprintf(stderr, "--join HOST:PORT must be specified\n");
+        std::vector<host_and_port_t> joins;
+        for (auto it = opts["--join"].begin(); it != opts["--join"].end(); ++it) {
+            joins.push_back(parse_host_and_port(*it));
+        }
+
+        if (joins.empty()) {
+            fprintf(stderr, "No --join option(s) given. An import process needs to connect to something!\n"
+                    "Run 'rethinkdb help import' for more information.\n");
             return EXIT_FAILURE;
         }
-        std::vector<host_and_port_t> joins;
-        joins = vm["join"].as<std::vector<host_and_port_t> >();
 
-        std::set<ip_address_t> local_addresses;
-        local_addresses = get_local_addresses(vm);
+
+        std::set<ip_address_t> local_addresses = get_local_addresses(all_options(opts, "--bind"));
 
 #ifndef NDEBUG
-        int client_port = vm["client-port"].as<int>();
+        int client_port = get_single_int(opts, "--client-port");
 #else
         int client_port = port_defaults::client_port;
 #endif
-        std::string db_table = vm["table"].as<std::string>();
+        std::string db_table = get_single_option(opts, "--table");
         std::string db_name_str;
         std::string table_name_str;
         if (!split_db_table(db_table, &db_name_str, &table_name_str)) {
@@ -1559,26 +1565,27 @@ int main_rethinkdb_import(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
-        std::string datacenter_name_arg = vm["datacenter"].as<std::string>();
+        boost::optional<std::string> datacenter_name_arg = get_optional_option(opts, "--datacenter");
         boost::optional<name_string_t> datacenter_name;
-        if (!datacenter_name_arg.empty()) {
+        if (datacenter_name_arg) {
             name_string_t tmp;
-            if (!tmp.assign_value(datacenter_name_arg)) {
+            if (!tmp.assign_value(*datacenter_name_arg)) {
                 fprintf(stderr, "ERROR: datacenter name invalid.  (%s)\n", name_string_t::valid_char_msg);
                 return EXIT_FAILURE;
             }
             *datacenter_name = tmp;
         }
 
-        std::string primary_key = vm["primary-key"].as<std::string>();
+        std::string primary_key = get_single_option(opts, "--primary-key");
 
-        std::string separators = vm["separators"].as<std::string>();
+        std::string separators = get_single_option(opts, "--separators");
         if (separators.empty()) {
             return EXIT_FAILURE;
         }
-        std::string input_filepath = vm["input-file"].as<std::string>();
+        std::string input_filepath = get_single_option(opts, "--input-file");
+        // TODO: Is there really any point to specially handling an empty string path?
         if (input_filepath.empty()) {
-            fprintf(stderr, "Please supply an --input-file option.\n");
+            fprintf(stderr, "Please supply a non-empty --input-file option.\n");
             return EXIT_FAILURE;
         }
 
