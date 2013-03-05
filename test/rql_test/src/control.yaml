@@ -159,7 +159,7 @@ tests:
       py: r.expr([1,2,3]).for_each(lambda row:tbl.update({'foo':row}))
       ot: ({'replaced':9})
       
-    - js: r([1, 2, 3]).forEach(function (row) { return [tbl.insert({ id:row }), tbl.insert({ id:row.mul(10) })] })
+    - js: r([1, 2, 3]).forEach(function (row) { return tbl.insert({ id:row.mul(10) }) })
       py: r.expr([1,2,3]).for_each(lambda row:tbl.insert({'id':row * 10}))
       ot: ({'inserted':3})
 

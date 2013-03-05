@@ -1,6 +1,7 @@
 goog.provide('rethinkdb.RDBTable')
 
 goog.require('rethinkdb.RDBSequence')
+goog.require('google.cryptojs')
 
 # A RQL table
 class RDBTable extends RDBSequence
