@@ -92,11 +92,14 @@ std::map<std::string, std::vector<std::string> > default_values_map(const std::v
     return names_by_values;
 }
 
-void merge_new_values(const std::map<std::string, std::vector<std::string> > &new_values,
-                      std::map<std::string, std::vector<std::string> > *const names_by_values_ref) {
-    for (auto it = new_values.begin(); it != new_values.end(); ++it) {
-        (*names_by_values_ref)[it->first] = it->second;
+std::map<std::string, std::vector<std::string> > merge(
+    const std::map<std::string, std::vector<std::string> > &high_precedence_values,
+    const std::map<std::string, std::vector<std::string> > &low_precedence_values) {
+    std::map<std::string, std::vector<std::string> > ret = low_precedence_values;
+    for (auto it = high_precedence_values.begin(); it != high_precedence_values.end(); ++it) {
+        ret[it->first] = it->second;
     }
+    return ret;
 }
 
 void do_parse_command_line(const int argc, const char *const *const argv, const std::vector<option_t> &options,
@@ -150,7 +153,7 @@ void do_parse_command_line(const int argc, const char *const *const argv, const 
         }
     }
 
-    merge_new_values(names_by_values, names_by_values_ref);
+    *names_by_values_ref = merge(names_by_values, *names_by_values_ref);
 
     if (unrecognized_out != NULL) {
         unrecognized_out->swap(unrecognized);

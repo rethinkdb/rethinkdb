@@ -122,11 +122,13 @@ void parse_command_line_and_collect_unrecognized(int argc, const char *const *ar
                                                  std::vector<std::string> *unrecognized_out,
                                                  std::map<std::string, std::vector<std::string> > *names_by_values_ref);
 
-// Merges new option values into lower-priority option specifications already present in
-// `*names_by_values_ref`.  For example, command line options might override config file options,
-// and both would override default values.
-void merge_new_values(const std::map<std::string, std::vector<std::string> > &new_values,
-                      std::map<std::string, std::vector<std::string> > *names_by_values_ref);
+// Merges option values from two different sources together, with higher precedence going to the
+// left-hand argument.  Example usage:
+//
+//     opts = merge(command_line_values, config_file_values);
+std::map<std::string, std::vector<std::string> > merge(
+    const std::map<std::string, std::vector<std::string> > &high_precedence_values,
+    const std::map<std::string, std::vector<std::string> > &low_precedence_values);
 
 // Verifies that given options build the right amount of times.  This is separate from option
 // parsing because we need to accumulate options from both the command line and config file.
