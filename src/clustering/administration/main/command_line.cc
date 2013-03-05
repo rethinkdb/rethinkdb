@@ -967,6 +967,18 @@ po::options_description get_rethinkdb_import_options() {
     return desc;
 }
 
+void get_rethinkdb_porcelain_options(std::vector<options::help_section_t> *help_out,
+                                     std::vector<options::option_t> *options_out) {
+    help_out->push_back(get_file_options(options_out));
+    help_out->push_back(get_machine_options(options_out));
+    help_out->push_back(get_network_options(false, options_out));
+    help_out->push_back(get_web_options(options_out));
+    get_disk_options(help_out, options_out);
+    help_out->push_back(get_cpu_options(options_out));
+    help_out->push_back(get_service_options(options_out));
+    help_out->push_back(get_help_options(options_out));
+}
+
 po::options_description get_rethinkdb_porcelain_options() {
     po::options_description desc("Allowed options");
     desc.add(get_file_options());
