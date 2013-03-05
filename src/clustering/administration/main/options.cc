@@ -131,6 +131,13 @@ void parse_command_line(const int argc, const char *const *const argv, const std
         }
     }
 
+    // For all options, insert the default value into the map if it does not already exist.
+    for (auto it = options.begin(); it != options.end(); ++it) {
+        if (it->min_appearances == 0) {
+            names_by_values.insert(std::make_pair(it->names[0], it->default_values));
+        }
+    }
+
     names_by_values_out->swap(names_by_values);
 }
 
