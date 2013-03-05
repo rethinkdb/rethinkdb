@@ -126,8 +126,6 @@ tests:
     - cd: r.do(1, 2, r.js('(function(a, b) { return a + b; })'))
       ot: 3
 
-    # TODO: screw with the number of arguments in the JS function (too few too many)
-      
     - cd: r.expr(1).do(r.js('(function(x) { return x + 1; })'))
       ot: 2
 
@@ -142,8 +140,27 @@ tests:
     - cd: r.js('function() { return 1; }')
       ot: 'err("RqlRuntimeError", "SyntaxError: Unexpected token (", [0])'
       
-    # TODO: passing r.js to seq.map (r.js(1), r.js(func))
-    # TODO: check r.js function not returning a value (e.g. undefined) in filter
+    # Play with the number of arguments in the JS function
+    - cd: r.do(1, 2, r.js('(function(a) { return a; })'))
+      ot: 1
+
+    - cd: r.do(1, 2, r.js('(function(a, b, c) { return a; })'))
+      ot: 1
+
+    - cd: r.do(1, 2, r.js('(function(a, b, c) { return c; })'))
+      ot: err("RqlRuntimeError", "Cannot convert javascript `undefined` to JSON", [0])
+
+    - cd: r.expr([1, 2, 3]).filter(r.js('(function(a) { return a >= 2; })'))
+      ot: ([2, 3])
+
+    - cd: r.expr([1, 2, 3]).map(r.js('(function(a) { return a + 1; })'))
+      ot: ([2, 3, 4])
+
+    - cd: r.expr([1, 2, 3]).map(r.js('1'))
+      ot: err("RqlRuntimeError", "Expected type FUNCTION but found DATUM.", [0])
+
+    - cd: r.expr([1, 2, 3]).filter(r.js('(function(a) {})'))
+      ot: err("RqlRuntimeError", "Cannot convert javascript `undefined` to JSON.", [0])
     
     # TODO: what happens if we pass static values to things that expect functions (=> error unless we explicitly define it)
 
