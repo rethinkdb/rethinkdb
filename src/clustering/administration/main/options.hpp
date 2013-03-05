@@ -57,9 +57,8 @@ public:
     explicit option_t(names_t names, appearance_t appearance, std::string default_value);
 
 private:
-    friend void do_parse_command_line(int argc, const char *const *argv,
-                                      const std::vector<option_t> &options,
-                                      bool ignore_unrecognized,
+    friend void do_parse_command_line(int argc, const char *const * argv, const std::vector<option_t> &options,
+                                      std::vector<std::string> *unrecognized_out,
                                       std::map<std::string, std::vector<std::string> > *names_by_values_out);
     friend const option_t *find_option(const char *const option_name, const std::vector<option_t> &options);
 
@@ -93,8 +92,10 @@ private:
 void parse_command_line(int argc, const char *const *argv, const std::vector<option_t> &options,
                         std::map<std::string, std::vector<std::string> > *names_by_values_out);
 
-void parse_command_line_ignore_unrecognized(int argc, const char *const *argv, const std::vector<option_t> &options,
-                                            std::map<std::string, std::vector<std::string> > *names_by_values_out);
+void parse_command_line_and_collect_unrecognized(int argc, const char *const *argv, const std::vector<option_t> &options,
+                                                 std::vector<std::string> *unrecognized_out,
+                                                 std::map<std::string, std::vector<std::string> > *names_by_values_out);
+
 
 
 struct help_line_t {

@@ -80,11 +80,12 @@ const option_t *find_option(const char *const option_name, const std::vector<opt
 }
 
 void do_parse_command_line(const int argc, const char *const *const argv, const std::vector<option_t> &options,
-                           bool ignore_unrecognized,
+                           std::vector<std::string> *const unrecognized_out,
                            std::map<std::string, std::vector<std::string> > *const names_by_values_out) {
     guarantee(argc >= 0);
 
     std::map<std::string, std::vector<std::string> > names_by_values;
+    std::vector<std::string> unrecognized;
 
     for (int i = 0; i < argc; ) {
         // The option name as seen _in the command line_.  We output this in
@@ -95,7 +96,8 @@ void do_parse_command_line(const int argc, const char *const *const argv, const 
 
         const option_t *const option = find_option(option_name, options);
         if (!option) {
-            if (ignore_unrecognized) {
+            if (unrecognized_out != NULL) {
+                unrecognized.push_back(option_name);
                 continue;
             } else if (looks_like_option_name(option_name)) {
                 throw parse_error_t(strprintf("unrecognized option '%s'", option_name));
@@ -142,16 +144,21 @@ void do_parse_command_line(const int argc, const char *const *const argv, const 
     }
 
     names_by_values_out->swap(names_by_values);
+    unrecognized_out->swap(unrecognized);
 }
 
 void parse_command_line(const int argc, const char *const *const argv, const std::vector<option_t> &options,
                         std::map<std::string, std::vector<std::string> > *const names_by_values_out) {
-    do_parse_command_line(argc, argv, options, false, names_by_values_out);
+    do_parse_command_line(argc, argv, options, NULL, names_by_values_out);
 }
 
-void parse_command_line_ignore_unrecognized(int argc, const char *const *argv, const std::vector<option_t> &options,
-                                            std::map<std::string, std::vector<std::string> > *names_by_values_out) {
-    do_parse_command_line(argc, argv, options, true, names_by_values_out);
+void parse_command_line_and_collect_unrecognized(int argc, const char *const *argv, const std::vector<option_t> &options,
+                                                 std::vector<std::string> *unrecognized_out,
+                                                 std::map<std::string, std::vector<std::string> > *names_by_values_out) {
+    // We check that unrecognized_out is not NULL because do_parse_command_line
+    // throws some exceptions depending on the nullness of that value.
+    guarantee(unrecognized_out != NULL);
+    do_parse_command_line(argc, argv, options, unrecognized_out, names_by_values_out);
 }
 
 std::vector<std::string> split_by_spaces(const std::string &s) {
