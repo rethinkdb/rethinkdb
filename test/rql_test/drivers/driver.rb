@@ -75,8 +75,17 @@ def cmp_test(one, two)
   end
 end
 
-def test src, expected, name
+def eval_env; binding; end
+$defines = eval_env
 
+$js_conn = RethinkDB::Connection.new('localhost', JSPORT)
+
+$cpp_conn = RethinkDB::Connection.new('localhost', CPPPORT)
+
+$test_count = 0
+$success_count = 0
+
+def test src, expected, name
   $test_count += 2
   begin
     query = eval src, $defines
