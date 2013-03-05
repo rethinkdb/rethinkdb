@@ -59,12 +59,12 @@ private:
     // How many times must the option appear?  If an option appears zero times,
     // and if min_appearances is zero, then `default_values` will be used as the
     // value-list of the option.  Typical combinations of (min_appearances,
-    // max_appearances) are (0, 1) (with a default_value), (0, INT_MAX) (with or
-    // without a default value), (1, 1) (for mandatory options), (1, INT_MAX)
+    // max_appearances) are (0, 1) (with a default_value), (0, SIZE_MAX) (with or
+    // without a default value), (1, 1) (for mandatory options), (1, SIZE_MAX)
     // (for mandatory options with repetition).
     //
     // It must be the case that 0 <= min_appearances <= max_appearances <=
-    // INT_MAX.
+    // SIZE_MAX.
     size_t min_appearances;
     size_t max_appearances;
 

@@ -17,7 +17,7 @@ option_t::option_t(const names_t _names, const appearance_t appearance)
         break;
     case MANDATORY_REPEAT:
         min_appearances = 1;
-        max_appearances = INT_MAX;
+        max_appearances = SIZE_MAX;
         no_parameter = false;
         break;
     case OPTIONAL:
@@ -27,7 +27,7 @@ option_t::option_t(const names_t _names, const appearance_t appearance)
         break;
     case OPTIONAL_REPEAT:
         min_appearances = 0;
-        max_appearances = INT_MAX;
+        max_appearances = SIZE_MAX;
         no_parameter = false;
         break;
     case OPTIONAL_NO_PARAMETER:
@@ -52,7 +52,7 @@ option_t::option_t(const names_t _names, const appearance_t appearance, std::str
         break;
     case OPTIONAL_REPEAT:
         min_appearances = 0;
-        max_appearances = INT_MAX;
+        max_appearances = SIZE_MAX;
         no_parameter = false;
         break;
     case MANDATORY:
