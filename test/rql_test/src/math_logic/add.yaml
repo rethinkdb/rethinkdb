@@ -1,6 +1,7 @@
 desc: Tests for basic usage of the add operation
 tests:
     
+    # TODO: make sure ALL drivers support non-overloaded method names (e.g. add, sub, r.add, r.sub, etc.)
     # Python supports the overloaded operator '+' in both directions
     - py: [(r.expr(1) + 1), (1 + r.expr(1))]
       js: r(1).add(1)
@@ -48,3 +49,6 @@ tests:
       js: r('a').add(1)
       rb: r('a') + 1
       ot: err("RqlRuntimeError", "Expected type STRING but found NUMBER.", [1])
+
+    # TODO: make sure type errors are good, e.g. `r.expr(5) + tbl`
+    

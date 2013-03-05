@@ -131,3 +131,4 @@ tests:
 
     # TODO: make sure merge (and other things) are polymorphic on objects and streams
     # TODO: seq.map(r.row[:foo])
+
