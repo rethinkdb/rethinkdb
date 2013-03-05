@@ -773,22 +773,27 @@ po::options_description get_rethinkdb_porcelain_options_visible() {
     return desc;
 }
 
+io_backend_t get_io_backend_option(const std::string &option) {
+    if (option == "pool") {
+        return aio_pool;
+#ifdef AIOSUPPORT
+    } else if (option == "native") {
+        return aio_native;
+#endif
+    } else {
+        throw options::validation_error_t(strprintf("Invalid --io-backend value: '%s'", option.c_str()));
+    }
+}
+
 // Returns true upon success.
 MUST_USE bool pull_io_backend_option(const po::variables_map& vm, io_backend_t *out) {
     std::string io_backend = vm["io-backend"].as<std::string>();
-    if (io_backend == "pool") {
-        *out = aio_pool;
-    } else if (io_backend == "native") {
-#ifdef AIOSUPPORT
-        *out = aio_native;
-#else
-        return false;
-#endif
-    } else {
+    try {
+        *out = get_io_backend_option(io_backend);
+        return true;
+    } catch (const options::validation_error_t&) {
         return false;
     }
-
-    return true;
 }
 
 void output_option_description(const std::string &option_name, const po::options_description &options) {
