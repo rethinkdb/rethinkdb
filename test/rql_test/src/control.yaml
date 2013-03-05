@@ -194,9 +194,8 @@ tests:
     - cd: tbl.count()
       ot: 6
 
-    # XXX: fix this (accepting the insert query, and test framework gen_keys business)
-    #- cd: r.expr([1, 2, 3]).for_each( tbl2.insert({}) )
-    #  ot: ({'inserted':3, 'generated_keys':...})
+    - cd: r.expr([1, 2, 3]).for_each( tbl2.insert({}) )
+      ot: ({'inserted':3, 'generated_keys':arr(3,uuid())})
     
     # We have six elements, update them 6*2*3=36 times
     - js: r([1, 2, 3]).forEach(function (row) { return [tbl.update({ foo:row }), tbl.update({ bar:row })] })
