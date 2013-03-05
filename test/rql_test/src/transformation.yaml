@@ -67,6 +67,8 @@ tests:
       js: tbl.orderBy('id').nth(0)
       rb: tbl.order_by(:id)[0]
       ot: ({'id':0, 'a':0})
+    # TODO: test ascending and descending orderBy
+    # TODO: make sure we don't allow string interpolation syntax in orderBy (e.g. '-')
 
     # TODO: add tests for skip (positive, negative numbers, non-numbers)
     # TODO: add tests for limit (positive, negative numbers, non-numbers)

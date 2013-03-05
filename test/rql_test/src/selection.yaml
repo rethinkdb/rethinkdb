@@ -56,7 +56,7 @@ tests:
 
     - cd: tbl.get(20).count()
       py: [] # Handled by native Python error
-      ot: err("RqlRuntimeError", 'Expected type SEQUENCE but found SELECTION.', [0])
+      ot: err("RqlRuntimeError", 'Expected type SEQUENCE but found SINGLE_SELECTION.', [0])
       
     # Get a document that exists
     - cd: tbl.get(20)
