@@ -1434,43 +1434,51 @@ int main_rethinkdb_admin(int argc, char *argv[]) {
 
 int main_rethinkdb_proxy(int argc, char *argv[]) {
     try {
-        po::variables_map vm;
-        if (!parse_commands_deep(argc, argv, &vm, get_rethinkdb_proxy_options())) {
+        std::vector<options::option_t> options;
+        {
+            std::vector<options::help_section_t> help;
+            get_rethinkdb_proxy_options(&help, &options);
+        }
+
+        std::map<std::string, std::vector<std::string> > opts;
+        if (!parse_commands_deep(argc - 2, argv + 2, options, &opts)) {
             return EXIT_FAILURE;
         }
 
-        if (vm.count("help") > 0) {
+        if (exists_option(opts, "--help")) {
             help_rethinkdb_proxy();
             return EXIT_SUCCESS;
         }
 
-        if (!vm.count("join")) {
+        std::vector<host_and_port_t> joins;
+        for (auto it = opts["--join"].begin(); it != opts["--join"].end(); ++it) {
+            joins.push_back(parse_host_and_port(*it));
+        }
+
+        if (joins.empty()) {
             fprintf(stderr, "No --join option(s) given. A proxy needs to connect to something!\n"
                    "Run 'rethinkdb proxy help' for more information.\n");
             return EXIT_FAILURE;
-         }
+        }
 
-        std::string logfilepath = vm["log-file"].as<std::string>();
+        const std::string logfilepath = get_single_option(opts, "--log-file");
         install_fallback_log_writer(logfilepath);
 
-        std::vector<host_and_port_t> joins = vm["join"].as<std::vector<host_and_port_t> >();
+        service_address_ports_t address_ports = get_service_address_ports(opts);
 
-        service_address_ports_t address_ports;
-        address_ports = get_service_address_ports(vm);
-
-        std::string web_path = get_web_path(vm, argv);
+        std::string web_path = get_web_path(opts, argv);
 
         extproc::spawner_info_t spawner_info;
         extproc::spawner_t::create(&spawner_info);
 
         const int num_workers = get_cpu_count();
 
-        if (write_pid_file(vm) != EXIT_SUCCESS) {
+        if (write_pid_file(opts) != EXIT_SUCCESS) {
             return EXIT_FAILURE;
         }
 
         serve_info_t serve_info(&spawner_info, joins, address_ports, web_path,
-                                optional_variable_value<std::string>(vm["config-file"]));
+                                get_optional_option(opts, "--config-file"));
 
         bool result;
         run_in_thread_pool(boost::bind(&run_rethinkdb_proxy, serve_info, &result),
