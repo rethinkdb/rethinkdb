@@ -5,7 +5,7 @@ goog.require('rethinkdb.TCPServer')
 goog.require('rethinkdb.HttpServer')
 
 args = process.argv[2..]
-port = parseInt(args[0] || '28016')
+port = parseInt(args[0] || '28015')
 httpPort = parseInt(args[1] || '8080')
 
 # Start the server

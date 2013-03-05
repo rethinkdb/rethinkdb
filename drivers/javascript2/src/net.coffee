@@ -8,7 +8,7 @@ goog.require("goog.proto2.WireFormatSerializer")
 
 class Connection
     DEFAULT_HOST: 'localhost'
-    DEFAULT_PORT: 28016
+    DEFAULT_PORT: 28015
     DEFAULT_DB: 'test'
 
     constructor: (host, callback) ->

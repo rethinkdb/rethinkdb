@@ -40,7 +40,7 @@ var actions = [
         r.connect({}, cont);
     },
     function(err, c) {
-        assertErr(err, "RqlDriverError", "Could not connect to localhost:28016.")
+        assertErr(err, "RqlDriverError", "Could not connect to localhost:28015.")
         r.connect({port:11221}, cont);
     },
     function(err, c) {
@@ -48,7 +48,7 @@ var actions = [
         r.connect({host:'0.0.0.0'}, cont);
     },
     function(err, c) {
-        assertErr(err, "RqlDriverError", "Could not connect to 0.0.0.0:28016.")
+        assertErr(err, "RqlDriverError", "Could not connect to 0.0.0.0:28015.")
         r.connect({host:'0.0.0.0', port:11221}, cont);
     },
     function(err, c) {
@@ -80,7 +80,7 @@ var actions = [
     },
     function(err, c) {
         assertNoError(err);
-        r.connect({host:'localhost', port:28016}, cont);
+        r.connect({host:'localhost', port:28015}, cont);
     },
     function(err, c) {
         assertNoError(err);
@@ -88,7 +88,7 @@ var actions = [
     },
     function(err, c) {
         assertNoError(err);
-        r.connect({port:28016}, cont);
+        r.connect({port:28015}, cont);
     },
     function(err, c) {
         assertNoError(err);
@@ -124,7 +124,7 @@ var actions = [
     },
     function(err, c) {
         assertNoError(err);
-        r.connect({host:'localhost', port:28016}, cont);
+        r.connect({host:'localhost', port:28015}, cont);
     },
     function(err, c) {
         assertNoError(err);
@@ -132,7 +132,7 @@ var actions = [
     },
     function(err, c) {
         assertNoError(err);
-        r.connect({port:28016}, cont);
+        r.connect({port:28015}, cont);
     },
     function(err, c) {
         assertNoError(err);

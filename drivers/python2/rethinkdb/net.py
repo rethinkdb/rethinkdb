@@ -175,7 +175,7 @@ class Connection():
         if response.type is p.Response2.SUCCESS_ATOM:
             return Datum.deconstruct(response.response[0])
         
-def connect(host='localhost', port=28016):
+def connect(host='localhost', port=28015):
     return Connection(host, port)
 
 from ast import Datum, DB

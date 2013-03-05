@@ -14,7 +14,7 @@ try:
     conn = r.connect()
     raise Exception("No connect error")
 except r.RqlDriverError as err:
-    if not str(err) == "Could not connect to localhost:28016.":
+    if not str(err) == "Could not connect to localhost:28015.":
         raise Exception("Connect err is wrong")
 
 try:
@@ -29,7 +29,7 @@ try:
     conn = r.connect(host="0.0.0.0")
     raise Exception("No connect error")
 except r.RqlDriverError as err:
-    if not str(err) == "Could not connect to 0.0.0.0:28016.":
+    if not str(err) == "Could not connect to 0.0.0.0:28015.":
         raise Exception("Connect err is wrong")
 
 try:
@@ -48,9 +48,9 @@ try:
     conn.reconnect()
     conn = r.connect(host='localhost')
     conn.reconnect()
-    conn = r.connect(host='localhost', port=28016)
+    conn = r.connect(host='localhost', port=28015)
     conn.reconnect()
-    conn = r.connect(port=28016)
+    conn = r.connect(port=28015)
     conn.reconnect()
 except r.RqlDriverError as err:
     raise Exception("Should have connected to default CPP server")
@@ -66,9 +66,9 @@ try:
     conn.reconnect()
     conn = r.connect(host='localhost')
     conn.reconnect()
-    conn = r.connect(host='localhost', port=28016)
+    conn = r.connect(host='localhost', port=28015)
     conn.reconnect()
-    conn = r.connect(port=28016)
+    conn = r.connect(port=28015)
     conn.reconnect()
 except r.RqlDriverError as err:
     raise Exception("Should have connected to default JS server")
