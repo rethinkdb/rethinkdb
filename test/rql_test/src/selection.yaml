@@ -45,7 +45,7 @@ tests:
     # TODO: make sure we can insert and query json docs by arbitrary unicode attrs
 
     - cd: r.db('#$%')
-      ot: err("RqlRuntimeError", 'Database name "#$%" invalid (Use A-Za-z0-9_ only).', [0])
+      ot: err("RqlRuntimeError", 'Database name "#$%" invalid (Use A-Za-z0-9_ only).', [0]) # TODO: make sure we use backticks and these babies are upcased
     
     - cd: r.db('test').table('#$%')
       ot: err("RqlRuntimeError", 'Table name "#$%" invalid (Use A-Za-z0-9_ only).', [0])
@@ -56,7 +56,7 @@ tests:
 
     - cd: tbl.get(20).count()
       py: [] # Handled by native Python error
-      ot: err("RqlRuntimeError", 'Expected type Sequence but found SingleSelection.', [0])
+      ot: err("RqlRuntimeError", 'Expected type SEQUENCE but found SELECTION.', [0])
       
     # Get a document that exists
     - cd: tbl.get(20)
@@ -104,7 +104,7 @@ tests:
     
     # Between shouldn't work on arrays
     - cd: r.expr([1, 2, 3]).between(-1, 2)
-      ot: err('RqlRuntimeError', 'Expected type StreamSelection but found ARRAY.', [0])
+      ot: err('RqlRuntimeError', 'Expected type SELECTION but found ARRAY.', [0])
 
     # TODO: test between on non-selections
     # TODO: test between without the first argument
