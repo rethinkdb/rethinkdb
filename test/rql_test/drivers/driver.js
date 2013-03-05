@@ -5,6 +5,10 @@ var CPPPORT = process.argv[3]
 
 // -- utilities --
 
+function printTestFailure(name, src, message) {
+    console.log("\nTEST FAILURE: "+name+"\nTEST BODY: "+src+"\n"+message+"\n");
+}
+
 function eq_test(one, two) {
     if (one instanceof Array) {
 
@@ -43,15 +47,17 @@ function eq_test(one, two) {
 
 // Equality comparison
 function eq(exp) {
-    return function(val) {
+    var fun = function(val) {
         if (!eq_test(val, exp)) {
-            console.log("Equality comparison failed");
-            console.log("Value:", val, "Expected:", exp);
             return false;
         } else {
             return true;
         }
-    }
+    };
+    fun.toString = function() {
+        return exp.toString();
+    };
+    return fun;
 }
 
 // Tests are stored in list until they can be sequentially evaluated
@@ -91,9 +97,14 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
                             test = eval(src);
                         }
                     } catch(bld_err) {
-                        if (!exp_fun(bld_err)) {
-                            console.log("Error when building "+testName+":");
-                            console.log(" "+bld_err.name+": "+bld_err.message);
+                        if (exp_fun.isErr) {
+                            if (!exp_fun(bld_err)) {
+                                printTestFailure(testName, src,
+                                    "Error eval'ing test src not equal to expected err:\n\tERROR: "+
+                                        bld_err.toString()+"\n\tExpected: "+exp_fun.toString());
+                            }
+                        } else {
+                            printTestFailure(testName, src, "Error eval'ing test src:\n\t"+bld_err.toString());
                         }
 
                         // continue to next test
@@ -105,9 +116,14 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
                     try {
                         test.run(cpp_conn, cpp_cont);
                     } catch(err) {
-                        if (!exp_fun(err)) {
-                            console.log("Error when running "+testName+":");
-                            console.log(" "+err.name+": "+err.message);
+                        if (exp_fun.isErr) {
+                            if (!exp_fun(err)) {
+                                printTestFailure(testName, src,
+                                    "Error running test not equal to expected err:\n\tERROR: "+
+                                        err.toString()+"\n\tEXPECTED: "+exp_fun.toString());
+                            }
+                        } else {
+                            printTestFailure(testName, src, "Error running test:\n\t"+err.toString());
                         }
                         
                         // Continue to next test
@@ -141,21 +157,29 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
                                 function afterArray2(arr_err, js_res) {
 
                                     if (cpp_err) {
-                                        if (!exp_fun(cpp_err)) {
-                                            console.log("Error when evaluating "+testName+" on CPP server:");
-                                            console.log(" "+cpp_err.name+": "+cpp_err.message);
+                                        if (exp_fun.isErr && !exp_fun(cpp_err)) {
+                                            printTestFailure(testName, src,
+                                                "Error running test on CPP server not equal to expected err:"+
+                                                "\n\tERROR: "+cpp_err.toString()+
+                                                "\n\tEXPECTED "+exp_fun.toString());
                                         }
                                     } else if (!exp_fun(cpp_res)) {
-                                        console.log(" in CPP version of test "+testName+": "+src)
+                                        printTestFailure(testName, src,
+                                            "CPP result is not equal to expected result:"+
+                                            "\n\tVALUE: "+cpp_res.toString()+"\n\tEXPECTED: "+exp_fun.toString());
                                     }
 
                                     if (js_err) {
-                                        if (!exp_fun(js_err)) {
-                                            console.log("Error when evaluating "+testName+" on JS server:");
-                                            console.log(" "+js_err.name+": "+js_err.message);
+                                        if (exp_fun.isErr && !exp_fun(js_err)) {
+                                            printTestFailure(testName, src,
+                                                "Error running test on JS server not equal to expected err:"+
+                                                "\n\tERROR: "+js_err.toString()+
+                                                "\n\tEXPECTED "+exp_fun.toString());
                                         }
-                                    } else if (js_res && !exp_fun(js_res)) {
-                                        console.log(" in JS version of test "+testName+": "+src)
+                                    } else if (!exp_fun(js_res)) {
+                                        printTestFailure(testName, src,
+                                            "JS result is not equal to expected result:"+
+                                            "\n\tVALUE: "+js_res.toString()+"\n\tEXPECTED: "+exp_fun.toString());
                                     }
 
                                     // Continue to next test. Tests are fully sequential
@@ -201,16 +225,20 @@ function define(expr) {
 // Invoked by generated code to support bag comparison on this expected value
 function bag(list) {
     var bag = eval(list).sort();
-    return function(other) {
+    var fun = function(other) {
         other = other.sort();
         return eq_test(bag, other);
-    }
+    };
+    fun.toString = function() {
+        return "bag("+list+")";
+    };
+    return fun;
 }
 
 // Invoked by generated code to demonstrate expected error output
 function err(err_name, err_msg, err_frames) {
-    err_frames = null; // Don't test frames for now, at least not until the C++ is done with them
-    return function(other) {
+    var err_frames = null; // Don't test frames for now, at least not until the C++ is done with them
+    var fun = function(other) {
         if (!(function() {
             if (!(other instanceof Error)) return false;
             if (err_name && !(other.name === err_name)) return false;
@@ -218,12 +246,15 @@ function err(err_name, err_msg, err_frames) {
             if (err_frames && !(eq_test(other.frames, err_frames))) return false;
             return true;
         })()) {
-            console.log("Error equivalency failed");
-            console.log("Value:", other, "Expected:", err_name+"("+err_msg+")");
             return false;
         }
         return true;
     }
+    fun.isErr = true;
+    fun.toString = function() {
+        return err_name+"(\""+err_msg+"\")";
+    };
+    return fun;
 }
 
 True = true;
