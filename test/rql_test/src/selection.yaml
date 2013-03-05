@@ -86,9 +86,8 @@ tests:
     # TODO: test GET for table where id isn't a primary key
     
     # Clean up pkey test table
-    # XXX: tell slava once test_pkey creation is enabled so he can continue
-    #- cd: r.db('test').table_drop('test_pkey')
-    #  ot: ({'dropped':1})
+    - cd: r.db('test').table_drop('test_pkey')
+      ot: ({'dropped':1})
 
     # Between
     - cd: tbl.between(20,29).count()
@@ -125,7 +124,7 @@ tests:
     
     # Clean up
     - cd: r.db('test').table_list().for_each(r.db('test').table_drop(r.row))
-      ot: ({'dropped':3})
+      ot: ({'dropped':2})
 
     # TODO: make sure merge (and other things) are polymorphic on objects and streams
     # TODO: seq.map(r.row[:foo])
