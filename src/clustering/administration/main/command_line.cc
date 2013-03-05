@@ -822,13 +822,22 @@ void parse_config_file_flat(const std::string &config_filepath,
 MUST_USE bool parse_commands_deep(int argc, char **argv, const std::vector<options::option_t> &options,
                                   std::map<std::string, std::vector<std::string> > *names_by_values_out) {
     try {
-        std::map<std::string, std::vector<std::string> > names_by_values = default_values_map(options);
+        std::map<std::string, std::vector<std::string> > names_by_values;
         options::parse_command_line(argc, argv, options, &names_by_values);
-        auto config_file_it = names_by_values.find("config-file");
+        auto config_file_it = names_by_values.find("--config-file");
         if (config_file_it != names_by_values.end()) {
-            parse_config_file_flat(config_file_it->second[0], options, &names_by_values);
+            if (config_file_it->second.size() != 1) {
+                throw std::runtime_error("expecting only one --config-file option");
+            }
+            std::map<std::string, std::vector<std::string> > config_file_names_by_values;
+            parse_config_file_flat(config_file_it->second[0], options, &config_file_names_by_values);
+
+            options::merge_new_values(names_by_values, &config_file_names_by_values);
+            names_by_values.swap(config_file_names_by_values);
         }
-        names_by_values_out->swap(names_by_values);
+        std::map<std::string, std::vector<std::string> > tmp = default_values_map(options);
+        options::merge_new_values(names_by_values, &tmp);
+        names_by_values_out->swap(tmp);
         return true;
     } catch (const std::exception &e) {
         fprintf(stderr, "%s\n", e.what());

@@ -110,9 +110,8 @@ private:
 // Merges new command line names and values into `*names_by_values_ref`.  Uses empty-string
 // parameter values for appearances of OPTIONAL_NO_PARAMETER options.  Uses the *official name* of
 // the option (the first parameter passed to names_t) for map keys.  The value
-// `*names_by_values_ref` should have been initialized using `default_values_map(...)`, or
-// theoretically even a parsing of options by another source (that wouldn't mind getting overridden
-// by the command line).
+// `*names_by_values_ref` can already be partly populated with option values, which will get
+// overridden (NOT appended to) by new option appearances found on the command line.
 void parse_command_line(int argc, const char *const *argv, const std::vector<option_t> &options,
                         std::map<std::string, std::vector<std::string> > *names_by_values_ref);
 
@@ -126,8 +125,8 @@ void parse_command_line_and_collect_unrecognized(int argc, const char *const *ar
                                                  std::map<std::string, std::vector<std::string> > *names_by_values_ref);
 
 // Merges new option values into lower-priority option specifications already present in
-// `*names_by_values_ref`.  For example, command line options override config file options, and
-// config file options override default values.
+// `*names_by_values_ref`.  For example, command line options might override config file options,
+// and both would override default values.
 void merge_new_values(const std::map<std::string, std::vector<std::string> > &new_values,
                       std::map<std::string, std::vector<std::string> > *names_by_values_ref);
 
