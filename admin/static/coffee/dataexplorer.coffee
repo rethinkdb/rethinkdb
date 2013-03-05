@@ -1597,6 +1597,7 @@ module 'DataExplorerView', ->
                 @results_view.render_error(@query, err)
 
         execute_portion: =>
+            @saved_data.cursor = null
             while @queries[@index]?
                 full_query = @non_rethinkdb_query
                 full_query += @queries[@index]
