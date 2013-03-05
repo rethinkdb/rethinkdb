@@ -251,16 +251,14 @@ val_t::val_t(func_t *_func, const term_t *_parent, env_t *_env)
 val_t::type_t val_t::get_type() const { return type; }
 
 const datum_t *val_t::as_datum() {
-    if (type.raw_type != type_t::DATUM
-        && type.raw_type != type_t::SINGLE_SELECTION) {
-        rfail("Expected type DATUM but found %s.", type.name());
+    if (type.raw_type != type_t::DATUM && type.raw_type != type_t::SINGLE_SELECTION) {
+        rcheck_literal_type(type_t::DATUM);
     }
     return datum;
 }
 
 table_t *val_t::as_table() {
-    rcheck(type.raw_type == type_t::TABLE,
-           strprintf("Expected type TABLE but found %s.", type.name()));
+    rcheck_literal_type(type_t::TABLE);
     return table;
 }
 
@@ -272,7 +270,7 @@ datum_stream_t *val_t::as_seq() {
     } else if (type.raw_type == type_t::DATUM) {
         if (!sequence) sequence = datum->as_datum_stream(env, parent);
     } else {
-        rfail("Expected type Sequence but found %s.", type.name());
+        rcheck_literal_type(type_t::SEQUENCE);
     }
     return sequence;
 }
@@ -282,25 +280,26 @@ std::pair<table_t *, datum_stream_t *> val_t::as_selection() {
     if (type.raw_type == type_t::DATUM)
         name = as_datum()->get_type_name();
 
-    rcheck(type.raw_type == type_t::TABLE || type.raw_type == type_t::SELECTION,
-           strprintf("Expected type StreamSelection but found %s.", name));
+    if (type.raw_type != type_t::TABLE && type.raw_type != type_t::SELECTION) {
+        rcheck_literal_type(type_t::SELECTION);
+    }
     return std::make_pair(table, as_seq());
 }
 
 std::pair<table_t *, const datum_t *> val_t::as_single_selection() {
-    rcheck(type.raw_type == type_t::SINGLE_SELECTION,
-           strprintf("Expected type SingleSelection but found %s.",
-                     type.name()));
+    rcheck_literal_type(type_t::SINGLE_SELECTION);
     return std::make_pair(table, datum);
 }
 
 func_t *val_t::as_func(function_shortcut_t shortcut) {
     if (shortcut == NO_SHORTCUT) {
-        rcheck(type.raw_type == type_t::FUNC,
-               strprintf("Expected type Function but found %s.", type.name()));
+        rcheck_literal_type(type_t::FUNC);
         r_sanity_check(func);
     }
     if (!func) {
+        if (!type.is_convertible(type_t::DATUM)) {
+            rcheck_literal_type(type_t::FUNC);
+        }
         r_sanity_check(parent);
         switch(shortcut) {
         case FILTER_SHORTCUT: {
@@ -317,8 +316,7 @@ func_t *val_t::as_func(function_shortcut_t shortcut) {
 }
 
 uuid_u val_t::as_db() {
-    rcheck(type.raw_type == type_t::DB,
-           strprintf("Expected type Database but found %s.", type.name()));
+    rcheck_literal_type(type_t::DB);
     return db;
 }
 
@@ -361,6 +359,12 @@ const std::string &val_t::as_str() {
         rfail("%s", e.what());
         unreachable();
     }
+}
+
+void val_t::rcheck_literal_type(type_t::raw_type_t expected_raw_type) {
+    rcheck(type.raw_type == expected_raw_type,
+           strprintf("Expected type %s but found type %s:\n%s",
+                     type_t(expected_raw_type).name(), type.name(), print().c_str()));
 }
 
 } //namespace ql
