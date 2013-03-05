@@ -335,7 +335,7 @@ class RDBDbList extends RDBOp
 
 class RDBTableCreate extends RDBWriteOp
     type: tp "Database, STRING, {datacenter:STRING; primary_key:STRING; cache_size:NUMBER} -> OBJECT"
-    op: (args) -> args[0].createTable args[1]
+    op: (args, optargs) -> args[0].createTable args[1], optargs
 
 class RDBTableDrop extends RDBWriteOp
     type: tp "Database, STRING -> OBJECT"

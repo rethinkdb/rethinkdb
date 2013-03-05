@@ -1,3 +1,4 @@
+goog.provide('google.cryptojs')
 /*
 CryptoJS v3.0.2
 code.google.com/p/crypto-js

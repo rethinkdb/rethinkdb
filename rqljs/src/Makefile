@@ -21,6 +21,8 @@ COFFEE_BUILD_DIR=$(BUILD_DIR)/coffee
 COFFEE_FILES=$(wildcard *.coffee)
 COMPILED_COFFEE=$(patsubst %.coffee,$(COFFEE_BUILD_DIR)/%.js,$(COFFEE_FILES))
 
+CRYPTOJS=$(BUILD_DIR)/sha1.js
+
 OUTPUT_MODE=script
 
 RQLJS=$(BUILD_DIR)/rqljs
@@ -40,7 +42,10 @@ $(PB_JS_FILE): $(PROTO_FILE) $(PROTOC_JS_HOME_DIR)/protoc-gen-js
 $(COFFEE_BUILD_DIR)/%.js: %.coffee
 	coffee -b -p -c $< > $@
 
-$(RQLJS): $(BUILD_DIR) $(PB_JS_FILE) $(COMPILED_COFFEE)
+$(CRYPTOJS): sha1.js
+	cp $< $@
+
+$(RQLJS): $(BUILD_DIR) $(PB_JS_FILE) $(COMPILED_COFFEE) $(CRYPTOJS)
 	$(CLOSURE_BUILDER) \
 		--root=$(CLOSURE_LIB) \
 		--root=$(BUILD_DIR) \
