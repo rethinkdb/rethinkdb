@@ -1572,7 +1572,7 @@ module 'DataExplorerView', ->
                 @non_rethinkdb_query = ''
                 @index = 0
                 @queries = @separate_queries @query
-
+                console.log @queries
                 @execute_portion()
 
                 ###
@@ -2246,6 +2246,7 @@ module 'DataExplorerView', ->
         render_result: (args) =>
             if args?.results?
                 @results = args.results
+                @results_array = null # We'll transform it only if we need to
             if args?.metadata?
                 @metadata = args.metadata
             if args?.metadata?.skip_value?
@@ -2279,7 +2280,13 @@ module 'DataExplorerView', ->
                     @.$('.link_to_tree_view').parent().addClass 'active'
                 when 'table'
                     previous_keys = @last_keys # Save previous keys. @last_keys will be updated in @json_to_table
-                    @.$('.table_view').html @json_to_table @results
+                    if Object.prototype.toString.call(@results) is '[object Array]'
+                        @.$('.table_view').html @json_to_table @results
+                    else
+                        if not @results_array?
+                            @results_array = []
+                            @results_array.push @results
+                        @.$('.table_view').html @json_to_table @results_array
                     @$('.results').hide()
                     @$('.table_view_container').show()
                     @.$('.link_to_table_view').addClass 'active'
