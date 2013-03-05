@@ -142,45 +142,52 @@ tests:
     # TODO: check r.js function not returning a value (e.g. undefined) in filter
     
     # TODO: what happens if we pass static values to things that expect functions (=> error unless we explicitly define it)
-    
+
     # forEach
+    - cd: tbl.count()
+      ot: 0
+
     - js: r([1, 2, 3]).forEach(function (row) { return tbl.insert({ id:row }) })
       py: r.expr([1, 2, 3]).for_each(lambda row:tbl.insert({ 'id':row }))
       rb: r([1, 2, 3]).for_each{ |row| tbl.insert { :id => row } }
       ot: ({'inserted':3})
 
+    - cd: tbl.count()
+      ot: 3
+
     - js: r([1, 2, 3]).forEach(function (row) { return tbl.update({ foo:row }) })
       py: r.expr([1,2,3]).for_each(lambda row:tbl.update({'foo':row}))
-      ot: ({'replaced':3})
+      ot: ({'replaced':9})
       
     - js: r([1, 2, 3]).forEach(function (row) { return [tbl.insert({ id:row }), tbl.insert({ id:row.mul(10) })] })
-      py: r.expr([1,2,3]).for_each(lambda row:[tbl.insert({'id':row}), tbl.insert({'id':row * 10})])
-      ot: ({'inserted':6})
+      py: r.expr([1,2,3]).for_each(lambda row:tbl.insert({'id':row * 10}))
+      ot: ({'inserted':3})
+
+    - cd: tbl.count()
+      ot: 6
 
     - js: r([1, 2, 3]).forEach(function (row) { return [tbl.update({ foo:row }), tbl.update({ bar:row })] })
       py: r.expr([1,2,3]).for_each(lambda row:[tbl.update({'foo':row}), tbl.update({'bar':row})])
       ot: ({'replaced':36})
       
     - cd: r.expr([1, 2, 3]).for_each( tbl.insert({ 'id':r.row }) )
-      ot: err("RqlCompileError", "Cannot use r.row in nested queries. Use functions instead.", [0])
+      ot: err("RqlCompileError", "No implicit variable is bound.", [0])
     
     # forEach negative cases
     # YYY
     #- cd: r.expr([1, 2, 3]).for_each(1)
     #  ot: 'err("RqlRuntimeError", "Expected type Function(1) but found NUMBER.", [0])'
 
-    # XXX
-    #- py: r.expr([1, 2, 3]).for_each(lambda x:x)
-    #  js: r([1, 2, 3]).forEach(function (x) { return x; })
-    #  ot: 'err("RqlRuntimeError", "Expected type WriteQuery but found NUMBER.", [0])'
+    - py: r.expr([1, 2, 3]).for_each(lambda x:x)
+      js: r([1, 2, 3]).forEach(function (x) { return x; })
+      ot: 'err("RqlRuntimeError", "Expected type WriteQuery but found NUMBER.", [0])'
     
-    # XXX
-    #- cd: r.expr([1, 2, 3]).forEach(r.row)
-    #  ot: err("RqlRuntimeError", "Expected type WriteQuery but found Function(1).", [0])
+    - cd: r.expr([1, 2, 3]).for_each(r.row)
+      ot: err("RqlRuntimeError", "Expected type WriteQuery but found NUMBER.", [0])
 
-    # XXX
-    #- js: "r([1, 2, 3]).forEach(function (row) { return tbl; })"
-    #  ot: err("RqlRuntimeError", "Expected type WriteQuery but found Function(1).", [0])
+    - js: r([1, 2, 3]).forEach(function (row) { return tbl; })
+      py: r.expr([1, 2, 3]).for_each(lambda row:tbl)
+      ot: err("RqlRuntimeError", "Expected type WriteQuery but found Table.", [0])
     
     - js: "r([1, 2, 3]).forEach(function (row) {})"
       ot: err("RqlDriverError", 'Unknown datum value "undefined", did you forget a "return"?', [1])

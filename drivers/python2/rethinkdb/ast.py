@@ -215,7 +215,7 @@ class RDBSequence(RDBBase, RDBComparable):
         return Replace(self, mapping)
 
     def for_each(self, mapping):
-        return ForEach(self, mapping)
+        return ForEach(self, func_wrap(mapping))
     
 class RDBValOp(RDBValue, RDBOp):
     pass

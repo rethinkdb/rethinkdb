@@ -42,9 +42,11 @@ class RDBContext
             return row_res
 
     pushImplicitVar: (implicitVar) -> @implicitVarStack.push implicitVar
-    popImplicitVar: (implicitVar) -> @implicitVarStack.pop implicitVar
+    popImplicitVar: -> @implicitVarStack.pop()
 
     getImplicitVar: ->
-        if @implicitVarStack.length > 1 then throw new RqlCompileError "Cannot use r.row in nested queries. Use functions instead."
-        else if @implicitVarStack.length < 1 then throw new RqlCompileError "Cannot use r.row in nested queries. Use functions instead."
+        if @implicitVarStack.length > 1
+            throw new RqlCompileError "Cannot use r.row in nested queries. Use functions instead."
+        else if @implicitVarStack.length < 1
+            throw new RqlCompileError "No implicit variable is bound."
         else @implicitVarStack[0]
