@@ -877,6 +877,27 @@ po::options_description get_rethinkdb_proxy_options_visible() {
     return desc;
 }
 
+options::help_section_t get_rethinkdb_admin_options(std::vector<options::option_t> *options_out) {
+    options::help_section_t help("Allowed options");
+
+#ifndef NDEBUG
+    options_out->push_back(options::option_t(options::names_t("--client-port"),
+                                             options::OPTIONAL,
+                                             strprintf("%d", port_defaults::client_port)));
+    help.add("--client-port port", "port to use when connecting to other nodes (for development)");
+#endif
+
+    options_out->push_back(options::option_t(options::names_t("--join", "-j"),
+                                             options::OPTIONAL_REPEAT));
+    help.add("-j [ --join ] host:port", "host and port of a rethinkdb node to connect to");
+
+    options_out->push_back(options::option_t(options::names_t("--exit-failure", "-x"),
+                                             options::OPTIONAL_NO_PARAMETER));
+    help.add("-x [ --exit-failure ]", "exit with an error code immediately if a command fails");
+
+    return help;
+}
+
 po::options_description get_rethinkdb_admin_options() {
     po::options_description desc("Allowed options");
     desc.add_options()
