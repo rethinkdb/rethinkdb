@@ -156,12 +156,13 @@ bool check_existence(const base_path_t& base_path) {
     return 0 == access(base_path.path().c_str(), F_OK);
 }
 
-std::string get_web_path(const po::variables_map& vm, char *argv[]) {
+std::string get_web_path(boost::optional<std::string> web_static_directory, char **argv) {
     // We check first for a run-time option, then check the home of the binary,
-    //  and then we check in the install location if such a location was provided at compile time.
+    // and then we check in the install location if such a location was provided
+    // at compile time.
     path_t result;
-    if (vm.count("web-static-directory")) {
-        result = parse_as_path(vm["web-static-directory"].as<std::string>());
+    if (web_static_directory) {
+        result = parse_as_path(*web_static_directory);
     } else {
         result = parse_as_path(argv[0]);
         result.nodes.pop_back();
@@ -177,6 +178,14 @@ std::string get_web_path(const po::variables_map& vm, char *argv[]) {
     return render_as_path(result);
 }
 
+std::string get_web_path(const po::variables_map& vm, char *argv[]) {
+    boost::optional<std::string> web_static_directory
+        = vm.count("web-static-directory") == 1
+        ? vm["web-static-directory"].as<std::string>()
+        : boost::optional<std::string>();
+    return get_web_path(web_static_directory, argv);
+}
+
 class address_lookup_exc_t : public std::exception {
 public:
     explicit address_lookup_exc_t(const std::string& data) : info(data) { }
@@ -186,11 +195,8 @@ private:
     std::string info;
 };
 
-std::set<ip_address_t> get_local_addresses(const po::variables_map& vm) {
-    std::vector<std::string> vector_filter;
-    if (vm.count("bind") > 0) {
-        vector_filter = vm["bind"].as<std::vector<std::string> >();
-    }
+std::set<ip_address_t> get_local_addresses(const std::vector<std::string> &bind_options) {
+    const std::vector<std::string> vector_filter = bind_options;
     std::set<ip_address_t> set_filter;
     bool all = false;
 
@@ -230,35 +236,55 @@ std::set<ip_address_t> get_local_addresses(const po::variables_map& vm) {
     return result;
 }
 
+std::set<ip_address_t> get_local_addresses(const po::variables_map& vm) {
+    std::vector<std::string> vector_filter;
+    if (vm.count("bind") > 0) {
+        vector_filter = vm["bind"].as<std::vector<std::string> >();
+    }
+
+    return get_local_addresses(vector_filter);
+}
+
+struct port_command_line_options_t {
+    std::set<ip_address_t> local_addresses;
+    int cluster_port;
+    int http_port;
+    bool http_admin_is_disabled;
+    int cluster_client_port;
+    int reql_port;
+    int port_offset;
+};
+
+int offseted_port(const int port, const int port_offset) {
+    return port == 0 ? 0 : port + port_offset;
+}
+
+service_address_ports_t get_service_address_ports(port_command_line_options_t options) {
+    return service_address_ports_t(options.local_addresses,
+                                   offseted_port(options.cluster_port, options.port_offset),
+                                   options.cluster_client_port,
+                                   options.http_admin_is_disabled,
+                                   offseted_port(options.http_port, options.port_offset),
+                                   offseted_port(options.reql_port, options.port_offset),
+                                   options.port_offset);
+}
+
+
 service_address_ports_t get_service_address_ports(const po::variables_map& vm) {
-    // serve
-    int cluster_port = vm["cluster-port"].as<int>();
-    int http_port = vm["http-port"].as<int>();
-    bool http_admin_is_disabled = vm.count("no-http-admin") > 0;
+    port_command_line_options_t options;
+    options.local_addresses = get_local_addresses(vm);
+    options.cluster_port = vm["cluster-port"].as<int>();
+    options.http_port = vm["http-port"].as<int>();
+    options.http_admin_is_disabled = vm.count("no-http-admin") > 0;
 #ifndef NDEBUG
-    int cluster_client_port = vm["client-port"].as<int>();
+    options.cluster_client_port = vm["client-port"].as<int>();
 #else
-    int cluster_client_port = port_defaults::client_port;
+    options.cluster_client_port = port_defaults::client_port;
 #endif
-    // int reql_port = vm["reql-port"].as<int>();
-    int reql_port = vm["driver-port"].as<int>();
-    int port_offset = vm["port-offset"].as<int>();
+    options.reql_port = vm["driver-port"].as<int>();
+    options.port_offset = vm["port-offset"].as<int>();
 
-    if (cluster_port != 0) {
-        cluster_port += port_offset;
-    }
-
-    if (http_port != 0) {
-        http_port += port_offset;
-    }
-
-    if (reql_port != 0) {
-        reql_port += port_offset;
-    }
-
-    return service_address_ports_t(
-        get_local_addresses(vm), cluster_port, cluster_client_port,
-        http_admin_is_disabled, http_port, reql_port, port_offset);
+    return get_service_address_ports(options);
 }
 
 void run_rethinkdb_create(const base_path_t &base_path, const name_string_t &machine_name, const io_backend_t io_backend, bool *const result_out) {
