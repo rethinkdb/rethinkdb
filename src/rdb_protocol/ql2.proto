@@ -281,7 +281,7 @@ message Term2 {
         // Coerces a datum to a named type (e.g. "bool").
         // If you previously used `stream_to_array`, you should use this instead
         // with the type "array".
-        COERCE = 51; // Top, STRING -> Top
+        COERCE_TO = 51; // Top, STRING -> Top
         // Returns the named type of a datum (e.g. TYPEOF(true) = "BOOL")
         TYPEOF = 52; // Top -> STRING
 
